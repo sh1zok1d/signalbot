@@ -1,15 +1,14 @@
-## Generator V0 first-shadow-v7 live campaign — 2026-09-23
+## Generator V0 first-shadow-v7 fail-closed — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_LIVE`.
-Owner-authorized absolute campaign ceiling is USD 17.100000, including
-already recorded imported spend USD 3.779550. Remaining authorized spend
-is USD 13.320450. USD 17.10 is not an additional allowance. Archived paid
-runs through `first-shadow-v6` remain sealed. Live `first-shadow-v7` may
-proceed only after offline derive through generation:2, cap extension to
-USD 17.100000, and remaining-budget-preflight
-`FITS_AUTHORIZED_REMAINING=true`. Fail closed before exceeding the
-ceiling. No protected-data open. Frozen design/historical records retain
-their historical labels.
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`.
+Live first-shadow-v7 ran generation:3 under the USD 17.100000 absolute
+ceiling, then fail-closed on `ambiguous protected range`. New spend
+USD 1.167200; cumulative USD 4.946750. Critics and selector were not
+started. No scientific outcome. Protected 2025/2026 remain unopened.
+`first-shadow-v6` and `first-shadow-v7` are sealed. Do not resume v7. Do
+not extend LEGAL_RANGE or the C033 exclusion parser from observed
+generation:3 wrappers. Frozen design/historical records retain their
+historical labels.
 
 ---
 
@@ -17,7 +16,7 @@ their historical labels.
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-23
-**Current phase:** `GENERATOR_V0_FIRST_SHADOW_V7_LIVE`
+**Current phase:** `GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 
@@ -113,8 +112,8 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `PREVIOUS_UNIT = POST_SPRINT04_AUTOMATION_MATURITY_DECISION` (decided:
 `HYPOTHESIS_GENERATOR_V0_INFRA_READY`; no Sprint 05; design frozen in
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`, not built).
-`NEXT_ACTION = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL`.
-`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_LIVE`.
+`NEXT_ACTION = STOP_NO_RESUME_NO_VALIDATOR_REPAIR`.
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -217,8 +216,8 @@ automatically create Sprint 05. Do not build the hypothesis generator here.
 `PREVIOUS_UNIT = POST_SPRINT04_AUTOMATION_MATURITY_DECISION` (decided:
 `HYPOTHESIS_GENERATOR_V0_INFRA_READY`; no Sprint 05; design frozen in
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`, not built).
-`NEXT_ACTION = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL`.
-`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_LIVE`.
+`NEXT_ACTION = STOP_NO_RESUME_NO_VALIDATOR_REPAIR`.
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`.
 
 Card identities at definition time (unchanged):
 

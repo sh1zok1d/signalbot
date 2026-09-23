@@ -361,7 +361,8 @@ def test_archived_paid_run_is_not_opened_by_operator(monkeypatch):
     from scripts.research.generator_v0.__main__ import ARCHIVED_PAID_RUNS
     assert ('generator_v0','first-shadow-v5') in ARCHIVED_PAID_RUNS
     assert ('generator_v0','first-shadow-v6') in ARCHIVED_PAID_RUNS
-    for run_dir in ('artifacts/generator_v0/first-shadow','artifacts/generator_v0/first-shadow-v2','artifacts/generator_v0/first-shadow-v3','artifacts/generator_v0/first-shadow-v4','artifacts/generator_v0/first-shadow-v5','artifacts/generator_v0/first-shadow-v6'):
+    assert ('generator_v0','first-shadow-v7') in ARCHIVED_PAID_RUNS
+    for run_dir in ('artifacts/generator_v0/first-shadow','artifacts/generator_v0/first-shadow-v2','artifacts/generator_v0/first-shadow-v3','artifacts/generator_v0/first-shadow-v4','artifacts/generator_v0/first-shadow-v5','artifacts/generator_v0/first-shadow-v6','artifacts/generator_v0/first-shadow-v7'):
         with pytest.raises(ContractError,match='archived paid run'):
             main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','10','--run-dir',run_dir])
 

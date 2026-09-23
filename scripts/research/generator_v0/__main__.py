@@ -20,6 +20,7 @@ ARCHIVED_PAID_RUNS={
     ('generator_v0','first-shadow-v4'),
     ('generator_v0','first-shadow-v5'),
     ('generator_v0','first-shadow-v6'),
+    ('generator_v0','first-shadow-v7'),
 }
 
 def archived_paid_run(path):

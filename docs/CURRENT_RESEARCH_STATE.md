@@ -1,15 +1,14 @@
-## Generator V0 first-shadow-v7 live campaign — 2026-09-23
+## Generator V0 first-shadow-v7 fail-closed — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_LIVE`.
-Owner-authorized absolute campaign ceiling is USD 17.100000, including
-already recorded imported spend USD 3.779550. Remaining authorized spend
-is USD 13.320450. USD 17.10 is not an additional allowance.
-Archived paid runs `artifacts/generator_v0/first-shadow` through
-`first-shadow-v6` remain sealed. Live `first-shadow-v7` may proceed only
-after offline derive through generation:2, cap extension to USD 17.100000,
-and remaining-budget-preflight `FITS_AUTHORIZED_REMAINING=true`. Fail
-closed before exceeding the ceiling. No protected-data open. Frozen
-design/historical records retain their historical labels.
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`.
+Live first-shadow-v7 ran generation:3 under the USD 17.100000 absolute
+ceiling, then fail-closed on `ambiguous protected range`. New spend
+USD 1.167200; cumulative USD 4.946750. Critics and selector were not
+started. Cards table remains empty. No scientific outcome. Protected
+2025/2026 remain unopened. `first-shadow-v6` and `first-shadow-v7` are
+sealed. Do not resume v7. Do not extend LEGAL_RANGE or the C033 exclusion
+parser from observed generation:3 wrappers. Frozen design/historical
+records retain their historical labels.
 
 ---
 
@@ -52,8 +51,8 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = GENERATOR_V0_FIRST_SHADOW_V7_LIVE
-NEXT_ACTION                 = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL
+NEXT_UNIT                   = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED
+NEXT_ACTION                 = STOP_NO_RESUME_NO_VALIDATOR_REPAIR
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED
 GENERATOR_MODE              = SHADOW_ONLY

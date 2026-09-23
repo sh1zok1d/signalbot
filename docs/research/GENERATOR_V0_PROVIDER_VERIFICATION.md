@@ -55,12 +55,13 @@ logprobs are not sent. Unknown models and missing verified prices fail closed.
 
 The archived partial runs `artifacts/generator_v0/first-shadow`,
 `first-shadow-v2`, `first-shadow-v3`, `first-shadow-v4`,
-`first-shadow-v5`, and `first-shadow-v6` are sealed and must not be
-resumed. Those snapshots are not in the live routing table. Do not
-retrofit archived ledgers. Compatible COMPLETE calls may be copied into
-a new run only by the offline `derive` operator. `first-shadow-v6` is
-the current immutable derive source through generation:2. Do not create
-live `first-shadow-v7` in the LEGAL_RANGE / budget-extension unit.
+`first-shadow-v5`, `first-shadow-v6`, and `first-shadow-v7` are sealed
+and must not be resumed. Those snapshots are not in the live routing
+table. Do not retrofit archived ledgers. Compatible COMPLETE calls may
+be copied into a new run only by the offline `derive` operator.
+`first-shadow-v6` remains the immutable derive source through
+generation:2. `first-shadow-v7` fail-closed after live generation:3
+(`STOPPED_PROTECTED_RANGE_VALIDATION`) and is not a derive source.
 
 Every object in the provider JSON Schema sets `additionalProperties: false`
 and lists every property as required. Frozen `SEARCH_SURFACE.PARAMETERS` is a

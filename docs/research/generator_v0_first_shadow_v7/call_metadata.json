@@ -1,0 +1,318 @@
+[
+  {
+    "CALL_KEY": "29025502a9a36bc7f475e09c382ae8c372991efd9e8b86d330363e991ed5f2ad",
+    "COST_MICRO_USD": 1213380,
+    "ERROR": null,
+    "LIVE_THIS_UNIT": false,
+    "MAX_OUTPUT_TOKENS": 32768,
+    "MODEL": "gpt-6-astra",
+    "MODEL_REQUEST_PARAMS": {
+      "reasoning_effort": "high"
+    },
+    "PROMPT_VERSION": "generator-v0.1",
+    "PROVIDER": "OPENAI_RESPONSES",
+    "PROVIDER_STATUS": "completed",
+    "RAW_RESPONSE_SHA256": "5203e31a9ac031b23831029ffd1199f9692d9301e034210acd2c9073089bceda",
+    "RESERVED_MICRO_USD": 1850770,
+    "RESPONSE_ID": "resp_08273b80118314ac006ab39d9b92dc87d2ba9539e343da810e",
+    "ROLE": "GENERATOR",
+    "SLOT": "generation:0",
+    "SLOTS": [
+      {
+        "CANDIDATE_ID": "C001",
+        "INFORMATION_SOURCE": "KLINES",
+        "MECHANISM_FAMILY": "A"
+      },
+      {
+        "CANDIDATE_ID": "C002",
+        "INFORMATION_SOURCE": "CROSS_VENUE",
+        "MECHANISM_FAMILY": "B"
+      },
+      {
+        "CANDIDATE_ID": "C003",
+        "INFORMATION_SOURCE": "PRE2020_SURFACE",
+        "MECHANISM_FAMILY": "C"
+      },
+      {
+        "CANDIDATE_ID": "C004",
+        "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+        "MECHANISM_FAMILY": "D"
+      },
+      {
+        "CANDIDATE_ID": "C005",
+        "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+        "MECHANISM_FAMILY": "E"
+      },
+      {
+        "CANDIDATE_ID": "C006",
+        "INFORMATION_SOURCE": "OPTIONS",
+        "MECHANISM_FAMILY": "F"
+      },
+      {
+        "CANDIDATE_ID": "C007",
+        "INFORMATION_SOURCE": "ONCHAIN",
+        "MECHANISM_FAMILY": "G"
+      },
+      {
+        "CANDIDATE_ID": "C008",
+        "INFORMATION_SOURCE": "ORDER_BOOK",
+        "MECHANISM_FAMILY": "H"
+      },
+      {
+        "CANDIDATE_ID": "C009",
+        "INFORMATION_SOURCE": "KLINES",
+        "MECHANISM_FAMILY": "I"
+      },
+      {
+        "CANDIDATE_ID": "C010",
+        "INFORMATION_SOURCE": "CROSS_VENUE",
+        "MECHANISM_FAMILY": "J"
+      }
+    ],
+    "SOURCE_RESPONSE_ID": "resp_08273b80118314ac006ab39d9b92dc87d2ba9539e343da810e",
+    "SOURCE_RUN_ID": "first-shadow-v6",
+    "STATE": "COMPLETE",
+    "USAGE": {
+      "input_tokens": 4588,
+      "output_tokens": 23350,
+      "reasoning_tokens": 11897
+    }
+  },
+  {
+    "CALL_KEY": "4987036cc23246d2dbd50cceb277139ee8fe59339c671c99ae801d315d0e8010",
+    "COST_MICRO_USD": 1352350,
+    "ERROR": null,
+    "LIVE_THIS_UNIT": false,
+    "MAX_OUTPUT_TOKENS": 32768,
+    "MODEL": "gpt-6-astra",
+    "MODEL_REQUEST_PARAMS": {
+      "reasoning_effort": "high"
+    },
+    "PROMPT_VERSION": "generator-v0.1",
+    "PROVIDER": "OPENAI_RESPONSES",
+    "PROVIDER_STATUS": "completed",
+    "RAW_RESPONSE_SHA256": "07855f3279cb6aa3af1b517aae747f80bb9268205a2e5ba3e576603935f98677",
+    "RESERVED_MICRO_USD": 1850920,
+    "RESPONSE_ID": "resp_0a0404f934baedd9006ab3a068c70887d2af71eda734b5aa3c",
+    "ROLE": "GENERATOR",
+    "SLOT": "generation:1",
+    "SLOTS": [
+      {
+        "CANDIDATE_ID": "C011",
+        "INFORMATION_SOURCE": "PRE2020_SURFACE",
+        "MECHANISM_FAMILY": "A"
+      },
+      {
+        "CANDIDATE_ID": "C012",
+        "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+        "MECHANISM_FAMILY": "B"
+      },
+      {
+        "CANDIDATE_ID": "C013",
+        "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+        "MECHANISM_FAMILY": "C"
+      },
+      {
+        "CANDIDATE_ID": "C014",
+        "INFORMATION_SOURCE": "OPTIONS",
+        "MECHANISM_FAMILY": "D"
+      },
+      {
+        "CANDIDATE_ID": "C015",
+        "INFORMATION_SOURCE": "ONCHAIN",
+        "MECHANISM_FAMILY": "E"
+      },
+      {
+        "CANDIDATE_ID": "C016",
+        "INFORMATION_SOURCE": "ORDER_BOOK",
+        "MECHANISM_FAMILY": "F"
+      },
+      {
+        "CANDIDATE_ID": "C017",
+        "INFORMATION_SOURCE": "KLINES",
+        "MECHANISM_FAMILY": "G"
+      },
+      {
+        "CANDIDATE_ID": "C018",
+        "INFORMATION_SOURCE": "CROSS_VENUE",
+        "MECHANISM_FAMILY": "H"
+      },
+      {
+        "CANDIDATE_ID": "C019",
+        "INFORMATION_SOURCE": "PRE2020_SURFACE",
+        "MECHANISM_FAMILY": "I"
+      },
+      {
+        "CANDIDATE_ID": "C020",
+        "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+        "MECHANISM_FAMILY": "J"
+      }
+    ],
+    "SOURCE_RESPONSE_ID": "resp_0a0404f934baedd9006ab3a068c70887d2af71eda734b5aa3c",
+    "SOURCE_RUN_ID": "first-shadow-v6",
+    "STATE": "COMPLETE",
+    "USAGE": {
+      "input_tokens": 4590,
+      "output_tokens": 26129,
+      "reasoning_tokens": 13984
+    }
+  },
+  {
+    "CALL_KEY": "9c93901defcfc75770a3073a039d5bb94529a2b69febea3cceb885f9d193f7e0",
+    "COST_MICRO_USD": 1213820,
+    "ERROR": null,
+    "LIVE_THIS_UNIT": false,
+    "MAX_OUTPUT_TOKENS": 32768,
+    "MODEL": "gpt-6-astra",
+    "MODEL_REQUEST_PARAMS": {
+      "reasoning_effort": "high"
+    },
+    "PROMPT_VERSION": "generator-v0.1",
+    "PROVIDER": "OPENAI_RESPONSES",
+    "PROVIDER_STATUS": "completed",
+    "RAW_RESPONSE_SHA256": "f66e729323ec3ce21eaea675e57294ec7eb32230afc96d42b28e36c6541e4e3f",
+    "RESERVED_MICRO_USD": 1850880,
+    "RESPONSE_ID": "resp_0804f042cef56925006ab3cdfb548887d2b43773b1e57a8094",
+    "ROLE": "GENERATOR",
+    "SLOT": "generation:2",
+    "SLOTS": [
+      {
+        "CANDIDATE_ID": "C021",
+        "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+        "MECHANISM_FAMILY": "A"
+      },
+      {
+        "CANDIDATE_ID": "C022",
+        "INFORMATION_SOURCE": "OPTIONS",
+        "MECHANISM_FAMILY": "B"
+      },
+      {
+        "CANDIDATE_ID": "C023",
+        "INFORMATION_SOURCE": "ONCHAIN",
+        "MECHANISM_FAMILY": "C"
+      },
+      {
+        "CANDIDATE_ID": "C024",
+        "INFORMATION_SOURCE": "ORDER_BOOK",
+        "MECHANISM_FAMILY": "D"
+      },
+      {
+        "CANDIDATE_ID": "C025",
+        "INFORMATION_SOURCE": "KLINES",
+        "MECHANISM_FAMILY": "E"
+      },
+      {
+        "CANDIDATE_ID": "C026",
+        "INFORMATION_SOURCE": "CROSS_VENUE",
+        "MECHANISM_FAMILY": "F"
+      },
+      {
+        "CANDIDATE_ID": "C027",
+        "INFORMATION_SOURCE": "PRE2020_SURFACE",
+        "MECHANISM_FAMILY": "G"
+      },
+      {
+        "CANDIDATE_ID": "C028",
+        "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+        "MECHANISM_FAMILY": "H"
+      },
+      {
+        "CANDIDATE_ID": "C029",
+        "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+        "MECHANISM_FAMILY": "I"
+      },
+      {
+        "CANDIDATE_ID": "C030",
+        "INFORMATION_SOURCE": "OPTIONS",
+        "MECHANISM_FAMILY": "J"
+      }
+    ],
+    "SOURCE_RESPONSE_ID": "resp_0804f042cef56925006ab3cdfb548887d2b43773b1e57a8094",
+    "SOURCE_RUN_ID": "first-shadow-v6",
+    "STATE": "COMPLETE",
+    "USAGE": {
+      "input_tokens": 4587,
+      "output_tokens": 23359,
+      "reasoning_tokens": 11252
+    }
+  },
+  {
+    "CALL_KEY": "efff72aad0b133316e5908a0378ff3aa4aaa57b8fba1a22eb9ac875fb9b6025d",
+    "COST_MICRO_USD": 1167200,
+    "ERROR": null,
+    "LIVE_THIS_UNIT": true,
+    "MAX_OUTPUT_TOKENS": 32768,
+    "MODEL": "gpt-6-astra",
+    "MODEL_REQUEST_PARAMS": {
+      "reasoning_effort": "high"
+    },
+    "PROMPT_VERSION": "generator-v0.1",
+    "PROVIDER": "OPENAI_RESPONSES",
+    "PROVIDER_STATUS": "completed",
+    "RAW_RESPONSE_SHA256": "69fc7a97217e5d3deba1887ec5746115c0c64d62466f92a74e461f9f61fbcf33",
+    "RESERVED_MICRO_USD": 1852570,
+    "RESPONSE_ID": "resp_071edfe3d5c0aaa9006ab3de92a5ac87d28b9f8efaec6c7db7",
+    "ROLE": "GENERATOR",
+    "SLOT": "generation:3",
+    "SLOTS": [
+      {
+        "CANDIDATE_ID": "C031",
+        "INFORMATION_SOURCE": "ONCHAIN",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL"
+      },
+      {
+        "CANDIDATE_ID": "C032",
+        "INFORMATION_SOURCE": "ORDER_BOOK",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL"
+      },
+      {
+        "CANDIDATE_ID": "C033",
+        "INFORMATION_SOURCE": "KLINES",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL"
+      },
+      {
+        "CANDIDATE_ID": "C034",
+        "INFORMATION_SOURCE": "CROSS_VENUE",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL"
+      },
+      {
+        "CANDIDATE_ID": "C035",
+        "INFORMATION_SOURCE": "PRE2020_SURFACE",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL"
+      },
+      {
+        "CANDIDATE_ID": "C036",
+        "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL"
+      },
+      {
+        "CANDIDATE_ID": "C037",
+        "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL"
+      },
+      {
+        "CANDIDATE_ID": "C038",
+        "INFORMATION_SOURCE": "OPTIONS",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL"
+      },
+      {
+        "CANDIDATE_ID": "C039",
+        "INFORMATION_SOURCE": "ONCHAIN",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL"
+      },
+      {
+        "CANDIDATE_ID": "C040",
+        "INFORMATION_SOURCE": "ORDER_BOOK",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL"
+      }
+    ],
+    "SOURCE_RESPONSE_ID": null,
+    "SOURCE_RUN_ID": null,
+    "STATE": "COMPLETE",
+    "USAGE": {
+      "input_tokens": 4635,
+      "output_tokens": 22417,
+      "reasoning_tokens": 10358
+    }
+  }
+]

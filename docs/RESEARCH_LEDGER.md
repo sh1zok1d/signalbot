@@ -5863,3 +5863,40 @@ SPENT_USD = 3.779550
 REMAINING_AUTHORIZED_USD = 13.320450
 FIRST_SHADOW_V6_SEALED = true
 ```
+
+## 2026-09-23 — Generator V0 first-shadow-v7 fail-closed after generation:3
+
+Live first-shadow-v7 reused imported generation:0/1/2 COMPLETE rows and
+made one new GENERATOR background Responses call for generation:3
+(`resp_071edfe3d5c0aaa9006ab3de92a5ac87d28b9f8efaec6c7db7`, actual
+USD 1.167200, reservation USD 1.852570). Local `validate_card` then
+fail-closed: 9/10 generation:3 cards invalid (8 `ambiguous protected
+range`, C033 `protected data requirement`); C037 valid; `cards` table
+empty. Critics and selector were not started. Cumulative spend
+USD 4.946750 of the USD 17.100000 ceiling. The journaled generation:3
+answer was not edited. LEGAL_RANGE wrappers and the C033 exclusion parser
+were not extended after observing those outcomes. Source cards C001–C030
+were not edited. first-shadow-v6 sqlite SHA256 remains
+`ed318020ff5d6c765394c15ba4ff5bd7dc0f89ffe83f7692f678e3f7e124b22d`.
+first-shadow-v7 is sealed. No scientific outcome. Protected 2025/2026
+unopened. Record: `docs/research/GENERATOR_V0_FIRST_SHADOW_V7.{json,md}`.
+
+```
+NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED
+NEXT_ACTION = STOP_NO_RESUME_NO_VALIDATOR_REPAIR
+STATUS = STOPPED_PROTECTED_RANGE_VALIDATION
+NEW_SPEND_USD = 1.167200
+CUMULATIVE_SPEND_USD = 4.946750
+REAL_LLM_CALLS_THIS_UNIT = 1
+GENERATION_3_VALID = 1
+GENERATION_3_INVALID = 9
+CARDS_TABLE_COUNT = 0
+CRITICS_RUN = false
+SELECTOR_RUN = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_2026_OPENED = false
+VALIDATOR_REPAIRED_AFTER_OUTCOME = false
+FIRST_SHADOW_V6_SEALED = true
+FIRST_SHADOW_V7_SEALED = true
+AUTHORITY_JOURNAL_SHA256 = e27eb1ce77c5152eff4e68e30c2632ad9bd575ef953b5a069775b5ff46f36457
+```

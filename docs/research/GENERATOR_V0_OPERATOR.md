@@ -8,8 +8,9 @@ scientific design is unchanged. A successful campaign still terminates at
 `artifacts/generator_v0/first-shadow`, `artifacts/generator_v0/first-shadow-v2`,
 `artifacts/generator_v0/first-shadow-v3`,
 `artifacts/generator_v0/first-shadow-v4`,
-`artifacts/generator_v0/first-shadow-v5`, and
-`artifacts/generator_v0/first-shadow-v6` are sealed and the operator
+`artifacts/generator_v0/first-shadow-v5`,
+`artifacts/generator_v0/first-shadow-v6`, and
+`artifacts/generator_v0/first-shadow-v7` are sealed and the operator
 refuses to open them for run/resume/review. Offline `derive` may read
 `first-shadow-v6` as an immutable source. One campaign generates
 research cards, applies separate critics and produces a human-review queue.
@@ -48,52 +49,57 @@ resume or overwrite `artifacts/generator_v0/first-shadow`,
 `artifacts/generator_v0/first-shadow-v2`,
 `artifacts/generator_v0/first-shadow-v3`,
 `artifacts/generator_v0/first-shadow-v4`,
-`artifacts/generator_v0/first-shadow-v5`, or
-`artifacts/generator_v0/first-shadow-v6`.
+`artifacts/generator_v0/first-shadow-v5`,
+`artifacts/generator_v0/first-shadow-v6`, or
+`artifacts/generator_v0/first-shadow-v7`.
 
 Offline COMPLETE carry-forward (no provider POST). Source remains
-byte-for-byte unchanged. Destination is a new run. Imported actual cost
-counts once against the source campaign cap. Revalidation uses the
-current application validator. `--through-generation 2` imports
+byte-for-byte unchanged. Destination is a new unarchived run. Imported
+actual cost counts once against the source campaign cap. Revalidation
+uses the current application validator. `--through-generation 2` imports
 generation:0/1/2 and then stops; it does not start generation:3.
 
 ```bash
-python -m scripts.research.generator_v0 derive --source-run-dir artifacts/generator_v0/first-shadow-v6 --run-dir artifacts/generator_v0/first-shadow-v7 --through-generation 2
+python -m scripts.research.generator_v0 derive --source-run-dir artifacts/generator_v0/first-shadow-v6 --run-dir artifacts/generator_v0/scratch-dest --through-generation 2
 ```
 
-Derive revalidates imported COMPLETE rounds and stops at
-`DERIVED_IMPORTED_REVALIDATED`. It does not write the `cards` table and
-does not start remaining generator rounds. An explicit later
-authorization is required before remaining rounds may run:
+`first-shadow-v6` remains the immutable derive source through
+generation:2. `first-shadow-v7` is sealed after a live generation:3
+fail-closed stop (`STOPPED_PROTECTED_RANGE_VALIDATION`) and must not be
+opened as a destination or resumed. Derive revalidates imported COMPLETE
+rounds and stops at `DERIVED_IMPORTED_REVALIDATED`. It does not write the
+`cards` table and does not start remaining generator rounds. An explicit
+later authorization is required before remaining rounds may run on a
+**new** unarchived destination:
 
 ```bash
-python -m scripts.research.generator_v0 authorize-derived-continuation --run-dir artifacts/generator_v0/first-shadow-v7 --actor owner --reason "revalidation passed; continue remaining generator rounds"
+python -m scripts.research.generator_v0 authorize-derived-continuation --run-dir artifacts/generator_v0/scratch-dest --actor owner --reason "revalidation passed; continue remaining generator rounds"
 ```
 
 That command makes no provider call. Direct run/resume from
 `DERIVED_IMPORTED_REVALIDATED` is refused. After
 `DERIVED_CONTINUATION_AUTHORIZED`, resume may reuse imported COMPLETE
-rounds and continue. Do not create a live first-shadow-v7 in this
-LEGAL_RANGE / budget-extension unit; prove derive on a TEMP scratch
-destination and derive v7 after merge.
+rounds and continue. Do not resume sealed `first-shadow-v7`. Do not
+extend `classify_legal_range` or the C033 exclusion parser from observed
+generation:3 wrappers.
 
-Offline campaign-cap extension (no provider POST). Existing run required.
-Actor, reason, and explicit new cap required. The new cap must exceed the
-old cap, cannot decrease, cannot exceed the owner-authorized absolute
-total of USD 17.100000, and cannot exceed the technical maximum of
-USD 30. The command rewrites only `CAP_MICRO_USD` and records an
-immutable `BUDGET_EXTENSION_AUTHORIZED` event (`OLD_CAP_MICRO_USD`,
-`NEW_CAP_MICRO_USD`, `ACTOR`, `REASON`, `TIME`). Call identities,
-responses, costs, and scientific state are unchanged. USD 17.100000 is the authorized absolute campaign total, not an
-incremental allowance. Example after a v7 derive (old USD 7.117536,
-new USD 17.100000):
+Offline campaign-cap extension (no provider POST). Existing unarchived
+run required. Actor, reason, and explicit new cap required. The new cap
+must exceed the old cap, cannot decrease, cannot exceed the
+owner-authorized absolute total of USD 17.100000, and cannot exceed the
+technical maximum of USD 30. The command rewrites only `CAP_MICRO_USD`
+and records an immutable `BUDGET_EXTENSION_AUTHORIZED` event
+(`OLD_CAP_MICRO_USD`, `NEW_CAP_MICRO_USD`, `ACTOR`, `REASON`, `TIME`).
+Call identities, responses, costs, and scientific state are unchanged.
+USD 17.100000 is the authorized absolute campaign total, not an
+incremental allowance.
 
 ```bash
-python -m scripts.research.generator_v0 authorize-budget-extension --run-dir artifacts/generator_v0/first-shadow-v7 --actor owner --reason "set absolute authorized campaign total to USD 17.10" --new-cap-usd 17.100000
+python -m scripts.research.generator_v0 authorize-budget-extension --run-dir artifacts/generator_v0/scratch-dest --actor owner --reason "set absolute authorized campaign total to USD 17.10" --new-cap-usd 17.100000
 ```
 
-Do not run that command against sealed `first-shadow-v6`. A cap of
-USD 17.117536 is not authorized.
+Do not run that command against sealed `first-shadow-v6` or
+`first-shadow-v7`. A cap of USD 17.117536 is not authorized.
 
 Offline remaining-campaign budget preflight (no provider POST). Uses the
 same `bound()` reservation path as live `ledger.reserve`. Ungenerated
@@ -101,10 +107,16 @@ cards are proxied by cloning the largest imported card. If
 `FITS_AUTHORIZED_REMAINING` is false, do not make a real LLM call.
 
 ```bash
-python -m scripts.research.generator_v0 remaining-budget-preflight --run-dir artifacts/generator_v0/first-shadow-v7
-python -m scripts.research.generator_v0 authorize-derived-continuation --run-dir artifacts/generator_v0/first-shadow-v7 --actor owner --reason "remaining-budget-preflight FITS; continue remaining generator rounds"
-python -m scripts.research.generator_v0 resume --provider openai --allow-real-llm --budget-usd 17.100000 --run-dir artifacts/generator_v0/first-shadow-v7
+python -m scripts.research.generator_v0 remaining-budget-preflight --run-dir artifacts/generator_v0/scratch-dest
 ```
+
+The consumed first-shadow-v7 live sequence (historical; operator now
+refuses these paths) was: derive through generation:2, cap extension to
+USD 17.100000, remaining-budget-preflight FITS, authorize-derived-continuation,
+then `resume --provider openai --allow-real-llm --budget-usd 17.100000`.
+Generation:3 COMPLETE was journaled; local validation then fail-closed
+on `ambiguous protected range`. Record:
+`docs/research/GENERATOR_V0_FIRST_SHADOW_V7.{json,md}`.
 
 ```bash
 python -m scripts.research.generator_v0 run --provider openai --allow-real-llm --budget-usd 10 --run-dir artifacts/generator_v0/shadow
