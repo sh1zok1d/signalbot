@@ -22,7 +22,10 @@ def diversity(cards,c):
 
 def run_campaign(c,caller,size=40):
     ledger=caller.ledger
-    if ledger.get('status')=='MUTATED_REQUIRES_REVIEW':raise ContractError('human mutation invalidated prior decisions; review explicitly')
+    status=ledger.get('status')
+    if status=='MUTATED_REQUIRES_REVIEW':raise ContractError('human mutation invalidated prior decisions; review explicitly')
+    if status=='DERIVED_IMPORTED_REVALIDATED':
+        raise ContractError('derived import stopped after revalidation; generation continuation is not authorized')
     existing=ledger.db.execute("SELECT payload FROM results WHERE key='campaign'").fetchone()
     if existing:return json.loads(existing[0])
     if type(size)!=int or not 25<=size<=50:raise ContractError('invalid batch size')

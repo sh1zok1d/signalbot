@@ -1,0 +1,65 @@
+{
+  "BASELINE_OR_NULL": "Let D be log Binance spot BTCUSDT midpoint minus log Kraken BTCUSD midpoint, and S be log Kraken USDTUSD midpoint. Compare the observed correction gain |D|-|D+S| with gains using USDT/USD blocks shifted by nonzero whole weeks within year. Preserve UTC minute and weekday composition, and use only common support for observed and shifted calculations.",
+  "CANDIDATE_ID": "C018",
+  "CAUSAL_OR_STRUCTURAL_STORY": "BTC quoted in USDT and BTC quoted in USD need not have identical numerical prices when USDT differs from one dollar. An independent conversion quote imposes a testable cross-currency restriction; remaining deviations can reflect venue segmentation or measurement error.",
+  "DATA_GAP_CLASS": "SYNCHRONIZED_CROSS_CURRENCY_QUOTE_ARCHIVE_COST",
+  "DATA_REQUIRED": [
+    {
+      "DATASET": "PROSPECTIVE_BINANCE_SPOT_BTCUSDT_PUBLIC_QUOTES",
+      "LEGAL_RANGE": "2020-01..2024-12",
+      "OBSERVABLE": "Unregistered requirement: original best bid and ask streams with dissemination timestamps, instrument definitions, and feed-quality records.",
+      "STATUS": "DATA_BLOCKED_COST"
+    },
+    {
+      "DATASET": "PROSPECTIVE_KRAKEN_BTCUSD_USDTUSD_PUBLIC_QUOTES",
+      "LEGAL_RANGE": "2020-01..2024-12",
+      "OBSERVABLE": "Unregistered requirement: synchronized historical BTCUSD and USDTUSD best bid and ask streams, original public timestamps, and symbol/quote-currency metadata. Historical quote archive access or disproportionate reconstruction is required.",
+      "STATUS": "DATA_BLOCKED_COST"
+    }
+  ],
+  "DATA_STATUS": "DATA_BLOCKED_COST",
+  "EXPECTED_IMPLEMENTATION_COST": "High historical quote-access and synchronization burden. The calculation itself is simple once original public quote streams and instrument definitions are pinned.",
+  "EXPECTED_INFORMATION_GAIN": "Distinguishes quote-currency effects from BTC-specific venue segmentation before interpreting a raw price gap as market disagreement.",
+  "FALSIFIER": "Contemporaneous numeraire correction does not reduce absolute BTC quote gaps more than weekday-and-clock-preserving shifted conversion rates, or the result depends on future quote joins.",
+  "FUNCTION": "Decompose apparent venue disagreement into numeraire and BTC-specific components.",
+  "HORIZON": "Contemporaneous one-minute quote observations; summaries use only the legal historical overlap.",
+  "INFORMATION_SOURCE": "CROSS_VENUE",
+  "MAIN_CONFOUNDERS": "Asynchronous feeds, different USD banking access, exchange credit risk, stale conversion quotes, venue-specific transfer restrictions, spreads, and USDT/USD prices that themselves contain a venue-specific premium.",
+  "MECHANISM": "Stablecoin-numeraire conversion explains apparent cross-venue BTC price gaps.",
+  "MECHANISM_DISTANCE_ARGUMENT": "D9 attributes subsequent closure of a selected spot-perpetual dislocation. This card instead tests whether a three-instrument currency identity explains the contemporaneous gap between two spot venues, without conditioning on closure.",
+  "MECHANISM_FAMILY": "H",
+  "MISSING_OBSERVABLES": [
+    "Timestamped Binance BTCUSDT spot bid and ask history.",
+    "Timestamped Kraken BTCUSD and USDTUSD bid and ask histories.",
+    "Cross-stream clock, quote-currency, and feed-continuity documentation."
+  ],
+  "NAME": "Numeraire-corrected BTC venue disagreement",
+  "NEAREST_TESTED_MECHANISM": "D9",
+  "NO_LOOKAHEAD_RULE": "Use only quotes disseminated by the minute mark and no older than two seconds. Never use nearest future quotes. Establish common legal support before computing either the observed statistic or its null. No 2025/2026 quotes, execution assumptions, or post hoc best-venue selection are permitted.",
+  "OBSERVABLE": "At fixed UTC minute marks, form backward-joined public midquotes for Binance spot BTCUSDT, Kraken BTCUSD, and Kraken USDTUSD. Compute the raw BTC gap and the triangularly corrected gap. Keep the statistic unconditional on gap size, sign, subsequent closure, or profitability.",
+  "PRIMARY_TARGET": "Unconditional mean of absolute raw log-price gap minus absolute numeraire-corrected log-price gap across all admissible synchronized observations.",
+  "PROTECTED_DATA_REQUIREMENT": false,
+  "SEARCH_SURFACE": {
+    "MAX_VARIANTS": 1,
+    "PARAMETERS": {
+      "instrument_triangle": [
+        "Binance_BTCUSDT__Kraken_BTCUSD__Kraken_USDTUSD"
+      ],
+      "maximum_quote_age_seconds": [
+        2
+      ],
+      "null_shift_rule": [
+        "nonzero_whole_week_shifts_within_year_on_common_support"
+      ],
+      "primary_statistic": [
+        "mean_absolute_gap_reduction_without_extreme_selection"
+      ],
+      "sampling_interval_seconds": [
+        60
+      ]
+    }
+  },
+  "WHAT_NULL_WOULD_ELIMINATE": "The independently quoted USDT/USD conversion rate as an explanation for the typical observed BTC venue gap under the fixed synchronization rules; not every stablecoin-related market effect.",
+  "WHAT_POSITIVE_WOULD_TEACH": "A portion of apparent BTC cross-venue disagreement reflects the dollar value of the quote currency rather than disagreement about BTC itself.",
+  "WHY_NOT_A_RESCUE": "The card adds an independently quoted currency-conversion leg and tests a contemporaneous structural restriction. It does not recondition closing extremes, alter a resolution-share denominator, or search for a better dislocation threshold."
+}

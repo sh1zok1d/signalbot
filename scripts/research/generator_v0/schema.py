@@ -2,10 +2,12 @@
 import json
 import math
 import re
-from .context import ContractError, canonical, digest
+from .context import ContractError, digest
 
 DATA_FIELDS={'DATASET','OBSERVABLE','STATUS','LEGAL_RANGE'}
 TEXT_FIELDS={'NAME','MECHANISM_FAMILY','MECHANISM','CAUSAL_OR_STRUCTURAL_STORY','INFORMATION_SOURCE','OBSERVABLE','FUNCTION','PRIMARY_TARGET','HORIZON','BASELINE_OR_NULL','FALSIFIER','NEAREST_TESTED_MECHANISM','MECHANISM_DISTANCE_ARGUMENT','WHY_NOT_A_RESCUE','MAIN_CONFOUNDERS','NO_LOOKAHEAD_RULE','DATA_GAP_CLASS','EXPECTED_IMPLEMENTATION_COST','WHAT_POSITIVE_WOULD_TEACH','WHAT_NULL_WOULD_ELIMINATE','EXPECTED_INFORMATION_GAIN'}
+PROTECTED_PERIOD_START=(2025,1)
+PROTECTED_CATALOG_DATASET='PROTECTED_2025_2026'
 
 def parse_json(raw):
     def pairs(items):
@@ -21,6 +23,51 @@ def parse_json(raw):
 
 def text(value):
     return isinstance(value,str) and bool(value.strip()) and len(value)<=12000
+
+def classify_legal_range(value):
+    """Deterministic classifier for frozen catalog LEGAL_RANGE forms. Fail closed."""
+    if not isinstance(value,str):return {'KIND':'AMBIGUOUS'}
+    text=value.strip()
+    if text=='per snapshot':return {'KIND':'PER_SNAPSHOT'}
+    month=re.fullmatch(r'(\d{4})-(\d{2})\.\.(\d{4})-(\d{2})',text)
+    if month:
+        y1,m1,y2,m2=map(int,month.groups())
+        if not (1<=m1<=12 and 1<=m2<=12):return {'KIND':'AMBIGUOUS'}
+        start,end=(y1,m1),(y2,m2)
+        if start>end:return {'KIND':'AMBIGUOUS'}
+        return {'KIND':'BOUNDED','START':start,'END':end}
+    year=re.fullmatch(r'(\d{4})\.\.(\d{4})',text)
+    if year:
+        y1,y2=map(int,year.groups())
+        start,end=(y1,1),(y2,12)
+        if start>end:return {'KIND':'AMBIGUOUS'}
+        return {'KIND':'BOUNDED','START':start,'END':end}
+    pre=re.fullmatch(r'pre-(\d{4})',text)
+    if pre:
+        y=int(pre.group(1))
+        if y<1:return {'KIND':'AMBIGUOUS'}
+        return {'KIND':'BOUNDED','START':None,'END':(y-1,12)}
+    return {'KIND':'AMBIGUOUS'}
+
+def legal_range_includes_protected(classified):
+    return classified.get('KIND')=='BOUNDED' and classified['END']>=PROTECTED_PERIOD_START
+
+def assert_required_data_legal(row,known):
+    """DATA_REQUIRED is the authority. Mention-only prose is not a data requirement."""
+    dataset=row['DATASET']
+    if dataset==PROTECTED_CATALOG_DATASET or (known and known.get('STATUS')=='FORBIDDEN_HARD_FAIL'):
+        raise ContractError('protected source')
+    classified=classify_legal_range(row['LEGAL_RANGE'])
+    if known is not None:
+        catalog=classify_legal_range(known.get('LEGAL_RANGE'))
+        if legal_range_includes_protected(catalog):raise ContractError('protected catalog legal range')
+        if classified['KIND']=='PER_SNAPSHOT':return
+        if classified['KIND']=='BOUNDED' and not legal_range_includes_protected(classified):return
+        if classified['KIND']=='BOUNDED':raise ContractError('protected legal range')
+        raise ContractError('ambiguous protected range')
+    if classified['KIND']=='BOUNDED' and not legal_range_includes_protected(classified):return
+    if classified['KIND']=='BOUNDED':raise ContractError('protected legal range')
+    raise ContractError('ambiguous protected range')
 
 def validate_card(card, contexts):
     # SEARCH_SURFACE has dynamic parameter names; forbidden scoring fields must
@@ -45,7 +92,7 @@ def validate_card(card, contexts):
     if any(not text(card[f]) for f in TEXT_FIELDS):raise ContractError('empty or malformed candidate field')
     if card['MECHANISM_FAMILY'] not in set(contexts.families)|{'NEW_FAMILY_PROPOSAL'}:
         raise ContractError('unknown family; use NEW_FAMILY_PROPOSAL')
-    if card['PROTECTED_DATA_REQUIREMENT'] is not False or re.search(r'\b202[56]\b',canonical(card)):
+    if card['PROTECTED_DATA_REQUIREMENT'] is not False:
         raise ContractError('protected data requirement')
     if card['DATA_STATUS'] not in d['DATA_STATUS_TAXONOMY']:raise ContractError('unknown data status')
     req=card['DATA_REQUIRED']
@@ -57,7 +104,7 @@ def validate_card(card, contexts):
         known=contexts.catalog.get(row['DATASET'])
         if row['STATUS']=='DATA_READY' and (known is None or known['STATUS']!='DATA_READY'):
             raise ContractError('unverified source claimed ready')
-        if known and known['STATUS']=='FORBIDDEN_HARD_FAIL':raise ContractError('protected source')
+        assert_required_data_legal(row,known)
     statuses={r['STATUS'] for r in req}
     if card['DATA_STATUS']=='DATA_READY' and statuses!={'DATA_READY'}:raise ContractError('aggregate status mismatch')
     if card['DATA_STATUS'] not in statuses:raise ContractError('aggregate status absent from requirements')

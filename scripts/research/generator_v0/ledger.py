@@ -4,6 +4,7 @@ import contextlib
 import json
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 from .context import ContractError, canonical, digest
 
 class Ledger:
@@ -24,7 +25,41 @@ class Ledger:
             if old is None:
                 with self.db:self.set('config',config);self.set('status','CREATED')
 
+    @classmethod
+    def open_readonly(cls,path):
+        self=object.__new__(cls)
+        uri='file:{}?mode=ro'.format(Path(path).resolve().as_posix())
+        self.db=sqlite3.connect(uri,uri=True,timeout=30)
+        return self
+
     def close(self):self.db.close()
+
+    def spent_micro_usd(self):
+        return self.db.execute('SELECT COALESCE(SUM(COALESCE(cost,reserved)),0) FROM calls').fetchone()[0]
+
+    def import_complete(self,key,request,reserved,response,cost,usage,provenance):
+        if type(reserved)!=int or reserved<0 or type(cost)!=int or not 0<=cost<=reserved:
+            raise ContractError('invalid imported cost')
+        if digest(request)!=key:raise ContractError('imported key does not match request identity')
+        if not isinstance(response,dict) or not response.get('raw') or not response.get('response_id') or not response.get('raw_sha256') or 'provider_envelope' not in response:
+            raise ContractError('imported complete response missing identity')
+        if not isinstance(usage,dict):raise ContractError('imported usage required')
+        required=('SOURCE_RUN_ID','SOURCE_CALL_KEY','SOURCE_RESPONSE_ID','SOURCE_RAW_RESPONSE_SHA256')
+        if not isinstance(provenance,dict) or any(not provenance.get(k) for k in required):
+            raise ContractError('imported provenance required')
+        if provenance['SOURCE_CALL_KEY']!=key:raise ContractError('imported source call key mismatch')
+        if provenance['SOURCE_RESPONSE_ID']!=response['response_id']:raise ContractError('imported response_id mismatch')
+        if provenance['SOURCE_RAW_RESPONSE_SHA256']!=response['raw_sha256']:raise ContractError('imported raw hash mismatch')
+        blob={**response,**{k:provenance[k] for k in required}}
+        cap=self.get('config')['CAP_MICRO_USD']
+        with self.transaction():
+            if self.db.execute('SELECT 1 FROM calls WHERE key=?',(key,)).fetchone():
+                raise ContractError('imported call already present')
+            spent=self.db.execute('SELECT COALESCE(SUM(COALESCE(cost,reserved)),0) FROM calls').fetchone()[0]
+            if spent+cost>cap:raise ContractError('imported cost exceeds campaign cap')
+            self.db.execute('INSERT INTO calls(key,request,state,reserved,response,cost,usage,error) VALUES (?,?,?,?,?,?,?,?)',
+                            (key,canonical(request),'COMPLETE',reserved,canonical(blob),cost,canonical(usage),None))
+            self.event('CALL_IMPORTED',dict(provenance))
     def set(self,key,value):self.db.execute('INSERT OR REPLACE INTO meta VALUES (?,?)',(key,canonical(value)))
     def get(self,key):
         row=self.db.execute('SELECT value FROM meta WHERE key=?',(key,)).fetchone()
@@ -96,7 +131,7 @@ class Ledger:
         result=[]
         for key,request,state,reserved,response,cost,usage,error in self.db.execute('SELECT * FROM calls ORDER BY rowid'):
             req=json.loads(request);resp=json.loads(response) if response else None
-            result.append({'CALL_KEY':key,'RUN_ID':self.get('config')['RUN_ID'],'PROMPT_VERSION':req['prompt_version'],'CONTEXT_DIGEST':digest(req['context']),'MODEL_PROVIDER':req['provider'],'MODEL_ID':req['model'],'MODEL_PARAMETERS':req['parameters'],'MODEL_REQUEST_PARAMS':req.get('model_request_params'),'RAW_RESPONSE_SHA256':(resp or {}).get('raw_sha256') if resp else None,'RESPONSE_ID':(resp or {}).get('response_id') if resp else None,'PROVIDER_STATUS':(resp or {}).get('provider_status') if resp else None,'STATE':state,'RESERVED_MICRO_USD':reserved,'COST_MICRO_USD':cost,'USAGE':json.loads(usage) if usage else None,'ERROR':error})
+            result.append({'CALL_KEY':key,'RUN_ID':self.get('config')['RUN_ID'],'PROMPT_VERSION':req['prompt_version'],'CONTEXT_DIGEST':digest(req['context']),'MODEL_PROVIDER':req['provider'],'MODEL_ID':req['model'],'MODEL_PARAMETERS':req['parameters'],'MODEL_REQUEST_PARAMS':req.get('model_request_params'),'RAW_RESPONSE_SHA256':(resp or {}).get('raw_sha256') if resp else None,'RESPONSE_ID':(resp or {}).get('response_id') if resp else None,'PROVIDER_STATUS':(resp or {}).get('provider_status') if resp else None,'STATE':state,'RESERVED_MICRO_USD':reserved,'COST_MICRO_USD':cost,'USAGE':json.loads(usage) if usage else None,'ERROR':error,'SOURCE_RUN_ID':(resp or {}).get('SOURCE_RUN_ID') if resp else None,'SOURCE_CALL_KEY':(resp or {}).get('SOURCE_CALL_KEY') if resp else None,'SOURCE_RESPONSE_ID':(resp or {}).get('SOURCE_RESPONSE_ID') if resp else None,'SOURCE_RAW_RESPONSE_SHA256':(resp or {}).get('SOURCE_RAW_RESPONSE_SHA256') if resp else None})
         return result
 
     def save_card(self,card,decision=None):

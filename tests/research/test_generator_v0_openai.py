@@ -156,12 +156,12 @@ def test_schema_violation_persists_completed_envelope_without_new_post(tmp_path,
     assert [x for x in log if x[0]=='POST']==posts
 
 def test_application_validator_still_rejects_semantic_violations(tmp_path):
-    c=Contexts();payload=json.loads(generator_json(c));payload['CANDIDATES'][0]['HORIZON']='2025'
+    c=Contexts();payload=json.loads(generator_json(c));payload['CANDIDATES'][0]['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01..2025-06'
     log=[]
     p=provider(gen_transport(c,log,content=json.dumps(payload)));l=Ledger(tmp_path/'r.db',{'RUN_ID':'t'})
     raw=Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'sem')
     parsed=json.loads(raw)
-    assert parsed['CANDIDATES'][0]['HORIZON']=='2025'
+    assert parsed['CANDIDATES'][0]['DATA_REQUIRED'][0]['LEGAL_RANGE']=='2020-01..2025-06'
     with pytest.raises(ContractError,match='protected'):validate_card(parsed['CANDIDATES'][0],c)
     assert [x[0] for x in log].count('POST')==1 and l.export_calls()[0]['STATE']=='COMPLETE'
     env=json.loads(l.db.execute('SELECT response FROM calls').fetchone()[0])
@@ -358,7 +358,9 @@ def test_openai_role_schemas_are_strict():
 def test_archived_paid_run_is_not_opened_by_operator(monkeypatch):
     from scripts.research.generator_v0.__main__ import main
     monkeypatch.setenv('OPENAI_API_KEY','present')
-    for run_dir in ('artifacts/generator_v0/first-shadow','artifacts/generator_v0/first-shadow-v2','artifacts/generator_v0/first-shadow-v3','artifacts/generator_v0/first-shadow-v4'):
+    from scripts.research.generator_v0.__main__ import ARCHIVED_PAID_RUNS
+    assert ('generator_v0','first-shadow-v5') in ARCHIVED_PAID_RUNS
+    for run_dir in ('artifacts/generator_v0/first-shadow','artifacts/generator_v0/first-shadow-v2','artifacts/generator_v0/first-shadow-v3','artifacts/generator_v0/first-shadow-v4','artifacts/generator_v0/first-shadow-v5'):
         with pytest.raises(ContractError,match='archived paid run'):
             main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','10','--run-dir',run_dir])
 

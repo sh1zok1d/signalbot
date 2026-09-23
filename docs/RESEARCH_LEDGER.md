@@ -5673,3 +5673,27 @@ REAL_LLM_CALLS_MADE = false
 ARCHIVED_RUN_UNTOUCHED = true
 SCIENTIFIC_OUTCOMES_COMPUTED = false
 ```
+
+## 2026-09-23 — Generator V0 protected-data semantics and COMPLETE carry-forward
+
+Infrastructure-only after `first-shadow-v5` stopped at C018 under a
+whole-card `2025|2026` regex. That card declared
+`PROTECTED_DATA_REQUIREMENT=false` and `LEGAL_RANGE=2020-01..2024-12`;
+the years appeared only in an exclusion (`NO_LOOKAHEAD_RULE`). The
+application validator now hard-fails required protected data (flag,
+forbidden catalog source, or DATA_REQUIRED legal range) and allowlists
+mention-only exclusions. Offline `derive` imports exact-compatible
+COMPLETE Generator calls from an immutable source into a new run,
+preserves cost against the campaign cap, revalidates, and stops. No POST.
+`first-shadow-v5` is sealed. Do not continue to generation:2 in this unit.
+
+```
+NEXT_UNIT = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD
+PROTECTED_DATA_VALIDATOR_SEMANTICS = REQUIREMENT_NOT_MENTION
+LEGAL_RANGE_FAIL_CLOSED = true
+MENTION_ONLY_ALLOWED = true
+COMPLETE_RESPONSE_CARRY_FORWARD = true
+REAL_LLM_CALLS_MADE = false
+ARCHIVED_RUN_UNTOUCHED = true
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```

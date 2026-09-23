@@ -1,13 +1,17 @@
-## Generator V0 output limit and terminal-usage accounting — 2026-09-23
+## Generator V0 protected-data semantics and COMPLETE carry-forward — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_OUTPUT_LIMIT_AND_TERMINAL_USAGE_ACCOUNTING`.
-Archived paid runs `artifacts/generator_v0/first-shadow`,
-`first-shadow-v2`, `first-shadow-v3`, and `first-shadow-v4` remain sealed.
-This unit is infrastructure only: GENERATOR `max_output_tokens` 16000 ->
-32768, and terminal background Responses with trustworthy usage persist
-actual cost while remaining FAILED. No new paid LLM call. No scientific
-interpretation, acquisition, Sprint05, D14, MARKET-07, or protected-data
-open. Frozen design/historical records retain their historical labels.
+`NEXT_UNIT = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD`.
+Archived paid runs `artifacts/generator_v0/first-shadow` through
+`first-shadow-v5` remain sealed. This unit is infrastructure only: the
+application validator hard-fails a candidate that *requires* protected
+2025/2026 data (flag, forbidden catalog source, or DATA_REQUIRED legal
+range), not a whole-card year regex. Mention-only exclusion prose is
+allowed. Offline derive can carry exact-compatible COMPLETE Generator
+calls from an immutable source run into a new destination without a POST.
+Do not continue to generation:2 in this unit. No new paid LLM call. No
+scientific interpretation, acquisition, Sprint05, D14, MARKET-07, or
+protected-data open. Frozen design/historical records retain their
+historical labels.
 
 ---
 
@@ -50,7 +54,7 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = GENERATOR_V0_OUTPUT_LIMIT_AND_TERMINAL_USAGE_ACCOUNTING
+NEXT_UNIT                   = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD
 NEXT_ACTION                 = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED
