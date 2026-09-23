@@ -8,6 +8,14 @@ DATA_FIELDS={'DATASET','OBSERVABLE','STATUS','LEGAL_RANGE'}
 TEXT_FIELDS={'NAME','MECHANISM_FAMILY','MECHANISM','CAUSAL_OR_STRUCTURAL_STORY','INFORMATION_SOURCE','OBSERVABLE','FUNCTION','PRIMARY_TARGET','HORIZON','BASELINE_OR_NULL','FALSIFIER','NEAREST_TESTED_MECHANISM','MECHANISM_DISTANCE_ARGUMENT','WHY_NOT_A_RESCUE','MAIN_CONFOUNDERS','NO_LOOKAHEAD_RULE','DATA_GAP_CLASS','EXPECTED_IMPLEMENTATION_COST','WHAT_POSITIVE_WOULD_TEACH','WHAT_NULL_WOULD_ELIMINATE','EXPECTED_INFORMATION_GAIN'}
 PROTECTED_PERIOD_START=(2025,1)
 PROTECTED_CATALOG_DATASET='PROTECTED_2025_2026'
+PROTECTED_YEAR_TOKEN=re.compile(r'(?<!\d)202[56](?!\d)')
+# Narrow exclusion: "No 2025/2026 … are permitted/allowed". Not a whole-card regex.
+PROTECTED_EXCLUSION_STATEMENT=re.compile(
+    r'(?i)\bno\s+202[56](?:\s*/\s*202[56])?\b[\s\w,;:\'\"/.-]{0,240}\b(?:are|is)\s+(?:not\s+)?(?:permitted|allowed|forbidden)'
+)
+OPEN_ENDED_OBSERVATION_WINDOW=re.compile(
+    r'(?i)\b(?:latest(?:\s*/\s*current)?(?:\s+(?:available|bars|quotes))?|current\s+bars|through\s+(?:today|present)|until\s+present|up\s+to\s+now|open-?ended)\b'
+)
 
 def parse_json(raw):
     def pairs(items):
@@ -52,8 +60,40 @@ def classify_legal_range(value):
 def legal_range_includes_protected(classified):
     return classified.get('KIND')=='BOUNDED' and classified['END']>=PROTECTED_PERIOD_START
 
+def contains_protected_year(value):
+    if isinstance(value,dict):
+        return any((isinstance(k,str) and PROTECTED_YEAR_TOKEN.search(k)) or contains_protected_year(v) for k,v in value.items())
+    if isinstance(value,list):
+        return any(contains_protected_year(v) for v in value)
+    if type(value) is int and value in (2025,2026):return True
+    if isinstance(value,str) and PROTECTED_YEAR_TOKEN.search(value):return True
+    return False
+
+def years_only_in_exclusions(text):
+    if not isinstance(text,str):return False
+    spans=[m.span() for m in PROTECTED_EXCLUSION_STATEMENT.finditer(text)]
+    for token in PROTECTED_YEAR_TOKEN.finditer(text):
+        if not any(start<=token.start() and token.end()<=end for start,end in spans):
+            return False
+    return True
+
+def assert_protected_semantics(card):
+    """Fail closed if the candidate requires protected 2025/2026 observations.
+
+    Recognized exclusion statements are allowed only in NO_LOOKAHEAD_RULE.
+    """
+    if card.get('PROTECTED_DATA_REQUIREMENT') is not False:
+        raise ContractError('protected data requirement')
+    rule=card.get('NO_LOOKAHEAD_RULE')
+    if not years_only_in_exclusions(rule):raise ContractError('protected data requirement')
+    rest={k:v for k,v in card.items() if k!='NO_LOOKAHEAD_RULE'}
+    if contains_protected_year(rest):raise ContractError('protected data requirement')
+    source=card.get('INFORMATION_SOURCE')
+    if isinstance(source,str) and OPEN_ENDED_OBSERVATION_WINDOW.search(source):
+        raise ContractError('protected data requirement')
+
 def assert_required_data_legal(row,known):
-    """DATA_REQUIRED is the authority. Mention-only prose is not a data requirement."""
+    """DATA_REQUIRED legal range is necessary, not sufficient, for protected-data safety."""
     dataset=row['DATASET']
     if dataset==PROTECTED_CATALOG_DATASET or (known and known.get('STATUS')=='FORBIDDEN_HARD_FAIL'):
         raise ContractError('protected source')
@@ -105,6 +145,7 @@ def validate_card(card, contexts):
         if row['STATUS']=='DATA_READY' and (known is None or known['STATUS']!='DATA_READY'):
             raise ContractError('unverified source claimed ready')
         assert_required_data_legal(row,known)
+    assert_protected_semantics(card)
     statuses={r['STATUS'] for r in req}
     if card['DATA_STATUS']=='DATA_READY' and statuses!={'DATA_READY'}:raise ContractError('aggregate status mismatch')
     if card['DATA_STATUS'] not in statuses:raise ContractError('aggregate status absent from requirements')

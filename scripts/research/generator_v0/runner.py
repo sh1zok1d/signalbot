@@ -28,6 +28,8 @@ def run_campaign(c,caller,size=40):
         raise ContractError('derived import stopped after revalidation; generation continuation is not authorized')
     existing=ledger.db.execute("SELECT payload FROM results WHERE key='campaign'").fetchone()
     if existing:return json.loads(existing[0])
+    if status not in ('CREATED','DERIVED_CONTINUATION_AUTHORIZED'):
+        raise ContractError('campaign status does not permit generation')
     if type(size)!=int or not 25<=size<=50:raise ContractError('invalid batch size')
     cards=[]
     plan=slot_plan(size)

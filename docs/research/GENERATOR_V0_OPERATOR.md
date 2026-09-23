@@ -59,6 +59,21 @@ generation:2.
 python -m scripts.research.generator_v0 derive --source-run-dir artifacts/generator_v0/first-shadow-v5 --run-dir artifacts/generator_v0/first-shadow-v6 --through-generation 1
 ```
 
+Derive revalidates imported COMPLETE rounds and stops at
+`DERIVED_IMPORTED_REVALIDATED`. It does not write the `cards` table and
+does not start generation:2. An explicit later authorization is required
+before remaining rounds may run:
+
+```bash
+python -m scripts.research.generator_v0 authorize-derived-continuation --run-dir artifacts/generator_v0/first-shadow-v6 --actor owner --reason "revalidation passed; continue remaining generator rounds"
+```
+
+That command makes no provider call. Direct run/resume from
+`DERIVED_IMPORTED_REVALIDATED` is refused. After
+`DERIVED_CONTINUATION_AUTHORIZED`, resume may reuse generation:0/1 and
+continue. Do not create a live first-shadow-v6 in the semantics-fix
+amendment; derive fresh after merge.
+
 ```bash
 python -m scripts.research.generator_v0 run --provider openai --allow-real-llm --budget-usd 10 --run-dir artifacts/generator_v0/shadow
 ```
@@ -167,4 +182,10 @@ Protected-data validation is a requirement check on `DATA_REQUIRED` and
 `2025`/`2026`. Mention-only exclusions such as "No 2025/2026 quotes are
 permitted" are allowed when legal ranges end at 2024-12 and the flag is
 false. Ambiguous or open-ended ranges on unknown sources fail closed.
+Protected-year tokens in operational fields (`HORIZON`, `PRIMARY_TARGET`,
+`OBSERVABLE`, `FUNCTION`, `SEARCH_SURFACE`, `DATA_REQUIRED` identities,
+and similar requirement-bearing locations) are hard fails. The only
+narrow exception is a recognized exclusion statement in
+`NO_LOOKAHEAD_RULE` (protected observations are not permitted).
+"outcomes measured in 2025" is not an exclusion.
 Resumable implementation checkpoints: `generator_v0_checkpoints/`.

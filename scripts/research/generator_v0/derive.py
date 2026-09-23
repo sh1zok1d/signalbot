@@ -1,6 +1,7 @@
 """Offline COMPLETE-response carry-forward. Never POSTs. Source archives stay immutable."""
 from __future__ import annotations
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from .context import Contexts,ContractError,digest,byte_digest
 from .ledger import Ledger
@@ -12,6 +13,7 @@ from .schema import parse_json,validate_card
 from .roles import exact
 
 DERIVED_STATUS='DERIVED_IMPORTED_REVALIDATED'
+CONTINUATION_STATUS='DERIVED_CONTINUATION_AUTHORIZED'
 PROMPT_VERSION='generator-v0.1'
 GENERATOR_PROVIDER='OPENAI_RESPONSES'
 
@@ -166,10 +168,9 @@ def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=Non
                 'IMPORTED_COST_MICRO_USD':spent,'CAP_MICRO_USD':cap,
                 'REMAINING_MICRO_USD':cap-spent,'CARD_IDS':[card['CANDIDATE_ID'] for card in cards],
                 'C018_REVALIDATION':'PASS' if c018 is not None else 'ABSENT',
-                'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
+                'CARDS_WRITTEN':False,'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
             }
             with dest.transaction():
-                for card in cards:dest.save_card(card)
                 dest.set('status',DERIVED_STATUS)
                 dest.event('DERIVED_IMPORT',report)
         except Exception:
@@ -180,3 +181,21 @@ def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=Non
     after=archive_file_digest(source_db)
     if before!=after:raise ContractError('source archive mutated during derive')
     return report
+
+def authorize_derived_continuation(run_dir,actor,reason):
+    """Explicit offline gate. Never contacts a provider."""
+    dbpath=Path(run_dir)/'run.sqlite'
+    if not dbpath.exists():raise ContractError('run not found')
+    if not isinstance(actor,str) or not actor.strip() or not isinstance(reason,str) or not reason.strip():
+        raise ContractError('actor and reason required')
+    ledger=Ledger(dbpath)
+    try:
+        with ledger.transaction():
+            if ledger.get('status')!=DERIVED_STATUS:
+                raise ContractError('derived continuation requires DERIVED_IMPORTED_REVALIDATED')
+            payload={'ACTOR':actor.strip(),'REASON':reason.strip(),'time':datetime.now(timezone.utc).isoformat(),'REAL_LLM_CALLS_MADE':False}
+            ledger.event('DERIVED_CONTINUATION_AUTHORIZED',payload)
+            ledger.set('status',CONTINUATION_STATUS)
+        return {'STATUS':CONTINUATION_STATUS,'ACTOR':actor.strip(),'REASON':reason.strip(),'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False}
+    finally:
+        ledger.close()

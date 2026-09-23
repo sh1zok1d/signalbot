@@ -5697,3 +5697,32 @@ REAL_LLM_CALLS_MADE = false
 ARCHIVED_RUN_UNTOUCHED = true
 SCIENTIFIC_OUTCOMES_COMPUTED = false
 ```
+
+## 2026-09-23 — PR #210 red-team amendment F1–F4
+
+Independent red-team of `a7c44d137a63aadb639259efcfe99c60d247a0b7` was
+`RED_TEAM_BLOCKED` on F1–F4. This amendment closes those blockers only.
+
+- F1: operational protected-year tokens fail closed; C018 exclusion in
+  `NO_LOOKAHEAD_RULE` still passes; `DATA_REQUIRED` legal-range checks kept.
+- F2: `HORIZON="2025"` fails again; F1 examples have explicit FAIL tests.
+- F3: `authorize-derived-continuation` is the explicit offline gate from
+  `DERIVED_IMPORTED_REVALIDATED` to `DERIVED_CONTINUATION_AUTHORIZED`.
+- F4: derive does not write `cards`; campaign finalization inserts once.
+
+Deferred nonblocking findings, not redesigned here:
+
+```
+F5_STATUS = DEFERRED_NONBLOCKING_RED_TEAM_FINDING
+F6_STATUS = DEFERRED_NONBLOCKING_RED_TEAM_FINDING
+F7_STATUS = DEFERRED_NONBLOCKING_RED_TEAM_FINDING
+F8_STATUS = DEFERRED_NONBLOCKING_RED_TEAM_FINDING
+F9_STATUS = DEFERRED_NONBLOCKING_RED_TEAM_FINDING
+F5 = generated LEGAL_RANGE subset vs catalog range
+F6 = per-snapshot bound identity
+F7 = stronger response-envelope provenance verification
+F8 = SQLite WAL/SHM archive immutability hardening
+F9 = whole-remaining-campaign worst-case budget preflight
+REAL_LLM_CALLS_MADE = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```

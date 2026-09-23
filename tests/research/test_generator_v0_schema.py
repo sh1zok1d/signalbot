@@ -17,7 +17,7 @@ def test_valid_and_off_catalog_blocked():
 @pytest.mark.parametrize('mutation',[
  lambda x:x.pop('FALSIFIER'),lambda x:x.update(EXPECTED_PROBABILITY_OF_SUCCESS=.9),
  lambda x:x.update(FALSIFIER=''),lambda x:x.update(PROTECTED_DATA_REQUIREMENT=True),
- lambda x:x.update(DATA_STATUS='magic'),
+ lambda x:x.update(HORIZON='2025'),lambda x:x.update(DATA_STATUS='magic'),
  lambda x:x.update(SEARCH_SURFACE={'PARAMETERS':{},'MAX_VARIANTS':1000000}),
  lambda x:x['DATA_REQUIRED'][0].update(DATASET='unknown'),
  lambda x:x.update(BASELINE_OR_NULL=''),lambda x:x.update(NAME='validated trading edge')])
@@ -36,6 +36,6 @@ def test_success_fields_cannot_hide_in_dynamic_search_parameters(key):
     with pytest.raises(ContractError):validate_card(x,Contexts())
 
 
-def test_mention_only_protected_year_in_horizon_is_not_a_data_requirement():
+def test_protected_horizon_year_is_a_requirement():
     x=card();x['HORIZON']='2025'
-    validate_card(x,Contexts())
+    with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())

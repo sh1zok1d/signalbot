@@ -11,7 +11,7 @@ from .provider import Caller,MockProvider
 from .mock import MockResponder
 from .runner import run_campaign,GENERATOR_PROMPT
 from .models import GENERATOR_MAX_OUTPUT_TOKENS
-from .derive import derive_complete_rounds
+from .derive import derive_complete_rounds,authorize_derived_continuation
 
 ARCHIVED_PAID_RUNS={
     ('generator_v0','first-shadow'),
@@ -35,7 +35,7 @@ def atomic_json(path,value):
 
 def main(argv=None):
     p=argparse.ArgumentParser(description='Generator V0 shadow only; stops at human review')
-    p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect','derive'])
+    p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect','derive','authorize-derived-continuation'])
     p.add_argument('--source-run-dir',type=Path)
     p.add_argument('--through-generation',type=int,default=1)
     p.add_argument('--provider',choices=['mock','openai'],default='mock')
@@ -60,6 +60,12 @@ def main(argv=None):
         c=Contexts();c.validate('GENERATOR',c.generator(),GENERATOR_PROMPT)
         report=derive_complete_rounds(a.source_run_dir,a.run_dir,a.through_generation,c)
         atomic_json(a.run_dir/'derived_import.json',report)
+        print(canonical(report));return
+    if a.command=='authorize-derived-continuation':
+        if archived_paid_run(a.run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
+        if a.allow_real_llm or a.provider=='openai' or Decimal(a.budget_usd)!=0:
+            raise ContractError('authorize-derived-continuation is offline; do not authorize a provider or budget')
+        report=authorize_derived_continuation(a.run_dir,a.actor,a.reason)
         print(canonical(report));return
     if archived_paid_run(a.run_dir):
         raise ContractError('archived paid run is read-only and must not be opened by this operator')

@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 import pytest
 from scripts.research.generator_v0.context import Contexts,ContractError,canonical,digest
-from scripts.research.generator_v0.derive import derive_complete_rounds,expected_generator_request,transport_identity,DERIVED_STATUS
+from scripts.research.generator_v0.derive import derive_complete_rounds,expected_generator_request,transport_identity,DERIVED_STATUS,CONTINUATION_STATUS,authorize_derived_continuation
 from scripts.research.generator_v0.ledger import Ledger
 from scripts.research.generator_v0.mock import fixture,slot_plan
 from scripts.research.generator_v0.provider import Caller,MockProvider
@@ -83,6 +83,17 @@ def test_mention_only_exclusion_in_no_lookahead_passes():
     x=base_card();x['NO_LOOKAHEAD_RULE']='No 2025/2026 data are permitted.'
     validate_card(x,Contexts())
 
+def test_c018_exclusion_statement_is_not_a_requirement():
+    x=base_card()
+    x['NO_LOOKAHEAD_RULE']=('Use only quotes disseminated by the minute mark and no older than two seconds. '
+        'Never use nearest future quotes. Establish common legal support before computing either the observed statistic or its null. '
+        'No 2025/2026 quotes, execution assumptions, or post hoc best-venue selection are permitted.')
+    validate_card(x,Contexts())
+
+def test_non_exclusion_in_no_lookahead_fails():
+    x=base_card();x['NO_LOOKAHEAD_RULE']='outcomes measured in 2025'
+    with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())
+
 def test_safe_explicit_range_on_unknown_blocked_source_passes():
     x=base_card()
     x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['quotes'],DATA_GAP_CLASS='COST')
@@ -114,6 +125,33 @@ def test_protected_data_requirement_true_fails():
     x=base_card();x['PROTECTED_DATA_REQUIREMENT']=True
     with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())
 
+@pytest.mark.parametrize('mutation',[
+    lambda x:x.update(HORIZON='calendar year 2025'),
+    lambda x:x.update(PRIMARY_TARGET='BTC return during 2025'),
+    lambda x:x.update(OBSERVABLE='2025 realized volatility'),
+    lambda x:x.update(FUNCTION='compare 2024 state to 2025 outcome'),
+    lambda x:x.update(BASELINE_OR_NULL='evaluate on the 2025-2026 holdout'),
+    lambda x:x.update(FALSIFIER='evaluate on 2025 observations'),
+    lambda x:x.update(CAUSAL_OR_STRUCTURAL_STORY='The mechanism must be evaluated on calendar 2025.'),
+    lambda x:x.update(SEARCH_SURFACE={'PARAMETERS':{'END_YEAR':[2024,2025]},'MAX_VARIANTS':2}),
+    lambda x:x.update(INFORMATION_SOURCE='latest/current bars through today'),
+])
+def test_operational_protected_year_and_open_window_fail(mutation):
+    x=base_card();mutation(x)
+    with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())
+
+@pytest.mark.parametrize('dataset,observable',[
+    ('BTCUSDT_TRADES_2025','closes'),
+    ('protected_2025_2026','closes'),
+    ('PROTECTED-2025-2026','closes'),
+    ('unknown','2025-2026 closes'),
+])
+def test_data_required_protected_aliases_fail(dataset,observable):
+    x=base_card()
+    x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['x'],DATA_GAP_CLASS='COST')
+    x['DATA_REQUIRED']=[{'DATASET':dataset,'OBSERVABLE':observable,'STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':'2020-01..2024-12'}]
+    with pytest.raises(ContractError,match='protected'):validate_card(x,Contexts())
+
 def test_exact_compatible_complete_import(tmp_path):
     c=Contexts();src=write_source(tmp_path/'src',c)
     before=src.joinpath('run.sqlite').read_bytes()
@@ -137,6 +175,8 @@ def test_exact_compatible_complete_import(tmp_path):
     env=json.loads(l.db.execute('SELECT response FROM calls LIMIT 1').fetchone()[0])
     assert env['provider_envelope']['status']=='completed'
     assert l.spent_micro_usd()==IMPORTED_COST
+    assert l.db.execute('SELECT count(*) FROM cards').fetchone()[0]==0
+    assert report.get('CARDS_WRITTEN') is False
     l.close()
 
 def test_imported_call_does_not_trigger_http(tmp_path,monkeypatch):
@@ -248,3 +288,92 @@ def test_validation_error_stops_without_silent_repair(tmp_path):
     with pytest.raises(ContractError,match='protected legal range'):
         derive_complete_rounds(src,tmp_path/'dst',1,c)
     assert not (tmp_path/'dst').exists()
+
+def test_authorize_derived_continuation_requires_actor_reason_and_status(tmp_path):
+    c=Contexts();src=write_source(tmp_path/'src',c);dest=tmp_path/'dst'
+    derive_complete_rounds(src,dest,1,c)
+    with pytest.raises(ContractError,match='actor and reason required'):
+        authorize_derived_continuation(dest,'','continue')
+    with pytest.raises(ContractError,match='actor and reason required'):
+        authorize_derived_continuation(dest,'owner','')
+    with pytest.raises(ContractError,match='offline'):
+        main(['authorize-derived-continuation','--provider','openai','--allow-real-llm','--budget-usd','1','--run-dir',str(dest),'--actor','owner','--reason','go'])
+    report=authorize_derived_continuation(dest,'owner','revalidation passed; continue remaining rounds')
+    assert report['STATUS']==CONTINUATION_STATUS
+    assert report['REAL_LLM_CALLS_MADE'] is False
+    l=Ledger(dest/'run.sqlite')
+    assert l.get('status')==CONTINUATION_STATUS
+    kinds=[k for k, in l.db.execute("SELECT kind FROM events ORDER BY n")]
+    assert 'DERIVED_CONTINUATION_AUTHORIZED' in kinds
+    l.close()
+    with pytest.raises(ContractError,match='DERIVED_IMPORTED_REVALIDATED'):
+        authorize_derived_continuation(dest,'owner','again')
+
+def test_offline_derive_authorize_continue_to_pending_human_review(tmp_path,monkeypatch):
+    from scripts.research.generator_v0.openai_provider import HTTPS
+    from scripts.research.generator_v0.runner import GENERATOR_PROMPT
+    from scripts.research.generator_v0.roles import NOVELTY_PROMPT,FEAS_PROMPT,RED_PROMPT,SELECTOR_PROMPT
+    from scripts.research.generator_v0.mock import MockResponder
+    from tests.research.test_generator_v0_openai import chat_envelope,responses_create,responses_completed,provider
+    monkeypatch.setattr(HTTPS,'__call__',lambda *a,**k:pytest.fail('real HTTPS reached'))
+    c=Contexts();src=write_source(tmp_path/'src',c);dest=tmp_path/'dst'
+    report=derive_complete_rounds(src,dest,1,c)
+    assert report['STATUS']==DERIVED_STATUS
+    assert report['CARDS_WRITTEN'] is False
+    l=Ledger(dest/'run.sqlite')
+    assert l.get('status')==DERIVED_STATUS
+    assert l.db.execute('SELECT count(*) FROM cards').fetchone()[0]==0
+    p_block=MockProvider(lambda r:pytest.fail('provider complete reached'))
+    with pytest.raises(ContractError,match='generation continuation is not authorized'):
+        run_campaign(c,Caller(c,l,p_block,CAP,False))
+    l.close()
+    with pytest.raises(ContractError,match='derived import|resume configuration'):
+        main(['resume','--run-dir',str(dest)])
+    auth=main(['authorize-derived-continuation','--run-dir',str(dest),'--actor','owner','--reason','continue after protected-data revalidation'])
+    l=Ledger(dest/'run.sqlite')
+    assert l.get('status')==CONTINUATION_STATUS
+    respond=MockResponder(c)
+    prompts={GENERATOR_PROMPT:'GENERATOR',NOVELTY_PROMPT:'NOVELTY_CRITIC',FEAS_PROMPT:'FEASIBILITY_CRITIC',RED_PROMPT:'RED_TEAM',SELECTOR_PROMPT:'SELECTOR'}
+    log=[];created={'n':0};payloads={}
+    def fake(method,path,body,headers,timeout):
+        log.append((method,path,json.loads(body) if body else None))
+        if method=='POST' and path=='/v1/responses':
+            b=json.loads(body);user=json.loads(b['input']);slots=user.get('slots') or []
+            ids=[s['CANDIDATE_ID'] for s in slots]
+            assert ids[0] not in ('C001','C011')
+            created['n']+=1;rid='resp_new_'+str(created['n'])
+            payloads[rid]=respond({'role':'GENERATOR','context':user['context'],'parameters':{'slots':slots}})
+            return 200,responses_create(rid)
+        if method=='GET' and path.startswith('/v1/responses/'):
+            rid=path.rsplit('/',1)[1]
+            return 200,responses_completed(rid,payloads[rid])
+        if method=='DELETE':return 200,b'{}'
+        assert path=='/v1/chat/completions'
+        b=json.loads(body);role=prompts[b['messages'][0]['content']]
+        user=json.loads(b['messages'][1]['content'])
+        result=respond({'role':role,'context':user['context'],'parameters':{'slots':user.get('slots',[])}})
+        return 200,chat_envelope(result)
+    p=provider(fake,budget=CAP)
+    result=run_campaign(c,Caller(c,l,p,CAP,True))
+    assert result['STATUS']=='PENDING_HUMAN_REVIEW'
+    assert len(result['CANDIDATES'])==40
+    gen_posts=[row for row in log if row[0]=='POST' and row[1]=='/v1/responses']
+    assert len(gen_posts)==2
+    first_ids=[]
+    for row in gen_posts:
+        slots=json.loads(row[2]['input'])['slots']
+        first_ids.append(slots[0]['CANDIDATE_ID'])
+    assert first_ids==['C021','C031']
+    calls=l.export_calls()
+    slots={json.loads(req)['slot']:state for req,state in l.db.execute('SELECT request,state FROM calls') if (json.loads(req).get('slot') or '').startswith('generation:')}
+    assert slots['generation:0']=='COMPLETE' and slots['generation:1']=='COMPLETE'
+    assert slots['generation:2']=='COMPLETE' and slots['generation:3']=='COMPLETE'
+    imported=[x for x in calls if x['SOURCE_RUN_ID']=='first-shadow-v5']
+    assert len(imported)==2
+    assert sum(x['COST_MICRO_USD'] for x in imported)==IMPORTED_COST
+    assert l.db.execute("SELECT count(*) FROM cards").fetchone()[0]==40
+    assert l.get('config')['CAP_MICRO_USD']==CAP==7117536
+    assert l.spent_micro_usd()>IMPORTED_COST
+    assert l.get('status')=='PENDING_HUMAN_REVIEW'
+    assert created['n']==2
+    l.close()
