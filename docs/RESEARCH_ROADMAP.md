@@ -1,13 +1,12 @@
-## Generator V0 structured outputs and role routing — 2026-09-23
+## Generator V0 long-running request timeout — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_STRUCTURED_OUTPUTS_AND_ROLE_ROUTING`.
-The archived partial paid run `artifacts/generator_v0/first-shadow` remains
-sealed (1 call, USD 0.010864, ledger `CREATED`). This unit is
-infrastructure only: OpenAI Structured Outputs plus role-specific Chat
-Completions routing on GPT-6 Astra/Sol/Luna. No new paid LLM call. No
-scientific interpretation, acquisition, Sprint05, D14, MARKET-07, or
-protected-data open. Frozen design/historical records retain their
-historical labels.
+`NEXT_UNIT = GENERATOR_V0_LONG_RUNNING_REQUEST_TIMEOUT`.
+Archived paid runs `artifacts/generator_v0/first-shadow` and
+`artifacts/generator_v0/first-shadow-v2` remain sealed. This unit is
+infrastructure only: raise the real Chat Completions HTTPS timeout to 600
+seconds. No new paid LLM call. No scientific interpretation, acquisition,
+Sprint05, D14, MARKET-07, or protected-data open. Frozen
+design/historical records retain their historical labels.
 
 ---
 
@@ -15,7 +14,7 @@ historical labels.
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-23
-**Current phase:** `GENERATOR_V0_STRUCTURED_OUTPUTS_AND_ROLE_ROUTING`
+**Current phase:** `GENERATOR_V0_LONG_RUNNING_REQUEST_TIMEOUT`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 
@@ -112,7 +111,7 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `HYPOTHESIS_GENERATOR_V0_INFRA_READY`; no Sprint 05; design frozen in
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`, not built).
 `NEXT_ACTION = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL`.
-`NEXT_UNIT = GENERATOR_V0_STRUCTURED_OUTPUTS_AND_ROLE_ROUTING`.
+`NEXT_UNIT = GENERATOR_V0_LONG_RUNNING_REQUEST_TIMEOUT`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -216,7 +215,7 @@ automatically create Sprint 05. Do not build the hypothesis generator here.
 `HYPOTHESIS_GENERATOR_V0_INFRA_READY`; no Sprint 05; design frozen in
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`, not built).
 `NEXT_ACTION = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL`.
-`NEXT_UNIT = GENERATOR_V0_STRUCTURED_OUTPUTS_AND_ROLE_ROUTING`.
+`NEXT_UNIT = GENERATOR_V0_LONG_RUNNING_REQUEST_TIMEOUT`.
 
 Card identities at definition time (unchanged):
 

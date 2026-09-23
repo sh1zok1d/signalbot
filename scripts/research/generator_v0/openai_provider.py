@@ -9,6 +9,16 @@ from .output_schemas import openai_response_format,assert_structured_payload
 from .models import model_for,request_params_for,rates,spec,ROLE_MODEL_MAP,routing_digest
 from .provider import Response
 
+OPENAI_REQUEST_TIMEOUT_SECONDS=600
+TIMEOUT_MIN_SECONDS=1
+TIMEOUT_MAX_SECONDS=1800
+
+def bounded_timeout(value=None):
+    if value is None:value=OPENAI_REQUEST_TIMEOUT_SECONDS
+    if type(value)!=int or not TIMEOUT_MIN_SECONDS<=value<=TIMEOUT_MAX_SECONDS:
+        raise ContractError('invalid request timeout')
+    return value
+
 class ProviderFailure(ContractError):
     def __init__(self,message,wire=b''):
         super().__init__(message);self.wire_sha256=hashlib.sha256(wire).hexdigest() if wire else None
@@ -26,13 +36,14 @@ class HTTPS:
 class OpenAIProvider:
     provider_id='OPENAI_CHAT_COMPLETIONS'
     real=True
-    def __init__(self,api_key,*,allow_real=False,budget_micro_usd=0,model=None,transport=None,contexts=None):
+    def __init__(self,api_key,*,allow_real=False,budget_micro_usd=0,model=None,transport=None,contexts=None,timeout_seconds=None):
         if model not in (None,''):raise ContractError('role-specific model map is authoritative; do not pass --model')
         if not isinstance(api_key,str) or not api_key.strip():raise ContractError('OPENAI_API_KEY is required')
         if allow_real is not True or type(budget_micro_usd)!=int or not 0<budget_micro_usd<=30_000_000:
             raise ContractError('explicit allow-real-llm and nonzero budget <= USD 30 required')
         for role,name in ROLE_MODEL_MAP.items():spec(name);request_params_for(role)
         self._key=api_key;self._allow=allow_real;self.cap=budget_micro_usd
+        self.request_timeout_seconds=bounded_timeout(timeout_seconds)
         self.model_id='ROLE_SPECIFIC';self.role_model_map=dict(ROLE_MODEL_MAP)
         self.routing_digest=routing_digest();self.transport=transport or HTTPS()
         self.contexts=contexts or Contexts()
@@ -73,7 +84,7 @@ class OpenAIProvider:
         bound=self.bound(request)
         if bound>self.cap:raise ContractError('call exceeds authorized budget')
         body=canonical(self.payload(request)).encode()
-        status,wire=self.transport(body,{'Authorization':'Bearer '+self._key,'Content-Type':'application/json'},60)
+        status,wire=self.transport(body,{'Authorization':'Bearer '+self._key,'Content-Type':'application/json'},self.request_timeout_seconds)
         if status!=200:raise ProviderFailure('provider HTTP '+str(status),wire)
         try:
             payload=parse_json(wire.decode('utf-8'))

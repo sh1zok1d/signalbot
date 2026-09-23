@@ -47,7 +47,9 @@ encoding is an array of `{NAME,VALUES}` that is converted back to the frozen
 dict before application validation. Semantic checks (protected years, empty
 strings, unverified DATA_READY, lookahead language) remain application-side.
 
-Transport has no automatic retries or redirects. A timeout or malformed
-structured envelope retains its reservation and is never automatically
-replayed. This is a local conservative budget ledger, not a replacement for
-provider billing records. No real call was made during this adapter change.
+Transport has no automatic retries or redirects. The real HTTPS timeout is
+`OPENAI_REQUEST_TIMEOUT_SECONDS = 600` (bounded 1..1800, fail-closed) and is
+stored in run configuration identity. A timeout or malformed structured
+envelope retains its reservation and is never automatically replayed. This
+is a local conservative budget ledger, not a replacement for provider
+billing records. No real call was made during this adapter change.
