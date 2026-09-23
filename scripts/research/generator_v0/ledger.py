@@ -60,8 +60,8 @@ class Ledger:
             if type(cost)!=int or not 0<=cost<=row[0]:raise ContractError('provider cost exceeds reserved bound')
             self.db.execute('UPDATE calls SET state=?,response=?,cost=?,usage=? WHERE key=?',('COMPLETE',canonical(response),cost,canonical(usage),key))
 
-    def failed(self,key,error):
-        with self.transaction():self.db.execute('UPDATE calls SET state=?,error=? WHERE key=?',('UNCERTAIN',str(error)[:500],key))
+    def failed(self,key,error,wire_sha256=None):
+        with self.transaction():self.db.execute('UPDATE calls SET state=?,error=?,response=? WHERE key=?',('UNCERTAIN',str(error)[:500],canonical({'raw_sha256':wire_sha256}) if wire_sha256 else None,key))
 
     def save_card(self,card,decision=None):
         self.db.execute('INSERT INTO cards VALUES (?,?,?)',(card['CANDIDATE_ID'],canonical(card),canonical(decision)))

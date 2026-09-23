@@ -37,7 +37,7 @@ class Caller:
             saved={'raw':response.raw,'raw_sha256':response.wire_sha256 or hashlib.sha256(response.raw.encode()).hexdigest()}
             self.ledger.finish(key,saved,response.cost_micro_usd,response.usage)
         except Exception as e:
-            self.ledger.failed(key,type(e).__name__)
+            self.ledger.failed(key,type(e).__name__,getattr(e,'wire_sha256',None))
             raise
         return response.raw
 
