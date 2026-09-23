@@ -10,6 +10,7 @@ from .ledger import Ledger
 from .provider import Caller,MockProvider
 from .mock import MockResponder
 from .runner import run_campaign,GENERATOR_PROMPT
+from .models import GENERATOR_MAX_OUTPUT_TOKENS
 
 def atomic_json(path,value):
     fd,name=tempfile.mkstemp(prefix='.'+path.name,dir=path.parent)
@@ -37,7 +38,7 @@ def main(argv=None):
     p.add_argument('--field')
     p.add_argument('--value-json')
     a=p.parse_args(argv)
-    if len(a.run_dir.parts)>=2 and tuple(a.run_dir.parts[-2:]) in {('generator_v0','first-shadow'),('generator_v0','first-shadow-v2'),('generator_v0','first-shadow-v3')}:
+    if len(a.run_dir.parts)>=2 and tuple(a.run_dir.parts[-2:]) in {('generator_v0','first-shadow'),('generator_v0','first-shadow-v2'),('generator_v0','first-shadow-v3'),('generator_v0','first-shadow-v4')}:
         raise ContractError('archived paid run is read-only and must not be opened by this operator')
     c=Contexts();c.validate('GENERATOR',c.generator(),GENERATOR_PROMPT)
     if not 25<=a.size<=50:raise ContractError('batch size')
@@ -74,7 +75,7 @@ def main(argv=None):
         if a.model:raise ContractError('mock does not take a real model id')
         provider=MockProvider(MockResponder(c))
     if a.command=='preflight':
-        info={'STATUS':'PREFLIGHT_PASS','PROVIDER':provider.provider_id,'REAL_LLM_CALLS_MADE':False,'BATCH_SIZE':a.size,'STRUCTURED_OUTPUTS_ENABLED':a.provider=='openai'}
+        info={'STATUS':'PREFLIGHT_PASS','PROVIDER':provider.provider_id,'REAL_LLM_CALLS_MADE':False,'BATCH_SIZE':a.size,'STRUCTURED_OUTPUTS_ENABLED':a.provider=='openai','GENERATOR_MAX_OUTPUT_TOKENS':GENERATOR_MAX_OUTPUT_TOKENS}
         if a.provider=='openai':
             ident=provider.transport_identity()
             info.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS=dict(ROLE_REQUEST_PARAMS),ROUTING_DIGEST=provider.routing_digest,REQUEST_TIMEOUT_SECONDS=provider.request_timeout_seconds,**ident)
@@ -83,7 +84,7 @@ def main(argv=None):
     if a.command=='run' and dbpath.exists():raise ContractError('run exists; use resume')
     if a.command=='resume' and not dbpath.exists():raise ContractError('run not found')
     a.run_dir.mkdir(parents=True,exist_ok=True)
-    config={'RUN_ID':a.run_dir.name,'PROVIDER':provider.provider_id,'MODEL':provider.model_id,'SIZE':a.size,'CAP_MICRO_USD':cap,'CONTEXT_DIGEST':digest(c.generator()),'IMPLEMENTATION_DIGEST':digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))})}
+    config={'RUN_ID':a.run_dir.name,'PROVIDER':provider.provider_id,'MODEL':provider.model_id,'SIZE':a.size,'CAP_MICRO_USD':cap,'CONTEXT_DIGEST':digest(c.generator()),'IMPLEMENTATION_DIGEST':digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))}),'GENERATOR_MAX_OUTPUT_TOKENS':GENERATOR_MAX_OUTPUT_TOKENS}
     if a.provider=='openai':
         ident=provider.transport_identity()
         config.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()},PRICE_TABLE=price_table(),ROUTING_DIGEST=provider.routing_digest,REQUEST_TIMEOUT_SECONDS=provider.request_timeout_seconds,**ident)

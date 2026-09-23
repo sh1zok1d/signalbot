@@ -6,7 +6,8 @@ selector remain Chat Completions with a 600-second HTTPS timeout. Frozen
 scientific design is unchanged. A successful campaign still terminates at
 `PENDING_HUMAN_REVIEW`. The archived partial paid runs
 `artifacts/generator_v0/first-shadow`, `artifacts/generator_v0/first-shadow-v2`,
-and `artifacts/generator_v0/first-shadow-v3` are sealed and the operator
+`artifacts/generator_v0/first-shadow-v3`, and
+`artifacts/generator_v0/first-shadow-v4` are sealed and the operator
 refuses to open them. One campaign generates
 research cards, applies separate critics and produces a human-review queue.
 It has no market-data reader, acquisition tool, evaluator or trading hook.
@@ -41,8 +42,9 @@ python -m scripts.research.generator_v0 preflight --provider openai --allow-real
 **Canonical real shadow command**, after explicitly authorizing its
 budget and supplying the credential. Use a **new** run directory. Do not
 resume or overwrite `artifacts/generator_v0/first-shadow`,
-`artifacts/generator_v0/first-shadow-v2`, or
-`artifacts/generator_v0/first-shadow-v3`.
+`artifacts/generator_v0/first-shadow-v2`,
+`artifacts/generator_v0/first-shadow-v3`, or
+`artifacts/generator_v0/first-shadow-v4`.
 
 ```bash
 python -m scripts.research.generator_v0 run --provider openai --allow-real-llm --budget-usd 10 --run-dir artifacts/generator_v0/shadow
@@ -137,10 +139,13 @@ remain the second layer. Role-specific models and prices are in
 includes `GENERATOR_ENDPOINT=RESPONSES`, `GENERATOR_BACKGROUND=true`,
 `BACKGROUND_STORE_POLICY=STORE_TRUE_REQUIRED_FOR_RESUME` (official background
 retention after the short polling window requires `store=true`; local
-COMPLETE persist is followed by best-effort `DELETE`), and the polling
+COMPLETE persist is followed by best-effort `DELETE`),
+`GENERATOR_MAX_OUTPUT_TOKENS=32768`, and the polling
 policy (interval 3s, GET timeout 45s, operator wait 3600s, create timeout
 60s). Critic Chat Completions HTTPS timeout remains
 `OPENAI_REQUEST_TIMEOUT_SECONDS = 600` and is part of run configuration
 identity. A GENERATOR `TimeoutError` before `response_id` is `UNCERTAIN`
-and is never automatically replayed.
+and is never automatically replayed. A terminal background Response with
+trustworthy usage persists actual cost under `FAILED` and is never parsed
+or retried.
 Resumable implementation checkpoints: `generator_v0_checkpoints/`.

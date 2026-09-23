@@ -8,7 +8,7 @@ from scripts.research.generator_v0.openai_provider import (
 from scripts.research.generator_v0.provider import Caller,BackgroundPending
 from scripts.research.generator_v0.context import Contexts,ContractError
 from scripts.research.generator_v0.ledger import Ledger
-from scripts.research.generator_v0.models import ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,rates,spec,request_params_for,model_for
+from scripts.research.generator_v0.models import ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,rates,spec,request_params_for,model_for,GENERATOR_MAX_OUTPUT_TOKENS
 from scripts.research.generator_v0.output_schemas import openai_response_format,responses_text_format,role_schema
 from scripts.research.generator_v0.schema import output_schema,validate_card
 from scripts.research.generator_v0.mock import MockResponder
@@ -26,6 +26,14 @@ def responses_completed(rid,content,inp=100,out=20,reasoning=7):
         'output':[{'type':'message','content':[{'type':'output_text','text':content}]}],
         'usage':{'input_tokens':inp,'output_tokens':out,'output_tokens_details':{'reasoning_tokens':reasoning}},
     }).encode()
+
+def responses_incomplete(rid,content='',inp=4588,out=16000,reasoning=9322,reason='max_output_tokens'):
+    body={'id':rid,'object':'response','status':'incomplete','incomplete_details':{'reason':reason},
+          'usage':{'input_tokens':inp,'output_tokens':out,'output_tokens_details':{'reasoning_tokens':reasoning}}}
+    if content:
+        body['output_text']=content
+        body['output']=[{'type':'message','content':[{'type':'output_text','text':content}]}]
+    return json.dumps(body).encode()
 
 def provider(transport,budget=30_000_000,**kw):
     return OpenAIProvider('test-credential',allow_real=True,budget_micro_usd=budget,transport=transport,
@@ -190,12 +198,17 @@ def test_each_role_mixed_transport_and_budget(tmp_path):
     g=seen['GENERATOR']
     assert g['background'] is True and g['store'] is True and g['text']['format']==responses_text_format('GENERATOR',c)
     assert g['reasoning']=={'effort':'high'}
+    assert g['max_output_tokens']==GENERATOR_MAX_OUTPUT_TOKENS==32768
     for role in ('NOVELTY_CRITIC','FEASIBILITY_CRITIC','RED_TEAM','SELECTOR'):
         body=seen[role]
         assert body['model']==ROLE_MODEL_MAP[role]
         assert body['response_format']==openai_response_format(role,c)
         assert body[list(ROLE_REQUEST_PARAMS[role])[0]]==ROLE_REQUEST_PARAMS[role]['reasoning_effort']
         assert 'temperature' not in body
+    assert seen['NOVELTY_CRITIC']['max_completion_tokens']==6000
+    assert seen['RED_TEAM']['max_completion_tokens']==6000
+    assert seen['FEASIBILITY_CRITIC']['max_completion_tokens']==6000
+    assert seen['SELECTOR']['max_completion_tokens']==2000
     assert [x for x in log if x==('POST','/v1/responses')].__len__()==4
     assert [x for x in log if x[0]=='POST' and x[1]=='/v1/chat/completions'].__len__()==121
     expected=4*cost_of('GENERATOR')+40*cost_of('NOVELTY_CRITIC')+40*cost_of('FEASIBILITY_CRITIC')+40*cost_of('RED_TEAM')+cost_of('SELECTOR')
@@ -322,11 +335,14 @@ def test_resume_identity_includes_transport(tmp_path):
     assert ident['GENERATOR_ENDPOINT']==GENERATOR_ENDPOINT=='RESPONSES'
     assert ident['GENERATOR_BACKGROUND'] is True
     assert ident['BACKGROUND_STORE_POLICY']==BACKGROUND_STORE_POLICY
-    config={'RUN_ID':'resume','GENERATOR_ENDPOINT':'RESPONSES'}
+    assert ident['GENERATOR_MAX_OUTPUT_TOKENS']==GENERATOR_MAX_OUTPUT_TOKENS==32768
+    config={'RUN_ID':'resume','GENERATOR_ENDPOINT':'RESPONSES','GENERATOR_MAX_OUTPUT_TOKENS':32768}
     l=Ledger(tmp_path/'r.db',config)
     Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'g0')
     with pytest.raises(ContractError,match='resume configuration differs'):
-        Ledger(tmp_path/'r.db',{'RUN_ID':'resume','GENERATOR_ENDPOINT':'CHAT_COMPLETIONS'})
+        Ledger(tmp_path/'r.db',{'RUN_ID':'resume','GENERATOR_ENDPOINT':'CHAT_COMPLETIONS','GENERATOR_MAX_OUTPUT_TOKENS':32768})
+    with pytest.raises(ContractError,match='resume configuration differs'):
+        Ledger(tmp_path/'r.db',{'RUN_ID':'resume','GENERATOR_ENDPOINT':'RESPONSES','GENERATOR_MAX_OUTPUT_TOKENS':16000})
 
 def test_openai_role_schemas_are_strict():
     c=Contexts()
@@ -342,7 +358,7 @@ def test_openai_role_schemas_are_strict():
 def test_archived_paid_run_is_not_opened_by_operator(monkeypatch):
     from scripts.research.generator_v0.__main__ import main
     monkeypatch.setenv('OPENAI_API_KEY','present')
-    for run_dir in ('artifacts/generator_v0/first-shadow','artifacts/generator_v0/first-shadow-v2','artifacts/generator_v0/first-shadow-v3'):
+    for run_dir in ('artifacts/generator_v0/first-shadow','artifacts/generator_v0/first-shadow-v2','artifacts/generator_v0/first-shadow-v3','artifacts/generator_v0/first-shadow-v4'):
         with pytest.raises(ContractError,match='archived paid run'):
             main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','10','--run-dir',run_dir])
 
@@ -375,3 +391,63 @@ def test_invalid_timeout_fails_closed(value):
     with pytest.raises(ContractError,match='invalid request timeout'):bounded_timeout(value)
     with pytest.raises(ContractError,match='invalid request timeout'):
         OpenAIProvider('key',allow_real=True,budget_micro_usd=1,timeout_seconds=value,transport=lambda *a:pytest.fail('network reached'))
+
+def test_incomplete_max_output_tokens_accounts_actual_cost(tmp_path):
+    log=[];c=Contexts()
+    partial=json.dumps({'CANDIDATES':[{'NAME':'partial-must-not-parse'}]})
+    def fake(method,path,body,headers,timeout):
+        log.append((method,path,json.loads(body) if body else None))
+        if method=='POST':
+            assert json.loads(body)['max_output_tokens']==GENERATOR_MAX_OUTPUT_TOKENS
+            return 200,responses_create('resp_v4')
+        if method=='GET':return 200,responses_incomplete('resp_v4',content=partial)
+        return 200,b'{}'
+    l=Ledger(tmp_path/'r.db',{'RUN_ID':'v4acc'})
+    caller=Caller(c,l,provider(fake),30_000_000,True)
+    with pytest.raises(ContractError,match='background generation incomplete'):
+        caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS},'generation:0')
+    row=l.export_calls()[0]
+    assert row['STATE']=='FAILED' and row['PROVIDER_STATUS']=='incomplete'
+    assert row['RESPONSE_ID']=='resp_v4'
+    assert row['USAGE']=={'input_tokens':4588,'output_tokens':16000,'reasoning_tokens':9322}
+    assert row['COST_MICRO_USD']==cost_of('GENERATOR',4588,16000)==845880
+    assert row['COST_MICRO_USD']<row['RESERVED_MICRO_USD']
+    env=json.loads(l.db.execute('SELECT response FROM calls').fetchone()[0])
+    assert env['provider_envelope']['incomplete_details']=={'reason':'max_output_tokens'}
+    assert 'CANDIDATES' not in env
+    spent=l.db.execute('SELECT COALESCE(SUM(COALESCE(cost,reserved)),0) FROM calls').fetchone()[0]
+    assert spent==845880
+    with pytest.raises(ContractError,match='never automatic replay'):
+        caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS},'generation:0')
+    assert [x[0] for x in log if x[0]=='POST']==['POST']
+    assert l.db.execute('SELECT count(*) FROM cards').fetchone()[0]==0
+
+def test_incomplete_malformed_usage_stays_reservation_backed(tmp_path):
+    log=[]
+    def fake(method,path,body,headers,timeout):
+        log.append((method,path))
+        if method=='POST':return 200,responses_create('resp_bad')
+        if method=='GET':
+            return 200,json.dumps({'id':'resp_bad','status':'incomplete','incomplete_details':{'reason':'max_output_tokens'},'usage':{'input_tokens':'nope','output_tokens':16000}}).encode()
+        return 200,b'{}'
+    l=Ledger(tmp_path/'r.db',{'RUN_ID':'badu'})
+    with pytest.raises(ContractError,match='background generation incomplete'):
+        Caller(Contexts(),l,provider(fake),30_000_000,True).call('GENERATOR',Contexts().generator(),'JSON',{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS},'one')
+    row=l.export_calls()[0]
+    assert row['STATE']=='FAILED' and row['COST_MICRO_USD'] is None and row['USAGE'] is None
+    spent=l.db.execute('SELECT COALESCE(SUM(COALESCE(cost,reserved)),0) FROM calls').fetchone()[0]
+    assert spent==row['RESERVED_MICRO_USD']
+    assert [x for x in log if x[0]=='POST']==[('POST','/v1/responses')]
+
+def test_terminal_cost_above_reservation_fails_closed(tmp_path):
+    def fake(method,path,body,headers,timeout):
+        if method=='POST':return 200,responses_create('resp_over')
+        if method=='GET':return 200,responses_incomplete('resp_over')
+        return 200,b'{}'
+    l=Ledger(tmp_path/'r.db',{'RUN_ID':'over'});p=provider(fake)
+    p.terminal_usage_cost=lambda req,payload:({'input_tokens':1,'output_tokens':1,'reasoning_tokens':0},10**12)
+    with pytest.raises(ContractError,match='exceeds reserved bound'):
+        Caller(Contexts(),l,p,30_000_000,True).call('GENERATOR',Contexts().generator(),'JSON',{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS},'one')
+    row=l.export_calls()[0]
+    assert row['STATE']=='FAILED' and row['COST_MICRO_USD'] is None and row['USAGE'] is None
+    assert row['PROVIDER_STATUS']=='incomplete'

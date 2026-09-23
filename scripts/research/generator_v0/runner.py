@@ -7,6 +7,7 @@ from .schema import parse_json,validate_card
 from .roles import Roles,SELECTOR_PROMPT,exact
 from .mock import slot_plan
 from .ledger import data_gaps
+from .models import GENERATOR_MAX_OUTPUT_TOKENS
 
 GENERATOR_PROMPT='''Return JSON with exactly CANDIDATES: an array containing one card for each supplied slot. Match slot CANDIDATE_ID, MECHANISM_FAMILY and INFORMATION_SOURCE exactly. Each card has exactly the 27 required schema fields. DATA_REQUIRED is a nonempty list of objects with DATASET, OBSERVABLE, STATUS, LEGAL_RANGE strings. DATA_STATUS is an aggregate enum present among those requirements. MISSING_OBSERVABLES is a string list. SEARCH_SURFACE is {PARAMETERS: {parameter_name: [explicit_values]}, MAX_VARIANTS: integer}, the product of list lengths must fit MAX_VARIANTS (1..100). PROTECTED_DATA_REQUIREMENT is false. Other fields are nonempty strings. NEAREST_TESTED_MECHANISM is a prior signature ID or NONE. DATA_GAP_CLASS is NONE for ready cards or a named missing-data class. Propose bounded mechanistic questions, falsifiers and null models. Data-blocked ideas are wanted. No self-grading or success estimates. Use public-time semantics and legal ranges in the catalog. Slot assignments are neutral batch-diversity instructions, not historical research evidence. No tools, market execution or acquisition.'''
 
@@ -29,7 +30,7 @@ def run_campaign(c,caller,size=40):
     plan=slot_plan(size)
     for round_n,start in enumerate(range(0,size,10)):
         slots=plan[start:start+10]
-        raw=caller.call('GENERATOR',c.generator(),GENERATOR_PROMPT,{'max_output_tokens':16000,'slots':slots},'generation:'+str(round_n))
+        raw=caller.call('GENERATOR',c.generator(),GENERATOR_PROMPT,{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':slots},'generation:'+str(round_n))
         parsed=parse_json(raw);exact(parsed,{'CANDIDATES'})
         batch=parsed['CANDIDATES']
         if not isinstance(batch,list) or len(batch)!=len(slots):raise ContractError('wrong generation round size')

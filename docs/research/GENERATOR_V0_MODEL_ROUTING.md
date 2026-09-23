@@ -31,3 +31,7 @@ parameters. Every critic role sends `reasoning_effort` and never
 `none` because deterministic ordinal authority remains application-side.
 Budget accounting uses the model actually selected for that call.
 Polling GETs do not consume another generation reservation.
+GENERATOR request bound is `GENERATOR_MAX_OUTPUT_TOKENS = 32768` (run
+identity). Critics remain 6000 / selector 2000. Terminal FAILED
+Responses with trustworthy usage persist actual Astra Standard cost;
+reasoning tokens are not double-charged.

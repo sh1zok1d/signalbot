@@ -65,6 +65,10 @@ ROLE_REQUEST_PARAMS={
 ROLES=frozenset(ROLE_MODEL_MAP)
 FORBIDDEN_SHARED={'temperature','top_p','top_logprobs','logprobs','tools','functions'}
 
+# Campaign request bound for GENERATOR only. first-shadow-v4 hit the previous
+# 16000 cap (incomplete / max_output_tokens). Included in run identity.
+GENERATOR_MAX_OUTPUT_TOKENS=32768
+
 def spec(model):
     if model not in MODELS:raise ContractError('unknown model or missing verified pricing: '+str(model))
     row=MODELS[model]

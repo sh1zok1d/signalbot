@@ -1,11 +1,11 @@
-## Generator V0 background Responses transport — 2026-09-23
+## Generator V0 output limit and terminal-usage accounting — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_BACKGROUND_RESPONSES_TRANSPORT`.
+`NEXT_UNIT = GENERATOR_V0_OUTPUT_LIMIT_AND_TERMINAL_USAGE_ACCOUNTING`.
 Archived paid runs `artifacts/generator_v0/first-shadow`,
-`artifacts/generator_v0/first-shadow-v2`, and
-`artifacts/generator_v0/first-shadow-v3` remain sealed. This unit is
-infrastructure only: GENERATOR uses background Responses; critics remain
-Chat Completions. No new paid LLM call. No scientific interpretation,
+`first-shadow-v2`, `first-shadow-v3`, and `first-shadow-v4` remain sealed.
+This unit is infrastructure only: raise GENERATOR output bound to 32768
+and persist actual cost on terminal FAILED Responses when usage is
+trustworthy. No new paid LLM call. No scientific interpretation,
 acquisition, Sprint05, D14, MARKET-07, or protected-data open. Frozen
 design/historical records retain their historical labels.
 
@@ -15,7 +15,7 @@ design/historical records retain their historical labels.
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-23
-**Current phase:** `GENERATOR_V0_BACKGROUND_RESPONSES_TRANSPORT`
+**Current phase:** `GENERATOR_V0_OUTPUT_LIMIT_AND_TERMINAL_USAGE_ACCOUNTING`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 
@@ -112,7 +112,7 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `HYPOTHESIS_GENERATOR_V0_INFRA_READY`; no Sprint 05; design frozen in
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`, not built).
 `NEXT_ACTION = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL`.
-`NEXT_UNIT = GENERATOR_V0_BACKGROUND_RESPONSES_TRANSPORT`.
+`NEXT_UNIT = GENERATOR_V0_OUTPUT_LIMIT_AND_TERMINAL_USAGE_ACCOUNTING`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -216,7 +216,7 @@ automatically create Sprint 05. Do not build the hypothesis generator here.
 `HYPOTHESIS_GENERATOR_V0_INFRA_READY`; no Sprint 05; design frozen in
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`, not built).
 `NEXT_ACTION = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL`.
-`NEXT_UNIT = GENERATOR_V0_BACKGROUND_RESPONSES_TRANSPORT`.
+`NEXT_UNIT = GENERATOR_V0_OUTPUT_LIMIT_AND_TERMINAL_USAGE_ACCOUNTING`.
 
 Card identities at definition time (unchanged):
 
