@@ -5498,3 +5498,69 @@ Evidence: `docs/research/discovery_results/D12_DISCOVERY_RESULT.{json,md}`,
 `docs/research/discovery_results/D13_DISCOVERY_RESULT.{json,md}`,
 `docs/research/DISCOVERY_SPRINT_04_RESULT.{json,md}`,
 `docs/research/DISCOVERY_SPRINT_04_EXECUTION_PERMIT.json`.
+
+## 2026-09-22 — Post-Sprint 04 automation maturity decision
+
+Program-level decision on `origin/main`
+`547693ce9d725d7aa6f61b107472cd8c2083ad4f`. No window consumed. No
+scientific outcome computed. No data acquired. D1–D13 result artifacts
+unchanged.
+
+```
+MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
+OPTION_B_AT_MOST_ONE_FINAL_SPRINT05 = REJECTED
+INTERNAL_DISCOVERY_CARDS_EXECUTED = 10
+INTERNAL_PROMISING_PROTOTYPES = 4
+EFFECTIVE_DISTINCT_PROTOTYPE_CLASSES = 2
+DATA_EXPANSION = GENERATOR_FIRST_DEMAND_REVEALED
+HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED
+GENERATOR_MODE = SHADOW_ONLY
+SHADOW_BATCH_SIZE = 40
+REAL_LLM_BUDGET_CAP_USD = 30
+NEW_DATA_ACQUIRED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+SPRINT05_CREATED = false
+D14_CREATED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+MARKET_07_CREATED = false
+D7_RERUN_PERFORMED = false
+D8_EXECUTED = false
+D7_CONFIRMATION_EXECUTED = false
+D11_CONFIRMATION_EXECUTED = false
+D12_CONFIRMATION_EXECUTED = false
+NEXT_UNIT = HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS
+```
+
+Recorded erratum (not rewritten): the Sprint 04 D12 allowed-claim text
+names Binance BTCUSDT spot, but CORE_BTC_BINANCE_V0 is the USD-M
+perpetual.
+
+Evidence: `docs/research/POST_SPRINT04_AUTOMATION_MATURITY_DECISION.{json,md}`,
+`docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`.
+
+### 2026-09-22 — Generator V0 design, pre-outcome amendment 1
+
+Design-only amendment to `HYPOTHESIS_GENERATOR_V0_DESIGN`, made before any
+generator exists or any generator output is observed. No window or
+hypothesis consumed.
+
+```
+BLIND_REGION_STATE = PRIOR_WORK_SIGNATURE
+GENERATOR_SEES_EXECUTION_STATUS = false
+GENERATOR_SEES_OUTCOME_LABELS = false
+GOVERNANCE_REGION_AUTHORITY_DESIGNED = true
+ROLE_CONTEXT_MATRIX_FROZEN = true
+STRUCTURAL_CONTEXT_PROVENANCE_GUARD_FROZEN = true
+SCANNER_REMAINS_BACKSTOP = true
+DEFERRED_REGIONS_NOT_GLOBALLY_CONSUMED = true
+D4_MIXED_STATE_REPRESENTED = true
+STREAM_B_PRESERVED = true
+MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY (unchanged)
+NEXT_UNIT = HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS
+```
+
+The uniform `CONSUMED` blind label would have told the generator that
+blocked regions (B2-06, MARKET-04, D1, D6, D8, D4 lead-lag) were closed.
+Consumed-versus-deferred adjudication now lives only in
+`GOVERNANCE_REGION_AUTHORITY_V0`, read by the novelty critic.

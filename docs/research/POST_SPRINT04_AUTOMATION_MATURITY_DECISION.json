@@ -1,0 +1,201 @@
+{
+  "ANTI_RESCUE_MEMORY_SUFFICIENCY": {
+    "SOURCES": [
+      "MECHANISM_MEMORY_V0 NEIGHBOR_RESCUE_WARNING (all 30 entries)",
+      "HETEROGENEOUS_FAMILY_ROTATION_V3 ANTI_RESCUE_RULES",
+      "per-card WHY_NOT_RESCUE / FORBIDDEN transformations"
+    ],
+    "VERDICT": "SUFFICIENT, BUT OUTCOME-ASYMMETRIC: rescue warnings and family cooldowns are written differently for positive and null cards, so they leak outcomes if passed raw. The generator must receive only a symmetric transformation rule; the specific rules stay in the governance context (see design BLIND_MECHANISM_MAP_V0)."
+  },
+  "AUTOMATIC_SPRINT05": false,
+  "AUTOMATION_RISKS": {
+    "CRITIC_GENERATOR_COLLUSION": "Same model grading its own ideas. Mitigation: separate role prompts, critics never see generator self-assessment, optional different provider for critics.",
+    "GOODHART_ON_PROTOTYPE_RATE": "Mitigation: generator quality is never scored by downstream classification.",
+    "HALLUCINATED_DATA_SOURCES": "Mitigation: anything outside the frozen data catalog is at best FEASIBILITY_REQUIRED and names what must be verified; V0 has no web access.",
+    "HUMAN_RUBBER_STAMPING": "Mitigation: human adjudication logged per candidate with reasons; approvals without reasons are invalid.",
+    "LITERATURE_PRIOR_PULL": "LLMs over-propose well-known effects (momentum, calendar anomalies). Allowed, but novelty critic labels literature-canonical proposals and the batch diversity quota limits them.",
+    "MODE_COLLAPSE_AND_COSMETIC_NOVELTY": "Mitigation: stratified quotas per family/source and a novelty critic that compares against consumed signatures.",
+    "NO_TIMED_HUMAN_BASELINE": "The 70-80% effort KPI has no measured historical baseline. The first shadow campaign must log human active minutes; any comparison to past sprints is labelled an estimate.",
+    "OUTCOME_LEAKAGE_THROUGH_HUMAN_PROMPTS": "Prompt authors know outcomes. Mitigation: prompts and few-shot examples go through the same scanner; few-shot examples are synthetic.",
+    "OUTCOME_LEAKAGE_THROUGH_MEMORY": "Raw memory fields leak outcomes (measured: NEIGHBOR_RESCUE_WARNING in 10/30 entries, WHAT_WAS_ACTUALLY_TESTED 16/30, D2 source text mentions replication). Mitigation: whitelist projection, explicit sanitization overrides, context scanner as hard fail."
+  },
+  "BASE_MAIN_SHA": "547693ce9d725d7aa6f61b107472cd8c2083ad4f",
+  "BASE_MAIN_TREE": "10565a58136205d0cb40ade097341bd25c21a529",
+  "CARD_SCHEMA_MATURITY": {
+    "EXISTING_SCHEMAS": [
+      "HYPOTHESIS_DISCOVERY_PIPELINE_V2 discovery-card contract (15 fields)",
+      "DISCOVERY_SPRINT_03 CARD_CONTRACT_FIELDS (21 fields)",
+      "DISCOVERY_SPRINT_04 candidate record (20 fields) and frozen card (26 fields)"
+    ],
+    "VERDICT": "MATURE_BUT_FRAGMENTED: three generations exist and are consistent in substance; Generator V0 consolidates them into one frozen candidate schema"
+  },
+  "D11_CONFIRMATION_EXECUTED": false,
+  "D12_CONFIRMATION_EXECUTED": false,
+  "D14_CREATED": false,
+  "D7_CONFIRMATION_EXECUTED": false,
+  "D7_RERUN_PERFORMED": false,
+  "D8_EXECUTED": false,
+  "DATA_EXPANSION_DECISION": {
+    "CHALLENGE_CONSIDERED": "If most high-information proposals were impossible without new data, a generator run on current data would only show demand, not produce executable cards. This is acceptable for V0: Stream B exists to measure that demand, and Stream A still has executable ground in current datasets.",
+    "DECISION": "GENERATOR_FIRST_DEMAND_REVEALED",
+    "EVIDENCE": [
+      "Past acquisitions were expensive and provenance-fragile when done ahead of a concrete card (funding/premium semantics remain unproven after two audits: B2-06, MARKET-04/04H).",
+      "When a concrete card needed data, a bounded acquisition was completed inside the card's feasibility unit (D13 panel, D11 calendar), so demand-driven acquisition is proven workable."
+    ],
+    "QUESTION": "Expand datasets before generator automation, or let Generator V0 reveal which missing observables block high-information mechanisms?"
+  },
+  "DATA_FEASIBILITY_MEMORY_SUFFICIENCY": {
+    "BLOCKER_KINDS_OBSERVED": {
+      "B2-06 / MARKET-04": "publication-time semantics unproven (point-in-time)",
+      "D1": "null-model / observable mismatch (method)",
+      "D6": "external source not pinned (provenance)",
+      "D8": "insufficient control support (support, not data)"
+    },
+    "SOURCES": [
+      "Sprint03 and Sprint04 candidate pools with DATA_STATUS",
+      "B2_06_FUNDING_PUBLICATION_AUTHORITY, MARKET_04 / 04H adjudications",
+      "docs/research_data dataset authorities (snapshots, ledgers, restore paths)"
+    ],
+    "VERDICT": "SUFFICIENT to seed the data-status taxonomy and a data catalog"
+  },
+  "DATE": "2026-09-22",
+  "DECISION_RATIONALE": [
+    "Generator V0 is evaluated on novelty, mechanism distance, falsifiability, data specificity and information gain, not on downstream positive rate. What it needs from history is coverage of mechanism regions, anti-rescue lineage, blocked-data examples and card-schema examples; 10 executed internal cards plus about 20 legacy H/B2/MARKET entries in structured memory supply those.",
+    "The history already contains every example class the critics must learn from: clean nulls in six distinct regions, prototypes, a replication that survived (D2 on BitMEX), statistical-but-not-practical structure (D13), and data/method blockers of four distinct kinds (D1 null-model mismatch, D6 source not pinned, D8 control support, B2-06/MARKET-04 publication-time semantics).",
+    "No named mechanism region is required for the generator evaluation to be valid. The one region previously named B-eligible (forward expectations / options) has zero executed cards, but a generator that proposes options mechanisms will route them to the data-blocked stream, where the data-gap ledger measures exactly how much distinct mechanism space options would unlock. Executing one options card first would not change whether the generator can be evaluated; it would spend a dataset acquisition before demand is measured.",
+    "The remaining weaknesses (prototype concentration in second-moment structure, D12 not replicated, no timed human-effort baseline) are about evidence strength and KPI measurement, not about whether generation can be automated. They are carried as explicit risks and measurement requirements."
+  ],
+  "DESIGN_REL": "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json",
+  "GENERATOR_BUILT": false,
+  "INTERNAL_DISCOVERY_CARDS_EXECUTED": 10,
+  "INTERNAL_PROMISING_PROTOTYPES": 4,
+  "KIND": "PROGRAM_LEVEL_DECISION",
+  "KNOWN_ERRATUM_NOT_REWRITTEN": {
+    "D12_ALLOWED_CLAIM_INSTRUMENT": "DISCOVERY_SPRINT_04.json D12 ALLOWED_CLAIM says 'Binance BTCUSDT spot', but CORE_BTC_BINANCE_V0 is the Binance USD-M BTCUSDT perpetual (docs/CORE_BTC_BINANCE_V0_CONTRACT.md). Consumed artifacts are not rewritten; any claim or future confirmation must name the perpetual."
+  },
+  "MARKET_07_CREATED": false,
+  "MATURITY_DECISION": "HYPOTHESIS_GENERATOR_V0_INFRA_READY",
+  "MECHANISM_DIVERSITY_ASSESSMENT": {
+    "D12_STRENGTH_NOTE": "D12 is adaptive discovery on 10 transitions, not replicated; yearly mean A is largest in 2023-2024 and negative in 2022. It is a prototype, not a robust mechanism.",
+    "DISTINCT_FAMILIES_EXECUTED": [
+      "A",
+      "C",
+      "D",
+      "E",
+      "G",
+      "H",
+      "J",
+      "COMPOSITION"
+    ],
+    "EFFECTIVE_DISTINCT_PROTOTYPE_CLASSES": 2,
+    "EXECUTED_CARDS": {
+      "D10": {
+        "FAMILY": "D",
+        "REGION": "BTC-ETH residual shock persistence"
+      },
+      "D11": {
+        "FAMILY": "G",
+        "REGION": "scheduled FOMC unsigned event volatility"
+      },
+      "D12": {
+        "FAMILY": "J",
+        "REGION": "participation-clock anchoring (DST natural experiment)"
+      },
+      "D13": {
+        "FAMILY": "H",
+        "REGION": "cross-sectional weekly relative return (true panel)"
+      },
+      "D2": {
+        "FAMILY": "A",
+        "REGION": "RV-state abstention vs matched random (24h adverse path)"
+      },
+      "D3": {
+        "FAMILY": "C",
+        "REGION": "unconditional close-path functionals"
+      },
+      "D4": {
+        "FAMILY": "D",
+        "REGION": "BTC-ETH rolling correlation range"
+      },
+      "D5": {
+        "FAMILY": "COMPOSITION",
+        "REGION": "composed decision rule vs components"
+      },
+      "D7": {
+        "FAMILY": "E",
+        "REGION": "kline impact-state persistence"
+      },
+      "D9": {
+        "FAMILY": "H",
+        "REGION": "two-venue same-5m dislocation-closure attribution"
+      }
+    },
+    "INFORMATION_SOURCE_CLASSES_EXECUTED": [
+      "CORE BTC USD-M perpetual 1m klines",
+      "CORE ETH USD-M perpetual 1m klines",
+      "two-venue 5m (Binance perp / OKX spot)",
+      "pre-2020 BitMEX 5m (replication)",
+      "official scheduled calendar (FOMC)",
+      "statutory calendar (DST)",
+      "Binance spot USDT daily cross-sectional panel"
+    ],
+    "INFORMATION_SOURCE_CLASSES_NEVER_EXECUTED": [
+      "options / implied volatility / skew / term structure",
+      "order-book depth (L2)",
+      "derivatives positioning with proven publication time (OI, funding, basis)",
+      "on-chain",
+      "external macro time series"
+    ],
+    "PROTOTYPES": [
+      "D2",
+      "D7",
+      "D11",
+      "D12"
+    ],
+    "PROTOTYPE_CLASS_NOTE": "D2 (volatility-scale compatible), D7 (activity/impact-level persistence) and D11 (unsigned event volatility) are treated as one SECOND_MOMENT_ACTIVITY_LEVEL class until their distinctness is tested. D12 is a separate PARTICIPATION_TIMING class (timing of volume, not its level).",
+    "VERDICT": "SUFFICIENT_FOR_V0: diverse enough in families and sources to define consumed regions and test duplicate detection; positive diversity is thin (2 effective classes) and must not be advertised as more."
+  },
+  "MECHANISM_MEMORY_REL": "docs/research/MECHANISM_MEMORY_V0.json",
+  "MECHANISM_MEMORY_STATUS": "EXTENDED_THROUGH_D13",
+  "NEGATIVE_EVIDENCE_SUFFICIENCY": {
+    "INTERNAL_CLEAN_NULL_REGIONS": {
+      "D10": "BTC-ETH residual persistence",
+      "D13": "cross-sectional weekly relative return",
+      "D3": "unconditional path morphology",
+      "D4": "BTC-ETH rolling correlation",
+      "D5": "composed decision rule",
+      "D9": "two-venue closure attribution"
+    },
+    "LEGACY_NULL_OR_REJECTED_REGIONS": "H01-H05, B2-01..B2-04, MARKET-01/02/05/06 (directional/scalar-prediction regions)",
+    "STATISTICAL_NOT_PRACTICAL_EXAMPLE": "D13: statistical and temporal gates passed, practical gate failed (below the pinned friction floor)",
+    "VERDICT": "SUFFICIENT: many distinct nulls with explicit 'what this deprioritizes' records"
+  },
+  "NEW_DATA_ACQUIRED": false,
+  "NEXT_UNIT": "HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS",
+  "NEXT_UNIT_SCOPE": "Infrastructure only: blind-context builder, candidate schema, provider interface, mock provider, generator, novelty/feasibility/red-team critics, selector, data-gap ledger, run ledger, budget guard, shadow batch runner. No market scientific execution.",
+  "OPTIONS": {
+    "A": "HYPOTHESIS_GENERATOR_V0_INFRA_READY",
+    "B": "AT_MOST_ONE_FINAL_SPRINT05"
+  },
+  "OPTION_B_EVALUATION": {
+    "CANDIDATE_REGIONS_CONSIDERED": {
+      "DERIVATIVES_CROWDING_FUNDING_BASIS": "Blocked on publication-time semantics (B2-06, MARKET-04); cannot be executed honestly in any Sprint05 without new first-party authority.",
+      "FORWARD_EXPECTATIONS_OPTIONS": "Zero executed cards, but the generator can propose and critique options mechanisms without executing one; their blocked status is itself the information the data-gap ledger needs. Requires a new dataset acquisition that the demand-first principle defers.",
+      "SECOND_MOMENT_DISTINCTNESS_DIAGNOSTIC": "Whether D2/D7/D11 are one phenomenon is an evidence-interpretation question for future confirmation design. It does not change how generator quality is scored, because prototype labels are hidden from the generator and not used as reward.",
+      "TRUE_ORDER_BOOK_LIQUIDITY": "Zero executed cards; heavy acquisition; family E has one prototype (D7). Same argument as options: route to the data-blocked stream."
+    },
+    "VERDICT": "REJECTED",
+    "WHY_NOT_MISLEADING_WITHOUT_SPRINT05": "The generator is not rewarded by outcomes, so thin positive diversity does not bias its evaluation; missing observables surface as Stream B demand rather than silently shrinking the proposal space."
+  },
+  "PRODUCT_BUILD_FROZEN": true,
+  "PROTECTED_2025_OPENED": false,
+  "PROTECTED_2026_OPENED": false,
+  "SCHEMA": "signalbot_program_decision",
+  "SCHEMA_VERSION": "1.0.0",
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SPRINT04_BATCH_RESULT_PAYLOAD_SHA256": "a70d7c4b9d84e6b5d3b1a1f27b514d5c725dda1f4c0ca7fa38180eb353064ddd",
+  "SPRINT04_RESULT_REL": "docs/research/DISCOVERY_SPRINT_04_RESULT.json",
+  "SPRINT05_CREATED": false,
+  "STATUS": "DECIDED",
+  "UNIT": "POST_SPRINT04_AUTOMATION_MATURITY_DECISION"
+}
