@@ -6,9 +6,10 @@ import time
 from decimal import ROUND_CEILING
 from .context import ContractError,canonical,Contexts,digest
 from .schema import parse_json
-from .output_schemas import openai_response_format,responses_text_format,assert_structured_payload,generator_schema_digest
+from .output_schemas import openai_response_format,responses_text_format,generator_schema_digest
+from .schema import normalize_role_output
 from .models import model_for,request_params_for,rates,spec,ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,routing_digest,GENERATOR_MAX_OUTPUT_TOKENS
-from .provider import Response,BackgroundPending
+from .provider import Response,BackgroundPending,ProviderFailure,classify_http
 
 OPENAI_REQUEST_TIMEOUT_SECONDS=600
 TIMEOUT_MIN_SECONDS=1
@@ -31,18 +32,13 @@ def bounded_timeout(value=None):
         raise ContractError('invalid request timeout')
     return value
 
-class ProviderFailure(ContractError):
-    def __init__(self,message,wire=b'',envelope=None,http_status=None):
-        super().__init__(message);self.wire_sha256=hashlib.sha256(wire).hexdigest() if wire else None
-        self.envelope=envelope;self.http_status=http_status
-
 class HTTPS:
     def __call__(self,method,path,body,headers,timeout):
         conn=http.client.HTTPSConnection('api.openai.com',timeout=timeout)
         try:
             conn.request(method,path,body=body or b'',headers=headers)
             response=conn.getresponse();wire=response.read(4_000_001)
-            if len(wire)>4_000_000:raise ProviderFailure('oversized provider response',wire)
+            if len(wire)>4_000_000:raise ProviderFailure('oversized provider response',wire,billing='UNCERTAIN')
             return response.status,wire
         finally:conn.close()
 
@@ -114,7 +110,7 @@ class OpenAIProvider:
         extra=self.request_params_for(role)
         if 'temperature' in extra and 'reasoning_effort' in extra:raise ContractError('conflicting sampling parameters')
         body={'model':self.model_for(role),'messages':[{'role':'system','content':request['prompt']},{'role':'user','content':canonical(user)}],
-              'response_format':openai_response_format(role,self.contexts),'max_completion_tokens':maxout,'n':1,'stream':False,'store':False,'service_tier':'default'}
+              'response_format':openai_response_format(role,self.contexts,request),'max_completion_tokens':maxout,'n':1,'stream':False,'store':False,'service_tier':'default'}
         body.update(extra)
         if body.get('stream') or body.get('store') or 'tools' in body:raise ContractError('tools or streaming forbidden')
         return body
@@ -131,7 +127,7 @@ class OpenAIProvider:
         body={'model':self.model_for('GENERATOR'),'instructions':request['prompt'],'input':canonical(user),
               'background':True,'store':True,'stream':False,'service_tier':'default',
               'max_output_tokens':maxout,'reasoning':{'effort':effort},
-              'text':{'format':responses_text_format('GENERATOR',self.contexts)}}
+              'text':{'format':responses_text_format('GENERATOR',self.contexts,request)}}
         if body.get('stream') or 'tools' in body or 'temperature' in body:raise ContractError('tools, streaming, or temperature forbidden')
         if body.get('store') is not True or body.get('background') is not True:raise ContractError('background store required')
         return body
@@ -155,7 +151,9 @@ class OpenAIProvider:
         if not self._allow or not self._key or not 0<self.cap<=30_000_000:raise ContractError('real call disabled')
         body=canonical(self.responses_payload(request)).encode()
         status,wire=self._http('POST','/v1/responses',body,self.create_timeout_seconds)
-        if status!=200:raise ProviderFailure('provider HTTP '+str(status),wire,http_status=status)
+        if status!=200:
+            billing,retryable=classify_http(status)
+            raise ProviderFailure('provider HTTP '+str(status),wire,http_status=status,billing=billing,retryable=retryable)
         try:
             payload=parse_json(wire.decode('utf-8'));rid=payload['id'];st=payload['status']
             if not isinstance(rid,str) or not rid.strip():raise ValueError('missing response_id')
@@ -167,7 +165,9 @@ class OpenAIProvider:
     def retrieve_background(self,response_id):
         path='/v1/responses/'+response_id
         status,wire=self._http('GET',path,b'',self.poll_get_timeout_seconds)
-        if status!=200:raise ProviderFailure('provider HTTP '+str(status),wire,http_status=status)
+        if status!=200:
+            billing,retryable=classify_http(status)
+            raise ProviderFailure('provider HTTP '+str(status),wire,http_status=status,billing='UNCERTAIN',retryable=retryable or status>=500)
         payload=parse_json(wire.decode('utf-8'))
         if payload.get('id')!=response_id:raise ProviderFailure('response_id mismatch',wire)
         return payload,wire
@@ -211,25 +211,48 @@ class OpenAIProvider:
         return ''.join(chunks)
 
     def complete(self,request):
+        """Synchronous critic call. Returns content text; content is judged by the consumer.
+
+        HTTP errors are classified (classify_http). A 200 whose completion is
+        truncated, refused or not text is a BILLED failure carrying its usage cost."""
         if request['role']=='GENERATOR':raise ContractError('GENERATOR uses background Responses, not synchronous complete')
         if not self._allow or not self._key or not 0<self.cap<=30_000_000:raise ContractError('real call disabled')
         bound=self.bound(request)
         if bound>self.cap:raise ContractError('call exceeds authorized budget')
         body=canonical(self.chat_payload(request)).encode()
         status,wire=self._http('POST','/v1/chat/completions',body,self.request_timeout_seconds)
-        if status!=200:raise ProviderFailure('provider HTTP '+str(status),wire,http_status=status)
+        if status!=200:
+            billing,retryable=classify_http(status)
+            raise ProviderFailure('provider HTTP '+str(status),wire,http_status=status,billing=billing,retryable=retryable)
         try:
             payload=parse_json(wire.decode('utf-8'))
-            choices=payload['choices'];usage=payload['usage']
-            if len(choices)!=1 or choices[0]['finish_reason']!='stop':raise ValueError('incomplete completion')
-            message=choices[0]['message'];raw=message['content']
-            if message.get('refusal') or message.get('tool_calls') or not isinstance(raw,str):raise ValueError('not a text completion')
-            parsed=parse_json(raw)
-            normalized=assert_structured_payload(request['role'],self.contexts,parsed)
+        except (ContractError,UnicodeError) as e:
+            raise ProviderFailure('unparseable 200 envelope',wire,billing='BILLED') from e
+        usage=payload.get('usage') if isinstance(payload,dict) else None
+        cost=None;recorded=None
+        try:
             inp,out=usage['prompt_tokens'],usage['completion_tokens'];maxin,maxout=self.bounds(request)
-            if type(inp)!=int or type(out)!=int or not 0<=inp<=maxin or not 0<=out<=maxout:raise ValueError('usage outside bound')
-            input_rate,output_rate=rates(request['role'])
-            cost=int((input_rate*inp+output_rate*out).to_integral_value(rounding=ROUND_CEILING))
-        except (KeyError,TypeError,ValueError,IndexError,UnicodeError,ContractError) as e:
-            raise ProviderFailure('malformed or incomplete provider envelope',wire) from e
-        return Response(canonical(normalized),usage,cost,hashlib.sha256(wire).hexdigest())
+            if type(inp)==int and type(out)==int and 0<=inp<=maxin and 0<=out<=maxout:
+                input_rate,output_rate=rates(request['role'])
+                cost=int((input_rate*inp+output_rate*out).to_integral_value(rounding=ROUND_CEILING))
+                details=usage.get('completion_tokens_details') or {}
+                recorded={'prompt_tokens':inp,'completion_tokens':out,'reasoning_tokens':details.get('reasoning_tokens')}
+        except (KeyError,TypeError):
+            cost=None
+        try:
+            choices=payload['choices']
+            if len(choices)!=1:raise ValueError('choice count')
+            finish=choices[0].get('finish_reason');message=choices[0]['message'];raw=message.get('content')
+        except (KeyError,TypeError,ValueError,IndexError) as e:
+            raise ProviderFailure('malformed provider envelope',wire,billing='BILLED',usage=recorded,cost=cost) from e
+        if finish!='stop':
+            raise ProviderFailure('incomplete completion: '+str(finish),wire,envelope={'finish_reason':finish},billing='BILLED',usage=recorded,cost=cost)
+        if message.get('refusal') or message.get('tool_calls') or not isinstance(raw,str) or not raw:
+            raise ProviderFailure('not a text completion',wire,billing='BILLED',usage=recorded,cost=cost)
+        if cost is None:
+            raise ProviderFailure('usage missing or outside bound',wire,billing='BILLED')
+        try:
+            raw=canonical(normalize_role_output(request['role'],parse_json(raw)))
+        except ContractError:
+            pass
+        return Response(raw,recorded,cost,hashlib.sha256(wire).hexdigest())

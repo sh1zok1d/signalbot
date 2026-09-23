@@ -11,7 +11,8 @@ from .provider import Caller,MockProvider
 from .mock import MockResponder
 from .runner import run_campaign,GENERATOR_PROMPT
 from .models import GENERATOR_MAX_OUTPUT_TOKENS
-from .derive import derive_complete_rounds,authorize_derived_continuation,authorize_budget_extension,remaining_campaign_budget_preflight,OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
+from .derive import derive_complete_rounds,authorize_derived_continuation,authorize_budget_extension,remaining_campaign_budget_preflight,reconcile_call,OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
+from .ledger import InfrastructureStop
 
 ARCHIVED_PAID_RUNS={
     ('generator_v0','first-shadow'),
@@ -23,8 +24,21 @@ ARCHIVED_PAID_RUNS={
     ('generator_v0','first-shadow-v7'),
 }
 
+SEALED_REGISTRY=Path(__file__).resolve().parents[3]/'docs/research/GENERATOR_V0_SEALED_RUNS.json'
+
 def archived_paid_run(path):
     return len(path.parts)>=2 and tuple(path.parts[-2:]) in ARCHIVED_PAID_RUNS
+
+def sealed_journal(run_dir):
+    """True if run_dir/run.sqlite is a sealed journal (by content hash, not path)."""
+    db=Path(run_dir)/'run.sqlite'
+    if not db.exists():return False
+    sealed={r['JOURNAL_SHA256'] for r in json.loads(SEALED_REGISTRY.read_text(encoding='utf-8'))['RUNS']}
+    return byte_digest(db) in sealed
+
+def refuse_sealed_or_archived(run_dir):
+    if archived_paid_run(run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
+    if sealed_journal(run_dir):raise ContractError('sealed journal is read-only and must not be opened by this operator')
 
 def atomic_json(path,value):
     fd,name=tempfile.mkstemp(prefix='.'+path.name,dir=path.parent)
@@ -37,7 +51,7 @@ def atomic_json(path,value):
 
 def main(argv=None):
     p=argparse.ArgumentParser(description='Generator V0 shadow only; stops at human review')
-    p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect','derive','authorize-derived-continuation','authorize-budget-extension','remaining-budget-preflight'])
+    p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect','derive','authorize-derived-continuation','authorize-budget-extension','remaining-budget-preflight','reconcile'])
     p.add_argument('--source-run-dir',type=Path)
     p.add_argument('--through-generation',type=int,default=1)
     p.add_argument('--provider',choices=['mock','openai'],default='mock')
@@ -51,12 +65,16 @@ def main(argv=None):
     p.add_argument('--reason')
     p.add_argument('--actor')
     p.add_argument('--new-cap-usd')
+    p.add_argument('--call-key')
+    p.add_argument('--resolution',choices=['NOT_BILLED','BILLED'])
+    p.add_argument('--cost-usd')
+    p.add_argument('--evidence',default='')
     p.add_argument('--active-minutes',type=float,default=0)
     p.add_argument('--field')
     p.add_argument('--value-json')
     a=p.parse_args(argv)
     if a.command=='derive':
-        if archived_paid_run(a.run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
+        refuse_sealed_or_archived(a.run_dir)
         if a.allow_real_llm or a.provider=='openai' or Decimal(a.budget_usd)!=0:
             raise ContractError('derive is offline; do not authorize a provider or budget')
         if a.source_run_dir is None:raise ContractError('source run required')
@@ -65,25 +83,31 @@ def main(argv=None):
         atomic_json(a.run_dir/'derived_import.json',report)
         print(canonical(report));return
     if a.command=='authorize-derived-continuation':
-        if archived_paid_run(a.run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
+        refuse_sealed_or_archived(a.run_dir)
         if a.allow_real_llm or a.provider=='openai' or Decimal(a.budget_usd)!=0:
             raise ContractError('authorize-derived-continuation is offline; do not authorize a provider or budget')
         report=authorize_derived_continuation(a.run_dir,a.actor,a.reason)
         print(canonical(report));return
     if a.command=='authorize-budget-extension':
-        if archived_paid_run(a.run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
+        refuse_sealed_or_archived(a.run_dir)
         if a.allow_real_llm or a.provider=='openai' or Decimal(a.budget_usd)!=0:
             raise ContractError('authorize-budget-extension is offline; do not authorize a provider or budget')
         report=authorize_budget_extension(a.run_dir,a.actor,a.reason,a.new_cap_usd)
         print(canonical(report));return
     if a.command=='remaining-budget-preflight':
-        if archived_paid_run(a.run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
+        refuse_sealed_or_archived(a.run_dir)
         if a.allow_real_llm or a.provider=='openai' or Decimal(a.budget_usd)!=0:
             raise ContractError('remaining-budget-preflight is offline; do not authorize a provider or budget')
         report=remaining_campaign_budget_preflight(a.run_dir)
         print(canonical(report));return
-    if archived_paid_run(a.run_dir):
-        raise ContractError('archived paid run is read-only and must not be opened by this operator')
+    if a.command=='reconcile':
+        refuse_sealed_or_archived(a.run_dir)
+        if a.allow_real_llm or a.provider=='openai' or Decimal(a.budget_usd)!=0:
+            raise ContractError('reconcile is offline; do not authorize a provider or budget')
+        if not a.call_key or not a.resolution:raise ContractError('call key and resolution required')
+        report=reconcile_call(a.run_dir,a.call_key,a.resolution,a.cost_usd,a.actor,a.reason,a.evidence)
+        print(canonical(report));return
+    refuse_sealed_or_archived(a.run_dir)
     c=Contexts();c.validate('GENERATOR',c.generator(),GENERATOR_PROMPT)
     if not 25<=a.size<=50:raise ContractError('batch size')
     if a.command in ('review','mutate','inspect'):
@@ -136,12 +160,16 @@ def main(argv=None):
         config.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()},PRICE_TABLE=price_table(),ROUTING_DIGEST=provider.routing_digest,REQUEST_TIMEOUT_SECONDS=provider.request_timeout_seconds,**ident)
     l=Ledger(dbpath,config)
     try:
-        result=run_campaign(c,Caller(c,l,provider,cap,a.allow_real_llm),a.size)
+        try:
+            result=run_campaign(c,Caller(c,l,provider,cap,a.allow_real_llm),a.size)
+        except InfrastructureStop as e:
+            print(canonical({'RUN_ID':config['RUN_ID'],'STATUS':l.get('status'),'STOP':type(e).__name__,'DETAIL':str(e)[:500],'SPEND_MICRO_USD':l.total_charged_micro_usd()}))
+            raise
         atomic_json(a.run_dir/'shadow_registry.json',result)
-        atomic_json(a.run_dir/'data_gap_ledger.json',result['DATA_GAP_LEDGER_V0'])
-        atomic_json(a.run_dir/'human_review_queue.json',{'STATUS':result['STATUS'],'SHORTLIST':result['SHORTLIST']})
-        atomic_json(a.run_dir/'run_ledger.json',{'RUN_ID':config['RUN_ID'],'CALLS':l.export_calls(),'PARSED_CARD':result['CANDIDATES'],'CRITIC_OUTPUTS':result['REVIEWS'],'FINAL_DECISION':result['STATUS'],'HUMAN_MUTATIONS':[json.loads(x[0]) for x in l.db.execute("SELECT payload FROM events WHERE kind='HUMAN_MUTATION' ORDER BY n")]})
-        print(canonical({'RUN_ID':config['RUN_ID'],'STATUS':result['STATUS'],'SEMANTIC_RESULT_DIGEST':result['SEMANTIC_RESULT_DIGEST'],'CANDIDATES':len(result['CANDIDATES']),'STREAM_A_N':len(result['STREAM_A']),'STREAM_B_N':len(result['STREAM_B']),'SHORTLIST_N':len(result['SHORTLIST'])}))
+        atomic_json(a.run_dir/'data_gap_ledger.json',result.get('DATA_GAP_LEDGER_V0',[]))
+        atomic_json(a.run_dir/'human_review_queue.json',{'STATUS':result['STATUS'],'SHORTLIST':result.get('SHORTLIST',[])})
+        atomic_json(a.run_dir/'run_ledger.json',{'RUN_ID':config['RUN_ID'],'CALLS':l.export_calls(),'CANDIDATE_INTAKE':l.candidates(),'PARSED_CARD':result.get('CANDIDATES',[]),'CRITIC_OUTPUTS':result.get('REVIEWS',[]),'FINAL_DECISION':result['STATUS'],'HUMAN_MUTATIONS':[json.loads(x[0]) for x in l.db.execute("SELECT payload FROM events WHERE kind='HUMAN_MUTATION' ORDER BY n")]})
+        print(canonical({'RUN_ID':config['RUN_ID'],'STATUS':result['STATUS'],'SEMANTIC_RESULT_DIGEST':result['SEMANTIC_RESULT_DIGEST'],'CANDIDATES':len(result.get('CANDIDATES',[])),'METRICS':result.get('METRICS'),'SPEND':result.get('SPEND'),'STREAM_A_N':len(result.get('STREAM_A',[])),'STREAM_B_N':len(result.get('STREAM_B',[])),'SHORTLIST_N':len(result.get('SHORTLIST',[]))}))
     finally:l.close()
 
 if __name__=='__main__':

@@ -3,6 +3,8 @@ from .context import canonical,digest
 from .schema import signature
 from .roles import NOVELTY_DIMENSIONS,RED_DIMENSIONS,FEAS_DIMENSIONS
 
+# Canonical V02 LEGAL_RANGE inside each catalog dataset's own bounds.
+FIXTURE_RANGES={'MARKET_06_OKX_BINANCE_FEASIBILITY_V0':'2022-01..2024-12','D2_BITMEX_PRE2020_XBTUSD':'pre-2020'}
 SOURCE_CLASSES=('KLINES','CROSS_VENUE','PRE2020_SURFACE','OFFICIAL_CALENDAR','CROSS_SECTIONAL_PANEL','OPTIONS','ONCHAIN','ORDER_BOOK')
 DATASETS=('CORE_BTC_BINANCE_V0','MARKET_06_OKX_BINANCE_FEASIBILITY_V0','D2_BITMEX_PRE2020_XBTUSD','D11_FOMC_OFFICIAL_V0','SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0','SYNTHETIC_OPTIONS_ARCHIVE','SYNTHETIC_ONCHAIN_ARCHIVE','SYNTHETIC_ORDERBOOK_ARCHIVE')
 MECHANISMS=(
@@ -34,7 +36,7 @@ def fixture(slot,contexts):
         NEAREST_TESTED_MECHANISM='NONE',MECHANISM_DISTANCE_ARGUMENT='Different synthetic observable and function.',WHY_NOT_A_RESCUE='A distinct synthetic structural pathway.',
         SEARCH_SURFACE={'PARAMETERS':{'horizon_hours':[6],'variant':['fixed']},'MAX_VARIANTS':1},
         MAIN_CONFOUNDERS='Calendar composition, missingness, common factors.',NO_LOOKAHEAD_RULE='Every predictor must have an observable public timestamp at or before decision T.',
-        DATA_REQUIRED=[{'DATASET':DATASETS[j],'OBSERVABLE':'Synthetic observable '+str(i+1),'STATUS':status,'LEGAL_RANGE':'2020..2024' if j!=2 else 'pre-2020'}],
+        DATA_REQUIRED=[{'DATASET':DATASETS[j],'OBSERVABLE':'Synthetic observable '+str(i+1),'STATUS':status,'LEGAL_RANGE':FIXTURE_RANGES.get(DATASETS[j],'2020-01..2024-12')}],
         DATA_STATUS=status,MISSING_OBSERVABLES=[] if status=='DATA_READY' else ['Synthetic observable '+str(i+1)+' with timestamp and archive provenance'],
         DATA_GAP_CLASS='NONE' if status=='DATA_READY' else SOURCE_CLASSES[j],EXPECTED_IMPLEMENTATION_COST='Bounded synthetic fixture computation',
         WHAT_POSITIVE_WOULD_TEACH='Distinguish the specified synthetic structural pathway.',WHAT_NULL_WOULD_ELIMINATE='Eliminate this synthetic mechanism formulation.',EXPECTED_INFORMATION_GAIN='Separate structurally different explanations.',PROTECTED_DATA_REQUIREMENT=False)

@@ -1,4 +1,11 @@
-"""Offline protected-data semantics and COMPLETE carry-forward. No real LLM calls."""
+"""Offline protected-data semantics and COMPLETE carry-forward. No real LLM calls.
+
+The LEGAL_RANGE / exclusion-parser tests in this file pin the FROZEN legacy v0.1
+validator (legacy_v01_schema.py). That validator is reachable only for the
+grandfathered historical call keys; it is not the contract for new output.
+New-generation (GENERATOR_CONTRACT_V02) semantics are tested in
+test_generator_v0_contract.py and test_generator_v0_corpus.py.
+"""
 import hashlib
 import json
 import sqlite3
@@ -10,7 +17,8 @@ from scripts.research.generator_v0.ledger import Ledger
 from scripts.research.generator_v0.mock import fixture,slot_plan
 from scripts.research.generator_v0.provider import Caller,MockProvider
 from scripts.research.generator_v0.runner import run_campaign
-from scripts.research.generator_v0.schema import validate_card,classify_legal_range
+from scripts.research.generator_v0.legacy_v01_schema import validate_card as legacy_validate_card,classify_legal_range
+from scripts.research.generator_v0.runner import generator_identity
 from scripts.research.generator_v0.__main__ import main
 
 FIXTURE=Path(__file__).resolve().parent/'fixtures'/'generator_v0_c018.json'
@@ -41,7 +49,7 @@ def complete_blob(cards,rid):
     return {'raw':raw,'raw_sha256':hashlib.sha256(('wire-'+rid).encode()).hexdigest(),
             'response_id':rid,'provider_status':'completed','provider_envelope':{'id':rid,'status':'completed'}}
 
-def write_source(path,contexts,*,mutate_request=None,state='COMPLETE',include_c018=True,rounds=(0,1),config=None):
+def write_source(path,contexts,*,mutate_request=None,state='COMPLETE',include_c018=False,rounds=(0,1),config=None):
     path.mkdir(parents=True)
     cfg=config or source_config(contexts)
     l=Ledger(path/'run.sqlite',cfg)
@@ -77,34 +85,34 @@ def test_c018_fixture_passes_new_protected_data_rule():
     assert card['PROTECTED_DATA_REQUIREMENT'] is False
     assert all(row['LEGAL_RANGE']=='2020-01..2024-12' for row in card['DATA_REQUIRED'])
     assert 'No 2025/2026 quotes' in card['NO_LOOKAHEAD_RULE']
-    validate_card(card,Contexts())
+    legacy_validate_card(card,Contexts())
 
 def test_mention_only_exclusion_in_no_lookahead_passes():
     x=base_card();x['NO_LOOKAHEAD_RULE']='No 2025/2026 data are permitted.'
-    validate_card(x,Contexts())
+    legacy_validate_card(x,Contexts())
 
 def test_c018_exclusion_statement_is_not_a_requirement():
     x=base_card()
     x['NO_LOOKAHEAD_RULE']=('Use only quotes disseminated by the minute mark and no older than two seconds. '
         'Never use nearest future quotes. Establish common legal support before computing either the observed statistic or its null. '
         'No 2025/2026 quotes, execution assumptions, or post hoc best-venue selection are permitted.')
-    validate_card(x,Contexts())
+    legacy_validate_card(x,Contexts())
 
 def test_safe_exclusion_allowed_wording_passes():
     x=base_card()
     x['NO_LOOKAHEAD_RULE']=('Use only quotes disseminated by the minute mark. '
         'No 2025/2026 quotes, execution assumptions, or post hoc best-venue selection are allowed.')
-    validate_card(x,Contexts())
+    legacy_validate_card(x,Contexts())
 
 def test_ordinary_no_lookahead_without_protected_year_passes():
     x=base_card()
     x['NO_LOOKAHEAD_RULE']='Every predictor must have an observable public timestamp at or before decision T.'
-    validate_card(x,Contexts())
+    legacy_validate_card(x,Contexts())
 
 def test_methodology_current_batch_and_candidate_are_not_protected_windows():
     x=base_card()
     x['WHY_NOT_A_RESCUE']='This current candidate is scored against the current batch, not market quotes.'
-    validate_card(x,Contexts())
+    legacy_validate_card(x,Contexts())
 
 @pytest.mark.parametrize('field,text',[
     ('NO_LOOKAHEAD_RULE','Use the latest closed 1m bar at or before T.'),
@@ -117,7 +125,7 @@ def test_methodology_current_batch_and_candidate_are_not_protected_windows():
 ])
 def test_point_in_time_latest_and_current_wording_passes(field,text):
     x=base_card();x[field]=text
-    validate_card(x,Contexts())
+    legacy_validate_card(x,Contexts())
 
 @pytest.mark.parametrize('rule',[
     'No 2025/2026 quotes. The target is the 2025 return and is permitted.',
@@ -128,22 +136,22 @@ def test_point_in_time_latest_and_current_wording_passes(field,text):
 ])
 def test_exclusion_parser_does_not_swallow_requirements(rule):
     x=base_card();x['NO_LOOKAHEAD_RULE']=rule
-    with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())
+    with pytest.raises(ContractError,match='protected data requirement'):legacy_validate_card(x,Contexts())
 
 def test_non_exclusion_in_no_lookahead_fails():
     x=base_card();x['NO_LOOKAHEAD_RULE']='outcomes measured in 2025'
-    with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())
+    with pytest.raises(ContractError,match='protected data requirement'):legacy_validate_card(x,Contexts())
 
 def test_safe_explicit_range_on_unknown_blocked_source_passes():
     x=base_card()
     x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['quotes'],DATA_GAP_CLASS='COST')
     x['DATA_REQUIRED']=[{'DATASET':'PROSPECTIVE_UNKNOWN_QUOTES','OBSERVABLE':'quotes','STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':'2020-01..2024-12'}]
-    validate_card(x,Contexts())
+    legacy_validate_card(x,Contexts())
 
 def test_safe_frozen_catalog_per_snapshot_passes():
     x=base_card()
     x['DATA_REQUIRED']=[{'DATASET':'MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0','OBSERVABLE':'spot 1h','STATUS':'DATA_READY','LEGAL_RANGE':'per snapshot'}]
-    validate_card(x,Contexts())
+    legacy_validate_card(x,Contexts())
 
 @pytest.mark.parametrize('rng',[
     'Required historical window: 2020-01..2024-12; coverage unverified and not catalogued',
@@ -156,7 +164,7 @@ def test_real_v5_annotated_legal_range_passes(rng):
     x=base_card()
     x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['quotes'],DATA_GAP_CLASS='COST')
     x['DATA_REQUIRED']=[{'DATASET':'PROSPECTIVE_UNKNOWN_QUOTES','OBSERVABLE':'quotes','STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':rng}]
-    validate_card(x,Contexts())
+    legacy_validate_card(x,Contexts())
 
 @pytest.mark.parametrize('rng,inner',[
     ('Proposed archive limited to 2020-01..2024-12; no catalog-authorized options coverage is claimed.','2020-01..2024-12'),
@@ -174,7 +182,7 @@ def test_generation2_wrapped_legal_range_passes(rng,inner):
     x=base_card()
     x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['quotes'],DATA_GAP_CLASS='COST')
     x['DATA_REQUIRED']=[{'DATASET':'PROSPECTIVE_UNKNOWN_QUOTES','OBSERVABLE':'quotes','STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':rng}]
-    validate_card(x,Contexts())
+    legacy_validate_card(x,Contexts())
 
 @pytest.mark.parametrize('rng,match',[
     ('Required historical window: 2020-01..2025-01; coverage unverified and not catalogued','protected legal range'),
@@ -201,7 +209,7 @@ def test_unsafe_annotated_legal_range_fails(rng,match):
     x=base_card()
     x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['x'],DATA_GAP_CLASS='COST')
     x['DATA_REQUIRED']=[{'DATASET':'unknown','OBSERVABLE':'x','STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':rng}]
-    with pytest.raises(ContractError,match=match):validate_card(x,Contexts())
+    with pytest.raises(ContractError,match=match):legacy_validate_card(x,Contexts())
 
 @pytest.mark.parametrize('dataset,rng,match',[
     ('PROTECTED_2025_2026','2020-01..2024-12','protected source'),
@@ -217,11 +225,11 @@ def test_protected_and_ambiguous_legal_ranges_fail(dataset,rng,match):
     x=base_card()
     x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['x'],DATA_GAP_CLASS='COST')
     x['DATA_REQUIRED']=[{'DATASET':dataset,'OBSERVABLE':'x','STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':rng}]
-    with pytest.raises(ContractError,match=match):validate_card(x,Contexts())
+    with pytest.raises(ContractError,match=match):legacy_validate_card(x,Contexts())
 
 def test_protected_data_requirement_true_fails():
     x=base_card();x['PROTECTED_DATA_REQUIREMENT']=True
-    with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())
+    with pytest.raises(ContractError,match='protected data requirement'):legacy_validate_card(x,Contexts())
 
 @pytest.mark.parametrize('mutation',[
     lambda x:x.update(HORIZON='calendar year 2025'),
@@ -265,7 +273,7 @@ def test_protected_data_requirement_true_fails():
 ])
 def test_operational_protected_year_and_open_window_fail(mutation):
     x=base_card();mutation(x)
-    with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())
+    with pytest.raises(ContractError,match='protected data requirement'):legacy_validate_card(x,Contexts())
 
 @pytest.mark.parametrize('dataset,observable',[
     ('BTCUSDT_TRADES_2025','closes'),
@@ -277,7 +285,7 @@ def test_data_required_protected_aliases_fail(dataset,observable):
     x=base_card()
     x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['x'],DATA_GAP_CLASS='COST')
     x['DATA_REQUIRED']=[{'DATASET':dataset,'OBSERVABLE':observable,'STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':'2020-01..2024-12'}]
-    with pytest.raises(ContractError,match='protected'):validate_card(x,Contexts())
+    with pytest.raises(ContractError,match='protected'):legacy_validate_card(x,Contexts())
 
 def test_exact_compatible_complete_import(tmp_path):
     c=Contexts();src=write_source(tmp_path/'src',c)
@@ -344,8 +352,9 @@ def test_incompatible_schema_digest_refuses(tmp_path):
 @pytest.mark.parametrize('state',['FAILED','UNCERTAIN','BACKGROUND_SUBMITTED'])
 def test_non_complete_source_cannot_import(tmp_path,state):
     c=Contexts();src=write_source(tmp_path/'src',c,state=state)
-    with pytest.raises(ContractError,match='cannot be imported'):
+    with pytest.raises(ContractError,match='missing COMPLETE source rounds'):
         derive_complete_rounds(src,tmp_path/'dst',1,c)
+    assert not (tmp_path/'dst').exists()
 
 def test_imported_cost_counts_against_cap_exactly_once(tmp_path):
     c=Contexts();src=write_source(tmp_path/'src',c)
@@ -394,15 +403,16 @@ def test_imported_complete_caller_reuse_does_not_post(tmp_path):
     derive_complete_rounds(src,dest,1,c)
     l=Ledger(dest/'run.sqlite')
     p=OpenAIProvider('key',allow_real=True,budget_micro_usd=CAP,transport=lambda *a,**k:pytest.fail('HTTP reached'),sleeper=lambda s:None)
-    raw=Caller(c,l,p,CAP,True).call('GENERATOR',c.generator(),GENERATOR_PROMPT,{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':slot_plan(40)[:10]},'generation:0')
+    raw=Caller(c,l,p,CAP,True).call('GENERATOR',c.generator(),GENERATOR_PROMPT,{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':slot_plan(40)[:10]},'generation:0',identity=generator_identity(c,slot_plan(40)[:10]))
     assert json.loads(raw)['CANDIDATES'][0]['CANDIDATE_ID']=='C001'
-    raw2=Caller(c,l,p,CAP,True).call('GENERATOR',c.generator(),GENERATOR_PROMPT,{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':slot_plan(40)[10:20]},'generation:1')
+    raw2=Caller(c,l,p,CAP,True).call('GENERATOR',c.generator(),GENERATOR_PROMPT,{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':slot_plan(40)[10:20]},'generation:1',identity=generator_identity(c,slot_plan(40)[10:20]))
     assert any(card['CANDIDATE_ID']=='C018' for card in json.loads(raw2)['CANDIDATES'])
     l.close()
 
-def test_validation_error_stops_without_silent_repair(tmp_path):
+def test_invalid_imported_card_is_quarantined_not_repaired(tmp_path):
+    """A protected range in one imported card quarantines that card only; nothing is edited."""
     c=Contexts()
-    src=write_source(tmp_path/'src',c,include_c018=False)
+    src=write_source(tmp_path/'src',c)
     l=Ledger.open_readonly(src/'run.sqlite')
     key,request,response=l.db.execute('SELECT key,request,response FROM calls WHERE request LIKE ?',('%generation:1%',)).fetchone()
     l.close()
@@ -412,9 +422,13 @@ def test_validation_error_stops_without_silent_repair(tmp_path):
     blob['raw']=canonical({'CANDIDATES':cards})
     w=sqlite3.connect(src/'run.sqlite')
     w.execute('UPDATE calls SET response=? WHERE key=?',(canonical(blob),key));w.commit();w.close()
-    with pytest.raises(ContractError,match='protected legal range'):
-        derive_complete_rounds(src,tmp_path/'dst',1,c)
-    assert not (tmp_path/'dst').exists()
+    report=derive_complete_rounds(src,tmp_path/'dst',1,c)
+    assert report['IMPORTED_INTAKE']['generation:1']=={'CONTRACT':'GENERATOR_CONTRACT_V02','VALID':9,'HARD_FAIL':1}
+    assert report['IMPORTED_INTAKE_VERDICTS'][cards[0]['CANDIDATE_ID']]=='HARD_FAIL'
+    d=Ledger(tmp_path/'dst'/'run.sqlite')
+    stored=json.loads(d.db.execute('SELECT response FROM calls WHERE key=?',(key,)).fetchone()[0])
+    assert stored['raw']==blob['raw']
+    d.close()
 
 def test_authorize_derived_continuation_requires_actor_reason_and_status(tmp_path):
     c=Contexts();src=write_source(tmp_path/'src',c);dest=tmp_path/'dst'
@@ -579,8 +593,9 @@ def test_authorize_budget_extension_increases_cap_without_rewriting_calls(tmp_pa
     assert pre['CAP_MICRO_USD']==17_100_000
     assert pre['SPENT_MICRO_USD']==3779550
     assert pre['REMAINING_AUTHORIZED_MICRO_USD']==13320450
-    assert pre['WORST_CASE_REMAINING_MICRO_USD']<=13320450
-    assert pre['FITS_AUTHORIZED_REMAINING'] is True
+    assert pre['WORST_CASE_REMAINING_MICRO_USD']==sum(row['BOUND_MICRO_USD'] for row in pre['STAGES'])
+    assert pre['FITS_AUTHORIZED_REMAINING'] is (pre['WORST_CASE_REMAINING_MICRO_USD']<=13320450)
+    assert pre['WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD']>pre['WORST_CASE_REMAINING_MICRO_USD']
     assert pre['REAL_LLM_CALLS_MADE'] is False
     assert pre['IMPORTED_GENERATION_ROUNDS']==['generation:0','generation:1','generation:2']
     assert pre['REMAINING_GENERATION_ROUNDS']==['generation:3']

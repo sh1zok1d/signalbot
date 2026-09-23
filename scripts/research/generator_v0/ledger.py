@@ -1,4 +1,12 @@
-"""SQLite is the authority; JSON reports are replaceable views, never partial truth."""
+"""SQLite is the authority; JSON reports are replaceable views, never partial truth.
+
+Call states and how each is charged against the campaign ceiling:
+  RESERVED, BACKGROUND_SUBMITTED, UNCERTAIN  -> reserved bound (unknown outcome)
+  COMPLETE, FAILED_WITH_COST, RECONCILED_BILLED -> recorded actual cost
+  FAILED_NOT_BILLED, RECONCILED_NOT_BILLED   -> 0 (model work never ran)
+  FAILED (pre-repair journals only)          -> COALESCE(cost, reserved)
+The ceiling check is lineage prior spend + journal charges + new bound <= cap.
+"""
 from __future__ import annotations
 import contextlib
 import json
@@ -6,6 +14,29 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from .context import ContractError, canonical, digest
+
+OPEN_STATES=('RESERVED','UNCERTAIN')
+BILLED_CLOSED=('FAILED_WITH_COST','RECONCILED_BILLED','FAILED')
+NOT_BILLED_CLOSED=('FAILED_NOT_BILLED','RECONCILED_NOT_BILLED')
+CHARGE_SQL=("SELECT COALESCE(SUM(CASE "
+            "WHEN state IN ('COMPLETE','FAILED_WITH_COST','RECONCILED_BILLED') THEN cost "
+            "WHEN state IN ('FAILED_NOT_BILLED','RECONCILED_NOT_BILLED') THEN 0 "
+            "ELSE COALESCE(cost,reserved) END),0) FROM calls")
+CANDIDATE_STATES=('VALID','HARD_FAIL','REVIEWED','REVIEW_FAILED')
+
+class InfrastructureStop(ContractError):
+    """Campaign-level condition: safe continuation needs an operator or more budget."""
+class BudgetExceeded(InfrastructureStop):pass
+class CallUncertain(InfrastructureStop):pass
+class AttemptClosed(ContractError):
+    def __init__(self,state):super().__init__('attempt closed: '+state);self.state=state
+
+def archive_connect(path):
+    """Read a sealed/archival journal without creating WAL side files."""
+    path=Path(path).resolve()
+    wal=Path(str(path)+'-wal')
+    if wal.exists() and wal.stat().st_size>0:raise ContractError('archive has an uncheckpointed WAL; refuse to read partial state')
+    return sqlite3.connect('file:{}?mode=ro&immutable=1'.format(path.as_posix()),uri=True,timeout=30)
 
 class Ledger:
     def __init__(self,path,config=None):
@@ -18,6 +49,7 @@ class Ledger:
         CREATE TABLE IF NOT EXISTS cards(id TEXT PRIMARY KEY,card TEXT NOT NULL,decision TEXT);
         CREATE TABLE IF NOT EXISTS events(n INTEGER PRIMARY KEY,kind TEXT NOT NULL,payload TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS results(key TEXT PRIMARY KEY,payload TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS candidates(id TEXT PRIMARY KEY,round TEXT NOT NULL,call_key TEXT,contract TEXT NOT NULL,state TEXT NOT NULL,card TEXT,reasons TEXT NOT NULL);
         ''')
         if config is not None:
             old=self.get('config')
@@ -28,14 +60,24 @@ class Ledger:
     @classmethod
     def open_readonly(cls,path):
         self=object.__new__(cls)
-        uri='file:{}?mode=ro'.format(Path(path).resolve().as_posix())
-        self.db=sqlite3.connect(uri,uri=True,timeout=30)
+        self.db=archive_connect(path)
         return self
 
     def close(self):self.db.close()
 
     def spent_micro_usd(self):
-        return self.db.execute('SELECT COALESCE(SUM(COALESCE(cost,reserved)),0) FROM calls').fetchone()[0]
+        """Charges recorded in this journal only."""
+        return self.db.execute(CHARGE_SQL).fetchone()[0]
+
+    def lineage_prior_micro_usd(self):
+        lineage=self.get('lineage') or {}
+        value=lineage.get('PRIOR_SPEND_MICRO_USD',0)
+        if type(value) is not int or value<0:raise ContractError('invalid lineage prior spend')
+        return value
+
+    def total_charged_micro_usd(self):
+        """Owner-ceiling spend: carried lineage spend plus this journal."""
+        return self.lineage_prior_micro_usd()+self.spent_micro_usd()
 
     def import_complete(self,key,request,reserved,response,cost,usage,provenance):
         if type(reserved)!=int or reserved<0 or type(cost)!=int or not 0<=cost<=reserved:
@@ -55,8 +97,7 @@ class Ledger:
         with self.transaction():
             if self.db.execute('SELECT 1 FROM calls WHERE key=?',(key,)).fetchone():
                 raise ContractError('imported call already present')
-            spent=self.db.execute('SELECT COALESCE(SUM(COALESCE(cost,reserved)),0) FROM calls').fetchone()[0]
-            if spent+cost>cap:raise ContractError('imported cost exceeds campaign cap')
+            if self.total_charged_micro_usd()+cost>cap:raise ContractError('imported cost exceeds campaign cap')
             self.db.execute('INSERT INTO calls(key,request,state,reserved,response,cost,usage,error) VALUES (?,?,?,?,?,?,?,?)',
                             (key,canonical(request),'COMPLETE',reserved,canonical(blob),cost,canonical(usage),None))
             self.event('CALL_IMPORTED',dict(provenance))
@@ -75,6 +116,8 @@ class Ledger:
             self.db.rollback();raise
 
     def reserve(self,key,request,bound,cap):
+        """COMPLETE -> saved response (never re-POST). Closed attempt -> AttemptClosed.
+        RESERVED/UNCERTAIN -> CallUncertain (reconcile first). New -> reserve bound or BudgetExceeded."""
         if type(bound)!=int or bound<0 or type(cap)!=int or not 0<=cap<=30_000_000:
             raise ContractError('invalid budget')
         with self.transaction():
@@ -86,11 +129,20 @@ class Ledger:
                     payload=json.loads(row[2]) if row[2] else {}
                     payload['_resume_background']=True
                     return payload
-                raise ContractError('uncertain prior attempt; manual reconciliation required, never automatic replay')
-            spent=self.db.execute('SELECT COALESCE(SUM(COALESCE(cost,reserved)),0) FROM calls').fetchone()[0]
-            if spent+bound>cap:raise ContractError('budget exceeded before provider call')
+                if row[1] in BILLED_CLOSED or row[1] in NOT_BILLED_CLOSED:raise AttemptClosed(row[1])
+                raise CallUncertain('uncertain prior attempt; manual reconciliation required, never automatic replay')
+            if self.total_charged_micro_usd()+bound>cap:raise BudgetExceeded('budget exceeded before provider call')
             self.db.execute('INSERT INTO calls(key,request,state,reserved) VALUES (?,?,?,?)',(key,canonical(request),'RESERVED',bound))
         return None
+
+    def call_state(self,key):
+        row=self.db.execute('SELECT state FROM calls WHERE key=?',(key,)).fetchone()
+        return row[0] if row else None
+
+    def complete_raw(self,key):
+        row=self.db.execute('SELECT state,response FROM calls WHERE key=?',(key,)).fetchone()
+        if row is None or row[0]!='COMPLETE' or not row[1]:raise ContractError('imported call is not COMPLETE')
+        return json.loads(row[1])['raw']
 
     def submit_background(self,key,tracker):
         with self.transaction():
@@ -114,24 +166,79 @@ class Ledger:
             self.db.execute('UPDATE calls SET response=? WHERE key=?',(canonical(blob),key))
 
     def failed(self,key,error,wire_sha256=None,state='UNCERTAIN',envelope=None,cost=None,usage=None):
-        if state not in ('UNCERTAIN','FAILED'):raise ContractError('invalid failure state')
-        blob=envelope if envelope is not None else ({'raw_sha256':wire_sha256} if wire_sha256 else None)
+        """Close an attempt. FAILED_NOT_BILLED charges 0; FAILED_WITH_COST charges the
+        billed usage cost, or the reserved bound when usage is unknown (COST_BASIS)."""
+        if state=='FAILED':state='FAILED_WITH_COST'
+        if state not in ('UNCERTAIN','FAILED_NOT_BILLED','FAILED_WITH_COST'):raise ContractError('invalid failure state')
+        blob=dict(envelope) if envelope is not None else {}
+        if wire_sha256:blob.setdefault('raw_sha256',wire_sha256)
         invalid=False
-        persist_cost=persist_usage=None
         with self.transaction():
-            row=self.db.execute('SELECT reserved FROM calls WHERE key=?',(key,)).fetchone()
+            row=self.db.execute('SELECT reserved,state FROM calls WHERE key=?',(key,)).fetchone()
             if row is None:raise ContractError('invalid failure')
-            if cost is not None or usage is not None:
-                if type(cost)!=int or not 0<=cost<=row[0] or usage is None:invalid=True
-                else:persist_cost,persist_usage=cost,canonical(usage)
-            self.db.execute('UPDATE calls SET state=?,error=?,response=?,cost=?,usage=? WHERE key=?',(state,str(error)[:500],canonical(blob) if blob is not None else None,persist_cost,persist_usage,key))
+            reserved=row[0];persist_cost=persist_usage=None
+            if state=='FAILED_NOT_BILLED':
+                persist_cost=0;blob['COST_BASIS']='NOT_BILLED'
+            elif state=='FAILED_WITH_COST':
+                if cost is not None and usage is not None and type(cost)==int and 0<=cost<=reserved:
+                    persist_cost,persist_usage=cost,canonical(usage);blob['COST_BASIS']='USAGE'
+                else:
+                    invalid=cost is not None and not (type(cost)==int and 0<=cost<=reserved)
+                    persist_cost=reserved;blob['COST_BASIS']='RESERVED_BOUND'
+            else:
+                if cost is not None or usage is not None:
+                    if type(cost)!=int or not 0<=cost<=reserved or usage is None:invalid=True
+                    else:persist_cost,persist_usage=cost,canonical(usage)
+            self.db.execute('UPDATE calls SET state=?,error=?,response=?,cost=?,usage=? WHERE key=?',(state,str(error)[:500],canonical(blob) if blob else None,persist_cost,persist_usage,key))
         if invalid:raise ContractError('provider cost exceeds reserved bound')
+
+    def reconcile(self,key,resolution,cost_micro_usd,actor,reason,evidence=''):
+        """Operator resolution of a genuinely uncertain attempt. Offline; never POSTs."""
+        if not isinstance(actor,str) or not actor.strip() or not isinstance(reason,str) or not reason.strip():
+            raise ContractError('actor and reason required')
+        if resolution not in ('NOT_BILLED','BILLED'):raise ContractError('resolution must be NOT_BILLED or BILLED')
+        with self.transaction():
+            row=self.db.execute('SELECT reserved,state FROM calls WHERE key=?',(key,)).fetchone()
+            if row is None:raise ContractError('unknown call key')
+            if row[1] not in OPEN_STATES:raise ContractError('only RESERVED or UNCERTAIN calls can be reconciled')
+            reserved=row[0]
+            if resolution=='NOT_BILLED':cost=0;state='RECONCILED_NOT_BILLED'
+            else:
+                if type(cost_micro_usd) is not int or not 0<cost_micro_usd<=reserved:raise ContractError('billed cost must be a positive integer within the reserved bound')
+                cost=cost_micro_usd;state='RECONCILED_BILLED'
+            payload={'CALL_KEY':key,'PRIOR_STATE':row[1],'RESOLUTION':resolution,'COST_MICRO_USD':cost,'RESERVED_MICRO_USD':reserved,
+                     'ACTOR':actor.strip(),'REASON':reason.strip(),'EVIDENCE':str(evidence or ''),'TIME':datetime.now(timezone.utc).isoformat()}
+            self.db.execute('UPDATE calls SET state=?,cost=?,error=? WHERE key=?',(state,cost,'reconciled: '+resolution,key))
+            self.event('CALL_RECONCILED',payload)
+        return payload
+
+    def record_candidate(self,cid,round_slot,call_key,contract,state,card,reasons):
+        """Idempotent intake record. The same slot must always resolve the same way."""
+        if state not in CANDIDATE_STATES:raise ContractError('candidate state')
+        row=(round_slot,call_key,contract,state,canonical(card) if card is not None else None,canonical(reasons))
+        with self.transaction():
+            old=self.db.execute('SELECT round,call_key,contract,state,card,reasons FROM candidates WHERE id=?',(cid,)).fetchone()
+            if old is None:
+                self.db.execute('INSERT INTO candidates VALUES (?,?,?,?,?,?,?)',(cid,)+row)
+            elif old[:3]!=row[:3] or old[4]!=row[4] or (old[3] in ('VALID','HARD_FAIL') and (old[3],old[5])!=(state,row[5])):
+                raise ContractError('intake record differs on replay for '+str(cid))
+
+    def set_candidate_review(self,cid,state,reasons):
+        if state not in ('REVIEWED','REVIEW_FAILED'):raise ContractError('review state')
+        with self.transaction():
+            old=self.db.execute('SELECT state FROM candidates WHERE id=?',(cid,)).fetchone()
+            if old is None or old[0] not in ('VALID','REVIEWED','REVIEW_FAILED'):raise ContractError('review of non-valid candidate')
+            self.db.execute('UPDATE candidates SET state=?,reasons=? WHERE id=?',(state,canonical(reasons),cid))
+
+    def candidates(self):
+        return [{'CANDIDATE_ID':i,'ROUND':r,'CALL_KEY':k,'CONTRACT':c,'STATE':s,'CARD':json.loads(card) if card else None,'REASONS':json.loads(reasons)}
+                for i,r,k,c,s,card,reasons in self.db.execute('SELECT id,round,call_key,contract,state,card,reasons FROM candidates ORDER BY id')]
 
     def export_calls(self):
         result=[]
         for key,request,state,reserved,response,cost,usage,error in self.db.execute('SELECT * FROM calls ORDER BY rowid'):
             req=json.loads(request);resp=json.loads(response) if response else None
-            result.append({'CALL_KEY':key,'RUN_ID':self.get('config')['RUN_ID'],'PROMPT_VERSION':req['prompt_version'],'CONTEXT_DIGEST':digest(req['context']),'MODEL_PROVIDER':req['provider'],'MODEL_ID':req['model'],'MODEL_PARAMETERS':req['parameters'],'MODEL_REQUEST_PARAMS':req.get('model_request_params'),'RAW_RESPONSE_SHA256':(resp or {}).get('raw_sha256') if resp else None,'RESPONSE_ID':(resp or {}).get('response_id') if resp else None,'PROVIDER_STATUS':(resp or {}).get('provider_status') if resp else None,'STATE':state,'RESERVED_MICRO_USD':reserved,'COST_MICRO_USD':cost,'USAGE':json.loads(usage) if usage else None,'ERROR':error,'SOURCE_RUN_ID':(resp or {}).get('SOURCE_RUN_ID') if resp else None,'SOURCE_CALL_KEY':(resp or {}).get('SOURCE_CALL_KEY') if resp else None,'SOURCE_RESPONSE_ID':(resp or {}).get('SOURCE_RESPONSE_ID') if resp else None,'SOURCE_RAW_RESPONSE_SHA256':(resp or {}).get('SOURCE_RAW_RESPONSE_SHA256') if resp else None})
+            result.append({'CALL_KEY':key,'RUN_ID':self.get('config')['RUN_ID'],'PROMPT_VERSION':req['prompt_version'],'CONTEXT_DIGEST':digest(req['context']),'MODEL_PROVIDER':req['provider'],'MODEL_ID':req['model'],'MODEL_PARAMETERS':req['parameters'],'MODEL_REQUEST_PARAMS':req.get('model_request_params'),'SLOT':req.get('slot'),'CONTENT_ATTEMPT':req.get('content_attempt',0),'TRANSPORT_ATTEMPT':req.get('transport_attempt',0),'RAW_RESPONSE_SHA256':(resp or {}).get('raw_sha256') if resp else None,'RESPONSE_ID':(resp or {}).get('response_id') if resp else None,'PROVIDER_STATUS':(resp or {}).get('provider_status') if resp else None,'COST_BASIS':(resp or {}).get('COST_BASIS') if resp else None,'STATE':state,'RESERVED_MICRO_USD':reserved,'COST_MICRO_USD':cost,'USAGE':json.loads(usage) if usage else None,'ERROR':error,'SOURCE_RUN_ID':(resp or {}).get('SOURCE_RUN_ID') if resp else None,'SOURCE_CALL_KEY':(resp or {}).get('SOURCE_CALL_KEY') if resp else None,'SOURCE_RESPONSE_ID':(resp or {}).get('SOURCE_RESPONSE_ID') if resp else None,'SOURCE_RAW_RESPONSE_SHA256':(resp or {}).get('SOURCE_RAW_RESPONSE_SHA256') if resp else None})
         return result
 
     def save_card(self,card,decision=None):

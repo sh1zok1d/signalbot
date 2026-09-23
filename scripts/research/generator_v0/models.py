@@ -68,6 +68,10 @@ FORBIDDEN_SHARED={'temperature','top_p','top_logprobs','logprobs','tools','funct
 # Campaign request bound for GENERATOR only. first-shadow-v4 hit the previous
 # 16000 cap (incomplete / max_output_tokens). Included in run identity.
 GENERATOR_MAX_OUTPUT_TOKENS=32768
+# Critic/selector completion caps. For reasoning models the cap includes
+# reasoning tokens; the novelty answer alone is ~1.4k visible tokens over a
+# ~38 KB context at medium effort, so 6000 risked a billed length stop.
+ROLE_OUTPUT_TOKEN_CAPS={'NOVELTY_CRITIC':12000,'RED_TEAM':8000,'FEASIBILITY_CRITIC':6000,'SELECTOR':2000}
 
 def spec(model):
     if model not in MODELS:raise ContractError('unknown model or missing verified pricing: '+str(model))

@@ -44,7 +44,7 @@ def test_failed_actual_cost_replaces_reservation_in_cap(tmp_path):
     l=ledger(tmp_path)
     assert l.reserve('a',{'n':1},10,10) is None
     l.failed('a','background_incomplete',state='FAILED',envelope={'response_id':'x','provider_status':'incomplete'},cost=3,usage={'input_tokens':1,'output_tokens':1,'reasoning_tokens':0})
-    assert l.db.execute('SELECT state,cost FROM calls').fetchone()==('FAILED',3)
+    assert l.db.execute('SELECT state,cost FROM calls').fetchone()==('FAILED_WITH_COST',3)
     assert l.reserve('b',{'n':2},7,10) is None
     with pytest.raises(ContractError,match='budget exceeded'):l.reserve('c',{'n':3},1,10)
 
@@ -53,4 +53,6 @@ def test_failed_cost_above_reservation_stays_reservation_backed(tmp_path):
     assert l.reserve('a',{'n':1},10,10) is None
     with pytest.raises(ContractError,match='exceeds reserved bound'):
         l.failed('a','background_incomplete',state='FAILED',envelope={'response_id':'x'},cost=11,usage={'input_tokens':1,'output_tokens':1})
-    assert l.db.execute('SELECT state,cost,usage FROM calls').fetchone()==('FAILED',None,None)
+    # A billed failure with an impossible cost is charged its full reservation, never dropped.
+    assert l.db.execute('SELECT state,cost,usage FROM calls').fetchone()==('FAILED_WITH_COST',10,None)
+    assert l.spent_micro_usd()==10

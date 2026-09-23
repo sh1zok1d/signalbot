@@ -1,0 +1,14 @@
+{
+  "RULE": "A journal whose SHA256 is listed here is sealed. The operator refuses every command that could open it for writing or write reports beside it, whatever its path. derive may read it only through an immutable read-only connection.",
+  "RUNS": [
+    {
+      "JOURNAL_SHA256": "ed318020ff5d6c765394c15ba4ff5bd7dc0f89ffe83f7692f678e3f7e124b22d",
+      "RUN_ID": "first-shadow-v6"
+    },
+    {
+      "JOURNAL_SHA256": "e27eb1ce77c5152eff4e68e30c2632ad9bd575ef953b5a069775b5ff46f36457",
+      "RUN_ID": "first-shadow-v7",
+      "TRACKED_PATH": "docs/research/generator_v0_first_shadow_v7/run.sqlite"
+    }
+  ]
+}

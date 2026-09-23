@@ -73,15 +73,20 @@ def test_registry_failure_rolls_back_and_reuses_all_provider_results(tmp_path,mo
     result=run_campaign(c,caller)
     assert p.calls==calls==125 and result['STATUS']=='PENDING_HUMAN_REVIEW'
 
-def test_duplicate_generation_rejected_before_critics(tmp_path):
-    c=Contexts();base=MockResponder(c)
+def test_duplicate_generation_quarantines_slots_before_critics(tmp_path):
+    c=Contexts();base=MockResponder(c);seen=[]
     def answer(req):
-        x=json.loads(base(req))
-        if req['role']=='GENERATOR':x['CANDIDATES'][1]=copy.deepcopy(x['CANDIDATES'][0])
+        x=json.loads(base(req));seen.append((req['role'],req['slot']))
+        if req['role']=='GENERATOR' and req['slot']=='generation:0':x['CANDIDATES'][1]=copy.deepcopy(x['CANDIDATES'][0])
         return canonical(x)
     c,l,p,caller=setup(tmp_path,answer)
-    with pytest.raises(ContractError):run_campaign(c,caller)
-    assert p.calls==1
+    result=run_campaign(c,caller)
+    assert result['STATUS']=='PENDING_HUMAN_REVIEW'
+    hard={h['CANDIDATE_ID']:h['REASONS'] for h in result['HARD_FAILS']}
+    assert set(hard)=={'C001','C002'}
+    assert 'duplicate' in hard['C001'][0]['DETAIL'] and 'missing' in hard['C002'][0]['DETAIL']
+    assert not any(slot.endswith((':C001',':C002')) for role,slot in seen if role!='GENERATOR')
+    assert result['METRICS']['VALID']==38 and result['METRICS']['HARD_FAIL']==2
 
 @pytest.mark.parametrize('size',[25,50])
 def test_frozen_batch_bounds_run(tmp_path,size):
