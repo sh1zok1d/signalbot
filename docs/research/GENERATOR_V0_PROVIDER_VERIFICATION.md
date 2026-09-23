@@ -54,8 +54,9 @@ Sol and Luna do. When reasoning effort is not `none`, temperature / top_p /
 logprobs are not sent. Unknown models and missing verified prices fail closed.
 
 The archived partial runs `artifacts/generator_v0/first-shadow`,
-`first-shadow-v2`, and `first-shadow-v3` are sealed and must not be
-resumed. Those snapshots are not in the live routing table.
+`first-shadow-v2`, `first-shadow-v3`, and `first-shadow-v4` are sealed
+and must not be resumed. Those snapshots are not in the live routing
+table. Do not retrofit archived ledgers.
 
 Every object in the provider JSON Schema sets `additionalProperties: false`
 and lists every property as required. Frozen `SEARCH_SURFACE.PARAMETERS` is a
@@ -73,6 +74,13 @@ Completions timeout remains `OPENAI_REQUEST_TIMEOUT_SECONDS = 600`
 3600 seconds. These values are stored in run configuration identity. A
 create timeout or missing `response_id` retains its reservation as
 `UNCERTAIN` and is never automatically replayed. A known `response_id`
-is recovered by GET. This is a local conservative budget ledger, not a
+is recovered by GET. A terminal non-completed background Response
+(`failed` / `cancelled` / `incomplete`) stays `FAILED`. If provider usage
+is present and within the original reservation bound, actual cost and
+usage are persisted and replace the reservation in later cap accounting
+(`COALESCE(cost, reserved)`). Reasoning tokens are recorded inside
+output tokens and are not charged twice. Malformed or missing usage
+stays reservation-backed. Partial output is not parsed. `GENERATOR_MAX_OUTPUT_TOKENS = 32768`
+is part of run identity. This is a local conservative budget ledger, not a
 replacement for provider billing records. No real call was made during
 this adapter change.

@@ -5651,3 +5651,25 @@ REAL_LLM_CALLS_MADE = false
 ARCHIVED_RUN_UNTOUCHED = true
 SCIENTIFIC_OUTCOMES_COMPUTED = false
 ```
+
+## 2026-09-23 — Generator V0 output limit and terminal-usage accounting
+
+Infrastructure-only after `first-shadow-v4` GENERATOR round 0 returned
+background `incomplete` / `max_output_tokens` at 16000 output tokens
+(9322 reasoning tokens inside that bound). GENERATOR
+`max_output_tokens` is now the named identity field
+`GENERATOR_MAX_OUTPUT_TOKENS = 32768`. Critics unchanged. Terminal
+background Responses with trustworthy usage persist actual cost and
+usage while remaining `FAILED`; no parse, no retry, no COMPLETE.
+`COALESCE(cost, reserved)` then uses actual cost. Fake HTTP only.
+Archived `first-shadow` through `first-shadow-v4` were not opened,
+resumed, overwritten, or retrofitted.
+
+```
+NEXT_UNIT = GENERATOR_V0_OUTPUT_LIMIT_AND_TERMINAL_USAGE_ACCOUNTING
+GENERATOR_MAX_OUTPUT_TOKENS = 32768
+TERMINAL_USAGE_ACCOUNTING = true
+REAL_LLM_CALLS_MADE = false
+ARCHIVED_RUN_UNTOUCHED = true
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```

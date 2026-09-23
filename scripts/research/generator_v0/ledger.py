@@ -78,11 +78,19 @@ class Ledger:
             blob=json.loads(row[1]);blob['raw']=raw
             self.db.execute('UPDATE calls SET response=? WHERE key=?',(canonical(blob),key))
 
-    def failed(self,key,error,wire_sha256=None,state='UNCERTAIN',envelope=None):
+    def failed(self,key,error,wire_sha256=None,state='UNCERTAIN',envelope=None,cost=None,usage=None):
         if state not in ('UNCERTAIN','FAILED'):raise ContractError('invalid failure state')
         blob=envelope if envelope is not None else ({'raw_sha256':wire_sha256} if wire_sha256 else None)
+        invalid=False
+        persist_cost=persist_usage=None
         with self.transaction():
-            self.db.execute('UPDATE calls SET state=?,error=?,response=? WHERE key=?',(state,str(error)[:500],canonical(blob) if blob is not None else None,key))
+            row=self.db.execute('SELECT reserved FROM calls WHERE key=?',(key,)).fetchone()
+            if row is None:raise ContractError('invalid failure')
+            if cost is not None or usage is not None:
+                if type(cost)!=int or not 0<=cost<=row[0] or usage is None:invalid=True
+                else:persist_cost,persist_usage=cost,canonical(usage)
+            self.db.execute('UPDATE calls SET state=?,error=?,response=?,cost=?,usage=? WHERE key=?',(state,str(error)[:500],canonical(blob) if blob is not None else None,persist_cost,persist_usage,key))
+        if invalid:raise ContractError('provider cost exceeds reserved bound')
 
     def export_calls(self):
         result=[]

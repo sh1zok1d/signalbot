@@ -103,7 +103,12 @@ class Caller:
                 self.ledger.attach_parsed(key,parsed_raw)
                 return parsed_raw
             envelope={'response_id':rid,'provider_status':st,'provider_envelope':payload}
-            self.ledger.failed(key,'background_'+str(st),hashlib.sha256(wire).hexdigest(),state='FAILED',envelope=envelope)
+            usage=cost=None
+            extract=getattr(p,'terminal_usage_cost',None)
+            if extract is not None:
+                try:usage,cost=extract(req,payload)
+                except Exception:usage=cost=None
+            self.ledger.failed(key,'background_'+str(st),hashlib.sha256(wire).hexdigest(),state='FAILED',envelope=envelope,cost=cost,usage=usage)
             raise ContractError('background generation '+str(st))
 
 class MockProvider:

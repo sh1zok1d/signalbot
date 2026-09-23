@@ -7,7 +7,7 @@ from decimal import ROUND_CEILING
 from .context import ContractError,canonical,Contexts,digest
 from .schema import parse_json
 from .output_schemas import openai_response_format,responses_text_format,assert_structured_payload,generator_schema_digest
-from .models import model_for,request_params_for,rates,spec,ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,routing_digest
+from .models import model_for,request_params_for,rates,spec,ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,routing_digest,GENERATOR_MAX_OUTPUT_TOKENS
 from .provider import Response,BackgroundPending
 
 OPENAI_REQUEST_TIMEOUT_SECONDS=600
@@ -92,6 +92,7 @@ class OpenAIProvider:
             'DELETE_AFTER_LOCAL_PERSIST':True,
             'POLLING_POLICY':self.polling_policy,
             'CRITIC_ENDPOINT':CRITIC_ENDPOINT,
+            'GENERATOR_MAX_OUTPUT_TOKENS':GENERATOR_MAX_OUTPUT_TOKENS,
         }
 
     def identity_digest(self):
@@ -178,16 +179,21 @@ class OpenAIProvider:
             return
 
     def completed_cost(self,request,payload,wire):
-        usage,cost,text=self._completed_usage(request,payload)
+        usage,cost,text=self._usage_cost(request,payload,require_text=True)
         return usage,cost,text,hashlib.sha256(wire).hexdigest()
 
-    def _completed_usage(self,request,payload):
+    def terminal_usage_cost(self,request,payload):
+        """Billable usage on a terminal non-completed Response. Does not parse output."""
+        usage,cost,_=self._usage_cost(request,payload,require_text=False)
+        return usage,cost
+
+    def _usage_cost(self,request,payload,require_text=False):
         usage=payload['usage']
         inp=usage.get('input_tokens',usage.get('prompt_tokens'))
         out=usage.get('output_tokens',usage.get('completion_tokens'))
         maxin,maxout=self.bounds(request)
         if type(inp)!=int or type(out)!=int or not 0<=inp<=maxin or not 0<=out<=maxout:raise ValueError('usage outside bound')
-        text=self._output_text(payload)
+        text=self._output_text(payload) if require_text else None
         input_rate,output_rate=rates(request['role'])
         cost=int((input_rate*inp+output_rate*out).to_integral_value(rounding=ROUND_CEILING))
         details=usage.get('output_tokens_details') or {}
