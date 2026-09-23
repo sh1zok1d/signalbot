@@ -113,7 +113,7 @@ class Contexts:
         if role == 'HUMAN' or matrix is None:
             raise ContractError('not an automated role')
         allowed = set(matrix['ALLOWED']) | set(matrix['CONDITIONAL'])
-        if set(context) - allowed:
+        if set(context) - allowed or not set(matrix['ALLOWED']) <= set(context):
             raise ContractError('forbidden role context')
         if role == 'GENERATOR':
             if context != self.generator():
@@ -124,3 +124,38 @@ class Contexts:
             cited = context.get('CANDIDATE',{}).get('NEAREST_TESTED_MECHANISM')
             if not isinstance(rows,list) or len(rows)!=1 or rows[0] != self.rows.get(cited):
                 raise ContractError('unscoped governance access')
+
+        if role != 'GENERATOR':
+            from .schema import validate_card
+            from .roles import Roles, exact, ordinals
+            if role in ('NOVELTY_CRITIC','FEASIBILITY_CRITIC','RED_TEAM'):
+                validate_card(context['CANDIDATE'],self)
+                if role != 'NOVELTY_CRITIC':
+                    expected=Roles(self,None).request(role,context['CANDIDATE'])
+                    for key,value in expected.items():
+                        if context.get(key)!=value:raise ContractError('noncanonical critic context')
+                else:
+                    expected={'BLIND_MECHANISM_MAP_V0':self.blind,'GOVERNANCE_REGION_AUTHORITY_V0':self.authority,'GENERIC_ANTI_RESCUE_RULES':'Apply only the frozen relation table per signature, never close entire families.'}
+                    for key,value in expected.items():
+                        if context[key]!=value:raise ContractError('noncanonical novelty context')
+                    for row in context['CURRENT_BATCH_SIGNATURES']:
+                        exact(row,{'CANDIDATE_ID','MECHANISM','INFORMATION_SOURCE','OBSERVABLE','FUNCTION','PRIMARY_TARGET','HORIZON'})
+                        if any(not isinstance(v,str) for v in row.values()):raise ContractError('batch signature shape')
+            if role=='SELECTOR':
+                rows=context['SANITIZED_CRITIC_OUTPUTS']
+                if not isinstance(rows,list):raise ContractError('selector rows')
+                ids=[]
+                for row in rows:
+                    exact(row,self.design['SANITIZED_CRITIC_OUTPUT_FIELDS'])
+                    cid=row['CANDIDATE_ID'];ids.append(cid)
+                    if not isinstance(cid,str) or not re.fullmatch(r'C[0-9]{3}',cid):raise ContractError('selector candidate id')
+                    if row['NOVELTY_VERDICT'] not in ('ALLOW','ALLOW_TO_FEASIBILITY'):raise ContractError('selector novelty verdict')
+                    if row['FEASIBILITY_VERDICT']!='PASS' or row['RED_TEAM_VERDICT']!='PASS' or row['HARD_FAILS']!=[]:raise ContractError('selector non-survivor')
+                    if row['DATA_STATUS'] not in self.design['DATA_STATUS_TAXONOMY']:raise ContractError('selector status')
+                    if row['DATA_GAP_CLASS'] not in set(self.design['DATA_STATUS_TAXONOMY'])|{'NONE'}:raise ContractError('selector free-form gap leak')
+                    ordinals({k:row[k] for k in ('MECHANISM_DISTANCE_JUDGMENT','INFORMATION_GAIN_JUDGMENT','COST_JUDGMENT')},{'MECHANISM_DISTANCE_JUDGMENT','INFORMATION_GAIN_JUDGMENT','COST_JUDGMENT'})
+                if len(set(ids))!=len(ids) or set(context['DATA_STATUS'])!=set(ids) or set(context['SELECTION_JUDGMENTS'])!=set(ids):raise ContractError('selector coverage')
+                for row in rows:
+                    cid=row['CANDIDATE_ID']
+                    if context['DATA_STATUS'][cid]!=row['DATA_STATUS']:raise ContractError('selector status mismatch')
+                    ordinals(context['SELECTION_JUDGMENTS'][cid],{'MECHANISM_DISTANCE','INFORMATION_GAIN','FEASIBILITY','CHEAPNESS'})
