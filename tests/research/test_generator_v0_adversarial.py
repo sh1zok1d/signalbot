@@ -54,7 +54,7 @@ def test_asymmetric_batch_duplicate_is_not_counted_twice(tmp_path):
     def answer(req):
         x=json.loads(base(req))
         if req['role']=='NOVELTY_CRITIC' and req['context']['CANDIDATE']['CANDIDATE_ID']=='C006':
-            next(r for r in x['BATCH_RELATIONS'] if r['CANDIDATE_ID']=='C014')['RELATION']='FUNCTIONAL_RELABEL'
+            x['BATCH_RELATIONS']['C014']='FUNCTIONAL_RELABEL'
         return canonical(x)
     c,l,p,caller=setup(tmp_path,answer);result=run_campaign(c,caller)
     assert 'C014' not in result['STREAM_B']
@@ -77,16 +77,17 @@ def test_duplicate_generation_quarantines_slots_before_critics(tmp_path):
     c=Contexts();base=MockResponder(c);seen=[]
     def answer(req):
         x=json.loads(base(req));seen.append((req['role'],req['slot']))
-        if req['role']=='GENERATOR' and req['slot']=='generation:0':x['CANDIDATES'][1]=copy.deepcopy(x['CANDIDATES'][0])
+        # Keyed output cannot carry a duplicate ID; the closest fault is C001's card under key C002.
+        if req['role']=='GENERATOR' and req['slot']=='generation:0':x['CANDIDATES']['C002']=copy.deepcopy(x['CANDIDATES']['C001'])
         return canonical(x)
     c,l,p,caller=setup(tmp_path,answer)
     result=run_campaign(c,caller)
     assert result['STATUS']=='PENDING_HUMAN_REVIEW'
     hard={h['CANDIDATE_ID']:h['REASONS'] for h in result['HARD_FAILS']}
-    assert set(hard)=={'C001','C002'}
-    assert 'duplicate' in hard['C001'][0]['DETAIL'] and 'missing' in hard['C002'][0]['DETAIL']
-    assert not any(slot.endswith((':C001',':C002')) for role,slot in seen if role!='GENERATOR')
-    assert result['METRICS']['VALID']==38 and result['METRICS']['HARD_FAIL']==2
+    assert set(hard)=={'C002'}
+    assert hard['C002'][0]['RULE']=='PROVIDER_SCHEMA'
+    assert not any(slot.endswith(':C002') for role,slot in seen if role!='GENERATOR')
+    assert result['METRICS']['VALID']==39 and result['METRICS']['HARD_FAIL']==1
 
 @pytest.mark.parametrize('size',[25,50])
 def test_frozen_batch_bounds_run(tmp_path,size):

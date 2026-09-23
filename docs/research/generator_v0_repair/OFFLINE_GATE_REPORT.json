@@ -30,14 +30,14 @@
       "MISSING_OBSERVABLES": 3,
       "NEAREST_TESTED_MECHANISM": 1,
       "NO_OPEN_ENDED_WINDOW": 16,
-      "NO_PROTECTED_YEARS": 51,
+      "NO_PROTECTED_YEARS": 52,
       "NO_SCORE_FIELDS": 4,
-      "NO_TRADING_CLAIM": 6,
+      "NO_TRADING_CLAIM": 7,
       "PROTECTED_FLAG": 2,
       "PROTECTED_SOURCE": 3,
       "READY_REQUIRES_CATALOG": 2,
       "SCHEMA_FIELDS": 2,
-      "SCOPE_NO_RECENCY": 8,
+      "SCOPE_NO_RECENCY": 9,
       "SEARCH_SURFACE": 9,
       "SLOT_IDENTITY": 5,
       "TEXT_FIELDS": 5
@@ -49,7 +49,7 @@
     "UNSAFE": 93,
     "UNSAFE_ADMITTED": 0
   },
-  "CORPUS_AUTHOR_NOTE": "The corpus was written by the implementer of the repair. An independent reviewer should add an independently written corpus before any live authorization.",
+  "CORPUS_AUTHOR_NOTE": "The corpus was written by the implementer of the repair. The PR #215 verifier corpus was run as external regression evidence only (not copied): see EXTERNAL_REGRESSION in the repair record.",
   "DERIVE_AFTER_PARTIAL_WORK": {
     "DERIVED_GENERATOR_POSTS": 0,
     "DERIVED_METRICS": {
@@ -61,7 +61,7 @@
       },
       "HARD_FAIL": 1,
       "HARD_FAIL_BY_RULE": {
-        "LEGAL_RANGE_GRAMMAR": 1
+        "PROVIDER_SCHEMA": 1
       },
       "HARD_FAIL_RATE": "1/40",
       "REVIEWED": 39,
@@ -74,7 +74,8 @@
     "DERIVED_SPEND": {
       "JOURNAL_MICRO_USD": 2240000,
       "LINEAGE_PRIOR_MICRO_USD": 210036,
-      "TOTAL_MICRO_USD": 2450036
+      "TOTAL_MICRO_USD": 2450036,
+      "UNRESOLVED_CALLS": []
     },
     "DERIVED_STATUS": "PENDING_HUMAN_REVIEW",
     "DERIVE_LINEAGE_PRIOR_MICRO_USD": 210036,
@@ -83,6 +84,60 @@
     "SOURCE_ROWS": 64,
     "SOURCE_STATUS": "PAUSED_UNCERTAIN_CALL",
     "SOURCE_TOTAL_MICRO_USD": 2210036
+  },
+  "FRESH_BUDGET_PREFLIGHT": {
+    "FITS_AUTHORIZED_REMAINING": false,
+    "FITS_WITH_CONTENT_RETRIES": false,
+    "PROXY_CARDS": 40,
+    "PROXY_CARD_BYTES": 9012,
+    "PROXY_MARGIN": "1.5",
+    "PROXY_SIGNATURE_BYTES": 1565,
+    "REMAINING_AUTHORIZED_MICRO_USD": 17100000,
+    "SPENT_MICRO_USD": 0,
+    "STAGES": [
+      {
+        "BOUND_MICRO_USD": 2201780,
+        "BOUND_USD": "2.20178",
+        "STAGE": "generation:0"
+      },
+      {
+        "BOUND_MICRO_USD": 2202080,
+        "BOUND_USD": "2.20208",
+        "STAGE": "generation:1"
+      },
+      {
+        "BOUND_MICRO_USD": 2202000,
+        "BOUND_USD": "2.202",
+        "STAGE": "generation:2"
+      },
+      {
+        "BOUND_MICRO_USD": 2205380,
+        "BOUND_USD": "2.20538",
+        "STAGE": "generation:3"
+      },
+      {
+        "BOUND_MICRO_USD": 13852460,
+        "BOUND_USD": "13.85246",
+        "STAGE": "NOVELTY_CRITIC x40"
+      },
+      {
+        "BOUND_MICRO_USD": 187775,
+        "BOUND_USD": "0.187775",
+        "STAGE": "FEASIBILITY_CRITIC x40"
+      },
+      {
+        "BOUND_MICRO_USD": 4195100,
+        "BOUND_USD": "4.1951",
+        "STAGE": "RED_TEAM x40"
+      },
+      {
+        "BOUND_MICRO_USD": 1938,
+        "BOUND_USD": "0.001938",
+        "STAGE": "SELECTOR"
+      }
+    ],
+    "WORST_CASE_REMAINING_MICRO_USD": 27048513,
+    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 54095088
   },
   "NOISY_E2E": {
     "CALL_STATES": {
@@ -109,8 +164,8 @@
       },
       "HARD_FAIL": 3,
       "HARD_FAIL_BY_RULE": {
-        "LEGAL_RANGE_GRAMMAR": 1,
         "NO_PROTECTED_YEARS": 1,
+        "PROVIDER_SCHEMA": 1,
         "SLOT_IDENTITY": 1
       },
       "HARD_FAIL_RATE": "3/40",
@@ -143,12 +198,14 @@
     "SPEND": {
       "JOURNAL_MICRO_USD": 4218734,
       "LINEAGE_PRIOR_MICRO_USD": 0,
-      "TOTAL_MICRO_USD": 4218734
+      "TOTAL_MICRO_USD": 4218734,
+      "UNRESOLVED_CALLS": []
     },
     "STATUS": "PENDING_HUMAN_REVIEW",
     "STEPS": [
       "CRASH: process died after POST RED_TEAM C011",
       "PAUSED: PAUSED_UNCERTAIN_CALL",
+      "NOT_BILLED_WITHOUT_EVIDENCE_REFUSED",
       "RECONCILED_BILLED",
       "FINAL: PENDING_HUMAN_REVIEW"
     ],
@@ -158,7 +215,7 @@
   "PROTECTED_2025_2026_OPENED": false,
   "REAL_LLM_CALLS_MADE": false,
   "SCIENTIFIC_OUTCOMES_COMPUTED": false,
-  "UNIT": "GENERATOR_V0_PRE_LIVE_REPAIR_OFFLINE_GATE",
+  "UNIT": "GENERATOR_V0_LIMITED_REPAIR_OFFLINE_GATE",
   "V7_DERIVE_PROOF": {
     "IMPORTED_CONTRACTS": {
       "generation:0": "GENERATOR_CONTRACT_V01_LEGACY",
@@ -195,36 +252,40 @@
   "V8_REMAINING_BUDGET_PREFLIGHT": {
     "FITS_AUTHORIZED_REMAINING": false,
     "FITS_WITH_CONTENT_RETRIES": false,
+    "PROXY_CARDS": 10,
+    "PROXY_CARD_BYTES": 9012,
+    "PROXY_MARGIN": "1.5",
+    "PROXY_SIGNATURE_BYTES": 1565,
     "REMAINING_AUTHORIZED_MICRO_USD": 12153250,
     "SPENT_MICRO_USD": 4946750,
     "STAGES": [
       {
-        "BOUND_MICRO_USD": 2178420,
-        "BOUND_USD": "2.17842",
+        "BOUND_MICRO_USD": 2205380,
+        "BOUND_USD": "2.20538",
         "STAGE": "generation:3"
       },
       {
-        "BOUND_MICRO_USD": 11278174,
-        "BOUND_USD": "11.278174",
+        "BOUND_MICRO_USD": 11928152,
+        "BOUND_USD": "11.928152",
         "STAGE": "NOVELTY_CRITIC x40"
       },
       {
-        "BOUND_MICRO_USD": 172790,
-        "BOUND_USD": "0.17279",
+        "BOUND_MICRO_USD": 175722,
+        "BOUND_USD": "0.175722",
         "STAGE": "FEASIBILITY_CRITIC x40"
       },
       {
-        "BOUND_MICRO_USD": 3895374,
-        "BOUND_USD": "3.895374",
+        "BOUND_MICRO_USD": 3953992,
+        "BOUND_USD": "3.953992",
         "STAGE": "RED_TEAM x40"
       },
       {
-        "BOUND_MICRO_USD": 1992,
-        "BOUND_USD": "0.001992",
+        "BOUND_MICRO_USD": 1955,
+        "BOUND_USD": "0.001955",
         "STAGE": "SELECTOR"
       }
     ],
-    "WORST_CASE_REMAINING_MICRO_USD": 17526750,
-    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 35051508
+    "WORST_CASE_REMAINING_MICRO_USD": 18265201,
+    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 36528447
   }
 }

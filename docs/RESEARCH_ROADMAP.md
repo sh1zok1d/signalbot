@@ -1,6 +1,18 @@
+## Generator V0 limited offline repair (after PR #215 verification) — 2026-09-23
+
+`NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION`.
+Limited offline repair of the five blockers found by the independent
+verification (PR #215):
+- keyed novelty prompt/schema/parser contract;
+- sealed journals refused inside `Ledger`;
+- dispatch state machine so a possibly-POSTed call is never re-sent without evidence;
+- Unicode-normalized structural temporal/protected/trade checks;
+- budget preflight for fresh and derived journals, with a scenario table and no run shape chosen.
+Completion state is `READY_FOR_RE-VERIFICATION`, not a provider smoke test or live shadow. No paid call, no protected data, no scientific outcome; v6/v7 sealed and untouched. See `docs/research/GENERATOR_V0_LIMITED_REPAIR.md`.
+
 ## Generator V0 pre-live repair (offline) — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW` (reviewed by PR #215; see the limited repair above).
 Offline repair of the audit findings behind the v4–v7 one-failure-per-run
 history: per-card quarantine instead of campaign aborts, a single V02 rule
 contract (prompt and validator derived from one table), decoding-level
@@ -30,7 +42,7 @@ historical labels.
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-23
-**Current phase:** `GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`
+**Current phase:** `GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 

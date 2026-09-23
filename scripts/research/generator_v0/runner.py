@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from .context import ContractError,canonical,digest
-from .schema import parse_json,normalize_role_output
+from .schema import parse_json,validate_instance,output_schema,decode_provider_card
 from .roles import Roles,SELECTOR_PROMPT,RoleContractError,exact
 from .mock import slot_plan
 from .ledger import data_gaps,BudgetExceeded,CallUncertain,InfrastructureStop
@@ -49,19 +49,48 @@ def generator_identity(c,slots):
 def generator_request_parameters(slots):
     return {'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':list(slots)}
 
-def parse_round(raw):
-    """Generator output -> list of card objects, or None if unusable as a round."""
-    try:payload=normalize_role_output('GENERATOR',parse_json(raw))
+def parse_round(raw,contract_id=contract.CONTRACT_ID):
+    """Generator output -> cards, or None if unusable as a round.
+
+    V02: the provider-keyed object {'CANDIDATES': {slot_id: card}} exactly as
+    decoded (a list is unusable). Cards stay in provider encoding; intake checks
+    each against its slot's strict provider schema before the V02 rules.
+    Legacy v0.1 (grandfathered imports only): the stored list form."""
+    try:payload=parse_json(raw)
     except ContractError:return None
-    if not isinstance(payload,dict) or set(payload)!={'CANDIDATES'} or not isinstance(payload['CANDIDATES'],list):return None
-    return payload['CANDIDATES']
+    if not isinstance(payload,dict) or set(payload)!={'CANDIDATES'}:return None
+    cards=payload['CANDIDATES']
+    if contract_id==legacy_v01.CONTRACT_ID:return cards if isinstance(cards,list) else None
+    return cards if isinstance(cards,dict) else None
+
+def slot_violations_v02(card,c,slot):
+    """V02 per-slot check of a provider-keyed card: its slot's strict provider
+    schema first, then the contract rules. Returns (violations, application card)."""
+    try:
+        validate_instance(card,output_schema(c,provider=True,slot=slot))
+        card=decode_provider_card(card)
+    except ContractError as e:return [{'RULE':'PROVIDER_SCHEMA','DETAIL':str(e)}],card
+    return contract.card_violations(card,c,slot),card
+
+def round_cards(raw,contract_id=contract.CONTRACT_ID):
+    """Parsed round as a list of application cards (summaries, preflight); None if unusable."""
+    cards=parse_round(raw,contract_id)
+    if cards is None or isinstance(cards,list):return cards
+    out=[]
+    for k,v in cards.items():
+        try:out.append(decode_provider_card(v))
+        except ContractError:out.append(v if isinstance(v,dict) else {'CANDIDATE_ID':k})
+    return out
+
+def contract_of_request(request):
+    return legacy_v01.CONTRACT_ID if request.get('prompt_version')==legacy_v01.PROMPT_VERSION else contract.CONTRACT_ID
 
 def _round_output(c,ledger,caller,round_n,slots):
     """(contract, call_key, cards or None, failure reasons)."""
     slot_id='generation:'+str(round_n)
     imported=(ledger.get('imported_rounds') or {}).get(slot_id)
     if imported:
-        return imported['CONTRACT'],imported['CALL_KEY'],parse_round(ledger.complete_raw(imported['CALL_KEY'])),['imported output is not a usable round']
+        return imported['CONTRACT'],imported['CALL_KEY'],parse_round(ledger.complete_raw(imported['CALL_KEY']),imported['CONTRACT']),['imported output is not a usable round']
     reasons=[];key=None
     for attempt in range(MAX_CONTENT_ATTEMPTS):
         try:
@@ -75,15 +104,18 @@ def _round_output(c,ledger,caller,round_n,slots):
     return contract.CONTRACT_ID,key,None,reasons
 
 def _intake_round(c,ledger,round_n,slots,contract_id,key,cards,failure):
-    """Per-slot VALID/HARD_FAIL. Returns admitted cards in slot order."""
+    """Per-slot VALID/HARD_FAIL. Returns admitted cards in slot order.
+
+    cards is either the V02 provider-keyed object (slot ID -> provider-encoded
+    card; duplicate IDs cannot exist) or a list of application cards (legacy
+    imports and synthetic tests)."""
     slot_id='generation:'+str(round_n)
-    by_id={};dupes=set();extras=[]
+    by_id={};dupes=set();extras=[];keyed=isinstance(cards,dict)
     wanted={s['CANDIDATE_ID'] for s in slots}
-    for card in cards or []:
-        cid=card.get('CANDIDATE_ID') if isinstance(card,dict) else None
-        if cid not in wanted:extras.append(cid);continue
-        if cid in by_id:dupes.add(cid)
-        by_id[cid]=card
+    for k,card in (cards.items() if keyed else ((c.get('CANDIDATE_ID') if isinstance(c,dict) else None,c) for c in cards or [])):
+        if k not in wanted:extras.append(k);continue
+        if k in by_id:dupes.add(k)
+        by_id[k]=card
     admitted=[]
     for slot in slots:
         cid=slot['CANDIDATE_ID'];card=by_id.get(cid)
@@ -94,7 +126,8 @@ def _intake_round(c,ledger,round_n,slots,contract_id,key,cards,failure):
             try:legacy_v01.admit_card(card,c,key);state,reasons='VALID',[]
             except ContractError as e:state,reasons='HARD_FAIL',[{'RULE':'LEGACY_V01','DETAIL':str(e)}]
         else:
-            reasons=contract.card_violations(card,c,slot)
+            if keyed:reasons,card=slot_violations_v02(card,c,slot)
+            else:reasons=contract.card_violations(card,c,slot)
             state='HARD_FAIL' if reasons else 'VALID'
         ledger.record_candidate(cid,slot_id,key,contract_id,state,card,reasons)
         if state=='VALID':admitted.append(card)
@@ -125,7 +158,14 @@ def _selector_advisory(c,caller,ctx,order):
     try:
         raw=caller.call('SELECTOR',ctx,SELECTOR_PROMPT,{'max_output_tokens':ROLE_OUTPUT_TOKEN_CAPS['SELECTOR']},'selection')
     except (BudgetExceeded,CallUncertain,ProviderThrottled,ProviderRejected,BilledFailure) as e:
-        return {'STATUS':'UNAVAILABLE','REASON':type(e).__name__+': '+str(e)[:300]}
+        # Advisory, so never fatal; but an attempt left open keeps its reserved charge
+        # and is named here so the spend is explained (it is also listed in SPEND).
+        key=caller.last_key;state=caller.ledger.call_state(key) if key else None
+        out={'STATUS':'UNAVAILABLE','REASON':type(e).__name__+': '+str(e)[:300],'CALL_KEY':key,'CALL_STATE':state}
+        if state is not None:
+            out['CHARGED_MICRO_USD']=caller.ledger.db.execute("SELECT CASE WHEN state IN ('COMPLETE','FAILED_WITH_COST','RECONCILED_BILLED') THEN cost WHEN state IN ('FAILED_NOT_BILLED','RECONCILED_NOT_BILLED') THEN 0 ELSE COALESCE(cost,reserved) END FROM calls WHERE key=?",(key,)).fetchone()[0]
+            if state in ('RESERVED','DISPATCHED','UNCERTAIN','BACKGROUND_SUBMITTED'):out['RESOLUTION']='reconcile '+key+' offline; its reserved bound stays charged until then'
+        return out
     try:
         proposal=parse_json(raw);exact(proposal,{'ORDERED_CANDIDATE_IDS'})
         proposed=proposal['ORDERED_CANDIDATE_IDS']
@@ -144,6 +184,7 @@ def run_campaign(c,caller,size=40):
     if existing:return json.loads(existing[0])
     if status not in RESUMABLE_STATUSES:
         raise ContractError('campaign status does not permit generation')
+    _require_causal_event(ledger,status)
     if type(size)!=int or not 25<=size<=50:raise ContractError('invalid batch size')
     try:
         return _run(c,caller,ledger,size,status)
@@ -154,10 +195,21 @@ def run_campaign(c,caller,size=40):
             ledger.event('CAMPAIGN_'+new,{'REASON':type(e).__name__+': '+str(e)[:500],'RESOLUTION':_resolution(new)})
         raise
 
+PAUSE_STATUSES=tuple(_PAUSE.values())
+
+def _require_causal_event(ledger,status):
+    """A pause/stop status is valid only with the journal row that caused it: the
+    latest CAMPAIGN_* event must be CAMPAIGN_<status>. A status written alone
+    (hand edit, partial write) is refused."""
+    if status not in PAUSE_STATUSES:return
+    row=ledger.db.execute("SELECT kind FROM events WHERE kind LIKE 'CAMPAIGN_%' ORDER BY n DESC LIMIT 1").fetchone()
+    if row is None or row[0]!='CAMPAIGN_'+status:
+        raise ContractError('status '+status+' has no causal CAMPAIGN_'+status+' journal event; refuse to resume')
+
 def _resolution(status):
     return {
         'STOPPED_BUDGET':'authorize-budget-extension (within the owner ceiling), then resume',
-        'PAUSED_UNCERTAIN_CALL':'reconcile the UNCERTAIN call key (NOT_BILLED or BILLED), then resume',
+        'PAUSED_UNCERTAIN_CALL':'reconcile the possibly-POSTed call key: BILLED with cost and evidence, NOT_BILLED only with provider evidence for its response_id, or UNKNOWN (charges the bound and closes that logical call); then resume',
         'PAUSED_PROVIDER_THROTTLED':'resume later; not-billed attempts cost nothing',
         'PAUSED_PROVIDER_REJECTED':'fix the rejected request contract or credentials, then resume',
         'PAUSED_BACKGROUND_PENDING':'resume to continue polling the same response_id',
@@ -237,4 +289,5 @@ def _run(c,caller,ledger,size,prior_status):
     return result
 
 def _spend(ledger):
-    return {'LINEAGE_PRIOR_MICRO_USD':ledger.lineage_prior_micro_usd(),'JOURNAL_MICRO_USD':ledger.spent_micro_usd(),'TOTAL_MICRO_USD':ledger.total_charged_micro_usd()}
+    return {'LINEAGE_PRIOR_MICRO_USD':ledger.lineage_prior_micro_usd(),'JOURNAL_MICRO_USD':ledger.spent_micro_usd(),'TOTAL_MICRO_USD':ledger.total_charged_micro_usd(),
+            'UNRESOLVED_CALLS':ledger.unresolved_calls()}

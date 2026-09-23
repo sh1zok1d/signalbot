@@ -1,8 +1,8 @@
 """Noisy fake-provider campaign through the real OpenAIProvider code paths.
 
 The fake HTTP transport answers Responses (background generator) and Chat
-Completions (critics, selector) with deterministic synthetic content, encoded in
-the strict provider shapes, and injects faults by (role, target, attempt).
+Completions (critics, selector) with deterministic synthetic content in the
+strict provider (keyed) encodings, and injects faults by (role, target, attempt).
 No network is used; the default HTTPS transport is never constructed.
 """
 from __future__ import annotations
@@ -21,19 +21,6 @@ CAP=30_000_000
 
 class Crash(BaseException):
     """Simulated process death after the request left the machine."""
-
-def _encode_generator(payload):
-    cards={}
-    for card in payload['CANDIDATES']:
-        card=dict(card)
-        surf=card['SEARCH_SURFACE']
-        card['SEARCH_SURFACE']={'MAX_VARIANTS':surf['MAX_VARIANTS'],'PARAMETERS':[{'NAME':k,'VALUES':v} for k,v in surf['PARAMETERS'].items()]}
-        cards[card['CANDIDATE_ID']]=card
-    return {'CANDIDATES':cards}
-
-def _encode_novelty(payload):
-    return {'PRIOR_RELATIONS':{r['SIGNATURE_ID']:r['RELATION'] for r in payload['PRIOR_RELATIONS']},
-            'BATCH_RELATIONS':{r['CANDIDATE_ID']:r['RELATION'] for r in payload['BATCH_RELATIONS']},'JUDGMENTS':payload['JUDGMENTS']}
 
 def _chat(content,finish='stop',prompt=900,completion=120):
     return json.dumps({'choices':[{'finish_reason':finish,'message':{'content':content}}],'usage':{'prompt_tokens':prompt,'completion_tokens':completion}}).encode()
@@ -60,11 +47,12 @@ class NoisyTransport:
             self.counts[('GENERATOR',rnd)]+=1;fault=self.faults.get(('GENERATOR',rnd,self.counts[('GENERATOR',rnd)]))
             if fault=='429':return 429,b'{"error":{"type":"rate_limit"}}'
             payload=json.loads(self.respond({'role':'GENERATOR','context':user['context'],'parameters':{'slots':slots}}))
-            if fault=='drop_card':payload['CANDIDATES']=payload['CANDIDATES'][:-1]
-            if fault=='invalid_card':payload['CANDIDATES'][4]['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01 to 2024-12'
-            if fault=='protected_card':payload['CANDIDATES'][6]['NO_LOOKAHEAD_RULE']='No 2025/2026 bars are permitted.'
+            ids=[s['CANDIDATE_ID'] for s in slots]
+            if fault=='drop_card':payload['CANDIDATES'].pop(ids[-1])
+            if fault=='invalid_card':payload['CANDIDATES'][ids[4]]['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01 to 2024-12'
+            if fault=='protected_card':payload['CANDIDATES'][ids[6]]['NO_LOOKAHEAD_RULE']='No 2025/2026 bars are permitted.'
             self.n+=1;rid='resp_noisy_'+str(self.n)
-            self.payloads[rid]=('incomplete' if fault=='incomplete' else 'completed',canonical(_encode_generator(payload)))
+            self.payloads[rid]=('incomplete' if fault=='incomplete' else 'completed',canonical(payload))
             return 200,json.dumps({'id':rid,'object':'response','status':'queued'}).encode()
         role=self.prompts[b['messages'][0]['content']];user=json.loads(b['messages'][1]['content'])
         ctx=user['context'];target=ctx['CANDIDATE']['CANDIDATE_ID'] if 'CANDIDATE' in ctx else 'selection'
@@ -76,7 +64,7 @@ class NoisyTransport:
         if fault=='length':return 200,_chat(canonical(payload)[:40],finish='length',completion=12000)
         if fault=='malformed':return 200,_chat('this is not json')
         if role=='NOVELTY_CRITIC':
-            enc=_encode_novelty(payload)
+            enc=payload
             if fault=='omit_batch':enc['BATCH_RELATIONS'].pop(sorted(enc['BATCH_RELATIONS'])[0])
             text=canonical(enc)
             if fault=='dup_relation':
@@ -125,8 +113,16 @@ def run_noisy_campaign(run_dir,faults=DEFAULT_FAULTS,contexts=None):
             result=run_campaign(c,Caller(c,ledger,provider_for(transport,c),CAP,True))
         except CallUncertain as e:
             steps.append('PAUSED: '+ledger.get('status'))
-            key=[r['CALL_KEY'] for r in ledger.export_calls() if r['STATE']=='RESERVED'][0]
-            ledger.reconcile(key,'BILLED',500,'offline-gate','crash after POST; provider usage page shows a billed attempt','synthetic')
+            key=[r['CALL_KEY'] for r in ledger.export_calls() if r['STATE']=='DISPATCHED'][0]
+            # Possibly POSTed: an unsupported NOT_BILLED assertion is refused; the fake
+            # provider's log is the evidence that the request arrived and was billed.
+            try:
+                ledger.reconcile(key,'NOT_BILLED',None,'offline-gate','operator assertion only')
+                steps.append('UNEXPECTED: NOT_BILLED accepted without evidence')
+            except Exception as refused:
+                steps.append('NOT_BILLED_WITHOUT_EVIDENCE_REFUSED')
+            ledger.reconcile(key,'BILLED',500,'offline-gate','crash after POST; fake provider log shows the request arrived',
+                             {'PROVIDER_LOG_POSTS':len(transport.posts()),'SOURCE':'synthetic NoisyTransport log'})
             steps.append('RECONCILED_BILLED')
             result=run_campaign(c,Caller(c,ledger,provider_for(transport,c),CAP,True))
         steps.append('FINAL: '+result['STATUS'])

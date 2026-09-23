@@ -21,7 +21,7 @@ from .ledger import Ledger,archive_connect
 from .models import GENERATOR_MAX_OUTPUT_TOKENS,ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,ROLE_OUTPUT_TOKEN_CAPS,model_for,request_params_for,price_table,routing_digest
 from .mock import slot_plan
 from .output_schemas import generator_schema_digest
-from .runner import GENERATOR_PROMPT,MAX_CONTENT_ATTEMPTS,generator_identity,generator_request_parameters,parse_round
+from .runner import GENERATOR_PROMPT,MAX_CONTENT_ATTEMPTS,generator_identity,generator_request_parameters,parse_round,round_cards,slot_violations_v02,contract_of_request
 from . import contract,legacy_v01,legacy_v01_schema
 
 DERIVED_STATUS='DERIVED_IMPORTED_REVALIDATED'
@@ -137,7 +137,7 @@ def _meta(db,key):
 def _intake_summary(row,contexts):
     """Per-card verdicts of a generator round under the contract it was generated with."""
     raw=(row['response'] or {}).get('raw')
-    cards=parse_round(raw) if raw else None
+    cards=round_cards(raw,contract_of_request(row['request'])) if raw else None
     if cards is None:return {'ROUND_USABLE':False,'CARDS':[]}
     legacy=row['request'].get('prompt_version')==legacy_v01.PROMPT_VERSION
     out=[]
@@ -225,15 +225,15 @@ def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=Non
     imported.sort(key=lambda item:item[0])
     intake={};verdicts={}
     for round_n,r,expected,contract_id in imported:
-        slots=plan[round_n*10:round_n*10+10];cards=parse_round(r['response']['raw']) or []
-        by={c.get('CANDIDATE_ID'):c for c in cards if isinstance(c,dict)}
+        slots=plan[round_n*10:round_n*10+10];cards=parse_round(r['response']['raw'],contract_id) or []
+        by=cards if isinstance(cards,dict) else {c.get('CANDIDATE_ID'):c for c in cards if isinstance(c,dict)}
         valid=0
         for s in slots:
             card=by.get(s['CANDIDATE_ID']);ok=False
             if card is not None and contract_id==legacy_v01.CONTRACT_ID:
                 try:legacy_v01.admit_card(card,contexts,r['key']);ok=True
                 except ContractError:ok=False
-            elif card is not None:ok=not contract.card_violations(card,contexts,s)
+            elif card is not None:ok=not slot_violations_v02(card,contexts,s)[0]
             verdicts[s['CANDIDATE_ID']]='VALID' if ok else 'HARD_FAIL'
             valid+=ok
         intake['generation:'+str(round_n)]={'CONTRACT':contract_id,'VALID':valid,'HARD_FAIL':len(slots)-valid}
@@ -250,7 +250,7 @@ def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=Non
             dest.import_complete(r['key'],r['request'],r['reserved'],r['response'],r['cost'],r['usage'],provenance)
         total=dest.total_charged_micro_usd()
         if total!=source_prior+source_journal:raise ContractError('lineage spend not preserved')
-        cards_ids=[c.get('CANDIDATE_ID') for _,r,_,_ in imported for c in (parse_round(r['response']['raw']) or []) if isinstance(c,dict)]
+        cards_ids=[c.get('CANDIDATE_ID') for _,r,_,cid in imported for c in (round_cards(r['response']['raw'],cid) or []) if isinstance(c,dict)]
         report={
             'STATUS':DERIVED_STATUS,'SOURCE_RUN_ID':source_config['RUN_ID'],'DEST_RUN_ID':dest_dir.name,
             'IMPORTED_GENERATION_ROUNDS':['generation:'+str(n) for n,_,_,_ in imported],
@@ -339,7 +339,7 @@ def authorize_budget_extension(run_dir,actor,reason,new_cap_usd):
         ledger.close()
 
 def reconcile_call(run_dir,call_key,resolution,cost_usd,actor,reason,evidence=''):
-    """Offline operator resolution of an UNCERTAIN/RESERVED attempt. Never POSTs."""
+    """Offline operator resolution of a possibly-POSTed attempt (see Ledger.reconcile). Never POSTs."""
     dbpath=Path(run_dir)/'run.sqlite'
     if not dbpath.exists():raise ContractError('run not found')
     cost=_cap_micro_usd(cost_usd) if resolution=='BILLED' and cost_usd not in (None,'') else None
@@ -371,11 +371,105 @@ def _bound_context(c,role,card,cards):
         return copy.deepcopy({'CANDIDATE':card,'DATA_CATALOG_V0':c.catalog,'DATA_STATUS_TAXONOMY':c.design['DATA_STATUS_TAXONOMY'],'BLOCKER_REQUIREMENTS':blockers,'PROTECTED_DATA_RULES':PROTECTED})
     return copy.deepcopy({'CANDIDATE':card,'METHODOLOGY_CHECKLIST':CHECKLIST,'PROTECTED_DATA_RULES':PROTECTED})
 
-def remaining_campaign_budget_preflight(run_dir,contexts=None):
-    """Worst-case remaining reservation using the same bound() path as live calls. No POST.
-    Spend includes lineage prior spend. Reports single-attempt and content-retry worst cases."""
+# Proxy for cards not generated yet: the largest serialized card observed in any
+# tracked first-shadow journal (v7, 40 cards; recomputed by a test) times a margin.
+# Signature fields (copied into every novelty request) are sized separately from
+# the observed maximum signature, so one large card is not multiplied 40 times.
+OBSERVED_MAX_CARD_BYTES=6008
+OBSERVED_MAX_SIGNATURE_BYTES=1043
+PROXY_CARD_MARGIN=Decimal('1.5')
+
+def _ceil(x):
+    return int(Decimal(x).to_integral_value(rounding='ROUND_CEILING'))
+
+def proxy_card(slot,contexts,target_bytes,signature_bytes):
+    """A synthetic card of at least target_bytes serialized bytes whose novelty
+    signature is at least signature_bytes. For bounding only."""
+    from .mock import fixture
+    from .context import canonical
+    from .roles import current_signatures
+    card=fixture(slot,contexts);card.update(slot)
+    pad=signature_bytes-len(canonical(current_signatures([card])[0]).encode())
+    if pad>0:card['MECHANISM']=card['MECHANISM']+' '+'x'*(pad-1)
+    pad=target_bytes-len(canonical(card).encode())
+    if pad>0:card['CAUSAL_OR_STRUCTURAL_STORY']=card['CAUSAL_OR_STRUCTURAL_STORY']+' '+'x'*(pad-1)
+    return card
+
+def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content_attempts=None,margin=None):
+    """Worst-case reservation for everything not yet COMPLETE-imported, through the
+    live bound() path. Missing cards are proxies of max(largest known card,
+    OBSERVED_MAX_CARD_BYTES x margin) bytes. No POST."""
     from .roles import NOVELTY_PROMPT,FEAS_PROMPT,RED_PROMPT,SELECTOR_PROMPT
     from .context import canonical
+    caps=dict(ROLE_OUTPUT_TOKEN_CAPS if caps is None else caps)
+    attempts=MAX_CONTENT_ATTEMPTS if content_attempts is None else content_attempts
+    margin=PROXY_CARD_MARGIN if margin is None else Decimal(margin)
+    if type(size)!=int or not 25<=size<=50:raise ContractError('batch size')
+    provider=_offline_bound_provider(contexts,30_000_000)
+    plan=slot_plan(size)
+    cards=[c for c in known_cards if isinstance(c,dict)][:size]
+    from .roles import current_signatures
+    proxy_bytes=max([_ceil(OBSERVED_MAX_CARD_BYTES*margin)]+[len(canonical(c).encode()) for c in cards])
+    sig_bytes=max([_ceil(OBSERVED_MAX_SIGNATURE_BYTES*margin)]+[len(canonical(x).encode()) for x in current_signatures(cards)])
+    have={c.get('CANDIDATE_ID') for c in cards}
+    cards+=[proxy_card(slot,contexts,proxy_bytes,sig_bytes) for slot in plan if slot['CANDIDATE_ID'] not in have][:size-len(cards)]
+    stages=[];total=0
+    for round_n in [n for n in range((size+9)//10) if n not in set(done_rounds)]:
+        slots=plan[round_n*10:round_n*10+10]
+        req={'role':'GENERATOR','context':contexts.generator(),'prompt':GENERATOR_PROMPT,
+             'parameters':generator_request_parameters(slots),**generator_identity(contexts,slots)}
+        bound=provider.bound(req);total+=bound
+        stages.append(_stage('generation:'+str(round_n),bound))
+    critic_tot={'NOVELTY_CRITIC':0,'FEASIBILITY_CRITIC':0,'RED_TEAM':0}
+    for card in cards:
+        for role,prompt in (('NOVELTY_CRITIC',NOVELTY_PROMPT),('FEASIBILITY_CRITIC',FEAS_PROMPT),('RED_TEAM',RED_PROMPT)):
+            ctx=_bound_context(contexts,role,card,cards)
+            bound=provider.bound({'role':role,'context':ctx,'prompt':prompt,'parameters':{'max_output_tokens':caps[role]}})
+            critic_tot[role]+=bound;total+=bound
+    for role,bound in critic_tot.items():
+        stages.append(_stage(role+' x'+str(size),bound))
+    selection={card['CANDIDATE_ID']:{'MECHANISM_DISTANCE':3,'INFORMATION_GAIN':3,'FEASIBILITY':3,'CHEAPNESS':3} for card in cards}
+    sanitized=[{'CANDIDATE_ID':card['CANDIDATE_ID'],'DATA_STATUS':card['DATA_STATUS']} for card in cards]
+    selector_ctx={'SANITIZED_CRITIC_OUTPUTS':sanitized,'DATA_STATUS':{card['CANDIDATE_ID']:card['DATA_STATUS'] for card in cards},'SELECTION_JUDGMENTS':selection}
+    selector_bound=provider.bound({'role':'SELECTOR','context':selector_ctx,'prompt':SELECTOR_PROMPT,'parameters':{'max_output_tokens':caps['SELECTOR']}})
+    total+=selector_bound
+    stages.append(_stage('SELECTOR',selector_bound))
+    # The selector is advisory and never retried; every other call may be retried once per content attempt.
+    with_retries=total*attempts-selector_bound*(attempts-1)
+    return {'SIZE':size,'CAPS':caps,'CONTENT_ATTEMPTS':attempts,'PROXY_CARD_BYTES':proxy_bytes,'PROXY_SIGNATURE_BYTES':sig_bytes,'PROXY_MARGIN':str(margin),'PROXY_CARDS':size-len([c for c in known_cards if isinstance(c,dict)][:size]),
+            'STAGES':stages,'WORST_CASE_SINGLE_ATTEMPT_MICRO_USD':total,'WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD':with_retries}
+
+def fresh_campaign_budget_preflight(size,cap_micro_usd,contexts=None,caps=None,content_attempts=None,margin=None,lineage_prior_micro_usd=0):
+    """Preflight for a run that has no journal yet. No POST, no journal written."""
+    contexts=contexts or Contexts()
+    b=campaign_bound(contexts,size,(),(),caps,content_attempts,margin)
+    return _preflight_report(b,cap_micro_usd,lineage_prior_micro_usd,0,[],[])
+
+def _preflight_report(b,cap,prior,journal,done,known_rounds):
+    spent=prior+journal;remaining_auth=cap-spent
+    total=b['WORST_CASE_SINGLE_ATTEMPT_MICRO_USD'];with_retries=b['WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD']
+    return {
+        'STATUS':'REMAINING_BUDGET_PREFLIGHT',
+        'CAP_MICRO_USD':cap,'SPENT_MICRO_USD':spent,'LINEAGE_PRIOR_MICRO_USD':prior,'JOURNAL_SPENT_MICRO_USD':journal,
+        'REMAINING_AUTHORIZED_MICRO_USD':remaining_auth,
+        'OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD':OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,
+        'WORST_CASE_REMAINING_MICRO_USD':total,'WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD':with_retries,
+        'MIN_ADDITIONAL_AUTHORIZATION_MICRO_USD':max(0,total-remaining_auth),
+        'MIN_TOTAL_CAP_MICRO_USD':spent+total,'MIN_TOTAL_CAP_WITH_CONTENT_RETRIES_MICRO_USD':spent+with_retries,
+        'FITS_AUTHORIZED_REMAINING':total<=remaining_auth and cap<=OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,
+        'FITS_WITH_CONTENT_RETRIES':with_retries<=remaining_auth and cap<=OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,
+        'IMPORTED_GENERATION_ROUNDS':['generation:'+str(n) for n in sorted(done)],
+        'REMAINING_GENERATION_ROUNDS':[s['STAGE'] for s in b['STAGES'] if s['STAGE'].startswith('generation:')],
+        'PROXY_CARDS':b['PROXY_CARDS'],'PROXY_CARD_BYTES':b['PROXY_CARD_BYTES'],'PROXY_SIGNATURE_BYTES':b['PROXY_SIGNATURE_BYTES'],'PROXY_MARGIN':b['PROXY_MARGIN'],'CAPS':b['CAPS'],'CONTENT_ATTEMPTS':b['CONTENT_ATTEMPTS'],
+        'STAGES':b['STAGES'],
+        'NOTE':'Conservative: every remaining critic call is bounded even if already COMPLETE in this journal. Budget exhaustion during a live run stops cleanly (STOPPED_BUDGET) before any POST.',
+        'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
+    }
+
+def remaining_campaign_budget_preflight(run_dir,contexts=None,caps=None,content_attempts=None,margin=None):
+    """Worst-case remaining reservation for a fresh, running or derived journal,
+    through the same bound() path as live calls. No POST; the journal is read
+    through an immutable handle. Spend includes lineage prior spend."""
     dbpath=Path(run_dir)/'run.sqlite'
     if not dbpath.exists():raise ContractError('run not found')
     contexts=contexts or Contexts()
@@ -384,68 +478,14 @@ def remaining_campaign_budget_preflight(run_dir,contexts=None):
         cfg=ledger.get('config')
         if not isinstance(cfg,dict) or type(cfg.get('CAP_MICRO_USD')) is not int:
             raise ContractError('run cap missing')
-        cap=cfg['CAP_MICRO_USD']
-        size=cfg.get('SIZE')
+        size=cfg.get('SIZE',40)
         if type(size)!=int or not 25<=size<=50:raise ContractError('source batch size')
-        spent=ledger.total_charged_micro_usd()
-        remaining_auth=cap-spent
-        provider=_offline_bound_provider(contexts,cap)
-        plan=slot_plan(size)
-        imported_rounds=ledger.get('imported_rounds') or {}
         done=[];cards=[]
-        for slot,row in sorted(imported_rounds.items()):
-            batch=parse_round(ledger.complete_raw(row['CALL_KEY']))
+        for slot,row in sorted((ledger.get('imported_rounds') or {}).items()):
+            batch=round_cards(ledger.complete_raw(row['CALL_KEY']),row['CONTRACT'])
             if batch is None:raise ContractError('imported round unusable')
             done.append(int(slot.split(':')[1]));cards+=[c for c in batch if isinstance(c,dict)]
-        rounds=list(range((size+9)//10))
-        missing=[n for n in rounds if n not in done]
-        stages=[];total=0
-        for round_n in missing:
-            slots=plan[round_n*10:round_n*10+10]
-            req={'role':'GENERATOR','context':contexts.generator(),'prompt':GENERATOR_PROMPT,
-                 'parameters':generator_request_parameters(slots),**generator_identity(contexts,slots)}
-            bound=provider.bound(req);total+=bound
-            stages.append(_stage('generation:'+str(round_n),bound))
-        if len(cards)<size:
-            if not cards:raise ContractError('no COMPLETE generator cards to bound remaining critics')
-            template=max(cards,key=lambda card:len(canonical(card).encode()))
-            for slot in plan[len(cards):size]:
-                proxy=json.loads(canonical(template));proxy.update(slot);cards.append(proxy)
-        cards=cards[:size]
-        critic_tot={'NOVELTY_CRITIC':0,'FEASIBILITY_CRITIC':0,'RED_TEAM':0}
-        for card in cards:
-            for role,prompt in (('NOVELTY_CRITIC',NOVELTY_PROMPT),('FEASIBILITY_CRITIC',FEAS_PROMPT),('RED_TEAM',RED_PROMPT)):
-                ctx=_bound_context(contexts,role,card,cards)
-                bound=provider.bound({'role':role,'context':ctx,'prompt':prompt,'parameters':{'max_output_tokens':ROLE_OUTPUT_TOKEN_CAPS[role]}})
-                critic_tot[role]+=bound;total+=bound
-        for role,bound in critic_tot.items():
-            stages.append(_stage(role+' x'+str(size),bound))
-        selection={card['CANDIDATE_ID']:{'MECHANISM_DISTANCE':3,'INFORMATION_GAIN':3,'FEASIBILITY':3,'CHEAPNESS':3} for card in cards}
-        sanitized=[{'CANDIDATE_ID':card['CANDIDATE_ID'],'DATA_STATUS':card['DATA_STATUS']} for card in cards]
-        selector_ctx={'SANITIZED_CRITIC_OUTPUTS':sanitized,'DATA_STATUS':{card['CANDIDATE_ID']:card['DATA_STATUS'] for card in cards},'SELECTION_JUDGMENTS':selection}
-        selector_bound=provider.bound({'role':'SELECTOR','context':selector_ctx,'prompt':SELECTOR_PROMPT,'parameters':{'max_output_tokens':ROLE_OUTPUT_TOKEN_CAPS['SELECTOR']}})
-        total+=selector_bound
-        stages.append(_stage('SELECTOR',selector_bound))
-        with_retries=total*MAX_CONTENT_ATTEMPTS-selector_bound*(MAX_CONTENT_ATTEMPTS-1)
-        shortfall=max(0,total-remaining_auth)
-        fits=total<=remaining_auth and cap<=OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
-        return {
-            'STATUS':'REMAINING_BUDGET_PREFLIGHT',
-            'CAP_MICRO_USD':cap,'SPENT_MICRO_USD':spent,
-            'LINEAGE_PRIOR_MICRO_USD':ledger.lineage_prior_micro_usd(),'JOURNAL_SPENT_MICRO_USD':ledger.spent_micro_usd(),
-            'REMAINING_AUTHORIZED_MICRO_USD':remaining_auth,
-            'OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD':OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,
-            'WORST_CASE_REMAINING_MICRO_USD':total,
-            'WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD':with_retries,
-            'MIN_ADDITIONAL_AUTHORIZATION_MICRO_USD':shortfall,
-            'MIN_TOTAL_CAP_MICRO_USD':spent+total,
-            'FITS_AUTHORIZED_REMAINING':fits,
-            'FITS_WITH_CONTENT_RETRIES':with_retries<=remaining_auth,
-            'IMPORTED_GENERATION_ROUNDS':['generation:'+str(n) for n in sorted(done)],
-            'REMAINING_GENERATION_ROUNDS':['generation:'+str(n) for n in missing],
-            'STAGES':stages,
-            'NOTE':'Budget exhaustion during a live run stops cleanly (STOPPED_BUDGET) before any POST; it is resumable after an extension within the owner ceiling.',
-            'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
-        }
+        b=campaign_bound(contexts,size,cards,done,caps,content_attempts,margin)
+        return _preflight_report(b,cfg['CAP_MICRO_USD'],ledger.lineage_prior_micro_usd(),ledger.spent_micro_usd(),done,[])
     finally:
         ledger.close()

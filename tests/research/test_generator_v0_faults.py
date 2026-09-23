@@ -29,11 +29,12 @@ def test_noisy_end_to_end_reaches_pending_human_review(tmp_path):
     report,l,t=run_noisy_campaign(tmp_path/'noisy')
     try:
         assert report['STATUS']=='PENDING_HUMAN_REVIEW'
-        assert report['STEPS'][0].startswith('CRASH') and report['STEPS'][1]=='PAUSED: PAUSED_UNCERTAIN_CALL' and report['STEPS'][2]=='RECONCILED_BILLED'
+        assert report['STEPS'][0].startswith('CRASH') and report['STEPS'][1]=='PAUSED: PAUSED_UNCERTAIN_CALL'
+        assert report['STEPS'][2]=='NOT_BILLED_WITHOUT_EVIDENCE_REFUSED' and report['STEPS'][3]=='RECONCILED_BILLED'
         m=report['METRICS']
         assert m['SLOTS']==40 and m['VALID']==37 and m['HARD_FAIL']==3
         assert set(report['HARD_FAIL_IDS'])=={'C020','C025','C037'}          # missing card, non-canonical range, protected year
-        assert m['HARD_FAIL_BY_RULE']=={'LEGAL_RANGE_GRAMMAR':1,'NO_PROTECTED_YEARS':1,'SLOT_IDENTITY':1}
+        assert m['HARD_FAIL_BY_RULE']=={'NO_PROTECTED_YEARS':1,'PROVIDER_SCHEMA':1,'SLOT_IDENTITY':1}   # the non-canonical range fails the slot's strict schema first
         assert set(report['REVIEW_FAILED_IDS'])=={'C009','C010'} and m['REVIEW_FAILED']==2
         assert m['REVIEWED']==35
         assert m['CRITIC_COMPLETIONS']=={'FEASIBILITY':36,'NOVELTY':37,'RED_TEAM':35}
@@ -130,11 +131,16 @@ def test_uncertain_call_pauses_and_reconcile_is_the_documented_exit(tmp_path):
     with pytest.raises(CallUncertain):run_campaign(c,Caller(c,l,p))           # never replayed automatically
     key=[r['CALL_KEY'] for r in l.export_calls() if r['STATE']=='UNCERTAIN'][0]
     with pytest.raises(ContractError,match='actor and reason'):l.reconcile(key,'NOT_BILLED',None,'','')
-    with pytest.raises(ContractError,match='within the reserved bound'):l.reconcile(key,'BILLED',10**9,'op','usage page')
-    l.reconcile(key,'NOT_BILLED',None,'op','provider dashboard shows no request')
-    with pytest.raises(ContractError,match='only RESERVED or UNCERTAIN'):l.reconcile(key,'NOT_BILLED',None,'op','twice')
+    with pytest.raises(ContractError,match='within the reserved bound'):l.reconcile(key,'BILLED',10**9,'op','usage page','evidence')
+    with pytest.raises(ContractError,match='provider-side evidence'):l.reconcile(key,'NOT_BILLED',None,'op','provider dashboard shows no request')
+    l.reconcile(key,'UNKNOWN',None,'op','no provider evidence available')
+    with pytest.raises(ContractError,match='only RESERVED, DISPATCHED or UNCERTAIN'):l.reconcile(key,'UNKNOWN',None,'op','twice')
     flag['timeout']=False
-    assert run_campaign(c,Caller(c,l,p))['STATUS']=='PENDING_HUMAN_REVIEW'
+    calls=p.calls
+    r=run_campaign(c,Caller(c,l,p));assert r['STATUS']=='PENDING_HUMAN_REVIEW'
+    # The closed logical call is never POSTed again; that card is REVIEW_FAILED.
+    assert not any(x for x in r['REVIEWS'] if x['CANDIDATE_ID']=='C004' and x['STATE']!='REVIEW_FAILED')
+    assert l.logical_call_closed('NOVELTY_CRITIC|NOVELTY_CRITIC:C004')['CALL_KEY']==key
 
 def test_budget_exhaustion_stops_cleanly_and_resumes_after_extension(tmp_path):
     c=Contexts()
@@ -159,7 +165,7 @@ def test_insufficient_valid_candidates_is_an_explicit_terminal_stop(tmp_path):
     def answer(req):
         x=json.loads(base(req))
         if req['role']=='GENERATOR' and req['slot'] in ('generation:0','generation:1'):
-            for card in x['CANDIDATES']:card['HORIZON']='through today'
+            for card in x['CANDIDATES'].values():card['HORIZON']='through today'
         return canonical(x)
     l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'x'});p=MockProvider(answer)
     r=run_campaign(c,Caller(c,l,p))
@@ -174,13 +180,24 @@ STATUSES=('CREATED','DERIVED_IMPORTED_REVALIDATED','DERIVED_CONTINUATION_AUTHORI
 
 @pytest.mark.parametrize('status',STATUSES)
 def test_state_machine_generation_permission(tmp_path,status):
-    c=Contexts();l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'x'});l.set('status',status);l.db.commit()
+    from scripts.research.generator_v0.runner import PAUSE_STATUSES
+    c=Contexts();l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'x'});l.set('status',status)
+    if status in PAUSE_STATUSES:l.event('CAMPAIGN_'+status,{'REASON':'synthetic cause'})
+    l.db.commit()
     p=MockProvider(MockResponder(c))
     if status in RESUMABLE_STATUSES:
         assert run_campaign(c,Caller(c,l,p))['STATUS']=='PENDING_HUMAN_REVIEW'
     else:
         with pytest.raises(ContractError):run_campaign(c,Caller(c,l,p))
         assert p.calls==0
+
+@pytest.mark.parametrize('status',('PAUSED_UNCERTAIN_CALL','PAUSED_PROVIDER_THROTTLED','PAUSED_PROVIDER_REJECTED','PAUSED_BACKGROUND_PENDING','STOPPED_BUDGET'))
+def test_pause_status_without_its_causal_journal_event_is_refused(tmp_path,status):
+    c=Contexts();l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'x'});l.set('status',status)
+    l.event('CAMPAIGN_PAUSED_PROVIDER_THROTTLED' if status!='PAUSED_PROVIDER_THROTTLED' else 'CAMPAIGN_STOPPED_BUDGET',{'REASON':'a different cause'})
+    l.db.commit();p=MockProvider(MockResponder(c))
+    with pytest.raises(ContractError,match='no causal'):run_campaign(c,Caller(c,l,p))
+    assert p.calls==0
 
 @pytest.mark.parametrize('status',STATUSES)
 def test_state_machine_continuation_authorization_only_from_derived(tmp_path,status):
@@ -239,8 +256,12 @@ def test_property_lineage_ceiling_holds_across_random_operation_sequences(tmp_pa
             elif op<0.8:l.failed(key,'length',state='FAILED_WITH_COST')
             elif op<0.9:
                 l.failed(key,'timeout',state='UNCERTAIN')
-                if rng.random()<0.5:l.reconcile(key,rng.choice(['NOT_BILLED','BILLED']),rng.randint(1,bound),'op','evidence')
-            # else: left RESERVED (crash after POST)
+                if rng.random()<0.5:
+                    with pytest.raises(ContractError):l.reconcile(key,'NOT_BILLED',None,'op','assertion only')
+                    choice=rng.choice(['BILLED','UNKNOWN'])
+                    l.reconcile(key,choice,rng.randint(1,bound) if choice=='BILLED' else None,'op','reason','evidence')
+            elif op<0.95:l.mark_dispatched(key)       # crash after dispatch: charged at the bound
+            # else: left RESERVED (crash before dispatch)
             rows=list(l.db.execute('SELECT state,cost,reserved FROM calls'))
             assert l.spent_micro_usd()==sum(_charge(*r) for r in rows)
             assert l.total_charged_micro_usd()<=cap
@@ -290,15 +311,19 @@ def test_derive_refuses_source_with_uncheckpointed_wal(tmp_path):
     with pytest.raises(ContractError,match='uncheckpointed WAL'):derive_complete_rounds(src,tmp_path/'dst',2)
     assert not (tmp_path/'dst').exists()
 
-def test_crash_after_post_leaves_reserved_charged_until_reconciled(tmp_path):
+def test_crash_after_post_leaves_dispatched_charged_until_reconciled(tmp_path):
+    """Crash-point coverage lives in test_generator_v0_crash_points.py; this is the noisy-transport variant."""
     c=Contexts();t=NoisyTransport(c,{('RED_TEAM','C002',1):'crash'})
     l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'crash'})
     with pytest.raises(Crash):run_campaign(c,Caller(c,l,provider_for(t,c),CAP,True))
-    rows=[r for r in l.export_calls() if r['STATE']=='RESERVED']
+    rows=[r for r in l.export_calls() if r['STATE']=='DISPATCHED']
     assert len(rows)==1 and l.spent_micro_usd()>=rows[0]['RESERVED_MICRO_USD']
     posts=len(t.posts())
     with pytest.raises(CallUncertain):run_campaign(c,Caller(c,l,provider_for(t,c),CAP,True))
     assert len(t.posts())==posts
-    l.reconcile(rows[0]['CALL_KEY'],'NOT_BILLED',None,'op','no request in provider logs')
-    assert run_campaign(c,Caller(c,l,provider_for(t,c),CAP,True))['STATUS']=='PENDING_HUMAN_REVIEW'
+    with pytest.raises(ContractError,match='provider-side evidence'):l.reconcile(rows[0]['CALL_KEY'],'NOT_BILLED',None,'op','no request in provider logs')
+    l.reconcile(rows[0]['CALL_KEY'],'UNKNOWN',None,'op','no evidence either way')
+    r=run_campaign(c,Caller(c,l,provider_for(t,c),CAP,True))
+    assert r['STATUS']=='PENDING_HUMAN_REVIEW' and 'C002' in [x['CANDIDATE_ID'] for x in r['REVIEW_FAILED']]
+    assert t.counts[('RED_TEAM','C002')]==1       # the closed logical call was never POSTed again
     l.close()

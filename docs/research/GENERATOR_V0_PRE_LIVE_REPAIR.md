@@ -1,6 +1,7 @@
 # Generator V0 — pre-live repair (offline)
 
 **Completion state:** `READY_FOR_INDEPENDENT_REVIEW` (not `READY_FOR_LIVE_SHADOW`)
+**Superseded in part by:** `docs/research/GENERATOR_V0_LIMITED_REPAIR.md` (PR #215 verification; the operator-state table below is historical where it differs, e.g. `reconcile` now requires evidence)
 **Base:** `71853f9b6c6b59c03d22e9a43cb52dd7e9699368`
 **Machine-readable twin:** `docs/research/GENERATOR_V0_PRE_LIVE_REPAIR.json`
 **Gate evidence:** `docs/research/generator_v0_repair/OFFLINE_GATE_REPORT.json`

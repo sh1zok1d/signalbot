@@ -15,6 +15,7 @@ from __future__ import annotations
 import math
 import re
 from .context import ContractError
+from . import textnorm as tn
 
 CONTRACT_ID='GENERATOR_CONTRACT_V02'
 PROMPT_VERSION='generator-v0.2'
@@ -35,30 +36,26 @@ DATA_FIELDS=('DATASET','OBSERVABLE','STATUS','LEGAL_RANGE')
 SCOPE_FIELDS=('HORIZON','PRIMARY_TARGET')
 SCOPE_DATA_FIELDS=('DATASET','OBSERVABLE')
 FORBIDDEN_SCORE_KEYS=('EXPECTED_PROBABILITY_OF_SUCCESS','EXPECTED_ALPHA','EXPECTED_PNL','EXPECTED_PROFIT','SUCCESS_PROBABILITY','PROBABILITY_OF_SUCCESS','PROBABILITY_OF_POSITIVE_RESULT','P_SUCCESS')
-TRADING_CLAIM_PHRASES=('expected alpha','probability of success','guaranteed profit','validated trading edge','buy signal','sell signal')
-OPEN_ENDED_PHRASES=('through today','through present','until present','up to now','up to the present','open-ended','open ended','post-2024','after 2024','since 2024','beyond 2024','later than 2024','2024+','2024 onward','2024 onwards','2024 and later','2024-present','year after 2024')
-RECENCY_WORDS=('current','latest','live','real-time','realtime','today','now','ongoing','up-to-date')
-
 RULES=(
     {'ID':'SCHEMA_FIELDS','ENFORCEMENT':'DECODING','TEXT':'Each card has exactly the 27 required schema fields and no others.'},
     {'ID':'SLOT_IDENTITY','ENFORCEMENT':'DECODING','TEXT':'Each card copies its slot CANDIDATE_ID, MECHANISM_FAMILY and INFORMATION_SOURCE exactly; there is exactly one card per supplied slot.'},
     {'ID':'TEXT_FIELDS','ENFORCEMENT':'VALIDATOR','TEXT':'Every free-text field is a nonempty string of at most 12000 characters.'},
     {'ID':'NEAREST_TESTED_MECHANISM','ENFORCEMENT':'DECODING','TEXT':'NEAREST_TESTED_MECHANISM is exactly one prior signature ID from BLIND_MECHANISM_MAP_V0 (or a listed sub-signature ID) or NONE.'},
     {'ID':'PROTECTED_FLAG','ENFORCEMENT':'DECODING','TEXT':'PROTECTED_DATA_REQUIREMENT is false.'},
-    {'ID':'NO_PROTECTED_YEARS','ENFORCEMENT':'VALIDATOR','TEXT':'Never write the years 2025 or 2026 anywhere in a card, in any form (digits, numeric values, words or abbreviations), not even to exclude them. The protected boundary is enforced by the system; describe exclusions without naming those years.'},
-    {'ID':'NO_OPEN_ENDED_WINDOW','ENFORCEMENT':'VALIDATOR','TEXT':'No field may describe an open-ended or post-2024 window. Forbidden phrases: '+', '.join(OPEN_ENDED_PHRASES)+'.'},
-    {'ID':'SCOPE_NO_RECENCY','ENFORCEMENT':'VALIDATOR','TEXT':'In HORIZON, PRIMARY_TARGET and every DATA_REQUIRED DATASET and OBSERVABLE, do not use the recency words '+', '.join(RECENCY_WORDS)+'. Point-in-time wording elsewhere (for example the latest bar closed at or before T) is allowed.'},
+    {'ID':'NO_PROTECTED_YEARS','ENFORCEMENT':'VALIDATOR','TEXT':'Never refer to any year after 2024, in any form: digits (including full-width or other scripts, spaced digits), words (two thousand twenty-five, twenty twenty-six), Roman numerals, or two-digit forms (FY25, Q1 26, year 26, apostrophe 26), not even to exclude it. Any 4-digit number from 2025 to 2099 in text counts as such a year; numeric JSON values 2025 and 2026 are forbidden. The protected boundary is enforced by the system; describe exclusions without naming those years.'},
+    {'ID':'NO_OPEN_ENDED_WINDOW','ENFORCEMENT':'VALIDATOR','TEXT':'Every time window has an explicit end no later than 2024-12; write windows as YYYY-MM..YYYY-MM or from YYYY to YYYY. In every field: never put '+', '.join(tn.BEFORE_RELATIONS)+' before any year or year-month; never put '+', '.join(tn.AFTER_RELATIONS)+', -present or a trailing on right after a year; never write a year followed by and/or with '+', '.join(tn.AFTER_CONNECTED)+'; never follow '+', '.join(tn.EXTENSION_WORDS)+' with an open endpoint ('+', '.join(tn.OPEN_ENDPOINTS)+') or with '+', '.join(tn.UNANCHORED_ENDPOINTS)+' unless a point-in-time noun such as bar, close, decision or timestamp follows; never write open-ended, open on the right or no end, never put '+', '.join(tn.UNBOUNDED_WORDS[:-1])+' next to a time word, never put '+', '.join(tn.NOW_WINDOW_WORDS)+' right before a window, sample, period, range or data word, never use 2024 or a later year as the start of a window without an explicit end, never describe a sample that grows as newer data appears, and never put a relation word before the catalog boundary or coverage cutoff.'},
+    {'ID':'SCOPE_NO_RECENCY','ENFORCEMENT':'VALIDATOR','TEXT':'In HORIZON, PRIMARY_TARGET and every DATA_REQUIRED DATASET and OBSERVABLE, do not use wall-clock recency words: '+', '.join(tn.RECENCY_WORDS)+'. Point-in-time wording anchored to the decision time elsewhere (for example the latest bar closed at or before T) is allowed.'},
     {'ID':'DATA_ROWS','ENFORCEMENT':'DECODING','TEXT':'DATA_REQUIRED is a list of 1 to 20 objects with exactly DATASET, OBSERVABLE, STATUS and LEGAL_RANGE; STATUS is a DATA_STATUS_TAXONOMY value.'},
     {'ID':'LEGAL_RANGE_GRAMMAR','ENFORCEMENT':'DECODING','TEXT':'LEGAL_RANGE is exactly one of: YYYY-MM..YYYY-MM, pre-YYYY, or per snapshot. Months are 01-12, the start is not after the end, and the end is no later than 2024-12. Put coverage or provenance doubts in STATUS and MISSING_OBSERVABLES, never in LEGAL_RANGE.'},
     {'ID':'CATALOG_RANGE','ENFORCEMENT':'VALIDATOR','TEXT':'For a DATASET that is a DATA_CATALOG_V0 key with a bounded catalog LEGAL_RANGE, the stated range lies inside the catalog range. per snapshot is used only for catalog datasets whose catalog LEGAL_RANGE is per snapshot.'},
-    {'ID':'PROTECTED_SOURCE','ENFORCEMENT':'VALIDATOR','TEXT':'Never list the protected catalog entry or any dataset whose catalog STATUS is FORBIDDEN_HARD_FAIL.'},
+    {'ID':'PROTECTED_SOURCE','ENFORCEMENT':'VALIDATOR','TEXT':'Never list the protected catalog entry, any dataset whose catalog STATUS is FORBIDDEN_HARD_FAIL, or any DATASET or OBSERVABLE containing the word protected.'},
     {'ID':'READY_REQUIRES_CATALOG','ENFORCEMENT':'VALIDATOR','TEXT':'A DATA_REQUIRED STATUS of DATA_READY is allowed only for a DATASET that is an exact DATA_CATALOG_V0 key whose catalog STATUS is DATA_READY.'},
     {'ID':'AGGREGATE_STATUS','ENFORCEMENT':'VALIDATOR','TEXT':'DATA_STATUS is one of the DATA_REQUIRED STATUS values, and it is DATA_READY only when every row is DATA_READY.'},
     {'ID':'MISSING_OBSERVABLES','ENFORCEMENT':'VALIDATOR','TEXT':'MISSING_OBSERVABLES is a list of nonempty strings; when any DATA_REQUIRED row is not DATA_READY it names at least one exact missing observable.'},
     {'ID':'DATA_GAP_CLASS','ENFORCEMENT':'VALIDATOR','TEXT':'DATA_GAP_CLASS is NONE only when every DATA_REQUIRED row is DATA_READY; otherwise it names the missing-data class.'},
     {'ID':'SEARCH_SURFACE','ENFORCEMENT':'VALIDATOR','TEXT':'SEARCH_SURFACE has PARAMETERS (each with a nonempty name and a nonempty list of explicit string or number values) and MAX_VARIANTS, an integer from 1 to 100 that is at least the product of the value-list lengths.'},
     {'ID':'NO_SCORE_FIELDS','ENFORCEMENT':'VALIDATOR','TEXT':'No key anywhere, including search parameter names, is a success, probability, alpha, profit or PnL score.'},
-    {'ID':'NO_TRADING_CLAIM','ENFORCEMENT':'VALIDATOR','TEXT':'No text contains these trading or success phrases: '+', '.join(TRADING_CLAIM_PHRASES)+'.'},
+    {'ID':'NO_TRADING_CLAIM','ENFORCEMENT':'VALIDATOR','TEXT':'No trade instructions or success claims anywhere: never put the actions '+', '.join(tn.ACTION_WORDS)+' (any form) within three words of '+', '.join(tn.INSTRUCTION_WORDS)+', or right after '+', '.join(tn.INSTRUCTION_LEADS)+'; never put long or short right after '+', '.join(tn.POSITION_VERBS)+'; never put '+', '.join(tn.CLAIM_NOUNS)+' within five words of '+', '.join(tn.CLAIM_MODIFIERS)+'; never put '+', '.join(tn.SUCCESS_WORDS)+' within three words of '+', '.join(tn.CHANCE_WORDS)+'. Order-flow terms such as taker buy volume, sell-side imbalance or short interest are allowed.'},
 )
 RULE_IDS=tuple(r['ID'] for r in RULES)
 
@@ -69,11 +66,6 @@ def generator_prompt():
     lines+=[str(i+1)+'. ['+r['ID']+'] '+r['TEXT'] for i,r in enumerate(RULES)]
     return '\n'.join(lines)
 
-PROTECTED_YEAR_TOKEN=re.compile(r'(?<![0-9])202[56](?![0-9])')
-_PROTECTED_YEAR_WORDS=re.compile(r"(?i)twenty[\s-]+twenty[\s-]+(?:five|six)|(?<![0-9A-Za-z])(?:fy|cy)\s?-?2[56](?![0-9])|(?<![0-9A-Za-z])'2[56](?![0-9])")
-_OPEN_ENDED=re.compile('(?i)(?<![A-Za-z0-9])(?:'+'|'.join(re.escape(p).replace(r'\ ',r'\s+') for p in OPEN_ENDED_PHRASES)+r')(?![A-Za-z0-9])|(?<![0-9])2024-[0-9]{2}\s+onwards?(?![A-Za-z])')
-_RECENCY=re.compile('(?i)(?<![A-Za-z0-9-])(?:'+'|'.join(re.escape(w) for w in RECENCY_WORDS)+')(?![A-Za-z0-9-])')
-_TRADING=re.compile('(?i)'+'|'.join(re.escape(p).replace(r'\ ',r'[\s_-]+') for p in TRADING_CLAIM_PHRASES))
 _LEGAL=re.compile(LEGAL_RANGE_PATTERN)
 
 def text(value):
@@ -102,16 +94,17 @@ def parse_catalog_range(value):
     if m:return {'KIND':'BOUNDED','START':None,'END':(int(m.group(1))-1,12)}
     return None
 
-def _strings(value,path=''):
-    """Yield (path,string) for every string key and value, and numbers as strings."""
+def _strings(value,path='',numbers=True):
+    """Yield (path,string) for every string key and value, and (unless numbers is
+    False) numbers as strings. Numeric JSON values are judged by _numbers for years."""
     if isinstance(value,dict):
         for k,v in value.items():
             yield path+'.<key>',str(k)
-            yield from _strings(v,path+'.'+str(k))
+            yield from _strings(v,path+'.'+str(k),numbers)
     elif isinstance(value,list):
-        for i,v in enumerate(value):yield from _strings(v,path+'['+str(i)+']')
+        for i,v in enumerate(value):yield from _strings(v,path+'['+str(i)+']',numbers)
     elif isinstance(value,str):yield path,value
-    elif isinstance(value,(int,float)) and not isinstance(value,bool):yield path,repr(value)
+    elif numbers and isinstance(value,(int,float)) and not isinstance(value,bool):yield path,repr(value)
 
 def _number_is_protected(value):
     if isinstance(value,bool) or not isinstance(value,(int,float)):return False
@@ -125,7 +118,7 @@ def _numbers(value):
     else:yield value
 
 def _normalized_dataset(name):
-    return re.sub(r'[^A-Z0-9]','',str(name).upper())
+    return re.sub(r'[^a-z0-9]','',tn.normalize_text(name))
 
 def _check_schema_fields(card,ctx,slot):
     required=set(ctx.design['CANDIDATE_SCHEMA']['REQUIRED_FIELDS'])
@@ -155,23 +148,34 @@ def _check_nearest(card,ctx,slot):
 def _check_protected_flag(card,ctx,slot):
     return [] if card.get('PROTECTED_DATA_REQUIREMENT') is False else ['PROTECTED_DATA_REQUIREMENT is not false']
 
+PROTECTED_TEXT_YEARS=range(2025,2100)
+
 def _check_no_protected_years(card,ctx,slot):
-    hits=[p for p,s in _strings(card) if PROTECTED_YEAR_TOKEN.search(s) or _PROTECTED_YEAR_WORDS.search(s)]
+    hits=[p for p,v in _strings(card,numbers=False) if any(y in PROTECTED_TEXT_YEARS for y in tn.years_in(tn.normalize_text(v)))]
     hits+=['<number>' for v in _numbers(card) if _number_is_protected(v)]
     return ['protected year reference at '+hits[0]] if hits else []
 
 def _check_open_ended(card,ctx,slot):
-    hits=[p for p,s in _strings(card) if _OPEN_ENDED.search(s)]
-    return ['open-ended or post-2024 window at '+hits[0]] if hits else []
+    for p,v in _strings(card):
+        found=tn.temporal_violations(tn.normalize_text(v))
+        if found:return ['open-ended or post-2024 window at '+p+' ('+found[0]+')']
+    return []
 
-def _check_scope_recency(card,ctx,slot):
-    hits=[f for f in SCOPE_FIELDS if isinstance(card.get(f),str) and _RECENCY.search(card[f])]
+def _scope_strings(card):
+    for f in SCOPE_FIELDS:
+        if isinstance(card.get(f),str):yield f,card[f]
     rows=card.get('DATA_REQUIRED')
     if isinstance(rows,list):
         for i,row in enumerate(rows):
             if isinstance(row,dict):
-                hits+=['DATA_REQUIRED['+str(i)+'].'+f for f in SCOPE_DATA_FIELDS if isinstance(row.get(f),str) and _RECENCY.search(row[f])]
-    return ['recency word in scope field '+hits[0]] if hits else []
+                for f in SCOPE_DATA_FIELDS:
+                    if isinstance(row.get(f),str):yield 'DATA_REQUIRED['+str(i)+'].'+f,row[f]
+
+def _check_scope_recency(card,ctx,slot):
+    for p,v in _scope_strings(card):
+        found=tn.recency_tokens(tn.normalize_text(v))
+        if found:return ['recency word in scope field '+p+' ('+found[0]+')']
+    return []
 
 def _rows(card):
     rows=card.get('DATA_REQUIRED')
@@ -213,7 +217,11 @@ def _check_catalog_range(card,ctx,slot):
 
 def _check_protected_source(card,ctx,slot):
     protected={_normalized_dataset(k) for k,v in ctx.catalog.items() if v.get('STATUS')=='FORBIDDEN_HARD_FAIL'}
-    return ['protected source' for r in _rows(card) or [] if _normalized_dataset(r['DATASET']) in protected]
+    out=[]
+    for r in _rows(card) or []:
+        if _normalized_dataset(r['DATASET']) in protected:out.append('protected source')
+        elif any('protected' in tn.tokens(tn.normalize_text(r[f])) for f in SCOPE_DATA_FIELDS):out.append('protected word in data row')
+    return out
 
 def _check_ready_catalog(card,ctx,slot):
     out=[]
@@ -271,8 +279,10 @@ def _check_score_fields(card,ctx,slot):
     return ['forbidden score field'] if bad else []
 
 def _check_trading(card,ctx,slot):
-    hits=[p for p,s in _strings(card) if _TRADING.search(s)]
-    return ['trading or success claim at '+hits[0]] if hits else []
+    for p,v in _strings(card):
+        found=tn.trade_violations(tn.normalize_text(v))
+        if found:return ['trading or success claim at '+p+' ('+found[0]+')']
+    return []
 
 CHECKS={
     'SCHEMA_FIELDS':_check_schema_fields,'SLOT_IDENTITY':_check_slot_identity,'TEXT_FIELDS':_check_text_fields,

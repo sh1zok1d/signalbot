@@ -251,8 +251,5 @@ class OpenAIProvider:
             raise ProviderFailure('not a text completion',wire,billing='BILLED',usage=recorded,cost=cost)
         if cost is None:
             raise ProviderFailure('usage missing or outside bound',wire,billing='BILLED')
-        try:
-            raw=canonical(normalize_role_output(request['role'],parse_json(raw)))
-        except ContractError:
-            pass
+        # Verbatim model text: the consumer validates the provider schema and normalizes.
         return Response(raw,recorded,cost,hashlib.sha256(wire).hexdigest())

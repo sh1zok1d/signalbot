@@ -35,8 +35,8 @@ def test_every_rule_has_one_check_and_one_prompt_line():
 
 def test_prompt_states_the_rules_that_used_to_be_hidden():
     p=generator_prompt()
-    for needle in ('Never write the years 2025 or 2026','YYYY-MM..YYYY-MM','per snapshot','at least the product','names at least one exact missing observable',
-                   'buy signal','recency words','through today','NEAREST_TESTED_MECHANISM is exactly one prior signature ID'):
+    for needle in ('Never refer to any year after 2024, in any form','YYYY-MM..YYYY-MM','per snapshot','at least the product','names at least one exact missing observable',
+                   'within three words of signal','wall-clock recency words','explicit end no later than 2024-12','NEAREST_TESTED_MECHANISM is exactly one prior signature ID'):
         assert needle in p,needle
 
 def test_prompt_passes_generator_context_scanner():
@@ -176,8 +176,8 @@ def test_generator_provider_encoding_round_trips_and_is_schema_valid():
     enc={'CANDIDATES':{x['CANDIDATE_ID']:{**x,'SEARCH_SURFACE':{'MAX_VARIANTS':x['SEARCH_SURFACE']['MAX_VARIANTS'],'PARAMETERS':[{'NAME':k,'VALUES':v} for k,v in x['SEARCH_SURFACE']['PARAMETERS'].items()]}} for x in cards}}
     validate_instance(enc,role_schema('GENERATOR',c,provider=True,request={'parameters':{'slots':slots}}))
     back=normalize_role_output('GENERATOR',json.loads(canonical(enc)))
-    assert back=={'CANDIDATES':cards}
-    validate_instance(back,role_schema('GENERATOR',c,provider=False,request={'parameters':{'slots':slots}}))
+    assert back=={'CANDIDATES':{x['CANDIDATE_ID']:x for x in cards}}
+    with pytest.raises(ContractError):normalize_role_output('GENERATOR',{'CANDIDATES':cards})
 
 def test_novelty_keyed_encoding_round_trips():
     c=Contexts();cards=[fixture(s,c) for s in slot_plan(40)]

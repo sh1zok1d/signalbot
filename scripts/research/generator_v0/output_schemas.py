@@ -115,9 +115,9 @@ def generator_schema_digest(contexts):
     return digest({'CONTRACT':contract.CONTRACT_ID,'RULES':contract.RULES,'ROUNDS':[generator_round_schema_digest(contexts,plan[i:i+10]) for i in range(0,40,10)]})
 
 def assert_structured_payload(role,contexts,payload,request=None):
-    normalized=normalize_role_output(role,payload)
-    validate_instance(normalized,role_schema(role,contexts,provider=False,request=request if role=='GENERATOR' else None))
-    return normalized
+    """Provider payload -> application form, checked against the exact provider schema first."""
+    validate_instance(payload,role_schema(role,contexts,provider=True,request=request))
+    return normalize_role_output(role,payload)
 
 # Offline conformance to the Structured Outputs strict subset (official docs,
 # structured-outputs guide, checked 2026-09-23). This proves our schemas use only

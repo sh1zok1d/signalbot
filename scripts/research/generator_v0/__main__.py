@@ -6,12 +6,12 @@ import tempfile
 from decimal import Decimal
 from pathlib import Path
 from .context import Contexts,ContractError,canonical,digest,byte_digest
-from .ledger import Ledger
+from .ledger import Ledger,SEALED_REGISTRY,sealed_reason
 from .provider import Caller,MockProvider
 from .mock import MockResponder
 from .runner import run_campaign,GENERATOR_PROMPT
 from .models import GENERATOR_MAX_OUTPUT_TOKENS
-from .derive import derive_complete_rounds,authorize_derived_continuation,authorize_budget_extension,remaining_campaign_budget_preflight,reconcile_call,OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
+from .derive import derive_complete_rounds,authorize_derived_continuation,authorize_budget_extension,remaining_campaign_budget_preflight,fresh_campaign_budget_preflight,reconcile_call,OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
 from .ledger import InfrastructureStop
 
 ARCHIVED_PAID_RUNS={
@@ -24,17 +24,14 @@ ARCHIVED_PAID_RUNS={
     ('generator_v0','first-shadow-v7'),
 }
 
-SEALED_REGISTRY=Path(__file__).resolve().parents[3]/'docs/research/GENERATOR_V0_SEALED_RUNS.json'
 
 def archived_paid_run(path):
     return len(path.parts)>=2 and tuple(path.parts[-2:]) in ARCHIVED_PAID_RUNS
 
 def sealed_journal(run_dir):
-    """True if run_dir/run.sqlite is a sealed journal (by content hash, not path)."""
-    db=Path(run_dir)/'run.sqlite'
-    if not db.exists():return False
-    sealed={r['JOURNAL_SHA256'] for r in json.loads(SEALED_REGISTRY.read_text(encoding='utf-8'))['RUNS']}
-    return byte_digest(db) in sealed
+    """True if run_dir/run.sqlite is sealed (registry content hash or meta SEALED).
+    The same check runs inside Ledger itself; this CLI check also stops report writes."""
+    return sealed_reason(Path(run_dir)/'run.sqlite') is not None
 
 def refuse_sealed_or_archived(run_dir):
     if archived_paid_run(run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
@@ -66,10 +63,11 @@ def main(argv=None):
     p.add_argument('--actor')
     p.add_argument('--new-cap-usd')
     p.add_argument('--call-key')
-    p.add_argument('--resolution',choices=['NOT_BILLED','BILLED'])
+    p.add_argument('--resolution',choices=['NOT_BILLED','BILLED','UNKNOWN'])
     p.add_argument('--cost-usd')
     p.add_argument('--evidence',default='')
     p.add_argument('--active-minutes',type=float,default=0)
+    p.add_argument('--accept-budget-stop',action='store_true',help='live run/resume even though the worst case exceeds the authorized remainder (requires --actor and --reason; recorded)')
     p.add_argument('--field')
     p.add_argument('--value-json')
     a=p.parse_args(argv)
@@ -153,6 +151,17 @@ def main(argv=None):
     dbpath=a.run_dir/'run.sqlite'
     if a.command=='run' and dbpath.exists():raise ContractError('run exists; use resume')
     if a.command=='resume' and not dbpath.exists():raise ContractError('run not found')
+    def live_budget_gate(pre):
+        """Worst case must fit the authorized remainder, or the operator explicitly
+        accepts a clean STOPPED_BUDGET (recorded with actor and reason). Offline."""
+        gate={k:pre[k] for k in ('CAP_MICRO_USD','SPENT_MICRO_USD','REMAINING_AUTHORIZED_MICRO_USD','WORST_CASE_REMAINING_MICRO_USD','WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD','FITS_AUTHORIZED_REMAINING','FITS_WITH_CONTENT_RETRIES')}
+        if not pre['FITS_AUTHORIZED_REMAINING']:
+            if not a.accept_budget_stop:
+                raise ContractError('worst-case remaining reservation does not fit the authorized remainder: '+canonical(gate)+'; pass --accept-budget-stop with --actor and --reason to accept a clean STOPPED_BUDGET')
+            if not a.actor or not a.reason:raise ContractError('--accept-budget-stop requires --actor and --reason')
+        return gate
+    budget_gate=None
+    if a.provider=='openai' and a.command=='run':budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c))
     a.run_dir.mkdir(parents=True,exist_ok=True)
     config={'RUN_ID':a.run_dir.name,'PROVIDER':provider.provider_id,'MODEL':provider.model_id,'SIZE':a.size,'CAP_MICRO_USD':cap,'CONTEXT_DIGEST':digest(c.generator()),'IMPLEMENTATION_DIGEST':digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))}),'GENERATOR_MAX_OUTPUT_TOKENS':GENERATOR_MAX_OUTPUT_TOKENS}
     if a.provider=='openai':
@@ -160,6 +169,13 @@ def main(argv=None):
         config.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()},PRICE_TABLE=price_table(),ROUTING_DIGEST=provider.routing_digest,REQUEST_TIMEOUT_SECONDS=provider.request_timeout_seconds,**ident)
     l=Ledger(dbpath,config)
     try:
+        if a.provider=='openai' and a.command=='resume':
+            from .runner import RESUMABLE_STATUSES
+            if l.get('status') in RESUMABLE_STATUSES:budget_gate=live_budget_gate(remaining_campaign_budget_preflight(a.run_dir,c))
+        if budget_gate is not None:
+            with l.transaction():
+                l.event('LIVE_BUDGET_GATE',{**budget_gate,'COMMAND':a.command,'ACCEPTED_BUDGET_STOP':bool(a.accept_budget_stop and not budget_gate['FITS_AUTHORIZED_REMAINING']),
+                                            'ACTOR':a.actor,'REASON':a.reason})
         try:
             result=run_campaign(c,Caller(c,l,provider,cap,a.allow_real_llm),a.size)
         except InfrastructureStop as e:

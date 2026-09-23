@@ -9,7 +9,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from scripts.research.generator_v0.context import Contexts
-from scripts.research.generator_v0.derive import derive_complete_rounds,remaining_campaign_budget_preflight
+from scripts.research.generator_v0.derive import derive_complete_rounds,remaining_campaign_budget_preflight,fresh_campaign_budget_preflight
 from scripts.research.generator_v0.ledger import Ledger
 from scripts.research.generator_v0 import contract
 from .noisy import run_noisy_campaign,derive_after_partial_work
@@ -33,10 +33,11 @@ def build():
         v7=derive_complete_rounds(src,tmp/'v8',2,c)
         led=Ledger(tmp/'v8'/'run.sqlite');prior=led.get('lineage')['PRIOR_ATTEMPTS'];led.close()
         pre=remaining_campaign_budget_preflight(tmp/'v8',c)
+        fresh=fresh_campaign_budget_preflight(40,17_100_000,c)
         v7_sha_after=hashlib.sha256((src/'run.sqlite').read_bytes()).hexdigest()
     noisy.pop('SELECTOR_ADVISORY',None)
     return {
-        'UNIT':'GENERATOR_V0_PRE_LIVE_REPAIR_OFFLINE_GATE','CONTRACT':contract.CONTRACT_ID,
+        'UNIT':'GENERATOR_V0_LIMITED_REPAIR_OFFLINE_GATE','CONTRACT':contract.CONTRACT_ID,
         'CORPUS':corpus,
         'NOISY_E2E':noisy,
         'DERIVE_AFTER_PARTIAL_WORK':partial,
@@ -48,9 +49,10 @@ def build():
             'PRIOR_ATTEMPT':{'SLOT':prior[0]['SLOT'],'CHARGED_MICRO_USD':prior[0]['CHARGED_MICRO_USD'],
                              'INTAKE_VERDICTS':{x['CANDIDATE_ID']:x['VERDICT'] for x in prior[0]['INTAKE']['CARDS']}},
         },
-        'V8_REMAINING_BUDGET_PREFLIGHT':{k:pre[k] for k in ('SPENT_MICRO_USD','REMAINING_AUTHORIZED_MICRO_USD','WORST_CASE_REMAINING_MICRO_USD','WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD','FITS_AUTHORIZED_REMAINING','FITS_WITH_CONTENT_RETRIES','STAGES')},
+        'FRESH_BUDGET_PREFLIGHT':{k:fresh[k] for k in ('SPENT_MICRO_USD','REMAINING_AUTHORIZED_MICRO_USD','WORST_CASE_REMAINING_MICRO_USD','WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD','FITS_AUTHORIZED_REMAINING','FITS_WITH_CONTENT_RETRIES','PROXY_CARDS','PROXY_CARD_BYTES','PROXY_SIGNATURE_BYTES','PROXY_MARGIN','STAGES')},
+        'V8_REMAINING_BUDGET_PREFLIGHT':{k:pre[k] for k in ('SPENT_MICRO_USD','REMAINING_AUTHORIZED_MICRO_USD','WORST_CASE_REMAINING_MICRO_USD','WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD','FITS_AUTHORIZED_REMAINING','FITS_WITH_CONTENT_RETRIES','PROXY_CARDS','PROXY_CARD_BYTES','PROXY_SIGNATURE_BYTES','PROXY_MARGIN','STAGES')},
         'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,'PROTECTED_2025_2026_OPENED':False,
-        'CORPUS_AUTHOR_NOTE':'The corpus was written by the implementer of the repair. An independent reviewer should add an independently written corpus before any live authorization.',
+        'CORPUS_AUTHOR_NOTE':'The corpus was written by the implementer of the repair. The PR #215 verifier corpus was run as external regression evidence only (not copied): see EXTERNAL_REGRESSION in the repair record.',
     }
 
 def main():

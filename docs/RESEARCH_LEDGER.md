@@ -5920,3 +5920,23 @@ Outcome-blind design amendments: hard fail per candidate, MIN_VALID_CANDIDATES
 = 25, diversity controls on the attempted slot plan, advisory selector call
 with the deterministic ordinal order authoritative. Record:
 `docs/research/GENERATOR_V0_PRE_LIVE_REPAIR.{json,md}`.
+
+## Generator V0 limited offline repair (after PR #215) — 2026-09-23
+
+No research window, hypothesis or protected data consumed. Infrastructure repair only.
+
+```
+BASE = ddda586dc7ea4a9589bc389eef7a6306d64f3d0c
+VERIFICATION = PR #215 (B. LIMITED OFFLINE REPAIR REQUIRED)
+B1_NOVELTY_PROMPT_SCHEMA = FIXED (keyed objects end to end)
+B2_SEALED_BELOW_CLI = FIXED (Ledger refuses sealed journals; read handles refuse mutation)
+B3_CRASH_AFTER_POST = FIXED (DISPATCHED before send; NOT_BILLED needs provider evidence; UNKNOWN closes the logical call)
+B4_NORMALIZATION = FIXED_NOT_SEMANTICALLY_COMPLETE (external PR #215 corpus: 47 -> 1 admitted of 181, 0 false positives of 26)
+B5_BUDGET = FIXED_DECISION_NOT_TAKEN (scenarios A-E in generator_v0_repair/BUDGET_SCENARIOS.json)
+V7_LINEAGE_MICRO_USD = 4946750
+REAL_LLM_CALLS_MADE = false
+COMPLETION_STATE = READY_FOR_RE-VERIFICATION
+NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION
+```
+
+Record: `docs/research/GENERATOR_V0_LIMITED_REPAIR.{json,md}`.

@@ -9,7 +9,9 @@ def test_budget_reserve_uncertain_and_resume(tmp_path):
     l=ledger(tmp_path)
     assert l.reserve('a',{},10,10) is None
     with pytest.raises(ContractError):l.reserve('b',{},1,10)
-    with pytest.raises(ContractError):l.reserve('a',{},10,10)
+    assert l.reserve('a',{},10,10) is None          # RESERVED never left the machine: same key, no new charge
+    l.mark_dispatched('a')
+    with pytest.raises(ContractError):l.reserve('a',{},10,10)   # possibly POSTed: reconcile first
     l.finish('a',{'raw':'ok'},3,{})
     assert l.reserve('a',{},10,10)=={'raw':'ok'}
     assert l.reserve('b',{},7,10) is None

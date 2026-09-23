@@ -19,6 +19,8 @@ def parse_json(raw):
         return d
     try:
         return json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda _: (_ for _ in ()).throw(ContractError('nonfinite JSON')))
+    except ContractError:
+        raise
     except (ValueError,TypeError) as e:
         raise ContractError('malformed JSON') from e
 
@@ -86,29 +88,36 @@ def normalize_search_surface(surface):
     return surface
 
 def _keyed_relations(value,key):
-    if isinstance(value,dict):
-        return [{key:k,'RELATION':v} for k,v in sorted(value.items())]
-    return value
+    if not isinstance(value,dict):raise ContractError('relations must be an object keyed by exact IDs')
+    return [{key:k,'RELATION':v} for k,v in sorted(value.items())]
+
+def encode_provider_card(card):
+    """Application card -> provider (strict-schema) encoding: PARAMETERS as [{NAME,VALUES}]."""
+    surface=card.get('SEARCH_SURFACE')
+    if isinstance(surface,dict) and isinstance(surface.get('PARAMETERS'),dict):
+        surface={**surface,'PARAMETERS':[{'NAME':k,'VALUES':v} for k,v in surface['PARAMETERS'].items()]}
+        return {**card,'SEARCH_SURFACE':surface}
+    return card
+
+def decode_provider_card(card):
+    """Provider encoding -> application card. Raises ContractError on a bad encoding."""
+    if not isinstance(card,dict):raise ContractError('card is not an object')
+    if isinstance(card.get('SEARCH_SURFACE'),dict):card={**card,'SEARCH_SURFACE':normalize_search_surface(card['SEARCH_SURFACE'])}
+    return card
 
 def normalize_role_output(role,payload):
-    """Provider encodings -> application form. Does not judge content."""
-    if not isinstance(payload,dict):return payload
+    """Provider encodings -> application form. Keyed encodings only: a list where
+    the provider schema requires an object keyed by exact IDs is a contract error.
+    Does not judge content; callers validate the provider schema first."""
+    if not isinstance(payload,dict):raise ContractError('role output is not an object')
     if role=='GENERATOR':
         cands=payload.get('CANDIDATES')
-        if isinstance(cands,dict):
-            cands=[dict(v,CANDIDATE_ID=v.get('CANDIDATE_ID',k)) if isinstance(v,dict) else v for k,v in sorted(cands.items())]
-        if not isinstance(cands,list):return payload
-        cards=[]
-        for card in cands:
-            if isinstance(card,dict) and isinstance(card.get('SEARCH_SURFACE'),dict):
-                try:card={**card,'SEARCH_SURFACE':normalize_search_surface(card['SEARCH_SURFACE'])}
-                except ContractError:pass
-            cards.append(card)
-        return {**payload,'CANDIDATES':cards}
+        if not isinstance(cands,dict):raise ContractError('CANDIDATES must be an object keyed by slot ID')
+        return {**payload,'CANDIDATES':{k:decode_provider_card(v) for k,v in cands.items()}}
     if role=='NOVELTY_CRITIC':
         out=dict(payload)
-        if 'PRIOR_RELATIONS' in out:out['PRIOR_RELATIONS']=_keyed_relations(out['PRIOR_RELATIONS'],'SIGNATURE_ID')
-        if 'BATCH_RELATIONS' in out:out['BATCH_RELATIONS']=_keyed_relations(out['BATCH_RELATIONS'],'CANDIDATE_ID')
+        out['PRIOR_RELATIONS']=_keyed_relations(out.get('PRIOR_RELATIONS'),'SIGNATURE_ID')
+        out['BATCH_RELATIONS']=_keyed_relations(out.get('BATCH_RELATIONS'),'CANDIDATE_ID')
         return out
     return payload
 

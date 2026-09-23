@@ -45,7 +45,9 @@ def source_config(contexts,run_id='first-shadow-v5'):
     }
 
 def complete_blob(cards,rid):
-    raw=canonical({'CANDIDATES':cards})
+    # Live V02 provider encoding: CANDIDATES keyed by slot ID.
+    from scripts.research.generator_v0.schema import encode_provider_card
+    raw=canonical({'CANDIDATES':{c['CANDIDATE_ID']:encode_provider_card(c) for c in cards}})
     return {'raw':raw,'raw_sha256':hashlib.sha256(('wire-'+rid).encode()).hexdigest(),
             'response_id':rid,'provider_status':'completed','provider_envelope':{'id':rid,'status':'completed'}}
 
@@ -404,9 +406,9 @@ def test_imported_complete_caller_reuse_does_not_post(tmp_path):
     l=Ledger(dest/'run.sqlite')
     p=OpenAIProvider('key',allow_real=True,budget_micro_usd=CAP,transport=lambda *a,**k:pytest.fail('HTTP reached'),sleeper=lambda s:None)
     raw=Caller(c,l,p,CAP,True).call('GENERATOR',c.generator(),GENERATOR_PROMPT,{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':slot_plan(40)[:10]},'generation:0',identity=generator_identity(c,slot_plan(40)[:10]))
-    assert json.loads(raw)['CANDIDATES'][0]['CANDIDATE_ID']=='C001'
+    assert json.loads(raw)['CANDIDATES']['C001']['CANDIDATE_ID']=='C001'
     raw2=Caller(c,l,p,CAP,True).call('GENERATOR',c.generator(),GENERATOR_PROMPT,{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':slot_plan(40)[10:20]},'generation:1',identity=generator_identity(c,slot_plan(40)[10:20]))
-    assert any(card['CANDIDATE_ID']=='C018' for card in json.loads(raw2)['CANDIDATES'])
+    assert 'C018' in json.loads(raw2)['CANDIDATES']
     l.close()
 
 def test_invalid_imported_card_is_quarantined_not_repaired(tmp_path):
@@ -417,9 +419,9 @@ def test_invalid_imported_card_is_quarantined_not_repaired(tmp_path):
     key,request,response=l.db.execute('SELECT key,request,response FROM calls WHERE request LIKE ?',('%generation:1%',)).fetchone()
     l.close()
     blob=json.loads(response)
-    cards=json.loads(blob['raw'])['CANDIDATES']
+    keyed=json.loads(blob['raw'])['CANDIDATES'];cards=[keyed[k] for k in sorted(keyed)]
     cards[0]['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01..2025-06'
-    blob['raw']=canonical({'CANDIDATES':cards})
+    blob['raw']=canonical({'CANDIDATES':keyed})
     w=sqlite3.connect(src/'run.sqlite')
     w.execute('UPDATE calls SET response=? WHERE key=?',(canonical(blob),key));w.commit();w.close()
     report=derive_complete_rounds(src,tmp_path/'dst',1,c)

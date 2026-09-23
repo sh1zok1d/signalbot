@@ -1,4 +1,5 @@
 import json
+from scripts.research.generator_v0.schema import decode_provider_card
 from decimal import Decimal,ROUND_CEILING
 import pytest
 from scripts.research.generator_v0.openai_provider import (
@@ -145,7 +146,7 @@ def test_create_429_is_not_billed_retried_with_backoff_and_never_strands(tmp_pat
         log.append(method+path)
         return inner(method,path,body,headers,timeout)
     raw=Caller(c,l,provider(ok),30_000_000,True).call('GENERATOR',c.generator(),'Return JSON',GEN_PARAMS,'one')
-    assert json.loads(raw)['CANDIDATES'][0]['CANDIDATE_ID']=='C001'
+    assert json.loads(raw)['CANDIDATES']['C001']['CANDIDATE_ID']=='C001'
     assert [r['STATE'] for r in l.export_calls()]==['FAILED_NOT_BILLED']*3+['COMPLETE']
     assert [r['TRANSPORT_ATTEMPT'] for r in l.export_calls()]==[0,1,2,3]
 
@@ -171,9 +172,9 @@ def _mutate_generator(contexts,mutate):
     payload=json.loads(generator_json(contexts));mutate(payload);return json.dumps(payload)
 
 @pytest.mark.parametrize('kind,mutate',[
-    ('extra',lambda p:p['CANDIDATES'][0].update(STREAM='EXECUTABLE_NOW')),
-    ('missing',lambda p:p['CANDIDATES'][0].pop('FALSIFIER')),
-    ('nested',lambda p:p['CANDIDATES'][0]['DATA_REQUIRED'][0].update(EXTRA='nope')),
+    ('extra',lambda p:p['CANDIDATES']['C001'].update(STREAM='EXECUTABLE_NOW')),
+    ('missing',lambda p:p['CANDIDATES']['C001'].pop('FALSIFIER')),
+    ('nested',lambda p:p['CANDIDATES']['C001']['DATA_REQUIRED'][0].update(EXTRA='nope')),
     ('envelope',lambda p:p.update(STREAM='nope')),
 ])
 def test_schema_violation_persists_completed_envelope_without_new_post(tmp_path,kind,mutate):
@@ -189,13 +190,13 @@ def test_schema_violation_persists_completed_envelope_without_new_post(tmp_path,
     assert [x for x in log if x[0]=='POST']==posts
 
 def test_application_validator_still_rejects_semantic_violations(tmp_path):
-    c=Contexts();payload=json.loads(generator_json(c));payload['CANDIDATES'][0]['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01..2025-06'
+    c=Contexts();payload=json.loads(generator_json(c));payload['CANDIDATES']['C001']['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01..2025-06'
     log=[]
     p=provider(gen_transport(c,log,content=json.dumps(payload)));l=Ledger(tmp_path/'r.db',{'RUN_ID':'t'})
     raw=Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'sem')
     parsed=json.loads(raw)
-    assert parsed['CANDIDATES'][0]['DATA_REQUIRED'][0]['LEGAL_RANGE']=='2020-01..2025-06'
-    with pytest.raises(ContractError,match='protected'):validate_card(parsed['CANDIDATES'][0],c)
+    assert parsed['CANDIDATES']['C001']['DATA_REQUIRED'][0]['LEGAL_RANGE']=='2020-01..2025-06'
+    with pytest.raises(ContractError,match='protected'):validate_card(decode_provider_card(parsed['CANDIDATES']['C001']),c)
     assert [x[0] for x in log].count('POST')==1 and l.export_calls()[0]['STATE']=='COMPLETE'
     env=json.loads(l.db.execute('SELECT response FROM calls').fetchone()[0])
     assert 'provider_envelope' in env

@@ -1,6 +1,18 @@
+## Generator V0 limited offline repair (after PR #215 verification) — 2026-09-23
+
+`NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION`.
+Limited offline repair of the five blockers found by the independent
+verification (PR #215):
+- keyed novelty prompt/schema/parser contract;
+- sealed journals refused inside `Ledger`;
+- dispatch state machine so a possibly-POSTed call is never re-sent without evidence;
+- Unicode-normalized structural temporal/protected/trade checks;
+- budget preflight for fresh and derived journals, with a scenario table and no run shape chosen.
+Completion state is `READY_FOR_RE-VERIFICATION`, not a provider smoke test or live shadow. No paid call, no protected data, no scientific outcome; v6/v7 sealed and untouched. See `docs/research/GENERATOR_V0_LIMITED_REPAIR.md`.
+
 ## Generator V0 pre-live repair (offline) — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW` (reviewed by PR #215; see the limited repair above).
 Offline repair of the audit findings behind the v4–v7 one-failure-per-run
 history: per-card quarantine instead of campaign aborts, a single V02 rule
 contract (prompt and validator derived from one table), decoding-level
@@ -65,8 +77,8 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW
-NEXT_ACTION                 = INDEPENDENT_REVIEW_OF_OFFLINE_REPAIR_NO_LIVE_RUN
+NEXT_UNIT                   = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION
+NEXT_ACTION                 = INDEPENDENT_RE_VERIFICATION_OF_LIMITED_REPAIR_NO_LIVE_RUN
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED
 GENERATOR_MODE              = SHADOW_ONLY
