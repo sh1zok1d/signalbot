@@ -179,13 +179,15 @@ or retried.
 
 Protected-data validation is a requirement check on `DATA_REQUIRED` and
 `PROTECTED_DATA_REQUIREMENT`, not a whole-card search for the strings
-`2025`/`2026`. Mention-only exclusions such as "No 2025/2026 quotes are
-permitted" are allowed when legal ranges end at 2024-12 and the flag is
-false. Ambiguous or open-ended ranges on unknown sources fail closed.
-Protected-year tokens in operational fields (`HORIZON`, `PRIMARY_TARGET`,
-`OBSERVABLE`, `FUNCTION`, `SEARCH_SURFACE`, `DATA_REQUIRED` identities,
-and similar requirement-bearing locations) are hard fails. The only
-narrow exception is a recognized exclusion statement in
-`NO_LOOKAHEAD_RULE` (protected observations are not permitted).
-"outcomes measured in 2025" is not an exclusion.
+`2025`/`2026`. The only recognized `NO_LOOKAHEAD_RULE` exclusion is
+unambiguous "No 2025[/2026] <non-numeric subject> are/is permitted|allowed":
+the body cannot contain a digit, another year, or `. ; : ! ?`, and
+"not"/"forbidden" are not accepted. C018's "No 2025/2026 quotes ... are
+permitted." still passes. Open-ended and post-2024 observation-window
+aliases are applied recursively to all candidate content outside that
+exclusion. Methodology phrases such as "current batch" or "current
+candidate" are not treated as protected market data. Ambiguous or
+open-ended ranges on unknown sources fail closed. Protected-year tokens
+in operational fields are hard fails. "outcomes measured in 2025" is not
+an exclusion.
 Resumable implementation checkpoints: `generator_v0_checkpoints/`.

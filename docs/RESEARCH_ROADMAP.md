@@ -3,8 +3,11 @@
 `NEXT_UNIT = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD`.
 Archived paid runs `artifacts/generator_v0/first-shadow` through
 `first-shadow-v5` remain sealed. This unit is infrastructure only: require
-protected 2025/2026 data is a hard fail; mention-only year strings are
-not. Offline COMPLETE carry-forward can create a new run from compatible
+protected 2025/2026 data is a hard fail; only the unambiguous
+`NO_LOOKAHEAD_RULE` exclusion "No 2025[/2026] <subject> are/is
+permitted|allowed" is mention-only, and open-ended/post-2024 aliases
+fail closed outside that span. Offline COMPLETE carry-forward can create
+a new run from compatible
 archived calls without a POST. Do not continue to generation:2 here. No
 new paid LLM call. No scientific interpretation, acquisition, Sprint05,
 D14, MARKET-07, or protected-data open. Frozen design/historical records

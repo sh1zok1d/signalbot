@@ -384,7 +384,7 @@ When adding documentation:
 
 ## Generator V0 implementation and shadow operation
 
-- `research/GENERATOR_V0_OPERATOR.md` — active run/preflight/resume and human audit commands.
+- `research/GENERATOR_V0_OPERATOR.md` — active run/preflight/resume and human audit commands; protected-data exclusion is the unambiguous `NO_LOOKAHEAD_RULE` form only.
 - `research/GENERATOR_V0_IMPLEMENTATION_PLAN.md` — requirement-to-checkpoint mapping.
 - `research/BLIND_MECHANISM_MAP_V0.json` — tracked outcome-neutral prior signatures.
 - `research/GOVERNANCE_REGION_AUTHORITY_V0.json` — frozen per-signature authority, excluded from Generator/Selector.

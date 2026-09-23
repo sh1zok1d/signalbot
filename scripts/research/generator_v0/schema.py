@@ -9,12 +9,32 @@ TEXT_FIELDS={'NAME','MECHANISM_FAMILY','MECHANISM','CAUSAL_OR_STRUCTURAL_STORY',
 PROTECTED_PERIOD_START=(2025,1)
 PROTECTED_CATALOG_DATASET='PROTECTED_2025_2026'
 PROTECTED_YEAR_TOKEN=re.compile(r'(?<!\d)202[56](?!\d)')
-# Narrow exclusion: "No 2025/2026 … are permitted/allowed". Not a whole-card regex.
+# Unambiguous exclusion only: "No 2025[/2026] <non-numeric subject> are/is permitted|allowed".
+# Body cannot contain digits, another year, or `. ; : ! ?`. No "not"/"forbidden".
 PROTECTED_EXCLUSION_STATEMENT=re.compile(
-    r'(?i)\bno\s+202[56](?:\s*/\s*202[56])?\b[\s\w,;:\'\"/.-]{0,240}\b(?:are|is)\s+(?:not\s+)?(?:permitted|allowed|forbidden)'
+    r'(?i)\bno\s+202[56](?:\s*/\s*202[56])?\b[^\d.;:!?]{0,240}\b(?:are|is)\s+(?:permitted|allowed)\b'
 )
-OPEN_ENDED_OBSERVATION_WINDOW=re.compile(
-    r'(?i)\b(?:latest(?:\s*/\s*current)?(?:\s+(?:available|bars|quotes))?|current\s+bars|through\s+(?:today|present)|until\s+present|up\s+to\s+now|open-?ended)\b'
+# Observation/data/time-window language and explicit post-2024 aliases. Not "current batch".
+_METHODOLOGY_CURRENT=r'batch|candidate|card|fixture|test|run|implementation|pipeline|review|schema'
+OPEN_ENDED_OR_POST2024=re.compile(
+    r'(?i)(?:'
+    r'\blatest\b'
+    r'|\bcurrent\s+(?:bars|quotes|closes|prices?|data|available|window|range|period|observations?|markets?)'
+    r'|\blatest\s*/\s*current\b'
+    r'|\bcurrent\b(?!\s+(?:'+_METHODOLOGY_CURRENT+r'))'
+    r'|\bthrough\s+(?:today|present)\b'
+    r'|\buntil\s+present\b'
+    r'|\bup\s+to\s+now\b'
+    r'|\bopen-?ended\b'
+    r'|\bpost-2024\b'
+    r'|\bafter\s+2024\b'
+    r'|\bsince\s+2024\b'
+    r'|\b2024\+'
+    r'|\b2024(?:-\d{2})?\s+onwards?\b'
+    r'|\b2024\s+and\s+later\b'
+    r'|\b2024-present\b'
+    r'|\byear\s+after\s+2024\b'
+    r')'
 )
 
 def parse_json(raw):
@@ -69,6 +89,21 @@ def contains_protected_year(value):
     if isinstance(value,str) and PROTECTED_YEAR_TOKEN.search(value):return True
     return False
 
+def contains_open_ended_or_post2024(value):
+    if isinstance(value,dict):
+        return any((isinstance(k,str) and OPEN_ENDED_OR_POST2024.search(k)) or contains_open_ended_or_post2024(v) for k,v in value.items())
+    if isinstance(value,list):
+        return any(contains_open_ended_or_post2024(v) for v in value)
+    return isinstance(value,str) and OPEN_ENDED_OR_POST2024.search(value) is not None
+
+def text_outside_exclusions(text):
+    if not isinstance(text,str):return ''
+    parts=[];last=0
+    for match in PROTECTED_EXCLUSION_STATEMENT.finditer(text):
+        parts.append(text[last:match.start()]);last=match.end()
+    parts.append(text[last:])
+    return ' '.join(parts)
+
 def years_only_in_exclusions(text):
     if not isinstance(text,str):return False
     spans=[m.span() for m in PROTECTED_EXCLUSION_STATEMENT.finditer(text)]
@@ -86,10 +121,9 @@ def assert_protected_semantics(card):
         raise ContractError('protected data requirement')
     rule=card.get('NO_LOOKAHEAD_RULE')
     if not years_only_in_exclusions(rule):raise ContractError('protected data requirement')
+    if contains_open_ended_or_post2024(text_outside_exclusions(rule)):raise ContractError('protected data requirement')
     rest={k:v for k,v in card.items() if k!='NO_LOOKAHEAD_RULE'}
-    if contains_protected_year(rest):raise ContractError('protected data requirement')
-    source=card.get('INFORMATION_SOURCE')
-    if isinstance(source,str) and OPEN_ENDED_OBSERVATION_WINDOW.search(source):
+    if contains_protected_year(rest) or contains_open_ended_or_post2024(rest):
         raise ContractError('protected data requirement')
 
 def assert_required_data_legal(row,known):

@@ -5726,3 +5726,22 @@ F9 = whole-remaining-campaign worst-case budget preflight
 REAL_LLM_CALLS_MADE = false
 SCIENTIFIC_OUTCOMES_COMPUTED = false
 ```
+
+## 2026-09-23 — PR #210 F1 residual: exclusion parser and open-ended aliases
+
+Independent narrow regression after the F1–F4 amendment left F1 open.
+This closeout tightens only the remaining F1 parser:
+
+- F1A: `PROTECTED_EXCLUSION_STATEMENT` is now the unambiguous form
+  `No 2025[/2026] <non-numeric subject> are/is permitted|allowed`. The
+  body cannot contain a digit, `. ; : ! ?`, optional "not", or
+  "forbidden". C018 still passes; sentence/semicolon/colon swallows,
+  "are not permitted", and "No 2025 data are forbidden" fail.
+- F1B: open-ended and post-2024 aliases apply recursively to all
+  candidate content outside the recognized `NO_LOOKAHEAD_RULE`
+  exclusion. Methodology "current batch"/"current candidate" remain
+  non-protected.
+
+F2/F3/F4 remain closed and unmodified. F5–F9 remain
+`DEFERRED_NONBLOCKING_RED_TEAM_FINDING`. No paid LLM call. No
+first-shadow-v6. No scientific outcome.

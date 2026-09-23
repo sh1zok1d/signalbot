@@ -90,6 +90,33 @@ def test_c018_exclusion_statement_is_not_a_requirement():
         'No 2025/2026 quotes, execution assumptions, or post hoc best-venue selection are permitted.')
     validate_card(x,Contexts())
 
+def test_safe_exclusion_allowed_wording_passes():
+    x=base_card()
+    x['NO_LOOKAHEAD_RULE']=('Use only quotes disseminated by the minute mark. '
+        'No 2025/2026 quotes, execution assumptions, or post hoc best-venue selection are allowed.')
+    validate_card(x,Contexts())
+
+def test_ordinary_no_lookahead_without_protected_year_passes():
+    x=base_card()
+    x['NO_LOOKAHEAD_RULE']='Every predictor must have an observable public timestamp at or before decision T.'
+    validate_card(x,Contexts())
+
+def test_methodology_current_batch_and_candidate_are_not_protected_windows():
+    x=base_card()
+    x['WHY_NOT_A_RESCUE']='This current candidate is scored against the current batch, not market quotes.'
+    validate_card(x,Contexts())
+
+@pytest.mark.parametrize('rule',[
+    'No 2025/2026 quotes. The target is the 2025 return and is permitted.',
+    'No 2026 data; outcomes measured in calendar 2025 are permitted.',
+    'No 2025 restrictions apply: 2025 outcomes are permitted.',
+    'No 2025/2026 quotes are not permitted.',
+    'No 2025 data are forbidden.',
+])
+def test_exclusion_parser_does_not_swallow_requirements(rule):
+    x=base_card();x['NO_LOOKAHEAD_RULE']=rule
+    with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())
+
 def test_non_exclusion_in_no_lookahead_fails():
     x=base_card();x['NO_LOOKAHEAD_RULE']='outcomes measured in 2025'
     with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())
@@ -135,6 +162,21 @@ def test_protected_data_requirement_true_fails():
     lambda x:x.update(CAUSAL_OR_STRUCTURAL_STORY='The mechanism must be evaluated on calendar 2025.'),
     lambda x:x.update(SEARCH_SURFACE={'PARAMETERS':{'END_YEAR':[2024,2025]},'MAX_VARIANTS':2}),
     lambda x:x.update(INFORMATION_SOURCE='latest/current bars through today'),
+    lambda x:x.update(PRIMARY_TARGET='BTC return through today'),
+    lambda x:x.update(HORIZON='until present'),
+    lambda x:x.update(OBSERVABLE='latest available closes'),
+    lambda x:x['DATA_REQUIRED'][0].update(OBSERVABLE='latest closes through today'),
+    lambda x:x.update(HORIZON='post-2024'),
+    lambda x:x.update(HORIZON='after 2024'),
+    lambda x:x.update(HORIZON='since 2024'),
+    lambda x:x.update(HORIZON='2024+'),
+    lambda x:x.update(HORIZON='2024 onward'),
+    lambda x:x.update(HORIZON='2024 onwards'),
+    lambda x:x.update(HORIZON='2024 and later'),
+    lambda x:x.update(HORIZON='2024-present'),
+    lambda x:x.update(HORIZON='the year after 2024'),
+    lambda x:x.update(PRIMARY_TARGET='returns from 2024-07 onward'),
+    lambda x:x.update(SEARCH_SURFACE={'PARAMETERS':{'WINDOW':['open-ended']},'MAX_VARIANTS':1}),
 ])
 def test_operational_protected_year_and_open_window_fail(mutation):
     x=base_card();mutation(x)

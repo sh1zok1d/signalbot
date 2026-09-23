@@ -5,8 +5,10 @@ Archived paid runs `artifacts/generator_v0/first-shadow` through
 `first-shadow-v5` remain sealed. This unit is infrastructure only: the
 application validator hard-fails a candidate that *requires* protected
 2025/2026 data (flag, forbidden catalog source, or DATA_REQUIRED legal
-range), not a whole-card year regex. Mention-only exclusion prose is
-allowed. Offline derive can carry exact-compatible COMPLETE Generator
+range), not a whole-card year regex. The only recognized
+`NO_LOOKAHEAD_RULE` exclusion is unambiguous "No 2025[/2026] <subject>
+are/is permitted|allowed"; open-ended and post-2024 aliases fail closed
+outside that span. Offline derive can carry exact-compatible COMPLETE Generator
 calls from an immutable source run into a new destination without a POST.
 Do not continue to generation:2 in this unit. No new paid LLM call. No
 scientific interpretation, acquisition, Sprint05, D14, MARKET-07, or
