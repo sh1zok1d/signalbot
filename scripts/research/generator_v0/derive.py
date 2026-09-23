@@ -19,7 +19,7 @@ PROMPT_VERSION='generator-v0.1'
 GENERATOR_PROVIDER='OPENAI_RESPONSES'
 # Owner-authorized absolute campaign ceiling. Distinct from the technical
 # infrastructure maximum of USD 30. Live spend may not exceed this total.
-OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD=10_000_000
+OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD=17_100_000
 
 def transport_identity(contexts):
     from .openai_provider import (
@@ -228,7 +228,7 @@ def authorize_budget_extension(run_dir,actor,reason,new_cap_usd):
             old=cfg['CAP_MICRO_USD']
             if new<=old:raise ContractError('new cap must exceed old cap')
             if new>OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD:
-                raise ContractError('new cap exceeds owner-authorized campaign total USD 10.000000')
+                raise ContractError('new cap exceeds owner-authorized campaign total USD 17.100000')
             spent=ledger.spent_micro_usd()
             if type(spent) is not int or spent<0:raise ContractError('invalid spent')
             if spent>new:raise ContractError('new cap below spent')

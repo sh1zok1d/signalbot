@@ -80,16 +80,16 @@ destination and derive v7 after merge.
 Offline campaign-cap extension (no provider POST). Existing run required.
 Actor, reason, and explicit new cap required. The new cap must exceed the
 old cap, cannot decrease, cannot exceed the owner-authorized absolute
-total of USD 10.000000, and cannot exceed the technical maximum of
+total of USD 17.100000, and cannot exceed the technical maximum of
 USD 30. The command rewrites only `CAP_MICRO_USD` and records an
 immutable `BUDGET_EXTENSION_AUTHORIZED` event (`OLD_CAP_MICRO_USD`,
 `NEW_CAP_MICRO_USD`, `ACTOR`, `REASON`, `TIME`). Call identities,
-responses, costs, and scientific state are unchanged. USD 10 is the
-authorized campaign total, not an incremental +USD 10. Example after a
-post-merge v7 derive (old USD 7.117536, new USD 10.000000):
+responses, costs, and scientific state are unchanged. USD 17.100000 is the authorized absolute campaign total, not an
+incremental allowance. Example after a v7 derive (old USD 7.117536,
+new USD 17.100000):
 
 ```bash
-python -m scripts.research.generator_v0 authorize-budget-extension --run-dir artifacts/generator_v0/first-shadow-v7 --actor owner --reason "set absolute authorized campaign total to USD 10" --new-cap-usd 10.000000
+python -m scripts.research.generator_v0 authorize-budget-extension --run-dir artifacts/generator_v0/first-shadow-v7 --actor owner --reason "set absolute authorized campaign total to USD 17.10" --new-cap-usd 17.100000
 ```
 
 Do not run that command against sealed `first-shadow-v6`. A cap of
@@ -102,6 +102,8 @@ cards are proxied by cloning the largest imported card. If
 
 ```bash
 python -m scripts.research.generator_v0 remaining-budget-preflight --run-dir artifacts/generator_v0/first-shadow-v7
+python -m scripts.research.generator_v0 authorize-derived-continuation --run-dir artifacts/generator_v0/first-shadow-v7 --actor owner --reason "remaining-budget-preflight FITS; continue remaining generator rounds"
+python -m scripts.research.generator_v0 resume --provider openai --allow-real-llm --budget-usd 17.100000 --run-dir artifacts/generator_v0/first-shadow-v7
 ```
 
 ```bash
@@ -109,7 +111,7 @@ python -m scripts.research.generator_v0 run --provider openai --allow-real-llm -
 ```
 
 Budget may be lower. Live OpenAI run/resume cannot exceed the
-owner-authorized absolute total of USD 10.000000. Technical mock and
+owner-authorized absolute total of USD 17.100000. Technical mock and
 offline preflight still accept the infrastructure maximum of USD 30.
 Mock remains the default even
 if API credentials exist. Every real call requires provider selection, key,

@@ -109,7 +109,7 @@ def main(argv=None):
     if not amount.is_finite() or not 0<=amount<=30 or amount*1_000_000 != (amount*1_000_000).to_integral_value():raise ContractError('budget must be finite USD 0..30, at microdollar precision')
     cap=int(amount*1_000_000)
     if a.command in ('run','resume') and a.provider=='openai' and cap>OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD:
-        raise ContractError('live campaign cap exceeds owner-authorized total USD 10.000000')
+        raise ContractError('live campaign cap exceeds owner-authorized total USD 17.100000')
     if a.provider=='openai':
         from .openai_provider import OpenAIProvider
         from .models import ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,price_table

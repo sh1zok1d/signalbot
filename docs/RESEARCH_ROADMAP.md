@@ -1,21 +1,15 @@
-## Generator V0 LEGAL_RANGE wrappers and audited campaign-cap extension — 2026-09-23
+## Generator V0 first-shadow-v7 live campaign — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION`.
-Archived paid runs `artifacts/generator_v0/first-shadow` through
-`first-shadow-v6` remain sealed. `first-shadow-v6` is an immutable derive
-source only. This unit is infrastructure only: exact generation:2
-LEGAL_RANGE wrappers classify as the inner strict range; free prose with
-a range stays AMBIGUOUS. Offline `authorize-budget-extension` may raise
-an existing campaign cap, never decrease, and never above the
-owner-authorized absolute total of USD 10.000000 (technical max remains
-USD 30) without rewriting calls or cards. Remaining-campaign budget
-preflight uses the live `bound()` reservation path. Prove derive through
-generation:2 on a TEMP scratch destination. Do not create live
-`first-shadow-v7` unless that preflight proves the complete remaining
-campaign fits in remaining authorized spend. Do not replay
-generation:2. No new paid LLM call. No scientific interpretation,
-acquisition, Sprint05, D14, MARKET-07, or protected-data open. Frozen
-design/historical records retain their historical labels.
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_LIVE`.
+Owner-authorized absolute campaign ceiling is USD 17.100000, including
+already recorded imported spend USD 3.779550. Remaining authorized spend
+is USD 13.320450. USD 17.10 is not an additional allowance. Archived paid
+runs through `first-shadow-v6` remain sealed. Live `first-shadow-v7` may
+proceed only after offline derive through generation:2, cap extension to
+USD 17.100000, and remaining-budget-preflight
+`FITS_AUTHORIZED_REMAINING=true`. Fail closed before exceeding the
+ceiling. No protected-data open. Frozen design/historical records retain
+their historical labels.
 
 ---
 
@@ -23,7 +17,7 @@ design/historical records retain their historical labels.
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-23
-**Current phase:** `GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION`
+**Current phase:** `GENERATOR_V0_FIRST_SHADOW_V7_LIVE`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 
@@ -120,7 +114,7 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `HYPOTHESIS_GENERATOR_V0_INFRA_READY`; no Sprint 05; design frozen in
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`, not built).
 `NEXT_ACTION = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL`.
-`NEXT_UNIT = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION`.
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_LIVE`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -224,7 +218,7 @@ automatically create Sprint 05. Do not build the hypothesis generator here.
 `HYPOTHESIS_GENERATOR_V0_INFRA_READY`; no Sprint 05; design frozen in
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`, not built).
 `NEXT_ACTION = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL`.
-`NEXT_UNIT = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION`.
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_LIVE`.
 
 Card identities at definition time (unchanged):
 

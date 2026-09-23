@@ -1,19 +1,14 @@
-## Generator V0 LEGAL_RANGE wrappers and audited campaign-cap extension — 2026-09-23
+## Generator V0 first-shadow-v7 live campaign — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION`.
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_LIVE`.
+Owner-authorized absolute campaign ceiling is USD 17.100000, including
+already recorded imported spend USD 3.779550. Remaining authorized spend
+is USD 13.320450. USD 17.10 is not an additional allowance.
 Archived paid runs `artifacts/generator_v0/first-shadow` through
-`first-shadow-v6` remain sealed. `first-shadow-v6` is readable as an
-immutable derive source only. This unit is infrastructure only: exact
-generation:2 prose wrappers classify as their inner strict LEGAL_RANGE;
-free prose with a range stays AMBIGUOUS. Offline `authorize-budget-extension` may raise an existing campaign cap, never
-decrease, and never above the owner-authorized absolute total of USD 10.000000
-(technical infrastructure maximum remains USD 30). It does not rewrite calls,
-responses, costs, or cards. Remaining-campaign budget preflight uses the same
-`bound()` reservation path as live calls. Prove derive through generation:2 on
-a TEMP scratch destination. Do not create live `first-shadow-v7` unless that
-preflight proves the complete remaining campaign fits in the remaining
-authorized spend. Do not replay generation:2. No scientific interpretation,
-acquisition, Sprint05, D14, MARKET-07, or protected-data open. Frozen
+`first-shadow-v6` remain sealed. Live `first-shadow-v7` may proceed only
+after offline derive through generation:2, cap extension to USD 17.100000,
+and remaining-budget-preflight `FITS_AUTHORIZED_REMAINING=true`. Fail
+closed before exceeding the ceiling. No protected-data open. Frozen
 design/historical records retain their historical labels.
 
 ---
@@ -57,7 +52,7 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION
+NEXT_UNIT                   = GENERATOR_V0_FIRST_SHADOW_V7_LIVE
 NEXT_ACTION                 = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED

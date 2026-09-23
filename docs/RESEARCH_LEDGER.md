@@ -5843,3 +5843,23 @@ FIRST_SHADOW_V6_SEALED = true
 REAL_LLM_CALLS_MADE = false
 SCIENTIFIC_OUTCOMES_COMPUTED = false
 ```
+
+## 2026-09-23 — Generator V0 first-shadow-v7 live under USD 17.10 absolute ceiling
+
+Owner authorized an absolute cumulative campaign ceiling of USD 17.100000,
+including already recorded imported spend USD 3.779550. Remaining
+authorized additional spend is USD 13.320450. This is not an additional
+USD 17.10 allowance. Prior remaining-budget-preflight worst-case remaining
+USD 13.286520 fits under that remainder (min total USD 17.066070).
+`first-shadow-v6` stays sealed. Live `first-shadow-v7` is authorized after
+offline derive through generation:2, cap extension to USD 17.100000, and
+`FITS_AUTHORIZED_REMAINING=true`. Fail closed before exceeding USD 17.10.
+No protected-data open.
+
+```
+NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_LIVE
+OWNER_AUTHORIZED_CAMPAIGN_CAP_USD = 17.100000
+SPENT_USD = 3.779550
+REMAINING_AUTHORIZED_USD = 13.320450
+FIRST_SHADOW_V6_SEALED = true
+```
