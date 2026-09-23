@@ -5745,3 +5745,15 @@ This closeout tightens only the remaining F1 parser:
 F2/F3/F4 remain closed and unmodified. F5–F9 remain
 `DEFERRED_NONBLOCKING_RED_TEAM_FINDING`. No paid LLM call. No
 first-shadow-v6. No scientific outcome.
+
+## 2026-09-23 — PR #210 H1: bare latest/current false positive
+
+Independent regression after the F1 residual closeout found H1: the
+open-ended detector rejected standalone "latest" and "current", so
+point-in-time wording failed (`latest closed bar at or before T`,
+`current funding rate as-of T`, `current regime state`). This closeout
+removes only those bare alternatives. Explicit observation-window forms
+(`latest available`, `current bars`, `through today`, `post-2024`, and
+the rest of the frozen alias list) still fail. F1–F4 remain closed.
+F5–F9 remain `DEFERRED_NONBLOCKING_RED_TEAM_FINDING`. No paid LLM call.
+No first-shadow-v6. No scientific outcome.

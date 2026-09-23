@@ -106,6 +106,18 @@ def test_methodology_current_batch_and_candidate_are_not_protected_windows():
     x['WHY_NOT_A_RESCUE']='This current candidate is scored against the current batch, not market quotes.'
     validate_card(x,Contexts())
 
+@pytest.mark.parametrize('field,text',[
+    ('NO_LOOKAHEAD_RULE','Use the latest closed 1m bar at or before T.'),
+    ('NO_LOOKAHEAD_RULE','Features use only the current and prior closed bars.'),
+    ('CAUSAL_OR_STRUCTURAL_STORY','Dealers hedge against the current regime state.'),
+    ('INFORMATION_SOURCE','Timestamp of the latest scheduled FOMC statement before T'),
+    ('OBSERVABLE','current funding rate as-of T'),
+    ('MAIN_CONFOUNDERS','Current volatility level'),
+])
+def test_point_in_time_latest_and_current_wording_passes(field,text):
+    x=base_card();x[field]=text
+    validate_card(x,Contexts())
+
 @pytest.mark.parametrize('rule',[
     'No 2025/2026 quotes. The target is the 2025 return and is permitted.',
     'No 2026 data; outcomes measured in calendar 2025 are permitted.',
@@ -177,6 +189,20 @@ def test_protected_data_requirement_true_fails():
     lambda x:x.update(HORIZON='the year after 2024'),
     lambda x:x.update(PRIMARY_TARGET='returns from 2024-07 onward'),
     lambda x:x.update(SEARCH_SURFACE={'PARAMETERS':{'WINDOW':['open-ended']},'MAX_VARIANTS':1}),
+    lambda x:x.update(OBSERVABLE='latest available'),
+    lambda x:x.update(OBSERVABLE='latest data'),
+    lambda x:x.update(OBSERVABLE='latest quotes'),
+    lambda x:x.update(OBSERVABLE='latest prices'),
+    lambda x:x.update(OBSERVABLE='latest observations'),
+    lambda x:x.update(OBSERVABLE='current bars'),
+    lambda x:x.update(OBSERVABLE='current quotes'),
+    lambda x:x.update(OBSERVABLE='current closes'),
+    lambda x:x.update(OBSERVABLE='current prices'),
+    lambda x:x.update(OBSERVABLE='current data'),
+    lambda x:x.update(HORIZON='current available window'),
+    lambda x:x.update(HORIZON='current observation window'),
+    lambda x:x.update(HORIZON='through present'),
+    lambda x:x.update(HORIZON='up to now'),
 ])
 def test_operational_protected_year_and_open_window_fail(mutation):
     x=base_card();mutation(x)

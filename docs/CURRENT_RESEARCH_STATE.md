@@ -8,7 +8,8 @@ application validator hard-fails a candidate that *requires* protected
 range), not a whole-card year regex. The only recognized
 `NO_LOOKAHEAD_RULE` exclusion is unambiguous "No 2025[/2026] <subject>
 are/is permitted|allowed"; open-ended and post-2024 aliases fail closed
-outside that span. Offline derive can carry exact-compatible COMPLETE Generator
+outside that span (bare "latest"/"current" are not enough). Offline
+derive can carry exact-compatible COMPLETE Generator
 calls from an immutable source run into a new destination without a POST.
 Do not continue to generation:2 in this unit. No new paid LLM call. No
 scientific interpretation, acquisition, Sprint05, D14, MARKET-07, or

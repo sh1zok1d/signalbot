@@ -185,8 +185,10 @@ the body cannot contain a digit, another year, or `. ; : ! ?`, and
 "not"/"forbidden" are not accepted. C018's "No 2025/2026 quotes ... are
 permitted." still passes. Open-ended and post-2024 observation-window
 aliases are applied recursively to all candidate content outside that
-exclusion. Methodology phrases such as "current batch" or "current
-candidate" are not treated as protected market data. Ambiguous or
+exclusion. Bare "latest" or "current" is not enough: point-in-time
+wording such as "latest closed bar at or before T" or "current funding
+rate as-of T" is allowed. Explicit forms such as "latest available",
+"current bars", "through today", and "post-2024" fail. Ambiguous or
 open-ended ranges on unknown sources fail closed. Protected-year tokens
 in operational fields are hard fails. "outcomes measured in 2025" is not
 an exclusion.

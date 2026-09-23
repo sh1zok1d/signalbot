@@ -6,7 +6,8 @@ Archived paid runs `artifacts/generator_v0/first-shadow` through
 protected 2025/2026 data is a hard fail; only the unambiguous
 `NO_LOOKAHEAD_RULE` exclusion "No 2025[/2026] <subject> are/is
 permitted|allowed" is mention-only, and open-ended/post-2024 aliases
-fail closed outside that span. Offline COMPLETE carry-forward can create
+fail closed outside that span (bare "latest"/"current" are not enough).
+Offline COMPLETE carry-forward can create
 a new run from compatible
 archived calls without a POST. Do not continue to generation:2 here. No
 new paid LLM call. No scientific interpretation, acquisition, Sprint05,

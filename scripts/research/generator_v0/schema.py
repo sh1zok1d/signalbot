@@ -14,14 +14,13 @@ PROTECTED_YEAR_TOKEN=re.compile(r'(?<!\d)202[56](?!\d)')
 PROTECTED_EXCLUSION_STATEMENT=re.compile(
     r'(?i)\bno\s+202[56](?:\s*/\s*202[56])?\b[^\d.;:!?]{0,240}\b(?:are|is)\s+(?:permitted|allowed)\b'
 )
-# Observation/data/time-window language and explicit post-2024 aliases. Not "current batch".
-_METHODOLOGY_CURRENT=r'batch|candidate|card|fixture|test|run|implementation|pipeline|review|schema'
+# Explicit observation-window / open-ended / post-2024 aliases only.
+# Bare "latest" or "current" is not sufficient (point-in-time wording allowed).
 OPEN_ENDED_OR_POST2024=re.compile(
     r'(?i)(?:'
-    r'\blatest\b'
-    r'|\bcurrent\s+(?:bars|quotes|closes|prices?|data|available|window|range|period|observations?|markets?)'
+    r'\blatest\s+(?:available|data|quotes|prices?|observations?|closes|bars)\b'
     r'|\blatest\s*/\s*current\b'
-    r'|\bcurrent\b(?!\s+(?:'+_METHODOLOGY_CURRENT+r'))'
+    r'|\bcurrent\s+(?:bars|quotes|closes|prices?|data|available|window|range|period|observations?|markets?)\b'
     r'|\bthrough\s+(?:today|present)\b'
     r'|\buntil\s+present\b'
     r'|\bup\s+to\s+now\b'
