@@ -226,7 +226,7 @@ def test_each_role_mixed_transport_and_budget(tmp_path):
         return 200,chat_envelope(result)
     fake.payloads={}
     p=provider(fake);l=Ledger(tmp_path/'r.db',{'RUN_ID':'roles'})
-    result=run_campaign(c,Caller(c,l,p,30_000_000,True))
+    result=_accepted(c,Caller(c,l,p,17_100_000,True))
     assert result['STATUS']=='PENDING_HUMAN_REVIEW'
     assert set(seen)==set(ROLE_MODEL_MAP)
     g=seen['GENERATOR']
@@ -497,3 +497,9 @@ def test_terminal_cost_above_reservation_fails_closed(tmp_path):
     row=l.export_calls()[0]
     assert row['STATE']=='FAILED_WITH_COST' and row['COST_MICRO_USD']==row['RESERVED_MICRO_USD'] and row['USAGE'] is None
     assert row['PROVIDER_STATUS']=='incomplete' and row['COST_BASIS']=='RESERVED_BOUND'
+
+def _accepted(c,caller,size=40):
+    """Record the budget-stop acceptance the execution gate requires, then run (library path)."""
+    from scripts.research.generator_v0.runner import accept_budget_stop,run_campaign as _rc
+    accept_budget_stop(c,caller,size,'test-operator','this test exercises a campaign whose worst case exceeds its cap')
+    return _rc(c,caller,size)

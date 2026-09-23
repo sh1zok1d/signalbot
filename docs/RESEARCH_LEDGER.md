@@ -5940,3 +5940,16 @@ NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION
 ```
 
 Record: `docs/research/GENERATOR_V0_LIMITED_REPAIR.{json,md}`.
+
+## Generator V0 final narrow repair (after re-verification) — 2026-09-23
+
+No research window, hypothesis or protected data consumed. Infrastructure repair only.
+
+```
+ABBREVIATED_CROSS_YEAR_RANGES = FIXED
+IMPERATIVE_TRADE_LANGUAGE = FIXED_STRUCTURAL_NOT_SEMANTIC
+EXECUTION_LAYER_BUDGET_GATE = FIXED (run_campaign fails closed; BUDGET_STOP_ACCEPTED bound to cap/spend/worst case)
+REAL_LLM_CALLS_MADE = false
+COMPLETION_STATE = READY_FOR_FINAL_RE-VERIFICATION
+NEXT_UNIT = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION
+```

@@ -186,6 +186,7 @@ def run_campaign(c,caller,size=40):
         raise ContractError('campaign status does not permit generation')
     _require_causal_event(ledger,status)
     if type(size)!=int or not 25<=size<=50:raise ContractError('invalid batch size')
+    enforce_campaign_budget(c,caller,size)
     try:
         return _run(c,caller,ledger,size,status)
     except InfrastructureStop as e:
@@ -196,6 +197,43 @@ def run_campaign(c,caller,size=40):
         raise
 
 PAUSE_STATUSES=tuple(_PAUSE.values())
+BUDGET_STOP_EVENT='BUDGET_STOP_ACCEPTED'
+_BUDGET_SNAPSHOT=('CAP_MICRO_USD','SPENT_MICRO_USD','WORST_CASE_REMAINING_MICRO_USD')
+
+class BudgetGateRefused(ContractError):
+    """The worst-case remaining reservation does not fit and no matching budget-stop acceptance is recorded."""
+
+def campaign_budget_preflight(c,caller,size):
+    """Execution-layer preflight: the Caller's own provider bound() and cap, the
+    journal's lineage + journal spend. Read only; no POST."""
+    from .derive import ledger_budget_preflight
+    return ledger_budget_preflight(caller.ledger,c,cap=caller.cap,size=size,bound_provider=caller.provider)
+
+def accept_budget_stop(c,caller,size,actor,reason):
+    """Record an explicit acceptance that this campaign may stop at STOPPED_BUDGET.
+    Bound to the current cap, spend and worst case: any change needs a new acceptance."""
+    if not isinstance(actor,str) or not actor.strip() or not isinstance(reason,str) or not reason.strip():
+        raise ContractError('budget-stop acceptance requires actor and reason')
+    pre=campaign_budget_preflight(c,caller,size)
+    payload={**{k:pre[k] for k in _BUDGET_SNAPSHOT+('REMAINING_AUTHORIZED_MICRO_USD','FITS_AUTHORIZED_REMAINING')},'ACTOR':actor.strip(),'REASON':reason.strip()}
+    with caller.ledger.transaction():caller.ledger.event(BUDGET_STOP_EVENT,payload)
+    return payload
+
+def enforce_campaign_budget(c,caller,size):
+    """Fail closed before any provider call: the worst-case remaining reservation
+    must fit the authorized remainder (and a real campaign cap must not exceed the
+    owner ceiling), unless the latest recorded BUDGET_STOP_ACCEPTED matches the
+    current cap, spend and worst case. This is the authoritative gate; the CLI
+    only adds an earlier refusal before a run directory is created."""
+    from .derive import OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
+    if caller.provider.real and caller.cap>OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD:
+        raise BudgetGateRefused('campaign cap exceeds the owner-authorized total')
+    pre=campaign_budget_preflight(c,caller,size)
+    if pre['FITS_AUTHORIZED_REMAINING']:return pre
+    row=caller.ledger.db.execute('SELECT payload FROM events WHERE kind=? ORDER BY n DESC LIMIT 1',(BUDGET_STOP_EVENT,)).fetchone()
+    accepted=json.loads(row[0]) if row else None
+    if accepted and all(accepted.get(k)==pre[k] for k in _BUDGET_SNAPSHOT):return pre
+    raise BudgetGateRefused('worst-case remaining reservation does not fit the authorized remainder: '+canonical({k:pre[k] for k in _BUDGET_SNAPSHOT+('REMAINING_AUTHORIZED_MICRO_USD',)})+'; record accept_budget_stop (actor, reason) for these exact values to accept a clean STOPPED_BUDGET')
 
 def _require_causal_event(ledger,status):
     """A pause/stop status is valid only with the journal row that caused it: the

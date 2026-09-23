@@ -26,6 +26,8 @@ for ch in '‘’‚‛′ʼʻ＇`´':_TRANSLATE[ord(ch)]="'"
 for ch in '​‌‍⁠﻿­᠎':_TRANSLATE[ord(ch)]=None
 for ch in '≥⩾':_TRANSLATE[ord(ch)]='>'
 for ch in '≤⩽':_TRANSLATE[ord(ch)]='<'
+for ch in '\u2044\u2215\u29f8':_TRANSLATE[ord(ch)]='/'
+for ch in '~\u301c\uff5e\u223c':_TRANSLATE[ord(ch)]='-'
 _TRANSLATE[ord('_')]=' '
 
 def normalize_text(value):
@@ -47,8 +49,8 @@ def normalize_text(value):
     s=re.sub(r'(?<=[a-z])(?=[0-9])|(?<=[0-9])(?=[a-z])',' ',s)
     return re.sub(r'\s+',' ',s).strip()
 
-_TOKEN=re.compile(r"[a-z]+|[0-9]+|[+&'<>=,.;:()/-]")
-_PUNCT=set(',.;:()')
+_TOKEN=re.compile(r"[a-z]+|[0-9]+|[+&'<>=,.;:()/!?-]")
+_PUNCT=set(',.;:()!?')
 
 def tokens(normalized):
     return _TOKEN.findall(normalized)
@@ -113,9 +115,52 @@ def spell_years_as_digits(normalized):
     s=re.sub(r'\btwenty[ -]('+words+r')\b',lambda m:str(2000+val(m.group(1))) if val(m.group(1))>=10 else m.group(0),s)
     return s
 
+_TWO_WORD=re.compile(r'\b(?:(ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)|(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[ -](one|two|three|four|five|six|seven|eight|nine))?)\b')
+
+def _spell_two_digit(s):
+    def rep(m):
+        if m.group(1):return str(_TEENS[m.group(1)])
+        return str(_TENS[m.group(2)]+(_UNITS[m.group(3)] if m.group(3) else 0))
+    return _TWO_WORD.sub(rep,s)
+
+# Abbreviated cross-year ranges: YYYY/YY, YYYY-YY, 'YY-'YY, YY/YY (dashes, slashes,
+# tildes and their Unicode forms are folded to '-' or '/' by normalize_text).
+_ABBREV=re.compile(r"(?<![0-9.])(')?([0-9]{4}|[0-9]{2}) ?([/-]) ?(')?([0-9]{1,2})(?![0-9])")
+_YEAR_CONTEXT={'fy','cy','season','seasons','year','years','fiscal','financial','school','academic','calendar','annual','yr','yrs'}
+
+def abbreviated_range_years(normalized):
+    """Reconstructed end years of abbreviated ranges, interpreted relative to the
+    first year: same century if later, next century only for a 9x start that
+    wraps (1998/03). A second part that is not later (e.g. 2024-12, a month)
+    is not a year range. A bare two-digit start needs year context: an
+    apostrophe, a year word next to it, or the consecutive YY/YY season form."""
+    s=_spell_two_digit(spell_years_as_digits(normalized))
+    out=[]
+    for m in _ABBREV.finditer(s):
+        ap1,a,sep,ap2,b=m.groups()
+        if len(b)==1 and not (len(a)==4 and sep=='/'):continue
+        if len(a)==2:
+            before=re.findall(r"[a-z]+",s[max(0,m.start()-24):m.start()])[-2:]
+            after=re.findall(r"[a-z]+",s[m.end():m.end()+24])[:1]
+            consecutive=sep=='/' and len(b)==2 and int(b)==(int(a)+1)%100
+            if not (ap1 or ap2 or consecutive or any(w in _YEAR_CONTEXT for w in before+after)):continue
+            start=int(a)+(2000 if int(a)<70 else 1900)
+        else:
+            start=int(a)
+            if not 1900<=start<=2099:continue
+        width=10**len(b)
+        end=start-start%width+int(b)
+        if end<=start:
+            if start%100>=90 and len(b)==2:end+=100
+            elif len(b)==1:end+=10
+            else:continue
+        out.append(end)
+    return out
+
 def years_in(normalized):
     """All year references (int) in a normalized string."""
     ys=[int(m.group(1)) for m in _DIGIT_YEAR.finditer(normalized)]
+    ys+=abbreviated_range_years(normalized)
     ys+=[int(''.join(m.groups())) for m in _SPACED_YEAR.finditer(normalized)]
     for m in _SHORT_YEAR.finditer(normalized):
         v=int(m.group(1) or m.group(2))
@@ -270,12 +315,48 @@ _NOT_CLAIM_PREV=('ewma','smoothing','significance','decay','jensen','cronbach','
 _SUCCESS=set(SUCCESS_WORDS)
 _CHANCE=set(CHANCE_WORDS)|{'probabilities','chances','likelihoods','rates'}
 
+# Imperative / actionable trade language. Base-form trade verbs are judged by
+# position, not by phrase: clause-initial (imperative), after an imperative lead,
+# or followed by a market object ("<verb> the <market move>"), unless a
+# descriptive subject names who acts ("traders who buy ...", "funds tend to sell ...").
+IMPERATIVE_VERBS=('buy','sell','purchase','acquire','accumulate','dump','fade','chase','unload','offload','short','long')
+_IMP_VERB=set(IMPERATIVE_VERBS)
+# Verbs that also describe data acquisition or neutral actions count only with a market object.
+_IMP_NEEDS_OBJECT={'purchase','acquire','accumulate','dump','chase','unload','offload'}
+IMPERATIVE_LEADS=('then','just','simply','always','never','so','please','now')
+_IMP_LEAD=set(IMPERATIVE_LEADS)
+MARKET_OBJECTS=('dip','rip','breakout','breakdown','bounce','top','bottom','rally','pullback','retrace','support','resistance','weakness','strength','spike','crash','news','rumor','pump','drop','drawdown','capitulation','squeeze','move','gap','low','high','fear','panic','euphoria','btc','eth','bitcoin','ether','market','spot','perp','futures','coin','token','asset','it','them')
+_MARKET_OBJ={w for x in MARKET_OBJECTS for w in (x,x+'s',x+'es')}|{'rallies','dips','rips','lows','highs','rumour','rumours','retracement','retracements'}
+# long/short are also adjectives ('a long gap'): as verbs they need an asset or a determiner.
+_SIDE_OBJ={'btc','eth','bitcoin','ether','spot','perp','perps','futures','it','them','coin','coins','token','tokens','asset','assets','market','the','a','an','any','every','each','this','that','these','those','some','all','into'}
+_DETERMINER={'the','a','an','any','every','each','into','on','this','that','these','those','some','all','more','next'}
+DESCRIPTIVE_SUBJECTS=('who','that','which','they','traders','investors','participants','holders','whales','funds','institutions','retail','agents','makers','takers','buyers','sellers','people','users','miners','speculators','arbitrageurs','bots','desks','dealers','hedgers')
+_DESCRIPTIVE=set(DESCRIPTIVE_SUBJECTS)
+_TENDENCY={'tend','tends','tended','likely','unlikely','incentive','incentives','pressure','propensity','inclined','forced','compelled','rush','rushed','tendency','willingness','appetite','need','needs','needed','urge','decision','decide','decided','choose','chose','able','unable'}
+
+def _imperative_trade(toks,i):
+    t=toks[i];prev=toks[i-1] if i else '';nxt=toks[i+1] if i+1<len(toks) else ''
+    if t not in _IMP_VERB:return None
+    if nxt in ('and','or','/','&') or nxt.startswith(_COMPOUND_AFTER) or (t in _SIDE and nxt.startswith(_SIDE_COMPOUND)):return None
+    obj=toks[i+2] if nxt in _DETERMINER and i+2<len(toks) else nxt
+    if t in _SIDE and nxt not in _SIDE_OBJ:return None
+    has_obj=obj in _MARKET_OBJ or (nxt in _DETERMINER and t not in _SIDE)
+    clause_start=i==0 or prev in _PUNCT or prev in _IMP_LEAD
+    if clause_start and t not in _IMP_NEEDS_OBJECT and (t not in _SIDE or has_obj or nxt in _DETERMINER):return 'imperative trade instruction: '+t+' '+nxt
+    if obj in _MARKET_OBJ:
+        if prev in _DESCRIPTIVE:return None
+        if prev=='to' and i>=2 and toks[i-2] in _TENDENCY|_DESCRIPTIVE:return None
+        return 'actionable trade instruction: '+t+' '+nxt+(' '+obj if obj!=nxt else '')
+    return None
+
 def trade_violations(normalized):
     norm=re.sub(r"p ?& ?l|p and l|profit and loss|profit ?/ ?loss",'pnl',normalized)
     # Hyphens join compounds ('sell-side', 'sell-signal'); judge the words themselves.
     toks=[t for t in tokens(norm) if t!='-'];found=[]
     for i,t in enumerate(toks):
         prev=toks[i-1] if i else '';nxt=toks[i+1] if i+1<len(toks) else ''
+        imp=_imperative_trade(toks,i)
+        if imp:found.append(imp)
         if t in _ACTION:
             lead=[w for w in toks[max(0,i-2):i] if w in _INSTRUCTION_LEAD]
             if lead and not nxt.startswith(_COMPOUND_AFTER):found.append('trade instruction: '+lead[0]+' '+t)

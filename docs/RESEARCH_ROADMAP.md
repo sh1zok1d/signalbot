@@ -1,6 +1,16 @@
+## Generator V0 final narrow repair (after re-verification) — 2026-09-23
+
+`NEXT_UNIT = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION`.
+The final narrow offline repair covers three residual classes:
+- abbreviated cross-year ranges;
+- imperative trade language;
+- the fail-closed budget gate moved into `run_campaign`, so it no longer depends on the CLI.
+
+Completion state is `READY_FOR_FINAL_RE-VERIFICATION`, not a provider smoke test or live shadow. See `docs/research/GENERATOR_V0_LIMITED_REPAIR.md`.
+
 ## Generator V0 limited offline repair (after PR #215 verification) — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION` (re-verified; see the final narrow repair above).
 Limited offline repair of the five blockers found by the independent
 verification (PR #215):
 - keyed novelty prompt/schema/parser contract;
@@ -42,7 +52,7 @@ historical labels.
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-23
-**Current phase:** `GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION`
+**Current phase:** `GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 

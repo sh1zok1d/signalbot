@@ -395,7 +395,7 @@ def proxy_card(slot,contexts,target_bytes,signature_bytes):
     if pad>0:card['CAUSAL_OR_STRUCTURAL_STORY']=card['CAUSAL_OR_STRUCTURAL_STORY']+' '+'x'*(pad-1)
     return card
 
-def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content_attempts=None,margin=None):
+def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content_attempts=None,margin=None,bound_provider=None):
     """Worst-case reservation for everything not yet COMPLETE-imported, through the
     live bound() path. Missing cards are proxies of max(largest known card,
     OBSERVED_MAX_CARD_BYTES x margin) bytes. No POST."""
@@ -405,7 +405,9 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
     attempts=MAX_CONTENT_ATTEMPTS if content_attempts is None else content_attempts
     margin=PROXY_CARD_MARGIN if margin is None else Decimal(margin)
     if type(size)!=int or not 25<=size<=50:raise ContractError('batch size')
-    provider=_offline_bound_provider(contexts,30_000_000)
+    # bound_provider: the provider that will actually be called (execution-layer gate);
+    # default: the offline OpenAI bound path (CLI/operator preflight).
+    provider=bound_provider if bound_provider is not None else _offline_bound_provider(contexts,30_000_000)
     plan=slot_plan(size)
     cards=[c for c in known_cards if isinstance(c,dict)][:size]
     from .roles import current_signatures
@@ -466,6 +468,21 @@ def _preflight_report(b,cap,prior,journal,done,known_rounds):
         'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
     }
 
+def ledger_budget_preflight(ledger,contexts,cap=None,size=None,bound_provider=None,caps=None,content_attempts=None,margin=None):
+    """Preflight from an open journal (read only). cap/size default to the journal config."""
+    cfg=ledger.get('config') or {}
+    cap=cfg.get('CAP_MICRO_USD') if cap is None else cap
+    if type(cap) is not int:raise ContractError('run cap missing')
+    size=cfg.get('SIZE',40) if size is None else size
+    if type(size)!=int or not 25<=size<=50:raise ContractError('source batch size')
+    done=[];cards=[]
+    for slot,row in sorted((ledger.get('imported_rounds') or {}).items()):
+        batch=round_cards(ledger.complete_raw(row['CALL_KEY']),row['CONTRACT'])
+        if batch is None:raise ContractError('imported round unusable')
+        done.append(int(slot.split(':')[1]));cards+=[c for c in batch if isinstance(c,dict)]
+    b=campaign_bound(contexts,size,cards,done,caps,content_attempts,margin,bound_provider)
+    return _preflight_report(b,cap,ledger.lineage_prior_micro_usd(),ledger.spent_micro_usd(),done,[])
+
 def remaining_campaign_budget_preflight(run_dir,contexts=None,caps=None,content_attempts=None,margin=None):
     """Worst-case remaining reservation for a fresh, running or derived journal,
     through the same bound() path as live calls. No POST; the journal is read
@@ -475,17 +492,6 @@ def remaining_campaign_budget_preflight(run_dir,contexts=None,caps=None,content_
     contexts=contexts or Contexts()
     ledger=Ledger.open_readonly(dbpath)
     try:
-        cfg=ledger.get('config')
-        if not isinstance(cfg,dict) or type(cfg.get('CAP_MICRO_USD')) is not int:
-            raise ContractError('run cap missing')
-        size=cfg.get('SIZE',40)
-        if type(size)!=int or not 25<=size<=50:raise ContractError('source batch size')
-        done=[];cards=[]
-        for slot,row in sorted((ledger.get('imported_rounds') or {}).items()):
-            batch=round_cards(ledger.complete_raw(row['CALL_KEY']),row['CONTRACT'])
-            if batch is None:raise ContractError('imported round unusable')
-            done.append(int(slot.split(':')[1]));cards+=[c for c in batch if isinstance(c,dict)]
-        b=campaign_bound(contexts,size,cards,done,caps,content_attempts,margin)
-        return _preflight_report(b,cfg['CAP_MICRO_USD'],ledger.lineage_prior_micro_usd(),ledger.spent_micro_usd(),done,[])
+        return ledger_budget_preflight(ledger,contexts,caps=caps,content_attempts=content_attempts,margin=margin)
     finally:
         ledger.close()

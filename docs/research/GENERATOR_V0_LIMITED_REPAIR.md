@@ -1,6 +1,36 @@
 # Generator V0 — limited offline repair after independent verification (PR #215)
 
-**Completion state:** `READY_FOR_RE-VERIFICATION` (not `READY_FOR_PROVIDER_SMOKE_TEST`, not `READY_FOR_LIVE_SHADOW`)
+## Final narrow repair after the independent re-verification
+
+Scope limited to three residual classes. No API call, no live shadow, no protected data, no scientific outcome; v7 SHA256 unchanged.
+
+1. **Abbreviated cross-year ranges: FIXED.**
+   - `textnorm.abbreviated_range_years` reconstructs YYYY/YY, YYYY-YY, YYYY/Y, apostrophe YY-YY and YY/YY forms. Separators are folded first: dashes, full-width, fraction and division slashes, tildes and wave dashes. Spelled boundaries are converted first too.
+   - The short year is read in the first year's century. A 9x start wraps to the next century (1998/03 → 2003). A second part that is not later than the first (for example the year-month 2024-12) is not a year range.
+   - A bare two-digit start needs year context: an apostrophe, a year word, or the consecutive season form.
+   - Reconstructed years feed `NO_PROTECTED_YEARS` (any year after 2024), and the rule text states the class.
+   - Tests: fresh year pairs and punctuation in `tests/research/test_generator_v0_final_residuals.py`.
+2. **Imperative / actionable trade language: FIXED (structural, not semantic).**
+   - Base-form trade verbs are judged by position:
+     - clause-initial, or after then/just/always/never/so/please/now (buy, sell, fade, short, long);
+     - or a bare trade verb followed by a market object (dip, rally, strength, breakout, BTC, ...), unless a descriptive subject names who acts (traders who ..., funds tend to ...).
+   - long/short count as verbs only before an asset or a determiner. Verbs that also describe data acquisition (acquire, purchase, ...) count only with a market object.
+   - Descriptive controls stay valid.
+   - Tests: independently phrased, same file.
+3. **Budget gate at the execution layer: FIXED.**
+   - `run_campaign` calls `enforce_campaign_budget` before any provider call. The check uses the Caller's own provider `bound()` and cap, and the journal's lineage and journal spend.
+   - A real campaign whose cap exceeds the owner ceiling is refused.
+   - A worst case that does not fit is refused unless the latest `BUDGET_STOP_ACCEPTED` event (`accept_budget_stop`, actor and reason required) matches the current cap, spend and worst case; any change needs a new acceptance.
+   - The CLI records acceptance through the same library call and keeps only an earlier refusal before creating a run directory.
+   - Direct-library test: a live-like campaign started without the CLI is refused with 0 transport calls and 0 journal rows.
+
+Current worst cases (bounds changed slightly because the rule text is longer):
+- fresh 40-slot run: 27094553 micro-USD single attempt;
+- v7-derived run: 18276711 micro-USD.
+The owner ceiling and the run shape are unchanged. The scenario table below is regenerated.
+
+
+**Completion state:** `READY_FOR_FINAL_RE-VERIFICATION` after the final narrow repair below (not `READY_FOR_PROVIDER_SMOKE_TEST`, not `READY_FOR_LIVE_SHADOW`)
 **Base:** `ddda586dc7ea4a9589bc389eef7a6306d64f3d0c` (PR #214)
 **Verification input:** PR #215, verdict `B. LIMITED OFFLINE REPAIR REQUIRED`
 **Machine-readable twin:** `docs/research/GENERATOR_V0_LIMITED_REPAIR.json`
@@ -86,27 +116,27 @@ regression evidence only; none was copied into rule lists or tests.
 
 | Scenario | Change kind | Size | Novelty cap | Content attempts | Worst case, single attempt (USD) | Worst case with content retries (USD) | E: min ceiling, journal only (USD) | E: min ceiling, campaign cumulative (USD) | Fits USD 17.10 |
 |---|---|---|---|---|---|---|---|---|---|
-| A_CURRENT_FRESH | NONE | 40 | 12000 | 2 | 27.048513 | 54.095088 | 54.095088 | 54.095088 | no |
-| A_CURRENT_FRESH_COUNTED_IN_V7_CAMPAIGN | NONE | 40 | 12000 | 2 | 27.048513 | 54.095088 | 54.095088 | 59.041838 | no |
-| A_CURRENT_V7_DERIVED | NONE | 40 | 12000 | 2 | 18.265201 | 36.528447 | 36.528447 | 41.475197 | no |
-| B_NO_CONTENT_RETRIES_FRESH | OPERATIONAL | 40 | 12000 | 1 | 27.048513 | 27.048513 | 27.048513 | 27.048513 | no |
-| B_NO_CONTENT_RETRIES_V7_DERIVED | OPERATIONAL | 40 | 12000 | 1 | 18.265201 | 18.265201 | 18.265201 | 23.211951 | no |
-| C_NOVELTY_CAP_5000_FRESH | OPERATIONAL | 40 | 5000 | 2 | 24.248433 | 48.494928 | 48.494928 | 48.494928 | no |
-| C_NOVELTY_CAP_5000_V7_DERIVED | OPERATIONAL | 40 | 5000 | 2 | 15.465121 | 30.928287 | 30.928287 | 35.875037 | no |
-| C_NOVELTY_CAP_5000_NO_RETRIES_FRESH | OPERATIONAL | 40 | 5000 | 1 | 24.248433 | 24.248433 | 24.248433 | 24.248433 | no |
-| C_NOVELTY_CAP_5000_NO_RETRIES_V7_DERIVED | OPERATIONAL | 40 | 5000 | 1 | 15.465121 | 15.465121 | 15.465121 | 20.411871 | no |
-| C_NOVELTY_CAP_7000_FRESH | OPERATIONAL | 40 | 7000 | 2 | 25.048433 | 50.094928 | 50.094928 | 50.094928 | no |
-| C_NOVELTY_CAP_7000_V7_DERIVED | OPERATIONAL | 40 | 7000 | 2 | 16.265121 | 32.528287 | 32.528287 | 37.475037 | no |
-| C_NOVELTY_CAP_7000_NO_RETRIES_FRESH | OPERATIONAL | 40 | 7000 | 1 | 25.048433 | 25.048433 | 25.048433 | 25.048433 | no |
-| C_NOVELTY_CAP_7000_NO_RETRIES_V7_DERIVED | OPERATIONAL | 40 | 7000 | 1 | 16.265121 | 16.265121 | 16.265121 | 21.211871 | no |
-| C_NOVELTY_CAP_9000_FRESH | OPERATIONAL | 40 | 9000 | 2 | 25.848433 | 51.694928 | 51.694928 | 51.694928 | no |
-| C_NOVELTY_CAP_9000_V7_DERIVED | OPERATIONAL | 40 | 9000 | 2 | 17.065121 | 34.128287 | 34.128287 | 39.075037 | no |
-| C_NOVELTY_CAP_9000_NO_RETRIES_FRESH | OPERATIONAL | 40 | 9000 | 1 | 25.848433 | 25.848433 | 25.848433 | 25.848433 | no |
-| C_NOVELTY_CAP_9000_NO_RETRIES_V7_DERIVED | OPERATIONAL | 40 | 9000 | 1 | 17.065121 | 17.065121 | 17.065121 | 22.011871 | no |
-| D_BATCH_25_FRESH | DESIGN_CHANGE | 25 | 12000 | 2 | 16.553875 | 33.106096 | 33.106096 | 33.106096 | no |
-| D_BATCH_25_FRESH_NO_RETRIES | DESIGN_CHANGE | 25 | 12000 | 1 | 16.553875 | 16.553875 | 16.553875 | 16.553875 | yes |
-| D_BATCH_30_FRESH | DESIGN_CHANGE | 30 | 12000 | 2 | 19.256897 | 38.512047 | 38.512047 | 38.512047 | no |
-| D_BATCH_30_FRESH_NO_RETRIES | DESIGN_CHANGE | 30 | 12000 | 1 | 19.256897 | 19.256897 | 19.256897 | 19.256897 | no |
+| A_CURRENT_FRESH | NONE | 40 | 12000 | 2 | 27.094553 | 54.187168 | 54.187168 | 54.187168 | no |
+| A_CURRENT_FRESH_COUNTED_IN_V7_CAMPAIGN | NONE | 40 | 12000 | 2 | 27.094553 | 54.187168 | 54.187168 | 59.133918 | no |
+| A_CURRENT_V7_DERIVED | NONE | 40 | 12000 | 2 | 18.276711 | 36.551467 | 36.551467 | 41.498217 | no |
+| B_NO_CONTENT_RETRIES_FRESH | OPERATIONAL | 40 | 12000 | 1 | 27.094553 | 27.094553 | 27.094553 | 27.094553 | no |
+| B_NO_CONTENT_RETRIES_V7_DERIVED | OPERATIONAL | 40 | 12000 | 1 | 18.276711 | 18.276711 | 18.276711 | 23.223461 | no |
+| C_NOVELTY_CAP_5000_FRESH | OPERATIONAL | 40 | 5000 | 2 | 24.294473 | 48.587008 | 48.587008 | 48.587008 | no |
+| C_NOVELTY_CAP_5000_V7_DERIVED | OPERATIONAL | 40 | 5000 | 2 | 15.476631 | 30.951307 | 30.951307 | 35.898057 | no |
+| C_NOVELTY_CAP_5000_NO_RETRIES_FRESH | OPERATIONAL | 40 | 5000 | 1 | 24.294473 | 24.294473 | 24.294473 | 24.294473 | no |
+| C_NOVELTY_CAP_5000_NO_RETRIES_V7_DERIVED | OPERATIONAL | 40 | 5000 | 1 | 15.476631 | 15.476631 | 15.476631 | 20.423381 | no |
+| C_NOVELTY_CAP_7000_FRESH | OPERATIONAL | 40 | 7000 | 2 | 25.094473 | 50.187008 | 50.187008 | 50.187008 | no |
+| C_NOVELTY_CAP_7000_V7_DERIVED | OPERATIONAL | 40 | 7000 | 2 | 16.276631 | 32.551307 | 32.551307 | 37.498057 | no |
+| C_NOVELTY_CAP_7000_NO_RETRIES_FRESH | OPERATIONAL | 40 | 7000 | 1 | 25.094473 | 25.094473 | 25.094473 | 25.094473 | no |
+| C_NOVELTY_CAP_7000_NO_RETRIES_V7_DERIVED | OPERATIONAL | 40 | 7000 | 1 | 16.276631 | 16.276631 | 16.276631 | 21.223381 | no |
+| C_NOVELTY_CAP_9000_FRESH | OPERATIONAL | 40 | 9000 | 2 | 25.894473 | 51.787008 | 51.787008 | 51.787008 | no |
+| C_NOVELTY_CAP_9000_V7_DERIVED | OPERATIONAL | 40 | 9000 | 2 | 17.076631 | 34.151307 | 34.151307 | 39.098057 | no |
+| C_NOVELTY_CAP_9000_NO_RETRIES_FRESH | OPERATIONAL | 40 | 9000 | 1 | 25.894473 | 25.894473 | 25.894473 | 25.894473 | no |
+| C_NOVELTY_CAP_9000_NO_RETRIES_V7_DERIVED | OPERATIONAL | 40 | 9000 | 1 | 17.076631 | 17.076631 | 17.076631 | 22.023381 | no |
+| D_BATCH_25_FRESH | DESIGN_CHANGE | 25 | 12000 | 2 | 16.588405 | 33.175156 | 33.175156 | 33.175156 | no |
+| D_BATCH_25_FRESH_NO_RETRIES | DESIGN_CHANGE | 25 | 12000 | 1 | 16.588405 | 16.588405 | 16.588405 | 16.588405 | yes |
+| D_BATCH_30_FRESH | DESIGN_CHANGE | 30 | 12000 | 2 | 19.291427 | 38.581107 | 38.581107 | 38.581107 | no |
+| D_BATCH_30_FRESH_NO_RETRIES | DESIGN_CHANGE | 30 | 12000 | 1 | 19.291427 | 19.291427 | 19.291427 | 19.291427 | no |
 
 Notes:
 - Fresh rows compare against the full USD 17.10. `A_CURRENT_FRESH_COUNTED_IN_V7_CAMPAIGN` shows the other reading (a fresh run counted inside the v7 campaign authority).

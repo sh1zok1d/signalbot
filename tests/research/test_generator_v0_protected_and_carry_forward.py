@@ -468,7 +468,7 @@ def test_offline_derive_authorize_continue_to_pending_human_review(tmp_path,monk
     assert l.db.execute('SELECT count(*) FROM cards').fetchone()[0]==0
     p_block=MockProvider(lambda r:pytest.fail('provider complete reached'))
     with pytest.raises(ContractError,match='generation continuation is not authorized'):
-        run_campaign(c,Caller(c,l,p_block,CAP,False))
+        _accepted(c,Caller(c,l,p_block,CAP,False))
     l.close()
     with pytest.raises(ContractError,match='derived import|resume configuration'):
         main(['resume','--run-dir',str(dest)])
@@ -497,7 +497,7 @@ def test_offline_derive_authorize_continue_to_pending_human_review(tmp_path,monk
         result=respond({'role':role,'context':user['context'],'parameters':{'slots':user.get('slots',[])}})
         return 200,chat_envelope(result)
     p=provider(fake,budget=CAP)
-    result=run_campaign(c,Caller(c,l,p,CAP,True))
+    result=_accepted(c,Caller(c,l,p,CAP,True))
     assert result['STATUS']=='PENDING_HUMAN_REVIEW'
     assert len(result['CANDIDATES'])==40
     gen_posts=[row for row in log if row[0]=='POST' and row[1]=='/v1/responses']
@@ -621,3 +621,9 @@ def test_live_openai_run_refuses_cap_above_owner_authorized_total(tmp_path,monke
     with pytest.raises(ContractError,match='run not found'):
         main(['resume','--provider','openai','--allow-real-llm','--budget-usd','17.100000','--run-dir',str(tmp_path/'missing')])
     main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','30'])
+
+def _accepted(c,caller,size=40):
+    """Record the budget-stop acceptance the execution gate requires, then run (library path)."""
+    from scripts.research.generator_v0.runner import accept_budget_stop,run_campaign as _rc
+    accept_budget_stop(c,caller,size,'test-operator','this test exercises a campaign whose worst case exceeds its cap')
+    return _rc(c,caller,size)

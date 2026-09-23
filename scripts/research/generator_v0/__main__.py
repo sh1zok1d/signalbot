@@ -169,15 +169,16 @@ def main(argv=None):
         config.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()},PRICE_TABLE=price_table(),ROUTING_DIGEST=provider.routing_digest,REQUEST_TIMEOUT_SECONDS=provider.request_timeout_seconds,**ident)
     l=Ledger(dbpath,config)
     try:
+        caller=Caller(c,l,provider,cap,a.allow_real_llm)
         if a.provider=='openai' and a.command=='resume':
             from .runner import RESUMABLE_STATUSES
             if l.get('status') in RESUMABLE_STATUSES:budget_gate=live_budget_gate(remaining_campaign_budget_preflight(a.run_dir,c))
-        if budget_gate is not None:
-            with l.transaction():
-                l.event('LIVE_BUDGET_GATE',{**budget_gate,'COMMAND':a.command,'ACCEPTED_BUDGET_STOP':bool(a.accept_budget_stop and not budget_gate['FITS_AUTHORIZED_REMAINING']),
-                                            'ACTOR':a.actor,'REASON':a.reason})
+        if a.accept_budget_stop:
+            # Same library semantics as any programmatic caller; run_campaign enforces it.
+            from .runner import accept_budget_stop
+            accept_budget_stop(c,caller,a.size,a.actor,a.reason)
         try:
-            result=run_campaign(c,Caller(c,l,provider,cap,a.allow_real_llm),a.size)
+            result=run_campaign(c,caller,a.size)
         except InfrastructureStop as e:
             print(canonical({'RUN_ID':config['RUN_ID'],'STATUS':l.get('status'),'STOP':type(e).__name__,'DETAIL':str(e)[:500],'SPEND_MICRO_USD':l.total_charged_micro_usd()}))
             raise

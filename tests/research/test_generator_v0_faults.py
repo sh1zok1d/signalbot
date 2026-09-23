@@ -152,12 +152,12 @@ def test_budget_exhaustion_stops_cleanly_and_resumes_after_extension(tmp_path):
     from scripts.research.generator_v0.derive import derived_config
     l=Ledger(src/'run.sqlite',{'RUN_ID':'b','CAP_MICRO_USD':3000,'SIZE':40})
     p=Priced(MockResponder(c))
-    with pytest.raises(BudgetExceeded):run_campaign(c,Caller(c,l,p,3000))
+    with pytest.raises(BudgetExceeded):_accepted(c,Caller(c,l,p,3000))
     assert l.get('status')=='STOPPED_BUDGET' and l.total_charged_micro_usd()<=3000
     assert not [r for r in l.export_calls() if r['STATE'] in ('RESERVED','UNCERTAIN')]
     l.close()
     l=Ledger(src/'run.sqlite');cfg=l.get('config');l.set('config',{**cfg,'CAP_MICRO_USD':6000});l.db.commit()
-    r=run_campaign(c,Caller(c,l,p,6000));assert r['STATUS']=='PENDING_HUMAN_REVIEW' and l.total_charged_micro_usd()<=6000
+    r=_accepted(c,Caller(c,l,p,6000));assert r['STATUS']=='PENDING_HUMAN_REVIEW' and l.total_charged_micro_usd()<=6000
     l.close()
 
 def test_insufficient_valid_candidates_is_an_explicit_terminal_stop(tmp_path):
@@ -315,15 +315,21 @@ def test_crash_after_post_leaves_dispatched_charged_until_reconciled(tmp_path):
     """Crash-point coverage lives in test_generator_v0_crash_points.py; this is the noisy-transport variant."""
     c=Contexts();t=NoisyTransport(c,{('RED_TEAM','C002',1):'crash'})
     l=Ledger(tmp_path/'r.sqlite',{'RUN_ID':'crash'})
-    with pytest.raises(Crash):run_campaign(c,Caller(c,l,provider_for(t,c),CAP,True))
+    with pytest.raises(Crash):_accepted(c,Caller(c,l,provider_for(t,c),CAP,True))
     rows=[r for r in l.export_calls() if r['STATE']=='DISPATCHED']
     assert len(rows)==1 and l.spent_micro_usd()>=rows[0]['RESERVED_MICRO_USD']
     posts=len(t.posts())
-    with pytest.raises(CallUncertain):run_campaign(c,Caller(c,l,provider_for(t,c),CAP,True))
+    with pytest.raises(CallUncertain):_accepted(c,Caller(c,l,provider_for(t,c),CAP,True))
     assert len(t.posts())==posts
     with pytest.raises(ContractError,match='provider-side evidence'):l.reconcile(rows[0]['CALL_KEY'],'NOT_BILLED',None,'op','no request in provider logs')
     l.reconcile(rows[0]['CALL_KEY'],'UNKNOWN',None,'op','no evidence either way')
-    r=run_campaign(c,Caller(c,l,provider_for(t,c),CAP,True))
+    r=_accepted(c,Caller(c,l,provider_for(t,c),CAP,True))
     assert r['STATUS']=='PENDING_HUMAN_REVIEW' and 'C002' in [x['CANDIDATE_ID'] for x in r['REVIEW_FAILED']]
     assert t.counts[('RED_TEAM','C002')]==1       # the closed logical call was never POSTed again
     l.close()
+
+def _accepted(c,caller,size=40):
+    """Record the budget-stop acceptance the execution gate requires, then run (library path)."""
+    from scripts.research.generator_v0.runner import accept_budget_stop,run_campaign as _rc
+    accept_budget_stop(c,caller,size,'test-operator','this test exercises a campaign whose worst case exceeds its cap')
+    return _rc(c,caller,size)

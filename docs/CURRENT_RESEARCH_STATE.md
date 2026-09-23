@@ -1,6 +1,16 @@
+## Generator V0 final narrow repair (after re-verification) — 2026-09-23
+
+`NEXT_UNIT = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION`.
+The final narrow offline repair covers three residual classes:
+- abbreviated cross-year ranges;
+- imperative trade language;
+- the fail-closed budget gate moved into `run_campaign`, so it no longer depends on the CLI.
+
+Completion state is `READY_FOR_FINAL_RE-VERIFICATION`, not a provider smoke test or live shadow. See `docs/research/GENERATOR_V0_LIMITED_REPAIR.md`.
+
 ## Generator V0 limited offline repair (after PR #215 verification) — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION` (re-verified; see the final narrow repair above).
 Limited offline repair of the five blockers found by the independent
 verification (PR #215):
 - keyed novelty prompt/schema/parser contract;
@@ -77,8 +87,8 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION
-NEXT_ACTION                 = INDEPENDENT_RE_VERIFICATION_OF_LIMITED_REPAIR_NO_LIVE_RUN
+NEXT_UNIT                   = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION
+NEXT_ACTION                 = FINAL_INDEPENDENT_RE_VERIFICATION_NO_LIVE_RUN
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED
 GENERATOR_MODE              = SHADOW_ONLY

@@ -96,23 +96,23 @@
     "SPENT_MICRO_USD": 0,
     "STAGES": [
       {
-        "BOUND_MICRO_USD": 2201780,
-        "BOUND_USD": "2.20178",
+        "BOUND_MICRO_USD": 2213290,
+        "BOUND_USD": "2.21329",
         "STAGE": "generation:0"
       },
       {
-        "BOUND_MICRO_USD": 2202080,
-        "BOUND_USD": "2.20208",
+        "BOUND_MICRO_USD": 2213590,
+        "BOUND_USD": "2.21359",
         "STAGE": "generation:1"
       },
       {
-        "BOUND_MICRO_USD": 2202000,
-        "BOUND_USD": "2.202",
+        "BOUND_MICRO_USD": 2213510,
+        "BOUND_USD": "2.21351",
         "STAGE": "generation:2"
       },
       {
-        "BOUND_MICRO_USD": 2205380,
-        "BOUND_USD": "2.20538",
+        "BOUND_MICRO_USD": 2216890,
+        "BOUND_USD": "2.21689",
         "STAGE": "generation:3"
       },
       {
@@ -136,8 +136,8 @@
         "STAGE": "SELECTOR"
       }
     ],
-    "WORST_CASE_REMAINING_MICRO_USD": 27048513,
-    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 54095088
+    "WORST_CASE_REMAINING_MICRO_USD": 27094553,
+    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 54187168
   },
   "NOISY_E2E": {
     "CALL_STATES": {
@@ -260,8 +260,8 @@
     "SPENT_MICRO_USD": 4946750,
     "STAGES": [
       {
-        "BOUND_MICRO_USD": 2205380,
-        "BOUND_USD": "2.20538",
+        "BOUND_MICRO_USD": 2216890,
+        "BOUND_USD": "2.21689",
         "STAGE": "generation:3"
       },
       {
@@ -285,7 +285,7 @@
         "STAGE": "SELECTOR"
       }
     ],
-    "WORST_CASE_REMAINING_MICRO_USD": 18265201,
-    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 36528447
+    "WORST_CASE_REMAINING_MICRO_USD": 18276711,
+    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 36551467
   }
 }

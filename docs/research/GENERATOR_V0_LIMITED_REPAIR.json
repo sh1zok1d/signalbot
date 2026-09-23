@@ -29,10 +29,8 @@
     "B4_NORMALIZATION": {
       "EXTERNAL_REGRESSION_PR215_CORPUS": {
         "ADMITTED_AT_BASE": 47,
-        "ADMITTED_NOW": 1,
-        "ADMITTED_NOW_IDS": [
-          "IV121"
-        ],
+        "ADMITTED_NOW": 0,
+        "ADMITTED_NOW_IDS": [],
         "ADMIT_INTENT": 26,
         "COPIED_INTO_REPO": false,
         "FALSE_POSITIVES_NOW": 0,
@@ -43,12 +41,12 @@
       "TESTS": "tests/research/test_generator_v0_textnorm.py"
     },
     "B5_BUDGET": {
-      "FRESH_WORST_CASE_MICRO_USD": 27048513,
+      "FRESH_WORST_CASE_MICRO_USD": 27094553,
       "LIVE_GATE": "run/resume refuse unless fits or --accept-budget-stop with actor and reason (recorded)",
       "SCENARIOS": "docs/research/generator_v0_repair/BUDGET_SCENARIOS.json",
       "STATE": "FIXED_DECISION_NOT_TAKEN",
       "TESTS": "tests/research/test_generator_v0_budget_preflight.py",
-      "V7_DERIVED_WORST_CASE_MICRO_USD": 18265201,
+      "V7_DERIVED_WORST_CASE_MICRO_USD": 18276711,
       "V7_LINEAGE_MICRO_USD": {
         "IMPORTED_MICRO_USD": 3779550,
         "PRIOR_MICRO_USD": 1167200,
@@ -57,8 +55,15 @@
       }
     }
   },
-  "COMPLETION_STATE": "READY_FOR_RE-VERIFICATION",
-  "NEXT_UNIT": "GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION",
+  "COMPLETION_STATE": "READY_FOR_FINAL_RE-VERIFICATION",
+  "FINAL_NARROW_REPAIR": {
+    "ABBREVIATED_CROSS_YEAR_RANGES": "FIXED",
+    "BUDGET_STOP_EVENT": "BUDGET_STOP_ACCEPTED (bound to CAP, SPENT, WORST_CASE snapshot)",
+    "EXECUTION_LAYER_BUDGET_GATE": "FIXED",
+    "IMPERATIVE_TRADE_LANGUAGE": "FIXED_STRUCTURAL_NOT_SEMANTIC",
+    "TESTS": "tests/research/test_generator_v0_final_residuals.py"
+  },
+  "NEXT_UNIT": "GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION",
   "NOISY_E2E": {
     "CALL_STATES": {
       "COMPLETE": 117,

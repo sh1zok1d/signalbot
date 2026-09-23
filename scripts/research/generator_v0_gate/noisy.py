@@ -14,10 +14,17 @@ from scripts.research.generator_v0.ledger import Ledger
 from scripts.research.generator_v0.mock import MockResponder
 from scripts.research.generator_v0.openai_provider import OpenAIProvider
 from scripts.research.generator_v0.provider import Caller
-from scripts.research.generator_v0.runner import GENERATOR_PROMPT,run_campaign
+from scripts.research.generator_v0.runner import GENERATOR_PROMPT,run_campaign,accept_budget_stop,RESUMABLE_STATUSES
 from scripts.research.generator_v0.roles import NOVELTY_PROMPT,FEAS_PROMPT,RED_PROMPT,SELECTOR_PROMPT
 
-CAP=30_000_000
+CAP=17_100_000   # the owner ceiling; the fresh worst case exceeds it, so every invocation records a budget-stop acceptance
+
+def run(c,ledger,transport):
+    """One operator invocation through the library execution gate (no CLI)."""
+    caller=Caller(c,ledger,provider_for(transport,c),CAP,True)
+    if ledger.get('status') in RESUMABLE_STATUSES and ledger.db.execute("SELECT 1 FROM results WHERE key='campaign'").fetchone() is None:
+        accept_budget_stop(c,caller,40,'offline-gate','noisy harness accepts a clean STOPPED_BUDGET')
+    return run_campaign(c,caller)
 
 class Crash(BaseException):
     """Simulated process death after the request left the machine."""
@@ -106,11 +113,11 @@ def run_noisy_campaign(run_dir,faults=DEFAULT_FAULTS,contexts=None):
     ledger=Ledger(run_dir/'run.sqlite',{'RUN_ID':run_dir.name,'CAP_MICRO_USD':CAP})
     try:
         try:
-            run_campaign(c,Caller(c,ledger,provider_for(transport,c),CAP,True));steps.append('COMPLETED_WITHOUT_CRASH')
+            run(c,ledger,transport);steps.append('COMPLETED_WITHOUT_CRASH')
         except Crash as e:
             steps.append('CRASH: '+str(e))
         try:
-            result=run_campaign(c,Caller(c,ledger,provider_for(transport,c),CAP,True))
+            result=run(c,ledger,transport)
         except CallUncertain as e:
             steps.append('PAUSED: '+ledger.get('status'))
             key=[r['CALL_KEY'] for r in ledger.export_calls() if r['STATE']=='DISPATCHED'][0]
@@ -124,7 +131,7 @@ def run_noisy_campaign(run_dir,faults=DEFAULT_FAULTS,contexts=None):
             ledger.reconcile(key,'BILLED',500,'offline-gate','crash after POST; fake provider log shows the request arrived',
                              {'PROVIDER_LOG_POSTS':len(transport.posts()),'SOURCE':'synthetic NoisyTransport log'})
             steps.append('RECONCILED_BILLED')
-            result=run_campaign(c,Caller(c,ledger,provider_for(transport,c),CAP,True))
+            result=run(c,ledger,transport)
         steps.append('FINAL: '+result['STATUS'])
         calls=ledger.export_calls()
         report={
@@ -151,9 +158,9 @@ def derive_after_partial_work(base_dir,contexts=None):
     transport=NoisyTransport(c,faults)
     from scripts.research.generator_v0.derive import derived_config
     l=Ledger(src/'run.sqlite',derived_config('partial',{'SIZE':40,'CAP_MICRO_USD':CAP},c))
-    try:run_campaign(c,Caller(c,l,provider_for(transport,c),CAP,True))
+    try:run(c,l,transport)
     except Crash:pass
-    try:run_campaign(c,Caller(c,l,provider_for(transport,c),CAP,True))
+    try:run(c,l,transport)
     except CallUncertain:pass
     paused=l.get('status');source_total=l.total_charged_micro_usd();source_rows=len(l.export_calls())
     l.close()
@@ -161,7 +168,7 @@ def derive_after_partial_work(base_dir,contexts=None):
     authorize_derived_continuation(base_dir/'derived','offline-gate','continue after partial-work derive')
     t2=NoisyTransport(c,{})
     d=Ledger(base_dir/'derived'/'run.sqlite')
-    result=run_campaign(c,Caller(c,d,provider_for(t2,c),CAP,True))
+    result=run(c,d,t2)
     out={'SOURCE_STATUS':paused,'SOURCE_TOTAL_MICRO_USD':source_total,'SOURCE_ROWS':source_rows,
          'DERIVE_LINEAGE_PRIOR_MICRO_USD':report['LINEAGE_PRIOR_MICRO_USD'],'DERIVE_LINEAGE_TOTAL_MICRO_USD':report['LINEAGE_TOTAL_MICRO_USD'],
          'DERIVED_GENERATOR_POSTS':sum(1 for m,p in t2.log if m=='POST' and p=='/v1/responses'),'DERIVED_STATUS':result['STATUS'],
