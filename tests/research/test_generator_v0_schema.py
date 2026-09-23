@@ -34,3 +34,8 @@ def test_malformed_json(s):
 def test_success_fields_cannot_hide_in_dynamic_search_parameters(key):
     x=card();x['SEARCH_SURFACE']['PARAMETERS'][key]=[0.8]
     with pytest.raises(ContractError):validate_card(x,Contexts())
+
+
+def test_protected_horizon_year_is_a_requirement():
+    x=card();x['HORIZON']='2025'
+    with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())

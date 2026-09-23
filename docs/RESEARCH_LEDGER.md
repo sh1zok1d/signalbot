@@ -5673,3 +5673,99 @@ REAL_LLM_CALLS_MADE = false
 ARCHIVED_RUN_UNTOUCHED = true
 SCIENTIFIC_OUTCOMES_COMPUTED = false
 ```
+
+## 2026-09-23 — Generator V0 protected-data semantics and COMPLETE carry-forward
+
+Infrastructure-only after `first-shadow-v5` stopped at C018 under a
+whole-card `2025|2026` regex. That card declared
+`PROTECTED_DATA_REQUIREMENT=false` and `LEGAL_RANGE=2020-01..2024-12`;
+the years appeared only in an exclusion (`NO_LOOKAHEAD_RULE`). The
+application validator now hard-fails required protected data (flag,
+forbidden catalog source, or DATA_REQUIRED legal range) and allowlists
+mention-only exclusions. Offline `derive` imports exact-compatible
+COMPLETE Generator calls from an immutable source into a new run,
+preserves cost against the campaign cap, revalidates, and stops. No POST.
+`first-shadow-v5` is sealed. Do not continue to generation:2 in this unit.
+
+```
+NEXT_UNIT = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD
+PROTECTED_DATA_VALIDATOR_SEMANTICS = REQUIREMENT_NOT_MENTION
+LEGAL_RANGE_FAIL_CLOSED = true
+MENTION_ONLY_ALLOWED = true
+COMPLETE_RESPONSE_CARRY_FORWARD = true
+REAL_LLM_CALLS_MADE = false
+ARCHIVED_RUN_UNTOUCHED = true
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```
+
+## 2026-09-23 — PR #210 red-team amendment F1–F4
+
+Independent red-team of `a7c44d137a63aadb639259efcfe99c60d247a0b7` was
+`RED_TEAM_BLOCKED` on F1–F4. This amendment closes those blockers only.
+
+- F1: operational protected-year tokens fail closed; C018 exclusion in
+  `NO_LOOKAHEAD_RULE` still passes; `DATA_REQUIRED` legal-range checks kept.
+- F2: `HORIZON="2025"` fails again; F1 examples have explicit FAIL tests.
+- F3: `authorize-derived-continuation` is the explicit offline gate from
+  `DERIVED_IMPORTED_REVALIDATED` to `DERIVED_CONTINUATION_AUTHORIZED`.
+- F4: derive does not write `cards`; campaign finalization inserts once.
+
+Deferred nonblocking findings, not redesigned here:
+
+```
+F5_STATUS = DEFERRED_NONBLOCKING_RED_TEAM_FINDING
+F6_STATUS = DEFERRED_NONBLOCKING_RED_TEAM_FINDING
+F7_STATUS = DEFERRED_NONBLOCKING_RED_TEAM_FINDING
+F8_STATUS = DEFERRED_NONBLOCKING_RED_TEAM_FINDING
+F9_STATUS = DEFERRED_NONBLOCKING_RED_TEAM_FINDING
+F5 = generated LEGAL_RANGE subset vs catalog range
+F6 = per-snapshot bound identity
+F7 = stronger response-envelope provenance verification
+F8 = SQLite WAL/SHM archive immutability hardening
+F9 = whole-remaining-campaign worst-case budget preflight
+REAL_LLM_CALLS_MADE = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```
+
+## 2026-09-23 — PR #210 F1 residual: exclusion parser and open-ended aliases
+
+Independent narrow regression after the F1–F4 amendment left F1 open.
+This closeout tightens only the remaining F1 parser:
+
+- F1A: `PROTECTED_EXCLUSION_STATEMENT` is now the unambiguous form
+  `No 2025[/2026] <non-numeric subject> are/is permitted|allowed`. The
+  body cannot contain a digit, `. ; : ! ?`, optional "not", or
+  "forbidden". C018 still passes; sentence/semicolon/colon swallows,
+  "are not permitted", and "No 2025 data are forbidden" fail.
+- F1B: open-ended and post-2024 aliases apply recursively to all
+  candidate content outside the recognized `NO_LOOKAHEAD_RULE`
+  exclusion. Methodology "current batch"/"current candidate" remain
+  non-protected.
+
+F2/F3/F4 remain closed and unmodified. F5–F9 remain
+`DEFERRED_NONBLOCKING_RED_TEAM_FINDING`. No paid LLM call. No
+first-shadow-v6. No scientific outcome.
+
+## 2026-09-23 — PR #210 H1: bare latest/current false positive
+
+Independent regression after the F1 residual closeout found H1: the
+open-ended detector rejected standalone "latest" and "current", so
+point-in-time wording failed (`latest closed bar at or before T`,
+`current funding rate as-of T`, `current regime state`). This closeout
+removes only those bare alternatives. Explicit observation-window forms
+(`latest available`, `current bars`, `through today`, `post-2024`, and
+the rest of the frozen alias list) still fail. F1–F4 remain closed.
+F5–F9 remain `DEFERRED_NONBLOCKING_RED_TEAM_FINDING`. No paid LLM call.
+No first-shadow-v6. No scientific outcome.
+
+## 2026-09-23 — PR #210 annotated LEGAL_RANGE compatibility
+
+Read-only revalidation of immutable `first-shadow-v5` found five cards
+failing `ambiguous protected range` because `LEGAL_RANGE` used
+`Required historical window: YYYY-MM..YYYY-MM; <coverage note>`. This
+closeout teaches `classify_legal_range` that exact annotated form only;
+the returned class is the inner strict range. Unsafe prefixes, extra
+ranges, trailing years/open-ended notes, and extra text still fail.
+Cards were not edited. F1–F4 and H1 remain closed. F5–F9 remain
+`DEFERRED_NONBLOCKING_RED_TEAM_FINDING`. No paid LLM call. No
+first-shadow-v6. No scientific outcome.

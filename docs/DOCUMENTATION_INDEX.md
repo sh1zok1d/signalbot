@@ -1,4 +1,4 @@
-> **Current routing note — 2026-09-23:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Original D2 BitMEX one-shot remains `INVALID`. Corrected execution classified `D2_BITMEX_REPLICATION_SUPPORTED`. Program class `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Excess path-risk decomposition one-shot is consumed: `D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`. Sprint 02 D7 is `PROMISING_PROTOTYPE` (consumed one-shot; confirmation candidate but not selected now). D8 is `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and not a negative scientific result. Sprint 03 D9/D10 are `NO_USEFUL_STRUCTURE`; D11 is `PROMISING_PROTOTYPE` (unsigned scheduled-FOMC 6h RV; not D8 rescue). Sprint 04 D12 is `PROMISING_PROTOTYPE` (US-clock quote-volume anchoring; EU diagnostic does not classify). D13 is `NO_USEFUL_STRUCTURE` (observed reversal; practical gate failed). `INTERNAL_DISCOVERY_CARDS_EXECUTED = 10`. `INTERNAL_PROMISING_PROTOTYPES = 4`. `AUTOMATIC_SPRINT05 = false`. `POST_SPRINT04_AUTOMATION_MATURITY_DECISION` decided `HYPOTHESIS_GENERATOR_V0_INFRA_READY` (no Sprint 05; Generator V0 design frozen, not built, shadow-only). `NEXT_UNIT = GENERATOR_V0_OUTPUT_LIMIT_AND_TERMINAL_USAGE_ACCOUNTING`.
+> **Current routing note — 2026-09-23:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Original D2 BitMEX one-shot remains `INVALID`. Corrected execution classified `D2_BITMEX_REPLICATION_SUPPORTED`. Program class `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Excess path-risk decomposition one-shot is consumed: `D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`. Sprint 02 D7 is `PROMISING_PROTOTYPE` (consumed one-shot; confirmation candidate but not selected now). D8 is `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and not a negative scientific result. Sprint 03 D9/D10 are `NO_USEFUL_STRUCTURE`; D11 is `PROMISING_PROTOTYPE` (unsigned scheduled-FOMC 6h RV; not D8 rescue). Sprint 04 D12 is `PROMISING_PROTOTYPE` (US-clock quote-volume anchoring; EU diagnostic does not classify). D13 is `NO_USEFUL_STRUCTURE` (observed reversal; practical gate failed). `INTERNAL_DISCOVERY_CARDS_EXECUTED = 10`. `INTERNAL_PROMISING_PROTOTYPES = 4`. `AUTOMATIC_SPRINT05 = false`. `POST_SPRINT04_AUTOMATION_MATURITY_DECISION` decided `HYPOTHESIS_GENERATOR_V0_INFRA_READY` (no Sprint 05; Generator V0 design frozen, not built, shadow-only). `NEXT_UNIT = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD`.
 
 # Signalbot Documentation Index
 
@@ -20,7 +20,7 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 Read these first:
 
 | `SIGNALBOT_MANDATE_V1.md` | **ACTIVE / CANONICAL STRATEGIC MANDATE** | Owner-approved project objective, anti-sycophancy rule, scientific/product/commercial mandate, agent operating principles, and amendment rules. Strategic authority; frozen experiment-specific scientific authorities still govern their own semantics. |
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; D7 is `PROMISING_PROTOTYPE` (confirmation candidate, not selected now); D8 deferred; Sprint 03 D9/D10 `NO_USEFUL_STRUCTURE`, D11 `PROMISING_PROTOTYPE`; Sprint 04 D12 `PROMISING_PROTOTYPE`, D13 `NO_USEFUL_STRUCTURE`; 2025/2026 sealed; `NEXT_UNIT = GENERATOR_V0_OUTPUT_LIMIT_AND_TERMINAL_USAGE_ACCOUNTING` |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; D7 is `PROMISING_PROTOTYPE` (confirmation candidate, not selected now); D8 deferred; Sprint 03 D9/D10 `NO_USEFUL_STRUCTURE`, D11 `PROMISING_PROTOTYPE`; Sprint 04 D12 `PROMISING_PROTOTYPE`, D13 `NO_USEFUL_STRUCTURE`; 2025/2026 sealed; `NEXT_UNIT = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD` |
 | `research/MECHANISM_MEMORY_V0.md` | **MECHANISM MEMORY V0 (EXTENDED THROUGH D13)** | Compact H01–H05 / B2-01–B2-06 / MARKET-01–06 / D1–D13 map; D12 `PROMISING_PROTOTYPE`; D13 `NO_USEFUL_STRUCTURE`; not a new framework |
 | `research/HETEROGENEOUS_FAMILY_ROTATION_V2.md` | **HYPOTHESIS GENERATION POLICY (FROZEN, CURRENT)** | Families A–I after D7; E cooldown; selected D/G/H as D10/D11/D9; true panel still absent; no MARKET-07 |
 | `research/DISCOVERY_SPRINT_03.md` | **DISCOVERY SPRINT 03 (CARD DEFINITION / IMPLEMENTATION FREEZE)** | Frozen cards D9/D10/D11; scientific outcomes live in RESULT files; do not mutate this freeze |
@@ -384,7 +384,7 @@ When adding documentation:
 
 ## Generator V0 implementation and shadow operation
 
-- `research/GENERATOR_V0_OPERATOR.md` — active run/preflight/resume and human audit commands.
+- `research/GENERATOR_V0_OPERATOR.md` — active run/preflight/resume and human audit commands; protected-data exclusion is the unambiguous `NO_LOOKAHEAD_RULE` form only.
 - `research/GENERATOR_V0_IMPLEMENTATION_PLAN.md` — requirement-to-checkpoint mapping.
 - `research/BLIND_MECHANISM_MAP_V0.json` — tracked outcome-neutral prior signatures.
 - `research/GOVERNANCE_REGION_AUTHORITY_V0.json` — frozen per-signature authority, excluded from Generator/Selector.
@@ -394,10 +394,13 @@ When adding documentation:
 - `research/GENERATOR_V0_ADVERSARIAL_REVIEW.md` — 25-class self-review, fixes and limits.
 - `research/generator_v0_checkpoints/` — durable checkpoint chain and compact mock evidence.
 
-Implementation state: `GENERATOR_V0_OUTPUT_LIMIT_AND_TERMINAL_USAGE_ACCOUNTING`.
+Implementation state: `GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD`.
 The archived partial paid runs `artifacts/generator_v0/first-shadow`,
 `artifacts/generator_v0/first-shadow-v2`,
-`artifacts/generator_v0/first-shadow-v3`, and
-`artifacts/generator_v0/first-shadow-v4` are sealed.
+`artifacts/generator_v0/first-shadow-v3`,
+`artifacts/generator_v0/first-shadow-v4`, and
+`artifacts/generator_v0/first-shadow-v5` are sealed.
+Offline `derive` may read `first-shadow-v5` as an immutable source and write
+a new destination; it must not POST or continue to generation:2.
 The original design's FROZEN_NOT_IMPLEMENTED label describes its historical
 freeze, not the current implementation state.

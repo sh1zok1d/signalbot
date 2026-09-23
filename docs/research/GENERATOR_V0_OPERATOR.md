@@ -6,9 +6,11 @@ selector remain Chat Completions with a 600-second HTTPS timeout. Frozen
 scientific design is unchanged. A successful campaign still terminates at
 `PENDING_HUMAN_REVIEW`. The archived partial paid runs
 `artifacts/generator_v0/first-shadow`, `artifacts/generator_v0/first-shadow-v2`,
-`artifacts/generator_v0/first-shadow-v3`, and
-`artifacts/generator_v0/first-shadow-v4` are sealed and the operator
-refuses to open them. One campaign generates
+`artifacts/generator_v0/first-shadow-v3`,
+`artifacts/generator_v0/first-shadow-v4`, and
+`artifacts/generator_v0/first-shadow-v5` are sealed and the operator
+refuses to open them for run/resume/review. Offline `derive` may read
+`first-shadow-v5` as an immutable source. One campaign generates
 research cards, applies separate critics and produces a human-review queue.
 It has no market-data reader, acquisition tool, evaluator or trading hook.
 A successful run terminates at `PENDING_HUMAN_REVIEW`.
@@ -43,8 +45,34 @@ python -m scripts.research.generator_v0 preflight --provider openai --allow-real
 budget and supplying the credential. Use a **new** run directory. Do not
 resume or overwrite `artifacts/generator_v0/first-shadow`,
 `artifacts/generator_v0/first-shadow-v2`,
-`artifacts/generator_v0/first-shadow-v3`, or
-`artifacts/generator_v0/first-shadow-v4`.
+`artifacts/generator_v0/first-shadow-v3`,
+`artifacts/generator_v0/first-shadow-v4`, or
+`artifacts/generator_v0/first-shadow-v5`.
+
+Offline COMPLETE carry-forward (no provider POST). Source remains
+byte-for-byte unchanged. Destination is a new run. Imported actual cost
+counts once against the source campaign cap. Revalidation uses the
+current application validator and then stops; it does not start
+generation:2.
+
+```bash
+python -m scripts.research.generator_v0 derive --source-run-dir artifacts/generator_v0/first-shadow-v5 --run-dir artifacts/generator_v0/first-shadow-v6 --through-generation 1
+```
+
+Derive revalidates imported COMPLETE rounds and stops at
+`DERIVED_IMPORTED_REVALIDATED`. It does not write the `cards` table and
+does not start generation:2. An explicit later authorization is required
+before remaining rounds may run:
+
+```bash
+python -m scripts.research.generator_v0 authorize-derived-continuation --run-dir artifacts/generator_v0/first-shadow-v6 --actor owner --reason "revalidation passed; continue remaining generator rounds"
+```
+
+That command makes no provider call. Direct run/resume from
+`DERIVED_IMPORTED_REVALIDATED` is refused. After
+`DERIVED_CONTINUATION_AUTHORIZED`, resume may reuse generation:0/1 and
+continue. Do not create a live first-shadow-v6 in the semantics-fix
+amendment; derive fresh after merge.
 
 ```bash
 python -m scripts.research.generator_v0 run --provider openai --allow-real-llm --budget-usd 10 --run-dir artifacts/generator_v0/shadow
@@ -148,4 +176,22 @@ identity. A GENERATOR `TimeoutError` before `response_id` is `UNCERTAIN`
 and is never automatically replayed. A terminal background Response with
 trustworthy usage persists actual cost under `FAILED` and is never parsed
 or retried.
+
+Protected-data validation is a requirement check on `DATA_REQUIRED` and
+`PROTECTED_DATA_REQUIREMENT`, not a whole-card search for the strings
+`2025`/`2026`. The only recognized `NO_LOOKAHEAD_RULE` exclusion is
+unambiguous "No 2025[/2026] <non-numeric subject> are/is permitted|allowed":
+the body cannot contain a digit, another year, or `. ; : ! ?`, and
+"not"/"forbidden" are not accepted. C018's "No 2025/2026 quotes ... are
+permitted." still passes. Open-ended and post-2024 observation-window
+aliases are applied recursively to all candidate content outside that
+exclusion. Bare "latest" or "current" is not enough: point-in-time
+wording such as "latest closed bar at or before T" or "current funding
+rate as-of T" is allowed. Explicit forms such as "latest available",
+"current bars", "through today", and "post-2024" fail. Ambiguous or
+open-ended ranges on unknown sources fail closed. The exact annotated
+form `Required historical window: <STRICT_RANGE>; <SAFE_COVERAGE_NOTE>`
+classifies as `<STRICT_RANGE>` only; the coverage note does not extend
+the window. Protected-year tokens in operational fields are hard fails.
+"outcomes measured in 2025" is not an exclusion.
 Resumable implementation checkpoints: `generator_v0_checkpoints/`.

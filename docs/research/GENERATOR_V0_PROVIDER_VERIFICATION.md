@@ -54,16 +54,19 @@ Sol and Luna do. When reasoning effort is not `none`, temperature / top_p /
 logprobs are not sent. Unknown models and missing verified prices fail closed.
 
 The archived partial runs `artifacts/generator_v0/first-shadow`,
-`first-shadow-v2`, `first-shadow-v3`, and `first-shadow-v4` are sealed
-and must not be resumed. Those snapshots are not in the live routing
-table. Do not retrofit archived ledgers.
+`first-shadow-v2`, `first-shadow-v3`, `first-shadow-v4`, and
+`first-shadow-v5` are sealed and must not be resumed. Those snapshots
+are not in the live routing table. Do not retrofit archived ledgers.
+Compatible COMPLETE calls may be copied into a new run only by the
+offline `derive` operator.
 
 Every object in the provider JSON Schema sets `additionalProperties: false`
 and lists every property as required. Frozen `SEARCH_SURFACE.PARAMETERS` is a
 dict; OpenAI strict schema cannot express free-form keys, so the provider
 encoding is an array of `{NAME,VALUES}` that is converted back to the frozen
-dict before application validation. Semantic checks (protected years, empty
-strings, unverified DATA_READY, lookahead language) remain application-side.
+dict before application validation. Semantic checks (required protected
+data, empty strings, unverified DATA_READY, lookahead language) remain
+application-side. Protected-year mention-only prose is not a hard fail.
 
 Transport has no automatic POST retries or redirects. Polling GET may
 retry on `TimeoutError`, `OSError`, and HTTP 5xx without creating a new

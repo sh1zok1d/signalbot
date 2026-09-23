@@ -2,10 +2,39 @@
 import json
 import math
 import re
-from .context import ContractError, canonical, digest
+from .context import ContractError, digest
 
 DATA_FIELDS={'DATASET','OBSERVABLE','STATUS','LEGAL_RANGE'}
 TEXT_FIELDS={'NAME','MECHANISM_FAMILY','MECHANISM','CAUSAL_OR_STRUCTURAL_STORY','INFORMATION_SOURCE','OBSERVABLE','FUNCTION','PRIMARY_TARGET','HORIZON','BASELINE_OR_NULL','FALSIFIER','NEAREST_TESTED_MECHANISM','MECHANISM_DISTANCE_ARGUMENT','WHY_NOT_A_RESCUE','MAIN_CONFOUNDERS','NO_LOOKAHEAD_RULE','DATA_GAP_CLASS','EXPECTED_IMPLEMENTATION_COST','WHAT_POSITIVE_WOULD_TEACH','WHAT_NULL_WOULD_ELIMINATE','EXPECTED_INFORMATION_GAIN'}
+PROTECTED_PERIOD_START=(2025,1)
+PROTECTED_CATALOG_DATASET='PROTECTED_2025_2026'
+PROTECTED_YEAR_TOKEN=re.compile(r'(?<!\d)202[56](?!\d)')
+# Unambiguous exclusion only: "No 2025[/2026] <non-numeric subject> are/is permitted|allowed".
+# Body cannot contain digits, another year, or `. ; : ! ?`. No "not"/"forbidden".
+PROTECTED_EXCLUSION_STATEMENT=re.compile(
+    r'(?i)\bno\s+202[56](?:\s*/\s*202[56])?\b[^\d.;:!?]{0,240}\b(?:are|is)\s+(?:permitted|allowed)\b'
+)
+# Explicit observation-window / open-ended / post-2024 aliases only.
+# Bare "latest" or "current" is not sufficient (point-in-time wording allowed).
+OPEN_ENDED_OR_POST2024=re.compile(
+    r'(?i)(?:'
+    r'\blatest\s+(?:available|data|quotes|prices?|observations?|closes|bars)\b'
+    r'|\blatest\s*/\s*current\b'
+    r'|\bcurrent\s+(?:bars|quotes|closes|prices?|data|available|window|range|period|observations?|markets?)\b'
+    r'|\bthrough\s+(?:today|present)\b'
+    r'|\buntil\s+present\b'
+    r'|\bup\s+to\s+now\b'
+    r'|\bopen-?ended\b'
+    r'|\bpost-2024\b'
+    r'|\bafter\s+2024\b'
+    r'|\bsince\s+2024\b'
+    r'|\b2024\+'
+    r'|\b2024(?:-\d{2})?\s+onwards?\b'
+    r'|\b2024\s+and\s+later\b'
+    r'|\b2024-present\b'
+    r'|\byear\s+after\s+2024\b'
+    r')'
+)
 
 def parse_json(raw):
     def pairs(items):
@@ -21,6 +50,111 @@ def parse_json(raw):
 
 def text(value):
     return isinstance(value,str) and bool(value.strip()) and len(value)<=12000
+
+# Exact v5 annotated form only. Not "extract the first date range from prose".
+_ANNOTATED_LEGAL_RANGE=re.compile(
+    r'(?is)\Arequired\s+historical\s+window:\s*'
+    r'(?P<range>\d{4}-\d{2}\.\.\d{4}-\d{2}|\d{4}\.\.\d{4}|pre-\d{4})\s*;\s*'
+    r'(?P<note>coverage\s+unverified\s+and\s+not\s+catalogued|no\s+known\s+public\s+coverage)\s*\Z'
+)
+
+def _classify_strict_range(text):
+    month=re.fullmatch(r'(\d{4})-(\d{2})\.\.(\d{4})-(\d{2})',text)
+    if month:
+        y1,m1,y2,m2=map(int,month.groups())
+        if not (1<=m1<=12 and 1<=m2<=12):return {'KIND':'AMBIGUOUS'}
+        start,end=(y1,m1),(y2,m2)
+        if start>end:return {'KIND':'AMBIGUOUS'}
+        return {'KIND':'BOUNDED','START':start,'END':end}
+    year=re.fullmatch(r'(\d{4})\.\.(\d{4})',text)
+    if year:
+        y1,y2=map(int,year.groups())
+        start,end=(y1,1),(y2,12)
+        if start>end:return {'KIND':'AMBIGUOUS'}
+        return {'KIND':'BOUNDED','START':start,'END':end}
+    pre=re.fullmatch(r'pre-(\d{4})',text)
+    if pre:
+        y=int(pre.group(1))
+        if y<1:return {'KIND':'AMBIGUOUS'}
+        return {'KIND':'BOUNDED','START':None,'END':(y-1,12)}
+    return {'KIND':'AMBIGUOUS'}
+
+def classify_legal_range(value):
+    """Deterministic classifier for frozen catalog LEGAL_RANGE forms. Fail closed."""
+    if not isinstance(value,str):return {'KIND':'AMBIGUOUS'}
+    text=value.strip()
+    if text=='per snapshot':return {'KIND':'PER_SNAPSHOT'}
+    classified=_classify_strict_range(text)
+    if classified['KIND']!='AMBIGUOUS':return classified
+    annotated=_ANNOTATED_LEGAL_RANGE.fullmatch(text)
+    if not annotated:return {'KIND':'AMBIGUOUS'}
+    return _classify_strict_range(annotated.group('range'))
+
+def legal_range_includes_protected(classified):
+    return classified.get('KIND')=='BOUNDED' and classified['END']>=PROTECTED_PERIOD_START
+
+def contains_protected_year(value):
+    if isinstance(value,dict):
+        return any((isinstance(k,str) and PROTECTED_YEAR_TOKEN.search(k)) or contains_protected_year(v) for k,v in value.items())
+    if isinstance(value,list):
+        return any(contains_protected_year(v) for v in value)
+    if type(value) is int and value in (2025,2026):return True
+    if isinstance(value,str) and PROTECTED_YEAR_TOKEN.search(value):return True
+    return False
+
+def contains_open_ended_or_post2024(value):
+    if isinstance(value,dict):
+        return any((isinstance(k,str) and OPEN_ENDED_OR_POST2024.search(k)) or contains_open_ended_or_post2024(v) for k,v in value.items())
+    if isinstance(value,list):
+        return any(contains_open_ended_or_post2024(v) for v in value)
+    return isinstance(value,str) and OPEN_ENDED_OR_POST2024.search(value) is not None
+
+def text_outside_exclusions(text):
+    if not isinstance(text,str):return ''
+    parts=[];last=0
+    for match in PROTECTED_EXCLUSION_STATEMENT.finditer(text):
+        parts.append(text[last:match.start()]);last=match.end()
+    parts.append(text[last:])
+    return ' '.join(parts)
+
+def years_only_in_exclusions(text):
+    if not isinstance(text,str):return False
+    spans=[m.span() for m in PROTECTED_EXCLUSION_STATEMENT.finditer(text)]
+    for token in PROTECTED_YEAR_TOKEN.finditer(text):
+        if not any(start<=token.start() and token.end()<=end for start,end in spans):
+            return False
+    return True
+
+def assert_protected_semantics(card):
+    """Fail closed if the candidate requires protected 2025/2026 observations.
+
+    Recognized exclusion statements are allowed only in NO_LOOKAHEAD_RULE.
+    """
+    if card.get('PROTECTED_DATA_REQUIREMENT') is not False:
+        raise ContractError('protected data requirement')
+    rule=card.get('NO_LOOKAHEAD_RULE')
+    if not years_only_in_exclusions(rule):raise ContractError('protected data requirement')
+    if contains_open_ended_or_post2024(text_outside_exclusions(rule)):raise ContractError('protected data requirement')
+    rest={k:v for k,v in card.items() if k!='NO_LOOKAHEAD_RULE'}
+    if contains_protected_year(rest) or contains_open_ended_or_post2024(rest):
+        raise ContractError('protected data requirement')
+
+def assert_required_data_legal(row,known):
+    """DATA_REQUIRED legal range is necessary, not sufficient, for protected-data safety."""
+    dataset=row['DATASET']
+    if dataset==PROTECTED_CATALOG_DATASET or (known and known.get('STATUS')=='FORBIDDEN_HARD_FAIL'):
+        raise ContractError('protected source')
+    classified=classify_legal_range(row['LEGAL_RANGE'])
+    if known is not None:
+        catalog=classify_legal_range(known.get('LEGAL_RANGE'))
+        if legal_range_includes_protected(catalog):raise ContractError('protected catalog legal range')
+        if classified['KIND']=='PER_SNAPSHOT':return
+        if classified['KIND']=='BOUNDED' and not legal_range_includes_protected(classified):return
+        if classified['KIND']=='BOUNDED':raise ContractError('protected legal range')
+        raise ContractError('ambiguous protected range')
+    if classified['KIND']=='BOUNDED' and not legal_range_includes_protected(classified):return
+    if classified['KIND']=='BOUNDED':raise ContractError('protected legal range')
+    raise ContractError('ambiguous protected range')
 
 def validate_card(card, contexts):
     # SEARCH_SURFACE has dynamic parameter names; forbidden scoring fields must
@@ -45,7 +179,7 @@ def validate_card(card, contexts):
     if any(not text(card[f]) for f in TEXT_FIELDS):raise ContractError('empty or malformed candidate field')
     if card['MECHANISM_FAMILY'] not in set(contexts.families)|{'NEW_FAMILY_PROPOSAL'}:
         raise ContractError('unknown family; use NEW_FAMILY_PROPOSAL')
-    if card['PROTECTED_DATA_REQUIREMENT'] is not False or re.search(r'\b202[56]\b',canonical(card)):
+    if card['PROTECTED_DATA_REQUIREMENT'] is not False:
         raise ContractError('protected data requirement')
     if card['DATA_STATUS'] not in d['DATA_STATUS_TAXONOMY']:raise ContractError('unknown data status')
     req=card['DATA_REQUIRED']
@@ -57,7 +191,8 @@ def validate_card(card, contexts):
         known=contexts.catalog.get(row['DATASET'])
         if row['STATUS']=='DATA_READY' and (known is None or known['STATUS']!='DATA_READY'):
             raise ContractError('unverified source claimed ready')
-        if known and known['STATUS']=='FORBIDDEN_HARD_FAIL':raise ContractError('protected source')
+        assert_required_data_legal(row,known)
+    assert_protected_semantics(card)
     statuses={r['STATUS'] for r in req}
     if card['DATA_STATUS']=='DATA_READY' and statuses!={'DATA_READY'}:raise ContractError('aggregate status mismatch')
     if card['DATA_STATUS'] not in statuses:raise ContractError('aggregate status absent from requirements')
