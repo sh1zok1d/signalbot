@@ -189,7 +189,9 @@ exclusion. Bare "latest" or "current" is not enough: point-in-time
 wording such as "latest closed bar at or before T" or "current funding
 rate as-of T" is allowed. Explicit forms such as "latest available",
 "current bars", "through today", and "post-2024" fail. Ambiguous or
-open-ended ranges on unknown sources fail closed. Protected-year tokens
-in operational fields are hard fails. "outcomes measured in 2025" is not
-an exclusion.
+open-ended ranges on unknown sources fail closed. The exact annotated
+form `Required historical window: <STRICT_RANGE>; <SAFE_COVERAGE_NOTE>`
+classifies as `<STRICT_RANGE>` only; the coverage note does not extend
+the window. Protected-year tokens in operational fields are hard fails.
+"outcomes measured in 2025" is not an exclusion.
 Resumable implementation checkpoints: `generator_v0_checkpoints/`.

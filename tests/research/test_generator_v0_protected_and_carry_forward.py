@@ -10,7 +10,7 @@ from scripts.research.generator_v0.ledger import Ledger
 from scripts.research.generator_v0.mock import fixture,slot_plan
 from scripts.research.generator_v0.provider import Caller,MockProvider
 from scripts.research.generator_v0.runner import run_campaign
-from scripts.research.generator_v0.schema import validate_card
+from scripts.research.generator_v0.schema import validate_card,classify_legal_range
 from scripts.research.generator_v0.__main__ import main
 
 FIXTURE=Path(__file__).resolve().parent/'fixtures'/'generator_v0_c018.json'
@@ -143,6 +143,34 @@ def test_safe_frozen_catalog_per_snapshot_passes():
     x=base_card()
     x['DATA_REQUIRED']=[{'DATASET':'MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0','OBSERVABLE':'spot 1h','STATUS':'DATA_READY','LEGAL_RANGE':'per snapshot'}]
     validate_card(x,Contexts())
+
+@pytest.mark.parametrize('rng',[
+    'Required historical window: 2020-01..2024-12; coverage unverified and not catalogued',
+    'Required historical window: 2020-01..2024-12; no known public coverage',
+    'Required historical window: 2022-01..2024-12; coverage unverified and not catalogued',
+])
+def test_real_v5_annotated_legal_range_passes(rng):
+    inner=rng.split(':',1)[1].split(';',1)[0].strip()
+    assert classify_legal_range(rng)==classify_legal_range(inner)
+    x=base_card()
+    x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['quotes'],DATA_GAP_CLASS='COST')
+    x['DATA_REQUIRED']=[{'DATASET':'PROSPECTIVE_UNKNOWN_QUOTES','OBSERVABLE':'quotes','STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':rng}]
+    validate_card(x,Contexts())
+
+@pytest.mark.parametrize('rng,match',[
+    ('Required historical window: 2020-01..2025-01; coverage unverified and not catalogued','protected legal range'),
+    ('Required historical window: 2020-01..2024-12; use 2025 if available','ambiguous protected range'),
+    ('Required historical window: 2020-01..2024-12; through present','ambiguous protected range'),
+    ('Required historical window: 2020-01..2024-12; latest available','ambiguous protected range'),
+    ('Required historical window: 2020-01..2024-12; then evaluate next year','ambiguous protected range'),
+    ('Historical window maybe 2020-01..2024-12','ambiguous protected range'),
+    ('2020-01..2024-12; coverage unverified and not catalogued; extra text','ambiguous protected range'),
+])
+def test_unsafe_annotated_legal_range_fails(rng,match):
+    x=base_card()
+    x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['x'],DATA_GAP_CLASS='COST')
+    x['DATA_REQUIRED']=[{'DATASET':'unknown','OBSERVABLE':'x','STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':rng}]
+    with pytest.raises(ContractError,match=match):validate_card(x,Contexts())
 
 @pytest.mark.parametrize('dataset,rng,match',[
     ('PROTECTED_2025_2026','2020-01..2024-12','protected source'),

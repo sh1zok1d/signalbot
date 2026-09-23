@@ -51,11 +51,14 @@ def parse_json(raw):
 def text(value):
     return isinstance(value,str) and bool(value.strip()) and len(value)<=12000
 
-def classify_legal_range(value):
-    """Deterministic classifier for frozen catalog LEGAL_RANGE forms. Fail closed."""
-    if not isinstance(value,str):return {'KIND':'AMBIGUOUS'}
-    text=value.strip()
-    if text=='per snapshot':return {'KIND':'PER_SNAPSHOT'}
+# Exact v5 annotated form only. Not "extract the first date range from prose".
+_ANNOTATED_LEGAL_RANGE=re.compile(
+    r'(?is)\Arequired\s+historical\s+window:\s*'
+    r'(?P<range>\d{4}-\d{2}\.\.\d{4}-\d{2}|\d{4}\.\.\d{4}|pre-\d{4})\s*;\s*'
+    r'(?P<note>coverage\s+unverified\s+and\s+not\s+catalogued|no\s+known\s+public\s+coverage)\s*\Z'
+)
+
+def _classify_strict_range(text):
     month=re.fullmatch(r'(\d{4})-(\d{2})\.\.(\d{4})-(\d{2})',text)
     if month:
         y1,m1,y2,m2=map(int,month.groups())
@@ -75,6 +78,17 @@ def classify_legal_range(value):
         if y<1:return {'KIND':'AMBIGUOUS'}
         return {'KIND':'BOUNDED','START':None,'END':(y-1,12)}
     return {'KIND':'AMBIGUOUS'}
+
+def classify_legal_range(value):
+    """Deterministic classifier for frozen catalog LEGAL_RANGE forms. Fail closed."""
+    if not isinstance(value,str):return {'KIND':'AMBIGUOUS'}
+    text=value.strip()
+    if text=='per snapshot':return {'KIND':'PER_SNAPSHOT'}
+    classified=_classify_strict_range(text)
+    if classified['KIND']!='AMBIGUOUS':return classified
+    annotated=_ANNOTATED_LEGAL_RANGE.fullmatch(text)
+    if not annotated:return {'KIND':'AMBIGUOUS'}
+    return _classify_strict_range(annotated.group('range'))
 
 def legal_range_includes_protected(classified):
     return classified.get('KIND')=='BOUNDED' and classified['END']>=PROTECTED_PERIOD_START

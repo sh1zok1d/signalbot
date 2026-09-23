@@ -5757,3 +5757,15 @@ removes only those bare alternatives. Explicit observation-window forms
 the rest of the frozen alias list) still fail. F1–F4 remain closed.
 F5–F9 remain `DEFERRED_NONBLOCKING_RED_TEAM_FINDING`. No paid LLM call.
 No first-shadow-v6. No scientific outcome.
+
+## 2026-09-23 — PR #210 annotated LEGAL_RANGE compatibility
+
+Read-only revalidation of immutable `first-shadow-v5` found five cards
+failing `ambiguous protected range` because `LEGAL_RANGE` used
+`Required historical window: YYYY-MM..YYYY-MM; <coverage note>`. This
+closeout teaches `classify_legal_range` that exact annotated form only;
+the returned class is the inner strict range. Unsafe prefixes, extra
+ranges, trailing years/open-ended notes, and extra text still fail.
+Cards were not edited. F1–F4 and H1 remain closed. F5–F9 remain
+`DEFERRED_NONBLOCKING_RED_TEAM_FINDING`. No paid LLM call. No
+first-shadow-v6. No scientific outcome.

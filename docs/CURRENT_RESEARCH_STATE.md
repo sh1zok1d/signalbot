@@ -5,7 +5,9 @@ Archived paid runs `artifacts/generator_v0/first-shadow` through
 `first-shadow-v5` remain sealed. This unit is infrastructure only: the
 application validator hard-fails a candidate that *requires* protected
 2025/2026 data (flag, forbidden catalog source, or DATA_REQUIRED legal
-range), not a whole-card year regex. The only recognized
+range), not a whole-card year regex. Exact annotated
+`Required historical window: <STRICT_RANGE>; <SAFE_COVERAGE_NOTE>`
+classifies as the inner range only. The only recognized
 `NO_LOOKAHEAD_RULE` exclusion is unambiguous "No 2025[/2026] <subject>
 are/is permitted|allowed"; open-ended and post-2024 aliases fail closed
 outside that span (bare "latest"/"current" are not enough). Offline
