@@ -5920,3 +5920,28 @@ Outcome-blind design amendments: hard fail per candidate, MIN_VALID_CANDIDATES
 = 25, diversity controls on the attempted slot plan, advisory selector call
 with the deterministic ordinal order authoritative. Record:
 `docs/research/GENERATOR_V0_PRE_LIVE_REPAIR.{json,md}`.
+
+## 2026-09-23 — Generator V0 PR #214 independent verification
+
+No research window, hypothesis or card consumed. No paid call, no protected
+data, no scientific outcome, no v6/v7 resume, no implementation patch.
+Independent corpus (207 cards) and audit tests (35 passed) of PR #214
+HEAD `ddda586dc7ea4a9589bc389eef7a6306d64f3d0c`. Verdict
+`B. LIMITED OFFLINE REPAIR REQUIRED`. v7 cumulative spend independently
+4,946,750 micro-USD. Sealed v7 SHA256 unchanged.
+Record: `docs/research/GENERATOR_V0_PR214_INDEPENDENT_VERIFICATION.{json,md}`.
+
+```
+UNIT = GENERATOR_V0_PR214_INDEPENDENT_VERIFICATION
+VERDICT = LIMITED_OFFLINE_REPAIR_REQUIRED
+READY_FOR_PROVIDER_SMOKE_TEST = false
+READY_FOR_LIVE_SHADOW = false
+V7_CUMULATIVE_MICRO_USD = 4946750
+FRESH_40_SLOT_WORST_CASE_MICRO_USD = 22144366
+NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_LIMITED_OFFLINE_REPAIR_REQUIRED
+NEXT_ACTION = LIMITED_OFFLINE_REPAIR_THEN_PROVIDER_SMOKE_TEST_NOT_LIVE_SHADOW
+REAL_LLM_CALLS_MADE = false
+PROTECTED_2025_2026_OPENED = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+IMPLEMENTATION_PATCHED = false
+```

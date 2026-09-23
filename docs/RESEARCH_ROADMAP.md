@@ -1,3 +1,12 @@
+## Generator V0 PR #214 independent verification — 2026-09-23
+
+`NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_LIMITED_OFFLINE_REPAIR_REQUIRED`.
+Independent verifier of PR #214. Verdict `B. LIMITED OFFLINE REPAIR REQUIRED`.
+Not ready for a provider smoke test or another live shadow. No paid call.
+See `docs/research/GENERATOR_V0_PR214_INDEPENDENT_VERIFICATION.md`.
+
+---
+
 ## Generator V0 pre-live repair (offline) — 2026-09-23
 
 `NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`.
@@ -30,7 +39,7 @@ historical labels.
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-23
-**Current phase:** `GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`
+**Current phase:** `GENERATOR_V0_PRE_LIVE_REPAIR_LIMITED_OFFLINE_REPAIR_REQUIRED`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 
