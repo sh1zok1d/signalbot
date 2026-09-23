@@ -1,22 +1,18 @@
-## Generator V0 protected-data semantics and COMPLETE carry-forward — 2026-09-23
+## Generator V0 LEGAL_RANGE wrappers and audited campaign-cap extension — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD`.
+`NEXT_UNIT = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION`.
 Archived paid runs `artifacts/generator_v0/first-shadow` through
-`first-shadow-v5` remain sealed. This unit is infrastructure only: the
-application validator hard-fails a candidate that *requires* protected
-2025/2026 data (flag, forbidden catalog source, or DATA_REQUIRED legal
-range), not a whole-card year regex. Exact annotated
-`Required historical window: <STRICT_RANGE>; <SAFE_COVERAGE_NOTE>`
-classifies as the inner range only. The only recognized
-`NO_LOOKAHEAD_RULE` exclusion is unambiguous "No 2025[/2026] <subject>
-are/is permitted|allowed"; open-ended and post-2024 aliases fail closed
-outside that span (bare "latest"/"current" are not enough). Offline
-derive can carry exact-compatible COMPLETE Generator
-calls from an immutable source run into a new destination without a POST.
-Do not continue to generation:2 in this unit. No new paid LLM call. No
-scientific interpretation, acquisition, Sprint05, D14, MARKET-07, or
-protected-data open. Frozen design/historical records retain their
-historical labels.
+`first-shadow-v6` remain sealed. `first-shadow-v6` is readable as an
+immutable derive source only. This unit is infrastructure only: exact
+generation:2 prose wrappers classify as their inner strict LEGAL_RANGE;
+free prose with a range stays AMBIGUOUS. Offline
+`authorize-budget-extension` may raise an existing campaign cap (never
+decrease; max USD 30) without rewriting calls, responses, costs, or
+cards. Prove derive through generation:2 on a TEMP scratch destination.
+Do not create live `first-shadow-v7` in this unit. Do not replay
+generation:2. No new paid LLM call. No scientific interpretation,
+acquisition, Sprint05, D14, MARKET-07, or protected-data open. Frozen
+design/historical records retain their historical labels.
 
 ---
 
@@ -24,7 +20,7 @@ historical labels.
 
 **Status date:** 2026-09-23
 **Status:** `ACTIVE / CANONICAL ROUTING INDEX`  
-**Main integration baseline before this status commit:** `d2a62da6e5c907def603a258505b9cc1f92ae3a5`
+**Main integration baseline before this status commit:** `ea024cfee63b1dd7c917ec81b6dd39838b2fecd5`
 
 This file is the compact answer to “what controls the project now?”. Frozen preregistrations/results remain authoritative for reproducing their own experiments; this file controls current routing only.
 
@@ -59,7 +55,7 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD
+NEXT_UNIT                   = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION
 NEXT_ACTION                 = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED

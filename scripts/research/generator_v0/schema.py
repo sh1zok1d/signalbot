@@ -20,7 +20,8 @@ OPEN_ENDED_OR_POST2024=re.compile(
     r'(?i)(?:'
     r'\blatest\s+(?:available|data|quotes|prices?|observations?|closes|bars)\b'
     r'|\blatest\s*/\s*current\b'
-    r'|\bcurrent\s+(?:bars|quotes|closes|prices?|data|available|window|range|period|observations?|markets?)\b'
+    r'|\bcurrent\s+(?:bars|quotes|closes|prices?|data|available|window|range|period|markets?)\b'
+    r'|\bcurrent\s+observation\s+window\b'
     r'|\bthrough\s+(?:today|present)\b'
     r'|\buntil\s+present\b'
     r'|\bup\s+to\s+now\b'
@@ -51,12 +52,98 @@ def parse_json(raw):
 def text(value):
     return isinstance(value,str) and bool(value.strip()) and len(value)<=12000
 
-# Exact v5 annotated form only. Not "extract the first date range from prose".
-_ANNOTATED_LEGAL_RANGE=re.compile(
-    r'(?is)\Arequired\s+historical\s+window:\s*'
-    r'(?P<range>\d{4}-\d{2}\.\.\d{4}-\d{2}|\d{4}\.\.\d{4}|pre-\d{4})\s*;\s*'
-    r'(?P<note>coverage\s+unverified\s+and\s+not\s+catalogued|no\s+known\s+public\s+coverage)\s*\Z'
+# Strict inner range used by every recognized wrapper. Not a prose search.
+_STRICT_RANGE_TOKEN=r'(?P<range>\d{4}-\d{2}\.\.\d{4}-\d{2}|\d{4}\.\.\d{4}|pre-\d{4})'
+_YEAR_OR_RANGE=re.compile(r'pre-\d{4}|\d{4}-\d{2}\.\.\d{4}-\d{2}|\d{4}\.\.\d{4}|(?<!\d)(?:19|20)\d{2}(?!\d)')
+# v5: Required historical window: <RANGE>; <SAFE_COVERAGE_NOTE>
+_V5_ANNOTATED_LEGAL_RANGE=re.compile(
+    r'(?is)\Arequired\s+historical\s+window:\s*'+_STRICT_RANGE_TOKEN+r'\s*;\s*'
+    r'(?:coverage\s+unverified\s+and\s+not\s+catalogued|no\s+known\s+public\s+coverage)\s*\Z'
 )
+# gen2 families. Each has exactly the inspected wrapper; no first-range extraction.
+_GEN2_EVENT_RECONSTRUCTION=re.compile(
+    r'(?is)\Aproposed\s+event\s+reconstruction\s+within\s*'+_STRICT_RANGE_TOKEN+r'\s*;\s*'
+    r'pre-(?P<anc>\d{4})\s+ancestry\s+only\s+to\s+establish\s+output\s+ages\.\s*'
+    r'no\s+catalog-authorized\s+(?P<subject>[^\d.;:!?]+?)\s+archive\s+is\s+claimed\.\s*\Z'
+)
+_GEN2_PROPOSED_CLAIMED=re.compile(
+    r'(?is)\Aproposed\s+(?P<head>[^\d.;:!?]+?)\s+'
+    r'(?:limited\s+to|effective\s+within|strictly)\s+'
+    +_STRICT_RANGE_TOKEN+r'\s*;\s*'
+    r'no\s+catalog-authorized\s+(?P<subject>[^\d.;:!?]+?)\s+(?:coverage|archive)\s+is\s+claimed\.\s*\Z'
+)
+_GEN2_REQUIRED_UNPROVEN=re.compile(
+    r'(?is)\Arequired\s+(?P<head>[^\d.;:!?]+?)\s+(?:limited\s+to|for)\s+'
+    +_STRICT_RANGE_TOKEN+r'\s*(?:only\s*)?;\s*'
+    r'(?:historical\s+authority\s+is\s+unproven|original\s+pre-expiry\s+publication\s+authority\s+is\s+unproven)\.\s*\Z'
+)
+_GEN2_PUBLIC_BENCHMARK=re.compile(
+    r'(?is)\Apublic\s+benchmark\s+published\s+before\s+(?P<pub>\d{4})\s*;\s*'
+    r'panel\s+evaluation\s+limited\s+to\s+legal\s+'+_STRICT_RANGE_TOKEN+r'\s+bars\.\s*\Z'
+)
+
+def _non_temporal_ok(text):
+    if not isinstance(text,str):return False
+    s=' '.join(text.split())
+    if not s or re.search(r'\d',s):return False
+    if OPEN_ENDED_OR_POST2024.search(s):return False
+    return True
+
+def _without_groups(text,match,names):
+    leftover=text
+    for start,end in sorted(((match.start(n),match.end(n)) for n in names), reverse=True):
+        leftover=leftover[:start]+' '+leftover[end:]
+    return leftover
+
+def _has_year_or_range(text):
+    return _YEAR_OR_RANGE.search(text) is not None
+
+def _range_start_year(classified):
+    if classified.get('KIND')!='BOUNDED':return None
+    start=classified.get('START')
+    if start is None:return None
+    return start[0]
+
+def _extract_wrapped_strict_range(text):
+    """Return the inner STRICT_RANGE from a recognized wrapper, else None."""
+    m=_V5_ANNOTATED_LEGAL_RANGE.fullmatch(text)
+    if m:return m.group('range')
+    m=_GEN2_EVENT_RECONSTRUCTION.fullmatch(text)
+    if m:
+        if not _non_temporal_ok(m.group('subject')):return None
+        classified=_classify_strict_range(m.group('range'))
+        if classified['KIND']!='BOUNDED':return None
+        anc=int(m.group('anc'))
+        start_year=_range_start_year(classified)
+        if start_year is None:
+            if classified['END']!=(anc-1,12):return None
+        elif anc>start_year:return None
+        leftover=_without_groups(text,m,('range','anc'))
+        if _has_year_or_range(leftover):return None
+        return m.group('range')
+    m=_GEN2_PROPOSED_CLAIMED.fullmatch(text)
+    if m:
+        if not _non_temporal_ok(m.group('head')) or not _non_temporal_ok(m.group('subject')):return None
+        leftover=_without_groups(text,m,('range',))
+        if _has_year_or_range(leftover):return None
+        return m.group('range')
+    m=_GEN2_REQUIRED_UNPROVEN.fullmatch(text)
+    if m:
+        if not _non_temporal_ok(m.group('head')):return None
+        leftover=_without_groups(text,m,('range',))
+        if _has_year_or_range(leftover):return None
+        return m.group('range')
+    m=_GEN2_PUBLIC_BENCHMARK.fullmatch(text)
+    if m:
+        pub=int(m.group('pub'))
+        if pub in (2025,2026):return None
+        classified=_classify_strict_range(m.group('range'))
+        if classified['KIND']!='BOUNDED':return None
+        if classified['END'][0]<pub-1:return None
+        leftover=_without_groups(text,m,('range','pub'))
+        if _has_year_or_range(leftover):return None
+        return m.group('range')
+    return None
 
 def _classify_strict_range(text):
     month=re.fullmatch(r'(\d{4})-(\d{2})\.\.(\d{4})-(\d{2})',text)
@@ -86,9 +173,9 @@ def classify_legal_range(value):
     if text=='per snapshot':return {'KIND':'PER_SNAPSHOT'}
     classified=_classify_strict_range(text)
     if classified['KIND']!='AMBIGUOUS':return classified
-    annotated=_ANNOTATED_LEGAL_RANGE.fullmatch(text)
-    if not annotated:return {'KIND':'AMBIGUOUS'}
-    return _classify_strict_range(annotated.group('range'))
+    wrapped=_extract_wrapped_strict_range(text)
+    if wrapped is None:return {'KIND':'AMBIGUOUS'}
+    return _classify_strict_range(wrapped)
 
 def legal_range_includes_protected(classified):
     return classified.get('KIND')=='BOUNDED' and classified['END']>=PROTECTED_PERIOD_START

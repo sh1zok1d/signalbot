@@ -7,10 +7,11 @@ scientific design is unchanged. A successful campaign still terminates at
 `PENDING_HUMAN_REVIEW`. The archived partial paid runs
 `artifacts/generator_v0/first-shadow`, `artifacts/generator_v0/first-shadow-v2`,
 `artifacts/generator_v0/first-shadow-v3`,
-`artifacts/generator_v0/first-shadow-v4`, and
-`artifacts/generator_v0/first-shadow-v5` are sealed and the operator
+`artifacts/generator_v0/first-shadow-v4`,
+`artifacts/generator_v0/first-shadow-v5`, and
+`artifacts/generator_v0/first-shadow-v6` are sealed and the operator
 refuses to open them for run/resume/review. Offline `derive` may read
-`first-shadow-v5` as an immutable source. One campaign generates
+`first-shadow-v6` as an immutable source. One campaign generates
 research cards, applies separate critics and produces a human-review queue.
 It has no market-data reader, acquisition tool, evaluator or trading hook.
 A successful run terminates at `PENDING_HUMAN_REVIEW`.
@@ -46,33 +47,50 @@ budget and supplying the credential. Use a **new** run directory. Do not
 resume or overwrite `artifacts/generator_v0/first-shadow`,
 `artifacts/generator_v0/first-shadow-v2`,
 `artifacts/generator_v0/first-shadow-v3`,
-`artifacts/generator_v0/first-shadow-v4`, or
-`artifacts/generator_v0/first-shadow-v5`.
+`artifacts/generator_v0/first-shadow-v4`,
+`artifacts/generator_v0/first-shadow-v5`, or
+`artifacts/generator_v0/first-shadow-v6`.
 
 Offline COMPLETE carry-forward (no provider POST). Source remains
 byte-for-byte unchanged. Destination is a new run. Imported actual cost
 counts once against the source campaign cap. Revalidation uses the
-current application validator and then stops; it does not start
-generation:2.
+current application validator. `--through-generation 2` imports
+generation:0/1/2 and then stops; it does not start generation:3.
 
 ```bash
-python -m scripts.research.generator_v0 derive --source-run-dir artifacts/generator_v0/first-shadow-v5 --run-dir artifacts/generator_v0/first-shadow-v6 --through-generation 1
+python -m scripts.research.generator_v0 derive --source-run-dir artifacts/generator_v0/first-shadow-v6 --run-dir artifacts/generator_v0/first-shadow-v7 --through-generation 2
 ```
 
 Derive revalidates imported COMPLETE rounds and stops at
 `DERIVED_IMPORTED_REVALIDATED`. It does not write the `cards` table and
-does not start generation:2. An explicit later authorization is required
-before remaining rounds may run:
+does not start remaining generator rounds. An explicit later
+authorization is required before remaining rounds may run:
 
 ```bash
-python -m scripts.research.generator_v0 authorize-derived-continuation --run-dir artifacts/generator_v0/first-shadow-v6 --actor owner --reason "revalidation passed; continue remaining generator rounds"
+python -m scripts.research.generator_v0 authorize-derived-continuation --run-dir artifacts/generator_v0/first-shadow-v7 --actor owner --reason "revalidation passed; continue remaining generator rounds"
 ```
 
 That command makes no provider call. Direct run/resume from
 `DERIVED_IMPORTED_REVALIDATED` is refused. After
-`DERIVED_CONTINUATION_AUTHORIZED`, resume may reuse generation:0/1 and
-continue. Do not create a live first-shadow-v6 in the semantics-fix
-amendment; derive fresh after merge.
+`DERIVED_CONTINUATION_AUTHORIZED`, resume may reuse imported COMPLETE
+rounds and continue. Do not create a live first-shadow-v7 in this
+LEGAL_RANGE / budget-extension unit; prove derive on a TEMP scratch
+destination and derive v7 after merge.
+
+Offline campaign-cap extension (no provider POST). Existing run required.
+Actor, reason, and explicit new cap required. The new cap must exceed the
+old cap, cannot decrease, and cannot exceed USD 30. The command rewrites
+only `CAP_MICRO_USD` and records an immutable
+`BUDGET_EXTENSION_AUTHORIZED` event (`OLD_CAP_MICRO_USD`,
+`NEW_CAP_MICRO_USD`, `ACTOR`, `REASON`, `TIME`). Call identities,
+responses, costs, and scientific state are unchanged. Owner-authorized
+example after a post-merge v7 derive (old USD 7.117536, new USD 17.117536):
+
+```bash
+python -m scripts.research.generator_v0 authorize-budget-extension --run-dir artifacts/generator_v0/first-shadow-v7 --actor owner --reason "owner authorized additional USD 10" --new-cap-usd 17.117536
+```
+
+Do not run that command against sealed `first-shadow-v6`.
 
 ```bash
 python -m scripts.research.generator_v0 run --provider openai --allow-real-llm --budget-usd 10 --run-dir artifacts/generator_v0/shadow
@@ -192,6 +210,15 @@ rate as-of T" is allowed. Explicit forms such as "latest available",
 open-ended ranges on unknown sources fail closed. The exact annotated
 form `Required historical window: <STRICT_RANGE>; <SAFE_COVERAGE_NOTE>`
 classifies as `<STRICT_RANGE>` only; the coverage note does not extend
-the window. Protected-year tokens in operational fields are hard fails.
+the window. Inspected generation:2 wrappers with exactly one strict range
+and a bounded provenance/coverage suffix classify as that inner range
+only: `Proposed <head> limited to|effective within|strictly <STRICT_RANGE>;
+no catalog-authorized <NON_TEMPORAL_SUBJECT> coverage|archive is claimed.`;
+event reconstruction with pre-YYYY ancestry that cannot extend the window;
+required unproven-authority forms; and public-benchmark publication vintage
+plus a legal evaluation range. `NON_TEMPORAL_SUBJECT` may not contain
+digits, dates, protected years, or open-ended temporal language. Free
+prose containing a range without a recognized wrapper remains AMBIGUOUS.
+Protected-year tokens in operational fields are hard fails.
 "outcomes measured in 2025" is not an exclusion.
 Resumable implementation checkpoints: `generator_v0_checkpoints/`.

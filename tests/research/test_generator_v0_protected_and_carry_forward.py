@@ -5,7 +5,7 @@ import sqlite3
 from pathlib import Path
 import pytest
 from scripts.research.generator_v0.context import Contexts,ContractError,canonical,digest
-from scripts.research.generator_v0.derive import derive_complete_rounds,expected_generator_request,transport_identity,DERIVED_STATUS,CONTINUATION_STATUS,authorize_derived_continuation
+from scripts.research.generator_v0.derive import derive_complete_rounds,expected_generator_request,transport_identity,DERIVED_STATUS,CONTINUATION_STATUS,authorize_derived_continuation,authorize_budget_extension
 from scripts.research.generator_v0.ledger import Ledger
 from scripts.research.generator_v0.mock import fixture,slot_plan
 from scripts.research.generator_v0.provider import Caller,MockProvider
@@ -57,7 +57,7 @@ def write_source(path,contexts,*,mutate_request=None,state='COMPLETE',include_c0
             cards[idx]=real
         rid='resp_src_'+str(n)
         blob=complete_blob(cards,rid)
-        cost=COST0 if n==0 else COST1
+        cost=COST0 if n==0 else COST1 if n==1 else 1213820
         usage={'input_tokens':4588+n,'output_tokens':23350 if n==0 else 26129,'reasoning_tokens':11897 if n==0 else 13984}
         key=digest(req)
         if state=='COMPLETE':
@@ -109,6 +109,7 @@ def test_methodology_current_batch_and_candidate_are_not_protected_windows():
 @pytest.mark.parametrize('field,text',[
     ('NO_LOOKAHEAD_RULE','Use the latest closed 1m bar at or before T.'),
     ('NO_LOOKAHEAD_RULE','Features use only the current and prior closed bars.'),
+    ('NO_LOOKAHEAD_RULE','Estimate the residualization fit before the current observation.'),
     ('CAUSAL_OR_STRUCTURAL_STORY','Dealers hedge against the current regime state.'),
     ('INFORMATION_SOURCE','Timestamp of the latest scheduled FOMC statement before T'),
     ('OBSERVABLE','current funding rate as-of T'),
@@ -157,6 +158,24 @@ def test_real_v5_annotated_legal_range_passes(rng):
     x['DATA_REQUIRED']=[{'DATASET':'PROSPECTIVE_UNKNOWN_QUOTES','OBSERVABLE':'quotes','STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':rng}]
     validate_card(x,Contexts())
 
+@pytest.mark.parametrize('rng,inner',[
+    ('Proposed archive limited to 2020-01..2024-12; no catalog-authorized options coverage is claimed.','2020-01..2024-12'),
+    ('Proposed event reconstruction within 2020-01..2024-12; pre-2020 ancestry only to establish output ages. No catalog-authorized chain archive is claimed.','2020-01..2024-12'),
+    ('Required public-receipt records for 2020-01..2024-12 only; historical authority is unproven.','2020-01..2024-12'),
+    ('Proposed historical coverage limited to 2020-01..2024-12; no catalog-authorized order-book archive is claimed.','2020-01..2024-12'),
+    ('Proposed official notices and interruptions strictly pre-2020; no catalog-authorized notice archive is claimed.','pre-2020'),
+    ('Public benchmark published before 2020; panel evaluation limited to legal 2019-12..2024-12 bars.','2019-12..2024-12'),
+    ('Required chain observations limited to 2020-01..2024-12; original pre-expiry publication authority is unproven.','2020-01..2024-12'),
+    ('Proposed rule versions effective within 2020..2024; no catalog-authorized rule archive is claimed.','2020..2024'),
+    ('Proposed index coverage limited to 2020-01..2024-12; no catalog-authorized index archive is claimed.','2020-01..2024-12'),
+])
+def test_generation2_wrapped_legal_range_passes(rng,inner):
+    assert classify_legal_range(rng)==classify_legal_range(inner)
+    x=base_card()
+    x.update(DATA_STATUS='DATA_BLOCKED_COST',MISSING_OBSERVABLES=['quotes'],DATA_GAP_CLASS='COST')
+    x['DATA_REQUIRED']=[{'DATASET':'PROSPECTIVE_UNKNOWN_QUOTES','OBSERVABLE':'quotes','STATUS':'DATA_BLOCKED_COST','LEGAL_RANGE':rng}]
+    validate_card(x,Contexts())
+
 @pytest.mark.parametrize('rng,match',[
     ('Required historical window: 2020-01..2025-01; coverage unverified and not catalogued','protected legal range'),
     ('Required historical window: 2020-01..2024-12; use 2025 if available','ambiguous protected range'),
@@ -165,6 +184,18 @@ def test_real_v5_annotated_legal_range_passes(rng):
     ('Required historical window: 2020-01..2024-12; then evaluate next year','ambiguous protected range'),
     ('Historical window maybe 2020-01..2024-12','ambiguous protected range'),
     ('2020-01..2024-12; coverage unverified and not catalogued; extra text','ambiguous protected range'),
+    ('Proposed archive limited to 2020-01..2025-01; no coverage is claimed.','ambiguous protected range'),
+    ('Proposed archive limited to 2020-01..2024-12; use 2025 if available.','ambiguous protected range'),
+    ('Proposed archive limited to 2020-01..2024-12; extend through present.','ambiguous protected range'),
+    ('Proposed archive limited to 2020-01..2024-12; latest available data may be used.','ambiguous protected range'),
+    ('Proposed archive limited to 2020-01..2024-12; then evaluate the next year.','ambiguous protected range'),
+    ('Proposed archive limited to 2020-01..2024-12 and 2025-01..2025-06; no coverage is claimed.','ambiguous protected range'),
+    ('Proposed archive limited to 2020-01..2025-01; no catalog-authorized options coverage is claimed.','protected legal range'),
+    ('Proposed archive limited to 2020-01..2024-12; no catalog-authorized options 2024 coverage is claimed.','ambiguous protected range'),
+    ('Proposed archive limited to 2020-01..2024-12; no catalog-authorized latest available coverage is claimed.','ambiguous protected range'),
+    ('Proposed event reconstruction within 2020-01..2024-12; pre-2025 ancestry only to establish output ages. No catalog-authorized chain archive is claimed.','ambiguous protected range'),
+    ('Proposed event reconstruction within 2020-01..2024-12; no catalog-authorized chain archive is claimed.','ambiguous protected range'),
+    ('The proposed archive limited to 2020-01..2024-12; no catalog-authorized options coverage is claimed.','ambiguous protected range'),
 ])
 def test_unsafe_annotated_legal_range_fails(rng,match):
     x=base_card()
@@ -473,3 +504,65 @@ def test_offline_derive_authorize_continue_to_pending_human_review(tmp_path,monk
     assert l.get('status')=='PENDING_HUMAN_REVIEW'
     assert created['n']==2
     l.close()
+
+def test_through_generation_2_imports_three_complete_rounds(tmp_path):
+    c=Contexts();src=write_source(tmp_path/'src',c,rounds=(0,1,2))
+    before=src.joinpath('run.sqlite').read_bytes()
+    dest=tmp_path/'dst'
+    report=derive_complete_rounds(src,dest,2,c)
+    assert src.joinpath('run.sqlite').read_bytes()==before
+    assert report['STATUS']==DERIVED_STATUS
+    assert report['IMPORTED_GENERATION_ROUNDS']==['generation:0','generation:1','generation:2']
+    assert report['IMPORTED_COST_MICRO_USD']==3779550
+    assert report['CARDS_WRITTEN'] is False
+    assert report['REAL_LLM_CALLS_MADE'] is False
+    l=Ledger(dest/'run.sqlite')
+    assert l.db.execute('SELECT count(*) FROM cards').fetchone()[0]==0
+    assert l.spent_micro_usd()==3779550
+    l.close()
+
+def test_authorize_budget_extension_increases_cap_without_rewriting_calls(tmp_path):
+    c=Contexts();src=write_source(tmp_path/'src',c,rounds=(0,1,2))
+    dest=tmp_path/'dst'
+    derive_complete_rounds(src,dest,2,c)
+    l=Ledger(dest/'run.sqlite')
+    before_calls=l.export_calls()
+    before_status=l.get('status')
+    before_cards=l.db.execute('SELECT count(*) FROM cards').fetchone()[0]
+    l.close()
+    with pytest.raises(ContractError,match='offline'):
+        main(['authorize-budget-extension','--provider','openai','--allow-real-llm','--budget-usd','1','--run-dir',str(dest),'--actor','owner','--reason','go','--new-cap-usd','17.117536'])
+    with pytest.raises(ContractError,match='actor and reason required'):
+        authorize_budget_extension(dest,'','more budget','17.117536')
+    with pytest.raises(ContractError,match='new cap must exceed old cap'):
+        authorize_budget_extension(dest,'owner','same','7.117536')
+    with pytest.raises(ContractError,match='new cap must exceed old cap'):
+        authorize_budget_extension(dest,'owner','down','6.000000')
+    with pytest.raises(ContractError,match='budget must be finite'):
+        authorize_budget_extension(dest,'owner','too high','31')
+    with pytest.raises(ContractError,match='new cap required'):
+        authorize_budget_extension(dest,'owner','missing',None)
+    report=authorize_budget_extension(dest,'owner','owner authorized additional USD 10','17.117536')
+    assert report['STATUS']=='BUDGET_EXTENSION_AUTHORIZED'
+    assert report['OLD_CAP_MICRO_USD']==7117536
+    assert report['NEW_CAP_MICRO_USD']==17117536
+    assert report['SPENT_MICRO_USD']==3779550
+    assert report['REMAINING_MICRO_USD']==13337986
+    assert report['REAL_LLM_CALLS_MADE'] is False
+    l=Ledger(dest/'run.sqlite')
+    assert l.get('config')['CAP_MICRO_USD']==17117536
+    assert l.get('status')==before_status==DERIVED_STATUS
+    assert l.export_calls()==before_calls
+    assert l.db.execute('SELECT count(*) FROM cards').fetchone()[0]==before_cards==0
+    assert l.spent_micro_usd()==3779550
+    kinds=[k for k, in l.db.execute("SELECT kind FROM events ORDER BY n")]
+    assert 'BUDGET_EXTENSION_AUTHORIZED' in kinds
+    payload=json.loads(l.db.execute("SELECT payload FROM events WHERE kind='BUDGET_EXTENSION_AUTHORIZED'").fetchone()[0])
+    assert payload['OLD_CAP_MICRO_USD']==7117536
+    assert payload['NEW_CAP_MICRO_USD']==17117536
+    assert payload['ACTOR']=='owner'
+    assert payload['REASON']=='owner authorized additional USD 10'
+    assert payload['TIME']
+    l.close()
+    with pytest.raises(ContractError,match='archived paid run'):
+        main(['authorize-budget-extension','--run-dir','artifacts/generator_v0/first-shadow-v6','--actor','owner','--reason','no','--new-cap-usd','17.117536'])

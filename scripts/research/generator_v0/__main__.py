@@ -11,7 +11,7 @@ from .provider import Caller,MockProvider
 from .mock import MockResponder
 from .runner import run_campaign,GENERATOR_PROMPT
 from .models import GENERATOR_MAX_OUTPUT_TOKENS
-from .derive import derive_complete_rounds,authorize_derived_continuation
+from .derive import derive_complete_rounds,authorize_derived_continuation,authorize_budget_extension
 
 ARCHIVED_PAID_RUNS={
     ('generator_v0','first-shadow'),
@@ -19,6 +19,7 @@ ARCHIVED_PAID_RUNS={
     ('generator_v0','first-shadow-v3'),
     ('generator_v0','first-shadow-v4'),
     ('generator_v0','first-shadow-v5'),
+    ('generator_v0','first-shadow-v6'),
 }
 
 def archived_paid_run(path):
@@ -35,7 +36,7 @@ def atomic_json(path,value):
 
 def main(argv=None):
     p=argparse.ArgumentParser(description='Generator V0 shadow only; stops at human review')
-    p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect','derive','authorize-derived-continuation'])
+    p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect','derive','authorize-derived-continuation','authorize-budget-extension'])
     p.add_argument('--source-run-dir',type=Path)
     p.add_argument('--through-generation',type=int,default=1)
     p.add_argument('--provider',choices=['mock','openai'],default='mock')
@@ -48,6 +49,7 @@ def main(argv=None):
     p.add_argument('--decision',choices=['ACCEPT_FOR_FUTURE_DESIGN','REJECT','DEFER'])
     p.add_argument('--reason')
     p.add_argument('--actor')
+    p.add_argument('--new-cap-usd')
     p.add_argument('--active-minutes',type=float,default=0)
     p.add_argument('--field')
     p.add_argument('--value-json')
@@ -66,6 +68,12 @@ def main(argv=None):
         if a.allow_real_llm or a.provider=='openai' or Decimal(a.budget_usd)!=0:
             raise ContractError('authorize-derived-continuation is offline; do not authorize a provider or budget')
         report=authorize_derived_continuation(a.run_dir,a.actor,a.reason)
+        print(canonical(report));return
+    if a.command=='authorize-budget-extension':
+        if archived_paid_run(a.run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
+        if a.allow_real_llm or a.provider=='openai' or Decimal(a.budget_usd)!=0:
+            raise ContractError('authorize-budget-extension is offline; do not authorize a provider or budget')
+        report=authorize_budget_extension(a.run_dir,a.actor,a.reason,a.new_cap_usd)
         print(canonical(report));return
     if archived_paid_run(a.run_dir):
         raise ContractError('archived paid run is read-only and must not be opened by this operator')

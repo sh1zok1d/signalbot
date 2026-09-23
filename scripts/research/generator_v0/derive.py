@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from .context import Contexts,ContractError,digest,byte_digest
 from .ledger import Ledger
@@ -197,5 +198,48 @@ def authorize_derived_continuation(run_dir,actor,reason):
             ledger.event('DERIVED_CONTINUATION_AUTHORIZED',payload)
             ledger.set('status',CONTINUATION_STATUS)
         return {'STATUS':CONTINUATION_STATUS,'ACTOR':actor.strip(),'REASON':reason.strip(),'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False}
+    finally:
+        ledger.close()
+
+def _cap_micro_usd(value):
+    amount=Decimal(str(value))
+    if not amount.is_finite() or not 0<amount<=30 or amount*1_000_000!=(amount*1_000_000).to_integral_value():
+        raise ContractError('budget must be finite USD 0..30, at microdollar precision')
+    return int(amount*1_000_000)
+
+def authorize_budget_extension(run_dir,actor,reason,new_cap_usd):
+    """Offline cap increase. Does not rewrite calls, responses, costs, or cards."""
+    dbpath=Path(run_dir)/'run.sqlite'
+    if not dbpath.exists():raise ContractError('run not found')
+    if not isinstance(actor,str) or not actor.strip() or not isinstance(reason,str) or not reason.strip():
+        raise ContractError('actor and reason required')
+    if new_cap_usd is None or (isinstance(new_cap_usd,str) and not new_cap_usd.strip()):
+        raise ContractError('new cap required')
+    new=_cap_micro_usd(new_cap_usd)
+    ledger=Ledger(dbpath)
+    try:
+        with ledger.transaction():
+            cfg=ledger.get('config')
+            if not isinstance(cfg,dict) or type(cfg.get('CAP_MICRO_USD')) is not int:
+                raise ContractError('run cap missing')
+            old=cfg['CAP_MICRO_USD']
+            if new<=old:raise ContractError('new cap must exceed old cap')
+            spent=ledger.spent_micro_usd()
+            if type(spent) is not int or spent<0:raise ContractError('invalid spent')
+            if spent>new:raise ContractError('new cap below spent')
+            ledger.set('config',{**cfg,'CAP_MICRO_USD':new})
+            payload={
+                'OLD_CAP_MICRO_USD':old,'NEW_CAP_MICRO_USD':new,
+                'ACTOR':actor.strip(),'REASON':reason.strip(),
+                'TIME':datetime.now(timezone.utc).isoformat(),
+                'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
+            }
+            ledger.event('BUDGET_EXTENSION_AUTHORIZED',payload)
+        return {
+            'STATUS':'BUDGET_EXTENSION_AUTHORIZED','OLD_CAP_MICRO_USD':old,'NEW_CAP_MICRO_USD':new,
+            'SPENT_MICRO_USD':spent,'REMAINING_MICRO_USD':new-spent,
+            'ACTOR':actor.strip(),'REASON':reason.strip(),
+            'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
+        }
     finally:
         ledger.close()

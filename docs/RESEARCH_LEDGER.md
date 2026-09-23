@@ -5769,3 +5769,29 @@ ranges, trailing years/open-ended notes, and extra text still fail.
 Cards were not edited. F1–F4 and H1 remain closed. F5–F9 remain
 `DEFERRED_NONBLOCKING_RED_TEAM_FINDING`. No paid LLM call. No
 first-shadow-v6. No scientific outcome.
+
+## 2026-09-23 — Generator V0 LEGAL_RANGE wrappers and campaign-cap extension
+
+Read-only inspection of immutable `first-shadow-v6` generation:2 found
+inspected prose wrappers failing `ambiguous protected range`. This
+closeout teaches `classify_legal_range` those exact generation:2 families
+in addition to the v5 annotated form. The returned class is the inner
+strict range. Free prose, extra ranges, trailing years, open-ended notes,
+and digit/open-ended subjects still fail. Cards were not edited.
+`first-shadow-v6` is sealed. Offline `authorize-budget-extension` may
+raise a campaign cap (USD 7.117536 -> 17.117536 authorized) without
+rewriting calls, responses, costs, or cards. Prove derive through
+generation:2 on a TEMP scratch destination. Do not create live
+`first-shadow-v7` here. F5–F8 remain deferred. No replay of generation:2.
+No paid LLM call. No scientific outcome.
+
+```
+NEXT_UNIT = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION
+LEGAL_RANGE_WRAPPERS = V5_ANNOTATED_PLUS_INSPECTED_GEN2
+BUDGET_EXTENSION_COMMAND = authorize-budget-extension
+OLD_CAP_USD = 7.117536
+NEW_CAP_USD = 17.117536
+FIRST_SHADOW_V6_SEALED = true
+REAL_LLM_CALLS_MADE = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```
