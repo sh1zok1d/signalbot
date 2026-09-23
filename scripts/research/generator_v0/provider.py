@@ -15,6 +15,7 @@ class Provider(Protocol):
     provider_id: str
     model_id: str
     real: bool
+    def model_for(self,role:str)->str: ...
     def bound(self,request:dict)->int: ...
     def complete(self,request:dict)->Response: ...
 
@@ -28,7 +29,9 @@ class Caller:
     def call(self,role,context,prompt,parameters,slot):
         self.contexts.validate(role,context,prompt)
         if self.provider.real and (not self.allow_real or self.cap<=0):raise ContractError('real calls not authorized')
-        req={'role':role,'context':context,'prompt':prompt,'prompt_version':'generator-v0.1','parameters':parameters,'provider':self.provider.provider_id,'model':self.provider.model_id,'slot':slot}
+        req={'role':role,'context':context,'prompt':prompt,'prompt_version':'generator-v0.1','parameters':parameters,'provider':self.provider.provider_id,'model':self.provider.model_for(role),'slot':slot}
+        extra=getattr(self.provider,'request_params_for',None)
+        if extra is not None:req['model_request_params']=extra(role)
         key=digest(req);bound=self.provider.bound(req)
         saved=self.ledger.reserve(key,req,bound,self.cap)
         if saved is not None:return saved['raw']
@@ -46,6 +49,8 @@ class MockProvider:
     model_id='fixture-v1'
     real=False
     def __init__(self,responder=None):self.responder=responder;self.calls=0
+    def model_for(self,role):return self.model_id
+    def request_params_for(self,role):return {}
     def bound(self,request):return 0
     def complete(self,request):
         if self.responder is None:raise ContractError('mock responder not configured')

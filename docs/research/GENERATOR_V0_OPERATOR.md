@@ -1,6 +1,10 @@
 # Generator V0 shadow campaign
 
-Status: GENERATOR_V0_REAL_SHADOW_CAMPAIGN_READY; draft PR awaits independent review. One campaign generates
+Status: structured-output + role-specific routing adapter. Frozen scientific
+design is unchanged. A successful campaign still terminates at
+`PENDING_HUMAN_REVIEW`. The archived partial paid run
+`artifacts/generator_v0/first-shadow` is sealed and the operator refuses to
+open it. One campaign generates
 research cards, applies separate critics and produces a human-review queue.
 It has no market-data reader, acquisition tool, evaluator or trading hook.
 A successful run terminates at `PENDING_HUMAN_REVIEW`.
@@ -11,10 +15,11 @@ Use a clean checkout with Python 3.11+. The runtime uses only the standard
 library. For development tests install `pytest==8.3.5`; the rest of the
 repository keeps its own `requirements-dev.txt`.
 
-Set `OPENAI_API_KEY` in your environment or secret manager, and optionally
-`GENERATOR_V0_MODEL=gpt-4.1-mini-2025-04-14`. The configuration template is
+Set `OPENAI_API_KEY` in your environment or secret manager. Role-specific
+models are pinned in `scripts/research/generator_v0/models.py`; do not set
+`GENERATOR_V0_MODEL` or pass `--model`. The configuration template is
 `docs/research/GENERATOR_V0.env.example`. Never commit the filled template.
-No source edits are needed. A ChatGPT subscription is not an API credential.
+A ChatGPT subscription is not an API credential.
 
 Zero-cost checks:
 
@@ -30,22 +35,24 @@ context, does not contact the provider or check account entitlement):
 python -m scripts.research.generator_v0 preflight --provider openai --allow-real-llm --budget-usd 30
 ```
 
-**Canonical first real shadow command**, after explicitly authorizing its
-budget and supplying the credential:
+**Canonical real shadow command**, after explicitly authorizing its
+budget and supplying the credential. Use a **new** run directory. Do not
+resume or overwrite `artifacts/generator_v0/first-shadow`.
 
 ```bash
-python -m scripts.research.generator_v0 run --provider openai --allow-real-llm --budget-usd 30 --run-dir artifacts/generator_v0/first-shadow
+python -m scripts.research.generator_v0 run --provider openai --allow-real-llm --budget-usd 10 --run-dir artifacts/generator_v0/shadow
 ```
 
 Budget may be lower, but cannot exceed USD 30. Mock remains the default even
 if API credentials exist. Every real call requires provider selection, key,
 explicit authorization and a nonzero budget. No paid request was made during
-implementation. Real generation quality and account access are unmeasured.
+this structured-output / routing change. Real generation quality and account
+access are unmeasured.
 
 Resume with the same options, budget and run directory:
 
 ```bash
-python -m scripts.research.generator_v0 resume --provider openai --allow-real-llm --budget-usd 30 --run-dir artifacts/generator_v0/first-shadow
+python -m scripts.research.generator_v0 resume --provider openai --allow-real-llm --budget-usd 10 --run-dir artifacts/generator_v0/shadow
 ```
 
 A completed provider response is persisted before parsing and reused. A
@@ -71,9 +78,9 @@ JSON files are derived views; manually editing them never changes authority.
 Use `inspect` to read authoritative cards and human events. For example:
 
 ```bash
-python -m scripts.research.generator_v0 inspect --run-dir artifacts/generator_v0/first-shadow
-python -m scripts.research.generator_v0 review --run-dir artifacts/generator_v0/first-shadow --candidate-id C006 --decision DEFER --reason "Need to verify the observable definition" --actor owner --active-minutes 4
-python -m scripts.research.generator_v0 mutate --run-dir artifacts/generator_v0/first-shadow --candidate-id C006 --field NAME --value-json '"Clarified mechanism name"' --reason "Clarify wording" --actor owner
+python -m scripts.research.generator_v0 inspect --run-dir artifacts/generator_v0/shadow
+python -m scripts.research.generator_v0 review --run-dir artifacts/generator_v0/shadow --candidate-id C006 --decision DEFER --reason "Need to verify the observable definition" --actor owner --active-minutes 4
+python -m scripts.research.generator_v0 mutate --run-dir artifacts/generator_v0/shadow --candidate-id C006 --field NAME --value-json '"Clarified mechanism name"' --reason "Clarify wording" --actor owner
 ```
 
 Mutation records field/before/after/reason/actor/time atomically, invalidates
@@ -111,5 +118,8 @@ future source update needs explicit rematerialization and review; blind-map
 regeneration is not an operator workaround. The frozen design received only
 the authorized single-field provenance amendment.
 
-Provider verification: `GENERATOR_V0_PROVIDER_VERIFICATION.md`.
+JSON mode is not used. Structured Outputs (`json_schema`, `strict: true`)
+are generated from the application role builders. Application validators
+remain the second layer. Role-specific models and prices are in
+`GENERATOR_V0_MODEL_ROUTING.md` / `models.py`.
 Resumable implementation checkpoints: `generator_v0_checkpoints/`.
