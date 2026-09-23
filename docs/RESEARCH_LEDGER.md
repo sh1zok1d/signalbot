@@ -5577,3 +5577,35 @@ Concrete real adapter tested with fake HTTP only; all spend flags remain
 false. State: `GENERATOR_V0_REAL_SHADOW_CAMPAIGN_READY`, draft PR for review.
 See `research/GENERATOR_V0_ADVERSARIAL_REVIEW.md`,
 `research/GENERATOR_V0_OPERATOR.md`, and checkpoint records.
+
+## 2026-09-23 — Generator V0 Structured Outputs and role routing
+
+Infrastructure-only adapter change after the archived first paid call
+exposed JSON-mode schema leakage (`STREAM` extra field). No scientific
+design, blind context, governance, or validator semantics changed.
+OpenAI requests now use `json_schema` + `strict: true` generated from
+existing role builders. Role-specific Chat Completions snapshots and
+prices are pinned in `scripts/research/generator_v0/models.py`. Fake HTTP
+only; `REAL_LLM_CALLS_MADE = false` for this unit. The archived run
+`artifacts/generator_v0/first-shadow` was not resumed or overwritten.
+
+```
+NEXT_UNIT = GENERATOR_V0_STRUCTURED_OUTPUTS_AND_ROLE_ROUTING
+STRUCTURED_OUTPUTS_ENABLED = true
+ARCHIVED_RUN_UNTOUCHED = true
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```
+
+## 2026-09-23 — Generator V0 GPT-6 role routing correction
+
+Infrastructure-only routing table change on the same Structured Outputs
+adapter. Official Chat Completions + Structured Outputs support for
+`gpt-6-astra`, `gpt-6-sol`, and `gpt-6-luna` was re-verified from current
+model/pricing pages. No dated snapshots exist in the catalog. No scientific
+design change. No paid LLM call. Archived `first-shadow` run untouched.
+
+```
+ROLE_MODEL_MAP = GENERATOR:gpt-6-astra / NOVELTY_CRITIC:gpt-6-sol / RED_TEAM:gpt-6-sol / FEASIBILITY_CRITIC:gpt-6-luna / SELECTOR:gpt-6-luna
+REAL_LLM_CALLS_MADE = false
+ARCHIVED_RUN_UNTOUCHED = true
+```

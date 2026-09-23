@@ -1,20 +1,19 @@
-## Generator V0 implementation readiness — 2026-09-23
+## Generator V0 structured outputs and role routing — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_REAL_SHADOW_CAMPAIGN_READY`.
-`HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS` implementation
-is complete in the draft implementation PR, pending independent review.
-Canonical operator instructions: `research/GENERATOR_V0_OPERATOR.md`.
-Real execution requires credentials and explicit budget authorization
-(USD 30 cap); no paid call was made. A successful campaign stops at
-`PENDING_HUMAN_REVIEW`. No science, acquisition, promotion, Sprint05, D14
-or MARKET-07 is authorized by this readiness state. Protected data remain
-unopened. Frozen design/historical records retain their historical labels.
+`NEXT_UNIT = GENERATOR_V0_STRUCTURED_OUTPUTS_AND_ROLE_ROUTING`.
+The archived partial paid run `artifacts/generator_v0/first-shadow` remains
+sealed (1 call, USD 0.010864, ledger `CREATED`). This unit is
+infrastructure only: OpenAI Structured Outputs plus role-specific Chat
+Completions routing on GPT-6 Astra/Sol/Luna. No new paid LLM call. No
+scientific interpretation, acquisition, Sprint05, D14, MARKET-07, or
+protected-data open. Frozen design/historical records retain their
+historical labels.
 
 ---
 
 # Signalbot — Current Research State
 
-**Status date:** 2026-09-22  
+**Status date:** 2026-09-23
 **Status:** `ACTIVE / CANONICAL ROUTING INDEX`  
 **Main integration baseline before this status commit:** `d2a62da6e5c907def603a258505b9cc1f92ae3a5`
 
@@ -51,8 +50,8 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS
-NEXT_ACTION                 = GENERATOR_V0_INFRASTRUCTURE_ONLY_NO_SCIENTIFIC_EXECUTION
+NEXT_UNIT                   = GENERATOR_V0_STRUCTURED_OUTPUTS_AND_ROLE_ROUTING
+NEXT_ACTION                 = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED
 GENERATOR_MODE              = SHADOW_ONLY

@@ -85,13 +85,105 @@ def validate_card(card, contexts):
 def signature(card):
     return digest({k:card[k] for k in ('MECHANISM','INFORMATION_SOURCE','OBSERVABLE','FUNCTION','PRIMARY_TARGET','HORIZON')})
 
-def output_schema(contexts):
-    props={k:{'type':'string'} for k in contexts.design['CANDIDATE_SCHEMA']['REQUIRED_FIELDS']}
+def strict_object(properties):
+    props=dict(properties)
+    return {'type':'object','properties':props,'required':sorted(props),'additionalProperties':False}
+
+def search_surface_application_schema():
+    # Dynamic parameter names remain a dict for the frozen application card.
+    return strict_object({'MAX_VARIANTS':{'type':'integer','minimum':1,'maximum':100},'PARAMETERS':{'type':'object','properties':{},'required':[],'additionalProperties':True}})
+
+def search_surface_provider_schema():
+    # OpenAI strict JSON Schema forbids free-form object keys. Encode the frozen
+    # PARAMETERS dict as an array of {NAME,VALUES} without changing card semantics.
+    value={'anyOf':[{'type':'string'},{'type':'integer'},{'type':'number'}]}
+    entry=strict_object({'NAME':{'type':'string'},'VALUES':{'type':'array','minItems':1,'items':value}})
+    return strict_object({'MAX_VARIANTS':{'type':'integer','minimum':1,'maximum':100},'PARAMETERS':{'type':'array','minItems':1,'items':entry}})
+
+def output_schema(contexts,*,provider=False):
+    required=list(contexts.design['CANDIDATE_SCHEMA']['REQUIRED_FIELDS'])
+    props={k:{'type':'string'} for k in required}
+    props['CANDIDATE_ID']={'type':'string','pattern':r'^C[0-9]{3}$'}
     props['PROTECTED_DATA_REQUIREMENT']={'type':'boolean','enum':[False]}
-    props['DATA_STATUS']={'type':'string','enum':list(contexts.design['DATA_STATUS_TAXONOMY'])}
+    props['DATA_STATUS']={'type':'string','enum':sorted(contexts.design['DATA_STATUS_TAXONOMY'])}
+    props['MECHANISM_FAMILY']={'type':'string','enum':sorted(set(contexts.families)|{'NEW_FAMILY_PROPOSAL'})}
     props['MISSING_OBSERVABLES']={'type':'array','items':{'type':'string'}}
-    props['DATA_REQUIRED']={'type':'array','items':{'type':'object','properties':{k:{'type':'string'} for k in sorted(DATA_FIELDS)},'required':sorted(DATA_FIELDS),'additionalProperties':False}}
-    # Dynamic parameter names are represented as JSON object by json_object output mode;
-    # application validation is authoritative (strict provider schemas are optional).
-    props['SEARCH_SURFACE']={'type':'object'}
-    return {'type':'object','properties':props,'required':list(props),'additionalProperties':False}
+    props['DATA_REQUIRED']={'type':'array','minItems':1,'maxItems':20,'items':strict_object({k:{'type':'string'} for k in DATA_FIELDS})}
+    props['SEARCH_SURFACE']=search_surface_provider_schema() if provider else search_surface_application_schema()
+    return strict_object(props)
+
+def normalize_search_surface(surface):
+    if not isinstance(surface,dict):raise ContractError('search surface shape')
+    params=surface.get('PARAMETERS')
+    if isinstance(params,list):
+        converted={}
+        for row in params:
+            if not isinstance(row,dict) or set(row)!={'NAME','VALUES'}:raise ContractError('provider search-surface encoding')
+            name=row['NAME']
+            if name in converted:raise ContractError('duplicate search parameter')
+            converted[name]=row['VALUES']
+        surface={**surface,'PARAMETERS':converted}
+    return surface
+
+def normalize_role_output(role,payload):
+    if role!='GENERATOR' or not isinstance(payload,dict) or not isinstance(payload.get('CANDIDATES'),list):
+        return payload
+    cards=[]
+    for card in payload['CANDIDATES']:
+        if isinstance(card,dict) and 'SEARCH_SURFACE' in card:
+            card={**card,'SEARCH_SURFACE':normalize_search_surface(card['SEARCH_SURFACE'])}
+        cards.append(card)
+    return {**payload,'CANDIDATES':cards}
+
+def validate_instance(instance,schema):
+    if 'anyOf' in schema:
+        errors=[]
+        for option in schema['anyOf']:
+            try:validate_instance(instance,option);return
+            except ContractError as e:errors.append(str(e))
+        raise ContractError('anyOf failed')
+    expected=schema.get('type')
+    if expected=='object':
+        if not isinstance(instance,dict):raise ContractError('expected object')
+        additional=schema.get('additionalProperties')
+        required=list(schema.get('required',[]))
+        props=dict(schema.get('properties',{}))
+        if additional is False:
+            if set(required)!=set(props):raise ContractError('schema required must list every property')
+            extra=set(instance)-set(props);missing=set(props)-set(instance)
+            if extra or missing:raise ContractError('object fields differ from schema')
+        elif additional is True:
+            missing=[k for k in required if k not in instance]
+            if missing:raise ContractError('object fields differ from schema')
+        else:
+            raise ContractError('schema must set additionalProperties')
+        for key,sub in props.items():
+            if key in instance:validate_instance(instance[key],sub)
+        return
+    if expected=='array':
+        if not isinstance(instance,list):raise ContractError('expected array')
+        lo,hi=schema.get('minItems'),schema.get('maxItems')
+        if lo is not None and len(instance)<lo:raise ContractError('array too short')
+        if hi is not None and len(instance)>hi:raise ContractError('array too long')
+        item=schema.get('items')
+        if item is None:raise ContractError('array items required')
+        for value in instance:validate_instance(value,item)
+        return
+    if expected=='string':
+        if not isinstance(instance,str):raise ContractError('expected string')
+        if 'enum' in schema and instance not in schema['enum']:raise ContractError('string enum')
+        if 'pattern' in schema and not re.fullmatch(schema['pattern'],instance):raise ContractError('string pattern')
+        return
+    if expected=='boolean':
+        if type(instance) is not bool:raise ContractError('expected boolean')
+        if 'enum' in schema and instance not in schema['enum']:raise ContractError('boolean enum')
+        return
+    if expected=='integer':
+        if type(instance) is not int:raise ContractError('expected integer')
+        if instance<schema.get('minimum',instance) or instance>schema.get('maximum',instance):raise ContractError('integer range')
+        return
+    if expected=='number':
+        if type(instance) not in (int,float) or type(instance) is bool:raise ContractError('expected number')
+        if isinstance(instance,float) and not math.isfinite(instance):raise ContractError('nonfinite number')
+        return
+    raise ContractError('unsupported schema type')

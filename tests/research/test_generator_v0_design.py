@@ -14,6 +14,7 @@ DECISION = REPO / "docs/research/POST_SPRINT04_AUTOMATION_MATURITY_DECISION.json
 DESIGN = REPO / "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json"
 MEMORY = REPO / "docs/research/MECHANISM_MEMORY_V0.json"
 NEXT_UNIT = "HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS"
+CURRENT_ROUTING_UNIT = "GENERATOR_V0_STRUCTURED_OUTPUTS_AND_ROLE_ROUTING"
 FALSE_FLAGS = (
     "NEW_DATA_ACQUIRED",
     "SCIENTIFIC_OUTCOMES_COMPUTED",
@@ -153,7 +154,10 @@ def test_routing_docs_point_at_next_unit():
         "docs/DOCUMENTATION_INDEX.md",
         "docs/RESEARCH_LEDGER.md",
     ):
-        assert NEXT_UNIT in (REPO / rel).read_text(encoding="utf-8"), rel
+        text = (REPO / rel).read_text(encoding="utf-8")
+        assert CURRENT_ROUTING_UNIT in text, rel
+    design = (REPO / "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json").read_text(encoding="utf-8")
+    assert NEXT_UNIT in design
     index = (REPO / "docs/DOCUMENTATION_INDEX.md").read_text(encoding="utf-8")
     assert "POST_SPRINT04_AUTOMATION_MATURITY_DECISION.md" in index
     assert "HYPOTHESIS_GENERATOR_V0_DESIGN.md" in index

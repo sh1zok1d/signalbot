@@ -24,11 +24,11 @@ def main(argv=None):
     p=argparse.ArgumentParser(description='Generator V0 shadow only; stops at human review')
     p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect'])
     p.add_argument('--provider',choices=['mock','openai'],default='mock')
-    p.add_argument('--run-dir',type=Path,default=Path('artifacts/generator_v0/first-shadow'))
+    p.add_argument('--run-dir',type=Path,default=Path('artifacts/generator_v0/shadow'))
     p.add_argument('--size',type=int,default=40)
     p.add_argument('--allow-real-llm',action='store_true')
     p.add_argument('--budget-usd',default='0')
-    p.add_argument('--model',default=os.environ.get('GENERATOR_V0_MODEL','gpt-4.1-mini-2025-04-14'))
+    p.add_argument('--model',default=None)
     p.add_argument('--candidate-id')
     p.add_argument('--decision',choices=['ACCEPT_FOR_FUTURE_DESIGN','REJECT','DEFER'])
     p.add_argument('--reason')
@@ -37,6 +37,8 @@ def main(argv=None):
     p.add_argument('--field')
     p.add_argument('--value-json')
     a=p.parse_args(argv)
+    if len(a.run_dir.parts)>=2 and a.run_dir.parts[-2:]==('generator_v0','first-shadow'):
+        raise ContractError('archived paid run is read-only and must not be opened by this operator')
     c=Contexts();c.validate('GENERATOR',c.generator(),GENERATOR_PROMPT)
     if not 25<=a.size<=50:raise ContractError('batch size')
     if a.command in ('review','mutate','inspect'):
@@ -64,17 +66,24 @@ def main(argv=None):
     cap=int(amount*1_000_000)
     if a.provider=='openai':
         from .openai_provider import OpenAIProvider
-        provider=OpenAIProvider(os.environ.get('OPENAI_API_KEY',''),allow_real=a.allow_real_llm,budget_micro_usd=cap,model=a.model)
+        from .models import ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,price_table
+        if a.model or os.environ.get('GENERATOR_V0_MODEL'):raise ContractError('role-specific model map is authoritative; do not pass --model or GENERATOR_V0_MODEL')
+        provider=OpenAIProvider(os.environ.get('OPENAI_API_KEY',''),allow_real=a.allow_real_llm,budget_micro_usd=cap)
     else:
         if cap or a.allow_real_llm:raise ContractError('mock requires zero budget and no real authorization')
+        if a.model:raise ContractError('mock does not take a real model id')
         provider=MockProvider(MockResponder(c))
     if a.command=='preflight':
-        print(canonical({'STATUS':'PREFLIGHT_PASS','PROVIDER':provider.provider_id,'REAL_LLM_CALLS_MADE':False,'BATCH_SIZE':a.size}));return
+        info={'STATUS':'PREFLIGHT_PASS','PROVIDER':provider.provider_id,'REAL_LLM_CALLS_MADE':False,'BATCH_SIZE':a.size,'STRUCTURED_OUTPUTS_ENABLED':a.provider=='openai'}
+        if a.provider=='openai':info.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS=dict(ROLE_REQUEST_PARAMS),ROUTING_DIGEST=provider.routing_digest)
+        print(canonical(info));return
     dbpath=a.run_dir/'run.sqlite'
     if a.command=='run' and dbpath.exists():raise ContractError('run exists; use resume')
     if a.command=='resume' and not dbpath.exists():raise ContractError('run not found')
     a.run_dir.mkdir(parents=True,exist_ok=True)
     config={'RUN_ID':a.run_dir.name,'PROVIDER':provider.provider_id,'MODEL':provider.model_id,'SIZE':a.size,'CAP_MICRO_USD':cap,'CONTEXT_DIGEST':digest(c.generator()),'IMPLEMENTATION_DIGEST':digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))})}
+    if a.provider=='openai':
+        config.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()},PRICE_TABLE=price_table(),ROUTING_DIGEST=provider.routing_digest)
     l=Ledger(dbpath,config)
     try:
         result=run_campaign(c,Caller(c,l,provider,cap,a.allow_real_llm),a.size)
