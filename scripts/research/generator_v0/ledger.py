@@ -70,11 +70,13 @@ class Ledger:
         self.db.execute('INSERT INTO events(kind,payload) VALUES (?,?)',(kind,canonical(payload)))
 
     def mutate(self,card_id,field,after,reason,actor,validate):
-        if not reason.strip() or not actor.strip() or field=='CANDIDATE_ID':raise ContractError('mutation audit required')
+        if not isinstance(reason,str) or not reason.strip() or not isinstance(actor,str) or not actor.strip() or field=='CANDIDATE_ID':raise ContractError('mutation audit required')
         with self.transaction():
             row=self.db.execute('SELECT card FROM cards WHERE id=?',(card_id,)).fetchone()
             if row is None:raise ContractError('unknown candidate')
-            card=json.loads(row[0]);before=card[field];card[field]=after;validate(card)
+            card=json.loads(row[0])
+            if field not in card:raise ContractError('unknown mutation field')
+            before=card[field];card[field]=after;validate(card)
             self.event('HUMAN_MUTATION',{'CANDIDATE_ID':card_id,'field':field,'before':before,'after':after,'reason':reason,'actor':actor,'time':datetime.now(timezone.utc).isoformat()})
             self.db.execute('UPDATE cards SET card=?,decision=NULL WHERE id=?',(canonical(card),card_id))
             self.db.execute('DELETE FROM results')

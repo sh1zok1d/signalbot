@@ -1,0 +1,60 @@
+{
+  "BASE_MAIN_SHA": "58a49d25d7a9b730db402eb5ebe7c7fa0165ff33",
+  "BOUNDARY_FLAGS": {
+    "D14_CREATED": false,
+    "MARKET_07_CREATED": false,
+    "NEW_DATA_ACQUIRED": false,
+    "PROTECTED_2025_OPENED": false,
+    "PROTECTED_2026_OPENED": false,
+    "REAL_LLM_CALLS_MADE": false,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "SPRINT05_CREATED": false
+  },
+  "CHECKPOINT_ID": "CHECKPOINT_8",
+  "COMPLETED_SCOPE": [
+    "25-class adversarial self-review",
+    "Five defects corrected",
+    "501-test integration subset",
+    "Repeat canonical mock",
+    "Minimal routing and operator readiness updates"
+  ],
+  "FILES_CHANGED": [
+    "docs/CURRENT_RESEARCH_STATE.md",
+    "docs/DOCUMENTATION_INDEX.md",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/RESEARCH_ROADMAP.md",
+    "docs/research/GENERATOR_V0_ADVERSARIAL_REVIEW.md",
+    "docs/research/GENERATOR_V0_OPERATOR.md",
+    "docs/research/generator_v0_checkpoints/8.json",
+    "docs/research/generator_v0_checkpoints/FINAL_ACCEPTANCE.json",
+    "scripts/ci/pr_gate.py",
+    "scripts/research/generator_v0/__main__.py",
+    "scripts/research/generator_v0/ledger.py",
+    "scripts/research/generator_v0/mock.py",
+    "scripts/research/generator_v0/roles.py",
+    "scripts/research/generator_v0/runner.py",
+    "tests/research/test_generator_v0_adversarial.py",
+    "tests/research/test_generator_v0_roles.py",
+    "tests/research/test_pr_gate_paths.py"
+  ],
+  "FOCUSED_TESTS": "501 passed;compileall passed;git diff --check passed;two final mock digests equal",
+  "HEAD": "SELF: commit introducing this immutable checkpoint record",
+  "INVARIANTS_VERIFIED": [
+    "No paid LLM calls",
+    "No scientific execution",
+    "No data acquisition",
+    "Frozen design preserved"
+  ],
+  "KNOWN_LIMITATIONS": [
+    "No real LLM call or quality evaluation performed",
+    "Independent review pending; do not merge",
+    "Semantic critic judgments remain fallible; human review required",
+    "Source-only local checkout; final CI uses full checkout",
+    "Uncertain billed attempts require reconciliation, never automatic replay"
+  ],
+  "NEXT_ACTION": "Independent draft-PR review; supply API credential and explicitly authorize budget before any real shadow call",
+  "PREVIOUS_CHECKPOINT_SHA": "2f8afa7789c3bc3a610f820d8103cf6c5b6d0eaa",
+  "REMAINING_SCOPE": [],
+  "STATUS": "PASS",
+  "TREE": "SELF^{tree}; resolved from Git, never a self-referential embedded hash"
+}

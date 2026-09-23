@@ -27,7 +27,7 @@ def fixture(slot,contexts):
     if i==29:status='DATA_BLOCKED_POINT_IN_TIME_SEMANTICS'
     card={k:'Synthetic test fixture; no scientific evidence.' for k in contexts.design['CANDIDATE_SCHEMA']['REQUIRED_FIELDS']}
     card.update(slot)
-    card.update(NAME='Infrastructure fixture: '+MECHANISMS[i],MECHANISM=MECHANISMS[i],
+    card.update(NAME='Infrastructure fixture: '+(MECHANISMS[i%len(MECHANISMS)]+(' variant fixture '+str(i+1) if i>=len(MECHANISMS) else '')),MECHANISM=(MECHANISMS[i%len(MECHANISMS)]+(' variant fixture '+str(i+1) if i>=len(MECHANISMS) else '')),
         CAUSAL_OR_STRUCTURAL_STORY='Synthetic structural pathway specified for exercising the review pipeline.',
         OBSERVABLE='Synthetic observable '+str(i+1),FUNCTION='Synthetic comparison function '+str(i+1),PRIMARY_TARGET='Synthetic future response '+str(i+1),HORIZON='6h',
         BASELINE_OR_NULL='Stratum-preserving synthetic permutation null',FALSIFIER='No separation from the declared synthetic null distribution',

@@ -121,6 +121,20 @@ def _select_targets(always: list[str], changed: list[str]) -> list[str]:
     for item in always:
         add(item)
 
+    # The nested Generator V0 package has multiple shared contracts; a source-only
+    # change must not evade its focused suite through the flat filename mapper.
+    generator_authorities = {
+        'docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json',
+        'docs/research/MECHANISM_MEMORY_V0.json',
+        'docs/research/HETEROGENEOUS_FAMILY_ROTATION_V3.json',
+        'docs/research/BLIND_MECHANISM_MAP_V0.json',
+        'docs/research/GOVERNANCE_REGION_AUTHORITY_V0.json',
+        'docs/research/GENERATOR_V0_CONTEXT_PINS.json',
+    }
+    if any(path.startswith('scripts/research/generator_v0/') or path in generator_authorities for path in changed):
+        for test in sorted((REPO / 'tests/research').glob('test_generator_v0_*.py')):
+            add(str(test.relative_to(REPO)))
+
     changed_set = set(changed)
     changed_tests = [p for p in changed if _is_test_file(p)]
     changed_sources = [

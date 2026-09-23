@@ -19,7 +19,7 @@ def test_blocked_regions_preserve_new_mechanisms(tmp_path,near,relation,expected
     r=roles(tmp_path,novelty_answer(Contexts(),near,relation));x=card()
     n=r.novelty(x,[x]);assert n['VERDICT']==expected
     if expected in ('ALLOW','ALLOW_TO_FEASIBILITY'):
-        assert r.route(n,{'VERDICT':'PASS','DATA_STATUS':'FEASIBILITY_REQUIRED'},{'VERDICT':'PASS'})=='HIGH_VALUE_DATA_BLOCKED'
+        assert r.route(n,{'VERDICT':'PASS','DATA_STATUS':'FEASIBILITY_REQUIRED','CHECKS':{'BLOCKER_RESOLVED':True}},{'VERDICT':'PASS'})=='HIGH_VALUE_DATA_BLOCKED'
 
 @pytest.mark.parametrize('relation',['EXACT_DUPLICATE','PARAMETER_NEIGHBOR','FUNCTIONAL_RELABEL'])
 def test_consumed_d4_rejects(tmp_path,relation):

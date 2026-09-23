@@ -46,6 +46,20 @@ def run_campaign(c,caller,size=40):
         exact(judgments,c.design['GENERATOR_EVALUATION_CRITERIA']['PER_CANDIDATE_DIMENSIONS'])
         review={'CANDIDATE_ID':card['CANDIDATE_ID'],'NOVELTY':n,'FEASIBILITY':f,'RED_TEAM':r,'ORDINAL_JUDGMENTS':judgments,'STREAM':route}
         reviews.append(review)
+    # A near-duplicate relation reported in either direction excludes the later ID.
+    # Do this only after all critics have answered, so order cannot hide asymmetry.
+    duplicate_later=set()
+    for review in reviews:
+        cid=review['CANDIDATE_ID']
+        for relation in review['NOVELTY']['BATCH_RELATIONS']:
+            if relation['RELATION']!='ORTHOGONAL_MECHANISM':
+                duplicate_later.add(max(cid,relation['CANDIDATE_ID']))
+    for card,review in zip(cards,reviews):
+        n,f,r=review['NOVELTY'],review['FEASIBILITY'],review['RED_TEAM']
+        if card['CANDIDATE_ID'] in duplicate_later:
+            n['VERDICT']='REJECT'
+            review['STREAM']='NOT_A_STREAM'
+        route=review['STREAM'];judgments=review['ORDINAL_JUDGMENTS']
         if route!='NOT_A_STREAM':
             sanitized.append(roles.sanitize(card,n,f,r));streams.append((card,route))
             selection[card['CANDIDATE_ID']]={'MECHANISM_DISTANCE':judgments['MECHANISM_DISTANCE'],'INFORMATION_GAIN':judgments['NULL_INFORMATION_GAIN'],'FEASIBILITY':f['FEASIBILITY'],'CHEAPNESS':f['CHEAPNESS']}

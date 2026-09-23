@@ -1,6 +1,6 @@
 # Generator V0 shadow campaign
 
-Status: implementation under final adversarial review. One campaign generates
+Status: GENERATOR_V0_REAL_SHADOW_CAMPAIGN_READY; draft PR awaits independent review. One campaign generates
 research cards, applies separate critics and produces a human-review queue.
 It has no market-data reader, acquisition tool, evaluator or trading hook.
 A successful run terminates at `PENDING_HUMAN_REVIEW`.

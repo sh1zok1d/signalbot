@@ -5564,3 +5564,16 @@ The uniform `CONSUMED` blind label would have told the generator that
 blocked regions (B2-06, MARKET-04, D1, D6, D8, D4 lead-lag) were closed.
 Consumed-versus-deferred adjudication now lives only in
 `GOVERNANCE_REGION_AUTHORITY_V0`, read by the novelty critic.
+
+## 2026-09-23 — Generator V0 shadow infrastructure implementation
+
+Completed the frozen design implementation plus the explicitly authorized
+single-field GENERATOR_SIDE_RULE provenance amendment (0A). No research
+window or hypothesis was consumed. No historical scientific result changed.
+Two clean zero-cost mock campaigns: 40 cards, 20 Stream A, 15 Stream B,
+5 non-stream cases, shortlist 5, equal normalized semantic digest. This is
+infrastructure evidence only, not LLM-quality or scientific evidence.
+Concrete real adapter tested with fake HTTP only; all spend flags remain
+false. State: `GENERATOR_V0_REAL_SHADOW_CAMPAIGN_READY`, draft PR for review.
+See `research/GENERATOR_V0_ADVERSARIAL_REVIEW.md`,
+`research/GENERATOR_V0_OPERATOR.md`, and checkpoint records.

@@ -52,6 +52,10 @@ def main(argv=None):
                 l.mutate(a.candidate_id,a.field,parse_json(a.value_json),a.reason,a.actor,lambda x:validate_card(x,c))
             view=registry(l)
             atomic_json(a.run_dir/'human_review_queue.json',view)
+            if a.command=='mutate':
+                atomic_json(a.run_dir/'shadow_registry.json',view)
+                atomic_json(a.run_dir/'data_gap_ledger.json',{'STATUS':'MUTATED_REQUIRES_REVIEW'})
+            atomic_json(a.run_dir/'human_events.json',view['HUMAN_EVENTS'])
             print(canonical(view))
         finally:l.close()
         return
