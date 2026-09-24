@@ -151,6 +151,46 @@
     "REGION_STATE": "PRIOR_WORK_SIGNATURE",
     "TARGET_FAMILY": "MEDIAN_PERP_RESOLUTION_SHARE vs 0.5 and vs YEAR x SIGN_D x RV matched closing non-extremes"
   },
+  "GV0CAL-C001": {
+    "FUNCTION": "Participant-composition state -> subsequent sub-hour variance-ratio structure",
+    "ID": "GV0CAL-C001",
+    "INFORMATION_SOURCE": "CORE_BTC_BINANCE_V0 kline quote_volume + trade_count",
+    "MECHANISM": "Average-trade-size participant-composition proxy",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Sub-hour return autocorrelation / variance-ratio structure"
+  },
+  "GV0CAL-C002": {
+    "FUNCTION": "US DST displacement of the intraday perp-vs-spot price-discovery profile",
+    "ID": "GV0CAL-C002",
+    "INFORMATION_SOURCE": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0 + statutory DST calendars",
+    "MECHANISM": "Perpetual-versus-spot intraday price-discovery locus",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Cross-venue price-discovery timing"
+  },
+  "GV0CAL-C003": {
+    "FUNCTION": "Absolute 5m movement around offset venue funding settlement schedules",
+    "ID": "GV0CAL-C003",
+    "INFORMATION_SOURCE": "BitMEX + Binance perpetual 5m surfaces",
+    "MECHANISM": "Venue-specific perpetual funding-settlement clock microstructure",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Settlement-window absolute movement/range"
+  },
+  "GV0CAL-C004": {
+    "FUNCTION": "Binance activity/path in CME final-settlement fixing window vs placebo Fridays",
+    "ID": "GV0CAL-C004",
+    "INFORMATION_SOURCE": "CME settlement calendar + Binance perpetual kline activity",
+    "MECHANISM": "CME reference-rate fixing-window spillover into Binance perpetual activity",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Fixing-window activity/path concentration"
+  },
+  "GV0CAL-C005": {
+    "FUNCTION": "Listing age -> subsequent matched cross-sectional relative return",
+    "ID": "GV0CAL-C005",
+    "INFORMATION_SOURCE": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+    "MECHANISM": "Listing-age lifecycle drift in Binance spot USDT cross-section",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Cross-sectional listing-age relative-return structure"
+  },
   "H01": {
     "FUNCTION": "Low recent RV predicts higher future RV",
     "ID": "H01",
