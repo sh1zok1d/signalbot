@@ -332,6 +332,51 @@
           "STATE": "DEFERRED_OR_BLOCKED"
         }
       ]
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Participant-composition state -> subsequent sub-hour variance-ratio structure",
+      "MECHANISM": "Average-trade-size participant-composition proxy",
+      "SIGNATURE_ID": "GV0CAL-C001",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "US DST displacement of the intraday perp-vs-spot price-discovery profile",
+      "MECHANISM": "Perpetual-versus-spot intraday price-discovery locus",
+      "SIGNATURE_ID": "GV0CAL-C002",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same calibration signature while its methodological blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify settlement mechanics from correlated UTC/time-of-day and venue effects and address the causal interpretation before this mechanism can advance.",
+      "FUNCTION": "Absolute 5m movement around offset venue funding settlement schedules",
+      "MECHANISM": "Venue-specific perpetual funding-settlement clock microstructure",
+      "SIGNATURE_ID": "GV0CAL-C003",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same calibration signature while its methodological blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CONFOUNDING_CONTROL_INADEQUATE",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must address confounding of final-settlement/fixing windows with correlated calendar, volatility, liquidity, and contemporaneous event structure before this mechanism can advance.",
+      "FUNCTION": "Binance activity/path in CME final-settlement fixing window vs placebo Fridays",
+      "MECHANISM": "CME reference-rate fixing-window spillover into Binance perpetual activity",
+      "SIGNATURE_ID": "GV0CAL-C004",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Listing age -> subsequent matched cross-sectional relative return",
+      "MECHANISM": "Listing-age lifecycle drift in Binance spot USDT cross-section",
+      "SIGNATURE_ID": "GV0CAL-C005",
+      "STATE": "CONSUMED"
     }
   ],
   "ROW_FIELDS": [
