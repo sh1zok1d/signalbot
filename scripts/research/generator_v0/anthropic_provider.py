@@ -23,7 +23,7 @@ import http.client
 from decimal import Decimal,ROUND_CEILING
 from .context import ContractError,canonical,Contexts,digest
 from .schema import parse_json
-from .output_schemas import anthropic_output_schema,anthropic_generator_schema_digest
+from .output_schemas import anthropic_output_schema,anthropic_generator_schema_digest,ANTHROPIC_GENERATOR_WIRE_FORMAT
 from .provider import Response,ProviderFailure
 from . import routing
 
@@ -126,6 +126,14 @@ class AnthropicProvider:
                 'ROLES':{r:{'MODEL':v['MODEL'],'PARAMS':v['PARAMS'],'MAX_OUTPUT_TOKENS':v['MAX_OUTPUT_TOKENS'],'STRUCTURED_OUTPUT':v['STRUCTURED_OUTPUT']} for r,v in sorted(self._routes.items())},
                 'GENERATOR_STRUCTURED_OUTPUT_SCHEMA_DIGEST':anthropic_generator_schema_digest(self.contexts) if 'GENERATOR' in self._routes else None}
 
+    def wire_identity_for(self,role,request):
+        """GENERATOR requests carry the compact wire format and the digest of the
+        exact schema sent; both enter the call key."""
+        if role!='GENERATOR':return None
+        self._route(role)
+        return {'provider_wire_format':ANTHROPIC_GENERATOR_WIRE_FORMAT,
+                'provider_schema_digest':digest(anthropic_output_schema(role,self.contexts,request))}
+
     def _headers(self):
         return {'x-api-key':self._key,'anthropic-version':API_VERSION,'content-type':'application/json'}
 
@@ -136,9 +144,13 @@ class AnthropicProvider:
         if maxout!=r['MAX_OUTPUT_TOKENS']:raise ContractError('output token cap differs from the route')
         user={'context':request['context']}
         if 'slots' in params:user['slots']=params['slots']
+        schema=anthropic_output_schema(role,self.contexts,request)
+        if role=='GENERATOR':
+            if request.get('provider_wire_format')!=ANTHROPIC_GENERATOR_WIRE_FORMAT:raise ContractError('generator request lacks the Anthropic compact wire format')
+            if request.get('provider_schema_digest')!=digest(schema):raise ContractError('generator request schema digest does not match the schema sent')
         body={'model':r['MODEL'],'max_tokens':maxout,'system':request['prompt'],
               'messages':[{'role':'user','content':canonical(user)}],'stream':False,
-              'output_config':{'effort':r['PARAMS']['effort'],'format':{'type':'json_schema','schema':anthropic_output_schema(role,self.contexts,request)}}}
+              'output_config':{'effort':r['PARAMS']['effort'],'format':{'type':'json_schema','schema':schema}}}
         if any(k in body for k in FORBIDDEN_BODY_KEYS):raise ContractError('forbidden request parameter')
         return body
 

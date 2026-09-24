@@ -117,7 +117,7 @@
       "GENERATOR": {
         "CALLS": 4,
         "ROUTE": "ANTHROPIC / claude-opus-5-5 / effort=high",
-        "WORST_CASE_SINGLE_ATTEMPT_USD": "3.584336"
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "3.128936"
       },
       "NOVELTY_CRITIC": {
         "CALLS": 40,
@@ -140,11 +140,11 @@
       "TARGET_4_RUN_MONTH_USD": "40",
       "TARGET_EXPECTED_FULL_40_CARD_RUN_USD": "10"
     },
-    "CAMPAIGN_CUMULATIVE_IF_COUNTED_IN_V7_AUTHORITY_USD": "26.768039",
+    "CAMPAIGN_CUMULATIVE_IF_COUNTED_IN_V7_AUTHORITY_USD": "26.312639",
     "FITS_OWNER_17_10_FRESH_SINGLE_ATTEMPT": false,
     "FITS_OWNER_17_10_FRESH_WITH_RETRIES": false,
-    "FRESH_40_CARD_SINGLE_ATTEMPT_USD": "21.821289",
-    "FRESH_40_CARD_WITH_CONTENT_RETRIES_USD": "43.640640",
+    "FRESH_40_CARD_SINGLE_ATTEMPT_USD": "21.365889",
+    "FRESH_40_CARD_WITH_CONTENT_RETRIES_USD": "42.729840",
     "NOTES": [
       "Worst-case reservation bounds (max output on every call, input bound = request bytes + margin), not expected cost.",
       "Anthropic input bound adds a fixed 4096-token provider-scaffolding margin; no cache or batch discount is used anywhere.",
@@ -174,7 +174,7 @@
       }
     },
     "REAL_LLM_CALLS_MADE": false,
-    "ROUTING_DIGEST": "bf45891d6d3449edd421a664dc9d74e9f63d3401ba9e56dd09013588ed982fce",
+    "ROUTING_DIGEST": "ef21451e433da324430c15cbfda41e514ab114d8f9fd2fa0921d9cc266d32716",
     "ROUTING_ID": "GENERATOR_V0_MULTI_PROVIDER_ROUTING_V1",
     "ROUTING_TABLE": {
       "FEASIBILITY_CRITIC": "OPENAI / gpt-6-luna / reasoning_effort=low",
@@ -188,10 +188,10 @@
       "NOVELTY_CRITIC x40": "13.8523",
       "RED_TEAM x40": "4.19494",
       "SELECTOR": "0.001938",
-      "generation:0": "0.895672",
-      "generation:1": "0.895792",
-      "generation:2": "0.89576",
-      "generation:3": "0.897112"
+      "generation:0": "0.782028",
+      "generation:1": "0.782088",
+      "generation:2": "0.782072",
+      "generation:3": "0.782748"
     },
     "V7_DERIVED_ROUTED_RUN": "NOT_APPLICABLE: v7 generation:0-2 were produced by gpt-6-astra under the grandfathered v0.1 contract; continuing them with an Opus generator would mix generator models inside one batch, and derive of routed journals is not implemented."
   },

@@ -20,8 +20,8 @@ from .context import Contexts,ContractError,digest,byte_digest
 from .ledger import Ledger,archive_connect
 from .models import GENERATOR_MAX_OUTPUT_TOKENS,ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,ROLE_OUTPUT_TOKEN_CAPS,model_for,request_params_for,price_table,routing_digest
 from .mock import slot_plan
-from .output_schemas import generator_schema_digest
-from .runner import GENERATOR_PROMPT,MAX_CONTENT_ATTEMPTS,generator_identity,generator_request_parameters,parse_round,round_cards,slot_violations_v02,contract_of_request
+from .output_schemas import generator_schema_digest,generator_wire_format
+from .runner import GENERATOR_PROMPT,MAX_CONTENT_ATTEMPTS,generator_identity,generator_request_parameters,parse_round,round_cards,slot_violations_v02,contract_of_request,CompactRound
 from . import contract,legacy_v01,legacy_v01_schema
 
 DERIVED_STATUS='DERIVED_IMPORTED_REVALIDATED'
@@ -137,7 +137,7 @@ def _meta(db,key):
 def _intake_summary(row,contexts):
     """Per-card verdicts of a generator round under the contract it was generated with."""
     raw=(row['response'] or {}).get('raw')
-    cards=round_cards(raw,contract_of_request(row['request'])) if raw else None
+    cards=round_cards(raw,contract_of_request(row['request']),generator_wire_format(row['request'])) if raw else None
     if cards is None:return {'ROUND_USABLE':False,'CARDS':[]}
     legacy=row['request'].get('prompt_version')==legacy_v01.PROMPT_VERSION
     out=[]
@@ -166,7 +166,7 @@ def _select_round(rows,slot,contexts,plan,source_config,current_id):
         expected=expected_generator_request(contexts,slots,round_n)
         errors=compatibility_errors(expected,r['request'],source_config,current_id)
         if errors:raise ContractError('incompatible COMPLETE call '+slot+': '+','.join(errors))
-        if parse_round(r['response'].get('raw')) is not None:return r,r['request'],contract.CONTRACT_ID
+        if parse_round(r['response'].get('raw'),contract.CONTRACT_ID,generator_wire_format(r['request'])) is not None:return r,r['request'],contract.CONTRACT_ID
     return None
 
 def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=None):
@@ -225,8 +225,12 @@ def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=Non
     imported.sort(key=lambda item:item[0])
     intake={};verdicts={}
     for round_n,r,expected,contract_id in imported:
-        slots=plan[round_n*10:round_n*10+10];cards=parse_round(r['response']['raw'],contract_id) or []
-        by=cards if isinstance(cards,dict) else {c.get('CANDIDATE_ID'):c for c in cards if isinstance(c,dict)}
+        slots=plan[round_n*10:round_n*10+10];cards=parse_round(r['response']['raw'],contract_id,generator_wire_format(r['request'])) or []
+        if isinstance(cards,dict):by=cards
+        elif not isinstance(cards,CompactRound):by={c.get('CANDIDATE_ID'):c for c in cards if isinstance(c,dict)}
+        else:
+            ids=[c.get('CANDIDATE_ID') if isinstance(c,dict) and isinstance(c.get('CANDIDATE_ID'),str) else None for c in cards]
+            by={k:c for k,c in zip(ids,cards) if k is not None and ids.count(k)==1}
         valid=0
         for s in slots:
             card=by.get(s['CANDIDATE_ID']);ok=False
@@ -250,7 +254,7 @@ def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=Non
             dest.import_complete(r['key'],r['request'],r['reserved'],r['response'],r['cost'],r['usage'],provenance)
         total=dest.total_charged_micro_usd()
         if total!=source_prior+source_journal:raise ContractError('lineage spend not preserved')
-        cards_ids=[c.get('CANDIDATE_ID') for _,r,_,cid in imported for c in (round_cards(r['response']['raw'],cid) or []) if isinstance(c,dict)]
+        cards_ids=[c.get('CANDIDATE_ID') for _,r,_,cid in imported for c in (round_cards(r['response']['raw'],cid,generator_wire_format(r['request'])) or []) if isinstance(c,dict)]
         report={
             'STATUS':DERIVED_STATUS,'SOURCE_RUN_ID':source_config['RUN_ID'],'DEST_RUN_ID':dest_dir.name,
             'IMPORTED_GENERATION_ROUNDS':['generation:'+str(n) for n,_,_,_ in imported],
@@ -420,6 +424,8 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
         slots=plan[round_n*10:round_n*10+10]
         req={'role':'GENERATOR','context':contexts.generator(),'prompt':GENERATOR_PROMPT,
              'parameters':generator_request_parameters(slots),**generator_identity(contexts,slots)}
+        wire=getattr(provider,'wire_identity_for',None)
+        if wire is not None:req.update(wire('GENERATOR',req) or {})
         bound=provider.bound(req);total+=bound
         stages.append(_stage('generation:'+str(round_n),bound))
     critic_tot={'NOVELTY_CRITIC':0,'FEASIBILITY_CRITIC':0,'RED_TEAM':0}

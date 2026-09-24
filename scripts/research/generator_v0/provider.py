@@ -94,6 +94,10 @@ class Caller:
         family=getattr(self.provider,'provider_for',None)
         if family is not None:req['route_provider']=family(role);req['route_digest']=self.provider.route_digest_for(role)
         if identity:req.update(identity)
+        # Provider-side output projection (wire format + its schema digest) is
+        # part of the call key: a different projection is a different call.
+        wire=getattr(self.provider,'wire_identity_for',None)
+        if wire is not None:req.update(wire(role,req) or {})
         if content_attempt:req['content_attempt']=content_attempt
         return req
 

@@ -33,8 +33,8 @@ def _chat(content,finish='stop',prompt=900,completion=120):
     return json.dumps({'choices':[{'finish_reason':finish,'message':{'content':content}}],'usage':{'prompt_tokens':prompt,'completion_tokens':completion}}).encode()
 
 class NoisyTransport:
-    def __init__(self,contexts,faults=None):
-        self.respond=MockResponder(contexts);self.faults=dict(faults or {})
+    def __init__(self,contexts,faults=None,compact_mutator=None):
+        self.respond=MockResponder(contexts);self.faults=dict(faults or {});self.compact_mutator=compact_mutator
         self.counts=Counter();self.log=[];self.payloads={};self.n=0
         self.prompts={NOVELTY_PROMPT:'NOVELTY_CRITIC',FEAS_PROMPT:'FEASIBILITY_CRITIC',RED_PROMPT:'RED_TEAM',SELECTOR_PROMPT:'SELECTOR'}
 
@@ -55,6 +55,8 @@ class NoisyTransport:
         if fault=='drop_card':payload['CANDIDATES'].pop(ids[-1])
         if fault=='invalid_card':payload['CANDIDATES'][ids[4]]['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01 to 2024-12'
         if fault=='protected_card':payload['CANDIDATES'][ids[6]]['NO_LOOKAHEAD_RULE']='No 2025/2026 bars are permitted.'
+        payload={'CANDIDATES':list(payload['CANDIDATES'].values())}   # Anthropic compact wire: array of cards
+        if self.compact_mutator is not None:payload['CANDIDATES']=self.compact_mutator(rnd,payload['CANDIDATES'])
         self.n+=1
         stop='max_tokens' if fault=='max_tokens' else 'end_turn'
         text=canonical(payload) if stop=='end_turn' else canonical(payload)[:200]
@@ -118,7 +120,7 @@ def routed_provider_for(transport,contexts):
 MIXED_FAULTS={
     # Critic faults sit on round-1 cards: generation:0 is closed by the UNKNOWN reconciliation of its 429.
     ('GENERATOR',0,1):'429',            # Anthropic documented rate_limit_error: UNCERTAIN, never replayed; reconciled UNKNOWN
-    ('GENERATOR',1,1):'drop_card',      # keyed omission -> one slot HARD_FAIL
+    ('GENERATOR',1,1):'drop_card',      # compact omission -> missing slot HARD_FAIL
     ('GENERATOR',2,1):'invalid_card',   # non-canonical range -> one slot HARD_FAIL (provider schema)
     ('GENERATOR',3,1):'max_tokens',     # billed length stop -> content retry
     ('GENERATOR',3,2):'protected_card', # retried round names a protected year -> one slot HARD_FAIL

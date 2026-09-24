@@ -22,7 +22,8 @@ from .mock import slot_plan
 from .ledger import data_gaps,BudgetExceeded,CallUncertain,InfrastructureStop
 from .models import GENERATOR_MAX_OUTPUT_TOKENS,ROLE_OUTPUT_TOKEN_CAPS
 from .provider import BilledFailure,ProviderThrottled,ProviderRejected,BackgroundPending
-from .output_schemas import generator_round_schema_digest
+from .output_schemas import (generator_round_schema_digest,generator_wire_format,
+                             ANTHROPIC_GENERATOR_WIRE_FORMAT,KEYED_GENERATOR_WIRE_FORMAT)
 from . import contract,legacy_v01
 
 GENERATOR_PROMPT=contract.generator_prompt()
@@ -49,18 +50,27 @@ def generator_identity(c,slots):
 def generator_request_parameters(slots):
     return {'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':list(slots)}
 
-def parse_round(raw,contract_id=contract.CONTRACT_ID):
+class CompactRound(list):
+    """Anthropic compact wire output: provider-encoded items in returned order.
+    Nothing in it is trusted; intake binds each item to a slot by its own
+    CANDIDATE_ID and applies that slot's exact provider schema and V02 rules."""
+
+def parse_round(raw,contract_id=contract.CONTRACT_ID,wire=KEYED_GENERATOR_WIRE_FORMAT):
     """Generator output -> cards, or None if unusable as a round.
 
-    V02: the provider-keyed object {'CANDIDATES': {slot_id: card}} exactly as
-    decoded (a list is unusable). Cards stay in provider encoding; intake checks
-    each against its slot's strict provider schema before the V02 rules.
+    V02 keyed wire: the provider-keyed object {'CANDIDATES': {slot_id: card}}
+    exactly as decoded (a list is unusable). V02 Anthropic compact wire:
+    {'CANDIDATES': [card, ...]} as a CompactRound (an object is unusable).
+    Cards stay in provider encoding; intake checks each against its slot's
+    strict provider schema before the V02 rules.
     Legacy v0.1 (grandfathered imports only): the stored list form."""
     try:payload=parse_json(raw)
     except ContractError:return None
     if not isinstance(payload,dict) or set(payload)!={'CANDIDATES'}:return None
     cards=payload['CANDIDATES']
     if contract_id==legacy_v01.CONTRACT_ID:return cards if isinstance(cards,list) else None
+    if wire==ANTHROPIC_GENERATOR_WIRE_FORMAT:return CompactRound(cards) if isinstance(cards,list) else None
+    if wire!=KEYED_GENERATOR_WIRE_FORMAT:raise ContractError('unknown generator wire format')
     return cards if isinstance(cards,dict) else None
 
 def slot_violations_v02(card,c,slot):
@@ -72,15 +82,27 @@ def slot_violations_v02(card,c,slot):
     except ContractError as e:return [{'RULE':'PROVIDER_SCHEMA','DETAIL':str(e)}],card
     return contract.card_violations(card,c,slot),card
 
-def round_cards(raw,contract_id=contract.CONTRACT_ID):
+def round_cards(raw,contract_id=contract.CONTRACT_ID,wire=KEYED_GENERATOR_WIRE_FORMAT):
     """Parsed round as a list of application cards (summaries, preflight); None if unusable."""
-    cards=parse_round(raw,contract_id)
-    if cards is None or isinstance(cards,list):return cards
+    cards=parse_round(raw,contract_id,wire)
+    if cards is None:return None
+    if isinstance(cards,CompactRound):
+        out=[]
+        for v in cards:
+            try:out.append(decode_provider_card(v))
+            except ContractError:out.append(v)
+        return out
+    if isinstance(cards,list):return cards
     out=[]
     for k,v in cards.items():
         try:out.append(decode_provider_card(v))
         except ContractError:out.append(v if isinstance(v,dict) else {'CANDIDATE_ID':k})
     return out
+
+def call_wire_format(ledger,key):
+    """Generator wire format recorded in the journaled request of call key."""
+    row=ledger.db.execute('SELECT request FROM calls WHERE key=?',(key,)).fetchone() if key else None
+    return generator_wire_format(json.loads(row[0]) if row else None)
 
 def contract_of_request(request):
     return legacy_v01.CONTRACT_ID if request.get('prompt_version')==legacy_v01.PROMPT_VERSION else contract.CONTRACT_ID
@@ -90,7 +112,7 @@ def _round_output(c,ledger,caller,round_n,slots):
     slot_id='generation:'+str(round_n)
     imported=(ledger.get('imported_rounds') or {}).get(slot_id)
     if imported:
-        return imported['CONTRACT'],imported['CALL_KEY'],parse_round(ledger.complete_raw(imported['CALL_KEY']),imported['CONTRACT']),['imported output is not a usable round']
+        return imported['CONTRACT'],imported['CALL_KEY'],parse_round(ledger.complete_raw(imported['CALL_KEY']),imported['CONTRACT'],call_wire_format(ledger,imported['CALL_KEY'])),['imported output is not a usable round']
     reasons=[];key=None
     for attempt in range(MAX_CONTENT_ATTEMPTS):
         try:
@@ -98,7 +120,7 @@ def _round_output(c,ledger,caller,round_n,slots):
         except BilledFailure as e:
             reasons.append('attempt '+str(attempt)+': '+str(e));key=caller.last_key;continue
         key=caller.last_key
-        cards=parse_round(raw)
+        cards=parse_round(raw,contract.CONTRACT_ID,call_wire_format(ledger,key))
         if cards is not None:return contract.CONTRACT_ID,key,cards,reasons
         reasons.append('attempt '+str(attempt)+': unusable generation output')
     return contract.CONTRACT_ID,key,None,reasons
@@ -108,11 +130,22 @@ def _intake_round(c,ledger,round_n,slots,contract_id,key,cards,failure):
 
     cards is either the V02 provider-keyed object (slot ID -> provider-encoded
     card; duplicate IDs cannot exist) or a list of application cards (legacy
-    imports and synthetic tests)."""
+    imports and synthetic tests), or a CompactRound (Anthropic compact wire:
+    provider-encoded items bound to a slot only by their own CANDIDATE_ID and
+    then checked against that slot's exact provider schema, like keyed cards)."""
     slot_id='generation:'+str(round_n)
-    by_id={};dupes=set();extras=[];keyed=isinstance(cards,dict)
+    by_id={};dupes=set();extras=[];malformed=[];compact=isinstance(cards,CompactRound)
+    keyed=isinstance(cards,dict) or compact
     wanted={s['CANDIDATE_ID'] for s in slots}
-    for k,card in (cards.items() if keyed else ((c.get('CANDIDATE_ID') if isinstance(c,dict) else None,c) for c in cards or [])):
+    if compact:
+        pairs=[]
+        for i,item in enumerate(cards):
+            k=item.get('CANDIDATE_ID') if isinstance(item,dict) else None
+            if not isinstance(k,str):malformed.append(i);continue
+            pairs.append((k,item))
+    else:
+        pairs=cards.items() if keyed else ((c.get('CANDIDATE_ID') if isinstance(c,dict) else None,c) for c in cards or [])
+    for k,card in pairs:
         if k not in wanted:extras.append(k);continue
         if k in by_id:dupes.add(k)
         by_id[k]=card
@@ -133,6 +166,8 @@ def _intake_round(c,ledger,round_n,slots,contract_id,key,cards,failure):
         if state=='VALID':admitted.append(card)
     if extras:
         with ledger.transaction():ledger.event('EXTRA_GENERATED_CARDS_IGNORED',{'ROUND':slot_id,'CALL_KEY':key,'CANDIDATE_IDS':sorted(map(str,extras))})
+    if malformed:
+        with ledger.transaction():ledger.event('MALFORMED_GENERATED_ITEMS_IGNORED',{'ROUND':slot_id,'CALL_KEY':key,'ITEM_INDEXES':malformed})
     return admitted
 
 def _review(roles,card,batch,stats):

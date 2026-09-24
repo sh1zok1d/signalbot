@@ -12,7 +12,7 @@ from scripts.research.generator_v0.anthropic_provider import AnthropicProvider,u
 from scripts.research.generator_v0.openai_provider import OpenAIProvider
 from scripts.research.generator_v0.routed_provider import RoutedProvider,offline_routed_provider,routed_run_identity
 from scripts.research.generator_v0.output_schemas import (role_schema,anthropic_projection,anthropic_subset_violations,anthropic_output_schema,
-    strict_subset_violations)
+    strict_subset_violations,anthropic_generator_compact_schema,ANTHROPIC_GENERATOR_WIRE_FORMAT)
 from scripts.research.generator_v0.provider import Caller,ProviderFailure,ProviderRejected,BilledFailure,Response
 from scripts.research.generator_v0.ledger import Ledger,CallUncertain,BudgetExceeded
 from scripts.research.generator_v0.runner import GENERATOR_PROMPT,generator_request_parameters,generator_identity,run_campaign,accept_budget_stop
@@ -34,7 +34,8 @@ def env(text,stop='end_turn',model='claude-opus-5-5',mid='msg_test_1',usage=None
     return json.dumps(body).encode()
 
 def gen_json():
-    return MockResponder(C)({'role':'GENERATOR','context':C.generator(),'parameters':{'slots':SLOTS}})
+    keyed=json.loads(MockResponder(C)({'role':'GENERATOR','context':C.generator(),'parameters':{'slots':SLOTS}}))
+    return canonical({'CANDIDATES':list(keyed['CANDIDATES'].values())})   # Anthropic compact wire
 
 class Fake:
     """Scripted transport: a list of (status, wire) or exceptions, consumed in order."""
@@ -126,7 +127,7 @@ def test_router_dispatches_each_role_to_its_provider_only():
     assert [x[1] for x in at.calls]==['/v1/messages'] and ot.log==[]
     Roles(C,cal).feasibility(fixture(SLOTS[0],C))
     assert [x[1] for x in ot.log]==['/v1/chat/completions'] and len(at.calls)==1
-    assert json.loads(raw)['CANDIDATES'].keys()=={s['CANDIDATE_ID'] for s in SLOTS}
+    assert [x['CANDIDATE_ID'] for x in json.loads(raw)['CANDIDATES']]==[s['CANDIDATE_ID'] for s in SLOTS]
 
 def test_bound_uses_the_routed_provider():
     p=offline_routed_provider(C);cal=Caller(C,Ledger(':memory:',{'RUN_ID':'b'}),p,1,True)
@@ -163,8 +164,10 @@ def test_opus_generator_request_shape():
     assert body['output_config']['effort']=='high' and body['output_config']['format']['type']=='json_schema'
     assert not any(k in body for k in FORBIDDEN_BODY_KEYS)
     assert 'thinking' not in canonical(body).split('"messages"')[0]+canonical(body['output_config'])
-    exact=role_schema('GENERATOR',C,provider=True,request=req)
-    assert body['output_config']['format']['schema']==anthropic_projection(exact)[0]==anthropic_output_schema('GENERATOR',C,req)
+    compact=anthropic_generator_compact_schema(C,req)
+    assert body['output_config']['format']['schema']==anthropic_projection(compact)[0]==anthropic_output_schema('GENERATOR',C,req)
+    assert req['provider_wire_format']==ANTHROPIC_GENERATOR_WIRE_FORMAT
+    assert req['provider_schema_digest']==digest(body['output_config']['format']['schema'])
 
 def test_anthropic_projection_removes_only_unsupported_constraints_which_intake_still_enforces():
     exact=role_schema('GENERATOR',C,provider=True,request={'parameters':{'slots':SLOTS}})

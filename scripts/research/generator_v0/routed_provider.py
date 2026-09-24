@@ -44,6 +44,9 @@ class RoutedProvider:
     def request_params_for(self,role):return dict(self._route(role)['PARAMS'])
     def endpoint_for(self,role):return self._route(role)['ENDPOINT']
     def uses_background(self,role):self._route(role);return False
+    def wire_identity_for(self,role,request):
+        fn=getattr(self.adapter_for(role),'wire_identity_for',None)
+        return fn(role,request) if fn is not None else None
 
     def _check(self,request):
         role=request.get('role');r=self._route(role)
