@@ -1,6 +1,11 @@
+## Generator V0 Anthropic compact GENERATOR projection — 2026-09-24
+
+`NEXT_UNIT = GENERATOR_V0_ANTHROPIC_RE_SMOKE (blocked: ANTHROPIC_API_KEY missing)`.
+The first Anthropic smoke was rejected with HTTP 400 "compiled grammar is too large" at cost USD 0. The Anthropic GENERATOR request now uses a compact array wire format with one shared card schema. Intake enforces the exact keyed slot schema and V02 rules before any card is VALID or reaches a critic. No scientific change and no real API call. See `docs/research/GENERATOR_V0_ANTHROPIC_COMPACT_PROJECTION.md`.
+
 ## Generator V0 outcome-blind multi-provider routing — 2026-09-24
 
-`NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW` (verified; see the compact projection above).
 PR #214 was verified `READY_FOR_PROVIDER_SMOKE_TEST`. This unit adds an infrastructure-only routing layer:
 - GENERATOR → Anthropic `claude-opus-5-5` (effort high);
 - NOVELTY_CRITIC and RED_TEAM → OpenAI `gpt-6-sol` (high);

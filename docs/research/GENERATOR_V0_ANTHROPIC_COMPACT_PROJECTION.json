@@ -1,0 +1,174 @@
+{
+  "BASE_COMMIT": "cde2035708c053f6f4b66442a0689542735a05fa",
+  "COMPLETION_STATE": "OFFLINE_GATES_PASS / LIVE_RE_SMOKE_BLOCKED_MISSING_ANTHROPIC_API_KEY",
+  "FRESH_40_CARD_ROUTED_WORST_CASE_SINGLE_ATTEMPT_USD": "21.365889",
+  "GRAMMAR_REPORT": {
+    "AFTER_COMPACT": {
+      "generation:0": {
+        "bound_micro_usd": 782028,
+        "call_key": "f8207e1f0fa229f24eec50b0c894d704dd32ad1fece59672e2d2440b47ea930e",
+        "enum_values": 75,
+        "enums": 7,
+        "legal_range_patterns": 1,
+        "objects": 5,
+        "patterns": 1,
+        "request_body_bytes": 27571,
+        "schema_bytes": 3525,
+        "single_value_enums": 1
+      },
+      "generation:1": {
+        "bound_micro_usd": 782088,
+        "call_key": "7d7d54cded9f93a81bfff47863084f7892fd227f87467f8c05508261a7c9b05f",
+        "enum_values": 75,
+        "enums": 7,
+        "legal_range_patterns": 1,
+        "objects": 5,
+        "patterns": 1,
+        "request_body_bytes": 27586,
+        "schema_bytes": 3525,
+        "single_value_enums": 1
+      },
+      "generation:2": {
+        "bound_micro_usd": 782072,
+        "call_key": "23581bae123d82f34df1a437812bfdcb7677b9718fdda787a9f730891b8b5558",
+        "enum_values": 75,
+        "enums": 7,
+        "legal_range_patterns": 1,
+        "objects": 5,
+        "patterns": 1,
+        "request_body_bytes": 27582,
+        "schema_bytes": 3525,
+        "single_value_enums": 1
+      },
+      "generation:3": {
+        "bound_micro_usd": 782748,
+        "call_key": "a4f9ec8653bb950f572d7e2a269c83bd6b48c5eacf32c63466e6b5c7907a355b",
+        "enum_values": 75,
+        "enums": 7,
+        "legal_range_patterns": 1,
+        "objects": 5,
+        "patterns": 1,
+        "request_body_bytes": 27751,
+        "schema_bytes": 3525,
+        "single_value_enums": 1
+      }
+    },
+    "BEFORE_KEYED": {
+      "generation:0": {
+        "bound_micro_usd": 895672,
+        "call_key": "767fd9e133e63a6e212277326252679724c3863d9d649e909c0eb1dc2bdf95a0",
+        "enum_values": 490,
+        "enums": 70,
+        "legal_range_patterns": 10,
+        "objects": 42,
+        "patterns": 10,
+        "request_body_bytes": 55982,
+        "schema_bytes": 31936,
+        "single_value_enums": 40
+      },
+      "generation:1": {
+        "bound_micro_usd": 895792,
+        "call_key": "785ed7d73bd92a416f6133b0e1506767fd58269b7ebb7f63dff076c3d0cbac99",
+        "enum_values": 490,
+        "enums": 70,
+        "legal_range_patterns": 10,
+        "objects": 42,
+        "patterns": 10,
+        "request_body_bytes": 56012,
+        "schema_bytes": 31951,
+        "single_value_enums": 40
+      },
+      "generation:2": {
+        "bound_micro_usd": 895760,
+        "call_key": "145774a241c89a93e676666288e2eb04403e3220df572b9bd189210314fa24a1",
+        "enum_values": 490,
+        "enums": 70,
+        "legal_range_patterns": 10,
+        "objects": 42,
+        "patterns": 10,
+        "request_body_bytes": 56004,
+        "schema_bytes": 31947,
+        "single_value_enums": 40
+      },
+      "generation:3": {
+        "bound_micro_usd": 897112,
+        "call_key": "b6e6416d31daedc311f480d41ec09f3ed245cf9f9933f319fecdcc255711a372",
+        "enum_values": 490,
+        "enums": 70,
+        "legal_range_patterns": 10,
+        "objects": 42,
+        "patterns": 10,
+        "request_body_bytes": 56342,
+        "schema_bytes": 32116,
+        "single_value_enums": 40
+      }
+    }
+  },
+  "LIVE_RE_SMOKE": {
+    "ANTHROPIC_POSTS": 0,
+    "BLOCKER": "ANTHROPIC_API_KEY not present in the agent environment",
+    "COST_USD": "0",
+    "OPENAI_POSTS": 0,
+    "PERFORMED": false
+  },
+  "PROTECTED_2025_2026_OPENED": false,
+  "REAL_LLM_CALLS_MADE": false,
+  "RELAXED_CONSTRAINTS": [
+    {
+      "CONSTRAINT": "CANDIDATES keyed by exactly the round slot IDs (one card per slot, no extras, no duplicates)",
+      "INTAKE": "missing slot / duplicate ID -> HARD_FAIL for that slot; unknown ID -> ignored and recorded",
+      "PROVIDER": "array of cards, minItems 1"
+    },
+    {
+      "CONSTRAINT": "CANDIDATE_ID one-value enum per slot",
+      "INTAKE": "card bound to the slot named by its own CANDIDATE_ID; exact slot schema",
+      "PROVIDER": "enum of the round slot IDs"
+    },
+    {
+      "CONSTRAINT": "MECHANISM_FAMILY one-value enum per slot",
+      "INTAKE": "exact slot schema one-value enum",
+      "PROVIDER": "enum of all frozen families"
+    },
+    {
+      "CONSTRAINT": "INFORMATION_SOURCE one-value enum per slot",
+      "INTAKE": "exact slot schema one-value enum",
+      "PROVIDER": "enum of all slot source classes"
+    },
+    {
+      "CONSTRAINT": "SEARCH_SURFACE.MAX_VARIANTS minimum 1 / maximum 100",
+      "INTAKE": "exact slot schema integer range",
+      "PROVIDER": "integer"
+    },
+    {
+      "CONSTRAINT": "DATA_REQUIRED maxItems 20",
+      "INTAKE": "exact slot schema array length",
+      "PROVIDER": "array, minItems 1"
+    }
+  ],
+  "ROUTER_IDENTITY_DIGEST": "e27ce3371280340aa45c7367027393c1da57e0e73514df1e0061beaa39ae9fc5",
+  "ROUTE_STRUCTURED_OUTPUT": "ANTHROPIC_OUTPUT_CONFIG_JSON_SCHEMA_COMPACT_CANDIDATE_ARRAY_V1",
+  "ROUTING_DIGEST": "ef21451e433da324430c15cbfda41e514ab114d8f9fd2fa0921d9cc266d32716",
+  "SCIENTIFIC_CONTRACT_CHANGED": false,
+  "SEALED_V7_SHA256": "e27eb1ce77c5152eff4e68e30c2632ad9bd575ef953b5a069775b5ff46f36457",
+  "SMOKE_BUDGET_PRECHECK": {
+    "CAP_USD": "3.00",
+    "FITS": true,
+    "PRIOR_SPEND_USD": "0",
+    "RESERVATIONS_USD": {
+      "ANTHROPIC_GENERATOR_ROUND": "0.782028",
+      "LUNA_FEASIBILITY_CRITIC": "0.003950",
+      "SOL_NOVELTY_CRITIC": "0.201984"
+    },
+    "TOTAL_USD": "0.987962"
+  },
+  "TRIGGER": {
+    "CALL_KEY": "767fd9e133e63a6e212277326252679724c3863d9d649e909c0eb1dc2bdf95a0",
+    "COST_USD": "0",
+    "ERROR_TYPE": "invalid_request_error",
+    "HTTP_STATUS": 400,
+    "MESSAGE": "The compiled grammar is too large, which would cause performance issues. Simplify your tool schemas or reduce the number of strict tools.",
+    "REQUEST_BODY_BYTES": 55982
+  },
+  "UNIT": "GENERATOR_V0_ANTHROPIC_COMPACT_PROJECTION",
+  "WIRE_FORMAT": "ANTHROPIC_COMPACT_CANDIDATE_ARRAY_V1"
+}
