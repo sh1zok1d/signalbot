@@ -36,3 +36,28 @@ def test_d4_states_and_selector_boundary():
     assert c.rows['D4.LEAD_LAG_1DAY']['STATE']=='DEFERRED_OR_BLOCKED'
     for key in ('BLIND_MECHANISM_MAP_V0','GOVERNANCE_REGION_AUTHORITY_V0','RESULT_ARTIFACTS'):
         with pytest.raises(ContractError):c.validate('SELECTOR',{key:{}})
+
+
+def test_calibration_memory_is_blind_and_governed():
+    c=Contexts();g=c.generator();c.validate('GENERATOR',g)
+    ids=['GV0CAL-C001','GV0CAL-C002','GV0CAL-C003','GV0CAL-C004','GV0CAL-C005']
+    assert all(i in c.blind for i in ids)
+    assert all(c.blind[i]['REGION_STATE']=='PRIOR_WORK_SIGNATURE' for i in ids)
+    # Generator projection must not reveal calibration critic dispositions.
+    blob=json.dumps({i:c.blind[i] for i in ids},sort_keys=True).lower()
+    for forbidden in ('pipeline_survivor','red_team','reject','causality=false','confounding_addressed=false'):
+        assert forbidden not in blob
+    assert c.rows['GV0CAL-C001']['STATE']=='CONSUMED'
+    assert c.rows['GV0CAL-C002']['STATE']=='CONSUMED'
+    assert c.rows['GV0CAL-C005']['STATE']=='CONSUMED'
+    assert c.rows['GV0CAL-C003']['STATE']=='DEFERRED_OR_BLOCKED'
+    assert c.rows['GV0CAL-C003']['BLOCKER_CLASS_IF_ANY']=='METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING'
+    assert c.rows['GV0CAL-C004']['STATE']=='DEFERRED_OR_BLOCKED'
+    assert c.rows['GV0CAL-C004']['BLOCKER_CLASS_IF_ANY']=='METHOD_CONFOUNDING_CONTROL_INADEQUATE'
+
+
+def test_calibration_memory_is_available_to_novelty_authority():
+    c=Contexts()
+    signature_ids={row['SIGNATURE_ID'] for row in c.authority['ROWS']}
+    assert {'GV0CAL-C001','GV0CAL-C002','GV0CAL-C003','GV0CAL-C004','GV0CAL-C005'} <= signature_ids
+    assert len(c.blind)==len(c.authority['ROWS'])
