@@ -161,6 +161,81 @@ def test_retryable_transport_failure_cannot_post_again(tmp_path, monkeypatch):
     assert GENERATOR_MAX_NEW_POSTS == 1
 
 
+def chat(text):
+    body = {'choices': [{'finish_reason': 'stop', 'message': {'content': text}}],
+            'usage': {'prompt_tokens': 10, 'completion_tokens': 20}}
+    return json.dumps(body).encode()
+
+
+def critic_answers():
+    feas = {'DATA_STATUS': 'DATA_READY',
+            'CHECKS': {'OBSERVABLE_SUPPORTED': True, 'LEGAL_RANGE': True, 'POINT_IN_TIME': True, 'PROVENANCE': True, 'BLOCKER_RESOLVED': True},
+            'JUDGMENTS': {'DATA_SPECIFICITY': 1, 'IMPLEMENTATION_BOUNDEDNESS': 1},
+            'FEASIBILITY': 1, 'CHEAPNESS': 1}
+    leaves = sorted(k for k, r in C.rows.items() if r['STATE'] != 'PARTIAL_OR_MIXED')
+    nov = {'PRIOR_RELATIONS': {k: 'ORTHOGONAL_MECHANISM' for k in leaves}, 'BATCH_RELATIONS': {},
+           'JUDGMENTS': {'NOVELTY': 1, 'MECHANISM_DISTANCE': 1, 'NON_RESCUE': 1}}
+    return (200, chat(canonical(feas))), (200, chat(canonical(nov)))
+
+
+def rejected_cards():
+    payload = json.loads(gen_json())
+    for card in payload['CANDIDATES']:
+        card['MECHANISM_FAMILY'] = 'NOT_A_FAMILY'
+    return canonical(payload)
+
+
+def resumes(cal, a, o, status, times=2):
+    for _ in range(times):
+        report = run_resmoke(C, Caller(C, cal.ledger, cal.provider, CAP, True))
+        assert report['STATUS'] == status and report['CRITICS'] is False
+        assert len(a.calls) == 1 and o.calls == []
+    return report
+
+
+def test_unusable_complete_round_never_reaches_critics_on_resume(tmp_path):
+    cal, a, o = caller(tmp_path, ((200, env(canonical({'CANDIDATES': {'C001': {}} }))),), ((400, b'no'), (400, b'no')))
+    report = run_resmoke(C, cal)
+    assert report['STATUS'] == 'STOPPED_UNUSABLE_ROUND' and report['CRITICS'] is False
+    assert len(a.calls) == 1 and o.calls == []
+    resumes(cal, a, o, 'STOPPED_UNUSABLE_ROUND')
+
+
+def test_complete_round_with_nothing_admitted_never_reaches_critics_on_resume(tmp_path):
+    cal, a, o = caller(tmp_path, ((200, env(rejected_cards())),), ((400, b'no'), (400, b'no')))
+    report = run_resmoke(C, cal)
+    assert report['STATUS'] == 'STOPPED_NOTHING_ADMITTED' and report['CRITICS'] is False
+    assert len(a.calls) == 1 and o.calls == []
+    before = cal.ledger.candidates()
+    resumes(cal, a, o, 'STOPPED_NOTHING_ADMITTED')
+    assert cal.ledger.candidates() == before
+    assert before and all(row['STATE'] == 'HARD_FAIL' for row in before)
+
+
+def test_valid_complete_resume_runs_one_luna_and_one_sol_and_no_red_team(tmp_path):
+    """Generator already COMPLETE and admitted; critics have not run. Resume
+    sends one Luna call and one Sol call, and the journal replays them after that."""
+    from scripts.research.generator_v0.runner import GENERATOR_PROMPT, generator_identity
+    cal, a, o = caller(tmp_path, ((200, env(gen_json())),), critic_answers())
+    cal.call('GENERATOR', C.generator(), GENERATOR_PROMPT,
+             generator_request_parameters(SLOTS, generator_max_output_tokens(cal.provider)),
+             'generation:0', identity=generator_identity(C, SLOTS))
+    resume = run_resmoke(C, cal)
+    assert resume['STATUS'] == 'SMOKE_COMPLETE'
+    assert resume['CRITICS'] == {'FEASIBILITY': 'COMPLETE', 'NOVELTY': 'COMPLETE'}
+    assert len(a.calls) == 1 and len(o.calls) == 2
+    again = run_resmoke(C, Caller(C, cal.ledger, cal.provider, CAP, True))
+    assert again['STATUS'] == 'SMOKE_COMPLETE'
+    assert len(a.calls) == 1 and len(o.calls) == 2
+
+
+def test_successful_first_invocation_still_completes(tmp_path):
+    cal, a, o = caller(tmp_path, ((200, env(gen_json())),), critic_answers())
+    report = run_resmoke(C, cal)
+    assert report['STATUS'] == 'SMOKE_COMPLETE'
+    assert len(a.calls) == 1 and len(o.calls) == 2
+
+
 def test_critics_do_not_run_unless_the_generator_completed(tmp_path):
     refused, a, o = caller(tmp_path / 'bad', ((200, env('not-json')), (400, b'no')))
     report = run_resmoke(C, refused)

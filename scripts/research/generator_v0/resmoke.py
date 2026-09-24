@@ -125,6 +125,27 @@ def _report(ledger, guard, **extra):
     return out
 
 
+def _completed_raw(ledger, key):
+    try:
+        return ledger.complete_raw(key)
+    except ContractError:
+        return None
+
+
+def _generation_gate(contexts, ledger, key, raw):
+    """Same production parse and idempotent intake for a fresh response and a resume.
+    A COMPLETE row is not enough: the journaled wire format must decode and intake
+    must admit at least one generation:0 card."""
+    cards = parse_round(raw, contract.CONTRACT_ID, call_wire_format(ledger, key)) if raw else None
+    if cards is None:
+        return 'STOPPED_UNUSABLE_ROUND'
+    request = json.loads(ledger.db.execute('SELECT request FROM calls WHERE key=?', (key,)).fetchone()[0])
+    admitted = _intake_round(contexts, ledger, 0, request['parameters']['slots'], contract.CONTRACT_ID, key, cards, [])
+    if not admitted:
+        return 'STOPPED_NOTHING_ADMITTED'
+    return None
+
+
 def run_resmoke(contexts, caller):
     """The only re-smoke entry. Stops on any generator failure. Never calls
     _round_output, so MAX_CONTENT_ATTEMPTS cannot issue a second POST."""
@@ -146,13 +167,12 @@ def run_resmoke(contexts, caller):
         key = caller.last_key
         if ledger.call_state(key) != 'COMPLETE':
             return _report(ledger, guard, STATUS='STOPPED_GENERATOR_NOT_COMPLETE', CRITICS=False)
-        cards = parse_round(raw, contract.CONTRACT_ID, call_wire_format(ledger, key))
-        if cards is None:
-            return _report(ledger, guard, STATUS='STOPPED_UNUSABLE_ROUND', CRITICS=False)
-        slots = slot_plan(40)[:10]
-        admitted = _intake_round(contexts, ledger, 0, slots, contract.CONTRACT_ID, key, cards, [])
-        if not admitted:
-            return _report(ledger, guard, STATUS='STOPPED_NOTHING_ADMITTED', CRITICS=False)
+    else:
+        key = rows[0][0]
+        raw = _completed_raw(ledger, key)
+    blocked = _generation_gate(contexts, ledger, key, raw)
+    if blocked:
+        return _report(ledger, guard, STATUS=blocked, CRITICS=False)
     # Critics only after a COMPLETE, parseable, admitted round. One call each.
     # reserve() carries the historical spend, so a reservation past the ceiling
     # raises BudgetExceeded before any byte is sent.
