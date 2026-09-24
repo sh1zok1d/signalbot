@@ -1,6 +1,11 @@
+## Generator V0 re-smoke guard — 2026-09-24
+
+`NEXT_UNIT = GENERATOR_V0_FINAL_RE_SMOKE_REVIEW`.
+The Anthropic synchronous timeout is 1800 s. The re-smoke ledger carries historical spend USD 0.713332 inside an absolute cap of USD 3.10, and `run_resmoke` allows one Anthropic GENERATOR POST with no content retry and no transport replay. No live call in this follow-up. See `docs/research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.md`.
+
 ## Generator V0 Anthropic GENERATOR output-cap amendment — 2026-09-24
 
-`NEXT_UNIT = GENERATOR_V0_OUTPUT_CAP_INDEPENDENT_REVIEW`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_OUTPUT_CAP_INDEPENDENT_REVIEW` (accepted; see the re-smoke guard below).
 The live compact re-smoke was accepted by Anthropic (HTTP 200) but stopped at `max_tokens` after 32,768 output tokens (17,396 thinking), cost USD 0.713332, one POST, no critic calls. By owner decision only the routed Anthropic GENERATOR output cap rises to 100,000; model, effort, round size, candidate count, compact projection and V02 rules are unchanged, and the legacy OpenAI cap stays 32,768. Every generator call key changes. Failed attempts now record only `wire_sha256`. The next re-smoke fits the USD 3.10 absolute smoke ceiling (3.038724 incl. history). No live call in this repair. See `docs/research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.md`.
 
 ## Generator V0 Anthropic compact GENERATOR projection — 2026-09-24

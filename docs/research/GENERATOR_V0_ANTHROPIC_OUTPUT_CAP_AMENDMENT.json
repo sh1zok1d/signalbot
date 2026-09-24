@@ -18,7 +18,8 @@
     "generation:2": "25cb753aec9bce02ba1b8d9258f0e3bb396864d0a66e8a81e7954b2217411ebc",
     "generation:3": "b3b49ca295e90a8bf76c572a0b68e7f8c93720da97e8d4b0168271c6d0593db1"
   },
-  "COMPLETION_STATE": "READY_FOR_OUTPUT_CAP_INDEPENDENT_REVIEW",
+  "ANTHROPIC_REQUEST_TIMEOUT_SECONDS": 1800,
+  "COMPLETION_STATE": "READY_FOR_FINAL_RE_SMOKE_REVIEW",
   "HASH_PROVENANCE": {
     "FAILED_ATTEMPT": "no raw_sha256; wire_sha256 = provider-envelope hash when an envelope was received",
     "RAW_SHA256": "hash of usable verbatim model text only (COMPLETE)",
@@ -44,10 +45,17 @@
   },
   "OWNER_DECISION": "Increase only the routed Anthropic GENERATOR output cap 32768 -> 100000; preserve model, effort, round size, candidate count, compact projection and V02 rules",
   "PROTECTED_2025_2026_OPENED": false,
-  "REVIEW_RISKS": [
-    "Anthropic synchronous request timeout is unchanged at 900 s; at the observed ~110 output tokens/s a full 100000-token response is ~900 s and could time out (UNCERTAIN, reservation charged)."
-  ],
-  "ROUTER_IDENTITY_DIGEST": "d3d389e3740b37ede85b15c1e73b5b1fb0ab8f61fda4d97c48aadae4b753375a",
+  "RESMOKE": {
+    "CONTENT_RETRY_ALLOWED": false,
+    "ENTRY": "scripts/research/generator_v0/resmoke.py run_resmoke",
+    "GENERATOR_MAX_NEW_POSTS": 1,
+    "SMOKE_ABSOLUTE_CAP_MICRO_USD": 3100000,
+    "SMOKE_HISTORICAL_SPEND_MICRO_USD": 713332,
+    "SMOKE_NEW_SPEND_CAP_MICRO_USD": 2386668,
+    "TRANSPORT_REPLAY_ALLOWED": false
+  },
+  "REVIEW_RISKS": [],
+  "ROUTER_IDENTITY_DIGEST": "338df127c4f8f0a41c3b21cb4cb3fbac33e6ab4a115d724414ec0a183140e336",
   "ROUTE_ANTHROPIC_GENERATOR_MAX_OUTPUT_TOKENS": {"AFTER": 100000, "BEFORE": 32768},
   "ROUTING_DIGEST": {
     "AFTER": "e925b578bfc0cdc2bfe354406178f56068d3745b784e36933b7d76cd5b344f1b",

@@ -1,6 +1,6 @@
 # Generator V0 — Anthropic GENERATOR output-cap amendment (offline repair)
 
-**Completion state:** `READY_FOR_OUTPUT_CAP_INDEPENDENT_REVIEW`
+**Completion state:** `READY_FOR_FINAL_RE_SMOKE_REVIEW`
 **Base:** `d10d0a277edc2f95b007eeba2e47138a83a8027e` (PR #216)
 **Machine-readable twin:** `docs/research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.json`
 
@@ -93,16 +93,20 @@ Worst-case reservations: maximum output on every call, with no discount.
 - Total: 3.038724. This **fits**, with 0.061276 headroom.
 - Tested in `test_smoke_reservations_fit_the_absolute_smoke_ceiling_including_history`.
 
-## Review risk: request timeout
+## Follow-up: timeout and smoke-budget guard
 
-The Anthropic adapter's synchronous timeout is unchanged at 900 s. The live 32,768-token response took about 299 s, roughly 110 output tokens per second. At that rate a response that uses the full 100,000 tokens would take about 900 s. It could therefore hit the timeout, which is classified UNCERTAIN and charges the full reservation (still within the smoke ceiling).
+Independent review accepted the output cap. Two operational guards were added before any further live call. No scientific field changed, and no live call was made in this follow-up.
 
-The owner scoped this amendment to the output cap only, so the timeout was not changed.
+The Anthropic synchronous timeout is 1800 s. `stream=false` is unchanged. There is no streaming and no Message Batches. 299 s × 100000 / 32768 is about 912 s, so the old 900 s timeout could expire during a valid full response. The timeout stays in the adapter transport identity. Router identity is now `338df127c4f8f0a41c3b21cb4cb3fbac33e6ab4a115d724414ec0a183140e336`. The routing digest and the generation:0 call key `b1ed0d83…` are unchanged. The OpenAI timeout stays 600 s.
 
-## Validation
+The re-smoke entry is `resmoke.run_resmoke`. It opens a ledger with `CAP_MICRO_USD = 3100000` and lineage `PRIOR_SPEND_MICRO_USD = 713332`, and it refuses to POST unless both are present. `Ledger.reserve` then rejects any reservation that would put lineage + journal + bound over USD 3.10. A fresh process cannot be given USD 3.10 of new spend on top of the historical USD 0.713332.
 
-- New `tests/research/test_generator_v0_anthropic_output_cap.py`: cap, legacy invariance, route and call-key identity, no reuse of the failed key, bounds, smoke-budget arithmetic, and hash provenance.
-- Routed tests now build generator requests with the route cap.
-- The Generator V0 suite and the full `pytest` suite were run (see the PR).
+`run_resmoke` makes at most one Anthropic POST. It does not call `_round_output`, so `MAX_CONTENT_ATTEMPTS = 2` cannot send a second generator request. A billed or unusable generator response stops the smoke, and a second invocation does not POST. An UNCERTAIN attempt is not replayed. A retryable transport failure cannot sleep and post again. Luna and Sol run only after a COMPLETE, parseable round that intake admitted, and only while their reservations still fit. There is no RED_TEAM call.
 
-No live API call was made in this repair. No protected 2025/2026 data was opened. The sealed v7 journal is unchanged (`e27eb1ce…`).
+New-spend room is USD 2.386668. Planned reservations remain 2.126672 + 0.003950 + 0.194770 = 2.325392. With history that is USD 3.038724 of the USD 3.10 ceiling.
+
+## Validation actually recorded
+
+For the output-cap commit, before this follow-up: Generator V0 subset 695 passed; `compileall` passed; `git diff --check` passed. Full-repository pytest was started, ran for more than 90 minutes, and did not complete. No full-suite result is available. No GitHub Actions run was recorded for that head.
+
+This follow-up adds `tests/research/test_generator_v0_resmoke_guard.py`. Its result is reported with the commit. No live API call was made. No protected 2025/2026 data was opened. The sealed v7 journal is unchanged (`e27eb1ce…`).

@@ -406,7 +406,7 @@ When adding documentation:
 - `research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.{md,json}` — live compact re-smoke result (HTTP 200, `max_tokens` at 32768, USD 0.713332) and the owner amendment raising only the routed Anthropic GENERATOR output cap to 100000; failure-path hash provenance fix; recalculated bounds and smoke budget.
 - `research/generator_v0_repair/BUDGET_SCENARIOS.json` — budget/run-shape scenarios A–E (decision support only; none chosen).
 
-Implementation state: `GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_READY_FOR_INDEPENDENT_REVIEW` (previously `GENERATOR_V0_ANTHROPIC_COMPACT_PROJECTION_OFFLINE_GATES_PASS`, before that `GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW`, before that `GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION`, before that `GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION`, before that `GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`, before that `GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`).
+Implementation state: `GENERATOR_V0_READY_FOR_FINAL_RE_SMOKE_REVIEW` (previously `GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_READY_FOR_INDEPENDENT_REVIEW`, before that `GENERATOR_V0_ANTHROPIC_COMPACT_PROJECTION_OFFLINE_GATES_PASS`, before that `GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW`, before that `GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION`, before that `GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION`, before that `GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`, before that `GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`).
 The archived partial paid runs `artifacts/generator_v0/first-shadow`,
 `artifacts/generator_v0/first-shadow-v2`,
 `artifacts/generator_v0/first-shadow-v3`,
