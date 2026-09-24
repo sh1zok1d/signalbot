@@ -426,3 +426,5 @@ generation:3 wrappers. Owner-authorized absolute campaign total remains
 USD 17.100000. Live run/resume cannot exceed that ceiling.
 The original design's FROZEN_NOT_IMPLEMENTED label describes its historical
 freeze, not the current implementation state.
+
+- `research/GENERATOR_V0_CALIBRATION_MEMORY_INGESTION.{json,md}` — outcome-blind ingestion of all five calibration cards into durable mechanism memory; stable `GV0CAL-*` signatures and blocker-aware novelty governance.
