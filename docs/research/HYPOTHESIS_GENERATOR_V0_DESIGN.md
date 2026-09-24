@@ -277,3 +277,13 @@ One allowlist entry explicitly authorizes the existing `GENERATOR_SIDE_RULE`
 from this design, using `IDENTITY`, within the allowed generic-methodology
 bundle. Rule text, scientific/governance semantics, and role access remain
 unchanged. No other allowlist expansion is authorized.
+
+
+## Authorized calibration-memory extension — 2026-09-24
+
+Owner-authorized, offline memory ingestion only. Five durable signatures from
+`GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT` were added to
+`MECHANISM_MEMORY_V0`, the blind projection and governance authority. No route,
+prompt, candidate schema, critic decision table, selector rule, protected-data
+boundary or scientific contract changed. Generator outcome blindness is
+preserved: critic PASS/REJECT and reasons remain outside generator context.
