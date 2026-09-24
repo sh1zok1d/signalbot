@@ -27,10 +27,14 @@ class RoutedProvider:
             a=self.adapters[r['PROVIDER']]
             if a.model_for(role)!=r['MODEL'] or a.request_params_for(role)!=r['PARAMS'] or a.endpoint_for(role)!=r['ENDPOINT']:
                 raise ContractError('adapter disagrees with the routing registry for '+role)
-            if a.uses_background(role):raise ContractError('routed roles are synchronous')
+            if a.uses_background(role)!=(r['ENDPOINT'] in routing.BACKGROUND_ENDPOINTS):
+                raise ContractError('adapter background mode disagrees with the routing registry for '+role)
             for name,other in self.adapters.items():
                 if name!=r['PROVIDER'] and role in other.roles():raise ContractError('role '+role+' is served by more than one provider')
         self.real=any(getattr(a,'real',False) for a in self.adapters.values())
+        bg={self.routes[role]['PROVIDER'] for role in self.routes if self.routes[role]['ENDPOINT'] in routing.BACKGROUND_ENDPOINTS}
+        if len(bg)>1:raise ContractError('background routes must share one adapter')
+        self._bg_provider=next(iter(bg),None)
         if sleeper is not None:self._sleep=sleeper
         self.routing_digest=self.identity_digest()
 
@@ -44,7 +48,7 @@ class RoutedProvider:
     def request_params_for(self,role):return dict(self._route(role)['PARAMS'])
     def endpoint_for(self,role):return self._route(role)['ENDPOINT']
     def max_output_tokens_for(self,role):return self._route(role)['MAX_OUTPUT_TOKENS']
-    def uses_background(self,role):self._route(role);return False
+    def uses_background(self,role):return self._route(role)['ENDPOINT'] in routing.BACKGROUND_ENDPOINTS
     def wire_identity_for(self,role,request):
         fn=getattr(self.adapter_for(role),'wire_identity_for',None)
         return fn(role,request) if fn is not None else None
@@ -59,9 +63,25 @@ class RoutedProvider:
     def bound(self,request):return self._check(request).bound(request)
     def complete(self,request):return self._check(request).complete(request)
 
-    def create_background(self,request):raise ContractError('routed provider does not use background calls')
-    def retrieve_background(self,response_id):raise ContractError('routed provider does not use background calls')
-    def delete_background(self,response_id):raise ContractError('routed provider does not use background calls')
+    # Background Responses (routed NOVELTY_CRITIC). Same Caller state machine as the
+    # legacy generator: create is POSTed once; a known response_id is only polled.
+    def _background(self):
+        if self._bg_provider is None:raise ContractError('no role is routed to background Responses')
+        return self.adapters[self._bg_provider]
+    def create_background(self,request):
+        a=self._check(request)
+        if not self.uses_background(request['role']):raise ContractError('role is not routed to background Responses')
+        return a.create_background(request)
+    def retrieve_background(self,response_id):return self._background().retrieve_background(response_id)
+    def delete_background(self,response_id):return self._background().delete_background(response_id)
+    def completed_cost(self,request,payload,wire):return self._check(request).completed_cost(request,payload,wire)
+    def terminal_usage_cost(self,request,payload):return self._check(request).terminal_usage_cost(request,payload)
+    def _now(self):return self._background()._now()
+    def _poll_sleep(self,seconds):return self._background()._sleep(seconds)
+    @property
+    def poll_interval_seconds(self):return self._background().poll_interval_seconds
+    @property
+    def background_max_wait_seconds(self):return self._background().background_max_wait_seconds
 
     def transport_identity(self):
         return {'ROUTER':'ROUTED_MULTI_PROVIDER','ROUTING_ID':routing.ROUTING_ID,

@@ -69,11 +69,27 @@ class NoisyTransport:
         self.log.append((method,path))
         if method=='DELETE':return 200,b'{}'
         if method=='GET':
-            rid=path.rsplit('/',1)[1];kind,content=self.payloads[rid]
+            rid=path.rsplit('/',1)[1];kind,content=self.payloads[rid][:2]
+            usage=self.payloads[rid][2] if len(self.payloads[rid])>2 else None
             if kind=='incomplete':
-                return 200,json.dumps({'id':rid,'status':'incomplete','incomplete_details':{'reason':'max_output_tokens'},'usage':{'input_tokens':5000,'output_tokens':32768,'output_tokens_details':{'reasoning_tokens':20000}}}).encode()
-            return 200,json.dumps({'id':rid,'status':'completed','output_text':content,'usage':{'input_tokens':5000,'output_tokens':9000,'output_tokens_details':{'reasoning_tokens':4000}}}).encode()
+                return 200,json.dumps({'id':rid,'status':'incomplete','incomplete_details':{'reason':'max_output_tokens'},'usage':usage or {'input_tokens':5000,'output_tokens':32768,'output_tokens_details':{'reasoning_tokens':20000}}}).encode()
+            if usage is None:
+                return 200,json.dumps({'id':rid,'status':'completed','output_text':content,'usage':{'input_tokens':5000,'output_tokens':9000,'output_tokens_details':{'reasoning_tokens':4000}}}).encode()
+            # Critic answers carry a reasoning item whose content must never be journaled.
+            return 200,json.dumps({'id':rid,'status':'completed','output_text':content,'usage':usage,
+                                   'output':[{'type':'reasoning','id':'rs_'+rid,'summary':[{'type':'summary_text','text':'SYNTHETIC_HIDDEN_REASONING'}]},
+                                             {'type':'message','role':'assistant','content':[{'type':'output_text','text':content}]}]}).encode()
         b=json.loads(body)
+        if path=='/v1/responses' and b.get('instructions') in self.prompts:
+            # Routed background critic (NOVELTY_CRITIC): create is acknowledged 'queued'; the answer is read by GET.
+            role=self.prompts[b['instructions']];ctx=json.loads(b['input'])['context']
+            answer=self._critic(role,ctx)
+            if answer[0]=='http':return answer[1],answer[2]
+            kind,text=answer
+            self.n+=1;rid='resp_noisy_'+str(self.n)
+            usage={'input_tokens':900,'output_tokens':12000 if kind=='incomplete' else 120,'output_tokens_details':{'reasoning_tokens':60},'input_tokens_details':{'cached_tokens':0}}
+            self.payloads[rid]=(kind,text,usage)
+            return 200,json.dumps({'id':rid,'object':'response','status':'queued'}).encode()
         if path=='/v1/responses':
             user=json.loads(b['input']);slots=user['slots'];rnd=(int(slots[0]['CANDIDATE_ID'][1:])-1)//10
             self.counts[('GENERATOR',rnd)]+=1;fault=self.faults.get(('GENERATOR',rnd,self.counts[('GENERATOR',rnd)]))
@@ -87,14 +103,22 @@ class NoisyTransport:
             self.payloads[rid]=('incomplete' if fault=='incomplete' else 'completed',canonical(payload))
             return 200,json.dumps({'id':rid,'object':'response','status':'queued'}).encode()
         role=self.prompts[b['messages'][0]['content']];user=json.loads(b['messages'][1]['content'])
-        ctx=user['context'];target=ctx['CANDIDATE']['CANDIDATE_ID'] if 'CANDIDATE' in ctx else 'selection'
+        answer=self._critic(role,user['context'])
+        if answer[0]=='http':return answer[1],answer[2]
+        kind,text=answer
+        if kind=='incomplete':return 200,_chat(text,finish='length',completion=12000)
+        return 200,_chat(text)
+
+    def _critic(self,role,ctx):
+        """Transport-neutral critic answer: ('http', status, body), ('incomplete', text) or ('completed', text)."""
+        target=ctx['CANDIDATE']['CANDIDATE_ID'] if 'CANDIDATE' in ctx else 'selection'
         self.counts[(role,target)]+=1;fault=self.faults.get((role,target,self.counts[(role,target)]))
         if fault=='crash':raise Crash('process died after POST '+role+' '+target)
-        if fault=='429':return 429,b'{"error":{"type":"rate_limit"}}'
-        if fault=='503':return 503,b'{"error":{"type":"overloaded"}}'
+        if fault=='429':return 'http',429,b'{"error":{"type":"rate_limit"}}'
+        if fault=='503':return 'http',503,b'{"error":{"type":"overloaded"}}'
         payload=json.loads(self.respond({'role':role,'context':ctx,'parameters':{}}))
-        if fault=='length':return 200,_chat(canonical(payload)[:40],finish='length',completion=12000)
-        if fault=='malformed':return 200,_chat('this is not json')
+        if fault=='length':return 'incomplete',canonical(payload)[:40]
+        if fault=='malformed':return 'completed','this is not json'
         if role=='NOVELTY_CRITIC':
             enc=payload
             if fault=='omit_batch':enc['BATCH_RELATIONS'].pop(sorted(enc['BATCH_RELATIONS'])[0])
@@ -102,11 +126,11 @@ class NoisyTransport:
             if fault=='dup_relation':
                 first=sorted(enc['PRIOR_RELATIONS'])[0]
                 text=text.replace('"PRIOR_RELATIONS":{','"PRIOR_RELATIONS":{"'+first+'":"ORTHOGONAL_MECHANISM",',1)
-            return 200,_chat(text)
+            return 'completed',text
         if role=='SELECTOR' and fault=='swap':
             ids=payload['ORDERED_CANDIDATE_IDS']
             if len(ids)>2:ids[0],ids[1]=ids[1],ids[0]
-        return 200,_chat(canonical(payload))
+        return 'completed',canonical(payload)
 
 def routed_provider_for(transport,contexts):
     """Anthropic Opus generator + OpenAI Sol/Luna critics, both through fake transports."""

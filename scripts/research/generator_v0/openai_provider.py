@@ -32,6 +32,15 @@ def bounded_timeout(value=None):
         raise ContractError('invalid request timeout')
     return value
 
+def strip_reasoning(payload):
+    """Responses envelope without reasoning-item content (summaries, encrypted
+    content). Only the item type and id survive; hidden reasoning is never
+    journaled. wire_sha256 still hashes the untouched provider bytes."""
+    if not isinstance(payload,dict) or not isinstance(payload.get('output'),list):return payload
+    out=[{k:v for k,v in item.items() if k in ('type','id')} if isinstance(item,dict) and item.get('type')=='reasoning' else item
+         for item in payload['output']]
+    return {**payload,'output':out}
+
 class HTTPS:
     def __call__(self,method,path,body,headers,timeout):
         conn=http.client.HTTPSConnection('api.openai.com',timeout=timeout)
@@ -105,7 +114,9 @@ class OpenAIProvider:
         if self._routes is not None:return dict(self._route(role)['PARAMS'])
         return request_params_for(role)
     def uses_background(self,role):
-        if self._routes is not None:self._route(role);return False
+        if self._routes is not None:
+            from . import routing
+            return self._route(role)['ENDPOINT'] in routing.BACKGROUND_ENDPOINTS
         return role=='GENERATOR'
     def endpoint_for(self,role):
         if self._routes is not None:return self._route(role)['ENDPOINT']
@@ -120,6 +131,9 @@ class OpenAIProvider:
         if self._routes is not None:
             return {'ADAPTER':'OPENAI_CHAT_COMPLETIONS_DIRECT_HTTP','CRITIC_ENDPOINT':CRITIC_ENDPOINT,'STORE':False,'STREAM':False,
                     'SERVICE_TIER':'default','SDK_RETRIES':False,'REQUEST_TIMEOUT_SECONDS':self.request_timeout_seconds,
+                    'BACKGROUND_ROLES':sorted(r for r in self._routes if self.uses_background(r)),
+                    'BACKGROUND':{'ENDPOINT':'RESPONSES','STORE_POLICY':BACKGROUND_STORE_POLICY,'DELETE_AFTER_LOCAL_PERSIST':True,
+                                  'POLLING_POLICY':self.polling_policy,'CREATE_REPLAY':False,'REASONING_ITEMS_PERSISTED':False},
                     'ROLES':{r:{'MODEL':v['MODEL'],'PARAMS':v['PARAMS'],'MAX_OUTPUT_TOKENS':v['MAX_OUTPUT_TOKENS'],'STRUCTURED_OUTPUT':v['STRUCTURED_OUTPUT']} for r,v in sorted(self._routes.items())}}
         return {
             'GENERATOR_ENDPOINT':GENERATOR_ENDPOINT,'GENERATOR_BACKGROUND':True,
@@ -162,24 +176,27 @@ class OpenAIProvider:
         return body
 
     def responses_payload(self,request):
-        if request['role']!='GENERATOR':raise ContractError('Responses background is GENERATOR-only')
+        role=request['role']
+        if self._routes is None and role!='GENERATOR':raise ContractError('Responses background is GENERATOR-only')
+        if self._routes is not None and not self.uses_background(role):raise ContractError('role is not routed to background Responses: '+str(role))
         params=request['parameters'];maxout=params.get('max_output_tokens')
-        row=spec(self.model_for('GENERATOR'))
+        row=spec(self.model_for(role))
         if type(maxout)!=int or not 1<=maxout<=row['MAX_OUTPUT_TOKENS']:raise ContractError('output token bound')
         if set(params)-{'max_output_tokens','slots'}:raise ContractError('unknown provider parameters')
+        if self._routes is not None and maxout!=self._route(role)['MAX_OUTPUT_TOKENS']:raise ContractError('output token cap differs from the route')
         user={'context':request['context']}
         if 'slots' in params:user['slots']=params['slots']
-        effort=self.request_params_for('GENERATOR')['reasoning_effort']
-        body={'model':self.model_for('GENERATOR'),'instructions':request['prompt'],'input':canonical(user),
+        effort=self.request_params_for(role)['reasoning_effort']
+        body={'model':self.model_for(role),'instructions':request['prompt'],'input':canonical(user),
               'background':True,'store':True,'stream':False,'service_tier':'default',
               'max_output_tokens':maxout,'reasoning':{'effort':effort},
-              'text':{'format':responses_text_format('GENERATOR',self.contexts,request)}}
+              'text':{'format':responses_text_format(role,self.contexts,request)}}
         if body.get('stream') or 'tools' in body or 'temperature' in body:raise ContractError('tools, streaming, or temperature forbidden')
         if body.get('store') is not True or body.get('background') is not True:raise ContractError('background store required')
         return body
 
     def payload(self,request):
-        return self.responses_payload(request) if request['role']=='GENERATOR' else self.chat_payload(request)
+        return self.responses_payload(request) if self.uses_background(request['role']) else self.chat_payload(request)
 
     def bounds(self,request):
         payload=self.payload(request)
@@ -194,8 +211,10 @@ class OpenAIProvider:
         return int((input_rate*inp+output_rate*out).to_integral_value(rounding=ROUND_CEILING))
 
     def create_background(self,request):
-        if self._offline or self._routes is not None:raise ContractError('background Responses are not used by the routed adapter')
+        if self._offline:raise ContractError('offline OpenAI adapter never sends')
+        if not self.uses_background(request['role']):raise ContractError('role does not use background Responses')
         if not self._allow or not self._key or not 0<self.cap<=30_000_000:raise ContractError('real call disabled')
+        if self._routes is not None and self.bound(request)>self.cap:raise ContractError('call exceeds authorized budget')
         body=canonical(self.responses_payload(request)).encode()
         status,wire=self._http('POST','/v1/responses',body,self.create_timeout_seconds)
         if status!=200:
@@ -217,6 +236,7 @@ class OpenAIProvider:
             raise ProviderFailure('provider HTTP '+str(status),wire,http_status=status,billing='UNCERTAIN',retryable=retryable or status>=500)
         payload=parse_json(wire.decode('utf-8'))
         if payload.get('id')!=response_id:raise ProviderFailure('response_id mismatch',wire)
+        if self._routes is not None:payload=strip_reasoning(payload)
         return payload,wire
 
     def delete_background(self,response_id):
@@ -245,6 +265,10 @@ class OpenAIProvider:
         cost=int((input_rate*inp+output_rate*out).to_integral_value(rounding=ROUND_CEILING))
         details=usage.get('output_tokens_details') or {}
         recorded={'input_tokens':inp,'output_tokens':out,'reasoning_tokens':details.get('reasoning_tokens')}
+        if self._routes is not None:
+            # Recorded only; cached input stays priced at the standard input rate (conservative).
+            cached=(usage.get('input_tokens_details') or {}).get('cached_tokens')
+            if type(cached)==int:recorded['cached_tokens']=cached
         return recorded,cost,text
 
     def _output_text(self,payload):
@@ -263,6 +287,7 @@ class OpenAIProvider:
         HTTP errors are classified (classify_http). A 200 whose completion is
         truncated, refused or not text is a BILLED failure carrying its usage cost."""
         if request['role']=='GENERATOR':raise ContractError('GENERATOR uses background Responses, not synchronous complete')
+        if self.uses_background(request['role']):raise ContractError('role uses background Responses, not synchronous complete')
         if self._offline:raise ContractError('offline OpenAI adapter never sends')
         if not self._allow or not self._key or not 0<self.cap<=30_000_000:raise ContractError('real call disabled')
         bound=self.bound(request)

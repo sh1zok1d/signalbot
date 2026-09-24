@@ -192,8 +192,9 @@
     },
     "POSTS": 91,
     "POSTS_BY_PATH": {
-      "/v1/chat/completions": 86,
-      "/v1/messages": 5
+      "/v1/chat/completions": 57,
+      "/v1/messages": 5,
+      "/v1/responses": 29
     },
     "RETRY_ATTEMPTS": {
       "CONTENT": 5,
@@ -210,7 +211,7 @@
         "ANTHROPIC / ANTHROPIC_MESSAGES / claude-opus-5-5"
       ],
       "NOVELTY_CRITIC": [
-        "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-sol"
+        "OPENAI / OPENAI_RESPONSES_BACKGROUND / gpt-6-sol"
       ],
       "RED_TEAM": [
         "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-sol"

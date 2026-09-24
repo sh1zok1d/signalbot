@@ -35,6 +35,17 @@ ANTHROPIC_TRANSPORT={'HOST':'api.anthropic.com','METHOD':'POST','PATH':'/v1/mess
 OPENAI_CHAT_TRANSPORT={'HOST':'api.openai.com','METHOD':'POST','PATH':'/v1/chat/completions',
                        'AUTH':'Bearer from OPENAI_API_KEY (never persisted)','STREAM':False,'BATCH':False,
                        'STORE':False,'SERVICE_TIER':'default','SDK_RETRIES':False,'SYNC':True}
+# Transport reliability amendment: one create POST (never replayed), then GET
+# polling of the same response_id, so no single HTTP connection is held open for
+# a long high-reasoning computation. Same background design as the legacy
+# OpenAI generator (openai_provider.create_background / Caller._await_background).
+OPENAI_RESPONSES_BACKGROUND_TRANSPORT={'HOST':'api.openai.com','METHOD':'POST','PATH':'/v1/responses',
+                                       'POLL':'GET /v1/responses/{response_id}','CLEANUP':'DELETE /v1/responses/{response_id} (best effort, after local persist)',
+                                       'AUTH':'Bearer from OPENAI_API_KEY (never persisted)','STREAM':False,'BATCH':False,
+                                       'BACKGROUND':True,'STORE':True,'SERVICE_TIER':'default','SDK_RETRIES':False,'SYNC':False,
+                                       'CREATE_REPLAY':False}
+BACKGROUND_ENDPOINTS=('OPENAI_RESPONSES_BACKGROUND',)
+_ENDPOINTS={'ANTHROPIC':('ANTHROPIC_MESSAGES',),'OPENAI':('OPENAI_CHAT_COMPLETIONS','OPENAI_RESPONSES_BACKGROUND')}
 
 # Standard USD per 1M tokens. CACHE_* rows are used only to price usage that
 # reports cache tokens; no route enables caching and no bound uses a discount.
@@ -51,8 +62,8 @@ ROUTES={
                  'MAX_OUTPUT_TOKENS':ANTHROPIC_GENERATOR_MAX_OUTPUT_TOKENS,'STRUCTURED_OUTPUT':'ANTHROPIC_OUTPUT_CONFIG_JSON_SCHEMA_COMPACT_CANDIDATE_ARRAY_V1',
                  'ENDPOINT':'ANTHROPIC_MESSAGES','TRANSPORT':ANTHROPIC_TRANSPORT},
     'NOVELTY_CRITIC':{'PROVIDER':'OPENAI','MODEL':'gpt-6-sol','PARAMS':{'reasoning_effort':'high'},
-                      'MAX_OUTPUT_TOKENS':ROLE_OUTPUT_TOKEN_CAPS['NOVELTY_CRITIC'],'STRUCTURED_OUTPUT':'OPENAI_CHAT_RESPONSE_FORMAT_JSON_SCHEMA_STRICT',
-                      'ENDPOINT':'OPENAI_CHAT_COMPLETIONS','TRANSPORT':OPENAI_CHAT_TRANSPORT},
+                      'MAX_OUTPUT_TOKENS':ROLE_OUTPUT_TOKEN_CAPS['NOVELTY_CRITIC'],'STRUCTURED_OUTPUT':'OPENAI_RESPONSES_TEXT_FORMAT_JSON_SCHEMA_STRICT',
+                      'ENDPOINT':'OPENAI_RESPONSES_BACKGROUND','TRANSPORT':OPENAI_RESPONSES_BACKGROUND_TRANSPORT},
     'RED_TEAM':{'PROVIDER':'OPENAI','MODEL':'gpt-6-sol','PARAMS':{'reasoning_effort':'high'},
                 'MAX_OUTPUT_TOKENS':ROLE_OUTPUT_TOKEN_CAPS['RED_TEAM'],'STRUCTURED_OUTPUT':'OPENAI_CHAT_RESPONSE_FORMAT_JSON_SCHEMA_STRICT',
                 'ENDPOINT':'OPENAI_CHAT_COMPLETIONS','TRANSPORT':OPENAI_CHAT_TRANSPORT},
@@ -77,6 +88,8 @@ def validate_routes(routes=None):
         if any(k not in r for k in _REQUIRED):raise ContractError('incomplete route for '+role)
         if r['PROVIDER'] not in PROVIDERS:raise ContractError('unknown provider for '+role)
         if r['MODEL'] not in PRICES:raise ContractError('no verified price for '+role+' model')
+        if r['ENDPOINT'] not in _ENDPOINTS[r['PROVIDER']]:raise ContractError('unsupported endpoint for '+role)
+        if role=='GENERATOR' and r['ENDPOINT'] in BACKGROUND_ENDPOINTS:raise ContractError('routed GENERATOR is not a background route')
         key,allowed=_EFFORTS[r['PROVIDER']]
         if set(r['PARAMS'])!={key} or r['PARAMS'][key] not in allowed:raise ContractError('unsupported effort parameters for '+role)
         cap=r['MAX_OUTPUT_TOKENS']

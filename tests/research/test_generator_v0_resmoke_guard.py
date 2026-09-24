@@ -24,9 +24,11 @@ class Fake:
     def __init__(self, *answers):
         self.answers = list(answers)
         self.calls = []
+        self.log = []
 
     def __call__(self, method, path, body, headers, timeout):
         self.calls.append(timeout)
+        self.log.append((method, path))
         a = self.answers.pop(0)
         if isinstance(a, BaseException):
             raise a
@@ -175,7 +177,17 @@ def critic_answers():
     leaves = sorted(k for k, r in C.rows.items() if r['STATE'] != 'PARTIAL_OR_MIXED')
     nov = {'PRIOR_RELATIONS': {k: 'ORTHOGONAL_MECHANISM' for k in leaves}, 'BATCH_RELATIONS': {},
            'JUDGMENTS': {'NOVELTY': 1, 'MECHANISM_DISTANCE': 1, 'NON_RESCUE': 1}}
-    return (200, chat(canonical(feas))), (200, chat(canonical(nov)))
+    # Luna feasibility: one Chat Completions POST. Sol novelty: background Responses,
+    # one create POST, one GET of the same response_id, then best-effort DELETE.
+    return ((200, chat(canonical(feas))),
+            (200, json.dumps({'id': 'resp_smoke_nov', 'object': 'response', 'status': 'queued'}).encode()),
+            (200, json.dumps({'id': 'resp_smoke_nov', 'status': 'completed', 'output_text': canonical(nov),
+                              'usage': {'input_tokens': 10, 'output_tokens': 20}}).encode()),
+            (200, b'{}'))
+
+
+def posts(fake):
+    return [path for method, path in fake.log if method == 'POST']
 
 
 def rejected_cards():
@@ -223,17 +235,17 @@ def test_valid_complete_resume_runs_one_luna_and_one_sol_and_no_red_team(tmp_pat
     resume = run_resmoke(C, cal)
     assert resume['STATUS'] == 'SMOKE_COMPLETE'
     assert resume['CRITICS'] == {'FEASIBILITY': 'COMPLETE', 'NOVELTY': 'COMPLETE'}
-    assert len(a.calls) == 1 and len(o.calls) == 2
+    assert len(a.calls) == 1 and posts(o) == ['/v1/chat/completions', '/v1/responses']
     again = run_resmoke(C, Caller(C, cal.ledger, cal.provider, CAP, True))
     assert again['STATUS'] == 'SMOKE_COMPLETE'
-    assert len(a.calls) == 1 and len(o.calls) == 2
+    assert len(a.calls) == 1 and posts(o) == ['/v1/chat/completions', '/v1/responses']
 
 
 def test_successful_first_invocation_still_completes(tmp_path):
     cal, a, o = caller(tmp_path, ((200, env(gen_json())),), critic_answers())
     report = run_resmoke(C, cal)
     assert report['STATUS'] == 'SMOKE_COMPLETE'
-    assert len(a.calls) == 1 and len(o.calls) == 2
+    assert len(a.calls) == 1 and posts(o) == ['/v1/chat/completions', '/v1/responses']
 
 
 def test_critics_do_not_run_unless_the_generator_completed(tmp_path):

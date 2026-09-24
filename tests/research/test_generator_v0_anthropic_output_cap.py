@@ -151,13 +151,25 @@ def test_campaign_bound_uses_the_route_cap():
     gens=[s['BOUND_MICRO_USD'] for s in b['STAGES'] if s['STAGE'].startswith('generation:')]
     assert gens==[2126672,2126732,2126716,2127392]
 
-def test_smoke_reservations_fit_the_absolute_smoke_ceiling_including_history():
-    cal=offline_caller();p=cal.provider;card=fixture(SLOTS[0],C);roles=Roles(C,cal)
+def _smoke_bounds(routes=None):
+    p=offline_routed_provider(C,routes);cal=Caller(C,Ledger(':memory:',{'RUN_ID':'cap'}),p,1,True)
+    card=fixture(SLOTS[0],C);roles=Roles(C,cal)
     gen=p.bound(gen_request(cal))
     feas=p.bound(cal.request('FEASIBILITY_CRITIC',roles.request('FEASIBILITY_CRITIC',card),FEAS_PROMPT,{'max_output_tokens':ROLE_OUTPUT_TOKEN_CAPS['FEASIBILITY_CRITIC']},'FEASIBILITY_CRITIC:C001'))
     nov=p.bound(cal.request('NOVELTY_CRITIC',roles.request('NOVELTY_CRITIC',card,[card]),NOVELTY_PROMPT,{'max_output_tokens':ROLE_OUTPUT_TOKEN_CAPS['NOVELTY_CRITIC']},'NOVELTY_CRITIC:C001'))
-    assert (gen,feas,nov)==(2126672,3950,194770)
-    assert HISTORICAL_SMOKE_MICRO_USD+gen+feas+nov==3038724<=SMOKE_CEILING_MICRO_USD
+    return gen,feas,nov
+
+def test_smoke_reservations_fit_the_absolute_smoke_ceiling_including_history():
+    # The executed re-smoke reserved novelty on synchronous Chat Completions (historical record).
+    import copy
+    chat=copy.deepcopy(routing.ROUTES)
+    chat['NOVELTY_CRITIC'].update(STRUCTURED_OUTPUT='OPENAI_CHAT_RESPONSE_FORMAT_JSON_SCHEMA_STRICT',ENDPOINT='OPENAI_CHAT_COMPLETIONS',TRANSPORT=routing.OPENAI_CHAT_TRANSPORT)
+    assert _smoke_bounds(chat)==(2126672,3950,194770)
+    assert HISTORICAL_SMOKE_MICRO_USD+2126672+3950+194770==3038724<=SMOKE_CEILING_MICRO_USD
+    # Background Responses novelty: same bound formula over a slightly smaller payload.
+    gen,feas,nov=_smoke_bounds()
+    assert (gen,feas,nov)==(2126672,3950,194672)
+    assert HISTORICAL_SMOKE_MICRO_USD+gen+feas+nov<=SMOKE_CEILING_MICRO_USD
 
 # ------------------------------------------------------------- hash provenance
 

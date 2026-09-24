@@ -171,6 +171,9 @@ class Caller:
 
     def _await_background(self,key,req,tracker):
         rid=tracker['response_id'];p=self.provider
+        # Poll pacing is separate from transport-retry backoff (provider._sleep) where a
+        # provider offers it, so a guard that refuses replay backoff cannot stop polling.
+        sleep=getattr(p,'_poll_sleep',None) or p._sleep
         deadline=p._now()+p.background_max_wait_seconds
         while True:
             try:
@@ -178,7 +181,7 @@ class Caller:
             except Exception as e:
                 if _retryable(e) or getattr(e,'retryable',False):
                     if p._now()>=deadline:raise BackgroundPending('background generation still in progress; resume to continue polling')
-                    p._sleep(p.poll_interval_seconds);continue
+                    sleep(p.poll_interval_seconds);continue
                 # The response exists but its outcome is unknown: reconcile with the response_id.
                 self.ledger.failed(key,type(e).__name__,getattr(e,'wire_sha256',None),state='UNCERTAIN',envelope={'response_id':rid,'provider_status':'retrieve_error'})
                 raise CallUncertain('background retrieve failed; reconcile '+key) from e
@@ -186,7 +189,7 @@ class Caller:
             self.ledger.submit_background(key,{'response_id':rid,'provider_status':st,'store':True,'background':True})
             if st in ('queued','in_progress'):
                 if p._now()>=deadline:raise BackgroundPending('background generation still in progress; resume to continue polling')
-                p._sleep(p.poll_interval_seconds);continue
+                sleep(p.poll_interval_seconds);continue
             envelope={'response_id':rid,'provider_status':st,'provider_envelope':payload}
             if st=='completed':
                 try:
