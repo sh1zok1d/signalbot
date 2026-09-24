@@ -141,54 +141,66 @@
   },
   "MIXED_PROVIDER_NOISY_E2E": {
     "CALL_STATES": {
-      "COMPLETE": 117,
-      "FAILED_NOT_BILLED": 2,
+      "COMPLETE": 86,
+      "FAILED_NOT_BILLED": 1,
       "FAILED_WITH_COST": 2,
-      "RECONCILED_BILLED": 1
+      "RECONCILED_BILLED": 1,
+      "RECONCILED_UNKNOWN": 1
     },
     "HARD_FAIL_IDS": [
+      "C001",
+      "C002",
+      "C003",
+      "C004",
+      "C005",
+      "C006",
+      "C007",
+      "C008",
+      "C009",
+      "C010",
       "C020",
       "C025",
       "C037"
     ],
-    "JOURNAL_ROWS": 122,
+    "JOURNAL_ROWS": 91,
     "METRICS": {
       "CONTENT_RETRIES": {
         "NOVELTY": 2,
         "RED_TEAM": 1
       },
       "CRITIC_COMPLETIONS": {
-        "FEASIBILITY": 36,
-        "NOVELTY": 37,
-        "RED_TEAM": 36
+        "FEASIBILITY": 26,
+        "NOVELTY": 27,
+        "RED_TEAM": 26
       },
-      "HARD_FAIL": 3,
+      "HARD_FAIL": 13,
       "HARD_FAIL_BY_RULE": {
+        "GENERATION_OUTPUT": 10,
         "NO_PROTECTED_YEARS": 1,
         "PROVIDER_SCHEMA": 1,
         "SLOT_IDENTITY": 1
       },
-      "HARD_FAIL_RATE": "3/40",
-      "REVIEWED": 36,
+      "HARD_FAIL_RATE": "13/40",
+      "REVIEWED": 26,
       "REVIEW_FAILED": 1,
       "REVIEW_FAILED_BY_ROLE": {
         "FEASIBILITY": 1
       },
       "SELECTOR_ADVISORY": "DISAGREES",
       "SLOTS": 40,
-      "VALID": 37
+      "VALID": 27
     },
-    "POSTS": 122,
+    "POSTS": 91,
     "POSTS_BY_PATH": {
-      "/v1/chat/completions": 116,
-      "/v1/messages": 6
+      "/v1/chat/completions": 86,
+      "/v1/messages": 5
     },
     "RETRY_ATTEMPTS": {
       "CONTENT": 5,
-      "TRANSPORT": 2
+      "TRANSPORT": 1
     },
     "REVIEW_FAILED_IDS": [
-      "C009"
+      "C019"
     ],
     "ROLE_ROUTES": {
       "FEASIBILITY_CRITIC": [
@@ -210,26 +222,28 @@
     "SHORTLIST": [
       "C011",
       "C013",
-      "C019",
       "C028",
-      "C033"
+      "C033",
+      "C016"
     ],
     "SPEND": {
-      "JOURNAL_MICRO_USD": 1845510,
+      "JOURNAL_MICRO_USD": 2475682,
       "LINEAGE_PRIOR_MICRO_USD": 0,
-      "TOTAL_MICRO_USD": 1845510,
+      "TOTAL_MICRO_USD": 2475682,
       "UNRESOLVED_CALLS": []
     },
     "STATUS": "PENDING_HUMAN_REVIEW",
     "STEPS": [
+      "PAUSED: PAUSED_UNCERTAIN_CALL",
+      "RECONCILED_UNKNOWN: generation:0",
       "CRASH: process died after POST RED_TEAM C011",
       "PAUSED: PAUSED_UNCERTAIN_CALL",
       "NOT_BILLED_WITHOUT_EVIDENCE_REFUSED",
       "RECONCILED_BILLED",
       "FINAL: PENDING_HUMAN_REVIEW"
     ],
-    "STREAM_A": 16,
-    "STREAM_B": 15
+    "STREAM_A": 14,
+    "STREAM_B": 12
   },
   "NOISY_E2E": {
     "CALL_STATES": {

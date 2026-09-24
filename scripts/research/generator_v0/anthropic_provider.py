@@ -53,19 +53,14 @@ def classify_anthropic_http(status,wire):
     """(billing, retryable) for a non-200 Messages response.
 
     Deterministic request/auth/permission/billing/size/not-found rejections are
-    NOT_BILLED and not retryable (operator pause). 429 rate_limit_error and 529
-    overloaded_error are NOT_BILLED retryable only when the body is the
-    documented error envelope for that status. Anything else, including 408,
-    409, 500 and other 5xx or unrecognized bodies, is UNCERTAIN: a model run may
-    have happened, so it is never retried automatically."""
-    try:
-        body=parse_json(wire.decode('utf-8'))
-        etype=body['error']['type'] if isinstance(body,dict) and body.get('type')=='error' else None
-    except Exception:
-        etype=None
+    NOT_BILLED and not retryable (operator pause). Everything else is UNCERTAIN
+    and never retried automatically, including a documented 429
+    rate_limit_error or 529 overloaded_error: the documented error semantics do
+    not establish that model work definitely did not occur, so under the
+    conservative accounting rules the reservation stays charged until an
+    operator reconciles the call. 408, 409, 500, other 5xx and unrecognized
+    bodies are UNCERTAIN as before."""
     if status in (400,401,402,403,404,413):return 'NOT_BILLED',False
-    if status==429 and etype=='rate_limit_error':return 'NOT_BILLED',True
-    if status==529 and etype=='overloaded_error':return 'NOT_BILLED',True
     return 'UNCERTAIN',False
 
 def _ceil(x):

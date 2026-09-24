@@ -53,18 +53,25 @@
     "BATCH_SIZE_CHANGE",
     "LOWERING_ROLES_FOR_BUDGET"
   ],
+  "LIMITED_REPAIR_AFTER_AUDIT": {
+    "ANTHROPIC_429_RATE_LIMIT_ERROR": "UNCERTAIN, replay=False",
+    "ANTHROPIC_529_OVERLOADED_ERROR": "UNCERTAIN, replay=False",
+    "PREVIOUSLY": "NOT_BILLED, replay=True",
+    "REASON": "documented error semantics do not establish that no model work occurred"
+  },
   "MIXED_PROVIDER_NOISY_E2E": {
     "CALL_STATES": {
-      "COMPLETE": 117,
-      "FAILED_NOT_BILLED": 2,
+      "COMPLETE": 86,
+      "FAILED_NOT_BILLED": 1,
       "FAILED_WITH_COST": 2,
-      "RECONCILED_BILLED": 1
+      "RECONCILED_BILLED": 1,
+      "RECONCILED_UNKNOWN": 1
     },
-    "JOURNAL_ROWS": 122,
-    "POSTS": 122,
+    "JOURNAL_ROWS": 91,
+    "POSTS": 91,
     "POSTS_BY_PATH": {
-      "/v1/chat/completions": 116,
-      "/v1/messages": 6
+      "/v1/chat/completions": 86,
+      "/v1/messages": 5
     },
     "ROLE_ROUTES": {
       "FEASIBILITY_CRITIC": [
@@ -85,6 +92,8 @@
     },
     "STATUS": "PENDING_HUMAN_REVIEW",
     "STEPS": [
+      "PAUSED: PAUSED_UNCERTAIN_CALL",
+      "RECONCILED_UNKNOWN: generation:0",
       "CRASH: process died after POST RED_TEAM C011",
       "PAUSED: PAUSED_UNCERTAIN_CALL",
       "NOT_BILLED_WITHOUT_EVIDENCE_REFUSED",

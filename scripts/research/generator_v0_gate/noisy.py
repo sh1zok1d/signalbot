@@ -116,16 +116,17 @@ def routed_provider_for(transport,contexts):
                           ROUTES,sleeper=lambda s:None)
 
 MIXED_FAULTS={
-    ('GENERATOR',0,1):'529',            # Anthropic overloaded: not billed, transport retry
+    # Critic faults sit on round-1 cards: generation:0 is closed by the UNKNOWN reconciliation of its 429.
+    ('GENERATOR',0,1):'429',            # Anthropic documented rate_limit_error: UNCERTAIN, never replayed; reconciled UNKNOWN
     ('GENERATOR',1,1):'drop_card',      # keyed omission -> one slot HARD_FAIL
     ('GENERATOR',2,1):'invalid_card',   # non-canonical range -> one slot HARD_FAIL (provider schema)
     ('GENERATOR',3,1):'max_tokens',     # billed length stop -> content retry
     ('GENERATOR',3,2):'protected_card', # retried round names a protected year -> one slot HARD_FAIL
-    ('NOVELTY_CRITIC','C005',1):'omit_batch',
-    ('NOVELTY_CRITIC','C007',1):'length',
-    ('FEASIBILITY_CRITIC','C008',1):'429',
-    ('FEASIBILITY_CRITIC','C009',1):'malformed',
-    ('FEASIBILITY_CRITIC','C009',2):'malformed',
+    ('NOVELTY_CRITIC','C015',1):'omit_batch',
+    ('NOVELTY_CRITIC','C017',1):'length',
+    ('FEASIBILITY_CRITIC','C018',1):'429',
+    ('FEASIBILITY_CRITIC','C019',1):'malformed',
+    ('FEASIBILITY_CRITIC','C019',2):'malformed',
     ('RED_TEAM','C011',1):'crash',      # crash after POST on a Sol call
     ('SELECTOR','selection',1):'swap',
 }
@@ -163,26 +164,35 @@ def run_noisy_campaign(run_dir,faults=DEFAULT_FAULTS,contexts=None,factory=None)
     transport=NoisyTransport(c,faults);steps=[]
     ledger=Ledger(run_dir/'run.sqlite',{'RUN_ID':run_dir.name,'CAP_MICRO_USD':CAP})
     try:
-        try:
-            run(c,ledger,transport,factory);steps.append('COMPLETED_WITHOUT_CRASH')
-        except Crash as e:
-            steps.append('CRASH: '+str(e))
-        try:
-            result=run(c,ledger,transport,factory)
-        except CallUncertain as e:
-            steps.append('PAUSED: '+ledger.get('status'))
-            key=[r['CALL_KEY'] for r in ledger.export_calls() if r['STATE']=='DISPATCHED'][0]
-            # Possibly POSTed: an unsupported NOT_BILLED assertion is refused; the fake
-            # provider's log is the evidence that the request arrived and was billed.
+        result=None
+        for invocation in range(8):
             try:
-                ledger.reconcile(key,'NOT_BILLED',None,'offline-gate','operator assertion only')
-                steps.append('UNEXPECTED: NOT_BILLED accepted without evidence')
-            except Exception as refused:
-                steps.append('NOT_BILLED_WITHOUT_EVIDENCE_REFUSED')
-            ledger.reconcile(key,'BILLED',500,'offline-gate','crash after POST; fake provider log shows the request arrived',
-                             {'PROVIDER_LOG_POSTS':len(transport.posts()),'SOURCE':'synthetic NoisyTransport log'})
-            steps.append('RECONCILED_BILLED')
-            result=run(c,ledger,transport,factory)
+                result=run(c,ledger,transport,factory)
+                if invocation==0:steps.append('COMPLETED_WITHOUT_CRASH')
+                break
+            except Crash as e:
+                steps.append('CRASH: '+str(e))
+            except CallUncertain as e:
+                steps.append('PAUSED: '+ledger.get('status'))
+                row=[r for r in ledger.export_calls() if r['STATE'] in ('DISPATCHED','UNCERTAIN')][0];key=row['CALL_KEY']
+                if row['STATE']=='UNCERTAIN':
+                    # A provider HTTP answer whose billing is not established (e.g. an Anthropic
+                    # 429/529): no provider evidence exists, so the only exit is UNKNOWN, which
+                    # charges the reservation and closes that logical call (never POSTed again).
+                    ledger.reconcile(key,'UNKNOWN',None,'offline-gate','uncertain provider HTTP answer; no provider-side evidence')
+                    steps.append('RECONCILED_UNKNOWN: '+str(row['SLOT']))
+                    continue
+                # Possibly POSTed: an unsupported NOT_BILLED assertion is refused; the fake
+                # provider's log is the evidence that the request arrived and was billed.
+                try:
+                    ledger.reconcile(key,'NOT_BILLED',None,'offline-gate','operator assertion only')
+                    steps.append('UNEXPECTED: NOT_BILLED accepted without evidence')
+                except Exception as refused:
+                    steps.append('NOT_BILLED_WITHOUT_EVIDENCE_REFUSED')
+                ledger.reconcile(key,'BILLED',500,'offline-gate','crash after POST; fake provider log shows the request arrived',
+                                 {'PROVIDER_LOG_POSTS':len(transport.posts()),'SOURCE':'synthetic NoisyTransport log'})
+                steps.append('RECONCILED_BILLED')
+        if result is None:raise RuntimeError('noisy campaign did not finish within the invocation limit')
         steps.append('FINAL: '+result['STATUS'])
         calls=ledger.export_calls()
         report={

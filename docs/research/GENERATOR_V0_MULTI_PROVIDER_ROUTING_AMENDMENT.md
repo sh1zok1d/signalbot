@@ -70,10 +70,12 @@ runner / roles → Caller → `RoutedProvider` → `AnthropicProvider` (Opus) | 
 
 ## Anthropic failure taxonomy
 
+Limited offline repair (independent audit): the documented Anthropic error semantics for 429 `rate_limit_error` and 529 `overloaded_error` do not establish that model work definitely did not occur. Both are therefore UNCERTAIN and never replayed automatically; they were previously NOT_BILLED and retried.
+
 | Situation | Class | Effect |
 |---|---|---|
 | 400, 401, 402, 403, 404, 413 | NOT_BILLED, not retryable | `PAUSED_PROVIDER_REJECTED` |
-| 429 `rate_limit_error`, 529 `overloaded_error` (documented error body) | NOT_BILLED, retryable | backoff, new transport-attempt key |
+| 429 `rate_limit_error`, 529 `overloaded_error` (documented body) — **limited repair after audit** | UNCERTAIN, not retryable | pause, reconcile (reservation stays charged); never re-sent |
 | 429/529 without that body, 408, 409, 500, 502, 503, 504, other | UNCERTAIN | pause, reconcile; never re-sent |
 | Connection loss or timeout after dispatch; crash after dispatch | UNCERTAIN / DISPATCHED | pause, reconcile; never re-sent |
 | Oversized response | UNCERTAIN | pause |
@@ -111,9 +113,9 @@ runner / roles → Caller → `RoutedProvider` → `AnthropicProvider` (Opus) | 
 
 Opus generator → Luna feasibility → Sol novelty → Sol red team → deterministic selection → `PENDING_HUMAN_REVIEW`.
 
-- Injected faults: Anthropic 529, a dropped card, a non-canonical range, a max_tokens stop plus a protected-year card, novelty omission and truncation, a Luna 429 and double-malformed answer, and a crash after POST on Sol.
+- Injected faults: an Anthropic documented 429 on generation:0 (UNCERTAIN, one POST, reconciled UNKNOWN so its 10 slots are HARD_FAIL and never reach critics), a dropped card, a non-canonical range, a max_tokens stop plus a protected-year card, novelty omission and truncation, a Luna 429 and double-malformed answer, and a crash after POST on Sol.
 - Result:
-  - 122 POSTs = 122 journal rows (6 to `/v1/messages`, 116 to Chat Completions);
+  - 91 POSTs = 91 journal rows (5 to `/v1/messages`, 86 to Chat Completions);
   - NOT_BILLED without evidence refused;
   - every role on its route (checked from journal rows).
 

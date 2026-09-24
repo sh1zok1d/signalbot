@@ -269,15 +269,54 @@ def test_deterministic_rejections_are_not_billed_and_pause(status):
     with pytest.raises(ProviderRejected):gen_call(cal)
     assert states(l)==['FAILED_NOT_BILLED'] and l.spent_micro_usd()==0
 
-@pytest.mark.parametrize('status,etype',[(429,'rate_limit_error'),(529,'overloaded_error')])
-def test_rate_limit_and_overload_retry_without_charge(status,etype):
-    at=Fake((status,json.dumps({'type':'error','error':{'type':etype,'message':'x'}}).encode()),(200,env(gen_json())))
-    cal,l=caller_with(at)
-    assert gen_call(cal)==gen_json()
-    assert states(l)==['FAILED_NOT_BILLED','COMPLETE'] and len(at.calls)==2
+DOCUMENTED=[(429,'rate_limit_error'),(529,'overloaded_error')]
 
-@pytest.mark.parametrize('status,wire',[(429,b'proxy says slow down'),(500,b'{"type":"error","error":{"type":"api_error"}}'),
-                                        (504,b'gateway'),(529,b'not the documented envelope'),(408,b''),(503,b'')])
+def documented(status,etype):
+    return json.dumps({'type':'error','error':{'type':etype,'message':'x'}}).encode()
+
+@pytest.mark.parametrize('status,etype',DOCUMENTED)
+def test_documented_rate_limit_and_overload_are_uncertain_not_replayable(status,etype):
+    """Anthropic error semantics do not establish that no model work occurred."""
+    assert classify_anthropic_http(status,documented(status,etype))==('UNCERTAIN',False)
+
+@pytest.mark.parametrize('status,etype',DOCUMENTED)
+def test_documented_rate_limit_and_overload_post_once_and_pause(status,etype):
+    at=Fake((status,documented(status,etype)),(200,env(gen_json())));cal,l=caller_with(at)
+    with pytest.raises(CallUncertain):gen_call(cal)                      # existing uncertain-call mechanism
+    assert len(at.calls)==1 and states(l)==['UNCERTAIN']
+    with pytest.raises(CallUncertain):gen_call(cal)                      # resume never replays it
+    assert len(at.calls)==1 and states(l)==['UNCERTAIN']
+    row=l.export_calls()[0]
+    # Conservative accounting: the reservation stays charged in the shared pool.
+    assert l.spent_micro_usd()==l.total_charged_micro_usd()==row['RESERVED_MICRO_USD']>0
+    assert l.unresolved_calls()==[{'CALL_KEY':row['CALL_KEY'],'STATE':'UNCERTAIN','RESERVED_MICRO_USD':row['RESERVED_MICRO_USD']}]
+    with pytest.raises(ContractError,match='provider-side evidence'):l.reconcile(row['CALL_KEY'],'NOT_BILLED',None,'op','it was only a 429')
+    out=l.reconcile(row['CALL_KEY'],'UNKNOWN',None,'op','no provider-side evidence')
+    assert out['COST_MICRO_USD']==row['RESERVED_MICRO_USD'] and l.spent_micro_usd()==row['RESERVED_MICRO_USD']
+    from scripts.research.generator_v0.provider import CallClosed
+    for attempt in (0,1):
+        with pytest.raises(CallClosed):
+            cal.call('GENERATOR',C.generator(),GENERATOR_PROMPT,generator_request_parameters(SLOTS),'generation:0',content_attempt=attempt,identity=generator_identity(C,SLOTS))
+    assert len(at.calls)==1
+
+def test_uncertain_429_reservation_counts_against_the_shared_cross_provider_ceiling():
+    probe=offline_routed_provider(C);pc=Caller(C,Ledger(':memory:',{'RUN_ID':'p2'}),probe,1,True)
+    gbound=probe.bound(gen_request(pc));fbound=probe.bound(critic_request(pc,'FEASIBILITY_CRITIC',FEAS_PROMPT))
+    cap=gbound+fbound-1;ot=NoisyTransport(C,{})
+    l=Ledger(':memory:',{'RUN_ID':'h2'});cal=Caller(C,l,router(Fake((429,documented(429,'rate_limit_error'))),ot,cap),cap,True)
+    with pytest.raises(CallUncertain):gen_call(cal)
+    assert l.total_charged_micro_usd()==gbound
+    with pytest.raises(BudgetExceeded):Roles(C,cal).feasibility(fixture(SLOTS[0],C))
+    assert ot.log==[] and l.total_charged_micro_usd()==gbound
+
+def test_not_billed_outcomes_still_cost_zero():
+    cal,l=caller_with(Fake((400,documented(400,'invalid_request_error'))))
+    with pytest.raises(ProviderRejected):gen_call(cal)
+    assert states(l)==['FAILED_NOT_BILLED'] and l.spent_micro_usd()==0 and l.export_calls()[0]['COST_MICRO_USD']==0
+
+@pytest.mark.parametrize('status,wire',[(429,b'proxy says slow down'),(500,b'{"type":"error","error":{"type":"api_error"}}'),(502,b'bad gateway'),
+                                        (504,b'gateway'),(529,b'not the documented envelope'),(408,b''),(503,b''),
+                                        (429,b'{"type":"error","error":{"type":"overloaded_error"}}'),(529,b'{"type":"error","error":{"type":"rate_limit_error"}}')])
 def test_ambiguous_http_failures_are_uncertain_and_never_resent(status,wire):
     at=Fake((status,wire));cal,l=caller_with(at)
     with pytest.raises(CallUncertain):gen_call(cal)
@@ -326,6 +365,18 @@ def test_mixed_campaign_reaches_human_review_with_each_role_on_its_route(mixed):
     gen_posts=report['POSTS_BY_PATH']['/v1/messages']
     assert gen_posts==sum(1 for r in l.export_calls() if r['ROLE']=='GENERATOR')
     assert 'NOT_BILLED_WITHOUT_EVIDENCE_REFUSED' in report['STEPS'] and report['SPEND']['UNRESOLVED_CALLS']==[]
+
+def test_mixed_campaign_anthropic_429_is_uncertain_and_never_replayed(mixed):
+    report,l,t=mixed
+    assert report['STEPS'][:2]==['PAUSED: PAUSED_UNCERTAIN_CALL','RECONCILED_UNKNOWN: generation:0']
+    gen0=[r for r in l.export_calls() if r['SLOT']=='generation:0']
+    assert [r['STATE'] for r in gen0]==['RECONCILED_UNKNOWN'] and t.counts[('GENERATOR',0)]==1       # exactly one POST
+    assert gen0[0]['COST_MICRO_USD']==gen0[0]['RESERVED_MICRO_USD']                                   # charged conservatively
+    slots=['C%03d'%i for i in range(1,11)]
+    hard={h for h in report['HARD_FAIL_IDS']};assert set(slots)<=hard
+    assert not [k for k in t.counts if k[0]!='GENERATOR' and k[1] in slots]                            # no critic call for them
+    assert all(r['COST_MICRO_USD']==0 for r in l.export_calls() if r['STATE']=='FAILED_NOT_BILLED')   # OpenAI 429 retry: free
+    assert l.total_charged_micro_usd()==report['SPEND']['TOTAL_MICRO_USD']<=CAP
 
 def test_every_complete_call_records_full_provenance(mixed):
     report,l,t=mixed
