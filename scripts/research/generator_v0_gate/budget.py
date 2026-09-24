@@ -104,7 +104,42 @@ def build(contexts=None):
         'NOTES':['Worst cases bound every call at its maximum output; realized v7 generator spend was about 65 percent of its bound.',
                  'No paid critic call has ever completed, so critic reasoning usage is unobserved; scenario C caps are not validated against real outputs.',
                  'NOT_BILLED transport retries charge 0 and are excluded.'],
+        'ROUTED_MULTI_PROVIDER':build_routed(c),
         'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,'PROTECTED_2025_2026_OPENED':False,
+    }
+
+ROLE_STAGE={'GENERATOR':'generation:','NOVELTY_CRITIC':'NOVELTY_CRITIC','FEASIBILITY_CRITIC':'FEASIBILITY_CRITIC','RED_TEAM':'RED_TEAM','SELECTOR':'SELECTOR'}
+
+def build_routed(contexts=None):
+    """Worst-case bounds for the multi-provider routing (fresh 40-card run). Decision support only."""
+    from scripts.research.generator_v0.routed_provider import offline_routed_provider
+    from scripts.research.generator_v0 import routing
+    c=contexts or Contexts()
+    provider=offline_routed_provider(c)
+    single=campaign_bound(c,40,(),(),None,1,None,provider)
+    retries=campaign_bound(c,40,(),(),None,None,None,provider)
+    by_role={}
+    for role,prefix in ROLE_STAGE.items():
+        r=routing.ROUTES[role]
+        micro=sum(s['BOUND_MICRO_USD'] for s in single['STAGES'] if s['STAGE'].startswith(prefix))
+        by_role[role]={'ROUTE':'{} / {} / {}'.format(r['PROVIDER'],r['MODEL'],'/'.join('{}={}'.format(k,v) for k,v in r['PARAMS'].items())),
+                       'WORST_CASE_SINGLE_ATTEMPT_USD':usd(micro),'CALLS':4 if role=='GENERATOR' else (1 if role=='SELECTOR' else 40)}
+    total=single['WORST_CASE_SINGLE_ATTEMPT_MICRO_USD'];with_retries=retries['WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD']
+    return {
+        'ROUTING_ID':routing.ROUTING_ID,'ROUTING_DIGEST':routing.routing_digest(),'ROUTING_TABLE':routing.routing_table(),
+        'PRICE_TABLE':routing.price_table(),
+        'FRESH_40_CARD_SINGLE_ATTEMPT_USD':usd(total),'FRESH_40_CARD_WITH_CONTENT_RETRIES_USD':usd(with_retries),
+        'BY_ROLE_SINGLE_ATTEMPT':by_role,'STAGES':{s['STAGE']:s['BOUND_USD'] for s in single['STAGES']},
+        'FITS_OWNER_17_10_FRESH_SINGLE_ATTEMPT':total<=OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,
+        'FITS_OWNER_17_10_FRESH_WITH_RETRIES':with_retries<=OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,
+        'CAMPAIGN_CUMULATIVE_IF_COUNTED_IN_V7_AUTHORITY_USD':usd(V7_LINEAGE_MICRO_USD+total),
+        'V7_DERIVED_ROUTED_RUN':'NOT_APPLICABLE: v7 generation:0-2 were produced by gpt-6-astra under the grandfathered v0.1 contract; continuing them with an Opus generator would mix generator models inside one batch, and derive of routed journals is not implemented.',
+        'CALIBRATION_TARGET':{'TARGET_EXPECTED_FULL_40_CARD_RUN_USD':'10','TARGET_4_RUN_MONTH_USD':'40',
+                              'NOTE':'Product/cost targets for later empirical 5-card calibration; not authorization to weaken gates or change the design.'},
+        'NOTES':['Worst-case reservation bounds (max output on every call, input bound = request bytes + margin), not expected cost.',
+                 'Anthropic input bound adds a fixed 4096-token provider-scaffolding margin; no cache or batch discount is used anywhere.',
+                 'Deferred: Anthropic/OpenAI Batch, prompt caching, Opus second opinion, adaptive critic routing, batch-size change.'],
+        'REAL_LLM_CALLS_MADE':False,
     }
 
 def main():

@@ -174,3 +174,90 @@ def assert_strict_subset(schema):
     bad=strict_subset_violations(schema)
     if bad:raise ContractError('schema outside strict subset: '+'; '.join(bad[:5]))
     return schema
+
+# ------------------------------------------------ Anthropic structured outputs
+# Claude structured outputs (output_config.format json_schema) support a
+# different subset than OpenAI strict mode: no numerical constraints
+# (minimum/maximum/multipleOf), no string length constraints, no complex array
+# constraints (maxItems, minItems above 1). The Anthropic request therefore
+# carries a projection of the exact provider schema with only those keywords
+# removed. Nothing else changes (properties, required, enums, patterns, keyed
+# IDs), and every removed constraint is still enforced after decoding: intake
+# validates each card against the exact provider schema (slot_violations_v02)
+# and the V02 rules. This is an offline conformance check against the
+# documented subset, not a provider acceptance test.
+ANTHROPIC_ALLOWED_KEYWORDS={
+    'object':{'type','properties','required','additionalProperties'},
+    'array':{'type','items','minItems'},
+    'string':{'type','enum','pattern','const','format'},
+    'integer':{'type','enum','const'},
+    'number':{'type','enum','const'},
+    'boolean':{'type','enum','const'},
+    'null':{'type'},
+}
+ANTHROPIC_DROPPED_KEYWORDS=('minimum','maximum','exclusiveMinimum','exclusiveMaximum','multipleOf','minLength','maxLength','maxItems','uniqueItems')
+ANTHROPIC_STRING_FORMATS={'date-time','time','date','duration','email','hostname','uri','ipv4','ipv6','uuid'}
+
+def anthropic_projection(schema):
+    """(projected schema, removed [(path, keyword, value)]). Only unsupported constraint keywords are removed."""
+    removed=[]
+    def walk(node,path):
+        if isinstance(node,dict):
+            out={}
+            for k,v in node.items():
+                if k in ANTHROPIC_DROPPED_KEYWORDS or (k=='minItems' and not (type(v) is int and v in (0,1))):
+                    removed.append((path,k,v));continue
+                if k=='properties':out[k]={name:walk(sub,path+'/'+name) for name,sub in v.items()}
+                elif k=='items':out[k]=walk(v,path+'/items')
+                elif k=='anyOf':out[k]=[walk(x,path+'/anyOf'+str(i)) for i,x in enumerate(v)]
+                else:out[k]=v
+            return out
+        return node
+    return walk(schema,'#'),removed
+
+def anthropic_subset_violations(schema):
+    out=[]
+    def walk(node,depth,path):
+        if depth>32:out.append(path+': nesting depth');return
+        if 'anyOf' in node:
+            if set(node)!={'anyOf'} or not node['anyOf']:out.append(path+': anyOf must stand alone')
+            for i,opt in enumerate(node.get('anyOf',[])):walk(opt,depth+1,path+'/anyOf'+str(i))
+            return
+        t=node.get('type')
+        if t not in ANTHROPIC_ALLOWED_KEYWORDS:out.append(path+': unsupported type '+str(t));return
+        extra=set(node)-ANTHROPIC_ALLOWED_KEYWORDS[t]
+        if extra:out.append(path+': unsupported keywords '+','.join(sorted(extra)))
+        if t=='object':
+            if node.get('additionalProperties') is not False:out.append(path+': additionalProperties must be false')
+            props=node.get('properties',{})
+            if sorted(node.get('required',[]))!=sorted(props):out.append(path+': every property must be required')
+            for k,v in props.items():
+                if not _PROPERTY_NAME.fullmatch(k):out.append(path+': property name '+k)
+                walk(v,depth+1,path+'/'+k)
+        elif t=='array':
+            if 'items' not in node:out.append(path+': array items required')
+            else:walk(node['items'],depth+1,path+'/items')
+            if 'minItems' in node and node['minItems'] not in (0,1):out.append(path+': minItems above 1')
+        if 'enum' in node and not node['enum']:out.append(path+': empty enum')
+        if 'format' in node and node['format'] not in ANTHROPIC_STRING_FORMATS:out.append(path+': unsupported format')
+        if 'pattern' in node:
+            p=node['pattern']
+            if _FORBIDDEN_REGEX.search(p):out.append(path+': pattern uses lookaround, backreference or shorthand class')
+            try:re.compile(p)
+            except re.error:out.append(path+': invalid pattern')
+    walk(schema,1,'#')
+    return out
+
+def anthropic_output_schema(role,contexts,request):
+    """The exact per-request provider schema, projected to the Anthropic subset and checked."""
+    exact=role_schema(role,contexts,provider=True,request=request)
+    projected,_=anthropic_projection(exact)
+    bad=anthropic_subset_violations(projected)
+    if bad:raise ContractError('schema outside Anthropic structured-output subset: '+'; '.join(bad[:5]))
+    return projected
+
+def anthropic_generator_schema_digest(contexts):
+    """Run-level identity of the Anthropic generator schemas over the 40-slot plan."""
+    from .mock import slot_plan
+    plan=slot_plan(40)
+    return digest({'CONTRACT':contract.CONTRACT_ID,'ROUNDS':[digest(anthropic_output_schema('GENERATOR',contexts,{'parameters':{'slots':plan[i:i+10]}})) for i in range(0,40,10)]})

@@ -5953,3 +5953,20 @@ REAL_LLM_CALLS_MADE = false
 COMPLETION_STATE = READY_FOR_FINAL_RE-VERIFICATION
 NEXT_UNIT = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION
 ```
+
+## Generator V0 outcome-blind multi-provider routing — 2026-09-24
+
+No research window, hypothesis or protected data consumed. Infrastructure plus an outcome-blind routing amendment (provider/model/effort per role only).
+
+```
+GENERATOR = ANTHROPIC / claude-opus-5-5 / effort=high
+NOVELTY_CRITIC = OPENAI / gpt-6-sol / reasoning_effort=high
+RED_TEAM = OPENAI / gpt-6-sol / reasoning_effort=high
+FEASIBILITY_CRITIC = OPENAI / gpt-6-luna / reasoning_effort=low
+SELECTOR (advisory) = OPENAI / gpt-6-luna / reasoning_effort=none
+ROUTING_DIGEST = c0eefdfa06e7f2607be905aac961bf0d46fd609ea8482ab852052efe8b90be38
+FRESH_40_CARD_WORST_CASE_SINGLE_ATTEMPT_USD = 21.821289
+REAL_LLM_CALLS_MADE = false
+COMPLETION_STATE = READY_FOR_MULTI_PROVIDER_INDEPENDENT_REVIEW
+NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW
+```

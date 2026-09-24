@@ -48,17 +48,37 @@ class OpenAIProvider:
     def __init__(self,api_key,*,allow_real=False,budget_micro_usd=0,model=None,transport=None,contexts=None,timeout_seconds=None,
                  create_timeout_seconds=CREATE_TIMEOUT_SECONDS,poll_interval_seconds=POLL_INTERVAL_SECONDS,
                  poll_get_timeout_seconds=POLL_GET_TIMEOUT_SECONDS,background_max_wait_seconds=BACKGROUND_MAX_WAIT_SECONDS,
-                 sleeper=None,clock=None):
+                 sleeper=None,clock=None,routes=None,offline=False):
+        """routes: the multi-provider routing registry (routing.ROUTES). When given,
+        this adapter serves only the roles routed to OPENAI, with the registry's
+        model, effort and prices (Chat Completions only, never GENERATOR).
+        Without routes it is the legacy OpenAI-only provider (models.ROLE_MODEL_MAP).
+        offline=True (routed only) builds a bound-only adapter that never sends."""
         if model not in (None,''):raise ContractError('role-specific model map is authoritative; do not pass --model')
-        if not isinstance(api_key,str) or not api_key.strip():raise ContractError('OPENAI_API_KEY is required')
-        if allow_real is not True or type(budget_micro_usd)!=int or not 0<budget_micro_usd<=30_000_000:
-            raise ContractError('explicit allow-real-llm and nonzero budget <= USD 30 required')
-        for role,name in ROLE_MODEL_MAP.items():spec(name);request_params_for(role)
+        self._routes=None
+        if routes is not None:
+            from . import routing
+            self._routes={r:v for r,v in routing.validate_routes(routes).items() if v['PROVIDER']=='OPENAI'}
+            if 'GENERATOR' in self._routes:raise ContractError('routed OpenAI adapter does not serve GENERATOR')
+            for role,v in self._routes.items():
+                row=spec(v['MODEL'])
+                if v['PARAMS'].get('reasoning_effort') not in row['REASONING_EFFORTS']:raise ContractError('unsupported reasoning_effort for model')
+                price=routing.PRICES[v['MODEL']]
+                if (price['INPUT'],price['OUTPUT'])!=(row['INPUT_RATE'],row['OUTPUT_RATE']):raise ContractError('routing price differs from verified model price')
+        elif offline:
+            raise ContractError('offline adapter requires routes')
+        self._offline=offline is True
+        if not self._offline:
+            if not isinstance(api_key,str) or not api_key.strip():raise ContractError('OPENAI_API_KEY is required')
+            if allow_real is not True or type(budget_micro_usd)!=int or not 0<budget_micro_usd<=30_000_000:
+                raise ContractError('explicit allow-real-llm and nonzero budget <= USD 30 required')
+        if self._routes is None:
+            for role,name in ROLE_MODEL_MAP.items():spec(name);request_params_for(role)
         if type(create_timeout_seconds)!=int or not 1<=create_timeout_seconds<=TIMEOUT_MAX_SECONDS:raise ContractError('invalid create timeout')
         if type(poll_interval_seconds)!=int or not 2<=poll_interval_seconds<=5:raise ContractError('invalid poll interval')
         if type(poll_get_timeout_seconds)!=int or not 30<=poll_get_timeout_seconds<=60:raise ContractError('invalid poll GET timeout')
         if type(background_max_wait_seconds)!=int or not 1<=background_max_wait_seconds<=86400:raise ContractError('invalid background wait')
-        self._key=api_key;self._allow=allow_real;self.cap=budget_micro_usd
+        self._key=None if self._offline else api_key;self._allow=allow_real is True and not self._offline;self.cap=budget_micro_usd
         self.request_timeout_seconds=bounded_timeout(timeout_seconds)
         self.create_timeout_seconds=create_timeout_seconds
         self.poll_interval_seconds=poll_interval_seconds
@@ -66,19 +86,41 @@ class OpenAIProvider:
         self.background_max_wait_seconds=background_max_wait_seconds
         self._sleep=sleeper or time.sleep
         self._now=clock or time.monotonic
-        self.model_id='ROLE_SPECIFIC';self.role_model_map=dict(ROLE_MODEL_MAP)
+        self.model_id='ROLE_SPECIFIC'
+        self.role_model_map=dict(ROLE_MODEL_MAP) if self._routes is None else {r:v['MODEL'] for r,v in self._routes.items()}
         self.contexts=contexts or Contexts()
         self.transport=transport or HTTPS()
         self.polling_policy={'INTERVAL_SECONDS':poll_interval_seconds,'GET_TIMEOUT_SECONDS':poll_get_timeout_seconds,'MAX_WAIT_SECONDS':background_max_wait_seconds,'CREATE_TIMEOUT_SECONDS':create_timeout_seconds}
         self.store_policy=BACKGROUND_STORE_POLICY
         self.routing_digest=self.identity_digest()
 
-    def model_for(self,role):return model_for(role)
-    def request_params_for(self,role):return request_params_for(role)
-    def uses_background(self,role):return role=='GENERATOR'
-    def endpoint_for(self,role):return 'OPENAI_RESPONSES' if role=='GENERATOR' else 'OPENAI_CHAT_COMPLETIONS'
+    def _route(self,role):
+        if role not in self._routes:raise ContractError('role is not routed to OpenAI: '+str(role))
+        return self._routes[role]
+    def roles(self):return tuple(sorted(self._routes if self._routes is not None else ROLE_MODEL_MAP))
+    def model_for(self,role):
+        if self._routes is not None:return self._route(role)['MODEL']
+        return model_for(role)
+    def request_params_for(self,role):
+        if self._routes is not None:return dict(self._route(role)['PARAMS'])
+        return request_params_for(role)
+    def uses_background(self,role):
+        if self._routes is not None:self._route(role);return False
+        return role=='GENERATOR'
+    def endpoint_for(self,role):
+        if self._routes is not None:return self._route(role)['ENDPOINT']
+        return 'OPENAI_RESPONSES' if role=='GENERATOR' else 'OPENAI_CHAT_COMPLETIONS'
+    def _rates(self,role):
+        if self._routes is not None:
+            from . import routing
+            p=routing.PRICES[self._route(role)['MODEL']];return p['INPUT'],p['OUTPUT']
+        return rates(role)
 
     def transport_identity(self):
+        if self._routes is not None:
+            return {'ADAPTER':'OPENAI_CHAT_COMPLETIONS_DIRECT_HTTP','CRITIC_ENDPOINT':CRITIC_ENDPOINT,'STORE':False,'STREAM':False,
+                    'SERVICE_TIER':'default','SDK_RETRIES':False,'REQUEST_TIMEOUT_SECONDS':self.request_timeout_seconds,
+                    'ROLES':{r:{'MODEL':v['MODEL'],'PARAMS':v['PARAMS'],'MAX_OUTPUT_TOKENS':v['MAX_OUTPUT_TOKENS'],'STRUCTURED_OUTPUT':v['STRUCTURED_OUTPUT']} for r,v in sorted(self._routes.items())}}
         return {
             'GENERATOR_ENDPOINT':GENERATOR_ENDPOINT,'GENERATOR_BACKGROUND':True,
             'GENERATOR_MODEL':ROLE_MODEL_MAP['GENERATOR'],
@@ -92,6 +134,9 @@ class OpenAIProvider:
         }
 
     def identity_digest(self):
+        if self._routes is not None:
+            from . import routing
+            return digest({'ROUTING':routing.routing_digest(),'TRANSPORT':self.transport_identity()})
         return digest({'ROUTING':routing_digest(),'TRANSPORT':self.transport_identity()})
 
     def _headers(self):
@@ -105,6 +150,7 @@ class OpenAIProvider:
         row=spec(self.model_for(role))
         if type(maxout)!=int or not 1<=maxout<=row['MAX_OUTPUT_TOKENS']:raise ContractError('output token bound')
         if set(params)-{'max_output_tokens','slots'}:raise ContractError('unknown provider parameters')
+        if self._routes is not None and maxout!=self._route(role)['MAX_OUTPUT_TOKENS']:raise ContractError('output token cap differs from the route')
         user={'context':request['context']}
         if 'slots' in params:user['slots']=params['slots']
         extra=self.request_params_for(role)
@@ -144,10 +190,11 @@ class OpenAIProvider:
 
     def bound(self,request):
         inp,out=self.bounds(request)
-        input_rate,output_rate=rates(request['role'])
+        input_rate,output_rate=self._rates(request['role'])
         return int((input_rate*inp+output_rate*out).to_integral_value(rounding=ROUND_CEILING))
 
     def create_background(self,request):
+        if self._offline or self._routes is not None:raise ContractError('background Responses are not used by the routed adapter')
         if not self._allow or not self._key or not 0<self.cap<=30_000_000:raise ContractError('real call disabled')
         body=canonical(self.responses_payload(request)).encode()
         status,wire=self._http('POST','/v1/responses',body,self.create_timeout_seconds)
@@ -194,7 +241,7 @@ class OpenAIProvider:
         maxin,maxout=self.bounds(request)
         if type(inp)!=int or type(out)!=int or not 0<=inp<=maxin or not 0<=out<=maxout:raise ValueError('usage outside bound')
         text=self._output_text(payload) if require_text else None
-        input_rate,output_rate=rates(request['role'])
+        input_rate,output_rate=self._rates(request['role'])
         cost=int((input_rate*inp+output_rate*out).to_integral_value(rounding=ROUND_CEILING))
         details=usage.get('output_tokens_details') or {}
         recorded={'input_tokens':inp,'output_tokens':out,'reasoning_tokens':details.get('reasoning_tokens')}
@@ -216,6 +263,7 @@ class OpenAIProvider:
         HTTP errors are classified (classify_http). A 200 whose completion is
         truncated, refused or not text is a BILLED failure carrying its usage cost."""
         if request['role']=='GENERATOR':raise ContractError('GENERATOR uses background Responses, not synchronous complete')
+        if self._offline:raise ContractError('offline OpenAI adapter never sends')
         if not self._allow or not self._key or not 0<self.cap<=30_000_000:raise ContractError('real call disabled')
         bound=self.bound(request)
         if bound>self.cap:raise ContractError('call exceeds authorized budget')
@@ -233,7 +281,7 @@ class OpenAIProvider:
         try:
             inp,out=usage['prompt_tokens'],usage['completion_tokens'];maxin,maxout=self.bounds(request)
             if type(inp)==int and type(out)==int and 0<=inp<=maxin and 0<=out<=maxout:
-                input_rate,output_rate=rates(request['role'])
+                input_rate,output_rate=self._rates(request['role'])
                 cost=int((input_rate*inp+output_rate*out).to_integral_value(rounding=ROUND_CEILING))
                 details=usage.get('completion_tokens_details') or {}
                 recorded={'prompt_tokens':inp,'completion_tokens':out,'reasoning_tokens':details.get('reasoning_tokens')}

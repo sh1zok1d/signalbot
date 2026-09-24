@@ -12,7 +12,7 @@ from scripts.research.generator_v0.context import Contexts
 from scripts.research.generator_v0.derive import derive_complete_rounds,remaining_campaign_budget_preflight,fresh_campaign_budget_preflight
 from scripts.research.generator_v0.ledger import Ledger
 from scripts.research.generator_v0 import contract
-from .noisy import run_noisy_campaign,derive_after_partial_work
+from .noisy import run_noisy_campaign,run_mixed_noisy_campaign,derive_after_partial_work
 
 REPO=Path(__file__).resolve().parents[3]
 REPORT=REPO/'docs/research/generator_v0_repair/OFFLINE_GATE_REPORT.json'
@@ -28,6 +28,7 @@ def build():
     with tempfile.TemporaryDirectory() as tmp:
         tmp=Path(tmp)
         noisy,l,_=run_noisy_campaign(tmp/'noisy',contexts=c);l.close()
+        mixed,l,_=run_mixed_noisy_campaign(tmp/'mixed',contexts=c);l.close()
         partial=derive_after_partial_work(tmp/'partial',contexts=c)
         src=tmp/'v7';src.mkdir();shutil.copy(V7,src/'run.sqlite')
         v7=derive_complete_rounds(src,tmp/'v8',2,c)
@@ -40,6 +41,7 @@ def build():
         'UNIT':'GENERATOR_V0_LIMITED_REPAIR_OFFLINE_GATE','CONTRACT':contract.CONTRACT_ID,
         'CORPUS':corpus,
         'NOISY_E2E':noisy,
+        'MIXED_PROVIDER_NOISY_E2E':{k:v for k,v in mixed.items() if k!='SELECTOR_ADVISORY'},
         'DERIVE_AFTER_PARTIAL_WORK':partial,
         'V7_DERIVE_PROOF':{
             'SOURCE_JOURNAL_SHA256_BEFORE_AND_AFTER':v7_sha_after,

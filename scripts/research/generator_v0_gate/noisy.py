@@ -19,9 +19,9 @@ from scripts.research.generator_v0.roles import NOVELTY_PROMPT,FEAS_PROMPT,RED_P
 
 CAP=17_100_000   # the owner ceiling; the fresh worst case exceeds it, so every invocation records a budget-stop acceptance
 
-def run(c,ledger,transport):
+def run(c,ledger,transport,factory=None):
     """One operator invocation through the library execution gate (no CLI)."""
-    caller=Caller(c,ledger,provider_for(transport,c),CAP,True)
+    caller=Caller(c,ledger,(factory or provider_for)(transport,c),CAP,True)
     if ledger.get('status') in RESUMABLE_STATUSES and ledger.db.execute("SELECT 1 FROM results WHERE key='campaign'").fetchone() is None:
         accept_budget_stop(c,caller,40,'offline-gate','noisy harness accepts a clean STOPPED_BUDGET')
     return run_campaign(c,caller)
@@ -39,6 +39,29 @@ class NoisyTransport:
         self.prompts={NOVELTY_PROMPT:'NOVELTY_CRITIC',FEAS_PROMPT:'FEASIBILITY_CRITIC',RED_PROMPT:'RED_TEAM',SELECTOR_PROMPT:'SELECTOR'}
 
     def posts(self):return [x for x in self.log if x[0]=='POST']
+
+    def anthropic(self,method,path,body,headers,timeout):
+        """Fake Claude Messages endpoint (POST /v1/messages) for the routed GENERATOR."""
+        self.log.append((method,path))
+        assert headers.get('anthropic-version')=='2023-06-01' and headers.get('x-api-key')
+        b=json.loads(body);user=json.loads(b['messages'][0]['content']);slots=user['slots']
+        rnd=(int(slots[0]['CANDIDATE_ID'][1:])-1)//10
+        self.counts[('GENERATOR',rnd)]+=1;fault=self.faults.get(('GENERATOR',rnd,self.counts[('GENERATOR',rnd)]))
+        if fault=='crash':raise Crash('process died after POST GENERATOR round '+str(rnd))
+        if fault=='529':return 529,b'{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}'
+        if fault=='429':return 429,b'{"type":"error","error":{"type":"rate_limit_error","message":"slow down"}}'
+        payload=json.loads(self.respond({'role':'GENERATOR','context':user['context'],'parameters':{'slots':slots}}))
+        ids=[s['CANDIDATE_ID'] for s in slots]
+        if fault=='drop_card':payload['CANDIDATES'].pop(ids[-1])
+        if fault=='invalid_card':payload['CANDIDATES'][ids[4]]['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01 to 2024-12'
+        if fault=='protected_card':payload['CANDIDATES'][ids[6]]['NO_LOOKAHEAD_RULE']='No 2025/2026 bars are permitted.'
+        self.n+=1
+        stop='max_tokens' if fault=='max_tokens' else 'end_turn'
+        text=canonical(payload) if stop=='end_turn' else canonical(payload)[:200]
+        return 200,json.dumps({'id':'msg_noisy_'+str(self.n),'type':'message','role':'assistant','model':b['model'],
+                               'content':[{'type':'thinking','thinking':'','signature':'synthetic'},{'type':'text','text':text}],
+                               'stop_reason':stop,'stop_sequence':None,
+                               'usage':{'input_tokens':6000,'output_tokens':32768 if stop=='max_tokens' else 9000}}).encode()
 
     def __call__(self,method,path,body,headers,timeout):
         self.log.append((method,path))
@@ -83,6 +106,30 @@ class NoisyTransport:
             if len(ids)>2:ids[0],ids[1]=ids[1],ids[0]
         return 200,_chat(canonical(payload))
 
+def routed_provider_for(transport,contexts):
+    """Anthropic Opus generator + OpenAI Sol/Luna critics, both through fake transports."""
+    from scripts.research.generator_v0.anthropic_provider import AnthropicProvider
+    from scripts.research.generator_v0.routed_provider import RoutedProvider
+    from scripts.research.generator_v0.routing import ROUTES
+    return RoutedProvider({'ANTHROPIC':AnthropicProvider('offline-gate-anthropic',allow_real=True,budget_micro_usd=CAP,transport=transport.anthropic,contexts=contexts),
+                           'OPENAI':OpenAIProvider('offline-gate-openai',allow_real=True,budget_micro_usd=CAP,transport=transport,contexts=contexts,sleeper=lambda s:None,routes=ROUTES)},
+                          ROUTES,sleeper=lambda s:None)
+
+MIXED_FAULTS={
+    ('GENERATOR',0,1):'529',            # Anthropic overloaded: not billed, transport retry
+    ('GENERATOR',1,1):'drop_card',      # keyed omission -> one slot HARD_FAIL
+    ('GENERATOR',2,1):'invalid_card',   # non-canonical range -> one slot HARD_FAIL (provider schema)
+    ('GENERATOR',3,1):'max_tokens',     # billed length stop -> content retry
+    ('GENERATOR',3,2):'protected_card', # retried round names a protected year -> one slot HARD_FAIL
+    ('NOVELTY_CRITIC','C005',1):'omit_batch',
+    ('NOVELTY_CRITIC','C007',1):'length',
+    ('FEASIBILITY_CRITIC','C008',1):'429',
+    ('FEASIBILITY_CRITIC','C009',1):'malformed',
+    ('FEASIBILITY_CRITIC','C009',2):'malformed',
+    ('RED_TEAM','C011',1):'crash',      # crash after POST on a Sol call
+    ('SELECTOR','selection',1):'swap',
+}
+
 def provider_for(transport,contexts):
     return OpenAIProvider('offline-gate',allow_real=True,budget_micro_usd=CAP,transport=transport,contexts=contexts,sleeper=lambda s:None)
 
@@ -105,7 +152,11 @@ DEFAULT_FAULTS={
     ('SELECTOR','selection',1):'swap',
 }
 
-def run_noisy_campaign(run_dir,faults=DEFAULT_FAULTS,contexts=None):
+def run_mixed_noisy_campaign(run_dir,faults=MIXED_FAULTS,contexts=None):
+    """The noisy campaign through the multi-provider router (Opus generator, Sol/Luna critics)."""
+    return run_noisy_campaign(run_dir,faults,contexts,factory=routed_provider_for)
+
+def run_noisy_campaign(run_dir,faults=DEFAULT_FAULTS,contexts=None,factory=None):
     """Run to PENDING_HUMAN_REVIEW through a crash, a pause and a reconciliation."""
     from scripts.research.generator_v0.ledger import CallUncertain
     c=contexts or Contexts();run_dir=Path(run_dir);run_dir.mkdir(parents=True,exist_ok=True)
@@ -113,11 +164,11 @@ def run_noisy_campaign(run_dir,faults=DEFAULT_FAULTS,contexts=None):
     ledger=Ledger(run_dir/'run.sqlite',{'RUN_ID':run_dir.name,'CAP_MICRO_USD':CAP})
     try:
         try:
-            run(c,ledger,transport);steps.append('COMPLETED_WITHOUT_CRASH')
+            run(c,ledger,transport,factory);steps.append('COMPLETED_WITHOUT_CRASH')
         except Crash as e:
             steps.append('CRASH: '+str(e))
         try:
-            result=run(c,ledger,transport)
+            result=run(c,ledger,transport,factory)
         except CallUncertain as e:
             steps.append('PAUSED: '+ledger.get('status'))
             key=[r['CALL_KEY'] for r in ledger.export_calls() if r['STATE']=='DISPATCHED'][0]
@@ -131,7 +182,7 @@ def run_noisy_campaign(run_dir,faults=DEFAULT_FAULTS,contexts=None):
             ledger.reconcile(key,'BILLED',500,'offline-gate','crash after POST; fake provider log shows the request arrived',
                              {'PROVIDER_LOG_POSTS':len(transport.posts()),'SOURCE':'synthetic NoisyTransport log'})
             steps.append('RECONCILED_BILLED')
-            result=run(c,ledger,transport)
+            result=run(c,ledger,transport,factory)
         steps.append('FINAL: '+result['STATUS'])
         calls=ledger.export_calls()
         report={
@@ -143,6 +194,9 @@ def run_noisy_campaign(run_dir,faults=DEFAULT_FAULTS,contexts=None):
             'POSTS':len(transport.posts()),'JOURNAL_ROWS':len(calls),
             'RETRY_ATTEMPTS':{'CONTENT':sum(1 for r in calls if r['CONTENT_ATTEMPT']),'TRANSPORT':sum(1 for r in calls if r['TRANSPORT_ATTEMPT'])},
             'STREAM_A':len(result['STREAM_A']),'STREAM_B':len(result['STREAM_B']),'SHORTLIST':result['SHORTLIST'],
+            'ROLE_ROUTES':{role:sorted({'{} / {} / {}'.format(r['ROUTE_PROVIDER'],r['MODEL_PROVIDER'],r['MODEL_ID']) for r in calls if r['ROLE']==role})
+                           for role in sorted({r['ROLE'] for r in calls})},
+            'POSTS_BY_PATH':dict(sorted(Counter(p for m,p in transport.log if m=='POST').items())),
         }
         return report,ledger,transport
     except BaseException:

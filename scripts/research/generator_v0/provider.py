@@ -89,6 +89,10 @@ class Caller:
         req={'role':role,'context':context,'prompt':prompt,'prompt_version':contract.PROMPT_VERSION,'parameters':parameters,'provider':endpoint,'model':self.provider.model_for(role),'slot':slot}
         extra=getattr(self.provider,'request_params_for',None)
         if extra is not None:req['model_request_params']=extra(role)
+        # Routed providers: the provider family and the role's route digest are part
+        # of the request, hence of the call key (no cross-provider replay).
+        family=getattr(self.provider,'provider_for',None)
+        if family is not None:req['route_provider']=family(role);req['route_digest']=self.provider.route_digest_for(role)
         if identity:req.update(identity)
         if content_attempt:req['content_attempt']=content_attempt
         return req

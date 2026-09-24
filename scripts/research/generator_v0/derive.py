@@ -441,10 +441,11 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
     return {'SIZE':size,'CAPS':caps,'CONTENT_ATTEMPTS':attempts,'PROXY_CARD_BYTES':proxy_bytes,'PROXY_SIGNATURE_BYTES':sig_bytes,'PROXY_MARGIN':str(margin),'PROXY_CARDS':size-len([c for c in known_cards if isinstance(c,dict)][:size]),
             'STAGES':stages,'WORST_CASE_SINGLE_ATTEMPT_MICRO_USD':total,'WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD':with_retries}
 
-def fresh_campaign_budget_preflight(size,cap_micro_usd,contexts=None,caps=None,content_attempts=None,margin=None,lineage_prior_micro_usd=0):
-    """Preflight for a run that has no journal yet. No POST, no journal written."""
+def fresh_campaign_budget_preflight(size,cap_micro_usd,contexts=None,caps=None,content_attempts=None,margin=None,lineage_prior_micro_usd=0,bound_provider=None):
+    """Preflight for a run that has no journal yet. No POST, no journal written.
+    bound_provider: e.g. routed_provider.offline_routed_provider (default: legacy OpenAI bound path)."""
     contexts=contexts or Contexts()
-    b=campaign_bound(contexts,size,(),(),caps,content_attempts,margin)
+    b=campaign_bound(contexts,size,(),(),caps,content_attempts,margin,bound_provider)
     return _preflight_report(b,cap_micro_usd,lineage_prior_micro_usd,0,[],[])
 
 def _preflight_report(b,cap,prior,journal,done,known_rounds):
@@ -483,7 +484,7 @@ def ledger_budget_preflight(ledger,contexts,cap=None,size=None,bound_provider=No
     b=campaign_bound(contexts,size,cards,done,caps,content_attempts,margin,bound_provider)
     return _preflight_report(b,cap,ledger.lineage_prior_micro_usd(),ledger.spent_micro_usd(),done,[])
 
-def remaining_campaign_budget_preflight(run_dir,contexts=None,caps=None,content_attempts=None,margin=None):
+def remaining_campaign_budget_preflight(run_dir,contexts=None,caps=None,content_attempts=None,margin=None,bound_provider=None):
     """Worst-case remaining reservation for a fresh, running or derived journal,
     through the same bound() path as live calls. No POST; the journal is read
     through an immutable handle. Spend includes lineage prior spend."""
@@ -492,6 +493,6 @@ def remaining_campaign_budget_preflight(run_dir,contexts=None,caps=None,content_
     contexts=contexts or Contexts()
     ledger=Ledger.open_readonly(dbpath)
     try:
-        return ledger_budget_preflight(ledger,contexts,caps=caps,content_attempts=content_attempts,margin=margin)
+        return ledger_budget_preflight(ledger,contexts,caps=caps,content_attempts=content_attempts,margin=margin,bound_provider=bound_provider)
     finally:
         ledger.close()

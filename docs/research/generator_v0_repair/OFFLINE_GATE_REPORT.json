@@ -139,6 +139,98 @@
     "WORST_CASE_REMAINING_MICRO_USD": 27094553,
     "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 54187168
   },
+  "MIXED_PROVIDER_NOISY_E2E": {
+    "CALL_STATES": {
+      "COMPLETE": 117,
+      "FAILED_NOT_BILLED": 2,
+      "FAILED_WITH_COST": 2,
+      "RECONCILED_BILLED": 1
+    },
+    "HARD_FAIL_IDS": [
+      "C020",
+      "C025",
+      "C037"
+    ],
+    "JOURNAL_ROWS": 122,
+    "METRICS": {
+      "CONTENT_RETRIES": {
+        "NOVELTY": 2,
+        "RED_TEAM": 1
+      },
+      "CRITIC_COMPLETIONS": {
+        "FEASIBILITY": 36,
+        "NOVELTY": 37,
+        "RED_TEAM": 36
+      },
+      "HARD_FAIL": 3,
+      "HARD_FAIL_BY_RULE": {
+        "NO_PROTECTED_YEARS": 1,
+        "PROVIDER_SCHEMA": 1,
+        "SLOT_IDENTITY": 1
+      },
+      "HARD_FAIL_RATE": "3/40",
+      "REVIEWED": 36,
+      "REVIEW_FAILED": 1,
+      "REVIEW_FAILED_BY_ROLE": {
+        "FEASIBILITY": 1
+      },
+      "SELECTOR_ADVISORY": "DISAGREES",
+      "SLOTS": 40,
+      "VALID": 37
+    },
+    "POSTS": 122,
+    "POSTS_BY_PATH": {
+      "/v1/chat/completions": 116,
+      "/v1/messages": 6
+    },
+    "RETRY_ATTEMPTS": {
+      "CONTENT": 5,
+      "TRANSPORT": 2
+    },
+    "REVIEW_FAILED_IDS": [
+      "C009"
+    ],
+    "ROLE_ROUTES": {
+      "FEASIBILITY_CRITIC": [
+        "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-luna"
+      ],
+      "GENERATOR": [
+        "ANTHROPIC / ANTHROPIC_MESSAGES / claude-opus-5-5"
+      ],
+      "NOVELTY_CRITIC": [
+        "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-sol"
+      ],
+      "RED_TEAM": [
+        "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-sol"
+      ],
+      "SELECTOR": [
+        "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-luna"
+      ]
+    },
+    "SHORTLIST": [
+      "C011",
+      "C013",
+      "C019",
+      "C028",
+      "C033"
+    ],
+    "SPEND": {
+      "JOURNAL_MICRO_USD": 1845510,
+      "LINEAGE_PRIOR_MICRO_USD": 0,
+      "TOTAL_MICRO_USD": 1845510,
+      "UNRESOLVED_CALLS": []
+    },
+    "STATUS": "PENDING_HUMAN_REVIEW",
+    "STEPS": [
+      "CRASH: process died after POST RED_TEAM C011",
+      "PAUSED: PAUSED_UNCERTAIN_CALL",
+      "NOT_BILLED_WITHOUT_EVIDENCE_REFUSED",
+      "RECONCILED_BILLED",
+      "FINAL: PENDING_HUMAN_REVIEW"
+    ],
+    "STREAM_A": 16,
+    "STREAM_B": 15
+  },
   "NOISY_E2E": {
     "CALL_STATES": {
       "COMPLETE": 117,
@@ -180,6 +272,10 @@
       "VALID": 37
     },
     "POSTS": 125,
+    "POSTS_BY_PATH": {
+      "/v1/chat/completions": 119,
+      "/v1/responses": 6
+    },
     "RETRY_ATTEMPTS": {
       "CONTENT": 7,
       "TRANSPORT": 3
@@ -188,6 +284,23 @@
       "C009",
       "C010"
     ],
+    "ROLE_ROUTES": {
+      "FEASIBILITY_CRITIC": [
+        "None / OPENAI_CHAT_COMPLETIONS / gpt-6-luna"
+      ],
+      "GENERATOR": [
+        "None / OPENAI_RESPONSES / gpt-6-astra"
+      ],
+      "NOVELTY_CRITIC": [
+        "None / OPENAI_CHAT_COMPLETIONS / gpt-6-sol"
+      ],
+      "RED_TEAM": [
+        "None / OPENAI_CHAT_COMPLETIONS / gpt-6-sol"
+      ],
+      "SELECTOR": [
+        "None / OPENAI_CHAT_COMPLETIONS / gpt-6-luna"
+      ]
+    },
     "SHORTLIST": [
       "C011",
       "C013",

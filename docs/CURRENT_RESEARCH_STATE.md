@@ -1,6 +1,16 @@
+## Generator V0 outcome-blind multi-provider routing — 2026-09-24
+
+`NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW`.
+PR #214 was verified `READY_FOR_PROVIDER_SMOKE_TEST`. This unit adds an infrastructure-only routing layer:
+- GENERATOR → Anthropic `claude-opus-5-5` (effort high);
+- NOVELTY_CRITIC and RED_TEAM → OpenAI `gpt-6-sol` (high);
+- FEASIBILITY_CRITIC and the advisory SELECTOR → OpenAI `gpt-6-luna` (low / none).
+
+Recorded as an outcome-blind routing amendment; scientific stages and contracts are unchanged. No real API call, no live shadow. See `docs/research/GENERATOR_V0_MULTI_PROVIDER_ROUTING_AMENDMENT.md`.
+
 ## Generator V0 final narrow repair (after re-verification) — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION` (verified READY_FOR_PROVIDER_SMOKE_TEST; see the routing amendment above).
 The final narrow offline repair covers three residual classes:
 - abbreviated cross-year ranges;
 - imperative trade language;
@@ -87,8 +97,8 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION
-NEXT_ACTION                 = FINAL_INDEPENDENT_RE_VERIFICATION_NO_LIVE_RUN
+NEXT_UNIT                   = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW
+NEXT_ACTION                 = INDEPENDENT_REVIEW_OF_MULTI_PROVIDER_ROUTING_NO_LIVE_RUN
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED
 GENERATOR_MODE              = SHADOW_ONLY

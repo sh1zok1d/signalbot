@@ -107,6 +107,94 @@
     "SOURCE": "largest serialized card / novelty signature among the 40 tracked first-shadow-v7 cards (recomputed by a test)"
   },
   "REAL_LLM_CALLS_MADE": false,
+  "ROUTED_MULTI_PROVIDER": {
+    "BY_ROLE_SINGLE_ATTEMPT": {
+      "FEASIBILITY_CRITIC": {
+        "CALLS": 40,
+        "ROUTE": "OPENAI / gpt-6-luna / reasoning_effort=low",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "0.187775"
+      },
+      "GENERATOR": {
+        "CALLS": 4,
+        "ROUTE": "ANTHROPIC / claude-opus-5-5 / effort=high",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "3.584336"
+      },
+      "NOVELTY_CRITIC": {
+        "CALLS": 40,
+        "ROUTE": "OPENAI / gpt-6-sol / reasoning_effort=high",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "13.852300"
+      },
+      "RED_TEAM": {
+        "CALLS": 40,
+        "ROUTE": "OPENAI / gpt-6-sol / reasoning_effort=high",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "4.194940"
+      },
+      "SELECTOR": {
+        "CALLS": 1,
+        "ROUTE": "OPENAI / gpt-6-luna / reasoning_effort=none",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "0.001938"
+      }
+    },
+    "CALIBRATION_TARGET": {
+      "NOTE": "Product/cost targets for later empirical 5-card calibration; not authorization to weaken gates or change the design.",
+      "TARGET_4_RUN_MONTH_USD": "40",
+      "TARGET_EXPECTED_FULL_40_CARD_RUN_USD": "10"
+    },
+    "CAMPAIGN_CUMULATIVE_IF_COUNTED_IN_V7_AUTHORITY_USD": "26.768039",
+    "FITS_OWNER_17_10_FRESH_SINGLE_ATTEMPT": false,
+    "FITS_OWNER_17_10_FRESH_WITH_RETRIES": false,
+    "FRESH_40_CARD_SINGLE_ATTEMPT_USD": "21.821289",
+    "FRESH_40_CARD_WITH_CONTENT_RETRIES_USD": "43.640640",
+    "NOTES": [
+      "Worst-case reservation bounds (max output on every call, input bound = request bytes + margin), not expected cost.",
+      "Anthropic input bound adds a fixed 4096-token provider-scaffolding margin; no cache or batch discount is used anywhere.",
+      "Deferred: Anthropic/OpenAI Batch, prompt caching, Opus second opinion, adaptive critic routing, batch-size change."
+    ],
+    "PRICE_TABLE": {
+      "claude-opus-5-5": {
+        "CACHE_READ": "0.20",
+        "CACHE_WRITE_1H": "8.00",
+        "CACHE_WRITE_5M": "5.00",
+        "CONTEXT_WINDOW_TOKENS": 1000000,
+        "INPUT": "4.00",
+        "MAX_OUTPUT_TOKENS": 128000,
+        "OUTPUT": "20.00"
+      },
+      "gpt-6-luna": {
+        "CONTEXT_WINDOW_TOKENS": 1000000,
+        "INPUT": "0.10",
+        "MAX_OUTPUT_TOKENS": 128000,
+        "OUTPUT": "0.50"
+      },
+      "gpt-6-sol": {
+        "CONTEXT_WINDOW_TOKENS": 1000000,
+        "INPUT": "2.00",
+        "MAX_OUTPUT_TOKENS": 128000,
+        "OUTPUT": "10.00"
+      }
+    },
+    "REAL_LLM_CALLS_MADE": false,
+    "ROUTING_DIGEST": "bf45891d6d3449edd421a664dc9d74e9f63d3401ba9e56dd09013588ed982fce",
+    "ROUTING_ID": "GENERATOR_V0_MULTI_PROVIDER_ROUTING_V1",
+    "ROUTING_TABLE": {
+      "FEASIBILITY_CRITIC": "OPENAI / gpt-6-luna / reasoning_effort=low",
+      "GENERATOR": "ANTHROPIC / claude-opus-5-5 / effort=high",
+      "NOVELTY_CRITIC": "OPENAI / gpt-6-sol / reasoning_effort=high",
+      "RED_TEAM": "OPENAI / gpt-6-sol / reasoning_effort=high",
+      "SELECTOR": "OPENAI / gpt-6-luna / reasoning_effort=none"
+    },
+    "STAGES": {
+      "FEASIBILITY_CRITIC x40": "0.187775",
+      "NOVELTY_CRITIC x40": "13.8523",
+      "RED_TEAM x40": "4.19494",
+      "SELECTOR": "0.001938",
+      "generation:0": "0.895672",
+      "generation:1": "0.895792",
+      "generation:2": "0.89576",
+      "generation:3": "0.897112"
+    },
+    "V7_DERIVED_ROUTED_RUN": "NOT_APPLICABLE: v7 generation:0-2 were produced by gpt-6-astra under the grandfathered v0.1 contract; continuing them with an Opus generator would mix generator models inside one batch, and derive of routed journals is not implemented."
+  },
   "SCENARIOS": [
     {
       "CAPS": {
