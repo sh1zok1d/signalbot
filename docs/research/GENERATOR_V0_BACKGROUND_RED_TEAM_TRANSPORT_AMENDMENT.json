@@ -1,0 +1,67 @@
+{
+  "UNIT": "GENERATOR_V0_BACKGROUND_RED_TEAM_TRANSPORT_AMENDMENT",
+  "DATE": "2026-09-24",
+  "BASE_HEAD": "caa71a24b0526029f33b2cd5663b279121e80be8",
+  "BASE_TREE": "6ceaf4291b03de6140faaf92bdd1e3edce405a62",
+  "AUTHORIZATION": "owner-authorized frozen-design transport amendment; transport only",
+  "SCIENTIFIC_CONTRACT_CHANGED": false,
+  "REAL_LLM_CALLS_THIS_UNIT": 0,
+  "PROTECTED_DATA_OPENED": false,
+  "EVIDENCE": {
+    "ROLE": "RED_TEAM",
+    "MODEL": "gpt-6-sol",
+    "REASONING_EFFORT": "high",
+    "TRANSPORT": "OPENAI_CHAT_COMPLETIONS (synchronous)",
+    "RESULT": "HTTP 502, UNCERTAIN",
+    "CALL_KEY": "8e94c966b14feeb7f9c9fd1ae4ab1be8e98ddd1067158470032845fa396c6c39",
+    "RESERVED_MICRO_USD": 98806,
+    "PATTERN": "same failure class as the two synchronous high-effort Sol NOVELTY_CRITIC 502s; background NOVELTY_CRITIC has since completed live",
+    "INTERPRETATION": "transport evidence only"
+  },
+  "RED_TEAM_TRANSPORT_BEFORE": "OPENAI_CHAT_COMPLETIONS: POST /v1/chat/completions, synchronous, stream=false, store=false",
+  "RED_TEAM_TRANSPORT_AFTER": "OPENAI_RESPONSES_BACKGROUND: POST /v1/responses background=true store=true stream=false, then GET /v1/responses/{response_id} until terminal; best-effort DELETE after local persist",
+  "RED_TEAM_UNCHANGED": ["provider OPENAI", "model gpt-6-sol", "reasoning_effort high", "RED_PROMPT", "strict output schema", "application validation", "MAX_OUTPUT_TOKENS 8000", "protected-data rules", "deterministic downstream governance"],
+  "NOVELTY_TRANSPORT": "OPENAI_RESPONSES_BACKGROUND (unchanged)",
+  "FEASIBILITY_TRANSPORT": "OPENAI_CHAT_COMPLETIONS (unchanged)",
+  "SELECTOR_TRANSPORT": "OPENAI_CHAT_COMPLETIONS (unchanged, advisory)",
+  "GENERATOR_TRANSPORT": "ANTHROPIC_MESSAGES (unchanged)",
+  "SCHEMA": "identical strict schema object; Responses text.format {type json_schema, name red_team, strict true, schema} replaces Chat response_format.json_schema",
+  "CODE_CHANGE": "routing.py RED_TEAM route: ENDPOINT, TRANSPORT and STRUCTURED_OUTPUT only. The OpenAI adapter, Caller and Ledger background state machine are role-generic and unchanged.",
+  "IDENTITY": {
+    "RED_TEAM_ROUTE_DIGEST_BEFORE": "b51a1a31975979186ac0d65c1b4983737a44b70d4d97e680ac73a9125d51f9b9",
+    "RED_TEAM_ROUTE_DIGEST_AFTER": "f6fadb7b8239db5449b265eb7ea1583482befa78b387dca49497cf2d1870a2f2",
+    "ROUTING_DIGEST_BEFORE": "9c99dc12b90fb9541113084ec833f5729fb865b5ad80c8c4a943ec0f19dddf66",
+    "ROUTING_DIGEST_AFTER": "c636f14a9e48dc07f8ebca16666c80dd20343171a6535f3ec8c47d8f71afc596",
+    "ROUTER_IDENTITY_AFTER": "6e90e58c6404af356a6ac4552352d23de60e7ec4478e13a2671655781ac67830",
+    "REFERENCE_RED_TEAM_CALL_KEY_BEFORE": "ef4bebf2407d036318befb3c78219de1666e1eabb86b2d58bf561a27e3bc8eb6",
+    "REFERENCE_RED_TEAM_CALL_KEY_AFTER": "14f85a615c4b33abde82088c84dffd3e4bef2e9cd887e5037d4fa45910fad701",
+    "REFERENCE_FEASIBILITY_CALL_KEY_UNCHANGED": "e13d21ca9b9ab6cd3f513ebb527ebe8eae604c9bf64373b19768025ec02f434a",
+    "UNCHANGED_ROUTE_DIGESTS": {
+      "GENERATOR": "b3b37124680fb5c5a7c0c20270f5361023076958832c3b28e9621eb8671a98d7",
+      "NOVELTY_CRITIC": "597296d5c91d0b9fe3af97429111b16ed780493a1d198a97ddf2154edd670760",
+      "FEASIBILITY_CRITIC": "842363ea5f0f7217673001ef25e86859196265cc1ea425bc8ac9a81b2a74b3f1",
+      "SELECTOR": "f0a3cc7a6e6178df1f2fae0ba94893f47de1216d4aa67f442191872ea7d05f43"
+    },
+    "OLD_SYNCHRONOUS_REQUEST_REFUSED_BY_NEW_ROUTE": true
+  },
+  "BUDGET": {
+    "BOUND_FORMULA_CHANGED": false,
+    "RED_TEAM_X40_WORST_CASE_USD_BEFORE": "4.194940",
+    "RED_TEAM_X40_WORST_CASE_USD_AFTER": "4.191020",
+    "FRESH_40_CARD_SINGLE_ATTEMPT_USD_AFTER": "26.736625",
+    "REFERENCE_RED_TEAM_BOUND_MICRO_USD_BEFORE": 90080,
+    "REFERENCE_RED_TEAM_BOUND_MICRO_USD_AFTER": 89982,
+    "CACHED_INPUT_PRICING": "recorded as cached_tokens; priced at the standard input rate (conservative)"
+  },
+  "MIXED_FAKE_E2E": {"POSTS": 91, "POSTS_BY_PATH_AFTER": {"/v1/chat/completions": 30, "/v1/messages": 5, "/v1/responses": 56}, "APPLICATION_DECISIONS_EQUAL_TO_ALL_SYNCHRONOUS_TRANSPORT": true},
+  "CALIBRATION_STATE_AT_AMENDMENT": {
+    "JOURNAL": "session scratch continuation journal (not committed); recovered generator journal unchanged",
+    "GENERATOR": "COMPLETE, USD 0.892012",
+    "C001_NOVELTY": "COMPLETE, USD 0.029376 (background, proxy-routed)",
+    "C001_FEASIBILITY": "COMPLETE, USD 0.000415",
+    "C001_RED_TEAM_SYNCHRONOUS": "RECONCILED_UNKNOWN, charged full reservation USD 0.098806; no response_id or usage existed; logical call RED_TEAM|RED_TEAM:C001 closed in that journal",
+    "LEDGER_TOTAL_CHARGED_USD": "1.020609",
+    "CALIBRATION_STATUS": "INCOMPLETE; no cost classification"
+  },
+  "COMPLETION_STATE": "READY_FOR_BACKGROUND_RED_TEAM_SMOKE"
+}

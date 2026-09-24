@@ -363,7 +363,7 @@ def test_mixed_campaign_reaches_human_review_with_each_role_on_its_route(mixed):
     assert report['ROLE_ROUTES']=={'FEASIBILITY_CRITIC':['OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-luna'],
                                    'GENERATOR':['ANTHROPIC / ANTHROPIC_MESSAGES / claude-opus-5-5'],
                                    'NOVELTY_CRITIC':['OPENAI / OPENAI_RESPONSES_BACKGROUND / gpt-6-sol'],
-                                   'RED_TEAM':['OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-sol'],
+                                   'RED_TEAM':['OPENAI / OPENAI_RESPONSES_BACKGROUND / gpt-6-sol'],
                                    'SELECTOR':['OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-luna']}
     assert report['POSTS']==report['JOURNAL_ROWS']
     gen_posts=report['POSTS_BY_PATH']['/v1/messages']

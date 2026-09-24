@@ -45,10 +45,11 @@ PRE_AMENDMENT_KEYS = {'FEASIBILITY_CRITIC': 'e13d21ca9b9ab6cd3f513ebb527ebe8eae6
 
 
 def chat_routes():
-    """The pre-amendment route table: NOVELTY_CRITIC on synchronous Chat Completions."""
+    """The pre-amendment route table: every critic (NOVELTY_CRITIC and RED_TEAM) on synchronous Chat Completions."""
     r = copy.deepcopy(routing.ROUTES)
-    r['NOVELTY_CRITIC'].update(STRUCTURED_OUTPUT='OPENAI_CHAT_RESPONSE_FORMAT_JSON_SCHEMA_STRICT',
-                               ENDPOINT='OPENAI_CHAT_COMPLETIONS', TRANSPORT=routing.OPENAI_CHAT_TRANSPORT)
+    for role in ('NOVELTY_CRITIC', 'RED_TEAM'):
+        r[role].update(STRUCTURED_OUTPUT='OPENAI_CHAT_RESPONSE_FORMAT_JSON_SCHEMA_STRICT',
+                       ENDPOINT='OPENAI_CHAT_COMPLETIONS', TRANSPORT=routing.OPENAI_CHAT_TRANSPORT)
     return r
 
 
@@ -143,17 +144,17 @@ def critic_request(cal, role, prompt, card=CARD, batch=None):
 
 # 1-5 routing and request shape -------------------------------------------------------
 
-def test_novelty_uses_background_responses_and_only_novelty_changed():
+def test_novelty_uses_background_responses_and_luna_roles_stay_synchronous():
     routes = routing.validate_routes()
     assert routes['NOVELTY_CRITIC']['ENDPOINT'] == 'OPENAI_RESPONSES_BACKGROUND'
     assert routes['NOVELTY_CRITIC']['TRANSPORT']['PATH'] == '/v1/responses'
     assert routes['NOVELTY_CRITIC']['TRANSPORT']['BACKGROUND'] is True and routes['NOVELTY_CRITIC']['TRANSPORT']['STORE'] is True
     assert routes['NOVELTY_CRITIC']['TRANSPORT']['STREAM'] is False
-    for role in ('FEASIBILITY_CRITIC', 'RED_TEAM', 'SELECTOR'):
+    for role in ('FEASIBILITY_CRITIC', 'SELECTOR'):
         assert routes[role]['ENDPOINT'] == 'OPENAI_CHAT_COMPLETIONS' and routes[role] == chat_routes()[role]
     p = offline_routed_provider(C)
     assert p.uses_background('NOVELTY_CRITIC') is True
-    assert not any(p.uses_background(r) for r in ('GENERATOR', 'FEASIBILITY_CRITIC', 'RED_TEAM', 'SELECTOR'))
+    assert not any(p.uses_background(r) for r in ('GENERATOR', 'FEASIBILITY_CRITIC', 'SELECTOR'))
 
 
 def test_novelty_request_is_one_background_create_then_get_only():
@@ -168,9 +169,8 @@ def test_novelty_request_is_one_background_create_then_get_only():
     assert not {'tools', 'temperature', 'top_p', 'stream_options'} & set(body)
 
 
-@pytest.mark.parametrize('role,prompt,model,effort', [('FEASIBILITY_CRITIC', FEAS_PROMPT, 'gpt-6-luna', 'low'),
-                                                      ('RED_TEAM', RED_PROMPT, 'gpt-6-sol', 'high')])
-def test_feasibility_and_red_team_remain_synchronous_chat_completions(role, prompt, model, effort):
+@pytest.mark.parametrize('role,prompt,model,effort', [('FEASIBILITY_CRITIC', FEAS_PROMPT, 'gpt-6-luna', 'low')])
+def test_feasibility_remains_synchronous_chat_completions(role, prompt, model, effort):
     answer = MockResponder(C)({'role': role, 'context': Roles(C, None).request(role, CARD), 'parameters': {}})
     t = Script(chat(answer, prompt=500, completion=200))
     cal = caller(t)
@@ -368,12 +368,12 @@ def test_transport_change_creates_a_new_novelty_call_identity():
         p.bound(old['NOVELTY_CRITIC'])      # an old synchronous novelty request is refused by the new route
 
 
-def test_luna_red_team_selector_and_generator_identities_are_unchanged():
-    for role in ('FEASIBILITY_CRITIC', 'RED_TEAM', 'SELECTOR', 'GENERATOR'):
+def test_luna_selector_and_generator_identities_are_unchanged():
+    # RED_TEAM identity changes under its own background amendment (test_generator_v0_background_red_team.py).
+    for role in ('FEASIBILITY_CRITIC', 'SELECTOR', 'GENERATOR'):
         assert routing.role_route_digest(role) == PRE_AMENDMENT_ROUTE_DIGESTS[role]
-    new = dump_requests()
-    for role in ('FEASIBILITY_CRITIC', 'RED_TEAM'):
-        assert digest(new[role]) == PRE_AMENDMENT_KEYS[role]
+    assert digest(dump_requests()['FEASIBILITY_CRITIC']) == PRE_AMENDMENT_KEYS['FEASIBILITY_CRITIC']
+    assert digest(dump_requests(chat_routes())['RED_TEAM']) == PRE_AMENDMENT_KEYS['RED_TEAM']
 
 
 def test_routes_fail_closed_on_unsupported_background_use():
@@ -409,5 +409,7 @@ def test_mixed_e2e_reaches_the_same_application_decisions_as_the_synchronous_tra
     assert '/v1/responses' in nov_paths
     nov = [r for r in bg_rows if r['ROLE'] == 'NOVELTY_CRITIC']
     assert nov and all(r['MODEL_PROVIDER'] == 'OPENAI_RESPONSES_BACKGROUND' for r in nov)
-    assert all(r['MODEL_PROVIDER'] == 'OPENAI_CHAT_COMPLETIONS' for r in bg_rows if r['ROLE'] in ('FEASIBILITY_CRITIC', 'RED_TEAM', 'SELECTOR'))
-    assert bg_report['POSTS'] == bg_report['JOURNAL_ROWS']        # one create POST per journaled novelty attempt
+    red = [r for r in bg_rows if r['ROLE'] == 'RED_TEAM']
+    assert red and all(r['MODEL_PROVIDER'] == 'OPENAI_RESPONSES_BACKGROUND' for r in red)
+    assert all(r['MODEL_PROVIDER'] == 'OPENAI_CHAT_COMPLETIONS' for r in bg_rows if r['ROLE'] in ('FEASIBILITY_CRITIC', 'SELECTOR'))
+    assert bg_report['POSTS'] == bg_report['JOURNAL_ROWS']        # one create POST per journaled background attempt

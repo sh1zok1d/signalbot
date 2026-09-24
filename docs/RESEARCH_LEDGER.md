@@ -6063,3 +6063,27 @@ BACKGROUND_NOVELTY_TRANSPORT_AMENDMENT (offline; no live call)
 ```
 
 Record: `docs/research/GENERATOR_V0_BACKGROUND_NOVELTY_TRANSPORT_AMENDMENT.{md,json}`.
+
+## Generator V0 critic calibration continuation and background RED_TEAM transport — 2026-09-24
+
+No research window, hypothesis or protected data consumed. Infrastructure spend only. Generated cards and critic outputs have no scientific status.
+
+```
+CALIBRATION_CONTINUATION (absolute cap 4000000 micro-USD; scratch journals, not committed)
+  GENERATOR  claude-opus-5-5 effort high; in 14653 / out 41670 (thinking 18008) cost 892012; key e9ea20c2...1a75; 10/10 admitted; C001-C005 selected outcome-blind
+  C001 NOVELTY first attempt: direct HTTPSConnection, sandbox egress 403; FAILED_NOT_BILLED cost 0
+  CLOUD_OPENAI_TRANSPORT: CONNECT via HTTPS_PROXY (read at call time), Authorization removed at the proxy boundary; GET /v1/models 200
+  C001 NOVELTY   gpt-6-sol background; 1 create POST, 5 GETs; in 10298 / out 878 (reasoning 402, cached 0) cost 29376
+  C001 FEASIBILITY gpt-6-luna; in 2775 / out 274 (reasoning 183) cost 415
+  C001 RED_TEAM  gpt-6-sol synchronous; HTTP 502 UNCERTAIN; key 8e94c966b14feeb7f9c9fd1ae4ab1be8e98ddd1067158470032845fa396c6c39
+                 RECONCILED_UNKNOWN (owner rule; no response_id or usage) cost 98806 (full reservation); logical call closed in that journal
+  LEDGER_TOTAL_CHARGED_MICRO_USD = 1020609; CALIBRATION_STATUS = STOPPED_UNCERTAIN_CALL (incomplete; no cost classification)
+BACKGROUND_RED_TEAM_TRANSPORT_AMENDMENT (offline; no live call)
+  RED_TEAM: OPENAI_CHAT_COMPLETIONS -> OPENAI_RESPONSES_BACKGROUND (create once, GET by response_id)
+  MODEL/EFFORT/PROMPT/SCHEMA/TOKEN_CAP/OTHER ROLES = unchanged
+  RED_TEAM_ROUTE_DIGEST = f6fadb7b8239db5449b265eb7ea1583482befa78b387dca49497cf2d1870a2f2
+  ROUTING_DIGEST = c636f14a9e48dc07f8ebca16666c80dd20343171a6535f3ec8c47d8f71afc596
+  COMPLETION_STATE = READY_FOR_BACKGROUND_RED_TEAM_SMOKE
+```
+
+Record: `docs/research/GENERATOR_V0_BACKGROUND_RED_TEAM_TRANSPORT_AMENDMENT.{md,json}`.

@@ -35,10 +35,10 @@ ANTHROPIC_TRANSPORT={'HOST':'api.anthropic.com','METHOD':'POST','PATH':'/v1/mess
 OPENAI_CHAT_TRANSPORT={'HOST':'api.openai.com','METHOD':'POST','PATH':'/v1/chat/completions',
                        'AUTH':'Bearer from OPENAI_API_KEY (never persisted)','STREAM':False,'BATCH':False,
                        'STORE':False,'SERVICE_TIER':'default','SDK_RETRIES':False,'SYNC':True}
-# Transport reliability amendment: one create POST (never replayed), then GET
-# polling of the same response_id, so no single HTTP connection is held open for
-# a long high-reasoning computation. Same background design as the legacy
-# OpenAI generator (openai_provider.create_background / Caller._await_background).
+# Transport reliability amendments (NOVELTY_CRITIC, then RED_TEAM): one create POST
+# (never replayed), then GET polling of the same response_id, so no single HTTP
+# connection is held open for a long high-reasoning Sol computation. Same background
+# design as the legacy OpenAI generator (openai_provider.create_background / Caller._await_background).
 OPENAI_RESPONSES_BACKGROUND_TRANSPORT={'HOST':'api.openai.com','METHOD':'POST','PATH':'/v1/responses',
                                        'POLL':'GET /v1/responses/{response_id}','CLEANUP':'DELETE /v1/responses/{response_id} (best effort, after local persist)',
                                        'AUTH':'Bearer from OPENAI_API_KEY (never persisted)','STREAM':False,'BATCH':False,
@@ -65,8 +65,8 @@ ROUTES={
                       'MAX_OUTPUT_TOKENS':ROLE_OUTPUT_TOKEN_CAPS['NOVELTY_CRITIC'],'STRUCTURED_OUTPUT':'OPENAI_RESPONSES_TEXT_FORMAT_JSON_SCHEMA_STRICT',
                       'ENDPOINT':'OPENAI_RESPONSES_BACKGROUND','TRANSPORT':OPENAI_RESPONSES_BACKGROUND_TRANSPORT},
     'RED_TEAM':{'PROVIDER':'OPENAI','MODEL':'gpt-6-sol','PARAMS':{'reasoning_effort':'high'},
-                'MAX_OUTPUT_TOKENS':ROLE_OUTPUT_TOKEN_CAPS['RED_TEAM'],'STRUCTURED_OUTPUT':'OPENAI_CHAT_RESPONSE_FORMAT_JSON_SCHEMA_STRICT',
-                'ENDPOINT':'OPENAI_CHAT_COMPLETIONS','TRANSPORT':OPENAI_CHAT_TRANSPORT},
+                'MAX_OUTPUT_TOKENS':ROLE_OUTPUT_TOKEN_CAPS['RED_TEAM'],'STRUCTURED_OUTPUT':'OPENAI_RESPONSES_TEXT_FORMAT_JSON_SCHEMA_STRICT',
+                'ENDPOINT':'OPENAI_RESPONSES_BACKGROUND','TRANSPORT':OPENAI_RESPONSES_BACKGROUND_TRANSPORT},
     'FEASIBILITY_CRITIC':{'PROVIDER':'OPENAI','MODEL':'gpt-6-luna','PARAMS':{'reasoning_effort':'low'},
                           'MAX_OUTPUT_TOKENS':ROLE_OUTPUT_TOKEN_CAPS['FEASIBILITY_CRITIC'],'STRUCTURED_OUTPUT':'OPENAI_CHAT_RESPONSE_FORMAT_JSON_SCHEMA_STRICT',
                           'ENDPOINT':'OPENAI_CHAT_COMPLETIONS','TRANSPORT':OPENAI_CHAT_TRANSPORT},

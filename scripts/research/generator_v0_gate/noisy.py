@@ -81,7 +81,7 @@ class NoisyTransport:
                                              {'type':'message','role':'assistant','content':[{'type':'output_text','text':content}]}]}).encode()
         b=json.loads(body)
         if path=='/v1/responses' and b.get('instructions') in self.prompts:
-            # Routed background critic (NOVELTY_CRITIC): create is acknowledged 'queued'; the answer is read by GET.
+            # Routed background critic (NOVELTY_CRITIC, RED_TEAM): create is acknowledged 'queued'; the answer is read by GET.
             role=self.prompts[b['instructions']];ctx=json.loads(b['input'])['context']
             answer=self._critic(role,ctx)
             if answer[0]=='http':return answer[1],answer[2]

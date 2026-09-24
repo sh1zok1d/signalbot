@@ -127,7 +127,7 @@
       "RED_TEAM": {
         "CALLS": 40,
         "ROUTE": "OPENAI / gpt-6-sol / reasoning_effort=high",
-        "WORST_CASE_SINGLE_ATTEMPT_USD": "4.194940"
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "4.191020"
       },
       "SELECTOR": {
         "CALLS": 1,
@@ -140,11 +140,11 @@
       "TARGET_4_RUN_MONTH_USD": "40",
       "TARGET_EXPECTED_FULL_40_CARD_RUN_USD": "10"
     },
-    "CAMPAIGN_CUMULATIVE_IF_COUNTED_IN_V7_AUTHORITY_USD": "31.687295",
+    "CAMPAIGN_CUMULATIVE_IF_COUNTED_IN_V7_AUTHORITY_USD": "31.683375",
     "FITS_OWNER_17_10_FRESH_SINGLE_ATTEMPT": false,
     "FITS_OWNER_17_10_FRESH_WITH_RETRIES": false,
-    "FRESH_40_CARD_SINGLE_ATTEMPT_USD": "26.740545",
-    "FRESH_40_CARD_WITH_CONTENT_RETRIES_USD": "53.479152",
+    "FRESH_40_CARD_SINGLE_ATTEMPT_USD": "26.736625",
+    "FRESH_40_CARD_WITH_CONTENT_RETRIES_USD": "53.471312",
     "NOTES": [
       "Worst-case reservation bounds (max output on every call, input bound = request bytes + margin), not expected cost.",
       "Anthropic input bound adds a fixed 4096-token provider-scaffolding margin; no cache or batch discount is used anywhere.",
@@ -174,7 +174,7 @@
       }
     },
     "REAL_LLM_CALLS_MADE": false,
-    "ROUTING_DIGEST": "9c99dc12b90fb9541113084ec833f5729fb865b5ad80c8c4a943ec0f19dddf66",
+    "ROUTING_DIGEST": "c636f14a9e48dc07f8ebca16666c80dd20343171a6535f3ec8c47d8f71afc596",
     "ROUTING_ID": "GENERATOR_V0_MULTI_PROVIDER_ROUTING_V1",
     "ROUTING_TABLE": {
       "FEASIBILITY_CRITIC": "OPENAI / gpt-6-luna / reasoning_effort=low",
@@ -186,7 +186,7 @@
     "STAGES": {
       "FEASIBILITY_CRITIC x40": "0.187775",
       "NOVELTY_CRITIC x40": "13.84838",
-      "RED_TEAM x40": "4.19494",
+      "RED_TEAM x40": "4.19102",
       "SELECTOR": "0.001938",
       "generation:0": "2.126672",
       "generation:1": "2.126732",

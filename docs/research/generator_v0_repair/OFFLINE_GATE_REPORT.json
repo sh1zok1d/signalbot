@@ -192,9 +192,9 @@
     },
     "POSTS": 91,
     "POSTS_BY_PATH": {
-      "/v1/chat/completions": 57,
+      "/v1/chat/completions": 30,
       "/v1/messages": 5,
-      "/v1/responses": 29
+      "/v1/responses": 56
     },
     "RETRY_ATTEMPTS": {
       "CONTENT": 5,
@@ -214,7 +214,7 @@
         "OPENAI / OPENAI_RESPONSES_BACKGROUND / gpt-6-sol"
       ],
       "RED_TEAM": [
-        "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-sol"
+        "OPENAI / OPENAI_RESPONSES_BACKGROUND / gpt-6-sol"
       ],
       "SELECTOR": [
         "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-luna"

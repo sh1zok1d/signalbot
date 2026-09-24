@@ -1,6 +1,11 @@
+## Generator V0 background RED_TEAM transport — 2026-09-24
+
+`NEXT_UNIT = GENERATOR_V0_BACKGROUND_RED_TEAM_SMOKE`.
+The critic-only continuation of the five-card cost calibration (recovered Opus generator round, USD 0.892012, 10/10 admitted, cards C001-C005) completed C001 background NOVELTY (USD 0.029376) and C001 FEASIBILITY (USD 0.000415), then stopped on C001 synchronous Sol `RED_TEAM` HTTP 502 `UNCERTAIN`. That call was reconciled UNKNOWN at its full reservation (USD 0.098806; no response_id or usage existed). By owner authorization only the RED_TEAM transport now uses background Responses; model, effort, prompt, schema, token cap and every other role are unchanged. No live call in this amendment; the calibration is not complete. See `docs/research/GENERATOR_V0_BACKGROUND_RED_TEAM_TRANSPORT_AMENDMENT.md`.
+
 ## Generator V0 background novelty transport — 2026-09-24
 
-`NEXT_UNIT = GENERATOR_V0_BACKGROUND_NOVELTY_INDEPENDENT_REVIEW`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_BACKGROUND_NOVELTY_INDEPENDENT_REVIEW` (superseded by the RED_TEAM transport amendment above).
 The final compact re-smoke completed (Opus, Luna and Sol; new spend USD 0.962547). The five-card cost calibration then stopped twice on ambiguous non-JSON HTTP 502s from routed Sol `NOVELTY_CRITIC` (one reconciled UNKNOWN, one still UNCERTAIN). Only that role's transport now uses background Responses (one create POST, then GET polling by response_id). Model, effort, prompt, schema and every other role are unchanged. No live call in this amendment; the calibration is not complete. See `docs/research/GENERATOR_V0_BACKGROUND_NOVELTY_TRANSPORT_AMENDMENT.md`.
 
 ## Generator V0 re-smoke guard — 2026-09-24
