@@ -116,12 +116,36 @@ def routed_run_identity(provider,contexts):
                           'NOVELTY_CRITIC':'PER_REQUEST (keyed by the exact leaf signature IDs and batch candidate IDs)'},
     }
 
-def live_routed_provider(contexts,cap,environ):
-    """Real routed provider. Requires both keys; never records or prints them."""
+def _anthropic_credential(environ):
+    """Documented Anthropic names. Never logged."""
+    for name in ('SIGNALBOT_ANTHROPIC_API_KEY','ANTHROPIC_API_KEY'):
+        value=environ.get(name,'')
+        if isinstance(value,str) and value.strip():return value
+    return ''
+
+def live_routed_provider(contexts,cap,environ,openai_network_mode='DIRECT'):
+    """Real routed provider. Never records or prints credentials.
+
+    DIRECT (default, local/non-cloud): both OPENAI_API_KEY and ANTHROPIC_API_KEY,
+    direct OpenAI HTTPS. CLOUD_PROXY is explicit: CloudProxyOpenAITransport, no
+    OpenAI API key, Anthropic from SIGNALBOT_ANTHROPIC_API_KEY or ANTHROPIC_API_KEY.
+    HTTPS_PROXY does not select the mode.
+    """
     from .anthropic_provider import AnthropicProvider
-    from .openai_provider import OpenAIProvider
-    okey=environ.get('OPENAI_API_KEY','');akey=environ.get('ANTHROPIC_API_KEY','')
-    if not okey.strip() or not akey.strip():raise ContractError('routed live mode requires both OPENAI_API_KEY and ANTHROPIC_API_KEY')
+    from .openai_provider import OpenAIProvider,OPENAI_NETWORK_MODE_DIRECT,OPENAI_NETWORK_MODE_CLOUD_PROXY
+    from .cloud_openai_transport import CloudProxyOpenAITransport
+    if openai_network_mode not in (OPENAI_NETWORK_MODE_DIRECT,OPENAI_NETWORK_MODE_CLOUD_PROXY):
+        raise ContractError('unknown OpenAI network mode')
     routes=routing.validate_routes()
+    if openai_network_mode==OPENAI_NETWORK_MODE_CLOUD_PROXY:
+        akey=_anthropic_credential(environ)
+        if not akey:raise ContractError('cloud routed mode requires SIGNALBOT_ANTHROPIC_API_KEY or ANTHROPIC_API_KEY')
+        openai=OpenAIProvider(None,allow_real=True,budget_micro_usd=cap,contexts=contexts,routes=routes,
+                              network_mode=OPENAI_NETWORK_MODE_CLOUD_PROXY,transport=CloudProxyOpenAITransport())
+    else:
+        okey=environ.get('OPENAI_API_KEY','');akey=environ.get('ANTHROPIC_API_KEY','')
+        if not isinstance(okey,str) or not okey.strip() or not isinstance(akey,str) or not akey.strip():
+            raise ContractError('routed live mode requires both OPENAI_API_KEY and ANTHROPIC_API_KEY')
+        openai=OpenAIProvider(okey,allow_real=True,budget_micro_usd=cap,contexts=contexts,routes=routes)
     return RoutedProvider({'ANTHROPIC':AnthropicProvider(akey,allow_real=True,budget_micro_usd=cap,routes=routes,contexts=contexts),
-                           'OPENAI':OpenAIProvider(okey,allow_real=True,budget_micro_usd=cap,contexts=contexts,routes=routes)},routes)
+                           'OPENAI':openai},routes)

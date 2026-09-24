@@ -146,8 +146,7 @@ MIXED_FAULTS={
     ('GENERATOR',0,1):'429',            # Anthropic documented rate_limit_error: UNCERTAIN, never replayed; reconciled UNKNOWN
     ('GENERATOR',1,1):'drop_card',      # compact omission -> missing slot HARD_FAIL
     ('GENERATOR',2,1):'invalid_card',   # non-canonical range -> one slot HARD_FAIL (provider schema)
-    ('GENERATOR',3,1):'max_tokens',     # billed length stop -> content retry
-    ('GENERATOR',3,2):'protected_card', # retried round names a protected year -> one slot HARD_FAIL
+    ('GENERATOR',3,1):'protected_card', # one slot HARD_FAIL; generator content is not retried
     ('NOVELTY_CRITIC','C015',1):'omit_batch',
     ('NOVELTY_CRITIC','C017',1):'length',
     ('FEASIBILITY_CRITIC','C018',1):'429',
@@ -164,8 +163,7 @@ DEFAULT_FAULTS={
     ('GENERATOR',0,1):'429',            # not billed; transport retry
     ('GENERATOR',1,1):'drop_card',      # wrong generation count -> one slot HARD_FAIL
     ('GENERATOR',2,1):'invalid_card',   # non-canonical LEGAL_RANGE -> one slot HARD_FAIL
-    ('GENERATOR',3,1):'incomplete',     # billed length stop -> content retry
-    ('GENERATOR',3,2):'protected_card', # retried round names a protected year -> one slot HARD_FAIL
+    ('GENERATOR',3,1):'protected_card', # one slot HARD_FAIL; generator content is not retried
     ('NOVELTY_CRITIC','C005',1):'omit_batch',
     ('NOVELTY_CRITIC','C006',1):'dup_relation',
     ('NOVELTY_CRITIC','C007',1):'length',

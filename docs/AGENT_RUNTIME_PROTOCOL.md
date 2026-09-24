@@ -52,11 +52,14 @@ Verified 2026-09-24:
 - the sandbox proxy supplies OpenAI authentication.
 
 For cloud-agent OpenAI calls:
+- the canonical runner sets `OPENAI_NETWORK_MODE = CLOUD_PROXY` explicitly (`first-30-card`, or `--provider routed --openai-network-mode CLOUD_PROXY`);
+- do not infer cloud mode from `HTTPS_PROXY`;
 - read `HTTPS_PROXY` dynamically on every call;
 - never hardcode proxy host/port;
-- use `scripts/research/generator_v0/cloud_openai_transport.py:CloudProxyOpenAITransport` via `OpenAIProvider(..., transport=...)`;
+- use `scripts/research/generator_v0/cloud_openai_transport.py:CloudProxyOpenAITransport` via `OpenAIProvider(..., transport=..., network_mode='CLOUD_PROXY')`;
 - never use the default direct socket in this environment;
 - never search for or inject a real OpenAI API key;
+- a missing Anthropic credential (`SIGNALBOT_ANTHROPIC_API_KEY` or `ANTHROPIC_API_KEY`) fails closed;
 - production `OpenAIProvider` remains authoritative for request bytes, model, reasoning effort, schemas, background semantics, parsing and accounting;
 - `Caller` / `Ledger` remain authoritative for identity, exactly-once state, provenance and budget.
 
@@ -71,7 +74,8 @@ First 30-card architecture freeze:
 - NOVELTY_CRITIC → OpenAI `gpt-6-sol`, high, background Responses;
 - FEASIBILITY_CRITIC → OpenAI `gpt-6-luna`, low, synchronous Chat Completions;
 - RED_TEAM → OpenAI `gpt-6-sol`, high, background Responses;
-- SELECTOR → deterministic application logic; no selector LLM call for the first 30-card run.
+- SELECTOR → deterministic application logic; `SELECTOR_LLM_CALLS = 0` on the first 30-card run (`NOT_CALLED`);
+- GENERATOR → `GENERATOR_CONTENT_ATTEMPTS = 1`, so a 30-card run has `MAX_GENERATOR_POSTS = 3`.
 
 See `docs/research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.md`.
 
@@ -218,8 +222,13 @@ After the architecture freeze, do not add more precautionary smoke/calibration c
 
 The first 30-card run must:
 - use three 10-card generator rounds;
-- allow at most three generator POSTs;
+- allow at most three generator POSTs (`GENERATOR_CONTENT_RETRIES = 0`);
 - allow no generator retry;
+- make zero selector LLM calls;
+- set `OPENAI_NETWORK_MODE = CLOUD_PROXY` when run from a Cloud Agent (`python -m scripts.research.generator_v0 first-30-card`);
 - fail closed if a required generator round cannot complete inside the authorized Anthropic budget;
 - keep protected data unopened;
-- use the frozen routes above.
+- use the frozen routes above;
+- leave Memory Finalizer V1 unchanged.
+
+`MEMORY_FINALIZER_V1` remains the only memory writer. This repair does not execute the live 30-card campaign.

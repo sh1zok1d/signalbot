@@ -7,6 +7,16 @@
 
 `ARCHITECTURE_FROZEN_FOR_FIRST_30_CARD_RUN = true`
 
+Production-path repair (2026-09-24), enforcement only:
+
+- `GENERATOR_MAX_POSTS = 3` and `GENERATOR_CONTENT_RETRIES = 0` (`GENERATOR_CONTENT_ATTEMPTS = 1`). Critics still retry once.
+- `SELECTOR_LLM_CALLS = 0`. `SELECTOR_AUTHORITY = DETERMINISTIC_ORDINAL_ORDER`.
+- Cloud Agent `OPENAI_NETWORK_MODE = CLOUD_PROXY` via `CloudProxyOpenAITransport`. `OPENAI_API_KEY` is not required. Anthropic credential is required.
+- `MEMORY_FINALIZER_V1` is unchanged.
+- Entry: `python -m scripts.research.generator_v0 first-30-card --allow-real-llm --budget-usd <cap> --accept-budget-stop --actor <actor> --reason <reason>`.
+
+Record: `docs/research/GENERATOR_V0_FIRST_30_PRODUCTION_PATH_REPAIR.{md,json}`.
+
 This freeze closes the transport/routing repair cycle for the first real Generator V0 campaign. It is an operational architecture freeze, not a scientific result and not an authorization to open protected outcomes.
 
 ## Frozen routes

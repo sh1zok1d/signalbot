@@ -6173,3 +6173,24 @@ NO_SCIENTIFIC_STATUS = true; MARKET_OUTCOMES_TESTED = false; generated hypothese
 ```
 
 Record: `docs/research/GENERATOR_V0_MEMORY_FINALIZER.{md,json}`.
+
+## Generator V0 first 30-card production-path repair — 2026-09-24
+
+No research window, hypothesis, or protected data consumed. Offline only. No provider call.
+
+```
+GENERATOR_CONTENT_ATTEMPTS = 1
+GENERATOR_CONTENT_RETRIES = 0
+MAX_GENERATOR_POSTS_30 = 3
+SELECTOR_LLM_CALLS = 0
+SELECTOR_AUTHORITY = DETERMINISTIC_ORDINAL_ORDER
+OPENAI_NETWORK_MODE = CLOUD_PROXY for Cloud Agent (explicit; not inferred from HTTPS_PROXY)
+OPENAI_PROXY_TRANSPORT = CloudProxyOpenAITransport
+OPENAI_API_KEY_REQUIRED = false in CLOUD_PROXY
+ANTHROPIC_API_KEY_REQUIRED = true
+BUDGET_RESERVATION_UNCHANGED = 19516751 micro-USD single-attempt size 30
+MEMORY_FINALIZER_V1 = unchanged
+LIVE_API_CALLS = 0
+```
+
+Record: `docs/research/GENERATOR_V0_FIRST_30_PRODUCTION_PATH_REPAIR.{md,json}`.

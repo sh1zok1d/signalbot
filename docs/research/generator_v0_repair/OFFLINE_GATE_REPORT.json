@@ -143,7 +143,7 @@
     "CALL_STATES": {
       "COMPLETE": 86,
       "FAILED_NOT_BILLED": 1,
-      "FAILED_WITH_COST": 2,
+      "FAILED_WITH_COST": 1,
       "RECONCILED_BILLED": 1,
       "RECONCILED_UNKNOWN": 1
     },
@@ -162,7 +162,7 @@
       "C025",
       "C037"
     ],
-    "JOURNAL_ROWS": 91,
+    "JOURNAL_ROWS": 90,
     "METRICS": {
       "CONTENT_RETRIES": {
         "NOVELTY": 2,
@@ -190,14 +190,14 @@
       "SLOTS": 40,
       "VALID": 27
     },
-    "POSTS": 91,
+    "POSTS": 90,
     "POSTS_BY_PATH": {
       "/v1/chat/completions": 30,
-      "/v1/messages": 5,
+      "/v1/messages": 4,
       "/v1/responses": 56
     },
     "RETRY_ATTEMPTS": {
-      "CONTENT": 5,
+      "CONTENT": 4,
       "TRANSPORT": 1
     },
     "REVIEW_FAILED_IDS": [
@@ -228,9 +228,9 @@
       "C016"
     ],
     "SPEND": {
-      "JOURNAL_MICRO_USD": 3719490,
+      "JOURNAL_MICRO_USD": 3040130,
       "LINEAGE_PRIOR_MICRO_USD": 0,
-      "TOTAL_MICRO_USD": 3719490,
+      "TOTAL_MICRO_USD": 3040130,
       "UNRESOLVED_CALLS": []
     },
     "STATUS": "PENDING_HUMAN_REVIEW",
@@ -250,7 +250,7 @@
     "CALL_STATES": {
       "COMPLETE": 117,
       "FAILED_NOT_BILLED": 3,
-      "FAILED_WITH_COST": 4,
+      "FAILED_WITH_COST": 3,
       "RECONCILED_BILLED": 1
     },
     "HARD_FAIL_IDS": [
@@ -258,7 +258,7 @@
       "C025",
       "C037"
     ],
-    "JOURNAL_ROWS": 125,
+    "JOURNAL_ROWS": 124,
     "METRICS": {
       "CONTENT_RETRIES": {
         "NOVELTY": 3,
@@ -286,13 +286,13 @@
       "SLOTS": 40,
       "VALID": 37
     },
-    "POSTS": 125,
+    "POSTS": 124,
     "POSTS_BY_PATH": {
       "/v1/chat/completions": 119,
-      "/v1/responses": 6
+      "/v1/responses": 5
     },
     "RETRY_ATTEMPTS": {
-      "CONTENT": 7,
+      "CONTENT": 6,
       "TRANSPORT": 3
     },
     "REVIEW_FAILED_IDS": [
@@ -324,9 +324,9 @@
       "C033"
     ],
     "SPEND": {
-      "JOURNAL_MICRO_USD": 4218734,
+      "JOURNAL_MICRO_USD": 2530334,
       "LINEAGE_PRIOR_MICRO_USD": 0,
-      "TOTAL_MICRO_USD": 4218734,
+      "TOTAL_MICRO_USD": 2530334,
       "UNRESOLVED_CALLS": []
     },
     "STATUS": "PENDING_HUMAN_REVIEW",

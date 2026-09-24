@@ -40,7 +40,7 @@ def test_noisy_end_to_end_reaches_pending_human_review(tmp_path):
         assert m['CRITIC_COMPLETIONS']=={'FEASIBILITY':36,'NOVELTY':37,'RED_TEAM':35}
         assert m['CONTENT_RETRIES']=={'NOVELTY':3,'RED_TEAM':1}
         assert report['SELECTOR_ADVISORY']['STATUS']=='DISAGREES'
-        assert report['CALL_STATES']=={'COMPLETE':117,'FAILED_NOT_BILLED':3,'FAILED_WITH_COST':4,'RECONCILED_BILLED':1}
+        assert report['CALL_STATES']=={'COMPLETE':117,'FAILED_NOT_BILLED':3,'FAILED_WITH_COST':3,'RECONCILED_BILLED':1}
         # Every POST is exactly one journal attempt: no COMPLETE call was ever POSTed again.
         assert report['POSTS']==report['JOURNAL_ROWS']
         keys=[r['CALL_KEY'] for r in l.export_calls()];assert len(keys)==len(set(keys))

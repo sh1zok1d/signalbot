@@ -21,6 +21,9 @@ BACKGROUND_MAX_WAIT_SECONDS=3600
 GENERATOR_ENDPOINT='RESPONSES'
 CRITIC_ENDPOINT='CHAT_COMPLETIONS'
 BACKGROUND_STORE_POLICY='STORE_TRUE_REQUIRED_FOR_RESUME'
+OPENAI_NETWORK_MODE_DIRECT='DIRECT'
+OPENAI_NETWORK_MODE_CLOUD_PROXY='CLOUD_PROXY'
+OPENAI_NETWORK_MODES=(OPENAI_NETWORK_MODE_DIRECT,OPENAI_NETWORK_MODE_CLOUD_PROXY)
 # Official background guide (2026-09-23): after the ~10 minute polling window,
 # a background Response is retained only if store=true is explicit. store=true
 # is therefore required for crash-safe resume. After local COMPLETE persist,
@@ -57,7 +60,7 @@ class OpenAIProvider:
     def __init__(self,api_key,*,allow_real=False,budget_micro_usd=0,model=None,transport=None,contexts=None,timeout_seconds=None,
                  create_timeout_seconds=CREATE_TIMEOUT_SECONDS,poll_interval_seconds=POLL_INTERVAL_SECONDS,
                  poll_get_timeout_seconds=POLL_GET_TIMEOUT_SECONDS,background_max_wait_seconds=BACKGROUND_MAX_WAIT_SECONDS,
-                 sleeper=None,clock=None,routes=None,offline=False):
+                 sleeper=None,clock=None,routes=None,offline=False,network_mode=OPENAI_NETWORK_MODE_DIRECT):
         """routes: the multi-provider routing registry (routing.ROUTES). When given,
         this adapter serves only the roles routed to OPENAI, with the registry's
         model, effort and prices (Chat Completions only, never GENERATOR).
@@ -77,8 +80,18 @@ class OpenAIProvider:
         elif offline:
             raise ContractError('offline adapter requires routes')
         self._offline=offline is True
+        if network_mode not in OPENAI_NETWORK_MODES:raise ContractError('unknown OpenAI network mode')
+        self.network_mode=network_mode
+        if self.network_mode==OPENAI_NETWORK_MODE_CLOUD_PROXY:
+            from .cloud_openai_transport import CloudProxyOpenAITransport
+            if transport is None:transport=CloudProxyOpenAITransport()
+            elif not isinstance(transport,CloudProxyOpenAITransport):raise ContractError('CLOUD_PROXY requires CloudProxyOpenAITransport')
         if not self._offline:
-            if not isinstance(api_key,str) or not api_key.strip():raise ContractError('OPENAI_API_KEY is required')
+            cloud=self.network_mode==OPENAI_NETWORK_MODE_CLOUD_PROXY
+            if cloud:
+                if api_key is None or (isinstance(api_key,str) and not api_key.strip()):api_key=None
+                elif not isinstance(api_key,str):raise ContractError('OPENAI_API_KEY must be a string when provided')
+            elif not isinstance(api_key,str) or not api_key.strip():raise ContractError('OPENAI_API_KEY is required')
             if allow_real is not True or type(budget_micro_usd)!=int or not 0<budget_micro_usd<=30_000_000:
                 raise ContractError('explicit allow-real-llm and nonzero budget <= USD 30 required')
         if self._routes is None:
@@ -87,7 +100,7 @@ class OpenAIProvider:
         if type(poll_interval_seconds)!=int or not 2<=poll_interval_seconds<=5:raise ContractError('invalid poll interval')
         if type(poll_get_timeout_seconds)!=int or not 30<=poll_get_timeout_seconds<=60:raise ContractError('invalid poll GET timeout')
         if type(background_max_wait_seconds)!=int or not 1<=background_max_wait_seconds<=86400:raise ContractError('invalid background wait')
-        self._key=None if self._offline else api_key;self._allow=allow_real is True and not self._offline;self.cap=budget_micro_usd
+        self._key=None if self._offline or api_key is None else api_key;self._allow=allow_real is True and not self._offline;self.cap=budget_micro_usd
         self.request_timeout_seconds=bounded_timeout(timeout_seconds)
         self.create_timeout_seconds=create_timeout_seconds
         self.poll_interval_seconds=poll_interval_seconds
@@ -129,13 +142,14 @@ class OpenAIProvider:
 
     def transport_identity(self):
         if self._routes is not None:
-            return {'ADAPTER':'OPENAI_CHAT_COMPLETIONS_DIRECT_HTTP','CRITIC_ENDPOINT':CRITIC_ENDPOINT,'STORE':False,'STREAM':False,
+            ident={'ADAPTER':'OPENAI_CHAT_COMPLETIONS_DIRECT_HTTP','CRITIC_ENDPOINT':CRITIC_ENDPOINT,'STORE':False,'STREAM':False,
                     'SERVICE_TIER':'default','SDK_RETRIES':False,'REQUEST_TIMEOUT_SECONDS':self.request_timeout_seconds,
                     'BACKGROUND_ROLES':sorted(r for r in self._routes if self.uses_background(r)),
                     'BACKGROUND':{'ENDPOINT':'RESPONSES','STORE_POLICY':BACKGROUND_STORE_POLICY,'DELETE_AFTER_LOCAL_PERSIST':True,
                                   'POLLING_POLICY':self.polling_policy,'CREATE_REPLAY':False,'REASONING_ITEMS_PERSISTED':False},
                     'ROLES':{r:{'MODEL':v['MODEL'],'PARAMS':v['PARAMS'],'MAX_OUTPUT_TOKENS':v['MAX_OUTPUT_TOKENS'],'STRUCTURED_OUTPUT':v['STRUCTURED_OUTPUT']} for r,v in sorted(self._routes.items())}}
-        return {
+            return self._annotate_network(ident)
+        ident={
             'GENERATOR_ENDPOINT':GENERATOR_ENDPOINT,'GENERATOR_BACKGROUND':True,
             'GENERATOR_MODEL':ROLE_MODEL_MAP['GENERATOR'],
             'GENERATOR_REASONING_EFFORT':ROLE_REQUEST_PARAMS['GENERATOR']['reasoning_effort'],
@@ -146,6 +160,19 @@ class OpenAIProvider:
             'CRITIC_ENDPOINT':CRITIC_ENDPOINT,
             'GENERATOR_MAX_OUTPUT_TOKENS':GENERATOR_MAX_OUTPUT_TOKENS,
         }
+        return self._annotate_network(ident)
+
+    def _annotate_network(self,ident):
+        if self.network_mode!=OPENAI_NETWORK_MODE_CLOUD_PROXY:return ident
+        return {**ident,'OPENAI_NETWORK_MODE':OPENAI_NETWORK_MODE_CLOUD_PROXY,'OPENAI_API_KEY_REQUIRED':False,
+                'AUTHORIZATION':'STRIPPED_AT_PROXY_BOUNDARY','DIRECT_API_HOST':False}
+
+    def _can_send(self):
+        if self._offline or not self._allow or type(self.cap)!=int or not 0<self.cap<=30_000_000:return False
+        if self.network_mode==OPENAI_NETWORK_MODE_CLOUD_PROXY:
+            from .cloud_openai_transport import CloudProxyOpenAITransport
+            return isinstance(self.transport,CloudProxyOpenAITransport)
+        return bool(self._key)
 
     def identity_digest(self):
         if self._routes is not None:
@@ -154,7 +181,9 @@ class OpenAIProvider:
         return digest({'ROUTING':routing_digest(),'TRANSPORT':self.transport_identity()})
 
     def _headers(self):
-        return {'Authorization':'Bearer '+self._key,'Content-Type':'application/json'}
+        headers={'Content-Type':'application/json'}
+        if self._key:headers['Authorization']='Bearer '+self._key
+        return headers
 
     def _http(self,method,path,body,timeout):
         return self.transport(method,path,body,self._headers(),timeout)
@@ -213,7 +242,7 @@ class OpenAIProvider:
     def create_background(self,request):
         if self._offline:raise ContractError('offline OpenAI adapter never sends')
         if not self.uses_background(request['role']):raise ContractError('role does not use background Responses')
-        if not self._allow or not self._key or not 0<self.cap<=30_000_000:raise ContractError('real call disabled')
+        if not self._can_send():raise ContractError('real call disabled')
         if self._routes is not None and self.bound(request)>self.cap:raise ContractError('call exceeds authorized budget')
         body=canonical(self.responses_payload(request)).encode()
         status,wire=self._http('POST','/v1/responses',body,self.create_timeout_seconds)
@@ -289,7 +318,7 @@ class OpenAIProvider:
         if request['role']=='GENERATOR':raise ContractError('GENERATOR uses background Responses, not synchronous complete')
         if self.uses_background(request['role']):raise ContractError('role uses background Responses, not synchronous complete')
         if self._offline:raise ContractError('offline OpenAI adapter never sends')
-        if not self._allow or not self._key or not 0<self.cap<=30_000_000:raise ContractError('real call disabled')
+        if not self._can_send():raise ContractError('real call disabled')
         bound=self.bound(request)
         if bound>self.cap:raise ContractError('call exceeds authorized budget')
         body=canonical(self.chat_payload(request)).encode()

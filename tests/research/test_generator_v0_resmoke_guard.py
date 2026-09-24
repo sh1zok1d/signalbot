@@ -128,10 +128,10 @@ def test_billed_generator_failure_makes_no_second_post_and_no_critic(tmp_path):
     report2 = run_resmoke(C, Caller(C, cal.ledger, cal.provider, CAP, True))
     assert report2['STATUS'] == 'STOPPED_GENERATOR_NOT_COMPLETE'
     assert len(a.calls) == 1 and o.calls == []
-    # The production round loop would have POSTed the second answer. The smoke does not.
+    # The production round loop also posts once. A billed max_tokens answer is not retried.
     other, b, _ = caller(tmp_path / 'round', answers, cap=30_000_000, lineage=False)
     _round_output(C, other.ledger, other, 0, SLOTS)
-    assert len(b.calls) == 2
+    assert len(b.calls) == 1
 
 
 def test_uncertain_generator_attempt_is_not_replayed(tmp_path):

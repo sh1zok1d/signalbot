@@ -1,3 +1,17 @@
+## Generator V0 first 30-card production-path repair — 2026-09-24
+
+`FIRST_30_PRODUCTION_PATH_REPAIRED = true`
+`NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`
+`NEXT_ACTION = FIRST_30_CARD_RUN_AFTER_INDEPENDENT_REVERIFY`
+
+Offline repair of three execution defects. No live call and no scientific change. Memory Finalizer V1 is unchanged.
+
+- `GENERATOR_CONTENT_ATTEMPTS = 1` (`GENERATOR_CONTENT_RETRIES = 0`). A size-30 campaign has `MAX_GENERATOR_POSTS = 3`. Critics still use `MAX_CONTENT_ATTEMPTS = 2`. The budget reservation is unchanged.
+- First 30-card selector: `SELECTOR_LLM_CALLS = 0`, `SELECTOR_AUTHORITY = DETERMINISTIC_ORDINAL_ORDER`, advisory `NOT_CALLED` / `deterministic-only first 30-card run`. Other sizes keep the historical advisory call.
+- Cloud Agent OpenAI: `OPENAI_NETWORK_MODE = CLOUD_PROXY`, chosen explicitly by `first-30-card`. Transport is `CloudProxyOpenAITransport`. No `OPENAI_API_KEY`. Anthropic still requires `SIGNALBOT_ANTHROPIC_API_KEY` or `ANTHROPIC_API_KEY`. `HTTPS_PROXY` does not select the mode.
+
+Record: `docs/research/GENERATOR_V0_FIRST_30_PRODUCTION_PATH_REPAIR.{md,json}`.
+
 ## Generator V0 memory finalizer V1 — 2026-09-24
 
 `MEMORY_FINALIZER_V1 = ACTIVE`

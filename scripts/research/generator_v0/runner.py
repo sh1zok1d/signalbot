@@ -29,6 +29,11 @@ from . import contract,legacy_v01
 GENERATOR_PROMPT=contract.generator_prompt()
 MIN_VALID_CANDIDATES=25
 MAX_CONTENT_ATTEMPTS=2
+# Generator content is not retried. Critics keep MAX_CONTENT_ATTEMPTS.
+GENERATOR_CONTENT_ATTEMPTS=1
+FIRST_30_CARD_SIZE=30
+MAX_GENERATOR_POSTS_30=3
+FIRST_30_SELECTOR_ADVISORY={'STATUS':'NOT_CALLED','REASON':'deterministic-only first 30-card run'}
 RESUMABLE_STATUSES=('CREATED','DERIVED_CONTINUATION_AUTHORIZED','PAUSED_UNCERTAIN_CALL','PAUSED_PROVIDER_THROTTLED','PAUSED_PROVIDER_REJECTED','PAUSED_BACKGROUND_PENDING','STOPPED_BUDGET')
 TERMINAL_STATUSES=('PENDING_HUMAN_REVIEW','STOPPED_INSUFFICIENT_VALID')
 _PAUSE={BudgetExceeded:'STOPPED_BUDGET',CallUncertain:'PAUSED_UNCERTAIN_CALL',ProviderThrottled:'PAUSED_PROVIDER_THROTTLED',
@@ -119,7 +124,7 @@ def _round_output(c,ledger,caller,round_n,slots):
     if imported:
         return imported['CONTRACT'],imported['CALL_KEY'],parse_round(ledger.complete_raw(imported['CALL_KEY']),imported['CONTRACT'],call_wire_format(ledger,imported['CALL_KEY'])),['imported output is not a usable round']
     reasons=[];key=None
-    for attempt in range(MAX_CONTENT_ATTEMPTS):
+    for attempt in range(GENERATOR_CONTENT_ATTEMPTS):
         try:
             raw=caller.call('GENERATOR',c.generator(),GENERATOR_PROMPT,generator_request_parameters(slots,generator_max_output_tokens(caller.provider)),slot_id,content_attempt=attempt,identity=generator_identity(c,slots))
         except BilledFailure as e:
@@ -345,9 +350,10 @@ def _run(c,caller,ledger,size,prior_status):
             sanitized.append(roles.sanitize(card,n,f,r));streams.append((card,route))
             selection[card['CANDIDATE_ID']]={'MECHANISM_DISTANCE':judgments['MECHANISM_DISTANCE'],'INFORMATION_GAIN':judgments['NULL_INFORMATION_GAIN'],'FEASIBILITY':f['FEASIBILITY'],'CHEAPNESS':f['CHEAPNESS']}
     ctx={'SANITIZED_CRITIC_OUTPUTS':sanitized,'DATA_STATUS':{x['CANDIDATE_ID']:x['DATA_STATUS'] for x in sanitized},'SELECTION_JUDGMENTS':selection}
-    # Deterministic ordinal ordering is authoritative; the provider selector is advisory.
+    # Deterministic ordinal ordering is authoritative. The first 30-card run
+    # does not call the selector model. Other sizes keep the advisory call.
     order=sorted(selection,key=lambda k:tuple(-selection[k][f] for f in ('MECHANISM_DISTANCE','INFORMATION_GAIN','FEASIBILITY','CHEAPNESS'))+(k,))
-    advisory=_selector_advisory(c,caller,ctx,order)
+    advisory=dict(FIRST_30_SELECTOR_ADVISORY) if size==FIRST_30_CARD_SIZE else _selector_advisory(c,caller,ctx,order)
     gaps=data_gaps([card for card,stream in streams if stream=='HIGH_VALUE_DATA_BLOCKED'])
     metrics=dict(base_metrics,REVIEWED=len(cards)-len(review_failed),REVIEW_FAILED=len(review_failed),
                  CRITIC_COMPLETIONS=dict(sorted(stats['COMPLETED'].items())),CONTENT_RETRIES=dict(sorted(stats['CONTENT_RETRIES'].items())),
