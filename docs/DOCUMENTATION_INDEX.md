@@ -408,6 +408,7 @@ When adding documentation:
 - `research/GENERATOR_V0_BACKGROUND_RED_TEAM_TRANSPORT_AMENDMENT.{md,json}` — routed RED_TEAM moved from synchronous Chat Completions to background Responses after the same ambiguous Sol HTTP 502 class in the critic calibration; model, effort, prompt, schema, token cap and all other roles unchanged; C001 red-team call reconciled UNKNOWN.
 - `AGENT_RUNTIME_PROTOCOL.md` — active operational protocol for cloud-agent live-provider work: checkout verification, ephemeral-VM handling, verified HTTPS proxy binding, budgets, exactly-once semantics, provenance and artifact survival.
 - `research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.{md,json}` — active/canonical operational freeze for the first full 30-card Generator V0 run; routes, calibration observations, run-size/budget boundary and no-more-precautionary-smokes rule.
+- `research/GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT.{md,json}` — offline export of the five-card cost/pipeline calibration sample (C001-C005 cards, final critic verdicts, deterministic selector order, successful per-role costs); no scientific status, no market outcomes tested.
 - `research/generator_v0_repair/BUDGET_SCENARIOS.json` — budget/run-shape scenarios A–E (decision support only; none chosen).
 
 Implementation state: `GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FROZEN`.
