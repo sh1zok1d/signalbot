@@ -54,6 +54,12 @@ For `E1-RUN-001`, also read its frozen preregistration and `docs/e1/` artifacts.
 
 Old `FORECASTING_ROADMAP`, Stage1/Stage2/V2 product/correctness documents are historical/frozen references, not current roadmap authority. See `docs/DOCUMENTATION_INDEX.md`.
 
+## Generator V0 live-provider runtime protocol
+
+Before any Generator V0 live-provider, smoke, calibration, paid-LLM, or first full campaign task, read and follow `docs/AGENT_RUNTIME_PROTOCOL.md`.
+
+For the first full Generator V0 campaign, `docs/research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.md` is the active operational architecture authority. It does not override frozen scientific contracts or protected-data rules.
+
 ## Hard development freeze
 
 Unless a task explicitly changes the project posture, do not build:
