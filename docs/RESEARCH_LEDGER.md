@@ -6036,3 +6036,30 @@ RESUME_GATE = COMPLETE raw text must parse on the journaled wire format and inta
 ```
 
 Record: `docs/research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.{md,json}`.
+
+## Generator V0 final re-smoke, five-card cost calibration attempts, background novelty transport — 2026-09-24
+
+No research window, hypothesis or protected data consumed. Infrastructure spend only. Generated cards and critic outputs have no scientific status.
+
+```
+FINAL_RE_SMOKE = SMOKE_COMPLETE (production resmoke.run_resmoke; 3 POSTs)
+  GENERATOR  claude-opus-5-5 msg_011CfNLTMVgWaPB8WwpLzNxS end_turn in 14493 / out 43959 (thinking 21448) cost 937152 key b1ed0d83...cc93; 10/10 admitted
+  FEASIBILITY gpt-6-luna chatcmpl-ERdnuehSEIxeGOaZOWWumPJrBbcWW stop cost 451
+  NOVELTY    gpt-6-sol  chatcmpl-ERdo1NdcpCxG9monO2hZ0Kf08GOTX stop cost 24944 (31 PRIOR_RELATIONS keys, BATCH_RELATIONS {})
+  NEW_SPEND_MICRO_USD = 962547; SMOKE_LINEAGE_TOTAL_MICRO_USD = 1675879 of 3100000
+CALIBRATION (cap 2000000 micro-USD absolute; cards C001-C005 of the re-smoke round, chosen outcome-blind)
+  ATTEMPT_1: 1 POST; C001 NOVELTY gpt-6-sol HTTP 502 non-JSON; key 3d7593020fb5766c6025b7b59e00e55be2e180104e0694cc0d7539ee512176a8
+             RECONCILED_UNKNOWN (owner-authorized) cost 214416 (full reservation); journal sealed
+  ATTEMPT_2: 7 POSTs; 6 COMPLETE (C001, C002 x novelty/feasibility/red team) cost 94218;
+             C003 NOVELTY gpt-6-sol HTTP 502 non-JSON; key 82153d8fba4fd6210a9503a07190535b9eb1adeb9ed7365b0427b3d20846b8d3
+             UNCERTAIN reserved 213294 (not reconciled)
+  CALIBRATION_LINEAGE_CHARGED_OR_RESERVED_MICRO_USD = 521928; CALIBRATION_STATUS = STOPPED_UNCERTAIN_CALL (incomplete; no cost classification)
+BACKGROUND_NOVELTY_TRANSPORT_AMENDMENT (offline; no live call)
+  NOVELTY_CRITIC: OPENAI_CHAT_COMPLETIONS -> OPENAI_RESPONSES_BACKGROUND (create once, GET by response_id)
+  MODEL/EFFORT/PROMPT/SCHEMA/OTHER ROLES = unchanged
+  NOVELTY_ROUTE_DIGEST = 597296d5c91d0b9fe3af97429111b16ed780493a1d198a97ddf2154edd670760
+  ROUTING_DIGEST = 9c99dc12b90fb9541113084ec833f5729fb865b5ad80c8c4a943ec0f19dddf66
+  COMPLETION_STATE = READY_FOR_BACKGROUND_NOVELTY_INDEPENDENT_REVIEW
+```
+
+Record: `docs/research/GENERATOR_V0_BACKGROUND_NOVELTY_TRANSPORT_AMENDMENT.{md,json}`.

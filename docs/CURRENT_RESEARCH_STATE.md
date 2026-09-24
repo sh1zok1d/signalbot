@@ -1,6 +1,11 @@
+## Generator V0 background novelty transport — 2026-09-24
+
+`NEXT_UNIT = GENERATOR_V0_BACKGROUND_NOVELTY_INDEPENDENT_REVIEW`.
+The final compact re-smoke completed (Opus, Luna and Sol; new spend USD 0.962547). The five-card cost calibration then stopped twice on ambiguous non-JSON HTTP 502s from routed Sol `NOVELTY_CRITIC` (one reconciled UNKNOWN, one still UNCERTAIN). Only that role's transport now uses background Responses (one create POST, then GET polling by response_id). Model, effort, prompt, schema and every other role are unchanged. No live call in this amendment; the calibration is not complete. See `docs/research/GENERATOR_V0_BACKGROUND_NOVELTY_TRANSPORT_AMENDMENT.md`.
+
 ## Generator V0 re-smoke guard — 2026-09-24
 
-`NEXT_UNIT = GENERATOR_V0_FINAL_RE_SMOKE_REVIEW`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_FINAL_RE_SMOKE_REVIEW` (performed; see above).
 The Anthropic synchronous timeout is 1800 s. The re-smoke ledger carries historical spend USD 0.713332 inside an absolute cap of USD 3.10, and `run_resmoke` allows one Anthropic GENERATOR POST with no content retry and no transport replay. No live call in this follow-up. See `docs/research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.md`.
 
 ## Generator V0 Anthropic GENERATOR output-cap amendment — 2026-09-24
