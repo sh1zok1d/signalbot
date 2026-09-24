@@ -1,3 +1,23 @@
+## Generator V0 first 30-card architecture freeze — 2026-09-24
+
+`NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`  
+`NEXT_ACTION = FIRST_30_CARD_RUN_AFTER_OPERATIONAL_PERSISTENCE_REVIEW`
+
+This section supersedes older Generator V0 `NEXT_UNIT` / `NEXT_ACTION` entries below.
+
+The live transport repair/calibration cycle is closed for the first campaign:
+- Anthropic Opus generator completed live;
+- background Sol NOVELTY completed live;
+- Luna FEASIBILITY completed live;
+- background Sol RED_TEAM completed live;
+- the five-card critic calibration completed all final chains.
+
+The first full campaign is frozen at 30 cards: three 10-card Opus rounds, no generator retry. Routed authority remains `scripts/research/generator_v0/routing.py`. Cloud OpenAI runtime binding is `scripts/research/generator_v0/cloud_openai_transport.py` under `docs/AGENT_RUNTIME_PROTOCOL.md`.
+
+No further precautionary smoke/calibration cycles are required before the first 30-card run. Reopen transport/routing only for a concrete execution defect or explicit owner amendment. Calibration/smoke evidence has no scientific status; protected 2025/2026 remain unopened.
+
+Canonical record: `docs/research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.{md,json}`.
+
 ## Generator V0 background RED_TEAM transport — 2026-09-24
 
 `NEXT_UNIT = GENERATOR_V0_BACKGROUND_RED_TEAM_SMOKE`.
