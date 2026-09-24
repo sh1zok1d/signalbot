@@ -31,6 +31,13 @@
       "D12",
       "D13"
     ],
+    "GENERATOR_V0_CALIBRATION": [
+      "GV0CAL-C001",
+      "GV0CAL-C002",
+      "GV0CAL-C003",
+      "GV0CAL-C004",
+      "GV0CAL-C005"
+    ],
     "MARKET": [
       "MARKET-01",
       "MARKET-02",
@@ -42,7 +49,7 @@
   },
   "D7_RERUN_PERFORMED": false,
   "D8_EXECUTED": false,
-  "DATE": "2026-09-22",
+  "DATE": "2026-09-24",
   "ENTRIES": {
     "B2-01": {
       "DATA_STATE": "CORE_BTC 2020-2024; 2025/2026 unopened; rerun unauthorized",
@@ -329,6 +336,81 @@
       "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "This SHARE-on-closing-extremes formulation as a cheap CONDITIONAL_VENUE_RESOLUTION_ATTRIBUTION mechanism. Does not close later higher-resolution price-discovery questions.",
       "WHAT_WAS_ACTUALLY_TESTED": "Canonical one-shot from EXECUTION_ROOT e2852f57ee946ec8380f09fa4cf834579c40f872; CLOSING_EVENT_N=7184 MATCHED_CONTROL_N=7184; MEDIAN_EVENT_SHARE=0.580293 vs 0.5 (DELTA_VS_HALF=0.080293); P_HALF=0.637536 P_CONTROL=0.0019998; statistical/practical/temporal gates false"
     },
+    "GV0CAL-C001": {
+      "DATA_STATE": "DATA_READY; calibration fixture only; market outcomes not tested; protected 2025/2026 unopened",
+      "FUNCTION": "Participant-composition state -> subsequent sub-hour variance-ratio structure",
+      "GENERATION": "GENERATOR_V0_CALIBRATION_20260924",
+      "ID": "GV0CAL-C001",
+      "INFORMATION_SOURCE": "CORE_BTC_BINANCE_V0 kline quote_volume + trade_count",
+      "MECHANISM": "Average-trade-size participant-composition proxy",
+      "NEIGHBOR_RESCUE_WARNING": "Do not regenerate the same mechanism through threshold/window/horizon changes, observable substitution within the same function, or functional relabeling.",
+      "POSTHOC_RESIDUALS_IF_ANY": null,
+      "STATUS_EVIDENCE_CLASS": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
+      "TARGET_FAMILY": "Sub-hour return autocorrelation / variance-ratio structure",
+      "WHAT_REMAINS_OPEN": "Market-outcome testing only if later selected under a separate frozen research contract; orthogonal mechanisms remain open.",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Exact duplicate, cosmetic relabel, and parameter/window/horizon neighbors of this already-generated mechanism signature.",
+      "WHAT_WAS_ACTUALLY_TESTED": "Generator V0 cost/pipeline calibration only: novelty ALLOW, feasibility PASS, red team PASS. No market outcomes were tested."
+    },
+    "GV0CAL-C002": {
+      "DATA_STATE": "DATA_READY; calibration fixture only; market outcomes not tested; protected 2025/2026 unopened",
+      "FUNCTION": "US DST displacement of the intraday perp-vs-spot price-discovery profile",
+      "GENERATION": "GENERATOR_V0_CALIBRATION_20260924",
+      "ID": "GV0CAL-C002",
+      "INFORMATION_SOURCE": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0 + statutory DST calendars",
+      "MECHANISM": "Perpetual-versus-spot intraday price-discovery locus",
+      "NEIGHBOR_RESCUE_WARNING": "Do not regenerate the same mechanism through threshold/window/horizon changes, observable substitution within the same function, or functional relabeling.",
+      "POSTHOC_RESIDUALS_IF_ANY": null,
+      "STATUS_EVIDENCE_CLASS": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
+      "TARGET_FAMILY": "Cross-venue price-discovery timing",
+      "WHAT_REMAINS_OPEN": "Market-outcome testing only if later selected under a separate frozen research contract; orthogonal mechanisms remain open.",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Exact duplicate, cosmetic relabel, and parameter/window/horizon neighbors of this already-generated mechanism signature.",
+      "WHAT_WAS_ACTUALLY_TESTED": "Generator V0 cost/pipeline calibration only: novelty ALLOW, feasibility PASS, red team PASS. No market outcomes were tested."
+    },
+    "GV0CAL-C003": {
+      "DATA_STATE": "FEASIBILITY_REQUIRED; calibration fixture only; market outcomes not tested; protected 2025/2026 unopened",
+      "FUNCTION": "Absolute 5m movement around offset venue funding settlement schedules",
+      "GENERATION": "GENERATOR_V0_CALIBRATION_20260924",
+      "ID": "GV0CAL-C003",
+      "INFORMATION_SOURCE": "BitMEX + Binance perpetual 5m surfaces",
+      "MECHANISM": "Venue-specific perpetual funding-settlement clock microstructure",
+      "NEIGHBOR_RESCUE_WARNING": "Do not regenerate the same mechanism or parameter/window/horizon neighbors unless the named blocker is explicitly resolved: METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING.",
+      "POSTHOC_RESIDUALS_IF_ANY": null,
+      "STATUS_EVIDENCE_CLASS": "PIPELINE_RED_TEAM_BLOCKED_CAUSALITY_CONFOUNDING_NO_SCIENTIFIC_STATUS",
+      "TARGET_FAMILY": "Settlement-window absolute movement/range",
+      "WHAT_REMAINS_OPEN": "A materially redesigned candidate that explicitly resolves the causal-identification/confounding blocker; orthogonal settlement mechanisms remain open.",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Exact duplicate, cosmetic relabel, and parameter/window/horizon neighbors that leave the causal-identification/confounding blocker unresolved.",
+      "WHAT_WAS_ACTUALLY_TESTED": "Generator V0 cost/pipeline calibration only: novelty ALLOW, feasibility PASS, red team REJECT because CAUSALITY=false and CONFOUNDING_ADDRESSED=false. No market outcomes were tested."
+    },
+    "GV0CAL-C004": {
+      "DATA_STATE": "FEASIBILITY_REQUIRED; calibration fixture only; market outcomes not tested; protected 2025/2026 unopened",
+      "FUNCTION": "Binance activity/path in CME final-settlement fixing window vs placebo Fridays",
+      "GENERATION": "GENERATOR_V0_CALIBRATION_20260924",
+      "ID": "GV0CAL-C004",
+      "INFORMATION_SOURCE": "CME settlement calendar + Binance perpetual kline activity",
+      "MECHANISM": "CME reference-rate fixing-window spillover into Binance perpetual activity",
+      "NEIGHBOR_RESCUE_WARNING": "Do not regenerate the same mechanism or parameter/window/horizon neighbors unless the named blocker is explicitly resolved: METHOD_CONFOUNDING_CONTROL_INADEQUATE.",
+      "POSTHOC_RESIDUALS_IF_ANY": null,
+      "STATUS_EVIDENCE_CLASS": "PIPELINE_RED_TEAM_BLOCKED_CONFOUNDING_NO_SCIENTIFIC_STATUS",
+      "TARGET_FAMILY": "Fixing-window activity/path concentration",
+      "WHAT_REMAINS_OPEN": "A materially redesigned candidate that explicitly resolves the confounding blocker; orthogonal fixing/settlement mechanisms remain open.",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Exact duplicate, cosmetic relabel, and parameter/window/horizon neighbors that leave the confounding blocker unresolved.",
+      "WHAT_WAS_ACTUALLY_TESTED": "Generator V0 cost/pipeline calibration only: novelty ALLOW, feasibility PASS, red team REJECT because CONFOUNDING_ADDRESSED=false. No market outcomes were tested."
+    },
+    "GV0CAL-C005": {
+      "DATA_STATE": "DATA_READY; calibration fixture only; market outcomes not tested; protected 2025/2026 unopened",
+      "FUNCTION": "Listing age -> subsequent matched cross-sectional relative return",
+      "GENERATION": "GENERATOR_V0_CALIBRATION_20260924",
+      "ID": "GV0CAL-C005",
+      "INFORMATION_SOURCE": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+      "MECHANISM": "Listing-age lifecycle drift in Binance spot USDT cross-section",
+      "NEIGHBOR_RESCUE_WARNING": "Do not regenerate the same mechanism through threshold/window/horizon changes, observable substitution within the same function, or functional relabeling.",
+      "POSTHOC_RESIDUALS_IF_ANY": null,
+      "STATUS_EVIDENCE_CLASS": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
+      "TARGET_FAMILY": "Cross-sectional listing-age relative-return structure",
+      "WHAT_REMAINS_OPEN": "Market-outcome testing only if later selected under a separate frozen research contract; orthogonal cross-sectional mechanisms remain open.",
+      "WHAT_THE_RESULT_DEPRIORITIZES_OR_CLOSES": "Exact duplicate, cosmetic relabel, and parameter/window/horizon neighbors of this already-generated mechanism signature.",
+      "WHAT_WAS_ACTUALLY_TESTED": "Generator V0 cost/pipeline calibration only: novelty ALLOW, feasibility PASS, red team PASS. No market outcomes were tested."
+    },
     "H01": {
       "DATA_STATE": "CORE_BTC 2020-2024 historically exposed; 2025/2026 unopened",
       "FUNCTION": "Low recent RV predicts higher future RV",
@@ -511,6 +593,6 @@
   "SPRINT04_HYPOTHESES_SELECTED": true,
   "SPRINT04_PROMISING_PROTOTYPES": 1,
   "SPRINT04_TERMINAL_SCIENTIFIC_CARDS": 2,
-  "STATUS": "EXTENDED_THROUGH_D13",
+  "STATUS": "EXTENDED_THROUGH_GENERATOR_V0_CALIBRATION_C005",
   "UNIT": "MECHANISM_MEMORY_V0"
 }
