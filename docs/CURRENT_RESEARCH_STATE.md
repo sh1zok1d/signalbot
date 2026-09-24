@@ -1,3 +1,12 @@
+## Generator V0 calibration-memory ingestion — 2026-09-24
+
+`CALIBRATION_MEMORY_INGESTION_COMPLETE = true`  
+`NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`
+
+All five durable calibration cards are now represented in mechanism memory before the first 30-card generation. Stable prior IDs are `GV0CAL-C001`–`GV0CAL-C005`. The generator sees only outcome-neutral prior-work signatures. The novelty critic sees C001/C002/C005 as consumed prior signatures and C003/C004 as deferred/blocked methodological regions with explicit blocker-resolution requirements. No market outcomes were tested; protected 2025/2026 remain unopened. The architecture freeze is unchanged.
+
+Canonical record: `docs/research/GENERATOR_V0_CALIBRATION_MEMORY_INGESTION.{json,md}`.
+
 ## Generator V0 first 30-card architecture freeze — 2026-09-24
 
 `NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`  
