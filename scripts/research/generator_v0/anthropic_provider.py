@@ -30,7 +30,9 @@ from . import routing
 API_VERSION='2023-06-01'
 MESSAGES_PATH='/v1/messages'
 HOST='api.anthropic.com'
-REQUEST_TIMEOUT_SECONDS=900
+# 1800, not 900: a 32768-token live response took ~299s, so a full
+# 100000-token response is ~912s and would expire at the old timeout.
+REQUEST_TIMEOUT_SECONDS=1800
 MAX_WIRE_BYTES=4_000_000
 # Provider-side scaffolding (structured-output grammar, system framing) is not
 # visible in the request bytes; bound it with a fixed margin on top of bytes.
