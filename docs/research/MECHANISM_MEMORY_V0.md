@@ -2,8 +2,8 @@
 
 **Unit:** `MECHANISM_MEMORY_V0`
 **Kind:** compact accumulated-research map
-**Date:** 2026-09-22
-**Status:** `EXTENDED_THROUGH_D13`
+**Date:** 2026-09-24
+**Status:** `EXTENDED_THROUGH_GENERATOR_V0_CALIBRATION_C005`
 **Machine-readable record:** `docs/research/MECHANISM_MEMORY_V0.json`
 
 This is **not** a new research framework, pipeline, or MARKET unit. It is a
@@ -15,7 +15,7 @@ one-shot; they are not recomputed from this file.
 
 ## Coverage
 
-30 entries: H01–H05, B2-01–B2-06, MARKET-01–06, D1–D13.
+35 entries: H01–H05, B2-01–B2-06, MARKET-01–06, D1–D13, plus five durable Generator V0 calibration signatures `GV0CAL-C001`–`GV0CAL-C005`.
 
 ```
 BATCH01_PROMOTED = 0 / 5
@@ -50,3 +50,27 @@ candidates. Do not reopen closed Batch01/02, MARKET, D2, D7, D9, D10, or
 D13 neighbor space from this file. Do not redesign D12 from the EU
 diagnostic or from W-window/hour-slice neighbors. Do not pick the larger
 of D13 momentum vs reversal.
+
+
+## Generator V0 calibration-memory extension — 2026-09-24
+
+Five model-generated cost/pipeline calibration cards are retained as prior-work
+mechanism signatures. They have **no scientific status** and no market outcomes
+were tested.
+
+- `GV0CAL-C001`: participant-composition proxy from average trade size → sub-hour variance-ratio structure; pipeline survivor.
+- `GV0CAL-C002`: perp-vs-spot price-discovery locus with US-DST displacement; pipeline survivor.
+- `GV0CAL-C003`: venue funding-settlement clock microstructure; red-team blocked on causal identification and confounding.
+- `GV0CAL-C004`: CME fixing-window spillover into Binance perpetual activity; red-team blocked on confounding.
+- `GV0CAL-C005`: listing-age lifecycle drift in Binance spot USDT cross-section; pipeline survivor.
+
+The generator does **not** receive survivor/reject labels or critic reasons. Its
+blind map contains only neutral prior-work signatures. The novelty critic gets
+the outcome-neutral governance state: C001/C002/C005 are `CONSUMED` prior
+signatures; C003/C004 are `DEFERRED_OR_BLOCKED` with named methodological
+blockers so a materially redesigned card may advance only by explicitly
+resolving the blocker. Exact duplicates, cosmetic relabels and parameter/window/
+horizon neighbors remain disallowed.
+
+Full calibration details remain in
+`GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT.{json,md}`.
