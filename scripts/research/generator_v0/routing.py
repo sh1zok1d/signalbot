@@ -23,6 +23,11 @@ from .models import GENERATOR_MAX_OUTPUT_TOKENS,ROLE_OUTPUT_TOKEN_CAPS
 ROUTING_ID='GENERATOR_V0_MULTI_PROVIDER_ROUTING_V1'
 ROLES=('GENERATOR','NOVELTY_CRITIC','RED_TEAM','FEASIBILITY_CRITIC','SELECTOR')
 PROVIDERS=('ANTHROPIC','OPENAI')
+# Owner amendment (execution headroom only): the first live compact round used
+# all 32768 output tokens (17,396 thinking) and stopped at max_tokens. The
+# legacy OpenAI generator cap (models.GENERATOR_MAX_OUTPUT_TOKENS) is unchanged.
+ANTHROPIC_GENERATOR_MAX_OUTPUT_TOKENS=100000
+GENERATOR_OUTPUT_CAPS={'ANTHROPIC':ANTHROPIC_GENERATOR_MAX_OUTPUT_TOKENS,'OPENAI':GENERATOR_MAX_OUTPUT_TOKENS}
 
 ANTHROPIC_TRANSPORT={'HOST':'api.anthropic.com','METHOD':'POST','PATH':'/v1/messages','API_VERSION':'2023-06-01',
                      'AUTH':'x-api-key from ANTHROPIC_API_KEY (never persisted)','STREAM':False,'BATCH':False,
@@ -43,7 +48,7 @@ PRICES={
 
 ROUTES={
     'GENERATOR':{'PROVIDER':'ANTHROPIC','MODEL':'claude-opus-5-5','PARAMS':{'effort':'high'},
-                 'MAX_OUTPUT_TOKENS':GENERATOR_MAX_OUTPUT_TOKENS,'STRUCTURED_OUTPUT':'ANTHROPIC_OUTPUT_CONFIG_JSON_SCHEMA_COMPACT_CANDIDATE_ARRAY_V1',
+                 'MAX_OUTPUT_TOKENS':ANTHROPIC_GENERATOR_MAX_OUTPUT_TOKENS,'STRUCTURED_OUTPUT':'ANTHROPIC_OUTPUT_CONFIG_JSON_SCHEMA_COMPACT_CANDIDATE_ARRAY_V1',
                  'ENDPOINT':'ANTHROPIC_MESSAGES','TRANSPORT':ANTHROPIC_TRANSPORT},
     'NOVELTY_CRITIC':{'PROVIDER':'OPENAI','MODEL':'gpt-6-sol','PARAMS':{'reasoning_effort':'high'},
                       'MAX_OUTPUT_TOKENS':ROLE_OUTPUT_TOKEN_CAPS['NOVELTY_CRITIC'],'STRUCTURED_OUTPUT':'OPENAI_CHAT_RESPONSE_FORMAT_JSON_SCHEMA_STRICT',
@@ -77,7 +82,7 @@ def validate_routes(routes=None):
         cap=r['MAX_OUTPUT_TOKENS']
         if type(cap)!=int or not 1<=cap<=PRICES[r['MODEL']]['MAX_OUTPUT_TOKENS']:raise ContractError('output cap for '+role)
         # The routing layer never changes the scientific run shape.
-        expected=GENERATOR_MAX_OUTPUT_TOKENS if role=='GENERATOR' else ROLE_OUTPUT_TOKEN_CAPS[role]
+        expected=GENERATOR_OUTPUT_CAPS[r['PROVIDER']] if role=='GENERATOR' else ROLE_OUTPUT_TOKEN_CAPS[role]
         if cap!=expected:raise ContractError('route output cap differs from the frozen run shape for '+role)
     return routes
 

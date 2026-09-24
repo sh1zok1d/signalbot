@@ -19,6 +19,7 @@ from scripts.research.generator_v0.runner import GENERATOR_PROMPT,generator_requ
 from scripts.research.generator_v0.roles import Roles,NOVELTY_PROMPT,FEAS_PROMPT,RED_PROMPT
 from scripts.research.generator_v0.mock import MockResponder,fixture,slot_plan
 from scripts.research.generator_v0.models import ROLE_OUTPUT_TOKEN_CAPS,GENERATOR_MAX_OUTPUT_TOKENS
+GEN_CAP=routing.ANTHROPIC_GENERATOR_MAX_OUTPUT_TOKENS
 from scripts.research.generator_v0_gate.noisy import NoisyTransport,routed_provider_for,run_mixed_noisy_campaign,Crash,CAP
 
 C=Contexts()
@@ -56,7 +57,7 @@ def router(atransport,otransport,cap=CAP):
     return RoutedProvider({'ANTHROPIC':anthropic(atransport,cap),'OPENAI':openai(otransport,cap)},routing.ROUTES,sleeper=lambda s:None)
 
 def gen_request(caller):
-    return caller.request('GENERATOR',C.generator(),GENERATOR_PROMPT,generator_request_parameters(SLOTS),'generation:0',0,generator_identity(C,SLOTS))
+    return caller.request('GENERATOR',C.generator(),GENERATOR_PROMPT,generator_request_parameters(SLOTS,GEN_CAP),'generation:0',0,generator_identity(C,SLOTS))
 
 def critic_request(caller,role,prompt):
     cards=[fixture(s,C) for s in slot_plan(40)]
@@ -64,7 +65,7 @@ def critic_request(caller,role,prompt):
     return caller.request(role,ctx,prompt,{'max_output_tokens':ROLE_OUTPUT_TOKEN_CAPS[role]},role+':C003')
 
 def gen_call(caller):
-    return caller.call('GENERATOR',C.generator(),GENERATOR_PROMPT,generator_request_parameters(SLOTS),'generation:0',identity=generator_identity(C,SLOTS))
+    return caller.call('GENERATOR',C.generator(),GENERATOR_PROMPT,generator_request_parameters(SLOTS,GEN_CAP),'generation:0',identity=generator_identity(C,SLOTS))
 
 # ------------------------------------------------------------ A. routing
 
@@ -78,7 +79,7 @@ def test_each_role_resolves_to_the_expected_provider_model_and_effort():
     p=offline_routed_provider(C)
     for role,(prov,model,params) in EXPECTED.items():
         assert (p.provider_for(role),p.model_for(role),p.request_params_for(role))==(prov,model,params)
-        assert routing.route(role)['MAX_OUTPUT_TOKENS']==(GENERATOR_MAX_OUTPUT_TOKENS if role=='GENERATOR' else ROLE_OUTPUT_TOKEN_CAPS[role])
+        assert routing.route(role)['MAX_OUTPUT_TOKENS']==(GEN_CAP if role=='GENERATOR' else ROLE_OUTPUT_TOKEN_CAPS[role])
     assert routing.ROUTES['SELECTOR'].get('ADVISORY_ONLY') is True
 
 def test_unknown_role_fails_closed():
@@ -158,7 +159,7 @@ def test_opus_generator_request_shape():
     cal=Caller(C,Ledger(':memory:',{'RUN_ID':'c'}),offline_routed_provider(C),1,True)
     req=gen_request(cal);body=offline_routed_provider(C).adapters['ANTHROPIC'].payload(req)
     assert set(body)=={'model','max_tokens','system','messages','stream','output_config'}
-    assert body['model']=='claude-opus-5-5' and body['max_tokens']==GENERATOR_MAX_OUTPUT_TOKENS and body['stream'] is False
+    assert body['model']=='claude-opus-5-5' and body['max_tokens']==GEN_CAP and body['stream'] is False
     assert body['system']==GENERATOR_PROMPT
     assert body['messages']==[{'role':'user','content':canonical({'context':C.generator(),'slots':SLOTS})}]
     assert body['output_config']['effort']=='high' and body['output_config']['format']['type']=='json_schema'
@@ -204,7 +205,7 @@ def test_text_only_end_turn_is_usable():
     assert r.raw==gen_json()
 
 @pytest.mark.parametrize('label,wire,billed_cost',[
-    ('max_tokens',env('{"CAND',stop='max_tokens',usage={'input_tokens':6000,'output_tokens':GENERATOR_MAX_OUTPUT_TOKENS}),True),
+    ('max_tokens',env('{"CAND',stop='max_tokens',usage={'input_tokens':6000,'output_tokens':GEN_CAP}),True),
     ('refusal',env('',stop='refusal',blocks=[]),True),
     ('context',env('x',stop='model_context_window_exceeded'),True),
     ('tool_use',env('x',stop='tool_use',blocks=[{'type':'tool_use','id':'t','name':'x','input':{}}]),True),
@@ -216,7 +217,7 @@ def test_text_only_end_turn_is_usable():
     ('missing_usage',env(gen_json(),usage=False),False),
     ('malformed_usage',env(gen_json(),usage={'input_tokens':'many','output_tokens':1}),False),
     ('negative_usage',env(gen_json(),usage={'input_tokens':-1,'output_tokens':1}),False),
-    ('usage_over_bound',env(gen_json(),usage={'input_tokens':6000,'output_tokens':GENERATOR_MAX_OUTPUT_TOKENS+1}),False),
+    ('usage_over_bound',env(gen_json(),usage={'input_tokens':6000,'output_tokens':GEN_CAP+1}),False),
     ('not_json',b'<html>ok</html>',False),
 ])
 def test_unusable_200_responses_are_billed_failures(label,wire,billed_cost):
@@ -299,7 +300,7 @@ def test_documented_rate_limit_and_overload_post_once_and_pause(status,etype):
     from scripts.research.generator_v0.provider import CallClosed
     for attempt in (0,1):
         with pytest.raises(CallClosed):
-            cal.call('GENERATOR',C.generator(),GENERATOR_PROMPT,generator_request_parameters(SLOTS),'generation:0',content_attempt=attempt,identity=generator_identity(C,SLOTS))
+            cal.call('GENERATOR',C.generator(),GENERATOR_PROMPT,generator_request_parameters(SLOTS,GEN_CAP),'generation:0',content_attempt=attempt,identity=generator_identity(C,SLOTS))
     assert len(at.calls)==1
 
 def test_uncertain_429_reservation_counts_against_the_shared_cross_provider_ceiling():

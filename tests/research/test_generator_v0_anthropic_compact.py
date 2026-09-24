@@ -45,7 +45,7 @@ def decisions(rows):
     return {k:(r['STATE'],r['CARD'],r['REASONS']) for k,r in rows.items()}
 
 def gen_request(caller,slots=SLOTS,n=0):
-    return caller.request('GENERATOR',C.generator(),GENERATOR_PROMPT,generator_request_parameters(slots),'generation:'+str(n),0,generator_identity(C,slots))
+    return caller.request('GENERATOR',C.generator(),GENERATOR_PROMPT,generator_request_parameters(slots,routing.ANTHROPIC_GENERATOR_MAX_OUTPUT_TOKENS),'generation:'+str(n),0,generator_identity(C,slots))
 
 def caller():
     return Caller(C,Ledger(':memory:',{'RUN_ID':'k'}),offline_routed_provider(C),1,True)

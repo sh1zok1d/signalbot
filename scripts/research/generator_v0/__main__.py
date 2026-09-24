@@ -9,8 +9,7 @@ from .context import Contexts,ContractError,canonical,digest,byte_digest
 from .ledger import Ledger,SEALED_REGISTRY,sealed_reason
 from .provider import Caller,MockProvider
 from .mock import MockResponder
-from .runner import run_campaign,GENERATOR_PROMPT
-from .models import GENERATOR_MAX_OUTPUT_TOKENS
+from .runner import run_campaign,GENERATOR_PROMPT,generator_max_output_tokens
 from .derive import derive_complete_rounds,authorize_derived_continuation,authorize_budget_extension,remaining_campaign_budget_preflight,fresh_campaign_budget_preflight,reconcile_call,OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
 from .ledger import InfrastructureStop
 
@@ -160,7 +159,7 @@ def main(argv=None):
         if a.model:raise ContractError('mock does not take a real model id')
         provider=MockProvider(MockResponder(c))
     if a.command=='preflight':
-        info={'STATUS':'PREFLIGHT_PASS','PROVIDER':provider.provider_id,'REAL_LLM_CALLS_MADE':False,'BATCH_SIZE':a.size,'STRUCTURED_OUTPUTS_ENABLED':a.provider=='openai','GENERATOR_MAX_OUTPUT_TOKENS':GENERATOR_MAX_OUTPUT_TOKENS}
+        info={'STATUS':'PREFLIGHT_PASS','PROVIDER':provider.provider_id,'REAL_LLM_CALLS_MADE':False,'BATCH_SIZE':a.size,'STRUCTURED_OUTPUTS_ENABLED':a.provider=='openai','GENERATOR_MAX_OUTPUT_TOKENS':generator_max_output_tokens(provider)}
         if a.provider=='routed':
             pre=fresh_campaign_budget_preflight(a.size,cap or OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,c,bound_provider=offline_routed_provider(c))
             info.update(STRUCTURED_OUTPUTS_ENABLED=True,**routed_run_identity(provider,c),
@@ -187,7 +186,7 @@ def main(argv=None):
     if a.provider=='openai' and a.command=='run':budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c))
     if a.provider=='routed' and a.command=='run':budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c,bound_provider=offline_routed_provider(c)))
     a.run_dir.mkdir(parents=True,exist_ok=True)
-    config={'RUN_ID':a.run_dir.name,'PROVIDER':provider.provider_id,'MODEL':provider.model_id,'SIZE':a.size,'CAP_MICRO_USD':cap,'CONTEXT_DIGEST':digest(c.generator()),'IMPLEMENTATION_DIGEST':digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))}),'GENERATOR_MAX_OUTPUT_TOKENS':GENERATOR_MAX_OUTPUT_TOKENS}
+    config={'RUN_ID':a.run_dir.name,'PROVIDER':provider.provider_id,'MODEL':provider.model_id,'SIZE':a.size,'CAP_MICRO_USD':cap,'CONTEXT_DIGEST':digest(c.generator()),'IMPLEMENTATION_DIGEST':digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))}),'GENERATOR_MAX_OUTPUT_TOKENS':generator_max_output_tokens(provider)}
     if a.provider=='routed':
         config.update(**routed_run_identity(provider,c))
     if a.provider=='openai':

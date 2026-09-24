@@ -43,6 +43,7 @@ class RoutedProvider:
     def model_for(self,role):return self._route(role)['MODEL']
     def request_params_for(self,role):return dict(self._route(role)['PARAMS'])
     def endpoint_for(self,role):return self._route(role)['ENDPOINT']
+    def max_output_tokens_for(self,role):return self._route(role)['MAX_OUTPUT_TOKENS']
     def uses_background(self,role):self._route(role);return False
     def wire_identity_for(self,role,request):
         fn=getattr(self.adapter_for(role),'wire_identity_for',None)

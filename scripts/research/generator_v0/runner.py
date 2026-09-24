@@ -47,8 +47,13 @@ def diversity(cards,c):
 def generator_identity(c,slots):
     return {'output_contract':contract.CONTRACT_ID,'output_schema_digest':generator_round_schema_digest(c,slots)}
 
-def generator_request_parameters(slots):
-    return {'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':list(slots)}
+def generator_max_output_tokens(provider=None):
+    """The routed provider's GENERATOR route cap; the legacy OpenAI/mock cap otherwise."""
+    fn=getattr(provider,'max_output_tokens_for',None)
+    return fn('GENERATOR') if fn is not None else GENERATOR_MAX_OUTPUT_TOKENS
+
+def generator_request_parameters(slots,max_output_tokens=GENERATOR_MAX_OUTPUT_TOKENS):
+    return {'max_output_tokens':max_output_tokens,'slots':list(slots)}
 
 class CompactRound(list):
     """Anthropic compact wire output: provider-encoded items in returned order.
@@ -116,7 +121,7 @@ def _round_output(c,ledger,caller,round_n,slots):
     reasons=[];key=None
     for attempt in range(MAX_CONTENT_ATTEMPTS):
         try:
-            raw=caller.call('GENERATOR',c.generator(),GENERATOR_PROMPT,generator_request_parameters(slots),slot_id,content_attempt=attempt,identity=generator_identity(c,slots))
+            raw=caller.call('GENERATOR',c.generator(),GENERATOR_PROMPT,generator_request_parameters(slots,generator_max_output_tokens(caller.provider)),slot_id,content_attempt=attempt,identity=generator_identity(c,slots))
         except BilledFailure as e:
             reasons.append('attempt '+str(attempt)+': '+str(e));key=caller.last_key;continue
         key=caller.last_key

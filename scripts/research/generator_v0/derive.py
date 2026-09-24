@@ -21,7 +21,7 @@ from .ledger import Ledger,archive_connect
 from .models import GENERATOR_MAX_OUTPUT_TOKENS,ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,ROLE_OUTPUT_TOKEN_CAPS,model_for,request_params_for,price_table,routing_digest
 from .mock import slot_plan
 from .output_schemas import generator_schema_digest,generator_wire_format
-from .runner import GENERATOR_PROMPT,MAX_CONTENT_ATTEMPTS,generator_identity,generator_request_parameters,parse_round,round_cards,slot_violations_v02,contract_of_request,CompactRound
+from .runner import GENERATOR_PROMPT,MAX_CONTENT_ATTEMPTS,generator_identity,generator_request_parameters,generator_max_output_tokens,parse_round,round_cards,slot_violations_v02,contract_of_request,CompactRound
 from . import contract,legacy_v01,legacy_v01_schema
 
 DERIVED_STATUS='DERIVED_IMPORTED_REVALIDATED'
@@ -423,7 +423,7 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
     for round_n in [n for n in range((size+9)//10) if n not in set(done_rounds)]:
         slots=plan[round_n*10:round_n*10+10]
         req={'role':'GENERATOR','context':contexts.generator(),'prompt':GENERATOR_PROMPT,
-             'parameters':generator_request_parameters(slots),**generator_identity(contexts,slots)}
+             'parameters':generator_request_parameters(slots,generator_max_output_tokens(provider)),**generator_identity(contexts,slots)}
         wire=getattr(provider,'wire_identity_for',None)
         if wire is not None:req.update(wire('GENERATOR',req) or {})
         bound=provider.bound(req);total+=bound

@@ -265,8 +265,11 @@ class Ledger:
         self._writable()
         if state=='FAILED':state='FAILED_WITH_COST'
         if state not in ('UNCERTAIN','FAILED_NOT_BILLED','FAILED_WITH_COST'):raise ContractError('invalid failure state')
+        # raw_sha256 hashes usable verbatim model text only (set by finish); a failed
+        # attempt has none, so only the provider-envelope hash is recorded.
         blob=dict(envelope) if envelope is not None else {}
-        if wire_sha256:blob.setdefault('raw_sha256',wire_sha256)
+        blob.pop('raw_sha256',None)
+        if wire_sha256:blob['wire_sha256']=wire_sha256
         invalid=False
         with self.transaction():
             row=self.db.execute('SELECT reserved,state FROM calls WHERE key=?',(key,)).fetchone()
