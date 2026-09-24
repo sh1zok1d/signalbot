@@ -101,6 +101,8 @@ The Anthropic synchronous timeout is 1800 s. `stream=false` is unchanged. There 
 
 The re-smoke entry is `resmoke.run_resmoke`. It opens a ledger with `CAP_MICRO_USD = 3100000` and lineage `PRIOR_SPEND_MICRO_USD = 713332`, and it refuses to POST unless both are present. `Ledger.reserve` then rejects any reservation that would put lineage + journal + bound over USD 3.10. A fresh process cannot be given USD 3.10 of new spend on top of the historical USD 0.713332.
 
+A COMPLETE generator row is not enough to call critics. Resume loads that row's raw text and journaled wire format, then uses the same parse and idempotent intake as a fresh response. An unusable round stays `STOPPED_UNUSABLE_ROUND`. A round that admits nobody stays `STOPPED_NOTHING_ADMITTED`. Neither resume sends Luna or Sol.
+
 `run_resmoke` makes at most one Anthropic POST. It does not call `_round_output`, so `MAX_CONTENT_ATTEMPTS = 2` cannot send a second generator request. A billed or unusable generator response stops the smoke, and a second invocation does not POST. An UNCERTAIN attempt is not replayed. A retryable transport failure cannot sleep and post again. Luna and Sol run only after a COMPLETE, parseable round that intake admitted, and only while their reservations still fit. There is no RED_TEAM call.
 
 New-spend room is USD 2.386668. Planned reservations remain 2.126672 + 0.003950 + 0.194770 = 2.325392. With history that is USD 3.038724 of the USD 3.10 ceiling.

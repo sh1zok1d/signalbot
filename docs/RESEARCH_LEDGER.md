@@ -6032,6 +6032,7 @@ ENTRY = scripts/research/generator_v0/resmoke.py
 FULL_PYTEST_FOR_OUTPUT_CAP_COMMIT = STARTED, >90 MINUTES, DID NOT COMPLETE, NO RESULT
 REAL_LLM_CALLS_THIS_FOLLOW_UP = 0
 COMPLETION_STATE = READY_FOR_FINAL_RE_SMOKE_REVIEW
+RESUME_GATE = COMPLETE raw text must parse on the journaled wire format and intake must admit at least one generation:0 card; otherwise STOPPED_UNUSABLE_ROUND or STOPPED_NOTHING_ADMITTED, with no critic POST, on every resume
 ```
 
 Record: `docs/research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.{md,json}`.
