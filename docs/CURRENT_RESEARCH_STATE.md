@@ -1,6 +1,11 @@
+## Generator V0 Anthropic GENERATOR output-cap amendment — 2026-09-24
+
+`NEXT_UNIT = GENERATOR_V0_OUTPUT_CAP_INDEPENDENT_REVIEW`.
+The live compact re-smoke was accepted by Anthropic (HTTP 200) but stopped at `max_tokens` after 32,768 output tokens (17,396 thinking), cost USD 0.713332, one POST, no critic calls. By owner decision only the routed Anthropic GENERATOR output cap rises to 100,000; model, effort, round size, candidate count, compact projection and V02 rules are unchanged, and the legacy OpenAI cap stays 32,768. Every generator call key changes. Failed attempts now record only `wire_sha256`. The next re-smoke fits the USD 3.10 absolute smoke ceiling (3.038724 incl. history). No live call in this repair. See `docs/research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.md`.
+
 ## Generator V0 Anthropic compact GENERATOR projection — 2026-09-24
 
-`NEXT_UNIT = GENERATOR_V0_ANTHROPIC_RE_SMOKE (blocked: ANTHROPIC_API_KEY missing)`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_ANTHROPIC_RE_SMOKE` (performed; see the output-cap amendment above).
 The first Anthropic smoke was rejected with HTTP 400 "compiled grammar is too large" at cost USD 0. The Anthropic GENERATOR request now uses a compact array wire format with one shared card schema. Intake enforces the exact keyed slot schema and V02 rules before any card is VALID or reaches a critic. No scientific change and no real API call. See `docs/research/GENERATOR_V0_ANTHROPIC_COMPACT_PROJECTION.md`.
 
 ## Generator V0 outcome-blind multi-provider routing — 2026-09-24

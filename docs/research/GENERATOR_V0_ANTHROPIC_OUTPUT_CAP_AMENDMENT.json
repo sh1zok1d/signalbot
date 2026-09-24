@@ -1,0 +1,71 @@
+{
+  "BASE_COMMIT": "d10d0a277edc2f95b007eeba2e47138a83a8027e",
+  "BOUNDS_USD": {
+    "FRESH_40_CARD_ROUTED_SINGLE_ATTEMPT": {"AFTER": "26.744465", "BEFORE": "21.365889"},
+    "FRESH_40_CARD_ROUTED_WITH_CONTENT_RETRIES_AFTER": "53.486992",
+    "FITS_OWNER_17_10": false,
+    "GENERATOR_ROUNDS_AFTER": {
+      "generation:0": "2.126672",
+      "generation:1": "2.126732",
+      "generation:2": "2.126716",
+      "generation:3": "2.127392"
+    },
+    "GENERATOR_ROUND_0_BEFORE": "0.782028"
+  },
+  "CALL_KEYS_AFTER": {
+    "generation:0": "b1ed0d8333ae4b823e72e4175ef7680e0896cfc02915aa476d3278fa56d5cc93",
+    "generation:1": "0133c0e927ffe8cee38d71cd455db1290645b24a5bad5eefca6273f01c2e0104",
+    "generation:2": "25cb753aec9bce02ba1b8d9258f0e3bb396864d0a66e8a81e7954b2217411ebc",
+    "generation:3": "b3b49ca295e90a8bf76c572a0b68e7f8c93720da97e8d4b0168271c6d0593db1"
+  },
+  "COMPLETION_STATE": "READY_FOR_OUTPUT_CAP_INDEPENDENT_REVIEW",
+  "HASH_PROVENANCE": {
+    "FAILED_ATTEMPT": "no raw_sha256; wire_sha256 = provider-envelope hash when an envelope was received",
+    "RAW_SHA256": "hash of usable verbatim model text only (COMPLETE)",
+    "WIRE_SHA256": "hash of the provider envelope"
+  },
+  "LEGACY_OPENAI_GENERATOR_MAX_OUTPUT_TOKENS": 32768,
+  "LIVE_CALLS_THIS_REPAIR": 0,
+  "LIVE_RE_SMOKE_TRIGGER": {
+    "CALL_KEY": "f8207e1f0fa229f24eec50b0c894d704dd32ad1fece59672e2d2440b47ea930e",
+    "COST_MICRO_USD": 713332,
+    "HTTP_STATUS": 200,
+    "INPUT_TOKENS": 14493,
+    "LEDGER_STATE": "FAILED_WITH_COST",
+    "LIVE_POSTS": 1,
+    "OUTPUT_TOKENS": 32768,
+    "RAW_SHA256": null,
+    "RESERVED_MICRO_USD": 782028,
+    "RESPONSE_ID": "msg_011CfN3ZuBMiCqeAeRNdWSsJ",
+    "SCHEMA_ACCEPTED": true,
+    "STOP_REASON": "max_tokens",
+    "THINKING_TOKENS": 17396,
+    "WIRE_SHA256": "968550f7935eaf873a08b1d846a7b314cca797d37f49ab5e64cc2d8035922af2"
+  },
+  "OWNER_DECISION": "Increase only the routed Anthropic GENERATOR output cap 32768 -> 100000; preserve model, effort, round size, candidate count, compact projection and V02 rules",
+  "PROTECTED_2025_2026_OPENED": false,
+  "REVIEW_RISKS": [
+    "Anthropic synchronous request timeout is unchanged at 900 s; at the observed ~110 output tokens/s a full 100000-token response is ~900 s and could time out (UNCERTAIN, reservation charged)."
+  ],
+  "ROUTER_IDENTITY_DIGEST": "d3d389e3740b37ede85b15c1e73b5b1fb0ab8f61fda4d97c48aadae4b753375a",
+  "ROUTE_ANTHROPIC_GENERATOR_MAX_OUTPUT_TOKENS": {"AFTER": 100000, "BEFORE": 32768},
+  "ROUTING_DIGEST": {
+    "AFTER": "e925b578bfc0cdc2bfe354406178f56068d3745b784e36933b7d76cd5b344f1b",
+    "BEFORE": "ef21451e433da324430c15cbfda41e514ab114d8f9fd2fa0921d9cc266d32716"
+  },
+  "SCIENTIFIC_CONTRACT_CHANGED": false,
+  "SEALED_V7_SHA256": "e27eb1ce77c5152eff4e68e30c2632ad9bd575ef953b5a069775b5ff46f36457",
+  "SMOKE_BUDGET": {
+    "ABSOLUTE_CEILING_MICRO_USD": 3100000,
+    "FITS": true,
+    "HEADROOM_MICRO_USD": 61276,
+    "HISTORICAL_ACTUAL_MICRO_USD": 713332,
+    "NEXT_RESERVATIONS_MICRO_USD": {
+      "LUNA_FEASIBILITY_CRITIC": 3950,
+      "OPUS_GENERATOR_ROUND_100000": 2126672,
+      "SOL_NOVELTY_CRITIC_EMPTY_BATCH": 194770
+    },
+    "TOTAL_WITH_HISTORY_MICRO_USD": 3038724
+  },
+  "UNIT": "GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT"
+}
