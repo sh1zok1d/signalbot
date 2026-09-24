@@ -409,9 +409,10 @@ When adding documentation:
 - `AGENT_RUNTIME_PROTOCOL.md` — active operational protocol for cloud-agent live-provider work: checkout verification, ephemeral-VM handling, verified HTTPS proxy binding, budgets, exactly-once semantics, provenance and artifact survival.
 - `research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.{md,json}` — active/canonical operational freeze for the first full 30-card Generator V0 run; routes, calibration observations, run-size/budget boundary and no-more-precautionary-smokes rule.
 - `research/GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT.{md,json}` — offline export of the five-card cost/pipeline calibration sample (C001-C005 cards, final critic verdicts, deterministic selector order, successful per-role costs); no scientific status, no market outcomes tested.
+- `research/GENERATOR_V0_MEMORY_FINALIZER.{md,json}` — **active/canonical** memory authority: append-only memory event chain (`research/generator_v0_memory/`), full vs blind generator memory, deterministic dispositions and blocker mapping, atomic HEAD publish, idempotency, stable IDs, operator CLI. Mechanism memory, blind map, governance authority and context pins are derived caches of the chain.
 - `research/generator_v0_repair/BUDGET_SCENARIOS.json` — budget/run-shape scenarios A–E (decision support only; none chosen).
 
-Implementation state: `GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FROZEN`.
+Implementation state: `GENERATOR_V0_MEMORY_FINALIZER_V1_READY_FOR_FIRST_30_CARD_RUN` (previously `GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FROZEN`).
 The archived partial paid runs `artifacts/generator_v0/first-shadow`,
 `artifacts/generator_v0/first-shadow-v2`,
 `artifacts/generator_v0/first-shadow-v3`,

@@ -74,3 +74,12 @@ horizon neighbors remain disallowed.
 
 Full calibration details remain in
 `GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT.{json,md}`.
+
+## Memory-chain authority (2026-09-24)
+
+`MECHANISM_MEMORY_V0.json` is now a derived byte copy of the memory-chain head
+snapshot (`docs/research/generator_v0_memory/`). Do not edit it by hand; ingest
+campaigns with `scripts/research/generator_v0/finalize_memory.py`. The 30 pre-GV0CAL
+entries are carried verbatim by the `LEGACY_BOOTSTRAP` event; the five `GV0CAL-*`
+entries come from the deterministic `GV0CAL` finalization event. See
+`GENERATOR_V0_MEMORY_FINALIZER.md`.

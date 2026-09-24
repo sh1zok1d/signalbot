@@ -23,7 +23,9 @@ from scripts.research.generator_v0.provider import BackgroundPending, BilledFail
 from scripts.research.generator_v0.roles import RED_PROMPT, FEAS_PROMPT, NOVELTY_PROMPT, RoleContractError, Roles
 from scripts.research.generator_v0.routed_provider import RoutedProvider, offline_routed_provider
 
-C = Contexts()
+# Identities, bounds and leaf counts pinned here were computed under the pre-GV0CAL memory,
+# so they are bound to that memory version (memory-chain event LEGACY_BOOTSTRAP).
+C = Contexts(memory_event='LEGACY_BOOTSTRAP')
 CAP = 3_000_000
 CARDS = [fixture(s, C) for s in slot_plan(40)[:5]]
 CARD = CARDS[0]

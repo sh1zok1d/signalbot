@@ -26,6 +26,8 @@ def test_nested_leak_and_prompt_scanner():
 def test_source_drift_fails_closed(tmp_path,path):
     for p in (DESIGN,MEMORY,ROTATION,MAP,AUTHORITY,PINS):
         target=tmp_path/p;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/p,target)
+    from scripts.research.generator_v0.memory_store import STORE
+    shutil.copytree(ROOT/STORE,tmp_path/STORE,ignore=shutil.ignore_patterns('.staging','.finalize.lock'))
     c=Contexts(tmp_path)
     with (tmp_path/path).open('a') as f:f.write(' ')
     with pytest.raises(ContractError):c.generator()

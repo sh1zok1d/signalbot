@@ -48,8 +48,12 @@ def _row(label,kind,size,b,prior,note):
             'FITS_OWNER_17_10_CUMULATIVE':(retry if b['CONTENT_ATTEMPTS']>1 else single)<=remaining,
             'STAGES':{s['STAGE']:s['BOUND_USD'] for s in b['STAGES']},'NOTE':note}
 
-def build(contexts=None):
-    c=contexts or Contexts()
+def build(contexts=None,v7_contexts=None):
+    # Scenarios A-E are decision support for the first-shadow-v7 lineage, which ran under the
+    # pre-GV0CAL memory (memory-chain event LEGACY_BOOTSTRAP). The routed section is a fresh run
+    # and uses the current memory head.
+    current=contexts or Contexts()
+    c=v7_contexts or Contexts(memory_event='LEGACY_BOOTSTRAP')
     caps=dict(ROLE_OUTPUT_TOKEN_CAPS)
     with tempfile.TemporaryDirectory() as tmp:
         tmp=Path(tmp);(tmp/'v7').mkdir();shutil.copy(V7,tmp/'v7'/'run.sqlite')
@@ -104,7 +108,7 @@ def build(contexts=None):
         'NOTES':['Worst cases bound every call at its maximum output; realized v7 generator spend was about 65 percent of its bound.',
                  'No paid critic call has ever completed, so critic reasoning usage is unobserved; scenario C caps are not validated against real outputs.',
                  'NOT_BILLED transport retries charge 0 and are excluded.'],
-        'ROUTED_MULTI_PROVIDER':build_routed(c),
+        'ROUTED_MULTI_PROVIDER':build_routed(current),
         'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,'PROTECTED_2025_2026_OPENED':False,
     }
 

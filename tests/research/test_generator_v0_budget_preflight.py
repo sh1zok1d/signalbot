@@ -14,6 +14,8 @@ from scripts.research.generator_v0.derive import (fresh_campaign_budget_prefligh
 REPO=Path(__file__).resolve().parents[2]
 V7=REPO/'docs/research/generator_v0_first_shadow_v7/run.sqlite'
 C=Contexts()
+# first-shadow-v7 ran under the pre-GV0CAL memory; its derive is bound to that version.
+V7C=Contexts(memory_event='LEGACY_BOOTSTRAP')
 
 def test_proxy_constants_are_the_observed_v7_maxima():
     db=sqlite3.connect('file:{}?mode=ro&immutable=1'.format(V7.as_posix()),uri=True)
@@ -36,8 +38,8 @@ def test_fresh_journal_preflight(tmp_path):
 
 def test_derived_journal_preflight_counts_v7_lineage(tmp_path):
     src=tmp_path/'v7';src.mkdir();shutil.copy(V7,src/'run.sqlite')
-    derive_complete_rounds(src,tmp_path/'v8',2,C)
-    pre=remaining_campaign_budget_preflight(tmp_path/'v8',C)
+    derive_complete_rounds(src,tmp_path/'v8',2,V7C)
+    pre=remaining_campaign_budget_preflight(tmp_path/'v8',V7C)
     assert pre['SPENT_MICRO_USD']==4_946_750 and pre['LINEAGE_PRIOR_MICRO_USD']==1_167_200 and pre['JOURNAL_SPENT_MICRO_USD']==3_779_550
     assert pre['REMAINING_AUTHORIZED_MICRO_USD']==17_100_000-4_946_750==12_153_250
     assert pre['REMAINING_GENERATION_ROUNDS']==['generation:3'] and pre['PROXY_CARDS']==10
@@ -45,11 +47,11 @@ def test_derived_journal_preflight_counts_v7_lineage(tmp_path):
 
 def test_nested_derive_lineage_preflight(tmp_path):
     src=tmp_path/'v7';src.mkdir();shutil.copy(V7,src/'run.sqlite')
-    derive_complete_rounds(src,tmp_path/'v8',2,C)
-    first=remaining_campaign_budget_preflight(tmp_path/'v8',C)
+    derive_complete_rounds(src,tmp_path/'v8',2,V7C)
+    first=remaining_campaign_budget_preflight(tmp_path/'v8',V7C)
     authorize_derived_continuation(tmp_path/'v8','op','nested derive test')
-    derive_complete_rounds(tmp_path/'v8',tmp_path/'v8b',2,C)
-    nested=remaining_campaign_budget_preflight(tmp_path/'v8b',C)
+    derive_complete_rounds(tmp_path/'v8',tmp_path/'v8b',2,V7C)
+    nested=remaining_campaign_budget_preflight(tmp_path/'v8b',V7C)
     assert nested['SPENT_MICRO_USD']==first['SPENT_MICRO_USD']==4_946_750
     assert nested['WORST_CASE_REMAINING_MICRO_USD']==first['WORST_CASE_REMAINING_MICRO_USD']
     l=Ledger.open_readonly(tmp_path/'v8b'/'run.sqlite')

@@ -96,33 +96,33 @@
     "SPENT_MICRO_USD": 0,
     "STAGES": [
       {
-        "BOUND_MICRO_USD": 2213290,
-        "BOUND_USD": "2.21329",
+        "BOUND_MICRO_USD": 2251610,
+        "BOUND_USD": "2.25161",
         "STAGE": "generation:0"
       },
       {
-        "BOUND_MICRO_USD": 2213590,
-        "BOUND_USD": "2.21359",
+        "BOUND_MICRO_USD": 2251910,
+        "BOUND_USD": "2.25191",
         "STAGE": "generation:1"
       },
       {
-        "BOUND_MICRO_USD": 2213510,
-        "BOUND_USD": "2.21351",
+        "BOUND_MICRO_USD": 2251830,
+        "BOUND_USD": "2.25183",
         "STAGE": "generation:2"
       },
       {
-        "BOUND_MICRO_USD": 2216890,
-        "BOUND_USD": "2.21689",
+        "BOUND_MICRO_USD": 2255210,
+        "BOUND_USD": "2.25521",
         "STAGE": "generation:3"
       },
       {
-        "BOUND_MICRO_USD": 13852460,
-        "BOUND_USD": "13.85246",
+        "BOUND_MICRO_USD": 14457500,
+        "BOUND_USD": "14.4575",
         "STAGE": "NOVELTY_CRITIC x40"
       },
       {
-        "BOUND_MICRO_USD": 187775,
-        "BOUND_USD": "0.187775",
+        "BOUND_MICRO_USD": 190960,
+        "BOUND_USD": "0.19096",
         "STAGE": "FEASIBILITY_CRITIC x40"
       },
       {
@@ -136,8 +136,8 @@
         "STAGE": "SELECTOR"
       }
     ],
-    "WORST_CASE_REMAINING_MICRO_USD": 27094553,
-    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 54187168
+    "WORST_CASE_REMAINING_MICRO_USD": 27856058,
+    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 55710178
   },
   "MIXED_PROVIDER_NOISY_E2E": {
     "CALL_STATES": {
@@ -228,9 +228,9 @@
       "C016"
     ],
     "SPEND": {
-      "JOURNAL_MICRO_USD": 3706682,
+      "JOURNAL_MICRO_USD": 3719490,
       "LINEAGE_PRIOR_MICRO_USD": 0,
-      "TOTAL_MICRO_USD": 3706682,
+      "TOTAL_MICRO_USD": 3719490,
       "UNRESOLVED_CALLS": []
     },
     "STATUS": "PENDING_HUMAN_REVIEW",

@@ -19,7 +19,9 @@ from scripts.research.generator_v0.mock import MockResponder,fixture,slot_plan
 from scripts.research.generator_v0.derive import expected_generator_request,campaign_bound
 from scripts.research.generator_v0.provider import MockProvider
 
-C=Contexts()
+# Identities, bounds and leaf counts pinned here were computed under the pre-GV0CAL memory,
+# so they are bound to that memory version (memory-chain event LEGACY_BOOTSTRAP).
+C=Contexts(memory_event='LEGACY_BOOTSTRAP')
 PLAN=slot_plan(40)
 SLOTS=PLAN[:10]
 AKEY='sk-ant-test-DO-NOT-PERSIST-0123456789'

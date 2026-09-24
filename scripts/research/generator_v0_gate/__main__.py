@@ -31,9 +31,11 @@ def build():
         mixed,l,_=run_mixed_noisy_campaign(tmp/'mixed',contexts=c);l.close()
         partial=derive_after_partial_work(tmp/'partial',contexts=c)
         src=tmp/'v7';src.mkdir();shutil.copy(V7,src/'run.sqlite')
-        v7=derive_complete_rounds(src,tmp/'v8',2,c)
+        # first-shadow-v7 ran under the pre-GV0CAL memory (memory-chain event LEGACY_BOOTSTRAP).
+        v7c=Contexts(memory_event='LEGACY_BOOTSTRAP')
+        v7=derive_complete_rounds(src,tmp/'v8',2,v7c)
         led=Ledger(tmp/'v8'/'run.sqlite');prior=led.get('lineage')['PRIOR_ATTEMPTS'];led.close()
-        pre=remaining_campaign_budget_preflight(tmp/'v8',c)
+        pre=remaining_campaign_budget_preflight(tmp/'v8',v7c)
         fresh=fresh_campaign_budget_preflight(40,17_100_000,c)
         v7_sha_after=hashlib.sha256((src/'run.sqlite').read_bytes()).hexdigest()
     noisy.pop('SELECTOR_ADVISORY',None)

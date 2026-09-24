@@ -337,8 +337,8 @@
       "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
       "BLOCKER_CLASS_IF_ANY": null,
       "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
-      "FUNCTION": "Participant-composition state -> subsequent sub-hour variance-ratio structure",
-      "MECHANISM": "Average-trade-size participant-composition proxy",
+      "FUNCTION": "Characterize whether a participant-composition proxy predicts the sub-hour autocorrelation structure of BTC returns over the subsequent 24h, beyond volatility and volume state.",
+      "MECHANISM": "Average trade size as participant-composition state and subsequent sub-hour variance ratio",
       "SIGNATURE_ID": "GV0CAL-C001",
       "STATE": "CONSUMED"
     },
@@ -346,26 +346,26 @@
       "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
       "BLOCKER_CLASS_IF_ANY": null,
       "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
-      "FUNCTION": "US DST displacement of the intraday perp-vs-spot price-discovery profile",
-      "MECHANISM": "Perpetual-versus-spot intraday price-discovery locus",
+      "FUNCTION": "Measure the intraday profile of perpetual-versus-spot price-discovery share and test whether it shifts with the US DST clock change.",
+      "MECHANISM": "Intraday rotation of perpetual-versus-spot price-discovery locus and its displacement at US DST shifts",
       "SIGNATURE_ID": "GV0CAL-C002",
       "STATE": "CONSUMED"
     },
     {
-      "ANTI_RESCUE_SCOPE": "the same calibration signature while its methodological blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
       "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
-      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify settlement mechanics from correlated UTC/time-of-day and venue effects and address the causal interpretation before this mechanism can advance.",
-      "FUNCTION": "Absolute 5m movement around offset venue funding settlement schedules",
-      "MECHANISM": "Venue-specific perpetual funding-settlement clock microstructure",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+      "FUNCTION": "Test whether absolute 5m price movement concentrates around perpetual funding settlement times, using the venue-specific schedule offset between BitMEX and Binance as identification.",
+      "MECHANISM": "Funding-settlement clock microstructure identified by offset settlement schedules across BitMEX and Binance",
       "SIGNATURE_ID": "GV0CAL-C003",
       "STATE": "DEFERRED_OR_BLOCKED"
     },
     {
-      "ANTI_RESCUE_SCOPE": "the same calibration signature while its methodological blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
       "BLOCKER_CLASS_IF_ANY": "METHOD_CONFOUNDING_CONTROL_INADEQUATE",
-      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must address confounding of final-settlement/fixing windows with correlated calendar, volatility, liquidity, and contemporaneous event structure before this mechanism can advance.",
-      "FUNCTION": "Binance activity/path in CME final-settlement fixing window vs placebo Fridays",
-      "MECHANISM": "CME reference-rate fixing-window spillover into Binance perpetual activity",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+      "FUNCTION": "Measure whether Binance perpetual activity and path concentrate in the CME settlement reference-rate window on final settlement days, relative to identically timed windows on non-expiry Fridays.",
+      "MECHANISM": "Reference-rate fixing window footprint on Binance perpetual activity at CME bitcoin futures settlement",
       "SIGNATURE_ID": "GV0CAL-C004",
       "STATE": "DEFERRED_OR_BLOCKED"
     },
@@ -373,8 +373,8 @@
       "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
       "BLOCKER_CLASS_IF_ANY": null,
       "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
-      "FUNCTION": "Listing age -> subsequent matched cross-sectional relative return",
-      "MECHANISM": "Listing-age lifecycle drift in Binance spot USDT cross-section",
+      "FUNCTION": "Test whether days since Binance spot listing organizes subsequent relative returns across USDT-quoted names, controlling for liquidity and trailing return.",
+      "MECHANISM": "Listing-age lifecycle drift in the Binance spot USDT cross-section",
       "SIGNATURE_ID": "GV0CAL-C005",
       "STATE": "CONSUMED"
     }

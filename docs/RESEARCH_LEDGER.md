@@ -6152,3 +6152,24 @@ NEXT_PAID_ACTION = FIRST_30_CARD_RUN_AFTER_OFFLINE_MEMORY_VALIDATION
 ```
 
 Record: `docs/research/GENERATOR_V0_CALIBRATION_MEMORY_INGESTION.{json,md}`.
+
+## Generator V0 memory finalizer V1 — 2026-09-24
+
+No research window, hypothesis or protected data consumed. Offline infrastructure only; no provider call.
+
+```
+MEMORY_AUTHORITY = APPEND_ONLY_EVENT_CHAIN (docs/research/generator_v0_memory/)
+EVENT 0 LEGACY_BOOTSTRAP 54afd1ed229cca6785586534102df3b6fb5129e736def4f5df726225b16773e8
+  30 pre-GV0CAL entries + 30 governance rows verbatim from d4b28dea18a64b3ed00339ebdcde539a78e4d1e1
+  replay reproduces that commit's memory / blind map / authority byte-for-byte
+EVENT 1 GV0CAL 358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad (head)
+  source GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT.json sha256 14146e3aedb4ad67942ddbf5ab3245193cf373282b4bd11d8a926b5bcc6b9f73
+  5 attempt records, 5 new canonical signatures, 0 links
+  C001/C002/C005 CONSUMED; C003 DEFERRED_OR_BLOCKED METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING;
+  C004 DEFERRED_OR_BLOCKED METHOD_CONFOUNDING_CONTROL_INADEQUATE (golden: manual ingestion 64a37a9)
+MEMORY_ENTRY_COUNT = 35; ATTEMPT_RECORD_COUNT = 5
+DESIGN: embedded governance ROWS removed (rules unchanged); finalization never edits the design
+NO_SCIENTIFIC_STATUS = true; MARKET_OUTCOMES_TESTED = false; generated hypotheses != executed market tests
+```
+
+Record: `docs/research/GENERATOR_V0_MEMORY_FINALIZER.{md,json}`.

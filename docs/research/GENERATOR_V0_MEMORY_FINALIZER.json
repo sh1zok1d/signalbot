@@ -1,0 +1,81 @@
+{
+  "ATOMIC_PUBLISH_MODEL": "LOCK -> STAGE -> VALIDATE STAGED BYTES -> PLACE CONTENT-ADDRESSED IMMUTABLE FILES -> VERIFY FULL CHAIN -> ONE os.replace OF HEAD.json -> REGENERATE DERIVED CACHES",
+  "ATTEMPT_RECORD_COUNT": 5,
+  "CHAIN": [
+    {
+      "CAMPAIGN_ID": "LEGACY",
+      "EVENT_HASH": "54afd1ed229cca6785586534102df3b6fb5129e736def4f5df726225b16773e8",
+      "EVENT_TYPE": "LEGACY_BOOTSTRAP",
+      "MEMORY_DELTA_SHA256": "4dbe7e2b99181ea5a4fbc0ed3e4865cdca2eb7dfe1c02c4a87abeeae840e0248",
+      "PREVIOUS_EVENT_HASH": "GENESIS",
+      "SEQUENCE": 0,
+      "SOURCE_SHA256": "f3e0680434d7192bfd11d765ff769ef4deaba48d89cf776a35638a04bf87cf74"
+    },
+    {
+      "CAMPAIGN_ID": "GV0CAL",
+      "EVENT_HASH": "358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad",
+      "EVENT_TYPE": "CAMPAIGN_FINALIZATION",
+      "MEMORY_DELTA_SHA256": "d1b82ccecb46d64341358f5124e62ff4a52065f3a398aef6cbf7fb8ae818ad39",
+      "PREVIOUS_EVENT_HASH": "54afd1ed229cca6785586534102df3b6fb5129e736def4f5df726225b16773e8",
+      "SEQUENCE": 1,
+      "SOURCE_SHA256": "14146e3aedb4ad67942ddbf5ab3245193cf373282b4bd11d8a926b5bcc6b9f73"
+    }
+  ],
+  "CODE": [
+    "scripts/research/generator_v0/memory_store.py",
+    "scripts/research/generator_v0/memory_finalizer.py",
+    "scripts/research/generator_v0/finalize_memory.py"
+  ],
+  "CURRENT_MEMORY_HEAD_HASH": "358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad",
+  "DATE": "2026-09-24",
+  "DESIGN_CHANGE": "HYPOTHESIS_GENERATOR_V0_DESIGN.json GOVERNANCE_REGION_AUTHORITY_V0.ROWS removed (35 stale rows), ROWS_SOURCE pointer added; every rule, table and state meaning byte-identical; context.materialize() removed",
+  "ENTRY_POINT": "python -m scripts.research.generator_v0.finalize_memory (--dry-run | --apply | --verify | --rebuild)",
+  "FINALIZATION_EDITS_DESIGN": false,
+  "FROZEN_UNCHANGED": [
+    "provider/model routing",
+    "prompts",
+    "critic schemas",
+    "candidate schema",
+    "exactly-once semantics",
+    "30-card target",
+    "10-card rounds",
+    "generator max output",
+    "protected-data boundary",
+    "sealed v7"
+  ],
+  "GOLDEN_SOURCE": "manual ingestion at 64a37a9857c587ec85a943f2d2529fcb5ea4178d (IDs, states, blocker classes); its hand-written signature wording is superseded by deterministic text",
+  "GV0CAL_EVENT_HASH": "358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad",
+  "GV0CAL_GOVERNANCE": {
+    "GV0CAL-C001": "CONSUMED",
+    "GV0CAL-C002": "CONSUMED",
+    "GV0CAL-C003": "DEFERRED_OR_BLOCKED / METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+    "GV0CAL-C004": "DEFERRED_OR_BLOCKED / METHOD_CONFOUNDING_CONTROL_INADEQUATE",
+    "GV0CAL-C005": "CONSUMED"
+  },
+  "GV0CAL_STABLE_IDS": [
+    "GV0CAL-C001",
+    "GV0CAL-C002",
+    "GV0CAL-C003",
+    "GV0CAL-C004",
+    "GV0CAL-C005"
+  ],
+  "HISTORICAL_CONTEXTS": "Contexts(memory_event=...) reproduces a past memory version; identity/bound pins computed under pre-GV0CAL memory (incl. first-shadow-v7 derive) are bound to LEGACY_BOOTSTRAP",
+  "LEGACY_BOOTSTRAP_EVENT_HASH": "54afd1ed229cca6785586534102df3b6fb5129e736def4f5df726225b16773e8",
+  "LEGACY_BOOTSTRAP_SOURCE_COMMIT": "d4b28dea18a64b3ed00339ebdcde539a78e4d1e1",
+  "LEGACY_REPLAY_BYTE_IDENTICAL_TO_SOURCE_COMMIT": true,
+  "LIVE_API_CALLS": 0,
+  "MARKET_OUTCOMES_TESTED": false,
+  "MEMORY_AUTHORITY_MODEL": "APPEND_ONLY_EVENT_CHAIN: LEGACY_BOOTSTRAP + CAMPAIGN_FINALIZATION deltas, deterministic replay under frozen design rules; mirrors and context pins are derived caches",
+  "MEMORY_ENTRY_COUNT": 35,
+  "MULTIPLE_TESTING_BOUNDARY": "generated hypotheses != executed market tests; a future ledger counts executed tests/search families",
+  "NO_SCIENTIFIC_STATUS": true,
+  "PROTECTED_DATA_OPENED": false,
+  "RESERVED_EVENT_TYPES": [
+    "MARKET_TEST_RESULT"
+  ],
+  "START_HEAD": "64a37a9857c587ec85a943f2d2529fcb5ea4178d",
+  "START_TREE": "b61d410de80d7abf44be10d1cd71270321b583f9",
+  "STATUS": "ACTIVE_CANONICAL",
+  "STORE": "docs/research/generator_v0_memory",
+  "UNIT": "GENERATOR_V0_MEMORY_FINALIZER_V1"
+}

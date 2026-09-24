@@ -196,7 +196,23 @@ For every attempted paid call record:
 
 Then report total paid POSTs, actual cost, charged-or-reserved cost, cap, unresolved/uncertain count, secret scan, protected-data state, sealed-run state and repository modification state.
 
-## 18. First 30-card run boundary
+## 18. Memory finalization after a campaign
+
+A completed campaign is ingested into mechanism memory only by the offline
+finalizer (`docs/research/GENERATOR_V0_MEMORY_FINALIZER.md`):
+
+```bash
+python -m scripts.research.generator_v0.finalize_memory --dry-run --campaign-id <ID> --run-journal <run.sqlite>
+python -m scripts.research.generator_v0.finalize_memory --apply   --campaign-id <ID> --run-journal <run.sqlite>
+python -m scripts.research.generator_v0.finalize_memory --verify
+```
+
+- Run it in the same VM as the campaign, because the journal is ephemeral (§3), then commit the whole `docs/research/generator_v0_memory/` chain together with the regenerated mirrors and pins.
+- It makes no provider calls. It never edits the frozen design, and no LLM decides what is written.
+- Re-running a finalized campaign with the same source is a no-op. A different source under the same campaign ID is a hard failure.
+- The event chain is the historical authority. Mirrors and `GENERATOR_V0_CONTEXT_PINS.json` are derived caches; never hand-edit them.
+
+## 19. First 30-card run boundary
 
 After the architecture freeze, do not add more precautionary smoke/calibration cycles. The next paid action after operational persistence/review is the first 30-card run. Only a concrete defect observed in execution justifies reopening the frozen transport/routing design.
 

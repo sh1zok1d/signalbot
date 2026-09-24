@@ -60,6 +60,8 @@ Before any Generator V0 live-provider, smoke, calibration, paid-LLM, or first fu
 
 For the first full Generator V0 campaign, `docs/research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.md` is the active operational architecture authority. It does not override frozen scientific contracts or protected-data rules.
 
+Generator V0 mechanism memory is an append-only event chain (`docs/research/generator_v0_memory/`, see `docs/research/GENERATOR_V0_MEMORY_FINALIZER.md`). After a completed campaign, ingest it only with `python -m scripts.research.generator_v0.finalize_memory` (dry-run, then apply, then verify). Never hand-edit `MECHANISM_MEMORY_V0.json`, `BLIND_MECHANISM_MAP_V0.json`, `GOVERNANCE_REGION_AUTHORITY_V0.json` or the context pins: they are derived caches of the chain. Finalization never edits `HYPOTHESIS_GENERATOR_V0_DESIGN.json`, and the blind generator projection must stay outcome-neutral.
+
 ## Hard development freeze
 
 Unless a task explicitly changes the project posture, do not build:

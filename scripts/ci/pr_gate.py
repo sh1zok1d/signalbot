@@ -131,7 +131,8 @@ def _select_targets(always: list[str], changed: list[str]) -> list[str]:
         'docs/research/GOVERNANCE_REGION_AUTHORITY_V0.json',
         'docs/research/GENERATOR_V0_CONTEXT_PINS.json',
     }
-    if any(path.startswith('scripts/research/generator_v0/') or path in generator_authorities for path in changed):
+    if any(path.startswith(('scripts/research/generator_v0/', 'docs/research/generator_v0_memory/')) or path in generator_authorities
+           for path in changed):
         for test in sorted((REPO / 'tests/research').glob('test_generator_v0_*.py')):
             add(str(test.relative_to(REPO)))
 

@@ -1,7 +1,14 @@
+## Generator V0 memory finalizer V1 — 2026-09-24
+
+`MEMORY_FINALIZER_V1 = ACTIVE`
+`NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`
+
+Mechanism memory is now an append-only event chain (`docs/research/generator_v0_memory/`): `LEGACY_BOOTSTRAP` (`54afd1ed229cca6785586534102df3b6fb5129e736def4f5df726225b16773e8`, the 30 pre-GV0CAL entries verbatim from `d4b28de`) then `GV0CAL` (`358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad`, current head), derived deterministically from the calibration export. GV0CAL governance is unchanged: C001/C002/C005 `CONSUMED`, C003/C004 `DEFERRED_OR_BLOCKED` with the same blocker classes. Governance rows are no longer embedded in the frozen design; the mirrors and context pins are derived caches. After the first 30-card run, finalize it with `python -m scripts.research.generator_v0.finalize_memory` in the same VM. No provider call, no market outcome, no protected data. Canonical record: `docs/research/GENERATOR_V0_MEMORY_FINALIZER.{md,json}`.
+
 ## Generator V0 calibration-memory ingestion — 2026-09-24
 
-`CALIBRATION_MEMORY_INGESTION_COMPLETE = true`  
-`NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`
+`CALIBRATION_MEMORY_INGESTION_COMPLETE = true` (manual workflow superseded by the memory finalizer above; kept as its golden source)
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`
 
 All five durable calibration cards are now represented in mechanism memory before the first 30-card generation. Stable prior IDs are `GV0CAL-C001`–`GV0CAL-C005`. The generator sees only outcome-neutral prior-work signatures. The novelty critic sees C001/C002/C005 as consumed prior signatures and C003/C004 as deferred/blocked methodological regions with explicit blocker-resolution requirements. No market outcomes were tested; protected 2025/2026 remain unopened. The architecture freeze is unchanged.
 

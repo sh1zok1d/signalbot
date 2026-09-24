@@ -1,6 +1,6 @@
 # Generator V0 — calibration memory ingestion amendment
 
-**Status:** `ACTIVE RECORD`  
+**Status:** `HISTORICAL / GOLDEN MIGRATION SOURCE` (superseded as a workflow by `GENERATOR_V0_MEMORY_FINALIZER.md`)
 **Date:** 2026-09-24  
 **Mode:** offline, no provider calls  
 **Source:** `GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT.{json,md}`
@@ -50,3 +50,15 @@ protected-data rule changed. The 30-card architecture freeze remains in force.
 `NO_SCIENTIFIC_STATUS = true`  
 `MARKET_OUTCOMES_TESTED = false`  
 `PROTECTED_DATA_OPENED = false`
+
+## Superseded by the memory finalizer (2026-09-24)
+
+This manual ingestion is preserved as the golden reference for the migration to the
+append-only memory chain. `GENERATOR_V0_MEMORY_FINALIZER.md` now owns ingestion:
+event `GV0CAL` is produced deterministically from
+`GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT.json` and reproduces the stable IDs,
+governance states and blocker classes above. The hand-written wording of the five
+signatures and blocker requirements is replaced by the finalizer's deterministic
+text; the embedded rows this amendment added to `HYPOTHESIS_GENERATOR_V0_DESIGN.json`
+are removed, because governance rows are memory, not frozen design. The exact
+manual files remain at commit `64a37a9857c587ec85a943f2d2529fcb5ea4178d`.

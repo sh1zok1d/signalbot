@@ -152,44 +152,44 @@
     "TARGET_FAMILY": "MEDIAN_PERP_RESOLUTION_SHARE vs 0.5 and vs YEAR x SIGN_D x RV matched closing non-extremes"
   },
   "GV0CAL-C001": {
-    "FUNCTION": "Participant-composition state -> subsequent sub-hour variance-ratio structure",
+    "FUNCTION": "Characterize whether a participant-composition proxy predicts the sub-hour autocorrelation structure of BTC returns over the subsequent 24h, beyond volatility and volume state.",
     "ID": "GV0CAL-C001",
-    "INFORMATION_SOURCE": "CORE_BTC_BINANCE_V0 kline quote_volume + trade_count",
-    "MECHANISM": "Average-trade-size participant-composition proxy",
+    "INFORMATION_SOURCE": "KLINES: CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Average trade size as participant-composition state and subsequent sub-hour variance ratio",
     "REGION_STATE": "PRIOR_WORK_SIGNATURE",
-    "TARGET_FAMILY": "Sub-hour return autocorrelation / variance-ratio structure"
+    "TARGET_FAMILY": "RVR_24H = sum of squared k-minute log returns divided by sum of squared 1h log returns over (T, T+24h] on BTCUSDT perpetual"
   },
   "GV0CAL-C002": {
-    "FUNCTION": "US DST displacement of the intraday perp-vs-spot price-discovery profile",
+    "FUNCTION": "Measure the intraday profile of perpetual-versus-spot price-discovery share and test whether it shifts with the US DST clock change.",
     "ID": "GV0CAL-C002",
-    "INFORMATION_SOURCE": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0 + statutory DST calendars",
-    "MECHANISM": "Perpetual-versus-spot intraday price-discovery locus",
+    "INFORMATION_SOURCE": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, STATUTORY_DST_CALENDARS",
+    "MECHANISM": "Intraday rotation of perpetual-versus-spot price-discovery locus and its displacement at US DST shifts",
     "REGION_STATE": "PRIOR_WORK_SIGNATURE",
-    "TARGET_FAMILY": "Cross-venue price-discovery timing"
+    "TARGET_FAMILY": "Displacement, in UTC hours, of the PERP_SHARE hour profile between US-DST and US-standard-time weeks"
   },
   "GV0CAL-C003": {
-    "FUNCTION": "Absolute 5m movement around offset venue funding settlement schedules",
+    "FUNCTION": "Test whether absolute 5m price movement concentrates around perpetual funding settlement times, using the venue-specific schedule offset between BitMEX and Binance as identification.",
     "ID": "GV0CAL-C003",
-    "INFORMATION_SOURCE": "BitMEX + Binance perpetual 5m surfaces",
-    "MECHANISM": "Venue-specific perpetual funding-settlement clock microstructure",
+    "INFORMATION_SOURCE": "PRE2020_SURFACE: D2_BITMEX_PRE2020_XBTUSD, CORE_BTC_BINANCE_V0, BITMEX_XBTUSD_FUNDING_SCHEDULE_SPEC, BINANCE_UM_BTCUSDT_FUNDING_SCHEDULE_SPEC",
+    "MECHANISM": "Funding-settlement clock microstructure identified by offset settlement schedules across BitMEX and Binance",
     "REGION_STATE": "PRIOR_WORK_SIGNATURE",
-    "TARGET_FAMILY": "Settlement-window absolute movement/range"
+    "TARGET_FAMILY": "Rank of the true settlement offset among 8 pseudo 8h-spaced offsets of SETTLE_ABN, per venue"
   },
   "GV0CAL-C004": {
-    "FUNCTION": "Binance activity/path in CME final-settlement fixing window vs placebo Fridays",
+    "FUNCTION": "Measure whether Binance perpetual activity and path concentrate in the CME settlement reference-rate window on final settlement days, relative to identically timed windows on non-expiry Fridays.",
     "ID": "GV0CAL-C004",
-    "INFORMATION_SOURCE": "CME settlement calendar + Binance perpetual kline activity",
-    "MECHANISM": "CME reference-rate fixing-window spillover into Binance perpetual activity",
+    "INFORMATION_SOURCE": "OFFICIAL_CALENDAR: CORE_BTC_BINANCE_V0, STATUTORY_DST_CALENDARS, CME_BITCOIN_FUTURES_FINAL_SETTLEMENT_CALENDAR, CME_CF_BRR_METHODOLOGY_ARCHIVE",
+    "MECHANISM": "Reference-rate fixing window footprint on Binance perpetual activity at CME bitcoin futures settlement",
     "REGION_STATE": "PRIOR_WORK_SIGNATURE",
-    "TARGET_FAMILY": "Fixing-window activity/path concentration"
+    "TARGET_FAMILY": "LOG_FIX_RATIO on CME final settlement days versus the placebo-Friday distribution"
   },
   "GV0CAL-C005": {
-    "FUNCTION": "Listing age -> subsequent matched cross-sectional relative return",
+    "FUNCTION": "Test whether days since Binance spot listing organizes subsequent relative returns across USDT-quoted names, controlling for liquidity and trailing return.",
     "ID": "GV0CAL-C005",
-    "INFORMATION_SOURCE": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
-    "MECHANISM": "Listing-age lifecycle drift in Binance spot USDT cross-section",
+    "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+    "MECHANISM": "Listing-age lifecycle drift in the Binance spot USDT cross-section",
     "REGION_STATE": "PRIOR_WORK_SIGNATURE",
-    "TARGET_FAMILY": "Cross-sectional listing-age relative-return structure"
+    "TARGET_FAMILY": "Paired difference in H-day log return relative to the equal-weight eligible universe, young bucket minus matched mature control"
   },
   "H01": {
     "FUNCTION": "Low recent RV predicts higher future RV",

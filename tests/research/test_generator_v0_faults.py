@@ -280,7 +280,9 @@ def test_property_lineage_ceiling_holds_across_random_operation_sequences(tmp_pa
 def test_first_shadow_v7_derive_preserves_cumulative_spend(tmp_path):
     import hashlib
     src=tmp_path/'src';src.mkdir();shutil.copy(V7,src/'run.sqlite')
-    report=derive_complete_rounds(src,tmp_path/'v8',2)
+    # first-shadow-v7 ran under the pre-GV0CAL memory (memory-chain event LEGACY_BOOTSTRAP).
+    v7c=Contexts(memory_event='LEGACY_BOOTSTRAP')
+    report=derive_complete_rounds(src,tmp_path/'v8',2,v7c)
     assert report['IMPORTED_COST_MICRO_USD']==3779550
     assert report['LINEAGE_PRIOR_MICRO_USD']==1167200
     assert report['LINEAGE_TOTAL_MICRO_USD']==4946750
@@ -294,14 +296,14 @@ def test_first_shadow_v7_derive_preserves_cumulative_spend(tmp_path):
     verdicts=[x['VERDICT'] for x in prior[0]['INTAKE']['CARDS']]
     assert verdicts.count('HARD_FAIL')==9 and verdicts.count('VALID')==1
     l.close()
-    with pytest.raises(ContractError,match='generation:3 \\(legacy v0.1, not grandfathered\\)'):derive_complete_rounds(src,tmp_path/'v9',3)
+    with pytest.raises(ContractError,match='generation:3 \\(legacy v0.1, not grandfathered\\)'):derive_complete_rounds(src,tmp_path/'v9',3,v7c)
     # budget authority after derive is lineage-aware
-    pre=remaining_campaign_budget_preflight(tmp_path/'v8')
+    pre=remaining_campaign_budget_preflight(tmp_path/'v8',v7c)
     assert pre['SPENT_MICRO_USD']==4946750 and pre['REMAINING_AUTHORIZED_MICRO_USD']==12153250
     assert pre['WORST_CASE_REMAINING_MICRO_USD']==sum(s['BOUND_MICRO_USD'] for s in pre['STAGES'])
     # second-generation derive from the derived run still carries everything
     authorize_derived_continuation(tmp_path/'v8','op','go')
-    report2=derive_complete_rounds(tmp_path/'v8',tmp_path/'v8b',2)
+    report2=derive_complete_rounds(tmp_path/'v8',tmp_path/'v8b',2,v7c)
     assert report2['LINEAGE_TOTAL_MICRO_USD']==4946750
     assert hashlib.sha256((src/'run.sqlite').read_bytes()).hexdigest()==V7_SHA
     assert sorted(x.name for x in src.iterdir())==['run.sqlite']
