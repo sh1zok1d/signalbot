@@ -1,0 +1,14 @@
+[Unit]
+Description=Run Signalbot private beta V0.2 notification outbox
+Documentation=file:/opt/signalbot/docs/PRIVATE_BETA_V0_DEPLOY.md
+
+[Timer]
+OnCalendar=*-*-* *:*:40 UTC
+AccuracySec=1s
+RandomizedDelaySec=0
+# One current invocation after downtime; each run is bounded by config caps.
+Persistent=true
+Unit=signalbot-beta-notify.service
+
+[Install]
+WantedBy=timers.target

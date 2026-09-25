@@ -1,0 +1,14 @@
+[Unit]
+Description=Run Signalbot private beta V0.2 detector (state tape + episodes)
+Documentation=file:/opt/signalbot/docs/PRIVATE_BETA_V0_DEPLOY.md
+
+[Timer]
+OnCalendar=*-*-* *:00/5:25 UTC
+AccuracySec=1s
+RandomizedDelaySec=0
+# One current invocation after downtime; each run is bounded by config caps.
+Persistent=true
+Unit=signalbot-beta-detector.service
+
+[Install]
+WantedBy=timers.target

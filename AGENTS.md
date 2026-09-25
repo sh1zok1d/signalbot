@@ -35,6 +35,10 @@ rather than proliferate RV_ABSTENTION.
 
 There is still no claim of a durable trading edge.
 
+A narrow **descriptive private beta V0.2** is authorized (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`; mode `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN`).
+- **Where it lives:** beta work belongs only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.
+- **What it must never do:** never predictive wording, never V1/V2 changes, never a research promotion without a separate gate.
+
 ## Read these sources first
 
 For any new task, use this authority order:

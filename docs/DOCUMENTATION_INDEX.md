@@ -302,9 +302,17 @@ These documents may still be useful operationally, but following them is not aut
 - `VPS_DEPLOY.md`
 - `SHADOW_TIMER_DEPLOY.md`
 - `TELEGRAM_NOTIFIER_DEPLOY.md`
+- `PRIVATE_BETA_V0_DEPLOY.md`: beta V0.2 deploy, soak and privacy runbook. Its units are prepared, not activated.
 - `E1_VPS_RUNBOOK.md`
 
 Before using an operational runbook, compare it with current code/config and runtime state. Some commands/names reflect earlier deployment stages.
+
+---
+
+## 7a. Descriptive private beta V0.2 (authorized 2026-09-25)
+
+- `PRIVATE_BETA_V0_RESTART_DECISION.md` is the governance authority. It covers the scope, the frozen rule identity, the soak gate, and the rollout and exit criteria. It is descriptive only, and the predictive product stays frozen.
+- `research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md` carries the label `PROSPECTIVE_PRE_REGISTERED_FORWARD_EVALUATION / OWNER_UNBLINDED`. It is never independent confirmation.
 
 ---
 

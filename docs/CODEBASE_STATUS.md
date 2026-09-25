@@ -33,7 +33,8 @@ For project history, see `PROJECT_HISTORY.md`. For current execution, see `PROJE
 | `scripts/research/` | mixed; see below | Primary research/audit tooling. New research tools belong here unless a repeated stable abstraction justifies promotion. |
 | `analytics/forecasting/` | `FROZEN_BASELINE` | V1 forecasting logic. Retain for autopsy/baseline comparison; do not rescue/tune V1 in place. |
 | `analytics/forecasting_v2/` | `FROZEN_RESEARCH_ENGINE` | V2-v0 implementation and correctness foundation. Retain for E1/reproducibility; Stage 6+ product progression is frozen. |
-| `notifications/` | `DEFERRED_PRODUCT_SURFACE` | Existing notification infrastructure. Not current product-expansion scope. |
+| `notifications/` | `DEFERRED_PRODUCT_SURFACE` | Existing notification infrastructure. Not current product-expansion scope. The beta reuses only `telegram_client.TelegramSender`, subclassed and unmodified. |
+| `beta/`, `runtime/beta_cli.py`, `runtime/beta_bot.py`, `storage/beta_v0_*`, `config/beta_v0.yaml`, `deploy/signalbot-beta-*` | `AUTHORIZED_DESCRIPTIVE_BETA` | Private beta V0.2 descriptive attention engine (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`). It reuses the Stage-2 feature, consensus and percentile cores unchanged. It never imports V1/V2 forecast logic and holds no predictive claim. It is not activated. |
 | `deploy/` | `OPERATIONS` | Deployment examples/runtime support. Presence is not authorization to deploy V2. |
 | `config/` | mixed | Existing runtime/model configs. Frozen model semantics must not be changed merely because research-first mode changed. |
 | `tests/` | active support | Correctness/regression coverage. Tests protecting research validity remain active; old engine tests remain useful historical regression evidence. |

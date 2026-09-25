@@ -34,6 +34,8 @@ from common.config import Config, load_secrets
 from common.logging_setup import setup_logging
 from runtime.shadow_cli import is_shadow_command, run_shadow_cli_command
 from runtime.telegram_cli import is_telegram_command, run_telegram_cli_command
+from runtime.beta_cli import (add_beta_arguments, is_beta_command, run_beta_cli_command,
+                              validate_beta_args)
 from storage.db import Database
 from storage.redis_client import RedisState
 from backfill.backfill import run_backfill, run_gap_fill
@@ -60,6 +62,13 @@ async def run(args: argparse.Namespace) -> None:
     # tables, separate systemd timer). PostgreSQL only, never Redis.
     if is_telegram_command(args):
         await run_telegram_cli_command(args, cfg, secrets)
+        return
+
+    # A beta command (private beta V0.2, descriptive only) is likewise a bounded,
+    # isolated operation before any Stage 1 startup: PostgreSQL only, own tables,
+    # own advisory locks; it never invokes the legacy forecast logic.
+    if is_beta_command(args):
+        await run_beta_cli_command(args, cfg, secrets)
         return
 
     db = Database(secrets.postgres_dsn)
@@ -218,6 +227,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--telegram-max-send", type=int, default=None,
                         help="Max pending deliveries to attempt this run "
                              "(--telegram-once only; default 20).")
+
+    # Private beta V0.2 commands (delegated to runtime.beta_cli); cross-command
+    # exclusivity is enforced in _validate_shadow_arg_combos below.
+    add_beta_arguments(parser)
     return parser
 
 
@@ -271,6 +284,9 @@ def _validate_shadow_arg_combos(parser: argparse.ArgumentParser,
     if args.telegram_json and not telegram_selected:
         parser.error("--telegram-json is only valid with a --telegram-* command")
 
+    validate_beta_args(parser, args,
+                       other_command_selected=bool(shadow_selected or telegram_selected))
+
     # Scan/send caps apply only to --telegram-once.
     for flag, value in (("--telegram-max-scan", args.telegram_max_scan),
                         ("--telegram-max-send", args.telegram_max_send)):
@@ -299,7 +315,8 @@ def configure_cli_logging(args: argparse.Namespace) -> None:
     duplicated; normal Stage 1 logs are not moved).
     """
     setup_logging(args.log_level)
-    if getattr(args, "shadow_json", False) or getattr(args, "telegram_json", False):
+    if getattr(args, "shadow_json", False) or getattr(args, "telegram_json", False) \
+            or getattr(args, "beta_json", False):
         root = logging.getLogger()
         for handler in root.handlers:
             if isinstance(handler, logging.StreamHandler) \
