@@ -1,3 +1,22 @@
+## GV0R01-C013 first market test — preregistration frozen — 2026-09-25
+
+`GV0R01_C013_MARKET_TEST_DESIGN = FROZEN`
+`EXECUTION_AUTHORIZED = false`
+`MARKET_TEST_EXECUTED = false`
+`NEXT_UNIT = GV0R01_C013_MARKET_TEST_EXECUTION_AUTHORIZATION`
+
+This section supersedes `NEXT_UNIT = FIRST_MARKET_TEST_DESIGN_FOR_GV0R01` below.
+
+The first market test for GV0R01-C013 ("Persistence of intraday wick morphology across the Binance spot USDT cross-section") is frozen as a one-shot discovery-tier preregistration: `docs/research/GV0R01_C013_MARKET_TEST_PREREG.{json,md}`, prereg SHA256 `49dff57b3e068d999c9c4467fb5117de9d73ad564425bf737df727a1096f7625`, test family `TF-GV0R01-C013-MT1`.
+
+- Primary variant: K=5 trailing CLV, H=1 residual wick target, top-50 universe on the Sprint 04 panel, decision days 2020-01-06..2024-12-29.
+- Primary statistic: weekly-mean Spearman correlation.
+- Null: 1000 within-date quote-volume-tercile permutations.
+- Direction: negative (persistence).
+- Gates: the card's three falsifiers, plus dependence (HAC) and adjacency gates that only narrow support.
+
+The deterministic harness is `scripts/research/gv0r01_c013_market_test{,_lib}.py`, tested on synthetic panels only. It is registered in the new global `docs/research/SCIENTIFIC_TEST_LEDGER.json` before any outcome. No C013 outcome was computed. Protected 2025/2026 remain unopened. Execution requires an explicit owner permit bound to the prereg digest.
+
 ## Generator V0 first 30-card run GV0R01 — 2026-09-25
 
 `GENERATOR_V0_FIRST_30_CARD_RUN = COMPLETE`

@@ -1,0 +1,31 @@
+{
+  "RULE": "Counts executed scientific market tests and their search families, not generated hypotheses. An entry is registered before any outcome is computed, bound to its prereg digest, and closed once with its result digest. A TEST_FAMILY_ID is never reused. Tests before this ledger (MARKET-01..06, D-series, Sprint cards) are recorded in docs/RESEARCH_LEDGER.md.",
+  "SCHEMA_VERSION": "SCIENTIFIC_TEST_LEDGER_V1",
+  "SEARCH_FAMILIES": [
+    {
+      "EXECUTABLE_NOW_CARDS": 1,
+      "EXECUTED_TESTS": 0,
+      "GENERATED_CARDS": 30,
+      "REGISTERED_TESTS": 1,
+      "SEARCH_FAMILY_ID": "SF-GENERATOR_V0-GV0R01",
+      "SOURCE": "Generator V0 campaign GV0R01 (30 generated cards; memory event 416b22fa...)"
+    }
+  ],
+  "TESTS": [
+    {
+      "CLASSIFICATION": null,
+      "DATASET_ID": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+      "HYPOTHESIS_ID": "GV0R01-C013",
+      "MULTIPLICITY_METHOD": "single primary, conjunctive gates, Holm on descriptive secondary grid",
+      "PREREG_PATH": "docs/research/GV0R01_C013_MARKET_TEST_PREREG.json",
+      "PREREG_SHA256": "49dff57b3e068d999c9c4467fb5117de9d73ad564425bf737df727a1096f7625",
+      "PRIMARY_TEST_COUNT": 1,
+      "REGISTERED": "2026-09-25",
+      "RESULT_SHA256": null,
+      "SEARCH_FAMILY_ID": "SF-GENERATOR_V0-GV0R01",
+      "SECONDARY_TEST_COUNT": 7,
+      "STATUS": "PREREGISTERED_NOT_EXECUTED",
+      "TEST_FAMILY_ID": "TF-GV0R01-C013-MT1"
+    }
+  ]
+}

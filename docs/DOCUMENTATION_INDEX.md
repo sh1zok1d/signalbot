@@ -415,7 +415,10 @@ When adding documentation:
 
 - `research/GENERATOR_V0_FIRST_30_CARD_RUN_GV0R01.{md,json}` — **sealed** record of the first real 30-card campaign GV0R01 (`PENDING_HUMAN_REVIEW`, USD 5.091486, Stream A C013). The sealed journal is tracked at `research/generator_v0_gv0r01/run.sqlite`. It includes the memory finalization event `416b22fa…`. No market outcome was tested.
 
-Implementation state: `GENERATOR_V0_FIRST_30_CARD_RUN_COMPLETE_MEMORY_FINALIZED` (previously `GENERATOR_V0_MEMORY_FINALIZER_V1_READY_FOR_FIRST_30_CARD_RUN`). Next unit: `FIRST_MARKET_TEST_DESIGN_FOR_GV0R01`.
+- `research/GV0R01_C013_MARKET_TEST_PREREG.{md,json}` — **frozen** one-shot preregistration of the first market test for GV0R01-C013 (JSON authoritative; `EXECUTION_AUTHORIZED = false`). Harness `scripts/research/gv0r01_c013_market_test{,_lib}.py`.
+- `research/SCIENTIFIC_TEST_LEDGER.json` — **active** global machine-readable ledger of executed scientific tests and search families, registered before outcomes. Generated cards are not counted.
+
+Implementation state: `GENERATOR_V0_FIRST_30_CARD_RUN_COMPLETE_MEMORY_FINALIZED` (previously `GENERATOR_V0_MEMORY_FINALIZER_V1_READY_FOR_FIRST_30_CARD_RUN`). Next unit: `GV0R01_C013_MARKET_TEST_EXECUTION_AUTHORIZATION` (previously `FIRST_MARKET_TEST_DESIGN_FOR_GV0R01`).
 The archived partial paid runs `artifacts/generator_v0/first-shadow`,
 `artifacts/generator_v0/first-shadow-v2`,
 `artifacts/generator_v0/first-shadow-v3`,

@@ -6224,3 +6224,24 @@ NEXT_UNIT = FIRST_MARKET_TEST_DESIGN_FOR_GV0R01
 ```
 
 The GV0R01 signatures now count as prior search surface. C013 is the only `EXECUTABLE_NOW` candidate, and its market outcome is untested. Record: `docs/research/GENERATOR_V0_FIRST_30_CARD_RUN_GV0R01.{md,json}`.
+
+## GV0R01-C013 market test preregistration — 2026-09-25
+
+Design and preregistration only. No research window consumed, no outcome computed, no protected data opened, no provider call.
+
+```
+HYPOTHESIS_ID = GV0R01-C013
+TEST_FAMILY_ID = TF-GV0R01-C013-MT1
+SEARCH_FAMILY_ID = SF-GENERATOR_V0-GV0R01
+PREREG = docs/research/GV0R01_C013_MARKET_TEST_PREREG.json
+PREREG_SHA256 = 49dff57b3e068d999c9c4467fb5117de9d73ad564425bf737df727a1096f7625
+DATASET = SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0 (file ledger fc38ea13...)
+DECISION_DAYS = 2020-01-06..2024-12-29 (260 ISO weeks)
+PRIMARY = K5_H1_N50; weekly-mean Spearman(rank CLV, rank WICK_RESID); direction negative
+NULL = 1000 within-date quote-volume-tercile permutations; SEED 639284419827364414
+PRIMARY_TEST_COUNT = 1; SECONDARY_TEST_COUNT = 7 (descriptive, Holm)
+EXECUTION_AUTHORIZED = false
+MARKET_TEST_EXECUTED = false
+```
+
+The global machine-readable test ledger `docs/research/SCIENTIFIC_TEST_LEDGER.json` starts here. It counts executed tests, not generated cards.

@@ -63,3 +63,11 @@ def test_generator_source_or_authority_selects_complete_focused_suite():
     for changed in ('scripts/research/generator_v0/context.py', 'docs/research/MECHANISM_MEMORY_V0.json',
                     'docs/research/generator_v0_memory/HEAD.json'):
         assert expected <= set(gate._select_targets([], [changed]))
+
+
+def test_c013_bound_paths_select_its_suite():
+    for changed in ('scripts/research/gv0r01_c013_market_test_lib.py', 'docs/research/GV0R01_C013_MARKET_TEST_PREREG.json',
+                    'docs/research/SCIENTIFIC_TEST_LEDGER.json',
+                    'docs/research_data/SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0/EXCLUSION_LISTS.json',
+                    'scripts/research/discovery_sprint_04/d13_panel.py'):
+        assert 'tests/research/test_gv0r01_c013_market_test.py' in _pr_gate()._select_targets([], [changed]), changed
