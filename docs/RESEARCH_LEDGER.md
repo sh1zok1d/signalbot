@@ -6484,6 +6484,21 @@ C020_PRIMARY_TEST_EXECUTED = false
 NEXT_UNIT = GV0R01_C020_HOLIDAY_CALENDAR_PINNING
 ```
 
+## GV0R03 generator feasibility contract — 2026-09-25
+
+Contract only. No new hypotheses, no LLM call, no market outcomes. V02 card acceptance is unchanged.
+
+```
+GENERATOR_CONTRACT_VERSION = GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V0
+COMPILER_SCHEMA_VERSION = GV0R02_SCHEMA_V0
+COMPILER_MAPPING_STATUS = MECHANICAL_COPY
+MISSING_FIELD_REJECTION_STATUS = EACH_REQUIRED_FIELD
+SCIENTIFIC_DOF_PRESERVATION_STATUS = SEALED_FIELDS_REJECT_DOWNSTREAM_EDIT
+NEW_HYPOTHESES_GENERATED = false
+LLM_CALLS = 0
+NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT
+```
+
 ## GV0R02 feasibility compiler positive control — 2026-09-25
 
 Synthetic planning fixture only. Same `compile_proposal` entry point. No policy edit, no golden-case edit, no market outcomes.

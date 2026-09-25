@@ -1,3 +1,14 @@
+## GV0R03 generator feasibility contract — 2026-09-25
+
+`GENERATOR_CONTRACT_VERSION = GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V0`
+`COMPILER_MAPPING_STATUS = MECHANICAL_COPY`
+`NEW_HYPOTHESES_GENERATED = false`
+`LLM_CALLS = 0`
+`MARKET_OUTCOMES_OPENED = false`
+`NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`
+
+Future candidates must carry the planning object in `scripts/research/generator_v0/feasibility_contract.py`. The transform copies it into a `GV0R02_SCHEMA_V0` proposal. It does not score feasibility. `GENERATOR_CONTRACT_V02` card rules are unchanged. Golden cases and the positive control are unchanged.
+
 ## GV0R02 feasibility compiler positive control — 2026-09-25
 
 `POSITIVE_CONTROL_EXECUTED = true`
