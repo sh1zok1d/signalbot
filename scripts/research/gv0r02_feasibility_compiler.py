@@ -9,6 +9,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import math
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -169,6 +170,15 @@ def _analytic_mde(sd: float, n_eff: float) -> float | None:
     return (POWER_PROFILE["Z_ALPHA"] + POWER_PROFILE["Z_TARGET"]) * sd / (n_eff ** 0.5)
 
 
+def _normal_power(effect: float | None, sd: float, n_eff: float | None) -> float | None:
+    """Two-sided normal power at the frozen alpha. Profile constants are not changed."""
+    if effect is None or n_eff is None or n_eff <= 0 or sd <= 0:
+        return None
+    se = sd / (n_eff ** 0.5)
+    z = abs(effect) / se - POWER_PROFILE["Z_ALPHA"]
+    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+
+
 def compile_proposal(proposal: dict, *, registry: dict | None = None) -> dict:
     assert_design_identity()
     registry = registry or derive_feature_registry()
@@ -307,7 +317,17 @@ def compile_proposal(proposal: dict, *, registry: dict | None = None) -> dict:
     else:
         n_eff = None if nominal_n is None else float(nominal_n)
         numbers["MDE_BASE"] = _analytic_mde(POWER_PROFILE["BASE_SD"], n_eff)
-        numbers["MDE_STRESS"] = _analytic_mde(POWER_PROFILE["BASE_SD"] * POWER_PROFILE["STRESS_SD_MULTIPLIER"], n_eff)
+        numbers["MDE_STRESS"] = _analytic_mde(
+            POWER_PROFILE["BASE_SD"] * POWER_PROFILE["STRESS_SD_MULTIPLIER"], n_eff
+        )
+        numbers["POWER_AT_MIN_MEANINGFUL_EFFECT_BASE"] = _normal_power(
+            proposal.get("MIN_MEANINGFUL_EFFECT"), POWER_PROFILE["BASE_SD"], n_eff
+        )
+        numbers["POWER_AT_MIN_MEANINGFUL_EFFECT_STRESS"] = _normal_power(
+            proposal.get("MIN_MEANINGFUL_EFFECT"),
+            POWER_PROFILE["BASE_SD"] * POWER_PROFILE["STRESS_SD_MULTIPLIER"],
+            n_eff,
+        )
 
     effect = proposal.get("MIN_MEANINGFUL_EFFECT")
     stress_power = numbers["POWER_AT_MIN_MEANINGFUL_EFFECT_STRESS"]
@@ -348,9 +368,11 @@ def compile_proposal(proposal: dict, *, registry: dict | None = None) -> dict:
     if nominal_n is not None and nominal_n < 300 and proposal.get("ENDPOINT_MOMENT") == "FIRST_MOMENT":
         warning = "GENERATOR_WARNING_FIRST_MOMENT_BELOW_300_NOT_A_REJECTION"
 
-    status = next(name for name in STATUS_PRIORITY if flags[name])
-    if status == "FEASIBLE_FOR_PREREGISTRATION" and not blockers:
+    harder = [name for name in STATUS_PRIORITY if name != "FEASIBLE_FOR_PREREGISTRATION" and flags[name]]
+    if not harder:
+        flags["FEASIBLE_FOR_PREREGISTRATION"] = True
         reasons.append("no harder status matched")
+    status = next(name for name in STATUS_PRIORITY if flags[name])
     otherwise_strong = status in {"INFERENCE_SUPPORT_INSUFFICIENT", "INFORMATIONALLY_WEAK", "STRUCTURAL_INFERENCE_RISK"}
     proposal_digest = sha256_hex(canonical_json({k: proposal[k] for k in REQUIRED_FIELDS if k in proposal}))
     identity_body = {

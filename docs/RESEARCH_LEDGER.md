@@ -6484,6 +6484,21 @@ C020_PRIMARY_TEST_EXECUTED = false
 NEXT_UNIT = GV0R01_C020_HOLIDAY_CALENDAR_PINNING
 ```
 
+## GV0R02 feasibility compiler positive control — 2026-09-25
+
+Synthetic planning fixture only. Same `compile_proposal` entry point. No policy edit, no golden-case edit, no market outcomes.
+
+```
+POSITIVE_CONTROL_ID = GV0R02_POSITIVE_CONTROL_SYNTHETIC
+POSITIVE_CONTROL_STATUS = FEASIBLE_FOR_PREREGISTRATION
+NEGATIVE_MUTATION = NOMINAL_OBSERVATION_COUNT 10000 -> 36
+NEGATIVE_MUTATION_STATUS = INFORMATIONALLY_WEAK
+NEGATIVE_MUTATION_BLOCKER = MDE_TOO_LARGE
+MARKET_OUTCOMES_OPENED = false
+GENERATOR_MODIFIED = false
+NEXT_UNIT = NONE_AUTHORIZED_AFTER_POSITIVE_CONTROL
+```
+
 ## GV0R02 feasibility compiler implementation — 2026-09-25
 
 Implementation of the frozen contract. No generator edit, no new data, no market outcomes, no positive control.

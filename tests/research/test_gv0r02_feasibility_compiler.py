@@ -8,6 +8,7 @@ from scripts.research.gv0r02_feasibility_compiler import (
     COMPILER_POLICY_VERSION,
     COMPILER_SCHEMA_VERSION,
     POWER_PROFILE,
+    _base_proposal,
     check_revision,
     compile_golden,
     compile_proposal,
@@ -109,3 +110,75 @@ def test_golden_cases():
     assert c020["POWER_AT_MIN_MEANINGFUL_EFFECT_STRESS"] == 0.4
     assert compiled["FAST_PASS_RUNTIME_SECONDS"] < 5
     assert compiled["MARKET_OUTCOMES_OPENED"] is False
+
+
+def positive_control_proposal() -> dict:
+    """Synthetic planning fixture. Identity is not special-cased in the compiler."""
+    return _base_proposal(
+        PROPOSAL_ID="GV0R02_POSITIVE_CONTROL_SYNTHETIC",
+        MECHANISM="synthetic frequent second-moment shift used only to exercise the feasible path",
+        FALSIFIABLE_CLAIM="a predeclared 0.20 standardized shift is detectable at the frozen stress screen",
+        EXPECTED_DIRECTION="POSITIVE",
+        EVENT_OR_STATE_DEFINITION="synthetic state observed on every decision bar",
+        PRIMARY_OBSERVABLE="synthetic standardized second moment",
+        ENDPOINT_MOMENT="SECOND_MOMENT",
+        COUNTERFACTUAL_CLASS="within-sample sign symmetry",
+        MIN_MEANINGFUL_EFFECT=0.20,
+        MIN_MEANINGFUL_EFFECT_UNITS="STANDARDIZED_SECOND_MOMENT",
+        MIN_MEANINGFUL_EFFECT_RATIONALE="planning magnitude chosen so the frozen stress MDE is inside the bar",
+        QUALITATIVE_DEPENDENCE_SOURCES=["none in the synthetic fixture"],
+        STRUCTURAL_DEPENDENCE={
+            "OVERLAPPING_OUTCOME_WINDOWS": False,
+            "OVERLAPPING_ESTIMATION_WINDOWS": False,
+            "REUSED_CONTROLS": False,
+            "SHARED_BASELINES": False,
+            "ROLLING_WINDOW_OVERLAP": False,
+            "NESTED_OBSERVATIONS": False,
+            "EVENT_CLUSTERING": False,
+        },
+        OUTCOME_BLIND_SAMPLE={
+            "NOMINAL_OBSERVATION_COUNT": 10000,
+            "COUNT_BY_YEAR": {},
+            "COUNT_BY_ERA": {"BINANCE_2020_2024": 10000},
+            "COUNT_BY_VENUE": {"BINANCE": 10000},
+            "COUNT_BY_EVENT_FAMILY": {"SYNTHETIC_BAR": 10000},
+        },
+        FROZEN_OUTCOME_BLIND_SCREEN={"PRIMARY_LABEL_ORBIT_SIZE": 1048576},
+    )
+
+
+def test_positive_control_is_feasible_without_a_special_case():
+    result = compile_proposal(positive_control_proposal())
+    assert result["FEASIBILITY_STATUS"] == "FEASIBLE_FOR_PREREGISTRATION"
+    assert result["BLOCKERS"] == []
+    assert result["DATA_STATUS"] == "DATA_READY"
+    assert result["PIT_STATUS"] == "PIT_READY"
+    assert result["NOMINAL_N"] == 10000
+    assert result["NAMED_INFERENCE_CLASS"] == "PERMUTATION_GROUP_INVARIANCE"
+    assert result["MIN_ATTAINABLE_P"] == pytest.approx(1 / 1048576)
+    assert result["ALPHA_ATTAINABLE"] is True
+    assert result["MDE_BASE"] < 0.20
+    assert result["MDE_STRESS"] < 0.20
+    assert result["POWER_AT_MIN_MEANINGFUL_EFFECT_BASE"] >= POWER_PROFILE["TARGET_POWER"]
+    assert result["POWER_AT_MIN_MEANINGFUL_EFFECT_STRESS"] >= POWER_PROFILE["TARGET_POWER"]
+    assert result["TARGET_POWER"] == 0.80
+    assert result["MARKET_OUTCOMES_OPENED"] is False
+    assert result["PROTECTED_2025_VALUES_OPENED"] is False
+    assert result["PROTECTED_2026_VALUES_OPENED"] is False
+    assert "GV0R02_POSITIVE_CONTROL" not in json.dumps(POWER_PROFILE)
+
+
+def test_negative_mutation_changes_only_nominal_n():
+    parent = positive_control_proposal()
+    mutated = json.loads(json.dumps(parent))
+    mutated["OUTCOME_BLIND_SAMPLE"]["NOMINAL_OBSERVATION_COUNT"] = 36
+    changed = [
+        key for key in parent
+        if parent[key] != mutated[key]
+    ]
+    assert changed == ["OUTCOME_BLIND_SAMPLE"]
+    result = compile_proposal(mutated)
+    assert result["FEASIBILITY_STATUS"] == "INFORMATIONALLY_WEAK"
+    assert result["BLOCKERS"][0]["BLOCKER_CODE"] == "MDE_TOO_LARGE"
+    assert result["MDE_STRESS"] > 0.20
+    assert result["POWER_AT_MIN_MEANINGFUL_EFFECT_STRESS"] < POWER_PROFILE["TARGET_POWER"]

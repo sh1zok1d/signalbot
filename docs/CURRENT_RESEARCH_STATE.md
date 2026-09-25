@@ -1,3 +1,14 @@
+## GV0R02 feasibility compiler positive control — 2026-09-25
+
+`POSITIVE_CONTROL_EXECUTED = true`
+`POSITIVE_CONTROL_STATUS = FEASIBLE_FOR_PREREGISTRATION`
+`NEGATIVE_MUTATION_STATUS = INFORMATIONALLY_WEAK`
+`MARKET_OUTCOMES_OPENED = false`
+`GENERATOR_MODIFIED = false`
+`NEXT_UNIT = NONE_AUTHORIZED_AFTER_POSITIVE_CONTROL`
+
+The synthetic planning fixture `GV0R02_POSITIVE_CONTROL_SYNTHETIC` passes `compile_proposal` under the unchanged `GV0R02_POLICY_V0` profile. Reducing only its nominal observation count to 36 returns `INFORMATIONALLY_WEAK` with blocker `MDE_TOO_LARGE`. Golden C012, C004, and C020 were not edited. This is not a market hypothesis and it does not authorize a generator run.
+
 ## GV0R02 feasibility compiler implemented — 2026-09-25
 
 `FEASIBILITY_COMPILER_IMPLEMENTED = true`
