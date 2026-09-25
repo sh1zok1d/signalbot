@@ -1,3 +1,22 @@
+## BLS CPI release-schedule archive V0 pinned — 2026-09-25
+
+`BLS_CPI_CALENDAR_V0 = DURABLY_PINNED`
+`C012_CPI_BLOCKER_RESOLVED = true`
+`C004_CPI_BLOCKER_RESOLVED = true`
+`NEXT_UNIT = GV0R01_C012_OUTCOME_BLIND_DESIGN_AND_POWER`
+
+This section supersedes `NEXT_UNIT = GV0R01_C012_CPI_CALENDAR_ACQUISITION_AND_OUTCOME_BLIND_DESIGN` below. It also supersedes that section's note that the sandbox refuses `bls.gov` and `web.archive.org`: both hosts were reachable in this run.
+
+`BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0` holds the point-in-time CPI release schedule for 2020–2024:
+
+- **Coverage.** 60 events, all `VERIFIED_PREANNOUNCED` and safe for 6h, 12h and 24h windows. There are no reschedules and no unresolved events.
+- **Sources.** The authority is the first-party BLS schedule page, dated by Wayback captures whose bytes match the CDX digest. UTC is derived from the frozen `STATUTORY_DST_CALENDARS`.
+- **Content.** Schedule metadata only: no CPI values, no market data, and protected 2025/2026 values stay unopened.
+
+The dataset resolves only the CPI calendar observable, and C012 and C004 may reference it later. Neither has been designed, preregistered or powered.
+
+Record: `docs/research/BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0_ACQUISITION.{md,json}`. Dataset: `docs/research_data/BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0/`.
+
 ## Post-C013 program decision — GV0R01 Stream-B feasibility triage — 2026-09-25
 
 `C013_PROGRAM_STATE = PROMISING_PROTOTYPE / CONFIRMATION_DEFERRED_LOW_POWER`

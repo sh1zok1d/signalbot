@@ -6317,3 +6317,19 @@ NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C012 (feasibility only)
 RUN_GV0R02_NEXT = false
 NEXT_UNIT = GV0R01_C012_CPI_CALENDAR_ACQUISITION_AND_OUTCOME_BLIND_DESIGN
 ```
+
+## BLS CPI release-schedule archive V0 acquisition — 2026-09-25
+
+Data provenance only. No hypothesis executed, no outcome computed, no research window consumed, no CPI values or market data acquired, protected 2025/2026 values not opened, no provider call. Wayback CDX listing plus 190 exact archived payloads and 2 live BLS pages.
+
+```
+DATASET_ID = BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0
+DATASET_DIGEST = 760ed2c5d18b03b7a41c25e6bab157ebde476977fdc3e5f7a3462aa376f4154f
+AUTHORITY = bls.gov/schedule/news_release/cpi.htm (first party), dated by web.archive.org captures
+EVENTS = 60 (12 per year, 2020-2024); VERIFIED_PREANNOUNCED = 60
+SAFE_W6 = 60; SAFE_W12 = 60; SAFE_W24 = 60; RESCHEDULED = 0; UNRESOLVED = 0
+DST = STATUTORY_DST_CALENDARS (DISCOVERY_SPRINT_04.json), cross-checked vs EPAct 2005 rule and zoneinfo
+CDX_SHA1_MATCH = 189/190 obtained captures (mismatch excluded from evidence)
+C012_CPI_BLOCKER_RESOLVED = true; C004_CPI_BLOCKER_RESOLVED = true (observable only; no design)
+NEXT_UNIT = GV0R01_C012_OUTCOME_BLIND_DESIGN_AND_POWER
+```
