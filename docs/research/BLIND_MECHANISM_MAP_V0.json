@@ -191,6 +191,182 @@
     "REGION_STATE": "PRIOR_WORK_SIGNATURE",
     "TARGET_FAMILY": "Paired difference in H-day log return relative to the equal-weight eligible universe, young bucket minus matched mature control"
   },
+  "GV0R01-C002": {
+    "FUNCTION": "Directional expectation characterization: estimate the signed subsequent common-price return aligned with the opening leg, separately for spot-led and perp-led dislocation events.",
+    "ID": "GV0R01-C002",
+    "INFORMATION_SOURCE": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Opening-leg identity and directional continuation of the cross-venue midpoint",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "ALIGNED_RET_H = sign(opening-leg 5m return at T) * log return of MID=(perp+spot)/2 over (T, T+H]; contrast is mean ALIGNED_RET for SPOT-led events minus PERP-led events"
+  },
+  "GV0R01-C003": {
+    "FUNCTION": "Path-morphology characterization: measure how temporally clustered the largest 5m moves within each UTC day are, relative to ordering-destroying nulls, and compare the clustering between the (omitted) BitMEX era and the (omitted) to (omitted) Binance era within matched daily-RV bins.",
+    "ID": "GV0R01-C003",
+    "INFORMATION_SOURCE": "PRE2020_SURFACE: D2_BITMEX_PRE2020_XBTUSD, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Cascade contiguity of top intraday 5m moves across the BitMEX (omitted) and Binance eras",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Median log CONTIG_RATIO per era against the block null, and the within-daily-RV-bin difference in mean log CONTIG_RATIO between BitMEX (omitted) days and Binance (omitted) days"
+  },
+  "GV0R01-C004": {
+    "FUNCTION": "Event-conditioned cross-asset structure characterization: compare the idiosyncratic ETH variance share (after removing BTC with a frozen pre-event beta) in windows immediately after scheduled FOMC statements against matched non-event windows.",
+    "ID": "GV0R01-C004",
+    "INFORMATION_SOURCE": "OFFICIAL_CALENDAR: D11_FOMC_OFFICIAL_V0, CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0, BLS_CPI_RELEASE_SCHEDULE_ARCHIVE",
+    "MECHANISM": "Common-factor dominance of ETH versus BTC in scheduled FOMC windows",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Mean over FOMC events of RESID_SHARE(event window) minus RESID_SHARE(matched control window) within YEAR x WEEKDAY x UTC_HOUR strata"
+  },
+  "GV0R01-C005": {
+    "FUNCTION": "Liquidity execution-state characterization: estimate whether stress weeks raise subsequent execution-cost proxies disproportionately for names that were already illiquid, relative to non-stress weeks.",
+    "ID": "GV0R01-C005",
+    "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+    "MECHANISM": "Stress-week flight-from-illiquidity gradient in the Binance spot USDT cross-section",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "GRADIENT(T) = cross-sectional OLS slope of [log illiquidity over (T, T+D] minus log illiquidity over (T-35d, T-7d]] on BASE_RANK, controlling for trailing volatility rank, log price bucket and trailing BTC beta; contrast is mean GRADIENT in stress weeks minus non-stress weeks"
+  },
+  "GV0R01-C006": {
+    "FUNCTION": "Regime-transition characterization: test whether the option-implied volatility state, relative to trailing realized volatility, adds information about transitions into a high realized-volatility regime beyond kline-based volatility state.",
+    "ID": "GV0R01-C006",
+    "INFORMATION_SOURCE": "OPTIONS: DERIBIT_DVOL_INDEX_PUBLIC_API, DERIBIT_OPTIONS_HISTORICAL_MARKS_VENDOR, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Option-implied volatility gap as a precursor of realized-volatility regime transitions",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "TRANSITION_N(T) = 1 if annualized RV over (T, T+N] lies in the top tercile of the trailing 365-day RV distribution evaluated at T, among ELIGIBLE decision days"
+  },
+  "GV0R01-C007": {
+    "FUNCTION": "Event-response characterization: measure the BTC return and realized-volatility response after large USDT issuance events identified by on-chain block timestamps, against demand-state-matched non-event times.",
+    "ID": "GV0R01-C007",
+    "INFORMATION_SOURCE": "ONCHAIN: ETHEREUM_USDT_CONTRACT_ISSUE_EVENT_LOGS, TRON_USDT_TRC20_ISSUANCE_LOGS, EXCHANGE_DEPOSIT_ADDRESS_LABELS, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "BTC response to large on-chain USDT issuance events under demand-state matching",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "RESPONSE_RET_H = BTC log return over (EVENT_T, EVENT_T+H] and RESPONSE_RV_H = BTC realized volatility from 5m returns over (EVENT_T, EVENT_T+H], each as event minus matched-control mean"
+  },
+  "GV0R01-C008": {
+    "FUNCTION": "Venue-structure characterization: test whether a venue's share of displayed near-touch depth predicts its share of price discovery on the following day, beyond volume share and volatility.",
+    "ID": "GV0R01-C008",
+    "INFORMATION_SOURCE": "ORDER_BOOK: BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE, OKX_SPOT_ORDERBOOK_HISTORICAL_ARCHIVE, VENDOR_L2_ORDERBOOK_REPLAY, OKX_SPOT_KLINE_PUBLIC_ARCHIVE, MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Near-touch depth share as a determinant of cross-venue price-discovery leadership",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Incremental coefficient of DEPTH_SHARE(d-1) on COMPONENT_SHARE(d) after controlling for COMPONENT_SHARE(d-1), daily RV(d-1) and quote-volume share(d-1)"
+  },
+  "GV0R01-C010": {
+    "FUNCTION": "Participant-clock identification: use the staggered US and EU DST transitions to estimate whether the intraday profile of cross-venue dislocation magnitude anchors to the US clock, the EU clock, or neither.",
+    "ID": "GV0R01-C010",
+    "INFORMATION_SOURCE": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, STATUTORY_DST_CALENDARS, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Staggered US-EU DST windows as identification of the clock governing cross-venue dislocation",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "W_US = mean delta in mismatch windows divided by mean delta in full-shift windows, with W_EU = 1 - W_US under the two-clock model; each compared against the pseudo-window null"
+  },
+  "GV0R01-C012": {
+    "FUNCTION": "Directional expectation test of the mean signed pre-release return against matched non-event windows",
+    "ID": "GV0R01-C012",
+    "INFORMATION_SOURCE": "OFFICIAL_CALENDAR: D11_FOMC_OFFICIAL_V0, CORE_BTC_BINANCE_V0, STATUTORY_DST_CALENDARS, BLS_CPI_RELEASE_SCHEDULE_ARCHIVE",
+    "MECHANISM": "Pre-announcement BTC drift before scheduled FOMC and CPI releases",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Mean PRE_RET_W on scheduled release windows minus mean PRE_RET_W on matched control windows, within YEAR x WEEKDAY x UTC clock-time strata"
+  },
+  "GV0R01-C013": {
+    "FUNCTION": "Cross-sectional rank association between trailing CLV rank and subsequent residual wick-asymmetry rank, with liquidity and trailing-return controls",
+    "ID": "GV0R01-C013",
+    "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+    "MECHANISM": "Persistence of intraday wick morphology across the Binance spot USDT cross-section",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Weekly mean Spearman correlation between CLV rank and WICK_RESID rank. WICK_RESID_i is the residual of the sum over the next H daily bars of [log(H/O) - log(O/L)], after a cross-sectional regression on the same-window relative log return and log range."
+  },
+  "GV0R01-C014": {
+    "FUNCTION": "Incremental forecast of relative realized variance over a baseline that uses realized history only",
+    "ID": "GV0R01-C014",
+    "INFORMATION_SOURCE": "OPTIONS: DERIBIT_DVOL_INDEX_HISTORY, DERIBIT_OPTIONS_QUOTES_VENDOR_HISTORY, CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0",
+    "MECHANISM": "Options-implied ETH-BTC relative variance spread and subsequent realized relative variance",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "RRV_H = log(RV_ETH / RV_BTC) over (T, T+H], with realized variance computed from 5m log returns of the ETHUSDT and BTCUSDT perpetuals"
+  },
+  "GV0R01-C015": {
+    "FUNCTION": "Event-conditioned characterization of execution-impact state following stablecoin supply events, compared against matched pseudo-events",
+    "ID": "GV0R01-C015",
+    "INFORMATION_SOURCE": "ONCHAIN: ETHEREUM_USDT_ERC20_TRANSFER_LOGS, TRON_USDT_TRC20_TRANSFER_LOGS, EXCHANGE_WALLET_ADDRESS_LABELS, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Stablecoin supply events as an execution-liquidity state for the BTC perpetual",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "IMPACT_H = log(sum of |1m log returns| / sum of 1m quote volume) over (T, T+H], expressed relative to the trailing 30-day median impact at T"
+  },
+  "GV0R01-C016": {
+    "FUNCTION": "Incremental hazard model of low-to-high RV-state transitions given order-book depth thinning",
+    "ID": "GV0R01-C016",
+    "INFORMATION_SOURCE": "ORDER_BOOK: BINANCE_PUBLIC_DATA_UM_BOOKDEPTH, BINANCE_PUBLIC_DATA_UM_BOOKTICKER, TARDIS_BINANCE_FUTURES_L2_INCREMENTAL, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Order-book depth thinning as a leading indicator of volatility-regime transition",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "TRANSITION_H = 1 if the hourly RV state moves from the low tercile at T to the high tercile in any hour within (T, T+H]"
+  },
+  "GV0R01-C017": {
+    "FUNCTION": "Event-response characterization at first touches of untouched round-number levels, compared with placebo levels",
+    "ID": "GV0R01-C017",
+    "INFORMATION_SOURCE": "KLINES: CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0",
+    "MECHANISM": "Response after first touches of untouched round-number price levels, compared with placebo grids",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "CONT_H = D x log(close at T+H / close at T), averaged over events, compared with the same statistic for placebo grids"
+  },
+  "GV0R01-C018": {
+    "FUNCTION": "Characterization of price-level retention after venue-idiosyncratic jumps compared with common jumps, reported separately for the perpetual and spot venues",
+    "ID": "GV0R01-C018",
+    "INFORMATION_SOURCE": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Retention of venue-idiosyncratic versus common 5m jumps across the Binance perpetual and OKX spot",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "RETAIN_W = log(price on the jump venue at bar close + W minutes / price at the jump bar close) divided by the jump return, plus 1, giving the retained fraction of the jump. The quantity compared is mean RETAIN_W for IDIO minus mean RETAIN_W for matched COMMON jumps, per venue."
+  },
+  "GV0R01-C020": {
+    "FUNCTION": "Holiday natural experiment on the regional composition of the BTC intraday volume profile",
+    "ID": "GV0R01-C020",
+    "INFORMATION_SOURCE": "OFFICIAL_CALENDAR: CORE_BTC_BINANCE_V0, STATUTORY_DST_CALENDARS, NYSE_HOLIDAY_CALENDAR_ARCHIVE, CN_STATE_COUNCIL_HOLIDAY_NOTICES, US_OPM_FEDERAL_HOLIDAY_LIST",
+    "MECHANISM": "Official-holiday participant removal and BTC intraday session volume shares",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Mean over holidays in a set of log(SESSION_SHARE on the holiday / mean SESSION_SHARE on matched same-weekday non-holiday days)"
+  },
+  "GV0R01-C021": {
+    "FUNCTION": "Measure the lagged BTC-factor loading gradient across trailing-liquidity terciles of Binance spot USDT names.",
+    "ID": "GV0R01-C021",
+    "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+    "MECHANISM": "Liquidity-gradient lagged diffusion of the BTC daily factor across Binance spot USDT names",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "LAG_LOADING_GAP: mean lagged BTC loading in the bottom liquidity tercile minus that in the top tercile. It is estimated per calendar month and pooled across months."
+  },
+  "GV0R01-C022": {
+    "FUNCTION": "Test whether Binance BTC perpetual price is attracted toward the maximum-open-interest strike of expiring Deribit options at the 08:00 UTC settlement.",
+    "ID": "GV0R01-C022",
+    "INFORMATION_SOURCE": "OPTIONS: Deribit BTC option open interest by strike and expiry, hourly snapshots, Deribit BTC option expiry calendar and delivery prices, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Deribit expiry strike-pinning footprint on Binance BTC perpetual price at 08:00 UTC",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Rank of the normalized PIN_DIST of K* among matched placebo strikes of the same expiring series, pooled across expiries, together with the expiry-versus-non-expiry-Friday difference in median normalized PIN_DIST."
+  },
+  "GV0R01-C025": {
+    "FUNCTION": "Measure whether the BTC perpetual volatility cascade is irreversible in time, beyond what symmetric GARCH generates.",
+    "ID": "GV0R01-C025",
+    "INFORMATION_SOURCE": "KLINES: CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0",
+    "MECHANISM": "Time-reversal asymmetry (Zumbach effect) in the BTC perpetual volatility cascade",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "ZUMBACH_ASYM, A(tau) at tau = 24h, estimated monthly and pooled, after removing hour-of-week seasonality."
+  },
+  "GV0R01-C026": {
+    "FUNCTION": "Characterize the Epps curve of the Binance BTC perpetual versus OKX BTC spot as a time-varying measure of cross-venue transmission speed.",
+    "ID": "GV0R01-C026",
+    "INFORMATION_SOURCE": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Cross-venue Epps-curve speed of the Binance BTC perpetual versus OKX spot as a transmission-capacity clock",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Weekly EPPS_GAP regressed on week index with realized-volatility and quote-volume controls, plus the residual dispersion of EPPS_GAP relative to the constant-speed simulation."
+  },
+  "GV0R01-C029": {
+    "FUNCTION": "Estimate the causal effect of exchange-initiated tick-size reductions on daily spread proxies and turnover across Binance spot USDT names.",
+    "ID": "GV0R01-C029",
+    "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0, Binance spot tick-size change announcements archive, Historical Binance spot exchangeInfo PRICE_FILTER snapshots per symbol",
+    "MECHANISM": "Binance spot tick-size change natural experiment on cross-sectional liquidity proxies",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Difference-in-differences of the log spread estimate and of log quote volume. It compares the post-effective window with the pre-announcement window, treated minus controls matched on trailing volume decile and pre-event relative-tick decile."
+  },
+  "GV0R01-C030": {
+    "FUNCTION": "Test whether an options-derived dealer gamma state changes the sub-hour return autocorrelation of the BTC perpetual beyond volatility and volume state.",
+    "ID": "GV0R01-C030",
+    "INFORMATION_SOURCE": "OPTIONS: Deribit BTC option trades with aggressor side, strike, expiry and implied volatility, Deribit BTC option open interest by strike and expiry, hourly snapshots, Options dealer net inventory by strike, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Options-dealer gamma sign state and sub-hour return autocorrelation of the BTC perpetual",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Difference in mean AC1_5M_24H between the top and bottom GEX terciles, computed within year x RV_24H decile x volume decile strata and pooled."
+  },
   "H01": {
     "FUNCTION": "Low recent RV predicts higher future RV",
     "ID": "H01",

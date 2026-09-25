@@ -24,10 +24,13 @@ from scripts.research.generator_v0 import memory_finalizer as fin
 from tests.research.test_generator_v0_memory_finalizer import finalized_root
 
 CAP30 = OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD
+# Memory head the first 30-card run (GV0R01) was authorized and executed against.
+# Its bounds and the GV0CAL-only finalizer fixture are pinned to that version.
+GV0CAL_HEAD = '358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad'
 
 
 def _campaign(tmp_path, name, faults=None, mutator=None):
-    c = Contexts()
+    c = Contexts(memory_event=GV0CAL_HEAD)
     transport = NoisyTransport(c, faults or {}, compact_mutator=mutator)
     ledger = Ledger(tmp_path / name, {'RUN_ID': name, 'CAP_MICRO_USD': CAP})
     caller = Caller(c, ledger, routed_provider_for(transport, c), CAP, True)
@@ -279,7 +282,7 @@ def test_canonical_cloud_execution_never_opens_direct_https(monkeypatch):
 
 
 def test_budget_stop_acceptance_is_unchanged(tmp_path):
-    c = Contexts()
+    c = Contexts(memory_event=GV0CAL_HEAD)
     bound = offline_routed_provider(c)
     pre = fresh_campaign_budget_preflight(30, CAP30, c, bound_provider=bound)
     stages = {row['STAGE']: row['BOUND_MICRO_USD'] for row in pre['STAGES']}

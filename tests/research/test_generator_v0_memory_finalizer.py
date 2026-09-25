@@ -113,7 +113,7 @@ def test_published_repository_state_is_the_golden_state():
     c = Contexts()
     for sid, (state, blocker) in GOLDEN.items():
         assert (c.rows[sid]['STATE'], c.rows[sid]['BLOCKER_CLASS_IF_ANY']) == (state, blocker)
-    assert [e['CAMPAIGN_ID'] for e in store.chain(ROOT)] == ['LEGACY', 'GV0CAL']
+    assert [e['CAMPAIGN_ID'] for e in store.chain(ROOT)] == ['LEGACY', 'GV0CAL', 'GV0R01']
     assert fin.verify(ROOT)['STATUS'] == 'VERIFIED'
 
 

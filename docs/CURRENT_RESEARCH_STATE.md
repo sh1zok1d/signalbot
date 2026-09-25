@@ -1,3 +1,34 @@
+## Generator V0 first 30-card run GV0R01 — 2026-09-25
+
+`GENERATOR_V0_FIRST_30_CARD_RUN = COMPLETE`
+`CAMPAIGN_ID = GV0R01`
+`CAMPAIGN_STATUS = PENDING_HUMAN_REVIEW`
+`MEMORY_FINALIZATION = COMPLETE`
+`NEXT_UNIT = FIRST_MARKET_TEST_DESIGN_FOR_GV0R01`
+
+This section supersedes the Generator V0 `NEXT_UNIT` / `NEXT_ACTION` entries below.
+
+The first real 30-card campaign ran on the frozen routed architecture:
+- 3 generator POSTs;
+- 30 novelty, 30 feasibility and 30 red-team calls;
+- 0 selector LLM calls;
+- 93 calls, all complete, none unresolved;
+- USD 5.091486 spent under the USD 10.00 hard cap.
+
+All 30 cards were valid and reviewed. Stream A (`EXECUTABLE_NOW`) is C013. Stream B (`HIGH_VALUE_DATA_BLOCKED`) is C004, C006, C012, C014, C016 and C020. The deterministic shortlist is C013, C014, C006, C012, C016.
+
+The journal is sealed and archived at `docs/research/generator_v0_gv0r01/run.sqlite` (SHA256 `de22f7c2aeb0487842a2477e5a2f44e3df7a9cbf007785cfaf213cbcd648be62`). It is registered in `GENERATOR_V0_SEALED_RUNS.json`.
+
+Memory Finalizer V1 applied event `416b22fabd1663be9094bce18c5bce2a8b3d062b0b01525a25395d195788bead` (current memory head, chain `LEGACY_BOOTSTRAP → GV0CAL → GV0R01`):
+- 30 attempt records;
+- 22 new signatures (1 `CONSUMED`, 21 `DEFERRED_OR_BLOCKED`);
+- 4 links to prior signatures and 4 batch links;
+- 57 memory entries and 35 attempt records in total.
+
+C013 (`GV0R01-C013`, "Persistence of intraday wick morphology across the Binance spot USDT cross-section") is the sole current GV0R01 `EXECUTABLE_NOW` research candidate after generator and critic governance. Its market outcome remains completely untested. It is **not** a validated market hypothesis, and no card has been executed. The other GV0R01 signatures are durable prior work and must not be regenerated with cosmetic changes. Protected 2025/2026 remain unopened. `MARKET_OUTCOMES_TESTED = false`.
+
+Record: `docs/research/GENERATOR_V0_FIRST_30_CARD_RUN_GV0R01.{md,json}`.
+
 ## Generator V0 first 30-card production-path repair — 2026-09-24
 
 `FIRST_30_PRODUCTION_PATH_REPAIRED = true`
@@ -17,7 +48,7 @@ Record: `docs/research/GENERATOR_V0_FIRST_30_PRODUCTION_PATH_REPAIR.{md,json}`.
 `MEMORY_FINALIZER_V1 = ACTIVE`
 `NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`
 
-Mechanism memory is now an append-only event chain (`docs/research/generator_v0_memory/`): `LEGACY_BOOTSTRAP` (`54afd1ed229cca6785586534102df3b6fb5129e736def4f5df726225b16773e8`, the 30 pre-GV0CAL entries verbatim from `d4b28de`) then `GV0CAL` (`358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad`, current head), derived deterministically from the calibration export. GV0CAL governance is unchanged: C001/C002/C005 `CONSUMED`, C003/C004 `DEFERRED_OR_BLOCKED` with the same blocker classes. Governance rows are no longer embedded in the frozen design; the mirrors and context pins are derived caches. After the first 30-card run, finalize it with `python -m scripts.research.generator_v0.finalize_memory` in the same VM. No provider call, no market outcome, no protected data. Canonical record: `docs/research/GENERATOR_V0_MEMORY_FINALIZER.{md,json}`.
+Mechanism memory is now an append-only event chain (`docs/research/generator_v0_memory/`): `LEGACY_BOOTSTRAP` (`54afd1ed229cca6785586534102df3b6fb5129e736def4f5df726225b16773e8`, the 30 pre-GV0CAL entries verbatim from `d4b28de`) then `GV0CAL` (`358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad`, head at that time), derived deterministically from the calibration export. GV0CAL governance is unchanged: C001/C002/C005 `CONSUMED`, C003/C004 `DEFERRED_OR_BLOCKED` with the same blocker classes. Governance rows are no longer embedded in the frozen design; the mirrors and context pins are derived caches. After the first 30-card run, finalize it with `python -m scripts.research.generator_v0.finalize_memory` in the same VM. No provider call, no market outcome, no protected data. Canonical record: `docs/research/GENERATOR_V0_MEMORY_FINALIZER.{md,json}`.
 
 ## Generator V0 calibration-memory ingestion — 2026-09-24
 

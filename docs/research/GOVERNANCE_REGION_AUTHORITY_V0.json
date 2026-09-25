@@ -377,6 +377,204 @@
       "MECHANISM": "Listing-age lifecycle drift in the Binance spot USDT cross-section",
       "SIGNATURE_ID": "GV0CAL-C005",
       "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Directional expectation characterization: estimate the signed subsequent common-price return aligned with the opening leg, separately for spot-led and perp-led dislocation events.",
+      "MECHANISM": "Opening-leg identity and directional continuation of the cross-venue midpoint",
+      "SIGNATURE_ID": "GV0R01-C002",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Path-morphology characterization: measure how temporally clustered the largest 5m moves within each UTC day are, relative to ordering-destroying nulls, and compare the clustering between the (omitted) BitMEX era and the (omitted) to (omitted) Binance era within matched daily-RV bins.",
+      "MECHANISM": "Cascade contiguity of top intraday 5m moves across the BitMEX (omitted) and Binance eras",
+      "SIGNATURE_ID": "GV0R01-C003",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Event-conditioned cross-asset structure characterization: compare the idiosyncratic ETH variance share (after removing BTC with a frozen pre-event beta) in windows immediately after scheduled FOMC statements against matched non-event windows.",
+      "MECHANISM": "Common-factor dominance of ETH versus BTC in scheduled FOMC windows",
+      "SIGNATURE_ID": "GV0R01-C004",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW, DATA_BLOCKED_MISSING_OBSERVABLE.",
+      "FUNCTION": "Liquidity execution-state characterization: estimate whether stress weeks raise subsequent execution-cost proxies disproportionately for names that were already illiquid, relative to non-stress weeks.",
+      "MECHANISM": "Stress-week flight-from-illiquidity gradient in the Binance spot USDT cross-section",
+      "SIGNATURE_ID": "GV0R01-C005",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Regime-transition characterization: test whether the option-implied volatility state, relative to trailing realized volatility, adds information about transitions into a high realized-volatility regime beyond kline-based volatility state.",
+      "MECHANISM": "Option-implied volatility gap as a precursor of realized-volatility regime transitions",
+      "SIGNATURE_ID": "GV0R01-C006",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_LOOKAHEAD_VIOLATION",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must use only information observable at or before the decision time before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+      "FUNCTION": "Event-response characterization: measure the BTC return and realized-volatility response after large USDT issuance events identified by on-chain block timestamps, against demand-state-matched non-event times.",
+      "MECHANISM": "BTC response to large on-chain USDT issuance events under demand-state matching",
+      "SIGNATURE_ID": "GV0R01-C007",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+      "FUNCTION": "Venue-structure characterization: test whether a venue's share of displayed near-touch depth predicts its share of price discovery on the following day, beyond volume share and volatility.",
+      "MECHANISM": "Near-touch depth share as a determinant of cross-venue price-discovery leadership",
+      "SIGNATURE_ID": "GV0R01-C008",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_LOOKAHEAD_VIOLATION",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must use only information observable at or before the decision time before this signature can advance.",
+      "FUNCTION": "Participant-clock identification: use the staggered US and EU DST transitions to estimate whether the intraday profile of cross-venue dislocation magnitude anchors to the US clock, the EU clock, or neither.",
+      "MECHANISM": "Staggered US-EU DST windows as identification of the clock governing cross-venue dislocation",
+      "SIGNATURE_ID": "GV0R01-C010",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Directional expectation test of the mean signed pre-release return against matched non-event windows",
+      "MECHANISM": "Pre-announcement BTC drift before scheduled FOMC and CPI releases",
+      "SIGNATURE_ID": "GV0R01-C012",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Cross-sectional rank association between trailing CLV rank and subsequent residual wick-asymmetry rank, with liquidity and trailing-return controls",
+      "MECHANISM": "Persistence of intraday wick morphology across the Binance spot USDT cross-section",
+      "SIGNATURE_ID": "GV0R01-C013",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Incremental forecast of relative realized variance over a baseline that uses realized history only",
+      "MECHANISM": "Options-implied ETH-BTC relative variance spread and subsequent realized relative variance",
+      "SIGNATURE_ID": "GV0R01-C014",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_LOOKAHEAD_VIOLATION",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must use only information observable at or before the decision time before this signature can advance. Also unresolved for this signature: DATA_BLOCKED_PROVENANCE.",
+      "FUNCTION": "Event-conditioned characterization of execution-impact state following stablecoin supply events, compared against matched pseudo-events",
+      "MECHANISM": "Stablecoin supply events as an execution-liquidity state for the BTC perpetual",
+      "SIGNATURE_ID": "GV0R01-C015",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Incremental hazard model of low-to-high RV-state transitions given order-book depth thinning",
+      "MECHANISM": "Order-book depth thinning as a leading indicator of volatility-regime transition",
+      "SIGNATURE_ID": "GV0R01-C016",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Event-response characterization at first touches of untouched round-number levels, compared with placebo levels",
+      "MECHANISM": "Response after first touches of untouched round-number price levels, compared with placebo grids",
+      "SIGNATURE_ID": "GV0R01-C017",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Characterization of price-level retention after venue-idiosyncratic jumps compared with common jumps, reported separately for the perpetual and spot venues",
+      "MECHANISM": "Retention of venue-idiosyncratic versus common 5m jumps across the Binance perpetual and OKX spot",
+      "SIGNATURE_ID": "GV0R01-C018",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Holiday natural experiment on the regional composition of the BTC intraday volume profile",
+      "MECHANISM": "Official-holiday participant removal and BTC intraday session volume shares",
+      "SIGNATURE_ID": "GV0R01-C020",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Measure the lagged BTC-factor loading gradient across trailing-liquidity terciles of Binance spot USDT names.",
+      "MECHANISM": "Liquidity-gradient lagged diffusion of the BTC daily factor across Binance spot USDT names",
+      "SIGNATURE_ID": "GV0R01-C021",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CONFOUNDING_CONTROL_INADEQUATE",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_BLOCKED_COST.",
+      "FUNCTION": "Test whether Binance BTC perpetual price is attracted toward the maximum-open-interest strike of expiring Deribit options at the 08:00 UTC settlement.",
+      "MECHANISM": "Deribit expiry strike-pinning footprint on Binance BTC perpetual price at 08:00 UTC",
+      "SIGNATURE_ID": "GV0R01-C022",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Measure whether the BTC perpetual volatility cascade is irreversible in time, beyond what symmetric GARCH generates.",
+      "MECHANISM": "Time-reversal asymmetry (Zumbach effect) in the BTC perpetual volatility cascade",
+      "SIGNATURE_ID": "GV0R01-C025",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_READY_CLAIM_NOT_CONFIRMED.",
+      "FUNCTION": "Characterize the Epps curve of the Binance BTC perpetual versus OKX BTC spot as a time-varying measure of cross-venue transmission speed.",
+      "MECHANISM": "Cross-venue Epps-curve speed of the Binance BTC perpetual versus OKX spot as a transmission-capacity clock",
+      "SIGNATURE_ID": "GV0R01-C026",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW, DATA_BLOCKED_PROVENANCE.",
+      "FUNCTION": "Estimate the causal effect of exchange-initiated tick-size reductions on daily spread proxies and turnover across Binance spot USDT names.",
+      "MECHANISM": "Binance spot tick-size change natural experiment on cross-sectional liquidity proxies",
+      "SIGNATURE_ID": "GV0R01-C029",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_BLOCKED_COST.",
+      "FUNCTION": "Test whether an options-derived dealer gamma state changes the sub-hour return autocorrelation of the BTC perpetual beyond volatility and volume state.",
+      "MECHANISM": "Options-dealer gamma sign state and sub-hour return autocorrelation of the BTC perpetual",
+      "SIGNATURE_ID": "GV0R01-C030",
+      "STATE": "DEFERRED_OR_BLOCKED"
     }
   ],
   "ROW_FIELDS": [

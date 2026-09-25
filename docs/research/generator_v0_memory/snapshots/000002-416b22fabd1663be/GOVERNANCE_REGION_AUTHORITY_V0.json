@@ -1,0 +1,601 @@
+{
+  "CONSUMERS": [
+    "NOVELTY_CRITIC",
+    "RED_TEAM (only when adjudicating a frozen anti-rescue rule)",
+    "HUMAN"
+  ],
+  "COVERAGE_RULE": "Every MECHANISM_MEMORY_V0 entry has exactly one row (sub-signatures allowed); a memory entry without a row fails closed.",
+  "FAMILY_NOT_CLOSED_BY_ROW": "No row, whatever its state, closes a family or an information class; only the listed relations to that signature are adjudicated.",
+  "FORBIDDEN_CONTENT": [
+    "p-values",
+    "effect sizes",
+    "gate results",
+    "promising/null labels",
+    "yearly outcomes",
+    "profitability",
+    "prototype status"
+  ],
+  "MATERIALIZATION": "The implementation unit materializes a tracked docs/research/GOVERNANCE_REGION_AUTHORITY_V0.json from these rows, with a digest.",
+  "NAME": "GOVERNANCE_REGION_AUTHORITY_V0",
+  "NOT_GENERATOR_CONTEXT": true,
+  "NOVELTY_DECISION_TABLE": {
+    "CONSUMED": {
+      "EXACT_DUPLICATE": "REJECT",
+      "FUNCTIONAL_RELABEL": "REJECT",
+      "ORTHOGONAL_MECHANISM": "ALLOW",
+      "PARAMETER_NEIGHBOR": "REJECT",
+      "RESOLVES_BLOCKER": "HUMAN_REVIEW"
+    },
+    "DEFERRED_OR_BLOCKED": {
+      "EXACT_DUPLICATE": "DEFER_BLOCKER_UNRESOLVED",
+      "FUNCTIONAL_RELABEL": "DEFER_BLOCKER_UNRESOLVED",
+      "ORTHOGONAL_MECHANISM": "ALLOW",
+      "PARAMETER_NEIGHBOR": "REJECT",
+      "RESOLVES_BLOCKER": "ALLOW_TO_FEASIBILITY"
+    },
+    "PARTIAL_OR_MIXED": "APPLY_SUB_SIGNATURE_STATE"
+  },
+  "RELATIONS": {
+    "EXACT_DUPLICATE": "same mechanism, function, target and observable as the signature",
+    "FUNCTIONAL_RELABEL": "same function under a new name, observable substitution or relabelled target",
+    "ORTHOGONAL_MECHANISM": "a different mechanism or function, possibly in the same family or using the same information class",
+    "PARAMETER_NEIGHBOR": "same function with a changed parameter, threshold, window, horizon or clock",
+    "RESOLVES_BLOCKER": "the signature's own design with a proposed resolution of its named blocker"
+  },
+  "ROWS": [
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Low recent RV -> higher future RV",
+      "MECHANISM": "Compression -> subsequent RV expansion",
+      "SIGNATURE_ID": "H01",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Close-back-inside-range reversion",
+      "MECHANISM": "Failed breakout -> mean reversion",
+      "SIGNATURE_ID": "H02",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Signed continuation after impulse windows",
+      "MECHANISM": "Extreme impulse -> continuation vs exhaustion",
+      "SIGNATURE_ID": "H03",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Continuation after pullback depth bands",
+      "MECHANISM": "Trend pullback -> continuation",
+      "SIGNATURE_ID": "H04",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Signed return after taker imbalance",
+      "MECHANISM": "Taker imbalance -> subsequent return",
+      "SIGNATURE_ID": "H05",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Transition-threshold volatility dynamics",
+      "MECHANISM": "Volatility-state transition",
+      "SIGNATURE_ID": "B2-01",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Path after range-boundary breach",
+      "MECHANISM": "Boundary interaction path",
+      "SIGNATURE_ID": "B2-02",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Morphology components after impulse",
+      "MECHANISM": "Impulse morphology",
+      "SIGNATURE_ID": "B2-03",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Moderate-depth pullback continuation",
+      "MECHANISM": "Moderate pullback structure",
+      "SIGNATURE_ID": "B2-04",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Participation / order-flow absorption",
+      "MECHANISM": "Flow absorption",
+      "SIGNATURE_ID": "B2-05",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Incremental continuation after OI expansion",
+      "MECHANISM": "OI expansion weak continuation",
+      "SIGNATURE_ID": "MARKET-01",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Price-confirmation increment after OI expansion",
+      "MECHANISM": "OI expansion price confirmation",
+      "SIGNATURE_ID": "MARKET-02",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Historical reproduction of an external claim",
+      "MECHANISM": "External/public strategy reproduction",
+      "SIGNATURE_ID": "MARKET-03",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Additive incremental term beside BTC own-state",
+      "MECHANISM": "Cross-asset ETH additive term -> 24h adverse-path MAE",
+      "SIGNATURE_ID": "MARKET-05",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Additive dislocation term beside BTC controls",
+      "MECHANISM": "Cross-venue dislocation -> 24h adverse-path MAE",
+      "SIGNATURE_ID": "MARKET-06",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Filter high-RV decisions vs matched random",
+      "MECHANISM": "Conditional abstention on RV state",
+      "SIGNATURE_ID": "D2",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Unconditional 24h close-path characterization",
+      "MECHANISM": "Path morphology (unsigned close path)",
+      "SIGNATURE_ID": "D3",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Composition vs best component",
+      "MECHANISM": "Composed decision mechanism",
+      "SIGNATURE_ID": "D5",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Next-hour impact-state persistence",
+      "MECHANISM": "Kline-derived execution-impact state persistence",
+      "SIGNATURE_ID": "D7",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Conditional share of same-5m closure",
+      "MECHANISM": "Two-venue dislocation-closure attribution",
+      "SIGNATURE_ID": "D9",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Next-hour residual after trailing beta",
+      "MECHANISM": "BTC-ETH residual shock persistence",
+      "SIGNATURE_ID": "D10",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Post-event 6h unsigned RV vs matched windows",
+      "MECHANISM": "Scheduled FOMC unsigned event volatility",
+      "SIGNATURE_ID": "D11",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "US DST shift of the intraday volume profile",
+      "MECHANISM": "Participation-clock anchoring",
+      "SIGNATURE_ID": "D12",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "1-week formation / 1-week holding rank IC",
+      "MECHANISM": "Cross-sectional weekly relative return",
+      "SIGNATURE_ID": "D13",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_POINT_IN_TIME_SEMANTICS",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "First-party authority for when settled funding became public (FUNDING_PUBLICATION_LATENCY_UNPROVEN)",
+      "FUNCTION": "OI/funding crowding state -> incremental information",
+      "MECHANISM": "Leverage crowding (OI + funding state)",
+      "SIGNATURE_ID": "B2-06",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_POINT_IN_TIME_SEMANTICS",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "Proven safe-usable-at time and archive identity for funding/premium observables",
+      "FUNCTION": "Funding/premium-conditioned path or return",
+      "MECHANISM": "Funding / premium / same-venue basis (04 / 04H)",
+      "SIGNATURE_ID": "MARKET-04",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_NULL_MODEL_OBSERVABLE_MISMATCH",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A null model that can generate the card's own observable, frozen before outcomes",
+      "FUNCTION": "State detection vs GARCH/surrogate null",
+      "MECHANISM": "Structural state detection",
+      "SIGNATURE_ID": "D1",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_PROVENANCE_SOURCE_NOT_PINNED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "Pin the external source outcome-blind before inspecting outcomes",
+      "FUNCTION": "Diagnostic reproduction of one pinned external mechanism",
+      "MECHANISM": "External mechanism benchmark",
+      "SIGNATURE_ID": "D6",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "SUPPORT_INSUFFICIENT_CONTROLS",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A control design with adequate support that keeps D8's frozen event thresholds unchanged",
+      "FUNCTION": "Signed 6h recovery after the frozen shock rule",
+      "MECHANISM": "Endogenous high-magnitude + high-activity shock recovery",
+      "SIGNATURE_ID": "D8",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "Apply the sub-signature state",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "See SUB_SIGNATURES",
+      "MECHANISM": "BTC-ETH relative structure",
+      "SIGNATURE_ID": "D4",
+      "STATE": "PARTIAL_OR_MIXED",
+      "SUB_SIGNATURES": [
+        {
+          "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+          "BLOCKER_CLASS_IF_ANY": null,
+          "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+          "FUNCTION": "Rolling 90d correlation range",
+          "MECHANISM": "BTC-ETH relative structure",
+          "SIGNATURE_ID": "D4.ROLLING_CORRELATION_90D",
+          "STATE": "CONSUMED"
+        },
+        {
+          "ANTI_RESCUE_SCOPE": "the same frozen card while its blocker is unresolved; parameter neighbors that weaken its frozen definitions to evade the blocker; raw lead-lag under a dependence-destroying null stays rejected",
+          "BLOCKER_CLASS_IF_ANY": "METHOD_NULL_MODEL_DESTROYS_COMMON_FACTOR",
+          "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A common-factor-preserving null frozen before outcomes",
+          "FUNCTION": "1-day lead-lag",
+          "MECHANISM": "BTC-ETH relative structure",
+          "SIGNATURE_ID": "D4.LEAD_LAG_1DAY",
+          "STATE": "DEFERRED_OR_BLOCKED"
+        }
+      ]
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Characterize whether a participant-composition proxy predicts the sub-hour autocorrelation structure of BTC returns over the subsequent 24h, beyond volatility and volume state.",
+      "MECHANISM": "Average trade size as participant-composition state and subsequent sub-hour variance ratio",
+      "SIGNATURE_ID": "GV0CAL-C001",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Measure the intraday profile of perpetual-versus-spot price-discovery share and test whether it shifts with the US DST clock change.",
+      "MECHANISM": "Intraday rotation of perpetual-versus-spot price-discovery locus and its displacement at US DST shifts",
+      "SIGNATURE_ID": "GV0CAL-C002",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+      "FUNCTION": "Test whether absolute 5m price movement concentrates around perpetual funding settlement times, using the venue-specific schedule offset between BitMEX and Binance as identification.",
+      "MECHANISM": "Funding-settlement clock microstructure identified by offset settlement schedules across BitMEX and Binance",
+      "SIGNATURE_ID": "GV0CAL-C003",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CONFOUNDING_CONTROL_INADEQUATE",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+      "FUNCTION": "Measure whether Binance perpetual activity and path concentrate in the CME settlement reference-rate window on final settlement days, relative to identically timed windows on non-expiry Fridays.",
+      "MECHANISM": "Reference-rate fixing window footprint on Binance perpetual activity at CME bitcoin futures settlement",
+      "SIGNATURE_ID": "GV0CAL-C004",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Test whether days since Binance spot listing organizes subsequent relative returns across USDT-quoted names, controlling for liquidity and trailing return.",
+      "MECHANISM": "Listing-age lifecycle drift in the Binance spot USDT cross-section",
+      "SIGNATURE_ID": "GV0CAL-C005",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Directional expectation characterization: estimate the signed subsequent common-price return aligned with the opening leg, separately for spot-led and perp-led dislocation events.",
+      "MECHANISM": "Opening-leg identity and directional continuation of the cross-venue midpoint",
+      "SIGNATURE_ID": "GV0R01-C002",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Path-morphology characterization: measure how temporally clustered the largest 5m moves within each UTC day are, relative to ordering-destroying nulls, and compare the clustering between the (omitted) BitMEX era and the (omitted) to (omitted) Binance era within matched daily-RV bins.",
+      "MECHANISM": "Cascade contiguity of top intraday 5m moves across the BitMEX (omitted) and Binance eras",
+      "SIGNATURE_ID": "GV0R01-C003",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Event-conditioned cross-asset structure characterization: compare the idiosyncratic ETH variance share (after removing BTC with a frozen pre-event beta) in windows immediately after scheduled FOMC statements against matched non-event windows.",
+      "MECHANISM": "Common-factor dominance of ETH versus BTC in scheduled FOMC windows",
+      "SIGNATURE_ID": "GV0R01-C004",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW, DATA_BLOCKED_MISSING_OBSERVABLE.",
+      "FUNCTION": "Liquidity execution-state characterization: estimate whether stress weeks raise subsequent execution-cost proxies disproportionately for names that were already illiquid, relative to non-stress weeks.",
+      "MECHANISM": "Stress-week flight-from-illiquidity gradient in the Binance spot USDT cross-section",
+      "SIGNATURE_ID": "GV0R01-C005",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Regime-transition characterization: test whether the option-implied volatility state, relative to trailing realized volatility, adds information about transitions into a high realized-volatility regime beyond kline-based volatility state.",
+      "MECHANISM": "Option-implied volatility gap as a precursor of realized-volatility regime transitions",
+      "SIGNATURE_ID": "GV0R01-C006",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_LOOKAHEAD_VIOLATION",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must use only information observable at or before the decision time before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+      "FUNCTION": "Event-response characterization: measure the BTC return and realized-volatility response after large USDT issuance events identified by on-chain block timestamps, against demand-state-matched non-event times.",
+      "MECHANISM": "BTC response to large on-chain USDT issuance events under demand-state matching",
+      "SIGNATURE_ID": "GV0R01-C007",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+      "FUNCTION": "Venue-structure characterization: test whether a venue's share of displayed near-touch depth predicts its share of price discovery on the following day, beyond volume share and volatility.",
+      "MECHANISM": "Near-touch depth share as a determinant of cross-venue price-discovery leadership",
+      "SIGNATURE_ID": "GV0R01-C008",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_LOOKAHEAD_VIOLATION",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must use only information observable at or before the decision time before this signature can advance.",
+      "FUNCTION": "Participant-clock identification: use the staggered US and EU DST transitions to estimate whether the intraday profile of cross-venue dislocation magnitude anchors to the US clock, the EU clock, or neither.",
+      "MECHANISM": "Staggered US-EU DST windows as identification of the clock governing cross-venue dislocation",
+      "SIGNATURE_ID": "GV0R01-C010",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Directional expectation test of the mean signed pre-release return against matched non-event windows",
+      "MECHANISM": "Pre-announcement BTC drift before scheduled FOMC and CPI releases",
+      "SIGNATURE_ID": "GV0R01-C012",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "exact duplicate; parameter/threshold/window/horizon/clock neighbors; observable substitution within the same function; functionally equivalent relabel",
+      "BLOCKER_CLASS_IF_ANY": null,
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": null,
+      "FUNCTION": "Cross-sectional rank association between trailing CLV rank and subsequent residual wick-asymmetry rank, with liquidity and trailing-return controls",
+      "MECHANISM": "Persistence of intraday wick morphology across the Binance spot USDT cross-section",
+      "SIGNATURE_ID": "GV0R01-C013",
+      "STATE": "CONSUMED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Incremental forecast of relative realized variance over a baseline that uses realized history only",
+      "MECHANISM": "Options-implied ETH-BTC relative variance spread and subsequent realized relative variance",
+      "SIGNATURE_ID": "GV0R01-C014",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_LOOKAHEAD_VIOLATION",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must use only information observable at or before the decision time before this signature can advance. Also unresolved for this signature: DATA_BLOCKED_PROVENANCE.",
+      "FUNCTION": "Event-conditioned characterization of execution-impact state following stablecoin supply events, compared against matched pseudo-events",
+      "MECHANISM": "Stablecoin supply events as an execution-liquidity state for the BTC perpetual",
+      "SIGNATURE_ID": "GV0R01-C015",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Incremental hazard model of low-to-high RV-state transitions given order-book depth thinning",
+      "MECHANISM": "Order-book depth thinning as a leading indicator of volatility-regime transition",
+      "SIGNATURE_ID": "GV0R01-C016",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Event-response characterization at first touches of untouched round-number levels, compared with placebo levels",
+      "MECHANISM": "Response after first touches of untouched round-number price levels, compared with placebo grids",
+      "SIGNATURE_ID": "GV0R01-C017",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Characterization of price-level retention after venue-idiosyncratic jumps compared with common jumps, reported separately for the perpetual and spot venues",
+      "MECHANISM": "Retention of venue-idiosyncratic versus common 5m jumps across the Binance perpetual and OKX spot",
+      "SIGNATURE_ID": "GV0R01-C018",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "DATA_FEASIBILITY_REQUIRED",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+      "FUNCTION": "Holiday natural experiment on the regional composition of the BTC intraday volume profile",
+      "MECHANISM": "Official-holiday participant removal and BTC intraday session volume shares",
+      "SIGNATURE_ID": "GV0R01-C020",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Measure the lagged BTC-factor loading gradient across trailing-liquidity terciles of Binance spot USDT names.",
+      "MECHANISM": "Liquidity-gradient lagged diffusion of the BTC daily factor across Binance spot USDT names",
+      "SIGNATURE_ID": "GV0R01-C021",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CONFOUNDING_CONTROL_INADEQUATE",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_BLOCKED_COST.",
+      "FUNCTION": "Test whether Binance BTC perpetual price is attracted toward the maximum-open-interest strike of expiring Deribit options at the 08:00 UTC settlement.",
+      "MECHANISM": "Deribit expiry strike-pinning footprint on Binance BTC perpetual price at 08:00 UTC",
+      "SIGNATURE_ID": "GV0R01-C022",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+      "FUNCTION": "Measure whether the BTC perpetual volatility cascade is irreversible in time, beyond what symmetric GARCH generates.",
+      "MECHANISM": "Time-reversal asymmetry (Zumbach effect) in the BTC perpetual volatility cascade",
+      "SIGNATURE_ID": "GV0R01-C025",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_READY_CLAIM_NOT_CONFIRMED.",
+      "FUNCTION": "Characterize the Epps curve of the Binance BTC perpetual versus OKX BTC spot as a time-varying measure of cross-venue transmission speed.",
+      "MECHANISM": "Cross-venue Epps-curve speed of the Binance BTC perpetual versus OKX spot as a transmission-capacity clock",
+      "SIGNATURE_ID": "GV0R01-C026",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW, DATA_BLOCKED_PROVENANCE.",
+      "FUNCTION": "Estimate the causal effect of exchange-initiated tick-size reductions on daily spread proxies and turnover across Binance spot USDT names.",
+      "MECHANISM": "Binance spot tick-size change natural experiment on cross-sectional liquidity proxies",
+      "SIGNATURE_ID": "GV0R01-C029",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    },
+    {
+      "ANTI_RESCUE_SCOPE": "the same signature while its named blocker is unresolved; parameter/threshold/window/horizon/clock neighbors or cosmetic relabels that evade the blocker",
+      "BLOCKER_CLASS_IF_ANY": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+      "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY": "A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_BLOCKED_COST.",
+      "FUNCTION": "Test whether an options-derived dealer gamma state changes the sub-hour return autocorrelation of the BTC perpetual beyond volatility and volume state.",
+      "MECHANISM": "Options-dealer gamma sign state and sub-hour return autocorrelation of the BTC perpetual",
+      "SIGNATURE_ID": "GV0R01-C030",
+      "STATE": "DEFERRED_OR_BLOCKED"
+    }
+  ],
+  "ROW_FIELDS": [
+    "SIGNATURE_ID",
+    "MECHANISM",
+    "FUNCTION",
+    "STATE",
+    "ANTI_RESCUE_SCOPE",
+    "BLOCKER_CLASS_IF_ANY",
+    "BLOCKER_RESOLUTION_REQUIREMENT_IF_ANY"
+  ],
+  "SCOPE_GRANULARITY": "per signature or sub-signature, never whole-family",
+  "STATES": {
+    "CONSUMED": "the signature's frozen function was executed or otherwise used; its outcome is not recorded here",
+    "DEFERRED_OR_BLOCKED": "the signature was defined but not executed because of a named blocker; the mechanism region is not closed",
+    "PARTIAL_OR_MIXED": "sub-signatures carry different states; adjudicate at sub-signature level only"
+  },
+  "STREAM_ASSIGNMENT_RULE": {
+    "EXECUTABLE_NOW": "novelty verdict ALLOW, red team passed, and every required dataset is DATA_READY",
+    "HIGH_VALUE_DATA_BLOCKED": "novelty verdict ALLOW or ALLOW_TO_FEASIBILITY, red team passed, and at least one required observable is FEASIBILITY_REQUIRED or DATA_BLOCKED_*",
+    "NOT_A_STREAM": "REJECT, DEFER_BLOCKER_UNRESOLVED, HUMAN_REVIEW, or any hard fail"
+  },
+  "SYMMETRY_RULE": "Anti-rescue scopes are written in the same form for every consumed row regardless of outcome. Outcome-derived family cooldowns from rotation V2/V3 are not encoded here; humans may still apply them at adjudication, logged."
+}
