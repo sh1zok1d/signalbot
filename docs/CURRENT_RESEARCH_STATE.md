@@ -1,3 +1,17 @@
+## GV0R01-C004 closed outcome-blind — 2026-09-25
+
+`C004_STATUS = CLOSED_OUTCOME_BLIND_INFERENCE_SUPPORT_INSUFFICIENT`
+`C004_EXECUTED = false`
+`C004_MARKET_OUTCOMES_OPENED = false`
+`PRIMARY_LABEL_ORBIT_SIZE = 16`
+`MIN_ATTAINABLE_EXACT_P = 0.0625`
+`ALPHA_ATTAINABLE = false`
+`SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0`
+`NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C020`
+`NEXT_UNIT = GV0R01_C020_OUTCOME_BLIND_DESIGN_AND_POWER`
+
+The dependence-valid label orbit has 16 configurations, so the exact one-sided floor is 1/16 = 0.0625, above alpha 0.05. Rejection is impossible under that frozen test. The synthetic power gate also fails. No BTC or ETH price was opened and no primary test was run. The 2000-draw Monte Carlo was power planning only. The permutation group was not widened and alpha was not changed. A different design needs a new research-object id. The remaining ready zero-cost Stream-B candidate is C020. Record: `docs/research/GV0R01_C004_CLOSE.json`.
+
 ## GV0R01-C004 outcome-blind design — informationally weak — 2026-09-25
 
 `C004_DEFINITION_STATUS = UNAMBIGUOUS`
