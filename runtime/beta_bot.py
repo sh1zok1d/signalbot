@@ -11,6 +11,7 @@ persisted about that user. No raw Telegram id is ever logged.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import html
 import logging
 import signal
@@ -22,7 +23,7 @@ from beta.admin import collect_status, fingerprint, handle_admin, is_owner, pars
 from beta.config import BetaConfig, BetaSwitches
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
 from beta.formatter import (CLOSED_BETA_TEXT, HELP_TEXT, PRIVACY_NOTICE, assert_descriptive,
-                            format_details, format_history, format_status)
+                            format_details, format_history)
 from notifications.telegram_client import TelegramSender, sanitize_telegram_error
 
 logger = logging.getLogger("beta.bot")
@@ -139,9 +140,8 @@ class BetaBotHandler:
                 return [_msg(chat_id, "Messages are paused or you have not joined yet. Send /start.")]
             return [_msg(chat_id, CLOSED_BETA_TEXT)]
         if cmd == "btc":
-            st = await collect_status(conn, self.cfg, now)
-            snap = st["latest"]["snapshot"] if st["latest"] else None
-            return [_msg(chat_id, format_status(st["status"], st["open_episodes"], snap))]
+            html_text, buttons = await self._btc(conn, now)
+            return [_msg(chat_id, html_text, buttons)]
         if cmd == "history":
             rows = await conn.fetch_episode_history(symbol=self.cfg.symbol, limit=HISTORY_LIMIT)
             outcomes = {r["episode_pk"]: await conn.fetch_outcomes(r["episode_pk"]) for r in rows}
@@ -153,6 +153,38 @@ class BetaBotHandler:
             return [_msg(chat_id, "Messages paused. Send /start to resume. Your data is deleted "
                                   "automatically after 30 days, or now with /delete_me.")]
         return [_msg(chat_id, "Unknown command. /help")]
+
+    async def _btc(self, conn, now: datetime):
+        """Render /btc from the persisted context projection and record exactly what
+        was shown (view model + rendered text + digests; no user id)."""
+        from beta.context import btc_view, episodization_digest
+        from beta.formatter import format_btc
+        from beta.state_tape import sha256_json
+        st = await collect_status(conn, self.cfg, now)
+        ctx = await conn.fetch_latest_context_state(symbol=self.cfg.symbol,
+                                                    episodization_digest=episodization_digest(self.cfg))
+        view = btc_view(self.cfg, product=st["status"], state=ctx["state"] if ctx else None,
+                        state_digest_value=ctx["state_digest"] if ctx else None, now=now)
+        text = format_btc(self.cfg, view)
+        await conn.insert_btc_view(
+            requested_at=now, as_of_bucket=datetime.fromisoformat(view["as_of_bucket"]) if view["as_of_bucket"] else None,
+            context_state_digest=view["context_state_digest"],
+            episodization_version=view["episodization_version"],
+            episodization_digest=view["episodization_digest"], payload=view,
+            payload_digest=sha256_json(view), rendered_sha256=hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            rendered_html=text)
+        focus = view["episode"] or view["last_ended"]
+        return text, ([[("Details", "c:" + focus["episode_id"])]] if focus else None)
+
+    async def _context_details(self, conn, chat_id: int, episode_id: str, answer) -> list:
+        from beta.context import episodization_digest, find_episode
+        from beta.formatter import format_context_details
+        ctx = await conn.fetch_latest_context_state(symbol=self.cfg.symbol,
+                                                    episodization_digest=episodization_digest(self.cfg))
+        ep = find_episode(ctx["state"] if ctx else None, episode_id)
+        if ep is None:
+            return [answer("No longer in the current context")]
+        return [answer(""), _msg(chat_id, format_context_details(self.cfg, ep, ctx["state"]))]
 
     async def _callback(self, conn, cq) -> list:
         uid = int((cq.get("from") or {}).get("id", 0))
@@ -167,6 +199,8 @@ class BetaBotHandler:
         user = await conn.get_user(uid)
         if user is None or user["status"] != "ACTIVE" or len(data) < 3 or data[1] != ":":
             return [answer("Not available")]
+        if data[0] == "c":
+            return await self._context_details(conn, chat_id, data[2:], answer)
         ep = await conn.fetch_episode_by_public_id(data[2:])
         if ep is None:
             return [answer("Unknown episode")]

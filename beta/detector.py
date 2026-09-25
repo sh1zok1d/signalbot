@@ -23,7 +23,7 @@ from .config import (BetaConfig, BetaSwitches, EVENT_TYPES, LIQUIDATION_STRESS_L
                      LIQUIDATION_STRESS_SHORT, POSITION_BUILDUP_COMPRESSION,
                      PRICE_OI_CONTRACTION_DOWN, PRICE_OI_CONTRACTION_UP,
                      TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL, effective_push_enabled)
-from .models import (ARMED, CORE_FAMILIES, DAILY_CAP, DATA_DEGRADED_REASON, DELIVERY_TOO_OLD,
+from .models import (ARMED, CONTEXT_EPISODE_NOTIFIED, CORE_FAMILIES, DAILY_CAP, DATA_DEGRADED_REASON, DELIVERY_TOO_OLD,
                      EARLY, ENDED, EXPIRED, Episode, NOT_EVALUABLE, ORIGIN_BOOTSTRAP,
                      ORIGIN_CORRECTION_CHECK, ORIGIN_LIVE, PUSH, PUSH_DISABLED, QUALIFIES,
                      REASON_CONDITION_FAILED, REASON_CONDITION_MET, REASON_DETECTION_GAP,
@@ -177,16 +177,21 @@ def step_episode(cfg: BetaConfig, event_type: str, open_ep: Optional[Episode],
 def push_policy(cfg: BetaConfig, *, decision_ts: datetime, evaluated_at: datetime,
                 snapshot: Mapping[str, Any], last_same_type_terminal: Optional[datetime],
                 last_same_type_would_push: Optional[datetime], would_push_today: int,
-                push_enabled: bool) -> tuple:
+                push_enabled: bool, context_episode_notified: bool = False) -> tuple:
     """(would_push, decision, suppression_reason). Evaluated in a fixed order;
     `would_push` means every gate except PUSH_DISABLED passed (the daily cap
-    counts would-push decisions so a push-disabled soak still measures it)."""
+    counts would-push decisions so a push-disabled soak still measures it).
+    `context_episode_notified`: the temporal-context episode this trigger belongs
+    to already produced a would-push decision (one loud push per context episode;
+    later lifecycle changes are silent)."""
     fams = snapshot.get("families") or {}
     if not snapshot.get("evaluation_fresh") or not all((fams.get(f) or {}).get("usable")
                                                        for f in CORE_FAMILIES):
         return False, SUPPRESSED, DATA_DEGRADED_REASON
     if evaluated_at - decision_ts > cfg.delivery_ttl:
         return False, SUPPRESSED, DELIVERY_TOO_OLD
+    if context_episode_notified:
+        return False, SUPPRESSED, CONTEXT_EPISODE_NOTIFIED
     for last in (last_same_type_terminal, last_same_type_would_push):
         if last is not None and decision_ts - last < cfg.cooldown:
             return False, SUPPRESSED, SAME_EVENT_COOLDOWN
@@ -248,7 +253,7 @@ async def build_live_record(deps: DetectorDeps, cfg: BetaConfig, conn, bucket_ts
         venue_ok = {ex: bool(v["declared_available"] and v["heartbeat_healthy"]) for ex, v in venues.items()}
         percentiles = compute_percentiles(
             deps.stage2_config, cfg, bucket_ts=bucket_ts,
-            metrics=extract_metrics(result, cfg, venue_ok), ident=ident,
+            metrics=extract_metrics(result, cfg, venue_ok, venues), ident=ident,
             code_version=deps.feature_code_version, history=history)
     return build_tape_record(
         cfg, bucket_ts=bucket_ts, origin=origin, result=result, materialization_error=error,
@@ -259,7 +264,7 @@ async def build_live_record(deps: DetectorDeps, cfg: BetaConfig, conn, bucket_ts
 
 async def _apply_step(conn, cfg: BetaConfig, event_type: str, step: Step, ctx: BucketContext,
                       snapshot: Mapping[str, Any], evaluated_at: datetime, push_enabled: bool,
-                      report: dict) -> None:
+                      report: dict, context_state: Optional[Mapping[str, Any]] = None) -> None:
     if step.terminated is not None:
         ep = step.terminated
         await conn.update_episode(ep, expected_state=step.terminated_from)
@@ -293,14 +298,17 @@ async def _apply_step(conn, cfg: BetaConfig, event_type: str, step: Step, ctx: B
             snapshot_digest=ctx.snapshot_digest, reason=REASON_CONDITION_MET)
         report["transitions"].append((target.public_id, None, target.state, REASON_CONDITION_MET))
     if step.triggered is not None:
+        last_would = await conn.latest_same_type_would_push(event_type=event_type, exclude_pk=target_pk)
+        cep = ((context_state or {}).get("episodes") or {}).get(event_type)
+        notified = bool(cep is not None and last_would is not None
+                        and last_would > datetime.fromisoformat(cep["start_bucket"]))
         would, decision, reason = push_policy(
             cfg, decision_ts=ctx.decision_ts, evaluated_at=evaluated_at, snapshot=snapshot,
             last_same_type_terminal=await conn.latest_same_type_terminal(
                 symbol=cfg.symbol, event_type=event_type, exclude_pk=target_pk),
-            last_same_type_would_push=await conn.latest_same_type_would_push(
-                event_type=event_type, exclude_pk=target_pk),
+            last_same_type_would_push=last_would,
             would_push_today=await conn.count_would_push(ctx.decision_ts.date()),
-            push_enabled=push_enabled)
+            push_enabled=push_enabled, context_episode_notified=notified)
         await conn.insert_push_decision(
             episode_pk=target_pk, event_type=event_type, decision_ts=ctx.decision_ts,
             would_push=would, decision=decision, suppression_reason=reason,
@@ -323,20 +331,90 @@ async def process_live_bucket(deps: DetectorDeps, cfg: BetaConfig, switches: Bet
                             calculation_version=rec.calculation_version,
                             reference=rec.snapshot["reference"], code_version=deps.code_version)
         async with conn.transaction():
-            await conn.insert_tape(rec)
+            tape_id = await conn.insert_tape(rec)
+            context_state = await advance_context(deps, cfg, conn, bucket_ts, rec, tape_id)
             admin_push = await conn.get_admin_push_enabled()
             push_enabled = effective_push_enabled(switches, admin_push)
             open_eps = await conn.fetch_open_episodes(symbol=cfg.symbol)
             for et in EVENT_TYPES:
                 step = step_episode(cfg, et, open_eps.get(et), evaluations[et], ctx)
                 await _apply_step(conn, cfg, et, step, ctx, rec.snapshot, rec.evaluated_at,
-                                  push_enabled, report)
+                                  push_enabled, report, context_state)
             await conn.advance_watermark(DETECTOR, symbol=cfg.symbol, market_type=cfg.market_type,
                                          timeframe=cfg.timeframe, bucket_ts=bucket_ts)
         report.update(materialized=rec.materialized, evaluation_fresh=rec.evaluation_fresh,
                       snapshot_digest=rec.snapshot_digest,
+                      context={et: [e["phase"], e["confirmation"]]
+                               for et, e in context_state["episodes"].items()},
                       evaluations={k: v["status"] for k, v in evaluations.items()})
     return report
+
+
+# ---- temporal context (deterministic projection of the tape) -----------------
+CONTEXT_MAX_GAP_BUCKETS = 8640          # > 30d without a state: restart empty
+
+
+async def context_1h_asof(cfg: BetaConfig, stage2_config, conn, bucket_ts: datetime,
+                          snapshot: Mapping[str, Any], tape_id: int) -> Optional[dict]:
+    """Rolling-1h context for one bucket exactly as of its LIVE tape row (history
+    restricted to rows recorded before `tape_id`)."""
+    from .context import context_1h
+    ident = snapshot.get("identity") or {}
+    if not snapshot.get("materialized") or ident.get("calculation_version") in (None, "UNMATERIALIZED"):
+        return None
+    n = cfg.section("context")["rolling_buckets"]
+    history = await conn.fetch_tape_history(
+        symbol=cfg.symbol, market_type=cfg.market_type, timeframe=cfg.timeframe,
+        calculation_version=ident["calculation_version"], state_schema_version=cfg.state_schema_version,
+        start=bucket_ts - timedelta(days=30) - (n - 1) * BUCKET, end=bucket_ts, before_tape_id=tape_id)
+    tiers = stage2_config.resolve(cfg.symbol)["percentiles"]["confidence_tiers"]
+    return context_1h(cfg, bucket_ts=bucket_ts, current_metrics=snapshot.get("metrics") or {},
+                      history=history, identity=ident, code_version=snapshot["feature_code_version"],
+                      tiers=tiers)
+
+
+async def advance_context(deps: "DetectorDeps", cfg: BetaConfig, conn, bucket_ts: datetime,
+                          rec, tape_id: int) -> dict:
+    """Advance the persisted context projection to `bucket_ts` (stepping through any
+    buckets without a state first) and persist one state per bucket."""
+    from .context import state_digest, step_context, verify_versions
+    v = verify_versions(cfg)
+    prev = await conn.fetch_latest_context_snapshot(
+        symbol=cfg.symbol, before=bucket_ts, episodization_digest=v["episodization_digest"],
+        context_digest=v["context_digest"], rules_digest=cfg.rules_digest)
+    state, prev_digest, b = None, None, bucket_ts
+    if prev is not None and int((bucket_ts - prev["bucket_ts"]) / BUCKET) <= CONTEXT_MAX_GAP_BUCKETS:
+        state, prev_digest, b = prev["state"], prev["state_digest"], prev["bucket_ts"] + BUCKET
+    while b < bucket_ts:                               # buckets the projection has not seen
+        row = await conn.fetch_live_tape(symbol=cfg.symbol, bucket_ts=b, rules_digest=cfg.rules_digest)
+        c1h = None if row is None else await context_1h_asof(
+            cfg, deps.stage2_config, conn, b, row["snapshot"], row["tape_id"])
+        state = step_context(cfg, state, b, row, c1h)
+        digest = state_digest(state)
+        await conn.insert_context_snapshot(state, bucket_ts=b, tape_id=None if row is None else row["tape_id"],
+                                           tape_revision=None if row is None else row["revision"],
+                                           prev_state_digest=prev_digest, state_digest=digest)
+        prev_digest, b = digest, b + BUCKET
+    row = {"tape_id": tape_id, "revision": 1, "snapshot_digest": rec.snapshot_digest, "snapshot": rec.snapshot}
+    c1h = await context_1h_asof(cfg, deps.stage2_config, conn, bucket_ts, rec.snapshot, tape_id)
+    state = step_context(cfg, state, bucket_ts, row, c1h)
+    digest = state_digest(state)
+    await conn.insert_context_snapshot(state, bucket_ts=bucket_ts, tape_id=tape_id, tape_revision=1,
+                                       prev_state_digest=prev_digest, state_digest=digest)
+    return state
+
+
+async def replay_context(cfg: BetaConfig, stage2_config, conn, *, start_bucket: datetime,
+                         end_bucket: datetime, initial_state: Optional[Mapping[str, Any]] = None) -> list:
+    """Recompute the projection from the LIVE tape rows (decision revisions) and the
+    as-of 1h history, under the CONFIGURED episodization version."""
+    from .context import replay
+    rows = await conn.fetch_live_tape_range(symbol=cfg.symbol, start=start_bucket, end=end_bucket,
+                                            rules_digest=cfg.rules_digest)
+    c1h = {b: await context_1h_asof(cfg, stage2_config, conn, b, r["snapshot"], r["tape_id"])
+           for b, r in rows.items()}
+    return replay(cfg, rows, start_bucket=start_bucket, end_bucket=end_bucket,
+                  initial_state=initial_state, context_1h_by_bucket=c1h)
 
 
 def plan_buckets(watermark: Optional[datetime], target: datetime, max_catchup: int) -> tuple:

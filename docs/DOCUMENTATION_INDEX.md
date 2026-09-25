@@ -303,6 +303,7 @@ These documents may still be useful operationally, but following them is not aut
 - `SHADOW_TIMER_DEPLOY.md`
 - `TELEGRAM_NOTIFIER_DEPLOY.md`
 - `PRIVATE_BETA_V0_DEPLOY.md`: beta V0.2 deploy, soak and privacy runbook. Its units are prepared, not activated.
+- `BETA_BTC_TEMPORAL_CONTEXT_V0.md`: the `/btc` temporal-context amendment. It defines episodization `BETA_EPISODES_V0` (confirmation × phase, hysteresis, running peak; parameters UNFROZEN), the rolling-1h context `BETA_CONTEXT_1H_V0`, one push per context episode, and replay. The detector rules are unchanged.
 - `E1_VPS_RUNBOOK.md`
 
 Before using an operational runbook, compare it with current code/config and runtime state. Some commands/names reflect earlier deployment stages.

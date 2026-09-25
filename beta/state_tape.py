@@ -40,6 +40,12 @@ CONSENSUS_METRICS = ("price_move_pct_median", "oi_change_pct_median", "range_wid
 # Context-only consensus values stored by value (no percentile).
 CONTEXT_METRICS = ("funding_rate_median", "price_direction_agreement", "oi_direction_agreement")
 LIQ_SIDES = (("long", "long_liquidation_notional"), ("short", "short_liquidation_notional"))
+# Per-venue raw values stored by value (no percentile) so that venue agreement
+# and the rolling-1h context can be reconstructed from the tape alone. Additive:
+# existing consensus metrics and their percentiles are unchanged.
+VENUE_RAW_FIELDS = ("price_move_pct", "oi_change_pct", "range_width_pct", "volume_notional_usd",
+                    "taker_delta_notional_usd")
+VENUE_OHLC_FIELDS = ("open", "high", "low", "close")
 UNMATERIALIZED = "UNMATERIALIZED"
 
 
@@ -136,11 +142,14 @@ def reference_price(result: Optional[Stage2BucketResult], cfg: BetaConfig) -> di
 
 # ---- metrics ------------------------------------------------------------------
 def extract_metrics(result: Optional[Stage2BucketResult], cfg: BetaConfig,
-                    venue_liq_ok: Mapping[str, bool]) -> dict:
+                    venue_liq_ok: Mapping[str, bool],
+                    venues: Optional[Mapping[str, Mapping[str, Any]]] = None) -> dict:
     """Flat by-value metric map used both as this bucket's values and, later, as
     percentile history. A per-venue liquidation value is recorded ONLY when that
     venue's feed was declared available AND its heartbeat was healthy — otherwise
-    None (absence is never a measured zero)."""
+    None (absence is never a measured zero). Per-venue raw Stage-2 values and the
+    venue's raw 5m kline OHLC are recorded by value (``x:<venue>:<field>`` and
+    ``x:<venue>:kline_<ohlc>``)."""
     out: dict[str, Optional[float]] = {}
     c = result.consensus_feature if result is not None else None
     for m in CONSENSUS_METRICS + CONTEXT_METRICS:
@@ -154,6 +163,13 @@ def extract_metrics(result: Optional[Stage2BucketResult], cfg: BetaConfig,
             if not venue_liq_ok.get(ex, False):
                 v = None
             out[metric_key(ex, field)] = None if v is None else float(v)
+        for field in VENUE_RAW_FIELDS:
+            v = None if efv is None else getattr(efv, field)
+            out[metric_key(ex, field)] = None if v is None else float(v)
+        ohlc = ((venues or {}).get(ex) or {}).get("ohlc") or {}
+        for field in VENUE_OHLC_FIELDS:
+            v = ohlc.get(field)
+            out[metric_key(ex, f"kline_{field}")] = None if v is None else float(v)
     return out
 
 
@@ -240,7 +256,7 @@ def build_tape_record(cfg: BetaConfig, *, bucket_ts: datetime, origin: str,
     materialized = ident is not None
     venue_liq_ok = {ex: bool(v["declared_available"] and v["heartbeat_healthy"])
                     for ex, v in venues.items()}
-    metrics = extract_metrics(result, cfg, venue_liq_ok)
+    metrics = extract_metrics(result, cfg, venue_liq_ok, venues)
     barrier_stale = (raw_revision_before != raw_revision_after)
     lag_s = (evaluated_at - (bucket_ts + BUCKET)).total_seconds()
     fresh = bool(materialized and not barrier_stale and lag_s <= cfg["max_state_age_s"])
