@@ -1,3 +1,13 @@
+## GV0R01-C012 one-shot stopped before prices — dependence defect — 2026-09-25
+
+`RUN_STATUS = BLOCKED_INFERENCE_DEPENDENCE_DEFECT`
+`GLOBAL_PERMUTATION_INVARIANCE_STATUS = NOT_ESTABLISHED`
+`MARKET_DATA_OPENED_FOR_C012 = false`
+`C012_PRIMARY_TEST_EXECUTED = false`
+`NEXT_UNIT = GV0R01_C012_OUTCOME_BLIND_INFERENCE_AMENDMENT`
+
+Identity checks on the frozen design, preflight, and discovery manifest passed. The complete overlap graph of the 198 frozen windows has 177 components and maximum size 2. 240 allowed within-stratum label swaps exchange observations whose outside-stratum overlap neighbors differ (154 observations). Within-stratum separation does not establish exchangeability of the complete statistic. No price value was opened. The primary test was not run. Record: `docs/research/GV0R01_C012_DEPENDENCE_BLOCK.json`.
+
 ## C012 discovery-period BTC months pinned — 2026-09-25
 
 `STATUS = DISCOVERY_MARKET_BYTES_PINNED`
