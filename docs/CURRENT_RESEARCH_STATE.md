@@ -1,3 +1,12 @@
+## GV0R01-C020 design blocked on unpinned holiday calendars — 2026-09-25
+
+`C020_DEFINITION_STATUS = UNAMBIGUOUS`
+`OUTCOME_BLIND_GATE_RESULT = BLOCKED_BY_MISSING_INPUT`
+`MARKET_DATA_OPENED_FOR_C020 = false`
+`NEXT_UNIT = GV0R01_C020_HOLIDAY_CALENDAR_PINNING`
+
+The card is a holiday natural experiment on BTC session volume shares. NYSE, China State Council and US OPM calendars are required with publication dates and are not pinned. No third-party holiday list was substituted. No price or volume value was opened. Inference and power were not reached. Record: `docs/research/GV0R01_C020_DESIGN_BLOCK.json`.
+
 ## GV0R01-C004 closed outcome-blind — 2026-09-25
 
 `C004_STATUS = CLOSED_OUTCOME_BLIND_INFERENCE_SUPPORT_INSUFFICIENT`
