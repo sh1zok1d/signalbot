@@ -6484,6 +6484,26 @@ C020_PRIMARY_TEST_EXECUTED = false
 NEXT_UNIT = GV0R01_C020_HOLIDAY_CALENDAR_PINNING
 ```
 
+## GV0R01-C020 outcome-blind design and power — 2026-09-25
+
+Design only. No C020 execution. No BTC price or quote volume opened. Protected 2025/2026 unopened.
+
+```
+OUTCOME_BLIND_GATE_RESULT = EXECUTION_INFORMATIONALLY_WEAK
+PRIMARY_EVENT_COUNT = 47
+US_SESSION = 09:30-16:00 America/New_York
+EXECUTION_MDE_THRESHOLD = log(0.90)
+ALPHA = 0.05
+ALPHA_ATTAINABLE = true
+BASE_POWER_AT_BAR = 0.79
+STRESS_POWER_AT_BAR = 0.40
+MARKET_DATA_OPENED_FOR_C020 = false
+C020_PRIMARY_TEST_EXECUTED = false
+NEXT_UNIT = NO_C020_EXECUTION_AUTHORIZED
+```
+
+The frozen 10 percent relative-share bar is not reached at 80 percent power in the stress scenario. The design is not retuned. A material redesign would need a new research-object id.
+
 ## GV0R01-C020 holiday calendars pinned — 2026-09-25
 
 Data provenance only. No price or volume opened. No C020 sample, inference, or power.

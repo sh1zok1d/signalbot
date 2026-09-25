@@ -1,3 +1,14 @@
+## GV0R01-C020 outcome-blind design — 2026-09-25
+
+`OUTCOME_BLIND_GATE_RESULT = EXECUTION_INFORMATIONALLY_WEAK`
+`PRIMARY_EVENT_COUNT = 47`
+`ALPHA_ATTAINABLE = true`
+`MARKET_DATA_OPENED_FOR_C020 = false`
+`C020_PRIMARY_TEST_EXECUTED = false`
+`NEXT_UNIT = NO_C020_EXECUTION_AUTHORIZED`
+
+The lead arm is the 47 point-in-time verified NYSE full weekday closures. The US session is NYSE regular hours, 09:30–16:00 America/New_York, converted with the statutory DST calendar. The endpoint is the mean of log(US-session quote-volume share / mean share on same-weekday controls at ±2 weeks). Exact pseudo-holiday support reaches alpha 0.05. The execution bar, frozen before power, is log(0.90). At that bar the base synthetic power is 0.79 and the stress power is 0.40, so one-shot execution is not justified. F2 and F3 are vetoes and are not power-calibrated. China and early-close arms stay non-decisive. No BTC price or volume was opened. Record: `docs/research/GV0R01_C020_OUTCOME_BLIND_DESIGN.json`.
+
 ## GV0R01-C020 holiday calendars pinned — 2026-09-25
 
 `STATUS = HOLIDAY_CALENDARS_PINNED`
