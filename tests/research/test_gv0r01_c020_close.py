@@ -48,6 +48,11 @@ def test_close_does_not_reopen_execution_or_market_data():
     assert close["MARKET_OUTCOMES_COMPUTED"] is False
     assert close["C020_PRIMARY_TEST_EXECUTED"] is False
     assert close["SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING"] == 0
-    assert close["NEXT_CANDIDATE"] == "NONE_READY"
+    assert close["C020_EXECUTED"] is False
+    assert close["C020_MARKET_OUTCOMES_OPENED"] is False
+    assert close["PRIMARY_EVENT_COUNT"] == 47
+    assert close["COMPILER_IMPLEMENTED"] is False
+    assert close["QUEUE_CONTINUED"] is False
+    assert close["NEXT_UNIT"] == "GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_DESIGN"
     assert "exact two-sided pseudo-holiday randomization" in design["INFERENCE_METHOD"]
     assert close["MONTE_CARLO_P_FLOOR"] == 1.0 / 1001.0

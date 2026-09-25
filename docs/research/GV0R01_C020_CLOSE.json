@@ -2,8 +2,12 @@
   "UNIT": "GV0R01_C020_INFERENCE_CLASSIFICATION_AUDIT_AND_CLOSE",
   "DESIGN_RECORD": "docs/research/GV0R01_C020_OUTCOME_BLIND_DESIGN.json",
   "DESIGN_HEAD": "5fd2b7f3f252ba65d05e3e43a0a5206dcad8f8d7",
+  "DESIGN_TREE": "ac23e847f5ba06cd3e4c13f56d365923587a1f12",
+  "PRIMARY_EVENT_COUNT": 47,
   "C020_STATUS": "CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK_REFERENCE_TEST",
   "C020_EXECUTION_AUTHORIZED": false,
+  "C020_EXECUTED": false,
+  "C020_MARKET_OUTCOMES_OPENED": false,
   "DESIGN_CHANGED": false,
   "POWER_GATE_REOPENED": false,
   "INFERENCE_METHOD_REPLACED": false,
@@ -81,6 +85,12 @@
       "BLOCKER": "The card falsifier needs paid spread or L2 history beyond the partial first-party bookTicker window."
     }
   ],
-  "NEXT_CANDIDATE": "NONE_READY",
-  "NEXT_UNIT": "STREAM_B_REMAINING_CANDIDATES_BLOCKED"
+  "QUEUE_CONTINUED": false,
+  "COMPILER_IMPLEMENTED": false,
+  "FUTURE_COMPILER_ACCEPTANCE_CASES": [
+    "C012: repaired inference valid, stress MDE about 0.609 single-window SD, above the frozen 0.50 gate",
+    "C004: dependence-valid support 16, minimum exact one-sided p 1/16 = 0.0625, above alpha 0.05",
+    "C020: base/stress power about 0.79/0.40 at log(0.90), and this exact-versus-reference classification"
+  ],
+  "NEXT_UNIT": "GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_DESIGN"
 }

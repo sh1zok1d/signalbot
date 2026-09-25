@@ -6484,6 +6484,17 @@ C020_PRIMARY_TEST_EXECUTED = false
 NEXT_UNIT = GV0R01_C020_HOLIDAY_CALENDAR_PINNING
 ```
 
+## GV0R01-C020 close routing — 2026-09-25
+
+The classification below is unchanged. The next unit is not another Stream-B candidate.
+
+```
+NEXT_UNIT = GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_DESIGN
+QUEUE_CONTINUED = false
+COMPILER_IMPLEMENTED = false
+C020_EXECUTION_AUTHORIZED = false
+```
+
 ## GV0R01-C020 inference classification audit and close — 2026-09-25
 
 Terminology audit only. The design, the power gate, and the execution decision are unchanged. No BTC value was opened.
