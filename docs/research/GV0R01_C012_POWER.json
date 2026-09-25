@@ -1,0 +1,85 @@
+{
+ "ALPHA": 0.05,
+ "ECONOMIC_BAR_MEANING": "Half of one 24h-return standard deviation, the vol-scaled size of the equity pre-announcement drift. Not fit to C012.",
+ "ECONOMIC_BAR_STANDARDIZED": 0.5,
+ "GATE": {
+  "ECONOMIC_BAR_STANDARDIZED": 0.5,
+  "EXECUTION_AUTHORIZED": false,
+  "PLANNING_MDE_STANDARDIZED": 0.40865320412771755,
+  "REASONS": [],
+  "RULE": "EXECUTION_JUSTIFIED only if the calendar universe, digest and 1:1 control slots check out AND the two-sided 80% MDE at n = ISO_WEEK_N / 2 is at most 0.50 sigma. A larger conservative MDE is EXECUTION_INFORMATIONALLY_WEAK. A broken calendar is DESIGN_INVALID or BLOCKED_BY_MISSING_INPUT. Realized returns cannot change this state.",
+  "STATE": "EXECUTION_JUSTIFIED"
+ },
+ "N_PROVENANCE": "Nominal count and ISO-week clusters come from the two calendars only. Variance inflation 2 is a stated dependence stress, not an estimated autocorrelation.",
+ "PLANNING_SCENARIO": "VARIANCE_INFLATION_2",
+ "SCENARIOS": [
+  {
+   "MDE_LOG_RETURN_BY_SIGMA": {
+    "0.02": 0.005631398175224607,
+    "0.04": 0.011262796350449213,
+    "0.06": 0.016894194525673818
+   },
+   "MDE_STANDARDIZED": 0.28156990876123034,
+   "N_EFF": 99,
+   "POWER_AT_0.25_SIGMA": 0.7010827360055247,
+   "POWER_AT_0.50_SIGMA": 0.9987149901821251,
+   "SAMPLE": "NOMINAL_EVENTS"
+  },
+  {
+   "MDE_LOG_RETURN_BY_SIGMA": {
+    "0.02": 0.0057792290358463895,
+    "0.04": 0.011558458071692779,
+    "0.06": 0.017337687107539166
+   },
+   "MDE_STANDARDIZED": 0.28896145179231947,
+   "N_EFF": 94,
+   "POWER_AT_0.25_SIGMA": 0.6786375163449399,
+   "POWER_AT_0.50_SIGMA": 0.9980597488719551,
+   "SAMPLE": "ISO_WEEK_CLUSTERS"
+  },
+  {
+   "MDE_LOG_RETURN_BY_SIGMA": {
+    "0.02": 0.008173064082554351,
+    "0.04": 0.016346128165108702,
+    "0.06": 0.024519192247663052
+   },
+   "MDE_STANDARDIZED": 0.40865320412771755,
+   "N_EFF": 47.0,
+   "POWER_AT_0.25_SIGMA": 0.4029410823058043,
+   "POWER_AT_0.50_SIGMA": 0.9289293581445346,
+   "SAMPLE": "VARIANCE_INFLATION_2"
+  }
+ ],
+ "SIGMA_24H_ASSUMPTIONS": [
+  0.02,
+  0.04,
+  0.06
+ ],
+ "SIGMA_PROVENANCE": "Stated scenario range for a 24h BTC log-return standard deviation. Not estimated from CORE_BTC and not from any C012 window.",
+ "TAIL": "TWO_SIDED",
+ "TARGET_POWER": 0.8,
+ "UNIVERSE": {
+  "CPI_N": 60,
+  "EVENT_N": 99,
+  "FOMC_N": 39,
+  "ISO_WEEK_N": 94,
+  "LONG_GAP_CPI_N": 11,
+  "OVERLAP_PAIRS": [
+   [
+    "BLS_CPI_REF_2020_05",
+    "FOMC_20200610"
+   ],
+   [
+    "BLS_CPI_REF_2024_05",
+    "FOMC_20240612"
+   ]
+  ],
+  "YEAR_COUNTS": {
+   "2020": 19,
+   "2021": 20,
+   "2022": 20,
+   "2023": 20,
+   "2024": 20
+  }
+ }
+}

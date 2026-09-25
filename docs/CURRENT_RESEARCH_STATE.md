@@ -1,3 +1,18 @@
+## GV0R01-C012 outcome-blind design and power — 2026-09-25
+
+`C012_DESIGN = PREREGISTRATION_CANDIDATE`
+`OUTCOME_BLIND_GATE = EXECUTION_JUSTIFIED`
+`EXECUTION_AUTHORIZED = false`
+`NEXT_UNIT = GV0R01_C012_ONE_SHOT_EXECUTION`
+
+This section supersedes `NEXT_UNIT = GV0R01_C012_OUTCOME_BLIND_DESIGN_AND_POWER` below.
+
+The primary specification is singular: FOMC and CPI, 24h window ending one minute before the release, two-sided stratified permutation against year/weekday/UTC-hour controls. The other five card variants cannot decide. The universe is 60 CPI events plus 39 pinned FOMC events. Both overlapping pairs and all 11 long-gap CPI events stay in.
+
+No BTC series was opened and no pre-release return was computed. The planning MDE at `n = 94/2` is 0.409 sigma, under the pre-set 0.50-sigma bar, so the gate justifies a later execution. This unit does not authorize it. A 0.25-sigma drift is not powered.
+
+Record: `docs/research/GV0R01_C012_OUTCOME_BLIND_DESIGN.{md,json}` and `docs/research/GV0R01_C012_POWER.json`.
+
 ## BLS CPI release-schedule archive V0 pinned — 2026-09-25
 
 `BLS_CPI_CALENDAR_V0 = DURABLY_PINNED`

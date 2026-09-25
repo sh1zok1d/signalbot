@@ -6333,3 +6333,19 @@ CDX_SHA1_MATCH = 189/190 obtained captures (mismatch excluded from evidence)
 C012_CPI_BLOCKER_RESOLVED = true; C004_CPI_BLOCKER_RESOLVED = true (observable only; no design)
 NEXT_UNIT = GV0R01_C012_OUTCOME_BLIND_DESIGN_AND_POWER
 ```
+
+## GV0R01-C012 outcome-blind design and power — 2026-09-25
+
+Design and ex-ante power only. No hypothesis executed, no market file opened, no return computed, protected 2025/2026 unopened, no provider call, Generator V0 memory unchanged.
+
+```
+PRIMARY = FOMC_AND_CPI, PRE_WINDOW_H = 24 (singular; other five card variants cannot decide)
+EVENTS = 99 (CPI 60 + FOMC 39); ISO_WEEKS = 94; OVERLAP_PAIRS = 2 (kept); LONG_GAP_CPI = 11 (kept)
+INFERENCE = stratified label permutation, 5000 draws, seed 12012, alpha 0.05 two-sided
+PLANNING_N = 47 (ISO weeks / variance inflation 2)
+MDE_STANDARDIZED = 0.409; POWER_AT_0.50_SIGMA = 0.929; POWER_AT_0.25_SIGMA = 0.403
+SIGMA_24H_ASSUMPTIONS = 0.02 / 0.04 / 0.06 (stated, not fit)
+OUTCOME_BLIND_GATE = EXECUTION_JUSTIFIED
+EXECUTION_AUTHORIZED = false
+NEXT_UNIT = GV0R01_C012_ONE_SHOT_EXECUTION
+```
