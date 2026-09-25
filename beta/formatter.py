@@ -111,7 +111,8 @@ HELP_TEXT = assert_descriptive(
     "<b>Signalbot closed beta — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
     "The bot watches a few frozen, deterministic, unusual market states and tells you when one "
     "is observed. It does not tell you what to trade.\n\n"
-    "/btc — current state (NO ACTIVE EVENTS / WATCH / EVENT ACTIVE / DATA DEGRADED / DATA STALE): "
+    "/btc — current state (NO ACTIVE EVENTS / WATCH / EVENT ACTIVE / HISTORY BUILDING / "
+    "DETECTOR NOT READY / DATA DEGRADED / DATA STALE) with detector readiness, "
     "the open or most recent detector episode, its trigger or strongest bucket, the latest 5m bucket "
     "and the rolling 1h\n"
     "/history — recent detector episodes, pushed or not, with factual follow-up ranges\n"
@@ -385,6 +386,7 @@ def format_btc(cfg, view: Mapping[str, Any]) -> str:
     a = (shown or {}).get("anchor")
     if a is not None:
         lines.append(f"{ANCHOR_WORDS[a['kind']]} {_window(a['bucket_ts'])}: {_parts(cfg, a['view'], shown['event_type'])}")
+    lines += _readiness_lines(cfg, view.get("readiness"))
     if now_v is not None:
         lines.append(f"Now {_window(now_v['bucket_ts'])}: {_parts(cfg, now_v, (shown or {}).get('event_type'))}")
     if c1h is not None:
@@ -464,5 +466,82 @@ def format_context_details(cfg, episode: Mapping[str, Any], state: Mapping[str, 
         lines.append(f"  venues: {', '.join(c1h.get('venues') or []) or '—'}")
     lines.append(f"\nEpisodization {_e(episode['episodization_version'])} ({episode['episodization_digest'][:12]}): "
                  f"detector episode boundaries · context {_e(state.get('context_version'))}")
+    lines.append("\n" + DISCLAIMER)
+    return assert_descriptive("\n".join(lines))
+
+
+# ---- detector readiness (read model; beta.readiness) ----------------------------------
+READINESS_WORDS = {"READY": "ready", "HISTORY_BUILDING": "history building",
+                   "DATA_UNAVAILABLE": "data unavailable", "DEGRADED": "degraded", "DISABLED": "disabled"}
+_HISTORY_NAMES = {"c:price_move_pct_median": "price history", "c:oi_change_pct_median": "OI history",
+                  "c:range_width_pct_median": "range history", "c:volume_notional_usd_sum": "volume history",
+                  "c:taker_delta_notional_usd_sum": "taker-flow history",
+                  "x:*:long_liquidation_notional": "long-side liquidation history",
+                  "x:*:short_liquidation_notional": "short-side liquidation history"}
+_FAMILY_WORDS = {"price_structure": "price", "oi": "OI", "volume": "volume", "taker_flow": "taker flow"}
+
+
+def _readiness_reason(cfg, reason: Optional[str]) -> str:
+    r = reason or ""
+    if r.startswith("FAMILY_UNUSABLE:"):
+        fam = r.split(":", 1)[1]
+        return f"fewer than {cfg.min_venues} usable venues for {_FAMILY_WORDS.get(fam, fam)}"
+    if r == "INSUFFICIENT_ELIGIBLE_VENUES":
+        return "fewer than the required eligible live feeds"
+    if r.startswith("VALUE_UNAVAILABLE"):
+        return "current value unavailable"
+    if r.startswith("PERCENTILE_MISSING"):
+        return "percentile unavailable"
+    return {"NOT_MATERIALIZED": "latest bucket not materialized", "EVALUATION_NOT_FRESH": "evaluation late",
+            "STALE_BARRIER": "inputs changed during evaluation", "RULE_DISABLED": "switched off",
+            "NOT_EVALUATED": "not evaluated"}.get(r, r.lower().replace("_", " ") or "unknown")
+
+
+def _group_text(cfg, g: Mapping[str, Any], maturity_days: float) -> str:
+    st = g["status"]
+    if st == "READY":
+        return "ready"
+    text = READINESS_WORDS[st]
+    if st == "HISTORY_BUILDING" and g.get("progress"):
+        p = g["progress"]
+        text += (f" · {_HISTORY_NAMES.get(p['metric'], 'history')} "
+                 f"{p['span_days']:.1f}d / {maturity_days:.0f}d")
+    elif st in ("DATA_UNAVAILABLE", "DEGRADED"):
+        text += f" · {_readiness_reason(cfg, g.get('reason'))}"
+    if g.get("partly_ready"):
+        text = f"partly ready ({g['ready_members']}/{g['enabled_members']} rules) · {text}"
+    return text
+
+
+def _readiness_lines(cfg, rd: Optional[Mapping[str, Any]]) -> list:
+    if not rd:
+        return []
+    groups = rd["groups"]
+    if all(g["status"] == "READY" for g in groups):
+        return ["Detector readiness: all families ready"]
+    return ["Detector readiness"] + [f"{g['label']}: {_group_text(cfg, g, rd['maturity_days'])}" for g in groups]
+
+
+def format_readiness_details(cfg, rd: Mapping[str, Any]) -> str:
+    """Per-rule readiness for the latest closed bucket: status, detector reason,
+    percentile tier / samples / history span, and liquidation venue eligibility."""
+    close = _dt(rd["bucket_ts"]) + timedelta(minutes=5)
+    lines = [f"<b>Detector readiness — bucket closed {ts(close)}</b>",
+             f"Maturity needs {rd['maturity_days']:.0f} days of valid history per required percentile "
+             f"(counted from the earliest valid sample, not from deployment)."]
+    for g in rd["groups"]:
+        lines.append(f"\n<b>{_e(g['label'])}</b>: {_group_text(cfg, g, rd['maturity_days'])}")
+        for et in g["members"]:
+            e = rd["events"][et]
+            lines.append(f"• {_e(event_label(et))}: {READINESS_WORDS[e['status']]}"
+                         + (f" ({_e(e['reason'])})" if e.get("reason") else ""))
+            for key, m in (e.get("metrics") or {}).items():
+                lines.append(f"  {_e(_HISTORY_NAMES.get(key, key))}: {m['tier'] or 'n/a'} · "
+                             f"{m['sample_size'] or 0} samples · {m['span_days']:.1f}d span")
+            for ex, v in (e.get("venues") or {}).items():
+                lines.append(f"  {ex}: {READINESS_WORDS[v['state']]}"
+                             + (f" ({_e(v['reason'])})" if v.get("reason") else "")
+                             + f" · {v['tier'] or 'n/a'} · {v['span_days']:.1f}d span")
+    lines.append(f"\nRead model {_e(rd['readiness_version'])}. Readiness changes never send notifications.")
     lines.append("\n" + DISCLAIMER)
     return assert_descriptive("\n".join(lines))

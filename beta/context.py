@@ -434,11 +434,13 @@ def _display_key(e: Mapping[str, Any]) -> tuple:
 
 
 def btc_view(cfg: BetaConfig, *, product: Mapping[str, Any], state: Optional[Mapping[str, Any]],
-             state_digest_value: Optional[str], now: datetime,
+             state_digest_value: Optional[str], now: datetime, readiness: Optional[Mapping[str, Any]],
              detector_open_ids: Optional[Iterable[str]] = None) -> dict:
-    """Everything /btc shows, as plain data. The headline IS the existing fail-closed
-    product status (NO ACTIVE EVENTS / WATCH / EVENT ACTIVE / DATA DEGRADED / DATA
-    STALE) — the projection never changes it. ACTIVE EVENT = an open detector episode;
+    """Everything /btc shows, as plain data. Headline precedence: DATA STALE, DATA
+    DEGRADED, WATCH / EVENT ACTIVE (the existing fail-closed product status, never
+    changed here), then — when the product status is NO ACTIVE EVENTS — HISTORY
+    BUILDING / DETECTOR NOT READY unless the production scope (Price/OI) is READY
+    (`beta.readiness`); only then NO ACTIVE EVENTS. ACTIVE EVENT = an open detector episode;
     LAST EVENT = the most recently ended detector episode, shown only while no episode
     is open and for at most `context.last_event_retention_min` after it ended."""
     usable = state is not None and state.get("as_of_bucket") is not None and (
@@ -456,8 +458,10 @@ def btc_view(cfg: BetaConfig, *, product: Mapping[str, Any], state: Optional[Map
         if ended:
             last = max(ended, key=lambda e: (_ts(e["terminal_at"]), -EVENT_TYPES.index(e["event_type"])))
     stale = product["status"] == "DATA STALE"
+    from .readiness import headline as readiness_headline
     return {
-        "headline": product["status"], "product_status": product["status"],
+        "headline": readiness_headline(product["status"], readiness), "product_status": product["status"],
+        "readiness": None if stale else (dict(readiness) if readiness is not None else None),
         "status_reasons": list(product.get("reasons") or []), "requested_at": iso(now),
         "as_of_bucket": state["as_of_bucket"] if usable else None,
         "data_through": iso(_ts(state["as_of_bucket"]) + BUCKET) if usable else None,

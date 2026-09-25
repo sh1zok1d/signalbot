@@ -790,9 +790,9 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         assert "Last event: price + OI contraction down · reached triggered" in text
         assert "00:00–00:10 UTC · ended 0m ago (condition no longer met)" in text
         assert "Trigger bucket 00:05–00:10" in text and "Now 00:10–00:15" in text
-        (label, data), = out[0].buttons[0]
+        (label, data), readiness_button = out[0].buttons[0]
         pid = (await _rows(pool, "SELECT public_id FROM beta_episodes"))[0]["public_id"]
-        assert (label, data) == ("Details", f"c:{pid}")
+        assert (label, data) == ("Details", f"c:{pid}") and readiness_button == ("Readiness", "r:latest")
         v = (await _rows(pool, "SELECT * FROM beta_btc_views"))[0]
         payload = _j(v["payload"])
         assert v["rendered_html"] == text
@@ -897,5 +897,71 @@ def test_1h_context_warms_up_on_12_v2_buckets_and_never_mixes_v1_rows():
         assert c1h[11]["range_width_pct_median"] == pytest.approx(0.2)            # seeded klines: (100.1-99.9)/100
         v1ctx = await _rows(pool, "SELECT state FROM beta_context_snapshots WHERE rules_digest=$1", CFG_V1.rules_digest)
         assert all(_j(c["state"])["context_1h"] is None for c in v1ctx)            # V1 never has 1h context
+        await pool.close()
+    run(body())
+
+
+# --------------------------------------------------------------------------- detector readiness
+async def _setup_oi_maturity_boundary():
+    """Real history whose earliest valid OI sample is B0-30d+5m: the OI percentile is
+    'building' at B0 (span 30d-5m) and first 'mature' at B0+5m (span exactly 30d)."""
+    pool = await fresh_pool()
+    rng = random.Random(7)
+    first_oi = B0 - timedelta(days=30) + BUCKET
+
+    def metrics(b):
+        m = history_metrics(rng)
+        if b < first_oi:
+            m["c:oi_change_pct_median"] = None
+        return m
+    await seed_history(pool, calculation_version=CALC, buckets=history_buckets(B0, 4), metrics_fn=metrics)
+    await seed_live_klines(pool, [B0 + i * BUCKET for i in range(300)])
+    return pool
+
+
+def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes():
+    async def body():
+        import json
+        from runtime.beta_bot import BetaBotHandler
+        from beta.readiness import readiness
+        from beta.config import canonical_json
+        pool = await _setup_oi_maturity_boundary()
+        h = BetaBotHandler(BetaStore(pool), CFG, switches=lambda: ON, owner_user_id=OWNER,
+                           clock=Clock(B0 + BUCKET + timedelta(seconds=40)))
+        await h.handle(_msg(OWNER, f"/admin_add {ALICE}", 1))
+        await h.handle(_cb(ALICE, "join", 2))
+
+        await _detect(pool, ScenarioReader(quiet), B0)
+        tape0 = (await _rows(pool, "SELECT snapshot FROM beta_state_tape WHERE origin='LIVE' AND bucket_ts=$1", B0))[0]
+        snap0 = _j(tape0["snapshot"])
+        assert snap0["percentiles"]["c:oi_change_pct_median"]["tier"] == "building"
+        assert snap0["rule_evaluations"]["PRICE_OI_CONTRACTION_DOWN"]["reason"].startswith(
+            "PERCENTILE_NOT_MATURE:c:oi_change_pct_median")
+        out = await h.handle(_msg(ALICE, "/btc", 3))
+        text = out[0].html
+        assert "BTC perp · HISTORY BUILDING" in text and "NO ACTIVE EVENTS" not in text
+        assert "Price/OI: history building · OI history 29.9d / 30d" in text
+
+        h.clock = Clock(B0 + 2 * BUCKET + timedelta(seconds=40))
+        await _detect(pool, ScenarioReader(quiet), B0 + BUCKET)                     # first mature bucket
+        snap1 = _j((await _rows(pool, "SELECT snapshot FROM beta_state_tape WHERE origin='LIVE' "
+                                      "AND bucket_ts=$1", B0 + BUCKET))[0]["snapshot"])
+        assert snap1["percentiles"]["c:oi_change_pct_median"]["tier"] == "mature"
+        out = await h.handle(_msg(ALICE, "/btc", 4))
+        text = out[0].html
+        assert "BTC perp · NO ACTIVE EVENTS" in text
+        assert "Price/OI: ready" in text or "all families ready" in text
+        assert ("Readiness", "r:latest") in out[0].buttons[0]
+        details = await h.handle(_cb(ALICE, "r:latest", 5))
+        assert "Detector readiness" in details[1].html and "OI history: mature" in details[1].html
+
+        # the readiness transition produced no push decision and no delivery
+        for t in ("beta_push_decisions", "beta_notification_deliveries"):
+            assert (await _rows(pool, f"SELECT count(*) AS n FROM {t}"))[0]["n"] == 0
+        # what the user saw is persisted, and the same V2 row reproduces the same readiness
+        views = await _rows(pool, "SELECT payload, rendered_html FROM beta_btc_views ORDER BY view_pk")
+        assert [_j(v["payload"])["headline"] for v in views] == ["HISTORY BUILDING", "NO ACTIVE EVENTS"]
+        again = readiness(CFG, {"bucket_ts": B0 + BUCKET, "snapshot": snap1}, maturity_days=30.0)
+        assert canonical_json(_j(views[1]["payload"])["readiness"]) == canonical_json(json.loads(json.dumps(again)))
         await pool.close()
     run(body())

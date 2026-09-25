@@ -20,6 +20,31 @@ Authority: `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`. The systemd artifacts are
 
 `--beta-once` also advances the context projection (`beta_context_snapshots`) inside each bucket's transaction, and `/btc` records what it showed (`beta_btc_views`). See `docs/BETA_BTC_TEMPORAL_CONTEXT_V0.md`. There is no new unit and no new command.
 
+## Warm-up and detector readiness
+
+A fresh deployment has a **warm-up period**. Readiness follows the accumulated **valid history** recorded on the state tape, not the calendar. A family becomes ready when every percentile it needs has a valid sample exactly one maturity span (30 days, the Stage-2 confidence-tier setting) before the latest bucket, and its venue and eligibility gates pass. Gaps delay readiness; a fixed date is never promised.
+
+**What is available when:**
+- **Right after the bootstrap:** the kline-derived context, meaning NOW (price, range, volume) and the rolling 1h context.
+- **Not yet:**
+  - **Price/OI families** (price+OI contraction, build-up/compression) need live OI history. The historical 5m OI sources cannot reproduce the within-bucket OI change, so the bootstrap adds no OI history.
+  - **Taker flow** needs live multi-venue taker history.
+  - **Liquidations** need live liquidation feeds plus live eligibility (healthy live bars, no outage) on at least two venues.
+
+**How `/btc` shows it:**
+- A **Detector readiness** block appears unless every family is ready. Each family is one of:
+  - `ready`;
+  - `history building · <input> <span> / 30d`, where the span is the earliest valid sample to the latest bucket, floored to 0.1 day;
+  - `data unavailable · <reason>`;
+  - `degraded · <reason>`;
+  - `disabled`.
+- The **Readiness** button shows the per-rule tier, sample count, span and venue eligibility.
+- **Headline precedence:** DATA STALE, then DATA DEGRADED, then WATCH / EVENT ACTIVE, then HISTORY BUILDING (or DETECTOR NOT READY), then NO ACTIVE EVENTS. NO ACTIVE EVENTS is shown only when the Price/OI families are actually evaluable.
+- **Absence of an event is not a negative detector decision** until the relevant family is `ready`. A valid event from a ready family is always shown, even while other families are still building.
+- **No pushes:** readiness changes never send notifications.
+
+**Soak planning:** until the Price/OI families are ready, the soak cannot observe core events. Start judging event behaviour from the first bucket in which the relevant family reports `ready`.
+
 ## Environment (`/opt/signalbot/.env`, never committed, never printed)
 
 | Variable | Meaning |

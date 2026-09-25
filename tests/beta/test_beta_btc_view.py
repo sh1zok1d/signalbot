@@ -4,7 +4,25 @@ import json
 import re
 from datetime import timedelta
 
-from test_beta_context import (BUILDUP, CFG, DOWN, QUIET, T0, cx, run, snap)
+from test_beta_context import (BUILDUP, CFG, DOWN, QUIET, T0, cx, snap)
+from test_beta_context import run as _run
+
+from beta.readiness import readiness
+
+_LAST = {}
+
+
+def run(snaps):
+    states, rows = _run(snaps)
+    _LAST["rows"] = rows
+    return states, rows
+
+
+def _readiness_for(states):
+    b = cx._ts(states[-1]["as_of_bucket"])
+    row = _LAST["rows"].get(b)
+    return readiness(CFG, None if row is None else {"bucket_ts": b, "snapshot": row["snapshot"]},
+                     maturity_days=30.0)
 
 from beta.context import btc_view
 from beta.formatter import format_btc, format_context_details
@@ -23,7 +41,7 @@ def _view(states, *, minutes_after=0.5, status=None, reasons=(), open_ids=None):
     s = states[-1]
     now = cx._ts(s["as_of_bucket"]) + BUCKET + timedelta(minutes=minutes_after)
     return btc_view(CFG, product=_product(states, status, reasons), state=s,
-                    state_digest_value=cx.state_digest(s), now=now,
+                    state_digest_value=cx.state_digest(s), now=now, readiness=_readiness_for(states),
                     detector_open_ids=[e["episode_id"] for e in s["open"].values()] if open_ids is None else open_ids)
 
 
@@ -43,10 +61,11 @@ def test_terminated_episode_is_last_event_and_now_is_a_different_bucket():
     assert lines[1] == "Last event: price + OI contraction down · reached triggered"
     assert lines[2] == "12:00–12:10 UTC · ended 0m ago (condition no longer met)"
     assert lines[3].startswith("Trigger bucket 12:05–12:10: price −0.50%")
-    assert lines[4].startswith("Now 12:10–12:15: price +0.21%")
+    assert lines[4] == "Detector readiness"
+    assert next(l for l in lines if l.startswith("Now ")).startswith("Now 12:10–12:15: price +0.21%")
     assert "data through 12:15 UTC" in lines[-2]
     assert not any("EVENT ACTIVE" in l or "WATCH" in l for l in lines)
-    assert len(lines) <= 9
+    assert len(lines) <= 12
 
 
 # ---- D: LAST EVENT stays for the retention window across quiet buckets, never as active -------
@@ -60,10 +79,12 @@ def test_last_event_retained_across_quiet_buckets_then_dropped():
         assert v["headline"] == "NO ACTIVE EVENTS"
     s = states[-1]
     edge = btc_view(CFG, product=_product(states), state=s, state_digest_value="x" * 64,
-                    now=ended_at + timedelta(minutes=retention), detector_open_ids=[])
+                    now=ended_at + timedelta(minutes=retention), detector_open_ids=[],
+                    readiness=_readiness_for(states))
     assert edge["last_event"] is not None
     gone = btc_view(CFG, product=_product(states), state=s, state_digest_value="x" * 64,
-                    now=ended_at + timedelta(minutes=retention, seconds=1), detector_open_ids=[])
+                    now=ended_at + timedelta(minutes=retention, seconds=1), detector_open_ids=[],
+                    readiness=_readiness_for(states))
     assert gone["last_event"] is None
     assert "Last event" not in format_btc(CFG, gone)
 
