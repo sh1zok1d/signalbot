@@ -151,8 +151,7 @@ CREATE TABLE IF NOT EXISTS beta_push_decisions (
     would_push              BOOLEAN NOT NULL,
     decision                TEXT NOT NULL CHECK (decision IN ('PUSH', 'SUPPRESSED')),
     suppression_reason      TEXT CHECK (suppression_reason IS NULL OR suppression_reason IN (
-        'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED',
-        'CONTEXT_EPISODE_NOTIFIED')),
+        'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED')),
     push_enabled_effective  BOOLEAN NOT NULL,
     recorded_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_beta_push_reason CHECK ((decision = 'PUSH') = (suppression_reason IS NULL)),
@@ -351,10 +350,3 @@ CREATE TABLE IF NOT EXISTS beta_btc_views (
 DROP TRIGGER IF EXISTS trg_beta_btc_views_append_only ON beta_btc_views;
 CREATE TRIGGER trg_beta_btc_views_append_only BEFORE UPDATE OR DELETE ON beta_btc_views
     FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
-
--- Idempotent widening of the push suppression reasons on an already-created table.
-ALTER TABLE beta_push_decisions DROP CONSTRAINT IF EXISTS beta_push_decisions_suppression_reason_check;
-ALTER TABLE beta_push_decisions ADD CONSTRAINT beta_push_decisions_suppression_reason_check
-    CHECK (suppression_reason IS NULL OR suppression_reason IN (
-        'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED',
-        'CONTEXT_EPISODE_NOTIFIED'));

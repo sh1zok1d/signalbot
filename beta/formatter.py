@@ -111,8 +111,9 @@ HELP_TEXT = assert_descriptive(
     "<b>Signalbot closed beta — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
     "The bot watches a few frozen, deterministic, unusual market states and tells you when one "
     "is observed. It does not tell you what to trade.\n\n"
-    "/btc — current state (NO ACTIVE EVENTS / WATCH / EVENT ACTIVE / COOLING / DATA DEGRADED / "
-    "DATA STALE): the current episode, its running peak, the latest 5m bucket and the rolling 1h\n"
+    "/btc — current state (NO ACTIVE EVENTS / WATCH / EVENT ACTIVE / DATA DEGRADED / DATA STALE): "
+    "the open or most recent detector episode, its trigger or strongest bucket, the latest 5m bucket "
+    "and the rolling 1h\n"
     "/history — recent detector episodes, pushed or not, with factual follow-up ranges\n"
     "/stop — pause messages · /delete_me — delete your data\n\n" + DISCLAIMER)
 
@@ -244,24 +245,37 @@ def format_owner_alert(alerts: Sequence[Mapping[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-# ---- /btc with temporal context (NOW · running PEAK · 1h background) ------------------
-CONFIRMATION_WORDS = {"EARLY": "early", "ARMED": "armed", "TRIGGERED": "triggered"}
-END_WORDS = {"COOLED_DOWN": "cooled down", "MAX_DURATION": "maximum duration reached",
-             "SUPERSEDED_BY_OPPOSITE": "succeeded by the opposite-side episode"}
-_PRIMARY_FAMILY = {
-    "PRICE_OI_CONTRACTION": ("price_structure", "price"), "POSITION_BUILDUP_COMPRESSION": ("oi", "oi"),
-    "TAKER_FLOW_EXTREME": ("taker_flow", "taker"), "LIQUIDATION_STRESS": ("price_structure", None)}
-_PARTS = {"PRICE_OI_CONTRACTION": ("price", "oi", "volume"),
-          "POSITION_BUILDUP_COMPRESSION": ("oi", "range", "volume"),
-          "TAKER_FLOW_EXTREME": ("taker", "price", "volume"),
-          "LIQUIDATION_STRESS": ("liq", "price", "volume")}
+# ---- /btc with temporal context (ACTIVE / LAST EVENT · anchor bucket · NOW · 1h) ------------
+TERMINAL_WORDS = {"CONDITION_FAILED": "condition no longer met", "NOT_EVALUABLE": "data not evaluable",
+                  "DETECTION_GAP": "detection gap", "DETECTOR_VERSION_CHANGED": "rules/data version changed",
+                  "MAX_DURATION": "maximum duration reached"}
+ANCHOR_WORDS = {"STRONGEST_OBSERVED_BUCKET": "Strongest observed bucket", "TRIGGER_BUCKET": "Trigger bucket",
+                "OPENING_BUCKET": "Opening bucket"}
+_EVENT_SIGN = {PRICE_OI_CONTRACTION_DOWN: -1, PRICE_OI_CONTRACTION_UP: +1, POSITION_BUILDUP_COMPRESSION: +1,
+               TAKER_FLOW_EXTREME_BUY: +1, TAKER_FLOW_EXTREME_SELL: -1}
+_DIRECTION_FIELD = {PRICE_OI_CONTRACTION_DOWN: ("price_structure", "price"),
+                    PRICE_OI_CONTRACTION_UP: ("price_structure", "price"),
+                    POSITION_BUILDUP_COMPRESSION: ("oi", "oi"),
+                    TAKER_FLOW_EXTREME_BUY: ("taker_flow", "taker"), TAKER_FLOW_EXTREME_SELL: ("taker_flow", "taker"),
+                    LIQUIDATION_STRESS_LONG: ("price_structure", None),
+                    LIQUIDATION_STRESS_SHORT: ("price_structure", None)}
+_PARTS = {PRICE_OI_CONTRACTION_DOWN: ("price", "oi", "volume"), PRICE_OI_CONTRACTION_UP: ("price", "oi", "volume"),
+          POSITION_BUILDUP_COMPRESSION: ("oi", "range", "volume"),
+          TAKER_FLOW_EXTREME_BUY: ("taker", "price", "volume"), TAKER_FLOW_EXTREME_SELL: ("taker", "price", "volume"),
+          LIQUIDATION_STRESS_LONG: ("liq_long", "price"), LIQUIDATION_STRESS_SHORT: ("liq_short", "price")}
 
 
-def _hm(s: Optional[str], *, close: bool = True) -> str:
-    if s is None:
-        return "—"
-    dt = datetime.fromisoformat(s) + (timedelta(minutes=5) if close else timedelta(0))
+def _dt(s: str) -> datetime:
+    return datetime.fromisoformat(s)
+
+
+def _hm(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).strftime("%H:%M")
+
+
+def _window(first_bucket: str, last_bucket: Optional[str] = None) -> str:
+    """Bucket start of `first_bucket` to bucket END of `last_bucket` (HH:MM–HH:MM)."""
+    return f"{_hm(_dt(first_bucket))}–{_hm(_dt(last_bucket or first_bucket) + timedelta(minutes=5))}"
 
 
 def _dur(minutes: float) -> str:
@@ -280,9 +294,7 @@ def _usd(v: Optional[float], *, signed: bool = False) -> str:
 
 
 def _signed_pct(v: Optional[float]) -> str:
-    if v is None:
-        return "n/a"
-    return f"{v:+.2f}%".replace("-", "−")
+    return "n/a" if v is None else f"{v:+.2f}%".replace("-", "−")
 
 
 def _tail(cfg, m: Mapping[str, Any]) -> str:
@@ -291,7 +303,7 @@ def _tail(cfg, m: Mapping[str, Any]) -> str:
     return f" ({t})" if t else ""
 
 
-def _part(cfg, view: Mapping[str, Any], which: str, event_type: Optional[str] = None) -> str:
+def _part(cfg, view: Mapping[str, Any], which: str) -> str:
     from .context import level_label
     if which == "price":
         m = view["price_move_pct"]
@@ -308,84 +320,86 @@ def _part(cfg, view: Mapping[str, Any], which: str, event_type: Optional[str] = 
     if which == "volume":
         m = view["volume_notional_usd"]
         return f"volume {level_label(cfg, m.get('rank'), m.get('tier')) or 'n/a'}"
-    if which == "liq":
-        side = "long" if (event_type or "").endswith("LONG") else "short"
+    if which in ("liq_long", "liq_short"):
+        side = which[4:]
         liq = view["liquidations"][side]
-        return (f"{side}-side liquidations {_usd(liq['sum'])} "
-                f"({len(liq['venues_ranked_high'])}/{len(liq['venues_observed'])} venues in top 5%)")
+        if liq["rule_status"] == "NOT_EVALUABLE":
+            return f"{side}-side liquidations not evaluable"
+        venues = ", ".join(liq["voting"]) or "no venue"
+        return (f"{side}-side liquidations in their top 5% on {venues} "
+                f"({len(liq['voting'])} of {len(liq['eligible'])} eligible venues)")
     raise ValueError(which)
 
 
-def _venue_line(view_ep: Optional[Mapping[str, Any]], now_view: Optional[Mapping[str, Any]]) -> str:
-    fam, field = ("price_structure", "price")
-    if view_ep is not None:
-        fam, field = _PRIMARY_FAMILY[view_ep["family"]]
-    src = (view_ep or {}).get("peak", {}) or {}
-    src_view = src.get("view") or now_view
-    if src_view is None:
-        return "Venues n/a"
-    cov = src_view["coverage"][fam]
+def _parts(cfg, view, event_type: Optional[str]) -> str:
+    return " · ".join(_part(cfg, view, p) for p in (_PARTS[event_type] if event_type else ("price", "oi", "volume")))
+
+
+def _venues(ep: Optional[Mapping[str, Any]], now_view: Optional[Mapping[str, Any]]) -> Optional[str]:
+    anchor_view = ((ep or {}).get("anchor") or {}).get("view")
+    fam, field = _DIRECTION_FIELD[ep["event_type"]] if ep else ("price_structure", None)
+    src = anchor_view or now_view
+    if src is None:
+        return None
+    cov = src["coverage"][fam]
     out = f"Venues {cov['available']}/{cov['expected']}"
-    if view_ep is not None and field is not None:
-        vd = src_view["venue_direction"][field]
-        if vd is not None:
-            agree = vd["up"] if view_ep["direction"] > 0 else vd["down"]
-            out += f" · peak direction on {len(agree)}/{vd['contributing']}"
-        else:
+    if ep is not None and field is not None and anchor_view is not None:
+        vd = anchor_view["venue_direction"][field]
+        if vd is None:
             out += " · per-venue direction n/a"
+        else:
+            agree = vd["up"] if _EVENT_SIGN[ep["event_type"]] > 0 else vd["down"]
+            out += f" · same direction on {len(agree)}/{vd['contributing']} at the {ANCHOR_WORDS[ep['anchor']['kind']].lower()}"
     return out
 
 
+def _reached(ep: Mapping[str, Any]) -> str:
+    return "triggered" if ep.get("triggered_at") else "armed" if ep.get("armed_at") else "early"
+
+
 def format_btc(cfg, view: Mapping[str, Any]) -> str:
-    """Compact mobile /btc summary: what · since when · confirmation · running peak ·
-    now · 1h background · freshness. Every number is a raw value or a deterministic
-    label; no score, no direction call, no forecast."""
+    """Compact mobile /btc summary built only from factual detector state:
+    ACTIVE EVENT (an open detector episode) or LAST EVENT (ended, within the
+    presentation retention window), its factual anchor bucket, NOW, the rolling-1h
+    background and data freshness. No score, no direction call, no forecast."""
     from .context import level_label
     lines = [f"<b>BTC perp · {_e(view['headline'])}</b>"]
-    ep, now_v, c1h = view.get("episode"), view.get("now"), view.get("context_1h")
     if view["product_status"] in ("DATA DEGRADED", "DATA STALE"):
         lines.append("Current observability is insufficient; the absence of events cannot be "
                      "claimed right now.")
+    if not view.get("projection_available") and view["product_status"] in ("WATCH", "EVENT ACTIVE"):
+        lines.append("Episode details are not available right now.")
+    ep, last, now_v, c1h = view.get("active_episode"), view.get("last_event"), view.get("now"), view.get("context_1h")
+    shown = ep or last
     if ep is not None:
-        since = datetime.fromisoformat(ep["start_bucket"]) + timedelta(minutes=5)
-        through = datetime.fromisoformat(view["data_through"])
-        lines.append(f"{_e(event_label(ep['event_type']))} episode · "
-                     f"{CONFIRMATION_WORDS.get(ep['confirmation'], 'n/a')} · since {_hm(ep['start_bucket'])} "
-                     f"({_dur((through - since).total_seconds() / 60)})"
-                     + (f" · reactivated {ep['reactivations']}×" if ep["reactivations"] else ""))
-        parts = _PARTS[ep["family"]]
-        pk = (ep.get("peak") or {}).get("view")
-        if pk is not None:
-            lines.append(f"Peak {_hm(pk['bucket_ts'])}: " +
-                         " · ".join(_part(cfg, pk, p, ep["event_type"]) for p in parts))
-        if now_v is not None:
-            lines.append(f"Now {_hm(now_v['bucket_ts'])}: " +
-                         " · ".join(_part(cfg, now_v, p, ep["event_type"]) for p in parts))
-        if view.get("other_episodes"):
-            lines.append("Also open: " + ", ".join(
-                f"{_e(event_label(et))} ({ph.lower()})" for et, ph in view["other_episodes"]))
-    elif now_v is not None:
-        lines.append(f"Now {_hm(now_v['bucket_ts'])}: " +
-                     " · ".join(_part(cfg, now_v, p) for p in ("price", "oi", "volume")))
+        lines.append(f"{_e(event_label(ep['event_type']))} · {_reached(ep)} · qualifying "
+                     f"{_window(ep['opened_bucket'], ep['last_bucket'])} UTC "
+                     f"({ep['qualifying_buckets']} bucket{'s' if ep['qualifying_buckets'] != 1 else ''})")
+        if view.get("other_active"):
+            lines.append("Also open: " + ", ".join(_e(event_label(et)) for et, _st in view["other_active"]))
+    elif last is not None:
+        ago = (_dt(view["requested_at"]) - _dt(last["terminal_at"])).total_seconds() / 60
+        lines.append(f"Last event: {_e(event_label(last['event_type']))} · reached {_reached(last)}")
+        lines.append(f"{_window(last['opened_bucket'], last['last_bucket'])} UTC · ended {_dur(ago)} ago "
+                     f"({TERMINAL_WORDS.get(last['terminal_reason'], 'ended')})")
+    a = (shown or {}).get("anchor")
+    if a is not None:
+        lines.append(f"{ANCHOR_WORDS[a['kind']]} {_window(a['bucket_ts'])}: {_parts(cfg, a['view'], shown['event_type'])}")
+    if now_v is not None:
+        lines.append(f"Now {_window(now_v['bucket_ts'])}: {_parts(cfg, now_v, (shown or {}).get('event_type'))}")
     if c1h is not None:
         pr = c1h.get("percentiles") or {}
-        rng = pr.get("range_width_pct_median") or {}
-        vol = pr.get("volume_notional_usd_sum") or {}
+        rng, vol = pr.get("range_width_pct_median") or {}, pr.get("volume_notional_usd_sum") or {}
         lines.append(f"1h: range {level_label(cfg, rng.get('rank'), rng.get('tier')) or 'n/a (history building)'}"
                      f" · volume {level_label(cfg, vol.get('rank'), vol.get('tier')) or 'n/a (history building)'}"
                      f" · price {_signed_pct(c1h.get('price_move_pct_median'))}")
     elif view["product_status"] != "DATA STALE" and view.get("as_of_bucket"):
         lines.append("1h: n/a (incomplete last hour)")
-    if ep is None and view.get("last_ended") is not None:
-        le = view["last_ended"]
-        ended_at = datetime.fromisoformat(le["ended_bucket"]) + timedelta(minutes=5)
-        ago = (datetime.fromisoformat(view["requested_at"]) - ended_at).total_seconds() / 60
-        lines.append(f"Last event: {_e(event_label(le['event_type']))} · ended {_dur(ago)} ago")
-    tail = [_venue_line(ep, now_v)] if (ep is not None or now_v is not None) else []
+    tail = [t for t in [_venues(shown, now_v)] if t]
     ref = (now_v or {}).get("reference_price")
     if ref is not None:
         tail.append(f"{ref:,.1f}")
-    tail.append(f"data through {_hm(view['data_through'], close=False)} UTC" if view.get("data_through")
+    tail.append(f"data through {_hm(_dt(view['data_through']))} UTC" if view.get("data_through")
                 else "no evaluation yet")
     lines.append(" · ".join(tail))
     lines.append("\n" + DISCLAIMER)
@@ -400,9 +414,12 @@ def _full_metrics(cfg, v: Optional[Mapping[str, Any]]) -> list:
                       ("range_width_pct", "range width"), ("volume_notional_usd", "volume"),
                       ("taker_delta_notional_usd", "taker delta")):
         m = v[key]
-        val = _usd(m["value"], signed=key == "taker_delta_notional_usd") if key.endswith("usd") \
-            else (_signed_pct(m["value"]) if key != "range_width_pct" else
-                  ("n/a" if m["value"] is None else f"{m['value']:.2f}%"))
+        if key.endswith("usd"):
+            val = _usd(m["value"], signed=key == "taker_delta_notional_usd")
+        elif key == "range_width_pct":
+            val = "n/a" if m["value"] is None else f"{m['value']:.2f}%"
+        else:
+            val = _signed_pct(m["value"])
         rank = "n/a" if m.get("rank") is None else f"{m['rank'] * 100:.1f} pct of 30d ({m.get('tier')})"
         out.append(f"  {name}: {val} · {rank}")
     for f, label in (("price", "price"), ("oi", "OI"), ("taker", "taker delta")):
@@ -412,26 +429,25 @@ def _full_metrics(cfg, v: Optional[Mapping[str, Any]]) -> list:
                        f" · flat {','.join(vd['flat']) or '—'}")
     for side in ("long", "short"):
         liq = v["liquidations"][side]
-        out.append(f"  {side}-side liquidations: {_usd(liq['sum'])} · observed on {len(liq['venues_observed'])}"
-                   f" venues · top 5% on {len(liq['venues_ranked_high'])}")
+        per = ", ".join(f"{ex} {_usd(x)}" for ex, x in liq["per_venue"].items() if x is not None) or "none observed"
+        out.append(f"  {side}-side liquidations by venue: {per} · top-5% votes "
+                   f"{','.join(liq['voting']) or '—'} of eligible {','.join(liq['eligible']) or '—'}")
     return out
 
 
 def format_context_details(cfg, episode: Mapping[str, Any], state: Mapping[str, Any]) -> str:
     lines = [f"<b>{_e(episode['episode_id'])} — {_e(event_label(episode['event_type']))}</b>",
              _e(EVENT_DESCRIPTIONS[episode["event_type"]]),
-             f"Phase {episode['phase'].lower()} · confirmation "
-             f"{CONFIRMATION_WORDS.get(episode['confirmation'], 'n/a')} · since {ts(datetime.fromisoformat(episode['start_bucket']) + timedelta(minutes=5))}",
-             f"Reactivations {episode['reactivations']} · last active bucket closed "
-             f"{_hm(episode['last_active_bucket'])} UTC"]
-    if episode.get("end_reason"):
-        lines.append(f"Ended {_hm(episode['ended_bucket'])} UTC: {END_WORDS[episode['end_reason']]}")
-    if episode.get("supersedes"):
-        lines.append(f"Follows {_e(episode['supersedes'])} (same cluster {_e(episode['cluster_id'])})")
-    pk = (episode.get("peak") or {}).get("view")
-    lines.append(f"\n<b>Running peak</b> (bucket closed {_hm(pk['bucket_ts']) if pk else '—'} UTC)")
-    lines += _full_metrics(cfg, pk)
-    lines.append(f"\n<b>Now</b> (bucket closed {_hm((state.get('now') or {}).get('bucket_ts'))} UTC)")
+             f"Detector state {STATE_LABELS[episode['state']]} · reached {_reached(episode)} · qualifying "
+             f"{_window(episode['opened_bucket'], episode['last_bucket'])} UTC ({episode['qualifying_buckets']} buckets)"]
+    if episode.get("terminal_at"):
+        lines.append(f"Ended {ts(_dt(episode['terminal_at']))}: "
+                     f"{TERMINAL_WORDS.get(episode['terminal_reason'], 'ended')}")
+    a = episode.get("anchor")
+    if a is not None:
+        lines.append(f"\n<b>{ANCHOR_WORDS[a['kind']]}</b> {_window(a['bucket_ts'])} UTC")
+        lines += _full_metrics(cfg, a["view"])
+    lines.append(f"\n<b>Now</b> {_window(state['now']['bucket_ts']) + ' UTC' if state.get('now') else ''}")
     lines += _full_metrics(cfg, state.get("now"))
     c1h = state.get("context_1h")
     lines.append("\n<b>Rolling 1h</b> (last 12 closed 5m buckets)")
@@ -446,9 +462,7 @@ def format_context_details(cfg, episode: Mapping[str, Any], state: Mapping[str, 
             rank = "n/a" if p.get("rank") is None else f"{p['rank'] * 100:.1f} pct of rolling-1h 30d ({p.get('tier')})"
             lines.append(f"  {name}: {val} · {rank}")
         lines.append(f"  venues: {', '.join(c1h.get('venues') or []) or '—'}")
-    lines.append(f"\nDetector episodes: {', '.join(episode['detector_episode_ids'])}")
-    lines.append(f"Episodization {_e(episode['episodization_version'])} ({episode['episodization_digest'][:12]})"
-                 + ("" if state.get("episodization_frozen") else " · parameters unfrozen")
-                 + f" · context {_e(state.get('context_version'))}")
+    lines.append(f"\nEpisodization {_e(episode['episodization_version'])} ({episode['episodization_digest'][:12]}): "
+                 f"detector episode boundaries · context {_e(state.get('context_version'))}")
     lines.append("\n" + DISCLAIMER)
     return assert_descriptive("\n".join(lines))

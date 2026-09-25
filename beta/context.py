@@ -1,43 +1,40 @@
-"""Beta V0.2 temporal context — episodization V0 and the rolling-1h background.
+"""Beta V0.2 temporal context — strict detector episodes, recent-event memory and the
+rolling-1h background for /btc.
 
 A deterministic, versioned PROJECTION of the 5m state tape. It never replaces the
-tape (the underlying truth) and never changes the detector: the fast 5m detector
-(`beta.rules` / `beta.detector`) and its episodes, push timing and forward
-outcomes stay exactly as they are. This module adds, per closed 5m bucket:
+tape (the underlying truth) and never changes the detector, its pushes or its
+forward outcomes.
 
-* context episodes with two INDEPENDENT axes
-    - confirmation: the highest detector lifecycle level reached (EARLY / ARMED /
-      TRIGGERED), computed with the detector's own `lifecycle()` thresholds;
-    - phase: ACTIVE / COOLING / ENDED, from an explicit hysteresis rule;
-* a running peak (a real single bucket, knowable as of that bucket);
-* the rolling-1h background (last 12 closed 5m buckets, from raw values) with
-  its own rolling-1h 30d distribution, computed by the frozen percentile core.
+Active episodization STRICT_QUALIFICATION_V1: the episodes ARE the detector
+episodes. The projection replays `beta.detector.step_episode` over the LIVE
+decision rows, so an episode opens on the existing detector entry and ends on
+the first non-QUALIFIES bucket, a gap, a non-evaluable bucket or a rules /
+calculation-version change (POSITION_BUILDUP_COMPRESSION keeps its existing
+cap). There is NO hysteresis, no COOLING phase and no invented persistence;
+live hysteresis stays disabled (`episodization.live_hysteresis_enabled: false`)
+and exists only as unfrozen, taker-only calibration tooling in
+`beta.context_calibration`, which no runtime path imports.
 
-Episodization rule (version label pinned to a parameter digest below):
-  entry        the detector entry condition (event QUALIFIES with
-               streak == lifecycle.entry_streak) while no same-type episode is open;
-  ACTIVE       while the event QUALIFIES or its PRIMARY OBSERVABLE stays beyond the
-               (laxer) exit percentile;
-  COOLING      from the first bucket whose primary observable is not beyond the
-               exit percentile (a missing / non-evaluable bucket counts as such);
-  reactivation COOLING -> ACTIVE (same episode) only when the event QUALIFIES again;
-  end          ENDED after `cooling_buckets_to_end` consecutive such buckets
-               (COOLED_DOWN), or when `max_episode_duration_min` from the start
-               bucket is reached (MAX_DURATION);
-  opposite     an opposite-side entry while this episode is COOLING ends it
-               (SUPERSEDED_BY_OPPOSITE); the new episode inherits its cluster_id.
-               (No "reversal" claim — only the factual succession is recorded.)
-  peak         the bucket with the most extreme primary observable in the event
-               direction; ties keep the earliest; updated only on a strict
-               improvement, so the state at t never contains a later bucket.
-
+What the projection adds per closed bucket:
+* the open detector episodes (ACTIVE EVENT) and the most recently ended one per
+  event type (LAST EVENT memory, shown for `context.last_event_retention_min`);
+* one factual anchor bucket per episode, never a composite:
+    - TAKER_FLOW_EXTREME_*: the strongest observed qualifying bucket by signed
+      taker delta (strict improvement, earliest tie, knowable as of that bucket);
+    - conjunction families (price+OI contraction, build-up/compression) and
+      liquidation stress: the detector's own TRIGGER bucket (or the OPENING
+      bucket while not triggered) — no "strongest" ranking is invented for a
+      conjunction or for per-venue voting;
+  every metric shown for the anchor comes from that one bucket;
+* NOW (the latest bucket) and the rolling-1h background (raw last-12-bucket
+  values ranked by the frozen percentile core against rolling-1h history).
 Nothing here reads forward prices or outcomes.
 """
 from __future__ import annotations
 
 import hashlib
 import math
-from dataclasses import dataclass
+from dataclasses import asdict, fields
 from datetime import datetime, timedelta
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
@@ -46,66 +43,33 @@ from analytics.percentile_engine.models import (ConfidenceTierThresholds, Percen
                                                 PercentileSample)
 
 from .config import (EVENT_TYPES, LIQUIDATION_STRESS_LONG, LIQUIDATION_STRESS_SHORT,
-                     POSITION_BUILDUP_COMPRESSION, PRICE_OI_CONTRACTION_DOWN,
-                     PRICE_OI_CONTRACTION_UP, TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL,
-                     BetaConfig, canonical_json)
-from .detector import lifecycle, public_episode_id
-from .models import ARMED, EARLY, QUALIFIES, STATE_ORDER, TRIGGERED
+                     TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL, BetaConfig, canonical_json)
+from .detector import BucketContext, step_episode
+from .models import STATE_ORDER, TRIGGERED, Episode
 from .state_tape import BUCKET, iso, metric_key, sha256_json
 
-PHASE_ACTIVE, PHASE_COOLING, PHASE_ENDED = "ACTIVE", "COOLING", "ENDED"
-PHASES = (PHASE_ACTIVE, PHASE_COOLING, PHASE_ENDED)
-END_COOLED_DOWN = "COOLED_DOWN"
-END_MAX_DURATION = "MAX_DURATION"
-END_SUPERSEDED = "SUPERSEDED_BY_OPPOSITE"
-END_REASONS = (END_COOLED_DOWN, END_MAX_DURATION, END_SUPERSEDED)
-CONFIRMATIONS = (EARLY, ARMED, TRIGGERED)
-
-# Version label -> parameter digest. A parameter change without a NEW label fails
-# config loading, so a historical episode can never silently change meaning.
+ACTIVE_EPISODIZATION_VERSION = "STRICT_QUALIFICATION_V1"
+# Version label -> parameter digest. A change without a NEW label fails loudly, so a
+# recorded state can never silently change meaning.
 KNOWN_EPISODIZATION_DIGESTS = {
-    "BETA_EPISODES_V0": "a156788bd69f39f2503e4de8b79e6966c4de70e8d7ec5c8c252a6b98635c022c",
+    "STRICT_QUALIFICATION_V1": "0cce5bc5336d156f2f57fb6794c528d8738e4283e7b4e9846a443003834724f3",
 }
 KNOWN_CONTEXT_DIGESTS = {
-    "BETA_CONTEXT_1H_V0": "760f4aad68b6e4ea5d12029a9161239f2851f6d5fd5504d0a88de7ceab31821f",
+    "BETA_CONTEXT_1H_V0": "09b4631d20148d194b88f538e14cc67eab538f334f18770a1bfceb2491674188",
 }
+
+ANCHOR_STRONGEST = "STRONGEST_OBSERVED_BUCKET"
+ANCHOR_TRIGGER = "TRIGGER_BUCKET"
+ANCHOR_OPENING = "OPENING_BUCKET"
+# Display-only anchor policy. Only the taker families have a single-observable
+# intensity (signed taker delta); everything else anchors on detector facts.
+STRONGEST_BY = {TAKER_FLOW_EXTREME_BUY: ("c:taker_delta_notional_usd_sum", +1),
+                TAKER_FLOW_EXTREME_SELL: ("c:taker_delta_notional_usd_sum", -1)}
+LIQUIDATION_TYPES = (LIQUIDATION_STRESS_LONG, LIQUIDATION_STRESS_SHORT)
 
 
 class ContextVersionError(ValueError):
     """Episodization / context parameters do not match their pinned version label."""
-
-
-# ---- primary observables (owner decision: the directional leg) ---------------
-@dataclass(frozen=True)
-class EventSpec:
-    event_type: str
-    family: str             # cluster family (opposite sides share it)
-    direction: int          # +1: larger is more extreme; -1: smaller (more negative) is
-    primary: str            # tape metric key, or "liq:<field>" (sum over healthy venues)
-    primary_family: Optional[str]   # consensus family that must be usable (None: per-venue)
-    opposite: Optional[str]
-
-
-EVENT_SPECS = {
-    PRICE_OI_CONTRACTION_DOWN: EventSpec(PRICE_OI_CONTRACTION_DOWN, "PRICE_OI_CONTRACTION", -1,
-                                         "c:price_move_pct_median", "price_structure",
-                                         PRICE_OI_CONTRACTION_UP),
-    PRICE_OI_CONTRACTION_UP: EventSpec(PRICE_OI_CONTRACTION_UP, "PRICE_OI_CONTRACTION", +1,
-                                       "c:price_move_pct_median", "price_structure",
-                                       PRICE_OI_CONTRACTION_DOWN),
-    POSITION_BUILDUP_COMPRESSION: EventSpec(POSITION_BUILDUP_COMPRESSION, "POSITION_BUILDUP_COMPRESSION",
-                                            +1, "c:oi_change_pct_median", "oi", None),
-    TAKER_FLOW_EXTREME_BUY: EventSpec(TAKER_FLOW_EXTREME_BUY, "TAKER_FLOW_EXTREME", +1,
-                                      "c:taker_delta_notional_usd_sum", "taker_flow",
-                                      TAKER_FLOW_EXTREME_SELL),
-    TAKER_FLOW_EXTREME_SELL: EventSpec(TAKER_FLOW_EXTREME_SELL, "TAKER_FLOW_EXTREME", -1,
-                                       "c:taker_delta_notional_usd_sum", "taker_flow",
-                                       TAKER_FLOW_EXTREME_BUY),
-    LIQUIDATION_STRESS_LONG: EventSpec(LIQUIDATION_STRESS_LONG, "LIQUIDATION_STRESS", +1,
-                                       "liq:long_liquidation_notional", None, LIQUIDATION_STRESS_SHORT),
-    LIQUIDATION_STRESS_SHORT: EventSpec(LIQUIDATION_STRESS_SHORT, "LIQUIDATION_STRESS", +1,
-                                        "liq:short_liquidation_notional", None, LIQUIDATION_STRESS_LONG),
-}
 
 
 # ---- versions ------------------------------------------------------------------
@@ -115,20 +79,10 @@ def _digest(obj) -> str:
 
 def episodization_payload(cfg: BetaConfig) -> dict:
     ep = cfg.section("episodization")
-    return {
-        "version": ep["version"],
-        "cooling_buckets_to_end": ep["cooling_buckets_to_end"],
-        "max_episode_duration_min": ep["max_episode_duration_min"],
-        "exit_percentile": {k: float(v) for k, v in ep["exit_percentile"].items()},
-        "liquidation_exit_min_venues": ep["liquidation_exit_min_venues"],
-        "primary_observables": {et: [s.primary, s.direction] for et, s in EVENT_SPECS.items()},
-        "opposites": {et: s.opposite for et, s in EVENT_SPECS.items()},
-        "entry": "DETECTOR_ENTRY_STREAK",
-        "reactivation": "SAME_TYPE_QUALIFIES_WHILE_COOLING",
-        "missing_bucket": "COUNTS_AS_BELOW_EXIT",
-        "peak": "STRICT_MAX_DIRECTIONAL_PRIMARY_EARLIEST_TIE",
-        "confirmation": "DETECTOR_LIFECYCLE_MAX",
-    }
+    return {"version": ep["version"], "live_hysteresis_enabled": bool(ep["live_hysteresis_enabled"]),
+            "boundaries": "DETECTOR_STEP_EPISODE",
+            "anchor": {"strongest_observed": {et: list(v) for et, v in STRONGEST_BY.items()},
+                       "otherwise": [ANCHOR_TRIGGER, ANCHOR_OPENING], "tie": "EARLIEST"}}
 
 
 def context_payload(cfg: BetaConfig) -> dict:
@@ -137,6 +91,7 @@ def context_payload(cfg: BetaConfig) -> dict:
         "version": c["version"], "rolling_buckets": c["rolling_buckets"],
         "labels": [float(c["label_elevated"]), float(c["label_high"]), float(c["label_extreme"])],
         "tail_display_max": float(c["tail_display_max"]),
+        "last_event_retention_min": c["last_event_retention_min"],
         "metrics": {"range_width_pct_median": "median over venues of (max high - min low) / first open",
                     "price_move_pct_median": "median over venues of (last close - first open) / first open",
                     "volume_notional_usd_sum": "sum of the 5m cross-venue volume sums"},
@@ -161,74 +116,13 @@ def verify_versions(cfg: BetaConfig) -> dict:
     if KNOWN_CONTEXT_DIGESTS.get(cv) != cd:
         raise ContextVersionError(f"context {cv!r} is not pinned to digest {cd}")
     return {"episodization_version": ev, "episodization_digest": ed,
-            "episodization_frozen": bool(cfg.section("episodization")["frozen"]),
-            "context_version": cv, "context_digest": cd}
+            "live_hysteresis_enabled": False, "context_version": cv, "context_digest": cd}
 
 
 # ---- per-bucket readings -----------------------------------------------------------
-def _gate_ok(snapshot: Optional[Mapping[str, Any]]) -> bool:
-    return bool(snapshot and snapshot.get("materialized") and snapshot.get("evaluation_fresh")
-                and not snapshot.get("stale_barrier"))
-
-
 def _pct_entry(snapshot, key) -> dict:
     p = ((snapshot or {}).get("percentiles") or {}).get(key) or {}
     return {"rank": p.get("rank"), "tier": p.get("tier")}
-
-
-def _mature_rank(snapshot, key) -> Optional[float]:
-    p = _pct_entry(snapshot, key)
-    return float(p["rank"]) if p["rank"] is not None and p["tier"] == "mature" else None
-
-
-def primary_value(cfg: BetaConfig, spec: EventSpec, snapshot) -> Optional[float]:
-    metrics = (snapshot or {}).get("metrics") or {}
-    if spec.primary.startswith("liq:"):
-        field = spec.primary[4:]
-        vals = [metrics.get(metric_key(ex, field)) for ex in cfg.exchanges]
-        vals = [float(v) for v in vals if v is not None]
-        return math.fsum(vals) if vals else None
-    v = metrics.get(spec.primary)
-    return None if v is None else float(v)
-
-
-def beyond_exit(cfg: BetaConfig, spec: EventSpec, snapshot) -> bool:
-    """Is the primary observable beyond the (laxer) exit percentile in this bucket?"""
-    if not _gate_ok(snapshot):
-        return False
-    ep = cfg.section("episodization")
-    thr = float(ep["exit_percentile"][spec.event_type])
-    if spec.primary.startswith("liq:"):
-        field = spec.primary[4:]
-        n = sum(1 for ex in cfg.exchanges
-                if (r := _mature_rank(snapshot, metric_key(ex, field))) is not None and r >= thr)
-        return n >= ep["liquidation_exit_min_venues"]
-    if not ((snapshot.get("families") or {}).get(spec.primary_family) or {}).get("usable"):
-        return False
-    rank = _mature_rank(snapshot, spec.primary)
-    if rank is None:
-        return False
-    return rank >= thr if spec.direction > 0 else rank <= thr
-
-
-def confirmation_for(cfg: BetaConfig, event_type: str, streak: int) -> Optional[str]:
-    """The detector's own lifecycle level for a qualifying streak (unchanged semantics)."""
-    lc = lifecycle(cfg, event_type)
-    if streak < lc.entry_streak:
-        return None
-    if streak >= lc.triggered_at:
-        return TRIGGERED
-    if lc.armed_at is not None and streak >= lc.armed_at:
-        return ARMED
-    return lc.entry_state
-
-
-def _max_conf(a: Optional[str], b: Optional[str]) -> Optional[str]:
-    if a is None:
-        return b
-    if b is None:
-        return a
-    return a if STATE_ORDER[a] >= STATE_ORDER[b] else b
 
 
 def _metric(snapshot, key) -> dict:
@@ -239,8 +133,8 @@ def _venue_direction(cfg: BetaConfig, snapshot, family: str, field: str) -> Opti
     """Per-venue sign counts over the venues that CONTRIBUTED to the consensus family."""
     fam = (snapshot.get("families") or {}).get(family) or {}
     contributing = [ex for ex in cfg.exchanges if ex in (fam.get("contributing") or ())]
-    metrics = snapshot.get("metrics") or {}
-    vals = {ex: metrics.get(metric_key(ex, field)) for ex in contributing}
+    raw = snapshot.get("venue_raw") or {}
+    vals = {ex: (raw.get(ex) or {}).get(field) for ex in contributing}
     if not contributing or any(v is None for v in vals.values()):
         return None
     return {"up": sorted(ex for ex, v in vals.items() if v > 0),
@@ -250,21 +144,23 @@ def _venue_direction(cfg: BetaConfig, snapshot, family: str, field: str) -> Opti
 
 
 def bucket_view(cfg: BetaConfig, bucket_ts: datetime, snapshot) -> Optional[dict]:
-    """Every displayed value of ONE bucket, taken from that bucket's tape snapshot only."""
+    """Every displayed value of ONE bucket, taken from that bucket's tape snapshot only.
+    Liquidations stay per venue with the rule's own eligible/voting evidence — they
+    are never summed into a cross-venue intensity."""
     if not snapshot or not snapshot.get("materialized"):
         return None
     ref = snapshot.get("reference") or {}
     fams = snapshot.get("families") or {}
+    evals = snapshot.get("rule_evaluations") or {}
     liq = {}
-    for side, field in (("long", "long_liquidation_notional"), ("short", "short_liquidation_notional")):
-        per = {ex: (snapshot.get("metrics") or {}).get(metric_key(ex, field)) for ex in cfg.exchanges}
-        present = {ex: v for ex, v in per.items() if v is not None}
-        liq[side] = {"sum": math.fsum(present.values()) if present else None,
-                     "venues_observed": sorted(present),
-                     "venues_ranked_high": sorted(
-                         ex for ex in cfg.exchanges
-                         if (r := _mature_rank(snapshot, metric_key(ex, field))) is not None
-                         and r >= cfg.rule("LIQUIDATION_STRESS")["venue_percentile_min"])}
+    for et, side, field in ((LIQUIDATION_STRESS_LONG, "long", "long_liquidation_notional"),
+                            (LIQUIDATION_STRESS_SHORT, "short", "short_liquidation_notional")):
+        ev = evals.get(et) or {}
+        detail = ev.get("detail") or {}
+        liq[side] = {"per_venue": {ex: (snapshot.get("metrics") or {}).get(metric_key(ex, field))
+                                   for ex in cfg.exchanges},
+                     "rule_status": ev.get("status"), "eligible": list(detail.get("eligible") or []),
+                     "voting": list(detail.get("voting") or [])}
     return {
         "bucket_ts": iso(bucket_ts),
         "price_move_pct": _metric(snapshot, "c:price_move_pct_median"),
@@ -285,143 +181,115 @@ def bucket_view(cfg: BetaConfig, bucket_ts: datetime, snapshot) -> Optional[dict
     }
 
 
-# ---- episodization step -------------------------------------------------------------
-def context_episode_id(symbol: str, event_type: str, start_bucket: datetime, ep_digest: str) -> str:
-    raw = f"{symbol}|{event_type}|{start_bucket.isoformat()}|{ep_digest}".encode("utf-8")
-    return "CX-" + hashlib.sha256(raw).hexdigest()[:10].upper()
+# ---- detector episode (de)serialization -------------------------------------------
+_EPISODE_TS = {"opened_bucket", "opened_at", "armed_at", "triggered_at", "terminal_at",
+               "last_bucket", "reference_bucket"}
+
+
+def _episode_to(ep: Episode) -> dict:
+    d = asdict(ep)
+    return {k: (iso(v) if k in _EPISODE_TS else (list(v) if isinstance(v, tuple) else v))
+            for k, v in d.items()}
+
+
+def _episode_from(d: Mapping[str, Any]) -> Episode:
+    kw = {}
+    for f in fields(Episode):
+        v = d.get(f.name)
+        if f.name in _EPISODE_TS:
+            v = None if v is None else datetime.fromisoformat(v)
+        elif f.name == "reference_exchanges":
+            v = tuple(v or ())
+        kw[f.name] = v
+    return Episode(**kw)
 
 
 def _ts(s: str) -> datetime:
     return datetime.fromisoformat(s)
 
 
-def empty_state(cfg: BetaConfig, *, pinned: bool = True) -> dict:
-    versions = verify_versions(cfg) if pinned else {
-        "episodization_version": cfg.section("episodization")["version"] + "+UNPINNED",
-        "episodization_digest": episodization_digest(cfg),
-        "episodization_frozen": False,
-        "context_version": cfg.section("context")["version"], "context_digest": context_digest(cfg)}
-    return {**versions, "rules_digest": cfg.rules_digest, "symbol": cfg.symbol,
-            "as_of_bucket": None, "episodes": {}, "last_ended": {}, "now": None,
+# ---- strict projection step ------------------------------------------------------------
+def empty_state(cfg: BetaConfig) -> dict:
+    return {**verify_versions(cfg), "rules_digest": cfg.rules_digest, "symbol": cfg.symbol,
+            "as_of_bucket": None, "open": {}, "last_ended": {}, "now": None,
             "context_1h": None, "input": None}
 
 
-def _evaluation(snapshot, event_type) -> tuple:
-    ev = ((snapshot or {}).get("rule_evaluations") or {}).get(event_type) or {}
-    return ev.get("status"), int(ev.get("streak") or 0)
+def _anchor(kind: str, bucket_ts: datetime, view, ev, value=None) -> dict:
+    return {"kind": kind, "bucket_ts": iso(bucket_ts), "view": view,
+            "evidence": dict((ev or {}).get("detail") or {}), "value": value}
 
 
-def _end(ep: dict, bucket_ts: datetime, reason: str, superseded_by: Optional[str] = None) -> dict:
-    return {**ep, "phase": PHASE_ENDED, "ended_bucket": iso(bucket_ts), "end_reason": reason,
-            "superseded_by": superseded_by}
+def _record(cfg: BetaConfig, cur: Optional[Mapping[str, Any]], ep: Episode, *, bucket_ts: datetime,
+            snapshot, view, qualifying: bool, triggered_now: bool, ed: str) -> dict:
+    rec = dict(cur) if cur is not None else {
+        "episode_id": ep.public_id, "event_type": ep.event_type, "qualifying_buckets": 0,
+        "anchor": None, "episodization_version": ACTIVE_EPISODIZATION_VERSION,
+        "episodization_digest": ed}
+    rec.update(state=ep.state, opened_bucket=iso(ep.opened_bucket), last_bucket=iso(ep.last_bucket),
+               armed_at=iso(ep.armed_at), triggered_at=iso(ep.triggered_at),
+               terminal_at=iso(ep.terminal_at), terminal_reason=ep.terminal_reason,
+               detector=_episode_to(ep))
+    if not qualifying or view is None:
+        return rec
+    rec["qualifying_buckets"] = rec["qualifying_buckets"] + 1
+    ev = ((snapshot or {}).get("rule_evaluations") or {}).get(ep.event_type)
+    if ep.event_type in STRONGEST_BY:
+        key, direction = STRONGEST_BY[ep.event_type]
+        v = (snapshot.get("metrics") or {}).get(key)
+        a = rec["anchor"]
+        if v is not None and (a is None or direction * float(v) > direction * a["value"]):
+            rec["anchor"] = _anchor(ANCHOR_STRONGEST, bucket_ts, view, ev, float(v))
+    elif triggered_now:
+        rec["anchor"] = _anchor(ANCHOR_TRIGGER, bucket_ts, view, ev)
+    elif rec["anchor"] is None:
+        rec["anchor"] = _anchor(ANCHOR_OPENING, bucket_ts, view, ev)
+    return rec
 
 
 def step_context(cfg: BetaConfig, prev: Optional[Mapping[str, Any]], bucket_ts: datetime,
-                 row: Optional[Mapping[str, Any]], context_1h: Optional[Mapping[str, Any]] = None,
-                 *, pinned: bool = True) -> dict:
-    """State after bucket `bucket_ts`, from the state after the previous bucket and
-    this bucket's LIVE tape row (None = no row: counts as a below-exit bucket).
-    Pure and deterministic; uses nothing later than `bucket_ts`."""
-    state = empty_state(cfg, pinned=pinned) if prev is None else {k: v for k, v in prev.items()}
+                 row: Optional[Mapping[str, Any]], context_1h: Optional[Mapping[str, Any]] = None) -> dict:
+    """State after bucket `bucket_ts`, from the state after the previous bucket and this
+    bucket's LIVE tape row. The episodes are stepped with the detector's own
+    `step_episode` on exactly the inputs the detector used, so their boundaries are the
+    detector's. A bucket without a LIVE row was never decided by the detector and is
+    not stepped (the next decided bucket then sees the gap, exactly like the
+    detector). Pure and deterministic; uses nothing later than `bucket_ts`."""
+    state = empty_state(cfg) if prev is None else {k: v for k, v in prev.items()}
     if prev is not None and state["episodization_digest"] != episodization_digest(cfg):
         raise ContextVersionError("previous state belongs to a different episodization version")
     if state["as_of_bucket"] is not None and _ts(state["as_of_bucket"]) + BUCKET != bucket_ts:
         raise ValueError("step_context must advance exactly one 5m bucket")
-    snapshot = (row or {}).get("snapshot")
-    ep_cfg = cfg.section("episodization")
-    ttl = timedelta(minutes=ep_cfg["max_episode_duration_min"])
-    n_end = ep_cfg["cooling_buckets_to_end"]
     ed = state["episodization_digest"]
-    episodes = dict(state["episodes"])
-    last_ended = dict(state["last_ended"])
+    snapshot = (row or {}).get("snapshot")
     view = bucket_view(cfg, bucket_ts, snapshot)
-
-    def finish(ep):
-        last_ended[ep["event_type"]] = ep
-        episodes.pop(ep["event_type"], None)
-
-    # 1) continuation of open episodes (TTL first)
-    for et in EVENT_TYPES:
-        ep = episodes.get(et)
-        if ep is None:
-            continue
-        spec = EVENT_SPECS[et]
-        if bucket_ts - _ts(ep["start_bucket"]) >= ttl:
-            finish(_end(ep, bucket_ts, END_MAX_DURATION))
-            continue
-        status, streak = _evaluation(snapshot, et)
-        qualifies = _gate_ok(snapshot) and status == QUALIFIES
-        ep = dict(ep, last_bucket=iso(bucket_ts))
-        if qualifies:
-            if ep["phase"] == PHASE_COOLING:
-                ep["reactivations"] += 1
-            ep.update(phase=PHASE_ACTIVE, below_exit_run=0, last_active_bucket=iso(bucket_ts),
-                      confirmation=_max_conf(ep["confirmation"], confirmation_for(cfg, et, streak)))
-            if streak == lifecycle(cfg, et).entry_streak:
-                ep["detector_episode_ids"] = ep["detector_episode_ids"] + [
-                    public_episode_id(cfg.symbol, et, bucket_ts, cfg.rules_digest)]
-        elif beyond_exit(cfg, spec, snapshot):
-            ep["below_exit_run"] = 0
-            if ep["phase"] == PHASE_ACTIVE:
-                ep["last_active_bucket"] = iso(bucket_ts)
-        else:
-            ep.update(phase=PHASE_COOLING, below_exit_run=ep["below_exit_run"] + 1)
-        _update_peak(cfg, spec, ep, bucket_ts, snapshot, view)
-        if ep["phase"] == PHASE_COOLING and ep["below_exit_run"] >= n_end:
-            finish(_end(ep, bucket_ts, END_COOLED_DOWN))
-        else:
-            episodes[et] = ep
-
-    # 2) entries (detector entry condition, no same-type episode open)
-    opened = []
-    for et in EVENT_TYPES:
-        if et in episodes:
-            continue
-        status, streak = _evaluation(snapshot, et)
-        if not (_gate_ok(snapshot) and status == QUALIFIES and streak == lifecycle(cfg, et).entry_streak):
-            continue
-        eid = context_episode_id(cfg.symbol, et, bucket_ts, ed)
-        ep = {"episode_id": eid, "cluster_id": eid, "event_type": et,
-              "family": EVENT_SPECS[et].family, "direction": EVENT_SPECS[et].direction,
-              "start_bucket": iso(bucket_ts), "last_bucket": iso(bucket_ts),
-              "last_active_bucket": iso(bucket_ts), "phase": PHASE_ACTIVE,
-              "confirmation": confirmation_for(cfg, et, streak), "reactivations": 0,
-              "below_exit_run": 0, "peak": None,
-              "detector_episode_ids": [public_episode_id(cfg.symbol, et, bucket_ts, cfg.rules_digest)],
-              "ended_bucket": None, "end_reason": None, "superseded_by": None,
-              "supersedes": None, "episodization_version": state["episodization_version"],
-              "episodization_digest": ed, "rules_digest": cfg.rules_digest}
-        _update_peak(cfg, EVENT_SPECS[et], ep, bucket_ts, snapshot, view)
-        episodes[et] = ep
-        opened.append(et)
-
-    # 3) opposite-side succession: a COOLING opposite episode ends, the new one joins its cluster
-    for et in opened:
-        opp = EVENT_SPECS[et].opposite
-        old = episodes.get(opp) if opp else None
-        if old is not None and old["phase"] == PHASE_COOLING:
-            new = episodes[et]
-            finish(_end(old, bucket_ts, END_SUPERSEDED, superseded_by=new["episode_id"]))
-            episodes[et] = dict(new, cluster_id=old["cluster_id"], supersedes=old["episode_id"])
-
-    state.update(as_of_bucket=iso(bucket_ts), episodes=episodes, last_ended=last_ended, now=view,
+    open_, ended = dict(state["open"]), dict(state["last_ended"])
+    evals = (snapshot or {}).get("rule_evaluations")
+    if evals is not None:
+        ctx = BucketContext(bucket_ts=bucket_ts, decision_ts=bucket_ts + BUCKET,
+                            snapshot_digest=row["snapshot_digest"],
+                            calculation_version=(snapshot.get("identity") or {})["calculation_version"],
+                            reference=snapshot["reference"], code_version=snapshot["code_version"])
+        for et in EVENT_TYPES:
+            cur = open_.get(et)
+            st = step_episode(cfg, et, None if cur is None else _episode_from(cur["detector"]),
+                              evals[et], ctx)
+            if st.terminated is not None:
+                ended[et] = _record(cfg, cur, st.terminated, bucket_ts=bucket_ts, snapshot=snapshot,
+                                    view=view, qualifying=False, triggered_now=False, ed=ed)
+                open_.pop(et, None)
+            if st.updated is not None:
+                open_[et] = _record(cfg, cur, st.updated, bucket_ts=bucket_ts, snapshot=snapshot, view=view,
+                                    qualifying=True, triggered_now=st.triggered == "updated", ed=ed)
+            if st.opened is not None:
+                open_[et] = _record(cfg, None, st.opened, bucket_ts=bucket_ts, snapshot=snapshot, view=view,
+                                    qualifying=True, triggered_now=st.triggered == "opened", ed=ed)
+    state.update(as_of_bucket=iso(bucket_ts), open=open_, last_ended=ended, now=view,
                  context_1h=None if context_1h is None else dict(context_1h),
                  input=None if row is None else {"tape_id": row.get("tape_id"),
                                                  "revision": row.get("revision"),
                                                  "snapshot_digest": row.get("snapshot_digest")})
     return state
-
-
-def _update_peak(cfg, spec: EventSpec, ep: dict, bucket_ts: datetime, snapshot, view) -> None:
-    """Running peak: strict improvement in the event direction only (tie -> earliest)."""
-    if view is None:
-        return
-    v = primary_value(cfg, spec, snapshot)
-    if v is None:
-        return
-    cur = ep["peak"]
-    if cur is None or spec.direction * v > spec.direction * cur["primary_value"]:
-        ep["peak"] = {"bucket_ts": iso(bucket_ts), "primary_value": v, "view": view}
 
 
 def state_digest(state: Mapping[str, Any]) -> str:
@@ -537,99 +405,69 @@ def replay(cfg: BetaConfig, rows_by_bucket: Mapping[datetime, Optional[Mapping[s
            initial_state: Optional[Mapping[str, Any]] = None,
            context_1h_by_bucket: Optional[Mapping[datetime, Mapping[str, Any]]] = None) -> list:
     """Recompute the projection bucket by bucket from explicit tape rows (the caller
-    chooses the revision policy) under the CONFIGURED episodization version. Returns
-    the state after every bucket in [start_bucket, end_bucket]."""
+    chooses the revision policy) under the CONFIGURED episodization version."""
     states, state = [], (dict(initial_state) if initial_state is not None else None)
     b = start_bucket
     while b <= end_bucket:
-        state = step_context(cfg, state, b, rows_by_bucket.get(b),
-                             (context_1h_by_bucket or {}).get(b))
+        state = step_context(cfg, state, b, rows_by_bucket.get(b), (context_1h_by_bucket or {}).get(b))
         states.append(state)
         b += BUCKET
     return states
 
 
-def episode_structure_stats(cfg: BetaConfig, rows_by_bucket, *, start_bucket: datetime,
-                            end_bucket: datetime, candidates: Sequence[int]) -> dict:
-    """Condition-series STRUCTURE only (episode count, reactivations, length in
-    buckets) per candidate `cooling_buckets_to_end` — for choosing N without ever
-    looking at post-event prices or outcomes. Candidates run unpinned (exploratory)."""
-    from common.versioning import _to_plain
-    out = {}
-    for n in candidates:
-        raw = _to_plain(cfg.raw)
-        raw["episodization"]["cooling_buckets_to_end"] = int(n)
-        c = BetaConfig.from_mapping(raw)
-        ended, reacts, lengths, state = 0, 0, [], None
-        b = start_bucket
-        while b <= end_bucket:
-            before = {et: e["episode_id"] for et, e in ((state or {}).get("last_ended") or {}).items()}
-            state = step_context(c, state, b, rows_by_bucket.get(b), pinned=False)
-            for et, e in state["last_ended"].items():
-                if before.get(et) != e["episode_id"]:
-                    ended += 1
-                    reacts += e["reactivations"]
-                    lengths.append(int((_ts(e["ended_bucket"]) - _ts(e["start_bucket"])) / BUCKET))
-            b += BUCKET
-        out[int(n)] = {"episodes_ended": ended, "open_at_end": len(state["episodes"]) if state else 0,
-                       "reactivations": reacts,
-                       "mean_length_buckets": (sum(lengths) / len(lengths)) if lengths else None}
-    return out
-
-
 # ---- /btc view model (pure data; rendering lives in beta.formatter) --------------------
-S_COOLING = "COOLING"
 _DATA_PROBLEM = ("DATA STALE", "DATA DEGRADED")
 
 
 def _display_key(e: Mapping[str, Any]) -> tuple:
-    return (0 if e["phase"] == PHASE_ACTIVE else 1,
-            -STATE_ORDER.get(e["confirmation"], -1),
-            -_ts(e["start_bucket"]).timestamp(),
+    return (-STATE_ORDER.get(e["state"], -1), -_ts(e["opened_bucket"]).timestamp(),
             EVENT_TYPES.index(e["event_type"]))
 
 
 def btc_view(cfg: BetaConfig, *, product: Mapping[str, Any], state: Optional[Mapping[str, Any]],
-             state_digest_value: Optional[str], now: datetime) -> dict:
-    """Everything /btc shows, as plain data. The existing fail-closed product status
-    (DATA STALE / DATA DEGRADED) always wins the headline; otherwise the headline is
-    the selected context episode's phase (ACTIVE -> the detector vocabulary WATCH /
-    EVENT ACTIVE by confirmation; COOLING), or NO ACTIVE EVENTS."""
-    status = product["status"]
+             state_digest_value: Optional[str], now: datetime,
+             detector_open_ids: Optional[Iterable[str]] = None) -> dict:
+    """Everything /btc shows, as plain data. The headline IS the existing fail-closed
+    product status (NO ACTIVE EVENTS / WATCH / EVENT ACTIVE / DATA DEGRADED / DATA
+    STALE) — the projection never changes it. ACTIVE EVENT = an open detector episode;
+    LAST EVENT = the most recently ended detector episode, shown only while no episode
+    is open and for at most `context.last_event_retention_min` after it ended."""
     usable = state is not None and state.get("as_of_bucket") is not None and (
         product.get("last_good_bucket") is None
         or _ts(state["as_of_bucket"]) >= product["last_good_bucket"])
-    episodes = sorted((state or {}).get("episodes", {}).values(), key=_display_key) if usable else []
-    shown = episodes[0] if episodes else None
-    if status in _DATA_PROBLEM:
-        headline = status
-    elif shown is None:
-        headline = "NO ACTIVE EVENTS"
-    elif shown["phase"] == PHASE_COOLING:
-        headline = S_COOLING
-    else:
-        headline = "EVENT ACTIVE" if shown["confirmation"] == TRIGGERED else "WATCH"
-    ended = sorted(((state or {}).get("last_ended") or {}).values(),
-                   key=lambda e: (_ts(e["ended_bucket"]), EVENT_TYPES.index(e["event_type"])))
+    if usable and detector_open_ids is not None and \
+            set(detector_open_ids) != {e["episode_id"] for e in (state.get("open") or {}).values()}:
+        usable = False       # never show projection details that disagree with the detector
+    active = sorted(((state or {}).get("open") or {}).values(), key=_display_key) if usable else []
+    last = None
+    if usable and not active:
+        ended = [e for e in (state.get("last_ended") or {}).values() if e.get("terminal_at")]
+        retention = timedelta(minutes=cfg.section("context")["last_event_retention_min"])
+        ended = [e for e in ended if now - _ts(e["terminal_at"]) <= retention]
+        if ended:
+            last = max(ended, key=lambda e: (_ts(e["terminal_at"]), -EVENT_TYPES.index(e["event_type"])))
+    stale = product["status"] == "DATA STALE"
     return {
-        "headline": headline, "product_status": status, "status_reasons": list(product.get("reasons") or []),
-        "requested_at": iso(now),
-        "as_of_bucket": (state or {}).get("as_of_bucket") if usable else None,
+        "headline": product["status"], "product_status": product["status"],
+        "status_reasons": list(product.get("reasons") or []), "requested_at": iso(now),
+        "as_of_bucket": state["as_of_bucket"] if usable else None,
         "data_through": iso(_ts(state["as_of_bucket"]) + BUCKET) if usable else None,
-        "episode": shown, "other_episodes": [[e["event_type"], e["phase"]] for e in episodes[1:]],
-        "now": (state or {}).get("now") if usable and status != "DATA STALE" else None,
-        "context_1h": (state or {}).get("context_1h") if usable and status != "DATA STALE" else None,
-        "last_ended": ended[-1] if (usable and ended) else None,
+        "projection_available": usable,
+        "active_episode": active[0] if active else None,
+        "other_active": [[e["event_type"], e["state"]] for e in active[1:]],
+        "last_event": last,
+        "now": state.get("now") if usable and not stale else None,
+        "context_1h": state.get("context_1h") if usable and not stale else None,
         "episodization_version": (state or {}).get("episodization_version"),
         "episodization_digest": (state or {}).get("episodization_digest"),
-        "episodization_frozen": (state or {}).get("episodization_frozen"),
+        "live_hysteresis_enabled": False,
         "context_version": (state or {}).get("context_version"),
         "context_state_digest": state_digest_value if usable else None,
     }
 
 
 def find_episode(state: Optional[Mapping[str, Any]], episode_id: str) -> Optional[dict]:
-    for e in list(((state or {}).get("episodes") or {}).values()) + \
+    for e in list(((state or {}).get("open") or {}).values()) + \
             list(((state or {}).get("last_ended") or {}).values()):
         if e["episode_id"] == episode_id:
             return e

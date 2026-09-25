@@ -164,7 +164,8 @@ class BetaBotHandler:
         ctx = await conn.fetch_latest_context_state(symbol=self.cfg.symbol,
                                                     episodization_digest=episodization_digest(self.cfg))
         view = btc_view(self.cfg, product=st["status"], state=ctx["state"] if ctx else None,
-                        state_digest_value=ctx["state_digest"] if ctx else None, now=now)
+                        state_digest_value=ctx["state_digest"] if ctx else None, now=now,
+                        detector_open_ids=[e.public_id for e in st["open_episodes"]])
         text = format_btc(self.cfg, view)
         await conn.insert_btc_view(
             requested_at=now, as_of_bucket=datetime.fromisoformat(view["as_of_bucket"]) if view["as_of_bucket"] else None,
@@ -173,7 +174,7 @@ class BetaBotHandler:
             episodization_digest=view["episodization_digest"], payload=view,
             payload_digest=sha256_json(view), rendered_sha256=hashlib.sha256(text.encode("utf-8")).hexdigest(),
             rendered_html=text)
-        focus = view["episode"] or view["last_ended"]
+        focus = view["active_episode"] or view["last_event"]
         return text, ([[("Details", "c:" + focus["episode_id"])]] if focus else None)
 
     async def _context_details(self, conn, chat_id: int, episode_id: str, answer) -> list:

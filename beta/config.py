@@ -86,10 +86,9 @@ _PERCENTILE_KEYS = {
 
 # Temporal-context sections (episodization + 1h context). They never enter the
 # rules digest: they change presentation / episode projection, not detection.
-_EPISODIZATION_KEYS = {"version", "frozen", "cooling_buckets_to_end", "max_episode_duration_min",
-                       "exit_percentile", "liquidation_exit_min_venues"}
+_EPISODIZATION_KEYS = {"version", "live_hysteresis_enabled"}
 _CONTEXT_KEYS = {"version", "rolling_buckets", "label_elevated", "label_high", "label_extreme",
-                 "tail_display_max"}
+                 "tail_display_max", "last_event_retention_min"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
 # cooldown / cap only enter the config digest).
@@ -301,35 +300,13 @@ def _validate(d: Mapping[str, Any]) -> None:
 
 
 def _validate_temporal_context(d: Mapping[str, Any]) -> None:
-    ep, rules = d["episodization"], d["rules"]
+    ep = d["episodization"]
     _exact_keys(ep, _EPISODIZATION_KEYS, "episodization")
     if not isinstance(ep["version"], str) or not ep["version"].strip():
         raise BetaConfigError("episodization.version must be a non-empty string")
-    _bool(ep["frozen"], "episodization.frozen")
-    _int(ep["cooling_buckets_to_end"], "episodization.cooling_buckets_to_end")
-    _int(ep["max_episode_duration_min"], "episodization.max_episode_duration_min", minimum=5)
-    if ep["max_episode_duration_min"] % 5:
-        raise BetaConfigError("episodization.max_episode_duration_min must be a multiple of 5")
-    _int(ep["liquidation_exit_min_venues"], "episodization.liquidation_exit_min_venues")
-    if ep["liquidation_exit_min_venues"] > rules["LIQUIDATION_STRESS"]["min_eligible_venues"]:
-        raise BetaConfigError("episodization.liquidation_exit_min_venues must not exceed the entry quorum")
-    ex = ep["exit_percentile"]
-    _exact_keys(ex, EVENT_TYPES, "episodization.exit_percentile")
-    for et in EVENT_TYPES:
-        _unit(ex[et], f"episodization.exit_percentile.{et}")
-    # Hysteresis: every exit threshold must be LAXER than (or equal to) its entry.
-    laxer = {
-        PRICE_OI_CONTRACTION_DOWN: ex[PRICE_OI_CONTRACTION_DOWN] >= rules[PRICE_OI_CONTRACTION_DOWN]["price_move_pct_median_max"],
-        PRICE_OI_CONTRACTION_UP: ex[PRICE_OI_CONTRACTION_UP] <= rules[PRICE_OI_CONTRACTION_UP]["price_move_pct_median_min"],
-        POSITION_BUILDUP_COMPRESSION: ex[POSITION_BUILDUP_COMPRESSION] <= rules[POSITION_BUILDUP_COMPRESSION]["oi_change_pct_median_min"],
-        TAKER_FLOW_EXTREME_BUY: ex[TAKER_FLOW_EXTREME_BUY] <= rules["TAKER_FLOW_EXTREME"]["buy_percentile_min"],
-        TAKER_FLOW_EXTREME_SELL: ex[TAKER_FLOW_EXTREME_SELL] >= rules["TAKER_FLOW_EXTREME"]["sell_percentile_max"],
-        LIQUIDATION_STRESS_LONG: ex[LIQUIDATION_STRESS_LONG] <= rules["LIQUIDATION_STRESS"]["venue_percentile_min"],
-        LIQUIDATION_STRESS_SHORT: ex[LIQUIDATION_STRESS_SHORT] <= rules["LIQUIDATION_STRESS"]["venue_percentile_min"],
-    }
-    bad = sorted(et for et, ok in laxer.items() if not ok)
-    if bad:
-        raise BetaConfigError(f"episodization exit thresholds stricter than entry: {bad}")
+    if _bool(ep["live_hysteresis_enabled"], "episodization.live_hysteresis_enabled"):
+        raise BetaConfigError("episodization.live_hysteresis_enabled must be false: hysteresis "
+                              "parameters are unfrozen and not approved for /btc, pushes or episodes")
     c = d["context"]
     _exact_keys(c, _CONTEXT_KEYS, "context")
     if not isinstance(c["version"], str) or not c["version"].strip():
@@ -341,6 +318,7 @@ def _validate_temporal_context(d: Mapping[str, Any]) -> None:
         raise BetaConfigError("context labels must satisfy 0.5 <= elevated < high < extreme < 1")
     if not (0.0 < c["tail_display_max"] <= 0.5):
         raise BetaConfigError("context.tail_display_max must be in (0, 0.5]")
+    _int(c["last_event_retention_min"], "context.last_event_retention_min", minimum=5)
 
 
 # ---- hard switches ---------------------------------------------------------

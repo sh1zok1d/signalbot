@@ -102,25 +102,16 @@ beta:
       min_eligible_venues: 2
       triggered_at_streak: 1
   # ---- temporal context (/btc) — NOT part of the rules digest --------------
-  # Deterministic projection of the 5m state tape into episodes with two
-  # independent axes: confirmation (detector lifecycle, unchanged) and phase
-  # (ACTIVE / COOLING / ENDED). Parameters are UNFROZEN: no historical beta tape
-  # exists yet, and they must never be tuned against forward outcomes. Any change
-  # requires a NEW version label (the label -> digest pin lives in beta/context.py).
+  # Deterministic projection of the 5m state tape. The ACTIVE episodization keeps
+  # the detector's own episode boundaries exactly (STRICT_QUALIFICATION_V1): no
+  # hysteresis, no COOLING, no invented persistence. Hysteresis parameters are
+  # UNFROZEN (no historical detector tape) and must not reach /btc, pushes,
+  # outcomes or episode identity; live hysteresis cannot be enabled here.
+  # Any change requires a NEW version label (the label -> digest pins live in
+  # beta/context.py).
   episodization:
-    version: BETA_EPISODES_V0
-    frozen: false
-    cooling_buckets_to_end: 3               # N consecutive buckets below exit -> ENDED
-    max_episode_duration_min: 240           # TTL from episode start
-    exit_percentile:                        # primary-observable percentile rank (30d, mature)
-      PRICE_OI_CONTRACTION_DOWN: 0.20       # price move rank <= (entry 0.05)
-      PRICE_OI_CONTRACTION_UP: 0.80         # price move rank >= (entry 0.95)
-      POSITION_BUILDUP_COMPRESSION: 0.65    # OI change rank >= (entry 0.80)
-      TAKER_FLOW_EXTREME_BUY: 0.80          # taker delta rank >= (entry 0.95)
-      TAKER_FLOW_EXTREME_SELL: 0.20         # taker delta rank <= (entry 0.05)
-      LIQUIDATION_STRESS_LONG: 0.80         # per-venue side rank >= (entry 0.95)
-      LIQUIDATION_STRESS_SHORT: 0.80
-    liquidation_exit_min_venues: 1          # venues at the exit rank (entry quorum 2)
+    version: STRICT_QUALIFICATION_V1
+    live_hysteresis_enabled: false
   context:
     version: BETA_CONTEXT_1H_V0
     rolling_buckets: 12                     # rolling 1h = last 12 closed 5m buckets
@@ -128,3 +119,4 @@ beta:
     label_high: 0.95
     label_extreme: 0.99
     tail_display_max: 0.20                  # signed values: show "top/bottom X%" only within this tail
+    last_event_retention_min: 120           # LAST EVENT stays on /btc this long after it ended (presentation)

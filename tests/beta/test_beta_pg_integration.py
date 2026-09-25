@@ -3,7 +3,7 @@ skipped when unset). The Stage-2 feature/consensus/percentile math runs unchange
 through ScenarioReader fakes. No network, no exchange call, no Telegram."""
 import asyncio
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -570,77 +570,157 @@ def up_move(b):
     return {ex: {"price_move": 2.0, "oi_change": -3.0} for ex in EXS}
 
 
+def taker_buy(b):
+    return {ex: {"taker_buy": 60.0, "taker_sell": 0.5} for ex in EXS}
+
+
+GOLDEN_PLAN = [down_move, down_move, quiet, quiet, down_move, down_move, quiet, up_move, up_move, quiet,
+               taker_buy, taker_buy, taker_buy, quiet, taker_buy, taker_buy, quiet]
+# Recorded on the pre-amendment base commit 234d5ee (no temporal context at all) with
+# the same inputs. Detector episodes, transitions and push decisions must match exactly.
+GOLDEN_EPISODES = [
+    ('EV-751B156B16', 'PRICE_OI_CONTRACTION_DOWN', 'ENDED', '2026-04-10 00:00:00+00:00', '2026-04-10 00:10:00+00:00', '2026-04-10 00:15:00+00:00', 'CONDITION_FAILED', '2026-04-10 00:05:00+00:00', 2),
+    ('EV-FA7B8C61F8', 'PRICE_OI_CONTRACTION_DOWN', 'ENDED', '2026-04-10 00:20:00+00:00', '2026-04-10 00:30:00+00:00', '2026-04-10 00:35:00+00:00', 'CONDITION_FAILED', '2026-04-10 00:25:00+00:00', 2),
+    ('EV-67593F4F3C', 'PRICE_OI_CONTRACTION_UP', 'ENDED', '2026-04-10 00:35:00+00:00', '2026-04-10 00:45:00+00:00', '2026-04-10 00:50:00+00:00', 'CONDITION_FAILED', '2026-04-10 00:40:00+00:00', 2),
+    ('EV-45FCBF1474', 'TAKER_FLOW_EXTREME_BUY', 'ENDED', '2026-04-10 00:50:00+00:00', '2026-04-10 01:00:00+00:00', '2026-04-10 01:10:00+00:00', 'CONDITION_FAILED', '2026-04-10 01:00:00+00:00', 3),
+    ('EV-62F6E7AA3B', 'TAKER_FLOW_EXTREME_BUY', 'ENDED', '2026-04-10 01:10:00+00:00', '2026-04-10 01:20:00+00:00', '2026-04-10 01:25:00+00:00', 'CONDITION_FAILED', '2026-04-10 01:15:00+00:00', 2),
+]
+GOLDEN_TRANSITIONS = [
+    ('EV-751B156B16', 1, None, 'ARMED', '2026-04-10 00:00:00+00:00', 'CONDITION_MET'),
+    ('EV-751B156B16', 2, 'ARMED', 'TRIGGERED', '2026-04-10 00:05:00+00:00', 'CONDITION_MET'),
+    ('EV-751B156B16', 3, 'TRIGGERED', 'ENDED', '2026-04-10 00:10:00+00:00', 'CONDITION_FAILED'),
+    ('EV-FA7B8C61F8', 1, None, 'ARMED', '2026-04-10 00:20:00+00:00', 'CONDITION_MET'),
+    ('EV-FA7B8C61F8', 2, 'ARMED', 'TRIGGERED', '2026-04-10 00:25:00+00:00', 'CONDITION_MET'),
+    ('EV-FA7B8C61F8', 3, 'TRIGGERED', 'ENDED', '2026-04-10 00:30:00+00:00', 'CONDITION_FAILED'),
+    ('EV-67593F4F3C', 1, None, 'ARMED', '2026-04-10 00:35:00+00:00', 'CONDITION_MET'),
+    ('EV-67593F4F3C', 2, 'ARMED', 'TRIGGERED', '2026-04-10 00:40:00+00:00', 'CONDITION_MET'),
+    ('EV-67593F4F3C', 3, 'TRIGGERED', 'ENDED', '2026-04-10 00:45:00+00:00', 'CONDITION_FAILED'),
+    ('EV-45FCBF1474', 1, None, 'ARMED', '2026-04-10 00:50:00+00:00', 'CONDITION_MET'),
+    ('EV-45FCBF1474', 2, 'ARMED', 'TRIGGERED', '2026-04-10 00:55:00+00:00', 'CONDITION_MET'),
+    ('EV-45FCBF1474', 3, 'TRIGGERED', 'ENDED', '2026-04-10 01:05:00+00:00', 'CONDITION_FAILED'),
+    ('EV-62F6E7AA3B', 1, None, 'ARMED', '2026-04-10 01:10:00+00:00', 'CONDITION_MET'),
+    ('EV-62F6E7AA3B', 2, 'ARMED', 'TRIGGERED', '2026-04-10 01:15:00+00:00', 'CONDITION_MET'),
+    ('EV-62F6E7AA3B', 3, 'TRIGGERED', 'ENDED', '2026-04-10 01:20:00+00:00', 'CONDITION_FAILED'),
+]
+GOLDEN_PUSH = {
+    False: [
+        ('EV-751B156B16', 'PRICE_OI_CONTRACTION_DOWN', '2026-04-10 00:10:00+00:00', True, 'SUPPRESSED', 'PUSH_DISABLED'),
+        ('EV-FA7B8C61F8', 'PRICE_OI_CONTRACTION_DOWN', '2026-04-10 00:30:00+00:00', False, 'SUPPRESSED', 'SAME_EVENT_COOLDOWN'),
+        ('EV-67593F4F3C', 'PRICE_OI_CONTRACTION_UP', '2026-04-10 00:45:00+00:00', True, 'SUPPRESSED', 'PUSH_DISABLED'),
+        ('EV-45FCBF1474', 'TAKER_FLOW_EXTREME_BUY', '2026-04-10 01:00:00+00:00', True, 'SUPPRESSED', 'PUSH_DISABLED'),
+        ('EV-62F6E7AA3B', 'TAKER_FLOW_EXTREME_BUY', '2026-04-10 01:20:00+00:00', False, 'SUPPRESSED', 'SAME_EVENT_COOLDOWN'),
+    ],
+    True: [
+        ('EV-751B156B16', 'PRICE_OI_CONTRACTION_DOWN', '2026-04-10 00:10:00+00:00', True, 'PUSH', None),
+        ('EV-FA7B8C61F8', 'PRICE_OI_CONTRACTION_DOWN', '2026-04-10 00:30:00+00:00', False, 'SUPPRESSED', 'SAME_EVENT_COOLDOWN'),
+        ('EV-67593F4F3C', 'PRICE_OI_CONTRACTION_UP', '2026-04-10 00:45:00+00:00', True, 'PUSH', None),
+        ('EV-45FCBF1474', 'TAKER_FLOW_EXTREME_BUY', '2026-04-10 01:00:00+00:00', True, 'PUSH', None),
+        ('EV-62F6E7AA3B', 'TAKER_FLOW_EXTREME_BUY', '2026-04-10 01:20:00+00:00', False, 'SUPPRESSED', 'SAME_EVENT_COOLDOWN'),
+    ],
+}
+
+
+async def _detector_record(pool):
+    eps = await _rows(pool, "SELECT public_id, event_type, state, opened_bucket, triggered_at, terminal_at, "
+                            "terminal_reason, last_bucket, last_streak FROM beta_episodes ORDER BY episode_pk")
+    tr = await _rows(pool, "SELECT e.public_id, t.seq, t.from_state, t.to_state, t.decision_bucket, t.reason "
+                           "FROM beta_episode_transitions t JOIN beta_episodes e USING (episode_pk) "
+                           "ORDER BY e.episode_pk, t.seq")
+    pd = await _rows(pool, "SELECT e.public_id, p.event_type, p.decision_ts, p.would_push, p.decision, "
+                           "p.suppression_reason FROM beta_push_decisions p JOIN beta_episodes e USING (episode_pk) "
+                           "ORDER BY p.decision_ts, p.event_type")
+    s = lambda v: None if v is None else str(v)  # noqa: E731
+    return ([(e["public_id"], e["event_type"], e["state"], s(e["opened_bucket"]), s(e["triggered_at"]),
+              s(e["terminal_at"]), e["terminal_reason"], s(e["last_bucket"]), e["last_streak"]) for e in eps],
+            [(t["public_id"], t["seq"], t["from_state"], t["to_state"], s(t["decision_bucket"]), t["reason"])
+             for t in tr],
+            [(p["public_id"], p["event_type"], s(p["decision_ts"]), p["would_push"], p["decision"],
+              p["suppression_reason"]) for p in pd])
+
+
+async def _run_plan(pool, switches):
+    for i, sc in enumerate(GOLDEN_PLAN):
+        await _detect(pool, ScenarioReader(sc), B0 + i * BUCKET, switches=switches)
+
+
+@pytest.mark.parametrize("push_on", [False, True])
+def test_detector_boundaries_and_push_decisions_identical_to_pre_amendment_base(push_on):
+    async def body():
+        pool = await _setup(n_eval=len(GOLDEN_PLAN) + 2)
+        await _run_plan(pool, ON_PUSH if push_on else ON)
+        eps, tr, pd = await _detector_record(pool)
+        assert eps == GOLDEN_EPISODES and tr == GOLDEN_TRANSITIONS and pd == GOLDEN_PUSH[push_on]
+        assert (await _rows(pool, "SELECT count(*) AS n FROM beta_context_snapshots"))[0]["n"] == len(GOLDEN_PLAN)
+        await pool.close()
+    run(body())
+
+
+def test_a_failing_context_projection_cannot_change_or_block_detection(monkeypatch):
+    async def body():
+        from beta import detector as det
+
+        async def boom(*a, **k):
+            raise RuntimeError("synthetic context failure")
+        monkeypatch.setattr(det, "advance_context", boom)
+        pool = await _setup(n_eval=len(GOLDEN_PLAN) + 2)
+        r = await _detect(pool, ScenarioReader(down_move), B0)
+        assert r["processed"][0]["context_error"] == "RuntimeError"
+        for i, sc in enumerate(GOLDEN_PLAN[1:], start=1):
+            await _detect(pool, ScenarioReader(sc), B0 + i * BUCKET)
+        eps, tr, pd = await _detector_record(pool)
+        assert eps == GOLDEN_EPISODES and tr == GOLDEN_TRANSITIONS and pd == GOLDEN_PUSH[False]
+        assert (await _rows(pool, "SELECT count(*) AS n FROM beta_context_snapshots"))[0]["n"] == 0
+        await pool.close()
+    run(body())
+
+
 async def _context_rows(pool):
     return await _rows(pool, "SELECT bucket_ts, tape_id, prev_state_digest, state, state_digest "
                              "FROM beta_context_snapshots ORDER BY bucket_ts")
 
 
-def test_context_episode_survives_quiet_bucket_one_push_and_replay_is_identical():
+def _j(v):
+    import json
+    return json.loads(v) if isinstance(v, str) else v
+
+
+def test_context_mirrors_db_episodes_and_replay_is_byte_identical():
     async def body():
-        import json
         from beta import context as cx
         from beta.detector import replay_context
-        from storage.beta_v0_store import BetaStore
-        pool = await _setup(n_eval=8)
-        plan = [down_move, down_move, quiet, quiet, down_move, down_move]
-        reports = []
-        for i, sc in enumerate(plan):
-            reports.append(await _detect(pool, ScenarioReader(sc), B0 + i * BUCKET))
-        # detector semantics unchanged: the quiet bucket ends the detector episode ...
-        assert ("TRIGGERED", "ENDED", "CONDITION_FAILED") in [
-            t[1:] for t in reports[2]["processed"][0]["transitions"]]
-        # ... while the context episode is only COOLING, then reactivates
-        assert reports[2]["processed"][0]["context"]["PRICE_OI_CONTRACTION_DOWN"] == ["COOLING", "TRIGGERED"]
-        assert reports[4]["processed"][0]["context"]["PRICE_OI_CONTRACTION_DOWN"] == ["ACTIVE", "TRIGGERED"]
-        # one loud push per context episode: the 2nd detector trigger is silent
-        pd = await _rows(pool, "SELECT decision_ts, would_push, suppression_reason FROM beta_push_decisions "
-                               "ORDER BY decision_ts")
-        assert [(r["would_push"], r["suppression_reason"]) for r in pd] == [
-            (True, "PUSH_DISABLED"), (False, "CONTEXT_EPISODE_NOTIFIED")]
+        pool = await _setup(n_eval=len(GOLDEN_PLAN) + 2)
+        await _run_plan(pool, ON)
         rows = await _context_rows(pool)
-        assert [r["bucket_ts"] for r in rows] == [B0 + i * BUCKET for i in range(6)]
+        assert [r["bucket_ts"] for r in rows] == [B0 + i * BUCKET for i in range(len(GOLDEN_PLAN))]
         assert rows[0]["prev_state_digest"] is None
         for a, b in zip(rows, rows[1:]):
             assert b["prev_state_digest"] == a["state_digest"]
-        states = [json.loads(r["state"]) if isinstance(r["state"], str) else r["state"] for r in rows]
+        states = [_j(r["state"]) for r in rows]
         assert [cx.state_digest(s) for s in states] == [r["state_digest"] for r in rows]
-        e = states[-1]["episodes"]["PRICE_OI_CONTRACTION_DOWN"]
-        assert e["reactivations"] == 1 and len(e["detector_episode_ids"]) == 2
-        det_ids = {r["public_id"] for r in await _rows(pool, "SELECT public_id FROM beta_episodes")}
-        assert set(e["detector_episode_ids"]) == det_ids
-        assert e["episodization_version"] == "BETA_EPISODES_V0"
-        # replay (LIVE decision rows + as-of 1h history) == what was persisted
-        store = BetaStore(pool)
-        async with store.connect() as conn:
-            replayed = await replay_context(CFG, S2, conn, start_bucket=B0, end_bucket=B0 + 5 * BUCKET)
+        # every DB detector episode appears in the projection with the same boundaries
+        seen = {}
+        for s in states:
+            for e in list(s["open"].values()) + list(s["last_ended"].values()):
+                seen[e["episode_id"]] = e
+        db = {e[0]: e for e in (await _detector_record(pool))[0]}
+        assert set(seen) == set(db)
+        for pid, e in seen.items():
+            d = db[pid]
+            assert (e["state"], e["terminal_reason"], e["opened_bucket"], e["last_bucket"]) == \
+                (d[2], d[6], cx.iso(datetime.fromisoformat(d[3])), cx.iso(datetime.fromisoformat(d[7])))
+        assert states[-1]["open"] == {} and states[2]["open"] == {}          # no invented persistence
+        async with BetaStore(pool).connect() as conn:
+            replayed = await replay_context(CFG, S2, conn, start_bucket=B0,
+                                            end_bucket=B0 + (len(GOLDEN_PLAN) - 1) * BUCKET)
         assert [cx.state_digest(s) for s in replayed] == [r["state_digest"] for r in rows]
-        # the tape now carries per-venue raw values + kline OHLC by value
-        tape = await _rows(pool, "SELECT metrics FROM beta_state_tape WHERE origin='LIVE' AND bucket_ts=$1", B0)
-        m = json.loads(tape[0]["metrics"]) if isinstance(tape[0]["metrics"], str) else tape[0]["metrics"]
+        # per-venue raw evidence is on the tape by value (snapshot) + kline OHLC (metrics)
+        tape = (await _rows(pool, "SELECT metrics, snapshot FROM beta_state_tape WHERE origin='LIVE' "
+                                  "AND bucket_ts=$1", B0))[0]
+        m, snapshot = _j(tape["metrics"]), _j(tape["snapshot"])
         for ex in EXS:
-            assert m[f"x:{ex}:price_move_pct"] == pytest.approx(-2.0)
-            # OHLC comes from Stage-1 klines_1m (seeded flat at 100 here), not the Stage-2 fake reader
+            assert snapshot["venue_raw"][ex]["price_move_pct"] == pytest.approx(-2.0)
+            assert f"x:{ex}:price_move_pct" not in m
             assert [m[f"x:{ex}:kline_{k}"] for k in ("open", "high", "low", "close")] == [100.0, 100.1, 99.9, 100.0]
-        await pool.close()
-    run(body())
-
-
-def test_opposite_side_entry_supersedes_cooling_episode_and_gets_its_own_push():
-    async def body():
-        pool = await _setup(n_eval=8)
-        for i, sc in enumerate([down_move, down_move, quiet, up_move, up_move]):
-            r = await _detect(pool, ScenarioReader(sc), B0 + i * BUCKET)
-        ctx = (await _context_rows(pool))[-1]["state"]
-        import json
-        ctx = json.loads(ctx) if isinstance(ctx, str) else ctx
-        old = ctx["last_ended"]["PRICE_OI_CONTRACTION_DOWN"]
-        new = ctx["episodes"]["PRICE_OI_CONTRACTION_UP"]
-        assert old["end_reason"] == "SUPERSEDED_BY_OPPOSITE" and new["cluster_id"] == old["cluster_id"]
-        pd = await _rows(pool, "SELECT event_type, would_push, suppression_reason FROM beta_push_decisions "
-                               "ORDER BY decision_ts")
-        assert [(r["event_type"], r["suppression_reason"]) for r in pd] == [
-            ("PRICE_OI_CONTRACTION_DOWN", "PUSH_DISABLED"), ("PRICE_OI_CONTRACTION_UP", "PUSH_DISABLED")]
-        assert r["status"] == "OK"
         await pool.close()
     run(body())
 
@@ -650,19 +730,20 @@ def test_context_steps_through_buckets_the_detector_skipped():
         pool = await _setup(n_eval=8)
         await _detect(pool, ScenarioReader(down_move), B0)
         clock = Clock(B0 + 5 * BUCKET + timedelta(seconds=30))
-        await run_detector_once(deps(pool, ScenarioReader(quiet), clock), CFG, ON,
+        await run_detector_once(deps(pool, ScenarioReader(down_move), clock), CFG, ON,
                                 explicit_bucket=B0 + 4 * BUCKET)
         rows = await _context_rows(pool)
         assert [r["bucket_ts"] for r in rows] == [B0 + i * BUCKET for i in range(5)]
         assert [r["tape_id"] is None for r in rows] == [False, True, True, True, False]
-        import json
-        last = json.loads(rows[-1]["state"]) if isinstance(rows[-1]["state"], str) else rows[-1]["state"]
-        assert last["last_ended"]["PRICE_OI_CONTRACTION_DOWN"]["end_reason"] == "COOLED_DOWN"
+        last = _j(rows[-1]["state"])
+        db = await _rows(pool, "SELECT terminal_reason FROM beta_episodes ORDER BY episode_pk")
+        assert db[0]["terminal_reason"] == "DETECTION_GAP"
+        assert last["last_ended"]["PRICE_OI_CONTRACTION_DOWN"]["terminal_reason"] == "DETECTION_GAP"
         await pool.close()
     run(body())
 
 
-def test_bot_btc_shows_cooling_episode_and_records_what_was_shown():
+def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
     async def body():
         import hashlib
         import json
@@ -676,23 +757,24 @@ def test_bot_btc_shows_cooling_episode_and_records_what_was_shown():
         await h.handle(_msg(OWNER, f"/admin_add {ALICE}", 1))
         await h.handle(_cb(ALICE, "join", 2))
         out = await h.handle(_msg(ALICE, "/btc", 3))
-        html_text = out[0].html
-        assert "BTC perp · COOLING" in html_text and "episode · triggered" in html_text
-        assert "Peak 00:05" in html_text and "Now 00:15" in html_text
+        text = out[0].html
+        assert "BTC perp · NO ACTIVE EVENTS" in text
+        assert "Last event: price + OI contraction down · reached triggered" in text
+        assert "00:00–00:10 UTC · ended 0m ago (condition no longer met)" in text
+        assert "Trigger bucket 00:05–00:10" in text and "Now 00:10–00:15" in text
         (label, data), = out[0].buttons[0]
-        assert label == "Details" and data.startswith("c:CX-")
-        views = await _rows(pool, "SELECT * FROM beta_btc_views")
-        assert len(views) == 1
-        v = views[0]
-        payload = json.loads(v["payload"]) if isinstance(v["payload"], str) else v["payload"]
-        assert v["rendered_html"] == html_text
-        assert v["rendered_sha256"] == hashlib.sha256(html_text.encode("utf-8")).hexdigest()
+        pid = (await _rows(pool, "SELECT public_id FROM beta_episodes"))[0]["public_id"]
+        assert (label, data) == ("Details", f"c:{pid}")
+        v = (await _rows(pool, "SELECT * FROM beta_btc_views"))[0]
+        payload = _j(v["payload"])
+        assert v["rendered_html"] == text
+        assert v["rendered_sha256"] == hashlib.sha256(text.encode("utf-8")).hexdigest()
         assert v["payload_digest"] == sha256_json(payload)
-        assert v["episodization_version"] == payload["episodization_version"] == "BETA_EPISODES_V0"
+        assert v["episodization_version"] == "STRICT_QUALIFICATION_V1"
         latest = (await _rows(pool, "SELECT state_digest FROM beta_context_snapshots ORDER BY bucket_ts DESC"))[0]
         assert v["context_state_digest"] == latest["state_digest"]
-        assert "telegram_user_id" not in json.dumps(payload) and str(ALICE) not in json.dumps(payload)
+        assert str(ALICE) not in json.dumps(payload)
         out = await h.handle(_cb(ALICE, data, 4))
-        assert "Phase cooling" in out[1].html and "BETA_EPISODES_V0" in out[1].html
+        assert "Detector state ended" in out[1].html and "STRICT_QUALIFICATION_V1" in out[1].html
         await pool.close()
     run(body())
