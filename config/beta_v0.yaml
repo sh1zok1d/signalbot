@@ -22,7 +22,7 @@ beta:
   outcome_tracking_enabled: true
 
   rules_version: BETA_EVENT_RULES_V1
-  state_schema_version: 1
+  state_schema_version: 2                  # V2 = V1 + per-venue raw values / kline OHLC (temporal context)
   outcome_version: BETA_OUTCOME_V1
 
   symbol: BTCUSDT
@@ -101,3 +101,22 @@ beta:
       venue_percentile_min: 0.95
       min_eligible_venues: 2
       triggered_at_streak: 1
+  # ---- temporal context (/btc) — NOT part of the rules digest --------------
+  # Deterministic projection of the 5m state tape. The ACTIVE episodization keeps
+  # the detector's own episode boundaries exactly (STRICT_QUALIFICATION_V1): no
+  # hysteresis, no COOLING, no invented persistence. Hysteresis parameters are
+  # UNFROZEN (no historical detector tape) and must not reach /btc, pushes,
+  # outcomes or episode identity; live hysteresis cannot be enabled here.
+  # Any change requires a NEW version label (the label -> digest pins live in
+  # beta/context.py).
+  episodization:
+    version: STRICT_QUALIFICATION_V1
+    live_hysteresis_enabled: false
+  context:
+    version: BETA_CONTEXT_1H_V0
+    rolling_buckets: 12                     # rolling 1h = last 12 closed 5m buckets
+    label_elevated: 0.80                    # percentile-rank labels (unsigned dims)
+    label_high: 0.95
+    label_extreme: 0.99
+    tail_display_max: 0.20                  # signed values: show "top/bottom X%" only within this tail
+    last_event_retention_min: 120           # LAST EVENT stays on /btc this long after it ended (presentation)

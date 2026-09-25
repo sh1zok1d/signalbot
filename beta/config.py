@@ -24,7 +24,12 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 BETA_CONFIG_PATH = ROOT_DIR / "config" / "beta_v0.yaml"
 
 RULES_VERSION = "BETA_EVENT_RULES_V1"
-SUPPORTED_STATE_SCHEMA_VERSIONS = (1,)
+# State-tape payload schema. V1: the original beta tape. V2 (temporal context,
+# docs/BETA_BTC_TEMPORAL_CONTEXT_V0.md) additionally records per-venue raw Stage-2
+# values (snapshot `venue_raw`) and per-venue 5m kline OHLC (`metrics`
+# x:<venue>:kline_*, venue `ohlc`). The payload shape is a function of the version,
+# so a V1 configuration still reproduces V1 rows byte-for-byte.
+SUPPORTED_STATE_SCHEMA_VERSIONS = (1, 2)
 CANONICAL_EXCHANGES = ("binance", "bybit", "okx")
 
 # Internal event-type codes (never shown verbatim to users; see beta/formatter.py).
@@ -51,7 +56,7 @@ _TOP_KEYS = frozenset({
     "min_venue_coverage", "max_state_age_s", "bucket_close_grace_s",
     "same_event_cooldown_min", "delivery_ttl_s", "max_new_pushes_per_utc_day",
     "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
-    "notifications", "privacy", "health", "rules",
+    "notifications", "privacy", "health", "rules", "episodization", "context",
 })
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
@@ -83,6 +88,12 @@ _PERCENTILE_KEYS = {
     "range_width_pct_median_max", "oi_change_pct_median_min", "volume_notional_usd_sum_min",
     "buy_percentile_min", "sell_percentile_max", "venue_percentile_min",
 }
+
+# Temporal-context sections (episodization + 1h context). They never enter the
+# rules digest: they change presentation / episode projection, not detection.
+_EPISODIZATION_KEYS = {"version", "live_hysteresis_enabled"}
+_CONTEXT_KEYS = {"version", "rolling_buckets", "label_elevated", "label_high", "label_extreme",
+                 "tail_display_max", "last_event_retention_min"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
 # cooldown / cap only enter the config digest).
@@ -290,6 +301,29 @@ def _validate(d: Mapping[str, Any]) -> None:
         raise BetaConfigError("POSITION_BUILDUP_COMPRESSION max_duration_min too short")
     if rules["LIQUIDATION_STRESS"]["min_eligible_venues"] < 2:
         raise BetaConfigError("LIQUIDATION_STRESS.min_eligible_venues must be >= 2")
+    _validate_temporal_context(d)
+
+
+def _validate_temporal_context(d: Mapping[str, Any]) -> None:
+    ep = d["episodization"]
+    _exact_keys(ep, _EPISODIZATION_KEYS, "episodization")
+    if not isinstance(ep["version"], str) or not ep["version"].strip():
+        raise BetaConfigError("episodization.version must be a non-empty string")
+    if _bool(ep["live_hysteresis_enabled"], "episodization.live_hysteresis_enabled"):
+        raise BetaConfigError("episodization.live_hysteresis_enabled must be false: hysteresis "
+                              "parameters are unfrozen and not approved for /btc, pushes or episodes")
+    c = d["context"]
+    _exact_keys(c, _CONTEXT_KEYS, "context")
+    if not isinstance(c["version"], str) or not c["version"].strip():
+        raise BetaConfigError("context.version must be a non-empty string")
+    _int(c["rolling_buckets"], "context.rolling_buckets", minimum=2)
+    for k in ("label_elevated", "label_high", "label_extreme", "tail_display_max"):
+        _unit(c[k], f"context.{k}")
+    if not (0.5 <= c["label_elevated"] < c["label_high"] < c["label_extreme"] < 1.0):
+        raise BetaConfigError("context labels must satisfy 0.5 <= elevated < high < extreme < 1")
+    if not (0.0 < c["tail_display_max"] <= 0.5):
+        raise BetaConfigError("context.tail_display_max must be in (0, 0.5]")
+    _int(c["last_event_retention_min"], "context.last_event_retention_min", minimum=5)
 
 
 # ---- hard switches ---------------------------------------------------------

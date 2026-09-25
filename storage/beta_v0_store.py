@@ -137,19 +137,90 @@ class BetaConn:
             _j(dict(rec.metrics)), _j(dict(rec.snapshot)), rec.feature_digest, rec.snapshot_digest)
 
     async def fetch_tape_history(self, *, symbol: str, market_type: str, timeframe: str,
-                                 calculation_version: str, state_schema_version: int,
-                                 start: datetime, end: datetime) -> list:
-        """Latest-recorded row per bucket in [start, end) — `end` (the current
-        bucket) is EXCLUDED by the predicate itself."""
+                                 calculation_version: str, state_schema_versions: Sequence[int],
+                                 start: datetime, end: datetime,
+                                 before_tape_id: Optional[int] = None) -> list:
+        """Latest-recorded row per bucket in [start, end) among the given state-tape
+        schema versions — `end` (the current bucket) is EXCLUDED by the predicate
+        itself. `before_tape_id` restricts to rows recorded before that tape row (an
+        exact as-of view: tape ids are assigned in recording order under the
+        detector lock)."""
         rows = await self.conn.fetch(
             """SELECT DISTINCT ON (bucket_ts) bucket_ts, metrics
                FROM beta_state_tape
                WHERE symbol=$1 AND market_type=$2 AND timeframe=$3
-                 AND calculation_version=$4 AND state_schema_version=$5
+                 AND calculation_version=$4 AND state_schema_version = ANY($5::int[])
                  AND materialized AND bucket_ts >= $6 AND bucket_ts < $7
+                 AND ($8::bigint IS NULL OR tape_id < $8::bigint)
                ORDER BY bucket_ts, tape_id DESC""",
-            symbol, market_type, timeframe, calculation_version, state_schema_version, start, end)
+            symbol, market_type, timeframe, calculation_version, list(state_schema_versions), start, end,
+            before_tape_id)
         return [(r["bucket_ts"], _load(r["metrics"])) for r in rows]
+
+    async def fetch_live_tape_range(self, *, symbol: str, start: datetime, end: datetime,
+                                    rules_digest: str) -> dict:
+        """The detector's LIVE decision row per bucket in [start, end] (replay input)."""
+        rows = await self.conn.fetch(
+            """SELECT DISTINCT ON (bucket_ts) tape_id, bucket_ts, revision, snapshot_digest, snapshot
+               FROM beta_state_tape WHERE symbol=$1 AND origin='LIVE' AND rules_digest=$2
+                 AND bucket_ts >= $3 AND bucket_ts <= $4
+               ORDER BY bucket_ts, tape_id DESC""", symbol, rules_digest, start, end)
+        return {r["bucket_ts"]: {"tape_id": r["tape_id"], "revision": r["revision"],
+                                 "snapshot_digest": r["snapshot_digest"], "snapshot": _load(r["snapshot"])}
+                for r in rows}
+
+    # ------------------------------------------------------------- temporal context
+    async def fetch_latest_context_snapshot(self, *, symbol: str, before: datetime,
+                                            episodization_digest: str, context_digest: str,
+                                            rules_digest: str):
+        r = await self.conn.fetchrow(
+            """SELECT bucket_ts, state, state_digest FROM beta_context_snapshots
+               WHERE symbol=$1 AND bucket_ts < $2 AND episodization_digest=$3
+                 AND context_digest=$4 AND rules_digest=$5
+               ORDER BY bucket_ts DESC LIMIT 1""",
+            symbol, before, episodization_digest, context_digest, rules_digest)
+        return None if r is None else {"bucket_ts": r["bucket_ts"], "state": _load(r["state"]),
+                                       "state_digest": r["state_digest"]}
+
+    async def fetch_context_snapshots(self, *, symbol: str, start: datetime, end: datetime,
+                                      episodization_digest: str) -> list:
+        rows = await self.conn.fetch(
+            """SELECT bucket_ts, tape_id, prev_state_digest, state, state_digest FROM beta_context_snapshots
+               WHERE symbol=$1 AND bucket_ts >= $2 AND bucket_ts <= $3 AND episodization_digest=$4
+               ORDER BY bucket_ts""", symbol, start, end, episodization_digest)
+        return [{**dict(r), "state": _load(r["state"])} for r in rows]
+
+    async def insert_context_snapshot(self, state: Mapping[str, Any], *, bucket_ts: datetime,
+                                      tape_id: Optional[int], tape_revision: Optional[int],
+                                      prev_state_digest: Optional[str], state_digest: str) -> None:
+        await self.conn.execute(
+            """INSERT INTO beta_context_snapshots (symbol, bucket_ts, episodization_version,
+                   episodization_digest, context_version, context_digest, rules_digest, tape_id,
+                   tape_revision, prev_state_digest, state, state_digest)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12)""",
+            state["symbol"], bucket_ts, state["episodization_version"], state["episodization_digest"],
+            state["context_version"], state["context_digest"], state["rules_digest"], tape_id,
+            tape_revision, prev_state_digest, _j(state), state_digest)
+
+    async def fetch_latest_context_state(self, *, symbol: str, episodization_digest: str):
+        r = await self.conn.fetchrow(
+            """SELECT bucket_ts, state, state_digest FROM beta_context_snapshots
+               WHERE symbol=$1 AND episodization_digest=$2 ORDER BY bucket_ts DESC LIMIT 1""",
+            symbol, episodization_digest)
+        return None if r is None else {"bucket_ts": r["bucket_ts"], "state": _load(r["state"]),
+                                       "state_digest": r["state_digest"]}
+
+    async def insert_btc_view(self, *, requested_at: datetime, as_of_bucket: Optional[datetime],
+                              context_state_digest: Optional[str], episodization_version: Optional[str],
+                              episodization_digest: Optional[str], payload: Mapping[str, Any],
+                              payload_digest: str, rendered_sha256: str, rendered_html: str) -> None:
+        await self.conn.execute(
+            """INSERT INTO beta_btc_views (requested_at, as_of_bucket, context_state_digest,
+                   episodization_version, episodization_digest, payload, payload_digest,
+                   rendered_sha256, rendered_html)
+               VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9)""",
+            requested_at, as_of_bucket, context_state_digest, episodization_version,
+            episodization_digest, _j(payload), payload_digest, rendered_sha256, rendered_html)
 
     async def fetch_live_tape(self, *, symbol: str, bucket_ts: datetime,
                               rules_digest: Optional[str] = None):
@@ -169,11 +240,14 @@ class BetaConn:
             "WHERE symbol=$1 AND origin='LIVE' ORDER BY bucket_ts DESC, tape_id DESC LIMIT 1", symbol)
         return None if r is None else {**dict(r), "snapshot": _load(r["snapshot"])}
 
-    async def fetch_bucket_chain(self, *, symbol: str, bucket_ts: datetime, rules_digest: str):
-        """Every row for a bucket under one rules digest (oldest first)."""
+    async def fetch_bucket_chain(self, *, symbol: str, bucket_ts: datetime,
+                                 rules_digest: Optional[str]):
+        """Every row for a bucket under one rules digest (None: under any), oldest first."""
         rows = await self.conn.fetch(
-            "SELECT tape_id, origin, revision, feature_digest, snapshot_digest, calculation_version "
-            "FROM beta_state_tape WHERE symbol=$1 AND bucket_ts=$2 AND rules_digest=$3 "
+            "SELECT tape_id, origin, revision, feature_digest, snapshot_digest, calculation_version, "
+            "rules_digest, state_schema_version "
+            "FROM beta_state_tape WHERE symbol=$1 AND bucket_ts=$2 "
+            "AND ($3::text IS NULL OR rules_digest=$3::text) "
             "ORDER BY tape_id", symbol, bucket_ts, rules_digest)
         return [dict(r) for r in rows]
 
@@ -210,10 +284,13 @@ class BetaConn:
     async def fetch_venue_bucket_rows(self, *, exchanges: Sequence[str], symbol: str,
                                       bucket_start: datetime, bucket_end: datetime,
                                       event_lookaround: timedelta = timedelta(hours=6)) -> Mapping:
-        """Per venue: live-sourced 1m bar count in the bucket + the connectivity
-        events needed to decide whether a logged outage overlaps it."""
+        """Per venue: live-sourced 1m bar count in the bucket, the bucket's raw
+        1m-kline OHLC (first open, max high, min low, last close) and the
+        connectivity events needed to decide whether a logged outage overlaps it."""
         bars = await self.conn.fetch(
-            "SELECT exchange, count(*) FILTER (WHERE source='live') AS live_bars, count(*) AS bars "
+            "SELECT exchange, count(*) FILTER (WHERE source='live') AS live_bars, count(*) AS bars, "
+            "(array_agg(open ORDER BY ts))[1] AS open, max(high) AS high, min(low) AS low, "
+            "(array_agg(close ORDER BY ts DESC))[1] AS close "
             "FROM klines_1m WHERE exchange = ANY($1::text[]) AND symbol=$2 AND ts >= $3 AND ts < $4 "
             "GROUP BY exchange", list(exchanges), symbol, bucket_start, bucket_end)
         events = await self.conn.fetch(
@@ -227,7 +304,9 @@ class BetaConn:
             list(exchanges), bucket_start - event_lookaround, bucket_end + event_lookaround)
         out = {ex: {"live_bars": 0, "bars": 0, "events": []} for ex in exchanges}
         for r in bars:
-            out[r["exchange"]].update(live_bars=int(r["live_bars"]), bars=int(r["bars"]))
+            out[r["exchange"]].update(live_bars=int(r["live_bars"]), bars=int(r["bars"]),
+                                      ohlc={k: (None if r[k] is None else float(r[k]))
+                                            for k in ("open", "high", "low", "close")})
         for r in events:
             out[r["exchange"]]["events"].append(
                 {"event_type": r["event_type"], "ts": r["ts"], "detail": _load(r["detail"]) or {}})

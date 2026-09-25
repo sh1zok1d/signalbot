@@ -50,7 +50,9 @@ def venue_states(cfg: BetaConfig, rows: Mapping[str, Mapping[str, Any]],
         out[ex] = {"declared_available": bool(declared_available.get(ex, False)),
                    "live_bars": live, "bars": int(r.get("bars", 0)),
                    "outage_overlap": overlap,
-                   "heartbeat_healthy": live == 5 and not overlap}
+                   "heartbeat_healthy": live == 5 and not overlap,
+                   # raw 5m OHLC of this venue's 1m klines (by value; None when absent)
+                   "ohlc": dict(r.get("ohlc") or {k: None for k in ("open", "high", "low", "close")})}
     return out
 
 

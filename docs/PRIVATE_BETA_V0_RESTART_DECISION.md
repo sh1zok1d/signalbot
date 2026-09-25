@@ -53,8 +53,14 @@ This decision does not change any frozen experiment, historical research conclus
 ## Frozen rule identity
 
 - `rules_version = BETA_EVENT_RULES_V1`
-- `state_schema_version = 1`
+- `state_schema_version = 1` (original identity; schema 2 is active since the temporal-context amendment, see the transition note below)
 - `rules_digest = 2e0afa4785675e7a3777627f45647f76268a7cdad3e0639c078ee5ccc7605f44`. This is the sha256 of the canonical JSON of the rule-relevant config fields. It is pinned by `tests/beta/test_beta_config.py`.
+
+### State-tape schema transition (V1 → V2), temporal-context amendment
+
+- `state_schema_version = 2` is now active. V2 additionally records per-venue raw Stage-2 values (snapshot `venue_raw`) and per-venue 5m kline OHLC (`docs/BETA_BTC_TEMPORAL_CONTEXT_V0.md`).
+- The `BETA_EVENT_RULES_V1` thresholds are unchanged. The rules digest covers `state_schema_version`, so the identity is now `rules_digest = 9e9d2c631a1abfdb710dc2147835b3a0ccd4620512d3a0d6828140c96de17210` (schema 2). The schema-1 digest above remains the historical identity; a schema-1 configuration still reproduces it.
+- A schema change is a version boundary, not a market-data correction. A correction check across it returns `SCHEMA_VERSION_BOUNDARY` and appends and flags nothing. Open detector episodes end with `DETECTOR_VERSION_CHANGED`, as for any rules-digest change.
 - `config_digest = de76235b9dea8bad3b251a56ba022f34109e00921e04e6cddfb26550d33eef61`. This is the whole `config/beta_v0.yaml` beta section, including policy.
 
 **Core events:**

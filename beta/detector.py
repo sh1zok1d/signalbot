@@ -31,7 +31,8 @@ from .models import (ARMED, CORE_FAMILIES, DAILY_CAP, DATA_DEGRADED_REASON, DELI
                      SAME_EVENT_COOLDOWN, STATE_ORDER, SUPPRESSED, TRIGGERED)
 from .health import venue_states
 from .rules import evaluate_bucket
-from .state_tape import (BUCKET, build_tape_record, compute_percentiles, extract_metrics,
+from .state_tape import (BUCKET, PERCENTILE_HISTORY_SCHEMA_VERSIONS, build_tape_record,
+                         carries_temporal_context, compute_percentiles, extract_metrics,
                          history_window, materialize_bucket, percentile_inputs,
                          select_latest_closed_bucket, with_rule_evaluations)
 
@@ -244,11 +245,12 @@ async def build_live_record(deps: DetectorDeps, cfg: BetaConfig, conn, bucket_ts
         history = await conn.fetch_tape_history(
             symbol=cfg.symbol, market_type=cfg.market_type, timeframe=cfg.timeframe,
             calculation_version=ident["calculation_version"],
-            state_schema_version=cfg.state_schema_version, start=start, end=end)
+            state_schema_versions=PERCENTILE_HISTORY_SCHEMA_VERSIONS[cfg.state_schema_version],
+            start=start, end=end)
         venue_ok = {ex: bool(v["declared_available"] and v["heartbeat_healthy"]) for ex, v in venues.items()}
         percentiles = compute_percentiles(
             deps.stage2_config, cfg, bucket_ts=bucket_ts,
-            metrics=extract_metrics(result, cfg, venue_ok), ident=ident,
+            metrics=extract_metrics(result, cfg, venue_ok, venues), ident=ident,
             code_version=deps.feature_code_version, history=history)
     return build_tape_record(
         cfg, bucket_ts=bucket_ts, origin=origin, result=result, materialization_error=error,
@@ -322,8 +324,9 @@ async def process_live_bucket(deps: DetectorDeps, cfg: BetaConfig, switches: Bet
                             snapshot_digest=rec.snapshot_digest,
                             calculation_version=rec.calculation_version,
                             reference=rec.snapshot["reference"], code_version=deps.code_version)
+        context_state, context_error = None, None
         async with conn.transaction():
-            await conn.insert_tape(rec)
+            tape_id = await conn.insert_tape(rec)
             admin_push = await conn.get_admin_push_enabled()
             push_enabled = effective_push_enabled(switches, admin_push)
             open_eps = await conn.fetch_open_episodes(symbol=cfg.symbol)
@@ -333,10 +336,92 @@ async def process_live_bucket(deps: DetectorDeps, cfg: BetaConfig, switches: Bet
                                   push_enabled, report)
             await conn.advance_watermark(DETECTOR, symbol=cfg.symbol, market_type=cfg.market_type,
                                          timeframe=cfg.timeframe, bucket_ts=bucket_ts)
+            # Presentation-only projection, AFTER every detector decision of this bucket
+            # and in its own savepoint: it reads nothing the decisions depend on, and a
+            # failure here can never roll back or alter detection (the next bucket
+            # re-projects any bucket it missed from the LIVE rows).
+            try:
+                async with conn.transaction():
+                    context_state = await advance_context(deps, cfg, conn, bucket_ts, rec, tape_id)
+            except Exception as exc:  # noqa: BLE001 - isolated; reported, never raised
+                context_error = type(exc).__name__
         report.update(materialized=rec.materialized, evaluation_fresh=rec.evaluation_fresh,
-                      snapshot_digest=rec.snapshot_digest,
+                      snapshot_digest=rec.snapshot_digest, context_error=context_error,
+                      context={et: e["state"] for et, e in (context_state or {}).get("open", {}).items()},
                       evaluations={k: v["status"] for k, v in evaluations.items()})
     return report
+
+
+# ---- temporal context (deterministic projection of the tape) -----------------
+CONTEXT_MAX_GAP_BUCKETS = 8640          # > 30d without a state: restart empty
+
+
+async def context_1h_asof(cfg: BetaConfig, stage2_config, conn, bucket_ts: datetime,
+                          snapshot: Mapping[str, Any], tape_id: int) -> Optional[dict]:
+    """Rolling-1h context for one bucket exactly as of its LIVE tape row (history
+    restricted to rows recorded before `tape_id`)."""
+    from .context import context_1h
+    ident = snapshot.get("identity") or {}
+    if not snapshot.get("materialized") or ident.get("calculation_version") in (None, "UNMATERIALIZED"):
+        return None
+    # The rolling 1h needs the V2 kline OHLC: only rows of THIS schema version (>= V2)
+    # form a window; V1 rows are never mixed in (honest warm-up after an upgrade).
+    if not carries_temporal_context(cfg.state_schema_version) or \
+            snapshot.get("state_schema_version") != cfg.state_schema_version:
+        return None
+    n = cfg.section("context")["rolling_buckets"]
+    history = await conn.fetch_tape_history(
+        symbol=cfg.symbol, market_type=cfg.market_type, timeframe=cfg.timeframe,
+        calculation_version=ident["calculation_version"], state_schema_versions=(cfg.state_schema_version,),
+        start=bucket_ts - timedelta(days=30) - (n - 1) * BUCKET, end=bucket_ts, before_tape_id=tape_id)
+    tiers = stage2_config.resolve(cfg.symbol)["percentiles"]["confidence_tiers"]
+    return context_1h(cfg, bucket_ts=bucket_ts, current_metrics=snapshot.get("metrics") or {},
+                      history=history, identity=ident, code_version=snapshot["feature_code_version"],
+                      tiers=tiers)
+
+
+async def advance_context(deps: "DetectorDeps", cfg: BetaConfig, conn, bucket_ts: datetime,
+                          rec, tape_id: int) -> dict:
+    """Advance the persisted context projection to `bucket_ts` (stepping through any
+    buckets without a state first) and persist one state per bucket."""
+    from .context import state_digest, step_context, verify_versions
+    v = verify_versions(cfg)
+    prev = await conn.fetch_latest_context_snapshot(
+        symbol=cfg.symbol, before=bucket_ts, episodization_digest=v["episodization_digest"],
+        context_digest=v["context_digest"], rules_digest=cfg.rules_digest)
+    state, prev_digest, b = None, None, bucket_ts
+    if prev is not None and int((bucket_ts - prev["bucket_ts"]) / BUCKET) <= CONTEXT_MAX_GAP_BUCKETS:
+        state, prev_digest, b = prev["state"], prev["state_digest"], prev["bucket_ts"] + BUCKET
+    while b < bucket_ts:                               # buckets the projection has not seen
+        row = await conn.fetch_live_tape(symbol=cfg.symbol, bucket_ts=b, rules_digest=cfg.rules_digest)
+        c1h = None if row is None else await context_1h_asof(
+            cfg, deps.stage2_config, conn, b, row["snapshot"], row["tape_id"])
+        state = step_context(cfg, state, b, row, c1h)
+        digest = state_digest(state)
+        await conn.insert_context_snapshot(state, bucket_ts=b, tape_id=None if row is None else row["tape_id"],
+                                           tape_revision=None if row is None else row["revision"],
+                                           prev_state_digest=prev_digest, state_digest=digest)
+        prev_digest, b = digest, b + BUCKET
+    row = {"tape_id": tape_id, "revision": 1, "snapshot_digest": rec.snapshot_digest, "snapshot": rec.snapshot}
+    c1h = await context_1h_asof(cfg, deps.stage2_config, conn, bucket_ts, rec.snapshot, tape_id)
+    state = step_context(cfg, state, bucket_ts, row, c1h)
+    digest = state_digest(state)
+    await conn.insert_context_snapshot(state, bucket_ts=bucket_ts, tape_id=tape_id, tape_revision=1,
+                                       prev_state_digest=prev_digest, state_digest=digest)
+    return state
+
+
+async def replay_context(cfg: BetaConfig, stage2_config, conn, *, start_bucket: datetime,
+                         end_bucket: datetime, initial_state: Optional[Mapping[str, Any]] = None) -> list:
+    """Recompute the projection from the LIVE tape rows (decision revisions) and the
+    as-of 1h history, under the CONFIGURED episodization version."""
+    from .context import replay
+    rows = await conn.fetch_live_tape_range(symbol=cfg.symbol, start=start_bucket, end=end_bucket,
+                                            rules_digest=cfg.rules_digest)
+    c1h = {b: await context_1h_asof(cfg, stage2_config, conn, b, r["snapshot"], r["tape_id"])
+           for b, r in rows.items()}
+    return replay(cfg, rows, start_bucket=start_bucket, end_bucket=end_bucket,
+                  initial_state=initial_state, context_1h_by_bucket=c1h)
 
 
 def plan_buckets(watermark: Optional[datetime], target: datetime, max_catchup: int) -> tuple:
@@ -391,10 +476,20 @@ async def _correction_check(deps: DetectorDeps, cfg: BetaConfig, bucket_ts: date
     """Re-materialize an already-decided bucket. If its features changed, APPEND a
     CORRECTION_CHECK tape revision and annotate (never rewrite) affected episodes."""
     async with deps.store.connect() as conn:
-        chain = await conn.fetch_bucket_chain(symbol=cfg.symbol, bucket_ts=bucket_ts,
-                                              rules_digest=cfg.rules_digest)
-        live = [r for r in chain if r["origin"] in (ORIGIN_LIVE, ORIGIN_CORRECTION_CHECK)]
+        chain = await conn.fetch_bucket_chain(symbol=cfg.symbol, bucket_ts=bucket_ts, rules_digest=None)
+        decided = [r for r in chain if r["origin"] in (ORIGIN_LIVE, ORIGIN_CORRECTION_CHECK)]
+        # Compare like with like: only rows of the CURRENT rules digest AND state-tape
+        # schema version share a correction identity (feature_digest).
+        live = [r for r in decided if r["rules_digest"] == cfg.rules_digest
+                and r["state_schema_version"] == cfg.state_schema_version]
         if not live:
+            other = sorted({r["state_schema_version"] for r in decided} - {cfg.state_schema_version})
+            if other:
+                # A schema evolution is not a market-data correction: nothing is
+                # appended and no episode is flagged.
+                return {"status": "SCHEMA_VERSION_BOUNDARY", "bucket_ts": bucket_ts,
+                        "stored_state_schema_versions": other,
+                        "current_state_schema_version": cfg.state_schema_version}
             return {"status": "NO_LIVE_ROW_UNDER_CURRENT_RULES", "bucket_ts": bucket_ts}
         latest = live[-1]
         rec = await build_live_record(deps, cfg, conn, bucket_ts, origin=ORIGIN_CORRECTION_CHECK)

@@ -8,7 +8,9 @@ import yaml
 from beta.config import (BetaConfig, BetaConfigError, BetaSecrets, EVENT_TYPES,
                          effective_push_enabled, resolve_switches)
 
-PINNED_RULES_DIGEST = "2e0afa4785675e7a3777627f45647f76268a7cdad3e0639c078ee5ccc7605f44"
+# BETA_EVENT_RULES_V1 thresholds are unchanged; the digest covers state_schema_version.
+PINNED_RULES_DIGEST = "9e9d2c631a1abfdb710dc2147835b3a0ccd4620512d3a0d6828140c96de17210"          # schema 2
+PINNED_RULES_DIGEST_SCHEMA_V1 = "2e0afa4785675e7a3777627f45647f76268a7cdad3e0639c078ee5ccc7605f44"  # schema 1
 REPO = Path(__file__).resolve().parents[2]
 
 
@@ -19,7 +21,7 @@ def _raw():
 def test_committed_config_loads_with_contract_minimum_keys():
     c = BetaConfig.load()
     assert c["enabled"] is False and c["push_enabled"] is False and c["outcome_tracking_enabled"] is True
-    assert c.rules_version == "BETA_EVENT_RULES_V1" and c.state_schema_version == 1
+    assert c.rules_version == "BETA_EVENT_RULES_V1" and c.state_schema_version == 2
     assert (c.symbol, c.market_type, c.timeframe) == ("BTCUSDT", "perp", "5m")
     assert c.exchanges == ("binance", "bybit", "okx")
     assert (c["max_state_age_s"], c["same_event_cooldown_min"], c["delivery_ttl_s"],
@@ -42,6 +44,22 @@ def test_rules_digest_is_pinned_and_key_order_independent():
     assert BetaConfig.from_mapping(reordered).rules_digest == PINNED_RULES_DIGEST
     assert PINNED_RULES_DIGEST in (REPO / "docs/PRIVATE_BETA_V0_RESTART_DECISION.md").read_text()
     assert PINNED_RULES_DIGEST in (REPO / "docs/research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md").read_text()
+
+
+def test_schema_v1_digest_is_the_historical_identity_and_only_the_schema_moved_it():
+    v1 = BetaConfig.load().with_overrides(state_schema_version=1)
+    assert v1.rules_digest == PINNED_RULES_DIGEST_SCHEMA_V1
+    raw_v1, raw_v2 = dict(v1.raw), dict(BetaConfig.load().raw)
+    assert {k for k in raw_v2 if raw_v1[k] != raw_v2[k]} == {"state_schema_version"}
+    for doc in ("docs/PRIVATE_BETA_V0_RESTART_DECISION.md",
+                "docs/research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md"):
+        text = (REPO / doc).read_text()
+        assert PINNED_RULES_DIGEST_SCHEMA_V1 in text and PINNED_RULES_DIGEST in text
+
+
+def test_unsupported_state_schema_version_is_rejected():
+    with pytest.raises(BetaConfigError):
+        BetaConfig.load().with_overrides(state_schema_version=3)
 
 
 def test_threshold_change_changes_rules_digest_but_policy_change_does_not():

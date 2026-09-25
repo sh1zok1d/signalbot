@@ -303,3 +303,50 @@ CREATE TABLE IF NOT EXISTS beta_admin_audit (
 DROP TRIGGER IF EXISTS trg_beta_audit_append_only ON beta_admin_audit;
 CREATE TRIGGER trg_beta_audit_append_only BEFORE UPDATE OR DELETE ON beta_admin_audit
     FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+-- ---------------------------------------------------------------------------
+-- Temporal context (episodization V0): the deterministic projection of the tape.
+-- One append-only state per closed 5m bucket per (episodization, context, rules)
+-- version; `prev_state_digest` chains consecutive states.
+CREATE TABLE IF NOT EXISTS beta_context_snapshots (
+    context_pk             BIGSERIAL PRIMARY KEY,
+    symbol                 TEXT NOT NULL CHECK (symbol = 'BTCUSDT'),
+    bucket_ts              TIMESTAMPTZ NOT NULL
+        CHECK (date_part('second', bucket_ts) = 0
+               AND (date_part('minute', bucket_ts)::int % 5) = 0),
+    episodization_version  TEXT NOT NULL,
+    episodization_digest   TEXT NOT NULL CHECK (episodization_digest ~ '^[0-9a-f]{64}$'),
+    context_version        TEXT NOT NULL,
+    context_digest         TEXT NOT NULL CHECK (context_digest ~ '^[0-9a-f]{64}$'),
+    rules_digest           TEXT NOT NULL CHECK (rules_digest ~ '^[0-9a-f]{64}$'),
+    tape_id                BIGINT REFERENCES beta_state_tape (tape_id),
+    tape_revision          INTEGER CHECK (tape_revision IS NULL OR tape_revision >= 1),
+    prev_state_digest      TEXT CHECK (prev_state_digest IS NULL OR prev_state_digest ~ '^[0-9a-f]{64}$'),
+    state                  JSONB NOT NULL,
+    state_digest           TEXT NOT NULL CHECK (state_digest ~ '^[0-9a-f]{64}$'),
+    recorded_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_beta_context_bucket
+        UNIQUE (symbol, bucket_ts, episodization_digest, context_digest, rules_digest)
+);
+DROP TRIGGER IF EXISTS trg_beta_context_append_only ON beta_context_snapshots;
+CREATE TRIGGER trg_beta_context_append_only BEFORE UPDATE OR DELETE ON beta_context_snapshots
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+-- What a /btc request actually showed (no user id): the compact view model, its
+-- digest and the rendered text, tied to the context state it was built from.
+CREATE TABLE IF NOT EXISTS beta_btc_views (
+    view_pk                BIGSERIAL PRIMARY KEY,
+    requested_at           TIMESTAMPTZ NOT NULL,
+    as_of_bucket           TIMESTAMPTZ,
+    context_state_digest   TEXT CHECK (context_state_digest IS NULL OR context_state_digest ~ '^[0-9a-f]{64}$'),
+    episodization_version  TEXT,
+    episodization_digest   TEXT CHECK (episodization_digest IS NULL OR episodization_digest ~ '^[0-9a-f]{64}$'),
+    payload                JSONB NOT NULL,
+    payload_digest         TEXT NOT NULL CHECK (payload_digest ~ '^[0-9a-f]{64}$'),
+    rendered_sha256        TEXT NOT NULL CHECK (rendered_sha256 ~ '^[0-9a-f]{64}$'),
+    rendered_html          TEXT NOT NULL,
+    recorded_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+DROP TRIGGER IF EXISTS trg_beta_btc_views_append_only ON beta_btc_views;
+CREATE TRIGGER trg_beta_btc_views_append_only BEFORE UPDATE OR DELETE ON beta_btc_views
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
