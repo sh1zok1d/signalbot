@@ -1,0 +1,103 @@
+# Signalbot PRIVATE BETA V0.2 — descriptive attention engine configuration.
+#
+# Authority: docs/PRIVATE_BETA_V0_RESTART_DECISION.md. Loaded ONLY by
+# beta/config.py. Stage-1 config/config.yaml and Stage-2 config/stage2.yaml are
+# not touched. Every event threshold, persistence duration, TTL, cooldown and
+# product cap lives here — never as a hidden Python literal.
+#
+# Secrets (bot token, owner Telegram user id) come from the environment only
+# (BETA_TELEGRAM_BOT_TOKEN / BETA_OWNER_TELEGRAM_USER_ID), never from this file.
+#
+# Hard switches: each runtime switch is effective only when BOTH this file AND
+# its environment kill switch allow it (BETA_ENABLED, BETA_DETECTION_ENABLED,
+# BETA_PUSH_ENABLED, BETA_OUTCOME_TRACKING_ENABLED). BETA_PUSH_ENABLED must be
+# set explicitly to a true value; an unset push env var forbids push. The owner
+# /admin_pause_push / /admin_resume_push durable state can only further
+# restrict push — it can never exceed these hard switches.
+
+beta:
+  enabled: false
+  detection_enabled: true
+  push_enabled: false
+  outcome_tracking_enabled: true
+
+  rules_version: BETA_EVENT_RULES_V1
+  state_schema_version: 1
+  outcome_version: BETA_OUTCOME_V1
+
+  symbol: BTCUSDT
+  market_type: perp
+  timeframe: 5m
+  active_exchanges: [binance, bybit, okx]   # Bitget stays disabled
+
+  percentile_window: 30d
+  min_venue_coverage: 2                     # per-family usable venues required
+
+  max_state_age_s: 420                      # NO ACTIVE EVENTS fail-closed age
+  bucket_close_grace_s: 20                  # wait after 5m close before evaluating
+  same_event_cooldown_min: 20               # same-event PUSH cooldown after terminal
+  delivery_ttl_s: 600                       # never push older than this
+  max_new_pushes_per_utc_day: 3             # global safety fuse
+  forward_horizons: [15m, 30m, 1h, 4h, 24h]
+
+  detector:
+    max_catchup_buckets_per_run: 12         # bounded catch-up; beyond => DETECTION_GAP
+
+  bootstrap:
+    lookback_days: 30                       # max history the 30d percentiles need
+    max_buckets_per_run: 288                # bounded per invocation (1 day)
+
+  ingestion:
+    heartbeat_max_age_s: 180                # newest live 1m kline per venue
+    min_healthy_venues: 2
+
+  outcomes:
+    max_jobs_per_run: 50
+    incomplete_after_h: 48                  # still-incomplete window => INCOMPLETE_DATA
+    recheck_window_h: 48                    # completed outcomes re-verified for corrections
+
+  notifications:
+    max_deliveries_per_run: 100
+
+  privacy:
+    stopped_user_retention_days: 30
+
+  health:
+    detector_stall_s: 900
+    outcome_stall_s: 3600
+    bot_stall_s: 300
+    notifier_stall_s: 600
+    delivery_problem_window_s: 3600
+    delivery_problem_threshold: 3
+    owner_alert_repeat_s: 1800
+
+  rules:
+    PRICE_OI_CONTRACTION_DOWN:
+      price_move_pct_median_max: 0.05
+      oi_change_pct_median_max: 0.10
+      armed_at_streak: 1
+      triggered_at_streak: 2
+    PRICE_OI_CONTRACTION_UP:
+      price_move_pct_median_min: 0.95
+      oi_change_pct_median_max: 0.10
+      armed_at_streak: 1
+      triggered_at_streak: 2
+    POSITION_BUILDUP_COMPRESSION:
+      range_width_pct_median_max: 0.40
+      oi_change_pct_median_min: 0.80
+      volume_notional_usd_sum_min: 0.50
+      early_at_streak: 3
+      armed_at_streak: 6
+      triggered_at_streak: 9
+      max_duration_min: 180
+    TAKER_FLOW_EXTREME:                     # gated optional (30d-mature, >=2 venues)
+      enabled: true
+      buy_percentile_min: 0.95
+      sell_percentile_max: 0.05
+      armed_at_streak: 1
+      triggered_at_streak: 2
+    LIQUIDATION_STRESS:                     # gated optional (per-venue mature votes)
+      enabled: true
+      venue_percentile_min: 0.95
+      min_eligible_venues: 2
+      triggered_at_streak: 1

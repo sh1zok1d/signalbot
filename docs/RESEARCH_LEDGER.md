@@ -5769,3 +5769,842 @@ ranges, trailing years/open-ended notes, and extra text still fail.
 Cards were not edited. F1–F4 and H1 remain closed. F5–F9 remain
 `DEFERRED_NONBLOCKING_RED_TEAM_FINDING`. No paid LLM call. No
 first-shadow-v6. No scientific outcome.
+
+## 2026-09-23 — Generator V0 LEGAL_RANGE wrappers and campaign-cap extension
+
+Read-only inspection of immutable `first-shadow-v6` generation:2 found
+inspected prose wrappers failing `ambiguous protected range`. This
+closeout teaches `classify_legal_range` those exact generation:2 families
+in addition to the v5 annotated form. The returned class is the inner
+strict range. Free prose, extra ranges, trailing years, open-ended notes,
+and digit/open-ended subjects still fail. Cards were not edited.
+`first-shadow-v6` is sealed. Offline `authorize-budget-extension` may
+raise a campaign cap (USD 7.117536 -> 17.117536 was recorded here as an
+incorrect +USD 10 reading; corrected in the next entry) without
+rewriting calls, responses, costs, or cards. Prove derive through
+generation:2 on a TEMP scratch destination. Do not create live
+`first-shadow-v7` here. F5–F8 remain deferred. No replay of generation:2.
+No paid LLM call. No scientific outcome.
+
+```
+NEXT_UNIT = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION
+LEGAL_RANGE_WRAPPERS = V5_ANNOTATED_PLUS_INSPECTED_GEN2
+BUDGET_EXTENSION_COMMAND = authorize-budget-extension
+OLD_CAP_USD = 7.117536
+NEW_CAP_USD = 17.117536
+FIRST_SHADOW_V6_SEALED = true
+REAL_LLM_CALLS_MADE = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```
+
+## 2026-09-23 — Generator V0 owner-authorized campaign cap is USD 10 total
+
+Correction: USD 10 is the absolute maximum authorized total campaign
+budget, not a +USD 10 increment on the previous internal cap of
+USD 7.117536. `authorize-budget-extension` therefore cannot set a cap
+above USD 10.000000. After imported generation:0/1/2 spend of
+USD 3.779550, remaining authorized spend is USD 6.220450.
+`remaining-budget-preflight` computes worst-case remaining reservations
+with the same `bound()` path used before every live call. Live
+run/resume with a cap above USD 10 is refused. No real LLM call while
+the effective cap would exceed USD 10, and no live first-shadow-v7
+unless that preflight proves a complete remaining campaign fit.
+
+Executable remaining-budget-preflight on a TEMP derive of sealed
+`first-shadow-v6` through generation:2, after raising the dest cap to
+USD 10.000000, measured:
+
+```
+FITS_AUTHORIZED_REMAINING = false
+WORST_CASE_REMAINING_USD = 13.286520
+MIN_ADDITIONAL_AUTHORIZATION_USD = 7.066070
+MIN_TOTAL_CAP_USD = 17.066070
+generation:3 = 1.852570
+NOVELTY_CRITIC x40 = 8.164734
+FEASIBILITY_CRITIC x40 = 0.171850
+RED_TEAM x40 = 3.095374
+SELECTOR = 0.001992
+LIVE_FIRST_SHADOW_V7_CREATED = false
+```
+
+Novelty critics alone already exceed remaining authorized USD 6.220450.
+STOP without live LLM calls until additional authorization covers at
+least USD 7.066070 more (absolute cap at least USD 17.066070).
+
+```
+NEXT_UNIT = GENERATOR_V0_LEGAL_RANGE_WRAPPERS_AND_BUDGET_EXTENSION
+OWNER_AUTHORIZED_CAMPAIGN_CAP_USD = 10.000000
+OLD_INTERNAL_CAP_USD = 7.117536
+NEW_CAP_USD = 10.000000
+SPENT_USD = 3.779550
+REMAINING_AUTHORIZED_USD = 6.220450
+SUPERSEDED_UNAUTHORIZED_CAP_USD = 17.117536
+FIRST_SHADOW_V6_SEALED = true
+REAL_LLM_CALLS_MADE = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+```
+
+## 2026-09-23 — Generator V0 first-shadow-v7 live under USD 17.10 absolute ceiling
+
+Owner authorized an absolute cumulative campaign ceiling of USD 17.100000,
+including already recorded imported spend USD 3.779550. Remaining
+authorized additional spend is USD 13.320450. This is not an additional
+USD 17.10 allowance. Prior remaining-budget-preflight worst-case remaining
+USD 13.286520 fits under that remainder (min total USD 17.066070).
+`first-shadow-v6` stays sealed. Live `first-shadow-v7` is authorized after
+offline derive through generation:2, cap extension to USD 17.100000, and
+`FITS_AUTHORIZED_REMAINING=true`. Fail closed before exceeding USD 17.10.
+No protected-data open.
+
+```
+NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_LIVE
+OWNER_AUTHORIZED_CAMPAIGN_CAP_USD = 17.100000
+SPENT_USD = 3.779550
+REMAINING_AUTHORIZED_USD = 13.320450
+FIRST_SHADOW_V6_SEALED = true
+```
+
+## 2026-09-23 — Generator V0 first-shadow-v7 fail-closed after generation:3
+
+Live first-shadow-v7 reused imported generation:0/1/2 COMPLETE rows and
+made one new GENERATOR background Responses call for generation:3
+(`resp_071edfe3d5c0aaa9006ab3de92a5ac87d28b9f8efaec6c7db7`, actual
+USD 1.167200, reservation USD 1.852570). Local `validate_card` then
+fail-closed: 9/10 generation:3 cards invalid (8 `ambiguous protected
+range`, C033 `protected data requirement`); C037 valid; `cards` table
+empty. Critics and selector were not started. Cumulative spend
+USD 4.946750 of the USD 17.100000 ceiling. The journaled generation:3
+answer was not edited. LEGAL_RANGE wrappers and the C033 exclusion parser
+were not extended after observing those outcomes. Source cards C001–C030
+were not edited. first-shadow-v6 sqlite SHA256 remains
+`ed318020ff5d6c765394c15ba4ff5bd7dc0f89ffe83f7692f678e3f7e124b22d`.
+first-shadow-v7 is sealed. No scientific outcome. Protected 2025/2026
+unopened. Record: `docs/research/GENERATOR_V0_FIRST_SHADOW_V7.{json,md}`.
+
+```
+NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED
+NEXT_ACTION = STOP_NO_RESUME_NO_VALIDATOR_REPAIR
+STATUS = STOPPED_PROTECTED_RANGE_VALIDATION
+NEW_SPEND_USD = 1.167200
+CUMULATIVE_SPEND_USD = 4.946750
+REAL_LLM_CALLS_THIS_UNIT = 1
+GENERATION_3_VALID = 1
+GENERATION_3_INVALID = 9
+CARDS_TABLE_COUNT = 0
+CRITICS_RUN = false
+SELECTOR_RUN = false
+SCIENTIFIC_OUTCOMES_COMPUTED = false
+PROTECTED_2025_2026_OPENED = false
+VALIDATOR_REPAIRED_AFTER_OUTCOME = false
+FIRST_SHADOW_V6_SEALED = true
+FIRST_SHADOW_V7_SEALED = true
+AUTHORITY_JOURNAL_SHA256 = e27eb1ce77c5152eff4e68e30c2632ad9bd575ef953b5a069775b5ff46f36457
+```
+
+### 2026-09-23 — Generator V0 pre-live repair (offline)
+
+No research window, hypothesis or card consumed. No paid call, no protected
+data, no scientific outcome. Sealed first-shadow-v6/v7 unchanged.
+
+```
+UNIT = GENERATOR_V0_PRE_LIVE_REPAIR
+COMPLETION_STATE = READY_FOR_INDEPENDENT_REVIEW
+READY_FOR_LIVE_SHADOW = false
+CONTRACT = GENERATOR_CONTRACT_V02
+LEGACY_COMPATIBILITY = A_GRANDFATHER_ONLY_LISTED_CALL_KEYS (3 calls, 30 cards)
+V7_DERIVE_LINEAGE_TOTAL_MICRO_USD = 4946750
+NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW
+```
+
+Outcome-blind design amendments: hard fail per candidate, MIN_VALID_CANDIDATES
+= 25, diversity controls on the attempted slot plan, advisory selector call
+with the deterministic ordinal order authoritative. Record:
+`docs/research/GENERATOR_V0_PRE_LIVE_REPAIR.{json,md}`.
+
+## Generator V0 limited offline repair (after PR #215) — 2026-09-23
+
+No research window, hypothesis or protected data consumed. Infrastructure repair only.
+
+```
+BASE = ddda586dc7ea4a9589bc389eef7a6306d64f3d0c
+VERIFICATION = PR #215 (B. LIMITED OFFLINE REPAIR REQUIRED)
+B1_NOVELTY_PROMPT_SCHEMA = FIXED (keyed objects end to end)
+B2_SEALED_BELOW_CLI = FIXED (Ledger refuses sealed journals; read handles refuse mutation)
+B3_CRASH_AFTER_POST = FIXED (DISPATCHED before send; NOT_BILLED needs provider evidence; UNKNOWN closes the logical call)
+B4_NORMALIZATION = FIXED_NOT_SEMANTICALLY_COMPLETE (external PR #215 corpus: 47 -> 1 admitted of 181, 0 false positives of 26)
+B5_BUDGET = FIXED_DECISION_NOT_TAKEN (scenarios A-E in generator_v0_repair/BUDGET_SCENARIOS.json)
+V7_LINEAGE_MICRO_USD = 4946750
+REAL_LLM_CALLS_MADE = false
+COMPLETION_STATE = READY_FOR_RE-VERIFICATION
+NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION
+```
+
+Record: `docs/research/GENERATOR_V0_LIMITED_REPAIR.{json,md}`.
+
+## Generator V0 final narrow repair (after re-verification) — 2026-09-23
+
+No research window, hypothesis or protected data consumed. Infrastructure repair only.
+
+```
+ABBREVIATED_CROSS_YEAR_RANGES = FIXED
+IMPERATIVE_TRADE_LANGUAGE = FIXED_STRUCTURAL_NOT_SEMANTIC
+EXECUTION_LAYER_BUDGET_GATE = FIXED (run_campaign fails closed; BUDGET_STOP_ACCEPTED bound to cap/spend/worst case)
+REAL_LLM_CALLS_MADE = false
+COMPLETION_STATE = READY_FOR_FINAL_RE-VERIFICATION
+NEXT_UNIT = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION
+```
+
+## Generator V0 outcome-blind multi-provider routing — 2026-09-24
+
+No research window, hypothesis or protected data consumed. Infrastructure plus an outcome-blind routing amendment (provider/model/effort per role only).
+
+```
+GENERATOR = ANTHROPIC / claude-opus-5-5 / effort=high
+NOVELTY_CRITIC = OPENAI / gpt-6-sol / reasoning_effort=high
+RED_TEAM = OPENAI / gpt-6-sol / reasoning_effort=high
+FEASIBILITY_CRITIC = OPENAI / gpt-6-luna / reasoning_effort=low
+SELECTOR (advisory) = OPENAI / gpt-6-luna / reasoning_effort=none
+ROUTING_DIGEST = c0eefdfa06e7f2607be905aac961bf0d46fd609ea8482ab852052efe8b90be38
+FRESH_40_CARD_WORST_CASE_SINGLE_ATTEMPT_USD = 21.821289
+REAL_LLM_CALLS_MADE = false
+COMPLETION_STATE = READY_FOR_MULTI_PROVIDER_INDEPENDENT_REVIEW
+NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW
+```
+
+## Generator V0 Anthropic compact GENERATOR projection — 2026-09-24
+
+No research window, hypothesis or protected data consumed. Wire-format repair only. The first Anthropic schema-acceptance smoke returned HTTP 400 "compiled grammar is too large", cost USD 0.
+
+```
+TRIGGER_CALL_KEY = 767fd9e133e63a6e212277326252679724c3863d9d649e909c0eb1dc2bdf95a0 (never reused)
+WIRE_FORMAT = ANTHROPIC_COMPACT_CANDIDATE_ARRAY_V1
+SCIENTIFIC_CONTRACT_CHANGED = false
+REQUEST_BODY_BYTES = 55982 -> 27571 (generation:0)
+SCHEMA_OBJECTS = 42 -> 5; SINGLE_VALUE_ENUMS = 40 -> 1; LEGAL_RANGE_PATTERNS = 10 -> 1
+ROUTING_DIGEST = ef21451e433da324430c15cbfda41e514ab114d8f9fd2fa0921d9cc266d32716
+SMOKE_RESERVATION_USD = 0.987962 of 3.00 (FITS)
+LIVE_RE_SMOKE = NOT_PERFORMED (ANTHROPIC_API_KEY missing); REAL_LLM_CALLS_MADE = false
+COMPLETION_STATE = OFFLINE_GATES_PASS / LIVE_RE_SMOKE_BLOCKED
+```
+
+Record: `docs/research/GENERATOR_V0_ANTHROPIC_COMPACT_PROJECTION.{md,json}`.
+
+## Generator V0 Anthropic compact live re-smoke and output-cap amendment — 2026-09-24
+
+No research window, hypothesis or protected data consumed. Infrastructure spend only.
+
+```
+LIVE_RE_SMOKE_CALL_KEY = f8207e1f0fa229f24eec50b0c894d704dd32ad1fece59672e2d2440b47ea930e (never reused)
+LIVE_POSTS = 1 (ANTHROPIC GENERATOR, claude-opus-5-5, effort high, compact wire, generation:0)
+HTTP_STATUS = 200; SCHEMA_ACCEPTED = true; STOP_REASON = max_tokens
+RESPONSE_ID = msg_011CfN3ZuBMiCqeAeRNdWSsJ
+USAGE = input 14493 / output 32768 (thinking 17396)
+COST_MICRO_USD = 713332 (reserved 782028); STATE = FAILED_WITH_COST
+RAW_SHA256 = null; WIRE_SHA256 = 968550f7935eaf873a08b1d846a7b314cca797d37f49ab5e64cc2d8035922af2
+CRITIC_CALLS = 0; RETRIES = 0
+OWNER_AMENDMENT = routed Anthropic GENERATOR MAX_OUTPUT_TOKENS 32768 -> 100000 (legacy OpenAI cap unchanged)
+NEW_GENERATION_0_CALL_KEY = b1ed0d8333ae4b823e72e4175ef7680e0896cfc02915aa476d3278fa56d5cc93
+ROUTING_DIGEST = e925b578bfc0cdc2bfe354406178f56068d3745b784e36933b7d76cd5b344f1b
+HASH_PROVENANCE_FIX = failed attempts carry wire_sha256 only, never raw_sha256
+SMOKE_CEILING_USD = 3.10 incl. history; HISTORICAL = 0.713332; NEXT_RESERVATIONS = 2.325392; TOTAL = 3.038724 (FITS)
+FRESH_40_CARD_ROUTED_WORST_CASE_USD = 26.744465 single attempt (was 21.365889)
+SCIENTIFIC_CONTRACT_CHANGED = false; REAL_LLM_CALLS_THIS_REPAIR = 0
+COMPLETION_STATE = READY_FOR_OUTPUT_CAP_INDEPENDENT_REVIEW
+```
+
+## Generator V0 re-smoke operational guard — 2026-09-24
+
+No research window, hypothesis or protected data consumed. No live call.
+
+```
+ANTHROPIC_REQUEST_TIMEOUT_SECONDS = 1800 (was 900; stream=false; no batch, no streaming)
+OPENAI_REQUEST_TIMEOUT_SECONDS = 600 (unchanged)
+ROUTER_IDENTITY = 338df127c4f8f0a41c3b21cb4cb3fbac33e6ab4a115d724414ec0a183140e336
+ROUTING_DIGEST = e925b578bfc0cdc2bfe354406178f56068d3745b784e36933b7d76cd5b344f1b (unchanged)
+GENERATION_0_CALL_KEY = b1ed0d8333ae4b823e72e4175ef7680e0896cfc02915aa476d3278fa56d5cc93 (unchanged)
+SMOKE_ABSOLUTE_CAP_MICRO_USD = 3100000
+SMOKE_HISTORICAL_SPEND_MICRO_USD = 713332 (ledger lineage PRIOR_SPEND)
+SMOKE_NEW_SPEND_CAP_MICRO_USD = 2386668
+GENERATOR_MAX_NEW_POSTS = 1
+CONTENT_RETRY_ALLOWED = false
+TRANSPORT_REPLAY_ALLOWED = false
+ENTRY = scripts/research/generator_v0/resmoke.py
+FULL_PYTEST_FOR_OUTPUT_CAP_COMMIT = STARTED, >90 MINUTES, DID NOT COMPLETE, NO RESULT
+REAL_LLM_CALLS_THIS_FOLLOW_UP = 0
+COMPLETION_STATE = READY_FOR_FINAL_RE_SMOKE_REVIEW
+RESUME_GATE = COMPLETE raw text must parse on the journaled wire format and intake must admit at least one generation:0 card; otherwise STOPPED_UNUSABLE_ROUND or STOPPED_NOTHING_ADMITTED, with no critic POST, on every resume
+```
+
+Record: `docs/research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.{md,json}`.
+
+## Generator V0 final re-smoke, five-card cost calibration attempts, background novelty transport — 2026-09-24
+
+No research window, hypothesis or protected data consumed. Infrastructure spend only. Generated cards and critic outputs have no scientific status.
+
+```
+FINAL_RE_SMOKE = SMOKE_COMPLETE (production resmoke.run_resmoke; 3 POSTs)
+  GENERATOR  claude-opus-5-5 msg_011CfNLTMVgWaPB8WwpLzNxS end_turn in 14493 / out 43959 (thinking 21448) cost 937152 key b1ed0d83...cc93; 10/10 admitted
+  FEASIBILITY gpt-6-luna chatcmpl-ERdnuehSEIxeGOaZOWWumPJrBbcWW stop cost 451
+  NOVELTY    gpt-6-sol  chatcmpl-ERdo1NdcpCxG9monO2hZ0Kf08GOTX stop cost 24944 (31 PRIOR_RELATIONS keys, BATCH_RELATIONS {})
+  NEW_SPEND_MICRO_USD = 962547; SMOKE_LINEAGE_TOTAL_MICRO_USD = 1675879 of 3100000
+CALIBRATION (cap 2000000 micro-USD absolute; cards C001-C005 of the re-smoke round, chosen outcome-blind)
+  ATTEMPT_1: 1 POST; C001 NOVELTY gpt-6-sol HTTP 502 non-JSON; key 3d7593020fb5766c6025b7b59e00e55be2e180104e0694cc0d7539ee512176a8
+             RECONCILED_UNKNOWN (owner-authorized) cost 214416 (full reservation); journal sealed
+  ATTEMPT_2: 7 POSTs; 6 COMPLETE (C001, C002 x novelty/feasibility/red team) cost 94218;
+             C003 NOVELTY gpt-6-sol HTTP 502 non-JSON; key 82153d8fba4fd6210a9503a07190535b9eb1adeb9ed7365b0427b3d20846b8d3
+             UNCERTAIN reserved 213294 (not reconciled)
+  CALIBRATION_LINEAGE_CHARGED_OR_RESERVED_MICRO_USD = 521928; CALIBRATION_STATUS = STOPPED_UNCERTAIN_CALL (incomplete; no cost classification)
+BACKGROUND_NOVELTY_TRANSPORT_AMENDMENT (offline; no live call)
+  NOVELTY_CRITIC: OPENAI_CHAT_COMPLETIONS -> OPENAI_RESPONSES_BACKGROUND (create once, GET by response_id)
+  MODEL/EFFORT/PROMPT/SCHEMA/OTHER ROLES = unchanged
+  NOVELTY_ROUTE_DIGEST = 597296d5c91d0b9fe3af97429111b16ed780493a1d198a97ddf2154edd670760
+  ROUTING_DIGEST = 9c99dc12b90fb9541113084ec833f5729fb865b5ad80c8c4a943ec0f19dddf66
+  COMPLETION_STATE = READY_FOR_BACKGROUND_NOVELTY_INDEPENDENT_REVIEW
+```
+
+Record: `docs/research/GENERATOR_V0_BACKGROUND_NOVELTY_TRANSPORT_AMENDMENT.{md,json}`.
+
+## Generator V0 critic calibration continuation and background RED_TEAM transport — 2026-09-24
+
+No research window, hypothesis or protected data consumed. Infrastructure spend only. Generated cards and critic outputs have no scientific status.
+
+```
+CALIBRATION_CONTINUATION (absolute cap 4000000 micro-USD; scratch journals, not committed)
+  GENERATOR  claude-opus-5-5 effort high; in 14653 / out 41670 (thinking 18008) cost 892012; key e9ea20c2...1a75; 10/10 admitted; C001-C005 selected outcome-blind
+  C001 NOVELTY first attempt: direct HTTPSConnection, sandbox egress 403; FAILED_NOT_BILLED cost 0
+  CLOUD_OPENAI_TRANSPORT: CONNECT via HTTPS_PROXY (read at call time), Authorization removed at the proxy boundary; GET /v1/models 200
+  C001 NOVELTY   gpt-6-sol background; 1 create POST, 5 GETs; in 10298 / out 878 (reasoning 402, cached 0) cost 29376
+  C001 FEASIBILITY gpt-6-luna; in 2775 / out 274 (reasoning 183) cost 415
+  C001 RED_TEAM  gpt-6-sol synchronous; HTTP 502 UNCERTAIN; key 8e94c966b14feeb7f9c9fd1ae4ab1be8e98ddd1067158470032845fa396c6c39
+                 RECONCILED_UNKNOWN (owner rule; no response_id or usage) cost 98806 (full reservation); logical call closed in that journal
+  LEDGER_TOTAL_CHARGED_MICRO_USD = 1020609; CALIBRATION_STATUS = STOPPED_UNCERTAIN_CALL (incomplete; no cost classification)
+BACKGROUND_RED_TEAM_TRANSPORT_AMENDMENT (offline; no live call)
+  RED_TEAM: OPENAI_CHAT_COMPLETIONS -> OPENAI_RESPONSES_BACKGROUND (create once, GET by response_id)
+  MODEL/EFFORT/PROMPT/SCHEMA/TOKEN_CAP/OTHER ROLES = unchanged
+  RED_TEAM_ROUTE_DIGEST = f6fadb7b8239db5449b265eb7ea1583482befa78b387dca49497cf2d1870a2f2
+  ROUTING_DIGEST = c636f14a9e48dc07f8ebca16666c80dd20343171a6535f3ec8c47d8f71afc596
+  COMPLETION_STATE = READY_FOR_BACKGROUND_RED_TEAM_SMOKE
+```
+
+Record: `docs/research/GENERATOR_V0_BACKGROUND_RED_TEAM_TRANSPORT_AMENDMENT.{md,json}`.
+
+
+## Generator V0 completed five-card calibration and first 30-card architecture freeze — 2026-09-24
+
+No research window or protected outcome consumed. Calibration cards/critic judgments have no scientific status.
+
+```
+BACKGROUND_RED_TEAM_LIVE_SMOKE = PASS
+  RED_TEAM gpt-6-sol high background Responses: 1 create POST, 5 GETs, completed
+  SYNTHETIC_SMOKE_COST_MICRO_USD = 6570 (engineering spend; excluded from normal-run estimate)
+
+FIVE_CARD_CALIBRATION_FINAL = COMPLETE
+  SAMPLE = C001-C005 from recovered 10/10-valid Opus round
+  GENERATOR_SAMPLE_1_USD = 0.937152
+  GENERATOR_SAMPLE_2_USD = 0.892012
+  GENERATOR_MEAN_PER_10_USD = 0.914582
+  NOVELTY_MEAN_PER_CARD_USD = 0.031955
+  FEASIBILITY_MEAN_PER_CARD_USD = 0.000507
+  BACKGROUND_RED_TEAM_MEAN_PER_CARD_USD = 0.014777
+  CRITIC_CHAIN_MEAN_PER_CARD_USD = 0.047239
+  CRITIC_CHAIN_MIN_MEDIAN_MAX_USD = 0.043931 / 0.046675 / 0.053037
+  HISTORICAL_CHARGED_LINEAGE_MICRO_USD = 1227012
+  FINAL_CONTINUATION_NEW_COST_MICRO_USD = 206403
+  UNRESOLVED_CALLS = 0
+
+FIRST_FULL_RUN_SIZE = 30
+  GENERATOR_ROUNDS = 3 x 10
+  GENERATOR_RETRY_ALLOWED = false
+  PROJECTED_30_CARD_GENERATOR_MEAN_USD = 2.743746
+  PROJECTED_30_CARD_OPENAI_CRITICS_MEAN_USD = 1.417164
+  PROJECTED_30_CARD_TOTAL_MEAN_USD = 4.160910
+  PROJECTED_30_CARD_TOTAL_MAX_OBSERVED_USD = 4.402566
+
+ARCHITECTURE_FROZEN_FOR_FIRST_30_CARD_RUN = true
+NEXT_PAID_ACTION = FIRST_30_CARD_RUN_AFTER_OPERATIONAL_PERSISTENCE_REVIEW
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+```
+
+Canonical record: `docs/research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.{md,json}`. Runtime protocol: `docs/AGENT_RUNTIME_PROTOCOL.md`.
+
+
+## Generator V0 calibration-memory ingestion — 2026-09-24
+
+Offline memory/governance update only. No provider calls, market outcomes, or protected data.
+
+```text
+SOURCE = GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT
+DURABLE_SIGNATURES = GV0CAL-C001..GV0CAL-C005
+MEMORY_ENTRY_COUNT = 35
+GENERATOR_VISIBLE_STATE = PRIOR_WORK_SIGNATURE for all five
+GV0CAL-C001_STATE = CONSUMED
+GV0CAL-C002_STATE = CONSUMED
+GV0CAL-C003_STATE = DEFERRED_OR_BLOCKED / METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING
+GV0CAL-C004_STATE = DEFERRED_OR_BLOCKED / METHOD_CONFOUNDING_CONTROL_INADEQUATE
+GV0CAL-C005_STATE = CONSUMED
+GENERATOR_SEES_CRITIC_DISPOSITION = false
+NOVELTY_DECISION_TABLE_CHANGED = false
+ARCHITECTURE_FREEZE_CHANGED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+NEXT_PAID_ACTION = FIRST_30_CARD_RUN_AFTER_OFFLINE_MEMORY_VALIDATION
+```
+
+Record: `docs/research/GENERATOR_V0_CALIBRATION_MEMORY_INGESTION.{json,md}`.
+
+## Generator V0 memory finalizer V1 — 2026-09-24
+
+No research window, hypothesis or protected data consumed. Offline infrastructure only; no provider call.
+
+```
+MEMORY_AUTHORITY = APPEND_ONLY_EVENT_CHAIN (docs/research/generator_v0_memory/)
+EVENT 0 LEGACY_BOOTSTRAP 54afd1ed229cca6785586534102df3b6fb5129e736def4f5df726225b16773e8
+  30 pre-GV0CAL entries + 30 governance rows verbatim from d4b28dea18a64b3ed00339ebdcde539a78e4d1e1
+  replay reproduces that commit's memory / blind map / authority byte-for-byte
+EVENT 1 GV0CAL 358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad (head)
+  source GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT.json sha256 14146e3aedb4ad67942ddbf5ab3245193cf373282b4bd11d8a926b5bcc6b9f73
+  5 attempt records, 5 new canonical signatures, 0 links
+  C001/C002/C005 CONSUMED; C003 DEFERRED_OR_BLOCKED METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING;
+  C004 DEFERRED_OR_BLOCKED METHOD_CONFOUNDING_CONTROL_INADEQUATE (golden: manual ingestion 64a37a9)
+MEMORY_ENTRY_COUNT = 35; ATTEMPT_RECORD_COUNT = 5
+DESIGN: embedded governance ROWS removed (rules unchanged); finalization never edits the design
+NO_SCIENTIFIC_STATUS = true; MARKET_OUTCOMES_TESTED = false; generated hypotheses != executed market tests
+```
+
+Record: `docs/research/GENERATOR_V0_MEMORY_FINALIZER.{md,json}`.
+
+## Generator V0 first 30-card production-path repair — 2026-09-24
+
+No research window, hypothesis, or protected data consumed. Offline only. No provider call.
+
+```
+GENERATOR_CONTENT_ATTEMPTS = 1
+GENERATOR_CONTENT_RETRIES = 0
+MAX_GENERATOR_POSTS_30 = 3
+SELECTOR_LLM_CALLS = 0
+SELECTOR_AUTHORITY = DETERMINISTIC_ORDINAL_ORDER
+OPENAI_NETWORK_MODE = CLOUD_PROXY for Cloud Agent (explicit; not inferred from HTTPS_PROXY)
+OPENAI_PROXY_TRANSPORT = CloudProxyOpenAITransport
+OPENAI_API_KEY_REQUIRED = false in CLOUD_PROXY
+ANTHROPIC_API_KEY_REQUIRED = true
+BUDGET_RESERVATION_UNCHANGED = 19516751 micro-USD single-attempt size 30
+MEMORY_FINALIZER_V1 = unchanged
+LIVE_API_CALLS = 0
+```
+
+Record: `docs/research/GENERATOR_V0_FIRST_30_PRODUCTION_PATH_REPAIR.{md,json}`.
+
+## Generator V0 first 30-card run GV0R01 and memory finalization — 2026-09-24/25
+
+Shadow hypothesis generation and governance only. No market window, hypothesis test or protected data consumed. Paid ideation spend belongs to GV0R01. The seal and memory finalization were offline, with no provider call.
+
+```
+CAMPAIGN_ID = GV0R01
+RUN_ID = first-30-card-r01
+SOURCE_HEAD = 2412a372b5212def2256b1662b5d45f16a91f515
+CAMPAIGN_STATUS = PENDING_HUMAN_REVIEW
+SLOTS = 30; VALID = 30; HARD_FAIL = 0; REVIEW_FAILED = 0
+CALLS = 93 COMPLETE (GENERATOR 3, NOVELTY 30, FEASIBILITY 30, RED_TEAM 30); UNRESOLVED = 0
+SELECTOR_LLM_CALLS = 0; CRITIC_CONTENT_RETRIES = 0
+SPEND_USD = 5.091486 (ANTHROPIC 2.836676, OPENAI 2.254810); HARD_CAP_USD = 10.00
+STREAM_A = [C013]; STREAM_B = [C004, C006, C012, C014, C016, C020]
+SHORTLIST = [C013, C014, C006, C012, C016]
+SEMANTIC_RESULT_DIGEST = b9ca7a3d4fe1f11d1f40d8b9839bfa68474e25c81bff83ffc148a2a2ba81fcf6
+SEALED_JOURNAL = docs/research/generator_v0_gv0r01/run.sqlite
+JOURNAL_SHA256 = de22f7c2aeb0487842a2477e5a2f44e3df7a9cbf007785cfaf213cbcd648be62
+MEMORY_SOURCE_SHA256 = f5992fff8219a2d6736c99de5ee5e6ae653044299a752fe3a0192c34a44a8579
+MEMORY_EVENT = 416b22fabd1663be9094bce18c5bce2a8b3d062b0b01525a25395d195788bead (seq 2)
+MEMORY_DELTA = 63bfdb6f40278ef83d8f31cdc2122907999da0a5f132504d1051d5c0f3abe85c
+NEW_SIGNATURES = 22 (CONSUMED 1: GV0R01-C013; DEFERRED_OR_BLOCKED 21)
+LINKED_PRIOR = 4; LINKED_BATCH = 4
+MEMORY_ENTRY_COUNT = 57; ATTEMPT_RECORD_COUNT = 35
+MARKET_OUTCOMES_TESTED = false; PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = FIRST_MARKET_TEST_DESIGN_FOR_GV0R01
+```
+
+The GV0R01 signatures now count as prior search surface. C013 is the only `EXECUTABLE_NOW` candidate, and its market outcome is untested. Record: `docs/research/GENERATOR_V0_FIRST_30_CARD_RUN_GV0R01.{md,json}`.
+
+## GV0R01-C013 market test preregistration — 2026-09-25
+
+Design and preregistration only. No research window consumed, no outcome computed, no protected data opened, no provider call.
+
+```
+HYPOTHESIS_ID = GV0R01-C013
+TEST_FAMILY_ID = TF-GV0R01-C013-MT1
+SEARCH_FAMILY_ID = SF-GENERATOR_V0-GV0R01
+PREREG = docs/research/GV0R01_C013_MARKET_TEST_PREREG.json
+PREREG_SHA256 = 49dff57b3e068d999c9c4467fb5117de9d73ad564425bf737df727a1096f7625
+DATASET = SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0 (file ledger fc38ea13...)
+DECISION_DAYS = 2020-01-06..2024-12-29 (260 ISO weeks)
+PRIMARY = K5_H1_N50; weekly-mean Spearman(rank CLV, rank WICK_RESID); direction negative
+NULL = 1000 within-date quote-volume-tercile permutations; SEED 639284419827364414
+PRIMARY_TEST_COUNT = 1; SECONDARY_TEST_COUNT = 7 (descriptive, Holm)
+EXECUTION_AUTHORIZED = false
+MARKET_TEST_EXECUTED = false
+```
+
+The global machine-readable test ledger `docs/research/SCIENTIFIC_TEST_LEDGER.json` starts here. It counts executed tests, not generated cards.
+
+## GV0R01-C013 one-shot market test — executed — 2026-09-25
+
+Consumed: `TF-GV0R01-C013-MT1` on `SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0` legal 2019-12..2024-12 (decision days 2020-01-06..2024-12-29). Protected 2025/2026 unopened. No LLM call. One execution; no rerun.
+
+```
+PERMIT_COMMIT = 386bc10b9b1aad5a7b5c410d48d73e231be9ca4d (pre-outcome)
+PREREG_SHA256 = 49dff57b3e068d999c9c4467fb5117de9d73ad564425bf737df727a1096f7625
+RESULT = docs/research/GV0R01_C013_MARKET_TEST_RESULT.json
+RESULT_SHA256 = 036016c403f83e4c63b2e006379551a0f595e8803cb55a0ef8f27a19ce3a1062
+CLASSIFICATION = PROMISING_PROTOTYPE
+GATES = STATISTICAL, DIRECTION, TEMPORAL, CONTROL, DEPENDENCE, ADJACENCY all pass
+PRIMARY_K5_H1_N50_POOLED = -0.019932; P_TWO_SIDED = 0.001998 (1000 permutations)
+CONTROLLED_POOLED = -0.053505; P_TWO_SIDED = 0.001998
+HAC_T_LAG4 = -2.479; ADJACENCY_POOLED = -0.021409
+YEARLY = 2020 -0.0691, 2021 -0.0677, 2022 -0.0307, 2023 +0.0315, 2024 +0.0363 (3 of 5 share sign)
+VALID_DAYS = 1820/1820; VALID_WEEKS = 260; MISSING_TARGET_RATE = 0.000264
+SECONDARY_GRID = 7 variants, descriptive only, cannot change classification
+SEARCH_FAMILY SF-GENERATOR_V0-GV0R01: EXECUTED_TESTS = 1 (of 30 generated cards)
+NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN
+```
+
+This is discovery-tier evidence, not a validated edge. The 2023–2024 yearly means are opposite in sign to the pooled result, and that is recorded for the confirmation design. The 2020–2024 legal window of this panel is now consumed for C013 and cannot serve as its confirmation.
+
+## GV0R01-C013 result memory ingestion (MARKET_TEST_RESULT event) — 2026-09-25
+
+Offline memory and provenance only. No research window consumed, no outcome computed, no market data read, no protected data opened, no provider call.
+
+```
+MARKET_TEST_RESULT_EVENT = IMPLEMENTED (chain schema GENERATOR_V0_MEMORY_CHAIN_V1 unchanged)
+UNIT_ID = GV0R01C013MT1; TEST_FAMILY_ID = TF-GV0R01-C013-MT1; SIGNATURE_ID = GV0R01-C013
+SOURCE_SHA256 = 2134503de5ef33a6cd8f03eb4dbe4d6647a3d0204ee898883beb4cbb8a4de271
+MEMORY_DELTA_SHA256 = 3b7c5485a6b7fc0d1abe723413e242de4da77867483548c4afc2cfbb46c0962e
+EVENT_HASH = 853ef4514460a18b5aa16bf3fff86ece027c52e4b58d92dfbf98034f1fde9373 (sequence 3)
+PREVIOUS_EVENT_HASH = 416b22fabd1663be9094bce18c5bce2a8b3d062b0b01525a25395d195788bead
+ENTRIES = 57; ATTEMPTS = 35; MARKET_TEST_RESULTS = 1
+BLIND_MAP / GOVERNANCE_AUTHORITY / ATTEMPT_RECORDS = byte-identical (digests unchanged)
+CLASSIFICATION (copied) = PROMISING_PROTOTYPE, discovery tier, not a validated edge
+NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN
+```
+
+## GV0R01-C013 independent confirmation feasibility and design — 2026-09-25
+
+Outcome-blind feasibility only. No test registered or executed, no window consumed, protected 2025/2026 values not opened (735 metadata ListBucket requests; 0 payload or checksum GETs), no provider call.
+
+```
+DISCOVERY = TF-GV0R01-C013-MT1 PROMISING_PROTOTYPE (consumed)
+RESERVED_CONFIRMATION_FAMILY = TF-GV0R01-C013-CONF1 (not registered)
+POWER_METHOD = whole-year block resampling of exposed 2020-2024 weekly series (authoritative); MBB 13/26 sensitivity; IID diagnostic
+POWER_STAT_AND_DIRECTION_AT_DISCOVERY_EFFECT = 2025: 0.600; 2025+2026 prefix: 0.524; full 2025-2026: 0.687
+MIN_FRESH_WEEKS_FOR_0.80 = about 468 (9 years)
+ALTERNATIVE_PRE_2019_12_SURFACE = not equivalent (fewer than 50 USDT symbols before 2019-07)
+FRESH_SURFACE_DECISION = WAIT_FOR_MORE_FRESH_DATA
+NEXT_UNIT = POST_GV0R01_C013_CONFIRMATION_FEASIBILITY_PROGRAM_DECISION
+```
+
+## GV0R01 Stream-B feasibility triage and post-C013 program decision — 2026-09-25
+
+Outcome-blind feasibility and routing only. No hypothesis executed, no outcome computed, no window consumed, protected 2025/2026 unopened, no provider call; 13 Binance S3 ListBucket requests, 0 payload GETs.
+
+```
+C013_PROGRAM_STATE = PROMISING_PROTOTYPE / CONFIRMATION_DEFERRED_LOW_POWER
+C004 = READY_AFTER_FREE_PUBLIC_ACQUISITION (CPI archive; FOMC core ready; D10/D11 overlap)
+C006 = BLOCKED_POINT_IN_TIME_SEMANTICS (DVOL non-revision unverifiable; marks paid)
+C012 = READY_AFTER_FREE_PUBLIC_ACQUISITION (CPI archive; FOMC arm ready)
+C014 = BLOCKED_POINT_IN_TIME_SEMANTICS (DVOL BTC+ETH; quotes paid)
+C016 = BLOCKED_EXPENSIVE_DATA (spread/L2 history paid; bookTicker 2023-05-16..2024-03-30 only)
+C020 = READY_AFTER_FREE_PUBLIC_ACQUISITION (NYSE, CN State Council, OPM calendars; D12 overlap)
+NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C012 (feasibility only)
+RUN_GV0R02_NEXT = false
+NEXT_UNIT = GV0R01_C012_CPI_CALENDAR_ACQUISITION_AND_OUTCOME_BLIND_DESIGN
+```
+
+## BLS CPI release-schedule archive V0 acquisition — 2026-09-25
+
+Data provenance only. No hypothesis executed, no outcome computed, no research window consumed, no CPI values or market data acquired, protected 2025/2026 values not opened, no provider call. Wayback CDX listing plus 190 exact archived payloads and 2 live BLS pages.
+
+```
+DATASET_ID = BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0
+DATASET_DIGEST = 760ed2c5d18b03b7a41c25e6bab157ebde476977fdc3e5f7a3462aa376f4154f
+AUTHORITY = bls.gov/schedule/news_release/cpi.htm (first party), dated by web.archive.org captures
+EVENTS = 60 (12 per year, 2020-2024); VERIFIED_PREANNOUNCED = 60
+SAFE_W6 = 60; SAFE_W12 = 60; SAFE_W24 = 60; RESCHEDULED = 0; UNRESOLVED = 0
+DST = STATUTORY_DST_CALENDARS (DISCOVERY_SPRINT_04.json), cross-checked vs EPAct 2005 rule and zoneinfo
+CDX_SHA1_MATCH = 189/190 obtained captures (mismatch excluded from evidence)
+C012_CPI_BLOCKER_RESOLVED = true; C004_CPI_BLOCKER_RESOLVED = true (observable only; no design)
+NEXT_UNIT = GV0R01_C012_OUTCOME_BLIND_DESIGN_AND_POWER
+```
+
+## GV0R01-C012 outcome-blind design and power — 2026-09-25
+
+Design and ex-ante power only. No hypothesis executed, no market file opened, no return computed, protected 2025/2026 unopened, no provider call, Generator V0 memory unchanged.
+
+```
+PRIMARY = FOMC_AND_CPI, PRE_WINDOW_H = 24 (singular; other five card variants cannot decide)
+EVENTS = 99 (CPI 60 + FOMC 39); ISO_WEEKS = 94; OVERLAP_PAIRS = 2 (kept); LONG_GAP_CPI = 11 (kept)
+INFERENCE = stratified label permutation, 5000 draws, seed 12012, alpha 0.05 two-sided
+PLANNING_N = 47 (ISO weeks / variance inflation 2)
+MDE_STANDARDIZED = 0.409; POWER_AT_0.50_SIGMA = 0.929; POWER_AT_0.25_SIGMA = 0.403
+SIGMA_24H_ASSUMPTIONS = 0.02 / 0.04 / 0.06 (stated, not fit)
+OUTCOME_BLIND_GATE = EXECUTION_JUSTIFIED
+EXECUTION_AUTHORIZED = false
+NEXT_UNIT = GV0R01_C012_ONE_SHOT_EXECUTION
+```
+
+## GV0R01-C012 one-shot preflight, execution not opened — 2026-09-25
+
+Calendar preflight only. No price file opened, no return computed, protected 2025/2026 unopened.
+
+```
+PREFLIGHT_STATUS = PASS
+PREFLIGHT_HEAD = 61ce00383d4b8879632e6a0382b9466edcf954ce
+EVENTS_WITH_CONTROL = 99; CONTROL_REUSE = 0; WITHIN_STRATUM_GAP >= 7d
+CROSS_STRATUM_CONTROL_OVERLAPS = 14; EVENT_CONTROL_OVERLAPS = 5 (not dropped; permutation stays within stratum)
+RUN_STATUS = BLOCKED_MARKET_BYTES_ABSENT
+MARKET_DATA_OPENED = false
+```
+
+## C012 discovery-period market bytes — 2026-09-25
+
+Month objects only. No C012 return, no event window, no protected-year fetch.
+
+```
+DATASET = C012_DISCOVERY_BTC_1M_V0
+MONTHS = 2020-01..2024-12 (60)
+ROWS = 2630880; MISSING_MINUTES = 0; DUPLICATE_OPEN_TIMES = 0
+MATCHES_SNAPSHOT_717d37a4 = true
+MANIFEST_DIGEST = 78e3f54a6289125769072c5896ddf4516b4d5a98bd1ac5ea4ed7e4d0566f646c
+PROTECTED_2025_MARKET_BYTES_FETCHED = false
+PROTECTED_2026_MARKET_BYTES_FETCHED = false
+C012_PRIMARY_TEST_EXECUTED = false
+NEXT_UNIT = GV0R01_C012_ONE_SHOT_EXECUTION
+```
+
+## GV0R01-C012 one-shot stopped on permutation dependence — 2026-09-25
+
+Timestamp graph only. No price file opened, no return computed, protected 2025/2026 unopened. The frozen inference procedure was not amended.
+
+```
+RUN_STATUS = BLOCKED_INFERENCE_DEPENDENCE_DEFECT
+GLOBAL_OVERLAP_GRAPH_COMPONENTS = 177
+MAX_OVERLAP_COMPONENT_SIZE = 2
+SWAPPABLE_OBSERVATIONS_WITH_DIFFERENT_EXTERNAL_NEIGHBORHOODS = 154
+SWAPPABLE_PAIRS = 240
+GLOBAL_PERMUTATION_INVARIANCE_STATUS = NOT_ESTABLISHED
+MARKET_DATA_OPENED_FOR_C012 = false
+C012_PRIMARY_TEST_EXECUTED = false
+PRIMARY_EFFECT = NOT_COMPUTED
+NEXT_UNIT = GV0R01_C012_OUTCOME_BLIND_INFERENCE_AMENDMENT
+```
+
+## GV0R01-C012 outcome-blind inference amendment — 2026-09-25
+
+Inference repair only. No price file opened, no return computed, protected 2025/2026 unopened. The claim, events, controls, and DELTA_24 endpoint are unchanged.
+
+```
+OLD_INFERENCE = superseded; failed global invariance gate
+AMENDED_GROUP = G_C012_TOPO
+OVERLAP_GRAPH = 198 nodes, 21 edges, 177 components, max size 2
+PRIMARY_LABEL_ORBIT_SIZE = 3204454418600404451328000000000
+STRUCTURAL_INVARIANCE = PASS
+STRESS_MDE_SINGLE_WINDOW_SD = 0.609
+AMENDED_POWER_GATE_RESULT = INFERENCE_AMENDMENT_VALID_BUT_INFORMATIONALLY_WEAK
+MARKET_DATA_OPENED_FOR_C012 = false
+C012_PRIMARY_TEST_EXECUTED = false
+NEXT_UNIT = NO_EXECUTION_AUTHORIZED
+```
+
+## GV0R01-C012 closed outcome-blind — 2026-09-25
+
+No market window consumed. No hypothesis executed. No price opened.
+
+```
+C012_STATUS = CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK
+C012_EXECUTED = false
+C012_MARKET_OUTCOMES_OPENED = false
+OLD_INFERENCE = SUPERSEDED_FAILED_GLOBAL_INVARIANCE_GATE
+AMENDED_INFERENCE = STRUCTURALLY_VALID
+AMENDED_POWER_GATE = FAILED
+MDE_SINGLE_WINDOW_SD = 0.6093023255813953
+FROZEN_EXECUTION_THRESHOLD = 0.50
+PRIMARY_LABEL_ORBIT_SIZE = 3204454418600404451328000000000
+SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0
+EVIDENCE_ON_ANTICIPATORY_DRIFT = NONE
+FURTHER_C012_INFERENCE_AMENDMENT_AUTHORIZED = false
+NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C004
+NEXT_UNIT = GV0R01_C004_OUTCOME_BLIND_DESIGN_AND_POWER
+```
+
+## GV0R01-C004 outcome-blind design and power — 2026-09-25
+
+Design only. No price opened, no C004 statistic executed, no C012 outcome used.
+
+```
+C004_DEFINITION_STATUS = UNAMBIGUOUS
+PRIMARY = FOMC only, 60m post-statement RESID_SHARE, one-sided lower
+EVENTS_PLANNED = 39; COVERED = 38; UNCOVERED = 20200129
+CPI_POOLED = false
+DEPENDENCE_GRAPH = 76 nodes, 260 beta edges, 0 outcome edges, 1 component
+LABEL_ORBIT = 16; MIN_EXACT_P = 1/16; ALPHA_ATTAINABLE = false
+EXECUTION_MDE_THRESHOLD = 0.10 RESID_SHARE points
+OUTCOME_BLIND_GATE_RESULT = EXECUTION_INFORMATIONALLY_WEAK
+NEXT_UNIT = NO_C004_EXECUTION_AUTHORIZED
+```
+
+## GV0R01-C004 closed outcome-blind — 2026-09-25
+
+No market window consumed. No hypothesis executed. No price opened. Exact primary support is the 16-point label orbit, not the power-planning Monte Carlo.
+
+```
+C004_STATUS = CLOSED_OUTCOME_BLIND_INFERENCE_SUPPORT_INSUFFICIENT
+C004_EXECUTED = false
+C004_MARKET_OUTCOMES_OPENED = false
+PRIMARY_LABEL_ORBIT_SIZE = 16
+MIN_ATTAINABLE_EXACT_P = 0.0625
+ALPHA = 0.05
+ALPHA_ATTAINABLE = false
+POWER_GATE_RESULT = EXECUTION_INFORMATIONALLY_WEAK
+STRESS_POWER_AT_0_20_SHARE_DECLINE = approximately 0.11
+SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0
+EVIDENCE_ON_POST_FOMC_RESIDUAL_SHARE = NONE
+NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C020
+NEXT_UNIT = GV0R01_C020_OUTCOME_BLIND_DESIGN_AND_POWER
+```
+
+## GV0R01-C020 design blocked before a sample — 2026-09-25
+
+Definition recovered. No holiday calendar pinned. No price or volume opened. No statistic, inference or power.
+
+```
+C020_DEFINITION_STATUS = UNAMBIGUOUS
+OUTCOME_BLIND_GATE_RESULT = BLOCKED_BY_MISSING_INPUT
+MISSING = NYSE_HOLIDAY_CALENDAR_ARCHIVE, CN_STATE_COUNCIL_HOLIDAY_NOTICES, US_OPM_FEDERAL_HOLIDAY_LIST
+POWER_SIMULATION_PERFORMED = false
+MARKET_DATA_OPENED_FOR_C020 = false
+C020_PRIMARY_TEST_EXECUTED = false
+NEXT_UNIT = GV0R01_C020_HOLIDAY_CALENDAR_PINNING
+```
+
+## GV0R03 generator feasibility contract — 2026-09-25
+
+Contract only. No new hypotheses, no LLM call, no market outcomes. V02 card acceptance is unchanged.
+
+```
+GENERATOR_CONTRACT_VERSION = GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V0
+COMPILER_SCHEMA_VERSION = GV0R02_SCHEMA_V0
+COMPILER_MAPPING_STATUS = MECHANICAL_COPY
+MISSING_FIELD_REJECTION_STATUS = EACH_REQUIRED_FIELD
+SCIENTIFIC_DOF_PRESERVATION_STATUS = SEALED_FIELDS_REJECT_DOWNSTREAM_EDIT
+NEW_HYPOTHESES_GENERATED = false
+LLM_CALLS = 0
+NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT
+```
+
+## GV0R02 feasibility compiler positive control — 2026-09-25
+
+Synthetic planning fixture only. Same `compile_proposal` entry point. No policy edit, no golden-case edit, no market outcomes.
+
+```
+POSITIVE_CONTROL_ID = GV0R02_POSITIVE_CONTROL_SYNTHETIC
+POSITIVE_CONTROL_STATUS = FEASIBLE_FOR_PREREGISTRATION
+NEGATIVE_MUTATION = NOMINAL_OBSERVATION_COUNT 10000 -> 36
+NEGATIVE_MUTATION_STATUS = INFORMATIONALLY_WEAK
+NEGATIVE_MUTATION_BLOCKER = MDE_TOO_LARGE
+MARKET_OUTCOMES_OPENED = false
+GENERATOR_MODIFIED = false
+NEXT_UNIT = NONE_AUTHORIZED_AFTER_POSITIVE_CONTROL
+```
+
+## GV0R02 feasibility compiler implementation — 2026-09-25
+
+Implementation of the frozen contract. No generator edit, no new data, no market outcomes, no positive control.
+
+```
+FEASIBILITY_COMPILER_IMPLEMENTED = true
+FEATURE_REGISTRY_VERSION = GV0R02_FEATURE_REGISTRY_V0
+GOLDEN_C012 = INFORMATIONALLY_WEAK
+GOLDEN_C004 = INFERENCE_SUPPORT_INSUFFICIENT
+GOLDEN_C020 = INFORMATIONALLY_WEAK
+NEXT_UNIT = GV0R02_FEASIBILITY_COMPILER_POSITIVE_CONTROL
+```
+
+## GV0R02 feasibility compiler design — 2026-09-25
+
+Design only. No compiler engine, no generator edit, no new hypotheses, no new data, no market outcomes.
+
+```
+COMPILER_SCHEMA_VERSION = GV0R02_SCHEMA_V0
+COMPILER_POLICY_VERSION = GV0R02_POLICY_V0
+FEASIBILITY_COMPILER_IMPLEMENTED = false
+NEXT_UNIT = GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_IMPLEMENTATION
+```
+
+## GV0R01-C020 close routing — 2026-09-25
+
+The classification below is unchanged. The next unit is not another Stream-B candidate.
+
+```
+NEXT_UNIT = GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_DESIGN
+QUEUE_CONTINUED = false
+COMPILER_IMPLEMENTED = false
+C020_EXECUTION_AUTHORIZED = false
+```
+
+## GV0R01-C020 inference classification audit and close — 2026-09-25
+
+Terminology audit only. The design, the power gate, and the execution decision are unchanged. No BTC value was opened.
+
+```
+C020_STATUS = CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK_REFERENCE_TEST
+INFERENCE_CLASSIFICATION = PLACEBO_REFERENCE_DISTRIBUTION
+EXACT_RANDOMIZATION_CLAIM_STATUS = NOT_JUSTIFIED
+OBSERVED_ASSIGNMENT_IN_REFERENCE_SUPPORT = false
+REFERENCE_SUPPORT_RESOLUTION = 1.6473952425747334e-59
+MONTE_CARLO_P_FLOOR = 1/1001
+STRESS_POWER_AT_FROZEN_BAR = 0.40
+C020_EXECUTION_AUTHORIZED = false
+NEXT_CANDIDATE = NONE_READY
+NEXT_UNIT = STREAM_B_REMAINING_CANDIDATES_BLOCKED
+```
+
+C006 and C014 stay blocked on DVOL point-in-time evidence. C016 stays blocked on paid spread history. No new candidate was created.
+
+## GV0R01-C020 outcome-blind design and power — 2026-09-25
+
+Design only. No C020 execution. No BTC price or quote volume opened. Protected 2025/2026 unopened.
+
+```
+OUTCOME_BLIND_GATE_RESULT = EXECUTION_INFORMATIONALLY_WEAK
+PRIMARY_EVENT_COUNT = 47
+US_SESSION = 09:30-16:00 America/New_York
+EXECUTION_MDE_THRESHOLD = log(0.90)
+ALPHA = 0.05
+ALPHA_ATTAINABLE = true
+BASE_POWER_AT_BAR = 0.79
+STRESS_POWER_AT_BAR = 0.40
+MARKET_DATA_OPENED_FOR_C020 = false
+C020_PRIMARY_TEST_EXECUTED = false
+NEXT_UNIT = NO_C020_EXECUTION_AUTHORIZED
+```
+
+The frozen 10 percent relative-share bar is not reached at 80 percent power in the stress scenario. The design is not retuned. A material redesign would need a new research-object id.
+
+## GV0R01-C020 holiday calendars pinned — 2026-09-25
+
+Data provenance only. No price or volume opened. No C020 sample, inference, or power.
+
+```
+STATUS = HOLIDAY_CALENDARS_PINNED
+NYSE_ROLE = PRIMARY_EVENT_DEFINITION
+CN_STATE_COUNCIL_ROLE = CONTROL_CONTAMINATION_EXCLUSION_AND_NON_DECISIVE_EXTENSION
+US_OPM_ROLE = OTHER_FALSIFIER_SPECIFICITY
+NYSE_FULL_WEEKDAY_CLOSURE_COUNT = 47
+NYSE_EARLY_CLOSE_COUNT = 9
+NYSE_UNRESOLVED_COUNT = 1
+OPM_UNRESOLVED_COUNT = 1
+CN_NON_WORKING_ROW_COUNT = 144
+CN_COMPENSATING_WORKING_ROW_COUNT = 36
+CN_UNRESOLVED_COUNT = 0
+MARKET_DATA_OPENED_FOR_C020 = false
+POWER_SIMULATION_PERFORMED = false
+NEXT_UNIT = GV0R01_C020_OUTCOME_BLIND_DESIGN_AND_POWER_CONTINUATION
+```

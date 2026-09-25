@@ -1,8 +1,10 @@
 """Synthetic infrastructure fixtures, not proposed research or scientific evidence."""
 from .context import canonical,digest
-from .schema import signature
+from .schema import signature,encode_provider_card
 from .roles import NOVELTY_DIMENSIONS,RED_DIMENSIONS,FEAS_DIMENSIONS
 
+# Canonical V02 LEGAL_RANGE inside each catalog dataset's own bounds.
+FIXTURE_RANGES={'MARKET_06_OKX_BINANCE_FEASIBILITY_V0':'2022-01..2024-12','D2_BITMEX_PRE2020_XBTUSD':'pre-2020'}
 SOURCE_CLASSES=('KLINES','CROSS_VENUE','PRE2020_SURFACE','OFFICIAL_CALENDAR','CROSS_SECTIONAL_PANEL','OPTIONS','ONCHAIN','ORDER_BOOK')
 DATASETS=('CORE_BTC_BINANCE_V0','MARKET_06_OKX_BINANCE_FEASIBILITY_V0','D2_BITMEX_PRE2020_XBTUSD','D11_FOMC_OFFICIAL_V0','SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0','SYNTHETIC_OPTIONS_ARCHIVE','SYNTHETIC_ONCHAIN_ARCHIVE','SYNTHETIC_ORDERBOOK_ARCHIVE')
 MECHANISMS=(
@@ -34,7 +36,7 @@ def fixture(slot,contexts):
         NEAREST_TESTED_MECHANISM='NONE',MECHANISM_DISTANCE_ARGUMENT='Different synthetic observable and function.',WHY_NOT_A_RESCUE='A distinct synthetic structural pathway.',
         SEARCH_SURFACE={'PARAMETERS':{'horizon_hours':[6],'variant':['fixed']},'MAX_VARIANTS':1},
         MAIN_CONFOUNDERS='Calendar composition, missingness, common factors.',NO_LOOKAHEAD_RULE='Every predictor must have an observable public timestamp at or before decision T.',
-        DATA_REQUIRED=[{'DATASET':DATASETS[j],'OBSERVABLE':'Synthetic observable '+str(i+1),'STATUS':status,'LEGAL_RANGE':'2020..2024' if j!=2 else 'pre-2020'}],
+        DATA_REQUIRED=[{'DATASET':DATASETS[j],'OBSERVABLE':'Synthetic observable '+str(i+1),'STATUS':status,'LEGAL_RANGE':FIXTURE_RANGES.get(DATASETS[j],'2020-01..2024-12')}],
         DATA_STATUS=status,MISSING_OBSERVABLES=[] if status=='DATA_READY' else ['Synthetic observable '+str(i+1)+' with timestamp and archive provenance'],
         DATA_GAP_CLASS='NONE' if status=='DATA_READY' else SOURCE_CLASSES[j],EXPECTED_IMPLEMENTATION_COST='Bounded synthetic fixture computation',
         WHAT_POSITIVE_WOULD_TEACH='Distinguish the specified synthetic structural pathway.',WHAT_NULL_WOULD_ELIMINATE='Eliminate this synthetic mechanism formulation.',EXPECTED_INFORMATION_GAIN='Separate structurally different explanations.',PROTECTED_DATA_REQUIREMENT=False)
@@ -49,22 +51,23 @@ class MockResponder:
     def __init__(self,contexts):self.c=contexts
     def __call__(self,request):
         role=request['role'];ctx=request['context']
-        if role=='GENERATOR':return canonical({'CANDIDATES':[fixture(s,self.c) for s in request['parameters']['slots']]})
+        # Live provider encodings: keyed objects exactly as the strict schemas require.
+        if role=='GENERATOR':return canonical({'CANDIDATES':{s['CANDIDATE_ID']:encode_provider_card(fixture(s,self.c)) for s in request['parameters']['slots']}})
         if role=='SELECTOR':
             j=ctx['SELECTION_JUDGMENTS']
             order=sorted(j,key=lambda k:tuple(-j[k][f] for f in ('MECHANISM_DISTANCE','INFORMATION_GAIN','FEASIBILITY','CHEAPNESS'))+(k,))
             return canonical({'ORDERED_CANDIDATE_IDS':order})
         card=ctx['CANDIDATE'];score=1+int(digest(card)[:4],16)%3
         if role=='NOVELTY_CRITIC':
-            relations=[]
+            relations={}
             for k,row in self.c.rows.items():
                 if row['STATE']=='PARTIAL_OR_MIXED':continue
                 rel='ORTHOGONAL_MECHANISM'
                 if k=='D4.ROLLING_CORRELATION_90D' and card['FUNCTION']=='Rolling 90d correlation range':rel='EXACT_DUPLICATE'
                 if k=='D2' and card['FUNCTION']=='RV threshold neighbor':rel='PARAMETER_NEIGHBOR'
                 if k=='B2-06' and card['FUNCTION']=='Unresolved original crowding card':rel='EXACT_DUPLICATE'
-                relations.append({'SIGNATURE_ID':k,'RELATION':rel})
-            others=[{'CANDIDATE_ID':x['CANDIDATE_ID'],'RELATION':'EXACT_DUPLICATE' if signature(x)==signature(card) else 'ORTHOGONAL_MECHANISM'} for x in ctx['CURRENT_BATCH_SIGNATURES'] if x['CANDIDATE_ID']!=card['CANDIDATE_ID']]
+                relations[k]=rel
+            others={x['CANDIDATE_ID']:'EXACT_DUPLICATE' if signature(x)==signature(card) else 'ORTHOGONAL_MECHANISM' for x in ctx['CURRENT_BATCH_SIGNATURES'] if x['CANDIDATE_ID']!=card['CANDIDATE_ID']}
             return canonical({'PRIOR_RELATIONS':relations,'BATCH_RELATIONS':others,'JUDGMENTS':{k:score for k in NOVELTY_DIMENSIONS}})
         if role=='FEASIBILITY_CRITIC':
             ready=card['DATA_STATUS']=='DATA_READY'

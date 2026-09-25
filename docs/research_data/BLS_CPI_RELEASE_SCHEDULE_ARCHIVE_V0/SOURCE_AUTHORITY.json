@@ -1,0 +1,77 @@
+{
+ "ARCHIVE_METHOD": {
+  "LISTING": "http://web.archive.org/cdx/search/cdx?url=bls.gov/schedule/news_release/cpi.htm&from=2019&to=2024&output=json&fl=timestamp,original,statuscode,digest,length&filter=statuscode:200",
+  "PROVIDER": "Internet Archive Wayback Machine (web.archive.org)",
+  "REDIRECT_POLICY": "A 302 to a different capture is NOT_OBTAINED; the target capture is used only under its own timestamp.",
+  "RETRIEVAL": "https://web.archive.org/web/<14-digit-ts>id_/<original> (exact archived payload, no Wayback rewriting)",
+  "ROLE": "PUBLICATION_TIMING_AND_DATED_VERSION_RECOVERY_ONLY",
+  "TIMESTAMP_SEMANTICS": "Wayback 14-digit capture timestamp, UTC"
+ },
+ "CANONICAL_SOURCE_AUTHORITY": {
+  "PAGE_TITLE": "Schedule of Releases for the Consumer Price Index",
+  "PUBLISHER": "U.S. Bureau of Labor Statistics (first party)",
+  "URL": "https://www.bls.gov/schedule/news_release/cpi.htm"
+ },
+ "DATASET_ID": "BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0",
+ "EXCLUSIONS": [
+  "Pre-2020 releases: OUT_OF_RANGE_INVENTORY.json, metadata only.",
+  "Releases scheduled in 2025/2026 (incl. reference period 2024-12): OUT_OF_RANGE_INVENTORY.json, metadata only.",
+  "No CPI index values, percent changes, consensus, or surprises.",
+  "No BTC or other market data; no event-window returns."
+ ],
+ "LEGAL_RANGE": {
+  "SCHEDULED_RELEASE_DATE_FIRST": "2020-01-01",
+  "SCHEDULED_RELEASE_DATE_LAST": "2024-12-31"
+ },
+ "NON_AUTHORITATIVE_SOURCES": {
+  "CURRENT_SCHEDULE_PAGE": {
+   "URL": "https://www.bls.gov/schedule/news_release/cpi.htm",
+   "USE": "Current first-party reference; retrieved after all windows; never point-in-time authority."
+  },
+  "RELEASE_ARCHIVE_PAGE": {
+   "URL": "https://www.bls.gov/bls/news-release/cpi.htm",
+   "USE": "Realized-date consistency diagnostic only; never point-in-time authority."
+  },
+  "THIRD_PARTY": "None used."
+ },
+ "POINT_IN_TIME_RULE": "For window W in {6h,12h,24h}: SAFE_FOR_W iff the latest obtained capture with timestamp strictly before T-W lists the reference period with exactly the final pre-window schedule (date and local time), and no capture at/after T-6h contradicts it. SAFE_FOR_W24 => SAFE_FOR_W12 => SAFE_FOR_W6 enforced by conjunction. The realized release timestamp is never used to establish safety.",
+ "SCHEMA_VERSION": "BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0.1",
+ "SCOPE": "CPI release SCHEDULE metadata only. No CPI values. No market data. No outcomes.",
+ "SERIES": "CPI_ALL_ITEMS_US_CITY_AVERAGE",
+ "SERIES_NOTE": "BLS Consumer Price Index news release (CPI-U, U.S. city average, all items) schedule.",
+ "TIMEZONE_AUTHORITY": {
+  "CROSSCHECKS": [
+   "Energy Policy Act 2005 rule recomputation",
+   "zoneinfo America/New_York"
+  ],
+  "DST_AUTHORITY": "STATUTORY_DST_CALENDARS",
+  "DST_AUTHORITY_FILE_SHA256": "c4e045ca0170c10488df4b17b14c371a6b0c39204324044489f3fd341ab7a634",
+  "DST_AUTHORITY_PATH": "docs/research/DISCOVERY_SPRINT_04.json",
+  "DST_AUTHORITY_POINTER": "CARDS.D12.DATASET_OR_SOURCE_AUTHORITY.US_TRANSITION_DAYS",
+  "LOCAL_TIMEZONE": "America/New_York",
+  "OFFICIAL_LOCAL_TIME_SOURCE": "Release Time column of the archived BLS schedule page (Eastern Time)",
+  "RULE": "EDT (UTC-04:00) if second-Sunday-March <= date < first-Sunday-November, else EST (UTC-05:00)",
+  "US_TRANSITION_DAYS": {
+   "2020": [
+    "2020-03-08",
+    "2020-11-01"
+   ],
+   "2021": [
+    "2021-03-14",
+    "2021-11-07"
+   ],
+   "2022": [
+    "2022-03-13",
+    "2022-11-06"
+   ],
+   "2023": [
+    "2023-03-12",
+    "2023-11-05"
+   ],
+   "2024": [
+    "2024-03-10",
+    "2024-11-03"
+   ]
+  }
+ }
+}

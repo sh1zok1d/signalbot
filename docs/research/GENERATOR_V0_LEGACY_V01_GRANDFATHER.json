@@ -1,0 +1,77 @@
+{
+  "CALLS": [
+    {
+      "CALL_KEY": "29025502a9a36bc7f475e09c382ae8c372991efd9e8b86d330363e991ed5f2ad",
+      "CARD_DIGESTS": {
+        "C001": "b997a420451fd8d85878317a2bfae12866774cf3db419668c788c7b2acff3e00",
+        "C002": "f645ea3236b5d1f8f8f9ae667773ec015a23790ecec0cd7e9a6e4ee96a22b1d6",
+        "C003": "60cf4a90d61601d3f4427ac7558c9fa70019c16900d0a01ff1cfa47058829326",
+        "C004": "7192bd3b3885b2391f840358352392b41959c18e0532db326549148de7716646",
+        "C005": "d2483ba3e5c74ddc6b3941ab1ca01a9679fb5268d7f42e8abf10c2df00c89d3e",
+        "C006": "6e76ed499e56a7cbc7f7e372034062384a7e0dbc75e64c3e2aec289687f2a38c",
+        "C007": "839c3db5c85ea157ab803a3260e628e9297080245ea087cc30cd6baf4114ef00",
+        "C008": "72792a303de879a7c082e80867a8bfeed6dfc2f894624744d82a42ad81d6f77b",
+        "C009": "00360f0ecab366e0c3fba027ca08b1fdd0247b1a471626c0888bd3215fb5f285",
+        "C010": "4c5a8e78745b242d7c284db8e7497166b2345aa8fc33a9e7c7b04400c05000c6"
+      },
+      "COST_MICRO_USD": 1213380,
+      "RAW_RESPONSE_SHA256": "5203e31a9ac031b23831029ffd1199f9692d9301e034210acd2c9073089bceda",
+      "RESPONSE_ID": "resp_08273b80118314ac006ab39d9b92dc87d2ba9539e343da810e",
+      "SLOT": "generation:0"
+    },
+    {
+      "CALL_KEY": "4987036cc23246d2dbd50cceb277139ee8fe59339c671c99ae801d315d0e8010",
+      "CARD_DIGESTS": {
+        "C011": "9ab34fea2f58e40dd7fc40d0b2e040c422c47ccce6c9bd3428f6e62bca738857",
+        "C012": "16f72d951ab67a8af4765d24c5f507616a1d490565cab1bd5e6c9fd423e4053c",
+        "C013": "5b25ee87780a9ed667ff45b3df0dcc9d73fb5ab53b294a3df354c03785cfbf45",
+        "C014": "aff7bf243214325bee4ab1f687979d8d6df717fc5f7c5cd7bfefa00e4db41ced",
+        "C015": "0ecb5edd7a6a477b672ae4b85e8200fba9760de9c46f00e6887a3ecb37531d05",
+        "C016": "49f2b4f484e35b2d1abd589c9f639f49f54d5ec13a6a7bb7ffe31d6286c891d4",
+        "C017": "31465f9f28f6d8f922449594200f2bd3d67fd9594acde8e783ebe7b406354750",
+        "C018": "4d0ce896c07a63e3e6dc399e03c21258d9ef06f68e72d8599fce7ba5a0b6bb97",
+        "C019": "411cb808dc0e601720177e4e1dfc7998dcf8a730cbc1279f7079f5649133b587",
+        "C020": "3c1739f298fd5da33d6d2a21ff9048a197230ddd4e58f247caedfaab44fe05f4"
+      },
+      "COST_MICRO_USD": 1352350,
+      "RAW_RESPONSE_SHA256": "07855f3279cb6aa3af1b517aae747f80bb9268205a2e5ba3e576603935f98677",
+      "RESPONSE_ID": "resp_0a0404f934baedd9006ab3a068c70887d2af71eda734b5aa3c",
+      "SLOT": "generation:1"
+    },
+    {
+      "CALL_KEY": "9c93901defcfc75770a3073a039d5bb94529a2b69febea3cceb885f9d193f7e0",
+      "CARD_DIGESTS": {
+        "C021": "83336e8d8141cf9fe9cf2f80714e53c72449c62601bb46cf486e2316fe771193",
+        "C022": "aa1a5a7c683c49354d160a1f7e591265a65bebb5b582845cdf32c1e3f3d25843",
+        "C023": "0db85793b143a2c6da562c1ffd60ed71a7af1b79bebb4a5cb2ef7574c03a1afc",
+        "C024": "897a5874cb7af44f720fdba635169adb5e3c9a01c7539555c9accee8803bb5c2",
+        "C025": "ed14430aee3c7130157ed11d683153fa3c0e9d19672095935e8f044ab8bb3417",
+        "C026": "1e11aef04b73a994fc1dbf30d2d2e658410e83139132ed38adc570d8ef306386",
+        "C027": "11706d8650d7b6f74ff2865be512feefc07feb2e54bce630c25ae2dd503e3d52",
+        "C028": "85f5fd446a25d1eeea795c8298ab41cff8dba6e4cf957a820efcf274ea291a38",
+        "C029": "1755c1a287cec7016b343d9e60b872f4b9d6e246d3ece926660353ec3d1ce8f4",
+        "C030": "a6ca700b376e0170c8ea80f973d4a1034039a6c176cedcbe66940c87e62e5f7b"
+      },
+      "COST_MICRO_USD": 1213820,
+      "RAW_RESPONSE_SHA256": "f66e729323ec3ce21eaea675e57294ec7eb32230afc96d42b28e36c6541e4e3f",
+      "RESPONSE_ID": "resp_0804f042cef56925006ab3cdfb548887d2b43773b1e57a8094",
+      "SLOT": "generation:2"
+    }
+  ],
+  "CONTRACT": "GENERATOR_CONTRACT_V01_LEGACY",
+  "DECISION": "A_GRANDFATHER_ONLY_LISTED_CALL_KEYS",
+  "EXCLUDED_CALLS": [
+    {
+      "CALL_KEY": "efff72aad0b133316e5908a0378ff3aa4aaa57b8fba1a22eb9ac875fb9b6025d",
+      "REASON": "not grandfathered; judged only under GENERATOR_CONTRACT_V02",
+      "SLOT": "generation:3",
+      "STATE": "COMPLETE"
+    }
+  ],
+  "PROMPT_SHA256": "7af2fb63f9942d2fd272374842793cff066ba84ae5c3c66f3c3bf7e9dfabefd2",
+  "PROMPT_VERSION": "generator-v0.1",
+  "RULE": "Legacy v0.1 validation applies only to these call keys and exact card digests. New model output never uses it.",
+  "SOURCE_JOURNAL": "docs/research/generator_v0_first_shadow_v7/run.sqlite",
+  "SOURCE_JOURNAL_SHA256": "e27eb1ce77c5152eff4e68e30c2632ad9bd575ef953b5a069775b5ff46f36457",
+  "STRUCTURED_OUTPUT_SCHEMA_DIGEST": "0765ca969dde317b247e677633886f2c685b07ee516a6d42d092862e9d28b18e"
+}

@@ -1,0 +1,3694 @@
+{
+ "ALPHA": 0.05,
+ "AMENDED_GROUP_NAME": "G_C012_TOPO",
+ "BAR_BOUNDARY": {
+  "BAR_BOUNDARY_STATUS": "DETERMINED_BY_FROZEN_PRE_RET_DEFINITION",
+  "CONSISTENT_WITH_PREFERRED_OPEN_PRICE_FORM": true,
+  "CONTROL_WINDOW_CONTRIBUTING_MINUTE_COUNT": 1440,
+  "CONTROL_WINDOW_FIRST_PRICE_TIMESTAMP_RULE": "open_price at WINDOW_START, where WINDOW_START = WINDOW_END - 24h and WINDOW_END = T - 1 minute. Equals the close of the 1m bar that closes at WINDOW_START.",
+  "CONTROL_WINDOW_LAST_PRICE_TIMESTAMP_RULE": "open_price at WINDOW_END = T - 1 minute. Equals the close of the 1m bar that closes at WINDOW_END. The bar that opens at T-1 minute is not included from its open to its close.",
+  "EVENT_WINDOW_CONTRIBUTING_MINUTE_COUNT": 1440,
+  "EVENT_WINDOW_FIRST_PRICE_TIMESTAMP_RULE": "open_price at WINDOW_START, where WINDOW_START = WINDOW_END - 24h and WINDOW_END = T - 1 minute. Equals the close of the 1m bar that closes at WINDOW_START.",
+  "EVENT_WINDOW_LAST_PRICE_TIMESTAMP_RULE": "open_price at WINDOW_END = T - 1 minute. Equals the close of the 1m bar that closes at WINDOW_END. The bar that opens at T-1 minute is not included from its open to its close.",
+  "EXECUTOR_HALF_OPEN_READING": "NOT_AUTHORITATIVE"
+ },
+ "C012_PRIMARY_TEST_EXECUTED": false,
+ "CONTROL_COUNT": 99,
+ "CONTROL_LABELS_MOBILE": 75,
+ "DISCOVERY_MARKET_MANIFEST_DIGEST": "78e3f54a6289125769072c5896ddf4516b4d5a98bd1ac5ea4ed7e4d0566f646c",
+ "ECONOMIC_BAR_SINGLE_WINDOW_SD": 0.5,
+ "EDGES": [
+  [
+   "C:BLS_CPI_REF_2019_12",
+   "C:BLS_CPI_REF_2020_06"
+  ],
+  [
+   "C:BLS_CPI_REF_2020_01",
+   "C:FOMC_20200129"
+  ],
+  [
+   "C:BLS_CPI_REF_2020_02",
+   "C:FOMC_20200729"
+  ],
+  [
+   "C:BLS_CPI_REF_2020_08",
+   "E:BLS_CPI_REF_2020_11"
+  ],
+  [
+   "C:BLS_CPI_REF_2020_12",
+   "C:FOMC_20210317"
+  ],
+  [
+   "C:BLS_CPI_REF_2021_02",
+   "C:FOMC_20210728"
+  ],
+  [
+   "C:BLS_CPI_REF_2021_07",
+   "C:FOMC_20210922"
+  ],
+  [
+   "C:BLS_CPI_REF_2021_09",
+   "C:FOMC_20211103"
+  ],
+  [
+   "C:BLS_CPI_REF_2021_12",
+   "C:BLS_CPI_REF_2022_07"
+  ],
+  [
+   "C:BLS_CPI_REF_2022_02",
+   "C:FOMC_20220727"
+  ],
+  [
+   "C:BLS_CPI_REF_2023_01",
+   "C:BLS_CPI_REF_2023_02"
+  ],
+  [
+   "C:BLS_CPI_REF_2023_03",
+   "E:BLS_CPI_REF_2023_01"
+  ],
+  [
+   "C:BLS_CPI_REF_2023_09",
+   "C:FOMC_20230614"
+  ],
+  [
+   "C:BLS_CPI_REF_2023_10",
+   "E:BLS_CPI_REF_2023_06"
+  ],
+  [
+   "C:BLS_CPI_REF_2024_05",
+   "C:FOMC_20240612"
+  ],
+  [
+   "C:BLS_CPI_REF_2024_10",
+   "C:FOMC_20240731"
+  ],
+  [
+   "C:FOMC_20210127",
+   "C:FOMC_20210616"
+  ],
+  [
+   "C:FOMC_20221102",
+   "E:BLS_CPI_REF_2022_10"
+  ],
+  [
+   "C:FOMC_20230201",
+   "E:BLS_CPI_REF_2023_09"
+  ],
+  [
+   "E:BLS_CPI_REF_2020_05",
+   "E:FOMC_20200610"
+  ],
+  [
+   "E:BLS_CPI_REF_2024_05",
+   "E:FOMC_20240612"
+  ]
+ ],
+ "ENUMERATION": "NOT_USED_ORBIT_TOO_LARGE",
+ "EVENT_COUNT": 99,
+ "EVENT_LABELS_MOBILE": 95,
+ "EXTREMENESS": "abs(T_perm) >= abs(T_observed)",
+ "F2_POWER": "F2 five-year sign stability remains required for PROMISING_PROTOTYPE and is not part of the 0.80 power claim.",
+ "GROUP_DEFINITION": "Intersection of the original YEAR x WEEKDAY x UTC_HOUR permutations and the automorphism group of the frozen 198-node overlap graph.",
+ "MARKET_DATA_OPENED_FOR_C012": false,
+ "MARKET_OUTCOMES_COMPUTED": false,
+ "MATERIALIZATION_HEAD": "a43978a7bc84d70f5db3b7110bd723239f4620c9",
+ "MATERIALIZATION_TREE": "ce835d3cf2bcec31902ca88111fdc6bbca61ab47",
+ "MAX_OVERLAP_COMPONENT_SIZE": 2,
+ "MIN_ATTAINABLE_EXACT_P": {
+  "DENOMINATOR": "3204454418600404451328000000000",
+  "NUMERATOR": 1
+ },
+ "NEXT_UNIT": "NO_EXECUTION_AUTHORIZED",
+ "NODES": [
+  {
+   "DEGREE": 0,
+   "END": "2020-05-12T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_04",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-05-11T12:29:00Z",
+   "STRATUM": "2020:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-10-27T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_04",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-10-26T12:29:00Z",
+   "STRATUM": "2020:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-07-14T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_06",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-07-13T12:29:00Z",
+   "STRATUM": "2020:1:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2020-11-10T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_06",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2019_12",
+   "NEIGHBOR_STRATUM": "2020:1:13",
+   "ROLE": "CONTROL",
+   "START": "2020-11-09T12:29:00Z",
+   "STRATUM": "2020:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-10-13T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_09",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-10-12T12:29:00Z",
+   "STRATUM": "2020:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-12-15T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_09",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-12-14T12:29:00Z",
+   "STRATUM": "2020:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-01-14T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2019_12",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-01-13T13:29:00Z",
+   "STRATUM": "2020:1:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2020-11-10T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2019_12",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2020_06",
+   "NEIGHBOR_STRATUM": "2020:1:12",
+   "ROLE": "CONTROL",
+   "START": "2020-11-09T13:29:00Z",
+   "STRATUM": "2020:1:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-03-11T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_02",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-03-10T12:29:00Z",
+   "STRATUM": "2020:2:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2020-08-05T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_02",
+   "NEIGHBOR_ID": "C:FOMC_20200729",
+   "NEIGHBOR_STRATUM": "2020:2:18",
+   "ROLE": "CONTROL",
+   "START": "2020-08-04T12:29:00Z",
+   "STRATUM": "2020:2:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2020-06-10T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_05",
+   "NEIGHBOR_ID": "E:FOMC_20200610",
+   "NEIGHBOR_STRATUM": "2020:2:18",
+   "ROLE": "EVENT",
+   "START": "2020-06-09T12:29:00Z",
+   "STRATUM": "2020:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-09-09T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_05",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-09-08T12:29:00Z",
+   "STRATUM": "2020:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-08-12T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_07",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-08-11T12:29:00Z",
+   "STRATUM": "2020:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-10-14T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_07",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-10-13T12:29:00Z",
+   "STRATUM": "2020:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-04-29T17:59:00Z",
+   "ID": "E:FOMC_20200429",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-04-28T17:59:00Z",
+   "STRATUM": "2020:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-03-25T17:59:00Z",
+   "ID": "C:FOMC_20200429",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-03-24T17:59:00Z",
+   "STRATUM": "2020:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2020-06-10T17:59:00Z",
+   "ID": "E:FOMC_20200610",
+   "NEIGHBOR_ID": "E:BLS_CPI_REF_2020_05",
+   "NEIGHBOR_STRATUM": "2020:2:12",
+   "ROLE": "EVENT",
+   "START": "2020-06-09T17:59:00Z",
+   "STRATUM": "2020:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-05-27T17:59:00Z",
+   "ID": "C:FOMC_20200610",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-05-26T17:59:00Z",
+   "STRATUM": "2020:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-07-29T17:59:00Z",
+   "ID": "E:FOMC_20200729",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-07-28T17:59:00Z",
+   "STRATUM": "2020:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2020-08-05T17:59:00Z",
+   "ID": "C:FOMC_20200729",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2020_02",
+   "NEIGHBOR_STRATUM": "2020:2:12",
+   "ROLE": "CONTROL",
+   "START": "2020-08-04T17:59:00Z",
+   "STRATUM": "2020:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-09-16T17:59:00Z",
+   "ID": "E:FOMC_20200916",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-09-15T17:59:00Z",
+   "STRATUM": "2020:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-11-04T17:59:00Z",
+   "ID": "C:FOMC_20200916",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-11-03T17:59:00Z",
+   "STRATUM": "2020:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-01-29T18:59:00Z",
+   "ID": "E:FOMC_20200129",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-01-28T18:59:00Z",
+   "STRATUM": "2020:2:19"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2020-03-04T18:59:00Z",
+   "ID": "C:FOMC_20200129",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2020_01",
+   "NEIGHBOR_STRATUM": "2020:3:13",
+   "ROLE": "CONTROL",
+   "START": "2020-03-03T18:59:00Z",
+   "STRATUM": "2020:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-12-16T18:59:00Z",
+   "ID": "E:FOMC_20201216",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-12-15T18:59:00Z",
+   "STRATUM": "2020:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-05-20T18:59:00Z",
+   "ID": "C:FOMC_20201216",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-05-19T18:59:00Z",
+   "STRATUM": "2020:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-02-13T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_01",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-02-12T13:29:00Z",
+   "STRATUM": "2020:3:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2020-03-05T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_01",
+   "NEIGHBOR_ID": "C:FOMC_20200129",
+   "NEIGHBOR_STRATUM": "2020:2:19",
+   "ROLE": "CONTROL",
+   "START": "2020-03-04T13:29:00Z",
+   "STRATUM": "2020:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-11-12T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_10",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-11-11T13:29:00Z",
+   "STRATUM": "2020:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-06-18T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_10",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-06-17T13:29:00Z",
+   "STRATUM": "2020:3:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2020-12-10T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_11",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2020_08",
+   "NEIGHBOR_STRATUM": "2020:4:12",
+   "ROLE": "EVENT",
+   "START": "2020-12-09T13:29:00Z",
+   "STRATUM": "2020:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-07-23T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_11",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-07-22T13:29:00Z",
+   "STRATUM": "2020:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-11-05T18:59:00Z",
+   "ID": "E:FOMC_20201105",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-11-04T18:59:00Z",
+   "STRATUM": "2020:3:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-12-31T18:59:00Z",
+   "ID": "C:FOMC_20201105",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-12-30T18:59:00Z",
+   "STRATUM": "2020:3:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-04-10T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_03",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-04-09T12:29:00Z",
+   "STRATUM": "2020:4:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-09-18T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_03",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2020-09-17T12:29:00Z",
+   "STRATUM": "2020:4:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2020-09-11T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_08",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2020-09-10T12:29:00Z",
+   "STRATUM": "2020:4:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2020-12-11T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_08",
+   "NEIGHBOR_ID": "E:BLS_CPI_REF_2020_11",
+   "NEIGHBOR_STRATUM": "2020:3:13",
+   "ROLE": "CONTROL",
+   "START": "2020-12-10T12:29:00Z",
+   "STRATUM": "2020:4:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-04-13T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_03",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-04-12T12:29:00Z",
+   "STRATUM": "2021:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-02-23T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_03",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2021-02-22T12:29:00Z",
+   "STRATUM": "2021:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-07-13T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_06",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-07-12T12:29:00Z",
+   "STRATUM": "2021:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-04-06T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_06",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2021-04-05T12:29:00Z",
+   "STRATUM": "2021:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-09-14T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_08",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-09-13T12:29:00Z",
+   "STRATUM": "2021:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-06-08T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_08",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2021-06-07T12:29:00Z",
+   "STRATUM": "2021:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-05-12T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_04",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-05-11T12:29:00Z",
+   "STRATUM": "2021:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-11-24T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_04",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2021-11-23T12:29:00Z",
+   "STRATUM": "2021:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-08-11T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_07",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-08-10T12:29:00Z",
+   "STRATUM": "2021:2:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2021-12-08T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_07",
+   "NEIGHBOR_ID": "C:FOMC_20210922",
+   "NEIGHBOR_STRATUM": "2021:2:18",
+   "ROLE": "CONTROL",
+   "START": "2021-12-07T12:29:00Z",
+   "STRATUM": "2021:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-10-13T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_09",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-10-12T12:29:00Z",
+   "STRATUM": "2021:2:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2021-12-22T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_09",
+   "NEIGHBOR_ID": "C:FOMC_20211103",
+   "NEIGHBOR_STRATUM": "2021:2:18",
+   "ROLE": "CONTROL",
+   "START": "2021-12-21T12:29:00Z",
+   "STRATUM": "2021:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-01-13T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2020_12",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-01-12T13:29:00Z",
+   "STRATUM": "2021:2:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2021-01-06T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2020_12",
+   "NEIGHBOR_ID": "C:FOMC_20210317",
+   "NEIGHBOR_STRATUM": "2021:2:18",
+   "ROLE": "CONTROL",
+   "START": "2021-01-05T13:29:00Z",
+   "STRATUM": "2021:2:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-02-10T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_01",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-02-09T13:29:00Z",
+   "STRATUM": "2021:2:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-07-21T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_01",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2021-07-20T13:29:00Z",
+   "STRATUM": "2021:2:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-03-10T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_02",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-03-09T13:29:00Z",
+   "STRATUM": "2021:2:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2021-08-25T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_02",
+   "NEIGHBOR_ID": "C:FOMC_20210728",
+   "NEIGHBOR_STRATUM": "2021:2:18",
+   "ROLE": "CONTROL",
+   "START": "2021-08-24T13:29:00Z",
+   "STRATUM": "2021:2:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-11-10T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_10",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-11-09T13:29:00Z",
+   "STRATUM": "2021:2:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-10-20T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_10",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2021-10-19T13:29:00Z",
+   "STRATUM": "2021:2:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-03-17T17:59:00Z",
+   "ID": "E:FOMC_20210317",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-03-16T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2021-01-06T17:59:00Z",
+   "ID": "C:FOMC_20210317",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2020_12",
+   "NEIGHBOR_STRATUM": "2021:2:13",
+   "ROLE": "CONTROL",
+   "START": "2021-01-05T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-04-28T17:59:00Z",
+   "ID": "E:FOMC_20210428",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-04-27T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-01-20T17:59:00Z",
+   "ID": "C:FOMC_20210428",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2021-01-19T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-06-16T17:59:00Z",
+   "ID": "E:FOMC_20210616",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-06-15T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2021-03-03T17:59:00Z",
+   "ID": "C:FOMC_20210616",
+   "NEIGHBOR_ID": "C:FOMC_20210127",
+   "NEIGHBOR_STRATUM": "2021:2:19",
+   "ROLE": "CONTROL",
+   "START": "2021-03-02T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-07-28T17:59:00Z",
+   "ID": "E:FOMC_20210728",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-07-27T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2021-08-25T17:59:00Z",
+   "ID": "C:FOMC_20210728",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2021_02",
+   "NEIGHBOR_STRATUM": "2021:2:13",
+   "ROLE": "CONTROL",
+   "START": "2021-08-24T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-09-22T17:59:00Z",
+   "ID": "E:FOMC_20210922",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-09-21T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2021-12-08T17:59:00Z",
+   "ID": "C:FOMC_20210922",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2021_07",
+   "NEIGHBOR_STRATUM": "2021:2:12",
+   "ROLE": "CONTROL",
+   "START": "2021-12-07T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-11-03T17:59:00Z",
+   "ID": "E:FOMC_20211103",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-11-02T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2021-12-22T17:59:00Z",
+   "ID": "C:FOMC_20211103",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2021_09",
+   "NEIGHBOR_STRATUM": "2021:2:12",
+   "ROLE": "CONTROL",
+   "START": "2021-12-21T17:59:00Z",
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-01-27T18:59:00Z",
+   "ID": "E:FOMC_20210127",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-01-26T18:59:00Z",
+   "STRATUM": "2021:2:19"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2021-03-03T18:59:00Z",
+   "ID": "C:FOMC_20210127",
+   "NEIGHBOR_ID": "C:FOMC_20210616",
+   "NEIGHBOR_STRATUM": "2021:2:18",
+   "ROLE": "CONTROL",
+   "START": "2021-03-02T18:59:00Z",
+   "STRATUM": "2021:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-12-15T18:59:00Z",
+   "ID": "E:FOMC_20211215",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-12-14T18:59:00Z",
+   "STRATUM": "2021:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-07-07T18:59:00Z",
+   "ID": "C:FOMC_20211215",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2021-07-06T18:59:00Z",
+   "STRATUM": "2021:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-06-10T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_05",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-06-09T12:29:00Z",
+   "STRATUM": "2021:3:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-12-30T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_05",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2021-12-29T12:29:00Z",
+   "STRATUM": "2021:3:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-12-10T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_11",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2021-12-09T13:29:00Z",
+   "STRATUM": "2021:4:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2021-10-08T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_11",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2021-10-07T13:29:00Z",
+   "STRATUM": "2021:4:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-04-12T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_03",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-04-11T12:29:00Z",
+   "STRATUM": "2022:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-08-09T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_03",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-08-08T12:29:00Z",
+   "STRATUM": "2022:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-09-13T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_08",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-09-12T12:29:00Z",
+   "STRATUM": "2022:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-10-04T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_08",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-10-03T12:29:00Z",
+   "STRATUM": "2022:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-12-13T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_11",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-12-12T13:29:00Z",
+   "STRATUM": "2022:1:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-02-22T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_11",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-02-21T13:29:00Z",
+   "STRATUM": "2022:1:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-05-11T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_04",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-05-10T12:29:00Z",
+   "STRATUM": "2022:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-03-02T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_04",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-03-01T12:29:00Z",
+   "STRATUM": "2022:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-07-13T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_06",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-07-12T12:29:00Z",
+   "STRATUM": "2022:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-10-05T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_06",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-10-04T12:29:00Z",
+   "STRATUM": "2022:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-08-10T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_07",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-08-09T12:29:00Z",
+   "STRATUM": "2022:2:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2022-12-21T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_07",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2021_12",
+   "NEIGHBOR_STRATUM": "2022:2:13",
+   "ROLE": "CONTROL",
+   "START": "2022-12-20T12:29:00Z",
+   "STRATUM": "2022:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-01-12T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2021_12",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-01-11T13:29:00Z",
+   "STRATUM": "2022:2:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2022-12-21T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2021_12",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2022_07",
+   "NEIGHBOR_STRATUM": "2022:2:12",
+   "ROLE": "CONTROL",
+   "START": "2022-12-20T13:29:00Z",
+   "STRATUM": "2022:2:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-03-16T17:59:00Z",
+   "ID": "E:FOMC_20220316",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-03-15T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-04-13T17:59:00Z",
+   "ID": "C:FOMC_20220316",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-04-12T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-05-04T17:59:00Z",
+   "ID": "E:FOMC_20220504",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-05-03T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-04-20T17:59:00Z",
+   "ID": "C:FOMC_20220504",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-04-19T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-06-15T17:59:00Z",
+   "ID": "E:FOMC_20220615",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-06-14T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-08-03T17:59:00Z",
+   "ID": "C:FOMC_20220615",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-08-02T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-07-27T17:59:00Z",
+   "ID": "E:FOMC_20220727",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-07-26T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2022-09-28T17:59:00Z",
+   "ID": "C:FOMC_20220727",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2022_02",
+   "NEIGHBOR_STRATUM": "2022:3:13",
+   "ROLE": "CONTROL",
+   "START": "2022-09-27T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-09-21T17:59:00Z",
+   "ID": "E:FOMC_20220921",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-09-20T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-10-19T17:59:00Z",
+   "ID": "C:FOMC_20220921",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-10-18T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-11-02T17:59:00Z",
+   "ID": "E:FOMC_20221102",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-11-01T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2022-11-09T17:59:00Z",
+   "ID": "C:FOMC_20221102",
+   "NEIGHBOR_ID": "E:BLS_CPI_REF_2022_10",
+   "NEIGHBOR_STRATUM": "2022:3:13",
+   "ROLE": "CONTROL",
+   "START": "2022-11-08T17:59:00Z",
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-01-26T18:59:00Z",
+   "ID": "E:FOMC_20220126",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-01-25T18:59:00Z",
+   "STRATUM": "2022:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-02-02T18:59:00Z",
+   "ID": "C:FOMC_20220126",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-02-01T18:59:00Z",
+   "STRATUM": "2022:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-12-14T18:59:00Z",
+   "ID": "E:FOMC_20221214",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-12-13T18:59:00Z",
+   "STRATUM": "2022:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-04-06T18:59:00Z",
+   "ID": "C:FOMC_20221214",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-04-05T18:59:00Z",
+   "STRATUM": "2022:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-10-13T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_09",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-10-12T12:29:00Z",
+   "STRATUM": "2022:3:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-08-18T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_09",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-08-17T12:29:00Z",
+   "STRATUM": "2022:3:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-02-10T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_01",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-02-09T13:29:00Z",
+   "STRATUM": "2022:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-07-07T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_01",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-07-06T13:29:00Z",
+   "STRATUM": "2022:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-03-10T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_02",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-03-09T13:29:00Z",
+   "STRATUM": "2022:3:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2022-09-29T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_02",
+   "NEIGHBOR_ID": "C:FOMC_20220727",
+   "NEIGHBOR_STRATUM": "2022:2:18",
+   "ROLE": "CONTROL",
+   "START": "2022-09-28T13:29:00Z",
+   "STRATUM": "2022:3:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2022-11-10T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_10",
+   "NEIGHBOR_ID": "C:FOMC_20221102",
+   "NEIGHBOR_STRATUM": "2022:2:18",
+   "ROLE": "EVENT",
+   "START": "2022-11-09T13:29:00Z",
+   "STRATUM": "2022:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-11-17T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_10",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-11-16T13:29:00Z",
+   "STRATUM": "2022:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-06-10T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_05",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2022-06-09T12:29:00Z",
+   "STRATUM": "2022:4:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2022-09-02T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_05",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2022-09-01T12:29:00Z",
+   "STRATUM": "2022:4:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-03-14T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_02",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-03-13T12:29:00Z",
+   "STRATUM": "2023:1:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2023-02-07T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_02",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2023_01",
+   "NEIGHBOR_STRATUM": "2023:1:13",
+   "ROLE": "CONTROL",
+   "START": "2023-02-06T12:29:00Z",
+   "STRATUM": "2023:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-06-13T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_05",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-06-12T12:29:00Z",
+   "STRATUM": "2023:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-09-12T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_05",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-09-11T12:29:00Z",
+   "STRATUM": "2023:1:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2023-02-14T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_01",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2023_03",
+   "NEIGHBOR_STRATUM": "2023:2:12",
+   "ROLE": "EVENT",
+   "START": "2023-02-13T13:29:00Z",
+   "STRATUM": "2023:1:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2023-02-07T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_01",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2023_02",
+   "NEIGHBOR_STRATUM": "2023:1:12",
+   "ROLE": "CONTROL",
+   "START": "2023-02-06T13:29:00Z",
+   "STRATUM": "2023:1:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-11-14T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_10",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-11-13T13:29:00Z",
+   "STRATUM": "2023:1:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2023-07-11T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_10",
+   "NEIGHBOR_ID": "E:BLS_CPI_REF_2023_06",
+   "NEIGHBOR_STRATUM": "2023:2:12",
+   "ROLE": "CONTROL",
+   "START": "2023-07-10T13:29:00Z",
+   "STRATUM": "2023:1:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-12-12T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_11",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-12-11T13:29:00Z",
+   "STRATUM": "2023:1:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-12-19T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_11",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-12-18T13:29:00Z",
+   "STRATUM": "2023:1:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-04-12T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_03",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-04-11T12:29:00Z",
+   "STRATUM": "2023:2:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2023-02-15T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_03",
+   "NEIGHBOR_ID": "E:BLS_CPI_REF_2023_01",
+   "NEIGHBOR_STRATUM": "2023:1:13",
+   "ROLE": "CONTROL",
+   "START": "2023-02-14T12:29:00Z",
+   "STRATUM": "2023:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-05-10T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_04",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-05-09T12:29:00Z",
+   "STRATUM": "2023:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-03-01T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_04",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-02-28T12:29:00Z",
+   "STRATUM": "2023:2:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2023-07-12T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_06",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2023_10",
+   "NEIGHBOR_STRATUM": "2023:1:13",
+   "ROLE": "EVENT",
+   "START": "2023-07-11T12:29:00Z",
+   "STRATUM": "2023:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-06-28T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_06",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-06-27T12:29:00Z",
+   "STRATUM": "2023:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-09-13T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_08",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-09-12T12:29:00Z",
+   "STRATUM": "2023:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-08-23T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_08",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-08-22T12:29:00Z",
+   "STRATUM": "2023:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-03-22T17:59:00Z",
+   "ID": "E:FOMC_20230322",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-03-21T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-01-25T17:59:00Z",
+   "ID": "C:FOMC_20230322",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-01-24T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-05-03T17:59:00Z",
+   "ID": "E:FOMC_20230503",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-05-02T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-05-24T17:59:00Z",
+   "ID": "C:FOMC_20230503",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-05-23T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-06-14T17:59:00Z",
+   "ID": "E:FOMC_20230614",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-06-13T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2023-06-21T17:59:00Z",
+   "ID": "C:FOMC_20230614",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2023_09",
+   "NEIGHBOR_STRATUM": "2023:3:12",
+   "ROLE": "CONTROL",
+   "START": "2023-06-20T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-07-26T17:59:00Z",
+   "ID": "E:FOMC_20230726",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-07-25T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-08-16T17:59:00Z",
+   "ID": "C:FOMC_20230726",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-08-15T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-09-20T17:59:00Z",
+   "ID": "E:FOMC_20230920",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-09-19T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-08-30T17:59:00Z",
+   "ID": "C:FOMC_20230920",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-08-29T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-11-01T17:59:00Z",
+   "ID": "E:FOMC_20231101",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-10-31T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-12-20T17:59:00Z",
+   "ID": "C:FOMC_20231101",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-12-19T17:59:00Z",
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-02-01T18:59:00Z",
+   "ID": "E:FOMC_20230201",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-01-31T18:59:00Z",
+   "STRATUM": "2023:2:19"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2023-10-11T18:59:00Z",
+   "ID": "C:FOMC_20230201",
+   "NEIGHBOR_ID": "E:BLS_CPI_REF_2023_09",
+   "NEIGHBOR_STRATUM": "2023:3:12",
+   "ROLE": "CONTROL",
+   "START": "2023-10-10T18:59:00Z",
+   "STRATUM": "2023:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-12-13T18:59:00Z",
+   "ID": "E:FOMC_20231213",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-12-12T18:59:00Z",
+   "STRATUM": "2023:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-11-15T18:59:00Z",
+   "ID": "C:FOMC_20231213",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-11-14T18:59:00Z",
+   "STRATUM": "2023:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-08-10T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_07",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-08-09T12:29:00Z",
+   "STRATUM": "2023:3:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-05-11T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_07",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-05-10T12:29:00Z",
+   "STRATUM": "2023:3:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2023-10-12T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_09",
+   "NEIGHBOR_ID": "C:FOMC_20230201",
+   "NEIGHBOR_STRATUM": "2023:2:19",
+   "ROLE": "EVENT",
+   "START": "2023-10-11T12:29:00Z",
+   "STRATUM": "2023:3:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2023-06-22T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_09",
+   "NEIGHBOR_ID": "C:FOMC_20230614",
+   "NEIGHBOR_STRATUM": "2023:2:18",
+   "ROLE": "CONTROL",
+   "START": "2023-06-21T12:29:00Z",
+   "STRATUM": "2023:3:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-01-12T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2022_12",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2023-01-11T13:29:00Z",
+   "STRATUM": "2023:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2023-10-26T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2022_12",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2023-10-25T13:29:00Z",
+   "STRATUM": "2023:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-03-12T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_02",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-03-11T12:29:00Z",
+   "STRATUM": "2024:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-02-27T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_02",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-02-26T12:29:00Z",
+   "STRATUM": "2024:1:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-02-13T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_01",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-02-12T13:29:00Z",
+   "STRATUM": "2024:1:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-12-31T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_01",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-12-30T13:29:00Z",
+   "STRATUM": "2024:1:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-04-10T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_03",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-04-09T12:29:00Z",
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-02-21T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_03",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-02-20T12:29:00Z",
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-05-15T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_04",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-05-14T12:29:00Z",
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-03-06T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_04",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-03-05T12:29:00Z",
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2024-06-12T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_05",
+   "NEIGHBOR_ID": "E:FOMC_20240612",
+   "NEIGHBOR_STRATUM": "2024:2:18",
+   "ROLE": "EVENT",
+   "START": "2024-06-11T12:29:00Z",
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2024-04-24T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_05",
+   "NEIGHBOR_ID": "C:FOMC_20240612",
+   "NEIGHBOR_STRATUM": "2024:2:18",
+   "ROLE": "CONTROL",
+   "START": "2024-04-23T12:29:00Z",
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-08-14T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_07",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-08-13T12:29:00Z",
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-07-03T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_07",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-07-02T12:29:00Z",
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-09-11T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_08",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-09-10T12:29:00Z",
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-08-21T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_08",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-08-20T12:29:00Z",
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-11-13T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_10",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-11-12T13:29:00Z",
+   "STRATUM": "2024:2:13"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2024-05-22T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_10",
+   "NEIGHBOR_ID": "C:FOMC_20240731",
+   "NEIGHBOR_STRATUM": "2024:2:18",
+   "ROLE": "CONTROL",
+   "START": "2024-05-21T13:29:00Z",
+   "STRATUM": "2024:2:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-12-11T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_11",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-12-10T13:29:00Z",
+   "STRATUM": "2024:2:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-11-20T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_11",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-11-19T13:29:00Z",
+   "STRATUM": "2024:2:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-03-20T17:59:00Z",
+   "ID": "E:FOMC_20240320",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-03-19T17:59:00Z",
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-01-03T17:59:00Z",
+   "ID": "C:FOMC_20240320",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-01-02T17:59:00Z",
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-05-01T17:59:00Z",
+   "ID": "E:FOMC_20240501",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-04-30T17:59:00Z",
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-01-24T17:59:00Z",
+   "ID": "C:FOMC_20240501",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-01-23T17:59:00Z",
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2024-06-12T17:59:00Z",
+   "ID": "E:FOMC_20240612",
+   "NEIGHBOR_ID": "E:BLS_CPI_REF_2024_05",
+   "NEIGHBOR_STRATUM": "2024:2:12",
+   "ROLE": "EVENT",
+   "START": "2024-06-11T17:59:00Z",
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2024-04-24T17:59:00Z",
+   "ID": "C:FOMC_20240612",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2024_05",
+   "NEIGHBOR_STRATUM": "2024:2:12",
+   "ROLE": "CONTROL",
+   "START": "2024-04-23T17:59:00Z",
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-07-31T17:59:00Z",
+   "ID": "E:FOMC_20240731",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-07-30T17:59:00Z",
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "DEGREE": 1,
+   "END": "2024-05-22T17:59:00Z",
+   "ID": "C:FOMC_20240731",
+   "NEIGHBOR_ID": "C:BLS_CPI_REF_2024_10",
+   "NEIGHBOR_STRATUM": "2024:2:13",
+   "ROLE": "CONTROL",
+   "START": "2024-05-21T17:59:00Z",
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-09-18T17:59:00Z",
+   "ID": "E:FOMC_20240918",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-09-17T17:59:00Z",
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-10-30T17:59:00Z",
+   "ID": "C:FOMC_20240918",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-10-29T17:59:00Z",
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-01-31T18:59:00Z",
+   "ID": "E:FOMC_20240131",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-01-30T18:59:00Z",
+   "STRATUM": "2024:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-02-28T18:59:00Z",
+   "ID": "C:FOMC_20240131",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-02-27T18:59:00Z",
+   "STRATUM": "2024:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-12-18T18:59:00Z",
+   "ID": "E:FOMC_20241218",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-12-17T18:59:00Z",
+   "STRATUM": "2024:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-11-27T18:59:00Z",
+   "ID": "C:FOMC_20241218",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-11-26T18:59:00Z",
+   "STRATUM": "2024:2:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-07-11T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_06",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-07-10T12:29:00Z",
+   "STRATUM": "2024:3:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-06-06T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_06",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-06-05T12:29:00Z",
+   "STRATUM": "2024:3:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-10-10T12:29:00Z",
+   "ID": "E:BLS_CPI_REF_2024_09",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-10-09T12:29:00Z",
+   "STRATUM": "2024:3:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-08-29T12:29:00Z",
+   "ID": "C:BLS_CPI_REF_2024_09",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-08-28T12:29:00Z",
+   "STRATUM": "2024:3:12"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-01-11T13:29:00Z",
+   "ID": "E:BLS_CPI_REF_2023_12",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-01-10T13:29:00Z",
+   "STRATUM": "2024:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-05-09T13:29:00Z",
+   "ID": "C:BLS_CPI_REF_2023_12",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-05-08T13:29:00Z",
+   "STRATUM": "2024:3:13"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-11-07T18:59:00Z",
+   "ID": "E:FOMC_20241107",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "EVENT",
+   "START": "2024-11-06T18:59:00Z",
+   "STRATUM": "2024:3:19"
+  },
+  {
+   "DEGREE": 0,
+   "END": "2024-02-01T18:59:00Z",
+   "ID": "C:FOMC_20241107",
+   "NEIGHBOR_ID": null,
+   "NEIGHBOR_STRATUM": null,
+   "ROLE": "CONTROL",
+   "START": "2024-01-31T18:59:00Z",
+   "STRATUM": "2024:3:19"
+  }
+ ],
+ "NODE_ORDER": [
+  "E:BLS_CPI_REF_2020_04",
+  "C:BLS_CPI_REF_2020_04",
+  "E:BLS_CPI_REF_2020_06",
+  "C:BLS_CPI_REF_2020_06",
+  "E:BLS_CPI_REF_2020_09",
+  "C:BLS_CPI_REF_2020_09",
+  "E:BLS_CPI_REF_2019_12",
+  "C:BLS_CPI_REF_2019_12",
+  "E:BLS_CPI_REF_2020_02",
+  "C:BLS_CPI_REF_2020_02",
+  "E:BLS_CPI_REF_2020_05",
+  "C:BLS_CPI_REF_2020_05",
+  "E:BLS_CPI_REF_2020_07",
+  "C:BLS_CPI_REF_2020_07",
+  "E:FOMC_20200429",
+  "C:FOMC_20200429",
+  "E:FOMC_20200610",
+  "C:FOMC_20200610",
+  "E:FOMC_20200729",
+  "C:FOMC_20200729",
+  "E:FOMC_20200916",
+  "C:FOMC_20200916",
+  "E:FOMC_20200129",
+  "C:FOMC_20200129",
+  "E:FOMC_20201216",
+  "C:FOMC_20201216",
+  "E:BLS_CPI_REF_2020_01",
+  "C:BLS_CPI_REF_2020_01",
+  "E:BLS_CPI_REF_2020_10",
+  "C:BLS_CPI_REF_2020_10",
+  "E:BLS_CPI_REF_2020_11",
+  "C:BLS_CPI_REF_2020_11",
+  "E:FOMC_20201105",
+  "C:FOMC_20201105",
+  "E:BLS_CPI_REF_2020_03",
+  "C:BLS_CPI_REF_2020_03",
+  "E:BLS_CPI_REF_2020_08",
+  "C:BLS_CPI_REF_2020_08",
+  "E:BLS_CPI_REF_2021_03",
+  "C:BLS_CPI_REF_2021_03",
+  "E:BLS_CPI_REF_2021_06",
+  "C:BLS_CPI_REF_2021_06",
+  "E:BLS_CPI_REF_2021_08",
+  "C:BLS_CPI_REF_2021_08",
+  "E:BLS_CPI_REF_2021_04",
+  "C:BLS_CPI_REF_2021_04",
+  "E:BLS_CPI_REF_2021_07",
+  "C:BLS_CPI_REF_2021_07",
+  "E:BLS_CPI_REF_2021_09",
+  "C:BLS_CPI_REF_2021_09",
+  "E:BLS_CPI_REF_2020_12",
+  "C:BLS_CPI_REF_2020_12",
+  "E:BLS_CPI_REF_2021_01",
+  "C:BLS_CPI_REF_2021_01",
+  "E:BLS_CPI_REF_2021_02",
+  "C:BLS_CPI_REF_2021_02",
+  "E:BLS_CPI_REF_2021_10",
+  "C:BLS_CPI_REF_2021_10",
+  "E:FOMC_20210317",
+  "C:FOMC_20210317",
+  "E:FOMC_20210428",
+  "C:FOMC_20210428",
+  "E:FOMC_20210616",
+  "C:FOMC_20210616",
+  "E:FOMC_20210728",
+  "C:FOMC_20210728",
+  "E:FOMC_20210922",
+  "C:FOMC_20210922",
+  "E:FOMC_20211103",
+  "C:FOMC_20211103",
+  "E:FOMC_20210127",
+  "C:FOMC_20210127",
+  "E:FOMC_20211215",
+  "C:FOMC_20211215",
+  "E:BLS_CPI_REF_2021_05",
+  "C:BLS_CPI_REF_2021_05",
+  "E:BLS_CPI_REF_2021_11",
+  "C:BLS_CPI_REF_2021_11",
+  "E:BLS_CPI_REF_2022_03",
+  "C:BLS_CPI_REF_2022_03",
+  "E:BLS_CPI_REF_2022_08",
+  "C:BLS_CPI_REF_2022_08",
+  "E:BLS_CPI_REF_2022_11",
+  "C:BLS_CPI_REF_2022_11",
+  "E:BLS_CPI_REF_2022_04",
+  "C:BLS_CPI_REF_2022_04",
+  "E:BLS_CPI_REF_2022_06",
+  "C:BLS_CPI_REF_2022_06",
+  "E:BLS_CPI_REF_2022_07",
+  "C:BLS_CPI_REF_2022_07",
+  "E:BLS_CPI_REF_2021_12",
+  "C:BLS_CPI_REF_2021_12",
+  "E:FOMC_20220316",
+  "C:FOMC_20220316",
+  "E:FOMC_20220504",
+  "C:FOMC_20220504",
+  "E:FOMC_20220615",
+  "C:FOMC_20220615",
+  "E:FOMC_20220727",
+  "C:FOMC_20220727",
+  "E:FOMC_20220921",
+  "C:FOMC_20220921",
+  "E:FOMC_20221102",
+  "C:FOMC_20221102",
+  "E:FOMC_20220126",
+  "C:FOMC_20220126",
+  "E:FOMC_20221214",
+  "C:FOMC_20221214",
+  "E:BLS_CPI_REF_2022_09",
+  "C:BLS_CPI_REF_2022_09",
+  "E:BLS_CPI_REF_2022_01",
+  "C:BLS_CPI_REF_2022_01",
+  "E:BLS_CPI_REF_2022_02",
+  "C:BLS_CPI_REF_2022_02",
+  "E:BLS_CPI_REF_2022_10",
+  "C:BLS_CPI_REF_2022_10",
+  "E:BLS_CPI_REF_2022_05",
+  "C:BLS_CPI_REF_2022_05",
+  "E:BLS_CPI_REF_2023_02",
+  "C:BLS_CPI_REF_2023_02",
+  "E:BLS_CPI_REF_2023_05",
+  "C:BLS_CPI_REF_2023_05",
+  "E:BLS_CPI_REF_2023_01",
+  "C:BLS_CPI_REF_2023_01",
+  "E:BLS_CPI_REF_2023_10",
+  "C:BLS_CPI_REF_2023_10",
+  "E:BLS_CPI_REF_2023_11",
+  "C:BLS_CPI_REF_2023_11",
+  "E:BLS_CPI_REF_2023_03",
+  "C:BLS_CPI_REF_2023_03",
+  "E:BLS_CPI_REF_2023_04",
+  "C:BLS_CPI_REF_2023_04",
+  "E:BLS_CPI_REF_2023_06",
+  "C:BLS_CPI_REF_2023_06",
+  "E:BLS_CPI_REF_2023_08",
+  "C:BLS_CPI_REF_2023_08",
+  "E:FOMC_20230322",
+  "C:FOMC_20230322",
+  "E:FOMC_20230503",
+  "C:FOMC_20230503",
+  "E:FOMC_20230614",
+  "C:FOMC_20230614",
+  "E:FOMC_20230726",
+  "C:FOMC_20230726",
+  "E:FOMC_20230920",
+  "C:FOMC_20230920",
+  "E:FOMC_20231101",
+  "C:FOMC_20231101",
+  "E:FOMC_20230201",
+  "C:FOMC_20230201",
+  "E:FOMC_20231213",
+  "C:FOMC_20231213",
+  "E:BLS_CPI_REF_2023_07",
+  "C:BLS_CPI_REF_2023_07",
+  "E:BLS_CPI_REF_2023_09",
+  "C:BLS_CPI_REF_2023_09",
+  "E:BLS_CPI_REF_2022_12",
+  "C:BLS_CPI_REF_2022_12",
+  "E:BLS_CPI_REF_2024_02",
+  "C:BLS_CPI_REF_2024_02",
+  "E:BLS_CPI_REF_2024_01",
+  "C:BLS_CPI_REF_2024_01",
+  "E:BLS_CPI_REF_2024_03",
+  "C:BLS_CPI_REF_2024_03",
+  "E:BLS_CPI_REF_2024_04",
+  "C:BLS_CPI_REF_2024_04",
+  "E:BLS_CPI_REF_2024_05",
+  "C:BLS_CPI_REF_2024_05",
+  "E:BLS_CPI_REF_2024_07",
+  "C:BLS_CPI_REF_2024_07",
+  "E:BLS_CPI_REF_2024_08",
+  "C:BLS_CPI_REF_2024_08",
+  "E:BLS_CPI_REF_2024_10",
+  "C:BLS_CPI_REF_2024_10",
+  "E:BLS_CPI_REF_2024_11",
+  "C:BLS_CPI_REF_2024_11",
+  "E:FOMC_20240320",
+  "C:FOMC_20240320",
+  "E:FOMC_20240501",
+  "C:FOMC_20240501",
+  "E:FOMC_20240612",
+  "C:FOMC_20240612",
+  "E:FOMC_20240731",
+  "C:FOMC_20240731",
+  "E:FOMC_20240918",
+  "C:FOMC_20240918",
+  "E:FOMC_20240131",
+  "C:FOMC_20240131",
+  "E:FOMC_20241218",
+  "C:FOMC_20241218",
+  "E:BLS_CPI_REF_2024_06",
+  "C:BLS_CPI_REF_2024_06",
+  "E:BLS_CPI_REF_2024_09",
+  "C:BLS_CPI_REF_2024_09",
+  "E:BLS_CPI_REF_2023_12",
+  "C:BLS_CPI_REF_2023_12",
+  "E:FOMC_20241107",
+  "C:FOMC_20241107"
+ ],
+ "OBSERVATIONS_FIXED_BY_TOPOLOGY": 28,
+ "OBSERVATIONS_THAT_CAN_CHANGE_LABEL": 170,
+ "OLD_INFERENCE_STATUS": "SUPERSEDED_FAILED_GLOBAL_INVARIANCE_GATE",
+ "OLD_METHOD": "STRATIFIED_LABEL_PERMUTATION",
+ "OVERLAP_GRAPH_COMPONENTS": 177,
+ "OVERLAP_GRAPH_DIGEST": "59c7f44f06bc5a27355d3b60b4842b084515f8c73fe35c7a34f38b9d1b820dcf",
+ "OVERLAP_GRAPH_EDGES": 21,
+ "OVERLAP_GRAPH_NODES": 198,
+ "PERMUTATION_DRAWS": 5000,
+ "PERMUTATION_MODE": "MONTE_CARLO_UNIFORM_ON_LABEL_ORBIT",
+ "PERMUTATION_SEED": 12012,
+ "POWER_CURVES": {
+  "A_INDEPENDENT_WINDOW_NOISE": [
+   {
+    "DELTA": 0.0,
+    "MC_SE": 0.010635289135702893,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.0475,
+    "POWER_CI95": [
+     0.02665483329402233,
+     0.06834516670597768
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.1,
+    "MC_SE": 0.015000000000000001,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.1,
+    "POWER_CI95": [
+     0.0706,
+     0.12940000000000002
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.15,
+    "MC_SE": 0.018445443204217135,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.1625,
+    "POWER_CI95": [
+     0.12634693131973443,
+     0.19865306868026558
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.2,
+    "MC_SE": 0.02307291431527452,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.3075,
+    "POWER_CI95": [
+     0.26227708794206195,
+     0.35272291205793804
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.25,
+    "MC_SE": 0.02469786174955233,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.4225,
+    "POWER_CI95": [
+     0.3740921909708774,
+     0.47090780902912255
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.3,
+    "MC_SE": 0.02499874996874844,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.495,
+    "POWER_CI95": [
+     0.44600245006125305,
+     0.5439975499387469
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.35,
+    "MC_SE": 0.024106210299422844,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.6325,
+    "POWER_CI95": [
+     0.5852518278131311,
+     0.6797481721868688
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.4,
+    "MC_SE": 0.020712315177207976,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.78,
+    "POWER_CI95": [
+     0.7394038622526724,
+     0.8205961377473276
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.5,
+    "MC_SE": 0.0125442965127583,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.9325,
+    "POWER_CI95": [
+     0.9079131788349937,
+     0.9570868211650063
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.6,
+    "MC_SE": 0.008529361054615993,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.97,
+    "POWER_CI95": [
+     0.9532824523329526,
+     0.9867175476670473
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.7,
+    "MC_SE": 0.0035266839949164726,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.995,
+    "POWER_CI95": [
+     0.9880876993699637,
+     1.0
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.8,
+    "MC_SE": 0.0,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 1.0,
+    "POWER_CI95": [
+     1.0,
+     1.0
+    ],
+    "REPS": 400
+   }
+  ],
+  "B_OVERLAP_INDUCED_DEPENDENCE": [
+   {
+    "DELTA": 0.0,
+    "MC_SE": 0.011639775556255371,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.0575,
+    "POWER_CI95": [
+     0.03468603990973948,
+     0.08031396009026052
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.1,
+    "MC_SE": 0.015487394067434327,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.1075,
+    "POWER_CI95": [
+     0.07714470762782871,
+     0.13785529237217128
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.15,
+    "MC_SE": 0.01833030277982336,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.16,
+    "POWER_CI95": [
+     0.12407260655154623,
+     0.19592739344845378
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.2,
+    "MC_SE": 0.022197972880423113,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.27,
+    "POWER_CI95": [
+     0.22649197315437072,
+     0.31350802684562934
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.25,
+    "MC_SE": 0.023727291775506112,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.3425,
+    "POWER_CI95": [
+     0.29599450812000805,
+     0.389005491879992
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.3,
+    "MC_SE": 0.024979991993593593,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.48,
+    "POWER_CI95": [
+     0.43103921569255654,
+     0.5289607843074434
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.35,
+    "MC_SE": 0.02446904932767107,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.6025,
+    "POWER_CI95": [
+     0.5545406633177647,
+     0.6504593366822353
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.4,
+    "MC_SE": 0.021354156504062624,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.76,
+    "POWER_CI95": [
+     0.7181458532520373,
+     0.8018541467479627
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.5,
+    "MC_SE": 0.014486523910172518,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.9075,
+    "POWER_CI95": [
+     0.8791064131360619,
+     0.9358935868639381
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.6,
+    "MC_SE": 0.00817675822071314,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.9725,
+    "POWER_CI95": [
+     0.9564735538874023,
+     0.9885264461125978
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.7,
+    "MC_SE": 0.004313858481684336,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.9925,
+    "POWER_CI95": [
+     0.9840448373758988,
+     1.0
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.8,
+    "MC_SE": 0.002496873044429746,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.9975,
+    "POWER_CI95": [
+     0.9926061288329178,
+     1.0
+    ],
+    "REPS": 400
+   }
+  ],
+  "C_VARIANCE_INFLATION_2": [
+   {
+    "DELTA": 0.0,
+    "MC_SE": 0.011874342087037916,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.06,
+    "POWER_CI95": [
+     0.03672628950940568,
+     0.08327371049059432
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.1,
+    "MC_SE": 0.013169567191065924,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.075,
+    "POWER_CI95": [
+     0.049187648305510784,
+     0.10081235169448921
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.15,
+    "MC_SE": 0.015165235738358965,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.1025,
+    "POWER_CI95": [
+     0.07277613795281643,
+     0.13222386204718356
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.2,
+    "MC_SE": 0.017730182599172518,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.1475,
+    "POWER_CI95": [
+     0.11274884210562186,
+     0.18225115789437812
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.25,
+    "MC_SE": 0.02071231517720798,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.22,
+    "POWER_CI95": [
+     0.17940386225267235,
+     0.26059613774732765
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.3,
+    "MC_SE": 0.02296702799667384,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.3025,
+    "POWER_CI95": [
+     0.25748462512651926,
+     0.3475153748734807
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.35,
+    "MC_SE": 0.024238076965799084,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.3775,
+    "POWER_CI95": [
+     0.3299933691470338,
+     0.4250066308529662
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.4,
+    "MC_SE": 0.024919871588754226,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.46,
+    "POWER_CI95": [
+     0.4111570516860417,
+     0.5088429483139583
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.5,
+    "MC_SE": 0.023808808769024966,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.6525,
+    "POWER_CI95": [
+     0.605834734812711,
+     0.6991652651872889
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.6,
+    "MC_SE": 0.0203654118544163,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.79,
+    "POWER_CI95": [
+     0.7500837927653441,
+     0.829916207234656
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.7,
+    "MC_SE": 0.015165235738358969,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.8975,
+    "POWER_CI95": [
+     0.8677761379528164,
+     0.9272238620471835
+    ],
+    "REPS": 400
+   },
+   {
+    "DELTA": 0.8,
+    "MC_SE": 0.009188987974744557,
+    "PERMUTATION_DRAWS": 5000,
+    "POWER": 0.965,
+    "POWER_CI95": [
+     0.9469895835695006,
+     0.9830104164304994
+    ],
+    "REPS": 400
+   }
+  ]
+ },
+ "POWER_GATE": {
+  "AMENDED_POWER_GATE": "TARGET_POWER_0.80_BY_0.50_SINGLE_WINDOW_SD_UNDER_VARIANCE_INFLATION_2",
+  "AMENDED_POWER_GATE_RESULT": "INFERENCE_AMENDMENT_VALID_BUT_INFORMATIONALLY_WEAK",
+  "MDE_BY_SCENARIO_SINGLE_WINDOW_SD": {
+   "A_INDEPENDENT_WINDOW_NOISE": 0.4131147540983607,
+   "B_OVERLAP_INDUCED_DEPENDENCE": 0.42711864406779665,
+   "C_VARIANCE_INFLATION_2": 0.6093023255813953
+  },
+  "MDE_MATCHED_DIFFERENCE_SD_UNITS": 0.4308418062113382,
+  "MDE_SINGLE_WINDOW_SD_UNITS": 0.6093023255813953,
+  "MDE_STRESS_IN_STRESS_PAIR_SD_UNITS": 0.30465116279069765,
+  "MDE_STRESS_SCENARIO": "C_VARIANCE_INFLATION_2",
+  "PLANNING_SCALE_ILLUSTRATIONS": {
+   "ASSUMED_SINGLE_WINDOW_LOG_RETURN_SD": [
+    0.02,
+    0.04,
+    0.06
+   ],
+   "NOTE": "PLANNING-SCALE ILLUSTRATIONS. Not empirical BTC MDEs. Percent = MDE_SINGLE_WINDOW_SD_UNITS times the assumed SD, times 100.",
+   "STRESS_MDE_PERCENT_IF_SD": [
+    1.2186046511627906,
+    2.437209302325581,
+    3.6558139534883716
+   ]
+  }
+ },
+ "POWER_MC_SEED": 12012012,
+ "POWER_REPS": 400,
+ "POWER_SIMULATION_SCENARIOS": [
+  "A_INDEPENDENT_WINDOW_NOISE",
+  "B_OVERLAP_INDUCED_DEPENDENCE",
+  "C_VARIANCE_INFLATION_2"
+ ],
+ "PREFLIGHT_HEAD": "61ce00383d4b8879632e6a0382b9466edcf954ce",
+ "PREFLIGHT_TREE": "8ead4b2a0a884d4ca83be81e02cdadae56ebd835",
+ "PRIMARY_ENDPOINT": "DELTA_24",
+ "PRIMARY_LABEL_ORBIT_SIZE": "3204454418600404451328000000000",
+ "PROTECTED_2025_MARKET_BYTES_FETCHED": false,
+ "PROTECTED_2025_VALUES_OPENED": false,
+ "PROTECTED_2026_MARKET_BYTES_FETCHED": false,
+ "PROTECTED_2026_VALUES_OPENED": false,
+ "P_VALUE_RULE": "(1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Ties use >=. p cannot be 0.",
+ "RESIDUAL_EXCHANGEABILITY_ASSUMPTION": "Window returns that share a stratum and the same overlap-graph role (isolate, or matched endpoint of an equivalent cross-stratum edge) are exchangeable under the null. Preserving the overlap graph does not prove that BTC returns are unconditionally exchangeable.",
+ "STANDARDIZED_UNIT": "One single-window SD unit is the standard deviation of one window return under scenario A (independent unit-variance window noise). delta is the mean shift added to every originally labeled event window, in those units. A matched-difference SD under scenario A is sqrt(2), the SD of an independent event-minus-control pair. Stress scenario C multiplies every window variance by 2 and does not rescale delta.",
+ "START_HEAD": "a8968fe702be0202cd4a47add267486e06838b70",
+ "START_TREE": "4f8e98a96c5fd6cdd13baf4a216ff4acab916188",
+ "STATISTIC": "mean(event 24h log return) - mean(matched-control 24h log return)",
+ "STRUCTURAL_CLASSES": [
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2020_04",
+    "C:BLS_CPI_REF_2020_04",
+    "E:BLS_CPI_REF_2020_06",
+    "E:BLS_CPI_REF_2020_09",
+    "C:BLS_CPI_REF_2020_09"
+   ],
+   "KIND": "ISOLATE",
+   "N": 5,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 3,
+   "ORBIT_FACTOR": 10,
+   "STRATUM": "2020:1:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2019_12"
+   ],
+   "KIND": "ISOLATE",
+   "N": 1,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 1,
+   "STRATUM": "2020:1:13"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2020_02",
+    "C:BLS_CPI_REF_2020_05",
+    "E:BLS_CPI_REF_2020_07",
+    "C:BLS_CPI_REF_2020_07"
+   ],
+   "KIND": "ISOLATE",
+   "N": 4,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 6,
+   "STRATUM": "2020:2:12"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20200429",
+    "C:FOMC_20200429",
+    "C:FOMC_20200610",
+    "E:FOMC_20200729",
+    "E:FOMC_20200916",
+    "C:FOMC_20200916"
+   ],
+   "KIND": "ISOLATE",
+   "N": 6,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 3,
+   "ORBIT_FACTOR": 20,
+   "STRATUM": "2020:2:18"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20200129",
+    "E:FOMC_20201216",
+    "C:FOMC_20201216"
+   ],
+   "KIND": "ISOLATE",
+   "N": 3,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 3,
+   "STRATUM": "2020:2:19"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2020_01",
+    "E:BLS_CPI_REF_2020_10",
+    "C:BLS_CPI_REF_2020_10",
+    "C:BLS_CPI_REF_2020_11"
+   ],
+   "KIND": "ISOLATE",
+   "N": 4,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 6,
+   "STRATUM": "2020:3:13"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20201105",
+    "C:FOMC_20201105"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2020:3:19"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2020_03",
+    "C:BLS_CPI_REF_2020_03",
+    "E:BLS_CPI_REF_2020_08"
+   ],
+   "KIND": "ISOLATE",
+   "N": 3,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 3,
+   "STRATUM": "2020:4:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2021_03",
+    "C:BLS_CPI_REF_2021_03",
+    "E:BLS_CPI_REF_2021_06",
+    "C:BLS_CPI_REF_2021_06",
+    "E:BLS_CPI_REF_2021_08",
+    "C:BLS_CPI_REF_2021_08"
+   ],
+   "KIND": "ISOLATE",
+   "N": 6,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 3,
+   "ORBIT_FACTOR": 20,
+   "STRATUM": "2021:1:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2021_04",
+    "C:BLS_CPI_REF_2021_04",
+    "E:BLS_CPI_REF_2021_07",
+    "E:BLS_CPI_REF_2021_09"
+   ],
+   "KIND": "ISOLATE",
+   "N": 4,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 3,
+   "ORBIT_FACTOR": 4,
+   "STRATUM": "2021:2:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2020_12",
+    "E:BLS_CPI_REF_2021_01",
+    "C:BLS_CPI_REF_2021_01",
+    "E:BLS_CPI_REF_2021_02",
+    "E:BLS_CPI_REF_2021_10",
+    "C:BLS_CPI_REF_2021_10"
+   ],
+   "KIND": "ISOLATE",
+   "N": 6,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 4,
+   "ORBIT_FACTOR": 15,
+   "STRATUM": "2021:2:13"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20210317",
+    "E:FOMC_20210428",
+    "C:FOMC_20210428",
+    "E:FOMC_20210616",
+    "E:FOMC_20210728",
+    "E:FOMC_20210922",
+    "E:FOMC_20211103"
+   ],
+   "KIND": "ISOLATE",
+   "N": 7,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 6,
+   "ORBIT_FACTOR": 7,
+   "STRATUM": "2021:2:18"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20210127",
+    "E:FOMC_20211215",
+    "C:FOMC_20211215"
+   ],
+   "KIND": "ISOLATE",
+   "N": 3,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 3,
+   "STRATUM": "2021:2:19"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2021_05",
+    "C:BLS_CPI_REF_2021_05"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2021:3:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2021_11",
+    "C:BLS_CPI_REF_2021_11"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2021:4:13"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2022_03",
+    "C:BLS_CPI_REF_2022_03",
+    "E:BLS_CPI_REF_2022_08",
+    "C:BLS_CPI_REF_2022_08"
+   ],
+   "KIND": "ISOLATE",
+   "N": 4,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 6,
+   "STRATUM": "2022:1:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2022_11",
+    "C:BLS_CPI_REF_2022_11"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2022:1:13"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2022_04",
+    "C:BLS_CPI_REF_2022_04",
+    "E:BLS_CPI_REF_2022_06",
+    "C:BLS_CPI_REF_2022_06",
+    "E:BLS_CPI_REF_2022_07"
+   ],
+   "KIND": "ISOLATE",
+   "N": 5,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 3,
+   "ORBIT_FACTOR": 10,
+   "STRATUM": "2022:2:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2021_12"
+   ],
+   "KIND": "ISOLATE",
+   "N": 1,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 1,
+   "STRATUM": "2022:2:13"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20220316",
+    "C:FOMC_20220316",
+    "E:FOMC_20220504",
+    "C:FOMC_20220504",
+    "E:FOMC_20220615",
+    "C:FOMC_20220615",
+    "E:FOMC_20220727",
+    "E:FOMC_20220921",
+    "C:FOMC_20220921",
+    "E:FOMC_20221102"
+   ],
+   "KIND": "ISOLATE",
+   "N": 10,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 6,
+   "ORBIT_FACTOR": 210,
+   "STRATUM": "2022:2:18"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20220126",
+    "C:FOMC_20220126",
+    "E:FOMC_20221214",
+    "C:FOMC_20221214"
+   ],
+   "KIND": "ISOLATE",
+   "N": 4,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 6,
+   "STRATUM": "2022:2:19"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2022_09",
+    "C:BLS_CPI_REF_2022_09"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2022:3:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2022_01",
+    "C:BLS_CPI_REF_2022_01",
+    "E:BLS_CPI_REF_2022_02",
+    "C:BLS_CPI_REF_2022_10"
+   ],
+   "KIND": "ISOLATE",
+   "N": 4,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 6,
+   "STRATUM": "2022:3:13"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2022_05",
+    "C:BLS_CPI_REF_2022_05"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2022:4:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2023_02",
+    "E:BLS_CPI_REF_2023_05",
+    "C:BLS_CPI_REF_2023_05"
+   ],
+   "KIND": "ISOLATE",
+   "N": 3,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 3,
+   "STRATUM": "2023:1:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2023_10",
+    "E:BLS_CPI_REF_2023_11",
+    "C:BLS_CPI_REF_2023_11"
+   ],
+   "KIND": "ISOLATE",
+   "N": 3,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 3,
+   "STRATUM": "2023:1:13"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2023_03",
+    "E:BLS_CPI_REF_2023_04",
+    "C:BLS_CPI_REF_2023_04",
+    "C:BLS_CPI_REF_2023_06",
+    "E:BLS_CPI_REF_2023_08",
+    "C:BLS_CPI_REF_2023_08"
+   ],
+   "KIND": "ISOLATE",
+   "N": 6,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 3,
+   "ORBIT_FACTOR": 20,
+   "STRATUM": "2023:2:12"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20230322",
+    "C:FOMC_20230322",
+    "E:FOMC_20230503",
+    "C:FOMC_20230503",
+    "E:FOMC_20230614",
+    "E:FOMC_20230726",
+    "C:FOMC_20230726",
+    "E:FOMC_20230920",
+    "C:FOMC_20230920",
+    "E:FOMC_20231101",
+    "C:FOMC_20231101"
+   ],
+   "KIND": "ISOLATE",
+   "N": 11,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 6,
+   "ORBIT_FACTOR": 462,
+   "STRATUM": "2023:2:18"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20230201",
+    "E:FOMC_20231213",
+    "C:FOMC_20231213"
+   ],
+   "KIND": "ISOLATE",
+   "N": 3,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 3,
+   "STRATUM": "2023:2:19"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2023_07",
+    "C:BLS_CPI_REF_2023_07"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2023:3:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2022_12",
+    "C:BLS_CPI_REF_2022_12"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2023:3:13"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2024_02",
+    "C:BLS_CPI_REF_2024_02"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2024:1:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2024_01",
+    "C:BLS_CPI_REF_2024_01"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2024:1:13"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2024_03",
+    "C:BLS_CPI_REF_2024_03",
+    "E:BLS_CPI_REF_2024_04",
+    "C:BLS_CPI_REF_2024_04",
+    "E:BLS_CPI_REF_2024_07",
+    "C:BLS_CPI_REF_2024_07",
+    "E:BLS_CPI_REF_2024_08",
+    "C:BLS_CPI_REF_2024_08"
+   ],
+   "KIND": "ISOLATE",
+   "N": 8,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 4,
+   "ORBIT_FACTOR": 70,
+   "STRATUM": "2024:2:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2024_10",
+    "E:BLS_CPI_REF_2024_11",
+    "C:BLS_CPI_REF_2024_11"
+   ],
+   "KIND": "ISOLATE",
+   "N": 3,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 3,
+   "STRATUM": "2024:2:13"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20240320",
+    "C:FOMC_20240320",
+    "E:FOMC_20240501",
+    "C:FOMC_20240501",
+    "E:FOMC_20240731",
+    "E:FOMC_20240918",
+    "C:FOMC_20240918"
+   ],
+   "KIND": "ISOLATE",
+   "N": 7,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 4,
+   "ORBIT_FACTOR": 35,
+   "STRATUM": "2024:2:18"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20240131",
+    "C:FOMC_20240131",
+    "E:FOMC_20241218",
+    "C:FOMC_20241218"
+   ],
+   "KIND": "ISOLATE",
+   "N": 4,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 6,
+   "STRATUM": "2024:2:19"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2024_06",
+    "C:BLS_CPI_REF_2024_06",
+    "E:BLS_CPI_REF_2024_09",
+    "C:BLS_CPI_REF_2024_09"
+   ],
+   "KIND": "ISOLATE",
+   "N": 4,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 2,
+   "ORBIT_FACTOR": 6,
+   "STRATUM": "2024:3:12"
+  },
+  {
+   "IDS": [
+    "E:BLS_CPI_REF_2023_12",
+    "C:BLS_CPI_REF_2023_12"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2024:3:13"
+  },
+  {
+   "IDS": [
+    "E:FOMC_20241107",
+    "C:FOMC_20241107"
+   ],
+   "KIND": "ISOLATE",
+   "N": 2,
+   "NEIGHBOR_STRATUM": null,
+   "N_EVENT_LABELS": 1,
+   "ORBIT_FACTOR": 2,
+   "STRATUM": "2024:3:19"
+  },
+  {
+   "EDGES": [
+    [
+     "C:BLS_CPI_REF_2020_06",
+     "C:BLS_CPI_REF_2019_12"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 1,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2020:1:12",
+    "2020:1:13"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:BLS_CPI_REF_2020_02",
+     "C:FOMC_20200729"
+    ],
+    [
+     "E:BLS_CPI_REF_2020_05",
+     "E:FOMC_20200610"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 2,
+   "ORBIT_FACTOR": 2,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ],
+    [
+     "EVENT",
+     "EVENT"
+    ]
+   ],
+   "STRATA": [
+    "2020:2:12",
+    "2020:2:18"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:FOMC_20200129",
+     "C:BLS_CPI_REF_2020_01"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 1,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2020:2:19",
+    "2020:3:13"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "E:BLS_CPI_REF_2020_11",
+     "C:BLS_CPI_REF_2020_08"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 1,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "EVENT",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2020:3:13",
+    "2020:4:12"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:BLS_CPI_REF_2021_07",
+     "C:FOMC_20210922"
+    ],
+    [
+     "C:BLS_CPI_REF_2021_09",
+     "C:FOMC_20211103"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 2,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ],
+    [
+     "CONTROL",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2021:2:12",
+    "2021:2:18"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:BLS_CPI_REF_2020_12",
+     "C:FOMC_20210317"
+    ],
+    [
+     "C:BLS_CPI_REF_2021_02",
+     "C:FOMC_20210728"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 2,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ],
+    [
+     "CONTROL",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2021:2:13",
+    "2021:2:18"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:FOMC_20210616",
+     "C:FOMC_20210127"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 1,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2021:2:18",
+    "2021:2:19"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:BLS_CPI_REF_2022_07",
+     "C:BLS_CPI_REF_2021_12"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 1,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2022:2:12",
+    "2022:2:13"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:FOMC_20220727",
+     "C:BLS_CPI_REF_2022_02"
+    ],
+    [
+     "C:FOMC_20221102",
+     "E:BLS_CPI_REF_2022_10"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 2,
+   "ORBIT_FACTOR": 2,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ],
+    [
+     "CONTROL",
+     "EVENT"
+    ]
+   ],
+   "STRATA": [
+    "2022:2:18",
+    "2022:3:13"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:BLS_CPI_REF_2023_02",
+     "C:BLS_CPI_REF_2023_01"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 1,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2023:1:12",
+    "2023:1:13"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:BLS_CPI_REF_2023_10",
+     "E:BLS_CPI_REF_2023_06"
+    ],
+    [
+     "E:BLS_CPI_REF_2023_01",
+     "C:BLS_CPI_REF_2023_03"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 2,
+   "ORBIT_FACTOR": 2,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "EVENT"
+    ],
+    [
+     "EVENT",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2023:1:13",
+    "2023:2:12"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:FOMC_20230614",
+     "C:BLS_CPI_REF_2023_09"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 1,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2023:2:18",
+    "2023:3:12"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:FOMC_20230201",
+     "E:BLS_CPI_REF_2023_09"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 1,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "EVENT"
+    ]
+   ],
+   "STRATA": [
+    "2023:2:19",
+    "2023:3:12"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:BLS_CPI_REF_2024_05",
+     "C:FOMC_20240612"
+    ],
+    [
+     "E:BLS_CPI_REF_2024_05",
+     "E:FOMC_20240612"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 2,
+   "ORBIT_FACTOR": 2,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ],
+    [
+     "EVENT",
+     "EVENT"
+    ]
+   ],
+   "STRATA": [
+    "2024:2:12",
+    "2024:2:18"
+   ]
+  },
+  {
+   "EDGES": [
+    [
+     "C:BLS_CPI_REF_2024_10",
+     "C:FOMC_20240731"
+    ]
+   ],
+   "KIND": "CROSS_EDGE",
+   "N": 1,
+   "ORBIT_FACTOR": 1,
+   "ORIENTED_LABELS": [
+    [
+     "CONTROL",
+     "CONTROL"
+    ]
+   ],
+   "STRATA": [
+    "2024:2:13",
+    "2024:2:18"
+   ]
+  }
+ ],
+ "STRUCTURAL_INVARIANCE_STATEMENT": "Conditional on the same within-stratum exchangeability assumption already required by the original C012 design, the amended randomization group no longer contains transformations that alter the frozen overlap-dependence topology.",
+ "STRUCTURAL_INVARIANCE_STATUS": "PASS",
+ "TARGET_POWER": 0.8,
+ "TOPOLOGY_GROUP_SIZE": "4637473419458914913696223551906406965037657835438080000000000000",
+ "TWO_SIDED": true,
+ "UNIFORM_SAMPLING_JUSTIFICATION": "G_C012_TOPO is the direct product of symmetric groups on isolate classes and symmetric groups on cross-stratum matching edges. A uniform group element pushes forward to the uniform distribution on the label orbit because every orbit point has the same stabilizer order. Independent uniform draws on those factors implement that pushforward. Cross-stratum edges are not flipped, because a flip would change stratum.",
+ "UNIT": "GV0R01_C012_OUTCOME_BLIND_INFERENCE_AMENDMENT"
+}

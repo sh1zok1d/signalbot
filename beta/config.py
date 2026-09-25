@@ -1,0 +1,387 @@
+"""Beta V0.2 configuration: strict loading, validation, digests and hard switches.
+
+Every threshold / persistence duration / TTL / cooldown / cap comes from
+config/beta_v0.yaml. Validation is strict (exact key sets, typed values) so a
+typo can never silently fall back to a default. Secrets are never read from the
+YAML; `BetaSecrets` reads them from the environment.
+"""
+from __future__ import annotations
+
+import hashlib
+import math
+import os
+from dataclasses import dataclass
+from datetime import timedelta
+from pathlib import Path
+from types import MappingProxyType
+from typing import Any, Mapping, Optional
+
+import yaml
+
+from common.versioning import canonical_json
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+BETA_CONFIG_PATH = ROOT_DIR / "config" / "beta_v0.yaml"
+
+RULES_VERSION = "BETA_EVENT_RULES_V1"
+SUPPORTED_STATE_SCHEMA_VERSIONS = (1,)
+CANONICAL_EXCHANGES = ("binance", "bybit", "okx")
+
+# Internal event-type codes (never shown verbatim to users; see beta/formatter.py).
+PRICE_OI_CONTRACTION_DOWN = "PRICE_OI_CONTRACTION_DOWN"
+PRICE_OI_CONTRACTION_UP = "PRICE_OI_CONTRACTION_UP"
+POSITION_BUILDUP_COMPRESSION = "POSITION_BUILDUP_COMPRESSION"
+TAKER_FLOW_EXTREME_BUY = "TAKER_FLOW_EXTREME_BUY"
+TAKER_FLOW_EXTREME_SELL = "TAKER_FLOW_EXTREME_SELL"
+LIQUIDATION_STRESS_LONG = "LIQUIDATION_STRESS_LONG"
+LIQUIDATION_STRESS_SHORT = "LIQUIDATION_STRESS_SHORT"
+
+CORE_EVENT_TYPES = (PRICE_OI_CONTRACTION_DOWN, PRICE_OI_CONTRACTION_UP,
+                    POSITION_BUILDUP_COMPRESSION)
+GATED_EVENT_TYPES = (TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL,
+                     LIQUIDATION_STRESS_LONG, LIQUIDATION_STRESS_SHORT)
+EVENT_TYPES = CORE_EVENT_TYPES + GATED_EVENT_TYPES
+
+HORIZON_MINUTES = MappingProxyType({"15m": 15, "30m": 30, "1h": 60, "4h": 240, "24h": 1440})
+
+_TOP_KEYS = frozenset({
+    "enabled", "detection_enabled", "push_enabled", "outcome_tracking_enabled",
+    "rules_version", "state_schema_version", "outcome_version", "symbol",
+    "market_type", "timeframe", "active_exchanges", "percentile_window",
+    "min_venue_coverage", "max_state_age_s", "bucket_close_grace_s",
+    "same_event_cooldown_min", "delivery_ttl_s", "max_new_pushes_per_utc_day",
+    "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
+    "notifications", "privacy", "health", "rules",
+})
+_SECTION_KEYS = {
+    "detector": {"max_catchup_buckets_per_run"},
+    "bootstrap": {"lookback_days", "max_buckets_per_run"},
+    "ingestion": {"heartbeat_max_age_s", "min_healthy_venues"},
+    "outcomes": {"max_jobs_per_run", "incomplete_after_h", "recheck_window_h"},
+    "notifications": {"max_deliveries_per_run"},
+    "privacy": {"stopped_user_retention_days"},
+    "health": {"detector_stall_s", "outcome_stall_s", "bot_stall_s", "notifier_stall_s",
+               "delivery_problem_window_s", "delivery_problem_threshold",
+               "owner_alert_repeat_s"},
+}
+_RULE_KEYS = {
+    "PRICE_OI_CONTRACTION_DOWN": {"price_move_pct_median_max", "oi_change_pct_median_max",
+                                  "armed_at_streak", "triggered_at_streak"},
+    "PRICE_OI_CONTRACTION_UP": {"price_move_pct_median_min", "oi_change_pct_median_max",
+                                "armed_at_streak", "triggered_at_streak"},
+    "POSITION_BUILDUP_COMPRESSION": {"range_width_pct_median_max", "oi_change_pct_median_min",
+                                     "volume_notional_usd_sum_min", "early_at_streak",
+                                     "armed_at_streak", "triggered_at_streak",
+                                     "max_duration_min"},
+    "TAKER_FLOW_EXTREME": {"enabled", "buy_percentile_min", "sell_percentile_max",
+                           "armed_at_streak", "triggered_at_streak"},
+    "LIQUIDATION_STRESS": {"enabled", "venue_percentile_min", "min_eligible_venues",
+                           "triggered_at_streak"},
+}
+_PERCENTILE_KEYS = {
+    "price_move_pct_median_max", "price_move_pct_median_min", "oi_change_pct_median_max",
+    "range_width_pct_median_max", "oi_change_pct_median_min", "volume_notional_usd_sum_min",
+    "buy_percentile_min", "sell_percentile_max", "venue_percentile_min",
+}
+
+# Rule-relevant fields that enter the rules digest (policy fields such as TTL /
+# cooldown / cap only enter the config digest).
+_RULE_DIGEST_FIELDS = ("rules_version", "state_schema_version", "symbol", "market_type",
+                       "timeframe", "active_exchanges", "percentile_window",
+                       "min_venue_coverage", "max_state_age_s", "rules")
+
+
+class BetaConfigError(ValueError):
+    """Invalid beta configuration (fail loudly; never default silently)."""
+
+
+def _int(value, name: str, *, minimum: int = 1) -> int:
+    if type(value) is not int or value < minimum:
+        raise BetaConfigError(f"{name} must be an int >= {minimum}, got {value!r}")
+    return value
+
+
+def _bool(value, name: str) -> bool:
+    if type(value) is not bool:
+        raise BetaConfigError(f"{name} must be a bool, got {value!r}")
+    return value
+
+
+def _unit(value, name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise BetaConfigError(f"{name} must be a number in [0, 1], got {value!r}")
+    v = float(value)
+    if not math.isfinite(v) or not (0.0 <= v <= 1.0):
+        raise BetaConfigError(f"{name} must be a number in [0, 1], got {value!r}")
+    return v
+
+
+def _freeze(obj):
+    if isinstance(obj, Mapping):
+        return MappingProxyType({k: _freeze(v) for k, v in obj.items()})
+    if isinstance(obj, (list, tuple)):
+        return tuple(_freeze(v) for v in obj)
+    return obj
+
+
+def _exact_keys(mapping, expected, name: str) -> None:
+    if not isinstance(mapping, Mapping):
+        raise BetaConfigError(f"{name} must be a mapping")
+    keys = set(mapping)
+    if keys != set(expected):
+        raise BetaConfigError(
+            f"{name} keys mismatch: missing={sorted(set(expected) - keys)} "
+            f"extra={sorted(keys - set(expected))}")
+
+
+@dataclass(frozen=True)
+class BetaConfig:
+    raw: Mapping[str, Any]
+
+    # ---- construction ----------------------------------------------------
+    @classmethod
+    def load(cls, path: Path = BETA_CONFIG_PATH) -> "BetaConfig":
+        with open(path, "r", encoding="utf-8") as fh:
+            doc = yaml.safe_load(fh)
+        if not isinstance(doc, Mapping) or set(doc) != {"beta"}:
+            raise BetaConfigError("beta config must have exactly one top-level key 'beta'")
+        return cls.from_mapping(doc["beta"])
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "BetaConfig":
+        _validate(data)
+        return cls(raw=_freeze(data))
+
+    def with_overrides(self, **overrides) -> "BetaConfig":
+        """Test/operator helper: a NEW validated config with top-level keys replaced."""
+        from common.versioning import _to_plain  # plain copy
+        data = _to_plain(self.raw)
+        data.update(overrides)
+        return BetaConfig.from_mapping(data)
+
+    # ---- accessors ---------------------------------------------------------
+    def __getitem__(self, key):
+        return self.raw[key]
+
+    def section(self, name: str) -> Mapping[str, Any]:
+        return self.raw[name]
+
+    def rule(self, family: str) -> Mapping[str, Any]:
+        return self.raw["rules"][family]
+
+    @property
+    def symbol(self) -> str:
+        return self.raw["symbol"]
+
+    @property
+    def market_type(self) -> str:
+        return self.raw["market_type"]
+
+    @property
+    def timeframe(self) -> str:
+        return self.raw["timeframe"]
+
+    @property
+    def exchanges(self) -> tuple:
+        return tuple(self.raw["active_exchanges"])
+
+    @property
+    def rules_version(self) -> str:
+        return self.raw["rules_version"]
+
+    @property
+    def state_schema_version(self) -> int:
+        return self.raw["state_schema_version"]
+
+    @property
+    def outcome_version(self) -> str:
+        return self.raw["outcome_version"]
+
+    @property
+    def min_venues(self) -> int:
+        return self.raw["min_venue_coverage"]
+
+    @property
+    def bucket(self) -> timedelta:
+        return timedelta(minutes=5)
+
+    @property
+    def cooldown(self) -> timedelta:
+        return timedelta(minutes=self.raw["same_event_cooldown_min"])
+
+    @property
+    def delivery_ttl(self) -> timedelta:
+        return timedelta(seconds=self.raw["delivery_ttl_s"])
+
+    @property
+    def horizons(self) -> tuple:
+        return tuple(self.raw["forward_horizons"])
+
+    # ---- digests -----------------------------------------------------------
+    @property
+    def rules_digest(self) -> str:
+        payload = {k: self.raw[k] for k in _RULE_DIGEST_FIELDS}
+        return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+
+    @property
+    def config_digest(self) -> str:
+        return hashlib.sha256(canonical_json(self.raw).encode("utf-8")).hexdigest()
+
+
+def _validate(d: Mapping[str, Any]) -> None:
+    _exact_keys(d, _TOP_KEYS, "beta")
+    for key in ("enabled", "detection_enabled", "push_enabled", "outcome_tracking_enabled"):
+        _bool(d[key], key)
+    if d["rules_version"] != RULES_VERSION:
+        raise BetaConfigError(f"rules_version must be {RULES_VERSION!r}")
+    if d["state_schema_version"] not in SUPPORTED_STATE_SCHEMA_VERSIONS \
+            or type(d["state_schema_version"]) is not int:
+        raise BetaConfigError("unsupported state_schema_version")
+    if not isinstance(d["outcome_version"], str) or not d["outcome_version"].strip():
+        raise BetaConfigError("outcome_version must be a non-empty string")
+    if d["symbol"] != "BTCUSDT" or d["market_type"] != "perp" or d["timeframe"] != "5m":
+        raise BetaConfigError("V0.2 scope is exactly BTCUSDT / perp / 5m")
+    ex = d["active_exchanges"]
+    if not isinstance(ex, (list, tuple)) or len(set(ex)) != len(ex) or not ex \
+            or any(e not in CANONICAL_EXCHANGES for e in ex):
+        raise BetaConfigError(f"active_exchanges must be distinct members of {CANONICAL_EXCHANGES}")
+    if d["percentile_window"] != "30d":
+        raise BetaConfigError("V0.2 rules use exactly the 30d percentile window")
+    _int(d["min_venue_coverage"], "min_venue_coverage", minimum=2)
+    if d["min_venue_coverage"] > len(ex):
+        raise BetaConfigError("min_venue_coverage exceeds active venue count")
+    for key in ("max_state_age_s", "same_event_cooldown_min", "delivery_ttl_s",
+                "max_new_pushes_per_utc_day"):
+        _int(d[key], key)
+    _int(d["bucket_close_grace_s"], "bucket_close_grace_s", minimum=0)
+    if d["bucket_close_grace_s"] >= 300:
+        raise BetaConfigError("bucket_close_grace_s must be < 300")
+    hz = d["forward_horizons"]
+    if not isinstance(hz, (list, tuple)) or not hz or len(set(hz)) != len(hz) \
+            or any(h not in HORIZON_MINUTES for h in hz):
+        raise BetaConfigError(f"forward_horizons must be distinct members of {list(HORIZON_MINUTES)}")
+    for section, keys in _SECTION_KEYS.items():
+        _exact_keys(d[section], keys, section)
+        for k in keys:
+            _int(d[section][k], f"{section}.{k}")
+    if d["bootstrap"]["lookback_days"] > 30:
+        raise BetaConfigError("bootstrap.lookback_days must be <= 30 (maximum needed by rules)")
+    if d["ingestion"]["min_healthy_venues"] > len(ex):
+        raise BetaConfigError("ingestion.min_healthy_venues exceeds active venue count")
+    rules = d["rules"]
+    _exact_keys(rules, _RULE_KEYS, "rules")
+    for family, keys in _RULE_KEYS.items():
+        r = rules[family]
+        _exact_keys(r, keys, f"rules.{family}")
+        for k in keys:
+            if k == "enabled":
+                _bool(r[k], f"rules.{family}.enabled")
+            elif k in _PERCENTILE_KEYS:
+                _unit(r[k], f"rules.{family}.{k}")
+            else:
+                _int(r[k], f"rules.{family}.{k}")
+    for family in ("PRICE_OI_CONTRACTION_DOWN", "PRICE_OI_CONTRACTION_UP", "TAKER_FLOW_EXTREME"):
+        if not (rules[family]["armed_at_streak"] < rules[family]["triggered_at_streak"]):
+            raise BetaConfigError(f"rules.{family}: armed_at_streak must be < triggered_at_streak")
+    b = rules["POSITION_BUILDUP_COMPRESSION"]
+    if not (b["early_at_streak"] < b["armed_at_streak"] < b["triggered_at_streak"]):
+        raise BetaConfigError("POSITION_BUILDUP_COMPRESSION streaks must be strictly increasing")
+    if b["max_duration_min"] <= b["triggered_at_streak"] * 5:
+        raise BetaConfigError("POSITION_BUILDUP_COMPRESSION max_duration_min too short")
+    if rules["LIQUIDATION_STRESS"]["min_eligible_venues"] < 2:
+        raise BetaConfigError("LIQUIDATION_STRESS.min_eligible_venues must be >= 2")
+
+
+# ---- hard switches ---------------------------------------------------------
+_TRUE = {"1", "true", "yes", "on"}
+_FALSE = {"0", "false", "no", "off"}
+
+
+def _env_flag(env: Mapping[str, str], name: str, *, default: bool) -> bool:
+    raw = env.get(name)
+    if raw is None or raw.strip() == "":
+        return default
+    v = raw.strip().lower()
+    if v in _TRUE:
+        return True
+    if v in _FALSE:
+        return False
+    raise BetaConfigError(f"{name} must be a boolean flag (got an unrecognized value)")
+
+
+@dataclass(frozen=True)
+class BetaSwitches:
+    enabled: bool
+    detection: bool
+    push_hard: bool
+    outcome_tracking: bool
+    # False only in the explicit no-Telegram shadow-soak mode
+    # (BETA_TELEGRAM_ENABLED=0): no bot, no notifier, no Telegram health checks.
+    telegram: bool = True
+
+    def as_dict(self) -> dict:
+        return {"BETA_ENABLED": self.enabled, "BETA_DETECTION_ENABLED": self.detection,
+                "BETA_PUSH_ENABLED": self.push_hard,
+                "BETA_OUTCOME_TRACKING_ENABLED": self.outcome_tracking,
+                "BETA_TELEGRAM_ENABLED": self.telegram}
+
+
+def resolve_switches(cfg: BetaConfig, env: Optional[Mapping[str, str]] = None) -> BetaSwitches:
+    """Effective hard switches. Precedence (deterministic):
+
+    * BETA_ENABLED: an explicit env value (true or false) wins; unset/empty
+      falls back to the committed `beta.enabled` (false by default).
+    * Detection / outcome tracking: config AND env (env can only restrict).
+    * Push: committed `push_enabled` AND an EXPLICIT true BETA_PUSH_ENABLED
+      (unset => push forbidden); the env can never enable push on its own.
+    * BETA_TELEGRAM_ENABLED=0 selects the no-Telegram shadow-soak mode; it is
+      refused (BetaConfigError) while push is enabled or a bot token is set.
+    """
+    env = os.environ if env is None else env
+    enabled = _env_flag(env, "BETA_ENABLED", default=bool(cfg["enabled"]))
+    push_hard = enabled and cfg["push_enabled"] and _env_flag(env, "BETA_PUSH_ENABLED", default=False)
+    telegram = _env_flag(env, "BETA_TELEGRAM_ENABLED", default=True)
+    if not telegram:
+        if push_hard:
+            raise BetaConfigError("BETA_TELEGRAM_ENABLED=0 (no-Telegram shadow mode) "
+                                  "conflicts with enabled push")
+        if (env.get("BETA_TELEGRAM_BOT_TOKEN") or "").strip():
+            raise BetaConfigError("BETA_TELEGRAM_ENABLED=0 (no-Telegram shadow mode) "
+                                  "requires BETA_TELEGRAM_BOT_TOKEN to be unset")
+    return BetaSwitches(
+        enabled=enabled,
+        detection=enabled and cfg["detection_enabled"]
+        and _env_flag(env, "BETA_DETECTION_ENABLED", default=True),
+        push_hard=push_hard,
+        outcome_tracking=enabled and cfg["outcome_tracking_enabled"]
+        and _env_flag(env, "BETA_OUTCOME_TRACKING_ENABLED", default=True),
+        telegram=telegram,
+    )
+
+
+def effective_push_enabled(switches: BetaSwitches, admin_push_enabled: bool) -> bool:
+    """Admin durable state can only further restrict the hard switch."""
+    return bool(switches.push_hard and admin_push_enabled is True)
+
+
+# ---- secrets (environment only) --------------------------------------------
+@dataclass(frozen=True)
+class BetaSecrets:
+    bot_token: Optional[str]
+    owner_user_id: Optional[int]
+
+    @classmethod
+    def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "BetaSecrets":
+        env = os.environ if env is None else env
+        token = (env.get("BETA_TELEGRAM_BOT_TOKEN") or "").strip() or None
+        owner_raw = (env.get("BETA_OWNER_TELEGRAM_USER_ID") or "").strip()
+        owner = None
+        if owner_raw:
+            if not owner_raw.isdigit():
+                raise BetaConfigError("BETA_OWNER_TELEGRAM_USER_ID must be a positive integer")
+            owner = int(owner_raw)
+        return cls(bot_token=token, owner_user_id=owner)
+
+    def __repr__(self) -> str:  # never leak secrets through repr/logging
+        return (f"BetaSecrets(bot_token={'set' if self.bot_token else 'unset'}, "
+                f"owner_user_id={'set' if self.owner_user_id else 'unset'})")

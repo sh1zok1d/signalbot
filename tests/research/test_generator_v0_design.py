@@ -13,8 +13,9 @@ REPO = Path(__file__).resolve().parents[2]
 DECISION = REPO / "docs/research/POST_SPRINT04_AUTOMATION_MATURITY_DECISION.json"
 DESIGN = REPO / "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json"
 MEMORY = REPO / "docs/research/MECHANISM_MEMORY_V0.json"
+AUTHORITY = REPO / "docs/research/GOVERNANCE_REGION_AUTHORITY_V0.json"
 NEXT_UNIT = "HYPOTHESIS_GENERATOR_V0_IMPLEMENTATION_AND_SHADOW_HARNESS"
-CURRENT_ROUTING_UNIT = "GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD"
+CURRENT_ROUTING_UNIT = "GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW"
 FALSE_FLAGS = (
     "NEW_DATA_ACQUIRED",
     "SCIENTIFIC_OUTCOMES_COMPUTED",
@@ -181,7 +182,15 @@ FORBIDDEN_MEMORY_FIELDS = {
 
 
 def _authority() -> dict:
-    return _load(DESIGN)["GOVERNANCE_REGION_AUTHORITY_V0"]
+    # Rules come from the frozen design; ROWS are the published projection of the
+    # append-only memory chain (docs/research/generator_v0_memory/), mirrored here.
+    return _load(AUTHORITY)
+
+
+def test_design_holds_governance_rules_but_no_dynamic_rows():
+    design = _load(DESIGN)["GOVERNANCE_REGION_AUTHORITY_V0"]
+    assert "ROWS" not in design and "generator_v0_memory" in design["ROWS_SOURCE"]
+    assert {k: v for k, v in _authority().items() if k != "ROWS"} == {k: v for k, v in design.items() if k != "ROWS_SOURCE"}
 
 
 def _rows_by_id(authority: dict) -> dict:

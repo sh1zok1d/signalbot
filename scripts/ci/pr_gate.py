@@ -131,9 +131,19 @@ def _select_targets(always: list[str], changed: list[str]) -> list[str]:
         'docs/research/GOVERNANCE_REGION_AUTHORITY_V0.json',
         'docs/research/GENERATOR_V0_CONTEXT_PINS.json',
     }
-    if any(path.startswith('scripts/research/generator_v0/') or path in generator_authorities for path in changed):
+    if any(path.startswith(('scripts/research/generator_v0/', 'docs/research/generator_v0_memory/')) or path in generator_authorities
+           for path in changed):
         for test in sorted((REPO / 'tests/research').glob('test_generator_v0_*.py')):
             add(str(test.relative_to(REPO)))
+
+    # The frozen GV0R01-C013 market test binds its prereg, test ledger, library
+    # and dataset identity by digest; any of them changing must run its suite.
+    c013_bound = ('scripts/research/gv0r01_c013_', 'docs/research/GV0R01_C013_',
+                  'docs/research/SCIENTIFIC_TEST_LEDGER.json',
+                  'docs/research_data/SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0/',
+                  'scripts/research/discovery_sprint_04/')
+    if any(path.startswith(c013_bound) for path in changed):
+        add('tests/research/test_gv0r01_c013_market_test.py')
 
     changed_set = set(changed)
     changed_tests = [p for p in changed if _is_test_file(p)]

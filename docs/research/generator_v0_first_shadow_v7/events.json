@@ -1,0 +1,113 @@
+[
+  {
+    "KIND": "CALL_IMPORTED",
+    "N": 1,
+    "PAYLOAD": {
+      "SOURCE_CALL_KEY": "29025502a9a36bc7f475e09c382ae8c372991efd9e8b86d330363e991ed5f2ad",
+      "SOURCE_RAW_RESPONSE_SHA256": "5203e31a9ac031b23831029ffd1199f9692d9301e034210acd2c9073089bceda",
+      "SOURCE_RESPONSE_ID": "resp_08273b80118314ac006ab39d9b92dc87d2ba9539e343da810e",
+      "SOURCE_RUN_ID": "first-shadow-v6"
+    }
+  },
+  {
+    "KIND": "CALL_IMPORTED",
+    "N": 2,
+    "PAYLOAD": {
+      "SOURCE_CALL_KEY": "4987036cc23246d2dbd50cceb277139ee8fe59339c671c99ae801d315d0e8010",
+      "SOURCE_RAW_RESPONSE_SHA256": "07855f3279cb6aa3af1b517aae747f80bb9268205a2e5ba3e576603935f98677",
+      "SOURCE_RESPONSE_ID": "resp_0a0404f934baedd9006ab3a068c70887d2af71eda734b5aa3c",
+      "SOURCE_RUN_ID": "first-shadow-v6"
+    }
+  },
+  {
+    "KIND": "CALL_IMPORTED",
+    "N": 3,
+    "PAYLOAD": {
+      "SOURCE_CALL_KEY": "9c93901defcfc75770a3073a039d5bb94529a2b69febea3cceb885f9d193f7e0",
+      "SOURCE_RAW_RESPONSE_SHA256": "f66e729323ec3ce21eaea675e57294ec7eb32230afc96d42b28e36c6541e4e3f",
+      "SOURCE_RESPONSE_ID": "resp_0804f042cef56925006ab3cdfb548887d2b43773b1e57a8094",
+      "SOURCE_RUN_ID": "first-shadow-v6"
+    }
+  },
+  {
+    "KIND": "DERIVED_IMPORT",
+    "N": 4,
+    "PAYLOAD": {
+      "C018_REVALIDATION": "PASS",
+      "CAP_MICRO_USD": 7117536,
+      "CARDS_WRITTEN": false,
+      "CARD_IDS": [
+        "C001",
+        "C002",
+        "C003",
+        "C004",
+        "C005",
+        "C006",
+        "C007",
+        "C008",
+        "C009",
+        "C010",
+        "C011",
+        "C012",
+        "C013",
+        "C014",
+        "C015",
+        "C016",
+        "C017",
+        "C018",
+        "C019",
+        "C020",
+        "C021",
+        "C022",
+        "C023",
+        "C024",
+        "C025",
+        "C026",
+        "C027",
+        "C028",
+        "C029",
+        "C030"
+      ],
+      "DEST_RUN_ID": "first-shadow-v7",
+      "IMPORTED_CALL_KEYS": [
+        "29025502a9a36bc7f475e09c382ae8c372991efd9e8b86d330363e991ed5f2ad",
+        "4987036cc23246d2dbd50cceb277139ee8fe59339c671c99ae801d315d0e8010",
+        "9c93901defcfc75770a3073a039d5bb94529a2b69febea3cceb885f9d193f7e0"
+      ],
+      "IMPORTED_COST_MICRO_USD": 3779550,
+      "IMPORTED_GENERATION_ROUNDS": [
+        "generation:0",
+        "generation:1",
+        "generation:2"
+      ],
+      "REAL_LLM_CALLS_MADE": false,
+      "REMAINING_MICRO_USD": 3337986,
+      "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+      "SOURCE_RUN_ID": "first-shadow-v6",
+      "STATUS": "DERIVED_IMPORTED_REVALIDATED"
+    }
+  },
+  {
+    "KIND": "BUDGET_EXTENSION_AUTHORIZED",
+    "N": 5,
+    "PAYLOAD": {
+      "ACTOR": "owner",
+      "NEW_CAP_MICRO_USD": 17100000,
+      "OLD_CAP_MICRO_USD": 7117536,
+      "REAL_LLM_CALLS_MADE": false,
+      "REASON": "set absolute authorized campaign total to USD 17.10",
+      "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+      "TIME": "2026-09-23T14:12:46.602939+00:00"
+    }
+  },
+  {
+    "KIND": "DERIVED_CONTINUATION_AUTHORIZED",
+    "N": 6,
+    "PAYLOAD": {
+      "ACTOR": "owner",
+      "REAL_LLM_CALLS_MADE": false,
+      "REASON": "remaining-budget-preflight FITS under USD 17.10 absolute ceiling; continue remaining generator rounds",
+      "time": "2026-09-23T14:13:15.177185+00:00"
+    }
+  }
+]

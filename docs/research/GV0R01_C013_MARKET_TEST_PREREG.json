@@ -1,0 +1,558 @@
+{
+  "ADVERSARIAL_REVIEW": {
+    "AMENDMENT_REQUIRED": false,
+    "CALENDAR_ARTIFACTS": "RESOLVED: UTC daily bars; weekday and holiday effects common to all names cancel in within-date ranks; ISO weeks; year stability gate.",
+    "CROSS_SECTIONAL_DEPENDENCE": "RESOLVED: within-date permutation keeps each date cross-sectional target structure fixed; market-wide wick days only shift the intercept.",
+    "LIQUIDITY_SELECTION": "RESOLVED: top-50 by pre-t volume; liquidity is both a permutation stratum and a control rank.",
+    "LISTING_AGE": "RESOLVED: 35-day listing age (Sprint 04 rule) removes listing-day bars and first-month dynamics from predictors.",
+    "LOOKAHEAD": "RESOLVED: predictor/universe/controls use d <= t-1; target uses d >= t; synthetic test mutates bars >= t and bars < t separately.",
+    "MECHANICAL_OHLC_IDENTITIES": "RESOLVED: no shared bar; the target 2*RET term is removed by residualization; the synthetic test checks the identity.",
+    "OVERLAPPING_HORIZON": "RESOLVED for primary: H=1 targets never overlap across dates. K=5 predictor windows overlap; handled by DEPENDENCE_GATE (HAC). H=5 secondaries overlap and are descriptive only.",
+    "RESEARCHER_DEGREES_OF_FREEDOM": "RESOLVED: one primary variant chosen by outcome-free rules; every threshold, count and seed frozen here; secondary grid cannot decide.",
+    "RETURN_WICK_COUPLING": "RESOLVED on both sides: target residualized on same-window return and range; predictor-side coupling (CLV vs trailing return) handled by CONTROL_GATE with trailing return, range and liquidity ranks.",
+    "SAME_BAR_CONTAMINATION": "RESOLVED: disjoint windows. Residual adjacency (close(t-1) ~ open(t), bid-ask bounce) is diluted by K=5 and tested by ADJACENCY_GATE.",
+    "SURVIVORSHIP": "RESOLVED: universe from the archive including later-delisted names; selection uses pre-t volume only; one-day target survival reported and capped.",
+    "TICK_SIZE_DISCRETENESS": "DECLARED LIMITATION (card confounder 1): no tick-size data is catalogued; top-50 liquidity selection keeps daily ranges many ticks wide. No outcome-motivated price filter is added.",
+    "UNSTABLE_UNIVERSE": "RESOLVED: constant N=50 on every valid date; no partial universes."
+  },
+  "AGGREGATION": {
+    "FISHER_TRANSFORM": false,
+    "POOLED_STATISTIC": "arithmetic mean of weekly statistics over valid weeks (equal weight per week)",
+    "WEEK": "ISO week, Monday 00:00 UTC to Sunday 23:59:59 UTC; a decision date belongs to the week containing it",
+    "WEEKLY_STATISTIC": "arithmetic mean of the valid daily rho_t in the week (equal weight per day)",
+    "WEEK_VALID": "at least 5 valid decision dates in the week",
+    "YEAR_OF_WEEK": "calendar year of the week Monday"
+  },
+  "CAMPAIGN_ID": "GV0R01",
+  "CANDIDATE_ID": "C013",
+  "CARD_VERBATIM": {
+    "BASELINE_OR_NULL": "Baseline: cross-sectional model of WICK_RESID rank using trailing return rank, trailing range rank and log quote-volume rank only. Null: 1000 within-date permutations of CLV ranks inside quote-volume terciles, each producing the same mean weekly rank-correlation statistic.",
+    "CANDIDATE_ID": "C013",
+    "CAUSAL_OR_STRUCTURAL_STORY": "A daily bar that closes near its low, leaving an upper wick, reflects intraday rejection of higher prices. Plausible sources are supply that appears on rallies from stale holders, inventory-heavy makers, or unlock-related distribution. If that supply is name-specific and persists for days, a name's trailing close-location value (CLV) should predict the shape of its future intraday path, measured as wick asymmetry. The prediction should hold even after removing the part explained by the same-window close-to-close return. This is a question about path morphology on a panel, not about relative returns.",
+    "DATA_GAP_CLASS": "NONE",
+    "DATA_REQUIRED": [
+      {
+        "DATASET": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+        "LEGAL_RANGE": "2019-12..2024-12",
+        "OBSERVABLE": "Daily open, high, low, close and quote volume per symbol, plus listing and delisting status and pinned exclusion lists",
+        "STATUS": "DATA_READY"
+      }
+    ],
+    "DATA_STATUS": "DATA_READY",
+    "EXPECTED_IMPLEMENTATION_COST": "Low. The work is daily-panel feature construction, residualization and within-stratum permutation.",
+    "EXPECTED_INFORMATION_GAIN": "Opens or closes the morphology branch of the cross-sectional panel with a single frozen test that is orthogonal to the return target D13 already tested.",
+    "FALSIFIER": "The claim fails if any of the following holds: (1) the mean rank correlation between CLV and WICK_RESID lies within the central 95 percent of the stratified permutation null; (2) yearly correlations share the pooled sign in fewer than 3 of 5 years; (3) the association disappears once trailing return rank is included.",
+    "FUNCTION": "Cross-sectional rank association between trailing CLV rank and subsequent residual wick-asymmetry rank, with liquidity and trailing-return controls",
+    "HORIZON": "H daily bars following each 00:00 UTC decision time",
+    "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+    "MAIN_CONFOUNDERS": "(1) Tick-size discreteness quantizes CLV for low-priced names. (2) Pegged or stablecoin-like pairs; these are excluded via the pinned lists. (3) Bars on listing and delisting days. (4) Wick asymmetry is mechanically correlated with the same-window return, and the residualization depends on functional form. (5) Universe-wide wick days driven by market-level moves.",
+    "MECHANISM": "Persistent name-specific rejection of intraday price levels leads to predictable subsequent wick asymmetry, beyond what return explains",
+    "MECHANISM_DISTANCE_ARGUMENT": "D13 and GV0CAL-C005 target close-to-close relative returns. Here the target is explicitly orthogonalized to the same-window relative return, so it measures where within the daily range trading takes place, not direction. D3 characterizes the unconditional BTC path and is not a conditional panel test.",
+    "MECHANISM_FAMILY": "C",
+    "MISSING_OBSERVABLES": [],
+    "NAME": "Persistence of intraday wick morphology across the Binance spot USDT cross-section",
+    "NEAREST_TESTED_MECHANISM": "D13",
+    "NO_LOOKAHEAD_RULE": "The universe at t is the top-N names by trailing 30-day quote volume, computed only from bars closed at or before t. It includes names that were later delisted. Exclusion lists apply only from their pinned publication dates. Outcome-window variables enter only the target-side residualization and never the predictor. All parameters are frozen before any target is computed.",
+    "OBSERVABLE": "CLV_i,t is the mean over the last K daily bars closed at or before t of (2C - H - L)/(H - L), excluding bars with H equal to L. It is ranked cross-sectionally within the eligible universe at t.",
+    "PRIMARY_TARGET": "Weekly mean Spearman correlation between CLV rank and WICK_RESID rank. WICK_RESID_i is the residual of the sum over the next H daily bars of [log(H/O) - log(O/L)], after a cross-sectional regression on the same-window relative log return and log range.",
+    "PROTECTED_DATA_REQUIREMENT": false,
+    "SEARCH_SURFACE": {
+      "MAX_VARIANTS": 8,
+      "PARAMETERS": {
+        "CLV_LOOKBACK_D": [
+          1,
+          5
+        ],
+        "HORIZON_D": [
+          1,
+          5
+        ],
+        "UNIVERSE_TOP_N": [
+          50,
+          100
+        ]
+      }
+    },
+    "WHAT_NULL_WOULD_ELIMINATE": "Eliminates persistence of daily-bar morphology as a panel mechanism. Any panel structure would then have to reside in returns rather than in path shape.",
+    "WHAT_POSITIVE_WOULD_TEACH": "That intraday rejection of price levels is persistent at the name level, a structural property of path shape that is distinct from momentum.",
+    "WHY_NOT_A_RESCUE": "It is not a re-horizoning of D13. The predictor is intraday bar shape rather than formation return, and the target removes the return component D13 tested."
+  },
+  "CLASSIFICATION_RULES": {
+    "ANTI_RESCUE": [
+      "no horizon, lookback, N or universe change after the run",
+      "no dropped year",
+      "no changed liquidity control or strata",
+      "no sign flip",
+      "no secondary variant promoted",
+      "no rerun of this TEST_FAMILY_ID"
+    ],
+    "NO_P_VALUE_ALONE": "A nominal P_TWO_SIDED <= 0.05 alone never yields PROMISING_PROTOTYPE.",
+    "NO_TRADING_LANGUAGE": "No profitability, cost or tradability claim is made or tested.",
+    "PRECEDENCE": [
+      "IDENTITY_OK false (any preflight, digest, ledger-byte or integrity failure) -> INVALID_DISCOVERY",
+      "SUPPORT_PASS false -> INCONCLUSIVE_DISCOVERY",
+      "STATISTICAL and DIRECTION and TEMPORAL and CONTROL and DEPENDENCE and ADJACENCY gates all true -> PROMISING_PROTOTYPE",
+      "otherwise -> NO_USEFUL_STRUCTURE (REASONS lists every failed gate; OPPOSITE_DIRECTION_OUTSIDE_NULL when significant with the wrong sign)"
+    ],
+    "TAXONOMY": "Reuses the canonical discovery taxonomy (scripts/research/discovery_sprint_04/common.py classify_from_summary; Sprint 01-04).",
+    "VOCABULARY_MAP": {
+      "INCONCLUSIVE_DISCOVERY": "INCONCLUSIVE_SAMPLE",
+      "INVALID_DISCOVERY": "INVALID_TEST",
+      "NO_USEFUL_STRUCTURE": "NO_EVIDENCE; CONTRADICTED when REASONS contains OPPOSITE_DIRECTION_OUTSIDE_NULL",
+      "PROMISING_PROTOTYPE": "SUPPORTED (discovery tier)"
+    }
+  },
+  "CONTROL_DEFINITIONS": {
+    "CONTROLLED_STATISTIC": "partial rank correlation: X = resid(rank CLV ~ [1, rank TRAIL_RET, rank TRAIL_RANGE, rank QV30]); Y = resid(rank WICK_RESID ~ same); rho_ctrl = Pearson(X, Y). These are the card BASELINE controls (trailing return, trailing range, log quote-volume ranks).",
+    "LIQUIDITY": "rank of QV30 within A_t (rank of log QV30 is identical)",
+    "NO_WINSORIZATION": "No winsorization or standardization; ranks after residualization.",
+    "RANGE_WIN": "sum over target bars of ln(high_b / low_b)",
+    "RET_WIN": "sum over target bars of ln(close_b / open_b)",
+    "TARGET_SIDE_RESIDUALIZATION": "WICK_RESID = OLS residual of WICK on [1, RET_WIN, RANGE_WIN] across A_t (card: residual after a cross-sectional regression on the same-window relative log return and log range; the intercept makes raw and relative returns equivalent)",
+    "TRAIL_RANGE": "sum over predictor bars t-K..t-1 of ln(high_b / low_b); ranked within A_t",
+    "TRAIL_RET": "sum over predictor bars t-K..t-1 of ln(close_b / open_b); ranked within A_t"
+  },
+  "DATASET": {
+    "COLUMNS_NOT_USED": [
+      "volume (base)",
+      "close_time",
+      "number_of_trades",
+      "taker_buy_*"
+    ],
+    "COLUMNS_USED": {
+      "0": "open_time (ms UTC; microsecond rows normalized)",
+      "1": "open",
+      "2": "high",
+      "3": "low",
+      "4": "close",
+      "7": "quote_asset_volume"
+    },
+    "COVERAGE_BASIS": "Outcome-blind D13 universe metadata: min 82 eligible names per decision Monday 2020-02-03..2024-12-23 under a 35-day listing-age rule (per-year min 82/171/286/312/351). The exact C013 daily eligibility census is computed at execute time before classification; dates with fewer than N eligible names are invalid, never back-filled.",
+    "DATASET_ID": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+    "EXCLUSION_LISTS_SHA256": "e5994529bc00c500ca43eafd8aa12cba214a9ea7bdb50e1e891e3dd30d26eafb",
+    "EXCLUSION_LIST_DIGEST": "35779ca5b84f0dc5a82d8d8d0e35ba2f4390cd24c23cee9a592631c9a9513cf0",
+    "FILE_COUNT": 18296,
+    "FILE_LEDGER_DIGEST": "fc38ea13756d7da9a8500420adcb8d918bcd7632367b0d7026fd31a1636c56cd",
+    "LEGAL_MONTHS": "2019-12..2024-12",
+    "LOCAL_BYTES_PRESENT_AT_DESIGN": false,
+    "OBJECT_LEDGER_SHA256": "a1cffe79458910583633f6dd78301519c7eba1f0d930863e986d682b09ad8c2c",
+    "PRIOR_USE_DISCLOSURE": "D13 (Sprint 04) consumed this panel for weekly close-to-close relative-return structure (NO_USEFUL_STRUCTURE). The C013 design did not read D13 outcome numbers. The C013 target is residualized on same-window return and differs from D13.",
+    "RAW_BYTES": "gitignored; restored by python3 -m scripts.research.discovery_sprint_04.restore_d13_panel; execute verifies every zip against the frozen object ledger",
+    "RUNTIME_FILE_AUTHORITY": "SNAPSHOT_BOUND_OBJECT_LEDGER (scientific_file_keys); never object_key_index or live S3",
+    "SNAPSHOT_ID": "fdd698c66ce894ba981665c1b4bd5661e7a13b275368ad89f532df9bcc455acd",
+    "UNIVERSE_IDENTITY_SHA256": "7fdee63f979cb8c9ac73153c15f35b84b674be743e83962be2a780ade33d5604"
+  },
+  "DATE": "2026-09-25",
+  "DESIGN_VERSION": "V1",
+  "EVIDENCE_TIER": {
+    "EDGE_PROTOCOL_LABEL_BEFORE_RUN": "CANDIDATE (rule frozen for a declared one-shot test)",
+    "NOTE": "Legal 2020-2024 history of a panel used once before (D13, close-to-close relative returns). This is not untouched OOS for the panel. A PROMISING_PROTOTYPE result earns an independent confirmation, never a validated edge. Protected 2025/2026 stay sealed.",
+    "TIER": "DISCOVERY_ONE_SHOT"
+  },
+  "EXECUTION": {
+    "COMMAND": "python -m scripts.research.gv0r01_c013_market_test execute",
+    "ONE_SHOT": "after execution the ledger entry must be closed with RESULT_SHA256; the TEST_FAMILY_ID is then consumed",
+    "REQUIRES_PERMIT": "docs/research/GV0R01_C013_MARKET_TEST_EXECUTION_PERMIT.json with EXECUTION_AUTHORIZED true, TEST_FAMILY_ID and PREREG_SHA256 equal to this file digest, written by an explicit owner authorization"
+  },
+  "EXECUTION_AUTHORIZED": false,
+  "FALSIFIERS": {
+    "CARD_1": {
+      "GATE": "STATISTICAL_GATE fails when P_TWO_SIDED > 0.05",
+      "TEXT": "mean rank correlation within the central 95% of the stratified permutation null"
+    },
+    "CARD_2": {
+      "GATE": "TEMPORAL_GATE",
+      "TEXT": "yearly correlations share the pooled sign in fewer than 3 of 5 years"
+    },
+    "CARD_3": {
+      "GATE": "CONTROL_GATE fails when the controlled statistic is inside the central 95% of its own null or its sign differs from the pooled primary",
+      "TEXT": "association disappears once trailing return rank is included"
+    }
+  },
+  "FEATURE_DEFINITIONS": {
+    "BAR_CLV": "CLV_b = (2*close_b - high_b - low_b) / (high_b - low_b), raw prices, exactly the card formula; undefined (skipped) when high_b == low_b",
+    "PREDICTOR_CLV_K": "CLV_i,t = arithmetic mean of CLV_b over bars b in {t-K, ..., t-1} with high_b > low_b (card: mean over the last K daily bars closed at or before t, excluding H == L). Day t itself is excluded.",
+    "PREDICTOR_RANK": "rank of CLV_i,t within A_t, average ranks for ties, 1-based",
+    "WELL_FORMED_BAR": "all of open, high, low, close finite and > 0; quote volume finite and >= 0; low <= open <= high and low <= close <= high"
+  },
+  "GATES": {
+    "ADJACENCY_GATE": "pooled statistic of the same predictor and universe against the H=1 target starting one day later (bar t+1) has the same sign as the primary. Resolves close(t-1)/open(t) adjacency coupling: an effect that exists only in the adjacent bar is not persistence.",
+    "CONTROL_GATE": "controlled pooled statistic P_TWO_SIDED <= 0.05 and same sign as the pooled primary",
+    "DEPENDENCE_GATE": "Newey-West t of the weekly primary series (valid weeks in chronological order), Bartlett kernel, lag 4 (= floor(4*(T/100)^(2/9)) for T = 250..260), |t| >= 1.96 and same sign. Resolves the serial dependence the within-date null ignores (overlapping K=5 predictor windows).",
+    "DESIGN_GATES_ONLY_NARROW_SUPPORT": "DEPENDENCE_GATE and ADJACENCY_GATE are pre-outcome adversarial-review additions. They can only turn a would-be support into NO_USEFUL_STRUCTURE; they cannot rescue anything.",
+    "DIRECTION_GATE": "pooled primary < 0. Persistence means low trailing CLV (upper-wick rejection) predicts high future upper-minus-lower excursion from the open (see TARGET_DEFINITION.ALGEBRA). A significant positive value is reported as OPPOSITE_DIRECTION_OUTSIDE_NULL and is never re-read as support for a different mechanism.",
+    "STATISTICAL_GATE": "P_TWO_SIDED <= 0.05 for the primary pooled statistic",
+    "TEMPORAL_GATE": "YEAR_STABILITY.RULE"
+  },
+  "HORIZON": {
+    "APPROACH": "A: one primary variant nominated by an ex-ante rule; the other seven card variants are a descriptive secondary grid that can never change the classification.",
+    "CARD_SEARCH_SURFACE": {
+      "MAX_VARIANTS": 8,
+      "PARAMETERS": {
+        "CLV_LOOKBACK_D": [
+          1,
+          5
+        ],
+        "HORIZON_D": [
+          1,
+          5
+        ],
+        "UNIVERSE_TOP_N": [
+          50,
+          100
+        ]
+      }
+    },
+    "NOT_CHOSEN_BY_OUTCOME": true,
+    "PRIMARY_H": 1,
+    "PRIMARY_K": 5,
+    "PRIMARY_N": 50,
+    "RULE": [
+      "N=50: the only card value that gives a constant cross-section size on every decision date. Outcome-blind universe metadata shows fewer than 100 eligible names until 2020 H2 (min 82), so N=100 would mean a time-varying or missing universe.",
+      "H=1: target windows of consecutive decision dates do not overlap, so each target bar is used once per name. H=5 overlaps 4/5 between consecutive dates, which the within-date permutation null ignores. H=1 also keeps every target bar inside the final legal week.",
+      "K=5: the card claims PERSISTENT name-specific rejection, a multi-day state. K=1 makes the predictor the single bar adjacent to the target, where close(t-1) ~ open(t) microstructure coupling (bid-ask bounce) is strongest; K=5 dilutes that bar to 1/5 of the predictor."
+    ]
+  },
+  "HYPOTHESIS_ID": "GV0R01-C013",
+  "IMPLEMENTATION_FILE_SHA256": {
+    "scripts/research/discovery_sprint_04/common.py": "516d75a90f287ba11fc967f8130515d06d488b13dd36a76a6df289e88f68b126",
+    "scripts/research/discovery_sprint_04/d13.py": "d043577e40cb65311ae71fe3e9da1669ea43aeef006e0fad08fd4639358841df",
+    "scripts/research/discovery_sprint_04/d13_acquire.py": "b6433108218b3271357399945647d3f995feb5b1348b7f9bedd6c25a529d9957",
+    "scripts/research/discovery_sprint_04/d13_panel.py": "0aaabc039abd327f56adb7c956932ea217380524d8d9a6bc9351c0df6a340d3f",
+    "scripts/research/gv0r01_c013_market_test.py": "6f179e2ca308210f5e0f836c5dd7d781f4a2ba26f4f1e36d7a1c4227ec9b8c12",
+    "scripts/research/gv0r01_c013_market_test_lib.py": "b30b080c55054f3ebbe2e1d87662d10484f5184d5348f60a3d1137aa0f319f89"
+  },
+  "MARKET_OUTCOMES_OPENED": false,
+  "MARKET_TEST_EXECUTED": false,
+  "MISSING_DATA": {
+    "DENOMINATORS": "every variant reports decision days, valid days, invalid days by reason, selected name-days and missing targets by reason",
+    "MALFORMED_VS_MISSING": "reported separately (MALFORMED_BAR vs MISSING_BAR)",
+    "PREDICTOR": "any missing or malformed bar in t-K..t-1 makes the name ineligible at t (never imputed)",
+    "SURVIVAL": "Only the one-day (H=1) target survival is conditioned on, which is required to observe a target. Its rate is reported and capped by MAX_MISSING_TARGET_RATE.",
+    "TARGET": "missing bar, malformed bar, or a symbol final archive bar before 2024-12-31 (delisting-day bar) makes the target missing; the name leaves A_t for that date and is counted in MISSING_TARGET_BY_REASON"
+  },
+  "MULTIPLICITY": {
+    "MULTIPLICITY_METHOD": "One primary hypothesis at alpha 0.05 two-sided. The six gates are an intersection-union conjunction on that one hypothesis (all must pass), so no alpha inflation. The 7 secondary variants form a descriptive family with Holm adjustment and no decision role. Search-family accounting: GV0R01 generated 30 cards; generated cards are not market tests; this is executed test 1 of SF-GENERATOR_V0-GV0R01 and is recorded in docs/research/SCIENTIFIC_TEST_LEDGER.json before any outcome.",
+    "NOT_EXPLORATORY_RELABEL": "Nothing in this design is labelled exploratory to avoid accounting.",
+    "PRIMARY_TEST_COUNT": 1,
+    "SEARCH_FAMILY_ID": "SF-GENERATOR_V0-GV0R01",
+    "SECONDARY_TEST_COUNT": 7,
+    "TEST_FAMILY_ID": "TF-GV0R01-C013-MT1"
+  },
+  "NAME": "Persistence of intraday wick morphology across the Binance spot USDT cross-section",
+  "NULL_MODEL": {
+    "CONTROLLED_NULL": "the same permutation indices applied to X = resid(rank CLV ~ controls) (Kennedy 1995 residualized-predictor permutation)",
+    "FIXED": "rank(WICK_RESID), the analysis set, strata, valid-day and valid-week masks",
+    "NAME": "within-date quote-volume-tercile permutation (card)",
+    "NULL_STATISTIC": "for draw b: daily rho_t^b -> weekly means over the same valid days -> pooled mean over the same valid weeks",
+    "PERMUTED": "rank(CLV) values within each stratum (card: permutations of CLV ranks inside quote-volume terciles)",
+    "P_VALUE": "P_LOWER = (1 + #{null <= obs})/(B+1); P_UPPER = (1 + #{null >= obs})/(B+1); P_TWO_SIDED = min(1, 2*min(P_LOWER, P_UPPER)). The observed statistic is outside the central 95% of the null exactly when P_TWO_SIDED <= 0.05.",
+    "SIDEDNESS": "two-sided (card: central 95%), plus a separate direction gate",
+    "STRATA": "on each date, A_t is sorted by QV30 descending (ties by symbol) and split into 3 strata of sizes floor(n/3) boundaries: positions [floor(g*n/3), floor((g+1)*n/3)) for g = 0, 1, 2",
+    "UNIT": "independent permutation per decision date and per draw"
+  },
+  "NUMPY_VERSION": "2.1.3",
+  "OUTPUT_SCHEMA": {
+    "EVALUATION_CONDITIONAL_KEYS": [
+      "HAC_T",
+      "YEARS_SHARING_POOLED_SIGN"
+    ],
+    "EVALUATION_KEYS": [
+      "CLASSIFICATION",
+      "GATES",
+      "IDENTITY_OK",
+      "IDENTITY_REASONS",
+      "REASONS",
+      "SECONDARY_CAN_CHANGE_CLASSIFICATION",
+      "SECONDARY_HOLM_P",
+      "SUPPORT_PASS",
+      "SUPPORT_REASONS"
+    ],
+    "PRIMARY_EXTRA_KEYS": [
+      "NULL",
+      "CONTROLLED",
+      "YEARLY"
+    ],
+    "RESULT_PATH": "docs/research/GV0R01_C013_MARKET_TEST_RESULT.json",
+    "TOP_LEVEL_KEYS": [
+      "ADJACENCY_DIAGNOSTIC",
+      "EVALUATION",
+      "HYPOTHESIS_ID",
+      "IDENTITY",
+      "NUMPY_VERSION",
+      "PRIMARY",
+      "PROTECTED_2025_2026_OPENED",
+      "SCHEMA",
+      "SECONDARY_GRID",
+      "TEST_FAMILY_ID"
+    ],
+    "VARIANT_KEYS": [
+      "DECISION_DAYS",
+      "H",
+      "INVALID_DAYS_BY_REASON",
+      "K",
+      "MISSING_TARGET_BY_REASON",
+      "MISSING_TARGET_RATE",
+      "N",
+      "POOLED",
+      "SELECTED_NAME_DAYS",
+      "TARGET_OFFSET_DAYS",
+      "UNIVERSE_IDENTITY_DIGEST",
+      "VALID_DAYS",
+      "VALID_WEEKS",
+      "VALID_WEEKS_BY_YEAR",
+      "VARIANT",
+      "WEEKLY_SERIES"
+    ],
+    "WRITE_MODE": "exclusive create; canonical JSON (indent 2, sorted keys, no NaN)"
+  },
+  "PARAMS": {
+    "ADJACENCY_OFFSET_DAYS": 1,
+    "ADJACENCY_VARIANT_INDEX": 99,
+    "FIRST_DECISION_DATE": "2020-01-06",
+    "FIRST_WEEK_MONDAY": "2020-01-06",
+    "HAC_CRITICAL_ABS_T": 1.96,
+    "HAC_LAG_WEEKS": 4,
+    "HYPOTHESIS_ID": "GV0R01-C013",
+    "LAST_DECISION_DATE": "2024-12-29",
+    "LEGAL_LAST_BAR_DATE": "2024-12-31",
+    "LIQUIDITY_WINDOW_DAYS": 30,
+    "LISTING_AGE_DAYS": 35,
+    "MAX_MISSING_TARGET_RATE": 0.02,
+    "MIN_ANALYSIS_FRACTION": 0.9,
+    "MIN_VALID_DAYS_PER_WEEK": 5,
+    "MIN_VALID_WEEKS": 250,
+    "MIN_VALID_WEEKS_PER_YEAR": 48,
+    "MIN_YEARS_SHARING_SIGN": 3,
+    "N_WEEKS": 260,
+    "PERMUTATIONS": 1000,
+    "PRIMARY_ALPHA": 0.05,
+    "PRIMARY_EFFECT_DIRECTION_SIGN": -1,
+    "PRIMARY_VARIANT": {
+      "H": 1,
+      "K": 5,
+      "N": 50
+    },
+    "SEARCH_FAMILY_ID": "SF-GENERATOR_V0-GV0R01",
+    "SECONDARY_VARIANTS": [
+      {
+        "H": 1,
+        "K": 1,
+        "N": 50,
+        "VARIANT_INDEX": 1
+      },
+      {
+        "H": 1,
+        "K": 1,
+        "N": 100,
+        "VARIANT_INDEX": 2
+      },
+      {
+        "H": 5,
+        "K": 1,
+        "N": 50,
+        "VARIANT_INDEX": 3
+      },
+      {
+        "H": 5,
+        "K": 1,
+        "N": 100,
+        "VARIANT_INDEX": 4
+      },
+      {
+        "H": 1,
+        "K": 5,
+        "N": 100,
+        "VARIANT_INDEX": 5
+      },
+      {
+        "H": 5,
+        "K": 5,
+        "N": 50,
+        "VARIANT_INDEX": 6
+      },
+      {
+        "H": 5,
+        "K": 5,
+        "N": 100,
+        "VARIANT_INDEX": 7
+      }
+    ],
+    "SEED": 639284419827364414,
+    "STABILITY_YEARS": [
+      "2020",
+      "2021",
+      "2022",
+      "2023",
+      "2024"
+    ],
+    "TEST_FAMILY_ID": "TF-GV0R01-C013-MT1"
+  },
+  "PERMUTATION": {
+    "ADAPTIVE": false,
+    "COUNT": 1000,
+    "EARLY_STOP": false,
+    "NUMPY_VERSION_REQUIRED": "2.1.3",
+    "PRNG": "numpy.random.Generator(PCG64(SeedSequence([SEED, VARIANT_INDEX, date.toordinal()])))",
+    "SEED": 639284419827364414,
+    "SEED_DERIVATION": "int(sha256(b\"GV0R01-C013|MARKET_TEST_V1|PERMUTATION_NULL\").hexdigest()[:16], 16)",
+    "WITHIN_STRATUM_DRAW": "Generator.permuted(tile(stratum_positions, (B, 1)), axis=1) for strata in order 0, 1, 2"
+  },
+  "POINT_IN_TIME": {
+    "BAR": "A 1d kline for UTC day d opens at d 00:00:00.000 and closes at d 23:59:59.999. AVAILABLE_AT = d+1 00:00:00 UTC.",
+    "DECISION_TIME": "t = 00:00:00 UTC of decision day t",
+    "EXCLUSIONS": "Pinned name-only list (digest 35779ca5...). Each excluded symbol is a stablecoin/fiat base or a leveraged token, an intrinsic instrument identity known at its listing, so applying it on every date uses no post-t information. The card phrase about publication dates is satisfied: the list was pinned by the Sprint 04 freeze before any C013 computation.",
+    "FEATURE_CUTOFF": "predictor, controls, eligibility and universe use bars with d <= t-1 only",
+    "LISTING_AGE": "first archive bar day <= t-35 (archive starts 2019-12-01, so pre-archive listings qualify from 2020-01-05)",
+    "NO_SAME_BAR": "No bar enters both the predictor window (d <= t-1) and the target window (d >= t).",
+    "TARGET_END": "bar t+OFFSET+H-1 (primary: bar t)",
+    "TARGET_START": "bar t+OFFSET (OFFSET 0 primary; 1 for the adjacency diagnostic)"
+  },
+  "POPULATION": {
+    "ANALYSIS_SET": "A_t = selected names whose target is valid. The date is valid only if |A_t| >= ceil(0.9 * N) (45 for N=50, 90 for N=100). All ranks and regressions use A_t.",
+    "ELIGIBILITY_AT_T": [
+      "symbol not in the pinned EXCLUDED_SYMBOLS",
+      "first archive bar day <= t-35",
+      "bars t-K .. t-1 all present and well-formed",
+      "at least one of those K bars has high > low"
+    ],
+    "NO_NEW_EXCLUSIONS": "No exclusion beyond the pinned Sprint 04 list; no price, tick-size or volatility filter.",
+    "QV30": "sum of quote_asset_volume over well-formed bars with day in [t-30, t-1]; missing or malformed bars contribute 0 (not traded)",
+    "SELECTION": "Top N eligible names by QV30 descending; ties by symbol ascending. If fewer than N names are eligible the date is invalid (UNIVERSE_SHORT); no partial universe.",
+    "UNIVERSE": "Binance spot USDT-quoted symbols in the frozen object ledger, including names delisted later (no survivorship filter)."
+  },
+  "PREFLIGHT": {
+    "CHECKS": [
+      "LEDGER_ENTRY_PRESENT",
+      "PREREG_DIGEST_MATCHES_LEDGER",
+      "TEST_FAMILY_ID_UNUSED",
+      "IMPLEMENTATION_DIGESTS_MATCH",
+      "SEED_FROZEN",
+      "PERMUTATIONS_FROZEN",
+      "TIME_RANGE_FROZEN",
+      "PROTECTED_EXCLUDED",
+      "NUMPY_VERSION_MATCHES",
+      "RESULT_ABSENT",
+      "FILE_LEDGER_DIGEST_MATCHES",
+      "OBJECT_LEDGER_SHA256_MATCHES",
+      "EXCLUSION_LISTS_SHA256_MATCHES",
+      "UNIVERSE_IDENTITY_SHA256_MATCHES",
+      "EXCLUSION_LIST_DIGEST_MATCHES",
+      "SCIENTIFIC_PATHS_CLEAN"
+    ],
+    "COMMAND": "python -m scripts.research.gv0r01_c013_market_test preflight",
+    "EXECUTE_ONLY_CHECKS": [
+      "EXECUTION_PERMIT_BOUND",
+      "LOCAL_BYTES_MATCH_LEDGER"
+    ],
+    "REFUSAL": "execute refuses on any failed check; no partial run"
+  },
+  "PROTECTED_DATA_RULE": {
+    "ENFORCEMENT": "ledger keys outside 2019-12..2024-12 refused; any 2025/2026 row or day refused; decision days never require a bar after 2024-12-31",
+    "PROTECTED_2025_2026_OPEN_AUTHORIZED": false
+  },
+  "SCHEMA_VERSION": "GV0R01_C013_MARKET_TEST_PREREG_V1",
+  "SCIENTIFIC_RESULT_CREATED": false,
+  "SEARCH_FAMILY_ID": "SF-GENERATOR_V0-GV0R01",
+  "SECONDARY_GRID": {
+    "CAN_CHANGE_CLASSIFICATION": false,
+    "N100_EARLY_DATES": "dates with fewer than 100 eligible names are invalid for N=100 variants and are reported, not back-filled",
+    "USE": "descriptive parameter-robustness report (EDGE_RESEARCH_PROTOCOL section 11); each gets its pooled statistic and a 1000-draw permutation P_TWO_SIDED, with Holm adjustment across the 7",
+    "VARIANTS": [
+      {
+        "H": 1,
+        "K": 1,
+        "N": 50,
+        "VARIANT_INDEX": 1
+      },
+      {
+        "H": 1,
+        "K": 1,
+        "N": 100,
+        "VARIANT_INDEX": 2
+      },
+      {
+        "H": 5,
+        "K": 1,
+        "N": 50,
+        "VARIANT_INDEX": 3
+      },
+      {
+        "H": 5,
+        "K": 1,
+        "N": 100,
+        "VARIANT_INDEX": 4
+      },
+      {
+        "H": 1,
+        "K": 5,
+        "N": 100,
+        "VARIANT_INDEX": 5
+      },
+      {
+        "H": 5,
+        "K": 5,
+        "N": 50,
+        "VARIANT_INDEX": 6
+      },
+      {
+        "H": 5,
+        "K": 5,
+        "N": 100,
+        "VARIANT_INDEX": 7
+      }
+    ]
+  },
+  "SOURCE": {
+    "BRANCH": "claude/signalbot-cost-calibration-hgv3yu",
+    "CARD_CALL_KEY": "a6fa912f8b3df56db39d62a851379f3a56f2dae20c2d1e0ff942a978f08b619a",
+    "CARD_CONTRACT": "GENERATOR_CONTRACT_V02",
+    "CARD_ROUND": "generation:1",
+    "CARD_SHA256_CANONICAL": "a848578c37e239bf52c5457de0eef55ef6d6726703e8628ff8f96313fd1c7592",
+    "DESIGN_BASE_HEAD": "f428edec8bdcc9ddaf4ed6e73b9bd522219832bd",
+    "DESIGN_BASE_TREE": "5a46326484de7c531c018e46a3b1dfb7b8bdb4ff",
+    "GOVERNANCE_STATE": "CONSUMED (Memory Finalizer governance region state only; not scientific support)",
+    "MEMORY_EVENT": "416b22fabd1663be9094bce18c5bce2a8b3d062b0b01525a25395d195788bead",
+    "PIPELINE_STATE": "sole GV0R01 EXECUTABLE_NOW candidate",
+    "REPOSITORY": "sh1zok1d/signalbot",
+    "SEALED_JOURNAL": "docs/research/generator_v0_gv0r01/run.sqlite",
+    "SEALED_JOURNAL_SHA256": "de22f7c2aeb0487842a2477e5a2f44e3df7a9cbf007785cfaf213cbcd648be62"
+  },
+  "STATUS": "FROZEN_PREREGISTRATION_NOT_EXECUTED",
+  "SUPPORT_REQUIREMENTS": {
+    "MAX_MISSING_TARGET_RATE": 0.02,
+    "MIN_ANALYSIS_N": "ceil(0.9 * N) per date",
+    "MIN_VALID_WEEKS": 250,
+    "MIN_VALID_WEEKS_PER_YEAR": 48
+  },
+  "TARGET_DEFINITION": {
+    "ALGEBRA": "Per bar, ln(H/O) - ln(O/L) = -ln(H/L) * CLVlog_b + 2 ln(C/O), where CLVlog uses log prices. Regressing on RET_WIN removes the 2*RET term; what remains is range-weighted future close location.",
+    "DAILY_STATISTIC": "rho_t = Pearson(rank CLV, rank WICK_RESID) over A_t = Spearman correlation",
+    "WICK": "WICK_i,t = sum over target bars b of [ln(high_b / open_b) - ln(open_b / low_b)] (card formula verbatim)"
+  },
+  "TEST_FAMILY_ID": "TF-GV0R01-C013-MT1",
+  "TIES": "average ranks (1-based) for CLV, WICK_RESID and all control ranks; universe ties by symbol ascending; tercile ties by symbol ascending",
+  "TIME_RANGE": {
+    "DECISION_DAYS_PRIMARY": 1820,
+    "FIRST_DECISION_DATE": "2020-01-06",
+    "H5_LAST_DECISION_DATE": "2024-12-27 (so the fifth target bar is 2024-12-31)",
+    "LAST_DECISION_DATE": "2024-12-29",
+    "LAST_TARGET_BAR_PRIMARY": "2024-12-29",
+    "LEGAL_LAST_BAR": "2024-12-31",
+    "NO_EXTENSION": "The panel is never extended; decision days that would need a bar after 2024-12-31 are not generated.",
+    "PANEL_FIRST_BAR": "2019-12-01",
+    "WEEKS": "260 ISO weeks, Monday 2020-01-06 .. Monday 2024-12-23 (52 per year 2020..2024)"
+  },
+  "YEAR_STABILITY": {
+    "PARTIAL_2019": "not a year; December 2019 is warm-up only",
+    "RULE": "at least 3 of the 5 yearly statistics have strictly the same sign as the pooled statistic; a yearly value of exactly 0 does not share the sign; a pooled value of 0 fails",
+    "YEARLY_STATISTIC": "mean of valid weekly statistics whose Monday is in that year",
+    "YEARS": [
+      "2020",
+      "2021",
+      "2022",
+      "2023",
+      "2024"
+    ]
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "AUTHORITATIVE_STOP_CLASS": "PROTECTED_RANGE_OR_REQUIREMENT",
+  "AUTHORITATIVE_STOP_REASON": "ambiguous protected range",
+  "CARDS_TABLE_WRITTEN": 0,
+  "CRITICS_RUN": false,
+  "INVALID_COUNT": 9,
+  "INVALID_IDS": [
+    "C031",
+    "C032",
+    "C033",
+    "C034",
+    "C035",
+    "C036",
+    "C038",
+    "C039",
+    "C040"
+  ],
+  "NOTE": "Local application validation of the persisted generation:3 COMPLETE answer. Nine of ten cards fail closed. The journaled answer was not edited. LEGAL_RANGE wrappers and the C033 exclusion parser were not extended after observing these outcomes.",
+  "PARSED_GENERATION_3_OBJECTS": 10,
+  "ROWS": [
+    {
+      "CANDIDATE_ID": "C031",
+      "LEGAL_RANGE_VALUES": [
+        "Requested 2020-01..2024-12 only; no catalog-bound historical mempool coverage is established.",
+        "Requested 2020-01..2024-12, with earlier headers used only for backward-looking calibration."
+      ],
+      "PROTECTED_DATA_REQUIREMENT": false,
+      "STOP_REASON": "ambiguous protected range",
+      "VALIDATION": "INVALID"
+    },
+    {
+      "CANDIDATE_ID": "C032",
+      "LEGAL_RANGE_VALUES": [
+        "Requested overlap within 2020-01..2024-12; no historical coverage is established by the catalog.",
+        "Historical rule versions effective within 2020-01..2024-12 only."
+      ],
+      "PROTECTED_DATA_REQUIREMENT": false,
+      "STOP_REASON": "ambiguous protected range",
+      "VALIDATION": "INVALID"
+    },
+    {
+      "CANDIDATE_ID": "C033",
+      "LEGAL_RANGE_VALUES": [
+        "2020-01..2024-12"
+      ],
+      "NO_LOOKAHEAD_RULE": "A bar enters only after completion. Freeze the dollar grid, tolerance and transformation before inspecting concentration outcomes. Never estimate a preferred grid from the full sample, join across independently translated day boundaries or use 2025/2026 bars.",
+      "PROTECTED_DATA_REQUIREMENT": false,
+      "STOP_REASON": "protected data requirement",
+      "VALIDATION": "INVALID"
+    },
+    {
+      "CANDIDATE_ID": "C034",
+      "LEGAL_RANGE_VALUES": [
+        "Requested overlap within 2020-01..2024-12; historical coverage is unverified.",
+        "Requested overlap within 2020-01..2024-12; the catalog's spot hourly snapshot is not sufficient.",
+        "Requested overlap within 2020-01..2024-12; no catalog-bound coverage is established."
+      ],
+      "PROTECTED_DATA_REQUIREMENT": false,
+      "STOP_REASON": "ambiguous protected range",
+      "VALIDATION": "INVALID"
+    },
+    {
+      "CANDIDATE_ID": "C035",
+      "LEGAL_RANGE_VALUES": [
+        "pre-2020",
+        "Requested 2018-01..2019-12, intersected with actual pre-2020 catalog coverage.",
+        "Historical versions effective in the requested 2018-01..2019-12 interval only."
+      ],
+      "PROTECTED_DATA_REQUIREMENT": false,
+      "STOP_REASON": "ambiguous protected range",
+      "VALIDATION": "INVALID"
+    },
+    {
+      "CANDIDATE_ID": "C036",
+      "LEGAL_RANGE_VALUES": [
+        "Requested official versions and event dates within 2020..2024 only.",
+        "Requested 2020-01..2024-12, using only historically existing public spot markets.",
+        "2020..2024"
+      ],
+      "PROTECTED_DATA_REQUIREMENT": false,
+      "STOP_REASON": "ambiguous protected range",
+      "VALIDATION": "INVALID"
+    },
+    {
+      "CANDIDATE_ID": "C037",
+      "LEGAL_RANGE_VALUES": [
+        "2019-12..2024-12"
+      ],
+      "PROTECTED_DATA_REQUIREMENT": false,
+      "STOP_REASON": null,
+      "VALIDATION": "VALID"
+    },
+    {
+      "CANDIDATE_ID": "C038",
+      "LEGAL_RANGE_VALUES": [
+        "Requested 2020-01..2024-12 only; no catalog-bound option-chain coverage exists.",
+        "Requested historical contract versions effective within 2020..2024.",
+        "2020..2024"
+      ],
+      "PROTECTED_DATA_REQUIREMENT": false,
+      "STOP_REASON": "ambiguous protected range",
+      "VALIDATION": "INVALID"
+    },
+    {
+      "CANDIDATE_ID": "C039",
+      "LEGAL_RANGE_VALUES": [
+        "Requested 2023-04-12..2024-12 only; no catalog-bound beacon archive is established.",
+        "Requested 2023-04-12..2024-12 only; no catalog-bound execution receipt archive is established.",
+        "2020-01..2024-12; use only the legal overlap beginning 2023-04-12."
+      ],
+      "PROTECTED_DATA_REQUIREMENT": false,
+      "STOP_REASON": "ambiguous protected range",
+      "VALIDATION": "INVALID"
+    },
+    {
+      "CANDIDATE_ID": "C040",
+      "LEGAL_RANGE_VALUES": [
+        "Requested 2020-01..2024-12 only; no catalog or identified public archive provides this tape.",
+        "Requested 2020-01..2024-12 on the same venue and symbol as the missing ingress tape."
+      ],
+      "PROTECTED_DATA_REQUIREMENT": false,
+      "STOP_REASON": "ambiguous protected range",
+      "VALIDATION": "INVALID"
+    }
+  ],
+  "SELECTOR_RUN": false,
+  "VALIDATOR_REPAIRED_AFTER_OUTCOME": false,
+  "VALID_COUNT": 1,
+  "VALID_IDS": [
+    "C037"
+  ]
+}

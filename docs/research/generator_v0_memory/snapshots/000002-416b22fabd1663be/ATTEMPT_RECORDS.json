@@ -1,0 +1,2800 @@
+[
+  {
+    "ATTEMPT_ID": "GV0CAL-C001",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0CAL",
+    "CANDIDATE_ID": "C001",
+    "CARD": {
+      "BASELINE_OR_NULL": "Stratified block permutation: within YEAR x trailing-RV tercile x trailing quote-volume tercile strata, ATS_Z values are permuted across days in 7-day blocks, and the within-stratum Spearman correlation between ATS_Z and RVR_24H is recomputed. Baseline regression: RVR_24H on lagged RVR_24H, log trailing RV and log trailing quote volume; the card's quantity is the ATS_Z increment over that baseline. The permutation generates the same observable-target pairing, so the null can produce the card's own statistic.",
+      "CANDIDATE_ID": "C001",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Quote volume per trade is a coarse proxy for participant composition. A day dominated by many small fills (retail, small API bots, fragmented execution) has different liquidity-provision dynamics than a day with fewer, larger clips (institutional or block-like executions sliced less finely). Small-fill-dominated flow tends to be noise-like and absorbed by makers, which produces sub-hour negative autocorrelation (5m realized variance exceeding 1h realized variance). Large-clip flow is more often informed or directional and produces sub-hour trending. The proposed family, PARTICIPANT_COMPOSITION, asks who is trading rather than how much or when.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m quote_volume, trade_count, open, high, low, close for BTCUSDT perpetual",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. The result separates a composition proxy from level-of-activity and volatility proxies already examined. Either outcome clarifies whether trade-count normalization adds a distinct axis to kline-only research.",
+      "FALSIFIER": "The card is falsified if the within-stratum Spearman correlation between ATS_Z and RVR_24H lies inside the central 95% of the stratified block-permutation distribution. It is also falsified if the pooled sign is reproduced in fewer than 3 of the 5 calendar years from 2020 to 2024, or if the ATS_Z increment over the lagged-RVR baseline has a block-bootstrap interval covering zero.",
+      "FUNCTION": "Characterize whether a participant-composition proxy predicts the sub-hour autocorrelation structure of BTC returns over the subsequent 24h, beyond volatility and volume state.",
+      "HORIZON": "24 hours beginning at the daily decision time T = 00:00 UTC",
+      "INFORMATION_SOURCE": "KLINES",
+      "MECHANISM": "A shift in average trade size (quote volume per trade) reflects a change in participant composition, which alters the balance between noise flow absorbed by liquidity providers and directional flow. This appears as a change in the ratio of 5m realized variance to 1h realized variance: a ratio above 1 indicates sub-hour mean reversion and a ratio below 1 indicates sub-hour trending.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Average trade size as participant-composition state and subsequent sub-hour variance ratio",
+      "OBSERVABLE": "ATS_Z_T = (log(sum quote_volume / sum trade_count over the trailing L hours of 1m bars closed at or before T) minus the median of the same daily quantity over the trailing N days) divided by the trailing N-day MAD.",
+      "PRIMARY_TARGET": "RVR_24H = sum of squared k-minute log returns divided by sum of squared 1h log returns over (T, T+24h] on BTCUSDT perpetual"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_CONSUMED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "DERIVED_FROM_ALLOW_VERDICT_UNDER_FROZEN_TABLE",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0CAL-C001",
+    "STREAM": "EXECUTABLE_NOW"
+  },
+  {
+    "ATTEMPT_ID": "GV0CAL-C002",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0CAL",
+    "CANDIDATE_ID": "C002",
+    "CARD": {
+      "BASELINE_OR_NULL": "Two nulls. (1) Pseudo-boundary null: the same shift statistic is computed around placebo Sundays drawn from non-DST weeks with the same weekday support, producing the distribution of hour-profile displacements expected without a clock change. (2) Hour-label null: hour-bin labels are permuted within each day, preserving daily totals, to test whether any hour structure in PERP_SHARE exists at all. Both nulls generate the card's own observable, the hour profile of PERP_SHARE.",
+      "CANDIDATE_ID": "C002",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Price discovery between a derivatives venue and a spot venue need not be stationary within the day. If one regional participant group (for example US-based spot participants versus Asia-based derivatives participants) dominates information arrival, the venue that impounds information first should rotate with that group's active hours. US DST moves US human clocks by one UTC hour while leaving the venues' mechanics unchanged. A locus that follows US participants should therefore shift by one UTC hour at each US DST transition. The proposed family, PRICE_DISCOVERY_LOCUS, concerns where prices form rather than in which direction they move.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Aligned 5m closes for Binance BTCUSDT perpetual and OKX BTC spot",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "STATUTORY_DST_CALENDARS",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "US DST transition Sundays",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It indicates whether venue leadership has a participant-clock structure, which matters for interpreting every cross-venue result on this dataset.",
+      "FALSIFIER": "The card is falsified if the observed DST-regime displacement of the PERP_SHARE hour profile lies within the central 95% of the pseudo-boundary distribution. It is also falsified if the hour profile is indistinguishable from flat under the hour-label null, or if the estimated displacement is not closest to one hour in at least two of the three calendar years from 2022 to 2024.",
+      "FUNCTION": "Measure the intraday profile of perpetual-versus-spot price-discovery share and test whether it shifts with the US DST clock change.",
+      "HORIZON": "Intraday, 5m resolution; profiles aggregated over 3- to 6-week windows bracketing each US DST transition",
+      "INFORMATION_SOURCE": "CROSS_VENUE",
+      "MECHANISM": "The share of price discovery attributable to the Binance perpetual versus OKX spot varies by UTC hour according to which regional participant group is active, and it moves with the US DST clock shift.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Intraday rotation of perpetual-versus-spot price-discovery locus and its displacement at US DST shifts",
+      "OBSERVABLE": "PERP_SHARE_h = Gonzalo-Granger permanent-component weight of the Binance perpetual in a bivariate VECM of 5m log closes, estimated per UTC hour bin h within each regime (US DST versus US standard time), using weekdays only.",
+      "PRIMARY_TARGET": "Displacement, in UTC hours, of the PERP_SHARE hour profile between US-DST and US-standard-time weeks"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_CONSUMED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "DERIVED_FROM_ALLOW_VERDICT_UNDER_FROZEN_TABLE",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0CAL-C002",
+    "STREAM": "EXECUTABLE_NOW"
+  },
+  {
+    "ATTEMPT_ID": "GV0CAL-C003",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0CAL",
+    "CANDIDATE_ID": "C003",
+    "CARD": {
+      "BASELINE_OR_NULL": "Pseudo-schedule rank null. For each venue, the same bracketed statistic is computed for all 8 possible 8h-spaced hour triplets (offsets 0 to 7). The true schedule's rank among the 8 offsets is the test statistic; under no settlement effect, the rank is uniform. Within-weekday strata are preserved. A cross-venue difference-in-differences compares abnormality at each venue's own schedule with abnormality at the other venue's schedule.",
+      "CANDIDATE_ID": "C003",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Perpetual funding is exchanged only among positions open at the settlement snapshot. Participants facing large funding payments have an incentive to close or reduce positions just before the snapshot and reopen afterwards, which concentrates flow and absolute price movement around settlement. BitMEX settled funding at 04:00, 12:00 and 20:00 UTC, whereas Binance USD-M settles at 00:00, 08:00 and 16:00 UTC. If the abnormality tracks the contract schedule rather than the UTC hour, the peak should sit at different UTC hours on each venue. This separates a mechanical settlement effect from generic hour-of-day seasonality. The proposed family is CONTRACT_SETTLEMENT_MECHANICS.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "D2_BITMEX_PRE2020_XBTUSD",
+          "LEGAL_RANGE": "pre-2020",
+          "OBSERVABLE": "XBTUSD 5m open, high, low, close",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m OHLC aggregated to 5m",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "BITMEX_XBTUSD_FUNDING_SCHEDULE_SPEC",
+          "LEGAL_RANGE": "pre-2020",
+          "OBSERVABLE": "Funding settlement timestamps for XBTUSD across the full BitMEX sample",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "BINANCE_UM_BTCUSDT_FUNDING_SCHEDULE_SPEC",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Funding settlement timestamps (times only, not rates) for BTCUSDT perpetual",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Moderate to high. It is a clean identification of contract-mechanical microstructure using two venues with offset schedules, and it creates a new use for the pre-2020 surface.",
+      "FALSIFIER": "The card is falsified if, for neither venue, the true settlement offset ranks first among the 8 pseudo-offsets on the pre-declared statistic. It is also falsified if the peak offset is the same UTC triplet on both venues (indicating clock-hour rather than settlement seasonality), or if Binance results are driven entirely by the 00:00 settlement with no effect at 08:00 and 16:00.",
+      "FUNCTION": "Test whether absolute 5m price movement concentrates around perpetual funding settlement times, using the venue-specific schedule offset between BitMEX and Binance as identification.",
+      "HORIZON": "W-minute window bracketing each funding settlement, plus the 60 minutes following settlement for a reversal check",
+      "INFORMATION_SOURCE": "PRE2020_SURFACE",
+      "MECHANISM": "Positions are adjusted around perpetual funding snapshots to avoid or collect funding, producing abnormal absolute returns and range in the 5m bins bracketing settlement. The abnormality moves with each venue's contract schedule rather than with the UTC hour.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Funding-settlement clock microstructure identified by offset settlement schedules across BitMEX and Binance",
+      "OBSERVABLE": "SETTLE_ABN = mean over settlements of (sum of |5m log return| or high-low range within W minutes bracketing settlement) divided by the median of the same quantity at the same minute-of-hour in non-settlement hours of the same day.",
+      "PRIMARY_TARGET": "Rank of the true settlement offset among 8 pseudo 8h-spaced offsets of SETTLE_ABN, per venue"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "DERIVED_FROM_ALLOW_VERDICT_UNDER_FROZEN_TABLE",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0CAL-C003",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0CAL-C004",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CONFOUNDING_CONTROL_INADEQUATE",
+        "FAILED_CHECKS": [
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0CAL",
+    "CANDIDATE_ID": "C004",
+    "CARD": {
+      "BASELINE_OR_NULL": "Placebo Fridays: every non-expiry Friday in the same calendar year is scored with the identical London-clock window and control construction, producing the null distribution of LOG_FIX_RATIO. A placebo window at 13:00-14:00 London on expiry days tests whether elevation is day-wide rather than window-specific. Comparisons are made within year strata.",
+      "CANDIDATE_ID": "C004",
+      "CAUSAL_OR_STRUCTURAL_STORY": "CME bitcoin futures cash-settle to a reference rate computed from constituent-exchange trades during 15:00-16:00 London time on the final settlement day. Participants with basis positions or settlement-sensitive exposure concentrate hedging flow into that hour. Because venues are linked by cross-venue inventory managers, the flow should spill into Binance perpetual volume and alter the intra-window price path, for example producing a partial reversal in the hour after the window closes. The event date and window are fixed by an official product calendar, making them exogenous to the day's price action. The proposed family is REFERENCE_RATE_FIXING.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m quote_volume, trade_count, close for BTCUSDT perpetual",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "STATUTORY_DST_CALENDARS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "EU transition dates used to map London clock to UTC",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CME_BITCOIN_FUTURES_FINAL_SETTLEMENT_CALENDAR",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Final settlement dates of CME BTC futures contracts including holiday adjustments",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "CME_CF_BRR_METHODOLOGY_ARCHIVE",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Calculation window definition and partition scheme of the settlement reference rate",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It tests whether mechanical benchmark fixing, a mechanism distinct from announcement shocks, leaves a footprint on a non-constituent venue.",
+      "FALSIFIER": "The card is falsified if the expiry-day LOG_FIX_RATIO lies within the 5th-95th percentile of the same-year placebo-Friday distribution in at least 4 of the 5 years from 2020 to 2024. It is also falsified if the 13:00-14:00 London placebo window on expiry days shows elevation of comparable size (indicating day-wide activity), or if the reversal statistic is indistinguishable from placebo Fridays.",
+      "FUNCTION": "Measure whether Binance perpetual activity and path concentrate in the CME settlement reference-rate window on final settlement days, relative to identically timed windows on non-expiry Fridays.",
+      "HORIZON": "The 15:00-16:00 London window on each settlement day plus the following 60 minutes",
+      "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+      "MECHANISM": "Settlement-sensitive hedging concentrated in the CME reference-rate calculation window on final settlement days spills into correlated venues, elevating volume and imprinting a within-window drift followed by partial reversal.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Reference-rate fixing window footprint on Binance perpetual activity at CME bitcoin futures settlement",
+      "OBSERVABLE": "LOG_FIX_RATIO = log(metric in the London fixing window on the settlement day / mean metric in the same London-clock window on the prior K non-expiry Fridays); REVERSAL = sign-adjusted correlation between the fixing-window return and the return in the following 60 minutes.",
+      "PRIMARY_TARGET": "LOG_FIX_RATIO on CME final settlement days versus the placebo-Friday distribution"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "DERIVED_FROM_ALLOW_VERDICT_UNDER_FROZEN_TABLE",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0CAL-C004",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0CAL-C005",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0CAL",
+    "CANDIDATE_ID": "C005",
+    "CARD": {
+      "BASELINE_OR_NULL": "Matched-control paired design. Each young symbol at decision week T is matched to a mature symbol (listing age of 365 days or more) in the same week, on trailing 7-day quote-volume decile and, in one variant, also on trailing 7-day return decile. The statistic is the mean paired difference in relative return. The null is a sign-flip permutation of paired differences clustered by decision week, which generates the card's own paired-difference observable.",
+      "CANDIDATE_ID": "C005",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Newly listed tokens enter the exchange with small free float and concentrated early allocations. Over the first months, float expands through emissions, unlocks and distribution by early holders, and the attention spike around listing decays. Both forces imply a systematic relative drift that depends on age since listing, not on past returns. A lifecycle family asks whether calendar age since listing, an exogenous and point-in-time property, organizes cross-sectional relative returns. The proposed family is ASSET_LIFECYCLE_SUPPLY.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "LEGAL_RANGE": "2019-12..2024-12",
+          "OBSERVABLE": "Daily klines including delisted symbols, pinned listing dates, exclusion lists",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate to high. It opens an axis orthogonal to the price-based ranking already tested on this panel, using a variable that is exogenous and fixed at listing.",
+      "FALSIFIER": "The card is falsified if, for every age bucket, the week-clustered sign-flip interval of the paired young-minus-mature relative return covers zero. It is also falsified if the pooled sign is reproduced in fewer than 3 of the 5 years from 2020 to 2024, or if the effect vanishes once matching includes trailing return (indicating post-listing reversal of pre-listing momentum rather than a lifecycle effect).",
+      "FUNCTION": "Test whether days since Binance spot listing organizes subsequent relative returns across USDT-quoted names, controlling for liquidity and trailing return.",
+      "HORIZON": "H days following a Monday 00:00 UTC decision",
+      "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+      "MECHANISM": "Float expansion and attention decay over the early life of a listed token produce age-dependent relative drift across the cross-section.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Listing-age lifecycle drift in the Binance spot USDT cross-section",
+      "OBSERVABLE": "LISTING_AGE_DAYS at T = days between the pinned Binance spot listing date and T; age buckets A (8-30), B (31-90), C (91-180), mature (365 or more).",
+      "PRIMARY_TARGET": "Paired difference in H-day log return relative to the equal-weight eligible universe, young bucket minus matched mature control"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_CONSUMED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "DERIVED_FROM_ALLOW_VERDICT_UNDER_FROZEN_TABLE",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0CAL-C005",
+    "STREAM": "EXECUTABLE_NOW"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C001",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C001",
+    "CARD": {
+      "BASELINE_OR_NULL": "Stratified random abstention at the identical abstention rate within YEAR x RV_24H decile x UTC_HOUR strata, where RV_24H is computed from 1m log returns in (T-24h, T]. The permutation null shuffles CHURN_STATE labels within these strata and recomputes the tail-exceedance difference, so it generates the card's own observable. A secondary comparator is D2-style pure RV abstention at the same rate.",
+      "CANDIDATE_ID": "C001",
+      "CAUSAL_OR_STRUCTURAL_STORY": "When resting depth is thin, incoming marketable orders sweep several price levels in both directions within a minute. The result is bars with large high-low ranges but small open-close bodies: two-sided liquidity consumption with little net displacement. RV computed from closes sees only net displacement, so it understates how depleted the book is. If depth is depleted, a subsequent one-sided flow burst meets little resistance and produces an outsized 1m return. The churn geometry of the preceding hour should therefore carry information about jump fragility that is orthogonal to RV level. That information is exactly what a conditional abstention rule needs.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m open, high, low, close used for churn geometry, trailing 1m return standard deviation, RV_24H and forward maximum absolute 1m return",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. The card separates wick-versus-body geometry from RV level as a tail-risk state variable. It uses a design that controls for RV by construction, so either outcome narrows the space of kline-only abstention mechanisms.",
+      "FALSIFIER": "The mechanism is rejected under either of two conditions. First, the TAIL rate in high-churn hours minus the stratum-matched random-abstention TAIL rate lies inside the central 95% of the stratified permutation distribution. Second, the difference has the opposite sign from the pooled estimate in 3 or more of the 5 calendar years 2020 to 2024. It is also rejected if the high-churn TAIL excess disappears once the comparison is restricted to within-RV-decile strata.",
+      "FUNCTION": "Conditional abstention filter: flag hours whose intrabar churn is extreme relative to their own trailing history, and measure whether abstaining in those hours lowers the frequency of subsequent extreme 1m returns more than RV-matched random abstention does.",
+      "HORIZON": "H in {4h, 8h} following each hourly decision time T at the UTC hour close, decision grid 2020-01..2024-12",
+      "INFORMATION_SOURCE": "KLINES",
+      "MECHANISM": "Hourly intrabar churn state, meaning the share of 1m bars whose high-low range is several times their absolute open-close body, acts as a depth-depletion indicator. Abstaining during high-churn hours reduces exposure to subsequent extreme 1m returns beyond what RV-level abstention achieves.",
+      "MECHANISM_FAMILY": "A",
+      "NAME": "Intrabar churn abstention versus RV-matched tail exceedance",
+      "OBSERVABLE": "CHURN_60(T) is the fraction of 1m bars in (T-60m, T] with (high-low) >= k*|close-open| and (high-low) >= median 1m range over (T-24h, T]. CHURN_STATE(T) = 1 when CHURN_60(T) exceeds its own trailing 30-day p-th percentile computed from values at or before T.",
+      "PRIMARY_TARGET": "TAIL_H(T) = 1 if max |1m log return| over (T, T+H] exceeds 4 times the standard deviation of 1m log returns over (T-24h, T], else 0; contrast is abstained-set TAIL rate minus stratum-matched random-abstention TAIL rate"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "REJECT"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "LINKED_PRIOR_DUPLICATE_OR_NEIGHBOR",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [
+      {
+        "BASIS": "NOVELTY_CRITIC",
+        "RELATION": "FUNCTIONAL_RELABEL",
+        "SIGNATURE_ID": "D2"
+      }
+    ],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": null,
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C002",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C002",
+    "CARD": {
+      "BASELINE_OR_NULL": "Two nulls. (1) Stratified sign-flip: within YEAR x RV_24H tercile x UTC_HOUR strata, randomly flip the opening-leg sign assignment and recompute the spot-led minus perp-led ALIGNED_RET difference. (2) Magnitude-matched controls: for each event bar, draw a non-dislocation bar in the same stratum whose leading-leg 5m absolute return lies in the same decile, so that directional continuation of ordinary same-size moves is netted out.",
+      "CANDIDATE_ID": "C002",
+      "CAUSAL_OR_STRUCTURAL_STORY": "A cross-venue dislocation opens because one leg moves first. Spot moves are made by unlevered participants whose orders are more often driven by inventory or allocation decisions, and in the price-discovery literature such orders tend to carry more persistent information. Perp-led moves more often come from leverage adjustments, liquidations and funding-related repositioning, which are more transient. If this composition story holds, the common price (the midpoint of both venues) should continue in the direction of a spot-led opening leg more than in the direction of a perp-led one. The dislocation itself closes, as D9 studied, but the question here is where the common level goes, not which leg converges.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Aligned 5m closes of Binance BTCUSDT perpetual and OKX BTC spot used for DISLOC, leg attribution and midpoint forward returns",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m closes for RV_24H stratification and funding-hour flags",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. The card tests a specific directional-composition hypothesis about cross-venue dislocations that prior dislocation cards (MARKET-06, D9) did not examine. It also separates informative from transient opening legs.",
+      "FALSIFIER": "The mechanism is rejected under any of three conditions. First, the mean spot-led ALIGNED_RET minus the mean perp-led ALIGNED_RET lies inside the central 95% of the stratified sign-flip distribution. Second, spot-led events do not exceed their magnitude-matched non-dislocation controls. Third, the yearly sign of the difference disagrees with the pooled sign in 2 or more of the 3 years 2022 to 2024.",
+      "FUNCTION": "Directional expectation characterization: estimate the signed subsequent common-price return aligned with the opening leg, separately for spot-led and perp-led dislocation events.",
+      "HORIZON": "H in {60m, 240m} following the close of the 5m event bar T, events 2022-01..2024-12",
+      "INFORMATION_SOURCE": "CROSS_VENUE",
+      "MECHANISM": "The venue whose price moved first when a perp-versus-spot dislocation opened determines whether the common price continues. Spot-led opening legs reflect unlevered information that persists, while perp-led opening legs reflect leverage noise that does not.",
+      "MECHANISM_FAMILY": "B",
+      "NAME": "Opening-leg identity and directional continuation of the cross-venue midpoint",
+      "OBSERVABLE": "DISLOC(T) = log(perp close) - log(OKX spot close) at 5m bar T, with Z(T) against its trailing 7-day distribution. An event is |Z(T)| >= z and |Z(T-1)| < z. LEG(T) = SPOT if |spot 5m return| >= m*|perp 5m return|, PERP if the reverse, MIXED otherwise (MIXED is excluded from the contrast but reported).",
+      "PRIMARY_TARGET": "ALIGNED_RET_H = sign(opening-leg 5m return at T) * log return of MID=(perp+spot)/2 over (T, T+H]; contrast is mean ALIGNED_RET for SPOT-led events minus PERP-led events"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C002",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C003",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED",
+          "FALSIFIABLE"
+        ],
+        "SOURCE": "RED_TEAM"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C003",
+    "CARD": {
+      "BASELINE_OR_NULL": "Two permutation nulls generated per day, recomputing CONTIG on each draw. (a) Full i.i.d. permutation of the 288 5m returns, which preserves the daily return multiset and destroys all ordering. (b) Block permutation with blocks of B minutes, which preserves within-block clustering and destroys cross-block ordering. CONTIG_RATIO is observed CONTIG divided by the median null CONTIG. The era contrast uses a day-level bootstrap within daily-RV bins.",
+      "CANDIDATE_ID": "C003",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Liquidation cascades and stop runs produce a burst of consecutive large 5m bars, while volatility clustering at hourly scale produces large bars spread through an active afternoon. A permutation null preserves the marginal distribution, so the time-dispersion of the largest bars isolates ordering structure. The block null separates sub-block cascades from hour-scale clustering. The pre-2020 BitMEX surface, with very high maximum leverage and an insurance-fund liquidation engine, is structurally different from the Binance USD-M venue in 2020 to 2024. Comparing the two within RV bins asks whether cascade contiguity is a venue-structure property or a generic feature of bitcoin price paths.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "D2_BITMEX_PRE2020_XBTUSD",
+          "LEGAL_RANGE": "pre-2020",
+          "OBSERVABLE": "BitMEX XBTUSD 5m closes used for daily 288-bar absolute log returns and CONTIG",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m closes aggregated to 5m closes for daily 288-bar absolute log returns and CONTIG",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It adds an ordering-sensitive morphology statistic that the unconditional D3 close-path characterization did not measure. It uses the only legal pre-2020 surface for a structural cross-era comparison.",
+      "FALSIFIER": "Sub-hour cascade contiguity is rejected if the median log CONTIG_RATIO against the block null is not below zero at the 95% level in either era. A venue-era structural difference is rejected if the within-RV-bin difference in mean log CONTIG_RATIO between BitMEX pre-2020 and Binance 2020 to 2024 lies inside the central 95% of the day-bootstrap distribution.",
+      "FUNCTION": "Path-morphology characterization: measure how temporally clustered the largest 5m moves within each UTC day are, relative to ordering-destroying nulls, and compare the clustering between the pre-2020 BitMEX era and the 2020 to 2024 Binance era within matched daily-RV bins.",
+      "HORIZON": "One UTC day (288 5m bars) per observation; BitMEX days pre-2020 and Binance days 2020-01..2024-12",
+      "INFORMATION_SOURCE": "PRE2020_SURFACE",
+      "MECHANISM": "Temporal contiguity of the largest intraday 5m moves: whether extreme bars arrive as liquidation-style cascades (adjacent bars) rather than dispersed through the day, and whether this morphology differs between a high-leverage pre-2020 venue structure and the 2020 to 2024 Binance perpetual.",
+      "MECHANISM_FAMILY": "C",
+      "NAME": "Cascade contiguity of top intraday 5m moves across the BitMEX pre-2020 and Binance eras",
+      "OBSERVABLE": "For each UTC day with complete 288 5m bars, take the k bars with largest absolute log return. CONTIG = mean over those k bars of the distance, in bars, to the nearest other top-k bar. CONTIG_RATIO = CONTIG divided by the median CONTIG under the chosen permutation null for that same day.",
+      "PRIMARY_TARGET": "Median log CONTIG_RATIO per era against the block null, and the within-daily-RV-bin difference in mean log CONTIG_RATIO between BitMEX pre-2020 days and Binance 2020-01..2024-12 days"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED",
+          "FALSIFIABLE"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C003",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C004",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C004",
+    "CARD": {
+      "BASELINE_OR_NULL": "Matched non-FOMC control windows sharing YEAR x WEEKDAY x UTC_HOUR with each event window, with the pre-event beta frozen identically. The stratified permutation swaps event and control labels within each matched stratum and recomputes the mean difference in RESID_SHARE, so it generates the card's own observable. The pre-window (T-2h, T] residual share serves as a within-event placebo.",
+      "CANDIDATE_ID": "C004",
+      "CAUSAL_OR_STRUCTURAL_STORY": "A scheduled macro announcement delivers information that is common to all risk assets: rates, liquidity and the dollar. Asset-specific news flow in the ETH ecosystem is not synchronized to FOMC timestamps. If crypto prices absorb macro news through a common factor, the idiosyncratic share of ETH variation should fall sharply just after the statement, as the common shock dominates. If instead ETH responds with a different beta (a duration-like or risk-appetite sensitivity), the frozen-beta residual share could rise. Either direction reveals how cross-asset structure reorganizes around exogenous macro information, independent of the RV level D11 measured.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "D11_FOMC_OFFICIAL_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Official scheduled FOMC statement release timestamps",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m closes aggregated to 5m log returns",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_ETH_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "ETHUSDT perpetual 1m closes aggregated to 5m log returns",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "BLS_CPI_RELEASE_SCHEDULE_ARCHIVE",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Pre-announced CPI release dates and 08:30 US Eastern release timestamps converted to UTC",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. The card measures cross-asset composition around an exogenous event, a dimension orthogonal to the unsigned RV response D11 measured. The CPI extension roughly triples the event count if feasible.",
+      "FALSIFIER": "The common-factor dominance hypothesis is rejected if the mean event-minus-control RESID_SHARE difference lies inside the central 95% of the within-stratum permutation distribution. It is also rejected if the event window's residual share is not lower than the same event's pre-window share in at least half the events. A significantly positive difference falsifies common-factor dominance in favor of a beta-shift response.",
+      "FUNCTION": "Event-conditioned cross-asset structure characterization: compare the idiosyncratic ETH variance share (after removing BTC with a frozen pre-event beta) in windows immediately after scheduled FOMC statements against matched non-event windows.",
+      "HORIZON": "W in {60m, 120m} following each scheduled FOMC statement timestamp, events 2020-01..2024-12",
+      "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+      "MECHANISM": "Scheduled macro announcements act as a pure common-factor shock, so the idiosyncratic share of ETH variance relative to BTC collapses just after the statement, compared with identically timed non-event windows.",
+      "MECHANISM_FAMILY": "D",
+      "NAME": "Common-factor dominance of ETH versus BTC in scheduled FOMC windows",
+      "OBSERVABLE": "e_t = r_ETH,t - beta_pre * r_BTC,t for 5m returns in (T, T+W], where beta_pre is the OLS slope of r_ETH on r_BTC over (T-L days, T-1h]. RESID_SHARE = sum(e_t^2) / sum(r_ETH,t^2). It is defined for every window; a window with zero denominator is retained and assigned 1, so no conditioning subset is dropped.",
+      "PRIMARY_TARGET": "Mean over FOMC events of RESID_SHARE(event window) minus RESID_SHARE(matched control window) within YEAR x WEEKDAY x UTC_HOUR strata"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C004",
+    "STREAM": "HIGH_VALUE_DATA_BLOCKED"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C005",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED",
+          "FALSIFIABLE"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW",
+        "FAILED_CHECKS": [
+          "OBSERVABLE_SUPPORTED"
+        ],
+        "SOURCE": "FEASIBILITY"
+      },
+      {
+        "CLASS": "DATA_BLOCKED_MISSING_OBSERVABLE",
+        "FAILED_CHECKS": [
+          "OBSERVABLE_SUPPORTED"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C005",
+    "CARD": {
+      "BASELINE_OR_NULL": "Stress-week labels are permuted among decision weeks within the same calendar year, keeping the count of stress weeks fixed, and GRADIENT is recomputed. This generates the card's own observable under the hypothesis that stress does not change the cross-sectional illiquidity gradient. The comparison is always stress-week GRADIENT minus non-stress-week GRADIENT within year.",
+      "CANDIDATE_ID": "C005",
+      "CAUSAL_OR_STRUCTURAL_STORY": "During market-wide stress, liquidity providers withdraw capital and shrink inventory limits. They withdraw first from names where adverse selection and inventory risk are highest, which are the already-illiquid names. Execution cost then rises disproportionately for illiquid names, a flight-from-illiquidity pattern documented in equities. Whether the Binance spot USDT cross-section shows the same gradient, how large it is, and whether it survives controls for mechanical |return| inflation are open liquidity-state questions. They concern execution cost, not return direction.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "LEGAL_RANGE": "2019-12..2024-12",
+          "OBSERVABLE": "Daily high, low, close, quote volume per USDT-quoted symbol including delisted symbols, pinned listing dates and exclusion lists; BTCUSDT daily closes for the stress label",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate to high for execution-state understanding. It asks whether stress-week liquidity deterioration in crypto spot is cross-sectionally graded, a question distinct from all prior return-focused panel work.",
+      "FALSIFIER": "The flight-from-illiquidity mechanism is rejected if stress-minus-non-stress GRADIENT lies inside the central 95% of the within-year permutation distribution for the CS_SPREAD and NEG_LOG_QUOTE_VOLUME measures. It is also rejected if the AMIHUD result is not replicated by at least one of those non-return measures, or if the sign disagrees with the pooled sign in 3 or more of the 5 years 2020 to 2024.",
+      "FUNCTION": "Liquidity execution-state characterization: estimate whether stress weeks raise subsequent execution-cost proxies disproportionately for names that were already illiquid, relative to non-stress weeks.",
+      "HORIZON": "Target window of D in {7, 14} days following each Monday 00:00 UTC decision time, decisions 2020-01..2024-12",
+      "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+      "MECHANISM": "Flight from illiquidity: after a market-wide stress week, execution-cost proxies rise more for names that were already illiquid, steepening the cross-sectional illiquidity gradient.",
+      "MECHANISM_FAMILY": "E",
+      "NAME": "Stress-week flight-from-illiquidity gradient in the Binance spot USDT cross-section",
+      "OBSERVABLE": "STRESS(T) = 1 if BTCUSDT |log return| over (T-7d, T] is at or above the q-th percentile of its trailing 52-week distribution at T. BASE_RANK_i(T) = cross-sectional rank of the illiquidity measure over (T-35d, T-7d]. The measures are AMIHUD (mean |daily return| / quote volume), CS_SPREAD (Corwin-Schultz two-day high-low estimator, unclipped mean reported beside clipped) and NEG_LOG_QUOTE_VOLUME.",
+      "PRIMARY_TARGET": "GRADIENT(T) = cross-sectional OLS slope of [log illiquidity over (T, T+D] minus log illiquidity over (T-35d, T-7d]] on BASE_RANK, controlling for trailing volatility rank, log price bucket and trailing BTC beta; contrast is mean GRADIENT in stress weeks minus non-stress weeks"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_BLOCKED_MISSING_OBSERVABLE",
+        "FAILED_CHECKS": [
+          "OBSERVABLE_SUPPORTED"
+        ],
+        "VERDICT": "HUMAN_REVIEW"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED",
+          "FALSIFIABLE"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C005",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C006",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C006",
+    "CARD": {
+      "BASELINE_OR_NULL": "The baseline logistic model uses RV_7D and RV_30D at T and YEAR fixed effects only. The incremental test adds VRP_GAP. The null circularly shifts the DVOL series relative to the RV series by a random offset of at least 30 days, which preserves both autocorrelation structures while breaking alignment, and recomputes the incremental log-likelihood so that it generates the card's own statistic. A secondary null matches on RV_7D decile x YEAR and compares transition frequencies across VRP_GAP terciles.",
+      "CANDIDATE_ID": "C006",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Option prices aggregate hedging demand and dealer positioning that are forward-looking and are not contained in trailing price paths. When implied volatility sits below trailing realized volatility, option supply is abundant or hedging demand low. Dealers who have sold options are then exposed, and their delta-hedging can amplify moves when the regime shifts. When the implied term structure inverts, the market prices near-dated turbulence. Either state could precede transitions into high realized-volatility regimes beyond what RV persistence alone implies. The question is whether option-implied state carries transition information that kline-derived vol states do not.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "DERIBIT_DVOL_INDEX_PUBLIC_API",
+          "LEGAL_RANGE": "2021-03..2024-12",
+          "OBSERVABLE": "BTC DVOL 30-day implied volatility index values with publication timestamps at hourly or finer resolution",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "DERIBIT_OPTIONS_HISTORICAL_MARKS_VENDOR",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Instrument-level BTC option mark implied volatilities by strike and expiry for 7-day and 30-day ATM interpolation",
+          "STATUS": "DATA_BLOCKED_COST"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m closes aggregated to 5m returns for RV_7D, RV_30D and forward RV",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "High relative to kline-only vol-state work. It introduces an information source no prior card used and asks a question that prior RV-state cards could not answer by construction.",
+      "FALSIFIER": "The option-state transition mechanism is rejected if adding VRP_GAP (or TERM_SLOPE) raises the out-of-year log-likelihood by less than the 95th percentile of the circular-shift null. It is also rejected if the transition frequency is not monotone across VRP_GAP terciles within RV_7D deciles, or if the effect sign disagrees across the years 2021 to 2024 in 2 or more years.",
+      "FUNCTION": "Regime-transition characterization: test whether the option-implied volatility state, relative to trailing realized volatility, adds information about transitions into a high realized-volatility regime beyond kline-based volatility state.",
+      "HORIZON": "Transition window of N in {7, 14} days following each daily decision time T at 00:00 UTC, decisions 2021-03..2024-12 for the DVOL branch",
+      "INFORMATION_SOURCE": "OPTIONS",
+      "MECHANISM": "Option-implied volatility state, meaning the implied-minus-realized gap and implied term-structure inversion, anticipates transitions from low or medium realized-volatility regimes into high-volatility regimes beyond RV persistence.",
+      "MECHANISM_FAMILY": "F",
+      "NAME": "Option-implied volatility gap as a precursor of realized-volatility regime transitions",
+      "OBSERVABLE": "VRP_GAP(T) = DVOL(T) - annualized RV_30D(T), with RV_30D from 5m returns in (T-30d, T]. TERM_SLOPE(T) = ATM IV at 7 days minus ATM IV at 30 days from surface marks at or before T (cost-blocked branch). ELIGIBLE(T) = 1 if RV_7D(T) is below the top tercile of its trailing 365-day distribution.",
+      "PRIMARY_TARGET": "TRANSITION_N(T) = 1 if annualized RV over (T, T+N] lies in the top tercile of the trailing 365-day RV distribution evaluated at T, among ELIGIBLE decision days"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C006",
+    "STREAM": "HIGH_VALUE_DATA_BLOCKED"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C007",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_LOOKAHEAD_VIOLATION",
+        "FAILED_CHECKS": [
+          "NO_LOOKAHEAD"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C007",
+    "CARD": {
+      "BASELINE_OR_NULL": "Each mint event is matched to non-event times in the same YEAR x WEEKDAY x UTC_HOUR x trailing-24h BTC return quintile stratum, with no mint within ±48h. The stratified permutation swaps event and control labels within strata to generate the same RESPONSE statistics. The trailing-return stratum directly addresses the concern that mints follow demand.",
+      "CANDIDATE_ID": "C007",
+      "CAUSAL_OR_STRUCTURAL_STORY": "USDT is issued when authorized counterparties deliver dollars and request tokens. Newly issued tokens are commonly routed to exchanges, where they add quote-currency liquidity for crypto purchases. A mint could therefore precede elevated activity and upward pressure as that liquidity is deployed. Alternatively, mints merely respond to demand already expressed in price, in which case any post-event drift disappears once trailing returns are matched. The on-chain Issue event has a public block timestamp, which gives a clean event clock for separating these stories. The response of volatility, not only direction, is also informative about liquidity deployment.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "ETHEREUM_USDT_CONTRACT_ISSUE_EVENT_LOGS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "USDT contract Issue event amount, transaction hash, block number and block timestamp on Ethereum",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "TRON_USDT_TRC20_ISSUANCE_LOGS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "USDT TRC20 issuance amount, transaction id and block timestamp on Tron",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "EXCHANGE_DEPOSIT_ADDRESS_LABELS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Attribution of treasury outbound transfers to exchange deposit addresses with label timestamps",
+          "STATUS": "DATA_BLOCKED_PROVENANCE"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m closes for forward returns, forward RV and trailing-return stratification",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "High for the on-chain information source, which no prior card used. The trailing-return matched design discriminates between the liquidity-deployment and demand-response stories either way.",
+      "FALSIFIER": "The liquidity-deployment mechanism is rejected if the mean event-minus-control RESPONSE_RET lies inside the central 95% of the within-stratum permutation distribution after trailing-return matching. It is also rejected if RESPONSE_RV shows no event-control difference, or if effects appear only in trailing-return quintile 5, which would indicate demand response rather than deployment.",
+      "FUNCTION": "Event-response characterization: measure the BTC return and realized-volatility response after large USDT issuance events identified by on-chain block timestamps, against demand-state-matched non-event times.",
+      "HORIZON": "H in {6h, 24h} following each qualifying issuance block timestamp plus confirmation lag, events 2020-01..2024-12",
+      "INFORMATION_SOURCE": "ONCHAIN",
+      "MECHANISM": "Large USDT issuance events are liquidity injections whose public on-chain timestamp precedes their deployment. The BTC response in the following hours distinguishes liquidity deployment from demand response.",
+      "MECHANISM_FAMILY": "G",
+      "NAME": "BTC response to large on-chain USDT issuance events under demand-state matching",
+      "OBSERVABLE": "MINT(t_e) = 1 for a net-new USDT Issue event with amount >= A USD at block timestamp t_e. EVENT_T = t_e + confirmation lag. The strata are trailing 24h BTC log return quintile at EVENT_T, YEAR, WEEKDAY and UTC_HOUR.",
+      "PRIMARY_TARGET": "RESPONSE_RET_H = BTC log return over (EVENT_T, EVENT_T+H] and RESPONSE_RV_H = BTC realized volatility from 5m returns over (EVENT_T, EVENT_T+H], each as event minus matched-control mean"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "NO_LOOKAHEAD"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C007",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C008",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C008",
+    "CARD": {
+      "BASELINE_OR_NULL": "The baseline daily regression of COMPONENT_SHARE(d) uses COMPONENT_SHARE(d-1), daily RV and the Binance perp versus OKX spot quote-volume share. The incremental test adds DEPTH_SHARE(d-1). The null circularly shifts the DEPTH_SHARE series by a random offset of at least 30 days and recomputes the incremental coefficient, which preserves autocorrelation while breaking alignment and generates the same statistic.",
+      "CANDIDATE_ID": "C008",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Informed participants route orders to the venue where they can execute size with the least price impact. The venue offering more resting depth near the touch should therefore attract more informed flow and lead price formation. Alternatively, depth follows discovery: market makers supply depth where they already see the reference price forming. Displayed depth is a structural venue attribute that can be measured before the price-discovery outcome, so a lagged, volume-controlled relationship distinguishes the depth-attracts-information story from pure volume-share effects. Prior cross-venue cards used only prices and could not observe this state.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE",
+          "LEGAL_RANGE": "2023-01..2024-12",
+          "OBSERVABLE": "Binance USD-M BTCUSDT cumulative bid and ask notional depth at fixed percentage bands from mid, with snapshot timestamps",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "OKX_SPOT_ORDERBOOK_HISTORICAL_ARCHIVE",
+          "LEGAL_RANGE": "2023-01..2024-12",
+          "OBSERVABLE": "OKX BTC-USDT spot L2 order book snapshots sufficient to compute notional depth within fixed bp bands",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "VENDOR_L2_ORDERBOOK_REPLAY",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Tick-level L2 book updates for both venues as fallback depth source",
+          "STATUS": "DATA_BLOCKED_COST"
+        },
+        {
+          "DATASET": "OKX_SPOT_KLINE_PUBLIC_ARCHIVE",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "OKX BTC-USDT spot 5m quote volume for the volume-share control",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Aligned 5m closes of Binance BTCUSDT perpetual and OKX BTC spot used for the daily VECM component share",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Binance BTCUSDT perpetual 1m quote volume and closes for volume share and daily RV",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "High for the order-book information source, which no prior card used. It resolves whether prior price-only price-discovery profiles have a liquidity-structure explanation.",
+      "FALSIFIER": "The depth-attracts-discovery mechanism is rejected if the incremental DEPTH_SHARE(d-1) coefficient lies inside the central 95% of the circular-shift null after the volume-share and RV controls. It is also rejected if the reverse regression (COMPONENT_SHARE(d-1) predicting DEPTH_SHARE(d)) is stronger, which would indicate depth follows discovery, or if the sign differs between 2023 and 2024.",
+      "FUNCTION": "Venue-structure characterization: test whether a venue's share of displayed near-touch depth predicts its share of price discovery on the following day, beyond volume share and volatility.",
+      "HORIZON": "Daily: depth share on UTC day d-1 against price-discovery share on UTC day d, days 2023-01..2024-12 for depth-dependent tests",
+      "INFORMATION_SOURCE": "ORDER_BOOK",
+      "MECHANISM": "Displayed near-touch depth attracts informed order flow, so the venue with a larger depth share leads price discovery on the following day beyond its volume share.",
+      "MECHANISM_FAMILY": "H",
+      "NAME": "Near-touch depth share as a determinant of cross-venue price-discovery leadership",
+      "OBSERVABLE": "DEPTH_SHARE(d) = mean over snapshots in UTC day d of Binance perp notional depth within ±X bp divided by (Binance perp depth + OKX spot depth within ±X bp). COMPONENT_SHARE(d) = Gonzalo-Granger perp component share from a VECM on 5m log closes within day d. The alternative is the lagged-regression asymmetry between perp-leads and spot-leads coefficients.",
+      "PRIMARY_TARGET": "Incremental coefficient of DEPTH_SHARE(d-1) on COMPONENT_SHARE(d) after controlling for COMPONENT_SHARE(d-1), daily RV(d-1) and quote-volume share(d-1)"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C008",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C009",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C009",
+    "CARD": {
+      "BASELINE_OR_NULL": "A placebo-pair null: compute the same predictive t-statistic for every ordered pair of intraday slots (i, j) with i earlier than j within the same day, which is 1128 pairs for 30-minute slots under the UTC anchor. The claimed pair's rank in this distribution is the test. A secondary null is a day-level block bootstrap of the claimed pair's slope within year.",
+      "CANDIDATE_ID": "C009",
+      "CAUSAL_OR_STRUCTURAL_STORY": "In equity index markets, the published intraday momentum mechanism (Gao, Han, Li and Zhou, Journal of Financial Economics, 2018) attributes first-half-hour to final-half-hour predictability to informed participants who act at the open and to late-day hedging and rebalancing that is correlated with the day's early move. Crypto trades continuously, so neither an open nor a close exists by exchange rule. If the mechanism operates through participant schedules, it should appear only for session anchors that participants actually use, such as the US equity session converted with the DST calendar. It should not appear for the arbitrary UTC day boundary unless crypto participants anchor to it. The placebo-pair rank tests whether the published pair is special among all intraday slot pairs.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m closes for slot returns",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_ETH_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "ETHUSDT perpetual 1m closes for slot returns",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "STATUTORY_DST_CALENDARS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "US DST transition dates for converting US Eastern session slots to UTC",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It gives a clean diagnostic reproduction of a published mechanism with a placebo design that controls the multiple-slot search implicit in intraday seasonality claims, and it tests participant anchoring.",
+      "FALSIFIER": "The transported mechanism is rejected for an anchor if the claimed pair's predictive t-statistic does not rank in the top 5% of the placebo-pair distribution. It is also rejected if its slope sign disagrees with the published positive sign, or if the yearly slope sign disagrees with the pooled sign in 3 or more of the 5 years 2020 to 2024.",
+      "FUNCTION": "Diagnostic reproduction of an external mechanism: estimate whether the first intraday slot's return predicts the final slot's return in BTC and ETH perpetuals under a UTC anchor and a US-equity-session anchor, and rank the claimed pair among all placebo slot pairs.",
+      "HORIZON": "Final slot of each anchored session day (30 or 60 minutes), days 2020-01..2024-12; US-session anchor uses weekdays only",
+      "INFORMATION_SOURCE": "KLINES",
+      "MECHANISM": "The published equity intraday momentum mechanism, in which the first half-hour return predicts the final half-hour return through participant scheduling, transported to crypto perpetuals under alternative session anchors.",
+      "MECHANISM_FAMILY": "I",
+      "NAME": "Transported intraday momentum mechanism with placebo slot-pair ranking and session-anchor contrast",
+      "OBSERVABLE": "R_FIRST(d) = log return over the first slot of anchored day d. R_FINAL(d) = log return over the final slot. The UTC anchor uses 00:00 and 24:00 UTC; the US anchor uses 09:30 and 16:00 US Eastern converted to UTC with the statutory DST calendar. The placebo set is all ordered slot pairs (i earlier than j) within the anchored day.",
+      "PRIMARY_TARGET": "OLS slope and robust t-statistic of R_FINAL(d) on R_FIRST(d), and the rank of that t-statistic within the placebo-pair distribution for the same anchor and asset"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW_TO_FEASIBILITY"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "LINKED_PRIOR_BLOCKER_RESOLUTION_PROPOSAL",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [
+      {
+        "BASIS": "NOVELTY_CRITIC",
+        "RELATION": "RESOLVES_BLOCKER",
+        "SIGNATURE_ID": "D6"
+      }
+    ],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": null,
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C010",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_LOOKAHEAD_VIOLATION",
+        "FAILED_CHECKS": [
+          "NO_LOOKAHEAD"
+        ],
+        "SOURCE": "RED_TEAM"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C010",
+    "CARD": {
+      "BASELINE_OR_NULL": "Pseudo-mismatch windows of identical length and weekday composition are placed at random within the same season of the same year, away from all true DST transitions by at least 3 weeks. The same shift-estimation procedure is applied to produce null distributions of W_US and W_EU, so the null generates the card's own observable.",
+      "CANDIDATE_ID": "C010",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Cross-venue dislocations widen when the participants who keep venues aligned are inactive. Those participants include market makers and relative-value desks, who run on local business clocks. US and EU DST transitions occur on different Sundays, creating one to three weeks each spring and autumn when one region's clock has shifted relative to UTC and the other's has not. If the intraday dislocation profile shifts by one hour in those windows, the direction of the shift reveals whose clock governs cross-venue alignment. If there is no shift in either mismatch or full-shift windows, the governing clock is one without DST, such as Asian business hours or the UTC funding clock.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Aligned 5m closes of Binance BTCUSDT perpetual and OKX BTC spot for ABS_DISLOC hourly profiles",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "STATUTORY_DST_CALENDARS",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "US and EU DST transition dates defining mismatch and full-shift windows",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Binance BTCUSDT perpetual 1m quote volume for the secondary volume-profile observable",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. The staggered-transition design separates US from EU clock anchoring for cross-venue alignment, which single-transition designs cannot do, and a double null identifies non-DST anchors.",
+      "FALSIFIER": "US anchoring is rejected if W_US from mismatch windows lies inside the central 95% of the pseudo-mismatch null. EU anchoring is rejected by the analogous test on W_EU. A DST-clock anchor in general is rejected if the full-shift displacement is not distinguishable from pseudo-window displacements. Given about 6 mismatch windows in 2022 to 2024, every conclusion is reported with its window count, and the sign must agree in at least 4 of 6 windows to count as positive.",
+      "FUNCTION": "Participant-clock identification: use the staggered US and EU DST transitions to estimate whether the intraday profile of cross-venue dislocation magnitude anchors to the US clock, the EU clock, or neither.",
+      "HORIZON": "Mismatch windows (US shifted, EU not) of about 1 to 3 weeks each spring and autumn, plus full-shift and both-standard reference weeks, 2022-01..2024-12",
+      "INFORMATION_SOURCE": "CROSS_VENUE",
+      "MECHANISM": "The intraday profile of cross-venue dislocation magnitude is governed by the business clock of the participants who keep venues aligned. Staggered US and EU DST transitions identify whether that clock is US, EU or non-DST.",
+      "MECHANISM_FAMILY": "J",
+      "NAME": "Staggered US-EU DST windows as identification of the clock governing cross-venue dislocation",
+      "OBSERVABLE": "ABS_DISLOC(t) = |log Binance perp close - log OKX spot close| at 5m bar t. PROFILE_w(h) = mean ABS_DISLOC in UTC hour-of-day h over window w, divided by the window mean. The shift delta_w is the circular shift, in minutes, that maximizes correlation of PROFILE_w with the both-standard reference profile.",
+      "PRIMARY_TARGET": "W_US = mean delta in mismatch windows divided by mean delta in full-shift windows, with W_EU = 1 - W_US under the two-clock model; each compared against the pseudo-window null"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "NO_LOOKAHEAD"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C010",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C011",
+    "BATCH_LINKS": [
+      {
+        "ATTEMPT_ID": "GV0R01-C001",
+        "RELATION": "FUNCTIONAL_RELABEL"
+      },
+      {
+        "ATTEMPT_ID": "GV0R01-C001",
+        "RELATION": "FUNCTIONAL_RELABEL_REVERSE"
+      }
+    ],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C011",
+    "CARD": {
+      "BASELINE_OR_NULL": "Null: random abstention with exactly the same number of withheld decisions, drawn within the YEAR x RV_DECILE x UTC_HOUR strata of the filtered decisions and repeated 1000 times. Each draw yields the same retained-set mean of NORM_EXC_24H. Baseline comparator: a D2-style trailing-RV abstention rule tuned to the same abstention rate.",
+      "CANDIDATE_ID": "C011",
+      "CAUSAL_OR_STRUCTURAL_STORY": "On the BitMEX XBTUSD surface before 2020, the matching engine repeatedly entered overload states in which orders were rejected. These states leave a trace in the trade-price record: 5m bars whose first trade sits far from the prior bar's last trade, and bars with zero volume. Such episodes indicate impaired liquidity provision and risk transfer. If the impairment persists and forced deleveraging clusters in these periods, the following 24h path should show larger two-sided excursions than realized volatility alone implies. Withholding decisions while the discontinuity state is active would then cut tail exposure by more than an RV filter at the same abstention rate. Binance USD-M from 2020-01..2024-12, which runs a different engine, serves as an out-of-surface check.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "D2_BITMEX_PRE2020_XBTUSD",
+          "LEGAL_RANGE": "pre-2020",
+          "OBSERVABLE": "5m open, close and volume per bar, used for gap counts, zero-volume counts, trailing RV and 24h close excursions",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m klines aggregated to 5m open, close and volume for the same discontinuity score and excursion target",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Discriminates between two accounts: that conditional tail risk is fully summarized by volatility level, or that trading-infrastructure stress contributes a separate component. Either outcome prunes the abstention family.",
+      "FALSIFIER": "The claim fails if any of the following holds: (1) the filtered retained-set mean NORM_EXC_24H is not below the 5th percentile of the stratified random-abstention distribution on the BitMEX surface; (2) the sign of the filter-minus-null difference reverses on Binance 2020-01..2024-12 under the single frozen variant; (3) the difference disappears once RV decile is matched.",
+      "FUNCTION": "Conditional abstention. Decisions at T are withheld whenever DISC_SCORE_T exceeds its frozen trailing percentile. The retained set is compared against RV-matched random abstention at the same rate.",
+      "HORIZON": "24h window (T, T+24h] for each hourly decision time T",
+      "INFORMATION_SOURCE": "PRE2020_SURFACE",
+      "MECHANISM": "Engine-stress price-discontinuity state leads to a larger two-sided 24h tail excursion than volatility level implies, so abstaining in that state lowers tail exposure beyond RV-based abstention",
+      "MECHANISM_FAMILY": "A",
+      "NAME": "BitMEX engine-stress discontinuity state as abstention conditioner for 24h tail excursion",
+      "OBSERVABLE": "DISC_SCORE_T is the count, over the last L closed 5m bars ending at or before T, of bars with |log(open_i / close_{i-1})| above GAP_THRESHOLD_BPS or with zero volume. It is standardized against its own trailing 30-day distribution.",
+      "PRIMARY_TARGET": "Retained-set mean of NORM_EXC_24H, the filter mean minus the RV-matched random-abstention mean. NORM_EXC_24H = max(|max log(C_t/C_T)|, |min log(C_t/C_T)|) over 5m closes in (T, T+24h], divided by the trailing 24h realized volatility measured at T."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED"
+        ],
+        "VERDICT": "REJECT"
+      },
+      "NOVELTY": {
+        "VERDICT": "REJECT"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "LINKED_PRIOR_DUPLICATE_OR_NEIGHBOR",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [
+      {
+        "BASIS": "NOVELTY_CRITIC",
+        "RELATION": "FUNCTIONAL_RELABEL",
+        "SIGNATURE_ID": "D2"
+      }
+    ],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": null,
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C012",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C012",
+    "CARD": {
+      "BASELINE_OR_NULL": "Controls are windows at the same weekday, the same UTC clock time and in the same year, taken from weeks with no scheduled FOMC or CPI release. Null: 10000 within-stratum permutations of event labels across event and control windows, each producing the same mean-difference statistic.",
+      "CANDIDATE_ID": "C012",
+      "CAUSAL_OR_STRUCTURAL_STORY": "In equities, a positive drift ahead of scheduled FOMC statements has been documented. It is attributed either to a premium for bearing scheduled event risk or to de-risking and re-risking by constrained intermediaries. BTC trades continuously and was sensitive to US rate expectations in 2020-01..2024-12. Two channels would make the signed return in the hours before a scheduled release differ systematically from identically timed windows without an event: leveraged participants cutting exposure ahead of the release and restoring it as the release approaches, or a premium accruing to holders who carry exposure into the scheduled uncertainty. CPI releases provide a second, independent class of scheduled events.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "D11_FOMC_OFFICIAL_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Scheduled FOMC statement release timestamps",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m closes for pre-release windows and matched control windows",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "STATUTORY_DST_CALENDARS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "US DST transition dates for converting the 08:30 ET CPI release time to UTC",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "BLS_CPI_RELEASE_SCHEDULE_ARCHIVE",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Scheduled CPI release dates and times as published in the BLS annual release calendar before each release",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Separates anticipation drift from response volatility within the scheduled-event subspace, using a small, frozen set of variants.",
+      "FALSIFIER": "The claim fails if any of the following holds: (1) the stratified permutation does not reject a zero mean difference for the frozen variant; (2) the yearly mean difference carries the pooled sign in fewer than 3 of 5 years; (3) the difference vanishes when the 24h window before the W-hour window is also required to match, which would mean the drift is part of a broader weekday pattern.",
+      "FUNCTION": "Directional expectation test of the mean signed pre-release return against matched non-event windows",
+      "HORIZON": "W hours ending 1 minute before each scheduled release time, with W taken from the search surface",
+      "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+      "MECHANISM": "Anticipation of a scheduled macro release produces a signed drift in the BTC return before the release",
+      "MECHANISM_FAMILY": "B",
+      "NAME": "Pre-announcement BTC drift before scheduled FOMC and CPI releases",
+      "OBSERVABLE": "PRE_RET_W = log(close at release time minus 1 minute / close at release time minus W hours), computed from BTCUSDT perpetual 1m closes for each scheduled release.",
+      "PRIMARY_TARGET": "Mean PRE_RET_W on scheduled release windows minus mean PRE_RET_W on matched control windows, within YEAR x WEEKDAY x UTC clock-time strata"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C012",
+    "STREAM": "HIGH_VALUE_DATA_BLOCKED"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C013",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C013",
+    "CARD": {
+      "BASELINE_OR_NULL": "Baseline: cross-sectional model of WICK_RESID rank using trailing return rank, trailing range rank and log quote-volume rank only. Null: 1000 within-date permutations of CLV ranks inside quote-volume terciles, each producing the same mean weekly rank-correlation statistic.",
+      "CANDIDATE_ID": "C013",
+      "CAUSAL_OR_STRUCTURAL_STORY": "A daily bar that closes near its low, leaving an upper wick, reflects intraday rejection of higher prices. Plausible sources are supply that appears on rallies from stale holders, inventory-heavy makers, or unlock-related distribution. If that supply is name-specific and persists for days, a name's trailing close-location value (CLV) should predict the shape of its future intraday path, measured as wick asymmetry. The prediction should hold even after removing the part explained by the same-window close-to-close return. This is a question about path morphology on a panel, not about relative returns.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "LEGAL_RANGE": "2019-12..2024-12",
+          "OBSERVABLE": "Daily open, high, low, close and quote volume per symbol, plus listing and delisting status and pinned exclusion lists",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Opens or closes the morphology branch of the cross-sectional panel with a single frozen test that is orthogonal to the return target D13 already tested.",
+      "FALSIFIER": "The claim fails if any of the following holds: (1) the mean rank correlation between CLV and WICK_RESID lies within the central 95 percent of the stratified permutation null; (2) yearly correlations share the pooled sign in fewer than 3 of 5 years; (3) the association disappears once trailing return rank is included.",
+      "FUNCTION": "Cross-sectional rank association between trailing CLV rank and subsequent residual wick-asymmetry rank, with liquidity and trailing-return controls",
+      "HORIZON": "H daily bars following each 00:00 UTC decision time",
+      "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+      "MECHANISM": "Persistent name-specific rejection of intraday price levels leads to predictable subsequent wick asymmetry, beyond what return explains",
+      "MECHANISM_FAMILY": "C",
+      "NAME": "Persistence of intraday wick morphology across the Binance spot USDT cross-section",
+      "OBSERVABLE": "CLV_i,t is the mean over the last K daily bars closed at or before t of (2C - H - L)/(H - L), excluding bars with H equal to L. It is ranked cross-sectionally within the eligible universe at t.",
+      "PRIMARY_TARGET": "Weekly mean Spearman correlation between CLV rank and WICK_RESID rank. WICK_RESID_i is the residual of the sum over the next H daily bars of [log(H/O) - log(O/L)], after a cross-sectional regression on the same-window relative log return and log range."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_CONSUMED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C013",
+    "STREAM": "EXECUTABLE_NOW"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C014",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C014",
+    "CARD": {
+      "BASELINE_OR_NULL": "Baseline: HAR-style regression of RRV_H on trailing 1d, 7d and 30d relative realized variance. Null: the IVS coefficient is zero. This is assessed with a stationary block bootstrap of daily residuals and with a block-shifted IVS series, lagged 90 to 180 days, which preserves IVS autocorrelation and yields the same forecast-error statistic.",
+      "CANDIDATE_ID": "C014",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Option dealers and volatility buyers price anticipated information unevenly across BTC and ETH. Examples are protocol upgrades, token-specific regulatory decisions and exchange-product approvals. If the ETH-minus-BTC implied variance spread carries information about which asset will be relatively more volatile, it should forecast the realized log variance ratio beyond a HAR forecast built from realized history. That would mean part of the relative structure between the two assets is anticipated in the options market.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "DERIBIT_DVOL_INDEX_HISTORY",
+          "LEGAL_RANGE": "2021-03..2024-12",
+          "OBSERVABLE": "BTC and ETH DVOL 30-day implied volatility index values at hourly resolution with publication timestamps",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "DERIBIT_OPTIONS_QUOTES_VENDOR_HISTORY",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "ATM option mid implied volatility for BTC and ETH interpolated to a fixed 30-day maturity",
+          "STATUS": "DATA_BLOCKED_COST"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "5m log returns for BTC realized variance",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_ETH_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "5m log returns for ETH realized variance",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Adds the first options-derived test of relative cross-asset structure. It separates what options anticipate from what realized history already contains.",
+      "FALSIFIER": "The claim fails if any of the following holds: (1) IVS gives no out-of-sample reduction in squared forecast error relative to HAR in sequential yearly folds within 2021-03..2024-12; (2) the IVS coefficient changes sign in more than one of four folds; (3) the block-shifted IVS series delivers a comparable reduction.",
+      "FUNCTION": "Incremental forecast of relative realized variance over a baseline that uses realized history only",
+      "HORIZON": "H days following each 00:00 UTC decision time",
+      "INFORMATION_SOURCE": "OPTIONS",
+      "MECHANISM": "The ETH-minus-BTC implied variance spread forecasts the subsequent realized ETH/BTC variance ratio beyond a forecast from realized history",
+      "MECHANISM_FAMILY": "D",
+      "NAME": "Options-implied ETH-BTC relative variance spread and subsequent realized relative variance",
+      "OBSERVABLE": "IVS_T = log(IV_ETH_T^2 / IV_BTC_T^2) minus log(RV_ETH_trailing30d^2 / RV_BTC_trailing30d^2), with IV taken as the 30-day implied volatility observed at or before T.",
+      "PRIMARY_TARGET": "RRV_H = log(RV_ETH / RV_BTC) over (T, T+H], with realized variance computed from 5m log returns of the ETHUSDT and BTCUSDT perpetuals"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C014",
+    "STREAM": "HIGH_VALUE_DATA_BLOCKED"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C015",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_LOOKAHEAD_VIOLATION",
+        "FAILED_CHECKS": [
+          "NO_LOOKAHEAD"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_BLOCKED_PROVENANCE",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C015",
+    "CARD": {
+      "BASELINE_OR_NULL": "Baseline: regression of IMPACT_H on trailing 24h and 7d impact, trailing RV, log volume and hour-of-week dummies. Null: event hours are replaced by pseudo-event hours matched on YEAR x HOUR_OF_WEEK x TRAILING_IMPACT_DECILE x RV_BUCKET, with 1000 draws, each producing the same mean IMPACT_H difference.",
+      "CANDIDATE_ID": "C015",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Stablecoin issuance and transfers into exchange wallets add quote-side capital that makers and participants can deploy as resting liquidity. If newly arrived stablecoin balances translate into deeper books, price impact per unit of traded volume on the Binance BTCUSDT perpetual should fall in the hours after large mints or large exchange inflows. The effect should be visible relative to hours with matched pre-existing impact and volatility. The mechanism concerns execution state, not price direction.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "ETHEREUM_USDT_ERC20_TRANSFER_LOGS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "USDT transfer events with block timestamps, including Tether treasury mint and issue transactions",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "TRON_USDT_TRC20_TRANSFER_LOGS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "USDT TRC-20 transfer events with block timestamps, including treasury issue transactions",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "EXCHANGE_WALLET_ADDRESS_LABELS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Binance-attributed deposit and hot-wallet address set with the date each label was first published",
+          "STATUS": "DATA_BLOCKED_PROVENANCE"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m returns and quote volume for the impact ratio and baseline controls",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_BLOCKED_PROVENANCE",
+      "EXPECTED_INFORMATION_GAIN": "Tests whether an information source external to the exchange explains execution state. This is a dimension that prior kline-only impact work (D7) could not reach.",
+      "FALSIFIER": "The claim fails if any of the following holds: (1) mean IMPACT_H after flow events is not below the 5th percentile of the matched pseudo-event distribution; (2) yearly differences share the pooled sign in fewer than 3 of 5 years; (3) the reduction is fully explained by contemporaneous volume increase, shown when the target is recomputed with volume held at its matched level.",
+      "FUNCTION": "Event-conditioned characterization of execution-impact state following stablecoin supply events, compared against matched pseudo-events",
+      "HORIZON": "H hours following the block timestamp of each flow event, aligned to the next 1m bar close",
+      "INFORMATION_SOURCE": "ONCHAIN",
+      "MECHANISM": "Stablecoin issuance and exchange inflows expand quote-side liquidity, which lowers subsequent price impact per unit volume on the BTC perpetual",
+      "MECHANISM_FAMILY": "E",
+      "NAME": "Stablecoin supply events as an execution-liquidity state for the BTC perpetual",
+      "OBSERVABLE": "FLOW_EVENT_T flags hours in which the USDT treasury issue amount, or the net inflow into Binance-attributed addresses, summed over FLOW_WINDOW_H hours ending at T, exceeds the 95th percentile of its trailing 90-day distribution.",
+      "PRIMARY_TARGET": "IMPACT_H = log(sum of |1m log returns| / sum of 1m quote volume) over (T, T+H], expressed relative to the trailing 30-day median impact at T"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_BLOCKED_PROVENANCE",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "NO_LOOKAHEAD"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C015",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C016",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C016",
+    "CARD": {
+      "BASELINE_OR_NULL": "Baseline: logistic hazard of TRANSITION_H on trailing RV compression (an H01-style ratio), log volume, trade count and hour-of-week. Null: DEPTH_Z is permuted within YEAR x RV_DECILE x HOUR_OF_WEEK strata, 1000 times, each producing the same incremental log-likelihood statistic.",
+      "CANDIDATE_ID": "C016",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Volatility regimes may be triggered when the liquidity buffer thins before prices move. Makers withdraw quotes ahead of anticipated uncertainty, so an unchanged order flow then moves price further. If book thinning precedes RV transitions, a drop in standing depth during a low-RV state should raise the hazard of moving into a high-RV state. This should hold beyond what trailing RV compression and volume already imply. Here the order book serves as a leading state variable for regime change.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "BINANCE_PUBLIC_DATA_UM_BOOKDEPTH",
+          "LEGAL_RANGE": "2023-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual aggregated notional depth at percentage bands from mid, with snapshot timestamps",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "BINANCE_PUBLIC_DATA_UM_BOOKTICKER",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual best bid and ask size and price updates with event timestamps",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Full-depth BTCUSDT perpetual order book reconstruction for depth within fixed basis-point bands",
+          "STATUS": "DATA_BLOCKED_COST"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m returns, volume and trade count for RV states, the transition target and baseline controls",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Adds the first order-book state variable to the regime-transition family, separating liquidity-led transitions from volatility-led ones.",
+      "FALSIFIER": "The claim fails if any of the following holds: (1) adding DEPTH_Z does not raise out-of-sample log-likelihood above the 95th percentile of the within-stratum permutation distribution; (2) the DEPTH_Z coefficient sign differs across years in more than one year; (3) the depth effect disappears when trailing spread is added, which would mean depth is only a proxy for spread.",
+      "FUNCTION": "Incremental hazard model of low-to-high RV-state transitions given order-book depth thinning",
+      "HORIZON": "H hours following each hourly decision time T that is in the low-RV tercile",
+      "INFORMATION_SOURCE": "ORDER_BOOK",
+      "MECHANISM": "Order-book depth thinning during a low-volatility state precedes and raises the hazard of a transition into a high-volatility regime",
+      "MECHANISM_FAMILY": "F",
+      "NAME": "Order-book depth thinning as a leading indicator of volatility-regime transition",
+      "OBSERVABLE": "DEPTH_Z_T is the z-score of the hourly median notional depth within the chosen band, measured over the hour ending at T, relative to its trailing 30-day same-hour-of-day distribution.",
+      "PRIMARY_TARGET": "TRANSITION_H = 1 if the hourly RV state moves from the low tercile at T to the high tercile in any hour within (T, T+H]"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C016",
+    "STREAM": "HIGH_VALUE_DATA_BLOCKED"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C017",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C017",
+    "CARD": {
+      "BASELINE_OR_NULL": "Null: placebo grids shifted by fixed fractions of the grid spacing (0.137, 0.29, 0.43, 0.61, 0.83), with the same untouched-level rule applied. Each placebo yields the same continuation statistic, and the true round grid is ranked among them. Inference is stratified by YEAR x RV_BUCKET and uses day-block bootstrap.",
+      "CANDIDATE_ID": "C017",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Round price levels attract clustered resting orders: take-profit and stop orders, option strikes and alert thresholds. When price first reaches a round level that has not traded for weeks, clustered stops beyond the level may cascade and produce continuation. Alternatively, clustered resting limit orders may absorb the move and produce recovery. Round levels are defined exogenously, independent of any recent range, so comparing responses at round levels with responses at arbitrarily shifted placebo levels identifies the effect of order clustering on salient numbers.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m high, low and close for level-touch detection and signed response returns",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_ETH_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m high, low and close for replication on ETH, with grid spacings scaled to the ETH price level",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Determines whether exogenous salient levels carry event-response structure. This separates round-number clustering from the endogenous range-boundary effects already tested.",
+      "FALSIFIER": "The claim fails if any of the following holds: (1) the true grid's mean CONT_H ranks inside the middle of the placebo distribution, meaning not in the most extreme rank at either tail among six grids, pooled across horizons within the frozen variant; (2) the ETH replication with the frozen rule shows the opposite sign; (3) yearly signs agree with the pooled sign in fewer than 3 of 5 years.",
+      "FUNCTION": "Event-response characterization at first touches of untouched round-number levels, compared with placebo levels",
+      "HORIZON": "H hours following the 1m bar close at which the round level is first crossed",
+      "INFORMATION_SOURCE": "KLINES",
+      "MECHANISM": "Clustered resting orders at salient round-number levels shape the response after a first touch, either through cascade continuation or through absorption and recovery",
+      "MECHANISM_FAMILY": "G",
+      "NAME": "Response after first touches of untouched round-number price levels, compared with placebo grids",
+      "OBSERVABLE": "TOUCH_EVENT: a first crossing of a level on the grid G (multiples of GRID_USD) that has been untouched for UNTOUCHED_LOOKBACK_D days, with crossing direction D = +1 upward and -1 downward.",
+      "PRIMARY_TARGET": "CONT_H = D x log(close at T+H / close at T), averaged over events, compared with the same statistic for placebo grids"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C017",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C018",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C018",
+    "CARD": {
+      "BASELINE_OR_NULL": "Controls: common jumps, where both venues exceed JUMP_Z with the same sign, matched on jump-magnitude decile x YEAR x RV_BUCKET x JUMP_VENUE. Null: 1000 permutations of IDIO and COMMON labels within these strata, each producing the same difference in mean RETAIN_W.",
+      "CANDIDATE_ID": "C018",
+      "CAUSAL_OR_STRUCTURAL_STORY": "When a large 5m move appears on only one venue, it is either local noise (a liquidity hole or a venue-specific liquidation) or new information that the other venue has not yet absorbed. Under a noise account, the jump venue's price should revert toward its pre-jump level. Under an information account, it should persist while the other venue catches up. Comparing retention of venue-idiosyncratic jumps with retention of matched common jumps reveals which venue produces informative prices and which produces noise.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Aligned 5m closes for the Binance BTC perpetual and OKX BTC spot, used for jump classification and retention",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "1m closes and volume for the Binance perpetual, used for RV buckets and within-bar timing checks",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Characterizes whether venue-local jumps carry information in a way that is directly comparable across venues. This fills a gap between the closure attribution in D9 and the dislocation risk in MARKET-06.",
+      "FALSIFIER": "The claim fails if either of the following holds: (1) the mean RETAIN_W difference between idiosyncratic and common jumps lies inside the central 95 percent of the stratified permutation null for both venues; (2) the yearly sign of the difference matches the pooled sign in fewer than 2 of 3 years.",
+      "FUNCTION": "Characterization of price-level retention after venue-idiosyncratic jumps compared with common jumps, reported separately for the perpetual and spot venues",
+      "HORIZON": "W minutes following the close of the 5m jump bar",
+      "INFORMATION_SOURCE": "CROSS_VENUE",
+      "MECHANISM": "Whether a jump is venue-idiosyncratic or common to both venues determines whether it is a noise event (reverting) or an information event (persisting)",
+      "MECHANISM_FAMILY": "H",
+      "NAME": "Retention of venue-idiosyncratic versus common 5m jumps across the Binance perpetual and OKX spot",
+      "OBSERVABLE": "JUMP_CLASS for each 5m bar in which one venue has |r|/sigma_trailing24h above JUMP_Z. The class is IDIO if the other venue's same-bar return, in the same sign, is below IDIO_RATIO_MAX times the jump return; otherwise it is COMMON.",
+      "PRIMARY_TARGET": "RETAIN_W = log(price on the jump venue at bar close + W minutes / price at the jump bar close) divided by the jump return, plus 1, giving the retained fraction of the jump. The quantity compared is mean RETAIN_W for IDIO minus mean RETAIN_W for matched COMMON jumps, per venue."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C018",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C019",
+    "BATCH_LINKS": [
+      {
+        "ATTEMPT_ID": "GV0R01-C009",
+        "RELATION": "PARAMETER_NEIGHBOR"
+      },
+      {
+        "ATTEMPT_ID": "GV0R01-C009",
+        "RELATION": "PARAMETER_NEIGHBOR_REVERSE"
+      }
+    ],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C019",
+    "CARD": {
+      "BASELINE_OR_NULL": "Null 1: a pseudo-anchor rank. The same slope statistic is computed for all 48 half-hour anchors, each defining its own pseudo day, and the rank of the 00:00 UTC anchor is reported. Null 2: a day-block bootstrap of the slope. Both nulls generate the same slope observable. The external benchmark is the positive sign reported in the equity intraday-momentum literature.",
+      "CANDIDATE_ID": "C019",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Gao, Han, Li and Zhou (Journal of Financial Economics) documented intraday time-series momentum in US equities: the first half-hour return predicts the last half-hour return. They attribute it to late-informed traders and to hedging demand concentrated near the close. Crypto has no official close, but 00:00 UTC is a de facto reset for exchange daily bars, funding cycles and reporting. If participants anchor to it, a benchmark analog may exist around that anchor. BitMEX data before 2020 acts as the discovery surface, and Binance 2020-01..2024-12 acts as a frozen reproduction. This is a diagnostic reproduction of an external mechanism, not a new mechanism.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "D2_BITMEX_PRE2020_XBTUSD",
+          "LEGAL_RANGE": "pre-2020",
+          "OBSERVABLE": "5m closes used for first-segment and last-segment returns of each UTC day on the discovery surface",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m closes aggregated to segment returns for the frozen reproduction",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Resolves whether a well-known equity benchmark mechanism has a crypto analog at the conventional UTC reset. It uses two independent venue surfaces and a strictly frozen rule.",
+      "FALSIFIER": "The claim fails if any of the following holds: (1) on BitMEX, the 00:00 UTC anchor's slope ranks below the top 3 of 48 pseudo-anchors in absolute value; (2) on Binance, the frozen variant's slope sign differs from the BitMEX sign; (3) on Binance, the day-block bootstrap interval includes zero.",
+      "FUNCTION": "Diagnostic reproduction of an external intraday-momentum mechanism at the 00:00 UTC anchor, with discovery on BitMEX before 2020 and frozen reproduction on Binance",
+      "HORIZON": "Last segment of LAST_SEG_MIN minutes before the 00:00 UTC anchor ending each day",
+      "INFORMATION_SOURCE": "PRE2020_SURFACE",
+      "MECHANISM": "First-segment return after the 00:00 UTC anchor predicts the last-segment return before the next anchor, as an externally documented intraday-momentum benchmark",
+      "MECHANISM_FAMILY": "I",
+      "NAME": "Intraday time-series momentum benchmark at the 00:00 UTC anchor, discovered on BitMEX and reproduced on Binance",
+      "OBSERVABLE": "R_FIRST is the log return over the first FIRST_SEG_MIN minutes after 00:00 UTC. When the two-predictor variant is used, R_PENULT is the log return of the segment just before the last segment.",
+      "PRIMARY_TARGET": "Slope of R_LAST on R_FIRST across days, where R_LAST is the log return over the final LAST_SEG_MIN minutes before the next 00:00 UTC"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "REJECT"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "LINKED_PRIOR_DUPLICATE_OR_NEIGHBOR",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [
+      {
+        "BASIS": "NOVELTY_CRITIC",
+        "RELATION": "RESOLVES_BLOCKER",
+        "SIGNATURE_ID": "D6"
+      },
+      {
+        "BASIS": "NOVELTY_CRITIC",
+        "RELATION": "FUNCTIONAL_RELABEL",
+        "SIGNATURE_ID": "MARKET-03"
+      }
+    ],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": null,
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C020",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C020",
+    "CARD": {
+      "BASELINE_OR_NULL": "Null: 1000 draws of pseudo-holiday dates, each drawn from the same weekday in the same year and outside holiday weeks. Each draw produces the same mean log share displacement. The control day set for each holiday uses the same weekday within plus or minus CONTROL_WINDOW_WEEKS weeks.",
+      "CANDIDATE_ID": "C020",
+      "CAUSAL_OR_STRUCTURAL_STORY": "D12 used US DST shifts to ask whether the BTC volume clock follows US civil time. Official holidays provide a second natural experiment that isolates which participant block anchors each intraday hump. On NYSE weekday closures, desks that key off equity hours should be absent, lowering the US-session share. During China statutory holiday weeks, Asian participants shift or reduce activity. Holidays remove participants rather than shifting their clocks, so they identify the size of each regional block. A specificity arm uses US federal holidays on which the NYSE is open: an equity-clock mechanism predicts no displacement on those days.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Hourly and 1m quote volume for session-share construction",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "STATUTORY_DST_CALENDARS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "US DST dates for converting ET session bounds to UTC",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "NYSE_HOLIDAY_CALENDAR_ARCHIVE",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "NYSE full-day weekday closure dates as published in advance, including unscheduled closures flagged separately",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "CN_STATE_COUNCIL_HOLIDAY_NOTICES",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "China statutory holiday dates and makeup working days from the annual State Council notices, with publication dates",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "US_OPM_FEDERAL_HOLIDAY_LIST",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "US federal holiday dates, used to identify federal holidays on which the NYSE is open",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Complements the D12 clock-shift result with a participant-removal experiment. It can identify which regional block, US equity-linked or China-based, anchors each hump in the volume clock.",
+      "FALSIFIER": "The claim fails if any of the following holds: (1) the mean log share displacement on NYSE weekday closures lies inside the central 95 percent of the pseudo-holiday null; (2) yearly displacement signs agree with the pooled sign in fewer than 3 of 5 years; (3) NYSE-open federal holidays show the same displacement as NYSE closures, which contradicts equity-clock anchoring specifically. The same criteria apply separately to the China holiday arm using the Asia session window.",
+      "FUNCTION": "Holiday natural experiment on the regional composition of the BTC intraday volume profile",
+      "HORIZON": "The single UTC day of each holiday, with same-weekday controls within plus or minus CONTROL_WINDOW_WEEKS weeks",
+      "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+      "MECHANISM": "Official regional holidays remove the corresponding participant block, which displaces the BTC intraday volume profile away from that region's session",
+      "MECHANISM_FAMILY": "J",
+      "NAME": "Official-holiday participant removal and BTC intraday session volume shares",
+      "OBSERVABLE": "SESSION_SHARE_d = quote volume within the session window on UTC day d, converted to UTC with the statutory DST calendar, divided by the 24h quote volume of day d. It is computed from the BTCUSDT perpetual for the US session and for the Asia session (01:00 to 08:00 UTC).",
+      "PRIMARY_TARGET": "Mean over holidays in a set of log(SESSION_SHARE on the holiday / mean SESSION_SHARE on matched same-weekday non-holiday days)"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C020",
+    "STREAM": "HIGH_VALUE_DATA_BLOCKED"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C021",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C021",
+    "CARD": {
+      "BASELINE_OR_NULL": "Primary null: within-month permutation of liquidity-tercile labels across names, preserving tercile sizes and each name's own return series, recomputing LAG_LOADING_GAP on each draw. Secondary null: circular shift of the BTC daily return series by a random multiple of 7 days, which preserves weekday composition and destroys true lag alignment. Both nulls generate the card's own statistic.",
+      "CANDIDATE_ID": "C021",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Market makers and attention are concentrated in the most liquid names. In thin names quotes are refreshed less often, inventory constraints are tighter and fewer participants monitor the common factor, so part of the day-d BTC move is incorporated on day d+1. This is the crypto analogue of the size lead-lag structure documented for equity portfolios. Proposed family K, INFORMATION_DIFFUSION_GRADIENT: the speed at which a common factor propagates through a cross-section as a function of liquidity. It sits apart from H, which covers own-return rank structure, and from D, which covers pairwise relations.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Daily open, close and quote volume per USDT symbol including delisted symbols, pinned listing dates and exclusion lists",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT spot daily close used as the common-factor return",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It settles whether a daily-resolution factor-diffusion gradient exists in this panel. That structural fact affects the design of every weekly or daily cross-sectional study, including D13-style work.",
+      "FALSIFIER": "Pooled LAG_LOADING_GAP does not exceed the 95th percentile of the label-permutation null. Or yearly gaps share the pooled sign in fewer than 3 of the 5 calendar years from 2020 to 2024. Or the gap disappears once zero-volume and stale-close days are removed, which would indicate a stale-price artefact rather than diffusion.",
+      "FUNCTION": "Measure the lagged BTC-factor loading gradient across trailing-liquidity terciles of Binance spot USDT names.",
+      "HORIZON": "Next UTC daily bar d+1 after decision close d; a 2-day lag variant is included in the search surface.",
+      "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+      "MECHANISM": "Illiquid, less-attended Binance spot USDT names incorporate the common BTC daily factor with a delay. The loading of name i's day d+1 residual return on BTC's day d return should rise as trailing liquidity rank falls.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Liquidity-gradient lagged diffusion of the BTC daily factor across Binance spot USDT names",
+      "OBSERVABLE": "For each name i and day d, the residual r_i,d+1 after removing the contemporaneous BTC beta, where beta is estimated on the trailing 90 days ending at d. The observable is the cross-sectional slope of that residual on the BTC day-d return, estimated separately within liquidity terciles. Terciles are defined by trailing median daily quote volume at the close of d.",
+      "PRIMARY_TARGET": "LAG_LOADING_GAP: mean lagged BTC loading in the bottom liquidity tercile minus that in the top tercile. It is estimated per calendar month and pooled across months."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C021",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C022",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CONFOUNDING_CONTROL_INADEQUATE",
+        "FAILED_CHECKS": [
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_BLOCKED_COST",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C022",
+    "CARD": {
+      "BASELINE_OR_NULL": "Strike-grid-aware placebo null. For each expiry, compute the same normalized distance to every listed strike of the expiring series that was at a similar distance from spot at the OI snapshot time; the rank of K* among these placebo strikes is uniform under the null. A second null repeats the full computation on non-expiry Fridays, using the next-to-expire series' max-OI strike observed with the same lead. Placebo strikes include round-number strikes so that round-number attraction is shared by both arms.",
+      "CANDIDATE_ID": "C022",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Liquidity providers with net positive gamma at a large-OI strike rebalance deltas against price moves near that strike, damping the price there as expiry approaches. This is the pinning channel documented for equity options. If dealers instead carry net negative gamma, hedging amplifies moves away from the strike, so the unsigned test is run first and the signed test second. Deribit settles on a 30-minute average of its index from 07:30 to 08:00 UTC, which fixes the relevant clock. Proposed family L, DERIVATIVE_HEDGING_PRICE_ATTRACTION: price-level attraction induced by hedging of contingent claims. This is not captured by fixing-window activity footprints or boundary-path families.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "Deribit BTC option open interest by strike and expiry, hourly snapshots",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Open interest per strike per expiry with snapshot timestamp",
+          "STATUS": "DATA_BLOCKED_COST"
+        },
+        {
+          "DATASET": "Deribit BTC option expiry calendar and delivery prices",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Expiry timestamps, series type (weekly, monthly, quarterly) and settlement delivery price per expiry",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m close and trailing realized volatility",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_BLOCKED_COST",
+      "EXPECTED_INFORMATION_GAIN": "High relative to its narrow scope. It identifies whether options-hedging flows leave a measurable price-level footprint on the most liquid BTC perpetual, which no tested mechanism addresses.",
+      "FALSIFIER": "Mean rank of K* among matched placebo strikes is not below the 5th percentile of the uniform-rank null. And the expiry-Friday versus non-expiry-Friday difference in normalized PIN_DIST falls inside the placebo distribution's central 95% band. If both hold, pinning is falsified at this resolution.",
+      "FUNCTION": "Test whether Binance BTC perpetual price is attracted toward the maximum-open-interest strike of expiring Deribit options at the 08:00 UTC settlement.",
+      "HORIZON": "From the OI snapshot, taken a fixed lead before expiry, to the 08:00 UTC Deribit settlement, with path diagnostics over the final 4 hours.",
+      "INFORMATION_SOURCE": "OPTIONS",
+      "MECHANISM": "Delta hedging of large net option positions near expiry pulls the underlying toward high-open-interest strikes (pinning). This should show up as a reduced volatility-normalized distance between the Binance perpetual price and the maximum-OI strike at Deribit's 08:00 UTC expiry.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Deribit expiry strike-pinning footprint on Binance BTC perpetual price at 08:00 UTC",
+      "OBSERVABLE": "PIN_DIST = |ln(P_perp at 08:00 UTC / K*)| divided by trailing 24h realized volatility. K* is the strike with maximum aggregate open interest in the expiring series at a snapshot taken a fixed lead before expiry.",
+      "PRIMARY_TARGET": "Rank of the normalized PIN_DIST of K* among matched placebo strikes of the same expiring series, pooled across expiries, together with the expiry-versus-non-expiry-Friday difference in median normalized PIN_DIST."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_BLOCKED_COST",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C022",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C023",
+    "BATCH_LINKS": [
+      {
+        "ATTEMPT_ID": "GV0R01-C007",
+        "CANONICAL_SIGNATURE_ID": "GV0R01-C007",
+        "RELATION": "FUNCTIONAL_RELABEL_REVERSE"
+      }
+    ],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C023",
+    "CARD": {
+      "BASELINE_OR_NULL": "Matched control hours drawn from the same year, weekday, UTC hour and trailing RV bucket, with no mint within 48 hours on either side. Mint timestamps are permuted within year x weekday x hour strata to generate a null distribution of ASYM computed identically.",
+      "CANDIDATE_ID": "C023",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Two stories predict opposite orderings. In the injection story, new stablecoins arrive, are routed to exchanges and are deployed, so abnormal taker-buy share rises after the mint. In the reactive story, Tether issues against dollar deposits already made by counterparties who have already expressed demand elsewhere, so abnormal flow precedes the mint. Hourly on-chain timestamps against hourly perpetual flow can discriminate between them. Proposed family M, STABLECOIN_SUPPLY_SEQUENCING: temporal ordering between on-chain liquidity creation and venue order flow.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "Ethereum USDT contract Issue and treasury Transfer events (node or public explorer export)",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Block timestamp, transaction hash and amount for each USDT issuance to the Tether treasury and each treasury outflow",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "Tron USDT TRC20 treasury mint and outflow transactions",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Block timestamp and amount of treasury mints and outflows",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Hourly taker-buy quote volume and total quote volume of BTCUSDT perpetual",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Moderate to high. It determines the direction of causality between stablecoin supply and venue flow at hourly resolution, a question that is often asserted but rarely tested with point-in-time timestamps.",
+      "FALSIFIER": "If both pre-mint and post-mint abnormal taker-buy share fall inside the permutation null's 95% band, mint timing is uninformative about venue flow at hourly resolution and both stories fail. If ASYM is outside the band but shares the pooled sign in fewer than 3 of the 5 years from 2020 to 2024, the sequencing claim is falsified as unstable.",
+      "FUNCTION": "Determine whether abnormal Binance BTC perpetual taker-buy share leads or lags on-chain USDT treasury issuance.",
+      "HORIZON": "A 24-hour window on each side of the mint block timestamp, at hourly resolution.",
+      "INFORMATION_SOURCE": "ONCHAIN",
+      "MECHANISM": "Stablecoin issuance is either a liquidity injection that precedes crypto demand on venues, or a reactive settlement of demand that has already occurred. The ordering of abnormal taker-buy share around mint block timestamps discriminates between the two.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Lead-lag sequencing between USDT treasury issuance and Binance BTC perpetual taker flow",
+      "OBSERVABLE": "Mint events are USDT issuance transactions to the Tether treasury on Ethereum and Tron, with block timestamps and amounts. TBS_h is the hourly taker-buy quote volume share of the Binance BTCUSDT perpetual. Abnormal TBS is TBS minus the matched-control mean.",
+      "PRIMARY_TARGET": "ASYM: mean abnormal taker-buy share over the 24 hours before the mint minus mean abnormal taker-buy share over the 24 hours after it, pooled across mints above the size threshold."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "REJECT"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED",
+          "NO_LOOKAHEAD"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "LINKED_BATCH_DUPLICATE_OR_NEIGHBOR",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": null,
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C024",
+    "BATCH_LINKS": [
+      {
+        "ATTEMPT_ID": "GV0R01-C017",
+        "CANONICAL_SIGNATURE_ID": "GV0R01-C017",
+        "RELATION": "FUNCTIONAL_RELABEL_REVERSE"
+      }
+    ],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C024",
+    "CARD": {
+      "BASELINE_OR_NULL": "Placebo levels are offset from round levels by random non-round amounts and matched on approach velocity over the prior 30 minutes, 1-hour RV, UTC hour and weekday. Round-versus-placebo labels are permuted within strata. The null generates both the traversal-time difference and the depth-slope statistic.",
+      "CANDIDATE_ID": "C024",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Limit-order submitters anchor to round prices, so resting quantity concentrates there. A concentrated queue must be consumed before price can pass, which slows traversal. If slowing exists but is unrelated to measured depth, the channel is behavioral (stop placement, attention) rather than liquidity mechanics. Proposed family N, NOMINAL_LEVEL_LIQUIDITY_TOPOLOGY: how exogenous price-grid focal points shape resting liquidity and path speed.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "Binance USD-M BTCUSDT bookDepth public archive (percentage-band depth)",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Aggregated resting quantity in percentage bands around mid with snapshot timestamps",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "Third-party Binance USD-M BTCUSDT L2 incremental book history",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Level-resolved resting quantity by price with update timestamps",
+          "STATUS": "DATA_BLOCKED_COST"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m high, low and close for band touch and exit timing",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Moderate to high. It separates a liquidity-mechanics channel from a behavioral one for round-number effects, a distinction that kline-only boundary studies cannot make.",
+      "FALSIFIER": "Traversal time at round levels does not differ from placebo levels beyond the permutation band. Or depth concentration is not higher at round levels than at placebo levels. Or a traversal difference exists but has no dependence on DEPTH_CONC; that last outcome falsifies the liquidity channel specifically.",
+      "FUNCTION": "Test whether resting depth concentrated at round BTC price levels slows price traversal, and whether any slowing is explained by measured depth.",
+      "HORIZON": "From first touch of the band around a level to exit by 0.2% on either side, capped at 6 hours.",
+      "INFORMATION_SOURCE": "ORDER_BOOK",
+      "MECHANISM": "Resting limit orders cluster at round BTC price levels, forming depth walls that slow price traversal. Deceleration should scale with measured depth concentration at the level.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Round-number limit-order clustering and traversal deceleration in the BTC perpetual book",
+      "OBSERVABLE": "DEPTH_CONC(L) is resting quantity within ±0.05% of round level L divided by resting quantity in adjacent same-width bands, measured from the snapshot at or before the approach. TRAVERSAL_TIME is the time from first touch of [L-0.1%, L+0.1%] to exit by 0.2% on either side.",
+      "PRIMARY_TARGET": "Slope of log TRAVERSAL_TIME on DEPTH_CONC across approaches, together with the round-versus-placebo difference in median log TRAVERSAL_TIME."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "REJECT"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "LINKED_BATCH_DUPLICATE_OR_NEIGHBOR",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": null,
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C025",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C025",
+    "CARD": {
+      "BASELINE_OR_NULL": "Three nulls, each computing ZUMBACH_ASYM identically. (1) The time-reversed empirical series, which flips the sign of any true asymmetry. (2) Block-shuffled surrogates preserving one-day blocks. (3) A parametric bootstrap from a fitted symmetric GARCH(1,1), which produces only weak asymmetry.",
+      "CANDIDATE_ID": "C025",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Participants operating on different horizons respond asymmetrically: coarse-horizon agents' activity feeds fine-horizon volatility, while fine-horizon noise barely affects coarse-horizon decisions. A realized trend also triggers repositioning that raises later volatility. Both effects make the volatility process irreversible in time. Proposed family O, TIME_REVERSAL_ASYMMETRY: statistics that are nonzero only when the arrow of time matters in the volatility cascade.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m close aggregated to 5m, 15m, 1h and 4h log returns",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_ETH_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "ETHUSDT perpetual 1m close for replication of the asymmetry statistic",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It establishes whether the cross-scale volatility process is irreversible beyond GARCH. That determines whether multi-horizon volatility models are structurally required for any volatility-conditioned mechanism.",
+      "FALSIFIER": "ZUMBACH_ASYM falls inside the central 95% of the symmetric-GARCH bootstrap distribution, or the yearly sign matches the pooled sign in fewer than 3 of the 5 years from 2020 to 2024. The ETH replication is reported but is not needed to falsify.",
+      "FUNCTION": "Measure whether the BTC perpetual volatility cascade is irreversible in time, beyond what symmetric GARCH generates.",
+      "HORIZON": "Symmetric past and future windows of tau hours around each decision time on a 1h grid; the tau variants are 6, 24 and 72 hours.",
+      "INFORMATION_SOURCE": "KLINES",
+      "MECHANISM": "Coarse-grained past volatility predicts fine-grained future volatility more strongly than fine-grained past volatility predicts coarse-grained future volatility. Past price trends also raise future volatility. Together these make the process irreversible in time (the Zumbach effect and the Lynch-Zumbach cascade).",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Time-reversal asymmetry (Zumbach effect) in the BTC perpetual volatility cascade",
+      "OBSERVABLE": "A(tau) = corr(coarse past RV, fine future RV) - corr(fine past RV, coarse future RV). Coarse RV is the sum of squared coarse-interval returns and fine RV is the sum of squared fine-interval returns over windows of length tau. A secondary trend-volatility asymmetry compares the squared past cumulative return against future RV with the reversed pairing.",
+      "PRIMARY_TARGET": "ZUMBACH_ASYM, A(tau) at tau = 24h, estimated monthly and pooled, after removing hour-of-week seasonality."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C025",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C026",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_READY_CLAIM_NOT_CONFIRMED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED"
+        ],
+        "SOURCE": "FEASIBILITY"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C026",
+    "CARD": {
+      "BASELINE_OR_NULL": "A simulated two-venue model with a common efficient price, independent venue noise and partial adjustment at a single constant speed parameter across the whole sample, calibrated to week-specific volatility and noise variance. It generates weekly EPPS_GAP under constant transmission speed. A second, pure-noise null (no lag) generates the Epps curve from noise alone, so that lag can be separated from noise.",
+      "CANDIDATE_ID": "C026",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Cross-venue price alignment requires intermediaries who observe one venue and act on the other, subject to latency, capital and inventory limits. When their capital is scarce or venue risk rises, alignment slows and correlation at fine sampling intervals drops relative to coarse intervals. The shape of the Epps curve is therefore a clock for cross-venue transmission capacity. Proposed family P, CROSS_VENUE_TRANSMISSION_SPEED: the frequency-scale structure of same-asset co-movement across venues.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Aligned 5m closes of the Binance BTC perpetual and OKX BTC spot",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Quote volume and realized volatility of the BTCUSDT perpetual per week",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It yields a time series of cross-venue transmission speed and tests whether that speed varies beyond noise and volatility, which informs how dislocation-based mechanisms should be normalized.",
+      "FALSIFIER": "After controls, the variance and trend of weekly EPPS_GAP lie within the central 95% band of the constant-speed simulation. And the lead-lag cross-correlation at ±5m is explained by the pure-noise null. If both hold, time-varying transmission speed is falsified at this resolution.",
+      "FUNCTION": "Characterize the Epps curve of the Binance BTC perpetual versus OKX BTC spot as a time-varying measure of cross-venue transmission speed.",
+      "HORIZON": "Weekly estimation windows from Monday 00:00 to Sunday 23:55 UTC, with a monthly variant.",
+      "INFORMATION_SOURCE": "CROSS_VENUE",
+      "MECHANISM": "Correlation between returns of the same asset on two venues rises with the sampling interval (the Epps effect), at a rate set by how quickly intermediaries transmit price information across venues. The gap between fine- and coarse-interval correlation measures transmission speed. It is expected to vary with venue stress and intermediary capital.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Cross-venue Epps-curve speed of the Binance BTC perpetual versus OKX spot as a transmission-capacity clock",
+      "OBSERVABLE": "For each week, the correlation rho(Delta) between log returns of the Binance perpetual and OKX spot at Delta of 5, 10, 15, 30 and 60 minutes. EPPS_GAP = rho(max Delta) - rho(5m). Lead-lag cross-correlation at ±5m is computed as a diagnostic.",
+      "PRIMARY_TARGET": "Weekly EPPS_GAP regressed on week index with realized-volatility and quote-volume controls, plus the residual dispersion of EPPS_GAP relative to the constant-speed simulation."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED"
+        ],
+        "VERDICT": "REJECT"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C026",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C027",
+    "BATCH_LINKS": [
+      {
+        "ATTEMPT_ID": "GV0R01-C003",
+        "CANONICAL_SIGNATURE_ID": "GV0R01-C003",
+        "RELATION": "FUNCTIONAL_RELABEL_REVERSE"
+      }
+    ],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C027",
+    "CARD": {
+      "BASELINE_OR_NULL": "Within-venue sign-randomization null: jump timing and magnitudes are preserved while signs are flipped at random, which generates DOWN_UP_EXCITATION_RATIO under symmetry. A second null is a symmetric bivariate Hawkes model fitted per venue. For the cross-venue contrast, a block bootstrap by week of the ratio difference in overlapping windows.",
+      "CANDIDATE_ID": "C027",
+      "CAUSAL_OR_STRUCTURAL_STORY": "In a BTC-margined inverse contract, bullish-side leveraged positions lose on the contract and on the USD value of their collateral at the same time when price falls, so maintenance margin is hit sooner and forced liquidations cascade more readily. Bearish-side positions gain collateral value as price rises, which partly offsets their losses. Linear USDT-margined contracts lack this convexity. Proposed family Q, CONTRACT_DESIGN_REFLEXIVITY: asymmetries in price dynamics induced by margin-currency design.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "D2_BITMEX_PRE2020_XBTUSD",
+          "LEGAL_RANGE": "pre-2020",
+          "OBSERVABLE": "BitMEX XBTUSD 5m OHLC for jump detection and bipower volatility",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT linear perpetual 1m close aggregated to 5m returns",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "BitMEX XBTUSD 5m klines via public API",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "XBTUSD 5m OHLC in windows overlapping the Binance linear perpetual",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "BitMEX historical liquidation records",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Liquidation side, size and timestamp",
+          "STATUS": "DATA_BLOCKED_PROVENANCE"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It tests whether contract design is a structural source of downside tail clustering. That bears on whether pre-2020 inverse-contract results can be pooled with linear-contract results.",
+      "FALSIFIER": "The pre-2020 XBTUSD DOWN_UP_EXCITATION_RATIO lies within the central 95% of the sign-flip null. Or, in overlapping windows, the XBTUSD ratio minus the Binance linear ratio lies within the block-bootstrap 95% band.",
+      "FUNCTION": "Measure whether downside jumps self-excite more strongly than upside jumps in the inverse BitMEX XBTUSD contract, and whether that asymmetry exceeds the one in linear USDT perpetuals.",
+      "HORIZON": "The window after each detected jump bar: 30, 60 or 120 minutes.",
+      "INFORMATION_SOURCE": "PRE2020_SURFACE",
+      "MECHANISM": "In inverse, coin-margined contracts a price fall also cuts the USD value of the BTC collateral backing bullish-side leveraged positions. Liquidations therefore cascade faster on the way down than on linear contracts, producing stronger self-excitation of downside jumps than of upside jumps.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Inverse-contract collateral reflexivity: downside jump clustering in BitMEX XBTUSD versus linear perpetuals",
+      "OBSERVABLE": "Signed 5m jumps defined by |r| > k times local bipower volatility. P_down is the probability of another down jump within the window given a down jump, and P_up is the analogue for up jumps. DOWN_UP_EXCITATION_RATIO = P_down / P_up.",
+      "PRIMARY_TARGET": "DOWN_UP_EXCITATION_RATIO for pre-2020 BitMEX XBTUSD, and its difference from the same statistic on the Binance linear perpetual in overlapping 2020-01..2024-12 windows."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_BLOCKED_PROVENANCE",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "PROVENANCE"
+        ],
+        "VERDICT": "HUMAN_REVIEW"
+      },
+      "NOVELTY": {
+        "VERDICT": "REJECT"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "LINKED_BATCH_DUPLICATE_OR_NEIGHBOR",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": null,
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C028",
+    "BATCH_LINKS": [
+      {
+        "ATTEMPT_ID": "GV0R01-C020",
+        "CANONICAL_SIGNATURE_ID": "GV0R01-C020",
+        "RELATION": "FUNCTIONAL_RELABEL"
+      },
+      {
+        "ATTEMPT_ID": "GV0R01-C020",
+        "RELATION": "FUNCTIONAL_RELABEL_REVERSE"
+      }
+    ],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C028",
+    "CARD": {
+      "BASELINE_OR_NULL": "A pseudo-holiday null. Same-weekday non-holiday dates in the same year and the same seasonal neighborhood are drawn at random and W_INDEX is computed identically. Matching within weekday preserves weekday composition, and the null distribution is built within weekday strata.",
+      "CANDIDATE_ID": "C028",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Some participants tie their BTC activity to the US equity session: cross-asset hedgers, desks that run risk only during TradFi hours, and flows linked to ETFs and equity proxies. When NYSE closes on a weekday that crypto venues trade, these participants are largely absent, so the day should look like a weekend in the US-session hours. Proposed family R, ANCHOR_VENUE_ABSENCE: identifying participant anchoring from closure of the anchor venue rather than from shifts in its clock.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "NYSE official holiday and early-close calendar archive",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Full-closure weekday holiday dates and early-close dates with official publication records",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Hourly quote volume of the BTCUSDT perpetual",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "STATUTORY_DST_CALENDARS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "US DST transition dates for mapping NYSE session hours to UTC",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It gives a clean extensive-margin test of US-equity anchoring that complements the DST timing design and helps interpret any US-session effects in BTC.",
+      "FALSIFIER": "Mean W_INDEX lies within the central 95% band of the pseudo-holiday null. Or a non-null effect is not concentrated in NYSE-session UTC hours relative to other hours, which would point to generic low activity rather than US-session anchoring.",
+      "FUNCTION": "Test whether BTC perpetual hourly participation on NYSE-closed weekdays resembles a weekend profile, relative to the same weekday when NYSE is open.",
+      "HORIZON": "The holiday UTC calendar day, with a secondary focus on the UTC hours of the NYSE session on that date.",
+      "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+      "MECHANISM": "If a material share of BTC perpetual activity is anchored to the US equity session, weekdays with NYSE closed and crypto venues open should show a weekend-like hourly quote-volume profile, concentrated in the NYSE-session UTC hours.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "US equity-market holiday natural experiment on the BTC perpetual weekday participation profile",
+      "OBSERVABLE": "The 24-bin UTC hourly quote-volume share profile per day. p_h is the holiday profile, p_w the mean profile of matched same-weekday non-holiday days, and p_e the mean weekend profile over the same neighborhood. W_INDEX = <p_h - p_w, p_e - p_w> / ||p_e - p_w||^2.",
+      "PRIMARY_TARGET": "Mean W_INDEX across NYSE full-closure weekday holidays in 2020-01..2024-12, and the ratio of holiday daily quote volume to matched same-weekday quote volume."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "REJECT"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "LINKED_BATCH_DUPLICATE_OR_NEIGHBOR",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": null,
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C029",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY"
+      },
+      {
+        "CLASS": "DATA_BLOCKED_PROVENANCE",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C029",
+    "CARD": {
+      "BASELINE_OR_NULL": "Placebo effective dates are assigned to matched control names in the same week, and treatment labels are permuted within matched strata. Both generate the DiD statistic identically. A dose-response check regresses DiD on the magnitude of the relative-tick reduction.",
+      "CANDIDATE_ID": "C029",
+      "CAUSAL_OR_STRUCTURAL_STORY": "When the tick is large relative to price, the minimum quoted spread binds, queues lengthen and liquidity providers earn rents on queue priority. A reduction in tick size lets spreads compress and changes queue competition. This is the causal chain studied in equity tick-size pilots. Exchange-initiated tick changes on Binance spot give staggered treatment across names. Proposed family S, PRICE_GRID_LIQUIDITY_CAUSALITY: causal effects of exchange price-grid rules on liquidity.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Daily OHLC and quote volume per USDT symbol including delisted symbols",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "Binance spot tick-size change announcements archive",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Announcement timestamp, effective timestamp, affected symbols and old and new tick sizes",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "Historical Binance spot exchangeInfo PRICE_FILTER snapshots per symbol",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "tickSize per symbol per date",
+          "STATUS": "DATA_BLOCKED_PROVENANCE"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Moderate to high. It is a causal, exogenous-rule identification of how price-grid design affects crypto liquidity proxies, which kline-only studies cannot provide.",
+      "FALSIFIER": "The treated-minus-control DiD in the log spread estimate lies inside the placebo band, and there is no monotone dose-response in the magnitude of the relative-tick reduction.",
+      "FUNCTION": "Estimate the causal effect of exchange-initiated tick-size reductions on daily spread proxies and turnover across Binance spot USDT names.",
+      "HORIZON": "20 calendar days on each side of the effective date (a 10-day variant is included), with the pre-period ending before announcement.",
+      "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+      "MECHANISM": "A binding relative tick size (tick divided by price) widens the minimum spread and concentrates queue depth. Exchange-initiated tick-size reductions should therefore lower effective-spread proxies and raise turnover in treated names relative to matched untreated names.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Binance spot tick-size change natural experiment on cross-sectional liquidity proxies",
+      "OBSERVABLE": "Per name and day: the Abdi-Ranaldo or Corwin-Schultz high-low spread estimate from daily OHLC, daily quote volume, and relative tick at the close. Treated names are those with a tick-size reduction on a given effective date.",
+      "PRIMARY_TARGET": "Difference-in-differences of the log spread estimate and of log quote volume. It compares the post-effective window with the pre-announcement window, treated minus controls matched on trailing volume decile and pre-event relative-tick decile."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_BLOCKED_PROVENANCE",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "HUMAN_REVIEW"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C029",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0R01-C030",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_BLOCKED_COST",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0R01",
+    "CANDIDATE_ID": "C030",
+    "CARD": {
+      "BASELINE_OR_NULL": "GEX sign or tercile labels are permuted within year x RV_24H decile x quote-volume decile strata, preserving the conditional distributions. A second placebo recomputes GEX with randomized aggressor signs that preserve option volume. Both generate the AC1 difference statistic identically.",
+      "CANDIDATE_ID": "C030",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Liquidity providers who absorb customer option flow carry an inventory gamma. With positive gamma, delta rebalancing trades against price changes, adding contrarian flow at sub-hour scales. With negative gamma, rebalancing chases price, adding momentum-like flow. If the BTC options market is large enough relative to perpetual depth, this should shift perpetual return autocorrelation. Proposed family T, HEDGING_INVENTORY_FEEDBACK: feedback from derivative-hedging inventory to the underlying's short-horizon dynamics.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "Deribit BTC option trades with aggressor side, strike, expiry and implied volatility",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Trade timestamp, size, aggressor side, strike, expiry and implied volatility",
+          "STATUS": "DATA_BLOCKED_COST"
+        },
+        {
+          "DATASET": "Deribit BTC option open interest by strike and expiry, hourly snapshots",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Open interest per strike per expiry with snapshot timestamp",
+          "STATUS": "DATA_BLOCKED_COST"
+        },
+        {
+          "DATASET": "Options dealer net inventory by strike",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "True liquidity-provider net position per strike and expiry",
+          "STATUS": "DATA_BLOCKED_MISSING_OBSERVABLE"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m close and quote volume for AC1, RV and volume strata",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_BLOCKED_COST",
+      "EXPECTED_INFORMATION_GAIN": "Moderate to high. It tests whether options-market positioning feeds back into perpetual microstructure, which would identify an external state variable for sub-hour dynamics.",
+      "FALSIFIER": "The difference in mean AC1_5M_24H between positive and negative GEX terciles within RV and volume strata lies within the central 95% of the stratified permutation null. Or the yearly difference has the opposite sign to the pooled one in 3 or more of the 5 years from 2020 to 2024.",
+      "FUNCTION": "Test whether an options-derived dealer gamma state changes the sub-hour return autocorrelation of the BTC perpetual beyond volatility and volume state.",
+      "HORIZON": "The 24 hours after decision time T, on an hourly decision grid.",
+      "INFORMATION_SOURCE": "OPTIONS",
+      "MECHANISM": "When options liquidity providers are net positive gamma, delta hedging trades against price moves and induces negative sub-hour return autocorrelation in the BTC perpetual. When they are net negative gamma, hedging is pro-cyclical and raises autocorrelation.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Options-dealer gamma sign state and sub-hour return autocorrelation of the BTC perpetual",
+      "OBSERVABLE": "GEX_T is the sum over strikes and expiries of estimated dealer-side gamma x open interest x S^2 x 0.01 at T, normalized by trailing 24h perpetual quote volume. Dealer side is inferred from cumulative signed taker option flow, treating the taker as the customer. AC1_5M_24H is the lag-1 autocorrelation of 5m perpetual returns over the 24 hours after T.",
+      "PRIMARY_TARGET": "Difference in mean AC1_5M_24H between the top and bottom GEX terciles, computed within year x RV_24H decile x volume decile strata and pooled."
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_BLOCKED_COST",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "RECORDED_NOVELTY_RELATIONS",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0R01-C030",
+    "STREAM": "NOT_A_STREAM"
+  }
+]

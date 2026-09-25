@@ -1,0 +1,361 @@
+[
+  {
+    "ATTEMPT_ID": "GV0CAL-C001",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0CAL",
+    "CANDIDATE_ID": "C001",
+    "CARD": {
+      "BASELINE_OR_NULL": "Stratified block permutation: within YEAR x trailing-RV tercile x trailing quote-volume tercile strata, ATS_Z values are permuted across days in 7-day blocks, and the within-stratum Spearman correlation between ATS_Z and RVR_24H is recomputed. Baseline regression: RVR_24H on lagged RVR_24H, log trailing RV and log trailing quote volume; the card's quantity is the ATS_Z increment over that baseline. The permutation generates the same observable-target pairing, so the null can produce the card's own statistic.",
+      "CANDIDATE_ID": "C001",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Quote volume per trade is a coarse proxy for participant composition. A day dominated by many small fills (retail, small API bots, fragmented execution) has different liquidity-provision dynamics than a day with fewer, larger clips (institutional or block-like executions sliced less finely). Small-fill-dominated flow tends to be noise-like and absorbed by makers, which produces sub-hour negative autocorrelation (5m realized variance exceeding 1h realized variance). Large-clip flow is more often informed or directional and produces sub-hour trending. The proposed family, PARTICIPANT_COMPOSITION, asks who is trading rather than how much or when.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m quote_volume, trade_count, open, high, low, close for BTCUSDT perpetual",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. The result separates a composition proxy from level-of-activity and volatility proxies already examined. Either outcome clarifies whether trade-count normalization adds a distinct axis to kline-only research.",
+      "FALSIFIER": "The card is falsified if the within-stratum Spearman correlation between ATS_Z and RVR_24H lies inside the central 95% of the stratified block-permutation distribution. It is also falsified if the pooled sign is reproduced in fewer than 3 of the 5 calendar years from 2020 to 2024, or if the ATS_Z increment over the lagged-RVR baseline has a block-bootstrap interval covering zero.",
+      "FUNCTION": "Characterize whether a participant-composition proxy predicts the sub-hour autocorrelation structure of BTC returns over the subsequent 24h, beyond volatility and volume state.",
+      "HORIZON": "24 hours beginning at the daily decision time T = 00:00 UTC",
+      "INFORMATION_SOURCE": "KLINES",
+      "MECHANISM": "A shift in average trade size (quote volume per trade) reflects a change in participant composition, which alters the balance between noise flow absorbed by liquidity providers and directional flow. This appears as a change in the ratio of 5m realized variance to 1h realized variance: a ratio above 1 indicates sub-hour mean reversion and a ratio below 1 indicates sub-hour trending.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Average trade size as participant-composition state and subsequent sub-hour variance ratio",
+      "OBSERVABLE": "ATS_Z_T = (log(sum quote_volume / sum trade_count over the trailing L hours of 1m bars closed at or before T) minus the median of the same daily quantity over the trailing N days) divided by the trailing N-day MAD.",
+      "PRIMARY_TARGET": "RVR_24H = sum of squared k-minute log returns divided by sum of squared 1h log returns over (T, T+24h] on BTCUSDT perpetual"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_CONSUMED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "DERIVED_FROM_ALLOW_VERDICT_UNDER_FROZEN_TABLE",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0CAL-C001",
+    "STREAM": "EXECUTABLE_NOW"
+  },
+  {
+    "ATTEMPT_ID": "GV0CAL-C002",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0CAL",
+    "CANDIDATE_ID": "C002",
+    "CARD": {
+      "BASELINE_OR_NULL": "Two nulls. (1) Pseudo-boundary null: the same shift statistic is computed around placebo Sundays drawn from non-DST weeks with the same weekday support, producing the distribution of hour-profile displacements expected without a clock change. (2) Hour-label null: hour-bin labels are permuted within each day, preserving daily totals, to test whether any hour structure in PERP_SHARE exists at all. Both nulls generate the card's own observable, the hour profile of PERP_SHARE.",
+      "CANDIDATE_ID": "C002",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Price discovery between a derivatives venue and a spot venue need not be stationary within the day. If one regional participant group (for example US-based spot participants versus Asia-based derivatives participants) dominates information arrival, the venue that impounds information first should rotate with that group's active hours. US DST moves US human clocks by one UTC hour while leaving the venues' mechanics unchanged. A locus that follows US participants should therefore shift by one UTC hour at each US DST transition. The proposed family, PRICE_DISCOVERY_LOCUS, concerns where prices form rather than in which direction they move.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "Aligned 5m closes for Binance BTCUSDT perpetual and OKX BTC spot",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "STATUTORY_DST_CALENDARS",
+          "LEGAL_RANGE": "2022-01..2024-12",
+          "OBSERVABLE": "US DST transition Sundays",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It indicates whether venue leadership has a participant-clock structure, which matters for interpreting every cross-venue result on this dataset.",
+      "FALSIFIER": "The card is falsified if the observed DST-regime displacement of the PERP_SHARE hour profile lies within the central 95% of the pseudo-boundary distribution. It is also falsified if the hour profile is indistinguishable from flat under the hour-label null, or if the estimated displacement is not closest to one hour in at least two of the three calendar years from 2022 to 2024.",
+      "FUNCTION": "Measure the intraday profile of perpetual-versus-spot price-discovery share and test whether it shifts with the US DST clock change.",
+      "HORIZON": "Intraday, 5m resolution; profiles aggregated over 3- to 6-week windows bracketing each US DST transition",
+      "INFORMATION_SOURCE": "CROSS_VENUE",
+      "MECHANISM": "The share of price discovery attributable to the Binance perpetual versus OKX spot varies by UTC hour according to which regional participant group is active, and it moves with the US DST clock shift.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Intraday rotation of perpetual-versus-spot price-discovery locus and its displacement at US DST shifts",
+      "OBSERVABLE": "PERP_SHARE_h = Gonzalo-Granger permanent-component weight of the Binance perpetual in a bivariate VECM of 5m log closes, estimated per UTC hour bin h within each regime (US DST versus US standard time), using weekdays only.",
+      "PRIMARY_TARGET": "Displacement, in UTC hours, of the PERP_SHARE hour profile between US-DST and US-standard-time weeks"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_CONSUMED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "DERIVED_FROM_ALLOW_VERDICT_UNDER_FROZEN_TABLE",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0CAL-C002",
+    "STREAM": "EXECUTABLE_NOW"
+  },
+  {
+    "ATTEMPT_ID": "GV0CAL-C003",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0CAL",
+    "CANDIDATE_ID": "C003",
+    "CARD": {
+      "BASELINE_OR_NULL": "Pseudo-schedule rank null. For each venue, the same bracketed statistic is computed for all 8 possible 8h-spaced hour triplets (offsets 0 to 7). The true schedule's rank among the 8 offsets is the test statistic; under no settlement effect, the rank is uniform. Within-weekday strata are preserved. A cross-venue difference-in-differences compares abnormality at each venue's own schedule with abnormality at the other venue's schedule.",
+      "CANDIDATE_ID": "C003",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Perpetual funding is exchanged only among positions open at the settlement snapshot. Participants facing large funding payments have an incentive to close or reduce positions just before the snapshot and reopen afterwards, which concentrates flow and absolute price movement around settlement. BitMEX settled funding at 04:00, 12:00 and 20:00 UTC, whereas Binance USD-M settles at 00:00, 08:00 and 16:00 UTC. If the abnormality tracks the contract schedule rather than the UTC hour, the peak should sit at different UTC hours on each venue. This separates a mechanical settlement effect from generic hour-of-day seasonality. The proposed family is CONTRACT_SETTLEMENT_MECHANICS.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "D2_BITMEX_PRE2020_XBTUSD",
+          "LEGAL_RANGE": "pre-2020",
+          "OBSERVABLE": "XBTUSD 5m open, high, low, close",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "BTCUSDT perpetual 1m OHLC aggregated to 5m",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "BITMEX_XBTUSD_FUNDING_SCHEDULE_SPEC",
+          "LEGAL_RANGE": "pre-2020",
+          "OBSERVABLE": "Funding settlement timestamps for XBTUSD across the full BitMEX sample",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "BINANCE_UM_BTCUSDT_FUNDING_SCHEDULE_SPEC",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Funding settlement timestamps (times only, not rates) for BTCUSDT perpetual",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Moderate to high. It is a clean identification of contract-mechanical microstructure using two venues with offset schedules, and it creates a new use for the pre-2020 surface.",
+      "FALSIFIER": "The card is falsified if, for neither venue, the true settlement offset ranks first among the 8 pseudo-offsets on the pre-declared statistic. It is also falsified if the peak offset is the same UTC triplet on both venues (indicating clock-hour rather than settlement seasonality), or if Binance results are driven entirely by the 00:00 settlement with no effect at 08:00 and 16:00.",
+      "FUNCTION": "Test whether absolute 5m price movement concentrates around perpetual funding settlement times, using the venue-specific schedule offset between BitMEX and Binance as identification.",
+      "HORIZON": "W-minute window bracketing each funding settlement, plus the 60 minutes following settlement for a reversal check",
+      "INFORMATION_SOURCE": "PRE2020_SURFACE",
+      "MECHANISM": "Positions are adjusted around perpetual funding snapshots to avoid or collect funding, producing abnormal absolute returns and range in the 5m bins bracketing settlement. The abnormality moves with each venue's contract schedule rather than with the UTC hour.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Funding-settlement clock microstructure identified by offset settlement schedules across BitMEX and Binance",
+      "OBSERVABLE": "SETTLE_ABN = mean over settlements of (sum of |5m log return| or high-low range within W minutes bracketing settlement) divided by the median of the same quantity at the same minute-of-hour in non-settlement hours of the same day.",
+      "PRIMARY_TARGET": "Rank of the true settlement offset among 8 pseudo 8h-spaced offsets of SETTLE_ABN, per venue"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CAUSALITY",
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "DERIVED_FROM_ALLOW_VERDICT_UNDER_FROZEN_TABLE",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0CAL-C003",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0CAL-C004",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [
+      {
+        "CLASS": "METHOD_CONFOUNDING_CONTROL_INADEQUATE",
+        "FAILED_CHECKS": [
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "SOURCE": "RED_TEAM"
+      },
+      {
+        "CLASS": "DATA_FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "SOURCE": "FEASIBILITY_DATA_STATUS"
+      }
+    ],
+    "CAMPAIGN_ID": "GV0CAL",
+    "CANDIDATE_ID": "C004",
+    "CARD": {
+      "BASELINE_OR_NULL": "Placebo Fridays: every non-expiry Friday in the same calendar year is scored with the identical London-clock window and control construction, producing the null distribution of LOG_FIX_RATIO. A placebo window at 13:00-14:00 London on expiry days tests whether elevation is day-wide rather than window-specific. Comparisons are made within year strata.",
+      "CANDIDATE_ID": "C004",
+      "CAUSAL_OR_STRUCTURAL_STORY": "CME bitcoin futures cash-settle to a reference rate computed from constituent-exchange trades during 15:00-16:00 London time on the final settlement day. Participants with basis positions or settlement-sensitive exposure concentrate hedging flow into that hour. Because venues are linked by cross-venue inventory managers, the flow should spill into Binance perpetual volume and alter the intra-window price path, for example producing a partial reversal in the hour after the window closes. The event date and window are fixed by an official product calendar, making them exogenous to the day's price action. The proposed family is REFERENCE_RATE_FIXING.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "CORE_BTC_BINANCE_V0",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "1m quote_volume, trade_count, close for BTCUSDT perpetual",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "STATUTORY_DST_CALENDARS",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "EU transition dates used to map London clock to UTC",
+          "STATUS": "DATA_READY"
+        },
+        {
+          "DATASET": "CME_BITCOIN_FUTURES_FINAL_SETTLEMENT_CALENDAR",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Final settlement dates of CME BTC futures contracts including holiday adjustments",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        },
+        {
+          "DATASET": "CME_CF_BRR_METHODOLOGY_ARCHIVE",
+          "LEGAL_RANGE": "2020-01..2024-12",
+          "OBSERVABLE": "Calculation window definition and partition scheme of the settlement reference rate",
+          "STATUS": "FEASIBILITY_REQUIRED"
+        }
+      ],
+      "DATA_STATUS": "FEASIBILITY_REQUIRED",
+      "EXPECTED_INFORMATION_GAIN": "Moderate. It tests whether mechanical benchmark fixing, a mechanism distinct from announcement shocks, leaves a footprint on a non-constituent venue.",
+      "FALSIFIER": "The card is falsified if the expiry-day LOG_FIX_RATIO lies within the 5th-95th percentile of the same-year placebo-Friday distribution in at least 4 of the 5 years from 2020 to 2024. It is also falsified if the 13:00-14:00 London placebo window on expiry days shows elevation of comparable size (indicating day-wide activity), or if the reversal statistic is indistinguishable from placebo Fridays.",
+      "FUNCTION": "Measure whether Binance perpetual activity and path concentrate in the CME settlement reference-rate window on final settlement days, relative to identically timed windows on non-expiry Fridays.",
+      "HORIZON": "The 15:00-16:00 London window on each settlement day plus the following 60 minutes",
+      "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+      "MECHANISM": "Settlement-sensitive hedging concentrated in the CME reference-rate calculation window on final settlement days spills into correlated venues, elevating volume and imprinting a within-window drift followed by partial reversal.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Reference-rate fixing window footprint on Binance perpetual activity at CME bitcoin futures settlement",
+      "OBSERVABLE": "LOG_FIX_RATIO = log(metric in the London fixing window on the settlement day / mean metric in the same London-clock window on the prior K non-expiry Fridays); REVERSAL = sign-adjusted correlation between the fixing-window return and the return in the following 60 minutes.",
+      "PRIMARY_TARGET": "LOG_FIX_RATIO on CME final settlement days versus the placebo-Friday distribution"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "FAILED_CHECKS": [
+          "BLOCKER_RESOLVED",
+          "OBSERVABLE_SUPPORTED",
+          "POINT_IN_TIME",
+          "PROVENANCE"
+        ],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [
+          "CONFOUNDING_ADDRESSED"
+        ],
+        "VERDICT": "REJECT"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_DEFERRED_OR_BLOCKED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "DERIVED_FROM_ALLOW_VERDICT_UNDER_FROZEN_TABLE",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0CAL-C004",
+    "STREAM": "NOT_A_STREAM"
+  },
+  {
+    "ATTEMPT_ID": "GV0CAL-C005",
+    "BATCH_LINKS": [],
+    "BLOCKERS": [],
+    "CAMPAIGN_ID": "GV0CAL",
+    "CANDIDATE_ID": "C005",
+    "CARD": {
+      "BASELINE_OR_NULL": "Matched-control paired design. Each young symbol at decision week T is matched to a mature symbol (listing age of 365 days or more) in the same week, on trailing 7-day quote-volume decile and, in one variant, also on trailing 7-day return decile. The statistic is the mean paired difference in relative return. The null is a sign-flip permutation of paired differences clustered by decision week, which generates the card's own paired-difference observable.",
+      "CANDIDATE_ID": "C005",
+      "CAUSAL_OR_STRUCTURAL_STORY": "Newly listed tokens enter the exchange with small free float and concentrated early allocations. Over the first months, float expands through emissions, unlocks and distribution by early holders, and the attention spike around listing decays. Both forces imply a systematic relative drift that depends on age since listing, not on past returns. A lifecycle family asks whether calendar age since listing, an exogenous and point-in-time property, organizes cross-sectional relative returns. The proposed family is ASSET_LIFECYCLE_SUPPLY.",
+      "DATA_REQUIRED": [
+        {
+          "DATASET": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "LEGAL_RANGE": "2019-12..2024-12",
+          "OBSERVABLE": "Daily klines including delisted symbols, pinned listing dates, exclusion lists",
+          "STATUS": "DATA_READY"
+        }
+      ],
+      "DATA_STATUS": "DATA_READY",
+      "EXPECTED_INFORMATION_GAIN": "Moderate to high. It opens an axis orthogonal to the price-based ranking already tested on this panel, using a variable that is exogenous and fixed at listing.",
+      "FALSIFIER": "The card is falsified if, for every age bucket, the week-clustered sign-flip interval of the paired young-minus-mature relative return covers zero. It is also falsified if the pooled sign is reproduced in fewer than 3 of the 5 years from 2020 to 2024, or if the effect vanishes once matching includes trailing return (indicating post-listing reversal of pre-listing momentum rather than a lifecycle effect).",
+      "FUNCTION": "Test whether days since Binance spot listing organizes subsequent relative returns across USDT-quoted names, controlling for liquidity and trailing return.",
+      "HORIZON": "H days following a Monday 00:00 UTC decision",
+      "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+      "MECHANISM": "Float expansion and attention decay over the early life of a listed token produce age-dependent relative drift across the cross-section.",
+      "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+      "NAME": "Listing-age lifecycle drift in the Binance spot USDT cross-section",
+      "OBSERVABLE": "LISTING_AGE_DAYS at T = days between the pinned Binance spot listing date and T; age buckets A (8-30), B (31-90), C (91-180), mature (365 or more).",
+      "PRIMARY_TARGET": "Paired difference in H-day log return relative to the equal-weight eligible universe, young bucket minus matched mature control"
+    },
+    "CRITICS": {
+      "FEASIBILITY": {
+        "DATA_STATUS": "DATA_READY",
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      },
+      "NOVELTY": {
+        "VERDICT": "ALLOW"
+      },
+      "RED_TEAM": {
+        "FAILED_CHECKS": [],
+        "VERDICT": "PASS"
+      }
+    },
+    "DISPOSITION": "NEW_SIGNATURE_CONSUMED",
+    "MARKET_TESTS": [],
+    "NO_SCIENTIFIC_STATUS": true,
+    "PRIOR_LINKS": [],
+    "PRIOR_RELATIONS_BASIS": "DERIVED_FROM_ALLOW_VERDICT_UNDER_FROZEN_TABLE",
+    "REVIEW_STATE": "REVIEWED",
+    "SIGNATURE_ID": "GV0CAL-C005",
+    "STREAM": "EXECUTABLE_NOW"
+  }
+]

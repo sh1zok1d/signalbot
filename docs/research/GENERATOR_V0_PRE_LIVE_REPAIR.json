@@ -1,0 +1,76 @@
+{
+  "BASE_HEAD": "71853f9b6c6b59c03d22e9a43cb52dd7e9699368",
+  "BASE_TREE": "759efa1fcaa59267abeece21fcf4b6d59424d3e7",
+  "COMPLETION_STATE": "READY_FOR_INDEPENDENT_REVIEW",
+  "CONTRACT": {
+    "AUTHORITY": "scripts/research/generator_v0/contract.py RULES (prompt block and validator dispatch derived from one table)",
+    "DECODING_LEVEL": [
+      "exact slot-keyed CANDIDATES object (cardinality and IDs)",
+      "per-slot CANDIDATE_ID/MECHANISM_FAMILY/INFORMATION_SOURCE one-value enums",
+      "LEGAL_RANGE pattern (end <= 2024-12 is the only expressible form)",
+      "DATA_REQUIRED STATUS enum",
+      "NEAREST_TESTED_MECHANISM enum",
+      "novelty relations keyed by exact signature and candidate IDs"
+    ],
+    "ID": "GENERATOR_CONTRACT_V02",
+    "PROMPT_VERSION": "generator-v0.2",
+    "STRICT_SUBSET_VERIFICATION": "Offline conformance checker against the documented Structured Outputs subset (keywords, additionalProperties false, all properties required, no lookaround/backreference/shorthand classes or non-capturing groups, depth<=10, properties<=5000, enum values<=1000). Not a provider acceptance test."
+  },
+  "DATE": "2026-09-23",
+  "DESIGN_AMENDMENTS": {
+    "CRITIC_OUTPUT_CAPS": {
+      "FEASIBILITY_CRITIC": 6000,
+      "NOVELTY_CRITIC": 12000,
+      "RED_TEAM": 8000,
+      "SELECTOR": 2000
+    },
+    "DIVERSITY_CONTROLS": "Applied to the attempted slot plan, as the frozen controls are phrased (slots and attempts). Survivor diversity is reported, not a stop condition.",
+    "FEASIBILITY_LEGAL_RANGE_CHECK": "Defined: true iff every stated LEGAL_RANGE ends no later than 2024-12 and lies inside any bounded catalog range; unproven coverage is a DATA_STATUS matter.",
+    "HARD_FAIL_IS_PER_CANDIDATE": "Frozen design lists hard-fail rate as a batch metric. Implementation now quarantines a failing card (HARD_FAIL) and continues; it no longer aborts the campaign.",
+    "MIN_VALID_CANDIDATES": "25, the frozen SHADOW_BATCH lower bound. Fewer admissible cards stops the campaign before critics (STOPPED_INSUFFICIENT_VALID).",
+    "REVIEW_FAILED": "A card whose critic answer breaks its contract twice, or is billed but unusable twice, is REVIEW_FAILED: kept in the cards table and in metrics, never streamed or shortlisted.",
+    "SELECTOR_ROLE": "The deterministic ordinal order (already authoritative in code) decides the shortlist. The selector LLM call is advisory: agreement, disagreement, malformed output or unavailability are recorded and never abort the campaign. The selector scientific role (ordinal ranking) is unchanged."
+  },
+  "FAILURE_MODEL": {
+    "COMPLETE": "returned from the journal; never POSTed again",
+    "FAILED_NOT_BILLED": "429/503 retryable with backoff under new transport-attempt keys; other 4xx pause the campaign (PAUSED_PROVIDER_REJECTED); charged 0",
+    "FAILED_WITH_COST": "billed but unusable (length, refusal, malformed); charged usage cost or the reserved bound; one content retry",
+    "RECONCILE": "offline operator command recording NOT_BILLED or BILLED (cost within the reserved bound) with actor, reason and evidence",
+    "UNCERTAIN": "timeouts, connection loss, 5xx gateway, unusable create acknowledgement, crash after POST; charged the reservation; PAUSED_UNCERTAIN_CALL until reconcile"
+  },
+  "LEGACY_COMPATIBILITY": {
+    "DECISION": "A_GRANDFATHER_ONLY_LISTED_CALL_KEYS",
+    "ISOLATION": "Legacy admission requires both a listed call key and the exact card digest; new output is judged only by V02.",
+    "MANIFEST": "docs/research/GENERATOR_V0_LEGACY_V01_GRANDFATHER.json",
+    "SCOPE": "first-shadow generation:0/1/2 call keys (30 cards, exact digests) under the frozen v0.1 validator (legacy_v01_schema.py). Excluded: v7 generation:3."
+  },
+  "LINEAGE": {
+    "DERIVE": "carries every non-imported source charge and prior attempts (with per-card intake verdicts)",
+    "RULE": "lineage prior spend + journal charges + new reservation <= CAP_MICRO_USD",
+    "V7_PROOF": {
+      "IMPORTED_MICRO_USD": 3779550,
+      "LINEAGE_PRIOR_MICRO_USD": 1167200,
+      "LINEAGE_TOTAL_MICRO_USD": 4946750,
+      "REMAINING_UNDER_17_100000": 12153250
+    }
+  },
+  "LIVE_CAMPAIGN_RUN": false,
+  "OFFLINE_GATE_REPORT": "docs/research/generator_v0_repair/OFFLINE_GATE_REPORT.json",
+  "OPEN_ITEMS_FOR_REVIEW": [
+    "Provider acceptance of the new strict schemas (pattern, per-slot enums, keyed novelty objects) is verified only against the documented subset offline; a real acceptance check needs explicit authorization.",
+    "Remaining-budget preflight for a v7-derived run: worst-case remaining bound exceeds the remaining owner authority with the raised critic caps (owner decision; a live run would stop cleanly at STOPPED_BUDGET).",
+    "Corpus and fault scenarios were authored by the implementer; an independently written corpus should be added by the reviewer.",
+    "Derive imports generation rounds only; critic calls of a derived source are carried as lineage spend and re-run.",
+    "Earlier deferred findings (imported response self-consistency, per-snapshot trust) remain deferred."
+  ],
+  "OUTCOME_BLIND": "No scientific outcome exists for any Generator V0 card. The repair was specified from the failure classes, not from the observed v7 cards; the v7 generation:3 cards were not used to extend any grammar and 9 of 10 remain HARD_FAIL under the new contract.",
+  "PROTECTED_2025_2026_OPENED": false,
+  "READY_FOR_LIVE_SHADOW": false,
+  "REAL_LLM_CALLS_MADE": false,
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SEALED_RUNS": "docs/research/GENERATOR_V0_SEALED_RUNS.json; CLI refuses sealed journals by content hash at any path; archival reads use immutable read-only connections and refuse a non-empty WAL.",
+  "SOURCE_AUDIT": "Independent adversarial red-team of Generator V0 first-shadow after the v7 generation:3 fail-closed stop (findings F01-F17).",
+  "UNIT": "GENERATOR_V0_PRE_LIVE_REPAIR",
+  "V6_V7_MODIFIED": false,
+  "V7_RESUMED": false
+}

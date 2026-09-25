@@ -1,0 +1,250 @@
+{
+  "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V0",
+  "COMPILER_POLICY_VERSION": "GV0R02_POLICY_V0",
+  "FEATURE_REGISTRY_VERSION": "UNASSIGNED_UNTIL_DERIVED",
+  "POWER_ASSUMPTION_PROFILE_VERSION": "GV0R02_POWER_PROFILE_V0",
+  "UNIT": "GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_DESIGN",
+  "FEASIBILITY_COMPILER_IMPLEMENTED": false,
+  "ROLE": "Cheap outcome-blind triage before full preregistration. It does not decide whether a hypothesis is true and it does not replace a design unit.",
+  "LAYER_BOUNDARY": {
+    "HYPOTHESIS_GENERATOR": "Semantic proposal only. Existing GENERATOR_CONTRACT_V02 cards stay the full-card object. The compiler accepts a thinner pre-candidate proposal and does not modify the generator.",
+    "FEASIBILITY_COMPILER": "Deterministic availability, sample, dependence, inference-class, approximate power, era, and holdout passes.",
+    "FULL_PREREGISTRATION": "Freezes one research object: exact sample, dependence graph, one inference procedure, missingness, and preregistration-grade power.",
+    "EXECUTION_UNIT": "One-shot evaluation of a frozen contract. Unauthorized until that contract says execution is justified."
+  },
+  "LLM_MUST_NOT_SUPPLY": [
+    "exact event count",
+    "effective sample size",
+    "support size",
+    "attainable p",
+    "exact data coverage",
+    "exact MDE",
+    "power",
+    "deterministic missing-data counts",
+    "dataset quality score"
+  ],
+  "PROPOSAL_REQUIRED_FIELDS": [
+    "PROPOSAL_ID",
+    "MECHANISM",
+    "FALSIFIABLE_CLAIM",
+    "EXPECTED_DIRECTION",
+    "EVENT_OR_STATE_DEFINITION",
+    "PRIMARY_OBSERVABLE",
+    "ENDPOINT_MOMENT",
+    "COUNTERFACTUAL_CLASS",
+    "MIN_MEANINGFUL_EFFECT",
+    "MIN_MEANINGFUL_EFFECT_UNITS",
+    "MIN_MEANINGFUL_EFFECT_RATIONALE",
+    "ERA_INVARIANCE_PRIOR",
+    "ERA_INVARIANCE_RATIONALE",
+    "QUALITATIVE_DEPENDENCE_SOURCES",
+    "FEATURE_REQUIREMENTS",
+    "POINT_IN_TIME_REQUIREMENTS",
+    "NAMED_INFERENCE_CLASS"
+  ],
+  "ENDPOINT_MOMENT": ["FIRST_MOMENT", "SECOND_MOMENT", "PARTICIPATION", "RELATIVE_VALUE", "OTHER"],
+  "ERA_INVARIANCE_PRIOR": ["EXPECTED", "NOT_EXPECTED", "UNKNOWN"],
+  "NAMED_INFERENCE_CLASS": [
+    "EXACT_RANDOMIZATION",
+    "PERMUTATION_GROUP_INVARIANCE",
+    "PLACEBO_REFERENCE_DISTRIBUTION",
+    "UNSPECIFIED_REQUIRES_FULL_DESIGN"
+  ],
+  "FEATURE_REGISTRY_MINIMUM_FIELDS": [
+    "feature_id",
+    "definition_ref",
+    "definition_digest",
+    "input_dataset_ids",
+    "unit",
+    "normalization_rule",
+    "lookback_requirement",
+    "available_at_rule",
+    "coverage_by_venue",
+    "coverage_by_instrument",
+    "completeness",
+    "known_breaks",
+    "cross_venue_notes",
+    "quality_status"
+  ],
+  "FEATURE_REGISTRY_FORBIDDEN_FIELDS": ["PORTABILITY"],
+  "FEATURE_REGISTRY_RULE": "Derived from implemented feature code, dataset identities, coverage scans, point-in-time metadata, and break metadata. Portability is a property of feature times mechanism times era, not of the feature alone.",
+  "COMPILER_PASSES": [
+    {
+      "ID": "A_SOURCE_FEATURE_AVAILABILITY",
+      "COMPUTES": ["features implemented", "datasets present", "point-in-time adequacy", "era and venue coverage"],
+      "STATUSES": ["DATA_READY", "DATA_BLOCKED", "PIT_BLOCKED"]
+    },
+    {
+      "ID": "B_SAMPLE_COMPILATION",
+      "COMPUTES": ["NOMINAL_OBSERVATION_COUNT", "COUNT_BY_YEAR", "COUNT_BY_ERA", "COUNT_BY_VENUE", "COUNT_BY_EVENT_FAMILY"],
+      "FORBIDDEN": ["conditional market outcomes"]
+    },
+    {
+      "ID": "C_STRUCTURAL_DEPENDENCE",
+      "COMPUTES": ["overlapping outcome windows", "overlapping estimation windows", "reused controls", "shared baselines", "rolling-window overlap", "nested observations", "event clustering"],
+      "RULE": "Absence of timestamp overlap is not statistical independence."
+    },
+    {
+      "ID": "D_INFERENCE_FEASIBILITY",
+      "POLICY": "Evaluate only NAMED_INFERENCE_CLASS. Do not try other classes and keep the one with higher power. Reject a claim of EXACT_RANDOMIZATION when the observed assignment is outside the reference support. Distinguish PRIMARY_SUPPORT_SIZE and MIN_ATTAINABLE_P for an exact orbit that contains the observed assignment from REFERENCE_SUPPORT_SIZE and REFERENCE_SUPPORT_RESOLUTION for a placebo set. If the class is UNSPECIFIED_REQUIRES_FULL_DESIGN, do not invent a test."
+    },
+    {
+      "ID": "E_INFORMATION_POWER_SCREEN",
+      "POLICY": "Approximate MDE_BASE, MDE_STRESS, and power at MIN_MEANINGFUL_EFFECT under the frozen power-assumption profile. This is not preregistration-grade power. Do not use the candidate's conditional outcome windows. Do not edit MIN_MEANINGFUL_EFFECT after MDE is computed."
+    },
+    {
+      "ID": "F_ERA_REPLICATION",
+      "DEFAULT_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "POOLING_RULE": "Do not pool eras by default. Pooling is reported only when ERA_INVARIANCE_PRIOR is EXPECTED, and then both HOMOGENEOUS_EFFECT and ZERO_EFFECT_IN_ONE_ERA are required stresses. Neither stress may be dropped after seeing which one passes."
+    },
+    {
+      "ID": "G_HOLDOUT_COMPATIBILITY",
+      "POLICY": "Record whether a protected confirmation surface is possible. A small holdout is a limitation, not an automatic rejection."
+    }
+  ],
+  "FEASIBILITY_STATUSES": [
+    "FEASIBLE_FOR_PREREGISTRATION",
+    "INFORMATIONALLY_WEAK",
+    "INFERENCE_SUPPORT_INSUFFICIENT",
+    "STRUCTURAL_INFERENCE_RISK",
+    "DATA_BLOCKED",
+    "PIT_BLOCKED",
+    "DEFINITION_INCOMPLETE"
+  ],
+  "STATUS_PRIORITY": [
+    "DEFINITION_INCOMPLETE",
+    "DATA_BLOCKED",
+    "PIT_BLOCKED",
+    "INFERENCE_SUPPORT_INSUFFICIENT",
+    "STRUCTURAL_INFERENCE_RISK",
+    "INFORMATIONALLY_WEAK",
+    "FEASIBLE_FOR_PREREGISTRATION"
+  ],
+  "STATUS_PRIORITY_RULE": "The first matching status in STATUS_PRIORITY is the result. Later passes do not upgrade a harder failure.",
+  "OUTPUT_REQUIRED_FIELDS": [
+    "PROPOSAL_ID",
+    "COMPILER_SCHEMA_VERSION",
+    "COMPILER_POLICY_VERSION",
+    "FEATURE_REGISTRY_VERSION",
+    "POWER_ASSUMPTION_PROFILE_VERSION",
+    "DATA_STATUS",
+    "PIT_STATUS",
+    "NOMINAL_N",
+    "N_BY_ERA",
+    "STRUCTURAL_DEPENDENCE_SUMMARY",
+    "INFERENCE_FEASIBILITY",
+    "NAMED_INFERENCE_CLASS",
+    "PRIMARY_SUPPORT_SIZE",
+    "MIN_ATTAINABLE_P",
+    "REFERENCE_SUPPORT_SIZE",
+    "REFERENCE_SUPPORT_RESOLUTION",
+    "MONTE_CARLO_P_FLOOR",
+    "ALPHA_ATTAINABLE",
+    "MIN_MEANINGFUL_EFFECT",
+    "MDE_BASE",
+    "MDE_STRESS",
+    "POWER_AT_MIN_MEANINGFUL_EFFECT_BASE",
+    "POWER_AT_MIN_MEANINGFUL_EFFECT_STRESS",
+    "PLAUSIBLE_EFFECT_ASSESSMENT",
+    "DISCOVERY_COMPATIBILITY",
+    "HISTORICAL_REPLICATION_COMPATIBILITY",
+    "PROTECTED_HOLDOUT_COMPATIBILITY",
+    "BLOCKERS",
+    "FEASIBILITY_STATUS"
+  ],
+  "PLAUSIBLE_EFFECT_ASSESSMENT": {
+    "AUTHOR": "A critic that is not the generator that wrote the proposal.",
+    "REQUIRED": ["RATIONALE", "SOURCES", "CONFIDENCE"],
+    "RULE": "MIN_MEANINGFUL_EFFECT is the scientific bar. MDE is deterministic. Their comparison is deterministic. Whether an effect of that size is economically plausible is the critic's judgment and must be labeled as such."
+  },
+  "RARE_EVENT_HEURISTIC": {
+    "NOMINAL_N_WARNING": 300,
+    "APPLIES_WHEN": "NOMINAL_OBSERVATION_COUNT below the warning and ENDPOINT_MOMENT is FIRST_MOMENT",
+    "ROLE": "GENERATOR_WARNING and FEASIBILITY_PRIOR",
+    "NOT_A_REJECTION": true,
+    "AUTHORITATIVE_SCREEN": "PASS_E power at MIN_MEANINGFUL_EFFECT"
+  },
+  "BOUNDED_REVISION": {
+    "MAX_REVISIONS": 1,
+    "PERMITTED_FIELDS": [
+      "observation horizon",
+      "event or state definition",
+      "feature selection",
+      "counterfactual class"
+    ],
+    "FORBIDDEN_AFTER_FIRST_RESULT": [
+      "MIN_MEANINGFUL_EFFECT",
+      "MIN_MEANINGFUL_EFFECT_UNITS",
+      "discovery era",
+      "era pooling",
+      "NAMED_INFERENCE_CLASS",
+      "normalization chosen to improve MDE"
+    ],
+    "SAFEGUARDS": [
+      "original proposal preserved",
+      "first compiler result preserved",
+      "revision has a linked identity",
+      "no conditional market outcomes",
+      "revision reason is machine-recorded",
+      "second revision is rejected"
+    ]
+  },
+  "BLOCKER_CODES": [
+    "MISSING_FEATURE",
+    "MISSING_SOURCE",
+    "INSUFFICIENT_HISTORY",
+    "PIT_NOT_ESTABLISHED",
+    "ALPHA_UNATTAINABLE",
+    "MDE_TOO_LARGE",
+    "DEPENDENCE_TOO_STRONG",
+    "COUNTERFACTUAL_UNRESOLVED",
+    "DEFINITION_INCOMPLETE"
+  ],
+  "BLOCKER_LEDGER_FIELDS": [
+    "PROPOSAL_ID",
+    "COMPILER_POLICY_VERSION",
+    "BLOCKER_CODE",
+    "BLOCKER_OBJECT",
+    "FEASIBILITY_STATUS",
+    "OTHERWISE_STRONG"
+  ],
+  "DATA_EXPANSION_STOP_RULE": {
+    "BATCH_SIZE": 30,
+    "IF_AT_LEAST_3_FEASIBLE": "DATA_IS_NOT_CURRENT_BOTTLENECK and new acquisition stops",
+    "IF_ZERO_FEASIBLE_AND_AT_LEAST_3_OTHERWISE_STRONG_SHARE_ONE_BLOCKER": "That source or feature is eligible for a separate acquisition review. PIT, cost, maintenance, and information gain are still required. Acquisition is not automatic."
+  },
+  "POWER_SCREEN_POLICY": {
+    "FAST_STRUCTURAL_PASS": "Passes A through D and G are analytic or calendar arithmetic and must finish in seconds.",
+    "APPROXIMATE_POWER_PASS": "Pass E uses a closed-form approximation when the named design allows it, otherwise a small capped simulation. It is not the preregistration budget.",
+    "FULL_PREREGISTRATION_POWER": "Remains inside the later design unit.",
+    "ASSUMPTIONS": "Noise, stress inflation, alpha, and target power live in POWER_ASSUMPTION_PROFILE_VERSION and are fixed before any proposal in that profile is scored."
+  },
+  "PERFORMANCE_TARGETS": {
+    "FAST_STRUCTURAL_PASS": "seconds",
+    "APPROXIMATE_POWER_PASS": "bounded small simulation, not thousands of heavy replicates per idea",
+    "FULL_PREREGISTRATION_POWER": "later design unit"
+  },
+  "POSITIVE_CONTROL_SELECTION_CRITERIA": [
+    "Independent of C012, C004, and C020.",
+    "Frequent observations, not a rare-event first-moment claim.",
+    "A well-understood mechanism class such as intraday or weekday volatility seasonality, volatility persistence, or a volume-volatility relationship.",
+    "Definable with features and datasets already in the repository.",
+    "Not selected by inspecting market outcomes.",
+    "Used to test whether the compiler can return FEASIBLE_FOR_PREREGISTRATION, not to claim a trading edge."
+  ],
+  "POSITIVE_CONTROL_EXECUTED": false,
+  "RESEARCHER_DEGREES_OF_FREEDOM_CONTROLS": [
+    "Stress assumptions are in the versioned power profile, not chosen after output.",
+    "Only the named inference class is evaluated.",
+    "MIN_MEANINGFUL_EFFECT is immutable after the first compiler result.",
+    "Discovery era defaults are policy. BitMEX is not added as discovery N.",
+    "Pooling requires ERA_INVARIANCE_PRIOR EXPECTED plus both pooling stresses.",
+    "At most one outcome-blind revision, with forbidden fields enforced.",
+    "A later compiler policy writes a new result. It does not overwrite a historical score."
+  ],
+  "GOLDEN_CASE_RULE": "Acceptance tests feed frozen outcome-blind structural inputs from the closed C012, C004, and C020 records. They do not recompute market outcomes."
+}

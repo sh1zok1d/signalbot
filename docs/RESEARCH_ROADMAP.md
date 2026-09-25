@@ -1,18 +1,60 @@
-## Generator V0 protected-data semantics and COMPLETE carry-forward — 2026-09-23
+## Generator V0 outcome-blind multi-provider routing — 2026-09-24
 
-`NEXT_UNIT = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD`.
-Archived paid runs `artifacts/generator_v0/first-shadow` through
-`first-shadow-v5` remain sealed. This unit is infrastructure only: require
-protected 2025/2026 data is a hard fail; only the unambiguous
-`NO_LOOKAHEAD_RULE` exclusion "No 2025[/2026] <subject> are/is
-permitted|allowed" is mention-only, and open-ended/post-2024 aliases
-fail closed outside that span (bare "latest"/"current" are not enough).
-Offline COMPLETE carry-forward can create
-a new run from compatible
-archived calls without a POST. Do not continue to generation:2 here. No
-new paid LLM call. No scientific interpretation, acquisition, Sprint05,
-D14, MARKET-07, or protected-data open. Frozen design/historical records
-retain their historical labels.
+`NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW`.
+PR #214 was verified `READY_FOR_PROVIDER_SMOKE_TEST`. This unit adds an infrastructure-only routing layer:
+- GENERATOR → Anthropic `claude-opus-5-5` (effort high);
+- NOVELTY_CRITIC and RED_TEAM → OpenAI `gpt-6-sol` (high);
+- FEASIBILITY_CRITIC and the advisory SELECTOR → OpenAI `gpt-6-luna` (low / none).
+
+Recorded as an outcome-blind routing amendment; scientific stages and contracts are unchanged. No real API call, no live shadow. See `docs/research/GENERATOR_V0_MULTI_PROVIDER_ROUTING_AMENDMENT.md`.
+
+## Generator V0 final narrow repair (after re-verification) — 2026-09-23
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION` (verified READY_FOR_PROVIDER_SMOKE_TEST; see the routing amendment above).
+The final narrow offline repair covers three residual classes:
+- abbreviated cross-year ranges;
+- imperative trade language;
+- the fail-closed budget gate moved into `run_campaign`, so it no longer depends on the CLI.
+
+Completion state is `READY_FOR_FINAL_RE-VERIFICATION`, not a provider smoke test or live shadow. See `docs/research/GENERATOR_V0_LIMITED_REPAIR.md`.
+
+## Generator V0 limited offline repair (after PR #215 verification) — 2026-09-23
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION` (re-verified; see the final narrow repair above).
+Limited offline repair of the five blockers found by the independent
+verification (PR #215):
+- keyed novelty prompt/schema/parser contract;
+- sealed journals refused inside `Ledger`;
+- dispatch state machine so a possibly-POSTed call is never re-sent without evidence;
+- Unicode-normalized structural temporal/protected/trade checks;
+- budget preflight for fresh and derived journals, with a scenario table and no run shape chosen.
+Completion state is `READY_FOR_RE-VERIFICATION`, not a provider smoke test or live shadow. No paid call, no protected data, no scientific outcome; v6/v7 sealed and untouched. See `docs/research/GENERATOR_V0_LIMITED_REPAIR.md`.
+
+## Generator V0 pre-live repair (offline) — 2026-09-23
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW` (reviewed by PR #215; see the limited repair above).
+Offline repair of the audit findings behind the v4–v7 one-failure-per-run
+history: per-card quarantine instead of campaign aborts, a single V02 rule
+contract (prompt and validator derived from one table), decoding-level
+schemas, explicit provider failure classes with reconcile, an advisory
+selector, and lineage-cumulative spend (a derive from v7 keeps USD 4.946750
+charged). Completion state is `READY_FOR_INDEPENDENT_REVIEW`, not ready for a
+live shadow. No paid call, no protected data, no scientific outcome; v6/v7
+sealed and untouched. See `docs/research/GENERATOR_V0_PRE_LIVE_REPAIR.md`.
+
+---
+
+## Generator V0 first-shadow-v7 fail-closed — 2026-09-23
+
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`.
+Live first-shadow-v7 ran generation:3 under the USD 17.100000 absolute
+ceiling, then fail-closed on `ambiguous protected range`. New spend
+USD 1.167200; cumulative USD 4.946750. Critics and selector were not
+started. No scientific outcome. Protected 2025/2026 remain unopened.
+`first-shadow-v6` and `first-shadow-v7` are sealed. Do not resume v7. Do
+not extend LEGAL_RANGE or the C033 exclusion parser from observed
+generation:3 wrappers. Frozen design/historical records retain their
+historical labels.
 
 ---
 
@@ -20,7 +62,7 @@ retain their historical labels.
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-23
-**Current phase:** `GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD`
+**Current phase:** `GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 
@@ -116,8 +158,8 @@ after the CORE-restore retry (adaptive discovery, not confirmatory):
 `PREVIOUS_UNIT = POST_SPRINT04_AUTOMATION_MATURITY_DECISION` (decided:
 `HYPOTHESIS_GENERATOR_V0_INFRA_READY`; no Sprint 05; design frozen in
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`, not built).
-`NEXT_ACTION = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL`.
-`NEXT_UNIT = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD`.
+`NEXT_ACTION = STOP_NO_RESUME_NO_VALIDATOR_REPAIR`.
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`.
 
 D2 discovery remains a `PROMISING_PROTOTYPE` (adaptive discovery label). Outcome-blind
 confirmation design for RULE_1 / `RV_ABSTENTION` found calendar 2025
@@ -220,8 +262,8 @@ automatically create Sprint 05. Do not build the hypothesis generator here.
 `PREVIOUS_UNIT = POST_SPRINT04_AUTOMATION_MATURITY_DECISION` (decided:
 `HYPOTHESIS_GENERATOR_V0_INFRA_READY`; no Sprint 05; design frozen in
 `docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.{json,md}`, not built).
-`NEXT_ACTION = INFRASTRUCTURE_ONLY_NO_PAID_LLM_CALL`.
-`NEXT_UNIT = GENERATOR_V0_PROTECTED_DATA_SEMANTICS_AND_COMPLETE_CARRY_FORWARD`.
+`NEXT_ACTION = STOP_NO_RESUME_NO_VALIDATOR_REPAIR`.
+`NEXT_UNIT = GENERATOR_V0_FIRST_SHADOW_V7_FAIL_CLOSED`.
 
 Card identities at definition time (unchanged):
 

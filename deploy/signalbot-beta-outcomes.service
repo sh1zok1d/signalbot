@@ -1,0 +1,42 @@
+[Unit]
+Description=Signalbot private beta V0.2 forward outcome tracker one-shot
+Documentation=file:/opt/signalbot/docs/PRIVATE_BETA_V0_DEPLOY.md
+# Ordering only — independent of Stage 1 ingestion (signalbot.service), the
+# shadow forecast one-shot and the legacy Telegram notifier. It never requires,
+# starts, stops or restarts any of them.
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=signalbot
+Group=signalbot
+WorkingDirectory=/opt/signalbot
+# .env holds the DB password and (for the beta) BETA_TELEGRAM_BOT_TOKEN,
+# BETA_OWNER_TELEGRAM_USER_ID and the BETA_* kill switches. Never printed.
+EnvironmentFile=/opt/signalbot/.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
+ExecStartPre=/usr/bin/test -r /opt/signalbot/.env
+ExecStartPre=/usr/bin/test -f /opt/signalbot/main.py
+# Block until PostgreSQL answers SELECT 1 (shared readiness gate; bounded well
+# inside TimeoutStartSec). Beta never uses Redis.
+ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py --postgres-only --timeout 60
+ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/main.py --beta-outcomes-once --beta-json --log-level INFO
+TimeoutStartSec=240
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=signalbot-beta-outcomes
+
+# --- Hardening (same audited profile as deploy/signalbot-telegram.service) ---
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+UMask=0077
+
+# No [Install] section: signalbot-beta-outcomes.timer owns activation.

@@ -5,7 +5,7 @@ from scripts.research.generator_v0.schema import validate_card,parse_json
 
 def card():
     c=Contexts();x={k:'specified' for k in c.design['CANDIDATE_SCHEMA']['REQUIRED_FIELDS']}
-    x.update(CANDIDATE_ID='C001',MECHANISM_FAMILY='A',PROTECTED_DATA_REQUIREMENT=False,DATA_STATUS='DATA_READY',MISSING_OBSERVABLES=[],DATA_GAP_CLASS='NONE',DATA_REQUIRED=[{'DATASET':'CORE_BTC_BINANCE_V0','OBSERVABLE':'quote volume','STATUS':'DATA_READY','LEGAL_RANGE':'2020..2024'}],SEARCH_SURFACE={'PARAMETERS':{'horizon':['6h']},'MAX_VARIANTS':1})
+    x.update(CANDIDATE_ID='C001',MECHANISM_FAMILY='A',NEAREST_TESTED_MECHANISM='NONE',PROTECTED_DATA_REQUIREMENT=False,DATA_STATUS='DATA_READY',MISSING_OBSERVABLES=[],DATA_GAP_CLASS='NONE',DATA_REQUIRED=[{'DATASET':'CORE_BTC_BINANCE_V0','OBSERVABLE':'quote volume','STATUS':'DATA_READY','LEGAL_RANGE':'2020-01..2024-12'}],SEARCH_SURFACE={'PARAMETERS':{'horizon':['6h']},'MAX_VARIANTS':1})
     return x
 
 def test_valid_and_off_catalog_blocked():
@@ -38,4 +38,4 @@ def test_success_fields_cannot_hide_in_dynamic_search_parameters(key):
 
 def test_protected_horizon_year_is_a_requirement():
     x=card();x['HORIZON']='2025'
-    with pytest.raises(ContractError,match='protected data requirement'):validate_card(x,Contexts())
+    with pytest.raises(ContractError,match='NO_PROTECTED_YEARS'):validate_card(x,Contexts())

@@ -1,0 +1,789 @@
+{
+  "DECISION": "NONE_TAKEN (owner decision)",
+  "DERIVED_PREFLIGHT_CROSSCHECK_MICRO_USD": 18276711,
+  "E_MINIMUM_ABSOLUTE_CEILING": {
+    "A_CURRENT_FRESH": {
+      "CAMPAIGN_CUMULATIVE_USD": "54.187168",
+      "JOURNAL_ONLY_USD": "54.187168"
+    },
+    "A_CURRENT_FRESH_COUNTED_IN_V7_CAMPAIGN": {
+      "CAMPAIGN_CUMULATIVE_USD": "59.133918",
+      "JOURNAL_ONLY_USD": "54.187168"
+    },
+    "A_CURRENT_V7_DERIVED": {
+      "CAMPAIGN_CUMULATIVE_USD": "41.498217",
+      "JOURNAL_ONLY_USD": "36.551467"
+    },
+    "B_NO_CONTENT_RETRIES_FRESH": {
+      "CAMPAIGN_CUMULATIVE_USD": "27.094553",
+      "JOURNAL_ONLY_USD": "27.094553"
+    },
+    "B_NO_CONTENT_RETRIES_V7_DERIVED": {
+      "CAMPAIGN_CUMULATIVE_USD": "23.223461",
+      "JOURNAL_ONLY_USD": "18.276711"
+    },
+    "C_NOVELTY_CAP_5000_FRESH": {
+      "CAMPAIGN_CUMULATIVE_USD": "48.587008",
+      "JOURNAL_ONLY_USD": "48.587008"
+    },
+    "C_NOVELTY_CAP_5000_NO_RETRIES_FRESH": {
+      "CAMPAIGN_CUMULATIVE_USD": "24.294473",
+      "JOURNAL_ONLY_USD": "24.294473"
+    },
+    "C_NOVELTY_CAP_5000_NO_RETRIES_V7_DERIVED": {
+      "CAMPAIGN_CUMULATIVE_USD": "20.423381",
+      "JOURNAL_ONLY_USD": "15.476631"
+    },
+    "C_NOVELTY_CAP_5000_V7_DERIVED": {
+      "CAMPAIGN_CUMULATIVE_USD": "35.898057",
+      "JOURNAL_ONLY_USD": "30.951307"
+    },
+    "C_NOVELTY_CAP_7000_FRESH": {
+      "CAMPAIGN_CUMULATIVE_USD": "50.187008",
+      "JOURNAL_ONLY_USD": "50.187008"
+    },
+    "C_NOVELTY_CAP_7000_NO_RETRIES_FRESH": {
+      "CAMPAIGN_CUMULATIVE_USD": "25.094473",
+      "JOURNAL_ONLY_USD": "25.094473"
+    },
+    "C_NOVELTY_CAP_7000_NO_RETRIES_V7_DERIVED": {
+      "CAMPAIGN_CUMULATIVE_USD": "21.223381",
+      "JOURNAL_ONLY_USD": "16.276631"
+    },
+    "C_NOVELTY_CAP_7000_V7_DERIVED": {
+      "CAMPAIGN_CUMULATIVE_USD": "37.498057",
+      "JOURNAL_ONLY_USD": "32.551307"
+    },
+    "C_NOVELTY_CAP_9000_FRESH": {
+      "CAMPAIGN_CUMULATIVE_USD": "51.787008",
+      "JOURNAL_ONLY_USD": "51.787008"
+    },
+    "C_NOVELTY_CAP_9000_NO_RETRIES_FRESH": {
+      "CAMPAIGN_CUMULATIVE_USD": "25.894473",
+      "JOURNAL_ONLY_USD": "25.894473"
+    },
+    "C_NOVELTY_CAP_9000_NO_RETRIES_V7_DERIVED": {
+      "CAMPAIGN_CUMULATIVE_USD": "22.023381",
+      "JOURNAL_ONLY_USD": "17.076631"
+    },
+    "C_NOVELTY_CAP_9000_V7_DERIVED": {
+      "CAMPAIGN_CUMULATIVE_USD": "39.098057",
+      "JOURNAL_ONLY_USD": "34.151307"
+    },
+    "D_BATCH_25_FRESH": {
+      "CAMPAIGN_CUMULATIVE_USD": "33.175156",
+      "JOURNAL_ONLY_USD": "33.175156"
+    },
+    "D_BATCH_25_FRESH_NO_RETRIES": {
+      "CAMPAIGN_CUMULATIVE_USD": "16.588405",
+      "JOURNAL_ONLY_USD": "16.588405"
+    },
+    "D_BATCH_30_FRESH": {
+      "CAMPAIGN_CUMULATIVE_USD": "38.581107",
+      "JOURNAL_ONLY_USD": "38.581107"
+    },
+    "D_BATCH_30_FRESH_NO_RETRIES": {
+      "CAMPAIGN_CUMULATIVE_USD": "19.291427",
+      "JOURNAL_ONLY_USD": "19.291427"
+    }
+  },
+  "NOTES": [
+    "Worst cases bound every call at its maximum output; realized v7 generator spend was about 65 percent of its bound.",
+    "No paid critic call has ever completed, so critic reasoning usage is unobserved; scenario C caps are not validated against real outputs.",
+    "NOT_BILLED transport retries charge 0 and are excluded."
+  ],
+  "NOVELTY_VISIBLE_RESPONSE_BOUND": {
+    "BATCH_KEYS": 39,
+    "COMPACT_BYTES": 2250,
+    "PRIOR_KEYS": 31,
+    "WITH_WHITESPACE_BYTES": 2562
+  },
+  "OWNER_AUTHORIZED_CAMPAIGN_CAP_USD": "17.100000",
+  "PROTECTED_2025_2026_OPENED": false,
+  "PROXY_RULE": {
+    "MARGIN": "1.5",
+    "OBSERVED_MAX_CARD_BYTES": 6008,
+    "OBSERVED_MAX_SIGNATURE_BYTES": 1043,
+    "SOURCE": "largest serialized card / novelty signature among the 40 tracked first-shadow-v7 cards (recomputed by a test)"
+  },
+  "REAL_LLM_CALLS_MADE": false,
+  "ROUTED_MULTI_PROVIDER": {
+    "BY_ROLE_SINGLE_ATTEMPT": {
+      "FEASIBILITY_CRITIC": {
+        "CALLS": 40,
+        "ROUTE": "OPENAI / gpt-6-luna / reasoning_effort=low",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "0.219440"
+      },
+      "GENERATOR": {
+        "CALLS": 4,
+        "ROUTE": "ANTHROPIC / claude-opus-5-5 / effort=high",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "8.808216"
+      },
+      "NOVELTY_CRITIC": {
+        "CALLS": 40,
+        "ROUTE": "OPENAI / gpt-6-sol / reasoning_effort=high",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "17.396060"
+      },
+      "RED_TEAM": {
+        "CALLS": 40,
+        "ROUTE": "OPENAI / gpt-6-sol / reasoning_effort=high",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "4.191020"
+      },
+      "SELECTOR": {
+        "CALLS": 1,
+        "ROUTE": "OPENAI / gpt-6-luna / reasoning_effort=none",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "0.001938"
+      }
+    },
+    "CALIBRATION_TARGET": {
+      "NOTE": "Product/cost targets for later empirical 5-card calibration; not authorization to weaken gates or change the design.",
+      "TARGET_4_RUN_MONTH_USD": "40",
+      "TARGET_EXPECTED_FULL_40_CARD_RUN_USD": "10"
+    },
+    "CAMPAIGN_CUMULATIVE_IF_COUNTED_IN_V7_AUTHORITY_USD": "35.563424",
+    "FITS_OWNER_17_10_FRESH_SINGLE_ATTEMPT": false,
+    "FITS_OWNER_17_10_FRESH_WITH_RETRIES": false,
+    "FRESH_40_CARD_SINGLE_ATTEMPT_USD": "30.616674",
+    "FRESH_40_CARD_WITH_CONTENT_RETRIES_USD": "61.231410",
+    "NOTES": [
+      "Worst-case reservation bounds (max output on every call, input bound = request bytes + margin), not expected cost.",
+      "Anthropic input bound adds a fixed 4096-token provider-scaffolding margin; no cache or batch discount is used anywhere.",
+      "Deferred: Anthropic/OpenAI Batch, prompt caching, Opus second opinion, adaptive critic routing, batch-size change."
+    ],
+    "PRICE_TABLE": {
+      "claude-opus-5-5": {
+        "CACHE_READ": "0.20",
+        "CACHE_WRITE_1H": "8.00",
+        "CACHE_WRITE_5M": "5.00",
+        "CONTEXT_WINDOW_TOKENS": 1000000,
+        "INPUT": "4.00",
+        "MAX_OUTPUT_TOKENS": 128000,
+        "OUTPUT": "20.00"
+      },
+      "gpt-6-luna": {
+        "CONTEXT_WINDOW_TOKENS": 1000000,
+        "INPUT": "0.10",
+        "MAX_OUTPUT_TOKENS": 128000,
+        "OUTPUT": "0.50"
+      },
+      "gpt-6-sol": {
+        "CONTEXT_WINDOW_TOKENS": 1000000,
+        "INPUT": "2.00",
+        "MAX_OUTPUT_TOKENS": 128000,
+        "OUTPUT": "10.00"
+      }
+    },
+    "REAL_LLM_CALLS_MADE": false,
+    "ROUTING_DIGEST": "c636f14a9e48dc07f8ebca16666c80dd20343171a6535f3ec8c47d8f71afc596",
+    "ROUTING_ID": "GENERATOR_V0_MULTI_PROVIDER_ROUTING_V1",
+    "ROUTING_TABLE": {
+      "FEASIBILITY_CRITIC": "OPENAI / gpt-6-luna / reasoning_effort=low",
+      "GENERATOR": "ANTHROPIC / claude-opus-5-5 / effort=high",
+      "NOVELTY_CRITIC": "OPENAI / gpt-6-sol / reasoning_effort=high",
+      "RED_TEAM": "OPENAI / gpt-6-sol / reasoning_effort=high",
+      "SELECTOR": "OPENAI / gpt-6-luna / reasoning_effort=none"
+    },
+    "STAGES": {
+      "FEASIBILITY_CRITIC x40": "0.21944",
+      "NOVELTY_CRITIC x40": "17.39606",
+      "RED_TEAM x40": "4.19102",
+      "SELECTOR": "0.001938",
+      "generation:0": "2.201848",
+      "generation:1": "2.201908",
+      "generation:2": "2.201892",
+      "generation:3": "2.202568"
+    },
+    "V7_DERIVED_ROUTED_RUN": "NOT_APPLICABLE: v7 generation:0-2 were produced by gpt-6-astra under the grandfathered v0.1 contract; continuing them with an Opus generator would mix generator models inside one batch, and derive of routed journals is not implemented."
+  },
+  "SCENARIOS": [
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 12000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "NONE",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "54.187168",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "54.187168",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "A_CURRENT_FRESH",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.187775",
+        "NOVELTY_CRITIC x40": "13.85246",
+        "RED_TEAM x40": "4.1951",
+        "SELECTOR": "0.001938",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21351",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "27.094553",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "54.187168"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 12000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "NONE",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "4.946750",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "59.133918",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "54.187168",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "A_CURRENT_FRESH_COUNTED_IN_V7_CAMPAIGN",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.187775",
+        "NOVELTY_CRITIC x40": "13.85246",
+        "RED_TEAM x40": "4.1951",
+        "SELECTOR": "0.001938",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21351",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "27.094553",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "54.187168"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 12000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "NONE",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "4.946750",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "41.498217",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "36.551467",
+      "NOTE": "v7-derived continuation (generation:0-2 imported, generation:3 and all critics remaining).",
+      "SCENARIO": "A_CURRENT_V7_DERIVED",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.175722",
+        "NOVELTY_CRITIC x40": "11.928152",
+        "RED_TEAM x40": "3.953992",
+        "SELECTOR": "0.001955",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "18.276711",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "36.551467"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 12000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (MAX_CONTENT_ATTEMPTS=1; more REVIEW_FAILED/HARD_FAIL risk, no scientific change)",
+      "CONTENT_ATTEMPTS": 1,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "27.094553",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "27.094553",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "B_NO_CONTENT_RETRIES_FRESH",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.187775",
+        "NOVELTY_CRITIC x40": "13.85246",
+        "RED_TEAM x40": "4.1951",
+        "SELECTOR": "0.001938",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21351",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "27.094553",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "27.094553"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 12000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (MAX_CONTENT_ATTEMPTS=1; more REVIEW_FAILED/HARD_FAIL risk, no scientific change)",
+      "CONTENT_ATTEMPTS": 1,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "4.946750",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "23.223461",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "18.276711",
+      "NOTE": "v7-derived continuation (generation:0-2 imported, generation:3 and all critics remaining).",
+      "SCENARIO": "B_NO_CONTENT_RETRIES_V7_DERIVED",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.175722",
+        "NOVELTY_CRITIC x40": "11.928152",
+        "RED_TEAM x40": "3.953992",
+        "SELECTOR": "0.001955",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "18.276711",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "18.276711"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 5000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 5000 = visible bound 2562 + reasoning allowance 2000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "48.587008",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "48.587008",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "C_NOVELTY_CAP_5000_FRESH",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.187775",
+        "NOVELTY_CRITIC x40": "11.05238",
+        "RED_TEAM x40": "4.1951",
+        "SELECTOR": "0.001938",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21351",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "24.294473",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "48.587008"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 5000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 5000 = visible bound 2562 + reasoning allowance 2000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "4.946750",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "35.898057",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "30.951307",
+      "NOTE": "v7-derived continuation (generation:0-2 imported, generation:3 and all critics remaining).",
+      "SCENARIO": "C_NOVELTY_CAP_5000_V7_DERIVED",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.175722",
+        "NOVELTY_CRITIC x40": "9.128072",
+        "RED_TEAM x40": "3.953992",
+        "SELECTOR": "0.001955",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "15.476631",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "30.951307"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 5000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 5000 = visible bound 2562 + reasoning allowance 2000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 1,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "24.294473",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "24.294473",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "C_NOVELTY_CAP_5000_NO_RETRIES_FRESH",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.187775",
+        "NOVELTY_CRITIC x40": "11.05238",
+        "RED_TEAM x40": "4.1951",
+        "SELECTOR": "0.001938",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21351",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "24.294473",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "24.294473"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 5000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 5000 = visible bound 2562 + reasoning allowance 2000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 1,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "4.946750",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "20.423381",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "15.476631",
+      "NOTE": "v7-derived continuation (generation:0-2 imported, generation:3 and all critics remaining).",
+      "SCENARIO": "C_NOVELTY_CAP_5000_NO_RETRIES_V7_DERIVED",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.175722",
+        "NOVELTY_CRITIC x40": "9.128072",
+        "RED_TEAM x40": "3.953992",
+        "SELECTOR": "0.001955",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "15.476631",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "15.476631"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 7000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 7000 = visible bound 2562 + reasoning allowance 4000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "50.187008",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "50.187008",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "C_NOVELTY_CAP_7000_FRESH",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.187775",
+        "NOVELTY_CRITIC x40": "11.85238",
+        "RED_TEAM x40": "4.1951",
+        "SELECTOR": "0.001938",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21351",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "25.094473",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "50.187008"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 7000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 7000 = visible bound 2562 + reasoning allowance 4000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "4.946750",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "37.498057",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "32.551307",
+      "NOTE": "v7-derived continuation (generation:0-2 imported, generation:3 and all critics remaining).",
+      "SCENARIO": "C_NOVELTY_CAP_7000_V7_DERIVED",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.175722",
+        "NOVELTY_CRITIC x40": "9.928072",
+        "RED_TEAM x40": "3.953992",
+        "SELECTOR": "0.001955",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "16.276631",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "32.551307"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 7000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 7000 = visible bound 2562 + reasoning allowance 4000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 1,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "25.094473",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "25.094473",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "C_NOVELTY_CAP_7000_NO_RETRIES_FRESH",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.187775",
+        "NOVELTY_CRITIC x40": "11.85238",
+        "RED_TEAM x40": "4.1951",
+        "SELECTOR": "0.001938",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21351",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "25.094473",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "25.094473"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 7000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 7000 = visible bound 2562 + reasoning allowance 4000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 1,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "4.946750",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "21.223381",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "16.276631",
+      "NOTE": "v7-derived continuation (generation:0-2 imported, generation:3 and all critics remaining).",
+      "SCENARIO": "C_NOVELTY_CAP_7000_NO_RETRIES_V7_DERIVED",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.175722",
+        "NOVELTY_CRITIC x40": "9.928072",
+        "RED_TEAM x40": "3.953992",
+        "SELECTOR": "0.001955",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "16.276631",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "16.276631"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 9000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 9000 = visible bound 2562 + reasoning allowance 6000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "51.787008",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "51.787008",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "C_NOVELTY_CAP_9000_FRESH",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.187775",
+        "NOVELTY_CRITIC x40": "12.65238",
+        "RED_TEAM x40": "4.1951",
+        "SELECTOR": "0.001938",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21351",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "25.894473",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "51.787008"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 9000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 9000 = visible bound 2562 + reasoning allowance 6000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "4.946750",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "39.098057",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "34.151307",
+      "NOTE": "v7-derived continuation (generation:0-2 imported, generation:3 and all critics remaining).",
+      "SCENARIO": "C_NOVELTY_CAP_9000_V7_DERIVED",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.175722",
+        "NOVELTY_CRITIC x40": "10.728072",
+        "RED_TEAM x40": "3.953992",
+        "SELECTOR": "0.001955",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "17.076631",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "34.151307"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 9000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 9000 = visible bound 2562 + reasoning allowance 6000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 1,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "25.894473",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "25.894473",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "C_NOVELTY_CAP_9000_NO_RETRIES_FRESH",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.187775",
+        "NOVELTY_CRITIC x40": "12.65238",
+        "RED_TEAM x40": "4.1951",
+        "SELECTOR": "0.001938",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21351",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "25.894473",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "25.894473"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 9000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "OPERATIONAL (novelty cap 9000 = visible bound 2562 + reasoning allowance 6000, rounded up to 500; critic reasoning usage is unobserved, a length stop is a billed failure and may end REVIEW_FAILED)",
+      "CONTENT_ATTEMPTS": 1,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "4.946750",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "22.023381",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "17.076631",
+      "NOTE": "v7-derived continuation (generation:0-2 imported, generation:3 and all critics remaining).",
+      "SCENARIO": "C_NOVELTY_CAP_9000_NO_RETRIES_V7_DERIVED",
+      "SIZE": 40,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x40": "0.175722",
+        "NOVELTY_CRITIC x40": "10.728072",
+        "RED_TEAM x40": "3.953992",
+        "SELECTOR": "0.001955",
+        "generation:3": "2.21689"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "17.076631",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "17.076631"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 12000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "DESIGN_CHANGE (batch size 25; requires an outcome-blind design amendment before use; not applicable to the v7-derived run, whose imported slots follow the 40-slot plan and would leave no NEW_FAMILY_PROPOSAL slots)",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "33.175156",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "33.175156",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "D_BATCH_25_FRESH",
+      "SIZE": 25,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x25": "0.117359",
+        "NOVELTY_CRITIC x25": "7.369286",
+        "RED_TEAM x25": "2.621936",
+        "SELECTOR": "0.001654",
+        "generation:0": "2.21329",
+        "generation:1": "2.21539",
+        "generation:2": "2.04949"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "16.588405",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "33.175156"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 12000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "DESIGN_CHANGE (batch size 25; requires an outcome-blind design amendment before use; not applicable to the v7-derived run, whose imported slots follow the 40-slot plan and would leave no NEW_FAMILY_PROPOSAL slots)",
+      "CONTENT_ATTEMPTS": 1,
+      "FITS_OWNER_17_10_CUMULATIVE": true,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "16.588405",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "16.588405",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "D_BATCH_25_FRESH_NO_RETRIES",
+      "SIZE": 25,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x25": "0.117359",
+        "NOVELTY_CRITIC x25": "7.369286",
+        "RED_TEAM x25": "2.621936",
+        "SELECTOR": "0.001654",
+        "generation:0": "2.21329",
+        "generation:1": "2.21539",
+        "generation:2": "2.04949"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "16.588405",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "16.588405"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 12000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "DESIGN_CHANGE (batch size 30; requires an outcome-blind design amendment before use; not applicable to the v7-derived run, whose imported slots follow the 40-slot plan and would leave no NEW_FAMILY_PROPOSAL slots)",
+      "CONTENT_ATTEMPTS": 2,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "38.581107",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "38.581107",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "D_BATCH_30_FRESH",
+      "SIZE": 30,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x30": "0.14083",
+        "NOVELTY_CRITIC x30": "9.35854",
+        "RED_TEAM x30": "3.14632",
+        "SELECTOR": "0.001747",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21711"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "19.291427",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "38.581107"
+    },
+    {
+      "CAPS": {
+        "FEASIBILITY_CRITIC": 6000,
+        "NOVELTY_CRITIC": 12000,
+        "RED_TEAM": 8000,
+        "SELECTOR": 2000
+      },
+      "CHANGE_KIND": "DESIGN_CHANGE (batch size 30; requires an outcome-blind design amendment before use; not applicable to the v7-derived run, whose imported slots follow the 40-slot plan and would leave no NEW_FAMILY_PROPOSAL slots)",
+      "CONTENT_ATTEMPTS": 1,
+      "FITS_OWNER_17_10_CUMULATIVE": false,
+      "LINEAGE_PRIOR_USD": "0.000000",
+      "MIN_CEILING_CAMPAIGN_CUMULATIVE_USD": "19.291427",
+      "MIN_CEILING_JOURNAL_ONLY_USD": "19.291427",
+      "NOTE": "Fresh 40-slot run, every card a documented proxy. Campaign-cumulative adds the v7 lineage only if the owner counts a fresh run against the same USD 17.10 campaign authority.",
+      "SCENARIO": "D_BATCH_30_FRESH_NO_RETRIES",
+      "SIZE": 30,
+      "STAGES": {
+        "FEASIBILITY_CRITIC x30": "0.14083",
+        "NOVELTY_CRITIC x30": "9.35854",
+        "RED_TEAM x30": "3.14632",
+        "SELECTOR": "0.001747",
+        "generation:0": "2.21329",
+        "generation:1": "2.21359",
+        "generation:2": "2.21711"
+      },
+      "WORST_CASE_SINGLE_ATTEMPT_USD": "19.291427",
+      "WORST_CASE_WITH_CONTENT_RETRIES_USD": "19.291427"
+    }
+  ],
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "UNIT": "GENERATOR_V0_LIMITED_REPAIR_BUDGET_SCENARIOS",
+  "V7_LINEAGE": {
+    "IMPORTED_MICRO_USD": 3779550,
+    "PRIOR_MICRO_USD": 1167200,
+    "REMAINING_UNDER_17_10_MICRO_USD": 12153250,
+    "TOTAL_MICRO_USD": 4946750
+  }
+}

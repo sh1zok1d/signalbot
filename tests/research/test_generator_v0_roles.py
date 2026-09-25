@@ -11,7 +11,8 @@ def roles(tmp_path,answer):
     return Roles(c,Caller(c,l,MockProvider(lambda r:json.dumps(answer))))
 
 def novelty_answer(c,near,relation):
-    return {'PRIOR_RELATIONS':[{'SIGNATURE_ID':k,'RELATION':relation if k==near else 'ORTHOGONAL_MECHANISM'} for k,v in c.rows.items() if v['STATE']!='PARTIAL_OR_MIXED'],'BATCH_RELATIONS':[],'JUDGMENTS':{'NOVELTY':2,'MECHANISM_DISTANCE':2,'NON_RESCUE':2}}
+    # Live provider encoding: objects keyed by exact signature / candidate IDs.
+    return {'PRIOR_RELATIONS':{k:relation if k==near else 'ORTHOGONAL_MECHANISM' for k,v in c.rows.items() if v['STATE']!='PARTIAL_OR_MIXED'},'BATCH_RELATIONS':{},'JUDGMENTS':{'NOVELTY':2,'MECHANISM_DISTANCE':2,'NON_RESCUE':2}}
 
 @pytest.mark.parametrize('near',['B2-06','MARKET-04','D6','D8','D4.LEAD_LAG_1DAY'])
 @pytest.mark.parametrize('relation,expected',[('EXACT_DUPLICATE','DEFER_BLOCKER_UNRESOLVED'),('RESOLVES_BLOCKER','ALLOW_TO_FEASIBILITY'),('ORTHOGONAL_MECHANISM','ALLOW'),('PARAMETER_NEIGHBOR','REJECT')])

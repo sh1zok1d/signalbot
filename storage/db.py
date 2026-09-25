@@ -244,6 +244,28 @@ class Database:
         # above already created both constraints inline.
         await self._harden_v2_episode_events_id_constraints()
 
+    # ===============================================================
+    # Private beta V0.2 (ADDITIVE; docs/PRIVATE_BETA_V0_RESTART_DECISION.md).
+    # Separate schema file (storage/beta_v0_schema.sql), never wired into
+    # connect()/init_schema()/init_stage2_schema(); all beta SQL lives in
+    # storage/beta_v0_store.py.
+    # ===============================================================
+    async def init_beta_v0_schema(self) -> None:
+        """Idempotently apply storage/beta_v0_schema.sql as ONE script in ONE
+        transaction (advisory-locked). Additive only: no Stage-1/Stage-2/forecast
+        table is altered or dropped."""
+        from storage.beta_v0_store import apply_beta_schema
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            await apply_beta_schema(conn)
+        logger.info("Beta V0 schema initialized / verified")
+
+    def beta_store(self):
+        """Narrow beta read/write surface bound to this pool."""
+        from storage.beta_v0_store import BetaStore
+        assert self.pool is not None
+        return BetaStore(self.pool)
+
     # ---------------------------------------------------------------
     # V2-H3 amendment (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1a):
     # Python-level, idempotent, atomic upgrade path making an ALREADY-

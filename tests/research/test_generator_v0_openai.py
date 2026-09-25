@@ -1,4 +1,5 @@
 import json
+from scripts.research.generator_v0.schema import decode_provider_card
 from decimal import Decimal,ROUND_CEILING
 import pytest
 from scripts.research.generator_v0.openai_provider import (
@@ -12,6 +13,13 @@ from scripts.research.generator_v0.models import ROLE_MODEL_MAP,ROLE_REQUEST_PAR
 from scripts.research.generator_v0.output_schemas import openai_response_format,responses_text_format,role_schema
 from scripts.research.generator_v0.schema import output_schema,validate_card
 from scripts.research.generator_v0.mock import MockResponder
+from scripts.research.generator_v0.models import ROLE_OUTPUT_TOKEN_CAPS
+from scripts.research.generator_v0.ledger import CallUncertain
+from scripts.research.generator_v0.provider import ProviderThrottled,BilledFailure
+
+SLOT={'CANDIDATE_ID':'C001','MECHANISM_FAMILY':'A','INFORMATION_SOURCE':'KLINES'}
+GEN_PARAMS={'max_output_tokens':100,'slots':[SLOT]}
+GEN_FULL={'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':[SLOT]}
 
 def chat_envelope(content='{}',finish='stop'):
     return json.dumps({'choices':[{'finish_reason':finish,'message':{'content':content}}],'usage':{'prompt_tokens':100,'completion_tokens':20}}).encode()
@@ -78,9 +86,13 @@ def test_generator_uses_background_responses_strict_schema(tmp_path):
     assert body['model']=='gpt-6-astra' and body['background'] is True and body['store'] is True
     assert body['reasoning']=={'effort':'high'} and 'reasoning_effort' not in body and 'temperature' not in body
     fmt=body['text']['format']
-    assert fmt==responses_text_format('GENERATOR',c)
+    assert fmt==responses_text_format('GENERATOR',c,{'parameters':slots})
     assert fmt['type']=='json_schema' and fmt['strict'] is True
-    card=fmt['schema']['properties']['CANDIDATES']['items']
+    # Decoding-level contract: CANDIDATES is keyed by exactly the round's slot IDs.
+    assert fmt['schema']['properties']['CANDIDATES']['required']==['C001']
+    card=fmt['schema']['properties']['CANDIDATES']['properties']['C001']
+    assert card['properties']['CANDIDATE_ID']['enum']==['C001'] and card['properties']['MECHANISM_FAMILY']['enum']==['A']
+    assert card['properties']['DATA_REQUIRED']['items']['properties']['LEGAL_RANGE']['pattern']
     assert card['additionalProperties'] is False and 'STREAM' not in card['properties']
     assert len(card['required'])==27
     assert gets and all(x[1].startswith('/v1/responses/resp_') for x in gets)
@@ -101,26 +113,47 @@ def test_single_model_override_is_rejected():
     with pytest.raises(ContractError,match='role-specific'):OpenAIProvider('key',allow_real=True,budget_micro_usd=1,model='gpt-4.1-mini-2025-04-14',transport=lambda *a:pytest.fail('network reached'))
 
 def test_create_failures_are_uncertain_and_never_replayed(tmp_path,kind='timeout'):
+    """Timeout or an unusable 200 acknowledgement: outcome unknown -> UNCERTAIN, never replayed."""
     log=[]
     def fake(method,path,body,headers,timeout):
         log.append(method+path)
         if kind=='timeout':raise TimeoutError()
-        if kind=='http':return 429,b'error'
         return 200,b'not-json'
     c=Contexts();l=Ledger(tmp_path/'r.db',{'RUN_ID':'test'});p=provider(fake);caller=Caller(c,l,p,30_000_000,True)
     for _ in range(2):
-        with pytest.raises((ContractError,TimeoutError)):caller.call('GENERATOR',c.generator(),'Return JSON',{'max_output_tokens':100},'one')
+        with pytest.raises(CallUncertain):caller.call('GENERATOR',c.generator(),'Return JSON',GEN_PARAMS,'one')
     assert log==['POST/v1/responses']
     assert l.db.execute('SELECT state,cost FROM calls').fetchone()==('UNCERTAIN',None)
+    assert l.spent_micro_usd()==l.db.execute('SELECT reserved FROM calls').fetchone()[0]
 
-@pytest.mark.parametrize('kind',['timeout','http','malformed'])
+@pytest.mark.parametrize('kind',['timeout','malformed'])
 def test_create_failure_kinds(tmp_path,kind):
     test_create_failures_are_uncertain_and_never_replayed(tmp_path,kind)
+
+def test_create_429_is_not_billed_retried_with_backoff_and_never_strands(tmp_path):
+    log=[];sleeps=[]
+    def fake(method,path,body,headers,timeout):
+        log.append(method+path);return 429,b'{"error":"rate_limited"}'
+    c=Contexts();l=Ledger(tmp_path/'r.db',{'RUN_ID':'throttle'})
+    p=provider(fake,sleeper=sleeps.append);caller=Caller(c,l,p,30_000_000,True)
+    with pytest.raises(ProviderThrottled):caller.call('GENERATOR',c.generator(),'Return JSON',GEN_PARAMS,'one')
+    assert log==['POST/v1/responses']*3 and sleeps==[2,8,30]
+    assert {r['STATE'] for r in l.export_calls()}=={'FAILED_NOT_BILLED'}
+    assert l.spent_micro_usd()==0
+    # A later invocation continues with fresh attempt keys; it is not stranded.
+    inner=gen_transport(c,[])
+    def ok(method,path,body,headers,timeout):
+        log.append(method+path)
+        return inner(method,path,body,headers,timeout)
+    raw=Caller(c,l,provider(ok),30_000_000,True).call('GENERATOR',c.generator(),'Return JSON',GEN_PARAMS,'one')
+    assert json.loads(raw)['CANDIDATES']['C001']['CANDIDATE_ID']=='C001'
+    assert [r['STATE'] for r in l.export_calls()]==['FAILED_NOT_BILLED']*3+['COMPLETE']
+    assert [r['TRANSPORT_ATTEMPT'] for r in l.export_calls()]==[0,1,2,3]
 
 def test_budget_denies_before_http(tmp_path):
     c=Contexts();l=Ledger(tmp_path/'r.db',{'RUN_ID':'test'})
     p=OpenAIProvider('key',allow_real=True,budget_micro_usd=1,transport=lambda *a:pytest.fail('HTTP'),sleeper=lambda s:None)
-    with pytest.raises(ContractError):Caller(c,l,p,1,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    with pytest.raises(ContractError):Caller(c,l,p,1,True).call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'one')
 
 def test_unknown_model_fails_closed():
     with pytest.raises(ContractError,match='unknown model'):spec('gpt-not-a-model')
@@ -139,30 +172,31 @@ def _mutate_generator(contexts,mutate):
     payload=json.loads(generator_json(contexts));mutate(payload);return json.dumps(payload)
 
 @pytest.mark.parametrize('kind,mutate',[
-    ('extra',lambda p:p['CANDIDATES'][0].update(STREAM='EXECUTABLE_NOW')),
-    ('missing',lambda p:p['CANDIDATES'][0].pop('FALSIFIER')),
-    ('nested',lambda p:p['CANDIDATES'][0]['DATA_REQUIRED'][0].update(EXTRA='nope')),
+    ('extra',lambda p:p['CANDIDATES']['C001'].update(STREAM='EXECUTABLE_NOW')),
+    ('missing',lambda p:p['CANDIDATES']['C001'].pop('FALSIFIER')),
+    ('nested',lambda p:p['CANDIDATES']['C001']['DATA_REQUIRED'][0].update(EXTRA='nope')),
     ('envelope',lambda p:p.update(STREAM='nope')),
 ])
 def test_schema_violation_persists_completed_envelope_without_new_post(tmp_path,kind,mutate):
+    """Content errors never raise in transport: the billed COMPLETE answer is kept and judged by intake."""
     c=Contexts();log=[]
     p=provider(gen_transport(c,log,content=_mutate_generator(c,mutate)));l=Ledger(tmp_path/'r.db',{'RUN_ID':'t'})
     caller=Caller(c,l,p,30_000_000,True)
-    with pytest.raises(ContractError):caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    raw=caller.call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'one')
     assert l.export_calls()[0]['STATE']=='COMPLETE'
     assert l.export_calls()[0]['RESPONSE_ID']=='resp_1'
     posts=[x for x in log if x[0]=='POST']
-    caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    assert caller.call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'one')==raw
     assert [x for x in log if x[0]=='POST']==posts
 
 def test_application_validator_still_rejects_semantic_violations(tmp_path):
-    c=Contexts();payload=json.loads(generator_json(c));payload['CANDIDATES'][0]['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01..2025-06'
+    c=Contexts();payload=json.loads(generator_json(c));payload['CANDIDATES']['C001']['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01..2025-06'
     log=[]
     p=provider(gen_transport(c,log,content=json.dumps(payload)));l=Ledger(tmp_path/'r.db',{'RUN_ID':'t'})
-    raw=Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'sem')
+    raw=Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'sem')
     parsed=json.loads(raw)
-    assert parsed['CANDIDATES'][0]['DATA_REQUIRED'][0]['LEGAL_RANGE']=='2020-01..2025-06'
-    with pytest.raises(ContractError,match='protected'):validate_card(parsed['CANDIDATES'][0],c)
+    assert parsed['CANDIDATES']['C001']['DATA_REQUIRED'][0]['LEGAL_RANGE']=='2020-01..2025-06'
+    with pytest.raises(ContractError,match='protected'):validate_card(decode_provider_card(parsed['CANDIDATES']['C001']),c)
     assert [x[0] for x in log].count('POST')==1 and l.export_calls()[0]['STATE']=='COMPLETE'
     env=json.loads(l.db.execute('SELECT response FROM calls').fetchone()[0])
     assert 'provider_envelope' in env
@@ -192,23 +226,22 @@ def test_each_role_mixed_transport_and_budget(tmp_path):
         return 200,chat_envelope(result)
     fake.payloads={}
     p=provider(fake);l=Ledger(tmp_path/'r.db',{'RUN_ID':'roles'})
-    result=run_campaign(c,Caller(c,l,p,30_000_000,True))
+    result=_accepted(c,Caller(c,l,p,17_100_000,True))
     assert result['STATUS']=='PENDING_HUMAN_REVIEW'
     assert set(seen)==set(ROLE_MODEL_MAP)
     g=seen['GENERATOR']
-    assert g['background'] is True and g['store'] is True and g['text']['format']==responses_text_format('GENERATOR',c)
+    assert g['background'] is True and g['store'] is True and g['text']['format']['strict'] is True
+    assert set(g['text']['format']['schema']['properties']['CANDIDATES']['properties'])=={'C001','C002','C003','C004','C005','C006','C007','C008','C009','C010'}
     assert g['reasoning']=={'effort':'high'}
     assert g['max_output_tokens']==GENERATOR_MAX_OUTPUT_TOKENS==32768
     for role in ('NOVELTY_CRITIC','FEASIBILITY_CRITIC','RED_TEAM','SELECTOR'):
         body=seen[role]
         assert body['model']==ROLE_MODEL_MAP[role]
-        assert body['response_format']==openai_response_format(role,c)
+        assert body['response_format']['type']=='json_schema' and body['response_format']['json_schema']['strict'] is True
+        if role!='NOVELTY_CRITIC':assert body['response_format']==openai_response_format(role,c)
         assert body[list(ROLE_REQUEST_PARAMS[role])[0]]==ROLE_REQUEST_PARAMS[role]['reasoning_effort']
         assert 'temperature' not in body
-    assert seen['NOVELTY_CRITIC']['max_completion_tokens']==6000
-    assert seen['RED_TEAM']['max_completion_tokens']==6000
-    assert seen['FEASIBILITY_CRITIC']['max_completion_tokens']==6000
-    assert seen['SELECTOR']['max_completion_tokens']==2000
+    for role,cap in ROLE_OUTPUT_TOKEN_CAPS.items():assert seen[role]['max_completion_tokens']==cap
     assert [x for x in log if x==('POST','/v1/responses')].__len__()==4
     assert [x for x in log if x[0]=='POST' and x[1]=='/v1/chat/completions'].__len__()==121
     expected=4*cost_of('GENERATOR')+40*cost_of('NOVELTY_CRITIC')+40*cost_of('FEASIBILITY_CRITIC')+40*cost_of('RED_TEAM')+cost_of('SELECTOR')
@@ -253,7 +286,7 @@ def test_polling_timeout_stays_resumable(tmp_path):
     p=provider(fake,clock=clock,sleeper=sleep,background_max_wait_seconds=5)
     l=Ledger(tmp_path/'r.db',{'RUN_ID':'pend'})
     with pytest.raises(BackgroundPending):
-        Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+        Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'one')
     assert l.db.execute('SELECT state FROM calls').fetchone()[0]=='BACKGROUND_SUBMITTED'
     posts=len([x for x in log if x[0]=='POST'])
     def finish(method,path,body,headers,timeout):
@@ -261,7 +294,7 @@ def test_polling_timeout_stays_resumable(tmp_path):
         if method=='POST':raise AssertionError('new POST')
         if method=='GET':return 200,responses_completed('resp_slow',generator_json(c))
         return 200,b'{}'
-    Caller(c,l,provider(finish),30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    Caller(c,l,provider(finish),30_000_000,True).call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'one')
     assert len([x for x in log if x[0]=='POST'])==posts
     assert l.export_calls()[0]['STATE']=='COMPLETE'
 
@@ -275,14 +308,14 @@ def test_get_retry_does_not_post_again(tmp_path):
             if gets['n']==1:raise TimeoutError()
             return 200,responses_completed('resp_r',generator_json(c))
         return 200,b'{}'
-    Caller(c,Ledger(tmp_path/'r.db',{'RUN_ID':'r'}),provider(fake),30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    Caller(c,Ledger(tmp_path/'r.db',{'RUN_ID':'r'}),provider(fake),30_000_000,True).call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'one')
     assert [x for x in log if x[0]=='POST']==[('POST','/v1/responses')]
     assert gets['n']==2
 
 def test_polling_does_not_consume_another_reservation(tmp_path):
     c=Contexts();log=[]
     p=provider(gen_transport(c,log));l=Ledger(tmp_path/'r.db',{'RUN_ID':'b'})
-    Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'one')
     count,reserved,cost=l.db.execute('SELECT count(*),sum(reserved),sum(cost) FROM calls').fetchone()
     assert count==1 and reserved>=cost==cost_of('GENERATOR')
 
@@ -300,7 +333,7 @@ def test_response_id_is_persisted_before_first_get(tmp_path):
             assert ('persist','resp_first') in events
             return 200,responses_completed('resp_first',generator_json(c))
         events.append(('delete',path));return 200,b'{}'
-    Caller(c,l,provider(fake),30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    Caller(c,l,provider(fake),30_000_000,True).call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'one')
     assert events[0]==('post','/v1/responses')
     assert events[1]==('persist','resp_first')
     assert events[2]==('get','/v1/responses/resp_first')
@@ -316,12 +349,12 @@ def test_terminal_noncompleted_background_fails_closed(tmp_path,status):
         return 200,b'{}'
     c=Contexts();l=Ledger(tmp_path/'r.db',{'RUN_ID':'term'})
     caller=Caller(c,l,provider(fake),30_000_000,True)
-    with pytest.raises(ContractError,match='background generation'):
-        caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
-    assert l.export_calls()[0]['STATE']=='FAILED'
+    with pytest.raises(BilledFailure,match='background generation'):
+        caller.call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'one')
+    assert l.export_calls()[0]['STATE']=='FAILED_WITH_COST'
     assert l.export_calls()[0]['PROVIDER_STATUS']==status
-    with pytest.raises(ContractError,match='never automatic replay'):
-        caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'one')
+    with pytest.raises(BilledFailure,match='billed attempt without usable content'):
+        caller.call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'one')
     assert [x for x in log if x[0]=='POST']==[('POST','/v1/responses')]
 
 def test_generator_synchronous_complete_is_refused():
@@ -338,7 +371,7 @@ def test_resume_identity_includes_transport(tmp_path):
     assert ident['GENERATOR_MAX_OUTPUT_TOKENS']==GENERATOR_MAX_OUTPUT_TOKENS==32768
     config={'RUN_ID':'resume','GENERATOR_ENDPOINT':'RESPONSES','GENERATOR_MAX_OUTPUT_TOKENS':32768}
     l=Ledger(tmp_path/'r.db',config)
-    Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':100},'g0')
+    Caller(c,l,p,30_000_000,True).call('GENERATOR',c.generator(),'JSON',GEN_PARAMS,'g0')
     with pytest.raises(ContractError,match='resume configuration differs'):
         Ledger(tmp_path/'r.db',{'RUN_ID':'resume','GENERATOR_ENDPOINT':'CHAT_COMPLETIONS','GENERATOR_MAX_OUTPUT_TOKENS':32768})
     with pytest.raises(ContractError,match='resume configuration differs'):
@@ -346,21 +379,30 @@ def test_resume_identity_includes_transport(tmp_path):
 
 def test_openai_role_schemas_are_strict():
     c=Contexts()
+    from scripts.research.generator_v0.roles import Roles
+    from scripts.research.generator_v0.mock import fixture,slot_plan
+    cards=[fixture(x,c) for x in slot_plan(40)]
+    requests={'GENERATOR':{'parameters':GEN_PARAMS},'NOVELTY_CRITIC':{'context':Roles(c,None).request('NOVELTY_CRITIC',cards[0],cards)}}
     for role in ROLE_MODEL_MAP:
-        schema=role_schema(role,c,provider=True)
+        schema=role_schema(role,c,provider=True,request=requests.get(role))
         assert schema['additionalProperties'] is False
         assert set(schema['required'])==set(schema['properties'])
     card=output_schema(c,provider=True)
     assert len(card['required'])==27 and 'STREAM' not in card['properties']
-    fmt=responses_text_format('GENERATOR',c)
-    assert fmt['schema']==role_schema('GENERATOR',c,provider=True)
+    fmt=responses_text_format('GENERATOR',c,requests['GENERATOR'])
+    assert fmt['schema']==role_schema('GENERATOR',c,provider=True,request=requests['GENERATOR'])
+    nov=role_schema('NOVELTY_CRITIC',c,provider=True,request=requests['NOVELTY_CRITIC'])
+    assert set(nov['properties']['BATCH_RELATIONS']['required'])=={x['CANDIDATE_ID'] for x in cards[1:]}
+    assert set(nov['properties']['PRIOR_RELATIONS']['required'])=={k for k,r in c.rows.items() if r['STATE']!='PARTIAL_OR_MIXED'}
 
 def test_archived_paid_run_is_not_opened_by_operator(monkeypatch):
     from scripts.research.generator_v0.__main__ import main
     monkeypatch.setenv('OPENAI_API_KEY','present')
     from scripts.research.generator_v0.__main__ import ARCHIVED_PAID_RUNS
     assert ('generator_v0','first-shadow-v5') in ARCHIVED_PAID_RUNS
-    for run_dir in ('artifacts/generator_v0/first-shadow','artifacts/generator_v0/first-shadow-v2','artifacts/generator_v0/first-shadow-v3','artifacts/generator_v0/first-shadow-v4','artifacts/generator_v0/first-shadow-v5'):
+    assert ('generator_v0','first-shadow-v6') in ARCHIVED_PAID_RUNS
+    assert ('generator_v0','first-shadow-v7') in ARCHIVED_PAID_RUNS
+    for run_dir in ('artifacts/generator_v0/first-shadow','artifacts/generator_v0/first-shadow-v2','artifacts/generator_v0/first-shadow-v3','artifacts/generator_v0/first-shadow-v4','artifacts/generator_v0/first-shadow-v5','artifacts/generator_v0/first-shadow-v6','artifacts/generator_v0/first-shadow-v7'):
         with pytest.raises(ContractError,match='archived paid run'):
             main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','10','--run-dir',run_dir])
 
@@ -406,10 +448,10 @@ def test_incomplete_max_output_tokens_accounts_actual_cost(tmp_path):
         return 200,b'{}'
     l=Ledger(tmp_path/'r.db',{'RUN_ID':'v4acc'})
     caller=Caller(c,l,provider(fake),30_000_000,True)
-    with pytest.raises(ContractError,match='background generation incomplete'):
-        caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS},'generation:0')
+    with pytest.raises(BilledFailure,match='background generation incomplete'):
+        caller.call('GENERATOR',c.generator(),'JSON',GEN_FULL,'generation:0')
     row=l.export_calls()[0]
-    assert row['STATE']=='FAILED' and row['PROVIDER_STATUS']=='incomplete'
+    assert row['STATE']=='FAILED_WITH_COST' and row['PROVIDER_STATUS']=='incomplete' and row['COST_BASIS']=='USAGE'
     assert row['RESPONSE_ID']=='resp_v4'
     assert row['USAGE']=={'input_tokens':4588,'output_tokens':16000,'reasoning_tokens':9322}
     assert row['COST_MICRO_USD']==cost_of('GENERATOR',4588,16000)==845880
@@ -419,8 +461,8 @@ def test_incomplete_max_output_tokens_accounts_actual_cost(tmp_path):
     assert 'CANDIDATES' not in env
     spent=l.db.execute('SELECT COALESCE(SUM(COALESCE(cost,reserved)),0) FROM calls').fetchone()[0]
     assert spent==845880
-    with pytest.raises(ContractError,match='never automatic replay'):
-        caller.call('GENERATOR',c.generator(),'JSON',{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS},'generation:0')
+    with pytest.raises(BilledFailure,match='billed attempt without usable content'):
+        caller.call('GENERATOR',c.generator(),'JSON',GEN_FULL,'generation:0')
     assert [x[0] for x in log if x[0]=='POST']==['POST']
     assert l.db.execute('SELECT count(*) FROM cards').fetchone()[0]==0
 
@@ -433,10 +475,12 @@ def test_incomplete_malformed_usage_stays_reservation_backed(tmp_path):
             return 200,json.dumps({'id':'resp_bad','status':'incomplete','incomplete_details':{'reason':'max_output_tokens'},'usage':{'input_tokens':'nope','output_tokens':16000}}).encode()
         return 200,b'{}'
     l=Ledger(tmp_path/'r.db',{'RUN_ID':'badu'})
-    with pytest.raises(ContractError,match='background generation incomplete'):
-        Caller(Contexts(),l,provider(fake),30_000_000,True).call('GENERATOR',Contexts().generator(),'JSON',{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS},'one')
+    with pytest.raises(BilledFailure,match='background generation incomplete'):
+        Caller(Contexts(),l,provider(fake),30_000_000,True).call('GENERATOR',Contexts().generator(),'JSON',GEN_FULL,'one')
     row=l.export_calls()[0]
-    assert row['STATE']=='FAILED' and row['COST_MICRO_USD'] is None and row['USAGE'] is None
+    # Billed with unknown usage: charged the full reservation, recorded as such.
+    assert row['STATE']=='FAILED_WITH_COST' and row['COST_MICRO_USD']==row['RESERVED_MICRO_USD'] and row['USAGE'] is None
+    assert row['COST_BASIS']=='RESERVED_BOUND'
     spent=l.db.execute('SELECT COALESCE(SUM(COALESCE(cost,reserved)),0) FROM calls').fetchone()[0]
     assert spent==row['RESERVED_MICRO_USD']
     assert [x for x in log if x[0]=='POST']==[('POST','/v1/responses')]
@@ -449,7 +493,13 @@ def test_terminal_cost_above_reservation_fails_closed(tmp_path):
     l=Ledger(tmp_path/'r.db',{'RUN_ID':'over'});p=provider(fake)
     p.terminal_usage_cost=lambda req,payload:({'input_tokens':1,'output_tokens':1,'reasoning_tokens':0},10**12)
     with pytest.raises(ContractError,match='exceeds reserved bound'):
-        Caller(Contexts(),l,p,30_000_000,True).call('GENERATOR',Contexts().generator(),'JSON',{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS},'one')
+        Caller(Contexts(),l,p,30_000_000,True).call('GENERATOR',Contexts().generator(),'JSON',GEN_FULL,'one')
     row=l.export_calls()[0]
-    assert row['STATE']=='FAILED' and row['COST_MICRO_USD'] is None and row['USAGE'] is None
-    assert row['PROVIDER_STATUS']=='incomplete'
+    assert row['STATE']=='FAILED_WITH_COST' and row['COST_MICRO_USD']==row['RESERVED_MICRO_USD'] and row['USAGE'] is None
+    assert row['PROVIDER_STATUS']=='incomplete' and row['COST_BASIS']=='RESERVED_BOUND'
+
+def _accepted(c,caller,size=40):
+    """Record the budget-stop acceptance the execution gate requires, then run (library path)."""
+    from scripts.research.generator_v0.runner import accept_budget_stop,run_campaign as _rc
+    accept_budget_stop(c,caller,size,'test-operator','this test exercises a campaign whose worst case exceeds its cap')
+    return _rc(c,caller,size)
