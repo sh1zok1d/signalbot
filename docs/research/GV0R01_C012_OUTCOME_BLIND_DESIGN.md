@@ -1,5 +1,7 @@
 # GV0R01-C012 outcome-blind design and power
 
+The within-stratum label permutation in this file is historical. It failed the pre-outcome global-invariance gate and is superseded for inference by `GV0R01_C012_INFERENCE_AMENDMENT.json`. The claim, events, controls, endpoint, alpha, and falsifiers are unchanged. No outcome was opened.
+
 `STATUS = PREREGISTRATION_CANDIDATE`
 `OUTCOME_BLIND_GATE = EXECUTION_JUSTIFIED`
 `EXECUTION_AUTHORIZED = false`

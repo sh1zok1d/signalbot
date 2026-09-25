@@ -1,3 +1,13 @@
+## GV0R01-C012 inference amendment — outcome-blind, not powered — 2026-09-25
+
+`AMENDED_POWER_GATE_RESULT = INFERENCE_AMENDMENT_VALID_BUT_INFORMATIONALLY_WEAK`
+`STRUCTURAL_INVARIANCE_STATUS = PASS`
+`MARKET_DATA_OPENED_FOR_C012 = false`
+`C012_PRIMARY_TEST_EXECUTED = false`
+`NEXT_UNIT = NO_EXECUTION_AUTHORIZED`
+
+The primary randomization group is now `G_C012_TOPO`, the stratum-preserving automorphisms of the frozen 198-node overlap graph. The label orbit has size `3204454418600404451328000000000`. Under variance inflation 2, the synthetic 80% MDE is about 0.61 single-window SD units, above the 0.50 bar. Execution is not authorized. Record: `docs/research/GV0R01_C012_INFERENCE_AMENDMENT.json`.
+
 ## GV0R01-C012 one-shot stopped before prices — dependence defect — 2026-09-25
 
 `RUN_STATUS = BLOCKED_INFERENCE_DEPENDENCE_DEFECT`
