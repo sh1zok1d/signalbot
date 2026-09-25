@@ -1,3 +1,12 @@
+## GV0R01-C004 outcome-blind design — informationally weak — 2026-09-25
+
+`C004_DEFINITION_STATUS = UNAMBIGUOUS`
+`OUTCOME_BLIND_GATE_RESULT = EXECUTION_INFORMATIONALLY_WEAK`
+`MARKET_DATA_OPENED_FOR_C004 = false`
+`NEXT_UNIT = NO_C004_EXECUTION_AUTHORIZED`
+
+The GV0R01-C004 claim is a lower ETH residual-variance share in the 60 minutes after a scheduled FOMC statement. CPI is not in the primary event set. Beta-window overlap makes one dependence component of 76 windows. The graph-preserving label orbit has size 16, so a 5% test is not attainable. No price file was opened. Record: `docs/research/GV0R01_C004_OUTCOME_BLIND_DESIGN.json`.
+
 ## GV0R01-C012 closed outcome-blind — 2026-09-25
 
 `C012_STATUS = CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK`

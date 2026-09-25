@@ -1,0 +1,351 @@
+{
+ "UNIT": "GV0R01_C004_OUTCOME_BLIND_DESIGN_AND_POWER",
+ "C004_DEFINITION_STATUS": "UNAMBIGUOUS",
+ "DEFINITION_AUTHORITY": "GV0R01-C004 card in the Stream-B triage and the GV0R01 attempt record. GV0CAL-C004 is a different candidate.",
+ "C004_CANONICAL_CLAIM": "A scheduled FOMC statement is a common-factor shock, so the idiosyncratic share of ETHUSDT perpetual variance relative to BTCUSDT, after a beta frozen before the statement, is lower in the 60 minutes after the statement than in the same year, weekday and UTC hour on weeks with no FOMC or CPI release.",
+ "EVENT_FAMILIES": [
+  "SCHEDULED_FOMC_MONETARY_POLICY_ANNOUNCEMENTS"
+ ],
+ "EVENT_COUNT_PLANNED": 39,
+ "EVENT_COUNT_COVERED": 38,
+ "UNCOVERED_EVENT_IDS": [
+  "20200129"
+ ],
+ "EVENT_IDS": [
+  "20200429",
+  "20200610",
+  "20200729",
+  "20200916",
+  "20201216",
+  "20201105",
+  "20210317",
+  "20210428",
+  "20210616",
+  "20210728",
+  "20210922",
+  "20211103",
+  "20210127",
+  "20211215",
+  "20220316",
+  "20220504",
+  "20220615",
+  "20220727",
+  "20220921",
+  "20221102",
+  "20220126",
+  "20221214",
+  "20230322",
+  "20230503",
+  "20230614",
+  "20230726",
+  "20230920",
+  "20231101",
+  "20230201",
+  "20231213",
+  "20240320",
+  "20240501",
+  "20240612",
+  "20240731",
+  "20240918",
+  "20240131",
+  "20241218",
+  "20241107"
+ ],
+ "INCLUSION_RULE": "Scheduled FOMC statements in D11_FOMC_OFFICIAL_V0 whose 90-day beta window and 60-minute post window lie inside [2020-01-01, 2025-01-01).",
+ "EXCLUSION_RULE": "CPI releases are not primary events. FOMC_PLUS_CPI is not the primary universe. The one FOMC statement whose beta window starts before 2020-01-01 is uncovered.",
+ "EVENT_UNIVERSE_RATIONALE": "The card primary target, function and name are FOMC windows. The CPI arm is described as an extension that triples N. Pooling it would be an N choice, not the mechanism.",
+ "CPI_POOLED_IN_PRIMARY": false,
+ "NON_DECISIVE_CARD_VARIANTS": [
+  "FOMC_PLUS_CPI",
+  "post_window_minutes=120",
+  "beta_lookback_days=30"
+ ],
+ "CALENDAR_AUTHORITIES": {
+  "FOMC": "D11_FOMC_OFFICIAL_V0",
+  "CPI_CONTROL_EXCLUSION_ONLY": "BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0",
+  "CPI_DIGEST": "760ed2c5d18b03b7a41c25e6bab157ebde476977fdc3e5f7a3462aa376f4154f"
+ },
+ "POINT_IN_TIME_EVENT_STATUS": "FOMC release times are the pinned official schedule. No realized FOMC or CPI value enters. Beta uses only (T-90d, T-1h].",
+ "MARKET_INSTRUMENT": "ETHUSDT and BTCUSDT USD-M perpetuals",
+ "SOURCE_DATASETS": [
+  "CORE_ETH_BINANCE_V0",
+  "CORE_BTC_BINANCE_V0"
+ ],
+ "PRIMARY_WINDOW": "(T, T+60m] after the scheduled statement. Twelve 5m bars whose close times fall in that interval. The bar that closes at T is excluded.",
+ "PRIMARY_RETURN_DEFINITION": "5m log return from 1m closes. e_t = r_ETH,t - beta_pre * r_BTC,t. beta_pre is the OLS slope with intercept of r_ETH on r_BTC over 5m bars whose close times lie in (T-90d, T-1h]. RESID_SHARE = sum(e^2)/sum(r_ETH^2), or 1 if the denominator is 0.",
+ "COUNTERFACTUAL_DESIGN": "1:1 match inside YEAR x WEEKDAY x UTC_HOUR. Control clock equals the event timestamp's minute. The control day is not an FOMC or CPI release date. Seed 10004 via sample_matched_ids_per_cell.",
+ "CONTROL_COUNT": 38,
+ "CONTROL_REUSE_POLICY": "Without replacement. A pair with a missing bar is dropped and not redrawn.",
+ "OVERLAP_GRAPH_NODES": 76,
+ "OUTCOME_EDGES": 0,
+ "BETA_EDGES": 260,
+ "OVERLAP_GRAPH_EDGES": 260,
+ "OVERLAP_GRAPH_COMPONENTS": 1,
+ "MAX_OVERLAP_COMPONENT_SIZE": 76,
+ "WITHIN_STRATUM_SWAPS_WITH_DIFFERENT_EXTERNAL_NEIGHBORHOODS": 261,
+ "INFERENCE_METHOD": "ONE_SIDED_LABEL_PERMUTATION_ON_THE_STRATUM_AND_DEPENDENCE_AUTOMORPHISM_SUBGROUP",
+ "GLOBAL_INFERENCE_VALIDITY_STATUS": "PASS_FOR_THE_GENERATED_SUBGROUP",
+ "RESIDUAL_INFERENCE_ASSUMPTIONS": "RESID_SHARE values are exchangeable under the null among windows that the dependence graph treats as equivalent. Graph preservation does not prove that ETH and BTC returns are unconditionally exchangeable. The subgroup is the set of within-stratum swaps the graph allows; it is not the full within-stratum symmetric group.",
+ "PRIMARY_ENDPOINT": "DELTA_SHARE = mean(RESID_SHARE event) - mean(RESID_SHARE matched control)",
+ "NULL_HYPOTHESIS": "The mean post-statement RESID_SHARE equals the mean matched-control RESID_SHARE.",
+ "ALTERNATIVE_HYPOTHESIS": "The event mean is lower. The mechanism states a collapse, so the primary test is one-sided. A positive difference is a beta-shift falsification, not support.",
+ "ALPHA": 0.05,
+ "TEST_SIDEDNESS": "ONE_SIDED_LESS",
+ "TIE_RULE": "T_perm <= T_obs counts as extreme. p = (1 + count) / (1 + draws).",
+ "PERMUTATION_DRAWS": 2000,
+ "PERMUTATION_SEED": 10004,
+ "PRIMARY_LABEL_ORBIT_SIZE": "16",
+ "MIN_ATTAINABLE_EXACT_P": {
+  "NUMERATOR": 1,
+  "DENOMINATOR": "16"
+ },
+ "ALPHA_ATTAINABLE": false,
+ "OBSERVATIONS_THAT_CAN_CHANGE_LABEL": 8,
+ "FALSIFIERS": [
+  {
+   "ID": "F1",
+   "RULE": "One-sided permutation p > 0.05.",
+   "VETO": true,
+   "POWER": "Included in POWER_PRIMARY_TEST."
+  },
+  {
+   "ID": "F2",
+   "RULE": "Event RESID_SHARE is lower than that same event's (T-60m, T] share in fewer than half of covered events.",
+   "VETO": true,
+   "POWER": "Not separately calibrated. POWER_FULL_DECISION_RULE is not claimed."
+  },
+  {
+   "ID": "F3",
+   "RULE": "The same contrast on (T-60m, T] versus controls shifted back 60m is significant in the same direction.",
+   "VETO": true,
+   "POWER": "Not separately calibrated."
+  }
+ ],
+ "MISSING_DATA_POLICY": "Any missing 5m close in the outcome window or the beta window drops the pair. No imputation. No redraw. If the dropped covered-event rate exceeds 0.05, the result is INCONCLUSIVE.",
+ "OUTLIER_POLICY": "No winsorization and no outcome-based deletion. A zero ETH-variance window is assigned RESID_SHARE 1, as the card states.",
+ "BAD_BAR_POLICY": "A non-finite or non-positive close is missing.",
+ "DUPLICATE_TIMESTAMP_POLICY": "A duplicate 1m open time with disagreeing closes is a hard failure.",
+ "MULTIPLE_TESTING_POLICY": "One primary endpoint and one alpha. The other seven card variants are non-decisive and are not estimated in this unit.",
+ "TARGET_POWER": 0.8,
+ "EXECUTION_MDE_THRESHOLD": 0.1,
+ "EXECUTION_MDE_UNITS": "RESID_SHARE_POINTS",
+ "GATE_AUTHORITY": "C004 card language that the idiosyncratic share collapses. No repository-wide 0.50-SD bar governs every candidate. The C012 threshold is not reused.",
+ "GATE_RATIONALE": "A mean decline of 0.10 residual-share points is the smallest shift still described as a collapse rather than a negligible reallocation. Frozen before the power simulation.",
+ "STANDARDIZED_UNIT": "One RESID_SHARE point is an absolute difference in the variance ratio. MDE_PRIMARY_UNITS is that difference. There is no second SD-unit gate.",
+ "POWER_SIMULATION_ASSUMPTIONS": "Synthetic 5m Gaussian BTC and ETH with unit factor loading. Idiosyncratic SD is 1 in A and B and sqrt(2) in C. No CORE_BTC or CORE_ETH value is read. B correlates window shares by beta-window overlap fraction.",
+ "D10_D11_NOTE": "D11 measured post-event BTC realized variance on this FOMC set. D10 used a frozen-beta ETH residual in a different design and was NO_USEFUL_STRUCTURE. C004's endpoint is the post-statement residual share, not those results. Their outcomes are not inputs.",
+ "MARKET_DATA_OPENED_FOR_C004": false,
+ "MARKET_OUTCOMES_COMPUTED": false,
+ "C004_PRIMARY_TEST_EXECUTED": false,
+ "PROTECTED_2025_VALUES_OPENED": false,
+ "PROTECTED_2026_VALUES_OPENED": false,
+ "SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING": 0,
+ "MATCH_SEED": 10004,
+ "POWER_CURVES": {
+  "A_INDEPENDENT_WINDOWS": [
+   {
+    "DELTA_RESID_SHARE": 0.0,
+    "POWER": 0.013333333333333334,
+    "MC_SE": 0.006622073078111707,
+    "POWER_CI95": [
+     0.00035407010023438823,
+     0.02631259656643228
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.02,
+    "POWER": 0.043333333333333335,
+    "MC_SE": 0.011755219486899646,
+    "POWER_CI95": [
+     0.02029310313901003,
+     0.06637356352765664
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.05,
+    "POWER": 0.04666666666666667,
+    "MC_SE": 0.012177696674506895,
+    "POWER_CI95": [
+     0.022798381184633155,
+     0.07053495214870018
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.08,
+    "POWER": 0.06,
+    "MC_SE": 0.013711309200802086,
+    "POWER_CI95": [
+     0.03312583396642791,
+     0.08687416603357209
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.1,
+    "POWER": 0.06333333333333334,
+    "MC_SE": 0.014062031885212775,
+    "POWER_CI95": [
+     0.035771750838316296,
+     0.09089491582835038
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.15,
+    "POWER": 0.07,
+    "MC_SE": 0.014730919862656237,
+    "POWER_CI95": [
+     0.041127397069193786,
+     0.09887260293080623
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.2,
+    "POWER": 0.1,
+    "MC_SE": 0.017320508075688773,
+    "POWER_CI95": [
+     0.06605180417165002,
+     0.13394819582835
+    ]
+   }
+  ],
+  "B_BETA_WINDOW_CORRELATION": [
+   {
+    "DELTA_RESID_SHARE": 0.0,
+    "POWER": 0.016666666666666666,
+    "MC_SE": 0.007391185942027817,
+    "POWER_CI95": [
+     0.0021799422202921463,
+     0.031153391113041187
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.02,
+    "POWER": 0.016666666666666666,
+    "MC_SE": 0.007391185942027817,
+    "POWER_CI95": [
+     0.0021799422202921463,
+     0.031153391113041187
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.05,
+    "POWER": 0.06,
+    "MC_SE": 0.013711309200802086,
+    "POWER_CI95": [
+     0.03312583396642791,
+     0.08687416603357209
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.08,
+    "POWER": 0.15333333333333332,
+    "MC_SE": 0.020802421511466898,
+    "POWER_CI95": [
+     0.1125605871708582,
+     0.19410607949580844
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.1,
+    "POWER": 0.12666666666666668,
+    "MC_SE": 0.019202623277582175,
+    "POWER_CI95": [
+     0.08902952504260561,
+     0.16430380829072774
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.15,
+    "POWER": 0.2866666666666667,
+    "MC_SE": 0.02610803764417444,
+    "POWER_CI95": [
+     0.23549491288408478,
+     0.3378384204492486
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.2,
+    "POWER": 0.23666666666666666,
+    "MC_SE": 0.024539461794937253,
+    "POWER_CI95": [
+     0.18856932154858966,
+     0.2847640117847437
+    ]
+   }
+  ],
+  "C_IDIO_SD_SQRT2": [
+   {
+    "DELTA_RESID_SHARE": 0.0,
+    "POWER": 0.023333333333333334,
+    "MC_SE": 0.008715673408461504,
+    "POWER_CI95": [
+     0.006250613452748785,
+     0.040416053213917884
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.02,
+    "POWER": 0.02666666666666667,
+    "MC_SE": 0.009301533127313934,
+    "POWER_CI95": [
+     0.008435661737131357,
+     0.04489767159620198
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.05,
+    "POWER": 0.04,
+    "MC_SE": 0.01131370849898476,
+    "POWER_CI95": [
+     0.01782513134198987,
+     0.06217486865801013
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.08,
+    "POWER": 0.04666666666666667,
+    "MC_SE": 0.012177696674506895,
+    "POWER_CI95": [
+     0.022798381184633155,
+     0.07053495214870018
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.1,
+    "POWER": 0.06,
+    "MC_SE": 0.013711309200802086,
+    "POWER_CI95": [
+     0.03312583396642791,
+     0.08687416603357209
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.15,
+    "POWER": 0.07,
+    "MC_SE": 0.014730919862656237,
+    "POWER_CI95": [
+     0.041127397069193786,
+     0.09887260293080623
+    ]
+   },
+   {
+    "DELTA_RESID_SHARE": -0.2,
+    "POWER": 0.11,
+    "MC_SE": 0.018064698539785637,
+    "POWER_CI95": [
+     0.07459319086202015,
+     0.14540680913797985
+    ]
+   }
+  ]
+ },
+ "MDE_PRIMARY_UNITS": null,
+ "MDE_BY_SCENARIO_RESID_SHARE": {
+  "A_INDEPENDENT_WINDOWS": null,
+  "B_BETA_WINDOW_CORRELATION": null,
+  "C_IDIO_SD_SQRT2": null
+ },
+ "MDE_PLANNING_PERCENT_ILLUSTRATION": "NOT_APPLICABLE. The endpoint is a variance share, not a percent return.",
+ "OUTCOME_BLIND_GATE": "TARGET_POWER_0.80_BY_0.10_RESID_SHARE_UNDER_IDIO_SD_SQRT2",
+ "OUTCOME_BLIND_GATE_RESULT": "EXECUTION_INFORMATIONALLY_WEAK",
+ "NEXT_UNIT": "NO_C004_EXECUTION_AUTHORIZED"
+}
