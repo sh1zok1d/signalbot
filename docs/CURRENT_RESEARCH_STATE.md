@@ -1,3 +1,14 @@
+## GV0R01-C020 holiday calendars pinned — 2026-09-25
+
+`STATUS = HOLIDAY_CALENDARS_PINNED`
+`NYSE_ROLE = PRIMARY_EVENT_DEFINITION`
+`CN_STATE_COUNCIL_ROLE = CONTROL_CONTAMINATION_EXCLUSION_AND_NON_DECISIVE_EXTENSION`
+`US_OPM_ROLE = OTHER_FALSIFIER_SPECIFICITY`
+`MARKET_DATA_OPENED_FOR_C020 = false`
+`NEXT_UNIT = GV0R01_C020_OUTCOME_BLIND_DESIGN_AND_POWER_CONTINUATION`
+
+Discovery years 2020–2024 only. NYSE full weekday closures are 47, all `VERIFIED_PREANNOUNCED`, and are distinct from 9 early closes. One NYSE dash (2021 Juneteenth, no weekday closure) and the OPM 2021 Juneteenth observed date remain `UNRESOLVED_PUBLICATION_TIMING` and are not lead-arm inputs. China non-working and compensating-working dates are separate. No session bound, endpoint, or power was frozen. Record: `docs/research/GV0R01_C020_HOLIDAY_CALENDAR_PIN.json`.
+
 ## GV0R01-C020 design blocked on unpinned holiday calendars — 2026-09-25
 
 `C020_DEFINITION_STATUS = UNAMBIGUOUS`
