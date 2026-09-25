@@ -1,0 +1,488 @@
+{
+  "ADVERSARIAL_REVIEW": {
+    "CROSS_SECTIONAL_DEPENDENCE": "within-date permutation preserves it; between-year variance is not in that null (see finding)",
+    "DISCOVERY_LEAKAGE": "only warm-up predictor bars may predate the fresh surface; no discovery target reused",
+    "EXCHANGE_PRODUCT_AND_POLICY_CHANGES": "cannot be assessed without opening protected data; would be declared limitations",
+    "LOW_POWER": "decisive: no available fresh surface reaches 0.80",
+    "SEARCH_FAMILY_INFLATION": "confirmation would be one additional registered test; discovery family stays consumed",
+    "SIGN_REVERSAL_AND_CONCEPT_DRIFT": "the dominant risk; modelled directly by whole-year resampling",
+    "SURVIVORSHIP_LISTING_CHURN_UNIVERSE_EXPANSION": "2025-2026 month counts grow from 396 to 491 USDT symbols; the frozen top-50 point-in-time selection and listing-age rule would apply unchanged; no end-of-period survivor universe",
+    "TICK_SIZE_AND_MICROSTRUCTURE": "no point-in-time tick-size history; declared limitation"
+  },
+  "CONFIRMATION_EXECUTED": false,
+  "CONFIRMATION_FEASIBILITY": "UNDERPOWERED_ON_EVERY_AVAILABLE_OR_FORESEEABLE_FRESH_SURFACE",
+  "CONFIRMATION_TEST_REGISTERED": false,
+  "DATE": "2026-09-25",
+  "DESIGN_IF_A_POWERED_SURFACE_EXISTS": {
+    "CLASSIFICATION": [
+      "INVALID_CONFIRMATION_EXECUTION (identity/data failure)",
+      "INCONCLUSIVE_CONFIRMATION (coverage/support failure)",
+      "CONFIRMED_ON_INDEPENDENT_SURFACE (all gates)",
+      "NOT_CONFIRMED_ON_INDEPENDENT_SURFACE (otherwise)"
+    ],
+    "COMBINATION": "PROMISING_PROTOTYPE + CONFIRMED_ON_INDEPENDENT_SURFACE -> INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE (existing project label, as for D2); still not a trading or profitability claim. NOT_CONFIRMED closes the exact C013 confirmatory claim; no parameter, horizon, sign or regime rescue.",
+    "GATES": {
+      "ADJACENCY": "bar t+1 statistic negative",
+      "CONTROL": "controlled partial statistic p <= 0.05 and negative",
+      "DEPENDENCE": "Newey-West t <= -1.96, lag floor(4*(W/100)^(2/9))",
+      "DIRECTION": "pooled < 0",
+      "STATISTICAL": "within-date volume-tercile permutation p <= 0.05 two-sided (1000 draws, new frozen seed)",
+      "TEMPORAL": "at least ceil(0.6*B) of the B consecutive 26-week blocks negative (replaces the 3-of-5-year discovery gate, which is undefined on a short surface); to be re-derived for the actual surface length"
+    },
+    "MULTIPLICITY": "one primary confirmation test in TF-GV0R01-C013-CONF1 within SF-GENERATOR_V0-GV0R01; would become that family's second executed test; no secondary grid is decisional",
+    "SCIENTIFIC_RULE": "unchanged discovery primary: K=5, H=1, N=50, same CLV, WICK_RESID, trailing controls, ranking, liquidity selection, exclusions, listing age, weekly aggregation and negative direction; secondary discovery variants may never become the confirmatory primary",
+    "SIGN_REVERSAL": "2020-2022 negative / 2023-2024 positive is recorded as prior instability. No regime filter, year exclusion or post-hoc state conditioning is permitted; stable negative direction is a necessary condition.",
+    "STATUS": "NOT_FROZEN (recorded so a future prereg starts from these choices; any change needs its own outcome-blind justification)",
+    "WARM_UP": "predictor and universe may use bars before the first fresh decision date (no target of the discovery sample is reused); the exact boundary must be frozen in the prereg"
+  },
+  "DISCOVERY_CLASSIFICATION": "PROMISING_PROTOTYPE",
+  "DISCOVERY_STATUS": "PROMISING_PROTOTYPE (discovery tier; not a validated edge; test family consumed)",
+  "DISCOVERY_TEST_FAMILY": "TF-GV0R01-C013-MT1",
+  "EXECUTED_TESTS_INCREMENTED": false,
+  "EXECUTION_AUTHORIZED": false,
+  "FRESH_SURFACE_DECISION": "WAIT_FOR_MORE_FRESH_DATA",
+  "HARNESS_IMPLEMENTED": false,
+  "HYPOTHESIS_ID": "GV0R01-C013",
+  "KIND": "OUTCOME_BLIND_CONFIRMATION_FEASIBILITY_AND_DESIGN",
+  "LLM_API_CALLS": 0,
+  "METADATA_BINDING": {
+    "BUILT": false,
+    "REASON": "No confirmation surface chosen (WAIT_FOR_MORE_FRESH_DATA). A future prereg must bind every required object by first-party checksum sidecar before any payload is opened."
+  },
+  "NEW_MARKET_OUTCOME_CREATED": false,
+  "NEXT_UNIT": "POST_GV0R01_C013_CONFIRMATION_FEASIBILITY_PROGRAM_DECISION",
+  "POWER": {
+    "BY_SURFACE": {
+      "2025_ONLY": {
+        "ATTENUATED_50PCT": {
+          "IID_DIAGNOSTIC": {
+            "ADJACENCY_GATE": 0.8358,
+            "DEPENDENCE_GATE": 0.1643,
+            "DIRECTION": 0.8034,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.1608,
+            "STATISTICAL_AND_DIRECTION": 0.2958,
+            "STATISTICAL_GATE": 0.3205,
+            "TEMPORAL_RULE": 0.5278
+          },
+          "MBB26_SENSITIVITY": {
+            "ADJACENCY_GATE": 0.6423,
+            "DEPENDENCE_GATE": 0.3468,
+            "DIRECTION": 0.6142,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.3371,
+            "STATISTICAL_AND_DIRECTION": 0.4224,
+            "STATISTICAL_GATE": 0.6592,
+            "TEMPORAL_RULE": 0.3639
+          },
+          "YEAR_BLOCK_AUTHORITATIVE": {
+            "ADJACENCY_GATE": 0.5941,
+            "DEPENDENCE_GATE": 0.4973,
+            "DIRECTION": 0.5941,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.4973,
+            "STATISTICAL_AND_DIRECTION": 0.5941,
+            "STATISTICAL_GATE": 1.0,
+            "TEMPORAL_RULE": 0.5941
+          }
+        },
+        "DISCOVERY_CONSISTENT_MINIMUM": {
+          "IID_DIAGNOSTIC": {
+            "ADJACENCY_GATE": 0.7387,
+            "DEPENDENCE_GATE": 0.1085,
+            "DIRECTION": 0.7127,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.1049,
+            "STATISTICAL_AND_DIRECTION": 0.2087,
+            "STATISTICAL_GATE": 0.2562,
+            "TEMPORAL_RULE": 0.4298
+          },
+          "MBB26_SENSITIVITY": {
+            "ADJACENCY_GATE": 0.5944,
+            "DEPENDENCE_GATE": 0.3249,
+            "DIRECTION": 0.57,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.3189,
+            "STATISTICAL_AND_DIRECTION": 0.3953,
+            "STATISTICAL_GATE": 0.6583,
+            "TEMPORAL_RULE": 0.3538
+          },
+          "YEAR_BLOCK_AUTHORITATIVE": {
+            "ADJACENCY_GATE": 0.5988,
+            "DEPENDENCE_GATE": 0.3929,
+            "DIRECTION": 0.5988,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.3929,
+            "STATISTICAL_AND_DIRECTION": 0.5988,
+            "STATISTICAL_GATE": 1.0,
+            "TEMPORAL_RULE": 0.5988
+          }
+        },
+        "DISCOVERY_EFFECT": {
+          "IID_DIAGNOSTIC": {
+            "ADJACENCY_GATE": 0.9722,
+            "DEPENDENCE_GATE": 0.4308,
+            "DIRECTION": 0.9559,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.4247,
+            "STATISTICAL_AND_DIRECTION": 0.6208,
+            "STATISTICAL_GATE": 0.6233,
+            "TEMPORAL_RULE": 0.7766
+          },
+          "MBB26_SENSITIVITY": {
+            "ADJACENCY_GATE": 0.7577,
+            "DEPENDENCE_GATE": 0.4052,
+            "DIRECTION": 0.7403,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.3765,
+            "STATISTICAL_AND_DIRECTION": 0.5339,
+            "STATISTICAL_GATE": 0.6964,
+            "TEMPORAL_RULE": 0.3889
+          },
+          "YEAR_BLOCK_AUTHORITATIVE": {
+            "ADJACENCY_GATE": 0.6001,
+            "DEPENDENCE_GATE": 0.6001,
+            "DIRECTION": 0.6001,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.6001,
+            "STATISTICAL_AND_DIRECTION": 0.6001,
+            "STATISTICAL_GATE": 1.0,
+            "TEMPORAL_RULE": 0.6001
+          }
+        }
+      },
+      "2025_PLUS_2026_PREFIX_TO_2026_08_30": {
+        "ATTENUATED_50PCT": {
+          "IID_DIAGNOSTIC": {
+            "ADJACENCY_GATE": 0.8972,
+            "DEPENDENCE_GATE": 0.2116,
+            "DIRECTION": 0.8641,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.2112,
+            "STATISTICAL_AND_DIRECTION": 0.3709,
+            "STATISTICAL_GATE": 0.3853,
+            "TEMPORAL_RULE": 0.8319
+          },
+          "MBB26_SENSITIVITY": {
+            "ADJACENCY_GATE": 0.6815,
+            "DEPENDENCE_GATE": 0.3209,
+            "DIRECTION": 0.6566,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.3208,
+            "STATISTICAL_AND_DIRECTION": 0.4646,
+            "STATISTICAL_GATE": 0.6856,
+            "TEMPORAL_RULE": 0.6528
+          },
+          "YEAR_BLOCK_AUTHORITATIVE": {
+            "ADJACENCY_GATE": 0.588,
+            "DEPENDENCE_GATE": 0.363,
+            "DIRECTION": 0.5312,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.363,
+            "STATISTICAL_AND_DIRECTION": 0.4989,
+            "STATISTICAL_GATE": 0.7614,
+            "TEMPORAL_RULE": 0.6155
+          }
+        },
+        "DISCOVERY_CONSISTENT_MINIMUM": {
+          "IID_DIAGNOSTIC": {
+            "ADJACENCY_GATE": 0.7997,
+            "DEPENDENCE_GATE": 0.1321,
+            "DIRECTION": 0.7672,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.1317,
+            "STATISTICAL_AND_DIRECTION": 0.2491,
+            "STATISTICAL_GATE": 0.2825,
+            "TEMPORAL_RULE": 0.7369
+          },
+          "MBB26_SENSITIVITY": {
+            "ADJACENCY_GATE": 0.6271,
+            "DEPENDENCE_GATE": 0.2703,
+            "DIRECTION": 0.6088,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.2703,
+            "STATISTICAL_AND_DIRECTION": 0.4039,
+            "STATISTICAL_GATE": 0.6651,
+            "TEMPORAL_RULE": 0.6299
+          },
+          "YEAR_BLOCK_AUTHORITATIVE": {
+            "ADJACENCY_GATE": 0.546,
+            "DEPENDENCE_GATE": 0.3491,
+            "DIRECTION": 0.5201,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.3491,
+            "STATISTICAL_AND_DIRECTION": 0.4717,
+            "STATISTICAL_GATE": 0.7952,
+            "TEMPORAL_RULE": 0.5793
+          }
+        },
+        "DISCOVERY_EFFECT": {
+          "IID_DIAGNOSTIC": {
+            "ADJACENCY_GATE": 0.9941,
+            "DEPENDENCE_GATE": 0.6146,
+            "DIRECTION": 0.9851,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.6144,
+            "STATISTICAL_AND_DIRECTION": 0.7803,
+            "STATISTICAL_GATE": 0.7809,
+            "TEMPORAL_RULE": 0.969
+          },
+          "MBB26_SENSITIVITY": {
+            "ADJACENCY_GATE": 0.8178,
+            "DEPENDENCE_GATE": 0.4569,
+            "DIRECTION": 0.7775,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.4567,
+            "STATISTICAL_AND_DIRECTION": 0.6143,
+            "STATISTICAL_GATE": 0.7392,
+            "TEMPORAL_RULE": 0.7157
+          },
+          "YEAR_BLOCK_AUTHORITATIVE": {
+            "ADJACENCY_GATE": 0.7501,
+            "DEPENDENCE_GATE": 0.4758,
+            "DIRECTION": 0.7415,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.4758,
+            "STATISTICAL_AND_DIRECTION": 0.5244,
+            "STATISTICAL_GATE": 0.6958,
+            "TEMPORAL_RULE": 0.7245
+          }
+        }
+      },
+      "FULL_2025_2026": {
+        "ATTENUATED_50PCT": {
+          "IID_DIAGNOSTIC": {
+            "ADJACENCY_GATE": 0.9146,
+            "DEPENDENCE_GATE": 0.2487,
+            "DIRECTION": 0.8842,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.2479,
+            "STATISTICAL_AND_DIRECTION": 0.4063,
+            "STATISTICAL_GATE": 0.418,
+            "TEMPORAL_RULE": 0.8526
+          },
+          "MBB26_SENSITIVITY": {
+            "ADJACENCY_GATE": 0.6982,
+            "DEPENDENCE_GATE": 0.3224,
+            "DIRECTION": 0.6695,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.3224,
+            "STATISTICAL_AND_DIRECTION": 0.4865,
+            "STATISTICAL_GATE": 0.6952,
+            "TEMPORAL_RULE": 0.6685
+          },
+          "YEAR_BLOCK_AUTHORITATIVE": {
+            "ADJACENCY_GATE": 0.6008,
+            "DEPENDENCE_GATE": 0.3577,
+            "DIRECTION": 0.6805,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.3577,
+            "STATISTICAL_AND_DIRECTION": 0.3577,
+            "STATISTICAL_GATE": 0.6772,
+            "TEMPORAL_RULE": 0.68
+          }
+        },
+        "DISCOVERY_CONSISTENT_MINIMUM": {
+          "IID_DIAGNOSTIC": {
+            "ADJACENCY_GATE": 0.8189,
+            "DEPENDENCE_GATE": 0.145,
+            "DIRECTION": 0.7894,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.1445,
+            "STATISTICAL_AND_DIRECTION": 0.2671,
+            "STATISTICAL_GATE": 0.2978,
+            "TEMPORAL_RULE": 0.7563
+          },
+          "MBB26_SENSITIVITY": {
+            "ADJACENCY_GATE": 0.6387,
+            "DEPENDENCE_GATE": 0.2736,
+            "DIRECTION": 0.6145,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.2736,
+            "STATISTICAL_AND_DIRECTION": 0.4302,
+            "STATISTICAL_GATE": 0.6835,
+            "TEMPORAL_RULE": 0.6244
+          },
+          "YEAR_BLOCK_AUTHORITATIVE": {
+            "ADJACENCY_GATE": 0.6002,
+            "DEPENDENCE_GATE": 0.3582,
+            "DIRECTION": 0.6827,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.3582,
+            "STATISTICAL_AND_DIRECTION": 0.3582,
+            "STATISTICAL_GATE": 0.6754,
+            "TEMPORAL_RULE": 0.6202
+          }
+        },
+        "DISCOVERY_EFFECT": {
+          "IID_DIAGNOSTIC": {
+            "ADJACENCY_GATE": 0.9969,
+            "DEPENDENCE_GATE": 0.6797,
+            "DIRECTION": 0.9916,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.6793,
+            "STATISTICAL_AND_DIRECTION": 0.8295,
+            "STATISTICAL_GATE": 0.8297,
+            "TEMPORAL_RULE": 0.9788
+          },
+          "MBB26_SENSITIVITY": {
+            "ADJACENCY_GATE": 0.8411,
+            "DEPENDENCE_GATE": 0.4711,
+            "DIRECTION": 0.8058,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.4709,
+            "STATISTICAL_AND_DIRECTION": 0.6407,
+            "STATISTICAL_GATE": 0.7503,
+            "TEMPORAL_RULE": 0.7595
+          },
+          "YEAR_BLOCK_AUTHORITATIVE": {
+            "ADJACENCY_GATE": 0.7633,
+            "DEPENDENCE_GATE": 0.3665,
+            "DIRECTION": 0.7261,
+            "FULL_PASS_UPPER_BOUND_EXCLUDING_CONTROL": 0.3665,
+            "STATISTICAL_AND_DIRECTION": 0.6868,
+            "STATISTICAL_GATE": 0.8464,
+            "TEMPORAL_RULE": 0.6861
+          }
+        }
+      }
+    },
+    "CAVEATS": [
+      "Only five exposed years exist, so year-block estimates for surfaces of one year or less are quantized near multiples of 0.2.",
+      "The controlled statistic is not simulated (the discovery result stores no controlled weekly series); full-pass figures are upper bounds.",
+      "The permutation null is approximated by a normal with the discovery per-week null variance.",
+      "The IID diagnostic (0.83 statistical+direction for full 2025-2026) ignores serial and year-level dependence and is not authoritative."
+    ],
+    "EFFECTS": {
+      "ATTENUATED_50PCT": -0.009965928761029783,
+      "DISCOVERY_CONSISTENT_MINIMUM": -0.006708357439122233,
+      "DISCOVERY_EFFECT": -0.019931857522059566
+    },
+    "EFFECT_RATIONALE": {
+      "ATTENUATED_50PCT": "predeclared 50% attenuation sensitivity (winner's-curse allowance)",
+      "DISCOVERY_CONSISTENT_MINIMUM": "smallest magnitude the discovery evidence supports at one-sided 95% (|pooled| - 1.645 * HAC SE); a confirmation should be able to detect any effect the discovery is consistent with",
+      "DISCOVERY_EFFECT": "discovery pooled weekly-mean rho"
+    },
+    "FINDING_PERMUTATION_NULL_VS_HETEROGENEITY": "Under the observed year-level heterogeneity the frozen within-date permutation gate passes almost every simulated single year in either direction (it does not model between-year variance). Direction and the HAC dependence gate are what bind; any future confirmation must keep both as necessary conditions.",
+    "INPUTS": "exposed discovery weekly primary and adjacency series (260 weeks) and permutation-null summary from the immutable result; no market data, no protected data",
+    "METHOD": "YEAR_MATCHED_WHOLE_YEAR_PLUS_CONTIGUOUS_PARTIAL_BLOCK (authoritative); moving-block 13/26 weeks (sensitivity); IID (diagnostic only)",
+    "MINIMUM_ACCEPTABLE_CONFIRMATION_POWER": 0.8,
+    "MIN_FRESH_WEEKS_FOR_0_80_STATISTICAL_AND_DIRECTION_AT_DISCOVERY_EFFECT": 468,
+    "N_REP": 20000,
+    "PRIMARY_PROSPECTIVE_CRITERION": "STATISTICAL_AND_DIRECTION power at the assumed effect >= 0.80; full-pass probability reported alongside",
+    "RECORD": "docs/research/GV0R01_C013_CONFIRMATION_POWER.json",
+    "RECORD_SHA256": "b9bc4457a9cf60776114ee055907388eaff164bb960cbd6d201e3d7cd1c1bd95",
+    "SEED": 7378747926481491535,
+    "SIZE_PLANNING_YEAR_BLOCK_DISCOVERY_EFFECT": {
+      "416": {
+        "ADJACENCY": 0.9166,
+        "DEPENDENCE": 0.6573,
+        "DIRECTION": 0.8838,
+        "FULL_PASS_EXCLUDING_CONTROL": 0.5856,
+        "STATISTICAL": 0.8781,
+        "STATISTICAL_AND_DIRECTION": 0.7965,
+        "TEMPORAL": 0.5923
+      },
+      "468": {
+        "ADJACENCY": 0.9276,
+        "DEPENDENCE": 0.6777,
+        "DIRECTION": 0.8921,
+        "FULL_PASS_EXCLUDING_CONTROL": 0.4764,
+        "STATISTICAL": 0.8929,
+        "STATISTICAL_AND_DIRECTION": 0.8131,
+        "TEMPORAL": 0.4768
+      },
+      "520": {
+        "ADJACENCY": 0.9448,
+        "DEPENDENCE": 0.7201,
+        "DIRECTION": 0.9071,
+        "FULL_PASS_EXCLUDING_CONTROL": 0.6341,
+        "STATISTICAL": 0.8811,
+        "STATISTICAL_AND_DIRECTION": 0.8214,
+        "TEMPORAL": 0.6383
+      },
+      "624": {
+        "ADJACENCY": 0.9573,
+        "DEPENDENCE": 0.7393,
+        "DIRECTION": 0.9267,
+        "FULL_PASS_EXCLUDING_CONTROL": 0.4339,
+        "STATISTICAL": 0.8969,
+        "STATISTICAL_AND_DIRECTION": 0.8484,
+        "TEMPORAL": 0.4339
+      },
+      "780": {
+        "ADJACENCY": 0.9758,
+        "DEPENDENCE": 0.7994,
+        "DIRECTION": 0.9513,
+        "FULL_PASS_EXCLUDING_CONTROL": 0.6132,
+        "STATISTICAL": 0.9234,
+        "STATISTICAL_AND_DIRECTION": 0.8924,
+        "TEMPORAL": 0.6134
+      }
+    }
+  },
+  "PREREG_CREATED": false,
+  "PROTECTED_2025_VALUES_OPENED": false,
+  "PROTECTED_2026_VALUES_OPENED": false,
+  "PROTECTED_DATA_OPEN_AUTHORIZED": false,
+  "PROTECTED_METADATA_ENUMERATION": {
+    "CHECKSUM_SIDECAR_GETS": 0,
+    "LIST_REQUESTS": 735,
+    "METHOD": "S3 ListBucket of each enumerated USDT symbol 1d monthly prefix (key names and sizes only)",
+    "MONTHS_AVAILABLE_2025_2026": {
+      "2025-01": 396,
+      "2025-02": 402,
+      "2025-03": 409,
+      "2025-04": 411,
+      "2025-05": 408,
+      "2025-06": 407,
+      "2025-07": 412,
+      "2025-08": 412,
+      "2025-09": 429,
+      "2025-10": 436,
+      "2025-11": 443,
+      "2025-12": 441,
+      "2026-01": 446,
+      "2026-02": 447,
+      "2026-03": 448,
+      "2026-04": 450,
+      "2026-05": 435,
+      "2026-06": 446,
+      "2026-07": 484,
+      "2026-08": 491
+    },
+    "NOTE": "Listings are metadata; no 2025/2026 zip or checksum sidecar was fetched. No metadata binding was built because no surface was chosen.",
+    "OBJECT_PAYLOAD_GETS": 0,
+    "PROTECTED_PAYLOADS_OPENED": 0,
+    "PROTECTED_VALUES_PARSED": 0,
+    "SYMBOLS_LISTED": 735
+  },
+  "RATIONALE": [
+    "Authoritative dependence-preserving planning (whole exposed years + one contiguous partial block, re-centred to the assumed effect) keeps the observed year-level heterogeneity: exposed yearly means -0.0691, -0.0677, -0.0307, +0.0315, +0.0363 (between-year sd about 0.049, 2.5x the discovery effect).",
+    "At the full discovery effect, statistical+direction power is 0.60 for 2025 only, 0.52 for 2025 plus the available 2026 prefix and 0.69 for full 2025-2026; all below 0.80. The full-pass upper bound is 0.60 / 0.48 / 0.37.",
+    "Statistical+direction power first reaches 0.80 at about 468 fresh weeks (9 years) at the full discovery effect; the full-pass upper bound stays below 0.80 up to 780 weeks (15 years). Attenuated and discovery-consistent-minimum effects are lower still.",
+    "The pre-2019-12 Binance spot history is not an equivalent surface: fewer than 50 USDT symbols have any monthly file before 2019-07 (raw counts before exclusions and listing age), so at most about two months of an N=50 universe exist.",
+    "Spending 2025 and 2026 on a knowingly underpowered confirmation would consume the only protected fresh surface for an uninformative answer. Both stay sealed."
+  ],
+  "RESERVED_CONFIRMATION_TEST_FAMILY": "TF-GV0R01-C013-CONF1",
+  "SEARCH_FAMILY_ID": "SF-GENERATOR_V0-GV0R01",
+  "SECOND_RESERVED_SURFACE": "2026 (and 2025) remain sealed and unspent",
+  "SOURCE": {
+    "DISCOVERY_PREREG_SHA256": "49dff57b3e068d999c9c4467fb5117de9d73ad564425bf737df727a1096f7625",
+    "DISCOVERY_RESULT_SHA256": "036016c403f83e4c63b2e006379551a0f595e8803cb55a0ef8f27a19ce3a1062",
+    "HEAD": "d9d0c72de72911c0c7f9c7c21331ab93f7b4cf57",
+    "MEMORY_HEAD": "853ef4514460a18b5aa16bf3fff86ece027c52e4b58d92dfbf98034f1fde9373",
+    "TREE": "513325d90b79fb97498af020ccb2523c2e7f56a1"
+  },
+  "SURFACES_EVALUATED": {
+    "A_2025_ONLY": {
+      "DECISION_DAYS": 357,
+      "FIRST_DECISION_DATE": "2025-01-06",
+      "LAST_DECISION_DATE": "2025-12-28",
+      "LEGAL_LAST_TARGET_BAR": "2025-12-28",
+      "STATUS": "UNDERPOWERED",
+      "WEEKS": 51
+    },
+    "B1_2025_PLUS_2026_PREFIX": {
+      "DECISION_DAYS": 602,
+      "FIRST_DECISION_DATE": "2025-01-06",
+      "LAST_DECISION_DATE": "2026-08-30",
+      "LEGAL_LAST_TARGET_BAR": "2026-08-30",
+      "NOTE": "latest complete ISO week covered by published 2026 monthly files (2026-08) at design time",
+      "STATUS": "UNDERPOWERED",
+      "WEEKS": 86
+    },
+    "B2_FULL_2025_2026": {
+      "DECISION_DAYS": 721,
+      "FIRST_DECISION_DATE": "2025-01-06",
+      "LAST_DECISION_DATE": "2026-12-27",
+      "LEGAL_LAST_TARGET_BAR": "2026-12-27",
+      "STATUS": "UNDERPOWERED_AND_NOT_YET_AVAILABLE",
+      "WEEKS": 103
+    },
+    "C_PRE_2019_12_BINANCE_SPOT": {
+      "NOTE": "2019-12 onwards is the discovery panel. Other venues lack a catalogued equivalent panel in the repository.",
+      "REASON": "USDT symbols with monthly data per month before 2019-12 (raw, before exclusions and listing age): 2017-08=2, 2017-09=2, 2017-10=2, 2017-11=5, 2017-12=6, 2018-01=6, 2018-02=6, 2018-03=7, 2018-04=8, 2018-05=13, 2018-06=18, 2018-07=20, 2018-08=19, 2018-09=19, 2018-10=21, 2018-11=22, 2018-12=22, 2019-01=25, 2019-02=31, 2019-03=37, 2019-04=44, 2019-05=44, 2019-06=48, 2019-07=53, 2019-08=68, 2019-09=77, 2019-10=79, 2019-11=85",
+      "STATUS": "NOT_EQUIVALENT"
+    }
+  },
+  "TICK_SIZE": {
+    "POINT_IN_TIME_METADATA_AVAILABLE": false,
+    "TREATMENT": "declared limitation; no tick-size filter; primary universe unchanged"
+  },
+  "UNIT": "GV0R01_C013_CONFIRMATION_FEASIBILITY_AND_DESIGN"
+}

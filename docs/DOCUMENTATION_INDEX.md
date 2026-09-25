@@ -417,9 +417,10 @@ When adding documentation:
 
 - `research/GV0R01_C013_MARKET_TEST_PREREG.{md,json}` — **frozen** one-shot preregistration of the first market test for GV0R01-C013 (JSON authoritative; `EXECUTION_AUTHORIZED = false`). Harness `scripts/research/gv0r01_c013_market_test{,_lib}.py`.
 - `research/GV0R01_C013_MARKET_TEST_OUTCOME.{md,json}` — **immutable** outcome record of the one-shot C013 test (`PROMISING_PROTOTYPE`, discovery tier). The authoritative result is `research/GV0R01_C013_MARKET_TEST_RESULT.json` (SHA256 `036016c4…`). The pre-outcome permit is `research/GV0R01_C013_MARKET_TEST_EXECUTION_PERMIT.json` (commit `386bc10`).
+- `research/GV0R01_C013_CONFIRMATION_FEASIBILITY_AND_DESIGN.{md,json}` — outcome-blind confirmation feasibility for C013: `WAIT_FOR_MORE_FRESH_DATA` (underpowered on every available fresh surface), with the design recorded for any future powered surface. The power record is `research/GV0R01_C013_CONFIRMATION_POWER.json` (script `scripts/research/gv0r01_c013_confirmation_power.py`). No prereg, no permit.
 - `research/SCIENTIFIC_TEST_LEDGER.json` — **active** global machine-readable ledger of executed scientific tests and search families, registered before outcomes. Generated cards are not counted.
 
-Implementation state: `GENERATOR_V0_FIRST_30_CARD_RUN_COMPLETE_MEMORY_FINALIZED` (previously `GENERATOR_V0_MEMORY_FINALIZER_V1_READY_FOR_FIRST_30_CARD_RUN`). Next unit: `GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN` (previously `GV0R01_C013_MARKET_TEST_EXECUTION_AUTHORIZATION`).
+Implementation state: `GENERATOR_V0_FIRST_30_CARD_RUN_COMPLETE_MEMORY_FINALIZED` (previously `GENERATOR_V0_MEMORY_FINALIZER_V1_READY_FOR_FIRST_30_CARD_RUN`). Next unit: `POST_GV0R01_C013_CONFIRMATION_FEASIBILITY_PROGRAM_DECISION` (previously `GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN`).
 The archived partial paid runs `artifacts/generator_v0/first-shadow`,
 `artifacts/generator_v0/first-shadow-v2`,
 `artifacts/generator_v0/first-shadow-v3`,

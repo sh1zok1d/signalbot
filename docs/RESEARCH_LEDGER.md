@@ -6285,3 +6285,18 @@ BLIND_MAP / GOVERNANCE_AUTHORITY / ATTEMPT_RECORDS = byte-identical (digests unc
 CLASSIFICATION (copied) = PROMISING_PROTOTYPE, discovery tier, not a validated edge
 NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN
 ```
+
+## GV0R01-C013 independent confirmation feasibility and design — 2026-09-25
+
+Outcome-blind feasibility only. No test registered or executed, no window consumed, protected 2025/2026 values not opened (735 metadata ListBucket requests; 0 payload or checksum GETs), no provider call.
+
+```
+DISCOVERY = TF-GV0R01-C013-MT1 PROMISING_PROTOTYPE (consumed)
+RESERVED_CONFIRMATION_FAMILY = TF-GV0R01-C013-CONF1 (not registered)
+POWER_METHOD = whole-year block resampling of exposed 2020-2024 weekly series (authoritative); MBB 13/26 sensitivity; IID diagnostic
+POWER_STAT_AND_DIRECTION_AT_DISCOVERY_EFFECT = 2025: 0.600; 2025+2026 prefix: 0.524; full 2025-2026: 0.687
+MIN_FRESH_WEEKS_FOR_0.80 = about 468 (9 years)
+ALTERNATIVE_PRE_2019_12_SURFACE = not equivalent (fewer than 50 USDT symbols before 2019-07)
+FRESH_SURFACE_DECISION = WAIT_FOR_MORE_FRESH_DATA
+NEXT_UNIT = POST_GV0R01_C013_CONFIRMATION_FEASIBILITY_PROGRAM_DECISION
+```

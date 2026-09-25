@@ -1,3 +1,24 @@
+## GV0R01-C013 independent confirmation — feasibility decided, not executable — 2026-09-25
+
+`FRESH_SURFACE_DECISION = WAIT_FOR_MORE_FRESH_DATA`
+`CONFIRMATION_FEASIBILITY = UNDERPOWERED_ON_EVERY_AVAILABLE_OR_FORESEEABLE_FRESH_SURFACE`
+`CONFIRMATION_PREREG_CREATED = false`
+`EXECUTION_AUTHORIZED = false`
+`NEXT_UNIT = POST_GV0R01_C013_CONFIRMATION_FEASIBILITY_PROGRAM_DECISION`
+
+This section supersedes `NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN` below.
+
+The outcome-blind confirmation design for GV0R01-C013 (discovery `PROMISING_PROTOTYPE`, not a validated edge) found no adequately powered fresh surface.
+
+- **Method.** Power was planned from exposed 2020–2024 material only, by resampling whole exposed years to preserve dependence.
+- **Why power is low.** The discovery's year-level heterogeneity dominates. Yearly means are negative in 2020–2022 and positive in 2023–2024, with a between-year sd of about 2.5× the effect.
+- **Power at the discovery effect.** Statistical + direction power is 0.60 for 2025 only, 0.52 for 2025 plus the available 2026 prefix, and 0.69 for full 2025–2026. The target is 0.80, which needs about 9 independent years. Attenuated effects are lower still.
+- **Alternative surface.** Pre-2019-12 Binance spot history cannot support an N=50 universe.
+
+2025 and 2026 remain sealed and unspent; only metadata was listed and no payload was opened. No confirmation test is registered, and `TF-GV0R01-C013-CONF1` is reserved only. The owner decides the program next, for example parking C013 as unconfirmable for now. There is no parameter, horizon, sign or regime rescue.
+
+Record: `docs/research/GV0R01_C013_CONFIRMATION_FEASIBILITY_AND_DESIGN.{md,json}`, with power in `docs/research/GV0R01_C013_CONFIRMATION_POWER.json`.
+
 ## GV0R01-C013 result ingested into full scientific memory — 2026-09-25
 
 `MARKET_TEST_RESULT_EVENT = IMPLEMENTED`
