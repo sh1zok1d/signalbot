@@ -1,3 +1,16 @@
+## GV0R01-C012 closed outcome-blind — 2026-09-25
+
+`C012_STATUS = CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK`
+`C012_EXECUTED = false`
+`C012_MARKET_OUTCOMES_OPENED = false`
+`SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0`
+`NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C004`
+`NEXT_UNIT = GV0R01_C004_OUTCOME_BLIND_DESIGN_AND_POWER`
+
+The amended permutation is structurally valid and fails the frozen 0.50 single-window-SD power bar (stress MDE 0.6093023255813953). No BTC price was opened and no primary test was run. C012 has no evidence for or against anticipatory drift. The failure is ex-ante information content. No further C012 inference amendment is authorized. A different design needs a new research-object id.
+
+The next object is C004, from the Stream-B feasibility ranking after C012 is removed. C004's core FOMC arm is already point-in-time resolved and it needs one free source, which the pinned BLS CPI calendar already supplies. C020 remains behind it. C006, C014 and C016 stay blocked. Record: `docs/research/GV0R01_C012_CLOSE.json`.
+
 ## GV0R01-C012 inference amendment — outcome-blind, not powered — 2026-09-25
 
 `AMENDED_POWER_GATE_RESULT = INFERENCE_AMENDMENT_VALID_BUT_INFORMATIONALLY_WEAK`
