@@ -137,22 +137,23 @@ class BetaConn:
             _j(dict(rec.metrics)), _j(dict(rec.snapshot)), rec.feature_digest, rec.snapshot_digest)
 
     async def fetch_tape_history(self, *, symbol: str, market_type: str, timeframe: str,
-                                 calculation_version: str, state_schema_version: int,
+                                 calculation_version: str, state_schema_versions: Sequence[int],
                                  start: datetime, end: datetime,
                                  before_tape_id: Optional[int] = None) -> list:
-        """Latest-recorded row per bucket in [start, end) — `end` (the current
-        bucket) is EXCLUDED by the predicate itself. `before_tape_id` restricts to
-        rows recorded before that tape row (an exact as-of view: tape ids are
-        assigned in recording order under the detector lock)."""
+        """Latest-recorded row per bucket in [start, end) among the given state-tape
+        schema versions — `end` (the current bucket) is EXCLUDED by the predicate
+        itself. `before_tape_id` restricts to rows recorded before that tape row (an
+        exact as-of view: tape ids are assigned in recording order under the
+        detector lock)."""
         rows = await self.conn.fetch(
             """SELECT DISTINCT ON (bucket_ts) bucket_ts, metrics
                FROM beta_state_tape
                WHERE symbol=$1 AND market_type=$2 AND timeframe=$3
-                 AND calculation_version=$4 AND state_schema_version=$5
+                 AND calculation_version=$4 AND state_schema_version = ANY($5::int[])
                  AND materialized AND bucket_ts >= $6 AND bucket_ts < $7
                  AND ($8::bigint IS NULL OR tape_id < $8::bigint)
                ORDER BY bucket_ts, tape_id DESC""",
-            symbol, market_type, timeframe, calculation_version, state_schema_version, start, end,
+            symbol, market_type, timeframe, calculation_version, list(state_schema_versions), start, end,
             before_tape_id)
         return [(r["bucket_ts"], _load(r["metrics"])) for r in rows]
 
@@ -239,11 +240,14 @@ class BetaConn:
             "WHERE symbol=$1 AND origin='LIVE' ORDER BY bucket_ts DESC, tape_id DESC LIMIT 1", symbol)
         return None if r is None else {**dict(r), "snapshot": _load(r["snapshot"])}
 
-    async def fetch_bucket_chain(self, *, symbol: str, bucket_ts: datetime, rules_digest: str):
-        """Every row for a bucket under one rules digest (oldest first)."""
+    async def fetch_bucket_chain(self, *, symbol: str, bucket_ts: datetime,
+                                 rules_digest: Optional[str]):
+        """Every row for a bucket under one rules digest (None: under any), oldest first."""
         rows = await self.conn.fetch(
-            "SELECT tape_id, origin, revision, feature_digest, snapshot_digest, calculation_version "
-            "FROM beta_state_tape WHERE symbol=$1 AND bucket_ts=$2 AND rules_digest=$3 "
+            "SELECT tape_id, origin, revision, feature_digest, snapshot_digest, calculation_version, "
+            "rules_digest, state_schema_version "
+            "FROM beta_state_tape WHERE symbol=$1 AND bucket_ts=$2 "
+            "AND ($3::text IS NULL OR rules_digest=$3::text) "
             "ORDER BY tape_id", symbol, bucket_ts, rules_digest)
         return [dict(r) for r in rows]
 

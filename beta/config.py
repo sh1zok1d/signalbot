@@ -24,7 +24,12 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 BETA_CONFIG_PATH = ROOT_DIR / "config" / "beta_v0.yaml"
 
 RULES_VERSION = "BETA_EVENT_RULES_V1"
-SUPPORTED_STATE_SCHEMA_VERSIONS = (1,)
+# State-tape payload schema. V1: the original beta tape. V2 (temporal context,
+# docs/BETA_BTC_TEMPORAL_CONTEXT_V0.md) additionally records per-venue raw Stage-2
+# values (snapshot `venue_raw`) and per-venue 5m kline OHLC (`metrics`
+# x:<venue>:kline_*, venue `ohlc`). The payload shape is a function of the version,
+# so a V1 configuration still reproduces V1 rows byte-for-byte.
+SUPPORTED_STATE_SCHEMA_VERSIONS = (1, 2)
 CANONICAL_EXCHANGES = ("binance", "bybit", "okx")
 
 # Internal event-type codes (never shown verbatim to users; see beta/formatter.py).

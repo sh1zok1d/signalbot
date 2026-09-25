@@ -4,6 +4,8 @@
 **Frozen:** 2026-09-25, before any real-user launch. No beta data exists yet.
 **Eligible event version:** `BETA_EVENT_RULES_V1`, `rules_digest 2e0afa4785675e7a3777627f45647f76268a7cdad3e0639c078ee5ccc7605f44`, state schema 1, outcome version `BETA_OUTCOME_V1`.
 
+**Version transition note (before any beta data was collected).** The state tape moved to schema 2 with the temporal-context amendment. The rule thresholds are unchanged. Eligible events are now `BETA_EVENT_RULES_V1` under `rules_digest 9e9d2c631a1abfdb710dc2147835b3a0ccd4620512d3a0d6828140c96de17210`, state schema 2. Nothing was recorded under the schema-1 digest above.
+
 The owner sees beta outcomes live, which is why this is labeled owner-unblinded. It is **never** called independent confirmation merely because the data arrived after launch. Everything else observed in beta outcomes is exploratory unless separately preregistered.
 
 ## Q1 (primary). Does a TRIGGERED event precede a larger absolute 4h range than matched non-event controls?

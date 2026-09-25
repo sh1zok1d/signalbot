@@ -31,7 +31,8 @@ from .models import (ARMED, CORE_FAMILIES, DAILY_CAP, DATA_DEGRADED_REASON, DELI
                      SAME_EVENT_COOLDOWN, STATE_ORDER, SUPPRESSED, TRIGGERED)
 from .health import venue_states
 from .rules import evaluate_bucket
-from .state_tape import (BUCKET, build_tape_record, compute_percentiles, extract_metrics,
+from .state_tape import (BUCKET, PERCENTILE_HISTORY_SCHEMA_VERSIONS, build_tape_record,
+                         carries_temporal_context, compute_percentiles, extract_metrics,
                          history_window, materialize_bucket, percentile_inputs,
                          select_latest_closed_bucket, with_rule_evaluations)
 
@@ -244,7 +245,8 @@ async def build_live_record(deps: DetectorDeps, cfg: BetaConfig, conn, bucket_ts
         history = await conn.fetch_tape_history(
             symbol=cfg.symbol, market_type=cfg.market_type, timeframe=cfg.timeframe,
             calculation_version=ident["calculation_version"],
-            state_schema_version=cfg.state_schema_version, start=start, end=end)
+            state_schema_versions=PERCENTILE_HISTORY_SCHEMA_VERSIONS[cfg.state_schema_version],
+            start=start, end=end)
         venue_ok = {ex: bool(v["declared_available"] and v["heartbeat_healthy"]) for ex, v in venues.items()}
         percentiles = compute_percentiles(
             deps.stage2_config, cfg, bucket_ts=bucket_ts,
@@ -362,10 +364,15 @@ async def context_1h_asof(cfg: BetaConfig, stage2_config, conn, bucket_ts: datet
     ident = snapshot.get("identity") or {}
     if not snapshot.get("materialized") or ident.get("calculation_version") in (None, "UNMATERIALIZED"):
         return None
+    # The rolling 1h needs the V2 kline OHLC: only rows of THIS schema version (>= V2)
+    # form a window; V1 rows are never mixed in (honest warm-up after an upgrade).
+    if not carries_temporal_context(cfg.state_schema_version) or \
+            snapshot.get("state_schema_version") != cfg.state_schema_version:
+        return None
     n = cfg.section("context")["rolling_buckets"]
     history = await conn.fetch_tape_history(
         symbol=cfg.symbol, market_type=cfg.market_type, timeframe=cfg.timeframe,
-        calculation_version=ident["calculation_version"], state_schema_version=cfg.state_schema_version,
+        calculation_version=ident["calculation_version"], state_schema_versions=(cfg.state_schema_version,),
         start=bucket_ts - timedelta(days=30) - (n - 1) * BUCKET, end=bucket_ts, before_tape_id=tape_id)
     tiers = stage2_config.resolve(cfg.symbol)["percentiles"]["confidence_tiers"]
     return context_1h(cfg, bucket_ts=bucket_ts, current_metrics=snapshot.get("metrics") or {},
@@ -469,10 +476,20 @@ async def _correction_check(deps: DetectorDeps, cfg: BetaConfig, bucket_ts: date
     """Re-materialize an already-decided bucket. If its features changed, APPEND a
     CORRECTION_CHECK tape revision and annotate (never rewrite) affected episodes."""
     async with deps.store.connect() as conn:
-        chain = await conn.fetch_bucket_chain(symbol=cfg.symbol, bucket_ts=bucket_ts,
-                                              rules_digest=cfg.rules_digest)
-        live = [r for r in chain if r["origin"] in (ORIGIN_LIVE, ORIGIN_CORRECTION_CHECK)]
+        chain = await conn.fetch_bucket_chain(symbol=cfg.symbol, bucket_ts=bucket_ts, rules_digest=None)
+        decided = [r for r in chain if r["origin"] in (ORIGIN_LIVE, ORIGIN_CORRECTION_CHECK)]
+        # Compare like with like: only rows of the CURRENT rules digest AND state-tape
+        # schema version share a correction identity (feature_digest).
+        live = [r for r in decided if r["rules_digest"] == cfg.rules_digest
+                and r["state_schema_version"] == cfg.state_schema_version]
         if not live:
+            other = sorted({r["state_schema_version"] for r in decided} - {cfg.state_schema_version})
+            if other:
+                # A schema evolution is not a market-data correction: nothing is
+                # appended and no episode is flagged.
+                return {"status": "SCHEMA_VERSION_BOUNDARY", "bucket_ts": bucket_ts,
+                        "stored_state_schema_versions": other,
+                        "current_state_schema_version": cfg.state_schema_version}
             return {"status": "NO_LIVE_ROW_UNDER_CURRENT_RULES", "bucket_ts": bucket_ts}
         latest = live[-1]
         rec = await build_live_record(deps, cfg, conn, bucket_ts, origin=ORIGIN_CORRECTION_CHECK)

@@ -8,7 +8,7 @@ Authority for the `/btc` temporal-context amendment to the descriptive private b
 **Solution: recent-event memory, not invented persistence.** An independent outcome-blind audit found that no historical detector tape exists from which hysteresis parameters could be frozen. So the current detector episode boundaries are preserved exactly, and `/btc` gains LAST EVENT memory.
 
 Everything authoritative is unchanged:
-- `BETA_EVENT_RULES_V1` and rules digest `2e0afa47…5f44`;
+- `BETA_EVENT_RULES_V1` thresholds. The rules digest changed only because the state-tape schema moved to V2; see below.
 - detector episodes and transitions;
 - push decisions;
 - forward outcomes.
@@ -51,11 +51,32 @@ There is no hysteresis, no COOLING, no reactivation and no new episode identity;
 - **Consistency guard:** if the projection's open episodes ever differ from the detector's open episodes in the database, `/btc` shows no projection details.
 - **Record of what was shown:** each `/btc` writes a `beta_btc_views` row with the view model, its digest, the rendered text and its SHA-256, plus the context state digest. No user id is stored.
 
-## Tape additions (additive)
+## State-tape schema V2
 
-- **Per-venue raw Stage-2 values:** stored by value in the snapshot (`venue_raw`) for venue agreement.
-- **Per-venue 5m `klines_1m` OHLC:** stored in `metrics` (`x:<venue>:kline_*`), because the rolling-1h history needs it.
-- **Unchanged:** existing metrics, percentiles, `state_schema_version` and the rules digest. This is also the evidence a future calibration will need.
+The temporal context needs inputs that the V1 tape did not record, so the tape moved to an explicit **`state_schema_version = 2`**. The payload shape is a function of the version; a schema-1 configuration still writes V1 rows byte-for-byte.
+
+**V2 = V1 plus:**
+- per-venue raw Stage-2 values, in the snapshot's `venue_raw`;
+- per-venue 5m `klines_1m` OHLC: `metrics` keys `x:<venue>:kline_*` and the venue's `ohlc` entry.
+
+All of these are inside `feature_digest`, which is the V2 correction identity. A genuine change to any of them, for example a revised kline high, is detected as a normal `CORRECTION_CHECK`.
+
+**Rules digest:** the `BETA_EVENT_RULES_V1` thresholds are unchanged. The digest covers `state_schema_version`:
+
+| Schema | Rules digest |
+|---|---|
+| 1 (historical identity) | `2e0afa47…5f44` |
+| 2 (active) | `9e9d2c631a1abfdb710dc2147835b3a0ccd4620512d3a0d6828140c96de17210` |
+
+Both are pinned in `tests/beta/test_beta_config.py`.
+
+**Transition rules:**
+- **Correction checks compare like with like.** Only rows of the current rules digest and schema version share a correction identity. Re-checking a bucket that was decided only under another schema version returns `SCHEMA_VERSION_BOUNDARY`: nothing is appended, no episode is flagged, and no market-data correction is ever inferred from a payload-shape change.
+- **Episodes:** because the rules digest changes, an episode still open under V1 ends at the first V2 bucket with the existing `DETECTOR_VERSION_CHANGED`. The previous-bucket streak is not carried across, and the context projection (keyed by rules digest) restarts empty under V2. This is the existing detector behaviour for any rules-digest change, and it is preferable to merging across incompatible representations.
+- **Detector percentile history:** reads V1 and V2 rows (`PERCENTILE_HISTORY_SCHEMA_VERSIONS`). V2 only adds keys, so every consensus and liquidation metric, and every 30-day percentile, is identical, and detection is unaffected by an upgrade.
+- **Rolling-1h history:** reads rows of the current V2 schema only. V1 rows, which have no OHLC, are never mixed into a window and never defaulted.
+- **1h warm-up after an upgrade:** the 1h context is unavailable until 12 contiguous V2 buckets exist, and becomes available at the 12th. Its percentile labels stay "n/a (history building)" until 30 days of V2 rolling-1h history are mature. On a fresh deployment the bootstrap writes V2 rows, so the history is V2 from the start.
+- **Replay:** the context state records `state_schema_version`, and `step_context` refuses any tape row of another schema version. A V2 replay can never reinterpret a V1 row.
 
 ## Rolling 1h context: `BETA_CONTEXT_1H_V0`
 

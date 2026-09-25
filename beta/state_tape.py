@@ -47,6 +47,16 @@ LIQ_SIDES = (("long", "long_liquidation_notional"), ("short", "short_liquidation
 VENUE_RAW_FIELDS = ("price_move_pct", "oi_change_pct", "range_width_pct", "volume_notional_usd",
                     "taker_delta_notional_usd")
 VENUE_OHLC_FIELDS = ("open", "high", "low", "close")
+# First state-tape schema version carrying the temporal-context inputs above.
+TEMPORAL_CONTEXT_SCHEMA_VERSION = 2
+# Schema versions whose rows are valid PERCENTILE history for a given current
+# version: V2 only ADDS keys, every consensus / liquidation metric (and hence
+# every 30d detector percentile) is identical in V1 and V2 rows.
+PERCENTILE_HISTORY_SCHEMA_VERSIONS = {1: (1,), 2: (1, 2)}
+
+
+def carries_temporal_context(state_schema_version: int) -> bool:
+    return state_schema_version >= TEMPORAL_CONTEXT_SCHEMA_VERSION
 UNMATERIALIZED = "UNMATERIALIZED"
 
 
@@ -163,10 +173,20 @@ def extract_metrics(result: Optional[Stage2BucketResult], cfg: BetaConfig,
             if not venue_liq_ok.get(ex, False):
                 v = None
             out[metric_key(ex, field)] = None if v is None else float(v)
+        if not carries_temporal_context(cfg.state_schema_version):
+            continue                               # V1 payload: no kline OHLC
         ohlc = ((venues or {}).get(ex) or {}).get("ohlc") or {}
         for field in VENUE_OHLC_FIELDS:
             v = ohlc.get(field)
             out[metric_key(ex, f"kline_{field}")] = None if v is None else float(v)
+    return out
+
+
+def _venue_payload(cfg: BetaConfig, v: Mapping[str, Any]) -> dict:
+    """Per-venue state by value, in the configured schema's shape (V1 has no OHLC)."""
+    out = dict(v)
+    if not carries_temporal_context(cfg.state_schema_version):
+        out.pop("ohlc", None)
     return out
 
 
@@ -282,12 +302,13 @@ def build_tape_record(cfg: BetaConfig, *, bucket_ts: datetime, origin: str,
         "metrics": metrics,
         "percentiles": percentiles,
         "families": family_state(result, cfg),
-        "venues": {ex: dict(venues[ex]) for ex in cfg.exchanges},
-        "venue_raw": venue_raw(result, cfg),
+        "venues": {ex: _venue_payload(cfg, venues[ex]) for ex in cfg.exchanges},
         "reference": reference_price(result, cfg),
         "exchange_failures": failures,
         "raw_revision": raw_revision_before,
     }
+    if carries_temporal_context(cfg.state_schema_version):
+        features["venue_raw"] = venue_raw(result, cfg)
     feature_digest = sha256_json(features)
     snapshot = dict(features)
     snapshot.update({

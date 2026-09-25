@@ -46,7 +46,7 @@ from .config import (EVENT_TYPES, LIQUIDATION_STRESS_LONG, LIQUIDATION_STRESS_SH
                      TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL, BetaConfig, canonical_json)
 from .detector import BucketContext, step_episode
 from .models import STATE_ORDER, TRIGGERED, Episode
-from .state_tape import BUCKET, iso, metric_key, sha256_json
+from .state_tape import BUCKET, TEMPORAL_CONTEXT_SCHEMA_VERSION, iso, metric_key, sha256_json
 
 ACTIVE_EPISODIZATION_VERSION = "STRICT_QUALIFICATION_V1"
 # Version label -> parameter digest. A change without a NEW label fails loudly, so a
@@ -55,7 +55,7 @@ KNOWN_EPISODIZATION_DIGESTS = {
     "STRICT_QUALIFICATION_V1": "0cce5bc5336d156f2f57fb6794c528d8738e4283e7b4e9846a443003834724f3",
 }
 KNOWN_CONTEXT_DIGESTS = {
-    "BETA_CONTEXT_1H_V0": "09b4631d20148d194b88f538e14cc67eab538f334f18770a1bfceb2491674188",
+    "BETA_CONTEXT_1H_V0": "7f94fde838a33fb094c6683b8834a2f9accbf96f6fb6d3fcc356aab9f49dc701",
 }
 
 ANCHOR_STRONGEST = "STRONGEST_OBSERVED_BUCKET"
@@ -96,6 +96,8 @@ def context_payload(cfg: BetaConfig) -> dict:
                     "price_move_pct_median": "median over venues of (last close - first open) / first open",
                     "volume_notional_usd_sum": "sum of the 5m cross-venue volume sums"},
         "window": "30d", "timeframe": "1h",
+        "requires_state_schema_version": TEMPORAL_CONTEXT_SCHEMA_VERSION,
+        "history_state_schema_versions": "CURRENT_ONLY",
     }
 
 
@@ -210,7 +212,8 @@ def _ts(s: str) -> datetime:
 
 # ---- strict projection step ------------------------------------------------------------
 def empty_state(cfg: BetaConfig) -> dict:
-    return {**verify_versions(cfg), "rules_digest": cfg.rules_digest, "symbol": cfg.symbol,
+    return {**verify_versions(cfg), "rules_digest": cfg.rules_digest,
+            "state_schema_version": cfg.state_schema_version, "symbol": cfg.symbol,
             "as_of_bucket": None, "open": {}, "last_ended": {}, "now": None,
             "context_1h": None, "input": None}
 
@@ -262,6 +265,12 @@ def step_context(cfg: BetaConfig, prev: Optional[Mapping[str, Any]], bucket_ts: 
         raise ValueError("step_context must advance exactly one 5m bucket")
     ed = state["episodization_digest"]
     snapshot = (row or {}).get("snapshot")
+    if snapshot is not None and (snapshot.get("state_schema_version") != state["state_schema_version"]
+                                 or state["state_schema_version"] != cfg.state_schema_version):
+        # never reinterpret a row of another tape schema under this state's identity
+        raise ContextVersionError(
+            f"tape row schema {snapshot.get('state_schema_version')} != projection schema "
+            f"{state['state_schema_version']} (config {cfg.state_schema_version})")
     view = bucket_view(cfg, bucket_ts, snapshot)
     open_, ended = dict(state["open"]), dict(state["last_ended"])
     evals = (snapshot or {}).get("rule_evaluations")

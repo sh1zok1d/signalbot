@@ -22,7 +22,7 @@ beta:
   outcome_tracking_enabled: true
 
   rules_version: BETA_EVENT_RULES_V1
-  state_schema_version: 1
+  state_schema_version: 2                  # V2 = V1 + per-venue raw values / kline OHLC (temporal context)
   outcome_version: BETA_OUTCOME_V1
 
   symbol: BTCUSDT

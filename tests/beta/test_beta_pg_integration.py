@@ -638,9 +638,35 @@ async def _detector_record(pool):
               p["suppression_reason"]) for p in pd])
 
 
-async def _run_plan(pool, switches):
+CFG_V1 = CFG.with_overrides(state_schema_version=1)
+
+
+async def _run_plan(pool, switches, cfg=CFG):
     for i, sc in enumerate(GOLDEN_PLAN):
-        await _detect(pool, ScenarioReader(sc), B0 + i * BUCKET, switches=switches)
+        await _detect(pool, ScenarioReader(sc), B0 + i * BUCKET, switches=switches, cfg=cfg)
+
+
+def _golden_under(cfg):
+    """The base golden with episode ids re-derived by the UNCHANGED id function for
+    `cfg`'s rules digest (which covers state_schema_version); every other field is
+    the base value verbatim."""
+    from beta.detector import public_episode_id
+    ids = {g[0]: public_episode_id("BTCUSDT", g[1], datetime.fromisoformat(g[3]), cfg.rules_digest)
+           for g in GOLDEN_EPISODES}
+    return ([(ids[g[0]],) + g[1:] for g in GOLDEN_EPISODES],
+            [(ids[t[0]],) + t[1:] for t in GOLDEN_TRANSITIONS],
+            {k: [(ids[p[0]],) + p[1:] for p in v] for k, v in GOLDEN_PUSH.items()})
+
+
+@pytest.mark.parametrize("push_on", [False, True])
+def test_schema_v1_reproduces_the_pre_amendment_base_exactly(push_on):
+    async def body():
+        pool = await _setup(n_eval=len(GOLDEN_PLAN) + 2)
+        await _run_plan(pool, ON_PUSH if push_on else ON, cfg=CFG_V1)
+        eps, tr, pd = await _detector_record(pool)
+        assert eps == GOLDEN_EPISODES and tr == GOLDEN_TRANSITIONS and pd == GOLDEN_PUSH[push_on]
+        await pool.close()
+    run(body())
 
 
 @pytest.mark.parametrize("push_on", [False, True])
@@ -649,7 +675,8 @@ def test_detector_boundaries_and_push_decisions_identical_to_pre_amendment_base(
         pool = await _setup(n_eval=len(GOLDEN_PLAN) + 2)
         await _run_plan(pool, ON_PUSH if push_on else ON)
         eps, tr, pd = await _detector_record(pool)
-        assert eps == GOLDEN_EPISODES and tr == GOLDEN_TRANSITIONS and pd == GOLDEN_PUSH[push_on]
+        g_eps, g_tr, g_pd = _golden_under(CFG)
+        assert eps == g_eps and tr == g_tr and pd == g_pd[push_on]
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_context_snapshots"))[0]["n"] == len(GOLDEN_PLAN)
         await pool.close()
     run(body())
@@ -668,7 +695,8 @@ def test_a_failing_context_projection_cannot_change_or_block_detection(monkeypat
         for i, sc in enumerate(GOLDEN_PLAN[1:], start=1):
             await _detect(pool, ScenarioReader(sc), B0 + i * BUCKET)
         eps, tr, pd = await _detector_record(pool)
-        assert eps == GOLDEN_EPISODES and tr == GOLDEN_TRANSITIONS and pd == GOLDEN_PUSH[False]
+        g_eps, g_tr, g_pd = _golden_under(CFG)
+        assert eps == g_eps and tr == g_tr and pd == g_pd[False]
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_context_snapshots"))[0]["n"] == 0
         await pool.close()
     run(body())
@@ -776,5 +804,98 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         assert str(ALICE) not in json.dumps(payload)
         out = await h.handle(_cb(ALICE, data, 4))
         assert "Detector state ended" in out[1].html and "STRICT_QUALIFICATION_V1" in out[1].html
+        await pool.close()
+    run(body())
+
+
+# --------------------------------------------------------------------------- state-tape schema V1 -> V2
+async def _explicit(pool, reader, bucket, cfg):
+    clock = Clock(bucket + 2 * BUCKET + timedelta(seconds=30))
+    return await run_detector_once(deps(pool, reader, clock), cfg, ON, explicit_bucket=bucket)
+
+
+def test_v1_row_rechecked_by_v2_is_a_schema_boundary_not_a_market_correction():
+    async def body():
+        from beta.detector import build_live_record
+        pool = await _setup(n_eval=8)
+        await _detect(pool, ScenarioReader(down_move), B0, cfg=CFG_V1)
+        await _detect(pool, ScenarioReader(down_move), B0 + BUCKET, cfg=CFG_V1)
+        v1 = (await _rows(pool, "SELECT tape_id, feature_digest, metrics, snapshot FROM beta_state_tape "
+                                "WHERE origin='LIVE' AND bucket_ts=$1", B0))[0]
+        m, snapshot = _j(v1["metrics"]), _j(v1["snapshot"])
+        assert snapshot["state_schema_version"] == 1 and "venue_raw" not in snapshot
+        assert not any(k.startswith("x:") and "kline" in k for k in m)
+        assert all("ohlc" not in v for v in snapshot["venues"].values())
+        # the SAME market inputs in the V2 shape have a different feature_digest ...
+        async with BetaStore(pool).connect() as conn:
+            rec_v2 = await build_live_record(deps(pool, ScenarioReader(down_move), Clock(B0)), CFG, conn, B0)
+        assert rec_v2.feature_digest != v1["feature_digest"]
+        # ... yet a V2 correction check treats it as a schema boundary, never a correction
+        r = await _explicit(pool, ScenarioReader(down_move), B0, CFG)
+        assert r["status"] == "SCHEMA_VERSION_BOUNDARY"
+        assert r["stored_state_schema_versions"] == [1] and r["current_state_schema_version"] == 2
+        assert (await _rows(pool, "SELECT count(*) AS n FROM beta_state_tape WHERE origin='CORRECTION_CHECK'"))[0]["n"] == 0
+        assert (await _rows(pool, "SELECT count(*) AS n FROM beta_episodes WHERE correction_flag"))[0]["n"] == 0
+        # same-schema control: V1 re-checked by V1 with the same inputs is unchanged
+        assert (await _explicit(pool, ScenarioReader(down_move), B0, CFG_V1))["status"] == "UNCHANGED"
+        await pool.close()
+    run(body())
+
+
+def test_v2_real_input_change_is_still_a_correction():
+    async def body():
+        pool = await _setup(n_eval=8)
+        await _detect(pool, ScenarioReader(down_move), B0)
+        await _detect(pool, ScenarioReader(down_move), B0 + BUCKET)
+        assert (await _explicit(pool, ScenarioReader(down_move), B0, CFG))["status"] == "UNCHANGED"
+        async with pool.acquire() as c:                 # a genuine Stage-1 revision of one V2 input (OHLC)
+            await c.execute("UPDATE klines_1m SET high = high * 1.01 WHERE exchange='okx' AND ts=$1", B0)
+        before = (await _rows(pool, "SELECT feature_digest FROM beta_state_tape WHERE bucket_ts=$1", B0))[0]
+        r = await _explicit(pool, ScenarioReader(down_move), B0, CFG)
+        assert r["status"] == "CORRECTION_APPENDED" and r["revision"] == 2 and r["episodes_flagged"] >= 1
+        rows = await _rows(pool, "SELECT origin, revision, feature_digest, state_schema_version FROM beta_state_tape "
+                                 "WHERE bucket_ts=$1 ORDER BY tape_id", B0)
+        assert [(x["origin"], x["revision"], x["state_schema_version"]) for x in rows] == [
+            ("LIVE", 1, 2), ("CORRECTION_CHECK", 2, 2)]
+        assert rows[1]["feature_digest"] != before["feature_digest"]
+        await pool.close()
+    run(body())
+
+
+def test_schema_boundary_ends_open_episodes_as_a_version_change_and_restarts_context():
+    async def body():
+        pool = await _setup(n_eval=8)
+        await _detect(pool, ScenarioReader(down_move), B0, cfg=CFG_V1)
+        await _detect(pool, ScenarioReader(down_move), B0 + BUCKET, cfg=CFG_V1)
+        await _detect(pool, ScenarioReader(down_move), B0 + 2 * BUCKET)            # first V2 bucket
+        eps = await _rows(pool, "SELECT rules_digest, state, terminal_reason FROM beta_episodes ORDER BY episode_pk")
+        assert (eps[0]["rules_digest"], eps[0]["state"], eps[0]["terminal_reason"]) == \
+            (CFG_V1.rules_digest, "ENDED", "DETECTOR_VERSION_CHANGED")
+        assert (eps[1]["rules_digest"], eps[1]["state"]) == (CFG.rules_digest, "ARMED")   # streak restarted
+        ctx = await _rows(pool, "SELECT rules_digest, state FROM beta_context_snapshots ORDER BY context_pk")
+        assert [c["rules_digest"] for c in ctx] == [CFG_V1.rules_digest] * 2 + [CFG.rules_digest]
+        v2_state = _j(ctx[-1]["state"])
+        assert v2_state["state_schema_version"] == 2 and v2_state["input"] is not None
+        assert list(v2_state["open"]) == ["PRICE_OI_CONTRACTION_DOWN"]   # fresh V2 projection, no V1 carry-over
+        await pool.close()
+    run(body())
+
+
+def test_1h_context_warms_up_on_12_v2_buckets_and_never_mixes_v1_rows():
+    async def body():
+        pool = await _setup(n_eval=24)
+        for i in range(6):                                                         # V1 rows (no OHLC)
+            await _detect(pool, ScenarioReader(quiet), B0 + i * BUCKET, cfg=CFG_V1)
+        for k in range(1, 13):                                                     # V2 buckets 1..12
+            await _detect(pool, ScenarioReader(quiet), B0 + (5 + k) * BUCKET)
+        ctx = await _rows(pool, "SELECT bucket_ts, state FROM beta_context_snapshots WHERE rules_digest=$1 "
+                                "ORDER BY bucket_ts", CFG.rules_digest)
+        c1h = [_j(c["state"])["context_1h"] for c in ctx]
+        assert len(c1h) == 12 and all(v is None for v in c1h[:11])                 # 11 V2 buckets: unavailable
+        assert c1h[11] is not None                                                 # 12th: available
+        assert c1h[11]["window_start"] == (B0 + 6 * BUCKET).isoformat().replace("+00:00", "Z")
+        assert c1h[11]["range_width_pct_median"] == pytest.approx(0.2)            # seeded klines: (100.1-99.9)/100
+        v1ctx = await _rows(pool, "SELECT state FROM beta_context_snapshots WHERE rules_digest=$1", CFG_V1.rules_digest)
+        assert all(_j(c["state"])["context_1h"] is None for c in v1ctx)            # V1 never has 1h context
         await pool.close()
     run(body())

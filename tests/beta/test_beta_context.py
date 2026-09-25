@@ -55,6 +55,7 @@ def snap(ranks=None, values=None, *, fresh=True, venue_signs=None, liq=None, con
            "usable": len(contributing) >= 2}
     return {"materialized": materialized, "evaluation_fresh": fresh, "stale_barrier": False,
             "identity": {"calculation_version": CALC}, "code_version": "beta-test",
+            "state_schema_version": CFG.state_schema_version,
             "metrics": metrics, "percentiles": pct, "venue_raw": raw,
             "families": {f: dict(fam) for f in ("price_structure", "oi", "volume", "taker_flow")},
             "venues": {ex: {"declared_available": True, "heartbeat_healthy": True} for ex in EXS},
@@ -389,3 +390,25 @@ def test_level_labels_are_predefined_thresholds(rank, label):
                                        (0.02, "bottom 2%"), (0.0, "bottom <1%"), (0.5, None), (0.75, None)])
 def test_signed_tail_labels_never_claim_certainty(rank, text):
     assert cx.tail_label(CFG, rank, "mature") == text
+
+
+# ---- state-tape schema awareness -----------------------------------------------------------
+def test_projection_refuses_a_row_of_another_tape_schema():
+    rows = tape([snap(DOWN)])
+    bad = copy.deepcopy(rows[T0])
+    bad["snapshot"]["state_schema_version"] = 1
+    with pytest.raises(cx.ContextVersionError):
+        cx.step_context(CFG, None, T0, bad)
+    v1 = CFG.with_overrides(state_schema_version=1)
+    states = cx.replay(v1, {T0: bad}, start_bucket=T0, end_bucket=T0)            # a V1 replay of V1 rows is fine
+    assert states[0]["state_schema_version"] == 1
+    with pytest.raises(cx.ContextVersionError):                                   # ... but never reinterpreted as V2
+        cx.step_context(CFG, states[0], T0 + BUCKET, rows[T0] | {"snapshot": dict(rows[T0]["snapshot"])})
+
+
+def test_1h_window_is_unavailable_at_11_and_available_at_12_compatible_buckets():
+    rows = dict(_hist(11, T0))
+    assert cx.rolling_1h_values(CFG, rows, T0 + 10 * BUCKET) is None
+    rows.update(_hist(1, T0 + 11 * BUCKET))
+    assert cx.rolling_1h_values(CFG, rows, T0 + 11 * BUCKET) is not None
+    assert cx.context_payload(CFG)["requires_state_schema_version"] == 2
