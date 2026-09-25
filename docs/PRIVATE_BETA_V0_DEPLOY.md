@@ -45,6 +45,47 @@ A fresh deployment has a **warm-up period**. Readiness follows the accumulated *
 
 **Soak planning:** until the Price/OI families are ready, the soak cannot observe core events. Start judging event behaviour from the first bucket in which the relevant family reports `ready`.
 
+## POST-DEPLOY V2 SMOKE CHECK
+
+Run this after the detector is active. The SQL file is read-only (`BEGIN TRANSACTION READ ONLY`). It does not read outcomes and does not compute forward returns, PnL, MAE, MFE, or hit rate. Any `FAIL` row is an operational stop.
+
+1. `systemctl status signalbot signalbot-beta-bot`
+2. `systemctl list-timers 'signalbot-beta-*'`
+3. `python main.py --beta-health --beta-json`
+4. Wait for 2–3 closed 5m buckets.
+5. Run:
+
+```bash
+psql "$DSN" \
+  -v deploy_ts='<UTC deployment timestamp>' \
+  -f deploy/signalbot-beta-smoke.sql
+```
+
+`deploy_ts` is UTC, for example `2026-09-25 18:00:00+00`. The script scores 5m buckets that start at or after that time and have already closed.
+
+6. Manual Telegram `/btc` check.
+
+On a fresh deployment, `HISTORY BUILDING` is normal. `DETECTOR NOT READY` is also valid when live quorum or a required input is missing. `NO ACTIVE EVENTS` is not valid while the mandatory Price/OI scope is immature. The readiness Details button should work. Temporal-context Details exists only when an ACTIVE EVENT or a retained LAST EVENT exists. No temporal Details button immediately after a quiet fresh deployment is normal.
+
+### Live OI sampling is the Day-0 gate
+
+The current Stage-2 OI-change definition requires at least two OI observations inside a closed 5m bucket. With the unchanged ~15s Stage-1 poll, a healthy venue produces about 20 live observations per bucket. The hard correctness requirement is `>=2` usable observations on Binance, Bybit, and OKX.
+
+If closed buckets repeatedly contain fewer than 2 live observations, do not wait for the 30-day warm-up. Treat that as an operational blocker immediately. Historical backfill cannot supply this within-bucket OI change.
+
+A measured liquidation zero on an eligible venue is not a failure. `NULL` on an ineligible venue is UNKNOWN, not zero.
+
+### First ~24 hours
+
+Re-run the same script with the original `deploy_ts`. Read:
+
+- expected vs written V2 buckets, missing buckets, revisions
+- materialized rate and `evaluation_fresh` rate
+- per venue: live OHLC coverage, OI observations per bucket (min / median / max), percent of buckets with `>=2` OI samples, taker coverage, liquidation-source rows, heartbeat healthy rate
+- per readiness group, from recorded `/btc` payloads: `READY`, `HISTORY_BUILDING`, `DATA_UNAVAILABLE`, `DEGRADED`
+
+Do not query `beta_episode_outcomes`. Do not compute forward returns, PnL, MAE, MFE, or hit rate.
+
 ## Environment (`/opt/signalbot/.env`, never committed, never printed)
 
 | Variable | Meaning |
