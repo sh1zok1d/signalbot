@@ -248,6 +248,8 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
     if args.beta_notify_once:
         if not switches.enabled:
             return {"status": "DISABLED"}
+        if not switches.telegram:          # no-Telegram shadow soak: nothing to do, no DB access
+            return {"status": "TELEGRAM_DISABLED"}
         await db.init_beta_v0_schema()
         secrets = BetaSecrets.from_env(env)
         if sender is None and secrets.bot_token:

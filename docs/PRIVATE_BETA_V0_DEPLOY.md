@@ -13,7 +13,8 @@ Authority: `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`. The systemd artifacts are
 
 - `deploy/install_beta_units.sh` copies the units and runs `daemon-reload`. It **never enables or starts** anything.
 - `deploy/check_beta_units.sh` is read-only.
-- The bounded history bootstrap is run manually: `main.py --beta-bootstrap`, repeated until it reports `complete: true`. Each run is capped by `bootstrap.max_buckets_per_run`.
+- The detector and outcomes units wait for PostgreSQL first (`ExecStartPre=deploy/wait_for_infra.py --postgres-only --timeout 60`, the same readiness gate `signalbot.service` uses, minus Redis).
+- The bounded history bootstrap is run manually with `python -m runtime.beta_bootstrap_runner [--max-iterations N]` (default 40, cap 100; 30 days need 31 batches of `bootstrap.max_buckets_per_run` = 288). Each iteration runs the unchanged `main.py --beta-bootstrap --beta-json` and prints progress. The runner stops on the first error, and fails if the bootstrap is still incomplete at the bound. After completion it runs one extra bootstrap as an idempotency check, which may only write buckets that closed in the meantime. Exit codes: `0` verified, `2` bootstrap error, `3` iteration limit, `4` verification failed.
 
 ## Environment (`/opt/signalbot/.env`, never committed, never printed)
 
@@ -21,22 +22,38 @@ Authority: `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`. The systemd artifacts are
 |---|---|
 | `BETA_TELEGRAM_BOT_TOKEN` | Beta bot token. It is separate from the legacy notifier token. |
 | `BETA_OWNER_TELEGRAM_USER_ID` | The single owner/admin Telegram user id. |
-| `BETA_ENABLED` | Kill switch. If unset, the config decides. `0` stops the whole beta runtime. |
-| `BETA_DETECTION_ENABLED` | Kill switch for the tape and detector. |
-| `BETA_PUSH_ENABLED` | Must be set explicitly to `1`/`true` **and** `beta.push_enabled: true`. If unset, push is forbidden. |
-| `BETA_OUTCOME_TRACKING_ENABLED` | Kill switch for the outcome tracker. |
+| `BETA_ENABLED` | Runtime enable. An explicit `1`/`true` enables and `0`/`false` disables, overriding the committed `beta.enabled: false`. If unset or empty, the config decides. |
+| `BETA_DETECTION_ENABLED` | Kill switch for the tape and detector (restrict-only). |
+| `BETA_PUSH_ENABLED` | Must be set explicitly to `1`/`true` **and** `beta.push_enabled: true` must be committed. If unset, push is forbidden. |
+| `BETA_OUTCOME_TRACKING_ENABLED` | Kill switch for the outcome tracker (restrict-only). |
+| `BETA_TELEGRAM_ENABLED` | `0` selects the no-Telegram shadow-soak mode (below). Default: Telegram is part of the deployment. |
 | `BETA_CODE_VERSION` | Optional explicit beta code version. The default is resolved from the path-scoped git history. |
 
-- **Effective switch:** config AND env. The environment can only restrict.
+- **Switch precedence:**
+  - `BETA_ENABLED`: explicit env value, else committed config.
+  - Detection and outcome tracking: config AND env; the env can only restrict.
+  - Push: committed `push_enabled` AND explicit env true. The env alone can never enable push.
+- **Required even for beta-only runs:** the database variables and `REDIS_URL`. The shared secrets loader validates `REDIS_URL` for every `main.py` command, although the beta never connects to Redis.
 - **Admin push state:** `/admin_pause_push` and `/admin_resume_push` change a durable admin push state. Effective push = hard push switch AND admin state, so an admin command can never exceed the hard switch.
 - **Push OFF scope:** turning push off does not stop the tape, the detector or outcome tracking.
 
 ## Soak (7 days, push disabled)
 
-1. Owner commits `beta.enabled: true` in a separate, authorized change, with `push_enabled: false` still in place.
-2. Run `--beta-bootstrap` until it completes.
-3. Enable the detector, outcomes and notify timers, plus the bot, with only the owner allowlisted.
+1. Set `BETA_ENABLED=1` in `.env`. The committed config stays `beta.enabled: false`, `push_enabled: false`.
+2. Run `python -m runtime.beta_bootstrap_runner` until it exits `0`.
+3. Enable the detector and outcomes timers. Then either:
+   - **With Telegram:** also enable the notify timer and the bot, with only the owner allowlisted; or
+   - **No-Telegram shadow soak:** set `BETA_TELEGRAM_ENABLED=0`, leave `BETA_TELEGRAM_BOT_TOKEN` empty, and do not enable the notify timer or the bot.
 4. Check `--beta-status` (soak metrics) and `--beta-health` (alerts) daily.
+
+### No-Telegram shadow-soak mode
+
+`BETA_TELEGRAM_ENABLED=0` is accepted only while push is off and no beta bot token is set; otherwise every beta command fails with a configuration error. In this mode:
+- `--beta-health` does not report `BOT_RECEIVER_DOWN` or `NOTIFIER_NOT_RUNNING`, because Telegram is deliberately absent.
+- `--beta-notify-once` returns `TELEGRAM_DISABLED` without doing anything.
+- `runtime.beta_bot` exits without starting.
+
+All other health alerts (ingestion, detector, materialization, outcomes, delivery) are unchanged. With Telegram enabled (the default), the bot and notifier liveness checks apply exactly as before.
 
 The gate criteria are listed in the restart decision.
 

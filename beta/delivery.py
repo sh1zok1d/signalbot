@@ -42,6 +42,8 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
               "expired": 0, "suppressed": 0, "purged_users": 0, "owner_alerts": []}
     if not switches.enabled:
         return {"status": "DISABLED", "switches": switches.as_dict()}
+    if not switches.telegram:
+        return {"status": "TELEGRAM_DISABLED", "switches": switches.as_dict()}
     ttl = cfg.delivery_ttl
     async with store.advisory_lock(NOTIFIER_LOCK_KEY) as acquired:
         if not acquired:

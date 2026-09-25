@@ -19,6 +19,9 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
 ExecStartPre=/usr/bin/test -r /opt/signalbot/.env
 ExecStartPre=/usr/bin/test -f /opt/signalbot/main.py
+# Block until PostgreSQL answers SELECT 1 (shared readiness gate; bounded well
+# inside TimeoutStartSec). Beta never uses Redis.
+ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py --postgres-only --timeout 60
 ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/main.py --beta-once --beta-json --log-level INFO
 TimeoutStartSec=240
 StandardOutput=journal

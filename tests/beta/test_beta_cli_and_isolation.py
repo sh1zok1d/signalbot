@@ -11,8 +11,8 @@ from beta_fakes import TEST_DSN, run
 from runtime.beta_cli import is_beta_command, run_beta_cli_command
 
 REPO = Path(__file__).resolve().parents[2]
-BETA_FILES = sorted((REPO / "beta").glob("*.py")) + [REPO / "runtime/beta_cli.py", REPO / "runtime/beta_bot.py",
-                                                     REPO / "storage/beta_v0_store.py"]
+BETA_FILES = sorted((REPO / "beta").glob("*.py")) + sorted((REPO / "runtime").glob("beta_*.py")) + \
+    [REPO / "storage/beta_v0_store.py"]
 
 
 @pytest.mark.parametrize("flag", ["--beta-bootstrap", "--beta-once", "--beta-status", "--beta-outcomes-once",
@@ -79,9 +79,32 @@ def test_disabled_committed_config_makes_every_write_command_a_noop():
         def __getattr__(self, name):
             raise AssertionError(f"DB touched: {name}")
     for flag in ("--beta-once", "--beta-bootstrap", "--beta-outcomes-once", "--beta-notify-once"):
-        rep = run(run_beta_cli_command(main.parse_args([flag, "--beta-json"]), db=NoDb(),
-                                       env={"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": "1"}))
-        assert rep["status"] == "DISABLED" and rep["switches"]["BETA_ENABLED"] is False
+        for env in ({}, {"BETA_ENABLED": ""}, {"BETA_ENABLED": "0", "BETA_PUSH_ENABLED": "1"}):
+            rep = run(run_beta_cli_command(main.parse_args([flag, "--beta-json"]), db=NoDb(), env=env))
+            assert rep["status"] == "DISABLED" and rep["switches"]["BETA_ENABLED"] is False
+
+
+def test_env_enable_keeps_push_off_and_no_telegram_notify_touches_nothing():
+    class NoDb:
+        def __getattr__(self, name):
+            raise AssertionError(f"DB touched: {name}")
+    rep = run(run_beta_cli_command(main.parse_args(["--beta-notify-once", "--beta-json"]), db=NoDb(),
+                                   env={"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": "1",
+                                        "BETA_TELEGRAM_ENABLED": "0"}))
+    assert rep["status"] == "TELEGRAM_DISABLED"
+    assert rep["switches"]["BETA_ENABLED"] is True and rep["switches"]["BETA_PUSH_ENABLED"] is False
+
+
+def test_bot_does_not_start_in_no_telegram_mode(monkeypatch, caplog):
+    import logging
+    from runtime import beta_bot
+    for k, v in {"BETA_ENABLED": "1", "BETA_TELEGRAM_ENABLED": "0", "BETA_TELEGRAM_BOT_TOKEN": "",
+                 "BETA_PUSH_ENABLED": ""}.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.setattr(beta_bot.asyncio, "run", lambda *a, **k: (_ for _ in ()).throw(AssertionError("started")))
+    with caplog.at_level(logging.INFO):
+        beta_bot.main()
+    assert "no-Telegram shadow mode" in caplog.text
 
 
 @pytest.mark.skipif(not TEST_DSN, reason="BETA_TEST_DSN not set")
@@ -109,6 +132,34 @@ def test_status_and_health_are_read_only():
                 rep = await run_beta_cli_command(main.parse_args([flag, "--beta-json"]), db=db, env={})
                 assert rep["status"] in ("OK", "ALERTS")
             assert tuple(await admin.fetchrow(snapshot_sql)) == before == (0, 0, 0, 0)
+        finally:
+            await db.close()
+            await admin.close()
+    run(body())
+
+
+@pytest.mark.skipif(not TEST_DSN, reason="BETA_TEST_DSN not set")
+def test_beta_health_on_postgres_respects_no_telegram_mode():
+    async def body():
+        import asyncpg
+        from beta_fakes import STAGE1_MIN_SQL
+        from storage.db import Database
+        admin = await asyncpg.connect(TEST_DSN)
+        await admin.execute("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;")
+        db = Database(TEST_DSN)
+        await db.connect()
+        try:
+            await db.init_beta_v0_schema()
+            await admin.execute(STAGE1_MIN_SQL)
+            args = main.parse_args(["--beta-health", "--beta-json"])
+            tg = await run_beta_cli_command(args, db=db, env={"BETA_ENABLED": "1"})
+            shadow = await run_beta_cli_command(args, db=db, env={"BETA_ENABLED": "1",
+                                                                  "BETA_TELEGRAM_ENABLED": "0"})
+            keys = lambda r: {a["key"] for a in r["health"]["alerts"]}
+            assert {"BOT_RECEIVER_DOWN", "NOTIFIER_NOT_RUNNING"} <= keys(tg)
+            assert not keys(shadow) & {"BOT_RECEIVER_DOWN", "NOTIFIER_NOT_RUNNING"}
+            assert keys(tg) - keys(shadow) == {"BOT_RECEIVER_DOWN", "NOTIFIER_NOT_RUNNING"}
+            assert shadow["health"]["switches"]["BETA_TELEGRAM_ENABLED"] is False
         finally:
             await db.close()
             await admin.close()

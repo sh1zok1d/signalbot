@@ -85,11 +85,63 @@ def test_switches_are_config_and_env_and_push_needs_explicit_env():
     assert not resolve_switches(on, {"BETA_PUSH_ENABLED": "1", "BETA_ENABLED": "0"}).push_hard
     assert not resolve_switches(on, {"BETA_DETECTION_ENABLED": "false"}).detection
     assert not resolve_switches(on, {"BETA_OUTCOME_TRACKING_ENABLED": "0"}).outcome_tracking
-    off = BetaConfig.load()     # committed: enabled false -> env can never enable
-    s = resolve_switches(off, {"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": "1"})
-    assert not (s.enabled or s.detection or s.push_hard or s.outcome_tracking)
     with pytest.raises(BetaConfigError):
         resolve_switches(on, {"BETA_PUSH_ENABLED": "maybe"})
+
+
+def test_committed_config_is_safe_by_default():
+    raw = _raw()
+    assert raw["enabled"] is False and raw["push_enabled"] is False
+    s = resolve_switches(BetaConfig.load(), {})
+    assert not (s.enabled or s.detection or s.push_hard or s.outcome_tracking)
+    assert s.telegram
+
+
+@pytest.mark.parametrize("env,expected", [
+    ({}, False), ({"BETA_ENABLED": ""}, False), ({"BETA_ENABLED": "  "}, False),
+    ({"BETA_ENABLED": "1"}, True), ({"BETA_ENABLED": "true"}, True), ({"BETA_ENABLED": "YES"}, True),
+    ({"BETA_ENABLED": "0"}, False), ({"BETA_ENABLED": "false"}, False),
+])
+def test_beta_enabled_env_overrides_committed_disabled_config(env, expected):
+    s = resolve_switches(BetaConfig.load(), env)
+    assert s.enabled is expected and s.detection is expected and s.outcome_tracking is expected
+    assert s.push_hard is False          # committed push_enabled: false can never be overridden
+
+
+@pytest.mark.parametrize("env,expected", [
+    ({}, True), ({"BETA_ENABLED": "1"}, True), ({"BETA_ENABLED": "0"}, False), ({"BETA_ENABLED": "no"}, False),
+])
+def test_beta_enabled_env_overrides_enabled_config(env, expected):
+    assert resolve_switches(BetaConfig.load().with_overrides(enabled=True), env).enabled is expected
+
+
+def test_env_enable_never_enables_push_or_unrestricts_kill_switches():
+    off = BetaConfig.load()
+    s = resolve_switches(off, {"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": "1"})
+    assert s.enabled and not s.push_hard
+    s = resolve_switches(off, {"BETA_ENABLED": "1", "BETA_DETECTION_ENABLED": "0",
+                               "BETA_OUTCOME_TRACKING_ENABLED": "0"})
+    assert s.enabled and not s.detection and not s.outcome_tracking
+    s = resolve_switches(off.with_overrides(detection_enabled=False), {"BETA_ENABLED": "1",
+                                                                      "BETA_DETECTION_ENABLED": "1"})
+    assert not s.detection               # config kill switch still wins
+    with pytest.raises(BetaConfigError):
+        resolve_switches(off, {"BETA_ENABLED": "maybe"})
+
+
+def test_no_telegram_shadow_mode_is_explicit_and_consistent():
+    off = BetaConfig.load()
+    assert resolve_switches(off, {"BETA_ENABLED": "1"}).telegram            # default: Telegram on
+    s = resolve_switches(off, {"BETA_ENABLED": "1", "BETA_TELEGRAM_ENABLED": "0"})
+    assert s.enabled and s.detection and not s.telegram and not s.push_hard
+    assert s.as_dict()["BETA_TELEGRAM_ENABLED"] is False
+    with pytest.raises(BetaConfigError):     # a configured bot contradicts the mode
+        resolve_switches(off, {"BETA_ENABLED": "1", "BETA_TELEGRAM_ENABLED": "0",
+                               "BETA_TELEGRAM_BOT_TOKEN": "123:abc"})
+    on_push = off.with_overrides(enabled=True, push_enabled=True)
+    with pytest.raises(BetaConfigError):     # enabled push contradicts the mode
+        resolve_switches(on_push, {"BETA_TELEGRAM_ENABLED": "0", "BETA_PUSH_ENABLED": "1"})
+    assert not resolve_switches(on_push, {"BETA_TELEGRAM_ENABLED": "0"}).telegram
 
 
 def test_admin_state_can_only_restrict_push():

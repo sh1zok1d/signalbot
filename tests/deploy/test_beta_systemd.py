@@ -56,3 +56,23 @@ def test_install_script_never_activates_and_check_script_is_read_only():
         assert verb not in code
     for f in DEPLOY.glob("signalbot-beta-*"):
         assert "BETA_TELEGRAM_BOT_TOKEN=" not in f.read_text()
+
+
+@pytest.mark.parametrize("name", ["detector", "outcomes"])
+def test_detector_and_outcomes_wait_for_postgres_first(name):
+    lines = [l.strip() for l in (DEPLOY / f"signalbot-beta-{name}.service").read_text().splitlines()]
+    pre = [l for l in lines if l.startswith("ExecStartPre=")]
+    gate = "ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py --postgres-only"
+    assert any(l.startswith(gate) for l in pre)
+    assert lines.index(next(l for l in pre if l.startswith(gate))) < lines.index(
+        next(l for l in lines if l.startswith("ExecStart=")))
+    timeout = int(next(l for l in pre if l.startswith(gate)).split("--timeout")[1].split()[0])
+    assert timeout < int(_unit(f"signalbot-beta-{name}.service")["Service"]["TimeoutStartSec"])
+
+
+def test_beta_units_reuse_the_single_readiness_script():
+    for f in DEPLOY.glob("*.service"):
+        for l in f.read_text().splitlines():
+            if "wait_for" in l and not l.strip().startswith("#"):
+                assert "/opt/signalbot/deploy/wait_for_infra.py" in l, (f.name, l)
+    assert sorted(p.name for p in DEPLOY.glob("wait_for*")) == ["wait_for_infra.py"]

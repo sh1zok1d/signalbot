@@ -224,8 +224,12 @@ def main() -> None:   # systemd entry point: python -m runtime.beta_bot
     from common.config import Secrets as _S  # noqa: F401 - loads .env
     from runtime.beta_cli import load_postgres_dsn
     cfg = BetaConfig.load()
-    if not resolve_switches(cfg).enabled:
+    switches = resolve_switches(cfg)
+    if not switches.enabled:
         logger.info("beta disabled (config/env hard switch); bot not started")
+        return
+    if not switches.telegram:
+        logger.info("no-Telegram shadow mode (BETA_TELEGRAM_ENABLED=0); bot not started")
         return
     secrets = BetaSecrets.from_env()
     if not secrets.bot_token:

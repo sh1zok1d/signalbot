@@ -127,9 +127,12 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
                            "detail": {"error": latest_live["snapshot"].get("materialization_error")}})
     if switches.outcome_tracking and _stalled("outcomes", h["outcome_stall_s"]):
         alerts.append({"key": "OUTCOME_TRACKER_NOT_ADVANCING", "detail": {}})
-    if switches.enabled and _stalled("bot", h["bot_stall_s"]):
+    # Telegram liveness is only checked when Telegram is part of the deployment
+    # (not in the explicit no-Telegram shadow-soak mode).
+    telegram = switches.enabled and getattr(switches, "telegram", True)
+    if telegram and _stalled("bot", h["bot_stall_s"]):
         alerts.append({"key": "BOT_RECEIVER_DOWN", "detail": {}})
-    if switches.enabled and _stalled("notifier", h["notifier_stall_s"]):
+    if telegram and _stalled("notifier", h["notifier_stall_s"]):
         alerts.append({"key": "NOTIFIER_NOT_RUNNING", "detail": {}})
     if delivery_problems >= h["delivery_problem_threshold"]:
         alerts.append({"key": "DELIVERY_FAILURE_SPIKE", "detail": {"count": delivery_problems}})

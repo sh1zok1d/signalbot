@@ -315,27 +315,47 @@ class BetaSwitches:
     detection: bool
     push_hard: bool
     outcome_tracking: bool
+    # False only in the explicit no-Telegram shadow-soak mode
+    # (BETA_TELEGRAM_ENABLED=0): no bot, no notifier, no Telegram health checks.
+    telegram: bool = True
 
     def as_dict(self) -> dict:
         return {"BETA_ENABLED": self.enabled, "BETA_DETECTION_ENABLED": self.detection,
                 "BETA_PUSH_ENABLED": self.push_hard,
-                "BETA_OUTCOME_TRACKING_ENABLED": self.outcome_tracking}
+                "BETA_OUTCOME_TRACKING_ENABLED": self.outcome_tracking,
+                "BETA_TELEGRAM_ENABLED": self.telegram}
 
 
 def resolve_switches(cfg: BetaConfig, env: Optional[Mapping[str, str]] = None) -> BetaSwitches:
-    """Effective hard switches = config AND environment. The env can only
-    restrict, never enable something the committed config forbids. Push needs an
-    EXPLICIT true env value (unset => push forbidden)."""
+    """Effective hard switches. Precedence (deterministic):
+
+    * BETA_ENABLED: an explicit env value (true or false) wins; unset/empty
+      falls back to the committed `beta.enabled` (false by default).
+    * Detection / outcome tracking: config AND env (env can only restrict).
+    * Push: committed `push_enabled` AND an EXPLICIT true BETA_PUSH_ENABLED
+      (unset => push forbidden); the env can never enable push on its own.
+    * BETA_TELEGRAM_ENABLED=0 selects the no-Telegram shadow-soak mode; it is
+      refused (BetaConfigError) while push is enabled or a bot token is set.
+    """
     env = os.environ if env is None else env
-    enabled = cfg["enabled"] and _env_flag(env, "BETA_ENABLED", default=True)
+    enabled = _env_flag(env, "BETA_ENABLED", default=bool(cfg["enabled"]))
+    push_hard = enabled and cfg["push_enabled"] and _env_flag(env, "BETA_PUSH_ENABLED", default=False)
+    telegram = _env_flag(env, "BETA_TELEGRAM_ENABLED", default=True)
+    if not telegram:
+        if push_hard:
+            raise BetaConfigError("BETA_TELEGRAM_ENABLED=0 (no-Telegram shadow mode) "
+                                  "conflicts with enabled push")
+        if (env.get("BETA_TELEGRAM_BOT_TOKEN") or "").strip():
+            raise BetaConfigError("BETA_TELEGRAM_ENABLED=0 (no-Telegram shadow mode) "
+                                  "requires BETA_TELEGRAM_BOT_TOKEN to be unset")
     return BetaSwitches(
         enabled=enabled,
         detection=enabled and cfg["detection_enabled"]
         and _env_flag(env, "BETA_DETECTION_ENABLED", default=True),
-        push_hard=enabled and cfg["push_enabled"]
-        and _env_flag(env, "BETA_PUSH_ENABLED", default=False),
+        push_hard=push_hard,
         outcome_tracking=enabled and cfg["outcome_tracking_enabled"]
         and _env_flag(env, "BETA_OUTCOME_TRACKING_ENABLED", default=True),
+        telegram=telegram,
     )
 
 

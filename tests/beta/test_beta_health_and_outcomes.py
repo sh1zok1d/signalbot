@@ -87,6 +87,21 @@ def test_health_alerts_cover_components():
                     "DELIVERY_FAILURE_SPIKE"}
 
 
+def test_no_telegram_mode_skips_only_telegram_liveness_alerts():
+    kw = dict(now=T, heartbeat={"healthy": False}, detector_watermark=None,
+              latest_live={"snapshot": {"materialized": False}}, runtime={}, delivery_problems=5)
+    shadow = {x["key"] for x in health_alerts(CFG, switches=BetaSwitches(True, True, False, True, False), **kw)}
+    assert shadow == {"INGESTION_STALE", "DETECTOR_NOT_ADVANCING", "MATERIALIZATION_FAILURE",
+                      "OUTCOME_TRACKER_NOT_ADVANCING", "DELIVERY_FAILURE_SPIKE"}
+    # healthy components: shadow mode reports nothing, Telegram mode still flags a stalled bot
+    fresh = {"outcomes": {"last_success_at": T}, "notifier": {"last_success_at": T}}
+    ok = dict(now=T, heartbeat={"healthy": True}, detector_watermark=T - timedelta(minutes=5),
+              latest_live={"snapshot": {"materialized": True}}, runtime=fresh, delivery_problems=0)
+    assert health_alerts(CFG, switches=BetaSwitches(True, True, False, True, False), **ok) == []
+    assert [x["key"] for x in health_alerts(CFG, switches=BetaSwitches(True, True, False, True), **ok)] \
+        == ["BOT_RECEIVER_DOWN"]
+
+
 def _kl(ex, start, n, f):
     return [{"exchange": ex, "ts": start + timedelta(minutes=i), **f(i)} for i in range(n)]
 
