@@ -103,16 +103,19 @@ def test_frozen_calendar_is_five_full_years_of_iso_weeks():
     assert L.index_day(L.decision_days(prm, 1, 1)[-1]) == date(2024, 12, 29)
 
 
-def test_repository_preflight_passes_offline_checks_and_execute_is_refused():
+def test_consumed_test_family_refuses_any_rerun():
+    """TF-GV0R01-C013-MT1 was executed once (2026-09-25). Preflight and execute must
+    now refuse, and the immutable result must stay byte-identical."""
+    before = (REPO / R.RESULT_REL).read_bytes()
+    entry = R.ledger_entry(REPO, 'TF-GV0R01-C013-MT1')
+    assert entry['STATUS'] == 'EXECUTED' and entry['RESULT_SHA256'] == R.hashlib.sha256(before).hexdigest()
     pf = R.preflight(REPO)
-    offline = {k: v for k, v in pf['CHECKS'].items() if k != 'SCIENTIFIC_PATHS_CLEAN'}
-    assert all(v['OK'] for v in offline.values()), {k: v for k, v in offline.items() if not v['OK']}
+    assert {'TEST_FAMILY_ID_UNUSED', 'RESULT_ABSENT'} <= set(pf['FAILURES'])
+    assert set(pf['FAILURES']) <= {'TEST_FAMILY_ID_UNUSED', 'RESULT_ABSENT', 'SCIENTIFIC_PATHS_CLEAN'}
     assert pf['TARGETS_COMPUTED'] is False
-    ex = R.preflight(REPO, mode='execute')
-    assert not ex['OK'] and 'EXECUTION_PERMIT_BOUND' in ex['FAILURES']
     with pytest.raises(R.PreflightRefused):
         R.execute(REPO)
-    assert not (REPO / R.RESULT_REL).exists()
+    assert (REPO / R.RESULT_REL).read_bytes() == before
 
 
 def test_prereg_lists_exactly_the_preflight_checks():

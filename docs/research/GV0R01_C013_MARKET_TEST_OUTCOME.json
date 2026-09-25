@@ -1,0 +1,193 @@
+{
+  "ADJACENCY": {
+    "GATE": true,
+    "POOLED": -0.021408922161335896,
+    "VALID_WEEKS": 260
+  },
+  "CLASSIFICATION": "PROMISING_PROTOTYPE",
+  "CLASSIFICATION_MEANING": "Discovery-tier evidence only. Requires independent confirmation. Not a validated edge. No trading, cost or profitability claim.",
+  "CONTROLLED": {
+    "POOLED": -0.053505113271568344,
+    "P_TWO_SIDED": 0.001998001998001998
+  },
+  "DATASET": {
+    "DATASET_ID": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+    "EXCLUSION_LIST_DIGEST": "35779ca5b84f0dc5a82d8d8d0e35ba2f4390cd24c23cee9a592631c9a9513cf0",
+    "FILE_COUNT": 18296,
+    "FILE_LEDGER_DIGEST": "fc38ea13756d7da9a8500420adcb8d918bcd7632367b0d7026fd31a1636c56cd",
+    "OBJECT_LEDGER_SHA256": "a1cffe79458910583633f6dd78301519c7eba1f0d930863e986d682b09ad8c2c",
+    "SNAPSHOT_ID": "fdd698c66ce894ba981665c1b4bd5661e7a13b275368ad89f532df9bcc455acd"
+  },
+  "DATA_RESTORE": {
+    "FILES_VERIFIED": 18296,
+    "PROTECTED_FILES_OPENED": 0,
+    "TRANSPORT": "data.binance.vision refused by sandbox egress (CONNECT 403); the canonical restore failed before writing. The frozen ledger keys were fetched from the same bucket via its S3 origin (d13_acquire.S3_ENDPOINT) by a scratch fetcher that wrote a file only on exact expected_sha256 match. The canonical restore_d13_panel then reported downloaded 0, already_present 18296, verified 18296. Execute-mode LOCAL_BYTES_MATCH_LEDGER passed."
+  },
+  "DATE": "2026-09-25",
+  "DEPENDENCE": {
+    "GATE": true,
+    "HAC_LAG_WEEKS": 4,
+    "HAC_T": -2.4792978687158023
+  },
+  "DESCRIPTIVE_FACTS_NOT_RECLASSIFICATION": [
+    "TEMPORAL_GATE passed at its threshold: 2020, 2021 and 2022 share the negative pooled sign; 2023 and 2024 yearly means are positive.",
+    "The primary and controlled p-values equal the smallest attainable value for 1000 permutations (2/1001).",
+    "The pooled primary statistic is a small rank correlation (about -0.020 per daily cross-section, averaged).",
+    "N=100 secondary variants are invalid on 148 early decision days (fewer than 100 eligible names), as preregistered."
+  ],
+  "EVIDENCE_TIER": "DISCOVERY_ONE_SHOT",
+  "EXECUTE_PREFLIGHT": {
+    "CHECKS": 18,
+    "FAILURES": [],
+    "OK": true,
+    "TARGETS_COMPUTED": false
+  },
+  "EXECUTION_HEAD": "386bc10b9b1aad5a7b5c410d48d73e231be9ca4d",
+  "EXECUTION_TREE": "4a63bfca01d201cfb4e3b366645c6eeadf66897e",
+  "EXECUTION_WINDOW_UTC": [
+    "2026-09-25T05:02:43Z",
+    "2026-09-25T05:03:53Z"
+  ],
+  "GATES": {
+    "ADJACENCY_GATE": true,
+    "CONTROL_GATE": true,
+    "DEPENDENCE_GATE": true,
+    "DIRECTION_GATE": true,
+    "STATISTICAL_GATE": true,
+    "TEMPORAL_GATE": true
+  },
+  "HYPOTHESIS_ID": "GV0R01-C013",
+  "IMPLEMENTATION_FILE_SHA256": {
+    "scripts/research/discovery_sprint_04/common.py": "516d75a90f287ba11fc967f8130515d06d488b13dd36a76a6df289e88f68b126",
+    "scripts/research/discovery_sprint_04/d13.py": "d043577e40cb65311ae71fe3e9da1669ea43aeef006e0fad08fd4639358841df",
+    "scripts/research/discovery_sprint_04/d13_acquire.py": "b6433108218b3271357399945647d3f995feb5b1348b7f9bedd6c25a529d9957",
+    "scripts/research/discovery_sprint_04/d13_panel.py": "0aaabc039abd327f56adb7c956932ea217380524d8d9a6bc9351c0df6a340d3f",
+    "scripts/research/gv0r01_c013_market_test.py": "6f179e2ca308210f5e0f836c5dd7d781f4a2ba26f4f1e36d7a1c4227ec9b8c12",
+    "scripts/research/gv0r01_c013_market_test_lib.py": "b30b080c55054f3ebbe2e1d87662d10484f5184d5348f60a3d1137aa0f319f89"
+  },
+  "LLM_API_CALLS": 0,
+  "MARKET_TEST_EXECUTIONS": 1,
+  "MEMORY_BOUNDARY": "Generator V0 memory is unchanged. The result enters full memory only through a later deterministic MARKET_TEST_RESULT event; the blind generator map stays outcome-neutral.",
+  "NAME": "Persistence of intraday wick morphology across the Binance spot USDT cross-section",
+  "PERMIT_COMMIT": "386bc10b9b1aad5a7b5c410d48d73e231be9ca4d",
+  "PERMIT_PATH": "docs/research/GV0R01_C013_MARKET_TEST_EXECUTION_PERMIT.json",
+  "PERMIT_SHA256": "c88ec5440da7b7f0dc1f44bc2c9036a786ca8e138926feab9b02ce7630d02a56",
+  "PREREG_PATH": "docs/research/GV0R01_C013_MARKET_TEST_PREREG.json",
+  "PREREG_SHA256": "49dff57b3e068d999c9c4467fb5117de9d73ad564425bf737df727a1096f7625",
+  "PRIMARY": {
+    "DECISION_DAYS": 1820,
+    "H": 1,
+    "K": 5,
+    "MISSING_TARGET_BY_REASON": {
+      "DELISTING_DAY_BAR": 11,
+      "MISSING_BAR": 13
+    },
+    "MISSING_TARGET_RATE": 0.0002637362637362637,
+    "N": 50,
+    "NULL_Q025": -0.008229767002077903,
+    "NULL_Q975": 0.004922933962572633,
+    "POOLED": -0.019931857522059566,
+    "P_TWO_SIDED": 0.001998001998001998,
+    "UNIVERSE_IDENTITY_DIGEST": "c6370c1646f23e4181925c2aa0e1c036c552c5d3b094b004feef8450bd2b7a86",
+    "VALID_DAYS": 1820,
+    "VALID_WEEKS": 260,
+    "VALID_WEEKS_BY_YEAR": {
+      "2020": 52,
+      "2021": 52,
+      "2022": 52,
+      "2023": 52,
+      "2024": 52
+    },
+    "VARIANT": "K5_H1_N50",
+    "YEARLY": {
+      "2020": -0.06911001845208506,
+      "2021": -0.06773478622218118,
+      "2022": -0.030661632784982122,
+      "2023": 0.03154401870638365,
+      "2024": 0.03630313114256692
+    },
+    "YEARS_SHARING_POOLED_SIGN": [
+      "2020",
+      "2021",
+      "2022"
+    ]
+  },
+  "PROTECTED_2025_2026_OPENED": false,
+  "REASONS": [],
+  "RECORD": "GV0R01_C013_MARKET_TEST_OUTCOME_V1",
+  "RERUNS": 0,
+  "RERUN_AUTHORIZED": false,
+  "RESULT_PATH": "docs/research/GV0R01_C013_MARKET_TEST_RESULT.json",
+  "RESULT_SHA256": "036016c403f83e4c63b2e006379551a0f595e8803cb55a0ef8f27a19ce3a1062",
+  "SEARCH_FAMILY_ID": "SF-GENERATOR_V0-GV0R01",
+  "SECONDARY_CAN_CHANGE_CLASSIFICATION": false,
+  "SECONDARY_GRID_NON_DECISIONAL": [
+    {
+      "HOLM_P": 0.013986013986013986,
+      "INVALID_DAYS_BY_REASON": {},
+      "POOLED": -0.009726171552641653,
+      "P_TWO_SIDED": 0.003996003996003996,
+      "VALID_WEEKS": 260,
+      "VARIANT": "K1_H1_N50"
+    },
+    {
+      "HOLM_P": 0.013986013986013986,
+      "INVALID_DAYS_BY_REASON": {
+        "UNIVERSE_SHORT": 148
+      },
+      "POOLED": -0.021810481749059224,
+      "P_TWO_SIDED": 0.001998001998001998,
+      "VALID_WEEKS": 239,
+      "VARIANT": "K1_H1_N100"
+    },
+    {
+      "HOLM_P": 0.013986013986013986,
+      "INVALID_DAYS_BY_REASON": {},
+      "POOLED": -0.0213547128868624,
+      "P_TWO_SIDED": 0.001998001998001998,
+      "VALID_WEEKS": 260,
+      "VARIANT": "K1_H5_N50"
+    },
+    {
+      "HOLM_P": 0.013986013986013986,
+      "INVALID_DAYS_BY_REASON": {
+        "UNIVERSE_SHORT": 148
+      },
+      "POOLED": -0.041737581075534734,
+      "P_TWO_SIDED": 0.001998001998001998,
+      "VALID_WEEKS": 239,
+      "VARIANT": "K1_H5_N100"
+    },
+    {
+      "HOLM_P": 0.013986013986013986,
+      "INVALID_DAYS_BY_REASON": {
+        "UNIVERSE_SHORT": 148
+      },
+      "POOLED": -0.03643693133614938,
+      "P_TWO_SIDED": 0.001998001998001998,
+      "VALID_WEEKS": 239,
+      "VARIANT": "K5_H1_N100"
+    },
+    {
+      "HOLM_P": 0.013986013986013986,
+      "INVALID_DAYS_BY_REASON": {},
+      "POOLED": -0.05329352370829088,
+      "P_TWO_SIDED": 0.001998001998001998,
+      "VALID_WEEKS": 260,
+      "VARIANT": "K5_H5_N50"
+    },
+    {
+      "HOLM_P": 0.013986013986013986,
+      "INVALID_DAYS_BY_REASON": {
+        "UNIVERSE_SHORT": 148
+      },
+      "POOLED": -0.08643349825212962,
+      "P_TWO_SIDED": 0.001998001998001998,
+      "VALID_WEEKS": 239,
+      "VARIANT": "K5_H5_N100"
+    }
+  ],
+  "SUPPORT_PASS": true,
+  "SUPPORT_REASONS": [],
+  "TEST_FAMILY_ID": "TF-GV0R01-C013-MT1"
+}

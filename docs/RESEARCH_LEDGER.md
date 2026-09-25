@@ -6245,3 +6245,26 @@ MARKET_TEST_EXECUTED = false
 ```
 
 The global machine-readable test ledger `docs/research/SCIENTIFIC_TEST_LEDGER.json` starts here. It counts executed tests, not generated cards.
+
+## GV0R01-C013 one-shot market test — executed — 2026-09-25
+
+Consumed: `TF-GV0R01-C013-MT1` on `SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0` legal 2019-12..2024-12 (decision days 2020-01-06..2024-12-29). Protected 2025/2026 unopened. No LLM call. One execution; no rerun.
+
+```
+PERMIT_COMMIT = 386bc10b9b1aad5a7b5c410d48d73e231be9ca4d (pre-outcome)
+PREREG_SHA256 = 49dff57b3e068d999c9c4467fb5117de9d73ad564425bf737df727a1096f7625
+RESULT = docs/research/GV0R01_C013_MARKET_TEST_RESULT.json
+RESULT_SHA256 = 036016c403f83e4c63b2e006379551a0f595e8803cb55a0ef8f27a19ce3a1062
+CLASSIFICATION = PROMISING_PROTOTYPE
+GATES = STATISTICAL, DIRECTION, TEMPORAL, CONTROL, DEPENDENCE, ADJACENCY all pass
+PRIMARY_K5_H1_N50_POOLED = -0.019932; P_TWO_SIDED = 0.001998 (1000 permutations)
+CONTROLLED_POOLED = -0.053505; P_TWO_SIDED = 0.001998
+HAC_T_LAG4 = -2.479; ADJACENCY_POOLED = -0.021409
+YEARLY = 2020 -0.0691, 2021 -0.0677, 2022 -0.0307, 2023 +0.0315, 2024 +0.0363 (3 of 5 share sign)
+VALID_DAYS = 1820/1820; VALID_WEEKS = 260; MISSING_TARGET_RATE = 0.000264
+SECONDARY_GRID = 7 variants, descriptive only, cannot change classification
+SEARCH_FAMILY SF-GENERATOR_V0-GV0R01: EXECUTED_TESTS = 1 (of 30 generated cards)
+NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN
+```
+
+This is discovery-tier evidence, not a validated edge. The 2023–2024 yearly means are opposite in sign to the pooled result, and that is recorded for the confirmation design. The 2020–2024 legal window of this panel is now consumed for C013 and cannot serve as its confirmation.

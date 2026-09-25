@@ -1,3 +1,25 @@
+## GV0R01-C013 one-shot market test — executed — 2026-09-25
+
+`GV0R01_C013_MARKET_TEST = EXECUTED_ONCE`
+`CLASSIFICATION = PROMISING_PROTOTYPE` (discovery tier; not a validated edge)
+`RERUN_AUTHORIZED = false`
+`NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN`
+
+This section supersedes `NEXT_UNIT = GV0R01_C013_MARKET_TEST_EXECUTION_AUTHORIZATION` below.
+
+The frozen one-shot test `TF-GV0R01-C013-MT1` ran once under the owner permit committed in `386bc10`. The result is `docs/research/GV0R01_C013_MARKET_TEST_RESULT.json` (SHA256 `036016c403f83e4c63b2e006379551a0f595e8803cb55a0ef8f27a19ce3a1062`).
+
+- All six frozen gates passed: statistical, direction, temporal, control, dependence and adjacency.
+- Primary K5/H1/N50: pooled weekly-mean Spearman −0.0199, permutation p 0.002 (the 1000-draw floor).
+- Controlled statistic −0.0535, p 0.002. Newey–West t −2.48. Adjacency −0.0214.
+- Yearly means are negative in 2020–2022 and positive in 2023–2024. The temporal gate passed exactly at 3 of 5.
+- Coverage: 1820/1820 valid days, 260 valid weeks. Missing-target rate 0.03%.
+- The seven secondary variants are descriptive only and cannot change the classification.
+
+This is discovery evidence only. It requires independent confirmation, which has **not** been designed or executed. No trading or profitability claim is made. Protected 2025/2026 remain unopened. Generator V0 memory is unchanged: the result enters full memory only through a later deterministic `MARKET_TEST_RESULT` event, and the generator's blind map stays outcome-neutral.
+
+Record: `docs/research/GV0R01_C013_MARKET_TEST_OUTCOME.{md,json}`. Ledger: `docs/research/SCIENTIFIC_TEST_LEDGER.json` (`EXECUTED`; search family `SF-GENERATOR_V0-GV0R01` has 1 executed test out of 30 generated cards).
+
 ## GV0R01-C013 first market test — preregistration frozen — 2026-09-25
 
 `GV0R01_C013_MARKET_TEST_DESIGN = FROZEN`
