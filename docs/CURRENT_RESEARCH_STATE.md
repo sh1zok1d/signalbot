@@ -1,3 +1,15 @@
+## GV0R02 feasibility compiler implemented — 2026-09-25
+
+`FEASIBILITY_COMPILER_IMPLEMENTED = true`
+`GOLDEN_C012 = PASS`
+`GOLDEN_C004 = PASS`
+`GOLDEN_C020 = PASS`
+`MARKET_OUTCOMES_OPENED = false`
+`POSITIVE_CONTROL_EXECUTED = false`
+`NEXT_UNIT = GV0R02_FEASIBILITY_COMPILER_POSITIVE_CONTROL`
+
+The compiler screens a pre-candidate proposal under `GV0R02_SCHEMA_V0`. It does not decide that a hypothesis is true. Golden C012 is `INFORMATIONALLY_WEAK`, C004 is `INFERENCE_SUPPORT_INSUFFICIENT`, and C020 is a placebo reference test that is `INFORMATIONALLY_WEAK`. The positive control was not run. Code: `scripts/research/gv0r02_feasibility_compiler.py`.
+
 ## GV0R02 feasibility compiler design — 2026-09-25
 
 `FEASIBILITY_COMPILER_IMPLEMENTED = false`

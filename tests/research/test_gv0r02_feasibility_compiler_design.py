@@ -68,8 +68,7 @@ def test_golden_cases_match_closed_records():
     assert _load(CASES)["MARKET_OUTCOMES_RECOMPUTED"] is False
 
 
-def test_no_compiler_engine_or_generator_edit():
+def test_compiler_is_outside_the_generator():
     research = ROOT / "scripts" / "research"
-    engines = list(research.glob("*feasibility_compiler*.py"))
-    assert engines == []
-    assert not (research / "gv0r02").exists()
+    assert (research / "gv0r02_feasibility_compiler.py").is_file()
+    assert not list((research / "generator_v0").glob("*feasibility*"))

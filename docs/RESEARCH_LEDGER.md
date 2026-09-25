@@ -6484,6 +6484,19 @@ C020_PRIMARY_TEST_EXECUTED = false
 NEXT_UNIT = GV0R01_C020_HOLIDAY_CALENDAR_PINNING
 ```
 
+## GV0R02 feasibility compiler implementation — 2026-09-25
+
+Implementation of the frozen contract. No generator edit, no new data, no market outcomes, no positive control.
+
+```
+FEASIBILITY_COMPILER_IMPLEMENTED = true
+FEATURE_REGISTRY_VERSION = GV0R02_FEATURE_REGISTRY_V0
+GOLDEN_C012 = INFORMATIONALLY_WEAK
+GOLDEN_C004 = INFERENCE_SUPPORT_INSUFFICIENT
+GOLDEN_C020 = INFORMATIONALLY_WEAK
+NEXT_UNIT = GV0R02_FEASIBILITY_COMPILER_POSITIVE_CONTROL
+```
+
 ## GV0R02 feasibility compiler design — 2026-09-25
 
 Design only. No compiler engine, no generator edit, no new hypotheses, no new data, no market outcomes.
