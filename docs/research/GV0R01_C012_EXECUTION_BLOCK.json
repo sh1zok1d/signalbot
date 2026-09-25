@@ -1,0 +1,15 @@
+{
+  "CPI_DATASET_DIGEST": "760ed2c5d18b03b7a41c25e6bab157ebde476977fdc3e5f7a3462aa376f4154f",
+  "DESIGN_HEAD": "0af0ce5aaff9a98b9584c4f9a7a3af2294fe6c9b",
+  "DESIGN_TREE": "e86f5545276b7a608d95981f6f63557ff3fc6339",
+  "MARKET_DATA_OPENED": false,
+  "MARKET_OUTCOMES_COMPUTED": false,
+  "PREFLIGHT_HEAD": "61ce00383d4b8879632e6a0382b9466edcf954ce",
+  "PREFLIGHT_STATUS": "PASS",
+  "PREFLIGHT_TREE": "8ead4b2a0a884d4ca83be81e02cdadae56ebd835",
+  "PROTECTED_2025_VALUES_OPENED": false,
+  "PROTECTED_2026_VALUES_OPENED": false,
+  "REASON": "CORE_BTC_BINANCE_V0 canonical 1m months are not on disk. The pinned snapshot identity lists objects through 2026-08, so materializing that snapshot as a whole would fetch protected-year bytes. Those bytes were not fetched. No price file was opened.",
+  "RUN_STATUS": "BLOCKED_MARKET_BYTES_ABSENT",
+  "UNIT": "GV0R01_C012_ONE_SHOT_EXECUTION"
+}

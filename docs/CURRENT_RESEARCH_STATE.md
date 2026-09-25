@@ -1,3 +1,12 @@
+## GV0R01-C012 one-shot execution blocked before prices — 2026-09-25
+
+`PREFLIGHT_STATUS = PASS`
+`RUN_STATUS = BLOCKED_MARKET_BYTES_ABSENT`
+`MARKET_DATA_OPENED = false`
+`NEXT_UNIT = GV0R01_C012_ONE_SHOT_EXECUTION`
+
+The calendar preflight committed at `61ce003` assigns a control to all 99 events with no reuse. Within each stratum the windows are at least 7 days apart, so the frozen within-stratum permutation is compatible with that assignment. The pinned `CORE_BTC_BINANCE_V0` 1m months are not on disk. The snapshot identity runs through 2026-08, so the full materializer was not started. No price file was opened and no return was computed.
+
 ## GV0R01-C012 outcome-blind design and power — 2026-09-25
 
 `C012_DESIGN = PREREGISTRATION_CANDIDATE`
