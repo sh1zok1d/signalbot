@@ -1,3 +1,15 @@
+## GV0R01-C013 result ingested into full scientific memory — 2026-09-25
+
+`MARKET_TEST_RESULT_EVENT = IMPLEMENTED`
+`GV0R01_C013_RESULT_MEMORY_INGESTION = COMPLETE`
+`NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN` (unchanged)
+
+The memory chain is now `LEGACY_BOOTSTRAP → GV0CAL → GV0R01 → GV0R01C013MT1`. The head is `853ef4514460a18b5aa16bf3fff86ece027c52e4b58d92dfbf98034f1fde9373`. Memory holds 57 signatures, 35 attempt records and 1 market result.
+
+The immutable C013 discovery result (`TF-GV0R01-C013-MT1`, `PROMISING_PROTOTYPE`, result SHA256 `036016c4…`) is attached to full **human** scientific memory under `MECHANISM_MEMORY_V0.MARKET_TEST_RESULTS`. It is not a validated edge. Independent confirmation has not been designed or executed.
+
+The blind generator map and the governance authority are byte-for-byte unchanged and outcome-neutral. GV0R01-C013 stays `PRIOR_WORK_SIGNATURE` for the generator, and its governance row stays `CONSUMED`. No market data were read, no outcome was computed, and no provider was called. See `docs/research/GENERATOR_V0_MEMORY_FINALIZER.md` §8.
+
 ## GV0R01-C013 one-shot market test — executed — 2026-09-25
 
 `GV0R01_C013_MARKET_TEST = EXECUTED_ONCE`

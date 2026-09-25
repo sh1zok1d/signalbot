@@ -225,18 +225,30 @@ The manual ingestion (`GENERATOR_V0_CALIBRATION_MEMORY_INGESTION.*`, commit
 wording for the five signatures is superseded by the deterministic text from
 section 5. IDs, states, blocker classes and blind-projection semantics are the same.
 
-## 8. Future market results and multiple testing
+## 8. Market test results (`MARKET_TEST_RESULT`) and multiple testing
 
-Reserved, **not implemented**: `EVENT_TYPE = MARKET_TEST_RESULT`. Such an event will
-attach a frozen experiment result to full memory of an existing signature: the
-signature or hypothesis identity, the frozen experiment identity, the
-test-family/search-family identity, result provenance, and multiplicity/search-ledger
-references. It must never change the signature's blind projection. The store
-currently refuses this event type.
+`MARKET_TEST_RESULT_EVENT = IMPLEMENTED` (2026-09-25). This section records the decision; it was previously reserved.
 
-Generated hypotheses are not executed market tests. A future multiple-testing ledger
-counts executed scientific tests and search families, not generated cards. This
-finalizer creates no scientific classification.
+A `MARKET_TEST_RESULT` event attaches one frozen, executed scientific test to **full** memory of an existing signature.
+- **Record.** It is appended as `MECHANISM_MEMORY_V0.MARKET_TEST_RESULTS[TEST_FAMILY_ID]`.
+- **Identity.** It carries the signature and hypothesis identity, the prereg and permit identity (prereg SHA256, permit path and pre-outcome commit), the test-family and search-family IDs, and the result provenance (path, SHA256, schema). It also carries the frozen classification and evidence tier, the multiplicity counts and method, the dataset snapshot, and the primary, controlled and gate values copied verbatim. A fixed statement says it is not a validated edge.
+- **Append-only.** `ADD_ENTRIES`, `ADD_ROWS` and `ATTEMPTS` must be empty. Existing entries, governance rows (including `STATE = CONSUMED`) and attempt records are never rewritten.
+- **Blind boundary.** The blind map, governance authority and attempt records are byte-identical before and after. The finalizer fails closed if any of their digests would change. Generator and novelty contexts therefore never see a classification, p-value, effect, gate or yearly value. `CONSUMED` still means only "already generated; do not cosmetically regenerate".
+- **Source.** `source_from_market_test_result` reads the canonical result file and the `SCIENTIFIC_TEST_LEDGER.json` entry for its test family. It binds that entry by its own digest, not the whole growing ledger. It also reads the prereg and the execution permit. It fails closed unless all of these hold:
+  - the result SHA256 matches the ledger;
+  - the classification matches between ledger and result;
+  - the ledger `STATUS = EXECUTED` and `RERUN_AUTHORIZED = false`;
+  - the prereg SHA256 agrees across ledger, result and permit;
+  - the permit authorizes exactly this one-shot test;
+  - the search family exists once, and `EXECUTED_TESTS` counts this execution;
+  - the result attests protected 2025/2026 unopened;
+  - the hypothesis is the attempt record that generated the signature.
+- **Unit and idempotence.** The unit ID is `TEST_FAMILY_ID` without `TF-` and without hyphens, for example `GV0R01C013MT1`. It occupies the historical `CAMPAIGN_ID` event field, which stays unique across the chain. Re-running the same source is a no-op (`ALREADY_FINALIZED`). The same test family with a different source is a hard failure. A second, distinct test family may attach to the same signature.
+- **Schema.** It stays `GENERATOR_V0_MEMORY_CHAIN_V1`, and old events replay exactly as before. The event carries the same fields, uses the same atomic HEAD publish, and has the same crash and repair semantics as `CAMPAIGN_FINALIZATION`.
+
+First event: `GV0R01C013MT1` at sequence 3, event `853ef4514460a18b5aa16bf3fff86ece027c52e4b58d92dfbf98034f1fde9373`, delta `3b7c5485…`. It attaches `TF-GV0R01-C013-MT1`, classified `PROMISING_PROTOTYPE`, which is discovery tier and not a validated edge. The chain is `LEGACY_BOOTSTRAP → GV0CAL → GV0R01 → GV0R01C013MT1`. Memory holds 57 entries, 35 attempt records and 1 market result.
+
+Generated hypotheses are not executed market tests. `docs/research/SCIENTIFIC_TEST_LEDGER.json` counts executed scientific tests and search families, not generated cards. The finalizer copies a frozen classification and never creates or upgrades one.
 
 ## 9. Operator commands
 
@@ -245,6 +257,8 @@ python -m scripts.research.generator_v0.finalize_memory --verify
 python -m scripts.research.generator_v0.finalize_memory --rebuild
 python -m scripts.research.generator_v0.finalize_memory --dry-run --campaign-id <ID> --run-journal <run.sqlite>
 python -m scripts.research.generator_v0.finalize_memory --apply   --campaign-id <ID> --run-journal <run.sqlite>
+python -m scripts.research.generator_v0.finalize_memory --dry-run --market-test-result <result.json>
+python -m scripts.research.generator_v0.finalize_memory --apply   --market-test-result <result.json>
 ```
 
 - **`--dry-run`** writes nothing. It prints the campaign ID, source hash, previous

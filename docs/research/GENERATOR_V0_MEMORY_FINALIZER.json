@@ -65,12 +65,38 @@
   "LEGACY_REPLAY_BYTE_IDENTICAL_TO_SOURCE_COMMIT": true,
   "LIVE_API_CALLS": 0,
   "MARKET_OUTCOMES_TESTED": false,
+  "MARKET_TEST_RESULT_AMENDMENT": {
+    "ATTEMPT_RECORDS_UNCHANGED": true,
+    "ATTEMPT_RECORD_COUNT": 35,
+    "BLIND_MAP_UNCHANGED": true,
+    "CURRENT_MEMORY_HEAD_HASH": "853ef4514460a18b5aa16bf3fff86ece027c52e4b58d92dfbf98034f1fde9373",
+    "DATE": "2026-09-25",
+    "FIRST_EVENT": {
+      "EVENT_HASH": "853ef4514460a18b5aa16bf3fff86ece027c52e4b58d92dfbf98034f1fde9373",
+      "MEMORY_DELTA_SHA256": "3b7c5485a6b7fc0d1abe723413e242de4da77867483548c4afc2cfbb46c0962e",
+      "PREVIOUS_EVENT_HASH": "416b22fabd1663be9094bce18c5bce2a8b3d062b0b01525a25395d195788bead",
+      "SEQUENCE": 3,
+      "SIGNATURE_ID": "GV0R01-C013",
+      "SOURCE_SHA256": "2134503de5ef33a6cd8f03eb4dbe4d6647a3d0204ee898883beb4cbb8a4de271",
+      "TEST_FAMILY_ID": "TF-GV0R01-C013-MT1",
+      "UNIT_ID": "GV0R01C013MT1"
+    },
+    "GOVERNANCE_AUTHORITY_UNCHANGED": true,
+    "MARKET_TEST_RESULT_COUNT": 1,
+    "MEMORY_ENTRY_COUNT": 57,
+    "NOTE": "CURRENT_MEMORY_HEAD_HASH at the top level of this record is the head at the V1 freeze; the chain HEAD.json is the live authority.",
+    "SCHEMA_VERSION": "GENERATOR_V0_MEMORY_CHAIN_V1 (unchanged; old events are interpreted exactly as before)",
+    "SEMANTICS": "Appends MEMORY.MARKET_TEST_RESULTS[TEST_FAMILY_ID] for an existing signature. ADD_ENTRIES, ADD_ROWS and ATTEMPTS must be empty; the blind map, governance authority and attempt records cannot change. One event per test family; unit id = TEST_FAMILY_ID without TF- and hyphens.",
+    "SOURCE": "executed, ledger-closed test: canonical result file, SCIENTIFIC_TEST_LEDGER entry (bound by its own digest), prereg and execution permit, all cross-checked fail-closed",
+    "STATUS": "MARKET_TEST_RESULT_EVENT = IMPLEMENTED"
+  },
   "MEMORY_AUTHORITY_MODEL": "APPEND_ONLY_EVENT_CHAIN: LEGACY_BOOTSTRAP + CAMPAIGN_FINALIZATION deltas, deterministic replay under frozen design rules; mirrors and context pins are derived caches",
   "MEMORY_ENTRY_COUNT": 35,
   "MULTIPLE_TESTING_BOUNDARY": "generated hypotheses != executed market tests; a future ledger counts executed tests/search families",
   "NO_SCIENTIFIC_STATUS": true,
   "PROTECTED_DATA_OPENED": false,
-  "RESERVED_EVENT_TYPES": [
+  "RESERVED_EVENT_TYPES": [],
+  "RESERVED_EVENT_TYPES_AT_V1_FREEZE": [
     "MARKET_TEST_RESULT"
   ],
   "START_HEAD": "64a37a9857c587ec85a943f2d2529fcb5ea4178d",

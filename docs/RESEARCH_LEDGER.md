@@ -6268,3 +6268,20 @@ NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN
 ```
 
 This is discovery-tier evidence, not a validated edge. The 2023–2024 yearly means are opposite in sign to the pooled result, and that is recorded for the confirmation design. The 2020–2024 legal window of this panel is now consumed for C013 and cannot serve as its confirmation.
+
+## GV0R01-C013 result memory ingestion (MARKET_TEST_RESULT event) — 2026-09-25
+
+Offline memory and provenance only. No research window consumed, no outcome computed, no market data read, no protected data opened, no provider call.
+
+```
+MARKET_TEST_RESULT_EVENT = IMPLEMENTED (chain schema GENERATOR_V0_MEMORY_CHAIN_V1 unchanged)
+UNIT_ID = GV0R01C013MT1; TEST_FAMILY_ID = TF-GV0R01-C013-MT1; SIGNATURE_ID = GV0R01-C013
+SOURCE_SHA256 = 2134503de5ef33a6cd8f03eb4dbe4d6647a3d0204ee898883beb4cbb8a4de271
+MEMORY_DELTA_SHA256 = 3b7c5485a6b7fc0d1abe723413e242de4da77867483548c4afc2cfbb46c0962e
+EVENT_HASH = 853ef4514460a18b5aa16bf3fff86ece027c52e4b58d92dfbf98034f1fde9373 (sequence 3)
+PREVIOUS_EVENT_HASH = 416b22fabd1663be9094bce18c5bce2a8b3d062b0b01525a25395d195788bead
+ENTRIES = 57; ATTEMPTS = 35; MARKET_TEST_RESULTS = 1
+BLIND_MAP / GOVERNANCE_AUTHORITY / ATTEMPT_RECORDS = byte-identical (digests unchanged)
+CLASSIFICATION (copied) = PROMISING_PROTOTYPE, discovery tier, not a validated edge
+NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN
+```

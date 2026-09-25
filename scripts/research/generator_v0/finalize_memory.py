@@ -5,6 +5,12 @@
   python -m scripts.research.generator_v0.finalize_memory --dry-run --campaign-id GV0R01 --run-journal path/run.sqlite
   python -m scripts.research.generator_v0.finalize_memory --apply   --campaign-id GV0R01 --run-journal path/run.sqlite
   python -m scripts.research.generator_v0.finalize_memory --apply   --campaign-id GV0CAL --calibration-export docs/research/GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT.json
+  python -m scripts.research.generator_v0.finalize_memory --dry-run --market-test-result docs/research/GV0R01_C013_MARKET_TEST_RESULT.json
+  python -m scripts.research.generator_v0.finalize_memory --apply   --market-test-result docs/research/GV0R01_C013_MARKET_TEST_RESULT.json
+
+--market-test-result attaches one executed, ledger-closed scientific test to FULL memory
+(MARKET_TEST_RESULT event). Its unit id is derived from TEST_FAMILY_ID; --campaign-id is
+not used. The blind map, governance authority and attempt records never change.
 
 --bootstrap-from-commit is a one-time migration command: it creates the LEGACY_BOOTSTRAP
 event from the pre-GV0CAL memory at a Git commit and refuses once a chain exists. After
@@ -58,6 +64,8 @@ def main(argv=None):
     src = p.add_mutually_exclusive_group()
     src.add_argument('--run-journal', type=Path)
     src.add_argument('--calibration-export', type=Path)
+    src.add_argument('--market-test-result', type=Path)
+    p.add_argument('--scientific-test-ledger', type=Path, default=Path(fin.SCIENTIFIC_TEST_LEDGER))
     p.add_argument('--root', type=Path, default=ROOT)
     a = p.parse_args(argv)
     try:
@@ -67,6 +75,12 @@ def main(argv=None):
             out = fin.rebuild(a.root)
         elif a.bootstrap_from_commit:
             out = bootstrap_from_commit(a.root, a.bootstrap_from_commit)
+        elif a.market_test_result:
+            if a.campaign_id:
+                p.error('--market-test-result derives its unit from TEST_FAMILY_ID; do not pass --campaign-id')
+            rel = lambda x: str(x.resolve().relative_to(a.root.resolve())) if x.is_absolute() else str(x)
+            source = fin.source_from_market_test_result(a.root, rel(a.market_test_result), rel(a.scientific_test_ledger))
+            out = fin.finalize_market_test_result(a.root, source, apply=a.apply)
         else:
             if not a.campaign_id or not (a.run_journal or a.calibration_export):
                 p.error('--dry-run/--apply need --campaign-id and one source')

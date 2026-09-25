@@ -28,10 +28,13 @@ SCHEMA_VERSION = 'GENERATOR_V0_MEMORY_CHAIN_V1'
 STORE = 'docs/research/generator_v0_memory'
 HEAD_FILE = STORE + '/HEAD.json'
 GENESIS = 'GENESIS'
-EVENT_TYPES = ('LEGACY_BOOTSTRAP', 'CAMPAIGN_FINALIZATION')
-# Reserved, not implemented: attaches a frozen experiment result to FULL memory of an
-# existing signature without changing its blind projection. See the finalizer doc.
-RESERVED_EVENT_TYPES = ('MARKET_TEST_RESULT',)
+EVENT_TYPES = ('LEGACY_BOOTSTRAP', 'CAMPAIGN_FINALIZATION', 'MARKET_TEST_RESULT')
+# MARKET_TEST_RESULT attaches one frozen experiment result to FULL memory
+# (MEMORY.MARKET_TEST_RESULTS, keyed by TEST_FAMILY_ID) of an existing signature. It
+# adds no entry, row or attempt, so the blind projection and the governance authority
+# cannot change. No event type is reserved any more.
+RESERVED_EVENT_TYPES = ()
+MARKET_TEST_RESULTS_KEY = 'MARKET_TEST_RESULTS'
 SNAPSHOT_FILES = {
     'MEMORY': 'MECHANISM_MEMORY_V0.json',
     'BLIND_MAP': 'BLIND_MECHANISM_MAP_V0.json',
@@ -144,6 +147,8 @@ def apply_delta(state, delta):
     kind = delta.get('KIND')
     if kind in RESERVED_EVENT_TYPES:
         raise ContractError(kind + ' is a reserved event type and is not implemented')
+    if kind == 'MARKET_TEST_RESULT':
+        return _apply_market_test_result(state, delta)
     if kind != 'CAMPAIGN_FINALIZATION':
         raise ContractError('unknown delta kind: ' + str(kind))
     new = copy.deepcopy(state)
@@ -168,6 +173,30 @@ def apply_delta(state, delta):
     for key in ('STATUS', 'DATE'):
         if meta.get(key) is not None:
             new['MEMORY'][key] = meta[key]
+    return new
+
+
+def _apply_market_test_result(state, delta):
+    """Append result records only. Entries, rows and attempts must stay untouched."""
+    if delta.get('ADD_ENTRIES') != {} or delta.get('ADD_ROWS') != [] or delta.get('ATTEMPTS') != []:
+        raise ContractError('MARKET_TEST_RESULT may not add entries, rows or attempts')
+    results = delta.get('ADD_MARKET_TEST_RESULTS')
+    if not isinstance(results, dict) or len(results) != 1:
+        raise ContractError('MARKET_TEST_RESULT binds exactly one test family')
+    new = copy.deepcopy(state)
+    memory = new['MEMORY']
+    known = memory.setdefault(MARKET_TEST_RESULTS_KEY, {})
+    attempts = {a['ATTEMPT_ID']: a for a in new['ATTEMPTS']}
+    for tf, record in results.items():
+        if tf in known or record.get('TEST_FAMILY_ID') != tf:
+            raise ContractError('test family already attached or mis-keyed: ' + str(tf))
+        sid = record.get('SIGNATURE_ID')
+        if sid not in memory['ENTRIES']:
+            raise ContractError('market test result for unknown signature: ' + str(sid))
+        attempt = attempts.get(record.get('HYPOTHESIS_ID'))
+        if attempt is None or attempt.get('SIGNATURE_ID') != sid:
+            raise ContractError('hypothesis is not the attempt that generated signature ' + str(sid))
+        known[tf] = copy.deepcopy(record)
     return new
 
 

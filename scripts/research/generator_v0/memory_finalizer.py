@@ -66,6 +66,19 @@ SCRUB_PATTERNS = (
     (r'p[-_ ]?value|effect size|prototype|promising|profit|\bgate\b|\b20[12]\d\b|\d\.\d', re.IGNORECASE),
     (r'\bPASS\b|\bFAIL\b', 0),
 )
+# MARKET_TEST_RESULT: one executed scientific test family -> one full-memory record.
+SCIENTIFIC_TEST_LEDGER = 'docs/research/SCIENTIFIC_TEST_LEDGER.json'
+TEST_FAMILY_ID_RE = re.compile(r'^TF-([A-Z0-9]+(?:-[A-Z0-9]+)*)$')
+DISCOVERY_CLASSIFICATIONS = ('PROMISING_PROTOTYPE', 'NO_USEFUL_STRUCTURE', 'INCONCLUSIVE_DISCOVERY', 'INVALID_DISCOVERY')
+RESULT_GATES = ('STATISTICAL_GATE', 'DIRECTION_GATE', 'TEMPORAL_GATE', 'CONTROL_GATE', 'DEPENDENCE_GATE', 'ADJACENCY_GATE')
+MARKET_RESULT_INTERPRETATION = ('Frozen classification of one preregistered test, copied verbatim. Not a validated edge; '
+                                'no trading, cost or profitability claim. Full human memory only; never generator-visible.')
+MARKET_TEST_RESULT_RULES = {
+    'UNIT_ID': 'TEST_FAMILY_ID without the TF- prefix and without hyphens (must satisfy CAMPAIGN_ID_RE)',
+    'SIGNATURE': 'the SIGNATURE_ID of the attempt record whose ATTEMPT_ID equals HYPOTHESIS_ID',
+    'CLASSIFICATIONS': list(DISCOVERY_CLASSIFICATIONS), 'GATES': list(RESULT_GATES),
+    'INTERPRETATION': MARKET_RESULT_INTERPRETATION, 'APPENDS_ONLY': 'MEMORY.MARKET_TEST_RESULTS[TEST_FAMILY_ID]',
+}
 FINALIZER_RULES = {
     'VERSION': FINALIZER_VERSION, 'CAMPAIGN_ID_RE': CAMPAIGN_ID_RE.pattern, 'CANDIDATE_ID_RE': CANDIDATE_ID_RE.pattern,
     'STABLE_ID': 'CAMPAIGN_ID + "-" + CANDIDATE_ID', 'RESERVED_CAMPAIGN_IDS': list(RESERVED_CAMPAIGN_IDS),
@@ -74,6 +87,7 @@ FINALIZER_RULES = {
     'SCRUB_PATTERNS': [[p, f] for p, f in SCRUB_PATTERNS], 'OMITTED': OMITTED, 'ATTEMPT_CARD_FIELDS': list(ATTEMPT_CARD_FIELDS),
     'SIGNATURE_FIELDS': {'MECHANISM': 'NAME', 'FUNCTION': 'FUNCTION', 'INFORMATION_SOURCE': 'INFORMATION_SOURCE + ": " + DATA_REQUIRED datasets',
                          'TARGET_FAMILY': 'PRIMARY_TARGET'},
+    'MARKET_TEST_RESULT': MARKET_TEST_RESULT_RULES,
 }
 
 
@@ -199,6 +213,140 @@ def source_from_run_journal(path, campaign_id):
     identity = {'KIND': 'GENERATOR_V0_RUN_JOURNAL', 'RUN_ID': config.get('RUN_ID'),
                 'SEMANTIC_RESULT_DIGEST': payload.get('SEMANTIC_RESULT_DIGEST')}
     return source_from_campaign_payload(payload, campaign_id, identity)
+
+
+def market_test_unit_id(test_family_id):
+    m = TEST_FAMILY_ID_RE.fullmatch(test_family_id or '')
+    unit = m.group(1).replace('-', '') if m else ''
+    if not CAMPAIGN_ID_RE.fullmatch(unit) or unit in RESERVED_CAMPAIGN_IDS:
+        raise ContractError('invalid TEST_FAMILY_ID for a memory unit: ' + repr(test_family_id))
+    return unit
+
+
+def _json_file(root, rel, *, canonical_bytes=False):
+    path = Path(root) / rel
+    try:
+        raw = path.read_bytes()
+        obj = json.loads(raw.decode('utf-8'))
+    except (OSError, UnicodeDecodeError, ValueError) as e:
+        raise ContractError('unreadable scientific authority: ' + str(rel)) from e
+    if canonical_bytes and store.pretty(obj) != raw:
+        raise ContractError('scientific result is not canonical JSON: ' + str(rel))
+    return obj, hashlib.sha256(raw).hexdigest()
+
+
+def _one(items, key, value, what):
+    hits = [x for x in items if x.get(key) == value]
+    if len(hits) != 1:
+        raise ContractError(what + ' must appear exactly once: ' + str(value))
+    return hits[0]
+
+
+def source_from_market_test_result(root, result_rel, ledger_rel=SCIENTIFIC_TEST_LEDGER):
+    """Immutable scientific authorities -> normalized, cross-verified MARKET_TEST_RESULT source.
+
+    Fail-closed on every cross-link. Binds the specific ledger entry (not the whole,
+    growing ledger file). The signature is resolved against published memory."""
+    root = Path(root)
+    result, result_sha = _json_file(root, result_rel, canonical_bytes=True)
+    ledger, _ = _json_file(root, ledger_rel)
+    ev = result.get('EVALUATION') or {}
+    tf, hyp = result.get('TEST_FAMILY_ID'), result.get('HYPOTHESIS_ID')
+    unit = market_test_unit_id(tf)
+    if result.get('PROTECTED_2025_2026_OPENED') is not False:
+        raise ContractError('result does not attest protected 2025/2026 unopened')
+    entry = _one(ledger.get('TESTS', []), 'TEST_FAMILY_ID', tf, 'scientific test ledger entry')
+    if entry.get('STATUS') != 'EXECUTED':
+        raise ContractError('ledger entry is not EXECUTED: ' + str(entry.get('STATUS')))
+    if entry.get('RESULT_SHA256') != result_sha or entry.get('RESULT_PATH') != str(result_rel):
+        raise ContractError('ledger result digest/path does not match the result file')
+    if entry.get('CLASSIFICATION') != ev.get('CLASSIFICATION') or ev.get('CLASSIFICATION') not in DISCOVERY_CLASSIFICATIONS:
+        raise ContractError('ledger classification does not match the frozen result classification')
+    if entry.get('HYPOTHESIS_ID') != hyp:
+        raise ContractError('ledger hypothesis does not match the result')
+    if entry.get('RERUN_AUTHORIZED') is not False:
+        raise ContractError('ledger entry must record RERUN_AUTHORIZED = false')
+    prereg, prereg_sha = _json_file(root, entry['PREREG_PATH'])
+    permit, permit_sha = _json_file(root, entry['EXECUTION_PERMIT_PATH'])
+    if not (prereg_sha == entry.get('PREREG_SHA256') == (result.get('IDENTITY') or {}).get('PREREG_SHA256') == permit.get('PREREG_SHA256')):
+        raise ContractError('prereg digest disagrees across ledger, result identity and permit')
+    if (permit.get('EXECUTION_AUTHORIZED') is not True or permit.get('RERUN_AUTHORIZED') is not False
+            or permit.get('TEST_FAMILY_ID') != tf or permit.get('HYPOTHESIS_ID') != hyp
+            or permit.get('PROTECTED_2025_2026_AUTHORIZED') is not False):
+        raise ContractError('execution permit does not authorize exactly this one-shot test')
+    if prereg.get('HYPOTHESIS_ID') != hyp or prereg.get('TEST_FAMILY_ID') != tf:
+        raise ContractError('prereg identity does not match the result')
+    sf_id = entry.get('SEARCH_FAMILY_ID')
+    if not (sf_id == prereg.get('SEARCH_FAMILY_ID') == permit.get('SEARCH_FAMILY_ID')):
+        raise ContractError('search family disagrees across ledger, prereg and permit')
+    family = _one(ledger.get('SEARCH_FAMILIES', []), 'SEARCH_FAMILY_ID', sf_id, 'search family')
+    executed = sum(1 for t in ledger['TESTS'] if t.get('SEARCH_FAMILY_ID') == sf_id and t.get('STATUS') == 'EXECUTED')
+    if family.get('EXECUTED_TESTS') != executed or executed < 1:
+        raise ContractError('search family EXECUTED_TESTS does not include this execution')
+    design = read(root / DESIGN)
+    pub = store.published(root, design)
+    attempt = next((a for a in pub['VIEWS']['ATTEMPTS'] if a['ATTEMPT_ID'] == hyp), None)
+    if attempt is None or not attempt.get('SIGNATURE_ID'):
+        raise ContractError('hypothesis did not generate a canonical signature in memory: ' + str(hyp))
+    sid = attempt['SIGNATURE_ID']
+    if sid not in pub['VIEWS']['MEMORY']['ENTRIES']:
+        raise ContractError('unknown signature: ' + str(sid))
+    identity = {'KIND': 'SCIENTIFIC_MARKET_TEST_RESULT', 'TEST_FAMILY_ID': tf, 'SEARCH_FAMILY_ID': sf_id,
+                'HYPOTHESIS_ID': hyp, 'SIGNATURE_ID': sid, 'RESULT_PATH': str(result_rel), 'RESULT_SHA256': result_sha,
+                'PREREG_PATH': entry['PREREG_PATH'], 'PREREG_SHA256': prereg_sha,
+                'EXECUTION_PERMIT_PATH': entry['EXECUTION_PERMIT_PATH'], 'EXECUTION_PERMIT_SHA256': permit_sha,
+                'EXECUTION_PERMIT_COMMIT': entry.get('EXECUTION_PERMIT_COMMIT'),
+                'LEDGER_PATH': str(ledger_rel), 'LEDGER_ENTRY_DIGEST': digest(entry)}
+    if not isinstance(identity['EXECUTION_PERMIT_COMMIT'], str) or not re.fullmatch(r'[0-9a-f]{40}', identity['EXECUTION_PERMIT_COMMIT']):
+        raise ContractError('ledger entry lacks the pre-outcome permit commit')
+    return {'UNIT_ID': unit, 'SOURCE_KIND': 'SCIENTIFIC_MARKET_TEST_RESULT', 'SOURCE_ARTIFACT_IDENTITY': identity,
+            'SOURCE_SHA256': digest(identity), 'RESULT': result, 'LEDGER_ENTRY': entry, 'PREREG': prereg}
+
+
+def build_market_test_record(source):
+    """Deterministic full-memory record: copied fields only, no operator prose."""
+    r, e, idn = source['RESULT'], source['LEDGER_ENTRY'], source['SOURCE_ARTIFACT_IDENTITY']
+    ev, prim = r['EVALUATION'], r['PRIMARY']
+    pv = source['PREREG']['PARAMS']['PRIMARY_VARIANT']
+    if (prim['K'], prim['H'], prim['N']) != (pv['K'], pv['H'], pv['N']):
+        raise ContractError('result primary variant differs from the prereg')
+    if set(ev['GATES']) != set(RESULT_GATES):
+        raise ContractError('result gate set differs from the frozen gates')
+    return {
+        'TEST_FAMILY_ID': idn['TEST_FAMILY_ID'], 'SEARCH_FAMILY_ID': idn['SEARCH_FAMILY_ID'],
+        'HYPOTHESIS_ID': idn['HYPOTHESIS_ID'], 'SIGNATURE_ID': idn['SIGNATURE_ID'],
+        'PREREG_PATH': idn['PREREG_PATH'], 'PREREG_SHA256': idn['PREREG_SHA256'],
+        'EXECUTION_PERMIT_PATH': idn['EXECUTION_PERMIT_PATH'], 'EXECUTION_PERMIT_COMMIT': idn['EXECUTION_PERMIT_COMMIT'],
+        'RESULT_PATH': idn['RESULT_PATH'], 'RESULT_SHA256': idn['RESULT_SHA256'], 'RESULT_SCHEMA': r['SCHEMA'],
+        'CLASSIFICATION': ev['CLASSIFICATION'], 'EVIDENCE_TIER': source['PREREG']['EVIDENCE_TIER']['TIER'],
+        'PRIMARY_TEST_COUNT': e['PRIMARY_TEST_COUNT'], 'SECONDARY_TEST_COUNT': e['SECONDARY_TEST_COUNT'],
+        'MULTIPLICITY_METHOD': e['MULTIPLICITY_METHOD'],
+        'DATASET_ID': r['IDENTITY']['DATASET']['DATASET_ID'], 'DATASET_SNAPSHOT_ID': r['IDENTITY']['DATASET']['SNAPSHOT_ID'],
+        'PRIMARY_VARIANT': {'K': prim['K'], 'H': prim['H'], 'N': prim['N']},
+        'PRIMARY': {'POOLED': prim['POOLED'], 'P_TWO_SIDED': prim['NULL']['P_TWO_SIDED'], 'VALID_DAYS': prim['VALID_DAYS'],
+                    'VALID_WEEKS': prim['VALID_WEEKS'], 'MISSING_TARGET_RATE': prim['MISSING_TARGET_RATE'],
+                    'YEARLY': copy.deepcopy(prim['YEARLY'])},
+        'CONTROLLED': {'POOLED': prim['CONTROLLED']['POOLED'], 'P_TWO_SIDED': prim['CONTROLLED']['NULL']['P_TWO_SIDED']},
+        'GATES': {g: ev['GATES'][g] for g in RESULT_GATES},
+        'HAC_T': ev.get('HAC_T'), 'YEARS_SHARING_POOLED_SIGN': copy.deepcopy(ev.get('YEARS_SHARING_POOLED_SIGN')),
+        'ADJACENCY_POOLED': r['ADJACENCY_DIAGNOSTIC']['POOLED'],
+        'SECONDARY_CAN_CHANGE_CLASSIFICATION': ev['SECONDARY_CAN_CHANGE_CLASSIFICATION'],
+        'PROTECTED_2025_2026_OPENED': r['PROTECTED_2025_2026_OPENED'],
+        'RERUN_AUTHORIZED': e['RERUN_AUTHORIZED'], 'LEDGER_STATUS': e['STATUS'],
+        'INTERPRETATION': MARKET_RESULT_INTERPRETATION,
+    }
+
+
+def build_market_delta(state, source):
+    unit = source['UNIT_ID']
+    record = build_market_test_record(source)
+    return {'KIND': 'MARKET_TEST_RESULT', 'FINALIZER_VERSION': FINALIZER_VERSION, 'CAMPAIGN_ID': unit,
+            'SOURCE_KIND': source['SOURCE_KIND'], 'SOURCE_ARTIFACT_IDENTITY': source['SOURCE_ARTIFACT_IDENTITY'],
+            'SOURCE_SHA256': source['SOURCE_SHA256'], 'ADD_ENTRIES': {}, 'ADD_ROWS': [], 'ATTEMPTS': [],
+            'ADD_MARKET_TEST_RESULTS': {record['TEST_FAMILY_ID']: record},
+            'SUMMARY': {'MARKET_TEST_RESULTS_ADDED': 1, 'TEST_FAMILY_ID': record['TEST_FAMILY_ID'],
+                        'SIGNATURE_ID': record['SIGNATURE_ID'], 'MEMORY_ENTRY_COUNT': len(state['MEMORY']['ENTRIES']),
+                        'ATTEMPT_RECORD_COUNT': len(state['ATTEMPTS'])}}
 
 
 # ----------------------------------------------------------------------------- deterministic dispositions
@@ -440,6 +588,7 @@ def verify(root, all_snapshots=True):
             'HEAD_EVENT_HASH': pub['HEAD']['EVENT_HASH'], 'SEQUENCE': pub['HEAD']['SEQUENCE'],
             'EVENTS': [{'SEQUENCE': e['SEQUENCE'], 'EVENT_TYPE': e['EVENT_TYPE'], 'CAMPAIGN_ID': e['CAMPAIGN_ID'], 'EVENT_HASH': e['EVENT_HASH']} for e in pub['EVENTS']],
             'MEMORY_ENTRY_COUNT': len(pub['VIEWS']['MEMORY']['ENTRIES']), 'ATTEMPT_RECORD_COUNT': len(ids),
+            'MARKET_TEST_RESULT_COUNT': len(pub['VIEWS']['MEMORY'].get(store.MARKET_TEST_RESULTS_KEY, {})),
             'DUPLICATE_STABLE_IDS': len(ids) != len(set(ids)), 'MIRROR_DRIFT': drift, 'PINS_CURRENT': pins_ok,
             'DIGESTS': store.view_digests(pub['VIEWS'])}
 
@@ -473,6 +622,25 @@ def bootstrap(root, legacy_memory, legacy_rows, provenance, fault=None):
         return ev
 
 
+def _already_finalized(root, pub, unit, source_sha, apply):
+    """Idempotence on the event unit (CAMPAIGN_ID field): same source -> no-op (repairing
+    derived caches on apply); different source -> hard failure."""
+    prior = [e for e in pub['EVENTS'] if e['CAMPAIGN_ID'] == unit]
+    if not prior:
+        return None
+    if prior[0]['SOURCE_SHA256'] != source_sha:
+        raise ContractError('unit ' + unit + ' already finalized from a different source; refusing to reinterpret')
+    repaired = []
+    if apply:
+        repaired = store.mirrors_current(root, pub['VIEWS'])
+        pins_ok = (root / store.PINS).exists() and read(root / store.PINS) == store.pins_expected(root)
+        if repaired or not pins_ok:
+            store.write_derived_caches(root, pub['VIEWS'])
+            repaired = repaired or ['PINS']
+    return {'STATUS': 'ALREADY_FINALIZED', 'CAMPAIGN_ID': unit, 'EVENT_HASH': prior[0]['EVENT_HASH'],
+            'SOURCE_SHA256': source_sha, 'NEW_EVENT': False, 'DERIVED_CACHES_REPAIRED': repaired}
+
+
 def finalize(root, source, apply=False, fault=None):
     """Dry run (apply=False) writes nothing. Apply stages, verifies and publishes one event."""
     root = Path(root)
@@ -481,19 +649,9 @@ def finalize(root, source, apply=False, fault=None):
     with lock:
         pub = store.published(root, design)
         head = pub['HEAD']
-        prior = [e for e in pub['EVENTS'] if e['CAMPAIGN_ID'] == source['CAMPAIGN_ID']]
-        if prior:
-            if prior[0]['SOURCE_SHA256'] != source['SOURCE_SHA256']:
-                raise ContractError('campaign ' + source['CAMPAIGN_ID'] + ' already finalized from a different source; refusing to reinterpret')
-            repaired = []
-            if apply:
-                repaired = store.mirrors_current(root, pub['VIEWS'])
-                pins_ok = (root / store.PINS).exists() and read(root / store.PINS) == store.pins_expected(root)
-                if repaired or not pins_ok:
-                    store.write_derived_caches(root, pub['VIEWS'])
-                    repaired = repaired or ['PINS']
-            return {'STATUS': 'ALREADY_FINALIZED', 'CAMPAIGN_ID': source['CAMPAIGN_ID'], 'EVENT_HASH': prior[0]['EVENT_HASH'],
-                    'SOURCE_SHA256': source['SOURCE_SHA256'], 'NEW_EVENT': False, 'DERIVED_CACHES_REPAIRED': repaired}
+        done = _already_finalized(root, pub, source['CAMPAIGN_ID'], source['SOURCE_SHA256'], apply)
+        if done:
+            return done
         state = {'MEMORY': pub['VIEWS']['MEMORY'], 'ROWS': pub['VIEWS']['AUTHORITY']['ROWS'], 'ATTEMPTS': pub['VIEWS']['ATTEMPTS']}
         delta = build_delta(state, source, design)
         new_state = store.apply_delta(state, delta)
@@ -507,6 +665,46 @@ def finalize(root, source, apply=False, fault=None):
                   'SOURCE_SHA256': source['SOURCE_SHA256'], 'PREVIOUS_HEAD_EVENT_HASH': head['EVENT_HASH'],
                   'PROPOSED_EVENT_HASH': ev['EVENT_HASH'], 'SEQUENCE': seq, **delta['SUMMARY'],
                   'NEW_SIGNATURE_IDS': sorted(delta['ADD_ENTRIES']), 'RESULTING_DIGESTS': store.view_digests(v), 'NEW_EVENT': apply}
+        if apply:
+            store.publish(root, design, delta, ev, v, fault)
+        return report
+
+
+def finalize_market_test_result(root, source, apply=False, fault=None):
+    """Append one MARKET_TEST_RESULT event. Dry run writes nothing. Fails closed unless the
+    blind map, governance authority and attempt records are unchanged."""
+    root = Path(root)
+    design = _design(root)
+    lock = store.exclusive_lock(root) if apply else _nolock()
+    with lock:
+        pub = store.published(root, design)
+        head = pub['HEAD']
+        unit = source['UNIT_ID']
+        done = _already_finalized(root, pub, unit, source['SOURCE_SHA256'], apply)
+        if done:
+            done['TEST_FAMILY_ID'] = source['SOURCE_ARTIFACT_IDENTITY']['TEST_FAMILY_ID']
+            return done
+        tf = source['SOURCE_ARTIFACT_IDENTITY']['TEST_FAMILY_ID']
+        if tf in pub['VIEWS']['MEMORY'].get(store.MARKET_TEST_RESULTS_KEY, {}):
+            raise ContractError('test family already attached to memory: ' + tf)
+        state = {'MEMORY': pub['VIEWS']['MEMORY'], 'ROWS': pub['VIEWS']['AUTHORITY']['ROWS'], 'ATTEMPTS': pub['VIEWS']['ATTEMPTS']}
+        delta = build_market_delta(state, source)
+        v = store.views(store.apply_delta(state, delta), design)
+        verify_generator_boundary(root, v, design)
+        before, after = store.view_digests(pub['VIEWS']), store.view_digests(v)
+        for key in ('RESULTING_BLIND_MAP_DIGEST', 'RESULTING_AUTHORITY_DIGEST', 'RESULTING_ATTEMPTS_DIGEST'):
+            if before[key] != after[key]:
+                raise ContractError('MARKET_TEST_RESULT would change ' + key)
+        seq = head['SEQUENCE'] + 1
+        ev = store.build_event('MARKET_TEST_RESULT', seq, unit, source['SOURCE_ARTIFACT_IDENTITY'], source['SOURCE_SHA256'],
+                               head['EVENT_HASH'], store.sha256_bytes(store.pretty(delta)), rules_digest(design), v, delta['SUMMARY'])
+        report = {'STATUS': 'DRY_RUN' if not apply else 'FINALIZED', 'EVENT_TYPE': 'MARKET_TEST_RESULT', 'CAMPAIGN_ID': unit,
+                  'TEST_FAMILY_ID': tf, 'SIGNATURE_ID': delta['SUMMARY']['SIGNATURE_ID'],
+                  'SOURCE_SHA256': source['SOURCE_SHA256'], 'MEMORY_DELTA_SHA256': ev['MEMORY_DELTA_SHA256'],
+                  'PREVIOUS_HEAD_EVENT_HASH': head['EVENT_HASH'], 'PROPOSED_EVENT_HASH': ev['EVENT_HASH'], 'SEQUENCE': seq,
+                  'DIGESTS_BEFORE': before, 'RESULTING_DIGESTS': after,
+                  'MEMORY_ENTRY_COUNT': len(v['MEMORY']['ENTRIES']), 'ATTEMPT_RECORD_COUNT': len(v['ATTEMPTS']),
+                  'MARKET_TEST_RESULT_COUNT': len(v['MEMORY'][store.MARKET_TEST_RESULTS_KEY]), 'NEW_EVENT': apply}
         if apply:
             store.publish(root, design, delta, ev, v, fault)
         return report

@@ -113,7 +113,7 @@ def test_published_repository_state_is_the_golden_state():
     c = Contexts()
     for sid, (state, blocker) in GOLDEN.items():
         assert (c.rows[sid]['STATE'], c.rows[sid]['BLOCKER_CLASS_IF_ANY']) == (state, blocker)
-    assert [e['CAMPAIGN_ID'] for e in store.chain(ROOT)] == ['LEGACY', 'GV0CAL', 'GV0R01']
+    assert [e['CAMPAIGN_ID'] for e in store.chain(ROOT)] == ['LEGACY', 'GV0CAL', 'GV0R01', 'GV0R01C013MT1']
     assert fin.verify(ROOT)['STATUS'] == 'VERIFIED'
 
 
@@ -491,12 +491,13 @@ def test_stale_or_partial_derived_state_is_not_authoritative(tmp_path, damage):
         Contexts(root)
 
 
-def test_reserved_market_test_result_event_is_not_implemented():
-    with pytest.raises(ContractError, match='reserved'):
-        store.apply_delta({'MEMORY': {'ENTRIES': {}, 'COVERAGE': {}}, 'ROWS': [], 'ATTEMPTS': []}, {'KIND': 'MARKET_TEST_RESULT'})
+def test_market_test_result_is_an_implemented_event_type_and_unknown_kinds_refuse():
+    # MARKET_TEST_RESULT is implemented (see test_generator_v0_memory_market_result.py);
+    # nothing is reserved any more, and an unknown delta kind still fails closed.
+    assert 'MARKET_TEST_RESULT' in store.EVENT_TYPES and store.RESERVED_EVENT_TYPES == ()
+    with pytest.raises(ContractError, match='unknown delta kind'):
+        store.apply_delta({'MEMORY': {'ENTRIES': {}, 'COVERAGE': {}}, 'ROWS': [], 'ATTEMPTS': []}, {'KIND': 'SOMETHING_ELSE'})
 
-
-# Future 30-card behaviour: a completed zero-cost mock campaign through the real runner ---------------------------
 
 def test_mock_30_card_campaign_finalizes_every_valid_attempt(tmp_path):
     root = finalized_root(tmp_path)
