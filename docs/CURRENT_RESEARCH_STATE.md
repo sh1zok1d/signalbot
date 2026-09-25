@@ -1,3 +1,11 @@
+## GV0R02 feasibility compiler design — 2026-09-25
+
+`FEASIBILITY_COMPILER_IMPLEMENTED = false`
+`GENERATOR_MODIFIED = false`
+`NEXT_UNIT = GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_IMPLEMENTATION`
+
+The compiler is a cheap outcome-blind screen before preregistration. It does not decide that a hypothesis is true and it is not implemented in this unit. Binance 2020–2024 stays discovery, BitMEX 2016–2019 stays a historical replication candidate, and 2025–2026 stays protected. C012, C004, and C020 remain closed and are the golden cases. Contract: `docs/research/GV0R02_FEASIBILITY_COMPILER_DESIGN.md`.
+
 ## GV0R01-C020 closed — reference test, informationally weak — 2026-09-25
 
 `C020_STATUS = CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK_REFERENCE_TEST`

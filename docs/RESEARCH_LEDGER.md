@@ -6484,6 +6484,17 @@ C020_PRIMARY_TEST_EXECUTED = false
 NEXT_UNIT = GV0R01_C020_HOLIDAY_CALENDAR_PINNING
 ```
 
+## GV0R02 feasibility compiler design — 2026-09-25
+
+Design only. No compiler engine, no generator edit, no new hypotheses, no new data, no market outcomes.
+
+```
+COMPILER_SCHEMA_VERSION = GV0R02_SCHEMA_V0
+COMPILER_POLICY_VERSION = GV0R02_POLICY_V0
+FEASIBILITY_COMPILER_IMPLEMENTED = false
+NEXT_UNIT = GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_IMPLEMENTATION
+```
+
 ## GV0R01-C020 close routing — 2026-09-25
 
 The classification below is unchanged. The next unit is not another Stream-B candidate.
