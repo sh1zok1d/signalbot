@@ -33,7 +33,8 @@ There is no hysteresis, no COOLING, no reactivation and no new episode identity;
 
 ## What `/btc` shows (factual detector state only)
 
-- **Headline:** always the existing fail-closed product status: NO ACTIVE EVENTS, WATCH, EVENT ACTIVE, DATA DEGRADED or DATA STALE.
+- **Headline:** DATA STALE, then DATA DEGRADED, then WATCH / EVENT ACTIVE (the existing fail-closed product status, unchanged). When the product status is NO ACTIVE EVENTS, the headline becomes HISTORY BUILDING (or DETECTOR NOT READY) unless the Price/OI families are actually evaluable. See the warm-up and readiness section of `docs/PRIVATE_BETA_V0_DEPLOY.md`.
+- **Detector readiness (`beta/readiness.py`, read model `BETA_READINESS_V0`):** derived per family from the latest LIVE tape row. It is READY exactly when the detector's own rule evaluation for that bucket was evaluable. Otherwise the rules' own gates classify it as HISTORY_BUILDING, DATA_UNAVAILABLE, DEGRADED or DISABLED. Progress is the percentile core's span. The readiness block is persisted with each `beta_btc_views` row and never produces a push.
 - **ACTIVE EVENT:** an open detector episode. The summary shows the event, the level reached, and the qualifying window and bucket count.
 - **LAST EVENT:** shown when no episode is open. It is the most recently ended detector episode, with its qualifying window, when it ended, and the factual end reason. It stays for `context.last_event_retention_min` (120 min, a presentation setting) after the episode ended, and is never shown as active.
 - **Anchor bucket:** one real bucket per episode; every metric shown for it comes from that bucket.

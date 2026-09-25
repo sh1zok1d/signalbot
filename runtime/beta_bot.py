@@ -159,12 +159,15 @@ class BetaBotHandler:
         was shown (view model + rendered text + digests; no user id)."""
         from beta.context import btc_view, episodization_digest
         from beta.formatter import format_btc
+        from beta.readiness import readiness
         from beta.state_tape import sha256_json
         st = await collect_status(conn, self.cfg, now)
         ctx = await conn.fetch_latest_context_state(symbol=self.cfg.symbol,
                                                     episodization_digest=episodization_digest(self.cfg))
+        # readiness of the SAME latest LIVE tape row the product status is built from
+        rd = readiness(self.cfg, st["latest"], maturity_days=self._maturity_days())
         view = btc_view(self.cfg, product=st["status"], state=ctx["state"] if ctx else None,
-                        state_digest_value=ctx["state_digest"] if ctx else None, now=now,
+                        state_digest_value=ctx["state_digest"] if ctx else None, now=now, readiness=rd,
                         detector_open_ids=[e.public_id for e in st["open_episodes"]])
         text = format_btc(self.cfg, view)
         await conn.insert_btc_view(
@@ -175,7 +178,24 @@ class BetaBotHandler:
             payload_digest=sha256_json(view), rendered_sha256=hashlib.sha256(text.encode("utf-8")).hexdigest(),
             rendered_html=text)
         focus = view["active_episode"] or view["last_event"]
-        return text, ([[("Details", "c:" + focus["episode_id"])]] if focus else None)
+        row = ([("Details", "c:" + focus["episode_id"])] if focus else []) + \
+            ([("Readiness", "r:latest")] if view["readiness"] else [])
+        return text, ([row] if row else None)
+
+    def _maturity_days(self) -> float:
+        """The percentile core's maturity span (Stage-2 confidence tiers), not a UI constant."""
+        from common.stage2_config import Stage2Config
+        tiers = Stage2Config.load().resolve(self.cfg.symbol)["percentiles"]["confidence_tiers"]
+        return float(tiers["building_below_days"])
+
+    async def _readiness_details(self, conn, chat_id: int, answer) -> list:
+        from beta.formatter import format_readiness_details
+        from beta.readiness import readiness
+        latest = await conn.fetch_latest_live_tape(symbol=self.cfg.symbol)
+        rd = readiness(self.cfg, latest, maturity_days=self._maturity_days())
+        if rd is None:
+            return [answer("No evaluation yet")]
+        return [answer(""), _msg(chat_id, format_readiness_details(self.cfg, rd))]
 
     async def _context_details(self, conn, chat_id: int, episode_id: str, answer) -> list:
         from beta.context import episodization_digest, find_episode
@@ -202,6 +222,8 @@ class BetaBotHandler:
             return [answer("Not available")]
         if data[0] == "c":
             return await self._context_details(conn, chat_id, data[2:], answer)
+        if data == "r:latest":
+            return await self._readiness_details(conn, chat_id, answer)
         ep = await conn.fetch_episode_by_public_id(data[2:])
         if ep is None:
             return [answer("Unknown episode")]
