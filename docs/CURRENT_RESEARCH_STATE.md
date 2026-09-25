@@ -1,3 +1,15 @@
+## GV0R01-C020 closed — reference test, informationally weak — 2026-09-25
+
+`C020_STATUS = CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK_REFERENCE_TEST`
+`C020_EXECUTION_AUTHORIZED = false`
+`EXACT_RANDOMIZATION_CLAIM_STATUS = NOT_JUSTIFIED`
+`OBSERVED_ASSIGNMENT_IN_REFERENCE_SUPPORT = false`
+`SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0`
+`NEXT_CANDIDATE = NONE_READY`
+`NEXT_UNIT = STREAM_B_REMAINING_CANDIDATES_BLOCKED`
+
+The frozen pseudo-holiday procedure compares NYSE closure dates with dates drawn outside holiday weeks. The observed assignment is not in that reference set, so it is not an exact randomization orbit. The number `1.647e-59` is the resolution of the full reference set. The operational Monte Carlo floor is `1/1001`. Validity requires the closure dates to be exchangeable with that reference distribution under the null for calendar factors other than participant removal. The failed power gate is unchanged: stress power at `log(0.90)` is 0.40. No BTC value was opened and no C020 test was run. No replacement inference was sought. C006 and C014 remain blocked on DVOL point-in-time evidence. C016 remains blocked on paid spread history. Record: `docs/research/GV0R01_C020_CLOSE.json`.
+
 ## GV0R01-C020 outcome-blind design — 2026-09-25
 
 `OUTCOME_BLIND_GATE_RESULT = EXECUTION_INFORMATIONALLY_WEAK`

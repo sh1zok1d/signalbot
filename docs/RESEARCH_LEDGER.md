@@ -6484,6 +6484,25 @@ C020_PRIMARY_TEST_EXECUTED = false
 NEXT_UNIT = GV0R01_C020_HOLIDAY_CALENDAR_PINNING
 ```
 
+## GV0R01-C020 inference classification audit and close — 2026-09-25
+
+Terminology audit only. The design, the power gate, and the execution decision are unchanged. No BTC value was opened.
+
+```
+C020_STATUS = CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK_REFERENCE_TEST
+INFERENCE_CLASSIFICATION = PLACEBO_REFERENCE_DISTRIBUTION
+EXACT_RANDOMIZATION_CLAIM_STATUS = NOT_JUSTIFIED
+OBSERVED_ASSIGNMENT_IN_REFERENCE_SUPPORT = false
+REFERENCE_SUPPORT_RESOLUTION = 1.6473952425747334e-59
+MONTE_CARLO_P_FLOOR = 1/1001
+STRESS_POWER_AT_FROZEN_BAR = 0.40
+C020_EXECUTION_AUTHORIZED = false
+NEXT_CANDIDATE = NONE_READY
+NEXT_UNIT = STREAM_B_REMAINING_CANDIDATES_BLOCKED
+```
+
+C006 and C014 stay blocked on DVOL point-in-time evidence. C016 stays blocked on paid spread history. No new candidate was created.
+
 ## GV0R01-C020 outcome-blind design and power — 2026-09-25
 
 Design only. No C020 execution. No BTC price or quote volume opened. Protected 2025/2026 unopened.
