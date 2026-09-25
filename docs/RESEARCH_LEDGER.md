@@ -6300,3 +6300,20 @@ ALTERNATIVE_PRE_2019_12_SURFACE = not equivalent (fewer than 50 USDT symbols bef
 FRESH_SURFACE_DECISION = WAIT_FOR_MORE_FRESH_DATA
 NEXT_UNIT = POST_GV0R01_C013_CONFIRMATION_FEASIBILITY_PROGRAM_DECISION
 ```
+
+## GV0R01 Stream-B feasibility triage and post-C013 program decision — 2026-09-25
+
+Outcome-blind feasibility and routing only. No hypothesis executed, no outcome computed, no window consumed, protected 2025/2026 unopened, no provider call; 13 Binance S3 ListBucket requests, 0 payload GETs.
+
+```
+C013_PROGRAM_STATE = PROMISING_PROTOTYPE / CONFIRMATION_DEFERRED_LOW_POWER
+C004 = READY_AFTER_FREE_PUBLIC_ACQUISITION (CPI archive; FOMC core ready; D10/D11 overlap)
+C006 = BLOCKED_POINT_IN_TIME_SEMANTICS (DVOL non-revision unverifiable; marks paid)
+C012 = READY_AFTER_FREE_PUBLIC_ACQUISITION (CPI archive; FOMC arm ready)
+C014 = BLOCKED_POINT_IN_TIME_SEMANTICS (DVOL BTC+ETH; quotes paid)
+C016 = BLOCKED_EXPENSIVE_DATA (spread/L2 history paid; bookTicker 2023-05-16..2024-03-30 only)
+C020 = READY_AFTER_FREE_PUBLIC_ACQUISITION (NYSE, CN State Council, OPM calendars; D12 overlap)
+NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C012 (feasibility only)
+RUN_GV0R02_NEXT = false
+NEXT_UNIT = GV0R01_C012_CPI_CALENDAR_ACQUISITION_AND_OUTCOME_BLIND_DESIGN
+```

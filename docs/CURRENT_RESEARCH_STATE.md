@@ -1,3 +1,29 @@
+## Post-C013 program decision — GV0R01 Stream-B feasibility triage — 2026-09-25
+
+`C013_PROGRAM_STATE = PROMISING_PROTOTYPE / CONFIRMATION_DEFERRED_LOW_POWER`
+`NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C012`
+`RUN_GV0R02_NEXT = false`
+`NEXT_UNIT = GV0R01_C012_CPI_CALENDAR_ACQUISITION_AND_OUTCOME_BLIND_DESIGN`
+
+This section supersedes `NEXT_UNIT = POST_GV0R01_C013_CONFIRMATION_FEASIBILITY_PROGRAM_DECISION` below.
+
+C013 is parked pending an adequate independent surface. There is no underpowered confirmation and no rescue, and 2025/2026 stay sealed.
+
+The six GV0R01 Stream-B candidates were triaged outcome-blind:
+- **Ready after free public acquisition:** C004, C012 and C020 (official calendars).
+- **Blocked on point-in-time semantics:** C006 and C014 (DVOL non-revision cannot be evidenced from the free source).
+- **Blocked on expensive data:** C016 (the card's spread control needs paid L2 history).
+
+C012 (pre-announcement BTC drift before scheduled FOMC and CPI releases) is next, chosen on feasibility only:
+- its FOMC arm is already point-in-time resolved;
+- it needs one free source, the BLS CPI schedule archive;
+- it declares the smallest search surface;
+- it is BTC-only, which allows a pre-2020 confirmation route.
+
+Its design must plan confirmation power before any discovery run. This sandbox refuses `bls.gov` and `web.archive.org`, so they must be allowed in the environment network settings for the CPI pinning.
+
+Record: `docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.{md,json}`.
+
 ## GV0R01-C013 independent confirmation — feasibility decided, not executable — 2026-09-25
 
 `FRESH_SURFACE_DECISION = WAIT_FOR_MORE_FRESH_DATA`
