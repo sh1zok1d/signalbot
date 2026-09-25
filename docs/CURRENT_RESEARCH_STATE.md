@@ -1,3 +1,11 @@
+## C012 discovery-period BTC months pinned — 2026-09-25
+
+`STATUS = DISCOVERY_MARKET_BYTES_PINNED`
+`MARKET_DATA_OPENED_FOR_C012 = false`
+`NEXT_UNIT = GV0R01_C012_ONE_SHOT_EXECUTION`
+
+The 60 monthly Binance BTCUSDT 1m objects for 2020-01 through 2024-12 are on disk and match snapshot `717d37a4…`. No 2025 or 2026 object was fetched. No C012 return was computed. Manifest: `docs/research_data/C012_DISCOVERY_BTC_1M_V0/MANIFEST.json`, digest `78e3f54a…`.
+
 ## GV0R01-C012 one-shot execution blocked before prices — 2026-09-25
 
 `PREFLIGHT_STATUS = PASS`
