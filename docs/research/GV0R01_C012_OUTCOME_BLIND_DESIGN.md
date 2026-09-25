@@ -59,7 +59,9 @@ No C012 return was used. The 24h BTC log-return standard deviation is a stated s
 | ISO-week clusters | 94 | 0.289 | 0.998 | 0.679 |
 | Variance inflation 2 | 47 | 0.409 | 0.929 | 0.403 |
 
-At the planning sample, the minimum detectable 24h log return is about 0.82%, 1.63% and 2.45% under the three volatility scenarios. The economic bar is 0.50 sigma, the vol-scaled size of the equity pre-announcement drift. The planning MDE, 0.409 sigma, is under that bar, so the gate is `EXECUTION_JUSTIFIED`.
+The frozen MDE formula is `(z_{1-α/2} + z_{0.80}) / sqrt(n_eff)`. It is the two-sided 80% detectable size of a mean of `n_eff` observations, in units of the standard deviation of those observations. The figures 0.82%, 1.63% and 2.45% are that standardized MDE multiplied by the stated standard deviation of an individual 24h log return (0.02, 0.04, 0.06). They are not the standard deviation of an event-minus-control paired difference, and the variance inflation is already inside `n_eff = 47` rather than a second scaling. Because the endpoint is a difference of two equal-sized means, an independent equal-variance reading makes the standard error larger by `sqrt(2)` than a one-sample mean of the same `n_eff`. The frozen gate compares 0.409 sigma with the 0.50 bar under the formula as written. This note does not change that formula, the bar, or the gate.
+
+`TARGET_POWER = 0.80` refers to that primary mean test only. The five-year sign rule is falsifier F2. It is required for `PROMISING_PROTOTYPE` and was not given its own power calculation. A 0.25-sigma drift remains unpowered (about 0.40 under the stress). The planning MDE, 0.409 sigma, is under the 0.50 bar, so the gate is `EXECUTION_JUSTIFIED`.
 
 A drift of 0.25 sigma is not powered (power about 0.40 under the stress). A later null would not rule one out. Alpha is not relaxed and no subgroup is added to change that.
 
