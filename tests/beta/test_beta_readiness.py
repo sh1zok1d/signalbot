@@ -93,7 +93,8 @@ def test_all_ready_no_event_keeps_no_active_events():
     assert {g["status"] for g in r["groups"]} == {rd.READY} and r["core_ready"]
     assert all(e["rule_status"] != NOT_EVALUABLE for e in r["events"].values())
     out = format_btc(CFG, view_for(r, s, "NO ACTIVE EVENTS"))
-    assert "BTC perp · NO ACTIVE EVENTS" in out and "Detector readiness: all families ready" in out
+    assert "BTC perp · NO ACTIVE EVENTS" in out and "Venues 3/3 · Detector ready" in out
+    assert "Ready:" not in out and "history building ·" not in out
 
 
 # ---- C: mixed ---------------------------------------------------------------------------------
@@ -107,7 +108,8 @@ def test_mixed_readiness_is_shown_per_group():
     assert r["events"][LIQUIDATION_STRESS_LONG]["venues"]["binance"]["reason"] == "HEARTBEAT_UNHEALTHY"
     out = format_btc(CFG, view_for(r, s, "NO ACTIVE EVENTS"))
     assert "BTC perp · NO ACTIVE EVENTS" in out
-    assert "Price/OI: ready" in out and "Taker flow: history building · taker-flow history 3.2d / 30d" in out
+    assert "Ready: Price/OI" in out and "Taker flow: history building · taker-flow history 3.2d / 30d" in out
+    assert "Detector ready" not in out
     assert "Liquidations: data unavailable · fewer than the required eligible live feeds" in out
 
 
@@ -134,8 +136,9 @@ def test_active_event_keeps_headline_while_other_families_build():
     v = view_for(r, None, "EVENT ACTIVE", states)
     assert v["headline"] == "EVENT ACTIVE"
     out = format_btc(CFG, v)
-    assert "taker flow extreme (buyer-initiated) · triggered" in out
-    assert "Taker flow: ready" in out and "Price/OI: history building" in out
+    assert "<b>ACTIVE EVENT</b>\nTaker flow extreme (buyer-initiated) · TRIGGERED" in out
+    assert "Price/OI: history building" in out
+    assert any(l.startswith("Ready: ") and "Taker flow" in l for l in out.split("\n"))
 
 
 # ---- E / F: stale and degraded keep precedence ------------------------------------------------
@@ -143,7 +146,8 @@ def test_data_stale_wins_and_hides_readiness():
     r, s = ready_of(rsnap(tier="building", span=2.0))
     v = view_for(r, s, "DATA STALE")
     assert v["headline"] == "DATA STALE" and v["readiness"] is None
-    assert "Detector readiness" not in format_btc(CFG, v)
+    out = format_btc(CFG, v)
+    assert "Detector ready" not in out and "Ready:" not in out and "Price/OI:" not in out
 
 
 def test_data_degraded_wins_and_readiness_says_degraded():
@@ -151,7 +155,21 @@ def test_data_degraded_wins_and_readiness_says_degraded():
     assert {g["status"] for g in r["groups"]} == {rd.DEGRADED}
     v = view_for(r, s, "DATA DEGRADED")
     assert v["headline"] == "DATA DEGRADED"
-    assert "Price/OI: degraded · evaluation late" in format_btc(CFG, v)
+    # identical group conditions are merged into one line; the condition itself is kept
+    assert "Price/OI, Taker flow, Liquidations: degraded · evaluation late" in format_btc(CFG, v)
+
+
+def test_core_family_unavailable_is_detector_not_ready_not_no_active_events():
+    s = rsnap()
+    s["families"]["oi"]["usable"] = False
+    r, s = ready_of(s)
+    assert groups(r)["PRICE_OI"]["status"] == rd.UNAVAILABLE and not r["core_ready"]
+    v = view_for(r, s, "NO ACTIVE EVENTS")
+    assert v["headline"] == "DETECTOR NOT READY"
+    out = format_btc(CFG, v)
+    assert "BTC perp · DETECTOR NOT READY" in out and "NO ACTIVE EVENTS" not in out
+    assert "Price/OI: data unavailable · fewer than 2 usable venues for OI" in out
+    assert "Detector ready" not in out
 
 
 def test_unavailable_input_is_never_called_history_building():
@@ -239,7 +257,7 @@ def test_last_event_is_unchanged_by_readiness():
     v2 = view_for(None, None, "NO ACTIVE EVENTS", states)
     assert v1["last_event"] == v2["last_event"] and v1["last_event"]["terminal_reason"] == "CONDITION_FAILED"
     out = format_btc(CFG, v1)
-    assert "Last event: price + OI contraction down" in out and "Taker flow: history building" in out
+    assert "<b>LAST EVENT</b>\nPrice + OI contraction down" in out and "Taker flow: history building" in out
 
 
 def test_details_view_shows_tier_samples_span_and_venues():

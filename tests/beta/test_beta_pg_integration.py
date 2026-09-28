@@ -787,9 +787,10 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         out = await h.handle(_msg(ALICE, "/btc", 3))
         text = out[0].html
         assert "BTC perp · NO ACTIVE EVENTS" in text
-        assert "Last event: price + OI contraction down · reached triggered" in text
-        assert "00:00–00:10 UTC · ended 0m ago (condition no longer met)" in text
-        assert "Trigger bucket 00:05–00:10" in text and "Now 00:10–00:15" in text
+        assert ("<b>LAST EVENT</b>\nPrice + OI contraction down · TRIGGERED\n00:00–00:10 UTC · ended 0m ago\n"
+                "At 00:05–00:10: Price ") in text
+        assert "<b>NOW · 5m</b>" in text and "Data through 00:15 UTC" in text
+        assert "Trigger bucket" not in text and "condition no longer met" not in text
         (label, data), readiness_button = out[0].buttons[0]
         pid = (await _rows(pool, "SELECT public_id FROM beta_episodes"))[0]["public_id"]
         assert (label, data) == ("Details", f"c:{pid}") and readiness_button == ("Readiness", "r:latest")
@@ -798,6 +799,8 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         assert v["rendered_html"] == text
         assert v["rendered_sha256"] == hashlib.sha256(text.encode("utf-8")).hexdigest()
         assert v["payload_digest"] == sha256_json(payload)
+        from beta.formatter import format_btc
+        assert format_btc(CFG, payload) == v["rendered_html"]          # the stored payload re-renders exactly
         assert v["episodization_version"] == "STRICT_QUALIFICATION_V1"
         latest = (await _rows(pool, "SELECT state_digest FROM beta_context_snapshots ORDER BY bucket_ts DESC"))[0]
         assert v["context_state_digest"] == latest["state_digest"]
@@ -950,7 +953,7 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
         out = await h.handle(_msg(ALICE, "/btc", 4))
         text = out[0].html
         assert "BTC perp · NO ACTIVE EVENTS" in text
-        assert "Price/OI: ready" in text or "all families ready" in text
+        assert "Detector ready" in text or "Ready: Price/OI" in text
         assert ("Readiness", "r:latest") in out[0].buttons[0]
         details = await h.handle(_cb(ALICE, "r:latest", 5))
         assert "Detector readiness" in details[1].html and "OI history: mature" in details[1].html
