@@ -265,6 +265,7 @@ The following describe earlier Stage1/Stage2/V2 implementation states or audits.
 - `V2_CONSENSUS_ROBUSTNESS_HISTORICAL_AUDIT.md`
 - `V2_PERCENTILE_MATURITY_AUDIT.md`
 - `history/V2_MATHEMATICAL_HYPOTHESIS_REGISTER.md` — exact historical governance content archived from the standalone `research/v2-mathematical-hypothesis-register` branch before branch cleanup.
+- `scripts/audit/live_archive_replay_preflight/` — owner-executable read-only coverage exporter for a later live-archive replay preflight. It does not query production on import, does not export market magnitudes, and is not itself a coverage result.
 
 The old `PROJECT_RISK_AND_DEBT_REGISTER.md` is also retained as a **historical V2-era debt register**. Its Stage-6/7/8 implementation items are not automatically current work. Use `ACTIVE_RESEARCH_RISKS.md` for the current program.
 

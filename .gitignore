@@ -36,6 +36,8 @@ logs/
 data/
 backups/
 artifacts/
+# Owner-run live-archive coverage exports. Do not commit them.
+live_archive_replay_preflight_coverage/
 # D13 per-symbol ListBucket XML is acquisition runtime under artifacts/,
 # not a tracked scientific authority. Do not commit docs/.../listings/per_symbol_1d/.
 *.log
