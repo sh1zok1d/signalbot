@@ -265,7 +265,7 @@ The following describe earlier Stage1/Stage2/V2 implementation states or audits.
 - `V2_CONSENSUS_ROBUSTNESS_HISTORICAL_AUDIT.md`
 - `V2_PERCENTILE_MATURITY_AUDIT.md`
 - `history/V2_MATHEMATICAL_HYPOTHESIS_REGISTER.md` — exact historical governance content archived from the standalone `research/v2-mathematical-hypothesis-register` branch before branch cleanup.
-- `audit/tardis_free_overlap_v0/overlap_report.md` — one-time USD 0 Tardis file inventory against the live archive dates 2026-08-01 and 2026-09-01. Comparison was not run (`INCOMPLETE_NO_SIGNALBOT_EXPORT`). Not a research result, not a percentile, and not authorization to purchase data.
+- `audit/tardis_free_overlap_v0/overlap_report.md` — USD 0 Tardis versus Signalbot live comparison for 2026-08-01 and 2026-09-01. Decision `REJECT_TARDIS_FOR_CURRENT_REPLAY`. Not a percentile, not CLOSE_REPLAY, and not authorization to purchase data.
 
 The old `PROJECT_RISK_AND_DEBT_REGISTER.md` is also retained as a **historical V2-era debt register**. Its Stage-6/7/8 implementation items are not automatically current work. Use `ACTIVE_RESEARCH_RISKS.md` for the current program.
 

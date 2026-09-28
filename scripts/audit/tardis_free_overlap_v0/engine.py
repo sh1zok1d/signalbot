@@ -1,8 +1,6 @@
 """Gold-vs-Tardis comparison. Not invoked unless a live export is present."""
 from __future__ import annotations
 
-import csv
-import json
 from datetime import timedelta
 from pathlib import Path
 
@@ -41,7 +39,14 @@ from .parsing import (
     iter_open_interest,
     iter_trades,
 )
-from .report import FLAGS, audit_sources_sha256, load_incidents
+from .report import (
+    FLAGS,
+    audit_sources_sha256,
+    gold_export_facts,
+    incidents_touching_sample_dates,
+    load_incidents,
+    write_comparison_outputs,
+)
 
 
 def _sha_for(inventory: list[dict], venue, data_type: str, sample_date: str) -> str:
@@ -84,12 +89,14 @@ def run_gold_comparison(*, vendor_dir: str, gold_dir: str, exchange_meta_dir: st
         ]
         for venue in VENUES
     }
-    feature_pairs = {
-        name: [] for name in (
-            "price_move_pct", "range_width_pct", "volume_notional_usd",
-            "taker_delta_notional_usd", "oi_change_pct",
-        )
-    }
+    feature_names = (
+        "price_move_pct", "range_width_pct", "volume_notional_usd",
+        "taker_delta_notional_usd", "oi_change_pct",
+    )
+    feature_pairs = {name: [] for name in feature_names}
+    slice_pairs: dict[tuple[str, str], dict[str, list]] = {}
+    slice_eval: dict[tuple[str, str], list] = {}
+    slice_cov: dict[tuple[str, str], dict] = {}
     consensus_pairs = {
         name: [] for name in (
             "price_move_pct_median", "range_width_pct_median",
@@ -136,6 +143,19 @@ def run_gold_comparison(*, vendor_dir: str, gold_dir: str, exchange_meta_dir: st
                 obs for obs in gold.oi[venue.signalbot_exchange]
                 if day0 <= obs.ts < day1
             ]
+            slice_key = (sample_date, venue.signalbot_exchange)
+            slice_pairs[slice_key] = {name: [] for name in feature_names}
+            slice_eval[slice_key] = []
+            slice_cov[slice_key] = {
+                "expected_buckets": 0,
+                "gold_buckets": 0,
+                "vendor_buckets": 0,
+                "both_present_buckets": 0,
+                "missing_gold_buckets": 0,
+                "missing_vendor_buckets": 0,
+                "gap_excluded_buckets": 0,
+                "vendor_gap_buckets": 0,
+            }
             for bucket in iter_day_buckets(sample_date):
                 tags = bucket_tags(
                     incidents_by_exchange[venue.tardis_exchange],
@@ -152,12 +172,27 @@ def run_gold_comparison(*, vendor_dir: str, gold_dir: str, exchange_meta_dir: st
                     if ex == venue.signalbot_exchange and in_half_open_bucket(ts, bucket)
                 ]
                 g_oi = _oi_for_bucket(gold_oi, bucket)
-                if not g_bars and not g_oi:
+                t_bars = _bars_for_bucket(minute_bars, bucket)
+                t_oi = _oi_for_bucket(tardis_oi, bucket)
+                cov = slice_cov[slice_key]
+                cov["expected_buckets"] += 1
+                gold_present = bool(g_bars or g_oi)
+                vendor_present = bool(t_bars or t_oi)
+                if gold_present:
+                    cov["gold_buckets"] += 1
+                else:
+                    cov["missing_gold_buckets"] += 1
+                if vendor_present:
+                    cov["vendor_buckets"] += 1
+                else:
+                    cov["missing_vendor_buckets"] += 1
+                if gold_present and vendor_present:
+                    cov["both_present_buckets"] += 1
+                if not gold_present:
                     tags = list(tags) + ["SIGNALBOT_DATA_GAP"]
                 t_vector, _t_diag = compute_bucket_features(
                     identity=identity, exchange=venue.signalbot_exchange,
-                    bucket_ts=bucket, bars=_bars_for_bucket(minute_bars, bucket),
-                    oi=_oi_for_bucket(tardis_oi, bucket), metadata=meta,
+                    bucket_ts=bucket, bars=t_bars, oi=t_oi, metadata=meta,
                 )
                 g_vector, _g_diag = compute_bucket_features(
                     identity=identity, exchange=venue.signalbot_exchange,
@@ -167,17 +202,19 @@ def run_gold_comparison(*, vendor_dir: str, gold_dir: str, exchange_meta_dir: st
                 stored_g.setdefault(key, []).append(g_vector)
                 stored_t.setdefault(key, []).append(t_vector)
                 bucket_gap[key] = bucket_gap.get(key, False) or gap_tagged(tags)
+                if VENDOR_GAP_TAG in tags:
+                    cov["vendor_gap_buckets"] += 1
                 if gap_tagged(tags):
                     gap_buckets += 1
+                    cov["gap_excluded_buckets"] += 1
                     continue
                 if g_vector.oi_unit and t_vector.oi_unit and g_vector.oi_unit != t_vector.oi_unit:
                     unit_mismatch += 1
                 for field in feature_pairs:
-                    feature_pairs[field].append((
-                        getattr(g_vector, field), getattr(t_vector, field),
-                    ))
-                    g_val = getattr(g_vector, field)
-                    t_val = getattr(t_vector, field)
+                    pair = (getattr(g_vector, field), getattr(t_vector, field))
+                    feature_pairs[field].append(pair)
+                    slice_pairs[slice_key][field].append(pair)
+                    g_val, t_val = pair
                     if g_val is not None and t_val is not None:
                         mismatches.append((
                             abs(float(t_val) - float(g_val)),
@@ -187,6 +224,7 @@ def run_gold_comparison(*, vendor_dir: str, gold_dir: str, exchange_meta_dir: st
                 g_eval = g_vector.is_usable and g_vector.price_move_pct is not None
                 t_eval = t_vector.is_usable and t_vector.price_move_pct is not None
                 evaluable_flags.append(g_eval != t_eval)
+                slice_eval[slice_key].append(g_eval != t_eval)
                 _ = vector_public_dict(
                     t_vector, source=SOURCE_TARDIS, instrument=venue.tardis_symbol,
                     sample_date=sample_date, source_file_sha256=trade_sha,
@@ -238,11 +276,42 @@ def run_gold_comparison(*, vendor_dir: str, gold_dir: str, exchange_meta_dir: st
         post_hoc_transform_applied=False,
     )
     decision = overall_decision(comparison_performed=True, findings=findings)
+    per_venue = []
+    for (sample_date, exchange), cov in slice_cov.items():
+        pairs = slice_pairs[(sample_date, exchange)]
+        flags = slice_eval[(sample_date, exchange)]
+        per_venue.append({
+            "sample_date": sample_date,
+            "exchange": exchange,
+            "coverage": cov,
+            "feature_stats": {
+                name: numeric_diagnostics(pairs[name]) for name in feature_names
+            },
+            "null_evaluability_disagreements": {
+                "count": sum(flags),
+                "fraction": (sum(flags) / len(flags) if flags else None),
+                "buckets_entering_equivalence": len(flags),
+            },
+        })
+    touching = incidents_touching_sample_dates(incidents_raw) if incidents_raw else []
+    applicable_gaps = [
+        row for row in touching if row["applies_to_trades_or_derivative_ticker"]
+    ]
+    okx_multiplier_rows = [
+        row for row in gold.history
+        if row.exchange == "okx"
+        and row.contract_multiplier is not None
+        and row.contract_multiplier > 0
+    ]
+    gold_facts = gold_export_facts(gold_dir)
     summary = {
         "comparison_performed": True,
         "overall_decision": decision,
+        "dates_compared": list(SAMPLE_DATES),
+        "venues_compared": [venue.signalbot_exchange for venue in VENUES],
         "verdicts": _verdicts(stats, findings),
         "feature_stats": stats,
+        "per_venue": per_venue,
         "consensus_stats": {
             name: numeric_diagnostics(pairs) for name, pairs in consensus_pairs.items()
         },
@@ -251,27 +320,59 @@ def run_gold_comparison(*, vendor_dir: str, gold_dir: str, exchange_meta_dir: st
         "null_evaluability_disagreements": {
             "count": sum(evaluable_flags),
             "fraction": eval_fraction,
+            "definition": (
+                "Disagreement of (is_usable and price_move_pct is not None) "
+                "on buckets that were not gap-excluded."
+            ),
         },
+        "quorum_disagreement": {
+            "count": sum(quorum_flags),
+            "fraction": quorum_fraction,
+            "buckets": len(quorum_flags),
+        },
+        "documented_vendor_gaps": {
+            "incidents_whose_window_overlaps_a_sample_date": touching,
+            "applicable_to_trades_or_derivative_ticker": applicable_gaps,
+            "vendor_gap_buckets": sum(
+                row["vendor_gap_buckets"] for row in slice_cov.values()
+            ),
+        },
+        "top_mismatch_causes": [
+            {"code": item["code"], "class": item["class"], "detail": item["detail"]}
+            for item in findings
+        ],
         "gap_buckets_excluded_from_equivalence": gap_buckets,
         "unit_mismatch_count": unit_mismatch,
         "findings": findings,
+        "okx_oi_pit_status": (
+            "PIT_MULTIPLIER_PRESENT" if okx_multiplier_rows
+            else "PIT_BLOCKED_NO_HISTORICAL_CTVAL"
+        ),
+        "current_instrument_table_used_as_pit": False,
+        "post_hoc_transform_applied": False,
+        "gold_export": gold_facts,
+        "tardis_files": [
+            {
+                "file": row["path_basename"],
+                "sha256": row["sha256"],
+                "compressed_bytes": row["compressed_bytes"],
+                "row_count": row["row_count"],
+                "http_status": row["http_status"],
+                "status": row["status"],
+            }
+            for row in inventory
+        ],
         "flags": FLAGS,
         "cost_incurred_usd": 0,
         "base_sha": base_sha,
         "audit_sources_sha256": audit_sources_sha256(),
     }
     mismatches.sort(reverse=True)
-    out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=True)
-    (out / "overlap_summary.json").write_text(json.dumps(summary, indent=2, default=str) + "\n")
-    with (out / "mismatch_samples.csv").open("w", newline="") as handle:
-        writer = csv.writer(handle)
-        writer.writerow([
-            "sample_date", "exchange", "bucket_ts", "feature",
-            "signalbot_value", "tardis_value", "abs_diff", "tags", "note",
-        ])
-        for abs_diff, day, exchange, bucket, field, g_val, t_val, tags in mismatches[:200]:
-            writer.writerow([day, exchange, bucket, field, g_val, t_val, abs_diff, tags, ""])
+    mismatch_rows = [
+        [day, exchange, bucket, field, g_val, t_val, abs_diff, tags, ""]
+        for abs_diff, day, exchange, bucket, field, g_val, t_val, tags in mismatches[:200]
+    ]
+    write_comparison_outputs(Path(out_dir), summary, mismatch_rows, inventory)
     print(decision)
     return 0
 
