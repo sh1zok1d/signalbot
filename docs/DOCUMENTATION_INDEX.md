@@ -313,7 +313,8 @@ Before using an operational runbook, compare it with current code/config and run
 ## 7a. Descriptive private beta V0.2 (authorized 2026-09-25)
 
 - `PRIVATE_BETA_V0_RESTART_DECISION.md` is the governance authority. It covers the scope, the frozen rule identity, the soak gate, and the rollout and exit criteria. It is descriptive only, and the predictive product stays frozen.
-- `research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md` carries the label `PROSPECTIVE_PRE_REGISTERED_FORWARD_EVALUATION / OWNER_UNBLINDED`. It is never independent confirmation.
+- `research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md` carries the label `PROSPECTIVE_PRE_REGISTERED_FORWARD_EVALUATION / OWNER_UNBLINDED`. It is never independent confirmation. Its Q1/Q2 were superseded on 2026-09-28, before any statistic was inspected, because the product will show historical follow-up statistics before the stopping rule (see its amendment).
+- `BETA_HISTORICAL_FOLLOW_UP_V0.md`: foundation for "what happened after previous comparable states?" — `EVENT_COMPARABILITY_V0`, fail-closed display sufficiency, 1h/4h absolute range only, ordinary same-time and volatility-matched baselines, provenance classes. Pure code, not wired into `/btc`, no historical replay.
 
 ---
 
