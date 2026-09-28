@@ -24,6 +24,7 @@ from beta.config import BetaConfig, BetaSwitches
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
 from beta.formatter import (CLOSED_BETA_TEXT, HELP_TEXT, PRIVACY_NOTICE, assert_descriptive,
                             format_details, format_history)
+from common.logging_setup import setup_logging
 from notifications.telegram_client import TelegramSender, sanitize_telegram_error
 
 logger = logging.getLogger("beta.bot")
@@ -276,7 +277,9 @@ async def run_bot_service(*, store, cfg: BetaConfig, switches: Callable[[], Beta
 
 
 def main() -> None:   # systemd entry point: python -m runtime.beta_bot
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    # shared setup: quiets httpx/httpcore/telegram (their INFO request lines carry the
+    # bot-token URL) and attaches the Telegram-token redaction filter to the stream
+    setup_logging("INFO")
     from beta.config import BetaSecrets, resolve_switches
     from common.config import Secrets as _S  # noqa: F401 - loads .env
     from runtime.beta_cli import load_postgres_dsn
