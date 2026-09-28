@@ -36,6 +36,9 @@ logs/
 data/
 backups/
 artifacts/
+# Tardis free-sample vendor bytes for scripts/audit/tardis_free_overlap_v0.
+# Inventory reports live under docs/audit/tardis_free_overlap_v0/. Do not commit
+# the downloaded csv.gz files.
 # D13 per-symbol ListBucket XML is acquisition runtime under artifacts/,
 # not a tracked scientific authority. Do not commit docs/.../listings/per_symbol_1d/.
 *.log

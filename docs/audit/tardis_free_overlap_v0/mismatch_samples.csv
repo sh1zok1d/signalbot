@@ -1,0 +1,2 @@
+sample_date,exchange,bucket_ts,feature,signalbot_value,tardis_value,abs_diff,tags,note
+,,,,,,,,NO_COMPARISON_WAITING_FOR_SIGNALBOT_EXPORT
