@@ -33,21 +33,23 @@ There is no hysteresis, no COOLING, no reactivation and no new episode identity;
 
 ## What `/btc` shows (factual detector state only)
 
+The main view is a compact mobile layout in sections: headline, then ACTIVE EVENT or LAST EVENT, then `NOW · 5m`, then `1H CONTEXT`, then venues / readiness / data freshness, then the disclaimer. It is rendered only from the persisted view model (`beta_btc_views.payload`). Ranks, anchor kind, the normal end reason, unanimous venue agreement, per-venue values and the per-rule readiness breakdown are in **Details** / **Readiness**, not in the main view.
+
 - **Headline:** DATA STALE, then DATA DEGRADED, then WATCH / EVENT ACTIVE (the existing fail-closed product status, unchanged). When the product status is NO ACTIVE EVENTS, the headline becomes HISTORY BUILDING (or DETECTOR NOT READY) unless the Price/OI families are actually evaluable. See the warm-up and readiness section of `docs/PRIVATE_BETA_V0_DEPLOY.md`.
 - **Detector readiness (`beta/readiness.py`, read model `BETA_READINESS_V0`):** derived per family from the latest LIVE tape row. It is READY exactly when the detector's own rule evaluation for that bucket was evaluable. Otherwise the rules' own gates classify it as HISTORY_BUILDING, DATA_UNAVAILABLE, DEGRADED or DISABLED. Progress is the percentile core's span. The readiness block is persisted with each `beta_btc_views` row and never produces a push.
-- **ACTIVE EVENT:** an open detector episode. The summary shows the event, the level reached, and the qualifying window and bucket count.
-- **LAST EVENT:** shown when no episode is open. It is the most recently ended detector episode, with its qualifying window, when it ended, and the factual end reason. It stays for `context.last_event_retention_min` (120 min, a presentation setting) after the episode ended, and is never shown as active.
-- **Anchor bucket:** one real bucket per episode; every metric shown for it comes from that bucket.
+- **ACTIVE EVENT:** an open detector episode. The summary shows the event, the level reached, and the qualifying window and bucket count. Other open episodes are listed as "Also open".
+- **LAST EVENT:** shown when no episode is open. It is the most recently ended detector episode, with its qualifying window and when it ended. The end reason is shown on the main view only when it is not the normal `condition no longer met`; Details always shows it. It stays for `context.last_event_retention_min` (120 min, a presentation setting) after the episode ended, and is never shown as active.
+- **Anchor bucket:** one real bucket per episode; every metric shown for it comes from that bucket. The main view shows the event's two primary raw values at it (prefixed `At HH:MM–HH:MM:` when the episode spans more than that bucket); Details shows the anchor kind and every percentile.
 
   | Family | Anchor | Why |
   |---|---|---|
   | TAKER_FLOW_EXTREME_BUY / _SELL | Strongest observed bucket: strict improvement of signed taker delta in the event direction, earliest tie. The state at bucket t never holds a later bucket. | The audit rated taker flow SUPPORTED as a single-observable intensity series. |
   | PRICE_OI_CONTRACTION_DOWN / _UP, POSITION_BUILDUP_COMPRESSION | The detector's own trigger bucket, or the opening bucket while not triggered. | These events are conjunctions; ranking a "strongest" bucket would need an invented composite. |
-  | LIQUIDATION_STRESS_LONG / _SHORT | Trigger bucket. Shows the rule's own per-venue votes, for example "top 5% on binance, bybit (2 of 3 eligible venues)", and per-venue notionals in Details. | Per-venue voting is preserved; there is no summed cross-venue intensity. |
+  | LIQUIDATION_STRESS_LONG / _SHORT | Trigger bucket. The main view shows the rule's own vote count, for example "votes 2 of 3 eligible venues"; Details names the voting venues and per-venue notionals. | Per-venue voting is preserved; there is no summed cross-venue intensity. |
 
-- **Now:** the latest 5m bucket, labelled with its window, so it can't be confused with the anchor or the last event.
+- **Now (`NOW · 5m`):** the latest 5m bucket (it ends at "Data through"): price and OI with their tail label when in a 20% tail, and the volume level.
 - **1h:** see below.
-- **Venues:** coverage, and at the anchor bucket the same-direction agreement from per-venue signs. A single-venue extreme therefore reads as, for example, "same direction on 1/3".
+- **Venues:** the latest bucket's coverage for the event's family (price otherwise). Partial same-direction agreement at the anchor bucket is shown in the event section, for example "Same direction on 1/3 venues"; unanimous agreement and the per-venue signs are in Details.
 - **Details button:** the full percentiles for the anchor and for now, the 1h ranks, the per-venue breakdown and the versions.
 - **Consistency guard:** if the projection's open episodes ever differ from the detector's open episodes in the database, `/btc` shows no projection details.
 - **Record of what was shown:** each `/btc` writes a `beta_btc_views` row with the view model, its digest, the rendered text and its SHA-256, plus the context state digest. No user id is stored.

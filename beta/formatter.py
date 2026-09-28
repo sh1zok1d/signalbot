@@ -260,10 +260,6 @@ _DIRECTION_FIELD = {PRICE_OI_CONTRACTION_DOWN: ("price_structure", "price"),
                     TAKER_FLOW_EXTREME_BUY: ("taker_flow", "taker"), TAKER_FLOW_EXTREME_SELL: ("taker_flow", "taker"),
                     LIQUIDATION_STRESS_LONG: ("price_structure", None),
                     LIQUIDATION_STRESS_SHORT: ("price_structure", None)}
-_PARTS = {PRICE_OI_CONTRACTION_DOWN: ("price", "oi", "volume"), PRICE_OI_CONTRACTION_UP: ("price", "oi", "volume"),
-          POSITION_BUILDUP_COMPRESSION: ("oi", "range", "volume"),
-          TAKER_FLOW_EXTREME_BUY: ("taker", "price", "volume"), TAKER_FLOW_EXTREME_SELL: ("taker", "price", "volume"),
-          LIQUIDATION_STRESS_LONG: ("liq_long", "price"), LIQUIDATION_STRESS_SHORT: ("liq_short", "price")}
 
 
 def _dt(s: str) -> datetime:
@@ -304,66 +300,109 @@ def _tail(cfg, m: Mapping[str, Any]) -> str:
     return f" ({t})" if t else ""
 
 
-def _part(cfg, view: Mapping[str, Any], which: str) -> str:
-    from .context import level_label
+def _cap(s: str) -> str:
+    return s[:1].upper() + s[1:]
+
+
+def _part(cfg, view: Mapping[str, Any], which: str, *, tails: bool = True) -> str:
+    tail = (lambda m: _tail(cfg, m)) if tails else (lambda m: "")
     if which == "price":
         m = view["price_move_pct"]
-        return f"price {_signed_pct(m['value'])}{_tail(cfg, m)}"
+        return f"Price {_signed_pct(m['value'])}{tail(m)}"
     if which == "oi":
         m = view["oi_change_pct"]
-        return f"OI {_signed_pct(m['value'])}{_tail(cfg, m)}"
+        return f"OI {_signed_pct(m['value'])}{tail(m)}"
     if which == "range":
         m = view["range_width_pct"]
-        return f"range {'n/a' if m['value'] is None else format(m['value'], '.2f') + '%'}{_tail(cfg, m)}"
+        return f"Range {'n/a' if m['value'] is None else format(m['value'], '.2f') + '%'}{tail(m)}"
     if which == "taker":
         m = view["taker_delta_notional_usd"]
-        return f"taker delta {_usd(m['value'], signed=True)}{_tail(cfg, m)}"
+        return f"Taker delta {_usd(m['value'], signed=True)}{tail(m)}"
     if which == "volume":
         m = view["volume_notional_usd"]
-        return f"volume {level_label(cfg, m.get('rank'), m.get('tier')) or 'n/a'}"
+        return _level_text(cfg, "Volume", m["value"], m.get("rank"), m.get("tier"))
     if which in ("liq_long", "liq_short"):
         side = which[4:]
         liq = view["liquidations"][side]
         if liq["rule_status"] == "NOT_EVALUABLE":
-            return f"{side}-side liquidations not evaluable"
-        venues = ", ".join(liq["voting"]) or "no venue"
-        return (f"{side}-side liquidations in their top 5% on {venues} "
-                f"({len(liq['voting'])} of {len(liq['eligible'])} eligible venues)")
+            return f"{_cap(side)}-side liquidations not evaluable"
+        return f"{_cap(side)}-side liquidation votes {len(liq['voting'])} of {len(liq['eligible'])} eligible venues"
     raise ValueError(which)
 
 
-def _parts(cfg, view, event_type: Optional[str]) -> str:
-    return " · ".join(_part(cfg, view, p) for p in (_PARTS[event_type] if event_type else ("price", "oi", "volume")))
+def _level_text(cfg, name: str, value: Optional[float], rank: Optional[float], tier: Optional[str]) -> str:
+    """Predefined level label, or why there is none (value missing vs immature history)."""
+    from .context import level_label
+    if value is None:
+        return f"{name} n/a"
+    return f"{name} {level_label(cfg, rank, tier) or '— history building'}"
 
 
-def _venues(ep: Optional[Mapping[str, Any]], now_view: Optional[Mapping[str, Any]]) -> Optional[str]:
-    anchor_view = ((ep or {}).get("anchor") or {}).get("view")
-    fam, field = _DIRECTION_FIELD[ep["event_type"]] if ep else ("price_structure", None)
-    src = anchor_view or now_view
-    if src is None:
-        return None
-    cov = src["coverage"][fam]
-    out = f"Venues {cov['available']}/{cov['expected']}"
-    if ep is not None and field is not None and anchor_view is not None:
-        vd = anchor_view["venue_direction"][field]
-        if vd is None:
-            out += " · per-venue direction n/a"
-        else:
-            agree = vd["up"] if _EVENT_SIGN[ep["event_type"]] > 0 else vd["down"]
-            out += f" · same direction on {len(agree)}/{vd['contributing']} at the {ANCHOR_WORDS[ep['anchor']['kind']].lower()}"
-    return out
+# The compact main /btc shows the event's two primary observables at its anchor bucket,
+# as raw values only; ranks, anchor kind and per-venue detail stay in Details.
+_SUMMARY = {PRICE_OI_CONTRACTION_DOWN: ("price", "oi"), PRICE_OI_CONTRACTION_UP: ("price", "oi"),
+            POSITION_BUILDUP_COMPRESSION: ("oi", "range"),
+            TAKER_FLOW_EXTREME_BUY: ("taker", "price"), TAKER_FLOW_EXTREME_SELL: ("taker", "price"),
+            LIQUIDATION_STRESS_LONG: ("liq_long", "price"), LIQUIDATION_STRESS_SHORT: ("liq_short", "price")}
 
 
 def _reached(ep: Mapping[str, Any]) -> str:
     return "triggered" if ep.get("triggered_at") else "armed" if ep.get("armed_at") else "early"
 
 
+def _event_block(cfg, view: Mapping[str, Any], ep: Mapping[str, Any], active: bool) -> list:
+    lines = ["<b>ACTIVE EVENT</b>" if active else "<b>LAST EVENT</b>",
+             f"{_e(_cap(event_label(ep['event_type'])))} · {_reached(ep).upper()}"]
+    window = _window(ep["opened_bucket"], ep["last_bucket"])
+    if active:
+        n = ep["qualifying_buckets"]
+        lines.append(f"Qualifying {window} UTC · {n} bucket{'s' if n != 1 else ''}")
+    else:
+        ago = (_dt(view["requested_at"]) - _dt(ep["terminal_at"])).total_seconds() / 60
+        abnormal = ep["terminal_reason"] != "CONDITION_FAILED"
+        lines.append(f"{window} UTC · ended {_dur(ago)} ago"
+                     + (f" · {TERMINAL_WORDS.get(ep['terminal_reason'], 'ended')}" if abnormal else ""))
+    a = ep.get("anchor")
+    if a is not None:
+        at = "" if _window(a["bucket_ts"]) == window else f"At {_window(a['bucket_ts'])}: "
+        lines.append(at + " · ".join(_part(cfg, a["view"], p, tails=False) for p in _SUMMARY[ep["event_type"]]))
+        fam, field = _DIRECTION_FIELD[ep["event_type"]]
+        vd = a["view"]["venue_direction"][field] if field is not None else None
+        if vd is not None:
+            agree = vd["up"] if _EVENT_SIGN[ep["event_type"]] > 0 else vd["down"]
+            if len(agree) < vd["contributing"]:          # unanimous agreement lives in Details
+                lines.append(f"Same direction on {len(agree)}/{vd['contributing']} venues")
+    if active and view.get("other_active"):
+        lines.append("Also open: " + ", ".join(_e(event_label(et)) for et, _st in view["other_active"]))
+    return lines
+
+
+def _readiness_compact(cfg, rd: Optional[Mapping[str, Any]]) -> tuple:
+    """("Detector ready", []) when every group is READY; otherwise no inline word and one
+    line per distinct non-ready condition (groups sharing the same text are merged), then
+    the READY groups. The per-rule breakdown is behind the Readiness button."""
+    if not rd:
+        return None, []
+    groups = rd["groups"]
+    if all(g["status"] == "READY" for g in groups):
+        return "Detector ready", []
+    merged: dict = {}
+    for g in groups:
+        if g["status"] != "READY":
+            merged.setdefault(_group_text(cfg, g, rd["maturity_days"]), []).append(g["label"])
+    lines = [f"{', '.join(labels)}: {text}" for text, labels in merged.items()]
+    ready = [g["label"] for g in groups if g["status"] == "READY"]
+    if ready:
+        lines.append("Ready: " + ", ".join(ready))
+    return None, lines
+
+
 def format_btc(cfg, view: Mapping[str, Any]) -> str:
-    """Compact mobile /btc summary built only from factual detector state:
-    ACTIVE EVENT (an open detector episode) or LAST EVENT (ended, within the
-    presentation retention window), its factual anchor bucket, NOW, the rolling-1h
-    background and data freshness. No score, no direction call, no forecast."""
-    from .context import level_label
+    """Compact mobile /btc built only from the factual view model: headline, ACTIVE
+    EVENT (an open detector episode) or LAST EVENT (ended, within the presentation
+    retention window), NOW (latest 5m), the rolling 1h, then venues, readiness and
+    data freshness. Anchor ranks, anchor kind, per-venue values and the per-rule
+    readiness breakdown are in Details / Readiness. No score, no direction call."""
     lines = [f"<b>BTC perp · {_e(view['headline'])}</b>"]
     if view["product_status"] in ("DATA DEGRADED", "DATA STALE"):
         lines.append("Current observability is insufficient; the absence of events cannot be "
@@ -372,38 +411,34 @@ def format_btc(cfg, view: Mapping[str, Any]) -> str:
         lines.append("Episode details are not available right now.")
     ep, last, now_v, c1h = view.get("active_episode"), view.get("last_event"), view.get("now"), view.get("context_1h")
     shown = ep or last
-    if ep is not None:
-        lines.append(f"{_e(event_label(ep['event_type']))} · {_reached(ep)} · qualifying "
-                     f"{_window(ep['opened_bucket'], ep['last_bucket'])} UTC "
-                     f"({ep['qualifying_buckets']} bucket{'s' if ep['qualifying_buckets'] != 1 else ''})")
-        if view.get("other_active"):
-            lines.append("Also open: " + ", ".join(_e(event_label(et)) for et, _st in view["other_active"]))
-    elif last is not None:
-        ago = (_dt(view["requested_at"]) - _dt(last["terminal_at"])).total_seconds() / 60
-        lines.append(f"Last event: {_e(event_label(last['event_type']))} · reached {_reached(last)}")
-        lines.append(f"{_window(last['opened_bucket'], last['last_bucket'])} UTC · ended {_dur(ago)} ago "
-                     f"({TERMINAL_WORDS.get(last['terminal_reason'], 'ended')})")
-    a = (shown or {}).get("anchor")
-    if a is not None:
-        lines.append(f"{ANCHOR_WORDS[a['kind']]} {_window(a['bucket_ts'])}: {_parts(cfg, a['view'], shown['event_type'])}")
-    lines += _readiness_lines(cfg, view.get("readiness"))
+    if shown is not None:
+        lines += [""] + _event_block(cfg, view, shown, active=ep is not None)
     if now_v is not None:
-        lines.append(f"Now {_window(now_v['bucket_ts'])}: {_parts(cfg, now_v, (shown or {}).get('event_type'))}")
+        lines += ["", "<b>NOW · 5m</b>", f"{_part(cfg, now_v, 'price')} · {_part(cfg, now_v, 'oi')}",
+                  _part(cfg, now_v, "volume")]
     if c1h is not None:
         pr = c1h.get("percentiles") or {}
         rng, vol = pr.get("range_width_pct_median") or {}, pr.get("volume_notional_usd_sum") or {}
-        lines.append(f"1h: range {level_label(cfg, rng.get('rank'), rng.get('tier')) or 'n/a (history building)'}"
-                     f" · volume {level_label(cfg, vol.get('rank'), vol.get('tier')) or 'n/a (history building)'}"
-                     f" · price {_signed_pct(c1h.get('price_move_pct_median'))}")
+        lines += ["", "<b>1H CONTEXT</b>", f"Price {_signed_pct(c1h.get('price_move_pct_median'))}",
+                  _level_text(cfg, "Range", c1h.get("range_width_pct_median"), rng.get("rank"), rng.get("tier")),
+                  _level_text(cfg, "Volume", c1h.get("volume_notional_usd_sum"), vol.get("rank"), vol.get("tier"))]
     elif view["product_status"] != "DATA STALE" and view.get("as_of_bucket"):
-        lines.append("1h: n/a (incomplete last hour)")
-    tail = [t for t in [_venues(shown, now_v)] if t]
+        lines += ["", "<b>1H CONTEXT</b>", "n/a (incomplete last hour)"]
+    inline, rd_lines = _readiness_compact(cfg, view.get("readiness"))
+    status = []
+    if now_v is not None:
+        cov = now_v["coverage"][_DIRECTION_FIELD[shown["event_type"]][0] if shown else "price_structure"]
+        status.append(f"Venues {cov['available']}/{cov['expected']}")
+    if inline:
+        status.append(inline)
+    lines.append("")
+    if status:
+        lines.append(" · ".join(status))
+    lines += rd_lines
+    data = (f"Data through {_hm(_dt(view['data_through']))} UTC" if view.get("data_through")
+            else "No evaluation yet")
     ref = (now_v or {}).get("reference_price")
-    if ref is not None:
-        tail.append(f"{ref:,.1f}")
-    tail.append(f"data through {_hm(_dt(view['data_through']))} UTC" if view.get("data_through")
-                else "no evaluation yet")
-    lines.append(" · ".join(tail))
+    lines.append(data + (f" · ref. price {ref:,.1f}" if ref is not None else ""))
     lines.append("\n" + DISCLAIMER)
     return assert_descriptive("\n".join(lines))
 
@@ -511,15 +546,6 @@ def _group_text(cfg, g: Mapping[str, Any], maturity_days: float) -> str:
     if g.get("partly_ready"):
         text = f"partly ready ({g['ready_members']}/{g['enabled_members']} rules) · {text}"
     return text
-
-
-def _readiness_lines(cfg, rd: Optional[Mapping[str, Any]]) -> list:
-    if not rd:
-        return []
-    groups = rd["groups"]
-    if all(g["status"] == "READY" for g in groups):
-        return ["Detector readiness: all families ready"]
-    return ["Detector readiness"] + [f"{g['label']}: {_group_text(cfg, g, rd['maturity_days'])}" for g in groups]
 
 
 def format_readiness_details(cfg, rd: Mapping[str, Any]) -> str:
