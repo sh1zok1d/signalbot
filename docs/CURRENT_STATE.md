@@ -56,7 +56,7 @@ This page answers "where are we now?" in one screen. It restates facts recorded 
 2. Matching on prior-1h realized-range terciles is too coarse.
 3. It has no adequate control for the recent price move that defines the event.
 
-No matched-baseline figure should be quoted. A revised protocol has not been designed or implemented.
+No matched-baseline figure should be quoted. That design is not repaired. A separate pilot-only OI-ablation kill-test, `PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0` (`research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0.md`), was frozen before outcomes and implemented as an owner-run read-only audit. It has not been run, and it has no result yet.
 
 ## 4. What is proven and what is not
 

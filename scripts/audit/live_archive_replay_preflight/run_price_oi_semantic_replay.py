@@ -195,6 +195,7 @@ def build_replay(kline_rows, oi_rows, *, code_version: str) -> dict:
         if index and index % 2000 == 0:
             print(f"reconstructed {index} history buckets", file=sys.stderr)
     result = replay_series(cfg, prepared)
+    result["prepared"] = prepared  # in-memory only; write_outputs does not export it
     result["offslot_live_bars_ignored"] = offslot
     result["unexpected_gap_quorum_buckets"] = unexpected_gap
     result["history_start"] = iso(HISTORY_START)
