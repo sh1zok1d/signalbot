@@ -35,3 +35,15 @@ Not yet implemented. The analysis script and its sha256 must be frozen and recor
 - Protected 2025/2026 research data is not used.
 - No threshold tuning is motivated by these outcomes.
 - The result cannot promote any rule into a predictive claim without a separate promotion gate.
+
+## Amendment — 2026-09-28: Q1/Q2 superseded before any statistic was inspected
+
+**Status:** `SUPERSEDED_BEFORE_INSPECTION`. The text above is kept unchanged as the historical preregistration.
+
+- **Live collection had started.** Production beta collection (state tape, detector episodes, forward outcomes) began before this amendment. This document's earlier line "No beta data exists yet" was true when it was frozen on 2026-09-25; it is no longer true.
+- **Nothing was inspected.** As of this amendment, no Q1 or Q2 statistic, no matched-control comparison, no per-event difference, no sign test and no bootstrap interval has been computed or looked at. The analysis script was never written or frozen. No interim Q1 result exists that could have been used for anything.
+- **Why Q1/Q2 are superseded.** Product development now intends to show users descriptive historical follow-up statistics for past comparable events: absolute realized range after previous events, an ordinary same-time baseline, and a volatility-matched baseline in the spirit of Q1 (`docs/BETA_HISTORICAL_FOLLOW_UP_V0.md`). That exposure would happen before this preregistration's stopping rule (30–60 TRIGGERED episodes per family, or 12 weeks). Numbers derived from the same observations would be visible to the owner and to users during the observation window.
+- **Consequence.** Observations collected after this decision cannot be claimed as an untouched realization of the original Q1/Q2 preregistration. The original evaluation is therefore closed as superseded, not completed. It is neither passed nor failed.
+- **No tuning happened.** No detector threshold, streak, duration, gating rule or event definition was changed because of any outcome. `BETA_EVENT_RULES_V1` and its rules digest are unchanged by this amendment.
+- **Future confirmation.** Any future confirmatory evaluation needs a new prospective contract, frozen before its data exists, with a new future observation window. It must also state explicitly how it handles the product's own display of historical follow-up statistics.
+- **Not done here.** Q1 was not computed while writing this amendment.

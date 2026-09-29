@@ -6608,3 +6608,19 @@ MARKET_DATA_OPENED_FOR_C020 = false
 POWER_SIMULATION_PERFORMED = false
 NEXT_UNIT = GV0R01_C020_OUTCOME_BLIND_DESIGN_AND_POWER_CONTINUATION
 ```
+
+## Beta V0 prospective Q1/Q2 superseded; historical follow-up foundation — 2026-09-28
+
+No protected data opened. No Q1/Q2 statistic, matched-control comparison, sign test or bootstrap computed or inspected.
+
+```
+EVALUATION = BETA_V0_PROSPECTIVE_FORWARD_EVALUATION (Q1 primary, Q2 secondary)
+STATUS = SUPERSEDED_BEFORE_INSPECTION (neither passed nor failed)
+REASON = product will display historical follow-up / base-rate statistics before the preregistered stopping rule
+LIVE_BETA_COLLECTION_STARTED_BEFORE_AMENDMENT = true
+Q1_Q2_STATISTIC_INSPECTED = false
+ANALYSIS_SCRIPT_FROZEN = false
+DETECTOR_RULE_CHANGED_BECAUSE_OF_OUTCOMES = false
+FUTURE_CONFIRMATION = requires a new prospective contract and a new future observation window
+FOLLOW_UP_FOUNDATION = docs/BETA_HISTORICAL_FOLLOW_UP_V0.md (EVENT_COMPARABILITY_V0; not wired; no replay)
+```
