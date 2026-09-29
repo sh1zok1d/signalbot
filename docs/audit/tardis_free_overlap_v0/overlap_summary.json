@@ -1,0 +1,1371 @@
+{
+  "audit_sources_sha256": "b4d870c4de25bf3a7bc2ac8b71ab36b71fcb732ed1987aa47a3fc2b9c0f13210",
+  "base_sha": "31882b32974c60c78c44e6232748984876f8efbe",
+  "comparison_performed": true,
+  "consensus_stats": {
+    "oi_change_pct_median": {
+      "both_null": 0,
+      "comparable_count": 522,
+      "evaluable_disagreement_count": 54,
+      "gold_only_evaluable": 54,
+      "maximum_absolute_difference": 0.3611353322530604,
+      "median_absolute_difference": 0.018007568075561774,
+      "median_scale_ratio_tardis_over_gold": 1.274103262397993,
+      "null_agreement_count": 522,
+      "null_agreement_fraction": 0.90625,
+      "p90_absolute_difference": 0.09134249348572918,
+      "p95_absolute_difference": 0.13900809740098954,
+      "p99_absolute_difference": 0.22948367203499453,
+      "pair_count": 576,
+      "pearson": 0.8496144500656423,
+      "sign_agreement_count": 411,
+      "sign_agreement_fraction": 0.7873563218390804,
+      "sign_disagreement_count": 111,
+      "spearman": 0.7312209417177179,
+      "tardis_only_evaluable": 0
+    },
+    "price_move_pct_median": {
+      "both_null": 0,
+      "comparable_count": 576,
+      "evaluable_disagreement_count": 0,
+      "gold_only_evaluable": 0,
+      "maximum_absolute_difference": 0.004988270518089977,
+      "median_absolute_difference": 0.0,
+      "median_scale_ratio_tardis_over_gold": 1.0,
+      "null_agreement_count": 576,
+      "null_agreement_fraction": 1.0,
+      "p90_absolute_difference": 0.0,
+      "p95_absolute_difference": 0.0,
+      "p99_absolute_difference": 0.0001585283492272025,
+      "pair_count": 576,
+      "pearson": 0.9999955803651308,
+      "sign_agreement_count": 576,
+      "sign_agreement_fraction": 1.0,
+      "sign_disagreement_count": 0,
+      "spearman": 0.9999990580963057,
+      "tardis_only_evaluable": 0
+    },
+    "range_width_pct_median": {
+      "both_null": 0,
+      "comparable_count": 576,
+      "evaluable_disagreement_count": 0,
+      "gold_only_evaluable": 0,
+      "maximum_absolute_difference": 0.01362308153551195,
+      "median_absolute_difference": 0.0,
+      "median_scale_ratio_tardis_over_gold": 1.0,
+      "null_agreement_count": 576,
+      "null_agreement_fraction": 1.0,
+      "p90_absolute_difference": 0.0,
+      "p95_absolute_difference": 0.0,
+      "p99_absolute_difference": 3.29850013530697e-06,
+      "pair_count": 576,
+      "pearson": 0.9999531151253155,
+      "sign_agreement_count": 576,
+      "sign_agreement_fraction": 1.0,
+      "sign_disagreement_count": 0,
+      "spearman": 0.9999920252178938,
+      "tardis_only_evaluable": 0
+    },
+    "taker_delta_notional_usd_sum": {
+      "both_null": 0,
+      "comparable_count": 576,
+      "evaluable_disagreement_count": 0,
+      "gold_only_evaluable": 0,
+      "maximum_absolute_difference": 57974770.80840549,
+      "median_absolute_difference": 2.9802322387695312e-08,
+      "median_scale_ratio_tardis_over_gold": 1.0000000000000009,
+      "null_agreement_count": 576,
+      "null_agreement_fraction": 1.0,
+      "p90_absolute_difference": 4683.915600150824,
+      "p95_absolute_difference": 60264.07679994777,
+      "p99_absolute_difference": 3415126.059899915,
+      "pair_count": 576,
+      "pearson": 0.9831745200846996,
+      "sign_agreement_count": 576,
+      "sign_agreement_fraction": 1.0,
+      "sign_disagreement_count": 0,
+      "spearman": 0.9995130987365937,
+      "tardis_only_evaluable": 0
+    },
+    "volume_notional_usd_sum": {
+      "both_null": 0,
+      "comparable_count": 576,
+      "evaluable_disagreement_count": 0,
+      "gold_only_evaluable": 0,
+      "maximum_absolute_difference": 79635905.5262407,
+      "median_absolute_difference": 5.960464477539063e-08,
+      "median_scale_ratio_tardis_over_gold": 1.0000000000000007,
+      "null_agreement_count": 576,
+      "null_agreement_fraction": 1.0,
+      "p90_absolute_difference": 4683.91560061276,
+      "p95_absolute_difference": 65671.02190123498,
+      "p99_absolute_difference": 3432972.946292311,
+      "pair_count": 576,
+      "pearson": 0.9970291055429018,
+      "sign_agreement_count": 576,
+      "sign_agreement_fraction": 1.0,
+      "sign_disagreement_count": 0,
+      "spearman": 0.9999687288071737,
+      "tardis_only_evaluable": 0
+    }
+  },
+  "cost_incurred_usd": 0,
+  "current_instrument_table_used_as_pit": false,
+  "dates_compared": [
+    "2026-08-01",
+    "2026-09-01"
+  ],
+  "documented_vendor_gaps": {
+    "applicable_to_trades_or_derivative_ticker": [],
+    "incidents_whose_window_overlaps_a_sample_date": [
+      {
+        "applies_to_trades_or_derivative_ticker": false,
+        "details": "Some generated OKX statistics channels were collected less frequently than the documented 1-minute interval. The affected channels were long-short-account-ratio and taker-volume for OKX Futures and Swap, and taker-volume and loan-ratio for OKX Spot. Recent OKX Swap long-short-account-ratio data was typically recorded every 35-40 minutes. Other OKX channels were unaffected. The missing observations were not recorded and cannot be backfilled. Normal 1-minute collection resumed on 2026-08-04.",
+        "from": "2023-06-09T15:30:00.000Z",
+        "sample_date": "2026-08-01",
+        "status": "resolved",
+        "tag_if_applicable": "REVIEWED_NOT_APPLICABLE_TO_REQUESTED_DATASETS",
+        "tardis_exchange": "okex-swap",
+        "to": "2026-08-04T11:16:00.000Z"
+      }
+    ],
+    "vendor_gap_buckets": 0
+  },
+  "feature_stats": {
+    "oi_change_pct": {
+      "both_null": 0,
+      "comparable_count": 1098,
+      "evaluable_disagreement_count": 630,
+      "gold_only_evaluable": 630,
+      "maximum_absolute_difference": 0.25593273694595925,
+      "median_absolute_difference": 0.0015666698073428867,
+      "median_scale_ratio_tardis_over_gold": 1.0,
+      "null_agreement_count": 1098,
+      "null_agreement_fraction": 0.6354166666666666,
+      "p90_absolute_difference": 0.01957452140535382,
+      "p95_absolute_difference": 0.03785809701439638,
+      "p99_absolute_difference": 0.1011161237748337,
+      "pair_count": 1728,
+      "pearson": 0.9881753933421383,
+      "sign_agreement_count": 1053,
+      "sign_agreement_fraction": 0.9590163934426229,
+      "sign_disagreement_count": 45,
+      "spearman": 0.9771532146108922,
+      "tardis_only_evaluable": 0
+    },
+    "price_move_pct": {
+      "both_null": 0,
+      "comparable_count": 1728,
+      "evaluable_disagreement_count": 0,
+      "gold_only_evaluable": 0,
+      "maximum_absolute_difference": 0.0429325907063116,
+      "median_absolute_difference": 0.0,
+      "median_scale_ratio_tardis_over_gold": 1.0,
+      "null_agreement_count": 1728,
+      "null_agreement_fraction": 1.0,
+      "p90_absolute_difference": 0.0,
+      "p95_absolute_difference": 0.0,
+      "p99_absolute_difference": 0.00012806671399274647,
+      "pair_count": 1728,
+      "pearson": 0.9998595568173819,
+      "sign_agreement_count": 1727,
+      "sign_agreement_fraction": 0.9994212962962963,
+      "sign_disagreement_count": 1,
+      "spearman": 0.9998765295340041,
+      "tardis_only_evaluable": 0
+    },
+    "range_width_pct": {
+      "both_null": 0,
+      "comparable_count": 1728,
+      "evaluable_disagreement_count": 0,
+      "gold_only_evaluable": 0,
+      "maximum_absolute_difference": 0.06001405896798573,
+      "median_absolute_difference": 0.0,
+      "median_scale_ratio_tardis_over_gold": 1.0,
+      "null_agreement_count": 1728,
+      "null_agreement_fraction": 1.0,
+      "p90_absolute_difference": 0.0,
+      "p95_absolute_difference": 0.0,
+      "p99_absolute_difference": 2.3804923449111115e-07,
+      "pair_count": 1728,
+      "pearson": 0.9997209377683186,
+      "sign_agreement_count": 1728,
+      "sign_agreement_fraction": 1.0,
+      "sign_disagreement_count": 0,
+      "spearman": 0.9998590893032766,
+      "tardis_only_evaluable": 0
+    },
+    "taker_delta_notional_usd": {
+      "both_null": 576,
+      "comparable_count": 1152,
+      "evaluable_disagreement_count": 0,
+      "gold_only_evaluable": 0,
+      "maximum_absolute_difference": 57974770.80840549,
+      "median_absolute_difference": 1.1641532182693481e-10,
+      "median_scale_ratio_tardis_over_gold": 1.0,
+      "null_agreement_count": 1728,
+      "null_agreement_fraction": 1.0,
+      "p90_absolute_difference": 77.48720026016235,
+      "p95_absolute_difference": 4683.915600150824,
+      "p99_absolute_difference": 316547.4708000235,
+      "pair_count": 1728,
+      "pearson": 0.9704771801472419,
+      "sign_agreement_count": 1151,
+      "sign_agreement_fraction": 0.9991319444444444,
+      "sign_disagreement_count": 1,
+      "spearman": 0.9989200317031408,
+      "tardis_only_evaluable": 0
+    },
+    "volume_notional_usd": {
+      "both_null": 576,
+      "comparable_count": 1152,
+      "evaluable_disagreement_count": 0,
+      "gold_only_evaluable": 0,
+      "maximum_absolute_difference": 79635905.52624065,
+      "median_absolute_difference": 0.0,
+      "median_scale_ratio_tardis_over_gold": 1.0,
+      "null_agreement_count": 1728,
+      "null_agreement_fraction": 1.0,
+      "p90_absolute_difference": 77.87229955941439,
+      "p95_absolute_difference": 4683.915600605309,
+      "p99_absolute_difference": 502783.8182991147,
+      "pair_count": 1728,
+      "pearson": 0.9948482058974126,
+      "sign_agreement_count": 1152,
+      "sign_agreement_fraction": 1.0,
+      "sign_disagreement_count": 0,
+      "spearman": 0.9999090358849313,
+      "tardis_only_evaluable": 0
+    }
+  },
+  "findings": [
+    {
+      "class": "reject",
+      "code": "CONSENSUS_QUORUM_DISAGREEMENT",
+      "detail": "1.0"
+    }
+  ],
+  "flags": {
+    "DATA_PURCHASED": false,
+    "DEPLOYED": false,
+    "DETECTOR_CHANGED": false,
+    "EPISODES_REPLAYED": false,
+    "OUTCOMES_COMPUTED": false,
+    "PAID_SUBSCRIPTION_STARTED": false,
+    "PERCENTILES_COMPUTED_AS_PRODUCTION_30D": false,
+    "PRODUCTION_CODE_CHANGED": false,
+    "PRODUCTION_DB_WRITTEN": false,
+    "PROTECTED_RESEARCH_OPENED": false,
+    "PUSH_CHANGED": false,
+    "RULES_CHANGED": false
+  },
+  "gap_buckets_excluded_from_equivalence": 0,
+  "gold_export": {
+    "current_instrument_table_used_as_pit": false,
+    "files": {
+      "exchange_instrument_history.csv": {
+        "data_rows": 0,
+        "present": true,
+        "sha256": "a19bce69c435363847eb667f07afaf07f2aa5d02bccb0c8d3f4b364a7996ad0c"
+      },
+      "exchange_instruments_current_not_used_as_pit.csv": {
+        "data_rows": 3,
+        "present": true,
+        "sha256": "21fffc12b954398630fed664b1361f1caac78a6b4a538442318391fa5704b1be"
+      },
+      "klines_1m.csv": {
+        "data_rows": 8639,
+        "present": true,
+        "sha256": "071e141abecfb3cf226bc3f1e910b75a360230259aea6b3bcc26864a12f740ec"
+      },
+      "klines_1m_source_counts.csv": {
+        "data_rows": 3,
+        "present": true,
+        "sha256": "49a3f12f63b0b6b088d615894d4ca67c62f87071d359ec72e99034d2c96eeece"
+      },
+      "open_interest.csv": {
+        "data_rows": 33450,
+        "present": true,
+        "sha256": "1be99608fb721868f756eff3435531ea575fa9c51bcb3d4c16048583e6a32f59"
+      },
+      "open_interest_source_counts.csv": {
+        "data_rows": 4,
+        "present": true,
+        "sha256": "35c022647d799f1caed34452399a58838f1508523e4e2520d4c6ca5c2a0fc875"
+      }
+    },
+    "source_counts": {
+      "klines_1m_source_counts.csv": [
+        {
+          "exchange": "binance",
+          "n": "2880",
+          "source": "live",
+          "table_name": "klines_1m"
+        },
+        {
+          "exchange": "bybit",
+          "n": "2880",
+          "source": "live",
+          "table_name": "klines_1m"
+        },
+        {
+          "exchange": "okx",
+          "n": "2879",
+          "source": "live",
+          "table_name": "klines_1m"
+        }
+      ],
+      "open_interest_source_counts.csv": [
+        {
+          "exchange": "binance",
+          "n": "288",
+          "source": "backfill",
+          "table_name": "open_interest"
+        },
+        {
+          "exchange": "binance",
+          "n": "11137",
+          "source": "live",
+          "table_name": "open_interest"
+        },
+        {
+          "exchange": "bybit",
+          "n": "11361",
+          "source": "live",
+          "table_name": "open_interest"
+        },
+        {
+          "exchange": "okx",
+          "n": "10952",
+          "source": "live",
+          "table_name": "open_interest"
+        }
+      ]
+    }
+  },
+  "mechanism_notes": [
+    "These notes explain the computed diagnostics. They do not add a tolerance and they do not change the decision.",
+    "The only rejection finding is CONSENSUS_QUORUM_DISAGREEMENT, fraction 1.0 on 576/576 consensus buckets. Price, range, volume, taker, and the OI percentage did not fire their own rejection rules.",
+    "Binance oi_change_pct is gold-only on 288/288 buckets on both dates. A read of the Binance derivative_ticker files found at least one same-timestamp open_interest disagreement in every 5-minute bucket. 2026-08-01: 9574 conflicting timestamps, maximum absolute difference 496.893. 2026-09-01: 11262 conflicting timestamps, maximum absolute difference 879.360. One small example is 2026-08-01T00:00:24Z with 109546.512 and 109546.513. The frozen production rule nulls the whole bucket when any timestamp conflicts, so Binance OI percentage was not compared.",
+    "Gold Binance OI stayed evaluable, so the OI contributing set differs on every consensus bucket. That membership gap is the quorum failure. It is not a price failure.",
+    "Bybit and OKX oi_change_pct were compared. OKX uses native contracts on both sides. No ctVal was applied. exchange_instrument_history has 0 rows. The current instrument file was not used. OKX volume and taker notional are both null on 288/288 buckets each date.",
+    "Signalbot is missing one OKX 1-minute bar, 2026-09-01T15:54:00Z. That lines up with the single price-evaluability disagreement, 1/1728.",
+    "On comparable Binance and Bybit volume and taker pairs the median scale ratio is 1 and rank correlation stays above 0.90. The largest absolute gaps are still large. The top sample is Binance 2026-09-01T18:25:00Z volume, absolute difference about 7.964e7 USD. Median agreement is not bit-identical replay.",
+    "The export's open-interest source counts include 288 Binance rows with source=backfill. Those rows were not loaded. They are not zeros and they are not comparison evidence."
+  ],
+  "null_evaluability_disagreements": {
+    "count": 1,
+    "definition": "Disagreement of (is_usable and price_move_pct is not None) on buckets that were not gap-excluded.",
+    "fraction": 0.0005787037037037037
+  },
+  "oi_sign_agreement_by_magnitude": {
+    "edges": {
+      "p10_abs_gold": 0.004548105171693217,
+      "p50_abs_gold": 0.0313558589914449,
+      "p90_abs_gold": 0.18833478859160954
+    },
+    "label": "SAMPLE-DAY magnitude strata of the Signalbot reference. Not a 30-day percentile.",
+    "strata": {
+      "10_to_50pct": {
+        "count": 439,
+        "sign_agreement_fraction": 0.9567198177676538,
+        "sign_disagreement_count": 19
+      },
+      "50_to_90pct": {
+        "count": 440,
+        "sign_agreement_fraction": 0.9977272727272727,
+        "sign_disagreement_count": 1
+      },
+      "lowest_10pct": {
+        "count": 110,
+        "sign_agreement_fraction": 0.7727272727272727,
+        "sign_disagreement_count": 25
+      },
+      "top_10pct": {
+        "count": 109,
+        "sign_agreement_fraction": 1.0,
+        "sign_disagreement_count": 0
+      }
+    }
+  },
+  "okx_oi_pit_status": "PIT_BLOCKED_NO_HISTORICAL_CTVAL",
+  "overall_decision": "REJECT_TARDIS_FOR_CURRENT_REPLAY",
+  "per_venue": [
+    {
+      "coverage": {
+        "both_present_buckets": 288,
+        "expected_buckets": 288,
+        "gap_excluded_buckets": 0,
+        "gold_buckets": 288,
+        "missing_gold_buckets": 0,
+        "missing_vendor_buckets": 0,
+        "vendor_buckets": 288,
+        "vendor_gap_buckets": 0
+      },
+      "exchange": "binance",
+      "feature_stats": {
+        "oi_change_pct": {
+          "both_null": 0,
+          "comparable_count": 0,
+          "evaluable_disagreement_count": 288,
+          "gold_only_evaluable": 288,
+          "maximum_absolute_difference": null,
+          "median_absolute_difference": null,
+          "median_scale_ratio_tardis_over_gold": null,
+          "null_agreement_count": 0,
+          "null_agreement_fraction": 0.0,
+          "p90_absolute_difference": null,
+          "p95_absolute_difference": null,
+          "p99_absolute_difference": null,
+          "pair_count": 288,
+          "pearson": null,
+          "sign_agreement_count": 0,
+          "sign_agreement_fraction": null,
+          "sign_disagreement_count": 0,
+          "spearman": null,
+          "tardis_only_evaluable": 0
+        },
+        "price_move_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.0003173263338173693,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.0001592588075542828,
+          "pair_count": 288,
+          "pearson": 0.9999998211133498,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999989952889096,
+          "tardis_only_evaluable": 0
+        },
+        "range_width_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.000317153708437129,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 2.1638115471622754e-07,
+          "pair_count": 288,
+          "pearson": 0.9999999364345303,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999999999999999,
+          "tardis_only_evaluable": 0
+        },
+        "taker_delta_notional_usd": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 33862489.6893017,
+          "median_absolute_difference": 6.51925802230835e-09,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.13979999721050262,
+          "p95_absolute_difference": 313.75599998561665,
+          "p99_absolute_difference": 23199.795500003267,
+          "pair_count": 288,
+          "pearson": 0.9693618954589216,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999994976469784,
+          "tardis_only_evaluable": 0
+        },
+        "volume_notional_usd": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 59086768.93313646,
+          "median_absolute_difference": 9.313225746154785e-09,
+          "median_scale_ratio_tardis_over_gold": 1.0000000000000002,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.1398000014014542,
+          "p95_absolute_difference": 331.0326999928802,
+          "p99_absolute_difference": 497582.8819000032,
+          "pair_count": 288,
+          "pearson": 0.9933814818569013,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999608164643188,
+          "tardis_only_evaluable": 0
+        }
+      },
+      "null_evaluability_disagreements": {
+        "buckets_entering_equivalence": 288,
+        "count": 0,
+        "fraction": 0.0
+      },
+      "sample_date": "2026-08-01"
+    },
+    {
+      "coverage": {
+        "both_present_buckets": 288,
+        "expected_buckets": 288,
+        "gap_excluded_buckets": 0,
+        "gold_buckets": 288,
+        "missing_gold_buckets": 0,
+        "missing_vendor_buckets": 0,
+        "vendor_buckets": 288,
+        "vendor_gap_buckets": 0
+      },
+      "exchange": "bybit",
+      "feature_stats": {
+        "oi_change_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.10238749250542666,
+          "median_absolute_difference": 0.0007727194587635322,
+          "median_scale_ratio_tardis_over_gold": 0.9992229992200162,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.012819566847379857,
+          "p95_absolute_difference": 0.029043739338441114,
+          "p99_absolute_difference": 0.07185357118650426,
+          "pair_count": 288,
+          "pearson": 0.9889108182632573,
+          "sign_agreement_count": 270,
+          "sign_agreement_fraction": 0.9375,
+          "sign_disagreement_count": 18,
+          "spearman": 0.9482124270081058,
+          "tardis_only_evaluable": 0
+        },
+        "price_move_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.0,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.0,
+          "pair_count": 288,
+          "pearson": 1.0,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999999999999999,
+          "tardis_only_evaluable": 0
+        },
+        "range_width_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.002562275300476133,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.0,
+          "pair_count": 288,
+          "pearson": 0.9999960843581732,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999894505865473,
+          "tardis_only_evaluable": 0
+        },
+        "taker_delta_notional_usd": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 295261.26269999845,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 63438.233499999624,
+          "pair_count": 288,
+          "pearson": 0.999989901939534,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999462482266938,
+          "tardis_only_evaluable": 0
+        },
+        "volume_notional_usd": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 1062447.357399998,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 224326.9963000007,
+          "pair_count": 288,
+          "pearson": 0.9999709094705552,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9989726880709241,
+          "tardis_only_evaluable": 0
+        }
+      },
+      "null_evaluability_disagreements": {
+        "buckets_entering_equivalence": 288,
+        "count": 0,
+        "fraction": 0.0
+      },
+      "sample_date": "2026-08-01"
+    },
+    {
+      "coverage": {
+        "both_present_buckets": 288,
+        "expected_buckets": 288,
+        "gap_excluded_buckets": 0,
+        "gold_buckets": 288,
+        "missing_gold_buckets": 0,
+        "missing_vendor_buckets": 0,
+        "vendor_buckets": 288,
+        "vendor_gap_buckets": 0
+      },
+      "exchange": "okx",
+      "feature_stats": {
+        "oi_change_pct": {
+          "both_null": 0,
+          "comparable_count": 270,
+          "evaluable_disagreement_count": 18,
+          "gold_only_evaluable": 18,
+          "maximum_absolute_difference": 0.17426316219337262,
+          "median_absolute_difference": 0.0009209122959689536,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 270,
+          "null_agreement_fraction": 0.9375,
+          "p90_absolute_difference": 0.01678710782790696,
+          "p95_absolute_difference": 0.03316933337873487,
+          "p99_absolute_difference": 0.097028287173417,
+          "pair_count": 288,
+          "pearson": 0.9636800272428797,
+          "sign_agreement_count": 252,
+          "sign_agreement_fraction": 0.9333333333333333,
+          "sign_disagreement_count": 18,
+          "spearman": 0.9419159842156042,
+          "tardis_only_evaluable": 0
+        },
+        "price_move_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.0,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.0,
+          "pair_count": 288,
+          "pearson": 1.0,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 1.0000000000000002,
+          "tardis_only_evaluable": 0
+        },
+        "range_width_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.0,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.0,
+          "pair_count": 288,
+          "pearson": 1.0000000000000002,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999999999999999,
+          "tardis_only_evaluable": 0
+        },
+        "taker_delta_notional_usd": {
+          "both_null": 288,
+          "comparable_count": 0,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": null,
+          "median_absolute_difference": null,
+          "median_scale_ratio_tardis_over_gold": null,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": null,
+          "p95_absolute_difference": null,
+          "p99_absolute_difference": null,
+          "pair_count": 288,
+          "pearson": null,
+          "sign_agreement_count": 0,
+          "sign_agreement_fraction": null,
+          "sign_disagreement_count": 0,
+          "spearman": null,
+          "tardis_only_evaluable": 0
+        },
+        "volume_notional_usd": {
+          "both_null": 288,
+          "comparable_count": 0,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": null,
+          "median_absolute_difference": null,
+          "median_scale_ratio_tardis_over_gold": null,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": null,
+          "p95_absolute_difference": null,
+          "p99_absolute_difference": null,
+          "pair_count": 288,
+          "pearson": null,
+          "sign_agreement_count": 0,
+          "sign_agreement_fraction": null,
+          "sign_disagreement_count": 0,
+          "spearman": null,
+          "tardis_only_evaluable": 0
+        }
+      },
+      "null_evaluability_disagreements": {
+        "buckets_entering_equivalence": 288,
+        "count": 0,
+        "fraction": 0.0
+      },
+      "sample_date": "2026-08-01"
+    },
+    {
+      "coverage": {
+        "both_present_buckets": 288,
+        "expected_buckets": 288,
+        "gap_excluded_buckets": 0,
+        "gold_buckets": 288,
+        "missing_gold_buckets": 0,
+        "missing_vendor_buckets": 0,
+        "vendor_buckets": 288,
+        "vendor_gap_buckets": 0
+      },
+      "exchange": "binance",
+      "feature_stats": {
+        "oi_change_pct": {
+          "both_null": 0,
+          "comparable_count": 0,
+          "evaluable_disagreement_count": 288,
+          "gold_only_evaluable": 288,
+          "maximum_absolute_difference": null,
+          "median_absolute_difference": null,
+          "median_scale_ratio_tardis_over_gold": null,
+          "null_agreement_count": 0,
+          "null_agreement_fraction": 0.0,
+          "p90_absolute_difference": null,
+          "p95_absolute_difference": null,
+          "p99_absolute_difference": null,
+          "pair_count": 288,
+          "pearson": null,
+          "sign_agreement_count": 0,
+          "sign_agreement_fraction": null,
+          "sign_disagreement_count": 0,
+          "spearman": null,
+          "tardis_only_evaluable": 0
+        },
+        "price_move_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.00038321184281092657,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.00025760221076431833,
+          "pair_count": 288,
+          "pearson": 0.9999999358192947,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999999999999999,
+          "tardis_only_evaluable": 0
+        },
+        "range_width_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.06001405896798573,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 8.464264879270988e-08,
+          "p99_absolute_difference": 1.2082480912445348e-06,
+          "pair_count": 288,
+          "pearson": 0.9993168565779484,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999994976469784,
+          "tardis_only_evaluable": 0
+        },
+        "taker_delta_notional_usd": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 57974770.80840549,
+          "median_absolute_difference": 1.5273690223693848e-07,
+          "median_scale_ratio_tardis_over_gold": 1.0000000000000084,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 44405.15020104498,
+          "p95_absolute_difference": 100780.8847971484,
+          "p99_absolute_difference": 7018464.651902631,
+          "pair_count": 288,
+          "pearson": 0.962032493176794,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9998844588050427,
+          "tardis_only_evaluable": 0
+        },
+        "volume_notional_usd": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 79635905.52624065,
+          "median_absolute_difference": 4.76837158203125e-07,
+          "median_scale_ratio_tardis_over_gold": 1.000000000000005,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 36508.636406213045,
+          "p95_absolute_difference": 100780.66479371488,
+          "p99_absolute_difference": 8787997.539711446,
+          "pair_count": 288,
+          "pearson": 0.9934683247142515,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999783988200731,
+          "tardis_only_evaluable": 0
+        }
+      },
+      "null_evaluability_disagreements": {
+        "buckets_entering_equivalence": 288,
+        "count": 0,
+        "fraction": 0.0
+      },
+      "sample_date": "2026-09-01"
+    },
+    {
+      "coverage": {
+        "both_present_buckets": 288,
+        "expected_buckets": 288,
+        "gap_excluded_buckets": 0,
+        "gold_buckets": 288,
+        "missing_gold_buckets": 0,
+        "missing_vendor_buckets": 0,
+        "vendor_buckets": 288,
+        "vendor_gap_buckets": 0
+      },
+      "exchange": "bybit",
+      "feature_stats": {
+        "oi_change_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.25593273694595925,
+          "median_absolute_difference": 0.0028655528562183813,
+          "median_scale_ratio_tardis_over_gold": 0.9980700126159626,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.02595213644811506,
+          "p95_absolute_difference": 0.043906856626735574,
+          "p99_absolute_difference": 0.1176784014540066,
+          "pair_count": 288,
+          "pearson": 0.9869806284671074,
+          "sign_agreement_count": 283,
+          "sign_agreement_fraction": 0.9826388888888888,
+          "sign_disagreement_count": 5,
+          "spearman": 0.9861526389608927,
+          "tardis_only_evaluable": 0
+        },
+        "price_move_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.0,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.0,
+          "pair_count": 288,
+          "pearson": 1.0,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999999999999999,
+          "tardis_only_evaluable": 0
+        },
+        "range_width_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.0,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.0,
+          "pair_count": 288,
+          "pearson": 1.0,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9999999999999999,
+          "tardis_only_evaluable": 0
+        },
+        "taker_delta_notional_usd": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 3414968.113699978,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.0,
+          "pair_count": 288,
+          "pearson": 0.9996139651652298,
+          "sign_agreement_count": 287,
+          "sign_agreement_fraction": 0.9965277777777778,
+          "sign_disagreement_count": 1,
+          "spearman": 0.9971496489557085,
+          "tardis_only_evaluable": 0
+        },
+        "volume_notional_usd": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 4535915.37970002,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.0,
+          "pair_count": 288,
+          "pearson": 0.9999026355220285,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9994564540306796,
+          "tardis_only_evaluable": 0
+        }
+      },
+      "null_evaluability_disagreements": {
+        "buckets_entering_equivalence": 288,
+        "count": 0,
+        "fraction": 0.0
+      },
+      "sample_date": "2026-09-01"
+    },
+    {
+      "coverage": {
+        "both_present_buckets": 288,
+        "expected_buckets": 288,
+        "gap_excluded_buckets": 0,
+        "gold_buckets": 288,
+        "missing_gold_buckets": 0,
+        "missing_vendor_buckets": 0,
+        "vendor_buckets": 288,
+        "vendor_gap_buckets": 0
+      },
+      "exchange": "okx",
+      "feature_stats": {
+        "oi_change_pct": {
+          "both_null": 0,
+          "comparable_count": 252,
+          "evaluable_disagreement_count": 36,
+          "gold_only_evaluable": 36,
+          "maximum_absolute_difference": 0.14061057124473195,
+          "median_absolute_difference": 0.002738767255250469,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 252,
+          "null_agreement_fraction": 0.875,
+          "p90_absolute_difference": 0.02328489268702369,
+          "p95_absolute_difference": 0.039210129001815,
+          "p99_absolute_difference": 0.11157892695841187,
+          "pair_count": 288,
+          "pearson": 0.993219732139158,
+          "sign_agreement_count": 248,
+          "sign_agreement_fraction": 0.9841269841269841,
+          "sign_disagreement_count": 4,
+          "spearman": 0.993362893241639,
+          "tardis_only_evaluable": 0
+        },
+        "price_move_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.0429325907063116,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.01408951946694062,
+          "pair_count": 288,
+          "pearson": 0.999506733165772,
+          "sign_agreement_count": 287,
+          "sign_agreement_fraction": 0.9965277777777778,
+          "sign_disagreement_count": 1,
+          "spearman": 0.9992203481105497,
+          "tardis_only_evaluable": 0
+        },
+        "range_width_pct": {
+          "both_null": 0,
+          "comparable_count": 288,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": 0.0484313758236187,
+          "median_absolute_difference": 0.0,
+          "median_scale_ratio_tardis_over_gold": 1.0,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": 0.0,
+          "p95_absolute_difference": 0.0,
+          "p99_absolute_difference": 0.031705688388729864,
+          "pair_count": 288,
+          "pearson": 0.9990139747420754,
+          "sign_agreement_count": 288,
+          "sign_agreement_fraction": 1.0,
+          "sign_disagreement_count": 0,
+          "spearman": 0.9982859714904612,
+          "tardis_only_evaluable": 0
+        },
+        "taker_delta_notional_usd": {
+          "both_null": 288,
+          "comparable_count": 0,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": null,
+          "median_absolute_difference": null,
+          "median_scale_ratio_tardis_over_gold": null,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": null,
+          "p95_absolute_difference": null,
+          "p99_absolute_difference": null,
+          "pair_count": 288,
+          "pearson": null,
+          "sign_agreement_count": 0,
+          "sign_agreement_fraction": null,
+          "sign_disagreement_count": 0,
+          "spearman": null,
+          "tardis_only_evaluable": 0
+        },
+        "volume_notional_usd": {
+          "both_null": 288,
+          "comparable_count": 0,
+          "evaluable_disagreement_count": 0,
+          "gold_only_evaluable": 0,
+          "maximum_absolute_difference": null,
+          "median_absolute_difference": null,
+          "median_scale_ratio_tardis_over_gold": null,
+          "null_agreement_count": 288,
+          "null_agreement_fraction": 1.0,
+          "p90_absolute_difference": null,
+          "p95_absolute_difference": null,
+          "p99_absolute_difference": null,
+          "pair_count": 288,
+          "pearson": null,
+          "sign_agreement_count": 0,
+          "sign_agreement_fraction": null,
+          "sign_disagreement_count": 0,
+          "spearman": null,
+          "tardis_only_evaluable": 0
+        }
+      },
+      "null_evaluability_disagreements": {
+        "buckets_entering_equivalence": 288,
+        "count": 1,
+        "fraction": 0.003472222222222222
+      },
+      "sample_date": "2026-09-01"
+    }
+  ],
+  "post_hoc_transform_applied": false,
+  "quorum_disagreement": {
+    "buckets": 576,
+    "count": 576,
+    "fraction": 1.0
+  },
+  "tail_agreement_summary": {
+    "features": {
+      "oi_change_pct": {
+        "top_bottom_10pct": {
+          "bottom_overlap": 0.963302752293578,
+          "fraction": 0.1,
+          "k": 109,
+          "label": "SAMPLE-DAY TAIL AGREEMENT",
+          "n": 1098,
+          "top_overlap": 0.9357798165137615
+        },
+        "top_bottom_5pct": {
+          "bottom_overlap": 0.9444444444444444,
+          "fraction": 0.05,
+          "k": 54,
+          "label": "SAMPLE-DAY TAIL AGREEMENT",
+          "n": 1098,
+          "top_overlap": 0.8888888888888888
+        }
+      },
+      "price_move_pct": {
+        "top_bottom_10pct": {
+          "bottom_overlap": 1.0,
+          "fraction": 0.1,
+          "k": 172,
+          "label": "SAMPLE-DAY TAIL AGREEMENT",
+          "n": 1728,
+          "top_overlap": 1.0
+        },
+        "top_bottom_5pct": {
+          "bottom_overlap": 1.0,
+          "fraction": 0.05,
+          "k": 86,
+          "label": "SAMPLE-DAY TAIL AGREEMENT",
+          "n": 1728,
+          "top_overlap": 1.0
+        }
+      },
+      "range_width_pct": {
+        "top_bottom_10pct": {
+          "bottom_overlap": 1.0,
+          "fraction": 0.1,
+          "k": 172,
+          "label": "SAMPLE-DAY TAIL AGREEMENT",
+          "n": 1728,
+          "top_overlap": 0.9941860465116279
+        },
+        "top_bottom_5pct": {
+          "bottom_overlap": 1.0,
+          "fraction": 0.05,
+          "k": 86,
+          "label": "SAMPLE-DAY TAIL AGREEMENT",
+          "n": 1728,
+          "top_overlap": 1.0
+        }
+      },
+      "taker_delta_notional_usd": {
+        "top_bottom_10pct": {
+          "bottom_overlap": 1.0,
+          "fraction": 0.1,
+          "k": 115,
+          "label": "SAMPLE-DAY TAIL AGREEMENT",
+          "n": 1152,
+          "top_overlap": 1.0
+        },
+        "top_bottom_5pct": {
+          "bottom_overlap": 1.0,
+          "fraction": 0.05,
+          "k": 57,
+          "label": "SAMPLE-DAY TAIL AGREEMENT",
+          "n": 1152,
+          "top_overlap": 1.0
+        }
+      },
+      "volume_notional_usd": {
+        "top_bottom_10pct": {
+          "bottom_overlap": 0.991304347826087,
+          "fraction": 0.1,
+          "k": 115,
+          "label": "SAMPLE-DAY TAIL AGREEMENT",
+          "n": 1152,
+          "top_overlap": 1.0
+        },
+        "top_bottom_5pct": {
+          "bottom_overlap": 1.0,
+          "fraction": 0.05,
+          "k": 57,
+          "label": "SAMPLE-DAY TAIL AGREEMENT",
+          "n": 1152,
+          "top_overlap": 1.0
+        }
+      }
+    },
+    "label": "SAMPLE-DAY TAIL AGREEMENT"
+  },
+  "tardis_files": [
+    {
+      "compressed_bytes": 1422904,
+      "file": "binance-futures_derivative_ticker_20260801_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 96681,
+      "sha256": "a9887d7699f05df661f061f28e05e145957e71218c7a0162e4092c9264874422",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 8954358,
+      "file": "binance-futures_trades_20260801_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 1073872,
+      "sha256": "27622702d5e33e6d374ec3d6f9040e8d7550ca9229641bccb6289d64256e4afe",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 1675529,
+      "file": "bybit_derivative_ticker_20260801_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 142285,
+      "sha256": "f25ab55ce5c40a22e16aad40c880c66e2e35ee80302ed91b79647eba85612971",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 14480418,
+      "file": "bybit_trades_20260801_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 530577,
+      "sha256": "b85d6c0a9f378b249c673215a1afdb383035059e4f0cf9b60b3f47e1ca75c6db",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 2538526,
+      "file": "okex-swap_derivative_ticker_20260801_BTC-USDT-SWAP.csv.gz",
+      "http_status": 200,
+      "row_count": 195778,
+      "sha256": "bf1efd934fbf0aaa31240ebb077dadac4b34c4691aa95ee935007cad85673325",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 5931280,
+      "file": "okex-swap_trades_20260801_BTC-USDT-SWAP.csv.gz",
+      "http_status": 200,
+      "row_count": 691214,
+      "sha256": "ae04dea89f04e4b20ad5046f4da651f5090fc29d6cbb2250fc2156f0c262d2eb",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 1800753,
+      "file": "binance-futures_derivative_ticker_20260901_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 112367,
+      "sha256": "636144962f3857d81f36d77a125163664efdbad10ac1d9feb5bf15bc4e4acdfb",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 27906263,
+      "file": "binance-futures_trades_20260901_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 3602361,
+      "sha256": "2686d38f10b30df1dd0d3058fe0efda5fc89e6f427b57d1e3c231ceda3ee4430",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 3048767,
+      "file": "bybit_derivative_ticker_20260901_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 244575,
+      "sha256": "851dd3d1ed78fbdc0cf35cbbf4c7c28cad63783531b8408829873d1c2b3b01d0",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 54305683,
+      "file": "bybit_trades_20260901_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 2017317,
+      "sha256": "25ff55e4433f2cc9efcc81e91dbac39a29f0c7eeb1cc3e210a0ea5853fc215ea",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 5473923,
+      "file": "okex-swap_derivative_ticker_20260901_BTC-USDT-SWAP.csv.gz",
+      "http_status": 200,
+      "row_count": 430097,
+      "sha256": "760551b30c56a3052d687e9d765d73593172f891c930973513f3385d6291f0bb",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 21078171,
+      "file": "okex-swap_trades_20260901_BTC-USDT-SWAP.csv.gz",
+      "http_status": 200,
+      "row_count": 2654495,
+      "sha256": "bb061fbc75096a68113898e1b858d6dd5804ca98a673ea2a32174c79ada273fd",
+      "status": "OK"
+    }
+  ],
+  "top_mismatch_causes": [
+    {
+      "class": "reject",
+      "code": "CONSENSUS_QUORUM_DISAGREEMENT",
+      "detail": "1.0"
+    }
+  ],
+  "unit_mismatch_count": 0,
+  "venues_compared": [
+    "binance",
+    "bybit",
+    "okx"
+  ],
+  "verdicts": {
+    "consensus": "FAIL",
+    "oi": "PASS_ON_PREDECLARED_PRINCIPLES",
+    "price": "PASS_ON_PREDECLARED_PRINCIPLES",
+    "range": "PASS_ON_PREDECLARED_PRINCIPLES",
+    "taker": "PASS_ON_PREDECLARED_PRINCIPLES",
+    "volume": "PASS_ON_PREDECLARED_PRINCIPLES"
+  }
+}

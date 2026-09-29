@@ -1,0 +1,279 @@
+{
+  "audit_sources_sha256": "b4d870c4de25bf3a7bc2ac8b71ab36b71fcb732ed1987aa47a3fc2b9c0f13210",
+  "base_sha": "31882b32974c60c78c44e6232748984876f8efbe",
+  "comparison_performed": true,
+  "cost_incurred_usd": 0,
+  "current_instrument_table_used_as_pit": false,
+  "dates_compared": [
+    "2026-08-01",
+    "2026-09-01"
+  ],
+  "documented_vendor_gaps": {
+    "applicable_to_trades_or_derivative_ticker": [],
+    "incidents_whose_window_overlaps_a_sample_date": [
+      {
+        "applies_to_trades_or_derivative_ticker": false,
+        "details": "Some generated OKX statistics channels were collected less frequently than the documented 1-minute interval. The affected channels were long-short-account-ratio and taker-volume for OKX Futures and Swap, and taker-volume and loan-ratio for OKX Spot. Recent OKX Swap long-short-account-ratio data was typically recorded every 35-40 minutes. Other OKX channels were unaffected. The missing observations were not recorded and cannot be backfilled. Normal 1-minute collection resumed on 2026-08-04.",
+        "from": "2023-06-09T15:30:00.000Z",
+        "sample_date": "2026-08-01",
+        "status": "resolved",
+        "tag_if_applicable": "REVIEWED_NOT_APPLICABLE_TO_REQUESTED_DATASETS",
+        "tardis_exchange": "okex-swap",
+        "to": "2026-08-04T11:16:00.000Z"
+      }
+    ],
+    "vendor_gap_buckets": 0
+  },
+  "experiment": "TARDIS_FREE_OVERLAP_VALIDATION_V0",
+  "gold_export": {
+    "current_instrument_table_used_as_pit": false,
+    "files": {
+      "exchange_instrument_history.csv": {
+        "data_rows": 0,
+        "present": true,
+        "sha256": "a19bce69c435363847eb667f07afaf07f2aa5d02bccb0c8d3f4b364a7996ad0c"
+      },
+      "exchange_instruments_current_not_used_as_pit.csv": {
+        "data_rows": 3,
+        "present": true,
+        "sha256": "21fffc12b954398630fed664b1361f1caac78a6b4a538442318391fa5704b1be"
+      },
+      "klines_1m.csv": {
+        "data_rows": 8639,
+        "present": true,
+        "sha256": "071e141abecfb3cf226bc3f1e910b75a360230259aea6b3bcc26864a12f740ec"
+      },
+      "klines_1m_source_counts.csv": {
+        "data_rows": 3,
+        "present": true,
+        "sha256": "49a3f12f63b0b6b088d615894d4ca67c62f87071d359ec72e99034d2c96eeece"
+      },
+      "open_interest.csv": {
+        "data_rows": 33450,
+        "present": true,
+        "sha256": "1be99608fb721868f756eff3435531ea575fa9c51bcb3d4c16048583e6a32f59"
+      },
+      "open_interest_source_counts.csv": {
+        "data_rows": 4,
+        "present": true,
+        "sha256": "35c022647d799f1caed34452399a58838f1508523e4e2520d4c6ca5c2a0fc875"
+      }
+    },
+    "source_counts": {
+      "klines_1m_source_counts.csv": [
+        {
+          "exchange": "binance",
+          "n": "2880",
+          "source": "live",
+          "table_name": "klines_1m"
+        },
+        {
+          "exchange": "bybit",
+          "n": "2880",
+          "source": "live",
+          "table_name": "klines_1m"
+        },
+        {
+          "exchange": "okx",
+          "n": "2879",
+          "source": "live",
+          "table_name": "klines_1m"
+        }
+      ],
+      "open_interest_source_counts.csv": [
+        {
+          "exchange": "binance",
+          "n": "288",
+          "source": "backfill",
+          "table_name": "open_interest"
+        },
+        {
+          "exchange": "binance",
+          "n": "11137",
+          "source": "live",
+          "table_name": "open_interest"
+        },
+        {
+          "exchange": "bybit",
+          "n": "11361",
+          "source": "live",
+          "table_name": "open_interest"
+        },
+        {
+          "exchange": "okx",
+          "n": "10952",
+          "source": "live",
+          "table_name": "open_interest"
+        }
+      ]
+    }
+  },
+  "inventory_status": [
+    {
+      "file": "binance-futures_derivative_ticker_20260801_BTCUSDT.csv.gz",
+      "sha256": "a9887d7699f05df661f061f28e05e145957e71218c7a0162e4092c9264874422",
+      "status": "OK"
+    },
+    {
+      "file": "binance-futures_trades_20260801_BTCUSDT.csv.gz",
+      "sha256": "27622702d5e33e6d374ec3d6f9040e8d7550ca9229641bccb6289d64256e4afe",
+      "status": "OK"
+    },
+    {
+      "file": "bybit_derivative_ticker_20260801_BTCUSDT.csv.gz",
+      "sha256": "f25ab55ce5c40a22e16aad40c880c66e2e35ee80302ed91b79647eba85612971",
+      "status": "OK"
+    },
+    {
+      "file": "bybit_trades_20260801_BTCUSDT.csv.gz",
+      "sha256": "b85d6c0a9f378b249c673215a1afdb383035059e4f0cf9b60b3f47e1ca75c6db",
+      "status": "OK"
+    },
+    {
+      "file": "okex-swap_derivative_ticker_20260801_BTC-USDT-SWAP.csv.gz",
+      "sha256": "bf1efd934fbf0aaa31240ebb077dadac4b34c4691aa95ee935007cad85673325",
+      "status": "OK"
+    },
+    {
+      "file": "okex-swap_trades_20260801_BTC-USDT-SWAP.csv.gz",
+      "sha256": "ae04dea89f04e4b20ad5046f4da651f5090fc29d6cbb2250fc2156f0c262d2eb",
+      "status": "OK"
+    },
+    {
+      "file": "binance-futures_derivative_ticker_20260901_BTCUSDT.csv.gz",
+      "sha256": "636144962f3857d81f36d77a125163664efdbad10ac1d9feb5bf15bc4e4acdfb",
+      "status": "OK"
+    },
+    {
+      "file": "binance-futures_trades_20260901_BTCUSDT.csv.gz",
+      "sha256": "2686d38f10b30df1dd0d3058fe0efda5fc89e6f427b57d1e3c231ceda3ee4430",
+      "status": "OK"
+    },
+    {
+      "file": "bybit_derivative_ticker_20260901_BTCUSDT.csv.gz",
+      "sha256": "851dd3d1ed78fbdc0cf35cbbf4c7c28cad63783531b8408829873d1c2b3b01d0",
+      "status": "OK"
+    },
+    {
+      "file": "bybit_trades_20260901_BTCUSDT.csv.gz",
+      "sha256": "25ff55e4433f2cc9efcc81e91dbac39a29f0c7eeb1cc3e210a0ea5853fc215ea",
+      "status": "OK"
+    },
+    {
+      "file": "okex-swap_derivative_ticker_20260901_BTC-USDT-SWAP.csv.gz",
+      "sha256": "760551b30c56a3052d687e9d765d73593172f891c930973513f3385d6291f0bb",
+      "status": "OK"
+    },
+    {
+      "file": "okex-swap_trades_20260901_BTC-USDT-SWAP.csv.gz",
+      "sha256": "bb061fbc75096a68113898e1b858d6dd5804ca98a673ea2a32174c79ada273fd",
+      "status": "OK"
+    }
+  ],
+  "okx_oi_pit_status": "PIT_BLOCKED_NO_HISTORICAL_CTVAL",
+  "overall_decision": "REJECT_TARDIS_FOR_CURRENT_REPLAY",
+  "post_hoc_transform_applied": false,
+  "tardis_files": [
+    {
+      "compressed_bytes": 1422904,
+      "file": "binance-futures_derivative_ticker_20260801_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 96681,
+      "sha256": "a9887d7699f05df661f061f28e05e145957e71218c7a0162e4092c9264874422",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 8954358,
+      "file": "binance-futures_trades_20260801_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 1073872,
+      "sha256": "27622702d5e33e6d374ec3d6f9040e8d7550ca9229641bccb6289d64256e4afe",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 1675529,
+      "file": "bybit_derivative_ticker_20260801_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 142285,
+      "sha256": "f25ab55ce5c40a22e16aad40c880c66e2e35ee80302ed91b79647eba85612971",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 14480418,
+      "file": "bybit_trades_20260801_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 530577,
+      "sha256": "b85d6c0a9f378b249c673215a1afdb383035059e4f0cf9b60b3f47e1ca75c6db",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 2538526,
+      "file": "okex-swap_derivative_ticker_20260801_BTC-USDT-SWAP.csv.gz",
+      "http_status": 200,
+      "row_count": 195778,
+      "sha256": "bf1efd934fbf0aaa31240ebb077dadac4b34c4691aa95ee935007cad85673325",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 5931280,
+      "file": "okex-swap_trades_20260801_BTC-USDT-SWAP.csv.gz",
+      "http_status": 200,
+      "row_count": 691214,
+      "sha256": "ae04dea89f04e4b20ad5046f4da651f5090fc29d6cbb2250fc2156f0c262d2eb",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 1800753,
+      "file": "binance-futures_derivative_ticker_20260901_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 112367,
+      "sha256": "636144962f3857d81f36d77a125163664efdbad10ac1d9feb5bf15bc4e4acdfb",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 27906263,
+      "file": "binance-futures_trades_20260901_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 3602361,
+      "sha256": "2686d38f10b30df1dd0d3058fe0efda5fc89e6f427b57d1e3c231ceda3ee4430",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 3048767,
+      "file": "bybit_derivative_ticker_20260901_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 244575,
+      "sha256": "851dd3d1ed78fbdc0cf35cbbf4c7c28cad63783531b8408829873d1c2b3b01d0",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 54305683,
+      "file": "bybit_trades_20260901_BTCUSDT.csv.gz",
+      "http_status": 200,
+      "row_count": 2017317,
+      "sha256": "25ff55e4433f2cc9efcc81e91dbac39a29f0c7eeb1cc3e210a0ea5853fc215ea",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 5473923,
+      "file": "okex-swap_derivative_ticker_20260901_BTC-USDT-SWAP.csv.gz",
+      "http_status": 200,
+      "row_count": 430097,
+      "sha256": "760551b30c56a3052d687e9d765d73593172f891c930973513f3385d6291f0bb",
+      "status": "OK"
+    },
+    {
+      "compressed_bytes": 21078171,
+      "file": "okex-swap_trades_20260901_BTC-USDT-SWAP.csv.gz",
+      "http_status": 200,
+      "row_count": 2654495,
+      "sha256": "bb061fbc75096a68113898e1b858d6dd5804ca98a673ea2a32174c79ada273fd",
+      "status": "OK"
+    }
+  ],
+  "venues_compared": [
+    "binance",
+    "bybit",
+    "okx"
+  ]
+}

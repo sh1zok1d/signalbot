@@ -32,7 +32,7 @@ A fresh deployment has a **warm-up period**. Readiness follows the accumulated *
   - **Liquidations** need live liquidation feeds plus live eligibility (healthy live bars, no outage) on at least two venues.
 
 **How `/btc` shows it:**
-- A **Detector readiness** block appears unless every family is ready. Each family is one of:
+- **Readiness on the main view:** `Detector ready` when every family is ready. Otherwise one line per family that is not ready (families in the identical condition share a line), then `Ready: <families>`. Each family is one of:
   - `ready`;
   - `history building · <input> <span> / 30d`, where the span is the earliest valid sample to the latest bucket, floored to 0.1 day;
   - `data unavailable · <reason>`;
