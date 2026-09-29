@@ -303,6 +303,7 @@ The following describe earlier Stage1/Stage2/V2 implementation states or audits.
 - `scripts/audit/live_archive_replay_preflight/` — owner-executable read-only live-archive tools. Importing the package does not query production. The coverage exporter does not export market magnitudes and is not itself a coverage result. The PRICE_OI semantic replay runner is a separate owner step; its output is a current-rule reconstruction, not a record of historical production alerts.
 - `docs/audit/live_archive_replay_preflight/phase_a_coverage_analysis.md` — Phase A classification of the owner-run live-archive coverage export. It does not reconstruct detector events.
 - `scripts/audit/live_archive_replay_preflight/run_price_oi_semantic_replay.py` — owner-executable semantic reconstruction of the current `PRICE_OI_CONTRACTION` rules from `source='live'` observations. Running it is a separate owner step. Its output is not a record of historical production alerts.
+- `audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md` and `p4_followup_summary.json` — frozen owner-run P4 descriptive follow-up record for the replayed PRICE_OI_CONTRACTION families. Row-level P4 output is not committed; the record explicitly preserves that provenance limitation and the matched-baseline fail-closed status.
 
 - `audit/tardis_free_overlap_v0/overlap_report.md` — USD 0 Tardis versus Signalbot live comparison for 2026-08-01 and 2026-09-01. Decision `REJECT_TARDIS_FOR_CURRENT_REPLAY`. Not a percentile, not CLOSE_REPLAY, and not authorization to purchase data.
 

@@ -30,7 +30,7 @@ This page answers "where are we now?" in one screen. It restates facts recorded 
 - An owner-run semantic replay applied the current `PRICE_OI_CONTRACTION` rules to live-collected raw data.
 - Provenance class: `RECONSTRUCTED_FROM_LIVE_COLLECTED_RAW_DATA`. This is a reconstruction under current rules, not a record of historical production alerts.
 - The replay tooling is in `main` (`scripts/audit/live_archive_replay_preflight/`), merged via PR #227. The frozen historical follow-up read model is also in `main` (`beta/followup.py`), merged via PR #225.
-- The replay output itself is not committed. The figures below are the owner-reported results of that run.
+- The row-level replay/P4 output is not committed. A durable owner-run summary is frozen in `docs/audit/live_archive_price_oi_p4_followup_v0/`; it explicitly records that the row-level output and final file hashes are not in the repository.
 - `AUTHORIZED_BUCKETS = 12434`. This matches `quorum_and_mature_buckets` in `docs/audit/live_archive_replay_preflight/phase_a_coverage_analysis.json` in `main`.
 
 | | DOWN | UP |
@@ -80,7 +80,7 @@ There is no authorized next unit in the research routing (see §2). For the beta
 - **Predictive product:** frozen.
 - **Descriptive private beta V0.2:** authorized with narrow scope (`PRIVATE_BETA_V0_RESTART_DECISION.md`). Its code and units live only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.
 - **Last recorded state** (`PROJECT_STATUS.md`): implemented, push disabled, no users. The next operator step is the 7-day push-disabled shadow soak. This page did not verify runtime state.
-- **Historical follow-up:** not wired into `/btc` (`BETA_HISTORICAL_FOLLOW_UP_V0.md` on PR #225).
+- **Historical follow-up:** not wired into `/btc` (`BETA_HISTORICAL_FOLLOW_UP_V0.md` in `main`). The completed P4 owner-run descriptive record is frozen under `docs/audit/live_archive_price_oi_p4_followup_v0/`.
 
 ## 7. Protected-data posture
 
