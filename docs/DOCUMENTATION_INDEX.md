@@ -1,4 +1,4 @@
-> **Current routing note — 2026-09-23:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Original D2 BitMEX one-shot remains `INVALID`. Corrected execution classified `D2_BITMEX_REPLICATION_SUPPORTED`. Program class `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Excess path-risk decomposition one-shot is consumed: `D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`. Sprint 02 D7 is `PROMISING_PROTOTYPE` (consumed one-shot; confirmation candidate but not selected now). D8 is `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and not a negative scientific result. Sprint 03 D9/D10 are `NO_USEFUL_STRUCTURE`; D11 is `PROMISING_PROTOTYPE` (unsigned scheduled-FOMC 6h RV; not D8 rescue). Sprint 04 D12 is `PROMISING_PROTOTYPE` (US-clock quote-volume anchoring; EU diagnostic does not classify). D13 is `NO_USEFUL_STRUCTURE` (observed reversal; practical gate failed). `INTERNAL_DISCOVERY_CARDS_EXECUTED = 10`. `INTERNAL_PROMISING_PROTOTYPES = 4`. `AUTOMATIC_SPRINT05 = false`. `POST_SPRINT04_AUTOMATION_MATURITY_DECISION` decided `HYPOTHESIS_GENERATOR_V0_INFRA_READY` (no Sprint 05; Generator V0 design frozen, not built, shadow-only). `NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW` (outcome-blind multi-provider routing; independent review before any provider smoke test or live run).
+> **Current routing note — 2026-09-23:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Original D2 BitMEX one-shot remains `INVALID`. Corrected execution classified `D2_BITMEX_REPLICATION_SUPPORTED`. Program class `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Excess path-risk decomposition one-shot is consumed: `D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`. Sprint 02 D7 is `PROMISING_PROTOTYPE` (consumed one-shot; confirmation candidate but not selected now). D8 is `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and not a negative scientific result. Sprint 03 D9/D10 are `NO_USEFUL_STRUCTURE`; D11 is `PROMISING_PROTOTYPE` (unsigned scheduled-FOMC 6h RV; not D8 rescue). Sprint 04 D12 is `PROMISING_PROTOTYPE` (US-clock quote-volume anchoring; EU diagnostic does not classify). D13 is `NO_USEFUL_STRUCTURE` (observed reversal; practical gate failed). `INTERNAL_DISCOVERY_CARDS_EXECUTED = 10`. `INTERNAL_PROMISING_PROTOTYPES = 4`. `AUTOMATIC_SPRINT05 = false`. `POST_SPRINT04_AUTOMATION_MATURITY_DECISION` decided `HYPOTHESIS_GENERATOR_V0_INFRA_READY` (no Sprint 05; Generator V0 design frozen, not built, shadow-only). Routing update 2026-09-29: `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`, per `CURRENT_RESEARCH_STATE.md`. The earlier value `GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW` is historical.
 
 # Signalbot Documentation Index
 
@@ -15,12 +15,47 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 ---
 
+## 0. Quick status map (added 2026-09-29)
+
+This map covers every top-level `docs/*.md` file and each `docs/` subdirectory. The detailed per-file entries in the sections below remain authoritative. Nothing was moved or deleted.
+- **ACTIVE** — current decision authority, or a maintained record.
+- **REFERENCE** — frozen evidence, data contracts and operations runbooks. They are correct for their own scope, but they do not authorize current work.
+- **HISTORICAL / SUPERSEDED** — preserved project history. They have no execution authority.
+
+**ACTIVE**
+- `SIGNALBOT_MANDATE_V1.md`, `CURRENT_RESEARCH_STATE.md` (canonical routing), `PROJECT_STATUS.md` and `RESEARCH_ROADMAP.md`.
+- `EDGE_RESEARCH_PROTOCOL.md`, `HISTORICAL_DATA_STRATEGY.md`, `ACTIVE_RESEARCH_RISKS.md` and `RESEARCH_LEDGER.md`.
+- `DOCUMENTATION_INDEX.md` (this file), `PROJECT_HISTORY.md` (maintained history narrative) and `CURRENT_STATE.md` (a one-screen summary that points to the files above; it is not an authority).
+- `PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`, `CODEBASE_STATUS.md` and `R2_SCREENING_PROTOCOL_V1.md`.
+- `AGENT_RUNTIME_PROTOCOL.md`: operations for live-provider work.
+- `PRIVATE_BETA_V0_RESTART_DECISION.md`: beta governance.
+- `DATA_CAPABILITY_MATRIX.md`, `CORE_BTC_BINANCE_V0_CONTRACT.md`, `CORE_BTC_BINANCE_V0_PROBE_RUNBOOK.md` and `CORE_BTC_BINANCE_V0_MATERIALIZATION_RUNBOOK.md`: research data infrastructure.
+
+**REFERENCE**
+- `E1_DETECTOR_SEPARATION_PREREG.md`, `E1_DATA_INVENTORY_2026-08-25.md`, `E1_VPS_RUNBOOK.md` and `e1/`: the frozen `E1-RUN-001` records.
+- `PRIVATE_BETA_V0_DEPLOY.md` and `BETA_BTC_TEMPORAL_CONTEXT_V0.md`: beta operations and amendment.
+- `VPS_DEPLOY.md`, `SHADOW_TIMER_DEPLOY.md`, `TELEGRAM_NOTIFIER_DEPLOY.md` and `DATA_DURABILITY_RUNBOOK.md`: operations. Following them does not authorize a deploy.
+- `research/`: mixed status. Each file's label is given in §1 and in the Generator V0 section.
+- `research_data/` and `manifests/`: frozen dataset evidence and manifests.
+- `reviews/`: red-team and audit records for H03–H05 and R2.
+
+**HISTORICAL / SUPERSEDED**
+- `FORECASTING_ROADMAP.md`, `PROJECT_EXECUTION_PLAN.md`, `PRODUCT_SPEC_V0.md` and `V2_EMPIRICAL_RED_TEAM_PLAN.md`: superseded pointers (§5).
+- `V2_PRODUCT_CONTRACT.md`, `V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`, `V2_CONSENSUS_ROBUSTNESS_HISTORICAL_AUDIT.md` and `V2_PERCENTILE_MATURITY_AUDIT.md`: historical V2 material (§4, §5).
+- `STAGE1_ACCEPTANCE.md`, `STAGE2_SPEC.md`, `STAGE2_CLARIFICATIONS.md`, `STAGE2_DATA_AUDIT.md` and `STAGE2_IMPLEMENTATION_PLAN.md`: historical implementation contracts (§4).
+- `PROJECT_RISK_AND_DEBT_REGISTER.md`: the historical V2-era debt register.
+- `PRODUCT_HYPOTHESES.md`: deferred (§6).
+- `history/`: the immutable archive index.
+
+---
+
 ## 1. Current sources of truth
 
 Read these first:
 
 | `SIGNALBOT_MANDATE_V1.md` | **ACTIVE / CANONICAL STRATEGIC MANDATE** | Owner-approved project objective, anti-sycophancy rule, scientific/product/commercial mandate, agent operating principles, and amendment rules. Strategic authority; frozen experiment-specific scientific authorities still govern their own semantics. |
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; D7 is `PROMISING_PROTOTYPE` (confirmation candidate, not selected now); D8 deferred; Sprint 03 D9/D10 `NO_USEFUL_STRUCTURE`, D11 `PROMISING_PROTOTYPE`; Sprint 04 D12 `PROMISING_PROTOTYPE`, D13 `NO_USEFUL_STRUCTURE`; 2025/2026 sealed; `NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW` |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; D7 is `PROMISING_PROTOTYPE` (confirmation candidate, not selected now); D8 deferred; Sprint 03 D9/D10 `NO_USEFUL_STRUCTURE`, D11 `PROMISING_PROTOTYPE`; Sprint 04 D12 `PROMISING_PROTOTYPE`, D13 `NO_USEFUL_STRUCTURE`; 2025/2026 sealed; `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT` (as of 2026-09-29; the file itself is authoritative) |
+| `CURRENT_STATE.md` | **ACTIVE SUMMARY (NOT AN AUTHORITY)** | One-screen "where are we now?" summary: posture, the descriptive-only beta PRICE_OI_CONTRACTION follow-up figures, the known defects of the frozen matched-baseline design, and the protected-data posture. `CURRENT_RESEARCH_STATE.md` and `PROJECT_STATUS.md` win on any conflict. |
 | `research/MECHANISM_MEMORY_V0.md` | **MECHANISM MEMORY V0 (EXTENDED THROUGH D13)** | Compact H01–H05 / B2-01–B2-06 / MARKET-01–06 / D1–D13 map; D12 `PROMISING_PROTOTYPE`; D13 `NO_USEFUL_STRUCTURE`; not a new framework |
 | `research/HETEROGENEOUS_FAMILY_ROTATION_V2.md` | **HYPOTHESIS GENERATION POLICY (FROZEN, CURRENT)** | Families A–I after D7; E cooldown; selected D/G/H as D10/D11/D9; true panel still absent; no MARKET-07 |
 | `research/DISCOVERY_SPRINT_03.md` | **DISCOVERY SPRINT 03 (CARD DEFINITION / IMPLEMENTATION FREEZE)** | Frozen cards D9/D10/D11; scientific outcomes live in RESULT files; do not mutate this freeze |
@@ -158,7 +193,7 @@ Read these first:
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.json` | **PREREG_AMENDED / FROZEN_BEFORE_V3_IMPLEMENTATION** | Machine-readable twin; binds every scientific constant/algorithm required by implementation, including Amendment 001; SHA256 `ab03c68a…` (md) / `194fed69…` (json) frozen by `V3_PREREG_FREEZE` |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE.md` | **FROZEN_BEFORE_V3_IMPLEMENTATION** | Freeze authority binding the amended V3 prereg content at `543687fe` / tree `50750efc…` (plus new primitive `harness_synthetic_edge_calibration_v3_rng.py`) as sole scientific authority for V3 implementation; supersedes prior freeze `4136f53d` (preserved, not rewritten); does not modify the prereg bytes; not an ARM |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE.json` | **FROZEN_BEFORE_V3_IMPLEMENTATION** | Machine-readable twin of the current V3 prereg freeze; `freeze_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` (no self-hash); `supersedes.previous_freeze_head = 4136f530…` |
-| `research/harness_synthetic_edge_calibration_v3_rng.py` | **FROZEN (Amendment 001 primitive)** | `v3_namespace_seed()`: legal `"V3_CONFIRMATORY"` namespace-seed derivation without modifying the frozen V1 `NAMESPACES` allowlist or its TCB hash; reuses `_uint64_from_digest` verbatim; proven equivalent/deterministic/distinct by its test file |
+| `scripts/research/harness_synthetic_edge_calibration_v3_rng.py` | **FROZEN (Amendment 001 primitive)** | `v3_namespace_seed()`: legal `"V3_CONFIRMATORY"` namespace-seed derivation without modifying the frozen V1 `NAMESPACES` allowlist or its TCB hash; reuses `_uint64_from_digest` verbatim; proven equivalent/deterministic/distinct by its test file |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE.md` | **FROZEN_BEFORE_V3_ARM / HISTORICAL PARENT** | Docs freeze of accepted V3 implementation `70673673` / tree `e94e18cb`; freeze HEAD `76f21007` / tree `dd59466b` is the live ARM parent; not itself an ARM |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE.json` | **FROZEN_BEFORE_V3_ARM / HISTORICAL PARENT** | Machine-readable twin; SHA256 `16fe6550…`; pre-ARM binding parent of the live one-shot ARM |
 | `scripts/research/harness_synthetic_edge_calibration_v3_authority.py` | **PRE_ARM_BINDING + ONE_SHOT_ARM_AUTH + RESERVATION_GATE** | Authenticates freeze bytes and the one-shot ARM; derives scientific run identity `ce664429…`; refuses caller kwargs/path/env substitution; reservation/execution delegated to the V3 production module |
