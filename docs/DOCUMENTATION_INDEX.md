@@ -446,6 +446,7 @@ When adding documentation:
 - `research/GENERATOR_V0_ADVERSARIAL_REVIEW.md` — 25-class self-review, fixes and limits.
 - `research/generator_v0_checkpoints/` — durable checkpoint chain and compact mock evidence.
 
+- `research/GENERATOR_V0_PR214_INDEPENDENT_VERIFICATION.{md,json}` — independent outcome-blind verification of the Generator V0 PR #214 repair; historical audit evidence consumed by the later limited/final repair sequence.
 - `research/GENERATOR_V0_PRE_LIVE_REPAIR.{json,md}` — offline pre-live repair record (contract V02, per-card quarantine, failure classes, lineage spend, advisory selector); outcome-blind design amendments.
 - `research/GENERATOR_V0_LEGACY_V01_GRANDFATHER.json` — option-A compatibility manifest: the only historical call keys and card digests admitted under the frozen v0.1 validator.
 - `research/GENERATOR_V0_SEALED_RUNS.json` — sealed journal hashes refused by the operator at any path.
