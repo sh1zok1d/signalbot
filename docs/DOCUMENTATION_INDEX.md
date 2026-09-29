@@ -304,6 +304,8 @@ The following describe earlier Stage1/Stage2/V2 implementation states or audits.
 - `docs/audit/live_archive_replay_preflight/phase_a_coverage_analysis.md` — Phase A classification of the owner-run live-archive coverage export. It does not reconstruct detector events.
 - `scripts/audit/live_archive_replay_preflight/run_price_oi_semantic_replay.py` — owner-executable semantic reconstruction of the current `PRICE_OI_CONTRACTION` rules from `source='live'` observations. Running it is a separate owner step. Its output is not a record of historical production alerts.
 
+- `audit/tardis_free_overlap_v0/overlap_report.md` — USD 0 Tardis versus Signalbot live comparison for 2026-08-01 and 2026-09-01. Decision `REJECT_TARDIS_FOR_CURRENT_REPLAY`. Not a percentile, not CLOSE_REPLAY, and not authorization to purchase data.
+
 The old `PROJECT_RISK_AND_DEBT_REGISTER.md` is also retained as a **historical V2-era debt register**. Its Stage-6/7/8 implementation items are not automatically current work. Use `ACTIVE_RESEARCH_RISKS.md` for the current program.
 
 ---
