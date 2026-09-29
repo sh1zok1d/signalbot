@@ -33,7 +33,7 @@ This map covers every top-level `docs/*.md` file and each `docs/` subdirectory. 
 
 **REFERENCE**
 - `E1_DETECTOR_SEPARATION_PREREG.md`, `E1_DATA_INVENTORY_2026-08-25.md`, `E1_VPS_RUNBOOK.md` and `e1/`: the frozen `E1-RUN-001` records.
-- `PRIVATE_BETA_V0_DEPLOY.md` and `BETA_BTC_TEMPORAL_CONTEXT_V0.md`: beta operations and amendment.
+- `PRIVATE_BETA_V0_DEPLOY.md`, `BETA_BTC_TEMPORAL_CONTEXT_V0.md` and `BETA_BTC_MAIN_SCREEN_UX_V1.md`: beta operations, the `/btc` view model, and the main-screen wording.
 - `VPS_DEPLOY.md`, `SHADOW_TIMER_DEPLOY.md`, `TELEGRAM_NOTIFIER_DEPLOY.md` and `DATA_DURABILITY_RUNBOOK.md`: operations. Following them does not authorize a deploy.
 - `research/`: mixed status. Each file's label is given in §1 and in the Generator V0 section.
 - `research_data/` and `manifests/`: frozen dataset evidence and manifests.
@@ -346,6 +346,7 @@ These documents may still be useful operationally, but following them is not aut
 - `TELEGRAM_NOTIFIER_DEPLOY.md`
 - `PRIVATE_BETA_V0_DEPLOY.md`: beta V0.2 deploy, soak and privacy runbook. Its units are prepared, not activated.
 - `BETA_BTC_TEMPORAL_CONTEXT_V0.md`: the `/btc` temporal-context amendment. The active episodization `STRICT_QUALIFICATION_V1` keeps the detector's own episode boundaries. The amendment adds LAST EVENT memory, factual anchor buckets, the rolling-1h context `BETA_CONTEXT_1H_V0` and replay. Live hysteresis is disabled; an unfrozen taker-only calibration tool remains dormant. Detector rules and push decisions are unchanged.
+- `BETA_BTC_MAIN_SCREEN_UX_V1.md`: user-facing `/btc` wording. Presentation only. The view model, detector rules, and push switch are unchanged. Main is a compact state; Details keeps the measurements.
 - `E1_VPS_RUNBOOK.md`
 
 Before using an operational runbook, compare it with current code/config and runtime state. Some commands/names reflect earlier deployment stages.
