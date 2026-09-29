@@ -1,8 +1,8 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-22
+**Status date:** 2026-09-22 (routing pointer updated 2026-09-29)
 **Operating mode:** `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN`
-**Active phase:** `POST_SPRINT03_DISCOVERY_PROGRAM_DECISION`
+**Active phase:** see `docs/CURRENT_RESEARCH_STATE.md`. As of 2026-09-29 its latest entry is the GV0R03 generator feasibility contract, with `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`. The earlier phase `POST_SPRINT03_DISCOVERY_PROGRAM_DECISION` is historical.
 
 This file is intentionally concise. The pre-cleanup long-form status remains immutable in git at `b25d9ca99498630183813d0ccb8c6d67b93ad915`; experiment history remains in `docs/RESEARCH_LEDGER.md`.
 
@@ -37,8 +37,7 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: Discovery Sprint 03 post-result program decision
-(`DISCOVERY_SPRINT_03_POST_RESULT_PROGRAM_DECISION`).
+The current next unit is in `docs/CURRENT_RESEARCH_STATE.md`. The text below records the state as of 2026-09-22. Its former "Next: Discovery Sprint 03 post-result program decision" (`DISCOVERY_SPRINT_03_POST_RESULT_PROGRAM_DECISION`) has since been superseded by Sprint 04 and Generator V0 work.
 
 `HETEROGENEOUS_FAMILY_ROTATION_V2` remains frozen. Sprint 03 canonical
 scientific execution is consumed: D9 `NO_USEFUL_STRUCTURE`, D10
