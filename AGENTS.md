@@ -24,10 +24,11 @@ The exact/near-exact M05/M06 cell (external/cross-market observable -> additive 
 Do **not** create MARKET-07 merely to continue a queue. D2 / RULE_1 is an
 `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`, not a validated trading edge
 and not a reason to restart product work. Protected Binance 2025/2026 remain
-sealed. The next research unit is
-`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
-(implementation and outcome-blind review of the frozen decomposition
-design). Do not generate nearby D2 threshold/horizon/RV variants.
+sealed. The D2 excess direction-aligned path-risk decomposition one-shot
+is consumed (`D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`; no
+rerun). The exact next research unit is recorded in
+`docs/CURRENT_RESEARCH_STATE.md`. Do not generate nearby D2
+threshold/horizon/RV variants.
 New discovery cards, if defined, must rotate across heterogeneous families
 rather than proliferate RV_ABSTENTION.
 
