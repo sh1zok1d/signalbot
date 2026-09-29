@@ -1,3 +1,7 @@
+## Routing pointer — 2026-09-29
+
+`NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`, per the latest entry in `docs/CURRENT_RESEARCH_STATE.md` (GV0R03 generator feasibility contract, 2026-09-25). That file is the canonical routing. The `NEXT_UNIT` values in the sections below are historical.
+
 ## Generator V0 outcome-blind multi-provider routing — 2026-09-24
 
 `NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW`.
