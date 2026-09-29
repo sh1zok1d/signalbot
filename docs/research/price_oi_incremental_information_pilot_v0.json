@@ -1,0 +1,121 @@
+{
+  "schema_version": "PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_PROTOCOL",
+  "pilot_id": "PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0",
+  "status": "FROZEN_BEFORE_OUTCOMES",
+  "frozen_date": "2026-09-29",
+  "base_main_sha": "d47e6c8142c54afbe25be05db4609a670996a968",
+  "classification": "PILOT_ONLY",
+  "confirmatory": false,
+  "trading_claim": false,
+  "protected_2025_2026_used": false,
+  "threshold_tuning_from_outcomes": false,
+  "prior_results_already_seen": [
+    "P4 event medians and ordinary same-time baseline medians (docs/audit/live_archive_price_oi_p4_followup_v0/)"
+  ],
+  "question": "Does the OI-contraction component of PRICE_OI_CONTRACTION add forward realized-range information beyond the extreme, persistent recent price move that already defines the event?",
+  "families": ["PRICE_OI_CONTRACTION_DOWN", "PRICE_OI_CONTRACTION_UP"],
+  "direction_pooling": false,
+  "data_scope": {
+    "source": "Signalbot live archive, source='live', BTCUSDT perp, binance/bybit/okx",
+    "authorized_buckets": 12434,
+    "rule_evaluation_intervals": [
+      ["2026-08-16T19:30:00Z", "2026-09-25T12:40:00Z"],
+      ["2026-09-25T13:05:00Z", "2026-09-28T23:55:00Z"]
+    ],
+    "percentile_history_start": "2026-07-17T19:30:00Z",
+    "kline_read_end_exclusive": "2026-09-29T04:00:00Z",
+    "long_history_used": false
+  },
+  "event_group_a": {
+    "predicate": "current semantic_rule (scripts/audit/live_archive_replay_preflight/price_oi_semantic_replay.py) == QUALIFIES",
+    "lifecycle": "current beta.detector.step_episode; anchor = triggered_at (close of the triggering 5m bucket)"
+  },
+  "control_group_b": {
+    "price_side_predicate": "current semantic_rule evaluated with only the OI rank neutralised; identical price metric, operator, threshold, family usability and price maturity",
+    "oi_requirement": "OI percentile present, value present, tier mature, and rank >= oi_control_rank_min",
+    "oi_control_rank_min": 0.5,
+    "event_oi_rank_max_from_config": 0.1,
+    "lifecycle": "same current step_episode and lifecycle thresholds as the family; anchor = triggered_at",
+    "future_event_exclusion": false,
+    "episode_decontamination": "none"
+  },
+  "reference_price": "beta.state_tape.reference_price over the reconstructed exchange features of the triggering bucket",
+  "outcome": {
+    "formula": "beta.outcomes.compute_outcome realized_range_pct",
+    "primary_horizon": "4h",
+    "secondary_horizon": "1h",
+    "eligibility": "both 1h and 4h COMPLETE and realized_range_pct > 0",
+    "per_event_endpoint": "d_e = ln(R_e) - mean over matched controls c of ln(R_c)",
+    "family_statistic": "median of d_e over matched events"
+  },
+  "covariates": {
+    "matched": [
+      "log_abs_trigger_price_move: ln|price_move_pct_median| of the triggering bucket",
+      "log_prior_range_15m: ln realized_range_pct over [anchor-15m, anchor)",
+      "log_prior_range_1h: ln realized_range_pct over [anchor-1h, anchor)",
+      "log_prior_range_4h: ln realized_range_pct over [anchor-4h, anchor)"
+    ],
+    "balance_only": ["hour_sin", "hour_cos", "weekend"],
+    "reported_only": ["log_prior_range_24h"],
+    "time_basis": "UTC hour and weekday of the triggering bucket start"
+  },
+  "matching": {
+    "scale": "population SD of each matched covariate over eligible A union eligible B of the family",
+    "distance": "sqrt(mean_j ((x_e_j - x_c_j) / s_j)^2)",
+    "caliper": 0.75,
+    "k_max": 3,
+    "replacement": true,
+    "tie_break": ["distance", "control anchor ascending"],
+    "temporal_exclusion": "none"
+  },
+  "support_gate": {
+    "min_eligible_controls": 10,
+    "min_matched_events": 10,
+    "min_matched_event_dates": 5,
+    "min_distinct_controls_used": 5,
+    "min_placebo_matched": 10
+  },
+  "balance_gate": {
+    "smd_scale": "sqrt((var_A_eligible + var_B_eligible) / 2), population variance",
+    "matched_covariate_abs_smd_max": 0.25,
+    "time_covariate_abs_smd_max": 0.5,
+    "zero_scale_rule": "pass only if the mean difference is exactly 0"
+  },
+  "placebo": {
+    "design": "B-vs-B: every eligible B anchor is a pseudo-event matched to the other eligible B anchors (itself excluded) with the same distance, caliper and k",
+    "randomisation": false,
+    "pass_rule": "|median pseudo d(4h)| < ln(1.25)"
+  },
+  "declustering": {
+    "cluster_rule": "matched events sorted by anchor; a new cluster starts when the gap to the previous matched event anchor exceeds 4h",
+    "sensitivity": "median d(4h) over the first event of each cluster"
+  },
+  "materiality_log_ratio": 0.22314355131420976,
+  "materiality_ratio": 1.25,
+  "family_verdict_order": [
+    "PILOT_DATA_BLOCKED",
+    "PILOT_INSUFFICIENT_CONTROL_SUPPORT",
+    "PILOT_BALANCE_FAILED",
+    "OI_INCREMENTAL_SIGNAL_PILOT_SURVIVES if median d(4h) >= ln(1.25) and first-per-cluster median d(4h) >= ln(1.25)",
+    "OI_ABLATION_NULL_LIKE otherwise"
+  ],
+  "final_classification_rule": [
+    "any family PILOT_DATA_BLOCKED -> PILOT_DATA_BLOCKED",
+    "else any family SURVIVES -> OI_INCREMENTAL_SIGNAL_PILOT_SURVIVES (family-scoped)",
+    "else all families NULL_LIKE -> OI_ABLATION_NULL_LIKE",
+    "else any family INSUFFICIENT_CONTROL_SUPPORT -> PILOT_INSUFFICIENT_CONTROL_SUPPORT",
+    "else PILOT_BALANCE_FAILED"
+  ],
+  "data_gate": {
+    "authorized_buckets_must_equal": 12434,
+    "triggered_episodes_must_equal": {"PRICE_OI_CONTRACTION_DOWN": 25, "PRICE_OI_CONTRACTION_UP": 19},
+    "p4_eligible_reference_not_blocking": {"PRICE_OI_CONTRACTION_DOWN": 22, "PRICE_OI_CONTRACTION_UP": 17}
+  },
+  "diagnostics_reported_not_gating": [
+    "pair_forward_4h_overlap_share",
+    "p4_eligible_count_match",
+    "excluded_counts_by_reason"
+  ],
+  "forbidden_outputs":["VALIDATED_EDGE", "PREDICTIVE", "PROFITABLE", "SIGNIFICANT_ALPHA"],
+  "not_reported": ["direction", "close return", "MAE/MFE", "hit rate", "PnL", "p-values", "confidence intervals"]
+}
