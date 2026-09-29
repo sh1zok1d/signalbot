@@ -12,6 +12,12 @@ Failure model (per attempt, never per campaign):
               unusable create acknowledgement). Charged the reserved bound until
               an operator reconciles it (`reconcile`). Never replayed.
 A COMPLETE attempt is returned from the journal and never POSTed again.
+
+Dispatch: every attempt is committed DISPATCHED before the transport is called.
+A crash before that leaves RESERVED (never sent; re-dispatched on resume). A
+crash after it leaves DISPATCHED (possibly POSTed; pause for reconciliation).
+A logical call (role, slot) closed by an UNKNOWN reconciliation raises
+CallClosed without any POST, for every later content or transport attempt.
 """
 from dataclasses import dataclass
 import hashlib
@@ -33,6 +39,8 @@ class ProviderRejected(InfrastructureStop):
     """Non-retryable not-billed rejection (auth, request contract). Operator must fix."""
 class BilledFailure(ContractError):
     """A billed attempt produced no usable content. Consumer decides on a content retry."""
+class CallClosed(BilledFailure):
+    """The logical call was closed by an evidence-free (UNKNOWN) reconciliation. Never POSTed again."""
 
 class ProviderFailure(ContractError):
     def __init__(self,message,wire=b'',envelope=None,http_status=None,billing='UNCERTAIN',retryable=False,usage=None,cost=None):
@@ -81,7 +89,15 @@ class Caller:
         req={'role':role,'context':context,'prompt':prompt,'prompt_version':contract.PROMPT_VERSION,'parameters':parameters,'provider':endpoint,'model':self.provider.model_for(role),'slot':slot}
         extra=getattr(self.provider,'request_params_for',None)
         if extra is not None:req['model_request_params']=extra(role)
+        # Routed providers: the provider family and the role's route digest are part
+        # of the request, hence of the call key (no cross-provider replay).
+        family=getattr(self.provider,'provider_for',None)
+        if family is not None:req['route_provider']=family(role);req['route_digest']=self.provider.route_digest_for(role)
         if identity:req.update(identity)
+        # Provider-side output projection (wire format + its schema digest) is
+        # part of the call key: a different projection is a different call.
+        wire=getattr(self.provider,'wire_identity_for',None)
+        if wire is not None:req.update(wire(role,req) or {})
         if content_attempt:req['content_attempt']=content_attempt
         return req
 
@@ -92,6 +108,8 @@ class Caller:
     def call(self,role,context,prompt,parameters,slot,content_attempt=0,identity=None):
         self.contexts.validate(role,context,prompt)
         if self.provider.real and (not self.allow_real or self.cap<=0):raise ContractError('real calls not authorized')
+        closed=self.ledger.logical_call_closed(str(role)+'|'+str(slot))
+        if closed:raise CallClosed('logical call closed without evidence ('+closed['CALL_KEY']+'); not POSTed again')
         base=self.request(role,context,prompt,parameters,slot,content_attempt,identity)
         bound=self.provider.bound(base)
         new_attempts=0
@@ -109,6 +127,7 @@ class Caller:
                 return saved['raw']
             new_attempts+=1;self.stats['NEW_POSTS']+=1
             if t:self.stats['TRANSPORT_RETRIES']+=1
+            self.ledger.mark_dispatched(key)
             try:
                 return self._post(key,req,role)
             except ProviderFailure as e:
@@ -129,7 +148,7 @@ class Caller:
             except Exception as e:
                 # A row already closed (e.g. billed cost outside the bound, charged at the
                 # reservation) keeps its state; the integrity error surfaces unchanged.
-                if self.ledger.call_state(key) not in ('RESERVED','BACKGROUND_SUBMITTED'):raise
+                if self.ledger.call_state(key) not in ('RESERVED','DISPATCHED','BACKGROUND_SUBMITTED'):raise
                 # Unknown local/transport failure after reservation: never assume unbilled.
                 self.stats['UNCERTAIN']+=1
                 self.ledger.failed(key,type(e).__name__,getattr(e,'wire_sha256',None),state='UNCERTAIN')
@@ -145,12 +164,16 @@ class Caller:
             self.ledger.submit_background(key,{k:created[k] for k in created if not str(k).startswith('_')})
             return self._await_background(key,req,created)
         response=self.provider.complete(req)
-        saved={'raw':response.raw,'raw_sha256':response.wire_sha256 or hashlib.sha256(response.raw.encode()).hexdigest()}
+        saved={'raw':response.raw,'raw_sha256':hashlib.sha256(response.raw.encode('utf-8')).hexdigest()}
+        if response.wire_sha256:saved['wire_sha256']=response.wire_sha256
         self.ledger.finish(key,saved,response.cost_micro_usd,response.usage)
         return response.raw
 
     def _await_background(self,key,req,tracker):
         rid=tracker['response_id'];p=self.provider
+        # Poll pacing is separate from transport-retry backoff (provider._sleep) where a
+        # provider offers it, so a guard that refuses replay backoff cannot stop polling.
+        sleep=getattr(p,'_poll_sleep',None) or p._sleep
         deadline=p._now()+p.background_max_wait_seconds
         while True:
             try:
@@ -158,7 +181,7 @@ class Caller:
             except Exception as e:
                 if _retryable(e) or getattr(e,'retryable',False):
                     if p._now()>=deadline:raise BackgroundPending('background generation still in progress; resume to continue polling')
-                    p._sleep(p.poll_interval_seconds);continue
+                    sleep(p.poll_interval_seconds);continue
                 # The response exists but its outcome is unknown: reconcile with the response_id.
                 self.ledger.failed(key,type(e).__name__,getattr(e,'wire_sha256',None),state='UNCERTAIN',envelope={'response_id':rid,'provider_status':'retrieve_error'})
                 raise CallUncertain('background retrieve failed; reconcile '+key) from e
@@ -166,7 +189,7 @@ class Caller:
             self.ledger.submit_background(key,{'response_id':rid,'provider_status':st,'store':True,'background':True})
             if st in ('queued','in_progress'):
                 if p._now()>=deadline:raise BackgroundPending('background generation still in progress; resume to continue polling')
-                p._sleep(p.poll_interval_seconds);continue
+                sleep(p.poll_interval_seconds);continue
             envelope={'response_id':rid,'provider_status':st,'provider_envelope':payload}
             if st=='completed':
                 try:
@@ -177,14 +200,10 @@ class Caller:
                     except Exception:usage=cost=None
                     self.ledger.failed(key,type(e).__name__,hashlib.sha256(wire).hexdigest(),state='FAILED_WITH_COST',envelope=envelope,cost=cost,usage=usage)
                     raise BilledFailure('completed response without usable text') from e
-                self.ledger.finish(key,{'raw':text,'raw_sha256':sha,**envelope},cost,usage)
+                # raw is the verbatim model text and raw_sha256 its hash; wire_sha256 hashes
+                # the provider envelope. Nothing rewrites raw afterwards.
+                self.ledger.finish(key,{'raw':text,'raw_sha256':hashlib.sha256(text.encode('utf-8')).hexdigest(),'wire_sha256':sha,**envelope},cost,usage)
                 p.delete_background(rid)
-                # Normalize the provider encoding when possible. Content is judged by the consumer.
-                try:
-                    text=canonical(normalize_role_output(req['role'],parse_json(text)))
-                    self.ledger.attach_parsed(key,text)
-                except ContractError:
-                    pass
                 return text
             usage=cost=None
             extract=getattr(p,'terminal_usage_cost',None)

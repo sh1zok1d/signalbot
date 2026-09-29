@@ -1,0 +1,726 @@
+{
+  "C013_CHANGED": false,
+  "CANDIDATES": {
+    "C004": {
+      "CARD": {
+        "CANDIDATE_ID": "C004",
+        "DATA_GAP_CLASS": "EXTERNAL_CALENDAR_PROVENANCE (CPI-extension event calendar only; FOMC core rows are ready)",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "D11_FOMC_OFFICIAL_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "Official scheduled FOMC statement release timestamps",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "CORE_BTC_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "BTCUSDT perpetual 1m closes aggregated to 5m log returns",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "CORE_ETH_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "ETHUSDT perpetual 1m closes aggregated to 5m log returns",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "BLS_CPI_RELEASE_SCHEDULE_ARCHIVE",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "Pre-announced CPI release dates and 08:30 US Eastern release timestamps converted to UTC",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          }
+        ],
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "EXPECTED_IMPLEMENTATION_COST": "Low for the FOMC core, which uses ready data only. It is moderate for the CPI extension, which requires pinning and verifying an archived official schedule.",
+        "EXPECTED_INFORMATION_GAIN": "Moderate. The card measures cross-asset composition around an exogenous event, a dimension orthogonal to the unsigned RV response D11 measured. The CPI extension roughly triples the event count if feasible.",
+        "FALSIFIER": "The common-factor dominance hypothesis is rejected if the mean event-minus-control RESID_SHARE difference lies inside the central 95% of the within-stratum permutation distribution. It is also rejected if the event window's residual share is not lower than the same event's pre-window share in at least half the events. A significantly positive difference falsifies common-factor dominance in favor of a beta-shift response.",
+        "FUNCTION": "Event-conditioned cross-asset structure characterization: compare the idiosyncratic ETH variance share (after removing BTC with a frozen pre-event beta) in windows immediately after scheduled FOMC statements against matched non-event windows.",
+        "HORIZON": "W in {60m, 120m} following each scheduled FOMC statement timestamp, events 2020-01..2024-12",
+        "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+        "MAIN_CONFOUNDERS": "The small event count (about 40 FOMC statements). Press-conference timing 30 minutes after the statement. Simultaneous crypto-specific news on event days. The beta estimate being contaminated by prior regime shifts (the lookback is varied). Different ETH microstructure noise at 5m. US DST shifting the UTC hour of the statement, handled by UTC_HOUR matching.",
+        "MECHANISM": "Scheduled macro announcements act as a pure common-factor shock, so the idiosyncratic share of ETH variance relative to BTC collapses just after the statement, compared with identically timed non-event windows.",
+        "MISSING_OBSERVABLES": [
+          "BLS CPI release timestamps 2020-01..2024-12 from a pinned archival official schedule, with evidence that each date was pre-announced before its release"
+        ],
+        "NAME": "Common-factor dominance of ETH versus BTC in scheduled FOMC windows",
+        "NO_LOOKAHEAD_RULE": "Event timestamps come from the official pre-announced schedule. beta_pre is estimated from 5m returns in (T-L days, T-1h] only. Control windows use the same frozen-beta procedure anchored at their own pseudo-timestamps. The window length, lookback and event set are frozen before outcomes. The CPI extension is admitted only if the schedule pre-announcement is verified.",
+        "PRIMARY_TARGET": "Mean over FOMC events of RESID_SHARE(event window) minus RESID_SHARE(matched control window) within YEAR x WEEKDAY x UTC_HOUR strata",
+        "SEARCH_SURFACE": {
+          "MAX_VARIANTS": 8,
+          "PARAMETERS": {
+            "beta_lookback_days": [
+              30,
+              90
+            ],
+            "event_set": [
+              "FOMC_ONLY",
+              "FOMC_PLUS_CPI"
+            ],
+            "post_window_minutes": [
+              60,
+              120
+            ]
+          }
+        }
+      },
+      "CRITIC_FEASIBILITY_CHECKS": {
+        "BLOCKER_RESOLVED": false,
+        "LEGAL_RANGE": true,
+        "OBSERVABLE_SUPPORTED": true,
+        "POINT_IN_TIME": false,
+        "PROVENANCE": false
+      },
+      "TRIAGE": {
+        "AVAILABLE": [
+          "D11_FOMC_OFFICIAL_V0 (39 scheduled statements 2020-2024, per-statement official release time pinned from federalreserve.gov)",
+          "CORE_BTC_BINANCE_V0 1m (DATA_READY)",
+          "CORE_ETH_BINANCE_V0 1m (ACCEPTED_FOR_DISCOVERY)",
+          "STATUTORY_DST_CALENDARS"
+        ],
+        "CONFIRMATION_NOTE": "Fresh scheduled FOMC statements: 8 in 2025 and 6 in 2026 through September versus 39 in discovery (UNVERIFIED_IN_SANDBOX (host refused by the environment network policy); from first-party publication practice and the repository record). A pre-2020 surface would need Binance spot ETH/BTC instead of perpetuals (instrument change, adjudication required).",
+        "CONFIRMATION_SURFACE_STATUS": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+        "DATA_CLASS": "OFFICIAL_CALENDAR + CORE_BTC/CORE_ETH (ready)",
+        "DATA_COST_USD": 0,
+        "FEASIBILITY": "READY_AFTER_FREE_PUBLIC_ACQUISITION",
+        "HYPOTHESIS_UNCHANGED_IF_READY": true,
+        "IMPLEMENTATION_EFFORT": "LOW (FOMC core) / MEDIUM (CPI arm)",
+        "LEGAL_RANGE_OK": true,
+        "MISSING_SOURCE": "BLS CPI release schedule archive with advance-publication evidence (FOMC_PLUS_CPI arm only)",
+        "MISSING_SOURCE_AUTHORITY": "BLS annual release calendars / schedule archive (first-party, free); advance publication evidenced by dated archive snapshots. UNVERIFIED_IN_SANDBOX (host refused by the environment network policy); from first-party publication practice and the repository record",
+        "POINT_IN_TIME_OK": "FOMC arm YES (official per-statement release time); CPI arm PENDING archive evidence",
+        "PRIOR_EXPOSURE": "Same 39-event set as D11 (PROMISING_PROTOTYPE, post-event BTC RV) and the same frozen-beta ETH residual machinery as D10 (NO_USEFUL_STRUCTURE). Multiplicity and search-surface overlap must be accounted for.",
+        "READY_TO_DESIGN": true,
+        "REMAINING_BLOCKER": "CPI schedule pinning for the FOMC_PLUS_CPI arm; D10/D11 overlap accounting",
+        "SEARCH_SURFACE_BOUNDED": "YES (8 declared variants)",
+        "TIME_TO_FROZEN_TEST_DESIGN": "about 1-2 work sessions after CPI calendar pinning"
+      }
+    },
+    "C006": {
+      "CARD": {
+        "CANDIDATE_ID": "C006",
+        "DATA_GAP_CLASS": "OPTIONS_IMPLIED_VOLATILITY_HISTORY (free index history unverified; full surface requires paid vendor)",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "DERIBIT_DVOL_INDEX_PUBLIC_API",
+            "LEGAL_RANGE": "2021-03..2024-12",
+            "OBSERVABLE": "BTC DVOL 30-day implied volatility index values with publication timestamps at hourly or finer resolution",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          },
+          {
+            "DATASET": "DERIBIT_OPTIONS_HISTORICAL_MARKS_VENDOR",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "Instrument-level BTC option mark implied volatilities by strike and expiry for 7-day and 30-day ATM interpolation",
+            "STATUS": "DATA_BLOCKED_COST"
+          },
+          {
+            "DATASET": "CORE_BTC_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "BTCUSDT perpetual 1m closes aggregated to 5m returns for RV_7D, RV_30D and forward RV",
+            "STATUS": "DATA_READY"
+          }
+        ],
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "EXPECTED_IMPLEMENTATION_COST": "Moderate if the free DVOL history is verified (fetch, pin, timestamp audit). It is high if the term-slope branch requires vendor surface data and interpolation.",
+        "EXPECTED_INFORMATION_GAIN": "High relative to kline-only vol-state work. It introduces an information source no prior card used and asks a question that prior RV-state cards could not answer by construction.",
+        "FALSIFIER": "The option-state transition mechanism is rejected if adding VRP_GAP (or TERM_SLOPE) raises the out-of-year log-likelihood by less than the 95th percentile of the circular-shift null. It is also rejected if the transition frequency is not monotone across VRP_GAP terciles within RV_7D deciles, or if the effect sign disagrees across the years 2021 to 2024 in 2 or more years.",
+        "FUNCTION": "Regime-transition characterization: test whether the option-implied volatility state, relative to trailing realized volatility, adds information about transitions into a high realized-volatility regime beyond kline-based volatility state.",
+        "HORIZON": "Transition window of N in {7, 14} days following each daily decision time T at 00:00 UTC, decisions 2021-03..2024-12 for the DVOL branch",
+        "INFORMATION_SOURCE": "OPTIONS",
+        "MAIN_CONFOUNDERS": "DVOL methodology changes or back-filled values. Deribit versus Binance underlying basis. Implied volatility containing a variance risk premium that varies slowly with regime. Scheduled events priced into options (FOMC, ETF decisions) that also drive realized volatility. The limited sample, roughly 45 months of DVOL. Overlapping transition windows inducing autocorrelation, handled with a daily non-overlapping block bootstrap.",
+        "MECHANISM": "Option-implied volatility state, meaning the implied-minus-realized gap and implied term-structure inversion, anticipates transitions from low or medium realized-volatility regimes into high-volatility regimes beyond RV persistence.",
+        "MISSING_OBSERVABLES": [
+          "Deribit BTC DVOL index history with verified publication timestamps and evidence of no retroactive revision, 2021-03..2024-12",
+          "Deribit BTC option instrument-level mark implied volatility by strike and expiry for 7-day and 30-day ATM interpolation, 2020-01..2024-12"
+        ],
+        "NAME": "Option-implied volatility gap as a precursor of realized-volatility regime transitions",
+        "NO_LOOKAHEAD_RULE": "DVOL at T is the last value timestamped at or before T minus a 5-minute publication buffer. RV_7D and RV_30D use 5m returns in trailing windows ending at T. Tercile thresholds for the high-RV state are computed from the trailing 365 days at T. Forward RV uses (T, T+N]. If DVOL history shows revision or back-fill, the branch is blocked rather than used.",
+        "PRIMARY_TARGET": "TRANSITION_N(T) = 1 if annualized RV over (T, T+N] lies in the top tercile of the trailing 365-day RV distribution evaluated at T, among ELIGIBLE decision days",
+        "SEARCH_SURFACE": {
+          "MAX_VARIANTS": 6,
+          "PARAMETERS": {
+            "transition_horizon_days": [
+              7,
+              14
+            ],
+            "vrp_gap_threshold_vol_points": [
+              -5,
+              0,
+              5
+            ]
+          }
+        }
+      },
+      "CRITIC_FEASIBILITY_CHECKS": {
+        "BLOCKER_RESOLVED": false,
+        "LEGAL_RANGE": true,
+        "OBSERVABLE_SUPPORTED": false,
+        "POINT_IN_TIME": false,
+        "PROVENANCE": false
+      },
+      "TRIAGE": {
+        "AVAILABLE": [
+          "CORE_BTC_BINANCE_V0 1m (RV target and trailing RV)"
+        ],
+        "CONFIRMATION_NOTE": "DVOL begins 2021-03, so no pre-2021 surface; fresh 2025-2026 is about 1.7 years against 3.8 discovery years. Binance BVOLIndex (first-party, from 2023-06-20) is a different observable and would change the hypothesis.",
+        "CONFIRMATION_SURFACE_STATUS": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+        "DATA_CLASS": "OPTIONS (Deribit DVOL) + CORE_BTC",
+        "DATA_COST_USD": "0 for DVOL values; about 700 per month for a vendor capture that could evidence point-in-time and supply marks (repository-recorded quote, unverified here)",
+        "FEASIBILITY": "BLOCKED_POINT_IN_TIME_SEMANTICS",
+        "HYPOTHESIS_UNCHANGED_IF_READY": true,
+        "IMPLEMENTATION_EFFORT": "HIGH",
+        "LEGAL_RANGE_OK": true,
+        "MISSING_SOURCE": "Deribit BTC DVOL history with evidence of no retroactive revision (VRP_GAP arm); Deribit option marks by strike/expiry (TERM_SLOPE arm)",
+        "MISSING_SOURCE_AUTHORITY": "DVOL: Deribit public API history, free, from 2021-03 (UNVERIFIED_IN_SANDBOX (host refused by the environment network policy); from first-party publication practice and the repository record). The API returns the stored series; it cannot itself prove the values were never recomputed, which the card requires. Independent contemporaneous capture (vendor-recorded feeds, e.g. Tardis options, about USD 700/month per the repository pricing check of 2026-09-22) is paid. Option marks: paid vendor only.",
+        "POINT_IN_TIME_OK": "NO (non-revision of DVOL unverifiable from the free source; card makes it a hard requirement)",
+        "PRIOR_EXPOSURE": "Nearest tested mechanism B2-01 (RV transitions).",
+        "READY_TO_DESIGN": false,
+        "REMAINING_BLOCKER": "point-in-time evidence for DVOL history; paid option marks for the TERM_SLOPE arm",
+        "SEARCH_SURFACE_BOUNDED": "YES (6 declared variants)",
+        "TIME_TO_FROZEN_TEST_DESIGN": "several sessions plus vendor procurement"
+      }
+    },
+    "C012": {
+      "CARD": {
+        "CANDIDATE_ID": "C012",
+        "DATA_GAP_CLASS": "OFFICIAL_CALENDAR_PROVENANCE_CPI",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "D11_FOMC_OFFICIAL_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "Scheduled FOMC statement release timestamps",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "CORE_BTC_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "1m closes for pre-release windows and matched control windows",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "STATUTORY_DST_CALENDARS",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "US DST transition dates for converting the 08:30 ET CPI release time to UTC",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "BLS_CPI_RELEASE_SCHEDULE_ARCHIVE",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "Scheduled CPI release dates and times as published in the BLS annual release calendar before each release",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          }
+        ],
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "EXPECTED_IMPLEMENTATION_COST": "Low for the FOMC arm. Moderate for pinning archived BLS release calendars with evidence of advance publication.",
+        "EXPECTED_INFORMATION_GAIN": "Separates anticipation drift from response volatility within the scheduled-event subspace, using a small, frozen set of variants.",
+        "FALSIFIER": "The claim fails if any of the following holds: (1) the stratified permutation does not reject a zero mean difference for the frozen variant; (2) the yearly mean difference carries the pooled sign in fewer than 3 of 5 years; (3) the difference vanishes when the 24h window before the W-hour window is also required to match, which would mean the drift is part of a broader weekday pattern.",
+        "FUNCTION": "Directional expectation test of the mean signed pre-release return against matched non-event windows",
+        "HORIZON": "W hours ending 1 minute before each scheduled release time, with W taken from the search surface",
+        "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+        "MAIN_CONFOUNDERS": "(1) Few events, roughly eight FOMC statements per year, which limits power. (2) The BTC trend over the sample shifts the unconditional mean; within-year controls address this. (3) Overlapping crypto-specific news. (4) CPI weekday composition differs from FOMC Wednesdays; controls are matched on weekday. (5) DST changes the UTC time of the ET release, handled with the statutory calendar. (6) Unscheduled FOMC actions are excluded by construction.",
+        "MECHANISM": "Anticipation of a scheduled macro release produces a signed drift in the BTC return before the release",
+        "MISSING_OBSERVABLES": [
+          "CPI scheduled release timestamps with archived evidence that each date and time was published before the release (BLS annual release calendar snapshots)"
+        ],
+        "NAME": "Pre-announcement BTC drift before scheduled FOMC and CPI releases",
+        "NO_LOOKAHEAD_RULE": "Only releases whose date and time were published before the window start are included. The FOMC schedule comes from the D11 official file and the CPI schedule from archived BLS calendars. Control windows are selected by calendar rules alone. W and the event set are frozen before any return is computed. No bar at or after the release time enters the observable.",
+        "PRIMARY_TARGET": "Mean PRE_RET_W on scheduled release windows minus mean PRE_RET_W on matched control windows, within YEAR x WEEKDAY x UTC clock-time strata",
+        "SEARCH_SURFACE": {
+          "MAX_VARIANTS": 6,
+          "PARAMETERS": {
+            "EVENT_SET": [
+              "FOMC_ONLY",
+              "FOMC_AND_CPI"
+            ],
+            "PRE_WINDOW_H": [
+              6,
+              12,
+              24
+            ]
+          }
+        }
+      },
+      "CRITIC_FEASIBILITY_CHECKS": {
+        "BLOCKER_RESOLVED": false,
+        "LEGAL_RANGE": true,
+        "OBSERVABLE_SUPPORTED": false,
+        "POINT_IN_TIME": false,
+        "PROVENANCE": false
+      },
+      "TRIAGE": {
+        "AVAILABLE": [
+          "D11_FOMC_OFFICIAL_V0",
+          "CORE_BTC_BINANCE_V0 1m",
+          "STATUTORY_DST_CALENDARS"
+        ],
+        "CONFIRMATION_NOTE": "Fresh 2025-2026 FOMC (about 14) and CPI releases. BTC-only, so a pre-2020 alternative surface exists: BitMEX XBTUSD 5m (DATA_READY, used by the D2 replication) and Binance spot BTCUSDT 1m (free archive) around 2017-09..2019-12 scheduled events. It needs an instrument-equivalence adjudication as in D2.",
+        "CONFIRMATION_SURFACE_STATUS": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+        "DATA_CLASS": "OFFICIAL_CALENDAR + CORE_BTC (ready)",
+        "DATA_COST_USD": 0,
+        "FEASIBILITY": "READY_AFTER_FREE_PUBLIC_ACQUISITION",
+        "HYPOTHESIS_UNCHANGED_IF_READY": true,
+        "IMPLEMENTATION_EFFORT": "LOW (FOMC arm) / MEDIUM (CPI arm)",
+        "LEGAL_RANGE_OK": true,
+        "MISSING_SOURCE": "BLS CPI release schedule archive with advance-publication evidence (FOMC_AND_CPI arm only)",
+        "MISSING_SOURCE_AUTHORITY": "BLS annual release calendars / schedule archive (first-party, free); 08:30 ET release time converted with the statutory DST calendar. Rescheduled releases (for example around a federal funding lapse) must be handled by the schedule as published before the window, never by the realized release time. UNVERIFIED_IN_SANDBOX (host refused by the environment network policy); from first-party publication practice and the repository record",
+        "POINT_IN_TIME_OK": "FOMC arm YES; CPI arm PENDING archive evidence",
+        "PRIOR_EXPOSURE": "Same FOMC event set as D11, but D11 measured post-event unsigned RV; C012 is the signed pre-release window.",
+        "READY_TO_DESIGN": true,
+        "REMAINING_BLOCKER": "CPI schedule pinning for the FOMC_AND_CPI arm",
+        "SEARCH_SURFACE_BOUNDED": "YES (6 declared variants)",
+        "TIME_TO_FROZEN_TEST_DESIGN": "about 1-2 work sessions after CPI calendar pinning"
+      }
+    },
+    "C014": {
+      "CARD": {
+        "CANDIDATE_ID": "C014",
+        "DATA_GAP_CLASS": "OPTIONS_IMPLIED_VOL_HISTORY",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "DERIBIT_DVOL_INDEX_HISTORY",
+            "LEGAL_RANGE": "2021-03..2024-12",
+            "OBSERVABLE": "BTC and ETH DVOL 30-day implied volatility index values at hourly resolution with publication timestamps",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          },
+          {
+            "DATASET": "DERIBIT_OPTIONS_QUOTES_VENDOR_HISTORY",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "ATM option mid implied volatility for BTC and ETH interpolated to a fixed 30-day maturity",
+            "STATUS": "DATA_BLOCKED_COST"
+          },
+          {
+            "DATASET": "CORE_BTC_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "5m log returns for BTC realized variance",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "CORE_ETH_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "5m log returns for ETH realized variance",
+            "STATUS": "DATA_READY"
+          }
+        ],
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "EXPECTED_IMPLEMENTATION_COST": "Moderate for the DVOL arm: an API pull, verification of revisions and timestamp checks. High for the quote-based arm, which needs a paid vendor archive.",
+        "EXPECTED_INFORMATION_GAIN": "Adds the first options-derived test of relative cross-asset structure. It separates what options anticipate from what realized history already contains.",
+        "FALSIFIER": "The claim fails if any of the following holds: (1) IVS gives no out-of-sample reduction in squared forecast error relative to HAR in sequential yearly folds within 2021-03..2024-12; (2) the IVS coefficient changes sign in more than one of four folds; (3) the block-shifted IVS series delivers a comparable reduction.",
+        "FUNCTION": "Incremental forecast of relative realized variance over a baseline that uses realized history only",
+        "HORIZON": "H days following each 00:00 UTC decision time",
+        "INFORMATION_SOURCE": "OPTIONS",
+        "MAIN_CONFOUNDERS": "(1) The variance risk premium differs between the two assets and over time. (2) Implied volatility comes from Deribit only, while realized variance comes from Binance perpetuals. (3) Changes to the DVOL methodology. (4) Clustering of event periods. (5) Mismatch between index publication time and computation time.",
+        "MECHANISM": "The ETH-minus-BTC implied variance spread forecasts the subsequent realized ETH/BTC variance ratio beyond a forecast from realized history",
+        "MISSING_OBSERVABLES": [
+          "BTC and ETH DVOL hourly history with evidence that published values were never recomputed",
+          "ATM implied volatility at a fixed 30-day maturity from historical Deribit option quotes"
+        ],
+        "NAME": "Options-implied ETH-BTC relative variance spread and subsequent realized relative variance",
+        "NO_LOOKAHEAD_RULE": "An IV value used at T must carry a publication timestamp at or before T. If the history endpoint returns recomputed values, the series is rejected on point-in-time grounds. HAR coefficients are fit only on folds that end before the evaluation fold. Horizons and model choices are frozen before evaluation.",
+        "PRIMARY_TARGET": "RRV_H = log(RV_ETH / RV_BTC) over (T, T+H], with realized variance computed from 5m log returns of the ETHUSDT and BTCUSDT perpetuals",
+        "SEARCH_SURFACE": {
+          "MAX_VARIANTS": 8,
+          "PARAMETERS": {
+            "BASELINE_MODEL": [
+              "HAR_RELATIVE",
+              "EWMA_RELATIVE"
+            ],
+            "HORIZON_D": [
+              1,
+              7
+            ],
+            "IV_SOURCE": [
+              "DVOL_INDEX",
+              "ATM_30D_FROM_QUOTES"
+            ]
+          }
+        }
+      },
+      "CRITIC_FEASIBILITY_CHECKS": {
+        "BLOCKER_RESOLVED": false,
+        "LEGAL_RANGE": true,
+        "OBSERVABLE_SUPPORTED": false,
+        "POINT_IN_TIME": false,
+        "PROVENANCE": false
+      },
+      "TRIAGE": {
+        "AVAILABLE": [
+          "CORE_BTC_BINANCE_V0",
+          "CORE_ETH_BINANCE_V0"
+        ],
+        "CONFIRMATION_NOTE": "DVOL from 2021-03 only; fresh 2025-2026 about 1.7 years. Binance BVOLIndex (from 2023-06-20) would substitute the observable.",
+        "CONFIRMATION_SURFACE_STATUS": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+        "DATA_CLASS": "OPTIONS (Deribit DVOL BTC+ETH) + CORE_BTC/CORE_ETH",
+        "DATA_COST_USD": "0 for DVOL values; about 700 per month for vendor capture/quotes (unverified here)",
+        "FEASIBILITY": "BLOCKED_POINT_IN_TIME_SEMANTICS",
+        "HYPOTHESIS_UNCHANGED_IF_READY": true,
+        "IMPLEMENTATION_EFFORT": "HIGH",
+        "LEGAL_RANGE_OK": true,
+        "MISSING_SOURCE": "BTC and ETH DVOL history with evidence of no revision (DVOL_INDEX arm); ATM 30-day IV from option quotes (paid, ATM_30D_FROM_QUOTES arm)",
+        "MISSING_SOURCE_AUTHORITY": "Same as C006: free Deribit API history cannot evidence non-revision; vendor capture about USD 700/month (repository pricing check, unverified here).",
+        "POINT_IN_TIME_OK": "NO (card rejects the series if recomputation cannot be excluded)",
+        "PRIOR_EXPOSURE": "Nearest tested mechanism D4.",
+        "READY_TO_DESIGN": false,
+        "REMAINING_BLOCKER": "point-in-time evidence for DVOL; paid quotes for the second arm",
+        "SEARCH_SURFACE_BOUNDED": "YES (8 declared variants)",
+        "TIME_TO_FROZEN_TEST_DESIGN": "several sessions plus vendor procurement"
+      }
+    },
+    "C016": {
+      "CARD": {
+        "CANDIDATE_ID": "C016",
+        "DATA_GAP_CLASS": "ORDER_BOOK_DEPTH_HISTORY",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "BINANCE_PUBLIC_DATA_UM_BOOKDEPTH",
+            "LEGAL_RANGE": "2023-01..2024-12",
+            "OBSERVABLE": "BTCUSDT perpetual aggregated notional depth at percentage bands from mid, with snapshot timestamps",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          },
+          {
+            "DATASET": "BINANCE_PUBLIC_DATA_UM_BOOKTICKER",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "BTCUSDT perpetual best bid and ask size and price updates with event timestamps",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          },
+          {
+            "DATASET": "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "Full-depth BTCUSDT perpetual order book reconstruction for depth within fixed basis-point bands",
+            "STATUS": "DATA_BLOCKED_COST"
+          },
+          {
+            "DATASET": "CORE_BTC_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "1m returns, volume and trade count for RV states, the transition target and baseline controls",
+            "STATUS": "DATA_READY"
+          }
+        ],
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "EXPECTED_IMPLEMENTATION_COST": "Moderate if the Binance public depth files are complete: bulk download, gap audit and hourly aggregation. High if full L2 reconstruction from a paid vendor is needed.",
+        "EXPECTED_INFORMATION_GAIN": "Adds the first order-book state variable to the regime-transition family, separating liquidity-led transitions from volatility-led ones.",
+        "FALSIFIER": "The claim fails if any of the following holds: (1) adding DEPTH_Z does not raise out-of-sample log-likelihood above the 95th percentile of the within-stratum permutation distribution; (2) the DEPTH_Z coefficient sign differs across years in more than one year; (3) the depth effect disappears when trailing spread is added, which would mean depth is only a proxy for spread.",
+        "FUNCTION": "Incremental hazard model of low-to-high RV-state transitions given order-book depth thinning",
+        "HORIZON": "H hours following each hourly decision time T that is in the low-RV tercile",
+        "INFORMATION_SOURCE": "ORDER_BOOK",
+        "MAIN_CONFOUNDERS": "(1) Depth mechanically co-moves with volume and time of day. (2) Snapshot cadence and missing files in the public archive. (3) Changes in the tick-size or depth-band definition. (4) Spoofed or fleeting quotes inflating snapshot depth. (5) Scheduled macro events that both thin books and raise RV; flagged using the FOMC calendar as a robustness split.",
+        "MECHANISM": "Order-book depth thinning during a low-volatility state precedes and raises the hazard of a transition into a high-volatility regime",
+        "MISSING_OBSERVABLES": [
+          "Completeness-audited BTCUSDT perpetual depth-at-band snapshots with timestamps",
+          "Best bid and ask size history for BTCUSDT perpetual verified for gaps"
+        ],
+        "NAME": "Order-book depth thinning as a leading indicator of volatility-regime transition",
+        "NO_LOOKAHEAD_RULE": "DEPTH_Z uses only snapshots timestamped at or before T. The tercile cutoffs for RV states come from a trailing 90-day distribution ending at T. The conditioning set (in the low-RV tercile at T) is defined only from information available before T, never from the outcome. All thresholds and horizons are frozen before any transition label is computed.",
+        "PRIMARY_TARGET": "TRANSITION_H = 1 if the hourly RV state moves from the low tercile at T to the high tercile in any hour within (T, T+H]",
+        "SEARCH_SURFACE": {
+          "MAX_VARIANTS": 8,
+          "PARAMETERS": {
+            "DEPTH_BAND": [
+              "TOP_OF_BOOK",
+              "WITHIN_1PCT"
+            ],
+            "DEPTH_Z_THRESHOLD": [
+              -1,
+              -2
+            ],
+            "TRANSITION_HORIZON_H": [
+              6,
+              24
+            ]
+          }
+        }
+      },
+      "CRITIC_FEASIBILITY_CHECKS": {
+        "BLOCKER_RESOLVED": false,
+        "LEGAL_RANGE": true,
+        "OBSERVABLE_SUPPORTED": false,
+        "POINT_IN_TIME": false,
+        "PROVENANCE": false
+      },
+      "TRIAGE": {
+        "AVAILABLE": [
+          "CORE_BTC_BINANCE_V0 1m (RV states and controls)"
+        ],
+        "CONFIRMATION_NOTE": "Fresh bookDepth 2025-2026 (about 631 days) is comparable to the 728-day discovery range; no pre-2023 depth surface.",
+        "CONFIRMATION_SURFACE_STATUS": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+        "DATA_CLASS": "ORDER_BOOK (Binance USD-M bookDepth / bookTicker) + CORE_BTC",
+        "DATA_COST_USD": "0 for depth bands; about 700 per month for spread/L2 coverage (unverified here)",
+        "FEASIBILITY": "BLOCKED_EXPENSIVE_DATA",
+        "FIRST_PARTY_METADATA": {
+          "BOOKDEPTH_DAILY_BTCUSDT": "2023-01-01..2026-09-23; legal 2023-2024 files 728 (2 days missing), 340,594,629 bytes; fresh 2025-2026 files 631",
+          "BOOKTICKER_DAILY_BTCUSDT": "2023-05-16..2024-03-30 only (320 files, 52.6 GB); discontinued",
+          "LISTING_REQUESTS": 6,
+          "NOTE": "bookDepth is aggregated depth at percentage bands, not a tick-level L2 reconstruction; band levels and snapshot cadence need a schema audit on a legal-range file before design.",
+          "PAYLOAD_GETS": 0
+        },
+        "HYPOTHESIS_UNCHANGED_IF_READY": "Only with the spread control; substituting a kline-based spread proxy would change the falsifier",
+        "IMPLEMENTATION_EFFORT": "HIGH",
+        "LEGAL_RANGE_OK": "PARTIAL (depth 2023-01..2024-12 only; card bookTicker range 2020-01..2024-12 not satisfied)",
+        "MISSING_SOURCE": "Trailing spread for the card falsifier (3) and the TOP_OF_BOOK arm: first-party bookTicker exists only 2023-05-16..2024-03-30; full coverage needs paid L2/bookTicker capture (Tardis Perpetuals about USD 700/month per repository pricing, unverified here)",
+        "POINT_IN_TIME_OK": "PARTIAL (bookDepth rows carry snapshot timestamps; gap and schema audit pending; spread history incomplete)",
+        "PRIOR_EXPOSURE": "Nearest tested mechanism B2-01 (RV transitions).",
+        "READY_TO_DESIGN": false,
+        "REMAINING_BLOCKER": "paid spread/L2 history for the card falsifier and the TOP_OF_BOOK arm; depth schema/gap audit",
+        "SEARCH_SURFACE_BOUNDED": "YES (8 declared variants; TOP_OF_BOOK arm not supportable from first-party data)",
+        "TIME_TO_FROZEN_TEST_DESIGN": "several sessions plus vendor procurement"
+      }
+    },
+    "C020": {
+      "CARD": {
+        "CANDIDATE_ID": "C020",
+        "DATA_GAP_CLASS": "OFFICIAL_HOLIDAY_CALENDAR_PROVENANCE",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "CORE_BTC_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "Hourly and 1m quote volume for session-share construction",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "STATUTORY_DST_CALENDARS",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "US DST dates for converting ET session bounds to UTC",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "NYSE_HOLIDAY_CALENDAR_ARCHIVE",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "NYSE full-day weekday closure dates as published in advance, including unscheduled closures flagged separately",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          },
+          {
+            "DATASET": "CN_STATE_COUNCIL_HOLIDAY_NOTICES",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "China statutory holiday dates and makeup working days from the annual State Council notices, with publication dates",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          },
+          {
+            "DATASET": "US_OPM_FEDERAL_HOLIDAY_LIST",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "US federal holiday dates, used to identify federal holidays on which the NYSE is open",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          }
+        ],
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "EXPECTED_IMPLEMENTATION_COST": "Low to moderate. Kline aggregation is simple; the effort lies in pinning and snapshotting three official calendars with evidence of their publication dates.",
+        "EXPECTED_INFORMATION_GAIN": "Complements the D12 clock-shift result with a participant-removal experiment. It can identify which regional block, US equity-linked or China-based, anchors each hump in the volume clock.",
+        "FALSIFIER": "The claim fails if any of the following holds: (1) the mean log share displacement on NYSE weekday closures lies inside the central 95 percent of the pseudo-holiday null; (2) yearly displacement signs agree with the pooled sign in fewer than 3 of 5 years; (3) NYSE-open federal holidays show the same displacement as NYSE closures, which contradicts equity-clock anchoring specifically. The same criteria apply separately to the China holiday arm using the Asia session window.",
+        "FUNCTION": "Holiday natural experiment on the regional composition of the BTC intraday volume profile",
+        "HORIZON": "The single UTC day of each holiday, with same-weekday controls within plus or minus CONTROL_WINDOW_WEEKS weeks",
+        "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+        "MAIN_CONFOUNDERS": "(1) Holidays cluster at year-end and around Lunar New Year, when crypto volume shifts for other reasons. (2) China makeup working weekend days alter weekday composition, so those days are excluded from controls. (3) Holiday-adjacent days (bridge days). (4) Macro releases shifted by holidays. (5) The total-volume level falls on holidays, so shares rather than levels are the primary measure.",
+        "MECHANISM": "Official regional holidays remove the corresponding participant block, which displaces the BTC intraday volume profile away from that region's session",
+        "MISSING_OBSERVABLES": [
+          "NYSE weekday closure dates with archived publication evidence",
+          "China statutory holiday and makeup working day dates with notice publication dates",
+          "US federal holiday dates from an archived official list"
+        ],
+        "NAME": "Official-holiday participant removal and BTC intraday session volume shares",
+        "NO_LOOKAHEAD_RULE": "Holiday dates are used only if published before the holiday; China dates come from the annual notice issued before each calendar year. Session bounds are converted to UTC with the statutory DST calendar. Control days are chosen by calendar rule alone. All definitions are frozen before any share is computed.",
+        "PRIMARY_TARGET": "Mean over holidays in a set of log(SESSION_SHARE on the holiday / mean SESSION_SHARE on matched same-weekday non-holiday days)",
+        "SEARCH_SURFACE": {
+          "MAX_VARIANTS": 8,
+          "PARAMETERS": {
+            "CONTROL_WINDOW_WEEKS": [
+              2,
+              4
+            ],
+            "HOLIDAY_SET": [
+              "NYSE_WEEKDAY_CLOSURES",
+              "CN_STATUTORY_HOLIDAY_WEEKS"
+            ],
+            "US_SESSION_DEF": [
+              "NYSE_REGULAR_HOURS",
+              "ET_0900_1700"
+            ]
+          }
+        }
+      },
+      "CRITIC_FEASIBILITY_CHECKS": {
+        "BLOCKER_RESOLVED": true,
+        "LEGAL_RANGE": true,
+        "OBSERVABLE_SUPPORTED": false,
+        "POINT_IN_TIME": false,
+        "PROVENANCE": false
+      },
+      "TRIAGE": {
+        "AVAILABLE": [
+          "CORE_BTC_BINANCE_V0 1m quote volume",
+          "STATUTORY_DST_CALENDARS"
+        ],
+        "CONFIRMATION_NOTE": "About 9-10 NYSE weekday closures per year; fresh 2025-2026 roughly a third of the discovery event count. Pre-2020 Binance spot BTC volume would change the instrument.",
+        "CONFIRMATION_SURFACE_STATUS": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+        "DATA_CLASS": "OFFICIAL_CALENDAR + CORE_BTC (ready)",
+        "DATA_COST_USD": 0,
+        "FEASIBILITY": "READY_AFTER_FREE_PUBLIC_ACQUISITION",
+        "HYPOTHESIS_UNCHANGED_IF_READY": true,
+        "IMPLEMENTATION_EFFORT": "MEDIUM",
+        "LEGAL_RANGE_OK": true,
+        "MISSING_SOURCE": "Three official holiday calendars with publication evidence: NYSE holiday/closure notices, China State Council annual holiday notices (with makeup working days), US OPM federal holiday list",
+        "MISSING_SOURCE_AUTHORITY": "First-party and free; all three publish ahead of the year and carry issue dates. Edge cases must be frozen by publication-date rule, e.g. the 2021 Juneteenth federal holiday was enacted one day before it was first observed. UNVERIFIED_IN_SANDBOX (host refused by the environment network policy); from first-party publication practice and the repository record",
+        "POINT_IN_TIME_OK": "PENDING (three calendars to pin with publication dates)",
+        "PRIOR_EXPOSURE": "Same family J and same CORE BTC intraday volume profiles as D12 (DST participation-clock, PROMISING_PROTOTYPE).",
+        "READY_TO_DESIGN": true,
+        "REMAINING_BLOCKER": "three-calendar pinning; D12 overlap accounting",
+        "SEARCH_SURFACE_BOUNDED": "YES (8 declared variants)",
+        "TIME_TO_FROZEN_TEST_DESIGN": "about 2 work sessions after calendar pinning"
+      }
+    }
+  },
+  "CONFIRMATION_FIRST_RULE": "Lesson from C013: the next design unit must plan the confirmation surface and its outcome-free power before any discovery execution, and record whether an adequately powered independent surface exists.",
+  "DATE": "2026-09-25",
+  "ENVIRONMENT_NOTE": "This sandbox refuses bls.gov, federalreserve.gov, web.archive.org, deribit.com, tardis.dev, nyse.com, gov.cn, opm.gov and data.binance.vision (CONNECT refused). The Binance S3 origin is reachable. Pinning the BLS CPI archive needs those hosts allowed in the environment network settings or another environment.",
+  "FORBIDDEN_PRIORITY_DIMENSIONS": [
+    "expected profitability",
+    "expected effect size",
+    "observed target behavior",
+    "any market outcome"
+  ],
+  "GENERATOR_V0_MEMORY_CHANGED": false,
+  "KIND": "OUTCOME_BLIND_FEASIBILITY_AND_PROGRAM_ROUTING",
+  "LLM_API_CALLS": 0,
+  "MARKET_OUTCOMES_COMPUTED": false,
+  "MATRIX": [
+    {
+      "BLOCKER": "CPI schedule pinning for the FOMC_PLUS_CPI arm; D10/D11 overlap accounting",
+      "CONFIRMATION_SURFACE": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+      "DATA_CLASS": "OFFICIAL_CALENDAR + CORE_BTC/CORE_ETH (ready)",
+      "EFFORT": "LOW (FOMC core) / MEDIUM (CPI arm)",
+      "ESTIMATED_COST": 0,
+      "FEASIBILITY": "READY_AFTER_FREE_PUBLIC_ACQUISITION",
+      "ID": "C004",
+      "MISSING_SOURCE": "BLS CPI release schedule archive with advance-publication evidence (FOMC_PLUS_CPI arm only)",
+      "POINT_IN_TIME_OK": "FOMC arm YES (official per-statement release time); CPI arm PENDING archive evidence",
+      "READY_TO_DESIGN": true
+    },
+    {
+      "BLOCKER": "point-in-time evidence for DVOL history; paid option marks for the TERM_SLOPE arm",
+      "CONFIRMATION_SURFACE": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+      "DATA_CLASS": "OPTIONS (Deribit DVOL) + CORE_BTC",
+      "EFFORT": "HIGH",
+      "ESTIMATED_COST": "0 for DVOL values; about 700 per month for a vendor capture that could evidence point-in-time and supply marks (repository-recorded quote, unverified here)",
+      "FEASIBILITY": "BLOCKED_POINT_IN_TIME_SEMANTICS",
+      "ID": "C006",
+      "MISSING_SOURCE": "Deribit BTC DVOL history with evidence of no retroactive revision (VRP_GAP arm); Deribit option marks by strike/expiry (TERM_SLOPE arm)",
+      "POINT_IN_TIME_OK": "NO (non-revision of DVOL unverifiable from the free source; card makes it a hard requirement)",
+      "READY_TO_DESIGN": false
+    },
+    {
+      "BLOCKER": "CPI schedule pinning for the FOMC_AND_CPI arm",
+      "CONFIRMATION_SURFACE": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+      "DATA_CLASS": "OFFICIAL_CALENDAR + CORE_BTC (ready)",
+      "EFFORT": "LOW (FOMC arm) / MEDIUM (CPI arm)",
+      "ESTIMATED_COST": 0,
+      "FEASIBILITY": "READY_AFTER_FREE_PUBLIC_ACQUISITION",
+      "ID": "C012",
+      "MISSING_SOURCE": "BLS CPI release schedule archive with advance-publication evidence (FOMC_AND_CPI arm only)",
+      "POINT_IN_TIME_OK": "FOMC arm YES; CPI arm PENDING archive evidence",
+      "READY_TO_DESIGN": true
+    },
+    {
+      "BLOCKER": "point-in-time evidence for DVOL; paid quotes for the second arm",
+      "CONFIRMATION_SURFACE": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+      "DATA_CLASS": "OPTIONS (Deribit DVOL BTC+ETH) + CORE_BTC/CORE_ETH",
+      "EFFORT": "HIGH",
+      "ESTIMATED_COST": "0 for DVOL values; about 700 per month for vendor capture/quotes (unverified here)",
+      "FEASIBILITY": "BLOCKED_POINT_IN_TIME_SEMANTICS",
+      "ID": "C014",
+      "MISSING_SOURCE": "BTC and ETH DVOL history with evidence of no revision (DVOL_INDEX arm); ATM 30-day IV from option quotes (paid, ATM_30D_FROM_QUOTES arm)",
+      "POINT_IN_TIME_OK": "NO (card rejects the series if recomputation cannot be excluded)",
+      "READY_TO_DESIGN": false
+    },
+    {
+      "BLOCKER": "paid spread/L2 history for the card falsifier and the TOP_OF_BOOK arm; depth schema/gap audit",
+      "CONFIRMATION_SURFACE": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+      "DATA_CLASS": "ORDER_BOOK (Binance USD-M bookDepth / bookTicker) + CORE_BTC",
+      "EFFORT": "HIGH",
+      "ESTIMATED_COST": "0 for depth bands; about 700 per month for spread/L2 coverage (unverified here)",
+      "FEASIBILITY": "BLOCKED_EXPENSIVE_DATA",
+      "ID": "C016",
+      "MISSING_SOURCE": "Trailing spread for the card falsifier (3) and the TOP_OF_BOOK arm: first-party bookTicker exists only 2023-05-16..2024-03-30; full coverage needs paid L2/bookTicker capture (Tardis Perpetuals about USD 700/month per repository pricing, unverified here)",
+      "POINT_IN_TIME_OK": "PARTIAL (bookDepth rows carry snapshot timestamps; gap and schema audit pending; spread history incomplete)",
+      "READY_TO_DESIGN": false
+    },
+    {
+      "BLOCKER": "three-calendar pinning; D12 overlap accounting",
+      "CONFIRMATION_SURFACE": "FRESH_SURFACE_AVAILABLE_BUT_LIMITED",
+      "DATA_CLASS": "OFFICIAL_CALENDAR + CORE_BTC (ready)",
+      "EFFORT": "MEDIUM",
+      "ESTIMATED_COST": 0,
+      "FEASIBILITY": "READY_AFTER_FREE_PUBLIC_ACQUISITION",
+      "ID": "C020",
+      "MISSING_SOURCE": "Three official holiday calendars with publication evidence: NYSE holiday/closure notices, China State Council annual holiday notices (with makeup working days), US OPM federal holiday list",
+      "POINT_IN_TIME_OK": "PENDING (three calendars to pin with publication dates)",
+      "READY_TO_DESIGN": true
+    }
+  ],
+  "METADATA_ACCESS_LOG": {
+    "BINANCE_S3_LIST_REQUESTS": 13,
+    "EXTERNAL_DOC_HOSTS_ATTEMPTED": 12,
+    "EXTERNAL_DOC_HOSTS_REACHABLE": 0,
+    "NOTE": "6 ListBucket requests for BTCUSDT bookDepth/bookTicker (daily+monthly) and 7 for BVOLIndex (1 delimiter listing + 3 pages per underlying). Key names and sizes only.",
+    "PAYLOAD_GETS": 0,
+    "PROTECTED_PAYLOADS_OPENED": 0
+  },
+  "NEXT_CANDIDATE_FOR_DESIGN": "GV0R01-C012",
+  "NEXT_UNIT": "GV0R01_C012_CPI_CALENDAR_ACQUISITION_AND_OUTCOME_BLIND_DESIGN",
+  "PRIORITY_DIMENSIONS_FEASIBILITY_ONLY": [
+    "POINT_IN_TIME_ALREADY_RESOLVED_FOR_CORE_ARM",
+    "NEW_SOURCES_TO_PIN",
+    "IMPLEMENTATION_EFFORT",
+    "DECLARED_VARIANTS",
+    "CONFIRMATION_SURFACE_OPTIONS"
+  ],
+  "PRIORITY_EVIDENCE": {
+    "C004": {
+      "CONFIRMATION_SURFACE_OPTIONS": "fresh 2025-2026 only without an instrument change (needs ETH)",
+      "DECLARED_VARIANTS": 8,
+      "IMPLEMENTATION_EFFORT": "LOW/MEDIUM",
+      "NEW_SOURCES_TO_PIN": 1,
+      "POINT_IN_TIME_ALREADY_RESOLVED_FOR_CORE_ARM": true
+    },
+    "C012": {
+      "CONFIRMATION_SURFACE_OPTIONS": "fresh 2025-2026 + BTC-only pre-2020 candidate (BitMEX XBTUSD DATA_READY; D2 adjudication precedent)",
+      "DECLARED_VARIANTS": 6,
+      "IMPLEMENTATION_EFFORT": "LOW/MEDIUM",
+      "NEW_SOURCES_TO_PIN": 1,
+      "POINT_IN_TIME_ALREADY_RESOLVED_FOR_CORE_ARM": true
+    },
+    "C020": {
+      "CONFIRMATION_SURFACE_OPTIONS": "fresh 2025-2026 only without an instrument change",
+      "DECLARED_VARIANTS": 8,
+      "IMPLEMENTATION_EFFORT": "MEDIUM",
+      "NEW_SOURCES_TO_PIN": 3,
+      "POINT_IN_TIME_ALREADY_RESOLVED_FOR_CORE_ARM": false
+    }
+  },
+  "PROGRAM_DECISION": {
+    "ACTIVE_PROGRAM": "Evaluate the six GV0R01 Stream-B candidates before paying for another Generator V0 campaign.",
+    "C013_NOTE": "Parked pending a scientifically adequate independent surface. No underpowered 2025/2026 confirmation, no parameter/horizon/N/sign/regime/secondary rescue. Result and memory attachment unchanged.",
+    "C013_PROGRAM_STATE": [
+      "PROMISING_PROTOTYPE",
+      "CONFIRMATION_DEFERRED_LOW_POWER"
+    ]
+  },
+  "PROTECTED_2025_VALUES_OPENED": false,
+  "PROTECTED_2026_VALUES_OPENED": false,
+  "RUN_GV0R02_NEXT": false,
+  "RUN_GV0R02_RULE": "At least one Stream-B candidate can defensibly become DATA_READY at zero data cost and low-to-medium effort, so GV0R02 is not next.",
+  "SCIENTIFIC_TEST_LEDGER_CHANGED": false,
+  "SOURCE": {
+    "HEAD": "53086f079b572b35afeba55d667c218be82a30f0",
+    "MEMORY_HEAD": "853ef4514460a18b5aa16bf3fff86ece027c52e4b58d92dfbf98034f1fde9373",
+    "SEALED_JOURNAL": "docs/research/generator_v0_gv0r01/run.sqlite",
+    "SEALED_JOURNAL_SHA256": "de22f7c2aeb0487842a2477e5a2f44e3df7a9cbf007785cfaf213cbcd648be62",
+    "TREE": "a5d5064ea217939ad33671dac0632ddd20de8088"
+  },
+  "STREAM_B": [
+    "C004",
+    "C006",
+    "C012",
+    "C014",
+    "C016",
+    "C020"
+  ],
+  "UNIT": "GV0R01_STREAM_B_FEASIBILITY_TRIAGE",
+  "WHY_SELECTED": "Feasibility only. Of the three candidates that can reach DATA_READY without changing the hypothesis at zero data cost (C004, C012, C020), C012 has its core FOMC arm already point-in-time resolved from the pinned official Fed statements and CORE_BTC; it needs one new free source (BLS CPI schedule archive); it declares the smallest search surface (6 variants); it is BTC-only, which gives it the only credible independent confirmation route beyond the limited fresh 2025-2026 events (a pre-2020 BTC surface with a D2-style equivalence adjudication). C004 needs ETH (no pre-2020 perpetual surface) and overlaps D10 and D11; C020 needs three calendars and overlaps D12. Not a tie."
+}

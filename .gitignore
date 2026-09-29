@@ -1,16 +1,3 @@
-.env
-__pycache__/
-*.pyc
-.venv/
-venv/
-*.egg-info/
-.DS_Store
-soak-test-*.log
-soak-test-*.meta
-
-# local DB backups (deploy/backup.sh)
-backups/
-
 # Secrets
 .env
 .env.*
@@ -28,17 +15,43 @@ backup.env
 venv/
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
 
-# Runtime / local research data
+# Runtime / local research data (backups/ = local DB backups from deploy/backup.sh)
 logs/
 data/
 backups/
 artifacts/
+# Owner-run live-archive coverage exports. Do not commit them.
+live_archive_replay_preflight_coverage/
+# Tardis free-sample vendor bytes for scripts/audit/tardis_free_overlap_v0.
+# Inventory reports live under docs/audit/tardis_free_overlap_v0/. Do not commit
+# the downloaded csv.gz files.
 # D13 per-symbol ListBucket XML is acquisition runtime under artifacts/,
 # not a tracked scientific authority. Do not commit docs/.../listings/per_symbol_1d/.
 *.log
+soak-test-*.log
+soak-test-*.meta
+# SQLite/DB sidecar files. Sealed journals are tracked as *.sqlite; their
+# -journal/-wal/-shm sidecars are transient and never evidence.
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.db-journal
+# Local exports / generated data dropped at the repository root only.
+# Tracked research fixtures under docs/ (csv, zip, gz, sqlite) are unaffected.
+/exports/
+/*.csv
+/*.parquet
+/*.sqlite
+/*.db
 
 # OS / IDE
 .DS_Store

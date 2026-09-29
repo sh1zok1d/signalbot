@@ -1,0 +1,37 @@
+[Unit]
+Description=Signalbot private beta V0.2 Telegram long-polling bot (inbound commands)
+Documentation=file:/opt/signalbot/docs/PRIVATE_BETA_V0_DEPLOY.md
+# Independent of the legacy outbound notifier (signalbot-telegram.*): separate
+# bot token (BETA_TELEGRAM_BOT_TOKEN), separate tables, separate advisory lock.
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=signalbot
+Group=signalbot
+WorkingDirectory=/opt/signalbot
+EnvironmentFile=/opt/signalbot/.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
+ExecStartPre=/usr/bin/test -r /opt/signalbot/.env
+ExecStart=/opt/signalbot/.venv/bin/python -m runtime.beta_bot
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=40
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=signalbot-beta-bot
+
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,4 @@
-> **Current routing note — 2026-09-23:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Original D2 BitMEX one-shot remains `INVALID`. Corrected execution classified `D2_BITMEX_REPLICATION_SUPPORTED`. Program class `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Excess path-risk decomposition one-shot is consumed: `D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`. Sprint 02 D7 is `PROMISING_PROTOTYPE` (consumed one-shot; confirmation candidate but not selected now). D8 is `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and not a negative scientific result. Sprint 03 D9/D10 are `NO_USEFUL_STRUCTURE`; D11 is `PROMISING_PROTOTYPE` (unsigned scheduled-FOMC 6h RV; not D8 rescue). Sprint 04 D12 is `PROMISING_PROTOTYPE` (US-clock quote-volume anchoring; EU diagnostic does not classify). D13 is `NO_USEFUL_STRUCTURE` (observed reversal; practical gate failed). `INTERNAL_DISCOVERY_CARDS_EXECUTED = 10`. `INTERNAL_PROMISING_PROTOTYPES = 4`. `AUTOMATIC_SPRINT05 = false`. `POST_SPRINT04_AUTOMATION_MATURITY_DECISION` decided `HYPOTHESIS_GENERATOR_V0_INFRA_READY` (no Sprint 05; Generator V0 design frozen, not built, shadow-only). `NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_LIMITED_OFFLINE_REPAIR_REQUIRED` (independent verification of PR #214; limited offline repair before any provider smoke test; no live shadow).
+> **Current routing note — 2026-09-23:** use `docs/CURRENT_RESEARCH_STATE.md` first for present lifecycle/next-unit status. Frozen experiment artifacts remain authoritative for their own semantics. Some older catalog descriptions below are historical and may retain the status they had when written. Original D2 BitMEX one-shot remains `INVALID`. Corrected execution classified `D2_BITMEX_REPLICATION_SUPPORTED`. Program class `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`. Excess path-risk decomposition one-shot is consumed: `D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`. Sprint 02 D7 is `PROMISING_PROTOTYPE` (consumed one-shot; confirmation candidate but not selected now). D8 is `DEFERRED_INSUFFICIENT_CONTROL_SUPPORT` and not a negative scientific result. Sprint 03 D9/D10 are `NO_USEFUL_STRUCTURE`; D11 is `PROMISING_PROTOTYPE` (unsigned scheduled-FOMC 6h RV; not D8 rescue). Sprint 04 D12 is `PROMISING_PROTOTYPE` (US-clock quote-volume anchoring; EU diagnostic does not classify). D13 is `NO_USEFUL_STRUCTURE` (observed reversal; practical gate failed). `INTERNAL_DISCOVERY_CARDS_EXECUTED = 10`. `INTERNAL_PROMISING_PROTOTYPES = 4`. `AUTOMATIC_SPRINT05 = false`. `POST_SPRINT04_AUTOMATION_MATURITY_DECISION` decided `HYPOTHESIS_GENERATOR_V0_INFRA_READY` (no Sprint 05; Generator V0 design frozen, not built, shadow-only). Routing update 2026-09-29: `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`, per `CURRENT_RESEARCH_STATE.md`. The earlier value `GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW` is historical.
 
 # Signalbot Documentation Index
 
@@ -15,12 +15,47 @@ For the narrative evolution, read `PROJECT_HISTORY.md`. For complete original do
 
 ---
 
+## 0. Quick status map (added 2026-09-29)
+
+This map covers every top-level `docs/*.md` file and each `docs/` subdirectory. The detailed per-file entries in the sections below remain authoritative. Nothing was moved or deleted.
+- **ACTIVE** — current decision authority, or a maintained record.
+- **REFERENCE** — frozen evidence, data contracts and operations runbooks. They are correct for their own scope, but they do not authorize current work.
+- **HISTORICAL / SUPERSEDED** — preserved project history. They have no execution authority.
+
+**ACTIVE**
+- `SIGNALBOT_MANDATE_V1.md`, `CURRENT_RESEARCH_STATE.md` (canonical routing), `PROJECT_STATUS.md` and `RESEARCH_ROADMAP.md`.
+- `EDGE_RESEARCH_PROTOCOL.md`, `HISTORICAL_DATA_STRATEGY.md`, `ACTIVE_RESEARCH_RISKS.md` and `RESEARCH_LEDGER.md`.
+- `DOCUMENTATION_INDEX.md` (this file), `PROJECT_HISTORY.md` (maintained history narrative) and `CURRENT_STATE.md` (a one-screen summary that points to the files above; it is not an authority).
+- `PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`, `CODEBASE_STATUS.md` and `R2_SCREENING_PROTOCOL_V1.md`.
+- `AGENT_RUNTIME_PROTOCOL.md`: operations for live-provider work.
+- `PRIVATE_BETA_V0_RESTART_DECISION.md`: beta governance.
+- `DATA_CAPABILITY_MATRIX.md`, `CORE_BTC_BINANCE_V0_CONTRACT.md`, `CORE_BTC_BINANCE_V0_PROBE_RUNBOOK.md` and `CORE_BTC_BINANCE_V0_MATERIALIZATION_RUNBOOK.md`: research data infrastructure.
+
+**REFERENCE**
+- `E1_DETECTOR_SEPARATION_PREREG.md`, `E1_DATA_INVENTORY_2026-08-25.md`, `E1_VPS_RUNBOOK.md` and `e1/`: the frozen `E1-RUN-001` records.
+- `PRIVATE_BETA_V0_DEPLOY.md` and `BETA_BTC_TEMPORAL_CONTEXT_V0.md`: beta operations and amendment.
+- `VPS_DEPLOY.md`, `SHADOW_TIMER_DEPLOY.md`, `TELEGRAM_NOTIFIER_DEPLOY.md` and `DATA_DURABILITY_RUNBOOK.md`: operations. Following them does not authorize a deploy.
+- `research/`: mixed status. Each file's label is given in §1 and in the Generator V0 section.
+- `research_data/` and `manifests/`: frozen dataset evidence and manifests.
+- `reviews/`: red-team and audit records for H03–H05 and R2.
+
+**HISTORICAL / SUPERSEDED**
+- `FORECASTING_ROADMAP.md`, `PROJECT_EXECUTION_PLAN.md`, `PRODUCT_SPEC_V0.md` and `V2_EMPIRICAL_RED_TEAM_PLAN.md`: superseded pointers (§5).
+- `V2_PRODUCT_CONTRACT.md`, `V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md`, `V2_CONSENSUS_ROBUSTNESS_HISTORICAL_AUDIT.md` and `V2_PERCENTILE_MATURITY_AUDIT.md`: historical V2 material (§4, §5).
+- `STAGE1_ACCEPTANCE.md`, `STAGE2_SPEC.md`, `STAGE2_CLARIFICATIONS.md`, `STAGE2_DATA_AUDIT.md` and `STAGE2_IMPLEMENTATION_PLAN.md`: historical implementation contracts (§4).
+- `PROJECT_RISK_AND_DEBT_REGISTER.md`: the historical V2-era debt register.
+- `PRODUCT_HYPOTHESES.md`: deferred (§6).
+- `history/`: the immutable archive index.
+
+---
+
 ## 1. Current sources of truth
 
 Read these first:
 
 | `SIGNALBOT_MANDATE_V1.md` | **ACTIVE / CANONICAL STRATEGIC MANDATE** | Owner-approved project objective, anti-sycophancy rule, scientific/product/commercial mandate, agent operating principles, and amendment rules. Strategic authority; frozen experiment-specific scientific authorities still govern their own semantics. |
-| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; D7 is `PROMISING_PROTOTYPE` (confirmation candidate, not selected now); D8 deferred; Sprint 03 D9/D10 `NO_USEFUL_STRUCTURE`, D11 `PROMISING_PROTOTYPE`; Sprint 04 D12 `PROMISING_PROTOTYPE`, D13 `NO_USEFUL_STRUCTURE`; 2025/2026 sealed; `NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_LIMITED_OFFLINE_REPAIR_REQUIRED` |
+| `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; D7 is `PROMISING_PROTOTYPE` (confirmation candidate, not selected now); D8 deferred; Sprint 03 D9/D10 `NO_USEFUL_STRUCTURE`, D11 `PROMISING_PROTOTYPE`; Sprint 04 D12 `PROMISING_PROTOTYPE`, D13 `NO_USEFUL_STRUCTURE`; 2025/2026 sealed; `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT` (as of 2026-09-29; the file itself is authoritative) |
+| `CURRENT_STATE.md` | **ACTIVE SUMMARY (NOT AN AUTHORITY)** | One-screen "where are we now?" summary: posture, the descriptive-only beta PRICE_OI_CONTRACTION follow-up figures, the known defects of the frozen matched-baseline design, and the protected-data posture. `CURRENT_RESEARCH_STATE.md` and `PROJECT_STATUS.md` win on any conflict. |
 | `research/MECHANISM_MEMORY_V0.md` | **MECHANISM MEMORY V0 (EXTENDED THROUGH D13)** | Compact H01–H05 / B2-01–B2-06 / MARKET-01–06 / D1–D13 map; D12 `PROMISING_PROTOTYPE`; D13 `NO_USEFUL_STRUCTURE`; not a new framework |
 | `research/HETEROGENEOUS_FAMILY_ROTATION_V2.md` | **HYPOTHESIS GENERATION POLICY (FROZEN, CURRENT)** | Families A–I after D7; E cooldown; selected D/G/H as D10/D11/D9; true panel still absent; no MARKET-07 |
 | `research/DISCOVERY_SPRINT_03.md` | **DISCOVERY SPRINT 03 (CARD DEFINITION / IMPLEMENTATION FREEZE)** | Frozen cards D9/D10/D11; scientific outcomes live in RESULT files; do not mutate this freeze |
@@ -158,7 +193,7 @@ Read these first:
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.json` | **PREREG_AMENDED / FROZEN_BEFORE_V3_IMPLEMENTATION** | Machine-readable twin; binds every scientific constant/algorithm required by implementation, including Amendment 001; SHA256 `ab03c68a…` (md) / `194fed69…` (json) frozen by `V3_PREREG_FREEZE` |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE.md` | **FROZEN_BEFORE_V3_IMPLEMENTATION** | Freeze authority binding the amended V3 prereg content at `543687fe` / tree `50750efc…` (plus new primitive `harness_synthetic_edge_calibration_v3_rng.py`) as sole scientific authority for V3 implementation; supersedes prior freeze `4136f53d` (preserved, not rewritten); does not modify the prereg bytes; not an ARM |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG_FREEZE.json` | **FROZEN_BEFORE_V3_IMPLEMENTATION** | Machine-readable twin of the current V3 prereg freeze; `freeze_commit_head`/`tree` intentionally `UNSET_UNTIL_THIS_COMMIT` (no self-hash); `supersedes.previous_freeze_head = 4136f530…` |
-| `research/harness_synthetic_edge_calibration_v3_rng.py` | **FROZEN (Amendment 001 primitive)** | `v3_namespace_seed()`: legal `"V3_CONFIRMATORY"` namespace-seed derivation without modifying the frozen V1 `NAMESPACES` allowlist or its TCB hash; reuses `_uint64_from_digest` verbatim; proven equivalent/deterministic/distinct by its test file |
+| `scripts/research/harness_synthetic_edge_calibration_v3_rng.py` | **FROZEN (Amendment 001 primitive)** | `v3_namespace_seed()`: legal `"V3_CONFIRMATORY"` namespace-seed derivation without modifying the frozen V1 `NAMESPACES` allowlist or its TCB hash; reuses `_uint64_from_digest` verbatim; proven equivalent/deterministic/distinct by its test file |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE.md` | **FROZEN_BEFORE_V3_ARM / HISTORICAL PARENT** | Docs freeze of accepted V3 implementation `70673673` / tree `e94e18cb`; freeze HEAD `76f21007` / tree `dd59466b` is the live ARM parent; not itself an ARM |
 | `research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE.json` | **FROZEN_BEFORE_V3_ARM / HISTORICAL PARENT** | Machine-readable twin; SHA256 `16fe6550…`; pre-ARM binding parent of the live one-shot ARM |
 | `scripts/research/harness_synthetic_edge_calibration_v3_authority.py` | **PRE_ARM_BINDING + ONE_SHOT_ARM_AUTH + RESERVATION_GATE** | Authenticates freeze bytes and the one-shot ARM; derives scientific run identity `ce664429…`; refuses caller kwargs/path/env substitution; reservation/execution delegated to the V3 production module |
@@ -265,6 +300,11 @@ The following describe earlier Stage1/Stage2/V2 implementation states or audits.
 - `V2_CONSENSUS_ROBUSTNESS_HISTORICAL_AUDIT.md`
 - `V2_PERCENTILE_MATURITY_AUDIT.md`
 - `history/V2_MATHEMATICAL_HYPOTHESIS_REGISTER.md` — exact historical governance content archived from the standalone `research/v2-mathematical-hypothesis-register` branch before branch cleanup.
+- `scripts/audit/live_archive_replay_preflight/` — owner-executable read-only live-archive tools. Importing the package does not query production. The coverage exporter does not export market magnitudes and is not itself a coverage result. The PRICE_OI semantic replay runner is a separate owner step; its output is a current-rule reconstruction, not a record of historical production alerts.
+- `docs/audit/live_archive_replay_preflight/phase_a_coverage_analysis.md` — Phase A classification of the owner-run live-archive coverage export. It does not reconstruct detector events.
+- `scripts/audit/live_archive_replay_preflight/run_price_oi_semantic_replay.py` — owner-executable semantic reconstruction of the current `PRICE_OI_CONTRACTION` rules from `source='live'` observations. Running it is a separate owner step. Its output is not a record of historical production alerts.
+
+- `audit/tardis_free_overlap_v0/overlap_report.md` — USD 0 Tardis versus Signalbot live comparison for 2026-08-01 and 2026-09-01. Decision `REJECT_TARDIS_FOR_CURRENT_REPLAY`. Not a percentile, not CLOSE_REPLAY, and not authorization to purchase data.
 
 The old `PROJECT_RISK_AND_DEBT_REGISTER.md` is also retained as a **historical V2-era debt register**. Its Stage-6/7/8 implementation items are not automatically current work. Use `ACTIVE_RESEARCH_RISKS.md` for the current program.
 
@@ -302,9 +342,19 @@ These documents may still be useful operationally, but following them is not aut
 - `VPS_DEPLOY.md`
 - `SHADOW_TIMER_DEPLOY.md`
 - `TELEGRAM_NOTIFIER_DEPLOY.md`
+- `PRIVATE_BETA_V0_DEPLOY.md`: beta V0.2 deploy, soak and privacy runbook. Its units are prepared, not activated.
+- `BETA_BTC_TEMPORAL_CONTEXT_V0.md`: the `/btc` temporal-context amendment. The active episodization `STRICT_QUALIFICATION_V1` keeps the detector's own episode boundaries. The amendment adds LAST EVENT memory, factual anchor buckets, the rolling-1h context `BETA_CONTEXT_1H_V0` and replay. Live hysteresis is disabled; an unfrozen taker-only calibration tool remains dormant. Detector rules and push decisions are unchanged.
 - `E1_VPS_RUNBOOK.md`
 
 Before using an operational runbook, compare it with current code/config and runtime state. Some commands/names reflect earlier deployment stages.
+
+---
+
+## 7a. Descriptive private beta V0.2 (authorized 2026-09-25)
+
+- `PRIVATE_BETA_V0_RESTART_DECISION.md` is the governance authority. It covers the scope, the frozen rule identity, the soak gate, and the rollout and exit criteria. It is descriptive only, and the predictive product stays frozen.
+- `research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md` carries the label `PROSPECTIVE_PRE_REGISTERED_FORWARD_EVALUATION / OWNER_UNBLINDED`. It is never independent confirmation. Its Q1/Q2 were superseded on 2026-09-28, before any statistic was inspected, because the product will show historical follow-up statistics before the stopping rule (see its amendment).
+- `BETA_HISTORICAL_FOLLOW_UP_V0.md`: foundation for "what happened after previous comparable states?" — `EVENT_COMPARABILITY_V0`, fail-closed display sufficiency, 1h/4h absolute range only, ordinary same-time and volatility-matched baselines, provenance classes. Pure code, not wired into `/btc`, no historical replay.
 
 ---
 
@@ -396,13 +446,50 @@ When adding documentation:
 - `research/GENERATOR_V0_ADVERSARIAL_REVIEW.md` — 25-class self-review, fixes and limits.
 - `research/generator_v0_checkpoints/` — durable checkpoint chain and compact mock evidence.
 
-- `research/GENERATOR_V0_PR214_INDEPENDENT_VERIFICATION.{json,md}` — independent verifier of PR #214; verdict `LIMITED_OFFLINE_REPAIR_REQUIRED`; not a live authorization.
-- `research/GENERATOR_V0_PRE_LIVE_REPAIR.{json,md}` — offline pre-live repair record (contract V02, per-card quarantine, failure classes, lineage spend, advisory selector); outcome-blind design amendments. Completion state superseded for routing by the independent verification.
+- `research/GENERATOR_V0_PR214_INDEPENDENT_VERIFICATION.{md,json}` — independent outcome-blind verification of the Generator V0 PR #214 repair; historical audit evidence consumed by the later limited/final repair sequence.
+- `research/GENERATOR_V0_PRE_LIVE_REPAIR.{json,md}` — offline pre-live repair record (contract V02, per-card quarantine, failure classes, lineage spend, advisory selector); outcome-blind design amendments.
 - `research/GENERATOR_V0_LEGACY_V01_GRANDFATHER.json` — option-A compatibility manifest: the only historical call keys and card digests admitted under the frozen v0.1 validator.
 - `research/GENERATOR_V0_SEALED_RUNS.json` — sealed journal hashes refused by the operator at any path.
-- `research/generator_v0_repair/OFFLINE_GATE_REPORT.json` — offline gate evidence (corpus, noisy E2E, derive-after-partial-work, v7 derive proof).
+- `research/generator_v0_repair/OFFLINE_GATE_REPORT.json` — offline gate evidence (corpus, noisy E2E, derive-after-partial-work, v7 derive proof, fresh and derived budget preflight).
+- `research/GENERATOR_V0_LIMITED_REPAIR.{md,json}` — limited offline repair after the PR #215 verification (B1–B5, residuals, and the final narrow repair); `READY_FOR_FINAL_RE-VERIFICATION`.
+- `research/GENERATOR_V0_MULTI_PROVIDER_ROUTING_AMENDMENT.{md,json}` — outcome-blind multi-provider routing amendment (Opus generator, Sol/Luna critics); routing registry `scripts/research/generator_v0/routing.py` is authoritative for routed runs.
+- `research/GENERATOR_V0_ANTHROPIC_COMPACT_PROJECTION.{md,json}` — Anthropic GENERATOR compact wire projection (one shared card schema, array of cards) after the grammar-too-large 400; relaxed provider constraints and their intake enforcement; grammar before/after; live re-smoke blocked on a missing `ANTHROPIC_API_KEY`.
+- `research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.{md,json}` — live compact re-smoke result (HTTP 200, `max_tokens` at 32768, USD 0.713332) and the owner amendment raising only the routed Anthropic GENERATOR output cap to 100000; failure-path hash provenance fix; recalculated bounds and smoke budget.
+- `research/GENERATOR_V0_BACKGROUND_NOVELTY_TRANSPORT_AMENDMENT.{md,json}` — routed NOVELTY_CRITIC moved from synchronous Chat Completions to background Responses (create once, poll by response_id) after two ambiguous HTTP 502s in the cost calibration; model, effort, prompt, schema and all other roles unchanged; offline timing diagnostic.
+- `research/GENERATOR_V0_BACKGROUND_RED_TEAM_TRANSPORT_AMENDMENT.{md,json}` — routed RED_TEAM moved from synchronous Chat Completions to background Responses after the same ambiguous Sol HTTP 502 class in the critic calibration; model, effort, prompt, schema, token cap and all other roles unchanged; C001 red-team call reconciled UNKNOWN.
+- `AGENT_RUNTIME_PROTOCOL.md` — active operational protocol for cloud-agent live-provider work: checkout verification, ephemeral-VM handling, verified HTTPS proxy binding, budgets, exactly-once semantics, provenance and artifact survival.
+- `research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.{md,json}` — active/canonical operational freeze for the first full 30-card Generator V0 run; routes, calibration observations, run-size/budget boundary and no-more-precautionary-smokes rule.
+- `research/GENERATOR_V0_FIRST_30_PRODUCTION_PATH_REPAIR.{md,json}` — offline enforcement of that freeze: one generator POST per round, zero selector LLM calls on the first 30-card path, and explicit `CLOUD_PROXY` OpenAI binding. Budget semantics and Memory Finalizer V1 are unchanged.
+- `research/GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT.{md,json}` — offline export of the five-card cost/pipeline calibration sample (C001-C005 cards, final critic verdicts, deterministic selector order, successful per-role costs); no scientific status, no market outcomes tested.
+- `research/GENERATOR_V0_MEMORY_FINALIZER.{md,json}` — **active/canonical** memory authority. The `MARKET_TEST_RESULT` event has been implemented since 2026-09-25 (§8); it attaches executed test results to full memory only. The rest of this entry is unchanged: append-only memory event chain (`research/generator_v0_memory/`), full vs blind generator memory, deterministic dispositions and blocker mapping, atomic HEAD publish, idempotency, stable IDs, operator CLI. Mechanism memory, blind map, governance authority and context pins are derived caches of the chain.
+- `research/generator_v0_repair/BUDGET_SCENARIOS.json` — budget/run-shape scenarios A–E (decision support only; none chosen).
 
-Implementation state: `GENERATOR_V0_PRE_LIVE_REPAIR_LIMITED_OFFLINE_REPAIR_REQUIRED` (independent verification of PR #214; previously `GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`).
+- `research/GENERATOR_V0_FIRST_30_CARD_RUN_GV0R01.{md,json}` — **sealed** record of the first real 30-card campaign GV0R01 (`PENDING_HUMAN_REVIEW`, USD 5.091486, Stream A C013). The sealed journal is tracked at `research/generator_v0_gv0r01/run.sqlite`. It includes the memory finalization event `416b22fa…`. No market outcome was tested.
+
+- `research/GV0R01_C013_MARKET_TEST_PREREG.{md,json}` — **frozen** one-shot preregistration of the first market test for GV0R01-C013 (JSON authoritative; `EXECUTION_AUTHORIZED = false`). Harness `scripts/research/gv0r01_c013_market_test{,_lib}.py`.
+- `research/GV0R01_C013_MARKET_TEST_OUTCOME.{md,json}` — **immutable** outcome record of the one-shot C013 test (`PROMISING_PROTOTYPE`, discovery tier). The authoritative result is `research/GV0R01_C013_MARKET_TEST_RESULT.json` (SHA256 `036016c4…`). The pre-outcome permit is `research/GV0R01_C013_MARKET_TEST_EXECUTION_PERMIT.json` (commit `386bc10`).
+- `research/GV0R01_C013_CONFIRMATION_FEASIBILITY_AND_DESIGN.{md,json}` — outcome-blind confirmation feasibility for C013: `WAIT_FOR_MORE_FRESH_DATA` (underpowered on every available fresh surface), with the design recorded for any future powered surface. The power record is `research/GV0R01_C013_CONFIRMATION_POWER.json` (script `scripts/research/gv0r01_c013_confirmation_power.py`). No prereg, no permit.
+- `research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.{md,json}` — outcome-blind data-feasibility triage of the six GV0R01 Stream-B candidates and the post-C013 program decision. C013 is parked as `CONFIRMATION_DEFERRED_LOW_POWER`; next candidate is C012; GV0R02 is not next.
+- `research/BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0_ACQUISITION.{md,json}` — data-provenance record for `research_data/BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0/` (**DURABLY_PINNED**, digest `760ed2c5…`, raw bytes Git-retained). Point-in-time BLS CPI release schedule 2020–2024: 60 events, all safe at W6/W12/W24, 0 rescheduled, 0 unresolved; schedule metadata only. Resolves the CPI calendar observable for C012/C004; no design. Script `scripts/research/bls_cpi_schedule_archive_v0.py`.
+- `research/GV0R01_C012_OUTCOME_BLIND_DESIGN.{md,json}` — outcome-blind preregistration candidate for GV0R01-C012. Primary is FOMC+CPI, 24h, two-sided. Gate `EXECUTION_JUSTIFIED`, `EXECUTION_AUTHORIZED = false`. Power in `research/GV0R01_C012_POWER.json`. Script `scripts/research/gv0r01_c012_design.py`. No market outcomes.
+- `research/GV0R01_C012_PREFLIGHT.json` — calendar-only control assignment before any price access. `PREFLIGHT_STATUS = PASS`. Execution did not open CORE_BTC; see `research/GV0R01_C012_EXECUTION_BLOCK.json`.
+- `research_data/C012_DISCOVERY_BTC_1M_V0/MANIFEST.json` — discovery-period identity for CORE_BTC 1m months 2020-01..2024-12 only. Raw bytes stay under gitignored `artifacts/`. No C012 outcome.
+- `research/GV0R01_C012_DEPENDENCE_BLOCK.json` — one-shot C012 stopped before price access. Global permutation invariance is `NOT_ESTABLISHED` (177 overlap components, 154 swappable observations with differing external neighborhoods). `RUN_STATUS = BLOCKED_INFERENCE_DEPENDENCE_DEFECT`. Primary result not computed.
+- `research/GV0R01_C012_INFERENCE_AMENDMENT.json` — outcome-blind replacement of the C012 permutation group by `G_C012_TOPO`. Structural invariance passes. Synthetic stress MDE is about 0.61 single-window SD, so the power gate is `INFERENCE_AMENDMENT_VALID_BUT_INFORMATIONALLY_WEAK`. No execution. No prices.
+- `research/GV0R01_C012_CLOSE.json` — terminal C012 status `CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK`. No execution, no prices, no further C012 inference amendment. Next design candidate is C004.
+- `research/GV0R01_C004_OUTCOME_BLIND_DESIGN.{md,json}` — outcome-blind C004 design. Primary is post-FOMC ETH residual share, not a C012 drift test. Gate `EXECUTION_INFORMATIONALLY_WEAK`. No prices. Script `scripts/research/gv0r01_c004_design.py`.
+- `research/GV0R01_C004_CLOSE.json` — terminal C004 status `CLOSED_OUTCOME_BLIND_INFERENCE_SUPPORT_INSUFFICIENT`. Exact p floor is 1/16. No execution, no prices, no widened permutation. Next design candidate is C020.
+- `research/GV0R01_C020_DESIGN_BLOCK.{md,json}` — C020 definition is unambiguous and the design stops at `BLOCKED_BY_MISSING_INPUT`. The NYSE, China State Council and US OPM holiday calendars were unpinned at that stop. No prices, no power.
+- `research/GV0R01_C020_HOLIDAY_CALENDAR_PIN.json` — data-provenance pin of the three C020 calendars for 2020–2024. `STATUS = HOLIDAY_CALENDARS_PINNED`. NYSE digest `45201d10…`, OPM digest `e2402e00…`, China digest `4223719d…`. No prices. Script `scripts/research/c020_holiday_calendar_pin_v0.py`.
+- `research/GV0R01_C020_OUTCOME_BLIND_DESIGN.{md,json}` — outcome-blind C020 design after the calendars were pinned. Gate `EXECUTION_INFORMATIONALLY_WEAK`. Lead arm is 47 NYSE full weekday closures. Execution bar `log(0.90)` was frozen before synthetic power. No prices, no C020 execution. Script `scripts/research/gv0r01_c020_design.py`.
+- `research/GV0R01_C020_CLOSE.json` — C020 terminal classification. The pseudo-holiday procedure is a placebo reference distribution, not an exact randomization test. Status `CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK_REFERENCE_TEST`. Execution remains unauthorized.
+- `research/GV0R02_FEASIBILITY_COMPILER_DESIGN.md` — design contract for a cheap outcome-blind feasibility screen before preregistration. Implemented by `scripts/research/gv0r02_feasibility_compiler.py`. The synthetic positive control is `GV0R02_POSITIVE_CONTROL_SYNTHETIC` in `tests/research/test_gv0r02_feasibility_compiler.py`. The schema file remains the frozen contract.
+- `scripts/research/generator_v0/feasibility_contract.py` — `GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V0`. Future candidates carry an outcome-blind planning object that copies into a GV0R02 proposal. `GENERATOR_CONTRACT_V02` is unchanged.
+- `research/GV0R02_FEASIBILITY_COMPILER_SCHEMA.json` — schema `GV0R02_SCHEMA_V0` and policy `GV0R02_POLICY_V0`.
+- `research/GV0R02_FEASIBILITY_COMPILER_GOLDEN_CASES.json` — C012, C004, and C020 acceptance inputs. No market recomputation.
+- `research/SCIENTIFIC_TEST_LEDGER.json` — **active** global machine-readable ledger of executed scientific tests and search families, registered before outcomes. Generated cards are not counted.
+
+Implementation state: `GENERATOR_V0_FIRST_30_CARD_RUN_COMPLETE_MEMORY_FINALIZED` (previously `GENERATOR_V0_MEMORY_FINALIZER_V1_READY_FOR_FIRST_30_CARD_RUN`). Next unit: `GV0R02_FEASIBILITY_COMPILER_POSITIVE_CONTROL` (previously `GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_IMPLEMENTATION`; golden C012, C004, and C020 pass and the positive control was not run) (previously `GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_DESIGN`; the contract is frozen and the compiler is not built) (previously `STREAM_B_REMAINING_CANDIDATES_BLOCKED`; the candidate queue is not continued) (previously `NO_C020_EXECUTION_AUTHORIZED`; C020 is closed as a reference test and the power gate still fails) (previously `GV0R01_C020_OUTCOME_BLIND_DESIGN_AND_POWER_CONTINUATION`; the design is informationally weak and execution is not authorized) (previously `GV0R01_C020_HOLIDAY_CALENDAR_PINNING`; the three calendars are pinned) (previously `GV0R01_C020_OUTCOME_BLIND_DESIGN_AND_POWER`; that design stopped because the three holiday calendars are unpinned) (previously `GV0R01_C012_OUTCOME_BLIND_DESIGN_AND_POWER`; the design is frozen and execution is not authorized) (previously `GV0R01_C012_CPI_CALENDAR_ACQUISITION_AND_OUTCOME_BLIND_DESIGN`; the CPI calendar half is complete).
 The archived partial paid runs `artifacts/generator_v0/first-shadow`,
 `artifacts/generator_v0/first-shadow-v2`,
 `artifacts/generator_v0/first-shadow-v3`,
@@ -417,3 +504,5 @@ generation:3 wrappers. Owner-authorized absolute campaign total remains
 USD 17.100000. Live run/resume cannot exceed that ceiling.
 The original design's FROZEN_NOT_IMPLEMENTED label describes its historical
 freeze, not the current implementation state.
+
+- `research/GENERATOR_V0_CALIBRATION_MEMORY_INGESTION.{json,md}` — outcome-blind ingestion of all five calibration cards into durable mechanism memory; stable `GV0CAL-*` signatures and blocker-aware novelty governance.

@@ -1,0 +1,812 @@
+{
+  "UNIT": "GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT",
+  "DATE": "2026-09-24",
+  "NO_SCIENTIFIC_STATUS": true,
+  "MARKET_OUTCOMES_TESTED": false,
+  "PROTECTED_DATA_OPENED": false,
+  "PURPOSE": "COST_AND_PIPELINE_CALIBRATION",
+  "NOTE": "Calibration fixtures only. Model-generated cards and model critic judgments; not evidence, not validated, not promoted. The selector order is an infrastructure check of the deterministic ordinal rule, not a ranking of research merit.",
+  "SOURCE_HEAD": "df0fccf13c1babadb7ccc4da46c6d9d524101c4e",
+  "SOURCE_TREE": "78c20b03da337f641a8fa93c8e232d40778e236d",
+  "GENERATOR": {
+    "PROVIDER": "ANTHROPIC",
+    "MODEL": "claude-opus-5-5",
+    "EFFORT": "high",
+    "CALL_KEY": "e9ea20c2757fa429e3fb0f4062944fdc1edfda06686541851f8b4599d5de1a75",
+    "RAW_SHA256": "e28417b09efd769602d4ef1043447f27298d2187451894f8bdaffd01dd50e002",
+    "COST_MICRO_USD": 892012,
+    "VALID": "10/10",
+    "SAMPLE_RULE": "five lowest CANDIDATE_ID among VALID cards, fixed before any critic call"
+  },
+  "CARD_IDS": [
+    "C001",
+    "C002",
+    "C003",
+    "C004",
+    "C005"
+  ],
+  "DETERMINISTIC_SELECTOR": {
+    "AUTHORITY": "DETERMINISTIC_ORDINAL_ORDER",
+    "LLM_SELECTOR_CALLED": false,
+    "RULE": "descending MECHANISM_DISTANCE, INFORMATION_GAIN, FEASIBILITY, CHEAPNESS; ascending CANDIDATE_ID",
+    "ORDER": [
+      "C005",
+      "C002",
+      "C001"
+    ],
+    "SELECTION_JUDGMENTS": {
+      "C001": {
+        "MECHANISM_DISTANCE": 2,
+        "INFORMATION_GAIN": 1,
+        "FEASIBILITY": 3,
+        "CHEAPNESS": 3
+      },
+      "C002": {
+        "MECHANISM_DISTANCE": 2,
+        "INFORMATION_GAIN": 2,
+        "FEASIBILITY": 2,
+        "CHEAPNESS": 2
+      },
+      "C005": {
+        "MECHANISM_DISTANCE": 2,
+        "INFORMATION_GAIN": 2,
+        "FEASIBILITY": 3,
+        "CHEAPNESS": 3
+      }
+    },
+    "NEAR_DUPLICATE_EXCLUSIONS": []
+  },
+  "CARDS": [
+    {
+      "CARD": {
+        "CANDIDATE_ID": "C001",
+        "NAME": "Average trade size as participant-composition state and subsequent sub-hour variance ratio",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+        "INFORMATION_SOURCE": "KLINES",
+        "MECHANISM": "A shift in average trade size (quote volume per trade) reflects a change in participant composition, which alters the balance between noise flow absorbed by liquidity providers and directional flow. This appears as a change in the ratio of 5m realized variance to 1h realized variance: a ratio above 1 indicates sub-hour mean reversion and a ratio below 1 indicates sub-hour trending.",
+        "CAUSAL_OR_STRUCTURAL_STORY": "Quote volume per trade is a coarse proxy for participant composition. A day dominated by many small fills (retail, small API bots, fragmented execution) has different liquidity-provision dynamics than a day with fewer, larger clips (institutional or block-like executions sliced less finely). Small-fill-dominated flow tends to be noise-like and absorbed by makers, which produces sub-hour negative autocorrelation (5m realized variance exceeding 1h realized variance). Large-clip flow is more often informed or directional and produces sub-hour trending. The proposed family, PARTICIPANT_COMPOSITION, asks who is trading rather than how much or when.",
+        "OBSERVABLE": "ATS_Z_T = (log(sum quote_volume / sum trade_count over the trailing L hours of 1m bars closed at or before T) minus the median of the same daily quantity over the trailing N days) divided by the trailing N-day MAD.",
+        "FUNCTION": "Characterize whether a participant-composition proxy predicts the sub-hour autocorrelation structure of BTC returns over the subsequent 24h, beyond volatility and volume state.",
+        "PRIMARY_TARGET": "RVR_24H = sum of squared k-minute log returns divided by sum of squared 1h log returns over (T, T+24h] on BTCUSDT perpetual",
+        "HORIZON": "24 hours beginning at the daily decision time T = 00:00 UTC",
+        "BASELINE_OR_NULL": "Stratified block permutation: within YEAR x trailing-RV tercile x trailing quote-volume tercile strata, ATS_Z values are permuted across days in 7-day blocks, and the within-stratum Spearman correlation between ATS_Z and RVR_24H is recomputed. Baseline regression: RVR_24H on lagged RVR_24H, log trailing RV and log trailing quote volume; the card's quantity is the ATS_Z increment over that baseline. The permutation generates the same observable-target pairing, so the null can produce the card's own statistic.",
+        "FALSIFIER": "The card is falsified if the within-stratum Spearman correlation between ATS_Z and RVR_24H lies inside the central 95% of the stratified block-permutation distribution. It is also falsified if the pooled sign is reproduced in fewer than 3 of the 5 calendar years from 2020 to 2024, or if the ATS_Z increment over the lagged-RVR baseline has a block-bootstrap interval covering zero.",
+        "DATA_STATUS": "DATA_READY",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "CORE_BTC_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "1m quote_volume, trade_count, open, high, low, close for BTCUSDT perpetual",
+            "STATUS": "DATA_READY"
+          }
+        ],
+        "EXPECTED_INFORMATION_GAIN": "Moderate. The result separates a composition proxy from level-of-activity and volatility proxies already examined. Either outcome clarifies whether trade-count normalization adds a distinct axis to kline-only research."
+      },
+      "CRITICS": {
+        "NOVELTY": {
+          "VERDICT": "ALLOW",
+          "JUDGMENTS": {
+            "MECHANISM_DISTANCE": 2,
+            "NON_RESCUE": 3,
+            "NOVELTY": 3
+          }
+        },
+        "FEASIBILITY": {
+          "VERDICT": "PASS",
+          "DATA_STATUS": "DATA_READY",
+          "CHECKS": {
+            "BLOCKER_RESOLVED": true,
+            "LEGAL_RANGE": true,
+            "OBSERVABLE_SUPPORTED": true,
+            "POINT_IN_TIME": true,
+            "PROVENANCE": true
+          },
+          "FEASIBILITY": 3,
+          "CHEAPNESS": 3,
+          "JUDGMENTS": {
+            "DATA_SPECIFICITY": 3,
+            "IMPLEMENTATION_BOUNDEDNESS": 3
+          }
+        },
+        "RED_TEAM": {
+          "VERDICT": "PASS",
+          "CHECKS": {
+            "BOUNDED_SEARCH": true,
+            "CONFOUNDING_ADDRESSED": true,
+            "FALSIFIABLE": true,
+            "NO_LOOKAHEAD": true,
+            "CAUSALITY": true,
+            "NO_TRADING_CLAIM": true
+          },
+          "JUDGMENTS": {
+            "FALSIFIABILITY": 3,
+            "NULL_INFORMATION_GAIN": 1,
+            "CONFOUNDING_AWARENESS": 2,
+            "SEARCH_SURFACE_DISCIPLINE": 2,
+            "NO_LOOKAHEAD_QUALITY": 3
+          }
+        }
+      },
+      "NOVELTY_BATCH_RELATION_IDS": [
+        "C002",
+        "C003",
+        "C004",
+        "C005"
+      ],
+      "STREAM": "EXECUTABLE_NOW",
+      "SUCCESSFUL_COST_MICRO_USD": {
+        "NOVELTY": 29376,
+        "FEASIBILITY": 415,
+        "RED_TEAM": 16884,
+        "CHAIN": 46675
+      },
+      "USAGE": {
+        "NOVELTY": {
+          "cached_tokens": 0,
+          "input_tokens": 10298,
+          "output_tokens": 878,
+          "reasoning_tokens": 402
+        },
+        "FEASIBILITY": {
+          "completion_tokens": 274,
+          "prompt_tokens": 2775,
+          "reasoning_tokens": 183
+        },
+        "RED_TEAM": {
+          "cached_tokens": 0,
+          "input_tokens": 1677,
+          "output_tokens": 1353,
+          "reasoning_tokens": 1249
+        }
+      },
+      "PROVENANCE": {
+        "NOVELTY": {
+          "JOURNAL": "gv0_calibration_continuation.sqlite",
+          "CALL_KEY": "f8f5629778803d1ddaefd456b1aa46f43f972ff1a62ed4129d45f642f00437b2",
+          "RESPONSE_ID": "resp_010d044058edd6cc006ab5530e0d0087d2ad0bbe439606ebc8",
+          "RAW_SHA256": "0ef669a053259058c2e6e0dc0d991cdeee4f27b9c2057bbc5c1407f73d891fd4",
+          "ENDPOINT": "OPENAI_RESPONSES_BACKGROUND",
+          "MODEL": "gpt-6-sol",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "high"
+          }
+        },
+        "FEASIBILITY": {
+          "JOURNAL": "gv0_calibration_continuation.sqlite",
+          "CALL_KEY": "0ff7edb3fda8ea390c885dbde146c5e673e35609261457e83a1d05772ba1bcf4",
+          "RESPONSE_ID": null,
+          "RAW_SHA256": "b2f31495847a3226d41f5e6e8f49d9f2e46b3d85ae96bca14710fddd63acfdb9",
+          "ENDPOINT": "OPENAI_CHAT_COMPLETIONS",
+          "MODEL": "gpt-6-luna",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "low"
+          }
+        },
+        "RED_TEAM": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "318b8dc849b87c3d2f05ca8b3878c51c56381f6c1155b170b775efde9f21761d",
+          "RESPONSE_ID": "resp_0a587a88f4c19c4e006ab566bdd5d887d29c78f6ca01def599",
+          "RAW_SHA256": "3ea6fd200e6888cb1a8f101efe9a322b4f7d69ab31129f08b5b6e628c506b476",
+          "ENDPOINT": "OPENAI_RESPONSES_BACKGROUND",
+          "MODEL": "gpt-6-sol",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "high"
+          }
+        }
+      }
+    },
+    {
+      "CARD": {
+        "CANDIDATE_ID": "C002",
+        "NAME": "Intraday rotation of perpetual-versus-spot price-discovery locus and its displacement at US DST shifts",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+        "INFORMATION_SOURCE": "CROSS_VENUE",
+        "MECHANISM": "The share of price discovery attributable to the Binance perpetual versus OKX spot varies by UTC hour according to which regional participant group is active, and it moves with the US DST clock shift.",
+        "CAUSAL_OR_STRUCTURAL_STORY": "Price discovery between a derivatives venue and a spot venue need not be stationary within the day. If one regional participant group (for example US-based spot participants versus Asia-based derivatives participants) dominates information arrival, the venue that impounds information first should rotate with that group's active hours. US DST moves US human clocks by one UTC hour while leaving the venues' mechanics unchanged. A locus that follows US participants should therefore shift by one UTC hour at each US DST transition. The proposed family, PRICE_DISCOVERY_LOCUS, concerns where prices form rather than in which direction they move.",
+        "OBSERVABLE": "PERP_SHARE_h = Gonzalo-Granger permanent-component weight of the Binance perpetual in a bivariate VECM of 5m log closes, estimated per UTC hour bin h within each regime (US DST versus US standard time), using weekdays only.",
+        "FUNCTION": "Measure the intraday profile of perpetual-versus-spot price-discovery share and test whether it shifts with the US DST clock change.",
+        "PRIMARY_TARGET": "Displacement, in UTC hours, of the PERP_SHARE hour profile between US-DST and US-standard-time weeks",
+        "HORIZON": "Intraday, 5m resolution; profiles aggregated over 3- to 6-week windows bracketing each US DST transition",
+        "BASELINE_OR_NULL": "Two nulls. (1) Pseudo-boundary null: the same shift statistic is computed around placebo Sundays drawn from non-DST weeks with the same weekday support, producing the distribution of hour-profile displacements expected without a clock change. (2) Hour-label null: hour-bin labels are permuted within each day, preserving daily totals, to test whether any hour structure in PERP_SHARE exists at all. Both nulls generate the card's own observable, the hour profile of PERP_SHARE.",
+        "FALSIFIER": "The card is falsified if the observed DST-regime displacement of the PERP_SHARE hour profile lies within the central 95% of the pseudo-boundary distribution. It is also falsified if the hour profile is indistinguishable from flat under the hour-label null, or if the estimated displacement is not closest to one hour in at least two of the three calendar years from 2022 to 2024.",
+        "DATA_STATUS": "DATA_READY",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+            "LEGAL_RANGE": "2022-01..2024-12",
+            "OBSERVABLE": "Aligned 5m closes for Binance BTCUSDT perpetual and OKX BTC spot",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "STATUTORY_DST_CALENDARS",
+            "LEGAL_RANGE": "2022-01..2024-12",
+            "OBSERVABLE": "US DST transition Sundays",
+            "STATUS": "DATA_READY"
+          }
+        ],
+        "EXPECTED_INFORMATION_GAIN": "Moderate. It indicates whether venue leadership has a participant-clock structure, which matters for interpreting every cross-venue result on this dataset."
+      },
+      "CRITICS": {
+        "NOVELTY": {
+          "VERDICT": "ALLOW",
+          "JUDGMENTS": {
+            "MECHANISM_DISTANCE": 2,
+            "NON_RESCUE": 3,
+            "NOVELTY": 3
+          }
+        },
+        "FEASIBILITY": {
+          "VERDICT": "PASS",
+          "DATA_STATUS": "DATA_READY",
+          "CHECKS": {
+            "BLOCKER_RESOLVED": true,
+            "LEGAL_RANGE": true,
+            "OBSERVABLE_SUPPORTED": true,
+            "POINT_IN_TIME": true,
+            "PROVENANCE": true
+          },
+          "FEASIBILITY": 2,
+          "CHEAPNESS": 2,
+          "JUDGMENTS": {
+            "DATA_SPECIFICITY": 3,
+            "IMPLEMENTATION_BOUNDEDNESS": 2
+          }
+        },
+        "RED_TEAM": {
+          "VERDICT": "PASS",
+          "CHECKS": {
+            "BOUNDED_SEARCH": true,
+            "CONFOUNDING_ADDRESSED": true,
+            "FALSIFIABLE": true,
+            "NO_LOOKAHEAD": true,
+            "CAUSALITY": true,
+            "NO_TRADING_CLAIM": true
+          },
+          "JUDGMENTS": {
+            "FALSIFIABILITY": 2,
+            "NULL_INFORMATION_GAIN": 2,
+            "CONFOUNDING_AWARENESS": 2,
+            "SEARCH_SURFACE_DISCIPLINE": 2,
+            "NO_LOOKAHEAD_QUALITY": 3
+          }
+        }
+      },
+      "NOVELTY_BATCH_RELATION_IDS": [
+        "C001",
+        "C003",
+        "C004",
+        "C005"
+      ],
+      "STREAM": "EXECUTABLE_NOW",
+      "SUCCESSFUL_COST_MICRO_USD": {
+        "NOVELTY": 36238,
+        "FEASIBILITY": 503,
+        "RED_TEAM": 16296,
+        "CHAIN": 53037
+      },
+      "USAGE": {
+        "NOVELTY": {
+          "cached_tokens": 0,
+          "input_tokens": 10204,
+          "output_tokens": 1583,
+          "reasoning_tokens": 1107
+        },
+        "FEASIBILITY": {
+          "completion_tokens": 468,
+          "prompt_tokens": 2681,
+          "reasoning_tokens": 377
+        },
+        "RED_TEAM": {
+          "cached_tokens": 0,
+          "input_tokens": 1583,
+          "output_tokens": 1313,
+          "reasoning_tokens": 1209
+        }
+      },
+      "PROVENANCE": {
+        "NOVELTY": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "31c4eccb48f8f4db5e477bfaffd69e2f437da5b29e1020cb129726265490786e",
+          "RESPONSE_ID": "resp_0ce2e42b999b502c006ab566e04c5887d2a1f6fb9c593f09b6",
+          "RAW_SHA256": "1d953bb75291326cc4484561cf8023ae251998ffc30b3cda63df00149f112507",
+          "ENDPOINT": "OPENAI_RESPONSES_BACKGROUND",
+          "MODEL": "gpt-6-sol",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "high"
+          }
+        },
+        "FEASIBILITY": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "f900cf1b7a922c3e417eff6b2daf0963028cabffffe105c742de86bcfde99eed",
+          "RESPONSE_ID": null,
+          "RAW_SHA256": "d16539b041120e582f586baa05f794eb3ac23fec10f733b273526a09c9d64650",
+          "ENDPOINT": "OPENAI_CHAT_COMPLETIONS",
+          "MODEL": "gpt-6-luna",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "low"
+          }
+        },
+        "RED_TEAM": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "3f9541849ee25c5d2361856a59e35c09da4459bdfe2a1f3aa9fe717d7099d5d4",
+          "RESPONSE_ID": "resp_0ebb541b9305990f006ab567037c3087d2ac9fef833706448d",
+          "RAW_SHA256": "b0e826001ac65d2b2087dbf740f6feb9ade070d2fa25ba946ac8b818d2b90cde",
+          "ENDPOINT": "OPENAI_RESPONSES_BACKGROUND",
+          "MODEL": "gpt-6-sol",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "high"
+          }
+        }
+      }
+    },
+    {
+      "CARD": {
+        "CANDIDATE_ID": "C003",
+        "NAME": "Funding-settlement clock microstructure identified by offset settlement schedules across BitMEX and Binance",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+        "INFORMATION_SOURCE": "PRE2020_SURFACE",
+        "MECHANISM": "Positions are adjusted around perpetual funding snapshots to avoid or collect funding, producing abnormal absolute returns and range in the 5m bins bracketing settlement. The abnormality moves with each venue's contract schedule rather than with the UTC hour.",
+        "CAUSAL_OR_STRUCTURAL_STORY": "Perpetual funding is exchanged only among positions open at the settlement snapshot. Participants facing large funding payments have an incentive to close or reduce positions just before the snapshot and reopen afterwards, which concentrates flow and absolute price movement around settlement. BitMEX settled funding at 04:00, 12:00 and 20:00 UTC, whereas Binance USD-M settles at 00:00, 08:00 and 16:00 UTC. If the abnormality tracks the contract schedule rather than the UTC hour, the peak should sit at different UTC hours on each venue. This separates a mechanical settlement effect from generic hour-of-day seasonality. The proposed family is CONTRACT_SETTLEMENT_MECHANICS.",
+        "OBSERVABLE": "SETTLE_ABN = mean over settlements of (sum of |5m log return| or high-low range within W minutes bracketing settlement) divided by the median of the same quantity at the same minute-of-hour in non-settlement hours of the same day.",
+        "FUNCTION": "Test whether absolute 5m price movement concentrates around perpetual funding settlement times, using the venue-specific schedule offset between BitMEX and Binance as identification.",
+        "PRIMARY_TARGET": "Rank of the true settlement offset among 8 pseudo 8h-spaced offsets of SETTLE_ABN, per venue",
+        "HORIZON": "W-minute window bracketing each funding settlement, plus the 60 minutes following settlement for a reversal check",
+        "BASELINE_OR_NULL": "Pseudo-schedule rank null. For each venue, the same bracketed statistic is computed for all 8 possible 8h-spaced hour triplets (offsets 0 to 7). The true schedule's rank among the 8 offsets is the test statistic; under no settlement effect, the rank is uniform. Within-weekday strata are preserved. A cross-venue difference-in-differences compares abnormality at each venue's own schedule with abnormality at the other venue's schedule.",
+        "FALSIFIER": "The card is falsified if, for neither venue, the true settlement offset ranks first among the 8 pseudo-offsets on the pre-declared statistic. It is also falsified if the peak offset is the same UTC triplet on both venues (indicating clock-hour rather than settlement seasonality), or if Binance results are driven entirely by the 00:00 settlement with no effect at 08:00 and 16:00.",
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "D2_BITMEX_PRE2020_XBTUSD",
+            "LEGAL_RANGE": "pre-2020",
+            "OBSERVABLE": "XBTUSD 5m open, high, low, close",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "CORE_BTC_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "BTCUSDT perpetual 1m OHLC aggregated to 5m",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "BITMEX_XBTUSD_FUNDING_SCHEDULE_SPEC",
+            "LEGAL_RANGE": "pre-2020",
+            "OBSERVABLE": "Funding settlement timestamps for XBTUSD across the full BitMEX sample",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          },
+          {
+            "DATASET": "BINANCE_UM_BTCUSDT_FUNDING_SCHEDULE_SPEC",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "Funding settlement timestamps (times only, not rates) for BTCUSDT perpetual",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          }
+        ],
+        "EXPECTED_INFORMATION_GAIN": "Moderate to high. It is a clean identification of contract-mechanical microstructure using two venues with offset schedules, and it creates a new use for the pre-2020 surface."
+      },
+      "CRITICS": {
+        "NOVELTY": {
+          "VERDICT": "ALLOW",
+          "JUDGMENTS": {
+            "MECHANISM_DISTANCE": 2,
+            "NON_RESCUE": 3,
+            "NOVELTY": 3
+          }
+        },
+        "FEASIBILITY": {
+          "VERDICT": "PASS",
+          "DATA_STATUS": "FEASIBILITY_REQUIRED",
+          "CHECKS": {
+            "BLOCKER_RESOLVED": false,
+            "LEGAL_RANGE": true,
+            "OBSERVABLE_SUPPORTED": false,
+            "POINT_IN_TIME": false,
+            "PROVENANCE": false
+          },
+          "FEASIBILITY": 2,
+          "CHEAPNESS": 2,
+          "JUDGMENTS": {
+            "DATA_SPECIFICITY": 2,
+            "IMPLEMENTATION_BOUNDEDNESS": 2
+          }
+        },
+        "RED_TEAM": {
+          "VERDICT": "REJECT",
+          "CHECKS": {
+            "BOUNDED_SEARCH": true,
+            "CONFOUNDING_ADDRESSED": false,
+            "FALSIFIABLE": true,
+            "NO_LOOKAHEAD": true,
+            "CAUSALITY": false,
+            "NO_TRADING_CLAIM": true
+          },
+          "JUDGMENTS": {
+            "FALSIFIABILITY": 3,
+            "NULL_INFORMATION_GAIN": 1,
+            "CONFOUNDING_AWARENESS": 2,
+            "SEARCH_SURFACE_DISCIPLINE": 3,
+            "NO_LOOKAHEAD_QUALITY": 3
+          }
+        }
+      },
+      "NOVELTY_BATCH_RELATION_IDS": [
+        "C001",
+        "C002",
+        "C004",
+        "C005"
+      ],
+      "STREAM": "NOT_A_STREAM",
+      "SUCCESSFUL_COST_MICRO_USD": {
+        "NOVELTY": 34482,
+        "FEASIBILITY": 561,
+        "RED_TEAM": 11660,
+        "CHAIN": 46703
+      },
+      "USAGE": {
+        "NOVELTY": {
+          "cached_tokens": 0,
+          "input_tokens": 10446,
+          "output_tokens": 1359,
+          "reasoning_tokens": 883
+        },
+        "FEASIBILITY": {
+          "completion_tokens": 537,
+          "prompt_tokens": 2923,
+          "reasoning_tokens": 444
+        },
+        "RED_TEAM": {
+          "cached_tokens": 0,
+          "input_tokens": 1825,
+          "output_tokens": 801,
+          "reasoning_tokens": 697
+        }
+      },
+      "PROVENANCE": {
+        "NOVELTY": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "a3f427811f80b0026baa372b803fd375ae159c8095e4cff351f63ea31f8f2c18",
+          "RESPONSE_ID": "resp_0b2e833d3e8cbc61006ab56726562c87d28285debf025da931",
+          "RAW_SHA256": "3456f7f5ecaac43c659ccaabd730686d9719b492ca7d8881ff416181557d1f9b",
+          "ENDPOINT": "OPENAI_RESPONSES_BACKGROUND",
+          "MODEL": "gpt-6-sol",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "high"
+          }
+        },
+        "FEASIBILITY": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "743229e9602f97ec4dadd237e5731d1229ef8e787e3ee16cdc73959c61c361c6",
+          "RESPONSE_ID": null,
+          "RAW_SHA256": "893ca2d3706fc7d740bd55bd7f411cbda4ae962c07ff861b030c2080a94b69bc",
+          "ENDPOINT": "OPENAI_CHAT_COMPLETIONS",
+          "MODEL": "gpt-6-luna",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "low"
+          }
+        },
+        "RED_TEAM": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "ecb295fc3553c374684072cfc0eb23401894dd9d1ba16a3d4aa0fb1ada386163",
+          "RESPONSE_ID": "resp_0521699966202785006ab5674c99c087d29aad8f285f457c74",
+          "RAW_SHA256": "2e5f1cbd421dce9f89faccb8a0ba8ab65cbe5376dfcbf53470c30d7ac27e7c9f",
+          "ENDPOINT": "OPENAI_RESPONSES_BACKGROUND",
+          "MODEL": "gpt-6-sol",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "high"
+          }
+        }
+      }
+    },
+    {
+      "CARD": {
+        "CANDIDATE_ID": "C004",
+        "NAME": "Reference-rate fixing window footprint on Binance perpetual activity at CME bitcoin futures settlement",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+        "INFORMATION_SOURCE": "OFFICIAL_CALENDAR",
+        "MECHANISM": "Settlement-sensitive hedging concentrated in the CME reference-rate calculation window on final settlement days spills into correlated venues, elevating volume and imprinting a within-window drift followed by partial reversal.",
+        "CAUSAL_OR_STRUCTURAL_STORY": "CME bitcoin futures cash-settle to a reference rate computed from constituent-exchange trades during 15:00-16:00 London time on the final settlement day. Participants with basis positions or settlement-sensitive exposure concentrate hedging flow into that hour. Because venues are linked by cross-venue inventory managers, the flow should spill into Binance perpetual volume and alter the intra-window price path, for example producing a partial reversal in the hour after the window closes. The event date and window are fixed by an official product calendar, making them exogenous to the day's price action. The proposed family is REFERENCE_RATE_FIXING.",
+        "OBSERVABLE": "LOG_FIX_RATIO = log(metric in the London fixing window on the settlement day / mean metric in the same London-clock window on the prior K non-expiry Fridays); REVERSAL = sign-adjusted correlation between the fixing-window return and the return in the following 60 minutes.",
+        "FUNCTION": "Measure whether Binance perpetual activity and path concentrate in the CME settlement reference-rate window on final settlement days, relative to identically timed windows on non-expiry Fridays.",
+        "PRIMARY_TARGET": "LOG_FIX_RATIO on CME final settlement days versus the placebo-Friday distribution",
+        "HORIZON": "The 15:00-16:00 London window on each settlement day plus the following 60 minutes",
+        "BASELINE_OR_NULL": "Placebo Fridays: every non-expiry Friday in the same calendar year is scored with the identical London-clock window and control construction, producing the null distribution of LOG_FIX_RATIO. A placebo window at 13:00-14:00 London on expiry days tests whether elevation is day-wide rather than window-specific. Comparisons are made within year strata.",
+        "FALSIFIER": "The card is falsified if the expiry-day LOG_FIX_RATIO lies within the 5th-95th percentile of the same-year placebo-Friday distribution in at least 4 of the 5 years from 2020 to 2024. It is also falsified if the 13:00-14:00 London placebo window on expiry days shows elevation of comparable size (indicating day-wide activity), or if the reversal statistic is indistinguishable from placebo Fridays.",
+        "DATA_STATUS": "FEASIBILITY_REQUIRED",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "CORE_BTC_BINANCE_V0",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "1m quote_volume, trade_count, close for BTCUSDT perpetual",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "STATUTORY_DST_CALENDARS",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "EU transition dates used to map London clock to UTC",
+            "STATUS": "DATA_READY"
+          },
+          {
+            "DATASET": "CME_BITCOIN_FUTURES_FINAL_SETTLEMENT_CALENDAR",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "Final settlement dates of CME BTC futures contracts including holiday adjustments",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          },
+          {
+            "DATASET": "CME_CF_BRR_METHODOLOGY_ARCHIVE",
+            "LEGAL_RANGE": "2020-01..2024-12",
+            "OBSERVABLE": "Calculation window definition and partition scheme of the settlement reference rate",
+            "STATUS": "FEASIBILITY_REQUIRED"
+          }
+        ],
+        "EXPECTED_INFORMATION_GAIN": "Moderate. It tests whether mechanical benchmark fixing, a mechanism distinct from announcement shocks, leaves a footprint on a non-constituent venue."
+      },
+      "CRITICS": {
+        "NOVELTY": {
+          "VERDICT": "ALLOW",
+          "JUDGMENTS": {
+            "MECHANISM_DISTANCE": 2,
+            "NON_RESCUE": 3,
+            "NOVELTY": 3
+          }
+        },
+        "FEASIBILITY": {
+          "VERDICT": "PASS",
+          "DATA_STATUS": "FEASIBILITY_REQUIRED",
+          "CHECKS": {
+            "BLOCKER_RESOLVED": false,
+            "LEGAL_RANGE": true,
+            "OBSERVABLE_SUPPORTED": false,
+            "POINT_IN_TIME": false,
+            "PROVENANCE": false
+          },
+          "FEASIBILITY": 2,
+          "CHEAPNESS": 2,
+          "JUDGMENTS": {
+            "DATA_SPECIFICITY": 3,
+            "IMPLEMENTATION_BOUNDEDNESS": 2
+          }
+        },
+        "RED_TEAM": {
+          "VERDICT": "REJECT",
+          "CHECKS": {
+            "BOUNDED_SEARCH": true,
+            "CONFOUNDING_ADDRESSED": false,
+            "FALSIFIABLE": true,
+            "NO_LOOKAHEAD": true,
+            "CAUSALITY": true,
+            "NO_TRADING_CLAIM": true
+          },
+          "JUDGMENTS": {
+            "FALSIFIABILITY": 2,
+            "NULL_INFORMATION_GAIN": 2,
+            "CONFOUNDING_AWARENESS": 2,
+            "SEARCH_SURFACE_DISCIPLINE": 3,
+            "NO_LOOKAHEAD_QUALITY": 3
+          }
+        }
+      },
+      "NOVELTY_BATCH_RELATION_IDS": [
+        "C001",
+        "C002",
+        "C003",
+        "C005"
+      ],
+      "STREAM": "NOT_A_STREAM",
+      "SUCCESSFUL_COST_MICRO_USD": {
+        "NOVELTY": 30496,
+        "FEASIBILITY": 628,
+        "RED_TEAM": 14724,
+        "CHAIN": 45848
+      },
+      "USAGE": {
+        "NOVELTY": {
+          "cached_tokens": 0,
+          "input_tokens": 10293,
+          "output_tokens": 991,
+          "reasoning_tokens": 515
+        },
+        "FEASIBILITY": {
+          "completion_tokens": 702,
+          "prompt_tokens": 2770,
+          "reasoning_tokens": 605
+        },
+        "RED_TEAM": {
+          "cached_tokens": 0,
+          "input_tokens": 1672,
+          "output_tokens": 1138,
+          "reasoning_tokens": 1034
+        }
+      },
+      "PROVENANCE": {
+        "NOVELTY": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "2e293d4dc1b04afafd46a7b2b15bcaef5d2da97e45a85fa71de0a52e6df1a82f",
+          "RESPONSE_ID": "resp_0951dd49747acd34006ab56763158487d2ab249d39cababba7",
+          "RAW_SHA256": "7203672d5ad295323b23e1483c5d66b0713e755dce586062cabab2d600b09ef9",
+          "ENDPOINT": "OPENAI_RESPONSES_BACKGROUND",
+          "MODEL": "gpt-6-sol",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "high"
+          }
+        },
+        "FEASIBILITY": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "4a130319a9bf6f12b0bd59a5c9ee0b28f1871f0bcf9019f04e01887f925a3cf9",
+          "RESPONSE_ID": null,
+          "RAW_SHA256": "4334e32a009aada74e694f9e9338d046f9b36bf311a7b4be55faa45a0e0aec43",
+          "ENDPOINT": "OPENAI_CHAT_COMPLETIONS",
+          "MODEL": "gpt-6-luna",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "low"
+          }
+        },
+        "RED_TEAM": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "68e6ff474c67e54334d91850f6209048ffbec89a3fce4061b7a47c138e1abbe4",
+          "RESPONSE_ID": "resp_081c4e6e5c844eaf006ab5678162c487d286ce647b40793033",
+          "RAW_SHA256": "cb29c6ae33240582ace303d1cfdb0ea4aba5e87fae35cfa8ddc688710aea16aa",
+          "ENDPOINT": "OPENAI_RESPONSES_BACKGROUND",
+          "MODEL": "gpt-6-sol",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "high"
+          }
+        }
+      }
+    },
+    {
+      "CARD": {
+        "CANDIDATE_ID": "C005",
+        "NAME": "Listing-age lifecycle drift in the Binance spot USDT cross-section",
+        "MECHANISM_FAMILY": "NEW_FAMILY_PROPOSAL",
+        "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL",
+        "MECHANISM": "Float expansion and attention decay over the early life of a listed token produce age-dependent relative drift across the cross-section.",
+        "CAUSAL_OR_STRUCTURAL_STORY": "Newly listed tokens enter the exchange with small free float and concentrated early allocations. Over the first months, float expands through emissions, unlocks and distribution by early holders, and the attention spike around listing decays. Both forces imply a systematic relative drift that depends on age since listing, not on past returns. A lifecycle family asks whether calendar age since listing, an exogenous and point-in-time property, organizes cross-sectional relative returns. The proposed family is ASSET_LIFECYCLE_SUPPLY.",
+        "OBSERVABLE": "LISTING_AGE_DAYS at T = days between the pinned Binance spot listing date and T; age buckets A (8-30), B (31-90), C (91-180), mature (365 or more).",
+        "FUNCTION": "Test whether days since Binance spot listing organizes subsequent relative returns across USDT-quoted names, controlling for liquidity and trailing return.",
+        "PRIMARY_TARGET": "Paired difference in H-day log return relative to the equal-weight eligible universe, young bucket minus matched mature control",
+        "HORIZON": "H days following a Monday 00:00 UTC decision",
+        "BASELINE_OR_NULL": "Matched-control paired design. Each young symbol at decision week T is matched to a mature symbol (listing age of 365 days or more) in the same week, on trailing 7-day quote-volume decile and, in one variant, also on trailing 7-day return decile. The statistic is the mean paired difference in relative return. The null is a sign-flip permutation of paired differences clustered by decision week, which generates the card's own paired-difference observable.",
+        "FALSIFIER": "The card is falsified if, for every age bucket, the week-clustered sign-flip interval of the paired young-minus-mature relative return covers zero. It is also falsified if the pooled sign is reproduced in fewer than 3 of the 5 years from 2020 to 2024, or if the effect vanishes once matching includes trailing return (indicating post-listing reversal of pre-listing momentum rather than a lifecycle effect).",
+        "DATA_STATUS": "DATA_READY",
+        "DATA_REQUIRED": [
+          {
+            "DATASET": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "LEGAL_RANGE": "2019-12..2024-12",
+            "OBSERVABLE": "Daily klines including delisted symbols, pinned listing dates, exclusion lists",
+            "STATUS": "DATA_READY"
+          }
+        ],
+        "EXPECTED_INFORMATION_GAIN": "Moderate to high. It opens an axis orthogonal to the price-based ranking already tested on this panel, using a variable that is exogenous and fixed at listing."
+      },
+      "CRITICS": {
+        "NOVELTY": {
+          "VERDICT": "ALLOW",
+          "JUDGMENTS": {
+            "MECHANISM_DISTANCE": 2,
+            "NON_RESCUE": 3,
+            "NOVELTY": 3
+          }
+        },
+        "FEASIBILITY": {
+          "VERDICT": "PASS",
+          "DATA_STATUS": "DATA_READY",
+          "CHECKS": {
+            "BLOCKER_RESOLVED": true,
+            "LEGAL_RANGE": true,
+            "OBSERVABLE_SUPPORTED": true,
+            "POINT_IN_TIME": true,
+            "PROVENANCE": true
+          },
+          "FEASIBILITY": 3,
+          "CHEAPNESS": 3,
+          "JUDGMENTS": {
+            "DATA_SPECIFICITY": 3,
+            "IMPLEMENTATION_BOUNDEDNESS": 3
+          }
+        },
+        "RED_TEAM": {
+          "VERDICT": "PASS",
+          "CHECKS": {
+            "BOUNDED_SEARCH": true,
+            "CONFOUNDING_ADDRESSED": true,
+            "FALSIFIABLE": true,
+            "NO_LOOKAHEAD": true,
+            "CAUSALITY": true,
+            "NO_TRADING_CLAIM": true
+          },
+          "JUDGMENTS": {
+            "FALSIFIABILITY": 3,
+            "NULL_INFORMATION_GAIN": 2,
+            "CONFOUNDING_AWARENESS": 3,
+            "SEARCH_SURFACE_DISCIPLINE": 3,
+            "NO_LOOKAHEAD_QUALITY": 2
+          }
+        }
+      },
+      "NOVELTY_BATCH_RELATION_IDS": [
+        "C001",
+        "C002",
+        "C003",
+        "C004"
+      ],
+      "STREAM": "EXECUTABLE_NOW",
+      "SUCCESSFUL_COST_MICRO_USD": {
+        "NOVELTY": 29182,
+        "FEASIBILITY": 429,
+        "RED_TEAM": 14320,
+        "CHAIN": 43931
+      },
+      "USAGE": {
+        "NOVELTY": {
+          "cached_tokens": 0,
+          "input_tokens": 10091,
+          "output_tokens": 900,
+          "reasoning_tokens": 424
+        },
+        "FEASIBILITY": {
+          "completion_tokens": 343,
+          "prompt_tokens": 2568,
+          "reasoning_tokens": 252
+        },
+        "RED_TEAM": {
+          "cached_tokens": 0,
+          "input_tokens": 1470,
+          "output_tokens": 1138,
+          "reasoning_tokens": 1034
+        }
+      },
+      "PROVENANCE": {
+        "NOVELTY": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "e60158d8ac9b4b5e74ee0c0f1e95a346cbb4a5568413b53321db5a170b6319fe",
+          "RESPONSE_ID": "resp_09bedcf0211aaa59006ab567a1919887d29f29005c66f318b4",
+          "RAW_SHA256": "f329dd5b1c311762cf34051ff131f7d483418095ad16b7d96e09c7b1e69ecba9",
+          "ENDPOINT": "OPENAI_RESPONSES_BACKGROUND",
+          "MODEL": "gpt-6-sol",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "high"
+          }
+        },
+        "FEASIBILITY": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "fa3fbf072c00b3e0f1a42153f5e07bae9fa9cf28abd55867232283c4d5a861ca",
+          "RESPONSE_ID": null,
+          "RAW_SHA256": "b2f31495847a3226d41f5e6e8f49d9f2e46b3d85ae96bca14710fddd63acfdb9",
+          "ENDPOINT": "OPENAI_CHAT_COMPLETIONS",
+          "MODEL": "gpt-6-luna",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "low"
+          }
+        },
+        "RED_TEAM": {
+          "JOURNAL": "gv0_calibration_continuation2.sqlite",
+          "CALL_KEY": "5efa7a6b8dac9b453ad4dd920993496ac195534585279074ec05b07ba85622ce",
+          "RESPONSE_ID": "resp_001e9bb924ad132c006ab567b841b087d295a2553e2ed7b9f1",
+          "RAW_SHA256": "a050cd730c31d7de5948936708d3212ded044d265e14279d36f410600f96e0af",
+          "ENDPOINT": "OPENAI_RESPONSES_BACKGROUND",
+          "MODEL": "gpt-6-sol",
+          "MODEL_REQUEST_PARAMS": {
+            "reasoning_effort": "high"
+          }
+        }
+      }
+    }
+  ],
+  "COST_TOTALS_MICRO_USD": {
+    "NOVELTY": 159774,
+    "FEASIBILITY": 2536,
+    "RED_TEAM": 73884,
+    "CHAIN": 236194
+  },
+  "COST_SCOPE": "Successful final critic calls only. Excluded: C001 direct-path 403 (not billed), C001 synchronous RED_TEAM RECONCILED_UNKNOWN (98806 micro-USD), the synthetic RED_TEAM transport smoke (6570 micro-USD).",
+  "EXCLUDED_FROM_EXPORT": [
+    "hidden reasoning (never stored)",
+    "raw provider envelopes",
+    "credentials",
+    "NOVELTY PRIOR_RELATIONS and BATCH_RELATIONS values"
+  ],
+  "SOURCE_JOURNALS_SHA256": {
+    "gv0_calibration_live.sqlite": "2a692c120ec0a956eeec7197a886436dcc13e6ebfb4397a8233046a03d4bbe62",
+    "gv0_calibration_continuation.sqlite": "68fb47e38d1faa8d3bd6bacc0201c4a888681bb0ea33f53911d719b32c67c430",
+    "gv0_calibration_continuation2.sqlite": "333a20d39aa1ee1c700f989e0168d71e799f7e02b949d1d01ad20534e1c40529"
+  },
+  "SOURCE_JOURNALS_UNCHANGED": true
+}

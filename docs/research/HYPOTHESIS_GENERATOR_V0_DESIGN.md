@@ -277,3 +277,22 @@ One allowlist entry explicitly authorizes the existing `GENERATOR_SIDE_RULE`
 from this design, using `IDENTITY`, within the allowed generic-methodology
 bundle. Rule text, scientific/governance semantics, and role access remain
 unchanged. No other allowlist expansion is authorized.
+
+
+## Authorized calibration-memory extension — 2026-09-24
+
+Owner-authorized, offline memory ingestion only. Five durable signatures from
+`GENERATOR_V0_FIVE_CARD_CALIBRATION_EXPORT` were added to
+`MECHANISM_MEMORY_V0`, the blind projection and governance authority. No route,
+prompt, candidate schema, critic decision table, selector rule, protected-data
+boundary or scientific contract changed. Generator outcome blindness is
+preserved: critic PASS/REJECT and reasons remain outside generator context.
+
+## Memory-chain migration (2026-09-24)
+
+`GOVERNANCE_REGION_AUTHORITY_V0` in the design JSON now holds rules only (relations,
+decision table, states, row fields, consumers, forbidden content). Its `ROWS` were
+removed: governance rows are a deterministic projection of the append-only memory
+chain (`docs/research/generator_v0_memory/`), written only by
+`scripts/research/generator_v0/finalize_memory.py`. Finalizing a campaign never edits
+this design. See `GENERATOR_V0_MEMORY_FINALIZER.md`.

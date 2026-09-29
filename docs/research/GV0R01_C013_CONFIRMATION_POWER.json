@@ -1,0 +1,1002 @@
+{
+  "AUTHORITATIVE_METHOD": "YEAR_BLOCK",
+  "CONTROL_GATE_NOTE": "The discovery result stores no controlled weekly series, so FULL_PASS_EXCLUDING_CONTROL is an upper bound on the full confirmation pass probability.",
+  "CONTROL_GATE_SIMULATED": false,
+  "DIAGNOSTIC_ONLY": [
+    "IID"
+  ],
+  "DISCOVERY_HAC_SE": 0.008039315393911759,
+  "EFFECTS": {
+    "ATTENUATED_50PCT": -0.009965928761029783,
+    "DISCOVERY_CONSISTENT_MINIMUM": -0.006708357439122233,
+    "DISCOVERY_EFFECT": -0.019931857522059566
+  },
+  "GRID_WEEKS": [
+    51,
+    86,
+    103,
+    156,
+    208,
+    260,
+    312,
+    364
+  ],
+  "HAC_LAG_BY_W": {
+    "103": 4,
+    "156": 4,
+    "208": 4,
+    "260": 4,
+    "312": 5,
+    "364": 5,
+    "51": 3,
+    "86": 3
+  },
+  "INPUT": "docs/research/GV0R01_C013_MARKET_TEST_RESULT.json",
+  "INPUT_SHA256": "036016c403f83e4c63b2e006379551a0f595e8803cb55a0ef8f27a19ce3a1062",
+  "MARKET_DATA_READ": false,
+  "MIN_POWER": 0.8,
+  "MIN_WEEKS_STAT_AND_DIRECTION_AT_DISCOVERY_EFFECT": 468,
+  "NULL_MEAN": -0.001511547552783096,
+  "NULL_MODEL": "Normal approximation to the frozen within-date permutation null: mean = discovery NULL_MEAN, sd = discovery per-week null sd / sqrt(W).",
+  "NULL_SD_PER_WEEK": 0.05410327192913114,
+  "N_REP": 20000,
+  "PROTECTED_DATA_OPENED": false,
+  "RESULTS": {
+    "IID": {
+      "ATTENUATED_50PCT": {
+        "103": {
+          "ADJACENCY": 0.9146,
+          "DEPENDENCE": 0.2487,
+          "DIRECTION": 0.8842,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2479,
+          "STATISTICAL": 0.418,
+          "STATISTICAL_AND_DIRECTION": 0.4063,
+          "TEMPORAL": 0.8526
+        },
+        "156": {
+          "ADJACENCY": 0.9539,
+          "DEPENDENCE": 0.3276,
+          "DIRECTION": 0.9272,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3256,
+          "STATISTICAL": 0.5009,
+          "STATISTICAL_AND_DIRECTION": 0.4949,
+          "TEMPORAL": 0.7896
+        },
+        "208": {
+          "ADJACENCY": 0.9752,
+          "DEPENDENCE": 0.4106,
+          "DIRECTION": 0.9575,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4087,
+          "STATISTICAL": 0.5777,
+          "STATISTICAL_AND_DIRECTION": 0.574,
+          "TEMPORAL": 0.854
+        },
+        "260": {
+          "ADJACENCY": 0.9852,
+          "DEPENDENCE": 0.4867,
+          "DIRECTION": 0.9684,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4851,
+          "STATISTICAL": 0.6428,
+          "STATISTICAL_AND_DIRECTION": 0.6402,
+          "TEMPORAL": 0.8877
+        },
+        "312": {
+          "ADJACENCY": 0.9909,
+          "DEPENDENCE": 0.557,
+          "DIRECTION": 0.9805,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.5389,
+          "STATISTICAL": 0.6961,
+          "STATISTICAL_AND_DIRECTION": 0.6948,
+          "TEMPORAL": 0.7841
+        },
+        "364": {
+          "ADJACENCY": 0.9957,
+          "DEPENDENCE": 0.6249,
+          "DIRECTION": 0.989,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.6099,
+          "STATISTICAL": 0.7432,
+          "STATISTICAL_AND_DIRECTION": 0.7423,
+          "TEMPORAL": 0.8403
+        },
+        "51": {
+          "ADJACENCY": 0.8358,
+          "DEPENDENCE": 0.1643,
+          "DIRECTION": 0.8034,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.1608,
+          "STATISTICAL": 0.3205,
+          "STATISTICAL_AND_DIRECTION": 0.2958,
+          "TEMPORAL": 0.5278
+        },
+        "86": {
+          "ADJACENCY": 0.8972,
+          "DEPENDENCE": 0.2116,
+          "DIRECTION": 0.8641,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2112,
+          "STATISTICAL": 0.3853,
+          "STATISTICAL_AND_DIRECTION": 0.3709,
+          "TEMPORAL": 0.8319
+        }
+      },
+      "DISCOVERY_CONSISTENT_MINIMUM": {
+        "103": {
+          "ADJACENCY": 0.8189,
+          "DEPENDENCE": 0.145,
+          "DIRECTION": 0.7894,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.1445,
+          "STATISTICAL": 0.2978,
+          "STATISTICAL_AND_DIRECTION": 0.2671,
+          "TEMPORAL": 0.7563
+        },
+        "156": {
+          "ADJACENCY": 0.8732,
+          "DEPENDENCE": 0.1817,
+          "DIRECTION": 0.8415,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.1805,
+          "STATISTICAL": 0.3337,
+          "STATISTICAL_AND_DIRECTION": 0.3127,
+          "TEMPORAL": 0.6629
+        },
+        "208": {
+          "ADJACENCY": 0.9026,
+          "DEPENDENCE": 0.225,
+          "DIRECTION": 0.8722,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2233,
+          "STATISTICAL": 0.3766,
+          "STATISTICAL_AND_DIRECTION": 0.3609,
+          "TEMPORAL": 0.7233
+        },
+        "260": {
+          "ADJACENCY": 0.9263,
+          "DEPENDENCE": 0.2589,
+          "DIRECTION": 0.9003,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2579,
+          "STATISTICAL": 0.4093,
+          "STATISTICAL_AND_DIRECTION": 0.3974,
+          "TEMPORAL": 0.7651
+        },
+        "312": {
+          "ADJACENCY": 0.9431,
+          "DEPENDENCE": 0.3024,
+          "DIRECTION": 0.917,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2894,
+          "STATISTICAL": 0.4471,
+          "STATISTICAL_AND_DIRECTION": 0.4382,
+          "TEMPORAL": 0.6023
+        },
+        "364": {
+          "ADJACENCY": 0.9601,
+          "DEPENDENCE": 0.3387,
+          "DIRECTION": 0.9365,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3292,
+          "STATISTICAL": 0.4711,
+          "STATISTICAL_AND_DIRECTION": 0.4639,
+          "TEMPORAL": 0.6633
+        },
+        "51": {
+          "ADJACENCY": 0.7387,
+          "DEPENDENCE": 0.1085,
+          "DIRECTION": 0.7127,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.1049,
+          "STATISTICAL": 0.2562,
+          "STATISTICAL_AND_DIRECTION": 0.2087,
+          "TEMPORAL": 0.4298
+        },
+        "86": {
+          "ADJACENCY": 0.7997,
+          "DEPENDENCE": 0.1321,
+          "DIRECTION": 0.7672,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.1317,
+          "STATISTICAL": 0.2825,
+          "STATISTICAL_AND_DIRECTION": 0.2491,
+          "TEMPORAL": 0.7369
+        }
+      },
+      "DISCOVERY_EFFECT": {
+        "103": {
+          "ADJACENCY": 0.9969,
+          "DEPENDENCE": 0.6797,
+          "DIRECTION": 0.9916,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.6793,
+          "STATISTICAL": 0.8297,
+          "STATISTICAL_AND_DIRECTION": 0.8295,
+          "TEMPORAL": 0.9788
+        },
+        "156": {
+          "ADJACENCY": 0.9997,
+          "DEPENDENCE": 0.8478,
+          "DIRECTION": 0.9985,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.846,
+          "STATISTICAL": 0.9315,
+          "STATISTICAL_AND_DIRECTION": 0.9315,
+          "TEMPORAL": 0.977
+        },
+        "208": {
+          "ADJACENCY": 1.0,
+          "DEPENDENCE": 0.9277,
+          "DIRECTION": 0.9996,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.9269,
+          "STATISTICAL": 0.9718,
+          "STATISTICAL_AND_DIRECTION": 0.9718,
+          "TEMPORAL": 0.9923
+        },
+        "260": {
+          "ADJACENCY": 1.0,
+          "DEPENDENCE": 0.9679,
+          "DIRECTION": 1.0,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.9671,
+          "STATISTICAL": 0.9883,
+          "STATISTICAL_AND_DIRECTION": 0.9883,
+          "TEMPORAL": 0.9967
+        },
+        "312": {
+          "ADJACENCY": 1.0,
+          "DEPENDENCE": 0.987,
+          "DIRECTION": 1.0,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.9836,
+          "STATISTICAL": 0.996,
+          "STATISTICAL_AND_DIRECTION": 0.996,
+          "TEMPORAL": 0.9939
+        },
+        "364": {
+          "ADJACENCY": 1.0,
+          "DEPENDENCE": 0.9953,
+          "DIRECTION": 1.0,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.9928,
+          "STATISTICAL": 0.9982,
+          "STATISTICAL_AND_DIRECTION": 0.9982,
+          "TEMPORAL": 0.9964
+        },
+        "51": {
+          "ADJACENCY": 0.9722,
+          "DEPENDENCE": 0.4308,
+          "DIRECTION": 0.9559,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4247,
+          "STATISTICAL": 0.6233,
+          "STATISTICAL_AND_DIRECTION": 0.6208,
+          "TEMPORAL": 0.7766
+        },
+        "86": {
+          "ADJACENCY": 0.9941,
+          "DEPENDENCE": 0.6146,
+          "DIRECTION": 0.9851,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.6144,
+          "STATISTICAL": 0.7809,
+          "STATISTICAL_AND_DIRECTION": 0.7803,
+          "TEMPORAL": 0.969
+        }
+      }
+    },
+    "MBB13": {
+      "ATTENUATED_50PCT": {
+        "103": {
+          "ADJACENCY": 0.7403,
+          "DEPENDENCE": 0.2617,
+          "DIRECTION": 0.712,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2616,
+          "STATISTICAL": 0.6142,
+          "STATISTICAL_AND_DIRECTION": 0.4651,
+          "TEMPORAL": 0.6956
+        },
+        "156": {
+          "ADJACENCY": 0.7893,
+          "DEPENDENCE": 0.2929,
+          "DIRECTION": 0.757,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2858,
+          "STATISTICAL": 0.6336,
+          "STATISTICAL_AND_DIRECTION": 0.5089,
+          "TEMPORAL": 0.5847
+        },
+        "208": {
+          "ADJACENCY": 0.8198,
+          "DEPENDENCE": 0.3194,
+          "DIRECTION": 0.7852,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.313,
+          "STATISTICAL": 0.6475,
+          "STATISTICAL_AND_DIRECTION": 0.5404,
+          "TEMPORAL": 0.6283
+        },
+        "260": {
+          "ADJACENCY": 0.8524,
+          "DEPENDENCE": 0.3512,
+          "DIRECTION": 0.8156,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3456,
+          "STATISTICAL": 0.6611,
+          "STATISTICAL_AND_DIRECTION": 0.5688,
+          "TEMPORAL": 0.678
+        },
+        "312": {
+          "ADJACENCY": 0.862,
+          "DEPENDENCE": 0.3549,
+          "DIRECTION": 0.8277,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.317,
+          "STATISTICAL": 0.6811,
+          "STATISTICAL_AND_DIRECTION": 0.5939,
+          "TEMPORAL": 0.4863
+        },
+        "364": {
+          "ADJACENCY": 0.8877,
+          "DEPENDENCE": 0.3847,
+          "DIRECTION": 0.8552,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3534,
+          "STATISTICAL": 0.6953,
+          "STATISTICAL_AND_DIRECTION": 0.625,
+          "TEMPORAL": 0.5478
+        },
+        "51": {
+          "ADJACENCY": 0.6871,
+          "DEPENDENCE": 0.2628,
+          "DIRECTION": 0.6586,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2487,
+          "STATISTICAL": 0.6029,
+          "STATISTICAL_AND_DIRECTION": 0.4173,
+          "TEMPORAL": 0.3809
+        },
+        "86": {
+          "ADJACENCY": 0.7282,
+          "DEPENDENCE": 0.2712,
+          "DIRECTION": 0.699,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2711,
+          "STATISTICAL": 0.6061,
+          "STATISTICAL_AND_DIRECTION": 0.4519,
+          "TEMPORAL": 0.6842
+        }
+      },
+      "DISCOVERY_CONSISTENT_MINIMUM": {
+        "103": {
+          "ADJACENCY": 0.6771,
+          "DEPENDENCE": 0.2113,
+          "DIRECTION": 0.6509,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2112,
+          "STATISTICAL": 0.5871,
+          "STATISTICAL_AND_DIRECTION": 0.3941,
+          "TEMPORAL": 0.645
+        },
+        "156": {
+          "ADJACENCY": 0.7084,
+          "DEPENDENCE": 0.2233,
+          "DIRECTION": 0.6833,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2173,
+          "STATISTICAL": 0.5969,
+          "STATISTICAL_AND_DIRECTION": 0.4212,
+          "TEMPORAL": 0.5062
+        },
+        "208": {
+          "ADJACENCY": 0.7339,
+          "DEPENDENCE": 0.2384,
+          "DIRECTION": 0.7065,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2331,
+          "STATISTICAL": 0.6009,
+          "STATISTICAL_AND_DIRECTION": 0.4371,
+          "TEMPORAL": 0.5549
+        },
+        "260": {
+          "ADJACENCY": 0.756,
+          "DEPENDENCE": 0.2579,
+          "DIRECTION": 0.7245,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2524,
+          "STATISTICAL": 0.6084,
+          "STATISTICAL_AND_DIRECTION": 0.4591,
+          "TEMPORAL": 0.5903
+        },
+        "312": {
+          "ADJACENCY": 0.7799,
+          "DEPENDENCE": 0.2525,
+          "DIRECTION": 0.7476,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2233,
+          "STATISTICAL": 0.6117,
+          "STATISTICAL_AND_DIRECTION": 0.4758,
+          "TEMPORAL": 0.3941
+        },
+        "364": {
+          "ADJACENCY": 0.7952,
+          "DEPENDENCE": 0.2651,
+          "DIRECTION": 0.7616,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2389,
+          "STATISTICAL": 0.6199,
+          "STATISTICAL_AND_DIRECTION": 0.4918,
+          "TEMPORAL": 0.4359
+        },
+        "51": {
+          "ADJACENCY": 0.6404,
+          "DEPENDENCE": 0.2241,
+          "DIRECTION": 0.6179,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2127,
+          "STATISTICAL": 0.577,
+          "STATISTICAL_AND_DIRECTION": 0.3659,
+          "TEMPORAL": 0.3376
+        },
+        "86": {
+          "ADJACENCY": 0.6727,
+          "DEPENDENCE": 0.224,
+          "DIRECTION": 0.6472,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2238,
+          "STATISTICAL": 0.5822,
+          "STATISTICAL_AND_DIRECTION": 0.3886,
+          "TEMPORAL": 0.6398
+        }
+      },
+      "DISCOVERY_EFFECT": {
+        "103": {
+          "ADJACENCY": 0.9022,
+          "DEPENDENCE": 0.4496,
+          "DIRECTION": 0.8708,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4496,
+          "STATISTICAL": 0.7342,
+          "STATISTICAL_AND_DIRECTION": 0.6807,
+          "TEMPORAL": 0.8314
+        },
+        "156": {
+          "ADJACENCY": 0.9403,
+          "DEPENDENCE": 0.5344,
+          "DIRECTION": 0.9136,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.5213,
+          "STATISTICAL": 0.7873,
+          "STATISTICAL_AND_DIRECTION": 0.7549,
+          "TEMPORAL": 0.76
+        },
+        "208": {
+          "ADJACENCY": 0.9582,
+          "DEPENDENCE": 0.6097,
+          "DIRECTION": 0.9345,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.597,
+          "STATISTICAL": 0.8334,
+          "STATISTICAL_AND_DIRECTION": 0.8081,
+          "TEMPORAL": 0.8205
+        },
+        "260": {
+          "ADJACENCY": 0.9798,
+          "DEPENDENCE": 0.6832,
+          "DIRECTION": 0.9616,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.6727,
+          "STATISTICAL": 0.8703,
+          "STATISTICAL_AND_DIRECTION": 0.8573,
+          "TEMPORAL": 0.867
+        },
+        "312": {
+          "ADJACENCY": 0.9849,
+          "DEPENDENCE": 0.7141,
+          "DIRECTION": 0.9725,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.6556,
+          "STATISTICAL": 0.8954,
+          "STATISTICAL_AND_DIRECTION": 0.8854,
+          "TEMPORAL": 0.7561
+        },
+        "364": {
+          "ADJACENCY": 0.9906,
+          "DEPENDENCE": 0.7572,
+          "DIRECTION": 0.98,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.7072,
+          "STATISTICAL": 0.9182,
+          "STATISTICAL_AND_DIRECTION": 0.9109,
+          "TEMPORAL": 0.8029
+        },
+        "51": {
+          "ADJACENCY": 0.8173,
+          "DEPENDENCE": 0.3807,
+          "DIRECTION": 0.7806,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3587,
+          "STATISTICAL": 0.6623,
+          "STATISTICAL_AND_DIRECTION": 0.5624,
+          "TEMPORAL": 0.5015
+        },
+        "86": {
+          "ADJACENCY": 0.8794,
+          "DEPENDENCE": 0.4432,
+          "DIRECTION": 0.8447,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4432,
+          "STATISTICAL": 0.7113,
+          "STATISTICAL_AND_DIRECTION": 0.6466,
+          "TEMPORAL": 0.8183
+        }
+      }
+    },
+    "MBB26": {
+      "ATTENUATED_50PCT": {
+        "103": {
+          "ADJACENCY": 0.6982,
+          "DEPENDENCE": 0.3224,
+          "DIRECTION": 0.6695,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3224,
+          "STATISTICAL": 0.6952,
+          "STATISTICAL_AND_DIRECTION": 0.4865,
+          "TEMPORAL": 0.6685
+        },
+        "156": {
+          "ADJACENCY": 0.7309,
+          "DEPENDENCE": 0.3396,
+          "DIRECTION": 0.7019,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3361,
+          "STATISTICAL": 0.7023,
+          "STATISTICAL_AND_DIRECTION": 0.5101,
+          "TEMPORAL": 0.5524
+        },
+        "208": {
+          "ADJACENCY": 0.7614,
+          "DEPENDENCE": 0.3585,
+          "DIRECTION": 0.728,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3553,
+          "STATISTICAL": 0.7024,
+          "STATISTICAL_AND_DIRECTION": 0.5314,
+          "TEMPORAL": 0.6027
+        },
+        "260": {
+          "ADJACENCY": 0.7843,
+          "DEPENDENCE": 0.3797,
+          "DIRECTION": 0.7481,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3765,
+          "STATISTICAL": 0.7079,
+          "STATISTICAL_AND_DIRECTION": 0.5513,
+          "TEMPORAL": 0.6358
+        },
+        "312": {
+          "ADJACENCY": 0.8021,
+          "DEPENDENCE": 0.3799,
+          "DIRECTION": 0.767,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3458,
+          "STATISTICAL": 0.7218,
+          "STATISTICAL_AND_DIRECTION": 0.5758,
+          "TEMPORAL": 0.4443
+        },
+        "364": {
+          "ADJACENCY": 0.822,
+          "DEPENDENCE": 0.3995,
+          "DIRECTION": 0.7864,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3721,
+          "STATISTICAL": 0.7274,
+          "STATISTICAL_AND_DIRECTION": 0.5924,
+          "TEMPORAL": 0.4953
+        },
+        "51": {
+          "ADJACENCY": 0.6423,
+          "DEPENDENCE": 0.3468,
+          "DIRECTION": 0.6142,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3371,
+          "STATISTICAL": 0.6592,
+          "STATISTICAL_AND_DIRECTION": 0.4224,
+          "TEMPORAL": 0.3639
+        },
+        "86": {
+          "ADJACENCY": 0.6815,
+          "DEPENDENCE": 0.3209,
+          "DIRECTION": 0.6566,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3208,
+          "STATISTICAL": 0.6856,
+          "STATISTICAL_AND_DIRECTION": 0.4646,
+          "TEMPORAL": 0.6528
+        }
+      },
+      "DISCOVERY_CONSISTENT_MINIMUM": {
+        "103": {
+          "ADJACENCY": 0.6387,
+          "DEPENDENCE": 0.2736,
+          "DIRECTION": 0.6145,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2736,
+          "STATISTICAL": 0.6835,
+          "STATISTICAL_AND_DIRECTION": 0.4302,
+          "TEMPORAL": 0.6244
+        },
+        "156": {
+          "ADJACENCY": 0.6635,
+          "DEPENDENCE": 0.2787,
+          "DIRECTION": 0.6401,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2776,
+          "STATISTICAL": 0.6786,
+          "STATISTICAL_AND_DIRECTION": 0.4417,
+          "TEMPORAL": 0.5515
+        },
+        "208": {
+          "ADJACENCY": 0.6873,
+          "DEPENDENCE": 0.2969,
+          "DIRECTION": 0.6627,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2962,
+          "STATISTICAL": 0.6875,
+          "STATISTICAL_AND_DIRECTION": 0.4613,
+          "TEMPORAL": 0.6081
+        },
+        "260": {
+          "ADJACENCY": 0.7027,
+          "DEPENDENCE": 0.307,
+          "DIRECTION": 0.6758,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3063,
+          "STATISTICAL": 0.6859,
+          "STATISTICAL_AND_DIRECTION": 0.4709,
+          "TEMPORAL": 0.6432
+        },
+        "312": {
+          "ADJACENCY": 0.7233,
+          "DEPENDENCE": 0.2975,
+          "DIRECTION": 0.6968,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2851,
+          "STATISTICAL": 0.6893,
+          "STATISTICAL_AND_DIRECTION": 0.4816,
+          "TEMPORAL": 0.4498
+        },
+        "364": {
+          "ADJACENCY": 0.742,
+          "DEPENDENCE": 0.3081,
+          "DIRECTION": 0.7091,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3014,
+          "STATISTICAL": 0.6843,
+          "STATISTICAL_AND_DIRECTION": 0.4933,
+          "TEMPORAL": 0.4996
+        },
+        "51": {
+          "ADJACENCY": 0.5944,
+          "DEPENDENCE": 0.3249,
+          "DIRECTION": 0.57,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3189,
+          "STATISTICAL": 0.6583,
+          "STATISTICAL_AND_DIRECTION": 0.3953,
+          "TEMPORAL": 0.3538
+        },
+        "86": {
+          "ADJACENCY": 0.6271,
+          "DEPENDENCE": 0.2703,
+          "DIRECTION": 0.6088,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.2703,
+          "STATISTICAL": 0.6651,
+          "STATISTICAL_AND_DIRECTION": 0.4039,
+          "TEMPORAL": 0.6299
+        }
+      },
+      "DISCOVERY_EFFECT": {
+        "103": {
+          "ADJACENCY": 0.8411,
+          "DEPENDENCE": 0.4711,
+          "DIRECTION": 0.8058,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4709,
+          "STATISTICAL": 0.7503,
+          "STATISTICAL_AND_DIRECTION": 0.6407,
+          "TEMPORAL": 0.7595
+        },
+        "156": {
+          "ADJACENCY": 0.8821,
+          "DEPENDENCE": 0.5223,
+          "DIRECTION": 0.8503,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4973,
+          "STATISTICAL": 0.7844,
+          "STATISTICAL_AND_DIRECTION": 0.6996,
+          "TEMPORAL": 0.5995
+        },
+        "208": {
+          "ADJACENCY": 0.9129,
+          "DEPENDENCE": 0.5806,
+          "DIRECTION": 0.8796,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.5536,
+          "STATISTICAL": 0.8133,
+          "STATISTICAL_AND_DIRECTION": 0.747,
+          "TEMPORAL": 0.6573
+        },
+        "260": {
+          "ADJACENCY": 0.9403,
+          "DEPENDENCE": 0.622,
+          "DIRECTION": 0.9081,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.5947,
+          "STATISTICAL": 0.8338,
+          "STATISTICAL_AND_DIRECTION": 0.786,
+          "TEMPORAL": 0.6941
+        },
+        "312": {
+          "ADJACENCY": 0.9545,
+          "DEPENDENCE": 0.6576,
+          "DIRECTION": 0.9274,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.502,
+          "STATISTICAL": 0.8597,
+          "STATISTICAL_AND_DIRECTION": 0.8216,
+          "TEMPORAL": 0.5168
+        },
+        "364": {
+          "ADJACENCY": 0.9654,
+          "DEPENDENCE": 0.6926,
+          "DIRECTION": 0.9435,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.5471,
+          "STATISTICAL": 0.8777,
+          "STATISTICAL_AND_DIRECTION": 0.849,
+          "TEMPORAL": 0.5645
+        },
+        "51": {
+          "ADJACENCY": 0.7577,
+          "DEPENDENCE": 0.4052,
+          "DIRECTION": 0.7403,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3765,
+          "STATISTICAL": 0.6964,
+          "STATISTICAL_AND_DIRECTION": 0.5339,
+          "TEMPORAL": 0.3889
+        },
+        "86": {
+          "ADJACENCY": 0.8178,
+          "DEPENDENCE": 0.4569,
+          "DIRECTION": 0.7775,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4567,
+          "STATISTICAL": 0.7392,
+          "STATISTICAL_AND_DIRECTION": 0.6143,
+          "TEMPORAL": 0.7157
+        }
+      }
+    },
+    "YEAR_BLOCK": {
+      "ATTENUATED_50PCT": {
+        "103": {
+          "ADJACENCY": 0.6008,
+          "DEPENDENCE": 0.3577,
+          "DIRECTION": 0.6805,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3577,
+          "STATISTICAL": 0.6772,
+          "STATISTICAL_AND_DIRECTION": 0.3577,
+          "TEMPORAL": 0.68
+        },
+        "156": {
+          "ADJACENCY": 0.6474,
+          "DEPENDENCE": 0.4069,
+          "DIRECTION": 0.6011,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4069,
+          "STATISTICAL": 0.9536,
+          "STATISTICAL_AND_DIRECTION": 0.6011,
+          "TEMPORAL": 0.6475
+        },
+        "208": {
+          "ADJACENCY": 0.6947,
+          "DEPENDENCE": 0.4037,
+          "DIRECTION": 0.6292,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4037,
+          "STATISTICAL": 0.6773,
+          "STATISTICAL_AND_DIRECTION": 0.4596,
+          "TEMPORAL": 0.4736
+        },
+        "260": {
+          "ADJACENCY": 0.7145,
+          "DEPENDENCE": 0.4181,
+          "DIRECTION": 0.6708,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4181,
+          "STATISTICAL": 0.8169,
+          "STATISTICAL_AND_DIRECTION": 0.5921,
+          "TEMPORAL": 0.6837
+        },
+        "312": {
+          "ADJACENCY": 0.7339,
+          "DEPENDENCE": 0.4124,
+          "DIRECTION": 0.7278,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4124,
+          "STATISTICAL": 0.7911,
+          "STATISTICAL_AND_DIRECTION": 0.5441,
+          "TEMPORAL": 0.5442
+        },
+        "364": {
+          "ADJACENCY": 0.7478,
+          "DEPENDENCE": 0.425,
+          "DIRECTION": 0.7074,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3987,
+          "STATISTICAL": 0.827,
+          "STATISTICAL_AND_DIRECTION": 0.5929,
+          "TEMPORAL": 0.4222
+        },
+        "51": {
+          "ADJACENCY": 0.5941,
+          "DEPENDENCE": 0.4973,
+          "DIRECTION": 0.5941,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4973,
+          "STATISTICAL": 1.0,
+          "STATISTICAL_AND_DIRECTION": 0.5941,
+          "TEMPORAL": 0.5941
+        },
+        "86": {
+          "ADJACENCY": 0.588,
+          "DEPENDENCE": 0.363,
+          "DIRECTION": 0.5312,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.363,
+          "STATISTICAL": 0.7614,
+          "STATISTICAL_AND_DIRECTION": 0.4989,
+          "TEMPORAL": 0.6155
+        }
+      },
+      "DISCOVERY_CONSISTENT_MINIMUM": {
+        "103": {
+          "ADJACENCY": 0.6002,
+          "DEPENDENCE": 0.3582,
+          "DIRECTION": 0.6827,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3582,
+          "STATISTICAL": 0.6754,
+          "STATISTICAL_AND_DIRECTION": 0.3582,
+          "TEMPORAL": 0.6202
+        },
+        "156": {
+          "ADJACENCY": 0.6199,
+          "DEPENDENCE": 0.332,
+          "DIRECTION": 0.5941,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.332,
+          "STATISTICAL": 0.7591,
+          "STATISTICAL_AND_DIRECTION": 0.4017,
+          "TEMPORAL": 0.6425
+        },
+        "208": {
+          "ADJACENCY": 0.6127,
+          "DEPENDENCE": 0.3784,
+          "DIRECTION": 0.623,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3784,
+          "STATISTICAL": 0.7193,
+          "STATISTICAL_AND_DIRECTION": 0.4566,
+          "TEMPORAL": 0.4682
+        },
+        "260": {
+          "ADJACENCY": 0.6437,
+          "DEPENDENCE": 0.3275,
+          "DIRECTION": 0.6029,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3275,
+          "STATISTICAL": 0.7547,
+          "STATISTICAL_AND_DIRECTION": 0.4385,
+          "TEMPORAL": 0.6831
+        },
+        "312": {
+          "ADJACENCY": 0.6712,
+          "DEPENDENCE": 0.3604,
+          "DIRECTION": 0.6261,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3604,
+          "STATISTICAL": 0.7547,
+          "STATISTICAL_AND_DIRECTION": 0.5071,
+          "TEMPORAL": 0.548
+        },
+        "364": {
+          "ADJACENCY": 0.6681,
+          "DEPENDENCE": 0.3635,
+          "DIRECTION": 0.6673,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3635,
+          "STATISTICAL": 0.7385,
+          "STATISTICAL_AND_DIRECTION": 0.4657,
+          "TEMPORAL": 0.4184
+        },
+        "51": {
+          "ADJACENCY": 0.5988,
+          "DEPENDENCE": 0.3929,
+          "DIRECTION": 0.5988,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3929,
+          "STATISTICAL": 1.0,
+          "STATISTICAL_AND_DIRECTION": 0.5988,
+          "TEMPORAL": 0.5988
+        },
+        "86": {
+          "ADJACENCY": 0.546,
+          "DEPENDENCE": 0.3491,
+          "DIRECTION": 0.5201,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3491,
+          "STATISTICAL": 0.7952,
+          "STATISTICAL_AND_DIRECTION": 0.4717,
+          "TEMPORAL": 0.5793
+        }
+      },
+      "DISCOVERY_EFFECT": {
+        "103": {
+          "ADJACENCY": 0.7633,
+          "DEPENDENCE": 0.3665,
+          "DIRECTION": 0.7261,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.3665,
+          "STATISTICAL": 0.8464,
+          "STATISTICAL_AND_DIRECTION": 0.6868,
+          "TEMPORAL": 0.6861
+        },
+        "156": {
+          "ADJACENCY": 0.7687,
+          "DEPENDENCE": 0.5997,
+          "DIRECTION": 0.7456,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.5997,
+          "STATISTICAL": 0.7579,
+          "STATISTICAL_AND_DIRECTION": 0.5997,
+          "TEMPORAL": 0.6478
+        },
+        "208": {
+          "ADJACENCY": 0.8333,
+          "DEPENDENCE": 0.5074,
+          "DIRECTION": 0.7796,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4724,
+          "STATISTICAL": 0.8306,
+          "STATISTICAL_AND_DIRECTION": 0.6487,
+          "TEMPORAL": 0.4792
+        },
+        "260": {
+          "ADJACENCY": 0.8637,
+          "DEPENDENCE": 0.6022,
+          "DIRECTION": 0.8154,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.6022,
+          "STATISTICAL": 0.8008,
+          "STATISTICAL_AND_DIRECTION": 0.6845,
+          "TEMPORAL": 0.6844
+        },
+        "312": {
+          "ADJACENCY": 0.8851,
+          "DEPENDENCE": 0.6158,
+          "DIRECTION": 0.853,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.5485,
+          "STATISTICAL": 0.869,
+          "STATISTICAL_AND_DIRECTION": 0.7569,
+          "TEMPORAL": 0.553
+        },
+        "364": {
+          "ADJACENCY": 0.9008,
+          "DEPENDENCE": 0.6372,
+          "DIRECTION": 0.8516,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4122,
+          "STATISTICAL": 0.8639,
+          "STATISTICAL_AND_DIRECTION": 0.7618,
+          "TEMPORAL": 0.4124
+        },
+        "51": {
+          "ADJACENCY": 0.6001,
+          "DEPENDENCE": 0.6001,
+          "DIRECTION": 0.6001,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.6001,
+          "STATISTICAL": 1.0,
+          "STATISTICAL_AND_DIRECTION": 0.6001,
+          "TEMPORAL": 0.6001
+        },
+        "86": {
+          "ADJACENCY": 0.7501,
+          "DEPENDENCE": 0.4758,
+          "DIRECTION": 0.7415,
+          "FULL_PASS_EXCLUDING_CONTROL": 0.4758,
+          "STATISTICAL": 0.6958,
+          "STATISTICAL_AND_DIRECTION": 0.5244,
+          "TEMPORAL": 0.7245
+        }
+      }
+    }
+  },
+  "SEED": 7378747926481491535,
+  "SENSITIVITY_METHODS": [
+    "MBB13",
+    "MBB26"
+  ],
+  "SIZE_GRID_WEEKS": [
+    416,
+    468,
+    520,
+    624,
+    780
+  ],
+  "SIZE_PLANNING_YEAR_BLOCK_DISCOVERY_EFFECT": {
+    "416": {
+      "ADJACENCY": 0.9166,
+      "DEPENDENCE": 0.6573,
+      "DIRECTION": 0.8838,
+      "FULL_PASS_EXCLUDING_CONTROL": 0.5856,
+      "STATISTICAL": 0.8781,
+      "STATISTICAL_AND_DIRECTION": 0.7965,
+      "TEMPORAL": 0.5923
+    },
+    "468": {
+      "ADJACENCY": 0.9276,
+      "DEPENDENCE": 0.6777,
+      "DIRECTION": 0.8921,
+      "FULL_PASS_EXCLUDING_CONTROL": 0.4764,
+      "STATISTICAL": 0.8929,
+      "STATISTICAL_AND_DIRECTION": 0.8131,
+      "TEMPORAL": 0.4768
+    },
+    "520": {
+      "ADJACENCY": 0.9448,
+      "DEPENDENCE": 0.7201,
+      "DIRECTION": 0.9071,
+      "FULL_PASS_EXCLUDING_CONTROL": 0.6341,
+      "STATISTICAL": 0.8811,
+      "STATISTICAL_AND_DIRECTION": 0.8214,
+      "TEMPORAL": 0.6383
+    },
+    "624": {
+      "ADJACENCY": 0.9573,
+      "DEPENDENCE": 0.7393,
+      "DIRECTION": 0.9267,
+      "FULL_PASS_EXCLUDING_CONTROL": 0.4339,
+      "STATISTICAL": 0.8969,
+      "STATISTICAL_AND_DIRECTION": 0.8484,
+      "TEMPORAL": 0.4339
+    },
+    "780": {
+      "ADJACENCY": 0.9758,
+      "DEPENDENCE": 0.7994,
+      "DIRECTION": 0.9513,
+      "FULL_PASS_EXCLUDING_CONTROL": 0.6132,
+      "STATISTICAL": 0.9234,
+      "STATISTICAL_AND_DIRECTION": 0.8924,
+      "TEMPORAL": 0.6134
+    }
+  },
+  "UNIT": "GV0R01_C013_CONFIRMATION_POWER"
+}

@@ -1,0 +1,49 @@
+{
+  "UNIT": "GV0R01_C020_OUTCOME_BLIND_DESIGN_AND_POWER",
+  "C020_DEFINITION_STATUS": "UNAMBIGUOUS",
+  "DEFINITION_AUTHORITY": "GV0R01-C020 card in the Stream-B triage and the GV0R01 attempt record. No second C020 mechanism was found.",
+  "C020_CANONICAL_CLAIM": "Official regional holidays remove the corresponding participant block, which displaces the BTCUSDT perpetual intraday volume profile away from that region's session. The card's lead contrast is the mean log US-session share displacement on NYSE weekday closures versus matched same-weekday non-holiday days.",
+  "OUTCOME_BLIND_GATE_RESULT": "BLOCKED_BY_MISSING_INPUT",
+  "STOP_PHASE": "PHASE_3_SOURCE_AUTHORITY",
+  "MISSING_INPUTS": [
+    {
+      "DATASET": "NYSE_HOLIDAY_CALENDAR_ARCHIVE",
+      "STATUS_IN_CARD": "FEASIBILITY_REQUIRED",
+      "PINNED": false,
+      "WHY_REQUIRED": "Primary NYSE weekday-closure dates, including publication evidence and separately flagged unscheduled closures."
+    },
+    {
+      "DATASET": "CN_STATE_COUNCIL_HOLIDAY_NOTICES",
+      "STATUS_IN_CARD": "FEASIBILITY_REQUIRED",
+      "PINNED": false,
+      "WHY_REQUIRED": "China statutory holidays and makeup working days, with notice publication dates. Required for control exclusion even if the China arm is non-decisive."
+    },
+    {
+      "DATASET": "US_OPM_FEDERAL_HOLIDAY_LIST",
+      "STATUS_IN_CARD": "FEASIBILITY_REQUIRED",
+      "PINNED": false,
+      "WHY_REQUIRED": "Federal holidays on which the NYSE is open. The card's third falsifier uses them as the equity-clock specificity arm."
+    }
+  ],
+  "READY_SOURCES": ["CORE_BTC_BINANCE_V0", "STATUTORY_DST_CALENDARS"],
+  "POINT_IN_TIME_STATUS": "NOT_ESTABLISHED. The card requires each holiday date to have been published before the holiday. No pinned archive supplies those publication dates.",
+  "SAMPLE_FAMILY": "NOT COMPUTED",
+  "PLANNED_OBSERVATION_COUNT": "NOT COMPUTED",
+  "COVERED_OBSERVATION_COUNT": "NOT COMPUTED",
+  "PRIMARY_WINDOW": "NOT FROZEN. The card states one UTC day and a US session, but the session definition is still a two-way search parameter and the holiday dates are unpinned.",
+  "PRIMARY_ENDPOINT": "NOT FROZEN",
+  "INFERENCE_METHOD": "NOT SELECTED",
+  "GLOBAL_INFERENCE_VALIDITY_STATUS": "NOT REACHED",
+  "PRIMARY_LABEL_ORBIT_SIZE": "NOT COMPUTED",
+  "MIN_ATTAINABLE_EXACT_P": "NOT COMPUTED",
+  "ALPHA_ATTAINABLE": "NOT COMPUTED",
+  "POWER_SIMULATION_PERFORMED": false,
+  "MARKET_DATA_OPENED_FOR_C020": false,
+  "MARKET_OUTCOMES_COMPUTED": false,
+  "C020_PRIMARY_TEST_EXECUTED": false,
+  "PROTECTED_2025_VALUES_OPENED": false,
+  "PROTECTED_2026_VALUES_OPENED": false,
+  "SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING": "NOT FROZEN. The primary specification was not completed.",
+  "C012_C004_OUTCOMES_USED": false,
+  "NEXT_UNIT": "GV0R01_C020_HOLIDAY_CALENDAR_PINNING"
+}

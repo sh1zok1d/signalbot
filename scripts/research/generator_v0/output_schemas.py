@@ -4,6 +4,8 @@ Decoding-level contracts (GENERATOR_CONTRACT_V02):
 - GENERATOR: CANDIDATES is an object keyed by exactly the round's slot IDs, so
   cardinality and candidate IDs are fixed by the schema; each card pins its
   slot identity, LEGAL_RANGE grammar, status enums and NEAREST_TESTED_MECHANISM.
+  This exact keyed schema is what intake enforces. The Anthropic wire uses the
+  compact array projection below (anthropic_generator_compact_schema).
 - NOVELTY_CRITIC: PRIOR_RELATIONS and BATCH_RELATIONS are objects keyed by the
   exact prior signature IDs and other candidate IDs, so coverage is fixed by
   the schema instead of being checked after payment.
@@ -115,9 +117,9 @@ def generator_schema_digest(contexts):
     return digest({'CONTRACT':contract.CONTRACT_ID,'RULES':contract.RULES,'ROUNDS':[generator_round_schema_digest(contexts,plan[i:i+10]) for i in range(0,40,10)]})
 
 def assert_structured_payload(role,contexts,payload,request=None):
-    normalized=normalize_role_output(role,payload)
-    validate_instance(normalized,role_schema(role,contexts,provider=False,request=request if role=='GENERATOR' else None))
-    return normalized
+    """Provider payload -> application form, checked against the exact provider schema first."""
+    validate_instance(payload,role_schema(role,contexts,provider=True,request=request))
+    return normalize_role_output(role,payload)
 
 # Offline conformance to the Structured Outputs strict subset (official docs,
 # structured-outputs guide, checked 2026-09-23). This proves our schemas use only
@@ -174,3 +176,124 @@ def assert_strict_subset(schema):
     bad=strict_subset_violations(schema)
     if bad:raise ContractError('schema outside strict subset: '+'; '.join(bad[:5]))
     return schema
+
+# ------------------------------------------------ Anthropic structured outputs
+# Claude structured outputs (output_config.format json_schema) support a
+# different subset than OpenAI strict mode: no numerical constraints
+# (minimum/maximum/multipleOf), no string length constraints, no complex array
+# constraints (maxItems, minItems above 1). The Anthropic request therefore
+# carries a projection with only those keywords removed (for GENERATOR, of the
+# compact schema below), and every removed constraint is still enforced after
+# decoding: intake validates each card against the exact provider schema
+# (slot_violations_v02) and the V02 rules. This is an offline conformance check
+# against the documented subset, not a provider acceptance test.
+ANTHROPIC_ALLOWED_KEYWORDS={
+    'object':{'type','properties','required','additionalProperties'},
+    'array':{'type','items','minItems'},
+    'string':{'type','enum','pattern','const','format'},
+    'integer':{'type','enum','const'},
+    'number':{'type','enum','const'},
+    'boolean':{'type','enum','const'},
+    'null':{'type'},
+}
+ANTHROPIC_DROPPED_KEYWORDS=('minimum','maximum','exclusiveMinimum','exclusiveMaximum','multipleOf','minLength','maxLength','maxItems','uniqueItems')
+ANTHROPIC_STRING_FORMATS={'date-time','time','date','duration','email','hostname','uri','ipv4','ipv6','uuid'}
+
+def anthropic_projection(schema):
+    """(projected schema, removed [(path, keyword, value)]). Only unsupported constraint keywords are removed."""
+    removed=[]
+    def walk(node,path):
+        if isinstance(node,dict):
+            out={}
+            for k,v in node.items():
+                if k in ANTHROPIC_DROPPED_KEYWORDS or (k=='minItems' and not (type(v) is int and v in (0,1))):
+                    removed.append((path,k,v));continue
+                if k=='properties':out[k]={name:walk(sub,path+'/'+name) for name,sub in v.items()}
+                elif k=='items':out[k]=walk(v,path+'/items')
+                elif k=='anyOf':out[k]=[walk(x,path+'/anyOf'+str(i)) for i,x in enumerate(v)]
+                else:out[k]=v
+            return out
+        return node
+    return walk(schema,'#'),removed
+
+def anthropic_subset_violations(schema):
+    out=[]
+    def walk(node,depth,path):
+        if depth>32:out.append(path+': nesting depth');return
+        if 'anyOf' in node:
+            if set(node)!={'anyOf'} or not node['anyOf']:out.append(path+': anyOf must stand alone')
+            for i,opt in enumerate(node.get('anyOf',[])):walk(opt,depth+1,path+'/anyOf'+str(i))
+            return
+        t=node.get('type')
+        if t not in ANTHROPIC_ALLOWED_KEYWORDS:out.append(path+': unsupported type '+str(t));return
+        extra=set(node)-ANTHROPIC_ALLOWED_KEYWORDS[t]
+        if extra:out.append(path+': unsupported keywords '+','.join(sorted(extra)))
+        if t=='object':
+            if node.get('additionalProperties') is not False:out.append(path+': additionalProperties must be false')
+            props=node.get('properties',{})
+            if sorted(node.get('required',[]))!=sorted(props):out.append(path+': every property must be required')
+            for k,v in props.items():
+                if not _PROPERTY_NAME.fullmatch(k):out.append(path+': property name '+k)
+                walk(v,depth+1,path+'/'+k)
+        elif t=='array':
+            if 'items' not in node:out.append(path+': array items required')
+            else:walk(node['items'],depth+1,path+'/items')
+            if 'minItems' in node and node['minItems'] not in (0,1):out.append(path+': minItems above 1')
+        if 'enum' in node and not node['enum']:out.append(path+': empty enum')
+        if 'format' in node and node['format'] not in ANTHROPIC_STRING_FORMATS:out.append(path+': unsupported format')
+        if 'pattern' in node:
+            p=node['pattern']
+            if _FORBIDDEN_REGEX.search(p):out.append(path+': pattern uses lookaround, backreference or shorthand class')
+            try:re.compile(p)
+            except re.error:out.append(path+': invalid pattern')
+    walk(schema,1,'#')
+    return out
+
+# Compact GENERATOR wire format. The keyed exact schema repeats the full
+# slot-pinned card schema once per slot; Claude rejected its compiled grammar as
+# too large (10 slots: 42 objects, 40 one-value enums, LEGAL_RANGE x10). The
+# compact projection sends ONE shared card schema inside an array. It is a
+# decoding aid only: intake maps each returned card to its slot by
+# CANDIDATE_ID and validates it against that slot's EXACT provider schema and
+# the V02 rules (runner._intake_round / slot_violations_v02) before any card is
+# VALID or reaches a critic. Relaxed only at the provider level:
+ANTHROPIC_GENERATOR_WIRE_FORMAT='ANTHROPIC_COMPACT_CANDIDATE_ARRAY_V1'
+KEYED_GENERATOR_WIRE_FORMAT='KEYED_SLOT_OBJECT'
+ANTHROPIC_COMPACT_RELAXED_CONSTRAINTS=(
+    {'CONSTRAINT':'CANDIDATES keyed by exactly the round slot IDs (one card per slot, no extras, no duplicates)',
+     'PROVIDER':'array of cards, minItems 1','INTAKE':'missing slot / duplicate ID -> HARD_FAIL for that slot; unknown ID -> ignored and recorded'},
+    {'CONSTRAINT':'CANDIDATE_ID one-value enum per slot','PROVIDER':'enum of the round slot IDs','INTAKE':'card bound to the slot named by its own CANDIDATE_ID; exact slot schema'},
+    {'CONSTRAINT':'MECHANISM_FAMILY one-value enum per slot','PROVIDER':'enum of all frozen families','INTAKE':'exact slot schema one-value enum'},
+    {'CONSTRAINT':'INFORMATION_SOURCE one-value enum per slot','PROVIDER':'enum of all slot source classes','INTAKE':'exact slot schema one-value enum'},
+    {'CONSTRAINT':'SEARCH_SURFACE.MAX_VARIANTS minimum 1 / maximum 100','PROVIDER':'integer','INTAKE':'exact slot schema integer range'},
+    {'CONSTRAINT':'DATA_REQUIRED maxItems 20','PROVIDER':'array, minItems 1','INTAKE':'exact slot schema array length'},
+)
+
+def generator_wire_format(request):
+    """Wire format of a stored/issued GENERATOR request (absent = keyed exact schema)."""
+    return (request or {}).get('provider_wire_format') or KEYED_GENERATOR_WIRE_FORMAT
+
+def anthropic_generator_compact_schema(contexts,request):
+    """{'CANDIDATES': [card]} with one shared card schema for the whole round."""
+    from .mock import SOURCE_CLASSES
+    slots=_slots(request)
+    card=output_schema(contexts,provider=True,slot=None)
+    card['properties']['CANDIDATE_ID']={'type':'string','enum':[s['CANDIDATE_ID'] for s in slots]}
+    card['properties']['INFORMATION_SOURCE']={'type':'string','enum':sorted(set(SOURCE_CLASSES)|{s['INFORMATION_SOURCE'] for s in slots})}
+    return strict_object({'CANDIDATES':{'type':'array','minItems':1,'items':card}})
+
+def anthropic_output_schema(role,contexts,request):
+    """Per-request Anthropic schema: the compact GENERATOR projection, or the exact
+    provider schema for other roles; projected to the Anthropic subset and checked."""
+    exact=anthropic_generator_compact_schema(contexts,request) if role=='GENERATOR' else role_schema(role,contexts,provider=True,request=request)
+    projected,_=anthropic_projection(exact)
+    bad=anthropic_subset_violations(projected)
+    if bad:raise ContractError('schema outside Anthropic structured-output subset: '+'; '.join(bad[:5]))
+    return projected
+
+def anthropic_generator_schema_digest(contexts):
+    """Run-level identity of the Anthropic generator schemas over the 40-slot plan."""
+    from .mock import slot_plan
+    plan=slot_plan(40)
+    return digest({'CONTRACT':contract.CONTRACT_ID,'WIRE_FORMAT':ANTHROPIC_GENERATOR_WIRE_FORMAT,
+                   'ROUNDS':[digest(anthropic_output_schema('GENERATOR',contexts,{'parameters':{'slots':plan[i:i+10]}})) for i in range(0,40,10)]})

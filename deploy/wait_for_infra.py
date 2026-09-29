@@ -11,7 +11,10 @@ libraries and config, so "ready" means exactly "the bot can connect":
 Run via the venv python (has asyncpg + redis). No docker access, no extra host
 packages (pg_isready/redis-cli not required).
 
-Usage: python deploy/wait_for_infra.py [--timeout SECONDS]
+Usage: python deploy/wait_for_infra.py [--timeout SECONDS] [--postgres-only]
+
+`--postgres-only` (used by the private beta units, which never use Redis) runs
+only the PostgreSQL check.
 """
 from __future__ import annotations
 
@@ -73,10 +76,12 @@ async def _wait_redis(url: str, timeout: float) -> None:
 async def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--timeout", type=float, default=90.0)
+    ap.add_argument("--postgres-only", action="store_true")
     args = ap.parse_args()
     secrets = load_secrets(Config.load())
     await _wait_pg(secrets.postgres_dsn, args.timeout)
-    await _wait_redis(secrets.redis_url, args.timeout)
+    if not args.postgres_only:
+        await _wait_redis(secrets.redis_url, args.timeout)
     print("wait_for_infra: infra ready", flush=True)
 
 

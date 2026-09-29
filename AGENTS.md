@@ -24,16 +24,21 @@ The exact/near-exact M05/M06 cell (external/cross-market observable -> additive 
 Do **not** create MARKET-07 merely to continue a queue. D2 / RULE_1 is an
 `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`, not a validated trading edge
 and not a reason to restart product work. Protected Binance 2025/2026 remain
-sealed. The next research unit is
-`D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_IMPLEMENTATION_AND_OUTCOME_BLIND_REVIEW`
-(implementation and outcome-blind review of the frozen decomposition
-design). Do not generate nearby D2 threshold/horizon/RV variants.
+sealed. The D2 excess direction-aligned path-risk decomposition one-shot
+is consumed (`D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`; no
+rerun). The exact next research unit is recorded in
+`docs/CURRENT_RESEARCH_STATE.md`. Do not generate nearby D2
+threshold/horizon/RV variants.
 New discovery cards, if defined, must rotate across heterogeneous families
 rather than proliferate RV_ABSTENTION.
 
 `FORWARD_MARKET_OBSERVABILITY_V1` collector implementation remains frozen; authoritative collection has not been started by this cleanup. B2-06 remains blocked on the missing/legally-timestamped observable problem.
 
 There is still no claim of a durable trading edge.
+
+A narrow **descriptive private beta V0.2** is authorized (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`; mode `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN`).
+- **Where it lives:** beta work belongs only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.
+- **What it must never do:** never predictive wording, never V1/V2 changes, never a research promotion without a separate gate.
 
 ## Read these sources first
 
@@ -53,6 +58,14 @@ For any new task, use this authority order:
 For `E1-RUN-001`, also read its frozen preregistration and `docs/e1/` artifacts. Those research records remain authoritative for reproducing that experiment even when current project direction has changed.
 
 Old `FORECASTING_ROADMAP`, Stage1/Stage2/V2 product/correctness documents are historical/frozen references, not current roadmap authority. See `docs/DOCUMENTATION_INDEX.md`.
+
+## Generator V0 live-provider runtime protocol
+
+Before any Generator V0 live-provider, smoke, calibration, paid-LLM, or first full campaign task, read and follow `docs/AGENT_RUNTIME_PROTOCOL.md`.
+
+For the first full Generator V0 campaign, `docs/research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.md` is the active operational architecture authority. It does not override frozen scientific contracts or protected-data rules.
+
+Generator V0 mechanism memory is an append-only event chain (`docs/research/generator_v0_memory/`, see `docs/research/GENERATOR_V0_MEMORY_FINALIZER.md`). After a completed campaign, ingest it only with `python -m scripts.research.generator_v0.finalize_memory` (dry-run, then apply, then verify). Never hand-edit `MECHANISM_MEMORY_V0.json`, `BLIND_MECHANISM_MAP_V0.json`, `GOVERNANCE_REGION_AUTHORITY_V0.json` or the context pins: they are derived caches of the chain. Finalization never edits `HYPOTHESIS_GENERATOR_V0_DESIGN.json`, and the blind generator projection must stay outcome-neutral.
 
 ## Hard development freeze
 

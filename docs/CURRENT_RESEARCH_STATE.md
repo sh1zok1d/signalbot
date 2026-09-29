@@ -1,19 +1,435 @@
-## Generator V0 PR #214 independent verification — 2026-09-23
+## GV0R03 generator feasibility contract — 2026-09-25
 
-`NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_LIMITED_OFFLINE_REPAIR_REQUIRED`.
-Independent verifier of PR #214 (`ddda586` / TREE `1e749f1a`). Verdict
-`B. LIMITED OFFLINE REPAIR REQUIRED`. Not `READY_FOR_PROVIDER_SMOKE_TEST`.
-No live campaign, no paid call, no v6/v7 resume, no protected 2025/2026
-open, production repair not patched. v7 cumulative spend independently
-4,946,750 micro-USD. Fresh 40-slot worst-case bound USD 22.144366 exceeds
-the USD 17.100000 owner ceiling. See
-`docs/research/GENERATOR_V0_PR214_INDEPENDENT_VERIFICATION.md`.
+`GENERATOR_CONTRACT_VERSION = GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V0`
+`COMPILER_MAPPING_STATUS = MECHANICAL_COPY`
+`NEW_HYPOTHESES_GENERATED = false`
+`LLM_CALLS = 0`
+`MARKET_OUTCOMES_OPENED = false`
+`NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`
 
----
+Future candidates must carry the planning object in `scripts/research/generator_v0/feasibility_contract.py`. The transform copies it into a `GV0R02_SCHEMA_V0` proposal. It does not score feasibility. `GENERATOR_CONTRACT_V02` card rules are unchanged. Golden cases and the positive control are unchanged.
+
+## GV0R02 feasibility compiler positive control — 2026-09-25
+
+`POSITIVE_CONTROL_EXECUTED = true`
+`POSITIVE_CONTROL_STATUS = FEASIBLE_FOR_PREREGISTRATION`
+`NEGATIVE_MUTATION_STATUS = INFORMATIONALLY_WEAK`
+`MARKET_OUTCOMES_OPENED = false`
+`GENERATOR_MODIFIED = false`
+`NEXT_UNIT = NONE_AUTHORIZED_AFTER_POSITIVE_CONTROL`
+
+The synthetic planning fixture `GV0R02_POSITIVE_CONTROL_SYNTHETIC` passes `compile_proposal` under the unchanged `GV0R02_POLICY_V0` profile. Reducing only its nominal observation count to 36 returns `INFORMATIONALLY_WEAK` with blocker `MDE_TOO_LARGE`. Golden C012, C004, and C020 were not edited. This is not a market hypothesis and it does not authorize a generator run.
+
+## GV0R02 feasibility compiler implemented — 2026-09-25
+
+`FEASIBILITY_COMPILER_IMPLEMENTED = true`
+`GOLDEN_C012 = PASS`
+`GOLDEN_C004 = PASS`
+`GOLDEN_C020 = PASS`
+`MARKET_OUTCOMES_OPENED = false`
+`POSITIVE_CONTROL_EXECUTED = false`
+`NEXT_UNIT = GV0R02_FEASIBILITY_COMPILER_POSITIVE_CONTROL`
+
+The compiler screens a pre-candidate proposal under `GV0R02_SCHEMA_V0`. It does not decide that a hypothesis is true. Golden C012 is `INFORMATIONALLY_WEAK`, C004 is `INFERENCE_SUPPORT_INSUFFICIENT`, and C020 is a placebo reference test that is `INFORMATIONALLY_WEAK`. The positive control was not run. Code: `scripts/research/gv0r02_feasibility_compiler.py`.
+
+## GV0R02 feasibility compiler design — 2026-09-25
+
+`FEASIBILITY_COMPILER_IMPLEMENTED = false`
+`GENERATOR_MODIFIED = false`
+`NEXT_UNIT = GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_IMPLEMENTATION`
+
+The compiler is a cheap outcome-blind screen before preregistration. It does not decide that a hypothesis is true and it is not implemented in this unit. Binance 2020–2024 stays discovery, BitMEX 2016–2019 stays a historical replication candidate, and 2025–2026 stays protected. C012, C004, and C020 remain closed and are the golden cases. Contract: `docs/research/GV0R02_FEASIBILITY_COMPILER_DESIGN.md`.
+
+## GV0R01-C020 closed — reference test, informationally weak — 2026-09-25
+
+`C020_STATUS = CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK_REFERENCE_TEST`
+`C020_EXECUTION_AUTHORIZED = false`
+`EXACT_RANDOMIZATION_CLAIM_STATUS = NOT_JUSTIFIED`
+`OBSERVED_ASSIGNMENT_IN_REFERENCE_SUPPORT = false`
+`SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0`
+`NEXT_UNIT = GV0R02_OUTCOME_BLIND_FEASIBILITY_COMPILER_DESIGN`
+
+The frozen pseudo-holiday procedure compares NYSE closure dates with dates drawn outside holiday weeks. The observed assignment is not in that reference set, so it is not an exact randomization orbit. The number `1.647e-59` is the resolution of the full reference set. The operational Monte Carlo floor is `1/1001`. Validity requires the closure dates to be exchangeable with that reference distribution under the null for calendar factors other than participant removal. The failed power gate is unchanged: stress power at `log(0.90)` is 0.40. No BTC value was opened and no C020 test was run. The old candidate queue is not continued, and the feasibility compiler is not implemented here. C012, C004, and C020 are the later acceptance cases for that compiler. Record: `docs/research/GV0R01_C020_CLOSE.json`.
+
+## GV0R01-C020 outcome-blind design — 2026-09-25
+
+`OUTCOME_BLIND_GATE_RESULT = EXECUTION_INFORMATIONALLY_WEAK`
+`PRIMARY_EVENT_COUNT = 47`
+`ALPHA_ATTAINABLE = true`
+`MARKET_DATA_OPENED_FOR_C020 = false`
+`C020_PRIMARY_TEST_EXECUTED = false`
+`NEXT_UNIT = NO_C020_EXECUTION_AUTHORIZED`
+
+The lead arm is the 47 point-in-time verified NYSE full weekday closures. The US session is NYSE regular hours, 09:30–16:00 America/New_York, converted with the statutory DST calendar. The endpoint is the mean of log(US-session quote-volume share / mean share on same-weekday controls at ±2 weeks). Exact pseudo-holiday support reaches alpha 0.05. The execution bar, frozen before power, is log(0.90). At that bar the base synthetic power is 0.79 and the stress power is 0.40, so one-shot execution is not justified. F2 and F3 are vetoes and are not power-calibrated. China and early-close arms stay non-decisive. No BTC price or volume was opened. Record: `docs/research/GV0R01_C020_OUTCOME_BLIND_DESIGN.json`.
+
+## GV0R01-C020 holiday calendars pinned — 2026-09-25
+
+`STATUS = HOLIDAY_CALENDARS_PINNED`
+`NYSE_ROLE = PRIMARY_EVENT_DEFINITION`
+`CN_STATE_COUNCIL_ROLE = CONTROL_CONTAMINATION_EXCLUSION_AND_NON_DECISIVE_EXTENSION`
+`US_OPM_ROLE = OTHER_FALSIFIER_SPECIFICITY`
+`MARKET_DATA_OPENED_FOR_C020 = false`
+`NEXT_UNIT = GV0R01_C020_OUTCOME_BLIND_DESIGN_AND_POWER_CONTINUATION`
+
+Discovery years 2020–2024 only. NYSE full weekday closures are 47, all `VERIFIED_PREANNOUNCED`, and are distinct from 9 early closes. One NYSE dash (2021 Juneteenth, no weekday closure) and the OPM 2021 Juneteenth observed date remain `UNRESOLVED_PUBLICATION_TIMING` and are not lead-arm inputs. China non-working and compensating-working dates are separate. No session bound, endpoint, or power was frozen. Record: `docs/research/GV0R01_C020_HOLIDAY_CALENDAR_PIN.json`.
+
+## GV0R01-C020 design blocked on unpinned holiday calendars — 2026-09-25
+
+`C020_DEFINITION_STATUS = UNAMBIGUOUS`
+`OUTCOME_BLIND_GATE_RESULT = BLOCKED_BY_MISSING_INPUT`
+`MARKET_DATA_OPENED_FOR_C020 = false`
+`NEXT_UNIT = GV0R01_C020_HOLIDAY_CALENDAR_PINNING`
+
+The card is a holiday natural experiment on BTC session volume shares. NYSE, China State Council and US OPM calendars are required with publication dates and are not pinned. No third-party holiday list was substituted. No price or volume value was opened. Inference and power were not reached. Record: `docs/research/GV0R01_C020_DESIGN_BLOCK.json`.
+
+## GV0R01-C004 closed outcome-blind — 2026-09-25
+
+`C004_STATUS = CLOSED_OUTCOME_BLIND_INFERENCE_SUPPORT_INSUFFICIENT`
+`C004_EXECUTED = false`
+`C004_MARKET_OUTCOMES_OPENED = false`
+`PRIMARY_LABEL_ORBIT_SIZE = 16`
+`MIN_ATTAINABLE_EXACT_P = 0.0625`
+`ALPHA_ATTAINABLE = false`
+`SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0`
+`NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C020`
+`NEXT_UNIT = GV0R01_C020_OUTCOME_BLIND_DESIGN_AND_POWER`
+
+The dependence-valid label orbit has 16 configurations, so the exact one-sided floor is 1/16 = 0.0625, above alpha 0.05. Rejection is impossible under that frozen test. The synthetic power gate also fails. No BTC or ETH price was opened and no primary test was run. The 2000-draw Monte Carlo was power planning only. The permutation group was not widened and alpha was not changed. A different design needs a new research-object id. The remaining ready zero-cost Stream-B candidate is C020. Record: `docs/research/GV0R01_C004_CLOSE.json`.
+
+## GV0R01-C004 outcome-blind design — informationally weak — 2026-09-25
+
+`C004_DEFINITION_STATUS = UNAMBIGUOUS`
+`OUTCOME_BLIND_GATE_RESULT = EXECUTION_INFORMATIONALLY_WEAK`
+`MARKET_DATA_OPENED_FOR_C004 = false`
+`NEXT_UNIT = NO_C004_EXECUTION_AUTHORIZED`
+
+The GV0R01-C004 claim is a lower ETH residual-variance share in the 60 minutes after a scheduled FOMC statement. CPI is not in the primary event set. Beta-window overlap makes one dependence component of 76 windows. The graph-preserving label orbit has size 16, so a 5% test is not attainable. No price file was opened. Record: `docs/research/GV0R01_C004_OUTCOME_BLIND_DESIGN.json`.
+
+## GV0R01-C012 closed outcome-blind — 2026-09-25
+
+`C012_STATUS = CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK`
+`C012_EXECUTED = false`
+`C012_MARKET_OUTCOMES_OPENED = false`
+`SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0`
+`NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C004`
+`NEXT_UNIT = GV0R01_C004_OUTCOME_BLIND_DESIGN_AND_POWER`
+
+The amended permutation is structurally valid and fails the frozen 0.50 single-window-SD power bar (stress MDE 0.6093023255813953). No BTC price was opened and no primary test was run. C012 has no evidence for or against anticipatory drift. The failure is ex-ante information content. No further C012 inference amendment is authorized. A different design needs a new research-object id.
+
+The next object is C004, from the Stream-B feasibility ranking after C012 is removed. C004's core FOMC arm is already point-in-time resolved and it needs one free source, which the pinned BLS CPI calendar already supplies. C020 remains behind it. C006, C014 and C016 stay blocked. Record: `docs/research/GV0R01_C012_CLOSE.json`.
+
+## GV0R01-C012 inference amendment — outcome-blind, not powered — 2026-09-25
+
+`AMENDED_POWER_GATE_RESULT = INFERENCE_AMENDMENT_VALID_BUT_INFORMATIONALLY_WEAK`
+`STRUCTURAL_INVARIANCE_STATUS = PASS`
+`MARKET_DATA_OPENED_FOR_C012 = false`
+`C012_PRIMARY_TEST_EXECUTED = false`
+`NEXT_UNIT = NO_EXECUTION_AUTHORIZED`
+
+The primary randomization group is now `G_C012_TOPO`, the stratum-preserving automorphisms of the frozen 198-node overlap graph. The label orbit has size `3204454418600404451328000000000`. Under variance inflation 2, the synthetic 80% MDE is about 0.61 single-window SD units, above the 0.50 bar. Execution is not authorized. Record: `docs/research/GV0R01_C012_INFERENCE_AMENDMENT.json`.
+
+## GV0R01-C012 one-shot stopped before prices — dependence defect — 2026-09-25
+
+`RUN_STATUS = BLOCKED_INFERENCE_DEPENDENCE_DEFECT`
+`GLOBAL_PERMUTATION_INVARIANCE_STATUS = NOT_ESTABLISHED`
+`MARKET_DATA_OPENED_FOR_C012 = false`
+`C012_PRIMARY_TEST_EXECUTED = false`
+`NEXT_UNIT = GV0R01_C012_OUTCOME_BLIND_INFERENCE_AMENDMENT`
+
+Identity checks on the frozen design, preflight, and discovery manifest passed. The complete overlap graph of the 198 frozen windows has 177 components and maximum size 2. 240 allowed within-stratum label swaps exchange observations whose outside-stratum overlap neighbors differ (154 observations). Within-stratum separation does not establish exchangeability of the complete statistic. No price value was opened. The primary test was not run. Record: `docs/research/GV0R01_C012_DEPENDENCE_BLOCK.json`.
+
+## C012 discovery-period BTC months pinned — 2026-09-25
+
+`STATUS = DISCOVERY_MARKET_BYTES_PINNED`
+`MARKET_DATA_OPENED_FOR_C012 = false`
+`NEXT_UNIT = GV0R01_C012_ONE_SHOT_EXECUTION`
+
+The 60 monthly Binance BTCUSDT 1m objects for 2020-01 through 2024-12 are on disk and match snapshot `717d37a4…`. No 2025 or 2026 object was fetched. No C012 return was computed. Manifest: `docs/research_data/C012_DISCOVERY_BTC_1M_V0/MANIFEST.json`, digest `78e3f54a…`.
+
+## GV0R01-C012 one-shot execution blocked before prices — 2026-09-25
+
+`PREFLIGHT_STATUS = PASS`
+`RUN_STATUS = BLOCKED_MARKET_BYTES_ABSENT`
+`MARKET_DATA_OPENED = false`
+`NEXT_UNIT = GV0R01_C012_ONE_SHOT_EXECUTION`
+
+The calendar preflight committed at `61ce003` assigns a control to all 99 events with no reuse. Within each stratum the windows are at least 7 days apart, so the frozen within-stratum permutation is compatible with that assignment. The pinned `CORE_BTC_BINANCE_V0` 1m months are not on disk. The snapshot identity runs through 2026-08, so the full materializer was not started. No price file was opened and no return was computed.
+
+## GV0R01-C012 outcome-blind design and power — 2026-09-25
+
+`C012_DESIGN = PREREGISTRATION_CANDIDATE`
+`OUTCOME_BLIND_GATE = EXECUTION_JUSTIFIED`
+`EXECUTION_AUTHORIZED = false`
+`NEXT_UNIT = GV0R01_C012_ONE_SHOT_EXECUTION`
+
+This section supersedes `NEXT_UNIT = GV0R01_C012_OUTCOME_BLIND_DESIGN_AND_POWER` below.
+
+The primary specification is singular: FOMC and CPI, 24h window ending one minute before the release, two-sided stratified permutation against year/weekday/UTC-hour controls. The other five card variants cannot decide. The universe is 60 CPI events plus 39 pinned FOMC events. Both overlapping pairs and all 11 long-gap CPI events stay in.
+
+No BTC series was opened and no pre-release return was computed. The planning MDE at `n = 94/2` is 0.409 sigma, under the pre-set 0.50-sigma bar, so the gate justifies a later execution. This unit does not authorize it. A 0.25-sigma drift is not powered.
+
+Record: `docs/research/GV0R01_C012_OUTCOME_BLIND_DESIGN.{md,json}` and `docs/research/GV0R01_C012_POWER.json`.
+
+## BLS CPI release-schedule archive V0 pinned — 2026-09-25
+
+`BLS_CPI_CALENDAR_V0 = DURABLY_PINNED`
+`C012_CPI_BLOCKER_RESOLVED = true`
+`C004_CPI_BLOCKER_RESOLVED = true`
+`NEXT_UNIT = GV0R01_C012_OUTCOME_BLIND_DESIGN_AND_POWER`
+
+This section supersedes `NEXT_UNIT = GV0R01_C012_CPI_CALENDAR_ACQUISITION_AND_OUTCOME_BLIND_DESIGN` below. It also supersedes that section's note that the sandbox refuses `bls.gov` and `web.archive.org`: both hosts were reachable in this run.
+
+`BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0` holds the point-in-time CPI release schedule for 2020–2024:
+
+- **Coverage.** 60 events, all `VERIFIED_PREANNOUNCED` and safe for 6h, 12h and 24h windows. There are no reschedules and no unresolved events.
+- **Sources.** The authority is the first-party BLS schedule page, dated by Wayback captures whose bytes match the CDX digest. UTC is derived from the frozen `STATUTORY_DST_CALENDARS`.
+- **Content.** Schedule metadata only: no CPI values, no market data, and protected 2025/2026 values stay unopened.
+
+The dataset resolves only the CPI calendar observable, and C012 and C004 may reference it later. Neither has been designed, preregistered or powered.
+
+Record: `docs/research/BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0_ACQUISITION.{md,json}`. Dataset: `docs/research_data/BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0/`.
+
+## Post-C013 program decision — GV0R01 Stream-B feasibility triage — 2026-09-25
+
+`C013_PROGRAM_STATE = PROMISING_PROTOTYPE / CONFIRMATION_DEFERRED_LOW_POWER`
+`NEXT_CANDIDATE_FOR_DESIGN = GV0R01-C012`
+`RUN_GV0R02_NEXT = false`
+`NEXT_UNIT = GV0R01_C012_CPI_CALENDAR_ACQUISITION_AND_OUTCOME_BLIND_DESIGN`
+
+This section supersedes `NEXT_UNIT = POST_GV0R01_C013_CONFIRMATION_FEASIBILITY_PROGRAM_DECISION` below.
+
+C013 is parked pending an adequate independent surface. There is no underpowered confirmation and no rescue, and 2025/2026 stay sealed.
+
+The six GV0R01 Stream-B candidates were triaged outcome-blind:
+- **Ready after free public acquisition:** C004, C012 and C020 (official calendars).
+- **Blocked on point-in-time semantics:** C006 and C014 (DVOL non-revision cannot be evidenced from the free source).
+- **Blocked on expensive data:** C016 (the card's spread control needs paid L2 history).
+
+C012 (pre-announcement BTC drift before scheduled FOMC and CPI releases) is next, chosen on feasibility only:
+- its FOMC arm is already point-in-time resolved;
+- it needs one free source, the BLS CPI schedule archive;
+- it declares the smallest search surface;
+- it is BTC-only, which allows a pre-2020 confirmation route.
+
+Its design must plan confirmation power before any discovery run. This sandbox refuses `bls.gov` and `web.archive.org`, so they must be allowed in the environment network settings for the CPI pinning.
+
+Record: `docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.{md,json}`.
+
+## GV0R01-C013 independent confirmation — feasibility decided, not executable — 2026-09-25
+
+`FRESH_SURFACE_DECISION = WAIT_FOR_MORE_FRESH_DATA`
+`CONFIRMATION_FEASIBILITY = UNDERPOWERED_ON_EVERY_AVAILABLE_OR_FORESEEABLE_FRESH_SURFACE`
+`CONFIRMATION_PREREG_CREATED = false`
+`EXECUTION_AUTHORIZED = false`
+`NEXT_UNIT = POST_GV0R01_C013_CONFIRMATION_FEASIBILITY_PROGRAM_DECISION`
+
+This section supersedes `NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN` below.
+
+The outcome-blind confirmation design for GV0R01-C013 (discovery `PROMISING_PROTOTYPE`, not a validated edge) found no adequately powered fresh surface.
+
+- **Method.** Power was planned from exposed 2020–2024 material only, by resampling whole exposed years to preserve dependence.
+- **Why power is low.** The discovery's year-level heterogeneity dominates. Yearly means are negative in 2020–2022 and positive in 2023–2024, with a between-year sd of about 2.5× the effect.
+- **Power at the discovery effect.** Statistical + direction power is 0.60 for 2025 only, 0.52 for 2025 plus the available 2026 prefix, and 0.69 for full 2025–2026. The target is 0.80, which needs about 9 independent years. Attenuated effects are lower still.
+- **Alternative surface.** Pre-2019-12 Binance spot history cannot support an N=50 universe.
+
+2025 and 2026 remain sealed and unspent; only metadata was listed and no payload was opened. No confirmation test is registered, and `TF-GV0R01-C013-CONF1` is reserved only. The owner decides the program next, for example parking C013 as unconfirmable for now. There is no parameter, horizon, sign or regime rescue.
+
+Record: `docs/research/GV0R01_C013_CONFIRMATION_FEASIBILITY_AND_DESIGN.{md,json}`, with power in `docs/research/GV0R01_C013_CONFIRMATION_POWER.json`.
+
+## GV0R01-C013 result ingested into full scientific memory — 2026-09-25
+
+`MARKET_TEST_RESULT_EVENT = IMPLEMENTED`
+`GV0R01_C013_RESULT_MEMORY_INGESTION = COMPLETE`
+`NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN` (unchanged)
+
+The memory chain is now `LEGACY_BOOTSTRAP → GV0CAL → GV0R01 → GV0R01C013MT1`. The head is `853ef4514460a18b5aa16bf3fff86ece027c52e4b58d92dfbf98034f1fde9373`. Memory holds 57 signatures, 35 attempt records and 1 market result.
+
+The immutable C013 discovery result (`TF-GV0R01-C013-MT1`, `PROMISING_PROTOTYPE`, result SHA256 `036016c4…`) is attached to full **human** scientific memory under `MECHANISM_MEMORY_V0.MARKET_TEST_RESULTS`. It is not a validated edge. Independent confirmation has not been designed or executed.
+
+The blind generator map and the governance authority are byte-for-byte unchanged and outcome-neutral. GV0R01-C013 stays `PRIOR_WORK_SIGNATURE` for the generator, and its governance row stays `CONSUMED`. No market data were read, no outcome was computed, and no provider was called. See `docs/research/GENERATOR_V0_MEMORY_FINALIZER.md` §8.
+
+## GV0R01-C013 one-shot market test — executed — 2026-09-25
+
+`GV0R01_C013_MARKET_TEST = EXECUTED_ONCE`
+`CLASSIFICATION = PROMISING_PROTOTYPE` (discovery tier; not a validated edge)
+`RERUN_AUTHORIZED = false`
+`NEXT_UNIT = GV0R01_C013_INDEPENDENT_CONFIRMATION_DESIGN`
+
+This section supersedes `NEXT_UNIT = GV0R01_C013_MARKET_TEST_EXECUTION_AUTHORIZATION` below.
+
+The frozen one-shot test `TF-GV0R01-C013-MT1` ran once under the owner permit committed in `386bc10`. The result is `docs/research/GV0R01_C013_MARKET_TEST_RESULT.json` (SHA256 `036016c403f83e4c63b2e006379551a0f595e8803cb55a0ef8f27a19ce3a1062`).
+
+- All six frozen gates passed: statistical, direction, temporal, control, dependence and adjacency.
+- Primary K5/H1/N50: pooled weekly-mean Spearman −0.0199, permutation p 0.002 (the 1000-draw floor).
+- Controlled statistic −0.0535, p 0.002. Newey–West t −2.48. Adjacency −0.0214.
+- Yearly means are negative in 2020–2022 and positive in 2023–2024. The temporal gate passed exactly at 3 of 5.
+- Coverage: 1820/1820 valid days, 260 valid weeks. Missing-target rate 0.03%.
+- The seven secondary variants are descriptive only and cannot change the classification.
+
+This is discovery evidence only. It requires independent confirmation, which has **not** been designed or executed. No trading or profitability claim is made. Protected 2025/2026 remain unopened. Generator V0 memory is unchanged: the result enters full memory only through a later deterministic `MARKET_TEST_RESULT` event, and the generator's blind map stays outcome-neutral.
+
+Record: `docs/research/GV0R01_C013_MARKET_TEST_OUTCOME.{md,json}`. Ledger: `docs/research/SCIENTIFIC_TEST_LEDGER.json` (`EXECUTED`; search family `SF-GENERATOR_V0-GV0R01` has 1 executed test out of 30 generated cards).
+
+## GV0R01-C013 first market test — preregistration frozen — 2026-09-25
+
+`GV0R01_C013_MARKET_TEST_DESIGN = FROZEN`
+`EXECUTION_AUTHORIZED = false`
+`MARKET_TEST_EXECUTED = false`
+`NEXT_UNIT = GV0R01_C013_MARKET_TEST_EXECUTION_AUTHORIZATION`
+
+This section supersedes `NEXT_UNIT = FIRST_MARKET_TEST_DESIGN_FOR_GV0R01` below.
+
+The first market test for GV0R01-C013 ("Persistence of intraday wick morphology across the Binance spot USDT cross-section") is frozen as a one-shot discovery-tier preregistration: `docs/research/GV0R01_C013_MARKET_TEST_PREREG.{json,md}`, prereg SHA256 `49dff57b3e068d999c9c4467fb5117de9d73ad564425bf737df727a1096f7625`, test family `TF-GV0R01-C013-MT1`.
+
+- Primary variant: K=5 trailing CLV, H=1 residual wick target, top-50 universe on the Sprint 04 panel, decision days 2020-01-06..2024-12-29.
+- Primary statistic: weekly-mean Spearman correlation.
+- Null: 1000 within-date quote-volume-tercile permutations.
+- Direction: negative (persistence).
+- Gates: the card's three falsifiers, plus dependence (HAC) and adjacency gates that only narrow support.
+
+The deterministic harness is `scripts/research/gv0r01_c013_market_test{,_lib}.py`, tested on synthetic panels only. It is registered in the new global `docs/research/SCIENTIFIC_TEST_LEDGER.json` before any outcome. No C013 outcome was computed. Protected 2025/2026 remain unopened. Execution requires an explicit owner permit bound to the prereg digest.
+
+## Generator V0 first 30-card run GV0R01 — 2026-09-25
+
+`GENERATOR_V0_FIRST_30_CARD_RUN = COMPLETE`
+`CAMPAIGN_ID = GV0R01`
+`CAMPAIGN_STATUS = PENDING_HUMAN_REVIEW`
+`MEMORY_FINALIZATION = COMPLETE`
+`NEXT_UNIT = FIRST_MARKET_TEST_DESIGN_FOR_GV0R01`
+
+This section supersedes the Generator V0 `NEXT_UNIT` / `NEXT_ACTION` entries below.
+
+The first real 30-card campaign ran on the frozen routed architecture:
+- 3 generator POSTs;
+- 30 novelty, 30 feasibility and 30 red-team calls;
+- 0 selector LLM calls;
+- 93 calls, all complete, none unresolved;
+- USD 5.091486 spent under the USD 10.00 hard cap.
+
+All 30 cards were valid and reviewed. Stream A (`EXECUTABLE_NOW`) is C013. Stream B (`HIGH_VALUE_DATA_BLOCKED`) is C004, C006, C012, C014, C016 and C020. The deterministic shortlist is C013, C014, C006, C012, C016.
+
+The journal is sealed and archived at `docs/research/generator_v0_gv0r01/run.sqlite` (SHA256 `de22f7c2aeb0487842a2477e5a2f44e3df7a9cbf007785cfaf213cbcd648be62`). It is registered in `GENERATOR_V0_SEALED_RUNS.json`.
+
+Memory Finalizer V1 applied event `416b22fabd1663be9094bce18c5bce2a8b3d062b0b01525a25395d195788bead` (current memory head, chain `LEGACY_BOOTSTRAP → GV0CAL → GV0R01`):
+- 30 attempt records;
+- 22 new signatures (1 `CONSUMED`, 21 `DEFERRED_OR_BLOCKED`);
+- 4 links to prior signatures and 4 batch links;
+- 57 memory entries and 35 attempt records in total.
+
+C013 (`GV0R01-C013`, "Persistence of intraday wick morphology across the Binance spot USDT cross-section") is the sole current GV0R01 `EXECUTABLE_NOW` research candidate after generator and critic governance. Its market outcome remains completely untested. It is **not** a validated market hypothesis, and no card has been executed. The other GV0R01 signatures are durable prior work and must not be regenerated with cosmetic changes. Protected 2025/2026 remain unopened. `MARKET_OUTCOMES_TESTED = false`.
+
+Record: `docs/research/GENERATOR_V0_FIRST_30_CARD_RUN_GV0R01.{md,json}`.
+
+## Generator V0 first 30-card production-path repair — 2026-09-24
+
+`FIRST_30_PRODUCTION_PATH_REPAIRED = true`
+`NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`
+`NEXT_ACTION = FIRST_30_CARD_RUN_AFTER_INDEPENDENT_REVERIFY`
+
+Offline repair of three execution defects. No live call and no scientific change. Memory Finalizer V1 is unchanged.
+
+- `GENERATOR_CONTENT_ATTEMPTS = 1` (`GENERATOR_CONTENT_RETRIES = 0`). A size-30 campaign has `MAX_GENERATOR_POSTS = 3`. Critics still use `MAX_CONTENT_ATTEMPTS = 2`. The budget reservation is unchanged.
+- First 30-card selector: `SELECTOR_LLM_CALLS = 0`, `SELECTOR_AUTHORITY = DETERMINISTIC_ORDINAL_ORDER`, advisory `NOT_CALLED` / `deterministic-only first 30-card run`. Other sizes keep the historical advisory call.
+- Cloud Agent OpenAI: `OPENAI_NETWORK_MODE = CLOUD_PROXY`, chosen explicitly by `first-30-card`. Transport is `CloudProxyOpenAITransport`. No `OPENAI_API_KEY`. Anthropic still requires `SIGNALBOT_ANTHROPIC_API_KEY` or `ANTHROPIC_API_KEY`. `HTTPS_PROXY` does not select the mode.
+
+Record: `docs/research/GENERATOR_V0_FIRST_30_PRODUCTION_PATH_REPAIR.{md,json}`.
+
+## Generator V0 memory finalizer V1 — 2026-09-24
+
+`MEMORY_FINALIZER_V1 = ACTIVE`
+`NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`
+
+Mechanism memory is now an append-only event chain (`docs/research/generator_v0_memory/`): `LEGACY_BOOTSTRAP` (`54afd1ed229cca6785586534102df3b6fb5129e736def4f5df726225b16773e8`, the 30 pre-GV0CAL entries verbatim from `d4b28de`) then `GV0CAL` (`358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad`, head at that time), derived deterministically from the calibration export. GV0CAL governance is unchanged: C001/C002/C005 `CONSUMED`, C003/C004 `DEFERRED_OR_BLOCKED` with the same blocker classes. Governance rows are no longer embedded in the frozen design; the mirrors and context pins are derived caches. After the first 30-card run, finalize it with `python -m scripts.research.generator_v0.finalize_memory` in the same VM. No provider call, no market outcome, no protected data. Canonical record: `docs/research/GENERATOR_V0_MEMORY_FINALIZER.{md,json}`.
+
+## Generator V0 calibration-memory ingestion — 2026-09-24
+
+`CALIBRATION_MEMORY_INGESTION_COMPLETE = true` (manual workflow superseded by the memory finalizer above; kept as its golden source)
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`
+
+All five durable calibration cards are now represented in mechanism memory before the first 30-card generation. Stable prior IDs are `GV0CAL-C001`–`GV0CAL-C005`. The generator sees only outcome-neutral prior-work signatures. The novelty critic sees C001/C002/C005 as consumed prior signatures and C003/C004 as deferred/blocked methodological regions with explicit blocker-resolution requirements. No market outcomes were tested; protected 2025/2026 remain unopened. The architecture freeze is unchanged.
+
+Canonical record: `docs/research/GENERATOR_V0_CALIBRATION_MEMORY_INGESTION.{json,md}`.
+
+## Generator V0 first 30-card architecture freeze — 2026-09-24
+
+`NEXT_UNIT = GENERATOR_V0_FIRST_30_CARD_RUN`  
+`NEXT_ACTION = FIRST_30_CARD_RUN_AFTER_OPERATIONAL_PERSISTENCE_REVIEW`
+
+This section supersedes older Generator V0 `NEXT_UNIT` / `NEXT_ACTION` entries below.
+
+The live transport repair/calibration cycle is closed for the first campaign:
+- Anthropic Opus generator completed live;
+- background Sol NOVELTY completed live;
+- Luna FEASIBILITY completed live;
+- background Sol RED_TEAM completed live;
+- the five-card critic calibration completed all final chains.
+
+The first full campaign is frozen at 30 cards: three 10-card Opus rounds, no generator retry. Routed authority remains `scripts/research/generator_v0/routing.py`. Cloud OpenAI runtime binding is `scripts/research/generator_v0/cloud_openai_transport.py` under `docs/AGENT_RUNTIME_PROTOCOL.md`.
+
+No further precautionary smoke/calibration cycles are required before the first 30-card run. Reopen transport/routing only for a concrete execution defect or explicit owner amendment. Calibration/smoke evidence has no scientific status; protected 2025/2026 remain unopened.
+
+Canonical record: `docs/research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.{md,json}`.
+
+## Generator V0 background RED_TEAM transport — 2026-09-24
+
+`NEXT_UNIT = GENERATOR_V0_BACKGROUND_RED_TEAM_SMOKE`.
+The critic-only continuation of the five-card cost calibration (recovered Opus generator round, USD 0.892012, 10/10 admitted, cards C001-C005) completed C001 background NOVELTY (USD 0.029376) and C001 FEASIBILITY (USD 0.000415), then stopped on C001 synchronous Sol `RED_TEAM` HTTP 502 `UNCERTAIN`. That call was reconciled UNKNOWN at its full reservation (USD 0.098806; no response_id or usage existed). By owner authorization only the RED_TEAM transport now uses background Responses; model, effort, prompt, schema, token cap and every other role are unchanged. No live call in this amendment; the calibration is not complete. See `docs/research/GENERATOR_V0_BACKGROUND_RED_TEAM_TRANSPORT_AMENDMENT.md`.
+
+## Generator V0 background novelty transport — 2026-09-24
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_BACKGROUND_NOVELTY_INDEPENDENT_REVIEW` (superseded by the RED_TEAM transport amendment above).
+The final compact re-smoke completed (Opus, Luna and Sol; new spend USD 0.962547). The five-card cost calibration then stopped twice on ambiguous non-JSON HTTP 502s from routed Sol `NOVELTY_CRITIC` (one reconciled UNKNOWN, one still UNCERTAIN). Only that role's transport now uses background Responses (one create POST, then GET polling by response_id). Model, effort, prompt, schema and every other role are unchanged. No live call in this amendment; the calibration is not complete. See `docs/research/GENERATOR_V0_BACKGROUND_NOVELTY_TRANSPORT_AMENDMENT.md`.
+
+## Generator V0 re-smoke guard — 2026-09-24
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_FINAL_RE_SMOKE_REVIEW` (performed; see above).
+The Anthropic synchronous timeout is 1800 s. The re-smoke ledger carries historical spend USD 0.713332 inside an absolute cap of USD 3.10, and `run_resmoke` allows one Anthropic GENERATOR POST with no content retry and no transport replay. No live call in this follow-up. See `docs/research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.md`.
+
+## Generator V0 Anthropic GENERATOR output-cap amendment — 2026-09-24
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_OUTPUT_CAP_INDEPENDENT_REVIEW` (accepted; see the re-smoke guard below).
+The live compact re-smoke was accepted by Anthropic (HTTP 200) but stopped at `max_tokens` after 32,768 output tokens (17,396 thinking), cost USD 0.713332, one POST, no critic calls. By owner decision only the routed Anthropic GENERATOR output cap rises to 100,000; model, effort, round size, candidate count, compact projection and V02 rules are unchanged, and the legacy OpenAI cap stays 32,768. Every generator call key changes. Failed attempts now record only `wire_sha256`. The next re-smoke fits the USD 3.10 absolute smoke ceiling (3.038724 incl. history). No live call in this repair. See `docs/research/GENERATOR_V0_ANTHROPIC_OUTPUT_CAP_AMENDMENT.md`.
+
+## Generator V0 Anthropic compact GENERATOR projection — 2026-09-24
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_ANTHROPIC_RE_SMOKE` (performed; see the output-cap amendment above).
+The first Anthropic smoke was rejected with HTTP 400 "compiled grammar is too large" at cost USD 0. The Anthropic GENERATOR request now uses a compact array wire format with one shared card schema. Intake enforces the exact keyed slot schema and V02 rules before any card is VALID or reaches a critic. No scientific change and no real API call. See `docs/research/GENERATOR_V0_ANTHROPIC_COMPACT_PROJECTION.md`.
+
+## Generator V0 outcome-blind multi-provider routing — 2026-09-24
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW` (verified; see the compact projection above).
+PR #214 was verified `READY_FOR_PROVIDER_SMOKE_TEST`. This unit adds an infrastructure-only routing layer:
+- GENERATOR → Anthropic `claude-opus-5-5` (effort high);
+- NOVELTY_CRITIC and RED_TEAM → OpenAI `gpt-6-sol` (high);
+- FEASIBILITY_CRITIC and the advisory SELECTOR → OpenAI `gpt-6-luna` (low / none).
+
+Recorded as an outcome-blind routing amendment; scientific stages and contracts are unchanged. No real API call, no live shadow. See `docs/research/GENERATOR_V0_MULTI_PROVIDER_ROUTING_AMENDMENT.md`.
+
+## Generator V0 final narrow repair (after re-verification) — 2026-09-23
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION` (verified READY_FOR_PROVIDER_SMOKE_TEST; see the routing amendment above).
+The final narrow offline repair covers three residual classes:
+- abbreviated cross-year ranges;
+- imperative trade language;
+- the fail-closed budget gate moved into `run_campaign`, so it no longer depends on the CLI.
+
+Completion state is `READY_FOR_FINAL_RE-VERIFICATION`, not a provider smoke test or live shadow. See `docs/research/GENERATOR_V0_LIMITED_REPAIR.md`.
+
+## Generator V0 limited offline repair (after PR #215 verification) — 2026-09-23
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION` (re-verified; see the final narrow repair above).
+Limited offline repair of the five blockers found by the independent
+verification (PR #215):
+- keyed novelty prompt/schema/parser contract;
+- sealed journals refused inside `Ledger`;
+- dispatch state machine so a possibly-POSTed call is never re-sent without evidence;
+- Unicode-normalized structural temporal/protected/trade checks;
+- budget preflight for fresh and derived journals, with a scenario table and no run shape chosen.
+Completion state is `READY_FOR_RE-VERIFICATION`, not a provider smoke test or live shadow. No paid call, no protected data, no scientific outcome; v6/v7 sealed and untouched. See `docs/research/GENERATOR_V0_LIMITED_REPAIR.md`.
 
 ## Generator V0 pre-live repair (offline) — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW` (reviewed by PR #215; see the limited repair above).
 Offline repair of the audit findings behind the v4–v7 one-failure-per-run
 history: per-card quarantine instead of campaign aborts, a single V02 rule
 contract (prompt and validator derived from one table), decoding-level
@@ -78,8 +494,8 @@ PREVIOUS_ROUTING            = POST_SPRINT04_AUTOMATION_MATURITY_DECISION
 PREVIOUS_ROUTING_SUPERSEDED = true
 R_A_CURRENT_STATUS          = DISCOVERY_SPRINT_01_D1
 MARKET_07_CREATED           = false
-NEXT_UNIT                   = GENERATOR_V0_PRE_LIVE_REPAIR_LIMITED_OFFLINE_REPAIR_REQUIRED
-NEXT_ACTION                 = LIMITED_OFFLINE_REPAIR_THEN_PROVIDER_SMOKE_TEST_NOT_LIVE_SHADOW
+NEXT_UNIT                   = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW
+NEXT_ACTION                 = INDEPENDENT_REVIEW_OF_MULTI_PROVIDER_ROUTING_NO_LIVE_RUN
 POST_SPRINT04_AUTOMATION_MATURITY_DECISION = HYPOTHESIS_GENERATOR_V0_INFRA_READY
 HYPOTHESIS_GENERATOR_V0_DESIGN = FROZEN_NOT_IMPLEMENTED
 GENERATOR_MODE              = SHADOW_ONLY

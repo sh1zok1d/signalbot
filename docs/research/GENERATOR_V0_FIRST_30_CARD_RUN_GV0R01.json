@@ -1,0 +1,191 @@
+{
+  "BUDGET_STOP_ACCEPTED": true,
+  "CALLS": {
+    "BY_ROLE": {
+      "FEASIBILITY_CRITIC": 30,
+      "GENERATOR": 3,
+      "NOVELTY_CRITIC": 30,
+      "RED_TEAM": 30
+    },
+    "BY_STATE": {
+      "COMPLETE": 93
+    },
+    "CRITIC_CONTENT_RETRIES": {},
+    "GENERATOR_POSTS": 3,
+    "SELECTOR_LLM_CALLS": 0,
+    "TOTAL": 93,
+    "UNRESOLVED": []
+  },
+  "CAMPAIGN_ID": "GV0R01",
+  "CARDS": {
+    "HARD_FAIL": 0,
+    "REVIEWED": 30,
+    "REVIEW_FAILED": 0,
+    "SLOTS": 30,
+    "VALID": 30
+  },
+  "CREDENTIALS_STORED": false,
+  "DATE": "2026-09-25",
+  "ENTRYPOINT": "python -m scripts.research.generator_v0 first-30-card --budget-usd 10.00 --accept-budget-stop --actor owner",
+  "EVIDENCE_KIND": "SHADOW_HYPOTHESIS_GENERATION_AND_GOVERNANCE_NO_MARKET_TEST",
+  "FINAL_STATUS": "PENDING_HUMAN_REVIEW",
+  "GENERATOR_CALLS": [
+    {
+      "CALL_KEY": "c614d97c09ea0e0832fd074b5ea79cec9087867842c5cc67e49fec6c6814a911",
+      "COST_MICRO_USD": 904556,
+      "MODEL": "claude-opus-5-5",
+      "RAW_SHA256": "4243aa2eff72e730e6223ca15dc9d858ae889adba5af81d08323972a435b3bbb",
+      "RESERVED_MICRO_USD": 2139480,
+      "SLOT": "generation:0",
+      "STATE": "COMPLETE",
+      "USAGE": {
+        "input_tokens": 16054,
+        "output_tokens": 42017,
+        "thinking_tokens": 16027
+      },
+      "WIRE_SHA256": "5250eaeb8b45965d8a30abdf71c61fc3e401844d8095064238db400c188a7765"
+    },
+    {
+      "CALL_KEY": "a6fa912f8b3df56db39d62a851379f3a56f2dae20c2d1e0ff942a978f08b619a",
+      "COST_MICRO_USD": 955064,
+      "MODEL": "claude-opus-5-5",
+      "RAW_SHA256": "620b77004e179c15e223bdf14818de7a493fe6a3110dc844cba7d0a6fe7a31b6",
+      "RESERVED_MICRO_USD": 2139540,
+      "SLOT": "generation:1",
+      "STATE": "COMPLETE",
+      "USAGE": {
+        "input_tokens": 16066,
+        "output_tokens": 44540,
+        "thinking_tokens": 21941
+      },
+      "WIRE_SHA256": "1ede1918deb5850dc6e09d40a45954d070a041275fc4d94bbd8475a9dda755b1"
+    },
+    {
+      "CALL_KEY": "ed8e912e7d11735abd6764781d19e0b465497785cc4605644253f6a6045b8c0c",
+      "COST_MICRO_USD": 977056,
+      "MODEL": "claude-opus-5-5",
+      "RAW_SHA256": "5febfbcc7dff3ddca836d4f9c57ddab34c3fa86b3dc971c18bf2a938e2c60481",
+      "RESERVED_MICRO_USD": 2140244,
+      "SLOT": "generation:2",
+      "STATE": "COMPLETE",
+      "USAGE": {
+        "input_tokens": 16224,
+        "output_tokens": 45608,
+        "thinking_tokens": 22044
+      },
+      "WIRE_SHA256": "dc297e881a0fe9e5f7ea1f18d6ad3187d617e37d37485f07a211fb71bd87dfbf"
+    }
+  ],
+  "HARD_CAMPAIGN_CAP_USD": "10.000000",
+  "HYPOTHESES_EXECUTED": false,
+  "JOURNAL_SEALED": true,
+  "JOURNAL_SHA256": "de22f7c2aeb0487842a2477e5a2f44e3df7a9cbf007785cfaf213cbcd648be62",
+  "MARKET_OUTCOMES_TESTED": false,
+  "MEMORY_DELTA_SHA256": "63bfdb6f40278ef83d8f31cdc2122907999da0a5f132504d1051d5c0f3abe85c",
+  "MEMORY_EVENT_HASH": "416b22fabd1663be9094bce18c5bce2a8b3d062b0b01525a25395d195788bead",
+  "MEMORY_FINALIZATION": {
+    "ATTEMPT_RECORDS": 30,
+    "C013_DURABLE_ID": "GV0R01-C013",
+    "C013_GOVERNANCE_STATE": "CONSUMED",
+    "CONSUMED": 1,
+    "DEFERRED_OR_BLOCKED": 21,
+    "INVALID_OUTPUTS": 0,
+    "LINKS_TO_BATCH_ATTEMPTS": 4,
+    "LINKS_TO_PRIOR_SIGNATURES": 4,
+    "NEW_CANONICAL_SIGNATURES": 22,
+    "RESULTING_ATTEMPT_RECORD_COUNT": 35,
+    "RESULTING_MEMORY_ENTRY_COUNT": 57,
+    "REVIEW_INCOMPLETE": 0
+  },
+  "MEMORY_SOURCE_SHA256": "f5992fff8219a2d6736c99de5ee5e6ae653044299a752fe3a0192c34a44a8579",
+  "NOTE": "Generated cards and critic judgments are shadow ideation and governance. They are not evidence of a market effect, profitability or a validated edge.",
+  "OPENAI_NETWORK_MODE": "CLOUD_PROXY",
+  "PREVIOUS_MEMORY_HEAD": "358f06d4e2d1f7d1657c89544fc702d7dffe7bf6c1ec920ceab4228f7a50c3ad",
+  "PRE_SEAL_JOURNAL_SHA256": "841840ccf40e7a5b87dc31fcb1884832b9ee8a0b14afdc6f4f0255699ccd9264",
+  "PROTECTED_2025_2026_OPENED": false,
+  "RECORD": "GENERATOR_V0_FIRST_30_CARD_RUN_GV0R01",
+  "RUN_CONFIG": {
+    "CAP_MICRO_USD": 10000000,
+    "CONTEXT_DIGEST": "a36d9a3b876728efe5a3bc9f69c22b7122dc394928415c1d10e092231db7c929",
+    "GENERATOR_MAX_OUTPUT_TOKENS": 100000,
+    "IMPLEMENTATION_DIGEST": "108fb59942cc8fe69bfe65620f70e70f7daead6b1e850d09746a13057d3e480f",
+    "PROVIDER": "ROUTED_MULTI_PROVIDER",
+    "ROLE_MODEL_MAP": {
+      "FEASIBILITY_CRITIC": "gpt-6-luna",
+      "GENERATOR": "claude-opus-5-5",
+      "NOVELTY_CRITIC": "gpt-6-sol",
+      "RED_TEAM": "gpt-6-sol",
+      "SELECTOR": "gpt-6-luna"
+    },
+    "ROLE_REQUEST_PARAMS": {
+      "FEASIBILITY_CRITIC": {
+        "reasoning_effort": "low"
+      },
+      "GENERATOR": {
+        "effort": "high"
+      },
+      "NOVELTY_CRITIC": {
+        "reasoning_effort": "high"
+      },
+      "RED_TEAM": {
+        "reasoning_effort": "high"
+      },
+      "SELECTOR": {
+        "reasoning_effort": "none"
+      }
+    },
+    "ROUTING_DIGEST": "6dd7a2198b6c51f9c949c9cec9530044763de673b5c558de5e80caffa7f8ace8",
+    "ROUTING_ID": "GENERATOR_V0_MULTI_PROVIDER_ROUTING_V1",
+    "SIZE": 30
+  },
+  "RUN_ID": "first-30-card-r01",
+  "SCIENTIFIC_MARKET_CONCLUSION": null,
+  "SEAL": {
+    "ACTOR": "owner",
+    "OPEN_CALLS": 0,
+    "REASON": "GV0R01 first real 30-card campaign completed at PENDING_HUMAN_REVIEW with all calls resolved; preserve immutable paid-run provenance before memory finalization.",
+    "TIME": "2026-09-25T04:07:14.141875+00:00"
+  },
+  "SELECTOR_ADVISORY": {
+    "REASON": "deterministic-only first 30-card run",
+    "STATUS": "NOT_CALLED"
+  },
+  "SELECTOR_AUTHORITY": "DETERMINISTIC_ORDINAL_ORDER",
+  "SEMANTIC_RESULT_DIGEST": "b9ca7a3d4fe1f11d1f40d8b9839bfa68474e25c81bff83ffc148a2a2ba81fcf6",
+  "SHORTLIST": [
+    "C013",
+    "C014",
+    "C006",
+    "C012",
+    "C016"
+  ],
+  "SOURCE_HEAD": "2412a372b5212def2256b1662b5d45f16a91f515",
+  "SOURCE_TREE": "c9e120ff03572ac7da7181e7a1c0a96fa00da44d",
+  "SPEND_MICRO_USD": {
+    "ANTHROPIC": 2836676,
+    "BY_ROLE": {
+      "FEASIBILITY_CRITIC": 17270,
+      "GENERATOR": 2836676,
+      "NOVELTY_CRITIC": 1719060,
+      "RED_TEAM": 518480
+    },
+    "OPENAI": 2254810,
+    "REMAINING_UNDER_CAP": 4908514,
+    "TOTAL": 5091486
+  },
+  "STREAMS": {
+    "NOT_IN_A_STREAM_COUNT": 23,
+    "STREAM_A_EXECUTABLE_NOW": [
+      "C013"
+    ],
+    "STREAM_B_HIGH_VALUE_DATA_BLOCKED": [
+      "C004",
+      "C006",
+      "C012",
+      "C014",
+      "C016",
+      "C020"
+    ]
+  },
+  "TRACKED_JOURNAL_PATH": "docs/research/generator_v0_gv0r01/run.sqlite"
+}

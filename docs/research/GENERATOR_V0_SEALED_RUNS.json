@@ -9,6 +9,12 @@
       "JOURNAL_SHA256": "e27eb1ce77c5152eff4e68e30c2632ad9bd575ef953b5a069775b5ff46f36457",
       "RUN_ID": "first-shadow-v7",
       "TRACKED_PATH": "docs/research/generator_v0_first_shadow_v7/run.sqlite"
+    },
+    {
+      "CAMPAIGN_ID": "GV0R01",
+      "JOURNAL_SHA256": "de22f7c2aeb0487842a2477e5a2f44e3df7a9cbf007785cfaf213cbcd648be62",
+      "RUN_ID": "first-30-card-r01",
+      "TRACKED_PATH": "docs/research/generator_v0_gv0r01/run.sqlite"
     }
   ]
 }

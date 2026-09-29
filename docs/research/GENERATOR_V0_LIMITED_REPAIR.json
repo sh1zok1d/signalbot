@@ -1,0 +1,117 @@
+{
+  "BASE": "ddda586dc7ea4a9589bc389eef7a6306d64f3d0c",
+  "BLOCKERS": {
+    "B1_NOVELTY_PROMPT_SCHEMA": {
+      "PARSER": "exact per-request provider schema validated before normalization; list forms rejected; duplicate JSON keys rejected",
+      "RESPONSE_SHAPE": {
+        "BATCH_RELATIONS": "object keyed by 39 other candidate IDs -> RELATION (no RESOLVES_BLOCKER)",
+        "JUDGMENTS": "NOVELTY, MECHANISM_DISTANCE, NON_RESCUE 0..3",
+        "PRIOR_RELATIONS": "object keyed by 31 exact leaf signature IDs -> RELATION"
+      },
+      "STATE": "FIXED",
+      "TESTS": "tests/research/test_generator_v0_novelty_contract.py"
+    },
+    "B2_SEALED_BELOW_CLI": {
+      "MECHANISM": "Ledger.__init__ sealed_reason (registry hash or meta SEALED) before connect; read handles refuse every mutator",
+      "STATE": "FIXED",
+      "TESTS": "tests/research/test_generator_v0_sealed_library.py"
+    },
+    "B3_CRASH_AFTER_POST": {
+      "DISPATCH_PROTOCOL": 2,
+      "RECONCILE": {
+        "BILLED": "cost within bound + evidence",
+        "NOT_BILLED": "provider evidence naming the recorded response_id, failed/cancelled, 0 billed output tokens",
+        "UNKNOWN": "charges reserved bound; closes the logical call (never POSTed again)"
+      },
+      "STATE": "FIXED",
+      "TESTS": "tests/research/test_generator_v0_crash_points.py"
+    },
+    "B4_NORMALIZATION": {
+      "EXTERNAL_REGRESSION_PR215_CORPUS": {
+        "ADMITTED_AT_BASE": 47,
+        "ADMITTED_NOW": 0,
+        "ADMITTED_NOW_IDS": [],
+        "ADMIT_INTENT": 26,
+        "COPIED_INTO_REPO": false,
+        "FALSE_POSITIVES_NOW": 0,
+        "ITEMS": 207,
+        "QUARANTINE_INTENT": 181
+      },
+      "STATE": "FIXED_NOT_SEMANTICALLY_COMPLETE",
+      "TESTS": "tests/research/test_generator_v0_textnorm.py"
+    },
+    "B5_BUDGET": {
+      "FRESH_WORST_CASE_MICRO_USD": 27094553,
+      "LIVE_GATE": "run/resume refuse unless fits or --accept-budget-stop with actor and reason (recorded)",
+      "SCENARIOS": "docs/research/generator_v0_repair/BUDGET_SCENARIOS.json",
+      "STATE": "FIXED_DECISION_NOT_TAKEN",
+      "TESTS": "tests/research/test_generator_v0_budget_preflight.py",
+      "V7_DERIVED_WORST_CASE_MICRO_USD": 18276711,
+      "V7_LINEAGE_MICRO_USD": {
+        "IMPORTED_MICRO_USD": 3779550,
+        "PRIOR_MICRO_USD": 1167200,
+        "REMAINING_UNDER_17_10_MICRO_USD": 12153250,
+        "TOTAL_MICRO_USD": 4946750
+      }
+    }
+  },
+  "COMPLETION_STATE": "READY_FOR_FINAL_RE-VERIFICATION",
+  "FINAL_NARROW_REPAIR": {
+    "ABBREVIATED_CROSS_YEAR_RANGES": "FIXED",
+    "BUDGET_STOP_EVENT": "BUDGET_STOP_ACCEPTED (bound to CAP, SPENT, WORST_CASE snapshot)",
+    "EXECUTION_LAYER_BUDGET_GATE": "FIXED",
+    "IMPERATIVE_TRADE_LANGUAGE": "FIXED_STRUCTURAL_NOT_SEMANTIC",
+    "TESTS": "tests/research/test_generator_v0_final_residuals.py"
+  },
+  "NEXT_UNIT": "GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION",
+  "NOISY_E2E": {
+    "CALL_STATES": {
+      "COMPLETE": 117,
+      "FAILED_NOT_BILLED": 3,
+      "FAILED_WITH_COST": 4,
+      "RECONCILED_BILLED": 1
+    },
+    "HARD_FAIL_IDS": [
+      "C020",
+      "C025",
+      "C037"
+    ],
+    "JOURNAL_ROWS": 125,
+    "POSTS": 125,
+    "REVIEW_FAILED_IDS": [
+      "C009",
+      "C010"
+    ],
+    "SPEND": {
+      "JOURNAL_MICRO_USD": 4218734,
+      "LINEAGE_PRIOR_MICRO_USD": 0,
+      "TOTAL_MICRO_USD": 4218734,
+      "UNRESOLVED_CALLS": []
+    },
+    "STATUS": "PENDING_HUMAN_REVIEW",
+    "STEPS": [
+      "CRASH: process died after POST RED_TEAM C011",
+      "PAUSED: PAUSED_UNCERTAIN_CALL",
+      "NOT_BILLED_WITHOUT_EVIDENCE_REFUSED",
+      "RECONCILED_BILLED",
+      "FINAL: PENDING_HUMAN_REVIEW"
+    ]
+  },
+  "NOT": [
+    "READY_FOR_PROVIDER_SMOKE_TEST",
+    "READY_FOR_LIVE_SHADOW"
+  ],
+  "PROTECTED_2025_2026_OPENED": false,
+  "REAL_LLM_CALLS_MADE": false,
+  "RESIDUALS": {
+    "ATTACH_PARSED_RAW_SHA": "FIXED",
+    "SELECTOR_UNEXPLAINED_RESERVED_SPEND": "FIXED",
+    "START_AFTER_END_RANGE": "DOCUMENTED_AND_TESTED_AT_INTAKE",
+    "STATUS_ONLY_PAUSE": "FIXED"
+  },
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SEALED_V6_V7_MODIFIED": false,
+  "UNIT": "GENERATOR_V0_LIMITED_REPAIR",
+  "V7_JOURNAL_SHA256": "e27eb1ce77c5152eff4e68e30c2632ad9bd575ef953b5a069775b5ff46f36457",
+  "VERIFICATION": "PR #215 (B. LIMITED OFFLINE REPAIR REQUIRED)"
+}

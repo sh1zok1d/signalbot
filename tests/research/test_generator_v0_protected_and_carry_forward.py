@@ -45,7 +45,9 @@ def source_config(contexts,run_id='first-shadow-v5'):
     }
 
 def complete_blob(cards,rid):
-    raw=canonical({'CANDIDATES':cards})
+    # Live V02 provider encoding: CANDIDATES keyed by slot ID.
+    from scripts.research.generator_v0.schema import encode_provider_card
+    raw=canonical({'CANDIDATES':{c['CANDIDATE_ID']:encode_provider_card(c) for c in cards}})
     return {'raw':raw,'raw_sha256':hashlib.sha256(('wire-'+rid).encode()).hexdigest(),
             'response_id':rid,'provider_status':'completed','provider_envelope':{'id':rid,'status':'completed'}}
 
@@ -404,9 +406,9 @@ def test_imported_complete_caller_reuse_does_not_post(tmp_path):
     l=Ledger(dest/'run.sqlite')
     p=OpenAIProvider('key',allow_real=True,budget_micro_usd=CAP,transport=lambda *a,**k:pytest.fail('HTTP reached'),sleeper=lambda s:None)
     raw=Caller(c,l,p,CAP,True).call('GENERATOR',c.generator(),GENERATOR_PROMPT,{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':slot_plan(40)[:10]},'generation:0',identity=generator_identity(c,slot_plan(40)[:10]))
-    assert json.loads(raw)['CANDIDATES'][0]['CANDIDATE_ID']=='C001'
+    assert json.loads(raw)['CANDIDATES']['C001']['CANDIDATE_ID']=='C001'
     raw2=Caller(c,l,p,CAP,True).call('GENERATOR',c.generator(),GENERATOR_PROMPT,{'max_output_tokens':GENERATOR_MAX_OUTPUT_TOKENS,'slots':slot_plan(40)[10:20]},'generation:1',identity=generator_identity(c,slot_plan(40)[10:20]))
-    assert any(card['CANDIDATE_ID']=='C018' for card in json.loads(raw2)['CANDIDATES'])
+    assert 'C018' in json.loads(raw2)['CANDIDATES']
     l.close()
 
 def test_invalid_imported_card_is_quarantined_not_repaired(tmp_path):
@@ -417,9 +419,9 @@ def test_invalid_imported_card_is_quarantined_not_repaired(tmp_path):
     key,request,response=l.db.execute('SELECT key,request,response FROM calls WHERE request LIKE ?',('%generation:1%',)).fetchone()
     l.close()
     blob=json.loads(response)
-    cards=json.loads(blob['raw'])['CANDIDATES']
+    keyed=json.loads(blob['raw'])['CANDIDATES'];cards=[keyed[k] for k in sorted(keyed)]
     cards[0]['DATA_REQUIRED'][0]['LEGAL_RANGE']='2020-01..2025-06'
-    blob['raw']=canonical({'CANDIDATES':cards})
+    blob['raw']=canonical({'CANDIDATES':keyed})
     w=sqlite3.connect(src/'run.sqlite')
     w.execute('UPDATE calls SET response=? WHERE key=?',(canonical(blob),key));w.commit();w.close()
     report=derive_complete_rounds(src,tmp_path/'dst',1,c)
@@ -466,7 +468,7 @@ def test_offline_derive_authorize_continue_to_pending_human_review(tmp_path,monk
     assert l.db.execute('SELECT count(*) FROM cards').fetchone()[0]==0
     p_block=MockProvider(lambda r:pytest.fail('provider complete reached'))
     with pytest.raises(ContractError,match='generation continuation is not authorized'):
-        run_campaign(c,Caller(c,l,p_block,CAP,False))
+        _accepted(c,Caller(c,l,p_block,CAP,False))
     l.close()
     with pytest.raises(ContractError,match='derived import|resume configuration'):
         main(['resume','--run-dir',str(dest)])
@@ -495,7 +497,7 @@ def test_offline_derive_authorize_continue_to_pending_human_review(tmp_path,monk
         result=respond({'role':role,'context':user['context'],'parameters':{'slots':user.get('slots',[])}})
         return 200,chat_envelope(result)
     p=provider(fake,budget=CAP)
-    result=run_campaign(c,Caller(c,l,p,CAP,True))
+    result=_accepted(c,Caller(c,l,p,CAP,True))
     assert result['STATUS']=='PENDING_HUMAN_REVIEW'
     assert len(result['CANDIDATES'])==40
     gen_posts=[row for row in log if row[0]=='POST' and row[1]=='/v1/responses']
@@ -619,3 +621,9 @@ def test_live_openai_run_refuses_cap_above_owner_authorized_total(tmp_path,monke
     with pytest.raises(ContractError,match='run not found'):
         main(['resume','--provider','openai','--allow-real-llm','--budget-usd','17.100000','--run-dir',str(tmp_path/'missing')])
     main(['preflight','--provider','openai','--allow-real-llm','--budget-usd','30'])
+
+def _accepted(c,caller,size=40):
+    """Record the budget-stop acceptance the execution gate requires, then run (library path)."""
+    from scripts.research.generator_v0.runner import accept_budget_stop,run_campaign as _rc
+    accept_budget_stop(c,caller,size,'test-operator','this test exercises a campaign whose worst case exceeds its cap')
+    return _rc(c,caller,size)

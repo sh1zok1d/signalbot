@@ -401,3 +401,10 @@ remains reserved. Nearby D2 variants are forbidden. Hypothesis generation
 is required to rotate across heterogeneous mechanism families. MARKET-07
 is not created. Product build remains frozen.
 
+
+## 16. Descriptive private beta restart (2026-09-25)
+
+The owner authorized a narrow **descriptive** private beta (V0.2) to learn whether real BTC intraday traders find a deterministic "unusual market state" attention product useful. It also creates a prospective by-value state tape.
+- **What does not change:** there is still no validated edge. The predictive product and the V1/V2 semantics stay frozen.
+- **Status of beta outputs:** beta events are operational rules, not hypotheses, and beta outcomes are not confirmation.
+- **Authority:** `PRIVATE_BETA_V0_RESTART_DECISION.md`.

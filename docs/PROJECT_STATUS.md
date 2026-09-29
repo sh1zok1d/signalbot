@@ -1,8 +1,8 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-22
-**Operating mode:** `RESEARCH_FIRST / PRODUCT_BUILD_FROZEN`  
-**Active phase:** `POST_SPRINT03_DISCOVERY_PROGRAM_DECISION`
+**Status date:** 2026-09-22 (routing pointer updated 2026-09-29)
+**Operating mode:** `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN`
+**Active phase:** see `docs/CURRENT_RESEARCH_STATE.md`. As of 2026-09-29 its latest entry is the GV0R03 generator feasibility contract, with `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`. The earlier phase `POST_SPRINT03_DISCOVERY_PROGRAM_DECISION` is historical.
 
 This file is intentionally concise. The pre-cleanup long-form status remains immutable in git at `b25d9ca99498630183813d0ccb8c6d67b93ad915`; experiment history remains in `docs/RESEARCH_LEDGER.md`.
 
@@ -11,6 +11,15 @@ This file is intentionally concise. The pre-cleanup long-form status remains imm
 Signalbot has no validated durable trading edge. Product/forecasting architecture remains frozen. The research program should stop repeating nearby “new observable -> short-horizon scalar BTC prediction” formulations and instead choose the next hypothesis from a materially orthogonal mechanism region.
 
 Canonical routing: `docs/CURRENT_RESEARCH_STATE.md`.
+
+## Descriptive private beta V0.2 (2026-09-25)
+
+A narrow descriptive private beta is authorized by `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`. It covers BTCUSDT perp on Binance, Bybit and OKX, runs on Telegram, is capped at 20 users and uses deterministic `BETA_EVENT_RULES_V1`.
+- **What it is:** a descriptive attention engine only. It carries no predictive claim, no trade instruction and no edge claim.
+- **What stays frozen:** predictive product work, and the V1 and V2 semantics.
+- **Current state:** implemented offline. It is not activated, its push is disabled, and it has no users.
+- **Next operator step:** the 7-day push-disabled shadow soak.
+- **Research boundary:** beta events are not hypotheses, and beta outcomes are not confirmation.
 
 ## Current evidence
 
@@ -28,8 +37,7 @@ The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRI
 
 ## Active work
 
-Next: Discovery Sprint 03 post-result program decision
-(`DISCOVERY_SPRINT_03_POST_RESULT_PROGRAM_DECISION`).
+The current next unit is in `docs/CURRENT_RESEARCH_STATE.md`. The text below records the state as of 2026-09-22. Its former "Next: Discovery Sprint 03 post-result program decision" (`DISCOVERY_SPRINT_03_POST_RESULT_PROGRAM_DECISION`) has since been superseded by Sprint 04 and Generator V0 work.
 
 `HETEROGENEOUS_FAMILY_ROTATION_V2` remains frozen. Sprint 03 canonical
 scientific execution is consumed: D9 `NO_USEFUL_STRUCTURE`, D10

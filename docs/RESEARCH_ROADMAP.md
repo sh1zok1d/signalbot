@@ -1,15 +1,42 @@
-## Generator V0 PR #214 independent verification — 2026-09-23
+## Routing pointer — 2026-09-29
 
-`NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_LIMITED_OFFLINE_REPAIR_REQUIRED`.
-Independent verifier of PR #214. Verdict `B. LIMITED OFFLINE REPAIR REQUIRED`.
-Not ready for a provider smoke test or another live shadow. No paid call.
-See `docs/research/GENERATOR_V0_PR214_INDEPENDENT_VERIFICATION.md`.
+`NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`, per the latest entry in `docs/CURRENT_RESEARCH_STATE.md` (GV0R03 generator feasibility contract, 2026-09-25). That file is the canonical routing. The `NEXT_UNIT` values in the sections below are historical.
 
----
+## Generator V0 outcome-blind multi-provider routing — 2026-09-24
+
+`NEXT_UNIT = GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW`.
+PR #214 was verified `READY_FOR_PROVIDER_SMOKE_TEST`. This unit adds an infrastructure-only routing layer:
+- GENERATOR → Anthropic `claude-opus-5-5` (effort high);
+- NOVELTY_CRITIC and RED_TEAM → OpenAI `gpt-6-sol` (high);
+- FEASIBILITY_CRITIC and the advisory SELECTOR → OpenAI `gpt-6-luna` (low / none).
+
+Recorded as an outcome-blind routing amendment; scientific stages and contracts are unchanged. No real API call, no live shadow. See `docs/research/GENERATOR_V0_MULTI_PROVIDER_ROUTING_AMENDMENT.md`.
+
+## Generator V0 final narrow repair (after re-verification) — 2026-09-23
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_FINAL_NARROW_REPAIR_READY_FOR_FINAL_RE_VERIFICATION` (verified READY_FOR_PROVIDER_SMOKE_TEST; see the routing amendment above).
+The final narrow offline repair covers three residual classes:
+- abbreviated cross-year ranges;
+- imperative trade language;
+- the fail-closed budget gate moved into `run_campaign`, so it no longer depends on the CLI.
+
+Completion state is `READY_FOR_FINAL_RE-VERIFICATION`, not a provider smoke test or live shadow. See `docs/research/GENERATOR_V0_LIMITED_REPAIR.md`.
+
+## Generator V0 limited offline repair (after PR #215 verification) — 2026-09-23
+
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_LIMITED_REPAIR_READY_FOR_RE_VERIFICATION` (re-verified; see the final narrow repair above).
+Limited offline repair of the five blockers found by the independent
+verification (PR #215):
+- keyed novelty prompt/schema/parser contract;
+- sealed journals refused inside `Ledger`;
+- dispatch state machine so a possibly-POSTed call is never re-sent without evidence;
+- Unicode-normalized structural temporal/protected/trade checks;
+- budget preflight for fresh and derived journals, with a scenario table and no run shape chosen.
+Completion state is `READY_FOR_RE-VERIFICATION`, not a provider smoke test or live shadow. No paid call, no protected data, no scientific outcome; v6/v7 sealed and untouched. See `docs/research/GENERATOR_V0_LIMITED_REPAIR.md`.
 
 ## Generator V0 pre-live repair (offline) — 2026-09-23
 
-`NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW`.
+`SUPERSEDED_NEXT_UNIT = GENERATOR_V0_PRE_LIVE_REPAIR_READY_FOR_INDEPENDENT_REVIEW` (reviewed by PR #215; see the limited repair above).
 Offline repair of the audit findings behind the v4–v7 one-failure-per-run
 history: per-card quarantine instead of campaign aborts, a single V02 rule
 contract (prompt and validator derived from one table), decoding-level
@@ -39,7 +66,7 @@ historical labels.
 
 **Status:** ACTIVE  
 **Updated:** 2026-09-23
-**Current phase:** `GENERATOR_V0_PRE_LIVE_REPAIR_LIMITED_OFFLINE_REPAIR_REQUIRED`
+**Current phase:** `GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW`
 
 The previous long-form roadmap is preserved in git history at `b25d9ca99498630183813d0ccb8c6d67b93ad915`. This file controls current execution order.
 

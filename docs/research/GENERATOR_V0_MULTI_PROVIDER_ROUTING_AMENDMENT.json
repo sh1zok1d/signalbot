@@ -1,0 +1,203 @@
+{
+  "AMENDMENT_KIND": "OUTCOME_BLIND_ROUTING (provider/model/effort per role only)",
+  "BASE": "8fc5c4c01a724a8b5ec3e0f9209f5dbaf7fcff3e",
+  "BUDGET_FRESH_40": {
+    "BY_ROLE_SINGLE_ATTEMPT": {
+      "FEASIBILITY_CRITIC": {
+        "CALLS": 40,
+        "ROUTE": "OPENAI / gpt-6-luna / reasoning_effort=low",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "0.187775"
+      },
+      "GENERATOR": {
+        "CALLS": 4,
+        "ROUTE": "ANTHROPIC / claude-opus-5-5 / effort=high",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "3.584336"
+      },
+      "NOVELTY_CRITIC": {
+        "CALLS": 40,
+        "ROUTE": "OPENAI / gpt-6-sol / reasoning_effort=high",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "13.852300"
+      },
+      "RED_TEAM": {
+        "CALLS": 40,
+        "ROUTE": "OPENAI / gpt-6-sol / reasoning_effort=high",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "4.194940"
+      },
+      "SELECTOR": {
+        "CALLS": 1,
+        "ROUTE": "OPENAI / gpt-6-luna / reasoning_effort=none",
+        "WORST_CASE_SINGLE_ATTEMPT_USD": "0.001938"
+      }
+    },
+    "CAMPAIGN_CUMULATIVE_IF_COUNTED_IN_V7_AUTHORITY_USD": "26.768039",
+    "FRESH_40_CARD_SINGLE_ATTEMPT_USD": "21.821289",
+    "FRESH_40_CARD_WITH_CONTENT_RETRIES_USD": "43.640640",
+    "STAGES": {
+      "FEASIBILITY_CRITIC x40": "0.187775",
+      "NOVELTY_CRITIC x40": "13.8523",
+      "RED_TEAM x40": "4.19494",
+      "SELECTOR": "0.001938",
+      "generation:0": "0.895672",
+      "generation:1": "0.895792",
+      "generation:2": "0.89576",
+      "generation:3": "0.897112"
+    }
+  },
+  "COMPLETION_STATE": "READY_FOR_MULTI_PROVIDER_INDEPENDENT_REVIEW",
+  "DEFERRED": [
+    "ANTHROPIC_BATCH",
+    "OPENAI_BATCH",
+    "PROMPT_CACHING",
+    "OPUS_SECOND_OPINION",
+    "ADAPTIVE_CRITIC_ROUTING",
+    "BATCH_SIZE_CHANGE",
+    "LOWERING_ROLES_FOR_BUDGET"
+  ],
+  "LIMITED_REPAIR_AFTER_AUDIT": {
+    "ANTHROPIC_429_RATE_LIMIT_ERROR": "UNCERTAIN, replay=False",
+    "ANTHROPIC_529_OVERLOADED_ERROR": "UNCERTAIN, replay=False",
+    "PREVIOUSLY": "NOT_BILLED, replay=True",
+    "REASON": "documented error semantics do not establish that no model work occurred"
+  },
+  "MIXED_PROVIDER_NOISY_E2E": {
+    "CALL_STATES": {
+      "COMPLETE": 86,
+      "FAILED_NOT_BILLED": 1,
+      "FAILED_WITH_COST": 2,
+      "RECONCILED_BILLED": 1,
+      "RECONCILED_UNKNOWN": 1
+    },
+    "JOURNAL_ROWS": 91,
+    "POSTS": 91,
+    "POSTS_BY_PATH": {
+      "/v1/chat/completions": 86,
+      "/v1/messages": 5
+    },
+    "ROLE_ROUTES": {
+      "FEASIBILITY_CRITIC": [
+        "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-luna"
+      ],
+      "GENERATOR": [
+        "ANTHROPIC / ANTHROPIC_MESSAGES / claude-opus-5-5"
+      ],
+      "NOVELTY_CRITIC": [
+        "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-sol"
+      ],
+      "RED_TEAM": [
+        "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-sol"
+      ],
+      "SELECTOR": [
+        "OPENAI / OPENAI_CHAT_COMPLETIONS / gpt-6-luna"
+      ]
+    },
+    "STATUS": "PENDING_HUMAN_REVIEW",
+    "STEPS": [
+      "PAUSED: PAUSED_UNCERTAIN_CALL",
+      "RECONCILED_UNKNOWN: generation:0",
+      "CRASH: process died after POST RED_TEAM C011",
+      "PAUSED: PAUSED_UNCERTAIN_CALL",
+      "NOT_BILLED_WITHOUT_EVIDENCE_REFUSED",
+      "RECONCILED_BILLED",
+      "FINAL: PENDING_HUMAN_REVIEW"
+    ]
+  },
+  "NEXT_UNIT": "GENERATOR_V0_MULTI_PROVIDER_ROUTING_READY_FOR_INDEPENDENT_REVIEW",
+  "PRICE_TABLE": {
+    "claude-opus-5-5": {
+      "CACHE_READ": "0.20",
+      "CACHE_WRITE_1H": "8.00",
+      "CACHE_WRITE_5M": "5.00",
+      "CONTEXT_WINDOW_TOKENS": 1000000,
+      "INPUT": "4.00",
+      "MAX_OUTPUT_TOKENS": 128000,
+      "OUTPUT": "20.00"
+    },
+    "gpt-6-luna": {
+      "CONTEXT_WINDOW_TOKENS": 1000000,
+      "INPUT": "0.10",
+      "MAX_OUTPUT_TOKENS": 128000,
+      "OUTPUT": "0.50"
+    },
+    "gpt-6-sol": {
+      "CONTEXT_WINDOW_TOKENS": 1000000,
+      "INPUT": "2.00",
+      "MAX_OUTPUT_TOKENS": 128000,
+      "OUTPUT": "10.00"
+    }
+  },
+  "PROTECTED_2025_2026_OPENED": false,
+  "REAL_LLM_CALLS_MADE": false,
+  "REGISTRY_DIGEST": "bf45891d6d3449edd421a664dc9d74e9f63d3401ba9e56dd09013588ed982fce",
+  "ROLE_MODEL_MAP": {
+    "FEASIBILITY_CRITIC": "gpt-6-luna",
+    "GENERATOR": "claude-opus-5-5",
+    "NOVELTY_CRITIC": "gpt-6-sol",
+    "RED_TEAM": "gpt-6-sol",
+    "SELECTOR": "gpt-6-luna"
+  },
+  "ROLE_PROVIDER_MAP": {
+    "FEASIBILITY_CRITIC": "OPENAI",
+    "GENERATOR": "ANTHROPIC",
+    "NOVELTY_CRITIC": "OPENAI",
+    "RED_TEAM": "OPENAI",
+    "SELECTOR": "OPENAI"
+  },
+  "ROLE_REQUEST_PARAMS": {
+    "FEASIBILITY_CRITIC": {
+      "reasoning_effort": "low"
+    },
+    "GENERATOR": {
+      "effort": "high"
+    },
+    "NOVELTY_CRITIC": {
+      "reasoning_effort": "high"
+    },
+    "RED_TEAM": {
+      "reasoning_effort": "high"
+    },
+    "SELECTOR": {
+      "reasoning_effort": "none"
+    }
+  },
+  "ROUTING_DIGEST": "c0eefdfa06e7f2607be905aac961bf0d46fd609ea8482ab852052efe8b90be38",
+  "ROUTING_ID": "GENERATOR_V0_MULTI_PROVIDER_ROUTING_V1",
+  "ROUTING_TABLE": {
+    "FEASIBILITY_CRITIC": "OPENAI / gpt-6-luna / reasoning_effort=low",
+    "GENERATOR": "ANTHROPIC / claude-opus-5-5 / effort=high",
+    "NOVELTY_CRITIC": "OPENAI / gpt-6-sol / reasoning_effort=high",
+    "RED_TEAM": "OPENAI / gpt-6-sol / reasoning_effort=high",
+    "SELECTOR": "OPENAI / gpt-6-luna / reasoning_effort=none"
+  },
+  "SCHEMA_DIGESTS": {
+    "FEASIBILITY_CRITIC": "240142af614b9b36782fcf11f071780814d0c70a28f42fd4f89a8a9fc39eb3a4",
+    "GENERATOR_ANTHROPIC_PROJECTION": "7f3b1264933c09b3c98211b699795a053e38686567d6c366f5c90cbc76861241",
+    "GENERATOR_EXACT_PROVIDER_SCHEMA": "191ed7366d38a0f89ccc7cbc25efd40ceaaf905dc6a8610cf35958366d3921cf",
+    "NOVELTY_CRITIC": "PER_REQUEST (keyed by the exact leaf signature IDs and batch candidate IDs)",
+    "RED_TEAM": "78f305ad2aad56c4f8e14e00b908240854fc9c9d0893cd7254c0f5b6d25153a6",
+    "SELECTOR": "5cddc4a14cff862c19fd841c762dd4bd4a21b77a1babcda741367bc3087e3ecf"
+  },
+  "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+  "SEALED_V6_V7_MODIFIED": false,
+  "TARGETS": {
+    "NATURE": "product/cost targets; not authorization to weaken gates",
+    "TARGET_4_RUN_MONTH_USD": "40",
+    "TARGET_EXPECTED_FULL_40_CARD_RUN_USD": "10"
+  },
+  "UNCHANGED": [
+    "CANDIDATE_COUNT",
+    "40_SLOT_STRUCTURE",
+    "CARD_SCHEMA",
+    "LEGAL_RANGE_RULES",
+    "PROTECTED_DATA_RULES",
+    "NOVELTY_SEMANTICS",
+    "FEASIBILITY_SEMANTICS",
+    "RED_TEAM_SEMANTICS",
+    "DETERMINISTIC_SELECTOR_ORDER",
+    "MIN_VALID_CANDIDATES",
+    "HUMAN_REVIEW_BOUNDARY",
+    "HARD_FAIL_REVIEW_FAILED_BEHAVIOUR",
+    "OWNER_CEILING",
+    "OUTPUT_CAPS"
+  ],
+  "UNIT": "GENERATOR_V0_MULTI_PROVIDER_ROUTING"
+}

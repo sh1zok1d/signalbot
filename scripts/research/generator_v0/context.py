@@ -1,4 +1,7 @@
-"""Frozen source projections and role boundaries. Only metadata files are read."""
+"""Frozen source projections and role boundaries. Only metadata files are read.
+
+Frozen rules come from HYPOTHESIS_GENERATOR_V0_DESIGN.json. Dynamic memory (entries,
+governance rows, attempt records) comes from the verified memory chain head."""
 from __future__ import annotations
 import copy
 import hashlib
@@ -45,23 +48,36 @@ def project(memory, design):
         out[key] = row
     return out
 
-def materialize(root=ROOT):
-    """Explicit developer operation. Runtime never regenerates trusted projections."""
-    design = read(root/DESIGN)
-    write_json(root/MAP, project(read(root/MEMORY), design))
-    write_json(root/AUTHORITY, design['GOVERNANCE_REGION_AUTHORITY_V0'])
-    write_json(root/PINS, {p: byte_digest(root/p) for p in (DESIGN, MEMORY, ROTATION, MAP, AUTHORITY)})
+# Dynamic memory is not regenerated here. Mechanism memory, the blind map and the
+# governance authority are deterministic projections of the append-only memory chain
+# (memory_store.py); scripts/research/generator_v0/finalize_memory.py is the only writer.
+MEMORY_HEAD = 'docs/research/generator_v0_memory/HEAD.json'
+_VERIFIED = {}
+
+def _fingerprint(root):
+    from .memory_store import STORE
+    h = hashlib.sha256()
+    files = [root/p for p in (DESIGN, MEMORY, ROTATION, MAP, AUTHORITY, PINS, MEMORY_HEAD)]
+    files += sorted(p for p in (root/STORE).rglob('*.json') if '.staging' not in p.parts)
+    for p in files:
+        h.update(str(p.relative_to(root)).encode() + b'\0')
+        h.update(p.read_bytes() if p.exists() else b'<missing>')
+        h.update(b'\0')
+    return h.hexdigest()
 
 class Contexts:
-    def __init__(self, root=ROOT):
-        self.root = root
-        self.verify()
-        self.design = read(root/DESIGN)
-        self.blind = read(root/MAP)
-        self.authority = read(root/AUTHORITY)
+    def __init__(self, root=ROOT, memory_event=None):
+        """memory_event=None uses the published chain head. A historical version (event
+        hash, sequence number or 'LEGACY_BOOTSTRAP') reproduces the context a past run saw."""
+        self.root = Path(root)
+        self.memory_event = memory_event
+        views = self.verify()
+        self.design = read(self.root/DESIGN)
+        self.blind = views['BLIND_MAP']
+        self.authority = views['AUTHORITY']
         self.catalog = {k: {f: v.get(f) for f in ('CONTENT','LEGAL_RANGE','STATUS')}
                         for k,v in self.design['DATA_CATALOG_V0_SEED'].items()}
-        self.families = {k:v['NAME'] for k,v in read(root/ROTATION)['FAMILY_STATUS'].items()}
+        self.families = {k:v['NAME'] for k,v in read(self.root/ROTATION)['FAMILY_STATUS'].items()}
         self.rows = {}
         for row in self.authority['ROWS']:
             self.rows[row['SIGNATURE_ID']] = row
@@ -71,17 +87,38 @@ class Contexts:
             raise ContractError('authority coverage')
 
     def verify(self):
-        pins = read(self.root/PINS)
-        if set(pins) != {DESIGN,MEMORY,ROTATION,MAP,AUTHORITY}:
+        """Fail closed: pins (derived drift cache), full chain replay, head snapshot, and
+        mirrors byte-equal to the head snapshot. A published HEAD whose derived caches are
+        stale is refused until the finalizer repairs them."""
+        from . import memory_store as store
+        key = (str(self.root), self.memory_event, _fingerprint(self.root))
+        if key not in _VERIFIED:
+            _VERIFIED.clear()
+            _VERIFIED[key] = self._verify_uncached(store)
+        views, head_hash = _VERIFIED[key]
+        if getattr(self, 'memory_head', head_hash) != head_hash:
+            raise ContractError('memory head changed after this context was built; construct a new Contexts')
+        self.memory_head = head_hash
+        return copy.deepcopy(views)
+
+    def _verify_uncached(self, store):
+        try:
+            pins = read(self.root/PINS)
+            expected = store.pins_expected(self.root)
+        except (OSError, ValueError) as e:
+            raise ContractError('context pins unreadable') from e
+        if set(pins) != set(expected):
             raise ContractError('pin manifest shape')
-        for path, expected in pins.items():
-            if byte_digest(self.root/path) != expected:
+        for path, digest_ in expected.items():
+            if pins[path] != digest_:
                 raise ContractError('source drift: '+path)
-        d = read(self.root/DESIGN)
-        if read(self.root/MAP) != project(read(self.root/MEMORY), d):
-            raise ContractError('blind map projection mismatch')
-        if read(self.root/AUTHORITY) != d['GOVERNANCE_REGION_AUTHORITY_V0']:
-            raise ContractError('authority differs from design')
+        design = read(self.root/DESIGN)
+        head = store.published(self.root, design)
+        drift = store.mirrors_current(self.root, head['VIEWS'])
+        if drift:
+            raise ContractError('derived memory mirror differs from the published snapshot: '+','.join(drift))
+        chosen = head if self.memory_event is None else store.published_at(self.root, design, self.memory_event)
+        return copy.deepcopy(chosen['VIEWS']), chosen['HEAD']['EVENT_HASH']
 
     def scan(self, value):
         pattern = self.design['BLIND_GENERATOR_CONTEXT']['CONTEXT_SCANNER']['DENYLIST_REGEX']
