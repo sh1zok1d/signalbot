@@ -29,9 +29,9 @@ This page answers "where are we now?" in one screen. It restates facts recorded 
 **Where the figures come from.**
 - An owner-run semantic replay applied the current `PRICE_OI_CONTRACTION` rules to live-collected raw data.
 - Provenance class: `RECONSTRUCTED_FROM_LIVE_COLLECTED_RAW_DATA`. This is a reconstruction under current rules, not a record of historical production alerts.
-- The replay tooling is on the unmerged draft PR #227 (`scripts/audit/live_archive_replay_preflight/`). The follow-up read model is on the unmerged PR #225 (`beta/followup.py`).
+- The replay tooling is in `main` (`scripts/audit/live_archive_replay_preflight/`), merged via PR #227. The frozen historical follow-up read model is also in `main` (`beta/followup.py`), merged via PR #225.
 - The replay output itself is not committed. The figures below are the owner-reported results of that run.
-- `AUTHORIZED_BUCKETS = 12434`. This matches `quorum_and_mature_buckets` in `docs/audit/live_archive_replay_preflight/phase_a_coverage_analysis.json` on the PR #227 branch.
+- `AUTHORIZED_BUCKETS = 12434`. This matches `quorum_and_mature_buckets` in `docs/audit/live_archive_replay_preflight/phase_a_coverage_analysis.json` in `main`.
 
 | | DOWN | UP |
 |---|---|---|
@@ -63,7 +63,7 @@ No matched-baseline figure should be quoted. A revised protocol has not been des
 **Proven**, in the sense of engineering correctness under tests:
 - deterministic replay and provenance identities;
 - no-lookahead bucket semantics;
-- the `EVENT_COMPARABILITY_V0` identity and the follow-up read-model mechanics (PR #225, unmerged).
+- the `EVENT_COMPARABILITY_V0` identity and the frozen follow-up read-model mechanics (merged via PR #225).
 
 **Not proven:**
 - any trading edge;
