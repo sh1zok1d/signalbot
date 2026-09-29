@@ -1,0 +1,604 @@
+{
+  "archive_observed_end": "2026-09-29T07:26:00Z",
+  "archive_observed_start": "2026-07-17T19:27:00Z",
+  "backfill_not_substituted_for_live": true,
+  "capability_rows": [
+    {
+      "coverage_type": "snapshot",
+      "declared_available": "true",
+      "exchange": "binance",
+      "note": "current_row_not_pit"
+    },
+    {
+      "coverage_type": "full",
+      "declared_available": "true",
+      "exchange": "bybit",
+      "note": "current_row_not_pit"
+    },
+    {
+      "coverage_type": "aggregated",
+      "declared_available": "true",
+      "exchange": "okx",
+      "note": "current_row_not_pit"
+    }
+  ],
+  "connectivity": {
+    "event_count": 0,
+    "historical_heartbeat_provable": false,
+    "interpretation": "NO_EVIDENCE_OF_OUTAGE_HEARTBEAT_NOT_HISTORICALLY_PROVABLE"
+  },
+  "core_families": [
+    "price_structure",
+    "oi",
+    "volume"
+  ],
+  "detector_changed": false,
+  "eligible_before_observed_live_kline_start": {
+    "oi": {
+      "count": 1,
+      "timestamps": [
+        "2026-07-17T19:25:00Z"
+      ]
+    },
+    "price_structure": {
+      "count": 0,
+      "timestamps": []
+    },
+    "taker_flow": {
+      "count": 0,
+      "timestamps": []
+    },
+    "volume": {
+      "count": 0,
+      "timestamps": []
+    }
+  },
+  "event_counts_computed": false,
+  "events": {
+    "LIQUIDATION_STRESS_LONG": {
+      "blockers": [
+        "CONNECTIVITY_LOG_EMPTY_HEARTBEAT_NOT_HISTORICALLY_PROVABLE"
+      ],
+      "code_path_first_mature": "2026-08-16T19:30:00Z",
+      "code_path_note": "Empty connectivity_events makes outage_overlap false in the current heartbeat function. That is no evidence of an outage, not proof the feed was healthy. Code-path quorum counts are reported separately.",
+      "code_path_quorum_buckets": 21074,
+      "first_replayable_timestamp": null,
+      "interior_gap_runs": 0,
+      "interior_gaps": [],
+      "last_replayable_timestamp": null,
+      "longest_ineligible_run": "106560m",
+      "longest_ineligible_run_buckets": 21312,
+      "number_of_gap_runs_gt_1_bucket": 0,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0,
+      "replayable_bucket_count": 0,
+      "replayable_bucket_fraction": 0.0,
+      "replayable_interval_count": 0,
+      "replayable_intervals": [],
+      "status": "INSUFFICIENT_EVIDENCE"
+    },
+    "LIQUIDATION_STRESS_SHORT": {
+      "blockers": [
+        "CONNECTIVITY_LOG_EMPTY_HEARTBEAT_NOT_HISTORICALLY_PROVABLE"
+      ],
+      "code_path_first_mature": "2026-08-16T19:30:00Z",
+      "code_path_note": "Empty connectivity_events makes outage_overlap false in the current heartbeat function. That is no evidence of an outage, not proof the feed was healthy. Code-path quorum counts are reported separately.",
+      "code_path_quorum_buckets": 21074,
+      "first_replayable_timestamp": null,
+      "interior_gap_runs": 0,
+      "interior_gaps": [],
+      "last_replayable_timestamp": null,
+      "longest_ineligible_run": "106560m",
+      "longest_ineligible_run_buckets": 21312,
+      "number_of_gap_runs_gt_1_bucket": 0,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0,
+      "replayable_bucket_count": 0,
+      "replayable_bucket_fraction": 0.0,
+      "replayable_interval_count": 0,
+      "replayable_intervals": [],
+      "status": "INSUFFICIENT_EVIDENCE"
+    },
+    "POSITION_BUILDUP_COMPRESSION": {
+      "blockers": [
+        "VOLUME_PIT_NOTIONAL_NEVER_ELIGIBLE"
+      ],
+      "first_replayable_timestamp": null,
+      "interior_gap_runs": 0,
+      "interior_gaps": [],
+      "last_replayable_timestamp": null,
+      "longest_ineligible_run": "106560m",
+      "longest_ineligible_run_buckets": 21312,
+      "number_of_gap_runs_gt_1_bucket": 0,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0,
+      "replayable_bucket_count": 0,
+      "replayable_bucket_fraction": 0.0,
+      "replayable_interval_count": 0,
+      "replayable_intervals": [],
+      "status": "BLOCKED"
+    },
+    "PRICE_OI_CONTRACTION_DOWN": {
+      "blockers": [
+        "INTERIOR_COVERAGE_GAPS"
+      ],
+      "first_replayable_timestamp": "2026-08-16T19:30:00Z",
+      "interior_gap_runs": 1,
+      "interior_gaps": [
+        {
+          "buckets": 4,
+          "end": "2026-09-25T13:00:00Z",
+          "start": "2026-09-25T12:45:00Z"
+        }
+      ],
+      "last_replayable_timestamp": "2026-09-28T23:55:00Z",
+      "longest_ineligible_run": "44370m",
+      "longest_ineligible_run_buckets": 8874,
+      "number_of_gap_runs_gt_1_bucket": 1,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0,
+      "replayable_bucket_count": 12434,
+      "replayable_bucket_fraction": 0.583427,
+      "replayable_interval_count": 2,
+      "replayable_intervals": [
+        {
+          "buckets": 11439,
+          "end": "2026-09-25T12:40:00Z",
+          "start": "2026-08-16T19:30:00Z"
+        },
+        {
+          "buckets": 995,
+          "end": "2026-09-28T23:55:00Z",
+          "start": "2026-09-25T13:05:00Z"
+        }
+      ],
+      "status": "PARTIALLY_REPLAYABLE_WITH_INTERVAL"
+    },
+    "PRICE_OI_CONTRACTION_UP": {
+      "blockers": [
+        "INTERIOR_COVERAGE_GAPS"
+      ],
+      "first_replayable_timestamp": "2026-08-16T19:30:00Z",
+      "interior_gap_runs": 1,
+      "interior_gaps": [
+        {
+          "buckets": 4,
+          "end": "2026-09-25T13:00:00Z",
+          "start": "2026-09-25T12:45:00Z"
+        }
+      ],
+      "last_replayable_timestamp": "2026-09-28T23:55:00Z",
+      "longest_ineligible_run": "44370m",
+      "longest_ineligible_run_buckets": 8874,
+      "number_of_gap_runs_gt_1_bucket": 1,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0,
+      "replayable_bucket_count": 12434,
+      "replayable_bucket_fraction": 0.583427,
+      "replayable_interval_count": 2,
+      "replayable_intervals": [
+        {
+          "buckets": 11439,
+          "end": "2026-09-25T12:40:00Z",
+          "start": "2026-08-16T19:30:00Z"
+        },
+        {
+          "buckets": 995,
+          "end": "2026-09-28T23:55:00Z",
+          "start": "2026-09-25T13:05:00Z"
+        }
+      ],
+      "status": "PARTIALLY_REPLAYABLE_WITH_INTERVAL"
+    },
+    "TAKER_FLOW_EXTREME_BUY": {
+      "blockers": [
+        "TAKER_FLOW_PIT_NOTIONAL_NEVER_ELIGIBLE"
+      ],
+      "first_replayable_timestamp": null,
+      "interior_gap_runs": 0,
+      "interior_gaps": [],
+      "last_replayable_timestamp": null,
+      "longest_ineligible_run": "106560m",
+      "longest_ineligible_run_buckets": 21312,
+      "number_of_gap_runs_gt_1_bucket": 0,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0,
+      "replayable_bucket_count": 0,
+      "replayable_bucket_fraction": 0.0,
+      "replayable_interval_count": 0,
+      "replayable_intervals": [],
+      "status": "BLOCKED"
+    },
+    "TAKER_FLOW_EXTREME_SELL": {
+      "blockers": [
+        "TAKER_FLOW_PIT_NOTIONAL_NEVER_ELIGIBLE"
+      ],
+      "first_replayable_timestamp": null,
+      "interior_gap_runs": 0,
+      "interior_gaps": [],
+      "last_replayable_timestamp": null,
+      "longest_ineligible_run": "106560m",
+      "longest_ineligible_run_buckets": 21312,
+      "number_of_gap_runs_gt_1_bucket": 0,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0,
+      "replayable_bucket_count": 0,
+      "replayable_bucket_fraction": 0.0,
+      "replayable_interval_count": 0,
+      "replayable_intervals": [],
+      "status": "BLOCKED"
+    }
+  },
+  "export_hash_verification": {
+    "files": [
+      {
+        "name": "schema_availability.csv",
+        "rows_ok": true,
+        "sha256_ok": true
+      },
+      {
+        "name": "archive_summary.csv",
+        "rows_ok": true,
+        "sha256_ok": true
+      },
+      {
+        "name": "oi_unit_changes.csv",
+        "rows_ok": true,
+        "sha256_ok": true
+      },
+      {
+        "name": "instrument_history_coverage.csv",
+        "rows_ok": true,
+        "sha256_ok": true
+      },
+      {
+        "name": "connectivity_coverage.csv",
+        "rows_ok": true,
+        "sha256_ok": true
+      },
+      {
+        "name": "liquidation_capability.csv",
+        "rows_ok": true,
+        "sha256_ok": true
+      },
+      {
+        "name": "coverage_5m.csv",
+        "rows_ok": true,
+        "sha256_ok": true
+      },
+      {
+        "name": "maturity_lookback_5m.csv",
+        "rows_ok": true,
+        "sha256_ok": true
+      }
+    ],
+    "ok": true
+  },
+  "families": {
+    "oi": {
+      "eligible_buckets": 21076,
+      "eligible_fraction": 0.988926,
+      "first_mature_timestamp": "2026-08-16T19:25:00Z",
+      "first_quorum_timestamp": "2026-07-17T19:25:00Z",
+      "longest_ineligible_run_buckets": 233,
+      "quorum_and_mature_buckets": 12436,
+      "quorum_and_mature_fraction": 0.583521,
+      "venue_quorum_eligible_buckets": 21076,
+      "venue_quorum_eligible_fraction": 0.988926
+    },
+    "price_structure": {
+      "eligible_buckets": 21074,
+      "eligible_fraction": 0.988833,
+      "first_mature_timestamp": "2026-08-16T19:30:00Z",
+      "first_quorum_timestamp": "2026-07-17T19:30:00Z",
+      "longest_ineligible_run_buckets": 234,
+      "quorum_and_mature_buckets": 12434,
+      "quorum_and_mature_fraction": 0.583427,
+      "venue_quorum_eligible_buckets": 21074,
+      "venue_quorum_eligible_fraction": 0.988833
+    },
+    "taker_flow": {
+      "eligible_buckets": 0,
+      "eligible_fraction": 0.0,
+      "first_mature_timestamp": null,
+      "first_quorum_timestamp": null,
+      "longest_ineligible_run_buckets": 21312,
+      "quorum_and_mature_buckets": 0,
+      "quorum_and_mature_fraction": 0.0,
+      "venue_quorum_eligible_buckets": 0,
+      "venue_quorum_eligible_fraction": 0.0
+    },
+    "volume": {
+      "eligible_buckets": 0,
+      "eligible_fraction": 0.0,
+      "first_mature_timestamp": null,
+      "first_quorum_timestamp": null,
+      "longest_ineligible_run_buckets": 21312,
+      "quorum_and_mature_buckets": 0,
+      "quorum_and_mature_fraction": 0.0,
+      "venue_quorum_eligible_buckets": 0,
+      "venue_quorum_eligible_fraction": 0.0
+    }
+  },
+  "first_mature": {
+    "liquidation": null,
+    "oi": "2026-08-16T19:25:00Z",
+    "price": "2026-08-16T19:30:00Z",
+    "taker": null,
+    "volume": null
+  },
+  "full_current_detector_replay_eligibility": "NOT_ELIGIBLE",
+  "grid_end_inclusive": "2026-09-28T23:55:00Z",
+  "grid_start": "2026-07-17T00:00:00Z",
+  "liquidation_code_path": {
+    "blockers": [],
+    "first_replayable_timestamp": "2026-07-17T19:30:00Z",
+    "interior_gap_runs": 1,
+    "interior_gaps": [
+      {
+        "buckets": 4,
+        "end": "2026-09-25T13:00:00Z",
+        "start": "2026-09-25T12:45:00Z"
+      }
+    ],
+    "last_replayable_timestamp": "2026-09-28T23:55:00Z",
+    "longest_ineligible_run": "1170m",
+    "longest_ineligible_run_buckets": 234,
+    "number_of_gap_runs_gt_1_bucket": 1,
+    "number_of_gap_runs_gt_1_day": 0,
+    "number_of_gap_runs_gt_1_hour": 0,
+    "replayable_bucket_count": 21074,
+    "replayable_bucket_fraction": 0.988833,
+    "replayable_interval_count": 2,
+    "replayable_intervals": [
+      {
+        "buckets": 20079,
+        "end": "2026-09-25T12:40:00Z",
+        "start": "2026-07-17T19:30:00Z"
+      },
+      {
+        "buckets": 995,
+        "end": "2026-09-28T23:55:00Z",
+        "start": "2026-09-25T13:05:00Z"
+      }
+    ],
+    "status": "DIAGNOSTIC"
+  },
+  "liquidation_historical_health_provable": false,
+  "longest_gap_runs": {
+    "LIQUIDATION_STRESS_LONG": {
+      "interior_gap_runs": 0,
+      "longest_ineligible_run": "106560m",
+      "longest_ineligible_run_buckets": 21312,
+      "number_of_gap_runs_gt_1_bucket": 0,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0
+    },
+    "LIQUIDATION_STRESS_SHORT": {
+      "interior_gap_runs": 0,
+      "longest_ineligible_run": "106560m",
+      "longest_ineligible_run_buckets": 21312,
+      "number_of_gap_runs_gt_1_bucket": 0,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0
+    },
+    "POSITION_BUILDUP_COMPRESSION": {
+      "interior_gap_runs": 0,
+      "longest_ineligible_run": "106560m",
+      "longest_ineligible_run_buckets": 21312,
+      "number_of_gap_runs_gt_1_bucket": 0,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0
+    },
+    "PRICE_OI_CONTRACTION_DOWN": {
+      "interior_gap_runs": 1,
+      "longest_ineligible_run": "44370m",
+      "longest_ineligible_run_buckets": 8874,
+      "number_of_gap_runs_gt_1_bucket": 1,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0
+    },
+    "PRICE_OI_CONTRACTION_UP": {
+      "interior_gap_runs": 1,
+      "longest_ineligible_run": "44370m",
+      "longest_ineligible_run_buckets": 8874,
+      "number_of_gap_runs_gt_1_bucket": 1,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0
+    },
+    "TAKER_FLOW_EXTREME_BUY": {
+      "interior_gap_runs": 0,
+      "longest_ineligible_run": "106560m",
+      "longest_ineligible_run_buckets": 21312,
+      "number_of_gap_runs_gt_1_bucket": 0,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0
+    },
+    "TAKER_FLOW_EXTREME_SELL": {
+      "interior_gap_runs": 0,
+      "longest_ineligible_run": "106560m",
+      "longest_ineligible_run_buckets": 21312,
+      "number_of_gap_runs_gt_1_bucket": 0,
+      "number_of_gap_runs_gt_1_day": 0,
+      "number_of_gap_runs_gt_1_hour": 0
+    }
+  },
+  "manifest_interval": {
+    "end_exclusive": "2026-09-29T00:00:00Z",
+    "no_market_magnitudes_exported": true,
+    "start": "2026-07-17T00:00:00Z",
+    "statement": "No prices, OHLC values, volume values, taker values, open-interest magnitudes, or liquidation notionals were exported."
+  },
+  "maturity_days": 30,
+  "min_venue_coverage": 2,
+  "next_unit": {
+    "families": [
+      "PRICE_OI_CONTRACTION_DOWN",
+      "PRICE_OI_CONTRACTION_UP"
+    ],
+    "replay_authorized": false,
+    "scope": "Isolated non-production replay of only the listed families on their reported intervals. Do not replay blocked or insufficient families, do not compute episode counts or P4 outcomes, and do not touch production.",
+    "unit": "LIVE_ARCHIVE_PRICE_OI_FAMILY_REPLAY_ISOLATED_NON_PRODUCTION"
+  },
+  "oi_units": {
+    "live_unit_transitions": {
+      "binance": 0,
+      "bybit": 0,
+      "okx": 0
+    },
+    "live_units": {
+      "binance": [
+        "base"
+      ],
+      "bybit": [
+        "base"
+      ],
+      "okx": [
+        "contracts"
+      ]
+    }
+  },
+  "p4_outcomes_computed": false,
+  "per_venue": {
+    "binance": {
+      "code_path_heartbeat_healthy_buckets": 21072,
+      "code_path_liquidation_feature_non_null_buckets": 21072,
+      "liquidation_rows_present": true,
+      "liquidation_rows_present_buckets": 11778,
+      "live_bar_5_of_5_count": 21072,
+      "live_bar_5_of_5_fraction": 0.988739,
+      "longest_oi_ineligible_run_buckets": 233,
+      "longest_price_ineligible_run_buckets": 234,
+      "oi_feature_non_null_buckets": 21076,
+      "oi_gap_runs_after_first_eligible": 1,
+      "oi_gap_runs_gt_1_bucket": 1,
+      "oi_ge_2_count": 21076,
+      "oi_ge_2_fraction": 0.988926,
+      "oi_mixed_unit_buckets": 0,
+      "pit_metadata_available_buckets": 0,
+      "pit_metadata_coverage_fraction": 0.0,
+      "price_feature_non_null_buckets": 21072,
+      "price_gap_runs_after_first_eligible": 3,
+      "price_gap_runs_gt_1_bucket": 1,
+      "taker_notional_non_null_buckets": 0,
+      "taker_split_complete_buckets": 21072,
+      "volume_notional_non_null_buckets": 0
+    },
+    "bybit": {
+      "code_path_heartbeat_healthy_buckets": 21064,
+      "code_path_liquidation_feature_non_null_buckets": 21064,
+      "liquidation_rows_present": true,
+      "liquidation_rows_present_buckets": 6246,
+      "live_bar_5_of_5_count": 21064,
+      "live_bar_5_of_5_fraction": 0.988363,
+      "longest_oi_ineligible_run_buckets": 233,
+      "longest_price_ineligible_run_buckets": 234,
+      "oi_feature_non_null_buckets": 21076,
+      "oi_gap_runs_after_first_eligible": 1,
+      "oi_gap_runs_gt_1_bucket": 1,
+      "oi_ge_2_count": 21076,
+      "oi_ge_2_fraction": 0.988926,
+      "oi_mixed_unit_buckets": 0,
+      "pit_metadata_available_buckets": 0,
+      "pit_metadata_coverage_fraction": 0.0,
+      "price_feature_non_null_buckets": 21064,
+      "price_gap_runs_after_first_eligible": 11,
+      "price_gap_runs_gt_1_bucket": 1,
+      "taker_notional_non_null_buckets": 0,
+      "taker_split_complete_buckets": 21064,
+      "volume_notional_non_null_buckets": 0
+    },
+    "okx": {
+      "code_path_heartbeat_healthy_buckets": 21062,
+      "code_path_liquidation_feature_non_null_buckets": 21062,
+      "liquidation_rows_present": false,
+      "liquidation_rows_present_buckets": 0,
+      "live_bar_5_of_5_count": 21062,
+      "live_bar_5_of_5_fraction": 0.98827,
+      "longest_oi_ineligible_run_buckets": 233,
+      "longest_price_ineligible_run_buckets": 234,
+      "oi_feature_non_null_buckets": 21076,
+      "oi_gap_runs_after_first_eligible": 1,
+      "oi_gap_runs_gt_1_bucket": 1,
+      "oi_ge_2_count": 21076,
+      "oi_ge_2_fraction": 0.988926,
+      "oi_mixed_unit_buckets": 0,
+      "pit_metadata_available_buckets": 0,
+      "pit_metadata_coverage_fraction": 0.0,
+      "price_feature_non_null_buckets": 21062,
+      "price_gap_runs_after_first_eligible": 13,
+      "price_gap_runs_gt_1_bucket": 1,
+      "taker_notional_non_null_buckets": 0,
+      "taker_split_complete_buckets": 21062,
+      "volume_notional_non_null_buckets": 0
+    }
+  },
+  "phase_a_decision": "ARCHIVE_PARTIALLY_ELIGIBLE_FOR_EVENT_FAMILY_REPLAY",
+  "pit": {
+    "history_rows_by_venue": {
+      "binance": "no_history_rows",
+      "bybit": "no_history_rows",
+      "okx": "no_history_rows"
+    },
+    "pit_history_present_bucket_rows": 0
+  },
+  "pit_required_families": [
+    "volume",
+    "taker_flow"
+  ],
+  "predicates": {
+    "bar_5_of_5_quorum_buckets": 21074,
+    "bar_5_of_5_quorum_fraction": 0.988833,
+    "oi_eligible_quorum_buckets": 21076,
+    "oi_ge_2_quorum_buckets": 21076,
+    "oi_ge_2_quorum_fraction": 0.988926,
+    "price_feature_quorum_buckets": 21074,
+    "taker_split_complete_quorum_buckets": 21074,
+    "taker_split_complete_quorum_fraction": 0.988833
+  },
+  "product_semantics": {
+    "all_enabled_event_families_replayable": false,
+    "core_families": [
+      "price_structure",
+      "oi",
+      "volume"
+    ],
+    "core_families_simultaneously_usable_somewhere": false,
+    "data_degraded_volume_reason_follows_from_coverage": true,
+    "enabled_event_statuses": {
+      "LIQUIDATION_STRESS_LONG": "INSUFFICIENT_EVIDENCE",
+      "LIQUIDATION_STRESS_SHORT": "INSUFFICIENT_EVIDENCE",
+      "POSITION_BUILDUP_COMPRESSION": "BLOCKED",
+      "PRICE_OI_CONTRACTION_DOWN": "PARTIALLY_REPLAYABLE_WITH_INTERVAL",
+      "PRICE_OI_CONTRACTION_UP": "PARTIALLY_REPLAYABLE_WITH_INTERVAL",
+      "TAKER_FLOW_EXTREME_BUY": "BLOCKED",
+      "TAKER_FLOW_EXTREME_SELL": "BLOCKED"
+    },
+    "full_status_machine_not_in_export": [
+      "materialized",
+      "stale_barrier",
+      "evaluation_fresh",
+      "ingestion_heartbeat"
+    ],
+    "full_status_machine_replayable": false,
+    "no_active_events_blocker": "FAMILY_UNUSABLE:volume",
+    "no_active_events_reproducible": false,
+    "volume_eligible_buckets": 0
+  },
+  "production_db_accessed": false,
+  "production_db_written": false,
+  "replay_authorized": false,
+  "replay_performed": false,
+  "rules_changed": false,
+  "simultaneous_enabled_family_buckets": 0,
+  "source_semantics_changes": false,
+  "top_coverage_blockers": [
+    "INTERIOR_COVERAGE_GAPS",
+    "VOLUME_PIT_NOTIONAL_NEVER_ELIGIBLE",
+    "TAKER_FLOW_PIT_NOTIONAL_NEVER_ELIGIBLE",
+    "CONNECTIVITY_LOG_EMPTY_HEARTBEAT_NOT_HISTORICALLY_PROVABLE",
+    "CORE_FAMILY_VOLUME_NEVER_USABLE",
+    "FULL_PRODUCT_STATUS_GATES_NOT_IN_EXPORT"
+  ],
+  "total_5m_buckets": 21312
+}
