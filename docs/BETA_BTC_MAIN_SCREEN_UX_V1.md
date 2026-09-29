@@ -126,7 +126,7 @@ BTC · calm
 No unusual state now
 1h volume: normal · range: normal
 No notable event in the last 2h
-Data through 12:10 UTC
+Data through 12:05 UTC
 ```
 
 ### 2. Active price/OI event
@@ -135,12 +135,12 @@ Data through 12:10 UTC
 BTC · unusual now
 Price ↓↓ · OI ↓↓
 Positions shrank during the drop
-1h activity: history building
+1h activity: incomplete
 Still active
 Data through 12:10 UTC
 ```
 
-`↓↓` means the anchor rank is in the high tail, not merely that the percent is large.
+`↓↓` means the anchor rank is in the high tail, not merely that the percent is large. `incomplete` means the 12-bucket window is not on the view yet. A present window whose ranks are still immature says `1h activity: history building`.
 
 ### 3. Recently ended
 
@@ -159,8 +159,10 @@ Data through 12:10 UTC
 ```
 BTC · data incomplete
 Current observability is insufficient; the absence of events cannot be claimed right now.
-Data through 12:10 UTC
+Data through 12:05 UTC
 ```
+
+An open episode is still listed under that sentence. The 1h line is omitted while the tape is stale or degraded.
 
 ### 5. History still building
 
@@ -168,7 +170,7 @@ Data through 12:10 UTC
 BTC · history building
 Price/OI history 8.4d / 30d
 Unusual states are not evaluated yet
-1h activity: history building
+1h activity: incomplete
 Data through 12:05 UTC
 ```
 

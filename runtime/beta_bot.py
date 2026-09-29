@@ -159,7 +159,7 @@ class BetaBotHandler:
         """Render /btc from the persisted context projection and record exactly what
         was shown (view model + rendered text + digests; no user id)."""
         from beta.context import btc_view, episodization_digest
-        from beta.formatter import format_btc
+        from beta.formatter import btc_buttons, format_btc
         from beta.readiness import readiness
         from beta.state_tape import sha256_json
         st = await collect_status(conn, self.cfg, now)
@@ -178,10 +178,7 @@ class BetaBotHandler:
             episodization_digest=view["episodization_digest"], payload=view,
             payload_digest=sha256_json(view), rendered_sha256=hashlib.sha256(text.encode("utf-8")).hexdigest(),
             rendered_html=text)
-        focus = view["active_episode"] or view["last_event"]
-        row = ([("Details", "c:" + focus["episode_id"])] if focus else []) + \
-            ([("Readiness", "r:latest")] if view["readiness"] else [])
-        return text, ([row] if row else None)
+        return text, btc_buttons(view)
 
     def _maturity_days(self) -> float:
         """The percentile core's maturity span (Stage-2 confidence tiers), not a UI constant."""
@@ -197,6 +194,16 @@ class BetaBotHandler:
         if rd is None:
             return [answer("No evaluation yet")]
         return [answer(""), _msg(chat_id, format_readiness_details(self.cfg, rd))]
+
+    async def _now_details(self, conn, chat_id: int, answer) -> list:
+        from beta.context import episodization_digest
+        from beta.formatter import format_now_details
+        ctx = await conn.fetch_latest_context_state(symbol=self.cfg.symbol,
+                                                    episodization_digest=episodization_digest(self.cfg))
+        state = ctx["state"] if ctx else None
+        if not state or not state.get("now"):
+            return [answer("No evaluation yet")]
+        return [answer(""), _msg(chat_id, format_now_details(self.cfg, state))]
 
     async def _context_details(self, conn, chat_id: int, episode_id: str, answer) -> list:
         from beta.context import episodization_digest, find_episode
@@ -223,6 +230,8 @@ class BetaBotHandler:
             return [answer("Not available")]
         if data[0] == "c":
             return await self._context_details(conn, chat_id, data[2:], answer)
+        if data == "n:latest":
+            return await self._now_details(conn, chat_id, answer)
         if data == "r:latest":
             return await self._readiness_details(conn, chat_id, answer)
         ep = await conn.fetch_episode_by_public_id(data[2:])
