@@ -1,0 +1,63 @@
+{
+  "schema_version": "P4_OWNER_RUN_SUMMARY_V0",
+  "status": "FROZEN_EVIDENCE_OWNER_RUN_DESCRIPTIVE_FOLLOW_UP",
+  "recorded_date": "2026-09-29",
+  "replay_class": "CURRENT_RULE_SEMANTIC_RECONSTRUCTION",
+  "follow_up_version": "HISTORICAL_FOLLOW_UP_V0",
+  "frozen_followup_source_sha": "9e1ba03638b5e53fedea5b91cb60d41e23288f5e",
+  "stage2_code_version": "43b1e1dd1d3acaaba3d9b917f5319d31b2afb0b5",
+  "as_of": "2026-09-29T15:03:00Z",
+  "authorized_buckets": 12434,
+  "raw_p4_output_committed": false,
+  "raw_p4_output_hashes_captured": false,
+  "owner_output_path": "/tmp/live_archive_price_oi_p4_followup_v0",
+  "provenance": {
+    "replay": "RECONSTRUCTED_FROM_SIGNALBOT_LIVE_ARCHIVE",
+    "frozen_mapping": "RECONSTRUCTED_FROM_LIVE_COLLECTED_RAW_DATA",
+    "live_observed_written": false
+  },
+  "matched_baseline": {
+    "status": "UNAVAILABLE_FAIL_CLOSED",
+    "reason": "Historical evaluation_fresh and raw-revision/coherence state are not reconstructable from the archive; no controls fabricated."
+  },
+  "families": {
+    "PRICE_OI_CONTRACTION_DOWN": {
+      "reconstructed_episodes": 277,
+      "triggered_episodes": 25,
+      "followup_eligible_events": 22,
+      "followup_eligible_distinct_utc_dates": 17,
+      "event_median_realized_range_1h_pct": 0.9280488526070928,
+      "event_median_realized_range_4h_pct": 1.5765374076858096,
+      "ordinary_comparison_events": 18,
+      "ordinary_distinct_utc_dates": 13,
+      "ordinary_median_realized_range_1h_pct": 0.31225251980032437,
+      "ordinary_median_realized_range_4h_pct": 0.6508845191856447,
+      "excluded_outcome_incomplete": 3,
+      "ordinary_excluded_too_few_controls": 4,
+      "excluded_reference_unavailable": 0,
+      "excluded_not_comparable": 0,
+      "excluded_not_matured": 0,
+      "display_sufficiency": "PASS"
+    },
+    "PRICE_OI_CONTRACTION_UP": {
+      "reconstructed_episodes": 223,
+      "triggered_episodes": 19,
+      "followup_eligible_events": 17,
+      "followup_eligible_distinct_utc_dates": 12,
+      "event_median_realized_range_1h_pct": 1.3288664266566295,
+      "event_median_realized_range_4h_pct": 2.09441932438176,
+      "ordinary_comparison_events": 11,
+      "ordinary_distinct_utc_dates": 7,
+      "ordinary_median_realized_range_1h_pct": 0.3374713940875821,
+      "ordinary_median_realized_range_4h_pct": 0.6888552939953104,
+      "excluded_outcome_incomplete": 2,
+      "ordinary_excluded_too_few_controls": 6,
+      "excluded_reference_unavailable": 0,
+      "excluded_not_comparable": 0,
+      "excluded_not_matured": 0,
+      "display_sufficiency": "PASS"
+    }
+  },
+  "interpretation": "Descriptive historical realized-range follow-up only. No direction, profitability, trading-edge, significance, causal, or incremental-information claim.",
+  "protected_2025_2026_opened": false
+}
