@@ -1,0 +1,132 @@
+{
+  "document": "D7_EXACT_GEOMETRY_ADMISSION_V1",
+  "profile_id": "SELF_REFERENTIAL_TIME_SERIES_CONTRAST_V1",
+  "primary_method": "STUDENTIZED_FULL_IF_DWB",
+  "recorded_at": "2026-09-30T16:11:05Z",
+  "decision": "D7_GEOMETRY_ADMISSION_EXECUTION_FAILED:ELIGIBLE_INDEX_GAP_BREAK_UNPUBLISHED",
+  "D7_EXACT_GEOMETRY_ADMISSION_STARTED": false,
+  "D7_GEOMETRY_ADMISSION_EXECUTED": false,
+  "worlds_completed": 0,
+  "worlds_required": 1600,
+  "execution_failures": [
+    "ELIGIBLE_INDEX_GAP_BREAK_UNPUBLISHED"
+  ],
+  "D7_ADMISSION_REJECT_COUNT": null,
+  "D7_PROFILE_ADMISSION": "NOT_DECIDED",
+  "PROFILE_VALIDATED": true,
+  "generic_decision": "FINITE_SAMPLE_STRESS_VALIDATED",
+  "generic_reject_count": 75,
+  "generic_outer_world_n": 1600,
+  "GENERIC_RESULT_RERUN": false,
+  "GENERIC_RESULT_MODIFIED": false,
+  "code_identity": {
+    "branch": "cursor/self-referential-generic-validation-v1-c58d",
+    "HEAD": "898ce8cfc04d7f5172ddd1f1b6d50bc4f8810949",
+    "tree": "686eed815b2c05ee59b48b77a9e06476259ac07a",
+    "working_tree": "clean",
+    "audited_implementation_HEAD": "ebb26aca6ed37c12bbf3b3f578973d3078407d99",
+    "audited_implementation_TREE": "aa484e77852c7505fd309b25abe4f19377a25d22",
+    "statistical_diff_vs_audited_implementation": "empty",
+    "descendant_class": "RESULT_PROVENANCE_ONLY"
+  },
+  "generic_validation_result_sha256": "cdc1c74d668b0ab955fd8a71163fd3bcfa9b26f4d73535ab995395e532c5ef3a",
+  "generic_validation_worlds_sha256": "1d77a1a3b2fd9bc26b9859e3d6e0f3429be95f09ff048e85ec290d5015c658e3",
+  "d7_admission_protocol_digest_sha256": "8c7959c0f84b01fba42c274e4b848c43df0353ab4130b282de884c8846341b8f",
+  "protocol_digest_inputs": [
+    "docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_FREEZE_AMENDMENT_V1.md",
+    "docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_ENVELOPE_RESOLUTION_V1.md",
+    "docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_VALIDATION_PROTOCOL_AMENDMENT_V1.md"
+  ],
+  "published_geometry_frozen_before_stop": {
+    "T": 30354,
+    "H_mechanical": 721,
+    "B_T": 721,
+    "L_T": 721,
+    "gap_half_open": "[2016-12-06T23:55:00.000Z, 2016-12-07T23:55:00.000Z)",
+    "year_eligible_masses": {
+      "2016": 4079,
+      "2017": 8757,
+      "2018": 8759,
+      "2019": 8759
+    },
+    "declared_cells": 16,
+    "candidate_total_K": 3438,
+    "eligible_n_by_cell": {
+      "2016:0": 1064,
+      "2016:1": 1080,
+      "2016:2": 942,
+      "2016:3": 993,
+      "2017:0": 2106,
+      "2017:1": 2104,
+      "2017:2": 2120,
+      "2017:3": 2427,
+      "2018:0": 2377,
+      "2018:1": 2218,
+      "2018:2": 2113,
+      "2018:3": 2051,
+      "2019:0": 2268,
+      "2019:1": 2234,
+      "2019:2": 2084,
+      "2019:3": 2173
+    },
+    "candidate_n_by_cell": {
+      "2016:0": 82,
+      "2016:1": 140,
+      "2016:2": 119,
+      "2016:3": 82,
+      "2017:0": 24,
+      "2017:1": 147,
+      "2017:2": 341,
+      "2017:3": 697,
+      "2018:0": 2,
+      "2018:1": 41,
+      "2018:2": 235,
+      "2018:3": 596,
+      "2019:0": 7,
+      "2019:1": 124,
+      "2019:2": 319,
+      "2019:3": 482
+    }
+  },
+  "frozen_screen_not_started": {
+    "D7_ADMISSION_OUTER_WORLD_N": 1600,
+    "R_VALIDATION": 999,
+    "aggregate_gate": "TOTAL_REJECT_COUNT <= 95",
+    "regional_gate": "NONE",
+    "workers_selected": null,
+    "admission_rng_generated": false,
+    "CONFIRMATORY_DWB_MULTIPLIERS_GENERATED": false
+  },
+  "gap_break_census": {
+    "complete_pre_gap_hours": 4979,
+    "complete_2016_post_gap_hours": 576,
+    "complete_2016_hours": 5555,
+    "complete_total_hours": 31835,
+    "published_2016_eligible": 4079,
+    "warmup_two_trailing_windows_eligible_2016": 4116,
+    "warmup_model_minus_published": 37,
+    "eligible_index_break_published": false
+  },
+  "stop_reason": "The freeze amendment defines the eligible-index break as the abutment of the published half-open gap on timestamps alone. No published integer gives that break inside the 4079 eligible 2016 rows. Complete-hour successor counts are 4979 before the gap and 576 after it in 2016, summing to 5555 complete 2016 hours. A two-window warmup of 720 plus 720, using the published builder order and assuming every complete hour is volume-valid, yields 4116 eligible 2016 hours, 37 above the published mass 4079. The residual hours are not located in any published aggregate. Placing them requires the notional and return path that defines state_defined. Those series live in the raw activity pages, which also make the D7 state path reachable. The admission runner was not written and did not read those pages. No synthetic world was drawn.",
+  "target_safety": {
+    "D7_BITMEX_PRIMARY_TARGET_OPENED": false,
+    "D7_PRIMARY_EFFECT_COMPUTED": false,
+    "CONFIRMATORY_RNG_GENERATED": false,
+    "TARGET_OPENING": "FORBIDDEN",
+    "admission_runner_read_raw_pages": false,
+    "real_state_path_used": false,
+    "lag1_pairs_used": false,
+    "power_gate_executed": false
+  },
+  "performance": {
+    "wall_time_seconds": 0,
+    "workers": null,
+    "worlds_per_second": null,
+    "bootstrap_draws_per_second": null,
+    "peak_rss_kib": null,
+    "infrastructure_retries": 0,
+    "statistical_reruns": 0
+  },
+  "next_action": "D7_EXACT_GEOMETRY_ADMISSION_STOPPED_BEFORE_WORLD_0",
+  "power_gate": "NOT_AUTHORIZED"
+}
