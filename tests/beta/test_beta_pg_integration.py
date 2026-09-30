@@ -503,7 +503,7 @@ def test_bot_unauthorized_admin_join_feedback_delete_me():
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_users"))[0]["n"] == 0
         await h.handle(_cb(ALICE, "join", 5))
         out = await h.handle(_msg(ALICE, "/btc", 6))
-        assert "EVENT ACTIVE" in out[0].html
+        assert "BTC · unusual now" in out[0].html
         out = await h.handle(_msg(ALICE, "/history", 7))
         assert pid in out[0].html and "SUPPRESSED (PUSH_DISABLED)" in out[0].html
         await h.handle(_cb(ALICE, f"u:{pid}", 8))
@@ -786,16 +786,19 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         await h.handle(_cb(ALICE, "join", 2))
         out = await h.handle(_msg(ALICE, "/btc", 3))
         text = out[0].html
-        assert "BTC perp · NO ACTIVE EVENTS" in text
-        assert ("<b>LAST EVENT</b>\nPrice + OI contraction down · TRIGGERED\n00:00–00:10 UTC · ended 0m ago\n"
-                "At 00:05–00:10: Price ") in text
-        assert "<b>NOW · 5m</b>" in text and "Data through 00:15 UTC" in text
+        assert "BTC · calmed" in text and "just ended: unusual drop" in text
+        assert "Event has ended" in text and "Data through 00:15 UTC" in text
+        assert "NO ACTIVE EVENTS" not in text and "TRIGGERED" not in text and "ARMED" not in text
         assert "Trigger bucket" not in text and "condition no longer met" not in text
-        (label, data), readiness_button = out[0].buttons[0]
         pid = (await _rows(pool, "SELECT public_id FROM beta_episodes"))[0]["public_id"]
-        assert (label, data) == ("Details", f"c:{pid}") and readiness_button == ("Readiness", "r:latest")
+        buttons = out[0].buttons[0]
+        assert buttons[0] == ("Details", f"c:{pid}")
+        data = f"c:{pid}"
         v = (await _rows(pool, "SELECT * FROM beta_btc_views"))[0]
         payload = _j(v["payload"])
+        all_ready = payload.get("readiness") and all(
+            g["status"] == "READY" for g in payload["readiness"]["groups"])
+        assert (("Readiness", "r:latest") in buttons) is (not all_ready)
         assert v["rendered_html"] == text
         assert v["rendered_sha256"] == hashlib.sha256(text.encode("utf-8")).hexdigest()
         assert v["payload_digest"] == sha256_json(payload)
@@ -942,8 +945,9 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
             "PERCENTILE_NOT_MATURE:c:oi_change_pct_median")
         out = await h.handle(_msg(ALICE, "/btc", 3))
         text = out[0].html
-        assert "BTC perp · HISTORY BUILDING" in text and "NO ACTIVE EVENTS" not in text
-        assert "Price/OI: history building · OI history 29.9d / 30d" in text
+        assert "BTC · history building" in text and "NO ACTIVE EVENTS" not in text
+        assert "Price/OI history 29.9d / 30d" in text
+        assert ("Readiness", "r:latest") in out[0].buttons[0]
 
         h.clock = Clock(B0 + 2 * BUCKET + timedelta(seconds=40))
         await _detect(pool, ScenarioReader(quiet), B0 + BUCKET)                     # first mature bucket
@@ -952,9 +956,9 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
         assert snap1["percentiles"]["c:oi_change_pct_median"]["tier"] == "mature"
         out = await h.handle(_msg(ALICE, "/btc", 4))
         text = out[0].html
-        assert "BTC perp · NO ACTIVE EVENTS" in text
-        assert "Detector ready" in text or "Ready: Price/OI" in text
-        assert ("Readiness", "r:latest") in out[0].buttons[0]
+        mature_buttons = out[0].buttons
+        assert "BTC · calm" in text and "NO ACTIVE EVENTS" not in text
+        assert "Detector ready" not in text and "Ready:" not in text
         details = await h.handle(_cb(ALICE, "r:latest", 5))
         assert "Detector readiness" in details[1].html and "OI history: mature" in details[1].html
 
@@ -964,6 +968,10 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
         # what the user saw is persisted, and the same V2 row reproduces the same readiness
         views = await _rows(pool, "SELECT payload, rendered_html FROM beta_btc_views ORDER BY view_pk")
         assert [_j(v["payload"])["headline"] for v in views] == ["HISTORY BUILDING", "NO ACTIVE EVENTS"]
+        ready = _j(views[1]["payload"])["readiness"]
+        all_ready = all(g["status"] == "READY" for g in ready["groups"])
+        row = mature_buttons[0] if mature_buttons else []
+        assert (("Readiness", "r:latest") in row) is (not all_ready)
         again = readiness(CFG, {"bucket_ts": B0 + BUCKET, "snapshot": snap1}, maturity_days=30.0)
         assert canonical_json(_j(views[1]["payload"])["readiness"]) == canonical_json(json.loads(json.dumps(again)))
         await pool.close()
