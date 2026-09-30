@@ -1,0 +1,29 @@
+{
+  "TradeBin": {
+    "keys": [
+      "timestamp",
+      "symbol"
+    ],
+    "types": {
+      "close": "float",
+      "foreignNotional": "float",
+      "high": "float",
+      "homeNotional": "float",
+      "lastSize": "long",
+      "low": "float",
+      "open": "float",
+      "pool": "string",
+      "symbol": "string",
+      "timestamp": "timestamp",
+      "trades": "long",
+      "turnover": "long",
+      "volume": "long",
+      "vwap": "float"
+    }
+  },
+  "full_schema_bytes": 32572,
+  "full_schema_sha256": "989aa13b5cbb1c4c587983ecec8bc0d6b96f2bc50b2ba7f83c0c0d75e456cc3c",
+  "note": "Current schema types only. No prose unit definition is present in this JSON. Not a 2016-2019 specification sheet.",
+  "retrieved_utc": "2026-09-30T07:20:00.000Z",
+  "source_url": "https://www.bitmex.com/api/v1/schema"
+}

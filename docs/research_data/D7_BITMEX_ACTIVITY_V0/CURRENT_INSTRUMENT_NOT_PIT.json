@@ -1,0 +1,25 @@
+{
+  "NOT_PIT": true,
+  "fields": {
+    "expiry": "2026-09-16T12:00:00.000Z",
+    "isInverse": true,
+    "isQuanto": false,
+    "listing": "2016-05-13T12:00:00.000Z",
+    "lotSize": 100,
+    "multiplier": -100000000,
+    "positionCurrency": "USD",
+    "quoteCurrency": "USD",
+    "referenceSymbol": ".BXBT30M",
+    "settlCurrency": "XBt",
+    "settle": "2026-09-16T12:00:00.000Z",
+    "state": "Settled",
+    "symbol": "XBTUSD",
+    "tickSize": 0.1,
+    "typ": "FFWCSX",
+    "underlying": "XBT"
+  },
+  "not_used_as_historical_proof": true,
+  "response_sha256": "a4fba7ee53b253fb115fe8d6a7bd5448d095d3b8b2109bfa4e45c451a1180f20",
+  "retrieved_utc": "2026-09-30T07:20:00.000Z",
+  "source_url": "https://www.bitmex.com/api/v1/instrument?symbol=XBTUSD&count=1"
+}
