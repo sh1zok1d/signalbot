@@ -1,0 +1,184 @@
+{
+  "CONFIRMATORY_RNG_GENERATED": false,
+  "D7_ADMISSION_REJECT_COUNT": 73,
+  "D7_BITMEX_PRIMARY_TARGET_OPENED": false,
+  "D7_EXACT_GEOMETRY_ADMISSION_STARTED": true,
+  "D7_GEOMETRY_ADMISSION_EXECUTED": true,
+  "D7_PRIMARY_EFFECT_COMPUTED": false,
+  "D7_PROFILE_ADMISSION": "PASS",
+  "PROFILE_VALIDATED": true,
+  "TARGET_OPENING": "FORBIDDEN",
+  "code_identity": {
+    "HEAD": "e69fc5c56ba9d4c5d31915f44b30cebf66c5275b",
+    "STATISTICAL_IMPLEMENTATION_CHANGED": false,
+    "branch": "cursor/d7-eligible-index-gap-break-v1-c58d",
+    "tree": "b0af5849359a125c467e0dcd897b9a5f715bbcd7"
+  },
+  "completed_valid_worlds": 1600,
+  "decision": "HYPOTHESIS_GEOMETRY_ADMISSION_PASS",
+  "diagnostics": {
+    "by_cell_geometry": [
+      {
+        "key": "CONTIGUOUS_PUBLISHED_MARGINS",
+        "n": 1318,
+        "reject_count": 59
+      },
+      {
+        "key": "MARKOV_16_PUBLISHED_WEIGHTS",
+        "n": 282,
+        "reject_count": 14
+      }
+    ],
+    "by_family": [
+      {
+        "key": "CANCELLING_CELLS",
+        "n": 284,
+        "reject_count": 0
+      },
+      {
+        "key": "IID_BERNOULLI",
+        "n": 94,
+        "reject_count": 5
+      },
+      {
+        "key": "INTERLACED_LAG2",
+        "n": 470,
+        "reject_count": 21
+      },
+      {
+        "key": "LABEL_MARKOV",
+        "n": 282,
+        "reject_count": 14
+      },
+      {
+        "key": "MA_EVEN",
+        "n": 282,
+        "reject_count": 19
+      },
+      {
+        "key": "VARIANCE_REGIMES",
+        "n": 188,
+        "reject_count": 14
+      }
+    ],
+    "by_gap_configuration": [
+      {
+        "key": "[3503, 26851]",
+        "n": 1600,
+        "reject_count": 73
+      }
+    ],
+    "by_param": [
+      {
+        "key": "c=0.02/0.7",
+        "n": 95,
+        "reject_count": 0
+      },
+      {
+        "key": "c=0.05/0.7",
+        "n": 95,
+        "reject_count": 0
+      },
+      {
+        "key": "c=0.10/0.7",
+        "n": 94,
+        "reject_count": 0
+      },
+      {
+        "key": "p=0.05,0.40",
+        "n": 94,
+        "reject_count": 8
+      },
+      {
+        "key": "p=0.10,0.50",
+        "n": 94,
+        "reject_count": 6
+      },
+      {
+        "key": "p=0.25",
+        "n": 94,
+        "reject_count": 5
+      },
+      {
+        "key": "q=1|theta=0.40",
+        "n": 94,
+        "reject_count": 10
+      },
+      {
+        "key": "q=2|theta=0.30,0.20",
+        "n": 94,
+        "reject_count": 4
+      },
+      {
+        "key": "q=4|theta=0.20,0.15,0.10,0.05",
+        "n": 94,
+        "reject_count": 5
+      },
+      {
+        "key": "rho=0",
+        "n": 94,
+        "reject_count": 6
+      },
+      {
+        "key": "rho=0.25",
+        "n": 94,
+        "reject_count": 5
+      },
+      {
+        "key": "rho=0.50",
+        "n": 94,
+        "reject_count": 4
+      },
+      {
+        "key": "rho=0.75",
+        "n": 94,
+        "reject_count": 1
+      },
+      {
+        "key": "rho=0.90",
+        "n": 94,
+        "reject_count": 5
+      },
+      {
+        "key": "stay=0.50",
+        "n": 94,
+        "reject_count": 6
+      },
+      {
+        "key": "stay=0.80",
+        "n": 94,
+        "reject_count": 5
+      },
+      {
+        "key": "stay=0.95",
+        "n": 94,
+        "reject_count": 3
+      }
+    ],
+    "by_year_block_construction": [
+      {
+        "key": "YEAR_BLOCKS_4079_8757_8759_8759",
+        "n": 1600,
+        "reject_count": 73
+      }
+    ]
+  },
+  "execution_failure_count": 0,
+  "master_seed_digest": "1ba93cdf4b5f0c0422c636015a499fc3f502d4ab48b269b4d8e492b6b9851656",
+  "next_action": "READY_FOR_D7_POWER_GATE",
+  "performance": {
+    "bootstrap_draws_per_second": 743.1131137681648,
+    "infrastructure_retries": 0,
+    "peak_worker_rss_kib": 42988,
+    "preserved_on_resume": 0,
+    "statistical_reruns": 0,
+    "wall_seconds_completing_process": 2150.951141065001,
+    "workers": 4,
+    "worlds_per_second": 0.7438569707389037
+  },
+  "purpose": "D7_EXACT_GEOMETRY_ADMISSION",
+  "statuses": [
+    "PRIMARY_COMPLETED"
+  ],
+  "suite_id": "D7_GEOMETRY_ADMISSION"
+}
