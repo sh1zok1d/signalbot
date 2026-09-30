@@ -1,0 +1,82 @@
+{
+  "profile_id": "SELF_REFERENTIAL_TIME_SERIES_CONTRAST_V1",
+  "amendment_id": "VALIDATION_PROTOCOL_AMENDMENT_V1",
+  "official_validation_executed": false,
+  "requirements": [
+    {
+      "requirement": "primitive moments and g(m)",
+      "symbol": "scripts.research.self_referential_contrast_v1.contrast.primitive_moments",
+      "tests": ["test_primitive_moments_and_functional", "test_empty_declared_cell_is_not_dropped", "test_zero_candidate_mass_is_undefined"]
+    },
+    {
+      "requirement": "analytic gradient",
+      "symbol": "scripts.research.self_referential_contrast_v1.contrast.analytic_partials",
+      "tests": ["test_analytic_gradient_matches_closed_form_partials"]
+    },
+    {
+      "requirement": "full influence and product-score identity",
+      "symbol": "scripts.research.self_referential_contrast_v1.contrast.gradient_influence",
+      "tests": ["test_gradient_influence_matches_product_identity", "test_boundary_product_score_identity"]
+    },
+    {
+      "requirement": "deterministic-block centering leaves theta unchanged",
+      "symbol": "scripts.research.self_referential_contrast_v1.contrast.block_center",
+      "tests": ["test_block_centering_does_not_change_theta"]
+    },
+    {
+      "requirement": "O(T) Bartlett quadratic form",
+      "symbol": "scripts.research.self_referential_contrast_v1.bartlett.bartlett_variance",
+      "tests": ["test_bartlett_matches_dense_quadratic_form_across_a_gap"]
+    },
+    {
+      "requirement": "fail-closed variance statuses",
+      "symbol": "scripts.research.self_referential_contrast_v1.contrast.classify_observed_variance",
+      "tests": ["test_variance_failure_statuses_are_not_tail_events"]
+    },
+    {
+      "requirement": "bandwidth max(H_mechanical, ceil(T^(1/3)))",
+      "symbol": "scripts.research.self_referential_contrast_v1.contrast.bandwidths",
+      "tests": ["test_bandwidth_floor_binding_is_not_data_dependent"]
+    },
+    {
+      "requirement": "O(T) Gaussian Bartlett multipliers",
+      "symbol": "scripts.research.self_referential_contrast_v1.multipliers.moving_average_multipliers",
+      "tests": ["test_multiplier_matches_bartlett_covariance_and_is_segment_local"]
+    },
+    {
+      "requirement": "studentized full-IF DWB with recomputed studentizer",
+      "symbol": "scripts.research.self_referential_contrast_v1.contrast.run_primary",
+      "tests": ["test_bootstrap_studentizer_is_recomputed_without_second_block_centering"]
+    },
+    {
+      "requirement": "finite-R p-value with ties at >=",
+      "symbol": "scripts.research.self_referential_contrast_v1.contrast.finite_r_tail",
+      "tests": ["test_finite_r_pvalue_ties_and_lattice"]
+    },
+    {
+      "requirement": "normal-critical sensitivity does not switch the primary",
+      "symbol": "scripts.research.self_referential_contrast_v1.contrast.sensitivity_rejects",
+      "tests": ["test_sensitivity_disagreement_does_not_switch_primary"]
+    },
+    {
+      "requirement": "worker-independent world entropy",
+      "symbol": "scripts.research.self_referential_contrast_v1.seeds.world_entropy",
+      "tests": ["test_seed_domain_separation_and_world_713_stability", "test_worker_count_and_chunk_size_do_not_change_results"]
+    },
+    {
+      "requirement": "1600-world allocation and regional guard",
+      "symbol": "scripts.research.self_referential_contrast_v1.validation_protocol.generic_world_specs",
+      "tests": ["test_allocation_is_finite_and_not_a_rectangle"]
+    },
+    {
+      "requirement": "validation design is not an interpolation rectangle",
+      "symbol": "scripts.research.self_referential_contrast_v1.validation_protocol.ProfileValidationDesign",
+      "tests": ["test_allocation_is_finite_and_not_a_rectangle"]
+    },
+    {
+      "requirement": "process pool over outer worlds",
+      "symbol": "scripts.research.self_referential_contrast_v1.runner.run_worlds",
+      "tests": ["test_worker_count_and_chunk_size_do_not_change_results"]
+    }
+  ]
+}
