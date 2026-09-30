@@ -327,41 +327,30 @@ def _screen_title(view: Mapping[str, Any]) -> str:
     return "calm"
 
 
-def _intensity(cfg, rank: Optional[float], tier: Optional[str]) -> int:
-    """1, 2 or 3 arrows from the frozen context tails. Immature history is direction only."""
-    if rank is None or tier != "mature":
-        return 1
-    c = cfg.section("context")
-    if rank >= c["label_extreme"] or rank <= 1.0 - c["label_extreme"]:
-        return 3
-    if rank >= c["label_high"] or rank <= 1.0 - c["label_high"]:
-        return 2
-    return 1
-
-
 def _signed_arrows(cfg, metric: Optional[Mapping[str, Any]]) -> Optional[str]:
+    """One arrow = direction only. Unusualness is never encoded in the arrow count."""
     if not metric or metric.get("value") is None:
         return None
     v = metric["value"]
     if v == 0:
         return "·"
-    return ("↑" if v > 0 else "↓") * _intensity(cfg, metric.get("rank"), metric.get("tier"))
+    return "↑" if v > 0 else "↓"
 
 
-def _volume_arrows(cfg, metric: Optional[Mapping[str, Any]]) -> Optional[str]:
+def _volume_word(cfg, metric: Optional[Mapping[str, Any]]) -> Optional[str]:
+    """The frozen context level word (elevated / high / extreme); normal or immature is omitted."""
     from .context import level_label
     if not metric:
         return None
-    n = {"elevated": 1, "high": 2, "extreme": 3}.get(
-        level_label(cfg, metric.get("rank"), metric.get("tier")) or "")
-    return None if not n else "↑" * n
+    label = level_label(cfg, metric.get("rank"), metric.get("tier"))
+    return label if label in ("elevated", "high", "extreme") else None
 
 
 def _reading_line(cfg, event_type: str, view: Mapping[str, Any]) -> str:
     if event_type in _PRICE_OI:
         parts = []
         price, oi = _signed_arrows(cfg, view["price_move_pct"]), _signed_arrows(cfg, view["oi_change_pct"])
-        vol = _volume_arrows(cfg, view["volume_notional_usd"])
+        vol = _volume_word(cfg, view["volume_notional_usd"])
         if price and price != "·":
             parts.append(f"Price {price}")
         if oi and oi != "·":
@@ -371,7 +360,7 @@ def _reading_line(cfg, event_type: str, view: Mapping[str, Any]) -> str:
         return " · ".join(parts) or "n/a"
     if event_type == POSITION_BUILDUP_COMPRESSION:
         parts = []
-        oi, vol = _signed_arrows(cfg, view["oi_change_pct"]), _volume_arrows(cfg, view["volume_notional_usd"])
+        oi, vol = _signed_arrows(cfg, view["oi_change_pct"]), _volume_word(cfg, view["volume_notional_usd"])
         if oi and oi != "·":
             parts.append(f"OI {oi}")
         if vol:
@@ -409,14 +398,8 @@ def _why_line(cfg, event_type: str, view: Mapping[str, Any]) -> Optional[str]:
     if price is None or oi is None or price == 0 or oi == 0:
         return None
     up, oi_up = price > 0, oi > 0
-    if up and not oi_up:
-        base = "Positions shrank during the rise"
-    elif not up and not oi_up:
-        base = "Positions shrank during the drop"
-    elif up and oi_up:
-        base = "Price and open positions both rose"
-    else:
-        base = "Open positions grew while price fell"
+    # Only the observed OI field: no claim about individual positions, covering or unwinding.
+    base = f"Open interest {'rose' if oi_up else 'fell'} during the {'rise' if up else 'drop'}"
     side = "short" if up else "long"
     liq = (view.get("liquidations") or {}).get(side) or {}
     need = cfg.rule("LIQUIDATION_STRESS")["min_eligible_venues"]
@@ -490,6 +473,20 @@ def _noticed_lines(cfg, view: Mapping[str, Any], ep: Mapping[str, Any], *, activ
     return lines
 
 
+def _last_known_lines(ep: Optional[Mapping[str, Any]], last: Optional[Mapping[str, Any]]) -> list:
+    """Fail-closed event block under DATA STALE / DATA DEGRADED: only the last known
+    detector fact, with its time. No arrows, no OI sentence, no "still active", no
+    other open episodes; the measurements stay in Details."""
+    if ep is not None:
+        at = _dt(ep["last_bucket"]) + timedelta(minutes=5)
+        known = f"Last known ({_hm(at)}): {_PLAIN[ep['event_type']]}"
+    elif last is not None:
+        known = f"Last known ({_hm(_dt(last['terminal_at']))}): {_PLAIN[last['event_type']]}, ended"
+    else:
+        return []
+    return [known, "Current event state unavailable"]
+
+
 def _after_lines(view: Mapping[str, Any], ep: Optional[Mapping[str, Any]],
                  last: Optional[Mapping[str, Any]]) -> list:
     if ep is not None:
@@ -523,7 +520,9 @@ def format_btc(cfg, view: Mapping[str, Any]) -> str:
     ep, last = view.get("active_episode"), view.get("last_event")
     shown = ep or last
     market_ok = status not in ("DATA DEGRADED", "DATA STALE")
-    if shown is not None:
+    if shown is not None and not market_ok:
+        lines.extend(_last_known_lines(ep, last))
+    elif shown is not None:
         lines.extend(_noticed_lines(cfg, view, shown, active=ep is not None))
     elif market_ok and title == "calm":
         lines.append("No unusual state now")
@@ -537,7 +536,7 @@ def format_btc(cfg, view: Mapping[str, Any]) -> str:
         lines.append(_hour_line(cfg, view.get("context_1h")))
     if market_ok and title == "calm":
         lines.append(f"No notable event in the last {_retention_phrase(cfg)}")
-    if shown is not None and (market_ok or status in ("DATA DEGRADED", "DATA STALE")):
+    if shown is not None and market_ok:
         lines.extend(_after_lines(view, ep, last))
     lines.append(f"Data through {_hm(_dt(view['data_through']))} UTC" if view.get("data_through")
                  else "No evaluation yet")

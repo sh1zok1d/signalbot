@@ -154,7 +154,7 @@ def test_active_event_keeps_headline_while_other_families_build():
     v = view_for(r, None, "EVENT ACTIVE", states)
     assert v["headline"] == "EVENT ACTIVE"
     out = format_btc(CFG, v)
-    assert "BTC · unusual now" in out and "Still active" in out and "Taker flow ↑↑↑" in out
+    assert "BTC · unusual now" in out and "Still active" in out and "Taker flow ↑" in out
     assert "TRIGGERED" not in out and "ARMED" not in out and "Ready:" not in out
     assert "Price/OI history 10.0d / 30d" in out
     details = format_readiness_details(CFG, r)
@@ -281,7 +281,7 @@ def test_last_event_is_unchanged_by_readiness():
     v2 = view_for(None, None, "NO ACTIVE EVENTS", states)
     assert v1["last_event"] == v2["last_event"] and v1["last_event"]["terminal_reason"] == "CONDITION_FAILED"
     out = format_btc(CFG, v1)
-    assert "BTC · calmed" in out and "unusual drop" in out and "Positions shrank during the drop" in out
+    assert "BTC · calmed" in out and "unusual drop" in out and "Open interest fell during the drop" in out
     assert "Taker flow:" not in out and "history building" not in out
     assert "history building · taker-flow history" in format_readiness_details(CFG, building)
 

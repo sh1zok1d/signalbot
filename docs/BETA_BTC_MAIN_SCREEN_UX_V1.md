@@ -47,21 +47,29 @@ A data-problem title wins over "calm". The screen does not say both "no active e
 
 - The presentation title.
 - For an open or retained episode: a short plain name (`unusual rise`, `unusual drop`, `position build-up`, `buyer-initiated flow`, `seller-initiated flow`, `long-side liquidations`, `short-side liquidations`), how long ago it ended, and whether it is still active or has ended.
-- Arrow line from the **anchor bucket** (why it was noticed), not from the latest 5m print:
-  - Price and OI: `↑` / `↓` from the sign. A second arrow when the mature rank is in the frozen `high` tail (rank ≥ 0.95 or ≤ 0.05). A third when it is in the `extreme` tail (≥ 0.99 or ≤ 0.01). Immature history gets a single arrow and no unusualness claim.
-  - Volume is added only when its frozen level is `elevated`, `high`, or `extreme` (`↑`, `↑↑`, `↑↑↑`). `normal` is omitted.
-- One sentence for a price+OI event, from the signs only:
-  - price up, OI down: `Positions shrank during the rise`
-  - price down, OI down: `Positions shrank during the drop`
-  - both up: `Price and open positions both rose`
-  - price down, OI up: `Open positions grew while price fell`
-  - If that same anchor bucket has at least 2 eligible top-tail liquidation votes on the matching side, the sentence names the elevated liquidations. It does not say they caused the move.
+- Reading line from the **anchor bucket** (why it was noticed), not from the latest 5m print. One visual grammar:
+  - An arrow is **direction only**: exactly one `↑` or `↓` from the sign of Price, OI or taker flow. Arrows are never repeated and never encode a percentile tier, so there is no hidden intensity scale to learn, and immature history looks the same as mature history.
+  - Volume is a word, never an arrow: the frozen context level (`Volume elevated`, `Volume high`, `Volume extreme`). `normal` and immature levels are omitted.
+  - Unusualness is not repeated on the main screen. For the conjunction events the anchor is in the detector's own tail by definition, so an intensity mark would be almost constant. The exact values and `pct of 30d` ranks are in Details.
+- One sentence for a price+OI event, from the signs only. It names the observed open-interest field and nothing more (OI is not a count of individual positions):
+  - price up, OI down: `Open interest fell during the rise`
+  - price down, OI down: `Open interest fell during the drop`
+  - both up: `Open interest rose during the rise`
+  - price down, OI up: `Open interest rose during the drop`
+  - If that same anchor bucket has at least 2 eligible top-tail liquidation votes on the matching side, the sentence names the elevated liquidations. It does not say they caused the move, and there is no short-covering or long-unwind wording.
 - Rolling 1h volume and range as level words. If both labels are immature: `1h activity: history building`. If the window is missing: `1h activity: incomplete`.
-- `Still active`, `Event has ended`, or the data-gap sentence.
+- `Still active`, `Event has ended`, or the data-gap sentence. Never under `DATA STALE` / `DATA DEGRADED` (see below).
 - `Data through HH:MM UTC` when the view has it.
 - The existing disclaimer, once.
 
 Other open episodes are one extra line: `Also open: seller-initiated flow`.
+
+**Fail-closed event block (`DATA STALE` / `DATA DEGRADED`).** Current observability is insufficient, so the screen may not present any episode as current. After the fail-closed sentence it shows only the last known detector fact and its time, then `Current event state unavailable`:
+
+- open episode: `Last known (HH:MM): <plain name>`, where HH:MM is the end of the episode's last qualifying bucket;
+- retained ended episode: `Last known (HH:MM): <plain name>, ended`, where HH:MM is the episode's end.
+
+No reading line, no OI sentence, no `Still active` / `Event has ended`, no `Also open`, no 1h line. The historical measurements stay behind the Details button.
 
 ## 4. What moves to Details
 
@@ -82,7 +90,7 @@ Readiness text (per-family history span, degraded reasons, "Detector ready") is 
 
 ## 5. Wording rules
 
-- Descriptive and joint, not causal. `Positions shrank during the rise` is allowed. `Shorts were liquidated`, `healthy trend`, `continuation`, and `reversal` are not.
+- Descriptive and joint, not causal. `Open interest fell during the rise` is allowed. `Positions shrank`, `Shorts were liquidated`, `short covering`, `healthy trend`, `continuation`, and `reversal` are not.
 - No trade instruction and no forecast. `assert_descriptive` still rejects buy/sell/likely/predict/signal and the existing forbidden list.
 - No watch-next sentence. A conditional such as "if OI starts rising…" is easy to read as a forecast and costs a line. Omitted on purpose.
 - Context labels are not renamed. A rank of 0.91 is `elevated`, not `extreme`.
@@ -99,7 +107,9 @@ Common states are about 6–8 short lines, title included, then one disclaimer l
 |---|---|
 | Title | `headline`, `active_episode`, `last_event.terminal_reason` |
 | `22m ago` | `requested_at` minus `last_event.terminal_at` |
-| Arrows | Anchor `view` metrics: `value` for sign, `rank` + `tier` for intensity, via `level_label` / the frozen `context.label_*` cuts |
+| Arrows | Anchor `view` metrics: `value` sign only |
+| Volume word | Anchor `volume_notional_usd` `rank` + `tier` via `level_label` (the frozen `context.label_*` cuts) |
+| Last known (stale / degraded) | `active_episode.last_bucket` + 5m, or `last_event.terminal_at` |
 | Joint sentence | Anchor price and OI signs; liquidation `voting` / `eligible` on that same anchor |
 | 1h line | `context_1h` values and percentiles |
 | `No notable event in the last 2h` | `context.last_event_retention_min` (120) and no `last_event` |
@@ -133,28 +143,30 @@ Data through 12:05 UTC
 
 ```
 BTC · unusual now
-Price ↓↓ · OI ↓↓
-Positions shrank during the drop
+Price ↓ · OI ↓ · Volume high
+Open interest fell during the drop
 1h activity: incomplete
 Still active
 Data through 12:10 UTC
 ```
 
-`↓↓` means the anchor rank is in the high tail, not merely that the percent is large. `incomplete` means the 12-bucket window is not on the view yet. A present window whose ranks are still immature says `1h activity: history building`.
+Each arrow is the sign only. `Volume high` is the frozen level word; a normal volume is omitted. `incomplete` means the 12-bucket window is not on the view yet. A present window whose ranks are still immature says `1h activity: history building`.
 
 ### 3. Recently ended
 
 ```
 BTC · calmed
 22m ago: unusual rise
-Price ↑↑ · OI ↓↓
-Positions shrank during the rise
+Price ↑ · OI ↓
+Open interest fell during the rise
 1h activity: history building
 Event has ended
 Data through 12:10 UTC
 ```
 
-### 4. Data degraded
+### 4. Data stale or degraded
+
+No episode:
 
 ```
 BTC · data incomplete
@@ -162,7 +174,27 @@ Current observability is insufficient; the absence of events cannot be claimed r
 Data through 12:05 UTC
 ```
 
-An open episode is still listed under that sentence. The 1h line is omitted while the tape is stale or degraded.
+With an episode that was open at the last good bucket (identical for `DATA STALE` and `DATA DEGRADED`):
+
+```
+BTC · data incomplete
+Current observability is insufficient; the absence of events cannot be claimed right now.
+Last known (12:10): unusual drop
+Current event state unavailable
+Data through 12:10 UTC
+```
+
+With a retained ended episode:
+
+```
+BTC · data incomplete
+Current observability is insufficient; the absence of events cannot be claimed right now.
+Last known (12:15): unusual drop, ended
+Current event state unavailable
+Data through 12:15 UTC
+```
+
+The episode is never presented as current: no arrows, OI sentence, `Still active` or `Also open`. The 1h line is omitted while the tape is stale or degraded.
 
 ### 5. History still building
 
