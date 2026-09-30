@@ -1,0 +1,113 @@
+{
+  "canonical_jsonl_gz_sha256": "33ab5c738aca3d7e58ea0bea8d575cc631d931a484b909025f5f3fc5e68b282c",
+  "canonical_jsonl_sha256": "c664fee628e8aafc8304abc72045157853246c02da4a4e57cc60ebb4e13d9ced",
+  "canonical_relative_path": "docs/research_data/D7_BITMEX_ACTIVITY_V0/canonical_5m.jsonl.gz",
+  "d2_canonical_sha256_unchanged_bytes": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "dataset_id": "D7_BITMEX_ACTIVITY_V0",
+  "instrument": "XBTUSD",
+  "interval": {
+    "end_exclusive": "2020-01-01T00:00:00.000Z",
+    "first_bucket_end": "2016-05-13T12:00:00.000Z",
+    "first_open_time": "2016-05-13T11:55:00.000Z",
+    "last_bucket_end": "2020-01-01T00:00:00.000Z",
+    "last_open_time": "2019-12-31T23:55:00.000Z",
+    "request_start": "2016-05-13T12:00:00.000Z"
+  },
+  "parser_version": "D7_BITMEX_ACTIVITY_PARSER_V0",
+  "pit_audit": {
+    "ACTIVITY_PORTABILITY_CLASS": "D7_ACTIVITY_SCIENTIFICALLY_COMPARABLE",
+    "CONTRACT_UNIT_PIT_STATUS": "CONTRACT_UNIT_PIT_PROVEN_STABLE",
+    "SELECTED_D7_ACTIVITY_FIELD": "foreignNotional",
+    "blog_pages": "BitMEX blog URLs for the 2017 tick notice and the 2021 lot-size notice returned HTTP 404 from this client. Those texts are not pinned.",
+    "not_used_as_proof": "CURRENT_INSTRUMENT_NOT_PIT.json is the 2026-09-30 settled instrument row (lotSize 100, multiplier -100000000). It is stored so it cannot be mistaken for a 2016-2019 observation.",
+    "proof": "Every pinned historical bucket has foreignNotional == volume (382033/382033, max abs diff 0), including 92449 rows before 2017-03-31T12:00:00Z and 289584 rows at or after that time. turnover matches homeNotional*1e8 within 1 satoshi on every row. No activity-unit discontinuity is present in the official history.",
+    "trade_count_not_used": true,
+    "volume_is_numerically_identical": true
+  },
+  "quality": {
+    "complete_utc_hours": 31835,
+    "d7_target_computed": false,
+    "duplicate_timestamps": 0,
+    "gap_spans": [
+      {
+        "from_open": "2016-12-06T23:50:00.000Z",
+        "missing_bars": 288,
+        "to_open": "2016-12-07T23:55:00.000Z"
+      }
+    ],
+    "incomplete_hours": [
+      {
+        "bars": 1,
+        "hour_start": "2016-05-13T11:00:00.000Z"
+      },
+      {
+        "bars": 11,
+        "hour_start": "2016-12-06T23:00:00.000Z"
+      },
+      {
+        "bars": 1,
+        "hour_start": "2016-12-07T23:00:00.000Z"
+      }
+    ],
+    "incomplete_utc_hours": 3,
+    "missing_bucket_events": 1,
+    "missing_buckets": 288,
+    "no_fill": true,
+    "non_monotonic_steps": 0,
+    "null_counts": {
+      "close": 0,
+      "foreignNotional": 0,
+      "high": 0,
+      "homeNotional": 0,
+      "lastSize": 22728,
+      "low": 0,
+      "open": 0,
+      "open_time_ms": 0,
+      "pool": 0,
+      "source_timestamp": 0,
+      "symbol": 0,
+      "trades": 0,
+      "turnover": 0,
+      "volume": 0,
+      "vwap": 22728
+    },
+    "row_count": 382033,
+    "utc_hours_touched": 31838,
+    "volume_foreign_max_abs_diff": 0.0,
+    "volume_foreign_notional_rows_compared": 382033,
+    "volume_ne_foreign_notional": 0,
+    "zero_foreign_notional_buckets": 22728,
+    "zero_trades_buckets": 22728,
+    "zero_volume_and_foreign_notional": 22728,
+    "zero_volume_buckets": 22728
+  },
+  "raw_manifest_sha256": "c903e849c725217f43bfac50b2fc0fb6f675e2f3e38e67a4122fe8bff046f28c",
+  "raw_page_count": 383,
+  "raw_pages_concat_sha256": "4ffa809e11a7898a4fddf2583f622be857408cee1290325f276a37539c15ace0",
+  "retrieval_end_utc": "2026-09-30T07:18:19.000Z",
+  "retrieval_start_utc": "2026-09-30T07:12:23.000Z",
+  "row_count": 382033,
+  "schema": "signalbot_d7_bitmex_activity_v0_source_authority",
+  "schema_pin": "docs/research_data/D7_BITMEX_ACTIVITY_V0/TRADEBIN_SCHEMA_20260930.json",
+  "scientific_outcomes": {
+    "BINANCE_2025_OPENED": false,
+    "BINANCE_2026_OPENED": false,
+    "D7_EFFECT_COMPUTED": false,
+    "D7_PRIMARY_TARGET_OPENED": false,
+    "NEXT_HOUR_HIGH_IMPACT_STATE_COMPUTED": false
+  },
+  "source": {
+    "binSize": "5m",
+    "columns_parameter": null,
+    "count": 1000,
+    "d2_canonical_modified": false,
+    "docs": "https://docs.bitmex.com/api-explorer/get-trade-bucketed",
+    "endpoint": "https://www.bitmex.com/api/v1/trade/bucketed",
+    "open_time_rule": "open_time_ms = official bucket-end timestamp minus 5 minutes",
+    "partial": false,
+    "reverse": false,
+    "symbol": "XBTUSD",
+    "third_party_kaggle_used": false,
+    "timestamp_semantics": "BUCKET_END"
+  }
+}
