@@ -503,7 +503,7 @@ def test_bot_unauthorized_admin_join_feedback_delete_me():
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_users"))[0]["n"] == 0
         await h.handle(_cb(ALICE, "join", 5))
         out = await h.handle(_msg(ALICE, "/btc", 6))
-        assert "EVENT ACTIVE" in out[0].html
+        assert "BTC · unusual now" in out[0].html
         out = await h.handle(_msg(ALICE, "/history", 7))
         assert pid in out[0].html and "SUPPRESSED (PUSH_DISABLED)" in out[0].html
         await h.handle(_cb(ALICE, f"u:{pid}", 8))
