@@ -23,23 +23,45 @@ from scripts.research.d7_bitmex_support_and_power_v0 import (
 from scripts.research.discovery_sprint_02_impl import (
     D7_PRACTICAL_GATE,
     D7_TEMPORAL_YEARS_REQUIRED,
+    MIN_D7_STATE_PER_YEAR,
+    N_RV_BUCKETS,
     PERCENTILE_METHOD,
+    RV_CUTS,
+    TRAILING_WINDOW,
+    percentile,
 )
 
 UNIT = "D7_BITMEX_DEPENDENCE_INFERENCE_REVIEW_V0"
 
-# Frozen before any synthetic calibration result is observed.
-MASTER_SEED = 20260930181
+# Reviewed calibration seed. The amendment does not reuse it.
+REVIEWED_CALIBRATION_SEED = 20260930181
+# Frozen before the amendment rerun. Not chosen from amendment outputs.
+AMENDMENT_MASTER_SEED = 20260930211
+MASTER_SEED = AMENDMENT_MASTER_SEED
 ALPHA = 0.05
+# 20% relative inflation above nominal alpha, fixed before the rerun.
+# 1.2 * 0.05 = 0.06. Stored as the decimal ceiling, not a post-hoc fit.
+TYPE_I_RELATIVE_INFLATION = 0.20
+TYPE_I_CEILING = 0.06
+WILSON_CONFIDENCE_LEVEL = 0.95
 Z_ONESIDED_95 = 1.6448536269514722
 N_OUTER = 5000
-N_BOOT_OUTER = 2000
+N_BOOT_OUTER = 5000
 N_BOOT_INNER = 399
 GENERATION_CHUNK = 500
 PRACTICAL_THRESHOLD = float(D7_PRACTICAL_GATE)
-TEMPORAL_POSITIVE_YEARS_REQUIRED = int(D7_TEMPORAL_YEARS_REQUIRED)
-CONFIRMATION_YEARS = (2016, 2017, 2018, 2019)
-PARTIAL_YEAR_TREATMENT = "INCLUDED_AS_LEGAL_CALENDAR_YEAR"
+# Binance discovery required 3 of 5. The BitMEX confirmation amendment
+# uses a separate count: 2 of the 3 full years.
+TEMPORAL_POSITIVE_YEARS_REQUIRED = 2
+DESIGN_YEARS = (2016, 2017, 2018, 2019)
+TEMPORAL_GATE_YEARS = (2017, 2018, 2019)
+DIAGNOSTIC_YEAR = 2016
+PARTIAL_YEAR_TREATMENT = "DIAGNOSTIC_ONLY_EXCLUDED_FROM_GATE"
+# Same floor the frozen discovery gate uses for a year of D7 states.
+# Applied to each arm of an RV x qrel cell. Not fit to BitMEX cell counts.
+MIN_CELL_ARM = int(MIN_D7_STATE_PER_YEAR)
+QREL_FINE_BINS = (0, 1, 2, 3)
+QREL_COARSE_GROUPS = ((0, 1), (2, 3))
 
 # Bandwidths are valid-hour steps. 721 covers the score overlap of the
 # 720-hour window plus the one-hour target shift. 720 is one step short
@@ -57,12 +79,16 @@ REGIME_P_LOW = 0.02
 REGIME_P_HIGH = 2.0 * BINANCE_MU_D7_CONTROL - REGIME_P_LOW
 YEAR_BASE_RATE = {2016: 0.06, 2017: 0.11, 2018: 0.14, 2019: 0.07}
 
-# Type-I rule, frozen before the simulation.
-# A method is unacceptable on a regime if the Wilson 95% lower bound on its
-# rejection rate is above the nominal 0.05 level.
+# Type-I rule, frozen before the amendment rerun.
+# Nominal alpha is 0.05. The tolerance is 20% relative inflation, so the
+# ceiling is 0.06. A regime passes only when the Wilson 95% upper bound
+# is at most that ceiling. The ceiling is not taken from a previous
+# synthetic rejection rate.
 TYPE_I_RULE = (
-    "For every predeclared null regime, the Wilson 95% lower bound of the "
-    "one-sided rejection rate must be <= 0.05."
+    "For every predeclared null regime, the Wilson 95% upper bound of the "
+    "one-sided rejection rate must be <= 0.06. "
+    "TYPE_I_CEILING = 1.2 * alpha, with alpha = 0.05. "
+    "The point estimate and the Wilson lower bound are not the rule."
 )
 
 # Power rule is a new confirmation-design choice. The old IID power is not the bar.
@@ -204,9 +230,11 @@ def nw_reject(delta: np.ndarray, lrv: np.ndarray) -> np.ndarray:
     return stat
 
 
-def wilson_lower_accepts(rejections: int, n: int) -> bool:
-    lo, _hi = wilson_score_interval(int(rejections), int(n))
-    return bool(lo <= ALPHA)
+def wilson_upper_accepts(rejections: int, n: int) -> bool:
+    """Accept only when the Wilson 95% upper bound is within the ceiling."""
+
+    _lo, hi = wilson_score_interval(int(rejections), int(n))
+    return bool(hi <= TYPE_I_CEILING)
 
 
 def type_i_passes(by_regime: Mapping[str, Mapping[str, Any]]) -> bool:
@@ -216,22 +244,42 @@ def type_i_passes(by_regime: Mapping[str, Mapping[str, Any]]) -> bool:
 
 
 def choose_primary_method(type_i_by_method: Mapping[str, Mapping[str, Any]]) -> str | None:
-    """First support-eligible equivalent method in the frozen rank that passes type I.
+    """Return NW721 when it passes the amended type-I rule. Nothing else.
 
-    Lag-720 HAC and circular shift are not selectable. Power is not an input.
+    The block bootstrap, lag 720, and circular shift are not selectable.
+    Power is not an input.
     """
 
-    for method in PRIMARY_RANK:
-        if method not in SELECTABLE_PRIMARY:
-            raise DesignError("RANK_NOT_SELECTABLE")
-        block = type_i_by_method.get(method)
-        if block is None:
-            continue
-        if block.get("support_eligible") is False:
-            continue
-        if type_i_passes(block["regimes"]):
-            return method
+    block = type_i_by_method.get(METHOD_NW)
+    if block is None or block.get("support_eligible") is False:
+        return None
+    if type_i_passes(block["regimes"]):
+        return METHOD_NW
     return None
+
+
+def temporal_gate_passes(year_positive: Mapping[int, bool]) -> bool:
+    """2 of 3 full years. 2016 is ignored even if the caller passes it."""
+
+    count = 0
+    for year in TEMPORAL_GATE_YEARS:
+        if year not in year_positive:
+            raise DesignError(f"TEMPORAL_YEAR_MISSING:{year}")
+        count += int(bool(year_positive[year]))
+    return count >= TEMPORAL_POSITIVE_YEARS_REQUIRED
+
+
+def classify_inference_sensitivity(primary_pass: bool, bootstrap_pass: bool) -> dict[str, Any]:
+    """Bootstrap disagreement flags sensitivity and does not flip the primary call."""
+
+    primary = "PASS" if bool(primary_pass) else "FAIL"
+    bootstrap = "PASS" if bool(bootstrap_pass) else "FAIL"
+    return {
+        "PRIMARY_INFERENCE_RESULT": primary,
+        "BLOCK_BOOTSTRAP_SENSITIVITY_RESULT": bootstrap,
+        "INFERENCE_SENSITIVE": bool(primary_pass) != bool(bootstrap_pass),
+        "PRIMARY_DECISION": primary,
+    }
 
 
 def joint_power_passes(power_by_regime: Mapping[str, Mapping[str, float]]) -> bool:
@@ -276,9 +324,10 @@ def final_pass_rule_text() -> dict[str, str]:
         ),
         "PRACTICAL_GATE": "delta_hat >= 0.05",
         "TEMPORAL_GATE": (
-            "At least 3 of calendar years 2016, 2017, 2018, 2019 have "
-            "year-level delta_hat > 0. 2016 is included. A year with no "
-            "candidates would not count as positive."
+            "PASS if year-level delta_hat > 0 in at least 2 of the 3 full "
+            "calendar years 2017, 2018, and 2019. 2016 is diagnostic only "
+            "and does not enter the numerator or the denominator. A full "
+            "year with no candidates would not count as positive."
         ),
         "INTEGRITY_GATE": (
             "Canonical D7_BITMEX_ACTIVITY_V0 gzip hash, frozen selector digest, "
@@ -371,7 +420,7 @@ def build_predictor_design(
     k_total = int(sum(s.k for s in strata))
     scale = contrast_scale([s.k for s in strata], [s.n for s in strata])
     weights = np.zeros(n, dtype=np.float64)
-    k_year = {y: 0 for y in CONFIRMATION_YEARS}
+    k_year = {y: 0 for y in DESIGN_YEARS}
     for s in strata:
         w_c, w_n = stratum_weights(s.k, s.n, k_total)
         if s.k:
@@ -427,7 +476,7 @@ def deltas_from_targets(y: np.ndarray, design: PredictorDesign) -> tuple[np.ndar
 
     r = int(y.shape[0])
     delta = np.zeros(r, dtype=np.float64)
-    yearly = {year: np.zeros(r, dtype=np.float64) for year in CONFIRMATION_YEARS}
+    yearly = {year: np.zeros(r, dtype=np.float64) for year in DESIGN_YEARS}
     for s in design.strata:
         if s.k == 0:
             continue
@@ -522,10 +571,10 @@ def bootstrap_reject_row(
     return delta, bool(delta > cut and delta > 0.0)
 
 
-def _rng(label: str) -> np.random.Generator:
-    digest = np.frombuffer(f"{MASTER_SEED}:{label}".encode("utf-8"), dtype=np.uint8)
+def _rng(label: str, seed: int = AMENDMENT_MASTER_SEED) -> np.random.Generator:
+    digest = np.frombuffer(f"{seed}:{label}".encode("utf-8"), dtype=np.uint8)
     mix = int(np.uint32(np.sum(digest.astype(np.uint64) * np.arange(1, digest.size + 1))))
-    return np.random.Generator(np.random.PCG64([MASTER_SEED, mix]))
+    return np.random.Generator(np.random.PCG64([seed, mix]))
 
 
 def probability_grid(
@@ -612,7 +661,7 @@ def evaluate_hac_chunk(y: np.ndarray, design: PredictorDesign) -> dict[str, np.n
     delta, yearly = deltas_from_targets(y, design)
     practical = delta >= PRACTICAL_THRESHOLD
     positive = np.zeros(delta.shape, dtype=np.int64)
-    for year in CONFIRMATION_YEARS:
+    for year in TEMPORAL_GATE_YEARS:
         positive += (yearly[year] > 0.0).astype(np.int64)
     temporal = positive >= TEMPORAL_POSITIVE_YEARS_REQUIRED
     scores = score_matrix(y, design)
@@ -636,7 +685,7 @@ def accumulate_bool(store: dict[str, int], key: str, mask: np.ndarray) -> None:
 def run_hac_study(design: PredictorDesign) -> dict[str, Any]:
     type_i: dict[str, dict[str, Any]] = {METHOD_NW: {}, METHOD_NW_SHORT: {}}
     for regime in NULL_REGIMES:
-        rng = _rng(f"type1:{regime}")
+        rng = _rng(f"amend-null-nw:{regime}")
         counts = {METHOD_NW: 0, METHOD_NW_SHORT: 0}
         done = 0
         while done < N_OUTER:
@@ -656,7 +705,7 @@ def run_hac_study(design: PredictorDesign) -> dict[str, Any]:
         power[METHOD_NW_SHORT][regime] = {}
         for fraction in EFFECT_FRACTIONS:
             label = _fraction_label(fraction)
-            rng = _rng(f"power:{regime}:{label}")
+            rng = _rng(f"amend-power-nw:{regime}:{label}")
             joint = {METHOD_NW: 0, METHOD_NW_SHORT: 0}
             stat = {METHOD_NW: 0, METHOD_NW_SHORT: 0}
             practical = 0
@@ -681,11 +730,13 @@ def run_hac_study(design: PredictorDesign) -> dict[str, Any]:
 
 
 def run_bootstrap_study(design: PredictorDesign) -> dict[str, Any]:
+    """Null calibration only. The bootstrap is not a confirmation gate."""
+
     if design.effective_blocks < MIN_EFFECTIVE_BLOCKS:
         return {"support_eligible": False, "effective_blocks": design.effective_blocks}
     type_i: dict[str, Any] = {}
     for regime in NULL_REGIMES:
-        rng = _rng(f"boot-type1:{regime}")
+        rng = _rng(f"amend-null-boot:{regime}")
         y = _draw_all(design, regime, 0.0, rng, N_BOOT_OUTER)
         rejects = 0
         for i in range(N_BOOT_OUTER):
@@ -695,36 +746,11 @@ def run_bootstrap_study(design: PredictorDesign) -> dict[str, Any]:
                 print(f"boot-type1 {regime} {i + 1}/{N_BOOT_OUTER}", flush=True)
         lo, hi = wilson_score_interval(rejects, N_BOOT_OUTER)
         type_i[regime] = _rate_row(rejects, N_BOOT_OUTER, lo, hi)
-    power: dict[str, Any] = {}
-    for regime in NULL_REGIMES:
-        power[regime] = {}
-        for fraction in EFFECT_FRACTIONS:
-            label = _fraction_label(fraction)
-            rng = _rng(f"boot-power:{regime}:{label}")
-            y = _draw_all(design, regime, fraction, rng, N_BOOT_OUTER)
-            stat_hits = 0
-            joint_hits = 0
-            practical_hits = 0
-            temporal_hits = 0
-            for i in range(N_BOOT_OUTER):
-                delta, yearly = deltas_from_targets(y[i : i + 1], design)
-                practical = bool(delta[0] >= PRACTICAL_THRESHOLD)
-                temporal = bool(sum(float(yearly[yr][0]) > 0.0 for yr in CONFIRMATION_YEARS) >= TEMPORAL_POSITIVE_YEARS_REQUIRED)
-                _d, stat = bootstrap_reject_row(y[i], design, rng)
-                stat_hits += int(stat)
-                practical_hits += int(practical)
-                temporal_hits += int(temporal)
-                joint_hits += int(stat and practical and temporal)
-                if (i + 1) % 250 == 0:
-                    print(f"boot-power {regime} {label} {i + 1}/{N_BOOT_OUTER}", flush=True)
-            power[regime][label] = _power_row(
-                joint_hits, stat_hits, practical_hits, temporal_hits, N_BOOT_OUTER
-            )
     return {
         "support_eligible": True,
         "effective_blocks": design.effective_blocks,
         "type_i": type_i,
-        "power": power,
+        "ROLE": "SENSITIVITY_ONLY",
     }
 
 
@@ -750,7 +776,7 @@ def _rate_row(rejections: int, n: int, lo: float, hi: float) -> dict[str, Any]:
         "n": int(n),
         "rate": rejections / float(n),
         "wilson_95": [float(lo), float(hi)],
-        "accepted": bool(lo <= ALPHA),
+        "accepted": bool(hi <= TYPE_I_CEILING),
     }
 
 
@@ -796,11 +822,7 @@ def assemble_decision(hac: Mapping[str, Any], boot: Mapping[str, Any]) -> dict[s
         }
     )
     power_view: dict[str, dict[str, float]] = {}
-    power_source = None
-    if primary == METHOD_NW:
-        power_source = hac["power"][METHOD_NW]
-    elif primary == METHOD_BOOT:
-        power_source = boot["power"]
+    power_source = hac["power"][METHOD_NW] if primary == METHOD_NW else None
     power_ok = False
     if power_source is not None:
         for regime in NULL_REGIMES:
@@ -844,9 +866,10 @@ def _calibration_lines(payload: Mapping[str, Any]) -> list[str]:
         "## Calibration",
         "",
         "One-sided rejection rate at alpha 0.05. A regime is accepted when",
-        "the Wilson 95% lower bound is at most 0.05. The point estimate is",
-        "not the rule. Lag 720 and the block bootstrap are reported. Neither",
-        "is selectable after these counts.",
+        "the Wilson 95% upper bound is at most 0.06. The point estimate and",
+        "the lower bound are not the rule. Lag 720 is reported and is not",
+        "selectable. The block bootstrap is a sensitivity calibration, not",
+        "a second gate.",
         "",
         "### Type I",
         "",
@@ -887,10 +910,16 @@ def _calibration_lines(payload: Mapping[str, Any]) -> list[str]:
     labels = {
         METHOD_NW: "primary",
         METHOD_NW_SHORT: "sensitivity, not selectable",
-        METHOD_BOOT: "calibrated, not selected",
+        METHOD_BOOT: "sensitivity only, not a gate",
     }
     for method, label in labels.items():
         block = power[method]
+        if isinstance(block, Mapping) and block.get("ROLE") == "SENSITIVITY_ONLY":
+            lines.append(f"`{method}` ({label})")
+            lines.append("")
+            lines.append(str(block.get("NOTE")))
+            lines.append("")
+            continue
         regimes = block["regimes"] if isinstance(block, Mapping) and "regimes" in block else block
         lines.append(f"`{method}` ({label})")
         lines.append("")
@@ -901,6 +930,41 @@ def _calibration_lines(payload: Mapping[str, Any]) -> list[str]:
                 for key in ("full", "75pct", "50pct")
             ]
             lines.append(f"- {regime}: " + "; ".join(bits))
+        lines.append("")
+    return lines
+
+
+def _support_lines(payload: Mapping[str, Any]) -> list[str]:
+    table = payload["RV_QREL_SUPPORT"]
+    lines = [
+        f"STATUS = {table['STATUS']}",
+        "",
+        "Fine cells:",
+        "",
+    ]
+    for cell in table["FINE_CELLS"]:
+        lines.append(
+            f"- RV {cell['rv_bucket']} qrel {cell['qrel_bucket']}: "
+            f"n={cell['n']} candidates={cell['candidates']} "
+            f"controls={cell['controls']} "
+            f"candidate_share={cell['candidate_share']} "
+            f"control_share={cell['control_share']} "
+            f"arm_support_ok={str(bool(cell['arm_support_ok'])).lower()}"
+        )
+    lines.append("")
+    coarse = table.get("COARSE_CELLS")
+    if coarse:
+        lines.append("Coarse cells:")
+        lines.append("")
+        for cell in coarse:
+            lines.append(
+                f"- RV {cell['rv_bucket']} qrel {cell['qrel_bucket']}: "
+                f"n={cell['n']} candidates={cell['candidates']} "
+                f"controls={cell['controls']} "
+                f"candidate_share={cell['candidate_share']} "
+                f"control_share={cell['control_share']} "
+                f"arm_support_ok={str(bool(cell['arm_support_ok'])).lower()}"
+            )
         lines.append("")
     return lines
 
@@ -995,16 +1059,34 @@ def render_markdown(payload: Mapping[str, Any]) -> str:
         "",
         f"INTEGRITY_GATE = {gates['INTEGRITY_GATE']}",
         "",
-        "The Binance temporal gate is `D7_TEMPORAL_YEARS_REQUIRED = 3` positive",
-        "year-level contrasts on the legal year list `(2020, 2021, 2022, 2023, 2024)`,",
-        "with a year omitted from the positive count when it has no candidates,",
-        "and with the sign test `delta_year > 0` rather than a second p-value.",
-        "The confirmation translation keeps the required count of 3 and counts",
-        "the four legal BitMEX years. 2016 stays in the count: it clears the",
-        "frozen per-year support floor, and Binance also counted its first",
-        "legal year even though the trailing window consumes the opening hours.",
-        "Requiring 3 of the 3 full years would tighten the gate. That was not done.",
+        "The Binance temporal gate remains `D7_TEMPORAL_YEARS_REQUIRED = 3`",
+        "positive year-level contrasts on `(2020, 2021, 2022, 2023, 2024)`.",
+        "That discovery rule is unchanged. The BitMEX confirmation amendment",
+        "uses a different surface: PASS if the sign is positive in at least",
+        "2 of the 3 full years 2017, 2018, and 2019. The gate exists to stop",
+        "one historical period from carrying the result. It does not require",
+        "the effect in every year. With three full years, 2 of 3 is a",
+        "symmetric majority. 2016 is a partial post-listing year. Its",
+        "year-level sign is recorded as a diagnostic and is excluded from",
+        "both the numerator and the denominator.",
         "",
+        "The block bootstrap does not enter the confirmation conjunction.",
+        "If the primary call and the bootstrap call disagree,",
+        "`INFERENCE_SENSITIVE` is true. Agreement adds no flag. The flag",
+        "does not turn a primary PASS into a FAIL or a primary FAIL into a",
+        "PASS, and it is not combined with the primary call by AND or OR.",
+        "",
+        "## RV x qrel support",
+        "",
+        "Each fine cell is one RV quartile crossed with one trailing qrel",
+        f"quartile. A cell is supported when both arms have at least {MIN_CELL_ARM}",
+        "hours. That floor is the frozen `MIN_D7_STATE_PER_YEAR`. If any fine",
+        "cell fails, qrel is coarsened once, by merging bins (0, 1) and bins",
+        "(2, 3). RV bins stay at four. No other merge is allowed. If the",
+        "coarse grid still fails, the decomposition is `NOT_SUPPORTED` and",
+        "no effect is reported for it.",
+        "",
+        *_support_lines(payload),
         *_calibration_lines(payload),
         "## Results",
         "",
@@ -1018,12 +1100,25 @@ def render_markdown(payload: Mapping[str, Any]) -> str:
         f"POWER_50PCT_EFFECT = {power.get('POWER_50PCT_EFFECT')}",
         "D7_BITMEX_PRIMARY_TARGET_OPENED = false",
         "D7_BITMEX_EFFECT_COMPUTED = false",
+        "D7_PRIMARY_EFFECT_COMPUTED = false",
+        "D7_AMENDMENT_OUTCOME_BLIND = true",
         "D7_BITMEX_REPLICATION_CLASS_ASSIGNED = false",
         "BINANCE_2025_OPENED = false",
         "BINANCE_2026_OPENED = false",
+        f"PRIMARY_INFERENCE_RESULT = {payload['PRIMARY_INFERENCE_RESULT']}",
+        f"BLOCK_BOOTSTRAP_SENSITIVITY_RESULT = {payload['BLOCK_BOOTSTRAP_SENSITIVITY_RESULT']}",
+        f"INFERENCE_SENSITIVE = {payload['INFERENCE_SENSITIVE']}",
+        f"RV_QREL_DECOMPOSITION = {payload['RV_QREL_SUPPORT']['STATUS']}",
         "```",
         "",
         payload["DECISION_NOTE"],
+        "",
+        (
+            "Block-bootstrap null calibration is "
+            f"{payload['BLOCK_BOOTSTRAP_SENSITIVITY_CALIBRATION']}. "
+            "A FAIL means the bootstrap is not an interpretable sensitivity "
+            "check. It does not change the primary call."
+        ),
         "",
         "This unit does not classify scientific truth.",
         "",
@@ -1040,8 +1135,113 @@ def assert_public_closed(payload: Mapping[str, Any]) -> None:
         raise DesignError("TARGET_OPENED")
     if payload["D7_BITMEX_EFFECT_COMPUTED"] is not False:
         raise DesignError("EFFECT_COMPUTED")
+    if payload["D7_PRIMARY_EFFECT_COMPUTED"] is not False:
+        raise DesignError("PRIMARY_EFFECT_COMPUTED")
+    if payload["D7_AMENDMENT_OUTCOME_BLIND"] is not True:
+        raise DesignError("AMENDMENT_NOT_BLIND")
     if payload["D7_BITMEX_REPLICATION_CLASS_ASSIGNED"] is not False:
         raise DesignError("CLASS_ASSIGNED")
+
+
+def qrel_bucket_from_trailing(qrel: float, trailing: Sequence[float]) -> int:
+    """Same cuts and assignment as RV_BUCKET, applied to trailing qrel."""
+
+    if len(trailing) < TRAILING_WINDOW:
+        raise DesignError("QREL_BUCKET_SHORT_WINDOW")
+    p25 = percentile(trailing, RV_CUTS[0])
+    p50 = percentile(trailing, RV_CUTS[1])
+    p75 = percentile(trailing, RV_CUTS[2])
+    if qrel <= p25:
+        return 0
+    if qrel <= p50:
+        return 1
+    if qrel <= p75:
+        return 2
+    return 3
+
+
+def assign_qrel_buckets(qrel_values: Sequence[float | None]) -> np.ndarray:
+    """Trailing qrel quartile. Current value is excluded. -1 if undefined."""
+
+    valid: list[float] = []
+    out = np.full(len(qrel_values), -1, dtype=np.int64)
+    for i, raw in enumerate(qrel_values):
+        if raw is not None and math.isfinite(float(raw)) and len(valid) >= TRAILING_WINDOW:
+            out[i] = qrel_bucket_from_trailing(float(raw), valid[-TRAILING_WINDOW:])
+        if raw is not None and math.isfinite(float(raw)):
+            valid.append(float(raw))
+    return out
+
+
+def _arm_cell(rv_bucket: int, qrel_label: str, candidates: int, controls: int) -> dict[str, Any]:
+    n = int(candidates) + int(controls)
+    return {
+        "rv_bucket": int(rv_bucket),
+        "qrel_bucket": qrel_label,
+        "n": n,
+        "candidates": int(candidates),
+        "controls": int(controls),
+        "candidate_share": None if n == 0 else candidates / float(n),
+        "control_share": None if n == 0 else controls / float(n),
+        "arm_support_ok": int(candidates) >= MIN_CELL_ARM and int(controls) >= MIN_CELL_ARM,
+    }
+
+
+def _count_cells(
+    rv: np.ndarray,
+    qrel: np.ndarray,
+    candidate: np.ndarray,
+    mask: np.ndarray,
+    groups: Sequence[tuple[str, tuple[int, ...]]],
+) -> list[dict[str, Any]]:
+    cells: list[dict[str, Any]] = []
+    for rv_id in range(int(N_RV_BUCKETS)):
+        for label, members in groups:
+            sel = mask & (rv == int(rv_id)) & np.isin(qrel, np.asarray(members, dtype=np.int64))
+            cand_n = int(np.count_nonzero(sel & candidate))
+            ctrl_n = int(np.count_nonzero(sel & ~candidate))
+            cells.append(_arm_cell(rv_id, label, cand_n, ctrl_n))
+    return cells
+
+
+def rv_qrel_support_from_buckets(
+    rv_bucket: np.ndarray,
+    qrel_bucket: np.ndarray,
+    is_candidate: np.ndarray,
+    in_contrast: np.ndarray,
+) -> dict[str, Any]:
+    """Covariate overlap only. Arguments are buckets, the candidate bit, and the mask."""
+
+    rv = np.asarray(rv_bucket, dtype=np.int64)
+    qrel = np.asarray(qrel_bucket, dtype=np.int64)
+    candidate = np.asarray(is_candidate, dtype=bool)
+    mask = np.asarray(in_contrast, dtype=bool) & (qrel >= 0) & (rv >= 0)
+    undefined = int(np.count_nonzero(np.asarray(in_contrast, dtype=bool) & (qrel < 0)))
+    fine_groups = [(str(b), (b,)) for b in QREL_FINE_BINS]
+    coarse_groups = [(f"{a}+{b}", (a, b)) for a, b in QREL_COARSE_GROUPS]
+    fine = _count_cells(rv, qrel, candidate, mask, fine_groups)
+    fine_ok = all(bool(cell["arm_support_ok"]) for cell in fine)
+    coarse = _count_cells(rv, qrel, candidate, mask, coarse_groups)
+    coarse_ok = all(bool(cell["arm_support_ok"]) for cell in coarse)
+    if fine_ok:
+        status = "SUPPORTED"
+    elif coarse_ok:
+        status = "SUPPORTED_AFTER_COARSENING"
+    else:
+        status = "NOT_SUPPORTED"
+    return {
+        "MINIMUM_ARM_COUNT": MIN_CELL_ARM,
+        "MINIMUM_ARM_SOURCE": "MIN_D7_STATE_PER_YEAR",
+        "COARSENING_RULE": (
+            "If any fine RV x qrel cell has fewer than 50 candidates or fewer "
+            "than 50 controls, merge qrel bins (0, 1) and (2, 3) once. "
+            "RV bins stay unmerged. No further bin search."
+        ),
+        "STATUS": status,
+        "UNDEFINED_QREL_IN_CONTRAST": undefined,
+        "FINE_CELLS": fine,
+        "COARSE_CELLS": coarse,
+    }
 
 
 def load_real_predictor_design():
@@ -1078,9 +1278,17 @@ def load_real_predictor_design():
         frame.state,
         frame.state_defined,
     )
+    qrel_bucket = assign_qrel_buckets(frame.qrel_1h)
+    is_candidate = np.array([value is True for value in frame.state], dtype=bool)
+    support_table = rv_qrel_support_from_buckets(
+        frame.rv_bucket,
+        qrel_bucket,
+        is_candidate,
+        design.in_contrast,
+    )
     # Drop the state sequence before any synthetic target is drawn.
     del frame
-    return design, {
+    return design, support_table, {
         "DATA_IDENTITY_STATUS": identity["DATA_IDENTITY_STATUS"],
         "SELECTOR_DIGEST": support["SELECTOR_DIGEST"],
         "STATE_N": support["STATE_N"],
@@ -1090,15 +1298,19 @@ def load_real_predictor_design():
     }
 
 
-def build_payload(design: PredictorDesign, pin: Mapping[str, Any], hac: Mapping[str, Any], boot: Mapping[str, Any]) -> dict[str, Any]:
+def build_payload(
+    design: PredictorDesign,
+    pin: Mapping[str, Any],
+    hac: Mapping[str, Any],
+    boot: Mapping[str, Any],
+    support_table: Mapping[str, Any],
+) -> dict[str, Any]:
     decision_bits = assemble_decision(hac, boot)
     primary = decision_bits["primary"]
-    if primary != confirmation_estimator():
+    if primary not in (None, confirmation_estimator()):
         raise DesignError("PRIMARY_NOT_FROZEN")
     if primary == METHOD_NW:
         power_source = hac["power"][METHOD_NW]
-    elif primary == METHOD_BOOT:
-        power_source = boot["power"]
     else:
         power_source = None
     decision = decision_bits["decision"]
@@ -1110,8 +1322,8 @@ def build_payload(design: PredictorDesign, pin: Mapping[str, Any], hac: Mapping[
     blockers: list[str] = []
     if decision == "NO_VALID_EQUIVALENT_INFERENCE_DESIGN":
         blockers.append(
-            "No equivalent method stayed inside the predeclared type-I bound "
-            "on every null regime."
+            "Primary NW721 did not keep every null regime inside the Wilson "
+            "95% upper bound of 0.06. The block bootstrap was not promoted."
         )
     elif decision == "DEPENDENCE_ROBUST_POWER_INSUFFICIENT":
         blockers.append(
@@ -1127,7 +1339,7 @@ def build_payload(design: PredictorDesign, pin: Mapping[str, Any], hac: Mapping[
         "PRIMARY_ESTIMAND": (
             "delta = sum_s (K_s/K) * (mean(Y|X=1,s) - mean(Y|eligible,s))"
         ),
-        "PRIMARY_INFERENCE_METHOD": primary,
+        "PRIMARY_INFERENCE_METHOD": confirmation_estimator(),
         "DEPENDENCE_PARAMETERS": {
             "NW_LAG_PRIMARY": NW_LAG_PRIMARY,
             "NW_LAG_SENSITIVITY_NOT_SELECTABLE": NW_LAG_SENSITIVITY,
@@ -1167,7 +1379,13 @@ def build_payload(design: PredictorDesign, pin: Mapping[str, Any], hac: Mapping[
                 "ROLE": "SENSITIVITY_NOT_SELECTABLE",
                 "regimes": hac["power"][METHOD_NW_SHORT],
             },
-            METHOD_BOOT: boot.get("power"),
+            METHOD_BOOT: {
+                "ROLE": "SENSITIVITY_ONLY",
+                "NOTE": (
+                    "Null calibration is under type I. Bootstrap power is not "
+                    "a gate and was not recomputed."
+                ),
+            },
         },
         "DEPENDENCE_POWER_SCENARIOS": NULL_REGIMES,
         "POWER_ACCEPTANCE_RULE": POWER_RULE,
@@ -1178,6 +1396,31 @@ def build_payload(design: PredictorDesign, pin: Mapping[str, Any], hac: Mapping[
         "CONFIRMATION_INTEGRITY_GATE": final_pass_rule_text()["INTEGRITY_GATE"],
         "FINAL_PASS_RULE": final_pass_rule_text(),
         "BITMEX_2016_PARTIAL_YEAR_TREATMENT": PARTIAL_YEAR_TREATMENT,
+        "TEMPORAL_GATE_YEARS": list(TEMPORAL_GATE_YEARS),
+        "TYPE_I_CEILING": TYPE_I_CEILING,
+        "TYPE_I_RELATIVE_INFLATION": TYPE_I_RELATIVE_INFLATION,
+        "WILSON_CONFIDENCE_LEVEL": WILSON_CONFIDENCE_LEVEL,
+        "AMENDMENT_MASTER_SEED": AMENDMENT_MASTER_SEED,
+        "REVIEWED_CALIBRATION_SEED": REVIEWED_CALIBRATION_SEED,
+        "AMENDMENT_SEED_TABLE": {
+            "master": AMENDMENT_MASTER_SEED,
+            "nw_null_label": "amend-null-nw:{regime}",
+            "nw_power_label": "amend-power-nw:{regime}:{fraction}",
+            "boot_null_label": "amend-null-boot:{regime}",
+            "generator": "PCG64([master, mix(label)])",
+            "n_nw_null": N_OUTER,
+            "n_nw_power": N_OUTER,
+            "n_boot_null": N_BOOT_OUTER,
+            "regimes": list(NULL_REGIMES),
+        },
+        "BLOCK_BOOTSTRAP_ROLE": "SENSITIVITY_ONLY",
+        "PRIMARY_INFERENCE_RESULT": "NOT_EVALUATED_TARGET_UNOPENED",
+        "BLOCK_BOOTSTRAP_SENSITIVITY_RESULT": "NOT_EVALUATED_TARGET_UNOPENED",
+        "INFERENCE_SENSITIVE": None,
+        "BLOCK_BOOTSTRAP_SENSITIVITY_CALIBRATION": (
+            "PASS" if boot.get("type_i") and type_i_passes(boot["type_i"]) else "FAIL"
+        ),
+        "RV_QREL_SUPPORT": dict(support_table),
         "DESIGN_EQUIVALENCE_STATUS": (
             "ESTIMAND_EQUIVALENT_INFERENCE_REPLACED"
             if primary is not None
@@ -1197,6 +1440,8 @@ def build_payload(design: PredictorDesign, pin: Mapping[str, Any], hac: Mapping[
         "NEXT_UNIT": next_unit,
         "D7_BITMEX_PRIMARY_TARGET_OPENED": False,
         "D7_BITMEX_EFFECT_COMPUTED": False,
+        "D7_PRIMARY_EFFECT_COMPUTED": False,
+        "D7_AMENDMENT_OUTCOME_BLIND": True,
         "D7_BITMEX_REPLICATION_CLASS_ASSIGNED": False,
         "BINANCE_2025_OPENED": False,
         "BINANCE_2026_OPENED": False,
@@ -1245,9 +1490,9 @@ def _decision_note(decision: str, primary: str | None, power_view: Mapping[str, 
         )
     if decision == "NO_VALID_EQUIVALENT_INFERENCE_DESIGN":
         return (
-            "Neither the lag-721 Newey-West test nor the block bootstrap stayed "
-            "inside the type-I bound on every predeclared null. Circular shift "
-            "was not eligible. No confirmation preregistration is authorized."
+            "Primary NW721 did not keep every null regime's Wilson 95% upper "
+            "bound at or below 0.06. The block bootstrap is not a fallback gate. "
+            "No confirmation preregistration is authorized."
         )
     return "No equivalent procedure met the support minimum."
 
@@ -1265,16 +1510,24 @@ def write_artifacts(payload: Mapping[str, Any]) -> None:
 def main() -> None:
     if int(D7_TEMPORAL_YEARS_REQUIRED) != 3:
         raise DesignError("TEMPORAL_COUNT_CHANGED")
+    if TEMPORAL_POSITIVE_YEARS_REQUIRED != 2 or TEMPORAL_GATE_YEARS != (2017, 2018, 2019):
+        raise DesignError("TEMPORAL_AMENDMENT")
+    if TYPE_I_CEILING != 0.06 or ALPHA != 0.05:
+        raise DesignError("TYPE_I_CEILING")
+    if AMENDMENT_MASTER_SEED == REVIEWED_CALIBRATION_SEED:
+        raise DesignError("SEED_REUSED")
+    if N_OUTER < 5000 or N_BOOT_OUTER < 5000:
+        raise DesignError("SIMULATION_COUNT")
     if not math.isclose(REGIME_P_HIGH * 0.5 + REGIME_P_LOW * 0.5, BINANCE_MU_D7_CONTROL):
         raise DesignError("REGIME_MEAN")
-    design, pin = load_real_predictor_design()
+    design, support_table, pin = load_real_predictor_design()
     print(
         f"design K={design.k_total} c={design.scale_c:.6f} blocks={design.effective_blocks}",
         flush=True,
     )
     hac = run_hac_study(design)
     boot = run_bootstrap_study(design)
-    payload = build_payload(design, pin, hac, boot)
+    payload = build_payload(design, pin, hac, boot, support_table)
     write_artifacts(payload)
     print(canonical_json({
         "DECISION": payload["DECISION"],

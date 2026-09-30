@@ -70,7 +70,7 @@ at execution.
 
 ## Calibration rules
 
-For every predeclared null regime, the Wilson 95% lower bound of the one-sided rejection rate must be <= 0.05.
+For every predeclared null regime, the Wilson 95% upper bound of the one-sided rejection rate must be <= 0.06. TYPE_I_CEILING = 1.2 * alpha, with alpha = 0.05. The point estimate and the Wilson lower bound are not the rule.
 
 NEW_CONFIRMATION_DESIGN_CHOICE: joint confirmation power (statistical AND practical AND temporal) at the full frozen delta has point estimate >= 0.80 under NULL_1_MARKOV_MODERATE, and point estimate >= 0.50 under each of NULL_2_MARKOV_STRONG, NULL_3_LATENT_30D, and NULL_4_YEAR_HETERO. IID power is reported and is not the acceptance bar. 75% and 50% effects are reported and are not substituted for the full-effect bar.
 
@@ -80,52 +80,102 @@ STATISTICAL_GATE = One-sided level 0.05 test of H0: delta <= 0 on the exact froz
 
 PRACTICAL_GATE = delta_hat >= 0.05
 
-TEMPORAL_GATE = At least 3 of calendar years 2016, 2017, 2018, 2019 have year-level delta_hat > 0. 2016 is included. A year with no candidates would not count as positive.
+TEMPORAL_GATE = PASS if year-level delta_hat > 0 in at least 2 of the 3 full calendar years 2017, 2018, and 2019. 2016 is diagnostic only and does not enter the numerator or the denominator. A full year with no candidates would not count as positive.
 
 INTEGRITY_GATE = Canonical D7_BITMEX_ACTIVITY_V0 gzip hash, frozen selector digest, and unchanged D2 gzip all match the support-unit pin; no Binance 2025/2026 input is read; the estimator uses only the predeclared weights, Bartlett kernel, and lag 721.
 
-The Binance temporal gate is `D7_TEMPORAL_YEARS_REQUIRED = 3` positive
-year-level contrasts on the legal year list `(2020, 2021, 2022, 2023, 2024)`,
-with a year omitted from the positive count when it has no candidates,
-and with the sign test `delta_year > 0` rather than a second p-value.
-The confirmation translation keeps the required count of 3 and counts
-the four legal BitMEX years. 2016 stays in the count: it clears the
-frozen per-year support floor, and Binance also counted its first
-legal year even though the trailing window consumes the opening hours.
-Requiring 3 of the 3 full years would tighten the gate. That was not done.
+The Binance temporal gate remains `D7_TEMPORAL_YEARS_REQUIRED = 3`
+positive year-level contrasts on `(2020, 2021, 2022, 2023, 2024)`.
+That discovery rule is unchanged. The BitMEX confirmation amendment
+uses a different surface: PASS if the sign is positive in at least
+2 of the 3 full years 2017, 2018, and 2019. The gate exists to stop
+one historical period from carrying the result. It does not require
+the effect in every year. With three full years, 2 of 3 is a
+symmetric majority. 2016 is a partial post-listing year. Its
+year-level sign is recorded as a diagnostic and is excluded from
+both the numerator and the denominator.
+
+The block bootstrap does not enter the confirmation conjunction.
+If the primary call and the bootstrap call disagree,
+`INFERENCE_SENSITIVE` is true. Agreement adds no flag. The flag
+does not turn a primary PASS into a FAIL or a primary FAIL into a
+PASS, and it is not combined with the primary call by AND or OR.
+
+## RV x qrel support
+
+Each fine cell is one RV quartile crossed with one trailing qrel
+quartile. A cell is supported when both arms have at least 50
+hours. That floor is the frozen `MIN_D7_STATE_PER_YEAR`. If any fine
+cell fails, qrel is coarsened once, by merging bins (0, 1) and bins
+(2, 3). RV bins stay at four. No other merge is allowed. If the
+coarse grid still fails, the decomposition is `NOT_SUPPORTED` and
+no effect is reported for it.
+
+STATUS = NOT_SUPPORTED
+
+Fine cells:
+
+- RV 0 qrel 0: n=3659 candidates=115 controls=3544 candidate_share=0.03142935228204428 control_share=0.9685706477179558 arm_support_ok=true
+- RV 0 qrel 1: n=2044 candidates=0 controls=2044 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 0 qrel 2: n=1373 candidates=0 controls=1373 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 0 qrel 3: n=705 candidates=0 controls=705 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 1 qrel 0: n=2840 candidates=452 controls=2388 candidate_share=0.1591549295774648 control_share=0.8408450704225352 arm_support_ok=true
+- RV 1 qrel 1: n=2197 candidates=0 controls=2197 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 1 qrel 2: n=1623 candidates=0 controls=1623 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 1 qrel 3: n=976 candidates=0 controls=976 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 2 qrel 0: n=1488 candidates=903 controls=585 candidate_share=0.6068548387096774 control_share=0.39314516129032256 arm_support_ok=true
+- RV 2 qrel 1: n=2013 candidates=111 controls=1902 candidate_share=0.05514157973174367 control_share=0.9448584202682563 arm_support_ok=true
+- RV 2 qrel 2: n=2172 candidates=0 controls=2172 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 2 qrel 3: n=1585 candidates=0 controls=1585 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 3 qrel 0: n=275 candidates=275 controls=0 candidate_share=1.0 control_share=0.0 arm_support_ok=false
+- RV 3 qrel 1: n=920 candidates=644 controls=276 candidate_share=0.7 control_share=0.3 arm_support_ok=true
+- RV 3 qrel 2: n=1942 candidates=524 controls=1418 candidate_share=0.2698249227600412 control_share=0.7301750772399588 arm_support_ok=true
+- RV 3 qrel 3: n=4507 candidates=414 controls=4093 candidate_share=0.09185711116041713 control_share=0.9081428888395828 arm_support_ok=true
+
+Coarse cells:
+
+- RV 0 qrel 0+1: n=5703 candidates=115 controls=5588 candidate_share=0.020164825530422585 control_share=0.9798351744695775 arm_support_ok=true
+- RV 0 qrel 2+3: n=2078 candidates=0 controls=2078 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 1 qrel 0+1: n=5037 candidates=452 controls=4585 candidate_share=0.0897359539408378 control_share=0.9102640460591622 arm_support_ok=true
+- RV 1 qrel 2+3: n=2599 candidates=0 controls=2599 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 2 qrel 0+1: n=3501 candidates=1014 controls=2487 candidate_share=0.28963153384747214 control_share=0.7103684661525278 arm_support_ok=true
+- RV 2 qrel 2+3: n=3757 candidates=0 controls=3757 candidate_share=0.0 control_share=1.0 arm_support_ok=false
+- RV 3 qrel 0+1: n=1195 candidates=919 controls=276 candidate_share=0.7690376569037657 control_share=0.2309623430962343 arm_support_ok=true
+- RV 3 qrel 2+3: n=6449 candidates=938 controls=5511 candidate_share=0.14544890680725694 control_share=0.854551093192743 arm_support_ok=true
 
 ## Calibration
 
 One-sided rejection rate at alpha 0.05. A regime is accepted when
-the Wilson 95% lower bound is at most 0.05. The point estimate is
-not the rule. Lag 720 and the block bootstrap are reported. Neither
-is selectable after these counts.
+the Wilson 95% upper bound is at most 0.06. The point estimate and
+the lower bound are not the rule. Lag 720 is reported and is not
+selectable. The block bootstrap is a sensitivity calibration, not
+a second gate.
 
 ### Type I
 
 `EXACT_DELTA_NW_BARTLETT_LAG_721`
 
-- NULL_0_IID: 242/5000 = 0.0484, Wilson [0.04279030408863613, 0.05470308430813947], accepted=true
-- NULL_1_MARKOV_MODERATE: 220/5000 = 0.044, Wilson [0.038656640337733486, 0.05004350383615862], accepted=true
-- NULL_2_MARKOV_STRONG: 206/5000 = 0.0412, Wilson [0.03603404693250978, 0.047070396372274656], accepted=true
-- NULL_3_LATENT_30D: 241/5000 = 0.0482, Wilson [0.042602103737660074, 0.054491591739893555], accepted=true
-- NULL_4_YEAR_HETERO: 258/5000 = 0.0516, Wilson [0.045805193052696626, 0.05808328205163061], accepted=true
+- NULL_0_IID: 241/5000 = 0.0482, Wilson [0.042602103737660074, 0.054491591739893555], accepted=true
+- NULL_1_MARKOV_MODERATE: 216/5000 = 0.0432, Wilson [0.037906663853665874, 0.049194708643338324], accepted=true
+- NULL_2_MARKOV_STRONG: 241/5000 = 0.0482, Wilson [0.042602103737660074, 0.054491591739893555], accepted=true
+- NULL_3_LATENT_30D: 286/5000 = 0.0572, Wilson [0.0510966231678006, 0.063983253674742], accepted=false
+- NULL_4_YEAR_HETERO: 217/5000 = 0.0434, Wilson [0.038094109375360806, 0.049406956040865375], accepted=true
 
 `EXACT_DELTA_NW_BARTLETT_LAG_720`
 
-- NULL_0_IID: 242/5000 = 0.0484, Wilson [0.04279030408863613, 0.05470308430813947], accepted=true
-- NULL_1_MARKOV_MODERATE: 220/5000 = 0.044, Wilson [0.038656640337733486, 0.05004350383615862], accepted=true
-- NULL_2_MARKOV_STRONG: 206/5000 = 0.0412, Wilson [0.03603404693250978, 0.047070396372274656], accepted=true
-- NULL_3_LATENT_30D: 242/5000 = 0.0484, Wilson [0.04279030408863613, 0.05470308430813947], accepted=true
-- NULL_4_YEAR_HETERO: 258/5000 = 0.0516, Wilson [0.045805193052696626, 0.05808328205163061], accepted=true
+- NULL_0_IID: 241/5000 = 0.0482, Wilson [0.042602103737660074, 0.054491591739893555], accepted=true
+- NULL_1_MARKOV_MODERATE: 216/5000 = 0.0432, Wilson [0.037906663853665874, 0.049194708643338324], accepted=true
+- NULL_2_MARKOV_STRONG: 241/5000 = 0.0482, Wilson [0.042602103737660074, 0.054491591739893555], accepted=true
+- NULL_3_LATENT_30D: 286/5000 = 0.0572, Wilson [0.0510966231678006, 0.063983253674742], accepted=false
+- NULL_4_YEAR_HETERO: 217/5000 = 0.0434, Wilson [0.038094109375360806, 0.049406956040865375], accepted=true
 
 `EXACT_DELTA_NONOVERLAPPING_BLOCK_BOOTSTRAP`
 
-- NULL_0_IID: 102/2000 = 0.051, Wilson [0.04218996991731548, 0.06153153854124964], accepted=true
-- NULL_1_MARKOV_MODERATE: 99/2000 = 0.0495, Wilson [0.040827254610808245, 0.059900004989600644], accepted=true
-- NULL_2_MARKOV_STRONG: 97/2000 = 0.0485, Wilson [0.03992009344287708, 0.05881100025209431], accepted=true
-- NULL_3_LATENT_30D: 110/2000 = 0.055, Wilson [0.04583478836864504, 0.06587138371167006], accepted=true
-- NULL_4_YEAR_HETERO: 97/2000 = 0.0485, Wilson [0.03992009344287708, 0.05881100025209431], accepted=true
+- NULL_0_IID: 251/5000 = 0.0502, Wilson [0.04448534215006972, 0.05660528251970369], accepted=true
+- NULL_1_MARKOV_MODERATE: 239/5000 = 0.0478, Wilson [0.042225787297577644, 0.05406852234153203], accepted=true
+- NULL_2_MARKOV_STRONG: 282/5000 = 0.0564, Wilson [0.05033958885978194, 0.06314151630587275], accepted=false
+- NULL_3_LATENT_30D: 269/5000 = 0.0538, Wilson [0.04788174698389211, 0.06040335023187689], accepted=false
+- NULL_4_YEAR_HETERO: 259/5000 = 0.0518, Wilson [0.04599384613067904, 0.05829432189287018], accepted=true
 
 `CIRCULAR_SHIFT`: NOT_EQUIVALENT. A circular-shift reference distribution tests whether the next-hour alignment is unusual among alignments.
 
@@ -139,45 +189,49 @@ reported. It is not the acceptance bar.
 
 `EXACT_DELTA_NW_BARTLETT_LAG_721` (primary)
 
-- NULL_0_IID: full joint 1.0; 75pct joint 0.9996; 50pct joint 0.202
-- NULL_1_MARKOV_MODERATE: full joint 1.0; 75pct joint 0.9994; 50pct joint 0.2138
-- NULL_2_MARKOV_STRONG: full joint 1.0; 75pct joint 0.9804; 50pct joint 0.277
-- NULL_3_LATENT_30D: full joint 1.0; 75pct joint 0.9868; 50pct joint 0.2836
-- NULL_4_YEAR_HETERO: full joint 1.0; 75pct joint 0.9986; 50pct joint 0.2174
+- NULL_0_IID: full joint 1.0; 75pct joint 0.9996; 50pct joint 0.2042
+- NULL_1_MARKOV_MODERATE: full joint 1.0; 75pct joint 0.9982; 50pct joint 0.2062
+- NULL_2_MARKOV_STRONG: full joint 1.0; 75pct joint 0.981; 50pct joint 0.2822
+- NULL_3_LATENT_30D: full joint 1.0; 75pct joint 0.9866; 50pct joint 0.2862
+- NULL_4_YEAR_HETERO: full joint 1.0; 75pct joint 0.9988; 50pct joint 0.2104
 
 `EXACT_DELTA_NW_BARTLETT_LAG_720` (sensitivity, not selectable)
 
-- NULL_0_IID: full joint 1.0; 75pct joint 0.9996; 50pct joint 0.202
-- NULL_1_MARKOV_MODERATE: full joint 1.0; 75pct joint 0.9994; 50pct joint 0.2138
-- NULL_2_MARKOV_STRONG: full joint 1.0; 75pct joint 0.9804; 50pct joint 0.277
-- NULL_3_LATENT_30D: full joint 1.0; 75pct joint 0.9868; 50pct joint 0.2836
-- NULL_4_YEAR_HETERO: full joint 1.0; 75pct joint 0.9986; 50pct joint 0.2174
+- NULL_0_IID: full joint 1.0; 75pct joint 0.9996; 50pct joint 0.2042
+- NULL_1_MARKOV_MODERATE: full joint 1.0; 75pct joint 0.9982; 50pct joint 0.2062
+- NULL_2_MARKOV_STRONG: full joint 1.0; 75pct joint 0.981; 50pct joint 0.2822
+- NULL_3_LATENT_30D: full joint 1.0; 75pct joint 0.9866; 50pct joint 0.2862
+- NULL_4_YEAR_HETERO: full joint 1.0; 75pct joint 0.9988; 50pct joint 0.2104
 
-`EXACT_DELTA_NONOVERLAPPING_BLOCK_BOOTSTRAP` (calibrated, not selected)
+`EXACT_DELTA_NONOVERLAPPING_BLOCK_BOOTSTRAP` (sensitivity only, not a gate)
 
-- NULL_0_IID: full joint 1.0; 75pct joint 0.998; 50pct joint 0.19
-- NULL_1_MARKOV_MODERATE: full joint 1.0; 75pct joint 0.9985; 50pct joint 0.206
-- NULL_2_MARKOV_STRONG: full joint 1.0; 75pct joint 0.984; 50pct joint 0.2925
-- NULL_3_LATENT_30D: full joint 1.0; 75pct joint 0.9845; 50pct joint 0.2935
-- NULL_4_YEAR_HETERO: full joint 1.0; 75pct joint 0.9985; 50pct joint 0.2155
+Null calibration is under type I. Bootstrap power is not a gate and was not recomputed.
 
 ## Results
 
 ```
 OLD_EXCHANGEABLE_NULL_STATUS = INVALID_UNDER_SERIAL_DEPENDENCE
 PRIMARY_INFERENCE_METHOD = EXACT_DELTA_NW_BARTLETT_LAG_721
-DECISION = DEPENDENCE_VALID_DESIGN_READY_FOR_PREREG
-NEXT_UNIT = D7_BITMEX_CONFIRMATION_PREREG_FREEZE
-POWER_FULL_EFFECT = 1.0
-POWER_75PCT_EFFECT = 0.9994
-POWER_50PCT_EFFECT = 0.2138
+DECISION = NO_VALID_EQUIVALENT_INFERENCE_DESIGN
+NEXT_UNIT = NONE
+POWER_FULL_EFFECT = None
+POWER_75PCT_EFFECT = None
+POWER_50PCT_EFFECT = None
 D7_BITMEX_PRIMARY_TARGET_OPENED = false
 D7_BITMEX_EFFECT_COMPUTED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+D7_AMENDMENT_OUTCOME_BLIND = true
 D7_BITMEX_REPLICATION_CLASS_ASSIGNED = false
 BINANCE_2025_OPENED = false
 BINANCE_2026_OPENED = false
+PRIMARY_INFERENCE_RESULT = NOT_EVALUATED_TARGET_UNOPENED
+BLOCK_BOOTSTRAP_SENSITIVITY_RESULT = NOT_EVALUATED_TARGET_UNOPENED
+INFERENCE_SENSITIVE = None
+RV_QREL_DECOMPOSITION = NOT_SUPPORTED
 ```
 
-Primary method `EXACT_DELTA_NW_BARTLETT_LAG_721` passed the type-I rule on every null regime and the predeclared dependence-aware power rule. The next unit may freeze the preregistration. It may not open the target inside that freeze.
+Primary NW721 did not keep every null regime's Wilson 95% upper bound at or below 0.06. The block bootstrap is not a fallback gate. No confirmation preregistration is authorized.
+
+Block-bootstrap null calibration is FAIL. A FAIL means the bootstrap is not an interpretable sensitivity check. It does not change the primary call.
 
 This unit does not classify scientific truth.

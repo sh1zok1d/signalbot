@@ -1,9 +1,30 @@
 {
   "ALPHA": 0.05,
+  "AMENDMENT_MASTER_SEED": 20260930211,
+  "AMENDMENT_SEED_TABLE": {
+    "boot_null_label": "amend-null-boot:{regime}",
+    "generator": "PCG64([master, mix(label)])",
+    "master": 20260930211,
+    "n_boot_null": 5000,
+    "n_nw_null": 5000,
+    "n_nw_power": 5000,
+    "nw_null_label": "amend-null-nw:{regime}",
+    "nw_power_label": "amend-power-nw:{regime}:{fraction}",
+    "regimes": [
+      "NULL_0_IID",
+      "NULL_1_MARKOV_MODERATE",
+      "NULL_2_MARKOV_STRONG",
+      "NULL_3_LATENT_30D",
+      "NULL_4_YEAR_HETERO"
+    ]
+  },
   "BASE_POWER_REGIME": "NULL_1_MARKOV_MODERATE",
   "BINANCE_2025_OPENED": false,
   "BINANCE_2026_OPENED": false,
-  "BITMEX_2016_PARTIAL_YEAR_TREATMENT": "INCLUDED_AS_LEGAL_CALENDAR_YEAR",
+  "BITMEX_2016_PARTIAL_YEAR_TREATMENT": "DIAGNOSTIC_ONLY_EXCLUDED_FROM_GATE",
+  "BLOCK_BOOTSTRAP_ROLE": "SENSITIVITY_ONLY",
+  "BLOCK_BOOTSTRAP_SENSITIVITY_CALIBRATION": "FAIL",
+  "BLOCK_BOOTSTRAP_SENSITIVITY_RESULT": "NOT_EVALUATED_TARGET_UNOPENED",
   "BOOTSTRAP_SUPPORT": {
     "effective_blocks": 26,
     "min_effective_blocks": 20,
@@ -15,13 +36,15 @@
   "CONFIRMATION_PRACTICAL_GATE": "delta_hat >= 0.05",
   "CONFIRMATION_PREREG_CREATED": false,
   "CONFIRMATION_STATISTICAL_GATE": "One-sided level 0.05 test of H0: delta <= 0 on the exact frozen pool-adjusted contrast, using EXACT_DELTA_NW_BARTLETT_LAG_721 only. Bartlett kernel, fixed lag 721 valid hours, normal critical value 1.6448536269514722. Reject only when the long-run variance is positive and delta_hat / se exceeds that critical value. Lag 720, the block bootstrap, and circular shift are not selectable at confirmation.",
-  "CONFIRMATION_TEMPORAL_GATE": "At least 3 of calendar years 2016, 2017, 2018, 2019 have year-level delta_hat > 0. 2016 is included. A year with no candidates would not count as positive.",
+  "CONFIRMATION_TEMPORAL_GATE": "PASS if year-level delta_hat > 0 in at least 2 of the 3 full calendar years 2017, 2018, and 2019. 2016 is diagnostic only and does not enter the numerator or the denominator. A full year with no candidates would not count as positive.",
   "CONTRAST_SCALE_C": 0.8037903043858667,
+  "D7_AMENDMENT_OUTCOME_BLIND": true,
   "D7_BITMEX_EFFECT_COMPUTED": false,
   "D7_BITMEX_PRIMARY_TARGET_OPENED": false,
   "D7_BITMEX_REPLICATION_CLASS_ASSIGNED": false,
-  "DECISION": "DEPENDENCE_VALID_DESIGN_READY_FOR_PREREG",
-  "DECISION_NOTE": "Primary method `EXACT_DELTA_NW_BARTLETT_LAG_721` passed the type-I rule on every null regime and the predeclared dependence-aware power rule. The next unit may freeze the preregistration. It may not open the target inside that freeze.",
+  "D7_PRIMARY_EFFECT_COMPUTED": false,
+  "DECISION": "NO_VALID_EQUIVALENT_INFERENCE_DESIGN",
+  "DECISION_NOTE": "Primary NW721 did not keep every null regime's Wilson 95% upper bound at or below 0.06. The block bootstrap is not a fallback gate. No confirmation preregistration is authorized.",
   "DEPENDENCE_PARAMETERS": {
     "BLOCK_LENGTH": 1440,
     "EFFECTIVE_BLOCKS": 26,
@@ -50,19 +73,20 @@
     "NULL_3_LATENT_30D",
     "NULL_4_YEAR_HETERO"
   ],
-  "DESIGN_EQUIVALENCE_STATUS": "ESTIMAND_EQUIVALENT_INFERENCE_REPLACED",
+  "DESIGN_EQUIVALENCE_STATUS": "NO_CALIBRATED_EQUIVALENT_PROCEDURE",
   "EXECUTION_PERMIT_CREATED": false,
   "FINAL_PASS_RULE": {
     "D7_BITMEX_REPLICATION_SUPPORTED_IFF": "STATISTICAL_GATE AND PRACTICAL_GATE AND TEMPORAL_GATE AND INTEGRITY_GATE. This unit does not evaluate that conjunction on real BitMEX targets.",
     "INTEGRITY_GATE": "Canonical D7_BITMEX_ACTIVITY_V0 gzip hash, frozen selector digest, and unchanged D2 gzip all match the support-unit pin; no Binance 2025/2026 input is read; the estimator uses only the predeclared weights, Bartlett kernel, and lag 721.",
     "PRACTICAL_GATE": "delta_hat >= 0.05",
     "STATISTICAL_GATE": "One-sided level 0.05 test of H0: delta <= 0 on the exact frozen pool-adjusted contrast, using EXACT_DELTA_NW_BARTLETT_LAG_721 only. Bartlett kernel, fixed lag 721 valid hours, normal critical value 1.6448536269514722. Reject only when the long-run variance is positive and delta_hat / se exceeds that critical value. Lag 720, the block bootstrap, and circular shift are not selectable at confirmation.",
-    "TEMPORAL_GATE": "At least 3 of calendar years 2016, 2017, 2018, 2019 have year-level delta_hat > 0. 2016 is included. A year with no candidates would not count as positive."
+    "TEMPORAL_GATE": "PASS if year-level delta_hat > 0 in at least 2 of the 3 full calendar years 2017, 2018, and 2019. 2016 is diagnostic only and does not enter the numerator or the denominator. A full year with no candidates would not count as positive."
   },
-  "MASTER_SEED": 20260930181,
-  "NEXT_UNIT": "D7_BITMEX_CONFIRMATION_PREREG_FREEZE",
+  "INFERENCE_SENSITIVE": null,
+  "MASTER_SEED": 20260930211,
+  "NEXT_UNIT": "NONE",
   "N_INNER_BOOT": 399,
-  "N_OUTER_BOOT": 2000,
+  "N_OUTER_BOOT": 5000,
   "N_OUTER_HAC": 5000,
   "OLD_EXCHANGEABLE_NULL_STATUS": "INVALID_UNDER_SERIAL_DEPENDENCE",
   "PIN": {
@@ -76,210 +100,22 @@
   "POWER_ACCEPTANCE_RULE": "NEW_CONFIRMATION_DESIGN_CHOICE: joint confirmation power (statistical AND practical AND temporal) at the full frozen delta has point estimate >= 0.80 under NULL_1_MARKOV_MODERATE, and point estimate >= 0.50 under each of NULL_2_MARKOV_STRONG, NULL_3_LATENT_30D, and NULL_4_YEAR_HETERO. IID power is reported and is not the acceptance bar. 75% and 50% effects are reported and are not substituted for the full-effect bar.",
   "POWER_BY_METHOD": {
     "EXACT_DELTA_NONOVERLAPPING_BLOCK_BOOTSTRAP": {
-      "NULL_0_IID": {
-        "50pct": {
-          "joint": 0.19,
-          "joint_rejections": 380,
-          "joint_wilson_95": [
-            0.17340746555537098,
-            0.2077811037590058
-          ],
-          "n": 2000,
-          "practical": 0.19,
-          "statistical": 1.0,
-          "temporal": 1.0
-        },
-        "75pct": {
-          "joint": 0.998,
-          "joint_rejections": 1996,
-          "joint_wilson_95": [
-            0.994868648214923,
-            0.9992219726929489
-          ],
-          "n": 2000,
-          "practical": 0.998,
-          "statistical": 1.0,
-          "temporal": 1.0
-        },
-        "full": {
-          "joint": 1.0,
-          "joint_rejections": 2000,
-          "joint_wilson_95": [
-            0.9980829527187469,
-            0.9999999999999998
-          ],
-          "n": 2000,
-          "practical": 1.0,
-          "statistical": 1.0,
-          "temporal": 1.0
-        }
-      },
-      "NULL_1_MARKOV_MODERATE": {
-        "50pct": {
-          "joint": 0.206,
-          "joint_rejections": 412,
-          "joint_wilson_95": [
-            0.188847021374138,
-            0.22428020242723862
-          ],
-          "n": 2000,
-          "practical": 0.206,
-          "statistical": 1.0,
-          "temporal": 1.0
-        },
-        "75pct": {
-          "joint": 0.9985,
-          "joint_rejections": 1997,
-          "joint_wilson_95": [
-            0.9955989674442294,
-            0.9994897364163615
-          ],
-          "n": 2000,
-          "practical": 0.9985,
-          "statistical": 1.0,
-          "temporal": 1.0
-        },
-        "full": {
-          "joint": 1.0,
-          "joint_rejections": 2000,
-          "joint_wilson_95": [
-            0.9980829527187469,
-            0.9999999999999998
-          ],
-          "n": 2000,
-          "practical": 1.0,
-          "statistical": 1.0,
-          "temporal": 1.0
-        }
-      },
-      "NULL_2_MARKOV_STRONG": {
-        "50pct": {
-          "joint": 0.2925,
-          "joint_rejections": 585,
-          "joint_wilson_95": [
-            0.27297596038523714,
-            0.3128196142364827
-          ],
-          "n": 2000,
-          "practical": 0.2925,
-          "statistical": 1.0,
-          "temporal": 1.0
-        },
-        "75pct": {
-          "joint": 0.984,
-          "joint_rejections": 1968,
-          "joint_wilson_95": [
-            0.9775005335818276,
-            0.9886437646499193
-          ],
-          "n": 2000,
-          "practical": 0.984,
-          "statistical": 1.0,
-          "temporal": 1.0
-        },
-        "full": {
-          "joint": 1.0,
-          "joint_rejections": 2000,
-          "joint_wilson_95": [
-            0.9980829527187469,
-            0.9999999999999998
-          ],
-          "n": 2000,
-          "practical": 1.0,
-          "statistical": 1.0,
-          "temporal": 1.0
-        }
-      },
-      "NULL_3_LATENT_30D": {
-        "50pct": {
-          "joint": 0.2935,
-          "joint_rejections": 587,
-          "joint_wilson_95": [
-            0.2739541721375461,
-            0.31383756838961124
-          ],
-          "n": 2000,
-          "practical": 0.2935,
-          "statistical": 0.9995,
-          "temporal": 1.0
-        },
-        "75pct": {
-          "joint": 0.9845,
-          "joint_rejections": 1969,
-          "joint_wilson_95": [
-            0.97808335411817,
-            0.9890590270662959
-          ],
-          "n": 2000,
-          "practical": 0.9845,
-          "statistical": 1.0,
-          "temporal": 1.0
-        },
-        "full": {
-          "joint": 1.0,
-          "joint_rejections": 2000,
-          "joint_wilson_95": [
-            0.9980829527187469,
-            0.9999999999999998
-          ],
-          "n": 2000,
-          "practical": 1.0,
-          "statistical": 1.0,
-          "temporal": 1.0
-        }
-      },
-      "NULL_4_YEAR_HETERO": {
-        "50pct": {
-          "joint": 0.2155,
-          "joint_rejections": 431,
-          "joint_wilson_95": [
-            0.19803448672608792,
-            0.23405631317694492
-          ],
-          "n": 2000,
-          "practical": 0.2155,
-          "statistical": 1.0,
-          "temporal": 1.0
-        },
-        "75pct": {
-          "joint": 0.9985,
-          "joint_rejections": 1997,
-          "joint_wilson_95": [
-            0.9955989674442294,
-            0.9994897364163615
-          ],
-          "n": 2000,
-          "practical": 0.9985,
-          "statistical": 1.0,
-          "temporal": 1.0
-        },
-        "full": {
-          "joint": 1.0,
-          "joint_rejections": 2000,
-          "joint_wilson_95": [
-            0.9980829527187469,
-            0.9999999999999998
-          ],
-          "n": 2000,
-          "practical": 1.0,
-          "statistical": 1.0,
-          "temporal": 1.0
-        }
-      }
+      "NOTE": "Null calibration is under type I. Bootstrap power is not a gate and was not recomputed.",
+      "ROLE": "SENSITIVITY_ONLY"
     },
     "EXACT_DELTA_NW_BARTLETT_LAG_720": {
       "ROLE": "SENSITIVITY_NOT_SELECTABLE",
       "regimes": {
         "NULL_0_IID": {
           "50pct": {
-            "joint": 0.202,
-            "joint_rejections": 1010,
+            "joint": 0.2042,
+            "joint_rejections": 1021,
             "joint_wilson_95": [
-              0.1911021035830425,
-              0.21335544677621163
+              0.19325547283321762,
+              0.2155986996374782
             ],
             "n": 5000,
-            "practical": 0.202,
+            "practical": 0.2042,
             "statistical": 1.0,
             "temporal": 1.0
           },
@@ -310,26 +146,26 @@
         },
         "NULL_1_MARKOV_MODERATE": {
           "50pct": {
-            "joint": 0.2138,
-            "joint_rejections": 1069,
+            "joint": 0.2062,
+            "joint_rejections": 1031,
             "joint_wilson_95": [
-              0.20265789613409488,
-              0.22538153645925588
+              0.19521352491463279,
+              0.21763757674828282
             ],
             "n": 5000,
-            "practical": 0.2138,
+            "practical": 0.2062,
             "statistical": 1.0,
             "temporal": 1.0
           },
           "75pct": {
-            "joint": 0.9994,
-            "joint_rejections": 4997,
+            "joint": 0.9982,
+            "joint_rejections": 4991,
             "joint_wilson_95": [
-              0.9982372939514713,
-              0.9997959253458056
+              0.9965823552896264,
+              0.9990527064923188
             ],
             "n": 5000,
-            "practical": 0.9994,
+            "practical": 0.9982,
             "statistical": 1.0,
             "temporal": 1.0
           },
@@ -348,26 +184,26 @@
         },
         "NULL_2_MARKOV_STRONG": {
           "50pct": {
-            "joint": 0.277,
-            "joint_rejections": 1385,
+            "joint": 0.2822,
+            "joint_rejections": 1411,
             "joint_wilson_95": [
-              0.26477048203688647,
-              0.28957191303060914
+              0.2698957945930135,
+              0.29483861637425346
             ],
             "n": 5000,
-            "practical": 0.277,
+            "practical": 0.2822,
             "statistical": 1.0,
             "temporal": 1.0
           },
           "75pct": {
-            "joint": 0.9804,
-            "joint_rejections": 4902,
+            "joint": 0.981,
+            "joint_rejections": 4905,
             "joint_wilson_95": [
-              0.9761726918525208,
-              0.9838897001186685
+              0.9768300047866302,
+              0.984431465942225
             ],
             "n": 5000,
-            "practical": 0.9804,
+            "practical": 0.981,
             "statistical": 1.0,
             "temporal": 1.0
           },
@@ -386,26 +222,26 @@
         },
         "NULL_3_LATENT_30D": {
           "50pct": {
-            "joint": 0.2836,
-            "joint_rejections": 1418,
+            "joint": 0.2862,
+            "joint_rejections": 1431,
             "joint_wilson_95": [
-              0.2712760385476449,
-              0.29625622285417585
+              0.2738397411672365,
+              0.29888852818447004
             ],
             "n": 5000,
-            "practical": 0.2836,
+            "practical": 0.2862,
             "statistical": 1.0,
             "temporal": 1.0
           },
           "75pct": {
-            "joint": 0.9868,
-            "joint_rejections": 4934,
+            "joint": 0.9866,
+            "joint_rejections": 4933,
             "joint_wilson_95": [
-              0.9832420141879336,
-              0.989610551198359
+              0.9830188035566025,
+              0.9894340689104679
             ],
             "n": 5000,
-            "practical": 0.9868,
+            "practical": 0.9866,
             "statistical": 1.0,
             "temporal": 1.0
           },
@@ -424,26 +260,26 @@
         },
         "NULL_4_YEAR_HETERO": {
           "50pct": {
-            "joint": 0.2174,
-            "joint_rejections": 1087,
+            "joint": 0.2104,
+            "joint_rejections": 1052,
             "joint_wilson_95": [
-              0.20618621512661472,
-              0.22904769001273162
+              0.1993267890560968,
+              0.22191786391048035
             ],
             "n": 5000,
-            "practical": 0.2174,
+            "practical": 0.2104,
             "statistical": 1.0,
             "temporal": 1.0
           },
           "75pct": {
-            "joint": 0.9986,
-            "joint_rejections": 4993,
+            "joint": 0.9988,
+            "joint_rejections": 4994,
             "joint_wilson_95": [
-              0.9971127802223416,
-              0.9993216673980476
+              0.9973842237073702,
+              0.9994499168322408
             ],
             "n": 5000,
-            "practical": 0.9986,
+            "practical": 0.9988,
             "statistical": 1.0,
             "temporal": 1.0
           },
@@ -465,14 +301,14 @@
     "EXACT_DELTA_NW_BARTLETT_LAG_721": {
       "NULL_0_IID": {
         "50pct": {
-          "joint": 0.202,
-          "joint_rejections": 1010,
+          "joint": 0.2042,
+          "joint_rejections": 1021,
           "joint_wilson_95": [
-            0.1911021035830425,
-            0.21335544677621163
+            0.19325547283321762,
+            0.2155986996374782
           ],
           "n": 5000,
-          "practical": 0.202,
+          "practical": 0.2042,
           "statistical": 1.0,
           "temporal": 1.0
         },
@@ -503,26 +339,26 @@
       },
       "NULL_1_MARKOV_MODERATE": {
         "50pct": {
-          "joint": 0.2138,
-          "joint_rejections": 1069,
+          "joint": 0.2062,
+          "joint_rejections": 1031,
           "joint_wilson_95": [
-            0.20265789613409488,
-            0.22538153645925588
+            0.19521352491463279,
+            0.21763757674828282
           ],
           "n": 5000,
-          "practical": 0.2138,
+          "practical": 0.2062,
           "statistical": 1.0,
           "temporal": 1.0
         },
         "75pct": {
-          "joint": 0.9994,
-          "joint_rejections": 4997,
+          "joint": 0.9982,
+          "joint_rejections": 4991,
           "joint_wilson_95": [
-            0.9982372939514713,
-            0.9997959253458056
+            0.9965823552896264,
+            0.9990527064923188
           ],
           "n": 5000,
-          "practical": 0.9994,
+          "practical": 0.9982,
           "statistical": 1.0,
           "temporal": 1.0
         },
@@ -541,26 +377,26 @@
       },
       "NULL_2_MARKOV_STRONG": {
         "50pct": {
-          "joint": 0.277,
-          "joint_rejections": 1385,
+          "joint": 0.2822,
+          "joint_rejections": 1411,
           "joint_wilson_95": [
-            0.26477048203688647,
-            0.28957191303060914
+            0.2698957945930135,
+            0.29483861637425346
           ],
           "n": 5000,
-          "practical": 0.277,
+          "practical": 0.2822,
           "statistical": 1.0,
           "temporal": 1.0
         },
         "75pct": {
-          "joint": 0.9804,
-          "joint_rejections": 4902,
+          "joint": 0.981,
+          "joint_rejections": 4905,
           "joint_wilson_95": [
-            0.9761726918525208,
-            0.9838897001186685
+            0.9768300047866302,
+            0.984431465942225
           ],
           "n": 5000,
-          "practical": 0.9804,
+          "practical": 0.981,
           "statistical": 1.0,
           "temporal": 1.0
         },
@@ -579,26 +415,26 @@
       },
       "NULL_3_LATENT_30D": {
         "50pct": {
-          "joint": 0.2836,
-          "joint_rejections": 1418,
+          "joint": 0.2862,
+          "joint_rejections": 1431,
           "joint_wilson_95": [
-            0.2712760385476449,
-            0.29625622285417585
+            0.2738397411672365,
+            0.29888852818447004
           ],
           "n": 5000,
-          "practical": 0.2836,
+          "practical": 0.2862,
           "statistical": 1.0,
           "temporal": 1.0
         },
         "75pct": {
-          "joint": 0.9868,
-          "joint_rejections": 4934,
+          "joint": 0.9866,
+          "joint_rejections": 4933,
           "joint_wilson_95": [
-            0.9832420141879336,
-            0.989610551198359
+            0.9830188035566025,
+            0.9894340689104679
           ],
           "n": 5000,
-          "practical": 0.9868,
+          "practical": 0.9866,
           "statistical": 1.0,
           "temporal": 1.0
         },
@@ -617,26 +453,26 @@
       },
       "NULL_4_YEAR_HETERO": {
         "50pct": {
-          "joint": 0.2174,
-          "joint_rejections": 1087,
+          "joint": 0.2104,
+          "joint_rejections": 1052,
           "joint_wilson_95": [
-            0.20618621512661472,
-            0.22904769001273162
+            0.1993267890560968,
+            0.22191786391048035
           ],
           "n": 5000,
-          "practical": 0.2174,
+          "practical": 0.2104,
           "statistical": 1.0,
           "temporal": 1.0
         },
         "75pct": {
-          "joint": 0.9986,
-          "joint_rejections": 4993,
+          "joint": 0.9988,
+          "joint_rejections": 4994,
           "joint_wilson_95": [
-            0.9971127802223416,
-            0.9993216673980476
+            0.9973842237073702,
+            0.9994499168322408
           ],
           "n": 5000,
-          "practical": 0.9986,
+          "practical": 0.9988,
           "statistical": 1.0,
           "temporal": 1.0
         },
@@ -656,33 +492,282 @@
     }
   },
   "POWER_FIELDS": {
-    "POWER_50PCT_EFFECT": 0.2138,
-    "POWER_50PCT_EFFECT_95CI": [
-      0.20265789613409488,
-      0.22538153645925588
-    ],
-    "POWER_75PCT_EFFECT": 0.9994,
-    "POWER_75PCT_EFFECT_95CI": [
-      0.9982372939514713,
-      0.9997959253458056
-    ],
-    "POWER_FULL_EFFECT": 1.0,
-    "POWER_FULL_EFFECT_95CI": [
-      0.9992322980549431,
-      1.0
-    ]
+    "POWER_50PCT_EFFECT": null,
+    "POWER_75PCT_EFFECT": null,
+    "POWER_FULL_EFFECT": null
   },
   "PRIMARY_ASSUMPTIONS": [
     "Weights are fixed from the predictor and the stratum counts.",
     "The scientific contrast remains the frozen pool-adjusted delta.",
     "Synthetic nulls are independent of the real target, which is unopened.",
-    "Lag and block length were fixed from the 720-hour construction and the 30-day stress, not from residuals.",
-    "Bartlett Newey-West at lag 721 with a normal one-sided critical value is an adequate reference for this sample size."
+    "Lag and block length were fixed from the 720-hour construction and the 30-day stress, not from residuals."
   ],
-  "PRIMARY_BLOCKERS": [],
+  "PRIMARY_BLOCKERS": [
+    "Primary NW721 did not keep every null regime inside the Wilson 95% upper bound of 0.06. The block bootstrap was not promoted."
+  ],
   "PRIMARY_ESTIMAND": "delta = sum_s (K_s/K) * (mean(Y|X=1,s) - mean(Y|eligible,s))",
   "PRIMARY_INFERENCE_METHOD": "EXACT_DELTA_NW_BARTLETT_LAG_721",
-  "TYPE_I_ACCEPTANCE_RULE": "For every predeclared null regime, the Wilson 95% lower bound of the one-sided rejection rate must be <= 0.05.",
+  "PRIMARY_INFERENCE_RESULT": "NOT_EVALUATED_TARGET_UNOPENED",
+  "REVIEWED_CALIBRATION_SEED": 20260930181,
+  "RV_QREL_SUPPORT": {
+    "COARSENING_RULE": "If any fine RV x qrel cell has fewer than 50 candidates or fewer than 50 controls, merge qrel bins (0, 1) and (2, 3) once. RV bins stay unmerged. No further bin search.",
+    "COARSE_CELLS": [
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.020164825530422585,
+        "candidates": 115,
+        "control_share": 0.9798351744695775,
+        "controls": 5588,
+        "n": 5703,
+        "qrel_bucket": "0+1",
+        "rv_bucket": 0
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 2078,
+        "n": 2078,
+        "qrel_bucket": "2+3",
+        "rv_bucket": 0
+      },
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.0897359539408378,
+        "candidates": 452,
+        "control_share": 0.9102640460591622,
+        "controls": 4585,
+        "n": 5037,
+        "qrel_bucket": "0+1",
+        "rv_bucket": 1
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 2599,
+        "n": 2599,
+        "qrel_bucket": "2+3",
+        "rv_bucket": 1
+      },
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.28963153384747214,
+        "candidates": 1014,
+        "control_share": 0.7103684661525278,
+        "controls": 2487,
+        "n": 3501,
+        "qrel_bucket": "0+1",
+        "rv_bucket": 2
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 3757,
+        "n": 3757,
+        "qrel_bucket": "2+3",
+        "rv_bucket": 2
+      },
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.7690376569037657,
+        "candidates": 919,
+        "control_share": 0.2309623430962343,
+        "controls": 276,
+        "n": 1195,
+        "qrel_bucket": "0+1",
+        "rv_bucket": 3
+      },
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.14544890680725694,
+        "candidates": 938,
+        "control_share": 0.854551093192743,
+        "controls": 5511,
+        "n": 6449,
+        "qrel_bucket": "2+3",
+        "rv_bucket": 3
+      }
+    ],
+    "FINE_CELLS": [
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.03142935228204428,
+        "candidates": 115,
+        "control_share": 0.9685706477179558,
+        "controls": 3544,
+        "n": 3659,
+        "qrel_bucket": "0",
+        "rv_bucket": 0
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 2044,
+        "n": 2044,
+        "qrel_bucket": "1",
+        "rv_bucket": 0
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 1373,
+        "n": 1373,
+        "qrel_bucket": "2",
+        "rv_bucket": 0
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 705,
+        "n": 705,
+        "qrel_bucket": "3",
+        "rv_bucket": 0
+      },
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.1591549295774648,
+        "candidates": 452,
+        "control_share": 0.8408450704225352,
+        "controls": 2388,
+        "n": 2840,
+        "qrel_bucket": "0",
+        "rv_bucket": 1
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 2197,
+        "n": 2197,
+        "qrel_bucket": "1",
+        "rv_bucket": 1
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 1623,
+        "n": 1623,
+        "qrel_bucket": "2",
+        "rv_bucket": 1
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 976,
+        "n": 976,
+        "qrel_bucket": "3",
+        "rv_bucket": 1
+      },
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.6068548387096774,
+        "candidates": 903,
+        "control_share": 0.39314516129032256,
+        "controls": 585,
+        "n": 1488,
+        "qrel_bucket": "0",
+        "rv_bucket": 2
+      },
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.05514157973174367,
+        "candidates": 111,
+        "control_share": 0.9448584202682563,
+        "controls": 1902,
+        "n": 2013,
+        "qrel_bucket": "1",
+        "rv_bucket": 2
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 2172,
+        "n": 2172,
+        "qrel_bucket": "2",
+        "rv_bucket": 2
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 0.0,
+        "candidates": 0,
+        "control_share": 1.0,
+        "controls": 1585,
+        "n": 1585,
+        "qrel_bucket": "3",
+        "rv_bucket": 2
+      },
+      {
+        "arm_support_ok": false,
+        "candidate_share": 1.0,
+        "candidates": 275,
+        "control_share": 0.0,
+        "controls": 0,
+        "n": 275,
+        "qrel_bucket": "0",
+        "rv_bucket": 3
+      },
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.7,
+        "candidates": 644,
+        "control_share": 0.3,
+        "controls": 276,
+        "n": 920,
+        "qrel_bucket": "1",
+        "rv_bucket": 3
+      },
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.2698249227600412,
+        "candidates": 524,
+        "control_share": 0.7301750772399588,
+        "controls": 1418,
+        "n": 1942,
+        "qrel_bucket": "2",
+        "rv_bucket": 3
+      },
+      {
+        "arm_support_ok": true,
+        "candidate_share": 0.09185711116041713,
+        "candidates": 414,
+        "control_share": 0.9081428888395828,
+        "controls": 4093,
+        "n": 4507,
+        "qrel_bucket": "3",
+        "rv_bucket": 3
+      }
+    ],
+    "MINIMUM_ARM_COUNT": 50,
+    "MINIMUM_ARM_SOURCE": "MIN_D7_STATE_PER_YEAR",
+    "STATUS": "NOT_SUPPORTED",
+    "UNDEFINED_QREL_IN_CONTRAST": 35
+  },
+  "TEMPORAL_GATE_YEARS": [
+    2017,
+    2018,
+    2019
+  ],
+  "TYPE_I_ACCEPTANCE_RULE": "For every predeclared null regime, the Wilson 95% upper bound of the one-sided rejection rate must be <= 0.06. TYPE_I_CEILING = 1.2 * alpha, with alpha = 0.05. The point estimate and the Wilson lower bound are not the rule.",
+  "TYPE_I_CEILING": 0.06,
+  "TYPE_I_RELATIVE_INFLATION": 0.2,
   "TYPE_I_RESULTS": {
     "CIRCULAR_SHIFT": {
       "REASON": "A circular-shift reference distribution tests whether the next-hour alignment is unusual among alignments.",
@@ -691,139 +776,57 @@
     "EXACT_DELTA_NONOVERLAPPING_BLOCK_BOOTSTRAP": {
       "NULL_0_IID": {
         "accepted": true,
-        "n": 2000,
-        "rate": 0.051,
-        "rejections": 102,
+        "n": 5000,
+        "rate": 0.0502,
+        "rejections": 251,
         "wilson_95": [
-          0.04218996991731548,
-          0.06153153854124964
+          0.04448534215006972,
+          0.05660528251970369
         ]
       },
       "NULL_1_MARKOV_MODERATE": {
         "accepted": true,
-        "n": 2000,
-        "rate": 0.0495,
-        "rejections": 99,
+        "n": 5000,
+        "rate": 0.0478,
+        "rejections": 239,
         "wilson_95": [
-          0.040827254610808245,
-          0.059900004989600644
+          0.042225787297577644,
+          0.05406852234153203
         ]
       },
       "NULL_2_MARKOV_STRONG": {
-        "accepted": true,
-        "n": 2000,
-        "rate": 0.0485,
-        "rejections": 97,
+        "accepted": false,
+        "n": 5000,
+        "rate": 0.0564,
+        "rejections": 282,
         "wilson_95": [
-          0.03992009344287708,
-          0.05881100025209431
+          0.05033958885978194,
+          0.06314151630587275
         ]
       },
       "NULL_3_LATENT_30D": {
-        "accepted": true,
-        "n": 2000,
-        "rate": 0.055,
-        "rejections": 110,
+        "accepted": false,
+        "n": 5000,
+        "rate": 0.0538,
+        "rejections": 269,
         "wilson_95": [
-          0.04583478836864504,
-          0.06587138371167006
+          0.04788174698389211,
+          0.06040335023187689
         ]
       },
       "NULL_4_YEAR_HETERO": {
         "accepted": true,
-        "n": 2000,
-        "rate": 0.0485,
-        "rejections": 97,
+        "n": 5000,
+        "rate": 0.0518,
+        "rejections": 259,
         "wilson_95": [
-          0.03992009344287708,
-          0.05881100025209431
+          0.04599384613067904,
+          0.05829432189287018
         ]
       }
     },
     "EXACT_DELTA_NW_BARTLETT_LAG_720": {
       "NULL_0_IID": {
-        "accepted": true,
-        "n": 5000,
-        "rate": 0.0484,
-        "rejections": 242,
-        "wilson_95": [
-          0.04279030408863613,
-          0.05470308430813947
-        ]
-      },
-      "NULL_1_MARKOV_MODERATE": {
-        "accepted": true,
-        "n": 5000,
-        "rate": 0.044,
-        "rejections": 220,
-        "wilson_95": [
-          0.038656640337733486,
-          0.05004350383615862
-        ]
-      },
-      "NULL_2_MARKOV_STRONG": {
-        "accepted": true,
-        "n": 5000,
-        "rate": 0.0412,
-        "rejections": 206,
-        "wilson_95": [
-          0.03603404693250978,
-          0.047070396372274656
-        ]
-      },
-      "NULL_3_LATENT_30D": {
-        "accepted": true,
-        "n": 5000,
-        "rate": 0.0484,
-        "rejections": 242,
-        "wilson_95": [
-          0.04279030408863613,
-          0.05470308430813947
-        ]
-      },
-      "NULL_4_YEAR_HETERO": {
-        "accepted": true,
-        "n": 5000,
-        "rate": 0.0516,
-        "rejections": 258,
-        "wilson_95": [
-          0.045805193052696626,
-          0.05808328205163061
-        ]
-      }
-    },
-    "EXACT_DELTA_NW_BARTLETT_LAG_721": {
-      "NULL_0_IID": {
-        "accepted": true,
-        "n": 5000,
-        "rate": 0.0484,
-        "rejections": 242,
-        "wilson_95": [
-          0.04279030408863613,
-          0.05470308430813947
-        ]
-      },
-      "NULL_1_MARKOV_MODERATE": {
-        "accepted": true,
-        "n": 5000,
-        "rate": 0.044,
-        "rejections": 220,
-        "wilson_95": [
-          0.038656640337733486,
-          0.05004350383615862
-        ]
-      },
-      "NULL_2_MARKOV_STRONG": {
-        "accepted": true,
-        "n": 5000,
-        "rate": 0.0412,
-        "rejections": 206,
-        "wilson_95": [
-          0.03603404693250978,
-          0.047070396372274656
-        ]
-      },
-      "NULL_3_LATENT_30D": {
         "accepted": true,
         "n": 5000,
         "rate": 0.0482,
@@ -833,18 +836,101 @@
           0.054491591739893555
         ]
       },
+      "NULL_1_MARKOV_MODERATE": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0432,
+        "rejections": 216,
+        "wilson_95": [
+          0.037906663853665874,
+          0.049194708643338324
+        ]
+      },
+      "NULL_2_MARKOV_STRONG": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0482,
+        "rejections": 241,
+        "wilson_95": [
+          0.042602103737660074,
+          0.054491591739893555
+        ]
+      },
+      "NULL_3_LATENT_30D": {
+        "accepted": false,
+        "n": 5000,
+        "rate": 0.0572,
+        "rejections": 286,
+        "wilson_95": [
+          0.0510966231678006,
+          0.063983253674742
+        ]
+      },
       "NULL_4_YEAR_HETERO": {
         "accepted": true,
         "n": 5000,
-        "rate": 0.0516,
-        "rejections": 258,
+        "rate": 0.0434,
+        "rejections": 217,
         "wilson_95": [
-          0.045805193052696626,
-          0.05808328205163061
+          0.038094109375360806,
+          0.049406956040865375
+        ]
+      }
+    },
+    "EXACT_DELTA_NW_BARTLETT_LAG_721": {
+      "NULL_0_IID": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0482,
+        "rejections": 241,
+        "wilson_95": [
+          0.042602103737660074,
+          0.054491591739893555
+        ]
+      },
+      "NULL_1_MARKOV_MODERATE": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0432,
+        "rejections": 216,
+        "wilson_95": [
+          0.037906663853665874,
+          0.049194708643338324
+        ]
+      },
+      "NULL_2_MARKOV_STRONG": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0482,
+        "rejections": 241,
+        "wilson_95": [
+          0.042602103737660074,
+          0.054491591739893555
+        ]
+      },
+      "NULL_3_LATENT_30D": {
+        "accepted": false,
+        "n": 5000,
+        "rate": 0.0572,
+        "rejections": 286,
+        "wilson_95": [
+          0.0510966231678006,
+          0.063983253674742
+        ]
+      },
+      "NULL_4_YEAR_HETERO": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0434,
+        "rejections": 217,
+        "wilson_95": [
+          0.038094109375360806,
+          0.049406956040865375
         ]
       }
     }
   },
   "UNIT": "D7_BITMEX_DEPENDENCE_INFERENCE_REVIEW_V0",
+  "WILSON_CONFIDENCE_LEVEL": 0.95,
   "WITHIN_STRATUM_GAP_FOR_FULL_DELTA": 0.11305591126029303
 }
