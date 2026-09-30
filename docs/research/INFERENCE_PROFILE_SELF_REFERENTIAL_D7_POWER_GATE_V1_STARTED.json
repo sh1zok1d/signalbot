@@ -1,0 +1,9 @@
+{
+  "D7_POWER_GATE_STARTED": true,
+  "HEAD": "33359c73ccbc4b70e55551570327737c4ad9a41b",
+  "N_POWER_PER_FAMILY": 2000,
+  "manifest_sha256": "9c35900d7cf33ccdda42dc7a1e94eac4c47482bcd64087e5e7e8f509b3b2f50c",
+  "seeds_sha256": "4e2059961970df91e1b01bb0f72f9242f8833ac1b14a62fb021b42007bf68a2a",
+  "timestamp_utc": "2026-09-30T17:38:06Z",
+  "workers": 4
+}
