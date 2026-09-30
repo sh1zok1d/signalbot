@@ -1,0 +1,28 @@
+{
+  "record_id": "INFERENCE_PROFILE_SELF_REFERENTIAL_CANCELLING_NULL_REPAIR_V1",
+  "profile_id": "SELF_REFERENTIAL_TIME_SERIES_CONTRAST_V1",
+  "repair_base_head": "9d96fad559ef9b9214f95867409f71fd9d0071e9",
+  "official_validation_existed_before_repair": false,
+  "PROFILE_VALIDATION_EXECUTED": false,
+  "D7_GEOMETRY_ADMISSION_EXECUTED": false,
+  "D7_BITMEX_PRIMARY_TARGET_OPENED": false,
+  "D7_PRIMARY_EFFECT_COMPUTED": false,
+  "CONFIRMATORY_RNG_GENERATED": false,
+  "PRIMARY_METHOD": "STUDENTIZED_FULL_IF_DWB",
+  "audited_defect": "CANCELLING_CELLS gap=none had population theta = -c*(1-0.30)/T",
+  "audited_census_T_2048_gap_none": [1023, 1, 1024],
+  "repaired_census_T_2048_gap_none": {"plus": 1023, "marginal": 2, "minus": 1023},
+  "population_identity": "(n_plus - n_minus) * c * 0.70 / T",
+  "ALL_GATING_DGPS_GLOBAL_NULL": true,
+  "STUDENTIZER_RECOMPUTATION_TEST_STRONG": true,
+  "protocol_unchanged": true,
+  "files_changed": [
+    "scripts/research/self_referential_contrast_v1/dgp.py",
+    "scripts/research/self_referential_contrast_v1/contrast.py",
+    "tests/research/test_self_referential_contrast_v1.py",
+    "tests/research/self_referential_population_oracle.py",
+    "docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_CANCELLING_NULL_REPAIR_V1.md",
+    "docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_CANCELLING_NULL_REPAIR_V1.json",
+    "docs/DOCUMENTATION_INDEX.md"
+  ]
+}

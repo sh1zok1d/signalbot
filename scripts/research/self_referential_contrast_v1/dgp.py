@@ -128,7 +128,9 @@ def _segment_path(
         return _ma_even(generator, thetas, clock), np.full(clock, "c0", dtype=object)
     if family == "CANCELLING_CELLS":
         coef = _fraction_param(spec.param)
-        return _cancelling(generator, coef, clock, eligible_origin, spec.t_count or clock)
+        if spec.t_count is None or spec.gap is None:
+            raise ValueError("cancelling cells require geometry")
+        return _cancelling(generator, coef, clock, eligible_origin, spec.t_count, spec.gap)
     if family == "VARIANCE_REGIMES":
         probs = _float_list(spec.param)
         return _variance_regime(generator, probs, clock, eligible_origin, spec.t_count or clock)
@@ -181,12 +183,39 @@ def _float_list(param: str) -> tuple[float, float]:
     return float(left), float(right)
 
 
+def _cancelling_pair_sign(pair_index: int, t_count: int, gap: str) -> int:
+    """Sign of the autoregressive coefficient on the lead of one eligible pair.
+
+    Returns +1, -1, or 0. The +1 and -1 counts are equal for every T >= 2 and
+    both gap modes, so opposite coefficients cancel in the population contrast.
+    A 0 pair is drawn from the marginal. On a series with no gap, that set
+    contains the single inter-cell boundary pair. Leftover pairs in the longer
+    cell are marginal as well, which removes the one-pair imbalance.
+    """
+    if t_count < 2:
+        raise ValueError("cancelling cells need at least two eligible hours")
+    if gap not in {"none", "interior"}:
+        raise ValueError("unknown gap label")
+    if pair_index < 0 or pair_index >= t_count:
+        raise ValueError("cancelling pair index is outside the eligible range")
+    half = t_count // 2
+    if gap == "none":
+        balanced = half - 1
+        if pair_index < half:
+            return 0 if pair_index == half - 1 else 1
+        return -1 if pair_index - half < balanced else 0
+    if pair_index < half:
+        return 1
+    return -1 if pair_index - half < half else 0
+
+
 def _cancelling(
     generator: np.random.Generator,
     coef: float,
     clock: int,
     eligible_origin: int,
     t_count: int,
+    gap: str,
 ) -> tuple[np.ndarray, np.ndarray]:
     marginal = 0.30
     state = np.empty(clock, dtype=np.float64)
@@ -196,11 +225,14 @@ def _cancelling(
         eligible_index = min(eligible_origin + time, eligible_origin + clock - 2)
         name = "c0" if eligible_index < half else "c1"
         cell[time] = name
-        if time == 0 or cell[time] != cell[time - 1]:
+        if time == 0:
             probability = marginal
         else:
-            sign = coef if name == "c0" else -coef
-            probability = marginal + sign * (state[time - 1] - marginal)
+            sign = _cancelling_pair_sign(eligible_origin + time - 1, t_count, gap)
+            if sign == 0:
+                probability = marginal
+            else:
+                probability = marginal + sign * coef * (state[time - 1] - marginal)
         state[time] = 1.0 if generator.random() < probability else 0.0
     return state, cell
 
