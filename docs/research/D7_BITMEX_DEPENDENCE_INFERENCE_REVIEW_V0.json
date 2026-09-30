@@ -1,0 +1,850 @@
+{
+  "ALPHA": 0.05,
+  "BASE_POWER_REGIME": "NULL_1_MARKOV_MODERATE",
+  "BINANCE_2025_OPENED": false,
+  "BINANCE_2026_OPENED": false,
+  "BITMEX_2016_PARTIAL_YEAR_TREATMENT": "INCLUDED_AS_LEGAL_CALENDAR_YEAR",
+  "BOOTSTRAP_SUPPORT": {
+    "effective_blocks": 26,
+    "min_effective_blocks": 20,
+    "support_eligible": true
+  },
+  "CIRCULAR_SHIFT_STATUS": "NOT_EQUIVALENT",
+  "CONFIRMATION_EXECUTED": false,
+  "CONFIRMATION_INTEGRITY_GATE": "Canonical D7_BITMEX_ACTIVITY_V0 gzip hash, frozen selector digest, and unchanged D2 gzip all match the support-unit pin; no Binance 2025/2026 input is read; the estimator uses only the predeclared weights, lag or blocks, kernel, and gates.",
+  "CONFIRMATION_PRACTICAL_GATE": "delta_hat >= 0.05",
+  "CONFIRMATION_PREREG_CREATED": false,
+  "CONFIRMATION_STATISTICAL_GATE": "One-sided level 0.05 test of H0: delta <= 0 on the exact frozen pool-adjusted contrast, using the predeclared primary method (Newey-West Bartlett lag 721 if it passes type I; otherwise the non-overlapping block bootstrap if that passes type I).",
+  "CONFIRMATION_TEMPORAL_GATE": "At least 3 of calendar years 2016, 2017, 2018, 2019 have year-level delta_hat > 0. 2016 is included. A year with no candidates would not count as positive.",
+  "CONTRAST_SCALE_C": 0.8037903043858667,
+  "D7_BITMEX_EFFECT_COMPUTED": false,
+  "D7_BITMEX_PRIMARY_TARGET_OPENED": false,
+  "D7_BITMEX_REPLICATION_CLASS_ASSIGNED": false,
+  "DECISION": "DEPENDENCE_VALID_DESIGN_READY_FOR_PREREG",
+  "DECISION_NOTE": "Primary method `EXACT_DELTA_NW_BARTLETT_LAG_721` passed the type-I rule on every null regime and the predeclared dependence-aware power rule. The next unit may freeze the preregistration. It may not open the target inside that freeze.",
+  "DEPENDENCE_PARAMETERS": {
+    "BLOCK_LENGTH": 1440,
+    "EFFECTIVE_BLOCKS": 26,
+    "MIN_EFFECTIVE_BLOCKS": 20,
+    "NW_LAG_PRIMARY": 721,
+    "NW_LAG_SENSITIVITY_NOT_SELECTABLE": 720,
+    "P0": 0.09856569856985697,
+    "PHI_MODERATE": 0.5,
+    "PHI_STRONG": 0.9,
+    "PLANNING_DELTA": 0.09087324532453248,
+    "PLANNING_MU_RULE": 0.18943894389438945,
+    "REGIME_MEAN_HOURS": 720,
+    "REGIME_P_HIGH": 0.17713139713971396,
+    "REGIME_P_LOW": 0.02,
+    "YEAR_BASE_RATE": {
+      "2016": 0.06,
+      "2017": 0.11,
+      "2018": 0.14,
+      "2019": 0.07
+    }
+  },
+  "DEPENDENCE_POWER_SCENARIOS": [
+    "NULL_0_IID",
+    "NULL_1_MARKOV_MODERATE",
+    "NULL_2_MARKOV_STRONG",
+    "NULL_3_LATENT_30D",
+    "NULL_4_YEAR_HETERO"
+  ],
+  "DESIGN_EQUIVALENCE_STATUS": "ESTIMAND_EQUIVALENT_INFERENCE_REPLACED",
+  "EXECUTION_PERMIT_CREATED": false,
+  "FINAL_PASS_RULE": {
+    "D7_BITMEX_REPLICATION_SUPPORTED_IFF": "STATISTICAL_GATE AND PRACTICAL_GATE AND TEMPORAL_GATE AND INTEGRITY_GATE. This unit does not evaluate that conjunction on real BitMEX targets.",
+    "INTEGRITY_GATE": "Canonical D7_BITMEX_ACTIVITY_V0 gzip hash, frozen selector digest, and unchanged D2 gzip all match the support-unit pin; no Binance 2025/2026 input is read; the estimator uses only the predeclared weights, lag or blocks, kernel, and gates.",
+    "PRACTICAL_GATE": "delta_hat >= 0.05",
+    "STATISTICAL_GATE": "One-sided level 0.05 test of H0: delta <= 0 on the exact frozen pool-adjusted contrast, using the predeclared primary method (Newey-West Bartlett lag 721 if it passes type I; otherwise the non-overlapping block bootstrap if that passes type I).",
+    "TEMPORAL_GATE": "At least 3 of calendar years 2016, 2017, 2018, 2019 have year-level delta_hat > 0. 2016 is included. A year with no candidates would not count as positive."
+  },
+  "MASTER_SEED": 20260930181,
+  "NEXT_UNIT": "D7_BITMEX_CONFIRMATION_PREREG_FREEZE",
+  "N_INNER_BOOT": 399,
+  "N_OUTER_BOOT": 2000,
+  "N_OUTER_HAC": 5000,
+  "OLD_EXCHANGEABLE_NULL_STATUS": "INVALID_UNDER_SERIAL_DEPENDENCE",
+  "PIN": {
+    "CANONICAL_GZ_SHA256": "33ab5c738aca3d7e58ea0bea8d575cc631d931a484b909025f5f3fc5e68b282c",
+    "D2_CANONICAL_MODIFIED": false,
+    "DATA_IDENTITY_STATUS": "PASS",
+    "SELECTOR_DIGEST": "88b6e9571e26c0037ee14522249f21ec7f0d46261982dcb5e5bb0964cd396cc6",
+    "SELECTOR_N": 3438,
+    "STATE_N": 3446
+  },
+  "POWER_ACCEPTANCE_RULE": "NEW_CONFIRMATION_DESIGN_CHOICE: joint confirmation power (statistical AND practical AND temporal) at the full frozen delta has point estimate >= 0.80 under NULL_1_MARKOV_MODERATE, and point estimate >= 0.50 under each of NULL_2_MARKOV_STRONG, NULL_3_LATENT_30D, and NULL_4_YEAR_HETERO. IID power is reported and is not the acceptance bar. 75% and 50% effects are reported and are not substituted for the full-effect bar.",
+  "POWER_BY_METHOD": {
+    "EXACT_DELTA_NONOVERLAPPING_BLOCK_BOOTSTRAP": {
+      "NULL_0_IID": {
+        "50pct": {
+          "joint": 0.19,
+          "joint_rejections": 380,
+          "joint_wilson_95": [
+            0.17340746555537098,
+            0.2077811037590058
+          ],
+          "n": 2000,
+          "practical": 0.19,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "75pct": {
+          "joint": 0.998,
+          "joint_rejections": 1996,
+          "joint_wilson_95": [
+            0.994868648214923,
+            0.9992219726929489
+          ],
+          "n": 2000,
+          "practical": 0.998,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "full": {
+          "joint": 1.0,
+          "joint_rejections": 2000,
+          "joint_wilson_95": [
+            0.9980829527187469,
+            0.9999999999999998
+          ],
+          "n": 2000,
+          "practical": 1.0,
+          "statistical": 1.0,
+          "temporal": 1.0
+        }
+      },
+      "NULL_1_MARKOV_MODERATE": {
+        "50pct": {
+          "joint": 0.206,
+          "joint_rejections": 412,
+          "joint_wilson_95": [
+            0.188847021374138,
+            0.22428020242723862
+          ],
+          "n": 2000,
+          "practical": 0.206,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "75pct": {
+          "joint": 0.9985,
+          "joint_rejections": 1997,
+          "joint_wilson_95": [
+            0.9955989674442294,
+            0.9994897364163615
+          ],
+          "n": 2000,
+          "practical": 0.9985,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "full": {
+          "joint": 1.0,
+          "joint_rejections": 2000,
+          "joint_wilson_95": [
+            0.9980829527187469,
+            0.9999999999999998
+          ],
+          "n": 2000,
+          "practical": 1.0,
+          "statistical": 1.0,
+          "temporal": 1.0
+        }
+      },
+      "NULL_2_MARKOV_STRONG": {
+        "50pct": {
+          "joint": 0.2925,
+          "joint_rejections": 585,
+          "joint_wilson_95": [
+            0.27297596038523714,
+            0.3128196142364827
+          ],
+          "n": 2000,
+          "practical": 0.2925,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "75pct": {
+          "joint": 0.984,
+          "joint_rejections": 1968,
+          "joint_wilson_95": [
+            0.9775005335818276,
+            0.9886437646499193
+          ],
+          "n": 2000,
+          "practical": 0.984,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "full": {
+          "joint": 1.0,
+          "joint_rejections": 2000,
+          "joint_wilson_95": [
+            0.9980829527187469,
+            0.9999999999999998
+          ],
+          "n": 2000,
+          "practical": 1.0,
+          "statistical": 1.0,
+          "temporal": 1.0
+        }
+      },
+      "NULL_3_LATENT_30D": {
+        "50pct": {
+          "joint": 0.2935,
+          "joint_rejections": 587,
+          "joint_wilson_95": [
+            0.2739541721375461,
+            0.31383756838961124
+          ],
+          "n": 2000,
+          "practical": 0.2935,
+          "statistical": 0.9995,
+          "temporal": 1.0
+        },
+        "75pct": {
+          "joint": 0.9845,
+          "joint_rejections": 1969,
+          "joint_wilson_95": [
+            0.97808335411817,
+            0.9890590270662959
+          ],
+          "n": 2000,
+          "practical": 0.9845,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "full": {
+          "joint": 1.0,
+          "joint_rejections": 2000,
+          "joint_wilson_95": [
+            0.9980829527187469,
+            0.9999999999999998
+          ],
+          "n": 2000,
+          "practical": 1.0,
+          "statistical": 1.0,
+          "temporal": 1.0
+        }
+      },
+      "NULL_4_YEAR_HETERO": {
+        "50pct": {
+          "joint": 0.2155,
+          "joint_rejections": 431,
+          "joint_wilson_95": [
+            0.19803448672608792,
+            0.23405631317694492
+          ],
+          "n": 2000,
+          "practical": 0.2155,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "75pct": {
+          "joint": 0.9985,
+          "joint_rejections": 1997,
+          "joint_wilson_95": [
+            0.9955989674442294,
+            0.9994897364163615
+          ],
+          "n": 2000,
+          "practical": 0.9985,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "full": {
+          "joint": 1.0,
+          "joint_rejections": 2000,
+          "joint_wilson_95": [
+            0.9980829527187469,
+            0.9999999999999998
+          ],
+          "n": 2000,
+          "practical": 1.0,
+          "statistical": 1.0,
+          "temporal": 1.0
+        }
+      }
+    },
+    "EXACT_DELTA_NW_BARTLETT_LAG_720": {
+      "ROLE": "SENSITIVITY_NOT_SELECTABLE",
+      "regimes": {
+        "NULL_0_IID": {
+          "50pct": {
+            "joint": 0.202,
+            "joint_rejections": 1010,
+            "joint_wilson_95": [
+              0.1911021035830425,
+              0.21335544677621163
+            ],
+            "n": 5000,
+            "practical": 0.202,
+            "statistical": 1.0,
+            "temporal": 1.0
+          },
+          "75pct": {
+            "joint": 0.9996,
+            "joint_rejections": 4998,
+            "joint_wilson_95": [
+              0.9985426134985768,
+              0.9998902987179225
+            ],
+            "n": 5000,
+            "practical": 0.9996,
+            "statistical": 1.0,
+            "temporal": 1.0
+          },
+          "full": {
+            "joint": 1.0,
+            "joint_rejections": 5000,
+            "joint_wilson_95": [
+              0.9992322980549431,
+              1.0
+            ],
+            "n": 5000,
+            "practical": 1.0,
+            "statistical": 1.0,
+            "temporal": 1.0
+          }
+        },
+        "NULL_1_MARKOV_MODERATE": {
+          "50pct": {
+            "joint": 0.2138,
+            "joint_rejections": 1069,
+            "joint_wilson_95": [
+              0.20265789613409488,
+              0.22538153645925588
+            ],
+            "n": 5000,
+            "practical": 0.2138,
+            "statistical": 1.0,
+            "temporal": 1.0
+          },
+          "75pct": {
+            "joint": 0.9994,
+            "joint_rejections": 4997,
+            "joint_wilson_95": [
+              0.9982372939514713,
+              0.9997959253458056
+            ],
+            "n": 5000,
+            "practical": 0.9994,
+            "statistical": 1.0,
+            "temporal": 1.0
+          },
+          "full": {
+            "joint": 1.0,
+            "joint_rejections": 5000,
+            "joint_wilson_95": [
+              0.9992322980549431,
+              1.0
+            ],
+            "n": 5000,
+            "practical": 1.0,
+            "statistical": 1.0,
+            "temporal": 1.0
+          }
+        },
+        "NULL_2_MARKOV_STRONG": {
+          "50pct": {
+            "joint": 0.277,
+            "joint_rejections": 1385,
+            "joint_wilson_95": [
+              0.26477048203688647,
+              0.28957191303060914
+            ],
+            "n": 5000,
+            "practical": 0.277,
+            "statistical": 1.0,
+            "temporal": 1.0
+          },
+          "75pct": {
+            "joint": 0.9804,
+            "joint_rejections": 4902,
+            "joint_wilson_95": [
+              0.9761726918525208,
+              0.9838897001186685
+            ],
+            "n": 5000,
+            "practical": 0.9804,
+            "statistical": 1.0,
+            "temporal": 1.0
+          },
+          "full": {
+            "joint": 1.0,
+            "joint_rejections": 5000,
+            "joint_wilson_95": [
+              0.9992322980549431,
+              1.0
+            ],
+            "n": 5000,
+            "practical": 1.0,
+            "statistical": 1.0,
+            "temporal": 1.0
+          }
+        },
+        "NULL_3_LATENT_30D": {
+          "50pct": {
+            "joint": 0.2836,
+            "joint_rejections": 1418,
+            "joint_wilson_95": [
+              0.2712760385476449,
+              0.29625622285417585
+            ],
+            "n": 5000,
+            "practical": 0.2836,
+            "statistical": 1.0,
+            "temporal": 1.0
+          },
+          "75pct": {
+            "joint": 0.9868,
+            "joint_rejections": 4934,
+            "joint_wilson_95": [
+              0.9832420141879336,
+              0.989610551198359
+            ],
+            "n": 5000,
+            "practical": 0.9868,
+            "statistical": 1.0,
+            "temporal": 1.0
+          },
+          "full": {
+            "joint": 1.0,
+            "joint_rejections": 5000,
+            "joint_wilson_95": [
+              0.9992322980549431,
+              1.0
+            ],
+            "n": 5000,
+            "practical": 1.0,
+            "statistical": 1.0,
+            "temporal": 1.0
+          }
+        },
+        "NULL_4_YEAR_HETERO": {
+          "50pct": {
+            "joint": 0.2174,
+            "joint_rejections": 1087,
+            "joint_wilson_95": [
+              0.20618621512661472,
+              0.22904769001273162
+            ],
+            "n": 5000,
+            "practical": 0.2174,
+            "statistical": 1.0,
+            "temporal": 1.0
+          },
+          "75pct": {
+            "joint": 0.9986,
+            "joint_rejections": 4993,
+            "joint_wilson_95": [
+              0.9971127802223416,
+              0.9993216673980476
+            ],
+            "n": 5000,
+            "practical": 0.9986,
+            "statistical": 1.0,
+            "temporal": 1.0
+          },
+          "full": {
+            "joint": 1.0,
+            "joint_rejections": 5000,
+            "joint_wilson_95": [
+              0.9992322980549431,
+              1.0
+            ],
+            "n": 5000,
+            "practical": 1.0,
+            "statistical": 1.0,
+            "temporal": 1.0
+          }
+        }
+      }
+    },
+    "EXACT_DELTA_NW_BARTLETT_LAG_721": {
+      "NULL_0_IID": {
+        "50pct": {
+          "joint": 0.202,
+          "joint_rejections": 1010,
+          "joint_wilson_95": [
+            0.1911021035830425,
+            0.21335544677621163
+          ],
+          "n": 5000,
+          "practical": 0.202,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "75pct": {
+          "joint": 0.9996,
+          "joint_rejections": 4998,
+          "joint_wilson_95": [
+            0.9985426134985768,
+            0.9998902987179225
+          ],
+          "n": 5000,
+          "practical": 0.9996,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "full": {
+          "joint": 1.0,
+          "joint_rejections": 5000,
+          "joint_wilson_95": [
+            0.9992322980549431,
+            1.0
+          ],
+          "n": 5000,
+          "practical": 1.0,
+          "statistical": 1.0,
+          "temporal": 1.0
+        }
+      },
+      "NULL_1_MARKOV_MODERATE": {
+        "50pct": {
+          "joint": 0.2138,
+          "joint_rejections": 1069,
+          "joint_wilson_95": [
+            0.20265789613409488,
+            0.22538153645925588
+          ],
+          "n": 5000,
+          "practical": 0.2138,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "75pct": {
+          "joint": 0.9994,
+          "joint_rejections": 4997,
+          "joint_wilson_95": [
+            0.9982372939514713,
+            0.9997959253458056
+          ],
+          "n": 5000,
+          "practical": 0.9994,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "full": {
+          "joint": 1.0,
+          "joint_rejections": 5000,
+          "joint_wilson_95": [
+            0.9992322980549431,
+            1.0
+          ],
+          "n": 5000,
+          "practical": 1.0,
+          "statistical": 1.0,
+          "temporal": 1.0
+        }
+      },
+      "NULL_2_MARKOV_STRONG": {
+        "50pct": {
+          "joint": 0.277,
+          "joint_rejections": 1385,
+          "joint_wilson_95": [
+            0.26477048203688647,
+            0.28957191303060914
+          ],
+          "n": 5000,
+          "practical": 0.277,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "75pct": {
+          "joint": 0.9804,
+          "joint_rejections": 4902,
+          "joint_wilson_95": [
+            0.9761726918525208,
+            0.9838897001186685
+          ],
+          "n": 5000,
+          "practical": 0.9804,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "full": {
+          "joint": 1.0,
+          "joint_rejections": 5000,
+          "joint_wilson_95": [
+            0.9992322980549431,
+            1.0
+          ],
+          "n": 5000,
+          "practical": 1.0,
+          "statistical": 1.0,
+          "temporal": 1.0
+        }
+      },
+      "NULL_3_LATENT_30D": {
+        "50pct": {
+          "joint": 0.2836,
+          "joint_rejections": 1418,
+          "joint_wilson_95": [
+            0.2712760385476449,
+            0.29625622285417585
+          ],
+          "n": 5000,
+          "practical": 0.2836,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "75pct": {
+          "joint": 0.9868,
+          "joint_rejections": 4934,
+          "joint_wilson_95": [
+            0.9832420141879336,
+            0.989610551198359
+          ],
+          "n": 5000,
+          "practical": 0.9868,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "full": {
+          "joint": 1.0,
+          "joint_rejections": 5000,
+          "joint_wilson_95": [
+            0.9992322980549431,
+            1.0
+          ],
+          "n": 5000,
+          "practical": 1.0,
+          "statistical": 1.0,
+          "temporal": 1.0
+        }
+      },
+      "NULL_4_YEAR_HETERO": {
+        "50pct": {
+          "joint": 0.2174,
+          "joint_rejections": 1087,
+          "joint_wilson_95": [
+            0.20618621512661472,
+            0.22904769001273162
+          ],
+          "n": 5000,
+          "practical": 0.2174,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "75pct": {
+          "joint": 0.9986,
+          "joint_rejections": 4993,
+          "joint_wilson_95": [
+            0.9971127802223416,
+            0.9993216673980476
+          ],
+          "n": 5000,
+          "practical": 0.9986,
+          "statistical": 1.0,
+          "temporal": 1.0
+        },
+        "full": {
+          "joint": 1.0,
+          "joint_rejections": 5000,
+          "joint_wilson_95": [
+            0.9992322980549431,
+            1.0
+          ],
+          "n": 5000,
+          "practical": 1.0,
+          "statistical": 1.0,
+          "temporal": 1.0
+        }
+      }
+    }
+  },
+  "POWER_FIELDS": {
+    "POWER_50PCT_EFFECT": 0.2138,
+    "POWER_50PCT_EFFECT_95CI": [
+      0.20265789613409488,
+      0.22538153645925588
+    ],
+    "POWER_75PCT_EFFECT": 0.9994,
+    "POWER_75PCT_EFFECT_95CI": [
+      0.9982372939514713,
+      0.9997959253458056
+    ],
+    "POWER_FULL_EFFECT": 1.0,
+    "POWER_FULL_EFFECT_95CI": [
+      0.9992322980549431,
+      1.0
+    ]
+  },
+  "PRIMARY_ASSUMPTIONS": [
+    "Weights are fixed from the predictor and the stratum counts.",
+    "The scientific contrast remains the frozen pool-adjusted delta.",
+    "Synthetic nulls are independent of the real target, which is unopened.",
+    "Lag and block length were fixed from the 720-hour construction and the 30-day stress, not from residuals.",
+    "Bartlett Newey-West at lag 721 with a normal one-sided critical value is an adequate reference for this sample size."
+  ],
+  "PRIMARY_BLOCKERS": [],
+  "PRIMARY_ESTIMAND": "delta = sum_s (K_s/K) * (mean(Y|X=1,s) - mean(Y|eligible,s))",
+  "PRIMARY_INFERENCE_METHOD": "EXACT_DELTA_NW_BARTLETT_LAG_721",
+  "TYPE_I_ACCEPTANCE_RULE": "For every predeclared null regime, the Wilson 95% lower bound of the one-sided rejection rate must be <= 0.05.",
+  "TYPE_I_RESULTS": {
+    "CIRCULAR_SHIFT": {
+      "REASON": "A circular-shift reference distribution tests whether the next-hour alignment is unusual among alignments.",
+      "STATUS": "NOT_EQUIVALENT"
+    },
+    "EXACT_DELTA_NONOVERLAPPING_BLOCK_BOOTSTRAP": {
+      "NULL_0_IID": {
+        "accepted": true,
+        "n": 2000,
+        "rate": 0.051,
+        "rejections": 102,
+        "wilson_95": [
+          0.04218996991731548,
+          0.06153153854124964
+        ]
+      },
+      "NULL_1_MARKOV_MODERATE": {
+        "accepted": true,
+        "n": 2000,
+        "rate": 0.0495,
+        "rejections": 99,
+        "wilson_95": [
+          0.040827254610808245,
+          0.059900004989600644
+        ]
+      },
+      "NULL_2_MARKOV_STRONG": {
+        "accepted": true,
+        "n": 2000,
+        "rate": 0.0485,
+        "rejections": 97,
+        "wilson_95": [
+          0.03992009344287708,
+          0.05881100025209431
+        ]
+      },
+      "NULL_3_LATENT_30D": {
+        "accepted": true,
+        "n": 2000,
+        "rate": 0.055,
+        "rejections": 110,
+        "wilson_95": [
+          0.04583478836864504,
+          0.06587138371167006
+        ]
+      },
+      "NULL_4_YEAR_HETERO": {
+        "accepted": true,
+        "n": 2000,
+        "rate": 0.0485,
+        "rejections": 97,
+        "wilson_95": [
+          0.03992009344287708,
+          0.05881100025209431
+        ]
+      }
+    },
+    "EXACT_DELTA_NW_BARTLETT_LAG_720": {
+      "NULL_0_IID": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0484,
+        "rejections": 242,
+        "wilson_95": [
+          0.04279030408863613,
+          0.05470308430813947
+        ]
+      },
+      "NULL_1_MARKOV_MODERATE": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.044,
+        "rejections": 220,
+        "wilson_95": [
+          0.038656640337733486,
+          0.05004350383615862
+        ]
+      },
+      "NULL_2_MARKOV_STRONG": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0412,
+        "rejections": 206,
+        "wilson_95": [
+          0.03603404693250978,
+          0.047070396372274656
+        ]
+      },
+      "NULL_3_LATENT_30D": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0484,
+        "rejections": 242,
+        "wilson_95": [
+          0.04279030408863613,
+          0.05470308430813947
+        ]
+      },
+      "NULL_4_YEAR_HETERO": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0516,
+        "rejections": 258,
+        "wilson_95": [
+          0.045805193052696626,
+          0.05808328205163061
+        ]
+      }
+    },
+    "EXACT_DELTA_NW_BARTLETT_LAG_721": {
+      "NULL_0_IID": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0484,
+        "rejections": 242,
+        "wilson_95": [
+          0.04279030408863613,
+          0.05470308430813947
+        ]
+      },
+      "NULL_1_MARKOV_MODERATE": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.044,
+        "rejections": 220,
+        "wilson_95": [
+          0.038656640337733486,
+          0.05004350383615862
+        ]
+      },
+      "NULL_2_MARKOV_STRONG": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0412,
+        "rejections": 206,
+        "wilson_95": [
+          0.03603404693250978,
+          0.047070396372274656
+        ]
+      },
+      "NULL_3_LATENT_30D": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0482,
+        "rejections": 241,
+        "wilson_95": [
+          0.042602103737660074,
+          0.054491591739893555
+        ]
+      },
+      "NULL_4_YEAR_HETERO": {
+        "accepted": true,
+        "n": 5000,
+        "rate": 0.0516,
+        "rejections": 258,
+        "wilson_95": [
+          0.045805193052696626,
+          0.05808328205163061
+        ]
+      }
+    }
+  },
+  "UNIT": "D7_BITMEX_DEPENDENCE_INFERENCE_REVIEW_V0",
+  "WITHIN_STRATUM_GAP_FOR_FULL_DELTA": 0.11305591126029303
+}
