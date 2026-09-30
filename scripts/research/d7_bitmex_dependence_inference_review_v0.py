@@ -90,6 +90,9 @@ METHOD_BOOT = "EXACT_DELTA_NONOVERLAPPING_BLOCK_BOOTSTRAP"
 METHOD_SHIFT = "CIRCULAR_SHIFT"
 PRIMARY_RANK = (METHOD_NW, METHOD_BOOT)
 SELECTABLE_PRIMARY = frozenset(PRIMARY_RANK)
+# Fixed after the completed outcome-blind calibration. Confirmation may
+# not walk PRIMARY_RANK again.
+FROZEN_CONFIRMATION_METHOD = METHOD_NW
 
 NULL_REGIMES = (
     "NULL_0_IID",
@@ -251,13 +254,25 @@ def feasibility_decision(*, primary: str | None, power_ok: bool, any_support_eli
     return "DEPENDENCE_VALID_DESIGN_READY_FOR_PREREG"
 
 
+def confirmation_estimator(requested: str | None = None) -> str:
+    """The only estimator a later confirmation unit may apply."""
+
+    if requested not in (None, FROZEN_CONFIRMATION_METHOD):
+        raise DesignError("ALTERNATE_PRIMARY_NOT_SELECTABLE")
+    return FROZEN_CONFIRMATION_METHOD
+
+
 def final_pass_rule_text() -> dict[str, str]:
+    method = confirmation_estimator()
     return {
         "STATISTICAL_GATE": (
             "One-sided level 0.05 test of H0: delta <= 0 on the exact frozen "
-            "pool-adjusted contrast, using the predeclared primary method "
-            "(Newey-West Bartlett lag 721 if it passes type I; otherwise the "
-            "non-overlapping block bootstrap if that passes type I)."
+            f"pool-adjusted contrast, using {method} only. Bartlett kernel, "
+            "fixed lag 721 valid hours, normal critical value "
+            f"{Z_ONESIDED_95}. Reject only when the long-run variance is "
+            "positive and delta_hat / se exceeds that critical value. "
+            "Lag 720, the block bootstrap, and circular shift are not "
+            "selectable at confirmation."
         ),
         "PRACTICAL_GATE": "delta_hat >= 0.05",
         "TEMPORAL_GATE": (
@@ -269,7 +284,7 @@ def final_pass_rule_text() -> dict[str, str]:
             "Canonical D7_BITMEX_ACTIVITY_V0 gzip hash, frozen selector digest, "
             "and unchanged D2 gzip all match the support-unit pin; no Binance "
             "2025/2026 input is read; the estimator uses only the predeclared "
-            "weights, lag or blocks, kernel, and gates."
+            "weights, Bartlett kernel, and lag 721."
         ),
         "D7_BITMEX_REPLICATION_SUPPORTED_IFF": (
             "STATISTICAL_GATE AND PRACTICAL_GATE AND TEMPORAL_GATE AND "
@@ -1078,6 +1093,8 @@ def load_real_predictor_design():
 def build_payload(design: PredictorDesign, pin: Mapping[str, Any], hac: Mapping[str, Any], boot: Mapping[str, Any]) -> dict[str, Any]:
     decision_bits = assemble_decision(hac, boot)
     primary = decision_bits["primary"]
+    if primary != confirmation_estimator():
+        raise DesignError("PRIMARY_NOT_FROZEN")
     if primary == METHOD_NW:
         power_source = hac["power"][METHOD_NW]
     elif primary == METHOD_BOOT:

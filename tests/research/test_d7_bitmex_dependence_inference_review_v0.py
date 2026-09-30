@@ -11,6 +11,8 @@ import pytest
 import math
 
 from scripts.research.d7_bitmex_dependence_inference_review_v0 import (
+    DesignError,
+    confirmation_estimator,
     render_markdown,
     ALPHA,
     BINANCE_DELTA_D7,
@@ -260,3 +262,14 @@ def test_review_markdown_prints_frozen_calibration_without_reselection():
     assert "SENSITIVITY_NOT_SELECTABLE" not in payload["PRIMARY_INFERENCE_METHOD"]
     for token in ("hour_start_ms", "autocorrelation", "run_length", "next_d7", "REPLICATED"):
         assert token not in text
+    gate = payload["CONFIRMATION_STATISTICAL_GATE"]
+    assert confirmation_estimator() == METHOD_NW
+    assert METHOD_NW in gate
+    assert "not selectable at confirmation" in gate
+    assert "otherwise" not in gate
+    with pytest.raises(DesignError, match="ALTERNATE_PRIMARY_NOT_SELECTABLE"):
+        confirmation_estimator(METHOD_BOOT)
+    with pytest.raises(DesignError, match="ALTERNATE_PRIMARY_NOT_SELECTABLE"):
+        confirmation_estimator(METHOD_NW_SHORT)
+    with pytest.raises(DesignError, match="ALTERNATE_PRIMARY_NOT_SELECTABLE"):
+        confirmation_estimator(METHOD_SHIFT)

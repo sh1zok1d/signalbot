@@ -76,13 +76,13 @@ NEW_CONFIRMATION_DESIGN_CHOICE: joint confirmation power (statistical AND practi
 
 ## Gates
 
-STATISTICAL_GATE = One-sided level 0.05 test of H0: delta <= 0 on the exact frozen pool-adjusted contrast, using the predeclared primary method (Newey-West Bartlett lag 721 if it passes type I; otherwise the non-overlapping block bootstrap if that passes type I).
+STATISTICAL_GATE = One-sided level 0.05 test of H0: delta <= 0 on the exact frozen pool-adjusted contrast, using EXACT_DELTA_NW_BARTLETT_LAG_721 only. Bartlett kernel, fixed lag 721 valid hours, normal critical value 1.6448536269514722. Reject only when the long-run variance is positive and delta_hat / se exceeds that critical value. Lag 720, the block bootstrap, and circular shift are not selectable at confirmation.
 
 PRACTICAL_GATE = delta_hat >= 0.05
 
 TEMPORAL_GATE = At least 3 of calendar years 2016, 2017, 2018, 2019 have year-level delta_hat > 0. 2016 is included. A year with no candidates would not count as positive.
 
-INTEGRITY_GATE = Canonical D7_BITMEX_ACTIVITY_V0 gzip hash, frozen selector digest, and unchanged D2 gzip all match the support-unit pin; no Binance 2025/2026 input is read; the estimator uses only the predeclared weights, lag or blocks, kernel, and gates.
+INTEGRITY_GATE = Canonical D7_BITMEX_ACTIVITY_V0 gzip hash, frozen selector digest, and unchanged D2 gzip all match the support-unit pin; no Binance 2025/2026 input is read; the estimator uses only the predeclared weights, Bartlett kernel, and lag 721.
 
 The Binance temporal gate is `D7_TEMPORAL_YEARS_REQUIRED = 3` positive
 year-level contrasts on the legal year list `(2020, 2021, 2022, 2023, 2024)`,
