@@ -139,7 +139,8 @@ Still active · data 15:10 Kyiv
 - **Status and data-through** share one line.
 - **Partial values:**
   - an incomplete window prints `1ч: неполные данные` / `1h: incomplete`;
-  - an immature baseline prints `н/д` / `n/a` in place of the ratio;
+  - an immature baseline (`baseline_days` < 20 for that metric) omits that ratio from the line. The line does not print `н/д` / `n/a` in its place. Example: `1ч: −0,2% · OI +0,4%`;
+  - a mature baseline whose ratio is still missing prints `н/д` / `n/a` for that field;
   - a field that cannot be computed is dropped from the line, never shown as 0.
 - **Fail-closed (`DATA STALE` / `DATA DEGRADED`):**
   - no 1h, 24h, or high-impact line;
@@ -161,6 +162,10 @@ Still active · data 15:10 Kyiv
 **Common rules for every tab:**
 - Body lines are facts with units.
 - Each ratio names its baseline (`от обычного для этого часа` / `usual for this hour`, `от медианы 30 дн.` / `30d median`).
+- An immature baseline (`baseline_days` < 20 for that metric) prints a countdown instead of the ratio. N = 20 − `baseline_days`, and N is at least 1.
+  - 1h: `(сравнение с обычным — через ~N дн.)` / `(comparison with usual in ~N days)`. English uses `~1 day` when N is 1.
+  - 24h: `(сравнение с медианой 30 дн. — через ~N дн.)` / `(30d comparison in ~N days)`. English uses `~1 day` when N is 1.
+- A mature baseline whose ratio is still missing prints `(сравнение недоступно)` / `(comparison unavailable)`.
 - No percentile ranks, no `EARLY` / `ARMED` / `TRIGGERED`, and no version strings in the body.
 - The last line is `Термины: /terms` / `Terms: /terms`. The support ref line is not shown. Episode and view ids stay in the persisted payload.
 - Ranks, levels, and versions stay in the persisted payload.

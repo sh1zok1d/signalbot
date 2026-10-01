@@ -401,8 +401,11 @@ def test_incomplete_window_immature_baseline_and_liquidation_gaps():
     assert "Bybit ≥" in gap and "OKX ≥" in gap and "Binance ≥" in gap
     immature_view = screens()["calm"]
     immature_view = _with_horizons(immature_view, immature["1h"])
-    assert "vol n/a" in format_btc(CFG, immature_view, "en")
-    assert "объём н/д" in format_btc(CFG, immature_view, "ru")
+    en_main = format_btc(CFG, immature_view, "en")
+    ru_main = format_btc(CFG, immature_view, "ru")
+    assert "vol n/a" not in en_main and "range n/a" not in en_main
+    assert "объём н/д" not in ru_main and "диапазон н/д" not in ru_main
+    assert "1h:" in en_main and "1ч:" in ru_main
     assert "1h: incomplete" in format_btc(CFG, _with_horizons(immature_view, incomplete["1h"]), "en")
     assert "1ч: неполные данные" in format_btc(CFG, _with_horizons(immature_view, incomplete["1h"]), "ru")
 
@@ -633,7 +636,7 @@ Delta — разница между рыночными покупками и п�
 Ликвидации — принудительное закрытие позиций биржей, по каждой бирже отдельно.
 ≥ — нижняя граница: Binance публикует не все ликвидации.
 н/д — данных нет или они неполные. Это не ноль.
-× от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней.
+× от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней. Сравнение появляется, когда накоплено 20 дней истории.
 ↑ ↓ — только направление, не сила.
 Время — киевское.
 High impact — за прошлый календарный час цена прошла много относительно объёма торгов. Исторически следующий час был таким же примерно в 1 из 5 случаев (обычно 1 из 10). Направление цены это не показывает."""
@@ -663,10 +666,97 @@ Range — from the lowest to the highest price in the period, in % of the price.
 Liquidations — positions force-closed by the exchange, shown per venue.
 ≥ — lower bound: Binance does not publish every liquidation.
 n/a — no data or incomplete data. This is not zero.
-× usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median.
+× usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median. The comparison appears once 20 days of history are collected.
 ↑ ↓ — direction only, not strength.
 Time — Kyiv time.
 High impact — in the last clock hour the price moved a lot relative to traded volume. Historically the following hour was like this about 1 in 5 times (usually 1 in 10). It says nothing about price direction."""
+
+
+def _baseline_view(days_1h, days_24h, *, range_ratio, volume_ratio):
+    hour = _hour_block(
+        price_move_pct=-0.2, oi_change_pct=0.4,
+        range_ratio=range_ratio, volume_ratio=volume_ratio,
+        baseline_days={"range_width_pct_median": days_1h, "volume_notional_usd_sum": days_1h,
+                       "price_move_pct_median": days_1h})
+    day = _day_block(
+        price_move_pct=-0.2, oi_change_pct=0.4,
+        range_ratio=range_ratio, volume_ratio=volume_ratio,
+        baseline_days={"range_width_pct": days_24h, "volume_notional_usd": days_24h})
+    return _with_horizons(screens()["calm"], hour, day)
+
+
+def test_immature_baseline_omits_main_ratios_and_tabs_count_down():
+    from beta.i18n import t
+    for key in ("h1_ratio_wait", "h1_ratio_wait_one", "h24_ratio_wait", "h24_ratio_wait_one",
+                "ratio_unavailable", "terms"):
+        for lang in ("ru", "en"):
+            text = t(lang, key, n=16) if "{n}" in t(lang, key) else t(lang, key)
+            assert_descriptive(text, "ru")
+            assert_descriptive(text, "en")
+
+    immature = _baseline_view(4, 4, range_ratio=None, volume_ratio=None)
+    ru, en = format_btc(CFG, immature, "ru"), format_btc(CFG, immature, "en")
+    _budget(ru)
+    _budget(en)
+    assert "1ч: −0,2% · OI +0,4%" in ru
+    assert "24ч: −0,2% · OI +0,4%" in ru
+    assert "объём" not in ru.split("1ч:")[1].split("\n")[0]
+    assert "диапазон" not in ru.split("1ч:")[1].split("\n")[0]
+    assert "н/д" not in ru.split("1ч:")[1].split("\n")[0]
+    assert "н/д" not in ru.split("24ч:")[1].split("\n")[0]
+    assert "1h: −0.2% · OI +0.4%" in en
+    assert "24h: −0.2% · OI +0.4%" in en
+    assert "vol " not in en.split("1h:")[1].split("\n")[0]
+    assert "range " not in en.split("1h:")[1].split("\n")[0]
+    assert "n/a" not in en.split("1h:")[1].split("\n")[0]
+    assert "n/a" not in en.split("24h:")[1].split("\n")[0]
+    ru_1h, en_1h = format_1h_tab(CFG, immature, "ru"), format_1h_tab(CFG, immature, "en")
+    ru_24, en_24 = format_24h_tab(CFG, immature, "ru"), format_24h_tab(CFG, immature, "en")
+    assert ru_1h.count("(сравнение с обычным — через ~16 дн.)") == 2
+    assert en_1h.count("(comparison with usual in ~16 days)") == 2
+    assert ru_24.count("(сравнение с медианой 30 дн. — через ~16 дн.)") == 2
+    assert en_24.count("(30d comparison in ~16 days)") == 2
+    assert "н/д от обычного" not in ru_1h and "n/a usual" not in en_1h
+    for text, lang in ((ru_1h, "ru"), (en_1h, "en"), (ru_24, "ru"), (en_24, "en")):
+        assert_descriptive(text, "ru")
+        assert_descriptive(text, "en")
+
+    almost = _baseline_view(19, 19, range_ratio=None, volume_ratio=None)
+    assert "(сравнение с обычным — через ~1 дн.)" in format_1h_tab(CFG, almost, "ru")
+    assert "(comparison with usual in ~1 day)" in format_1h_tab(CFG, almost, "en")
+    assert "~1 days" not in format_1h_tab(CFG, almost, "en")
+    assert "(сравнение с медианой 30 дн. — через ~1 дн.)" in format_24h_tab(CFG, almost, "ru")
+    assert "(30d comparison in ~1 day)" in format_24h_tab(CFG, almost, "en")
+    assert "~1 days" not in format_24h_tab(CFG, almost, "en")
+    almost_main = format_btc(CFG, almost, "ru")
+    _budget(almost_main)
+    assert "1ч: −0,2% · OI +0,4%" in almost_main
+    split = _with_horizons(screens()["calm"], _hour_block(
+        range_ratio=None, volume_ratio=None,
+        baseline_days={"range_width_pct_median": 4, "volume_notional_usd_sum": 19,
+                       "price_move_pct_median": 4}), _day_block())
+    split_en = format_1h_tab(CFG, split, "en")
+    assert "(comparison with usual in ~16 days)" in split_en
+    assert "(comparison with usual in ~1 day)" in split_en
+
+    mature = _baseline_view(20, 30, range_ratio=2.3, volume_ratio=2.1)
+    assert "2,3× от обычного для этого часа" in format_1h_tab(CFG, mature, "ru")
+    assert "2.1× usual for this hour" in format_1h_tab(CFG, mature, "en")
+    assert "2,3× от медианы 30 дн." in format_24h_tab(CFG, mature, "ru")
+    assert "2.1× 30d median" in format_24h_tab(CFG, mature, "en")
+    assert "1ч: −0,2% · объём 2,1× · диапазон 2,3× · OI +0,4%" in format_btc(CFG, mature, "ru")
+    assert "1h: −0.2% · vol 2.1× · range 2.3× · OI +0.4%" in format_btc(CFG, mature, "en")
+    _budget(format_btc(CFG, mature, "en"))
+
+    missing = _baseline_view(20, 20, range_ratio=None, volume_ratio=None)
+    assert "объём н/д" in format_btc(CFG, missing, "ru")
+    assert "vol n/a" in format_btc(CFG, missing, "en")
+    assert format_1h_tab(CFG, missing, "ru").count("(сравнение недоступно)") == 2
+    assert format_1h_tab(CFG, missing, "en").count("(comparison unavailable)") == 2
+    assert format_24h_tab(CFG, missing, "ru").count("(сравнение недоступно)") == 2
+    assert format_24h_tab(CFG, missing, "en").count("(comparison unavailable)") == 2
+    assert "через ~" not in format_1h_tab(CFG, missing, "ru")
+    _budget(format_btc(CFG, missing, "ru"))
 
 
 def test_glossary_is_verbatim_and_passes_both_forbidden_lists():

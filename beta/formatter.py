@@ -239,12 +239,48 @@ def _hour_bits(lang: str, *, price, range_ratio, volume_ratio) -> str:
     return t(lang, "h1_prefix", body=" · ".join(parts))
 
 
-def _ratio_or_na(block: Mapping[str, Any], value_key: str, ratio_key: str, lang: str) -> Optional[str]:
-    """Drop a field that cannot be computed. An immature baseline prints n/a for the ratio."""
-    if block.get(value_key) is None and block.get(ratio_key) is None:
+# Presentation only. The horizon block already stores baseline_days per metric.
+# 20 is the frozen maturity count from the horizon contract; this does not recompute it.
+_BASELINE_READY_DAYS = 20
+_H1_RANGE_DAYS = "range_width_pct_median"
+_H1_VOLUME_DAYS = "volume_notional_usd_sum"
+_H24_RANGE_DAYS = "range_width_pct"
+_H24_VOLUME_DAYS = "volume_notional_usd"
+
+
+def _baseline_day_count(block: Mapping[str, Any], metric: str) -> Optional[int]:
+    days = block.get("baseline_days")
+    if not isinstance(days, Mapping):
         return None
+    value = days.get(metric)
+    if value is None:
+        return None
+    return int(value)
+
+
+def _immature_baseline(block: Mapping[str, Any], metric: str) -> bool:
+    days = _baseline_day_count(block, metric)
+    return days is not None and days < _BASELINE_READY_DAYS
+
+
+def _days_remaining(block: Mapping[str, Any], metric: str) -> Optional[int]:
+    """Days until a 20-day baseline, at least 1. None once it is mature or unknown."""
+    days = _baseline_day_count(block, metric)
+    if days is None or days >= _BASELINE_READY_DAYS:
+        return None
+    return max(1, _BASELINE_READY_DAYS - days)
+
+
+def _main_ratio_token(block: Mapping[str, Any], *, value_key: str, ratio_key: str,
+                      days_key: str, lang: str) -> Optional[str]:
+    """Main-line ratio. An immature baseline omits the field. A missing value is omitted.
+    A mature baseline with no ratio prints n/a."""
     ratio = block.get(ratio_key)
-    return na(lang) if ratio is None else fmt_ratio(ratio, lang)
+    if ratio is not None:
+        return fmt_ratio(ratio, lang)
+    if block.get(value_key) is None or _immature_baseline(block, days_key):
+        return None
+    return na(lang)
 
 
 _VENUE_NAMES = {"binance": "Binance", "bybit": "Bybit", "okx": "OKX"}
@@ -267,10 +303,12 @@ def _hour_line(view: Mapping[str, Any], lang: str) -> str:
     parts = []
     if block.get("price_move_pct") is not None:
         parts.append(fmt_signed_pct(block["price_move_pct"], lang, nd=1))
-    vol = _ratio_or_na(block, "volume_notional_usd", "volume_ratio", lang)
+    vol = _main_ratio_token(block, value_key="volume_notional_usd", ratio_key="volume_ratio",
+                            days_key=_H1_VOLUME_DAYS, lang=lang)
     if vol is not None:
         parts.append(t(lang, "h1_vol", ratio=vol))
-    rng = _ratio_or_na(block, "range_width_pct", "range_ratio", lang)
+    rng = _main_ratio_token(block, value_key="range_width_pct", ratio_key="range_ratio",
+                            days_key=_H1_RANGE_DAYS, lang=lang)
     if rng is not None:
         parts.append(t(lang, "h1_range", ratio=rng))
     oi = block.get("oi_change_pct")
@@ -293,8 +331,10 @@ def _day_line(view: Mapping[str, Any], lang: str) -> Optional[str]:
     if block.get("price_complete") and block.get("price_move_pct") is not None:
         parts.append(fmt_signed_pct(block["price_move_pct"], lang, nd=1))
     if block.get("volume_complete"):
-        ratio = block.get("volume_ratio")
-        parts.append(t(lang, "h1_vol", ratio=na(lang) if ratio is None else fmt_ratio(ratio, lang)))
+        ratio = _main_ratio_token(block, value_key="volume_notional_usd", ratio_key="volume_ratio",
+                                  days_key=_H24_VOLUME_DAYS, lang=lang)
+        if ratio is not None:
+            parts.append(t(lang, "h1_vol", ratio=ratio))
     elif block.get("volume_partial"):
         parts.append(t(lang, "h_vol_partial"))
     oi = block.get("oi_change_pct")
@@ -592,9 +632,18 @@ def format_context_details(cfg, episode: Mapping[str, Any], state: Mapping[str, 
     return format_event_tab(cfg, view, lang, view_id8)
 
 
-def _ratio_bit(ratio, lang: str) -> str:
-    shown = na(lang) if ratio is None else fmt_ratio(ratio, lang)
-    return t(lang, "h1_ratio", ratio=shown)
+def _comparison_suffix(block: Mapping[str, Any], *, ratio, days_key: str, lang: str,
+                      horizon: str) -> str:
+    """Tab parenthetical. A present ratio names its baseline. An immature one counts down."""
+    if ratio is not None:
+        key = "h1_ratio" if horizon == "1h" else "h24_ratio"
+        return t(lang, key, ratio=fmt_ratio(ratio, lang))
+    remaining = _days_remaining(block, days_key)
+    if remaining is None:
+        return t(lang, "ratio_unavailable")
+    if lang == "en" and remaining == 1:
+        return t(lang, "h1_ratio_wait_one" if horizon == "1h" else "h24_ratio_wait_one")
+    return t(lang, "h1_ratio_wait" if horizon == "1h" else "h24_ratio_wait", n=remaining)
 
 
 def _horizon_liq(block: Mapping[str, Any]) -> dict:
@@ -612,11 +661,6 @@ def _horizon_oi_line(block: Mapping[str, Any], lang: str) -> Optional[str]:
         return None
     return _venue_oi({"oi_change_pct_by_venue": raw,
                       "oi_change_pct": {"value": block.get("oi_change_pct")}}, lang, nd=1)
-
-
-def _h24_ratio_bit(ratio, lang: str) -> str:
-    shown = na(lang) if ratio is None else fmt_ratio(ratio, lang)
-    return t(lang, "h24_ratio", ratio=shown)
 
 
 def _change_sentence(item: Mapping[str, Any], lang: str) -> str:
@@ -689,11 +733,15 @@ def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str 
                 lang, "h1_price_range",
                 price=na(lang) if price is None else fmt_signed_pct(price, lang),
                 range=na(lang) if rng is None else fmt_plain_pct(rng, lang),
-                ratio="" if rng is None else _ratio_bit(block.get("range_ratio"), lang)))
+                ratio="" if rng is None else _comparison_suffix(
+                    block, ratio=block.get("range_ratio"), days_key=_H1_RANGE_DAYS,
+                    lang=lang, horizon="1h")))
         vol = block.get("volume_notional_usd")
         if vol is not None:
             lines.append(t(lang, "h1_volume", vol=fmt_usd(vol, lang),
-                           ratio=_ratio_bit(block.get("volume_ratio"), lang)))
+                           ratio=_comparison_suffix(
+                               block, ratio=block.get("volume_ratio"), days_key=_H1_VOLUME_DAYS,
+                               lang=lang, horizon="1h")))
     if block:
         oi_line = _horizon_oi_line(block, lang)
         if oi_line:
@@ -733,13 +781,17 @@ def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str
                 lines.append(t(
                     lang, "h24_range",
                     range=fmt_plain_pct(block["range_width_pct"], lang, nd=1),
-                    ratio=_h24_ratio_bit(block.get("range_ratio"), lang)))
+                    ratio=_comparison_suffix(
+                        block, ratio=block.get("range_ratio"), days_key=_H24_RANGE_DAYS,
+                        lang=lang, horizon="24h")))
         else:
             lines.append(t(lang, "h24_incomplete"))
         vol = block.get("volume_notional_usd")
         if vol is not None and block.get("volume_complete"):
             lines.append(t(lang, "h24_volume", vol=fmt_usd(vol, lang),
-                           ratio=_h24_ratio_bit(block.get("volume_ratio"), lang)))
+                           ratio=_comparison_suffix(
+                               block, ratio=block.get("volume_ratio"), days_key=_H24_VOLUME_DAYS,
+                               lang=lang, horizon="24h")))
         elif vol is not None and block.get("volume_partial"):
             lines.append(t(lang, "h24_volume_partial", vol=fmt_usd(vol, lang)))
         oi_line = _horizon_oi_line(block, lang)
