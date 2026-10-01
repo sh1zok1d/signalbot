@@ -462,7 +462,7 @@ def test_usage_report_fixture_weeks_and_unprompted_opens():
         assert both <= set(text.split())
         assert "unprompted /btc: 4" in text and "post-push /btc: 1" in text
         assert "median 2.5 max 3" in text
-        assert "retention day 1/7/14/28: 1 2/3 7 1/3 14 1/3 28 1/3" in text
+        assert "retention: d1 2/3 · d7 1/3 · d14 1/3 · d28 1/3" in text
         assert "language: ru 3, en 1" in text
         assert "waitlist: 2" in text
         assert "rejected 2026-06-28 distinct 2" in text

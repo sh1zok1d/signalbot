@@ -466,3 +466,30 @@ CREATE TABLE IF NOT EXISTS beta_rejected_start_counts (
     utc_day         DATE PRIMARY KEY,
     attempt_count   INTEGER NOT NULL CHECK (attempt_count >= 0)
 );
+
+-- D7 display feed. Binance USD-M BTCUSDT 1m bars and the hour state derived
+-- from them. Display inputs only: no outcome, hit rate, or next-hour statistic.
+CREATE TABLE IF NOT EXISTS beta_d7_klines_1m (
+    open_time           TIMESTAMPTZ PRIMARY KEY,
+    open                DOUBLE PRECISION NOT NULL,
+    high                DOUBLE PRECISION NOT NULL,
+    low                 DOUBLE PRECISION NOT NULL,
+    close               DOUBLE PRECISION NOT NULL,
+    quote_asset_volume  DOUBLE PRECISION NOT NULL,
+    close_time          TIMESTAMPTZ NOT NULL,
+    fetched_at          TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS beta_d7_hour_states (
+    hour_start          TIMESTAMPTZ PRIMARY KEY,
+    complete            BOOLEAN NOT NULL,
+    ret                 DOUBLE PRECISION,
+    quote_volume_1h     DOUBLE PRECISION,
+    qrel                DOUBLE PRECISION,
+    impact              DOUBLE PRECISION,
+    p90                 DOUBLE PRECISION,
+    state               BOOLEAN,
+    available_at        TIMESTAMPTZ NOT NULL,
+    computed_at         TIMESTAMPTZ NOT NULL,
+    definition_digest   TEXT NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$')
+);

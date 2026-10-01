@@ -4,6 +4,8 @@
 -- not compute returns, PnL, MAE, MFE, or hit rate.
 --
 --   psql "$DSN" -v deploy_ts='YYYY-MM-DD HH:MM:SS+00' -f deploy/signalbot-beta-smoke.sql
+-- When regime_d7.enabled is true, also pass:
+--   -v d7_enabled=true -v d7_deploy_ts='YYYY-MM-DD HH:MM:SS+00'
 --
 -- One result set: section, status (PASS / WARN / FAIL), detail.
 -- Any FAIL is an operational stop. HISTORY BUILDING is not a failure.
@@ -19,6 +21,16 @@
 \quit 1
 \endif
 
+\if :{?d7_enabled}
+\else
+\set d7_enabled false
+\endif
+
+\if :{?d7_deploy_ts}
+\else
+\set d7_deploy_ts ''
+\endif
+
 \set ON_ERROR_STOP on
 \pset pager off
 
@@ -30,6 +42,14 @@ params AS (
            now() AS as_of,
            2 AS schema_version,
            '9e9d2c631a1abfdb710dc2147835b3a0ccd4620512d3a0d6828140c96de17210' AS rules_digest,
+           'BETA_CONTEXT_1H_V1' AS context_version,
+           '59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576' AS context_digest,
+           :'d7_enabled'::boolean AS d7_enabled,
+           CASE
+               WHEN :'d7_enabled'::boolean AND :'d7_deploy_ts' <> ''
+                   THEN :'d7_deploy_ts'::timestamptz
+               ELSE NULL
+           END AS d7_deploy_ts,
            420::double precision AS max_lag_s
 ),
 bounds AS (
@@ -368,6 +388,36 @@ sent_while_disabled AS (
     WHERE d.state = 'SENT'
       AND p.push_enabled_effective IS NOT TRUE
 ),
+context_gaps AS (
+    SELECT w.bucket_ts
+    FROM written w
+    CROSS JOIN params p
+    WHERE NOT EXISTS (
+        SELECT 1 FROM beta_context_snapshots c
+        WHERE c.symbol = 'BTCUSDT'
+          AND c.bucket_ts = w.bucket_ts
+          AND c.context_version = p.context_version
+          AND c.context_digest = p.context_digest
+    )
+),
+d7_complete AS (
+    SELECT date_bin('1 hour', k.open_time, TIMESTAMPTZ '2000-01-01 00:00:00+00') AS hour_start
+    FROM beta_d7_klines_1m k
+    CROSS JOIN params p
+    WHERE p.d7_enabled
+      AND p.d7_deploy_ts IS NOT NULL
+      AND k.open_time >= date_bin('1 hour', p.d7_deploy_ts, TIMESTAMPTZ '2000-01-01 00:00:00+00')
+      AND k.open_time < date_bin('1 hour', p.as_of, TIMESTAMPTZ '2000-01-01 00:00:00+00')
+    GROUP BY 1
+    HAVING count(*) = 60
+),
+d7_missing AS (
+    SELECT c.hour_start
+    FROM d7_complete c
+    WHERE NOT EXISTS (
+        SELECT 1 FROM beta_d7_hour_states s WHERE s.hour_start = c.hour_start
+    )
+),
 checks AS (
     SELECT '0. window'::text AS section, 'PASS'::text AS status,
            format('deploy_ts=%s as_of=%s transaction=READ ONLY', deploy_ts, as_of) AS detail
@@ -646,6 +696,31 @@ checks AS (
     SELECT 'F. Push safety', 'PASS',
            format('push decisions joined to a TRIGGERED episode transition=%s (detector events; not readiness-only)', n)
     FROM push_triggered
+
+    UNION ALL
+    SELECT 'G. Context coverage',
+           CASE WHEN (SELECT count(*) FROM context_gaps) > 0 THEN 'FAIL' ELSE 'PASS' END,
+           format('LIVE V2 tape buckets in the smoke window with no %s snapshot=%s',
+                  (SELECT context_version FROM params),
+                  (SELECT count(*) FROM context_gaps))
+
+    UNION ALL
+    SELECT 'H. D7 hour states',
+           CASE
+               WHEN NOT (SELECT d7_enabled FROM params) THEN 'PASS'
+               WHEN (SELECT d7_deploy_ts FROM params) IS NULL THEN 'FAIL'
+               WHEN (SELECT count(*) FROM d7_missing) > 0 THEN 'FAIL'
+               ELSE 'PASS'
+           END,
+           CASE
+               WHEN NOT (SELECT d7_enabled FROM params)
+                   THEN 'D7 disabled; hour-state coverage not required'
+               WHEN (SELECT d7_deploy_ts FROM params) IS NULL
+                   THEN 'd7_enabled is true and d7_deploy_ts is missing'
+               ELSE format('complete hours since d7_deploy_ts=%s missing hour states=%s',
+                           (SELECT count(*) FROM d7_complete),
+                           (SELECT count(*) FROM d7_missing))
+           END
 ),
 rollup AS (
     SELECT 'Z. rollup'::text AS section,

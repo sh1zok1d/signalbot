@@ -277,6 +277,7 @@ class BetaBotHandler:
                         state_digest_value=ctx["state_digest"] if ctx else None, now=now, readiness=rd,
                         detector_open_ids=[e.public_id for e in st["open_episodes"]])
         await self._attach_horizons(conn, view)
+        await self._attach_regime(conn, view, now)
         text = format_btc(self.cfg, view, lang)
         digest = sha256_json(view)
         view_pk = await conn.insert_btc_view(
@@ -317,6 +318,14 @@ class BetaBotHandler:
                                           metrics_by_bucket={b: m for b, m in hist},
                                           oi_by_boundary=oi)
 
+    async def _attach_regime(self, conn, view: dict, now: datetime) -> None:
+        """D7 is a view-payload field. It is not part of the context snapshot."""
+        if not self.cfg.section("regime_d7")["enabled"]:
+            return
+        from beta.regime_d7 import regime_for_status
+        view["regime"] = await regime_for_status(
+            conn, now=now, product_status=view.get("product_status") or "")
+
     def _maturity_days(self) -> float:
         """The percentile core's maturity span (Stage-2 confidence tiers), not a UI constant."""
         from common.stage2_config import Stage2Config
@@ -330,6 +339,9 @@ class BetaBotHandler:
         rd = readiness(self.cfg, latest, maturity_days=self._maturity_days())
         if rd is None:
             return [answer(t(lang, "no_evaluation"))]
+        if self.cfg.section("regime_d7")["enabled"]:
+            from beta.regime_d7 import warmup_for_readiness
+            rd["impact_context"] = await warmup_for_readiness(conn, now=self.clock())
         return [answer(""), _msg(chat_id, format_readiness_details(self.cfg, rd, lang), lang=lang)]
 
     async def _open_tab(self, conn, cq, chat_id: int, answer, *, kind: str, view_pk: int, tab: str,

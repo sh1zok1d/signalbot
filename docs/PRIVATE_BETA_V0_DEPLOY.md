@@ -10,11 +10,21 @@ Authority: `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`. The systemd artifacts are
 | `signalbot-beta-outcomes.service` + `.timer` | every 5m at :50 s (offset 2m) | `main.py --beta-outcomes-once --beta-json` |
 | `signalbot-beta-notify.service` + `.timer` | every minute at :40 s | `main.py --beta-notify-once --beta-json` |
 | `signalbot-beta-bot.service` | long-running (Restart=on-failure) | `python -m runtime.beta_bot` |
+| `signalbot-beta-d7.service` + `.timer` | every hour at HH:01 UTC | `main.py --beta-d7-once --beta-json` |
 
 - `deploy/install_beta_units.sh` copies the units and runs `daemon-reload`. It **never enables or starts** anything.
 - `deploy/check_beta_units.sh` is read-only.
 - The detector and outcomes units wait for PostgreSQL first (`ExecStartPre=deploy/wait_for_infra.py --postgres-only --timeout 60`, the same readiness gate `signalbot.service` uses, minus Redis).
 - The bounded history bootstrap is run manually with `python -m runtime.beta_bootstrap_runner [--max-iterations N]` (default 40, cap 100; 30 days need 31 batches of `bootstrap.max_buckets_per_run` = 288). Each iteration runs the unchanged `main.py --beta-bootstrap --beta-json` and prints progress. The runner stops on the first error, and fails if the bootstrap is still incomplete at the bound. After completion it runs one extra bootstrap as an idempotency check, which may only write buckets that closed in the meantime. Exit codes: `0` verified, `2` bootstrap error, `3` iteration limit, `4` verification failed.
+
+## D7 hour state
+
+The D7 feed is display-only and stays off until the owner enables it. `regime_d7.enabled` in `config/beta_v0.yaml` is false in the committed config. It does not enter the rules digest, does not open an episode, and does not change a push.
+
+- **Timer:** `signalbot-beta-d7.timer` runs `main.py --beta-d7-once` at HH:01 UTC. Each run fetches closed Binance USD-M BTCUSDT 1m bars (`closeTime < now`) from the last stored bar, and at least the last 120 bars, paging at 1500. It then inserts hour states that do not exist yet. A missed run catches up on the next start.
+- **Backfill:** `python main.py --beta-d7-backfill --days 90 --beta-json`. Paged at 1500 bars with a short pause between pages. Resumable and idempotent. 90 days covers the 1440-hour warm-up with room for gaps.
+- **Health:** while `regime_d7.enabled` is true, `--beta-health` raises `D7_HOUR_STATE_STALE` when there is no hour state or the newest state's `available_at` (the end of that clock hour) is older than 70 minutes. With the flag false the alert is absent.
+- **Enable:** after the schema and the timer are deployed, run the 90-day backfill, confirm at least 1440 valid hours in `beta_d7_hour_states`, and run the real-data parity test (`D7_PARITY_CORE_ROOT` pointing at `CORE_BTC_BINANCE_V0` 1m data, 2020–2024 only). Then set `regime_d7.enabled: true` on the deployed config and restart the bot. Until that owner step the line is never shown.
 
 ## Temporal context (`/btc`)
 
@@ -137,6 +147,7 @@ The gate criteria are listed in the restart decision.
 - `BOT_RECEIVER_DOWN`
 - `NOTIFIER_NOT_RUNNING`
 - `DELIVERY_FAILURE_SPIKE`
+- `D7_HOUR_STATE_STALE` (only while `regime_d7.enabled` is true, and only when the newest hour state's `available_at` is older than 70 minutes)
 
 A DB outage makes every beta command exit with status 2 and report `DB_UNAVAILABLE`. systemd records that as a failed unit.
 

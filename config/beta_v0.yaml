@@ -113,7 +113,7 @@ beta:
     version: STRICT_QUALIFICATION_V1
     live_hysteresis_enabled: false
   context:
-    version: BETA_CONTEXT_1H_V0
+    version: BETA_CONTEXT_1H_V1
     rolling_buckets: 12                     # rolling 1h = last 12 closed 5m buckets
     label_elevated: 0.80                    # percentile-rank labels (unsigned dims)
     label_high: 0.95
@@ -137,3 +137,7 @@ beta:
   telemetry:
     retention_days: 120
     rejected_start_retention_days: 30
+  # D7 "High impact" line on /btc. Display only. Not detection, not the rules digest.
+  # Stays false until the owner enables it after deploy, warm-up, and real-data parity.
+  regime_d7:
+    enabled: false

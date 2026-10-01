@@ -62,6 +62,16 @@ def test_unsupported_state_schema_version_is_rejected():
         BetaConfig.load().with_overrides(state_schema_version=3)
 
 
+def test_regime_d7_does_not_enter_the_rules_digest():
+    raw = _raw()
+    assert raw["regime_d7"]["enabled"] is False
+    raw["regime_d7"] = {"enabled": True}
+    c = BetaConfig.from_mapping(raw)
+    assert c.rules_digest == PINNED_RULES_DIGEST
+    assert c["regime_d7"]["enabled"] is True
+    assert c.config_digest != BetaConfig.load().config_digest
+
+
 def test_access_and_telemetry_do_not_enter_the_rules_digest():
     raw = _raw()
     raw["access"] = {"max_active_users": 7}

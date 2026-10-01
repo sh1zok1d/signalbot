@@ -24,7 +24,8 @@ from beta.config import BetaConfig, BetaSecrets, BetaSwitches, resolve_switches
 BETA_CODE_PATHS = ("beta", "runtime/beta_cli.py", "runtime/beta_bot.py", "storage/beta_v0_store.py",
                    "storage/beta_v0_schema.sql", "config/beta_v0.yaml")
 BETA_COMMAND_FLAGS = ("beta_bootstrap", "beta_once", "beta_status", "beta_outcomes_once",
-                      "beta_notify_once", "beta_health", "beta_usage_report")
+                      "beta_notify_once", "beta_health", "beta_usage_report",
+                      "beta_d7_once", "beta_d7_backfill")
 READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report")
 
 
@@ -49,8 +50,14 @@ def add_beta_arguments(parser) -> None:
                    help="Beta V0.2: READ-ONLY health report.")
     g.add_argument("--beta-usage-report", action="store_true",
                    help="Beta V0.2: READ-ONLY usage report (fingerprints only).")
+    g.add_argument("--beta-d7-once", action="store_true",
+                   help="Beta V0.2: one D7 hour pass (closed 1m bars + missing hour states).")
+    g.add_argument("--beta-d7-backfill", action="store_true",
+                   help="Beta V0.2: resumable D7 1m backfill (default 90 days) and hour states.")
     parser.add_argument("--beta-bucket-ts", default=None,
                         help="Explicit ISO-8601 UTC 5m bucket open (--beta-once only).")
+    parser.add_argument("--days", type=int, default=None,
+                        help="D7 backfill length in days (--beta-d7-backfill only; default 90).")
     parser.add_argument("--beta-json", action="store_true",
                         help="Emit the beta report as one JSON object (all --beta-* commands).")
 
@@ -71,6 +78,10 @@ def validate_beta_args(parser, args, *, other_command_selected: bool) -> None:
             parser.error("a --beta-* command cannot be combined with a --shadow-*/--telegram-* command")
     if getattr(args, "beta_bucket_ts", None) is not None and not getattr(args, "beta_once", False):
         parser.error("--beta-bucket-ts is only valid with --beta-once")
+    if getattr(args, "days", None) is not None and not getattr(args, "beta_d7_backfill", False):
+        parser.error("--days is only valid with --beta-d7-backfill")
+    if getattr(args, "beta_d7_backfill", False) and args.days is not None and args.days < 1:
+        parser.error("--days must be an int >= 1")
     if getattr(args, "beta_json", False) and not selected:
         parser.error("--beta-json is only valid with a --beta-* command")
 
@@ -265,4 +276,13 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
         from beta.delivery import run_notify_once
         return await run_notify_once(db.beta_store(), cfg, switches, sender=sender, clock=clock,
                                      owner_user_id=secrets.owner_user_id)
+
+    if args.beta_d7_once or args.beta_d7_backfill:
+        if not switches.enabled:
+            return {"status": "DISABLED"}
+        await db.init_beta_v0_schema()
+        from beta.regime_d7 import DEFAULT_BACKFILL_DAYS, run_d7_job
+        days = DEFAULT_BACKFILL_DAYS if args.days is None else args.days
+        return await run_d7_job(db.beta_store(), now=clock(),
+                                mode="backfill" if args.beta_d7_backfill else "once", days=days)
     raise BetaCliError("no --beta-* command selected")

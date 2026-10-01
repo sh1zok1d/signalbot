@@ -288,8 +288,7 @@ def format_usage_report(report: dict) -> str:
         )
     ret = report["retention"]
     lines.append(
-        "retention day 1/7/14/28: "
-        + " ".join(f"{day} {_share(ret[f'day_{day}'])}" for day in RETENTION_DAYS)
+        "retention: " + " · ".join(f"d{day} {_share(ret[f'day_{day}'])}" for day in RETENTION_DAYS)
     )
     lang = report["language_split"]
     lines.append(f"language: ru {lang.get('ru', 0)}, en {lang.get('en', 0)}")

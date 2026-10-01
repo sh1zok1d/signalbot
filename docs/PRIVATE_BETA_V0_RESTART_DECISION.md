@@ -19,6 +19,8 @@
 
 This decision does not change any frozen experiment, historical research conclusion, the V3 records, E1-RUN-001, the scientific test ledger or Generator V0 memory. Protected 2025/2026 research data stays sealed. None of it was opened for the beta design.
 
+**Decision 7, D7 claim only (2026-10-01).** `docs/BETA_D7_REGIME_CONTEXT_GATE_V1.md` is the promotion gate for the one "High impact" regime-context claim. That claim is implemented and inactive: `regime_d7.enabled` stays false until the owner enables it after deploy, after warm-up of at least 1440 valid hours, and after the real-data parity test passes. No other research result is promoted.
+
 ## Scope (V0.2)
 
 - **Market:** BTCUSDT perpetual on Binance, Bybit and OKX. Bitget stays disabled and never counts toward coverage.

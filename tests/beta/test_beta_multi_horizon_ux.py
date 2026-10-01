@@ -632,7 +632,8 @@ Delta — разница между рыночными покупками и п�
 н/д — данных нет или они неполные. Это не ноль.
 × от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней.
 ↑ ↓ — только направление, не сила.
-Время — киевское."""
+Время — киевское.
+High impact — за прошлый календарный час цена прошла много относительно объёма торгов. Исторически следующий час был таким же примерно в 1 из 5 случаев (обычно 1 из 10). Направление цены это не показывает."""
 
 EN_TERMS = """TERMS
 
@@ -661,7 +662,8 @@ Liquidations — positions force-closed by the exchange, shown per venue.
 n/a — no data or incomplete data. This is not zero.
 × usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median.
 ↑ ↓ — direction only, not strength.
-Time — Kyiv time."""
+Time — Kyiv time.
+High impact — in the last clock hour the price moved a lot relative to traded volume. Historically the following hour was like this about 1 in 5 times (usually 1 in 10). It says nothing about price direction."""
 
 
 def test_glossary_is_verbatim_and_passes_both_forbidden_lists():

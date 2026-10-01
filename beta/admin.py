@@ -61,9 +61,12 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
     window = timedelta(seconds=cfg["health"]["delivery_problem_window_s"])
     counts = await conn.delivery_state_counts(since=now - window)
     problems = counts.get("FAILED", 0) + counts.get("DELIVERY_UNKNOWN", 0)
+    d7_at = None
+    if cfg.section("regime_d7")["enabled"]:
+        d7_at = await conn.newest_d7_available_at()
     alerts = health_alerts(cfg, now=now, heartbeat=st["heartbeat"], detector_watermark=wm,
                            latest_live=st["latest"], runtime=runtime, delivery_problems=problems,
-                           switches=switches)
+                           switches=switches, d7_newest_available_at=d7_at)
     admin_push = await conn.get_admin_push_enabled()
     return {"product_status": st["status"]["status"], "status_reasons": st["status"]["reasons"],
             "last_good_bucket": st["status"].get("last_good_bucket"),

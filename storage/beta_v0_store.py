@@ -34,6 +34,7 @@ OUTCOMES_LOCK_KEY = 7_311_000_002
 NOTIFIER_LOCK_KEY = 7_311_000_003
 BOT_LOCK_KEY = 7_311_000_004
 ACCESS_LOCK_KEY = 7_311_000_005
+D7_LOCK_KEY = 7_311_000_006
 
 _EPISODE_COLS = """episode_pk, public_id, symbol, event_type, state, opened_bucket, opened_at,
     armed_at, triggered_at, terminal_at, terminal_reason, rules_version, rules_digest,
@@ -1006,3 +1007,61 @@ class BetaConn:
             "SELECT component, last_run_at, last_success_at, last_error_type, detail "
             "FROM beta_runtime_health")
         return {r["component"]: {**dict(r), "detail": _load(r["detail"])} for r in rows}
+
+    # ------------------------------------------------------------------ D7 display feed
+    async def upsert_d7_klines(self, rows: Sequence[Mapping]) -> None:
+        if not rows:
+            return
+        await self.conn.executemany(
+            """INSERT INTO beta_d7_klines_1m (open_time, open, high, low, close,
+                   quote_asset_volume, close_time, fetched_at)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+               ON CONFLICT (open_time) DO UPDATE SET
+                   open=EXCLUDED.open, high=EXCLUDED.high, low=EXCLUDED.low,
+                   close=EXCLUDED.close, quote_asset_volume=EXCLUDED.quote_asset_volume,
+                   close_time=EXCLUDED.close_time, fetched_at=EXCLUDED.fetched_at""",
+            [(r["open_time"], r["open"], r["high"], r["low"], r["close"],
+              r["quote_asset_volume"], r["close_time"], r["fetched_at"]) for r in rows])
+
+    async def d7_kline_bounds(self):
+        r = await self.conn.fetchrow(
+            "SELECT min(open_time) AS lo, max(open_time) AS hi FROM beta_d7_klines_1m")
+        return r["lo"], r["hi"]
+
+    async def fetch_d7_klines(self) -> list:
+        rows = await self.conn.fetch(
+            """SELECT open_time, open, high, low, close, quote_asset_volume, close_time
+               FROM beta_d7_klines_1m ORDER BY open_time""")
+        return [dict(r) for r in rows]
+
+    async def insert_d7_hour_if_absent(self, *, hour_start: datetime, complete: bool,
+                                       ret: Optional[float], quote_volume_1h: Optional[float],
+                                       qrel: Optional[float], impact: Optional[float],
+                                       p90: Optional[float], state: Optional[bool],
+                                       available_at: datetime, computed_at: datetime,
+                                       definition_digest: str) -> bool:
+        wrote = await self.conn.fetchval(
+            """INSERT INTO beta_d7_hour_states (hour_start, complete, ret, quote_volume_1h,
+                   qrel, impact, p90, state, available_at, computed_at, definition_digest)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+               ON CONFLICT (hour_start) DO NOTHING
+               RETURNING hour_start""",
+            hour_start, complete, ret, quote_volume_1h, qrel, impact, p90, state,
+            available_at, computed_at, definition_digest)
+        return wrote is not None
+
+    async def fetch_d7_hour_state(self, hour_start: datetime):
+        r = await self.conn.fetchrow(
+            """SELECT hour_start, complete, ret, quote_volume_1h, qrel, impact, p90, state,
+                      available_at, computed_at, definition_digest
+               FROM beta_d7_hour_states WHERE hour_start=$1""", hour_start)
+        return None if r is None else dict(r)
+
+    async def count_d7_valid_hours_before(self, hour_start: datetime) -> int:
+        return int(await self.conn.fetchval(
+            """SELECT count(*) FROM beta_d7_hour_states
+               WHERE complete AND ret IS NOT NULL AND hour_start < $1""", hour_start))
+
+    async def newest_d7_available_at(self) -> Optional[datetime]:
+        return await self.conn.fetchval(
+            "SELECT available_at FROM beta_d7_hour_states ORDER BY hour_start DESC LIMIT 1")
