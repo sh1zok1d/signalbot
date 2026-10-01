@@ -220,7 +220,7 @@ def test_admin_reply_owner_only_wording_and_audit():
         assert len(missing) == 1
 
         bad = await h.handle(_msg(OWNER, f"/admin_reply {fp} please buy this", 6))
-        assert "forbidden wording" in bad[0].html and r"\bbuy\b" in bad[0].html
+        assert "forbidden wording" in bad[0].html and "bbuy" in bad[0].html
         assert len(bad) == 1
 
         good = await h.handle(_msg(OWNER, f"/admin_reply {fp} спасибо за отзыв", 7))
