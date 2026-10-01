@@ -1,0 +1,12 @@
+{
+  "BRANCH": "cursor/d7-beacon-verifier-repair-v1-c58d",
+  "CANDIDATES_AFTER_1965184_FETCHED": false,
+  "COMMIT_SHA": "d7f7687a6b30f9d5193b77ec8f4c3f94ec54c379",
+  "GITHUB_COMMIT_STATUS_STATE": "pending",
+  "GITHUB_COMMIT_STATUS_CREATED_AT": null,
+  "GIT_COMMITTER_DATE": "2026-10-01T07:35:47Z",
+  "PUSH_OBSERVED_UTC": "2026-10-01T07:35:54Z",
+  "TREE_SHA": "8b47c2422f54d1e3f8f62aaf85e8eb37274cf3c3",
+  "document": "D7_BEACON_VERIFIER_REPAIR_V1_PUSH_RECEIPT",
+  "note": "GitHub commit statuses for the repair commit were empty at the query. PUSH_OBSERVED_UTC is the local clock immediately after git push reported success. GIT_COMMITTER_DATE is the commit timestamp, not a separate server receipt."
+}

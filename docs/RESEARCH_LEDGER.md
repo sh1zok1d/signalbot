@@ -6624,3 +6624,342 @@ DETECTOR_RULE_CHANGED_BECAUSE_OF_OUTCOMES = false
 FUTURE_CONFIRMATION = requires a new prospective contract and a new future observation window
 FOLLOW_UP_FOUNDATION = docs/BETA_HISTORICAL_FOLLOW_UP_V0.md (EVENT_COMPARABILITY_V0; not wired; no replay)
 ```
+
+## Self-referential generic finite-sample screen — 2026-09-30
+
+First official held-out generic validation of `SELF_REFERENTIAL_TIME_SERIES_CONTRAST_V1` at implementation `ebb26aca6ed37c12bbf3b3f578973d3078407d99`. Synthetic global-null worlds only. No BitMEX path, no D7 geometry admission, no confirmatory beacon stream.
+
+```
+DECISION = FINITE_SAMPLE_STRESS_VALIDATED
+GENERIC_OUTER_WORLD_N = 1600
+R_VALIDATION = 999
+TOTAL_REJECT_COUNT = 75
+AGGREGATE_GATE = PASS
+REGIONAL_REJECTS = 10, 4, 14, 13, 9, 6, 6, 13
+PROFILE_VALIDATION_EXECUTED = true
+PROFILE_VALIDATED = true
+CLAIMS_TRUE_TYPE_I_AT_MOST_0_06 = false
+D7_GEOMETRY_ADMISSION_EXECUTED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CONFIRMATORY_RNG_GENERATED = false
+TARGET_OPENING = FORBIDDEN
+STATISTICAL_RERUNS = 0
+INFRASTRUCTURE_RETRIES = 1
+PROFILE_NEXT_ACTION = READY_FOR_D7_EXACT_GEOMETRY_ADMISSION
+```
+
+The screen does not validate BitMEX mixing and does not confirm D7. Record: `docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_GENERIC_VALIDATION_V1.md`.
+
+## D7 exact-geometry admission stop — 2026-09-30
+
+First official `D7_EXACT_GEOMETRY_ADMISSION` attempt for `SELF_REFERENTIAL_TIME_SERIES_CONTRAST_V1`. Stopped before world 0. The published gap clock interval and the published year masses do not locate the eligible-index break inside the 4079 eligible 2016 rows. No admission world, admission seed, or confirmatory stream was generated. The generic screen was not rerun.
+
+```
+DECISION = D7_GEOMETRY_ADMISSION_EXECUTION_FAILED:ELIGIBLE_INDEX_GAP_BREAK_UNPUBLISHED
+D7_EXACT_GEOMETRY_ADMISSION_STARTED = false
+D7_GEOMETRY_ADMISSION_EXECUTED = false
+WORLDS_COMPLETED = 0
+D7_ADMISSION_REJECT_COUNT = UNSET
+D7_PROFILE_ADMISSION = NOT_DECIDED
+PROFILE_VALIDATED = true
+GENERIC_DECISION = FINITE_SAMPLE_STRESS_VALIDATED
+GENERIC_REJECT_COUNT = 75
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CONFIRMATORY_RNG_GENERATED = false
+TARGET_OPENING = FORBIDDEN
+STATISTICAL_RERUNS = 0
+POWER_GATE_EXECUTED = false
+NEXT_ACTION = D7_EXACT_GEOMETRY_ADMISSION_STOPPED_BEFORE_WORLD_0
+```
+
+Record: `docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_D7_GEOMETRY_ADMISSION_V1.md`.
+
+## D7 eligible-index gap break — 2026-09-30
+
+Geometry metadata only. The single missing scalar is the eligible-index position of the published structural gap. No admission world, admission seed, lag-1 state, or D7 effect was produced.
+
+```
+MINIMUM_REQUIRED_GEOMETRY = ELIGIBLE_INDEX_GAP_BREAK
+ELIGIBLE_COUNT_BEFORE_GAP = 3503
+ELIGIBLE_COUNT_AFTER_GAP = 576
+ELIGIBLE_INDEX_GAP_BREAK = 3503
+ELIGIBLE_2016_TOTAL = 4079
+ELIGIBLE_2017_TOTAL = 8757
+ELIGIBLE_2018_TOTAL = 8759
+ELIGIBLE_2019_TOTAL = 8759
+T = 30354
+CONSISTENT = true
+GEOMETRY_EXTRACTOR_TARGET_BLIND = true
+D7_EXACT_GEOMETRY_ADMISSION_STARTED = false
+D7_GEOMETRY_ADMISSION_EXECUTED = false
+D7_PROFILE_ADMISSION = NOT_DECIDED
+PROFILE_VALIDATED = true
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CONFIRMATORY_RNG_GENERATED = false
+TARGET_OPENING = FORBIDDEN
+NEXT_ACTION = READY_TO_RETRY_D7_EXACT_GEOMETRY_ADMISSION_PREFLIGHT
+```
+
+Record: `docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_D7_ELIGIBLE_INDEX_GAP_BREAK_V1.md`.
+
+## D7 exact-geometry admission — 2026-09-30
+
+First official D7 admission that ran worlds. Preflight used execution HEAD `e69fc5c56ba9d4c5d31915f44b30cebf66c5275b` and an empty statistical diff against `ebb26aca6ed37c12bbf3b3f578973d3078407d99`. Geometry break `3503` was taken from the published amendment. The extractor was not rerun.
+
+```
+D7_EXACT_GEOMETRY_ADMISSION_STARTED = true
+D7_GEOMETRY_ADMISSION_EXECUTED = true
+D7_ADMISSION_OUTER_WORLD_N = 1600
+R_VALIDATION = 999
+D7_ADMISSION_REJECT_COUNT = 73
+DECISION = HYPOTHESIS_GEOMETRY_ADMISSION_PASS
+D7_PROFILE_ADMISSION = PASS
+PROFILE_VALIDATED = true
+PRIMARY_COMPLETED = 1600
+EXECUTION_FAILURES = 0
+STATISTICAL_RERUNS = 0
+INFRASTRUCTURE_RETRIES = 0
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CONFIRMATORY_RNG_GENERATED = false
+TARGET_OPENING = FORBIDDEN
+POWER_GATE_EXECUTED = false
+NEXT_ACTION = READY_FOR_D7_POWER_GATE
+```
+
+Record: `docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_D7_EXACT_GEOMETRY_ADMISSION_V1.md`.
+
+## D7 power gate — 2026-09-30
+
+Outcome-blind power gate after the sealed generic screen and the sealed D7 admission. Population contrast `1/20`. Detection is the primary reject plus the 2-of-3 temporal gate on `{2017, 2018, 2019}`.
+
+```
+D7_POWER_GATE_STARTED = true
+D7_PRACTICAL_EFFECT = 1/20
+D7_REQUIRED_POWER_BASE = 0.80
+D7_REQUIRED_POWER_STRESS = 0.50
+N_POWER_PER_FAMILY = 2000
+R_VALIDATION = 999
+POWER_BASE = 2000/2000
+POWER_YEAR_HETEROGENEOUS = 2000/2000
+POWER_CELL_HETEROGENEOUS = 2000/2000
+DECISION = D7_POWER_GATE_PASS
+D7_HYPOTHESIS_FAILED = false
+PROFILE_VALIDATED = true
+D7_PROFILE_ADMISSION = PASS
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CONFIRMATORY_RNG_GENERATED = false
+TARGET_OPENING = FORBIDDEN
+STATISTICAL_RERUNS = 0
+NEXT_ACTION = READY_FOR_FINAL_TARGET_OPENING_AUTHORIZATION_REVIEW
+```
+
+Record: `docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_D7_POWER_GATE_V1.md`.
+
+## D7 target-opening authorization review — 2026-10-01
+
+Outcome-blind review of whether one irreversible D7 opening is authorized. No target read, no effect, no confirmatory stream, no new simulation. The sealed power result is unchanged.
+
+```
+PROVENANCE_CHAIN_COMPLETE = true
+STATISTICAL_IMPLEMENTATION_CHANGED = false
+POWER_POPULATION_EFFECT_EXACT = true
+POWER_TARGET_BLIND = true
+STATISTICAL_DUPLICATE_WORLDS = 0
+TEMPORAL_GATE_FULLY_SPECIFIED = true
+CONFIRMATORY_RNG_READY_BUT_UNGENERATED = false
+DECISION = D7_TARGET_OPENING_NOT_AUTHORIZED:FINAL_PASS_CONJUNCTION_NOT_UNIQUE
+D7_HYPOTHESIS_FAILED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CONFIRMATORY_RNG_GENERATED = false
+TARGET_OPENING = FORBIDDEN
+```
+
+Record: `docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_D7_TARGET_OPENING_AUTHORIZATION_REVIEW_V1.md`.
+
+## D7 final contract integrity repair — 2026-10-01
+
+Outcome-blind contract repair after the authorization review. No target read, no effect, no confirmatory stream, no beacon fetch, and no rerun of generic validation, D7 admission, or D7 power.
+
+```
+OFFICIAL_POWER_DETECTION_BOOLEAN = PRIMARY_COMPLETED AND statistical_reject AND temporal_gate
+TEMPORAL_POWER_ALREADY_EXECUTED = true
+TEMPORAL_GATE_POWER_VALIDATED_IN_OFFICIAL_D7_POWER_RUN = true
+CLAIM_CHANGE: magnitude >= 0.05 is no longer a D7 confirmation PASS condition
+D7_DIRECTIONAL_CONFIRMATION_PASS = PRIMARY_COMPLETED AND STATISTICAL_REJECT AND TEMPORAL_PASS AND INTEGRITY_PASS
+ADAPTER_DIGEST_TARGET_BLIND = true
+CONFIRMATORY_BIT_GENERATOR = NUMPY_PCG64
+POST_OPEN_UNTHRESHOLDED_DIAGNOSTICS_CANNOT_CHANGE_PRIMARY_LABEL = true
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CONFIRMATORY_RNG_GENERATED = false
+TARGET_OPENING = FORBIDDEN
+NEXT_ACTION = READY_TO_REPEAT_FINAL_TARGET_OPENING_AUTHORIZATION_REVIEW
+```
+
+Record: `docs/research/D7_FINAL_CONTRACT_INTEGRITY_REPAIR_V1.md`.
+
+## D7 target-opening authorization review V2 — 2026-10-01
+
+Outcome-blind repeat after the contract/integrity repair. No target read, no effect, no beacon fetch, no confirmatory stream, and no rerun of validation, admission, or power. The freeze contract is unchanged.
+
+```
+FREEZE_MANIFEST_INTACT = true
+FINAL_PASS_CONJUNCTION_UNIQUE = true
+MAGNITUDE_RULE_FULLY_SPECIFIED = true
+TEMPORAL_POWER_ALREADY_EXECUTED = true
+ADAPTER_DIGEST_TARGET_BLIND = true
+INTEGRITY_PASS_NONADAPTIVE = true
+SERVER_FREEZE_TIME_ACCEPTABLE = true
+BEACON_RULE_EXECUTABLE = true
+CONFIRMATORY_RNG_CONTRACT_EXECUTABLE = true
+CONFIRMATORY_RNG_READY_BUT_UNGENERATED = true
+SINGLE_RUN_SEMANTICS_FROZEN = true
+DECISION = D7_TARGET_OPENING_AUTHORIZED
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CONFIRMATORY_RNG_GENERATED = false
+BEACON_FETCHED = false
+TARGET_OPENING = FORBIDDEN
+```
+
+Record: `docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_D7_TARGET_OPENING_AUTHORIZATION_REVIEW_V2.md`.
+
+## D7 confirmatory target opening — 2026-10-01
+
+Authorized confirmatory execution. Identity pins matched the freeze. The first NIST Beacon 2.0 pulse at or after `2026-10-01T07:09:59Z` is chain 2 pulse `1965184` at `2026-10-01T07:10:00.000Z`. Its `outputValue` matches the uint32 serialization and its `certificateId` matches the certificate DER. PKCS#1 v1.5 SHA-512 verification fails: the certificate key is 2048 bits and `signatureValue` is 512 bytes. The run stopped there.
+
+```
+EXECUTION_STATUS = D7_CONFIRMATORY_EXECUTION_FAILED:BEACON_SIGNATURE_INVALID
+BEACON_FETCHED = true
+BEACON_SIGNATURE_VALID = false
+RAW_BEACON_RECORD_SHA256 = 276779a2d1f7a627acd4e891ddf5233feca22b5db7e194a9f3b1606894720c9a
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+PRIMARY_RESULT_SEALED = false
+D7_DIRECTIONAL_CONFIRMATION_PASS = unevaluated
+```
+
+Record: `docs/research/D7_CONFIRMATORY_TARGET_OPENING_V1.md`.
+
+## D7 beacon verifier repair — 2026-10-01
+
+Pre-seed repair. Pulse `1965184` was classified from its preserved bytes: RSA modulus 2048 bits / 256 bytes, signature 512 bytes, `s < n` false. Classification `PULSE_1965184_OBJECTIVELY_INVALID`. The verifier no longer requires a 512-byte signature; PKCS#1 v1.5 length is `ceil(modulus_bits / 8)` of the certificate named by that pulse. Offline regressions: 4096-bit pulse `1923756` (`2026-09-02T12:00:00.000Z`) verifies; pulse `1965184` is rejected; a TEST-ONLY RSA-2048 pulse with a 256-byte signature verifies. No pulse after `1965184` was fetched. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CANDIDATES_AFTER_1965184_FETCHED = false
+NEXT_ACTION = READY_FOR_SEQUENTIAL_NIST_BEACON_SCAN_FROM_AFTER_1965184
+```
+
+Record: `docs/research/D7_BEACON_VERIFIER_REPAIR_V1.md`.
+
+## D7 confirmatory beacon scan — 2026-10-01
+
+Outcome-blind sequential scan after pulse `1965184`. Verifier bytes unchanged (`d7f7687`, blob `bed8a2aa33599b7ce4c0915eb410ad7413747b1d`). Examined `2/1965185` at `2026-10-01T07:11:00.000Z` through `2/1965225` at `2026-10-01T07:51:00.000Z`: 41 pulses, all `INVALID` (`PULSE_{index}_OBJECTIVELY_INVALID`), modulus 256 bytes, signature 512 bytes, same named certificate as pulse `1965184`. All 41 continuity edges passed. `VALID` count is 0. The successor of `2/1965225` returned HTTP 404 and stopped the scan as incomplete. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965225
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965225
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+Record: `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.md`.
+
+## D7 confirmatory beacon scan resume — 2026-10-01
+
+Same scan identity. Invocation 2 retried the chronological successor of `2/1965225` and fetched `2/1965226` at `2026-10-01T07:52:00.000Z`. Eight pulses, `2/1965226` through `2/1965233` at `2026-10-01T07:59:00.000Z`, classified `INVALID`. Continuity on those edges passed. The successor of `2/1965233` returned HTTP 404. Prior 41 rows were not rewritten. Cumulative examined: 49. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965233
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965233
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+Record: `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.md`.
+
+## D7 confirmatory beacon scan resume 3 — 2026-10-01
+
+Same scan identity. Invocation 3 retried the chronological successor of `2/1965233` and fetched `2/1965234` at `2026-10-01T08:00:00.000Z`. Seventeen pulses, `2/1965234` through `2/1965250` at `2026-10-01T08:16:00.000Z`, classified `INVALID`. Continuity on those edges passed. The successor of `2/1965250` returned HTTP 404. Prior 49 rows were not rewritten. Cumulative examined: 66. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965250
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965250
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+Record: `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.md`.
+
+## D7 confirmatory beacon scan resume 4 — 2026-10-01
+
+Same scan identity. Invocation 4 retried the chronological successor of `2/1965250` and fetched `2/1965251` at `2026-10-01T08:17:00.000Z`. Six pulses, `2/1965251` through `2/1965256` at `2026-10-01T08:22:00.000Z`, classified `INVALID`. Continuity on those edges passed. The successor of `2/1965256` returned HTTP 404. Prior 66 rows were not rewritten. Cumulative examined: 72. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965256
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965256
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+Record: `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.md`.
+
+## D7 confirmatory seed-source amendment — 2026-10-01
+
+Pre-target amendment. `SEED_SOURCE_CHANGE = NIST_BEACON_2_0 -> DETERMINISTIC_FIXED_SEED_V1`. The NIST scan is `SUPERSEDED_BY_SEED_SOURCE_AMENDMENT` and its 72 `INVALID` rows, cursor, pulse `1965184` record, and verifier repair remain. The seed message is the exact UTF-8 literal with digest `5d81a9be7f96abab8a92539e2527006cf97340a8f5ca7fe966b8d6293f4ba63e`. It does not use target bytes, the canonical source digest, or `FREEZE_MANIFEST_SHA256`. `EXTERNAL_UNPREDICTABILITY_GUARANTEE = REMOVED`. `PRE_TARGET_SEED_COMMITMENT = PRESERVED`. `STATISTICAL_PROCEDURE_CHANGED = false`. No confirmatory PCG64 stream, no target parse, no theta.
+
+```
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+SELECTED_CONFIRMATORY_BEACON = NONE
+```
+
+Record: `docs/research/D7_CONFIRMATORY_SEED_SOURCE_AMENDMENT_V1.md`.
+
+## D7 deterministic-seed opening authorization — 2026-10-01
+
+Mechanical review after amendment commit `b603f55d7b12492bf813abac1537aa21f85932e4` was served by the GitHub API at `2026-10-01T08:46:42Z`. `SEED_SOURCE_AMENDMENT_COMMITTED = true`. `TARGET_WAS_UNOPENED_AT_AMENDMENT_COMMIT = true`. Digest matches `5d81a9be7f96abab8a92539e2527006cf97340a8f5ca7fe966b8d6293f4ba63e`. `STATISTICAL_PROCEDURE_CHANGED = false`. Focused seed and verifier tests passed. Decision `D7_DETERMINISTIC_SEED_OPENING_AUTHORIZED`. Target remains unopened. No confirmatory bootstrap stream.
+
+```
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+```
+
+Record: `docs/research/D7_DETERMINISTIC_SEED_OPENING_AUTHORIZATION_V1.md`.
+
+## D7 confirmatory primary result — 2026-10-01
+
+One authorized opening under `DETERMINISTIC_FIXED_SEED_V1`, amendment commit `b603f55d7b12492bf813abac1537aa21f85932e4`. Seed digest `5d81a9be7f96abab8a92539e2527006cf97340a8f5ca7fe966b8d6293f4ba63e`. Geometry `T=30354`, year masses `4079/8757/8759/8759`, gap break `3503`, segments `[3503, 26851]`, `B=L=721`. `theta_hat=0.12932529232325488`, `V_obs=2.458771532240802`, `SE=0.009000178507085975`, `T_obs=14.369191924519624`. `R=9999`, exceedance `0`, `p=0.0001`, `STATISTICAL_REJECT=true`. Year theta `2016=0.1357945428437761` (diagnostic), `2017=0.1556649226614804`, `2018=0.1268447223183365`, `2019=0.09454730105201403`. `TEMPORAL_PASS=true`. `L=0.1138795303766755`, `MAGNITUDE_AT_0_05_SUPPORTED=true`. `INTEGRITY_PASS=true`. `D7_DIRECTIONAL_CONFIRMATION_PASS=true`. Label `CONFIRMED_UNDER_MAINTAINED_ASSUMPTIONS`. Sealed artifact SHA-256 `b4efa972cec9acfacb2987be7aef3ad1ed239c8279977374a18265dfe60df503`. No rerun.
+
+```
+CONFIRMATORY_RNG_GENERATED = true
+D7_BITMEX_PRIMARY_TARGET_OPENED = true
+D7_PRIMARY_EFFECT_COMPUTED = true
+PRIMARY_RESULT_SEALED = true
+```
+
+Record: `docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.md`.

@@ -1,0 +1,32 @@
+{
+  "document_id": "INFERENCE_PROFILE_SELF_REFERENTIAL_VALIDATION_COMPUTE_PLAN_V1",
+  "official_validation_executed": false,
+  "operational_budget_authorized": false,
+  "benchmark_command": "PYTHONPATH=/workspace python3.11 -m scripts.research.self_referential_contrast_v1.benchmark --workers N",
+  "cpu_count": 4,
+  "default_workers": 4,
+  "measurements": [
+    {"name": "small", "T": 256, "B_T": 7, "R": 999, "wall_seconds": 0.025385411994648166, "draws_per_second": 39353.31048440783, "cpu_utilization": 1.0033336077180735, "vm_rss_kb": 40876, "vm_hwm_kb": 40876},
+    {"name": "medium", "T": 2048, "B_T": 13, "R": 999, "wall_seconds": 0.0907384739984991, "draws_per_second": 11009.662781154158, "cpu_utilization": 1.0009269717441167, "vm_rss_kb": 41224, "vm_hwm_kb": 50200},
+    {"name": "large_generic", "T": 16384, "B_T": 26, "R": 999, "wall_seconds": 0.5489183239988051, "draws_per_second": 1819.9428882650575, "cpu_utilization": 1.000017581852842, "vm_rss_kb": 42192, "vm_hwm_kb": 91244},
+    {"name": "max_generic", "T": 65536, "B_T": 41, "R": 999, "wall_seconds": 2.2800214850067277, "draws_per_second": 438.15376590499636, "cpu_utilization": 0.9999451513910943, "vm_rss_kb": 78312, "vm_hwm_kb": 244988},
+    {"name": "admission_geometry_length", "T": 30354, "B_T": 721, "R": 999, "wall_seconds": 0.8216476279994822, "draws_per_second": 1215.8496732137216, "cpu_utilization": 0.9997832477166446, "vm_rss_kb": 44296, "vm_hwm_kb": 244988}
+  ],
+  "speedup_probe": {
+    "T": 16384,
+    "R": 999,
+    "worlds": 4,
+    "rows": [
+      {"workers": 1, "wall_seconds": 1.606909751004423, "speedup_vs_workers_1": 1.0, "efficiency": 1.0},
+      {"workers": 2, "wall_seconds": 1.3121504529990489, "speedup_vs_workers_1": 1.224638338790855, "efficiency": 0.6123191693954275},
+      {"workers": 4, "wall_seconds": 0.7877680700039491, "speedup_vs_workers_1": 2.0398259490212234, "efficiency": 0.5099564872553058}
+    ]
+  },
+  "generic_world_counts_by_T": {"2048": 544, "16384": 544, "65536": 512},
+  "projection_workers_1_seconds": {
+    "generic_1600_R_validation": 1515.344298433978,
+    "admission_1600_R_validation": 1314.6362047991715,
+    "high_r_200_R_confirmatory": 1914.2305468326133
+  },
+  "chunk_results_identical": true
+}

@@ -1,0 +1,330 @@
+{
+  "ACTIVITY_FIELD": "foreignNotional",
+  "ACTIVITY_PORTABILITY_CLASS": "D7_ACTIVITY_SCIENTIFICALLY_COMPARABLE",
+  "BINANCE_2025_OPENED": false,
+  "BINANCE_2026_OPENED": false,
+  "CANDIDATE_N_BY_YEAR_RV_BUCKET": {
+    "2016:0": 82,
+    "2016:1": 140,
+    "2016:2": 119,
+    "2016:3": 82,
+    "2017:0": 24,
+    "2017:1": 147,
+    "2017:2": 341,
+    "2017:3": 697,
+    "2018:0": 2,
+    "2018:1": 41,
+    "2018:2": 235,
+    "2018:3": 596,
+    "2019:0": 7,
+    "2019:1": 124,
+    "2019:2": 319,
+    "2019:3": 482
+  },
+  "CANONICAL_GZ_SHA256": "33ab5c738aca3d7e58ea0bea8d575cc631d931a484b909025f5f3fc5e68b282c",
+  "CONFIRMATION_EXECUTED": false,
+  "CONFIRMATION_PREREG_CREATED": false,
+  "CONSTRUCTED_HOURS": 31835,
+  "CONTROL_POOL_BY_STRATUM": {
+    "2016:0": {
+      "candidate_n": 82,
+      "candidate_rate": 0.07706766917293233,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 1064,
+      "n_control_draws": 10000,
+      "non_candidate_n": 982,
+      "rate_matched_sampling_possible": true
+    },
+    "2016:1": {
+      "candidate_n": 140,
+      "candidate_rate": 0.12962962962962962,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 1080,
+      "n_control_draws": 10000,
+      "non_candidate_n": 940,
+      "rate_matched_sampling_possible": true
+    },
+    "2016:2": {
+      "candidate_n": 119,
+      "candidate_rate": 0.12632696390658174,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 942,
+      "n_control_draws": 10000,
+      "non_candidate_n": 823,
+      "rate_matched_sampling_possible": true
+    },
+    "2016:3": {
+      "candidate_n": 82,
+      "candidate_rate": 0.08257804632426989,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 993,
+      "n_control_draws": 10000,
+      "non_candidate_n": 911,
+      "rate_matched_sampling_possible": true
+    },
+    "2017:0": {
+      "candidate_n": 24,
+      "candidate_rate": 0.011396011396011397,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2106,
+      "n_control_draws": 10000,
+      "non_candidate_n": 2082,
+      "rate_matched_sampling_possible": true
+    },
+    "2017:1": {
+      "candidate_n": 147,
+      "candidate_rate": 0.06986692015209126,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2104,
+      "n_control_draws": 10000,
+      "non_candidate_n": 1957,
+      "rate_matched_sampling_possible": true
+    },
+    "2017:2": {
+      "candidate_n": 341,
+      "candidate_rate": 0.16084905660377358,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2120,
+      "n_control_draws": 10000,
+      "non_candidate_n": 1779,
+      "rate_matched_sampling_possible": true
+    },
+    "2017:3": {
+      "candidate_n": 697,
+      "candidate_rate": 0.2871858261227853,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2427,
+      "n_control_draws": 10000,
+      "non_candidate_n": 1730,
+      "rate_matched_sampling_possible": true
+    },
+    "2018:0": {
+      "candidate_n": 2,
+      "candidate_rate": 0.0008413967185527977,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2377,
+      "n_control_draws": 10000,
+      "non_candidate_n": 2375,
+      "rate_matched_sampling_possible": true
+    },
+    "2018:1": {
+      "candidate_n": 41,
+      "candidate_rate": 0.01848512173128945,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2218,
+      "n_control_draws": 10000,
+      "non_candidate_n": 2177,
+      "rate_matched_sampling_possible": true
+    },
+    "2018:2": {
+      "candidate_n": 235,
+      "candidate_rate": 0.11121628017037388,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2113,
+      "n_control_draws": 10000,
+      "non_candidate_n": 1878,
+      "rate_matched_sampling_possible": true
+    },
+    "2018:3": {
+      "candidate_n": 596,
+      "candidate_rate": 0.2905899561189664,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2051,
+      "n_control_draws": 10000,
+      "non_candidate_n": 1455,
+      "rate_matched_sampling_possible": true
+    },
+    "2019:0": {
+      "candidate_n": 7,
+      "candidate_rate": 0.0030864197530864196,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2268,
+      "n_control_draws": 10000,
+      "non_candidate_n": 2261,
+      "rate_matched_sampling_possible": true
+    },
+    "2019:1": {
+      "candidate_n": 124,
+      "candidate_rate": 0.05550581915846016,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2234,
+      "n_control_draws": 10000,
+      "non_candidate_n": 2110,
+      "rate_matched_sampling_possible": true
+    },
+    "2019:2": {
+      "candidate_n": 319,
+      "candidate_rate": 0.15307101727447217,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2084,
+      "n_control_draws": 10000,
+      "non_candidate_n": 1765,
+      "rate_matched_sampling_possible": true
+    },
+    "2019:3": {
+      "candidate_n": 482,
+      "candidate_rate": 0.2218131615278417,
+      "census_pool_at_least_2k": true,
+      "eligible_n": 2173,
+      "n_control_draws": 10000,
+      "non_candidate_n": 1691,
+      "rate_matched_sampling_possible": true
+    }
+  },
+  "CONTROL_SUPPORT": "CONTROL_SUPPORT_OK",
+  "CONTROL_SUPPORT_FAILURES": [],
+  "D2_CANONICAL_GZ_SHA256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa",
+  "D2_CANONICAL_MODIFIED": false,
+  "D7_BITMEX_EFFECT_COMPUTED": false,
+  "D7_BITMEX_PRIMARY_TARGET_OPENED": false,
+  "D7_BITMEX_REPLICATION_CLASS_ASSIGNED": false,
+  "DATASET_ID": "D7_BITMEX_ACTIVITY_V0",
+  "DATA_IDENTITY_STATUS": "PASS",
+  "DEPENDENCE_NOTE": "Structural dependence is present before any outcome is observed. Each D7 threshold is a 720-hour trailing percentile, so adjacent hours share 719 threshold inputs. QREL, IMPACT_PROXY, and RV_BUCKET use those overlapping histories. The panel is a repeated hourly sequence. calendar_year x RV_BUCKET stratification changes the sampling frame and does not preserve serial dependence. The frozen rate-matched Monte Carlo draws exchangeably inside each stratum. That null is not a dependence-preserving null for an hourly next-state association. This unit does not measure real D7 adjacency and does not invent a block estimator. A confirmation preregistration needs an explicit dependence-preserving inference choice first. The power figures in this unit are the power of that exchangeable gate under independent synthetic targets. They are not a dependence-robust power.",
+  "DEPENDENCE_REVIEW_STATUS": "INFERENCE_DESIGN_NEEDS_DEPENDENCE_REVIEW",
+  "ELIGIBLE_N_BY_YEAR_RV_BUCKET": {
+    "2016:0": 1064,
+    "2016:1": 1080,
+    "2016:2": 942,
+    "2016:3": 993,
+    "2017:0": 2106,
+    "2017:1": 2104,
+    "2017:2": 2120,
+    "2017:3": 2427,
+    "2018:0": 2377,
+    "2018:1": 2218,
+    "2018:2": 2113,
+    "2018:3": 2051,
+    "2019:0": 2268,
+    "2019:1": 2234,
+    "2019:2": 2084,
+    "2019:3": 2173
+  },
+  "EXECUTION_PERMIT_CREATED": false,
+  "FEASIBILITY_DECISION": "INFERENCE_DESIGN_NEEDS_DEPENDENCE_REVIEW",
+  "INDEPENDENCE": {
+    "ACTIVITY_AUTHORITY": "D7_BITMEX_ACTIVITY_V0",
+    "D2_TARGET": "RV_ABSTENTION / arithmetic_mae price path",
+    "D7_TARGET_PREVIOUSLY_COMPUTED_ON_BITMEX": false,
+    "INDEPENDENCE_CLASS": "D7_TARGET_FRESH_ON_PREVIOUSLY_EXPOSED_MARKET_SURFACE",
+    "MARKET_BYTES_PREVIOUSLY_EXPOSED_FOR_D2": true,
+    "PRIOR_TPLUS1_ASSOCIATION_ARTIFACT": false,
+    "SURFACE_CALLED_UNTOUCHED": false
+  },
+  "INDEPENDENCE_CLASS": "D7_TARGET_FRESH_ON_PREVIOUSLY_EXPOSED_MARKET_SURFACE",
+  "NEXT_UNIT": "NONE",
+  "POWER": {
+    "MC_REPLICATES": 1000,
+    "N_RANDOM_CONTROLS": 10000,
+    "P0": 0.09856569856985697,
+    "P0_ESTIMATED_FROM_BITMEX_TPLUS1": false,
+    "P0_SOURCE": "FROZEN_BINANCE_MU_D7_CONTROL",
+    "PLANNING_DELTA": 0.09087324532453248,
+    "PLANNING_MU_RULE": 0.18943894389438945,
+    "PLANNING_SOURCE": "DISCOVERY_SPRINT_02_D7_RESULT.json",
+    "POWER_50PCT_EFFECT": 1.0,
+    "POWER_50PCT_EFFECT_95CI": [
+      0.996173241514445,
+      1.0
+    ],
+    "POWER_50PCT_EFFECT_N_SUCCESS": 1000,
+    "POWER_50PCT_EFFECT_SEED": 3480795140,
+    "POWER_75PCT_EFFECT": 1.0,
+    "POWER_75PCT_EFFECT_95CI": [
+      0.996173241514445,
+      1.0
+    ],
+    "POWER_75PCT_EFFECT_N_SUCCESS": 1000,
+    "POWER_75PCT_EFFECT_SEED": 3655502933,
+    "POWER_FULL_EFFECT": 1.0,
+    "POWER_FULL_EFFECT_95CI": [
+      0.996173241514445,
+      1.0
+    ],
+    "POWER_FULL_EFFECT_MEETS_BAR": true,
+    "POWER_FULL_EFFECT_N_SUCCESS": 1000,
+    "POWER_FULL_EFFECT_SEED": 2374261130,
+    "POWER_SEED": 20260930171,
+    "PRACTICAL_PASS_RATE_50PCT_95CI": [
+      0.0021375355273244596,
+      0.011650955373375113
+    ],
+    "PRACTICAL_PASS_RATE_50PCT_INFORMATIONAL": 0.005,
+    "PRACTICAL_PASS_RATE_75PCT_95CI": [
+      0.781383383844143,
+      0.8302669864457263
+    ],
+    "PRACTICAL_PASS_RATE_75PCT_INFORMATIONAL": 0.807,
+    "PRACTICAL_PASS_RATE_FULL_95CI": [
+      0.996173241514445,
+      1.0
+    ],
+    "PRACTICAL_PASS_RATE_FULL_INFORMATIONAL": 1.0,
+    "PRACTICAL_THRESHOLD": 0.05,
+    "PRACTICAL_THRESHOLD_ROLE": "INFORMATIONAL_NOT_SUBSTITUTED_FOR_PRIMARY_BAR",
+    "PRIMARY_POWER_BAR": 0.8,
+    "PRIMARY_POWER_GATE": "STATISTICAL_MU_RULE_GT_CONTROL_P95",
+    "TEMPORAL_GATE": "NOT_SCORED",
+    "TEMPORAL_NOTE": "Frozen D7 temporal gate counts positive yearly deltas on Binance years 2020-2024. Those years are not this surface. No BitMEX temporal rule is invented in this unit."
+  },
+  "PRIMARY_BLOCKERS": [
+    "Exchangeable year x RV_BUCKET rate-matched Monte Carlo does not preserve overlapping 720-hour dependence. No replacement estimator is defined in this unit."
+  ],
+  "QUALITY": {
+    "duplicate_timestamp_count": 0,
+    "first_open_time": "2016-05-13T11:55:00.000Z",
+    "last_open_time": "2019-12-31T23:55:00.000Z",
+    "missing_buckets": 288,
+    "missing_runs": [
+      {
+        "first_missing_bucket_open": "2016-12-06T23:55:00.000Z",
+        "half_open_interval_open_time": "[2016-12-06T23:55:00.000Z, 2016-12-07T23:55:00.000Z)",
+        "last_missing_bucket_open": "2016-12-07T23:50:00.000Z",
+        "missing_buckets": 288
+      }
+    ],
+    "monotonic": true,
+    "no_fill": true,
+    "no_forward_fill": true,
+    "no_interpolation": true,
+    "non_monotonic_steps": 0,
+    "null_counts": {
+      "close": 0,
+      "foreignNotional": 0,
+      "high": 0,
+      "low": 0,
+      "open": 0
+    },
+    "row_count": 382033
+  },
+  "SELECTOR_DIGEST": "88b6e9571e26c0037ee14522249f21ec7f0d46261982dcb5e5bb0964cd396cc6",
+  "SELECTOR_N": 3438,
+  "STATE_N": 3446,
+  "STATE_N_BY_YEAR": {
+    "2016": 430,
+    "2017": 1209,
+    "2018": 875,
+    "2019": 932
+  },
+  "STATE_N_BY_YEAR_RV_BUCKET": {
+    "2016:0": 83,
+    "2016:1": 145,
+    "2016:2": 120,
+    "2016:3": 82,
+    "2017:0": 24,
+    "2017:1": 147,
+    "2017:2": 341,
+    "2017:3": 697,
+    "2018:0": 2,
+    "2018:1": 41,
+    "2018:2": 236,
+    "2018:3": 596,
+    "2019:0": 7,
+    "2019:1": 124,
+    "2019:2": 319,
+    "2019:3": 482
+  },
+  "TARGET_STRUCTURALLY_ELIGIBLE_ROWS": 30354,
+  "UNIT": "D7_BITMEX_SUPPORT_AND_POWER_V0",
+  "VALID_IMPACT_ROWS": 31075
+}
