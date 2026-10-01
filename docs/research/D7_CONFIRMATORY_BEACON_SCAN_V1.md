@@ -58,3 +58,31 @@ NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
 ```
 
 A later invocation, if authorized, begins at the chronological successor of `2/1965225`. This invocation does not retry that 404 and does not inspect any later pulse.
+
+## Resume at the successor of 2/1965225
+
+Same scan identity `D7_CONFIRMATORY_BEACON_SCAN_V1`, invocation 2. The first 41 ledger rows are unchanged. The retry fetched the chronological successor of `2/1965225` again. That pulse is `2/1965226` at `2026-10-01T07:52:00.000Z`. It was not treated as invalid because of the earlier HTTP 404.
+
+| Fact | Value |
+| --- | --- |
+| Retried first | chronological successor of `2/1965225`, fetched as `2/1965226` |
+| Resume range | `2/1965226` at `2026-10-01T07:52:00.000Z` through `2/1965233` at `2026-10-01T07:59:00.000Z` |
+| Resume examined | 8 |
+| Resume `VALID` | 0 |
+| Resume `INVALID` | 8 |
+| Resume incomplete | 1, HTTP 404 on the successor of `2/1965233` |
+| Resume continuity | `PASS` on all 8 edges |
+
+Each new row is `PULSE_{pulseIndex}_OBJECTIVELY_INVALID`, modulus 256 bytes, signature 512 bytes, signature verification `FAIL`, output integrity `PASS`, on the same named certificate. The cumulative ledger is 49 rows, `2/1965185` through `2/1965233`, SHA-256 `64a6483dacbbb731554b27e155c73711e003345257f9354615bda98998662db3`. The first appended raw SHA-256 is `20e30f72face49eaeffc860715de47ddcb69f7be5ab465a2ecf93828b664a17c`. The cursor raw is `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1_CURSOR.json`, SHA-256 `04256546012ac5db352306c3f742784c6ff8687013b944d8518aa0bc298c0e26`.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965233
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965233
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+The verifier blob remains `bed8a2aa33599b7ce4c0915eb410ad7413747b1d`. No seed was generated and the BitMEX target was not opened.
