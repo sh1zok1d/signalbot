@@ -148,11 +148,17 @@ def detect(run: Path, surfaces=tuple(SURFACES)) -> dict:
     tau, k, dms = sel["TAU_MS"], sel["K"], sel["MIN_DURATION_MIN"] * MIN
     available = {p.stem.replace("prints_", "") for p in (run / "months").glob("prints_*.parquet")}
     summary = {"SELECTED": sel, "SURFACES": {}}
+    cache = run / "detect_cache"
+    cache.mkdir(exist_ok=True)
     for surface in surfaces:
         episodes = []
         for ym in _surface_months(surface):
             if ym not in available:
                 summary.setdefault("MISSING_MONTHS", []).append(ym)
+                continue
+            done = cache / f"{surface}_{ym}_tau{tau}_k{k}_d{sel['MIN_DURATION_MIN']}.json"
+            if done.exists():                      # resume after an interrupted run
+                episodes.extend(json.loads(done.read_text()))
                 continue
             m0 = int(pd.Timestamp(ym + "-01", tz="UTC").value // 1_000_000)
             m1 = int((pd.Timestamp(ym + "-01", tz="UTC") + pd.offsets.MonthBegin(1)).value // 1_000_000)
@@ -170,11 +176,16 @@ def detect(run: Path, surfaces=tuple(SURFACES)) -> dict:
             pr = {c: np.concatenate([p_[c] for p_ in parts]) for c in parts[0]}
             chains = det.build_all(pr, tau)
             eps = det.merge_episodes(det.qualified(chains, k, dms))
+            month_eps = []
             for e in eps:
                 if m0 <= e["T"] < m1:
                     e["month"] = ym
-                    episodes.append(e)
-            print(surface, ym, len([e for e in eps if m0 <= e["T"] < m1]), flush=True)
+                    month_eps.append(e)
+            tmp = done.with_suffix(".tmp")
+            _write(tmp, month_eps)
+            tmp.replace(done)                      # atomic: a cut write never looks done
+            episodes.extend(month_eps)
+            print(surface, ym, len(month_eps), flush=True)
         episodes.sort(key=lambda e: e["T"])
         pd.DataFrame(episodes).to_parquet(run / f"episodes_{surface}.parquet", index=False)
         summary["SURFACES"][surface] = {"N_DETECTED": len(episodes)}
