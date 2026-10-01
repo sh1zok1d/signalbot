@@ -193,6 +193,24 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "Это закрытая частная бета. Доступ только по приглашению.",
         "en": "This is a closed private beta. Access is by invitation only.",
     },
+    "waitlist_offer": {
+        "ru": "Бот в закрытой бете. / The bot is in closed beta.",
+        "en": "Бот в закрытой бете. / The bot is in closed beta.",
+    },
+    "btn_request_access": {
+        "ru": "Хочу доступ / Request access",
+        "en": "Хочу доступ / Request access",
+    },
+    "waitlist_consent": {
+        "ru": ("Сохраним ваш Telegram ID, чтобы пригласить вас; удалить: /delete_me. / "
+               "We will keep your Telegram ID so we can invite you; delete: /delete_me."),
+        "en": ("Сохраним ваш Telegram ID, чтобы пригласить вас; удалить: /delete_me. / "
+               "We will keep your Telegram ID so we can invite you; delete: /delete_me."),
+    },
+    "access_granted": {
+        "ru": "Доступ открыт, нажмите /start / Access granted, press /start",
+        "en": "Доступ открыт, нажмите /start / Access granted, press /start",
+    },
     "choose_lang": {
         "ru": "Выберите язык / Choose language",
         "en": "Выберите язык / Choose language",
@@ -216,6 +234,9 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• Мы храним ваш Telegram id и id чата, чтобы отправлять сообщения беты, "
             "а также голоса «полезно / шум» и статус доставки.\n"
             "• Записи рынка и событий не содержат персональных данных.\n"
+            "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
+            "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
+            "/delete_me удаляет их вместе с остальными вашими данными.\n"
             "• /stop приостанавливает все сообщения. /delete_me удаляет ваши данные участника "
             "и исключает вас из беты.\n"
             "• После /stop данные удаляются автоматически через 30 дней.\n"
@@ -227,6 +248,9 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• We store your Telegram user id and chat id to send you beta messages, plus your "
             "Useful/Noise votes and delivery status.\n"
             "• Market/event records contain no personal data.\n"
+            "• We record which commands and buttons you use, and when, and which invite link "
+            "you came from, so we can improve the bot. These records are kept for 120 days. "
+            "/delete_me deletes them with the rest of your data.\n"
             "• /stop pauses all messages. /delete_me deletes your participant data and removes "
             "you from the beta.\n"
             "• After /stop, your data is deleted automatically after 30 days.\n"
@@ -533,8 +557,6 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "≥ — нижняя граница: Binance передаёт не все ликвидации.",
         "en": "≥ — lower bound: Binance does not report every liquidation.",
     },
-    "ref_line": {"ru": "ref {ep} · view {vid}", "en": "ref {ep} · view {vid}"},
-    "ref_view_only": {"ru": "view {vid}", "en": "view {vid}"},
     "h1_head": {"ru": "ПОСЛЕДНИЙ ЧАС · {window} {zone}", "en": "LAST HOUR · {window} {zone}"},
     "h1_price_range": {
         "ru": "Цена {price} · диапазон {range}{ratio}",

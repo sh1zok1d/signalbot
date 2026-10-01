@@ -11,12 +11,15 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional
 
+from .access import invite_link
 from .config import BetaConfig, BetaSwitches, effective_push_enabled
 from .formatter import ForbiddenWordingError, assert_descriptive
 from .health import health_alerts, ingestion_heartbeat, product_status
 
 ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "admin_pause_push",
-                  "admin_resume_push", "admin_broadcast", "admin_health")
+                  "admin_resume_push", "admin_broadcast", "admin_health", "admin_invite_new",
+                  "admin_invites", "admin_invite_revoke", "admin_waitlist", "admin_waitlist_admit",
+                  "admin_stats")
 UNAUTHORIZED_ACTOR = "unauthorized"
 
 
@@ -73,16 +76,39 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
             "open_episodes": [(e.public_id, e.event_type, e.state) for e in st["open_episodes"]]}
 
 
+def parse_invite_new(args: str):
+    """`<max_uses> [days] <label…>`. A second all-digit token is the lifetime in days."""
+    parts = (args or "").split()
+    if len(parts) < 2 or not parts[0].isdigit() or int(parts[0]) <= 0:
+        return None
+    max_uses = int(parts[0])
+    days = None
+    rest = parts[1:]
+    if rest[0].isdigit():
+        days = int(rest[0])
+        if days <= 0:
+            return None
+        rest = rest[1:]
+    label = " ".join(rest).strip()
+    if not label:
+        return None
+    return max_uses, days, label
+
+
 async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_user_id: Optional[int],
-                       actor_user_id: int, command: str, args: str, now: datetime) -> dict:
-    """Returns {'reply': html, 'broadcast': Optional[html], 'authorized': bool}.
-    Refused attempts are audited without the actor's identity."""
+                       actor_user_id: int, command: str, args: str, now: datetime,
+                       bot_username: Optional[str] = None) -> dict:
+    """Returns reply, optional broadcast, optional direct notices, authorized.
+    Refused attempts are audited without the actor's identity. Audit detail never
+    stores a raw Telegram id; the waitlist reply is the owner-only exception."""
     if not is_owner(owner_user_id, actor_user_id):
-        await conn.insert_audit(action=command, authorized=False, actor_fingerprint=UNAUTHORIZED_ACTOR,
+        await conn.insert_audit(action=command if command in ADMIN_COMMANDS else "admin_status",
+                                authorized=False, actor_fingerprint=UNAUTHORIZED_ACTOR,
                                 target_fingerprint=None, result="REFUSED")
-        return {"reply": None, "broadcast": None, "authorized": False}
+        return {"reply": None, "broadcast": None, "direct": None, "authorized": False}
     actor = fingerprint(actor_user_id)
-    target, result, detail, reply, broadcast = None, "OK", {}, "", None
+    target, result, detail, reply, broadcast, direct = None, "OK", {}, "", None, None
+    cap = int(cfg["access"]["max_active_users"])
     if command == "admin_status":
         st = await collect_status(conn, cfg, now)
         users = await conn.user_counts()
@@ -105,8 +131,14 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
             uid = int(args)
             target = fingerprint(uid)
             if command == "admin_add":
-                added = await conn.allowlist_add(uid)
-                reply = "added to allowlist" if added else "already allowlisted"
+                added = await conn.allowlist_with_cap(
+                    uid, max_active_users=cap, owner_user_id=owner_user_id)
+                if added == "OK":
+                    reply = "added to allowlist"
+                elif added == "ALREADY":
+                    reply = "already allowlisted"
+                else:
+                    result, reply = "CAP", "cap reached; not added"
             else:
                 removed = await conn.delete_participant(uid)
                 reply = f"removed ({removed})"
@@ -131,9 +163,66 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                 detail = {"length": len(args)}
             except ForbiddenWordingError:
                 result, reply = "REFUSED_WORDING", "refused: broadcast contains forbidden wording"
+    elif command == "admin_invite_new":
+        parsed = parse_invite_new(args)
+        if parsed is None:
+            result, reply = "INVALID_ARGUMENT", "usage: /admin_invite_new <max_uses> [days] <label>"
+        else:
+            max_uses, days, label = parsed
+            expires = None if days is None else now + timedelta(days=days)
+            code = await conn.create_invite(label=label, max_uses=max_uses, now=now, expires_at=expires)
+            if bot_username:
+                reply = invite_link(bot_username, code)
+            else:
+                reply = f"{code}\nbot username unavailable"
+            detail = {"max_uses": max_uses, "days": days, "label": label, "code": code}
+    elif command == "admin_invites":
+        rows = await conn.list_invites()
+        lines = []
+        for r in rows:
+            exp = r["expires_at"].isoformat() if r["expires_at"] else "none"
+            state = "revoked" if r["revoked_at"] else "active"
+            lines.append(f"{r['code']} {r['label']} {r['used_count']}/{r['max_uses']} expires {exp} {state}")
+        reply = "\n".join(lines) or "no invites"
+        detail = {"count": len(rows)}
+    elif command == "admin_invite_revoke":
+        outcome = await conn.revoke_invite(args.strip(), now)
+        result = outcome if outcome != "OK" else "OK"
+        reply = {"OK": "revoked", "ALREADY": "already revoked", "MISSING": "no such code",
+                 "INVALID": "invalid code"}.get(outcome, outcome)
+        detail = {"result": outcome}
+    elif command == "admin_waitlist":
+        listed = await conn.waitlist_list()
+        lines = [f"waitlist {listed['count']}"]
+        for entry in listed["entries"]:
+            lines.append(f"{entry['telegram_user_id']} {entry['requested_at'].isoformat()}")
+        reply = "\n".join(lines)
+        detail = {"count": listed["count"]}
+    elif command == "admin_waitlist_admit":
+        if not args.isdigit() or int(args) <= 0:
+            result, reply = "INVALID_ARGUMENT", "usage: /admin_waitlist_admit <telegram_user_id>"
+        else:
+            uid = int(args)
+            target = fingerprint(uid)
+            added = await conn.allowlist_with_cap(
+                uid, max_active_users=cap, owner_user_id=owner_user_id)
+            if added == "CAP":
+                result, reply = "CAP", "cap reached; not added"
+            else:
+                await conn.waitlist_remove(uid)
+                from .i18n import t
+                direct = [(uid, t("ru", "access_granted"))]
+                reply = "already allowlisted" if added == "ALREADY" else f"admitted {target}"
+            detail = {"result": added}
+    elif command == "admin_stats":
+        from .usage import build_usage_report, format_usage_report
+        report = build_usage_report(await conn.usage_facts(), now=now, owner_user_id=owner_user_id)
+        reply = format_usage_report(report)
+        detail = {"waitlist": report["waitlist_size"],
+                  "weeks_3_and_4_active": report["since_first_external"]["weeks_3_and_4_active"]}
     else:
         result, reply = "UNKNOWN", "unknown admin command"
     await conn.insert_audit(action=command if command in ADMIN_COMMANDS else "admin_status",
                             authorized=True, actor_fingerprint=actor, target_fingerprint=target,
                             result=result, detail=detail)
-    return {"reply": reply, "broadcast": broadcast, "authorized": True}
+    return {"reply": reply, "broadcast": broadcast, "direct": direct, "authorized": True}

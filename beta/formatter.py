@@ -537,13 +537,6 @@ def _liq_lines(venues_by_side: Mapping[str, Mapping], lang: str) -> tuple:
     return lines, lower
 
 
-def _ref_line(view: Mapping[str, Any], view_id8: str, lang: str) -> str:
-    ep = view.get("active_episode") or view.get("last_event")
-    if ep and ep.get("episode_id"):
-        return t(lang, "ref_line", ep=ep["episode_id"], vid=view_id8)
-    return t(lang, "ref_view_only", vid=view_id8)
-
-
 def format_event_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str = "--------") -> str:
     """Anchor bucket only, from the persisted view. No Now block, no ranks, no versions."""
     ep = view.get("active_episode") or view.get("last_event")

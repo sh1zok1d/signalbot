@@ -490,7 +490,8 @@ def test_bot_unauthorized_admin_join_feedback_delete_me():
         h = BetaBotHandler(BetaStore(pool), CFG, switches=lambda: ON, owner_user_id=OWNER,
                            clock=Clock(B0 + 2 * BUCKET + timedelta(seconds=30)))
         out = await h.handle(_msg(STRANGER, "/start", 1))
-        assert "закрытая частная бета" in out[0].html.lower()
+        assert "закрытой бете" in out[0].html.lower()
+        assert "closed beta" in out[0].html.lower()
         for t in ("beta_users", "beta_allowlist", "beta_feedback", "beta_admin_audit"):
             assert (await _rows(pool, f"SELECT count(*) AS n FROM {t}"))[0]["n"] == 0
         out = await h.handle(_msg(STRANGER, "/admin_add 902", 2))

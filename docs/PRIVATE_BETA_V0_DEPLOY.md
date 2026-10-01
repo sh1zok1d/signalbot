@@ -142,10 +142,13 @@ A DB outage makes every beta command exit with status 2 and report `DB_UNAVAILAB
 
 ## Privacy (personal data)
 
-- **Where personal data lives:** Telegram user and chat ids exist only in `beta_allowlist` and `beta_users`. `beta_notification_deliveries` and `beta_feedback` reference them through `user_pk` only.
-- **What never holds ids:** the tape, episode, transition, outcome, push-decision and audit tables hold no Telegram identifiers. Audit rows store pseudonymous fingerprints only.
+- **Where personal data lives:** Telegram user and chat ids exist in `beta_allowlist` and `beta_users`. `beta_waitlist` stores a Telegram id and `requested_at` only after the person presses the request-access button. `beta_notification_deliveries`, `beta_feedback`, and `beta_user_activity` reference a person through `user_pk` only.
+- **`beta_user_activity`:** one row per command, button, or delivered push (`action`, optional `detail`, `lang`, `at`). No Telegram id, no chat id, no message text. Kept for `telemetry.retention_days` (120), then purged. `/delete_me` deletes the user row and the activity rows cascade.
+- **`beta_invites`:** invite codes and labels. Not user ids. `beta_allowlist.invite_code` and `beta_users.invite_code` remember which code admitted the person. Codes are revoked, not deleted.
+- **Rejected `/start`:** when `BETA_TELEMETRY_SALT` is set, a row is `(utc_day, HMAC-SHA256(salt, telegram id))`. When the salt is unset, the day stores a count only. The raw id is never stored. Purged after `telemetry.rejected_start_retention_days` (30).
+- **What never holds ids:** the tape, episode, transition, outcome, push-decision, `beta_btc_views`, `beta_details_opens`, and audit tables hold no Telegram identifiers. Audit rows store pseudonymous fingerprints only. The owner waitlist view is the exception that shows ids to the owner.
 - **Database backups contain personal data.** Treat backup files and offsite copies accordingly (`deploy/backup.sh`).
 - **`/stop`** pauses messages.
-- **`/delete_me`** deletes the user row. Feedback rows cascade. Delivery rows keep only an anonymous `NULL` user. The allowlist entry is also removed.
+- **`/delete_me`** deletes the user row, the allowlist entry, and the waitlist row. Feedback and activity rows cascade. Delivery rows keep only an anonymous `NULL` user.
 - **Retention:** stopped users are purged automatically after `privacy.stopped_user_retention_days` (30).
 - **Logs:** never contain a raw Telegram id, chat id or token.

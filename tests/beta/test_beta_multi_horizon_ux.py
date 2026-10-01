@@ -471,6 +471,24 @@ class _Conn(_CM):
     async def insert_details_open(self, *, view_pk, tab, lang, opened_at):
         self.opens.append({"view_pk": view_pk, "tab": tab, "lang": lang, "opened_at": opened_at})
 
+    async def record_activity(self, **_kw):
+        return True
+
+    async def record_rejected_start(self, *_a, **_k):
+        return True
+
+    async def redeem_invite(self, *_a, **_k):
+        return "MISSING"
+
+    async def waitlist_contains(self, _uid):
+        return False
+
+    async def waitlist_add(self, *_a, **_k):
+        return True
+
+    async def mark_privacy_notice_seen(self, *_a, **_k):
+        return None
+
 
 class _Store:
     def __init__(self, conn):
@@ -503,7 +521,7 @@ def test_start_and_lang_choice():
 
     async def go():
         stranger = await h.handle(_msg(9, "/start", 1))
-        assert "закрытая частная бета" in stranger[0].html
+        assert "закрытой бете" in stranger[0].html and "closed beta" in stranger[0].html
         assert conn.users == {}
         owner = await h.handle(_msg(1, "/start", 2))
         assert owner[0].buttons == [[("Русский", "pick:ru"), ("English", "pick:en")]]

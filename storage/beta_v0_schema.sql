@@ -6,10 +6,13 @@
 -- DROP TRIGGER IF EXISTS + CREATE TRIGGER (a trigger drop never touches data).
 -- Applied as ONE script inside ONE transaction by Database.init_beta_v0_schema().
 --
--- PRIVACY: Telegram identifiers exist ONLY in beta_allowlist, beta_users (and,
--- indirectly via user_pk, beta_notification_deliveries / beta_feedback). The
--- tape / episode / transition / outcome / push-decision tables contain no
--- personal identifier. Backups of this database contain personal data.
+-- PRIVACY: Telegram identifiers exist ONLY in beta_allowlist, beta_users,
+-- beta_waitlist (after the request button), and indirectly via user_pk in
+-- beta_notification_deliveries / beta_feedback / beta_user_activity. The tape /
+-- episode / transition / outcome / push-decision / activity-action tables
+-- contain no Telegram identifier. Rejected /start rows store a day plus an
+-- HMAC, or a daily count, never a raw id. Backups of this database contain
+-- personal data.
 
 -- ---------------------------------------------------------------------------
 -- append-only guard
@@ -231,7 +234,8 @@ CREATE TABLE IF NOT EXISTS beta_runtime_state (
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS beta_allowlist (
     telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),
-    added_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+    added_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    invite_code       TEXT
 );
 
 CREATE TABLE IF NOT EXISTS beta_users (
@@ -244,6 +248,8 @@ CREATE TABLE IF NOT EXISTS beta_users (
     stopped_at           TIMESTAMPTZ,
     updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
     lang                 TEXT NOT NULL DEFAULT 'ru' CHECK (lang IN ('ru', 'en')),
+    invite_code          TEXT,
+    privacy_notice_version INTEGER NOT NULL DEFAULT 0 CHECK (privacy_notice_version >= 0),
     CONSTRAINT ck_beta_user_stopped CHECK ((status = 'STOPPED') = (stopped_at IS NOT NULL))
 );
 
@@ -293,7 +299,9 @@ CREATE TABLE IF NOT EXISTS beta_admin_audit (
     audit_id            BIGSERIAL PRIMARY KEY,
     action              TEXT NOT NULL CHECK (action IN (
         'admin_status', 'admin_users', 'admin_add', 'admin_remove', 'admin_pause_push',
-        'admin_resume_push', 'admin_broadcast', 'admin_health', 'user_delete_me', 'retention_purge')),
+        'admin_resume_push', 'admin_broadcast', 'admin_health', 'admin_invite_new',
+        'admin_invites', 'admin_invite_revoke', 'admin_waitlist', 'admin_waitlist_admit',
+        'admin_stats', 'user_delete_me', 'retention_purge')),
     authorized          BOOLEAN NOT NULL,
     actor_fingerprint   TEXT NOT NULL,
     target_fingerprint  TEXT,
@@ -377,3 +385,84 @@ CREATE INDEX IF NOT EXISTS ix_beta_details_opens_view ON beta_details_opens (vie
 DROP TRIGGER IF EXISTS trg_beta_details_opens_append_only ON beta_details_opens;
 CREATE TRIGGER trg_beta_details_opens_append_only BEFORE UPDATE OR DELETE ON beta_details_opens
     FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+-- ---------------------------------------------------------------------------
+-- Invite codes, waitlist, per-user activity, rejected /start counts.
+-- Activity and invites are mutable (purge, revoke, used_count). They are not
+-- append-only. Activity cascades when the user row is deleted.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS beta_invites (
+    code         TEXT PRIMARY KEY CHECK (code ~ '^[A-Za-z0-9_-]{12}$'),
+    label        TEXT NOT NULL CHECK (length(btrim(label)) > 0),
+    max_uses     INTEGER NOT NULL CHECK (max_uses > 0),
+    used_count   INTEGER NOT NULL DEFAULT 0 CHECK (used_count >= 0 AND used_count <= max_uses),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at   TIMESTAMPTZ,
+    revoked_at   TIMESTAMPTZ
+);
+
+ALTER TABLE beta_allowlist ADD COLUMN IF NOT EXISTS invite_code TEXT;
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS invite_code TEXT;
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS privacy_notice_version INTEGER NOT NULL DEFAULT 0;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_beta_allowlist_invite_code') THEN
+        ALTER TABLE beta_allowlist ADD CONSTRAINT fk_beta_allowlist_invite_code
+            FOREIGN KEY (invite_code) REFERENCES beta_invites (code);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_beta_users_invite_code') THEN
+        ALTER TABLE beta_users ADD CONSTRAINT fk_beta_users_invite_code
+            FOREIGN KEY (invite_code) REFERENCES beta_invites (code);
+    END IF;
+END $$;
+
+-- Widen the audit action list. The original column check was unnamed.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_admin_audit'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%admin_status%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_admin_audit DROP CONSTRAINT %I', cname);
+    END IF;
+END $$;
+ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK (action IN (
+    'admin_status', 'admin_users', 'admin_add', 'admin_remove', 'admin_pause_push',
+    'admin_resume_push', 'admin_broadcast', 'admin_health', 'admin_invite_new',
+    'admin_invites', 'admin_invite_revoke', 'admin_waitlist', 'admin_waitlist_admit',
+    'admin_stats', 'user_delete_me', 'retention_purge'));
+
+CREATE TABLE IF NOT EXISTS beta_waitlist (
+    telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),
+    requested_at      TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS beta_user_activity (
+    activity_pk  BIGSERIAL PRIMARY KEY,
+    user_pk      BIGINT NOT NULL REFERENCES beta_users (user_pk) ON DELETE CASCADE,
+    action       TEXT NOT NULL CHECK (action IN (
+        'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
+        'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise', 'lang_set',
+        'push_delivered')),
+    detail       TEXT,
+    lang         TEXT CHECK (lang IS NULL OR lang IN ('ru', 'en')),
+    at           TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_beta_user_activity_at ON beta_user_activity (at);
+CREATE INDEX IF NOT EXISTS ix_beta_user_activity_user_at ON beta_user_activity (user_pk, at);
+
+-- Rejected /start: distinct daily HMAC when a salt is configured, otherwise a
+-- count for the day. Neither table stores a raw Telegram id.
+CREATE TABLE IF NOT EXISTS beta_rejected_start_hashes (
+    utc_day    DATE NOT NULL,
+    user_hmac  TEXT NOT NULL CHECK (user_hmac ~ '^[0-9a-f]{64}$'),
+    PRIMARY KEY (utc_day, user_hmac)
+);
+CREATE TABLE IF NOT EXISTS beta_rejected_start_counts (
+    utc_day         DATE PRIMARY KEY,
+    attempt_count   INTEGER NOT NULL CHECK (attempt_count >= 0)
+);
