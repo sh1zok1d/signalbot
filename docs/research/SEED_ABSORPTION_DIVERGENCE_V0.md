@@ -1,6 +1,7 @@
 # Seed — absorption plus regular divergence after a decline (V0)
 
 **Status:** `SEED_RECORDED / NOT_A_CARD / NO_OUTCOME_OPENED`
+**Backlog entry:** `SEED-0001` in `HYPOTHESIS_SEED_BACKLOG.md`
 **Recorded:** 2026-10-01 (UTC timestamp = the commit that adds this file)
 **Origin:** the owner's own discretionary trading rule, used before this research program. It is recorded as stated, without improvements. It is not derived from any Signalbot result.
 

@@ -1,6 +1,7 @@
 # Seed — hidden divergence continuation (V0)
 
 **Status:** `SEED_RECORDED / NOT_A_CARD / NO_OUTCOME_OPENED`
+**Backlog entry:** `SEED-0002` in `HYPOTHESIS_SEED_BACKLOG.md`
 **Recorded:** 2026-10-01. It was first written as §7 of `SEED_ABSORPTION_DIVERGENCE_V0.md` in the same PR, then split out.
 **Origin:** the owner's own discretionary practice, before this research program.
 
