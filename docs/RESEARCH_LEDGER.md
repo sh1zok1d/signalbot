@@ -7050,4 +7050,4 @@ Record: `docs/research/GV0R02_FEASIBILITY_COMPILER_V1_MAPPING.md`.
 Provenance record only. This is the owner's prior discretionary rule: after a pronounced decline, an observable buyback plus bullish divergence in at least 2 of 3 indicator families (RSI 14 and 21, MACD 12/26/9, CVD). The timeframe is a separate axis.
 - It is not a card, nothing is frozen, and no market data was opened.
 - It is close to H02, H03 and H05, which stay closed. This seed is not a rescue of any of them.
-- Record: `docs/research/SEED_ABSORPTION_DIVERGENCE_V0.md`.
+- Records: `docs/research/SEED_ABSORPTION_DIVERGENCE_V0.md` (regular divergence, reversal) and `docs/research/SEED_HIDDEN_DIVERGENCE_CONTINUATION_V0.md` (hidden divergence, continuation). These are two separate seeds.

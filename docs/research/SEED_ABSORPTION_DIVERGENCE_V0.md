@@ -1,4 +1,4 @@
-# Seed — absorption plus indicator divergence after a decline (V0)
+# Seed — absorption plus regular divergence after a decline (V0)
 
 **Status:** `SEED_RECORDED / NOT_A_CARD / NO_OUTCOME_OPENED`
 **Recorded:** 2026-10-01 (UTC timestamp = the commit that adds this file)
@@ -11,6 +11,34 @@ TIED_TO_TWAP_OUTCOME             = false
 CARD_REGISTERED                  = false
 ```
 
+## 0. Known provenance (facts from the owner only)
+
+This is what the owner's practice establishes, without reconstruction. Everything else in this file is interpretation and stays unfrozen.
+
+**Market and timeframes:**
+- BTC and ETH perpetuals;
+- 1h, 4h and 1D.
+
+**Indicators:**
+- RSI 14 and 21; the divergence was usually present on both;
+- MACD with the default preset; the exact parameters are confirmed at design freeze;
+- CVD;
+- rule: at least 2 of 3 families;
+- order-book "green bars" as the sign of strong bid support.
+
+**Usage:**
+- both ordinary and hidden divergences;
+- used from about 2024.
+
+**Trade management:**
+- stop beyond the previous swing high or low, depending on the construction;
+- partial close near the next level, the rest trailed;
+- manual exit when the divergence breaks down.
+
+> **NOT FROZEN:** the exact definition of the bid/ask indicator and its source. "Hyblock bid/ask 0–5% spot" is reconstructed from one screenshot and from memory. It is confirmed by the owner, or replaced, before any design freeze.
+
+> **Evidence levels:** 2023–2024 = retrospective evidence. Future frozen data = prospective confirmation.
+
 ## 1. The rule as the owner used it
 
 **Sequence:**
@@ -18,7 +46,7 @@ CARD_REGISTERED                  = false
 2. Then an observable buyback (absorption) begins. Real buying has to start; a divergence drawn by an indicator alone does not count.
 3. At least 2 of 3 indicator families show bullish divergence against price:
    - **RSI:** periods 14 and 21;
-   - **MACD:** standard 12/26/9;
+   - **MACD:** default preset; exact parameters are confirmed at design freeze;
    - **CVD:** cumulative taker delta.
 
 **Timeframe.** The owner's prior is that a higher timeframe means a larger structural break and a larger or longer subsequent move. This is a separate axis to test, not a claim.
@@ -110,9 +138,9 @@ The answers are appended here, with their date, before any definition is frozen.
 
 ### Owner answers to 7–8 — 2026-10-01 (before any data)
 
-**7. Both.** The owner traded regular and hidden divergences. Hidden divergences are a continuation mechanism, not a reversal one, so they are recorded below as a separate seed (§7) and are not mixed into this one.
+**7. Both.** The owner traded regular and hidden divergences. Hidden divergences are a continuation mechanism, not a reversal one, so they are a separate seed (`SEED_HIDDEN_DIVERGENCE_CONTINUATION_V0.md`) and are never mixed into this one, not even as a flag.
 
-**8. A screenshot of the owner's TradingView layout**, BTCUSDT spot Binance, 15m. Not stored in the repository. It shows Hyblock indicators:
+**8. A screenshot of the owner's TradingView layout** (interpretation, not frozen; see §0), BTCUSDT spot Binance, 15m. Not stored in the repository. It shows Hyblock indicators:
 - `<Hyblock> Bid… 0% 5% Spot Filter1 OR Filter2`: an **order-book bid/ask imbalance within 0–5% of price**, spot. It shows red bars (ask-heavy) during the decline, then green bars (bid-heavy) right after the low. The owner pointed at these green bars as the "buyback bars".
 - `<Hyblock> Volume … 100k–1M Binance Spot`: CVD of large trades.
 - `<Hyblock> Volume … 100–1k Binance Spot`: CVD of small trades.
@@ -159,23 +187,8 @@ The answers are appended here, with their date, before any definition is frozen.
 
 ## 6. Routing
 
-Seed B (§7) follows the same routing.
+The hidden-divergence continuation seed is a separate seed: `SEED_HIDDEN_DIVERGENCE_CONTINUATION_V0.md`.
 
 This seed does not change `NEXT_UNIT`. The TWAP feasibility unit runs first. After it, the owner decides when this seed becomes a card under `HYPOTHESIS_EVALUATION_CONTRACT_V1`, alongside the statement matrix.
 
-Seed B (§7) follows the same routing.
-
-## 7. Seed B — hidden divergence continuation (recorded 2026-10-01)
-
-**Owner practice.**
-- A hidden divergence in the trend direction, with the same indicator families (RSI 14/21, MACD 12/26/9, CVD).
-- Example (bearish): price makes a lower high while the indicator makes a higher high.
-- Stop beyond the previous swing high. Target around the next levels: close 50% there, trail the rest.
-- Exit manually if the divergence breaks.
-- BTC and ETH perps; 1h, 4h, 1D; since 2024.
-
-**Mechanism.** A pullback inside a trend fails to restore momentum, and the trend resumes. This is a continuation claim, a different mechanism from §2's reversal after absorption.
-
-**Proximity:** H04 `TREND_PULLBACK_CONTINUATION` (rejected) is close. The same rules apply as in §3: not a rescue, an exposed-surface label, and time-disjoint confirmation.
-
-**Status.** Not a card, nothing frozen, no data opened.
+The hidden-divergence continuation seed is a separate seed: `SEED_HIDDEN_DIVERGENCE_CONTINUATION_V0.md`.
