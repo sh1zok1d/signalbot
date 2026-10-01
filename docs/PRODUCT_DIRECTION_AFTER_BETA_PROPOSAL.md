@@ -3,6 +3,7 @@
 **Status:** `PROPOSED / DEFERRED_UNTIL_BETA_RESULTS / NO_AUTHORITY`
 **Date:** 2026-10-01
 **Origin:** owner conversation on 2026-10-01. The owner endorsed this direction as the plan to compare against beta evidence. It is not an authorization.
+**Follow-up:** the moat and decision-layer strategy is recorded in `PRODUCT_DIRECTION_V0.md` (2026-10-01). Both are reviewed together at the beta checkpoint.
 
 **Scope of this document:**
 - It changes nothing in `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`: scope, soak gate, rollout, and exit criteria stay as they are.

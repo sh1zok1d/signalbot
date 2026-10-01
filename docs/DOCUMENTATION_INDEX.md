@@ -394,6 +394,12 @@ Before using an operational runbook, compare it with current code/config and run
 - `research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md` carries the label `PROSPECTIVE_PRE_REGISTERED_FORWARD_EVALUATION / OWNER_UNBLINDED`. It is never independent confirmation. Its Q1/Q2 were superseded on 2026-09-28, before any statistic was inspected, because the product will show historical follow-up statistics before the stopping rule (see its amendment).
 - `BETA_HISTORICAL_FOLLOW_UP_V0.md`: foundation for "what happened after previous comparable states?" — `EVENT_COMPARABILITY_V0`, fail-closed display sufficiency, 1h/4h absolute range only, ordinary same-time and volatility-matched baselines, provenance classes. Pure code, not wired into `/btc`, no historical replay.
 - `BETA_BTC_MULTI_HORIZON_UX_V1.md` (**OWNER_DECISIONS_RECORDED / READY_FOR_IMPLEMENTATION**, not implemented): the next `/btc` UX pass and its implementation authority. Main screen with price, `1h` and `24h` lines; Details as Event / 1h / 24h tabs; per-user `ru`/`en` (default `ru`); Kyiv time; per-venue OI numbers; per-venue liquidations (never summed, Binance as a lower bound); time-of-day `×` baselines; "Changes vs previous 24h"; the step plan to the first traders. Detector, rules, tape schema and push are unchanged. `BETA_BTC_MAIN_SCREEN_UX_V1.md` and `BETA_BTC_TEMPORAL_CONTEXT_V0.md` stay authoritative for what runs until an implementing PR updates them.
+- `PRODUCT_DIRECTION_V0.md` (**OWNER_DIRECTION_RECORDED / NO_SCOPE_AUTHORITY**, 2026-10-01): the product decision record.
+  - What is and is not a moat; the main bet is an accumulated evidence base on market states.
+  - The immutable claim ledger, the what-was-known-then record, the research pipeline, and the personal decision history (later).
+  - Moat levels over time, bets with falsification criteria, and a stricter monetization checkpoint.
+  - The formula is situation → evidence → implications → decision context, never BUY/SELL.
+  - It is reviewed at the beta checkpoint and authorizes no scope change.
 - `PRODUCT_DIRECTION_AFTER_BETA_PROPOSAL.md` (**PROPOSED / DEFERRED_UNTIL_BETA_RESULTS / NO_AUTHORITY**): the owner-endorsed product direction to compare against beta evidence at the 4-week checkpoint.
   - Sequence: observe first (unprompted opens, weekly interviews); push alerts as the main lever; an honest "so what?" via historical follow-up; product-framed, time-boxed research; a multi-asset scan after BTC retention; a willingness-to-pay test.
   - Not doing: direction calls, order book.
