@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 import os
+import subprocess
 import time
 import urllib.request
 from datetime import datetime, timezone
@@ -84,6 +85,9 @@ from scripts.research.self_referential_contrast_v1.multipliers import (
 ROOT = Path(__file__).resolve().parents[2]
 ART = Path("/opt/cursor/artifacts/official_d7_confirmatory_v1")
 FREEZE_COMMIT = "5b3e5cdcedd615ae63bc2c2ff8eb804b5485b92b"
+AMENDMENT_COMMIT = "b603f55d7b12492bf813abac1537aa21f85932e4"
+AMENDMENT_TREE = "094f8123a5bf629a6a4ec7ed2991c6b6f1dbe605"
+PRIMARY_RESULT_PATH = ROOT / "docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.json"
 FREEZE_MANIFEST_SHA256 = "2aaa228c40a486f3b7fa208ec62f3c19bb63318a65e8d7d19b8c1e211c751e07"
 ADAPTER_DIGEST = "260dd8f6a30ff48a1cecdb306b4d5bb7c90930d5123095d08b9400234c51b579"
 DECISION_RULE_DIGEST = "39c5a727ee6ac5c6877924670a6acc1520584b312ae6ddf49a206a2656e34751"
@@ -255,6 +259,27 @@ def _select_beacon() -> tuple[dict, bytes, bytes, dict]:
 
 
 def _identity() -> None:
+    if SCHEME != "DETERMINISTIC_FIXED_SEED_V1":
+        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:IDENTITY_MISMATCH")
+    if fixed_seed_digest().hex() != CONFIRMATORY_SEED_DIGEST:
+        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:IDENTITY_MISMATCH")
+    if CONFIRMATORY_SEED_DIGEST != "5d81a9be7f96abab8a92539e2527006cf97340a8f5ca7fe966b8d6293f4ba63e":
+        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:IDENTITY_MISMATCH")
+    tree = subprocess.check_output(
+        ["git", "rev-parse", f"{AMENDMENT_COMMIT}^{{tree}}"],
+        cwd=ROOT,
+        text=True,
+    ).strip()
+    if tree != AMENDMENT_TREE:
+        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:IDENTITY_MISMATCH")
+    ancestor = subprocess.call(
+        ["git", "merge-base", "--is-ancestor", AMENDMENT_COMMIT, "HEAD"],
+        cwd=ROOT,
+    )
+    if ancestor != 0:
+        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:IDENTITY_MISMATCH")
+    if PRIMARY_RESULT_PATH.exists():
+        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:PRIMARY_ALREADY_SEALED")
     if R_CONST != 9999 or R_CONFIRMATORY != 9999:
         raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:IDENTITY_MISMATCH")
     if np.__version__ != NUMPY_VERSION_REQUIRED:
@@ -348,7 +373,7 @@ def _retaining_tail(
     return tail
 
 
-def _open_target(seed: bytes) -> dict[str, object]:
+def _open_target(seed: bytes, epsilon_sampler) -> dict[str, object]:
     source = ROOT / CANONICAL_REL
     before = _sha256_file(source)
     hours = aggregate_completed_hours(load_5m_bars(source))
@@ -407,11 +432,10 @@ def _open_target(seed: bytes) -> dict[str, object]:
         return public
 
     contrast_module._bootstrap_tail = _capture
-    sampler = indexed_epsilon_sampler(seed)
     result = run_primary(
         data,
         replicates=9999,
-        epsilon_sampler=sampler,
+        epsilon_sampler=epsilon_sampler,
         draw_batch_size=64,
         compute_sensitivity=False,
     )
@@ -544,10 +568,18 @@ def main() -> None:
     ART.mkdir(parents=True, exist_ok=True)
     _identity()
     seed = _prepare_deterministic_seed()
-    primary = _open_target(seed)
+    epsilon_sampler = indexed_epsilon_sampler(seed)
+    ART.mkdir(parents=True, exist_ok=True)
+    (ART / "confirmatory_rng_initialized.txt").write_text(
+        "CONFIRMATORY_RNG_GENERATED=true\n" + seed.hex() + "\n",
+        encoding="utf-8",
+    )
+    primary = _open_target(seed, epsilon_sampler)
     primary.update(
         {
             "ADAPTER_DIGEST": ADAPTER_DIGEST,
+            "AMENDMENT_COMMIT": AMENDMENT_COMMIT,
+            "AMENDMENT_TREE": AMENDMENT_TREE,
             "BEACON_FETCHED": False,
             "CONFIRMATORY_FREEZE_COMMIT": FREEZE_COMMIT,
             "CONFIRMATORY_RNG_GENERATED": True,
@@ -556,8 +588,10 @@ def main() -> None:
             "FREEZE_SERVER_TIME": "2026-10-01T06:09:59Z",
             "NUMPY_RECORD_SHA256": NUMPY_RECORD_SHA256,
             "NUMPY_VERSION": NUMPY_VERSION_REQUIRED,
+            "POST_OPEN_UNTHRESHOLDED_DIAGNOSTICS_CANNOT_CHANGE_PRIMARY_LABEL": True,
             "PRIMARY_RESULT_SEALED": True,
             "SEED_SCHEME": SCHEME,
+            "SEED_SOURCE": SCHEME,
             "STATISTICAL_IMPLEMENTATION_DIGEST": IMPLEMENTATION_DIGEST,
             "TARGET_SOURCE_SHA256": SOURCE_SHA,
             "profile_id": PROFILE_ID,
@@ -567,7 +601,7 @@ def main() -> None:
         }
     )
     text = json.dumps(primary, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    out = ROOT / "docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.json"
+    out = PRIMARY_RESULT_PATH
     out.write_bytes(text.encode("utf-8"))
     sealed_hash = hashlib.sha256(out.read_bytes()).hexdigest()
     (ART / "primary_result_sha256.txt").write_text(sealed_hash + "\n", encoding="utf-8")
