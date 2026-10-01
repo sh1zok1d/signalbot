@@ -7,3 +7,5 @@
 # CI already installs requirements-dev.txt, which layers the same
 # pyarrow==17.0.0 pin on top of production requirements.
 pyarrow==17.0.0
+# D7 NIST beacon verifier (scripts/research/d7_nist_beacon_verifier_v1.py).
+cryptography==50.0.2
