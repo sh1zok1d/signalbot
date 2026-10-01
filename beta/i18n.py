@@ -653,6 +653,26 @@ _CATALOG: dict[str, dict[str, str]] = {
     "reason_stale": {"ru": "входы изменились во время оценки", "en": "inputs changed during evaluation"},
     "reason_off": {"ru": "выключено", "en": "switched off"},
     "reason_not_eval": {"ru": "не оценено", "en": "not evaluated"},
+    "d7_main": {
+        "ru": "High impact в прошлый час",
+        "en": "High impact last hour",
+    },
+    "d7_h1_1": {
+        "ru": "High impact {start}–{end} (Киев): цена прошла много относительно объёма торгов.",
+        "en": "High impact {start}–{end} Kyiv: price moved a lot relative to traded volume.",
+    },
+    "d7_h1_2": {
+        "ru": "Исторически следующий час был таким же примерно в 1 из 5 случаев (обычно в 1 из 10).",
+        "en": "Historically, the following hour was also like this about 1 in 5 times (usually 1 in 10).",
+    },
+    "d7_h1_3": {
+        "ru": "Направление цены это не показывает.",
+        "en": "This says nothing about price direction.",
+    },
+    "d7_warmup": {
+        "ru": "Контекст импакта: бот собирает историю",
+        "en": "Impact context: history building",
+    },
     "terms": {
         "ru": (
             "ТЕРМИНЫ\n"
@@ -682,7 +702,10 @@ _CATALOG: dict[str, dict[str, str]] = {
             "н/д — данных нет или они неполные. Это не ноль.\n"
             "× от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней.\n"
             "↑ ↓ — только направление, не сила.\n"
-            "Время — киевское."
+            "Время — киевское.\n"
+            "High impact — за прошлый календарный час цена прошла много относительно объёма торгов. "
+            "Исторически следующий час был таким же примерно в 1 из 5 случаев (обычно 1 из 10). "
+            "Направление цены это не показывает."
         ),
         "en": (
             "TERMS\n"
@@ -712,7 +735,10 @@ _CATALOG: dict[str, dict[str, str]] = {
             "n/a — no data or incomplete data. This is not zero.\n"
             "× usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median.\n"
             "↑ ↓ — direction only, not strength.\n"
-            "Time — Kyiv time."
+            "Time — Kyiv time.\n"
+            "High impact — in the last clock hour the price moved a lot relative to traded volume. "
+            "Historically the following hour was like this about 1 in 5 times (usually 1 in 10). "
+            "It says nothing about price direction."
         ),
     },
 }

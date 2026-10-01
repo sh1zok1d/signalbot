@@ -109,7 +109,7 @@ def product_status(cfg: BetaConfig, *, now: datetime, latest_live: Optional[Mapp
 def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any],
                   detector_watermark: Optional[datetime], latest_live: Optional[Mapping[str, Any]],
                   runtime: Mapping[str, Mapping[str, Any]], delivery_problems: int,
-                  switches) -> list:
+                  switches, d7_newest_available_at: Optional[datetime] = None) -> list:
     """Owner health alerts (keys are stable; no personal data)."""
     h = cfg.section("health")
     alerts = []
@@ -138,4 +138,9 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
         alerts.append({"key": "NOTIFIER_NOT_RUNNING", "detail": {}})
     if delivery_problems >= h["delivery_problem_threshold"]:
         alerts.append({"key": "DELIVERY_FAILURE_SPIKE", "detail": {"count": delivery_problems}})
+    if cfg.section("regime_d7")["enabled"]:
+        from .regime_d7 import HOUR_STATE_STALE_AFTER
+        stale = d7_newest_available_at is None or (now - d7_newest_available_at) > HOUR_STATE_STALE_AFTER
+        if stale:
+            alerts.append({"key": "D7_HOUR_STATE_STALE", "detail": {}})
     return alerts

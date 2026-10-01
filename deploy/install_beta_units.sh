@@ -9,7 +9,8 @@ SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UNITS=(signalbot-beta-detector.service signalbot-beta-detector.timer
        signalbot-beta-outcomes.service signalbot-beta-outcomes.timer
        signalbot-beta-notify.service signalbot-beta-notify.timer
-       signalbot-beta-bot.service)
+       signalbot-beta-bot.service
+       signalbot-beta-d7.service signalbot-beta-d7.timer)
 
 for u in "${UNITS[@]}"; do
   install -m 0644 "${SRC_DIR}/${u}" "/etc/systemd/system/${u}"

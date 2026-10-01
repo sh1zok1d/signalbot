@@ -1,6 +1,6 @@
 # Beta V0.2 — `/btc` multi-horizon UX V1 (Event · 1h · 24h, RU/EN)
 
-**Status:** `PR1_IMPLEMENTED / PR2_IMPLEMENTED / PR3_NOT_STARTED`. Steps 2 and 3 below are done. D7 lines are not implemented. `BETA_BTC_MAIN_SCREEN_UX_V1.md` describes what PR 2 renders.
+**Status:** `PR1_IMPLEMENTED / PR2_IMPLEMENTED / PR3_CODE_DONE`. Steps 2, 3, and 4 below are done in code. The D7 line stays off until the owner sends `/admin_d7_on`. `BETA_BTC_MAIN_SCREEN_UX_V1.md` describes what PR 2 renders.
 **Date:** 2026-10-01
 **Scope:** presentation, read-only context projections, and a per-user language setting for the descriptive private beta (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`).
 
@@ -108,7 +108,7 @@ BTC 112 450 · необычно сейчас
 OI снизился во время падения
 1ч: −0,8% · объём 2,1× · диапазон 1,8× · OI −0,6%
 24ч: −1,9% · объём 1,3× · ОИ +2,1%
-Высокий импакт в прошлый час
+High impact в прошлый час
 Ещё активно · данные 15:10 (Киев)
 [Событие] [1ч] [24ч]
 ```
@@ -198,7 +198,7 @@ Delta: −$84 млн (продавцы)
 Ликвидации лонгов: Binance ≥$8 млн · Bybit $10 млн · OKX $3 млн
 Ликвидации шортов: Binance ≥$1 млн · Bybit $2 млн · OKX $0,4 млн
 Funding сейчас 0,006% (медиана бирж)
-Высокий импакт 14:00–15:00 (Киев): цена прошла много относительно объёма торгов.
+High impact 14:00–15:00 (Киев): цена прошла много относительно объёма торгов.
 Исторически следующий час был таким же примерно в 1 из 5 случаев (обычно в 1 из 10).
 Направление цены это не показывает.
 ≥ — нижняя граница: Binance передаёт не все ликвидации.
@@ -302,7 +302,7 @@ The thresholds are presentation constants in `config/beta_v0.yaml`. They are ver
 | 1 | owner | merge this specification |
 | 2 | done (PR 1, existing data) | language setting and string catalog (§3.1); Kyiv time (§3.2); the tab mechanism and `beta_details_opens`; Event tab; 1h tab without OI; liquidation rules (§7); main screen price and `1h` line; removal of the duplicate "Now" block; Russian forbidden list; update `BETA_BTC_MAIN_SCREEN_UX_V1.md` |
 | 3 | done (PR 2) | OI 1h and 24h via `open_interest` as-of reads (§6.4); 24h tab; `24h` line; "Changes vs previous 24h" (§8); glossary `/terms`; terminology pass; update `BETA_BTC_TEMPORAL_CONTEXT_V0.md` |
-| 4 | coding agent, PR 3 (D7) | everything in `BETA_D7_REGIME_CONTEXT_GATE_V1.md` §§4–5: Binance 1m quote-volume feed, 90-day backfill, state computation, parity tests, display; the gate pointer in `PRIVATE_BETA_V0_RESTART_DECISION.md` |
+| 4 | done (code, PR 3) | everything in `BETA_D7_REGIME_CONTEXT_GATE_V1.md` §§4–5: Binance 1m quote-volume feed, 90-day backfill, state computation, parity tests, display; the gate pointer in `PRIVATE_BETA_V0_RESTART_DECISION.md`. `regime_d7.enabled` is the committed hard allow. The owner shows the line with `/admin_d7_on` after deploy, warm-up of at least 1440 valid hours, and the sanity SQL |
 | 5 | owner on a copy of the production database | pre-beta readiness check. Already recorded 2026-10-01: `OPEN_INTEREST_RETENTION_48H = PASS` (no retention policy; history far beyond 48h); `OPEN_INTEREST_CONTINUITY_48H = PASS` (48h coverage effectively complete; max gap 1 minute on Binance, Bybit and OKX). Still open: D7 backfill ≥ 1440 valid hours; render every main state and every tab in `ru` and `en` on that database |
 | 6 | owner | deploy, then the soak gate of `PRIVATE_BETA_V0_RESTART_DECISION.md` |
 | 7 | owner | invite codes, up to 20 active users; watch unprompted returns, `beta_details_opens` per tab, and feedback |

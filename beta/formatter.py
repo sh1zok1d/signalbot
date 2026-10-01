@@ -416,6 +416,9 @@ def format_btc(cfg, view: Mapping[str, Any], lang: str = "en") -> str:
         day = _day_line(view, lang)
         if day:
             lines.append(day)
+        d7 = _d7_main_line(view, lang)
+        if d7:
+            lines.append(d7)
     clock = _clock_of(view)
     if market_ok and state == t(lang, "title_calm") and shown is None:
         status_bit = t(lang, "notable_none", span=_retention_phrase(cfg, lang))
@@ -650,8 +653,25 @@ def _changes_lines(block: Mapping[str, Any], lang: str) -> list:
     return lines
 
 
+def _d7_main_line(view: Mapping[str, Any], lang: str) -> Optional[str]:
+    regime = view.get("regime") or {}
+    if not regime.get("shown"):
+        return None
+    return t(lang, "d7_main")
+
+
+def _d7_tab_lines(view: Mapping[str, Any], lang: str) -> list:
+    """The three D7 lines from the decision stored on the view. Not recomputed."""
+    regime = view.get("regime") or {}
+    if not regime.get("shown"):
+        return []
+    start = fmt_kyiv_hm(_dt(regime["hour_start"]))
+    end = fmt_kyiv_hm(_dt(regime["hour_end"]))
+    return [t(lang, "d7_h1_1", start=start, end=end), t(lang, "d7_h1_2"), t(lang, "d7_h1_3")]
+
+
 def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str = "--------") -> str:
-    """1h tab from the persisted horizons block. No D7 lines in this pass."""
+    """1h tab from the persisted horizons block. D7 lines only when the view says shown."""
     block = (view.get("horizons") or {}).get("1h")
     if block and block.get("window_start") and block.get("window_end"):
         window = f"{fmt_kyiv_hm(_dt(block['window_start']))}–{fmt_kyiv_hm(_dt(block['window_end']))}"
@@ -684,6 +704,7 @@ def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str 
         funding = block.get("funding_rate")
         lines.append(t(lang, "funding_na", na=na(lang)) if funding is None
                      else t(lang, "funding_now", rate=fmt_funding(funding, lang)))
+    lines.extend(_d7_tab_lines(view, lang))
     if lower:
         lines.append(t(lang, "liq_footnote"))
     lines.append(t(lang, "terms_footer"))
@@ -934,6 +955,9 @@ def format_readiness_details(cfg, rd: Mapping[str, Any], lang: str = "en") -> st
                 lines.append("  " + t(lang, "ready_venue", ex=venue_name(ex), state=t(lang, _READY_KEYS[v["state"]]),
                                       reason=reason, tier=v["tier"] or na(lang), span=f"{v['span_days']:.1f}"))
     lines.append("\n" + t(lang, "ready_footer", ver=_e(rd["readiness_version"])))
+    impact = rd.get("impact_context") or {}
+    if impact and not impact.get("warmup_complete"):
+        lines.append(t(lang, "d7_warmup"))
     lines.append("\n" + t(lang, "disclaimer"))
     return _ok("\n".join(lines), lang)
 

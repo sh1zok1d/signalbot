@@ -1,0 +1,15 @@
+[Unit]
+Description=Run Signalbot private beta V0.2 D7 hour state at HH:01 UTC
+Documentation=file:/opt/signalbot/docs/PRIVATE_BETA_V0_DEPLOY.md
+
+[Timer]
+OnCalendar=*-*-* *:01:00 UTC
+AccuracySec=1s
+RandomizedDelaySec=0
+# One current invocation after downtime; the job itself pages forward from the
+# last stored bar, so a missed hour is caught up on the next start.
+Persistent=true
+Unit=signalbot-beta-d7.service
+
+[Install]
+WantedBy=timers.target

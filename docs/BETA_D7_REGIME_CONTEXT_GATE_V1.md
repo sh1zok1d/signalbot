@@ -1,7 +1,9 @@
 # Beta — D7 regime-context promotion gate V1
 
-**Status:** `OWNER_APPROVED_IN_PRINCIPLE / DECISIONS_RECORDED / NOT_ACTIVE_UNTIL_PRECONDITIONS` (§8)
+**Status:** `IMPLEMENTED / HARD ALLOW ON / OWNER STATE DEFAULT OFF`
 **Date:** 2026-10-01
+
+The code for §§4–5 is in place. `regime_d7.enabled` is the committed hard allow (`true`). The line stays off until the owner sends `/admin_d7_on` after deploy, after warm-up of at least 1440 valid hours, and after the sanity SQL in `docs/PRIVATE_BETA_V0_DEPLOY.md`. `docs/DOCUMENTATION_INDEX.md` stays unmarked while the owner state is off.
 
 **Owner decision (2026-10-01):** D7 is used in `/btc` as market-regime context. It is not a trade signal and not a price forecast. The owner delegated the detailed choices; they are recorded in §9.
 
@@ -44,11 +46,11 @@ Screen placement is specified in `BETA_BTC_MULTI_HORIZON_UX_V1.md` §§4, 5.2.
 **Exact strings.** `HH` is a clock hour rendered in Kyiv time, per `BETA_BTC_MULTI_HORIZON_UX_V1.md` §3.2.
 
 Main screen:
-- `ru`: `Высокий импакт в прошлый час`
+- `ru`: `High impact в прошлый час`
 - `en`: `High impact last hour`
 
 1h tab, line 1:
-- `ru`: `Высокий импакт HH:00–HH:00 (Киев): цена прошла много относительно объёма торгов.`
+- `ru`: `High impact HH:00–HH:00 (Киев): цена прошла много относительно объёма торгов.`
 - `en`: `High impact HH:00–HH:00 Kyiv: price moved a lot relative to traded volume.`
 
 1h tab, line 2:
@@ -108,6 +110,7 @@ Main screen:
 ## 5. Display rules
 
 **Shown only when all of these hold:**
+- `regime_d7.enabled` is true and the durable owner state is on (`/admin_d7_on`; a missing row is off);
 - the most recent completed clock hour H is complete;
 - `state(H) = True`;
 - warm-up is complete;
@@ -120,7 +123,7 @@ Main screen:
 
 **Persistence:** stored in the `/btc` view payload under `regime` (hour bounds, state, `available_at`, version digest).
 
-**Readiness:** if warm-up is incomplete, the Readiness view says `Контекст импакта: накопление истории` / `Impact context: history building`.
+**Readiness:** if warm-up is incomplete, the Readiness view says `Контекст импакта: бот собирает историю` / `Impact context: history building`.
 
 ## 6. No live evaluation on protected data
 
@@ -143,7 +146,7 @@ None. D7 never triggers or changes a notification.
 | Topic | Decision | By |
 |---|---|---|
 | Use D7 in `/btc` | yes, as regime context only | owner |
-| Label | "high impact" / «высокий импакт», not "thin market" | delegated |
+| Label | "High impact" in both languages (owner string amendment: the Russian UI keeps the English term), not "thin market" | owner |
 | Numbers | fixed 1 in 5 vs 1 in 10, from Binance discovery | delegated |
 | Data source | beta-owned Binance 1m feed with quote volume, hourly job, 90-day backfill | delegated |
 | Main-screen line | yes, one line, only while active | delegated |

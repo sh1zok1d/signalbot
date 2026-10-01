@@ -78,7 +78,8 @@ def test_disabled_committed_config_makes_every_write_command_a_noop():
     class NoDb:            # any DB access would fail the test
         def __getattr__(self, name):
             raise AssertionError(f"DB touched: {name}")
-    for flag in ("--beta-once", "--beta-bootstrap", "--beta-outcomes-once", "--beta-notify-once"):
+    for flag in ("--beta-once", "--beta-bootstrap", "--beta-outcomes-once", "--beta-notify-once",
+                 "--beta-d7-once", "--beta-d7-backfill"):
         for env in ({}, {"BETA_ENABLED": ""}, {"BETA_ENABLED": "0", "BETA_PUSH_ENABLED": "1"}):
             rep = run(run_beta_cli_command(main.parse_args([flag, "--beta-json"]), db=NoDb(), env=env))
             assert rep["status"] == "DISABLED" and rep["switches"]["BETA_ENABLED"] is False

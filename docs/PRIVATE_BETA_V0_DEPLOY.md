@@ -10,11 +10,89 @@ Authority: `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`. The systemd artifacts are
 | `signalbot-beta-outcomes.service` + `.timer` | every 5m at :50 s (offset 2m) | `main.py --beta-outcomes-once --beta-json` |
 | `signalbot-beta-notify.service` + `.timer` | every minute at :40 s | `main.py --beta-notify-once --beta-json` |
 | `signalbot-beta-bot.service` | long-running (Restart=on-failure) | `python -m runtime.beta_bot` |
+| `signalbot-beta-d7.service` + `.timer` | every hour at HH:01 UTC | `main.py --beta-d7-once --beta-json` |
 
 - `deploy/install_beta_units.sh` copies the units and runs `daemon-reload`. It **never enables or starts** anything.
 - `deploy/check_beta_units.sh` is read-only.
 - The detector and outcomes units wait for PostgreSQL first (`ExecStartPre=deploy/wait_for_infra.py --postgres-only --timeout 60`, the same readiness gate `signalbot.service` uses, minus Redis).
 - The bounded history bootstrap is run manually with `python -m runtime.beta_bootstrap_runner [--max-iterations N]` (default 40, cap 100; 30 days need 31 batches of `bootstrap.max_buckets_per_run` = 288). Each iteration runs the unchanged `main.py --beta-bootstrap --beta-json` and prints progress. The runner stops on the first error, and fails if the bootstrap is still incomplete at the bound. After completion it runs one extra bootstrap as an idempotency check, which may only write buckets that closed in the meantime. Exit codes: `0` verified, `2` bootstrap error, `3` iteration limit, `4` verification failed.
+
+## D7 hour state
+
+The D7 feed is display-only. It does not enter the rules digest, does not open an episode, and does not change a push.
+
+The line is shown only when both switches are on, the same shape as push:
+
+- **Hard allow:** committed `regime_d7.enabled: true` in `config/beta_v0.yaml`. Turning this false in a future config hides the line even if the owner state is on. Activation does not edit this file on the VPS.
+- **Owner state:** `/admin_d7_on` and `/admin_d7_off`. Both are audited in `beta_admin_audit`. The durable key is `beta_runtime_state.state_key = 'admin_d7_enabled'`. A missing row is off. `/admin_d7_on` cannot exceed the hard allow.
+
+- **Timer:** `signalbot-beta-d7.timer` runs `main.py --beta-d7-once` at HH:01 UTC. Each run fetches closed Binance USD-M BTCUSDT 1m bars (`closeTime < now`) from the last stored bar, and at least the last 120 bars, paging at 1500. It then inserts hour states that do not exist yet. A missed run catches up on the next start.
+- **Backfill:** `python main.py --beta-d7-backfill --days 90 --beta-json`. Paged at 1500 bars with a short pause between pages. Resumable and idempotent. 90 days covers the 1440-hour warm-up with room for gaps.
+- **Health:** while `regime_d7.enabled` is true, `--beta-health` raises `D7_HOUR_STATE_STALE` when there is no hour state or the newest state's `available_at` (the end of that clock hour) is older than 70 minutes. With the hard allow false the alert is absent. The alert follows the hard allow, so it can fire before `/admin_d7_on`. It does not show the line.
+
+**Enable, without editing files on the VPS:**
+
+1. Deploy the commit that already has `regime_d7.enabled: true`. Schema init widens `beta_runtime_state` so `admin_d7_enabled` is allowed. No owner row is inserted.
+2. Install and start `signalbot-beta-d7.timer`.
+3. Run `python main.py --beta-d7-backfill --days 90 --beta-json`.
+4. Run the sanity SQL below. Leave the line off until every check is sane.
+5. From the owner account, send `/admin_d7_on`. The next `/btc` can show the line when the display rules also hold (complete last hour, state true, warm-up, computed on time, view not stale or degraded).
+6. `/admin_d7_off` hides the line again. No restart and no config edit.
+
+**Sanity SQL** (read-only). `valid_hours` counts completed hours with a return. `share_true` is the share of decided hours whose stored state is true. That is the p90 threshold on hours already labeled. It is not a count of whether the next hour was also high impact.
+
+```sql
+SELECT count(*) FILTER (WHERE complete AND ret IS NOT NULL) AS valid_hours,
+       count(*) FILTER (WHERE state IS NOT NULL) AS decided_hours,
+       count(*) FILTER (WHERE state) AS state_true,
+       count(*) FILTER (WHERE state)::float
+           / NULLIF(count(*) FILTER (WHERE state IS NOT NULL), 0) AS share_true
+FROM beta_d7_hour_states;
+```
+
+Expect `valid_hours >= 1440` and `share_true` near 0.10.
+
+```sql
+SELECT hour_start, available_at, now() - available_at AS age
+FROM beta_d7_hour_states
+ORDER BY hour_start DESC
+LIMIT 1;
+```
+
+Expect `age` under 70 minutes.
+
+Stage-1 `klines_1m.ts` is the Binance 1m open time, the same instant as `beta_d7_klines_1m.open_time`. The current open minute is excluded.
+
+```sql
+WITH bounds AS (
+    SELECT now() - interval '24 hours' AS start_ts,
+           date_bin('minute', now(), TIMESTAMPTZ '2000-01-01 00:00:00+00') AS open_minute
+),
+d7 AS (
+    SELECT d.open_time, d.close
+    FROM beta_d7_klines_1m d
+    CROSS JOIN bounds b
+    WHERE d.open_time >= b.start_ts AND d.open_time < b.open_minute
+),
+stage1 AS (
+    SELECT k.ts, k.close
+    FROM klines_1m k
+    CROSS JOIN bounds b
+    WHERE k.exchange = 'binance' AND k.symbol = 'BTCUSDT'
+      AND k.ts >= b.start_ts AND k.ts < b.open_minute
+)
+SELECT (SELECT count(*) FROM d7) AS d7_bars,
+       (SELECT count(*) FROM stage1) AS stage1_bars,
+       (SELECT count(*) FROM d7 JOIN stage1 s ON s.ts = d7.open_time) AS compared,
+       (SELECT count(*) FROM d7 JOIN stage1 s ON s.ts = d7.open_time
+         WHERE d7.close IS DISTINCT FROM s.close) AS close_mismatches,
+       (SELECT count(*) FROM d7 LEFT JOIN stage1 s ON s.ts = d7.open_time
+         WHERE s.ts IS NULL) AS d7_only,
+       (SELECT count(*) FROM stage1 s LEFT JOIN d7 ON d7.open_time = s.ts
+         WHERE d7.open_time IS NULL) AS stage1_only;
+```
+
+Expect `close_mismatches = 0`, `d7_only = 0`, and `stage1_only = 0`.
 
 ## Temporal context (`/btc`)
 
@@ -105,6 +183,7 @@ Do not query `beta_episode_outcomes`. Do not compute forward returns, PnL, MAE, 
   - Push: committed `push_enabled` AND explicit env true. The env alone can never enable push.
 - **Required even for beta-only runs:** the database variables and `REDIS_URL`. The shared secrets loader validates `REDIS_URL` for every `main.py` command, although the beta never connects to Redis.
 - **Admin push state:** `/admin_pause_push` and `/admin_resume_push` change a durable admin push state. Effective push = hard push switch AND admin state, so an admin command can never exceed the hard switch.
+- **Admin D7 state:** `/admin_d7_on` and `/admin_d7_off` change a durable owner state that defaults off. The D7 line is shown only when that state is on and `regime_d7.enabled` is true. See the D7 section for the sanity SQL.
 - **Push OFF scope:** turning push off does not stop the tape, the detector or outcome tracking.
 
 ## Soak (7 days, push disabled)
@@ -137,6 +216,7 @@ The gate criteria are listed in the restart decision.
 - `BOT_RECEIVER_DOWN`
 - `NOTIFIER_NOT_RUNNING`
 - `DELIVERY_FAILURE_SPIKE`
+- `D7_HOUR_STATE_STALE` (only while `regime_d7.enabled` is true, and only when the newest hour state's `available_at` is older than 70 minutes; independent of `/admin_d7_on`)
 
 A DB outage makes every beta command exit with status 2 and report `DB_UNAVAILABLE`. systemd records that as a failed unit.
 

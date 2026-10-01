@@ -224,10 +224,27 @@ CREATE TABLE IF NOT EXISTS beta_runtime_health (
 );
 
 CREATE TABLE IF NOT EXISTS beta_runtime_state (
-    state_key   TEXT PRIMARY KEY CHECK (state_key IN ('admin_push_enabled')),
+    state_key   TEXT PRIMARY KEY CHECK (state_key IN ('admin_push_enabled', 'admin_d7_enabled')),
     bool_value  BOOLEAN NOT NULL,
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Widen the key check on databases created before admin_d7_enabled existed.
+-- No row is inserted: a missing admin_d7_enabled means the D7 line is off.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_runtime_state'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%admin_push_enabled%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_runtime_state DROP CONSTRAINT %I', cname);
+    END IF;
+END $$;
+ALTER TABLE beta_runtime_state ADD CONSTRAINT beta_runtime_state_state_key_check
+    CHECK (state_key IN ('admin_push_enabled', 'admin_d7_enabled'));
 
 -- ---------------------------------------------------------------------------
 -- Participants (PERSONAL DATA).
@@ -299,9 +316,10 @@ CREATE TABLE IF NOT EXISTS beta_admin_audit (
     audit_id            BIGSERIAL PRIMARY KEY,
     action              TEXT NOT NULL CHECK (action IN (
         'admin_status', 'admin_users', 'admin_add', 'admin_remove', 'admin_pause_push',
-        'admin_resume_push', 'admin_broadcast', 'admin_health', 'admin_invite_new',
-        'admin_invites', 'admin_invite_revoke', 'admin_waitlist', 'admin_waitlist_admit',
-        'admin_stats', 'user_delete_me', 'retention_purge')),
+        'admin_resume_push', 'admin_d7_on', 'admin_d7_off', 'admin_broadcast',
+        'admin_health', 'admin_invite_new', 'admin_invites', 'admin_invite_revoke',
+        'admin_waitlist', 'admin_waitlist_admit', 'admin_stats', 'user_delete_me',
+        'retention_purge')),
     authorized          BOOLEAN NOT NULL,
     actor_fingerprint   TEXT NOT NULL,
     target_fingerprint  TEXT,
@@ -432,9 +450,9 @@ BEGIN
 END $$;
 ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK (action IN (
     'admin_status', 'admin_users', 'admin_add', 'admin_remove', 'admin_pause_push',
-    'admin_resume_push', 'admin_broadcast', 'admin_health', 'admin_invite_new',
-    'admin_invites', 'admin_invite_revoke', 'admin_waitlist', 'admin_waitlist_admit',
-    'admin_stats', 'user_delete_me', 'retention_purge'));
+    'admin_resume_push', 'admin_d7_on', 'admin_d7_off', 'admin_broadcast', 'admin_health',
+    'admin_invite_new', 'admin_invites', 'admin_invite_revoke', 'admin_waitlist',
+    'admin_waitlist_admit', 'admin_stats', 'user_delete_me', 'retention_purge'));
 
 CREATE TABLE IF NOT EXISTS beta_waitlist (
     telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),
@@ -465,4 +483,31 @@ CREATE TABLE IF NOT EXISTS beta_rejected_start_hashes (
 CREATE TABLE IF NOT EXISTS beta_rejected_start_counts (
     utc_day         DATE PRIMARY KEY,
     attempt_count   INTEGER NOT NULL CHECK (attempt_count >= 0)
+);
+
+-- D7 display feed. Binance USD-M BTCUSDT 1m bars and the hour state derived
+-- from them. Display inputs only: no outcome, hit rate, or next-hour statistic.
+CREATE TABLE IF NOT EXISTS beta_d7_klines_1m (
+    open_time           TIMESTAMPTZ PRIMARY KEY,
+    open                DOUBLE PRECISION NOT NULL,
+    high                DOUBLE PRECISION NOT NULL,
+    low                 DOUBLE PRECISION NOT NULL,
+    close               DOUBLE PRECISION NOT NULL,
+    quote_asset_volume  DOUBLE PRECISION NOT NULL,
+    close_time          TIMESTAMPTZ NOT NULL,
+    fetched_at          TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS beta_d7_hour_states (
+    hour_start          TIMESTAMPTZ PRIMARY KEY,
+    complete            BOOLEAN NOT NULL,
+    ret                 DOUBLE PRECISION,
+    quote_volume_1h     DOUBLE PRECISION,
+    qrel                DOUBLE PRECISION,
+    impact              DOUBLE PRECISION,
+    p90                 DOUBLE PRECISION,
+    state               BOOLEAN,
+    available_at        TIMESTAMPTZ NOT NULL,
+    computed_at         TIMESTAMPTZ NOT NULL,
+    definition_digest   TEXT NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$')
 );
