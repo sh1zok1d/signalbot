@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import socket
+import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -27,6 +28,10 @@ from scripts.research.d7_nist_beacon_verifier_v1 import (
 
 ROOT = Path(__file__).resolve().parents[2]
 PREDECESSOR_PATH = ROOT / "docs/research/D7_CONFIRMATORY_BEACON_PULSE_V1.json"
+LEDGER_PATH = ROOT / "docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.jsonl"
+SUMMARY_PATH = ROOT / "docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.json"
+CURSOR_PATH = ROOT / "docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1_CURSOR.json"
+SCAN_IDENTITY = "D7_CONFIRMATORY_BEACON_SCAN_V1"
 VERIFIER_PATH = ROOT / "scripts/research/d7_nist_beacon_verifier_v1.py"
 VERIFIER_GIT_BLOB = "bed8a2aa33599b7ce4c0915eb410ad7413747b1d"
 VERIFIER_BLOB = VERIFIER_GIT_BLOB
@@ -302,6 +307,146 @@ def scan(
     }
 
 
+def parse_ledger(text: str) -> list[dict[str, object]]:
+    rows = [json.loads(line) for line in text.splitlines() if line]
+    if [row["sequence"] for row in rows] != list(range(1, len(rows) + 1)):
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:LEDGER_SEQUENCE")
+    return rows
+
+
+def bind_resume_cursor(
+    summary: Mapping[str, object],
+    rows: list[dict[str, object]],
+    cursor_raw: bytes,
+) -> dict:
+    """Bind the saved cursor. The unclassified successor is fetched next."""
+    if not rows:
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:RESUME_CURSOR")
+    for flag in (
+        "CONFIRMATORY_RNG_GENERATED",
+        "D7_BITMEX_PRIMARY_TARGET_OPENED",
+        "D7_PRIMARY_EFFECT_COMPUTED",
+    ):
+        if summary.get(flag) is not False:
+            raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:SAFETY_FLAG")
+    if summary.get("SELECTED_CONFIRMATORY_BEACON") != "NONE":
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:ALREADY_SELECTED")
+    last = rows[-1]
+    if last["final_status"] != "INVALID":
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:RESUME_CURSOR")
+    identity = f"{last['chainIndex']}/{last['pulseIndex']}"
+    if summary.get("LAST_COMPLETELY_CLASSIFIED_CANDIDATE") != identity:
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:RESUME_CURSOR")
+    if summary.get("NEXT_REQUIRED_CANDIDATE") != f"chronological successor of {identity}":
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:RESUME_CURSOR")
+    if hashlib.sha256(cursor_raw).hexdigest() != last["raw_sha256"]:
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:RESUME_CURSOR")
+    pulse = _pulse_from_body(cursor_raw)
+    if _identity(pulse) != identity or _stamp(pulse) != last["timestamp"]:
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:RESUME_CURSOR")
+    return pulse
+
+
+def merge_resume(
+    summary: Mapping[str, object],
+    existing_rows: list[dict[str, object]],
+    result: Mapping[str, object],
+) -> dict[str, object]:
+    """Append this invocation to the same scan. Prior rows keep their sequence numbers."""
+    offset = len(existing_rows)
+    appended: list[dict[str, object]] = []
+    for row in result["rows"]:
+        item = dict(row)
+        item["sequence"] = offset + int(row["sequence"])
+        appended.append(item)
+    combined = list(existing_rows) + appended
+    status = str(result["status"])
+    last = combined[-1]
+    last_identity = f"{last['chainIndex']}/{last['pulseIndex']}"
+    selected = result["SELECTED_CONFIRMATORY_BEACON"] if status == "SELECTED" else "NONE"
+    if result["examined"] == 0:
+        resume_continuity = "NO_EDGE"
+    elif result["continuity_all_pass"]:
+        resume_continuity = "PASS"
+    else:
+        resume_continuity = "FAIL"
+    prior_invocations = int(summary.get("scan_invocation", 1))
+    return {
+        "CONFIRMATORY_RNG_GENERATED": False,
+        "D7_BITMEX_PRIMARY_TARGET_OPENED": False,
+        "D7_PRIMARY_EFFECT_COMPUTED": False,
+        "LAST_COMPLETELY_CLASSIFIED_CANDIDATE": last_identity if status != "SELECTED" else last_identity,
+        "MAX_CANDIDATES_PER_INVOCATION": result["MAX_CANDIDATES_PER_INVOCATION"],
+        "NEXT_REQUIRED_CANDIDATE": None if status == "SELECTED" else f"chronological successor of {last_identity}",
+        "SELECTED_CONFIRMATORY_BEACON": selected,
+        "VERIFIER_BLOB_SHA256": VERIFIER_GIT_BLOB,
+        "VERIFIER_CONTENT_SHA256": VERIFIER_CONTENT_SHA256,
+        "VERIFIER_COMMIT": VERIFIER_COMMIT,
+        "VERIFIER_TREE": VERIFIER_TREE,
+        "appended": appended,
+        "continuity_all_pass": all(row["continuity"] == "PASS" for row in combined),
+        "continuity_edges": len(combined),
+        "examined": len(combined),
+        "first_candidate": f"{combined[0]['chainIndex']}/{combined[0]['pulseIndex']}",
+        "incomplete_count": 1 if status == INCOMPLETE else 0,
+        "incomplete_kind": result.get("incomplete_kind"),
+        "invalid_count": sum(1 for row in combined if row["final_status"] == "INVALID"),
+        "last_candidate": f"{combined[-1]['chainIndex']}/{combined[-1]['pulseIndex']}",
+        "ledger_path": "docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.jsonl",
+        "prior_examined": offset,
+        "resume_continuity": resume_continuity,
+        "resume_examined": result["examined"],
+        "resume_first_candidate": result["first_candidate"],
+        "resume_incomplete_count": result["incomplete_count"],
+        "resume_invalid_count": result["invalid_count"],
+        "resume_last_candidate": result["last_candidate"],
+        "resume_retried_first": summary["NEXT_REQUIRED_CANDIDATE"],
+        "resume_valid_count": result["valid_count"],
+        "scan_identity": SCAN_IDENTITY,
+        "scan_invocation": prior_invocations + 1,
+        "status": status,
+        "valid_count": sum(1 for row in combined if row["final_status"] == "VALID"),
+    }
+
+
+def resume_invocation(
+    fetch: Fetch = urllib_fetch,
+    *,
+    root: Path = ROOT,
+    assess: Callable[[Mapping[str, object], bytes], Mapping[str, object]] = assess_pulse,
+) -> dict[str, object]:
+    """Continue the existing scan at the saved successor. Do not reclassify the cursor."""
+    _require_frozen_verifier()
+    out_dir = root / "docs/research"
+    ledger_path = out_dir / "D7_CONFIRMATORY_BEACON_SCAN_V1.jsonl"
+    summary_path = out_dir / "D7_CONFIRMATORY_BEACON_SCAN_V1.json"
+    cursor_path = out_dir / "D7_CONFIRMATORY_BEACON_SCAN_V1_CURSOR.json"
+    existing_text = ledger_path.read_text(encoding="utf-8")
+    if not existing_text.endswith("\n"):
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:LEDGER_SEQUENCE")
+    existing_rows = parse_ledger(existing_text)
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    predecessor = bind_resume_cursor(summary, existing_rows, cursor_path.read_bytes())
+    result = scan(predecessor, fetch, assess=assess, require_frozen_predecessor=False)
+    merged = merge_resume(summary, existing_rows, result)
+    appended = merged.pop("appended")
+    if appended:
+        addition = "".join(json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n" for row in appended)
+        ledger_path.write_text(existing_text + addition, encoding="utf-8")
+        if result.get("cursor_raw") and result.get("status") != "SELECTED":
+            cursor_path.write_bytes(result["cursor_raw"])
+    if result.get("selected_raw"):
+        (out_dir / "D7_CONFIRMATORY_SELECTED_BEACON_PULSE_V1.json").write_bytes(result["selected_raw"])
+        (out_dir / "D7_CONFIRMATORY_SELECTED_BEACON_CERTIFICATE_V1.crt").write_bytes(result["selected_certificate"])
+    if result.get("boundary_raw"):
+        (out_dir / "D7_CONFIRMATORY_BEACON_SCAN_V1_BOUNDARY.json").write_bytes(result["boundary_raw"])
+    text = json.dumps(merged, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    summary_path.write_text(text, encoding="utf-8")
+    print(text)
+    merged["appended_count"] = len(appended)
+    return merged
+
+
 def load_predecessor() -> dict:
     pulse = _pulse_from_body(PREDECESSOR_PATH.read_bytes())
     if int(pulse["pulseIndex"]) != PREDECESSOR_INDEX:
@@ -311,7 +456,14 @@ def load_predecessor() -> dict:
     return pulse
 
 
-def main() -> dict[str, object]:
+def main(argv: list[str] | None = None) -> dict[str, object]:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if args == ["--resume"]:
+        return resume_invocation()
+    if args:
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:SCAN_ARGUMENTS")
+    if LEDGER_PATH.exists() and LEDGER_PATH.stat().st_size:
+        raise ScanStop("BEACON_VERIFICATION_AMBIGUOUS:SCAN_ALREADY_STARTED")
     _require_frozen_verifier()
     try:
         result = scan(load_predecessor(), urllib_fetch)

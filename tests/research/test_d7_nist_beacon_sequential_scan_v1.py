@@ -13,7 +13,11 @@ from scripts.research.d7_nist_beacon_sequential_scan_v1 import (
     VERIFIER_PATH,
     VERIFIER_TREE,
     ScanStop,
+    bind_resume_cursor,
     load_predecessor,
+    merge_resume,
+    parse_ledger,
+    resume_invocation,
     scan,
 )
 from scripts.research.d7_nist_beacon_verifier_v1 import assess_pulse
@@ -182,3 +186,82 @@ def test_batch_limit_requests_continuation() -> None:
     assert pulse_calls["n"] == 2
     assert result["NEXT_REQUIRED_CANDIDATE"] == "chronological successor of 2/12"
     assert result["SELECTED_CONFIRMATORY_BEACON"] == "NONE"
+
+
+def _saved_scan():
+    ledger_text = (ROOT / "docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.jsonl").read_text(encoding="utf-8")
+    rows = parse_ledger(ledger_text)
+    summary = json.loads((ROOT / "docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.json").read_text(encoding="utf-8"))
+    cursor = (ROOT / "docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1_CURSOR.json").read_bytes()
+    return ledger_text, rows, summary, cursor
+
+
+def test_resume_binds_the_saved_cursor_without_reclassification() -> None:
+    from datetime import datetime, timezone
+
+    _text, rows, summary, cursor = _saved_scan()
+    predecessor = bind_resume_cursor(summary, rows, cursor)
+    assert predecessor["pulseIndex"] == 1965225
+    assert predecessor["timeStamp"] == "2026-10-01T07:51:00.000Z"
+    seen: list[str] = []
+
+    def fetch(url: str) -> bytes:
+        seen.append(url)
+        raise ScanStop("BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE", kind="UNEXPECTED_404")
+
+    result = scan(predecessor, fetch, require_frozen_predecessor=False)
+    merged = merge_resume(summary, rows, result)
+    millis = int(datetime(2026, 10, 1, 7, 51, tzinfo=timezone.utc).timestamp() * 1000)
+    assert seen == [f"https://beacon.nist.gov/beacon/2.0/pulse/time/next/{millis}"]
+    assert result["examined"] == 0
+    assert result["status"] == "BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE"
+    assert merged["resume_examined"] == 0
+    assert merged["resume_retried_first"] == "chronological successor of 2/1965225"
+    assert merged["LAST_COMPLETELY_CLASSIFIED_CANDIDATE"] == "2/1965225"
+    assert merged["NEXT_REQUIRED_CANDIDATE"] == "chronological successor of 2/1965225"
+    assert merged["examined"] == 41
+    assert merged["scan_identity"] == "D7_CONFIRMATORY_BEACON_SCAN_V1"
+    assert merged["scan_invocation"] == 2
+    assert merged["CONFIRMATORY_RNG_GENERATED"] is False
+
+
+def test_resume_appends_one_invalid_and_stops_on_404(tmp_path: Path) -> None:
+    ledger_text, rows, summary, cursor = _saved_scan()
+    out = tmp_path / "docs/research"
+    out.mkdir(parents=True)
+    (out / "D7_CONFIRMATORY_BEACON_SCAN_V1.jsonl").write_text(ledger_text, encoding="utf-8")
+    (out / "D7_CONFIRMATORY_BEACON_SCAN_V1.json").write_text(
+        json.dumps(summary),
+        encoding="utf-8",
+    )
+    (out / "D7_CONFIRMATORY_BEACON_SCAN_V1_CURSOR.json").write_bytes(cursor)
+    previous = json.loads(cursor)["pulse"]["outputValue"]
+    successor = _pulse(1965226, "2026-10-01T07:52:00.000Z", "ab" * 64, previous)
+    calls = {"pulse": 0}
+
+    def fetch(url: str) -> bytes:
+        if "certificate" in url:
+            return b"cert"
+        calls["pulse"] += 1
+        if calls["pulse"] == 1:
+            return _body(successor)
+        raise ScanStop("BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE", kind="UNEXPECTED_404")
+
+    resume_invocation(fetch, root=tmp_path, assess=_invalid)
+    written = (out / "D7_CONFIRMATORY_BEACON_SCAN_V1.jsonl").read_text(encoding="utf-8")
+    assert written.startswith(ledger_text)
+    combined = parse_ledger(written)
+    assert len(combined) == 42
+    assert combined[40] == rows[40]
+    assert combined[41]["sequence"] == 42
+    assert combined[41]["pulseIndex"] == 1965226
+    assert combined[41]["final_status"] == "INVALID"
+    updated = json.loads((out / "D7_CONFIRMATORY_BEACON_SCAN_V1.json").read_text(encoding="utf-8"))
+    assert updated["status"] == "BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE"
+    assert updated["LAST_COMPLETELY_CLASSIFIED_CANDIDATE"] == "2/1965226"
+    assert updated["NEXT_REQUIRED_CANDIDATE"] == "chronological successor of 2/1965226"
+    assert updated["SELECTED_CONFIRMATORY_BEACON"] == "NONE"
+    assert updated["resume_valid_count"] == 0
+    assert updated["resume_invalid_count"] == 1
+    assert updated["resume_continuity"] == "PASS"
+    assert updated["D7_PRIMARY_EFFECT_COMPUTED"] is False
