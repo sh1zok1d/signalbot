@@ -6829,3 +6829,21 @@ TARGET_OPENING = FORBIDDEN
 ```
 
 Record: `docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_D7_TARGET_OPENING_AUTHORIZATION_REVIEW_V2.md`.
+
+## D7 confirmatory target opening — 2026-10-01
+
+Authorized confirmatory execution. Identity pins matched the freeze. The first NIST Beacon 2.0 pulse at or after `2026-10-01T07:09:59Z` is chain 2 pulse `1965184` at `2026-10-01T07:10:00.000Z`. Its `outputValue` matches the uint32 serialization and its `certificateId` matches the certificate DER. PKCS#1 v1.5 SHA-512 verification fails: the certificate key is 2048 bits and `signatureValue` is 512 bytes. The run stopped there.
+
+```
+EXECUTION_STATUS = D7_CONFIRMATORY_EXECUTION_FAILED:BEACON_SIGNATURE_INVALID
+BEACON_FETCHED = true
+BEACON_SIGNATURE_VALID = false
+RAW_BEACON_RECORD_SHA256 = 276779a2d1f7a627acd4e891ddf5233feca22b5db7e194a9f3b1606894720c9a
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+PRIMARY_RESULT_SEALED = false
+D7_DIRECTIONAL_CONFIRMATION_PASS = unevaluated
+```
+
+Record: `docs/research/D7_CONFIRMATORY_TARGET_OPENING_V1.md`.
