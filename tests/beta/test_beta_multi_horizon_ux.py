@@ -12,7 +12,7 @@ from test_beta_btc_view import ALL_LIQ, CFG, C1H, DOWN, QUIET, UP, _view, run, s
 from test_beta_context import BUILDUP, EXS, T0
 from test_beta_readiness import ready_of, rsnap, view_for
 
-from beta.formatter import (assert_descriptive, btc_buttons, format_1h_tab, format_btc,
+from beta.formatter import (assert_descriptive, btc_buttons, format_1h_tab, format_24h_tab, format_btc,
                             format_event_tab, view_id8)
 from beta.horizons import HORIZON_DIGEST, HORIZON_VERSION, build_horizons, empty_horizons, verify_horizon_digest
 from beta.i18n import _CATALOG, fmt_clock, fmt_kyiv_hm, fmt_price, fmt_ratio, fmt_signed_pct, fmt_usd, kyiv
@@ -44,9 +44,11 @@ def _budget(html):
     return body
 
 
-def _with_horizons(view, block):
+def _with_horizons(view, block, day="auto"):
     out = dict(view)
-    out["horizons"] = {"version": HORIZON_VERSION, "digest": HORIZON_DIGEST, "1h": block}
+    if day == "auto":
+        day = _day_block() if block else None
+    out["horizons"] = {"version": HORIZON_VERSION, "digest": HORIZON_DIGEST, "1h": block, "24h": day}
     return out
 
 
@@ -66,6 +68,8 @@ def _hour_block(**kw):
         "volume_ratio": 2.1,
         "taker_delta_notional_usd_sum": -84e6,
         "funding_rate": 0.00006,
+        "oi_change_pct": -0.6,
+        "oi_by_venue": {"binance": -0.9, "bybit": -0.4, "okx": 0.1},
         "liquidations": {"buckets_missing": False, "venues": {
             "binance": {"long": {"amount": 8e6, "missing": False, "lower_bound": True},
                         "short": {"amount": 1e6, "missing": False, "lower_bound": True}},
@@ -74,6 +78,46 @@ def _hour_block(**kw):
             "okx": {"long": {"amount": 3e6, "missing": False, "lower_bound": False},
                     "short": {"amount": 4e5, "missing": False, "lower_bound": False}},
         }},
+    }
+    base.update(kw)
+    return base
+
+
+def _day_block(**kw):
+    base = {
+        "price_complete": True,
+        "volume_complete": True,
+        "volume_partial": False,
+        "buckets_present": 288,
+        "buckets_expected": 288,
+        "window_start": "2026-03-01T12:10:00+00:00",
+        "window_end": "2026-03-02T12:10:00+00:00",
+        "price_move_pct": -1.9,
+        "range_width_pct": 2.8,
+        "high": 113900.0,
+        "low": 110800.0,
+        "volume_notional_usd": 38e9,
+        "baseline_days": {"range_width_pct": 30, "volume_notional_usd": 30},
+        "baseline_median": {"range_width_pct": 2.0, "volume_notional_usd": 38e9 / 1.3},
+        "range_ratio": 1.4,
+        "volume_ratio": 1.3,
+        "taker_delta_notional_usd_sum": 210e6,
+        "funding_rate": 0.00006,
+        "funding_rate_avg": 0.00009,
+        "oi_change_pct": 2.1,
+        "oi_by_venue": {"binance": 2.8, "bybit": 1.5, "okx": 0.9},
+        "liquidations": {"buckets_missing": False, "venues": {
+            "binance": {"long": {"amount": 42e6, "missing": False, "lower_bound": True},
+                        "short": {"amount": 9e6, "missing": False, "lower_bound": True}},
+            "bybit": {"long": {"amount": 61e6, "missing": False, "lower_bound": False},
+                      "short": {"amount": 14e6, "missing": False, "lower_bound": False}},
+            "okx": {"long": {"amount": 19e6, "missing": False, "lower_bound": False},
+                    "short": {"amount": 6e6, "missing": False, "lower_bound": False}},
+        }},
+        "changes": [
+            {"rule": "range", "direction": "wider", "w": 2.8, "p": 1.9},
+            {"rule": "oi_price", "oi_up": True, "price_up": False},
+        ],
     }
     base.update(kw)
     return base
@@ -143,24 +187,27 @@ def test_main_screen_full_body_both_languages(name, lang):
     if name in ("stale_open", "stale_none", "degraded"):
         assert (RU_FAIL if lang == "ru" else EN_FAIL) in plain
         assert "1ч:" not in plain and "1h:" not in plain
+        assert "24ч:" not in plain and "24h:" not in plain
         assert "↑" not in plain and "↓" not in plain
     else:
         assert "1ч:" in plain or "1h:" in plain
     if name == "calm":
         assert ("спокойно" if lang == "ru" else "calm") in body[0]
         assert "83 500" in body[0] if lang == "ru" else "83,500" in body[0]
-        assert ("1ч: −0,8% · объём 2,1× · диапазон 2,3×" if lang == "ru"
-                else "1h: −0.8% · vol 2.1× · range 2.3×") in plain
+        assert ("1ч: −0,8% · объём 2,1× · диапазон 2,3× · OI −0,6%" if lang == "ru"
+                else "1h: −0.8% · vol 2.1× · range 2.3× · OI −0.6%") in plain
+        assert ("24ч: −1,9% · объём 1,3× · OI +2,1%" if lang == "ru"
+                else "24h: −1.9% · vol 1.3× · OI +2.1%") in plain
     if name == "unusual":
         assert ("необычно сейчас" if lang == "ru" else "unusual now") in body[0]
-        assert ("ОИ снизился во время падения" if lang == "ru" else "Open interest fell during the drop") in plain
+        assert ("OI снизился во время падения" if lang == "ru" else "Open interest fell during the drop") in plain
     if name == "calmed":
         assert ("затихло" if lang == "ru" else "calmed") in body[0]
     if name == "ended":
         assert ("событие завершено" if lang == "ru" else "event ended") in body[0]
         assert ("пропуске данных" if lang == "ru" else "data gap") in plain
     if name == "history":
-        assert ("накопление истории" if lang == "ru" else "history building") in body[0]
+        assert ("бот собирает историю" if lang == "ru" else "history building") in body[0]
         assert ("1ч: неполные данные" if lang == "ru" else "1h: incomplete") in plain
     if name == "stale_open":
         assert "83" not in body[0]
@@ -173,17 +220,21 @@ def test_main_screen_full_body_both_languages(name, lang):
     buttons = btc_buttons(view, lang, view_pk=11)
     labels = [b[0] for b in (buttons[0] if buttons else [])]
     if name in ("stale_none",):
-        assert ( "Событие" if lang == "ru" else "Event") not in labels
+        assert ("Событие" if lang == "ru" else "Event") not in labels
         assert ("1ч" if lang == "ru" else "1h") not in labels
+        assert ("24ч" if lang == "ru" else "24h") not in labels
     if name in ("stale_open", "degraded"):
         assert ("Событие" if lang == "ru" else "Event") in labels
         assert ("1ч" if lang == "ru" else "1h") not in labels
+        assert ("24ч" if lang == "ru" else "24h") not in labels
     if name in ("calm", "history"):
         assert ("1ч" if lang == "ru" else "1h") in labels
+        assert ("24ч" if lang == "ru" else "24h") in labels
         assert ("Событие" if lang == "ru" else "Event") not in labels
     if name in ("unusual", "calmed", "ended"):
         assert ("Событие" if lang == "ru" else "Event") in labels
         assert ("1ч" if lang == "ru" else "1h") in labels
+        assert ("24ч" if lang == "ru" else "24h") in labels
 
 
 def test_event_and_1h_tabs_both_languages():
@@ -195,24 +246,27 @@ def test_event_and_1h_tabs_both_languages():
         assert_descriptive(hour, lang)
         for banned in ("EARLY", "ARMED", "TRIGGERED", "pct of 30d", "STRICT_QUALIFICATION_V1", "Now"):
             assert banned not in event and banned not in hour
-        assert "1a2b3c4d" in event and view["active_episode"]["episode_id"] in event
+        assert "1a2b3c4d" not in event and "ref " not in event
+        assert view["active_episode"]["episode_id"] not in event
+        assert ("Термины: /terms" if lang == "ru" else "Terms: /terms") in event
+        assert ("Термины: /terms" if lang == "ru" else "Terms: /terms") in hour
         if lang == "ru":
-            assert "СОБЫТИЕ · необычное падение" in event
-            assert "ОИ " in event and "binance" in event
+            assert "СОБЫТИЕ · резкое падение" in event
+            assert "OI " in event and "Binance" in event and "binance" not in event
             assert "ПОСЛЕДНИЙ ЧАС" in hour
             assert "2,3× от обычного для этого часа" in hour
-            assert "Фандинг сейчас 0,006%" in hour
-            assert "Тейкер-поток: продавцы, нетто $84 млн" in hour
+            assert "Funding сейчас 0,006%" in hour
+            assert "Delta: −$84 млн (продавцы)" in hour
+            assert "OI −0,6%: Binance −0,9% · Bybit −0,4% · OKX +0,1%" in hour
             assert "≥ — нижняя граница: Binance передаёт не все ликвидации." in event
-            assert "ОИ −0,6%" not in hour
         else:
-            assert "EVENT · unusual drop" in event
+            assert "EVENT · sharp drop" in event
             assert "LAST HOUR" in hour
             assert "2.3× usual for this hour" in hour
             assert "Funding now 0.006%" in hour
-            assert "Taker flow: sellers, net $84M" in hour
+            assert "Delta: −$84M (sellers)" in hour
+            assert "OI −0.6%: Binance −0.9% · Bybit −0.4% · OKX +0.1%" in hour
             assert "≥ — lower bound: Binance does not report every liquidation." in hour
-            assert "OI −0.60%" not in hour and "\nOI " not in hour
 
 
 def test_number_formats():
@@ -337,14 +391,14 @@ def test_incomplete_window_immature_baseline_and_liquidation_gaps():
             "now": {"reference_price": 112450.0}, "projection_available": True, "other_active": []}
     # format_btc needs the headline path; build a calm-shaped view via the keys format_btc reads
     shown = format_1h_tab(CFG, {"horizons": one_missing, "active_episode": None, "last_event": None}, "en", "abcd1234")
-    assert "bybit n/a" in shown and "$0" not in shown.split("bybit n/a")[0]
-    assert "okx $1.2M" in shown
-    assert "binance ≥" in shown
+    assert "Bybit n/a" in shown and "$0" not in shown.split("Bybit n/a")[0]
+    assert "OKX $1.2M" in shown
+    assert "Binance ≥" in shown
     ru = format_1h_tab(CFG, {"horizons": one_missing, "active_episode": None, "last_event": None}, "ru", "abcd1234")
-    assert "bybit н/д" in ru and "bybit $0" not in ru
+    assert "Bybit н/д" in ru and "Bybit $0" not in ru
     gap = format_1h_tab(CFG, {"horizons": incomplete, "active_episode": None, "last_event": None}, "en", "abcd1234")
     assert "1h: incomplete" in gap
-    assert "bybit ≥" in gap and "okx ≥" in gap and "binance ≥" in gap
+    assert "Bybit ≥" in gap and "OKX ≥" in gap and "Binance ≥" in gap
     immature_view = screens()["calm"]
     immature_view = _with_horizons(immature_view, immature["1h"])
     assert "vol n/a" in format_btc(CFG, immature_view, "en")
@@ -359,10 +413,10 @@ def test_event_tab_missing_venue_liquidation_is_not_zero():
     anchor = view["active_episode"]["anchor"]["view"]
     anchor["liquidations"]["long"]["per_venue"]["okx"] = None
     text = format_event_tab(CFG, view, "en", "abcd1234")
-    assert "okx n/a" in text and "okx $0" not in text
-    assert "binance ≥" in text
+    assert "OKX n/a" in text and "OKX $0" not in text
+    assert "Binance ≥" in text
     ru = format_event_tab(CFG, view, "ru", "abcd1234")
-    assert "okx н/д" in ru
+    assert "OKX н/д" in ru
     assert "oi_change_pct_by_venue" in anchor
 
 
@@ -459,13 +513,14 @@ def test_start_and_lang_choice():
         joined = await h.handle(_cb(1, "join:ru", 4))
         assert conn.users[1]["lang"] == "ru" and "/lang" in joined[1].html
         again = await h.handle(_msg(1, "/start", 5))
-        assert "/btc" in again[0].html and again[0].buttons is None
+        assert "/btc" in again[0].html and again[0].buttons == [[("Термины", "terms")]]
         picker = await h.handle(_msg(1, "/lang", 6))
         assert picker[0].buttons == [[("Русский", "set:ru"), ("English", "set:en")]]
         saved = await h.handle(_cb(1, "set:en", 7))
         assert conn.users[1]["lang"] == "en" and "Language: English." in saved[1].html
         help_en = await h.handle(_msg(1, "/help", 8))
         assert "message language" in help_en[0].html
+        assert help_en[0].buttons == [[("Glossary", "terms")]]
         alice = await h.handle(_msg(2, "/start", 9))
         assert alice[0].buttons == [[("Русский", "pick:ru"), ("English", "pick:en")]]
         en = await h.handle(_cb(2, "pick:en", 10))
@@ -476,6 +531,10 @@ def test_start_and_lang_choice():
         resume = await h.handle(_msg(2, "/start", 12))
         assert resume[0].buttons == [[("Join", "join:en")]]
         assert "Choose language" not in resume[0].html
+        terms = await h.handle(_msg(1, "/terms", 13))
+        assert terms[0].html.startswith("TERMS") and "History building" in terms[0].html
+        gloss = await h.handle(_cb(1, "terms", 14))
+        assert gloss[1].html.startswith("TERMS")
 
     import asyncio
     asyncio.run(go())
@@ -496,6 +555,8 @@ def test_tab_edit_renders_persisted_view_not_live_state():
                        clock=Clock(datetime(2026, 6, 15, tzinfo=timezone.utc)))
     assert _parse_tab("o:7:event") == ("o", 7, "event")
     assert _parse_tab("e:7:1h") == ("e", 7, "1h")
+    assert _parse_tab("o:7:24h") == ("o", 7, "24h")
+    assert _parse_tab("e:7:nope") is None
     assert _parse_tab("o:" + "9" * 60 + ":1h") is None
     assert len("o:7:event") <= 64 and len("e:7:1h") <= 64
 
@@ -517,6 +578,210 @@ def test_tab_edit_renders_persisted_view_not_live_state():
         conn.users[1]["lang"] = "en"
         again = await h.handle(_cb(1, "e:7:event", 3, message_id=42))
         assert "СОБЫТИЕ" in again[1].html and "EVENT ·" not in again[1].html
+        day = await h.handle(_cb(1, "e:7:24h", 4, message_id=42))
+        assert day[1].kind == "edit"
+        assert day[1].html == format_24h_tab(CFG, view, "ru", view_id8(conn.views[7]["payload_digest"]))
+        assert conn.opens[-1]["tab"] == "24h"
 
     import asyncio
     asyncio.run(go())
+
+
+RU_TERMS = """ТЕРМИНЫ
+
+Состояния
+Спокойно — необычных состояний сейчас нет.
+Необычно сейчас — открыто одно из событий ниже.
+Затихло — событие было в последние 2 ч и закончилось.
+Событие завершено — событие прервалось по технической причине (нет данных, лимит длительности, смена версии).
+Бот собирает историю — меньше 30 дней данных, сравнивать пока не с чем.
+Данные неполные — свежих данных не хватает, отсутствие событий подтвердить нельзя.
+
+События
+Резкий рост / падение — за 5 мин цена прошла больше, чем в 95% пятиминуток за 30 дней, и одновременно OI заметно снизился, минимум на 2 биржах.
+Набор OI в узком диапазоне — 45 мин подряд OI растёт сильнее обычного, а цена стоит в узком диапазоне.
+Агрессивные покупки / продажи — две пятиминутки подряд Delta в верхних / нижних 5% за 30 дней.
+Ликвидации лонгов / шортов — ликвидации одной стороны в верхних 5% за 30 дней, минимум на 2 биржах одновременно.
+
+Показатели
+OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается.
+Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот.
+Delta — разница между рыночными покупками и продажами в $. Минус — нетто продавали.
+Объём — сумма сделок в $ по Binance, Bybit и OKX.
+Диапазон — от минимума до максимума цены за период, в % от цены.
+Ликвидации — принудительное закрытие позиций биржей, по каждой бирже отдельно.
+≥ — нижняя граница: Binance публикует не все ликвидации.
+н/д — данных нет или они неполные. Это не ноль.
+× от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней.
+↑ ↓ — только направление, не сила.
+Время — киевское."""
+
+EN_TERMS = """TERMS
+
+States
+Calm — no unusual state right now.
+Unusual now — one of the events below is open.
+Calmed — an event happened in the last 2h and has ended.
+Event ended — the event stopped for a technical reason (no data, duration limit, version change).
+History building — less than 30 days of data, nothing to compare with yet.
+Data incomplete — fresh data is insufficient; the absence of events cannot be confirmed.
+
+Events
+Sharp rise / drop — over 5 min the price moved more than in 95% of 5-minute periods of the last 30 days, while OI fell noticeably, on at least 2 venues.
+OI build-up in a narrow range — for 45 min in a row OI grows faster than usual while the price stays in a narrow range.
+Aggressive buying / selling — Delta in the top / bottom 5% of the last 30 days for two 5-minute periods in a row.
+Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 venues at once.
+
+Metrics
+OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed.
+Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse.
+Delta — difference between market buys and market sells in $. Negative — net selling.
+Volume — total traded value in $ on Binance, Bybit and OKX.
+Range — from the lowest to the highest price in the period, in % of the price.
+Liquidations — positions force-closed by the exchange, shown per venue.
+≥ — lower bound: Binance does not publish every liquidation.
+n/a — no data or incomplete data. This is not zero.
+× usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median.
+↑ ↓ — direction only, not strength.
+Time — Kyiv time."""
+
+
+def test_glossary_is_verbatim_and_passes_both_forbidden_lists():
+    from beta.i18n import t
+    assert t("ru", "terms") == RU_TERMS
+    assert t("en", "terms") == EN_TERMS
+    assert_descriptive(RU_TERMS, "ru")
+    assert_descriptive(EN_TERMS, "en")
+    assert_descriptive(RU_TERMS, "en")
+
+
+def test_24h_tab_renders_changes_and_terms_footer():
+    view = screens()["unusual"]
+    ru = format_24h_tab(CFG, view, "ru", "1a2b3c4d")
+    en = format_24h_tab(CFG, view, "en", "1a2b3c4d")
+    assert_descriptive(ru, "ru")
+    assert_descriptive(en, "en")
+    assert "1a2b3c4d" not in ru and "ref " not in ru
+    assert "ПОСЛЕДНИЕ 24 Ч" in ru and "Термины: /terms" in ru.split("\n")[-1]
+    assert "диапазон шире: 2,8% против 1,9%" in ru
+    assert "OI вырос, пока цена падала" in ru
+    assert "Крупных изменений к предыдущим 24 ч нет" not in ru
+    assert "Delta: +$210 млн (покупатели)" in ru
+    assert "Funding сейчас 0,006% · среднее за 24 ч 0,009%" in ru
+    assert "Высокий импакт" not in ru and "High impact" not in en
+    assert "LAST 24H" in en and "Terms: /terms" in en.split("\n")[-1]
+    assert "range wider: 2.8% vs 1.9%" in en
+    assert "OI rose while price fell" in en
+    assert "Delta: +$210M (buyers)" in en
+    none = format_24h_tab(CFG, _with_horizons(view, _hour_block(), _day_block(changes=[])), "en", "abcd")
+    assert "No large change vs previous 24h" in none
+
+
+def _h24_rows(as_of, *, drop=()):
+    out = {}
+    for i in range(288):
+        b = as_of - i * BUCKET
+        if b in drop:
+            continue
+        row = {"c:volume_notional_usd_sum": 1.0, "c:taker_delta_notional_usd_sum": 1.0,
+               "c:funding_rate_median": 0.0001}
+        for ex in EXS:
+            row[metric_key(ex, "kline_open")] = 100.0
+            row[metric_key(ex, "kline_high")] = 101.0
+            row[metric_key(ex, "kline_low")] = 99.0
+            row[metric_key(ex, "kline_close")] = 100.0
+        out[b] = row
+    return out
+
+
+def test_24h_completeness_and_immature_baseline():
+    from beta.horizons import rolling_24h_values
+    as_of = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
+    full = rolling_24h_values(CFG, _h24_rows(as_of), as_of)
+    assert full["price_complete"] and full["volume_complete"] and full["buckets_present"] == 288
+    drop6 = {as_of - i * BUCKET for i in range(2, 8)}
+    ok = rolling_24h_values(CFG, _h24_rows(as_of, drop=drop6), as_of)
+    assert ok["buckets_present"] == 282 and ok["price_complete"] and not ok["volume_complete"]
+    assert ok["volume_partial"]
+    drop7 = {as_of - i * BUCKET for i in range(2, 9)}
+    thin = rolling_24h_values(CFG, _h24_rows(as_of, drop=drop7), as_of)
+    assert thin["buckets_present"] == 281 and not thin["price_complete"] and thin["volume_partial"]
+    first = as_of - 287 * BUCKET
+    no_first = rolling_24h_values(CFG, _h24_rows(as_of, drop={first}), as_of)
+    assert no_first["buckets_present"] == 287 and not no_first["price_complete"]
+    no_last = rolling_24h_values(CFG, _h24_rows(as_of, drop={as_of}), as_of)
+    assert not no_last["price_complete"]
+    partial = rolling_24h_values(CFG, _h24_rows(as_of, drop={as_of - 3 * BUCKET}), as_of)
+    assert partial["buckets_present"] == 287 and partial["price_complete"] and partial["volume_partial"]
+    shown = format_24h_tab(CFG, {"horizons": {"24h": {
+        "price_complete": True, "volume_complete": False, "volume_partial": True,
+        "window_end": as_of.isoformat(), "price_move_pct": -1.0, "range_width_pct": 1.0,
+        "high": 101.0, "low": 99.0, "volume_notional_usd": 287.0, "range_ratio": None,
+        "volume_ratio": None, "oi_change_pct": None, "oi_by_venue": {},
+        "taker_delta_notional_usd_sum": None, "funding_rate": None, "funding_rate_avg": None,
+        "liquidations": {"venues": {}}, "changes": [],
+    }}}, "ru")
+    assert "(неполные)" in shown and "от медианы 30 дн." not in shown.split("Объём")[1].split("\n")[0]
+    immature = build_horizons(CFG, as_of_bucket=as_of, metrics_by_bucket=_series(as_of, days=10, vol=1e6))
+    assert immature["24h"]["baseline_days"]["volume_notional_usd"] < 20
+    assert immature["24h"]["volume_ratio"] is None
+
+
+def test_oi_asof_tolerance_unit_and_median():
+    from beta.horizons import _oi_for
+    from beta.oi_asof import pick_oi_asof, venue_oi_change_pct
+    t = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
+    tol = timedelta(minutes=2)
+    assert pick_oi_asof([{"ts": t, "oi_raw": 110.0, "oi_unit": "base", "contract_value": None}], t)["oi_raw"] == 110
+    assert pick_oi_asof([{"ts": t - tol, "oi_raw": 100.0, "oi_unit": "base", "contract_value": 1.0}], t)["oi_raw"] == 100
+    assert pick_oi_asof([{"ts": t - tol - timedelta(microseconds=1), "oi_raw": 1, "oi_unit": "base",
+                          "contract_value": None}], t) is None
+    assert pick_oi_asof([{"ts": t + timedelta(seconds=1), "oi_raw": 1, "oi_unit": "base",
+                          "contract_value": None}], t) is None
+    clash = [{"ts": t, "oi_raw": 1.0, "oi_unit": "base", "contract_value": None},
+             {"ts": t, "oi_raw": 2.0, "oi_unit": "base", "contract_value": None}]
+    assert pick_oi_asof(clash, t) is None
+    same = {"oi_raw": 100.0, "oi_unit": "base", "contract_value": None}
+    assert venue_oi_change_pct(same, {"oi_raw": 90.0, "oi_unit": "base", "contract_value": None}) == pytest.approx(-10)
+    assert venue_oi_change_pct(same, {"oi_raw": 110.0, "oi_unit": "contracts", "contract_value": None}) is None
+    assert venue_oi_change_pct(
+        {"oi_raw": 100.0, "oi_unit": "contracts", "contract_value": 0.01},
+        {"oi_raw": 110.0, "oi_unit": "contracts", "contract_value": 0.02}) is None
+    start, end = t - timedelta(hours=1), t
+    got = _oi_for(CFG, start, end, {
+        start: {"binance": {"oi_raw": 100, "oi_unit": "base", "contract_value": None},
+                "bybit": {"oi_raw": 200, "oi_unit": "base", "contract_value": None},
+                "okx": None},
+        end: {"binance": {"oi_raw": 110, "oi_unit": "base", "contract_value": None},
+              "bybit": {"oi_raw": 180, "oi_unit": "base", "contract_value": None},
+              "okx": None},
+    })
+    assert got["oi_by_venue"]["okx"] is None
+    assert got["oi_by_venue"]["binance"] == pytest.approx(10)
+    assert got["oi_by_venue"]["bybit"] == pytest.approx(-10)
+    assert got["oi_change_pct"] == pytest.approx(0)
+
+
+def test_changes_vs_previous_24h_each_rule_cap_and_none():
+    from beta.horizons import select_changes
+    fired = select_changes(
+        CFG, range_w=3, range_p=1, volume_w=3, volume_p=1, volume_w_complete=True, volume_p_complete=True,
+        price_w=-2, oi_w=2, funding_now=0.01, funding_p=-0.01)
+    assert [row["rule"] for row in fired] == ["range", "volume", "oi_price"]
+    assert fired[0]["direction"] == "wider" and fired[2]["oi_up"] and not fired[2]["price_up"]
+    narrower = select_changes(
+        CFG, range_w=1, range_p=2, volume_w=1, volume_p=2, volume_w_complete=True, volume_p_complete=True,
+        price_w=None, oi_w=None, funding_now=None, funding_p=None)
+    assert [row["direction"] for row in narrower] == ["narrower", "lower"]
+    funding = select_changes(
+        CFG, range_w=1, range_p=1, volume_w=1, volume_p=1, volume_w_complete=True, volume_p_complete=True,
+        price_w=0.2, oi_w=0.2, funding_now=-0.01, funding_p=0.01)
+    assert funding == [{"rule": "funding", "positive": False}]
+    positive = select_changes(
+        CFG, range_w=None, range_p=None, volume_w=None, volume_p=None, volume_w_complete=False,
+        volume_p_complete=False, price_w=None, oi_w=None, funding_now=0.01, funding_p=-0.02)
+    assert positive == [{"rule": "funding", "positive": True}]
+    quiet = select_changes(
+        CFG, range_w=1.1, range_p=1, volume_w=1.1, volume_p=1, volume_w_complete=True, volume_p_complete=True,
+        price_w=0.2, oi_w=0.2, funding_now=0.01, funding_p=0.02)
+    assert quiet == []

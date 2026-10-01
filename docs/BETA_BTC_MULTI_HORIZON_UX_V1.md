@@ -1,6 +1,6 @@
 # Beta V0.2 — `/btc` multi-horizon UX V1 (Event · 1h · 24h, RU/EN)
 
-**Status:** `PR1_IMPLEMENTED / PR2_AND_PR3_NOT_STARTED`. Step 2 below is done in the PR 1 branch. The 24h tab, OI-over-horizon, "Changes vs previous 24h", and D7 lines are not implemented. `BETA_BTC_MAIN_SCREEN_UX_V1.md` describes what PR 1 renders.
+**Status:** `PR1_IMPLEMENTED / PR2_IMPLEMENTED / PR3_NOT_STARTED`. Steps 2 and 3 below are done. D7 lines are not implemented. `BETA_BTC_MAIN_SCREEN_UX_V1.md` describes what PR 2 renders.
 **Date:** 2026-10-01
 **Scope:** presentation, read-only context projections, and a per-user language setting for the descriptive private beta (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`).
 
@@ -63,19 +63,19 @@ The rolling 1h (the last 60 minutes) and the D7 clock hour are different objects
 - **Number format:**
   - `ru`: thin-space thousands (`112 450`), decimal comma (`−0,84%`), money as `$84 млн`, `$1,9 млрд`;
   - `en`: `112,450`, `−0.84%`, `$84M`, `$1.9B`.
-- **Russian glossary:**
+- **Technical terms stay English in the Russian UI** (owner rule). The glossary command `/terms` and the `[Термины]` / `[Glossary]` button under `/help` print the verbatim texts in the PR 2 task. Summary:
 
-  | Concept | Russian term |
+  | Concept | Russian UI |
   |---|---|
-  | OI | ОИ |
-  | funding | фандинг |
+  | OI | OI |
+  | funding | Funding |
+  | taker flow | Delta (покупатели / продавцы) |
   | range | диапазон |
   | volume | объём |
-  | taker flow | тейкер-поток: покупатели / продавцы, нетто |
   | long / short liquidations | ликвидации лонгов / шортов |
-  | unusual rise / drop | необычный рост / падение |
-  | position build-up | набор ОИ в узком диапазоне |
-  | buyer- / seller-initiated flow | агрессивные покупки / продажи |
+  | sharp rise / drop | резкий рост / резкое падение |
+  | OI build-up in a narrow range | набор OI в узком диапазоне |
+  | aggressive buying / selling | агрессивные покупки / продажи |
   | "× usual" | × от обычного |
 
   Russian titles:
@@ -86,7 +86,7 @@ The rolling 1h (the last 60 minutes) and the D7 clock hour are different objects
   | unusual now | необычно сейчас |
   | calmed | затихло |
   | event ended | событие завершено |
-  | history building | накопление истории |
+  | history building | бот собирает историю |
   | data incomplete | данные неполные |
 
   Russian fail-closed sentence: `Текущих данных недостаточно: отсутствие событий сейчас подтвердить нельзя.`
@@ -104,9 +104,9 @@ Russian (default):
 
 ```
 BTC 112 450 · необычно сейчас
-Цена ↓ · ОИ ↓ · Объём высокий
-ОИ снизился во время падения
-1ч: −0,8% · объём 2,1× · диапазон 1,8× · ОИ −0,6%
+Цена ↓ · OI ↓ · Объём высокий
+OI снизился во время падения
+1ч: −0,8% · объём 2,1× · диапазон 1,8× · OI −0,6%
 24ч: −1,9% · объём 1,3× · ОИ +2,1%
 Высокий импакт в прошлый час
 Ещё активно · данные 15:10 (Киев)
@@ -162,7 +162,7 @@ Still active · data 15:10 Kyiv
 - Body lines are facts with units.
 - Each ratio names its baseline (`от обычного для этого часа` / `usual for this hour`, `от медианы 30 дн.` / `30d median`).
 - No percentile ranks, no `EARLY` / `ARMED` / `TRIGGERED`, and no version strings in the body.
-- One last line, `ref EV-… · view <id8>`, is kept for support.
+- The last line is `Термины: /terms` / `Terms: /terms`. The support ref line is not shown. Episode and view ids stay in the persisted payload.
 - Ranks, levels, and versions stay in the persisted payload.
 
 **Usage record:** each tab open writes one row `(view_id, tab, lang, opened_at)` to an additive table `beta_details_opens`. There is no user id, the same privacy posture as `beta_btc_views`. This measures which horizon traders actually use.
@@ -170,16 +170,16 @@ Still active · data 15:10 Kyiv
 ### 5.1 Event tab (anchor bucket only)
 
 ```
-СОБЫТИЕ · необычное падение
+СОБЫТИЕ · резкое падение
 Ещё активно · с 14:55 (Киев)
 Почему замечено (15:05–15:10):
   Цена −0,50% · диапазон 0,62% · объём $310 млн (высокий)
-  ОИ −0,42%: Binance −0,61% · Bybit −0,35% · OKX −0,12%
-  Тейкер-поток: продавцы, нетто $41 млн
+  OI −0,42%: Binance −0,61% · Bybit −0,35% · OKX −0,12%
+  Delta: −$41 млн (продавцы)
   Ликвидации лонгов: Binance ≥$2,1 млн · Bybit $3,4 млн · OKX $0,6 млн
 Также открыто: агрессивные продажи
 ≥ — нижняя граница: Binance передаёт не все ликвидации.
-ref EV-… · view 1a2b3c4d
+Термины: /terms
 ```
 
 - Only the anchor bucket is shown. The second "Now" 5m block is removed from user-facing Details.
@@ -193,15 +193,16 @@ ref EV-… · view 1a2b3c4d
 ПОСЛЕДНИЙ ЧАС · 14:10–15:10 (Киев)
 Цена −0,84% · диапазон 1,12% (2,3× от обычного для этого часа)
 Объём $1,9 млрд (2,1× от обычного для этого часа)
-ОИ −0,6%: Binance −0,9% · Bybit −0,4% · OKX +0,1%
-Тейкер-поток: продавцы, нетто $84 млн
+OI −0,6%: Binance −0,9% · Bybit −0,4% · OKX +0,1%
+Delta: −$84 млн (продавцы)
 Ликвидации лонгов: Binance ≥$8 млн · Bybit $10 млн · OKX $3 млн
 Ликвидации шортов: Binance ≥$1 млн · Bybit $2 млн · OKX $0,4 млн
-Фандинг сейчас 0,006% (медиана бирж)
+Funding сейчас 0,006% (медиана бирж)
 Высокий импакт 14:00–15:00 (Киев): цена прошла много относительно объёма торгов.
 Исторически следующий час был таким же примерно в 1 из 5 случаев (обычно в 1 из 10).
 Направление цены это не показывает.
 ≥ — нижняя граница: Binance передаёт не все ликвидации.
+Термины: /terms
 ```
 
 The three high-impact lines appear only under the D7 gate. Their exact strings come from the gate document.
@@ -213,15 +214,16 @@ The three high-impact lines appear only under the D7 gate. Their exact strings c
 Цена −1,9% · макс 113 900 · мин 110 800
 Диапазон 2,8% (1,4× от медианы 30 дн.)
 Объём $38 млрд (1,3× от медианы 30 дн.)
-ОИ +2,1%: Binance +2,8% · Bybit +1,5% · OKX +0,9%
-Тейкер-поток: покупатели, нетто $210 млн
+OI +2,1%: Binance +2,8% · Bybit +1,5% · OKX +0,9%
+Delta: +$210 млн (покупатели)
 Ликвидации лонгов: Binance ≥$42 млн · Bybit $61 млн · OKX $19 млн
 Ликвидации шортов: Binance ≥$9 млн · Bybit $14 млн · OKX $6 млн
-Фандинг сейчас 0,006% · среднее за 24 ч 0,009%
+Funding сейчас 0,006% · среднее за 24 ч 0,009%
 Изменения к предыдущим 24 ч:
 · диапазон шире: 2,8% против 1,9%
-· ОИ вырос, пока цена падала
+· OI вырос, пока цена падала
 ≥ — нижняя граница: Binance передаёт не все ликвидации.
+Термины: /terms
 ```
 
 ## 6. Horizon computation (all as of the view's data-through)
@@ -279,8 +281,8 @@ Compare the window W = (t−24h, t] with the previous window P = (t−48h, t−2
 
 1. **Range.** Ratio W/P ≥ 1.5 → `диапазон шире: a% против b%`. Ratio ≤ 0.67 → `диапазон уже: …`.
 2. **Volume.** Ratio ≥ 1.5 / ≤ 0.67 → `объём выше: $X против $Y` / `объём ниже: …`.
-3. **OI together with price, over W.** Shown only when |OI %| ≥ 1.0 and |price %| ≥ 1.0. The sentence is a factual joint statement, for example `ОИ вырос, пока цена падала`.
-4. **Funding.** The sign of the P average differs from the sign of `now` → `фандинг стал положительным` / `фандинг стал отрицательным`.
+3. **OI together with price, over W.** Shown only when |OI %| ≥ 1.0 and |price %| ≥ 1.0. The sentence is a factual joint statement, for example `OI вырос, пока цена падала`.
+4. **Funding.** The sign of the P average differs from the sign of `now` → `Funding стал положительным` / `Funding стал отрицательным`.
 
 If no rule fires: `Крупных изменений к предыдущим 24 ч нет`.
 
@@ -299,7 +301,7 @@ The thresholds are presentation constants in `config/beta_v0.yaml`. They are ver
 | 0 | done 2026-10-01 | D7 confirmation stack, #236 and #238 merged to `main`; stale D7 tests fixed |
 | 1 | owner | merge this specification |
 | 2 | done (PR 1, existing data) | language setting and string catalog (§3.1); Kyiv time (§3.2); the tab mechanism and `beta_details_opens`; Event tab; 1h tab without OI; liquidation rules (§7); main screen price and `1h` line; removal of the duplicate "Now" block; Russian forbidden list; update `BETA_BTC_MAIN_SCREEN_UX_V1.md` |
-| 3 | coding agent, PR 2 (new reads) | OI 1h and 24h via `open_interest` as-of reads (§6.4); 24h tab; `24h` line; "Changes vs previous 24h" (§8); update `BETA_BTC_TEMPORAL_CONTEXT_V0.md` |
+| 3 | done (PR 2) | OI 1h and 24h via `open_interest` as-of reads (§6.4); 24h tab; `24h` line; "Changes vs previous 24h" (§8); glossary `/terms`; terminology pass; update `BETA_BTC_TEMPORAL_CONTEXT_V0.md` |
 | 4 | coding agent, PR 3 (D7) | everything in `BETA_D7_REGIME_CONTEXT_GATE_V1.md` §§4–5: Binance 1m quote-volume feed, 90-day backfill, state computation, parity tests, display; the gate pointer in `PRIVATE_BETA_V0_RESTART_DECISION.md` |
 | 5 | owner on a copy of the production database | pre-beta readiness check. Already recorded 2026-10-01: `OPEN_INTEREST_RETENTION_48H = PASS` (no retention policy; history far beyond 48h); `OPEN_INTEREST_CONTINUITY_48H = PASS` (48h coverage effectively complete; max gap 1 minute on Binance, Bybit and OKX). Still open: D7 backfill ≥ 1440 valid hours; render every main state and every tab in `ru` and `en` on that database |
 | 6 | owner | deploy, then the soak gate of `PRIVATE_BETA_V0_RESTART_DECISION.md` |

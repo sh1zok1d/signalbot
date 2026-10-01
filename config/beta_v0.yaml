@@ -120,3 +120,12 @@ beta:
     label_extreme: 0.99
     tail_display_max: 0.20                  # signed values: show "top/bottom X%" only within this tail
     last_event_retention_min: 120           # LAST EVENT stays on /btc this long after it ended (presentation)
+  # Presentation only ("Changes vs previous 24h"). Not detection, not the rules digest.
+  horizon_changes:
+    version: BETA_HORIZON_CHANGES_V1
+    range_wider_ratio: 1.5
+    range_narrower_ratio: 0.67
+    volume_higher_ratio: 1.5
+    volume_lower_ratio: 0.67
+    oi_abs_pct_min: 1.0
+    price_abs_pct_min: 1.0

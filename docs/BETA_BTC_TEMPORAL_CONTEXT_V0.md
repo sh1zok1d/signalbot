@@ -124,6 +124,14 @@ Both are pinned in `tests/beta/test_beta_config.py`.
   - the added OHLC aggregation in the Stage-1 `klines_1m` bucket query on a real TimescaleDB hypertable;
   - any real deployment dataset.
 
+## Horizon OI is a view-payload read
+
+OI change over 1h and 24h is not a tape field and not part of `bucket_view`. PR 2 reads Stage-1 `open_interest` as of each window boundary (last row at or before the boundary, at most 2 minutes old, same `oi_unit` and contract value) and stores the venue percents and their median on the `/btc` view payload under `horizons` (`BETA_HORIZON_TOD_V1`). That read does not change the context snapshot shape or `BETA_CONTEXT_1H_V0`.
+
+## PR 1 context-state note
+
+PR 1 added `oi_change_pct_by_venue` to `bucket_view` (context state) without a context version bump. That is acceptable because the owner verified on 2026-10-01 that `beta_context_snapshots` had 0 rows, so no persisted chain predates the field.
+
 ## Deferred
 
 - 15m context and time-of-day normalized thresholds.
@@ -133,4 +141,3 @@ Both are pinned in `tests/beta/test_beta_config.py`.
 - New event families and outcome-based tuning.
 - Editing push messages in place.
 - CPI/FOMC annotation.
-- 1h OI change: per-venue OI first and last values are not on the tape.

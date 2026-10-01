@@ -230,6 +230,30 @@ class BetaConn:
                FROM beta_btc_views WHERE view_pk=$1""", view_pk)
         return None if r is None else {**dict(r), "payload": _load(r["payload"])}
 
+    async def fetch_open_interest_asof(self, *, symbol: str, exchanges: Sequence[str],
+                                       boundaries: Sequence[datetime]) -> dict:
+        """Last ``open_interest`` row at or before each boundary, at most 2 minutes old.
+
+        Mirrors the Stage-1 column set (exchange, symbol, ts, oi_raw, oi_unit) and
+        adds ``contract_value``. One row per (exchange, symbol, ts) in Stage-1.
+        Returns ``{boundary: {exchange: observation or None}}``.
+        """
+        from beta.oi_asof import OI_ASOF_TOLERANCE, pick_oi_asof
+        out = {}
+        for boundary in boundaries:
+            rows = await self.conn.fetch(
+                """SELECT exchange, ts, oi_raw, oi_unit, contract_value
+                   FROM open_interest
+                   WHERE symbol=$1 AND exchange = ANY($2::text[])
+                     AND ts <= $3 AND ts >= $4
+                   ORDER BY exchange, ts DESC""",
+                symbol, list(exchanges), boundary, boundary - OI_ASOF_TOLERANCE)
+            grouped: dict = {}
+            for r in rows:
+                grouped.setdefault(r["exchange"], []).append(dict(r))
+            out[boundary] = {ex: pick_oi_asof(grouped.get(ex, []), boundary) for ex in exchanges}
+        return out
+
     async def insert_details_open(self, *, view_pk: int, tab: str, lang: str, opened_at: datetime) -> None:
         await self.conn.execute(
             """INSERT INTO beta_details_opens (view_pk, tab, lang, opened_at) VALUES ($1,$2,$3,$4)""",

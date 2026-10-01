@@ -202,6 +202,8 @@ _CATALOG: dict[str, dict[str, str]] = {
     "btn_join": {"ru": "Вступить", "en": "Join"},
     "btn_event": {"ru": "Событие", "en": "Event"},
     "btn_1h": {"ru": "1ч", "en": "1h"},
+    "btn_24h": {"ru": "24ч", "en": "24h"},
+    "btn_terms": {"ru": "Термины", "en": "Glossary"},
     "btn_readiness": {"ru": "Готовность", "en": "Readiness"},
     "btn_details": {"ru": "Подробнее", "en": "Details"},
     "btn_useful": {"ru": "Полезно", "en": "Useful"},
@@ -238,8 +240,9 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Бот наблюдает несколько замороженных, детерминированных необычных состояний рынка "
             "и сообщает, когда одно из них наблюдается. Он не говорит, что делать со сделкой.\n\n"
             "/btc — компактное состояние BTC perpetual (спокойно, необычно сейчас, затихло, "
-            "накопление истории или данные неполные). Кнопки открывают измерения.\n"
+            "бот собирает историю или данные неполные). Кнопки открывают измерения.\n"
             "/history — недавние эпизоды детектора, с доставкой или без, с фактическими диапазонами\n"
+            "/terms — термины\n"
             "/lang — язык сообщений\n"
             "/stop — пауза · /delete_me — удалить ваши данные"
         ),
@@ -250,6 +253,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "/btc — compact BTC perpetual state (calm, unusual now, calmed, history building, "
             "or data incomplete). Buttons hold the measurements.\n"
             "/history — recent detector episodes, pushed or not, with factual follow-up ranges\n"
+            "/terms — glossary\n"
             "/lang — message language\n"
             "/stop — pause messages · /delete_me — delete your data"
         ),
@@ -284,7 +288,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "title_unusual": {"ru": "необычно сейчас", "en": "unusual now"},
     "title_calmed": {"ru": "затихло", "en": "calmed"},
     "title_ended": {"ru": "событие завершено", "en": "event ended"},
-    "title_history": {"ru": "накопление истории", "en": "history building"},
+    "title_history": {"ru": "бот собирает историю", "en": "history building"},
     "title_incomplete": {"ru": "данные неполные", "en": "data incomplete"},
     "screen_title": {"ru": "BTC {rest}", "en": "BTC {rest}"},
     "insufficient": {
@@ -341,22 +345,26 @@ _CATALOG: dict[str, dict[str, str]] = {
     "h1_vol": {"ru": "объём {ratio}", "en": "vol {ratio}"},
     "h1_range": {"ru": "диапазон {ratio}", "en": "range {ratio}"},
     "part_price": {"ru": "Цена {arrow}", "en": "Price {arrow}"},
-    "part_oi": {"ru": "ОИ {arrow}", "en": "OI {arrow}"},
+    "part_oi": {"ru": "OI {arrow}", "en": "OI {arrow}"},
     "part_vol": {"ru": "Объём {level}", "en": "Volume {level}"},
-    "part_taker": {"ru": "Тейкер-поток {arrow}", "en": "Taker flow {arrow}"},
+    "part_taker": {"ru": "Delta {arrow}", "en": "Delta {arrow}"},
+    "h_oi": {"ru": "OI {pct}", "en": "OI {pct}"},
+    "h24_incomplete": {"ru": "24ч: неполные данные", "en": "24h: incomplete"},
+    "h24_prefix": {"ru": "24ч: {body}", "en": "24h: {body}"},
+    "h_vol_partial": {"ru": "объём (неполные)", "en": "vol (partial)"},
     "level_elevated": {"ru": "повышенный", "en": "elevated"},
     "level_high": {"ru": "высокий", "en": "high"},
     "level_extreme": {"ru": "экстремальный", "en": "extreme"},
     "level_normal": {"ru": "обычный", "en": "normal"},
-    "oi_fell_drop": {"ru": "ОИ снизился во время падения", "en": "Open interest fell during the drop"},
-    "oi_fell_rise": {"ru": "ОИ снизился во время роста", "en": "Open interest fell during the rise"},
-    "oi_rose_rise": {"ru": "ОИ вырос во время роста", "en": "Open interest rose during the rise"},
-    "oi_rose_drop": {"ru": "ОИ вырос во время падения", "en": "Open interest rose during the drop"},
-    "oi_rose": {"ru": "ОИ вырос", "en": "Open interest rose"},
-    "oi_fell": {"ru": "ОИ снизился", "en": "Open interest fell"},
-    "oi_level": {"ru": "ОИ {level}", "en": "Open interest {level}"},
+    "oi_fell_drop": {"ru": "OI снизился во время падения", "en": "Open interest fell during the drop"},
+    "oi_fell_rise": {"ru": "OI снизился во время роста", "en": "Open interest fell during the rise"},
+    "oi_rose_rise": {"ru": "OI вырос во время роста", "en": "Open interest rose during the rise"},
+    "oi_rose_drop": {"ru": "OI вырос во время падения", "en": "Open interest rose during the drop"},
+    "oi_rose": {"ru": "OI вырос", "en": "Open interest rose"},
+    "oi_fell": {"ru": "OI снизился", "en": "Open interest fell"},
+    "oi_level": {"ru": "OI {level}", "en": "Open interest {level}"},
     "move_liq": {
-        "ru": "{move}, снижение ОИ, повышенные ликвидации {side}",
+        "ru": "{move}, снижение OI, повышенные ликвидации {side}",
         "en": "{move}, falling OI, elevated {side}-side liquidations",
     },
     "move_rise": {"ru": "Рост", "en": "Rise"},
@@ -372,33 +380,33 @@ _CATALOG: dict[str, dict[str, str]] = {
         "en": "{Side}-side liquidations not evaluable",
     },
     "gap_span": {
-        "ru": "История цены/ОИ {span} дн. / {need} дн.",
+        "ru": "История цены/OI {span} дн. / {need} дн.",
         "en": "Price/OI history {span}d / {need}d",
     },
     "gap_maturing": {
-        "ru": "История цены/ОИ ещё накапливается",
+        "ru": "История цены/OI ещё накапливается",
         "en": "Price/OI history still maturing",
     },
     "gap_unavailable": {
-        "ru": "Цену и ОИ сейчас нельзя оценить",
+        "ru": "Цену и OI сейчас нельзя оценить",
         "en": "Price/OI cannot be evaluated right now",
     },
-    "gap_off": {"ru": "Цена и ОИ отключены", "en": "Price/OI is switched off"},
-    "plain_down": {"ru": "необычное падение", "en": "unusual drop"},
-    "plain_up": {"ru": "необычный рост", "en": "unusual rise"},
-    "plain_build": {"ru": "набор ОИ в узком диапазоне", "en": "position build-up"},
+    "gap_off": {"ru": "Цена и OI отключены", "en": "Price/OI is switched off"},
+    "plain_down": {"ru": "резкое падение", "en": "sharp drop"},
+    "plain_up": {"ru": "резкий рост", "en": "sharp rise"},
+    "plain_build": {"ru": "набор OI в узком диапазоне", "en": "OI build-up in a narrow range"},
     "plain_buy": {"ru": "агрессивные покупки", "en": "buyer-initiated flow"},
     "plain_sell": {"ru": "агрессивные продажи", "en": "seller-initiated flow"},
     "plain_liq_long": {"ru": "ликвидации лонгов", "en": "long-side liquidations"},
     "plain_liq_short": {"ru": "ликвидации шортов", "en": "short-side liquidations"},
-    "evt_down": {"ru": "необычное падение цены при снижении ОИ", "en": "price + OI contraction down"},
-    "evt_up": {"ru": "необычный рост цены при снижении ОИ", "en": "price + OI contraction up"},
+    "evt_down": {"ru": "резкое падение цены при снижении OI", "en": "price + OI contraction down"},
+    "evt_up": {"ru": "резкий рост цены при снижении OI", "en": "price + OI contraction up"},
     "evt_build": {
-        "ru": "набор ОИ при сжатом диапазоне",
+        "ru": "набор OI при сжатом диапазоне",
         "en": "position build-up with range compression",
     },
-    "evt_buy": {"ru": "крайний тейкер-поток (агрессивные покупки)", "en": "taker flow extreme (buyer-initiated)"},
-    "evt_sell": {"ru": "крайний тейкер-поток (агрессивные продажи)", "en": "taker flow extreme (seller-initiated)"},
+    "evt_buy": {"ru": "агрессивные покупки", "en": "aggressive buying"},
+    "evt_sell": {"ru": "агрессивные продажи", "en": "aggressive selling"},
     "evt_liq_long": {"ru": "ликвидационный стресс (ликвидации лонгов)", "en": "liquidation stress (long-side liquidations)"},
     "evt_liq_short": {"ru": "ликвидационный стресс (ликвидации шортов)", "en": "liquidation stress (short-side liquidations)"},
     "desc_down": {
@@ -420,12 +428,12 @@ _CATALOG: dict[str, dict[str, str]] = {
                "(bottom 40%) and at least median volume, for 45 consecutive minutes."),
     },
     "desc_buy": {
-        "ru": "Дельта тейкера в верхних 5% последних 30 дней два 5м бакета подряд.",
-        "en": "Taker delta in the top 5% of the last 30 days for two consecutive 5m buckets.",
+        "ru": "Delta в верхних 5% последних 30 дней два 5м бакета подряд.",
+        "en": "Delta in the top 5% of the last 30 days for two consecutive 5m buckets.",
     },
     "desc_sell": {
-        "ru": "Дельта тейкера в нижних 5% последних 30 дней два 5м бакета подряд.",
-        "en": "Taker delta in the bottom 5% of the last 30 days for two consecutive 5m buckets.",
+        "ru": "Delta в нижних 5% последних 30 дней два 5м бакета подряд.",
+        "en": "Delta in the bottom 5% of the last 30 days for two consecutive 5m buckets.",
     },
     "desc_liq_long": {
         "ru": ("Номинал ликвидаций лонгов в верхних 5% собственной 30-дневной истории "
@@ -463,7 +471,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "status_episode": {"ru": "• {name} — {state} (с {when})", "en": "• {name} — {state} (since {when})"},
     "status_context": {"ru": "Контекст (5м, по площадкам)", "en": "Context (5m, cross-venue)"},
     "status_price": {"ru": "движение цены: {v}", "en": "price move: {v}"},
-    "status_oi": {"ru": "изменение ОИ: {v}", "en": "OI change: {v}"},
+    "status_oi": {"ru": "изменение OI: {v}", "en": "OI change: {v}"},
     "status_range": {"ru": "ширина диапазона: {v}", "en": "range width: {v}"},
     "status_volume": {"ru": "объём: {v}", "en": "volume: {v}"},
     "status_ref": {"ru": "сводная цена: {price} ({venues})", "en": "composite close: {price} ({venues})"},
@@ -511,11 +519,11 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "Цена {price} · диапазон {range} · объём {vol}{level}",
         "en": "Price {price} · range {range} · volume {vol}{level}",
     },
-    "anchor_oi": {"ru": "ОИ {med}: {venues}", "en": "OI {med}: {venues}"},
-    "anchor_oi_na": {"ru": "ОИ: {venues}", "en": "OI: {venues}"},
-    "taker_line": {"ru": "Тейкер-поток: {side}, нетто {amt}", "en": "Taker flow: {side}, net {amt}"},
-    "taker_flat": {"ru": "Тейкер-поток: нетто {amt}", "en": "Taker flow: net {amt}"},
-    "taker_na": {"ru": "Тейкер-поток: {na}", "en": "Taker flow: {na}"},
+    "anchor_oi": {"ru": "OI {med}: {venues}", "en": "OI {med}: {venues}"},
+    "anchor_oi_na": {"ru": "OI: {venues}", "en": "OI: {venues}"},
+    "taker_line": {"ru": "Delta: {signed} ({side})", "en": "Delta: {signed} ({side})"},
+    "taker_flat": {"ru": "Delta: $0", "en": "Delta: $0"},
+    "taker_na": {"ru": "Delta: {na}", "en": "Delta: {na}"},
     "taker_buyers": {"ru": "покупатели", "en": "buyers"},
     "taker_sellers": {"ru": "продавцы", "en": "sellers"},
     "liq_line": {"ru": "Ликвидации {side}: {body}", "en": "{Side} liquidations: {body}"},
@@ -536,10 +544,36 @@ _CATALOG: dict[str, dict[str, str]] = {
     "h1_ratio": {"ru": " ({ratio} от обычного для этого часа)", "en": " ({ratio} usual for this hour)"},
     "h1_incomplete_body": {"ru": "1ч: неполные данные", "en": "1h: incomplete"},
     "funding_now": {
-        "ru": "Фандинг сейчас {rate} (медиана бирж)",
+        "ru": "Funding сейчас {rate} (медиана бирж)",
         "en": "Funding now {rate} (venue median)",
     },
-    "funding_na": {"ru": "Фандинг сейчас {na}", "en": "Funding now {na}"},
+    "funding_24h": {
+        "ru": "Funding сейчас {now} · среднее за 24 ч {avg}",
+        "en": "Funding now {now} · 24h average {avg}",
+    },
+    "h24_head": {"ru": "ПОСЛЕДНИЕ 24 Ч · до {hm} {zone}", "en": "LAST 24H · through {hm} {zone}"},
+    "h24_price": {"ru": "Цена {price} · макс {high} · мин {low}", "en": "Price {price} · high {high} · low {low}"},
+    "h24_range": {"ru": "Диапазон {range}{ratio}", "en": "Range {range}{ratio}"},
+    "h24_ratio": {"ru": " ({ratio} от медианы 30 дн.)", "en": " ({ratio} 30d median)"},
+    "h24_volume": {"ru": "Объём {vol}{ratio}", "en": "Volume {vol}{ratio}"},
+    "h24_volume_partial": {"ru": "Объём {vol} (неполные)", "en": "Volume {vol} (partial)"},
+    "changes_head": {"ru": "Изменения к предыдущим 24 ч:", "en": "Changes vs previous 24h:"},
+    "changes_none": {
+        "ru": "Крупных изменений к предыдущим 24 ч нет",
+        "en": "No large change vs previous 24h",
+    },
+    "changes_range_wider": {"ru": "диапазон шире: {a} против {b}", "en": "range wider: {a} vs {b}"},
+    "changes_range_narrower": {"ru": "диапазон уже: {a} против {b}", "en": "range narrower: {a} vs {b}"},
+    "changes_vol_higher": {"ru": "объём выше: {a} против {b}", "en": "volume higher: {a} vs {b}"},
+    "changes_vol_lower": {"ru": "объём ниже: {a} против {b}", "en": "volume lower: {a} vs {b}"},
+    "changes_oi_up_down": {"ru": "OI вырос, пока цена падала", "en": "OI rose while price fell"},
+    "changes_oi_down_down": {"ru": "OI снизился, пока цена падала", "en": "OI fell while price fell"},
+    "changes_oi_up_up": {"ru": "OI вырос, пока цена росла", "en": "OI rose while price rose"},
+    "changes_oi_down_up": {"ru": "OI снизился, пока цена росла", "en": "OI fell while price rose"},
+    "changes_funding_pos": {"ru": "Funding стал положительным", "en": "Funding turned positive"},
+    "changes_funding_neg": {"ru": "Funding стал отрицательным", "en": "Funding turned negative"},
+    "terms_footer": {"ru": "Термины: /terms", "en": "Terms: /terms"},
+    "funding_na": {"ru": "Funding сейчас {na}", "en": "Funding now {na}"},
     "ready_title": {
         "ru": "Готовность детектора — бакет закрыт {when}",
         "en": "Detector readiness — bucket closed {when}",
@@ -551,7 +585,7 @@ _CATALOG: dict[str, dict[str, str]] = {
                "(counted from the earliest valid sample, not from deployment)."),
     },
     "ready_word": {"ru": "готово", "en": "ready"},
-    "ready_building": {"ru": "накопление истории", "en": "history building"},
+    "ready_building": {"ru": "бот собирает историю", "en": "history building"},
     "ready_unavailable": {"ru": "данные недоступны", "en": "data unavailable"},
     "ready_degraded": {"ru": "деградация", "en": "degraded"},
     "ready_disabled": {"ru": "отключено", "en": "disabled"},
@@ -572,16 +606,16 @@ _CATALOG: dict[str, dict[str, str]] = {
         "en": "Read model {ver}. Readiness changes never send notifications.",
     },
     "hist_price": {"ru": "история цены", "en": "price history"},
-    "hist_oi": {"ru": "история ОИ", "en": "OI history"},
+    "hist_oi": {"ru": "история OI", "en": "OI history"},
     "hist_range": {"ru": "история диапазона", "en": "range history"},
     "hist_volume": {"ru": "история объёма", "en": "volume history"},
-    "hist_taker": {"ru": "история тейкер-потока", "en": "taker-flow history"},
+    "hist_taker": {"ru": "история Delta", "en": "Delta history"},
     "hist_liq_long": {"ru": "история ликвидаций лонгов", "en": "long-side liquidation history"},
     "hist_liq_short": {"ru": "история ликвидаций шортов", "en": "short-side liquidation history"},
     "fam_price": {"ru": "цены", "en": "price"},
-    "fam_oi": {"ru": "ОИ", "en": "OI"},
+    "fam_oi": {"ru": "OI", "en": "OI"},
     "fam_volume": {"ru": "объёма", "en": "volume"},
-    "fam_taker": {"ru": "тейкер-потока", "en": "taker flow"},
+    "fam_taker": {"ru": "Delta", "en": "Delta"},
     "reason_venues": {
         "ru": "меньше {n} пригодных площадок для {fam}",
         "en": "fewer than {n} usable venues for {fam}",
@@ -597,4 +631,66 @@ _CATALOG: dict[str, dict[str, str]] = {
     "reason_stale": {"ru": "входы изменились во время оценки", "en": "inputs changed during evaluation"},
     "reason_off": {"ru": "выключено", "en": "switched off"},
     "reason_not_eval": {"ru": "не оценено", "en": "not evaluated"},
+    "terms": {
+        "ru": (
+            "ТЕРМИНЫ\n"
+            "\n"
+            "Состояния\n"
+            "Спокойно — необычных состояний сейчас нет.\n"
+            "Необычно сейчас — открыто одно из событий ниже.\n"
+            "Затихло — событие было в последние 2 ч и закончилось.\n"
+            "Событие завершено — событие прервалось по технической причине (нет данных, лимит длительности, смена версии).\n"
+            "Бот собирает историю — меньше 30 дней данных, сравнивать пока не с чем.\n"
+            "Данные неполные — свежих данных не хватает, отсутствие событий подтвердить нельзя.\n"
+            "\n"
+            "События\n"
+            "Резкий рост / падение — за 5 мин цена прошла больше, чем в 95% пятиминуток за 30 дней, и одновременно OI заметно снизился, минимум на 2 биржах.\n"
+            "Набор OI в узком диапазоне — 45 мин подряд OI растёт сильнее обычного, а цена стоит в узком диапазоне.\n"
+            "Агрессивные покупки / продажи — две пятиминутки подряд Delta в верхних / нижних 5% за 30 дней.\n"
+            "Ликвидации лонгов / шортов — ликвидации одной стороны в верхних 5% за 30 дней, минимум на 2 биржах одновременно.\n"
+            "\n"
+            "Показатели\n"
+            "OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается.\n"
+            "Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот.\n"
+            "Delta — разница между рыночными покупками и продажами в $. Минус — нетто продавали.\n"
+            "Объём — сумма сделок в $ по Binance, Bybit и OKX.\n"
+            "Диапазон — от минимума до максимума цены за период, в % от цены.\n"
+            "Ликвидации — принудительное закрытие позиций биржей, по каждой бирже отдельно.\n"
+            "≥ — нижняя граница: Binance публикует не все ликвидации.\n"
+            "н/д — данных нет или они неполные. Это не ноль.\n"
+            "× от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней.\n"
+            "↑ ↓ — только направление, не сила.\n"
+            "Время — киевское."
+        ),
+        "en": (
+            "TERMS\n"
+            "\n"
+            "States\n"
+            "Calm — no unusual state right now.\n"
+            "Unusual now — one of the events below is open.\n"
+            "Calmed — an event happened in the last 2h and has ended.\n"
+            "Event ended — the event stopped for a technical reason (no data, duration limit, version change).\n"
+            "History building — less than 30 days of data, nothing to compare with yet.\n"
+            "Data incomplete — fresh data is insufficient; the absence of events cannot be confirmed.\n"
+            "\n"
+            "Events\n"
+            "Sharp rise / drop — over 5 min the price moved more than in 95% of 5-minute periods of the last 30 days, while OI fell noticeably, on at least 2 venues.\n"
+            "OI build-up in a narrow range — for 45 min in a row OI grows faster than usual while the price stays in a narrow range.\n"
+            "Aggressive buying / selling — Delta in the top / bottom 5% of the last 30 days for two 5-minute periods in a row.\n"
+            "Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 venues at once.\n"
+            "\n"
+            "Metrics\n"
+            "OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed.\n"
+            "Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse.\n"
+            "Delta — difference between market buys and market sells in $. Negative — net selling.\n"
+            "Volume — total traded value in $ on Binance, Bybit and OKX.\n"
+            "Range — from the lowest to the highest price in the period, in % of the price.\n"
+            "Liquidations — positions force-closed by the exchange, shown per venue.\n"
+            "≥ — lower bound: Binance does not publish every liquidation.\n"
+            "n/a — no data or incomplete data. This is not zero.\n"
+            "× usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median.\n"
+            "↑ ↓ — direction only, not strength.\n"
+            "Time — Kyiv time."
+        ),
+    },
 }

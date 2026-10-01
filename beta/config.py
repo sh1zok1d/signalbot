@@ -57,6 +57,7 @@ _TOP_KEYS = frozenset({
     "same_event_cooldown_min", "delivery_ttl_s", "max_new_pushes_per_utc_day",
     "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
+    "horizon_changes",
 })
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
@@ -94,6 +95,12 @@ _PERCENTILE_KEYS = {
 _EPISODIZATION_KEYS = {"version", "live_hysteresis_enabled"}
 _CONTEXT_KEYS = {"version", "rolling_buckets", "label_elevated", "label_high", "label_extreme",
                  "tail_display_max", "last_event_retention_min"}
+
+# Presentation thresholds for "Changes vs previous 24h". They never enter the
+# rules digest: they do not change detection.
+_HORIZON_CHANGES_KEYS = {"version", "range_wider_ratio", "range_narrower_ratio",
+                         "volume_higher_ratio", "volume_lower_ratio",
+                         "oi_abs_pct_min", "price_abs_pct_min"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
 # cooldown / cap only enter the config digest).
@@ -302,6 +309,7 @@ def _validate(d: Mapping[str, Any]) -> None:
     if rules["LIQUIDATION_STRESS"]["min_eligible_venues"] < 2:
         raise BetaConfigError("LIQUIDATION_STRESS.min_eligible_venues must be >= 2")
     _validate_temporal_context(d)
+    _validate_horizon_changes(d)
 
 
 def _validate_temporal_context(d: Mapping[str, Any]) -> None:
@@ -324,6 +332,32 @@ def _validate_temporal_context(d: Mapping[str, Any]) -> None:
     if not (0.0 < c["tail_display_max"] <= 0.5):
         raise BetaConfigError("context.tail_display_max must be in (0, 0.5]")
     _int(c["last_event_retention_min"], "context.last_event_retention_min", minimum=5)
+
+
+def _positive(value, name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise BetaConfigError(f"{name} must be a positive number, got {value!r}")
+    v = float(value)
+    if not math.isfinite(v) or v <= 0:
+        raise BetaConfigError(f"{name} must be a positive number, got {value!r}")
+    return v
+
+
+def _validate_horizon_changes(d: Mapping[str, Any]) -> None:
+    h = d["horizon_changes"]
+    _exact_keys(h, _HORIZON_CHANGES_KEYS, "horizon_changes")
+    if not isinstance(h["version"], str) or not h["version"].strip():
+        raise BetaConfigError("horizon_changes.version must be a non-empty string")
+    wider = _positive(h["range_wider_ratio"], "horizon_changes.range_wider_ratio")
+    narrower = _positive(h["range_narrower_ratio"], "horizon_changes.range_narrower_ratio")
+    if not (narrower < 1.0 < wider):
+        raise BetaConfigError("horizon_changes range ratios must satisfy narrower < 1 < wider")
+    vol_hi = _positive(h["volume_higher_ratio"], "horizon_changes.volume_higher_ratio")
+    vol_lo = _positive(h["volume_lower_ratio"], "horizon_changes.volume_lower_ratio")
+    if not (vol_lo < 1.0 < vol_hi):
+        raise BetaConfigError("horizon_changes volume ratios must satisfy lower < 1 < higher")
+    _positive(h["oi_abs_pct_min"], "horizon_changes.oi_abs_pct_min")
+    _positive(h["price_abs_pct_min"], "horizon_changes.price_abs_pct_min")
 
 
 # ---- hard switches ---------------------------------------------------------
