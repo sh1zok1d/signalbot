@@ -6847,3 +6847,17 @@ D7_DIRECTIONAL_CONFIRMATION_PASS = unevaluated
 ```
 
 Record: `docs/research/D7_CONFIRMATORY_TARGET_OPENING_V1.md`.
+
+## D7 beacon verifier repair — 2026-10-01
+
+Pre-seed repair. Pulse `1965184` was classified from its preserved bytes: RSA modulus 2048 bits / 256 bytes, signature 512 bytes, `s < n` false. Classification `PULSE_1965184_OBJECTIVELY_INVALID`. The verifier no longer requires a 512-byte signature; PKCS#1 v1.5 length is `ceil(modulus_bits / 8)` of the certificate named by that pulse. Offline regressions: 4096-bit pulse `1923756` (`2026-09-02T12:00:00.000Z`) verifies; pulse `1965184` is rejected; a TEST-ONLY RSA-2048 pulse with a 256-byte signature verifies. No pulse after `1965184` was fetched. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CANDIDATES_AFTER_1965184_FETCHED = false
+NEXT_ACTION = READY_FOR_SEQUENTIAL_NIST_BEACON_SCAN_FROM_AFTER_1965184
+```
+
+Record: `docs/research/D7_BEACON_VERIFIER_REPAIR_V1.md`.
