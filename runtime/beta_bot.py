@@ -171,8 +171,9 @@ class BetaBotHandler:
                             html=f"<pre>{html.escape(res['reply'] or '', quote=False)}</pre>")]
             if res["broadcast"]:
                 out += [_msg(c, res["broadcast"], lang="ru") for c in await conn.active_user_chats()]
-            for dest, text in res.get("direct") or []:
-                out.append(_msg(int(dest), text, lang="ru"))
+            for item in res.get("direct") or []:
+                dest, text, *rest = item
+                out.append(_msg(int(dest), text, lang=rest[0] if rest else "ru"))
             return out
         user = await conn.get_user(uid)
         lang = _lang_of(user)
@@ -209,6 +210,8 @@ class BetaBotHandler:
         if cmd == "help":
             return await self._reply(conn, user, chat_id, lang, now, "cmd_help",
                                      [_msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)])
+        if cmd == "feedback":
+            return await self._feedback(conn, user, chat_id, lang, now, args)
         if cmd == "stop":
             await conn.stop_user(telegram_user_id=uid, now=now)
             return await self._reply(conn, user, chat_id, lang, now, "cmd_stop",
@@ -237,6 +240,47 @@ class BetaBotHandler:
     def _waitlist_offer(self, chat_id: int) -> Outgoing:
         return _msg(chat_id, t("ru", "waitlist_offer"),
                     [[(t("ru", "btn_request_access"), "wl:ask")]], lang="ru")
+
+    async def _welcome(self, conn, lang: str) -> str:
+        from beta.config import effective_push_enabled
+        text = t(lang, "welcome")
+        if effective_push_enabled(self.switches(), await conn.get_admin_push_enabled()):
+            text += "\n" + t(lang, "welcome_push")
+        return text
+
+    async def _feedback(self, conn, user, chat_id, lang, now, args) -> list:
+        text = (args or "").strip()
+        limits = self.cfg.section("feedback")
+        if not text:
+            return [_msg(chat_id, t(lang, "feedback_usage"), lang=lang)]
+        if len(text) > int(limits["max_chars"]):
+            return [_msg(chat_id, t(lang, "feedback_too_long", n=limits["max_chars"]), lang=lang)]
+        day = now.astimezone(timezone.utc).date()
+        sent = await conn.count_feedback_messages_on_utc_day(int(user["user_pk"]), day)
+        if sent >= int(limits["max_per_utc_day"]):
+            return [_msg(chat_id, t(lang, "feedback_daily_limit", n=limits["max_per_utc_day"]), lang=lang)]
+        await conn.insert_feedback_message(user_pk=int(user["user_pk"]), text=text, lang=lang,
+                                           created_at=now)
+        await self._note(conn, user, "cmd_feedback", now)
+        confirm = _msg(chat_id, t(lang, "feedback_thanks"), lang=lang)
+        forward = self._owner_forward(user, lang, now, text)
+        if forward is None:
+            logger.warning("beta feedback forward skipped: owner unavailable")
+            return [confirm]
+        return [confirm, forward]
+
+    def _owner_forward(self, user, lang: str, now: datetime, text: str):
+        """Owner copy of user text. Not passed through assert_descriptive."""
+        if self.owner is None:
+            return None
+        from beta.admin import fingerprint
+        from beta.i18n import fmt_kyiv_date_hm
+        fp = fingerprint(int(user["telegram_user_id"]))
+        when = fmt_kyiv_date_hm(now, "en")
+        body = (f"Feedback · {fp} · {lang} · {when}\n"
+                f"{html.escape(text, quote=False)}\n"
+                f"Reply: /admin_reply {fp} &lt;text&gt;")
+        return Outgoing(kind="message", chat_id=int(self.owner), html=body)
 
     async def _note(self, conn, user, action: str, at: datetime) -> None:
         if not user or user.get("user_pk") is None:
@@ -404,7 +448,8 @@ class BetaBotHandler:
             await conn.join_user(telegram_user_id=uid, chat_id=chat_id, now=self.clock(), lang=lang)
             joined = await conn.get_user(uid)
             await self._note(conn, joined, "cmd_start", self.clock())
-            return [answer(t(lang, "joined")), _msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)]
+            welcome = await self._welcome(conn, lang)
+            return [answer(t(lang, "joined")), _msg(chat_id, welcome, lang=lang)]
         user = await conn.get_user(uid)
         lang = _lang_of(user)
         if data.startswith("set:") and data[4:] in ("ru", "en"):

@@ -57,7 +57,7 @@ _TOP_KEYS = frozenset({
     "same_event_cooldown_min", "delivery_ttl_s", "max_new_pushes_per_utc_day",
     "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
-    "horizon_changes", "access", "telemetry", "regime_d7",
+    "horizon_changes", "access", "telemetry", "feedback", "regime_d7",
 })
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
@@ -105,6 +105,9 @@ _HORIZON_CHANGES_KEYS = {"version", "range_wider_ratio", "range_narrower_ratio",
 # Join cap and activity retention. They never enter the rules digest.
 _ACCESS_KEYS = {"max_active_users"}
 _TELEMETRY_KEYS = {"retention_days", "rejected_start_retention_days"}
+
+# /feedback limits. Presentation only. They never enter the rules digest.
+_FEEDBACK_KEYS = {"max_chars", "max_per_utc_day"}
 
 # D7 regime line. Display only. It never enters the rules digest.
 _REGIME_D7_KEYS = {"enabled"}
@@ -319,6 +322,7 @@ def _validate(d: Mapping[str, Any]) -> None:
     _validate_horizon_changes(d)
     _validate_access(d)
     _validate_telemetry(d)
+    _validate_feedback(d)
     _validate_regime_d7(d)
 
 
@@ -381,6 +385,13 @@ def _validate_telemetry(d: Mapping[str, Any]) -> None:
     _exact_keys(tel, _TELEMETRY_KEYS, "telemetry")
     _int(tel["retention_days"], "telemetry.retention_days", minimum=1)
     _int(tel["rejected_start_retention_days"], "telemetry.rejected_start_retention_days", minimum=1)
+
+
+def _validate_feedback(d: Mapping[str, Any]) -> None:
+    f = d["feedback"]
+    _exact_keys(f, _FEEDBACK_KEYS, "feedback")
+    _int(f["max_chars"], "feedback.max_chars", minimum=1)
+    _int(f["max_per_utc_day"], "feedback.max_per_utc_day", minimum=1)
 
 
 def _validate_regime_d7(d: Mapping[str, Any]) -> None:

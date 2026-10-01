@@ -318,8 +318,8 @@ CREATE TABLE IF NOT EXISTS beta_admin_audit (
         'admin_status', 'admin_users', 'admin_add', 'admin_remove', 'admin_pause_push',
         'admin_resume_push', 'admin_d7_on', 'admin_d7_off', 'admin_broadcast',
         'admin_health', 'admin_invite_new', 'admin_invites', 'admin_invite_revoke',
-        'admin_waitlist', 'admin_waitlist_admit', 'admin_stats', 'user_delete_me',
-        'retention_purge')),
+        'admin_waitlist', 'admin_waitlist_admit', 'admin_stats', 'admin_reply',
+        'user_delete_me', 'retention_purge')),
     authorized          BOOLEAN NOT NULL,
     actor_fingerprint   TEXT NOT NULL,
     target_fingerprint  TEXT,
@@ -452,7 +452,7 @@ ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK 
     'admin_status', 'admin_users', 'admin_add', 'admin_remove', 'admin_pause_push',
     'admin_resume_push', 'admin_d7_on', 'admin_d7_off', 'admin_broadcast', 'admin_health',
     'admin_invite_new', 'admin_invites', 'admin_invite_revoke', 'admin_waitlist',
-    'admin_waitlist_admit', 'admin_stats', 'user_delete_me', 'retention_purge'));
+    'admin_waitlist_admit', 'admin_stats', 'admin_reply', 'user_delete_me', 'retention_purge'));
 
 CREATE TABLE IF NOT EXISTS beta_waitlist (
     telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),
@@ -464,14 +464,45 @@ CREATE TABLE IF NOT EXISTS beta_user_activity (
     user_pk      BIGINT NOT NULL REFERENCES beta_users (user_pk) ON DELETE CASCADE,
     action       TEXT NOT NULL CHECK (action IN (
         'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
-        'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise', 'lang_set',
-        'push_delivered')),
+        'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
+        'lang_set', 'push_delivered')),
     detail       TEXT,
     lang         TEXT CHECK (lang IS NULL OR lang IN ('ru', 'en')),
     at           TIMESTAMPTZ NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_beta_user_activity_at ON beta_user_activity (at);
 CREATE INDEX IF NOT EXISTS ix_beta_user_activity_user_at ON beta_user_activity (user_pk, at);
+
+-- Widen the activity action list. The original column check was unnamed.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_user_activity'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%cmd_start%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_user_activity DROP CONSTRAINT %I', cname);
+    END IF;
+END $$;
+ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CHECK (action IN (
+    'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
+    'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
+    'lang_set', 'push_delivered'));
+
+-- Free-text /feedback. user_pk only; /delete_me cascades. Not the Useful/Noise votes.
+CREATE TABLE IF NOT EXISTS beta_feedback_messages (
+    message_pk  BIGSERIAL PRIMARY KEY,
+    user_pk     BIGINT NOT NULL REFERENCES beta_users (user_pk) ON DELETE CASCADE,
+    text        TEXT NOT NULL,
+    lang        TEXT NOT NULL CHECK (lang IN ('ru', 'en')),
+    created_at  TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_beta_feedback_messages_user_created
+    ON beta_feedback_messages (user_pk, created_at);
+CREATE INDEX IF NOT EXISTS ix_beta_feedback_messages_created
+    ON beta_feedback_messages (created_at);
 
 -- Rejected /start: distinct daily HMAC when a salt is configured, otherwise a
 -- count for the day. Neither table stores a raw Telegram id.

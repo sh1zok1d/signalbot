@@ -41,7 +41,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
     from storage.beta_v0_store import NOTIFIER_LOCK_KEY
     report = {"recovered_unknown": 0, "materialized": 0, "sent": 0, "failed": 0, "unknown": 0,
               "expired": 0, "suppressed": 0, "purged_users": 0, "purged_activity": 0,
-              "purged_rejected_starts": 0, "owner_alerts": []}
+              "purged_feedback_messages": 0, "purged_rejected_starts": 0, "owner_alerts": []}
     if not switches.enabled:
         return {"status": "DISABLED", "switches": switches.as_dict()}
     if not switches.telegram:
@@ -68,6 +68,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 report["purged_users"] += 1
             activity_cutoff = now - timedelta(days=cfg["telemetry"]["retention_days"])
             report["purged_activity"] = await conn.purge_activity_before(activity_cutoff)
+            report["purged_feedback_messages"] = await conn.purge_feedback_messages_before(activity_cutoff)
             rejected_cutoff = now - timedelta(days=cfg["telemetry"]["rejected_start_retention_days"])
             report["purged_rejected_starts"] = await conn.purge_rejected_starts_before(rejected_cutoff)
             push_on = effective_push_enabled(switches, await conn.get_admin_push_enabled())

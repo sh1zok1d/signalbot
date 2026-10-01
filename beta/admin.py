@@ -10,8 +10,9 @@ and can never exceed `regime_d7.enabled`.
 from __future__ import annotations
 
 import hashlib
+import html
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from .access import invite_link
 from .config import BetaConfig, BetaSwitches, effective_d7_enabled, effective_push_enabled
@@ -21,7 +22,7 @@ from .health import health_alerts, ingestion_heartbeat, product_status
 ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "admin_pause_push",
                   "admin_resume_push", "admin_d7_on", "admin_d7_off", "admin_broadcast",
                   "admin_health", "admin_invite_new", "admin_invites", "admin_invite_revoke",
-                  "admin_waitlist", "admin_waitlist_admit", "admin_stats")
+                  "admin_waitlist", "admin_waitlist_admit", "admin_stats", "admin_reply")
 UNAUTHORIZED_ACTOR = "unauthorized"
 
 
@@ -35,6 +36,25 @@ def fingerprint(telegram_user_id: Optional[int]) -> str:
 def is_owner(owner_user_id: Optional[int], telegram_user_id: Optional[int]) -> bool:
     return owner_user_id is not None and telegram_user_id is not None \
         and int(owner_user_id) == int(telegram_user_id)
+
+
+def classify_fingerprint(rows: Sequence[Mapping], fp: str):
+    """ACTIVE rows whose fingerprint equals `fp`. Empty or more than one is not a send."""
+    hits = [r for r in rows if fingerprint(r.get("telegram_user_id")) == fp]
+    if not hits:
+        return "UNKNOWN", []
+    if len(hits) > 1:
+        return "AMBIGUOUS", hits
+    return "OK", hits
+
+
+def parse_admin_reply(args: str):
+    """`<fingerprint> <text>`. The fingerprint is the first token."""
+    fp, _, text = (args or "").strip().partition(" ")
+    fp, text = fp.strip(), text.strip()
+    if not fp or not text:
+        return None
+    return fp, text
 
 
 def parse_command(text: Optional[str]):
@@ -233,6 +253,28 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                 direct = [(uid, t("ru", "access_granted"))]
                 reply = "already allowlisted" if added == "ALREADY" else f"admitted {target}"
             detail = {"result": added}
+    elif command == "admin_reply":
+        parsed = parse_admin_reply(args)
+        if parsed is None:
+            result, reply = "INVALID_ARGUMENT", "usage: /admin_reply <fingerprint> <text>"
+        else:
+            fp, body = parsed
+            target = fp
+            status, hits = classify_fingerprint(await conn.active_user_rows(), fp)
+            if status != "OK":
+                result = status
+                reply = "unknown fingerprint" if status == "UNKNOWN" else "ambiguous fingerprint"
+            else:
+                lang = hits[0].get("lang") or "ru"
+                try:
+                    assert_descriptive(body, lang)
+                except ForbiddenWordingError as exc:
+                    result, reply = "REFUSED_WORDING", f"refused: {exc}"
+                else:
+                    from .i18n import t
+                    shown = t(lang, "team_reply") + html.escape(body, quote=False)
+                    direct = [(int(hits[0]["chat_id"]), shown, lang)]
+                    reply = f"delivered to {fp}"
     elif command == "admin_stats":
         from .usage import build_usage_report, format_usage_report
         report = build_usage_report(await conn.usage_facts(), now=now, owner_user_id=owner_user_id)

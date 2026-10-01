@@ -489,6 +489,9 @@ class _Conn(_CM):
     async def mark_privacy_notice_seen(self, *_a, **_k):
         return None
 
+    async def get_admin_push_enabled(self):
+        return False
+
 
 class _Store:
     def __init__(self, conn):
@@ -513,10 +516,10 @@ def _cb(uid, data, update_id, message_id=None):
 
 def test_start_and_lang_choice():
     from runtime.beta_bot import BetaBotHandler
-    from beta_fakes import Clock
+    from beta_fakes import Clock, ON
     conn = _Conn()
     conn.allow.add(2)
-    h = BetaBotHandler(_Store(conn), CFG, switches=lambda: None, owner_user_id=1,
+    h = BetaBotHandler(_Store(conn), CFG, switches=lambda: ON, owner_user_id=1,
                        clock=Clock(datetime(2026, 6, 15, tzinfo=timezone.utc)))
 
     async def go():

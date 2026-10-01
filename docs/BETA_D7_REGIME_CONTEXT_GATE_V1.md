@@ -137,7 +137,12 @@ None. D7 never triggers or changes a notification.
 
 1. The D7 confirmation records are on `main`. Satisfied 2026-10-01: the stack was merged (`466346d`, PR #262 and its predecessors).
 2. The owner approved D7 in `/btc` (2026-10-01). The §2 strings are recorded here.
-3. Both parity tests (§4) pass.
+3. Both parity tests (§4) pass. Satisfied 2026-10-01.
+
+Run 2026-10-01 by the reviewing agent against PR #269 head eea406c.
+Source: data.binance.vision futures/um monthly klines BTCUSDT 1m, 2020-01 to 2024-12, 60 files, each verified against Binance .CHECKSUM. No 2025+ file was downloaded. Raw monthly CSVs from the same archive as CORE_BTC_BINANCE_V0, not the pinned parquet snapshot bytes.
+Compared research aggregate_completed_hours/build_d7_states against beta/regime_d7.py on identical bars: minute bars 2,630,880; complete hours 43,848; hours with a defined state 42,407; state mismatches 0; qrel/impact numeric mismatches 0; share of state = true 0.1072.
+No next-hour or outcome statistic was computed.
 4. Warm-up is complete on the deployed database: at least 1440 valid hours in `beta_d7_hour_states`.
 5. `docs/PRIVATE_BETA_V0_RESTART_DECISION.md` gets a pointer that decision 7 is satisfied for this claim only. `docs/DOCUMENTATION_INDEX.md` marks this gate active.
 
