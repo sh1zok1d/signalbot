@@ -635,6 +635,7 @@ Delta — разница между рыночными покупками и п�
 Диапазон — от минимума до максимума цены за период, в % от цены.
 Ликвидации — принудительное закрытие позиций биржей, по каждой бирже отдельно.
 ≥ — нижняя граница: Binance публикует не все ликвидации.
+$0* — ноль по неполным данным: это не значит, что ликвидаций не было.
 н/д — данных нет или они неполные. Это не ноль.
 × от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней. Сравнение появляется, когда накоплено 20 дней истории.
 ↑ ↓ — только направление, не сила.
@@ -665,6 +666,7 @@ Volume — total traded value in $ on Binance, Bybit and OKX.
 Range — from the lowest to the highest price in the period, in % of the price.
 Liquidations — positions force-closed by the exchange, shown per venue.
 ≥ — lower bound: Binance does not publish every liquidation.
+$0* — zero from incomplete data: it does not mean there were no liquidations.
 n/a — no data or incomplete data. This is not zero.
 × usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median. The comparison appears once 20 days of history are collected.
 ↑ ↓ — direction only, not strength.

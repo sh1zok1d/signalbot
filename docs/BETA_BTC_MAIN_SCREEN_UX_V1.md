@@ -59,7 +59,8 @@ Derived in the formatter from the existing view. Internal headlines stay in the 
 ## 4. What stays on Main
 
 - The presentation title, with the price when it exists.
-- For an open or retained episode: the short plain name, how long ago it ended, and whether it is still active or has ended. Reading line from the **anchor bucket**: one arrow for direction, volume as the frozen level word (`normal` omitted), then the factual OI sentence. No short-covering or long-unwind narrative.
+- For an open or retained episode: the short plain name and whether it is still active or has ended. Reading line from the **anchor bucket**: one arrow for direction, volume as the frozen level word (`normal` omitted), then the factual OI sentence. No short-covering or long-unwind narrative.
+- **One time reference** (amended 2026-10-01 after the owner's live review). An ended event is one line: the Kyiv window of the whole qualifying run, the plain name, when it ended and how long ago: `14:00–14:10: sharp drop · ended 14:15, 7m ago` / `14:00–14:10: резкое падение · завершилось в 14:15, 7 мин назад`. The run starts at the first qualifying bucket (the episode opens when the streak reaches its entry streak, so for build-up that is two buckets before it opens). The reading line names its 5m bucket: `5m 14:05–14:10: Price ↓ · OI ↓`. When the title already says `calmed`, the data line does not repeat `Event has ended`; it still names the technical endings (gap, not evaluable, version change, duration cap).
 - The `1h` and `24h` lines on every non-fail-closed screen, including calm. Incomplete window: `1ч: неполные данные` / `1h: incomplete` and `24ч: неполные данные` / `24h: incomplete`. Immature baseline: `н/д` / `n/a` in place of the ratio. A 24h volume that is not 288/288 prints `(неполные)` / `(partial)` and no ratio. A field that cannot be computed is dropped, never shown as 0. OI on these lines is the median of venue percents from the Stage-1 as-of read, never a USD sum.
 - Status and data-through share one line: `Still active · data 15:10 Kyiv` / `Ещё активно · данные 15:10 (Киев)`.
 - The disclaimer, once. Russian text: `Экспериментальная закрытая бета. Только описание состояния рынка — не инвестиционный совет и не указание к сделке.`
@@ -83,7 +84,7 @@ Russian: `Текущих данных недостаточно: отсутств
 
 ### Event tab
 
-Anchor bucket only. The duplicated "Now" 5m block is gone. Per-venue OI percents come from the anchor snapshot's `venue_raw.oi_change_pct`, persisted on the anchor view. Volume uses the frozen level word, including `normal`. Liquidations are per venue (§7 of the multi-horizon document): Binance amounts are prefixed `≥` with the one-line footnote; a missing per-venue value prints `н/д` / `n/a`, never `$0`. Venue names are `Binance · Bybit · OKX`. Last line: `Термины: /terms` / `Terms: /terms`. Episode and view ids stay in the payload and are not printed. No percentile ranks, no `EARLY` / `ARMED` / `TRIGGERED`, no version strings in the body.
+Anchor bucket only. The duplicated "Now" 5m block is gone. Per-venue OI percents come from the anchor snapshot's `venue_raw.oi_change_pct`, persisted on the anchor view. Volume uses the frozen level word, including `normal`. Liquidations are per venue (§7 of the multi-horizon document): positive Binance amounts are prefixed `≥` with the one-line footnote, and a Binance zero prints `$0*` with its own footnote; `Still active · since` and `Why it was noticed` both start at the first qualifying bucket and cover the whole run, and the metrics are headed by their 5m bucket; a missing per-venue value prints `н/д` / `n/a`, never `$0`. Venue names are `Binance · Bybit · OKX`. Last line: `Термины: /terms` / `Terms: /terms`. Episode and view ids stay in the payload and are not printed. No percentile ranks, no `EARLY` / `ARMED` / `TRIGGERED`, no version strings in the body.
 
 ### 1h tab
 
@@ -123,7 +124,7 @@ No notable event in the last 2h · data 14:05 Kyiv
 
 ```
 BTC 83,500 · unusual now
-Price ↓ · OI ↓
+5m 14:05–14:10: Price ↓ · OI ↓
 Open interest fell during the drop
 1h: −0.8% · vol 2.1× · range 2.3× · OI −0.6%
 24h: −1.9% · vol 1.3× · OI +2.1%
@@ -144,14 +145,16 @@ data 14:10 Kyiv
 
 ```
 EVENT · sharp drop
-Still active · since 14:05 Kyiv
-Why it was noticed (14:05–14:10):
+Still active · since 14:00 Kyiv
+Why it was noticed (14:00–14:10):
+Readings for the 5m bucket 14:05–14:10:
   Price −0.50% · range 0.62% · volume $310M (high)
   OI −0.42%: Binance −0.61% · Bybit −0.35% · OKX −0.12%
   Delta: −$41M (sellers)
   Long liquidations: Binance ≥$2.1M · Bybit $3.4M · OKX $600K
-  Short liquidations: Binance ≥$0 · Bybit $0 · OKX $0
+  Short liquidations: Binance $0* · Bybit $0 · OKX $0
 ≥ — lower bound: Binance does not report every liquidation.
+* — $0 from incomplete data: it does not mean there were no liquidations.
 Terms: /terms
 ```
 

@@ -350,13 +350,36 @@ def _retention_phrase(cfg, lang: str) -> str:
     return _dur(m, lang)
 
 
-def _ago_phrase(view: Mapping[str, Any], ep: Mapping[str, Any], lang: str) -> str:
-    minutes = (_dt(view["requested_at"]) - _dt(ep["terminal_at"])).total_seconds() / 60
+def _run_start(cfg, ep: Mapping[str, Any]) -> Optional[datetime]:
+    """First qualifying bucket of the run. The episode opens when the streak
+    reaches its entry streak, so the run began entry_streak - 1 buckets earlier."""
+    if not ep.get("opened_bucket"):
+        return None
+    from .detector import lifecycle
+    return _dt(ep["opened_bucket"]) - (lifecycle(cfg, ep["event_type"]).entry_streak - 1) * timedelta(minutes=5)
+
+
+def _run_window(cfg, ep: Mapping[str, Any]) -> Optional[str]:
+    """Kyiv window of the whole qualifying run, to the end of the last qualifying
+    bucket. None for a record without bucket bounds."""
+    start = _run_start(cfg, ep)
+    if start is None or not ep.get("last_bucket"):
+        return None
+    return _window_kyiv(start.isoformat(), ep["last_bucket"])
+
+
+def _ago_phrase(cfg, view: Mapping[str, Any], ep: Mapping[str, Any], lang: str) -> str:
+    """One time reference: when the condition held, when it ended, how long ago."""
+    end = _dt(ep["terminal_at"])
+    minutes = (_dt(view["requested_at"]) - end).total_seconds() / 60
     m = int(max(0, round(minutes)))
     name = plain_name(ep["event_type"], lang)
+    window = _run_window(cfg, ep)
+    if window is None:
+        return t(lang, "ago_just", name=name) if m == 0 else t(lang, "ago", dur=_dur(m, lang), name=name)
     if m == 0:
-        return t(lang, "ago_just", name=name)
-    return t(lang, "ago", dur=_dur(m, lang), name=name)
+        return t(lang, "ended_run_just", window=window, name=name, hm=fmt_kyiv_hm(end))
+    return t(lang, "ended_run", window=window, name=name, hm=fmt_kyiv_hm(end), dur=_dur(m, lang))
 
 
 def _core_gap_line(rd: Optional[Mapping[str, Any]], lang: str) -> Optional[str]:
@@ -381,12 +404,13 @@ def _core_gap_line(rd: Optional[Mapping[str, Any]], lang: str) -> Optional[str]:
 def _noticed_lines(cfg, view, ep, lang: str, *, active: bool) -> list:
     lines = []
     if not active:
-        lines.append(_ago_phrase(view, ep, lang))
+        lines.append(_ago_phrase(cfg, view, ep, lang))
     anchor = (ep.get("anchor") or {}).get("view")
     if anchor is None:
         lines.append(t(lang, "measurements_missing"))
         return lines
-    lines.append(_reading_line(cfg, ep["event_type"], anchor, lang))
+    reading = _reading_line(cfg, ep["event_type"], anchor, lang)
+    lines.append(t(lang, "bucket_reading", window=_window_kyiv(anchor["bucket_ts"]), reading=reading))
     why = _why_line(cfg, ep["event_type"], anchor, lang)
     if why:
         lines.append(why)
@@ -415,6 +439,8 @@ def _after_status(view, ep, last, lang: str) -> Optional[str]:
         return t(lang, _DATA_END[reason])
     if reason == "MAX_DURATION":
         return t(lang, "ended_cap")
+    if reason == "CONDITION_FAILED":
+        return None          # the title says "calmed" and the event line says when it ended
     return t(lang, "event_ended_line")
 
 
@@ -536,10 +562,10 @@ def _taker_text(value, lang: str) -> str:
 
 
 def _fmt_liq_body(per_venue: Mapping[str, Mapping[str, Any]], lang: str) -> tuple:
-    """Returns (text, any_lower_bound)."""
+    """Returns (text, (any_lower_bound, any_incomplete_zero))."""
     order = [ex for ex in ("binance", "bybit", "okx") if ex in per_venue] or list(per_venue)
     bits = []
-    lower = False
+    lower = zero = False
     for ex in order:
         cell = per_venue[ex]
         name = venue_name(ex)
@@ -547,12 +573,16 @@ def _fmt_liq_body(per_venue: Mapping[str, Mapping[str, Any]], lang: str) -> tupl
             bits.append(f"{name} {na(lang)}")
             continue
         amt = fmt_usd(cell["amount"], lang)
-        if cell.get("lower_bound"):
+        if cell.get("lower_bound") and cell["amount"] > 0:
             lower = True
             bits.append(f"{name} ≥{amt}")
+        elif cell.get("lower_bound"):
+            # "at least $0" says nothing: an incomplete zero is marked, not bounded.
+            zero = True
+            bits.append(f"{name} {amt}*")
         else:
             bits.append(f"{name} {amt}")
-    return " · ".join(bits) if bits else na(lang), lower
+    return " · ".join(bits) if bits else na(lang), (lower, zero)
 
 
 def _anchor_liq_map(anchor_view: Mapping[str, Any]) -> dict:
@@ -572,12 +602,17 @@ def _anchor_liq_map(anchor_view: Mapping[str, Any]) -> dict:
 
 def _liq_lines(venues_by_side: Mapping[str, Mapping], lang: str) -> tuple:
     lines = []
-    lower = False
+    lower = zero = False
     for side, name_key in (("long", "liq_long_name"), ("short", "liq_short_name")):
-        body, hit = _fmt_liq_body(venues_by_side.get(side) or {}, lang)
-        lower = lower or hit
+        body, (hit, hit_zero) = _fmt_liq_body(venues_by_side.get(side) or {}, lang)
+        lower, zero = lower or hit, zero or hit_zero
         lines.append(t(lang, "liq_line", side=t(lang, name_key), Side=t(lang, name_key), body=body))
-    return lines, lower
+    return lines, (lower, zero)
+
+
+def _liq_footnotes(marks: tuple, lang: str) -> list:
+    lower, zero = marks
+    return ([t(lang, "liq_footnote")] if lower else []) + ([t(lang, "liq_zero_footnote")] if zero else [])
 
 
 def format_event_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str = "--------") -> str:
@@ -589,13 +624,15 @@ def format_event_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: s
     if ep.get("terminal_at"):
         lines.append(t(lang, "event_ended_at", clock=fmt_clock(_dt(ep["terminal_at"]), lang)))
     else:
-        opened = ep.get("opened_at") or ep.get("opened_bucket")
-        lines.append(t(lang, "event_since", clock=fmt_clock(_dt(opened), lang)))
+        start = _run_start(cfg, ep)       # same start as the "why" window below
+        opened = start if start is not None else _dt(ep.get("opened_at") or ep.get("opened_bucket"))
+        lines.append(t(lang, "event_since", clock=fmt_clock(opened, lang)))
     anchor = (ep.get("anchor") or {}).get("view")
     if anchor is None:
         lines.append(t(lang, "measurements_missing"))
     else:
-        lines.append(t(lang, "why_window", window=_window_kyiv(anchor["bucket_ts"])))
+        lines.append(t(lang, "why_window", window=_run_window(cfg, ep) or _window_kyiv(anchor["bucket_ts"])))
+        lines.append(t(lang, "bucket_head", window=_window_kyiv(anchor["bucket_ts"])))
         price = (anchor.get("price_move_pct") or {}).get("value")
         rng = (anchor.get("range_width_pct") or {}).get("value")
         vol = (anchor.get("volume_notional_usd") or {}).get("value")
@@ -615,8 +652,8 @@ def format_event_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: s
     others = view.get("other_active") or []
     if view.get("active_episode") is not None and others:
         lines.append(t(lang, "also_open", names=", ".join(plain_name(et, lang) for et, _st in others)))
-    if anchor is not None and lower:
-        lines.append(t(lang, "liq_footnote"))
+    if anchor is not None:
+        lines.extend(_liq_footnotes(lower, lang))
     lines.append(t(lang, "terms_footer"))
     return _ok("\n".join(lines), lang)
 
@@ -722,7 +759,7 @@ def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str 
     else:
         window = "—"
     lines = [f"<b>{_e(t(lang, 'h1_head', window=window, zone=t(lang, 'zone')))}</b>"]
-    lower = False
+    lower = (False, False)
     if not block or not block.get("complete"):
         lines.append(t(lang, "h1_incomplete_body"))
     else:
@@ -753,8 +790,7 @@ def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str 
         lines.append(t(lang, "funding_na", na=na(lang)) if funding is None
                      else t(lang, "funding_now", rate=fmt_funding(funding, lang)))
     lines.extend(_d7_tab_lines(view, lang))
-    if lower:
-        lines.append(t(lang, "liq_footnote"))
+    lines.extend(_liq_footnotes(lower, lang))
     lines.append(t(lang, "terms_footer"))
     return _ok("\n".join(lines), lang)
 
@@ -767,7 +803,7 @@ def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str
     else:
         hm = "—"
     lines = [f"<b>{_e(t(lang, 'h24_head', hm=hm, zone=t(lang, 'zone')))}</b>"]
-    lower = False
+    lower = (False, False)
     if not block:
         lines.append(t(lang, "h24_incomplete"))
     else:
@@ -807,8 +843,7 @@ def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str
             now=na(lang) if now is None else fmt_funding(now, lang),
             avg=na(lang) if avg is None else fmt_funding(avg, lang)))
         lines.extend(_changes_lines(block, lang))
-    if lower:
-        lines.append(t(lang, "liq_footnote"))
+    lines.extend(_liq_footnotes(lower, lang))
     lines.append(t(lang, "terms_footer"))
     return _ok("\n".join(lines), lang)
 

@@ -176,8 +176,9 @@ Still active · data 15:10 Kyiv
 
 ```
 СОБЫТИЕ · резкое падение
-Ещё активно · с 14:55 (Киев)
-Почему замечено (15:05–15:10):
+Ещё активно · с 14:50 (Киев)
+Почему замечено (14:50–15:10):
+Показатели за 5м 15:05–15:10:
   Цена −0,50% · диапазон 0,62% · объём $310 млн (высокий)
   OI −0,42%: Binance −0,61% · Bybit −0,35% · OKX −0,12%
   Delta: −$41 млн (продавцы)
@@ -271,12 +272,13 @@ Funding сейчас 0,006% · среднее за 24 ч 0,009%
 
 1. **Per venue, never summed across venues.** This is the existing principle in `beta/context.py`: venues differ in feed quality, and a sum would hide that.
 2. **Binance is a lower bound.** Binance's `forceOrder` stream sends at most one liquidation per symbol per second (`liquidations.is_snapshot_feed`, `storage/schema.sql`), so it under-counts during cascades.
-   - Every Binance amount is printed with `≥`.
+   - Every positive Binance amount is printed with `≥`.
    - Each tab that prints one ends with the one-line footnote `≥ — нижняя граница: Binance передаёт не все ликвидации.` / `≥ — lower bound: Binance does not report every liquidation.`
+   - A lower-bound amount of exactly zero is printed `$0*`, not `≥$0` (which states nothing). The tab then ends with `* — $0 по неполным данным: это не значит, что ликвидаций не было.` / `* — $0 from incomplete data: it does not mean there were no liquidations.` (amended 2026-10-01 after the owner's live review).
 3. **Missing is not zero.**
    - A venue whose liquidation feed was unhealthy at any point in the window, or that has no data for it, prints `н/д` / `n/a`, never `$0`.
    - `$0` is printed only when the feed was healthy and nothing was liquidated.
-4. **Incomplete windows are lower bounds.** If the window has missing buckets (the 24h completeness rule allows up to 6), every venue's amount in that window gets `≥`.
+4. **Incomplete windows are lower bounds.** If the window has missing buckets (the 24h completeness rule allows up to 6), every positive venue amount in that window gets `≥`; a zero gets `$0*` as in point 2.
 5. **Sides:** long and short are separate lines, named by the side that was liquidated. There is no long/short ratio and no reading of what the liquidations mean.
 6. **Main screen:** no liquidation amounts. The existing liquidation event line ("Long-side liquidations 2/3 venues") is unchanged.
 

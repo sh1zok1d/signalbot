@@ -98,11 +98,11 @@ def test_last_event_ready_renders_the_compact_target_shape():
     out = format_btc(CFG, v)
     assert out.split("\n\n<i>")[0].split("\n") == [
         "<b>BTC 83,500 · calmed</b>",
-        "22m ago: sharp rise",
-        "Price ↑ · OI ↓",
+        "14:00–14:05: sharp rise · ended 14:10, 22m ago",
+        "5m 14:00–14:05: Price ↑ · OI ↓",
         "Open interest fell during the rise",
         "1h: −0.0% · vol n/a · range n/a",
-        "Event has ended · data 14:10 Kyiv"]
+        "data 14:10 Kyiv"]
     _assert_compact(out)
     assert btc_buttons(v, view_pk=1)[0][0] == ("Event", "o:1:event")
     assert ("1h", "o:1:1h") in btc_buttons(v, view_pk=1)[0]
@@ -114,9 +114,13 @@ def test_terminated_episode_is_last_event_and_now_is_a_different_bucket():
     v = _view(states)
     assert v["headline"] == "NO ACTIVE EVENTS" and v["active_episode"] is None
     out = format_btc(CFG, v)
-    assert "BTC 83,500 · calmed" in out and "just ended: sharp drop" in out
-    assert "Price ↓ · OI ↓" in out and "Open interest fell during the drop" in out
-    assert "Event has ended · data 14:15 Kyiv" in out
+    assert "BTC 83,500 · calmed" in out
+    # One time reference: the whole qualifying run (two 5m buckets), when it ended, how long ago.
+    assert "14:00–14:10: sharp drop · ended 14:15, just now" in out
+    # The arrows say which 5m bucket they describe.
+    assert "5m 14:05–14:10: Price ↓ · OI ↓" in out and "Open interest fell during the drop" in out
+    # "calmed" already says it ended; no second "Event has ended".
+    assert "data 14:15 Kyiv" in out and "Event has ended" not in out
     assert "TRIGGERED" not in out and "ARMED" not in out
     assert "Price +0.21%" not in out
     d = format_context_details(CFG, v["last_event"], states[-1])
@@ -449,3 +453,64 @@ def test_format_btc_still_enforces_assert_descriptive():
     v = _view(states)
     with pytest.raises(ForbiddenWordingError):
         format_btc(CFG, {**v, "headline": "BUY NOW"})
+
+
+# ---- one time reference per event (owner report 2026-10-01) --------------------------------------
+def _taker_ended_view(minutes_after):
+    liq = {("binance", "long_liquidation_notional"): (0.0, 0.1),
+           ("binance", "short_liquidation_notional"): (37400.0, 0.5)}
+    states, _ = run([snap({"taker": 0.99}, {"taker": 2e6}, liq=liq),
+                     snap({"taker": 0.99}, {"taker": 9e6}, liq=liq),     # strongest bucket
+                     snap(QUIET, liq=liq)])
+    return states, _view(states, minutes_after=minutes_after)
+
+
+def test_ended_event_uses_one_time_reference_and_labels_the_bucket():
+    states, v = _taker_ended_view(7)
+    assert v["last_event"]["terminal_reason"] == "CONDITION_FAILED"
+    out = re.sub(r"<[^>]+>", "", format_btc(CFG, v))
+    # The run is both qualifying buckets 14:00–14:10; it ended 14:15, 7 minutes before the request.
+    assert "14:00–14:10: buyer-initiated flow · ended 14:15, 7m ago" in out
+    assert "7m ago: buyer-initiated flow" not in out
+    # Arrows name the 5m bucket they come from (the strongest one).
+    assert "5m 14:05–14:10: Delta ↑" in out
+    assert "· calmed" in out and "Event has ended" not in out
+    ru = re.sub(r"<[^>]+>", "", format_btc(CFG, v, "ru"))
+    assert "14:00–14:10: агрессивные покупки · завершилось в 14:15, 7 мин назад" in ru
+    assert "5м 14:05–14:10: Delta ↑" in ru and "Событие завершено" not in ru
+
+
+def test_event_tab_window_is_the_whole_run_and_metrics_name_their_bucket():
+    states, v = _taker_ended_view(7)
+    d = format_context_details(CFG, v["last_event"], states[-1])
+    assert "Why it was noticed (14:00–14:10):" in d
+    assert "Readings for the 5m bucket 14:05–14:10:" in d
+    assert "Strongest observed bucket" not in d
+    ru = format_context_details(CFG, v["last_event"], states[-1], "ru")
+    assert "Почему замечено (14:00–14:10):" in ru and "Показатели за 5м 14:05–14:10:" in ru
+
+
+def test_binance_zero_is_marked_incomplete_not_bounded_below():
+    states, v = _taker_ended_view(7)
+    d = format_context_details(CFG, v["last_event"], states[-1])
+    assert "Binance $0*" in d and "≥$0" not in d
+    assert "Binance ≥$37" in d
+    assert "≥ — lower bound:" in d and "* — $0 from incomplete data" in d
+    ru = format_context_details(CFG, v["last_event"], states[-1], "ru")
+    assert "Binance $0*" in ru and "≥$0" not in ru and "* — $0 по неполным данным" in ru
+
+
+def test_run_window_starts_at_the_first_qualifying_bucket_for_late_entry_events():
+    # Build-up opens at streak 3, so the run began two buckets before the episode opened.
+    states, _ = run([snap(BUILDUP)] * 4)
+    ep = states[-1]["open"]["POSITION_BUILDUP_COMPRESSION"]
+    assert cx._ts(ep["opened_bucket"]) == T0 + 2 * BUCKET
+    d = format_context_details(CFG, ep, states[-1])
+    assert "Why it was noticed (14:00–14:20):" in d
+
+
+def test_active_event_since_and_window_share_the_run_start():
+    states, _ = run([snap(DOWN), snap(DOWN)])
+    ep = states[-1]["open"]["PRICE_OI_CONTRACTION_DOWN"]
+    d = format_context_details(CFG, ep, states[-1])
+    assert "Still active · since 14:00 Kyiv" in d and "Why it was noticed (14:00–14:10):" in d
