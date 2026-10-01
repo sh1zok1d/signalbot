@@ -6978,3 +6978,41 @@ NEXT_UNIT = TWAP_FOOTPRINT_OUTCOME_BLIND_FEASIBILITY
 ```
 
 Record: `docs/research/DECISION_LAYER_RESEARCH_PROGRAM_V0.md`.
+
+## D7 campaign close — 2026-10-01
+
+Closeout record only. No new scientific outcome. The D7 campaign is closed:
+- discovery `D7_PROMISING_PROTOTYPE`;
+- BitMEX confirmation `CONFIRMED_UNDER_MAINTAINED_ASSUMPTIONS`, sealed `b4efa972…`;
+- one beta claim through `BETA_D7_REGIME_CONTEXT_GATE_V1`.
+
+Claim scope: the baseline matched year × four RV quartiles. Persistence beyond within-bucket volatility and relative volume was not tested.
+
+```
+D7_CAMPAIGN_CLOSED = true
+D7_RERUN_AUTHORIZED = false
+D7_SECOND_SEED_AUTHORIZED = false
+D7_CHILD_CARDS_AUTHORIZED = false
+D7_LIVE_HIT_RATE_MONITORING = NOT_AUTHORIZED
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+```
+
+Record: `docs/research/D7_CAMPAIGN_CLOSE_V1.md`.
+
+## Hypothesis evaluation contract V1 review — 2026-10-01
+
+Desk review only. No market file was opened and no historical verdict changed. 19 recorded objects were replayed under V1 using recorded numbers:
+- 0 failures turned into support;
+- D12 and C013 would be `HETEROGENEOUS_UNEXPLAINED` (2024 share 0.60; 2020 share 0.69 with two opposite-sign years);
+- D7 needs a claim-scope note, and D11 needs a prior-volatility baseline before any confirmation.
+
+The red team found nine paths, each closed by a contract rule. Only `SUPPORTED_UNCONDITIONAL` and `SUPPORTED_CONDITIONAL` are promotable, and only after time-disjoint replication, the frequency gate and a claim-specific gate.
+
+```
+V1_RED_TEAM = PASS_WITH_CLOSING_RULES
+V1_STATUS = READY_FOR_OWNER_ADOPTION
+NEXT_UNIT = OWNER_ADOPTION_OF_HYPOTHESIS_EVALUATION_CONTRACT_V1
+```
+
+Records: `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW.{md,json}`, `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1.md`.

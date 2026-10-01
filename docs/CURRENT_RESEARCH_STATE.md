@@ -1,3 +1,31 @@
+## D7 campaign closed; evaluation contract V1 reviewed — 2026-10-01
+
+`D7_CAMPAIGN_CLOSED = true`
+`HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW = COMPLETE`
+`V1_STATUS = READY_FOR_OWNER_ADOPTION`
+`HISTORICAL_VERDICTS_CHANGED = false`
+`NEXT_UNIT = OWNER_ADOPTION_OF_HYPOTHESIS_EVALUATION_CONTRACT_V1`
+
+**D7 is closed.** Discovery on Binance, confirmation on BitMEX (`b4efa972…`), and one beta claim. No rerun, no second seed, and no D7 child cards. The record notes the claim's scope: persistence beyond within-bucket volatility and relative volume was not tested.
+
+**The review replayed 19 recorded objects under V1.** Results:
+- no failure turns into support;
+- D12 and C013 would be `HETEROGENEOUS_UNEXPLAINED` (stricter than the recorded verdicts);
+- D7 and D11 have an incomplete nuisance baseline.
+
+The red team found nine possible new false-positive paths, each closed by a rule in the contract.
+
+**After adoption:**
+1. GV0R02 compiler and generator contract mapping.
+2. A fresh generator shadow campaign with a new run ID.
+
+The TWAP footprint feasibility unit is outcome-blind and continues. Its preregistration will be the first card under V1.
+
+Records:
+- `docs/research/D7_CAMPAIGN_CLOSE_V1.{md,json}`
+- `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW.{md,json}`
+- `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1.md`
+
 ## Decision-layer research program V0 — owner decision — 2026-10-01
 
 `BETA_SCOPE_FROZEN_AS_IS = true`

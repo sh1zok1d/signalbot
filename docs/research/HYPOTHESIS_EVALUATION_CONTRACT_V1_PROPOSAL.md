@@ -3,6 +3,7 @@
 **Status:** `DEFERRED` · `PROPOSED / DEFERRED_UNTIL_D7_CAMPAIGN_CLOSE`
 **Recorded:** 2026-09-30
 **Authority:** none. This file does not change how any hypothesis is evaluated today.
+**Reviewed 2026-10-01:** see `HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW.md`. The contract text, ready for owner adoption, is `HYPOTHESIS_EVALUATION_CONTRACT_V1.md`.
 
 ```
 ACTIVE_CONTRACT_CHANGED   = false

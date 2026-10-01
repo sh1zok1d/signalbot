@@ -1,3 +1,18 @@
+## Post-D7 gate run — 2026-10-01
+
+D7 is closed (`D7_CAMPAIGN_CLOSE_V1`). `HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW` is complete, and `HYPOTHESIS_EVALUATION_CONTRACT_V1.md` is ready for owner adoption.
+
+Order after adoption:
+1. GV0R02 compiler and generator feasibility-contract mapping to V1.
+2. A fresh Generator V0 shadow campaign under a new run ID, with an orthogonal-family slot plan.
+3. A shortlist of at most 5.
+4. The feasibility compiler.
+5. One or two preregistrations.
+6. One-shot discovery.
+7. Time-disjoint confirmation.
+
+The TWAP footprint program (`DECISION_LAYER_RESEARCH_PROGRAM_V0.md`) continues outcome-blind. Its preregistration is frozen under V1.
+
 ## Decision-layer research program V0 — 2026-10-01
 
 `NEXT_UNIT = TWAP_FOOTPRINT_OUTCOME_BLIND_FEASIBILITY`. The owner decision, the closed Delta arm (H05), the scoped evaluation profile and the TWAP card design are in `docs/research/DECISION_LAYER_RESEARCH_PROGRAM_V0.md`. The scoped profile covers this program only. `HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW` remains the gate for any other new card, generator campaign or discovery sprint.
