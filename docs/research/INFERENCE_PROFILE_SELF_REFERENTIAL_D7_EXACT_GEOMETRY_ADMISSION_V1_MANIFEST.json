@@ -1,0 +1,168 @@
+{
+  "B_T": 721,
+  "CONFIRMATORY_RNG_GENERATED": false,
+  "D7_EXACT_GEOMETRY_ADMISSION_STARTED": false,
+  "ELIGIBLE_COUNT_AFTER_GAP": 576,
+  "ELIGIBLE_COUNT_BEFORE_GAP": 3503,
+  "ELIGIBLE_INDEX_GAP_BREAK": 3503,
+  "H_mechanical": 721,
+  "L_T": 721,
+  "N": 1600,
+  "R": 999,
+  "T": 30354,
+  "artifact_paths": {
+    "manifest": "/opt/cursor/artifacts/official_d7_geometry_admission_v1/MANIFEST.json",
+    "result": "/opt/cursor/artifacts/official_d7_geometry_admission_v1/RESULT.json",
+    "seeds": "/opt/cursor/artifacts/official_d7_geometry_admission_v1/SEEDS.json",
+    "started": "/opt/cursor/artifacts/official_d7_geometry_admission_v1/STARTED.json",
+    "worlds": "/opt/cursor/artifacts/official_d7_geometry_admission_v1/worlds.jsonl"
+  },
+  "candidate_total_K": 3438,
+  "cell_margins": {
+    "2016:0": {
+      "candidate_n": 82,
+      "eligible_n": 1064
+    },
+    "2016:1": {
+      "candidate_n": 140,
+      "eligible_n": 1080
+    },
+    "2016:2": {
+      "candidate_n": 119,
+      "eligible_n": 942
+    },
+    "2016:3": {
+      "candidate_n": 82,
+      "eligible_n": 993
+    },
+    "2017:0": {
+      "candidate_n": 24,
+      "eligible_n": 2106
+    },
+    "2017:1": {
+      "candidate_n": 147,
+      "eligible_n": 2104
+    },
+    "2017:2": {
+      "candidate_n": 341,
+      "eligible_n": 2120
+    },
+    "2017:3": {
+      "candidate_n": 697,
+      "eligible_n": 2427
+    },
+    "2018:0": {
+      "candidate_n": 2,
+      "eligible_n": 2377
+    },
+    "2018:1": {
+      "candidate_n": 41,
+      "eligible_n": 2218
+    },
+    "2018:2": {
+      "candidate_n": 235,
+      "eligible_n": 2113
+    },
+    "2018:3": {
+      "candidate_n": 596,
+      "eligible_n": 2051
+    },
+    "2019:0": {
+      "candidate_n": 7,
+      "eligible_n": 2268
+    },
+    "2019:1": {
+      "candidate_n": 124,
+      "eligible_n": 2234
+    },
+    "2019:2": {
+      "candidate_n": 319,
+      "eligible_n": 2084
+    },
+    "2019:3": {
+      "candidate_n": 482,
+      "eligible_n": 2173
+    }
+  },
+  "chunk_size": 1,
+  "code_identity": {
+    "HEAD": "e69fc5c56ba9d4c5d31915f44b30cebf66c5275b",
+    "STATISTICAL_IMPLEMENTATION_CHANGED": false,
+    "audited_HEAD": "ebb26aca6ed37c12bbf3b3f578973d3078407d99",
+    "branch": "cursor/d7-eligible-index-gap-break-v1-c58d",
+    "tree": "b0af5849359a125c467e0dcd897b9a5f715bbcd7",
+    "working_tree": "clean"
+  },
+  "declared_cells": 16,
+  "derivation_rule_sha256": "b3c041b174fa206fc328d540cd00395e3d632d583c4cf03ee5fb0a06ac469162",
+  "dgp_adaptation": {
+    "c_2017_3": "1303466975560557/6906517788685370",
+    "c_2019_3": "-1/4",
+    "cancelling": "envelope pair 2017:3 and 2019:3; generic c string does not change the coefficient",
+    "g_m": 0,
+    "label_markov": "MARKOV_16_PUBLISHED_WEIGHTS",
+    "labels_except_markov": "CONTIGUOUS_PUBLISHED_MARGINS",
+    "ma_cells_by_param": {
+      "q=1|theta=0.40": [
+        "2017:3",
+        "2018:3",
+        "2019:3"
+      ],
+      "q=2|theta=0.30,0.20": [
+        "2017:3",
+        "2018:3"
+      ],
+      "q=4|theta=0.20,0.15,0.10,0.05": [
+        "2017:3",
+        "2018:3"
+      ]
+    },
+    "probability_replacement": "published pi_s = candidate_n / eligible_n",
+    "variance_and_iid": "independent Bernoulli(pi_s); generic variance pair is replaced"
+  },
+  "dgp_ids": [
+    "CANCELLING_CELLS|c=0.02/0.7|ADAPTER_EXACT_GEOMETRY",
+    "CANCELLING_CELLS|c=0.05/0.7|ADAPTER_EXACT_GEOMETRY",
+    "CANCELLING_CELLS|c=0.10/0.7|ADAPTER_EXACT_GEOMETRY",
+    "IID_BERNOULLI|p=0.25|ADAPTER_EXACT_GEOMETRY",
+    "INTERLACED_LAG2|rho=0.25|ADAPTER_EXACT_GEOMETRY",
+    "INTERLACED_LAG2|rho=0.50|ADAPTER_EXACT_GEOMETRY",
+    "INTERLACED_LAG2|rho=0.75|ADAPTER_EXACT_GEOMETRY",
+    "INTERLACED_LAG2|rho=0.90|ADAPTER_EXACT_GEOMETRY",
+    "INTERLACED_LAG2|rho=0|ADAPTER_EXACT_GEOMETRY",
+    "LABEL_MARKOV|stay=0.50|ADAPTER_EXACT_GEOMETRY",
+    "LABEL_MARKOV|stay=0.80|ADAPTER_EXACT_GEOMETRY",
+    "LABEL_MARKOV|stay=0.95|ADAPTER_EXACT_GEOMETRY",
+    "MA_EVEN|q=1|theta=0.40|ADAPTER_EXACT_GEOMETRY",
+    "MA_EVEN|q=2|theta=0.30,0.20|ADAPTER_EXACT_GEOMETRY",
+    "MA_EVEN|q=4|theta=0.20,0.15,0.10,0.05|ADAPTER_EXACT_GEOMETRY",
+    "VARIANCE_REGIMES|p=0.05,0.40|ADAPTER_EXACT_GEOMETRY",
+    "VARIANCE_REGIMES|p=0.10,0.50|ADAPTER_EXACT_GEOMETRY"
+  ],
+  "document": "OFFICIAL_D7_GEOMETRY_ADMISSION_MANIFEST",
+  "draw_batch_size": 64,
+  "extractor_sha256": "84e0c19b37c60fe2639e1db570b0869580409a94f4077870a374e7c1197f814a",
+  "gap_half_open": "[2016-12-06T23:55:00.000Z, 2016-12-07T23:55:00.000Z)",
+  "geometry_json_sha256": "0d767e248f06ec58279384ba73789d8f01fe8abdb8bc8c782025aab71692c6ea",
+  "geometry_md_sha256": "09f77beceb64d41311b3ab21dba6426a9fa8abe556e7184c403409a934fb37c0",
+  "master_seed_canonical_sha256": "566a1039833df6da74c6f808a51c9fd8adede3d40d256d59c9c9691e8ac32df1",
+  "purpose": "D7_EXACT_GEOMETRY_ADMISSION",
+  "seed_derivation": "HMAC-SHA256(master_validation_seed, suite, configuration, world_index, purpose)",
+  "source_canonical_gz_sha256": "33ab5c738aca3d7e58ea0bea8d575cc631d931a484b909025f5f3fc5e68b282c",
+  "structural_segments": [
+    3503,
+    26851
+  ],
+  "suite_id": "D7_GEOMETRY_ADMISSION",
+  "threshold": 95,
+  "workers": 4,
+  "world_generator_spawn_key": [
+    1
+  ],
+  "year_masses": {
+    "2016": 4079,
+    "2017": 8757,
+    "2018": 8759,
+    "2019": 8759
+  }
+}

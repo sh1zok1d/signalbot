@@ -1,0 +1,8 @@
+{
+  "D7_EXACT_GEOMETRY_ADMISSION_STARTED": true,
+  "HEAD": "e69fc5c56ba9d4c5d31915f44b30cebf66c5275b",
+  "manifest_sha256": "907059b383f2b4278326ed1aa9d8e89a937d66089be40a75fddc95064afa73db",
+  "seeds_sha256": "2fdf7e3bfeae290ee6bdc26d0dc4131ea0b65fe28eea24eeecd12dcd45a70f30",
+  "timestamp_utc": "2026-09-30T16:41:18Z",
+  "workers": 4
+}
