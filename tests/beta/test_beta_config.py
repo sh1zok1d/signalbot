@@ -62,6 +62,16 @@ def test_unsupported_state_schema_version_is_rejected():
         BetaConfig.load().with_overrides(state_schema_version=3)
 
 
+def test_access_and_telemetry_do_not_enter_the_rules_digest():
+    raw = _raw()
+    raw["access"] = {"max_active_users": 7}
+    raw["telemetry"] = {"retention_days": 90, "rejected_start_retention_days": 14}
+    c = BetaConfig.from_mapping(raw)
+    assert c.rules_digest == PINNED_RULES_DIGEST
+    assert c["access"]["max_active_users"] == 7
+    assert c.config_digest != BetaConfig.load().config_digest
+
+
 def test_horizon_changes_do_not_enter_the_rules_digest():
     raw = _raw()
     changed = dict(raw["horizon_changes"])

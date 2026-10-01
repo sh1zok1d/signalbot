@@ -129,3 +129,11 @@ beta:
     volume_lower_ratio: 0.67
     oi_abs_pct_min: 1.0
     price_abs_pct_min: 1.0
+  # Join cap. Not detection, not the rules digest. The owner is exempt.
+  access:
+    max_active_users: 20
+  # Per-user activity retention (beta plus 90 days). Not the rules digest.
+  # Rejected /start rows (hashes or a daily count) are purged separately.
+  telemetry:
+    retention_days: 120
+    rejected_start_retention_days: 30

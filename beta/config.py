@@ -57,7 +57,7 @@ _TOP_KEYS = frozenset({
     "same_event_cooldown_min", "delivery_ttl_s", "max_new_pushes_per_utc_day",
     "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
-    "horizon_changes",
+    "horizon_changes", "access", "telemetry",
 })
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
@@ -101,6 +101,10 @@ _CONTEXT_KEYS = {"version", "rolling_buckets", "label_elevated", "label_high", "
 _HORIZON_CHANGES_KEYS = {"version", "range_wider_ratio", "range_narrower_ratio",
                          "volume_higher_ratio", "volume_lower_ratio",
                          "oi_abs_pct_min", "price_abs_pct_min"}
+
+# Join cap and activity retention. They never enter the rules digest.
+_ACCESS_KEYS = {"max_active_users"}
+_TELEMETRY_KEYS = {"retention_days", "rejected_start_retention_days"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
 # cooldown / cap only enter the config digest).
@@ -310,6 +314,8 @@ def _validate(d: Mapping[str, Any]) -> None:
         raise BetaConfigError("LIQUIDATION_STRESS.min_eligible_venues must be >= 2")
     _validate_temporal_context(d)
     _validate_horizon_changes(d)
+    _validate_access(d)
+    _validate_telemetry(d)
 
 
 def _validate_temporal_context(d: Mapping[str, Any]) -> None:
@@ -358,6 +364,19 @@ def _validate_horizon_changes(d: Mapping[str, Any]) -> None:
         raise BetaConfigError("horizon_changes volume ratios must satisfy lower < 1 < higher")
     _positive(h["oi_abs_pct_min"], "horizon_changes.oi_abs_pct_min")
     _positive(h["price_abs_pct_min"], "horizon_changes.price_abs_pct_min")
+
+
+def _validate_access(d: Mapping[str, Any]) -> None:
+    a = d["access"]
+    _exact_keys(a, _ACCESS_KEYS, "access")
+    _int(a["max_active_users"], "access.max_active_users", minimum=1)
+
+
+def _validate_telemetry(d: Mapping[str, Any]) -> None:
+    tel = d["telemetry"]
+    _exact_keys(tel, _TELEMETRY_KEYS, "telemetry")
+    _int(tel["retention_days"], "telemetry.retention_days", minimum=1)
+    _int(tel["rejected_start_retention_days"], "telemetry.rejected_start_retention_days", minimum=1)
 
 
 # ---- hard switches ---------------------------------------------------------

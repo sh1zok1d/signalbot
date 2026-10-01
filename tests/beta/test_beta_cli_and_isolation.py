@@ -16,7 +16,7 @@ BETA_FILES = sorted((REPO / "beta").glob("*.py")) + sorted((REPO / "runtime").gl
 
 
 @pytest.mark.parametrize("flag", ["--beta-bootstrap", "--beta-once", "--beta-status", "--beta-outcomes-once",
-                                  "--beta-notify-once", "--beta-health"])
+                                  "--beta-notify-once", "--beta-health", "--beta-usage-report"])
 def test_each_beta_command_parses_alone(flag):
     args = main.parse_args([flag, "--beta-json"])
     assert is_beta_command(args)
@@ -118,7 +118,7 @@ def test_status_and_health_are_read_only():
         db = Database(TEST_DSN)
         await db.connect()
         try:
-            for flag in ("--beta-status", "--beta-health"):
+            for flag in ("--beta-status", "--beta-health", "--beta-usage-report"):
                 rep = await run_beta_cli_command(main.parse_args([flag, "--beta-json"]), db=db, env={})
                 assert rep["status"] == "NOT_INITIALIZED"
             assert await admin.fetchval("SELECT count(*) FROM pg_tables WHERE schemaname='public'") == 0
@@ -128,7 +128,7 @@ def test_status_and_health_are_read_only():
             snapshot_sql = ("SELECT (SELECT count(*) FROM beta_runtime_health), (SELECT count(*) FROM beta_state_tape), "
                             "(SELECT count(*) FROM beta_admin_audit), (SELECT count(*) FROM beta_detector_watermark)")
             before = tuple(await admin.fetchrow(snapshot_sql))
-            for flag in ("--beta-status", "--beta-health"):
+            for flag in ("--beta-status", "--beta-health", "--beta-usage-report"):
                 rep = await run_beta_cli_command(main.parse_args([flag, "--beta-json"]), db=db, env={})
                 assert rep["status"] in ("OK", "ALERTS")
             assert tuple(await admin.fetchrow(snapshot_sql)) == before == (0, 0, 0, 0)

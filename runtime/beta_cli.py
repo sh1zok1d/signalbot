@@ -24,8 +24,8 @@ from beta.config import BetaConfig, BetaSecrets, BetaSwitches, resolve_switches
 BETA_CODE_PATHS = ("beta", "runtime/beta_cli.py", "runtime/beta_bot.py", "storage/beta_v0_store.py",
                    "storage/beta_v0_schema.sql", "config/beta_v0.yaml")
 BETA_COMMAND_FLAGS = ("beta_bootstrap", "beta_once", "beta_status", "beta_outcomes_once",
-                      "beta_notify_once", "beta_health")
-READ_ONLY_COMMANDS = ("beta_status", "beta_health")
+                      "beta_notify_once", "beta_health", "beta_usage_report")
+READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report")
 
 
 class BetaCliError(RuntimeError):
@@ -47,6 +47,8 @@ def add_beta_arguments(parser) -> None:
                    help="Beta V0.2: one notification outbox pass.")
     g.add_argument("--beta-health", action="store_true",
                    help="Beta V0.2: READ-ONLY health report.")
+    g.add_argument("--beta-usage-report", action="store_true",
+                   help="Beta V0.2: READ-ONLY usage report (fingerprints only).")
     parser.add_argument("--beta-bucket-ts", default=None,
                         help="Explicit ISO-8601 UTC 5m bucket open (--beta-once only).")
     parser.add_argument("--beta-json", action="store_true",
@@ -207,12 +209,17 @@ def _command_name(args) -> str:
 async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
                     resolve_feature_code_version, metadata_fetch_json, sender, env) -> dict:
     from beta.admin import collect_health, collect_status
-    if args.beta_status or args.beta_health:
+    if args.beta_status or args.beta_health or args.beta_usage_report:
         store = db.beta_store()
         async with store.connect() as conn:
             if not await conn.schema_present():
                 return {"status": "NOT_INITIALIZED"}
             now = clock()
+            if args.beta_usage_report:
+                from beta.usage import build_usage_report
+                owner = BetaSecrets.from_env(env).owner_user_id
+                usage = build_usage_report(await conn.usage_facts(), now=now, owner_user_id=owner)
+                return {"status": "OK", "usage": usage}
             if args.beta_health:
                 h = await collect_health(conn, cfg, switches, now)
                 return {"status": "OK" if not h["alerts"] else "ALERTS", "health": h}

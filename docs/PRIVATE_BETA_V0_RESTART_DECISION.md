@@ -116,6 +116,10 @@ If fewer than about one useful TRIGGERED event occurs every 2–3 days, stop bef
 
 There is no public bot.
 
+### Owner amendment (2026-10-01)
+
+Skip the "2–3 traders" and "5–10 traders" rollout steps. After the soak gate, external users join through invite codes up to a cap of 20 active users. No public bot. Push rollout (owner-only live push first) and the exit criteria are unchanged. Telemetry rows are kept 120 days (beta + 90 days), then purged.
+
 ## Beta success and exit criteria (frozen before inviting external users)
 
 - **Duration:** 4 weeks from the first external user.

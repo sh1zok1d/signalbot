@@ -305,7 +305,7 @@ The thresholds are presentation constants in `config/beta_v0.yaml`. They are ver
 | 4 | coding agent, PR 3 (D7) | everything in `BETA_D7_REGIME_CONTEXT_GATE_V1.md` §§4–5: Binance 1m quote-volume feed, 90-day backfill, state computation, parity tests, display; the gate pointer in `PRIVATE_BETA_V0_RESTART_DECISION.md` |
 | 5 | owner on a copy of the production database | pre-beta readiness check. Already recorded 2026-10-01: `OPEN_INTEREST_RETENTION_48H = PASS` (no retention policy; history far beyond 48h); `OPEN_INTEREST_CONTINUITY_48H = PASS` (48h coverage effectively complete; max gap 1 minute on Binance, Bybit and OKX). Still open: D7 backfill ≥ 1440 valid hours; render every main state and every tab in `ru` and `en` on that database |
 | 6 | owner | deploy, then the soak gate of `PRIVATE_BETA_V0_RESTART_DECISION.md` |
-| 7 | owner | invite 3–5 Russian-speaking intraday traders; watch unprompted returns, `beta_details_opens` per tab, and feedback |
+| 7 | owner | invite codes, up to 20 active users; watch unprompted returns, `beta_details_opens` per tab, and feedback |
 
 **Acceptance for each PR:**
 - full-body render tests in `ru` and `en` for each main state and tab, including STALE, DEGRADED, history-building, incomplete-window, immature-baseline, and liquidation-feed-missing cases;

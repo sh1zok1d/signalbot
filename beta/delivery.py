@@ -40,7 +40,8 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                           clock, owner_user_id: Optional[int] = None, logger=None) -> dict:
     from storage.beta_v0_store import NOTIFIER_LOCK_KEY
     report = {"recovered_unknown": 0, "materialized": 0, "sent": 0, "failed": 0, "unknown": 0,
-              "expired": 0, "suppressed": 0, "purged_users": 0, "owner_alerts": []}
+              "expired": 0, "suppressed": 0, "purged_users": 0, "purged_activity": 0,
+              "purged_rejected_starts": 0, "owner_alerts": []}
     if not switches.enabled:
         return {"status": "DISABLED", "switches": switches.as_dict()}
     if not switches.telegram:
@@ -65,6 +66,10 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                                             actor_fingerprint="system", target_fingerprint=fingerprint(uid),
                                             result="OK")
                 report["purged_users"] += 1
+            activity_cutoff = now - timedelta(days=cfg["telemetry"]["retention_days"])
+            report["purged_activity"] = await conn.purge_activity_before(activity_cutoff)
+            rejected_cutoff = now - timedelta(days=cfg["telemetry"]["rejected_start_retention_days"])
+            report["purged_rejected_starts"] = await conn.purge_rejected_starts_before(rejected_cutoff)
             push_on = effective_push_enabled(switches, await conn.get_admin_push_enabled())
             episodes: dict = {}
             for row in await conn.fetch_pending_deliveries(cfg["notifications"]["max_deliveries_per_run"]):
@@ -111,8 +116,12 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                                                    error_summary=type(exc).__name__)
                     report["unknown"] += 1
                     continue
-                await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_SENT, now=clock(),
+                sent_at = clock()
+                await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_SENT, now=sent_at,
                                                message_id=int(message_id))
+                if row.get("user_pk") is not None:
+                    await conn.record_activity(user_pk=row["user_pk"], action="push_delivered",
+                                               lang=lang, at=sent_at)
                 report["sent"] += 1
             # this run is itself the notifier heartbeat (recorded before evaluating alerts)
             await conn.record_health("notifier", now=clock(), success=True)

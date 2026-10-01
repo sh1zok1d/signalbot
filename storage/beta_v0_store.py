@@ -5,18 +5,24 @@ tables (klines_1m / connectivity_events) and the Stage-2 capability registry
 read-only. Every method runs on ONE explicit connection (`BetaConn`), so callers
 can group a bucket's writes into ONE transaction.
 
-PRIVACY: Telegram identifiers are only ever written to beta_allowlist /
-beta_users; no method logs them.
+PRIVACY: Telegram identifiers are written to beta_allowlist, beta_users, and
+beta_waitlist (only after the request button). Activity rows store user_pk, not
+a Telegram id. A rejected /start stores an HMAC or a daily count. No method logs
+an identifier.
 """
 from __future__ import annotations
 
 import contextlib
 import json
-from datetime import date, datetime, timedelta
+import logging
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
+from beta.access import PRIVACY_NOTICE_VERSION, generate_invite_code, rejected_hmac
 from beta.models import Episode, TapeRecord
+
+logger = logging.getLogger("beta.store")
 
 BETA_SCHEMA_PATH = Path(__file__).resolve().parent / "beta_v0_schema.sql"
 SCHEMA_LOCK_KEY = "beta_v0_schema_init"
@@ -27,6 +33,7 @@ DETECTOR_LOCK_KEY = 7_311_000_001
 OUTCOMES_LOCK_KEY = 7_311_000_002
 NOTIFIER_LOCK_KEY = 7_311_000_003
 BOT_LOCK_KEY = 7_311_000_004
+ACCESS_LOCK_KEY = 7_311_000_005
 
 _EPISODE_COLS = """episode_pk, public_id, symbol, event_type, state, opened_bucket, opened_at,
     armed_at, triggered_at, terminal_at, terminal_reason, rules_version, rules_digest,
@@ -638,20 +645,25 @@ class BetaConn:
 
     async def get_user(self, telegram_user_id: int):
         r = await self.conn.fetchrow(
-            "SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang "
-            "FROM beta_users WHERE telegram_user_id=$1", telegram_user_id)
+            """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
+                      invite_code, privacy_notice_version
+               FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
     async def join_user(self, *, telegram_user_id: int, chat_id: int, now: datetime,
                         lang: str = "ru") -> int:
         return await self.conn.fetchval(
             """INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at,
-                   joined_at, lang)
-               VALUES ($1,$2,'ACTIVE',$3,$3,$4)
+                   joined_at, lang, invite_code, privacy_notice_version)
+               VALUES ($1,$2,'ACTIVE',$3,$3,$4,
+                   (SELECT invite_code FROM beta_allowlist WHERE telegram_user_id=$1), $5)
                ON CONFLICT (telegram_user_id) DO UPDATE SET status='ACTIVE', stopped_at=NULL,
                    chat_id=EXCLUDED.chat_id, privacy_accepted_at=EXCLUDED.privacy_accepted_at,
-                   lang=EXCLUDED.lang, updated_at=now()
-               RETURNING user_pk""", telegram_user_id, chat_id, now, lang)
+                   lang=EXCLUDED.lang, updated_at=now(),
+                   privacy_notice_version=EXCLUDED.privacy_notice_version,
+                   invite_code=COALESCE(beta_users.invite_code, EXCLUDED.invite_code)
+               RETURNING user_pk""",
+            telegram_user_id, chat_id, now, lang, PRIVACY_NOTICE_VERSION)
 
     async def set_user_lang(self, telegram_user_id: int, lang: str) -> bool:
         status = await self.conn.execute(
@@ -666,14 +678,250 @@ class BetaConn:
         return status == "UPDATE 1"
 
     async def delete_participant(self, telegram_user_id: int) -> dict:
-        """Delete the participant's personal beta records: user row (feedback
-        cascades; delivery rows keep only an anonymous NULL user_pk) and the
-        allowlist entry. Market/event records contain no identity and remain."""
+        """Delete the participant's personal beta records: user row (feedback and
+        activity cascade; delivery rows keep only an anonymous NULL user_pk), the
+        allowlist entry, and the waitlist row. Market/event records contain no
+        identity and remain."""
+        activity = int(await self.conn.fetchval(
+            """SELECT count(*) FROM beta_user_activity a
+               JOIN beta_users u USING (user_pk) WHERE u.telegram_user_id=$1""",
+            telegram_user_id))
         users = await self.conn.execute("DELETE FROM beta_users WHERE telegram_user_id=$1",
                                         telegram_user_id)
         allow = await self.conn.execute("DELETE FROM beta_allowlist WHERE telegram_user_id=$1",
                                         telegram_user_id)
-        return {"users": int(users.split()[-1]), "allowlist": int(allow.split()[-1])}
+        wait = await self.conn.execute("DELETE FROM beta_waitlist WHERE telegram_user_id=$1",
+                                       telegram_user_id)
+        return {"users": int(users.split()[-1]), "allowlist": int(allow.split()[-1]),
+                "waitlist": int(wait.split()[-1]), "activity": activity}
+
+    async def mark_privacy_notice_seen(self, telegram_user_id: int, version: int) -> None:
+        await self.conn.execute(
+            "UPDATE beta_users SET privacy_notice_version=$2, updated_at=now() "
+            "WHERE telegram_user_id=$1", telegram_user_id, version)
+
+    # ------------------------------------------------- invites / access cap
+    async def _lock_access(self) -> None:
+        await self.conn.execute("SELECT pg_advisory_xact_lock($1)", ACCESS_LOCK_KEY)
+
+    async def _allowlist_count_excluding_owner(self, owner_user_id: Optional[int]) -> int:
+        if owner_user_id is None:
+            return int(await self.conn.fetchval("SELECT count(*) FROM beta_allowlist"))
+        return int(await self.conn.fetchval(
+            "SELECT count(*) FROM beta_allowlist WHERE telegram_user_id <> $1", int(owner_user_id)))
+
+    async def _allowlist_locked(self, telegram_user_id: int, max_active_users: int,
+                                owner_user_id: Optional[int], invite_code: Optional[str]) -> str:
+        """Caller holds the access lock. Returns OK, ALREADY, or CAP."""
+        if await self.allowlist_contains(telegram_user_id):
+            return "ALREADY"
+        exempt = owner_user_id is not None and int(telegram_user_id) == int(owner_user_id)
+        if not exempt:
+            n = await self._allowlist_count_excluding_owner(owner_user_id)
+            if n >= int(max_active_users):
+                return "CAP"
+        status = await self.conn.execute(
+            "INSERT INTO beta_allowlist (telegram_user_id, invite_code) VALUES ($1,$2) "
+            "ON CONFLICT DO NOTHING", int(telegram_user_id), invite_code)
+        return "OK" if status.endswith(" 1") else "ALREADY"
+
+    async def allowlist_with_cap(self, telegram_user_id: int, *, max_active_users: int,
+                                 owner_user_id: Optional[int],
+                                 invite_code: Optional[str] = None) -> str:
+        """Allowlist one user under the active-user cap. The owner is exempt."""
+        async with self.transaction():
+            await self._lock_access()
+            return await self._allowlist_locked(telegram_user_id, max_active_users,
+                                                owner_user_id, invite_code)
+
+    async def redeem_invite(self, code: str, telegram_user_id: int, now: datetime,
+                            max_active_users: int, owner_user_id: Optional[int]) -> str:
+        """One transaction: lock, validate the code, allowlist, increment used_count.
+
+        Returns OK, ALREADY, CAP, MISSING, REVOKED, EXPIRED, or EXHAUSTED.
+        ALREADY does not increment used_count. The owner skips only the cap.
+        """
+        async with self.transaction():
+            await self._lock_access()
+            row = await self.conn.fetchrow(
+                """SELECT max_uses, used_count, expires_at, revoked_at
+                   FROM beta_invites WHERE code=$1 FOR UPDATE""", code)
+            if row is None:
+                return "MISSING"
+            if row["revoked_at"] is not None:
+                return "REVOKED"
+            if row["expires_at"] is not None and row["expires_at"] <= now:
+                return "EXPIRED"
+            if int(row["used_count"]) >= int(row["max_uses"]):
+                return "EXHAUSTED"
+            outcome = await self._allowlist_locked(
+                telegram_user_id, max_active_users, owner_user_id, code)
+            if outcome != "OK":
+                return outcome
+            await self.conn.execute(
+                "UPDATE beta_invites SET used_count = used_count + 1 WHERE code=$1", code)
+            return "OK"
+
+    async def create_invite(self, *, label: str, max_uses: int, now: datetime,
+                            expires_at: Optional[datetime] = None) -> str:
+        label = (label or "").strip()
+        if not label or int(max_uses) <= 0:
+            raise ValueError("invalid invite")
+        import asyncpg
+        for _ in range(8):
+            code = generate_invite_code()
+            try:
+                async with self.transaction():
+                    await self.conn.execute(
+                        """INSERT INTO beta_invites (code, label, max_uses, created_at, expires_at)
+                           VALUES ($1,$2,$3,$4,$5)""",
+                        code, label, int(max_uses), now, expires_at)
+                return code
+            except asyncpg.UniqueViolationError:
+                continue
+        raise RuntimeError("invite code collision")
+
+    async def revoke_invite(self, code: str, now: datetime) -> str:
+        from beta.access import INVITE_CODE_RE
+        if not INVITE_CODE_RE.fullmatch(code or ""):
+            return "INVALID"
+        async with self.transaction():
+            row = await self.conn.fetchrow(
+                "SELECT revoked_at FROM beta_invites WHERE code=$1 FOR UPDATE", code)
+            if row is None:
+                return "MISSING"
+            if row["revoked_at"] is not None:
+                return "ALREADY"
+            await self.conn.execute(
+                "UPDATE beta_invites SET revoked_at=$2 WHERE code=$1", code, now)
+            return "OK"
+
+    async def list_invites(self) -> list:
+        rows = await self.conn.fetch(
+            """SELECT code, label, max_uses, used_count, created_at, expires_at, revoked_at
+               FROM beta_invites ORDER BY created_at, code""")
+        return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------- waitlist
+    async def waitlist_add(self, telegram_user_id: int, now: datetime) -> bool:
+        status = await self.conn.execute(
+            """INSERT INTO beta_waitlist (telegram_user_id, requested_at) VALUES ($1,$2)
+               ON CONFLICT DO NOTHING""", int(telegram_user_id), now)
+        return status.endswith(" 1")
+
+    async def waitlist_contains(self, telegram_user_id: int) -> bool:
+        return bool(await self.conn.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM beta_waitlist WHERE telegram_user_id=$1)",
+            telegram_user_id))
+
+    async def waitlist_list(self, limit: int = 20) -> dict:
+        count = int(await self.conn.fetchval("SELECT count(*) FROM beta_waitlist"))
+        rows = await self.conn.fetch(
+            """SELECT telegram_user_id, requested_at FROM beta_waitlist
+               ORDER BY requested_at, telegram_user_id LIMIT $1""", limit)
+        return {"count": count, "entries": [dict(r) for r in rows]}
+
+    async def waitlist_remove(self, telegram_user_id: int) -> bool:
+        status = await self.conn.execute(
+            "DELETE FROM beta_waitlist WHERE telegram_user_id=$1", telegram_user_id)
+        return status.endswith(" 1")
+
+    # ---------------------------------------------------- activity telemetry
+    async def record_activity(self, *, user_pk: int, action: str, lang: Optional[str],
+                              at: datetime, detail: Optional[str] = None) -> bool:
+        """Insert one activity row in its own savepoint. A failure never aborts
+        the caller's transaction. The log line carries the exception type only."""
+        try:
+            async with self.transaction():
+                await self.conn.execute(
+                    """INSERT INTO beta_user_activity (user_pk, action, detail, lang, at)
+                       VALUES ($1,$2,$3,$4,$5)""",
+                    user_pk, action, detail, lang, at)
+            return True
+        except Exception as exc:  # noqa: BLE001 - telemetry must not fail the reply
+            logger.warning("beta activity write failed: %s", type(exc).__name__)
+            try:
+                async with self.transaction():
+                    await self._bump_telemetry_failure(at)
+            except Exception as bump_exc:  # noqa: BLE001
+                logger.warning("beta activity counter failed: %s", type(bump_exc).__name__)
+            return False
+
+    async def _bump_telemetry_failure(self, now: datetime) -> None:
+        await self.conn.execute(
+            """INSERT INTO beta_runtime_health (component, last_run_at, last_success_at,
+                   last_error_type, detail)
+               VALUES ('telemetry', $1::timestamptz, NULL, 'activity_write_failure',
+                       '{"activity_write_failures": 1}'::jsonb)
+               ON CONFLICT (component) DO UPDATE SET
+                   last_run_at=EXCLUDED.last_run_at,
+                   last_error_type=EXCLUDED.last_error_type,
+                   detail=jsonb_set(
+                       COALESCE(beta_runtime_health.detail, '{}'::jsonb),
+                       '{activity_write_failures}',
+                       to_jsonb(COALESCE((beta_runtime_health.detail->>'activity_write_failures')::int, 0) + 1))""",
+            now)
+
+    async def record_rejected_start(self, telegram_user_id: int, now: datetime,
+                                    salt: Optional[str]) -> bool:
+        """Store a daily HMAC, or a daily count when salt is unset. Never the raw id."""
+        day = now.astimezone(timezone.utc).date() if now.tzinfo else now.date()
+        try:
+            async with self.transaction():
+                if salt:
+                    digest = rejected_hmac(salt, telegram_user_id)
+                    await self.conn.execute(
+                        """INSERT INTO beta_rejected_start_hashes (utc_day, user_hmac)
+                           VALUES ($1,$2) ON CONFLICT DO NOTHING""", day, digest)
+                else:
+                    await self.conn.execute(
+                        """INSERT INTO beta_rejected_start_counts (utc_day, attempt_count)
+                           VALUES ($1, 1)
+                           ON CONFLICT (utc_day) DO UPDATE
+                           SET attempt_count = beta_rejected_start_counts.attempt_count + 1""",
+                        day)
+            return True
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("beta rejected-start write failed: %s", type(exc).__name__)
+            return False
+
+    async def purge_activity_before(self, cutoff: datetime) -> int:
+        status = await self.conn.execute(
+            "DELETE FROM beta_user_activity WHERE at < $1", cutoff)
+        return int(status.split()[-1])
+
+    async def purge_rejected_starts_before(self, cutoff: datetime) -> int:
+        day = cutoff.astimezone(timezone.utc).date() if cutoff.tzinfo else cutoff.date()
+        hashes = await self.conn.execute(
+            "DELETE FROM beta_rejected_start_hashes WHERE utc_day < $1", day)
+        counts = await self.conn.execute(
+            "DELETE FROM beta_rejected_start_counts WHERE utc_day < $1", day)
+        return int(hashes.split()[-1]) + int(counts.split()[-1])
+
+    async def usage_facts(self) -> dict:
+        """Rows the usage report aggregates. The return value still has ids;
+        only build_usage_report's result is shown to the owner."""
+        users = await self.conn.fetch(
+            """SELECT user_pk, telegram_user_id, status, lang, joined_at, invite_code
+               FROM beta_users""")
+        activity = await self.conn.fetch(
+            "SELECT user_pk, action, at FROM beta_user_activity")
+        invites = await self.conn.fetch("SELECT code, label FROM beta_invites")
+        deletions = await self.conn.fetch(
+            """SELECT recorded_at FROM beta_admin_audit
+               WHERE action='user_delete_me' AND authorized""")
+        hashes = await self.conn.fetch(
+            "SELECT utc_day, count(*) AS n FROM beta_rejected_start_hashes GROUP BY utc_day")
+        counts = await self.conn.fetch(
+            "SELECT utc_day, attempt_count FROM beta_rejected_start_counts")
+        wait = int(await self.conn.fetchval("SELECT count(*) FROM beta_waitlist"))
+        return {"users": [dict(r) for r in users],
+                "activity": [dict(r) for r in activity],
+                "invites": [dict(r) for r in invites],
+                "deletions": [r["recorded_at"] for r in deletions],
+                "rejected_hashes": [dict(r) for r in hashes],
+                "rejected_counts": [dict(r) for r in counts],
+                "waitlist_size": wait}
 
     async def stopped_users_before(self, cutoff: datetime) -> list:
         rows = await self.conn.fetch(

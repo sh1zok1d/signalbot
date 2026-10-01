@@ -5,8 +5,8 @@ none of the legacy candidate/formatter/outbox.
 
 Each update is handled in ONE transaction that also persists the last processed
 update id, so a restart never reprocesses an old command/callback. Replies are
-sent after commit. Unauthorized /start gets "closed private beta" and nothing is
-persisted about that user. No raw Telegram id is ever logged.
+sent after commit. A rejected /start stores an HMAC or a daily count, never the
+raw id. No raw Telegram id is ever logged.
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, Optional, Sequence
 
+from beta.access import PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
 from beta.admin import collect_status, fingerprint, handle_admin, is_owner, parse_command
 from beta.config import BetaConfig, BetaSwitches
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
@@ -30,6 +31,7 @@ from notifications.telegram_client import TelegramSender, sanitize_telegram_erro
 logger = logging.getLogger("beta.bot")
 BOT_NAME = "beta_v0"
 HISTORY_LIMIT = 10
+_FROM_ENV = object()
 
 
 @dataclass(frozen=True)
@@ -93,6 +95,9 @@ class BetaTelegramSender(TelegramSender):
     async def answer(self, callback_id: str, text: str = "") -> None:
         await self._ensure_bot().answer_callback_query(callback_id, text=text[:200])
 
+    async def get_me(self):
+        return await self._ensure_bot().get_me()
+
     async def get_updates(self, *, offset: Optional[int], timeout: int) -> list:
         updates = await self._ensure_bot().get_updates(
             offset=offset, timeout=timeout, allowed_updates=["message", "callback_query"])
@@ -121,9 +126,17 @@ def _lang_buttons(prefix: str) -> list:
 
 class BetaBotHandler:
     def __init__(self, store, cfg: BetaConfig, *, switches: Callable[[], BetaSwitches],
-                 owner_user_id: Optional[int], clock: Callable[[], datetime]):
+                 owner_user_id: Optional[int], clock: Callable[[], datetime],
+                 bot_username: Optional[str] = None, telemetry_salt: Any = _FROM_ENV):
         self.store, self.cfg, self.switches = store, cfg, switches
         self.owner, self.clock = owner_user_id, clock
+        self.bot_username = bot_username
+        self._telemetry_salt = telemetry_salt
+
+    def _salt(self) -> Optional[str]:
+        if self._telemetry_salt is _FROM_ENV:
+            return telemetry_salt()
+        return self._telemetry_salt
 
     async def handle(self, update: Mapping[str, Any]) -> list:
         update_id = int(update["update_id"])
@@ -150,27 +163,24 @@ class BetaBotHandler:
         now = self.clock()
         if cmd and cmd.startswith("admin_"):
             res = await handle_admin(conn, self.cfg, self.switches(), owner_user_id=self.owner,
-                                     actor_user_id=uid, command=cmd, args=args, now=now)
+                                     actor_user_id=uid, command=cmd, args=args, now=now,
+                                     bot_username=self.bot_username)
             if not res["authorized"]:
                 return [_msg(chat_id, t("ru", "unknown_cmd"), lang="ru")]
             out = [Outgoing(kind="message", chat_id=chat_id,
                             html=f"<pre>{html.escape(res['reply'] or '', quote=False)}</pre>")]
             if res["broadcast"]:
                 out += [_msg(c, res["broadcast"], lang="ru") for c in await conn.active_user_chats()]
+            for dest, text in res.get("direct") or []:
+                out.append(_msg(int(dest), text, lang="ru"))
             return out
         user = await conn.get_user(uid)
         lang = _lang_of(user)
         if cmd == "start":
-            if user is not None and user["status"] == "ACTIVE":
-                return [_msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)]
-            if await self._allowed(conn, uid):
-                if user is None:
-                    return [_msg(chat_id, t("ru", "choose_lang"), _lang_buttons("pick"), lang="ru")]
-                return [_msg(chat_id, t(lang, "privacy"),
-                             [[(t(lang, "btn_join"), f"join:{lang}")]], lang=lang)]
-            return [_msg(chat_id, t("ru", "closed_beta"), lang="ru")]
+            return await self._start(conn, uid, chat_id, args, user, lang, now)
         if cmd == "delete_me":
-            if user is None and not await conn.allowlist_contains(uid):
+            on_waitlist = await conn.waitlist_contains(uid)
+            if user is None and not await conn.allowlist_contains(uid) and not on_waitlist:
                 return [_msg(chat_id, t("ru", "closed_beta"), lang="ru")]
             removed = await conn.delete_participant(uid)
             await conn.insert_audit(action="user_delete_me", authorized=True,
@@ -182,22 +192,75 @@ class BetaBotHandler:
                 return [_msg(chat_id, t(lang, "not_joined"), lang=lang)]
             return [_msg(chat_id, t("ru", "closed_beta"), lang="ru")]
         if cmd == "lang":
-            return [_msg(chat_id, t(lang, "choose_lang"), _lang_buttons("set"), lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_lang",
+                                     [_msg(chat_id, t(lang, "choose_lang"), _lang_buttons("set"), lang=lang)])
         if cmd == "btc":
             html_text, buttons = await self._btc(conn, now, lang)
-            return [_msg(chat_id, html_text, buttons, lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_btc",
+                                     [_msg(chat_id, html_text, buttons, lang=lang)])
         if cmd == "history":
             rows = await conn.fetch_episode_history(symbol=self.cfg.symbol, limit=HISTORY_LIMIT)
             outcomes = {r["episode_pk"]: await conn.fetch_outcomes(r["episode_pk"]) for r in rows}
-            return [_msg(chat_id, format_history(rows, outcomes, lang), lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_history",
+                                     [_msg(chat_id, format_history(rows, outcomes, lang), lang=lang)])
         if cmd == "terms":
-            return [_msg(chat_id, t(lang, "terms"), lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_terms",
+                                     [_msg(chat_id, t(lang, "terms"), lang=lang)])
         if cmd == "help":
-            return [_msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_help",
+                                     [_msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)])
         if cmd == "stop":
             await conn.stop_user(telegram_user_id=uid, now=now)
-            return [_msg(chat_id, t(lang, "paused"), lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_stop",
+                                     [_msg(chat_id, t(lang, "paused"), lang=lang)])
         return [_msg(chat_id, t(lang, "unknown_cmd"), lang=lang)]
+
+    async def _start(self, conn, uid, chat_id, args, user, lang, now) -> list:
+        if user is not None and user["status"] == "ACTIVE":
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_start",
+                                     [_msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)])
+        code = start_code(args)
+        if code and not await conn.allowlist_contains(uid):
+            outcome = await conn.redeem_invite(
+                code, uid, now, int(self.cfg["access"]["max_active_users"]), self.owner)
+            if outcome not in ("OK", "ALREADY") and not is_owner(self.owner, uid):
+                await conn.record_rejected_start(uid, now, self._salt())
+                return [self._waitlist_offer(chat_id)]
+        if await self._allowed(conn, uid):
+            if user is None:
+                return [_msg(chat_id, t("ru", "choose_lang"), _lang_buttons("pick"), lang="ru")]
+            return [_msg(chat_id, t(lang, "privacy"),
+                         [[(t(lang, "btn_join"), f"join:{lang}")]], lang=lang)]
+        await conn.record_rejected_start(uid, now, self._salt())
+        return [self._waitlist_offer(chat_id)]
+
+    def _waitlist_offer(self, chat_id: int) -> Outgoing:
+        return _msg(chat_id, t("ru", "waitlist_offer"),
+                    [[(t("ru", "btn_request_access"), "wl:ask")]], lang="ru")
+
+    async def _note(self, conn, user, action: str, at: datetime) -> None:
+        if not user or user.get("user_pk") is None:
+            return
+        try:
+            await conn.record_activity(user_pk=user["user_pk"], action=action,
+                                       lang=_lang_of(user), at=at)
+        except Exception as exc:  # noqa: BLE001 - telemetry must not fail the reply
+            logger.warning("beta activity note failed: %s", type(exc).__name__)
+
+    async def _prepend_notice(self, conn, user, chat_id: int, lang: str, out: list) -> list:
+        if user is None or user.get("status") != "ACTIVE":
+            return out
+        seen = int(user.get("privacy_notice_version", PRIVACY_NOTICE_VERSION))
+        if seen >= PRIVACY_NOTICE_VERSION:
+            return out
+        await conn.mark_privacy_notice_seen(int(user["telegram_user_id"]), PRIVACY_NOTICE_VERSION)
+        user["privacy_notice_version"] = PRIVACY_NOTICE_VERSION
+        return [_msg(chat_id, t(lang, "privacy"), lang=lang), *out]
+
+    async def _reply(self, conn, user, chat_id, lang, now, action, out) -> list:
+        if action:
+            await self._note(conn, user, action, now)
+        return await self._prepend_notice(conn, user, chat_id, lang, out)
 
     async def _btc(self, conn, now: datetime, lang: str):
         """Render /btc from the persisted context projection and record exactly what
@@ -269,7 +332,8 @@ class BetaBotHandler:
             return [answer(t(lang, "no_evaluation"))]
         return [answer(""), _msg(chat_id, format_readiness_details(self.cfg, rd, lang), lang=lang)]
 
-    async def _open_tab(self, conn, cq, chat_id: int, answer, *, kind: str, view_pk: int, tab: str) -> list:
+    async def _open_tab(self, conn, cq, chat_id: int, answer, *, kind: str, view_pk: int, tab: str,
+                        user=None) -> list:
         """Render a tab from the persisted view only, then record the open."""
         from beta.formatter import (detail_tab_buttons, format_1h_tab, format_24h_tab, format_event_tab,
                                     view_id8)
@@ -291,6 +355,7 @@ class BetaBotHandler:
         else:
             html_text = format_1h_tab(self.cfg, payload, lang, vid)
         await conn.insert_details_open(view_pk=view_pk, tab=tab, lang=lang, opened_at=self.clock())
+        await self._note(conn, user, f"tab_{tab}", self.clock())
         buttons = detail_tab_buttons(payload, lang, view_pk)
         if kind == "e":
             message_id = ((cq.get("message") or {}).get("message_id"))
@@ -305,6 +370,11 @@ class BetaBotHandler:
         chat_id = int(((cq.get("message") or {}).get("chat") or {}).get("id", uid))
         data, cid = cq.get("data") or "", cq.get("id")
         answer = lambda text: Outgoing(kind="answer", callback_id=cid, html=text)  # noqa: E731
+        if data == "wl:ask":
+            if await self._allowed(conn, uid):
+                return [answer("")]
+            await conn.waitlist_add(uid, self.clock())
+            return [answer(""), _msg(chat_id, t("ru", "waitlist_consent"), lang="ru")]
         if data.startswith("pick:") and data[5:] in ("ru", "en"):
             if not await self._allowed(conn, uid):
                 return [answer(t("ru", "closed_beta"))]
@@ -316,6 +386,8 @@ class BetaBotHandler:
                 return [answer(t("ru", "closed_beta"))]
             lang = "ru" if data == "join" else data[5:]
             await conn.join_user(telegram_user_id=uid, chat_id=chat_id, now=self.clock(), lang=lang)
+            joined = await conn.get_user(uid)
+            await self._note(conn, joined, "cmd_start", self.clock())
             return [answer(t(lang, "joined")), _msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)]
         user = await conn.get_user(uid)
         lang = _lang_of(user)
@@ -324,16 +396,21 @@ class BetaBotHandler:
                 return [answer(t(lang, "not_available"))]
             chosen = data[4:]
             await conn.set_user_lang(uid, chosen)
-            return [answer(t(chosen, "lang_saved")), _msg(chat_id, t(chosen, "lang_saved"), lang=chosen)]
+            user = await conn.get_user(uid)
+            out = [answer(t(chosen, "lang_saved")), _msg(chat_id, t(chosen, "lang_saved"), lang=chosen)]
+            return await self._reply(conn, user, chat_id, chosen, self.clock(), "lang_set", out)
         if data == "terms":
             if user is None or user["status"] != "ACTIVE":
                 return [answer(t(lang, "not_available"))]
-            return [answer(""), _msg(chat_id, t(lang, "terms"), lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "cmd_terms",
+                                     [answer(""), _msg(chat_id, t(lang, "terms"), lang=lang)])
         tab = _parse_tab(data)
         if tab is not None:
             if user is None or user["status"] != "ACTIVE":
                 return [answer(t(lang, "not_available"))]
-            return await self._open_tab(conn, cq, chat_id, answer, kind=tab[0], view_pk=tab[1], tab=tab[2])
+            opened = await self._open_tab(conn, cq, chat_id, answer, kind=tab[0], view_pk=tab[1],
+                                          tab=tab[2], user=user)
+            return await self._prepend_notice(conn, user, chat_id, lang, opened)
         if user is None or user["status"] != "ACTIVE" or len(data) < 3 or data[1] != ":":
             return [answer(t(lang, "not_available"))]
         if data == "r:latest":
@@ -345,13 +422,16 @@ class BetaBotHandler:
         if ep is None:
             return [answer(t(lang, "unknown_episode"))]
         if data[0] == "d":
-            return [answer(""), _msg(chat_id, format_details(
+            body = [answer(""), _msg(chat_id, format_details(
                 ep, await conn.fetch_transitions(ep.episode_pk), await conn.fetch_outcomes(ep.episode_pk), lang),
                 lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_details", body)
         if data[0] in ("u", "n"):
             await conn.upsert_feedback(user_pk=user["user_pk"], episode_pk=ep.episode_pk,
                                        vote="USEFUL" if data[0] == "u" else "NOISE")
-            return [answer(t(lang, "feedback_recorded"))]
+            action = "btn_useful" if data[0] == "u" else "btn_noise"
+            return await self._reply(conn, user, chat_id, lang, self.clock(), action,
+                                     [answer(t(lang, "feedback_recorded"))])
         return [answer(t(lang, "not_available"))]
 
 
@@ -384,8 +464,14 @@ async def run_bot_service(*, store, cfg: BetaConfig, switches: Callable[[], Beta
                           sender: BetaTelegramSender, owner_user_id: Optional[int],
                           stop: asyncio.Event, poll_timeout_s: int = 25) -> None:
     from storage.beta_v0_store import BOT_LOCK_KEY
+    username = None
+    try:
+        me = await sender.get_me()
+        username = getattr(me, "username", None)
+    except Exception as exc:  # noqa: BLE001 - never log the token
+        logger.warning("beta bot username unavailable: %s", type(exc).__name__)
     handler = BetaBotHandler(store, cfg, switches=switches, owner_user_id=owner_user_id,
-                             clock=lambda: datetime.now(timezone.utc))
+                             clock=lambda: datetime.now(timezone.utc), bot_username=username)
     async with store.advisory_lock(BOT_LOCK_KEY) as acquired:
         if not acquired:
             raise RuntimeError("another beta bot poller holds the lock")
