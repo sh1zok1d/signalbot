@@ -10,10 +10,16 @@
 
 **The review replayed 19 recorded objects under V1.** Results:
 - no failure turns into support;
-- D12 and C013 would be `HETEROGENEOUS_UNEXPLAINED` (stricter than the recorded verdicts);
+- C013 would be `HETEROGENEOUS_UNEXPLAINED`: its sign genuinely reverses in 2023–24;
+- D12 is not downgraded: its concentration is within noise;
 - D7 and D11 have an incomplete nuisance baseline.
 
-The red team found nine possible new false-positive paths, each closed by a rule in the contract.
+**Calibration fixes.** Three over-strict draft rules were found on recorded data and fixed:
+- a hard 0.5 epoch-share rule, which rejects 33–84% of constant effects at these sample sizes, is replaced by a calibrated heterogeneity test;
+- a `CONTEXT_DESCRIPTIVE` claim type is added for non-directional context;
+- prospective replication is allowed.
+
+The red team found ten possible new false-positive paths, each closed by a rule in the contract.
 
 **After adoption:**
 1. GV0R02 compiler and generator contract mapping.
