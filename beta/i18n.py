@@ -409,6 +409,15 @@ _CATALOG: dict[str, dict[str, str]] = {
     "also_open": {"ru": "Также открыто: {names}", "en": "Also open: {names}"},
     "ago_just": {"ru": "только что: {name}", "en": "just ended: {name}"},
     "ago": {"ru": "{dur} назад: {name}", "en": "{dur} ago: {name}"},
+    "ended_run": {
+        "ru": "{window}: {name} · завершилось в {hm}, {dur} назад",
+        "en": "{window}: {name} · ended {hm}, {dur} ago",
+    },
+    "ended_run_just": {
+        "ru": "{window}: {name} · завершилось в {hm}, только что",
+        "en": "{window}: {name} · ended {hm}, just now",
+    },
+    "bucket_reading": {"ru": "5м {window}: {reading}", "en": "5m {window}: {reading}"},
     "data_line": {"ru": "{status} · данные {clock}", "en": "{status} · data {clock}"},
     "data_only": {"ru": "данные {clock}", "en": "data {clock}"},
     "no_evaluation_line": {"ru": "Оценки ещё нет", "en": "No evaluation yet"},
@@ -591,6 +600,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "event_since": {"ru": "Ещё активно · с {clock}", "en": "Still active · since {clock}"},
     "event_ended_at": {"ru": "Завершено · {clock}", "en": "Ended · {clock}"},
     "why_window": {"ru": "Почему замечено ({window}):", "en": "Why it was noticed ({window}):"},
+    "bucket_head": {"ru": "Показатели за 5м {window}:", "en": "Readings for the 5m bucket {window}:"},
     "anchor_metrics": {
         "ru": "Цена {price} · диапазон {range} · объём {vol}{level}",
         "en": "Price {price} · range {range} · volume {vol}{level}",
@@ -608,6 +618,10 @@ _CATALOG: dict[str, dict[str, str]] = {
     "liq_footnote": {
         "ru": "≥ — нижняя граница: Binance передаёт не все ликвидации.",
         "en": "≥ — lower bound: Binance does not report every liquidation.",
+    },
+    "liq_zero_footnote": {
+        "ru": "* — $0 по неполным данным: это не значит, что ликвидаций не было.",
+        "en": "* — $0 from incomplete data: it does not mean there were no liquidations.",
     },
     "h1_head": {"ru": "ПОСЛЕДНИЙ ЧАС · {window} {zone}", "en": "LAST HOUR · {window} {zone}"},
     "h1_price_range": {
@@ -771,6 +785,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Диапазон — от минимума до максимума цены за период, в % от цены.\n"
             "Ликвидации — принудительное закрытие позиций биржей, по каждой бирже отдельно.\n"
             "≥ — нижняя граница: Binance публикует не все ликвидации.\n"
+            "$0* — ноль по неполным данным: это не значит, что ликвидаций не было.\n"
             "н/д — данных нет или они неполные. Это не ноль.\n"
             "× от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней. "
             "Сравнение появляется, когда накоплено 20 дней истории.\n"
@@ -805,6 +820,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Range — from the lowest to the highest price in the period, in % of the price.\n"
             "Liquidations — positions force-closed by the exchange, shown per venue.\n"
             "≥ — lower bound: Binance does not publish every liquidation.\n"
+            "$0* — zero from incomplete data: it does not mean there were no liquidations.\n"
             "n/a — no data or incomplete data. This is not zero.\n"
             "× usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median. "
             "The comparison appears once 20 days of history are collected.\n"

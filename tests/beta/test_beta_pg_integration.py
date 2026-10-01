@@ -796,8 +796,8 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         await h.handle(_cb(ALICE, "join:en", 4))
         out = await h.handle(_msg(ALICE, "/btc", 5))
         text = out[0].html
-        assert "· calmed" in text and "just ended: sharp drop" in text
-        assert "Event has ended · data 03:15 Kyiv" in text
+        assert "· calmed" in text and "03:00–03:10: sharp drop · ended 03:15, just now" in text
+        assert "data 03:15 Kyiv" in text and "Event has ended" not in text
         assert "NO ACTIVE EVENTS" not in text and "TRIGGERED" not in text and "ARMED" not in text
         assert "Trigger bucket" not in text and "condition no longer met" not in text
         pid = (await _rows(pool, "SELECT public_id FROM beta_episodes"))[0]["public_id"]
