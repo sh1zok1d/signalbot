@@ -229,3 +229,133 @@ No reversion only separates the result from a pure temporary-impact mechanism. I
 - Episodize within a day.
 - Validate recall with synthetic injection.
 - Then run monthly counts on 2020–2024 and on the confirmation candidate, 2017-08 → 2019-12.
+
+## 8. Sealed end-to-end execution protocol (owner decision 2026-10-01, before any data)
+
+**Decision.** The owner replaced the human approval between feasibility and scientific outcomes with deterministic gates. One run goes as far as the frozen gates allow, then returns one final report. The protection against bias is not elapsed time. It is that every outcome-sensitive choice below is frozen **before the first scientific outcome**. Nothing in this section may change after a scientific outcome is opened.
+
+**Scientific outcomes**, opened only in this order:
+1. post-detection flow (H1);
+2. future price (H2);
+3. post-end price (H3);
+4. replication outcomes.
+
+### Phase 0 — outcome-blind detector validation and feasibility
+
+**Data.** Binance spot BTCUSDT `aggTrades`, checksum-verified.
+- **Discovery:** 2020-01 → 2024-12.
+- **Replication:** 2017-08 → 2019-12.
+- No file from 2025 or later is downloaded.
+
+**Detector candidates (pre-declared grid).** Fixed for every candidate:
+- one-sided taker prints of at least $1,000;
+- keyed by an identical quantity **or** an identical quote notional, rounded to $10;
+- regular slices: the consecutive gap is within the absolute tolerance of the running period; period 2–300 s; at most one missed slice;
+- the end rule (`TWAP_END`): the chain is declared ended once there has been no matching slice for 3 × period after the last slice. The end time is that declaration time, so it is point-in-time.
+
+The grid itself:
+
+| Parameter | Values |
+|---|---|
+| absolute gap tolerance | 250 ms, 500 ms |
+| minimum slices `K` | 20, 40 |
+| minimum duration | 15 min, 30 min |
+
+**Calibration month: 2024-06, structure only.** Two quantities per candidate:
+- **Recall:** synthetic TWAPs are injected into the real background. They vary period (3–60 s), slice size ($2k–$50k), quantity versus notional slicing, and duration (20–120 min). Recall is the share that qualifies.
+- **Specificity:** the ratio of episodes found on an hour-preserving time-shuffled null to episodes found on the real data.
+
+**Selection rule, deterministic.**
+- Admissible candidates: recall ≥ 0.80 and null/real ≤ 0.10.
+- Among them, take the largest discovery `N_persistence_eligible`.
+- Ties go to the larger tolerance, then the smaller `K`, then the shorter duration.
+- If no candidate is admissible, stop with `FEASIBILITY_FAILED` (`DETECTOR_NOT_SPECIFIC`).
+
+**Episodes:**
+- Overlapping same-side chains merge.
+- The decision time `T` is the qualifying print.
+- A same-side refractory of 6 h after each `T` applies.
+- Every exclusion is logged per episode with its reason: data gap in a window, file-boundary gap, window crossing the surface end.
+
+**The four counts, per surface:**
+- `N_detected`;
+- `N_persistence_eligible` (a full 60-minute post-`T` window);
+- `N_end_identified`;
+- `N_post_end_1h_complete`.
+
+**Feasibility gates:**
+- **Discovery** needs `N_persistence_eligible ≥ 300` on at least 100 distinct UTC days. Otherwise stop with `FEASIBILITY_FAILED` (`SUPPORT`).
+- **H3 support.** If discovery `N_post_end_1h_complete < 150`, H3 is not run and is marked `INFERENCE_INSUFFICIENT`. H1 and H2 continue.
+- **Replication support.** If replication `N_persistence_eligible < 100`, replication is marked `INFERENCE_INSUFFICIENT`, without a substitute surface.
+
+### Phase 1 — automatic freeze
+
+If phase 0 passes, the run writes `TWAP_SEALED_SPEC_V1.json` before any scientific outcome. It contains:
+- the chosen detector;
+- the counts, exclusions, code SHA, data digests;
+- this section's rules.
+
+The run then commits and pushes it, records its SHA-256, and continues without asking.
+
+### Matching (all phases)
+
+**Controls for an anchor `T`:**
+- times `T'` with no detected episode within ±6 h;
+- the same UTC hour;
+- the same tercile of prior 1h realized volatility (trailing-30-day reference);
+- the same quintile of signed net taker notional over the prior 60 min (trailing-30-day reference);
+- the same sign of the prior 60-minute return.
+
+Up to 5 nearest-in-time controls per anchor, drawn without replacement. All matching variables use information available at or before `T'` only. **Post-detection flow is never a matching variable.**
+
+**H3 anchors** are matched the same way at the end time.
+
+**Price** is the last trade price at or before a given time, taken from the same `aggTrades`.
+
+### Phase 2 — H1 mechanism gate
+
+| Item | Definition |
+|---|---|
+| Statistic | mean over episodes of the log ratio of same-side taker notional in `[T, T+60m]`, episode against its controls' mean |
+| Inference | day-block bootstrap, 10,000 draws, seed 20261002, one-sided |
+| Pass | `p < 0.05` **and** the ratio ≥ 1.10, i.e. at least 10% more same-side flow |
+| Fail | stop with `MECHANISM_NOT_SUPPORTED`; H2 and H3 are never computed |
+
+### Phase 3 — price outcomes (only after H1 passes)
+
+**H2 at 1h and at 6h.** The statistic is the mean side-signed log return from `T` to `T+h`, minus the matched-control mean.
+
+**H3.** The statistic is the mean side-signed log return over `[end, end+1h]`, minus the matched-control mean.
+- Reversal is the temporary-impact fingerprint.
+- An H3 null never changes H1 or H2.
+
+**Inference.** Day-block bootstrap, two-sided, with Holm across the three cells at `alpha = 0.05`.
+
+**Practical floor.** At least 10 bps absolute for H2 and for H3. It is chosen in advance as the smallest economically meaningful scale. It is not a claim of net profitability.
+
+**V1 epoch-heterogeneity gate.** It is applied by calendar year to each passing cell, with a block permutation of 26 weeks.
+
+### Phase 4 — replication
+
+This phase runs only for the cells that pass discovery. It uses the same frozen specification on Binance spot BTCUSDT 2017-08 → 2019-12.
+
+A cell passes replication if all three hold:
+- the sign is the same as in discovery;
+- one-sided `p < 0.05`;
+- the magnitude is at least 10 bps.
+
+No substitute surface is used if the support gate fails.
+
+### Final classification
+
+The most specific status applies:
+- `FEASIBILITY_FAILED`;
+- `MECHANISM_NOT_SUPPORTED`;
+- `MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED`;
+- `DISCOVERY_SUPPORTED_REPLICATION_FAILED`;
+- `DISCOVERY_SUPPORTED_REPLICATION_INSUFFICIENT`;
+- `SUPPORTED_WITH_REPLICATION`;
+- `INFERENCE_INSUFFICIENT`;
+- `DATA_PROVENANCE_LIMITATION`.
+
+**Blocker rule.** If a contradiction makes honest execution impossible, the run stops and reports the blocker. It never improvises.
