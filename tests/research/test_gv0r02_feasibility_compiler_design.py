@@ -71,4 +71,6 @@ def test_golden_cases_match_closed_records():
 def test_compiler_is_outside_the_generator():
     research = ROOT / "scripts" / "research"
     assert (research / "gv0r02_feasibility_compiler.py").is_file()
-    assert not list((research / "generator_v0").glob("*feasibility*"))
+    # The GV0R03 planning contract (generator_v0/feasibility_contract.py) is the generator-side
+    # interface and is allowed there; the compiler itself must stay outside the generator.
+    assert not list((research / "generator_v0").glob("*compiler*"))

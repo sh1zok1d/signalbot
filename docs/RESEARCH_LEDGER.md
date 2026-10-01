@@ -7032,3 +7032,15 @@ HYPOTHESIS_EVALUATION_CONTRACT_V1 = ADOPTED
 RETROACTIVE = false
 NEXT_UNIT = GV0R02_COMPILER_AND_GENERATOR_CONTRACT_V1_MAPPING
 ```
+
+## GV0R02 compiler V1 mapping — 2026-10-01
+
+Tooling only. No scientific outcome, no market data. The compiler V1 layer is implemented over the unchanged V0 compiler. The golden cases C012, C004 and C020 keep their statuses, and the positive control stays feasible. The stale layout assertion in `test_gv0r02_feasibility_compiler_design.py` had failed since GV0R03; it is narrowed to its intent.
+
+```
+GV0R02_SCHEMA_V1 = IMPLEMENTED
+OLD_RESULTS_RESCORED = false
+NEXT_UNIT = GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING
+```
+
+Record: `docs/research/GV0R02_FEASIBILITY_COMPILER_V1_MAPPING.md`.
