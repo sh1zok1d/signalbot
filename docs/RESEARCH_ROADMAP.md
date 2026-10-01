@@ -1,3 +1,9 @@
+## Deferred methodology gate after D7 — 2026-09-30
+
+`AFTER_D7: mandatory hypothesis-evaluation methodology review before new hypothesis campaign`
+
+When the D7 BitMEX confirmation campaign closes, the next research unit is `HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW`, before any new hypothesis card, generator campaign or discovery sprint. The proposal is `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1_PROPOSAL.md` (`PROPOSED / DEFERRED_UNTIL_D7_CAMPAIGN_CLOSE`). It changes no active contract and no D7 rule. `CURRENT_RESEARCH_STATE.md` remains the canonical routing for the D7 campaign itself.
+
 ## Routing pointer — 2026-09-29
 
 `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`, per the latest entry in `docs/CURRENT_RESEARCH_STATE.md` (GV0R03 generator feasibility contract, 2026-09-25). That file is the canonical routing. The `NEXT_UNIT` values in the sections below are historical.
