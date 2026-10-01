@@ -108,6 +108,51 @@ The answers are appended here, with their date, before any definition is frozen.
 - 7: Was the rule traded on regular divergences, hidden ones, or both?
 - 8: Which monitoring site or utility showed the bars, and what did a bar measure (spot or perp delta, which exchanges)?
 
+### Owner answers to 7–8 — 2026-10-01 (before any data)
+
+**7. Both.** The owner traded regular and hidden divergences. Hidden divergences are a continuation mechanism, not a reversal one, so they are recorded below as a separate seed (§7) and are not mixed into this one.
+
+**8. A screenshot of the owner's TradingView layout**, BTCUSDT spot Binance, 15m. Not stored in the repository. It shows Hyblock indicators:
+- `<Hyblock> Bid… 0% 5% Spot Filter1 OR Filter2`: an **order-book bid/ask imbalance within 0–5% of price**, spot. It shows red bars (ask-heavy) during the decline, then green bars (bid-heavy) right after the low. The owner pointed at these green bars as the "buyback bars".
+- `<Hyblock> Volume … 100k–1M Binance Spot`: CVD of large trades.
+- `<Hyblock> Volume … 100–1k Binance Spot`: CVD of small trades.
+- `<Hyblock> Whale vs Retail Delta`.
+
+**Correction to the earlier implication.** The "buyback" the owner watched is **resting order-book liquidity (bids within 5%)**, not executed taker flow. So the faithful definition is order-book based. It also does not double-count with CVD divergence, which is good. Known weakness: resting bids can be placed and pulled (spoofing).
+
+**Data availability, checked 2026-10-01 against `data.binance.vision`.**
+
+| Observable | Source | Coverage |
+|---|---|---|
+| Order-book depth at ±1…±5% from price | futures/um daily `bookDepth` (`timestamp, percentage, depth, notional`, about every 30 s) | from 2023-01 only |
+| Spot order-book depth | `spot/daily/bookDepth` | none: no spot `bookDepth` archive exists |
+| Large-trade and small-trade CVD | `aggTrades` (spot and futures) | 2020–2024, and spot from 2017-08 |
+
+**Consequence:**
+- The faithful order-book version has only 2023–2024 history outside the protected window, and 2024 is owner-exposed.
+- That leaves 2023 for discovery, and no time-disjoint historical surface for confirmation, only a prospective one. A prospective surface inside 2026 needs a protected-data decision.
+- A flow-based proxy (large-trade CVD turning up, or net taker buying after the low) is testable on 2020–2024, with BitMEX and Binance spot 2016/2017–2019 for confirmation. But it is not the observable the owner used.
+- The choice between the faithful version, the proxy, or the proxy first and the faithful version prospectively is an owner decision when the card is written.
+
 ## 6. Routing
 
+Seed B (§7) follows the same routing.
+
 This seed does not change `NEXT_UNIT`. The TWAP feasibility unit runs first. After it, the owner decides when this seed becomes a card under `HYPOTHESIS_EVALUATION_CONTRACT_V1`, alongside the statement matrix.
+
+Seed B (§7) follows the same routing.
+
+## 7. Seed B — hidden divergence continuation (recorded 2026-10-01)
+
+**Owner practice.**
+- A hidden divergence in the trend direction, with the same indicator families (RSI 14/21, MACD 12/26/9, CVD).
+- Example (bearish): price makes a lower high while the indicator makes a higher high.
+- Stop beyond the previous swing high. Target around the next levels: close 50% there, trail the rest.
+- Exit manually if the divergence breaks.
+- BTC and ETH perps; 1h, 4h, 1D; since 2024.
+
+**Mechanism.** A pullback inside a trend fails to restore momentum, and the trend resumes. This is a continuation claim, a different mechanism from §2's reversal after absorption.
+
+**Proximity:** H04 `TREND_PULLBACK_CONTINUATION` (rejected) is close. The same rules apply as in §3: not a rescue, an exposed-surface label, and time-disjoint confirmation.
+
+**Status.** Not a card, nothing frozen, no data opened.
