@@ -1,0 +1,45 @@
+{
+  "CONFIRMATORY_RNG_GENERATED": false,
+  "CONFIRMATORY_RNG_READY_BUT_UNGENERATED": false,
+  "D7_BITMEX_PRIMARY_TARGET_OPENED": false,
+  "D7_HYPOTHESIS_FAILED": false,
+  "D7_POWER_GATE_PASS_UNCHANGED": true,
+  "D7_PRIMARY_EFFECT_COMPUTED": false,
+  "D7_PROFILE_ADMISSION": "PASS",
+  "POWER_POPULATION_EFFECT_EXACT": true,
+  "POWER_TARGET_BLIND": true,
+  "PROFILE_VALIDATED": true,
+  "PROVENANCE_CHAIN_COMPLETE": true,
+  "STATISTICAL_DUPLICATE_WORLDS": 0,
+  "STATISTICAL_IMPLEMENTATION_CHANGED": false,
+  "TARGET_OPENING": "FORBIDDEN",
+  "TEMPORAL_GATE_FULLY_SPECIFIED": true,
+  "audited_implementation": "ebb26aca6ed37c12bbf3b3f578973d3078407d99",
+  "canonical_worlds": {
+    "admission": {
+      "byte_identical_extra_lines": 5,
+      "conflicting_keys": 0,
+      "suite_id": "D7_GEOMETRY_ADMISSION",
+      "unique_world_count": 1600
+    },
+    "generic": {
+      "byte_identical_extra_lines": 0,
+      "conflicting_keys": 0,
+      "suite_id": "GENERIC_STRESS_SCREEN",
+      "unique_world_count": 1600
+    },
+    "power": {
+      "byte_identical_extra_lines": 25,
+      "conflicting_keys": 0,
+      "suite_id": "D7_POWER_GATE",
+      "unique_world_count": 6000
+    }
+  },
+  "decision": "D7_TARGET_OPENING_NOT_AUTHORIZED:FINAL_PASS_CONJUNCTION_NOT_UNIQUE",
+  "population_theta": {
+    "CELL_HETEROGENEOUS_EFFECT": "1/20",
+    "HOMOGENEOUS_EFFECT": "1/20",
+    "YEAR_HETEROGENEOUS_EFFECT": "1/20"
+  },
+  "simulations_run": false
+}
