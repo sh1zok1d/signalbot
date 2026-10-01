@@ -188,7 +188,7 @@ Do not query `beta_episode_outcomes`. Do not compute forward returns, PnL, MAE, 
 
 ## Soak (7 days, push disabled)
 
-1. Set `BETA_ENABLED=1` in `.env`. The committed config stays `beta.enabled: false`, `push_enabled: false`.
+1. Set `BETA_ENABLED=1` in `.env`. The committed config stays `beta.enabled: false`. During the soak `push_enabled` was `false`; since 2026-10-01 it is `true` (see Live push), so keep `BETA_PUSH_ENABLED` unset for a soak.
 2. Run `python -m runtime.beta_bootstrap_runner` until it exits `0`.
 3. Enable the detector and outcomes timers. Then either:
    - **With Telegram:** also enable the notify timer and the bot, with only the owner allowlisted; or
@@ -205,6 +205,26 @@ Do not query `beta_episode_outcomes`. Do not compute forward returns, PnL, MAE, 
 All other health alerts (ingestion, detector, materialization, outcomes, delivery) are unchanged. With Telegram enabled (the default), the bot and notifier liveness checks apply exactly as before.
 
 The gate criteria are listed in the restart decision.
+
+## Live push (owner decision 2026-10-01)
+
+The committed config now has `beta.push_enabled: true`. This is the hard allow only. Push is effective only when all three hold:
+- `beta.push_enabled: true` (committed);
+- `BETA_PUSH_ENABLED=true` in `/opt/signalbot/.env` (unset, empty or `0` forbids push);
+- the durable admin state is not paused (`/admin_resume_push`; a missing row counts as resumed).
+
+**Recipients:** every `ACTIVE` beta user. While only the owner has joined, this is the owner-only live push of the rollout. Do not hand out invite codes until the owner has seen real pushes.
+
+**Limits (unchanged):** at most `max_new_pushes_per_utc_day` = 3 new pushes per UTC day, `same_event_cooldown_min` = 20, nothing older than `delivery_ttl_s` = 600 s. D7 and readiness changes never push.
+
+**Enable:**
+1. From the owner account, send `/admin_pause_push` before touching `.env`. A missing admin row counts as resumed, so without this step push starts at the first restart.
+2. Add `BETA_PUSH_ENABLED=true` to `/opt/signalbot/.env`. The detector and notify timers read `.env` on every run, so the env change applies within a minute; the bot needs a restart.
+3. Deploy and restart as usual (pull, schema init, restart the bot, timers keep running).
+4. Check `/admin_health`: switches show `'BETA_PUSH_ENABLED': True`. Check `/admin_status`: `push effective False` (paused).
+5. Send `/admin_resume_push`. The reply must say effective push is on.
+
+**Stop:** `/admin_pause_push` stops new deliveries at once, without a restart. Pending deliveries are suppressed with `PUSH_DISABLED`. For a hard stop, set `BETA_PUSH_ENABLED=0` and restart the bot and the notify timer.
 
 ## Owner health alerts
 
