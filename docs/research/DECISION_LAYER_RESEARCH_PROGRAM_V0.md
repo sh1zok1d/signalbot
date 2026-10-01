@@ -84,6 +84,34 @@ The preregistration freezes the final values.
 
 The test is two-sided.
 
+**Mechanism chain (owner decision 2026-10-01).** The card is framed mechanism-first. If the metaorder mechanism is real, it must produce three observable states in order. The test checks the chain, not a bare "TWAP → return" predictor.
+
+| Link | What must appear if M1 is real | Role | Opened |
+|---|---|---|---|
+| L1 remaining execution | After the decision time, same-side taker volume stays elevated against matched non-episode times with the same prior net flow, until the chain ends | Mechanism-validity gate | Stage 1, flow data only, no price |
+| L2 drift | Side-signed price drift from the decision time is larger than at matched times with the same prior net taker flow, prior move, prior volatility and time of day | Primary (`INCREMENTAL`) | Stage 2 |
+| L3 completion and decay (rival M2) | After the detected end of the chain, price partially reverts | Primary; tests the classical rival | Stage 2 |
+
+**Staged opening, frozen in the preregistration:**
+- **Stage 1** opens only post-decision taker-flow aggregates. No price or return is computed.
+- If L1 fails (no elevated same-side flow after detection), the card closes as `NO_INCREMENTAL_STRUCTURE (MECHANISM_NOT_PRESENT)`. Price outcomes are never opened.
+- **Stage 2** runs once, only after L1 passes.
+
+**Primary cells.** There are three, the V1 maximum, with Holm across them:
+- L2 at `T + 1h` (during execution);
+- L2 at `T + 6h` (the owner's observation);
+- L3 over the hour after the detected end.
+
+**Detected end.** The end is point-in-time: the first moment the chain has missed its slice tolerance long enough to be declared ended, with the rule frozen in the detector. It is never the true end, which is only known afterwards.
+
+**Wording consequence.** If L2 holds and L3 also holds, the product statement covers both: "during execution, price tended to move with it; after it ended, it partly gave back".
+
+**V1 declaration (planned):**
+- `CLAIM_TYPE = INCREMENTAL`, `TARGET_CLASS = UNCONDITIONAL`, `INTRADAY = true`.
+- Nuisance variables: time of day, prior realized volatility, prior return over the episode lookback (the lagged target), and prior net taker flow (card-specific).
+- Mechanism variables: regular slicing (constant quantity or notional at a near-constant period).
+- Practical bar on costs: at least 10 bps for L2.
+
 **Observable:**
 - Binance spot BTCUSDT `aggTrades`. Fields used: trade time, quantity, taker side (`is_buyer_maker`), and the trade price at the print, for notional only.
 - A taker print is all aggTrades of one side in the same millisecond.
@@ -109,10 +137,11 @@ The test is two-sided.
 - The event carries side, `$`/h and elapsed duration.
 
 **Estimand:**
-- Side-signed log return from the decision time to `T + H`.
-- Primary horizons: 1h (during execution) and 6h (the owner's observation), Holm-adjusted.
+- L2: side-signed log return from the decision time to `T + 1h` and `T + 6h`, minus the matched-control mean.
+- L3: the side-signed return over the hour after the detected end, where a negative value means reversion. The comparator is matched times after a same-side flow burst of similar size and duration without regular slicing.
+- L1 (gate): same-side taker notional per hour over the remaining-execution window, against the matched controls.
 - 4h is a diagnostic only.
-- The hit rate is reported for display; the gate tests the mean.
+- The hit rate is reported for display; the gates test the mean.
 
 **Surfaces:**
 - **Discovery:** Binance spot BTCUSDT, 2020-01 → 2024-12.
@@ -124,6 +153,8 @@ The test is two-sided.
 **Feasibility gate (outcome-blind):**
 - At least 300 discovery episodes on at least 100 distinct days.
 - At least 100 confirmation episodes.
+- The detector's frozen end rule is part of the feasibility unit. The counts report how many episodes have a detected end with a full post-end hour, which L3 needs.
+- L1 (post-decision flow) and L2/L3 (price) are not computed in feasibility.
 - Null chain rate at most 10% of the real rate at the frozen parameters.
 - Planning power at least 80% for the practical bar under day-block dependence.
 - Failing the gate closes the card as `INFORMATIONALLY_WEAK` before any outcome.
@@ -135,8 +166,8 @@ The test is two-sided.
 ## 6. Sequence
 
 1. `TWAP_FOOTPRINT_OUTCOME_BLIND_FEASIBILITY`: detector, null and recall checks, and monthly episode counts. No forward return.
-2. Twin preregistration freeze: detector parameters, matching, horizons, bar, inference, and both surfaces.
-3. Discovery one-shot on 2020–2024.
+2. Twin preregistration freeze under `HYPOTHESIS_EVALUATION_CONTRACT_V1`: detector parameters and end rule, the mechanism chain and its staged opening, matching, cells, bar, inference, and both surfaces.
+3. Discovery one-shot on 2020–2024: stage 1 (L1, flow only), then stage 2 (L2 and L3) only if L1 passes.
 4. Confirmation one-shot on the disjoint era.
 5. Promotion gate, only for a supported and replicated class.
 
