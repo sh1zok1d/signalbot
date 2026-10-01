@@ -6963,3 +6963,18 @@ PRIMARY_RESULT_SEALED = true
 ```
 
 Record: `docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.md`.
+
+## Decision-layer research program V0 — owner decision — 2026-10-01
+
+Program routing only. No new scientific outcome. No window consumed. The beta is frozen as it is. The research goal is evidence for a future decision layer. The first mechanism is a TWAP execution footprint on Binance spot `aggTrades`, which must be incremental over matched net taker flow. The Delta-direction arm is not run: H05 already rejected it.
+
+```
+MARKET_OUTCOMES_OPENED = false
+PROTECTED_2025_OPENED = false
+PROTECTED_2026_OPENED = false
+H05_REOPENED = false
+MARKET_07_CREATED = false
+NEXT_UNIT = TWAP_FOOTPRINT_OUTCOME_BLIND_FEASIBILITY
+```
+
+Record: `docs/research/DECISION_LAYER_RESEARCH_PROGRAM_V0.md`.
