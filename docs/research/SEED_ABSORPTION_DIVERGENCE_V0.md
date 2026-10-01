@@ -135,8 +135,27 @@ The answers are appended here, with their date, before any definition is frozen.
 - The choice between the faithful version, the proxy, or the proxy first and the faithful version prospectively is an owner decision when the card is written.
 
 **Owner note on 2024 — 2026-10-01.** "Use 2024 too. I saw it, but I don't remember it." This is recorded as provenance.
-- **Discovery.** 2024 is used, in both the faithful (2023–2024) and the proxy (2020–2024) versions. Nothing excludes it from discovery.
-- **Confirmation.** The rule was adopted through trading in 2024, so 2024 may have shaped which rule survived, even without any remembered episode. If 2024 serves as confirmation (for example, faithful version: discovery 2023, confirmation 2024), the result carries the label `OWNER_EXPOSED_CONFIRMATION`. That is weaker evidence than a time-disjoint unseen surface, and V1 promotion still needs an unseen or prospective replication.
+- **2023–2024 is retrospective evidence.** It is used fully. It is never called a confirmatory holdout, because the rule reached us as a working scheme from that period, and that selection carries information about it whatever is remembered.
+- **Future frozen data is prospective confirmation.** The rule is recorded in advance and the definitions are frozen. New episodes arrive after the freeze, so the result could not have shaped the construction.
+- **What 2023–2024 can show.** A retrospective result that reproduces, survives the comparators and has a practical size is a strong reason to continue. It is not the final proof for the product.
+
+**Three information layers.** The owner's scheme combines three different layers, not three correlated indicators:
+1. **Order-book intent and liquidity:** bid support within 0–5% appears after the decline.
+2. **Executed flow:** CVD.
+3. **Price and momentum response:** divergence in RSI and MACD.
+
+**Programme (owner-endorsed shape, 2026-10-01):**
+
+| Track | Content | Evidence label |
+|---|---|---|
+| A. Exact historical test | BTC and ETH perps 2023–2024: the bid/ask-depth construction plus the owner's divergence rules | `RETROSPECTIVE_EVIDENCE` |
+| B. Long-history surrogate | A point-in-time flow replacement for book support, 2020–2024 or earlier | `SURROGATE`; never "reproduced the owner's strategy" |
+| C. Prospective confirmation | After the freeze, collect new episodes automatically and change nothing until a pre-set N or date (V1 §7) | `PROSPECTIVE_CONFIRMATION` |
+
+**Notes on the tracks:**
+- **Track A** uses the perp book depth in the Binance archive. The Hyblock indicator the owner watched is spot. They are close but not identical observables.
+- **Track C** inside the protected 2025/2026 window needs its own protected-data decision.
+- **Regular and hidden divergences** stay separate in every track: different mechanisms, possibly opposite signs. Mixing them can average to nothing.
 
 ## 6. Routing
 
