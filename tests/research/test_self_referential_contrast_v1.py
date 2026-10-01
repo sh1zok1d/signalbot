@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import json
 import math
+from fractions import Fraction
 from pathlib import Path
 
 import numpy as np
@@ -35,6 +36,7 @@ from scripts.research.self_referential_contrast_v1.constants import (
     STATUS_VARIANCE_DEGENERATE,
     WORLDS_PER_REGION,
 )
+from scripts.research.self_referential_contrast_v1 import contrast as contrast_mod
 from scripts.research.self_referential_contrast_v1.contrast import (
     ContrastInput,
     analytic_partials,
@@ -52,8 +54,10 @@ from scripts.research.self_referential_contrast_v1.contrast import (
     run_primary,
     sensitivity_rejects,
 )
+from scripts.research.self_referential_contrast_v1.dgp import _cancelling, _cancelling_pair_sign, _fraction_param
 from scripts.research.self_referential_contrast_v1.multipliers import (
     bartlett_covariance,
+    epsilon_width,
     moving_average_multipliers,
     multiplier_design_matrix,
 )
@@ -64,11 +68,14 @@ from scripts.research.self_referential_contrast_v1.seeds import (
     world_entropy,
 )
 from scripts.research.self_referential_contrast_v1.validation_protocol import (
+    DESIGN_GAP,
+    DESIGN_T,
     HypothesisGeometryAdmission,
     ProfileValidatedDomain,
     ProfileValidationDesign,
     d7_world_specs,
     excluded_sensitivity_laws,
+    generic_laws,
     generic_world_specs,
     high_r_world_specs,
     official_d7_gate,
@@ -77,6 +84,13 @@ from scripts.research.self_referential_contrast_v1.validation_protocol import (
     region_ids,
     screen_status,
 )
+from tests.research.self_referential_population_oracle import (
+    balanced_cancelling_sign,
+    cancelling_theta_from_signs,
+    population_theta,
+)
+
+STUDENTIZER_RECOMPUTATION_TEST_STRONG = True
 
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = ROOT / "scripts/research/self_referential_contrast_v1"
@@ -433,3 +447,276 @@ def test_amendment_constants_match_the_document():
     assert document["PRIMARY_METHOD"] == PRIMARY_METHOD
     assert document["ALPHA"] == ALPHA
     assert contiguous_segments(np.array([0, 0, 1, 1])) == [(0, 2), (2, 4)]
+
+
+class _ListGenerator:
+    def __init__(self, values: list[float]) -> None:
+        self.values = values
+        self.index = 0
+
+    def random(self, size=None):
+        if size is not None:
+            raise AssertionError("cancelling draws are scalar")
+        value = self.values[self.index]
+        self.index += 1
+        return float(value)
+
+
+def _oracle_coef(param: str) -> Fraction:
+    raw = param.split("=", 1)[1]
+    numerator, denominator = raw.split("/")
+    return Fraction(numerator) / Fraction(denominator)
+
+
+def test_every_gating_law_has_population_theta_zero():
+    for law in generic_laws():
+        for gap in DESIGN_GAP:
+            for t_count in DESIGN_T:
+                theta = population_theta(law.family, law.param, t_count, gap)
+                assert theta == 0, (law.law_id, gap, t_count, theta)
+
+
+def test_cancelling_pair_counts_are_balanced_including_the_audited_imbalance():
+    coefficients = ("c=0.02/0.7", "c=0.05/0.7", "c=0.10/0.7")
+    lengths = (31, 32, 33, 2047, 2048, 2049)
+    for t_count in lengths:
+        for gap in DESIGN_GAP:
+            production = [_cancelling_pair_sign(index, t_count, gap) for index in range(t_count)]
+            independent = [balanced_cancelling_sign(index, t_count, gap) for index in range(t_count)]
+            assert production == independent
+            assert production.count(1) == production.count(-1)
+            assert production.count(1) + production.count(-1) + production.count(0) == t_count
+            for param in coefficients:
+                signs_theta = cancelling_theta_from_signs(production, _oracle_coef(param), t_count)
+                assert signs_theta == 0
+                assert population_theta("CANCELLING_CELLS", param, t_count, gap) == 0
+    audited = [_cancelling_pair_sign(index, 2048, "none") for index in range(2048)]
+    assert audited.count(1) == 1023
+    assert audited.count(-1) == 1023
+    assert audited.count(0) == 2
+    assert audited[1023] == 0
+    assert (audited.count(1), audited.count(0), audited.count(-1)) != (1023, 1, 1024)
+    interior = [_cancelling_pair_sign(index, 2048, "interior") for index in range(2048)]
+    assert interior.count(1) == 1024
+    assert interior.count(-1) == 1024
+    assert interior.count(0) == 0
+
+
+def test_cancelling_generator_follows_the_balanced_sign_schedule():
+    coef = _fraction_param("c=0.10/0.7")
+    for t_count in (31, 32, 33, 2048):
+        for gap in DESIGN_GAP:
+            lengths = (t_count,) if gap == "none" else (t_count // 2, t_count - t_count // 2)
+            draws = [((index * 17) % 97) / 97 for index in range(t_count + 4)]
+            generator = _ListGenerator(draws)
+            origin = 0
+            produced_x = []
+            produced_y = []
+            for length in lengths:
+                state, _cell = _cancelling(generator, coef, length + 1, origin, t_count, gap)
+                produced_x.append(state[:-1])
+                produced_y.append(state[1:])
+                origin += length
+            simulated_x, simulated_y = _simulate_cancelling(draws, coef, t_count, gap)
+            assert np.array_equal(np.concatenate(produced_x), simulated_x)
+            assert np.array_equal(np.concatenate(produced_y), simulated_y)
+
+
+def _simulate_cancelling(values: list[float], coef: float, t_count: int, gap: str):
+    lengths = (t_count,) if gap == "none" else (t_count // 2, t_count - t_count // 2)
+    cursor = 0
+    origin = 0
+    xs = []
+    ys = []
+    marginal = 0.30
+    for length in lengths:
+        clock = length + 1
+        state = []
+        for time in range(clock):
+            uniform = values[cursor]
+            cursor += 1
+            if time == 0:
+                probability = marginal
+            else:
+                sign = balanced_cancelling_sign(origin + time - 1, t_count, gap)
+                if sign == 0:
+                    probability = marginal
+                else:
+                    probability = marginal + sign * coef * (state[time - 1] - marginal)
+            state.append(1.0 if uniform < probability else 0.0)
+        xs.append(state[:-1])
+        ys.append(state[1:])
+        origin += length
+    return np.concatenate(xs), np.concatenate(ys)
+
+
+def test_block_centering_removes_each_block_mean():
+    phi = np.array([1.0, 3.0, 10.0, 14.0])
+    blocks = np.array(["b0", "b0", "b1", "b1"])
+    cells = np.array(["c0", "c1", "c0", "c1"])
+    centered = block_center(phi, blocks)
+    assert centered[:2].mean() == 0.0
+    assert centered[2:].mean() == 0.0
+    grand = phi - phi.mean()
+    assert not np.allclose(centered, grand)
+    by_cell = block_center(phi, cells)
+    assert not np.allclose(centered, by_cell)
+    assert by_cell[cells == "c0"].mean() == 0.0
+    assert by_cell[cells == "c1"].mean() == 0.0
+    data = _input(
+        [1, 0, 1, 1, 0, 0],
+        [1, 1, 0, 0, 1, 0],
+        ["c0", "c1", "c0", "c1", "c0", "c1"],
+        ["b0", "b0", "b0", "b1", "b1", "b1"],
+        [0, 0, 0, 0, 0, 0],
+        ["c0", "c1"],
+    )
+    moments = primitive_moments(data)
+    influence = gradient_influence(data, moments)
+    block_means = [influence[np.asarray(data.block) == name].mean() for name in ("b0", "b1")]
+    assert abs(block_means[0] - block_means[1]) > 1e-8
+    centered_influence = block_center(influence, data.block)
+    assert primitive_moments(data)["theta_hat"] == moments["theta_hat"]
+    assert not np.allclose(centered_influence, influence - influence.mean())
+    assert not np.allclose(centered_influence, block_center(influence, data.cell))
+    source = inspect.getsource(run_primary)
+    assert "block_center(phi, np.asarray(data.block))" in source
+
+
+def _completed_series():
+    return _input(
+        [1, 0, 1, 0, 1, 0, 1, 0],
+        [1, 1, 0, 0, 1, 0, 0, 1],
+        [0, 0, 0, 0, 1, 1, 1, 1],
+        [0, 0, 1, 1, 0, 0, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1],
+        h=1,
+    )
+
+
+def test_bootstrap_studentizer_uses_the_draw_variance():
+    assert STUDENTIZER_RECOMPUTATION_TEST_STRONG is True
+    data = _completed_series()
+    calls = []
+    original = contrast_mod.bartlett_variance
+
+    def wrapped(series, segments, bandwidth):
+        variance, gamma0 = original(series, segments, bandwidth)
+        calls.append((np.array(series, copy=True), np.array(variance, copy=True), int(bandwidth), list(segments)))
+        return variance, gamma0
+
+    entropy = world_entropy(
+        suite_id="IMPLEMENTATION_TEST",
+        configuration_id="studentizer-recompute",
+        world_index=4,
+        purpose="IMPLEMENTATION_TEST",
+    )
+    sampler = indexed_epsilon_sampler(entropy)
+    contrast_mod.bartlett_variance = wrapped
+    try:
+        result = run_primary(data, replicates=4, epsilon_sampler=sampler, compute_sensitivity=False, draw_batch_size=4)
+    finally:
+        contrast_mod.bartlett_variance = original
+    assert result["inference_status"] == STATUS_PRIMARY_COMPLETED
+    observed_series, observed_variance, bandwidth, segments = calls[0]
+    assert observed_series.ndim == 1
+    bootstrap_series, bootstrap_variance, bootstrap_bandwidth, bootstrap_segments = calls[1]
+    assert bootstrap_series.shape[0] == 4
+    assert bootstrap_bandwidth == bandwidth == result["B_T"]
+    assert bootstrap_segments == segments
+    moments = primitive_moments(data)
+    centered = block_center(gradient_influence(data, moments), data.block)
+    observed_reference = original(centered, contiguous_segments(data.segment_id), bandwidth)[0][0]
+    assert observed_variance[0] == pytest.approx(observed_reference)
+    for draw in range(4):
+        eta = np.empty(centered.shape[0], dtype=np.float64)
+        for segment_index, (start, stop) in enumerate(segments):
+            width = epsilon_width(stop - start, bandwidth)
+            shocks = sampler(draw, segment_index, width)
+            eta[start:stop] = moving_average_multipliers(shocks, bandwidth)
+        draw_series = eta * centered
+        draw_variance = original(draw_series, segments, bandwidth)[0][0]
+        assert bootstrap_series[draw] == pytest.approx(draw_series)
+        assert bootstrap_variance[draw] == pytest.approx(draw_variance)
+        assert draw_variance != pytest.approx(observed_variance[0])
+
+
+def test_bootstrap_batch_size_does_not_change_the_tail():
+    data = _completed_series()
+    entropy = world_entropy(
+        suite_id="IMPLEMENTATION_TEST",
+        configuration_id="batch-size",
+        world_index=11,
+        purpose="IMPLEMENTATION_TEST",
+    )
+    replicates = 11
+    rows = []
+    for batch_size in (1, 7, replicates + 5):
+        result = run_primary(
+            data,
+            replicates=replicates,
+            epsilon_sampler=indexed_epsilon_sampler(entropy),
+            compute_sensitivity=False,
+            draw_batch_size=batch_size,
+        )
+        rows.append(
+            (
+                result["T_obs"],
+                result["exceedance_count"],
+                result["p_value"],
+                result["inference_status"],
+            )
+        )
+    assert rows[0] == rows[1] == rows[2]
+    assert rows[0][3] == STATUS_PRIMARY_COMPLETED
+
+
+@pytest.mark.parametrize(
+    ("forced", "status"),
+    [(0.0, STATUS_BOOTSTRAP_DEGENERATE), (-1.0, STATUS_IMPLEMENTATION_ERROR)],
+)
+def test_bootstrap_variance_failure_aborts_the_run(forced: float, status: str):
+    data = _completed_series()
+    seen_draws = []
+    original = contrast_mod.bartlett_variance
+
+    def wrapped(series, segments, bandwidth):
+        variance, gamma0 = original(series, segments, bandwidth)
+        if np.asarray(series).ndim == 2:
+            variance = np.array(variance, copy=True)
+            gamma0 = np.array(gamma0, copy=True)
+            variance[0] = forced
+            gamma0[0] = 1.0
+        return variance, gamma0
+
+    def sampler(draw, segment, width):
+        seen_draws.append(int(draw))
+        return np.full(width, 0.2)
+
+    contrast_mod.bartlett_variance = wrapped
+    try:
+        result = run_primary(
+            data,
+            replicates=6,
+            epsilon_sampler=sampler,
+            compute_sensitivity=False,
+            draw_batch_size=1,
+        )
+    finally:
+        contrast_mod.bartlett_variance = original
+    assert result["inference_status"] == status
+    assert result["failed_draw_index"] == 0
+    assert result["p_value"] is None
+    assert result["exceedance_count"] is None
+    assert result["primary_reject"] is False
+    assert seen_draws == [0]
+    assert max(seen_draws) == 0
+
+
+def test_primitive_moments_reject_undeclared_labels():
+    data = _input([1, 0, 1, 0], [1, 0, 0, 1], [0, 0, 1, 9], [0, 0, 0, 0], [0, 0, 0, 0], [0, 1])
+    with pytest.raises(ValueError, match="declared cell list"):
+        primitive_moments(data)
+    with pytest.raises(ValueError, match="declared cell list"):
+        run_primary(data, replicates=2, epsilon_sampler=_sampler(b"3" * 32), compute_sensitivity=False)

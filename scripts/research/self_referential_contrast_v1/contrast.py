@@ -130,6 +130,9 @@ def primitive_moments(data: ContrastInput) -> dict[str, Any]:
         raise ValueError("cell labels must align with x")
     declared = tuple(data.declared_cells)
     t_count = int(x.shape[0])
+    unknown = [value for value in _unique_labels(cell) if value not in set(declared)]
+    if unknown:
+        raise ValueError("cell label is not in the declared cell list")
     cells: list[CellMoments] = []
     empty: list[Any] = []
     for name in declared:
