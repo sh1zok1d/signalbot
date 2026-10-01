@@ -134,6 +134,10 @@ The answers are appended here, with their date, before any definition is frozen.
 - A flow-based proxy (large-trade CVD turning up, or net taker buying after the low) is testable on 2020–2024, with BitMEX and Binance spot 2016/2017–2019 for confirmation. But it is not the observable the owner used.
 - The choice between the faithful version, the proxy, or the proxy first and the faithful version prospectively is an owner decision when the card is written.
 
+**Owner note on 2024 — 2026-10-01.** "Use 2024 too. I saw it, but I don't remember it." This is recorded as provenance.
+- **Discovery.** 2024 is used, in both the faithful (2023–2024) and the proxy (2020–2024) versions. Nothing excludes it from discovery.
+- **Confirmation.** The rule was adopted through trading in 2024, so 2024 may have shaped which rule survived, even without any remembered episode. If 2024 serves as confirmation (for example, faithful version: discovery 2023, confirmation 2024), the result carries the label `OWNER_EXPOSED_CONFIRMATION`. That is weaker evidence than a time-disjoint unseen surface, and V1 promotion still needs an unseen or prospective replication.
+
 ## 6. Routing
 
 Seed B (§7) follows the same routing.
