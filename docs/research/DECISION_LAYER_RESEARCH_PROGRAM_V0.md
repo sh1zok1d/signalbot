@@ -51,7 +51,7 @@ A "Delta burst → reversal/continuation" study would be a W/q/H variant of H05,
 
 ## 4. Step 0: scoped evaluation profile (this program only)
 
-**Update 2026-10-01.** The global review is complete (`HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW.md`). Once the owner adopts `HYPOTHESIS_EVALUATION_CONTRACT_V1.md`, it supersedes this profile, and the TWAP preregistration is frozen under V1.
+**Superseded 2026-10-01.** The owner adopted `HYPOTHESIS_EVALUATION_CONTRACT_V1.md`, which replaces this profile. The TWAP preregistration is frozen under V1 as an `INCREMENTAL` claim over matched net taker flow. The text below is kept as history.
 
 `HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW` is the routed unit after D7. The owner authorized a scoped version that adopts the proposal's elements this program needs:
 - **Not done:** the global review, the retrospective replay of D2–D13 and the C-series, and the generator and compiler updates.

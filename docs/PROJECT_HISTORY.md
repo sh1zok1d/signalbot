@@ -417,3 +417,9 @@ After about a week of running the beta, the owner judged that a descriptive scre
 - **First mechanism.** A TWAP execution footprint, chosen because the owner observed it in a third-party bot.
 - **Closed arm.** Delta → direction is not re-tested, because H05 already rejected it.
 - **Authority.** `research/DECISION_LAYER_RESEARCH_PROGRAM_V0.md`.
+
+## 18. Evaluation contract V1 (2026-10-01)
+
+After D7 closed, the owner adopted `research/HYPOTHESIS_EVALUATION_CONTRACT_V1.md`. It replaces "positive in k of n years" with a calibrated heterogeneity test. It splits claims into `CONTEXT_DESCRIPTIVE` and `INCREMENTAL`, and allows prospective replication with a fixed stopping rule.
+- **Why.** The old rules confused robustness with calendar uniformity, and they had no way to separate context from mechanism.
+- **Replay.** On the recorded history, no failure became support. C013 was downgraded for a genuine sign reversal. D12 was not penalized for noise.

@@ -86,6 +86,14 @@ Allowed work is research-supporting work: MARKET hypothesis formulation and hone
 
 Research must try to falsify hypotheses rather than protect the existing implementation.
 
+New hypothesis cards are evaluated under `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1.md` (adopted 2026-10-01, not retroactive). It covers:
+- twin preregistration;
+- the `CONTEXT_DESCRIPTIVE` and `INCREMENTAL` claim types;
+- the nuisance baseline;
+- the calibrated epoch-heterogeneity gate;
+- time-disjoint or prospective replication with a fixed stopping rule;
+- promotion rules.
+
 Rules:
 
 - engineering correctness != predictive validity;

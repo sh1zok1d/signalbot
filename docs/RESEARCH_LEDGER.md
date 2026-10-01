@@ -7022,3 +7022,13 @@ NEXT_UNIT = OWNER_ADOPTION_OF_HYPOTHESIS_EVALUATION_CONTRACT_V1
 ```
 
 Records: `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW.{md,json}`, `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1.md`.
+
+## Hypothesis evaluation contract V1 adopted — 2026-10-01
+
+Owner adoption. No scientific outcome. The adopted text is `HYPOTHESIS_EVALUATION_CONTRACT_V1.md` at merge commit `0db19833adcfa97feac754c3a2108b86122469c5`. It includes the pre-adoption amendments A1 (fixed stopping rule for prospective replication) and A2 (no stability claim from heterogeneity tests). It is not retroactive. It supersedes the decision-layer scoped profile.
+
+```
+HYPOTHESIS_EVALUATION_CONTRACT_V1 = ADOPTED
+RETROACTIVE = false
+NEXT_UNIT = GV0R02_COMPILER_AND_GENERATOR_CONTRACT_V1_MAPPING
+```

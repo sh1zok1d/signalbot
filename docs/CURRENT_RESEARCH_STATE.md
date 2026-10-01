@@ -1,3 +1,24 @@
+## Hypothesis evaluation contract V1 adopted — 2026-10-01
+
+`HYPOTHESIS_EVALUATION_CONTRACT_V1 = ADOPTED`
+`ADOPTED_TEXT_COMMIT = 0db19833adcfa97feac754c3a2108b86122469c5`
+`RETROACTIVE = false`
+`NEXT_UNIT = GV0R02_COMPILER_AND_GENERATOR_CONTRACT_V1_MAPPING`
+
+The owner adopted `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1.md` with the pre-adoption amendments A1 (fixed stopping rule for prospective replication) and A2 (no stability claim from heterogeneity tests). It governs every card registered from now on. It supersedes the scoped profile of the decision-layer program.
+
+Route:
+1. GV0R02 compiler mapping to V1.
+2. Generator feasibility-contract mapping.
+3. A fresh Generator V0 shadow run under a new run ID with a capped budget.
+4. A shortlist of at most 5.
+5. Feasibility.
+6. One or two preregistrations.
+7. One-shot discovery.
+8. Time-disjoint confirmation.
+
+The TWAP footprint card stays separate: its feasibility is outcome-blind and continues, and it will be the first `INCREMENTAL` card preregistered under V1.
+
 ## D7 campaign closed; evaluation contract V1 reviewed — 2026-10-01
 
 `D7_CAMPAIGN_CLOSED = true`
