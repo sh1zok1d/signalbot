@@ -1,3 +1,14 @@
+## GV0R02 compiler mapped to V1 — 2026-10-01
+
+`GV0R02_SCHEMA_V1 = IMPLEMENTED`
+`V0_COMPILER_CHANGED = false`
+`MARKET_OUTCOMES_OPENED = false`
+`NEXT_UNIT = GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING`
+
+`scripts/research/gv0r02_feasibility_compiler_v1.py` adds the V1 definition checks, Holm-adjusted power over primary cells, a replication power screen, the protected-window check and heterogeneity assessability. The V0 passes run unchanged underneath.
+- **Golden cases.** C012, C004 and C020 keep their V0 statuses under V1, and the positive control stays feasible.
+- **Record:** `docs/research/GV0R02_FEASIBILITY_COMPILER_V1_MAPPING.md`.
+
 ## Hypothesis evaluation contract V1 adopted — 2026-10-01
 
 `HYPOTHESIS_EVALUATION_CONTRACT_V1 = ADOPTED`

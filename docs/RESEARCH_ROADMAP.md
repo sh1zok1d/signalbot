@@ -1,3 +1,9 @@
+## GV0R02 compiler V1 mapping — 2026-10-01
+
+`NEXT_UNIT = GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING`. The compiler V1 layer is implemented (`GV0R02_FEASIBILITY_COMPILER_V1_MAPPING.md`). Next steps:
+1. Map the generator planning contract and card prompt to the V1 fields.
+2. Run a fresh shadow under a new run ID, with a capped budget.
+
 ## Evaluation contract V1 adopted — 2026-10-01
 
 `NEXT_UNIT = GV0R02_COMPILER_AND_GENERATOR_CONTRACT_V1_MAPPING`. `HYPOTHESIS_EVALUATION_CONTRACT_V1.md` is adopted; adopted text at `0db1983`. It applies to cards registered after adoption.
