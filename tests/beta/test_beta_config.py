@@ -74,6 +74,16 @@ def test_regime_d7_does_not_enter_the_rules_digest():
     assert off.config_digest != c.config_digest
 
 
+def test_feedback_limits_do_not_enter_the_rules_digest():
+    raw = _raw()
+    assert raw["feedback"] == {"max_chars": 1000, "max_per_utc_day": 5}
+    raw["feedback"] = {"max_chars": 20, "max_per_utc_day": 1}
+    c = BetaConfig.from_mapping(raw)
+    assert c.rules_digest == PINNED_RULES_DIGEST
+    assert c["feedback"]["max_chars"] == 20
+    assert c.config_digest != BetaConfig.load().config_digest
+
+
 def test_access_and_telemetry_do_not_enter_the_rules_digest():
     raw = _raw()
     raw["access"] = {"max_active_users": 7}

@@ -891,6 +891,31 @@ class BetaConn:
             "DELETE FROM beta_user_activity WHERE at < $1", cutoff)
         return int(status.split()[-1])
 
+    async def count_feedback_messages_on_utc_day(self, user_pk: int, day) -> int:
+        start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
+        return int(await self.conn.fetchval(
+            """SELECT count(*) FROM beta_feedback_messages
+               WHERE user_pk=$1 AND created_at >= $2 AND created_at < $3""",
+            user_pk, start, start + timedelta(days=1)))
+
+    async def insert_feedback_message(self, *, user_pk: int, text: str, lang: str,
+                                      created_at: datetime) -> int:
+        return int(await self.conn.fetchval(
+            """INSERT INTO beta_feedback_messages (user_pk, text, lang, created_at)
+               VALUES ($1,$2,$3,$4) RETURNING message_pk""",
+            user_pk, text, lang, created_at))
+
+    async def purge_feedback_messages_before(self, cutoff: datetime) -> int:
+        status = await self.conn.execute(
+            "DELETE FROM beta_feedback_messages WHERE created_at < $1", cutoff)
+        return int(status.split()[-1])
+
+    async def active_user_rows(self) -> list:
+        rows = await self.conn.fetch(
+            """SELECT user_pk, telegram_user_id, chat_id, lang
+               FROM beta_users WHERE status='ACTIVE' ORDER BY user_pk""")
+        return [dict(r) for r in rows]
+
     async def purge_rejected_starts_before(self, cutoff: datetime) -> int:
         day = cutoff.astimezone(timezone.utc).date() if cutoff.tzinfo else cutoff.date()
         hashes = await self.conn.execute(

@@ -228,6 +228,54 @@ _CATALOG: dict[str, dict[str, str]] = {
     "btn_noise": {"ru": "Шум", "en": "Noise"},
     "lang_saved": {"ru": "Язык: русский.", "en": "Language: English."},
     "joined": {"ru": "Вы в бете.", "en": "Joined"},
+    "welcome": {
+        "ru": (
+            "Добро пожаловать в Signalbot (закрытая бета).\n"
+            "Бот следит за BTC-фьючерсами на Binance, Bybit и OKX и показывает, когда на рынке "
+            "происходит что-то необычное: резкие движения цены, всплески Delta, ликвидации, "
+            "заметные изменения OI.\n"
+            "/btc — состояние рынка сейчас. Кнопки 1ч и 24ч — картина за час и сутки.\n"
+            "/terms — что значат термины.\n"
+            "/lang — сменить язык.\n"
+            "Бот только описывает рынок, это не торговые советы.\n"
+            "Отзывы и вопросы: /feedback ваш текст"
+        ),
+        "en": (
+            "Welcome to Signalbot (closed beta).\n"
+            "The bot watches BTC perpetual futures on Binance, Bybit and OKX and shows when "
+            "something unusual happens: sharp price moves, Delta spikes, liquidations, notable "
+            "OI changes.\n"
+            "/btc — the market right now. The 1h and 24h buttons show the last hour and day.\n"
+            "/terms — what the terms mean.\n"
+            "/lang — change the language.\n"
+            "The bot only describes the market; it is not trading advice.\n"
+            "Feedback and questions: /feedback your text"
+        ),
+    },
+    "welcome_push": {
+        "ru": "Иногда бот сам пришлёт короткое сообщение — не больше 3 в день.",
+        "en": "Sometimes the bot will send a short message on its own — no more than 3 a day.",
+    },
+    "feedback_usage": {
+        "ru": "Напишите отзыв: /feedback ваш текст",
+        "en": "Write your feedback: /feedback your text",
+    },
+    "feedback_too_long": {
+        "ru": "Отзыв длиннее {n} символов. Сократите текст, ничего не сохранено.",
+        "en": "That feedback is longer than {n} characters. Shorten it; nothing was stored.",
+    },
+    "feedback_daily_limit": {
+        "ru": "Сегодня уже {n} отзывов. Новый можно отправить завтра.",
+        "en": "Already {n} feedback messages today. Another one can be sent tomorrow.",
+    },
+    "feedback_thanks": {
+        "ru": "Спасибо! Отзыв передан команде.",
+        "en": "Thanks! Your feedback was sent to the team.",
+    },
+    "team_reply": {
+        "ru": "Ответ команды Signalbot:\n",
+        "en": "Reply from the Signalbot team:\n",
+    },
     "privacy": {
         "ru": (
             "<b>Signalbot, закрытая бета — конфиденциальность</b>\n"
@@ -237,6 +285,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
             "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
             "/delete_me удаляет их вместе с остальными вашими данными.\n"
+            "• Тексты отзывов (/feedback) хранятся 120 дней и удаляются командой /delete_me.\n"
             "• /stop приостанавливает все сообщения. /delete_me удаляет ваши данные участника "
             "и исключает вас из беты.\n"
             "• После /stop данные удаляются автоматически через 30 дней.\n"
@@ -251,6 +300,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• We record which commands and buttons you use, and when, and which invite link "
             "you came from, so we can improve the bot. These records are kept for 120 days. "
             "/delete_me deletes them with the rest of your data.\n"
+            "• Feedback texts are stored for 120 days and deleted by /delete_me.\n"
             "• /stop pauses all messages. /delete_me deletes your participant data and removes "
             "you from the beta.\n"
             "• After /stop, your data is deleted automatically after 30 days.\n"
@@ -268,6 +318,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "/history — недавние эпизоды детектора, с доставкой или без, с фактическими диапазонами\n"
             "/terms — термины\n"
             "/lang — язык сообщений\n"
+            "/feedback — отзыв или вопрос\n"
             "/stop — пауза · /delete_me — удалить ваши данные"
         ),
         "en": (
@@ -279,6 +330,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "/history — recent detector episodes, pushed or not, with factual follow-up ranges\n"
             "/terms — glossary\n"
             "/lang — message language\n"
+            "/feedback — a comment or a question\n"
             "/stop — pause messages · /delete_me — delete your data"
         ),
     },
