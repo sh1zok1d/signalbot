@@ -1,6 +1,6 @@
 # Hypothesis evaluation contract V1
 
-**Status:** `READY_FOR_OWNER_ADOPTION`. It has no force until the owner adopts it. Adoption is recorded below.
+**Status:** `ADOPTED` (owner, 2026-10-01). Active contract for every hypothesis card registered after adoption. Adoption is recorded below.
 **Date:** 2026-10-01
 **Review:** `HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW.md`
 **Proposal:** `HYPOTHESIS_EVALUATION_CONTRACT_V1_PROPOSAL.md`
@@ -134,6 +134,9 @@ No other class is ever promoted.
 
 | Field | Value |
 |---|---|
-| Adopted | not yet |
-| By | owner |
-| Applies from | the adoption commit |
+| Adopted | 2026-10-01 |
+| By | owner ("V1 принимаю, мержи #278") |
+| Adopted text | this file as merged in PR #278, merge commit `0db19833adcfa97feac754c3a2108b86122469c5`, including the pre-adoption amendments A1 (fixed stopping rule for prospective replication) and A2 (no stability claim from heterogeneity tests) |
+| Applies from | the commit that records this adoption; it covers cards registered after it, and it is not retroactive |
+| Supersedes | the scoped evaluation profile in `DECISION_LAYER_RESEARCH_PROGRAM_V0.md` §4 |
+| Not yet aligned | the GV0R02 feasibility compiler and the generator feasibility contract (next unit) |

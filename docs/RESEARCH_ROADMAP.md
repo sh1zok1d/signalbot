@@ -1,3 +1,7 @@
+## Evaluation contract V1 adopted — 2026-10-01
+
+`NEXT_UNIT = GV0R02_COMPILER_AND_GENERATOR_CONTRACT_V1_MAPPING`. `HYPOTHESIS_EVALUATION_CONTRACT_V1.md` is adopted; adopted text at `0db1983`. It applies to cards registered after adoption.
+
 ## Post-D7 gate run — 2026-10-01
 
 D7 is closed (`D7_CAMPAIGN_CLOSE_V1`). `HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW` is complete, and `HYPOTHESIS_EVALUATION_CONTRACT_V1.md` is ready for owner adoption.
