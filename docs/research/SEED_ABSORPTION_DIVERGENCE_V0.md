@@ -84,6 +84,30 @@ These closed cards are close. This seed is not a rescue of any of them: its prov
 
 The answers are appended here, with their date, before any definition is frozen.
 
+### Owner answers — 2026-10-01 (before any data)
+
+| # | Answer (owner's words, translated) |
+|---|---|
+| 1 | Timeframes traded: 1h, 4h, 1D. |
+| 2 | Example with a hidden bearish divergence: stop beyond the previous high; target around the next resistance levels; close 50% there, trail the rest. Time exit: close manually when the divergence breaks, or get stopped out. |
+| 3 | Buyback was judged on a monitoring site by its bars ("палки"). Small buybacks show nothing; large ones show green bars, meaning strong buying. No numeric thresholds: a utility did it. |
+| 4 | Both RSI 14 and 21 had to diverge, and usually both did. |
+| 5 | BTC and ETH only, futures. |
+| 6 | Traded since 2024. The owner believes the structure existed earlier. |
+
+**Implications for the card (not frozen):**
+- **Timeframes.** The primary should be 1h or 4h. 1D will almost certainly lack support over 2020–2024; feasibility counts decide.
+- **Estimand that mirrors the practice.** Use risk multiples. The stop is beyond the decline's swing low (bullish case). The outcome is whether price reaches +1R or +2R before the stop, within a frozen time cap. The divergence-break exit and the resistance-level targets are discretionary, so the time cap and fixed R targets stand in for them.
+- **Buyback is flow-based in the owner's practice.** Green bars are large net taker-buy bars. The faithful definition is a net-taker-buy spike above a frozen trailing percentile after the low.
+- **Risk of overlap.** That flow-based buyback overlaps with CVD divergence, with H05 (taker imbalance) and with the beta's Delta extremes. The card must keep the arms separable. A price-reclaim buyback can be a pre-declared secondary.
+- **Hidden divergences.** The example is a hidden (continuation) divergence. This seed is about regular bullish divergence after a decline (reversal). Hidden divergences are a different mechanism and would be a separate seed (open question 7).
+- **Exposure.** The owner traded this in 2024, so 2024 is owner-exposed. Discovery on Binance 2020–2024 carries that label. Confirmation must be time-disjoint: BTC on BitMEX 2016–2019 or Binance spot 2017–2019, or a prospective surface. ETH 2020–2024 on the same period is a robustness check only.
+- **Instruments.** BTC and ETH perps, which matches `CORE_BTC_BINANCE_V0` and `CORE_ETH_BINANCE_V0`.
+
+**Open questions:**
+- 7: Was the rule traded on regular divergences, hidden ones, or both?
+- 8: Which monitoring site or utility showed the bars, and what did a bar measure (spot or perp delta, which exchanges)?
+
 ## 6. Routing
 
 This seed does not change `NEXT_UNIT`. The TWAP feasibility unit runs first. After it, the owner decides when this seed becomes a card under `HYPOTHESIS_EVALUATION_CONTRACT_V1`, alongside the statement matrix.
