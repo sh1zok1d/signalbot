@@ -62,11 +62,12 @@ All gates are conjunctive and mechanical:
    - **Heterogeneity test.** The between-epoch dispersion of the epoch estimates is compared with a dependence-preserving null that holds the effect constant across epochs. That null is a block permutation of units across epochs, with the block length covering dependence. Seed and draws are frozen; `alpha_het = 0.05`.
    - **Opposite-sign test.** An epoch fails if its estimate has the opposite sign to the pooled estimate with one-sided `p < 0.05`, using a dependence-aware standard error.
    - **Outcome:**
-     - heterogeneity not significant: the gate passes;
+     - heterogeneity not significant: the gate passes. This means consistent with homogeneity at this power, not that homogeneity is shown;
      - heterogeneity significant but no epoch significantly opposite: the gate passes with `MAGNITUDE_VARIES_BY_EPOCH`, and product wording must not claim more magnitude precision than the epochs support;
      - heterogeneity significant and at least one epoch significantly opposite: the gate fails, and the class is `HETEROGENEOUS_UNEXPLAINED`.
    - **Diagnostics only.** The largest epoch share and the leave-one-epoch-out estimates are reported but never decide. With few or noisy units a hard share rule rejects many homogeneous effects (review §3).
    - **Low power.** If the heterogeneity test has under 50% power, computed outcome-blind, to detect a 2× difference between epochs, it is recorded as `NOT_ASSESSABLE` and does not fail the card.
+   - **Not evidence of stability.** Neither `NOT_ASSESSABLE` nor a non-significant result is evidence that the effect is stable across epochs. Records and product wording say "heterogeneity could not be reliably assessed at this N". They never say "stable across epochs". Only a replication that passes raises that confidence.
 
 An outside-regime null or attenuation is optional specificity evidence, never a gate.
 
@@ -101,6 +102,15 @@ The class is a mechanical function of the frozen gates, the claim type and the d
 Replication is time-disjoint from discovery and uses the same frozen rule.
 - **Earlier or later era.** An earlier or later historical era qualifies.
 - **Prospective surface.** Data that did not exist when the analysis was frozen also qualifies. This lets a mechanism that emerged recently be replicated even though older history predates it.
+- **Fixed stopping rule for a prospective surface.** Before any confirmatory data exists, the preregistration freezes all of the following:
+  - the stopping rule: a fixed number of eligible episodes or a fixed end date, whichever comes first;
+  - the minimum N.
+
+  Rules for the window:
+  - Before the stop, only counts (eligibility and coverage) may be monitored. No test statistic, no effect estimate and no interim look.
+  - Exactly one analysis runs, at the stop.
+  - If the end date arrives below the minimum N, the result is `INCONCLUSIVE`. Extending the window is a new preregistration on later data, never a continuation.
+  - If the product shows any statistic built from the same observations during the window, the preregistration states how that exposure is handled. See the 2026-09-28 amendment in `BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md`.
 - **Protected data.** Data inside the protected 2025/2026 window, including live collection, still needs a decision under the protected-data rules. V1 does not grant it.
 - **Same-period other venue.** A same-period other venue is a robustness check, not replication.
 

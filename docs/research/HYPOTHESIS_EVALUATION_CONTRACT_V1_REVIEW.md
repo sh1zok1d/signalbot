@@ -55,7 +55,7 @@ NEXT_UNIT                          = OWNER_ADOPTION_OF_HYPOTHESIS_EVALUATION_CON
 **Summary of the replay:**
 - **No failure becomes support.** Every recorded failure fails a statistical or practical bar, which V1 keeps.
 - **One prototype is downgraded: C013.** Its sign reversal is real.
-- **D12 is not downgraded.** Its apparent concentration is within noise for 10 units.
+- **D12 is not downgraded.** Its apparent concentration is within noise for 10 units. That does not show stability: at N = 10, heterogeneity cannot be reliably assessed.
 - **Two claims have an incomplete nuisance baseline:**
   - **D7:** the claim scope is recorded; the product claim is unaffected;
   - **D11:** a confirmation needs the prior-volatility check.
@@ -101,6 +101,12 @@ A mechanism that appeared recently cannot replicate on an older era that predate
 - **The practical bar.** It is frozen with a justification, so it is not tuned to kill or to pass.
 - **No rescue.** A failed card can still lead to a new, pre-declared hypothesis on unseen data.
 
+### Pre-adoption amendments (owner review, 2026-10-01)
+
+Two lines were made explicit before adoption:
+- **A1. Fixed stopping rule for prospective replication.** The episode count or end date (whichever first) and the minimum N are frozen before the data exists. Only counts are monitored, and there is one analysis at the stop. A shortfall is `INCONCLUSIVE`; it is not extended.
+- **A2. No stability claim from heterogeneity tests.** `NOT_ASSESSABLE` or a non-significant heterogeneity test is never reported as stability across epochs. Example: D12 is "not downgraded; heterogeneity could not be reliably assessed at N = 10", not "stable".
+
 ## 4. Red team: new false-positive paths and their closing rules
 
 | # | Path V1 could open | Closing rule (in the contract) |
@@ -113,7 +119,7 @@ A mechanism that appeared recently cannot replicate on an older era that predate
 | R5 | The opposite error: conditioning away the mechanism and losing support | An outcome-blind support check before outcomes, with cell counts. If matching leaves insufficient support, the design coarsens the nuisance as a frozen choice, or the card is `INCONCLUSIVE`. This is never decided after outcomes. |
 | R6 | A heterogeneity rule that is too loose, or too strict (F1) | A dependence-preserving heterogeneity test with a frozen `alpha_het`, plus a per-epoch opposite-sign test. Power is computed outcome-blind. Shares are diagnostic. |
 | R7 | Promoting sparse regimes | `SUPPORTED_BUT_PRODUCT_SPARSE` is never promotable on its own. The product frequency gate is separate. |
-| R8 | "Replication" on overlapping data, or a prospective surface chosen after seeing data | Replication is time-disjoint with the same frozen rule. A prospective surface counts only if the analysis was frozen before the data existed. A same-period other venue is robustness only. Protected-window data needs its own decision. |
+| R8 | "Replication" on overlapping data, a prospective surface chosen after seeing data, or optional stopping | Replication is time-disjoint with the same frozen rule. A prospective surface counts only if the analysis and a fixed stopping rule were frozen before the data existed, with counts-only monitoring and one analysis at the stop. A same-period other venue is robustness only. Protected-window data needs its own decision. |
 | R9 | Practical bar chosen to fit | The practical bar and its justification are frozen in the preregistration. Trading-relevant claims tie it to costs; context claims tie it to product relevance. |
 
 ## 5. Decisions the proposal required
