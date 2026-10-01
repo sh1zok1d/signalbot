@@ -6893,3 +6893,19 @@ NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
 ```
 
 Record: `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.md`.
+
+## D7 confirmatory beacon scan resume 3 — 2026-10-01
+
+Same scan identity. Invocation 3 retried the chronological successor of `2/1965233` and fetched `2/1965234` at `2026-10-01T08:00:00.000Z`. Seventeen pulses, `2/1965234` through `2/1965250` at `2026-10-01T08:16:00.000Z`, classified `INVALID`. Continuity on those edges passed. The successor of `2/1965250` returned HTTP 404. Prior 49 rows were not rewritten. Cumulative examined: 66. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965250
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965250
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+Record: `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.md`.

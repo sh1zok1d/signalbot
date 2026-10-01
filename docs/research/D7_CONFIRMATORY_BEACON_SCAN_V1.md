@@ -86,3 +86,31 @@ NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
 ```
 
 The verifier blob remains `bed8a2aa33599b7ce4c0915eb410ad7413747b1d`. No seed was generated and the BitMEX target was not opened.
+
+## Resume at the successor of 2/1965233
+
+Same scan identity `D7_CONFIRMATORY_BEACON_SCAN_V1`, invocation 3. The first 49 ledger rows are unchanged. The retry fetched the chronological successor of `2/1965233` again. That pulse is `2/1965234` at `2026-10-01T08:00:00.000Z`.
+
+| Fact | Value |
+| --- | --- |
+| Retried first | chronological successor of `2/1965233`, fetched as `2/1965234` |
+| Resume range | `2/1965234` at `2026-10-01T08:00:00.000Z` through `2/1965250` at `2026-10-01T08:16:00.000Z` |
+| Resume examined | 17 |
+| Resume `VALID` | 0 |
+| Resume `INVALID` | 17 |
+| Resume incomplete | 1, HTTP 404 on the successor of `2/1965250` |
+| Resume continuity | `PASS` on all 17 edges |
+
+Each new row is `PULSE_{pulseIndex}_OBJECTIVELY_INVALID`, modulus 256 bytes, signature 512 bytes, signature verification `FAIL`, output integrity `PASS`, on the same named certificate. Chain index stayed 2. The cumulative ledger is 66 rows, `2/1965185` through `2/1965250`, SHA-256 `fc5e80600c243e634b02acd187627d8d83be417a10f6155db4ed65cc7c8d48d1`. The first appended raw SHA-256 is `9b78b80013b65228cdc47ca4184997bf224a33534c32f04bc285fc1d0c2122a6`. The cursor raw is `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1_CURSOR.json`, SHA-256 `ad52be1ffd51d6f50b85f9bcbea2815a5a76f318cd65d0d7d342c2bba2f6d8a6`.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965250
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965250
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+The verifier blob remains `bed8a2aa33599b7ce4c0915eb410ad7413747b1d`. No seed was generated and the BitMEX target was not opened.
