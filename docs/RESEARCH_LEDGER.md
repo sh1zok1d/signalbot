@@ -6938,3 +6938,15 @@ SELECTED_CONFIRMATORY_BEACON = NONE
 ```
 
 Record: `docs/research/D7_CONFIRMATORY_SEED_SOURCE_AMENDMENT_V1.md`.
+
+## D7 deterministic-seed opening authorization — 2026-10-01
+
+Mechanical review after amendment commit `b603f55d7b12492bf813abac1537aa21f85932e4` was served by the GitHub API at `2026-10-01T08:46:42Z`. `SEED_SOURCE_AMENDMENT_COMMITTED = true`. `TARGET_WAS_UNOPENED_AT_AMENDMENT_COMMIT = true`. Digest matches `5d81a9be7f96abab8a92539e2527006cf97340a8f5ca7fe966b8d6293f4ba63e`. `STATISTICAL_PROCEDURE_CHANGED = false`. Focused seed and verifier tests passed. Decision `D7_DETERMINISTIC_SEED_OPENING_AUTHORIZED`. Target remains unopened. No confirmatory bootstrap stream.
+
+```
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+```
+
+Record: `docs/research/D7_DETERMINISTIC_SEED_OPENING_AUTHORIZATION_V1.md`.
