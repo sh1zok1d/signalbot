@@ -424,7 +424,13 @@ def test_generic_builder_respects_eligible_length_and_gap():
 
 def test_generic_inference_sources_omit_adapter_constants():
     forbidden = ("30354", "721", "BitMEX", "bitmex", "XBTUSD", "year × RV")
+    # confirmatory_contract.py is the D7 confirmatory adapter added by
+    # D7_FINAL_CONTRACT_INTEGRITY_REPAIR_V1; it carries the D7 identity pins by
+    # design. The generic inference sources must still omit them.
+    adapters = {"confirmatory_contract.py"}
     for path in PACKAGE.glob("*.py"):
+        if path.name in adapters:
+            continue
         text = path.read_text(encoding="utf-8")
         for token in forbidden:
             assert token not in text, f"{path.name} contains {token}"
