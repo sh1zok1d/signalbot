@@ -261,14 +261,17 @@ The grid itself:
 | minimum slices `K` | 20, 40 |
 | minimum duration | 15 min, 30 min |
 
-**Calibration month: 2024-06, structure only.** Two quantities per candidate:
-- **Recall:** synthetic TWAPs are injected into the real background. They vary period (3–60 s), slice size ($2k–$50k), quantity versus notional slicing, and duration (20–120 min). Recall is the share that qualifies.
-- **Specificity:** the ratio of episodes found on an hour-preserving time-shuffled null to episodes found on the real data.
+**Calibration month: 2024-06, structure only.** Three quantities per candidate:
+- **Recall:** 200 synthetic TWAPs (seed 20261002) are injected into the real background. They vary period (3–60 s), slice size ($2k–$50k), quantity versus notional slicing, and duration (20–120 min). `RECALL` = qualified injections / 200.
+- **Shuffled false positives per day:** the hour-preserving time shuffle is repeated 5 times (seeds 20261003–20261007). Each repetition keeps each key's per-hour print count and draws times uniformly within the hour. `FP_PER_DAY` = the mean over the 5 repetitions of qualified shuffled episodes per calendar day of the month.
+- **Specificity ratio:** `FP_RATIO` = (mean qualified shuffled episodes over the 5 repetitions) / (qualified real episodes in 2024-06). If the denominator is 0, the candidate is inadmissible.
 
-**Selection rule, deterministic.**
-- Admissible candidates: recall ≥ 0.80 and null/real ≤ 0.10.
-- Among them, take the largest discovery `N_persistence_eligible`.
-- Ties go to the larger tolerance, then the smaller `K`, then the shorter duration.
+**Selection rule, deterministic.** Real episode counts are never a selection criterion; they only feed the feasibility gates.
+- Admissible candidates: `RECALL ≥ 0.80` and `FP_RATIO ≤ 0.10`.
+- Among them, choose in this order:
+  1. the lowest `FP_PER_DAY`;
+  2. then the highest `RECALL`;
+  3. then the simplest specification: the smaller tolerance, then the larger `K`, then the longer minimum duration, i.e. the stricter detector.
 - If no candidate is admissible, stop with `FEASIBILITY_FAILED` (`DETECTOR_NOT_SPECIFIC`).
 
 **Episodes:**
@@ -333,11 +336,23 @@ Up to 5 nearest-in-time controls per anchor, drawn without replacement. All matc
 
 **Practical floor.** At least 10 bps absolute for H2 and for H3. It is chosen in advance as the smallest economically meaningful scale. It is not a claim of net profitability.
 
-**V1 epoch-heterogeneity gate.** It is applied by calendar year to each passing cell, with a block permutation of 26 weeks.
+**V1 epoch-heterogeneity gate (frozen exactly as in V1 §4).** It runs on each cell that passes Holm and the floor. Epochs are calendar years 2020–2024.
+- **Heterogeneity test:** the SD of the yearly cell estimates is compared against a block permutation of 26-week blocks across years. 2,000 draws, seed 20261008, `alpha_het = 0.05`.
+- **Opposite-sign test:** a year fails if its estimate has the opposite sign to the pooled estimate with one-sided `p < 0.05` (day-block bootstrap within that year, 2,000 draws).
+- **Outcome:**
+  - heterogeneity significant **and** at least one year significantly opposite: the cell is `HETEROGENEOUS_UNEXPLAINED` and does not count as supported;
+  - heterogeneity significant with no opposite year: the cell passes with `MAGNITUDE_VARIES_BY_EPOCH`;
+  - otherwise the cell passes.
+- **Low power.** If the outcome-blind power to detect a 2× difference between the two smallest years is under 0.50, the result is `NOT_ASSESSABLE` and is not a failure. It is never reported as stability.
 
 ### Phase 4 — replication
 
 This phase runs only for the cells that pass discovery. It uses the same frozen specification on Binance spot BTCUSDT 2017-08 → 2019-12.
+
+**Provenance class, fixed before outcomes:** `TIME_DISJOINT_SAME_VENUE_SAME_INSTRUMENT_REPLICATION`.
+- Discovery is also Binance spot BTCUSDT `aggTrades`, so it is the same instrument and the same feature construction. The surface is time-disjoint, so under V1 §7 it counts as replication.
+- Declared limitation: 2017–2019 spot microstructure differs (lower volume, fewer algorithms). If the support gate fails, the replication status is `INFERENCE_INSUFFICIENT`.
+- A perpetual or other-venue surface would be classed `CROSS_MARKET_VALIDATION`, not replication. None is used in this run.
 
 A cell passes replication if all three hold:
 - the sign is the same as in discovery;
