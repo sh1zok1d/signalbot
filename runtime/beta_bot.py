@@ -107,6 +107,10 @@ def _help(lang: str) -> str:
     return t(lang, "help") + "\n\n" + t(lang, "disclaimer")
 
 
+def _help_buttons(lang: str) -> list:
+    return [[(t(lang, "btn_terms"), "terms")]]
+
+
 def _lang_of(user) -> str:
     return (user or {}).get("lang") or "ru"
 
@@ -158,7 +162,7 @@ class BetaBotHandler:
         lang = _lang_of(user)
         if cmd == "start":
             if user is not None and user["status"] == "ACTIVE":
-                return [_msg(chat_id, _help(lang), lang=lang)]
+                return [_msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)]
             if await self._allowed(conn, uid):
                 if user is None:
                     return [_msg(chat_id, t("ru", "choose_lang"), _lang_buttons("pick"), lang="ru")]
@@ -186,8 +190,10 @@ class BetaBotHandler:
             rows = await conn.fetch_episode_history(symbol=self.cfg.symbol, limit=HISTORY_LIMIT)
             outcomes = {r["episode_pk"]: await conn.fetch_outcomes(r["episode_pk"]) for r in rows}
             return [_msg(chat_id, format_history(rows, outcomes, lang), lang=lang)]
+        if cmd == "terms":
+            return [_msg(chat_id, t(lang, "terms"), lang=lang)]
         if cmd == "help":
-            return [_msg(chat_id, _help(lang), lang=lang)]
+            return [_msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)]
         if cmd == "stop":
             await conn.stop_user(telegram_user_id=uid, now=now)
             return [_msg(chat_id, t(lang, "paused"), lang=lang)]
@@ -220,9 +226,13 @@ class BetaBotHandler:
         return text, btc_buttons(view, lang, view_pk)
 
     async def _attach_horizons(self, conn, view: dict) -> None:
-        """Presentation-only 1h baseline. Fail-closed screens store an empty block."""
+        """Presentation-only 1h and 24h baselines. Fail-closed screens store an empty block.
+
+        Tape history covers the 24h window plus 30 prior days, each of which needs its
+        own 24h lookback, so the fetch starts 31 days and 24h before data-through.
+        """
         from datetime import timedelta
-        from beta.horizons import build_horizons, empty_horizons
+        from beta.horizons import build_horizons, empty_horizons, oi_boundaries
         from beta.state_tape import BUCKET
         if view.get("product_status") in ("DATA STALE", "DATA DEGRADED") or not view.get("as_of_bucket"):
             view["horizons"] = empty_horizons()
@@ -236,9 +246,13 @@ class BetaBotHandler:
         hist = await conn.fetch_tape_history(
             symbol=self.cfg.symbol, market_type=self.cfg.market_type, timeframe=self.cfg.timeframe,
             calculation_version=calc, state_schema_versions=(self.cfg.state_schema_version,),
-            start=as_of - timedelta(days=31), end=as_of + BUCKET)
+            start=as_of - timedelta(days=31, hours=24), end=as_of + BUCKET)
+        bounds = oi_boundaries(as_of)
+        oi = await conn.fetch_open_interest_asof(
+            symbol=self.cfg.symbol, exchanges=self.cfg.exchanges, boundaries=bounds)
         view["horizons"] = build_horizons(self.cfg, as_of_bucket=as_of,
-                                          metrics_by_bucket={b: m for b, m in hist})
+                                          metrics_by_bucket={b: m for b, m in hist},
+                                          oi_by_boundary=oi)
 
     def _maturity_days(self) -> float:
         """The percentile core's maturity span (Stage-2 confidence tiers), not a UI constant."""
@@ -257,7 +271,8 @@ class BetaBotHandler:
 
     async def _open_tab(self, conn, cq, chat_id: int, answer, *, kind: str, view_pk: int, tab: str) -> list:
         """Render a tab from the persisted view only, then record the open."""
-        from beta.formatter import detail_tab_buttons, format_1h_tab, format_event_tab, view_id8
+        from beta.formatter import (detail_tab_buttons, format_1h_tab, format_24h_tab, format_event_tab,
+                                    view_id8)
         row = await conn.fetch_btc_view(view_pk)
         if row is None:
             return [answer(t("ru", "not_available"))]
@@ -266,11 +281,15 @@ class BetaBotHandler:
         focus = payload.get("active_episode") or payload.get("last_event")
         if tab == "event" and not (focus and focus.get("episode_id")):
             return [answer(t(lang, "not_available"))]
-        if tab == "1h" and fail:
+        if tab in ("1h", "24h") and fail:
             return [answer(t(lang, "not_available"))]
         vid = view_id8(row.get("payload_digest") or "")
-        html_text = (format_event_tab(self.cfg, payload, lang, vid) if tab == "event"
-                     else format_1h_tab(self.cfg, payload, lang, vid))
+        if tab == "event":
+            html_text = format_event_tab(self.cfg, payload, lang, vid)
+        elif tab == "24h":
+            html_text = format_24h_tab(self.cfg, payload, lang, vid)
+        else:
+            html_text = format_1h_tab(self.cfg, payload, lang, vid)
         await conn.insert_details_open(view_pk=view_pk, tab=tab, lang=lang, opened_at=self.clock())
         buttons = detail_tab_buttons(payload, lang, view_pk)
         if kind == "e":
@@ -297,7 +316,7 @@ class BetaBotHandler:
                 return [answer(t("ru", "closed_beta"))]
             lang = "ru" if data == "join" else data[5:]
             await conn.join_user(telegram_user_id=uid, chat_id=chat_id, now=self.clock(), lang=lang)
-            return [answer(t(lang, "joined")), _msg(chat_id, _help(lang), lang=lang)]
+            return [answer(t(lang, "joined")), _msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)]
         user = await conn.get_user(uid)
         lang = _lang_of(user)
         if data.startswith("set:") and data[4:] in ("ru", "en"):
@@ -306,6 +325,10 @@ class BetaBotHandler:
             chosen = data[4:]
             await conn.set_user_lang(uid, chosen)
             return [answer(t(chosen, "lang_saved")), _msg(chat_id, t(chosen, "lang_saved"), lang=chosen)]
+        if data == "terms":
+            if user is None or user["status"] != "ACTIVE":
+                return [answer(t(lang, "not_available"))]
+            return [answer(""), _msg(chat_id, t(lang, "terms"), lang=lang)]
         tab = _parse_tab(data)
         if tab is not None:
             if user is None or user["status"] != "ACTIVE":
@@ -337,7 +360,7 @@ def _parse_tab(data: str):
     if len(data) > 64:
         return None
     parts = data.split(":")
-    if len(parts) != 3 or parts[0] not in ("o", "e") or parts[2] not in ("event", "1h"):
+    if len(parts) != 3 or parts[0] not in ("o", "e") or parts[2] not in ("event", "1h", "24h"):
         return None
     if not parts[1].isdigit():
         return None

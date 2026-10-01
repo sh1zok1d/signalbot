@@ -76,11 +76,11 @@ def test_all_immature_is_history_building_not_no_active_events():
     out = format_btc(CFG, v)
     assert "BTC 83,500 · history building" in out and "NO ACTIVE EVENTS" not in out and "HISTORY BUILDING" not in out
     assert "Price/OI history 8.4d / 30d" in out and "Unusual states are not evaluated yet" in out
-    assert "Taker flow:" not in out and "Liquidations:" not in out
+    assert "Delta:" not in out and "Liquidations:" not in out
     assert ("Readiness", "r:latest") in btc_buttons(v)[0]
     details = format_readiness_details(CFG, r)
     assert "history building · OI history 8.4d / 30d" in details
-    assert "history building · taker-flow history 8.4d / 30d" in details
+    assert "history building · Delta history 8.4d / 30d" in details
     assert "history building · long-side liquidation history 8.4d / 30d" in details
 
 
@@ -105,7 +105,7 @@ def test_all_ready_no_event_keeps_no_active_events():
     assert "Detector ready" not in out and "Venues" not in out
     assert "Ready:" not in out and "history building ·" not in out
     assert btc_buttons(v) is None
-    assert btc_buttons(v, view_pk=2) == [[("1h", "o:2:1h")]]
+    assert btc_buttons(v, view_pk=2) == [[("1h", "o:2:1h"), ("24h", "o:2:24h")]]
 
 
 # ---- C: mixed ---------------------------------------------------------------------------------
@@ -125,7 +125,7 @@ def test_mixed_readiness_is_shown_per_group():
     assert "history building" not in out and "data unavailable" not in out
     details = format_readiness_details(CFG, r)
     assert "<b>Price/OI</b>: ready" in details
-    assert "Taker flow</b>: history building · taker-flow history 3.2d / 30d" in details
+    assert "Taker flow</b>: history building · Delta history 3.2d / 30d" in details
     assert "Liquidations</b>: data unavailable · fewer than the required eligible live feeds" in details
 
 
@@ -155,7 +155,7 @@ def test_active_event_keeps_headline_while_other_families_build():
     v = view_for(r, None, "EVENT ACTIVE", states)
     assert v["headline"] == "EVENT ACTIVE"
     out = format_btc(CFG, v)
-    assert "BTC 83,500 · unusual now" in out and "Still active" in out and "Taker flow ↑" in out
+    assert "BTC 83,500 · unusual now" in out and "Still active" in out and "Delta ↑" in out
     assert "TRIGGERED" not in out and "ARMED" not in out and "Ready:" not in out
     assert "Price/OI history 10.0d / 30d" in out
     details = format_readiness_details(CFG, r)
@@ -282,9 +282,9 @@ def test_last_event_is_unchanged_by_readiness():
     v2 = view_for(None, None, "NO ACTIVE EVENTS", states)
     assert v1["last_event"] == v2["last_event"] and v1["last_event"]["terminal_reason"] == "CONDITION_FAILED"
     out = format_btc(CFG, v1)
-    assert "BTC 83,500 · calmed" in out and "unusual drop" in out and "Open interest fell during the drop" in out
-    assert "Taker flow:" not in out and "history building" not in out
-    assert "history building · taker-flow history" in format_readiness_details(CFG, building)
+    assert "BTC 83,500 · calmed" in out and "sharp drop" in out and "Open interest fell during the drop" in out
+    assert "Delta:" not in out and "history building" not in out
+    assert "history building · Delta history" in format_readiness_details(CFG, building)
 
 
 def test_details_view_shows_tier_samples_span_and_venues():
@@ -292,5 +292,5 @@ def test_details_view_shows_tier_samples_span_and_venues():
                           heartbeat=False))
     d = format_readiness_details(CFG, r)
     assert "OI history: building · 500 samples · 8.0d span" in d
-    assert "binance: data unavailable (HEARTBEAT_UNHEALTHY)" in d
+    assert "Binance: data unavailable (HEARTBEAT_UNHEALTHY)" in d
     assert "never send notifications" in d

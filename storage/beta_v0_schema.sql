@@ -362,10 +362,17 @@ ALTER TABLE beta_btc_views ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT '
 CREATE TABLE IF NOT EXISTS beta_details_opens (
     open_pk    BIGSERIAL PRIMARY KEY,
     view_pk    BIGINT NOT NULL REFERENCES beta_btc_views (view_pk),
-    tab        TEXT NOT NULL CHECK (tab IN ('event', '1h')),
+    tab        TEXT NOT NULL,
     lang       TEXT NOT NULL CHECK (lang IN ('ru', 'en')),
-    opened_at  TIMESTAMPTZ NOT NULL
+    opened_at  TIMESTAMPTZ NOT NULL,
+    CONSTRAINT ck_beta_details_opens_tab CHECK (tab IN ('event', '1h', '24h'))
 );
+-- Widen tab to 24h. PR 1 created an unnamed column check (beta_details_opens_tab_check).
+-- Drop both that name and this name, then re-add the named check. Idempotent.
+ALTER TABLE beta_details_opens DROP CONSTRAINT IF EXISTS beta_details_opens_tab_check;
+ALTER TABLE beta_details_opens DROP CONSTRAINT IF EXISTS ck_beta_details_opens_tab;
+ALTER TABLE beta_details_opens ADD CONSTRAINT ck_beta_details_opens_tab
+    CHECK (tab IN ('event', '1h', '24h'));
 CREATE INDEX IF NOT EXISTS ix_beta_details_opens_view ON beta_details_opens (view_pk, opened_at);
 DROP TRIGGER IF EXISTS trg_beta_details_opens_append_only ON beta_details_opens;
 CREATE TRIGGER trg_beta_details_opens_append_only BEFORE UPDATE OR DELETE ON beta_details_opens

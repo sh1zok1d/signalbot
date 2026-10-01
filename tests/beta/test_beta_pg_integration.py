@@ -795,7 +795,7 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         await h.handle(_cb(ALICE, "join:en", 4))
         out = await h.handle(_msg(ALICE, "/btc", 5))
         text = out[0].html
-        assert "· calmed" in text and "just ended: unusual drop" in text
+        assert "· calmed" in text and "just ended: sharp drop" in text
         assert "Event has ended · data 03:15 Kyiv" in text
         assert "NO ACTIVE EVENTS" not in text and "TRIGGERED" not in text and "ARMED" not in text
         assert "Trigger bucket" not in text and "condition no longer met" not in text
@@ -813,7 +813,7 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         from beta.formatter import format_1h_tab, format_btc, format_event_tab, view_id8
         assert format_btc(CFG, payload, "en") == v["rendered_html"]          # the stored payload re-renders exactly
         assert v["episodization_version"] == "STRICT_QUALIFICATION_V1"
-        assert payload.get("horizons", {}).get("version") == "BETA_HORIZON_1H_TOD_V0"
+        assert payload.get("horizons", {}).get("version") == "BETA_HORIZON_TOD_V1"
         latest = (await _rows(pool, "SELECT state_digest FROM beta_context_snapshots ORDER BY bucket_ts DESC"))[0]
         assert v["context_state_digest"] == latest["state_digest"]
         assert str(ALICE) not in json.dumps(payload)
@@ -998,5 +998,63 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
         assert (("Readiness", "r:latest") in row) is (not all_ready)
         again = readiness(CFG, {"bucket_ts": B0 + BUCKET, "snapshot": snap1}, maturity_days=30.0)
         assert canonical_json(_j(views[1]["payload"])["readiness"]) == canonical_json(json.loads(json.dumps(again)))
+        await pool.close()
+    run(body())
+
+
+def test_open_interest_asof_query_keeps_the_two_minute_window():
+    async def body():
+        from datetime import timezone
+        from beta.oi_asof import venue_oi_change_pct
+        pool = await fresh_pool()
+        t = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
+        t0 = t - timedelta(hours=1)
+        rows = [
+            ("binance", "BTCUSDT", t, 110.0, "base", None),
+            ("binance", "BTCUSDT", t - timedelta(minutes=1), 999.0, "base", None),
+            ("bybit", "BTCUSDT", t - timedelta(minutes=2), 50.0, "base", None),
+            ("bybit", "BTCUSDT", t + timedelta(seconds=30), 1.0, "base", None),
+            ("okx", "BTCUSDT", t - timedelta(minutes=2, seconds=1), 9.0, "base", None),
+            ("binance", "BTCUSDT", t0, 100.0, "contracts", 0.01),
+        ]
+        async with pool.acquire() as c:
+            await c.executemany(
+                """INSERT INTO open_interest (exchange, symbol, ts, oi_raw, oi_unit, contract_value)
+                   VALUES ($1,$2,$3,$4,$5,$6)""", rows)
+        async with BetaStore(pool).connect() as conn:
+            got = await conn.fetch_open_interest_asof(
+                symbol="BTCUSDT", exchanges=EXS, boundaries=(t0, t))
+        assert got[t]["binance"]["oi_raw"] == 110.0
+        assert got[t]["bybit"]["oi_raw"] == 50.0
+        assert got[t]["okx"] is None
+        assert venue_oi_change_pct(got[t0]["binance"], got[t]["binance"]) is None
+        await pool.close()
+    run(body())
+
+
+def test_details_tab_check_widens_a_pr1_database_and_stays_idempotent():
+    async def body():
+        import asyncpg
+        pool = await fresh_pool()
+        async with pool.acquire() as c:
+            await c.execute("ALTER TABLE beta_details_opens DROP CONSTRAINT ck_beta_details_opens_tab")
+            await c.execute(
+                "ALTER TABLE beta_details_opens ADD CONSTRAINT beta_details_opens_tab_check "
+                "CHECK (tab IN ('event', '1h'))")
+            await apply_beta_schema(c)
+            await apply_beta_schema(c)
+        async with BetaStore(pool).connect() as conn:
+            pk = await conn.insert_btc_view(
+                requested_at=T0, as_of_bucket=None, context_state_digest=None,
+                episodization_version=None, episodization_digest=None, payload={"ok": True},
+                payload_digest="a" * 64, rendered_sha256="b" * 64, rendered_html="x", lang="ru")
+            await conn.insert_details_open(view_pk=pk, tab="24h", lang="ru", opened_at=T0)
+            with pytest.raises(asyncpg.CheckViolationError):
+                await conn.insert_details_open(view_pk=pk, tab="nope", lang="ru", opened_at=T0)
+        async with pool.acquire() as c:
+            with pytest.raises(asyncpg.InsufficientPrivilegeError):
+                await c.execute("UPDATE beta_details_opens SET lang='en'")
+            with pytest.raises(asyncpg.InsufficientPrivilegeError):
+                await c.execute("DELETE FROM beta_details_opens")
         await pool.close()
     run(body())

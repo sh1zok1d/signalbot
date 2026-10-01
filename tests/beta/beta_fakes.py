@@ -140,6 +140,10 @@ CREATE TABLE IF NOT EXISTS klines_1m (exchange TEXT NOT NULL, symbol TEXT NOT NU
     source TEXT NOT NULL DEFAULT 'backfill', PRIMARY KEY (exchange, symbol, ts));
 CREATE TABLE IF NOT EXISTS connectivity_events (id BIGSERIAL PRIMARY KEY, exchange TEXT NOT NULL,
     event_type TEXT NOT NULL, ts TIMESTAMPTZ NOT NULL DEFAULT now(), detail JSONB);
+CREATE TABLE IF NOT EXISTS open_interest (
+    exchange TEXT NOT NULL, symbol TEXT NOT NULL, ts TIMESTAMPTZ NOT NULL,
+    oi_raw DOUBLE PRECISION, oi_unit TEXT, contract_value DOUBLE PRECISION,
+    PRIMARY KEY (exchange, symbol, ts));
 """
 
 

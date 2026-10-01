@@ -13,8 +13,9 @@ from typing import Any, Iterable, Mapping, Optional, Sequence
 from .config import (LIQUIDATION_STRESS_LONG, LIQUIDATION_STRESS_SHORT, POSITION_BUILDUP_COMPRESSION,
                      PRICE_OI_CONTRACTION_DOWN, PRICE_OI_CONTRACTION_UP, TAKER_FLOW_EXTREME_BUY,
                      TAKER_FLOW_EXTREME_SELL)
-from .i18n import (ForbiddenWordingError, assert_descriptive, fmt_clock, fmt_funding, fmt_kyiv_date_hm,
-                   fmt_kyiv_hm, fmt_plain_pct, fmt_price, fmt_ratio, fmt_signed_pct, fmt_usd, na, t)
+from .i18n import (MINUS, ForbiddenWordingError, assert_descriptive, fmt_clock, fmt_funding,
+                   fmt_kyiv_date_hm, fmt_kyiv_hm, fmt_plain_pct, fmt_price, fmt_ratio, fmt_signed_pct,
+                   fmt_usd, na, t)
 
 __all__ = ["ForbiddenWordingError", "assert_descriptive", "EVENT_LABELS", "EVENT_DESCRIPTIONS",
            "CLOSED_BETA_TEXT", "PRIVACY_NOTICE", "HELP_TEXT", "DISCLAIMER"]
@@ -246,6 +247,13 @@ def _ratio_or_na(block: Mapping[str, Any], value_key: str, ratio_key: str, lang:
     return na(lang) if ratio is None else fmt_ratio(ratio, lang)
 
 
+_VENUE_NAMES = {"binance": "Binance", "bybit": "Bybit", "okx": "OKX"}
+
+
+def venue_name(ex: str) -> str:
+    return _VENUE_NAMES.get(ex, ex)
+
+
 def _hour_line(view: Mapping[str, Any], lang: str) -> str:
     horizons = view.get("horizons")
     if horizons is None:
@@ -265,9 +273,36 @@ def _hour_line(view: Mapping[str, Any], lang: str) -> str:
     rng = _ratio_or_na(block, "range_width_pct", "range_ratio", lang)
     if rng is not None:
         parts.append(t(lang, "h1_range", ratio=rng))
+    oi = block.get("oi_change_pct")
+    if oi is not None:
+        parts.append(t(lang, "h_oi", pct=fmt_signed_pct(oi, lang, nd=1)))
     if not parts:
         return t(lang, "h1_incomplete")
     return t(lang, "h1_prefix", body=" · ".join(parts))
+
+
+def _day_line(view: Mapping[str, Any], lang: str) -> Optional[str]:
+    """24h main line. Absent when the view has no horizons block at all."""
+    horizons = view.get("horizons")
+    if horizons is None:
+        return None
+    block = horizons.get("24h")
+    if not block:
+        return t(lang, "h24_incomplete")
+    parts = []
+    if block.get("price_complete") and block.get("price_move_pct") is not None:
+        parts.append(fmt_signed_pct(block["price_move_pct"], lang, nd=1))
+    if block.get("volume_complete"):
+        ratio = block.get("volume_ratio")
+        parts.append(t(lang, "h1_vol", ratio=na(lang) if ratio is None else fmt_ratio(ratio, lang)))
+    elif block.get("volume_partial"):
+        parts.append(t(lang, "h_vol_partial"))
+    oi = block.get("oi_change_pct")
+    if oi is not None:
+        parts.append(t(lang, "h_oi", pct=fmt_signed_pct(oi, lang, nd=1)))
+    if not parts:
+        return t(lang, "h24_incomplete")
+    return t(lang, "h24_prefix", body=" · ".join(parts))
 
 
 def _retention_phrase(cfg, lang: str) -> str:
@@ -378,6 +413,9 @@ def format_btc(cfg, view: Mapping[str, Any], lang: str = "en") -> str:
             lines.append(t(lang, "not_evaluated_yet"))
     if market_ok:
         lines.append(_hour_line(view, lang))
+        day = _day_line(view, lang)
+        if day:
+            lines.append(day)
     clock = _clock_of(view)
     if market_ok and state == t(lang, "title_calm") and shown is None:
         status_bit = t(lang, "notable_none", span=_retention_phrase(cfg, lang))
@@ -404,6 +442,7 @@ def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int
         row.append((t(lang, "btn_event"), f"o:{int(view_pk)}:event"))
     if view_pk is not None and not fail:
         row.append((t(lang, "btn_1h"), f"o:{int(view_pk)}:1h"))
+        row.append((t(lang, "btn_24h"), f"o:{int(view_pk)}:24h"))
     rd = view.get("readiness")
     if rd and any(g.get("status") != "READY" for g in rd.get("groups") or ()):
         row.append((t(lang, "btn_readiness"), "r:latest"))
@@ -419,6 +458,7 @@ def detail_tab_buttons(view: Mapping[str, Any], lang: str, view_pk: int):
         row.append((t(lang, "btn_event"), f"e:{int(view_pk)}:event"))
     if not fail:
         row.append((t(lang, "btn_1h"), f"e:{int(view_pk)}:1h"))
+        row.append((t(lang, "btn_24h"), f"e:{int(view_pk)}:24h"))
     return [row] if row else None
 
 
@@ -428,29 +468,28 @@ def _window_kyiv(first_bucket: str, last_bucket: Optional[str] = None) -> str:
     return f"{fmt_kyiv_hm(start)}–{fmt_kyiv_hm(end)}"
 
 
-def _venue_oi(anchor_view: Mapping[str, Any], lang: str) -> str:
+def _venue_oi(anchor_view: Mapping[str, Any], lang: str, *, nd: int = 2) -> str:
     raw = anchor_view.get("oi_change_pct_by_venue") or {}
     order = [ex for ex in ("binance", "bybit", "okx") if ex in raw] or list(raw)
     bits = []
     for ex in order:
         v = raw.get(ex)
-        bits.append(f"{ex} {na(lang) if v is None else fmt_signed_pct(v, lang)}")
+        bits.append(f"{venue_name(ex)} {na(lang) if v is None else fmt_signed_pct(v, lang, nd=nd)}")
     med = (anchor_view.get("oi_change_pct") or {}).get("value")
     venues = " · ".join(bits) if bits else na(lang)
     if med is None:
         return t(lang, "anchor_oi_na", venues=venues)
-    return t(lang, "anchor_oi", med=fmt_signed_pct(med, lang), venues=venues)
+    return t(lang, "anchor_oi", med=fmt_signed_pct(med, lang, nd=nd), venues=venues)
 
 
 def _taker_text(value, lang: str) -> str:
     if value is None:
         return t(lang, "taker_na", na=na(lang))
-    amt = fmt_usd(abs(value), lang)
-    if value > 0:
-        return t(lang, "taker_line", side=t(lang, "taker_buyers"), amt=amt)
-    if value < 0:
-        return t(lang, "taker_line", side=t(lang, "taker_sellers"), amt=amt)
-    return t(lang, "taker_flat", amt=amt)
+    if value == 0:
+        return t(lang, "taker_flat")
+    signed = (MINUS if value < 0 else "+") + fmt_usd(abs(value), lang)
+    side = t(lang, "taker_sellers" if value < 0 else "taker_buyers")
+    return t(lang, "taker_line", signed=signed, side=side)
 
 
 def _fmt_liq_body(per_venue: Mapping[str, Mapping[str, Any]], lang: str) -> tuple:
@@ -460,15 +499,16 @@ def _fmt_liq_body(per_venue: Mapping[str, Mapping[str, Any]], lang: str) -> tupl
     lower = False
     for ex in order:
         cell = per_venue[ex]
+        name = venue_name(ex)
         if cell.get("missing") or cell.get("amount") is None:
-            bits.append(f"{ex} {na(lang)}")
+            bits.append(f"{name} {na(lang)}")
             continue
         amt = fmt_usd(cell["amount"], lang)
         if cell.get("lower_bound"):
             lower = True
-            bits.append(f"{ex} ≥{amt}")
+            bits.append(f"{name} ≥{amt}")
         else:
-            bits.append(f"{ex} {amt}")
+            bits.append(f"{name} {amt}")
     return " · ".join(bits) if bits else na(lang), lower
 
 
@@ -541,7 +581,7 @@ def format_event_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: s
         lines.append(t(lang, "also_open", names=", ".join(plain_name(et, lang) for et, _st in others)))
     if anchor is not None and lower:
         lines.append(t(lang, "liq_footnote"))
-    lines.append(_ref_line(view, view_id8, lang))
+    lines.append(t(lang, "terms_footer"))
     return _ok("\n".join(lines), lang)
 
 
@@ -570,8 +610,55 @@ def _horizon_liq(block: Mapping[str, Any]) -> dict:
     return by_side
 
 
+def _horizon_oi_line(block: Mapping[str, Any], lang: str) -> Optional[str]:
+    raw = block.get("oi_by_venue") or {}
+    if not raw and block.get("oi_change_pct") is None:
+        return None
+    return _venue_oi({"oi_change_pct_by_venue": raw,
+                      "oi_change_pct": {"value": block.get("oi_change_pct")}}, lang, nd=1)
+
+
+def _h24_ratio_bit(ratio, lang: str) -> str:
+    shown = na(lang) if ratio is None else fmt_ratio(ratio, lang)
+    return t(lang, "h24_ratio", ratio=shown)
+
+
+def _change_sentence(item: Mapping[str, Any], lang: str) -> str:
+    rule = item.get("rule")
+    if rule == "range":
+        key = "changes_range_wider" if item.get("direction") == "wider" else "changes_range_narrower"
+        return t(lang, key, a=fmt_plain_pct(item["w"], lang, nd=1), b=fmt_plain_pct(item["p"], lang, nd=1))
+    if rule == "volume":
+        key = "changes_vol_higher" if item.get("direction") == "higher" else "changes_vol_lower"
+        return t(lang, key, a=fmt_usd(item["w"], lang), b=fmt_usd(item["p"], lang))
+    if rule == "oi_price":
+        oi_up, price_up = bool(item.get("oi_up")), bool(item.get("price_up"))
+        if oi_up and price_up:
+            key = "changes_oi_up_up"
+        elif oi_up:
+            key = "changes_oi_up_down"
+        elif price_up:
+            key = "changes_oi_down_up"
+        else:
+            key = "changes_oi_down_down"
+        return t(lang, key)
+    if rule == "funding":
+        return t(lang, "changes_funding_pos" if item.get("positive") else "changes_funding_neg")
+    return ""
+
+
+def _changes_lines(block: Mapping[str, Any], lang: str) -> list:
+    lines = [t(lang, "changes_head")]
+    items = [s for s in (_change_sentence(item, lang) for item in (block.get("changes") or [])) if s]
+    if not items:
+        lines.append(t(lang, "changes_none"))
+    else:
+        lines.extend("· " + s for s in items)
+    return lines
+
+
 def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str = "--------") -> str:
-    """1h tab from the persisted horizons block. No OI line and no D7 lines in this pass."""
+    """1h tab from the persisted horizons block. No D7 lines in this pass."""
     block = (view.get("horizons") or {}).get("1h")
     if block and block.get("window_start") and block.get("window_end"):
         window = f"{fmt_kyiv_hm(_dt(block['window_start']))}–{fmt_kyiv_hm(_dt(block['window_end']))}"
@@ -595,6 +682,9 @@ def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str 
             lines.append(t(lang, "h1_volume", vol=fmt_usd(vol, lang),
                            ratio=_ratio_bit(block.get("volume_ratio"), lang)))
     if block:
+        oi_line = _horizon_oi_line(block, lang)
+        if oi_line:
+            lines.append(oi_line)
         lines.append(_taker_text(block.get("taker_delta_notional_usd_sum"), lang))
         liq_lines, lower = _liq_lines(_horizon_liq(block), lang)
         lines.extend(liq_lines)
@@ -603,7 +693,57 @@ def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str 
                      else t(lang, "funding_now", rate=fmt_funding(funding, lang)))
     if lower:
         lines.append(t(lang, "liq_footnote"))
-    lines.append(_ref_line(view, view_id8, lang))
+    lines.append(t(lang, "terms_footer"))
+    return _ok("\n".join(lines), lang)
+
+
+def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str = "--------") -> str:
+    """24h tab from the persisted horizons block. No D7 lines."""
+    block = (view.get("horizons") or {}).get("24h")
+    if block and block.get("window_end"):
+        hm = fmt_kyiv_hm(_dt(block["window_end"]))
+    else:
+        hm = "—"
+    lines = [f"<b>{_e(t(lang, 'h24_head', hm=hm, zone=t(lang, 'zone')))}</b>"]
+    lower = False
+    if not block:
+        lines.append(t(lang, "h24_incomplete"))
+    else:
+        if block.get("price_complete") and block.get("price_move_pct") is not None:
+            lines.append(t(
+                lang, "h24_price",
+                price=fmt_signed_pct(block["price_move_pct"], lang, nd=1),
+                high=na(lang) if block.get("high") is None else fmt_price(block["high"], lang),
+                low=na(lang) if block.get("low") is None else fmt_price(block["low"], lang)))
+            if block.get("range_width_pct") is not None:
+                lines.append(t(
+                    lang, "h24_range",
+                    range=fmt_plain_pct(block["range_width_pct"], lang, nd=1),
+                    ratio=_h24_ratio_bit(block.get("range_ratio"), lang)))
+        else:
+            lines.append(t(lang, "h24_incomplete"))
+        vol = block.get("volume_notional_usd")
+        if vol is not None and block.get("volume_complete"):
+            lines.append(t(lang, "h24_volume", vol=fmt_usd(vol, lang),
+                           ratio=_h24_ratio_bit(block.get("volume_ratio"), lang)))
+        elif vol is not None and block.get("volume_partial"):
+            lines.append(t(lang, "h24_volume_partial", vol=fmt_usd(vol, lang)))
+        oi_line = _horizon_oi_line(block, lang)
+        if oi_line:
+            lines.append(oi_line)
+        lines.append(_taker_text(block.get("taker_delta_notional_usd_sum"), lang))
+        liq_lines, lower = _liq_lines(_horizon_liq(block), lang)
+        lines.extend(liq_lines)
+        now = block.get("funding_rate")
+        avg = block.get("funding_rate_avg")
+        lines.append(t(
+            lang, "funding_24h",
+            now=na(lang) if now is None else fmt_funding(now, lang),
+            avg=na(lang) if avg is None else fmt_funding(avg, lang)))
+        lines.extend(_changes_lines(block, lang))
+    if lower:
+        lines.append(t(lang, "liq_footnote"))
+    lines.append(t(lang, "terms_footer"))
     return _ok("\n".join(lines), lang)
 
 
@@ -645,7 +785,7 @@ def format_status(status: Mapping[str, Any], open_episodes: Sequence[Any],
         ref = snapshot.get("reference") or {}
         if ref.get("status") == "OK":
             lines.append(t(lang, "status_ref", price=fmt_price(ref["price"], lang),
-                           venues=", ".join(ref["exchanges"])))
+                           venues=", ".join(venue_name(ex) for ex in ref["exchanges"])))
         evals = snapshot.get("rule_evaluations") or {}
         gated = sorted(k for k, v in evals.items() if v.get("status") == "NOT_EVALUABLE")
         if gated:
@@ -660,7 +800,7 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
              _e(event_description(episode.event_type, lang))]
     if episode.reference_price is not None:
         lines.append(t(lang, "push_close", price=fmt_price(episode.reference_price, lang),
-                       venues=", ".join(episode.reference_exchanges)))
+                       venues=", ".join(venue_name(ex) for ex in episode.reference_exchanges)))
     lines.append(t(lang, "push_id", pid=episode.public_id, rules=_e(episode.rules_version)))
     lines.append("\n" + t(lang, "disclaimer"))
     return _ok("\n".join(lines), lang)
@@ -798,7 +938,7 @@ def format_readiness_details(cfg, rd: Mapping[str, Any], lang: str = "en") -> st
                                       span=f"{m['span_days']:.1f}"))
             for ex, v in (e.get("venues") or {}).items():
                 reason = f" ({_e(v['reason'])})" if v.get("reason") else ""
-                lines.append("  " + t(lang, "ready_venue", ex=ex, state=t(lang, _READY_KEYS[v["state"]]),
+                lines.append("  " + t(lang, "ready_venue", ex=venue_name(ex), state=t(lang, _READY_KEYS[v["state"]]),
                                       reason=reason, tier=v["tier"] or na(lang), span=f"{v['span_days']:.1f}"))
     lines.append("\n" + t(lang, "ready_footer", ver=_e(rd["readiness_version"])))
     lines.append("\n" + t(lang, "disclaimer"))

@@ -62,6 +62,16 @@ def test_unsupported_state_schema_version_is_rejected():
         BetaConfig.load().with_overrides(state_schema_version=3)
 
 
+def test_horizon_changes_do_not_enter_the_rules_digest():
+    raw = _raw()
+    changed = dict(raw["horizon_changes"])
+    changed["oi_abs_pct_min"] = 2.5
+    raw["horizon_changes"] = changed
+    c = BetaConfig.from_mapping(raw)
+    assert c.rules_digest == PINNED_RULES_DIGEST
+    assert c.config_digest != BetaConfig.load().config_digest
+
+
 def test_threshold_change_changes_rules_digest_but_policy_change_does_not():
     raw = _raw()
     raw["rules"]["PRICE_OI_CONTRACTION_DOWN"]["price_move_pct_median_max"] = 0.06
