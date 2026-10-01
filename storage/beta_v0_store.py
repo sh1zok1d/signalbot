@@ -989,6 +989,18 @@ class BetaConn:
                ON CONFLICT (state_key) DO UPDATE SET bool_value=EXCLUDED.bool_value, updated_at=now()""",
             value)
 
+    async def get_admin_d7_enabled(self) -> bool:
+        """Missing row is off. Unlike push, the owner must turn the line on."""
+        v = await self.conn.fetchval(
+            "SELECT bool_value FROM beta_runtime_state WHERE state_key='admin_d7_enabled'")
+        return bool(v) if v is not None else False
+
+    async def set_admin_d7_enabled(self, value: bool) -> None:
+        await self.conn.execute(
+            """INSERT INTO beta_runtime_state (state_key, bool_value) VALUES ('admin_d7_enabled',$1)
+               ON CONFLICT (state_key) DO UPDATE SET bool_value=EXCLUDED.bool_value, updated_at=now()""",
+            value)
+
     async def record_health(self, component: str, *, now: datetime, success: bool,
                             error_type: Optional[str] = None,
                             detail: Optional[Mapping] = None) -> None:

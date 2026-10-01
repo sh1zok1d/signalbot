@@ -3,7 +3,9 @@
 Owner authorization is against BETA_OWNER_TELEGRAM_USER_ID (environment only).
 Every admin action — authorized or refused — is audited with pseudonymous
 fingerprints, never raw Telegram ids. Admin pause/resume changes only the durable
-admin push state, which can never exceed the config/env hard switch.
+admin push state, which can never exceed the config/env hard switch. `/admin_d7_on`
+and `/admin_d7_off` change only the durable D7 owner state, which defaults off
+and can never exceed `regime_d7.enabled`.
 """
 from __future__ import annotations
 
@@ -12,14 +14,14 @@ from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional
 
 from .access import invite_link
-from .config import BetaConfig, BetaSwitches, effective_push_enabled
+from .config import BetaConfig, BetaSwitches, effective_d7_enabled, effective_push_enabled
 from .formatter import ForbiddenWordingError, assert_descriptive
 from .health import health_alerts, ingestion_heartbeat, product_status
 
 ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "admin_pause_push",
-                  "admin_resume_push", "admin_broadcast", "admin_health", "admin_invite_new",
-                  "admin_invites", "admin_invite_revoke", "admin_waitlist", "admin_waitlist_admit",
-                  "admin_stats")
+                  "admin_resume_push", "admin_d7_on", "admin_d7_off", "admin_broadcast",
+                  "admin_health", "admin_invite_new", "admin_invites", "admin_invite_revoke",
+                  "admin_waitlist", "admin_waitlist_admit", "admin_stats")
 UNAUTHORIZED_ACTOR = "unauthorized"
 
 
@@ -68,6 +70,7 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
                            latest_live=st["latest"], runtime=runtime, delivery_problems=problems,
                            switches=switches, d7_newest_available_at=d7_at)
     admin_push = await conn.get_admin_push_enabled()
+    admin_d7 = await conn.get_admin_d7_enabled()
     return {"product_status": st["status"]["status"], "status_reasons": st["status"]["reasons"],
             "last_good_bucket": st["status"].get("last_good_bucket"),
             "detector_watermark": wm, "heartbeat": st["heartbeat"],
@@ -76,6 +79,8 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
             "delivery_counts_window": counts, "alerts": alerts,
             "switches": switches.as_dict(), "admin_push_enabled": admin_push,
             "effective_push_enabled": effective_push_enabled(switches, admin_push),
+            "admin_d7_enabled": admin_d7,
+            "effective_d7_enabled": effective_d7_enabled(cfg, admin_d7),
             "open_episodes": [(e.public_id, e.event_type, e.state) for e in st["open_episodes"]]}
 
 
@@ -118,7 +123,8 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
         reply = (f"status {st['status']['status']} {st['status']['reasons']}\n"
                  f"users {users} allowlist {await conn.allowlist_count()}\n"
                  f"open {[(e.public_id, e.event_type, e.state) for e in st['open_episodes']]}\n"
-                 f"push effective {effective_push_enabled(switches, await conn.get_admin_push_enabled())}")
+                 f"push effective {effective_push_enabled(switches, await conn.get_admin_push_enabled())}\n"
+                 f"d7 effective {effective_d7_enabled(cfg, await conn.get_admin_d7_enabled())}")
     elif command == "admin_health":
         h = await collect_health(conn, cfg, switches, now)
         reply = f"alerts {[a['key'] for a in h['alerts']]}\nswitches {h['switches']}\nstatus {h['product_status']}"
@@ -154,6 +160,16 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
         eff = effective_push_enabled(switches, True)
         reply = "admin push state resumed; effective push " + (
             "ON" if eff else "remains OFF (config/env hard switch forbids push)")
+        detail = {"effective": eff}
+    elif command == "admin_d7_off":
+        await conn.set_admin_d7_enabled(False)
+        reply = "D7 line off (durable admin state)."
+        detail = {"effective": False}
+    elif command == "admin_d7_on":
+        await conn.set_admin_d7_enabled(True)
+        eff = effective_d7_enabled(cfg, True)
+        reply = "admin D7 state on; effective D7 line " + (
+            "ON" if eff else "remains OFF (regime_d7.enabled hard switch forbids the line)")
         detail = {"effective": eff}
     elif command == "admin_broadcast":
         if not args:

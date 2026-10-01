@@ -1,6 +1,6 @@
 # Beta V0.2 — `/btc` multi-horizon UX V1 (Event · 1h · 24h, RU/EN)
 
-**Status:** `PR1_IMPLEMENTED / PR2_IMPLEMENTED / PR3_CODE_DONE_INACTIVE`. Steps 2, 3, and 4 below are done in code. The D7 line stays off until the owner sets `regime_d7.enabled` after deploy. `BETA_BTC_MAIN_SCREEN_UX_V1.md` describes what PR 2 renders.
+**Status:** `PR1_IMPLEMENTED / PR2_IMPLEMENTED / PR3_CODE_DONE`. Steps 2, 3, and 4 below are done in code. The D7 line stays off until the owner sends `/admin_d7_on`. `BETA_BTC_MAIN_SCREEN_UX_V1.md` describes what PR 2 renders.
 **Date:** 2026-10-01
 **Scope:** presentation, read-only context projections, and a per-user language setting for the descriptive private beta (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`).
 
@@ -302,7 +302,7 @@ The thresholds are presentation constants in `config/beta_v0.yaml`. They are ver
 | 1 | owner | merge this specification |
 | 2 | done (PR 1, existing data) | language setting and string catalog (§3.1); Kyiv time (§3.2); the tab mechanism and `beta_details_opens`; Event tab; 1h tab without OI; liquidation rules (§7); main screen price and `1h` line; removal of the duplicate "Now" block; Russian forbidden list; update `BETA_BTC_MAIN_SCREEN_UX_V1.md` |
 | 3 | done (PR 2) | OI 1h and 24h via `open_interest` as-of reads (§6.4); 24h tab; `24h` line; "Changes vs previous 24h" (§8); glossary `/terms`; terminology pass; update `BETA_BTC_TEMPORAL_CONTEXT_V0.md` |
-| 4 | done (code, PR 3) | everything in `BETA_D7_REGIME_CONTEXT_GATE_V1.md` §§4–5: Binance 1m quote-volume feed, 90-day backfill, state computation, parity tests, display; the gate pointer in `PRIVATE_BETA_V0_RESTART_DECISION.md`. Activation is an owner step after deploy: warm-up of at least 1440 valid hours, the real-data parity test, then `regime_d7.enabled` |
+| 4 | done (code, PR 3) | everything in `BETA_D7_REGIME_CONTEXT_GATE_V1.md` §§4–5: Binance 1m quote-volume feed, 90-day backfill, state computation, parity tests, display; the gate pointer in `PRIVATE_BETA_V0_RESTART_DECISION.md`. `regime_d7.enabled` is the committed hard allow. The owner shows the line with `/admin_d7_on` after deploy, warm-up of at least 1440 valid hours, and the sanity SQL |
 | 5 | owner on a copy of the production database | pre-beta readiness check. Already recorded 2026-10-01: `OPEN_INTEREST_RETENTION_48H = PASS` (no retention policy; history far beyond 48h); `OPEN_INTEREST_CONTINUITY_48H = PASS` (48h coverage effectively complete; max gap 1 minute on Binance, Bybit and OKX). Still open: D7 backfill ≥ 1440 valid hours; render every main state and every tab in `ru` and `en` on that database |
 | 6 | owner | deploy, then the soak gate of `PRIVATE_BETA_V0_RESTART_DECISION.md` |
 | 7 | owner | invite codes, up to 20 active users; watch unprompted returns, `beta_details_opens` per tab, and feedback |

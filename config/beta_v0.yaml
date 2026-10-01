@@ -138,6 +138,7 @@ beta:
     retention_days: 120
     rejected_start_retention_days: 30
   # D7 "High impact" line on /btc. Display only. Not detection, not the rules digest.
-  # Stays false until the owner enables it after deploy, warm-up, and real-data parity.
+  # This committed flag is the hard allow. The line also needs the durable owner
+  # state (/admin_d7_on), which defaults off and can never exceed this switch.
   regime_d7:
-    enabled: false
+    enabled: true

@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from beta.config import (BetaConfig, BetaConfigError, BetaSecrets, EVENT_TYPES,
-                         effective_push_enabled, resolve_switches)
+                         effective_d7_enabled, effective_push_enabled, resolve_switches)
 
 # BETA_EVENT_RULES_V1 thresholds are unchanged; the digest covers state_schema_version.
 PINNED_RULES_DIGEST = "9e9d2c631a1abfdb710dc2147835b3a0ccd4620512d3a0d6828140c96de17210"          # schema 2
@@ -64,12 +64,14 @@ def test_unsupported_state_schema_version_is_rejected():
 
 def test_regime_d7_does_not_enter_the_rules_digest():
     raw = _raw()
-    assert raw["regime_d7"]["enabled"] is False
-    raw["regime_d7"] = {"enabled": True}
+    assert raw["regime_d7"]["enabled"] is True
     c = BetaConfig.from_mapping(raw)
     assert c.rules_digest == PINNED_RULES_DIGEST
-    assert c["regime_d7"]["enabled"] is True
-    assert c.config_digest != BetaConfig.load().config_digest
+    raw["regime_d7"] = {"enabled": False}
+    off = BetaConfig.from_mapping(raw)
+    assert off.rules_digest == PINNED_RULES_DIGEST
+    assert off["regime_d7"]["enabled"] is False
+    assert off.config_digest != c.config_digest
 
 
 def test_access_and_telemetry_do_not_enter_the_rules_digest():
@@ -190,6 +192,15 @@ def test_no_telegram_shadow_mode_is_explicit_and_consistent():
     with pytest.raises(BetaConfigError):     # enabled push contradicts the mode
         resolve_switches(on_push, {"BETA_TELEGRAM_ENABLED": "0", "BETA_PUSH_ENABLED": "1"})
     assert not resolve_switches(on_push, {"BETA_TELEGRAM_ENABLED": "0"}).telegram
+
+
+def test_admin_state_can_only_restrict_d7():
+    cfg = BetaConfig.load()
+    assert cfg["regime_d7"]["enabled"] is True
+    assert effective_d7_enabled(cfg, False) is False
+    assert effective_d7_enabled(cfg, True) is True
+    hard_off = cfg.with_overrides(regime_d7={"enabled": False})
+    assert effective_d7_enabled(hard_off, True) is False
 
 
 def test_admin_state_can_only_restrict_push():

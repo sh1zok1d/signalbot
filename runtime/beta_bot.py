@@ -21,7 +21,7 @@ from typing import Any, Callable, Mapping, Optional, Sequence
 
 from beta.access import PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
 from beta.admin import collect_status, fingerprint, handle_admin, is_owner, parse_command
-from beta.config import BetaConfig, BetaSwitches
+from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
 from beta.formatter import assert_descriptive, format_details, format_history
 from beta.i18n import t
@@ -319,8 +319,12 @@ class BetaBotHandler:
                                           oi_by_boundary=oi)
 
     async def _attach_regime(self, conn, view: dict, now: datetime) -> None:
-        """D7 is a view-payload field. It is not part of the context snapshot."""
-        if not self.cfg.section("regime_d7")["enabled"]:
+        """D7 is a view-payload field. It is not part of the context snapshot.
+
+        The line is attached only when the committed hard allow and the durable
+        owner state are both on.
+        """
+        if not effective_d7_enabled(self.cfg, await conn.get_admin_d7_enabled()):
             return
         from beta.regime_d7 import regime_for_status
         view["regime"] = await regime_for_status(
@@ -339,7 +343,7 @@ class BetaBotHandler:
         rd = readiness(self.cfg, latest, maturity_days=self._maturity_days())
         if rd is None:
             return [answer(t(lang, "no_evaluation"))]
-        if self.cfg.section("regime_d7")["enabled"]:
+        if effective_d7_enabled(self.cfg, await conn.get_admin_d7_enabled()):
             from beta.regime_d7 import warmup_for_readiness
             rd["impact_context"] = await warmup_for_readiness(conn, now=self.clock())
         return [answer(""), _msg(chat_id, format_readiness_details(self.cfg, rd, lang), lang=lang)]

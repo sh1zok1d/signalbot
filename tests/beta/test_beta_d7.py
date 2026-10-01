@@ -58,7 +58,7 @@ def test_context_identity_is_v1_and_v0_stays_pinned():
     assert KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V0"] == (
         "7f94fde838a33fb094c6683b8834a2f9accbf96f6fb6d3fcc356aab9f49dc701")
     assert cfg.rules_digest == PINNED_RULES_DIGEST
-    assert cfg["regime_d7"]["enabled"] is False
+    assert cfg["regime_d7"]["enabled"] is True
 
 
 def test_59_of_60_bars_is_skipped_and_2026_hours_are_kept():
@@ -242,7 +242,9 @@ def test_d7_health_alert_uses_available_at_age():
     assert "D7_HOUR_STATE_STALE" in {a["key"] for a in health_alerts(on, d7_newest_available_at=old, **kw)}
     boundary = NOW - timedelta(minutes=70)
     assert "D7_HOUR_STATE_STALE" not in {a["key"] for a in health_alerts(on, d7_newest_available_at=boundary, **kw)}
-    assert "D7_HOUR_STATE_STALE" not in {a["key"] for a in health_alerts(CFG, d7_newest_available_at=old, **kw)}
+    assert "D7_HOUR_STATE_STALE" in {a["key"] for a in health_alerts(CFG, d7_newest_available_at=old, **kw)}
+    off = CFG.with_overrides(regime_d7={"enabled": False})
+    assert "D7_HOUR_STATE_STALE" not in {a["key"] for a in health_alerts(off, d7_newest_available_at=old, **kw)}
 
 
 def test_days_flag_is_only_valid_on_backfill():
@@ -416,9 +418,67 @@ def test_health_alerts_d7_only_when_the_flag_is_on():
         now = datetime(2026, 6, 15, 12, 0, tzinfo=UTC)
         switches = BetaSwitches(True, True, False, True)
         async with BetaStore(pool).connect() as conn:
-            off = await collect_health(conn, CFG, switches, now)
-            on = await collect_health(conn, CFG.with_overrides(regime_d7={"enabled": True}), switches, now)
-        assert "D7_HOUR_STATE_STALE" not in {a["key"] for a in off["alerts"]}
+            on = await collect_health(conn, CFG, switches, now)
+            off = await collect_health(conn, CFG.with_overrides(regime_d7={"enabled": False}), switches, now)
         assert "D7_HOUR_STATE_STALE" in {a["key"] for a in on["alerts"]}
+        assert "D7_HOUR_STATE_STALE" not in {a["key"] for a in off["alerts"]}
+        assert on["admin_d7_enabled"] is False and on["effective_d7_enabled"] is False
+        await pool.close()
+    run(body())
+
+
+def _admin_msg(uid, text, update_id):
+    return {"update_id": update_id, "message": {
+        "message_id": update_id, "text": text,
+        "chat": {"id": uid, "type": "private"}, "from": {"id": uid}}}
+
+
+@pytestmark_pg
+def test_admin_d7_defaults_off_and_both_switches_gate_the_line():
+    async def body():
+        from beta_fakes import Clock, ON, fresh_pool
+        from runtime.beta_bot import BetaBotHandler
+        from storage.beta_v0_store import BetaStore
+        owner = 900000000111
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        clock = Clock(NOW)
+        bot = BetaBotHandler(store, CFG, switches=lambda: ON, owner_user_id=owner, clock=clock)
+        async with store.connect() as conn:
+            assert await conn.get_admin_d7_enabled() is False
+        refused = await bot.handle(_admin_msg(owner + 1, "/admin_d7_on", 1))
+        assert "D7" not in refused[0].html
+        async with store.connect() as conn:
+            audit = await conn.conn.fetch(
+                "SELECT action, authorized, result FROM beta_admin_audit ORDER BY audit_id")
+            assert [dict(r) for r in audit] == [
+                {"action": "admin_d7_on", "authorized": False, "result": "REFUSED"}]
+            view = {"product_status": "NO ACTIVE EVENTS"}
+            await bot._attach_regime(conn, view, NOW)
+            assert "regime" not in view
+        turned = await bot.handle(_admin_msg(owner, "/admin_d7_on", 2))
+        assert "effective D7 line ON" in turned[0].html
+        async with store.connect() as conn:
+            assert await conn.get_admin_d7_enabled() is True
+            view = {"product_status": "NO ACTIVE EVENTS"}
+            await bot._attach_regime(conn, view, NOW)
+            assert view["regime"]["shown"] is False
+            row = await conn.conn.fetchrow(
+                "SELECT action, authorized, result, detail::text AS detail FROM beta_admin_audit "
+                "WHERE action='admin_d7_on' AND authorized")
+            assert row["result"] == "OK" and '"effective": true' in row["detail"]
+        off = await bot.handle(_admin_msg(owner, "/admin_d7_off", 3))
+        assert "D7 line off" in off[0].html
+        async with store.connect() as conn:
+            assert await conn.get_admin_d7_enabled() is False
+        hard_off = CFG.with_overrides(regime_d7={"enabled": False})
+        blocked = BetaBotHandler(store, hard_off, switches=lambda: ON, owner_user_id=owner, clock=clock)
+        reply = await blocked.handle(_admin_msg(owner, "/admin_d7_on", 4))
+        assert "remains OFF" in reply[0].html
+        async with store.connect() as conn:
+            assert await conn.get_admin_d7_enabled() is True
+            view = {"product_status": "NO ACTIVE EVENTS"}
+            await blocked._attach_regime(conn, view, NOW)
+            assert "regime" not in view
         await pool.close()
     run(body())

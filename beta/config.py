@@ -461,6 +461,15 @@ def effective_push_enabled(switches: BetaSwitches, admin_push_enabled: bool) -> 
     return bool(switches.push_hard and admin_push_enabled is True)
 
 
+def effective_d7_enabled(cfg: BetaConfig, admin_d7_enabled: bool) -> bool:
+    """The D7 line needs the committed hard allow and the owner state.
+
+    A missing owner row is off. `/admin_d7_on` cannot show the line when
+    `regime_d7.enabled` is false.
+    """
+    return bool(cfg.section("regime_d7")["enabled"] and admin_d7_enabled is True)
+
+
 # ---- secrets (environment only) --------------------------------------------
 @dataclass(frozen=True)
 class BetaSecrets:

@@ -1,9 +1,9 @@
 # Beta — D7 regime-context promotion gate V1
 
-**Status:** `IMPLEMENTED / INACTIVE` (`regime_d7.enabled=false`)
+**Status:** `IMPLEMENTED / HARD ALLOW ON / OWNER STATE DEFAULT OFF`
 **Date:** 2026-10-01
 
-The code for §§4–5 is in place. The line stays off until the owner sets `regime_d7.enabled` true after deploy, after warm-up of at least 1440 valid hours, and after the real-data parity test passes. `docs/DOCUMENTATION_INDEX.md` stays unmarked while the flag is false.
+The code for §§4–5 is in place. `regime_d7.enabled` is the committed hard allow (`true`). The line stays off until the owner sends `/admin_d7_on` after deploy, after warm-up of at least 1440 valid hours, and after the sanity SQL in `docs/PRIVATE_BETA_V0_DEPLOY.md`. `docs/DOCUMENTATION_INDEX.md` stays unmarked while the owner state is off.
 
 **Owner decision (2026-10-01):** D7 is used in `/btc` as market-regime context. It is not a trade signal and not a price forecast. The owner delegated the detailed choices; they are recorded in §9.
 
@@ -110,6 +110,7 @@ Main screen:
 ## 5. Display rules
 
 **Shown only when all of these hold:**
+- `regime_d7.enabled` is true and the durable owner state is on (`/admin_d7_on`; a missing row is off);
 - the most recent completed clock hour H is complete;
 - `state(H) = True`;
 - warm-up is complete;
