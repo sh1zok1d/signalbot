@@ -22,8 +22,8 @@ from typing import Any, Callable, Mapping, Optional, Sequence
 from beta.admin import collect_status, fingerprint, handle_admin, is_owner, parse_command
 from beta.config import BetaConfig, BetaSwitches
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
-from beta.formatter import (CLOSED_BETA_TEXT, HELP_TEXT, PRIVACY_NOTICE, assert_descriptive,
-                            format_details, format_history)
+from beta.formatter import assert_descriptive, format_details, format_history
+from beta.i18n import t
 from common.logging_setup import setup_logging
 from notifications.telegram_client import TelegramSender, sanitize_telegram_error
 
@@ -39,6 +39,7 @@ class Outgoing:
     html: str = ""
     buttons: Optional[Sequence[Sequence[tuple]]] = None
     callback_id: Optional[str] = None
+    message_id: Optional[int] = None
 
 
 class BetaTelegramSender(TelegramSender):
@@ -68,6 +69,27 @@ class BetaTelegramSender(TelegramSender):
                                                            chat_id=str(chat_id))) from exc
         return msg.message_id
 
+    async def edit(self, *, chat_id: int, message_id: int, html: str, buttons=None) -> None:
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        from telegram.error import (BadRequest, ChatMigrated, Forbidden, InvalidToken, NetworkError,
+                                    RetryAfter, TelegramError, TimedOut)
+        markup = None
+        if buttons:
+            markup = InlineKeyboardMarkup([[InlineKeyboardButton(t, callback_data=d) for t, d in row]
+                                           for row in buttons])
+        bot = self._ensure_bot()
+        try:
+            await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=html,
+                                        parse_mode="HTML", reply_markup=markup)
+        except (BadRequest, Forbidden, RetryAfter, InvalidToken, ChatMigrated) as exc:
+            raise DeliveryRejected(sanitize_telegram_error(exc, token=self._token,
+                                                           chat_id=str(chat_id))) from exc
+        except (TimedOut, NetworkError) as exc:
+            raise DeliveryAmbiguous(type(exc).__name__) from exc
+        except TelegramError as exc:
+            raise DeliveryRejected(sanitize_telegram_error(exc, token=self._token,
+                                                           chat_id=str(chat_id))) from exc
+
     async def answer(self, callback_id: str, text: str = "") -> None:
         await self._ensure_bot().answer_callback_query(callback_id, text=text[:200])
 
@@ -77,8 +99,20 @@ class BetaTelegramSender(TelegramSender):
         return [u.to_dict() for u in updates]
 
 
-def _msg(chat_id: int, text: str, buttons=None) -> Outgoing:
-    return Outgoing(kind="message", chat_id=chat_id, html=assert_descriptive(text), buttons=buttons)
+def _msg(chat_id: int, text: str, buttons=None, lang: str = "ru") -> Outgoing:
+    return Outgoing(kind="message", chat_id=chat_id, html=assert_descriptive(text, lang), buttons=buttons)
+
+
+def _help(lang: str) -> str:
+    return t(lang, "help") + "\n\n" + t(lang, "disclaimer")
+
+
+def _lang_of(user) -> str:
+    return (user or {}).get("lang") or "ru"
+
+
+def _lang_buttons(prefix: str) -> list:
+    return [[(t("ru", "btn_ru"), f"{prefix}:ru"), (t("ru", "btn_en"), f"{prefix}:en")]]
 
 
 class BetaBotHandler:
@@ -114,50 +148,54 @@ class BetaBotHandler:
             res = await handle_admin(conn, self.cfg, self.switches(), owner_user_id=self.owner,
                                      actor_user_id=uid, command=cmd, args=args, now=now)
             if not res["authorized"]:
-                return [_msg(chat_id, "Unknown command. /help")]
+                return [_msg(chat_id, t("ru", "unknown_cmd"), lang="ru")]
             out = [Outgoing(kind="message", chat_id=chat_id,
                             html=f"<pre>{html.escape(res['reply'] or '', quote=False)}</pre>")]
             if res["broadcast"]:
-                out += [_msg(c, res["broadcast"]) for c in await conn.active_user_chats()]
+                out += [_msg(c, res["broadcast"], lang="ru") for c in await conn.active_user_chats()]
             return out
         user = await conn.get_user(uid)
+        lang = _lang_of(user)
         if cmd == "start":
             if user is not None and user["status"] == "ACTIVE":
-                return [_msg(chat_id, HELP_TEXT)]
+                return [_msg(chat_id, _help(lang), lang=lang)]
             if await self._allowed(conn, uid):
-                return [_msg(chat_id, PRIVACY_NOTICE, [[("Join", "join")]])]
-            return [_msg(chat_id, CLOSED_BETA_TEXT)]           # nothing persisted
+                if user is None:
+                    return [_msg(chat_id, t("ru", "choose_lang"), _lang_buttons("pick"), lang="ru")]
+                return [_msg(chat_id, t(lang, "privacy"),
+                             [[(t(lang, "btn_join"), f"join:{lang}")]], lang=lang)]
+            return [_msg(chat_id, t("ru", "closed_beta"), lang="ru")]
         if cmd == "delete_me":
             if user is None and not await conn.allowlist_contains(uid):
-                return [_msg(chat_id, CLOSED_BETA_TEXT)]
+                return [_msg(chat_id, t("ru", "closed_beta"), lang="ru")]
             removed = await conn.delete_participant(uid)
             await conn.insert_audit(action="user_delete_me", authorized=True,
                                     actor_fingerprint="participant", target_fingerprint=None,
                                     result="OK", detail=removed)
-            return [_msg(chat_id, "Your beta participant data was deleted and you were removed "
-                                  "from the beta.")]
+            return [_msg(chat_id, t(lang, "deleted"), lang=lang)]
         if user is None or user["status"] != "ACTIVE":
             if user is not None or await self._allowed(conn, uid):
-                return [_msg(chat_id, "Messages are paused or you have not joined yet. Send /start.")]
-            return [_msg(chat_id, CLOSED_BETA_TEXT)]
+                return [_msg(chat_id, t(lang, "not_joined"), lang=lang)]
+            return [_msg(chat_id, t("ru", "closed_beta"), lang="ru")]
+        if cmd == "lang":
+            return [_msg(chat_id, t(lang, "choose_lang"), _lang_buttons("set"), lang=lang)]
         if cmd == "btc":
-            html_text, buttons = await self._btc(conn, now)
-            return [_msg(chat_id, html_text, buttons)]
+            html_text, buttons = await self._btc(conn, now, lang)
+            return [_msg(chat_id, html_text, buttons, lang=lang)]
         if cmd == "history":
             rows = await conn.fetch_episode_history(symbol=self.cfg.symbol, limit=HISTORY_LIMIT)
             outcomes = {r["episode_pk"]: await conn.fetch_outcomes(r["episode_pk"]) for r in rows}
-            return [_msg(chat_id, format_history(rows, outcomes))]
+            return [_msg(chat_id, format_history(rows, outcomes, lang), lang=lang)]
         if cmd == "help":
-            return [_msg(chat_id, HELP_TEXT)]
+            return [_msg(chat_id, _help(lang), lang=lang)]
         if cmd == "stop":
             await conn.stop_user(telegram_user_id=uid, now=now)
-            return [_msg(chat_id, "Messages paused. Send /start to resume. Your data is deleted "
-                                  "automatically after 30 days, or now with /delete_me.")]
-        return [_msg(chat_id, "Unknown command. /help")]
+            return [_msg(chat_id, t(lang, "paused"), lang=lang)]
+        return [_msg(chat_id, t(lang, "unknown_cmd"), lang=lang)]
 
-    async def _btc(self, conn, now: datetime):
+    async def _btc(self, conn, now: datetime, lang: str):
         """Render /btc from the persisted context projection and record exactly what
-        was shown (view model + rendered text + digests; no user id)."""
+        was shown (view model + rendered text + digests + lang; no user id)."""
         from beta.context import btc_view, episodization_digest
         from beta.formatter import btc_buttons, format_btc
         from beta.readiness import readiness
@@ -165,20 +203,42 @@ class BetaBotHandler:
         st = await collect_status(conn, self.cfg, now)
         ctx = await conn.fetch_latest_context_state(symbol=self.cfg.symbol,
                                                     episodization_digest=episodization_digest(self.cfg))
-        # readiness of the SAME latest LIVE tape row the product status is built from
         rd = readiness(self.cfg, st["latest"], maturity_days=self._maturity_days())
         view = btc_view(self.cfg, product=st["status"], state=ctx["state"] if ctx else None,
                         state_digest_value=ctx["state_digest"] if ctx else None, now=now, readiness=rd,
                         detector_open_ids=[e.public_id for e in st["open_episodes"]])
-        text = format_btc(self.cfg, view)
-        await conn.insert_btc_view(
+        await self._attach_horizons(conn, view)
+        text = format_btc(self.cfg, view, lang)
+        digest = sha256_json(view)
+        view_pk = await conn.insert_btc_view(
             requested_at=now, as_of_bucket=datetime.fromisoformat(view["as_of_bucket"]) if view["as_of_bucket"] else None,
             context_state_digest=view["context_state_digest"],
             episodization_version=view["episodization_version"],
             episodization_digest=view["episodization_digest"], payload=view,
-            payload_digest=sha256_json(view), rendered_sha256=hashlib.sha256(text.encode("utf-8")).hexdigest(),
-            rendered_html=text)
-        return text, btc_buttons(view)
+            payload_digest=digest, rendered_sha256=hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            rendered_html=text, lang=lang)
+        return text, btc_buttons(view, lang, view_pk)
+
+    async def _attach_horizons(self, conn, view: dict) -> None:
+        """Presentation-only 1h baseline. Fail-closed screens store an empty block."""
+        from datetime import timedelta
+        from beta.horizons import build_horizons, empty_horizons
+        from beta.state_tape import BUCKET
+        if view.get("product_status") in ("DATA STALE", "DATA DEGRADED") or not view.get("as_of_bucket"):
+            view["horizons"] = empty_horizons()
+            return
+        as_of = datetime.fromisoformat(view["as_of_bucket"])
+        latest = await conn.fetch_latest_live_tape(symbol=self.cfg.symbol)
+        calc = (((latest or {}).get("snapshot") or {}).get("identity") or {}).get("calculation_version")
+        if not calc:
+            view["horizons"] = empty_horizons()
+            return
+        hist = await conn.fetch_tape_history(
+            symbol=self.cfg.symbol, market_type=self.cfg.market_type, timeframe=self.cfg.timeframe,
+            calculation_version=calc, state_schema_versions=(self.cfg.state_schema_version,),
+            start=as_of - timedelta(days=31), end=as_of + BUCKET)
+        view["horizons"] = build_horizons(self.cfg, as_of_bucket=as_of,
+                                          metrics_by_bucket={b: m for b, m in hist})
 
     def _maturity_days(self) -> float:
         """The percentile core's maturity span (Stage-2 confidence tiers), not a UI constant."""
@@ -186,65 +246,102 @@ class BetaBotHandler:
         tiers = Stage2Config.load().resolve(self.cfg.symbol)["percentiles"]["confidence_tiers"]
         return float(tiers["building_below_days"])
 
-    async def _readiness_details(self, conn, chat_id: int, answer) -> list:
+    async def _readiness_details(self, conn, chat_id: int, answer, lang: str) -> list:
         from beta.formatter import format_readiness_details
         from beta.readiness import readiness
         latest = await conn.fetch_latest_live_tape(symbol=self.cfg.symbol)
         rd = readiness(self.cfg, latest, maturity_days=self._maturity_days())
         if rd is None:
-            return [answer("No evaluation yet")]
-        return [answer(""), _msg(chat_id, format_readiness_details(self.cfg, rd))]
+            return [answer(t(lang, "no_evaluation"))]
+        return [answer(""), _msg(chat_id, format_readiness_details(self.cfg, rd, lang), lang=lang)]
 
-    async def _now_details(self, conn, chat_id: int, answer) -> list:
-        from beta.context import episodization_digest
-        from beta.formatter import format_now_details
-        ctx = await conn.fetch_latest_context_state(symbol=self.cfg.symbol,
-                                                    episodization_digest=episodization_digest(self.cfg))
-        state = ctx["state"] if ctx else None
-        if not state or not state.get("now"):
-            return [answer("No evaluation yet")]
-        return [answer(""), _msg(chat_id, format_now_details(self.cfg, state))]
-
-    async def _context_details(self, conn, chat_id: int, episode_id: str, answer) -> list:
-        from beta.context import episodization_digest, find_episode
-        from beta.formatter import format_context_details
-        ctx = await conn.fetch_latest_context_state(symbol=self.cfg.symbol,
-                                                    episodization_digest=episodization_digest(self.cfg))
-        ep = find_episode(ctx["state"] if ctx else None, episode_id)
-        if ep is None:
-            return [answer("No longer in the current context")]
-        return [answer(""), _msg(chat_id, format_context_details(self.cfg, ep, ctx["state"]))]
+    async def _open_tab(self, conn, cq, chat_id: int, answer, *, kind: str, view_pk: int, tab: str) -> list:
+        """Render a tab from the persisted view only, then record the open."""
+        from beta.formatter import detail_tab_buttons, format_1h_tab, format_event_tab, view_id8
+        row = await conn.fetch_btc_view(view_pk)
+        if row is None:
+            return [answer(t("ru", "not_available"))]
+        payload, lang = row["payload"], row.get("lang") or "ru"
+        fail = payload.get("product_status") in ("DATA STALE", "DATA DEGRADED")
+        focus = payload.get("active_episode") or payload.get("last_event")
+        if tab == "event" and not (focus and focus.get("episode_id")):
+            return [answer(t(lang, "not_available"))]
+        if tab == "1h" and fail:
+            return [answer(t(lang, "not_available"))]
+        vid = view_id8(row.get("payload_digest") or "")
+        html_text = (format_event_tab(self.cfg, payload, lang, vid) if tab == "event"
+                     else format_1h_tab(self.cfg, payload, lang, vid))
+        await conn.insert_details_open(view_pk=view_pk, tab=tab, lang=lang, opened_at=self.clock())
+        buttons = detail_tab_buttons(payload, lang, view_pk)
+        if kind == "e":
+            message_id = ((cq.get("message") or {}).get("message_id"))
+            if message_id is None:
+                return [answer(""), _msg(chat_id, html_text, buttons, lang=lang)]
+            return [answer(""), Outgoing(kind="edit", chat_id=chat_id, message_id=int(message_id),
+                                         html=html_text, buttons=buttons)]
+        return [answer(""), _msg(chat_id, html_text, buttons, lang=lang)]
 
     async def _callback(self, conn, cq) -> list:
         uid = int((cq.get("from") or {}).get("id", 0))
         chat_id = int(((cq.get("message") or {}).get("chat") or {}).get("id", uid))
         data, cid = cq.get("data") or "", cq.get("id")
         answer = lambda text: Outgoing(kind="answer", callback_id=cid, html=text)  # noqa: E731
-        if data == "join":
+        if data.startswith("pick:") and data[5:] in ("ru", "en"):
             if not await self._allowed(conn, uid):
-                return [answer(CLOSED_BETA_TEXT)]
-            await conn.join_user(telegram_user_id=uid, chat_id=chat_id, now=self.clock())
-            return [answer("Joined"), _msg(chat_id, HELP_TEXT)]
+                return [answer(t("ru", "closed_beta"))]
+            lang = data[5:]
+            return [answer(""), _msg(chat_id, t(lang, "privacy"),
+                                     [[(t(lang, "btn_join"), f"join:{lang}")]], lang=lang)]
+        if data == "join" or (data.startswith("join:") and data[5:] in ("ru", "en")):
+            if not await self._allowed(conn, uid):
+                return [answer(t("ru", "closed_beta"))]
+            lang = "ru" if data == "join" else data[5:]
+            await conn.join_user(telegram_user_id=uid, chat_id=chat_id, now=self.clock(), lang=lang)
+            return [answer(t(lang, "joined")), _msg(chat_id, _help(lang), lang=lang)]
         user = await conn.get_user(uid)
+        lang = _lang_of(user)
+        if data.startswith("set:") and data[4:] in ("ru", "en"):
+            if user is None or user["status"] != "ACTIVE":
+                return [answer(t(lang, "not_available"))]
+            chosen = data[4:]
+            await conn.set_user_lang(uid, chosen)
+            return [answer(t(chosen, "lang_saved")), _msg(chat_id, t(chosen, "lang_saved"), lang=chosen)]
+        tab = _parse_tab(data)
+        if tab is not None:
+            if user is None or user["status"] != "ACTIVE":
+                return [answer(t(lang, "not_available"))]
+            return await self._open_tab(conn, cq, chat_id, answer, kind=tab[0], view_pk=tab[1], tab=tab[2])
         if user is None or user["status"] != "ACTIVE" or len(data) < 3 or data[1] != ":":
-            return [answer("Not available")]
-        if data[0] == "c":
-            return await self._context_details(conn, chat_id, data[2:], answer)
-        if data == "n:latest":
-            return await self._now_details(conn, chat_id, answer)
+            return [answer(t(lang, "not_available"))]
         if data == "r:latest":
-            return await self._readiness_details(conn, chat_id, answer)
+            return await self._readiness_details(conn, chat_id, answer, lang)
+        if data == "n:latest" or data[0] == "c":
+            # Retired live-state Details. Tabs render only a persisted view.
+            return [answer(t(lang, "not_available"))]
         ep = await conn.fetch_episode_by_public_id(data[2:])
         if ep is None:
-            return [answer("Unknown episode")]
+            return [answer(t(lang, "unknown_episode"))]
         if data[0] == "d":
             return [answer(""), _msg(chat_id, format_details(
-                ep, await conn.fetch_transitions(ep.episode_pk), await conn.fetch_outcomes(ep.episode_pk)))]
+                ep, await conn.fetch_transitions(ep.episode_pk), await conn.fetch_outcomes(ep.episode_pk), lang),
+                lang=lang)]
         if data[0] in ("u", "n"):
             await conn.upsert_feedback(user_pk=user["user_pk"], episode_pk=ep.episode_pk,
                                        vote="USEFUL" if data[0] == "u" else "NOISE")
-            return [answer("Feedback recorded (you can change it).")]
-        return [answer("Not available")]
+            return [answer(t(lang, "feedback_recorded"))]
+        return [answer(t(lang, "not_available"))]
+
+
+def _parse_tab(data: str):
+    """`o:<view_pk>:<tab>` opens a message; `e:<view_pk>:<tab>` edits it. Both ≤ 64 bytes."""
+    if len(data) > 64:
+        return None
+    parts = data.split(":")
+    if len(parts) != 3 or parts[0] not in ("o", "e") or parts[2] not in ("event", "1h"):
+        return None
+    if not parts[1].isdigit():
+        return None
+    return parts[0], int(parts[1]), parts[2]
 
 
 async def deliver_outgoing(sender: BetaTelegramSender, out: Sequence[Outgoing]) -> None:
@@ -252,6 +349,8 @@ async def deliver_outgoing(sender: BetaTelegramSender, out: Sequence[Outgoing]) 
         try:
             if o.kind == "answer":
                 await sender.answer(o.callback_id, o.html)
+            elif o.kind == "edit":
+                await sender.edit(chat_id=o.chat_id, message_id=o.message_id, html=o.html, buttons=o.buttons)
             else:
                 await sender.send(chat_id=o.chat_id, html=o.html, buttons=o.buttons)
         except Exception as exc:  # noqa: BLE001 - never log ids/tokens

@@ -373,7 +373,8 @@ async def _triggered_push(pool):
     await _detect(pool, ScenarioReader(down_move), B0 + BUCKET, switches=ON_PUSH)
     async with pool.acquire() as c:
         await c.execute("INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at, joined_at,"
-                        " stopped_at) VALUES (11, 11, 'ACTIVE', now(), now(), NULL), (12, 12, 'STOPPED', now(), now(), now())")
+                        " stopped_at, lang) VALUES (11, 11, 'ACTIVE', now(), now(), NULL, 'en'),"
+                        " (12, 12, 'STOPPED', now(), now(), now(), 'en')")
 
 
 def test_delivery_sent_once_ttl_and_user_inactive():
@@ -471,9 +472,12 @@ def _msg(uid, text, update_id):
                                                 "text": text}}
 
 
-def _cb(uid, data, update_id):
+def _cb(uid, data, update_id, message_id=None):
+    message = {"chat": {"id": uid}}
+    if message_id is not None:
+        message["message_id"] = message_id
     return {"update_id": update_id, "callback_query": {"id": f"cb{update_id}", "from": {"id": uid},
-                                                       "message": {"chat": {"id": uid}}, "data": data}}
+                                                       "message": message, "data": data}}
 
 
 def test_bot_unauthorized_admin_join_feedback_delete_me():
@@ -486,11 +490,11 @@ def test_bot_unauthorized_admin_join_feedback_delete_me():
         h = BetaBotHandler(BetaStore(pool), CFG, switches=lambda: ON, owner_user_id=OWNER,
                            clock=Clock(B0 + 2 * BUCKET + timedelta(seconds=30)))
         out = await h.handle(_msg(STRANGER, "/start", 1))
-        assert "closed private beta" in out[0].html.lower()
+        assert "закрытая частная бета" in out[0].html.lower()
         for t in ("beta_users", "beta_allowlist", "beta_feedback", "beta_admin_audit"):
             assert (await _rows(pool, f"SELECT count(*) AS n FROM {t}"))[0]["n"] == 0
         out = await h.handle(_msg(STRANGER, "/admin_add 902", 2))
-        assert "Unknown command" in out[0].html
+        assert "Неизвестная команда" in out[0].html
         audit = await _rows(pool, "SELECT authorized, actor_fingerprint FROM beta_admin_audit")
         assert audit == [{"authorized": False, "actor_fingerprint": "unauthorized"}]
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_allowlist"))[0]["n"] == 0
@@ -499,30 +503,33 @@ def test_bot_unauthorized_admin_join_feedback_delete_me():
         audit = await _rows(pool, "SELECT target_fingerprint FROM beta_admin_audit WHERE authorized")
         assert audit[0]["target_fingerprint"].startswith("u_") and str(ALICE) not in audit[0]["target_fingerprint"]
         out = await h.handle(_msg(ALICE, "/start", 4))
-        assert "privacy notice" in out[0].html.lower() and out[0].buttons == [[("Join", "join")]]
+        assert out[0].buttons == [[("Русский", "pick:ru"), ("English", "pick:en")]]
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_users"))[0]["n"] == 0
-        await h.handle(_cb(ALICE, "join", 5))
-        out = await h.handle(_msg(ALICE, "/btc", 6))
-        assert "BTC · unusual now" in out[0].html
-        out = await h.handle(_msg(ALICE, "/history", 7))
+        out = await h.handle(_cb(ALICE, "pick:en", 5))
+        assert "privacy notice" in out[1].html.lower() and out[1].buttons == [[("Join", "join:en")]]
+        await h.handle(_cb(ALICE, "join:en", 6))
+        assert (await _rows(pool, "SELECT lang FROM beta_users")) == [{"lang": "en"}]
+        out = await h.handle(_msg(ALICE, "/btc", 7))
+        assert "· unusual now" in out[0].html
+        out = await h.handle(_msg(ALICE, "/history", 8))
         assert pid in out[0].html and "SUPPRESSED (PUSH_DISABLED)" in out[0].html
-        await h.handle(_cb(ALICE, f"u:{pid}", 8))
-        await h.handle(_cb(ALICE, f"n:{pid}", 9))
+        await h.handle(_cb(ALICE, f"u:{pid}", 9))
+        await h.handle(_cb(ALICE, f"n:{pid}", 10))
         fb = await _rows(pool, "SELECT vote FROM beta_feedback")
         assert fb == [{"vote": "NOISE"}]
-        assert await h.handle(_cb(ALICE, f"u:{pid}", 9)) == []          # replayed update id ignored
-        out = await h.handle(_cb(ALICE, f"d:{pid}", 10))
+        assert await h.handle(_cb(ALICE, f"u:{pid}", 10)) == []          # replayed update id ignored
+        out = await h.handle(_cb(ALICE, f"d:{pid}", 11))
         assert pid in out[1].html
-        await h.handle(_msg(OWNER, "/admin_pause_push", 11))
-        out = await h.handle(_msg(OWNER, "/admin_resume_push", 12))
+        await h.handle(_msg(OWNER, "/admin_pause_push", 12))
+        out = await h.handle(_msg(OWNER, "/admin_resume_push", 13))
         assert "remains OFF" in out[0].html
-        await h.handle(_msg(ALICE, "/stop", 13))
+        await h.handle(_msg(ALICE, "/stop", 14))
         assert (await _rows(pool, "SELECT status FROM beta_users")) == [{"status": "STOPPED"}]
-        await h.handle(_msg(ALICE, "/delete_me", 14))
+        await h.handle(_msg(ALICE, "/delete_me", 15))
         for t in ("beta_users", "beta_allowlist", "beta_feedback"):
             assert (await _rows(pool, f"SELECT count(*) AS n FROM {t}"))[0]["n"] == 0
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_episodes"))[0]["n"] == 1   # market records stay
-        assert (await _rows(pool, "SELECT last_update_id FROM beta_bot_update_state"))[0]["last_update_id"] == 14
+        assert (await _rows(pool, "SELECT last_update_id FROM beta_bot_update_state"))[0]["last_update_id"] == 15
         await pool.close()
     run(body())
 
@@ -783,33 +790,48 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         h = BetaBotHandler(BetaStore(pool), CFG, switches=lambda: ON, owner_user_id=OWNER,
                            clock=Clock(B0 + 3 * BUCKET + timedelta(seconds=30)))
         await h.handle(_msg(OWNER, f"/admin_add {ALICE}", 1))
-        await h.handle(_cb(ALICE, "join", 2))
-        out = await h.handle(_msg(ALICE, "/btc", 3))
+        await h.handle(_msg(ALICE, "/start", 2))
+        await h.handle(_cb(ALICE, "pick:en", 3))
+        await h.handle(_cb(ALICE, "join:en", 4))
+        out = await h.handle(_msg(ALICE, "/btc", 5))
         text = out[0].html
-        assert "BTC · calmed" in text and "just ended: unusual drop" in text
-        assert "Event has ended" in text and "Data through 00:15 UTC" in text
+        assert "· calmed" in text and "just ended: unusual drop" in text
+        assert "Event has ended · data 03:15 Kyiv" in text
         assert "NO ACTIVE EVENTS" not in text and "TRIGGERED" not in text and "ARMED" not in text
         assert "Trigger bucket" not in text and "condition no longer met" not in text
         pid = (await _rows(pool, "SELECT public_id FROM beta_episodes"))[0]["public_id"]
         buttons = out[0].buttons[0]
-        assert buttons[0] == ("Details", f"c:{pid}")
-        data = f"c:{pid}"
+        assert buttons[0][0] == "Event" and buttons[0][1].endswith(":event")
         v = (await _rows(pool, "SELECT * FROM beta_btc_views"))[0]
         payload = _j(v["payload"])
         all_ready = payload.get("readiness") and all(
             g["status"] == "READY" for g in payload["readiness"]["groups"])
         assert (("Readiness", "r:latest") in buttons) is (not all_ready)
-        assert v["rendered_html"] == text
+        assert v["rendered_html"] == text and v["lang"] == "en"
         assert v["rendered_sha256"] == hashlib.sha256(text.encode("utf-8")).hexdigest()
         assert v["payload_digest"] == sha256_json(payload)
-        from beta.formatter import format_btc
-        assert format_btc(CFG, payload) == v["rendered_html"]          # the stored payload re-renders exactly
+        from beta.formatter import format_1h_tab, format_btc, format_event_tab, view_id8
+        assert format_btc(CFG, payload, "en") == v["rendered_html"]          # the stored payload re-renders exactly
         assert v["episodization_version"] == "STRICT_QUALIFICATION_V1"
+        assert payload.get("horizons", {}).get("version") == "BETA_HORIZON_1H_TOD_V0"
         latest = (await _rows(pool, "SELECT state_digest FROM beta_context_snapshots ORDER BY bucket_ts DESC"))[0]
         assert v["context_state_digest"] == latest["state_digest"]
         assert str(ALICE) not in json.dumps(payload)
-        out = await h.handle(_cb(ALICE, data, 4))
-        assert "Detector state ended" in out[1].html and "STRICT_QUALIFICATION_V1" in out[1].html
+        view_pk = v["view_pk"]
+        out = await h.handle(_cb(ALICE, f"o:{view_pk}:event", 6))
+        vid = view_id8(v["payload_digest"])
+        assert out[1].html == format_event_tab(CFG, payload, "en", vid)
+        assert "STRICT_QUALIFICATION_V1" not in out[1].html and "Detector state" not in out[1].html
+        edited = await h.handle(_cb(ALICE, f"e:{view_pk}:1h", 7, message_id=55))
+        assert edited[1].kind == "edit" and edited[1].message_id == 55
+        assert edited[1].html == format_1h_tab(CFG, payload, "en", vid)
+        opens = await _rows(pool, "SELECT view_pk, tab, lang FROM beta_details_opens ORDER BY open_pk")
+        assert opens == [{"view_pk": view_pk, "tab": "event", "lang": "en"},
+                         {"view_pk": view_pk, "tab": "1h", "lang": "en"}]
+        cols = await _rows(pool, "SELECT column_name FROM information_schema.columns "
+                                 "WHERE table_name='beta_details_opens'")
+        assert "user_pk" not in {c["column_name"] for c in cols}
+        assert "telegram_user_id" not in {c["column_name"] for c in cols}
         await pool.close()
     run(body())
 
@@ -935,7 +957,9 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
         h = BetaBotHandler(BetaStore(pool), CFG, switches=lambda: ON, owner_user_id=OWNER,
                            clock=Clock(B0 + BUCKET + timedelta(seconds=40)))
         await h.handle(_msg(OWNER, f"/admin_add {ALICE}", 1))
-        await h.handle(_cb(ALICE, "join", 2))
+        await h.handle(_msg(ALICE, "/start", 2))
+        await h.handle(_cb(ALICE, "pick:en", 3))
+        await h.handle(_cb(ALICE, "join:en", 4))
 
         await _detect(pool, ScenarioReader(quiet), B0)
         tape0 = (await _rows(pool, "SELECT snapshot FROM beta_state_tape WHERE origin='LIVE' AND bucket_ts=$1", B0))[0]
@@ -943,9 +967,9 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
         assert snap0["percentiles"]["c:oi_change_pct_median"]["tier"] == "building"
         assert snap0["rule_evaluations"]["PRICE_OI_CONTRACTION_DOWN"]["reason"].startswith(
             "PERCENTILE_NOT_MATURE:c:oi_change_pct_median")
-        out = await h.handle(_msg(ALICE, "/btc", 3))
+        out = await h.handle(_msg(ALICE, "/btc", 5))
         text = out[0].html
-        assert "BTC · history building" in text and "NO ACTIVE EVENTS" not in text
+        assert "· history building" in text and "NO ACTIVE EVENTS" not in text
         assert "Price/OI history 29.9d / 30d" in text
         assert ("Readiness", "r:latest") in out[0].buttons[0]
 
@@ -954,12 +978,12 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
         snap1 = _j((await _rows(pool, "SELECT snapshot FROM beta_state_tape WHERE origin='LIVE' "
                                       "AND bucket_ts=$1", B0 + BUCKET))[0]["snapshot"])
         assert snap1["percentiles"]["c:oi_change_pct_median"]["tier"] == "mature"
-        out = await h.handle(_msg(ALICE, "/btc", 4))
+        out = await h.handle(_msg(ALICE, "/btc", 6))
         text = out[0].html
         mature_buttons = out[0].buttons
-        assert "BTC · calm" in text and "NO ACTIVE EVENTS" not in text
+        assert "· calm</b>" in text and "NO ACTIVE EVENTS" not in text
         assert "Detector ready" not in text and "Ready:" not in text
-        details = await h.handle(_cb(ALICE, "r:latest", 5))
+        details = await h.handle(_cb(ALICE, "r:latest", 7))
         assert "Detector readiness" in details[1].html and "OI history: mature" in details[1].html
 
         # the readiness transition produced no push decision and no delivery

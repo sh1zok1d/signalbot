@@ -1,8 +1,12 @@
 # Beta V0.2 — `/btc` main screen UX V1
 
-Presentation only. The detector, `BETA_EVENT_RULES_V1`, push switches, and the persisted `/btc` view model are unchanged. This document specifies what the main Telegram screen says. `docs/BETA_BTC_TEMPORAL_CONTEXT_V0.md` remains the authority for the view model, anchors, and the rolling 1h.
+Presentation only. The detector, `BETA_EVENT_RULES_V1`, the rules digest, push switches, readiness semantics, and the state-tape schema are unchanged.
 
-**Next pass:** `BETA_BTC_MULTI_HORIZON_UX_V1.md` specifies the next `/btc` UX pass: tabs, `ru`/`en`, Kyiv time, 1h/24h and the D7 context. It is not implemented yet. This document stays authoritative for what runs until that pass updates it.
+**What this document describes:** the screen this repository renders after PR 1 of `BETA_BTC_MULTI_HORIZON_UX_V1.md` (language, Kyiv time, the `1h` line, the Event tab, and the 1h tab without an OI line).
+
+**Not in this screen yet** (later steps of that document): OI over 1h/24h, the `24h` line and tab, "Changes vs previous 24h", and the D7 high-impact lines.
+
+`docs/BETA_BTC_TEMPORAL_CONTEXT_V0.md` remains the authority for anchors, episodization, and the rolling-1h percentile context. The new `horizons` block is a separate presentation projection (`BETA_HORIZON_1H_TOD_V0`). It is not detection.
 
 ## Product value
 
@@ -10,233 +14,148 @@ A five-second BTC chart already shows the price path. This screen does not repla
 
 What it adds, and only when the tape supports it:
 
-- whether the frozen detector currently has an unusual state open, or one that ended inside the 2h memory window;
-- the joint reading of that state's price and open interest (a chart does not show open interest);
-- a 30-day activity label for the rolling 1h (`normal` / `elevated` / `high` / `extreme`), using the frozen context thresholds.
+- the whole-dollar reference price and whether the frozen detector currently has an unusual state open, or one that ended inside the 2h memory window;
+- the joint reading of that state's price and open interest;
+- a 1h price change and volume/range ratios against the same UTC time of day. An immature baseline prints `n/a`. An incomplete window prints `1h: incomplete`.
 
-On a calm screen that additive content is thin: "nothing unusual is open" plus the 1h label. That is an honest limitation. This sprint is compression and comprehension, not a claim of unique alpha. The PRICE_OI pilot classification is `BALANCE_FAILED`: the UI must not say that OI contraction predicts volatility, continuation, or reversal.
+On a calm screen that additive content is thin: the price, "nothing unusual is open", and the 1h line. That is an honest limitation. The PRICE_OI pilot classification is `BALANCE_FAILED`: the UI must not say that OI contraction predicts volatility, continuation, or reversal.
 
-## 1. Information hierarchy
+## 1. Language and time
 
-1. Title: the presentation state, in the first line.
-2. What was noticed, if anything: when it ended, or that it is still active.
-3. What changed together: direction arrows for the event's anchor bucket.
-4. One factual sentence connecting those arrows. No mechanism the bucket does not support.
-5. Rolling 1h activity label.
-6. Data-through time.
+- Per-user `ru` / `en`, default `ru`, stored on `beta_users.lang`. `/start` asks once (`[Русский] [English]`). `/lang` asks again. Every reply uses that language, from `beta/i18n.py`.
+- Each `beta_btc_views` row stores the `lang` it was rendered in. The payload stays language-neutral.
+- Displayed clocks are `Europe/Kyiv`, labelled `(Киев)` / `Kyiv`. Storage, windows, and baselines stay UTC.
+- Russian titles: спокойно, необычно сейчас, затихло, событие завершено, накопление истории, данные неполные.
+- Numbers: `ru` `112 450`, `−0,84%`, `$84 млн`; `en` `112,450`, `−0.84%`, `$84M`.
+
+## 2. Information hierarchy
+
+1. Title: `BTC <price> · <state>`. The price is `now.reference_price` in whole USD, omitted when null.
+2. What was noticed, if anything.
+3. Direction arrows and the frozen volume level word, from the anchor bucket.
+4. One factual OI sentence. No mechanism the bucket does not support.
+5. The `1h` line (price %, volume ×, range ×). No OI term in this pass.
+6. Status and data-through on one line.
 7. Disclaimer, once.
 
-Details is the evidence surface. Readiness is a secondary button, shown only when some family is not ready.
+At most 8 lines plus that disclaimer.
 
-## 2. User-visible states
+## 3. User-visible states
 
-Derived in the formatter from the existing view. Internal headlines (`NO ACTIVE EVENTS`, `WATCH`, `EVENT ACTIVE`, `HISTORY BUILDING`, …) stay in the stored payload.
+Derived in the formatter from the existing view. Internal headlines stay in the stored payload.
 
 | Presentation title | When |
 |---|---|
-| `BTC · data incomplete` | Headline is `DATA STALE`, `DATA DEGRADED`, or `DETECTOR NOT READY`. |
-| `BTC · history building` | Headline is `HISTORY BUILDING` (Price/OI is not evaluable yet). |
-| `BTC · unusual now` | An episode is open (`WATCH` or `EVENT ACTIVE`), including when episode details are temporarily unavailable. |
+| `BTC · data incomplete` | Headline is `DATA STALE`, `DATA DEGRADED`, or `DETECTOR NOT READY`. The price is included when `now.reference_price` is present (`DATA DEGRADED`) and omitted when `now` is null (`DATA STALE`). |
+| `BTC · history building` | Headline is `HISTORY BUILDING`. |
+| `BTC · unusual now` | An episode is open (`WATCH` or `EVENT ACTIVE`). |
 | `BTC · calmed` | No open episode, and the retained last episode ended because the condition was no longer met. |
-| `BTC · event ended` | No open episode, and the retained last episode ended for another reason (duration cap, data gap, not evaluable, version change). The body names that reason. The current tape is not called incomplete just because an older episode stopped that way. |
+| `BTC · event ended` | No open episode, and the retained last episode ended for another reason. The body names that reason. |
 | `BTC · calm` | No open episode and nothing retained. |
 
-`EARLY`, `ARMED`, and `TRIGGERED` are not printed on the main screen. They stay in Details.
+`EARLY`, `ARMED`, and `TRIGGERED` are not printed. A data-problem title wins over "calm".
 
-A data-problem title wins over "calm". The screen does not say both "no active events" and "an event ended recently".
+## 4. What stays on Main
 
-## 3. What stays on Main
-
-- The presentation title.
-- For an open or retained episode: a short plain name (`unusual rise`, `unusual drop`, `position build-up`, `buyer-initiated flow`, `seller-initiated flow`, `long-side liquidations`, `short-side liquidations`), how long ago it ended, and whether it is still active or has ended.
-- Reading line from the **anchor bucket** (why it was noticed), not from the latest 5m print. One visual grammar:
-  - An arrow is **direction only**: exactly one `↑` or `↓` from the sign of Price, OI or taker flow. Arrows are never repeated and never encode a percentile tier, so there is no hidden intensity scale to learn, and immature history looks the same as mature history.
-  - Volume is a word, never an arrow: the frozen context level (`Volume elevated`, `Volume high`, `Volume extreme`). `normal` and immature levels are omitted.
-  - Unusualness is not repeated on the main screen. For the conjunction events the anchor is in the detector's own tail by definition, so an intensity mark would be almost constant. The exact values and `pct of 30d` ranks are in Details.
-- One sentence for a price+OI event, from the signs only. It names the observed open-interest field and nothing more (OI is not a count of individual positions):
-  - price up, OI down: `Open interest fell during the rise`
-  - price down, OI down: `Open interest fell during the drop`
-  - both up: `Open interest rose during the rise`
-  - price down, OI up: `Open interest rose during the drop`
-  - If that same anchor bucket has at least 2 eligible top-tail liquidation votes on the matching side, the sentence names the elevated liquidations. It does not say they caused the move, and there is no short-covering or long-unwind wording.
-- Rolling 1h volume and range as level words. If both labels are immature: `1h activity: history building`. If the window is missing: `1h activity: incomplete`.
-- `Still active`, `Event has ended`, or the data-gap sentence. Never under `DATA STALE` / `DATA DEGRADED` (see below).
-- `Data through HH:MM UTC` when the view has it.
-- The existing disclaimer, once.
+- The presentation title, with the price when it exists.
+- For an open or retained episode: the short plain name, how long ago it ended, and whether it is still active or has ended. Reading line from the **anchor bucket**: one arrow for direction, volume as the frozen level word (`normal` omitted), then the factual OI sentence. No short-covering or long-unwind narrative.
+- The `1h` line on every non-fail-closed screen, including calm. Incomplete window: `1ч: неполные данные` / `1h: incomplete`. Immature baseline: `н/д` / `n/a` in place of the ratio. A field that cannot be computed is dropped, never shown as 0.
+- Status and data-through share one line: `Still active · data 15:10 Kyiv` / `Ещё активно · данные 15:10 (Киев)`.
+- The disclaimer, once. Russian text: `Экспериментальная закрытая бета. Только описание состояния рынка — не инвестиционный совет и не указание к сделке.`
 
 Other open episodes are one extra line: `Also open: seller-initiated flow`.
 
-**Fail-closed event block (`DATA STALE` / `DATA DEGRADED`).** Current observability is insufficient, so the screen may not present any episode as current. After the fail-closed sentence it shows only the last known detector fact and its time, then `Current event state unavailable`:
+**Fail-closed (`DATA STALE` / `DATA DEGRADED`).** After the fail-closed sentence the screen shows only the last known detector fact, then `Current event state unavailable`, then the data-through line. No reading line, no OI sentence, no `Still active` / `Event has ended`, no `Also open`, no `1h` line.
 
-- open episode: `Last known (HH:MM): <plain name>`, where HH:MM is the end of the episode's last qualifying bucket;
-- retained ended episode: `Last known (HH:MM): <plain name>, ended`, where HH:MM is the episode's end.
+English fail-closed sentence, unchanged: `Current observability is insufficient; the absence of events cannot be claimed right now.`
 
-No reading line, no OI sentence, no `Still active` / `Event has ended`, no `Also open`, no 1h line. The historical measurements stay behind the Details button.
+Russian: `Текущих данных недостаточно: отсутствие событий сейчас подтвердить нельзя.`
 
-## 4. What moves to Details
+## 5. Buttons and tabs
 
-Details keeps, and this sprint does not delete:
+- `[Событие]` / `[Event]` only when an episode is open or retained. Callback `o:<view_pk>:event`.
+- `[1ч]` / `[1h]` outside fail-closed. Callback `o:<view_pk>:1h`. There is no 24h button in this pass.
+- `[Готовность]` / `[Readiness]` keeps `r:latest`, shown only when some family is not `READY`.
+- The first press sends one Details message. A tab press on that message (`e:<view_pk>:<tab>`) edits it in place. Both callbacks are at most 64 bytes.
+- A tab renders only the persisted payload of that `/btc` row, in the `lang` stored on the row. It does not read live state.
+- Each open writes `beta_details_opens (view_pk, tab, lang, opened_at)`. No user id.
 
-- event id, plain description, detector state, reached level, qualifying window, end reason;
-- anchor kind and the anchor's exact values and `pct of 30d` ranks;
-- the latest bucket's exact values, ranks, and per-venue **direction**;
-- taker delta and per-venue liquidation notionals and votes;
-- rolling 1h values and ranks;
-- episodization and context versions.
+### Event tab
 
-Added to Details, from fields already on the view: reference price, venue coverage, and an explicit note that per-venue OI is direction-only.
+Anchor bucket only. The duplicated "Now" 5m block is gone. Per-venue OI percents come from the anchor snapshot's `venue_raw.oi_change_pct`, persisted on the anchor view. Volume uses the frozen level word, including `normal`. Liquidations are per venue (§7 of the multi-horizon document): Binance amounts are prefixed `≥` with the one-line footnote; a missing per-venue value prints `н/д` / `n/a`, never `$0`. Last line: `ref EV-… · view <id8>`. No percentile ranks, no `EARLY` / `ARMED` / `TRIGGERED`, no version strings in the body. Those stay in the payload.
 
-A calm screen has no episode, so its Details button opens the latest bucket and the rolling 1h (`n:latest`). Event screens keep Details on the episode (`c:<id>`).
+### 1h tab
 
-Readiness text (per-family history span, degraded reasons, "Detector ready") is not on the main screen. The Readiness button remains when any group is not `READY`, and the `r:latest` handler is unchanged.
+Price, range, and volume with the 1h time-of-day baseline (`usual for this hour` / `от обычного для этого часа`). Taker flow is the sum of the 5m deltas. Long and short liquidations are separate per-venue lines, under the same §7 rules. Funding is the tape median at the view bucket, shown as a percent. No OI line and no D7 lines in this pass.
 
-## 5. Wording rules
+## 6. 1h baseline
 
-- Descriptive and joint, not causal. `Open interest fell during the rise` is allowed. `Positions shrank`, `Shorts were liquidated`, `short covering`, `healthy trend`, `continuation`, and `reversal` are not.
-- No trade instruction and no forecast. `assert_descriptive` still rejects buy/sell/likely/predict/signal and the existing forbidden list.
-- No watch-next sentence. A conditional such as "if OI starts rising…" is easy to read as a forecast and costs a line. Omitted on purpose.
-- Context labels are not renamed. A rank of 0.91 is `elevated`, not `extreme`.
-- Percentile ranks and the words `ARMED` / `TRIGGERED` / `EARLY` are not on the main screen.
-- Venue names are not on the main screen. A larger OI print is not "this venue is pushing the move".
+Median of rolling-1h values whose window end lies within ±30 minutes of the same UTC time of day, on each of the prior 30 UTC days. Mature at 20 contributing days, per metric. Display: one decimal and `×`; values below 1 are shown; 10 or more prints `10×+`. The price on the main line is the signed percent move, not a ratio.
 
-## 6. Mobile constraint
+The block is stored under `horizons` with version `BETA_HORIZON_1H_TOD_V0` and its own digest. `BETA_CONTEXT_1H_V0` is unchanged. The baseline is never used for detection.
 
-Common states are about 6–8 short lines, title included, then one disclaimer line. Sections are separated by single newlines, not blank lines. The fail-closed sentence for stale or degraded data is kept verbatim and will wrap; shortening it would drop the claim that absence of events cannot be asserted. The disclaimer stays the existing one-line text. It already says the observation is not investment advice and not a trade instruction.
+## 7. Wording
 
-## 7. Data each line uses
+`assert_descriptive` checks every rendered string. Russian text is checked against the English list and the Russian list. Neither list is relaxed. Banned in both languages: pushing, dumping, whales, short covering, long unwind, healthy, continuation, reversal, and the Russian equivalents in the multi-horizon document §9.
 
-| Line | Source already on the view |
-|---|---|
-| Title | `headline`, `active_episode`, `last_event.terminal_reason` |
-| `22m ago` | `requested_at` minus `last_event.terminal_at` |
-| Arrows | Anchor `view` metrics: `value` sign only |
-| Volume word | Anchor `volume_notional_usd` `rank` + `tier` via `level_label` (the frozen `context.label_*` cuts) |
-| Last known (stale / degraded) | `active_episode.last_bucket` + 5m, or `last_event.terminal_at` |
-| Joint sentence | Anchor price and OI signs; liquidation `voting` / `eligible` on that same anchor |
-| 1h line | `context_1h` values and percentiles |
-| `No notable event in the last 2h` | `context.last_event_retention_min` (120) and no `last_event` |
-| History span | Price/OI readiness `progress.span_days` |
-| Data through | `data_through` |
+## 8. Examples
 
-## 8. Deliberately not shown
+Plain text. The title is bold in Telegram. The disclaimer follows each message and is omitted below. Times are Kyiv (EET in this March example, UTC+2).
 
-- 15m and 4h summaries. The tape can aggregate OHLC, but the persisted view only has the latest 5m bucket and the rolling 1h. Adding horizons would be a new projection, not a wording change.
-- Numeric per-venue OI. `venue_raw` is on the tape; the view stores only up/down/flat.
-- Latest-5m raw percents on the main screen. They are the diagnostic panel this sprint removes. They remain in Details.
-- Reference price, venue counts, and readiness breakdowns on the main screen.
-- Any claim that OI contraction adds forward information. The pilot did not establish that.
-- Order book, other coins, forecasts, and push. Push stays disabled.
-
-## Examples
-
-Plain text. The title is bold in Telegram. The disclaimer follows each message and is omitted below.
-
-### 1. Calm
+### Calm
 
 ```
-BTC · calm
+BTC 83,500 · calm
 No unusual state now
-1h volume: normal · range: normal
-No notable event in the last 2h
-Data through 12:05 UTC
+1h: −0.8% · vol 2.1× · range 2.3×
+No notable event in the last 2h · data 14:05 Kyiv
 ```
 
-### 2. Active price/OI event
+### Unusual now
 
 ```
-BTC · unusual now
-Price ↓ · OI ↓ · Volume high
+BTC 83,500 · unusual now
+Price ↓ · OI ↓
 Open interest fell during the drop
-1h activity: incomplete
-Still active
-Data through 12:10 UTC
+1h: −0.8% · vol 2.1× · range 2.3×
+Still active · data 14:10 Kyiv
 ```
 
-Each arrow is the sign only. `Volume high` is the frozen level word; a normal volume is omitted. `incomplete` means the 12-bucket window is not on the view yet. A present window whose ranks are still immature says `1h activity: history building`.
-
-### 3. Recently ended
-
-```
-BTC · calmed
-22m ago: unusual rise
-Price ↑ · OI ↓
-Open interest fell during the rise
-1h activity: history building
-Event has ended
-Data through 12:10 UTC
-```
-
-### 4. Data stale or degraded
-
-No episode:
+### Data stale, last known episode (price omitted because `now` is null)
 
 ```
 BTC · data incomplete
 Current observability is insufficient; the absence of events cannot be claimed right now.
-Data through 12:05 UTC
-```
-
-With an episode that was open at the last good bucket (identical for `DATA STALE` and `DATA DEGRADED`):
-
-```
-BTC · data incomplete
-Current observability is insufficient; the absence of events cannot be claimed right now.
-Last known (12:10): unusual drop
+Last known (14:10): unusual drop
 Current event state unavailable
-Data through 12:10 UTC
+data 14:10 Kyiv
 ```
 
-With a retained ended episode:
+### Event tab
 
 ```
-BTC · data incomplete
-Current observability is insufficient; the absence of events cannot be claimed right now.
-Last known (12:15): unusual drop, ended
-Current event state unavailable
-Data through 12:15 UTC
+EVENT · unusual drop
+Still active · since 14:05 Kyiv
+Why it was noticed (14:05–14:10):
+  Price −0.50% · range 0.62% · volume $310M (high)
+  OI −0.42%: binance −0.61% · bybit −0.35% · okx −0.12%
+  Taker flow: sellers, net $41M
+  Long liquidations: binance ≥$2.1M · bybit $3.4M · okx $600K
+  Short liquidations: binance ≥$0 · bybit $0 · okx $0
+≥ — lower bound: Binance does not report every liquidation.
+ref EV-… · view 1a2b3c4d
 ```
 
-The episode is never presented as current: no arrows, OI sentence, `Still active` or `Also open`. The 1h line is omitted while the tape is stale or degraded.
-
-### 5. History still building
+### 1h tab
 
 ```
-BTC · history building
-Price/OI history 8.4d / 30d
-Unusual states are not evaluated yet
-1h activity: incomplete
-Data through 12:05 UTC
-```
-
-### Details (event)
-
-```
-EVENT
-EV-… — price + OI contraction down
-<frozen description>
-Detector state ended · reached triggered
-Ended …: condition no longer met
-
-Trigger bucket 12:05–12:10 UTC
-
-MARKET
-  price move: −0.50% · 2.0 pct of 30d (mature)
-  range width: …
-  price by venue: up — · down binance,bybit,okx
-
-OI BY VENUE
-  OI change: …
-  OI by venue: …
-  Direction only. Per-venue OI percents are not in this view.
-
-FLOW
-  taker delta: …
-  long-side / short-side liquidations by venue: …
-
-DATA
-  Now …
-  Rolling 1h …
-  Reference price …
-  Venues …
-  Episodization STRICT_QUALIFICATION_V1
+LAST HOUR · 14:10–15:10 Kyiv
+Price −0.84% · range 1.12% (2.3× usual for this hour)
+Volume $1.9B (2.1× usual for this hour)
+Taker flow: sellers, net $84M
+Long liquidations: binance ≥$8M · bybit $10M · okx $3M
+Short liquidations: binance ≥$1M · bybit $2M · okx $400K
+Funding now 0.006% (venue median)
+≥ — lower bound: Binance does not report every liquidation.
+ref EV-… · view 1a2b3c4d
 ```

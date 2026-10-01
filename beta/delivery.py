@@ -31,8 +31,9 @@ class BetaSender(Protocol):
                    buttons: Optional[Sequence[Sequence[tuple]]] = None) -> int: ...
 
 
-def feedback_buttons(public_id: str) -> list:
-    return [[("Details", f"d:{public_id}"), ("Useful", f"u:{public_id}"), ("Noise", f"n:{public_id}")]]
+def feedback_buttons(public_id: str, lang: str = "ru") -> list:
+    from .formatter import feedback_buttons as _buttons
+    return _buttons(public_id, lang)
 
 
 async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sender: Optional[BetaSender],
@@ -92,13 +93,14 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 ep = episodes.get(row["episode_pk"])
                 if ep is None:
                     ep = episodes[row["episode_pk"]] = await conn.fetch_episode_by_pk(row["episode_pk"])
-                text = format_push(ep)
+                lang = row.get("user_lang") or "ru"
+                text = format_push(ep, lang=lang)
                 # (2) commit PENDING -> SENDING before the single API call
                 if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
                     continue
                 try:
                     message_id = await sender.send(chat_id=row["chat_id"], html=text,
-                                                   buttons=feedback_buttons(ep.public_id))
+                                                   buttons=feedback_buttons(ep.public_id, lang))
                 except DeliveryRejected as exc:
                     await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_FAILED,
                                                    now=clock(), error_summary=str(exc)[:300])

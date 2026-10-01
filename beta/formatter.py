@@ -1,187 +1,675 @@
 """Beta V0.2 user-facing wording — descriptive only, HTML for Telegram.
 
-A NEW model/formatter: no LONG/SHORT direction, confidence or score fields, and
-nothing from the legacy forecast notifier. Every rendered message passes
-`assert_descriptive`, which rejects trade-instruction / predictive wording.
-Messages always show the event DECISION time (bucket close), not just send time.
+Every user-facing string comes from ``beta.i18n``. The formatter takes ``lang``
+and does not assemble wording on its own. Detection, readiness semantics and
+push policy are unchanged; this module only renders.
 """
 from __future__ import annotations
 
 import html
-import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from .config import (LIQUIDATION_STRESS_LONG, LIQUIDATION_STRESS_SHORT, POSITION_BUILDUP_COMPRESSION,
                      PRICE_OI_CONTRACTION_DOWN, PRICE_OI_CONTRACTION_UP, TAKER_FLOW_EXTREME_BUY,
                      TAKER_FLOW_EXTREME_SELL)
+from .i18n import (ForbiddenWordingError, assert_descriptive, fmt_clock, fmt_funding, fmt_kyiv_date_hm,
+                   fmt_kyiv_hm, fmt_plain_pct, fmt_price, fmt_ratio, fmt_signed_pct, fmt_usd, na, t)
 
-EVENT_LABELS = {
-    PRICE_OI_CONTRACTION_DOWN: "price + OI contraction down",
-    PRICE_OI_CONTRACTION_UP: "price + OI contraction up",
-    POSITION_BUILDUP_COMPRESSION: "position build-up with range compression",
-    TAKER_FLOW_EXTREME_BUY: "taker flow extreme (buyer-initiated)",
-    TAKER_FLOW_EXTREME_SELL: "taker flow extreme (seller-initiated)",
-    LIQUIDATION_STRESS_LONG: "liquidation stress (long-side liquidations)",
-    LIQUIDATION_STRESS_SHORT: "liquidation stress (short-side liquidations)",
+__all__ = ["ForbiddenWordingError", "assert_descriptive", "EVENT_LABELS", "EVENT_DESCRIPTIONS",
+           "CLOSED_BETA_TEXT", "PRIVACY_NOTICE", "HELP_TEXT", "DISCLAIMER"]
+
+_EVENT_KEYS = {
+    PRICE_OI_CONTRACTION_DOWN: "evt_down",
+    PRICE_OI_CONTRACTION_UP: "evt_up",
+    POSITION_BUILDUP_COMPRESSION: "evt_build",
+    TAKER_FLOW_EXTREME_BUY: "evt_buy",
+    TAKER_FLOW_EXTREME_SELL: "evt_sell",
+    LIQUIDATION_STRESS_LONG: "evt_liq_long",
+    LIQUIDATION_STRESS_SHORT: "evt_liq_short",
 }
-EVENT_DESCRIPTIONS = {
-    PRICE_OI_CONTRACTION_DOWN: "5m price move in the bottom 5% of the last 30 days while open "
-                               "interest fell in its bottom 10%, on at least 2 venues.",
-    PRICE_OI_CONTRACTION_UP: "5m price move in the top 5% of the last 30 days while open "
-                             "interest fell in its bottom 10%, on at least 2 venues.",
-    POSITION_BUILDUP_COMPRESSION: "Open interest growing (top 20% of 30d) with a narrow 5m range "
-                                  "(bottom 40%) and at least median volume, for 45 consecutive minutes.",
-    TAKER_FLOW_EXTREME_BUY: "Taker delta in the top 5% of the last 30 days for two consecutive 5m buckets.",
-    TAKER_FLOW_EXTREME_SELL: "Taker delta in the bottom 5% of the last 30 days for two consecutive 5m buckets.",
-    LIQUIDATION_STRESS_LONG: "Long-side liquidation notional in the top 5% of its own 30d history "
-                             "on at least 2 healthy venues in the same 5m bucket.",
-    LIQUIDATION_STRESS_SHORT: "Short-side liquidation notional in the top 5% of its own 30d history "
-                              "on at least 2 healthy venues in the same 5m bucket.",
+_DESC_KEYS = {
+    PRICE_OI_CONTRACTION_DOWN: "desc_down",
+    PRICE_OI_CONTRACTION_UP: "desc_up",
+    POSITION_BUILDUP_COMPRESSION: "desc_build",
+    TAKER_FLOW_EXTREME_BUY: "desc_buy",
+    TAKER_FLOW_EXTREME_SELL: "desc_sell",
+    LIQUIDATION_STRESS_LONG: "desc_liq_long",
+    LIQUIDATION_STRESS_SHORT: "desc_liq_short",
 }
-STATE_LABELS = {"EARLY": "early", "ARMED": "armed", "TRIGGERED": "triggered",
-                "ENDED": "ended", "EXPIRED": "expired"}
-DISCLAIMER = ("<i>Experimental closed beta. Descriptive market-state observation only — "
-              "not investment advice and not a trade instruction.</i>")
+_PLAIN_KEYS = {
+    PRICE_OI_CONTRACTION_DOWN: "plain_down",
+    PRICE_OI_CONTRACTION_UP: "plain_up",
+    POSITION_BUILDUP_COMPRESSION: "plain_build",
+    TAKER_FLOW_EXTREME_BUY: "plain_buy",
+    TAKER_FLOW_EXTREME_SELL: "plain_sell",
+    LIQUIDATION_STRESS_LONG: "plain_liq_long",
+    LIQUIDATION_STRESS_SHORT: "plain_liq_short",
+}
+_STATE_KEYS = {"EARLY": "state_early", "ARMED": "state_armed", "TRIGGERED": "state_triggered",
+               "ENDED": "state_ended", "EXPIRED": "state_expired"}
+_PRICE_OI = (PRICE_OI_CONTRACTION_DOWN, PRICE_OI_CONTRACTION_UP)
+_TAKER = (TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL)
+_KNOWN_HEADLINES = {"DATA STALE", "DATA DEGRADED", "DETECTOR NOT READY", "HISTORY BUILDING",
+                    "EVENT ACTIVE", "WATCH", "NO ACTIVE EVENTS"}
+_DATA_END = {"DETECTION_GAP": "end_gap", "NOT_EVALUABLE": "end_not_evaluable",
+             "DETECTOR_VERSION_CHANGED": "end_version"}
+_READY_KEYS = {"READY": "ready_word", "HISTORY_BUILDING": "ready_building",
+               "DATA_UNAVAILABLE": "ready_unavailable", "DEGRADED": "ready_degraded",
+               "DISABLED": "ready_disabled"}
+_HISTORY_NAMES = {"c:price_move_pct_median": "hist_price", "c:oi_change_pct_median": "hist_oi",
+                  "c:range_width_pct_median": "hist_range", "c:volume_notional_usd_sum": "hist_volume",
+                  "c:taker_delta_notional_usd_sum": "hist_taker",
+                  "x:*:long_liquidation_notional": "hist_liq_long",
+                  "x:*:short_liquidation_notional": "hist_liq_short"}
+_FAMILY_WORDS = {"price_structure": "fam_price", "oi": "fam_oi", "volume": "fam_volume",
+                 "taker_flow": "fam_taker"}
+_REASON_EXACT = {"NOT_MATERIALIZED": "reason_not_mat", "EVALUATION_NOT_FRESH": "reason_late",
+                 "STALE_BARRIER": "reason_stale", "RULE_DISABLED": "reason_off",
+                 "NOT_EVALUATED": "reason_not_eval"}
 
-# Rejected in any user-facing text (case-insensitive unless noted).
-_FORBIDDEN = [
-    r"\bbuy\b", r"\bsell\b", r"\b(long|short)\s+now\b", r"\bgo\s+(long|short)\b",
-    r"\bentry\b", r"\bentries\b", r"\bstop[- ]?loss\b", r"\btake[- ]?profit\b", r"\btargets?\b",
-    r"\bleverage\b", r"\bposition[- ]siz", r"probabilit", r"\blikely\b", r"\bimpulse\b",
-    r"\bwin(s|ning)?\b", r"\bloss(es)?\b", r"win[- ]?rate", r"\bmfe\b", r"\bmae\b",
-    r"\brecommend", r"\bprofit\b", r"\bsignal\b", r"\bforecast", r"\bpredict",
-]
-_FORBIDDEN_CASE = [r"\bLONG\b", r"\bSHORT\b", r"\bBUY\b", r"\bSELL\b"]
+
+def event_label(event_type: str, lang: str = "en") -> str:
+    return t(lang, _EVENT_KEYS[event_type])
 
 
-class ForbiddenWordingError(ValueError):
-    pass
+def event_description(event_type: str, lang: str = "en") -> str:
+    return t(lang, _DESC_KEYS[event_type])
 
 
-def assert_descriptive(text: str) -> str:
-    plain = re.sub(r"<[^>]+>", " ", text)
-    for pat in _FORBIDDEN:
-        if re.search(pat, plain, flags=re.IGNORECASE):
-            raise ForbiddenWordingError(f"forbidden wording matched {pat!r}")
-    for pat in _FORBIDDEN_CASE:
-        if re.search(pat, plain):
-            raise ForbiddenWordingError(f"forbidden wording matched {pat!r}")
-    return text
+def plain_name(event_type: str, lang: str = "en") -> str:
+    return t(lang, _PLAIN_KEYS[event_type])
+
+
+def state_label(state: str, lang: str = "en") -> str:
+    return t(lang, _STATE_KEYS[state])
+
+
+EVENT_LABELS = {et: event_label(et, "en") for et in _EVENT_KEYS}
+EVENT_DESCRIPTIONS = {et: event_description(et, "en") for et in _DESC_KEYS}
+STATE_LABELS = {s: state_label(s, "en") for s in _STATE_KEYS}
+DISCLAIMER = t("en", "disclaimer")
+CLOSED_BETA_TEXT = t("en", "closed_beta")
+PRIVACY_NOTICE = assert_descriptive(t("en", "privacy"), "en")
+HELP_TEXT = assert_descriptive(t("en", "help") + "\n\n" + t("en", "disclaimer"), "en")
 
 
 def _e(s: Any) -> str:
     return html.escape(str(s), quote=False)
 
 
-def ts(dt: Optional[datetime]) -> str:
+def _ok(text: str, lang: str) -> str:
+    return assert_descriptive(text, lang)
+
+
+def _dt(s: str) -> datetime:
+    return datetime.fromisoformat(s)
+
+
+def _when(dt: Optional[datetime], lang: str) -> str:
     if dt is None:
         return "—"
-    return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    return fmt_kyiv_date_hm(dt, lang)
 
 
-def _pct_rank(snapshot: Mapping[str, Any], key: str) -> str:
+def _dur(minutes: float, lang: str) -> str:
+    m = int(max(0, round(minutes)))
+    if m < 60:
+        return t(lang, "dur_m", n=m)
+    if m % 60 == 0:
+        return t(lang, "dur_h", n=m // 60)
+    return t(lang, "dur_hm", h=m // 60, m=m % 60)
+
+
+def _level_word(cfg, metric: Optional[Mapping[str, Any]], lang: str, *, omit_normal: bool) -> Optional[str]:
+    from .context import level_label
+    if not metric:
+        return None
+    label = level_label(cfg, metric.get("rank"), metric.get("tier"))
+    if label is None:
+        return None
+    if omit_normal and label == "normal":
+        return None
+    return t(lang, "level_" + label)
+
+
+def _signed_arrow(metric: Optional[Mapping[str, Any]]) -> Optional[str]:
+    if not metric or metric.get("value") is None:
+        return None
+    v = metric["value"]
+    if v == 0:
+        return "·"
+    return "↑" if v > 0 else "↓"
+
+
+def _screen_state(view: Mapping[str, Any], lang: str) -> str:
+    h = view.get("headline") or ""
+    if h not in _KNOWN_HEADLINES:
+        return h
+    if h in ("DATA STALE", "DATA DEGRADED", "DETECTOR NOT READY"):
+        return t(lang, "title_incomplete")
+    if h == "HISTORY BUILDING":
+        return t(lang, "title_history")
+    if view.get("active_episode") is not None or h in ("EVENT ACTIVE", "WATCH"):
+        return t(lang, "title_unusual")
+    last = view.get("last_event")
+    if last is not None:
+        return t(lang, "title_calmed" if last.get("terminal_reason") == "CONDITION_FAILED" else "title_ended")
+    return t(lang, "title_calm")
+
+
+def _title(view: Mapping[str, Any], lang: str) -> str:
+    state = _screen_state(view, lang)
+    price = (view.get("now") or {}).get("reference_price")
+    rest = f"{fmt_price(price, lang)} · {state}" if price is not None else f"· {state}"
+    return f"<b>{_e(t(lang, 'screen_title', rest=rest))}</b>"
+
+
+def _reading_line(cfg, event_type: str, view: Mapping[str, Any], lang: str) -> str:
+    if event_type in _PRICE_OI:
+        parts = []
+        price, oi = _signed_arrow(view.get("price_move_pct")), _signed_arrow(view.get("oi_change_pct"))
+        vol = _level_word(cfg, view.get("volume_notional_usd"), lang, omit_normal=True)
+        if price and price != "·":
+            parts.append(t(lang, "part_price", arrow=price))
+        if oi and oi != "·":
+            parts.append(t(lang, "part_oi", arrow=oi))
+        if vol:
+            parts.append(t(lang, "part_vol", level=vol))
+        return " · ".join(parts) or t(lang, "na_reading")
+    if event_type == POSITION_BUILDUP_COMPRESSION:
+        parts = []
+        oi = _signed_arrow(view.get("oi_change_pct"))
+        vol = _level_word(cfg, view.get("volume_notional_usd"), lang, omit_normal=True)
+        if oi and oi != "·":
+            parts.append(t(lang, "part_oi", arrow=oi))
+        if vol:
+            parts.append(t(lang, "part_vol", level=vol))
+        return " · ".join(parts) or t(lang, "na_reading")
+    if event_type in _TAKER:
+        parts = []
+        taker = _signed_arrow(view.get("taker_delta_notional_usd"))
+        price = _signed_arrow(view.get("price_move_pct"))
+        if taker and taker != "·":
+            parts.append(t(lang, "part_taker", arrow=taker))
+        if price and price != "·":
+            parts.append(t(lang, "part_price", arrow=price))
+        return " · ".join(parts) or t(lang, "na_reading")
+    side = "long" if event_type == LIQUIDATION_STRESS_LONG else "short"
+    liq = (view.get("liquidations") or {}).get(side) or {}
+    if liq.get("rule_status") == "NOT_EVALUABLE":
+        return t(lang, "liq_not_evaluable", Side=t(lang, "liq_" + side + "_name"), side=t(lang, "side_" + side))
+    return t(lang, "liq_count", Side=t(lang, "liq_" + side + "_name"), side=t(lang, "side_" + side),
+             votes=len(liq.get("voting") or []), eligible=len(liq.get("eligible") or []))
+
+
+def _why_line(cfg, event_type: str, view: Mapping[str, Any], lang: str) -> Optional[str]:
+    if event_type == POSITION_BUILDUP_COMPRESSION:
+        word = _level_word(cfg, view.get("oi_change_pct"), lang, omit_normal=True)
+        if word:
+            return t(lang, "oi_level", level=word)
+        v = (view.get("oi_change_pct") or {}).get("value")
+        if v is None or v == 0:
+            return None
+        return t(lang, "oi_rose" if v > 0 else "oi_fell")
+    if event_type not in _PRICE_OI:
+        return None
+    price = (view.get("price_move_pct") or {}).get("value")
+    oi = (view.get("oi_change_pct") or {}).get("value")
+    if price is None or oi is None or price == 0 or oi == 0:
+        return None
+    up, oi_up = price > 0, oi > 0
+    side = "short" if up else "long"
+    liq = ((view.get("liquidations") or {}).get(side) or {})
+    need = cfg.rule("LIQUIDATION_STRESS")["min_eligible_venues"]
+    votes, eligible = liq.get("voting") or [], liq.get("eligible") or []
+    if not oi_up and liq.get("rule_status") not in (None, "NOT_EVALUABLE") and len(votes) >= need and eligible:
+        return t(lang, "move_liq", move=t(lang, "move_rise" if up else "move_drop"), side=side if lang == "en" else t(lang, "side_" + side))
+    key = ("oi_rose_rise" if oi_up else "oi_fell_rise") if up else ("oi_rose_drop" if oi_up else "oi_fell_drop")
+    return t(lang, key)
+
+
+def _hour_bits(lang: str, *, price, range_ratio, volume_ratio) -> str:
+    parts = []
+    if price is not None:
+        parts.append(fmt_signed_pct(price, lang, nd=1))
+    parts.append(t(lang, "h1_vol", ratio=na(lang) if volume_ratio is None else fmt_ratio(volume_ratio, lang)))
+    parts.append(t(lang, "h1_range", ratio=na(lang) if range_ratio is None else fmt_ratio(range_ratio, lang)))
+    return t(lang, "h1_prefix", body=" · ".join(parts))
+
+
+def _ratio_or_na(block: Mapping[str, Any], value_key: str, ratio_key: str, lang: str) -> Optional[str]:
+    """Drop a field that cannot be computed. An immature baseline prints n/a for the ratio."""
+    if block.get(value_key) is None and block.get(ratio_key) is None:
+        return None
+    ratio = block.get(ratio_key)
+    return na(lang) if ratio is None else fmt_ratio(ratio, lang)
+
+
+def _hour_line(view: Mapping[str, Any], lang: str) -> str:
+    horizons = view.get("horizons")
+    if horizons is None:
+        c1h = view.get("context_1h")
+        if not c1h:
+            return t(lang, "h1_incomplete")
+        return _hour_bits(lang, price=c1h.get("price_move_pct_median"), range_ratio=None, volume_ratio=None)
+    block = horizons.get("1h")
+    if not block or not block.get("complete"):
+        return t(lang, "h1_incomplete")
+    parts = []
+    if block.get("price_move_pct") is not None:
+        parts.append(fmt_signed_pct(block["price_move_pct"], lang, nd=1))
+    vol = _ratio_or_na(block, "volume_notional_usd", "volume_ratio", lang)
+    if vol is not None:
+        parts.append(t(lang, "h1_vol", ratio=vol))
+    rng = _ratio_or_na(block, "range_width_pct", "range_ratio", lang)
+    if rng is not None:
+        parts.append(t(lang, "h1_range", ratio=rng))
+    if not parts:
+        return t(lang, "h1_incomplete")
+    return t(lang, "h1_prefix", body=" · ".join(parts))
+
+
+def _retention_phrase(cfg, lang: str) -> str:
+    m = int(cfg.section("context")["last_event_retention_min"])
+    return _dur(m, lang)
+
+
+def _ago_phrase(view: Mapping[str, Any], ep: Mapping[str, Any], lang: str) -> str:
+    minutes = (_dt(view["requested_at"]) - _dt(ep["terminal_at"])).total_seconds() / 60
+    m = int(max(0, round(minutes)))
+    name = plain_name(ep["event_type"], lang)
+    if m == 0:
+        return t(lang, "ago_just", name=name)
+    return t(lang, "ago", dur=_dur(m, lang), name=name)
+
+
+def _core_gap_line(rd: Optional[Mapping[str, Any]], lang: str) -> Optional[str]:
+    if not rd:
+        return None
+    core = next(g for g in rd["groups"] if g["group"] == "PRICE_OI")
+    if core["status"] == "READY":
+        return None
+    if core["status"] == "HISTORY_BUILDING":
+        p = core.get("progress") or {}
+        if p.get("span_days") is not None:
+            return t(lang, "gap_span", span=f"{p['span_days']:.1f}".replace(".", "," if lang == "ru" else "."),
+                     need=f"{rd['maturity_days']:.0f}")
+        return t(lang, "gap_maturing")
+    if core["status"] == "DATA_UNAVAILABLE":
+        return t(lang, "gap_unavailable")
+    if core["status"] == "DISABLED":
+        return t(lang, "gap_off")
+    return None
+
+
+def _noticed_lines(cfg, view, ep, lang: str, *, active: bool) -> list:
+    lines = []
+    if not active:
+        lines.append(_ago_phrase(view, ep, lang))
+    anchor = (ep.get("anchor") or {}).get("view")
+    if anchor is None:
+        lines.append(t(lang, "measurements_missing"))
+        return lines
+    lines.append(_reading_line(cfg, ep["event_type"], anchor, lang))
+    why = _why_line(cfg, ep["event_type"], anchor, lang)
+    if why:
+        lines.append(why)
+    return lines
+
+
+def _last_known_lines(ep, last, lang: str) -> list:
+    if ep is not None:
+        at = _dt(ep["last_bucket"]) + timedelta(minutes=5)
+        known = t(lang, "last_known", hm=fmt_kyiv_hm(at), name=plain_name(ep["event_type"], lang))
+    elif last is not None:
+        known = t(lang, "last_known_ended", hm=fmt_kyiv_hm(_dt(last["terminal_at"])),
+                  name=plain_name(last["event_type"], lang))
+    else:
+        return []
+    return [known, t(lang, "state_unavailable")]
+
+
+def _after_status(view, ep, last, lang: str) -> Optional[str]:
+    if ep is not None:
+        return t(lang, "still_active")
+    if last is None:
+        return None
+    reason = last.get("terminal_reason")
+    if reason in _DATA_END:
+        return t(lang, _DATA_END[reason])
+    if reason == "MAX_DURATION":
+        return t(lang, "ended_cap")
+    return t(lang, "event_ended_line")
+
+
+def _clock_of(view) -> Optional[datetime]:
+    if not view.get("data_through"):
+        return None
+    return _dt(view["data_through"])
+
+
+def format_btc(cfg, view: Mapping[str, Any], lang: str = "en") -> str:
+    """Compact /btc. Presentation only."""
+    lines = [_title(view, lang)]
+    status = view["product_status"]
+    market_ok = status not in ("DATA DEGRADED", "DATA STALE")
+    if not market_ok:
+        lines.append(t(lang, "insufficient"))
+    if not view.get("projection_available") and status in ("WATCH", "EVENT ACTIVE"):
+        lines.append(t(lang, "projection_missing"))
+    ep, last = view.get("active_episode"), view.get("last_event")
+    shown = ep or last
+    state = _screen_state(view, lang)
+    if shown is not None and not market_ok:
+        lines.extend(_last_known_lines(ep, last, lang))
+    elif shown is not None:
+        lines.extend(_noticed_lines(cfg, view, shown, lang, active=ep is not None))
+        others = view.get("other_active") or []
+        if ep is not None and others:
+            lines.append(t(lang, "also_open", names=", ".join(plain_name(et, lang) for et, _st in others)))
+    elif market_ok and state == t(lang, "title_calm"):
+        lines.append(t(lang, "no_unusual"))
+    if market_ok and state in (t(lang, "title_history"), t(lang, "title_incomplete"), t(lang, "title_unusual")):
+        gap = _core_gap_line(view.get("readiness"), lang)
+        if gap:
+            lines.append(gap)
+        if state == t(lang, "title_history") and shown is None:
+            lines.append(t(lang, "not_evaluated_yet"))
+    if market_ok:
+        lines.append(_hour_line(view, lang))
+    clock = _clock_of(view)
+    if market_ok and state == t(lang, "title_calm") and shown is None:
+        status_bit = t(lang, "notable_none", span=_retention_phrase(cfg, lang))
+    elif shown is not None and market_ok:
+        status_bit = _after_status(view, ep, last, lang)
+    else:
+        status_bit = None
+    if clock is None:
+        lines.append(t(lang, "no_evaluation_line"))
+    elif status_bit:
+        lines.append(t(lang, "data_line", status=status_bit, clock=fmt_clock(clock, lang)))
+    else:
+        lines.append(t(lang, "data_only", clock=fmt_clock(clock, lang)))
+    lines.append("\n" + t(lang, "disclaimer"))
+    return _ok("\n".join(lines), lang)
+
+
+def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int] = None):
+    """Event only with an open or retained episode. 1h outside fail-closed. Readiness unchanged."""
+    row = []
+    fail = view.get("product_status") in ("DATA STALE", "DATA DEGRADED")
+    focus = view.get("active_episode") or view.get("last_event")
+    if view_pk is not None and focus and focus.get("episode_id"):
+        row.append((t(lang, "btn_event"), f"o:{int(view_pk)}:event"))
+    if view_pk is not None and not fail:
+        row.append((t(lang, "btn_1h"), f"o:{int(view_pk)}:1h"))
+    rd = view.get("readiness")
+    if rd and any(g.get("status") != "READY" for g in rd.get("groups") or ()):
+        row.append((t(lang, "btn_readiness"), "r:latest"))
+    return [row] if row else None
+
+
+def detail_tab_buttons(view: Mapping[str, Any], lang: str, view_pk: int):
+    """Tab row under a Details message. Presses edit that message."""
+    row = []
+    fail = view.get("product_status") in ("DATA STALE", "DATA DEGRADED")
+    focus = view.get("active_episode") or view.get("last_event")
+    if focus and focus.get("episode_id"):
+        row.append((t(lang, "btn_event"), f"e:{int(view_pk)}:event"))
+    if not fail:
+        row.append((t(lang, "btn_1h"), f"e:{int(view_pk)}:1h"))
+    return [row] if row else None
+
+
+def _window_kyiv(first_bucket: str, last_bucket: Optional[str] = None) -> str:
+    start = _dt(first_bucket)
+    end = _dt(last_bucket or first_bucket) + timedelta(minutes=5)
+    return f"{fmt_kyiv_hm(start)}–{fmt_kyiv_hm(end)}"
+
+
+def _venue_oi(anchor_view: Mapping[str, Any], lang: str) -> str:
+    raw = anchor_view.get("oi_change_pct_by_venue") or {}
+    order = [ex for ex in ("binance", "bybit", "okx") if ex in raw] or list(raw)
+    bits = []
+    for ex in order:
+        v = raw.get(ex)
+        bits.append(f"{ex} {na(lang) if v is None else fmt_signed_pct(v, lang)}")
+    med = (anchor_view.get("oi_change_pct") or {}).get("value")
+    venues = " · ".join(bits) if bits else na(lang)
+    if med is None:
+        return t(lang, "anchor_oi_na", venues=venues)
+    return t(lang, "anchor_oi", med=fmt_signed_pct(med, lang), venues=venues)
+
+
+def _taker_text(value, lang: str) -> str:
+    if value is None:
+        return t(lang, "taker_na", na=na(lang))
+    amt = fmt_usd(abs(value), lang)
+    if value > 0:
+        return t(lang, "taker_line", side=t(lang, "taker_buyers"), amt=amt)
+    if value < 0:
+        return t(lang, "taker_line", side=t(lang, "taker_sellers"), amt=amt)
+    return t(lang, "taker_flat", amt=amt)
+
+
+def _fmt_liq_body(per_venue: Mapping[str, Mapping[str, Any]], lang: str) -> tuple:
+    """Returns (text, any_lower_bound)."""
+    order = [ex for ex in ("binance", "bybit", "okx") if ex in per_venue] or list(per_venue)
+    bits = []
+    lower = False
+    for ex in order:
+        cell = per_venue[ex]
+        if cell.get("missing") or cell.get("amount") is None:
+            bits.append(f"{ex} {na(lang)}")
+            continue
+        amt = fmt_usd(cell["amount"], lang)
+        if cell.get("lower_bound"):
+            lower = True
+            bits.append(f"{ex} ≥{amt}")
+        else:
+            bits.append(f"{ex} {amt}")
+    return " · ".join(bits) if bits else na(lang), lower
+
+
+def _anchor_liq_map(anchor_view: Mapping[str, Any]) -> dict:
+    """One bucket: Binance is always a lower bound; None is missing, never zero."""
+    out = {}
+    liq = anchor_view.get("liquidations") or {}
+    for side in ("long", "short"):
+        per = (liq.get(side) or {}).get("per_venue") or {}
+        out[side] = {}
+        for ex, amount in per.items():
+            if amount is None:
+                out[side][ex] = {"amount": None, "missing": True, "lower_bound": False}
+            else:
+                out[side][ex] = {"amount": float(amount), "missing": False, "lower_bound": ex == "binance"}
+    return out
+
+
+def _liq_lines(venues_by_side: Mapping[str, Mapping], lang: str) -> tuple:
+    lines = []
+    lower = False
+    for side, name_key in (("long", "liq_long_name"), ("short", "liq_short_name")):
+        body, hit = _fmt_liq_body(venues_by_side.get(side) or {}, lang)
+        lower = lower or hit
+        lines.append(t(lang, "liq_line", side=t(lang, name_key), Side=t(lang, name_key), body=body))
+    return lines, lower
+
+
+def _ref_line(view: Mapping[str, Any], view_id8: str, lang: str) -> str:
+    ep = view.get("active_episode") or view.get("last_event")
+    if ep and ep.get("episode_id"):
+        return t(lang, "ref_line", ep=ep["episode_id"], vid=view_id8)
+    return t(lang, "ref_view_only", vid=view_id8)
+
+
+def format_event_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str = "--------") -> str:
+    """Anchor bucket only, from the persisted view. No Now block, no ranks, no versions."""
+    ep = view.get("active_episode") or view.get("last_event")
+    if ep is None:
+        return _ok(t(lang, "measurements_missing"), lang)
+    lines = [f"<b>{_e(t(lang, 'event_head', name=plain_name(ep['event_type'], lang)))}</b>"]
+    if ep.get("terminal_at"):
+        lines.append(t(lang, "event_ended_at", clock=fmt_clock(_dt(ep["terminal_at"]), lang)))
+    else:
+        opened = ep.get("opened_at") or ep.get("opened_bucket")
+        lines.append(t(lang, "event_since", clock=fmt_clock(_dt(opened), lang)))
+    anchor = (ep.get("anchor") or {}).get("view")
+    if anchor is None:
+        lines.append(t(lang, "measurements_missing"))
+    else:
+        lines.append(t(lang, "why_window", window=_window_kyiv(anchor["bucket_ts"])))
+        price = (anchor.get("price_move_pct") or {}).get("value")
+        rng = (anchor.get("range_width_pct") or {}).get("value")
+        vol = (anchor.get("volume_notional_usd") or {}).get("value")
+        level = _level_word(cfg, anchor.get("volume_notional_usd"), lang, omit_normal=False)
+        level_bit = "" if not level else " (" + level + ")"
+        lines.append("  " + t(
+            lang, "anchor_metrics",
+            price=na(lang) if price is None else fmt_signed_pct(price, lang),
+            range=na(lang) if rng is None else fmt_plain_pct(rng, lang),
+            vol=na(lang) if vol is None else fmt_usd(vol, lang),
+            level=level_bit))
+        lines.append("  " + _venue_oi(anchor, lang))
+        taker = (anchor.get("taker_delta_notional_usd") or {}).get("value")
+        lines.append("  " + _taker_text(taker, lang))
+        liq_lines, lower = _liq_lines(_anchor_liq_map(anchor), lang)
+        lines.extend("  " + ln for ln in liq_lines)
+    others = view.get("other_active") or []
+    if view.get("active_episode") is not None and others:
+        lines.append(t(lang, "also_open", names=", ".join(plain_name(et, lang) for et, _st in others)))
+    if anchor is not None and lower:
+        lines.append(t(lang, "liq_footnote"))
+    lines.append(_ref_line(view, view_id8, lang))
+    return _ok("\n".join(lines), lang)
+
+
+def format_context_details(cfg, episode: Mapping[str, Any], state: Mapping[str, Any], lang: str = "en",
+                           view_id8: str = "--------") -> str:
+    """Compatibility wrapper: the Event tab is the user-facing Details for an episode."""
+    view = {"active_episode": episode if not episode.get("terminal_at") else None,
+            "last_event": episode if episode.get("terminal_at") else None,
+            "other_active": []}
+    if view["active_episode"] is None and view["last_event"] is None:
+        view["last_event"] = episode
+    return format_event_tab(cfg, view, lang, view_id8)
+
+
+def _ratio_bit(ratio, lang: str) -> str:
+    shown = na(lang) if ratio is None else fmt_ratio(ratio, lang)
+    return t(lang, "h1_ratio", ratio=shown)
+
+
+def _horizon_liq(block: Mapping[str, Any]) -> dict:
+    venues = (block.get("liquidations") or {}).get("venues") or {}
+    by_side = {"long": {}, "short": {}}
+    for ex, sides in venues.items():
+        for side in ("long", "short"):
+            by_side[side][ex] = (sides or {}).get(side) or {"amount": None, "missing": True, "lower_bound": False}
+    return by_side
+
+
+def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str = "--------") -> str:
+    """1h tab from the persisted horizons block. No OI line and no D7 lines in this pass."""
+    block = (view.get("horizons") or {}).get("1h")
+    if block and block.get("window_start") and block.get("window_end"):
+        window = f"{fmt_kyiv_hm(_dt(block['window_start']))}–{fmt_kyiv_hm(_dt(block['window_end']))}"
+    else:
+        window = "—"
+    lines = [f"<b>{_e(t(lang, 'h1_head', window=window, zone=t(lang, 'zone')))}</b>"]
+    lower = False
+    if not block or not block.get("complete"):
+        lines.append(t(lang, "h1_incomplete_body"))
+    else:
+        price = block.get("price_move_pct")
+        rng = block.get("range_width_pct")
+        if price is not None or rng is not None:
+            lines.append(t(
+                lang, "h1_price_range",
+                price=na(lang) if price is None else fmt_signed_pct(price, lang),
+                range=na(lang) if rng is None else fmt_plain_pct(rng, lang),
+                ratio="" if rng is None else _ratio_bit(block.get("range_ratio"), lang)))
+        vol = block.get("volume_notional_usd")
+        if vol is not None:
+            lines.append(t(lang, "h1_volume", vol=fmt_usd(vol, lang),
+                           ratio=_ratio_bit(block.get("volume_ratio"), lang)))
+    if block:
+        lines.append(_taker_text(block.get("taker_delta_notional_usd_sum"), lang))
+        liq_lines, lower = _liq_lines(_horizon_liq(block), lang)
+        lines.extend(liq_lines)
+        funding = block.get("funding_rate")
+        lines.append(t(lang, "funding_na", na=na(lang)) if funding is None
+                     else t(lang, "funding_now", rate=fmt_funding(funding, lang)))
+    if lower:
+        lines.append(t(lang, "liq_footnote"))
+    lines.append(_ref_line(view, view_id8, lang))
+    return _ok("\n".join(lines), lang)
+
+
+def feedback_buttons(public_id: str, lang: str = "en") -> list:
+    return [[(t(lang, "btn_details"), f"d:{public_id}"),
+             (t(lang, "btn_useful"), f"u:{public_id}"),
+             (t(lang, "btn_noise"), f"n:{public_id}")]]
+
+
+# ---- legacy status / push / history / readiness (same facts, catalog wording) ----
+def _pct_rank(snapshot: Mapping[str, Any], key: str, lang: str) -> str:
     p = (snapshot.get("percentiles") or {}).get(key) or {}
     if p.get("rank") is None:
-        return "n/a"
+        return t(lang, "rank_na")
     if p.get("tier") != "mature":
-        return f"not evaluable ({_e(p.get('tier'))} history)"
-    return f"{p['rank'] * 100:.0f}th pct of 30d"
+        return t(lang, "rank_immature", tier=_e(p.get("tier")))
+    return t(lang, "rank_pct", n=f"{p['rank'] * 100:.0f}")
 
 
-def _fmt_num(v: Optional[float], nd: int = 2, suffix: str = "%") -> str:
-    return "n/a" if v is None else f"{v:+.{nd}f}{suffix}"
-
-
-# ---- static texts --------------------------------------------------------------
-CLOSED_BETA_TEXT = "This is a closed private beta. Access is by invitation only."
-
-PRIVACY_NOTICE = assert_descriptive(
-    "<b>Signalbot closed beta — privacy notice</b>\n"
-    "• We store your Telegram user id and chat id to send you beta messages, plus your "
-    "Useful/Noise votes and delivery status.\n"
-    "• Market/event records contain no personal data.\n"
-    "• /stop pauses all messages. /delete_me deletes your participant data and removes "
-    "you from the beta.\n"
-    "• After /stop, your data is deleted automatically after 30 days.\n"
-    "• Nothing here is investment advice; the bot never places or suggests trades.\n\n"
-    "Press <b>Join</b> to accept and join the beta.")
-
-HELP_TEXT = assert_descriptive(
-    "<b>Signalbot closed beta — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
-    "The bot watches a few frozen, deterministic, unusual market states and tells you when one "
-    "is observed. It does not tell you what to trade.\n\n"
-    "/btc — compact BTC perpetual state (calm, unusual now, calmed, history building, "
-    "or data incomplete). Details holds the measurements.\n"
-    "/history — recent detector episodes, pushed or not, with factual follow-up ranges\n"
-    "/stop — pause messages · /delete_me — delete your data\n\n" + DISCLAIMER)
-
-
-def event_label(event_type: str) -> str:
-    return EVENT_LABELS[event_type]
-
-
-# ---- /btc ---------------------------------------------------------------------
 def format_status(status: Mapping[str, Any], open_episodes: Sequence[Any],
-                  snapshot: Optional[Mapping[str, Any]]) -> str:
-    lines = [f"<b>BTCUSDT perp — {_e(status['status'])}</b>"]
+                  snapshot: Optional[Mapping[str, Any]], lang: str = "en") -> str:
+    lines = [f"<b>{_e(t(lang, 'status_title', status=status['status']))}</b>"]
     last = status.get("last_good_bucket")
     if last is not None:
-        lines.append(f"Last evaluation: 5m bucket closed {ts(last + timedelta(minutes=5))}")
+        lines.append(t(lang, "status_eval", when=fmt_kyiv_date_hm(last + timedelta(minutes=5), lang)))
     else:
-        lines.append("Last evaluation: none yet")
+        lines.append(t(lang, "status_eval_none"))
     if status["status"] in ("DATA DEGRADED", "DATA STALE"):
-        lines.append("Current observability is insufficient; the absence of events cannot be "
-                     "claimed right now.")
+        lines.append(t(lang, "insufficient"))
     for ep in open_episodes:
-        lines.append(f"• {_e(event_label(ep.event_type))} — {STATE_LABELS[ep.state]} "
-                     f"(since {ts(ep.opened_at)})")
+        lines.append(t(lang, "status_episode", name=_e(event_label(ep.event_type, lang)),
+                       state=state_label(ep.state, lang), when=fmt_kyiv_date_hm(ep.opened_at, lang)))
     if snapshot is not None and snapshot.get("materialized") and status["status"] != "DATA STALE":
-        lines.append("\n<b>Context (5m, cross-venue)</b>")
-        lines.append(f"price move: {_pct_rank(snapshot, 'c:price_move_pct_median')}")
-        lines.append(f"OI change: {_pct_rank(snapshot, 'c:oi_change_pct_median')}")
-        lines.append(f"range width: {_pct_rank(snapshot, 'c:range_width_pct_median')}")
-        lines.append(f"volume: {_pct_rank(snapshot, 'c:volume_notional_usd_sum')}")
+        lines.append("\n<b>" + t(lang, "status_context") + "</b>")
+        lines.append(t(lang, "status_price", v=_pct_rank(snapshot, "c:price_move_pct_median", lang)))
+        lines.append(t(lang, "status_oi", v=_pct_rank(snapshot, "c:oi_change_pct_median", lang)))
+        lines.append(t(lang, "status_range", v=_pct_rank(snapshot, "c:range_width_pct_median", lang)))
+        lines.append(t(lang, "status_volume", v=_pct_rank(snapshot, "c:volume_notional_usd_sum", lang)))
         ref = snapshot.get("reference") or {}
         if ref.get("status") == "OK":
-            lines.append(f"composite close: {ref['price']:,.1f} ({', '.join(ref['exchanges'])})")
+            lines.append(t(lang, "status_ref", price=fmt_price(ref["price"], lang),
+                           venues=", ".join(ref["exchanges"])))
         evals = snapshot.get("rule_evaluations") or {}
         gated = sorted(k for k, v in evals.items() if v.get("status") == "NOT_EVALUABLE")
         if gated:
-            lines.append("not evaluable now: " + ", ".join(_e(event_label(k)) for k in gated))
-    lines.append("\n" + DISCLAIMER)
-    return assert_descriptive("\n".join(lines))
+            lines.append(t(lang, "status_gated", names=", ".join(_e(event_label(k, lang)) for k in gated)))
+    lines.append("\n" + t(lang, "disclaimer"))
+    return _ok("\n".join(lines), lang)
 
 
-# ---- push -------------------------------------------------------------------------
-def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None) -> str:
-    lines = [f"<b>BTCUSDT perp — EVENT: {_e(event_label(episode.event_type))}</b>",
-             f"Decision time: {ts(episode.triggered_at)} (5m bucket close)",
-             _e(EVENT_DESCRIPTIONS[episode.event_type])]
+def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang: str = "en") -> str:
+    lines = [f"<b>{_e(t(lang, 'push_title', name=event_label(episode.event_type, lang)))}</b>",
+             t(lang, "push_decision", when=fmt_kyiv_date_hm(episode.triggered_at, lang)),
+             _e(event_description(episode.event_type, lang))]
     if episode.reference_price is not None:
-        lines.append(f"Composite close at decision: {episode.reference_price:,.1f} "
-                     f"({', '.join(episode.reference_exchanges)})")
-    lines.append(f"Episode {episode.public_id} · rules {_e(episode.rules_version)}")
-    lines.append("\n" + DISCLAIMER)
-    return assert_descriptive("\n".join(lines))
+        lines.append(t(lang, "push_close", price=fmt_price(episode.reference_price, lang),
+                       venues=", ".join(episode.reference_exchanges)))
+    lines.append(t(lang, "push_id", pid=episode.public_id, rules=_e(episode.rules_version)))
+    lines.append("\n" + t(lang, "disclaimer"))
+    return _ok("\n".join(lines), lang)
 
 
-# ---- /history + details ---------------------------------------------------------------
-def _range_summary(outcomes: Iterable[Mapping[str, Any]]) -> str:
-    parts = []
-    for o in sorted(outcomes, key=lambda o: ["15m", "30m", "1h", "4h", "24h"].index(o["horizon"])):
-        mark = "*" if (o.get("revision") or 1) > 1 else ""
-        if o["status"] == "COMPLETE":
-            parts.append(f"{o['horizon']} range {o['realized_range_pct']:.2f}%{mark}")
-        else:
-            parts.append(f"{o['horizon']} {o['status'].lower().replace('_', ' ')}")
-    return "; ".join(parts) if parts else "follow-up pending"
-
-
-def push_status_label(row: Mapping[str, Any]) -> str:
+def push_status_label(row: Mapping[str, Any], lang: str = "en") -> str:
     decision = row.get("decision")
     if decision is None:
-        return "no push (not triggered)"
+        return t(lang, "push_none")
     if decision == "SUPPRESSED":
         return f"SUPPRESSED ({row.get('suppression_reason')})"
     states = set(row.get("delivery_states") or ())
@@ -191,50 +679,66 @@ def push_status_label(row: Mapping[str, Any]) -> str:
         return "UNKNOWN"
     if "EXPIRED_UNDELIVERED" in states:
         return "EXPIRED"
-    return "PUSH (pending)"
+    return t(lang, "push_pending")
+
+
+def _range_summary(outcomes: Iterable[Mapping[str, Any]], lang: str) -> str:
+    parts = []
+    for o in sorted(outcomes, key=lambda o: ["15m", "30m", "1h", "4h", "24h"].index(o["horizon"])):
+        mark = "*" if (o.get("revision") or 1) > 1 else ""
+        if o["status"] == "COMPLETE":
+            pct = f"{o['realized_range_pct']:.2f}"
+            if lang == "ru":
+                pct = pct.replace(".", ",")
+            parts.append(t(lang, "range_complete", h=o["horizon"], pct=pct, mark=mark))
+        else:
+            parts.append(f"{o['horizon']} {o['status'].lower().replace('_', ' ')}")
+    return "; ".join(parts) if parts else t(lang, "follow_pending")
 
 
 def format_history(rows: Sequence[Mapping[str, Any]],
-                   outcomes_by_pk: Mapping[int, Sequence[Mapping[str, Any]]]) -> str:
-    lines = ["<b>Detector history (all episodes, pushed or not)</b>"]
+                   outcomes_by_pk: Mapping[int, Sequence[Mapping[str, Any]]], lang: str = "en") -> str:
+    lines = ["<b>" + t(lang, "history_title") + "</b>"]
     if not rows:
-        lines.append("No episodes recorded yet.")
+        lines.append(t(lang, "history_empty"))
     for r in rows:
-        corr = " ⚠ corrected input" if r.get("correction_flag") else ""
+        corr = t(lang, "history_corrected") if r.get("correction_flag") else ""
         term = f", {r['terminal_reason'].lower().replace('_', ' ')}" if r.get("terminal_reason") else ""
         lines.append(
-            f"• {r['public_id']} {_e(event_label(r['event_type']))} — "
-            f"{STATE_LABELS[r['state']]}{term}{corr}\n"
-            f"  opened {ts(r['opened_at'])}; triggered {ts(r.get('triggered_at'))}; "
-            f"push {push_status_label(r)}\n"
-            f"  {_range_summary(outcomes_by_pk.get(r['episode_pk'], ()))}")
-    lines.append("<i>Ranges are absolute (max − min) moves after the decision time; "
-                 "* = revised after a data correction.</i>")
-    return assert_descriptive("\n".join(lines))
+            f"• {r['public_id']} {_e(event_label(r['event_type'], lang))} — "
+            f"{state_label(r['state'], lang)}{term}{corr}\n"
+            f"  {t(lang, 'history_times', opened=_when(r['opened_at'], lang), triggered=_when(r.get('triggered_at'), lang), push=push_status_label(r, lang))}\n"
+            f"  {_range_summary(outcomes_by_pk.get(r['episode_pk'], ()), lang)}")
+    lines.append("<i>" + t(lang, "history_note") + "</i>")
+    lines.append(t(lang, "disclaimer"))
+    return _ok("\n".join(lines), lang)
 
 
 def format_details(episode: Any, transitions: Sequence[Mapping[str, Any]],
-                   outcomes: Sequence[Mapping[str, Any]]) -> str:
-    lines = [f"<b>{episode.public_id} — {_e(event_label(episode.event_type))}</b>",
-             _e(EVENT_DESCRIPTIONS[episode.event_type]),
-             f"Rules {_e(episode.rules_version)} ({episode.rules_digest[:12]})"]
-    for t in transitions:
-        lines.append(f"• {ts(t['decision_ts'])}: {STATE_LABELS[t['to_state']]} "
-                     f"({t['reason'].lower().replace('_', ' ')})")
+                   outcomes: Sequence[Mapping[str, Any]], lang: str = "en") -> str:
+    lines = [f"<b>{episode.public_id} — {_e(event_label(episode.event_type, lang))}</b>",
+             _e(event_description(episode.event_type, lang)),
+             t(lang, "details_rules", ver=_e(episode.rules_version), digest=episode.rules_digest[:12])]
+    for tr in transitions:
+        lines.append(t(lang, "details_transition", when=fmt_kyiv_date_hm(tr["decision_ts"], lang),
+                       state=state_label(tr["to_state"], lang),
+                       reason=tr["reason"].lower().replace("_", " ")))
     if episode.reference_price is not None:
-        lines.append(f"Composite close at decision: {episode.reference_price:,.1f}")
+        lines.append(t(lang, "details_close", price=fmt_price(episode.reference_price, lang)))
     for o in sorted(outcomes, key=lambda o: ["15m", "30m", "1h", "4h", "24h"].index(o["horizon"])):
         if o["status"] == "COMPLETE":
-            lines.append(f"{o['horizon']}: range {o['realized_range_pct']:.2f}%, "
-                         f"max up {_fmt_num(o['max_up_pct'])}, max down {_fmt_num(-o['max_down_pct'])}, "
-                         f"close {_fmt_num(o['close_return_pct'])}"
-                         + (" (revised)" if (o.get("revision") or 1) > 1 else ""))
+            rev = t(lang, "details_revised") if (o.get("revision") or 1) > 1 else ""
+            lines.append(t(lang, "details_outcome", h=o["horizon"],
+                           rng=f"{o['realized_range_pct']:.2f}".replace(".", "," if lang == "ru" else "."),
+                           up=fmt_signed_pct(o["max_up_pct"], lang),
+                           down=fmt_signed_pct(-o["max_down_pct"], lang),
+                           close=fmt_signed_pct(o["close_return_pct"], lang), rev=rev))
         else:
             lines.append(f"{o['horizon']}: {o['status'].lower().replace('_', ' ')}")
     if episode.correction_flag:
-        lines.append(f"⚠ corrected input: {_e(episode.correction_note or '')}")
-    lines.append("\n" + DISCLAIMER)
-    return assert_descriptive("\n".join(lines))
+        lines.append(t(lang, "details_corrected", note=_e(episode.correction_note or "")))
+    lines.append("\n" + t(lang, "disclaimer"))
+    return _ok("\n".join(lines), lang)
 
 
 def format_owner_alert(alerts: Sequence[Mapping[str, Any]]) -> str:
@@ -244,503 +748,62 @@ def format_owner_alert(alerts: Sequence[Mapping[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-# ---- /btc with temporal context (ACTIVE / LAST EVENT · anchor bucket · NOW · 1h) ------------
-TERMINAL_WORDS = {"CONDITION_FAILED": "condition no longer met", "NOT_EVALUABLE": "data not evaluable",
-                  "DETECTION_GAP": "detection gap", "DETECTOR_VERSION_CHANGED": "rules/data version changed",
-                  "MAX_DURATION": "maximum duration reached"}
-ANCHOR_WORDS = {"STRONGEST_OBSERVED_BUCKET": "Strongest observed bucket", "TRIGGER_BUCKET": "Trigger bucket",
-                "OPENING_BUCKET": "Opening bucket"}
-def _dt(s: str) -> datetime:
-    return datetime.fromisoformat(s)
-
-
-def _hm(dt: datetime) -> str:
-    return dt.astimezone(timezone.utc).strftime("%H:%M")
-
-
-def _window(first_bucket: str, last_bucket: Optional[str] = None) -> str:
-    """Bucket start of `first_bucket` to bucket END of `last_bucket` (HH:MM–HH:MM)."""
-    return f"{_hm(_dt(first_bucket))}–{_hm(_dt(last_bucket or first_bucket) + timedelta(minutes=5))}"
-
-
-def _dur(minutes: float) -> str:
-    m = int(max(0, round(minutes)))
-    if m < 60:
-        return f"{m}m"
-    if m % 60 == 0:
-        return f"{m // 60}h"
-    return f"{m // 60}h{m % 60:02d}m"
-
-
-def _usd(v: Optional[float], *, signed: bool = False) -> str:
-    if v is None:
-        return "n/a"
-    sign = ("+" if v > 0 else "−" if v < 0 else "") if signed else ""
-    a = abs(v)
-    body = f"${a / 1e9:.1f}B" if a >= 1e9 else f"${a / 1e6:.1f}M" if a >= 1e6 else \
-        f"${a / 1e3:.0f}K" if a >= 1e3 else f"${a:.0f}"
-    return sign + body
-
-
-def _signed_pct(v: Optional[float]) -> str:
-    return "n/a" if v is None else f"{v:+.2f}%".replace("-", "−")
-
-
-def _cap(s: str) -> str:
-    return s[:1].upper() + s[1:]
-
-
-# Main-screen names. Detector lifecycle words stay in Details.
-_PLAIN = {PRICE_OI_CONTRACTION_DOWN: "unusual drop", PRICE_OI_CONTRACTION_UP: "unusual rise",
-          POSITION_BUILDUP_COMPRESSION: "position build-up",
-          TAKER_FLOW_EXTREME_BUY: "buyer-initiated flow", TAKER_FLOW_EXTREME_SELL: "seller-initiated flow",
-          LIQUIDATION_STRESS_LONG: "long-side liquidations", LIQUIDATION_STRESS_SHORT: "short-side liquidations"}
-_PRICE_OI = (PRICE_OI_CONTRACTION_DOWN, PRICE_OI_CONTRACTION_UP)
-_TAKER = (TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL)
-_KNOWN_HEADLINES = {"DATA STALE", "DATA DEGRADED", "DETECTOR NOT READY", "HISTORY BUILDING",
-                    "EVENT ACTIVE", "WATCH", "NO ACTIVE EVENTS"}
-_INSUFFICIENT = ("Current observability is insufficient; the absence of events cannot be "
-                 "claimed right now.")
-_DATA_END = {"DETECTION_GAP": "A recent event ended on a data gap",
-             "NOT_EVALUABLE": "A recent event ended because data was not evaluable",
-             "DETECTOR_VERSION_CHANGED": "A recent event ended on a version change"}
-
-
-def _reached(ep: Mapping[str, Any]) -> str:
-    return "triggered" if ep.get("triggered_at") else "armed" if ep.get("armed_at") else "early"
-
-
-def _screen_title(view: Mapping[str, Any]) -> str:
-    """User-facing title. Unknown headlines are passed through so wording checks still see them."""
-    h = view.get("headline") or ""
-    if h not in _KNOWN_HEADLINES:
-        return h
-    if h in ("DATA STALE", "DATA DEGRADED", "DETECTOR NOT READY"):
-        return "data incomplete"
-    if h == "HISTORY BUILDING":
-        return "history building"
-    if view.get("active_episode") is not None or h in ("EVENT ACTIVE", "WATCH"):
-        return "unusual now"
-    last = view.get("last_event")
-    if last is not None:
-        return "calmed" if last.get("terminal_reason") == "CONDITION_FAILED" else "event ended"
-    return "calm"
-
-
-def _signed_arrows(cfg, metric: Optional[Mapping[str, Any]]) -> Optional[str]:
-    """One arrow = direction only. Unusualness is never encoded in the arrow count."""
-    if not metric or metric.get("value") is None:
-        return None
-    v = metric["value"]
-    if v == 0:
-        return "·"
-    return "↑" if v > 0 else "↓"
-
-
-def _volume_word(cfg, metric: Optional[Mapping[str, Any]]) -> Optional[str]:
-    """The frozen context level word (elevated / high / extreme); normal or immature is omitted."""
-    from .context import level_label
-    if not metric:
-        return None
-    label = level_label(cfg, metric.get("rank"), metric.get("tier"))
-    return label if label in ("elevated", "high", "extreme") else None
-
-
-def _reading_line(cfg, event_type: str, view: Mapping[str, Any]) -> str:
-    if event_type in _PRICE_OI:
-        parts = []
-        price, oi = _signed_arrows(cfg, view["price_move_pct"]), _signed_arrows(cfg, view["oi_change_pct"])
-        vol = _volume_word(cfg, view["volume_notional_usd"])
-        if price and price != "·":
-            parts.append(f"Price {price}")
-        if oi and oi != "·":
-            parts.append(f"OI {oi}")
-        if vol:
-            parts.append(f"Volume {vol}")
-        return " · ".join(parts) or "n/a"
-    if event_type == POSITION_BUILDUP_COMPRESSION:
-        parts = []
-        oi, vol = _signed_arrows(cfg, view["oi_change_pct"]), _volume_word(cfg, view["volume_notional_usd"])
-        if oi and oi != "·":
-            parts.append(f"OI {oi}")
-        if vol:
-            parts.append(f"Volume {vol}")
-        return " · ".join(parts) or "n/a"
-    if event_type in _TAKER:
-        parts = []
-        taker, price = _signed_arrows(cfg, view["taker_delta_notional_usd"]), _signed_arrows(cfg, view["price_move_pct"])
-        if taker and taker != "·":
-            parts.append(f"Taker flow {taker}")
-        if price and price != "·":
-            parts.append(f"Price {price}")
-        return " · ".join(parts) or "n/a"
-    side = "long" if event_type == LIQUIDATION_STRESS_LONG else "short"
-    liq = view["liquidations"][side]
-    if liq["rule_status"] == "NOT_EVALUABLE":
-        return f"{_cap(side)}-side liquidations not evaluable"
-    return f"{_cap(side)}-side liquidations {len(liq['voting'])}/{len(liq['eligible'])} venues"
-
-
-def _why_line(cfg, event_type: str, view: Mapping[str, Any]) -> Optional[str]:
-    if event_type == POSITION_BUILDUP_COMPRESSION:
-        from .context import level_label
-        m = view["oi_change_pct"]
-        label = level_label(cfg, m.get("rank"), m.get("tier"))
-        if label in ("elevated", "high", "extreme"):
-            return f"Open interest {label}"
-        v = m.get("value")
-        if v is None or v == 0:
-            return None
-        return "Open interest rose" if v > 0 else "Open interest fell"
-    if event_type not in _PRICE_OI:
-        return None
-    price, oi = view["price_move_pct"].get("value"), view["oi_change_pct"].get("value")
-    if price is None or oi is None or price == 0 or oi == 0:
-        return None
-    up, oi_up = price > 0, oi > 0
-    # Only the observed OI field: no claim about individual positions, covering or unwinding.
-    base = f"Open interest {'rose' if oi_up else 'fell'} during the {'rise' if up else 'drop'}"
-    side = "short" if up else "long"
-    liq = (view.get("liquidations") or {}).get(side) or {}
-    need = cfg.rule("LIQUIDATION_STRESS")["min_eligible_venues"]
-    votes, eligible = liq.get("voting") or [], liq.get("eligible") or []
-    if not oi_up and liq.get("rule_status") not in (None, "NOT_EVALUABLE") and len(votes) >= need and eligible:
-        move = "Rise" if up else "Drop"
-        return f"{move}, falling OI, elevated {side}-side liquidations"
-    return base
-
-
-def _hour_line(cfg, c1h: Optional[Mapping[str, Any]]) -> str:
-    if c1h is None:
-        return "1h activity: incomplete"
-    from .context import level_label
-    pr, bits, immature = c1h.get("percentiles") or {}, [], True
-    for key, name in (("volume_notional_usd_sum", "volume"), ("range_width_pct_median", "range")):
-        p = pr.get(key) or {}
-        label = level_label(cfg, p.get("rank"), p.get("tier"))
-        if label:
-            immature = False
-            bits.append(f"{name}: {label}")
-        elif c1h.get(key) is None:
-            immature = False
-            bits.append(f"{name}: n/a")
-        else:
-            bits.append(f"{name}: history building")
-    return "1h activity: history building" if immature else "1h " + " · ".join(bits)
-
-
-def _retention_phrase(cfg) -> str:
-    m = int(cfg.section("context")["last_event_retention_min"])
-    return f"{m // 60}h" if m >= 60 and m % 60 == 0 else _dur(m)
-
-
-def _ago_phrase(view: Mapping[str, Any], ep: Mapping[str, Any]) -> str:
-    minutes = (_dt(view["requested_at"]) - _dt(ep["terminal_at"])).total_seconds() / 60
-    m = int(max(0, round(minutes)))
-    return "just ended" if m == 0 else f"{_dur(m)} ago"
-
-
-def _core_gap_line(rd: Optional[Mapping[str, Any]]) -> Optional[str]:
-    if not rd:
-        return None
-    core = next(g for g in rd["groups"] if g["group"] == "PRICE_OI")
-    if core["status"] == "READY":
-        return None
-    if core["status"] == "HISTORY_BUILDING":
-        p = core.get("progress") or {}
-        if p.get("span_days") is not None:
-            return f"Price/OI history {p['span_days']:.1f}d / {rd['maturity_days']:.0f}d"
-        return "Price/OI history still maturing"
-    if core["status"] == "DATA_UNAVAILABLE":
-        return "Price/OI cannot be evaluated right now"
-    if core["status"] == "DISABLED":
-        return "Price/OI is switched off"
-    return None
-
-
-def _noticed_lines(cfg, view: Mapping[str, Any], ep: Mapping[str, Any], *, active: bool) -> list:
-    lines = []
-    if not active:
-        lines.append(f"{_ago_phrase(view, ep)}: {_PLAIN[ep['event_type']]}")
-    anchor = (ep.get("anchor") or {}).get("view")
-    if anchor is None:
-        lines.append("Measurements are not available")
-        return lines
-    lines.append(_reading_line(cfg, ep["event_type"], anchor))
-    why = _why_line(cfg, ep["event_type"], anchor)
-    if why:
-        lines.append(why)
-    return lines
-
-
-def _last_known_lines(ep: Optional[Mapping[str, Any]], last: Optional[Mapping[str, Any]]) -> list:
-    """Fail-closed event block under DATA STALE / DATA DEGRADED: only the last known
-    detector fact, with its time. No arrows, no OI sentence, no "still active", no
-    other open episodes; the measurements stay in Details."""
-    if ep is not None:
-        at = _dt(ep["last_bucket"]) + timedelta(minutes=5)
-        known = f"Last known ({_hm(at)}): {_PLAIN[ep['event_type']]}"
-    elif last is not None:
-        known = f"Last known ({_hm(_dt(last['terminal_at']))}): {_PLAIN[last['event_type']]}, ended"
-    else:
-        return []
-    return [known, "Current event state unavailable"]
-
-
-def _after_lines(view: Mapping[str, Any], ep: Optional[Mapping[str, Any]],
-                 last: Optional[Mapping[str, Any]]) -> list:
-    if ep is not None:
-        lines = ["Still active"]
-        others = view.get("other_active") or []
-        if others:
-            lines.append("Also open: " + ", ".join(_PLAIN[et] for et, _st in others))
-        return lines
-    if last is None:
-        return []
-    reason = last.get("terminal_reason")
-    if reason in _DATA_END:
-        return [_DATA_END[reason]]
-    if reason == "MAX_DURATION":
-        return ["Ended at the duration cap"]
-    if reason == "CONDITION_FAILED":
-        return ["Event has ended"]
-    return ["Event has ended"]
-
-
-def format_btc(cfg, view: Mapping[str, Any]) -> str:
-    """Compact mobile /btc from the factual view model. Presentation only: no score,
-    no direction call, no detector lifecycle words. Evidence stays in Details."""
-    title = _screen_title(view)
-    lines = [f"<b>BTC · {_e(title)}</b>"]
-    status = view["product_status"]
-    if status in ("DATA DEGRADED", "DATA STALE"):
-        lines.append(_INSUFFICIENT)
-    if not view.get("projection_available") and status in ("WATCH", "EVENT ACTIVE"):
-        lines.append("Episode details are not available right now.")
-    ep, last = view.get("active_episode"), view.get("last_event")
-    shown = ep or last
-    market_ok = status not in ("DATA DEGRADED", "DATA STALE")
-    if shown is not None and not market_ok:
-        lines.extend(_last_known_lines(ep, last))
-    elif shown is not None:
-        lines.extend(_noticed_lines(cfg, view, shown, active=ep is not None))
-    elif market_ok and title == "calm":
-        lines.append("No unusual state now")
-    if market_ok and title in ("history building", "data incomplete", "unusual now"):
-        gap = _core_gap_line(view.get("readiness"))
-        if gap:
-            lines.append(gap)
-        if title == "history building" and shown is None:
-            lines.append("Unusual states are not evaluated yet")
-    if market_ok and view.get("projection_available"):
-        lines.append(_hour_line(cfg, view.get("context_1h")))
-    if market_ok and title == "calm":
-        lines.append(f"No notable event in the last {_retention_phrase(cfg)}")
-    if shown is not None and market_ok:
-        lines.extend(_after_lines(view, ep, last))
-    lines.append(f"Data through {_hm(_dt(view['data_through']))} UTC" if view.get("data_through")
-                 else "No evaluation yet")
-    lines.append("\n" + DISCLAIMER)
-    return assert_descriptive("\n".join(lines))
-
-
-def btc_buttons(view: Mapping[str, Any]):
-    """Details for the open/retained episode, or the latest bucket when there is none.
-    Readiness is only a button while some family is not ready. The handlers stay."""
-    focus = view.get("active_episode") or view.get("last_event")
-    row = []
-    if focus and focus.get("episode_id"):
-        row.append(("Details", "c:" + focus["episode_id"]))
-    elif view.get("now"):
-        row.append(("Details", "n:latest"))
-    rd = view.get("readiness")
-    if rd and any(g.get("status") != "READY" for g in rd.get("groups") or ()):
-        row.append(("Readiness", "r:latest"))
-    return [row] if row else None
-
-
-def _metric_line(key: str, name: str, m: Mapping[str, Any]) -> str:
-    if key.endswith("usd"):
-        val = _usd(m["value"], signed=key == "taker_delta_notional_usd")
-    elif key == "range_width_pct":
-        val = "n/a" if m["value"] is None else f"{m['value']:.2f}%"
-    else:
-        val = _signed_pct(m["value"])
-    rank = "n/a" if m.get("rank") is None else f"{m['rank'] * 100:.1f} pct of 30d ({m.get('tier')})"
-    return f"  {name}: {val} · {rank}"
-
-
-def _venue_line(label: str, vd: Optional[Mapping[str, Any]]) -> Optional[str]:
-    if vd is None:
-        return None
-    return (f"  {label} by venue: up {','.join(vd['up']) or '—'} · down {','.join(vd['down']) or '—'}"
-            f" · flat {','.join(vd['flat']) or '—'}")
-
-
-def _metric_sections(v: Optional[Mapping[str, Any]]) -> tuple:
-    """MARKET / OI / FLOW lines. Strings stay stable so Details evidence is not dropped."""
-    if v is None:
-        return ["  n/a"], ["  n/a"], ["  n/a"]
-    market = [_metric_line("price_move_pct", "price move", v["price_move_pct"]),
-              _metric_line("range_width_pct", "range width", v["range_width_pct"]),
-              _metric_line("volume_notional_usd", "volume", v["volume_notional_usd"])]
-    price_venues = _venue_line("price", v["venue_direction"]["price"])
-    if price_venues:
-        market.append(price_venues)
-    oi = [_metric_line("oi_change_pct", "OI change", v["oi_change_pct"])]
-    oi_venues = _venue_line("OI", v["venue_direction"]["oi"])
-    if oi_venues:
-        oi.append(oi_venues)
-    oi.append("  Direction only. Per-venue OI percents are not in this view.")
-    flow = [_metric_line("taker_delta_notional_usd", "taker delta", v["taker_delta_notional_usd"])]
-    taker_venues = _venue_line("taker delta", v["venue_direction"]["taker"])
-    if taker_venues:
-        flow.append(taker_venues)
-    for side in ("long", "short"):
-        liq = v["liquidations"][side]
-        per = ", ".join(f"{ex} {_usd(x)}" for ex, x in liq["per_venue"].items() if x is not None) or "none observed"
-        flow.append(f"  {side}-side liquidations by venue: {per} · top-5% votes "
-                    f"{','.join(liq['voting']) or '—'} of eligible {','.join(liq['eligible']) or '—'}")
-    return market, oi, flow
-
-
-def _append_sections(lines: list, v: Optional[Mapping[str, Any]]) -> None:
-    market, oi, flow = _metric_sections(v)
-    lines.append("\n<b>MARKET</b>")
-    lines += market
-    lines.append("\n<b>OI BY VENUE</b>")
-    lines += oi
-    lines.append("\n<b>FLOW</b>")
-    lines += flow
-
-
-def _append_1h(lines: list, state: Mapping[str, Any]) -> None:
-    c1h = state.get("context_1h")
-    lines.append("\n<b>Rolling 1h</b> (last 12 closed 5m buckets)")
-    if c1h is None:
-        lines.append("  n/a")
-        return
-    for key, name in (("range_width_pct_median", "range"), ("price_move_pct_median", "price move"),
-                      ("volume_notional_usd_sum", "volume")):
-        v = c1h.get(key)
-        p = (c1h.get("percentiles") or {}).get(key) or {}
-        val = _usd(v) if key.endswith("sum") else _signed_pct(v)
-        rank = "n/a" if p.get("rank") is None else f"{p['rank'] * 100:.1f} pct of rolling-1h 30d ({p.get('tier')})"
-        lines.append(f"  {name}: {val} · {rank}")
-    lines.append(f"  venues: {', '.join(c1h.get('venues') or []) or '—'}")
-
-
-def _append_data_footer(lines: list, state: Mapping[str, Any]) -> None:
-    now = state.get("now") or {}
-    ref = now.get("reference_price")
-    if ref is not None:
-        lines.append(f"Reference price {ref:,.1f}")
-    cov = (now.get("coverage") or {}).get("price_structure") or {}
-    if cov.get("available") is not None:
-        lines.append(f"Venues {cov['available']}/{cov['expected']}")
-
-
-def format_context_details(cfg, episode: Mapping[str, Any], state: Mapping[str, Any]) -> str:
-    lines = ["<b>EVENT</b>",
-             f"<b>{_e(episode['episode_id'])} — {_e(event_label(episode['event_type']))}</b>",
-             _e(EVENT_DESCRIPTIONS[episode["event_type"]]),
-             f"Detector state {STATE_LABELS[episode['state']]} · reached {_reached(episode)} · qualifying "
-             f"{_window(episode['opened_bucket'], episode['last_bucket'])} UTC ({episode['qualifying_buckets']} buckets)"]
-    if episode.get("terminal_at"):
-        lines.append(f"Ended {ts(_dt(episode['terminal_at']))}: "
-                     f"{TERMINAL_WORDS.get(episode['terminal_reason'], 'ended')}")
-    a = episode.get("anchor")
-    if a is not None:
-        lines.append(f"\n<b>{ANCHOR_WORDS[a['kind']]}</b> {_window(a['bucket_ts'])} UTC")
-        _append_sections(lines, a["view"])
-    lines.append(f"\n<b>Now</b> {_window(state['now']['bucket_ts']) + ' UTC' if state.get('now') else ''}")
-    _append_sections(lines, state.get("now"))
-    lines.append("\n<b>DATA</b>")
-    _append_1h(lines, state)
-    _append_data_footer(lines, state)
-    lines.append(f"\nEpisodization {_e(episode['episodization_version'])} ({episode['episodization_digest'][:12]}): "
-                 f"detector episode boundaries · context {_e(state.get('context_version'))}")
-    lines.append("\n" + DISCLAIMER)
-    return assert_descriptive("\n".join(lines))
-
-
-def format_now_details(cfg, state: Mapping[str, Any]) -> str:
-    """Evidence for a calm screen: latest bucket and rolling 1h, no episode."""
-    now = state.get("now")
-    lines = ["<b>DETAILS</b>", "Latest bucket and rolling 1h. No open or retained event."]
-    lines.append(f"\n<b>Now</b> {_window(now['bucket_ts']) + ' UTC' if now else ''}")
-    _append_sections(lines, now)
-    lines.append("\n<b>DATA</b>")
-    _append_1h(lines, state)
-    _append_data_footer(lines, state)
-    lines.append(f"\nContext {_e(state.get('context_version'))}")
-    lines.append("\n" + DISCLAIMER)
-    return assert_descriptive("\n".join(lines))
-
-
-# ---- detector readiness (read model; beta.readiness) ----------------------------------
-READINESS_WORDS = {"READY": "ready", "HISTORY_BUILDING": "history building",
-                   "DATA_UNAVAILABLE": "data unavailable", "DEGRADED": "degraded", "DISABLED": "disabled"}
-_HISTORY_NAMES = {"c:price_move_pct_median": "price history", "c:oi_change_pct_median": "OI history",
-                  "c:range_width_pct_median": "range history", "c:volume_notional_usd_sum": "volume history",
-                  "c:taker_delta_notional_usd_sum": "taker-flow history",
-                  "x:*:long_liquidation_notional": "long-side liquidation history",
-                  "x:*:short_liquidation_notional": "short-side liquidation history"}
-_FAMILY_WORDS = {"price_structure": "price", "oi": "OI", "volume": "volume", "taker_flow": "taker flow"}
-
-
-def _readiness_reason(cfg, reason: Optional[str]) -> str:
+def _readiness_reason(cfg, reason: Optional[str], lang: str) -> str:
     r = reason or ""
     if r.startswith("FAMILY_UNUSABLE:"):
         fam = r.split(":", 1)[1]
-        return f"fewer than {cfg.min_venues} usable venues for {_FAMILY_WORDS.get(fam, fam)}"
+        return t(lang, "reason_venues", n=cfg.min_venues, fam=t(lang, _FAMILY_WORDS.get(fam, "fam_price")))
     if r == "INSUFFICIENT_ELIGIBLE_VENUES":
-        return "fewer than the required eligible live feeds"
+        return t(lang, "reason_eligible")
     if r.startswith("VALUE_UNAVAILABLE"):
-        return "current value unavailable"
+        return t(lang, "reason_value")
     if r.startswith("PERCENTILE_MISSING"):
-        return "percentile unavailable"
-    return {"NOT_MATERIALIZED": "latest bucket not materialized", "EVALUATION_NOT_FRESH": "evaluation late",
-            "STALE_BARRIER": "inputs changed during evaluation", "RULE_DISABLED": "switched off",
-            "NOT_EVALUATED": "not evaluated"}.get(r, r.lower().replace("_", " ") or "unknown")
+        return t(lang, "reason_pct")
+    key = _REASON_EXACT.get(r)
+    if key:
+        return t(lang, key)
+    return r.lower().replace("_", " ") or t(lang, "reason_not_eval")
 
 
-def _group_text(cfg, g: Mapping[str, Any], maturity_days: float) -> str:
+def _group_text(cfg, g: Mapping[str, Any], maturity_days: float, lang: str) -> str:
     st = g["status"]
     if st == "READY":
-        return "ready"
-    text = READINESS_WORDS[st]
+        return t(lang, "ready_word")
+    text = t(lang, _READY_KEYS[st])
     if st == "HISTORY_BUILDING" and g.get("progress"):
         p = g["progress"]
-        text += (f" · {_HISTORY_NAMES.get(p['metric'], 'history')} "
-                 f"{p['span_days']:.1f}d / {maturity_days:.0f}d")
+        text += " · " + t(lang, "ready_span", name=t(lang, _HISTORY_NAMES.get(p["metric"], "hist_price")),
+                          span=f"{p['span_days']:.1f}", need=f"{maturity_days:.0f}")
     elif st in ("DATA_UNAVAILABLE", "DEGRADED"):
-        text += f" · {_readiness_reason(cfg, g.get('reason'))}"
+        text += " · " + _readiness_reason(cfg, g.get("reason"), lang)
     if g.get("partly_ready"):
-        text = f"partly ready ({g['ready_members']}/{g['enabled_members']} rules) · {text}"
+        text = t(lang, "ready_partly", a=g["ready_members"], b=g["enabled_members"], text=text)
     return text
 
 
-def format_readiness_details(cfg, rd: Mapping[str, Any]) -> str:
-    """Per-rule readiness for the latest closed bucket: status, detector reason,
-    percentile tier / samples / history span, and liquidation venue eligibility."""
+def format_readiness_details(cfg, rd: Mapping[str, Any], lang: str = "en") -> str:
     close = _dt(rd["bucket_ts"]) + timedelta(minutes=5)
-    lines = [f"<b>Detector readiness — bucket closed {ts(close)}</b>",
-             f"Maturity needs {rd['maturity_days']:.0f} days of valid history per required percentile "
-             f"(counted from the earliest valid sample, not from deployment)."]
+    lines = [f"<b>{_e(t(lang, 'ready_title', when=fmt_kyiv_date_hm(close, lang)))}</b>",
+             t(lang, "ready_intro", days=f"{rd['maturity_days']:.0f}")]
     for g in rd["groups"]:
-        lines.append(f"\n<b>{_e(g['label'])}</b>: {_group_text(cfg, g, rd['maturity_days'])}")
+        lines.append(f"\n<b>{_e(g['label'])}</b>: {_group_text(cfg, g, rd['maturity_days'], lang)}")
         for et in g["members"]:
             e = rd["events"][et]
-            lines.append(f"• {_e(event_label(et))}: {READINESS_WORDS[e['status']]}"
-                         + (f" ({_e(e['reason'])})" if e.get("reason") else ""))
+            reason = f" ({_e(e['reason'])})" if e.get("reason") else ""
+            lines.append(t(lang, "ready_member", name=_e(event_label(et, lang)),
+                           status=t(lang, _READY_KEYS[e["status"]]), reason=reason))
             for key, m in (e.get("metrics") or {}).items():
-                lines.append(f"  {_e(_HISTORY_NAMES.get(key, key))}: {m['tier'] or 'n/a'} · "
-                             f"{m['sample_size'] or 0} samples · {m['span_days']:.1f}d span")
+                lines.append("  " + t(lang, "ready_metric", name=_e(t(lang, _HISTORY_NAMES.get(key, "hist_price"))),
+                                      tier=m["tier"] or na(lang), n=m["sample_size"] or 0,
+                                      span=f"{m['span_days']:.1f}"))
             for ex, v in (e.get("venues") or {}).items():
-                lines.append(f"  {ex}: {READINESS_WORDS[v['state']]}"
-                             + (f" ({_e(v['reason'])})" if v.get("reason") else "")
-                             + f" · {v['tier'] or 'n/a'} · {v['span_days']:.1f}d span")
-    lines.append(f"\nRead model {_e(rd['readiness_version'])}. Readiness changes never send notifications.")
-    lines.append("\n" + DISCLAIMER)
-    return assert_descriptive("\n".join(lines))
+                reason = f" ({_e(v['reason'])})" if v.get("reason") else ""
+                lines.append("  " + t(lang, "ready_venue", ex=ex, state=t(lang, _READY_KEYS[v["state"]]),
+                                      reason=reason, tier=v["tier"] or na(lang), span=f"{v['span_days']:.1f}"))
+    lines.append("\n" + t(lang, "ready_footer", ver=_e(rd["readiness_version"])))
+    lines.append("\n" + t(lang, "disclaimer"))
+    return _ok("\n".join(lines), lang)
+
+
+def view_id8(payload_digest: str) -> str:
+    return (payload_digest or "--------")[:8]

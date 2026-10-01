@@ -243,6 +243,7 @@ CREATE TABLE IF NOT EXISTS beta_users (
     joined_at            TIMESTAMPTZ NOT NULL,
     stopped_at           TIMESTAMPTZ,
     updated_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    lang                 TEXT NOT NULL DEFAULT 'ru' CHECK (lang IN ('ru', 'en')),
     CONSTRAINT ck_beta_user_stopped CHECK ((status = 'STOPPED') = (stopped_at IS NOT NULL))
 );
 
@@ -345,8 +346,27 @@ CREATE TABLE IF NOT EXISTS beta_btc_views (
     payload_digest         TEXT NOT NULL CHECK (payload_digest ~ '^[0-9a-f]{64}$'),
     rendered_sha256        TEXT NOT NULL CHECK (rendered_sha256 ~ '^[0-9a-f]{64}$'),
     rendered_html          TEXT NOT NULL,
+    lang                   TEXT NOT NULL DEFAULT 'ru' CHECK (lang IN ('ru', 'en')),
     recorded_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 DROP TRIGGER IF EXISTS trg_beta_btc_views_append_only ON beta_btc_views;
 CREATE TRIGGER trg_beta_btc_views_append_only BEFORE UPDATE OR DELETE ON beta_btc_views
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+-- Additive columns for databases created before the language / horizon pass.
+-- CREATE TABLE IF NOT EXISTS does not add columns to an existing table.
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'ru' CHECK (lang IN ('ru', 'en'));
+ALTER TABLE beta_btc_views ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'ru' CHECK (lang IN ('ru', 'en'));
+
+-- Which horizon tab was opened. No user id: same privacy posture as beta_btc_views.
+CREATE TABLE IF NOT EXISTS beta_details_opens (
+    open_pk    BIGSERIAL PRIMARY KEY,
+    view_pk    BIGINT NOT NULL REFERENCES beta_btc_views (view_pk),
+    tab        TEXT NOT NULL CHECK (tab IN ('event', '1h')),
+    lang       TEXT NOT NULL CHECK (lang IN ('ru', 'en')),
+    opened_at  TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_beta_details_opens_view ON beta_details_opens (view_pk, opened_at);
+DROP TRIGGER IF EXISTS trg_beta_details_opens_append_only ON beta_details_opens;
+CREATE TRIGGER trg_beta_details_opens_append_only BEFORE UPDATE OR DELETE ON beta_details_opens
     FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
