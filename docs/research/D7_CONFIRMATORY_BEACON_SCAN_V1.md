@@ -142,3 +142,11 @@ NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
 ```
 
 The verifier blob remains `bed8a2aa33599b7ce4c0915eb410ad7413747b1d`. No seed was generated and the BitMEX target was not opened.
+
+## Seed-source status
+
+```
+D7_NIST_BEACON_SCAN_STATUS = SUPERSEDED_BY_SEED_SOURCE_AMENDMENT
+```
+
+The ledger rows, cursor, and pulse provenance above are unchanged. The superseding commitment is `docs/research/D7_CONFIRMATORY_SEED_SOURCE_AMENDMENT_V1.md`.

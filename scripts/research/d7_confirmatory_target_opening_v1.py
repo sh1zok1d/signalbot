@@ -1,7 +1,7 @@
 """One authorized D7 confirmatory opening.
 
-Identity is checked before the canonical source is parsed. The NIST pulse is
-the first verified Beacon 2.0 pulse at or after the frozen cutoff. The
+Identity is checked before the canonical source is parsed. The confirmatory
+seed is the precommitted ``DETERMINISTIC_FIXED_SEED_V1`` message. The
 bootstrap is the audited ``run_primary`` path; studentized replicates are
 retained in that same pass so the preregistered lower bound can be sealed
 with the primary result.
@@ -36,6 +36,13 @@ from scripts.research.d7_bitmex_support_and_power_v0 import (
     support_from_frame,
 )
 from scripts.research.d7_eligible_index_gap_break_v1 import GAP_START_MS
+from scripts.research.d7_deterministic_fixed_seed_v1 import (
+    CONFIRMATORY_SEED_DIGEST,
+    SCHEME,
+    SEED_MESSAGE_BYTES,
+    SeedSourceAmendmentError,
+    fixed_seed_digest,
+)
 from scripts.research.d7_nist_beacon_verifier_v1 import BeaconVerifierError, assess_pulse
 from scripts.research.discovery_sprint_02_impl import d7_selector_digest
 from scripts.research.self_referential_contrast_v1 import contrast as contrast_module
@@ -46,8 +53,6 @@ from scripts.research.self_referential_contrast_v1.confirmatory_contract import 
     R_CONFIRMATORY,
     SELECTOR_DIGEST,
     bootstrap_critical_floor,
-    confirmatory_seed_digest,
-    confirmatory_seed_message,
     directional_confirmation_pass,
     dwb_one_sided_lower_bound,
     integrity_pass,
@@ -86,7 +91,6 @@ IMPLEMENTATION_DIGEST = "3347d43575ac7532b9ae34a831a1783d95a4b9b3def923b35d4b099
 SOURCE_SHA = "33ab5c738aca3d7e58ea0bea8d575cc631d931a484b909025f5f3fc5e68b282c"
 FREEZE_SERVER_TIME = datetime(2026, 10, 1, 6, 9, 59, tzinfo=timezone.utc)
 ELIGIBLE_INSTANT = datetime(2026, 10, 1, 7, 9, 59, tzinfo=timezone.utc)
-BEACON_ID = "NIST-Beacon-2.0"
 DECLARED = (
     "2016:0",
     "2016:1",
@@ -282,31 +286,19 @@ def _identity() -> None:
         raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:IDENTITY_MISMATCH")
 
 
-def _seed(pulse: dict) -> bytes:
-    message = confirmatory_seed_message(
-        {
-            "adapter_digest": ADAPTER_DIGEST,
-            "beacon_id": BEACON_ID,
-            "beacon_output_value": str(pulse["outputValue"]),
-            "beacon_pulse_time": _timestamp_text(pulse),
-            "decision_rule_digest": DECISION_RULE_DIGEST,
-            "freeze_manifest_sha256": FREEZE_MANIFEST_SHA256,
-            "numpy_record_sha256": NUMPY_RECORD_SHA256,
-            "numpy_version": NUMPY_VERSION_REQUIRED,
-            "profile_id": PROFILE_ID,
-            "profile_version": PROFILE_VERSION,
-            "purpose": CONFIRMATORY_PURPOSE,
-            "r_confirmatory": R_CONFIRMATORY,
-            "statistical_implementation_digest": IMPLEMENTATION_DIGEST,
-            "target_source_digest": SOURCE_SHA,
-        }
-    )
-    digest = confirmatory_seed_digest(message)
+def _prepare_deterministic_seed() -> bytes:
+    """Verify the frozen message and pass all 256 digest bits to SeedSequence."""
+    try:
+        digest = fixed_seed_digest()
+    except SeedSourceAmendmentError as exc:
+        raise OpeningStop(exc.code) from exc
+    if digest.hex() != CONFIRMATORY_SEED_DIGEST or SCHEME != "DETERMINISTIC_FIXED_SEED_V1":
+        raise OpeningStop("SEED_SOURCE_AMENDMENT_FAILED:DIGEST_MISMATCH")
     sequence = seed_sequence_from_confirmatory_digest(digest)
     if len(list(sequence.entropy)) != 8:
         raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:SEED_ENTROPY")
     ART.mkdir(parents=True, exist_ok=True)
-    (ART / "seed_message.json").write_bytes(message.encode("utf-8"))
+    (ART / "seed_message.json").write_bytes(SEED_MESSAGE_BYTES)
     (ART / "seed_digest.hex").write_text(digest.hex(), encoding="utf-8")
     return digest
 
@@ -551,34 +543,12 @@ def _open_target(seed: bytes) -> dict[str, object]:
 def main() -> None:
     ART.mkdir(parents=True, exist_ok=True)
     _identity()
-    pulse, raw, _certificate, verification = _select_beacon()
-    instant = _timestamp_instant(_timestamp_text(pulse))
-    if instant < ELIGIBLE_INSTANT:
-        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:BEACON_BEFORE_CUTOFF")
-    seed = _seed(pulse)
-    beacon_record = {
-        "BEACON_FETCHED": True,
-        "CONFIRMATORY_RNG_GENERATED": True,
-        "D7_BITMEX_PRIMARY_TARGET_OPENED": False,
-        "beacon_id": BEACON_ID,
-        "certificate_id": pulse["certificateId"],
-        "chain_index": pulse["chainIndex"],
-        "output_value": pulse["outputValue"],
-        "pulse_index": pulse["pulseIndex"],
-        "pulse_uri": pulse["uri"],
-        "raw_record_sha256": hashlib.sha256(raw).hexdigest(),
-        "timeStamp": _timestamp_text(pulse),
-        "verification": verification,
-    }
-    (ART / "beacon_selected.json").write_text(
-        json.dumps(beacon_record, sort_keys=True, separators=(",", ":")),
-        encoding="utf-8",
-    )
+    seed = _prepare_deterministic_seed()
     primary = _open_target(seed)
     primary.update(
         {
             "ADAPTER_DIGEST": ADAPTER_DIGEST,
-            "BEACON_FETCHED": True,
+            "BEACON_FETCHED": False,
             "CONFIRMATORY_FREEZE_COMMIT": FREEZE_COMMIT,
             "CONFIRMATORY_RNG_GENERATED": True,
             "DECISION_RULE_DIGEST": DECISION_RULE_DIGEST,
@@ -587,9 +557,9 @@ def main() -> None:
             "NUMPY_RECORD_SHA256": NUMPY_RECORD_SHA256,
             "NUMPY_VERSION": NUMPY_VERSION_REQUIRED,
             "PRIMARY_RESULT_SEALED": True,
+            "SEED_SCHEME": SCHEME,
             "STATISTICAL_IMPLEMENTATION_DIGEST": IMPLEMENTATION_DIGEST,
             "TARGET_SOURCE_SHA256": SOURCE_SHA,
-            "beacon": beacon_record,
             "profile_id": PROFILE_ID,
             "profile_version": PROFILE_VERSION,
             "purpose": CONFIRMATORY_PURPOSE,

@@ -1,0 +1,14 @@
+{
+  "BRANCH": "cursor/d7-deterministic-seed-amendment-v1-c58d",
+  "COMMIT_SHA": "b603f55d7b12492bf813abac1537aa21f85932e4",
+  "EXTERNALLY_VISIBLE": true,
+  "GITHUB_API_DATE": "2026-10-01T08:46:42Z",
+  "GITHUB_API_HTTP_STATUS": 200,
+  "GITHUB_COMMIT_STATUS_CREATED_AT": null,
+  "GITHUB_COMMIT_STATUS_STATE": "pending",
+  "GIT_COMMITTER_DATE": "2026-10-01T08:46:35Z",
+  "PUSH_OBSERVED_UTC": "2026-10-01T08:46:41Z",
+  "TREE_SHA": "094f8123a5bf629a6a4ec7ed2991c6b6f1dbe605",
+  "document": "D7_CONFIRMATORY_SEED_SOURCE_AMENDMENT_V1_PUSH_RECEIPT",
+  "note": "GitHub commit statuses were empty. GITHUB_API_DATE is the Date header on the HTTP 200 response that served this commit. GIT_COMMITTER_DATE is the git committer timestamp, not a separate server receipt. PUSH_OBSERVED_UTC is the local clock immediately after git push reported success."
+}
