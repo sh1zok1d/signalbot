@@ -114,11 +114,13 @@ Commit B records `CONFIRMATORY_FREEZE_COMMIT` and `FREEZE_MANIFEST_SHA256` in `d
 
 The randomness-beacon cutoff is not a git author date and not a git committer date. Those timestamps are author-controlled.
 
-This workflow is a branch push, so there is no GitHub-created merge commit to use. After Commit A is visible on the remote, the pointer records:
+This workflow is a branch push, so there is no GitHub-created merge commit. The pointer records the first source that is actually present:
 
-`FREEZE_SERVER_TIME_SOURCE = GitHub Commit.pushedDate`
+1. GitHub `Commit.pushedDate` for the freeze commit.
+2. A GitHub `PushEvent` `created_at` whose payload contains that commit.
+3. Another re-fetchable GitHub server receipt proving that commit is on the remote.
 
-`FREEZE_SERVER_TIME` is that server receipt timestamp for Commit A. A PushEvent `created_at` may corroborate it. The value is absent from Commit A because it does not exist until the push is received.
+The pointer names the source it used. The timestamp is absent from the freeze commit because the receipt does not exist until that commit is visible on the remote.
 
 ## H. Beacon rule
 
