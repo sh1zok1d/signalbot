@@ -6624,3 +6624,29 @@ DETECTOR_RULE_CHANGED_BECAUSE_OF_OUTCOMES = false
 FUTURE_CONFIRMATION = requires a new prospective contract and a new future observation window
 FOLLOW_UP_FOUNDATION = docs/BETA_HISTORICAL_FOLLOW_UP_V0.md (EVENT_COMPARABILITY_V0; not wired; no replay)
 ```
+
+## Self-referential generic finite-sample screen — 2026-09-30
+
+First official held-out generic validation of `SELF_REFERENTIAL_TIME_SERIES_CONTRAST_V1` at implementation `ebb26aca6ed37c12bbf3b3f578973d3078407d99`. Synthetic global-null worlds only. No BitMEX path, no D7 geometry admission, no confirmatory beacon stream.
+
+```
+DECISION = FINITE_SAMPLE_STRESS_VALIDATED
+GENERIC_OUTER_WORLD_N = 1600
+R_VALIDATION = 999
+TOTAL_REJECT_COUNT = 75
+AGGREGATE_GATE = PASS
+REGIONAL_REJECTS = 10, 4, 14, 13, 9, 6, 6, 13
+PROFILE_VALIDATION_EXECUTED = true
+PROFILE_VALIDATED = true
+CLAIMS_TRUE_TYPE_I_AT_MOST_0_06 = false
+D7_GEOMETRY_ADMISSION_EXECUTED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+CONFIRMATORY_RNG_GENERATED = false
+TARGET_OPENING = FORBIDDEN
+STATISTICAL_RERUNS = 0
+INFRASTRUCTURE_RETRIES = 1
+PROFILE_NEXT_ACTION = READY_FOR_D7_EXACT_GEOMETRY_ADMISSION
+```
+
+The screen does not validate BitMEX mixing and does not confirm D7. Record: `docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_GENERIC_VALIDATION_V1.md`.
