@@ -18,7 +18,7 @@
 beta:
   enabled: false
   detection_enabled: true
-  push_enabled: false
+  push_enabled: true
   outcome_tracking_enabled: true
 
   rules_version: BETA_EVENT_RULES_V1
