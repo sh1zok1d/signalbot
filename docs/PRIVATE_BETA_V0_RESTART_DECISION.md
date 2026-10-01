@@ -122,6 +122,10 @@ There is no public bot.
 
 Skip the "2–3 traders" and "5–10 traders" rollout steps. After the soak gate, external users join through invite codes up to a cap of 20 active users. No public bot. Push rollout (owner-only live push first) and the exit criteria are unchanged. Telemetry rows are kept 120 days (beta + 90 days), then purged.
 
+### Owner amendment (2026-10-01): push hard switch
+
+The owner enabled the committed push hard switch (`beta.push_enabled: true`, PR #271) after about a week of running the bot. Push still needs an explicit `BETA_PUSH_ENABLED=true` and the durable admin state (`/admin_resume_push`). Rollout step 1 (owner-only live push) is kept: push goes to every `ACTIVE` user, so invites wait until the owner has seen real pushes. Caps, cooldown and TTL are unchanged. Steps: `docs/PRIVATE_BETA_V0_DEPLOY.md`, "Live push".
+
 ## Beta success and exit criteria (frozen before inviting external users)
 
 - **Duration:** 4 weeks from the first external user.

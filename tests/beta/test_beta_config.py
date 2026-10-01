@@ -20,7 +20,9 @@ def _raw():
 
 def test_committed_config_loads_with_contract_minimum_keys():
     c = BetaConfig.load()
-    assert c["enabled"] is False and c["push_enabled"] is False and c["outcome_tracking_enabled"] is True
+    # push_enabled: true is the committed hard allow (owner decision 2026-10-01); live push
+    # still needs an explicit BETA_PUSH_ENABLED and the admin push state.
+    assert c["enabled"] is False and c["push_enabled"] is True and c["outcome_tracking_enabled"] is True
     assert c.rules_version == "BETA_EVENT_RULES_V1" and c.state_schema_version == 2
     assert (c.symbol, c.market_type, c.timeframe) == ("BTCUSDT", "perp", "5m")
     assert c.exchanges == ("binance", "bybit", "okx")
@@ -151,10 +153,23 @@ def test_switches_are_config_and_env_and_push_needs_explicit_env():
 
 def test_committed_config_is_safe_by_default():
     raw = _raw()
-    assert raw["enabled"] is False and raw["push_enabled"] is False
+    assert raw["enabled"] is False and raw["push_enabled"] is True
     s = resolve_switches(BetaConfig.load(), {})
     assert not (s.enabled or s.detection or s.push_hard or s.outcome_tracking)
     assert s.telegram
+    # the committed push allow alone never pushes: BETA_PUSH_ENABLED must be explicitly true
+    for env in ({"BETA_ENABLED": "1"}, {"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": ""},
+                {"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": "0"}, {"BETA_PUSH_ENABLED": "1"}):
+        assert resolve_switches(BetaConfig.load(), env).push_hard is False
+
+
+def test_committed_push_allow_still_needs_env_and_admin_state():
+    s = resolve_switches(BetaConfig.load(), {"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": "true"})
+    assert s.push_hard
+    assert effective_push_enabled(s, True) is True
+    assert effective_push_enabled(s, False) is False          # /admin_pause_push still wins
+    off = resolve_switches(BetaConfig.load(), {"BETA_ENABLED": "0", "BETA_PUSH_ENABLED": "true"})
+    assert not off.push_hard                                  # BETA_ENABLED=0 still wins
 
 
 @pytest.mark.parametrize("env,expected", [
@@ -165,7 +180,7 @@ def test_committed_config_is_safe_by_default():
 def test_beta_enabled_env_overrides_committed_disabled_config(env, expected):
     s = resolve_switches(BetaConfig.load(), env)
     assert s.enabled is expected and s.detection is expected and s.outcome_tracking is expected
-    assert s.push_hard is False          # committed push_enabled: false can never be overridden
+    assert s.push_hard is False          # push needs an explicit BETA_PUSH_ENABLED as well
 
 
 @pytest.mark.parametrize("env,expected", [
@@ -177,8 +192,8 @@ def test_beta_enabled_env_overrides_enabled_config(env, expected):
 
 def test_env_enable_never_enables_push_or_unrestricts_kill_switches():
     off = BetaConfig.load()
-    s = resolve_switches(off, {"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": "1"})
-    assert s.enabled and not s.push_hard
+    s = resolve_switches(off.with_overrides(push_enabled=False), {"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": "1"})
+    assert s.enabled and not s.push_hard  # a committed push_enabled: false can never be overridden
     s = resolve_switches(off, {"BETA_ENABLED": "1", "BETA_DETECTION_ENABLED": "0",
                                "BETA_OUTCOME_TRACKING_ENABLED": "0"})
     assert s.enabled and not s.detection and not s.outcome_tracking

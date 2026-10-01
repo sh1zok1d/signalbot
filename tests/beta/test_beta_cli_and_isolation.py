@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 import main
+from beta.config import BetaConfigError
 from beta_fakes import TEST_DSN, run
 from runtime.beta_cli import is_beta_command, run_beta_cli_command
 
@@ -90,10 +91,14 @@ def test_env_enable_keeps_push_off_and_no_telegram_notify_touches_nothing():
         def __getattr__(self, name):
             raise AssertionError(f"DB touched: {name}")
     rep = run(run_beta_cli_command(main.parse_args(["--beta-notify-once", "--beta-json"]), db=NoDb(),
-                                   env={"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": "1",
-                                        "BETA_TELEGRAM_ENABLED": "0"}))
+                                   env={"BETA_ENABLED": "1", "BETA_TELEGRAM_ENABLED": "0"}))
     assert rep["status"] == "TELEGRAM_DISABLED"
     assert rep["switches"]["BETA_ENABLED"] is True and rep["switches"]["BETA_PUSH_ENABLED"] is False
+    # enabled push contradicts the no-Telegram mode: refused before any DB access
+    with pytest.raises(BetaConfigError):
+        run(run_beta_cli_command(main.parse_args(["--beta-notify-once", "--beta-json"]), db=NoDb(),
+                                 env={"BETA_ENABLED": "1", "BETA_PUSH_ENABLED": "1",
+                                      "BETA_TELEGRAM_ENABLED": "0"}))
 
 
 def test_bot_does_not_start_in_no_telegram_mode(monkeypatch, caplog):
