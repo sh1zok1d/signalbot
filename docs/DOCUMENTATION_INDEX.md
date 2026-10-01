@@ -69,6 +69,7 @@ Read these first:
 | `research/DISCOVERY_SPRINT_02_D7_RESULT.md` | **D7 CANONICAL ONE-SHOT RESULT (CONSUMED)** | `D7_PROMISING_PROTOTYPE`; adaptive discovery only; confirmation candidate but not selected now; no rerun |
 | `research/DISCOVERY_SPRINT_02_D7_RESULT.json` | **D7 CANONICAL ONE-SHOT RESULT twin** | Payload SHA256 `7a7d38ef…`; gates all true; 2025/2026 unopened |
 | `research/D7_BITMEX_ACTIVITY_V0.md` | **D7 BITMEX ACTIVITY PIN (OUTCOME-BLIND)** | New pre-2020 XBTUSD authority with quote-side notional; D2 bytes unchanged; no D7 target or effect |
+| `research/D7_BITMEX_SUPPORT_AND_POWER_V0.md` | **D7 BITMEX SUPPORT AND POWER (OUTCOME-BLIND)** | Selector/control support and synthetic power on pinned pre-2020 BitMEX; primary target unopened; dependence review blocks prereg |
 | `research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.md` | **D1 PRE-EXECUTION ADJUDICATION** | D1 deferred: null generates daily returns; state observable requires 288×5m RV. Gate not executed. |
 | `research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.md` | **D2 CONFIRMATION DESIGN** | Outcome-blind 2025 confirmation design for RULE_1 / RV_ABSTENTION; underpowered single year; year-matched two-year surface still underpowered; 2025/2026 unopened |
 | `research/D2_ALTERNATIVE_INDEPENDENT_SURFACE_FEASIBILITY.md` | **D2 ALTERNATIVE SURFACE FEASIBILITY** | Pre-2020 BitMEX XBTUSD is a feasible class-A independent replication surface; D2 outcomes not computed; 2025/2026 unopened |
