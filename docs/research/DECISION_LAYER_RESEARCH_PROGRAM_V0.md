@@ -84,6 +84,49 @@ The preregistration freezes the final values.
 
 The test is two-sided.
 
+**Mechanism chain (owner decision 2026-10-01).** The card is framed mechanism-first. If the metaorder mechanism is real, it must produce three observable states in order. The test checks the chain, not a bare "TWAP → return" predictor.
+
+| Link | What must appear if M1 is real | Role | Opened |
+|---|---|---|---|
+| L1 remaining execution | After the decision time, same-side taker volume stays elevated against matched non-episode times with the same prior net flow, until the chain ends | Mechanism-validity gate | Stage 1, flow data only, no price |
+| L2 excess drift | Side-signed price drift from the decision time is larger than at matched times with the same prior net taker flow, prior move, prior volatility and time of day | Primary (`INCREMENTAL`) | Stage 2 |
+| L3 post-end behaviour | After the detected end of the chain, the accumulated excess move shrinks against the TWAP direction | Primary; fingerprint of temporary execution impact | Stage 2 |
+
+**Staged opening, frozen in the preregistration:**
+- **Stage 1** opens only post-decision taker-flow aggregates. No price or return is computed.
+- If L1 fails (no elevated same-side flow after detection), the card closes as `NO_INCREMENTAL_STRUCTURE (MECHANISM_NOT_PRESENT)`. Price outcomes are never opened.
+- **Stage 2** runs once, only after L1 passes.
+
+**Primary cells.** There are three, the V1 maximum, with Holm across them:
+- L2 at `T + 1h` (during execution);
+- L2 at `T + 6h` (the owner's observation);
+- L3 over the hour after the detected end.
+
+**Why L2 is matched on net flow.** The question is whether the TWAP execution structure carries information beyond a large directional flow of the same size. If ordinary flow of +5 units gives the same drift as a TWAP of +5, the pattern adds nothing for a trader. If the TWAP still gives excess drift at equal aggregate flow, that is the finding.
+
+**Only pre-decision information in the matching.** Every comparator is defined strictly from information available at the decision (anchor) time. That covers net flow over the episode lookback ending at `T`, the prior move, prior volatility and time of day. Post-decision flow is never a matching variable. Matching on it would remove exactly the persistence that L1 measures.
+
+**How to read L3.** Reversion after the detected end supports the temporary-impact reading. No reversion does not refute L1/L2, because:
+- the parent order may have been informed;
+- the market may have moved on for another reason;
+- the permanent impact component may be large.
+
+No reversion only separates the result from a pure temporary-impact mechanism. In V1 terms, an L3 null never reclassifies the L1/L2 result.
+
+**Detected end.** The end is point-in-time: the first moment the chain has missed its slice tolerance long enough to be declared ended, with the rule frozen in the detector. It is never the true end, which is only known afterwards.
+
+**Wording consequence.** The product statement follows the links that hold:
+- **L2 and L3:** "during execution, price tended to move with it; after it ended, it partly gave back".
+- **L2 without L3:** "during execution, price tended to move with it; after it ended, there was no typical give-back".
+
+**Multiplicity.** V1 requires Holm across the three primary cells, and that is kept. The L1 gate runs before them and can only stop the card, so it does not inflate the error rate. Fixed-sequence (hierarchical) gatekeeping would also fit this nested chain, but the contract is not changed for it. Holm is more conservative.
+
+**V1 declaration (planned):**
+- `CLAIM_TYPE = INCREMENTAL`, `TARGET_CLASS = UNCONDITIONAL`, `INTRADAY = true`.
+- Nuisance variables: time of day, prior realized volatility, prior return over the episode lookback (the lagged target), and prior net taker flow (card-specific).
+- Mechanism variables: regular slicing (constant quantity or notional at a near-constant period).
+- Practical floor: L2 must reach at least 10 bps. The floor is chosen in advance as the smallest economically meaningful scale. It is not a claim that 10 bps is net-profitable after fees, maker/taker mix and slippage.
+
 **Observable:**
 - Binance spot BTCUSDT `aggTrades`. Fields used: trade time, quantity, taker side (`is_buyer_maker`), and the trade price at the print, for notional only.
 - A taker print is all aggTrades of one side in the same millisecond.
@@ -109,10 +152,11 @@ The test is two-sided.
 - The event carries side, `$`/h and elapsed duration.
 
 **Estimand:**
-- Side-signed log return from the decision time to `T + H`.
-- Primary horizons: 1h (during execution) and 6h (the owner's observation), Holm-adjusted.
+- L2: side-signed log return from the decision time to `T + 1h` and `T + 6h`, minus the matched-control mean.
+- L3: the side-signed return over the hour after the detected end. A negative value means the accumulated excess move shrinks. The comparator is matched times after a same-side flow burst of similar size and duration without regular slicing, matched on information available at the detected end.
+- L1 (gate): same-side taker notional per hour over the remaining-execution window, against the matched controls.
 - 4h is a diagnostic only.
-- The hit rate is reported for display; the gate tests the mean.
+- The hit rate is reported for display; the gates test the mean.
 
 **Surfaces:**
 - **Discovery:** Binance spot BTCUSDT, 2020-01 → 2024-12.
@@ -124,6 +168,14 @@ The test is two-sided.
 **Feasibility gate (outcome-blind):**
 - At least 300 discovery episodes on at least 100 distinct days.
 - At least 100 confirmation episodes.
+- The detector's frozen end rule is part of the feasibility unit. The outcome-blind counts report:
+  - `N_detected`;
+  - `N_persistence_eligible` (a full remaining-execution window for L1);
+  - `N_with_identifiable_end`;
+  - `N_with_complete_post_end_hour`.
+
+  If the last count makes L3 underpowered, that is recorded before any price is opened.
+- L1 (post-decision flow) and L2/L3 (price) are not computed in feasibility.
 - Null chain rate at most 10% of the real rate at the frozen parameters.
 - Planning power at least 80% for the practical bar under day-block dependence.
 - Failing the gate closes the card as `INFORMATIONALLY_WEAK` before any outcome.
@@ -135,8 +187,8 @@ The test is two-sided.
 ## 6. Sequence
 
 1. `TWAP_FOOTPRINT_OUTCOME_BLIND_FEASIBILITY`: detector, null and recall checks, and monthly episode counts. No forward return.
-2. Twin preregistration freeze: detector parameters, matching, horizons, bar, inference, and both surfaces.
-3. Discovery one-shot on 2020–2024.
+2. Twin preregistration freeze under `HYPOTHESIS_EVALUATION_CONTRACT_V1`: detector parameters and end rule, the mechanism chain and its staged opening, matching, cells, bar, inference, and both surfaces.
+3. Discovery one-shot on 2020–2024: stage 1 (L1, flow only), then stage 2 (L2 and L3) only if L1 passes.
 4. Confirmation one-shot on the disjoint era.
 5. Promotion gate, only for a supported and replicated class.
 
