@@ -163,6 +163,7 @@ def bucket_view(cfg: BetaConfig, bucket_ts: datetime, snapshot) -> Optional[dict
                                    for ex in cfg.exchanges},
                      "rule_status": ev.get("status"), "eligible": list(detail.get("eligible") or []),
                      "voting": list(detail.get("voting") or [])}
+    raw = snapshot.get("venue_raw") or {}
     return {
         "bucket_ts": iso(bucket_ts),
         "price_move_pct": _metric(snapshot, "c:price_move_pct_median"),
@@ -180,6 +181,9 @@ def bucket_view(cfg: BetaConfig, bucket_ts: datetime, snapshot) -> Optional[dict
             "price": _venue_direction(cfg, snapshot, "price_structure", "price_move_pct"),
             "oi": _venue_direction(cfg, snapshot, "oi", "oi_change_pct"),
             "taker": _venue_direction(cfg, snapshot, "taker_flow", "taker_delta_notional_usd")},
+        # Numeric per-venue OI percents (the direction map above is only up/down/flat).
+        # Presentation reads these from the anchor; they are not detector inputs.
+        "oi_change_pct_by_venue": {ex: (raw.get(ex) or {}).get("oi_change_pct") for ex in cfg.exchanges},
     }
 
 
@@ -435,7 +439,8 @@ def _display_key(e: Mapping[str, Any]) -> tuple:
 
 def btc_view(cfg: BetaConfig, *, product: Mapping[str, Any], state: Optional[Mapping[str, Any]],
              state_digest_value: Optional[str], now: datetime, readiness: Optional[Mapping[str, Any]],
-             detector_open_ids: Optional[Iterable[str]] = None) -> dict:
+             detector_open_ids: Optional[Iterable[str]] = None,
+             horizons: Optional[Mapping[str, Any]] = None) -> dict:
     """Everything /btc shows, as plain data. Headline precedence: DATA STALE, DATA
     DEGRADED, WATCH / EVENT ACTIVE (the existing fail-closed product status, never
     changed here), then — when the product status is NO ACTIVE EVENTS — HISTORY
@@ -476,6 +481,8 @@ def btc_view(cfg: BetaConfig, *, product: Mapping[str, Any], state: Optional[Map
         "live_hysteresis_enabled": False,
         "context_version": (state or {}).get("context_version"),
         "context_state_digest": state_digest_value if usable else None,
+        # Presentation projection (1h time-of-day baseline). Language-neutral. Not detection.
+        "horizons": None if horizons is None else dict(horizons),
     }
 
 

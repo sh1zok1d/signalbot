@@ -45,7 +45,7 @@ def test_static_texts_are_descriptive():
 @pytest.mark.parametrize("et", EVENT_TYPES)
 def test_push_shows_decision_time_and_passes_wording(et):
     text = format_push(_ep(et))
-    assert "Decision time: 2026-03-01 12:00 UTC" in text and "EV-ABCDEF0123" in text
+    assert "Decision time: 2026-03-01 14:00 Kyiv" in text and "EV-ABCDEF0123" in text
 
 
 def test_status_history_details_render():
@@ -63,7 +63,7 @@ def test_status_history_details_render():
                        [{"decision_ts": T, "to_state": "ARMED", "reason": "CONDITION_MET"}],
                        [{"horizon": "1h", "status": "COMPLETE", "realized_range_pct": 1.0, "max_up_pct": 0.5,
                          "max_down_pct": 0.5, "close_return_pct": 0.1, "revision": 1}])
-    assert "max up +0.50%" in d and "max down -0.50%" in d
+    assert "max up +0.50%" in d and "max down −0.50%" in d
 
 
 def test_formatter_has_no_legacy_direction_fields():

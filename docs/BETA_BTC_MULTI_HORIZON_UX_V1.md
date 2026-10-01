@@ -1,14 +1,12 @@
 # Beta V0.2 — `/btc` multi-horizon UX V1 (Event · 1h · 24h, RU/EN)
 
-**Status:** `OWNER_DECISIONS_RECORDED / READY_FOR_IMPLEMENTATION` — not implemented.
+**Status:** `PR1_IMPLEMENTED / PR2_AND_PR3_NOT_STARTED`. Step 2 below is done in the PR 1 branch. The 24h tab, OI-over-horizon, "Changes vs previous 24h", and D7 lines are not implemented. `BETA_BTC_MAIN_SCREEN_UX_V1.md` describes what PR 1 renders.
 **Date:** 2026-10-01
 **Scope:** presentation, read-only context projections, and a per-user language setting for the descriptive private beta (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`).
 
 **Authority:**
-- This document is the implementation authority for the next `/btc` UX pass.
-- Until an implementing PR merges, `BETA_BTC_MAIN_SCREEN_UX_V1.md` and `BETA_BTC_TEMPORAL_CONTEXT_V0.md` remain the authority for what runs, and the implementing PRs must update them. On implementation this document amends:
-  - `BETA_BTC_MAIN_SCREEN_UX_V1.md` §§1–8;
-  - the `BETA_BTC_TEMPORAL_CONTEXT_V0.md` "Deferred" items for 1h OI change and time-of-day normalization.
+- This document is the implementation authority for the multi-horizon `/btc` pass.
+- PR 1 updated `BETA_BTC_MAIN_SCREEN_UX_V1.md` to the screen it renders. `BETA_BTC_TEMPORAL_CONTEXT_V0.md` is unchanged until PR 2, which still amends its deferred items for 1h/24h OI and the time-of-day note. PR 1 stores the 1h baseline only on the view payload (`horizons`), not in that context version.
 - The D7 regime layer is governed by `BETA_D7_REGIME_CONTEXT_GATE_V1.md`.
 - Decisions are listed in §11. Owner choices and choices the owner delegated are marked there.
 
@@ -248,7 +246,7 @@ The three high-impact lines appear only under the D7 gate. Their exact strings c
 
    **Aggregate:** median of the venue percents, the same convention as `oi_change_pct_median`. Never a USD sum, because OKX contract value is not provable as of a point in time.
 
-   **Retention:** `open_interest` must keep at least 48h plus tolerance (§8 needs t−48h). The repository defines no retention policy, so the readiness check (§10, step 5) confirms it on the deployment database.
+   **Retention:** `open_interest` must keep at least 48h plus tolerance (§8 needs t−48h). The repository defines no retention policy. Owner VPS check, 2026-10-01: `OPEN_INTEREST_RETENTION_48H = PASS` (no retention policy; history far beyond 48h). `OPEN_INTEREST_CONTINUITY_48H = PASS` (48h coverage effectively complete; max gap 1 minute on Binance, Bybit and OKX). The as-of read itself is PR 2; this record is the retention and continuity check only.
 5. **Funding:**
    - `now` = the tape's `funding_rate_median` at the view bucket;
    - 24h average = the mean of the tape values over the 24h window.
@@ -300,10 +298,10 @@ The thresholds are presentation constants in `config/beta_v0.yaml`. They are ver
 |---|---|---|
 | 0 | done 2026-10-01 | D7 confirmation stack, #236 and #238 merged to `main`; stale D7 tests fixed |
 | 1 | owner | merge this specification |
-| 2 | coding agent, PR 1 (existing data) | language setting and string catalog (§3.1); Kyiv time (§3.2); the tab mechanism and `beta_details_opens`; Event tab; 1h tab without OI; liquidation rules (§7); main screen price and `1h` line; removal of the duplicate "Now" block; Russian forbidden list; update `BETA_BTC_MAIN_SCREEN_UX_V1.md` |
+| 2 | done (PR 1, existing data) | language setting and string catalog (§3.1); Kyiv time (§3.2); the tab mechanism and `beta_details_opens`; Event tab; 1h tab without OI; liquidation rules (§7); main screen price and `1h` line; removal of the duplicate "Now" block; Russian forbidden list; update `BETA_BTC_MAIN_SCREEN_UX_V1.md` |
 | 3 | coding agent, PR 2 (new reads) | OI 1h and 24h via `open_interest` as-of reads (§6.4); 24h tab; `24h` line; "Changes vs previous 24h" (§8); update `BETA_BTC_TEMPORAL_CONTEXT_V0.md` |
 | 4 | coding agent, PR 3 (D7) | everything in `BETA_D7_REGIME_CONTEXT_GATE_V1.md` §§4–5: Binance 1m quote-volume feed, 90-day backfill, state computation, parity tests, display; the gate pointer in `PRIVATE_BETA_V0_RESTART_DECISION.md` |
-| 5 | owner on a copy of the production database | pre-beta readiness check (never run so far), extended by: `open_interest` retention ≥ 48h; D7 backfill ≥ 1440 valid hours; render every main state and every tab in `ru` and `en` |
+| 5 | owner on a copy of the production database | pre-beta readiness check. Already recorded 2026-10-01: `OPEN_INTEREST_RETENTION_48H = PASS` (no retention policy; history far beyond 48h); `OPEN_INTEREST_CONTINUITY_48H = PASS` (48h coverage effectively complete; max gap 1 minute on Binance, Bybit and OKX). Still open: D7 backfill ≥ 1440 valid hours; render every main state and every tab in `ru` and `en` on that database |
 | 6 | owner | deploy, then the soak gate of `PRIVATE_BETA_V0_RESTART_DECISION.md` |
 | 7 | owner | invite 3–5 Russian-speaking intraday traders; watch unprompted returns, `beta_details_opens` per tab, and feedback |
 

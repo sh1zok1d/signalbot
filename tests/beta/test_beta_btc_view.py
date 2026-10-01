@@ -1,6 +1,7 @@
 """/btc from factual detector state: open-episode and last-event memory, factual
-anchors, fail-closed headline, and the compact main screen. Ranks, anchor kind,
-lifecycle words, end-reason prose and per-venue detail stay in Details."""
+anchors, fail-closed headline, and the compact main screen. Ranks, lifecycle
+words and version strings stay in the payload; the Event tab shows the anchor
+bucket only."""
 import copy
 import json
 import re
@@ -43,7 +44,7 @@ C1H = {"price_move_pct_median": -0.031, "range_width_pct_median": 0.41, "volume_
 VIEW_KEYS = {"headline", "product_status", "readiness", "status_reasons", "requested_at", "as_of_bucket",
              "data_through", "projection_available", "active_episode", "other_active", "last_event", "now",
              "context_1h", "episodization_version", "episodization_digest", "live_hysteresis_enabled",
-             "context_version", "context_state_digest"}
+             "context_version", "context_state_digest", "horizons"}
 # wording that lives in Details / Readiness only, never in the compact main /btc
 MOVED_TO_DETAILS = ("Trigger bucket", "Opening bucket", "Strongest observed bucket", "top ", "bottom ",
                     "pct of 30d", "condition no longer met", "at the ", "per-venue", "binance", "bybit",
@@ -96,15 +97,15 @@ def test_last_event_ready_renders_the_compact_target_shape():
     assert v["headline"] == "NO ACTIVE EVENTS" and v["last_event"]["terminal_reason"] == "CONDITION_FAILED"
     out = format_btc(CFG, v)
     assert out.split("\n\n<i>")[0].split("\n") == [
-        "<b>BTC · calmed</b>",
+        "<b>BTC 83,500 · calmed</b>",
         "22m ago: unusual rise",
         "Price ↑ · OI ↓",
         "Open interest fell during the rise",
-        "1h activity: history building",
-        "Event has ended",
-        "Data through 12:10 UTC"]
+        "1h: −0.0% · vol n/a · range n/a",
+        "Event has ended · data 14:10 Kyiv"]
     _assert_compact(out)
-    assert btc_buttons(v)[0][0] == ("Details", "c:" + v["last_event"]["episode_id"])
+    assert btc_buttons(v, view_pk=1)[0][0] == ("Event", "o:1:event")
+    assert ("1h", "o:1:1h") in btc_buttons(v, view_pk=1)[0]
 
 
 def test_terminated_episode_is_last_event_and_now_is_a_different_bucket():
@@ -113,13 +114,13 @@ def test_terminated_episode_is_last_event_and_now_is_a_different_bucket():
     v = _view(states)
     assert v["headline"] == "NO ACTIVE EVENTS" and v["active_episode"] is None
     out = format_btc(CFG, v)
-    assert "BTC · calmed" in out and "just ended: unusual drop" in out
+    assert "BTC 83,500 · calmed" in out and "just ended: unusual drop" in out
     assert "Price ↓ · OI ↓" in out and "Open interest fell during the drop" in out
-    assert "Event has ended" in out and "Data through 12:15 UTC" in out
+    assert "Event has ended · data 14:15 Kyiv" in out
     assert "TRIGGERED" not in out and "ARMED" not in out
     assert "Price +0.21%" not in out
     d = format_context_details(CFG, v["last_event"], states[-1])
-    assert "price move: −0.50%" in d and "0.21" in d
+    assert "−0.50%" in d and "0.21" not in d and "Now" not in d
     assert "Price +0.21%" not in out
     _assert_compact(out)
 
@@ -131,9 +132,10 @@ def test_abnormal_termination_keeps_its_reason_on_the_main_view():
     v = btc_view(CFG, product=_product(states), state=s, state_digest_value=cx.state_digest(s),
                  now=cx._ts(s["as_of_bucket"]) + BUCKET, readiness=_readiness_for(states), detector_open_ids=[])
     out = format_btc(CFG, v)
-    assert "BTC · event ended" in out and "A recent event ended on a data gap" in out
-    assert "BTC · calmed" not in out
-    assert "detection gap" in format_context_details(CFG, v["last_event"], s)
+    assert "BTC 83,500 · event ended" in out and "A recent event ended on a data gap" in out
+    assert "· calmed</b>" not in out
+    d = format_context_details(CFG, v["last_event"], s)
+    assert "detection gap" not in d.lower() and "STRICT_QUALIFICATION_V1" not in d
 
 
 # ---- 8 / D: LAST EVENT stays for the retention window, then no event section at all -----------
@@ -149,13 +151,13 @@ def test_last_event_retained_across_quiet_buckets_then_dropped():
     edge = btc_view(CFG, product=_product(states), state=s, state_digest_value="x" * 64,
                     now=ended_at + timedelta(minutes=retention), detector_open_ids=[],
                     readiness=_readiness_for(states))
-    assert edge["last_event"] is not None and "BTC · calmed" in format_btc(CFG, edge)
+    assert edge["last_event"] is not None and "BTC 83,500 · calmed" in format_btc(CFG, edge)
     gone = btc_view(CFG, product=_product(states), state=s, state_digest_value="x" * 64,
                     now=ended_at + timedelta(minutes=retention, seconds=1), detector_open_ids=[],
                     readiness=_readiness_for(states))
     assert gone["last_event"] is None
     out = format_btc(CFG, gone)
-    assert "BTC · calm" in out and "unusual drop" not in out and "No notable event in the last 2h" in out
+    assert "BTC 83,500 · calm</b>" in out and "unusual drop" not in out and "No notable event in the last 2h" in out
 
 
 # ---- 2 / 3: ACTIVE EVENT keeps the detector level, qualifying window and bucket count ----------
@@ -164,17 +166,19 @@ def test_active_episode_uses_detector_vocabulary_and_qualifying_window():
     v = _view(states)
     assert v["headline"] == "EVENT ACTIVE" and v["last_event"] is None
     out = format_btc(CFG, v)
-    assert "BTC · unusual now" in out and "Still active" in out and "LAST EVENT" not in out
+    assert "BTC 83,500 · unusual now" in out and "Still active" in out and "LAST EVENT" not in out
     assert "Price ↓ · OI ↓" in out and "TRIGGERED" not in out and "ARMED" not in out
     d = format_context_details(CFG, v["active_episode"], states[-1])
-    assert "reached triggered" in d and "qualifying 12:00–12:10 UTC" in d
+    assert "Why it was noticed" in d and "reached triggered" not in d and "TRIGGERED" not in d
+    assert "qualifying" not in d
     _assert_compact(out)
     states, _ = run([snap(DOWN)])
     v = _view(states)
     assert v["headline"] == "WATCH"
     out = format_btc(CFG, v)
-    assert "BTC · unusual now" in out and "Still active" in out and "ARMED" not in out
-    assert "reached armed" in format_context_details(CFG, v["active_episode"], states[-1])
+    assert "BTC 83,500 · unusual now" in out and "Still active" in out and "ARMED" not in out
+    armed = format_context_details(CFG, v["active_episode"], states[-1])
+    assert "reached armed" not in armed and "ARMED" not in armed and "EARLY" not in armed
 
 
 def test_multiple_active_events_list_the_others():
@@ -182,7 +186,7 @@ def test_multiple_active_events_list_the_others():
     v = _view(states)
     assert len(v["other_active"]) == 1
     out = format_btc(CFG, v)
-    assert "BTC · unusual now" in out and "TRIGGERED" not in out
+    assert "BTC 83,500 · unusual now" in out and "TRIGGERED" not in out
     assert "Also open: seller-initiated flow" in out
 
 
@@ -193,7 +197,8 @@ def test_headline_is_always_the_existing_product_status():
         v = _view(states, status=status)
         assert v["headline"] == status
         out = format_btc(CFG, v)
-        assert _lines(out)[:2] == ["BTC · data incomplete", "Current observability is insufficient; "
+        title = "BTC · data incomplete" if status == "DATA STALE" else "BTC 83,500 · data incomplete"
+        assert _lines(out)[:2] == [title, "Current observability is insufficient; "
                                    "the absence of events cannot be claimed right now."]
         _assert_compact(out)
     stale = _view(states, status="DATA STALE")
@@ -201,13 +206,14 @@ def test_headline_is_always_the_existing_product_status():
     out = format_btc(CFG, stale)
     assert "NOW · 5m" not in out and "1H CONTEXT" not in out and "Venues" not in out
     assert "Detector ready" not in out and "Ready:" not in out
-    assert "1h activity" not in format_btc(CFG, _view(states, status="DATA DEGRADED"))
+    assert "1h:" not in format_btc(CFG, _view(states, status="DATA DEGRADED"))
+    assert "1h:" not in out
 
 
 _FAIL_CLOSED = "Current observability is insufficient; the absence of events cannot be claimed right now."
 # anything that would present the retained/open episode as current
 _CURRENT_CLAIMS = ("Still active", "Also open", "unusual now", "Event has ended", "↑", "↓",
-                   "Open interest", "1h activity", "ago:")
+                   "Open interest", "1h:", "ago:")
 
 
 def _body(html):
@@ -220,16 +226,18 @@ def test_stale_or_degraded_open_episode_is_last_known_only(status):
     v = _view(states, status=status)
     assert v["active_episode"] is not None           # the view still carries it; the screen must not call it current
     out = format_btc(CFG, v)
-    assert _body(out) == ["BTC · data incomplete", _FAIL_CLOSED,
-                          "Last known (12:10): unusual drop",
+    title = "BTC · data incomplete" if status == "DATA STALE" else "BTC 83,500 · data incomplete"
+    assert _body(out) == [title, _FAIL_CLOSED,
+                          "Last known (14:10): unusual drop",
                           "Current event state unavailable",
-                          "Data through 12:10 UTC"]
+                          "data 14:10 Kyiv"]
     plain = re.sub(r"<[^>]+>", "", out)
     for w in _CURRENT_CLAIMS:
         assert w not in plain, (w, plain)
     _assert_compact(out)
-    # the historical measurements stay reachable in Details
-    assert btc_buttons(v)[0][0] == ("Details", "c:" + v["active_episode"]["episode_id"])
+    row = btc_buttons(v, view_pk=4)[0]
+    assert row[0] == ("Event", "o:4:event")
+    assert not any(cb.endswith(":1h") for _, cb in row)
 
 
 @pytest.mark.parametrize("status", ["DATA STALE", "DATA DEGRADED"])
@@ -238,10 +246,11 @@ def test_stale_or_degraded_with_several_open_episodes_lists_no_current_state(sta
     v = _view(states, status=status)
     assert v["other_active"]
     out = format_btc(CFG, v)
-    assert _body(out) == ["BTC · data incomplete", _FAIL_CLOSED,
-                          "Last known (12:10): unusual drop",
+    title = "BTC · data incomplete" if status == "DATA STALE" else "BTC 83,500 · data incomplete"
+    assert _body(out) == [title, _FAIL_CLOSED,
+                          "Last known (14:10): unusual drop",
                           "Current event state unavailable",
-                          "Data through 12:10 UTC"]
+                          "data 14:10 Kyiv"]
 
 
 @pytest.mark.parametrize("status", ["DATA STALE", "DATA DEGRADED"])
@@ -250,10 +259,11 @@ def test_stale_or_degraded_recently_ended_episode_is_last_known_only(status):
     v = _view(states, status=status)
     assert v["last_event"] is not None and v["active_episode"] is None
     out = format_btc(CFG, v)
-    assert _body(out) == ["BTC · data incomplete", _FAIL_CLOSED,
-                          "Last known (12:15): unusual drop, ended",
+    title = "BTC · data incomplete" if status == "DATA STALE" else "BTC 83,500 · data incomplete"
+    assert _body(out) == [title, _FAIL_CLOSED,
+                          "Last known (14:15): unusual drop, ended",
                           "Current event state unavailable",
-                          "Data through 12:15 UTC"]
+                          "data 14:15 Kyiv"]
     plain = re.sub(r"<[^>]+>", "", out)
     for w in _CURRENT_CLAIMS:
         assert w not in plain, (w, plain)
@@ -277,7 +287,7 @@ def test_oi_sentence_names_only_the_observed_field():
         view = {"price_move_pct": {"value": values["price"]}, "oi_change_pct": {"value": values["oi"]},
                 "liquidations": {}}
         event = "PRICE_OI_CONTRACTION_UP" if values["price"] > 0 else "PRICE_OI_CONTRACTION_DOWN"
-        line = _why_line(CFG, event, view)
+        line = _why_line(CFG, event, view, "en")
         assert line == want
         for w in ("position", "covering", "unwind", "shorts", "longs"):
             assert w not in line.lower()
@@ -296,12 +306,12 @@ def test_projection_disagreeing_with_detector_shows_no_episode_details():
 def test_incomplete_1h_is_stated_and_complete_1h_uses_level_labels():
     states, _ = run([snap(QUIET)])
     out = format_btc(CFG, _view(states))
-    assert "BTC · calm" in out and "1h activity: incomplete" in out
+    assert "BTC 83,500 · calm</b>" in out and "1h: incomplete" in out
     mature = copy.deepcopy(C1H)
     mature["percentiles"]["range_width_pct_median"] = {"rank": 0.96, "tier": "mature"}
     mature["percentiles"]["volume_notional_usd_sum"] = {"rank": 0.50, "tier": "mature"}
     lines = _lines(format_btc(CFG, _view(states, c1h=mature)))
-    assert "1h volume: normal · range: high" in lines
+    assert "1h volume:" not in lines and "1h activity:" not in lines
     assert "0.96" not in "\n".join(lines) and "pct" not in "\n".join(lines)
 
 
@@ -312,22 +322,22 @@ def test_taker_shows_strongest_observed_bucket_values_and_details_keep_the_rank(
     assert "Taker flow ↑" in out and "↑↑" not in out and "TRIGGERED" not in out
     _assert_compact(out)
     d = format_context_details(CFG, states[-1]["open"]["TAKER_FLOW_EXTREME_BUY"], states[-1])
-    assert "<b>Strongest observed bucket</b> 12:05–12:10 UTC" in d and "taker delta: +$9.0M · 99.0 pct of 30d" in d
+    assert "Strongest observed bucket" not in d and "pct of 30d" not in d
+    assert "Taker flow:" in d and "TRIGGERED" not in d and "EARLY" not in d and "ARMED" not in d
 
 
 def test_buildup_anchor_is_opening_then_trigger_bucket_never_strongest():
     states, _ = run([snap(BUILDUP)] * 4)
     out = format_btc(CFG, _view(states))
     assert "OI ↑" in out and "Open interest elevated" in out and "ARMED" not in out and "EARLY" not in out
-    assert "<b>Opening bucket</b> 12:10–12:15" in format_context_details(
-        CFG, states[-1]["open"]["POSITION_BUILDUP_COMPRESSION"], states[-1])
+    early = format_context_details(CFG, states[-1]["open"]["POSITION_BUILDUP_COMPRESSION"], states[-1])
+    assert "Opening bucket" not in early and "Why it was noticed" in early and "EARLY" not in early
     states, _ = run([snap(BUILDUP)] * 10)
-    assert "<b>Trigger bucket</b> 12:40–12:45" in format_context_details(
-        CFG, states[-1]["open"]["POSITION_BUILDUP_COMPRESSION"], states[-1])
+    triggered = format_context_details(CFG, states[-1]["open"]["POSITION_BUILDUP_COMPRESSION"], states[-1])
+    assert "Trigger bucket" not in triggered and "TRIGGERED" not in triggered and "Why it was noticed" in triggered
     out = format_btc(CFG, _view(states))
     assert "OI ↑" in out and "TRIGGERED" not in out
-    assert "range width: 0.20%" in format_context_details(
-        CFG, states[-1]["open"]["POSITION_BUILDUP_COMPRESSION"], states[-1])
+    assert "range " in triggered and "pct of 30d" not in triggered
 
 
 def test_liquidation_renders_vote_count_not_a_sum_and_details_keep_the_venues():
@@ -340,7 +350,8 @@ def test_liquidation_renders_vote_count_not_a_sum_and_details_keep_the_venues():
     assert "$6.1M" not in out
     _assert_compact(out)
     d = format_context_details(CFG, states[-1]["open"]["LIQUIDATION_STRESS_LONG"], states[-1])
-    assert "binance $5.0M, bybit $1.0M, okx $100K" in d and "top-5% votes binance,bybit" in d
+    assert "binance ≥$5M" in d and "bybit $1M" in d and "okx $100K" in d
+    assert "top-5%" not in d and "≥ — lower bound:" in d
 
 
 def test_single_venue_taker_extreme_shows_partial_agreement_but_not_unanimous():
@@ -349,7 +360,7 @@ def test_single_venue_taker_extreme_shows_partial_agreement_but_not_unanimous():
     out = format_btc(CFG, _view(states))
     assert "binance" not in out and "pushing" not in out
     d = format_context_details(CFG, states[-1]["open"]["TAKER_FLOW_EXTREME_BUY"], states[-1])
-    assert "taker delta by venue: up binance · down bybit,okx" in d
+    assert "taker delta by venue" not in d and "pushing" not in d
     states, _ = run([snap({"taker": 0.99})])
     out = format_btc(CFG, _view(states))
     assert "binance" not in out
@@ -360,20 +371,21 @@ def test_facts_moved_off_the_main_view_are_all_in_details():
                      snap(QUIET, {"price": 0.21, "oi": 0.3})])
     s = states[-1]
     d = format_context_details(CFG, s["last_ended"]["PRICE_OI_CONTRACTION_DOWN"], s)
-    assert "<b>Trigger bucket</b> 12:05–12:10 UTC" in d                        # anchor kind
-    assert "price move: −0.50% · 2.0 pct of 30d (mature)" in d                  # anchor rank
-    assert "condition no longer met" in d                                       # end reason
-    assert "price by venue: up — · down binance,bybit,okx" in d                 # venue agreement
-    assert "reached triggered" in d
+    for gone in ("Trigger bucket", "pct of 30d", "condition no longer met", "reached triggered",
+                 "price by venue", "EARLY", "ARMED", "TRIGGERED"):
+        assert gone not in d
+    assert "Why it was noticed" in d and "−0.50%" in d
+    assert s["last_ended"]["PRICE_OI_CONTRACTION_DOWN"]["anchor"]["view"]["price_move_pct"]["value"] == pytest.approx(-0.5)
 
 
 def test_details_expose_version_and_detector_state():
     states, _ = run([snap(DOWN), snap(DOWN), snap(QUIET)])
     s = states[-1]
     d = format_context_details(CFG, s["last_ended"]["PRICE_OI_CONTRACTION_DOWN"], s)
-    assert "Detector state ended · reached triggered" in d and "condition no longer met" in d
-    assert "STRICT_QUALIFICATION_V1" in d and "detector episode boundaries" in d
+    assert "Detector state" not in d and "STRICT_QUALIFICATION_V1" not in d
+    assert "condition no longer met" not in d and "ref " in d
     assert "COOLING" not in d and "cooling" not in d
+    assert s["episodization_version"] == "STRICT_QUALIFICATION_V1"
 
 
 # ---- 10 / 13: deterministic rendering of an unchanged, persistable view payload ---------------
@@ -427,9 +439,9 @@ def test_main_screen_is_short_and_makes_no_forecast():
         for w in ("probably", "likely", "continuation", "reversal", "forecast", "predict",
                   "buy", "sell", "edge"):
             assert not re.search(rf"\b{w}\b", plain, flags=re.I), (w, plain)
-    assert btc_buttons(calm) == [[("Details", "n:latest")]]
-    assert btc_buttons(active) == [[("Details", "c:" + active["active_episode"]["episode_id"])]]
-    assert btc_buttons(ended) == [[("Details", "c:" + ended["last_event"]["episode_id"])]]
+    assert btc_buttons(calm, view_pk=1) == [[("1h", "o:1:1h")]]
+    assert btc_buttons(active, view_pk=1) == [[("Event", "o:1:event"), ("1h", "o:1:1h")]]
+    assert btc_buttons(ended, view_pk=1) == [[("Event", "o:1:event"), ("1h", "o:1:1h")]]
 
 
 def test_format_btc_still_enforces_assert_descriptive():

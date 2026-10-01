@@ -213,14 +213,27 @@ class BetaConn:
     async def insert_btc_view(self, *, requested_at: datetime, as_of_bucket: Optional[datetime],
                               context_state_digest: Optional[str], episodization_version: Optional[str],
                               episodization_digest: Optional[str], payload: Mapping[str, Any],
-                              payload_digest: str, rendered_sha256: str, rendered_html: str) -> None:
-        await self.conn.execute(
+                              payload_digest: str, rendered_sha256: str, rendered_html: str,
+                              lang: str = "ru") -> int:
+        return await self.conn.fetchval(
             """INSERT INTO beta_btc_views (requested_at, as_of_bucket, context_state_digest,
                    episodization_version, episodization_digest, payload, payload_digest,
-                   rendered_sha256, rendered_html)
-               VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9)""",
+                   rendered_sha256, rendered_html, lang)
+               VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10)
+               RETURNING view_pk""",
             requested_at, as_of_bucket, context_state_digest, episodization_version,
-            episodization_digest, _j(payload), payload_digest, rendered_sha256, rendered_html)
+            episodization_digest, _j(payload), payload_digest, rendered_sha256, rendered_html, lang)
+
+    async def fetch_btc_view(self, view_pk: int):
+        r = await self.conn.fetchrow(
+            """SELECT view_pk, payload, payload_digest, lang, rendered_html
+               FROM beta_btc_views WHERE view_pk=$1""", view_pk)
+        return None if r is None else {**dict(r), "payload": _load(r["payload"])}
+
+    async def insert_details_open(self, *, view_pk: int, tab: str, lang: str, opened_at: datetime) -> None:
+        await self.conn.execute(
+            """INSERT INTO beta_details_opens (view_pk, tab, lang, opened_at) VALUES ($1,$2,$3,$4)""",
+            view_pk, tab, lang, opened_at)
 
     async def fetch_live_tape(self, *, symbol: str, bucket_ts: datetime,
                               rules_digest: Optional[str] = None):
@@ -549,7 +562,7 @@ class BetaConn:
     async def fetch_pending_deliveries(self, limit: int) -> list:
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.decision_id, x.episode_pk, x.user_pk, x.decision_ts,
-                      u.chat_id, u.status AS user_status
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                WHERE x.state='PENDING' ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
         return [dict(r) for r in rows]
@@ -601,18 +614,26 @@ class BetaConn:
 
     async def get_user(self, telegram_user_id: int):
         r = await self.conn.fetchrow(
-            "SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at "
+            "SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang "
             "FROM beta_users WHERE telegram_user_id=$1", telegram_user_id)
         return None if r is None else dict(r)
 
-    async def join_user(self, *, telegram_user_id: int, chat_id: int, now: datetime) -> int:
+    async def join_user(self, *, telegram_user_id: int, chat_id: int, now: datetime,
+                        lang: str = "ru") -> int:
         return await self.conn.fetchval(
-            """INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at, joined_at)
-               VALUES ($1,$2,'ACTIVE',$3,$3)
+            """INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at,
+                   joined_at, lang)
+               VALUES ($1,$2,'ACTIVE',$3,$3,$4)
                ON CONFLICT (telegram_user_id) DO UPDATE SET status='ACTIVE', stopped_at=NULL,
                    chat_id=EXCLUDED.chat_id, privacy_accepted_at=EXCLUDED.privacy_accepted_at,
-                   updated_at=now()
-               RETURNING user_pk""", telegram_user_id, chat_id, now)
+                   lang=EXCLUDED.lang, updated_at=now()
+               RETURNING user_pk""", telegram_user_id, chat_id, now, lang)
+
+    async def set_user_lang(self, telegram_user_id: int, lang: str) -> bool:
+        status = await self.conn.execute(
+            "UPDATE beta_users SET lang=$2, updated_at=now() WHERE telegram_user_id=$1",
+            telegram_user_id, lang)
+        return status == "UPDATE 1"
 
     async def stop_user(self, *, telegram_user_id: int, now: datetime) -> bool:
         status = await self.conn.execute(
