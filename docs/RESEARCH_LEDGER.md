@@ -6861,3 +6861,67 @@ NEXT_ACTION = READY_FOR_SEQUENTIAL_NIST_BEACON_SCAN_FROM_AFTER_1965184
 ```
 
 Record: `docs/research/D7_BEACON_VERIFIER_REPAIR_V1.md`.
+
+## D7 confirmatory beacon scan — 2026-10-01
+
+Outcome-blind sequential scan after pulse `1965184`. Verifier bytes unchanged (`d7f7687`, blob `bed8a2aa33599b7ce4c0915eb410ad7413747b1d`). Examined `2/1965185` at `2026-10-01T07:11:00.000Z` through `2/1965225` at `2026-10-01T07:51:00.000Z`: 41 pulses, all `INVALID` (`PULSE_{index}_OBJECTIVELY_INVALID`), modulus 256 bytes, signature 512 bytes, same named certificate as pulse `1965184`. All 41 continuity edges passed. `VALID` count is 0. The successor of `2/1965225` returned HTTP 404 and stopped the scan as incomplete. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965225
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965225
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+Record: `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.md`.
+
+## D7 confirmatory beacon scan resume — 2026-10-01
+
+Same scan identity. Invocation 2 retried the chronological successor of `2/1965225` and fetched `2/1965226` at `2026-10-01T07:52:00.000Z`. Eight pulses, `2/1965226` through `2/1965233` at `2026-10-01T07:59:00.000Z`, classified `INVALID`. Continuity on those edges passed. The successor of `2/1965233` returned HTTP 404. Prior 41 rows were not rewritten. Cumulative examined: 49. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965233
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965233
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+Record: `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.md`.
+
+## D7 confirmatory beacon scan resume 3 — 2026-10-01
+
+Same scan identity. Invocation 3 retried the chronological successor of `2/1965233` and fetched `2/1965234` at `2026-10-01T08:00:00.000Z`. Seventeen pulses, `2/1965234` through `2/1965250` at `2026-10-01T08:16:00.000Z`, classified `INVALID`. Continuity on those edges passed. The successor of `2/1965250` returned HTTP 404. Prior 49 rows were not rewritten. Cumulative examined: 66. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965250
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965250
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+Record: `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.md`.
+
+## D7 confirmatory beacon scan resume 4 — 2026-10-01
+
+Same scan identity. Invocation 4 retried the chronological successor of `2/1965250` and fetched `2/1965251` at `2026-10-01T08:17:00.000Z`. Six pulses, `2/1965251` through `2/1965256` at `2026-10-01T08:22:00.000Z`, classified `INVALID`. Continuity on those edges passed. The successor of `2/1965256` returned HTTP 404. Prior 66 rows were not rewritten. Cumulative examined: 72. No seed, no RNG, no target parse, no D7 estimand.
+
+```
+SELECTED_CONFIRMATORY_BEACON = NONE
+LAST_COMPLETELY_CLASSIFIED_CANDIDATE = 2/1965256
+NEXT_REQUIRED_CANDIDATE = chronological successor of 2/1965256
+CONFIRMATORY_RNG_GENERATED = false
+D7_BITMEX_PRIMARY_TARGET_OPENED = false
+D7_PRIMARY_EFFECT_COMPUTED = false
+NEXT_ACTION = BEACON_CANDIDATE_FETCH_OR_VERIFICATION_INCOMPLETE
+```
+
+Record: `docs/research/D7_CONFIRMATORY_BEACON_SCAN_V1.md`.
