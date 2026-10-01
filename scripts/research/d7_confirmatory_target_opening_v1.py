@@ -24,10 +24,6 @@ os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 import numpy as np
-from cryptography import x509
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
 
 from scripts.research.d7_bitmex_support_and_power_v0 import (
     CANONICAL_REL,
@@ -40,6 +36,7 @@ from scripts.research.d7_bitmex_support_and_power_v0 import (
     support_from_frame,
 )
 from scripts.research.d7_eligible_index_gap_break_v1 import GAP_START_MS
+from scripts.research.d7_nist_beacon_verifier_v1 import BeaconVerifierError, assess_pulse
 from scripts.research.discovery_sprint_02_impl import d7_selector_digest
 from scripts.research.self_referential_contrast_v1 import contrast as contrast_module
 from scripts.research.self_referential_contrast_v1.confirmatory_contract import (
@@ -129,33 +126,6 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _u64(value: int) -> bytes:
-    return int(value).to_bytes(8, "big")
-
-
-def _u32(value: int) -> bytes:
-    return int(value).to_bytes(4, "big")
-
-
-def _ser_string(value: str) -> bytes:
-    encoded = value.encode("utf-8")
-    return _u32(len(encoded)) + encoded
-
-
-def _ser_hash(value: str) -> bytes:
-    raw = bytes.fromhex(value)
-    if len(raw) != 64:
-        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:BEACON_HASH_LENGTH")
-    return _u32(64) + raw
-
-
-def _list_value(pulse: dict, kind: str) -> str:
-    for item in pulse["listValues"]:
-        if item["type"] == kind:
-            return str(item["value"])
-    raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:BEACON_LIST_VALUE")
-
-
 def _timestamp_text(pulse: dict) -> str:
     value = pulse["timeStamp"]
     if not isinstance(value, str) or len(value) != 24:
@@ -168,72 +138,22 @@ def _timestamp_instant(text: str) -> datetime:
     return parsed
 
 
-def _signature_preimage(pulse: dict) -> bytes:
-    external = pulse["external"]
-    parts = [
-        _ser_string(str(pulse["uri"])),
-        _ser_string(str(pulse["version"])),
-        _u32(int(pulse["cipherSuite"])),
-        _u32(int(pulse["period"])),
-        _ser_hash(str(pulse["certificateId"])),
-        _u64(int(pulse["chainIndex"])),
-        _u64(int(pulse["pulseIndex"])),
-        _ser_string(_timestamp_text(pulse)),
-        _ser_hash(str(pulse["localRandomValue"])),
-        _ser_hash(str(external["sourceId"])),
-        _u32(int(external["statusCode"])),
-        _ser_hash(str(external["value"])),
-        _ser_hash(_list_value(pulse, "previous")),
-        _ser_hash(_list_value(pulse, "hour")),
-        _ser_hash(_list_value(pulse, "day")),
-        _ser_hash(_list_value(pulse, "month")),
-        _ser_hash(_list_value(pulse, "year")),
-        _ser_hash(str(pulse["precommitmentValue"])),
-        _u32(int(pulse["statusCode"])),
-    ]
-    return b"".join(parts)
-
-
-def _output_preimage(pulse: dict) -> bytes:
-    signature = bytes.fromhex(str(pulse["signatureValue"]))
-    if len(signature) != 512:
-        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:BEACON_SIGNATURE_LENGTH")
-    return _signature_preimage(pulse) + signature
-
-
 def _verify_pulse(pulse: dict, certificate_pem: bytes) -> dict[str, object]:
-    if int(pulse["cipherSuite"]) != 0:
-        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:BEACON_CIPHER_SUITE")
-    preimage = _signature_preimage(pulse)
-    output = hashlib.sha512(_output_preimage(pulse)).hexdigest()
-    if output.lower() != str(pulse["outputValue"]).lower():
-        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:BEACON_OUTPUT_MISMATCH")
-    certificate = x509.load_pem_x509_certificate(certificate_pem)
-    der = certificate.public_bytes(encoding=serialization_encoding())
-    cert_hash = hashlib.sha512(der).hexdigest()
-    if cert_hash.lower() != str(pulse["certificateId"]).lower():
-        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:BEACON_CERTIFICATE_HASH")
     try:
-        certificate.public_key().verify(
-            bytes.fromhex(str(pulse["signatureValue"])),
-            preimage,
-            padding.PKCS1v15(),
-            hashes.SHA512(),
-        )
-    except InvalidSignature as exc:
-        raise OpeningStop("D7_CONFIRMATORY_EXECUTION_FAILED:BEACON_SIGNATURE_INVALID") from exc
+        assessment = assess_pulse(pulse, certificate_pem)
+    except BeaconVerifierError as exc:
+        raise OpeningStop(f"D7_CONFIRMATORY_EXECUTION_FAILED:{exc.code}") from exc
+    if not assessment["VALID"]:
+        raise OpeningStop(f"D7_CONFIRMATORY_EXECUTION_FAILED:{assessment['failure_code']}")
     return {
         "signature_valid": True,
         "output_matches_serialization": True,
         "certificate_sha512_matches_certificateId": True,
-        "serialization": "NIST_BEACON_2_0_UINT32_LENGTH_PREFIX",
+        "serialization": assessment["serialization"],
+        "RSA_MODULUS_BITS": assessment["RSA_MODULUS_BITS"],
+        "RSA_MODULUS_BYTES": assessment["RSA_MODULUS_BYTES"],
+        "SIGNATURE_BYTES": assessment["SIGNATURE_BYTES"],
     }
-
-
-def serialization_encoding():
-    from cryptography.hazmat.primitives.serialization import Encoding
-
-    return Encoding.DER
 
 
 def _http_bytes(url: str) -> bytes:
