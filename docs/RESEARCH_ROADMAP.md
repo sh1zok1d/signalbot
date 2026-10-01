@@ -1,3 +1,7 @@
+## Decision-layer research program V0 — 2026-10-01
+
+`NEXT_UNIT = TWAP_FOOTPRINT_OUTCOME_BLIND_FEASIBILITY`. The owner decision, the closed Delta arm (H05), the scoped evaluation profile and the TWAP card design are in `docs/research/DECISION_LAYER_RESEARCH_PROGRAM_V0.md`. The scoped profile covers this program only. `HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW` remains the gate for any other new card, generator campaign or discovery sprint.
+
 ## Deferred methodology gate after D7 — 2026-09-30
 
 `AFTER_D7: mandatory hypothesis-evaluation methodology review before new hypothesis campaign`

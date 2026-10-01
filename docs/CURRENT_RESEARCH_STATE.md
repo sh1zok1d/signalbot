@@ -1,3 +1,19 @@
+## Decision-layer research program V0 — owner decision — 2026-10-01
+
+`BETA_SCOPE_FROZEN_AS_IS = true`
+`FIRST_MECHANISM = TWAP_EXECUTION_FOOTPRINT`
+`DELTA_DIRECTION_ARM = DROPPED (H05_REJECTED_SPECIFIC_CLAIM)`
+`GLOBAL_EVALUATION_REVIEW = STILL_PENDING`
+`MARKET_OUTCOMES_OPENED = false`
+`NEXT_UNIT = TWAP_FOOTPRINT_OUTCOME_BLIND_FEASIBILITY`
+
+The owner froze the beta as it is. The next research builds evidence for a future decision layer: statistical statements about what followed a detected situation, direction included. A statement is shown only after independent confirmation and a separate promotion gate.
+
+- **Closed arm.** Net taker flow → return is H05, already rejected. It is not re-tested in any form. A TWAP claim must be incremental over matched net flow.
+- **Scoped review.** The owner authorized a scoped evaluation profile for this program only. It replaces `HYPOTHESIS_EVALUATION_CONTRACT_V1_REVIEW` for this program. The global review stays pending for everything else.
+
+Record: `docs/research/DECISION_LAYER_RESEARCH_PROGRAM_V0.md`.
+
 ## GV0R03 generator feasibility contract — 2026-09-25
 
 `GENERATOR_CONTRACT_VERSION = GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V0`

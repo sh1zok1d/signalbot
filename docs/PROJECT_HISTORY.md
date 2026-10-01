@@ -408,3 +408,12 @@ The owner authorized a narrow **descriptive** private beta (V0.2) to learn wheth
 - **What does not change:** there is still no validated edge. The predictive product and the V1/V2 semantics stay frozen.
 - **Status of beta outputs:** beta events are operational rules, not hypotheses, and beta outcomes are not confirmation.
 - **Authority:** `PRIVATE_BETA_V0_RESTART_DECISION.md`.
+
+## 17. Beta frozen; research toward a decision layer (2026-10-01)
+
+After about a week of running the beta, the owner judged that a descriptive screen does not answer "so what?". Traders value situation → analysis → decision.
+- **Beta.** The beta ships as it is.
+- **Research.** Research now aims at evidence for statistical statements about what followed a detected situation, direction included. Each statement is shown only after independent confirmation and its own promotion gate.
+- **First mechanism.** A TWAP execution footprint, chosen because the owner observed it in a third-party bot.
+- **Closed arm.** Delta → direction is not re-tested, because H05 already rejected it.
+- **Authority.** `research/DECISION_LAYER_RESEARCH_PROGRAM_V0.md`.

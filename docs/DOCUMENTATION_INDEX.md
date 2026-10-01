@@ -398,6 +398,7 @@ Before using an operational runbook, compare it with current code/config and run
   - Sequence: observe first (unprompted opens, weekly interviews); push alerts as the main lever; an honest "so what?" via historical follow-up; product-framed, time-boxed research; a multi-asset scan after BTC retention; a willingness-to-pay test.
   - Not doing: direction calls, order book.
   - It changes no beta scope, gate, rollout or research rule.
+- `research/DECISION_LAYER_RESEARCH_PROGRAM_V0.md` (**OWNER_DECISION_RECORDED / DESIGN_ONLY**): the beta is frozen as it is; next research builds evidence for a future decision layer (statistical statements, direction included, shown only after confirmation and a gate). First mechanism: TWAP execution footprint, incremental over net taker flow; the Delta-direction arm is closed by H05. Scoped evaluation profile for this program only.
 - `BETA_D7_REGIME_CONTEXT_GATE_V1.md` (**OWNER_APPROVED_IN_PRINCIPLE / NOT_ACTIVE_UNTIL_PRECONDITIONS**): the decision-7 promotion gate for one D7 claim — non-directional "high impact" hour context, "about 1 in 5 vs 1 in 10" — with exact `ru`/`en` strings, forbidden claims, the live definition and beta-owned Binance 1m quote-volume feed, parity tests and activation preconditions. It authorizes nothing else and no evaluation on protected 2025/2026 data.
 
 ---
