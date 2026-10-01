@@ -616,6 +616,18 @@ _CATALOG: dict[str, dict[str, str]] = {
     },
     "h1_volume": {"ru": "Объём {vol}{ratio}", "en": "Volume {vol}{ratio}"},
     "h1_ratio": {"ru": " ({ratio} от обычного для этого часа)", "en": " ({ratio} usual for this hour)"},
+    "h1_ratio_wait": {
+        "ru": " (сравнение с обычным — через ~{n} дн.)",
+        "en": " (comparison with usual in ~{n} days)",
+    },
+    "h1_ratio_wait_one": {
+        "ru": " (сравнение с обычным — через ~1 дн.)",
+        "en": " (comparison with usual in ~1 day)",
+    },
+    "ratio_unavailable": {
+        "ru": " (сравнение недоступно)",
+        "en": " (comparison unavailable)",
+    },
     "h1_incomplete_body": {"ru": "1ч: неполные данные", "en": "1h: incomplete"},
     "funding_now": {
         "ru": "Funding сейчас {rate} (медиана бирж)",
@@ -629,6 +641,14 @@ _CATALOG: dict[str, dict[str, str]] = {
     "h24_price": {"ru": "Цена {price} · макс {high} · мин {low}", "en": "Price {price} · high {high} · low {low}"},
     "h24_range": {"ru": "Диапазон {range}{ratio}", "en": "Range {range}{ratio}"},
     "h24_ratio": {"ru": " ({ratio} от медианы 30 дн.)", "en": " ({ratio} 30d median)"},
+    "h24_ratio_wait": {
+        "ru": " (сравнение с медианой 30 дн. — через ~{n} дн.)",
+        "en": " (30d comparison in ~{n} days)",
+    },
+    "h24_ratio_wait_one": {
+        "ru": " (сравнение с медианой 30 дн. — через ~1 дн.)",
+        "en": " (30d comparison in ~1 day)",
+    },
     "h24_volume": {"ru": "Объём {vol}{ratio}", "en": "Volume {vol}{ratio}"},
     "h24_volume_partial": {"ru": "Объём {vol} (неполные)", "en": "Volume {vol} (partial)"},
     "changes_head": {"ru": "Изменения к предыдущим 24 ч:", "en": "Changes vs previous 24h:"},
@@ -752,7 +772,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Ликвидации — принудительное закрытие позиций биржей, по каждой бирже отдельно.\n"
             "≥ — нижняя граница: Binance публикует не все ликвидации.\n"
             "н/д — данных нет или они неполные. Это не ноль.\n"
-            "× от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней.\n"
+            "× от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней. "
+            "Сравнение появляется, когда накоплено 20 дней истории.\n"
             "↑ ↓ — только направление, не сила.\n"
             "Время — киевское.\n"
             "High impact — за прошлый календарный час цена прошла много относительно объёма торгов. "
@@ -785,7 +806,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Liquidations — positions force-closed by the exchange, shown per venue.\n"
             "≥ — lower bound: Binance does not publish every liquidation.\n"
             "n/a — no data or incomplete data. This is not zero.\n"
-            "× usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median.\n"
+            "× usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median. "
+            "The comparison appears once 20 days of history are collected.\n"
             "↑ ↓ — direction only, not strength.\n"
             "Time — Kyiv time.\n"
             "High impact — in the last clock hour the price moved a lot relative to traded volume. "
