@@ -2,6 +2,8 @@
 
 Presentation only. The detector, `BETA_EVENT_RULES_V1`, push switches, and the persisted `/btc` view model are unchanged. This document specifies what the main Telegram screen says. `docs/BETA_BTC_TEMPORAL_CONTEXT_V0.md` remains the authority for the view model, anchors, and the rolling 1h.
 
+**Next pass:** `BETA_BTC_MULTI_HORIZON_UX_V1.md` specifies the next `/btc` UX pass: tabs, `ru`/`en`, Kyiv time, 1h/24h and the D7 context. It is not implemented yet. This document stays authoritative for what runs until that pass updates it.
+
 ## Product value
 
 A five-second BTC chart already shows the price path. This screen does not replace that.
