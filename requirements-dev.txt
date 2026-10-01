@@ -12,6 +12,9 @@
 
 pyarrow==17.0.0
 arch==8.0.0
+# scripts/research/d7_nist_beacon_verifier_v1.py verifies NIST beacon
+# certificates and RSA signatures.
+cryptography==50.0.2
 
 # Test runner used explicitly by .github/workflows/ci.yml.
 pytest==8.3.5
