@@ -1,6 +1,6 @@
 # Beta V0.3 — market briefing (P1 contract)
 
-**Status:** `OWNER_DECISION_RECORDED / CONTRACT / NOT_IMPLEMENTED`
+**Status:** `OWNER_DECISION_RECORDED / CONTRACT / STEP_1_IMPLEMENTED_NOT_WIRED`. Step 1 is the read model `beta/briefing.py`, with its config section `briefing` in `config/beta_v0.yaml`; nothing renders or pushes it yet.
 **Date:** 2026-10-02
 **Authority:** owner decision 2026-10-02. It is a `CHANGE PRODUCT` outcome under the frozen exit criteria of `PRIVATE_BETA_V0_RESTART_DECISION.md`; the amendment is recorded there.
 **Companion gate:** `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` governs "what happened after similar ones". That surface is not part of this contract and ships only through its gate.
@@ -233,6 +233,13 @@ The cooldown, TTL and push hard switches of the restart decision are unchanged.
 4. **Docs:** update `BETA_BTC_MAIN_SCREEN_UX_V1.md` to what is rendered.
 
 Each step is its own PR. None changes detection.
+
+**Step 1 status (2026-10-02).** `beta/briefing.py` implements:
+- the §1.0 windows and baselines;
+- the §1.3 labels;
+- the §1.4 significance and the briefing episode scan.
+
+Its versions are pinned: `BETA_BRIEFING_PROJECTIONS_V1` is in code, and `BETA_MARKET_STATE_LABELS_V1` and `BETA_BRIEFING_EPISODES_V1` are label → digest pins. A cut-point change without a new label fails. It is a pure module with no I/O, and the rules digest is unchanged. Tests: `tests/beta/test_beta_briefing.py`.
 
 ## 6. Tests (offline, before deploy)
 

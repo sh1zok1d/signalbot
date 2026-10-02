@@ -57,7 +57,7 @@ _TOP_KEYS = frozenset({
     "same_event_cooldown_min", "delivery_ttl_s", "max_new_pushes_per_utc_day",
     "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
-    "horizon_changes", "access", "telemetry", "feedback", "regime_d7",
+    "horizon_changes", "access", "telemetry", "feedback", "regime_d7", "briefing",
 })
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
@@ -111,6 +111,15 @@ _FEEDBACK_KEYS = {"max_chars", "max_per_utc_day"}
 
 # D7 regime line. Display only. It never enters the rules digest.
 _REGIME_D7_KEYS = {"enabled"}
+
+# V0.3 market briefing read model (docs/BETA_V0_3_MARKET_BRIEFING.md). Not detection;
+# it never enters the rules digest. Cut points change only for frequency/readability
+# on non-outcome statistics, and every change needs a NEW version label (the label ->
+# digest pins live in beta/briefing.py).
+_BRIEFING_KEYS = {"labels_version", "price_moved_pct", "price_flat_pct", "oi_moved_pct",
+                  "taker_tail_pct", "liq_tail_pct", "liq_min_venues", "compression_range_pct",
+                  "episodes_version", "significance_tail_pct", "significance_min_dims",
+                  "significance_min_agreeing_venues", "close_delay_buckets", "merge_gap_min"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
 # cooldown / cap only enter the config digest).
@@ -324,6 +333,7 @@ def _validate(d: Mapping[str, Any]) -> None:
     _validate_telemetry(d)
     _validate_feedback(d)
     _validate_regime_d7(d)
+    _validate_briefing(d)
 
 
 def _validate_temporal_context(d: Mapping[str, Any]) -> None:
@@ -398,6 +408,31 @@ def _validate_regime_d7(d: Mapping[str, Any]) -> None:
     r = d["regime_d7"]
     _exact_keys(r, _REGIME_D7_KEYS, "regime_d7")
     _bool(r["enabled"], "regime_d7.enabled")
+
+
+def _validate_briefing(d: Mapping[str, Any]) -> None:
+    b = d["briefing"]
+    _exact_keys(b, _BRIEFING_KEYS, "briefing")
+    for k in ("labels_version", "episodes_version"):
+        if not isinstance(b[k], str) or not b[k].strip():
+            raise BetaConfigError(f"briefing.{k} must be a non-empty string")
+    for k in ("price_moved_pct", "price_flat_pct", "oi_moved_pct", "taker_tail_pct",
+              "liq_tail_pct", "compression_range_pct", "significance_tail_pct"):
+        _unit(b[k], f"briefing.{k}")
+    if not (0.0 < b["price_flat_pct"] < b["price_moved_pct"] < 1.0):
+        raise BetaConfigError("briefing: price_flat_pct must be < price_moved_pct")
+    if not (0.5 <= b["taker_tail_pct"] < 1.0 and 0.5 <= b["liq_tail_pct"] < 1.0
+            and 0.5 <= b["significance_tail_pct"] < 1.0):
+        raise BetaConfigError("briefing tail cut points must be in [0.5, 1)")
+    if not (0.0 < b["compression_range_pct"] < 0.5):
+        raise BetaConfigError("briefing.compression_range_pct must be in (0, 0.5)")
+    n_ex = len(d["active_exchanges"])
+    for k in ("liq_min_venues", "significance_min_agreeing_venues"):
+        if _int(b[k], f"briefing.{k}", minimum=1) > n_ex:
+            raise BetaConfigError(f"briefing.{k} exceeds the active venue count")
+    _int(b["significance_min_dims"], "briefing.significance_min_dims", minimum=1)
+    _int(b["close_delay_buckets"], "briefing.close_delay_buckets", minimum=1)
+    _int(b["merge_gap_min"], "briefing.merge_gap_min", minimum=5)
 
 
 # ---- hard switches ---------------------------------------------------------

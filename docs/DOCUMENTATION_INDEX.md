@@ -392,7 +392,7 @@ Before using an operational runbook, compare it with current code/config and run
 
 - `PRIVATE_BETA_V0_RESTART_DECISION.md` is the governance authority. It covers the scope, the frozen rule identity, the soak gate, and the rollout and exit criteria. It is descriptive only, and the predictive product stays frozen.
 - `research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md` carries the label `PROSPECTIVE_PRE_REGISTERED_FORWARD_EVALUATION / OWNER_UNBLINDED`. It is never independent confirmation. Its Q1/Q2 were superseded on 2026-09-28, before any statistic was inspected, because the product will show historical follow-up statistics before the stopping rule (see its amendment).
-- `BETA_V0_3_MARKET_BRIEFING.md` (**OWNER_DECISION_RECORDED / CONTRACT / NOT_IMPLEMENTED**, 2026-10-02): the P1 contract that turns the beta into a market briefing (`CHANGE PRODUCT`).
+- `BETA_V0_3_MARKET_BRIEFING.md` (**OWNER_DECISION_RECORDED / CONTRACT / STEP_1_IMPLEMENTED_NOT_WIRED**, 2026-10-02; step 1 = `beta/briefing.py`): the P1 contract that turns the beta into a market briefing (`CHANGE PRODUCT`).
   - `/catchup` and "since your last view".
   - A Market State block on rolling 1h / 4h / 24h with the frozen label vocabulary `BETA_MARKET_STATE_LABELS_V1`.
   - `/catchup` and push from 1h briefing episodes; the legacy detector is not a gate.

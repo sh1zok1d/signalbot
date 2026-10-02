@@ -146,3 +146,23 @@ beta:
   # state (/admin_d7_on), which defaults off and can never exceed this switch.
   regime_d7:
     enabled: true
+  # ---- V0.3 market briefing read model (docs/BETA_V0_3_MARKET_BRIEFING.md) ----
+  # Not detection, not the rules digest. Percentile cut points against each
+  # horizon's own same-slot baseline. Tuning is allowed only for frequency and
+  # readability on non-outcome statistics (never against forward price outcomes),
+  # and every change needs a NEW version label (label -> digest pins: beta/briefing.py).
+  briefing:
+    labels_version: BETA_MARKET_STATE_LABELS_V1
+    price_moved_pct: 0.60
+    price_flat_pct: 0.40
+    oi_moved_pct: 0.60
+    taker_tail_pct: 0.95
+    liq_tail_pct: 0.95
+    liq_min_venues: 2
+    compression_range_pct: 0.20
+    episodes_version: BETA_BRIEFING_EPISODES_V1
+    significance_tail_pct: 0.95
+    significance_min_dims: 2
+    significance_min_agreeing_venues: 2
+    close_delay_buckets: 3
+    merge_gap_min: 30
