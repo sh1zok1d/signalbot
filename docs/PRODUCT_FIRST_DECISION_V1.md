@@ -1,7 +1,7 @@
 # Product-first decision V1 — canonical product decision record
 
 **Status:** `OWNER_DECISION_RECORDED / CANONICAL_PRODUCT_DECISION / BUILD_TO_TEST_NOT_STARTED`
-**Date:** 2026-10-02
+**Date:** 2026-10-02 (repair pass the same day: §3.1b, §11)
 **Operating mode from this decision:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`
 **Authority:** owner decision 2026-10-02, recorded after an independent external assessment of the project, a 30-day validation design, its red-team, a build-to-test scoping pass and a code-level reuse audit of `beta/`. This file is the single canonical record of the product decision. Where an older product or beta document disagrees with it on scope, sequence or evidence standard, this file wins. It changes no frozen research contract, no sealed verdict and no protected-data rule.
 
@@ -41,13 +41,13 @@ Only the surface below is built before invitations. Reuse classification comes f
 | # | MUST | Reuse class | What exactly |
 |---|---|---|---|
 | 1 | **Shared market/view builder** over the existing beta infrastructure | EXTEND | Extract the view assembly that `runtime/beta_bot.py::BetaBotHandler._btc` does today (`collect_status` → context state → `build_horizons` → regime → persist) into one function in `beta/` with a window parameter. `/btc`, `/catchup` and the briefing render this one object. None of them has business logic of its own. Views stay in `beta_btc_views`, with a `kind` column (`btc` / `catchup` / `brief`). |
-| 2 | **`/catchup`** | NEW, thin | Default window 8h; `/catchup <hours>` from 1 to 24. The pull version of the same market summary the briefing sends. Activity action `cmd_catchup`. |
-| 3 | **Morning briefing** | EXTEND | Once a day, 08:00 Kyiv for every user (per-user time is not in MUST). Same view and render path as `/catchup`. Delivered by a "due briefs" step inside the existing `run_notify_once` cycle through the existing outbox (`kind` column, nullable `episode_pk`). `/brief off` (`beta_users.brief_enabled`). No second notifier. |
+| 2 | **`/catchup`** | NEW, thin | Default window 8h; `/catchup <hours>` from 1 to 24. The pull version of the same market summary the briefing sends. Which unusual hours it lists: §3.1b. Activity action `cmd_catchup`. |
+| 3 | **Morning briefing** | EXTEND | Once a day, 08:00 Kyiv for every user (per-user time is not in MUST). Same view and render path as `/catchup`, same unusual-hour eligibility (§3.1b). Delivered by a "due briefs" step inside the existing `run_notify_once` cycle through the existing outbox (`kind` column, nullable `episode_pk`). `/brief off` (`beta_users.brief_enabled`). No second notifier. |
 | 4 | **1h and 4h product context** | EXTEND | 4h = the 1h machinery (`rolling_1h_values`, `context_1h`) parameterised by bucket count (48) under new labels `BETA_HORIZON_TOD_V2` and `BETA_CONTEXT_1H_V2`. The same 30-day baselines as 1h; 90-day baselines are not built. **24h stays a context-only horizon** (high/low, position in range, "changes vs previous 24h", average funding). It gets no interpretation label. |
 | 5 | **Interpretation layer for 1h and 4h** | NEW, pure function | Vocabulary (RU): `похоже на выход шортов`, `похоже на рост с новыми лонгами`, `похоже на снижение с новыми шортами`, `похоже на выход лонгов`, `вынос лонгов` / `вынос шортов` (only with a confirming existing `LIQUIDATION_STRESS_*` episode overlapping the window), `сжатие`, `обычное состояние`. Rules in §3.1. |
 | 6 | **Context projection extended** to 4h and to taker-delta and OI-change ranks | EXTEND | Add taker delta (sum of 5m, already on the tape) and the 1h/4h OI change (Stage-1 as-of, one 31-day range read plus the existing `pick_oi_asof`) to the ranked context metrics, under the new context version label. This is the product/context layer. The rules digest (`_RULE_DIGEST_FIELDS`) is not touched. |
-| 7 | **Push on an unusual hour** | CONFLICT resolved → gate | No new detector, no new episodization. The only mechanism stays `rules → detector → episodes → push_policy → push decisions → outbox`. A product-level gate in `push_policy` lets a `TRIGGERED` episode push only when the rolling 1h around it is unusual: at least two of the three existing ranked 1h metrics (range, price move, volume) at or above `context.label_high`, and at least 2 of 3 venues agreeing on the sign of the 1h move. New suppression reasons `HOUR_NOT_UNUSUAL`, `QUIET_HOURS`, `GLOBAL_COOLDOWN`. The 1h ranks must be available before the decision (previous bucket's context snapshot, or `context_1h_asof` computed before the decision in `process_live_bucket`). **Before implementing the gate, run a diagnostic on the recorded tape:** what share of unusual 1h windows (by the rule above) contains at least one `TRIGGERED` episode. That diagnostic is a coverage check for the gate, not a research unit and never a reason to build a second detector engine. |
-| 8 | **Push policy** | EXTEND, config digest only | `max_new_pushes_per_utc_day: 2`; quiet hours 23:00–07:00 Kyiv, fixed; one global cooldown across event types; `/push off` (`beta_users.push_enabled`, does not touch the briefing). The user-facing push renders the 1h state, not the 5m detector name. The 5m detector keeps running internally; it is never delivered to the user as a product event of its own. |
+| 7 | **Push on an unusual hour** | CONFLICT resolved → gate | No new detector, no new episodization. The only mechanism stays `rules → detector → episodes → push_policy → push decisions → outbox`. A product-level gate in `push_policy` lets a `TRIGGERED` episode push only when the rolling 1h around it is unusual: at least two of the three existing ranked 1h metrics are extreme — range rank ≥ `context.label_high`, volume rank ≥ `context.label_high`, and the signed price move in **either** tail (rank ≥ `context.label_high` or rank ≤ 1 − `context.label_high`, §3.1b) — and at least 2 of 3 venues agreeing on the sign of the 1h move. New suppression reasons `HOUR_NOT_UNUSUAL`, `QUIET_HOURS`, `GLOBAL_COOLDOWN`, beside the existing `DAILY_CAP`; none of the delivery-side reasons removes an hour from `/catchup` or the briefing (§3.1b). The 1h ranks must be available before the decision (previous bucket's context snapshot, or `context_1h_asof` computed before the decision in `process_live_bucket`). **Before implementing the gate, run a diagnostic on the recorded tape:** what share of unusual 1h windows (by the rule above, with both price tails) contains at least one `TRIGGERED` episode. That diagnostic is a coverage check for the gate, not a research unit and never a reason to build a second detector engine. |
+| 8 | **Push policy** | EXTEND, config digest only | `max_new_pushes_per_utc_day: 2`; quiet hours 23:00–07:00 Kyiv, fixed; one global cooldown across event types; `/push off` (`beta_users.push_enabled`, does not touch the briefing; it is a recipient preference, not a suppression, §3.1b). The user-facing push renders the 1h state, not the 5m detector name. The 5m detector keeps running internally; it is never delivered to the user as a product event of its own. |
 | 9 | **Clean user surface** | EXTEND | Remove from user text: hashes, rule versions, detector names, internal ids, repeated disclaimers. The disclaimer stays in `/start` and `/terms`. |
 | 10 | **Minimal telemetry for the test** | REUSE + EXTEND | Reuse `beta_user_activity` (it carries `user_pk`; `beta_details_opens` deliberately does not and is not needed). Add actions `cmd_catchup`, `brief_delivered`, `cmd_brief`, `cmd_push`. Needed and derivable without new entities: briefing delivery; `/catchup`; push delivery (`push_delivered` exists); reaction after a push (`tab_*` / `btn_*` within 10 minutes of `push_delivered`); push or brief disabled; failed delivery and blocked bot (already in the outbox `error_summary`); known versus unknown-to-founder user (`beta_users.known_contact`, owner-set). |
 
@@ -61,7 +61,7 @@ Rough build order, each step separately testable offline: 4h window and labels w
 
 ### 3.1 Interpretation rules (frozen with this decision)
 
-Inputs per horizon (1h, 4h): price move, range, volume, taker delta, OI change (all ranked over 30 days with the existing percentile core), per-venue liquidation sums, funding, venue agreement. Cut points reuse the existing `context.label_elevated` (0.80), `label_high` (0.95) and `tail_display_max` (0.20): "up" = price rank ≥ 0.80, "down" ≤ 0.20, "flat" in between; the same bands for OI and taker delta.
+Inputs per horizon (1h, 4h): price move, range, volume, taker delta, OI change (all ranked over 30 days with the existing percentile core), per-venue liquidation sums, funding, venue agreement. Cut points reuse the existing `context.label_elevated` (0.80), `label_high` (0.95) and `tail_display_max` (0.20): "up" = price rank ≥ 0.80, "down" ≤ 0.20, "flat" in between; the same bands for OI and taker delta. These bands are already symmetric and are not changed by the price-tail rule of §3.1b, which belongs to push qualification, not to labels.
 
 | Label | Required observations | On conflict → factual fallback |
 |---|---|---|
@@ -70,17 +70,44 @@ Inputs per horizon (1h, 4h): price move, range, volume, taker delta, OI change (
 | похоже на снижение с новыми шортами | price down, OI up, taker delta negative | taker positive → «снижение с ростом OI» |
 | похоже на выход лонгов | price down, OI down, taker delta negative | taker positive → «снижение при снижении OI» |
 | вынос лонгов / вынос шортов | the matching row above plus an existing `LIQUIDATION_STRESS_LONG` / `_SHORT` episode overlapping the window | no episode → the row without «вынос» |
-| сжатие | range rank in the bottom tail, OI not in the bottom tail | OI unavailable → «сжатие, OI н/д» |
+| сжатие | range rank ≤ 0.20; OI rank > 0.20 (OI not in the "down" band) | OI unavailable → «сжатие, OI н/д» |
 | обычное состояние | none of the above | — |
 
 Global rules:
 - interpretations rest on price **and** OI **and** taker flow, never on price×OI alone;
 - price agreement below 2 of 3 venues → «биржи расходятся», no label;
 - OI from fewer than 2 venues or taker delta missing → factual pair only;
+- exchange counts («k из 3 бирж») are shown only where the per-exchange fact is retained (§3.1b); never for aggregated taker delta or volume;
 - immature ranks → «мало истории»;
 - every inferred label is prefixed «похоже на»;
 - labels describe what happened; they never say what follows;
 - label rules may be tuned only for frequency and readability on non-outcome statistics, with each change written down. They are never tuned against forward outcomes, and never because they explain the past nicely.
+
+### 3.1b Unusual-hour qualification, digest eligibility, `/push off`, exchange counts (repair pass 2026-10-02)
+
+Recorded after the copy-contract finalization pass (`BETA_COPY_CONTRACT_V1.md` at `63becce`). It closes ambiguities in §3 row 7, row 8 and §3.1 without adding a detector, a state, a label or a config key.
+
+1. **Symmetric extreme price move.**
+   - `price_move_pct_median` is ranked as a **signed** value, so rank ≥ 0.95 alone only captures large rises.
+   - For the unusual-hour rule (§3 row 7) the price metric is satisfied in either tail:
+     - upper tail, a large rise: rank ≥ `context.label_high` (0.95);
+     - lower tail, a large drop: rank ≤ 1 − `context.label_high` (0.05).
+   - Range and volume are unsigned and stay rank ≥ `context.label_high`.
+   - The lower tail is derived from `label_high`; no new threshold key is introduced.
+   - The same rule defines "unusual 1h window" for the gate coverage diagnostic.
+   - User-facing text keeps the actual direction: a lower-tail price is described as a drop, never as a "top" value.
+2. **Compression is pinned.** «сжатие» = range rank ≤ 0.20 and OI rank > 0.20 (§3.1 table). There is no other "tail" reading of compression.
+3. **`/catchup` and briefing eligibility come from market qualification, not delivery.**
+   - An hour is eligible for the unusual-hours part of `/catchup` and the morning briefing when it is the rolling 1h window that the §3 row 7 gate evaluates for a `TRIGGERED` episode, and it passes that rule. This is exactly the window a push would describe.
+   - Delivery-side suppression does not remove eligibility. In particular, a qualifying hour whose push was suppressed by quiet hours, the daily push cap or the global cooldown stays eligible.
+   - `HOUR_NOT_UNUSUAL` hours did not qualify and are not eligible.
+   - This is the push gate's own rule read from the market side, not a second significance rule.
+4. **`/push off` is a recipient preference, not a suppression.**
+   - For a user with push off, no per-user push delivery is created and no suppressed-notification entry is written for that user. The existing admin-wide `PUSH_DISABLED` reason stays reserved for the global switch.
+   - Eligible hours still appear in that user's `/catchup` and briefing like for everyone else, because they were unusual. They are never framed as missed or suppressed pushes.
+5. **No contributing-exchange counts for aggregated Delta or volume in V1.**
+   - The 1h/24h state sums taker delta and volume over whichever exchanges contributed to each 5m bucket (2 or 3) and does not retain an exact count. V1 neither requires nor promises such a count to the user, and it is not a reason to add retention now.
+   - «k из 3 бирж» is shown only where the per-exchange fact is actually available in the view: the per-exchange 1h price direction (venue agreement), per-exchange OI as-of, and the per-exchange liquidation votes of an existing `LIQUIDATION_STRESS_*` episode.
 
 ## 4. Architectural constraint
 
@@ -206,3 +233,9 @@ Unchanged by this decision: every sealed research verdict, `V3`, `E1-RUN-001`, `
 - The second acquisition channel for U4 beyond Russian-speaking perp chats.
 - The exact day of the first external invitation, set by §6 maturity and MUST completion.
 - Whether `/btc` keeps its current layout unchanged for the whole test or is reduced to a short form of the same view. Default: unchanged.
+
+## 11. Amendment log
+
+| Date | Change | Where |
+|---|---|---|
+| 2026-10-02 | Repair pass after the copy-contract finalization: symmetric extreme price move for push qualification (rank ≥ 0.95 or ≤ 0.05), «сжатие» pinned to range rank ≤ 0.20 with OI rank > 0.20, `/catchup` and briefing eligibility from market qualification (survives quiet hours, daily cap, global cooldown), `/push off` as a recipient preference without suppression entries, no contributing-exchange counts for aggregated Delta or volume in V1. No detector, state, label or config key added. | §3 rows 2, 3, 7, 8; §3.1; §3.1b |
