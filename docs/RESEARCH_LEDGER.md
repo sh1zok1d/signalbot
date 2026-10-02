@@ -7233,3 +7233,50 @@ MARKET_OUTCOMES_TESTED = false
 ```
 
 Record: `docs/research/GENERATOR_V0_V03_RESUMABLE_CRITICS_AND_DERIVED_CONTINUATION.{md,json}`.
+
+## SEED-0001 regular divergence card registered — 2026-10-02
+
+The owner's SEED-0001 decisions (2026-10-02) are frozen into a twin preregistration: `docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.{md,json}`.
+- **Retrospective card.** BTCUSDT perp 1h, decisions 2023-01-01..2024-12-28, labelled `RETROSPECTIVE_EVIDENCE` (never a holdout or final confirmation).
+- **Prospective confirmation.** Decisions from 2026-10-05; stop at 30 Arm-A episodes or 2028-10-05, minimum 20.
+  - The protected 2026 segment may be pinned only by metadata; running the detector on it needs an owner decision.
+  - The single analysis needs a separate owner decision.
+- **Primary family.** P1 = A vs B and P2 = A vs C on +1R before −1R within 48h, Holm, both required. +2R and 96h are secondary.
+- **ETH.** Robustness only, identical definitions, never pooled.
+- **Adjustment set.** Prior RV, time of day, decline magnitude and pre-decision net flow, plus the bracket width (design addition, strikable before outcomes).
+- **H05.** The distance is stated; H05 stays closed.
+- **Not consumed.** No window is consumed and no outcome is computed. Only a format probe of one 2023 bookDepth file preceded the freeze.
+
+```
+TF-SEED0001-RD-RETRO1 = REGISTERED_NOT_EXECUTED
+TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED
+SEARCH_FAMILY_ID = SF-OWNER-SEEDS
+MARKET_OUTCOMES_COMPUTED = false
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = SEED0001_OUTCOME_BLIND_FEASIBILITY_COUNT_PASS
+```
+
+## SEED-0001 outcome-blind feasibility — 2026-10-02
+
+The count pass ran after the freeze commit. It used Binance UM klines (2022-11..2024-12, pinned to the CORE inventories) and bookDepth for 2023–2024; 3 BTC and 2 ETH days are missing in the archive.
+- **Not computed:** no outcome, R-multiple, MFE/MAE or post-decision price.
+- **Point-in-time audit:** 30/30 identical per symbol.
+- **BTC eligible:** 743 episodes, A/B/C/D = 36/259/63/385.
+  - A falls on 33 dates and in 24 weekly clusters, with 10/6/9/11 by half-year.
+  - Divergence is the rare part (13% of eligible episodes); support holds in 40%.
+- **Dependence:** every A episode shares a 48h overlap chain with another episode, and 22% of windows cross a week boundary.
+- **Power.** The Holm conjunction of P1 and P2 has STRESS power 0.10 at the 10 pp bar, and the MDE is about 30 pp. Covariate support passes (max |SMD| 0.61). Heterogeneity is `NOT_ASSESSABLE`.
+- **Prospective.** The stop at 30 A episodes is about 15% powered at 10 pp.
+- **ETH (robustness):** A = 32 episodes on 27 dates.
+- **Verdict (frozen rule):** `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR`. It would also be `INFORMATIONALLY_WEAK` above the floor.
+
+**Nothing changed or opened.** Definitions were not changed after the counts. The 2023–2024 outcome surface for this card is unopened, not consumed. Outcomes need a separate owner authorization, and the report does not recommend opening them at this power.
+
+```
+SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR
+MARKET_OUTCOMES_COMPUTED = false
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = OWNER_DECISION on SEED-0001
+```
+
+Record: `docs/research/SEED0001_FEASIBILITY_REPORT.{md,json}`.

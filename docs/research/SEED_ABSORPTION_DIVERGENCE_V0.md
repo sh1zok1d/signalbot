@@ -12,6 +12,8 @@ TIED_TO_TWAP_OUTCOME             = false
 CARD_REGISTERED                  = false
 ```
 
+> **2026-10-02 — card registered.** The regular-divergence card is frozen in `SEED0001_REGULAR_DIVERGENCE_PREREG.md` / `.json`. It contains the retrospective 2023–2024 card and the prospective confirmation design, and both are registered in `SCIENTIFIC_TEST_LEDGER.json` (`TF-SEED0001-RD-RETRO1`, `TF-SEED0001-RD-PROSP1`). From that commit the flags above read `DEFINITIONS_FROZEN = true` and `CARD_REGISTERED = true`; no outcome was opened. The flags block is kept as the state at seed capture.
+
 ## 0. Known provenance (facts from the owner only)
 
 This is what the owner's practice establishes, without reconstruction. Everything else in this file is interpretation and stays unfrozen.
