@@ -1,0 +1,55 @@
+{
+  "SURFACES": {
+    "DISCOVERY": {
+      "N_DETECTED": 2179,
+      "N_AFTER_REFRACTORY": 1210,
+      "N_PERSISTENCE_ELIGIBLE": 1207,
+      "PERSISTENCE_ELIGIBLE_DISTINCT_DAYS": 702,
+      "N_END_IDENTIFIED": 1207,
+      "N_POST_END_1H_COMPLETE": 1207,
+      "N_H6_ELIGIBLE": 1206,
+      "BY_SIDE": {
+        "1": 712,
+        "-1": 495
+      },
+      "BY_YEAR": {
+        "2020": 93,
+        "2021": 223,
+        "2022": 281,
+        "2023": 284,
+        "2024": 326
+      },
+      "EXCLUSIONS": {
+        "REFRACTORY": 969,
+        "DATA_GAP": 2,
+        "NO_REFERENCE": 1
+      }
+    },
+    "REPLICATION": {
+      "N_DETECTED": 23,
+      "N_AFTER_REFRACTORY": 19,
+      "N_PERSISTENCE_ELIGIBLE": 19,
+      "PERSISTENCE_ELIGIBLE_DISTINCT_DAYS": 16,
+      "N_END_IDENTIFIED": 19,
+      "N_POST_END_1H_COMPLETE": 19,
+      "N_H6_ELIGIBLE": 19,
+      "BY_SIDE": {
+        "1": 11,
+        "-1": 8
+      },
+      "BY_YEAR": {
+        "2018": 4,
+        "2019": 15
+      },
+      "EXCLUSIONS": {
+        "REFRACTORY": 4
+      }
+    }
+  },
+  "GATES": {
+    "DISCOVERY_SUPPORT": true,
+    "H3_SUPPORT": true,
+    "REPLICATION_SUPPORT": false
+  },
+  "STATUS": "FEASIBLE"
+}

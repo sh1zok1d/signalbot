@@ -1,0 +1,384 @@
+{
+  "SPEC": "TWAP_SEALED_SPEC_V1",
+  "AUTHORITY": "docs/research/DECISION_LAYER_RESEARCH_PROGRAM_V0.md section 8 (PRs #285, #286)",
+  "PLAN_FILE_SHA256": "204f3e0d11164ec2d2ed1c3d27765410a8a9ade3d4dd8afa346bc8fa01eb922e",
+  "CODE_SHA256": {
+    "scripts/research/twap_footprint/__init__.py": "d891a9ad83e06dd32d7e5411e8229619e7caa4e972a7fcc86b549ac190cd1e11",
+    "scripts/research/twap_footprint/detector.py": "4cf6f5172404c22d17ce5021ab1f091a4d32bbb51ec88d9bb065c560077b58b0",
+    "scripts/research/twap_footprint/ingest.py": "6e734273cdc1039506947e2a010ccad3f6f89e0dc1e6632581cc33f9b31fa46a",
+    "scripts/research/twap_footprint/sealed_run.py": "fe1ff682ad984441706ae6d2c519be70afd5f04b35afdb1e2fb5f5e060de368d"
+  },
+  "DATA_MONTH_ZIP_SHA256": {
+    "2017-08": "6f6ed583e52c07c0250de0606e96f77952b105982cdd15f2e3ac8125d8b958e6",
+    "2024-06": "9d1974850dfc5545156c1b95462cb6103962f609b65d156d605914395d8c7036",
+    "2020-01": "ea2f0aa850fb08b5c8124d2f8080c03689c30cdadf797363fc74b506b92a8d8b",
+    "2020-02": "f7f56e2d26261d7c6ce97859c7064ad650b106602db28c59365de8a315c9bc99",
+    "2020-03": "cd4ea1f7795a35b6c8e7e4e3c7a1050b22f09eb907cec04510eb4bc8730481f3",
+    "2020-04": "94048b161517f2299b22e90a8a736f77f7c88e76b44c7e5d886884ba05f19935",
+    "2020-05": "aa3fd6cfd761c4c74e22777eb95b8718424566705572a4970894be3d79c839dd",
+    "2020-06": "ecf7ff0737dde7cb331f54579c276ddec1e7b1361733a4c8650580055375fbf1",
+    "2020-07": "65c948cf3d564bea39ec17a07f6c408164fa1286c4b6fc830e24f3ee0d528f4e",
+    "2020-08": "ae9e76d34ef90179fa5548b308bb5acb922bd013a9e8dfee599241e2e6824cf7",
+    "2020-09": "8a5e42ca83492dfcee4e4ad3d2d03a0f7eccc8906b23bf6b0f47b270a645e4fb",
+    "2020-10": "dfe4ce8ec1ef04ddeec888ec34b56f6bd05f902359718604f9cfd1f011f7303a",
+    "2020-11": "6ffc17890013df71dc9e8ab1e44fe687207bf1bdb58ba925ec31e33a272b4716",
+    "2020-12": "1a90fdd37ea9635af11641826f828a714e7d3f39c1b7416f63ec0e65212b88e1",
+    "2021-01": "36ec7f23cea403ecd040b01b6eb4562dc035466fa269599edd76f6270e2dbbed",
+    "2017-09": "9c84120fa94ea8faeddab302de6d628fbaa80d468838738aa04d45154bdc8679",
+    "2017-10": "dbd0e7355f0844ca55bc07aae50b7b12086089d6659bfba2a944f4c06c946604",
+    "2017-11": "3d41ccb30f0b83dcacd50a28243462a1f14d70c8b458a56053f23ac0e4702ca1",
+    "2021-02": "8c8cbb14c061c3b7dc9acd3965c5b3c6a2d671ef8a5cc61c3c77026271e9a739",
+    "2017-12": "45261b647c70862edd60e788ce20f32d3b78d0753f9841ba3ca0e50afdbfbefe",
+    "2018-01": "645f8f581a6e4828df12f16b73f9f7451f12bef2ab24d4fc4b0466805e793e7d",
+    "2018-02": "3f4e6c023fad49bef717cf976b643708d4025d557da98ba7b82a0ea953e0879c",
+    "2018-03": "9353d45ea77795d5878f0718e8ee8da25d453ed38115540475bcee4f99fbb29d",
+    "2018-04": "811bc89d79f0585375c900cf95d939624d1feecaadc77c8a1725adf5f526be4b",
+    "2018-05": "eddda120229bca1a4c6c25fbdc99c649c30d0356326c7ee0dcd51d294ca34c78",
+    "2018-06": "e487669f2629140a33afe142a940e1e69b87e41887ed54e272a2c9d937791d98",
+    "2021-03": "e80a1b3ccddd210f850c5bc480bba7733f79d3762ac24a4508ad29c1f62daa3f",
+    "2018-07": "8a0f2e363552010dbbcd7f621c9f8911888910ed83a0c763f81a0094b5306f48",
+    "2018-08": "5a9d0f0707a4904912ade4b2cc39d5f037d283c84d6c81dbe4d65b5bd3b589b7",
+    "2018-09": "445621743ebc43a6e5e8d4196d8054d8d5a8039247913b5d7cc126230e1f6325",
+    "2018-10": "ec9dd98bfabc8226c5aaca48262a070551a417fac22696c8440d6482a7f6dbb6",
+    "2018-11": "96ef86d32b0c92a2261cc86680c22d4ea3c1848d43ab842f30516d6e9d8e4536",
+    "2018-12": "669f0c9a3abf050474da2434a96864ac33996359cb1f4c7c878d1220304fc7c2",
+    "2019-01": "588bff60b17e906ad4b654d0f615d838a2b2ec36b7790e5db40c6d2a03556355",
+    "2021-04": "cde7e2fb3647143b994337f474c22ce4af7b8b17e5944e7f7714d6d5078199c8",
+    "2019-02": "901383dce211994bac410db67f2dbb419fb466573d2b3c50b91a812c33008565",
+    "2019-03": "e3ac8e825d75baa45fe8ec6e559720149b1abe839d7e1cb2dada01c062e355ce",
+    "2019-04": "7b91748e9e45366e2cf652ad3a5dbeb2cfb62088769447a7a8d618a26b55f647",
+    "2019-05": "5a701d36ec0b95c3bc36f422b5a5fc399940c37ec1d6d9875b2c117978aad83d",
+    "2019-06": "c9713a0d38b180bb63e6ce7a9f3582d71dadb3a2df60ce70fb60ccd6c05eb2a5",
+    "2019-07": "d1427a6b9cb899e99fdd3d63ee7e2f9b722cdeb1104cd147e48b8ee795c1d008",
+    "2019-08": "1f21fc4013a38187c1d1f3fcdd9d1de64f100141e0ed290d8822fed28fba2902",
+    "2019-09": "54336bdc31db859e33299eff0a583f8c54b8c02fca781a816edbdd215bd21453",
+    "2021-05": "19f2b095ccffba90c9be84a0864d845cb859e2d83a7e3a173caefb5d1861c945",
+    "2019-10": "d2968d4a8a924ba46596e236917a1ffc9ccc6b2c67463d888ff6a9986dc7568e",
+    "2019-11": "4a9ebba1ef616a22717e4467f29f997eb4f1892322d7d50927abc3f666884f02",
+    "2019-12": "aa6f89fe47f4bbdaec3262c1fd3325cb6a92d7c11b7aec515111b6a8ffb9418b",
+    "2021-06": "ad9eb0eed3c49fed631942bad159bc365b58eed580e82b29c31db26be40675a5",
+    "2021-07": "150a7815fae5378edc42b3f2d26bf4697d529b19b4f552fc11c68629341df42b",
+    "2021-08": "94587b981b05fc2228b85493691df7934e2f648521b0ab049b8d1b1225e55216",
+    "2021-09": "b786adc7f362c594d08b65967bafae892f3eec4c2232391af35cb3ffdf0e1ab9",
+    "2021-10": "0416f8fe93439f9fcf03fe9a2ccae872677fe15800657f6d5edfbb03c6e398bf",
+    "2021-11": "ce8dfe87129f78efb5047f4d764454970362aff04229857b14ded6fc91f4be76",
+    "2021-12": "2ff67048929833d8db2ec32df829d2594052c31799d694486d997bc85b89d42c",
+    "2022-01": "89ab10f323b53d5d8c4de40ec6833b93f37ebd9be8f520688d4f080be3dec001",
+    "2022-02": "84074272816323f4af4c45ef48ce550429fd12b5af98d0c95a7731daf6e6d89c",
+    "2022-03": "c970b71594351b1e5feb97796a0c234f5d11aaa157b4a63abb51b2170ffed6d2",
+    "2022-04": "2d215b317ace4a4f2ff74ad33d9dd71c46865f9e4e02817efd1bed088d639f72",
+    "2022-05": "d907f8858c7f161f9067515c7897cc3177dd2cb83f83cb8f392be033066ae479",
+    "2022-06": "b3975ceb7666d9d27d8f29760c6ff7b5e385373101f8afce81e508db1299bc05",
+    "2022-07": "cb0f3a5a4a0a63f3440642c9bbda229e30f40dacdbf05e943213f29368353207",
+    "2022-08": "6469d05e76327f92debc71ea22ef56d31f418ad8eac8897647c02d4e13b8d22d",
+    "2022-09": "3de2f4dcf73c7e59c8e18ba8f75876761d15e76db1742d0a25f84620c7313c53",
+    "2022-10": "f933409fc7a9a987c366928de0f9b1ef0b99bf65170f5e58bcde6c9b0334b0d4",
+    "2022-11": "09d3c20e467b50921172986ae41615eb97043354eca24c7a4785fe14720f8ac5",
+    "2022-12": "18816b904549e62c485a29b56ecf0c4b139cf2a7379efc74d8ed7caa717219ab",
+    "2023-01": "183a1a7b76a6fd451d057a9f543ee6537ef245a95a987076a4fec1202419a4e9",
+    "2023-02": "e774176a49181dcc260fcc1fab23a4fbdd19d8420732634ee6deb9f9e1afd7f1",
+    "2023-03": "7cf72c122904abccc2d6cd3fe2614b94b89c6d747653eb8eaae8bedde6c4e224",
+    "2023-04": "957181967871816db30c674c2f445b7d887f766c9fc272add0fde1c2213c771a",
+    "2023-05": "10b783ee0fa015dba06074808c1665c0551392370c746b21631892b235fc7096",
+    "2023-06": "2fc41412732f3d00f0404c7ea1649e46ed0295d167bd5a2bc0099fef02be5394",
+    "2023-07": "46d1c77edc0381446a88947d31c78ff434010f1459ebef516451494ec1992f56",
+    "2023-08": "9a1cb942fdec911bde0783794c12b4bd05565440ed663d38780da9e9348fd4a4",
+    "2023-09": "339d011e9c41fa9b40ad965a5656fa921337158b48da5d21d28f7a6fec037fef",
+    "2023-10": "4086f8b319f950ee1d568b6b86c92ec07c93f12372c411120447541528541528",
+    "2023-11": "ac67c2b049babf2546a3df5a0de481345c7671550b7a7ce2c2284c76c1d76aaa",
+    "2023-12": "a5a890bdf2cc349435f61bb134c7726fef1dd9d88bea7356716d5975f2ee5ce7",
+    "2024-01": "6713db84b8836aec43bb52471735b2e057ed2cd8b571d7bdc81672826d8c8a19",
+    "2024-02": "5134af82d946b46c2be160f71d94e3ef5b0f4e8565b4211869169092ea7e5ca5",
+    "2024-03": "a8422806f8ea1b32ca01500690d7e40e1a6b9192a5e63bc33a46cecaedd3e621",
+    "2024-04": "2ec052570a4665e386c55b607856f5c6650e2212bd5b4a216836edf8effca4d8",
+    "2024-05": "ddca1ae99be8085ee0698c8fc7aa76bcc64be1bc8e4f9b79cf07216d214d5069",
+    "2024-07": "dc8bce722672a68c4659ff30dc41842b89416e53a735ec99b66bcf72459a2cf1",
+    "2024-08": "7907ddfba9109ad94668945f66b28cbb84f35fb1a7ad64e1c23f2132be777789",
+    "2024-09": "89a543b1d3fd1c6461f6c775a2e698a9339826fe01e5fac1807cf0016878eb18",
+    "2024-10": "f06a5b527b26c44c434ebffda790aad0caca9ef3830521fb8b563864ddf75952",
+    "2024-11": "548cb1ae70d1a51f1e7fb180c114cc619bb9f96bf40fb6b0cabede880526c22e",
+    "2024-12": "2293764f3dee1c4b4a396c81bc24ac58ce9b211fcf8c4a77faf0840a65280116"
+  },
+  "CALIBRATION": {
+    "CAL_MONTH": "2024-06",
+    "DAYS": 29.999979363425926,
+    "CANDIDATES": [
+      {
+        "TAU_MS": 250,
+        "K": 20,
+        "MIN_DURATION_MIN": 15,
+        "REAL_EPISODES_CAL_MONTH": 6,
+        "SHUFFLED_EPISODES": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "FP_PER_DAY": 0.0,
+        "FP_RATIO": 0.0,
+        "RECALL": 1.0,
+        "ADMISSIBLE": true
+      },
+      {
+        "TAU_MS": 250,
+        "K": 20,
+        "MIN_DURATION_MIN": 30,
+        "REAL_EPISODES_CAL_MONTH": 0,
+        "SHUFFLED_EPISODES": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "FP_PER_DAY": 0.0,
+        "FP_RATIO": null,
+        "RECALL": 0.915,
+        "ADMISSIBLE": false
+      },
+      {
+        "TAU_MS": 250,
+        "K": 40,
+        "MIN_DURATION_MIN": 15,
+        "REAL_EPISODES_CAL_MONTH": 3,
+        "SHUFFLED_EPISODES": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "FP_PER_DAY": 0.0,
+        "FP_RATIO": 0.0,
+        "RECALL": 0.94,
+        "ADMISSIBLE": true
+      },
+      {
+        "TAU_MS": 250,
+        "K": 40,
+        "MIN_DURATION_MIN": 30,
+        "REAL_EPISODES_CAL_MONTH": 0,
+        "SHUFFLED_EPISODES": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "FP_PER_DAY": 0.0,
+        "FP_RATIO": null,
+        "RECALL": 0.905,
+        "ADMISSIBLE": false
+      },
+      {
+        "TAU_MS": 500,
+        "K": 20,
+        "MIN_DURATION_MIN": 15,
+        "REAL_EPISODES_CAL_MONTH": 9,
+        "SHUFFLED_EPISODES": [
+          1,
+          0,
+          2,
+          0,
+          0
+        ],
+        "FP_PER_DAY": 0.02000001375772551,
+        "FP_RATIO": 0.06666666666666667,
+        "RECALL": 1.0,
+        "ADMISSIBLE": true
+      },
+      {
+        "TAU_MS": 500,
+        "K": 20,
+        "MIN_DURATION_MIN": 30,
+        "REAL_EPISODES_CAL_MONTH": 3,
+        "SHUFFLED_EPISODES": [
+          1,
+          0,
+          1,
+          0,
+          0
+        ],
+        "FP_PER_DAY": 0.013333342505150343,
+        "FP_RATIO": 0.13333333333333333,
+        "RECALL": 0.915,
+        "ADMISSIBLE": false
+      },
+      {
+        "TAU_MS": 500,
+        "K": 40,
+        "MIN_DURATION_MIN": 15,
+        "REAL_EPISODES_CAL_MONTH": 3,
+        "SHUFFLED_EPISODES": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "FP_PER_DAY": 0.0,
+        "FP_RATIO": 0.0,
+        "RECALL": 0.94,
+        "ADMISSIBLE": true
+      },
+      {
+        "TAU_MS": 500,
+        "K": 40,
+        "MIN_DURATION_MIN": 30,
+        "REAL_EPISODES_CAL_MONTH": 1,
+        "SHUFFLED_EPISODES": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "FP_PER_DAY": 0.0,
+        "FP_RATIO": 0.0,
+        "RECALL": 0.905,
+        "ADMISSIBLE": true
+      }
+    ],
+    "SELECTED": {
+      "TAU_MS": 250,
+      "K": 20,
+      "MIN_DURATION_MIN": 15
+    },
+    "STATUS": "SELECTED"
+  },
+  "SELECTED_DETECTOR": {
+    "TAU_MS": 250,
+    "K": 20,
+    "MIN_DURATION_MIN": 15
+  },
+  "COUNTS_AND_GATES": {
+    "SURFACES": {
+      "DISCOVERY": {
+        "N_DETECTED": 2179,
+        "N_AFTER_REFRACTORY": 1210,
+        "N_PERSISTENCE_ELIGIBLE": 1207,
+        "PERSISTENCE_ELIGIBLE_DISTINCT_DAYS": 702,
+        "N_END_IDENTIFIED": 1207,
+        "N_POST_END_1H_COMPLETE": 1207,
+        "N_H6_ELIGIBLE": 1206,
+        "BY_SIDE": {
+          "1": 712,
+          "-1": 495
+        },
+        "BY_YEAR": {
+          "2020": 93,
+          "2021": 223,
+          "2022": 281,
+          "2023": 284,
+          "2024": 326
+        },
+        "EXCLUSIONS": {
+          "REFRACTORY": 969,
+          "DATA_GAP": 2,
+          "NO_REFERENCE": 1
+        }
+      },
+      "REPLICATION": {
+        "N_DETECTED": 23,
+        "N_AFTER_REFRACTORY": 19,
+        "N_PERSISTENCE_ELIGIBLE": 19,
+        "PERSISTENCE_ELIGIBLE_DISTINCT_DAYS": 16,
+        "N_END_IDENTIFIED": 19,
+        "N_POST_END_1H_COMPLETE": 19,
+        "N_H6_ELIGIBLE": 19,
+        "BY_SIDE": {
+          "1": 11,
+          "-1": 8
+        },
+        "BY_YEAR": {
+          "2018": 4,
+          "2019": 15
+        },
+        "EXCLUSIONS": {
+          "REFRACTORY": 4
+        }
+      }
+    },
+    "GATES": {
+      "DISCOVERY_SUPPORT": true,
+      "H3_SUPPORT": true,
+      "REPLICATION_SUPPORT": false
+    },
+    "STATUS": "FEASIBLE"
+  },
+  "IMPLEMENTATION_DETAILS_FROZEN_BEFORE_OUTCOMES": {
+    "PRINT": "all aggTrades of one taker side in the same ms, summed; kept if notional >= $1,000",
+    "KEYS": "exact quantity (1e-8 units) and round(notional / $10)",
+    "CHAIN_SEED": "triplet z<y<x with |(x-y)-(y-z)| <= tau, gaps in [2 s, 300 s]",
+    "CHAIN_EXTENSION": "gap within tau of last+P, or of last+2P when the previous gap was not a miss; best = most slices; period = running mean over gap units",
+    "TWAP_END": "last slice + 3 x period",
+    "DETECTION_BUFFER": "each month is detected on [month start - 6 h, month end + 6 h]; episodes kept by T in month",
+    "EPISODE_MERGE": "overlapping same-side qualified chains; T = earliest qualifying print; end = latest chain end",
+    "REFRACTORY": "same side, 6 h after each kept T",
+    "ANCHOR": "t0 = first minute boundary strictly after T; e0 = first minute boundary strictly after the declared end",
+    "PRICE": "last trade price at or before the time (minute close, carried forward)",
+    "DATA_GAP": "a minute with no aggTrade inside a required window",
+    "PERSISTENCE_ELIGIBLE": "t0 >= surface start + 30 d; [t0-61m, t0+60m) complete; t0+60m <= surface end",
+    "H6_ELIGIBLE": "persistence eligible and [t0, t0+6h) complete within the surface",
+    "END_IDENTIFIED": "persistence eligible; [chain start, e0) complete; end within surface",
+    "POST_END_1H_COMPLETE": "end identified and [e0-61m, e0+60m) complete within surface",
+    "CONTROL_POOL": "5-minute grid of the surface; >= 30 d after surface start; [g-61m, g+6h) complete; no detected episode T (both sides, before refractory) within +-6 h",
+    "MATCH_CELL": "UTC hour x RV60 tercile x NET60 quintile x sign(ret60); thresholds per UTC day from grid values in [d-30d, d)",
+    "RV60": "sqrt(sum of squared 1-minute log returns over the 60 minutes before the anchor)",
+    "NET60": "taker buy minus taker sell notional over the 60 minutes before the anchor",
+    "RET60_SIGN": "+1 if log(price(t)/price(t-60m)) > 0 else -1",
+    "CONTROLS": "up to 5 nearest in time, without replacement, anchors processed in time order; one matching run for t0 anchors (H1, H2) and one for e0 anchors (H3)",
+    "NO_CONTROL": "anchor with zero controls is excluded from that test",
+    "H1_VALUE": "log((episode same-side notional in [t0, t0+60m) + 1) / (mean control same-side notional + 1)); side = episode side",
+    "H2_VALUE": "side * log(p(t0+h)/p(t0)) - mean over controls of side * log(p(g+h)/p(g)), h in {1h, 6h}; 6h only for H6-eligible anchors",
+    "H3_VALUE": "side * log(p(e0+1h)/p(e0)) - mean over controls (matched at e0) of the same",
+    "BOOTSTRAP": "UTC-day blocks of the anchor, resampled with replacement; numpy default_rng(seed) per test",
+    "P_ONE_SIDED": "(1 + #{(b - m) >= m}) / (B + 1) for H1 (direction: positive)",
+    "P_TWO_SIDED": "(1 + #{|b - m| >= |m|}) / (B + 1)",
+    "P_REPLICATION": "(1 + #{s(b - m) >= s m}) / (B + 1), s = sign of the discovery estimate",
+    "HOLM": "m = 3 cells always (H2_1h, H2_6h, H3); a cell not run counts as p = 1",
+    "HETEROGENEITY_BLOCKS": "26-week blocks implemented as calendar half-years (Jan-Jun, Jul-Dec) so each block lies in one epoch; epochs are calendar years; permutation reassigns blocks across years keeping each year's block count; the observed SD of yearly means is the identity draw",
+    "HETEROGENEITY_SUPPORTED": "if the planned outcome-blind assessability of a cell is NOT_ASSESSABLE, its gate result is NOT_ASSESSABLE and is not a failure (plan section 8); the computed test is then reported as a non-deciding diagnostic and never as stability. Otherwise a cell passing Holm and the floor is supported unless the gate outcome is HETEROGENEOUS_UNEXPLAINED",
+    "HETEROGENEITY_DIAGNOSTICS": "largest epoch share and leave-one-epoch-out means are reported and never decide",
+    "FINAL_CLASSIFICATION": "H1 fail -> MECHANISM_NOT_SUPPORTED; H1 pass and no supported price cell -> MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED; at least one supported cell and the replication support gate failed -> DISCOVERY_SUPPORTED_REPLICATION_INSUFFICIENT; every supported cell replicates -> SUPPORTED_WITH_REPLICATION; otherwise DISCOVERY_SUPPORTED_REPLICATION_FAILED; cells are always reported individually, with the H3 sign (negative = reversal, the temporary-impact fingerprint)",
+    "HETEROGENEITY_ASSESSABILITY": "outcome-blind: per-episode SD = unconditional h-return SD x sqrt(1 + 1/5); difference = 10 bps between the two smallest years; two-sided alpha 0.05; NOT_ASSESSABLE if power < 0.50",
+    "REPLICATION_H1": "computed on the replication surface and reported descriptively, only if the replication support gate passes; replication classification uses the frozen cell rule only",
+    "REPLICATION_GATE_FAILED": "no replication outcome (flow or price) is computed; replication status INFERENCE_INSUFFICIENT; no substitute surface",
+    "HETEROGENEITY_POWER_PROXY": "the V1 '2x difference between epochs' is operationalised as floor (10 bps) versus 2 x floor (20 bps) in the two smallest years, i.e. a 10 bps difference, two-sample z approximation"
+  },
+  "UNCONDITIONAL_SD_DISCOVERY": {
+    "H1": 0.00701790218873306,
+    "H6": 0.016657378523038086
+  },
+  "HETEROGENEITY_ASSESSABILITY_PLANNED": {
+    "H2_1h": {
+      "STATUS": "NOT_ASSESSABLE",
+      "POWER": 0.18242083070279158,
+      "SD_EPISODE": 0.0076877266702679485,
+      "N_TWO_SMALLEST_YEARS": [
+        93,
+        223
+      ]
+    },
+    "H2_6h": {
+      "STATUS": "NOT_ASSESSABLE",
+      "POWER": 0.06476036717828787,
+      "SD_EPISODE": 0.01824724393194009,
+      "N_TWO_SMALLEST_YEARS": [
+        93,
+        223
+      ]
+    },
+    "H3": {
+      "STATUS": "NOT_ASSESSABLE",
+      "POWER": 0.18242083070279158,
+      "SD_EPISODE": 0.0076877266702679485,
+      "N_TWO_SMALLEST_YEARS": [
+        93,
+        223
+      ]
+    }
+  },
+  "SCIENTIFIC_OUTCOMES_OPENED_AT_FREEZE": false
+}

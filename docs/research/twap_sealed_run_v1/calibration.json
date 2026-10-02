@@ -1,0 +1,148 @@
+{
+  "CAL_MONTH": "2024-06",
+  "DAYS": 29.999979363425926,
+  "CANDIDATES": [
+    {
+      "TAU_MS": 250,
+      "K": 20,
+      "MIN_DURATION_MIN": 15,
+      "REAL_EPISODES_CAL_MONTH": 6,
+      "SHUFFLED_EPISODES": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "FP_PER_DAY": 0.0,
+      "FP_RATIO": 0.0,
+      "RECALL": 1.0,
+      "ADMISSIBLE": true
+    },
+    {
+      "TAU_MS": 250,
+      "K": 20,
+      "MIN_DURATION_MIN": 30,
+      "REAL_EPISODES_CAL_MONTH": 0,
+      "SHUFFLED_EPISODES": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "FP_PER_DAY": 0.0,
+      "FP_RATIO": null,
+      "RECALL": 0.915,
+      "ADMISSIBLE": false
+    },
+    {
+      "TAU_MS": 250,
+      "K": 40,
+      "MIN_DURATION_MIN": 15,
+      "REAL_EPISODES_CAL_MONTH": 3,
+      "SHUFFLED_EPISODES": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "FP_PER_DAY": 0.0,
+      "FP_RATIO": 0.0,
+      "RECALL": 0.94,
+      "ADMISSIBLE": true
+    },
+    {
+      "TAU_MS": 250,
+      "K": 40,
+      "MIN_DURATION_MIN": 30,
+      "REAL_EPISODES_CAL_MONTH": 0,
+      "SHUFFLED_EPISODES": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "FP_PER_DAY": 0.0,
+      "FP_RATIO": null,
+      "RECALL": 0.905,
+      "ADMISSIBLE": false
+    },
+    {
+      "TAU_MS": 500,
+      "K": 20,
+      "MIN_DURATION_MIN": 15,
+      "REAL_EPISODES_CAL_MONTH": 9,
+      "SHUFFLED_EPISODES": [
+        1,
+        0,
+        2,
+        0,
+        0
+      ],
+      "FP_PER_DAY": 0.02000001375772551,
+      "FP_RATIO": 0.06666666666666667,
+      "RECALL": 1.0,
+      "ADMISSIBLE": true
+    },
+    {
+      "TAU_MS": 500,
+      "K": 20,
+      "MIN_DURATION_MIN": 30,
+      "REAL_EPISODES_CAL_MONTH": 3,
+      "SHUFFLED_EPISODES": [
+        1,
+        0,
+        1,
+        0,
+        0
+      ],
+      "FP_PER_DAY": 0.013333342505150343,
+      "FP_RATIO": 0.13333333333333333,
+      "RECALL": 0.915,
+      "ADMISSIBLE": false
+    },
+    {
+      "TAU_MS": 500,
+      "K": 40,
+      "MIN_DURATION_MIN": 15,
+      "REAL_EPISODES_CAL_MONTH": 3,
+      "SHUFFLED_EPISODES": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "FP_PER_DAY": 0.0,
+      "FP_RATIO": 0.0,
+      "RECALL": 0.94,
+      "ADMISSIBLE": true
+    },
+    {
+      "TAU_MS": 500,
+      "K": 40,
+      "MIN_DURATION_MIN": 30,
+      "REAL_EPISODES_CAL_MONTH": 1,
+      "SHUFFLED_EPISODES": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "FP_PER_DAY": 0.0,
+      "FP_RATIO": 0.0,
+      "RECALL": 0.905,
+      "ADMISSIBLE": true
+    }
+  ],
+  "SELECTED": {
+    "TAU_MS": 250,
+    "K": 20,
+    "MIN_DURATION_MIN": 15
+  },
+  "STATUS": "SELECTED"
+}

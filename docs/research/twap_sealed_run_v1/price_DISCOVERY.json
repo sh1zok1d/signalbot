@@ -1,0 +1,53 @@
+{
+  "SURFACE": "DISCOVERY",
+  "CELLS": {
+    "H2_1h": {
+      "N": 1207,
+      "N_NO_CONTROL": 0,
+      "MEAN_CONTROLS": 5.0,
+      "DAYS": 701,
+      "MEAN": 0.0004979337384708377,
+      "MEAN_BPS": 4.979337384708377,
+      "CI95_BPS": [
+        -0.11687872264391748,
+        10.079747132919895
+      ],
+      "P_TWO_SIDED": 0.05679432056794321,
+      "P_HOLM": 0.17038296170382963,
+      "PASS_HOLM_AND_FLOOR": false,
+      "SUPPORTED": false
+    },
+    "H2_6h": {
+      "N": 1206,
+      "N_NO_CONTROL": 0,
+      "MEAN_CONTROLS": 5.0,
+      "DAYS": 700,
+      "MEAN": -4.0894682660968334e-05,
+      "MEAN_BPS": -0.40894682660968334,
+      "CI95_BPS": [
+        -11.052914181588209,
+        10.425608503195424
+      ],
+      "P_TWO_SIDED": 0.9402059794020597,
+      "P_HOLM": 1.0,
+      "PASS_HOLM_AND_FLOOR": false,
+      "SUPPORTED": false
+    },
+    "H3": {
+      "N": 1207,
+      "N_NO_CONTROL": 0,
+      "MEAN_CONTROLS": 5.0,
+      "DAYS": 704,
+      "MEAN": 4.959222336307669e-05,
+      "MEAN_BPS": 0.4959222336307669,
+      "CI95_BPS": [
+        -4.520037098788657,
+        5.34285634810044
+      ],
+      "P_TWO_SIDED": 0.8463153684631537,
+      "P_HOLM": 1.0,
+      "PASS_HOLM_AND_FLOOR": false,
+      "SUPPORTED": false
+    }
+  }
+}
