@@ -65,6 +65,8 @@ For cloud-agent OpenAI calls:
 
 The cloud adapter is an environment transport boundary, not scientific logic.
 
+For Cursor/local routed runs with direct provider credentials, `ladder-40-card` may be invoked with explicit `--openai-network-mode DIRECT`. DIRECT requires `OPENAI_API_KEY` and `ANTHROPIC_API_KEY`; it is never inferred from proxy variables. Omitting the flag on `ladder-40-card` preserves the `CLOUD_PROXY` default, and `first-30-card` remains forced to `CLOUD_PROXY`. The chosen mode is part of transport/run identity, so resume under a different mode is rejected.
+
 ## 6. Current routed architecture authority
 
 For routed runs, `scripts/research/generator_v0/routing.py` is authoritative.
