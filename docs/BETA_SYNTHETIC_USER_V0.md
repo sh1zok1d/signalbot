@@ -50,7 +50,14 @@ V0.3 surfaces such as `/catchup`, the morning brief, analogues and P1–P3 are n
   - A view outcome is computed by `compute_outcome`, anchored at the view's `data_through`, with the view's own reference price.
   - Horizon h unlocks at `anchor + h + LAST_BAR_GRACE`, and never past `exported_at`; an item that has not matured is deferred.
 - **Manifest.** The ordered replay input IDs and the skipped inputs (with reasons) are recorded in the run manifest.
-- **Protected data.** `export` refuses any window whose 24h horizon reaches 2025-01-01 or later, unless `--beta-live-window` is given. That flag records an owner decision that the export reads only live beta tables, never a sealed research dataset. No protected research dataset is read by any path.
+- **Export scope (sealed research data stays sealed).** Every exported bundle has exactly one versioned `export_scope` (`SIM_EXPORT_SCOPE_V0`). No scope opens a sealed 2025/2026 research window.
+  - `PRE_2025_UNSEALED` is the default. The window plus its 24h outcome tail and kline tail must end before 2025-01-01.
+  - `LIVE_BETA_PROSPECTIVE` (`--beta-live-window`) covers prospective operational private-beta data only. The requested start must be at or after 2026-09-25 00:00 UTC, the private beta V0 authorization date in `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`; the repository records no later operational start. An earlier start is refused, and the episode lookback is clamped to that boundary.
+  - Any 2025/2026 window before the boundary is refused under every scope, before a connection is opened.
+- **Durable authorization.** The bundle's `export` block records the scope, the owner authorization `SYNTHETIC_BETA_USER_V0_OWNER_AUTH_2026_10_02` with its authority doc, the requested start and end, the export time and the boundary.
+  - The validator requires this block on every exported bundle and rejects a missing, incomplete or inconsistent one, a pre-2025 bundle carrying an authorization, and any row timestamp outside the scope. A copied bundle therefore keeps its proof.
+  - The run manifest and `report.md` reproduce the block, so authorization never depends on CLI history.
+- **Exporter tables.** Queries may name only the six `beta_*` operational tables and `klines_1m`. Any other table, including research archives, is refused.
 
 ## 4. Role A input, persona and actions
 
@@ -143,9 +150,9 @@ The blind judge prompt is `ROLE_B_BLIND_JUDGE_PROMPT_V0`.
 ```bash
 python -m tools.beta_user_sim make-synthetic-bundle --out /tmp/sim/bundle.json
 python -m tools.beta_user_sim replay --bundle /tmp/sim/bundle.json --out /tmp/sim/run --model fake
-# read-only export (owner decision needed for any 2025+ window):
+# read-only export; LIVE_BETA_PROSPECTIVE scope, windows from 2026-09-25 only (owner authorization recorded in the bundle):
 BETA_SIM_EXPORT_DSN=... python -m tools.beta_user_sim export --dsn-env BETA_SIM_EXPORT_DSN \
-  --start 2026-09-25T00:00:00+00:00 --end 2026-09-26T00:00:00+00:00 --out /tmp/sim/export.json --beta-live-window
+  --start 2026-09-28T00:00:00+00:00 --end 2026-09-29T00:00:00+00:00 --out /tmp/sim/export.json --beta-live-window
 # real-model smoke — NOT authorized, never executed:
 SIGNALBOT_SIM_ALLOW_NETWORK=1 OPENAI_API_KEY=... python -m tools.beta_user_sim replay \
   --bundle /tmp/sim/bundle.json --out /tmp/sim/real --model openai --model-id <id> --allow-network
@@ -158,5 +165,5 @@ SIGNALBOT_SIM_ALLOW_NETWORK=1 OPENAI_API_KEY=... python -m tools.beta_user_sim r
 - Pushes have no baseline, so they are `NOT_EVALUABLE` for A/B.
 - View lines without a V0 rule (for example per-venue OI lines) are `NOT_EVALUABLE`.
 - View outcome venue membership is not persisted, so the bundle venues are used.
-- A real export of the live 2026 beta window needs an explicit owner decision (`--beta-live-window`).
+- No real export has been made. A live-beta export covers only `LIVE_BETA_PROSPECTIVE` windows from 2026-09-25; earlier 2025/2026 data is not exportable.
 - `/lang` and `/delete_me` are not exercised.
