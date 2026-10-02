@@ -133,3 +133,20 @@ def test_permit_freezes_the_plan_before_opening():
     assert "seed 20261004" in plan["INTERVALS"]["WEEK_CLUSTER_BOOTSTRAP"]
     assert X.BOOTSTRAP_RESAMPLES == 4999 and X.BOOTSTRAP_SEED == 20261004
     assert X.EPOCH_PERMUTATIONS == 2000 and X.EPOCH_SEED == 20261003
+
+
+def test_result_is_labelled_exploratory_and_bound_to_the_permit():
+    import hashlib
+    result = json.loads((REPO / X.RESULT_REL).read_text())
+    permit_bytes = (REPO / X.PERMIT_REL).read_bytes()
+    permit = json.loads(permit_bytes)
+    assert result["LABEL"] == X.LABEL and result["CONFIRMATORY"] is False
+    assert result["CLASSIFICATION"] == "INCONCLUSIVE_DISCOVERY"
+    assert result["FEASIBILITY_VERDICT"] == "INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR"
+    assert result["PERMIT_SHA256"] == hashlib.sha256(permit_bytes).hexdigest()
+    assert result["PROTECTED_2025_2026_OPENED"] is False and result["RERUN_AUTHORIZED"] is False
+    for rel, digest in permit["FROZEN_ARTIFACT_SHA256_BEFORE_OPENING"].items():
+        assert hashlib.sha256((REPO / rel).read_bytes()).hexdigest() == digest, rel
+    for sym, frozen in permit["FROZEN_EPISODE_COUNTS"].items():
+        assert result["SYMBOLS"][sym]["EPISODES_BY_ARM"] == frozen
+        assert all(v == 0 for v in result["SYMBOLS"][sym]["UNAVAILABLE"].values())

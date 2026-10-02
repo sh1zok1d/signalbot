@@ -7321,3 +7321,42 @@ CLASSIFICATION_FIXED_BEFORE_OUTCOMES = INCONCLUSIVE_DISCOVERY
 PROTECTED_2025_2026_OPENED = false
 NEXT_UNIT = SEED0001_EXPLORATORY_OUTCOME_ANALYSIS
 ```
+
+## SEED-0001 exploratory outcome analysis — result — 2026-10-02
+
+This ran under `docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json`, authorized in `df9e351`. The evaluator was committed in `1e4f848` before the one run.
+- **Checked before the run:** the frozen artifacts were re-verified and the frozen episode sets were used as they are.
+- **No unavailable windows.** No byte from 2025 or 2026 was read.
+- **Label.** `EXPLORATORY / UNDERPOWERED`. The classification is `INCONCLUSIVE_DISCOVERY`, as fixed before outcomes.
+
+**BTC, Y1_48H (+1R before −1R).** Raw WIN/LOSS/NEUTRAL counts by arm:
+
+| Arm | WIN | LOSS | NEUTRAL |
+|---|---:|---:|---:|
+| A | 20 | 15 | 1 |
+| B | 130 | 121 | 8 |
+| C | 26 | 29 | 8 |
+| D | 201 | 159 | 25 |
+
+Adjusted contrasts, with CR1 weekly-cluster 95% CIs, the week-bootstrap CIs (4999 resamples) and Holm p-values:
+
+| Contrast | Estimate | CR1 95% CI | Bootstrap 95% CI | Holm p |
+|---|---:|---|---|---:|
+| P1, A − B | +0.042 | [−0.099, +0.184] | [−0.111, +0.180] | 0.554 |
+| P2, A − C | +0.148 | [−0.037, +0.332] | [−0.044, +0.331] | 0.233 |
+
+- **Gates.** The statistical gate fails and the practical gate fails.
+- **Secondaries.** Y2_48H, the 96h endpoints and chain clustering: none rejects.
+- **Half-years.** 3 of 4 epochs share the pooled sign for each contrast. The heterogeneity permutation p is 0.55 for P1 and 0.35 for P2, and the gate was `NOT_ASSESSABLE` before opening.
+- **ETH (robustness only).** P1 is −0.089 and P2 is −0.138, so `ETH_NOT_SAME_DIRECTION`.
+
+**Consumed.** The 2023–2024 Binance UM 1h outcome surface is consumed for this card and for nearby questions. No threshold, horizon, stop, entry, exit or subgroup was searched after outcomes. The prospective preregistration is unchanged and not activated.
+
+```
+TF-SEED0001-RD-RETRO1 = EXECUTED / INCONCLUSIVE_DISCOVERY
+EVIDENCE_LABEL = EXPLORATORY / UNDERPOWERED
+RESULT = docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.{md,json}
+PROTECTED_2025_2026_OPENED = false
+RERUN_AUTHORIZED = false
+NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_EXPLORATORY_OUTCOME_ANALYSIS
+```

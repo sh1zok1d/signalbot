@@ -1,3 +1,25 @@
+## SEED-0001 — exploratory outcome analysis complete — 2026-10-02
+
+`SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR (unchanged)`
+`TF-SEED0001-RD-RETRO1 = EXECUTED / INCONCLUSIVE_DISCOVERY (exploratory permit; never confirmatory)`
+`EVIDENCE_LABEL = EXPLORATORY / UNDERPOWERED`
+`TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED (separate, frozen, not activated)`
+`PROTECTED_2025_2026_OPENED = false`
+`NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_EXPLORATORY_OUTCOME_ANALYSIS`
+
+This line supersedes `NEXT_UNIT = SEED0001_EXPLORATORY_OUTCOME_ANALYSIS` in the authorization section below; that unit is done. Routing returns to the research queue further below.
+
+**Result (`docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.md`).** The analysis ran once, at `1e4f848`, on the frozen episodes. It covers BTC Y1_48H, +1R before −1R:
+- **Raw rate of A:** 20 of 36 (0.556).
+- **Adjusted P1, A − B:** +0.042, CR1 95% CI [−0.099, +0.184].
+- **Adjusted P2, A − C:** +0.148 [−0.037, +0.332].
+- **Gates:** Holm rejects neither contrast, and the practical gate fails.
+- **ETH (robustness):** both contrasts are negative.
+
+The observed BTC point estimates are positive. The evidence for them is weak to none, so this is not a finding.
+
+**Consumed.** The 2023–2024 Binance UM 1h outcome surface is consumed for this card and for nearby questions. Any variant needs a new research object / SEED.
+
 ## SEED-0001 — exploratory outcome analysis authorized (supersedes the feasibility-stop routing) — 2026-10-02
 
 `SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR (unchanged)`

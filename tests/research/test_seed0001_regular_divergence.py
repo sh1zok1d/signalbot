@@ -294,9 +294,18 @@ def test_ledger_registers_the_card_before_any_outcome():
     assert set(entries) == {'TF-SEED0001-RD-RETRO1', 'TF-SEED0001-RD-PROSP1'}
     for entry in entries.values():
         assert entry['PREREG_SHA256'] == prereg_sha
-        assert entry['STATUS'].startswith('REGISTERED_NOT_')
-        assert entry['RESULT_SHA256'] is None and entry['RERUN_AUTHORIZED'] is False
+        assert entry['RERUN_AUTHORIZED'] is False
         assert entry['PRIMARY_TEST_COUNT'] == 2
+    # The prospective leg stays registered and unopened.
+    assert entries['TF-SEED0001-RD-PROSP1']['STATUS'] == 'REGISTERED_NOT_STARTED'
+    assert entries['TF-SEED0001-RD-PROSP1']['RESULT_SHA256'] is None
+    # The retrospective leg was opened only under the exploratory owner permit and is closed once.
+    retro = entries['TF-SEED0001-RD-RETRO1']
+    assert retro['STATUS'] == 'EXECUTED' and retro['CLASSIFICATION'] == 'INCONCLUSIVE_DISCOVERY'
+    assert retro['FEASIBILITY_STATUS'] == 'INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR'
+    assert retro['EXECUTION_PERMIT_PATH'] == 'docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json'
+    result = REPO / retro['RESULT_PATH']
+    assert retro['RESULT_SHA256'] == hashlib.sha256(result.read_bytes()).hexdigest()
 
 
 # ------------------------------------------------------- feasibility statistics
