@@ -1,0 +1,1037 @@
+{
+  "BLOCKED_CARDS": [
+    "C005",
+    "C024",
+    "C031",
+    "C037"
+  ],
+  "CARDS": {
+    "C005": {
+      "ALPHA_ATTAINABLE": null,
+      "BLOCKERS": [
+        "PERP_LISTING_HISTORY_UNVERIFIED"
+      ],
+      "CARD": "C005",
+      "CLASS": "CONDITIONAL",
+      "COMPILED": false,
+      "DATA_STATUS": "PUBLIC_CMS_NOT_A_PIT_REGISTRY",
+      "EVIDENCE": {
+        "ARTICLE_BODIES_TREATED_AS_IMMUTABLE": false,
+        "DELIST_CATALOG_ID": 161,
+        "DELIST_CATALOG_TOTAL": 439,
+        "DELIST_COVERS_2019_09": false,
+        "DELIST_OLDEST_PUBLISH_UTC": "2022-02-17T03:47:56Z",
+        "DELIST_OLDEST_TITLE": "Notice of Removal of Trading Pairs - 2022-02-24",
+        "EXCHANGEINFO_ARCHIVE_STATUS": 404,
+        "EXCHANGEINFO_ARCHIVE_URL": "https://data.binance.vision/data/futures/um/daily/exchangeInfo/",
+        "LISTING_CATALOG_ID": 48,
+        "LISTING_CATALOG_TOTAL": 2276,
+        "LISTING_OLDEST_IS_USD_M_REGISTRY": false,
+        "LISTING_OLDEST_PUBLISH_UTC": "2017-07-21T00:06:19Z",
+        "LIVE_EXCHANGEINFO_USED": false,
+        "LIVE_FAPI_EXCHANGEINFO_STATUS": 451,
+        "OBSERVED_ON": "2026-10-02",
+        "SOURCE": "BINANCE_CMS_CATALOG_AND_VISION_HEAD"
+      },
+      "FINAL_READINESS": "PIT_BLOCKED",
+      "GV0R02_V2_STATUS": "NOT_COMPILED",
+      "MARKET_OUTCOMES_OPENED": false,
+      "MECHANISM_ACTIVE_N": null,
+      "MECHANISM_INACTIVE_N": null,
+      "MIN_ATTAINABLE_P": null,
+      "NAME": "Perpetual-cover spread gap on BTC stress days",
+      "NEXT_UNIT": "STOP. A later unit needs a pinned PIT launch and delisting archive for 2019-09..2024-12, including delisted USD-M contracts, and historical onboardDate snapshots. Do not use a live exchangeInfo snapshot.",
+      "NOMINAL_N": null,
+      "OWNER_DECISION_REQUIRED": null,
+      "PAID_DATA_REQUIRED": false,
+      "PAID_DATA_SPEND_USD": 0,
+      "PIT_STATUS": "PIT_BLOCKED",
+      "PRIMARY_LABEL_ORBIT_SIZE": null,
+      "PRIMARY_VARIANT": null,
+      "STAGE_STOPPED": "B",
+      "VARIANT_MATRIX": [
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "BINANCE_UM_PERPETUAL_LISTING_ANNOUNCEMENTS_ARCHIVE",
+            "BINANCE_UM_EXCHANGEINFO_ONBOARDDATE_SNAPSHOTS"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Moderate: the panel is ready, but a point-in-time perpetual listing history per base asset must be assembled and reconciled across announcements and exchange metadata.",
+          "INDEX": 0,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_EXCHANGEINFO_ONBOARDDATE_SNAPSHOTS": "2019-09..2024-12",
+            "BINANCE_UM_PERPETUAL_LISTING_ANNOUNCEMENTS_ARCHIVE": "2019-09..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2019-12..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": false,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "The public delist catalog does not reach 2019-09, and no historical onboardDate snapshot archive exists.",
+          "VARIANT": {
+            "spread_window_days_D": 2,
+            "stress_percentile_p": 90
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "BINANCE_UM_PERPETUAL_LISTING_ANNOUNCEMENTS_ARCHIVE",
+            "BINANCE_UM_EXCHANGEINFO_ONBOARDDATE_SNAPSHOTS"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Moderate: the panel is ready, but a point-in-time perpetual listing history per base asset must be assembled and reconciled across announcements and exchange metadata.",
+          "INDEX": 1,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_EXCHANGEINFO_ONBOARDDATE_SNAPSHOTS": "2019-09..2024-12",
+            "BINANCE_UM_PERPETUAL_LISTING_ANNOUNCEMENTS_ARCHIVE": "2019-09..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2019-12..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": false,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "The public delist catalog does not reach 2019-09, and no historical onboardDate snapshot archive exists.",
+          "VARIANT": {
+            "spread_window_days_D": 2,
+            "stress_percentile_p": 95
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "BINANCE_UM_PERPETUAL_LISTING_ANNOUNCEMENTS_ARCHIVE",
+            "BINANCE_UM_EXCHANGEINFO_ONBOARDDATE_SNAPSHOTS"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Moderate: the panel is ready, but a point-in-time perpetual listing history per base asset must be assembled and reconciled across announcements and exchange metadata.",
+          "INDEX": 2,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_EXCHANGEINFO_ONBOARDDATE_SNAPSHOTS": "2019-09..2024-12",
+            "BINANCE_UM_PERPETUAL_LISTING_ANNOUNCEMENTS_ARCHIVE": "2019-09..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2019-12..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": false,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "The public delist catalog does not reach 2019-09, and no historical onboardDate snapshot archive exists.",
+          "VARIANT": {
+            "spread_window_days_D": 5,
+            "stress_percentile_p": 90
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "BINANCE_UM_PERPETUAL_LISTING_ANNOUNCEMENTS_ARCHIVE",
+            "BINANCE_UM_EXCHANGEINFO_ONBOARDDATE_SNAPSHOTS"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Moderate: the panel is ready, but a point-in-time perpetual listing history per base asset must be assembled and reconciled across announcements and exchange metadata.",
+          "INDEX": 3,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_EXCHANGEINFO_ONBOARDDATE_SNAPSHOTS": "2019-09..2024-12",
+            "BINANCE_UM_PERPETUAL_LISTING_ANNOUNCEMENTS_ARCHIVE": "2019-09..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2019-12..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": false,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "The public delist catalog does not reach 2019-09, and no historical onboardDate snapshot archive exists.",
+          "VARIANT": {
+            "spread_window_days_D": 5,
+            "stress_percentile_p": 95
+          },
+          "ZERO_COST_AVAILABLE": false
+        }
+      ]
+    },
+    "C024": {
+      "ALPHA_ATTAINABLE": null,
+      "BLOCKERS": [
+        "ORDER_BOOK_DEPTH_HISTORY"
+      ],
+      "CARD": "C024",
+      "CLASS": "CONDITIONAL",
+      "COMPILED": false,
+      "DATA_STATUS": "DATA_BLOCKED",
+      "EVIDENCE": {
+        "EARLIEST_BTCUSDT_KEY": "data/futures/um/daily/bookDepth/BTCUSDT/BTCUSDT-bookDepth-2023-01-01.zip",
+        "EARLIEST_ETHUSDT_KEY": "data/futures/um/daily/bookDepth/ETHUSDT/ETHUSDT-bookDepth-2023-01-01.zip",
+        "HEAD_2022_01_01": 404,
+        "HEAD_2023_01_01": 200,
+        "MONTHLY_BOOKDEPTH_2023_01": 404,
+        "OBSERVED_ON": "2026-10-02",
+        "PAYLOADS_OPENED": false,
+        "PREFIX_2022_BTCUSDT_KEYS": 0,
+        "PREFIX_2022_ETHUSDT_KEYS": 0,
+        "REQUIRED_LEGAL_RANGE": "2022-01..2024-12",
+        "SOURCE": "BINANCE_VISION_S3_LIST_AND_HEAD",
+        "SPOT_BOOKDEPTH_2023_01_01": 404,
+        "TARDIS_PURCHASED": false,
+        "WINDOW_CHANGED": false
+      },
+      "FINAL_READINESS": "DATA_BLOCKED",
+      "GV0R02_V2_STATUS": "NOT_COMPILED",
+      "MARKET_OUTCOMES_OPENED": false,
+      "MECHANISM_ACTIVE_N": null,
+      "MECHANISM_INACTIVE_N": null,
+      "MIN_ATTAINABLE_P": null,
+      "NAME": "Relative ETH-versus-BTC book thinness and ETH pass-through beta in high-volatility hours",
+      "NEXT_UNIT": "STOP. Do not shorten discovery to 2023-01 and do not buy Tardis L2.",
+      "NOMINAL_N": null,
+      "OWNER_DECISION_REQUIRED": null,
+      "PAID_DATA_REQUIRED": true,
+      "PAID_DATA_SPEND_USD": 0,
+      "PIT_STATUS": "NOT_ASSESSED_COVERAGE_ABSENT",
+      "PRIMARY_LABEL_ORBIT_SIZE": null,
+      "PRIMARY_VARIANT": null,
+      "STAGE_STOPPED": "B",
+      "VARIANT_MATRIX": [
+        {
+          "DATA_REQUIREMENTS": [
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL",
+            "CORE_BTC_BINANCE_V0",
+            "CORE_ETH_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The work is verifying bookDepth archive coverage and cadence, aligning depth snapshots to hourly decision times, running rolling beta regressions, and running a day-block permutation over 8 variants.",
+          "INDEX": 0,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE": "2022-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2021-01..2024-12",
+            "CORE_ETH_BINANCE_V0": "2022-01..2024-12",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL": "2022-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "NOT_ASSESSED_COVERAGE_ABSENT",
+          "REJECTION_REASON": "Public USD-M bookDepth for BTCUSDT and ETHUSDT begins 2023-01-01. The frozen legal range starts 2022-01.",
+          "VARIANT": {
+            "DEPTH_BAND": "0.5pct",
+            "H_HOURS": 1,
+            "REGIME_CUT": "top_tercile"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL",
+            "CORE_BTC_BINANCE_V0",
+            "CORE_ETH_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The work is verifying bookDepth archive coverage and cadence, aligning depth snapshots to hourly decision times, running rolling beta regressions, and running a day-block permutation over 8 variants.",
+          "INDEX": 1,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE": "2022-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2021-01..2024-12",
+            "CORE_ETH_BINANCE_V0": "2022-01..2024-12",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL": "2022-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "NOT_ASSESSED_COVERAGE_ABSENT",
+          "REJECTION_REASON": "Public USD-M bookDepth for BTCUSDT and ETHUSDT begins 2023-01-01. The frozen legal range starts 2022-01.",
+          "VARIANT": {
+            "DEPTH_BAND": "0.5pct",
+            "H_HOURS": 1,
+            "REGIME_CUT": "top_quintile"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL",
+            "CORE_BTC_BINANCE_V0",
+            "CORE_ETH_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The work is verifying bookDepth archive coverage and cadence, aligning depth snapshots to hourly decision times, running rolling beta regressions, and running a day-block permutation over 8 variants.",
+          "INDEX": 2,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE": "2022-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2021-01..2024-12",
+            "CORE_ETH_BINANCE_V0": "2022-01..2024-12",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL": "2022-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "NOT_ASSESSED_COVERAGE_ABSENT",
+          "REJECTION_REASON": "Public USD-M bookDepth for BTCUSDT and ETHUSDT begins 2023-01-01. The frozen legal range starts 2022-01.",
+          "VARIANT": {
+            "DEPTH_BAND": "0.5pct",
+            "H_HOURS": 6,
+            "REGIME_CUT": "top_tercile"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL",
+            "CORE_BTC_BINANCE_V0",
+            "CORE_ETH_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The work is verifying bookDepth archive coverage and cadence, aligning depth snapshots to hourly decision times, running rolling beta regressions, and running a day-block permutation over 8 variants.",
+          "INDEX": 3,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE": "2022-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2021-01..2024-12",
+            "CORE_ETH_BINANCE_V0": "2022-01..2024-12",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL": "2022-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "NOT_ASSESSED_COVERAGE_ABSENT",
+          "REJECTION_REASON": "Public USD-M bookDepth for BTCUSDT and ETHUSDT begins 2023-01-01. The frozen legal range starts 2022-01.",
+          "VARIANT": {
+            "DEPTH_BAND": "0.5pct",
+            "H_HOURS": 6,
+            "REGIME_CUT": "top_quintile"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL",
+            "CORE_BTC_BINANCE_V0",
+            "CORE_ETH_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The work is verifying bookDepth archive coverage and cadence, aligning depth snapshots to hourly decision times, running rolling beta regressions, and running a day-block permutation over 8 variants.",
+          "INDEX": 4,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE": "2022-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2021-01..2024-12",
+            "CORE_ETH_BINANCE_V0": "2022-01..2024-12",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL": "2022-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "NOT_ASSESSED_COVERAGE_ABSENT",
+          "REJECTION_REASON": "Public USD-M bookDepth for BTCUSDT and ETHUSDT begins 2023-01-01. The frozen legal range starts 2022-01.",
+          "VARIANT": {
+            "DEPTH_BAND": "1pct",
+            "H_HOURS": 1,
+            "REGIME_CUT": "top_tercile"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL",
+            "CORE_BTC_BINANCE_V0",
+            "CORE_ETH_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The work is verifying bookDepth archive coverage and cadence, aligning depth snapshots to hourly decision times, running rolling beta regressions, and running a day-block permutation over 8 variants.",
+          "INDEX": 5,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE": "2022-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2021-01..2024-12",
+            "CORE_ETH_BINANCE_V0": "2022-01..2024-12",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL": "2022-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "NOT_ASSESSED_COVERAGE_ABSENT",
+          "REJECTION_REASON": "Public USD-M bookDepth for BTCUSDT and ETHUSDT begins 2023-01-01. The frozen legal range starts 2022-01.",
+          "VARIANT": {
+            "DEPTH_BAND": "1pct",
+            "H_HOURS": 1,
+            "REGIME_CUT": "top_quintile"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL",
+            "CORE_BTC_BINANCE_V0",
+            "CORE_ETH_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The work is verifying bookDepth archive coverage and cadence, aligning depth snapshots to hourly decision times, running rolling beta regressions, and running a day-block permutation over 8 variants.",
+          "INDEX": 6,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE": "2022-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2021-01..2024-12",
+            "CORE_ETH_BINANCE_V0": "2022-01..2024-12",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL": "2022-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "NOT_ASSESSED_COVERAGE_ABSENT",
+          "REJECTION_REASON": "Public USD-M bookDepth for BTCUSDT and ETHUSDT begins 2023-01-01. The frozen legal range starts 2022-01.",
+          "VARIANT": {
+            "DEPTH_BAND": "1pct",
+            "H_HOURS": 6,
+            "REGIME_CUT": "top_tercile"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL",
+            "CORE_BTC_BINANCE_V0",
+            "CORE_ETH_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The work is verifying bookDepth archive coverage and cadence, aligning depth snapshots to hourly decision times, running rolling beta regressions, and running a day-block permutation over 8 variants.",
+          "INDEX": 7,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE": "2022-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2021-01..2024-12",
+            "CORE_ETH_BINANCE_V0": "2022-01..2024-12",
+            "TARDIS_BINANCE_FUTURES_L2_INCREMENTAL": "2022-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "NOT_ASSESSED_COVERAGE_ABSENT",
+          "REJECTION_REASON": "Public USD-M bookDepth for BTCUSDT and ETHUSDT begins 2023-01-01. The frozen legal range starts 2022-01.",
+          "VARIANT": {
+            "DEPTH_BAND": "1pct",
+            "H_HOURS": 6,
+            "REGIME_CUT": "top_quintile"
+          },
+          "ZERO_COST_AVAILABLE": false
+        }
+      ]
+    },
+    "C031": {
+      "ALPHA_ATTAINABLE": null,
+      "BLOCKERS": [
+        "ADDRESS_LABEL_PROVENANCE_AND_EXCHANGE_POLICY_POINT_IN_TIME"
+      ],
+      "CARD": "C031",
+      "CLASS": "ATOMIC",
+      "COMPILED": false,
+      "DATA_STATUS": "LABEL_AND_POLICY_ARCHIVE_ABSENT",
+      "EVIDENCE": {
+        "AS_OF_BINANCE_DEPOSIT_LABEL_ARCHIVE_IN_REPO": false,
+        "BINANCE_FAQ_CONFIRMATION_URL_BODY_BYTES": 0,
+        "COINMETRICS_COMMUNITY_BTC_EXCHANGE_METRICS": [
+          "FlowInExNtv",
+          "FlowInExUSD",
+          "FlowOutExNtv",
+          "FlowOutExUSD"
+        ],
+        "COINMETRICS_COMMUNITY_HAS_ADDRESS_LABELS": false,
+        "COMMERCIAL_LABEL_FEED_PURCHASED": false,
+        "CONFIRMATION_POLICY_DATED_ARCHIVE_FOUND": false,
+        "OBSERVED_ON": "2026-10-02",
+        "SOURCE": "REPOSITORY_AND_PUBLIC_CATALOG_PROBE",
+        "TODAYS_CONFIRMATION_COUNT_USED": false,
+        "TODAYS_LABELS_USED": false
+      },
+      "FINAL_READINESS": "PIT_BLOCKED",
+      "GV0R02_V2_STATUS": "NOT_COMPILED",
+      "MARKET_OUTCOMES_OPENED": false,
+      "MECHANISM_ACTIVE_N": null,
+      "MECHANISM_INACTIVE_N": null,
+      "MIN_ATTAINABLE_P": null,
+      "NAME": "Deposit credit-latency footprint of large on-chain BTC inflows to exchange addresses",
+      "NEXT_UNIT": "STOP. A later unit needs as-of-dated Binance BTC deposit-address labels and a dated confirmation-count policy. Do not use today's labels or today's confirmation count.",
+      "NOMINAL_N": null,
+      "OWNER_DECISION_REQUIRED": null,
+      "PAID_DATA_REQUIRED": true,
+      "PAID_DATA_SPEND_USD": 0,
+      "PIT_STATUS": "PIT_BLOCKED",
+      "PRIMARY_LABEL_ORBIT_SIZE": null,
+      "PRIMARY_VARIANT": null,
+      "STAGE_STOPPED": "B",
+      "VARIANT_MATRIX": [
+        {
+          "DATA_REQUIREMENTS": [
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC",
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE",
+            "CORE_BTC_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "High. It needs full-node block parsing and exchange address-cluster labelling with strict as-of discipline. The kline side is trivial.",
+          "INDEX": 0,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE": "2020-01..2024-12",
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS": "2020-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2020-01..2024-12",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Neither as-of address attribution nor a dated confirmation-count policy is established.",
+          "VARIANT": {
+            "K_SOURCE": "policy_K",
+            "MIN_BTC": 100,
+            "W_MIN": 15
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC",
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE",
+            "CORE_BTC_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "High. It needs full-node block parsing and exchange address-cluster labelling with strict as-of discipline. The kline side is trivial.",
+          "INDEX": 1,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE": "2020-01..2024-12",
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS": "2020-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2020-01..2024-12",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Neither as-of address attribution nor a dated confirmation-count policy is established.",
+          "VARIANT": {
+            "K_SOURCE": "policy_K",
+            "MIN_BTC": 100,
+            "W_MIN": 60
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC",
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE",
+            "CORE_BTC_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "High. It needs full-node block parsing and exchange address-cluster labelling with strict as-of discipline. The kline side is trivial.",
+          "INDEX": 2,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE": "2020-01..2024-12",
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS": "2020-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2020-01..2024-12",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Neither as-of address attribution nor a dated confirmation-count policy is established.",
+          "VARIANT": {
+            "K_SOURCE": "policy_K",
+            "MIN_BTC": 500,
+            "W_MIN": 15
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC",
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE",
+            "CORE_BTC_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "High. It needs full-node block parsing and exchange address-cluster labelling with strict as-of discipline. The kline side is trivial.",
+          "INDEX": 3,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE": "2020-01..2024-12",
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS": "2020-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2020-01..2024-12",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Neither as-of address attribution nor a dated confirmation-count policy is established.",
+          "VARIANT": {
+            "K_SOURCE": "policy_K",
+            "MIN_BTC": 500,
+            "W_MIN": 60
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC",
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE",
+            "CORE_BTC_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "High. It needs full-node block parsing and exchange address-cluster labelling with strict as-of discipline. The kline side is trivial.",
+          "INDEX": 4,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE": "2020-01..2024-12",
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS": "2020-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2020-01..2024-12",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Neither as-of address attribution nor a dated confirmation-count policy is established.",
+          "VARIANT": {
+            "K_SOURCE": "policy_K_plus_1",
+            "MIN_BTC": 100,
+            "W_MIN": 15
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC",
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE",
+            "CORE_BTC_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "High. It needs full-node block parsing and exchange address-cluster labelling with strict as-of discipline. The kline side is trivial.",
+          "INDEX": 5,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE": "2020-01..2024-12",
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS": "2020-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2020-01..2024-12",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Neither as-of address attribution nor a dated confirmation-count policy is established.",
+          "VARIANT": {
+            "K_SOURCE": "policy_K_plus_1",
+            "MIN_BTC": 100,
+            "W_MIN": 60
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC",
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE",
+            "CORE_BTC_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "High. It needs full-node block parsing and exchange address-cluster labelling with strict as-of discipline. The kline side is trivial.",
+          "INDEX": 6,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE": "2020-01..2024-12",
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS": "2020-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2020-01..2024-12",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Neither as-of address attribution nor a dated confirmation-count policy is established.",
+          "VARIANT": {
+            "K_SOURCE": "policy_K_plus_1",
+            "MIN_BTC": 500,
+            "W_MIN": 15
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC",
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE",
+            "CORE_BTC_BINANCE_V0"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "High. It needs full-node block parsing and exchange address-cluster labelling with strict as-of discipline. The kline side is trivial.",
+          "INDEX": 7,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE": "2020-01..2024-12",
+            "BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS": "2020-01..2024-12",
+            "CORE_BTC_BINANCE_V0": "2020-01..2024-12",
+            "EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Neither as-of address attribution nor a dated confirmation-count policy is established.",
+          "VARIANT": {
+            "K_SOURCE": "policy_K_plus_1",
+            "MIN_BTC": 500,
+            "W_MIN": 60
+          },
+          "ZERO_COST_AVAILABLE": false
+        }
+      ]
+    },
+    "C033": {
+      "ALPHA_ATTAINABLE": false,
+      "BLOCKERS": [
+        "PRIMARY_MECHANISM_SUPPORT_ZERO",
+        "ALPHA_UNATTAINABLE",
+        "PROSPECTIVE_MECHANISM_SUPPORT_UNGUARANTEED"
+      ],
+      "CARD": "C033",
+      "CLASS": "COMPOSITE",
+      "COMPILED": false,
+      "COMPILER_POLICY_VERSION": "GV0R02_POLICY_V2",
+      "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V2",
+      "DATA_STATUS": "OUTCOME_BLIND_COUNT_RECORDED",
+      "EVIDENCE": {
+        "READ_ONLY": true
+      },
+      "FINAL_READINESS": "TERMINAL_NOT_PREREGISTRABLE",
+      "GV0R02_V2_STATUS": "DEFINITION_INCOMPLETE",
+      "MARKET_OUTCOMES_OPENED": false,
+      "MECHANISM_ACTIVE_N": 0,
+      "MECHANISM_INACTIVE_N": 1383,
+      "MIN_ATTAINABLE_P": 1.0,
+      "NAME": "Forced-flow joint state",
+      "NEXT_UNIT": "STOP / NOT_PREREGISTRABLE_UNDER_FROZEN_DESIGN",
+      "NOMINAL_N": 1383,
+      "OWNER_DECISION_REQUIRED": null,
+      "PAID_DATA_REQUIRED": false,
+      "PAID_DATA_SPEND_USD": 0,
+      "PIT_STATUS": "NOT_THE_BINDING_CONSTRAINT",
+      "PRIMARY_LABEL_ORBIT_SIZE": 1,
+      "PRIMARY_VARIANT": {
+        "POST_WINDOW_H": 6,
+        "SHOCK_SIGMA": 3,
+        "TAKER_BAND": "p1_p99"
+      },
+      "RECOMPILED_IN_THIS_UNIT": false,
+      "SOURCE_RESULT": "docs/research/GV0V03L40_C033_V2_FEASIBILITY.json",
+      "STAGE_STOPPED": "CANONICAL_V2_RESULT",
+      "VARIANT_MATRIX": []
+    },
+    "C037": {
+      "ALPHA_ATTAINABLE": null,
+      "BLOCKERS": [
+        "POINT_IN_TIME_SUPPLY_HISTORY"
+      ],
+      "CARD": "C037",
+      "CLASS": "ATOMIC",
+      "COMPILED": false,
+      "DATA_STATUS": "PIT_SUPPLY_HISTORY_ABSENT",
+      "EVIDENCE": {
+        "CIRCULATING_SUPPLY_PIT_SERIES_PINNED": false,
+        "OBSERVED_ON": "2026-10-02",
+        "REVISED_SUPPLY_SERIES_ACCEPTED": false,
+        "SOURCE": "FROZEN_CARD_TEXT_AND_REPOSITORY_MANIFESTS",
+        "SPRINT04_PANEL_STATUS_ON_CARD": "DATA_READY",
+        "VENDOR_SUPPLY_VINTAGE_PURCHASED": false,
+        "VOLUME_SHARE_PROXY_ARITHMETIC_IN_FROZEN_CARD": false,
+        "VOLUME_SHARE_PROXY_NAMED_IN_SEARCH_SURFACE": true,
+        "VOLUME_SHARE_PROXY_SELECTED": false
+      },
+      "FINAL_READINESS": "PIT_BLOCKED",
+      "GV0R02_V2_STATUS": "NOT_COMPILED",
+      "MARKET_OUTCOMES_OPENED": false,
+      "MECHANISM_ACTIVE_N": null,
+      "MECHANISM_INACTIVE_N": null,
+      "MIN_ATTAINABLE_P": null,
+      "NAME": "Disposition-driven capital-gains overhang in Binance spot USDT names",
+      "NEXT_UNIT": "STOP. A later unit needs daily circulating supply as known on each date, including unlock revisions. The volume-share proxy was not selected because the frozen card does not define its arithmetic.",
+      "NOMINAL_N": null,
+      "OWNER_DECISION_REQUIRED": null,
+      "PAID_DATA_REQUIRED": true,
+      "PAID_DATA_SPEND_USD": 0,
+      "PIT_STATUS": "PIT_BLOCKED",
+      "PRIMARY_LABEL_ORBIT_SIZE": null,
+      "PRIMARY_VARIANT": null,
+      "STAGE_STOPPED": "B",
+      "VARIANT_MATRIX": [
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The reference-price recursion is simple. The supply-history point-in-time audit is the expensive part.",
+          "INDEX": 0,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR": "2020-01..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Point-in-time circulating supply is not pinned. The volume-share proxy has no frozen formula, so it is not exactly computable.",
+          "VARIANT": {
+            "HOLD_DAYS": 7,
+            "TOP_N": 100,
+            "TURNOVER_SOURCE": "circulating_supply"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The reference-price recursion is simple. The supply-history point-in-time audit is the expensive part.",
+          "INDEX": 1,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR": "2020-01..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": false,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "The frozen card names volume_share_proxy and does not define the estimator. It was not selected.",
+          "VARIANT": {
+            "HOLD_DAYS": 7,
+            "TOP_N": 100,
+            "TURNOVER_SOURCE": "volume_share_proxy"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The reference-price recursion is simple. The supply-history point-in-time audit is the expensive part.",
+          "INDEX": 2,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR": "2020-01..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Point-in-time circulating supply is not pinned. The volume-share proxy has no frozen formula, so it is not exactly computable.",
+          "VARIANT": {
+            "HOLD_DAYS": 7,
+            "TOP_N": 200,
+            "TURNOVER_SOURCE": "circulating_supply"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The reference-price recursion is simple. The supply-history point-in-time audit is the expensive part.",
+          "INDEX": 3,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR": "2020-01..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": false,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "The frozen card names volume_share_proxy and does not define the estimator. It was not selected.",
+          "VARIANT": {
+            "HOLD_DAYS": 7,
+            "TOP_N": 200,
+            "TURNOVER_SOURCE": "volume_share_proxy"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The reference-price recursion is simple. The supply-history point-in-time audit is the expensive part.",
+          "INDEX": 4,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR": "2020-01..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Point-in-time circulating supply is not pinned. The volume-share proxy has no frozen formula, so it is not exactly computable.",
+          "VARIANT": {
+            "HOLD_DAYS": 28,
+            "TOP_N": 100,
+            "TURNOVER_SOURCE": "circulating_supply"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The reference-price recursion is simple. The supply-history point-in-time audit is the expensive part.",
+          "INDEX": 5,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR": "2020-01..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": false,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "The frozen card names volume_share_proxy and does not define the estimator. It was not selected.",
+          "VARIANT": {
+            "HOLD_DAYS": 28,
+            "TOP_N": 100,
+            "TURNOVER_SOURCE": "volume_share_proxy"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The reference-price recursion is simple. The supply-history point-in-time audit is the expensive part.",
+          "INDEX": 6,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR": "2020-01..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": true,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "Point-in-time circulating supply is not pinned. The volume-share proxy has no frozen formula, so it is not exactly computable.",
+          "VARIANT": {
+            "HOLD_DAYS": 28,
+            "TOP_N": 200,
+            "TURNOVER_SOURCE": "circulating_supply"
+          },
+          "ZERO_COST_AVAILABLE": false
+        },
+        {
+          "DATA_REQUIREMENTS": [
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR"
+          ],
+          "ELIGIBLE": false,
+          "IMPLEMENTATION_COST": "Medium. The reference-price recursion is simple. The supply-history point-in-time audit is the expensive part.",
+          "INDEX": 7,
+          "INFERENCE_SUPPORT": "NOT_ASSESSED",
+          "LEGAL_RANGE": {
+            "CIRCULATING_SUPPLY_HISTORY_AGGREGATOR": "2020-01..2024-12",
+            "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0": "2020-01..2024-12"
+          },
+          "MECHANISM_ACTIVE_N": null,
+          "MECHANISM_INACTIVE_N": null,
+          "NOMINAL_SUPPORT_COUNT": null,
+          "PAID_DATA_REQUIRED": false,
+          "PIT_STATUS": "PIT_BLOCKED",
+          "REJECTION_REASON": "The frozen card names volume_share_proxy and does not define the estimator. It was not selected.",
+          "VARIANT": {
+            "HOLD_DAYS": 28,
+            "TOP_N": 200,
+            "TURNOVER_SOURCE": "volume_share_proxy"
+          },
+          "ZERO_COST_AVAILABLE": false
+        }
+      ]
+    }
+  },
+  "LLM_CALLS": 0,
+  "MARKET_OUTCOMES_OPENED": false,
+  "MEMORY_CAMPAIGN_ID": "GV0V03L40",
+  "OBSERVED_ON": "2026-10-02",
+  "OWNER_DECISION_CARDS": [],
+  "PAID_DATA_SPEND_USD": 0,
+  "PREREG_DRAFTS_CREATED": [],
+  "PROTECTED_2025_2026_OPENED": false,
+  "READY_CARDS": [],
+  "SCIENTIFIC_DESIGN_CHANGED": false,
+  "SOURCE_MAIN": "cdf4f9fa3821a6c3255ad497a962e7eb02e08d6e",
+  "TERMINAL_CARDS": [
+    "C033"
+  ],
+  "TEST_IMPLEMENTATION_SPECS_CREATED": [],
+  "TEST_QUEUE": [],
+  "UNIT": "GV0V03L40_SHORTLIST_E2E_READINESS"
+}
