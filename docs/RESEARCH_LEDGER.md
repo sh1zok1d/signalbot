@@ -7088,3 +7088,17 @@ Owner decision after the sealed run (#287, merged at `becb6cd`). No new outcome 
 TWAP_V1 = CLOSED
 NEXT_UNIT = GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING
 ```
+
+## Generator feasibility contract V1 mapping — 2026-10-02
+
+Tooling only. No LLM call, no market data and no scientific outcome. `GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1` maps a shortlisted card's planning object to `GV0R02_SCHEMA_V1`.
+- The V1 design fields live on the planning object, not on the frozen V02 card.
+- The contract checks shape only; the compiler adjudicates the V1 rules.
+
+```
+GENERATOR_FEASIBILITY_CONTRACT_V1 = IMPLEMENTED
+GENERATOR_CARD_SCHEMA_CHANGED = false
+NEXT_UNIT = GENERATOR_V0_FRESH_SHADOW_CAMPAIGN
+```
+
+Record: `docs/research/GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING.md`.

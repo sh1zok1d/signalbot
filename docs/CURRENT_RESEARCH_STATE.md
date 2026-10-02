@@ -1,3 +1,20 @@
+## Generator feasibility contract mapped to V1 — 2026-10-02
+
+`GENERATOR_CONTRACT_VERSION = GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1`
+`GENERATOR_CARD_SCHEMA_CHANGED = false`
+`LLM_CALLS = 0`
+`MARKET_OUTCOMES_OPENED = false`
+`NEXT_UNIT = GENERATOR_V0_FRESH_SHADOW_CAMPAIGN (owner budget decision required)`
+
+A shortlisted card becomes a V1 planning object through `scripts/research/generator_v0/feasibility_contract_v1.py`, which emits `GV0R02_SCHEMA_V1` proposals.
+- **The planning object carries the V1 design decisions:** claim type, target class, variable roles, 1–3 primary cells, practical bar, surfaces within the frozen era roles, and epochs.
+- **The contract checks shape only.** The V1 compiler stays the single adjudicator of the V1 rules.
+- **Unchanged:** the generator card (`GENERATOR_CONTRACT_V02`, `CANDIDATE_SCHEMA_FROZEN`), its prompt, and the V0 planning contract.
+
+Record: `docs/research/GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING.md`.
+
+The next unit is a paid LLM campaign under `docs/AGENT_RUNTIME_PROTOCOL.md`: a fresh shadow run with a new run ID. It needs the owner's absolute budget cap and the allowed roles and call counts before any live call.
+
 ## TWAP V1 closed — owner decision — 2026-10-02
 
 `TWAP_V1 = CLOSED`
