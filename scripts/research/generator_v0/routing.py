@@ -44,8 +44,28 @@ OPENAI_RESPONSES_BACKGROUND_TRANSPORT={'HOST':'api.openai.com','METHOD':'POST','
                                        'AUTH':'Bearer from OPENAI_API_KEY (never persisted)','STREAM':False,'BATCH':False,
                                        'BACKGROUND':True,'STORE':True,'SERVICE_TIER':'default','SDK_RETRIES':False,'SYNC':False,
                                        'CREATE_REPLAY':False}
-BACKGROUND_ENDPOINTS=('OPENAI_RESPONSES_BACKGROUND',)
-_ENDPOINTS={'ANTHROPIC':('ANTHROPIC_MESSAGES',),'OPENAI':('OPENAI_CHAT_COMPLETIONS','OPENAI_RESPONSES_BACKGROUND')}
+# ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1 (owner decision 2026-10-02, after r01 lost a
+# synchronous Messages call at the 1800 s client timeout with no provider id): the GENERATOR
+# request goes into a one-request Message Batch. The create POST is short and returns the batch
+# id, which is journaled before any polling; afterwards the call is only polled by that id and
+# never POSTed again. A create whose acknowledgement is lost is found again by its custom_id in
+# the workspace batch listing. Batch pricing is 50% of standard (official pricing page,
+# 2026-10-02: Claude Opus 5.5 batch input USD 2 / output USD 10 per MTok).
+ANTHROPIC_BATCH_ENDPOINT='ANTHROPIC_MESSAGE_BATCHES'
+BATCH_PRICES={
+    'claude-opus-5-5':{'INPUT':Decimal('2.00'),'OUTPUT':Decimal('10.00'),'CACHE_READ':Decimal('0.10'),
+                       'CACHE_WRITE_5M':Decimal('2.50'),'CACHE_WRITE_1H':Decimal('4.00')},
+}
+ANTHROPIC_BATCH_TRANSPORT={'HOST':'api.anthropic.com','METHOD':'POST','PATH':'/v1/messages/batches','API_VERSION':'2023-06-01',
+                           'POLL':'GET /v1/messages/batches/{batch_id}','RESULTS':'GET /v1/messages/batches/{batch_id}/results',
+                           'RECOVERY':'GET /v1/messages/batches (workspace listing); match the one-request batch by custom_id in its results',
+                           'REQUESTS_PER_BATCH':1,'CUSTOM_ID':'gv0- + digest(RUN_ID, CALL_KEY)[:60]',
+                           'AUTH':'x-api-key from ANTHROPIC_API_KEY (never persisted)','STREAM':False,'BATCH':True,
+                           'PROMPT_CACHING':False,'SDK_RETRIES':False,'SYNC':False,'CREATE_REPLAY':False,
+                           'CLEANUP':'none: the batch and its results stay with the provider as audit evidence',
+                           'PRICE_BASIS':'BATCH','BATCH_PRICES':{m:{k:str(v) for k,v in row.items()} for m,row in BATCH_PRICES.items()}}
+BACKGROUND_ENDPOINTS=('OPENAI_RESPONSES_BACKGROUND',ANTHROPIC_BATCH_ENDPOINT)
+_ENDPOINTS={'ANTHROPIC':('ANTHROPIC_MESSAGES',ANTHROPIC_BATCH_ENDPOINT),'OPENAI':('OPENAI_CHAT_COMPLETIONS','OPENAI_RESPONSES_BACKGROUND')}
 
 # Standard USD per 1M tokens. CACHE_* rows are used only to price usage that
 # reports cache tokens; no route enables caching and no bound uses a discount.
@@ -76,6 +96,19 @@ ROUTES={
                 'ENDPOINT':'OPENAI_CHAT_COMPLETIONS','TRANSPORT':OPENAI_CHAT_TRANSPORT,'ADVISORY_ONLY':True},
 }
 
+# Ladder campaigns (GENERATOR_CONTRACT_V03) only. Every field equals ROUTES except the
+# GENERATOR endpoint and transport. ROUTES (V02, first-30-card) is unchanged.
+LADDER_ROUTES={**copy.deepcopy(ROUTES),'GENERATOR':{**copy.deepcopy(ROUTES['GENERATOR']),'ENDPOINT':ANTHROPIC_BATCH_ENDPOINT,
+                                                     'TRANSPORT':ANTHROPIC_BATCH_TRANSPORT}}
+
+def routes_for_contract(contract_id):
+    """V03 ladder runs use the batch generator; every other run keeps ROUTES."""
+    return LADDER_ROUTES if contract_id=='GENERATOR_CONTRACT_V03' else ROUTES
+
+def prices_for(r):
+    """USD per 1M tokens actually charged on this route (batch routes: the batch table)."""
+    return BATCH_PRICES[r['MODEL']] if r['ENDPOINT']==ANTHROPIC_BATCH_ENDPOINT else PRICES[r['MODEL']]
+
 _REQUIRED=('PROVIDER','MODEL','PARAMS','MAX_OUTPUT_TOKENS','STRUCTURED_OUTPUT','ENDPOINT','TRANSPORT')
 _EFFORTS={'ANTHROPIC':('effort',('low','medium','high','xhigh','max')),
           'OPENAI':('reasoning_effort',('none','low','medium','high','xhigh','max'))}
@@ -89,7 +122,10 @@ def validate_routes(routes=None):
         if r['PROVIDER'] not in PROVIDERS:raise ContractError('unknown provider for '+role)
         if r['MODEL'] not in PRICES:raise ContractError('no verified price for '+role+' model')
         if r['ENDPOINT'] not in _ENDPOINTS[r['PROVIDER']]:raise ContractError('unsupported endpoint for '+role)
-        if role=='GENERATOR' and r['ENDPOINT'] in BACKGROUND_ENDPOINTS:raise ContractError('routed GENERATOR is not a background route')
+        if role=='GENERATOR' and r['ENDPOINT']=='OPENAI_RESPONSES_BACKGROUND':raise ContractError('routed GENERATOR is not a background Responses route')
+        if r['ENDPOINT']==ANTHROPIC_BATCH_ENDPOINT:
+            if role!='GENERATOR':raise ContractError('Message Batches serve the GENERATOR only')
+            if r['TRANSPORT']!=ANTHROPIC_BATCH_TRANSPORT or r['MODEL'] not in BATCH_PRICES:raise ContractError('batch route without the frozen batch transport and price')
         key,allowed=_EFFORTS[r['PROVIDER']]
         if set(r['PARAMS'])!={key} or r['PARAMS'][key] not in allowed:raise ContractError('unsupported effort parameters for '+role)
         cap=r['MAX_OUTPUT_TOKENS']

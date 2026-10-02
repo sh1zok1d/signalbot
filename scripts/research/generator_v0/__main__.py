@@ -33,15 +33,37 @@ def sealed_journal(run_dir):
     return sealed_reason(Path(run_dir)/'run.sqlite') is not None
 
 def _journal_bound_provider(run_dir):
-    """Offline bound path matching the journal's own routing (routed journals record ROUTING_ID)."""
+    """Offline bound path matching the journal's own routing (routed journals record ROUTING_ID;
+    V03 ladder journals use the ladder routes)."""
     dbpath=Path(run_dir)/'run.sqlite'
     if not dbpath.exists():return None
     l=Ledger.open_readonly(dbpath)
-    try:routed=(l.get('config') or {}).get('ROUTING_ID') is not None
+    try:
+        config=l.get('config') or {}
+        routed=config.get('ROUTING_ID') is not None
     finally:l.close()
     if not routed:return None
     from .routed_provider import offline_routed_provider
-    return offline_routed_provider(Contexts())
+    from .routing import routes_for_contract
+    return offline_routed_provider(Contexts(),routes_for_contract(config.get('GENERATOR_CONTRACT')))
+
+def checkpointer_from_args(a,run_dir):
+    """External journal checkpoint target. Required for live V03 ladder runs and resumes."""
+    from .checkpoint import DirectoryCheckpointer,GitCheckpointer
+    if a.checkpoint_dir and a.checkpoint_git_branch:raise ContractError('choose one checkpoint target: --checkpoint-dir or --checkpoint-git-branch')
+    if a.checkpoint_dir:
+        dest=Path(a.checkpoint_dir).resolve()
+        if dest==Path(run_dir).resolve():raise ContractError('the checkpoint directory must differ from the run directory')
+        return DirectoryCheckpointer(dest)
+    if a.checkpoint_git_branch:
+        import subprocess
+        top=subprocess.run(['git','rev-parse','--show-toplevel'],capture_output=True,text=True)
+        if top.returncode!=0:raise ContractError('--checkpoint-git-branch must run inside a git checkout')
+        repo=Path(top.stdout.strip()).resolve()
+        try:rel=(Path(run_dir).resolve()/'checkpoint').relative_to(repo)
+        except ValueError:raise ContractError('--checkpoint-git-branch needs the run directory inside the checkout')
+        return GitCheckpointer(repo,rel,a.checkpoint_git_branch)
+    return None
 
 def refuse_sealed_or_archived(run_dir):
     if archived_paid_run(run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
@@ -80,6 +102,8 @@ def main(argv=None):
     p.add_argument('--accept-budget-stop',action='store_true',help='live run/resume even though the worst case exceeds the authorized remainder (requires --actor and --reason; recorded)')
     p.add_argument('--openai-network-mode',choices=['DIRECT','CLOUD_PROXY'],default=None,help='explicit OpenAI transport for routed runs; ladder-40-card defaults to CLOUD_PROXY, while DIRECT is supported for Cursor/local environments; never inferred from HTTPS_PROXY')
     p.add_argument('--contract',choices=['V02','V03'],default='V02',help='V03 = complexity-ladder card contract (40 slots)')
+    p.add_argument('--checkpoint-dir',type=Path,help='external journal checkpoint: a directory on durable storage')
+    p.add_argument('--checkpoint-git-branch',help='external journal checkpoint: commit <run-dir>/checkpoint/ and push this (current) branch')
     p.add_argument('--field')
     p.add_argument('--value-json')
     a=p.parse_args(argv)
@@ -161,9 +185,11 @@ def main(argv=None):
     if a.provider=='routed':
         from .routed_provider import live_routed_provider,offline_routed_provider,routed_run_identity
         if a.model or os.environ.get('GENERATOR_V0_MODEL'):raise ContractError('the routing registry is authoritative; do not pass --model or GENERATOR_V0_MODEL')
-        if a.allow_real_llm:provider=live_routed_provider(c,cap,os.environ,openai_network_mode=a.openai_network_mode)
+        from .routing import routes_for_contract
+        routes=routes_for_contract(contract_id)
+        if a.allow_real_llm:provider=live_routed_provider(c,cap,os.environ,openai_network_mode=a.openai_network_mode,routes=routes)
         elif a.command in ('run','resume','first-30-card','ladder-40-card'):raise ContractError('routed run/resume requires --allow-real-llm and a nonzero budget')
-        else:provider=offline_routed_provider(c)
+        else:provider=offline_routed_provider(c,routes)
     elif a.provider=='openai':
         from .openai_provider import OpenAIProvider
         from .models import ROLE_MODEL_MAP,ROLE_REQUEST_PARAMS,price_table
@@ -177,7 +203,7 @@ def main(argv=None):
         info={'STATUS':'PREFLIGHT_PASS','PROVIDER':provider.provider_id,'REAL_LLM_CALLS_MADE':False,'BATCH_SIZE':a.size,'STRUCTURED_OUTPUTS_ENABLED':a.provider=='openai','GENERATOR_MAX_OUTPUT_TOKENS':generator_max_output_tokens(provider)}
         if a.contract=='V03':info['GENERATOR_CONTRACT']=contract_id;campaign_plan(contract_id,a.size)
         if a.provider=='routed':
-            pre=fresh_campaign_budget_preflight(a.size,cap or OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,c,bound_provider=offline_routed_provider(c),contract_id=contract_id)
+            pre=fresh_campaign_budget_preflight(a.size,cap or OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,c,bound_provider=offline_routed_provider(c,routes),contract_id=contract_id)
             info.update(STRUCTURED_OUTPUTS_ENABLED=True,**routed_run_identity(provider,c),
                         FRESH_WORST_CASE_SINGLE_ATTEMPT_MICRO_USD=pre['WORST_CASE_REMAINING_MICRO_USD'],
                         FRESH_WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD=pre['WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD'],
@@ -200,7 +226,14 @@ def main(argv=None):
         return gate
     budget_gate=None
     if a.provider=='openai' and a.command=='run':budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c,contract_id=contract_id))
-    if a.provider=='routed' and a.command in ('run','first-30-card','ladder-40-card'):budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c,bound_provider=offline_routed_provider(c),contract_id=contract_id))
+    if a.provider=='routed' and a.command in ('run','first-30-card','ladder-40-card'):budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c,bound_provider=offline_routed_provider(c,routes),contract_id=contract_id))
+    checkpointer=None
+    if a.command in ('run','resume','ladder-40-card') and a.contract=='V03' and a.allow_real_llm:
+        # ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1: paid provider state leaves the machine.
+        checkpointer=checkpointer_from_args(a,a.run_dir)
+        if checkpointer is None:raise ContractError('a live V03 ladder run needs an external journal checkpoint: --checkpoint-git-branch <current branch> or --checkpoint-dir <durable dir>')
+    elif a.checkpoint_dir or a.checkpoint_git_branch:
+        checkpointer=checkpointer_from_args(a,a.run_dir)
     a.run_dir.mkdir(parents=True,exist_ok=True)
     config={'RUN_ID':a.run_dir.name,'PROVIDER':provider.provider_id,'MODEL':provider.model_id,'SIZE':a.size,'CAP_MICRO_USD':cap,'CONTEXT_DIGEST':digest(c.generator()),'IMPLEMENTATION_DIGEST':digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))}),'GENERATOR_MAX_OUTPUT_TOKENS':generator_max_output_tokens(provider)}
     if a.contract=='V03':
@@ -212,6 +245,7 @@ def main(argv=None):
         ident=provider.transport_identity()
         config.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()},PRICE_TABLE=price_table(),ROUTING_DIGEST=provider.routing_digest,REQUEST_TIMEOUT_SECONDS=provider.request_timeout_seconds,**ident)
     l=Ledger(dbpath,config)
+    l.checkpointer=checkpointer
     try:
         caller=Caller(c,l,provider,cap,a.allow_real_llm)
         if a.provider in ('openai','routed') and a.command=='resume':
@@ -228,7 +262,10 @@ def main(argv=None):
                 from .runner import incomplete_progress
                 atomic_json(a.run_dir/'incomplete_budget_stop.json',{'RUN_ID':config['RUN_ID'],'STATUS':'INCOMPLETE_BUDGET_STOP',**incomplete_progress(l),
                                                                     'SPEND_MICRO_USD':l.total_charged_micro_usd()})
-            print(canonical({'RUN_ID':config['RUN_ID'],'STATUS':l.get('status'),'STOP':type(e).__name__,'DETAIL':str(e)[:500],'SPEND_MICRO_USD':l.total_charged_micro_usd()}))
+            stop={'RUN_ID':config['RUN_ID'],'STATUS':l.get('status'),'STOP':type(e).__name__,'DETAIL':str(e)[:500],'SPEND_MICRO_USD':l.total_charged_micro_usd(),
+                  'OPEN_PROVIDER_CALLS':l.provider_handles()}
+            if checkpointer is not None:stop['CHECKPOINT']=dict(checkpointer.describe(),LAST_SEQUENCE=checkpointer.sequence,ERROR=getattr(e,'checkpoint_error',None))
+            print(canonical(stop))
             raise
         atomic_json(a.run_dir/'shadow_registry.json',result)
         atomic_json(a.run_dir/'data_gap_ledger.json',result.get('DATA_GAP_LEDGER_V0',[]))

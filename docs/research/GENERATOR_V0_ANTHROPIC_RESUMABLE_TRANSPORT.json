@@ -1,0 +1,126 @@
+{
+  "RECORD": "ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1",
+  "STATUS": "IMPLEMENTED_OFFLINE",
+  "DATE": "2026-10-02",
+  "AUTHORITY": "owner decision 2026-10-02 after ladder-40-card r01 (sync Messages call lost at the 1800 s client timeout, no provider id)",
+  "KIND": "INFRASTRUCTURE_AMENDMENT",
+  "SCIENTIFIC_DESIGN_CHANGED": false,
+  "LLM_CALLS": 0,
+  "PAID_CALLS": 0,
+  "APPLIES_TO": "GENERATOR_CONTRACT_V03 ladder runs (routing.LADDER_ROUTES via routes_for_contract)",
+  "GENERATOR_ENDPOINT": {
+    "V02": "ANTHROPIC_MESSAGES",
+    "V03": "ANTHROPIC_MESSAGE_BATCHES"
+  },
+  "REQUEST_IDENTITY": "batch params == synchronous request without stream (model claude-opus-5-5, effort high, max_tokens 100000, output_config.format compact schema)",
+  "STATES": {
+    "RESERVED": "never sent",
+    "DISPATCHED": "custom_id + dispatch time journaled before the create POST",
+    "BACKGROUND_SUBMITTED": "PROVIDER_ACCEPTED: batch id journaled, external checkpoint before the first poll; POLLING updates provider_status",
+    "COMPLETE": "validated message, batch-priced"
+  },
+  "NEVER_REPOST_AFTER": "DISPATCHED with a recovery intent or BACKGROUND_SUBMITTED",
+  "CUSTOM_ID": "gv0- + digest({RUN_ID, CALL_KEY})[:60]",
+  "RECOVERY": {
+    "SOURCE": "GET /v1/messages/batches (newest first, after_id pagination) + results custom_id match",
+    "SKEW_SECONDS": 600,
+    "CREATE_TIMEOUT_SECONDS": 120,
+    "SETTLE_SECONDS": 900,
+    "ABSENT": "FAILED_NOT_BILLED with listing evidence, next transport attempt",
+    "UNDECIDED": "PENDING"
+  },
+  "POLLING": {
+    "INTERVAL_SECONDS": 30,
+    "GET_TIMEOUT_SECONDS": 60,
+    "MAX_WAIT_SECONDS_PER_INVOCATION": 21600,
+    "TIMEOUT_OR_5XX": "keep polling, then PAUSED_BACKGROUND_PENDING",
+    "401_402_403_404": "PAUSED_BACKGROUND_PENDING"
+  },
+  "RESULT_TYPES": {
+    "succeeded": "COMPLETE or FAILED_WITH_COST (unusable, batch usage cost)",
+    "errored retryable (rate_limit_error, overloaded_error, api_error, timeout_error)": "FAILED_NOT_BILLED, retried",
+    "expired": "FAILED_NOT_BILLED, retried",
+    "errored other": "FAILED_NOT_BILLED, PAUSED_PROVIDER_REJECTED",
+    "canceled": "FAILED_NOT_BILLED, PAUSED_PROVIDER_REJECTED"
+  },
+  "CHECKPOINTS": {
+    "STAGES": [
+      "PROVIDER_ACCEPTED",
+      "ROUND_COMPLETE",
+      "REVIEW_BLOCK (every 10 cards)",
+      "CAMPAIGN_RESULT",
+      "CAMPAIGN_<status>"
+    ],
+    "TARGETS": [
+      "--checkpoint-git-branch <current branch>",
+      "--checkpoint-dir <durable dir>"
+    ],
+    "REQUIRED_FOR": "live V03 run / ladder-40-card / resume",
+    "FAILURE": "PAUSED_CHECKPOINT_FAILED"
+  },
+  "PRICES_USD_PER_MTOK": {
+    "claude-opus-5-5": {
+      "STANDARD": {
+        "INPUT": "4.00",
+        "OUTPUT": "20.00"
+      },
+      "BATCH": {
+        "INPUT": "2.00",
+        "OUTPUT": "10.00"
+      }
+    }
+  },
+  "BOUNDS_MICRO_USD": {
+    "GENERATOR_ROUND_SYNC": 2210772,
+    "GENERATOR_ROUND_BATCH": {
+      "generation:0": 1105356,
+      "generation:1": 1105406,
+      "generation:2": 1105398,
+      "generation:3": 1105736
+    },
+    "V03_FRESH_WORST_CASE_SINGLE_ATTEMPT": {
+      "BEFORE": 30749115,
+      "AFTER": 26326979
+    },
+    "V03_FRESH_WORST_CASE_WITH_CONTENT_RETRIES": {
+      "BEFORE": 61496292,
+      "AFTER": 52652020
+    }
+  },
+  "DIGESTS": {
+    "V02_ROUTING_DIGEST": "c636f14a9e48dc07f8ebca16666c80dd20343171a6535f3ec8c47d8f71afc596",
+    "V02_ROUTED_IDENTITY_DIRECT": "e44543e3f071ec2ecba3b91aacc020c032d586bd4e8b90b81e939fd2451da245",
+    "V02_ROUTED_IDENTITY_CLOUD_PROXY": "cfc6114e921fcf2b319ab497ba9ea4740bae9f72cf16f639732282f81077a1e8",
+    "V03_LADDER_ROUTING_DIGEST": "967e9883699f4146097c275dd6714f0c4eec077c31137ce0a3e27883144dcec9",
+    "V03_ROUTED_IDENTITY_DIRECT": "c4342246fffaacda2f920fc3076742d539d808fdfeca98e981770ad73d932da7",
+    "V03_ROUTED_IDENTITY_CLOUD_PROXY": "bcb64b7164fcb12cd336d15c1ad630af96743968de8f561e35ebf86e297c3801"
+  },
+  "UNCHANGED": [
+    "GENERATOR_CONTRACT_V03 and LADDER_IDENTITY",
+    "slot plan 16/14/7/3",
+    "prompts, schemas, compact wire",
+    "models and effort",
+    "100000 output cap",
+    "critic routes",
+    "shortlist 2/2/1",
+    "INCOMPLETE_BUDGET_STOP",
+    "memory finalizer",
+    "V02 routes and first-30-card"
+  ],
+  "VERIFIED_PROVIDER_FACTS_2026_10_02": [
+    "Batches accept every Messages parameter except stream:true, speed, max_tokens:0",
+    "all active models supported",
+    "params validated asynchronously (errored result)",
+    "errored/canceled/expired not billed",
+    "batch price 50% of standard; usage.service_tier=batch",
+    "24 h processing expiry; results 29 days",
+    "custom_id ^[a-zA-Z0-9_-]{1,64}$",
+    "listing newest first; after_id=last_id for older pages"
+  ],
+  "TESTS": [
+    "tests/research/test_generator_v0_anthropic_batch_transport.py",
+    "tests/research/test_generator_v0_ladder_rehearsal.py"
+  ],
+  "R01": "INFRASTRUCTURE_FAILED_FROZEN; not resumable with this code (routing digest differs); BILLED reconcile later from the Anthropic console cost",
+  "NEXT_UNIT": "LADDER40_V03_R02 (fresh owner live authorization required)"
+}

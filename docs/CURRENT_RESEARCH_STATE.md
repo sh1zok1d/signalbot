@@ -1,3 +1,34 @@
+## Generator V0 — r01 frozen, resumable Anthropic transport — 2026-10-02
+
+`LADDER40_V03_R01 = INFRASTRUCTURE_FAILED_FROZEN`
+`ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1 = IMPLEMENTED (offline; no LLM call)`
+`SCIENTIFIC_DESIGN_CHANGED = false`
+`MEMORY_FINALIZER = NOT_RUN`
+`PROTECTED_2025_2026_OPENED = false`
+`MARKET_OUTCOMES_TESTED = false`
+`NEXT_UNIT = LADDER40_V03_R02 (identical V03 design; needs a fresh owner live authorization)`
+
+**What r01 was.**
+- The owner-authorized `ladder-40-card` on `GENERATOR_CONTRACT_V03` with a USD 12 cap. Cursor ran it with OpenAI `DIRECT`.
+- It stopped on its first call. The synchronous Anthropic Messages POST for `generation:0` held the connection until the 1800 s client timeout.
+- The call is `UNCERTAIN`: no message id, a USD 2.210772 reservation, no cards and no shortlist.
+- Record: `docs/research/GENERATOR_V0_LADDER40_V03_R01_PAUSE.{md,json}`. Journal snapshot: `docs/research/generator_v0_ladder40_v03_r01/run.sqlite` (SHA256 `72b7aaa7…`).
+
+**Owner decision on r01.**
+- It is a technically failed run, frozen: no `UNKNOWN` reconcile, no replay and no resume.
+- The exact cost is recorded later as an offline `BILLED` reconcile, when the Anthropic console shows it.
+
+**The fix.** `ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1`, record `docs/research/GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.{md,json}`.
+- **Message Batches.** The ladder GENERATOR goes through a one-request Message Batch:
+  - the `custom_id` is journaled before the create POST;
+  - the batch id is journaled at acceptance, and the call is then only polled;
+  - a lost create acknowledgement is found again by `custom_id`;
+  - a poll failure leaves the call `PENDING`, never `UNCERTAIN`.
+- **External checkpoints.** The journal is checkpointed outside the machine at acceptance, after every round and stage, and on every stop. A checkpoint target is mandatory for a live V03 run.
+- **Price.** Batch price is half of standard. The generator reservation is about USD 1.105 per round. The fresh V03 worst case is USD 26.33 (USD 30.75 before), so the USD 12 cap still needs `--accept-budget-stop`.
+- **Unchanged.** V02 routes and `first-30-card` are byte-identical. The V03 design is unchanged: slot plan, prompts, schemas, models, effort, critics, the 2/2/1 shortlist and the budget-stop semantics.
+- **Tests.** Offline crash/resume fault tests on fake transports and a fake clock: 25 new tests plus the rehearsal on the batch route.
+
 ## Generator V0 Cursor DIRECT transport amendment — 2026-10-02
 
 `CURSOR_DIRECT_TRANSPORT = implementation/infrastructure amendment only`
