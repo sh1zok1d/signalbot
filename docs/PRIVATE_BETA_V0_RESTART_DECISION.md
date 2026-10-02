@@ -3,7 +3,7 @@
 **Status:** `OWNER_AUTHORIZED / IMPLEMENTED_OFFLINE / NOT_ACTIVATED`
 **Date:** 2026-09-25
 **Contract:** SIGNALBOT PRIVATE BETA V0.2 implementation contract (owner-authorized design, anchor `0af0ce5`)
-**Operating mode:** `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN`
+**Operating mode:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN` since 2026-10-02 (`PRODUCT_FIRST_DECISION_V1.md`); the original mode `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN` is historical.
 
 ## Decision
 
@@ -140,7 +140,19 @@ The owner enabled the committed push hard switch (`beta.push_enabled: true`, PR 
 - **The gate:** `BETA_HISTORICAL_ANALOGUE_GATE_V1.md`, which is also the decision-7 promotion gate for that surface.
 - **Everything else** stays under `PREDICTIVE_PRODUCT_FROZEN`.
 
+### Owner amendment (2026-10-02): product-first; build-to-test scope
+
+**Authority:** `PRODUCT_FIRST_DECISION_V1.md` is the canonical product decision. For the beta it fixes:
+- the implementation scope before any external user (its §3 MUST list: shared view builder, `/catchup`, morning briefing, 1h/4h context with interpretation labels, a product-level 1h gate over existing `TRIGGERED` episodes, push policy, surface clean-up, minimal telemetry);
+- the architectural constraint (§4): one detector, one episodization, one context projection, one shared view builder, one outbox, one notifier;
+- the DO-NOT-BUILD-YET list (§5), which includes the analogue summaries of decision 2 above;
+- the data/launch orientation (§6) and the 30-day user test (§7), which replaces the exit criteria below for the first external cohort: days 1–7 calibration, frozen from day 8, the unknowns U1a/U1b/U2/U3/U4/U5 with pre-fixed thresholds and the Continue / Reposition / Pivot / Stop rules.
+
+**Unchanged:** decisions 1–7 above, `BETA_EVENT_RULES_V1`, the rules digest, the tape schema, the push hard switches, the boundary flags and the research boundary. `BETA_V0_3_MARKET_BRIEFING.md` stays the record of the `CHANGE PRODUCT` outcome; where it differs from the decision (briefing episodes, 24h label, 90-day baselines, separate notifier) it is superseded.
+
 ## Beta success and exit criteria (frozen before inviting external users)
+
+> **2026-10-02:** for the first external cohort these criteria are replaced by `PRODUCT_FIRST_DECISION_V1.md` §7. They are kept here as the record of the V0.2 criteria under which the owner-only run ended in `CHANGE PRODUCT`.
 
 - **Duration:** 4 weeks from the first external user.
 - **Target:** 10–20 invited users.

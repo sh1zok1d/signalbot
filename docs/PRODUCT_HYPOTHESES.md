@@ -1,10 +1,12 @@
 # Signalbot Product Hypotheses — DEFERRED PARKING LOT
 
-**Status:** `DEFERRED / NON-EXECUTABLE`.
+**Status:** `DEFERRED / NON-EXECUTABLE / SUPERSEDED_AS_GATE_2026-10-02`.
 
-Product/business exploration is intentionally frozen while Signalbot is in research-first mode. Nothing in this file authorizes implementation.
+**2026-10-02:** the earlier rule below ("the next product decision only after a mechanism earns independent validation") is superseded by `PRODUCT_FIRST_DECISION_V1.md`: the product is tested with real users on product evidence, while research claims keep the research contract. H1 (information compression) is the hypothesis under test there. Nothing in this file authorizes implementation.
 
-The next product decision should happen only after at least one analytical mechanism earns independent validation under `EDGE_RESEARCH_PROTOCOL.md`, or after the research program produces a clear reason to pivot away from predictive trading use cases.
+Product/business exploration was frozen while Signalbot was in research-first mode, until 2026-10-02.
+
+The earlier rule: the next product decision should happen only after at least one analytical mechanism earns independent validation under `EDGE_RESEARCH_PROTOCOL.md`, or after the research program produces a clear reason to pivot away from predictive trading use cases.
 
 ## H1 — Information compression
 
