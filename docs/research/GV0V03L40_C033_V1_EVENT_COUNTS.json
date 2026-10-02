@@ -1,0 +1,55 @@
+{
+  "ALL4_BEFORE_THINNING": 0,
+  "ALL4_COUNT_BY_YEAR": {},
+  "BTC_15M_BARS": 175392,
+  "COUNTING_NOTE": "TOTAL_ELIGIBLE_SHOCKS counts shock bars with a complete trailing window before the 6h rule. KEPT_ELIGIBLE_SHOCKS and DEPENDENCE_CLUSTER_COUNT are the first bar in each 6h cluster. TOTAL_ALL4_EVENTS counts the all-four joint state on those kept bars. COUNT_BY_YEAR and DISTINCT_DAYS describe the kept eligible shocks, which are the nominal sample.",
+  "COUNT_BY_YEAR": {
+    "2020": 211,
+    "2021": 286,
+    "2022": 299,
+    "2023": 288,
+    "2024": 299
+  },
+  "DATASETS": [
+    "CORE_BTC_BINANCE_V0",
+    "CORE_ETH_BINANCE_V0"
+  ],
+  "DEPENDENCE_CLUSTER_COUNT": 1383,
+  "DETECTOR": "C033_PRIMARY_STATE_COUNT_V1",
+  "DISTINCT_DAYS": 971,
+  "ETH_15M_BARS": 175392,
+  "KEPT_ELIGIBLE_SHOCKS": 1383,
+  "LEGAL_RANGE": "2020-01..2024-12",
+  "MARKET_OUTCOMES_OPENED": false,
+  "NOT_COMPUTED": [
+    "RV_DECAY",
+    "future realized variance",
+    "price or return after T",
+    "MFE",
+    "MAE",
+    "future direction",
+    "target values"
+  ],
+  "PRIMARY_CELL": {
+    "POST_WINDOW_H": 6,
+    "SHOCK_SIGMA": 3.0,
+    "TAKER_BAND": "p1_p99"
+  },
+  "PROTECTED_2025_2026_OPENED": false,
+  "RETURN_DEFINITION": "15m log(close/open), known at the bar end",
+  "SHOCK_SIGMA_WINDOW": "TRAILING_30D_OF_15M_LOG_OPEN_TO_CLOSE_STRICTLY_BEFORE_T",
+  "SHOCK_SIGMA_WINDOW_BASIS": "The card names trailing sigma for the BTC shock and names trailing-30d only for the ETH sigma and the fragmentation percentile. The BTC shock sigma uses that same 30d window. It is not a searched parameter.",
+  "THINNING": "first eligible shock whose end is at least 6h after the previous kept shock",
+  "THRESHOLD_WINDOW": "strictly earlier bars; the event bar is not inside its own percentile or sigma",
+  "COMPONENT_FLAGS_ON_ELIGIBLE_SHOCKS": {
+    "ONE_SIDED_TAKER_BURST": 44,
+    "TRADE_FRAGMENTATION": 53,
+    "CROSS_ASSET_SYNCHRONY": 1628,
+    "INTRABAR_OVERSHOOT": 251,
+    "TAKER_AND_FRAGMENTATION": 1,
+    "ALL4": 0
+  },
+  "TOTAL_ALL4_EVENTS": 0,
+  "TOTAL_ELIGIBLE_SHOCKS": 2926,
+  "ZIP_OBJECTS": 120
+}

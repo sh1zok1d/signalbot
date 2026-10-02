@@ -7233,3 +7233,20 @@ MARKET_OUTCOMES_TESTED = false
 ```
 
 Record: `docs/research/GENERATOR_V0_V03_RESUMABLE_CRITICS_AND_DERIVED_CONTINUATION.{md,json}`.
+
+## GV0V03L40 C033 outcome-blind count — 2026-10-02
+
+Pinned `CORE_BTC_BINANCE_V0` and `CORE_ETH_BINANCE_V0` monthly archives for `2020-01..2024-12` were read to count the frozen C033 primary state. The read stops at 2024-12. No `RV_DECAY`, post-T return, or target value was computed. The window is not a consumed confirmatory result.
+
+```
+TOTAL_ELIGIBLE_SHOCKS = 2926
+KEPT_AFTER_6H = 1383
+TOTAL_ALL4_EVENTS = 0
+FEASIBILITY_STATUS = FEASIBLE_FOR_PREREGISTRATION
+C033_NEXT = PREREGISTRATION_DESIGN
+EXECUTION_AUTHORIZED = false
+MARKET_OUTCOMES_OPENED = false
+PROTECTED_2025_2026_OPENED = false
+```
+
+Record: `docs/research/GV0V03L40_C033_V1_FEASIBILITY.md`.

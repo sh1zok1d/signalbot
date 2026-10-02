@@ -1,0 +1,169 @@
+{
+  "BLOCKING_ASSUMPTIONS": [
+    "The permutation keeps each component's marginal count inside YEAR x SHOCK_SIZE_STRATUM.",
+    "Overlapping trailing feature windows remain in the dependence description.",
+    "Volatility clustering remains in the dependence description.",
+    "Multiple shocks inside one market episode remain in the dependence description.",
+    "Common ETH and BTC shocks remain in the dependence description.",
+    "A time gap between events is not treated as independence."
+  ],
+  "CANDIDATE_ID": "C033",
+  "CLAIM_TYPE": "INCREMENTAL",
+  "COMPLEXITY_CLASS": "COMPOSITE",
+  "COMPONENTS": [
+    "One-sided taker burst: 15m taker-buy share of quote volume outside the frozen trailing-90d percentile band",
+    "Trade fragmentation: 15m trade count per unit quote volume above the trailing-30d 95th percentile",
+    "Cross-asset synchrony: ETH 15m return of the same sign as the BTC shock and beyond 3 trailing-30d ETH sigma",
+    "Intrabar overshoot: the 15m extreme in the shock direction exceeds the 15m close by at least 40 percent of the 15m high-low range"
+  ],
+  "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+  "COUNTERFACTUAL_CLASS": "Permute the ALL4 joint label within YEAR x SHOCK_SIZE_STRATUM while preserving individual component main effects, their marginal counts, and the frozen nuisance structure.",
+  "DATA_SOURCE_REFS": {
+    "FEATURE_IDS": [
+      "CORE_BTC_BINANCE_V0",
+      "CORE_ETH_BINANCE_V0"
+    ],
+    "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+  },
+  "DEPENDENCE_CLUSTERING_UNIT": "6H_EVENT_CLUSTER",
+  "DISCOVERY_SURFACE": {
+    "END": "2025-01-01",
+    "ID": "BINANCE_2020_2024",
+    "START": "2020-01-01"
+  },
+  "ENDPOINT_MOMENT": "SECOND_MOMENT",
+  "EPOCHS": "CALENDAR_YEAR",
+  "ERA_INVARIANCE_PRIOR": "NOT_EXPECTED",
+  "ERA_INVARIANCE_RATIONALE": "No BitMEX replication is claimed. The prospective Binance surface stays separate from discovery.",
+  "ERA_ROLES": {
+    "BINANCE_2020_2024": "DISCOVERY",
+    "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+    "Y2025_2026": "PROTECTED_HOLDOUT"
+  },
+  "EVENT_OR_STATE_DEFINITION": "Primary cell only: BTC 15m absolute log(close/open) beyond 3 trailing-30d sigma, taker-buy quote share outside the trailing-90d p1-p99 band, trade count per quote volume above the trailing-30d 95th percentile, ETH 15m return of the same sign beyond 3 trailing-30d ETH sigma, and intrabar overshoot of at least 40 percent of the 15m range. The nominal sample keeps the first eligible shock in each 6h cluster.",
+  "EXPECTED_EFFECT": {
+    "DIRECTION": "NEGATIVE",
+    "MIN_MEANINGFUL_EFFECT": 0.2,
+    "RATIONALE": "An incremental effect smaller than 0.20 outcome SD is not large enough to justify carrying a four-component forced-flow state into the Signalbot decision/context layer. This is a planning magnitude. It is not an observed effect.",
+    "UNITS": "STANDARDIZED_RV_DECAY_SD"
+  },
+  "FALSIFIABLE_CLAIM": "The joint coefficient lies inside the permutation null. Alternatively, it has the opposite sign, meaning slower decay, in at least 3 of 5 years.",
+  "FEATURE_REQUIREMENTS": [
+    "CORE_BTC_BINANCE_V0",
+    "CORE_ETH_BINANCE_V0"
+  ],
+  "HISTORICAL_WINDOW": "2020-01..2024-12",
+  "INTRADAY": true,
+  "MECHANISM": "Liquidation engines send price-insensitive market orders that are finite in quantity. Once the inventory of margin-deficient positions is exhausted, the forcing stops. A shock produced by forced flow should therefore lose volatility faster than an equal-size shock driven by discretionary information. The forced-flow state is identified only when several independent footprints occur together.",
+  "MEMORY_CAMPAIGN_ID": "GV0V03L40",
+  "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+  "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+    "COUNTING_UNIT": "KEPT_ELIGIBLE_15M_SHOCK_AFTER_6H_THINNING",
+    "DECLARED_COUNT_BY_YEAR": {
+      "2020": 211,
+      "2021": 286,
+      "2022": 299,
+      "2023": 288,
+      "2024": 299
+    },
+    "DECLARED_NOMINAL_COUNT": 1383,
+    "EXCLUSION_RULE": "Bars without a complete trailing window, bars inside 6h after a kept shock, and every month from 2025-01 onward.",
+    "INCLUSION_RULE": "BTC 15m bar with a complete trailing 90d history whose absolute log(close/open) exceeds 3 trailing-30d sigma, then the first such bar in each 6h cluster.",
+    "OUTCOME_FILTER": "NONE",
+    "WINDOW": "2020-01..2024-12"
+  },
+  "OUTCOME_BLIND_COUNTS": {
+    "COUNT_BY_YEAR": {
+      "2020": 211,
+      "2021": 286,
+      "2022": 299,
+      "2023": 288,
+      "2024": 299
+    },
+    "DEPENDENCE_CLUSTER_COUNT": 1383,
+    "DISTINCT_DAYS": 971,
+    "TOTAL_ALL4_EVENTS": 0,
+    "TOTAL_ELIGIBLE_SHOCKS": 2926
+  },
+  "POINT_IN_TIME_REQUIREMENTS": [
+    {
+      "DATASET_ID": "CORE_BTC_BINANCE_V0",
+      "PIT_STATUS": "VERIFIED"
+    },
+    {
+      "DATASET_ID": "CORE_ETH_BINANCE_V0",
+      "PIT_STATUS": "VERIFIED"
+    }
+  ],
+  "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+  "PRIMARY_CELLS": [
+    {
+      "ESTIMAND": "standardized incremental coefficient of FORCED_FLOW_ALL4_JOINT on RV_DECAY beyond component main effects and nuisance baseline",
+      "HORIZON": "post window from T+1h through T+7h (POST_WINDOW_H = 6h)",
+      "REGIME": "ALL_ELIGIBLE_BTC_15M_SHOCKS"
+    }
+  ],
+  "PRIMARY_FREEZE": {
+    "POST_WINDOW_H": 6,
+    "PRIMARY_CELLS": 1,
+    "SHOCK_SIGMA": 3,
+    "TAKER_BAND": "p1_p99"
+  },
+  "PRIMARY_OBSERVABLE": "FORCED_FLOW_ALL4_JOINT",
+  "PROPOSAL_ID": "GV0V03L40-C033-V1",
+  "QUALITATIVE_DEPENDENCE_SOURCES": [
+    "overlapping trailing feature windows",
+    "volatility clustering",
+    "multiple shocks inside the same market episode",
+    "common ETH/BTC market shocks"
+  ],
+  "REPLICATION_SURFACE": {
+    "ID": "BINANCE_PROSPECTIVE_C033_V1",
+    "KIND": "PROSPECTIVE",
+    "START": "2027-01-01",
+    "STARTS_AFTER_FREEZE": true,
+    "STOPPING_RULE": {
+      "COUNTS_ONLY_MONITORING": true,
+      "END_DATE": "2028-12-31",
+      "MAX_EPISODES": 1500,
+      "MIN_N": 1000,
+      "PRODUCT_EXPOSURE_HANDLING": "hidden from product users until the stopping rule fires and the replication result is separately authorized"
+    }
+  },
+  "REQUIRED_STRESS_SCREENS": [
+    "STRESS_SD_MULTIPLIER",
+    "HOMOGENEOUS_EFFECT",
+    "ZERO_EFFECT_IN_ONE_ERA"
+  ],
+  "SECONDARY_DIAGNOSTIC_VARIANTS": {
+    "ENTERS_PRIMARY_MULTIPLICITY": false,
+    "POST_WINDOW_H": 12,
+    "ROLE": "SECONDARY_DIAGNOSTIC_ONLY",
+    "SHOCK_SIGMA": 4,
+    "TAKER_BAND": "p2_p98"
+  },
+  "SOURCE_RUN_ID": "ladder-40-card-v03-r02-derived-critics-v2",
+  "TARGET_CLASS": "UNCONDITIONAL",
+  "VARIABLE_ROLES": {
+    "MECHANISM_VARIABLES": [
+      "FORCED_FLOW_ALL4_JOINT"
+    ],
+    "NUISANCE_BASELINE_VARIABLES": [
+      "PRIOR_REALIZED_VOLATILITY",
+      "LAGGED_TARGET",
+      "TIME_OF_DAY",
+      "ONE_SIDED_TAKER_BURST",
+      "TRADE_FRAGMENTATION",
+      "CROSS_ASSET_SYNCHRONY",
+      "INTRABAR_OVERSHOOT",
+      "One-sided taker burst: 15m taker-buy share of quote volume outside the frozen trailing-90d percentile band",
+      "Trade fragmentation: 15m trade count per unit quote volume above the trailing-30d 95th percentile",
+      "Cross-asset synchrony: ETH 15m return of the same sign as the BTC shock and beyond 3 trailing-30d ETH sigma",
+      "Intrabar overshoot: the 15m extreme in the shock direction exceeds the 15m close by at least 40 percent of the 15m high-low range",
+      "LOG_SHOCK_SIZE",
+      "HOUR_OF_WEEK",
+      "YEAR"
+    ],
+    "REGIME_VARIABLES": []
+  }
+}

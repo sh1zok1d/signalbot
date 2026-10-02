@@ -1,3 +1,21 @@
+## GV0V03L40 C033 V1 feasibility — 2026-10-02
+
+`MEMORY_CAMPAIGN_ID = GV0V03L40`
+`SOURCE_RUN_ID = ladder-40-card-v03-r02-derived-critics-v2`
+`C033_PLANNING_VALIDATION = PASS`
+`GV0R02_SCHEMA = GV0R02_SCHEMA_V1`
+`GV0R02_POLICY = GV0R02_POLICY_V1`
+`FEASIBILITY_STATUS = FEASIBLE_FOR_PREREGISTRATION`
+`C033_NEXT = PREREGISTRATION_DESIGN`
+`EXECUTION_AUTHORIZED = false`
+`TOTAL_ALL4_EVENTS = 0`
+`NOMINAL_N = 1383`
+`MARKET_OUTCOMES_OPENED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`LLM_CALLS = 0`
+
+C033 is the only shortlist card in this planning unit. The primary cell is `SHOCK_SIGMA = 3`, `TAKER_BAND = p1_p99`, `POST_WINDOW_H = 6`. The compiler screen on the thinned eligible-shock sample is feasible. The all-four joint label occurs zero times in 2020–2024. That count is recorded and the design was not repaired after the compile. No preregistration is executed here. C005, C024, C031 and C037 stay blocked. Record: `docs/research/GV0V03L40_C033_V1_FEASIBILITY.md`.
+
 ## Beta V0.3 — market briefing and analogue gate — 2026-10-02
 
 `BETA_SURFACE = MARKET_BRIEFING (CHANGE_PRODUCT under the frozen exit criteria)`
