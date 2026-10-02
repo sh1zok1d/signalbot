@@ -1,3 +1,18 @@
+## Divergence full-history research V0 — design frozen; validation slice next — 2026-10-02
+
+`DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = DESIGN FROZEN (before any 2025+ byte)`
+`SLICES = DISCOVERY 2023-01-01..2024-12-28 (previously observed) | VALIDATION 2025-01-01..2026-08-11 (previously unseen) | POOLED (never confirmation)`
+`E1_SAFE_READ_HORIZON = 2026-08-15T00:00Z (E1 holdout [2026-08-16, 2026-08-25 17:20) untouched)`
+`PRIMARY = A - B (conditional value of divergence inside support); SECONDARY = (A - B) - (C - D)`
+`PROSPECTIVE_ACTIVATED = false`
+`SEED0003_CREATED = false`
+`NEXT_UNIT = DIVERGENCE_FULL_HISTORY_RESEARCH_V0 stage 1 (validation once), then stage 2 (pooled + mechanism)`
+
+This section supersedes `NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1` below.
+- **Owner decision.** The V1 results are accepted unchanged, and the previously protected 2025-01-01..2026-08-11 surface may be opened for this program after the freeze.
+- **Not confirmation.** The program is research; it is never one confirmatory test.
+- **Design:** `docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_DESIGN.{md,json}`.
+
 ## Divergence conditional-support feasibility V1 — window alone weak; combined design feasible (thin margin) — 2026-10-02
 
 `HISTORICAL_ONLY_VERDICT = INFORMATIONALLY_WEAK (STRESS power of A − B at 15 pp: 0.813 / 0.789, 10k replicates)`

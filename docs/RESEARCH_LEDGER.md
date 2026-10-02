@@ -7475,3 +7475,24 @@ COMBINED_DESIGN_VERDICT = FEASIBLE_FOR_PREREGISTRATION
 PROTECTED_2025_2026_OPENED = false
 NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1
 ```
+
+## Divergence full-history research V0 — design frozen — 2026-10-02
+
+The owner accepted the V1 results unchanged and authorized `DIVERGENCE_FULL_HISTORY_RESEARCH_V0`, a pre-specified research program rather than a confirmatory test.
+
+**Slices.**
+- **Discovery** is 2023–2024, previously observed.
+- **Validation** is 2025-01-01..2026-08-11, previously unseen. The previously protected surface is opened for this program only after the freeze, and it is evaluated once.
+- **Pooled** results are never presented as replication.
+
+**Boundaries.** The E1-safe cutoffs are derived mechanically: last decision 2026-08-11 and read horizon 2026-08-15. The E1 holdout is untouched.
+
+**What is frozen.** The six-symbol panel, the unchanged detector and arms, the primary A − B, the secondary interaction, the SEED-0001 outcomes plus net R and timing, costs, a 22-feature PIT mechanism registry, weekly clustering, the labels, the analyses and the prohibited actions. All are frozen with code and frozen-artifact hashes in `docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_DESIGN.{md,json}`.
+
+**Not activated.** The prospective stream is not activated, and no SEED-0003 is created.
+
+```
+DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = DESIGN FROZEN
+PROTECTED_2025_PLUS_READ_AT_FREEZE = false
+E1_INTERVAL_TOUCHED = false
+```
