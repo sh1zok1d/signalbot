@@ -1,3 +1,45 @@
+## GV0V03L40 C033 V2 compiler repair — 2026-10-02
+
+`MEMORY_CAMPAIGN_ID = GV0V03L40`
+`SOURCE_RUN_ID = ladder-40-card-v03-r02-derived-critics-v2`
+`GV0R02_SCHEMA = GV0R02_SCHEMA_V2`
+`GV0R02_POLICY = GV0R02_POLICY_V2`
+`FEASIBILITY_STATUS = DEFINITION_INCOMPLETE`
+`C033_NEXT = STOP / NOT_PREREGISTRABLE_UNDER_FROZEN_DESIGN`
+`MECHANISM_ACTIVE_N = 0`
+`MECHANISM_INACTIVE_N = 1383`
+`ALPHA_ATTAINABLE = false`
+`MIN_ATTAINABLE_P = 1.0`
+`MDE_STRESS = null`
+`POWER_STRESS = null`
+`EXECUTION_AUTHORIZED = false`
+`MARKET_OUTCOMES_OPENED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`SCIENTIFIC_DESIGN_CHANGED = false`
+`LLM_CALLS = 0`
+
+The sealed C033 design is unchanged and was recompiled under `GV0R02_SCHEMA_V2`. The V1 screen had treated the declustered shock count 1383 as the power sample while `FORCED_FLOW_ALL4_JOINT` is active on 0 observations. That V1 `FEASIBLE_FOR_PREREGISTRATION` result remains reproducible under `GV0R02_SCHEMA_V1` and is not a market conclusion. V2 blocks zero mechanism support (`PRIMARY_MECHANISM_SUPPORT_ZERO`, `ALPHA_UNATTAINABLE`) and the missing prospective support floors (`PROSPECTIVE_MECHANISM_SUPPORT_UNGUARANTEED`). The headline status is `DEFINITION_INCOMPLETE` because that gap outranks `INFERENCE_SUPPORT_INSUFFICIENT`. No new C033 stopping number was chosen. C005, C024, C031 and C037 stay blocked. Record: `docs/research/GV0V03L40_C033_V2_FEASIBILITY.md`.
+
+## GV0V03L40 C033 V1 feasibility — 2026-10-02
+
+Historical V1 compiler output. Routing is the V2 section above.
+
+`MEMORY_CAMPAIGN_ID = GV0V03L40`
+`SOURCE_RUN_ID = ladder-40-card-v03-r02-derived-critics-v2`
+`C033_PLANNING_VALIDATION = PASS`
+`GV0R02_SCHEMA = GV0R02_SCHEMA_V1`
+`GV0R02_POLICY = GV0R02_POLICY_V1`
+`FEASIBILITY_STATUS = FEASIBLE_FOR_PREREGISTRATION`
+`C033_NEXT = PREREGISTRATION_DESIGN`
+`EXECUTION_AUTHORIZED = false`
+`TOTAL_ALL4_EVENTS = 0`
+`NOMINAL_N = 1383`
+`MARKET_OUTCOMES_OPENED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`LLM_CALLS = 0`
+
+C033 is the only shortlist card in this planning unit. The primary cell is `SHOCK_SIGMA = 3`, `TAKER_BAND = p1_p99`, `POST_WINDOW_H = 6`. The compiler screen on the thinned eligible-shock sample is feasible. The all-four joint label occurs zero times in 2020–2024. That count is recorded and the design was not repaired after the compile. No preregistration is executed here. C005, C024, C031 and C037 stay blocked. Record: `docs/research/GV0V03L40_C033_V1_FEASIBILITY.md`.
+
 ## Beta V0.3 — market briefing and analogue gate — 2026-10-02
 
 `BETA_SURFACE = MARKET_BRIEFING (CHANGE_PRODUCT under the frozen exit criteria)`
