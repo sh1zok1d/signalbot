@@ -367,6 +367,182 @@
     "REGION_STATE": "PRIOR_WORK_SIGNATURE",
     "TARGET_FAMILY": "Difference in mean AC1_5M_24H between the top and bottom GEX terciles, computed within year x RV_24H decile x volume decile strata and pooled."
   },
+  "GV0V03L40-C001": {
+    "FUNCTION": "Unconditional tail-risk characterization: test whether the count of sweep-and-reclaim 1m bars in the 24h before a daily decision time relates to the unsigned maximum close excursion over the next 24h, beyond RV-matched controls, for use as an abstention diagnostic.",
+    "ID": "GV0V03L40-C001",
+    "INFORMATION_SOURCE": "KLINES: CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Liquidation-sweep wick count and next-24h unsigned tail excursion",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "TAIL_EXC_24H: the maximum over 1m closes in (T, T+24h] of |log(close_t/close_T)|, divided by the trailing 30-day mean RV_24H evaluated at T. The contrast is top-quintile SWEEP_COUNT_24H days minus matched controls."
+  },
+  "GV0V03L40-C002": {
+    "FUNCTION": "Regime fixed in advance: WEEKEND, meaning decision times T from Saturday 00:00 UTC to Sunday 23:55 UTC. Within this regime only, measure the mean OKX spot log return over (T, T+H] signed by sign(Z_D(T)), for events with |Z_D(T)| at least z. Weekday events are neither pooled nor used to choose z or H.",
+    "ID": "GV0V03L40-C002",
+    "INFORMATION_SOURCE": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
+    "MECHANISM": "Weekend perp-premium propagation into OKX spot",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "ALIGNED_SPOT_RET_H: sign(Z_D(T)) x log(OKX spot close at T+H / OKX spot close at T), averaged over de-clustered weekend events with |Z_D(T)| at least z, minus the matched within-regime control mean"
+  },
+  "GV0V03L40-C003": {
+    "FUNCTION": "Interaction characterization of path morphology in a 2x2 design, DIRECTION (down, up) x CONTRACT (BitMEX inverse in the (omitted) sample, Binance linear in (omitted)), estimated within daily-RV bins.",
+    "ID": "GV0V03L40-C003",
+    "INFORMATION_SOURCE": "PRE2020_SURFACE: D2_BITMEX_PRE2020_XBTUSD, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Inverse-collateral convexity and down-move cascade run length",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "The coefficient on the product of the down-direction and inverse-contract indicators in a regression of log(1+RUN_LEN) with daily-RV-bin fixed effects. This equals [inverse down minus inverse up] minus [linear down minus linear up] within matched RV bins."
+  },
+  "GV0V03L40-C004": {
+    "FUNCTION": "Unconditional event characterization of the ETH idiosyncratic return, after removing BTC with a frozen pre-event beta, over a fixed window after each scheduled Ethereum mainnet upgrade activation. The candidate events to verify are Berlin (omitted), London (omitted), Arrow Glacier (omitted), Gray Glacier (omitted), Paris (omitted), Shapella (omitted) and Dencun (omitted)",
+    "ID": "GV0V03L40-C004",
+    "INFORMATION_SOURCE": "OFFICIAL_CALENDAR: CORE_ETH_BINANCE_V0, CORE_BTC_BINANCE_V0, ETHEREUM_MAINNET_UPGRADE_ACTIVATION_CALENDAR",
+    "MECHANISM": "ETH residual return in the window after scheduled Ethereum network-upgrade activation",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "RESID_H: the sum over 1h bars in (A, A+H] of [ETH log return minus beta_pre x BTC log return], with beta_pre fitted by OLS on 1h returns over (A-60d, A-7d], averaged across events"
+  },
+  "GV0V03L40-C005": {
+    "FUNCTION": "Regime fixed in advance: a BTC stress day is a UTC day d whose absolute BTCUSDT spot daily log return is at or above the trailing 365-day p-th percentile evaluated at the close of d. Within this regime only, compare the Abdi-Ranaldo spread proxy over days d+1..d+D between names without a Binance USD-M perpetual and matched names with one.",
+    "ID": "GV0V03L40-C005",
+    "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0, BINANCE_UM_PERPETUAL_LISTING_ANNOUNCEMENTS_ARCHIVE, BINANCE_UM_EXCHANGEINFO_ONBOARDDATE_SNAPSHOTS",
+    "MECHANISM": "Perpetual-cover spread gap on BTC stress days",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "SPREAD_GAP: the mean over stress days d of [mean log Abdi-Ranaldo spread over days d+1..d+D for names without perpetual cover minus the same for matched names with cover]"
+  },
+  "GV0V03L40-C007": {
+    "FUNCTION": "Regime fixed in advance: down-shock events, meaning 1h BTCUSDT perpetual bars whose log return is at or below the trailing 365-day s-th percentile of 1h returns, de-clustered by 12 hours. Within this regime only, compare the 6h signed recovery between shocks with high and low net USDT inflow to labelled exchange addresses during the shock window.",
+    "ID": "GV0V03L40-C007",
+    "INFORMATION_SOURCE": "ONCHAIN: CORE_BTC_BINANCE_V0, ETHEREUM_USDT_ERC20_TRANSFER_LOGS, TRON_USDT_TRC20_TRANSFER_LOGS, EXCHANGE_DEPOSIT_ADDRESS_LABELS",
+    "MECHANISM": "On-chain stablecoin exchange inflow and recovery inside down-shock windows",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "RECOVERY_6H: log(close at T+6h / close at T) for each down shock. The contrast is the top INFLOW_Z tercile minus the bottom tercile within shock-magnitude decile x year strata."
+  },
+  "GV0V03L40-C010": {
+    "FUNCTION": "Regime fixed in advance: Sunday windows containing the CME Globex weekly reopen of bitcoin futures (17:00 Chicago time), excluding holiday-modified reopens. Within this regime only, measure the change in mean absolute perpetual-spot dislocation from the hour before the reopen to the hour after it. Then test whether the change tracks the Chicago clock across US DST states rather than a fixed UTC hour.",
+    "ID": "GV0V03L40-C010",
+    "INFORMATION_SOURCE": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, STATUTORY_DST_CALENDARS, CME_GLOBEX_CRYPTO_SESSION_HOURS_AND_HOLIDAY_ARCHIVE",
+    "MECHANISM": "CME Globex Sunday reopen clock and Binance perpetual versus OKX spot dislocation",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "STEP: the mean ABS_D over (R, R+M] minus the mean ABS_D over (R-M, R], with R the Chicago-anchored reopen time. The anchoring contrast is the STEP at R minus the STEP at the alternative UTC hour, pooled across DST states."
+  },
+  "GV0V03L40-C021": {
+    "FUNCTION": "Interaction characterization for conditional abstention. It estimates whether the cross-sectional frequency of severe subsequent drawdowns is elevated in the joint cell (attention spike AND high market-wide BTC volatility) beyond the additive main effects of each layer, controlling for liquidity, trailing return and trailing own volatility.",
+    "ID": "GV0V03L40-C021",
+    "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Attention-spike names under high market-wide volatility: joint drawdown-tail exposure in the Binance spot USDT panel",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "TAIL_DD_i(T) = 1 if the minimum over daily closes in (T, T+H] of log(close / close at T) is at or below log(1 - D), else 0. The continuous MAXDD_i(T) is reported as a secondary readout. A name delisted inside (T, T+H] contributes its final listed close and is flagged."
+  },
+  "GV0V03L40-C022": {
+    "FUNCTION": "Conditional directional characterization. The regime is fixed in advance as the CME-closed weekend window: from the CME bitcoin futures Friday close (16:00 US Central time) to the Sunday reopen (17:00 US Central time), mapped to UTC with the US DST calendar and excluding CME holiday-extended closures unless they are in the (omitted) schedule. Within this regime only, the card estimates the mean sign-aligned Binance BTCUSDT perp return after decision hours where the options-implied synthetic forward deviates strongly from the perp price.",
+    "ID": "GV0V03L40-C022",
+    "INFORMATION_SOURCE": "OPTIONS: DERIBIT_OPTIONS_QUOTES_VENDOR_HISTORY, DERIBIT_OPTIONS_TRADES_PUBLIC_HISTORY, CORE_BTC_BINANCE_V0, STATUTORY_DST_CALENDARS, CME_BITCOIN_FUTURES_TRADING_HOURS_AND_HOLIDAY_ARCHIVE",
+    "MECHANISM": "Options-implied synthetic forward deviation and Binance perpetual drift during CME-closed weekends",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "ALIGNED_RET_H = sign(SYNTH_DEV(T)) x log(P_perp(T+H) / P_perp(T)) on the Binance BTCUSDT perpetual, averaged over weekend decision hours where |SYNTH_DEV(T)| is in the top quantile of its trailing 90-day distribution."
+  },
+  "GV0V03L40-C023": {
+    "FUNCTION": "Atomic path-morphology characterization. It compares the downside-excursion share of the Binance BTCUSDT perp path after large exchange-deposit events with matched non-event windows.",
+    "ID": "GV0V03L40-C023",
+    "INFORMATION_SOURCE": "ONCHAIN: BITCOIN_BLOCKCHAIN_FULL_NODE_EXPORT, EXCHANGE_DEPOSIT_ADDRESS_LABELS_POINT_IN_TIME, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Large-holder BTC exchange deposits and downside-dominant subsequent path shape",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "DOWN_SHARE_H = MAXDOWN / (MAXUP + MAXDOWN). MAXDOWN = -min over 5m closes in (T, T+H] of log(close / close at T), floored at 0, and MAXUP = max of the same quantity, floored at 0, both on the Binance BTCUSDT perp. Windows with MAXUP + MAXDOWN = 0 are kept with DOWN_SHARE = (omitted) to avoid selection on a defined ratio. The statistic is the mean event-minus-matched-control DOWN_SHARE."
+  },
+  "GV0V03L40-C024": {
+    "FUNCTION": "Conditional relative-structure characterization. The regime is fixed in advance: hourly decision times T whose trailing 24h BTC realized volatility, from 5m returns closed at or before T, lies in the top part of its trailing 365-day distribution as set by REGIME_CUT. Within this regime only, the card estimates whether relative ETH-versus-BTC book thinness predicts the subsequent realized ETH-on-BTC beta beyond trailing beta.",
+    "ID": "GV0V03L40-C024",
+    "INFORMATION_SOURCE": "ORDER_BOOK: BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE, TARDIS_BINANCE_FUTURES_L2_INCREMENTAL, CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0",
+    "MECHANISM": "Relative ETH-versus-BTC book thinness and ETH pass-through beta in high-volatility hours",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Coefficient on REL_THIN(T) in a regression, within the regime, of BETA_H(T) on trailing 7-day 5m beta, trailing ETH-to-BTC RV ratio and REL_THIN(T). BETA_H(T) is the OLS slope of ETHUSDT perp 5m log returns on BTCUSDT perp 5m log returns over (T, T+H]."
+  },
+  "GV0V03L40-C027": {
+    "FUNCTION": "Conditional event-response characterization. The regime is fixed in advance: the inverse-margined BitMEX XBTUSD venue in the full (omitted) 5m sample (omitted) in the catalog, when BitMEX hosted a dominant share of BTC perpetual positioning. Within that regime, the card compares recovery after extreme down 5m shocks with recovery after extreme up 5m shocks.",
+    "ID": "GV0V03L40-C027",
+    "INFORMATION_SOURCE": "PRE2020_SURFACE: D2_BITMEX_PRE2020_XBTUSD, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Inverse-margin liquidation convexity and down-versus-up shock recovery on BitMEX XBTUSD",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "REC_H = -s x log(close at T+H / close at T) / |shock log return|, where T is the shock bar close. The statistic is mean REC_H over down shocks minus mean REC_H over matched up shocks."
+  },
+  "GV0V03L40-C028": {
+    "FUNCTION": "Atomic cross-sectional characterization anchored to the official calendar tax-year end. It measures whether the largest calendar-year losers in the Binance spot USDT cross-section show abnormal late-December turnover relative to winners, compared with placebo month-ends.",
+    "ID": "GV0V03L40-C028",
+    "INFORMATION_SOURCE": "OFFICIAL_CALENDAR: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0, US_IRC_1091_WASH_SALE_SCOPE_AND_TAX_YEAR_REFERENCE",
+    "MECHANISM": "Tax-year-end loss realization without a wash-sale constraint: late-December turnover of calendar-year losers",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "LOSER_TURN_GAP(Y) = mean residualized ABN_TURN over the bottom calendar-year-return group minus the mean over the top group in December of year Y, ranked against the 11 placebo-month gaps of year Y. ABN_TURN_i = log(mean daily quote volume over day D+1 to 31 December / mean daily quote volume over the 60 days ending at day D)."
+  },
+  "GV0V03L40-C029": {
+    "FUNCTION": "Conditional reproduction of an external benchmark. The regime is fixed in advance: Monday 00:00 UTC decision times T at which BTCUSDT's 28-day log return over daily closes at or before T is (omitted) Within these weeks only, the card estimates the cross-sectional association between a name's maximum recent daily return and its subsequent relative return, controlling for size proxy, trailing return and trailing volatility.",
+    "ID": "GV0V03L40-C029",
+    "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+    "MECHANISM": "Lottery-demand MAX effect in the Binance spot USDT cross-section inside a risk-on regime",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Mean over risk-on weeks of the weekly Fama-MacBeth slope of relative log return over (T, T+H] on the cross-sectional rank of MAX_i(T), with control ranks included. The relative return is the name's return minus the equal-weight eligible-universe return. The external benchmark predicts a (omitted) sign."
+  },
+  "GV0V03L40-C031": {
+    "FUNCTION": "Event-time characterization of whether disposal pressure is clocked by the exchange credit rule. Identification comes from the random gap between inclusion and credit.",
+    "ID": "GV0V03L40-C031",
+    "INFORMATION_SOURCE": "ONCHAIN: BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS, EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC, BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Deposit credit-latency footprint of large on-chain BTC inflows to exchange addresses",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Mean STEP_e over events, and the rank of the true confirmation depth K among pseudo depths 1..12 applied to the same events"
+  },
+  "GV0V03L40-C032": {
+    "FUNCTION": "Pre-stated regime CME_CLOSED covers Saturday 00:00 UTC to Sunday 21:00 UTC, plus full-day CME holiday closures on weekdays. Inside the regime, estimate the half-life of swept-side depth recovery after taker sweeps. Compare it with sweeps outside the regime, matched on sweep size, UTC hour and trailing RV bucket.",
+    "ID": "GV0V03L40-C032",
+    "INFORMATION_SOURCE": "ORDER_BOOK: BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE, CORE_BTC_BINANCE_V0, CME_BITCOIN_FUTURES_TRADING_HOURS_ARCHIVE",
+    "MECHANISM": "Weekend hedge-venue closure and maker depth replenishment after taker sweeps",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Log ratio of median HALF_LIFE inside CME_CLOSED to median HALF_LIFE of matched sweeps outside it. HALF_LIFE is the number of minutes until swept-side depth regains RECOVERY_FRACTION of the loss from pre-sweep level to trough. It is right-censored at 120 minutes and the median is estimated by Kaplan-Meier."
+  },
+  "GV0V03L40-C033": {
+    "FUNCTION": "Characterize how fast realized volatility decays after large BTC 15m shocks when four independent footprints of forced flow co-occur, compared with the decay implied by each footprint separately.",
+    "ID": "GV0V03L40-C033",
+    "INFORMATION_SOURCE": "KLINES: CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0",
+    "MECHANISM": "Forced-flow deleveraging state and realized-volatility decay speed",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "RV_DECAY is the log of per-minute realized variance from 1m BTCUSDT perp log returns over the post window, divided by per-minute realized variance over (T-1h, T]. The quantity of interest is the coefficient on the joint indicator."
+  },
+  "GV0V03L40-C034": {
+    "FUNCTION": "Unconditional characterization of whether the speed at which a cross-venue dislocation closes depends on its sign.",
+    "ID": "GV0V03L40-C034",
+    "INFORMATION_SOURCE": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Inventory-asymmetric closure of perp-discount versus perp-premium cross-venue dislocations",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Remaining fraction R_H = demeaned D at T+H divided by demeaned D at T. The quantity of interest is mean R_H for discount events minus mean R_H for premium events, within year x absolute-dislocation bucket x RV bucket strata."
+  },
+  "GV0V03L40-C036": {
+    "FUNCTION": "Pre-stated regime BLACKOUT runs from the second Saturday before each scheduled FOMC meeting's first day through midnight ET of the day after the meeting ends. It excludes the statement day and the day after. Inside this regime, measure the intensity of BTC perpetual 5m jumps during US business hours relative to non-US hours, against matched non-blackout days.",
+    "ID": "GV0V03L40-C036",
+    "INFORMATION_SOURCE": "OFFICIAL_CALENDAR: D11_FOMC_OFFICIAL_V0, STATUTORY_DST_CALENDARS, CORE_BTC_BINANCE_V0, FED_SPEAKER_CALENDAR_ARCHIVE, BLS_CPI_RELEASE_SCHEDULE_ARCHIVE",
+    "MECHANISM": "FOMC communications blackout and US-hours BTC jump intensity",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Log incidence-rate ratio of US-hours jumps to non-US-hours jumps, estimated by a Poisson model with day fixed effects. The quantity of interest is the ratio on blackout days minus that on matched non-blackout days."
+  },
+  "GV0V03L40-C037": {
+    "FUNCTION": "Cross-sectional rank association between capital-gains overhang and subsequent relative return across Binance spot USDT names, controlling for trailing return and liquidity.",
+    "ID": "GV0V03L40-C037",
+    "INFORMATION_SOURCE": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0, CIRCULATING_SUPPLY_HISTORY_AGGREGATOR",
+    "MECHANISM": "Disposition-driven capital-gains overhang in Binance spot USDT names",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Weekly mean partial Spearman IC between CGO rank and the rank of relative log return over the holding window"
+  },
+  "GV0V03L40-C038": {
+    "FUNCTION": "Pre-stated regime FOMC_STRADDLE: decision time T at 08:00 UTC on the day before a scheduled FOMC statement, with at least one Deribit expiry before the statement and one after it. Inside this regime, extract the implied event variance from adjacent-expiry ATM total variance and relate it to realized post-statement variance.",
+    "ID": "GV0V03L40-C038",
+    "INFORMATION_SOURCE": "OPTIONS: DERIBIT_OPTIONS_HISTORICAL_MARKS_VENDOR, DERIBIT_EXPIRY_CALENDAR_ARCHIVE, D11_FOMC_OFFICIAL_V0, CORE_BTC_BINANCE_V0",
+    "MECHANISM": "Option dealers' pricing of scheduled FOMC jump variance and its realization in BTC",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Slope of realized event variance (5m squared returns over the post window, minus matched weekday-hour baseline variance) on IEV across events, together with the mean realized-to-implied ratio"
+  },
+  "GV0V03L40-C039": {
+    "FUNCTION": "Test whether on-chain transfer cost slows the closure of large cross-venue dislocations, beyond the main effect of each layer.",
+    "ID": "GV0V03L40-C039",
+    "INFORMATION_SOURCE": "ONCHAIN: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0, BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS",
+    "MECHANISM": "On-chain transfer cost x dislocation magnitude in cross-venue convergence",
+    "REGION_STATE": "PRIOR_WORK_SIGNATURE",
+    "TARGET_FAMILY": "Remaining fraction of the demeaned dislocation at T+60m. The quantity of interest is the coefficient on the large-dislocation x high-fee term."
+  },
   "H01": {
     "FUNCTION": "Low recent RV predicts higher future RV",
     "ID": "H01",

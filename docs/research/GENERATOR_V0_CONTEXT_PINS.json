@@ -1,8 +1,8 @@
 {
-  "docs/research/BLIND_MECHANISM_MAP_V0.json": "88f7a247bcd43d833259df7225045ca5489e460033d6d4038586bd614a1e0879",
-  "docs/research/GOVERNANCE_REGION_AUTHORITY_V0.json": "10e3f92e8370a312918f983e48b78d8240fbce080d576716df4c7909f9864554",
+  "docs/research/BLIND_MECHANISM_MAP_V0.json": "5ba4135216d49d67da3a3944d2dbfa121ef32d565e313695bef3d4e6b70d7562",
+  "docs/research/GOVERNANCE_REGION_AUTHORITY_V0.json": "a3fd46e1efbbbfe81b9a3f3a1002565610d6598e797a0aa8c09fec64815a76a4",
   "docs/research/HETEROGENEOUS_FAMILY_ROTATION_V3.json": "52490d4e92c92ea9ed86b2cab2422453ab940d4a2f5aaed3194957fc2b1f3550",
   "docs/research/HYPOTHESIS_GENERATOR_V0_DESIGN.json": "dcf05de40aee96cb423b6f6898f86a9d1c4d8d9c2bf69a8bcf5ea95e341bb25b",
-  "docs/research/MECHANISM_MEMORY_V0.json": "1eb4e7b0eff7ed187c6ba6c7c435385a4c0b76c6b5cfa0ee003c7e029895784c",
-  "docs/research/generator_v0_memory/HEAD.json": "0ffae3d50aa908df120aabb0952c08a717fb00a76298c3f69d2e83d461dd84ca"
+  "docs/research/MECHANISM_MEMORY_V0.json": "83ae3df34f1260de72de352de03afb32f62fd88ae7b27a8fc3873cf8c64d1d46",
+  "docs/research/generator_v0_memory/HEAD.json": "a6e78a6d8af2b0e4b70b0e3f339c1eaa5204ac520b411838b8bf01d5489e7045"
 }
