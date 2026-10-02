@@ -36,7 +36,11 @@ GENERATOR_CONTENT_ATTEMPTS=1
 FIRST_30_CARD_SIZE=30
 MAX_GENERATOR_POSTS_30=3
 FIRST_30_SELECTOR_ADVISORY={'STATUS':'NOT_CALLED','REASON':'deterministic-only first 30-card run'}
-RESUMABLE_STATUSES=('CREATED','DERIVED_CONTINUATION_AUTHORIZED','PAUSED_UNCERTAIN_CALL','PAUSED_PROVIDER_THROTTLED','PAUSED_PROVIDER_REJECTED','PAUSED_BACKGROUND_PENDING','STOPPED_BUDGET')
+RESUMABLE_STATUSES=('CREATED','DERIVED_CONTINUATION_AUTHORIZED','PAUSED_UNCERTAIN_CALL','PAUSED_PROVIDER_THROTTLED','PAUSED_PROVIDER_REJECTED','PAUSED_BACKGROUND_PENDING','STOPPED_BUDGET','INCOMPLETE_BUDGET_STOP')
+# V03 ladder campaigns: a budget stop before all 40 slots and mandatory reviews are complete.
+# No official shortlist exists; only the same run may resume (identical config, contract,
+# slot plan, routing and prompts; the cap may change only via authorize-budget-extension).
+INCOMPLETE_BUDGET_STOP='INCOMPLETE_BUDGET_STOP'
 TERMINAL_STATUSES=('PENDING_HUMAN_REVIEW','STOPPED_INSUFFICIENT_VALID')
 _PAUSE={BudgetExceeded:'STOPPED_BUDGET',CallUncertain:'PAUSED_UNCERTAIN_CALL',ProviderThrottled:'PAUSED_PROVIDER_THROTTLED',
         ProviderRejected:'PAUSED_PROVIDER_REJECTED',BackgroundPending:'PAUSED_BACKGROUND_PENDING'}
@@ -62,6 +66,20 @@ def generator_identity(c,slots):
         return {'output_contract':contract_v03.CONTRACT_ID,'output_schema_digest':generator_round_schema_digest(c,slots),
                 'prompt_version':contract_v03.PROMPT_VERSION}
     return {'output_contract':contract.CONTRACT_ID,'output_schema_digest':generator_round_schema_digest(c,slots)}
+
+def ladder_identity():
+    """Frozen identity of a V03 run: slot plan, rule table, prompts and shortlist quota."""
+    import hashlib
+    from .roles import NOVELTY_PROMPT_V03,RED_PROMPT_V03
+    sha=lambda text:hashlib.sha256(text.encode()).hexdigest()
+    return {'CONTRACT':contract_v03.CONTRACT_ID,'SLOT_PLAN_SHA256':digest(contract_v03.slot_plan()),
+            'RULES_SHA256':digest(list(contract_v03.RULES)),'GENERATOR_PROMPT_SHA256':sha(GENERATOR_PROMPT_V03),
+            'NOVELTY_PROMPT_SHA256':sha(NOVELTY_PROMPT_V03),'RED_PROMPT_SHA256':sha(RED_PROMPT_V03),
+            'SHORTLIST_QUOTA':dict(SHORTLIST_QUOTA)}
+
+def ladder_config(**config):
+    """Run config for a V03 ladder campaign (CLI and programmatic callers)."""
+    return {**config,'GENERATOR_CONTRACT':contract_v03.CONTRACT_ID,'LADDER_IDENTITY':ladder_identity()}
 
 def campaign_contract(ledger):
     """GENERATOR_CONTRACT from the run config; absent means V02 (every existing run)."""
@@ -268,12 +286,17 @@ def run_campaign(c,caller,size=40):
         return _run(c,caller,ledger,size,status)
     except InfrastructureStop as e:
         new=next((v for k,v in _PAUSE.items() if isinstance(e,k)),'PAUSED_UNCERTAIN_CALL')
+        payload={'REASON':type(e).__name__+': '+str(e)[:500]}
+        if new=='STOPPED_BUDGET' and campaign_contract(ledger)==contract_v03.CONTRACT_ID:
+            new=INCOMPLETE_BUDGET_STOP
+            payload.update(incomplete_progress(ledger))
+        payload['RESOLUTION']=_resolution(new)
         with ledger.transaction():
             ledger.set('status',new)
-            ledger.event('CAMPAIGN_'+new,{'REASON':type(e).__name__+': '+str(e)[:500],'RESOLUTION':_resolution(new)})
+            ledger.event('CAMPAIGN_'+new,payload)
         raise
 
-PAUSE_STATUSES=tuple(_PAUSE.values())
+PAUSE_STATUSES=tuple(_PAUSE.values())+(INCOMPLETE_BUDGET_STOP,)
 BUDGET_STOP_EVENT='BUDGET_STOP_ACCEPTED'
 _BUDGET_SNAPSHOT=('CAP_MICRO_USD','SPENT_MICRO_USD','WORST_CASE_REMAINING_MICRO_USD')
 
@@ -324,14 +347,28 @@ def _require_causal_event(ledger,status):
 def _resolution(status):
     return {
         'STOPPED_BUDGET':'authorize-budget-extension (within the owner ceiling), then resume',
+        INCOMPLETE_BUDGET_STOP:'no official shortlist; partial cards and the journal are kept and are not a completed shadow campaign. Only the same run may resume, with identical config, contract, slot plan, routing and prompts (the cap changes only via authorize-budget-extension within the owner ceiling); the 2/2/1 shortlist is built once, after all 40 slots and mandatory reviews complete',
         'PAUSED_UNCERTAIN_CALL':'reconcile the possibly-POSTed call key: BILLED with cost and evidence, NOT_BILLED only with provider evidence for its response_id, or UNKNOWN (charges the bound and closes that logical call); then resume',
         'PAUSED_PROVIDER_THROTTLED':'resume later; not-billed attempts cost nothing',
         'PAUSED_PROVIDER_REJECTED':'fix the rejected request contract or credentials, then resume',
         'PAUSED_BACKGROUND_PENDING':'resume to continue polling the same response_id',
     }[status]
 
+def incomplete_progress(ledger):
+    """What a stopped V03 run holds. Recorded, never a result: no shortlist exists."""
+    calls=[x for x in ledger.export_calls() if x['STATE']=='COMPLETE']
+    rounds=sorted({x['SLOT'] for x in calls if x['ROLE']=='GENERATOR'})
+    critics={}
+    for x in calls:
+        if x['ROLE'] in ('NOVELTY_CRITIC','FEASIBILITY_CRITIC','RED_TEAM'):critics[x['ROLE']]=critics.get(x['ROLE'],0)+1
+    return {'COMPLETED_SHADOW_CAMPAIGN':False,'OFFICIAL_SHORTLIST':None,'GENERATION_ROUNDS_COMPLETE':rounds,
+            'CANDIDATES_RECORDED':len(ledger.candidates()),'CRITIC_CALLS_COMPLETE':dict(sorted(critics.items())),
+            'SLOTS_REQUIRED':contract_v03.LADDER_SIZE}
+
 def _run(c,caller,ledger,size,prior_status):
     contract_id=campaign_contract(ledger)
+    if contract_id==contract_v03.CONTRACT_ID and (ledger.get('config') or {}).get('LADDER_IDENTITY')!=ladder_identity():
+        raise ContractError('V03 run identity (slot plan, rules, prompts, quota) differs from this code; start or resume refused')
     plan=campaign_plan(contract_id,size)
     diversity(plan,c)
     if contract_id==contract_v03.CONTRACT_ID:contract_v03.ladder_diversity(plan)

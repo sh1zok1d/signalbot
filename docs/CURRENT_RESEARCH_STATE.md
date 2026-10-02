@@ -1,3 +1,26 @@
+## Generator V0 pre-campaign hardening — 2026-10-02
+
+`MEMORY_FINALIZER_V03 = IMPLEMENTED (validates and copies ladder fields; V02 unchanged)`
+`V03_BUDGET_STOP = INCOMPLETE_BUDGET_STOP (no shortlist; same-run resume only)`
+`LLM_CALLS = 0`
+`NEXT_UNIT = GENERATOR_V0_FRESH_SHADOW_CAMPAIGN (waits for owner live authorization and provider keys)`
+
+**Finalizer.** The memory finalizer now accepts V03 campaigns: the red-team check `RUNG_CONSISTENT` and the card fields `COMPLEXITY_CLASS` and `COMPONENTS`. It copies them verbatim and never re-evaluates them. A rung failure maps to `METHOD_RUNG_INCONSISTENT`. V02 deltas and the rules digest are unchanged.
+
+**Budget stop.** A V03 budget stop before all 40 slots and reviews complete gives `INCOMPLETE_BUDGET_STOP`.
+- There is no official shortlist. The partial journal is kept and cannot be finalized.
+- Only the same run may resume, with identical identity; the cap may change only through a recorded extension.
+- After a full resume, the 2/2/1 shortlist is built once.
+
+**Campaign plan.**
+- 40 slots split 16/14/7/3; shortlist 2/2/1.
+- Hard cap USD 12 with `accept-budget-stop`.
+- 125 logical calls, at most 245 attempts.
+- Offline worst case USD 30.75, or USD 61.50 with retries; expected spend about USD 7–8.
+- No design changes after the first live call.
+
+Record: `docs/research/GENERATOR_V0_PRE_CAMPAIGN_HARDENING.{md,json}`.
+
 ## Generator complexity ladder amendment (V03) — 2026-10-02
 
 `GENERATOR_CONTRACT_V03 = IMPLEMENTED (offline)`

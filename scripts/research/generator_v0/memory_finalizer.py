@@ -91,13 +91,36 @@ FINALIZER_RULES = {
 }
 
 
+# GENERATOR_CONTRACT_V03 (complexity ladder) extension. Applies only to V03 campaigns;
+# FINALIZER_RULES and every V02 delta, digest and disposition are unchanged.
+GENERATOR_CONTRACT_V03 = 'GENERATOR_CONTRACT_V03'
+LADDER_CARD_FIELDS = ('COMPLEXITY_CLASS', 'COMPONENTS')
+ATTEMPT_CARD_FIELDS_V03 = ATTEMPT_CARD_FIELDS + LADDER_CARD_FIELDS
+RED_TEAM_CHECKS_V03 = RED_TEAM_CHECKS + ('RUNG_CONSISTENT',)
+# Appended after every V02 rule: a V02 failure keeps its V02 class first.
+RED_TEAM_BLOCKER_RULES_V03 = RED_TEAM_BLOCKER_RULES + ((('RUNG_CONSISTENT',), 'METHOD_RUNG_INCONSISTENT'),)
+BLOCKER_REQUIREMENTS_V03 = {
+    'METHOD_RUNG_INCONSISTENT': 'A redesign must state the candidate at its assigned complexity rung (one mechanism for a simple rung; a joint term over controlled component main effects for an interaction or composite rung) before this signature can advance.',
+}
+FINALIZER_RULES_V03 = {
+    'CONTRACT': GENERATOR_CONTRACT_V03, 'ATTEMPT_CARD_FIELDS_ADDED': list(LADDER_CARD_FIELDS),
+    'RED_TEAM_CHECKS_ADDED': ['RUNG_CONSISTENT'],
+    'RED_TEAM_BLOCKER_RULES_ADDED': [[['RUNG_CONSISTENT'], 'METHOD_RUNG_INCONSISTENT']],
+    'BLOCKER_REQUIREMENTS_ADDED': BLOCKER_REQUIREMENTS_V03,
+    'COPY_RULE': 'COMPLEXITY_CLASS, COMPONENTS and every critic output are validated for shape and copied verbatim; never re-evaluated or rewritten',
+}
+
+
 def design_rules(design):
     b = design['BLIND_GENERATOR_CONTEXT']
     return {'BLIND_GENERATOR_CONTEXT': b, 'GOVERNANCE_HEADER': store.design_governance_header(design),
             'DATA_STATUS_TAXONOMY': design['DATA_STATUS_TAXONOMY']}
 
 
-def rules_digest(design):
+def rules_digest(design, contract=None):
+    if contract == GENERATOR_CONTRACT_V03:
+        return digest({'DESIGN_RULES': design_rules(design), 'FINALIZER_RULES': FINALIZER_RULES,
+                       'FINALIZER_RULES_V03': FINALIZER_RULES_V03})
     return digest({'DESIGN_RULES': design_rules(design), 'FINALIZER_RULES': FINALIZER_RULES})
 
 
@@ -130,8 +153,9 @@ def scrub(text, design):
 
 # ----------------------------------------------------------------------------- source adapters
 
-def _normalize_review(card, novelty, feasibility, red_team, stream, review_state, prior_basis):
-    return {'CANDIDATE_ID': card['CANDIDATE_ID'], 'CARD': {k: copy.deepcopy(card[k]) for k in ATTEMPT_CARD_FIELDS},
+def _normalize_review(card, novelty, feasibility, red_team, stream, review_state, prior_basis, ladder=False):
+    fields = ATTEMPT_CARD_FIELDS_V03 if ladder else ATTEMPT_CARD_FIELDS
+    return {'CANDIDATE_ID': card['CANDIDATE_ID'], 'CARD': {k: copy.deepcopy(card[k]) for k in fields},
             'REVIEW_STATE': review_state, 'NOVELTY': novelty, 'FEASIBILITY': feasibility, 'RED_TEAM': red_team,
             'STREAM': stream, 'PRIOR_RELATIONS_BASIS': prior_basis}
 
@@ -175,28 +199,48 @@ def source_from_calibration_export(path, campaign_id, design):
             'CANDIDATES': candidates, 'INVALID_OUTPUTS': []}
 
 
+def _check_ladder_card(card):
+    """Shape of the V03 ladder fields, against the frozen ladder. Validates; never rewrites."""
+    from .complexity import COMPLEXITY_CLASSES, COMPONENT_COUNT
+    cls, comps = card.get('COMPLEXITY_CLASS'), card.get('COMPONENTS')
+    if cls not in COMPLEXITY_CLASSES:
+        raise ContractError('V03 card without a valid COMPLEXITY_CLASS: ' + str(card.get('CANDIDATE_ID')))
+    lo, hi = COMPONENT_COUNT[cls]
+    if (not isinstance(comps, list) or not all(isinstance(x, str) and x.strip() for x in comps)
+            or not lo <= len(comps) <= hi or len(set(comps)) != len(comps)):
+        raise ContractError('V03 card COMPONENTS shape: ' + str(card.get('CANDIDATE_ID')))
+
+
 def source_from_campaign_payload(payload, campaign_id, identity):
     """A completed runner campaign result (results.key='campaign'), as persisted in run.sqlite."""
     if payload.get('STATUS') != 'PENDING_HUMAN_REVIEW':
         raise ContractError('campaign is not complete (status ' + str(payload.get('STATUS')) + ')')
+    ladder = payload.get('CONTRACT') == GENERATOR_CONTRACT_V03
     reviews = {r['CANDIDATE_ID']: r for r in payload['REVIEWS']}
     candidates = []
     for card in payload['CANDIDATES']:
+        if ladder:
+            _check_ladder_card(card)
+        elif any(k in card for k in LADDER_CARD_FIELDS):
+            raise ContractError('ladder fields on a non-V03 campaign card: ' + card['CANDIDATE_ID'])
         r = reviews.get(card['CANDIDATE_ID'])
         if r is None:
             raise ContractError('admitted candidate without a review record: ' + card['CANDIDATE_ID'])
         if r['STATE'] == 'REVIEW_FAILED':
-            candidates.append(_normalize_review(card, None, None, None, 'NOT_A_STREAM', 'REVIEW_FAILED', 'NONE'))
+            candidates.append(_normalize_review(card, None, None, None, 'NOT_A_STREAM', 'REVIEW_FAILED', 'NONE', ladder))
             continue
         n, f, t = r['NOVELTY'], r['FEASIBILITY'], r['RED_TEAM']
         candidates.append(_normalize_review(
             card, {'VERDICT': n['VERDICT'], 'PRIOR_RELATIONS': copy.deepcopy(n['PRIOR_RELATIONS']), 'BATCH_RELATIONS': copy.deepcopy(n['BATCH_RELATIONS'])},
             {k: copy.deepcopy(f[k]) for k in ('VERDICT', 'DATA_STATUS', 'CHECKS')}, {k: copy.deepcopy(t[k]) for k in ('VERDICT', 'CHECKS')},
-            r['STREAM'], 'REVIEWED', 'RECORDED_NOVELTY_RELATIONS'))
+            r['STREAM'], 'REVIEWED', 'RECORDED_NOVELTY_RELATIONS', ladder))
     invalid = [{'CANDIDATE_ID': h['CANDIDATE_ID'], 'ROUND': h.get('ROUND'), 'RULES': sorted({x.get('RULE') for x in h.get('REASONS', [])} - {None})}
                for h in payload.get('HARD_FAILS', [])]
-    return {'CAMPAIGN_ID': campaign_id, 'SOURCE_KIND': 'GENERATOR_V0_RUN_JOURNAL', 'SOURCE_ARTIFACT_IDENTITY': identity,
-            'SOURCE_SHA256': digest(payload), 'SOURCE_DATE': None, 'CANDIDATES': candidates, 'INVALID_OUTPUTS': invalid}
+    source = {'CAMPAIGN_ID': campaign_id, 'SOURCE_KIND': 'GENERATOR_V0_RUN_JOURNAL', 'SOURCE_ARTIFACT_IDENTITY': identity,
+              'SOURCE_SHA256': digest(payload), 'SOURCE_DATE': None, 'CANDIDATES': candidates, 'INVALID_OUTPUTS': invalid}
+    if ladder:
+        source['GENERATOR_CONTRACT'] = GENERATOR_CONTRACT_V03
+    return source
 
 
 def source_from_run_journal(path, campaign_id):
@@ -368,14 +412,14 @@ def _route(n_verdict, f, r):
     return 'NOT_A_STREAM'
 
 
-def blockers_for(f, r):
+def blockers_for(f, r, ladder=False):
     """All blockers of a distinct signature, primary first. Structured checks only."""
     out = []
     failed_red = _failed(r['CHECKS'])
-    if set(r['CHECKS']) != set(RED_TEAM_CHECKS):
+    if set(r['CHECKS']) != set(RED_TEAM_CHECKS_V03 if ladder else RED_TEAM_CHECKS):
         raise ContractError('RED_TEAM checks shape')
     if failed_red:
-        for need, cls in RED_TEAM_BLOCKER_RULES:
+        for need, cls in (RED_TEAM_BLOCKER_RULES_V03 if ladder else RED_TEAM_BLOCKER_RULES):
             if set(need) <= set(failed_red):
                 out.append({'CLASS': cls, 'SOURCE': 'RED_TEAM', 'FAILED_CHECKS': failed_red})
                 break
@@ -396,7 +440,7 @@ def blockers_for(f, r):
 
 def requirement_text(blockers):
     primary = blockers[0]['CLASS']
-    text = BLOCKER_REQUIREMENTS.get(primary) or DATA_BLOCKED_REQUIREMENT.format(status=primary)
+    text = BLOCKER_REQUIREMENTS.get(primary) or BLOCKER_REQUIREMENTS_V03.get(primary) or DATA_BLOCKED_REQUIREMENT.format(status=primary)
     others = [b['CLASS'] for b in blockers[1:]]
     if others:
         text += ' Also unresolved for this signature: ' + ', '.join(others) + '.'
@@ -415,6 +459,9 @@ def build_delta(state, source, design):
     """Pure: current published FULL state + normalized source -> append-only delta."""
     campaign = source['CAMPAIGN_ID']
     stable_id(campaign, 'C001')
+    ladder = source.get('GENERATOR_CONTRACT') == GENERATOR_CONTRACT_V03
+    if source.get('GENERATOR_CONTRACT') not in (None, GENERATOR_CONTRACT_V03):
+        raise ContractError('unknown generator contract in source')
     table = design['GOVERNANCE_REGION_AUTHORITY_V0']['NOVELTY_DECISION_TABLE']
     leaves = _prior_leaf_rows(state)
     from .schema import signature
@@ -504,7 +551,7 @@ def build_delta(state, source, design):
             counts['LINKS_TO_BATCH_ATTEMPTS'] += 1
         else:
             sid = aid
-            blockers = blockers_for(f, r)
+            blockers = blockers_for(f, r, ladder)
             state_name = 'DEFERRED_OR_BLOCKED' if blockers else 'CONSUMED'
             if (state_name == 'CONSUMED') != (c['STREAM'] == 'EXECUTABLE_NOW'):
                 raise ContractError('consumed state must equal the EXECUTABLE_NOW stream: ' + c['CANDIDATE_ID'])
@@ -557,6 +604,8 @@ def build_delta(state, source, design):
              'MEMORY_METADATA': {'COVERAGE': {'GENERATOR_V0_' + campaign: sorted(add_entries)} if add_entries else {},
                                  'STATUS': 'EXTENDED_THROUGH_' + campaign, 'DATE': source.get('SOURCE_DATE')},
              'SUMMARY': counts}
+    if ladder:
+        delta['GENERATOR_CONTRACT'] = GENERATOR_CONTRACT_V03
     return delta
 
 
@@ -660,7 +709,7 @@ def finalize(root, source, apply=False, fault=None):
         seq = head['SEQUENCE'] + 1
         ev = store.build_event('CAMPAIGN_FINALIZATION', seq, source['CAMPAIGN_ID'], source['SOURCE_ARTIFACT_IDENTITY'],
                                source['SOURCE_SHA256'], head['EVENT_HASH'], store.sha256_bytes(store.pretty(delta)),
-                               rules_digest(design), v, delta['SUMMARY'])
+                               rules_digest(design, source.get('GENERATOR_CONTRACT')), v, delta['SUMMARY'])
         report = {'STATUS': 'DRY_RUN' if not apply else 'FINALIZED', 'CAMPAIGN_ID': source['CAMPAIGN_ID'],
                   'SOURCE_SHA256': source['SOURCE_SHA256'], 'PREVIOUS_HEAD_EVENT_HASH': head['EVENT_HASH'],
                   'PROPOSED_EVENT_HASH': ev['EVENT_HASH'], 'SEQUENCE': seq, **delta['SUMMARY'],

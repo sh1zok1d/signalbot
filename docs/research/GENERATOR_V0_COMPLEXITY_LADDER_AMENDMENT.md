@@ -93,7 +93,7 @@ python -m scripts.research.generator_v0 ladder-40-card --allow-real-llm --budget
 
 - **Derive.** Carry-forward refuses V03 runs. A paused V03 run resumes in place.
 - **Resume.** Resuming a V03 run needs `--contract V03`: the run config must be identical.
-- **Memory.** `memory_finalizer` refuses a V03 campaign, because the red-team check set differs. It must be extended before the ladder campaign's results are ingested into mechanism memory.
+- **Memory.** `memory_finalizer` refused V03 campaigns at this amendment. **Resolved in `GENERATOR_V0_PRE_CAMPAIGN_HARDENING.md`**, which also freezes the V03 budget-stop semantics (`INCOMPLETE_BUDGET_STOP`).
 - **Not mechanical.** "Simplicity is not banality" is a critic judgment.
 
 ## Acceptance (no LLM, no market data)
