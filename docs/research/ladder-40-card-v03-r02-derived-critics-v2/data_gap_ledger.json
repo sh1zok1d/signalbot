@@ -1,0 +1,103 @@
+[
+  {
+    "ESTIMATED_ACQUISITION_COST": "UNASSESSED_REQUIRES_HUMAN_FEASIBILITY",
+    "EXPECTED_INFORMATION_GAIN": {
+      "C031": "It separates the mechanical channel from the informational channel in on-chain exchange-flow metrics. These metrics are widely cited but rarely identified. Either outcome constrains how on-chain flow observables should be timed in later cards."
+    },
+    "IS_THIS_A_DUPLICATE_DATA_DEMAND": false,
+    "MECHANISM_REGION": [
+      "Holders who move BTC on-chain to a Binance deposit address in order to dispose of it cannot place spot orders until the exchange credits the deposit at a fixed confirmation depth K. If such inflows are motivated by disposal, aggressor selling pressure should be timed to the credit-eligible block rather than to the first-inclusion block. The reason is that the confirmation rule is a hard constraint on when the coins become usable."
+    ],
+    "MISSING_DATA_CLASS": "ADDRESS_LABEL_PROVENANCE_AND_EXCHANGE_POLICY_POINT_IN_TIME",
+    "MISSING_OBSERVABLE": [
+      "as-of-dated Binance BTC deposit address cluster labels",
+      "block first-seen arrival timestamps as distinct from miner-set header timestamps",
+      "historical Binance BTC deposit confirmation count by effective date"
+    ],
+    "NUMBER_OF_DISTINCT_CANDIDATES_BLOCKED": 1,
+    "PROVENANCE_RISK": [
+      "DATA_BLOCKED_PROVENANCE"
+    ],
+    "WOULD_DATA_UNLOCK_DISTINCT_MECHANISM_SPACE": true
+  },
+  {
+    "ESTIMATED_ACQUISITION_COST": "UNASSESSED_REQUIRES_HUMAN_FEASIBILITY",
+    "EXPECTED_INFORMATION_GAIN": {
+      "C024": "It adds an order-book determinant of cross-asset pass-through to the library. This separates liquidity-driven beta variation from the correlation-level structure already mapped under D4 and D10."
+    },
+    "IS_THIS_A_DUPLICATE_DATA_DEMAND": false,
+    "MECHANISM_REGION": [
+      "Cross-asset market makers and relative-value desks that quote ETH and BTC perps and offset inventory across them transmit BTC shocks into ETH. When ETH near-touch depth is thin relative to BTC, each relative to its own trailing level, a BTC-originated shock meets less resting liquidity in ETH, so ETH's pass-through beta over the following hours should be higher. This inventory constraint binds in the high-volatility regime."
+    ],
+    "MISSING_DATA_CLASS": "ORDER_BOOK_DEPTH_HISTORY",
+    "MISSING_OBSERVABLE": [
+      "Binance USD-M bookDepth snapshots for BTCUSDT and ETHUSDT with verified start date, snapshot cadence and gap list",
+      "Near-touch depth within 0.5 percent and 1 percent of mid at hourly cadence for both perpetuals"
+    ],
+    "NUMBER_OF_DISTINCT_CANDIDATES_BLOCKED": 1,
+    "PROVENANCE_RISK": [
+      "FEASIBILITY_REQUIRED"
+    ],
+    "WOULD_DATA_UNLOCK_DISTINCT_MECHANISM_SPACE": true
+  },
+  {
+    "ESTIMATED_ACQUISITION_COST": "UNASSESSED_REQUIRES_HUMAN_FEASIBILITY",
+    "EXPECTED_INFORMATION_GAIN": {
+      "C005": "Moderate. It identifies derivative availability as a liquidity-supply mechanism in the cross-section, which no prior card isolated."
+    },
+    "IS_THIS_A_DUPLICATE_DATA_DEMAND": false,
+    "MECHANISM_REGION": [
+      "On BTC stress days, makers in spot names lacking a same-asset Binance perpetual cannot offset inventory and hit risk limits, so they widen effective spreads relative to matched names with perpetual cover."
+    ],
+    "MISSING_DATA_CLASS": "PERP_LISTING_HISTORY_UNVERIFIED",
+    "MISSING_OBSERVABLE": [
+      "delisting or settlement timestamp of each Binance USD-M perpetual per base asset",
+      "effective launch timestamp of each Binance USD-M perpetual per base asset, including delisted perpetuals"
+    ],
+    "NUMBER_OF_DISTINCT_CANDIDATES_BLOCKED": 1,
+    "PROVENANCE_RISK": [
+      "FEASIBILITY_REQUIRED"
+    ],
+    "WOULD_DATA_UNLOCK_DISTINCT_MECHANISM_SPACE": true
+  },
+  {
+    "ESTIMATED_ACQUISITION_COST": "UNASSESSED_REQUIRES_HUMAN_FEASIBILITY",
+    "EXPECTED_INFORMATION_GAIN": {
+      "C007": "Moderate. It tests whether on-chain capital movement adds to shock recovery beyond the price and volume conditioning of D8, and clarifies whether exchange-label point-in-time work is worth funding."
+    },
+    "IS_THIS_A_DUPLICATE_DATA_DEMAND": false,
+    "MECHANISM_REGION": [
+      "Within liquidation-driven down shocks, a net on-chain USDT inflow to exchange deposit addresses marks discount-absorbing capital in transit. Because of transfer latency it reaches the book once forced flow is exhausted, enlarging the 6h recovery."
+    ],
+    "MISSING_DATA_CLASS": "POINT_IN_TIME_ADDRESS_LABELS",
+    "MISSING_OBSERVABLE": [
+      "exchange deposit and hot-wallet address labels with first public attribution dates",
+      "pinned byte-exact USDT transfer log extracts for Ethereum and Tron"
+    ],
+    "NUMBER_OF_DISTINCT_CANDIDATES_BLOCKED": 1,
+    "PROVENANCE_RISK": [
+      "DATA_BLOCKED_POINT_IN_TIME_SEMANTICS"
+    ],
+    "WOULD_DATA_UNLOCK_DISTINCT_MECHANISM_SPACE": true
+  },
+  {
+    "ESTIMATED_ACQUISITION_COST": "UNASSESSED_REQUIRES_HUMAN_FEASIBILITY",
+    "EXPECTED_INFORMATION_GAIN": {
+      "C037": "It tests a holder-behaviour mechanism that is separate from return-only effects in the crypto spot cross-section."
+    },
+    "IS_THIS_A_DUPLICATE_DATA_DEMAND": false,
+    "MECHANISM_REGION": [
+      "Disposition-prone holders, a large share of alt spot holders, realize gains too early and hold losses. Names whose price is far above holders' turnover-weighted cost basis face realization supply that holds the price below its clearing level, followed by a catch-up drift. Names far below cost basis face supply as the price approaches break-even."
+    ],
+    "MISSING_DATA_CLASS": "POINT_IN_TIME_SUPPLY_HISTORY",
+    "MISSING_OBSERVABLE": [
+      "point-in-time daily circulating supply per token",
+      "token unlock schedule revisions"
+    ],
+    "NUMBER_OF_DISTINCT_CANDIDATES_BLOCKED": 1,
+    "PROVENANCE_RISK": [
+      "DATA_BLOCKED_POINT_IN_TIME_SEMANTICS"
+    ],
+    "WOULD_DATA_UNLOCK_DISTINCT_MECHANISM_SPACE": true
+  }
+]
