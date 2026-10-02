@@ -14,7 +14,7 @@
 
 **This is not a lifting of `PREDICTIVE_PRODUCT_FROZEN`.** No other surface may cite this gate to add a bias, lean, score, signal, target or direction call.
 
-**The user's takeaway.** A typical honest screen reads "the direction was ordinary, the range was not". The edge is in the state of the market, not in its direction. The decision stays with the trader.
+**The user's takeaway.** A typical honest screen reads "the direction was ordinary, the range was not". The product may describe differences in market state or range even when no directional difference is detected. The decision stays with the trader.
 
 ## 2. Mandatory rules (all of them; any breach blocks display)
 
@@ -241,9 +241,9 @@ The 1h rows follow the same layout.
 
 | Live state | Essential features | Historical proxy |
 |---|---|---|
-| похоже на закрытие шортов / лонгов, рост на новых лонгах, снижение на новых шортах, набор позиций без движения цены, разгрузка рынка | price, OI, taker share | proxy on Binance price, OI and taker; venue agreement dropped (declared); period = Binance OI defensible span |
+| похоже на закрытие шортов / лонгов, похоже на рост с набором новых лонгов, похоже на снижение с набором новых шортов, похоже на набор позиций без движения цены, похоже на разгрузку рынка | price, OI, taker share | proxy on Binance price, OI and taker; venue agreement dropped (declared); period = Binance OI defensible span |
 | сжатие | range, OI | proxy on Binance range and OI; venue agreement dropped (declared) |
-| агрессивные покупки / продажи без движения цены | taker share, price | proxy on Binance klines taker volume; venue agreement dropped (declared) |
+| похоже на поглощение агрессивных покупок / продаж | taker share, price | proxy on Binance klines taker volume; venue agreement dropped (declared) |
 | вынос лонгов / вынос шортов | liquidations by side | `HISTORY_UNAVAILABLE` (no honest historical liquidation series) |
 | обычное состояние | — | no analogue card |
 

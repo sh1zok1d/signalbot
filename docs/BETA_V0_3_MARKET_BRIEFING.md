@@ -87,9 +87,9 @@ EXTERNAL_USERS             = not before the owner-only week of §7
 ```
 Состояние рынка
 5m   похоже на закрытие шортов
-1h   рост на новых лонгах
-4h   сжатие: диапазон узкий, OI растёт
-24ч  цена у верхней границы диапазона за 24ч
+1h   похоже на рост с набором новых лонгов
+4h   сжатие
+24ч  обычное состояние
 Плечо: растёт · Поток: покупатели активнее обычного · Волатильность: выше обычной · Биржи: 3/3 согласны
 ```
 
@@ -115,14 +115,14 @@ Every condition compares a value with its own same-horizon baseline percentile, 
 | Label (ru) | Condition (sketch; exact cuts frozen at implementation) |
 |---|---|
 | похоже на закрытие шортов | price up, OI down beyond its normal band |
-| рост на новых лонгах | price up, OI up |
-| снижение на новых шортах | price down, OI up |
+| похоже на рост с набором новых лонгов | price up, OI up |
+| похоже на снижение с набором новых шортов | price down, OI up |
 | похоже на закрытие лонгов | price down, OI down |
 | вынос лонгов / вынос шортов | the closing case above, with liquidations of that side in the top tail |
-| набор позиций без движения цены | price flat versus its own band, OI up |
-| разгрузка рынка | OI down broadly with no dominant price direction |
+| похоже на набор позиций без движения цены | price flat versus its own band, OI up |
+| похоже на разгрузку рынка | OI down broadly with no dominant price direction |
 | сжатие | range in the low tail and OI not falling |
-| агрессивные покупки (продажи) без движения цены — их поглощали | taker share in the tail, price flat |
+| похоже на поглощение агрессивных покупок (продаж) | taker share in the tail, price flat |
 | обычное состояние | none of the above |
 
 **Wording.**
