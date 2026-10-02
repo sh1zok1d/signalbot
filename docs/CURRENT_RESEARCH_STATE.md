@@ -1,3 +1,18 @@
+## Divergence program — owner decisions V3; selling-exhaustion feasibility authorized — 2026-10-02
+
+`DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = ACCEPTED (no large practical edge; validation rules out +15 pp; pooled about +1-3 pp)`
+`CONFIRMATORY_SEED_FOR_A_MINUS_B_GE_15PP = not to be created`
+`REVERSAL_SELLER_EXHAUSTION_THEME = open`
+`RSI_GRADIENT_SUPPORT_CANDIDATE = recorded separately; not primary; no unit authorized`
+`SEED_CREATION = not authorized`
+`NEXT_UNIT = SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 (feasibility only; a new research object, not a SEED-0001 continuation)`
+
+This section supersedes `NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_FULL_HISTORY_RESEARCH_V0` below.
+- **Record:** `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md`.
+- **Primary candidate estimand:** `E − S`, inside support. E = the frozen exhaustion state; S = support without it. Divergence flags are descriptive covariates only.
+- **Data surfaces.** 2023–2024 and the opened six-symbol 2025-01-01..2026-08-15 surface are exposed and serve as discovery. Prospective data after a new freeze is the only clean confirmation surface. E1-RUN-001 stays absolutely protected.
+- **Surface wording corrected.** `AGENTS.md`, `PROJECT_STATUS.md` and `RESEARCH_ROADMAP.md` no longer state that all of 2025/2026 is unopened. The six-symbol divergence/support surface is opened; nothing is declared spent for unrelated families.
+
 ## Divergence full-history research V0 — complete; validation excludes 15 pp; owner decision next — 2026-10-02
 
 `DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = COMPLETE (stage 1 validation evaluated once; stage 2 pooled + mechanism, exploratory)`

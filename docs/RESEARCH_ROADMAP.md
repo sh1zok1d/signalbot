@@ -114,7 +114,10 @@ The previous long-form roadmap is preserved in git history at `b25d9ca9949863018
 - MARKET-04 / 04H: blocked observable, not tested.
 - MARKET-05: `NO_EVIDENCE`.
 - MARKET-06: `NO_EVIDENCE`, one-shot consumed and sealed; no rescue/rerun.
-- Protected 2025/2026: unopened.
+- Protected 2025/2026: not globally unopened.
+  - **Opened (2026-10-02):** the six-symbol USD-M divergence/support surface 2025-01-01..2026-08-15 (exclusive). It is no longer pristine OOS for divergence/support/mechanism hypotheses.
+  - **Still protected:** the E1-RUN-001 holdout and all later bytes.
+  - **Unrelated families:** decided per family. See `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md`.
 - Internal historical promoted candidates: 0.
 
 ## 2. Search-space decision after M06
