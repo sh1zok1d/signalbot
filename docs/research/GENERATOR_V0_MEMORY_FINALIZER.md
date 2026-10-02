@@ -263,6 +263,19 @@ First event: `GV0R01C013MT1` at sequence 3, event `853ef4514460a18b5aa16bf3fff86
 
 Generated hypotheses are not executed market tests. `docs/research/SCIENTIFIC_TEST_LEDGER.json` counts executed scientific tests and search families, not generated cards. The finalizer copies a frozen classification and never creates or upgrades one.
 
+### Completed V03 ladder campaign (`GV0V03L40`)
+
+Offline campaign finalization on 2026-10-02. No provider call, no market data, no protected data, and no card mutation.
+
+```
+MEMORY_CAMPAIGN_ID = GV0V03L40
+SOURCE_RUN_ID      = ladder-40-card-v03-r02-derived-critics-v2
+```
+
+`GV0V03L40` is the stable memory identity (`^[A-Z][A-Z0-9]{2,15}$`). The filesystem run id is the source-journal identity, not `CAMPAIGN_ID`.
+
+Sequence 4, event `fc314e99f4037d247973ddaaf07b6c4976802b14529bd253a7cb96cd181026cf`, delta `5d2803db2e23ac7fe881a8f52a192a33b7a6bea6ebcf864dacda9e3446ac119a`, campaign-result digest `416ba97bf05dedde4cd1bae5bd484d1f901b10b883d779d9a64b2363bd4bb521`. The chain is `LEGACY_BOOTSTRAP → GV0CAL → GV0R01 → GV0R01C013MT1 → GV0V03L40`. This event adds 30 attempt records and 22 new signatures. It does not add a market-test result. After it, memory holds 79 entries, 65 attempt records and 1 market result. The shortlist and the source journal are unchanged. `CONSUMED` still means already generated.
+
 ## 9. Operator commands
 
 ```bash

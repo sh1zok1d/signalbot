@@ -7233,3 +7233,37 @@ MARKET_OUTCOMES_TESTED = false
 ```
 
 Record: `docs/research/GENERATOR_V0_V03_RESUMABLE_CRITICS_AND_DERIVED_CONTINUATION.{md,json}`.
+
+## GV0V03L40 C033 outcome-blind count — 2026-10-02
+
+Pinned `CORE_BTC_BINANCE_V0` and `CORE_ETH_BINANCE_V0` monthly archives for `2020-01..2024-12` were read to count the frozen C033 primary state. The read stops at 2024-12. No `RV_DECAY`, post-T return, or target value was computed. The window is not a consumed confirmatory result.
+
+```
+TOTAL_ELIGIBLE_SHOCKS = 2926
+KEPT_AFTER_6H = 1383
+TOTAL_ALL4_EVENTS = 0
+FEASIBILITY_STATUS = FEASIBLE_FOR_PREREGISTRATION
+C033_NEXT = PREREGISTRATION_DESIGN
+EXECUTION_AUTHORIZED = false
+MARKET_OUTCOMES_OPENED = false
+PROTECTED_2025_2026_OPENED = false
+```
+
+Record: `docs/research/GV0V03L40_C033_V1_FEASIBILITY.md`.
+
+## GV0V03L40 C033 V2 compiler repair — 2026-10-02
+
+The sealed C033 planning object was recompiled under `GV0R02_SCHEMA_V2` / `GV0R02_POLICY_V2`. V1 semantics were not changed, and the V1 `FEASIBLE_FOR_PREREGISTRATION` artifact remains the V1 output. The repair is outcome-blind. The 2020–2024 count window is not a consumed confirmatory result.
+
+```
+MECHANISM_ACTIVE_N = 0
+MECHANISM_INACTIVE_N = 1383
+FEASIBILITY_STATUS = DEFINITION_INCOMPLETE
+BLOCKERS = PRIMARY_MECHANISM_SUPPORT_ZERO, ALPHA_UNATTAINABLE, PROSPECTIVE_MECHANISM_SUPPORT_UNGUARANTEED
+C033_NEXT = STOP / NOT_PREREGISTRABLE_UNDER_FROZEN_DESIGN
+MARKET_OUTCOMES_OPENED = false
+PROTECTED_2025_2026_OPENED = false
+SCIENTIFIC_DESIGN_CHANGED = false
+```
+
+Record: `docs/research/GV0V03L40_C033_V2_FEASIBILITY.md`.
