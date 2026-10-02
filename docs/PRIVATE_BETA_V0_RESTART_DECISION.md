@@ -126,6 +126,20 @@ Skip the "2–3 traders" and "5–10 traders" rollout steps. After the soak gate
 
 The owner enabled the committed push hard switch (`beta.push_enabled: true`, PR #271) after about a week of running the bot. Push still needs an explicit `BETA_PUSH_ENABLED=true` and the durable admin state (`/admin_resume_push`). Rollout step 1 (owner-only live push) is kept: push goes to every `ACTIVE` user, so invites wait until the owner has seen real pushes. Caps, cooldown and TTL are unchanged. Steps: `docs/PRIVATE_BETA_V0_DEPLOY.md`, "Live push".
 
+### Owner amendment (2026-10-02): V0.3 market briefing (`CHANGE PRODUCT`)
+
+**What happened.** Two days of owner use met the frozen `CHANGE PRODUCT` condition: the events were unactionable, and the daily cap bound every day, against a target of about zero.
+
+**What changes.** The beta surface changes from event pushes to a market briefing: `/catchup`, a Market State block on rolling 1h / 4h / 24h, decomposed significance, a morning brief and quiet pushes from 1h briefing episodes. The legacy 5m detector stops being a push source.
+- **Authority:** `BETA_V0_3_MARKET_BRIEFING.md`.
+- **Unchanged:** detection, `BETA_EVENT_RULES_V1`, the tape schema and the push hard switches.
+- **Exit criteria** restart from the first external user of V0.3.
+
+**Decision 2, narrowed.** One surface is opened, under its own gate.
+- **The surface:** "P1 permits outcome-aware historical analogue summaries under a frozen analogue gate. Direct trade recommendations, directional forecasts, target prices, probabilities of future price direction, and optimized signal thresholds remain out of scope."
+- **The gate:** `BETA_HISTORICAL_ANALOGUE_GATE_V1.md`, which is also the decision-7 promotion gate for that surface.
+- **Everything else** stays under `PREDICTIVE_PRODUCT_FROZEN`.
+
 ## Beta success and exit criteria (frozen before inviting external users)
 
 - **Duration:** 4 weeks from the first external user.

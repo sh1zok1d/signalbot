@@ -1,3 +1,35 @@
+## Beta V0.3 — market briefing and analogue gate — 2026-10-02
+
+`BETA_SURFACE = MARKET_BRIEFING (CHANGE_PRODUCT under the frozen exit criteria)`
+`BETA_V0_3_P1 = CONTRACT_RECORDED / NOT_IMPLEMENTED`
+`HISTORICAL_ANALOGUE_GATE_V1 = FROZEN_BEFORE_IMPLEMENTATION / NOT_ACTIVE`
+`PREDICTIVE_PRODUCT_FROZEN = true, except outcome-aware historical analogue summaries under their gate`
+`DETECTOR_RULES_CHANGED = false`
+`NEXT_UNIT = BETA_V0_3_P1 implementation (read-model projections first)`
+
+**Why.** Two days of owner use: the 5m events are noise and unactionable, and the 3-push cap is used up by about 11:00. The frozen beta criteria name this `CHANGE PRODUCT`.
+
+**What is new.** The surface becomes a briefing built on rolling 1h / 4h / 24h windows ending at the last closed 5m bucket (`docs/BETA_V0_3_MARKET_BRIEFING.md`):
+- `/catchup` and "since your last view";
+- a Market State block;
+- decomposed significance with venue agreement;
+- "I don't know" lines;
+- one morning brief and quiet pushes.
+  - `/catchup` and push both come from 1h briefing episodes.
+  - The legacy 5m detector is evidence in Details only and never a push source.
+
+**Analogues.** "Что было после похожих" may show direction medians only under `docs/BETA_HISTORICAL_ANALOGUE_GATE_V1.md`:
+- a matched-control baseline in the same card, N and spread;
+- a display floor (30 events / 15 dates) separate from an inferential minimum of at least 30 independent date clusters;
+- a mandatory verdict from a frozen, Holm-corrected, date-clustered test;
+- a null calibration with at least 1000 pseudo-event replicates, accepted when the Clopper–Pearson upper bound is at most 0.07;
+- materiality floors to be set before event outcomes, from controls only;
+- live and historical cohorts never pooled, the historical one being a declared Binance proxy through a frozen mapping;
+- directional labels never;
+- 2025/2026 sealed.
+
+The permission is narrow: historical conditional statistics are allowed; a prediction engine is not.
+
 ## Generator V0 — r01 frozen, resumable Anthropic transport — 2026-10-02
 
 `LADDER40_V03_R01 = INFRASTRUCTURE_FAILED_FROZEN`

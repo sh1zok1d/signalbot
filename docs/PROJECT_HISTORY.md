@@ -423,3 +423,15 @@ After about a week of running the beta, the owner judged that a descriptive scre
 After D7 closed, the owner adopted `research/HYPOTHESIS_EVALUATION_CONTRACT_V1.md`. It replaces "positive in k of n years" with a calibrated heterogeneity test. It splits claims into `CONTEXT_DESCRIPTIVE` and `INCREMENTAL`, and allows prospective replication with a fixed stopping rule.
 - **Why.** The old rules confused robustness with calendar uniformity, and they had no way to separate context from mechanism.
 - **Replay.** On the recorded history, no failure became support. C013 was downgraded for a genuine sign reversal. D12 was not penalized for noise.
+
+## 19. Beta becomes a market briefing; narrow analogue permission (2026-10-02)
+
+After two days of using the beta, the owner judged the 5m event feed unactionable. The push cap was spent by mid-morning. The frozen beta criteria call this `CHANGE PRODUCT`.
+- **New surface.** A market briefing built on rolling 1h / 4h / 24h windows: what happened since the user last looked, who dominates, how the market is positioned, how unusual it is across venues, and what the product does not know. Authority: `BETA_V0_3_MARKET_BRIEFING.md`.
+- **Narrow permission.** For the first time a beta surface may show direction statistics: "what happened after similar situations", with medians. This is allowed only as outcome-aware historical analogue summaries under `BETA_HISTORICAL_ANALOGUE_GATE_V1.md`. Each summary carries:
+  - the baseline beside every number, with N and spread;
+  - a mandatory product-computed verdict;
+  - separate historical and live cohorts.
+
+  Trade recommendations, forecasts, targets, direction probabilities and bias labels stay forbidden.
+- **Expected honest screen.** "The direction was ordinary, the range was not."

@@ -5,6 +5,7 @@
 It is descriptive historical evidence. It is **not** a predictive signal, a direction call, a probability, trading advice or a causal claim.
 
 **Status:** `FOUNDATION_ONLY / NOT_WIRED_INTO_BTC / NO_HISTORICAL_REPLAY`.
+**2026-10-02:** `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` builds on this foundation and permits direction medians under its rules (baseline, N, spread, mandatory verdict, separate cohorts). This document's range-only output and directional-word guard remain the V0 behavior.
 - Code: `beta/comparability.py` and `beta/followup.py`. Both are pure and do no I/O.
 - Tests: `tests/beta/test_beta_followup.py`.
 - `/btc`, the detector, rules, `rules_digest`, episodization, the state tape, percentiles, Stage-2 features, push and the `beta/outcomes.py` formulas are all unchanged.

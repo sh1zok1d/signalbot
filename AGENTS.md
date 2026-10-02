@@ -39,6 +39,9 @@ There is still no claim of a durable trading edge.
 A narrow **descriptive private beta V0.2** is authorized (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`; mode `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN`).
 - **Where it lives:** beta work belongs only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.
 - **What it must never do:** never predictive wording, never V1/V2 changes, never a research promotion without a separate gate.
+- **V0.3 (2026-10-02):** the surface is a market briefing (`docs/BETA_V0_3_MARKET_BRIEFING.md`).
+  - **One narrow exception to the predictive freeze:** outcome-aware historical analogue summaries, only under `docs/BETA_HISTORICAL_ANALOGUE_GATE_V1.md`. That means a baseline beside every number, N and spread, a mandatory verdict, separate historical and live cohorts, and no 2025/2026 data.
+  - **Still forbidden everywhere:** trade recommendations, directional forecasts, targets, probabilities of direction, bias/lean labels and optimized signal thresholds.
 
 ## Read these sources first
 
