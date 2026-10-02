@@ -64,6 +64,13 @@ python main.py --beta-context-dry-run --dry-run-days 7 --dry-run-stride 12 --dry
   - Without `--dry-run-provisional`, the production maturity rules apply.
   - With it, ranks count as mature after 3 days of history (the minimum the percentile core accepts). Those numbers are `PROVISIONAL`. V2 tape rows exist only since 2026-10-01, so production ranks mature around 2026-10-21 to 31.
 - **Cost:** about 2 s per sample; a week at hourly stride takes about 6 minutes.
+- **Running it.** `main.py` loads the whole app configuration, so run it where the deployment `.env` is loaded (`POSTGRES_*`, `REDIS_URL`, …). The command itself only reads the beta tables and Stage-1 `open_interest`.
+- **Reporting repair (2026-10-02, before the first owner run).** The first version could not produce the review the owner asked for, so only its report fields changed:
+  - one rendered `/catchup` per category (calm, unusual move, inferred, compression, degraded, venue disagreement) instead of six evenly spaced samples, with the OI as-of read used for the render;
+  - OI / taker context and the rendered label added to every «биржи расходятся» case;
+  - counts per result kind, OI-degraded windows, and mixed-sign windows that passed the gate.
+
+  No label rule, band or threshold changed.
 
 ## 5. Known limits
 

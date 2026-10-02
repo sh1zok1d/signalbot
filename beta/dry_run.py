@@ -26,6 +26,28 @@ DRY_RUN_VERSION = "BETA_INTERPRETATION_DRY_RUN_V1"
 _NO_TIERS = {"none_below_days": 1, "low_below_days": 2, "building_below_days": 3}
 
 
+# One rendered /catchup per category (the first sample that fits), for owner review.
+RENDER_CATEGORIES = ("calm", "unusual_move", "inferred", "compression", "degraded", "venue_disagreement")
+
+
+def _render_category(r1: Optional[Mapping[str, Any]], r4: Optional[Mapping[str, Any]],
+                     done: Mapping[str, Any]) -> Optional[str]:
+    from .interpretation import COMPRESSION, DATA_MISSING, INSUFFICIENT_HISTORY, INTERPRETED, NORMAL, VENUES_DIVERGE
+    results = [r for r in (r1, r4) if r]
+    checks = (
+        ("venue_disagreement", lambda r: r["kind"] == VENUES_DIVERGE),
+        ("inferred", lambda r: r["kind"] == INTERPRETED),
+        ("unusual_move", lambda r: r["inputs"].get("price") in ("up", "down")),
+        ("compression", lambda r: r["kind"] == COMPRESSION),
+        ("degraded", lambda r: r["kind"] in (DATA_MISSING, INSUFFICIENT_HISTORY) or r["key"].endswith("_oi_na")),
+        ("calm", lambda r: r["kind"] == NORMAL),
+    )
+    for name, fits in checks:
+        if name not in done and any(fits(r) for r in results):
+            return name
+    return None
+
+
 def _venue_signs_disagree(ctx: Mapping[str, Any]) -> bool:
     by = (ctx or {}).get("price_move_pct_by_venue") or {}
     signs = {(v > 0) - (v < 0) for v in by.values()}
@@ -52,9 +74,11 @@ def run_dry_run(cfg: BetaConfig, *, sample_buckets: Sequence[datetime],
     examples: dict = {"1h": {}, "4h": {}}
     divergence = {"1h": [], "4h": []}
     calm_mixed_signs = Counter()
-    rendered = []
+    gate_passed = Counter()
+    kinds = {"1h": Counter(), "4h": Counter()}
+    oi_degraded = {"1h": Counter(), "4h": Counter()}
+    rendered: dict = {}
     span = history_span(cfg)
-    render_at = set(sample_buckets[:: max(1, len(sample_buckets) // 6)][:6])
     for b in sample_buckets:
         if b not in metrics_by_bucket:
             continue
@@ -68,28 +92,47 @@ def run_dry_run(cfg: BetaConfig, *, sample_buckets: Sequence[datetime],
                              oi_index=oi_index, horizon=h)
             state[f"context_{h}"] = ctx
             res = interpret(cfg, ctx, horizon=h, liquidation_episodes=liq)
+            state[f"result_{h}"] = res
             counts[h][res["key"]] += 1
+            kinds[h][res["kind"]] += 1
+            if res["inputs"].get("oi") in ("MISSING", "IMMATURE"):
+                oi_degraded[h][res["inputs"]["oi"]] += 1
             bucket_examples = examples[h].setdefault(res["key"], [])
             if len(bucket_examples) < n_examples:
                 bucket_examples.append({"bucket": iso(b), "inputs": res["inputs"],
                                         "ru": interpretation_text(res, "ru"), "en": interpretation_text(res, "en"),
                                         "liquidation_episode": res["liquidation_episode"]})
             if res["key"] == "venues_diverge":
-                divergence[h].append({"bucket": iso(b), "price_move_pct_median": (ctx or {}).get("price_move_pct_median"),
-                                      "by_venue": (ctx or {}).get("price_move_pct_by_venue"),
-                                      "price_rank": res["inputs"].get("price")})
-            if res["inputs"].get("price") == "flat" and _venue_signs_disagree(ctx):
-                calm_mixed_signs[h] += 1        # what the ungated check would have labelled
-        if b in render_at:
-            tape = {"as_of": b, "metrics": {x: m for x, m in hist}, "oi": {}}
-            tape["metrics"][b] = metrics_by_bucket[b]
+                pct = (ctx or {}).get("percentiles") or {}
+                divergence[h].append({
+                    "bucket": iso(b), "price_band": res["inputs"].get("price"),
+                    "price_rank": (pct.get("price_move_pct_median") or {}).get("rank"),
+                    "price_move_pct_median": (ctx or {}).get("price_move_pct_median"),
+                    "by_venue": (ctx or {}).get("price_move_pct_by_venue"),
+                    "oi": res["inputs"].get("oi"), "oi_change_pct_median": (ctx or {}).get("oi_change_pct_median"),
+                    "taker": res["inputs"].get("taker"),
+                    "taker_delta_notional_usd_sum": (ctx or {}).get("taker_delta_notional_usd_sum"),
+                    "rendered_ru": interpretation_text(res, "ru")})
+            if _venue_signs_disagree(ctx):
+                if res["inputs"].get("price") == "flat":
+                    calm_mixed_signs[h] += 1    # suppressed by the gate: aggregate move not unusual
+                elif res["inputs"].get("price") in ("up", "down"):
+                    gate_passed[h] += 1         # reached the agreement check
+        category = _render_category(state.get("result_1h"), state.get("result_4h"), rendered)
+        if category is not None:
+            from .horizons import data_through, oi_boundaries
+            metrics = {x: m for x, m in hist}
+            metrics[b] = metrics_by_bucket[b]
+            bounds = list(oi_boundaries(b)) + [data_through(b) - timedelta(hours=8)]
+            oi = {bd: {ex: (oi_index.at(ex, bd) if oi_index else None) for ex in cfg.exchanges} for bd in bounds}
+            tape = {"as_of": b, "metrics": metrics, "oi": oi}
             view = {"product_status": "NO ACTIVE EVENTS", "kind": "catchup",
                     "now": {"reference_price": (reference_prices or {}).get(b)},
                     "data_through": iso(b + BUCKET),
-                    "horizons": build_horizons(cfg, as_of_bucket=b, metrics_by_bucket=tape["metrics"])}
+                    "horizons": build_horizons(cfg, as_of_bucket=b, metrics_by_bucket=metrics, oi_by_boundary=oi)}
             state["open"] = {e["event_type"]: e for e in liq}
             view["market"] = market_block(cfg, view, state, tape, window_hours=8, episodes=[])
-            rendered.append({"bucket": iso(b), "ru": format_catchup(cfg, view, "ru")})
+            rendered[category] = {"bucket": iso(b), "ru": format_catchup(cfg, view, "ru")}
     total = {h: sum(c.values()) for h, c in counts.items()}
     return {
         "version": DRY_RUN_VERSION,
@@ -99,10 +142,13 @@ def run_dry_run(cfg: BetaConfig, *, sample_buckets: Sequence[datetime],
         "last_sample": iso(max(sample_buckets)) if sample_buckets else None,
         "frequencies": {h: {k: {"n": n, "share": round(n / total[h], 4) if total[h] else None}
                             for k, n in sorted(c.items(), key=lambda kv: -kv[1])} for h, c in counts.items()},
-        "venues_diverge": {h: {"n": len(v), "cases": v[:20]} for h, v in divergence.items()},
+        "kinds": {h: dict(c) for h, c in kinds.items()},
+        "oi_degraded": {h: dict(c) for h, c in oi_degraded.items()},
+        "venues_diverge": {h: {"n": len(v), "cases": v} for h, v in divergence.items()},
         "calm_mixed_venue_signs_not_labelled": dict(calm_mixed_signs),
+        "mixed_venue_signs_passed_gate": dict(gate_passed),
         "examples": examples,
-        "rendered_catchup_ru": rendered,
+        "rendered_catchup_ru": [{"category": c, **rendered[c]} for c in RENDER_CATEGORIES if c in rendered],
         "oi_rows": len(oi_rows), "liquidation_episodes": len(liquidation_episodes),
     }
 

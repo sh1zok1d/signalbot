@@ -165,6 +165,13 @@ def test_dry_run_counts_every_sample_and_reports_the_divergence_gate():
                        ignore_maturity=True)
     assert prov["status"] == "PROVISIONAL_RANKS_IGNORE_MATURITY"
     assert "insufficient" not in prov["frequencies"]["1h"]
+    from beta.dry_run import RENDER_CATEGORIES
+    for r in (rep, prov):
+        assert sum(r["kinds"]["1h"].values()) == r["samples"] == sum(r["kinds"]["4h"].values())
+        cats = [x["category"] for x in r["rendered_catchup_ru"]]
+        assert len(cats) == len(set(cats)) and set(cats) <= set(RENDER_CATEGORIES)
+        assert all(assert_descriptive(x["ru"], "ru") for x in r["rendered_catchup_ru"])
+    assert "degraded" in [x["category"] for x in rep["rendered_catchup_ru"]]     # immature ranks
     for h in ("1h", "4h"):
         for key, ex in prov["examples"][h].items():
             assert ex and all(assert_descriptive(e["ru"], "ru") for e in ex)
@@ -181,6 +188,9 @@ def test_dry_run_calm_mixed_venue_signs_are_counted_but_not_labelled():
                                                "building_below_days": 30}, ignore_maturity=True)
     flat = rep["calm_mixed_venue_signs_not_labelled"]
     labelled = {h: rep["venues_diverge"][h]["n"] for h in ("1h", "4h")}
-    for case in rep["venues_diverge"]["1h"]["cases"]:
-        assert case["price_rank"] in ("up", "down")                # only after an unusual aggregate move
+    for h in ("1h", "4h"):
+        for case in rep["venues_diverge"][h]["cases"]:
+            assert case["price_band"] in ("up", "down")            # only after an unusual aggregate move
+            assert {"oi", "taker", "by_venue", "rendered_ru"} <= set(case)
+        assert rep["mixed_venue_signs_passed_gate"].get(h, 0) >= labelled[h]
     assert sum(flat.values()) + sum(labelled.values()) >= 1
