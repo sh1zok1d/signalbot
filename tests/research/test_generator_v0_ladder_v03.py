@@ -16,7 +16,7 @@ from scripts.research.generator_v0.provider import Caller, MockProvider
 from scripts.research.generator_v0.roles import (NOVELTY_PROMPT, NOVELTY_PROMPT_V03, RED_PROMPT, RED_PROMPT_V03,
                                                  RoleContractError, Roles, red_checks)
 from scripts.research.generator_v0.runner import (GENERATOR_PROMPT, GENERATOR_PROMPT_V03, card_violations_for,
-                                                  contract_of_request, generator_identity, run_campaign,
+                                                  contract_of_request, generator_identity, ladder_config, run_campaign,
                                                   slot_violations_v02)
 from scripts.research.generator_v0.schema import encode_provider_card, output_schema, validate_card, validate_instance
 
@@ -197,7 +197,7 @@ def test_rung_mismatch_rejects_and_a_missing_rung_check_is_a_contract_error(c):
 # --------------------------------------------------------------------------- campaign
 def ladder_campaign(path, responder=None):
     c = Contexts()
-    ledger = Ledger(path, {"RUN_ID": path.name, "GENERATOR_CONTRACT": V03, "SIZE": 40})
+    ledger = Ledger(path, ladder_config(RUN_ID=path.name, SIZE=40))
     provider = MockProvider(responder or MockResponder(c))
     return run_campaign(c, Caller(c, ledger, provider)), ledger, provider
 

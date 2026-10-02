@@ -152,6 +152,19 @@ false for the rule to match.
 | `HUMAN_REVIEW` | `DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW` |
 | non-ready data status | `DATA_FEASIBILITY_REQUIRED`, or the `DATA_BLOCKED_*` status itself |
 
+**GENERATOR_CONTRACT_V03 campaigns (complexity ladder, 2026-10-02).** One rule is appended after every V02 rule, so a V02 failure keeps its V02 class first:
+
+| Failed checks | Class |
+|---|---|
+| `RUNG_CONSISTENT` (V03 red-team check) | `METHOD_RUNG_INCONSISTENT` |
+
+For a V03 campaign:
+- **Shape.** The red-team check set must be the V03 set, and every card must carry a valid `COMPLEXITY_CLASS` and `COMPONENTS`.
+- **Copied, not rewritten.** Both fields are copied verbatim onto the attempt card, as are all critic outputs. The finalizer validates their shape; it never re-evaluates or rewrites them.
+- **Recording.** The delta records `GENERATOR_CONTRACT`, and the event's rules digest includes the V03 extension (`FINALIZER_RULES_V03`).
+- **V02 unchanged.** V02 campaigns, rules and digests are unchanged. Mixing (ladder fields on a non-V03 campaign) is refused.
+- **Incomplete runs.** A V03 run stopped at `INCOMPLETE_BUDGET_STOP` has no completed result and cannot be finalized.
+
 The primary blocker is the first in the order red team, then feasibility verdict,
 then data status. It becomes the row's `BLOCKER_CLASS_IF_ANY`. Secondary blockers
 are listed in the requirement text and on the attempt record. Requirement texts and

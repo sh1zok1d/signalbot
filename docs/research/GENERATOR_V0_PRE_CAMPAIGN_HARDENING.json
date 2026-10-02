@@ -1,0 +1,128 @@
+{
+  "KIND": "GENERATOR_V0_PRE_CAMPAIGN_HARDENING",
+  "DATE": "2026-10-02",
+  "AUTHORITY": "owner instruction 2026-10-02 (finalizer V03, budget-stop semantics, stop before live calls)",
+  "LLM_CALLS": 0,
+  "MARKET_OUTCOMES_OPENED": false,
+  "MEMORY_FINALIZER_V03": {
+    "ACCEPTS": [
+      "RED_TEAM check RUNG_CONSISTENT",
+      "card fields COMPLEXITY_CLASS and COMPONENTS"
+    ],
+    "BLOCKER_RULE_APPENDED": [
+      [
+        "RUNG_CONSISTENT"
+      ],
+      "METHOD_RUNG_INCONSISTENT"
+    ],
+    "COPY_RULE": "ladder fields and every critic output are shape-validated and copied verbatim; never re-evaluated or rewritten",
+    "RULES_DIGEST": "V02 unchanged (equals the published chain head RULES_DIGEST); V03 events add FINALIZER_RULES_V03",
+    "V02_EVIDENCE": {
+      "MOCK_30_CARD_DELTA_SHA256_MAIN_EQUALS_BRANCH": "674bd61a627adcf924bb8af07f7913b9bac9812c3d763140e56506532a6a5bc8",
+      "RULES_DIGEST": "db89b556bdfdea59139a4a0c72b44339fd8bc6ae385116d9c356801de8d9ea6c",
+      "ONLY_DIFFERENCE": "event hashes, because every event records FINALIZER_CODE_DIGEST of the finalizer code"
+    }
+  },
+  "BUDGET_STOP_SEMANTICS_V03": {
+    "STATUS": "INCOMPLETE_BUDGET_STOP",
+    "WHEN": "the budget gate fires before all 40 slots and all mandatory reviews are complete",
+    "SHORTLIST": "none; no campaign result is written",
+    "KEPT": "partial cards and the full journal; not a completed shadow campaign; not finalizable into memory",
+    "RESUME": "only the same run: identical config, GENERATOR_CONTRACT, LADDER_IDENTITY (slot plan, rules, prompts, quota), routing identity and code; already obtained calls are replayed from the journal, never re-posted; the cap may change only through authorize-budget-extension within the owner ceiling",
+    "AFTER_FULL_RESUME": "the 2/2/1 shortlist is built once by the normal rule",
+    "V02": "unchanged (STOPPED_BUDGET)"
+  },
+  "CAMPAIGN_PLAN": {
+    "ENTRY_POINT": "python -m scripts.research.generator_v0 ladder-40-card --allow-real-llm --budget-usd 12 --accept-budget-stop --actor owner --reason <reason> --run-dir <dir>",
+    "SLOTS": {
+      "ATOMIC": 16,
+      "CONDITIONAL": 14,
+      "INTERACTION": 7,
+      "COMPOSITE": 3
+    },
+    "SHORTLIST": {
+      "ATOMIC": 2,
+      "CONDITIONAL": 2,
+      "COMPLEX": 1
+    },
+    "HARD_CAP_USD": "12.00",
+    "ACCEPT_BUDGET_STOP": true,
+    "DESIGN_CHANGES_AFTER_FIRST_LIVE_CALL": "none",
+    "ROUTES": {
+      "GENERATOR": {
+        "MODEL": "claude-opus-5-5",
+        "PROVIDER": "ANTHROPIC",
+        "PARAMS": {
+          "effort": "high"
+        },
+        "MAX_OUTPUT_TOKENS": 100000,
+        "LOGICAL_CALLS": 4,
+        "MAX_ATTEMPTS": 4
+      },
+      "NOVELTY_CRITIC": {
+        "MODEL": "gpt-6-sol",
+        "PROVIDER": "OPENAI",
+        "PARAMS": {
+          "reasoning_effort": "high"
+        },
+        "MAX_OUTPUT_TOKENS": 12000,
+        "LOGICAL_CALLS": 40,
+        "MAX_ATTEMPTS": 80
+      },
+      "RED_TEAM": {
+        "MODEL": "gpt-6-sol",
+        "PROVIDER": "OPENAI",
+        "PARAMS": {
+          "reasoning_effort": "high"
+        },
+        "MAX_OUTPUT_TOKENS": 8000,
+        "LOGICAL_CALLS": 40,
+        "MAX_ATTEMPTS": 80
+      },
+      "FEASIBILITY_CRITIC": {
+        "MODEL": "gpt-6-luna",
+        "PROVIDER": "OPENAI",
+        "PARAMS": {
+          "reasoning_effort": "low"
+        },
+        "MAX_OUTPUT_TOKENS": 6000,
+        "LOGICAL_CALLS": 40,
+        "MAX_ATTEMPTS": 80
+      },
+      "SELECTOR": {
+        "MODEL": "gpt-6-luna",
+        "PROVIDER": "OPENAI",
+        "PARAMS": {
+          "reasoning_effort": "none"
+        },
+        "MAX_OUTPUT_TOKENS": 2000,
+        "LOGICAL_CALLS": 1,
+        "MAX_ATTEMPTS": 1,
+        "ADVISORY_ONLY": true
+      }
+    },
+    "TOTAL_LOGICAL_CALLS": 125,
+    "MAX_ATTEMPTS_INCLUDING_CONTENT_RETRIES": 245,
+    "ROUTING_DIGEST": "f44b54189e2634aa8d119b016b729f3d69a39015f73ab4de4e58198f51f65609",
+    "OFFLINE_WORST_CASE_MICRO_USD": {
+      "SINGLE_ATTEMPT": 30749115,
+      "WITH_CONTENT_RETRIES": 61496292,
+      "STAGES": {
+        "generation:0": 2210772,
+        "generation:1": 2210872,
+        "generation:2": 2210856,
+        "generation:3": 2211532,
+        "NOVELTY_CRITIC x40": 17431352,
+        "RED_TEAM x40": 4252312,
+        "FEASIBILITY_CRITIC x40": 219481,
+        "SELECTOR": 1938
+      }
+    },
+    "EXPECTED_SPEND_USD": "about 7-8, scaled from GV0R01 actual (USD 5.091486 for 30 cards and 93 calls against a USD 19.52 bound)",
+    "PREREQUISITES": [
+      "owner live authorization naming budget, roles and call limits",
+      "ANTHROPIC_API_KEY and OPENAI_API_KEY in the environment (absent in the preparing session)",
+      "run from a verified main checkout"
+    ]
+  }
+}

@@ -7118,3 +7118,17 @@ NEXT_UNIT = GENERATOR_V0_FRESH_SHADOW_CAMPAIGN
 ```
 
 Record: `docs/research/GENERATOR_V0_COMPLEXITY_LADDER_AMENDMENT.{md,json}`.
+
+## Generator V0 pre-campaign hardening — 2026-10-02
+
+Offline only: no LLM call, no market data and no scientific outcome.
+- **Finalizer.** The memory finalizer accepts V03 campaigns: it validates the ladder fields and critic outputs and copies them verbatim. A failed `RUNG_CONSISTENT` maps to `METHOD_RUNG_INCONSISTENT`. V02 deltas and the rules digest are unchanged.
+- **Budget stop.** V03 budget-stop semantics are frozen: `INCOMPLETE_BUDGET_STOP`, no shortlist, resume of the same run only, and the shortlist is built once after a full resume.
+
+```
+MEMORY_FINALIZER_V03 = IMPLEMENTED
+V03_BUDGET_STOP = INCOMPLETE_BUDGET_STOP
+NEXT_UNIT = GENERATOR_V0_FRESH_SHADOW_CAMPAIGN
+```
+
+Record: `docs/research/GENERATOR_V0_PRE_CAMPAIGN_HARDENING.{md,json}`.

@@ -201,7 +201,9 @@ def main(argv=None):
     if a.provider=='routed' and a.command in ('run','first-30-card','ladder-40-card'):budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c,bound_provider=offline_routed_provider(c),contract_id=contract_id))
     a.run_dir.mkdir(parents=True,exist_ok=True)
     config={'RUN_ID':a.run_dir.name,'PROVIDER':provider.provider_id,'MODEL':provider.model_id,'SIZE':a.size,'CAP_MICRO_USD':cap,'CONTEXT_DIGEST':digest(c.generator()),'IMPLEMENTATION_DIGEST':digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))}),'GENERATOR_MAX_OUTPUT_TOKENS':generator_max_output_tokens(provider)}
-    if a.contract=='V03':config['GENERATOR_CONTRACT']=contract_id
+    if a.contract=='V03':
+        from .runner import ladder_config
+        config=ladder_config(**config)
     if a.provider=='routed':
         config.update(**routed_run_identity(provider,c))
     if a.provider=='openai':
@@ -220,6 +222,10 @@ def main(argv=None):
         try:
             result=run_campaign(c,caller,a.size)
         except InfrastructureStop as e:
+            if l.get('status')=='INCOMPLETE_BUDGET_STOP':
+                from .runner import incomplete_progress
+                atomic_json(a.run_dir/'incomplete_budget_stop.json',{'RUN_ID':config['RUN_ID'],'STATUS':'INCOMPLETE_BUDGET_STOP',**incomplete_progress(l),
+                                                                    'SPEND_MICRO_USD':l.total_charged_micro_usd()})
             print(canonical({'RUN_ID':config['RUN_ID'],'STATUS':l.get('status'),'STOP':type(e).__name__,'DETAIL':str(e)[:500],'SPEND_MICRO_USD':l.total_charged_micro_usd()}))
             raise
         atomic_json(a.run_dir/'shadow_registry.json',result)
