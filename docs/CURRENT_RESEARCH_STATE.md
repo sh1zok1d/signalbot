@@ -1,3 +1,27 @@
+## Generator feasibility contract mapped to V1 — 2026-10-02
+
+`GENERATOR_CONTRACT_VERSION = GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1`
+`GENERATOR_CARD_SCHEMA_CHANGED = false`
+`LLM_CALLS = 0`
+`MARKET_OUTCOMES_OPENED = false`
+`COMPLEXITY_LADDER = ATOMIC / CONDITIONAL / INTERACTION / COMPOSITE (planning contract + shortlist quota 2/2/1)`
+`NEXT_UNIT = GENERATOR_V0_COMPLEXITY_LADDER_AMENDMENT, then GENERATOR_V0_FRESH_SHADOW_CAMPAIGN (owner budget decision required)`
+
+A shortlisted card becomes a V1 planning object through `scripts/research/generator_v0/feasibility_contract_v1.py`, which emits `GV0R02_SCHEMA_V1` proposals.
+- **The planning object carries the V1 design decisions:** claim type, target class, variable roles, 1–3 primary cells, practical bar, surfaces within the frozen era roles, and epochs.
+- **The contract checks shape only.** The V1 compiler stays the single adjudicator of the V1 rules.
+- **Unchanged:** the generator card (`GENERATOR_CONTRACT_V02`, `CANDIDATE_SCHEMA_FROZEN`), its prompt, and the V0 planning contract.
+
+**Complexity ladder (owner decision).** Generation goes from simple to complex, and simple mechanisms build the library of tested base effects.
+- **Planning rungs.** The planning object declares its rung. For interaction and composite claims, each component's main effect is controlled in the baseline, the joint term is the mechanism, and the claim is its incremental effect. The components need not be supported on their own: A ≈ 0, B ≈ 0 and A × B ≠ 0 is valid.
+- **Shortlist quota.** 2 atomic, 2 conditional, 1 complex. An unfilled seat passes down the ladder, never up.
+- **Simplicity is not banality.** An indicator threshold is a weak atomic card.
+- **Generation itself is a separate amendment** to the frozen generator design, made before the campaign: rung-assigned slots, card contract V03, the novelty-critic rule and the quota in the runner.
+
+Record: `docs/research/GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING.md`.
+
+After that amendment comes a paid LLM campaign under `docs/AGENT_RUNTIME_PROTOCOL.md`: a fresh shadow run with a new run ID. It needs the owner's absolute budget cap and the allowed roles and call counts before any live call.
+
 ## TWAP V1 closed — owner decision — 2026-10-02
 
 `TWAP_V1 = CLOSED`
