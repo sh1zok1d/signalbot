@@ -1,3 +1,19 @@
+## Selling-exhaustion support feasibility V0 — INFORMATIONALLY_WEAK; 4–5 pp not testable in a realistic horizon — 2026-10-02
+
+`SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON`
+`E_FREQUENCY = SE_LEG 22% of support (~187/yr) | SE_BASELINE 12% (~98/yr)`
+`PROSPECTIVE_WEEKS_FOR_80_AT_5PP = SE_LEG 270-430 (5.2-8.2 y) | SE_BASELINE 472-604; at 4 pp SE_LEG 453-665`
+`MDE80_WITH_104_PROSPECTIVE_WEEKS = SE_LEG 8.3-9.9 pp | SE_BASELINE 10.8-12.2 pp`
+`CONTINUOUS_SCORE = 3-4x more efficient only if the effect is graded (5 pp-equivalent: SE_LEG 87-122 w); about 3x worse if it is a step; a different estimand`
+`E_MINUS_S_OUTCOME_CONTRAST = not computed`
+`SEED_CREATED = false`
+`NEXT_UNIT = OWNER_DECISION_AFTER_SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0`
+
+This section supersedes `NEXT_UNIT = SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 run (once)` below.
+- **Report:** `docs/research/SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0.md`, with result `.json`. Design frozen in `a4b76fd`.
+- **Dependence.** Same-date cross-symbol outcome dependence is strong (φ = 0.23, state-blind). Inside E − S it largely cancels unless the shocks are state-specific (STRESS).
+- **Candidates recorded, none authorized:** `RSI_GRADIENT_SUPPORT_CANDIDATE` and a graded selling-exhaustion score. Neither is created.
+
 ## Selling-exhaustion support feasibility V0 — design frozen; counts next — 2026-10-02
 
 `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = DESIGN FROZEN (before state counts)`

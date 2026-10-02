@@ -7553,3 +7553,34 @@ SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = DESIGN FROZEN
 NEW_PROTECTED_OUTCOMES_OPENED = false
 E1_INTERVAL_TOUCHED = false
 ```
+
+## Selling-exhaustion support feasibility V0 — result — 2026-10-02
+
+**Run.** One run of the design frozen in `a4b76fd`, on the exposed six-symbol surface. It used no new protected outcome, computed no E − S outcome contrast, and touched no E1 byte.
+
+**Integrity.** The PIT truncation audit was 30/30 on every symbol. The discovery digests and the validation ids reproduced.
+
+**Counts.** There are 3,005 support episodes over 186 weeks.
+- **`SE_LEG`:** 667 E (22%) and 2,335 S.
+- **`SE_BASELINE`:** 349 E (12%) and 2,649 S.
+- **Concentration:** the maximum symbol share of E is 0.18–0.19, and the maximum half-year share is 0.16–0.17.
+
+**State-blind outcome dependence.** Same-date cross-symbol φ = 0.227; same-week other-date φ = 0.026; same-symbol chain φ ≈ 0.
+
+**Power.**
+- **Exposed-sized sample, MDE80:** 6.5–8.0 pp (`SE_LEG`) and 8.0–9.5 pp (`SE_BASELINE`).
+- **Prospective weeks for 80% at 5 pp:** 270–430 (`SE_LEG`) and 472–604 (`SE_BASELINE`).
+- **At 4 pp:** 453–665 (`SE_LEG`).
+
+**Continuous score.** It is 3–4× more efficient only under a graded effect, and about 3× worse under a step.
+
+**Report:** `docs/research/SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0.md`.
+
+```
+SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON
+NEW_PROTECTED_OUTCOMES_OPENED = false
+E_MINUS_S_OUTCOME_CONTRAST_COMPUTED = false
+E1_INTERVAL_TOUCHED = false
+SEED_CREATED = false
+NEXT_UNIT = OWNER_DECISION_AFTER_SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0
+```
