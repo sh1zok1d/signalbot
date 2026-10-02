@@ -7132,3 +7132,24 @@ NEXT_UNIT = GENERATOR_V0_FRESH_SHADOW_CAMPAIGN
 ```
 
 Record: `docs/research/GENERATOR_V0_PRE_CAMPAIGN_HARDENING.{md,json}`.
+
+## Generator V0 ladder-40 V03 r01 paused — 2026-10-02
+
+Owner-authorized fresh `GENERATOR_CONTRACT_V03` shadow campaign, absolute cap USD 12, OpenAI network mode `DIRECT`. It stopped before any card existed.
+
+The first generator call (`generation:0`, Anthropic `claude-opus-5-5`) was dispatched and the client timed out. State `UNCERTAIN`. Error `TimeoutError`. No message id. Reserved USD 2.210772. Recorded cost none. Call key `ae215fdf93381475470783cc79bb51e96f3902bc1b126abea12aedb42ca32304`.
+
+No OpenAI call was sent. No candidate, no critic judgment, and no shortlist exist. Memory was not finalized. Protected 2025/2026 was not opened. No market outcome was tested.
+
+```
+LADDER40_V03_R01 = PAUSED_UNCERTAIN_CALL
+RERUN_AUTHORIZED = false
+NEW_CAMPAIGN_AUTHORIZED = false
+REPLAY_UNCERTAIN_CREATE = false
+MEMORY_FINALIZER = NOT_RUN
+PROTECTED_2025_2026_OPENED = false
+MARKET_OUTCOMES_TESTED = false
+NEXT_UNIT = OWNER_RECONCILE_OF_LADDER40_V03_R01_UNCERTAIN_GENERATOR_CALL
+```
+
+Record: `docs/research/GENERATOR_V0_LADDER40_V03_R01_PAUSE.{md,json}`. Journal snapshot: `docs/research/generator_v0_ladder40_v03_r01/run.sqlite`.

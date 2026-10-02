@@ -1,3 +1,21 @@
+## Generator V0 ladder-40 V03 r01 — paused — 2026-10-02
+
+`LADDER40_V03_R01 = PAUSED_UNCERTAIN_CALL`
+`GENERATOR_CONTRACT = V03`
+`OPENAI_NETWORK_MODE = DIRECT`
+`MEMORY_FINALIZER = NOT_RUN`
+`RERUN_AUTHORIZED = false`
+`NEW_CAMPAIGN_AUTHORIZED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`MARKET_OUTCOMES_TESTED = false`
+`NEXT_UNIT = OWNER_RECONCILE_OF_LADDER40_V03_R01_UNCERTAIN_GENERATOR_CALL`
+
+The owner-authorized fresh 40-card shadow campaign stopped on generator round `generation:0`. The Anthropic Messages POST was dispatched and the client timed out at the frozen 1800-second limit. The call is `UNCERTAIN`, with no message id and no recorded cost. Its reserved bound, USD 2.210772, stays charged against the USD 12 cap. Call key `ae215fdf93381475470783cc79bb51e96f3902bc1b126abea12aedb42ca32304`. No card was admitted. There is no shortlist.
+
+Do not replay that create and do not start another campaign. Continuation, if later authorized, is reconcile of this journal and then resume of the same run. The journal is not sealed.
+
+Record: `docs/research/GENERATOR_V0_LADDER40_V03_R01_PAUSE.{md,json}`. Snapshot: `docs/research/generator_v0_ladder40_v03_r01/run.sqlite` (SHA256 `72b7aaa774dfbf62c6caa3303eb40ae1c380b3e6bb0ace1f95e015953391be0b`).
+
 ## Generator V0 fresh shadow campaign — authorized, not started — 2026-10-02
 
 `GENERATOR_V0_FRESH_SHADOW_CAMPAIGN = AUTHORIZED_NOT_STARTED`
