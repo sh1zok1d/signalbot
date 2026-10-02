@@ -7079,3 +7079,12 @@ NEXT_UNIT = OWNER_DECISION_AFTER_TWAP_SEALED_RUN_V1
 ```
 
 Record: `docs/research/TWAP_SEALED_RUN_V1_RESULT.md`, artifacts `docs/research/twap_sealed_run_v1/`. The record carries a post-run erratum: the §8 wording "real counts are never a selection criterion" conflicts with the zero-denominator admissibility rule. The selection outcome is unchanged.
+
+## TWAP V1 closed — owner decision — 2026-10-02
+
+Owner decision after the sealed run (#287, merged at `becb6cd`). No new outcome was opened. The TWAP branch is closed: no rerun, no nearby detector, horizon or floor variant, and no product directional claim. The closure is limited to the tested region and does not close the algorithmic-execution family.
+
+```
+TWAP_V1 = CLOSED
+NEXT_UNIT = GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING
+```
