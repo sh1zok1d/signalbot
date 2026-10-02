@@ -1,3 +1,16 @@
+## Selling-exhaustion support feasibility V0 — design frozen; counts next — 2026-10-02
+
+`SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = DESIGN FROZEN (before state counts)`
+`VARIANTS = SE_LEG (prior downswing) | SE_BASELINE (local baseline); no oscillator input; no outcome-based selection`
+`PRIMARY = E - S inside support; effects 3 / 5 / 7.5 / 10 pp; decision line 5 pp (4 pp reported)`
+`SURFACE = exposed 2023-01-01..2026-08-11 (read horizon 2026-08-15); discovery only, never validation`
+`E_MINUS_S_OUTCOME_CONTRAST = never computed in this unit`
+`SEED_CREATED = false`
+`NEXT_UNIT = SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 run (once)`
+
+This section supersedes `NEXT_UNIT = SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 (feasibility only; ...)` below.
+- **Design:** `docs/research/SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0.md`, with the authoritative twin `_DESIGN.json`. Code and frozen-artifact hashes are bound.
+
 ## Divergence program — owner decisions V3; selling-exhaustion feasibility authorized — 2026-10-02
 
 `DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = ACCEPTED (no large practical edge; validation rules out +15 pp; pooled about +1-3 pp)`

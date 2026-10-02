@@ -7531,3 +7531,25 @@ PROSPECTIVE_ACTIVATED = false
 SEED0003_CREATED = false
 NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_FULL_HISTORY_RESEARCH_V0
 ```
+
+## Selling-exhaustion support feasibility V0 — design frozen — 2026-10-02
+
+The owner accepted `DIVERGENCE_FULL_HISTORY_RESEARCH_V0` (`DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md`) and authorized a feasibility-only new research object: `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0`.
+
+**Population.** Support episodes of the unchanged SEED-0001 detector on the exposed six-symbol surface: decisions 2023-01-01..2026-08-11, read horizon 2026-08-15.
+
+**Candidate states.** No oscillator input; thresholds are no-change points or medians; windows reuse frozen constants.
+- `SE_LEG`: weaker net taker selling over the second leg than the first, AND OI not up over the leg.
+- `SE_BASELINE`: 24-bar approach flow above its local 720-bar median, AND OI not up over 24h.
+
+**Primary:** `E − S`. Power is reported at 3 / 5 / 7.5 / 10 pp; the decision line is 5 pp within 104 prospective weeks under STRESS.
+
+**Dependence calibration.** It is state-blind, using already-opened outcomes only.
+
+**Not done.** No E − S outcome contrast is computed, and no SEED is created.
+
+```
+SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = DESIGN FROZEN
+NEW_PROTECTED_OUTCOMES_OPENED = false
+E1_INTERVAL_TOUCHED = false
+```
