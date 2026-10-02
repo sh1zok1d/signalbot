@@ -63,7 +63,8 @@ class OpenAIProvider:
                  sleeper=None,clock=None,routes=None,offline=False,network_mode=OPENAI_NETWORK_MODE_DIRECT):
         """routes: the multi-provider routing registry (routing.ROUTES). When given,
         this adapter serves only the roles routed to OPENAI, with the registry's
-        model, effort and prices (Chat Completions only, never GENERATOR).
+        model, effort and prices (never GENERATOR). A background route uses Responses;
+        every other OpenAI route stays on synchronous Chat Completions.
         Without routes it is the legacy OpenAI-only provider (models.ROLE_MODEL_MAP).
         offline=True (routed only) builds a bound-only adapter that never sends."""
         if model not in (None,''):raise ContractError('role-specific model map is authoritative; do not pass --model')

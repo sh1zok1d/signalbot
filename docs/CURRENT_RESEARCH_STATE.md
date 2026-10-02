@@ -30,6 +30,28 @@
 
 The permission is narrow: historical conditional statistics are allowed; a prediction engine is not.
 
+## Generator V0 — r02 paused; all V03 critics resumable; derived continuation — 2026-10-02
+
+`LADDER40_V03_R02 = PAUSED_UNCERTAIN_CALL / IMMUTABLE_SOURCE_FOR_DERIVED_CONTINUATION`
+`OPENAI_V03_ALL_CRITICS_RESUMABLE_TRANSPORT_V1 = IMPLEMENTED (offline; no LLM call)`
+`DERIVED_RUN = ladder-40-card-v03-r02-derived-critics-v1 (DERIVED_IMPORTED_REVALIDATED)`
+`DERIVED_CONTINUATION_LIVE_AUTHORIZED = false`
+`SCIENTIFIC_DESIGN_CHANGED = false`
+`V02_ROUTING_CHANGED = false`
+`MEMORY_FINALIZER = NOT_RUN`
+`PROTECTED_2025_2026_OPENED = false`
+`MARKET_OUTCOMES_TESTED = false`
+
+This is the current generator routing. It is an infrastructure repair, not a scientific result.
+
+**What r02 was.** The owner-authorized V03 ladder on Message Batches. All four generator rounds completed (USD 2.192768; 30 valid, 10 hard fail). The synchronous feasibility call for C024 then timed out after dispatch with no response id. State `UNCERTAIN`, reservation USD 0.005302. Source charged total USD 3.659239. The source journal is frozen. PR #299 is the durable checkpoint (`bb13d8f26a93713fa6fb956703c5207486b6a570`). A byte-identical copy is `docs/research/generator_v0_ladder40_v03_r02/run.sqlite` (SHA256 `ffa179220d12986520c214f7a1ad1cfecd084848f9de0158fcd43476d9447a37`). C024 was not reconciled.
+
+**The fix.** `OPENAI_V03_ALL_CRITICS_RESUMABLE_TRANSPORT_V1`. On the V03 ladder only, feasibility and the selector move from synchronous Chat Completions to background Responses. Model, effort, output cap, prompt and schema stay the same. Every paid V03 role is now resumable. V02 routes are unchanged.
+
+**Continuation.** `ladder-40-card-v03-r02-derived-critics-v1` imports the four generator rounds and none of the critic judgments. Those stay prior attempts. All 30 valid cards are to be reviewed again under the new routing. Starting lineage charge is the full r02 spend, USD 3.659239. Cap remains USD 9.789228, so USD 6.129989 is left. The offline remaining-work bound does not fit: base USD 14.518795, stress USD 29.035834, `FITS_BASE = false`, `FITS_STRESS = false`. The cap was not raised. Live calls are not authorized.
+
+Record: `docs/research/GENERATOR_V0_V03_RESUMABLE_CRITICS_AND_DERIVED_CONTINUATION.{md,json}`.
+
 ## Generator V0 — r01 frozen, resumable Anthropic transport — 2026-10-02
 
 `LADDER40_V03_R01 = INFRASTRUCTURE_FAILED_FROZEN`

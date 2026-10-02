@@ -96,10 +96,24 @@ ROUTES={
                 'ENDPOINT':'OPENAI_CHAT_COMPLETIONS','TRANSPORT':OPENAI_CHAT_TRANSPORT,'ADVISORY_ONLY':True},
 }
 
-# Ladder campaigns (GENERATOR_CONTRACT_V03) only. Every field equals ROUTES except the
-# GENERATOR endpoint and transport. ROUTES (V02, first-30-card) is unchanged.
-LADDER_ROUTES={**copy.deepcopy(ROUTES),'GENERATOR':{**copy.deepcopy(ROUTES['GENERATOR']),'ENDPOINT':ANTHROPIC_BATCH_ENDPOINT,
-                                                     'TRANSPORT':ANTHROPIC_BATCH_TRANSPORT}}
+# OPENAI_V03_ALL_CRITICS_RESUMABLE_TRANSPORT_V1 (owner decision 2026-10-02, after r02 lost a
+# synchronous FEASIBILITY_CRITIC Chat Completions call at the client timeout with no response id).
+# Ladder campaigns only. GENERATOR stays on Message Batches. NOVELTY_CRITIC and RED_TEAM stay on
+# background Responses. FEASIBILITY_CRITIC and SELECTOR move from synchronous Chat Completions to
+# the same background Responses transport. Model, reasoning effort, output cap, prompt and schema
+# are unchanged; only the endpoint, transport and structured-output wire wrapper change.
+# ROUTES (V02, first-30-card) is unchanged.
+OPENAI_V03_ALL_CRITICS_RESUMABLE_TRANSPORT_V1='OPENAI_V03_ALL_CRITICS_RESUMABLE_TRANSPORT_V1'
+
+def _background_responses_route(route):
+    """Same scientific route, served by resumable background Responses."""
+    return {**copy.deepcopy(route),'STRUCTURED_OUTPUT':'OPENAI_RESPONSES_TEXT_FORMAT_JSON_SCHEMA_STRICT',
+            'ENDPOINT':'OPENAI_RESPONSES_BACKGROUND','TRANSPORT':OPENAI_RESPONSES_BACKGROUND_TRANSPORT}
+
+LADDER_ROUTES={**copy.deepcopy(ROUTES),
+               'GENERATOR':{**copy.deepcopy(ROUTES['GENERATOR']),'ENDPOINT':ANTHROPIC_BATCH_ENDPOINT,'TRANSPORT':ANTHROPIC_BATCH_TRANSPORT},
+               'FEASIBILITY_CRITIC':_background_responses_route(ROUTES['FEASIBILITY_CRITIC']),
+               'SELECTOR':_background_responses_route(ROUTES['SELECTOR'])}
 
 def routes_for_contract(contract_id):
     """V03 ladder runs use the batch generator; every other run keeps ROUTES."""
