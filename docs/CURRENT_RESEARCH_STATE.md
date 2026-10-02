@@ -6,6 +6,10 @@
 `MEMORY_FINALIZER = NOT_RUN`
 `PROTECTED_2025_2026_OPENED = false`
 `MARKET_OUTCOMES_TESTED = false`
+`LINEAGE_CAP_USD = 12.000000 (r01 + r02 combined)`
+`R01_CONSERVATIVE_CHARGE_USD = 2.210772`
+`R02_INITIAL_CAP_USD = 9.789228`
+`R02_LIVE_EXECUTION_AUTHORIZED = false`
 `NEXT_UNIT = LADDER40_V03_R02 (identical V03 design; needs a fresh owner live authorization)`
 
 **What r01 was.**
@@ -18,6 +22,11 @@
 - It is a technically failed run, frozen: no `UNKNOWN` reconcile, no replay and no resume.
 - The exact cost is recorded later as an offline `BILLED` reconcile, when the Anthropic console shows it.
 
+**Budget lineage (owner decision 2026-10-02).** r01 and r02 share one ceiling of USD 12.000000; r02 is not a fresh USD 12.
+- **r01 charge.** r01 is charged its full reservation, USD 2.210772, until exact provider billing evidence exists. The r02 cap is therefore USD 9.789228 (12.000000 - 2.210772).
+- **A lower exact r01 cost is never reclaimed automatically.** Raising the r02 cap needs a new, recorded owner decision, and it must keep r01 billed + r02 authorized <= USD 12.000000.
+- **Recording the budget does not authorize the paid run.** Details: `docs/research/GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.md`, section "r02 budget lineage".
+
 **The fix.** `ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1`, record `docs/research/GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.{md,json}`.
 - **Message Batches.** The ladder GENERATOR goes through a one-request Message Batch:
   - the `custom_id` is journaled before the create POST;
@@ -25,7 +34,7 @@
   - a lost create acknowledgement is found again by `custom_id`;
   - a poll failure leaves the call `PENDING`, never `UNCERTAIN`.
 - **External checkpoints.** The journal is checkpointed outside the machine at acceptance, after every round and stage, and on every stop. A checkpoint target is mandatory for a live V03 run.
-- **Price.** Batch price is half of standard. The generator reservation is about USD 1.105 per round. The fresh V03 worst case is USD 26.33 (USD 30.75 before), so the USD 12 cap still needs `--accept-budget-stop`.
+- **Price.** Batch price is half of standard. The generator reservation is about USD 1.105 per round. The fresh V03 worst case is USD 26.33 (USD 30.75 before), so the r02 cap of USD 9.789228 still needs `--accept-budget-stop`.
 - **Unchanged.** V02 routes and `first-30-card` are byte-identical. The V03 design is unchanged: slot plan, prompts, schemas, models, effort, critics, the 2/2/1 shortlist and the budget-stop semantics.
 - **Tests.** Offline crash/resume fault tests on fake transports and a fake clock: 25 new tests plus the rehearsal on the batch route.
 
