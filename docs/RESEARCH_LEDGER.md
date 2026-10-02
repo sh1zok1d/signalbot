@@ -7496,3 +7496,38 @@ DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = DESIGN FROZEN
 PROTECTED_2025_PLUS_READ_AT_FREEZE = false
 E1_INTERVAL_TOUCHED = false
 ```
+
+## Divergence full-history research V0 — stage 1 validation and stage 2 pooled/mechanism — 2026-10-02
+
+**Commits.** Freeze `c12204079462c0c173eebdc8b81308174d21f457`, before any 2025+ byte. Stage-1 validation result `fca3ab54633d7c47e651ffb9d773a779473ae614`, persisted before any pooled or mechanism step. Stage 2 is the commit that adds this entry.
+
+**Consumed.**
+- The VALIDATION slice (decisions 2025-01-01..2026-08-11) of the six-symbol UM panel. It was evaluated once, and a second evaluation is refused by the runner.
+- Reads end at the 2026-08-15 read horizon. The E1 holdout [2026-08-16, 2026-08-25 17:20) was never requested.
+
+**Stage 1 (VALIDATION / PREVIOUSLY UNSEEN).**
+- **Counts:** A 160, B 1251, C 342, D 2010. A falls on 112 dates and in 62 of 85 weekly clusters.
+- **Primary A − B, Y1_48H:** +0.011 [−0.087, +0.109], p = 0.83; week bootstrap [−0.083, +0.105].
+- **Interaction:** +0.018 [−0.094, +0.129].
+- **Tags:** `SAME_DIRECTION`, `COMPATIBLE_WITH_ZERO`, `BELOW_MEOI`, `ECONOMICALLY_SMALL`, `NO_DETECTED_SYMBOL_HETEROGENEITY`.
+- **Discovery** under the same frozen model: A − B +0.026 [−0.058, +0.110].
+
+**Stage 2 (POOLED FULL HISTORY + EXPLORATORY MECHANISM; never replication or confirmation).**
+- **Pooled A − B:** +0.019 [−0.047, +0.084], with N = 8201 and 186 weekly clusters.
+- **Net R.** After costs, mean net R of the 1R bracket is negative in every arm and slice.
+- **Heterogeneity.** Years and symbols show none detected (Q p = 0.94 and 0.40).
+- **Divergence inside support:** about +2 pp. The MACD family carries nothing.
+- **Exploratory.** A flow/OI selling-exhaustion state gives +0.038 [−0.000, +0.075], and a graded RSI change inside support-only episodes gives about +3.8 pp per SD (Holm p ≈ 0.03 among 22 features). Both were seen on data that includes validation and are not evidence.
+- **Failure states within A.** None survive Holm.
+
+**Report:** `docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_REPORT.md`.
+
+```
+DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = COMPLETE
+VALIDATION_A_MINUS_B_15PP = EXCLUDED (upper 95% bound +0.109)
+PROTECTED_2025_PLUS_OPENED_FOR_DIVERGENCE = true (2025-01-01..2026-08-15 read horizon)
+E1_INTERVAL_TOUCHED = false
+PROSPECTIVE_ACTIVATED = false
+SEED0003_CREATED = false
+NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_FULL_HISTORY_RESEARCH_V0
+```

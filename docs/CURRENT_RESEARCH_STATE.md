@@ -1,3 +1,22 @@
+## Divergence full-history research V0 — complete; validation excludes 15 pp; owner decision next — 2026-10-02
+
+`DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = COMPLETE (stage 1 validation evaluated once; stage 2 pooled + mechanism, exploratory)`
+`VALIDATION_A_MINUS_B (Y1_48H) = +0.011 [-0.087, +0.109] (85 week clusters; A = 160 on 112 dates)`
+`VALIDATION_TAGS = SAME_DIRECTION, COMPATIBLE_WITH_ZERO, BELOW_MEOI, ECONOMICALLY_SMALL, NO_DETECTED_SYMBOL_HETEROGENEITY`
+`POOLED_A_MINUS_B = +0.019 [-0.047, +0.084] (never replication or confirmation)`
+`MEAN_NET_R_AFTER_COSTS = negative in every arm and slice`
+`E1_INTERVAL_TOUCHED = false`
+`PROSPECTIVE_ACTIVATED = false`
+`SEED0003_CREATED = false`
+`NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_FULL_HISTORY_RESEARCH_V0`
+
+This section supersedes `NEXT_UNIT = DIVERGENCE_FULL_HISTORY_RESEARCH_V0 stage 1 (validation once), then stage 2 (pooled + mechanism)` below.
+- **Commits:** freeze `c12204079462c0c173eebdc8b81308174d21f457`; stage-1 validation `fca3ab54633d7c47e651ffb9d773a779473ae614`; stage 2 follows.
+- **Report:** `docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_REPORT.md`.
+- **Independent statement.** The validation slice is incompatible with an A − B effect of 15 pp; the effect is compatible with zero and economically small.
+- **Exploratory only.** A flow/OI selling-exhaustion state (about +3.8 pp, p = 0.05) and a graded RSI change inside support-only episodes (about +3.8 pp per SD) were seen on pooled data that includes validation. They are not evidence and no hypothesis was created.
+- **The 2025+ surface is opened.** Six-symbol UM data from 2025-01-01 to the 2026-08-15 read horizon has been read, and post-low outcomes on it have been seen. It is consumed for divergence and support questions and is no longer untouched OOS for them. Whether it can serve as OOS for unrelated families is an owner decision. The E1 holdout and everything after 2026-08-15 stay sealed.
+
 ## Divergence full-history research V0 — design frozen; validation slice next — 2026-10-02
 
 `DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = DESIGN FROZEN (before any 2025+ byte)`
