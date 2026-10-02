@@ -16,6 +16,8 @@ MARKET_07_CREATED              = false
 NEXT_UNIT                      = TWAP_FOOTPRINT_OUTCOME_BLIND_FEASIBILITY
 ```
 
+**2026-10-02:** §1.1 ("the beta ships as it is, no new beta features") is superseded for the scope of `BETA_V0_3_MARKET_BRIEFING.md`. Analogue summaries follow `BETA_HISTORICAL_ANALOGUE_GATE_V1.md`. The confirmation bar of §1.3 for decision-layer statements is unchanged.
+
 ## 1. Owner decision (2026-10-01)
 
 1. **The beta ships as it is.** No new beta features. Only operations and correctness fixes. Its posture stays descriptive (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`).

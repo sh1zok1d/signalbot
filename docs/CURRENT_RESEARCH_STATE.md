@@ -1,3 +1,30 @@
+## Beta V0.3 — market briefing and analogue gate — 2026-10-02
+
+`BETA_SURFACE = MARKET_BRIEFING (CHANGE_PRODUCT under the frozen exit criteria)`
+`BETA_V0_3_P1 = CONTRACT_RECORDED / NOT_IMPLEMENTED`
+`HISTORICAL_ANALOGUE_GATE_V1 = FROZEN_BEFORE_IMPLEMENTATION / NOT_ACTIVE`
+`PREDICTIVE_PRODUCT_FROZEN = true, except outcome-aware historical analogue summaries under their gate`
+`DETECTOR_RULES_CHANGED = false`
+`NEXT_UNIT = BETA_V0_3_P1 implementation (read-model projections first)`
+
+**Why.** Two days of owner use: the 5m events are noise and unactionable, and the 3-push cap is used up by about 11:00. The frozen beta criteria name this `CHANGE PRODUCT`.
+
+**What is new.** The surface becomes a briefing built on 1h / 4h / 1d (`docs/BETA_V0_3_MARKET_BRIEFING.md`):
+- `/catchup` and "since your last view";
+- a Market State block;
+- decomposed significance with venue agreement;
+- "I don't know" lines;
+- one morning brief and quiet pushes. 5m taker pushes are removed.
+
+**Analogues.** "Что было после похожих" may show direction medians only under `docs/BETA_HISTORICAL_ANALOGUE_GATE_V1.md`:
+- a baseline in the same card, N and spread;
+- a mandatory verdict from a frozen, Holm-corrected, date-clustered test, calibrated on pseudo-events first;
+- historical 2020–2024 and live cohorts never pooled;
+- similarity frozen before outcomes, no bias labels;
+- 2025/2026 sealed.
+
+The permission is narrow: historical conditional statistics are allowed; a prediction engine is not.
+
 ## Generator V0 — r01 frozen, resumable Anthropic transport — 2026-10-02
 
 `LADDER40_V03_R01 = INFRASTRUCTURE_FAILED_FROZEN`
