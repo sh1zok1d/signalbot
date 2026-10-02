@@ -14,8 +14,9 @@ from scripts.research.generator_v0 import routing
 def _capture_mode(monkeypatch):
     seen = {}
 
-    def stop_before_provider_calls(contexts, cap, environ, openai_network_mode='DIRECT'):
+    def stop_before_provider_calls(contexts, cap, environ, openai_network_mode='DIRECT', routes=None):
         seen['mode'] = openai_network_mode
+        seen['routes'] = routes
         raise ContractError('transport-test-stop')
 
     monkeypatch.setattr(
@@ -36,6 +37,7 @@ def test_ladder_explicit_direct_is_respected(monkeypatch, tmp_path):
             '--run-dir', str(tmp_path / 'direct'),
         ])
     assert seen['mode'] == 'DIRECT'
+    assert seen['routes'] is routing.LADDER_ROUTES      # V03: the batch GENERATOR route
 
 
 def test_ladder_without_flag_keeps_cloud_proxy_default(monkeypatch, tmp_path):
@@ -61,6 +63,7 @@ def test_first_30_still_forces_cloud_proxy(monkeypatch, tmp_path):
             '--run-dir', str(tmp_path / 'first30'),
         ])
     assert seen['mode'] == 'CLOUD_PROXY'
+    assert seen['routes'] is routing.ROUTES             # V02 keeps the synchronous route
 
 
 def test_transport_identity_records_direct_and_cloud_modes():

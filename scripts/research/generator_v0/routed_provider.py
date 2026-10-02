@@ -32,9 +32,11 @@ class RoutedProvider:
             for name,other in self.adapters.items():
                 if name!=r['PROVIDER'] and role in other.roles():raise ContractError('role '+role+' is served by more than one provider')
         self.real=any(getattr(a,'real',False) for a in self.adapters.values())
-        bg={self.routes[role]['PROVIDER'] for role in self.routes if self.routes[role]['ENDPOINT'] in routing.BACKGROUND_ENDPOINTS}
-        if len(bg)>1:raise ContractError('background routes must share one adapter')
-        self._bg_provider=next(iter(bg),None)
+        # Provider jobs: OpenAI background Responses and, on ladder routes, Anthropic Message
+        # Batches. The Caller reaches each role's job adapter through background_for(role).
+        bg=sorted({self.routes[role]['PROVIDER'] for role in self.routes if self.routes[role]['ENDPOINT'] in routing.BACKGROUND_ENDPOINTS})
+        self._bg_providers=tuple(bg)
+        self._bg_provider=bg[0] if len(bg)==1 else None
         if sleeper is not None:self._sleep=sleeper
         self.routing_digest=self.identity_digest()
 
@@ -63,15 +65,18 @@ class RoutedProvider:
     def bound(self,request):return self._check(request).bound(request)
     def complete(self,request):return self._check(request).complete(request)
 
-    # Background Responses (routed NOVELTY_CRITIC). Same Caller state machine as the
-    # legacy generator: create is POSTed once; a known response_id is only polled.
+    # Provider jobs (background Responses for routed critics; Message Batches for the ladder
+    # GENERATOR). Same Caller state machine: create is POSTed once; a known id is only polled.
+    def background_for(self,role):
+        if not self.uses_background(role):raise ContractError('role is not routed to a provider job endpoint: '+str(role))
+        return _RoleJobs(self,role)
     def _background(self):
-        if self._bg_provider is None:raise ContractError('no role is routed to background Responses')
+        if self._bg_provider is None:raise ContractError('provider jobs are reached per role (background_for)' if self._bg_providers else 'no role is routed to background Responses')
         return self.adapters[self._bg_provider]
-    def create_background(self,request):
+    def create_background(self,request,**kw):
         a=self._check(request)
         if not self.uses_background(request['role']):raise ContractError('role is not routed to background Responses')
-        return a.create_background(request)
+        return a.create_background(request,**kw)
     def retrieve_background(self,response_id):return self._background().retrieve_background(response_id)
     def delete_background(self,response_id):return self._background().delete_background(response_id)
     def completed_cost(self,request,payload,wire):return self._check(request).completed_cost(request,payload,wire)
@@ -89,6 +94,25 @@ class RoutedProvider:
 
     def identity_digest(self):
         return digest({'ROUTING':routing.routing_digest(self.routes),'TRANSPORT':self.transport_identity()})
+
+class _RoleJobs:
+    """One role's provider-job adapter as the Caller sees it. Cost and result methods keep
+    the router's per-request route check."""
+    def __init__(self,router,role):
+        self._router,self._role=router,role
+        self._adapter=router.adapter_for(role)
+    def __getattr__(self,name):
+        if name in ('retrieve_background','retrieve_tracked','delete_background','find_background','dispatch_intent',
+                    'checkpoint_on_accept','_now','_sleep','poll_interval_seconds','background_max_wait_seconds'):
+            return getattr(self._adapter,name)
+        raise AttributeError(name)
+    def _poll_sleep(self,seconds):return self._adapter._sleep(seconds)
+    def completed_cost(self,request,payload,wire):return self._router._check(request).completed_cost(request,payload,wire)
+    def terminal_usage_cost(self,request,payload):return self._router._check(request).terminal_usage_cost(request,payload)
+    @property
+    def terminal_not_billed(self):
+        fn=getattr(self._adapter,'terminal_not_billed',None)
+        return None if fn is None else (lambda request,payload:self._router._check(request).terminal_not_billed(request,payload))
 
 def offline_routed_provider(contexts,routes=None):
     """Bound-only router for preflight and budget reports: needs no secret, never sends."""
@@ -123,7 +147,7 @@ def _anthropic_credential(environ):
         if isinstance(value,str) and value.strip():return value
     return ''
 
-def live_routed_provider(contexts,cap,environ,openai_network_mode='DIRECT'):
+def live_routed_provider(contexts,cap,environ,openai_network_mode='DIRECT',routes=None):
     """Real routed provider. Never records or prints credentials.
 
     DIRECT (default, local/non-cloud): both OPENAI_API_KEY and ANTHROPIC_API_KEY,
@@ -136,7 +160,7 @@ def live_routed_provider(contexts,cap,environ,openai_network_mode='DIRECT'):
     from .cloud_openai_transport import CloudProxyOpenAITransport
     if openai_network_mode not in (OPENAI_NETWORK_MODE_DIRECT,OPENAI_NETWORK_MODE_CLOUD_PROXY):
         raise ContractError('unknown OpenAI network mode')
-    routes=routing.validate_routes()
+    routes=routing.validate_routes(routes)
     if openai_network_mode==OPENAI_NETWORK_MODE_CLOUD_PROXY:
         akey=_anthropic_credential(environ)
         if not akey:raise ContractError('cloud routed mode requires SIGNALBOT_ANTHROPIC_API_KEY or ANTHROPIC_API_KEY')

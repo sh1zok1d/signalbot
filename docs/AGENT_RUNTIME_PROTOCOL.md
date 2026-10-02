@@ -222,6 +222,11 @@ python -m scripts.research.generator_v0.finalize_memory --verify
 
 After the architecture freeze, do not add more precautionary smoke/calibration cycles. The next paid action after operational persistence/review is the first 30-card run. Only a concrete defect observed in execution justifies reopening the frozen transport/routing design.
 
+V03 ladder runs (`ladder-40-card`, `GENERATOR_CONTRACT_V03`) use `routing.LADDER_ROUTES`. They are the routes above except one: the GENERATOR is sent as a one-request Anthropic Message Batch (`ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1`, `docs/research/GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.md`).
+- After acceptance the batch is only polled by its journaled id, never POSTed again.
+- A poll failure leaves the run `PAUSED_BACKGROUND_PENDING`, to be resumed.
+- A live V03 run or resume requires an external journal checkpoint: `--checkpoint-git-branch <current branch>` or `--checkpoint-dir <durable dir>`.
+
 The first 30-card run must:
 - use three 10-card generator rounds;
 - allow at most three generator POSTs (`GENERATOR_CONTENT_RETRIES = 0`);

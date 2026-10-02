@@ -26,6 +26,7 @@ from .output_schemas import (generator_round_schema_digest,generator_wire_format
                              ANTHROPIC_GENERATOR_WIRE_FORMAT,KEYED_GENERATOR_WIRE_FORMAT)
 from . import contract,contract_v03,legacy_v01
 from .complexity import complexity_shortlist,SHORTLIST_QUOTA
+from .checkpoint import CheckpointFailed
 
 GENERATOR_PROMPT=contract.generator_prompt()
 GENERATOR_PROMPT_V03=contract_v03.generator_prompt()
@@ -36,14 +37,16 @@ GENERATOR_CONTENT_ATTEMPTS=1
 FIRST_30_CARD_SIZE=30
 MAX_GENERATOR_POSTS_30=3
 FIRST_30_SELECTOR_ADVISORY={'STATUS':'NOT_CALLED','REASON':'deterministic-only first 30-card run'}
-RESUMABLE_STATUSES=('CREATED','DERIVED_CONTINUATION_AUTHORIZED','PAUSED_UNCERTAIN_CALL','PAUSED_PROVIDER_THROTTLED','PAUSED_PROVIDER_REJECTED','PAUSED_BACKGROUND_PENDING','STOPPED_BUDGET','INCOMPLETE_BUDGET_STOP')
+RESUMABLE_STATUSES=('CREATED','DERIVED_CONTINUATION_AUTHORIZED','PAUSED_UNCERTAIN_CALL','PAUSED_PROVIDER_THROTTLED','PAUSED_PROVIDER_REJECTED','PAUSED_BACKGROUND_PENDING','STOPPED_BUDGET','INCOMPLETE_BUDGET_STOP','PAUSED_CHECKPOINT_FAILED')
 # V03 ladder campaigns: a budget stop before all 40 slots and mandatory reviews are complete.
 # No official shortlist exists; only the same run may resume (identical config, contract,
 # slot plan, routing and prompts; the cap may change only via authorize-budget-extension).
 INCOMPLETE_BUDGET_STOP='INCOMPLETE_BUDGET_STOP'
 TERMINAL_STATUSES=('PENDING_HUMAN_REVIEW','STOPPED_INSUFFICIENT_VALID')
 _PAUSE={BudgetExceeded:'STOPPED_BUDGET',CallUncertain:'PAUSED_UNCERTAIN_CALL',ProviderThrottled:'PAUSED_PROVIDER_THROTTLED',
-        ProviderRejected:'PAUSED_PROVIDER_REJECTED',BackgroundPending:'PAUSED_BACKGROUND_PENDING'}
+        ProviderRejected:'PAUSED_PROVIDER_REJECTED',BackgroundPending:'PAUSED_BACKGROUND_PENDING',CheckpointFailed:'PAUSED_CHECKPOINT_FAILED'}
+# Every 10 reviewed cards the journal is checkpointed externally (where configured).
+REVIEW_CHECKPOINT_EVERY=10
 
 def diversity(cards,c):
     """Frozen batch diversity controls. Applied to the attempted slot plan."""
@@ -294,6 +297,11 @@ def run_campaign(c,caller,size=40):
         with ledger.transaction():
             ledger.set('status',new)
             ledger.event('CAMPAIGN_'+new,payload)
+        try:
+            ledger.checkpoint('CAMPAIGN_'+new,{'REASON':payload['REASON']})
+        except CheckpointFailed as failed:
+            # The stop itself is journaled locally; the original stop is what the operator sees.
+            e.checkpoint_error=str(failed)
         raise
 
 PAUSE_STATUSES=tuple(_PAUSE.values())+(INCOMPLETE_BUDGET_STOP,)
@@ -352,6 +360,7 @@ def _resolution(status):
         'PAUSED_PROVIDER_THROTTLED':'resume later; not-billed attempts cost nothing',
         'PAUSED_PROVIDER_REJECTED':'fix the rejected request contract or credentials, then resume',
         'PAUSED_BACKGROUND_PENDING':'resume to continue polling the same response_id',
+        'PAUSED_CHECKPOINT_FAILED':'make the external checkpoint target writable, then resume; accepted provider jobs are polled by their journaled ids, never POSTed again',
     }[status]
 
 def incomplete_progress(ledger):
@@ -369,6 +378,11 @@ def _run(c,caller,ledger,size,prior_status):
     contract_id=campaign_contract(ledger)
     if contract_id==contract_v03.CONTRACT_ID and (ledger.get('config') or {}).get('LADDER_IDENTITY')!=ladder_identity():
         raise ContractError('V03 run identity (slot plan, rules, prompts, quota) differs from this code; start or resume refused')
+    if contract_id==contract_v03.CONTRACT_ID and caller.provider.real:
+        from .routing import ANTHROPIC_BATCH_ENDPOINT
+        endpoint=getattr(caller.provider,'endpoint_for',lambda _role:None)('GENERATOR')
+        if endpoint!=ANTHROPIC_BATCH_ENDPOINT:
+            raise ContractError('a live V03 ladder run sends the GENERATOR through Message Batches (ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1), not '+str(endpoint))
     plan=campaign_plan(contract_id,size)
     diversity(plan,c)
     if contract_id==contract_v03.CONTRACT_ID:contract_v03.ladder_diversity(plan)
@@ -377,6 +391,7 @@ def _run(c,caller,ledger,size,prior_status):
         slots=plan[start:start+10]
         contract_id,key,round_cards,failure=_round_output(c,ledger,caller,round_n,slots)
         cards+=_intake_round(c,ledger,round_n,slots,contract_id,key,round_cards,failure)
+        ledger.checkpoint('ROUND_COMPLETE',{'ROUND':'generation:'+str(round_n),'CALL_KEY':key})
     intake=ledger.candidates()
     hard=[{'CANDIDATE_ID':x['CANDIDATE_ID'],'ROUND':x['ROUND'],'CONTRACT':x['CONTRACT'],'REASONS':x['REASONS']} for x in intake if x['STATE']=='HARD_FAIL']
     base_metrics={'SLOTS':size,'VALID':len(cards),'HARD_FAIL':len(hard),'HARD_FAIL_RATE':'{}/{}'.format(len(hard),size),
@@ -387,10 +402,13 @@ def _run(c,caller,ledger,size,prior_status):
         with ledger.transaction():
             ledger.db.execute('INSERT INTO results VALUES (?,?)',('campaign',canonical(result)))
             ledger.set('status','STOPPED_INSUFFICIENT_VALID')
+        ledger.checkpoint('CAMPAIGN_RESULT',{'STATUS':'STOPPED_INSUFFICIENT_VALID'})
         return result
     roles=Roles(c,caller);reviews=[];review_failed=[];sanitized=[];selection={};streams=[]
     stats={'COMPLETED':Counter(),'CONTENT_RETRIES':Counter(),'REVIEW_FAILED':Counter()}
-    for card in cards:
+    for n_card,card in enumerate(cards,1):
+        if n_card>1 and (n_card-1)%REVIEW_CHECKPOINT_EVERY==0:
+            ledger.checkpoint('REVIEW_BLOCK',{'REVIEWED_CARDS':n_card-1})
         out,errors=_review(roles,card,cards,stats)
         if out is None:
             review_failed.append({'CANDIDATE_ID':card['CANDIDATE_ID'],'REASONS':errors})
@@ -449,6 +467,7 @@ def _run(c,caller,ledger,size,prior_status):
             ledger.db.execute('UPDATE candidates SET state=?,reasons=? WHERE id=? AND state=?',(review['STATE'],canonical(review.get('REASONS',[])),card['CANDIDATE_ID'],'VALID'))
         ledger.db.execute('INSERT INTO results VALUES (?,?)',('campaign',canonical(result)))
         ledger.set('status','PENDING_HUMAN_REVIEW')
+    ledger.checkpoint('CAMPAIGN_RESULT',{'STATUS':'PENDING_HUMAN_REVIEW','SEMANTIC_RESULT_DIGEST':result['SEMANTIC_RESULT_DIGEST']})
     return result
 
 def _spend(ledger):

@@ -88,6 +88,8 @@ def sealed_reason(path):
 
 class Ledger:
     readonly=False
+    # External journal checkpoint (checkpoint.py), set by the operator entry point. None: off.
+    checkpointer=None
     def __init__(self,path,config=None):
         reason=sealed_reason(path)
         if reason:raise SealedJournal('sealed journal refuses writable open: '+reason)
@@ -214,18 +216,41 @@ class Ledger:
                     return payload
                 if row[1] in BILLED_CLOSED or row[1] in NOT_BILLED_CLOSED:raise AttemptClosed(row[1])
                 if row[1]=='RESERVED' and self.dispatch_protocol():return None
+                if row[1]=='DISPATCHED' and row[2] and self.dispatch_protocol():
+                    intent=json.loads(row[2])
+                    # A provider job (Message Batch) dispatched with a recovery intent: the
+                    # Caller searches the provider listing by custom_id; never a re-POST.
+                    if intent.get('RECOVERY')=='LIST_BY_CUSTOM_ID':return {**intent,'_recover_background':True}
                 raise CallUncertain('uncertain prior attempt; manual reconciliation required, never automatic replay')
             if self.total_charged_micro_usd()+bound>cap:raise BudgetExceeded('budget exceeded before provider call')
             self.db.execute('INSERT INTO calls(key,request,state,reserved) VALUES (?,?,?,?)',(key,canonical(request),'RESERVED',bound))
         return None
 
-    def mark_dispatched(self,key):
-        """Commit DISPATCHED before any byte of the request is sent."""
+    def mark_dispatched(self,key,intent=None):
+        """Commit DISPATCHED before any byte of the request is sent. intent (provider jobs
+        with listing recovery): the custom_id and dispatch time, journaled in the same commit."""
         self._writable()
+        if intent is not None and (not isinstance(intent,dict) or intent.get('RECOVERY')!='LIST_BY_CUSTOM_ID' or not intent.get('custom_id') or not intent.get('dispatched_at')):
+            raise ContractError('invalid dispatch recovery intent')
         with self.transaction():
             row=self.db.execute('SELECT state FROM calls WHERE key=?',(key,)).fetchone()
             if row is None or row[0]!='RESERVED':raise ContractError('dispatch requires a RESERVED call')
-            self.db.execute("UPDATE calls SET state='DISPATCHED' WHERE key=?",(key,))
+            if intent is None:self.db.execute("UPDATE calls SET state='DISPATCHED' WHERE key=?",(key,))
+            else:self.db.execute("UPDATE calls SET state='DISPATCHED',response=? WHERE key=?",(canonical(intent),key))
+
+    def checkpoint(self,stage,detail=None):
+        """Copy this journal outside the machine (checkpointer), if one is configured."""
+        if self.checkpointer is not None and not self.readonly:self.checkpointer(self,stage,detail or {})
+
+    def provider_handles(self):
+        """Open calls with every provider identity needed to resume them (checkpoint manifest)."""
+        out=[]
+        for key,request,state,reserved,response in self.db.execute("SELECT key,request,state,reserved,response FROM calls WHERE state IN ('RESERVED','DISPATCHED','UNCERTAIN','BACKGROUND_SUBMITTED') ORDER BY rowid"):
+            req=json.loads(request);resp=json.loads(response) if response else {}
+            out.append({'CALL_KEY':key,'ROLE':req.get('role'),'SLOT':req.get('slot'),'STATE':state,'RESERVED_MICRO_USD':reserved,
+                        'PROVIDER_ID':resp.get('response_id'),'PROVIDER_STATUS':resp.get('provider_status'),'CUSTOM_ID':resp.get('custom_id'),
+                        'DISPATCHED_AT':resp.get('dispatched_at')})
+        return out
 
     def logical_call_closed(self,slot):
         row=self.db.execute('SELECT call_key,reason FROM closed_calls WHERE slot=?',(slot,)).fetchone()

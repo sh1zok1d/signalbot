@@ -36,6 +36,9 @@ class NoisyTransport:
     def __init__(self,contexts,faults=None,compact_mutator=None):
         self.respond=MockResponder(contexts);self.faults=dict(faults or {});self.compact_mutator=compact_mutator
         self.counts=Counter();self.log=[];self.payloads={};self.n=0
+        # Message Batches fake (ladder GENERATOR): server-side batches survive a client crash.
+        self.batch_store={};self.poll_timeouts=0;self.poll_status_queue=[];self.processing_seconds=45
+        self.wall=lambda:1_790_000_000.0
         self.prompts={NOVELTY_PROMPT:'NOVELTY_CRITIC',FEAS_PROMPT:'FEASIBILITY_CRITIC',RED_PROMPT:'RED_TEAM',SELECTOR_PROMPT:'SELECTOR'}
         from scripts.research.generator_v0.roles import NOVELTY_PROMPT_V03,RED_PROMPT_V03
         self.prompts.update({NOVELTY_PROMPT_V03:'NOVELTY_CRITIC',RED_PROMPT_V03:'RED_TEAM'})   # V03 ladder critics
@@ -66,6 +69,86 @@ class NoisyTransport:
                                'content':[{'type':'thinking','thinking':'','signature':'synthetic'},{'type':'text','text':text}],
                                'stop_reason':stop,'stop_sequence':None,
                                'usage':{'input_tokens':6000,'output_tokens':32768 if stop=='max_tokens' else 9000}}).encode()
+
+    def batches(self,method,path,body,headers,timeout):
+        """Fake Claude Message Batches API (create / retrieve / results / list) for the ladder GENERATOR.
+
+        Faults by ('GENERATOR', round, create attempt):
+          crash_after_create   the batch is created, then the process dies before the id is journaled
+          timeout_after_create the batch is created, then the create response is lost (TimeoutError)
+          500_no_batch         HTTP 500 and no batch is created
+          429                  create refused (no batch)
+          errored_overloaded / errored_invalid / expired / canceled   not-billed request results
+          max_tokens           succeeded result that stopped at max_tokens (billed, unusable)
+        Poll faults are set on the instance: poll_timeouts (n GET timeouts), poll_status_queue
+        (HTTP statuses for the next GETs), processing_seconds (fake time until a batch ends)."""
+        self.log.append((method,path))
+        assert headers.get('anthropic-version')=='2023-06-01' and headers.get('x-api-key')
+        if method=='GET' and self.poll_status_queue:
+            status=self.poll_status_queue.pop(0)
+            return status,b'{"type":"error","error":{"type":"authentication_error","message":"bad key"}}'
+        if method=='GET' and self.poll_timeouts>0:
+            self.poll_timeouts-=1;raise TimeoutError('poll GET timed out')
+        if method=='POST':
+            b=json.loads(body);reqs=b['requests'];assert len(reqs)==1
+            cid,params=reqs[0]['custom_id'],reqs[0]['params']
+            assert 'stream' not in params and params['output_config']['effort']=='high' and params['output_config']['format']['type']=='json_schema'
+            user=json.loads(params['messages'][0]['content']);slots=user['slots']
+            rnd=(int(slots[0]['CANDIDATE_ID'][1:])-1)//10
+            self.counts[('GENERATOR',rnd)]+=1;fault=self.faults.get(('GENERATOR',rnd,self.counts[('GENERATOR',rnd)]))
+            if fault=='429':return 429,b'{"type":"error","error":{"type":"rate_limit_error","message":"slow down"}}'
+            if fault=='500_no_batch':return 500,b'{"type":"error","error":{"type":"api_error","message":"internal"}}'
+            self.n+=1;bid='msgbatch_noisy_'+str(self.n)
+            self.batch_store[bid]={'custom_id':cid,'params':params,'user':user,'fault':fault,'created':self.wall()}
+            if fault=='crash_after_create':raise Crash('process died after batch create, round '+str(rnd))
+            if fault=='timeout_after_create':raise TimeoutError('create response lost')
+            return 200,json.dumps(self._batch(bid)).encode()
+        if path.startswith('/v1/messages/batches?'):
+            rows=sorted(self.batch_store,key=lambda k:-self.batch_store[k]['created'])
+            after=path.split('after_id=')[1] if 'after_id=' in path else None
+            if after:rows=rows[rows.index(after)+1:]
+            page=rows[:2]   # tiny pages exercise pagination
+            return 200,json.dumps({'data':[self._batch(k) for k in page],'has_more':len(rows)>2,
+                                   'first_id':page[0] if page else None,'last_id':page[-1] if page else None}).encode()
+        parts=path.split('/')
+        bid=parts[4]
+        if bid not in self.batch_store:return 404,b'{"type":"error","error":{"type":"not_found_error","message":"no batch"}}'
+        if len(parts)==6 and parts[5]=='results':return 200,self._results(bid)
+        return 200,json.dumps(self._batch(bid)).encode()
+
+    def _ended(self,bid):
+        return self.wall()-self.batch_store[bid]['created']>=self.processing_seconds
+
+    def _batch(self,bid):
+        x=self.batch_store[bid];ended=self._ended(bid)
+        counts={'processing':0 if ended else 1,'succeeded':0,'errored':0,'canceled':0,'expired':0}
+        if ended:
+            kind={'errored_overloaded':'errored','errored_invalid':'errored','expired':'expired','canceled':'canceled'}.get(x['fault'],'succeeded')
+            counts[kind]=1
+        from datetime import datetime,timezone
+        return {'id':bid,'type':'message_batch','processing_status':'ended' if ended else 'in_progress','request_counts':counts,
+                'created_at':datetime.fromtimestamp(x['created'],timezone.utc).isoformat().replace('+00:00','Z'),
+                'expires_at':None,'ended_at':None,'results_url':None}
+
+    def _results(self,bid):
+        x=self.batch_store[bid];fault=x['fault'];cid=x['custom_id']
+        if not self._ended(bid):return b''
+        if fault in ('errored_overloaded','errored_invalid'):
+            etype='overloaded_error' if fault=='errored_overloaded' else 'invalid_request_error'
+            return json.dumps({'custom_id':cid,'result':{'type':'errored','error':{'type':'error','error':{'type':etype,'message':'synthetic'},'request_id':'req_x'}}}).encode()+b'\n'
+        if fault in ('expired','canceled'):
+            return json.dumps({'custom_id':cid,'result':{'type':fault}}).encode()+b'\n'
+        user,slots=x['user'],x['user']['slots']
+        payload=json.loads(self.respond({'role':'GENERATOR','context':user['context'],'parameters':{'slots':slots}}))
+        payload={'CANDIDATES':list(payload['CANDIDATES'].values())}
+        if self.compact_mutator is not None:payload['CANDIDATES']=self.compact_mutator(0,payload['CANDIDATES'])
+        stop='max_tokens' if fault=='max_tokens' else 'end_turn'
+        text=canonical(payload) if stop=='end_turn' else canonical(payload)[:200]
+        msg={'id':'msg_noisy_b'+bid.rsplit('_',1)[1],'type':'message','role':'assistant','model':x['params']['model'],
+             'content':[{'type':'thinking','thinking':'SYNTHETIC_HIDDEN_THINKING','signature':'synthetic-signature'},{'type':'text','text':text}],
+             'stop_reason':stop,'stop_sequence':None,
+             'usage':{'input_tokens':6000,'output_tokens':100000 if stop=='max_tokens' else 9000,'service_tier':'batch'}}
+        return json.dumps({'custom_id':cid,'result':{'type':'succeeded','message':msg}}).encode()+b'\n'
 
     def __call__(self,method,path,body,headers,timeout):
         self.log.append((method,path))
@@ -142,6 +225,25 @@ def routed_provider_for(transport,contexts):
     return RoutedProvider({'ANTHROPIC':AnthropicProvider('offline-gate-anthropic',allow_real=True,budget_micro_usd=CAP,transport=transport.anthropic,contexts=contexts),
                            'OPENAI':OpenAIProvider('offline-gate-openai',allow_real=True,budget_micro_usd=CAP,transport=transport,contexts=contexts,sleeper=lambda s:None,routes=ROUTES)},
                           ROUTES,sleeper=lambda s:None)
+
+class FakeClock:
+    """Monotonic and wall clocks that advance only when the code under test sleeps."""
+    def __init__(self,start=1_790_000_000.0):self.t=start;self.sleeps=[]
+    def now(self):return self.t
+    def sleep(self,s):self.sleeps.append(s);self.t+=s
+
+def ladder_provider_for(transport,contexts,clock=None,max_wait=3600):
+    """The live ladder routing (LADDER_ROUTES): Opus generator through Message Batches,
+    Sol/Luna critics, all on fake transports. No network, no paid call."""
+    from scripts.research.generator_v0.anthropic_provider import AnthropicProvider
+    from scripts.research.generator_v0.routed_provider import RoutedProvider
+    from scripts.research.generator_v0.routing import LADDER_ROUTES
+    clock=clock or FakeClock()
+    transport.wall=clock.now
+    return RoutedProvider({'ANTHROPIC':AnthropicProvider('offline-gate-anthropic',allow_real=True,budget_micro_usd=CAP,transport=transport.batches,contexts=contexts,
+                                                         routes=LADDER_ROUTES,sleeper=clock.sleep,clock=clock.now,wall_clock=clock.now,background_max_wait_seconds=max_wait),
+                           'OPENAI':OpenAIProvider('offline-gate-openai',allow_real=True,budget_micro_usd=CAP,transport=transport,contexts=contexts,sleeper=lambda s:None,routes=LADDER_ROUTES)},
+                          LADDER_ROUTES,sleeper=lambda s:None)
 
 MIXED_FAULTS={
     # Critic faults sit on round-1 cards: generation:0 is closed by the UNKNOWN reconciliation of its 429.

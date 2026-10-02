@@ -1,46 +1,33 @@
-## Generator V0 ladder-40 V03 r01 — paused — 2026-10-02
+## Generator V0 — r01 frozen, resumable Anthropic transport — 2026-10-02
 
-`LADDER40_V03_R01 = PAUSED_UNCERTAIN_CALL`
-`GENERATOR_CONTRACT = V03`
-`OPENAI_NETWORK_MODE = DIRECT`
+`LADDER40_V03_R01 = INFRASTRUCTURE_FAILED_FROZEN`
+`ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1 = IMPLEMENTED (offline; no LLM call)`
+`SCIENTIFIC_DESIGN_CHANGED = false`
 `MEMORY_FINALIZER = NOT_RUN`
-`RERUN_AUTHORIZED = false`
-`NEW_CAMPAIGN_AUTHORIZED = false`
 `PROTECTED_2025_2026_OPENED = false`
 `MARKET_OUTCOMES_TESTED = false`
-`NEXT_UNIT = OWNER_RECONCILE_OF_LADDER40_V03_R01_UNCERTAIN_GENERATOR_CALL`
+`NEXT_UNIT = LADDER40_V03_R02 (identical V03 design; needs a fresh owner live authorization)`
 
-The owner-authorized fresh 40-card shadow campaign stopped on generator round `generation:0`. The Anthropic Messages POST was dispatched and the client timed out at the frozen 1800-second limit. The call is `UNCERTAIN`, with no message id and no recorded cost. Its reserved bound, USD 2.210772, stays charged against the USD 12 cap. Call key `ae215fdf93381475470783cc79bb51e96f3902bc1b126abea12aedb42ca32304`. No card was admitted. There is no shortlist.
+**What r01 was.**
+- The owner-authorized `ladder-40-card` on `GENERATOR_CONTRACT_V03` with a USD 12 cap. Cursor ran it with OpenAI `DIRECT`.
+- It stopped on its first call. The synchronous Anthropic Messages POST for `generation:0` held the connection until the 1800 s client timeout.
+- The call is `UNCERTAIN`: no message id, a USD 2.210772 reservation, no cards and no shortlist.
+- Record: `docs/research/GENERATOR_V0_LADDER40_V03_R01_PAUSE.{md,json}`. Journal snapshot: `docs/research/generator_v0_ladder40_v03_r01/run.sqlite` (SHA256 `72b7aaa7…`).
 
-Do not replay that create and do not start another campaign. Continuation, if later authorized, is reconcile of this journal and then resume of the same run. The journal is not sealed.
+**Owner decision on r01.**
+- It is a technically failed run, frozen: no `UNKNOWN` reconcile, no replay and no resume.
+- The exact cost is recorded later as an offline `BILLED` reconcile, when the Anthropic console shows it.
 
-Record: `docs/research/GENERATOR_V0_LADDER40_V03_R01_PAUSE.{md,json}`. Snapshot: `docs/research/generator_v0_ladder40_v03_r01/run.sqlite` (SHA256 `72b7aaa774dfbf62c6caa3303eb40ae1c380b3e6bb0ace1f95e015953391be0b`).
-
-## Generator V0 fresh shadow campaign — authorized, not started — 2026-10-02
-
-`GENERATOR_V0_FRESH_SHADOW_CAMPAIGN = AUTHORIZED_NOT_STARTED`
-`BLOCKER = PROVIDER_CREDENTIALS_ABSENT`
-`LIVE_LLM_CALLS = 0`
-`SPEND_USD = 0`
-`ZERO_COST_REHEARSAL = PASS`
-
-**Authorization.** The owner authorized `ladder-40-card` on `GENERATOR_CONTRACT_V03`:
-- hard cap USD 12 with `--accept-budget-stop`;
-- slots 16/14/7/3, shortlist 2/2/1;
-- the routes and call limits of `GENERATOR_V0_PRE_CAMPAIGN_HARDENING.md`;
-- no design change after the first live call.
-
-**Not started.** In the preparing session:
-- **Anthropic.** No Anthropic credential: neither `SIGNALBOT_ANTHROPIC_API_KEY` nor `ANTHROPIC_API_KEY` is set, and the runtime protocol requires a fail-closed refusal.
-- **OpenAI.** The sandbox proxy does not supply OpenAI authentication: `GET /v1/models` through the proxy returned 401. The protocol recorded 200 on 2026-09-24.
-
-No run was created and nothing was spent.
-
-**Rehearsal.** The zero-cost rehearsal of the live path (`tests/research/test_generator_v0_ladder_rehearsal.py`) passed. It used the production `RoutedProvider`, Anthropic compact wire and OpenAI background Responses on fake transports.
-- **Full run:** 4 generator calls, 40 calls for each of the three critics, and 1 selector call. The mix was 16/14/7/3 and the shortlist 2/2/1, within the USD 12 cap.
-- **Budget stop:** `INCOMPLETE_BUDGET_STOP`, then a same-run resume with no replay.
-- **Throttling:** `PAUSED_PROVIDER_THROTTLED`, then a same-run resume with no replay.
-- **Operational rule:** every resume after a stop needs a fresh `--accept-budget-stop`, because the acceptance is bound to the exact cap, spend and worst-case snapshot.
+**The fix.** `ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1`, record `docs/research/GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.{md,json}`.
+- **Message Batches.** The ladder GENERATOR goes through a one-request Message Batch:
+  - the `custom_id` is journaled before the create POST;
+  - the batch id is journaled at acceptance, and the call is then only polled;
+  - a lost create acknowledgement is found again by `custom_id`;
+  - a poll failure leaves the call `PENDING`, never `UNCERTAIN`.
+- **External checkpoints.** The journal is checkpointed outside the machine at acceptance, after every round and stage, and on every stop. A checkpoint target is mandatory for a live V03 run.
+- **Price.** Batch price is half of standard. The generator reservation is about USD 1.105 per round. The fresh V03 worst case is USD 26.33 (USD 30.75 before), so the USD 12 cap still needs `--accept-budget-stop`.
+- **Unchanged.** V02 routes and `first-30-card` are byte-identical. The V03 design is unchanged: slot plan, prompts, schemas, models, effort, critics, the 2/2/1 shortlist and the budget-stop semantics.
+- **Tests.** Offline crash/resume fault tests on fake transports and a fake clock: 25 new tests plus the rehearsal on the batch route.
 
 ## Generator V0 Cursor DIRECT transport amendment — 2026-10-02
 

@@ -1,6 +1,6 @@
 {
   "RECORD": "GENERATOR_V0_LADDER40_V03_R01_PAUSE",
-  "STATUS": "PAUSED_UNCERTAIN_CALL",
+  "STATUS": "INFRASTRUCTURE_FAILED_FROZEN",
   "DATE": "2026-10-02",
   "SOURCE_MAIN_HEAD": "f00a014581426c85148cb841c4fab0f7e331915e",
   "RUN_HEAD": "f00a014581426c85148cb841c4fab0f7e331915e",
@@ -40,5 +40,18 @@
   "PROTECTED_2025_2026_OPENED": false,
   "MARKET_OUTCOMES_TESTED": false,
   "SECRET_SCAN": "PASS",
-  "NOTE": "Client timeout on the synchronous Anthropic Messages POST after DISPATCHED. No message id was returned. The reserved bound stays charged until an owner reconcile with provider evidence. Do not replay this create and do not start a replacement campaign."
+  "NOTE": "Client timeout on the synchronous Anthropic Messages POST after DISPATCHED. No message id was returned. The reserved bound stays charged until an owner reconcile with provider evidence. Do not replay this create and do not start a replacement campaign.",
+  "JOURNAL_STATUS": "PAUSED_UNCERTAIN_CALL",
+  "OWNER_DECISION_2026_10_02": {
+    "DISPOSITION": "INFRASTRUCTURE_FAILED_FROZEN",
+    "RECONCILE_UNKNOWN": false,
+    "REPLAY": false,
+    "RESUME": false,
+    "BILLED_RECONCILE": "later, offline, with the exact cost shown by the Anthropic console as evidence",
+    "CAUSE": "synchronous Messages transport without an early provider id",
+    "FIX": "docs/research/GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.md",
+    "RESUME_GUARD": "run config ROUTING_DIGEST e44543e3 (synchronous) differs from the V03 ladder routes; resume is refused",
+    "NEXT_UNIT": "LADDER40_V03_R02 (identical V03 design; fresh owner live authorization required)",
+    "SUPERSEDES": "NEXT_UNIT OWNER_RECONCILE_OF_LADDER40_V03_R01_UNCERTAIN_GENERATOR_CALL"
+  }
 }

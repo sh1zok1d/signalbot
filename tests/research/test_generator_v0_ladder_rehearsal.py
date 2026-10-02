@@ -1,7 +1,8 @@
 """Zero-cost rehearsal of the live ladder-40-card orchestration (AGENT_RUNTIME_PROTOCOL section 9).
 
-The production RoutedProvider, AnthropicProvider (compact wire) and OpenAIProvider (background
-Responses and Chat Completions) run against fake transports: no network, no paid call. Covers call
+The production RoutedProvider on the ladder routes (LADDER_ROUTES), AnthropicProvider (compact wire
+through Message Batches) and OpenAIProvider (background Responses and Chat Completions) run against
+fake transports and a fake clock: no network, no paid call. Covers call
 counts, budget reservations under the USD 12 cap, candidate flow, critic ordering, stop conditions
 (budget and provider throttling) and resume without replaying completed calls.
 """
@@ -15,7 +16,7 @@ from scripts.research.generator_v0.derive import authorize_budget_extension
 from scripts.research.generator_v0.ledger import BudgetExceeded, Ledger
 from scripts.research.generator_v0.provider import Caller, ProviderThrottled
 from scripts.research.generator_v0.runner import accept_budget_stop, ladder_config, run_campaign
-from scripts.research.generator_v0_gate.noisy import NoisyTransport, routed_provider_for
+from scripts.research.generator_v0_gate.noisy import FakeClock, NoisyTransport, ladder_provider_for
 from scripts.research.generator_v0 import memory_finalizer as fin
 from tests.research.test_generator_v0_first_30_production_path import GV0CAL_HEAD
 from tests.research.test_generator_v0_memory_finalizer import finalized_root
@@ -27,7 +28,7 @@ def ladder(run_dir, cap, faults=None, transport=None):
     c = Contexts(memory_event=GV0CAL_HEAD)
     transport = transport or NoisyTransport(c, faults or {})
     ledger = Ledger(run_dir / 'run.sqlite', ladder_config(RUN_ID=run_dir.name, SIZE=40, CAP_MICRO_USD=cap))
-    caller = Caller(c, ledger, routed_provider_for(transport, c), cap, True)
+    caller = Caller(c, ledger, ladder_provider_for(transport, c, FakeClock()), cap, True)
     return c, ledger, caller, transport
 
 
@@ -63,7 +64,7 @@ def test_full_zero_cost_ladder_campaign_under_the_usd12_cap(tmp_path):
 def test_budget_stop_mid_campaign_then_same_run_resume(tmp_path):
     d = tmp_path / 'budget'
     d.mkdir()
-    c, ledger, caller, transport = ladder(d, 2_500_000)            # the round-2 generator reservation does not fit
+    c, ledger, caller, transport = ladder(d, 1_250_000)            # the round-2 generator reservation (batch price) does not fit
     accept_budget_stop(c, caller, 40, 'rehearsal', 'force a mid-campaign stop')
     with pytest.raises(BudgetExceeded):
         run_campaign(c, caller)
@@ -76,7 +77,7 @@ def test_budget_stop_mid_campaign_then_same_run_resume(tmp_path):
     authorize_budget_extension(d, 'rehearsal', 'extension after the rehearsed stop', '12.00')
     ledger = Ledger(d / 'run.sqlite')
     c2 = Contexts(memory_event=GV0CAL_HEAD)
-    caller2 = Caller(c2, ledger, routed_provider_for(transport, c2), CAP_USD12, True)
+    caller2 = Caller(c2, ledger, ladder_provider_for(transport, c2, FakeClock()), CAP_USD12, True)
     try:
         accept_budget_stop(c2, caller2, 40, 'rehearsal', 'resume: acceptance is bound to the new snapshot')
         result = run_campaign(c2, caller2)
@@ -102,7 +103,7 @@ def test_provider_throttling_pauses_the_run_for_resume_without_replay(tmp_path):
     ledger = Ledger(d / 'run.sqlite')
     c2 = Contexts(memory_event=GV0CAL_HEAD)
     clean = NoisyTransport(c2, {})
-    caller2 = Caller(c2, ledger, routed_provider_for(clean, c2), CAP_USD12, True)
+    caller2 = Caller(c2, ledger, ladder_provider_for(clean, c2, FakeClock()), CAP_USD12, True)
     try:
         accept_budget_stop(c2, caller2, 40, 'rehearsal', 'resume: acceptance is bound to the new snapshot')
         result = run_campaign(c2, caller2)                                 # same run, infrastructure fixed

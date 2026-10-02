@@ -1,10 +1,28 @@
-# Generator V0 ladder-40 V03 r01 — paused
+# Generator V0 ladder-40 V03 r01 — paused, then frozen as an infrastructure failure
 
-**Status:** `PAUSED_UNCERTAIN_CALL`
+**Status:** `INFRASTRUCTURE_FAILED_FROZEN` (journal status stays `PAUSED_UNCERTAIN_CALL`)
 **Date:** 2026-10-02
 **Code HEAD:** `f00a014581426c85148cb841c4fab0f7e331915e`
 **Journal snapshot:** `docs/research/generator_v0_ladder40_v03_r01/run.sqlite`
 **Journal SHA256:** `72b7aaa774dfbf62c6caa3303eb40ae1c380b3e6bb0ace1f95e015953391be0b`
+
+## Owner decision (2026-10-02, after this record was written)
+
+r01 is frozen as a technically failed run. It is not a campaign result and is not continued.
+
+- **Not UNKNOWN, not replay.**
+  - The uncertain call is not reconciled `UNKNOWN`.
+  - The create is never replayed.
+  - The run is never resumed. The code after `ANTHROPIC_GENERATOR_RESUMABLE_TRANSPORT_V1` also refuses to resume it, because its run config holds the synchronous routing digest.
+- **Billing is bookkeeping, not a blocker.**
+  - When the Anthropic console shows the exact cost of this request, it is recorded with the offline `reconcile --resolution BILLED`, with the cost and that evidence.
+  - Until then the USD 2.210772 reservation stays charged in this journal only.
+- **The cause is the transport.** A synchronous Messages call with no early provider id is fixed once by `GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.md`.
+- **The next unit is r02**, a clean repeat of this technically failed campaign with the identical V03 design. It needs a fresh owner live authorization.
+
+The "What is not authorized" section below records the state before this decision. Its next unit (reconcile, then resume r01) is superseded.
+
+## Original pause record
 
 This is the owner-authorized fresh `GENERATOR_CONTRACT_V03` 40-card shadow campaign. It stopped on the first generator call. It did not produce cards, critic judgments, or a shortlist. It did not test a market hypothesis. Protected 2025/2026 data stayed unopened.
 
