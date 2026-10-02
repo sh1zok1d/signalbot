@@ -113,8 +113,9 @@ beta:
     version: STRICT_QUALIFICATION_V1
     live_hysteresis_enabled: false
   context:
-    version: BETA_CONTEXT_1H_V1
+    version: BETA_CONTEXT_1H_V2             # V2: + 4h window, + taker-delta and OI-change ranks
     rolling_buckets: 12                     # rolling 1h = last 12 closed 5m buckets
+    rolling_buckets_4h: 48                  # rolling 4h = last 48 closed 5m buckets (same machinery)
     label_elevated: 0.80                    # percentile-rank labels (unsigned dims)
     label_high: 0.95
     label_extreme: 0.99
@@ -144,5 +145,13 @@ beta:
   # D7 "High impact" line on /btc. Display only. Not detection, not the rules digest.
   # This committed flag is the hard allow. The line also needs the durable owner
   # state (/admin_d7_on), which defaults off and can never exceed this switch.
+  # Morning briefing (PRODUCT_FIRST_DECISION_V1 §3 row 3). Same view and render path
+  # as /catchup, delivered by the existing notifier through the existing outbox.
+  # Not detection, not the rules digest. Committed OFF: the owner enables it; it also
+  # needs the global push switches (BETA_PUSH_ENABLED, no /admin_pause_push).
+  briefing:
+    enabled: false
+    time_kyiv: "08:00"
+    max_delay_min: 120                      # a brief not sent within this is expired, never late
   regime_d7:
     enabled: true

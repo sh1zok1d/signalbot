@@ -57,7 +57,13 @@ KNOWN_EPISODIZATION_DIGESTS = {
 KNOWN_CONTEXT_DIGESTS = {
     "BETA_CONTEXT_1H_V0": "7f94fde838a33fb094c6683b8834a2f9accbf96f6fb6d3fcc356aab9f49dc701",
     "BETA_CONTEXT_1H_V1": "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576",
+    "BETA_CONTEXT_1H_V2": "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25",
 }
+# A new context version may adopt the episode memory (open episodes, last ended per
+# type) of its predecessor's latest snapshot. Episodes depend only on the
+# episodization version, so a context-only change must not drop them; without this
+# the first bucket under a new label restarts empty and /btc loses its open episodes.
+CONTEXT_PREDECESSORS = {"BETA_CONTEXT_1H_V2": ("BETA_CONTEXT_1H_V1",)}
 
 ANCHOR_STRONGEST = "STRONGEST_OBSERVED_BUCKET"
 ANCHOR_TRIGGER = "TRIGGER_BUCKET"
@@ -88,6 +94,34 @@ def episodization_payload(cfg: BetaConfig) -> dict:
 
 def context_payload(cfg: BetaConfig) -> dict:
     c = cfg.section("context")
+    if c["version"] in _LEGACY_CONTEXT_PAYLOADS:
+        return _LEGACY_CONTEXT_PAYLOADS[c["version"]](cfg)
+    return {
+        "version": c["version"], "rolling_buckets": c["rolling_buckets"],
+        "rolling_buckets_4h": c["rolling_buckets_4h"], "horizons": list(CONTEXT_HORIZONS),
+        "labels": [float(c["label_elevated"]), float(c["label_high"]), float(c["label_extreme"])],
+        "tail_display_max": float(c["tail_display_max"]),
+        "last_event_retention_min": c["last_event_retention_min"],
+        "metrics": {"range_width_pct_median": "median over venues of (max high - min low) / first open",
+                    "price_move_pct_median": "median over venues of (last close - first open) / first open",
+                    "volume_notional_usd_sum": "sum of the 5m cross-venue volume sums",
+                    "taker_delta_notional_usd_sum": "sum of the 5m consensus taker delta; every bucket required",
+                    "oi_change_pct_median": "median over venues of the Stage-1 open_interest as-of change "
+                                            "between the window start and end (2 min tolerance, same unit "
+                                            "and contract value); fewer than min_venue_coverage venues is "
+                                            "not a value"},
+        "window": "30d", "timeframes": {"1h": c["rolling_buckets"], "4h": c["rolling_buckets_4h"]},
+        "oi_missing": "only the OI value and rank are missing; other metrics are unchanged",
+        "requires_state_schema_version": TEMPORAL_CONTEXT_SCHEMA_VERSION,
+        "history_state_schema_versions": "CURRENT_ONLY",
+        "carries_episode_memory_from": list(CONTEXT_PREDECESSORS.get(c["version"], ())),
+    }
+
+
+def _context_payload_v1(cfg: BetaConfig) -> dict:
+    """The BETA_CONTEXT_1H_V0 / V1 definition, kept so their pinned digests stay
+    verifiable (a predecessor's snapshots are looked up by that digest)."""
+    c = cfg.section("context")
     return {
         "version": c["version"], "rolling_buckets": c["rolling_buckets"],
         "labels": [float(c["label_elevated"]), float(c["label_high"]), float(c["label_extreme"])],
@@ -100,6 +134,9 @@ def context_payload(cfg: BetaConfig) -> dict:
         "requires_state_schema_version": TEMPORAL_CONTEXT_SCHEMA_VERSION,
         "history_state_schema_versions": "CURRENT_ONLY",
     }
+
+
+_LEGACY_CONTEXT_PAYLOADS = {"BETA_CONTEXT_1H_V0": _context_payload_v1, "BETA_CONTEXT_1H_V1": _context_payload_v1}
 
 
 def episodization_digest(cfg: BetaConfig) -> str:
@@ -220,7 +257,33 @@ def empty_state(cfg: BetaConfig) -> dict:
     return {**verify_versions(cfg), "rules_digest": cfg.rules_digest,
             "state_schema_version": cfg.state_schema_version, "symbol": cfg.symbol,
             "as_of_bucket": None, "open": {}, "last_ended": {}, "now": None,
-            "context_1h": None, "input": None}
+            "context_1h": None, "context_4h": None, "input": None}
+
+
+def predecessor_context_digests(cfg: BetaConfig) -> list:
+    """Pinned digests of the context versions this one may carry episode memory from."""
+    return [KNOWN_CONTEXT_DIGESTS[v] for v in CONTEXT_PREDECESSORS.get(cfg.section("context")["version"], ())]
+
+
+def adopt_predecessor_state(cfg: BetaConfig, prev: Mapping[str, Any]) -> dict:
+    """A predecessor context version's state under the CURRENT context identity.
+
+    Only the episode memory (open episodes, last ended per type), the as-of bucket and
+    the last input are carried; they depend on the episodization version alone, which
+    must match. The context readings are cleared and recomputed from the tape on the
+    next step, so no value computed under the old definition is relabelled as new."""
+    allowed = set(CONTEXT_PREDECESSORS.get(cfg.section("context")["version"], ()))
+    if prev.get("context_version") not in allowed:
+        raise ContextVersionError(f"context {prev.get('context_version')!r} is not a declared predecessor")
+    if prev.get("episodization_digest") != episodization_digest(cfg):
+        raise ContextVersionError("predecessor state belongs to a different episodization version")
+    if prev.get("rules_digest") != cfg.rules_digest:
+        raise ContextVersionError("predecessor state belongs to a different rules digest")
+    state = empty_state(cfg)
+    state.update(as_of_bucket=prev.get("as_of_bucket"), open=dict(prev.get("open") or {}),
+                 last_ended=dict(prev.get("last_ended") or {}), now=prev.get("now"),
+                 input=prev.get("input"))
+    return state
 
 
 def _anchor(kind: str, bucket_ts: datetime, view, ev, value=None) -> dict:
@@ -256,7 +319,8 @@ def _record(cfg: BetaConfig, cur: Optional[Mapping[str, Any]], ep: Episode, *, b
 
 
 def step_context(cfg: BetaConfig, prev: Optional[Mapping[str, Any]], bucket_ts: datetime,
-                 row: Optional[Mapping[str, Any]], context_1h: Optional[Mapping[str, Any]] = None) -> dict:
+                 row: Optional[Mapping[str, Any]], context_1h: Optional[Mapping[str, Any]] = None,
+                 context_4h: Optional[Mapping[str, Any]] = None) -> dict:
     """State after bucket `bucket_ts`, from the state after the previous bucket and this
     bucket's LIVE tape row. The episodes are stepped with the detector's own
     `step_episode` on exactly the inputs the detector used, so their boundaries are the
@@ -300,6 +364,7 @@ def step_context(cfg: BetaConfig, prev: Optional[Mapping[str, Any]], bucket_ts: 
                                     qualifying=True, triggered_now=st.triggered == "opened", ed=ed)
     state.update(as_of_bucket=iso(bucket_ts), open=open_, last_ended=ended, now=view,
                  context_1h=None if context_1h is None else dict(context_1h),
+                 context_4h=None if context_4h is None else dict(context_4h),
                  input=None if row is None else {"tape_id": row.get("tape_id"),
                                                  "revision": row.get("revision"),
                                                  "snapshot_digest": row.get("snapshot_digest")})
@@ -316,13 +381,23 @@ def rolling_1h_values(cfg: BetaConfig, metrics_by_bucket: Mapping[datetime, Mapp
     """Raw rolling-1h metrics over the last `rolling_buckets` closed buckets ending at
     `end_bucket` (inclusive). Computed from raw per-bucket values (never from 5m
     percentiles); None when any bucket or required value is missing."""
-    n = cfg.section("context")["rolling_buckets"]
+    return rolling_window_values(cfg, metrics_by_bucket, end_bucket,
+                                 cfg.section("context")["rolling_buckets"])
+
+
+def rolling_window_values(cfg: BetaConfig, metrics_by_bucket: Mapping[datetime, Mapping[str, Any]],
+                          end_bucket: datetime, n: int) -> Optional[dict]:
+    """The rolling-1h computation over the last `n` closed buckets (12 = 1h, 48 = 4h).
+    None when any bucket is missing. Volume and taker delta need every bucket's value;
+    a missing value is not a partial sum."""
     buckets = [end_bucket - i * BUCKET for i in range(n - 1, -1, -1)]
     rows = [metrics_by_bucket.get(b) for b in buckets]
     if any(r is None for r in rows):
         return None
     vols = [r.get("c:volume_notional_usd_sum") for r in rows]
     volume = math.fsum(vols) if all(v is not None for v in vols) else None
+    takers = [r.get("c:taker_delta_notional_usd_sum") for r in rows]
+    taker = math.fsum(takers) if all(v is not None for v in takers) else None
     ranges, moves, venues = [], [], []
     for ex in cfg.exchanges:
         o = rows[0].get(metric_key(ex, "kline_open"))
@@ -338,7 +413,9 @@ def rolling_1h_values(cfg: BetaConfig, metrics_by_bucket: Mapping[datetime, Mapp
     return {"window_start": iso(buckets[0]), "window_end": iso(end_bucket + BUCKET),
             "range_width_pct_median": _median(ranges) if enough else None,
             "price_move_pct_median": _median(moves) if enough else None,
-            "volume_notional_usd_sum": volume, "venues": venues}
+            "volume_notional_usd_sum": volume, "venues": venues,
+            "taker_delta_notional_usd_sum": taker,
+            "price_move_pct_by_venue": dict(zip(venues, moves))}
 
 
 def _median(xs: Sequence[float]) -> float:
@@ -348,36 +425,66 @@ def _median(xs: Sequence[float]) -> float:
 
 
 CONTEXT_1H_METRICS = ("range_width_pct_median", "price_move_pct_median", "volume_notional_usd_sum")
+# BETA_CONTEXT_1H_V2: the same three plus the signed taker delta and the Stage-1
+# as-of OI change, ranked the same way, for both the 1h and the 4h window.
+CONTEXT_METRICS = CONTEXT_1H_METRICS + ("taker_delta_notional_usd_sum", "oi_change_pct_median")
+CONTEXT_HORIZONS = ("1h", "4h")
+OI_UNAVAILABLE = "OI_UNAVAILABLE"
+
+
+def horizon_buckets(cfg: BetaConfig) -> dict:
+    c = cfg.section("context")
+    return {"1h": int(c["rolling_buckets"]), "4h": int(c["rolling_buckets_4h"])}
+
+
+def history_span(cfg: BetaConfig) -> timedelta:
+    """How far back the tape history must reach for every horizon's 30d ranks."""
+    return timedelta(days=30) + (max(horizon_buckets(cfg).values()) - 1) * BUCKET
+
+
+def _with_oi(cfg: BetaConfig, values: Optional[dict], oi_index, end_bucket: datetime,
+             n: int) -> Optional[dict]:
+    if values is None:
+        return None
+    from .oi_asof import window_oi_change
+    end = end_bucket + BUCKET
+    oi = window_oi_change(oi_index, cfg.exchanges, end - n * BUCKET, end, min_venues=cfg.min_venues)
+    return {**values, **oi}
 
 
 def context_1h(cfg: BetaConfig, *, bucket_ts: datetime, current_metrics: Mapping[str, Any],
                history: Iterable[tuple], identity: Mapping[str, Any], code_version: str,
-               tiers: Mapping[str, Any]) -> Optional[dict]:
-    """Rolling-1h raw values at `bucket_ts` + their percentile against the rolling-1h
+               tiers: Mapping[str, Any], oi_index=None, horizon: str = "1h") -> Optional[dict]:
+    """Rolling raw values at `bucket_ts` + their percentile against the same rolling
     values sampled at every 5m step in [bucket_ts - 30d, bucket_ts) (frozen percentile
-    core, timeframe '1h'). `history` = [(bucket_ts, metrics)] strictly before
-    `bucket_ts`, reaching back 30d + the rolling window."""
+    core). `history` = [(bucket_ts, metrics)] strictly before `bucket_ts`, reaching
+    back 30d + the rolling window. `horizon` picks the window ("1h" = 12 buckets,
+    "4h" = 48). OI comes from `oi_index` (Stage-1 as-of); without it the OI value and
+    rank are missing and everything else is unchanged."""
+    n = horizon_buckets(cfg)[horizon]
     by_bucket = {b: m for b, m in history if b < bucket_ts}
     by_bucket[bucket_ts] = current_metrics
-    cur = rolling_1h_values(cfg, by_bucket, bucket_ts)
+    cur = _with_oi(cfg, rolling_window_values(cfg, by_bucket, bucket_ts, n), oi_index, bucket_ts, n)
     if cur is None:
         return None
     start = bucket_ts - timedelta(days=30)
     samples_at = sorted(b for b in by_bucket if start <= b < bucket_ts)
-    series = {b: rolling_1h_values(cfg, by_bucket, b) for b in samples_at}
+    series = {b: _with_oi(cfg, rolling_window_values(cfg, by_bucket, b, n), oi_index, b, n)
+              for b in samples_at}
     thresholds = ConfidenceTierThresholds(
         none_below_days=tiers["none_below_days"], low_below_days=tiers["low_below_days"],
         building_below_days=tiers["building_below_days"])
-    out = {**cur, "percentiles": {}}
-    for m in CONTEXT_1H_METRICS:
+    out = {**cur, "horizon": horizon, "rolling_buckets": n,
+           "oi_status": "OK" if oi_index is not None else OI_UNAVAILABLE, "percentiles": {}}
+    for m in CONTEXT_METRICS:
         samples = [PercentileSample(
             scope="consensus", exchange="", symbol=cfg.symbol, market_type=cfg.market_type,
-            metric=m, timeframe="1h", bucket_ts=b, value=(v or {}).get(m),
+            metric=m, timeframe=horizon, bucket_ts=b, value=(v or {}).get(m),
             feature_schema_version=identity["feature_schema_version"],
             calculation_version=identity["calculation_version"]) for b, v in series.items()]
         snap = compute_percentile_snapshot(PercentileRequest(
             scope="consensus", exchange="", symbol=cfg.symbol, market_type=cfg.market_type,
-            metric=m, timeframe="1h", percentile_window="30d", bucket_ts=bucket_ts,
+            metric=m, timeframe=horizon, percentile_window="30d", bucket_ts=bucket_ts,
             value=cur[m], samples=samples, confidence_tier_thresholds=thresholds,
             config_hash=identity["stage2_config_hash"], config_version=identity["stage2_config_version"],
             code_version=code_version, feature_schema_version=identity["feature_schema_version"],
@@ -417,13 +524,15 @@ def tail_label(cfg: BetaConfig, rank: Optional[float], tier: Optional[str]) -> O
 def replay(cfg: BetaConfig, rows_by_bucket: Mapping[datetime, Optional[Mapping[str, Any]]],
            *, start_bucket: datetime, end_bucket: datetime,
            initial_state: Optional[Mapping[str, Any]] = None,
-           context_1h_by_bucket: Optional[Mapping[datetime, Mapping[str, Any]]] = None) -> list:
+           context_1h_by_bucket: Optional[Mapping[datetime, Mapping[str, Any]]] = None,
+           context_4h_by_bucket: Optional[Mapping[datetime, Mapping[str, Any]]] = None) -> list:
     """Recompute the projection bucket by bucket from explicit tape rows (the caller
     chooses the revision policy) under the CONFIGURED episodization version."""
     states, state = [], (dict(initial_state) if initial_state is not None else None)
     b = start_bucket
     while b <= end_bucket:
-        state = step_context(cfg, state, b, rows_by_bucket.get(b), (context_1h_by_bucket or {}).get(b))
+        state = step_context(cfg, state, b, rows_by_bucket.get(b), (context_1h_by_bucket or {}).get(b),
+                             (context_4h_by_bucket or {}).get(b))
         states.append(state)
         b += BUCKET
     return states

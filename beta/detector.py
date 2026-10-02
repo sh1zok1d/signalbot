@@ -358,53 +358,92 @@ CONTEXT_MAX_GAP_BUCKETS = 8640          # > 30d without a state: restart empty
 
 async def context_1h_asof(cfg: BetaConfig, stage2_config, conn, bucket_ts: datetime,
                           snapshot: Mapping[str, Any], tape_id: int) -> Optional[dict]:
-    """Rolling-1h context for one bucket exactly as of its LIVE tape row (history
-    restricted to rows recorded before `tape_id`)."""
-    from .context import context_1h
+    """Rolling-1h context for one bucket exactly as of its LIVE tape row."""
+    return (await context_asof(cfg, stage2_config, conn, bucket_ts, snapshot, tape_id))["1h"]
+
+
+async def context_asof(cfg: BetaConfig, stage2_config, conn, bucket_ts: datetime,
+                       snapshot: Mapping[str, Any], tape_id: int) -> dict:
+    """Rolling 1h and 4h context for one bucket exactly as of its LIVE tape row
+    (history restricted to rows recorded before `tape_id`). One tape-history read
+    and one Stage-1 OI range read serve both windows. A failed or absent OI read
+    leaves only the OI value and rank missing."""
+    from .context import CONTEXT_HORIZONS, context_1h, history_span
+    none = {h: None for h in CONTEXT_HORIZONS}
     ident = snapshot.get("identity") or {}
     if not snapshot.get("materialized") or ident.get("calculation_version") in (None, "UNMATERIALIZED"):
-        return None
-    # The rolling 1h needs the V2 kline OHLC: only rows of THIS schema version (>= V2)
+        return none
+    # The rolling windows need the V2 kline OHLC: only rows of THIS schema version (>= V2)
     # form a window; V1 rows are never mixed in (honest warm-up after an upgrade).
     if not carries_temporal_context(cfg.state_schema_version) or \
             snapshot.get("state_schema_version") != cfg.state_schema_version:
-        return None
-    n = cfg.section("context")["rolling_buckets"]
+        return none
+    span = history_span(cfg)
     history = await conn.fetch_tape_history(
         symbol=cfg.symbol, market_type=cfg.market_type, timeframe=cfg.timeframe,
         calculation_version=ident["calculation_version"], state_schema_versions=(cfg.state_schema_version,),
-        start=bucket_ts - timedelta(days=30) - (n - 1) * BUCKET, end=bucket_ts, before_tape_id=tape_id)
+        start=bucket_ts - span, end=bucket_ts, before_tape_id=tape_id)
+    oi_index = await _oi_index(cfg, conn, bucket_ts, span)
     tiers = stage2_config.resolve(cfg.symbol)["percentiles"]["confidence_tiers"]
-    return context_1h(cfg, bucket_ts=bucket_ts, current_metrics=snapshot.get("metrics") or {},
-                      history=history, identity=ident, code_version=snapshot["feature_code_version"],
-                      tiers=tiers)
+    return {h: context_1h(cfg, bucket_ts=bucket_ts, current_metrics=snapshot.get("metrics") or {},
+                          history=history, identity=ident, code_version=snapshot["feature_code_version"],
+                          tiers=tiers, oi_index=oi_index, horizon=h)
+            for h in CONTEXT_HORIZONS}
+
+
+async def _oi_index(cfg: BetaConfig, conn, bucket_ts: datetime, span: timedelta):
+    """Stage-1 OI rows covering every window boundary of the 30d ranks, as one index.
+    Rows after the bucket's close are never read."""
+    from .oi_asof import OI_ASOF_TOLERANCE, OiAsofIndex
+    fetch = getattr(conn, "fetch_open_interest_range", None)
+    if fetch is None:
+        return None
+    try:
+        rows = await fetch(symbol=cfg.symbol, exchanges=list(cfg.exchanges),
+                           start=bucket_ts - span - OI_ASOF_TOLERANCE, end=bucket_ts + BUCKET)
+    except Exception:  # noqa: BLE001 - OI only; the other metrics are unaffected
+        return None
+    return OiAsofIndex(rows)
 
 
 async def advance_context(deps: "DetectorDeps", cfg: BetaConfig, conn, bucket_ts: datetime,
                           rec, tape_id: int) -> dict:
     """Advance the persisted context projection to `bucket_ts` (stepping through any
     buckets without a state first) and persist one state per bucket."""
-    from .context import state_digest, step_context, verify_versions
+    from .context import (adopt_predecessor_state, predecessor_context_digests, state_digest,
+                          step_context, verify_versions)
     v = verify_versions(cfg)
     prev = await conn.fetch_latest_context_snapshot(
         symbol=cfg.symbol, before=bucket_ts, episodization_digest=v["episodization_digest"],
         context_digest=v["context_digest"], rules_digest=cfg.rules_digest)
+    adopted = False
+    if prev is None:
+        # First bucket under a new context label: carry the episode memory of the
+        # declared predecessor instead of restarting empty (open episodes would be lost).
+        for old_digest in predecessor_context_digests(cfg):
+            prev = await conn.fetch_latest_context_snapshot(
+                symbol=cfg.symbol, before=bucket_ts, episodization_digest=v["episodization_digest"],
+                context_digest=old_digest, rules_digest=cfg.rules_digest)
+            if prev is not None:
+                adopted = True
+                break
     state, prev_digest, b = None, None, bucket_ts
     if prev is not None and int((bucket_ts - prev["bucket_ts"]) / BUCKET) <= CONTEXT_MAX_GAP_BUCKETS:
-        state, prev_digest, b = prev["state"], prev["state_digest"], prev["bucket_ts"] + BUCKET
+        state = adopt_predecessor_state(cfg, prev["state"]) if adopted else prev["state"]
+        prev_digest, b = prev["state_digest"], prev["bucket_ts"] + BUCKET
     while b < bucket_ts:                               # buckets the projection has not seen
         row = await conn.fetch_live_tape(symbol=cfg.symbol, bucket_ts=b, rules_digest=cfg.rules_digest)
-        c1h = None if row is None else await context_1h_asof(
+        ctx = {} if row is None else await context_asof(
             cfg, deps.stage2_config, conn, b, row["snapshot"], row["tape_id"])
-        state = step_context(cfg, state, b, row, c1h)
+        state = step_context(cfg, state, b, row, ctx.get("1h"), ctx.get("4h"))
         digest = state_digest(state)
         await conn.insert_context_snapshot(state, bucket_ts=b, tape_id=None if row is None else row["tape_id"],
                                            tape_revision=None if row is None else row["revision"],
                                            prev_state_digest=prev_digest, state_digest=digest)
         prev_digest, b = digest, b + BUCKET
     row = {"tape_id": tape_id, "revision": 1, "snapshot_digest": rec.snapshot_digest, "snapshot": rec.snapshot}
-    c1h = await context_1h_asof(cfg, deps.stage2_config, conn, bucket_ts, rec.snapshot, tape_id)
-    state = step_context(cfg, state, bucket_ts, row, c1h)
+    ctx = await context_asof(cfg, deps.stage2_config, conn, bucket_ts, rec.snapshot, tape_id)
+    state = step_context(cfg, state, bucket_ts, row, ctx["1h"], ctx["4h"])
     digest = state_digest(state)
     await conn.insert_context_snapshot(state, bucket_ts=bucket_ts, tape_id=tape_id, tape_revision=1,
                                        prev_state_digest=prev_digest, state_digest=digest)
@@ -418,10 +457,12 @@ async def replay_context(cfg: BetaConfig, stage2_config, conn, *, start_bucket: 
     from .context import replay
     rows = await conn.fetch_live_tape_range(symbol=cfg.symbol, start=start_bucket, end=end_bucket,
                                             rules_digest=cfg.rules_digest)
-    c1h = {b: await context_1h_asof(cfg, stage2_config, conn, b, r["snapshot"], r["tape_id"])
+    ctx = {b: await context_asof(cfg, stage2_config, conn, b, r["snapshot"], r["tape_id"])
            for b, r in rows.items()}
     return replay(cfg, rows, start_bucket=start_bucket, end_bucket=end_bucket,
-                  initial_state=initial_state, context_1h_by_bucket=c1h)
+                  initial_state=initial_state,
+                  context_1h_by_bucket={b: c["1h"] for b, c in ctx.items()},
+                  context_4h_by_bucket={b: c["4h"] for b, c in ctx.items()})
 
 
 def plan_buckets(watermark: Optional[datetime], target: datetime, max_catchup: int) -> tuple:
