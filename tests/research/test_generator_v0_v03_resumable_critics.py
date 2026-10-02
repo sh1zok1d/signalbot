@@ -27,6 +27,7 @@ from scripts.research.generator_v0.runner import accept_budget_stop, run_campaig
 from scripts.research.generator_v0.anthropic_provider import AnthropicProvider
 from scripts.research.generator_v0_gate.noisy import NoisyTransport, ladder_provider_for
 from scripts.research.generator_v0 import contract_v03
+from scripts.research.generator_v0.__main__ import _resume_config_with_stored_derivation
 from tests.research.test_generator_v0_anthropic_batch_transport import V02_ROUTING_DIGEST
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -277,6 +278,26 @@ def test_preflight_bounds_thirty_valid_critics_and_no_generator(tmp_path):
     assert pre['REAL_LLM_CALLS_MADE'] is False
     # Persist the figures for the record written by the test run's caller via the return.
     (tmp_path / 'view.json').write_text(json.dumps(view), encoding='utf-8')
+
+
+def test_cli_resume_preserves_only_derived_config_identity(tmp_path):
+    _derive(tmp_path)
+    dest = tmp_path / 'dst'
+    authorize_derived_continuation(dest, 'offline-test', 'resume identity regression')
+    ro = Ledger.open_readonly(dest / 'run.sqlite')
+    try:
+        stored = ro.get('config')
+    finally:
+        ro.close()
+    assert stored['DERIVATION']['KIND'] == 'DERIVED_CONTINUATION'
+    rebuilt = {k: v for k, v in stored.items() if k != 'DERIVATION'}
+    resolved = _resume_config_with_stored_derivation(dest / 'run.sqlite', rebuilt)
+    assert resolved == stored
+    Ledger(dest / 'run.sqlite', resolved).close()
+
+    bad = {**rebuilt, 'IMPLEMENTATION_DIGEST': 'different'}
+    with pytest.raises(ContractError, match='resume configuration differs'):
+        Ledger(dest / 'run.sqlite', _resume_config_with_stored_derivation(dest / 'run.sqlite', bad))
 
 
 def test_m_n_fake_continuation_posts_no_generator_and_finishes_the_shortlist(tmp_path):
