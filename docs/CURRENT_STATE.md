@@ -1,14 +1,15 @@
 # Signalbot — Current State
 
 **Status:** `ACTIVE SUMMARY` (a pointer document; it is not an authority)
-**As of:** 2026-09-29
-**Posture:** `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN`
+**As of:** 2026-10-02
+**Posture:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN` (`PRODUCT_FIRST_DECISION_V1.md`, 2026-10-02)
 
 This page answers "where are we now?" in one screen. It restates facts recorded elsewhere and adds no new decisions. If this page ever disagrees with the documents below, they win:
 - `CURRENT_RESEARCH_STATE.md`: canonical routing and the exact next research unit.
 - `PROJECT_STATUS.md`: posture and freeze.
 - `RESEARCH_LEDGER.md`: consumed windows and results.
 - `PRIVATE_BETA_V0_RESTART_DECISION.md`: beta governance.
+- `PRODUCT_FIRST_DECISION_V1.md`: the canonical product decision, build-to-test scope and user-test design.
 
 ## 1. Headline
 
@@ -77,7 +78,8 @@ There is no authorized next unit in the research routing (see §2). For the beta
 
 ## 6. Product validation status
 
-- **Predictive product:** frozen.
+- **Product-first since 2026-10-02.** The product hypothesis, build-to-test scope, DO-NOT-BUILD-YET list and 30-day user test are in `PRODUCT_FIRST_DECISION_V1.md`. The owner-only V0.2 run ended in `CHANGE PRODUCT`; no external user has seen the product yet.
+- **Predictive claims:** frozen. Descriptive interpretation with shown uncertainty is product evidence, not a research claim.
 - **Descriptive private beta V0.2:** authorized with narrow scope (`PRIVATE_BETA_V0_RESTART_DECISION.md`). Its code and units live only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.
 - **Last recorded state** (`PROJECT_STATUS.md`): implemented, push disabled, no users. The next operator step is the 7-day push-disabled shadow soak. This page did not verify runtime state.
 - **Historical follow-up:** not wired into `/btc` (`BETA_HISTORICAL_FOLLOW_UP_V0.md` in `main`). The completed P4 owner-run descriptive record is frozen under `docs/audit/live_archive_price_oi_p4_followup_v0/`.

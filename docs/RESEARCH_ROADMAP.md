@@ -1,3 +1,5 @@
+> **Product-first note — 2026-10-02:** `docs/PRODUCT_FIRST_DECISION_V1.md` is the canonical product decision. Research serves the product; no new research programs, one-shot confirmations or research-surface widening are started. The execution order below is the historical research order and does not route product work.
+
 ## GV0R02 compiler V1 mapping — 2026-10-01
 
 `NEXT_UNIT = GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING`. The compiler V1 layer is implemented (`GV0R02_FEASIBILITY_COMPILER_V1_MAPPING.md`). Next steps:

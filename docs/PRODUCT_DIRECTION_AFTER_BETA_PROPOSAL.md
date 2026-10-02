@@ -1,6 +1,7 @@
 # Product direction after the private beta — proposal
 
-**Status:** `PROPOSED / DEFERRED_UNTIL_BETA_RESULTS / NO_AUTHORITY`
+**Status:** `PROPOSED / DEFERRED_UNTIL_BETA_RESULTS / NO_AUTHORITY / PARTLY_SUPERSEDED_2026-10-02`
+**2026-10-02:** `PRODUCT_FIRST_DECISION_V1.md` replaces the sequence below for the first external cohort: its §7 test with pre-fixed thresholds replaces "observe first" and the informal willingness-to-pay step. Items 2 (push alerts, few per day) and 5 (multi-asset after retention, now the U5 fake door) and the "Not doing" list are consistent with the decision and kept as recorded owner thinking; item 3 ("so what" via historical follow-up) is on the DO-NOT-BUILD-YET list.
 **Date:** 2026-10-01
 **Origin:** owner conversation on 2026-10-01. The owner endorsed this direction as the plan to compare against beta evidence. It is not an authorization.
 **2026-10-02:** item 3 ("no direction") is superseded for analogue summaries by `BETA_HISTORICAL_ANALOGUE_GATE_V1.md`. The beta surface is now `BETA_V0_3_MARKET_BRIEFING.md`.
