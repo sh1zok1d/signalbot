@@ -29,6 +29,7 @@ This map covers every top-level `docs/*.md` file and each `docs/` subdirectory. 
 - `PROJECT_STRATEGY_AND_ARCHITECTURE_PRINCIPLES.md`, `CODEBASE_STATUS.md` and `R2_SCREENING_PROTOCOL_V1.md`.
 - `AGENT_RUNTIME_PROTOCOL.md`: operations for live-provider work.
 - `PRIVATE_BETA_V0_RESTART_DECISION.md`: beta governance.
+- `FIRST_EXTERNAL_COHORT_OPS_PLAN_V1.md`: operating procedure for the first external cohort under `PRODUCT_FIRST_DECISION_V1.md` §7. It starts no invitations and changes no product.
 - `DATA_CAPABILITY_MATRIX.md`, `CORE_BTC_BINANCE_V0_CONTRACT.md`, `CORE_BTC_BINANCE_V0_PROBE_RUNBOOK.md` and `CORE_BTC_BINANCE_V0_MATERIALIZATION_RUNBOOK.md`: research data infrastructure.
 
 **REFERENCE**
@@ -390,6 +391,7 @@ Before using an operational runbook, compare it with current code/config and run
 
 ## 7a. Descriptive private beta V0.2 (authorized 2026-09-25)
 
+- `FIRST_EXTERNAL_COHORT_OPS_PLAN_V1.md` (**OPERATIONAL_PLAN / NOT_STARTED / NO_PRODUCT_CHANGE**, 2026-10-02): how to run the first external cohort once `PRODUCT_FIRST_DECISION_V1.md` §3 and §6 are met. The decision blob this plan is written against is `2e51492f15b75919221fa8dd73dfb3d483294bf9` (`d7f931d`). It fixes the participant profile, known versus unknown-to-founder classification, the two acquisition channels, the invitation text, the under-two-minute join path, the five-question weekly script, verbatim storage, the churn contact, founder silence, and the purity violations. It does not change code, price, features, or the U1a–U5 thresholds. Invitations are not authorized by this file.
 - `PRIVATE_BETA_V0_RESTART_DECISION.md` is the governance authority. It covers the scope, the frozen rule identity, the soak gate, and the rollout and exit criteria. It is descriptive only, and the predictive product stays frozen.
 - `research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md` carries the label `PROSPECTIVE_PRE_REGISTERED_FORWARD_EVALUATION / OWNER_UNBLINDED`. It is never independent confirmation. Its Q1/Q2 were superseded on 2026-09-28, before any statistic was inspected, because the product will show historical follow-up statistics before the stopping rule (see its amendment).
 - `BETA_V0_3_MARKET_BRIEFING.md` (**OWNER_DECISION_RECORDED / CONTRACT / NOT_IMPLEMENTED**, 2026-10-02): the P1 contract that turns the beta into a market briefing (`CHANGE PRODUCT`).
