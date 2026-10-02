@@ -10,6 +10,10 @@ Lineage (pre-live repair F10/F13):
   verdicts, so discarded generations stay visible.
 Compatibility (option A): legacy v0.1 generator rounds are importable only if
 their call key is grandfathered (legacy_v01.py). New rounds use contract V02.
+V03 ladder rounds are importable when they are COMPLETE Message Batch generations
+under the current ladder generator identity. Critic calls are never imported as
+official judgments: they stay PRIOR_ATTEMPTS, and a derived continuation reviews
+every VALID card again under the destination routing.
 """
 from __future__ import annotations
 import json
@@ -53,6 +57,76 @@ def transport_identity(contexts):
         'CRITIC_ENDPOINT':CRITIC_ENDPOINT,
         'GENERATOR_MAX_OUTPUT_TOKENS':GENERATOR_MAX_OUTPUT_TOKENS,
     }
+
+def expected_v03_generator_request(contexts,slots,round_n,provider):
+    """The ladder GENERATOR request the current routed caller would journal.
+
+    Critic routing is not part of this identity: the call key carries the GENERATOR
+    route only. Rebuilding it must not POST.
+    """
+    from .provider import Caller
+    from .runner import GENERATOR_PROMPT_V03
+    ledger=Ledger(':memory:',{'RUN_ID':'derive-expected','CAP_MICRO_USD':1})
+    try:
+        caller=Caller(contexts,ledger,provider,1,True)
+        return caller.request(
+            'GENERATOR',contexts.generator(),GENERATOR_PROMPT_V03,
+            generator_request_parameters(slots,provider.max_output_tokens_for('GENERATOR')),
+            'generation:'+str(round_n),identity=generator_identity(contexts,slots))
+    finally:
+        ledger.close()
+
+def _v03_provider(contexts):
+    from .routed_provider import offline_routed_provider
+    from .routing import LADDER_ROUTES
+    return offline_routed_provider(contexts,LADDER_ROUTES)
+
+def intake_v03_round(contexts,slots,raw,wire):
+    """Same per-slot VALID/HARD_FAIL the runner records for a compact V03 round."""
+    cards=parse_round(raw,contract_v03.CONTRACT_ID,wire)
+    by={};dupes=set()
+    pairs=[]
+    if isinstance(cards,CompactRound):
+        for item in cards:
+            k=item.get('CANDIDATE_ID') if isinstance(item,dict) else None
+            if isinstance(k,str):pairs.append((k,item))
+    elif isinstance(cards,dict):
+        pairs=list(cards.items())
+    for k,card in pairs:
+        if k in by:dupes.add(k)
+        by[k]=card
+    out=[]
+    for slot in slots:
+        cid=slot['CANDIDATE_ID'];card=by.get(cid)
+        if cards is None:
+            state,reasons,app='HARD_FAIL',[{'RULE':'GENERATION_OUTPUT','DETAIL':'no usable output'}],None
+        elif cid in dupes:
+            state,reasons,app='HARD_FAIL',[{'RULE':'SLOT_IDENTITY','DETAIL':'duplicate card for slot'}],None
+        elif card is None:
+            state,reasons,app='HARD_FAIL',[{'RULE':'SLOT_IDENTITY','DETAIL':'missing card for slot'}],None
+        else:
+            reasons,app=slot_violations_v02(card,contexts,slot)
+            state='HARD_FAIL' if reasons else 'VALID'
+        out.append({'CANDIDATE_ID':cid,'VERDICT':state,'CARD':app,'REASONS':reasons})
+    return out
+
+def _assert_v03_corpus(contexts,plan,imported,source_candidates):
+    """Revalidation must reproduce the source candidate ledger. Any difference stops the derive."""
+    from .context import canonical
+    if not source_candidates:raise ContractError('V03 source has no candidate ledger')
+    mismatches=[]
+    for round_n,r,_,_ in imported:
+        slots=plan[round_n*10:round_n*10+10]
+        judged=intake_v03_round(contexts,slots,r['response']['raw'],generator_wire_format(r['request']))
+        for item in judged:
+            cid=item['CANDIDATE_ID']
+            src=source_candidates.get(cid)
+            if src is None:
+                mismatches.append(cid+':absent');continue
+            state,card,reasons=src
+            if item['VERDICT']!=state or canonical(item['CARD'])!=canonical(card) or canonical(item['REASONS'])!=canonical(reasons):
+                mismatches.append(cid)
+    if mismatches:raise ContractError('imported V03 candidate corpus differs from the source: '+','.join(mismatches[:12]))
 
 def expected_generator_request(contexts,slots,round_n):
     """V02 base request (content/transport attempt 0), exactly as Caller.request builds it."""
@@ -147,8 +221,13 @@ def _intake_summary(row,contexts):
             try:legacy_v01_schema.validate_card(card,contexts);out.append({'CANDIDATE_ID':cid,'VERDICT':'VALID','CONTRACT':legacy_v01.CONTRACT_ID,'REASONS':[]})
             except ContractError as e:out.append({'CANDIDATE_ID':cid,'VERDICT':'HARD_FAIL','CONTRACT':legacy_v01.CONTRACT_ID,'REASONS':[str(e)[:200]]})
         else:
-            v=contract.card_violations(card,contexts)
-            out.append({'CANDIDATE_ID':cid,'VERDICT':'HARD_FAIL' if v else 'VALID','CONTRACT':contract.CONTRACT_ID,'REASONS':[x['RULE'] for x in v]})
+            version=contract_of_request(row['request'])
+            if version==contract_v03.CONTRACT_ID:
+                v=contract_v03.card_violations(card,contexts)
+                out.append({'CANDIDATE_ID':cid,'VERDICT':'HARD_FAIL' if v else 'VALID','CONTRACT':contract_v03.CONTRACT_ID,'REASONS':[x['RULE'] for x in v]})
+            else:
+                v=contract.card_violations(card,contexts)
+                out.append({'CANDIDATE_ID':cid,'VERDICT':'HARD_FAIL' if v else 'VALID','CONTRACT':contract.CONTRACT_ID,'REASONS':[x['RULE'] for x in v]})
     return {'ROUND_USABLE':True,'CARDS':out}
 
 def _select_round(rows,slot,contexts,plan,source_config,current_id):
@@ -169,6 +248,43 @@ def _select_round(rows,slot,contexts,plan,source_config,current_id):
         if parse_round(r['response'].get('raw'),contract.CONTRACT_ID,generator_wire_format(r['request'])) is not None:return r,r['request'],contract.CONTRACT_ID
     return None
 
+def _select_v03_round(rows,slot,contexts,plan,provider):
+    """The COMPLETE ladder generator call for this round, or None when the slot was not completed."""
+    round_n=int(slot.split(':',1)[1]);slots=plan[round_n*10:round_n*10+10]
+    candidates=[r for r in rows if r['request'].get('role')=='GENERATOR' and r['request'].get('slot')==slot and r['state']=='COMPLETE']
+    if not candidates:return None
+    expected=expected_v03_generator_request(contexts,slots,round_n,provider)
+    matches=[r for r in candidates if r['key']==digest(expected)]
+    if len(matches)!=1:raise ContractError('incompatible COMPLETE call '+slot)
+    r=matches[0]
+    if parse_round(r['response'].get('raw'),contract_v03.CONTRACT_ID,generator_wire_format(r['request'])) is None:
+        raise ContractError('COMPLETE V03 round is not a usable round '+slot)
+    return r,r['request'],contract_v03.CONTRACT_ID
+
+def derived_config_v03(dest_id,source_config,contexts):
+    """Destination identity for a V03 derived continuation.
+
+    Generator calls keep the source request bytes. New critic and selector calls
+    use the current ladder routes, including background Responses for every OpenAI role.
+    """
+    from .runner import ladder_config,generator_max_output_tokens
+    from .routed_provider import routed_run_identity
+    provider=_v03_provider(contexts)
+    impl=digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))})
+    config=ladder_config(
+        RUN_ID=dest_id,PROVIDER=provider.provider_id,MODEL=provider.model_id,
+        SIZE=source_config['SIZE'],CAP_MICRO_USD=source_config['CAP_MICRO_USD'],
+        CONTEXT_DIGEST=digest(contexts.generator()),IMPLEMENTATION_DIGEST=impl,
+        GENERATOR_MAX_OUTPUT_TOKENS=generator_max_output_tokens(provider))
+    config.update(routed_run_identity(provider,contexts))
+    config['DERIVATION']={
+        'KIND':'DERIVED_CONTINUATION','SOURCE_RUN_ID':source_config['RUN_ID'],
+        'AMENDMENT':'OPENAI_V03_ALL_CRITICS_RESUMABLE_TRANSPORT_V1',
+        'OFFICIAL_CRITIC_OUTPUTS_IMPORTED':False,
+        'CRITIC_POLICY':'REPLAY_ALL_VALID_CANDIDATES',
+    }
+    return config
+
 def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=None):
     source_dir=Path(source_dir);dest_dir=Path(dest_dir)
     if through_generation is None or type(through_generation)!=int or through_generation<0:
@@ -185,20 +301,26 @@ def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=Non
         if not isinstance(source_config,dict):raise ContractError('source config missing')
         size=source_config.get('SIZE')
         if type(size)!=int or not 25<=size<=50:raise ContractError('source batch size')
-        if source_config.get('GENERATOR_CONTRACT',contract.CONTRACT_ID)!=contract.CONTRACT_ID:
-            # V03 ladder runs resume in place; cross-run carry-forward is not implemented for them.
-            raise ContractError('derive carry-forward supports GENERATOR_CONTRACT_V02 runs only')
-        plan=slot_plan(size)
+        source_contract=source_config.get('GENERATOR_CONTRACT',contract.CONTRACT_ID)
+        if source_contract not in (contract.CONTRACT_ID,contract_v03.CONTRACT_ID):
+            raise ContractError('unknown generator contract')
+        v03=source_contract==contract_v03.CONTRACT_ID
+        plan=contract_v03.slot_plan(size) if v03 else slot_plan(size)
         rows=_source_calls(db)
+        source_candidates={}
+        if v03:
+            for cid,state,card,reasons in db.execute('SELECT id,state,card,reasons FROM candidates'):
+                source_candidates[cid]=(state,json.loads(card) if card else None,json.loads(reasons))
         source_lineage=_meta(db,'lineage') or {}
         source_prior=source_lineage.get('PRIOR_SPEND_MICRO_USD',0)
         if type(source_prior) is not int or source_prior<0:raise ContractError('invalid source lineage')
     finally:
         db.close()
+    provider=_v03_provider(contexts) if v03 else None
     wanted=['generation:'+str(n) for n in range(through_generation+1)]
     imported=[];missing=[]
     for slot in wanted:
-        picked=_select_round(rows,slot,contexts,plan,source_config,current_id)
+        picked=_select_v03_round(rows,slot,contexts,plan,provider) if v03 else _select_round(rows,slot,contexts,plan,source_config,current_id)
         if picked is None:missing.append(slot)
         else:imported.append((int(slot.split(':')[1]),)+picked)
     if missing:
@@ -244,8 +366,10 @@ def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=Non
             verdicts[s['CANDIDATE_ID']]='VALID' if ok else 'HARD_FAIL'
             valid+=ok
         intake['generation:'+str(round_n)]={'CONTRACT':contract_id,'VALID':valid,'HARD_FAIL':len(slots)-valid}
+    if v03:_assert_v03_corpus(contexts,plan,imported,source_candidates)
     dest_dir.mkdir(parents=True,exist_ok=False)
-    dest=Ledger(dest_dir/'run.sqlite',derived_config(dest_dir.name,source_config,contexts))
+    config=derived_config_v03(dest_dir.name,source_config,contexts) if v03 else derived_config(dest_dir.name,source_config,contexts)
+    dest=Ledger(dest_dir/'run.sqlite',config)
     try:
         with dest.transaction():dest.set('lineage',lineage)
         for round_n,r,expected,contract_id in imported:
@@ -270,6 +394,10 @@ def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=Non
             'IMPORTED_INTAKE_VERDICTS':verdicts,
             'C018_REVALIDATION':{'VALID':'PASS','HARD_FAIL':'HARD_FAIL'}.get(verdicts.get('C018'),'ABSENT'),
             'CARDS_WRITTEN':False,'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
+            **({'GENERATOR_CONTRACT':contract_v03.CONTRACT_ID,'OFFICIAL_CRITIC_OUTPUTS_IMPORTED':False,
+                'IMPORTED_VALID':sum(1 for v in verdicts.values() if v=='VALID'),
+                'IMPORTED_HARD_FAIL':sum(1 for v in verdicts.values() if v=='HARD_FAIL'),
+                'CANDIDATE_CORPUS_MATCH':True,'NEW_GENERATOR_CALLS_REQUIRED':0} if v03 else {}),
         }
         with dest.transaction():
             dest.set('imported_rounds',{'generation:'+str(n):{'CALL_KEY':r['key'],'CONTRACT':c} for n,r,_,c in imported})
@@ -402,7 +530,7 @@ def proxy_card(slot,contexts,target_bytes,signature_bytes):
     if pad>0:card['CAUSAL_OR_STRUCTURAL_STORY']=card['CAUSAL_OR_STRUCTURAL_STORY']+' '+'x'*(pad-1)
     return card
 
-def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content_attempts=None,margin=None,bound_provider=None,contract_id=None):
+def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content_attempts=None,margin=None,bound_provider=None,contract_id=None,settled_ids=()):
     """Worst-case reservation for everything not yet COMPLETE-imported, through the
     live bound() path. Missing cards are proxies of max(largest known card,
     OBSERVED_MAX_CARD_BYTES x margin) bytes. No POST. contract_id selects the slot
@@ -425,7 +553,9 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
     proxy_bytes=max([_ceil(OBSERVED_MAX_CARD_BYTES*margin)]+[len(canonical(c).encode()) for c in cards])
     sig_bytes=max([_ceil(OBSERVED_MAX_SIGNATURE_BYTES*margin)]+[len(canonical(x).encode()) for x in current_signatures(cards)])
     have={c.get('CANDIDATE_ID') for c in cards}
-    cards+=[proxy_card(slot,contexts,proxy_bytes,sig_bytes) for slot in plan if slot['CANDIDATE_ID'] not in have][:size-len(cards)]
+    settled=set(settled_ids or ())
+    # settled ids are already generated and are not reviewed (V03 hard fails). They are not proxied.
+    cards+=[proxy_card(slot,contexts,proxy_bytes,sig_bytes) for slot in plan if slot['CANDIDATE_ID'] not in have and slot['CANDIDATE_ID'] not in settled][:size-len(cards)]
     stages=[];total=0
     for round_n in [n for n in range((size+9)//10) if n not in set(done_rounds)]:
         slots=plan[round_n*10:round_n*10+10]
@@ -442,7 +572,7 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
             bound=provider.bound({'role':role,'context':ctx,'prompt':prompt,'parameters':{'max_output_tokens':caps[role]}})
             critic_tot[role]+=bound;total+=bound
     for role,bound in critic_tot.items():
-        stages.append(_stage(role+' x'+str(size),bound))
+        stages.append(_stage(role+' x'+str(len(cards)),bound))
     selection={card['CANDIDATE_ID']:{'MECHANISM_DISTANCE':3,'INFORMATION_GAIN':3,'FEASIBILITY':3,'CHEAPNESS':3} for card in cards}
     sanitized=[{'CANDIDATE_ID':card['CANDIDATE_ID'],'DATA_STATUS':card['DATA_STATUS']} for card in cards]
     selector_ctx={'SANITIZED_CRITIC_OUTPUTS':sanitized,'DATA_STATUS':{card['CANDIDATE_ID']:card['DATA_STATUS'] for card in cards},'SELECTION_JUDGMENTS':selection}
@@ -451,8 +581,10 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
     stages.append(_stage('SELECTOR',selector_bound))
     # The selector is advisory and never retried; every other call may be retried once per content attempt.
     with_retries=total*attempts-selector_bound*(attempts-1)
-    return {'SIZE':size,'GENERATOR_CONTRACT':contract_id,'CAPS':caps,'CONTENT_ATTEMPTS':attempts,'PROXY_CARD_BYTES':proxy_bytes,'PROXY_SIGNATURE_BYTES':sig_bytes,'PROXY_MARGIN':str(margin),'PROXY_CARDS':size-len([c for c in known_cards if isinstance(c,dict)][:size]),
-            'STAGES':stages,'WORST_CASE_SINGLE_ATTEMPT_MICRO_USD':total,'WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD':with_retries}
+    known_n=len([c for c in known_cards if isinstance(c,dict)][:size])
+    proxy_cards=sum(1 for slot in plan if slot['CANDIDATE_ID'] not in {c.get('CANDIDATE_ID') for c in known_cards if isinstance(c,dict)} and slot['CANDIDATE_ID'] not in settled) if settled else size-known_n
+    return {'SIZE':size,'GENERATOR_CONTRACT':contract_id,'CAPS':caps,'CONTENT_ATTEMPTS':attempts,'PROXY_CARD_BYTES':proxy_bytes,'PROXY_SIGNATURE_BYTES':sig_bytes,'PROXY_MARGIN':str(margin),'PROXY_CARDS':proxy_cards,
+            'STAGES':stages,'REVIEW_CARDS':len(cards),'WORST_CASE_SINGLE_ATTEMPT_MICRO_USD':total,'WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD':with_retries}
 
 def fresh_campaign_budget_preflight(size,cap_micro_usd,contexts=None,caps=None,content_attempts=None,margin=None,lineage_prior_micro_usd=0,bound_provider=None,contract_id=None):
     """Preflight for a run that has no journal yet. No POST, no journal written.
@@ -477,7 +609,7 @@ def _preflight_report(b,cap,prior,journal,done,known_rounds):
         'IMPORTED_GENERATION_ROUNDS':['generation:'+str(n) for n in sorted(done)],
         'REMAINING_GENERATION_ROUNDS':[s['STAGE'] for s in b['STAGES'] if s['STAGE'].startswith('generation:')],
         'PROXY_CARDS':b['PROXY_CARDS'],'PROXY_CARD_BYTES':b['PROXY_CARD_BYTES'],'PROXY_SIGNATURE_BYTES':b['PROXY_SIGNATURE_BYTES'],'PROXY_MARGIN':b['PROXY_MARGIN'],'CAPS':b['CAPS'],'CONTENT_ATTEMPTS':b['CONTENT_ATTEMPTS'],
-        'STAGES':b['STAGES'],
+        'STAGES':b['STAGES'],'REVIEW_CARDS':b['REVIEW_CARDS'],
         **({'GENERATOR_CONTRACT':b['GENERATOR_CONTRACT']} if b.get('GENERATOR_CONTRACT')==contract_v03.CONTRACT_ID else {}),
         'NOTE':'Conservative: every remaining critic call is bounded even if already COMPLETE in this journal. Budget exhaustion during a live run stops cleanly (STOPPED_BUDGET) before any POST.',
         'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
@@ -490,13 +622,44 @@ def ledger_budget_preflight(ledger,contexts,cap=None,size=None,bound_provider=No
     if type(cap) is not int:raise ContractError('run cap missing')
     size=cfg.get('SIZE',40) if size is None else size
     if type(size)!=int or not 25<=size<=50:raise ContractError('source batch size')
-    done=[];cards=[]
-    for slot,row in sorted((ledger.get('imported_rounds') or {}).items()):
-        batch=round_cards(ledger.complete_raw(row['CALL_KEY']),row['CONTRACT'])
-        if batch is None:raise ContractError('imported round unusable')
-        done.append(int(slot.split(':')[1]));cards+=[c for c in batch if isinstance(c,dict)]
-    b=campaign_bound(contexts,size,cards,done,caps,content_attempts,margin,bound_provider,cfg.get('GENERATOR_CONTRACT'))
+    from .runner import call_wire_format,campaign_plan
+    done=[];cards=[];settled=[]
+    contract_id=cfg.get('GENERATOR_CONTRACT')
+    imported=ledger.get('imported_rounds') or {}
+    if contract_id==contract_v03.CONTRACT_ID and imported:
+        plan=campaign_plan(contract_id,size)
+        for slot,row in sorted(imported.items()):
+            if row.get('CONTRACT')!=contract_v03.CONTRACT_ID:raise ContractError('imported round is not V03')
+            n=int(slot.split(':')[1]);done.append(n)
+            judged=intake_v03_round(contexts,plan[n*10:n*10+10],ledger.complete_raw(row['CALL_KEY']),call_wire_format(ledger,row['CALL_KEY']))
+            for item in judged:
+                if item['VERDICT']=='VALID':cards.append(item['CARD'])
+                else:settled.append(item['CANDIDATE_ID'])
+    else:
+        for slot,row in sorted(imported.items()):
+            batch=round_cards(ledger.complete_raw(row['CALL_KEY']),row['CONTRACT'],call_wire_format(ledger,row['CALL_KEY']))
+            if batch is None:raise ContractError('imported round unusable')
+            done.append(int(slot.split(':')[1]));cards+=[c for c in batch if isinstance(c,dict)]
+    b=campaign_bound(contexts,size,cards,done,caps,content_attempts,margin,bound_provider,contract_id,settled)
     return _preflight_report(b,cap,ledger.lineage_prior_micro_usd(),ledger.spent_micro_usd(),done,[])
+
+def continuation_bound_view(pre):
+    """Owner-facing remaining-work figures for a derived continuation. No POST."""
+    def usd(micro):
+        return format(Decimal(micro)/Decimal(1_000_000),'f')
+    return {
+        'BASE_REMAINING_BOUND_USD':usd(pre['WORST_CASE_REMAINING_MICRO_USD']),
+        'STRESS_REMAINING_BOUND_USD':usd(pre['WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD']),
+        'AVAILABLE_USD':usd(pre['REMAINING_AUTHORIZED_MICRO_USD']),
+        'SPENT_USD':usd(pre['SPENT_MICRO_USD']),
+        'CAP_USD':usd(pre['CAP_MICRO_USD']),
+        'FITS_BASE':pre['FITS_AUTHORIZED_REMAINING'],
+        'FITS_STRESS':pre['FITS_WITH_CONTENT_RETRIES'],
+        'REMAINING_GENERATION_ROUNDS':pre['REMAINING_GENERATION_ROUNDS'],
+        'PROXY_CARDS':pre['PROXY_CARDS'],
+        'CONTENT_ATTEMPTS':pre['CONTENT_ATTEMPTS'],
+        'REAL_LLM_CALLS_MADE':False,
+    }
 
 def remaining_campaign_budget_preflight(run_dir,contexts=None,caps=None,content_attempts=None,margin=None,bound_provider=None):
     """Worst-case remaining reservation for a fresh, running or derived journal,

@@ -260,8 +260,8 @@ def test_derive_refuses_a_ladder_source(tmp_path):
     (tmp_path / "src").mkdir()
     _, ledger, _ = ladder_campaign(tmp_path / "src" / "run.sqlite")
     ledger.close()
-    with pytest.raises(ContractError, match="V02"):
-        derive_complete_rounds(tmp_path / "src", tmp_path / "dst")
+    with pytest.raises(ContractError, match="incompatible"):
+        derive_complete_rounds(tmp_path / "src", tmp_path / "dst", 3)
 
 
 def test_cli_ladder_command_needs_explicit_live_authorization_and_v03_needs_40(tmp_path, capsys):

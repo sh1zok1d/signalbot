@@ -1,0 +1,76 @@
+{
+  "PREFLIGHT": {
+    "CAPS": {
+      "FEASIBILITY_CRITIC": 6000,
+      "NOVELTY_CRITIC": 12000,
+      "RED_TEAM": 8000,
+      "SELECTOR": 2000
+    },
+    "CAP_MICRO_USD": 9789228,
+    "CONTENT_ATTEMPTS": 2,
+    "FITS_AUTHORIZED_REMAINING": false,
+    "FITS_WITH_CONTENT_RETRIES": false,
+    "GENERATOR_CONTRACT": "GENERATOR_CONTRACT_V03",
+    "IMPORTED_GENERATION_ROUNDS": [
+      "generation:0",
+      "generation:1",
+      "generation:2",
+      "generation:3"
+    ],
+    "JOURNAL_SPENT_MICRO_USD": 2192768,
+    "LINEAGE_PRIOR_MICRO_USD": 1466471,
+    "MIN_ADDITIONAL_AUTHORIZATION_MICRO_USD": 8388806,
+    "MIN_TOTAL_CAP_MICRO_USD": 18178034,
+    "MIN_TOTAL_CAP_WITH_CONTENT_RETRIES_MICRO_USD": 32695073,
+    "NOTE": "Conservative: every remaining critic call is bounded even if already COMPLETE in this journal. Budget exhaustion during a live run stops cleanly (STOPPED_BUDGET) before any POST.",
+    "OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD": 17100000,
+    "PROXY_CARDS": 0,
+    "PROXY_CARD_BYTES": 9012,
+    "PROXY_MARGIN": "1.5",
+    "PROXY_SIGNATURE_BYTES": 1882,
+    "REAL_LLM_CALLS_MADE": false,
+    "REMAINING_AUTHORIZED_MICRO_USD": 6129989,
+    "REMAINING_GENERATION_ROUNDS": [],
+    "REVIEW_CARDS": 30,
+    "SCIENTIFIC_OUTCOMES_COMPUTED": false,
+    "SPENT_MICRO_USD": 3659239,
+    "STAGES": [
+      {
+        "BOUND_MICRO_USD": 11349800,
+        "BOUND_USD": "11.3498",
+        "STAGE": "NOVELTY_CRITIC x30"
+      },
+      {
+        "BOUND_MICRO_USD": 155579,
+        "BOUND_USD": "0.155579",
+        "STAGE": "FEASIBILITY_CRITIC x30"
+      },
+      {
+        "BOUND_MICRO_USD": 3011660,
+        "BOUND_USD": "3.01166",
+        "STAGE": "RED_TEAM x30"
+      },
+      {
+        "BOUND_MICRO_USD": 1756,
+        "BOUND_USD": "0.001756",
+        "STAGE": "SELECTOR"
+      }
+    ],
+    "STATUS": "REMAINING_BUDGET_PREFLIGHT",
+    "WORST_CASE_REMAINING_MICRO_USD": 14518795,
+    "WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD": 29035834
+  },
+  "VIEW": {
+    "AVAILABLE_USD": "6.129989",
+    "BASE_REMAINING_BOUND_USD": "14.518795",
+    "CAP_USD": "9.789228",
+    "CONTENT_ATTEMPTS": 2,
+    "FITS_BASE": false,
+    "FITS_STRESS": false,
+    "PROXY_CARDS": 0,
+    "REAL_LLM_CALLS_MADE": false,
+    "REMAINING_GENERATION_ROUNDS": [],
+    "SPENT_USD": "3.659239",
+    "STRESS_REMAINING_BOUND_USD": "29.035834"
+  }
+}

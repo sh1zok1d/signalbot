@@ -105,7 +105,15 @@ def test_batch_route_is_ladder_only_and_v02_identity_is_unchanged():
     assert routing.routes_for_contract('GENERATOR_CONTRACT_V02') is routing.ROUTES
     assert routing.routes_for_contract('GENERATOR_CONTRACT_V03') is routing.LADDER_ROUTES
     ladder, v02 = routing.LADDER_ROUTES, routing.ROUTES
-    assert {r: v for r, v in ladder.items() if r != 'GENERATOR'} == {r: v for r, v in v02.items() if r != 'GENERATOR'}
+    assert ladder['NOVELTY_CRITIC'] == v02['NOVELTY_CRITIC'] and ladder['RED_TEAM'] == v02['RED_TEAM']
+    # OPENAI_V03_ALL_CRITICS_RESUMABLE_TRANSPORT_V1: these two roles change transport only.
+    for role in ('FEASIBILITY_CRITIC', 'SELECTOR'):
+        strip = lambda r: {k: v for k, v in r.items() if k not in ('ENDPOINT', 'TRANSPORT', 'STRUCTURED_OUTPUT')}
+        assert strip(ladder[role]) == strip(v02[role])
+        assert ladder[role]['ENDPOINT'] == 'OPENAI_RESPONSES_BACKGROUND'
+        assert v02[role]['ENDPOINT'] == 'OPENAI_CHAT_COMPLETIONS'
+        assert ladder[role]['MODEL'] == v02[role]['MODEL'] and ladder[role]['PARAMS'] == v02[role]['PARAMS']
+        assert ladder[role]['MAX_OUTPUT_TOKENS'] == v02[role]['MAX_OUTPUT_TOKENS']
     strip = lambda r: {k: v for k, v in r.items() if k not in ('ENDPOINT', 'TRANSPORT')}
     assert strip(ladder['GENERATOR']) == strip(v02['GENERATOR'])          # same model, effort, cap, output mode
     assert ladder['GENERATOR']['ENDPOINT'] == 'ANTHROPIC_MESSAGE_BATCHES' and v02['GENERATOR']['ENDPOINT'] == 'ANTHROPIC_MESSAGES'

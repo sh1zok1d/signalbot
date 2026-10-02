@@ -7206,3 +7206,30 @@ LLM_CALLS = 0
 ```
 
 Record: `docs/research/GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.{md,json}` (section "r02 budget lineage", key `R02_BUDGET_LINEAGE`).
+
+## Generator V0 r02 paused; resumable OpenAI critics; derived continuation — 2026-10-02
+
+`ladder-40-card-v03-r02` is an infrastructure pause, not a scientific result. All four generator rounds completed on Anthropic Message Batches (USD 2.192768; 40 slots, 30 valid, 10 hard fail). The synchronous feasibility call for C024 timed out after dispatch with no response id. It stays `UNCERTAIN` at its reserved USD 0.005302. The source charged total is USD 3.659239. The source journal was not modified and C024 was not reconciled. PR #299 (`bb13d8f26a93713fa6fb956703c5207486b6a570`) remains the durable checkpoint. A byte-identical copy is `docs/research/generator_v0_ladder40_v03_r02/run.sqlite` (SHA256 `ffa179220d12986520c214f7a1ad1cfecd084848f9de0158fcd43476d9447a37`).
+
+`OPENAI_V03_ALL_CRITICS_RESUMABLE_TRANSPORT_V1` moves V03 feasibility and the selector from synchronous Chat Completions to background Responses. Every paid V03 role is now resumable. V02 routing is unchanged. No prompt, schema, model, effort or shortlist rule changed.
+
+`ladder-40-card-v03-r02-derived-critics-v1` is a derived continuation, not a new campaign. It imports the four generator rounds and treats every source critic call as a prior attempt. The 30 valid cards are to be reviewed again under one routing identity. The destination starts at USD 3.659239 charged. The r02 cap stays USD 9.789228 (USD 6.129989 left). The offline remaining bound is base USD 14.518795 and stress USD 29.035834. Neither fits. The cap was not raised. No live call was made.
+
+```
+LADDER40_V03_R02 = PAUSED_UNCERTAIN_CALL / IMMUTABLE_SOURCE_FOR_DERIVED_CONTINUATION
+OPENAI_V03_ALL_CRITICS_RESUMABLE_TRANSPORT_V1 = IMPLEMENTED_OFFLINE
+DERIVED_RUN_ID = ladder-40-card-v03-r02-derived-critics-v1
+DERIVED_INITIAL_CHARGED_USD = 3.659239
+AVAILABLE_R02_USD = 6.129989
+BASE_REMAINING_BOUND_USD = 14.518795
+STRESS_REMAINING_BOUND_USD = 29.035834
+FITS_BASE = false
+FITS_STRESS = false
+DERIVED_CONTINUATION_LIVE_AUTHORIZED = false
+LLM_CALLS = 0
+SCIENTIFIC_DESIGN_CHANGED = false
+PROTECTED_2025_2026_OPENED = false
+MARKET_OUTCOMES_TESTED = false
+```
+
+Record: `docs/research/GENERATOR_V0_V03_RESUMABLE_CRITICS_AND_DERIVED_CONTINUATION.{md,json}`.
