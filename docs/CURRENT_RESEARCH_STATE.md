@@ -1,3 +1,22 @@
+## Divergence panel feasibility V0 — INFORMATIONALLY_WEAK; holdout not spent — 2026-10-02
+
+`DIVERGENCE_PANEL_FEASIBILITY_V0 = INFORMATIONALLY_WEAK`
+`GATE = STRESS power of (A − B) − (C − D) at 15 pp on the projected spend window: 0.655 / 0.609 < 0.80`
+`HOLDOUT_SPEND = NOT AUTHORIZED (gate failed; 2025-2026 stays sealed)`
+`SEED0003_PREREG_CREATED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_PANEL_FEASIBILITY_V0`
+
+This line supersedes `NEXT_UNIT = DIVERGENCE_PANEL_FEASIBILITY_V0` below.
+
+**Result (`docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_REPORT.md`).** This was an outcome-blind pass on 2023–2024.
+- **Panel A/B/C/D:** 156 / 1434 / 330 / 2518. The A episodes fall on 110 distinct dates, in 67 week clusters and 96 market chains of 24h.
+- **Cross-symbol overlap:** 74% of A episodes have an episode on another symbol at the same hour, and 53% have another A within 24h.
+- **Dependence:** the STRESS design effect is 1.35.
+- **Power at 15 pp:** even with independence assumed, the projected power is 0.78 / 0.76, so the result is not an artifact of the dependence model. The MDE80 under STRESS is 20 pp.
+- **What would be needed:** about 2.5–3 years of panel history at this density, roughly 1.6–1.9 times the window.
+- **What does not happen.** By the owner's rule the holdout is not spent and no SEED-0003 prereg is written.
+
 ## Divergence program — owner decisions V1; panel feasibility authorized — 2026-10-02
 
 `DIVERGENCE_PANEL_FEASIBILITY_V0 = AUTHORIZED (2023-2024 only; outcome-blind; design frozen before counts)`

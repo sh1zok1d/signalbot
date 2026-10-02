@@ -7403,3 +7403,30 @@ HOLDOUT_SPEND_WINDOW = 2025-01-01..2026-08-11 (CONDITIONAL)
 D2_RESERVATION_ON_SPEND_SURFACE = RELEASED
 PROTECTED_2025_2026_OPENED = false
 ```
+
+## Divergence panel feasibility V0 — INFORMATIONALLY_WEAK — 2026-10-02
+
+The pass ran under the design frozen in `1404346`.
+- **Detector and data.** The SEED-0001 detector, unchanged, on six UM perps for 2023–2024. The BTC and ETH digests reproduce. The PIT audit is 30/30 on each symbol. bookDepth days missing in the archive are listed in the report.
+- **Not computed.** No outcome on any symbol, and no byte from 2025 or 2026.
+- **Panel counts.** A/B/C/D are 156 / 1434 / 330 / 2518. The A episodes fall on 110 distinct dates and in 67 week clusters.
+- **Concentration.** The largest symbol share of A is 23%.
+- **Interaction power at 15 pp on the projected 85-week spend layouts:**
+
+| Profile | Power |
+|---|---|
+| STRESS (the gate) | 0.655 / 0.609 |
+| INDEPENDENT | 0.78 / 0.76 |
+| COLLAPSED | 0.61 / 0.58 |
+
+- **MDE80 under STRESS.** 20 pp.
+- **Verdict.** `INFORMATIONALLY_WEAK`.
+- **Required history.** About 2.5–3 years of panel history at the 2023–2024 density.
+- **Consequence.** The conditional holdout spend is not authorized and 2025–2026 stays sealed. No SEED-0003 prereg was written. Nothing is consumed: 2023–2024 counts carry no outcome information.
+
+```
+DIVERGENCE_PANEL_FEASIBILITY_V0 = INFORMATIONALLY_WEAK
+HOLDOUT_SPEND = NOT AUTHORIZED
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_PANEL_FEASIBILITY_V0
+```

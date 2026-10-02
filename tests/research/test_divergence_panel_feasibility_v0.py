@@ -96,3 +96,20 @@ def test_design_binds_code_and_frozen_rules():
     assert rule["PANEL"] == list(P.PANEL)
     assert design["PRIMARY_ESTIMAND"] == "(A - B) - (C - D)"
     assert design["BOUNDARY"]["PROTECTED_2025_2026_OPENED"] is False
+
+
+def test_report_is_outcome_blind_and_its_verdict_recomputes():
+    report = json.loads((REPO / P.REPORT_REL).read_text())
+    assert report["DESIGN_SHA256"] == hashlib.sha256((REPO / P.DESIGN_REL).read_bytes()).hexdigest()
+    assert report["OUTCOMES_COMPUTED"] is False and report["PROTECTED_2025_2026_OPENED"] is False
+    assert report["NEW_SYMBOL_OUTCOMES_OPENED"] is False
+    data_ok = all(m["DATA_OK"] for m in report["PER_SYMBOL"].values())
+    status, _ = P.verdict(data_ok, report["INFERENCE_SUPPORT"], report["A_CONCENTRATION"]["MAX_SYMBOL_SHARE"],
+                          report["GATE"]["MIN_POWER"])
+    assert status == report["VERDICT"]
+    assert report["SPEND_WINDOW"]["RESPECTS_E1"] is True
+    frozen = json.loads((REPO / "docs/research/SEED0001_FEASIBILITY_REPORT.json").read_text())
+    for sym in ("BTCUSDT", "ETHUSDT"):
+        assert report["PER_SYMBOL"][sym]["EPISODE_DIGEST"] == frozen["SYMBOLS"][sym]["EPISODE_DIGEST"]
+    for m in report["PER_SYMBOL"].values():
+        assert m["PIT_TRUNCATION_AUDIT"]["CHECKED"] == m["PIT_TRUNCATION_AUDIT"]["IDENTICAL"] >= 1
