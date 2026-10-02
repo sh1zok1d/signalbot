@@ -37,6 +37,8 @@ class NoisyTransport:
         self.respond=MockResponder(contexts);self.faults=dict(faults or {});self.compact_mutator=compact_mutator
         self.counts=Counter();self.log=[];self.payloads={};self.n=0
         self.prompts={NOVELTY_PROMPT:'NOVELTY_CRITIC',FEAS_PROMPT:'FEASIBILITY_CRITIC',RED_PROMPT:'RED_TEAM',SELECTOR_PROMPT:'SELECTOR'}
+        from scripts.research.generator_v0.roles import NOVELTY_PROMPT_V03,RED_PROMPT_V03
+        self.prompts.update({NOVELTY_PROMPT_V03:'NOVELTY_CRITIC',RED_PROMPT_V03:'RED_TEAM'})   # V03 ladder critics
 
     def posts(self):return [x for x in self.log if x[0]=='POST']
 

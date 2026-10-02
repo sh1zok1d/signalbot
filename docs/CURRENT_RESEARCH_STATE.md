@@ -1,3 +1,29 @@
+## Generator V0 fresh shadow campaign — authorized, not started — 2026-10-02
+
+`GENERATOR_V0_FRESH_SHADOW_CAMPAIGN = AUTHORIZED_NOT_STARTED`
+`BLOCKER = PROVIDER_CREDENTIALS_ABSENT`
+`LIVE_LLM_CALLS = 0`
+`SPEND_USD = 0`
+`ZERO_COST_REHEARSAL = PASS`
+
+**Authorization.** The owner authorized `ladder-40-card` on `GENERATOR_CONTRACT_V03`:
+- hard cap USD 12 with `--accept-budget-stop`;
+- slots 16/14/7/3, shortlist 2/2/1;
+- the routes and call limits of `GENERATOR_V0_PRE_CAMPAIGN_HARDENING.md`;
+- no design change after the first live call.
+
+**Not started.** In the preparing session:
+- **Anthropic.** No Anthropic credential: neither `SIGNALBOT_ANTHROPIC_API_KEY` nor `ANTHROPIC_API_KEY` is set, and the runtime protocol requires a fail-closed refusal.
+- **OpenAI.** The sandbox proxy does not supply OpenAI authentication: `GET /v1/models` through the proxy returned 401. The protocol recorded 200 on 2026-09-24.
+
+No run was created and nothing was spent.
+
+**Rehearsal.** The zero-cost rehearsal of the live path (`tests/research/test_generator_v0_ladder_rehearsal.py`) passed. It used the production `RoutedProvider`, Anthropic compact wire and OpenAI background Responses on fake transports.
+- **Full run:** 4 generator calls, 40 calls for each of the three critics, and 1 selector call. The mix was 16/14/7/3 and the shortlist 2/2/1, within the USD 12 cap.
+- **Budget stop:** `INCOMPLETE_BUDGET_STOP`, then a same-run resume with no replay.
+- **Throttling:** `PAUSED_PROVIDER_THROTTLED`, then a same-run resume with no replay.
+- **Operational rule:** every resume after a stop needs a fresh `--accept-budget-stop`, because the acceptance is bound to the exact cap, spend and worst-case snapshot.
+
 ## Generator V0 pre-campaign hardening — 2026-10-02
 
 `MEMORY_FINALIZER_V03 = IMPLEMENTED (validates and copies ladder fields; V02 unchanged)`
