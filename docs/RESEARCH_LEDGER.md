@@ -7430,3 +7430,18 @@ HOLDOUT_SPEND = NOT AUTHORIZED
 PROTECTED_2025_2026_OPENED = false
 NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_PANEL_FEASIBILITY_V0
 ```
+
+## Divergence program owner decisions V2 — conditional-support feasibility V1 authorized — 2026-10-02
+
+After V0, the owner authorized a new outcome-blind unit: `DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1`. The V0 verdict `INFORMATIONALLY_WEAK` stands; it is not reinterpreted or rescued.
+- **New question.** Does regular bullish divergence add practically meaningful value conditional on support?
+  - The primary estimand is `A − B`, which is not an interaction.
+  - The secondary is `(A − B) − (C − D)`.
+- **Bar.** The minimum effect stays 15 pp.
+- **Allowed scope.** The historical window and a pre-specified combined design with a prospective panel stream from 2026-10-05.
+- **Excluded.**
+  - Continuous models are secondary concepts only.
+  - There is no panel expansion.
+- **Unchanged constraints.** E1 stays absolute and D2 stays released. SEED-0003 is not created. Nothing protected was opened.
+
+Records: `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V2.md` and `docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_DESIGN.json`.

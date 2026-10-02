@@ -1,3 +1,18 @@
+## Divergence program — owner decisions V2; conditional-support feasibility V1 authorized — 2026-10-02
+
+`DIVERGENCE_PANEL_FEASIBILITY_V0 = INFORMATIONALLY_WEAK (unchanged)`
+`DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1 = AUTHORIZED (outcome-blind; design frozen before computation)`
+`PRIMARY_ESTIMAND = A - B (conditional value of divergence inside support); SECONDARY = (A - B) - (C - D)`
+`MINIMUM_EFFECT_OF_INTEREST = 0.15`
+`PROTECTED_2025_2026_OPENED = false`
+`SEED0003_CREATED = false`
+`NEXT_UNIT = DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1`
+
+This line supersedes `NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_PANEL_FEASIBILITY_V0` below.
+- **Records:** `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V2.md` and `docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_DESIGN.json`.
+- **E1.** Protection stays absolute.
+- **D2.** The reservation stays released.
+
 ## Divergence panel feasibility V0 — INFORMATIONALLY_WEAK; holdout not spent — 2026-10-02
 
 `DIVERGENCE_PANEL_FEASIBILITY_V0 = INFORMATIONALLY_WEAK`
