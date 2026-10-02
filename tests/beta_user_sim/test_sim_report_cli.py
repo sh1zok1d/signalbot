@@ -8,8 +8,7 @@ import pytest
 
 from tools.beta_user_sim import STATUS, STATUS_LABELS
 from tools.beta_user_sim.__main__ import main
-from tools.beta_user_sim.export import (EXPORT_QUERIES, ExportRefused, check_query, connect_kwargs,
-                                        window_check)
+from tools.beta_user_sim.export import EXPORT_QUERIES, ExportRefused, check_query, connect_kwargs, export_scope
 from tools.beta_user_sim.report import (ReportWordingError, build_report, render_markdown,
                                         render_transcript)
 
@@ -133,12 +132,11 @@ def test_export_queries_are_select_only_and_skip_participant_tables():
 
 def test_export_window_and_dsn_guards():
     with pytest.raises(ExportRefused):
-        window_check(datetime(2024, 12, 31, 12, tzinfo=timezone.utc), datetime(2024, 12, 31, 13, tzinfo=timezone.utc))
+        export_scope(datetime(2024, 12, 31, 12, tzinfo=timezone.utc), datetime(2024, 12, 31, 13, tzinfo=timezone.utc))
     with pytest.raises(ExportRefused):
-        window_check(datetime(2024, 3, 2, tzinfo=timezone.utc), datetime(2024, 3, 1, tzinfo=timezone.utc))
-    window_check(datetime(2024, 3, 1, tzinfo=timezone.utc), datetime(2024, 3, 2, tzinfo=timezone.utc))
-    window_check(datetime(2026, 9, 1, tzinfo=timezone.utc), datetime(2026, 9, 2, tzinfo=timezone.utc),
-                 allow_protected_window=True)
+        export_scope(datetime(2024, 3, 2, tzinfo=timezone.utc), datetime(2024, 3, 1, tzinfo=timezone.utc))
+    assert export_scope(datetime(2024, 3, 1, tzinfo=timezone.utc),
+                        datetime(2024, 3, 2, tzinfo=timezone.utc)) == "PRE_2025_UNSEALED"
     with pytest.raises(ExportRefused):
         connect_kwargs(None)
     kw = connect_kwargs("postgresql://x")

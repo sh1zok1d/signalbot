@@ -2,7 +2,7 @@
 
     python -m tools.beta_user_sim make-synthetic-bundle --out /tmp/sim/bundle.json
     python -m tools.beta_user_sim replay --bundle /tmp/sim/bundle.json --out /tmp/sim/run --model fake
-    python -m tools.beta_user_sim export --dsn-env BETA_SIM_EXPORT_DSN --start ... --end ... --out ...
+    python -m tools.beta_user_sim export --dsn-env BETA_SIM_EXPORT_DSN --start ... --end ... --out ... [--beta-live-window]
 """
 from __future__ import annotations
 
@@ -59,11 +59,11 @@ def _replay(args) -> int:
 
 
 def _export(args) -> int:
-    from .export import ExportRefused, connect_kwargs, export_bundle, window_check
+    from .export import ExportRefused, connect_kwargs, export_bundle, export_scope
     cfg = BetaConfig.load()
     start, end = _ts(args.start), _ts(args.end)
     try:
-        window_check(start, end, allow_protected_window=args.beta_live_window)
+        scope = export_scope(start, end, allow_live_beta_window=args.allow_live_beta_window)
         kwargs = connect_kwargs(os.environ.get(args.dsn_env))
     except ExportRefused as exc:
         print(f"refused: {exc}", file=sys.stderr)
@@ -73,14 +73,15 @@ def _export(args) -> int:
         import asyncpg
         conn = await asyncpg.connect(**kwargs)
         try:
-            return await export_bundle(conn, cfg, start=start, end=end)
+            return await export_bundle(conn, cfg, start=start, end=end,
+                                       allow_live_beta_window=args.allow_live_beta_window)
         finally:
             await conn.close()
 
     raw = asyncio.run(run())
     bundle_from_dict(raw)
     write_bundle(raw, Path(args.out))
-    print(f"wrote {args.out} (EXPORTED_READ_ONLY)")
+    print(f"wrote {args.out} (EXPORTED_READ_ONLY, {scope})")
     return 0
 
 
@@ -110,7 +111,9 @@ def main(argv=None) -> int:
     e.add_argument("--start", required=True)
     e.add_argument("--end", required=True)
     e.add_argument("--out", required=True)
-    e.add_argument("--beta-live-window", action="store_true")
+    e.add_argument("--beta-live-window", dest="allow_live_beta_window", action="store_true",
+                   help="export scope LIVE_BETA_PROSPECTIVE: prospective private-beta operation from "
+                        "2026-09-25 only; sealed 2025/2026 research data is never exportable")
     args = p.parse_args(argv)
     return {"make-synthetic-bundle": _make, "replay": _replay, "export": _export}[args.cmd](args)
 

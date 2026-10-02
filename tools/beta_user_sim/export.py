@@ -6,7 +6,13 @@ into a replay bundle. Never run by tests against production; never run by the re
   invites, waitlist): delivery rows are exported without `user_pk`,
   `telegram_message_id` or `error_summary`;
 * no research archive or protected dataset is read; klines are the live
-  `klines_1m` rows the existing outcome tracker already uses for these horizons.
+  `klines_1m` rows the existing outcome tracker already uses for these horizons;
+* sealed 2025/2026 research data stays sealed. A window is exported under one
+  explicit scope: `PRE_2025_UNSEALED` (window plus 24h tail before 2025), or
+  `LIVE_BETA_PROSPECTIVE` (prospective private-beta operation from 2026-09-25,
+  owner authorization `SYNTHETIC_BETA_USER_V0_OWNER_AUTH_2026_10_02`). The scope,
+  authorization and requested window are written into the bundle and validated
+  on every load.
 
 The DSN comes from an environment variable named on the command line (never an
 argument value), so it does not land in shell history or in the bundle.
@@ -14,12 +20,15 @@ argument value), so it does not land in shell history or in the bundle.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+import re
+from datetime import datetime, timedelta
 from typing import Optional
 
 from beta.config import HORIZON_MINUTES, BetaConfig
 
-from .bundle import BUNDLE_VERSION, PROVENANCE_EXPORTED, canonical
+from .bundle import (BUNDLE_VERSION, KLINE_TAIL, LIVE_BETA_FROM, LONGEST_HORIZON, PROVENANCE_EXPORTED,
+                     SCOPE_LIVE_BETA_PROSPECTIVE, SCOPE_PRE_2025_UNSEALED, BundleError, canonical,
+                     check_export_window, export_metadata)
 
 EXPORT_QUERIES = {
     "btc_views": (
@@ -59,7 +68,8 @@ EXPORT_QUERIES = {
         "AND symbol = $3 AND ts >= $1 AND ts < $2 ORDER BY ts, exchange"),
 }
 
-PROTECTED_FROM = datetime(2025, 1, 1, tzinfo=timezone.utc)
+EXPORTED_TABLES = ("beta_btc_views", "beta_episodes", "beta_episode_transitions", "beta_push_decisions",
+                   "beta_notification_deliveries", "beta_episode_outcomes", "klines_1m")
 
 
 class ExportRefused(RuntimeError):
@@ -77,6 +87,9 @@ def check_query(sql: str) -> None:
                   "beta_waitlist", "beta_rejected_start", "beta_admin_audit"):
         if table in sql:
             raise ExportRefused(f"exporter must not read {table}")
+    for table in re.findall(r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_.]*)", sql, flags=re.IGNORECASE):
+        if table not in EXPORTED_TABLES:
+            raise ExportRefused(f"exporter reads only live beta tables and klines_1m, not {table}")
 
 
 def _plain(row) -> dict:
@@ -94,36 +107,42 @@ def _plain(row) -> dict:
     return d
 
 
-def window_check(start: datetime, end: datetime, *, allow_protected_window: bool = False) -> None:
-    """A 24h forward horizon must stay out of the sealed 2025/2026 research period
-    unless the owner explicitly says this beta-only export may cover live beta time."""
-    longest = timedelta(minutes=max(HORIZON_MINUTES.values()))
-    if end <= start:
-        raise ExportRefused("export window needs end > start")
-    if end + longest > PROTECTED_FROM and not allow_protected_window:
-        raise ExportRefused("window reaches 2025+; pass --beta-live-window to confirm this export reads only "
-                            "live beta tables and not any sealed research dataset")
+def export_scope(start: datetime, end: datetime, *, allow_live_beta_window: bool = False) -> str:
+    """Pick and check the export scope. `allow_live_beta_window` authorizes only prospective
+    private-beta operation from LIVE_BETA_FROM; it never opens a sealed 2025/2026 window."""
+    scope = SCOPE_LIVE_BETA_PROSPECTIVE if allow_live_beta_window else SCOPE_PRE_2025_UNSEALED
+    try:
+        check_export_window(scope, start, end)
+    except BundleError as exc:
+        raise ExportRefused(str(exc)) from None
+    return scope
 
 
 async def export_bundle(conn, cfg: BetaConfig, *, start: datetime, end: datetime,
+                        allow_live_beta_window: bool = False,
                         history_lookback: timedelta = timedelta(days=14)) -> dict:
     """`conn` is an asyncpg connection. All reads happen in one READ ONLY transaction."""
+    scope = export_scope(start, end, allow_live_beta_window=allow_live_beta_window)
     for sql in EXPORT_QUERIES.values():
         check_query(sql)
-    longest = timedelta(minutes=max(HORIZON_MINUTES.values()))
+    if LONGEST_HORIZON != timedelta(minutes=max(HORIZON_MINUTES.values())):
+        raise ExportRefused("outcome horizons changed; the export scope tail must be reviewed")
     ep_from = start - history_lookback
+    if scope == SCOPE_LIVE_BETA_PROSPECTIVE:
+        ep_from = max(ep_from, LIVE_BETA_FROM)
     out: dict = {}
     async with conn.transaction(readonly=True, isolation="repeatable_read"):
         exported_at = await conn.fetchval("SELECT now()")
         args = {
             "btc_views": (start, end),
-            "klines": (start, end + longest + timedelta(minutes=5), cfg.symbol, list(cfg.exchanges)),
+            "klines": (start, end + LONGEST_HORIZON + KLINE_TAIL, cfg.symbol, list(cfg.exchanges)),
         }
         for name, sql in EXPORT_QUERIES.items():
             rows = await conn.fetch(sql, *args.get(name, (ep_from, end, cfg.symbol)))
             out[name] = [_plain(r) for r in rows]
     raw = {"bundle_version": BUNDLE_VERSION, "provenance": PROVENANCE_EXPORTED, "symbol": cfg.symbol,
-           "exported_at": exported_at, "episodes_since": ep_from, **out}
+           "exported_at": exported_at, "episodes_since": ep_from,
+           "export": export_metadata(scope, start=start, end=end, exported_at=exported_at), **out}
     return json.loads(canonical(raw))
 
 

@@ -143,6 +143,14 @@ def _kv(d: dict) -> str:
     return ", ".join(f"{k}={v}" for k, v in d.items()) or "none"
 
 
+def _export_line(export: Optional[dict]) -> str:
+    if export is None:
+        return "- export scope: none (fully synthetic bundle)"
+    return (f"- export scope {export['export_scope']}; authorization {export['authorization_ref'] or 'none'}"
+            f" ({export['authority_doc'] or 'n/a'}); requested window {export['requested_start']} → "
+            f"{export['requested_end']}; exported at {export['exported_at']}")
+
+
 def render_markdown(report: dict) -> str:
     m, a, c, b = report["manifest"], report["role_a"], report["deterministic_audit"], report["role_b"]
     bc = b["blind_comparison"]
@@ -155,6 +163,7 @@ def render_markdown(report: dict) -> str:
         f"- harness {m['harness_version']}, engine {m['engine_version']}, report {m['report_version']}",
         f"- run at {m['run_at']}; code {m['code']['commit']} (dirty: {m['code']['worktree_dirty']})",
         f"- bundle {m['bundle']['provenance']} digest {m['bundle']['digest']}",
+        _export_line(m["bundle"].get("export")),
         f"- window {m['window']['start']} → {m['window']['end']}; lang {m['replay_config']['lang']}",
         f"- seeds: replay {m['replay_config']['replay_seed']}, attention {m['replay_config']['attention']['seed']}, "
         f"judge {m['replay_config']['judge_seed']}",
