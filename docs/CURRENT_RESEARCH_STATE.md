@@ -1,3 +1,31 @@
+## SEED-0001 — exploratory outcome analysis authorized (supersedes the feasibility-stop routing) — 2026-10-02
+
+`SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR (unchanged)`
+`SEED0001_EXPLORATORY_OUTCOME_PERMIT = docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json (owner, 2026-10-02)`
+`EVIDENCE_LABEL = EXPLORATORY / UNDERPOWERED (never confirmatory)`
+`TF-SEED0001-RD-RETRO1 classification fixed before outcomes = INCONCLUSIVE_DISCOVERY`
+`TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED (separate, frozen, not activated)`
+`PROTECTED_2025_2026_OPENED = false`
+`NEXT_UNIT = SEED0001_EXPLORATORY_OUTCOME_ANALYSIS`
+
+`NEXT_UNIT` is a routing field naming the next unit of work. It is not a scientific status. This line supersedes `NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_FEASIBILITY_STOP` in the section below. That section stays as the historically correct record of the feasibility stop.
+
+**Owner decision (2026-10-02).** SEED-0001 continues despite the feasibility result.
+- **The result is unchanged.** The feasibility result stays exactly `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR`.
+- **Exploratory continuation.** The owner accepts that the retrospective sample is underpowered and authorizes an exploratory outcome-analysis phase.
+- **Not a confirmatory success.** This does not convert the preregistered retrospective test into a successful confirmatory test.
+- **Frozen and unchanged:** the preregistration, detector, thresholds, covariates (including `RISK_ATR`), contrasts, hard floor, episode sets (the 36 BTC Arm-A episodes included) and the feasibility report.
+- **Allowed scope.** Outcomes may be opened only for the frozen episode sets and the frozen outcome definitions in the permit. Every statistic is labelled exploratory / underpowered and is never presented as confirmatory evidence.
+- **Forbidden after outcomes:**
+  - definition tuning;
+  - an alternative threshold, stop, entry, exit or horizon;
+  - subgroup selection;
+  - rescue analysis.
+
+  Any of these needs a new research object / SEED.
+- **Prospective leg.** The preregistration stays separate and frozen. Nothing seen in the exploratory pass may modify it.
+- **Order.** The permit is committed first, then the evaluator with synthetic tests, and only then the one run.
+
 ## SEED-0001 regular divergence — retrospective leg closed outcome-blind — 2026-10-02
 
 `SEED0001_CARD = FROZEN_BEFORE_COUNTS_AND_OUTCOMES`

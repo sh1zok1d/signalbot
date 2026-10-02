@@ -7301,3 +7301,23 @@ SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0
 NEW_DESIGN_REQUIRES_NEW_RESEARCH_OBJECT_ID = true
 NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_FEASIBILITY_STOP
 ```
+
+## SEED-0001 owner decision — exploratory outcome analysis authorized — 2026-10-02
+
+This supersedes the routing of the feasibility-stop entry above. That entry stays as the historically correct record.
+- **Owner decision.** SEED-0001 continues despite `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR`, which is unchanged. The owner accepts that the retrospective sample is underpowered and authorizes an exploratory outcome-analysis phase.
+- **Status of the test.** It is not a conversion of the preregistered retrospective test into a confirmatory success. The classification is fixed before outcomes as `INCONCLUSIVE_DISCOVERY`.
+- **Frozen inputs.** The preregistration, detector, thresholds, covariates, contrasts, hard floor, episode sets and feasibility report stay frozen. Their SHA256s are re-verified and recorded in `docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json`.
+- **Allowed scope.** Outcomes are opened only for the frozen episodes and the frozen outcome definitions. The forward return, MFE and MAE definitions are fixed in the permit before opening. All statistics are exploratory / underpowered.
+- **Changes need a new SEED.** Any later parameter change, alternative threshold, stop, entry, exit, subgroup selection or rescue analysis needs a new research object / SEED.
+- **Prospective leg.** It stays separate and frozen.
+- **Consumption.** Opening outcomes consumes the 2023–2024 Binance UM 1h outcome surface for this card and for nearby questions. A later variant cannot use it as untouched evidence.
+
+```
+SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR
+SEED0001_EXPLORATORY_OUTCOME_PERMIT = docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json
+EVIDENCE_LABEL = EXPLORATORY / UNDERPOWERED
+CLASSIFICATION_FIXED_BEFORE_OUTCOMES = INCONCLUSIVE_DISCOVERY
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = SEED0001_EXPLORATORY_OUTCOME_ANALYSIS
+```
