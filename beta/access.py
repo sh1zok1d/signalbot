@@ -15,12 +15,14 @@ from typing import Mapping, Optional
 
 INVITE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
 INVITE_CODE_RE = re.compile(r"^[A-Za-z0-9_-]{12}$")
-PRIVACY_NOTICE_VERSION = 3
+PRIVACY_NOTICE_VERSION = 4
 ACTIVITY_ACTIONS = (
     "cmd_start", "cmd_btc", "cmd_history", "cmd_help", "cmd_terms", "cmd_lang", "cmd_stop",
-    "cmd_feedback", "tab_event", "tab_1h", "tab_24h", "btn_details", "btn_useful", "btn_noise",
+    "cmd_feedback", "cmd_catchup", "cmd_brief", "cmd_push",
+    "tab_event", "tab_1h", "tab_24h", "btn_details", "btn_useful", "btn_noise", "btn_fake_door",
     "lang_set", "push_delivered",
 )
+SETTING_ACTIONS = ("cmd_brief", "cmd_push")
 
 
 def generate_invite_code() -> str:

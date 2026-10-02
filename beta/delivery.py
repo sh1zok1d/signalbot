@@ -15,7 +15,7 @@ from .admin import collect_health, fingerprint
 from .config import BetaConfig, BetaSwitches, effective_push_enabled
 from .formatter import format_owner_alert, format_push
 from .models import (D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED, D_UNKNOWN,
-                     DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE)
+                     DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE, USER_PUSH_OFF)
 
 
 class DeliveryRejected(RuntimeError):
@@ -89,6 +89,11 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 if row["user_status"] != "ACTIVE":
                     await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
                                                    suppression_reason=USER_INACTIVE)
+                    report["suppressed"] += 1
+                    continue
+                if row.get("push_enabled") is False:
+                    await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                                   suppression_reason=USER_PUSH_OFF)
                     report["suppressed"] += 1
                     continue
                 if sender is None:

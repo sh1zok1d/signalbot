@@ -63,7 +63,7 @@ def test_join_by_code_and_rejected_codes_offer_the_waitlist():
         await h.handle(_cb(alice, "pick:ru", 2))
         await h.handle(_cb(alice, "join:ru", 3))
         joined = await _rows(pool, "SELECT invite_code, privacy_notice_version, lang FROM beta_users")
-        assert joined == [{"invite_code": good, "privacy_notice_version": 3, "lang": "ru"}]
+        assert joined == [{"invite_code": good, "privacy_notice_version": 4, "lang": "ru"}]
         assert (await _rows(pool, "SELECT used_count FROM beta_invites WHERE code=$1", good))[0]["used_count"] == 1
 
         async def rejected(uid, code, update_id):
@@ -237,8 +237,13 @@ def test_delete_me_removes_waitlist_and_activity():
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_user_activity"))[0]["n"] >= 1
         deleted = await h.handle(_msg(uid, "/delete_me", 8))
         assert "удал" in deleted[0].html.lower() or "delete" in deleted[0].html.lower()
-        for table in ("beta_users", "beta_allowlist", "beta_waitlist", "beta_user_activity"):
+        for table in ("beta_users", "beta_allowlist", "beta_waitlist"):
             assert (await _rows(pool, f"SELECT count(*) AS n FROM {table}"))[0]["n"] == 0
+        activity = await _rows(pool, "SELECT user_pk, enrollment_pk FROM beta_user_activity")
+        assert activity and all(r["user_pk"] is None and r["enrollment_pk"] is not None for r in activity)
+        stored = " ".join(str(v) for r in await _rows(
+            pool, "SELECT * FROM beta_measurement_enrollment") for v in r.values())
+        assert str(uid) not in stored
         await pool.close()
     run(body())
 
@@ -313,7 +318,14 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         assert replied and "/btc" in replied[-1].html
         assert str(uid) not in caplog.text
         await h.handle(_msg(uid, "/feedback noted", 17))
-        await h.handle(_msg(uid, "/stop", 18))
+        await h.handle(_msg(uid, "/brief off", 19))
+        await h.handle(_msg(uid, "/push on", 20))
+        await h.handle(_cb(uid, "fd:1", 21))
+        async with store.connect() as conn:
+            caught = await conn.get_user(uid)
+            assert await conn.record_activity(user_pk=caught["user_pk"], action="cmd_catchup",
+                                              lang="en", at=NOW, detail=None) is True
+        await h.handle(_msg(uid, "/stop", 22))
         actions = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         assert set(actions) == set(ACTIVITY_ACTIONS)
         cols = await _rows(pool, """SELECT column_name FROM information_schema.columns
@@ -380,7 +392,7 @@ def test_existing_user_sees_the_updated_privacy_notice_once():
         second = await h.handle(_msg(8675309, "/help", 2))
         assert len(second) == 1 and "конфиденциальность" not in second[0].html
         version = await _rows(pool, "SELECT privacy_notice_version FROM beta_users")
-        assert version == [{"privacy_notice_version": 3}]
+        assert version == [{"privacy_notice_version": 4}]
         await pool.close()
     run(body())
 

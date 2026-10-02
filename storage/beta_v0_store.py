@@ -15,6 +15,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import secrets
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
@@ -54,6 +55,15 @@ def _load(value):
     if value is None:
         return None
     return json.loads(value) if isinstance(value, str) else value
+
+
+def _commercial_row(row) -> dict:
+    from decimal import Decimal
+    out = dict(row)
+    amount = out.get("amount")
+    if isinstance(amount, Decimal):
+        out["amount"] = format(amount, "f")
+    return out
 
 
 def row_to_episode(r) -> Episode:
@@ -578,9 +588,10 @@ class BetaConn:
         USER_INACTIVE for STOPPED; EXPIRED_UNDELIVERED if the decision already
         exceeded the TTL. Unique (decision_id, user_pk) makes this idempotent."""
         status = await self.conn.execute(
-            """INSERT INTO beta_notification_deliveries (decision_id, episode_pk, user_pk, state,
-                   suppression_reason, decision_ts)
-               SELECT $1, $2, u.user_pk,
+            """INSERT INTO beta_notification_deliveries
+                   (decision_id, episode_pk, user_pk, enrollment_pk, state,
+                    suppression_reason, decision_ts)
+               SELECT $1, $2, u.user_pk, u.enrollment_pk,
                       CASE WHEN $4::boolean THEN 'EXPIRED_UNDELIVERED'
                            WHEN u.status='ACTIVE' THEN 'PENDING' ELSE 'SUPPRESSED' END,
                       CASE WHEN $4::boolean THEN 'DELIVERY_TOO_OLD'
@@ -594,7 +605,7 @@ class BetaConn:
     async def fetch_pending_deliveries(self, limit: int) -> list:
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.decision_id, x.episode_pk, x.user_pk, x.decision_ts,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.push_enabled
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                WHERE x.state='PENDING' ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
         return [dict(r) for r in rows]
@@ -652,19 +663,116 @@ class BetaConn:
         return None if r is None else dict(r)
 
     async def join_user(self, *, telegram_user_id: int, chat_id: int, now: datetime,
-                        lang: str = "ru") -> int:
-        return await self.conn.fetchval(
+                        lang: str = "ru", known_contact: bool = False,
+                        owner_excluded: bool = False) -> int:
+        """Join or resume. A repeated Join does not mint a second enrollment and
+        does not rewrite joined_at or the initial known/owner flags."""
+        existing = await self.conn.fetchrow(
+            """SELECT user_pk, enrollment_pk, joined_at FROM beta_users
+               WHERE telegram_user_id=$1""", int(telegram_user_id))
+        if existing and existing["enrollment_pk"] is not None:
+            await self.conn.execute(
+                """UPDATE beta_users SET status='ACTIVE', stopped_at=NULL, chat_id=$2,
+                       privacy_accepted_at=$3, lang=$4, updated_at=now(),
+                       privacy_notice_version=$5,
+                       invite_code=COALESCE(beta_users.invite_code,
+                           (SELECT invite_code FROM beta_allowlist WHERE telegram_user_id=$1))
+                   WHERE telegram_user_id=$1""",
+                int(telegram_user_id), chat_id, now, lang, PRIVACY_NOTICE_VERSION)
+            return int(existing["user_pk"])
+        joined_at = existing["joined_at"] if existing else now
+        enrollment_pk = await self._create_enrollment(
+            telegram_user_id=int(telegram_user_id), joined_at=joined_at,
+            known_contact=bool(known_contact), owner_excluded=bool(owner_excluded))
+        if existing:
+            await self.conn.execute(
+                """UPDATE beta_users SET status='ACTIVE', stopped_at=NULL, chat_id=$2,
+                       enrollment_pk=$3, privacy_accepted_at=$4, lang=$5, updated_at=now(),
+                       privacy_notice_version=$6,
+                       brief_enabled=COALESCE(brief_enabled, TRUE),
+                       push_enabled=COALESCE(push_enabled, TRUE),
+                       invite_code=COALESCE(beta_users.invite_code,
+                           (SELECT invite_code FROM beta_allowlist WHERE telegram_user_id=$1))
+                   WHERE telegram_user_id=$1""",
+                int(telegram_user_id), chat_id, enrollment_pk, now, lang, PRIVACY_NOTICE_VERSION)
+            return int(existing["user_pk"])
+        return int(await self.conn.fetchval(
             """INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at,
-                   joined_at, lang, invite_code, privacy_notice_version)
+                   joined_at, lang, invite_code, privacy_notice_version, enrollment_pk)
                VALUES ($1,$2,'ACTIVE',$3,$3,$4,
-                   (SELECT invite_code FROM beta_allowlist WHERE telegram_user_id=$1), $5)
-               ON CONFLICT (telegram_user_id) DO UPDATE SET status='ACTIVE', stopped_at=NULL,
-                   chat_id=EXCLUDED.chat_id, privacy_accepted_at=EXCLUDED.privacy_accepted_at,
-                   lang=EXCLUDED.lang, updated_at=now(),
-                   privacy_notice_version=EXCLUDED.privacy_notice_version,
-                   invite_code=COALESCE(beta_users.invite_code, EXCLUDED.invite_code)
+                   (SELECT invite_code FROM beta_allowlist WHERE telegram_user_id=$1), $5, $6)
                RETURNING user_pk""",
-            telegram_user_id, chat_id, now, lang, PRIVACY_NOTICE_VERSION)
+            int(telegram_user_id), chat_id, now, lang, PRIVACY_NOTICE_VERSION, enrollment_pk))
+
+    async def _create_enrollment(self, *, telegram_user_id: int, joined_at: datetime,
+                                 known_contact: bool, owner_excluded: bool) -> int:
+        """Random pseudonym. The Telegram id is read once to copy invite provenance
+        and is not written into the measurement row."""
+        invite = await self.conn.fetchrow(
+            """SELECT a.invite_code, i.label AS invite_label
+               FROM beta_allowlist a
+               LEFT JOIN beta_invites i ON i.code = a.invite_code
+               WHERE a.telegram_user_id=$1""", telegram_user_id)
+        code = None if invite is None else invite["invite_code"]
+        label = None if invite is None else invite["invite_label"]
+        pseudonym = secrets.token_hex(32)
+        enrollment_pk = int(await self.conn.fetchval(
+            """INSERT INTO beta_measurement_enrollment
+                   (pseudonym, joined_at, invite_code, invite_label,
+                    known_contact_initial, owner_excluded)
+               VALUES ($1,$2,$3,$4,$5,$6) RETURNING enrollment_pk""",
+            pseudonym, joined_at, code, label, known_contact, owner_excluded))
+        await self.conn.execute(
+            """INSERT INTO beta_measurement_classification
+                   (enrollment_pk, known_contact, recorded_at) VALUES ($1,$2,$3)""",
+            enrollment_pk, known_contact, joined_at)
+        return enrollment_pk
+
+    async def append_contact_classification(self, *, enrollment_pk: int, known_contact: bool,
+                                            recorded_at: datetime) -> int:
+        """Append-only. Does not rewrite known_contact_initial."""
+        return int(await self.conn.fetchval(
+            """INSERT INTO beta_measurement_classification
+                   (enrollment_pk, known_contact, recorded_at) VALUES ($1,$2,$3)
+               RETURNING classification_pk""",
+            int(enrollment_pk), bool(known_contact), recorded_at))
+
+    async def set_brief_enabled(self, telegram_user_id: int, enabled: bool) -> bool:
+        status = await self.conn.execute(
+            "UPDATE beta_users SET brief_enabled=$2, updated_at=now() WHERE telegram_user_id=$1",
+            int(telegram_user_id), bool(enabled))
+        return status == "UPDATE 1"
+
+    async def set_push_enabled(self, telegram_user_id: int, enabled: bool) -> bool:
+        status = await self.conn.execute(
+            "UPDATE beta_users SET push_enabled=$2, updated_at=now() WHERE telegram_user_id=$1",
+            int(telegram_user_id), bool(enabled))
+        return status == "UPDATE 1"
+
+    async def record_brief_attempt(self, *, enrollment_pk: int, brief_date, state: str,
+                                   recorded_at: datetime, error_summary: Optional[str] = None,
+                                   error_class: Optional[str] = None) -> int:
+        return int(await self.conn.fetchval(
+            """INSERT INTO beta_brief_deliveries
+                   (enrollment_pk, brief_date, state, recorded_at, error_summary, error_class)
+               VALUES ($1,$2,$3,$4,$5,$6) RETURNING brief_pk""",
+            int(enrollment_pk), brief_date, state, recorded_at, error_summary, error_class))
+
+    async def record_commercial(self, *, enrollment_pk: int, event_type: str, recorded_at: datetime,
+                                amount, currency: str) -> int:
+        return int(await self.conn.fetchval(
+            """INSERT INTO beta_commercial_evidence
+                   (enrollment_pk, event_type, recorded_at, amount, currency)
+               VALUES ($1,$2,$3,$4,$5) RETURNING evidence_pk""",
+            int(enrollment_pk), event_type, recorded_at, amount, currency))
+
+    async def record_interview(self, *, enrollment_pk: int, question_id: str, answered_at: datetime,
+                               verbatim: str, spontaneous: bool) -> int:
+        return int(await self.conn.fetchval(
+            """INSERT INTO beta_interview_verbatim
+                   (enrollment_pk, question_id, answered_at, verbatim, spontaneous)
+               VALUES ($1,$2,$3,$4,$5) RETURNING interview_pk""",
+            int(enrollment_pk), question_id, answered_at, verbatim, bool(spontaneous)))
 
     async def set_user_lang(self, telegram_user_id: int, lang: str) -> bool:
         status = await self.conn.execute(
@@ -679,14 +787,18 @@ class BetaConn:
         return status == "UPDATE 1"
 
     async def delete_participant(self, telegram_user_id: int) -> dict:
-        """Delete the participant's personal beta records: user row (feedback and
-        activity cascade; delivery rows keep only an anonymous NULL user_pk), the
-        allowlist entry, and the waitlist row. Market/event records contain no
-        identity and remain."""
+        """Remove the Telegram identity. Measurement rows stay, keyed only by the
+        random enrollment pseudonym. Activity that was never linked to an
+        enrollment is deleted with the user. Linked activity keeps enrollment_pk
+        and loses user_pk."""
         activity = int(await self.conn.fetchval(
             """SELECT count(*) FROM beta_user_activity a
                JOIN beta_users u USING (user_pk) WHERE u.telegram_user_id=$1""",
             telegram_user_id))
+        await self.conn.execute(
+            """DELETE FROM beta_user_activity a USING beta_users u
+               WHERE a.user_pk = u.user_pk AND u.telegram_user_id=$1
+                 AND a.enrollment_pk IS NULL""", telegram_user_id)
         users = await self.conn.execute("DELETE FROM beta_users WHERE telegram_user_id=$1",
                                         telegram_user_id)
         allow = await self.conn.execute("DELETE FROM beta_allowlist WHERE telegram_user_id=$1",
@@ -834,10 +946,13 @@ class BetaConn:
         the caller's transaction. The log line carries the exception type only."""
         try:
             async with self.transaction():
+                enrollment_pk = await self.conn.fetchval(
+                    "SELECT enrollment_pk FROM beta_users WHERE user_pk=$1", user_pk)
                 await self.conn.execute(
-                    """INSERT INTO beta_user_activity (user_pk, action, detail, lang, at)
-                       VALUES ($1,$2,$3,$4,$5)""",
-                    user_pk, action, detail, lang, at)
+                    """INSERT INTO beta_user_activity
+                           (user_pk, enrollment_pk, action, detail, lang, at)
+                       VALUES ($1,$2,$3,$4,$5,$6)""",
+                    user_pk, enrollment_pk, action, detail, lang, at)
             return True
         except Exception as exc:  # noqa: BLE001 - telemetry must not fail the reply
             logger.warning("beta activity write failed: %s", type(exc).__name__)
@@ -888,7 +1003,7 @@ class BetaConn:
 
     async def purge_activity_before(self, cutoff: datetime) -> int:
         status = await self.conn.execute(
-            "DELETE FROM beta_user_activity WHERE at < $1", cutoff)
+            "DELETE FROM beta_user_activity WHERE at < $1 AND enrollment_pk IS NULL", cutoff)
         return int(status.split()[-1])
 
     async def count_feedback_messages_on_utc_day(self, user_pk: int, day) -> int:
@@ -973,7 +1088,16 @@ class BetaConn:
         rows = await self.conn.fetch("SELECT status, count(*) AS n FROM beta_users GROUP BY status")
         return {r["status"]: int(r["n"]) for r in rows}
 
-    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str) -> None:
+    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str,
+                              recorded_at: Optional[datetime] = None) -> None:
+        when = recorded_at or datetime.now(timezone.utc)
+        enrollment_pk = await self.conn.fetchval(
+            "SELECT enrollment_pk FROM beta_users WHERE user_pk=$1", user_pk)
+        if enrollment_pk is not None:
+            await self.conn.execute(
+                """INSERT INTO beta_feedback_revisions
+                       (enrollment_pk, episode_pk, vote, recorded_at) VALUES ($1,$2,$3,$4)""",
+                enrollment_pk, episode_pk, vote, when)
         await self.conn.execute(
             """INSERT INTO beta_feedback (user_pk, episode_pk, vote) VALUES ($1,$2,$3)
                ON CONFLICT (user_pk, episode_pk) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()""",
@@ -1102,3 +1226,52 @@ class BetaConn:
     async def newest_d7_available_at(self) -> Optional[datetime]:
         return await self.conn.fetchval(
             "SELECT available_at FROM beta_d7_hour_states ORDER BY hour_start DESC LIMIT 1")
+
+    async def measurement_snapshot(self) -> dict:
+        """Read-only evidence for U1a–U5. No Telegram id, chat id, or user_pk."""
+        enrollments = await self.conn.fetch(
+            """SELECT enrollment_pk, pseudonym, joined_at, invite_code, invite_label,
+                      known_contact_initial, owner_excluded
+               FROM beta_measurement_enrollment ORDER BY enrollment_pk""")
+        classifications = await self.conn.fetch(
+            """SELECT enrollment_pk, known_contact, recorded_at
+               FROM beta_measurement_classification ORDER BY classification_pk""")
+        activity = await self.conn.fetch(
+            """SELECT enrollment_pk, action, detail, at
+               FROM beta_user_activity WHERE enrollment_pk IS NOT NULL ORDER BY activity_pk""")
+        votes = await self.conn.fetch(
+            """SELECT enrollment_pk, episode_pk, vote, recorded_at
+               FROM beta_feedback_revisions ORDER BY revision_pk""")
+        briefs = await self.conn.fetch(
+            """SELECT enrollment_pk, brief_date, state, recorded_at, error_summary, error_class
+               FROM beta_brief_deliveries ORDER BY brief_pk""")
+        deliveries = await self.conn.fetch(
+            """SELECT enrollment_pk, state, finished_at, error_summary, decision_ts
+               FROM beta_notification_deliveries
+               WHERE enrollment_pk IS NOT NULL ORDER BY delivery_id""")
+        commercial = await self.conn.fetch(
+            """SELECT enrollment_pk, event_type, recorded_at, amount, currency
+               FROM beta_commercial_evidence ORDER BY evidence_pk""")
+        interviews = await self.conn.fetch(
+            """SELECT enrollment_pk, question_id, answered_at, verbatim, spontaneous
+               FROM beta_interview_verbatim ORDER BY interview_pk""")
+        health = await self.conn.fetchrow(
+            """SELECT last_run_at, detail FROM beta_runtime_health WHERE component='telemetry'""")
+        detail = {} if health is None else _load(health["detail"])
+        failures = int((detail or {}).get("activity_write_failures") or 0)
+        return {
+            "enrollments": [dict(r) for r in enrollments],
+            "classifications": [dict(r) for r in classifications],
+            "activity": [dict(r) for r in activity],
+            "votes": [dict(r) for r in votes],
+            "briefs": [dict(r) for r in briefs],
+            "deliveries": [dict(r) for r in deliveries],
+            "commercial": [_commercial_row(r) for r in commercial],
+            "interviews": [dict(r) for r in interviews],
+            "telemetry": {
+                "activity_write_failures": failures,
+                "last_failure_at": None if health is None or failures == 0 else health["last_run_at"],
+            },
+            "prices": [],
+            "prices_status": "SERIES_NOT_FROZEN",
+        }

@@ -254,6 +254,6 @@ def test_existing_user_on_privacy_v2_sees_the_feedback_notice_once():
         second = await h.handle(_msg(uid, "/help", 2))
         assert len(second) == 1 and "Тексты отзывов" not in second[0].html
         version = await _rows(pool, "SELECT privacy_notice_version FROM beta_users")
-        assert version == [{"privacy_notice_version": 3}]
+        assert version == [{"privacy_notice_version": 4}]
         await pool.close()
     run(body())

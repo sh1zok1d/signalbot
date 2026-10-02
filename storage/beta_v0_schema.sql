@@ -10,9 +10,11 @@
 -- beta_waitlist (after the request button), and indirectly via user_pk in
 -- beta_notification_deliveries / beta_feedback / beta_user_activity. The tape /
 -- episode / transition / outcome / push-decision / activity-action tables
--- contain no Telegram identifier. Rejected /start rows store a day plus an
--- HMAC, or a daily count, never a raw id. Backups of this database contain
--- personal data.
+-- contain no Telegram identifier. Measurement tables (enrollment, classification,
+-- brief ledger, commercial ledger, interview verbatim, vote revisions) store a
+-- random pseudonym, never a Telegram id and never a hash of one. Rejected
+-- /start rows store a day plus an HMAC, or a daily count, never a raw id.
+-- Backups of this database contain personal data.
 
 -- ---------------------------------------------------------------------------
 -- append-only guard
@@ -464,7 +466,8 @@ CREATE TABLE IF NOT EXISTS beta_user_activity (
     user_pk      BIGINT NOT NULL REFERENCES beta_users (user_pk) ON DELETE CASCADE,
     action       TEXT NOT NULL CHECK (action IN (
         'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
-        'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
+        'cmd_feedback', 'cmd_catchup', 'cmd_brief', 'cmd_push',
+        'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise', 'btn_fake_door',
         'lang_set', 'push_delivered')),
     detail       TEXT,
     lang         TEXT CHECK (lang IS NULL OR lang IN ('ru', 'en')),
@@ -488,7 +491,8 @@ BEGIN
 END $$;
 ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CHECK (action IN (
     'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
-    'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
+    'cmd_feedback', 'cmd_catchup', 'cmd_brief', 'cmd_push',
+    'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise', 'btn_fake_door',
     'lang_set', 'push_delivered'));
 
 -- Free-text /feedback. user_pk only; /delete_me cascades. Not the Useful/Noise votes.
@@ -542,3 +546,172 @@ CREATE TABLE IF NOT EXISTS beta_d7_hour_states (
     computed_at         TIMESTAMPTZ NOT NULL,
     definition_digest   TEXT NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$')
 );
+
+-- ---------------------------------------------------------------------------
+-- Measurement readiness (PRODUCT_FIRST U1a–U5). Append-only. No Telegram id.
+-- The pseudonym is random. It is not a hash of a Telegram id.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS beta_measurement_enrollment (
+    enrollment_pk          BIGSERIAL PRIMARY KEY,
+    pseudonym              TEXT NOT NULL UNIQUE CHECK (pseudonym ~ '^[0-9a-f]{64}$'),
+    joined_at              TIMESTAMPTZ NOT NULL,
+    invite_code            TEXT,
+    invite_label           TEXT,
+    known_contact_initial  BOOLEAN NOT NULL,
+    owner_excluded         BOOLEAN NOT NULL,
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+DROP TRIGGER IF EXISTS trg_beta_enrollment_append_only ON beta_measurement_enrollment;
+CREATE TRIGGER trg_beta_enrollment_append_only
+    BEFORE UPDATE OR DELETE ON beta_measurement_enrollment
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+CREATE TABLE IF NOT EXISTS beta_measurement_classification (
+    classification_pk  BIGSERIAL PRIMARY KEY,
+    enrollment_pk      BIGINT NOT NULL REFERENCES beta_measurement_enrollment (enrollment_pk),
+    known_contact      BOOLEAN NOT NULL,
+    recorded_at        TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_beta_classification_enrollment_at
+    ON beta_measurement_classification (enrollment_pk, recorded_at);
+DROP TRIGGER IF EXISTS trg_beta_classification_append_only ON beta_measurement_classification;
+CREATE TRIGGER trg_beta_classification_append_only
+    BEFORE UPDATE OR DELETE ON beta_measurement_classification
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+CREATE TABLE IF NOT EXISTS beta_brief_deliveries (
+    brief_pk        BIGSERIAL PRIMARY KEY,
+    enrollment_pk   BIGINT NOT NULL REFERENCES beta_measurement_enrollment (enrollment_pk),
+    brief_date      DATE NOT NULL,
+    state           TEXT NOT NULL CHECK (state IN ('SENT', 'FAILED', 'WITHHELD')),
+    recorded_at     TIMESTAMPTZ NOT NULL,
+    error_summary   TEXT,
+    error_class     TEXT CHECK (error_class IS NULL OR error_class IN (
+                        'BLOCKED', 'NOT_BLOCKED', 'AMBIGUOUS', 'UNCLASSIFIED')),
+    CONSTRAINT uq_beta_brief_enrollment_date UNIQUE (enrollment_pk, brief_date),
+    CONSTRAINT ck_beta_brief_failed_summary CHECK (state <> 'FAILED' OR error_summary IS NOT NULL)
+);
+DROP TRIGGER IF EXISTS trg_beta_brief_append_only ON beta_brief_deliveries;
+CREATE TRIGGER trg_beta_brief_append_only
+    BEFORE UPDATE OR DELETE ON beta_brief_deliveries
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+CREATE TABLE IF NOT EXISTS beta_commercial_evidence (
+    evidence_pk    BIGSERIAL PRIMARY KEY,
+    enrollment_pk  BIGINT NOT NULL REFERENCES beta_measurement_enrollment (enrollment_pk),
+    event_type     TEXT NOT NULL CHECK (event_type IN ('OFFER', 'PAYMENT', 'REFUND')),
+    recorded_at    TIMESTAMPTZ NOT NULL,
+    amount         NUMERIC,
+    currency       TEXT,
+    CONSTRAINT uq_beta_commercial_event UNIQUE (enrollment_pk, event_type),
+    CONSTRAINT ck_beta_commercial_money CHECK (
+        (event_type = 'OFFER' AND amount IS NOT NULL AND currency IS NOT NULL)
+        OR (event_type = 'PAYMENT' AND amount IS NOT NULL AND currency IS NOT NULL)
+        OR (event_type = 'REFUND' AND amount IS NOT NULL AND currency IS NOT NULL))
+);
+DROP TRIGGER IF EXISTS trg_beta_commercial_append_only ON beta_commercial_evidence;
+CREATE TRIGGER trg_beta_commercial_append_only
+    BEFORE UPDATE OR DELETE ON beta_commercial_evidence
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+CREATE TABLE IF NOT EXISTS beta_interview_verbatim (
+    interview_pk   BIGSERIAL PRIMARY KEY,
+    enrollment_pk  BIGINT NOT NULL REFERENCES beta_measurement_enrollment (enrollment_pk),
+    question_id    TEXT NOT NULL CHECK (length(btrim(question_id)) > 0),
+    answered_at    TIMESTAMPTZ NOT NULL,
+    verbatim       TEXT NOT NULL CHECK (length(verbatim) > 0),
+    spontaneous    BOOLEAN NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_beta_interview_enrollment_at
+    ON beta_interview_verbatim (enrollment_pk, answered_at);
+DROP TRIGGER IF EXISTS trg_beta_interview_append_only ON beta_interview_verbatim;
+CREATE TRIGGER trg_beta_interview_append_only
+    BEFORE UPDATE OR DELETE ON beta_interview_verbatim
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+CREATE TABLE IF NOT EXISTS beta_feedback_revisions (
+    revision_pk    BIGSERIAL PRIMARY KEY,
+    enrollment_pk  BIGINT NOT NULL REFERENCES beta_measurement_enrollment (enrollment_pk),
+    episode_pk     BIGINT NOT NULL REFERENCES beta_episodes (episode_pk),
+    vote           TEXT NOT NULL CHECK (vote IN ('USEFUL', 'NOISE')),
+    recorded_at    TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_beta_vote_revision_enrollment_at
+    ON beta_feedback_revisions (enrollment_pk, recorded_at);
+DROP TRIGGER IF EXISTS trg_beta_vote_revision_append_only ON beta_feedback_revisions;
+CREATE TRIGGER trg_beta_vote_revision_append_only
+    BEFORE UPDATE OR DELETE ON beta_feedback_revisions
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS enrollment_pk BIGINT;
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS brief_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_beta_users_enrollment') THEN
+        ALTER TABLE beta_users ADD CONSTRAINT fk_beta_users_enrollment
+            FOREIGN KEY (enrollment_pk) REFERENCES beta_measurement_enrollment (enrollment_pk);
+    END IF;
+END $$;
+
+ALTER TABLE beta_user_activity ADD COLUMN IF NOT EXISTS enrollment_pk BIGINT;
+ALTER TABLE beta_user_activity ALTER COLUMN user_pk DROP NOT NULL;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_beta_activity_enrollment') THEN
+        ALTER TABLE beta_user_activity ADD CONSTRAINT fk_beta_activity_enrollment
+            FOREIGN KEY (enrollment_pk) REFERENCES beta_measurement_enrollment (enrollment_pk);
+    END IF;
+END $$;
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_user_activity'::regclass AND contype = 'f'
+      AND pg_get_constraintdef(oid) LIKE '%beta_users%'
+      AND pg_get_constraintdef(oid) LIKE '%CASCADE%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_user_activity DROP CONSTRAINT %I', cname);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_beta_activity_user_set_null') THEN
+        ALTER TABLE beta_user_activity ADD CONSTRAINT fk_beta_activity_user_set_null
+            FOREIGN KEY (user_pk) REFERENCES beta_users (user_pk) ON DELETE SET NULL;
+    END IF;
+END $$;
+ALTER TABLE beta_user_activity DROP CONSTRAINT IF EXISTS ck_beta_activity_identity;
+ALTER TABLE beta_user_activity ADD CONSTRAINT ck_beta_activity_identity
+    CHECK (user_pk IS NOT NULL OR enrollment_pk IS NOT NULL);
+ALTER TABLE beta_user_activity DROP CONSTRAINT IF EXISTS ck_beta_activity_setting_detail;
+ALTER TABLE beta_user_activity ADD CONSTRAINT ck_beta_activity_setting_detail CHECK (
+    action NOT IN ('cmd_brief', 'cmd_push') OR detail IN ('on', 'off'));
+CREATE INDEX IF NOT EXISTS ix_beta_activity_enrollment_at
+    ON beta_user_activity (enrollment_pk, at);
+
+ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS enrollment_pk BIGINT;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_beta_delivery_enrollment') THEN
+        ALTER TABLE beta_notification_deliveries ADD CONSTRAINT fk_beta_delivery_enrollment
+            FOREIGN KEY (enrollment_pk) REFERENCES beta_measurement_enrollment (enrollment_pk);
+    END IF;
+END $$;
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ck_beta_delivery_reason') THEN
+        SELECT conname INTO cname
+        FROM pg_constraint
+        WHERE conrelid = 'beta_notification_deliveries'::regclass AND contype = 'c'
+          AND pg_get_constraintdef(oid) LIKE '%USER_INACTIVE%'
+          AND pg_get_constraintdef(oid) NOT LIKE '%USER_PUSH_OFF%';
+        IF cname IS NOT NULL THEN
+            EXECUTE format('ALTER TABLE beta_notification_deliveries DROP CONSTRAINT %I', cname);
+        END IF;
+        ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_reason CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+                'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'USER_PUSH_OFF'));
+    END IF;
+END $$;

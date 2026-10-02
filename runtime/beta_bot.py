@@ -113,7 +113,8 @@ def _help(lang: str) -> str:
 
 
 def _help_buttons(lang: str) -> list:
-    return [[(t(lang, "btn_terms"), "terms")]]
+    return [[(t(lang, "btn_terms"), "terms")],
+            [(t(lang, "btn_other_markets"), "fd:1")]]
 
 
 def _lang_of(user) -> str:
@@ -212,6 +213,13 @@ class BetaBotHandler:
                                      [_msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)])
         if cmd == "feedback":
             return await self._feedback(conn, user, chat_id, lang, now, args)
+        # /catchup is not handled. The view does not exist, so a command would
+        # record cmd_catchup for a screen the user cannot see. The action stays
+        # legal on beta_user_activity for when that view is built.
+        if cmd == "brief":
+            return await self._setting(conn, user, uid, chat_id, lang, now, args, "brief")
+        if cmd == "push":
+            return await self._setting(conn, user, uid, chat_id, lang, now, args, "push")
         if cmd == "stop":
             await conn.stop_user(telegram_user_id=uid, now=now)
             return await self._reply(conn, user, chat_id, lang, now, "cmd_stop",
@@ -282,12 +290,28 @@ class BetaBotHandler:
                 f"Reply: /admin_reply {fp} &lt;text&gt;")
         return Outgoing(kind="message", chat_id=int(self.owner), html=body)
 
-    async def _note(self, conn, user, action: str, at: datetime) -> None:
+    async def _setting(self, conn, user, uid, chat_id, lang, now, args, kind: str) -> list:
+        arg = (args or "").strip().lower()
+        if arg not in ("on", "off"):
+            return [_msg(chat_id, t(lang, "brief_usage" if kind == "brief" else "push_usage"), lang=lang)]
+        enabled = arg == "on"
+        if kind == "brief":
+            await conn.set_brief_enabled(uid, enabled)
+            text = t(lang, "brief_on" if enabled else "brief_off")
+            action = "cmd_brief"
+        else:
+            await conn.set_push_enabled(uid, enabled)
+            text = t(lang, "push_on" if enabled else "push_off")
+            action = "cmd_push"
+        return await self._reply(conn, user, chat_id, lang, now, action,
+                                 [_msg(chat_id, text, lang=lang)], detail=arg)
+
+    async def _note(self, conn, user, action: str, at: datetime, detail: Optional[str] = None) -> None:
         if not user or user.get("user_pk") is None:
             return
         try:
             await conn.record_activity(user_pk=user["user_pk"], action=action,
-                                       lang=_lang_of(user), at=at)
+                                       lang=_lang_of(user), at=at, detail=detail)
         except Exception as exc:  # noqa: BLE001 - telemetry must not fail the reply
             logger.warning("beta activity note failed: %s", type(exc).__name__)
 
@@ -301,9 +325,9 @@ class BetaBotHandler:
         user["privacy_notice_version"] = PRIVACY_NOTICE_VERSION
         return [_msg(chat_id, t(lang, "privacy"), lang=lang), *out]
 
-    async def _reply(self, conn, user, chat_id, lang, now, action, out) -> list:
+    async def _reply(self, conn, user, chat_id, lang, now, action, out, detail: Optional[str] = None) -> list:
         if action:
-            await self._note(conn, user, action, now)
+            await self._note(conn, user, action, now, detail=detail)
         return await self._prepend_notice(conn, user, chat_id, lang, out)
 
     async def _btc(self, conn, now: datetime, lang: str):
@@ -445,7 +469,8 @@ class BetaBotHandler:
             if not await self._allowed(conn, uid):
                 return [answer(t("ru", "closed_beta"))]
             lang = "ru" if data == "join" else data[5:]
-            await conn.join_user(telegram_user_id=uid, chat_id=chat_id, now=self.clock(), lang=lang)
+            await conn.join_user(telegram_user_id=uid, chat_id=chat_id, now=self.clock(), lang=lang,
+                                  owner_excluded=is_owner(self.owner, uid))
             joined = await conn.get_user(uid)
             await self._note(conn, joined, "cmd_start", self.clock())
             welcome = await self._welcome(conn, lang)
@@ -465,6 +490,11 @@ class BetaBotHandler:
                 return [answer(t(lang, "not_available"))]
             return await self._reply(conn, user, chat_id, lang, self.clock(), "cmd_terms",
                                      [answer(""), _msg(chat_id, t(lang, "terms"), lang=lang)])
+        if data == "fd:1":
+            if user is None or user["status"] != "ACTIVE":
+                return [answer(t(lang, "not_available"))]
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_fake_door",
+                                     [answer(t(lang, "fake_door_recorded"))])
         tab = _parse_tab(data)
         if tab is not None:
             if user is None or user["status"] != "ACTIVE":

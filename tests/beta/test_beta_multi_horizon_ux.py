@@ -455,7 +455,8 @@ class _Conn(_CM):
     async def get_user(self, uid):
         return self.users.get(uid)
 
-    async def join_user(self, *, telegram_user_id, chat_id, now, lang="ru"):
+    async def join_user(self, *, telegram_user_id, chat_id, now, lang="ru",
+                        known_contact=False, owner_excluded=False):
         self.users[telegram_user_id] = {
             "user_pk": self._pk, "telegram_user_id": telegram_user_id, "chat_id": chat_id,
             "status": "ACTIVE", "lang": lang, "joined_at": now, "stopped_at": None}
@@ -537,14 +538,15 @@ def test_start_and_lang_choice():
         joined = await h.handle(_cb(1, "join:ru", 4))
         assert conn.users[1]["lang"] == "ru" and "/lang" in joined[1].html
         again = await h.handle(_msg(1, "/start", 5))
-        assert "/btc" in again[0].html and again[0].buttons == [[("Термины", "terms")]]
+        assert "/btc" in again[0].html and again[0].buttons == [
+            [("Термины", "terms")], [("Другие рынки", "fd:1")]]
         picker = await h.handle(_msg(1, "/lang", 6))
         assert picker[0].buttons == [[("Русский", "set:ru"), ("English", "set:en")]]
         saved = await h.handle(_cb(1, "set:en", 7))
         assert conn.users[1]["lang"] == "en" and "Language: English." in saved[1].html
         help_en = await h.handle(_msg(1, "/help", 8))
         assert "message language" in help_en[0].html
-        assert help_en[0].buttons == [[("Glossary", "terms")]]
+        assert help_en[0].buttons == [[("Glossary", "terms")], [("Other markets", "fd:1")]]
         alice = await h.handle(_msg(2, "/start", 9))
         assert alice[0].buttons == [[("Русский", "pick:ru"), ("English", "pick:en")]]
         en = await h.handle(_cb(2, "pick:en", 10))

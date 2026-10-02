@@ -279,31 +279,33 @@ _CATALOG: dict[str, dict[str, str]] = {
     "privacy": {
         "ru": (
             "<b>Signalbot, закрытая бета — конфиденциальность</b>\n"
-            "• Мы храним ваш Telegram id и id чата, чтобы отправлять сообщения беты, "
-            "а также голоса «полезно / шум» и статус доставки.\n"
+            "• Мы храним ваш Telegram id и id чата, чтобы отправлять сообщения беты. "
+            "/delete_me удаляет этот id и связь с записью измерений.\n"
             "• Записи рынка и событий не содержат персональных данных.\n"
-            "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
-            "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
-            "/delete_me удаляет их вместе с остальными вашими данными.\n"
+            "• Команды, кнопки, правки голоса «полезно / шум», исходы утреннего обзора и "
+            "ссылка-приглашение хранятся под случайным id измерения. Этот id не выводится из "
+            "Telegram id. /delete_me удаляет Telegram id и связь с записью.\n"
             "• Тексты отзывов (/feedback) хранятся 120 дней и удаляются командой /delete_me.\n"
-            "• /stop приостанавливает все сообщения. /delete_me удаляет ваши данные участника "
+            "• /stop приостанавливает сообщения. /delete_me удаляет ваши данные участника "
             "и исключает вас из беты.\n"
-            "• После /stop данные удаляются автоматически через 30 дней.\n"
+            "• Через 30 дней после /stop Telegram id и связь с записью удаляются автоматически. "
+            "Случайный id измерения остаётся.\n"
             "• Это не инвестиционный совет; бот не совершает и не предлагает сделки.\n\n"
             "Нажмите <b>Вступить</b>, чтобы принять условия и войти в бету."
         ),
         "en": (
             "<b>Signalbot closed beta — privacy notice</b>\n"
-            "• We store your Telegram user id and chat id to send you beta messages, plus your "
-            "Useful/Noise votes and delivery status.\n"
-            "• Market/event records contain no personal data.\n"
-            "• We record which commands and buttons you use, and when, and which invite link "
-            "you came from, so we can improve the bot. These records are kept for 120 days. "
-            "/delete_me deletes them with the rest of your data.\n"
+            "• We store your Telegram user id and chat id to send beta messages. "
+            "/delete_me deletes that id and the link to the measurement record.\n"
+            "• Market and event records contain no personal data.\n"
+            "• Commands, buttons, Useful/Noise vote revisions, morning-briefing outcomes and "
+            "the invite you came from are kept under a random measurement id. That id is not "
+            "derived from your Telegram id. /delete_me deletes the Telegram id and the link.\n"
             "• Feedback texts are stored for 120 days and deleted by /delete_me.\n"
-            "• /stop pauses all messages. /delete_me deletes your participant data and removes "
+            "• /stop pauses messages. /delete_me deletes your participant data and removes "
             "you from the beta.\n"
-            "• After /stop, your data is deleted automatically after 30 days.\n"
+            "• 30 days after /stop, the Telegram id and the link are deleted automatically. "
+            "The random measurement id remains.\n"
             "• Nothing here is investment advice; the bot never places or suggests trades.\n\n"
             "Press <b>Join</b> to accept and join the beta."
         ),
@@ -319,6 +321,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "/terms — термины\n"
             "/lang — язык сообщений\n"
             "/feedback — отзыв или вопрос\n"
+            "/brief on или /brief off — утренний обзор\n"
+            "/push on или /push off — редкие сообщения\n"
             "/stop — пауза · /delete_me — удалить ваши данные"
         ),
         "en": (
@@ -331,6 +335,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "/terms — glossary\n"
             "/lang — message language\n"
             "/feedback — a comment or a question\n"
+            "/brief on or /brief off — morning briefing\n"
+            "/push on or /push off — rare messages\n"
             "/stop — pause messages · /delete_me — delete your data"
         ),
     },
@@ -348,6 +354,20 @@ _CATALOG: dict[str, dict[str, str]] = {
         "en": ("Messages paused. Send /start to resume. Your data is deleted "
                "automatically after 30 days, or now with /delete_me."),
     },
+    "brief_on": {"ru": "Утренний обзор включён.", "en": "Morning briefing is on."},
+    "brief_off": {"ru": "Утренний обзор выключен.", "en": "Morning briefing is off."},
+    "brief_usage": {"ru": "Команда: /brief on или /brief off.", "en": "Use /brief on or /brief off."},
+    "push_on": {
+        "ru": "Редкие сообщения включены. Утренний обзор без изменений.",
+        "en": "Rare messages are on. The morning briefing stays as it is.",
+    },
+    "push_off": {
+        "ru": "Редкие сообщения выключены. Утренний обзор без изменений.",
+        "en": "Rare messages are off. The morning briefing stays as it is.",
+    },
+    "push_usage": {"ru": "Команда: /push on или /push off.", "en": "Use /push on or /push off."},
+    "btn_other_markets": {"ru": "Другие рынки", "en": "Other markets"},
+    "fake_door_recorded": {"ru": "Записано.", "en": "Recorded."},
     "unknown_cmd": {"ru": "Неизвестная команда. /help", "en": "Unknown command. /help"},
     "not_available": {"ru": "Недоступно", "en": "Not available"},
     "no_evaluation": {"ru": "Оценки ещё нет", "en": "No evaluation yet"},

@@ -91,7 +91,8 @@ class SandboxConn:
         u = self._s.users.get(telegram_user_id)
         return None if u is None else dict(u)
 
-    async def join_user(self, *, telegram_user_id: int, chat_id: int, now: datetime, lang: str = "ru") -> int:
+    async def join_user(self, *, telegram_user_id: int, chat_id: int, now: datetime, lang: str = "ru",
+                        known_contact: bool = False, owner_excluded: bool = False) -> int:
         users = self._s.users
         pk = users[telegram_user_id]["user_pk"] if telegram_user_id in users else len(users) + 1
         users[telegram_user_id] = {"user_pk": pk, "telegram_user_id": telegram_user_id, "chat_id": chat_id,
@@ -127,7 +128,8 @@ class SandboxConn:
                                           "created_at": created_at})
         return len(self._s.feedback_messages)
 
-    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str) -> None:
+    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str,
+                              recorded_at: Optional[datetime] = None) -> None:
         self._s.votes[(user_pk, episode_pk)] = vote
 
     # ---- persisted /btc views (only those already shown to Role A) ----------------------
