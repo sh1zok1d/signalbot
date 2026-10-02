@@ -1,0 +1,172 @@
+{
+  "ALLOWED_INTERPRETATION": "consistent with maker inventory loading",
+  "ALPHA_REFERENCE": 0.05,
+  "BLOCKING_ASSUMPTIONS": [
+    "Arm labels are exchangeable inside a frozen stratum under the null.",
+    "The 60-minute refractory removes admitted-event overlap but residual dependence can remain.",
+    "A later burst inside the outcome window is contamination, not a reason to drop the event.",
+    "The contrast is associative. It does not identify maker inventory as the cause.",
+    "At matched high-volume BTC perpetual bursts, strong taker one-sidedness is associated with greater subsequent impact-per-volume persistence than a two-sided burst."
+  ],
+  "CANDIDATE_ID": "C025",
+  "CLAIM_TYPE": "INCREMENTAL",
+  "COMPLEXITY_CLASS": "ATOMIC",
+  "COMPONENTS": [],
+  "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+  "COUNTERFACTUAL_CLASS": "Permute ONE_SIDED versus TWO_SIDED labels within the frozen matched strata. 10000 draws, seed 250251, p = (1 + count(T_perm >= T_obs)) / (1 + permutations).",
+  "DATA_SOURCE_REFS": {
+    "FEATURE_IDS": [
+      "CORE_BTC_BINANCE_V0"
+    ],
+    "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+  },
+  "DEPENDENCE_CLUSTERING_UNIT": "60M_PAST_ONLY_REFRACTORY",
+  "DESIGN_VERSION": "C025-R1",
+  "DISCOVERY_SURFACE": {
+    "END": "2025-01-01",
+    "ID": "BINANCE_2020_2024",
+    "START": "2020-01-01"
+  },
+  "ENDPOINT_MOMENT": "OTHER",
+  "EPOCHS": "CALENDAR_YEAR",
+  "ERA_INVARIANCE_PRIOR": "NOT_EXPECTED",
+  "ERA_INVARIANCE_RATIONALE": "The frozen stability rule allows up to two of the five calendar years to miss the pooled positive sign. Cross-year invariance is not assumed.",
+  "ERA_ROLES": {
+    "BINANCE_2020_2024": "DISCOVERY",
+    "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+    "Y2025_2026": "PROTECTED_HOLDOUT"
+  },
+  "EVENT_OR_STATE_DEFINITION": "Primary cell only. BURST when quote volume >= linear quantile 0.999 of the preceding 43200 minutes. ONE_SIDE = 2*|taker_buy_quote/quote - 0.5|. One-sided if ONE_SIDE >= 0.7. Two-sided if ONE_SIDE <= 0.3. Admit only if the preceding 60 minutes contain no already accepted event. Do not drop an admitted event because a later burst falls inside its outcome window.",
+  "EXPECTED_EFFECT": {
+    "DIRECTION": "POSITIVE",
+    "MIN_MEANINGFUL_EFFECT": 0.3,
+    "RATIONALE": "A one-sided-versus-two-sided difference smaller than 0.30 SD of the impact-ratio contrast is below the planning bar for a product-relevant liquidity-state description. The bar was set before C025 outcomes.",
+    "UNITS": "STANDARDIZED_DELTA_IMPACT_SD"
+  },
+  "FALSIFIABLE_CLAIM": "The preregistered claim fails unless the matched one-sided minus two-sided IMPACT_RATIO at 30 minutes is positive, the stratum-permutation p-value is at most 0.05, the standardized contrast is at least 0.30 SD, the contrast exceeds the mechanical-reversion placebo at the same alpha, and at least 3 of 5 calendar years have a positive point estimate.",
+  "FEATURE_REQUIREMENTS": [
+    "CORE_BTC_BINANCE_V0"
+  ],
+  "FORBIDDEN_INTERPRETATION": "proves maker inventory constraints caused the effect",
+  "FROZEN_OUTCOME_BLIND_SCREEN": {
+    "EXACT_ENUMERATION": false,
+    "MIN_ATTAINABLE_P": 0.0058823529411764705,
+    "MONTE_CARLO_DRAWS": 10000,
+    "MONTE_CARLO_P_FLOOR": 9.999000099990002e-05,
+    "PRIMARY_LABEL_ORBIT_SIZE": "170"
+  },
+  "HISTORICAL_WINDOW": "2020-01..2024-12",
+  "INTRADAY": true,
+  "MATCHING_LEVEL": "L6_YEAR",
+  "MATCHING_STATUS": "INFERENCE_SUPPORT_INSUFFICIENT",
+  "MECHANISM": "At a high-volume minute, taker flow that is strongly one-sided is associated with a larger subsequent impact-per-volume than a two-sided burst of similar pre-T conditions. The association is the claim. It is consistent with makers carrying inventory after the burst. It does not prove that inventory constraints caused the path.",
+  "MEMORY_CAMPAIGN_ID": "GV0V03L40",
+  "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+  "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+    "COUNTING_UNIT": "DECLUSTERED_MATCHED_BURST",
+    "DECLARED_COUNT_BY_YEAR": {
+      "2021": 170
+    },
+    "DECLARED_NOMINAL_COUNT": 170,
+    "EXCLUSION_RULE": "Bars before the 30-day trailing window, neither-arm bursts, events inside the past-only 60-minute refractory, and events whose pre-impact is not positive. No post-T filter is applied in this count.",
+    "INCLUSION_RULE": "BTCUSDT perpetual 1m bar in 2020-01..2024-12 whose quote volume is at or above the linear quantile 0.999 of the preceding 43200 quote volumes, whose one-sidedness is either >= 0.70 or <= 0.30, with a positive pre-impact over the preceding 60 minutes, and with no previously accepted event in the preceding 60 minutes.",
+    "OUTCOME_FILTER": "NONE",
+    "WINDOW": "2020-01..2024-12"
+  },
+  "ORIGINAL_CARD_CHANGED": false,
+  "ORIGINAL_CRITIC_VERDICTS": {
+    "FEASIBILITY_FAILED_CHECKS": [
+      "BLOCKER_RESOLVED"
+    ],
+    "FEASIBILITY_VERDICT": "REJECT",
+    "NOVELTY_VERDICT": "REJECT",
+    "RED_TEAM_FAILED_CHECKS": [
+      "CAUSALITY",
+      "CONFOUNDING_ADDRESSED",
+      "NO_LOOKAHEAD"
+    ],
+    "RED_TEAM_VERDICT": "REJECT"
+  },
+  "OVERRIDE_REASON": "Owner-authorized scientific audit of C025 after questioning critic rejection; original critic judgments remain immutable.",
+  "PLACEBO_P_FLOOR": 0.000999000999000999,
+  "POINT_IN_TIME_REQUIREMENTS": [
+    {
+      "DATASET_ID": "CORE_BTC_BINANCE_V0",
+      "PIT_STATUS": "VERIFIED"
+    }
+  ],
+  "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+  "PRIMARY_CELLS": [
+    {
+      "ESTIMAND": "standardized matched one-sided minus two-sided DELTA_IMPACT",
+      "HORIZON": "30m",
+      "REGIME": "ELIGIBLE_HIGH_VOLUME_BTC_PERP_BURSTS"
+    }
+  ],
+  "PRIMARY_FREEZE": {
+    "MIN_MEANINGFUL_EFFECT": 0.3,
+    "ONE_SIDE_THETA": 0.7,
+    "PERMUTATION_DRAWS": 10000,
+    "PERMUTATION_SEED": 250251,
+    "PLACEBO_DRAWS": 1000,
+    "PLACEBO_SEED": 250252,
+    "TWO_SIDED_MAX": 0.3,
+    "VOLUME_QUANTILE": 0.999,
+    "W_MINUTES": 30
+  },
+  "PRIMARY_MECHANISM_SUPPORT": [
+    {
+      "KIND": "BINARY",
+      "MECHANISM_ACTIVE_N": 1,
+      "MECHANISM_INACTIVE_N": 169,
+      "MECHANISM_VARIABLE": "ONE_SIDED_BURST"
+    }
+  ],
+  "PRIMARY_OBSERVABLE": "ONE_SIDED_BURST",
+  "PROPOSAL_ID": "GV0V03L40-C025-R1",
+  "QUALITATIVE_DEPENDENCE_SOURCES": [
+    "volatility clustering",
+    "overlapping pre-windows",
+    "residual clustering beyond the 60-minute refractory",
+    "shared UTC-hour liquidity"
+  ],
+  "R1_REASON": "PRE_OUTCOME_NO_LOOKAHEAD_REPAIR",
+  "REPLICATION_SURFACE": {
+    "ID": "BINANCE_PROSPECTIVE_C025_R1",
+    "KIND": "PROSPECTIVE",
+    "START": "2027-01-01",
+    "STARTS_AFTER_FREEZE": true,
+    "STOPPING_RULE": {
+      "COUNTS_ONLY_MONITORING": true,
+      "END_DATE": "2032-12-31",
+      "MAX_EPISODES": 8000,
+      "MIN_MECHANISM_ACTIVE_N": 698,
+      "MIN_MECHANISM_INACTIVE_N": 698,
+      "MIN_N": 1396,
+      "PRODUCT_EXPOSURE_HANDLING": "hidden from product users until replication stopping rule fires and the replication outcome is separately authorized"
+    }
+  },
+  "REQUIRED_STRESS_SCREENS": [
+    "STRESS_SD_MULTIPLIER",
+    "HOMOGENEOUS_EFFECT",
+    "ZERO_EFFECT_IN_ONE_ERA"
+  ],
+  "SELECTION_PIPELINE_OVERRIDDEN": true,
+  "SOURCE_RUN_ID": "ladder-40-card-v03-r02-derived-critics-v2",
+  "TARGET_CLASS": "UNCONDITIONAL",
+  "VARIABLE_ROLES": {
+    "MECHANISM_VARIABLES": [
+      "ONE_SIDED_BURST"
+    ],
+    "NUISANCE_BASELINE_VARIABLES": [
+      "PRIOR_REALIZED_VOLATILITY",
+      "LAGGED_TARGET",
+      "TIME_OF_DAY",
+      "ABS_BURST_RETURN",
+      "BURST_VOLUME_TAIL_RANK",
+      "CALENDAR_YEAR",
+      "FUNDING_SETTLEMENT_INDICATOR"
+    ],
+    "REGIME_VARIABLES": []
+  }
+}
