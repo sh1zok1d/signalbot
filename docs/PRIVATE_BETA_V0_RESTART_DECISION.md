@@ -130,7 +130,7 @@ The owner enabled the committed push hard switch (`beta.push_enabled: true`, PR 
 
 **What happened.** Two days of owner use met the frozen `CHANGE PRODUCT` condition: the events were unactionable, and the daily cap bound every day, against a target of about zero.
 
-**What changes.** The beta surface changes from event pushes to a market briefing: `/catchup`, a Market State block on 1h / 4h / 1d, decomposed significance, a morning brief and quiet pushes.
+**What changes.** The beta surface changes from event pushes to a market briefing: `/catchup`, a Market State block on rolling 1h / 4h / 24h, decomposed significance, a morning brief and quiet pushes from 1h briefing episodes. The legacy 5m detector stops being a push source.
 - **Authority:** `BETA_V0_3_MARKET_BRIEFING.md`.
 - **Unchanged:** detection, `BETA_EVENT_RULES_V1`, the tape schema and the push hard switches.
 - **Exit criteria** restart from the first external user of V0.3.

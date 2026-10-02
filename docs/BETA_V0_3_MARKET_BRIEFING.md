@@ -7,7 +7,8 @@
 
 ```
 PRODUCT_SURFACE            = MARKET_BRIEFING (was: event-push attention engine)
-PICTURE_TIMEFRAMES         = 1h / 4h / 1d (5m is raw material and timing only)
+PICTURE_TIMEFRAMES         = rolling 1h / 4h / 24h ending at the last closed 5m bucket (5m is raw material and timing only)
+PUSH_AND_CATCHUP_SOURCE    = 1h briefing episodes (§1.4); the legacy 5m detector is not a gate
 DETECTOR_RULES_CHANGED     = false (BETA_EVENT_RULES_V1 untouched)
 TAPE_SCHEMA_CHANGED        = false
 PREDICTIVE_WORDING         = forbidden (analogue summaries: only under their gate)
@@ -42,6 +43,20 @@ EXTERNAL_USERS             = not before the owner-only week of §7
 
 ## 1. What P1 ships
 
+### 1.0 Horizons (frozen semantics)
+
+**Windows.** Every horizon is a rolling window that ends at the last closed 5m bucket. Calendar candles are never used.
+
+| Horizon | Window | Baseline |
+|---|---|---|
+| 1h | the last 12 closed 5m buckets | windows of the same length ending at the same 5m slot of day, prior 30 days |
+| 4h | the last 48 closed 5m buckets | same rule, prior 90 days |
+| 24h | the last 288 closed 5m buckets | same rule, prior 90 days |
+
+**Labels.** In the UI the third row is labelled «24ч», never «день» or «1d». A calendar daily candle is a different object.
+
+**Baselines match the windows.** Every baseline, percentile and "normal" value for a horizon is computed on windows with exactly this definition.
+
 ### 1.1 `/catchup` and "since your last view"
 
 **Window.**
@@ -51,9 +66,11 @@ EXTERNAL_USERS             = not before the owner-only week of §7
 
 **Content, in this order:**
 1. **Price path.** Open → close, change, and range compared with the normal range for the same window length and the same time of day.
-2. **Up to 3 episodes.** Hour-level episodes marked significant by §1.4, chronological, in Kyiv time. Each has its state label (§1.3) and its numbers: price %, OI %, buy share of taker volume, and liquidations by side if present. The episode with no significant hour says so: "тихо: ни один час не выбивался из обычного".
+2. **Up to 3 briefing episodes** (§1.4) that overlap the window, chronological, in Kyiv time.
+   - Each shows its start, end (or "продолжается"), its 1h state label (§1.3) and its numbers: price %, OI %, buy share of taker volume, and liquidations by side if present.
+   - With no briefing episode, it says so: "тихо: ни один час не выбивался из обычного".
 3. **Now.** The last 1h and 4h state labels, funding and who pays it, and crowd versus large-trader positioning where the feed exists.
-4. **Day context.** Position of the price in the 24h range, the 24h OI change, and calendar facts.
+4. **24h context.** Position of the price in the rolling 24h range, the 24h OI change, and calendar facts.
    - The only calendar item computed in P1 is the Deribit options expiry, Fridays at 08:00 UTC, monthly on the last Friday of the month.
    - Macro calendar needs a source decision and is not in P1.
 5. **Uncertainty lines** (§1.5).
@@ -72,18 +89,18 @@ EXTERNAL_USERS             = not before the owner-only week of §7
 5m   похоже на закрытие шортов
 1h   рост на новых лонгах
 4h   сжатие: диапазон узкий, OI растёт
-1d   цена у верхней границы дневного диапазона
+24ч  цена у верхней границы диапазона за 24ч
 Плечо: растёт · Поток: покупатели активнее обычного · Волатильность: выше обычной · Биржи: 3/3 согласны
 ```
 
 **Rules for the block.**
-- **Data.** Rows are computed from closed bars aggregated as-of from the 5m tape (1h, 4h, 1d), with the same-length time-of-day baselines of §2.
+- **Data.** The 5m row is the latest closed bucket. The 1h, 4h and 24h rows are computed on the rolling windows of §1.0, with their matching baselines.
 - **Narrow fallback.** A row whose inputs are not mature prints `мало истории` instead of a label.
 - **Not a forecast.** No row ever says what comes next.
 
 ### 1.3 State vocabulary `BETA_MARKET_STATE_LABELS_V1`
 
-**How labels are computed.** Labels are deterministic functions of one horizon's closed-bar aggregates:
+**How labels are computed.** Labels are deterministic functions of one horizon's rolling-window aggregates (§1.0):
 - price change;
 - OI change;
 - taker buy share;
@@ -113,15 +130,34 @@ Every condition compares a value with its own same-horizon baseline percentile, 
 - Labels describe what happened. They never say what follows: the `PRICE_OI` pilot is `BALANCE_FAILED`.
 - Detector names (`PRICE_OI_CONTRACTION_UP` and so on) move to Details.
 
-### 1.4 Significance, decomposed
+### 1.4 Significance and briefing episodes
 
-**Details panel.** For an episode or hour, Details lists:
+**Details panel.** For a briefing episode, Details lists:
 - the percentile of each dimension against its baseline: price move, OI change, volume, taker imbalance, liquidations;
 - per dimension, how many venues agree ("подтверждают 3/3 биржи").
 
 There is **no composite score**.
 
-**Significance rule** (frozen with §1.3), used for `/catchup` episode selection and for push: at least two dimensions in their top 5% at the 1h horizon, and at least 2 of 3 venues agreeing on the price-and-flow direction.
+**Significance rule** (frozen with §1.3). At each closed 5m bucket, the rolling 1h window is significant when:
+- at least two dimensions are in their top 5% against the 1h baseline;
+- at least 2 of 3 venues agree on the price-and-flow direction.
+
+**Briefing episodes `BETA_BRIEFING_EPISODES_V1`** are the one object behind both `/catchup` and push.
+- **Opening.** An episode opens at the first closed 5m bucket where the rolling 1h window is significant.
+- **Duration.** It stays open while the window stays significant.
+- **Closing.** It closes after the window has not been significant for a frozen number of consecutive buckets.
+- **Merging.** Two episodes with the same 1h label separated by less than a frozen merge gap are one episode.
+- **Label.** The episode's label is the 1h state label at its opening; label changes while it is open are recorded.
+
+**Rules for the episode parameters.**
+- The close delay and the merge gap are frozen in `config/beta_v0.yaml` under this version label.
+- They may be tuned only for frequency and readability, on non-outcome statistics, with each change documented.
+- They are never tuned against forward price outcomes.
+
+**The legacy 5m detector is not a gate.**
+- It stays unchanged, with its own episodes, transitions and outcomes.
+- Its TRIGGERED episodes appear in Details only, as timing and evidence (for example «детектор 5m: PRICE_OI_CONTRACTION_UP, сработал в 14:15»).
+- No V0.3 surface requires a detector episode to exist.
 
 ### 1.5 Saying "I don't know"
 
@@ -136,19 +172,21 @@ Fixed lines, printed whenever they apply:
 | Delivery | Rule |
 |---|---|
 | Morning brief | §1.1, opt-out, one per user per day |
-| Event push | only TRIGGERED detector episodes that pass §1.4. One message per episode, plus at most one update when its 1h state label changes. EARLY and ARMED never push. |
-| `TAKER_FLOW_EXTREME` (5m) | never pushes. It stays visible in `/btc` Details. |
-| Daily event cap | stays as a safety fuse. With §1.4 it should rarely bind. The frozen target "cap-activation days ≈ 0" is checked in §7. |
+| Briefing episode push | one message when a briefing episode opens (§1.4), plus at most one update when its 1h state label changes. A new episode with the same label inside the cooldown is not pushed. |
+| Legacy 5m detector | never a push source in V0.3, including `TAKER_FLOW_EXTREME`. Its push decisions keep being computed and recorded for audit, with delivery suppressed. That happens at the delivery layer, without touching the rules digest or detector decisions. If the existing switches cannot do this, implementation stops and reports. Detector state stays visible in `/btc` Details. |
+| Daily cap | stays as a safety fuse on briefing-episode pushes. With §1.4 it should rarely bind. The frozen target "cap-activation days ≈ 0" is checked in §7. |
 
 The cooldown, TTL and push hard switches of the restart decision are unchanged.
 
 ## 2. Data and baselines
 
 - **Sources.** Beta state tape V2 (5m, Binance / Bybit / OKX), Stage-1 OI as-of reads (as the multi-horizon pass already does), funding, and the beta liquidation feeds. Bitget stays disabled.
-- **Aggregation.** 1h, 4h and 1d aggregates are read-only projections over closed buckets. Nothing is written to the tape, so the rules digest and the open episodes are untouched.
-- **Baselines.**
-  - 1h: the same time of day over 30 days.
-  - 4h and 1d: 90 days. The bootstrap lookback grows from 30 to 90 days for these projections only. The detector's 30d percentiles are unchanged.
+- **Aggregation.** The rolling 1h, 4h and 24h aggregates (§1.0) and briefing episodes are read-only projections over closed buckets.
+  - Nothing is written to the state tape, so the rules digest and the detector's open episodes are untouched.
+  - Briefing episodes are stored in their own additive table.
+- **Baselines** are defined in §1.0.
+  - 1h: the same 5m end slot over 30 days.
+  - 4h and 24h: the same 5m end slot over 90 days. The bootstrap lookback grows from 30 to 90 days for these projections only. The detector's 30d percentiles are unchanged.
   - Until mature: `n/a` and "мало истории".
 - **No lookahead.** A value shown at time `T` uses only buckets closed before `T`. Offline tests enforce it.
 - **Time and language.** Display in Europe/Kyiv, RU/EN as today. Liquidations stay per venue and are never summed (multi-horizon rule).
@@ -160,7 +198,9 @@ The cooldown, TTL and push hard switches of the restart decision are unchanged.
 - D7 gate and line;
 - the code paths (`beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml`, `deploy/signalbot-beta-*`).
 
-**Additive only:** storage for the brief schedule and the new activity actions.
+**Additive only:** storage for briefing episodes, the brief schedule and the new activity actions.
+
+**The legacy 5m detector** keeps running unchanged. In V0.3 it is evidence and timing in Details, and not a push source (§1.6).
 
 **Not in P1:**
 - historical analogues (their own gate);
@@ -184,23 +224,33 @@ The cooldown, TTL and push hard switches of the restart decision are unchanged.
 
 ## 5. Implementation order (P1)
 
-1. **Read-model projections:** 1h / 4h / 1d aggregates and baselines, the state labels, decomposed significance. Pure functions with offline tests.
-2. **Commands:** `/catchup`, the Market State block on `/btc`, and the Details significance panel.
-3. **Push:** the V0.3 push policy, the morning brief scheduler, and the removal of 5m taker pushes from push.
+1. **Read-model projections:** rolling 1h / 4h / 24h aggregates and baselines (§1.0), the state labels, decomposed significance and briefing episodes. Pure functions with offline tests.
+2. **Commands:** `/catchup`, the Market State block on `/btc`, and the Details significance panel with detector timing as evidence.
+3. **Push:**
+   - briefing-episode push with one update;
+   - the morning brief scheduler;
+   - detector push delivery suppressed for audit-only recording.
 4. **Docs:** update `BETA_BTC_MAIN_SCREEN_UX_V1.md` to what is rendered.
 
 Each step is its own PR. None changes detection.
 
 ## 6. Tests (offline, before deploy)
 
-- **Aggregation:** as-of correctness and no lookahead; boundary buckets; missing venues.
+- **Aggregation:**
+  - rolling windows end at the last closed 5m bucket;
+  - baselines use the same window definition;
+  - as-of correctness and no lookahead;
+  - boundary buckets;
+  - missing venues.
+- **Briefing episodes:** deterministic open, close and merge on synthetic tapes. Push eligibility does not depend on any detector episode.
 - **Labels:** determinism, every label reachable, `обычное состояние` as the fallback.
 - **Significance:** venue agreement with 3, 2 and 1 usable venues.
 - **`/catchup`:** window bounds and episode selection on synthetic tapes.
 - **Push:**
-  - one push per episode plus at most one update;
-  - no `TAKER_FLOW_EXTREME` push;
-  - the brief is outside the event cap.
+  - one push per briefing episode plus at most one update;
+  - no push from any legacy detector episode, `TAKER_FLOW_EXTREME` included;
+  - detector decisions and the rules digest are unchanged;
+  - the brief is outside the cap.
 - **Forbidden wording** in both languages.
 
 ## 7. Acceptance (before any external user)
@@ -220,7 +270,8 @@ The owner's verdict decides whether invites open.
 | Decision | Value |
 |---|---|
 | Change the beta surface to a market briefing (`CHANGE PRODUCT`) | yes |
-| Picture timeframes | 1h and 4h (plus 1d context); 5m only as raw material and timing |
+| Picture timeframes | rolling 1h, 4h and 24h ending at the last closed 5m bucket (§1.0); never calendar candles; 5m only as raw material and timing |
+| Push and `/catchup` source | 1h briefing episodes (§1.4); the legacy 5m detector is evidence in Details, not a gate |
 | Morning time | 08:00–09:00 Kyiv; default brief 08:00 |
 | Owner's current tools | Coinglass and the chart; futures |
 | Direction medians | allowed only inside analogue summaries, under `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` |

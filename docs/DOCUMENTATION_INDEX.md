@@ -394,14 +394,17 @@ Before using an operational runbook, compare it with current code/config and run
 - `research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md` carries the label `PROSPECTIVE_PRE_REGISTERED_FORWARD_EVALUATION / OWNER_UNBLINDED`. It is never independent confirmation. Its Q1/Q2 were superseded on 2026-09-28, before any statistic was inspected, because the product will show historical follow-up statistics before the stopping rule (see its amendment).
 - `BETA_V0_3_MARKET_BRIEFING.md` (**OWNER_DECISION_RECORDED / CONTRACT / NOT_IMPLEMENTED**, 2026-10-02): the P1 contract that turns the beta into a market briefing (`CHANGE PRODUCT`).
   - `/catchup` and "since your last view".
-  - A Market State block on 1h / 4h / 1d with the frozen label vocabulary `BETA_MARKET_STATE_LABELS_V1`.
+  - A Market State block on rolling 1h / 4h / 24h with the frozen label vocabulary `BETA_MARKET_STATE_LABELS_V1`.
+  - `/catchup` and push from 1h briefing episodes; the legacy detector is not a gate.
   - Decomposed significance with venue agreement, and "I don't know" lines.
   - A morning brief and quiet pushes, with no 5m taker push.
   - Detector, rules and tape schema unchanged.
 - `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` (**GATE_FROZEN_BEFORE_IMPLEMENTATION / NOT_ACTIVE**, 2026-10-02): the only permitted direction statistics.
   - "Outcome-aware historical analogue summaries", with a baseline in the same card, N and spread.
-  - A mandatory verdict from a frozen, Holm-corrected, date-clustered test that must pass a pseudo-event null calibration.
-  - Separate historical (Binance 2020–2024, single venue) and live cohorts.
+  - A display floor separate from inferential sufficiency (independent date clusters).
+  - A mandatory verdict from a frozen, Holm-corrected, date-clustered test that must pass a pseudo-event null calibration (≥ 1000 replicates, Clopper–Pearson bound).
+  - Materiality floors to be set before event outcomes.
+  - Separate live and historical cohorts; the historical one is a declared Binance proxy through a frozen live→proxy mapping, unavailable when an essential feature cannot be reconstructed.
   - Similarity frozen before outcomes, no bias labels, sealed 2025/2026.
   - It is not a lifting of the predictive freeze.
 - `BETA_HISTORICAL_FOLLOW_UP_V0.md`: foundation for "what happened after previous comparable states?" — `EVENT_COMPARABILITY_V0`, fail-closed display sufficiency, 1h/4h absolute range only, ordinary same-time and volatility-matched baselines, provenance classes. Pure code, not wired into `/btc`, no historical replay.

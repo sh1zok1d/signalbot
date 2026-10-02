@@ -9,18 +9,23 @@
 
 **Why.** Two days of owner use: the 5m events are noise and unactionable, and the 3-push cap is used up by about 11:00. The frozen beta criteria name this `CHANGE PRODUCT`.
 
-**What is new.** The surface becomes a briefing built on 1h / 4h / 1d (`docs/BETA_V0_3_MARKET_BRIEFING.md`):
+**What is new.** The surface becomes a briefing built on rolling 1h / 4h / 24h windows ending at the last closed 5m bucket (`docs/BETA_V0_3_MARKET_BRIEFING.md`):
 - `/catchup` and "since your last view";
 - a Market State block;
 - decomposed significance with venue agreement;
 - "I don't know" lines;
-- one morning brief and quiet pushes. 5m taker pushes are removed.
+- one morning brief and quiet pushes.
+  - `/catchup` and push both come from 1h briefing episodes.
+  - The legacy 5m detector is evidence in Details only and never a push source.
 
 **Analogues.** "Что было после похожих" may show direction medians only under `docs/BETA_HISTORICAL_ANALOGUE_GATE_V1.md`:
-- a baseline in the same card, N and spread;
-- a mandatory verdict from a frozen, Holm-corrected, date-clustered test, calibrated on pseudo-events first;
-- historical 2020–2024 and live cohorts never pooled;
-- similarity frozen before outcomes, no bias labels;
+- a matched-control baseline in the same card, N and spread;
+- a display floor (30 events / 15 dates) separate from an inferential minimum of at least 30 independent date clusters;
+- a mandatory verdict from a frozen, Holm-corrected, date-clustered test;
+- a null calibration with at least 1000 pseudo-event replicates, accepted when the Clopper–Pearson upper bound is at most 0.07;
+- materiality floors to be set before event outcomes, from controls only;
+- live and historical cohorts never pooled, the historical one being a declared Binance proxy through a frozen mapping;
+- directional labels never;
 - 2025/2026 sealed.
 
 The permission is narrow: historical conditional statistics are allowed; a prediction engine is not.
