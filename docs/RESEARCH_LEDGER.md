@@ -7062,7 +7062,7 @@ One-shot execution of `DECISION_LAYER_RESEARCH_PROGRAM_V0.md` §8, run with no h
 
 **Results:**
 - **Support.** 1,207 persistence-eligible episodes on 702 days.
-- **H1 (post-detection same-side flow).** Ratio 1.264, one-sided p < 0.0001: pass. This is partly mechanical, because it includes the detected algorithm's own remaining slices.
+- **H1 (post-detection same-side flow).** Ratio 1.264, one-sided p < 0.0001: pass, on discovery only. It is partly mechanical, because it includes the detected algorithm's own remaining slices. Independent replication is insufficient.
 - **Price cells.** No cell is supported. Day-block bootstrap with Holm m = 3 and a 10 bps floor:
   - H2_1h: +5.0 bps, Holm p 0.17;
   - H2_6h: −0.4 bps;
@@ -7078,4 +7078,4 @@ PROTECTED_2025_2026_OPENED = false
 NEXT_UNIT = OWNER_DECISION_AFTER_TWAP_SEALED_RUN_V1
 ```
 
-Record: `docs/research/TWAP_SEALED_RUN_V1_RESULT.md`, artifacts `docs/research/twap_sealed_run_v1/`.
+Record: `docs/research/TWAP_SEALED_RUN_V1_RESULT.md`, artifacts `docs/research/twap_sealed_run_v1/`. The record carries a post-run erratum: the §8 wording "real counts are never a selection criterion" conflicts with the zero-denominator admissibility rule. The selection outcome is unchanged.

@@ -4,7 +4,7 @@ This is a one-shot execution of `DECISION_LAYER_RESEARCH_PROGRAM_V0.md` §8, run
 
 ```
 FINAL_STATUS = MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED
-H1_POST_DETECTION_FLOW = PASS (ratio 1.264, one-sided p < 0.0001)
+H1_POST_DETECTION_FLOW = PASS_DISCOVERY_ONLY (ratio 1.264, one-sided p < 0.0001; not replicated)
 H2_1h = NOT_SUPPORTED (+5.0 bps, Holm p 0.17)
 H2_6h = NOT_SUPPORTED (-0.4 bps, Holm p 1.0)
 H3_POST_END_1h = NOT_SUPPORTED (+0.5 bps, Holm p 1.0)
@@ -41,7 +41,7 @@ There were 200 injected synthetic TWAPs (seed 20261002) and 5 hour-preserving sh
 | 500 | 40 | 15 | 3 | 0,0,0,0,0 | 0 | 0 | 0.940 | yes |
 | 500 | 40 | 30 | 1 | 0,0,0,0,0 | 0 | 0 | 0.905 | yes |
 
-The frozen rule ranks by lowest FP/day (four tie at 0), then by highest recall. That selects 250 ms / 20 / 15 min. Real episode counts were never a selection criterion.
+The frozen rule ranks by lowest FP/day (four tie at 0), then by highest recall. That selects 250 ms / 20 / 15 min. Real episode counts did not rank candidates. They did decide admissibility in one case: a candidate with 0 real episodes is inadmissible. See the post-run erratum.
 
 **Limitation.** The specificity ratio rests on a small calibration denominator: 6 real episodes in 2024-06.
 
@@ -103,7 +103,11 @@ H1 compares same-side taker notional in `[t0, t0+60m)` with 5 matched controls p
 |---|---|---|---|---|---|---|
 | 1,207 | 701 | 5.0 | **1.264** | 1.203 – 1.329 | < 0.0001 (1/10,001) | **yes** (p < 0.05 and ratio ≥ 1.10) |
 
-**Reading.** After detection, same-side flow is about 26% above matched controls. The matching covers hour, prior-hour RV, prior-hour net flow and prior-hour return sign. Part of this is mechanical: it includes the detected algorithm's own remaining slices. H1 therefore confirms that the footprint persists in the flow, not that other participants join it.
+**Reading.** On the discovery surface, same-side flow after detection is about 26% above matched controls. The matching covers hour, prior-hour RV, prior-hour net flow and prior-hour return sign.
+- Part of this is mechanical: it includes the detected algorithm's own remaining slices. H1 therefore shows that the footprint persists in the flow, not that other participants join it.
+- This is a discovery-surface result only. Independent replication is insufficient: H1 was never opened on the replication surface, where the support gate failed with 19 < 100. It is not a V1-level confirmed statement.
+
+**Day counts.** Feasibility counts distinct UTC days of the qualifying print `T` (702). H1 and H2 bootstrap over the day of the anchor `t0`, the first minute boundary after `T` (701 for H1 and H2_1h, 700 for H2_6h). H3 bootstrap is over the day of `e0` (704). An episode near midnight can move to the next UTC day; no episode is lost between these counts.
 
 ## Phase 3 — price outcomes
 
@@ -149,4 +153,14 @@ This is a null on the price claim for this footprint, under this detector, at th
 
 None of these is authorized by this result. Per the research rules, no nearby tolerance, K, duration, horizon or floor variant is to be generated from this outcome, and this run is not rerun.
 
-**Product reading.** A confirmed spot TWAP footprint is a real, persistent flow fact: the flow keeps coming. It does not carry a statistically supported directional price statement at the frozen scale. If it is ever shown, it can only be descriptive context ("a regular-slice buyer has been active for N minutes"), never "price will move".
+**Product reading.** On the discovery period, a detected spot TWAP footprint keeps showing in same-side flow after detection. Independent replication of that statement is insufficient. There is no supported directional price statement at the frozen scale. If it is ever shown, it can only be descriptive context ("a regular-slice buyer has been active for N minutes"), never "price will move".
+
+## Post-run erratum — protocol wording (2026-10-02)
+
+This erratum records inexact wording in the frozen protocol. It does not change the sealed spec, any computed number or the classification.
+
+**Selection rule.** §8 says "real episode counts are never a selection criterion". The same section also makes a candidate with 0 real episodes in 2024-06 inadmissible, because `FP_RATIO` would divide by zero. Real counts therefore did enter admissibility, in the zero case only.
+
+**Effect on this run: none.** Two candidates were excluded only for having 0 real episodes: 250/20/30 (recall 0.915) and 250/40/30 (recall 0.905). Both have FP/day 0. Had they been admissible, the rule would still have selected 250/20/15, which has FP/day 0 and recall 1.000. A future protocol should state the zero-denominator rule as an explicit, separate admissibility condition.
+
+**CI.** At the result commit the GitHub `CI` job is red, but no tests ran: the job got no runner (runner id 0), finished in 3 s and has no log. The `Full regression` run on `main` at this PR's base `b9c71c0` looks the same (2 s, no steps), as do the earlier runs listed from 2026-10-01. This is consistent with exhausted Actions minutes, not with failing tests. Validation is the local run listed in the PR.

@@ -7,7 +7,7 @@
 `PROTECTED_2025_2026_OPENED = false`
 `NEXT_UNIT = OWNER_DECISION_AFTER_TWAP_SEALED_RUN_V1`
 
-The detected spot BTCUSDT TWAP footprint is real as a flow fact: same-side flow after detection is 1.26 times that of matched controls. No side-aligned price statement is supported, at 1 h, at 6 h or after the end:
+On the discovery period 2020–2024, the detected spot BTCUSDT TWAP footprint keeps showing in same-side flow after detection: 1.26 times matched controls. Independent replication of that statement is insufficient, and H1 was not opened on the replication surface. No side-aligned price statement is supported, at 1 h, at 6 h or after the end:
 - H2_1h: +5.0 bps, Holm p 0.17, below the 10 bps floor;
 - H2_6h: −0.4 bps;
 - H3: +0.5 bps.
