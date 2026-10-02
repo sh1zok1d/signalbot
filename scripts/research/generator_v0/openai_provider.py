@@ -163,7 +163,9 @@ class OpenAIProvider:
         return self._annotate_network(ident)
 
     def _annotate_network(self,ident):
-        if self.network_mode!=OPENAI_NETWORK_MODE_CLOUD_PROXY:return ident
+        if self.network_mode==OPENAI_NETWORK_MODE_DIRECT:
+            return {**ident,'OPENAI_NETWORK_MODE':OPENAI_NETWORK_MODE_DIRECT,'OPENAI_API_KEY_REQUIRED':True,
+                    'AUTHORIZATION':'BEARER_TO_PROVIDER','DIRECT_API_HOST':True}
         return {**ident,'OPENAI_NETWORK_MODE':OPENAI_NETWORK_MODE_CLOUD_PROXY,'OPENAI_API_KEY_REQUIRED':False,
                 'AUTHORIZATION':'STRIPPED_AT_PROXY_BOUNDARY','DIRECT_API_HOST':False}
 
