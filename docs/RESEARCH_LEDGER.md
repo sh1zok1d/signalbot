@@ -7106,3 +7106,15 @@ NEXT_UNIT = GENERATOR_V0_COMPLEXITY_LADDER_AMENDMENT
 ```
 
 Record: `docs/research/GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING.md`.
+
+## Generator complexity ladder amendment (V03) — 2026-10-02
+
+Owner-authorized generator design amendment. Offline only: no LLM call, no market data and no scientific outcome. `GENERATOR_CONTRACT_V03` adds rung-assigned slots (16/14/7/3, assigned before the LLM call), `COMPLEXITY_CLASS` and `COMPONENTS` on the card, two intake rules, two critic-enforced rules and the 2/2/1 shortlist quota. V02 is byte-identical. Generator cards are not counted as hypotheses.
+
+```
+GENERATOR_CONTRACT_V03 = IMPLEMENTED
+LLM_CALLS = 0
+NEXT_UNIT = GENERATOR_V0_FRESH_SHADOW_CAMPAIGN
+```
+
+Record: `docs/research/GENERATOR_V0_COMPLEXITY_LADDER_AMENDMENT.{md,json}`.

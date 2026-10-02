@@ -1,3 +1,22 @@
+## Generator complexity ladder amendment (V03) — 2026-10-02
+
+`GENERATOR_CONTRACT_V03 = IMPLEMENTED (offline)`
+`V02_BYTE_IDENTICAL = true`
+`LLM_CALLS = 0`
+`MARKET_OUTCOMES_OPENED = false`
+`NEXT_UNIT = GENERATOR_V0_FRESH_SHADOW_CAMPAIGN (paid; owner budget, roles and call counts required)`
+
+The generator now goes from simple to complex.
+- **Slots.** Each of 40 slots carries a `COMPLEXITY_CLASS`, assigned before any LLM call: 16 atomic, 14 conditional, 7 interaction, 3 composite. The model copies the class and never chooses it.
+- **Card contract V03.** It adds `COMPLEXITY_CLASS` and `COMPONENTS`. Interaction and composite baselines must name every component, so main effects are controlled; components need not work on their own.
+- **Critics.** The red team checks rung consistency. The novelty critic scores an indicator-threshold card low ("simplicity is not banality").
+- **Shortlist.** Seats are 2 atomic, 2 conditional and 1 complex. An unfilled seat passes down the ladder, never up.
+- **V02.** Schemas, prompts, digests and mock campaign results are byte-identical to `main`.
+- **Entry point.** `ladder-40-card`.
+- **Before memory ingestion of the ladder campaign:** the memory finalizer must be extended. It refuses V03 red-team checks, failing closed.
+
+Record: `docs/research/GENERATOR_V0_COMPLEXITY_LADDER_AMENDMENT.{md,json}`.
+
 ## Generator feasibility contract mapped to V1 — 2026-10-02
 
 `GENERATOR_CONTRACT_VERSION = GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1`

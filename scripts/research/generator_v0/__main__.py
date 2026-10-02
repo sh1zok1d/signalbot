@@ -58,7 +58,7 @@ def atomic_json(path,value):
 
 def main(argv=None):
     p=argparse.ArgumentParser(description='Generator V0 shadow only; stops at human review')
-    p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect','derive','authorize-derived-continuation','authorize-budget-extension','remaining-budget-preflight','reconcile','first-30-card'])
+    p.add_argument('command',choices=['preflight','run','resume','review','mutate','inspect','derive','authorize-derived-continuation','authorize-budget-extension','remaining-budget-preflight','reconcile','first-30-card','ladder-40-card'])
     p.add_argument('--source-run-dir',type=Path)
     p.add_argument('--through-generation',type=int,default=1)
     p.add_argument('--provider',choices=['mock','openai','routed'],default='mock',help='routed = multi-provider routing (Opus generator, Sol/Luna critics); openai = legacy OpenAI-only path')
@@ -79,12 +79,20 @@ def main(argv=None):
     p.add_argument('--active-minutes',type=float,default=0)
     p.add_argument('--accept-budget-stop',action='store_true',help='live run/resume even though the worst case exceeds the authorized remainder (requires --actor and --reason; recorded)')
     p.add_argument('--openai-network-mode',choices=['DIRECT','CLOUD_PROXY'],default='DIRECT',help='CLOUD_PROXY is explicit Cloud Agent OpenAI binding; never inferred from HTTPS_PROXY')
+    p.add_argument('--contract',choices=['V02','V03'],default='V02',help='V03 = complexity-ladder card contract (40 slots)')
     p.add_argument('--field')
     p.add_argument('--value-json')
     a=p.parse_args(argv)
     if a.command=='first-30-card':
         a.size=30;a.provider='routed';a.openai_network_mode='CLOUD_PROXY'
+        if a.contract!='V02':raise ContractError('first-30-card is the frozen V02 campaign')
         if not a.allow_real_llm:raise ContractError('first-30-card requires --allow-real-llm and a nonzero budget')
+    if a.command=='ladder-40-card':
+        a.size=40;a.provider='routed';a.openai_network_mode='CLOUD_PROXY';a.contract='V03'
+        if not a.allow_real_llm:raise ContractError('ladder-40-card requires --allow-real-llm and a nonzero budget')
+    from .runner import campaign_plan
+    contract_id={'V02':'GENERATOR_CONTRACT_V02','V03':'GENERATOR_CONTRACT_V03'}[a.contract]
+    if a.contract=='V03' and a.size!=40:raise ContractError('the V03 ladder plan is frozen for 40 slots')
     if a.provider!='routed' and a.openai_network_mode!='DIRECT':raise ContractError('CLOUD_PROXY applies only to the routed provider')
     if a.command=='derive':
         refuse_sealed_or_archived(a.run_dir)
@@ -146,13 +154,13 @@ def main(argv=None):
     amount=Decimal(a.budget_usd)
     if not amount.is_finite() or not 0<=amount<=30 or amount*1_000_000 != (amount*1_000_000).to_integral_value():raise ContractError('budget must be finite USD 0..30, at microdollar precision')
     cap=int(amount*1_000_000)
-    if a.command in ('run','resume','first-30-card') and a.provider in ('openai','routed') and cap>OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD:
+    if a.command in ('run','resume','first-30-card','ladder-40-card') and a.provider in ('openai','routed') and cap>OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD:
         raise ContractError('live campaign cap exceeds owner-authorized total USD 17.100000')
     if a.provider=='routed':
         from .routed_provider import live_routed_provider,offline_routed_provider,routed_run_identity
         if a.model or os.environ.get('GENERATOR_V0_MODEL'):raise ContractError('the routing registry is authoritative; do not pass --model or GENERATOR_V0_MODEL')
         if a.allow_real_llm:provider=live_routed_provider(c,cap,os.environ,openai_network_mode=a.openai_network_mode)
-        elif a.command in ('run','resume','first-30-card'):raise ContractError('routed run/resume requires --allow-real-llm and a nonzero budget')
+        elif a.command in ('run','resume','first-30-card','ladder-40-card'):raise ContractError('routed run/resume requires --allow-real-llm and a nonzero budget')
         else:provider=offline_routed_provider(c)
     elif a.provider=='openai':
         from .openai_provider import OpenAIProvider
@@ -165,8 +173,9 @@ def main(argv=None):
         provider=MockProvider(MockResponder(c))
     if a.command=='preflight':
         info={'STATUS':'PREFLIGHT_PASS','PROVIDER':provider.provider_id,'REAL_LLM_CALLS_MADE':False,'BATCH_SIZE':a.size,'STRUCTURED_OUTPUTS_ENABLED':a.provider=='openai','GENERATOR_MAX_OUTPUT_TOKENS':generator_max_output_tokens(provider)}
+        if a.contract=='V03':info['GENERATOR_CONTRACT']=contract_id;campaign_plan(contract_id,a.size)
         if a.provider=='routed':
-            pre=fresh_campaign_budget_preflight(a.size,cap or OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,c,bound_provider=offline_routed_provider(c))
+            pre=fresh_campaign_budget_preflight(a.size,cap or OWNER_AUTHORIZED_CAMPAIGN_CAP_MICRO_USD,c,bound_provider=offline_routed_provider(c),contract_id=contract_id)
             info.update(STRUCTURED_OUTPUTS_ENABLED=True,**routed_run_identity(provider,c),
                         FRESH_WORST_CASE_SINGLE_ATTEMPT_MICRO_USD=pre['WORST_CASE_REMAINING_MICRO_USD'],
                         FRESH_WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD=pre['WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD'],
@@ -176,7 +185,7 @@ def main(argv=None):
             info.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS=dict(ROLE_REQUEST_PARAMS),ROUTING_DIGEST=provider.routing_digest,REQUEST_TIMEOUT_SECONDS=provider.request_timeout_seconds,**ident)
         print(canonical(info));return
     dbpath=a.run_dir/'run.sqlite'
-    if a.command in ('run','first-30-card') and dbpath.exists():raise ContractError('run exists; use resume')
+    if a.command in ('run','first-30-card','ladder-40-card') and dbpath.exists():raise ContractError('run exists; use resume')
     if a.command=='resume' and not dbpath.exists():raise ContractError('run not found')
     def live_budget_gate(pre):
         """Worst case must fit the authorized remainder, or the operator explicitly
@@ -188,10 +197,11 @@ def main(argv=None):
             if not a.actor or not a.reason:raise ContractError('--accept-budget-stop requires --actor and --reason')
         return gate
     budget_gate=None
-    if a.provider=='openai' and a.command=='run':budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c))
-    if a.provider=='routed' and a.command in ('run','first-30-card'):budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c,bound_provider=offline_routed_provider(c)))
+    if a.provider=='openai' and a.command=='run':budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c,contract_id=contract_id))
+    if a.provider=='routed' and a.command in ('run','first-30-card','ladder-40-card'):budget_gate=live_budget_gate(fresh_campaign_budget_preflight(a.size,cap,c,bound_provider=offline_routed_provider(c),contract_id=contract_id))
     a.run_dir.mkdir(parents=True,exist_ok=True)
     config={'RUN_ID':a.run_dir.name,'PROVIDER':provider.provider_id,'MODEL':provider.model_id,'SIZE':a.size,'CAP_MICRO_USD':cap,'CONTEXT_DIGEST':digest(c.generator()),'IMPLEMENTATION_DIGEST':digest({x.name:byte_digest(x) for x in sorted(Path(__file__).parent.glob('*.py'))}),'GENERATOR_MAX_OUTPUT_TOKENS':generator_max_output_tokens(provider)}
+    if a.contract=='V03':config['GENERATOR_CONTRACT']=contract_id
     if a.provider=='routed':
         config.update(**routed_run_identity(provider,c))
     if a.provider=='openai':

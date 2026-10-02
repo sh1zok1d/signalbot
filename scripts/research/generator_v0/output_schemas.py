@@ -41,7 +41,8 @@ def generator_schema(contexts,*,provider=False,request=None):
         slots=_slots(request)
         return strict_object({'CANDIDATES':strict_object({s['CANDIDATE_ID']:output_schema(contexts,provider=True,slot=s) for s in slots})})
     n=len(_slots(request)) if request is not None else None
-    arr={'type':'array','minItems':n or 1,'maxItems':n or 50,'items':output_schema(contexts,provider=False)}
+    ladder=sorted({s['COMPLEXITY_CLASS'] for s in _slots(request) if 'COMPLEXITY_CLASS' in s}) if request is not None else None
+    arr={'type':'array','minItems':n or 1,'maxItems':n or 50,'items':output_schema(contexts,provider=False,ladder_classes=ladder)}
     return strict_object({'CANDIDATES':arr})
 
 def _leaf_ids(contexts):
@@ -74,9 +75,12 @@ def feasibility_schema(contexts):
         'CHEAPNESS':{'type':'integer','minimum':0,'maximum':3},
     })
 
-def red_team_schema():
+def red_team_schema(request=None):
+    """V02 checks; a V03 ladder candidate adds RUNG_CONSISTENT (contract_v03 COMPLEXITY_RUNG)."""
+    from .roles import red_checks
+    card=((request or {}).get('context') or {}).get('CANDIDATE')
     return strict_object({
-        'CHECKS':_booleans({'NO_LOOKAHEAD','CAUSALITY','FALSIFIABLE','BOUNDED_SEARCH','CONFOUNDING_ADDRESSED','NO_TRADING_CLAIM'}),
+        'CHECKS':_booleans(red_checks(card)),
         'JUDGMENTS':_ordinal(RED_DIMENSIONS),
     })
 
@@ -87,7 +91,7 @@ def role_schema(role,contexts,*,provider=False,request=None):
     if role=='GENERATOR':return generator_schema(contexts,provider=provider,request=request)
     if role=='NOVELTY_CRITIC':return novelty_schema(contexts,provider=provider,request=request)
     if role=='FEASIBILITY_CRITIC':return feasibility_schema(contexts)
-    if role=='RED_TEAM':return red_team_schema()
+    if role=='RED_TEAM':return red_team_schema(request)
     if role=='SELECTOR':return selector_schema()
     raise ContractError('unknown role schema')
 
@@ -277,7 +281,8 @@ def anthropic_generator_compact_schema(contexts,request):
     """{'CANDIDATES': [card]} with one shared card schema for the whole round."""
     from .mock import SOURCE_CLASSES
     slots=_slots(request)
-    card=output_schema(contexts,provider=True,slot=None)
+    ladder=sorted({s['COMPLEXITY_CLASS'] for s in slots if 'COMPLEXITY_CLASS' in s}) or None
+    card=output_schema(contexts,provider=True,slot=None,ladder_classes=ladder)
     card['properties']['CANDIDATE_ID']={'type':'string','enum':[s['CANDIDATE_ID'] for s in slots]}
     card['properties']['INFORMATION_SOURCE']={'type':'string','enum':sorted(set(SOURCE_CLASSES)|{s['INFORMATION_SOURCE'] for s in slots})}
     return strict_object({'CANDIDATES':{'type':'array','minItems':1,'items':card}})
