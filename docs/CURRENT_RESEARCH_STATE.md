@@ -1,3 +1,20 @@
+## GV0V03L40 shortlist end-to-end readiness — 2026-10-02
+
+`MEMORY_CAMPAIGN_ID = GV0V03L40`
+`SHORTLIST_E2E_STATUS = COMPLETE`
+`C005_FINAL = PIT_BLOCKED`
+`C024_FINAL = DATA_BLOCKED`
+`C031_FINAL = PIT_BLOCKED`
+`C033_FINAL = TERMINAL_NOT_PREREGISTRABLE`
+`C037_FINAL = PIT_BLOCKED`
+`TEST_QUEUE = []`
+`MARKET_OUTCOMES_OPENED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`PAID_DATA_SPEND_USD = 0`
+`LLM_CALLS = 0`
+
+C033 stays the sealed V2 result and was not recompiled. C005, C024, C031 and C037 stop at data or point-in-time provenance. No planning object was frozen and no market test was specified. Record: `docs/research/GV0V03L40_SHORTLIST_FINAL_READINESS.md`.
+
 ## GV0V03L40 C033 V2 compiler repair — 2026-10-02
 
 `MEMORY_CAMPAIGN_ID = GV0V03L40`

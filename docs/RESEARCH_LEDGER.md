@@ -7267,3 +7267,22 @@ SCIENTIFIC_DESIGN_CHANGED = false
 ```
 
 Record: `docs/research/GV0V03L40_C033_V2_FEASIBILITY.md`.
+
+## GV0V03L40 shortlist end-to-end readiness — 2026-10-02
+
+Outcome-blind stop for the completed shortlist. No confirmatory window was consumed. No market target was computed. C033 was not recompiled.
+
+```
+C005_FINAL = PIT_BLOCKED
+C024_FINAL = DATA_BLOCKED
+C031_FINAL = PIT_BLOCKED
+C033_FINAL = TERMINAL_NOT_PREREGISTRABLE
+C037_FINAL = PIT_BLOCKED
+TEST_QUEUE = []
+MARKET_OUTCOMES_OPENED = false
+PROTECTED_2025_2026_OPENED = false
+PAID_DATA_SPEND_USD = 0
+LLM_CALLS = 0
+```
+
+Record: `docs/research/GV0V03L40_SHORTLIST_FINAL_READINESS.md`.
