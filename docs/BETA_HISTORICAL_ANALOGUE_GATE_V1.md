@@ -1,6 +1,7 @@
 # Beta — historical analogue gate V1 ("Что было после похожих")
 
-**Status:** `OWNER_DECISION_RECORDED / GATE_FROZEN_BEFORE_IMPLEMENTATION / NOT_ACTIVE`
+**Status:** `OWNER_DECISION_RECORDED / GATE_FROZEN_BEFORE_IMPLEMENTATION / NOT_ACTIVE / DO_NOT_BUILD_YET (2026-10-02)`
+**2026-10-02:** analogue cards are on the DO-NOT-BUILD-YET list of `PRODUCT_FIRST_DECISION_V1.md` §5 until user evidence from its §7 test exists. The gate text is unchanged and remains the only path for this surface when it is built.
 **Date:** 2026-10-02 (repair of the same day: sufficiency split, calibration bound, floors, historical proxy mapping, R8, control share)
 **Authority:** owner decision 2026-10-02, recorded in §9. It is the promotion gate (restart decision 7) for one surface: historical analogue summaries.
 **Builds on:** `BETA_HISTORICAL_FOLLOW_UP_V0.md`, which provides the comparability identity, the ordinary and volatility-matched baselines, and the provenance classes. This gate lifts that document's "range only, no direction" display limit, but only for summaries that satisfy every rule below.

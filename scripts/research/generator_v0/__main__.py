@@ -69,6 +69,28 @@ def refuse_sealed_or_archived(run_dir):
     if archived_paid_run(run_dir):raise ContractError('archived paid run is read-only and must not be opened by this operator')
     if sealed_journal(run_dir):raise ContractError('sealed journal is read-only and must not be opened by this operator')
 
+def _resume_config_with_stored_derivation(dbpath,rebuilt):
+    """Preserve only the frozen DERIVATION identity when resuming a derived run.
+
+    Every other config field is rebuilt from current code and still has to match
+    the journal exactly in Ledger.__init__. This avoids weakening implementation,
+    routing, model, budget or scientific-identity checks.
+    """
+    dbpath=Path(dbpath)
+    if not dbpath.exists():return rebuilt
+    ledger=Ledger.open_readonly(dbpath)
+    try:
+        stored=ledger.get('config') or {}
+    finally:
+        ledger.close()
+    derivation=stored.get('DERIVATION')
+    if derivation is None:return rebuilt
+    if not isinstance(derivation,dict) or derivation.get('KIND')!='DERIVED_CONTINUATION':
+        raise ContractError('invalid derived-run config identity')
+    if rebuilt.get('GENERATOR_CONTRACT')!='GENERATOR_CONTRACT_V03':
+        raise ContractError('derived continuation resume requires V03')
+    return {**rebuilt,'DERIVATION':derivation}
+
 def atomic_json(path,value):
     fd,name=tempfile.mkstemp(prefix='.'+path.name,dir=path.parent)
     try:
@@ -244,6 +266,8 @@ def main(argv=None):
     if a.provider=='openai':
         ident=provider.transport_identity()
         config.update(ROLE_MODEL_MAP=dict(ROLE_MODEL_MAP),ROLE_REQUEST_PARAMS={k:dict(v) for k,v in ROLE_REQUEST_PARAMS.items()},PRICE_TABLE=price_table(),ROUTING_DIGEST=provider.routing_digest,REQUEST_TIMEOUT_SECONDS=provider.request_timeout_seconds,**ident)
+    if a.command=='resume':
+        config=_resume_config_with_stored_derivation(dbpath,config)
     l=Ledger(dbpath,config)
     l.checkpointer=checkpointer
     try:

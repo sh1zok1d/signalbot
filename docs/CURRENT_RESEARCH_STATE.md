@@ -1,3 +1,17 @@
+## Merge reconciliation — product-first decision and divergence program decisions — 2026-10-02
+
+Two owner decision lines dated 2026-10-02 met when `main` was merged into the divergence research branch (PR #303). Both records are kept unchanged below.
+- **`PRODUCT_FIRST_DECISION_V1.md`** (from `main`, PR #312): product-first mode; no new research programs or one-shot confirmation units.
+- **`DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md`** (this branch): it authorized the feasibility-only `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0`.
+
+`SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = COMPLETE (INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON)`
+`RESEARCH_NEXT_UNIT = OWNER_DECISION_AFTER_SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 (no research unit authorized; consistent with product-first)`
+`PROTECTED_2025_2026 = not globally unopened: the six-symbol divergence/support surface 2025-01-01..2026-08-15 is opened (DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md); E1-RUN-001 and everything after 2026-08-15 stay protected`
+
+**Open for the owner.** How further divergence or seller-exhaustion research relates to the product-first rule ("no new research programs") is the owner's decision.
+
+**Superseded flag.** The `PROTECTED_2025_2026_OPENED = false` line in the product-first section below is superseded by the surface note above. The section itself is not rewritten.
+
 ## Selling-exhaustion support feasibility V0 — INFORMATIONALLY_WEAK; 4–5 pp not testable in a realistic horizon — 2026-10-02
 
 `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON`
@@ -258,6 +272,65 @@ The observed BTC point estimates are positive. The evidence for them is weak to 
 - **ETH** is robustness only.
 
 **Below this section.** The `NEXT_UNIT` lines below belong to their own programs (beta P1, generator r02); the generator routing is the current research queue.
+
+## Product-first decision — research serves the product — 2026-10-02
+
+`OPERATING_MODE = PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`
+`CANONICAL_PRODUCT_DECISION = docs/PRODUCT_FIRST_DECISION_V1.md`
+`NEXT_UNIT = none (research); product build-to-test per PRODUCT_FIRST_DECISION_V1.md §3`
+`NEW_RESEARCH_PROGRAMS_AUTHORIZED = false`
+`NEW_ONE_SHOT_CONFIRMATIONS_AUTHORIZED = false`
+`GENERATOR_V0_LIVE_RUNS_AUTHORIZED = false (unchanged)`
+`PROTECTED_2025_2026_OPENED = false`
+`SEALED_VERDICTS_CHANGED = false`
+
+**What changed.** Research infrastructure is kept and research no longer sets the pace of product work. Research may continue only where cost is small and feasibility is confirmed in advance, in service of the product. The entries below remain the record of sealed verdicts and frozen contracts; their `NEXT_UNIT` values are historical.
+
+**Beta routing.** The earlier `NEXT_UNIT = BETA_V0_3_P1 implementation` (next entry) is superseded by the build-to-test MUST scope of `PRODUCT_FIRST_DECISION_V1.md` §3. In particular: no briefing episodes, no 1h detector, no 24h label, no separate notifier, no backfill for launch; a product-level 1h gate over existing `TRIGGERED` episodes is the only push change. The gate coverage diagnostic in §3.7 of the decision is a product check, not a research unit.
+
+**Analogue gate.** `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` stays frozen and inactive; it is on the DO-NOT-BUILD-YET list until user evidence exists.
+
+## GV0V03L40 C033 V2 compiler repair — 2026-10-02
+
+`MEMORY_CAMPAIGN_ID = GV0V03L40`
+`SOURCE_RUN_ID = ladder-40-card-v03-r02-derived-critics-v2`
+`GV0R02_SCHEMA = GV0R02_SCHEMA_V2`
+`GV0R02_POLICY = GV0R02_POLICY_V2`
+`FEASIBILITY_STATUS = DEFINITION_INCOMPLETE`
+`C033_NEXT = STOP / NOT_PREREGISTRABLE_UNDER_FROZEN_DESIGN`
+`MECHANISM_ACTIVE_N = 0`
+`MECHANISM_INACTIVE_N = 1383`
+`ALPHA_ATTAINABLE = false`
+`MIN_ATTAINABLE_P = 1.0`
+`MDE_STRESS = null`
+`POWER_STRESS = null`
+`EXECUTION_AUTHORIZED = false`
+`MARKET_OUTCOMES_OPENED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`SCIENTIFIC_DESIGN_CHANGED = false`
+`LLM_CALLS = 0`
+
+The sealed C033 design is unchanged and was recompiled under `GV0R02_SCHEMA_V2`. The V1 screen had treated the declustered shock count 1383 as the power sample while `FORCED_FLOW_ALL4_JOINT` is active on 0 observations. That V1 `FEASIBLE_FOR_PREREGISTRATION` result remains reproducible under `GV0R02_SCHEMA_V1` and is not a market conclusion. V2 blocks zero mechanism support (`PRIMARY_MECHANISM_SUPPORT_ZERO`, `ALPHA_UNATTAINABLE`) and the missing prospective support floors (`PROSPECTIVE_MECHANISM_SUPPORT_UNGUARANTEED`). The headline status is `DEFINITION_INCOMPLETE` because that gap outranks `INFERENCE_SUPPORT_INSUFFICIENT`. No new C033 stopping number was chosen. C005, C024, C031 and C037 stay blocked. Record: `docs/research/GV0V03L40_C033_V2_FEASIBILITY.md`.
+
+## GV0V03L40 C033 V1 feasibility — 2026-10-02
+
+Historical V1 compiler output. Routing is the V2 section above.
+
+`MEMORY_CAMPAIGN_ID = GV0V03L40`
+`SOURCE_RUN_ID = ladder-40-card-v03-r02-derived-critics-v2`
+`C033_PLANNING_VALIDATION = PASS`
+`GV0R02_SCHEMA = GV0R02_SCHEMA_V1`
+`GV0R02_POLICY = GV0R02_POLICY_V1`
+`FEASIBILITY_STATUS = FEASIBLE_FOR_PREREGISTRATION`
+`C033_NEXT = PREREGISTRATION_DESIGN`
+`EXECUTION_AUTHORIZED = false`
+`TOTAL_ALL4_EVENTS = 0`
+`NOMINAL_N = 1383`
+`MARKET_OUTCOMES_OPENED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`LLM_CALLS = 0`
+
+C033 is the only shortlist card in this planning unit. The primary cell is `SHOCK_SIGMA = 3`, `TAKER_BAND = p1_p99`, `POST_WINDOW_H = 6`. The compiler screen on the thinned eligible-shock sample is feasible. The all-four joint label occurs zero times in 2020–2024. That count is recorded and the design was not repaired after the compile. No preregistration is executed here. C005, C024, C031 and C037 stay blocked. Record: `docs/research/GV0V03L40_C033_V1_FEASIBILITY.md`.
 
 ## Beta V0.3 — market briefing and analogue gate — 2026-10-02
 
