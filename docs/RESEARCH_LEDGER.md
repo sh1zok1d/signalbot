@@ -7051,3 +7051,31 @@ Provenance record only. This is the owner's prior discretionary rule: after a pr
 - It is not a card, nothing is frozen, and no market data was opened.
 - It is close to H02, H03 and H05, which stay closed. This seed is not a rescue of any of them.
 - Records: `docs/research/SEED_ABSORPTION_DIVERGENCE_V0.md` (regular divergence, reversal) and `docs/research/SEED_HIDDEN_DIVERGENCE_CONTINUATION_V0.md` (hidden divergence, continuation). These are two separate seeds.
+
+## TWAP execution footprint — sealed end-to-end run V1 — 2026-10-02
+
+One-shot execution of `DECISION_LAYER_RESEARCH_PROGRAM_V0.md` §8, run with no human approval between phases. The spec `TWAP_SEALED_SPEC_V1.json` (SHA-256 `961c7578…`) was frozen and pushed at `5a0cd66` before the first scientific outcome.
+
+**Data and detector.** Binance spot BTCUSDT `aggTrades`, checksum-verified: discovery 2020-01..2024-12, replication 2017-08..2019-12. The detector was selected outcome-blind on 2024-06: 250 ms tolerance, K = 20, 15 min.
+
+**Consumed windows.** Discovery 2020–2024 is now consumed for this footprint. Replication 2017-08..2019-12 is consumed for counts only; no outcome was computed on it.
+
+**Results:**
+- **Support.** 1,207 persistence-eligible episodes on 702 days.
+- **H1 (post-detection same-side flow).** Ratio 1.264, one-sided p < 0.0001: pass. This is partly mechanical, because it includes the detected algorithm's own remaining slices.
+- **Price cells.** No cell is supported. Day-block bootstrap with Holm m = 3 and a 10 bps floor:
+  - H2_1h: +5.0 bps, Holm p 0.17;
+  - H2_6h: −0.4 bps;
+  - H3 post-end: +0.5 bps.
+- **Replication.** Support 19 < 100, so `INFERENCE_INSUFFICIENT`.
+- **Timing (descriptive).** The median remaining execution at detection is 11 min.
+
+```
+TWAP_SEALED_RUN_V1 = MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED
+RERUN_AUTHORIZED = false
+NEARBY_VARIANTS_AUTHORIZED = false
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = OWNER_DECISION_AFTER_TWAP_SEALED_RUN_V1
+```
+
+Record: `docs/research/TWAP_SEALED_RUN_V1_RESULT.md`, artifacts `docs/research/twap_sealed_run_v1/`.

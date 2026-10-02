@@ -1,0 +1,10 @@
+{
+  "H1_PASS": true,
+  "GATES": {
+    "DISCOVERY_SUPPORT": true,
+    "H3_SUPPORT": true,
+    "REPLICATION_SUPPORT": false
+  },
+  "SUPPORTED_CELLS": [],
+  "STATUS": "MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED"
+}

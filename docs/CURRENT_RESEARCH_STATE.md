@@ -1,3 +1,19 @@
+## TWAP sealed end-to-end run V1 — 2026-10-02
+
+`TWAP_SEALED_RUN_V1 = MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED`
+`SPEC = docs/research/TWAP_SEALED_SPEC_V1.json (frozen at 5a0cd66 before outcomes)`
+`RERUN_AUTHORIZED = false`
+`NEARBY_VARIANTS_AUTHORIZED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`NEXT_UNIT = OWNER_DECISION_AFTER_TWAP_SEALED_RUN_V1`
+
+The detected spot BTCUSDT TWAP footprint is real as a flow fact: same-side flow after detection is 1.26 times that of matched controls. No side-aligned price statement is supported, at 1 h, at 6 h or after the end:
+- H2_1h: +5.0 bps, Holm p 0.17, below the 10 bps floor;
+- H2_6h: −0.4 bps;
+- H3: +0.5 bps.
+
+Replication 2017–2019 has too little support (19 < 100). The owner decides the next unit; the generator feasibility-contract mapping remains queued. Record: `docs/research/TWAP_SEALED_RUN_V1_RESULT.md`.
+
 ## GV0R02 compiler mapped to V1 — 2026-10-01
 
 `GV0R02_SCHEMA_V1 = IMPLEMENTED`
