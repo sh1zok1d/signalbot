@@ -7186,3 +7186,23 @@ NEXT_UNIT = LADDER40_V03_R02 (identical V03 design; fresh owner live authorizati
 Records:
 - `docs/research/GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.{md,json}`;
 - `docs/research/GENERATOR_V0_LADDER40_V03_R01_PAUSE.{md,json}` (owner decision section).
+
+## Generator V0 r01 + r02 budget lineage — 2026-10-02
+
+The owner set one combined exposure ceiling for `ladder-40-card-v03-r01` and `ladder-40-card-v03-r02`.
+- **r01 charge.** Until exact provider billing evidence exists, r01 is charged its full reservation.
+- **r02 is not a fresh USD 12 allocation.**
+- **A lower r01 cost is not reclaimed automatically.** Any increase of the r02 total needs a new, recorded owner decision and must keep `R01_ACTUAL_BILLED_USD + R02_AUTHORIZED_TOTAL_USD <= 12.000000`.
+- **Nothing was run or consumed.**
+
+```
+LINEAGE_CAP_USD = 12.000000
+R01_CONSERVATIVE_CHARGE_USD = 2.210772
+R02_INITIAL_CAP_USD = 9.789228
+LADDER40_V03_R01 = INFRASTRUCTURE_FAILED_FROZEN
+R01_RECONCILE = BILLED_WITH_EXACT_PROVIDER_EVIDENCE (only)
+R02_LIVE_EXECUTION_AUTHORIZED = false
+LLM_CALLS = 0
+```
+
+Record: `docs/research/GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.{md,json}` (section "r02 budget lineage", key `R02_BUDGET_LINEAGE`).

@@ -25,6 +25,10 @@ V02_ROUTES_CHANGED         = false
 LLM_CALLS                  = 0
 PAID_CALLS                 = 0
 LADDER40_V03_R01           = INFRASTRUCTURE_FAILED_FROZEN (see GENERATOR_V0_LADDER40_V03_R01_PAUSE.md)
+LINEAGE_CAP_USD            = 12.000000 (r01 + r02 combined; owner decision 2026-10-02)
+R01_CONSERVATIVE_CHARGE    = USD 2.210772 (full r01 reservation, until exact billing evidence)
+R02_INITIAL_CAP_USD        = 9.789228
+R02_LIVE_EXECUTION         = not authorized
 NEXT_UNIT                  = LADDER40_V03_R02 (needs a fresh owner live authorization)
 ```
 
@@ -145,7 +149,7 @@ The ledger keeps its existing state names. `PROVIDER_ACCEPTED` and `POLLING` are
 | Before | USD 30.749115 | USD 61.496292 |
 | Now | USD 26.326979 | USD 52.652020 |
 
-The critic bounds are unchanged. The USD 12 cap still needs `--accept-budget-stop`.
+The critic bounds are unchanged. The worst case exceeds both the USD 12 cap of r01 and the r02 cap of USD 9.789228 (see "r02 budget lineage"), so a run still needs `--accept-budget-stop`.
 
 ## What does not change
 
@@ -216,8 +220,26 @@ From the official docs, read on 2026-10-02:
 
 ## r02 (not started; needs a fresh owner live authorization)
 
+### r02 budget lineage (owner decision 2026-10-02)
+
+r01 and r02 share one exposure ceiling. r02 is not a fresh USD 12 allocation on top of r01.
+
 ```
-python -m scripts.research.generator_v0 ladder-40-card --allow-real-llm --budget-usd 12 \
+LINEAGE_CAP_USD              = 12.000000   (ladder-40-card-v03-r01 + ladder-40-card-v03-r02)
+R01_CONSERVATIVE_CHARGE_USD  =  2.210772   (the full r01 reservation, charged until exact provider billing evidence exists)
+R02_INITIAL_CAP_USD          =  9.789228   (12.000000 - 2.210772)
+R02_LIVE_EXECUTION_AUTHORIZED = false      (recording the budget does not authorize a paid run)
+```
+
+**How the lineage moves.**
+- **Exact r01 cost.** It is recorded only as the r01 `BILLED` reconcile, with exact provider-side evidence. It is never estimated, and never taken from a rounded account balance.
+- **A lower r01 cost is not reclaimed automatically.** If that cost X is below USD 2.210772, the difference does not return to r02 by itself.
+- **Raising the r02 cap** needs a new, explicit, recorded owner decision, and it must keep `R01_ACTUAL_BILLED_USD + R02_AUTHORIZED_TOTAL_USD <= 12.000000`.
+
+### Command
+
+```
+python -m scripts.research.generator_v0 ladder-40-card --allow-real-llm --budget-usd 9.789228 \
   --accept-budget-stop --actor owner --reason "<why>" \
   [--openai-network-mode DIRECT] \
   --checkpoint-git-branch <current branch>   # or --checkpoint-dir <durable dir>
@@ -228,8 +250,9 @@ The run directory is git-ignored. The checkpointer force-adds only `<run-dir>/ch
 
 **Design is identical to r01:**
 - 40 slots, 16/14/7/3;
-- the same prompts, models, critics and routes for every critic;
-- shortlist 2/2/1;
-- cap USD 12 with `--accept-budget-stop`.
+- the same prompts, schemas, models, effort, critics and scientific rules, and the same routes for every critic;
+- shortlist 2/2/1.
+
+**Budget differs from r01.** r01 ran with a USD 12 cap. r02 runs with the USD 9.789228 lineage remainder above, plus `--accept-budget-stop`.
 
 **Resume** uses `resume --provider routed --contract V03` with the same flags and a fresh `--accept-budget-stop`.
