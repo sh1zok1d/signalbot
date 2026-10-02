@@ -262,6 +262,18 @@ class BetaConn:
             out[boundary] = {ex: pick_oi_asof(grouped.get(ex, []), boundary) for ex in exchanges}
         return out
 
+    async def fetch_open_interest_range(self, *, symbol: str, exchanges: Sequence[str],
+                                        start: datetime, end: datetime) -> list:
+        """Every ``open_interest`` row in ``[start, end]`` for the venues, oldest first.
+        Read-only; the as-of selection is ``beta.oi_asof.OiAsofIndex``."""
+        rows = await self.conn.fetch(
+            """SELECT exchange, ts, oi_raw, oi_unit, contract_value
+               FROM open_interest
+               WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts >= $3 AND ts <= $4
+               ORDER BY exchange, ts""",
+            symbol, list(exchanges), start, end)
+        return [dict(r) for r in rows]
+
     async def insert_details_open(self, *, view_pk: int, tab: str, lang: str, opened_at: datetime) -> None:
         await self.conn.execute(
             """INSERT INTO beta_details_opens (view_pk, tab, lang, opened_at) VALUES ($1,$2,$3,$4)""",

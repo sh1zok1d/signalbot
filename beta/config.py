@@ -93,8 +93,8 @@ _PERCENTILE_KEYS = {
 # Temporal-context sections (episodization + 1h context). They never enter the
 # rules digest: they change presentation / episode projection, not detection.
 _EPISODIZATION_KEYS = {"version", "live_hysteresis_enabled"}
-_CONTEXT_KEYS = {"version", "rolling_buckets", "label_elevated", "label_high", "label_extreme",
-                 "tail_display_max", "last_event_retention_min"}
+_CONTEXT_KEYS = {"version", "rolling_buckets", "rolling_buckets_4h", "label_elevated", "label_high",
+                 "label_extreme", "tail_display_max", "last_event_retention_min"}
 
 # Presentation thresholds for "Changes vs previous 24h". They never enter the
 # rules digest: they do not change detection.
@@ -339,6 +339,9 @@ def _validate_temporal_context(d: Mapping[str, Any]) -> None:
     if not isinstance(c["version"], str) or not c["version"].strip():
         raise BetaConfigError("context.version must be a non-empty string")
     _int(c["rolling_buckets"], "context.rolling_buckets", minimum=2)
+    _int(c["rolling_buckets_4h"], "context.rolling_buckets_4h", minimum=2)
+    if c["rolling_buckets_4h"] <= c["rolling_buckets"]:
+        raise BetaConfigError("context.rolling_buckets_4h must be longer than rolling_buckets")
     for k in ("label_elevated", "label_high", "label_extreme", "tail_display_max"):
         _unit(c[k], f"context.{k}")
     if not (0.5 <= c["label_elevated"] < c["label_high"] < c["label_extreme"] < 1.0):

@@ -79,3 +79,52 @@ def venue_oi_change_pct(start: Optional[Mapping], end: Optional[Mapping]) -> Opt
     if raw_s is None or raw_e is None or raw_s == 0:
         return None
     return (raw_e - raw_s) / raw_s * 100.0
+
+
+class OiAsofIndex:
+    """Many as-of picks over one range read, with the exact ``pick_oi_asof`` rule.
+
+    Rows are grouped per venue and sorted by ``ts``. A pick bisects to the
+    rows inside ``[boundary - tolerance, boundary]`` and hands only those to
+    ``pick_oi_asof``, so the selection rule is not restated here.
+    """
+
+    def __init__(self, rows: Sequence[Mapping]):
+        from bisect import bisect_left, bisect_right
+        self._bisect = (bisect_left, bisect_right)
+        grouped: dict = {}
+        for row in rows:
+            if row.get("ts") is None or row.get("exchange") is None:
+                continue
+            grouped.setdefault(row["exchange"], []).append(dict(row))
+        self._rows = {ex: sorted(rs, key=lambda r: r["ts"]) for ex, rs in grouped.items()}
+        self._ts = {ex: [r["ts"] for r in rs] for ex, rs in self._rows.items()}
+
+    def at(self, exchange: str, boundary: datetime, *,
+           tolerance: timedelta = OI_ASOF_TOLERANCE) -> Optional[dict]:
+        ts = self._ts.get(exchange)
+        if not ts:
+            return None
+        lo, hi = self._bisect
+        rows = self._rows[exchange][lo(ts, boundary - tolerance):hi(ts, boundary)]
+        return pick_oi_asof(rows, boundary, tolerance=tolerance)
+
+
+def window_oi_change(index: Optional[OiAsofIndex], exchanges: Sequence[str], start: datetime,
+                     end: datetime, *, min_venues: int) -> dict:
+    """Median venue OI change over ``[start, end]`` from as-of picks at both ends.
+
+    A venue without both picks (or with a unit/contract change) is left out.
+    Fewer than ``min_venues`` venues is not a value. No index is not a value.
+    """
+    if index is None:
+        return {"oi_change_pct_median": None, "oi_by_venue": {}, "oi_venues": []}
+    by = {ex: venue_oi_change_pct(index.at(ex, start), index.at(ex, end)) for ex in exchanges}
+    vals = sorted(v for v in by.values() if v is not None)
+    venues = [ex for ex in exchanges if by[ex] is not None]
+    if len(vals) < min_venues:
+        median = None
+    else:
+        m = len(vals) // 2
+        median = vals[m] if len(vals) % 2 else (vals[m - 1] + vals[m]) / 2.0
+    return {"oi_change_pct_median": median, "oi_by_venue": by, "oi_venues": venues}
