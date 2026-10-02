@@ -1,3 +1,20 @@
+## Product-first decision — research serves the product — 2026-10-02
+
+`OPERATING_MODE = PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`
+`CANONICAL_PRODUCT_DECISION = docs/PRODUCT_FIRST_DECISION_V1.md`
+`NEXT_UNIT = none (research); product build-to-test per PRODUCT_FIRST_DECISION_V1.md §3`
+`NEW_RESEARCH_PROGRAMS_AUTHORIZED = false`
+`NEW_ONE_SHOT_CONFIRMATIONS_AUTHORIZED = false`
+`GENERATOR_V0_LIVE_RUNS_AUTHORIZED = false (unchanged)`
+`PROTECTED_2025_2026_OPENED = false`
+`SEALED_VERDICTS_CHANGED = false`
+
+**What changed.** Research infrastructure is kept and research no longer sets the pace of product work. Research may continue only where cost is small and feasibility is confirmed in advance, in service of the product. The entries below remain the record of sealed verdicts and frozen contracts; their `NEXT_UNIT` values are historical.
+
+**Beta routing.** The earlier `NEXT_UNIT = BETA_V0_3_P1 implementation` (next entry) is superseded by the build-to-test MUST scope of `PRODUCT_FIRST_DECISION_V1.md` §3. In particular: no briefing episodes, no 1h detector, no 24h label, no separate notifier, no backfill for launch; a product-level 1h gate over existing `TRIGGERED` episodes is the only push change. The gate coverage diagnostic in §3.7 of the decision is a product check, not a research unit.
+
+**Analogue gate.** `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` stays frozen and inactive; it is on the DO-NOT-BUILD-YET list until user evidence exists.
+
 ## GV0V03L40 C033 V2 compiler repair — 2026-10-02
 
 `MEMORY_CAMPAIGN_ID = GV0V03L40`

@@ -1,24 +1,26 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-22 (routing pointer updated 2026-09-29)
-**Operating mode:** `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN`
+**Status date:** 2026-09-22 (routing pointer updated 2026-09-29; product-first decision 2026-10-02)
+**Operating mode:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN` (since 2026-10-02, `docs/PRODUCT_FIRST_DECISION_V1.md`). The earlier mode `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN` is historical.
 **Active phase:** see `docs/CURRENT_RESEARCH_STATE.md`. As of 2026-09-29 its latest entry is the GV0R03 generator feasibility contract, with `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`. The earlier phase `POST_SPRINT03_DISCOVERY_PROGRAM_DECISION` is historical.
 
 This file is intentionally concise. The pre-cleanup long-form status remains immutable in git at `b25d9ca99498630183813d0ccb8c6d67b93ad915`; experiment history remains in `docs/RESEARCH_LEDGER.md`.
 
-## Current decision
+## Current decision (2026-10-02)
 
-Signalbot has no validated durable trading edge. Product/forecasting architecture remains frozen. The research program should stop repeating nearby “new observable -> short-horizon scalar BTC prediction” formulations and instead choose the next hypothesis from a materially orthogonal mechanism region.
+**Product-first.** The canonical product decision is `docs/PRODUCT_FIRST_DECISION_V1.md`. It fixes the product hypothesis (a Russian-language market briefing that compresses "what happened, who dominates, how unusual"), the build-to-test MUST scope, the architectural constraint (one detector, one episodization, one context projection, one shared view builder, one outbox, one notifier), the DO-NOT-BUILD-YET list, the data maturity orientation (V2 tape since 2026-10-01; baselines about 2026-10-21; full 30d ranks about 2026-10-31) and the 30-day user test with its decision rules.
 
-Canonical routing: `docs/CURRENT_RESEARCH_STATE.md`.
+Research infrastructure is kept and research serves the product: only small, feasibility-confirmed units; no new programs, no new one-shot confirmations, no research surface widening for the hope of an edge. Signalbot still has no validated durable trading edge and makes no predictive claim.
+
+The research conclusion below stays recorded: the program stopped repeating nearby “new observable -> short-horizon scalar BTC prediction” formulations. Research routing: `docs/CURRENT_RESEARCH_STATE.md`.
 
 ## Descriptive private beta V0.2 (2026-09-25)
 
 A narrow descriptive private beta is authorized by `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`. It covers BTCUSDT perp on Binance, Bybit and OKX, runs on Telegram, is capped at 20 users and uses deterministic `BETA_EVENT_RULES_V1`.
 - **What it is:** a descriptive attention engine only. It carries no predictive claim, no trade instruction and no edge claim.
 - **What stays frozen:** predictive product work, and the V1 and V2 semantics.
-- **Current state:** implemented offline. It is not activated, its push is disabled, and it has no users.
-- **Next operator step:** the 7-day push-disabled shadow soak.
+- **Current state (2026-10-02):** V0.2 ran for the owner only; the owner judged the 5m event feed unactionable (`CHANGE PRODUCT`). No external users yet. The implementation scope is now the build-to-test MUST list of `docs/PRODUCT_FIRST_DECISION_V1.md` §3; `BETA_V0_3_MARKET_BRIEFING.md` is superseded where it differs (briefing episodes, 24h label, 90-day baselines, separate notifier).
+- **Next step:** build the MUST scope; external launch follows data maturity (§6 of the decision), then the 30-day user test (§7).
 - **Research boundary:** beta events are not hypotheses, and beta outcomes are not confirmation.
 
 ## Current evidence

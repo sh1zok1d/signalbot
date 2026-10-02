@@ -1,6 +1,7 @@
 # Beta V0.3 — market briefing (P1 contract)
 
-**Status:** `OWNER_DECISION_RECORDED / CONTRACT / NOT_IMPLEMENTED`
+**Status:** `OWNER_DECISION_RECORDED / CONTRACT / NOT_IMPLEMENTED / PARTLY_SUPERSEDED_2026-10-02`
+**Supersession (2026-10-02):** the implementation scope is now `PRODUCT_FIRST_DECISION_V1.md` §3. Superseded in this file: briefing episodes `BETA_BRIEFING_EPISODES_V1` and the significance rule as a push source (§1.4, §1.6, §5, §6), replaced by a product-level 1h gate over existing `TRIGGERED` detector episodes; the 24h row of the Market State block and any 24h label (§1.2), since 24h stays context only; the 90-day baselines (§1.0, §2); the Market State block on `/btc` and its 5m row; "since your last view" and per-user brief time (§1.1); the absorption / unloading labels (§1.3); the Deribit calendar as P1 (§1.1); `PUSH_AND_CATCHUP_SOURCE = 1h briefing episodes`. Kept: the `CHANGE PRODUCT` record (§0), rolling windows ending at the last closed 5m bucket, `/catchup`, the morning brief, the "I don't know" lines (§1.5), the wording rules, the unchanged detector and tape schema. The label vocabulary is fixed in the decision's §3.1 and is compatible with `_FORBIDDEN_RU` («выход шортов», «OI»).
 **Date:** 2026-10-02
 **Authority:** owner decision 2026-10-02. It is a `CHANGE PRODUCT` outcome under the frozen exit criteria of `PRIVATE_BETA_V0_RESTART_DECISION.md`; the amendment is recorded there.
 **Companion gate:** `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` governs "what happened after similar ones". That surface is not part of this contract and ships only through its gate.

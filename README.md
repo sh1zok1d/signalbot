@@ -2,8 +2,8 @@
 
 Signalbot is a crypto-market research and decision-support project focused on discovering **traceable, empirically validated market structure** before building product complexity around it.
 
-> **Current mode: `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN`.**
-> Research comes first. A narrow, descriptive-only private beta is authorized. Predictive product and forecasting architecture stay frozen until an edge is independently validated.
+> **Current mode (since 2026-10-02): `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`.**
+> The canonical product decision is [`docs/PRODUCT_FIRST_DECISION_V1.md`](docs/PRODUCT_FIRST_DECISION_V1.md). Research infrastructure is kept but no longer sets the pace. Predictive claims stay frozen; honest descriptive interpretation with shown uncertainty is product evidence, not a research claim.
 
 **Signalbot has no validated trading edge.** Nothing in this repository establishes direction prediction, profitability or a durable market edge.
 
@@ -11,11 +11,11 @@ For "where are we now?", start with [`docs/CURRENT_STATE.md`](docs/CURRENT_STATE
 
 ## Current objective
 
-The active objective is not “finish V2”. It is:
+Since 2026-10-02 the active objective is the product hypothesis of [`docs/PRODUCT_FIRST_DECISION_V1.md`](docs/PRODUCT_FIRST_DECISION_V1.md) §2:
 
-> **Discover and independently validate one or two robust conditional market mechanisms — or reject them without post-hoc rescue.**
+> **Signalbot saves an intraday BTC-perpetual trader time by compressing, in Russian, "what happened while I was away, who dominates now, and how unusual is it", delivered in the morning and at the rare genuinely unusual moments of the market.**
 
-Engineering exists to support that research. The owner-approved mandate is [`docs/SIGNALBOT_MANDATE_V1.md`](docs/SIGNALBOT_MANDATE_V1.md).
+The research objective of the previous stage ("discover and independently validate one or two robust conditional market mechanisms — or reject them without post-hoc rescue") is kept as the standard for any research claim; it no longer sets the pace of product work. The owner-approved mandate is [`docs/SIGNALBOT_MANDATE_V1.md`](docs/SIGNALBOT_MANDATE_V1.md).
 
 ## High-level pipeline
 
@@ -135,6 +135,7 @@ A one-month rich-data overlap can falsify obvious hypotheses but cannot establis
 The authority order is defined in [`AGENTS.md`](AGENTS.md). In short:
 
 0. [`docs/SIGNALBOT_MANDATE_V1.md`](docs/SIGNALBOT_MANDATE_V1.md) — owner-approved strategic mandate;
+0a. [`docs/PRODUCT_FIRST_DECISION_V1.md`](docs/PRODUCT_FIRST_DECISION_V1.md) — canonical product decision (2026-10-02);
 1. [`docs/CURRENT_RESEARCH_STATE.md`](docs/CURRENT_RESEARCH_STATE.md) — canonical routing and exact next research unit;
 2. [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — current posture and development freeze;
 3. [`docs/RESEARCH_ROADMAP.md`](docs/RESEARCH_ROADMAP.md) — active execution order;

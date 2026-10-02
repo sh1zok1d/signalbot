@@ -323,6 +323,8 @@ This section is a planning snapshot, not a frozen scientific authority.
 
 It may change when evidence changes.
 
+**Update 2026-10-02 (snapshot only; the mandate text above is unchanged):** the owner recorded a product-first decision in `docs/PRODUCT_FIRST_DECISION_V1.md`. The direction is now `build-to-test MUST scope -> 30-day user test with unknown-to-founder traders -> Continue / Reposition / Pivot / Stop`. Research serves the product under §6 and §7 of this mandate; §4 and §5 keep governing any research claim.
+
 ---
 
 ## 17. Core sentence

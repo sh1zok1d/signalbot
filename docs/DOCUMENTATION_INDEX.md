@@ -23,6 +23,8 @@ This map covers every top-level `docs/*.md` file and each `docs/` subdirectory. 
 - **HISTORICAL / SUPERSEDED** — preserved project history. They have no execution authority.
 
 **ACTIVE**
+- `PRODUCT_FIRST_DECISION_V1.md` (**canonical product decision, 2026-10-02**): product hypothesis, build-to-test MUST scope, architectural constraint, DO-NOT-BUILD-YET list, data/launch orientation, 30-day user test and its decision rules. Read it before any product or beta task.
+- `BETA_COPY_CONTRACT_V1.md` (**frozen implementation copy/UX contract, 2026-10-02**): user-facing Russian wording and rendering rules for `/catchup`, the morning briefing and the unusual-hour push. It is subordinate to `PRODUCT_FIRST_DECISION_V1.md`, which governs. Its status is `NOT_CANONICAL` until the decision is merged into `main`. Not implemented.
 - `SIGNALBOT_MANDATE_V1.md`, `CURRENT_RESEARCH_STATE.md` (canonical routing), `PROJECT_STATUS.md` and `RESEARCH_ROADMAP.md`.
 - `EDGE_RESEARCH_PROTOCOL.md`, `HISTORICAL_DATA_STRATEGY.md`, `ACTIVE_RESEARCH_RISKS.md` and `RESEARCH_LEDGER.md`.
 - `DOCUMENTATION_INDEX.md` (this file), `PROJECT_HISTORY.md` (maintained history narrative) and `CURRENT_STATE.md` (a one-screen summary that points to the files above; it is not an authority).
@@ -53,6 +55,8 @@ This map covers every top-level `docs/*.md` file and each `docs/` subdirectory. 
 
 Read these first:
 
+| `PRODUCT_FIRST_DECISION_V1.md` | **ACTIVE / CANONICAL PRODUCT DECISION (2026-10-02)** | Operating mode `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`. The product hypothesis, the build-to-test MUST scope with reuse classes, the one-detector / one-projection / one-view-builder / one-outbox constraint, the DO-NOT-BUILD-YET list, the data maturity orientation, the 30-day user test (U1a/U1b/U2/U3/U4/U5, Continue / Reposition / Pivot / Stop), the anti-self-deception rules and the supersession table. Wins over older product/beta documents on scope, sequence and evidence standard. |
+| `BETA_COPY_CONTRACT_V1.md` | **FROZEN_FOR_IMPLEMENTATION / COPY_CONTRACT / NOT_IMPLEMENTED / NOT_CANONICAL — DEPENDS_ON_UNMERGED_DECISION (2026-10-02)** | The user-facing copy/UX contract for `/catchup`, the morning briefing and the unusual-hour push. `PRODUCT_FIRST_DECISION_V1.md` is the governing product decision: scope, states, labels, thresholds and qualification rules come from it. This contract only constrains wording and rendering within that decision: message layouts, the state-to-text table, reference messages, the never-show list and the product copy rules. On any conflict the decision wins. It becomes canonical when the decision is in `main`. Nothing in it is implemented. |
 | `SIGNALBOT_MANDATE_V1.md` | **ACTIVE / CANONICAL STRATEGIC MANDATE** | Owner-approved project objective, anti-sycophancy rule, scientific/product/commercial mandate, agent operating principles, and amendment rules. Strategic authority; frozen experiment-specific scientific authorities still govern their own semantics. |
 | `CURRENT_RESEARCH_STATE.md` | **ACTIVE / CANONICAL ROUTING INDEX** | Compact answer to current next-unit/status. D2 is `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`; D7 is `PROMISING_PROTOTYPE` (confirmation candidate, not selected now); D8 deferred; Sprint 03 D9/D10 `NO_USEFUL_STRUCTURE`, D11 `PROMISING_PROTOTYPE`; Sprint 04 D12 `PROMISING_PROTOTYPE`, D13 `NO_USEFUL_STRUCTURE`; 2025/2026 sealed; `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT` (as of 2026-09-29; the file itself is authoritative) |
 | `CURRENT_STATE.md` | **ACTIVE SUMMARY (NOT AN AUTHORITY)** | One-screen "where are we now?" summary: posture, the descriptive-only beta PRICE_OI_CONTRACTION follow-up figures, the known defects of the frozen matched-baseline design, and the protected-data posture. `CURRENT_RESEARCH_STATE.md` and `PROJECT_STATUS.md` win on any conflict. |
@@ -390,16 +394,18 @@ Before using an operational runbook, compare it with current code/config and run
 
 ## 7a. Descriptive private beta V0.2 (authorized 2026-09-25)
 
+- **2026-10-02:** `PRODUCT_FIRST_DECISION_V1.md` is the canonical product decision for the beta's implementation scope and its first external test. The entries below keep their own records; where they differ from the decision they are superseded and say so in their headers (`BETA_V0_3_MARKET_BRIEFING.md`: briefing episodes, 24h label, 90-day baselines; `BETA_HISTORICAL_ANALOGUE_GATE_V1.md`: DO-NOT-BUILD-YET; `PRODUCT_DIRECTION_V0.md` and `PRODUCT_DIRECTION_AFTER_BETA_PROPOSAL.md`: partly superseded).
+- `BETA_COPY_CONTRACT_V1.md` (**FROZEN_FOR_IMPLEMENTATION / COPY_CONTRACT / NOT_IMPLEMENTED**, 2026-10-02): the user-facing wording and rendering contract for `/catchup`, the morning briefing and the unusual-hour push. It works within `PRODUCT_FIRST_DECISION_V1.md` and is subordinate to it.
 - `PRIVATE_BETA_V0_RESTART_DECISION.md` is the governance authority. It covers the scope, the frozen rule identity, the soak gate, and the rollout and exit criteria. It is descriptive only, and the predictive product stays frozen.
 - `research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md` carries the label `PROSPECTIVE_PRE_REGISTERED_FORWARD_EVALUATION / OWNER_UNBLINDED`. It is never independent confirmation. Its Q1/Q2 were superseded on 2026-09-28, before any statistic was inspected, because the product will show historical follow-up statistics before the stopping rule (see its amendment).
-- `BETA_V0_3_MARKET_BRIEFING.md` (**OWNER_DECISION_RECORDED / CONTRACT / NOT_IMPLEMENTED**, 2026-10-02): the P1 contract that turns the beta into a market briefing (`CHANGE PRODUCT`).
+- `BETA_V0_3_MARKET_BRIEFING.md` (**OWNER_DECISION_RECORDED / CONTRACT / NOT_IMPLEMENTED / PARTLY_SUPERSEDED_2026-10-02**, 2026-10-02): the P1 contract that turned the beta into a market briefing (`CHANGE PRODUCT`). Its briefing episodes, 24h label and 90-day baselines are superseded by `PRODUCT_FIRST_DECISION_V1.md` §3.
   - `/catchup` and "since your last view".
   - A Market State block on rolling 1h / 4h / 24h with the frozen label vocabulary `BETA_MARKET_STATE_LABELS_V1`.
   - `/catchup` and push from 1h briefing episodes; the legacy detector is not a gate.
   - Decomposed significance with venue agreement, and "I don't know" lines.
   - A morning brief and quiet pushes, with no 5m taker push.
   - Detector, rules and tape schema unchanged.
-- `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` (**GATE_FROZEN_BEFORE_IMPLEMENTATION / NOT_ACTIVE**, 2026-10-02): the only permitted direction statistics.
+- `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` (**GATE_FROZEN_BEFORE_IMPLEMENTATION / NOT_ACTIVE / DO_NOT_BUILD_YET**, 2026-10-02): the only permitted direction statistics; not built before user evidence (`PRODUCT_FIRST_DECISION_V1.md` §5).
   - "Outcome-aware historical analogue summaries", with a baseline in the same card, N and spread.
   - A display floor separate from inferential sufficiency (independent date clusters).
   - A mandatory verdict from a frozen, Holm-corrected, date-clustered test that must pass a pseudo-event null calibration (≥ 1000 replicates, Clopper–Pearson bound).
@@ -413,13 +419,13 @@ Before using an operational runbook, compare it with current code/config and run
   - It replays persisted beta payloads as-of through the real handler in an in-memory sandbox.
   - It produces a deterministic claim manifest, a frozen simple baseline and a blind A/B judge with controls.
   - It is not research, not ledger evidence, not PMF/WTP/retention evidence, and has no route into rules, wording, push or config. No live mirror, no network by default.
-- `PRODUCT_DIRECTION_V0.md` (**OWNER_DIRECTION_RECORDED / NO_SCOPE_AUTHORITY**, 2026-10-01): the product decision record.
+- `PRODUCT_DIRECTION_V0.md` (**OWNER_DIRECTION_RECORDED / NO_SCOPE_AUTHORITY / PARTLY_SUPERSEDED_2026-10-02**, 2026-10-01): the earlier product direction record; the claim ledger as product feature and the stricter monetization checkpoint are superseded.
   - What is and is not a moat; the main bet is an accumulated evidence base on market states.
   - The immutable claim ledger, the what-was-known-then record, the research pipeline, and the personal decision history (later).
   - Moat levels over time, bets with falsification criteria, and a stricter monetization checkpoint.
   - The formula is situation → evidence → implications → decision context, never BUY/SELL.
   - It is reviewed at the beta checkpoint and authorizes no scope change.
-- `PRODUCT_DIRECTION_AFTER_BETA_PROPOSAL.md` (**PROPOSED / DEFERRED_UNTIL_BETA_RESULTS / NO_AUTHORITY**): the owner-endorsed product direction to compare against beta evidence at the 4-week checkpoint.
+- `PRODUCT_DIRECTION_AFTER_BETA_PROPOSAL.md` (**PROPOSED / DEFERRED_UNTIL_BETA_RESULTS / NO_AUTHORITY / PARTLY_SUPERSEDED_2026-10-02**): the owner-endorsed product direction; its sequence is replaced by the §7 test of the decision.
   - Sequence: observe first (unprompted opens, weekly interviews); push alerts as the main lever; an honest "so what?" via historical follow-up; product-framed, time-boxed research; a multi-asset scan after BTC retention; a willingness-to-pay test.
   - Not doing: direction calls, order book.
   - It changes no beta scope, gate, rollout or research rule.

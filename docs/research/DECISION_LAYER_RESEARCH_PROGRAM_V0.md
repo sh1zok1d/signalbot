@@ -1,6 +1,7 @@
 # Decision-layer research program V0
 
-**Status:** `OWNER_DECISION_RECORDED / DESIGN_ONLY / NO_OUTCOME_OPENED`
+**Status:** `OWNER_DECISION_RECORDED / DESIGN_ONLY / NO_OUTCOME_OPENED / NO_NEW_UNITS_2026-10-02`
+**2026-10-02:** under `PRODUCT_FIRST_DECISION_V1.md` §1 research serves the product, and no new research program, one-shot confirmation or decision-layer unit is started from this program. The TWAP card's recorded outcome and this design stay as they are. §1.1 ("the beta ships as it is") is superseded by the decision's build-to-test scope.
 **Date:** 2026-10-01
 **Authority:** owner decision recorded here. This file does not change any frozen contract, verdict or preregistration.
 

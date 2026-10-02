@@ -4,7 +4,11 @@ This file tells coding/review agents what is authoritative **now**. Keep it conc
 
 ## Project posture
 
-Signalbot is currently in `RESEARCH_FIRST / PRODUCT_BUILD_FROZEN` mode.
+**Mode since 2026-10-02:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`. The canonical product decision is `docs/PRODUCT_FIRST_DECISION_V1.md`: the product hypothesis, the build-to-test MUST scope, the architectural constraint (one detector, one episodization, one context projection, one shared view builder, one outbox, one notifier), the DO-NOT-BUILD-YET list, the data/launch orientation and the 30-day user test. Research infrastructure is kept, but it no longer sets the pace of product work; no new research programs or one-shot confirmation units are started. Two evidence standards are kept apart: **product evidence** (honest descriptive/heuristic interpretation with uncertainty and provenance) and **research claim** (the existing research contract). "Do not lie" does not mean "do not interpret".
+
+The research posture below is kept as the record of what is sealed and frozen. It is no longer the research-first routing of product work.
+
+Signalbot was in `RESEARCH_FIRST / PRODUCT_BUILD_FROZEN` mode until 2026-10-02.
 
 The synthetic Microscope V3 calibration is closed immutable historical evidence. `V3_METHODOLOGY_CLAIMABLE = NO`, `V3_RERUN_AUTHORIZED = NO`, and `DEFAULT_V4 = NO`. Do not repair/rerun V3 or treat its synthetic PASS cells as a robust market-edge claim.
 
@@ -36,7 +40,7 @@ rather than proliferate RV_ABSTENTION.
 
 There is still no claim of a durable trading edge.
 
-A narrow **descriptive private beta V0.2** is authorized (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`; mode `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN`).
+A narrow **descriptive private beta V0.2** is authorized (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`). Since 2026-10-02 its implementation scope is the build-to-test MUST list of `docs/PRODUCT_FIRST_DECISION_V1.md` §3; `docs/BETA_V0_3_MARKET_BRIEFING.md` is superseded where the two differ (briefing episodes, 24h label, 90-day baselines, separate notifier).
 - **Where it lives:** beta work belongs only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.
 - **What it must never do:** never predictive wording, never V1/V2 changes, never a research promotion without a separate gate.
 - **V0.3 (2026-10-02):** the surface is a market briefing (`docs/BETA_V0_3_MARKET_BRIEFING.md`).
@@ -48,6 +52,7 @@ A narrow **descriptive private beta V0.2** is authorized (`docs/PRIVATE_BETA_V0_
 For any new task, use this authority order:
 
 0. `docs/SIGNALBOT_MANDATE_V1.md` — owner-approved strategic mandate; project success criteria, anti-sycophancy rule, scientific/product/commercial principles. It does not override frozen experiment-specific scientific authorities;
+0a. `docs/PRODUCT_FIRST_DECISION_V1.md` — canonical product decision (2026-10-02): product hypothesis, build-to-test scope, architecture constraint, DO-NOT-BUILD-YET, user-test design. For any product/beta task read it before the beta documents;
 1. `docs/CURRENT_RESEARCH_STATE.md` — compact current routing and exact next unit;
 2. `docs/PROJECT_STATUS.md` — current posture and freeze;
 3. `docs/RESEARCH_ROADMAP.md` — active execution order;
@@ -71,6 +76,8 @@ For the first full Generator V0 campaign, `docs/research/GENERATOR_V0_FIRST_30_C
 Generator V0 mechanism memory is an append-only event chain (`docs/research/generator_v0_memory/`, see `docs/research/GENERATOR_V0_MEMORY_FINALIZER.md`). After a completed campaign, ingest it only with `python -m scripts.research.generator_v0.finalize_memory` (dry-run, then apply, then verify). Never hand-edit `MECHANISM_MEMORY_V0.json`, `BLIND_MECHANISM_MAP_V0.json`, `GOVERNANCE_REGION_AUTHORITY_V0.json` or the context pins: they are derived caches of the chain. Finalization never edits `HYPOTHESIS_GENERATOR_V0_DESIGN.json`, and the blind generator projection must stay outcome-neutral.
 
 ## Hard development freeze
+
+Product work is allowed only inside the build-to-test MUST scope of `docs/PRODUCT_FIRST_DECISION_V1.md` §3 and never inside its §5 DO-NOT-BUILD-YET list. Research work follows `PRODUCT_FIRST_DECISION_V1.md` §1: small, feasibility-confirmed, product-serving only.
 
 Unless a task explicitly changes the project posture, do not build:
 

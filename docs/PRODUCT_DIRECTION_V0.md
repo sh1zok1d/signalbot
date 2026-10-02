@@ -1,6 +1,7 @@
 # Product direction V0 — decision record
 
-**Status:** `OWNER_DIRECTION_RECORDED / NO_SCOPE_AUTHORITY`
+**Status:** `OWNER_DIRECTION_RECORDED / NO_SCOPE_AUTHORITY / PARTLY_SUPERSEDED_2026-10-02`
+**2026-10-02:** `PRODUCT_FIRST_DECISION_V1.md` is the canonical product decision. Superseded here: the claim ledger as a product feature, the evidence corpus as the main product bet, the stricter monetization checkpoint of §6 (payment is tested directly in the 30-day user test, U3) and the diagnosis that only research-backed claims can give a reason to pay. Kept as recorded owner thinking: §2 (what is not a moat), §3.5 (personal decision history, now on the DO-NOT-BUILD-YET list) and §7 positioning.
 **Date:** 2026-10-01
 **Review at:** the beta checkpoint, 4 weeks after the first external user (`PRIVATE_BETA_V0_RESTART_DECISION.md`, success and exit criteria)
 
