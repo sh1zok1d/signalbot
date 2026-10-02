@@ -1,0 +1,130 @@
+{
+ "MAP": "DIVERGENCE_RESEARCH_MAP_V0",
+ "STATUS": "PROGRAM_MAP / NO_DATA_OPENED",
+ "DATE": "2026-10-02",
+ "HUMAN_READABLE_TWIN": "docs/research/DIVERGENCE_RESEARCH_MAP_V0.md",
+ "MARKET_DATA_OPENED_FOR_THIS_MAP": false,
+ "PROTECTED_2025_2026_OPENED": false,
+ "PROTECTED_SPEND_DECIDED": false,
+ "NEW_CARD_REGISTERED": false,
+ "PROGRAM_QUESTION": "Does regular divergence add information to an existing market context (support state), rather than does divergence work on its own",
+ "FIRST_HYPOTHESIS": {
+  "ID": "H-DIV-1",
+  "TEXT": "Regular bullish divergence is close to useless on its own; its value appears when it marks seller exhaustion inside an already confirmed support state.",
+  "ESTIMAND": "(A - B) - (C - D) on the frozen bracket endpoint; prediction A - B > 0 and C - D <= 0",
+  "ORIGIN": "motivated by mechanism; SEED-0001 exploratory numbers are its origin, not evidence (BTC raw interaction +0.16, ETH -0.13, no inference)",
+  "NEXT_CARD_ID": "SEED-0003 or a new research id (SEED-0002 is the hidden-divergence continuation seed)"
+ },
+ "DATA_FACTS_CHECKED_2026_10_02": {
+  "UM_METRICS_OI_5M": "archive objects present for 2020-09-01, 2021-12-01, 2022-06-01",
+  "UM_LIQUIDATION_SNAPSHOT": "404 for 2021-06-01 and 2023-06-01: DATA_GAP, proxy only",
+  "UM_BOOKDEPTH_2023_01_01": [
+   "BTCUSDT",
+   "ETHUSDT",
+   "SOLUSDT",
+   "XRPUSDT",
+   "BNBUSDT",
+   "DOGEUSDT"
+  ],
+  "UM_BOOKDEPTH_BEFORE_2023": "absent (BTCUSDT 2022-06-01: 404)",
+  "UM_KLINES_1M_FIRST_MONTH": "2020-01 (2019-12: 404)",
+  "METHOD": "HTTP status of published .CHECKSUM objects dated before 2025 only; no data object opened"
+ },
+ "SURFACES": [
+  {
+   "SURFACE": "BitMEX XBTUSD 2016-2019",
+   "STATUS": "unopened for divergence",
+   "ROLE": "Track B replication"
+  },
+  {
+   "SURFACE": "Binance UM 2020-01..2022-12",
+   "STATUS": "not used for divergence",
+   "ROLE": "Track B discovery"
+  },
+  {
+   "SURFACE": "Binance UM 2023-2024 BTC/ETH 1h",
+   "STATUS": "CONSUMED by SEED-0001 (exploratory)",
+   "ROLE": "feature discovery only"
+  },
+  {
+   "SURFACE": "Binance UM 2023-2024 other symbols",
+   "STATUS": "outcomes unopened, exposed by correlation",
+   "ROLE": "panel discovery and feasibility"
+  },
+  {
+   "SURFACE": "decisions 2025-01-01..2026-08-11 (T + 96h <= 2026-08-15)",
+   "STATUS": "PROTECTED",
+   "ROLE": "PROPOSED spend for one frozen divergence card"
+  },
+  {
+   "SURFACE": "2026-08-16..2026-08-25T17:20Z",
+   "STATUS": "E1-RUN-001 sealed holdout",
+   "ROLE": "untouchable, including trailing baselines"
+  },
+  {
+   "SURFACE": "2026-08-26..2026-10-04",
+   "STATUS": "PROTECTED",
+   "ROLE": "not proposed"
+  },
+  {
+   "SURFACE": "2026-10-05 onward",
+   "STATUS": "SEED-0001 prospective stream",
+   "ROLE": "prospective only"
+  }
+ ],
+ "PROTECTED_SPEND_CONDITIONS": [
+  "a divergence card is frozen as a twin prereg before any 2025-2026 byte is read",
+  "its outcome-blind feasibility, estimated from 2023-2024 layouts and extrapolation, justifies the spend",
+  "no window, input or trailing baseline touches the E1-RUN-001 holdout [2026-08-16, 2026-08-25T17:20Z)",
+  "the owner releases or explicitly shares D2's 2025 primary / 2026 second confirmation reservation",
+  "one pooled primary on the spend window; 2025 and 2026 reported only as temporal consistency",
+  "AGENTS.md, PROJECT_STATUS.md and a new GV0R02 compiler policy version are updated in the same decision"
+ ],
+ "SPEND_FEASIBILITY_ESTIMATE": {
+  "BTC_A_RATE_PER_YEAR_2023_2024": 18.8,
+  "SPEND_WINDOW_YEARS": 1.6,
+  "BTC_ONLY_REPLICA": {
+   "A_EPISODES": "~30",
+   "POWER_AT_10PP": "~0.15",
+   "MDE80": "~0.30"
+  },
+  "SIX_SYMBOL_PANEL": {
+   "A_EPISODES": "~180",
+   "POWER_AT_10PP": "<= 0.5 (optimistic)",
+   "MDE80": "~0.15-0.20 (optimistic)"
+  },
+  "INTERACTION_CONTRAST": "four cells; needs roughly 4x the information of a two-arm contrast",
+  "CONCLUSION": "a BTC-only replica cannot answer the 10 pp question; a pre-declared panel may answer 15-20 pp; the next unit decides"
+ },
+ "TRACKS": {
+  "A": "book-faithful (bookDepth 2023+); confirmation only on a protected spend or prospective",
+  "B": "long-history flow/OI support proxy; Binance UM 2020-2022 discovery, BitMEX 2016-2019 replication; SURROGATE",
+  "C": "SEED-0001 prospective stream from 2026-10-05"
+ },
+ "DIVERGENCE_TYPE_ORDER": [
+  "regular bullish",
+  "hidden bullish (SEED-0002)",
+  "regular bearish",
+  "hidden bearish"
+ ],
+ "METRICS": {
+  "PRIMARY_CANDIDATE": "P(+1R before -1R within cap)",
+  "SECONDARY": [
+   "P(+2R before -1R)",
+   "forward R at cap"
+  ],
+  "DESCRIPTIVE": [
+   "MFE/MAE in R",
+   "time to MFE",
+   "adverse excursion before the MFE peak"
+  ],
+  "RULE": "one primary per card; a better-looking secondary never replaces it"
+ },
+ "ORDER_OF_WORK": [
+  "DIVERGENCE_PANEL_FEASIBILITY_V0 (outcome-blind; panel BTC, ETH, SOL, XRP, BNB, DOGE fixed before counting; no 2025-2026 byte)",
+  "Track B design and counts (outcome-blind)",
+  "owner decision on the protected spend under PROTECTED_SPEND_CONDITIONS",
+  "freeze SEED-0003 (twin prereg + feasibility), then open the authorized surface once"
+ ],
+ "NEXT_UNIT": "DIVERGENCE_PANEL_FEASIBILITY_V0"
+}

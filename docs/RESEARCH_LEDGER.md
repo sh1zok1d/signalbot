@@ -7360,3 +7360,24 @@ PROTECTED_2025_2026_OPENED = false
 RERUN_AUTHORIZED = false
 NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_EXPLORATORY_OUTCOME_ANALYSIS
 ```
+
+## Divergence research program — map V0 — 2026-10-02
+
+The owner directed that SEED-0001 become a research program on divergences, with the program mapped before any new outcome test. Record: `docs/research/DIVERGENCE_RESEARCH_MAP_V0.{md,json}`.
+- **First hypothesis.** H-DIV-1, the interaction of divergence with a confirmed support state.
+- **Origin.** It is motivated by mechanism. SEED-0001's exploratory numbers are its origin, not evidence.
+- **Spend of 2025–2026.** The owner proposes spending 2025–2026 before the prospective stream on one frozen divergence card. This is not decided.
+- **Conditions in the map:**
+  - the card is frozen first;
+  - its feasibility comes from 2023–2024 layouts;
+  - no access to the E1-RUN-001 holdout `[2026-08-16, 2026-08-25 17:20)`;
+  - an explicit owner decision on D2's 2025/2026 reservation;
+  - policy documents and a new compiler policy version are updated with the decision.
+- **Nothing consumed.** No data was opened and no window was consumed. The only access was HTTP checks of pre-2025 `.CHECKSUM` objects, to establish availability.
+
+```
+DIVERGENCE_RESEARCH_MAP_V0 = PROGRAM_MAP / NO_DATA_OPENED
+PROTECTED_2025_2026_OPENED = false
+PROTECTED_SPEND_DECIDED = false
+NEXT_UNIT = DIVERGENCE_PANEL_FEASIBILITY_V0
+```

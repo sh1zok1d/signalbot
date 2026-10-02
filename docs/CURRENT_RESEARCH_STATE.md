@@ -1,3 +1,28 @@
+## Divergence research program — map V0 — 2026-10-02
+
+`DIVERGENCE_RESEARCH_MAP_V0 = PROGRAM_MAP / NO_DATA_OPENED`
+`PROTECTED_2025_2026_OPENED = false`
+`PROTECTED_SPEND_DECIDED = false (proposal: decisions 2025-01-01..2026-08-11 for one frozen divergence card, under conditions)`
+`NEXT_UNIT = DIVERGENCE_PANEL_FEASIBILITY_V0 (outcome-blind; no 2025-2026 byte)`
+
+This line supersedes `NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_EXPLORATORY_OUTCOME_ANALYSIS` in the section below.
+
+**Map (`docs/research/DIVERGENCE_RESEARCH_MAP_V0.md`).** At the owner's direction, SEED-0001 becomes a program on divergences.
+- **Program question:** does divergence add information to a support state that already exists?
+- **First hypothesis:** H-DIV-1, estimated by the interaction contrast `(A − B) − (C − D)`.
+- **Also in the map:** mechanism features (discovery only), failure-mode questions, Tracks A, B and C, divergence types one card each, and a metrics battery with one primary per card.
+- **Origin of H-DIV-1.** SEED-0001's exploratory numbers are its origin, not evidence. On BTC the divergence increment inside support was about zero, and ETH reversed.
+- **Card name.** The next regular-bullish card is `SEED-0003` or a new id, because `SEED-0002` is the hidden-divergence seed.
+
+**Protected spend (proposed, not decided).** The owner proposes spending 2025–2026, before the prospective stream, on one frozen divergence card. The map supports this under conditions:
+- the card is frozen before any byte is read;
+- its feasibility comes from 2023–2024 layouts;
+- the E1-RUN-001 holdout `[2026-08-16, 2026-08-25 17:20)` stays untouched;
+- D2's 2025/2026 reservation is released or explicitly shared;
+- `AGENTS.md`, `PROJECT_STATUS.md` and a new compiler policy version follow the decision.
+
+**Size of the question.** A BTC-only replica on that window has about 30 A episodes, about 15% power at 10 pp. A six-symbol panel may reach 15–20 pp; the next unit sizes it.
+
 ## SEED-0001 — exploratory outcome analysis complete — 2026-10-02
 
 `SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR (unchanged)`
