@@ -7206,3 +7206,25 @@ LLM_CALLS = 0
 ```
 
 Record: `docs/research/GENERATOR_V0_ANTHROPIC_RESUMABLE_TRANSPORT.{md,json}` (section "r02 budget lineage", key `R02_BUDGET_LINEAGE`).
+
+## SEED-0001 regular divergence card registered — 2026-10-02
+
+The owner's SEED-0001 decisions (2026-10-02) are frozen into a twin preregistration: `docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.{md,json}`.
+- **Retrospective card.** BTCUSDT perp 1h, decisions 2023-01-01..2024-12-28, labelled `RETROSPECTIVE_EVIDENCE` (never a holdout or final confirmation).
+- **Prospective confirmation.** Decisions from 2026-10-05; stop at 30 Arm-A episodes or 2028-10-05, minimum 20.
+  - The protected 2026 segment may be pinned only by metadata; running the detector on it needs an owner decision.
+  - The single analysis needs a separate owner decision.
+- **Primary family.** P1 = A vs B and P2 = A vs C on +1R before −1R within 48h, Holm, both required. +2R and 96h are secondary.
+- **ETH.** Robustness only, identical definitions, never pooled.
+- **Adjustment set.** Prior RV, time of day, decline magnitude and pre-decision net flow, plus the bracket width (design addition, strikable before outcomes).
+- **H05.** The distance is stated; H05 stays closed.
+- **Not consumed.** No window is consumed and no outcome is computed. Only a format probe of one 2023 bookDepth file preceded the freeze.
+
+```
+TF-SEED0001-RD-RETRO1 = REGISTERED_NOT_EXECUTED
+TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED
+SEARCH_FAMILY_ID = SF-OWNER-SEEDS
+MARKET_OUTCOMES_COMPUTED = false
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = SEED0001_OUTCOME_BLIND_FEASIBILITY_COUNT_PASS
+```

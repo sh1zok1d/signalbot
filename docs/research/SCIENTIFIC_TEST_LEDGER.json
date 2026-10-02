@@ -9,6 +9,14 @@
       "REGISTERED_TESTS": 1,
       "SEARCH_FAMILY_ID": "SF-GENERATOR_V0-GV0R01",
       "SOURCE": "Generator V0 campaign GV0R01 (30 generated cards; memory event 416b22fa...)"
+    },
+    {
+      "EXECUTABLE_NOW_CARDS": 0,
+      "EXECUTED_TESTS": 0,
+      "GENERATED_CARDS": 1,
+      "REGISTERED_TESTS": 2,
+      "SEARCH_FAMILY_ID": "SF-OWNER-SEEDS",
+      "SOURCE": "Owner discretionary-practice seeds (HYPOTHESIS_SEED_BACKLOG.md); SEED-0001 card registered 2026-10-02"
     }
   ],
   "TESTS": [
@@ -31,6 +39,51 @@
       "SECONDARY_TEST_COUNT": 7,
       "STATUS": "EXECUTED",
       "TEST_FAMILY_ID": "TF-GV0R01-C013-MT1"
+    },
+    {
+      "CLASSIFICATION": null,
+      "DATASET_ID": "SEED0001_BINANCE_UM_1H_BOOKDEPTH_V0",
+      "EVIDENCE_LABEL": "RETROSPECTIVE_EVIDENCE (BTCUSDT perp 2023-2024; never a holdout or final confirmation)",
+      "EXECUTED": null,
+      "EXECUTION_PERMIT_COMMIT": null,
+      "EXECUTION_PERMIT_PATH": null,
+      "HYPOTHESIS_ID": "SEED0001-RD-V1",
+      "MULTIPLICITY_METHOD": "Holm over P1 (A vs B) and P2 (A vs C); the conclusion needs both; secondaries and ETH robustness descriptive",
+      "PREREG_PATH": "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json",
+      "PREREG_SHA256": "c6f02ecbdd02346e33d3505d6e5353bd0e30abf47a1899d1290f2cccbf6b630c",
+      "PRIMARY_TEST_COUNT": 2,
+      "REGISTERED": "2026-10-02",
+      "RERUN_AUTHORIZED": false,
+      "RESULT_PATH": null,
+      "RESULT_SHA256": null,
+      "ROBUSTNESS_TEST_COUNT": 2,
+      "SEARCH_FAMILY_ID": "SF-OWNER-SEEDS",
+      "SECONDARY_TEST_COUNT": 8,
+      "STATUS": "REGISTERED_NOT_EXECUTED",
+      "TEST_FAMILY_ID": "TF-SEED0001-RD-RETRO1"
+    },
+    {
+      "CLASSIFICATION": null,
+      "DATASET_ID": "SEED0001_BINANCE_UM_PROSPECTIVE_V0",
+      "EVIDENCE_LABEL": "PROSPECTIVE_CONFIRMATION (decisions from 2026-10-05; stop at 30 Arm-A episodes or 2028-10-05; opening needs a separate owner decision)",
+      "EXECUTED": null,
+      "EXECUTION_PERMIT_COMMIT": null,
+      "EXECUTION_PERMIT_PATH": null,
+      "HYPOTHESIS_ID": "SEED0001-RD-V1",
+      "MULTIPLICITY_METHOD": "Holm over P1 and P2, one-sided in the discovery direction; the conclusion needs both",
+      "PREREG_PATH": "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json",
+      "PREREG_SHA256": "c6f02ecbdd02346e33d3505d6e5353bd0e30abf47a1899d1290f2cccbf6b630c",
+      "PRIMARY_TEST_COUNT": 2,
+      "REGISTERED": "2026-10-02",
+      "REPLICATION_OF": "TF-SEED0001-RD-RETRO1",
+      "RERUN_AUTHORIZED": false,
+      "RESULT_PATH": null,
+      "RESULT_SHA256": null,
+      "ROBUSTNESS_TEST_COUNT": 0,
+      "SEARCH_FAMILY_ID": "SF-OWNER-SEEDS",
+      "SECONDARY_TEST_COUNT": 0,
+      "STATUS": "REGISTERED_NOT_STARTED",
+      "TEST_FAMILY_ID": "TF-SEED0001-RD-PROSP1"
     }
   ]
 }

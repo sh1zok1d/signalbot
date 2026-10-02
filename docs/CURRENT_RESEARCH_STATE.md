@@ -1,3 +1,27 @@
+## SEED-0001 regular divergence — card frozen, counts next — 2026-10-02
+
+`SEED0001_CARD = FROZEN_BEFORE_COUNTS_AND_OUTCOMES`
+`TF-SEED0001-RD-RETRO1 = REGISTERED_NOT_EXECUTED`
+`TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED`
+`MARKET_OUTCOMES_COMPUTED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`NEXT_UNIT = SEED0001_OUTCOME_BLIND_FEASIBILITY_COUNT_PASS (counts and power only; outcomes need a separate owner authorization)`
+
+**What is frozen.** `docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.{md,json}`: the owner's regular bullish divergence with order-book support.
+- **Event.** On 1h BTC perps:
+  - a confirmed swing low with a lower low after a ≥3 ATR decline;
+  - book support within 5% from Binance UM `bookDepth`;
+  - ≥2 of 3 divergence families (RSI 14 and 21, MACD line, CVD).
+- **Arms.** A, B, C, D.
+- **Primary.** P1 (A vs B) and P2 (A vs C) on +1R before −1R within 48h, Holm, both required.
+
+**Evidence labels.**
+- **2023–2024 is retrospective evidence only.** It is never a holdout.
+- **Confirmation is prospective.** It covers decisions from 2026-10-05 and stops at 30 Arm-A episodes or 2028-10-05. Its protected 2026 segment needs an owner decision before any detector run, and opening the cohort needs a separate owner decision.
+- **ETH** is robustness only.
+
+**Not active.** `NEXT_UNIT` lines below this section belong to their own programs (beta P1, generator r02).
+
 ## Beta V0.3 — market briefing and analogue gate — 2026-10-02
 
 `BETA_SURFACE = MARKET_BRIEFING (CHANGE_PRODUCT under the frozen exit criteria)`

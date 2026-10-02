@@ -95,7 +95,8 @@ def test_decision_is_wait_and_nothing_executable_was_created():
 
 def test_ledger_registers_no_confirmation_and_keeps_executed_count():
     ledger = json.loads(LEDGER.read_text())
-    assert [t['TEST_FAMILY_ID'] for t in ledger['TESTS']] == ['TF-GV0R01-C013-MT1']
+    gv0r01 = [t for t in ledger['TESTS'] if t['SEARCH_FAMILY_ID'] == 'SF-GENERATOR_V0-GV0R01']
+    assert [t['TEST_FAMILY_ID'] for t in gv0r01] == ['TF-GV0R01-C013-MT1']
     fam = [f for f in ledger['SEARCH_FAMILIES'] if f['SEARCH_FAMILY_ID'] == 'SF-GENERATOR_V0-GV0R01'][0]
     assert fam['EXECUTED_TESTS'] == 1 and fam['REGISTERED_TESTS'] == 1
 
