@@ -347,9 +347,12 @@ async def _hour_gate(conn, cfg: BetaConfig, hour_ctx: Optional[Mapping[str, Any]
     liq = ()
     if hour_ctx and hour_ctx.get("window_start") and hour_ctx.get("window_end"):
         try:
-            liq = await conn.fetch_liquidation_episodes(
-                symbol=cfg.symbol, start=datetime.fromisoformat(hour_ctx["window_start"]),
-                end=datetime.fromisoformat(hour_ctx["window_end"]))
+            # Own savepoint: a SQL error here rolls back only this read, never the
+            # detector transaction it runs in.
+            async with conn.transaction():
+                liq = await conn.fetch_liquidation_episodes(
+                    symbol=cfg.symbol, start=datetime.fromisoformat(hour_ctx["window_start"]),
+                    end=datetime.fromisoformat(hour_ctx["window_end"]))
         except Exception:  # noqa: BLE001 - evidence only; the gate degrades to "no flush"
             liq = ()
     return evaluate_hour(cfg, hour_ctx, liquidation_episodes=liq, snapshot=snapshot)
@@ -375,9 +378,14 @@ async def process_live_bucket(deps: DetectorDeps, cfg: BetaConfig, switches: Bet
             # The rolling 1h/4h readings of THIS bucket, computed once before any push
             # decision (the unusual-hour gate needs the 1h reading) and reused by the
             # projection below. A failure here only means "no readable hour": detection
-            # is unchanged and the projection recomputes in its own savepoint.
+            # is unchanged and the projection recomputes in its own savepoint. The read
+            # runs in its OWN savepoint: a PostgreSQL error inside it rolls back only the
+            # savepoint, so it can never abort this transaction (tape, episodes, push
+            # decisions, watermark).
             try:
-                bucket_ctx = await context_asof(cfg, deps.stage2_config, conn, bucket_ts, rec.snapshot, tape_id)
+                async with conn.transaction():
+                    bucket_ctx = await context_asof(cfg, deps.stage2_config, conn, bucket_ts, rec.snapshot,
+                                                    tape_id)
             except Exception as exc:  # noqa: BLE001 - isolated; the gate fails closed
                 bucket_ctx, context_error = None, type(exc).__name__
             admin_push = await conn.get_admin_push_enabled()
@@ -453,8 +461,10 @@ async def _oi_index(cfg: BetaConfig, conn, bucket_ts: datetime, span: timedelta)
     if fetch is None:
         return None
     try:
-        rows = await fetch(symbol=cfg.symbol, exchanges=list(cfg.exchanges),
-                           start=bucket_ts - span - OI_ASOF_TOLERANCE, end=bucket_ts + BUCKET)
+        # Own savepoint: a SQL error in this read must not abort the caller's transaction.
+        async with conn.transaction():
+            rows = await fetch(symbol=cfg.symbol, exchanges=list(cfg.exchanges),
+                               start=bucket_ts - span - OI_ASOF_TOLERANCE, end=bucket_ts + BUCKET)
     except Exception:  # noqa: BLE001 - OI only; the other metrics are unaffected
         return None
     return OiAsofIndex(rows)

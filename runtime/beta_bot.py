@@ -22,7 +22,7 @@ from beta.access import PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
 from beta.admin import collect_status, fingerprint, handle_admin, is_owner, parse_command
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
-from beta.formatter import assert_descriptive, format_details, format_history
+from beta.formatter import assert_descriptive, format_history
 from beta.i18n import t
 from beta.market_view import build_view, parse_catchup_hours, persist_view
 from common.logging_setup import setup_logging
@@ -215,7 +215,10 @@ class BetaBotHandler:
             else:
                 on = user.get("push_enabled", True)
                 reply = t(lang, "push_usage", state=t(lang, "push_state_on" if on else "push_state_off"))
-            return await self._reply(conn, user, chat_id, lang, now, "cmd_push", [_msg(chat_id, reply, lang=lang)])
+            # detail = the requested state ("on" / "off") or "status": the on/off history is
+            # reconstructable from the activity log, not only the current beta_users value.
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_push", [_msg(chat_id, reply, lang=lang)],
+                                     detail=arg if arg in ("on", "off") else "status")
         if cmd == "brief":
             arg = (args or "").strip().lower()
             if arg in ("on", "off"):
@@ -224,7 +227,8 @@ class BetaBotHandler:
             else:
                 on = user.get("brief_enabled", True)
                 reply = t(lang, "brief_usage", state=t(lang, "brief_state_on" if on else "brief_state_off"))
-            return await self._reply(conn, user, chat_id, lang, now, "cmd_brief", [_msg(chat_id, reply, lang=lang)])
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_brief", [_msg(chat_id, reply, lang=lang)],
+                                     detail=arg if arg in ("on", "off") else "status")
         if cmd == "history":
             rows = await conn.fetch_episode_history(symbol=self.cfg.symbol, limit=HISTORY_LIMIT)
             outcomes = {r["episode_pk"]: await conn.fetch_outcomes(r["episode_pk"]) for r in rows}
@@ -308,12 +312,12 @@ class BetaBotHandler:
                 f"Reply: /admin_reply {fp} &lt;text&gt;")
         return Outgoing(kind="message", chat_id=int(self.owner), html=body)
 
-    async def _note(self, conn, user, action: str, at: datetime) -> None:
+    async def _note(self, conn, user, action: str, at: datetime, detail: Optional[str] = None) -> None:
         if not user or user.get("user_pk") is None:
             return
         try:
             await conn.record_activity(user_pk=user["user_pk"], action=action,
-                                       lang=_lang_of(user), at=at)
+                                       lang=_lang_of(user), at=at, detail=detail)
         except Exception as exc:  # noqa: BLE001 - telemetry must not fail the reply
             logger.warning("beta activity note failed: %s", type(exc).__name__)
 
@@ -327,9 +331,9 @@ class BetaBotHandler:
         user["privacy_notice_version"] = PRIVACY_NOTICE_VERSION
         return [_msg(chat_id, t(lang, "privacy"), lang=lang), *out]
 
-    async def _reply(self, conn, user, chat_id, lang, now, action, out) -> list:
+    async def _reply(self, conn, user, chat_id, lang, now, action, out, detail: Optional[str] = None) -> list:
         if action:
-            await self._note(conn, user, action, now)
+            await self._note(conn, user, action, now, detail)
         return await self._prepend_notice(conn, user, chat_id, lang, out)
 
     async def _btc(self, conn, now: datetime, lang: str):
@@ -456,17 +460,13 @@ class BetaBotHandler:
             return [answer(t(lang, "not_available"))]
         if data == "r:latest":
             return await self._readiness_details(conn, chat_id, answer, lang)
-        if data == "n:latest" or data[0] == "c":
-            # Retired live-state Details. Tabs render only a persisted view.
+        if data == "n:latest" or data[0] in ("c", "d"):
+            # Retired: live-state Details, and the episode Details of older pushes (they
+            # show the detector name, internal id and rules version; decision §3 row 9).
             return [answer(t(lang, "not_available"))]
         ep = await conn.fetch_episode_by_public_id(data[2:])
         if ep is None:
             return [answer(t(lang, "unknown_episode"))]
-        if data[0] == "d":
-            body = [answer(""), _msg(chat_id, format_details(
-                ep, await conn.fetch_transitions(ep.episode_pk), await conn.fetch_outcomes(ep.episode_pk), lang),
-                lang=lang)]
-            return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_details", body)
         if data[0] in ("u", "n"):
             await conn.upsert_feedback(user_pk=user["user_pk"], episode_pk=ep.episode_pk,
                                        vote="USEFUL" if data[0] == "u" else "NOISE")

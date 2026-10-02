@@ -53,7 +53,7 @@ def test_gate_needs_two_extreme_metrics_and_venue_agreement_only_on_mature_ranks
 
 def test_gate_records_the_liquidation_confirmation_from_existing_episodes():
     ep = {"event_type": LIQUIDATION_STRESS_LONG, "triggered_at": iso(T + 3 * BUCKET), "opened_bucket": iso(T + 2 * BUCKET),
-          "last_bucket": iso(T + 4 * BUCKET), "episode_id": "EV-1"}
+          "last_bucket": iso(T + 11 * BUCKET), "episode_id": "EV-1"}          # still qualifying at the decision bucket
     snap = {"rule_evaluations": {LIQUIDATION_STRESS_LONG: {"status": "QUALIFIES", "detail": {
         "voting": ["binance", "bybit", "okx"], "eligible": ["binance", "bybit", "okx"]}}}}
     g = hg.evaluate_hour(CFG, _ctx(price=0.02, oi=0.1, taker=0.1, rng=0.97, vol=0.96),
@@ -112,7 +112,7 @@ def test_push_factual_fallback_and_missing_delta_and_flush_lines():
     text = format_push(_episode(), lang="ru", gate=nodelta)
     assert "Снижение при снижении OI\n" in text and "\nOI +2,4%\nDelta н/д — без неё не интерпретируем\n" in text
     ep = {"event_type": "LIQUIDATION_STRESS_SHORT", "triggered_at": iso(T + BUCKET), "opened_bucket": iso(T),
-          "last_bucket": iso(T + BUCKET), "episode_id": "EV-2"}
+          "last_bucket": iso(T + 11 * BUCKET), "episode_id": "EV-2"}         # covers the decision bucket
     snap = {"rule_evaluations": {"LIQUIDATION_STRESS_SHORT": {"detail": {"voting": ["binance", "okx"],
                                                                          "eligible": ["binance", "bybit", "okx"]}}}}
     flush = hg.evaluate_hour(CFG, _ctx(price=0.96, oi=0.1, taker=0.9, rng=0.5, vol=0.96, move=2.6, oi_pct=-2.9,
@@ -259,3 +259,81 @@ def test_market_block_carries_values_beside_the_labels_and_the_history_days():
     assert block["values"]["1h"]["price_move_pct"] == ctx["price_move_pct_median"]
     assert block["window"]["open"] == pytest.approx(100.0) and block["window"]["close"] == pytest.approx(100.0)
     assert block["interpretation"]["1h"]["key"] == "short_exit"
+
+
+# ---- B2: "против направления цены" only when taker flow opposes the price move ----------------------
+_AGAINST_RU = "против направления цены"
+
+
+@pytest.mark.parametrize("price,oi,taker,oi_missing,against", [
+    (0.96, 0.5, 0.95, False, False),       # rise, OI stable, taker aligned (up)
+    (0.96, 0.5, 0.5, False, False),        # rise, OI stable, taker flat
+    (0.96, 0.5, 0.05, False, True),        # rise, OI stable, taker down: against
+    (0.04, 0.5, 0.05, False, False),       # decline, OI stable, taker aligned (down)
+    (0.04, 0.5, 0.95, False, True),        # decline, OI stable, taker up: against
+    (0.96, 0.1, 0.5, False, False),        # rise, OI down, taker flat (factual fallback)
+    (0.96, 0.1, 0.05, False, True),        # rise, OI down, taker down: against (fallback)
+    (0.04, 0.9, 0.95, False, True),        # decline, OI up, taker up: against (fallback)
+    (0.96, 0.5, 0.95, True, False),        # rise, OI n/a, taker aligned
+    (0.04, 0.5, 0.05, True, False),        # decline, OI n/a, taker aligned
+    (0.04, 0.5, 0.95, True, True),         # decline, OI n/a, taker up: against
+])
+def test_against_wording_only_when_taker_opposes_price_in_push_and_catchup(price, oi, taker, oi_missing, against):
+    move = 1.7 if price > 0.5 else -1.7
+    delta = 50e6 if taker > 0.5 else (-50e6 if taker < 0.5 else 1e6)
+    ctx = _ctx(price=price, oi=oi, taker=taker, rng=0.97, vol=0.96, move=move, delta=delta, oi_pct=0.1)
+    if oi_missing:
+        ctx["oi_change_pct_median"] = None
+        ctx["percentiles"]["oi_change_pct_median"] = {"rank": None, "tier": None}
+    g = hg.evaluate_hour(CFG, ctx)
+    assert g["qualified"] and g["interpretation"]["kind"] == "FACTUAL", g["interpretation"]
+    push = format_push(_episode(), lang="ru", gate=g)
+    assert (_AGAINST_RU in push) is against, push
+    assert ("against the price direction" in format_push(_episode(), lang="en", gate=g)) is against
+    from beta import interpretation as it
+    res = it.interpret(CFG, ctx, horizon="1h")
+    values = {"1h": {"price_move_pct": move, "oi_change_pct": ctx["oi_change_pct_median"],
+                     "taker_delta_notional_usd": delta, "oi_venues": [] if oi_missing else ["binance", "bybit", "okx"]}}
+    text = format_catchup(CFG, _view(_market(res, _interp("4h", price=0.5), values=values)), "ru")
+    line = next(ln for ln in text.split("\n") if ln.startswith("1ч: "))
+    if oi_missing:
+        assert _AGAINST_RU not in line and "OI н/д" in line                    # the OI-n/a line makes no taker claim
+    else:
+        assert (_AGAINST_RU in line) is against, line
+        if not against:
+            assert "Delta +$50 млн" in line or "Delta −$50 млн" in line or "Delta +$1 млн" in line
+    assert_descriptive(push, "ru")
+    assert_descriptive(text, "ru")
+
+
+# ---- B3: liquidation evidence belongs to the confirming episode ------------------------------------
+def test_liquidation_episode_earlier_in_the_hour_with_a_quiet_decision_bucket_prints_no_votes():
+    """The LIQUIDATION_STRESS_LONG episode qualified 12:10-12:30 of the 12:05-13:05 hour and
+    ended; the decision bucket (13:00) is quiet. The label may still read «похоже на вынос
+    лонгов» (an existing episode overlaps the window), but the quiet bucket's votes are not
+    that episode's evidence: no «0 из 3 бирж» line."""
+    ep = {"event_type": LIQUIDATION_STRESS_LONG, "triggered_at": iso(T + 3 * BUCKET), "opened_bucket": iso(T + BUCKET),
+          "last_bucket": iso(T + 5 * BUCKET), "episode_id": "EV-LIQ"}
+    quiet = {"rule_evaluations": {LIQUIDATION_STRESS_LONG: {"status": "NOT_QUALIFIES", "detail": {
+        "voting": [], "eligible": ["binance", "bybit", "okx"]}}}}
+    g = hg.evaluate_hour(CFG, _ctx(price=0.02, oi=0.1, taker=0.1, rng=0.97, vol=0.96, move=-2.4, oi_pct=-2.6,
+                                   delta=-110e6, open_=62300.0, close=60805.0),
+                         liquidation_episodes=[ep], snapshot=quiet)
+    assert g["interpretation"]["key"] == "long_flush"
+    assert g["liquidation"] == {"side": "long", "episode_id": "EV-LIQ"}           # no votes attached
+    text = format_push(_episode(), lang="ru", gate=g)
+    assert "Похоже на вынос лонгов\n" in text
+    assert "Ликвидации" not in text and "0 из 3" not in text
+    assert len(_lines(text)) <= 8
+    # ... and the same stored gate in the /catchup «Необычные часы» block
+    hour = {"decision_ts": iso(T + timedelta(hours=1)), "decision": "SUPPRESSED", "suppression_reason": "DAILY_CAP",
+            "gate": g}
+    cu = format_catchup(CFG, _view(_market(_interp("1h", price=0.5), _interp("4h", price=0.5), unusual=[hour])), "ru")
+    assert "похоже на вынос лонгов" in cu and "0 из 3" not in cu and "Ликвидации" not in cu
+    # a covering episode whose votes are present still prints them
+    covering = dict(ep, last_bucket=iso(T + 11 * BUCKET))
+    loud = {"rule_evaluations": {LIQUIDATION_STRESS_LONG: {"status": "QUALIFIES", "detail": {
+        "voting": ["binance", "okx"], "eligible": ["binance", "bybit", "okx"]}}}}
+    g2 = hg.evaluate_hour(CFG, _ctx(price=0.02, oi=0.1, taker=0.1, rng=0.97, vol=0.96),
+                          liquidation_episodes=[covering], snapshot=loud)
+    assert "Ликвидации лонгов — топ-5% на 2 из 3 бирж" in format_push(_episode(), lang="ru", gate=g2)

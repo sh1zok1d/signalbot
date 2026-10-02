@@ -620,6 +620,15 @@ def _usd_or_na(v, lang: str) -> str:
     return na(lang) if v is None else fmt_usd(float(v), lang, signed=True)
 
 
+def _taker_against_price(res: Mapping[str, Any]) -> bool:
+    """True only when taker flow points AGAINST the price move: price up with taker
+    down, or price down with taker up (BETA_COPY_CONTRACT_V1 §2). Aligned, flat,
+    missing or immature taker flow is never called "against"."""
+    inputs = res.get("inputs") or {}
+    price, taker = inputs.get("price"), inputs.get("taker")
+    return (price == "up" and taker == "down") or (price == "down" and taker == "up")
+
+
 def _gate_state_text(gate: Mapping[str, Any], lang: str) -> str:
     from .interpretation import LABEL_KEYS
     res = gate.get("interpretation") or {}
@@ -629,8 +638,8 @@ def _gate_state_text(gate: Mapping[str, Any], lang: str) -> str:
 
 def _liq_votes_line(gate: Mapping[str, Any], lang: str) -> Optional[str]:
     liq = gate.get("liquidation")
-    if not liq:
-        return None
+    if not liq or not liq.get("voting"):
+        return None            # no votes of the confirming episode at this bucket: no evidence line
     n = len(gate.get("values", {}).get("ranks", {})) and 3
     return t(lang, "liq_votes_line", side=t(lang, "side_" + liq["side"]), k=len(liq.get("voting") or ()),
              n=max(n, len(liq.get("eligible") or ()), 1))
@@ -679,7 +688,9 @@ def _state_body(cfg, res: Mapping[str, Any], values: Mapping[str, Any], h: str, 
             return t(lang, "beside_oi_na", dir=dirn, delta=delta, k=k, n=len(cfg.exchanges))
         if taker in ("MISSING", "IMMATURE", None):
             return t(lang, "beside_delta_na", label=label)
-        return t(lang, "beside_delta_against", label=label, delta=delta)
+        if _taker_against_price(res):
+            return t(lang, "beside_delta_against", label=label, delta=delta)
+        return t(lang, "beside_facts", label=label, pct=pct, oi=oi, delta=delta)
     return t(lang, "data_incomplete")
 
 
@@ -1056,8 +1067,10 @@ def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str
 
 
 def feedback_buttons(public_id: str, lang: str = "en") -> list:
-    return [[(t(lang, "btn_details"), f"d:{public_id}"),
-             (t(lang, "btn_useful"), f"u:{public_id}"),
+    """Useful / Noise under the product push. No Details button: the episode details
+    expose the detector name, internal id and rules version (PRODUCT_FIRST_DECISION_V1
+    §3 row 9, BETA_COPY_CONTRACT_V1 §4). The id travels only in callback data."""
+    return [[(t(lang, "btn_useful"), f"u:{public_id}"),
              (t(lang, "btn_noise"), f"n:{public_id}")]]
 
 
@@ -1131,7 +1144,6 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
             price += t(lang, "price_tail", dir=t(lang, "price_rise_95" if tail == "up" else "price_drop_95"))
         lines.append(price)
     res = gate.get("interpretation") or {}
-    taker = (res.get("inputs") or {}).get("taker")
     oi, delta = values.get("oi_change_pct"), values.get("taker_delta_notional_usd")
     oi_txt = na(lang) if oi is None else fmt_signed_pct(float(oi), lang, nd=1)
     if delta is None:
@@ -1139,7 +1151,7 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
         lines.append(t(lang, "beside_delta_na_bare"))
     else:
         line = t(lang, "oi_delta_line", oi=oi_txt, delta=fmt_usd(float(delta), lang, signed=True))
-        if res.get("kind") == "FACTUAL" and taker in ("up", "down", "flat"):
+        if res.get("kind") == "FACTUAL" and _taker_against_price(res):
             line += t(lang, "delta_against_suffix")
         lines.append(line)
     liq = _liq_votes_line(gate, lang)

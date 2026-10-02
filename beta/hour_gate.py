@@ -19,10 +19,12 @@ so the push text and the «Необычные часы» block of /catchup rende
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Iterable, Mapping, Optional
 
 from .config import LIQUIDATION_STRESS_LONG, LIQUIDATION_STRESS_SHORT, BetaConfig
 from .interpretation import interpret, price_agreement
+from .state_tape import BUCKET
 
 GATE_VERSION = "BETA_HOUR_GATE_V1"
 MIN_EXTREME_METRICS = 2            # fixed by the decision; not a config key
@@ -53,6 +55,23 @@ def _liquidation_votes(snapshot: Optional[Mapping[str, Any]], event_type: str) -
     if voting is None and eligible is None:
         return None
     return {"voting": list(voting or ()), "eligible": list(eligible or ())}
+
+
+def _episode_covers_decision_bucket(episodes: Iterable[Mapping[str, Any]], episode_id: Optional[str],
+                                    window_end: Optional[str]) -> bool:
+    """Whether the confirming liquidation episode's qualifying buckets include the
+    decision bucket (the last bucket of the window). Only then are that bucket's
+    per-venue votes evidence of THIS episode."""
+    if not episode_id or not window_end:
+        return False
+    decision_bucket = datetime.fromisoformat(window_end) - BUCKET
+    for ep in episodes:
+        if ep.get("episode_id") != episode_id or not ep.get("opened_bucket"):
+            continue
+        first = datetime.fromisoformat(ep["opened_bucket"])
+        last = datetime.fromisoformat(ep.get("last_bucket") or ep["opened_bucket"])
+        return first <= decision_bucket <= last
+    return False
 
 
 def evaluate_hour(cfg: BetaConfig, ctx: Optional[Mapping[str, Any]], *,
@@ -99,13 +118,19 @@ def evaluate_hour(cfg: BetaConfig, ctx: Optional[Mapping[str, Any]], *,
         out["status"] = VENUES_DISAGREE
         return out
     out["status"], out["qualified"] = QUALIFIED, True
+    liquidation_episodes = list(liquidation_episodes)
     res = interpret(cfg, ctx, horizon="1h", liquidation_episodes=liquidation_episodes)
     out["interpretation"] = {k: res[k] for k in ("kind", "key", "label", "liquidation_episode", "inputs")}
     if res.get("liquidation_episode") is not None:
         et = LIQUIDATION_STRESS_SHORT if res["key"] == "short_flush" else LIQUIDATION_STRESS_LONG
+        # The decision bucket's per-venue votes are evidence only when the confirming
+        # episode still covers that bucket; an episode from earlier in the hour has no
+        # votes here, and its absence is never printed as "0 of 3".
+        votes = (_liquidation_votes(snapshot, et)
+                 if _episode_covers_decision_bucket(liquidation_episodes, res["liquidation_episode"],
+                                                    ctx.get("window_end")) else None)
         out["liquidation"] = {"side": "short" if et == LIQUIDATION_STRESS_SHORT else "long",
-                              "episode_id": res["liquidation_episode"],
-                              **(_liquidation_votes(snapshot, et) or {})}
+                              "episode_id": res["liquidation_episode"], **(votes or {})}
     return out
 
 

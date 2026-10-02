@@ -404,7 +404,8 @@ def test_delivery_sent_once_ttl_and_user_inactive():
         s = FakeSender()
         r = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(decision_ts + timedelta(seconds=40)))
         assert r["sent"] == 1 and r["materialized"] == 2 and len(s.sent) == 1
-        assert s.sent[0][1].startswith("<b>BTC · unusual hour</b>") and s.sent[0][2][0][0][0] == "Details"
+        assert s.sent[0][1].startswith("<b>BTC · unusual hour</b>")
+        assert [b[0] for b in s.sent[0][2][0]] == ["Useful", "Noise"]       # no Details: it exposed internals
         again = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(decision_ts + timedelta(seconds=100)))
         assert again["sent"] == 0 and len(s.sent) == 1              # never re-sent
         states = await _rows(pool, "SELECT state, suppression_reason FROM beta_notification_deliveries ORDER BY delivery_id")
@@ -537,8 +538,8 @@ def test_bot_unauthorized_admin_join_feedback_delete_me():
         fb = await _rows(pool, "SELECT vote FROM beta_feedback")
         assert fb == [{"vote": "NOISE"}]
         assert await h.handle(_cb(ALICE, f"u:{pid}", 10)) == []          # replayed update id ignored
-        out = await h.handle(_cb(ALICE, f"d:{pid}", 11))
-        assert pid in out[1].html
+        out = await h.handle(_cb(ALICE, f"d:{pid}", 11))          # episode Details are retired
+        assert all(pid not in (getattr(m, "html", "") or "") for m in out)
         await h.handle(_msg(OWNER, "/admin_pause_push", 12))
         out = await h.handle(_msg(OWNER, "/admin_resume_push", 13))
         assert "remains OFF" in out[0].html
@@ -1146,5 +1147,104 @@ def test_push_command_and_admin_known_flag():
         assert audit == [{"action": "admin_known", "result": "OK"}]
         acts = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         assert acts.count("cmd_push") == 2
+        # the on/off history is reconstructable from the activity log, not only the current value
+        await h.handle(_msg(ALICE, "/push on", 9))
+        await h.handle(_msg(ALICE, "/brief off", 10))
+        await h.handle(_msg(ALICE, "/brief", 11))
+        await h.handle(_msg(ALICE, "/brief on", 12))
+        hist = await _rows(pool, "SELECT action, detail FROM beta_user_activity "
+                                 "WHERE action IN ('cmd_push', 'cmd_brief') ORDER BY activity_pk")
+        assert [(r["action"], r["detail"]) for r in hist] == [
+            ("cmd_push", "status"), ("cmd_push", "off"), ("cmd_push", "on"),
+            ("cmd_brief", "off"), ("cmd_brief", "status"), ("cmd_brief", "on")]
+        assert (await _rows(pool, "SELECT push_enabled, brief_enabled FROM beta_users")) == \
+            [{"push_enabled": True, "brief_enabled": True}]
+        await pool.close()
+    run(body())
+
+
+# ------------------------------------------------- context/gate SQL errors never abort detection
+async def _fail_sql(conn):
+    """A real PostgreSQL error on this connection (division by zero)."""
+    await conn.conn.execute("SELECT 1/0")
+
+
+async def _detection_state(pool):
+    tape = await _rows(pool, "SELECT bucket_ts, origin FROM beta_state_tape WHERE origin='LIVE' ORDER BY bucket_ts")
+    wm = await _rows(pool, "SELECT bucket_ts FROM beta_detector_watermark WHERE runner_name=$1", det.DETECTOR)
+    pd = await _rows(pool, "SELECT decision, suppression_reason, gate->>'status' AS st FROM beta_push_decisions")
+    eps = await _rows(pool, "SELECT event_type, state FROM beta_episodes ORDER BY episode_pk")
+    return tape, wm, pd, eps
+
+
+def test_sql_error_in_the_context_read_rolls_back_only_its_savepoint(monkeypatch):
+    """B1: a real PostgreSQL error inside the bucket's context read (aborted SQL state)
+    must not roll back the tape row, the episodes, the push decision or the watermark;
+    the gate degrades to CONTEXT_UNAVAILABLE."""
+    async def body():
+        monkeypatch.setattr(det, "_hour_gate", REAL_HOUR_GATE)
+        real = det.context_asof
+
+        async def broken_context_asof(cfg, stage2_config, conn, *a, **kw):
+            await _fail_sql(conn)                      # raises; the transaction is now aborted
+            return await real(cfg, stage2_config, conn, *a, **kw)
+        monkeypatch.setattr(det, "context_asof", broken_context_asof)
+        pool = await _setup()
+        await _detect(pool, ScenarioReader(down_move), B0, switches=ON_PUSH, cfg=CFG_COMMITTED)
+        r = await _detect(pool, ScenarioReader(down_move), B0 + BUCKET, switches=ON_PUSH, cfg=CFG_COMMITTED)
+        assert r["processed"][-1]["context_error"] == "DivisionByZeroError"
+        assert r["processed"][-1]["push_decisions"][0][1:] == ("SUPPRESSED", "HOUR_NOT_UNUSUAL")
+        tape, wm, pd, eps = await _detection_state(pool)
+        assert [t["bucket_ts"] for t in tape] == [B0, B0 + BUCKET]          # both LIVE rows committed
+        assert wm == [{"bucket_ts": B0 + BUCKET}]                           # watermark advanced
+        assert pd == [{"decision": "SUPPRESSED", "suppression_reason": "HOUR_NOT_UNUSUAL",
+                       "st": "CONTEXT_UNAVAILABLE"}]
+        assert eps and all(e["state"] for e in eps)
+        await pool.close()
+    run(body())
+
+
+def test_sql_error_in_the_oi_read_leaves_detection_and_the_rest_of_the_context(monkeypatch):
+    """B1: the Stage-1 OI range read fails with a real PostgreSQL error; detection still
+    commits and the context is computed without OI."""
+    async def body():
+        from storage.beta_v0_store import BetaConn
+        monkeypatch.setattr(det, "_hour_gate", REAL_HOUR_GATE)
+
+        async def broken_oi(self, **_kw):
+            await _fail_sql(self)
+        monkeypatch.setattr(BetaConn, "fetch_open_interest_range", broken_oi)
+        pool = await _setup()
+        await _detect(pool, ScenarioReader(down_move), B0, switches=ON_PUSH, cfg=CFG_COMMITTED)
+        r = await _detect(pool, ScenarioReader(down_move), B0 + BUCKET, switches=ON_PUSH, cfg=CFG_COMMITTED)
+        assert r["processed"][-1]["push_decisions"][0][1:] == ("SUPPRESSED", "HOUR_NOT_UNUSUAL")
+        tape, wm, pd, _eps = await _detection_state(pool)
+        assert [t["bucket_ts"] for t in tape] == [B0, B0 + BUCKET]
+        assert wm == [{"bucket_ts": B0 + BUCKET}]
+        assert len(pd) == 1
+        await pool.close()
+    run(body())
+
+
+def test_sql_error_in_the_gate_liquidation_read_does_not_abort_the_transaction(monkeypatch):
+    """B1: the gate's liquidation-episode read fails with a real PostgreSQL error inside an
+    open transaction; the transaction stays usable and later writes commit."""
+    async def body():
+        from storage.beta_v0_store import BetaConn
+        from beta.hour_gate import NOT_UNUSUAL
+
+        async def broken_liq(self, **_kw):
+            await _fail_sql(self)
+        monkeypatch.setattr(BetaConn, "fetch_liquidation_episodes", broken_liq)
+        pool = await _setup(live=False)
+        hour = {"window_start": (B0 - timedelta(hours=1)).isoformat(), "window_end": B0.isoformat(),
+                "percentiles": {}}
+        store = BetaStore(pool)
+        async with store.connect() as c:
+            async with c.transaction():
+                gate = await REAL_HOUR_GATE(c, CFG_COMMITTED, hour, {})
+                await c.conn.execute("CREATE TABLE b1_probe (x int)")    # must still run
+        assert gate["status"] in ("IMMATURE", NOT_UNUSUAL)
+        assert await _rows(pool, "SELECT count(*) AS n FROM b1_probe") == [{"n": 0}]
         await pool.close()
     run(body())
