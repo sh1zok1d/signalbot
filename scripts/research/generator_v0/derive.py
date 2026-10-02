@@ -22,7 +22,7 @@ from .models import GENERATOR_MAX_OUTPUT_TOKENS,ROLE_MODEL_MAP,ROLE_REQUEST_PARA
 from .mock import slot_plan
 from .output_schemas import generator_schema_digest,generator_wire_format
 from .runner import GENERATOR_PROMPT,MAX_CONTENT_ATTEMPTS,generator_identity,generator_request_parameters,generator_max_output_tokens,parse_round,round_cards,slot_violations_v02,contract_of_request,CompactRound
-from . import contract,legacy_v01,legacy_v01_schema
+from . import contract,contract_v03,legacy_v01,legacy_v01_schema
 
 DERIVED_STATUS='DERIVED_IMPORTED_REVALIDATED'
 CONTINUATION_STATUS='DERIVED_CONTINUATION_AUTHORIZED'
@@ -185,6 +185,9 @@ def derive_complete_rounds(source_dir,dest_dir,through_generation=1,contexts=Non
         if not isinstance(source_config,dict):raise ContractError('source config missing')
         size=source_config.get('SIZE')
         if type(size)!=int or not 25<=size<=50:raise ContractError('source batch size')
+        if source_config.get('GENERATOR_CONTRACT',contract.CONTRACT_ID)!=contract.CONTRACT_ID:
+            # V03 ladder runs resume in place; cross-run carry-forward is not implemented for them.
+            raise ContractError('derive carry-forward supports GENERATOR_CONTRACT_V02 runs only')
         plan=slot_plan(size)
         rows=_source_calls(db)
         source_lineage=_meta(db,'lineage') or {}
@@ -399,11 +402,15 @@ def proxy_card(slot,contexts,target_bytes,signature_bytes):
     if pad>0:card['CAUSAL_OR_STRUCTURAL_STORY']=card['CAUSAL_OR_STRUCTURAL_STORY']+' '+'x'*(pad-1)
     return card
 
-def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content_attempts=None,margin=None,bound_provider=None):
+def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content_attempts=None,margin=None,bound_provider=None,contract_id=None):
     """Worst-case reservation for everything not yet COMPLETE-imported, through the
     live bound() path. Missing cards are proxies of max(largest known card,
-    OBSERVED_MAX_CARD_BYTES x margin) bytes. No POST."""
-    from .roles import NOVELTY_PROMPT,FEAS_PROMPT,RED_PROMPT,SELECTOR_PROMPT
+    OBSERVED_MAX_CARD_BYTES x margin) bytes. No POST. contract_id selects the slot
+    plan and prompts (default V02; GENERATOR_CONTRACT_V03 = complexity ladder)."""
+    from .roles import NOVELTY_PROMPT,FEAS_PROMPT,RED_PROMPT,SELECTOR_PROMPT,NOVELTY_PROMPT_V03,RED_PROMPT_V03
+    from .runner import campaign_plan,GENERATOR_PROMPT_V03
+    contract_id=contract_id or contract.CONTRACT_ID
+    ladder=contract_id==contract_v03.CONTRACT_ID
     from .context import canonical
     caps=dict(ROLE_OUTPUT_TOKEN_CAPS if caps is None else caps)
     attempts=MAX_CONTENT_ATTEMPTS if content_attempts is None else content_attempts
@@ -412,7 +419,7 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
     # bound_provider: the provider that will actually be called (execution-layer gate);
     # default: the offline OpenAI bound path (CLI/operator preflight).
     provider=bound_provider if bound_provider is not None else _offline_bound_provider(contexts,30_000_000)
-    plan=slot_plan(size)
+    plan=campaign_plan(contract_id,size)
     cards=[c for c in known_cards if isinstance(c,dict)][:size]
     from .roles import current_signatures
     proxy_bytes=max([_ceil(OBSERVED_MAX_CARD_BYTES*margin)]+[len(canonical(c).encode()) for c in cards])
@@ -422,7 +429,7 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
     stages=[];total=0
     for round_n in [n for n in range((size+9)//10) if n not in set(done_rounds)]:
         slots=plan[round_n*10:round_n*10+10]
-        req={'role':'GENERATOR','context':contexts.generator(),'prompt':GENERATOR_PROMPT,
+        req={'role':'GENERATOR','context':contexts.generator(),'prompt':GENERATOR_PROMPT_V03 if ladder else GENERATOR_PROMPT,
              'parameters':generator_request_parameters(slots,generator_max_output_tokens(provider)),**generator_identity(contexts,slots)}
         wire=getattr(provider,'wire_identity_for',None)
         if wire is not None:req.update(wire('GENERATOR',req) or {})
@@ -430,7 +437,7 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
         stages.append(_stage('generation:'+str(round_n),bound))
     critic_tot={'NOVELTY_CRITIC':0,'FEASIBILITY_CRITIC':0,'RED_TEAM':0}
     for card in cards:
-        for role,prompt in (('NOVELTY_CRITIC',NOVELTY_PROMPT),('FEASIBILITY_CRITIC',FEAS_PROMPT),('RED_TEAM',RED_PROMPT)):
+        for role,prompt in (('NOVELTY_CRITIC',NOVELTY_PROMPT_V03 if ladder else NOVELTY_PROMPT),('FEASIBILITY_CRITIC',FEAS_PROMPT),('RED_TEAM',RED_PROMPT_V03 if ladder else RED_PROMPT)):
             ctx=_bound_context(contexts,role,card,cards)
             bound=provider.bound({'role':role,'context':ctx,'prompt':prompt,'parameters':{'max_output_tokens':caps[role]}})
             critic_tot[role]+=bound;total+=bound
@@ -444,14 +451,14 @@ def campaign_bound(contexts,size,known_cards=(),done_rounds=(),caps=None,content
     stages.append(_stage('SELECTOR',selector_bound))
     # The selector is advisory and never retried; every other call may be retried once per content attempt.
     with_retries=total*attempts-selector_bound*(attempts-1)
-    return {'SIZE':size,'CAPS':caps,'CONTENT_ATTEMPTS':attempts,'PROXY_CARD_BYTES':proxy_bytes,'PROXY_SIGNATURE_BYTES':sig_bytes,'PROXY_MARGIN':str(margin),'PROXY_CARDS':size-len([c for c in known_cards if isinstance(c,dict)][:size]),
+    return {'SIZE':size,'GENERATOR_CONTRACT':contract_id,'CAPS':caps,'CONTENT_ATTEMPTS':attempts,'PROXY_CARD_BYTES':proxy_bytes,'PROXY_SIGNATURE_BYTES':sig_bytes,'PROXY_MARGIN':str(margin),'PROXY_CARDS':size-len([c for c in known_cards if isinstance(c,dict)][:size]),
             'STAGES':stages,'WORST_CASE_SINGLE_ATTEMPT_MICRO_USD':total,'WORST_CASE_WITH_CONTENT_RETRIES_MICRO_USD':with_retries}
 
-def fresh_campaign_budget_preflight(size,cap_micro_usd,contexts=None,caps=None,content_attempts=None,margin=None,lineage_prior_micro_usd=0,bound_provider=None):
+def fresh_campaign_budget_preflight(size,cap_micro_usd,contexts=None,caps=None,content_attempts=None,margin=None,lineage_prior_micro_usd=0,bound_provider=None,contract_id=None):
     """Preflight for a run that has no journal yet. No POST, no journal written.
     bound_provider: e.g. routed_provider.offline_routed_provider (default: legacy OpenAI bound path)."""
     contexts=contexts or Contexts()
-    b=campaign_bound(contexts,size,(),(),caps,content_attempts,margin,bound_provider)
+    b=campaign_bound(contexts,size,(),(),caps,content_attempts,margin,bound_provider,contract_id)
     return _preflight_report(b,cap_micro_usd,lineage_prior_micro_usd,0,[],[])
 
 def _preflight_report(b,cap,prior,journal,done,known_rounds):
@@ -471,6 +478,7 @@ def _preflight_report(b,cap,prior,journal,done,known_rounds):
         'REMAINING_GENERATION_ROUNDS':[s['STAGE'] for s in b['STAGES'] if s['STAGE'].startswith('generation:')],
         'PROXY_CARDS':b['PROXY_CARDS'],'PROXY_CARD_BYTES':b['PROXY_CARD_BYTES'],'PROXY_SIGNATURE_BYTES':b['PROXY_SIGNATURE_BYTES'],'PROXY_MARGIN':b['PROXY_MARGIN'],'CAPS':b['CAPS'],'CONTENT_ATTEMPTS':b['CONTENT_ATTEMPTS'],
         'STAGES':b['STAGES'],
+        **({'GENERATOR_CONTRACT':b['GENERATOR_CONTRACT']} if b.get('GENERATOR_CONTRACT')==contract_v03.CONTRACT_ID else {}),
         'NOTE':'Conservative: every remaining critic call is bounded even if already COMPLETE in this journal. Budget exhaustion during a live run stops cleanly (STOPPED_BUDGET) before any POST.',
         'REAL_LLM_CALLS_MADE':False,'SCIENTIFIC_OUTCOMES_COMPUTED':False,
     }
@@ -487,7 +495,7 @@ def ledger_budget_preflight(ledger,contexts,cap=None,size=None,bound_provider=No
         batch=round_cards(ledger.complete_raw(row['CALL_KEY']),row['CONTRACT'])
         if batch is None:raise ContractError('imported round unusable')
         done.append(int(slot.split(':')[1]));cards+=[c for c in batch if isinstance(c,dict)]
-    b=campaign_bound(contexts,size,cards,done,caps,content_attempts,margin,bound_provider)
+    b=campaign_bound(contexts,size,cards,done,caps,content_attempts,margin,bound_provider,cfg.get('GENERATOR_CONTRACT'))
     return _preflight_report(b,cap,ledger.lineage_prior_micro_usd(),ledger.spent_micro_usd(),done,[])
 
 def remaining_campaign_budget_preflight(run_dir,contexts=None,caps=None,content_attempts=None,margin=None,bound_provider=None):

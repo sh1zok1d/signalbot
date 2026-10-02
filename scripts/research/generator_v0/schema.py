@@ -25,14 +25,15 @@ def parse_json(raw):
         raise ContractError('malformed JSON') from e
 
 def validate_card(card, contexts):
-    """Admissible card: GENERATOR_CONTRACT_V02, or an exact grandfathered v0.1 card.
+    """Admissible card: GENERATOR_CONTRACT_V02, a V03 ladder card, or an exact grandfathered v0.1 card.
 
     Intake of generated rounds uses contract.card_violations (per-card
     quarantine) or legacy_v01.admit_card (call-key bound). This function is the
     downstream re-check used by critics, context validation and human mutation.
     """
-    from . import legacy_v01
+    from . import legacy_v01,contract_v03
     if legacy_v01.admitted_by_digest(card,contexts):return card
+    if contract_v03.is_ladder(card):return contract_v03.validate_card_v03(card,contexts)
     return contract.validate_card_v02(card,contexts)
 
 def signature(card):
@@ -53,8 +54,11 @@ def search_surface_provider_schema():
     entry=strict_object({'NAME':{'type':'string'},'VALUES':{'type':'array','minItems':1,'items':value}})
     return strict_object({'MAX_VARIANTS':{'type':'integer','minimum':1,'maximum':100},'PARAMETERS':{'type':'array','minItems':1,'items':entry}})
 
-def output_schema(contexts,*,provider=False,slot=None):
-    """One V02 card. With a slot, identity fields are pinned to one-value enums."""
+def output_schema(contexts,*,provider=False,slot=None,ladder_classes=None):
+    """One V02 card. With a slot, identity fields are pinned to one-value enums.
+    V03 (contract_v03): a ladder slot pins COMPLEXITY_CLASS and adds COMPONENTS;
+    ladder_classes does the same for a slot-free (compact or application) schema.
+    Without either, the schema is the unchanged V02 schema."""
     d=contexts.design
     taxonomy=sorted(d['DATA_STATUS_TAXONOMY'])
     props={k:{'type':'string'} for k in d['CANDIDATE_SCHEMA']['REQUIRED_FIELDS']}
@@ -72,6 +76,10 @@ def output_schema(contexts,*,provider=False,slot=None):
          'LEGAL_RANGE':{'type':'string','pattern':LEGAL_RANGE_PATTERN}}
     props['DATA_REQUIRED']={'type':'array','minItems':1,'maxItems':contract.MAX_DATA_ROWS,'items':strict_object(row)}
     props['SEARCH_SURFACE']=search_surface_provider_schema() if provider else search_surface_application_schema()
+    if slot is not None and 'COMPLEXITY_CLASS' in slot:ladder_classes=[slot['COMPLEXITY_CLASS']]
+    if ladder_classes:
+        props['COMPLEXITY_CLASS']={'type':'string','enum':sorted(set(ladder_classes))}
+        props['COMPONENTS']={'type':'array','maxItems':5,'items':{'type':'string'}}
     return strict_object(props)
 
 def normalize_search_surface(surface):

@@ -24,9 +24,11 @@ from .models import GENERATOR_MAX_OUTPUT_TOKENS,ROLE_OUTPUT_TOKEN_CAPS
 from .provider import BilledFailure,ProviderThrottled,ProviderRejected,BackgroundPending
 from .output_schemas import (generator_round_schema_digest,generator_wire_format,
                              ANTHROPIC_GENERATOR_WIRE_FORMAT,KEYED_GENERATOR_WIRE_FORMAT)
-from . import contract,legacy_v01
+from . import contract,contract_v03,legacy_v01
+from .complexity import complexity_shortlist,SHORTLIST_QUOTA
 
 GENERATOR_PROMPT=contract.generator_prompt()
+GENERATOR_PROMPT_V03=contract_v03.generator_prompt()
 MIN_VALID_CANDIDATES=25
 MAX_CONTENT_ATTEMPTS=2
 # Generator content is not retried. Critics keep MAX_CONTENT_ATTEMPTS.
@@ -49,8 +51,27 @@ def diversity(cards,c):
     if counts['NEW_FAMILY_PROPOSAL']<8:raise ContractError('new-family attempts missing')
     if len({x['INFORMATION_SOURCE'] for x in cards})<6:raise ContractError('source diversity')
 
+def ladder_slots(slots):
+    """A round is V03 iff its slots carry COMPLEXITY_CLASS; mixing is refused."""
+    flags={contract_v03.is_ladder(s) for s in slots}
+    if len(flags)>1:raise ContractError('round mixes V02 and V03 ladder slots')
+    return flags=={True}
+
 def generator_identity(c,slots):
+    if ladder_slots(slots):
+        return {'output_contract':contract_v03.CONTRACT_ID,'output_schema_digest':generator_round_schema_digest(c,slots),
+                'prompt_version':contract_v03.PROMPT_VERSION}
     return {'output_contract':contract.CONTRACT_ID,'output_schema_digest':generator_round_schema_digest(c,slots)}
+
+def campaign_contract(ledger):
+    """GENERATOR_CONTRACT from the run config; absent means V02 (every existing run)."""
+    value=(ledger.get('config') or {}).get('GENERATOR_CONTRACT',contract.CONTRACT_ID)
+    if value not in (contract.CONTRACT_ID,contract_v03.CONTRACT_ID):raise ContractError('unknown generator contract')
+    return value
+
+def campaign_plan(contract_id,size):
+    if contract_id==contract_v03.CONTRACT_ID:return contract_v03.slot_plan(size)
+    return slot_plan(size)
 
 def generator_max_output_tokens(provider=None):
     """The routed provider's GENERATOR route cap; the legacy OpenAI/mock cap otherwise."""
@@ -90,7 +111,12 @@ def slot_violations_v02(card,c,slot):
         validate_instance(card,output_schema(c,provider=True,slot=slot))
         card=decode_provider_card(card)
     except ContractError as e:return [{'RULE':'PROVIDER_SCHEMA','DETAIL':str(e)}],card
-    return contract.card_violations(card,c,slot),card
+    return card_violations_for(card,c,slot),card
+
+def card_violations_for(card,c,slot):
+    """V03 rules for a ladder slot, V02 rules otherwise."""
+    if contract_v03.is_ladder(slot):return contract_v03.card_violations(card,c,slot)
+    return contract.card_violations(card,c,slot)
 
 def round_cards(raw,contract_id=contract.CONTRACT_ID,wire=KEYED_GENERATOR_WIRE_FORMAT):
     """Parsed round as a list of application cards (summaries, preflight); None if unusable."""
@@ -115,7 +141,10 @@ def call_wire_format(ledger,key):
     return generator_wire_format(json.loads(row[0]) if row else None)
 
 def contract_of_request(request):
-    return legacy_v01.CONTRACT_ID if request.get('prompt_version')==legacy_v01.PROMPT_VERSION else contract.CONTRACT_ID
+    version=request.get('prompt_version')
+    if version==legacy_v01.PROMPT_VERSION:return legacy_v01.CONTRACT_ID
+    if version==contract_v03.PROMPT_VERSION:return contract_v03.CONTRACT_ID
+    return contract.CONTRACT_ID
 
 def _round_output(c,ledger,caller,round_n,slots):
     """(contract, call_key, cards or None, failure reasons)."""
@@ -124,16 +153,19 @@ def _round_output(c,ledger,caller,round_n,slots):
     if imported:
         return imported['CONTRACT'],imported['CALL_KEY'],parse_round(ledger.complete_raw(imported['CALL_KEY']),imported['CONTRACT'],call_wire_format(ledger,imported['CALL_KEY'])),['imported output is not a usable round']
     reasons=[];key=None
+    ladder=ladder_slots(slots)
+    contract_id=contract_v03.CONTRACT_ID if ladder else contract.CONTRACT_ID
+    prompt=GENERATOR_PROMPT_V03 if ladder else GENERATOR_PROMPT
     for attempt in range(GENERATOR_CONTENT_ATTEMPTS):
         try:
-            raw=caller.call('GENERATOR',c.generator(),GENERATOR_PROMPT,generator_request_parameters(slots,generator_max_output_tokens(caller.provider)),slot_id,content_attempt=attempt,identity=generator_identity(c,slots))
+            raw=caller.call('GENERATOR',c.generator(),prompt,generator_request_parameters(slots,generator_max_output_tokens(caller.provider)),slot_id,content_attempt=attempt,identity=generator_identity(c,slots))
         except BilledFailure as e:
             reasons.append('attempt '+str(attempt)+': '+str(e));key=caller.last_key;continue
         key=caller.last_key
-        cards=parse_round(raw,contract.CONTRACT_ID,call_wire_format(ledger,key))
-        if cards is not None:return contract.CONTRACT_ID,key,cards,reasons
+        cards=parse_round(raw,contract_id,call_wire_format(ledger,key))
+        if cards is not None:return contract_id,key,cards,reasons
         reasons.append('attempt '+str(attempt)+': unusable generation output')
-    return contract.CONTRACT_ID,key,None,reasons
+    return contract_id,key,None,reasons
 
 def _intake_round(c,ledger,round_n,slots,contract_id,key,cards,failure):
     """Per-slot VALID/HARD_FAIL. Returns admitted cards in slot order.
@@ -170,7 +202,7 @@ def _intake_round(c,ledger,round_n,slots,contract_id,key,cards,failure):
             except ContractError as e:state,reasons='HARD_FAIL',[{'RULE':'LEGACY_V01','DETAIL':str(e)}]
         else:
             if keyed:reasons,card=slot_violations_v02(card,c,slot)
-            else:reasons=contract.card_violations(card,c,slot)
+            else:reasons=card_violations_for(card,c,slot)
             state='HARD_FAIL' if reasons else 'VALID'
         ledger.record_candidate(cid,slot_id,key,contract_id,state,card,reasons)
         if state=='VALID':admitted.append(card)
@@ -299,8 +331,10 @@ def _resolution(status):
     }[status]
 
 def _run(c,caller,ledger,size,prior_status):
-    plan=slot_plan(size)
+    contract_id=campaign_contract(ledger)
+    plan=campaign_plan(contract_id,size)
     diversity(plan,c)
+    if contract_id==contract_v03.CONTRACT_ID:contract_v03.ladder_diversity(plan)
     cards=[]
     for round_n,start in enumerate(range(0,size,10)):
         slots=plan[start:start+10]
@@ -358,11 +392,19 @@ def _run(c,caller,ledger,size,prior_status):
     metrics=dict(base_metrics,REVIEWED=len(cards)-len(review_failed),REVIEW_FAILED=len(review_failed),
                  CRITIC_COMPLETIONS=dict(sorted(stats['COMPLETED'].items())),CONTENT_RETRIES=dict(sorted(stats['CONTENT_RETRIES'].items())),
                  REVIEW_FAILED_BY_ROLE=dict(sorted(stats['REVIEW_FAILED'].items())),SELECTOR_ADVISORY=advisory['STATUS'])
-    result={'STATUS':'PENDING_HUMAN_REVIEW','CONTRACT':contract.CONTRACT_ID,'EVIDENCE_KIND':'INFRASTRUCTURE_ONLY' if not caller.provider.real else 'UNEXECUTED_SHADOW_IDEATION',
+    if contract_id==contract_v03.CONTRACT_ID:
+        seats=complexity_shortlist(order,{card['CANDIDATE_ID']:card['COMPLEXITY_CLASS'] for card,_ in streams})
+        shortlist=[p['CANDIDATE_ID'] for p in seats]
+        shortlist_rule={'AUTHORITY':'COMPLEXITY_QUOTA_OVER_DETERMINISTIC_ORDINAL_ORDER','QUOTA':dict(SHORTLIST_QUOTA),
+                        'FALLBACK':'unfilled seat passes down the ladder (COMPLEX -> CONDITIONAL -> ATOMIC), never up','SEATS':seats}
+    else:
+        shortlist,shortlist_rule=order[:5],None
+    result={'STATUS':'PENDING_HUMAN_REVIEW','CONTRACT':contract_id,'EVIDENCE_KIND':'INFRASTRUCTURE_ONLY' if not caller.provider.real else 'UNEXECUTED_SHADOW_IDEATION',
             'CANDIDATES':cards,'REVIEWS':reviews,'HARD_FAILS':hard,'REVIEW_FAILED':review_failed,
             'STREAM_A':[card['CANDIDATE_ID'] for card,stream in streams if stream=='EXECUTABLE_NOW'],'STREAM_B':[card['CANDIDATE_ID'] for card,stream in streams if stream=='HIGH_VALUE_DATA_BLOCKED'],
-            'SHORTLIST':order[:5],'SELECTOR_AUTHORITY':'DETERMINISTIC_ORDINAL_ORDER','SELECTOR_ADVISORY':advisory,
+            'SHORTLIST':shortlist,'SELECTOR_AUTHORITY':'DETERMINISTIC_ORDINAL_ORDER','SELECTOR_ADVISORY':advisory,
             'DATA_GAP_LEDGER_V0':gaps,'SELECTION_JUDGMENTS':selection,'METRICS':metrics,'SPEND':_spend(ledger)}
+    if shortlist_rule is not None:result['SHORTLIST_RULE']=shortlist_rule
     result['SEMANTIC_RESULT_DIGEST']=digest(result)
     with ledger.transaction():
         for card,review in zip(cards,reviews):

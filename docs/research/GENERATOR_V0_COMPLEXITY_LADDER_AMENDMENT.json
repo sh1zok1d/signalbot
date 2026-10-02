@@ -1,0 +1,182 @@
+{
+  "KIND": "GENERATOR_V0_DESIGN_AMENDMENT",
+  "ID": "GENERATOR_V0_COMPLEXITY_LADDER_AMENDMENT",
+  "DATE": "2026-10-02",
+  "AUTHORITY": "owner decision 2026-10-02 (complexity ladder; slot mix 16/14/7/3; shortlist 2/2/1; class assigned before the LLM call)",
+  "CONTRACT_ID": "GENERATOR_CONTRACT_V03",
+  "PROMPT_VERSION": "generator-v0.3",
+  "BASE_CONTRACT": "GENERATOR_CONTRACT_V02 (unchanged)",
+  "CARD_FIELDS_ADDED": [
+    "COMPLEXITY_CLASS",
+    "COMPONENTS"
+  ],
+  "COMPLEXITY_CLASSES": [
+    "ATOMIC",
+    "CONDITIONAL",
+    "INTERACTION",
+    "COMPOSITE"
+  ],
+  "COMPONENT_COUNTS": {
+    "ATOMIC": 0,
+    "CONDITIONAL": 0,
+    "INTERACTION": 2,
+    "COMPOSITE": "3-5"
+  },
+  "SLOT_PLAN": {
+    "SIZE": 40,
+    "MIX": {
+      "ATOMIC": 16,
+      "CONDITIONAL": 14,
+      "INTERACTION": 7,
+      "COMPOSITE": 3
+    },
+    "ASSIGNED": "deterministically to the slot before any LLM call; the model copies it and never chooses",
+    "PER_ROUND": [
+      {
+        "ATOMIC": 4,
+        "CONDITIONAL": 4,
+        "INTERACTION": 2,
+        "COMPOSITE": 0
+      },
+      {
+        "ATOMIC": 4,
+        "CONDITIONAL": 3,
+        "INTERACTION": 2,
+        "COMPOSITE": 1
+      },
+      {
+        "ATOMIC": 4,
+        "CONDITIONAL": 4,
+        "INTERACTION": 1,
+        "COMPOSITE": 1
+      },
+      {
+        "ATOMIC": 4,
+        "CONDITIONAL": 3,
+        "INTERACTION": 2,
+        "COMPOSITE": 1
+      }
+    ],
+    "LADDER_SLOT_CLASSES_40": [
+      "ATOMIC",
+      "CONDITIONAL",
+      "INTERACTION",
+      "ATOMIC",
+      "CONDITIONAL",
+      "ATOMIC",
+      "CONDITIONAL",
+      "INTERACTION",
+      "ATOMIC",
+      "CONDITIONAL",
+      "CONDITIONAL",
+      "ATOMIC",
+      "ATOMIC",
+      "COMPOSITE",
+      "CONDITIONAL",
+      "INTERACTION",
+      "ATOMIC",
+      "CONDITIONAL",
+      "INTERACTION",
+      "ATOMIC",
+      "INTERACTION",
+      "CONDITIONAL",
+      "ATOMIC",
+      "CONDITIONAL",
+      "ATOMIC",
+      "COMPOSITE",
+      "CONDITIONAL",
+      "ATOMIC",
+      "CONDITIONAL",
+      "ATOMIC",
+      "ATOMIC",
+      "CONDITIONAL",
+      "COMPOSITE",
+      "ATOMIC",
+      "INTERACTION",
+      "CONDITIONAL",
+      "ATOMIC",
+      "CONDITIONAL",
+      "INTERACTION",
+      "ATOMIC"
+    ]
+  },
+  "RULES_ADDED": [
+    {
+      "ID": "COMPONENTS",
+      "ENFORCEMENT": "VALIDATOR"
+    },
+    {
+      "ID": "MAIN_EFFECT_BASELINE",
+      "ENFORCEMENT": "VALIDATOR"
+    },
+    {
+      "ID": "COMPLEXITY_RUNG",
+      "ENFORCEMENT": "CRITIC"
+    },
+    {
+      "ID": "SIMPLE_IS_NOT_BANAL",
+      "ENFORCEMENT": "CRITIC"
+    }
+  ],
+  "RULES_REWORDED": [
+    "SCHEMA_FIELDS (29 fields)",
+    "SLOT_IDENTITY (copies COMPLEXITY_CLASS)"
+  ],
+  "CRITIC_ENFORCEMENT": {
+    "COMPLEXITY_RUNG": "RED_TEAM.CHECKS.RUNG_CONSISTENT",
+    "SIMPLE_IS_NOT_BANAL": "NOVELTY_CRITIC.JUDGMENTS (NOVELTY, MECHANISM_DISTANCE)"
+  },
+  "INTERACTION_COMPOSITE_RULE": "each component's main effect is controlled in BASELINE_OR_NULL; the joint term is the mechanism; components need not have effects of their own",
+  "SHORTLIST": {
+    "QUOTA": {
+      "ATOMIC": 2,
+      "CONDITIONAL": 2,
+      "COMPLEX": 1
+    },
+    "COMPLEX": [
+      "INTERACTION",
+      "COMPOSITE"
+    ],
+    "ORDER": "existing deterministic ordinal order",
+    "FALLBACK": "unfilled seat passes down the ladder (COMPLEX -> CONDITIONAL -> ATOMIC), never up"
+  },
+  "VERSIONING": "by slot and card content: a V02 slot plan has no COMPLEXITY_CLASS, so every V02 schema, prompt, digest, check and campaign result is byte-identical; run config GENERATOR_CONTRACT selects V03",
+  "V02_IDENTITY_EVIDENCE": {
+    "GENERATOR_SCHEMA_DIGEST": "34a3a203491c1a0a6fa4248878e1b26d9ee2696ef69396a0c2e956d83806af52",
+    "ANTHROPIC_SCHEMA_DIGEST": "662b9f08b636cbf3ea0a68b9d8a0667deec2714a93cada79cc7bd9b0b35914b7",
+    "GENERATOR_PROMPT_SHA256": "b5bb822f24296973a9abb52f35e6609bb9f21ee5cfdb8d3bd469a5ce3852869c",
+    "MOCK_CAMPAIGN_SEMANTIC_RESULT_DIGEST_MAIN_EQUALS_BRANCH": "cc6a5179eb0f9f4f5c2825f9a143232f54a777bd628e639bdd50aeefc7c6b7ed"
+  },
+  "V03_IDENTITY": {
+    "LADDER_SLOT_CLASSES_40_SHA256": "2a6ec9dde198893d342d05096b43390dd26e728e414f7c64bccf85f94b044545",
+    "SLOT_PLAN_V03_SHA256": "0d5f278328b23942f255691af111181b1b2e6090f5facd1aa3f6eb2923c3e5db",
+    "RULES_V03_SHA256": "6f8d60eebf3282073ded8b073afcfdf26e184459985294faa5572b55f2ba6c64",
+    "GENERATOR_PROMPT_V03_SHA256": "ab13b3bf09407e3bc3197bfc97c481f3defefe301f6e9b834a43601b7fb44d94",
+    "NOVELTY_PROMPT_V03_SHA256": "a3756778eb92dff99cc047ce449dc979c1769d78f5f54fe6d1907c61387ca276",
+    "RED_PROMPT_V03_SHA256": "b902e0719be30866aa9d690f93cb9af8d1b234be600b9e5c6ea41fd197e835b6",
+    "ROUND_SCHEMA_DIGESTS_V03": [
+      "ad852706494957cb5a1ca9328cbbcc8eca7b8eb2feb1bb23dd04213edd1038be",
+      "6be25a59ffdf73249f40506b24e2d2f449489064867e0d30ab839e8428b26809",
+      "d3d642a8aba230eed67ef73715eb42aeec25751ac1177b027bfb6a5b3cf120e2",
+      "4486e7b44807c5d8663a87f626b6b804623b8188f294d4cdef59b6161699d277"
+    ]
+  },
+  "UNCHANGED": [
+    "HYPOTHESIS_GENERATOR_V0_DESIGN.json",
+    "context pins and mechanism-memory chain",
+    "GENERATOR_CONTRACT_V02 (contract.py)",
+    "role routing, models, reasoning effort, output caps",
+    "ROLE_CONTEXT_MATRIX (ladder definitions travel in prompts and the card, not in critic context)",
+    "first-30-card command (V02 only)"
+  ],
+  "LIMITATIONS": [
+    "derive carry-forward refuses V03 runs (resume in place only)",
+    "resume of a V03 run requires --contract V03 (config must be identical)",
+    "memory_finalizer refuses a V03 campaign (RED_TEAM checks shape); extend it before ingesting the ladder campaign",
+    "SIMPLE_IS_NOT_BANAL is judged by the novelty critic, not mechanically"
+  ],
+  "ENTRY_POINT": "python -m scripts.research.generator_v0 ladder-40-card --allow-real-llm --budget-usd <cap> [--accept-budget-stop --actor owner --reason ...] --run-dir <dir>",
+  "LLM_CALLS": 0,
+  "MARKET_OUTCOMES_OPENED": false,
+  "NEXT_UNIT": "GENERATOR_V0_FRESH_SHADOW_CAMPAIGN (paid; owner budget, roles and call counts required)"
+}

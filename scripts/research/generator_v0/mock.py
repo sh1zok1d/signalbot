@@ -45,6 +45,10 @@ def fixture(slot,contexts):
     if i==2:card.update(NEAREST_TESTED_MECHANISM='B2-06',FUNCTION='Unresolved original crowding card')
     if i==3:card['NO_LOOKAHEAD_RULE']='Use a future observation as the predictor at T.'
     if i==4:card['OBSERVABLE']='L2 depth from daily kline catalog'
+    if 'COMPLEXITY_CLASS' in slot:   # V03 ladder slot (contract_v03); V02 fixtures are unchanged
+        from .contract_v03 import fixture_components
+        card['COMPONENTS']=fixture_components(slot)
+        if card['COMPONENTS']:card['BASELINE_OR_NULL']+='; main effects of '+', '.join(card['COMPONENTS'])+' are in the baseline'
     return card
 
 class MockResponder:
@@ -72,5 +76,8 @@ class MockResponder:
         if role=='FEASIBILITY_CRITIC':
             ready=card['DATA_STATUS']=='DATA_READY'
             return canonical({'DATA_STATUS':card['DATA_STATUS'],'CHECKS':{'OBSERVABLE_SUPPORTED':ready and 'L2 depth' not in card['OBSERVABLE'],'LEGAL_RANGE':True,'POINT_IN_TIME':ready,'PROVENANCE':ready,'BLOCKER_RESOLVED':True},'JUDGMENTS':{k:score for k in FEAS_DIMENSIONS},'FEASIBILITY':3 if ready else 1,'CHEAPNESS':score})
-        if role=='RED_TEAM':return canonical({'CHECKS':{'NO_LOOKAHEAD':'future observation as the predictor' not in card['NO_LOOKAHEAD_RULE'],'CAUSALITY':True,'FALSIFIABLE':True,'BOUNDED_SEARCH':True,'CONFOUNDING_ADDRESSED':True,'NO_TRADING_CLAIM':True},'JUDGMENTS':{k:score for k in RED_DIMENSIONS}})
+        if role=='RED_TEAM':
+            checks={'NO_LOOKAHEAD':'future observation as the predictor' not in card['NO_LOOKAHEAD_RULE'],'CAUSALITY':True,'FALSIFIABLE':True,'BOUNDED_SEARCH':True,'CONFOUNDING_ADDRESSED':True,'NO_TRADING_CLAIM':True}
+            if 'COMPLEXITY_CLASS' in card:checks['RUNG_CONSISTENT']=True
+            return canonical({'CHECKS':checks,'JUDGMENTS':{k:score for k in RED_DIMENSIONS}})
         raise ValueError(role)
