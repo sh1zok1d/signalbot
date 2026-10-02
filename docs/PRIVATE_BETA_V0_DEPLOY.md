@@ -166,6 +166,14 @@ Run this after the detector is active. The SQL file is read-only (`BEGIN TRANSAC
 psql "$DSN" \
   -v deploy_ts='<UTC deployment timestamp>' \
   -f deploy/signalbot-beta-smoke.sql
+
+# If regime_d7.enabled is true, also pass a timestamp from which D7 hour-state
+# coverage is expected to be continuous:
+psql "$DSN" \
+  -v deploy_ts='<UTC deployment timestamp>' \
+  -v d7_enabled=true \
+  -v d7_deploy_ts='<UTC D7 coverage start>' \
+  -f deploy/signalbot-beta-smoke.sql
 ```
 
 `deploy_ts` is UTC, for example `2026-09-25 18:00:00+00`. The script scores 5m buckets that start at or after that time and have already closed.
