@@ -1,0 +1,28 @@
+{
+  "KIND": "GENERATOR_V0_CURSOR_DIRECT_TRANSPORT",
+  "DATE": "2026-10-02",
+  "STATUS": "IMPLEMENTED_OFFLINE",
+  "CURSOR_DIRECT_TRANSPORT": "implementation/infrastructure amendment only",
+  "SCIENTIFIC_DESIGN_CHANGED": false,
+  "LIVE_LLM_CALLS": 0,
+  "LADDER_40_DEFAULT": "CLOUD_PROXY",
+  "LADDER_40_EXPLICIT_DIRECT": true,
+  "FIRST_30_FORCES": "CLOUD_PROXY",
+  "HTTPS_PROXY_SELECTS_MODE": false,
+  "DIRECT_CREDENTIALS": [
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY"
+  ],
+  "PROVENANCE": "OPENAI_NETWORK_MODE recorded in transport identity; resume across different modes is rejected by run-config identity",
+  "SCIENTIFIC_INVARIANTS": [
+    "GENERATOR_CONTRACT_V03",
+    "models",
+    "prompts",
+    "schemas",
+    "role routing",
+    "complexity slots",
+    "critic rules",
+    "shortlist quota",
+    "budget-stop semantics"
+  ]
+}

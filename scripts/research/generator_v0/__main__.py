@@ -78,7 +78,7 @@ def main(argv=None):
     p.add_argument('--evidence',default='')
     p.add_argument('--active-minutes',type=float,default=0)
     p.add_argument('--accept-budget-stop',action='store_true',help='live run/resume even though the worst case exceeds the authorized remainder (requires --actor and --reason; recorded)')
-    p.add_argument('--openai-network-mode',choices=['DIRECT','CLOUD_PROXY'],default='DIRECT',help='CLOUD_PROXY is explicit Cloud Agent OpenAI binding; never inferred from HTTPS_PROXY')
+    p.add_argument('--openai-network-mode',choices=['DIRECT','CLOUD_PROXY'],default=None,help='explicit OpenAI transport for routed runs; ladder-40-card defaults to CLOUD_PROXY, while DIRECT is supported for Cursor/local environments; never inferred from HTTPS_PROXY')
     p.add_argument('--contract',choices=['V02','V03'],default='V02',help='V03 = complexity-ladder card contract (40 slots)')
     p.add_argument('--field')
     p.add_argument('--value-json')
@@ -88,8 +88,10 @@ def main(argv=None):
         if a.contract!='V02':raise ContractError('first-30-card is the frozen V02 campaign')
         if not a.allow_real_llm:raise ContractError('first-30-card requires --allow-real-llm and a nonzero budget')
     if a.command=='ladder-40-card':
-        a.size=40;a.provider='routed';a.openai_network_mode='CLOUD_PROXY';a.contract='V03'
+        a.size=40;a.provider='routed';a.contract='V03'
+        if a.openai_network_mode is None:a.openai_network_mode='CLOUD_PROXY'
         if not a.allow_real_llm:raise ContractError('ladder-40-card requires --allow-real-llm and a nonzero budget')
+    if a.openai_network_mode is None:a.openai_network_mode='DIRECT'
     from .runner import campaign_plan
     contract_id={'V02':'GENERATOR_CONTRACT_V02','V03':'GENERATOR_CONTRACT_V03'}[a.contract]
     if a.contract=='V03' and a.size!=40:raise ContractError('the V03 ladder plan is frozen for 40 slots')

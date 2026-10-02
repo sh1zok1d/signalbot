@@ -86,3 +86,8 @@ The cap of USD 12 is below the worst case, so the run uses `--accept-budget-stop
 1. The owner's live authorization, naming the budget, roles and call limits.
 2. `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` in the environment; both are absent in the preparing session.
 3. A verified `main` checkout.
+
+
+## Transport note — 2026-10-02
+
+A later infrastructure-only amendment (`GENERATOR_V0_CURSOR_DIRECT_TRANSPORT`) allows Cursor/local execution to add explicit `--openai-network-mode DIRECT` when both direct provider credentials are present. Omitting the flag preserves the original `CLOUD_PROXY` default. This does not amend the campaign's scientific design, role routing, prompts, schemas, ladder, shortlist quota, or budget semantics.

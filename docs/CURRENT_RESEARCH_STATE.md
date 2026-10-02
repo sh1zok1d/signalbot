@@ -24,6 +24,16 @@ No run was created and nothing was spent.
 - **Throttling:** `PAUSED_PROVIDER_THROTTLED`, then a same-run resume with no replay.
 - **Operational rule:** every resume after a stop needs a fresh `--accept-budget-stop`, because the acceptance is bound to the exact cap, spend and worst-case snapshot.
 
+## Generator V0 Cursor DIRECT transport amendment — 2026-10-02
+
+`CURSOR_DIRECT_TRANSPORT = implementation/infrastructure amendment only`
+`SCIENTIFIC_DESIGN_CHANGED = false`
+`LIVE_LLM_CALLS = 0`
+
+For the V03 `ladder-40-card` path, an explicit `--openai-network-mode DIRECT` is now respected for Cursor/local environments with direct API credentials. Without the flag, `ladder-40-card` still defaults to `CLOUD_PROXY`; `first-30-card` still forces `CLOUD_PROXY`. The mode is recorded in transport/run identity, so resume across modes fails closed. No model, prompt, schema, route, ladder, critic, shortlist, budget, or scientific rule changed.
+
+Record: `docs/research/GENERATOR_V0_CURSOR_DIRECT_TRANSPORT.{md,json}`.
+
 ## Generator V0 pre-campaign hardening — 2026-10-02
 
 `MEMORY_FINALIZER_V03 = IMPLEMENTED (validates and copies ladder fields; V02 unchanged)`
