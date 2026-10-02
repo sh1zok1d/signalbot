@@ -1,4 +1,4 @@
-"""Presentation-only 1h and 24h horizons.
+"""Presentation-only 1h, 4h and 24h horizons.
 
 This is not detection. It does not enter the rules digest, the state-tape schema,
 or BETA_CONTEXT_1H_V0. The result is stored on the /btc view payload under
@@ -16,11 +16,13 @@ from common.versioning import canonical_json
 from .oi_asof import venue_oi_change_pct
 from .state_tape import BUCKET, iso, metric_key
 
-HORIZON_VERSION = "BETA_HORIZON_TOD_V1"
+HORIZON_VERSION = "BETA_HORIZON_TOD_V2"
 # Pinned to the canonical definition below. A change of parameters needs a new label.
-HORIZON_DIGEST = "4b84b794374d4d5930636329ccff1269db638b6f76c3ea69e4e32e55d52520d7"
+# V1 (4b84b794…) had no 4h block; V2 adds it with the same time-of-day baseline rule.
+HORIZON_DIGEST = "f64700b721e6e015e54854218253aa24e7a579569cc61efe6e54061634a32073"
 
 _H1_BUCKETS = 12
+_H4_BUCKETS = 48
 _H24_BUCKETS = 288
 _H24_PRICE_MIN = 282
 _METRICS = ("range_width_pct_median", "price_move_pct_median", "volume_notional_usd_sum")
@@ -35,6 +37,7 @@ def horizon_definition() -> dict:
         "version": HORIZON_VERSION,
         "presentation_only": True,
         "window_buckets_1h": _H1_BUCKETS,
+        "window_buckets_4h": _H4_BUCKETS,
         "window_buckets_24h": _H24_BUCKETS,
         "h24_price_range_min_buckets": _H24_PRICE_MIN,
         "h24_price_range_requires_first_and_last": True,
@@ -43,6 +46,8 @@ def horizon_definition() -> dict:
         "baseline_1h_tolerance_min": _TOLERANCE_MIN,
         "baseline_1h": "median of rolling-1h samples whose window end is within "
                        "±tolerance of the same UTC time of day, then the median of those daily values",
+        "baseline_4h": "the baseline_1h rule over rolling-4h samples (48 buckets)",
+        "h4_window_requires_every_bucket": True,
         "baseline_24h": "one rolling-24h value per prior UTC day ending at the same "
                         "UTC time of day, then the median; mature at baseline_mature_days",
         "baseline_mature_days": _MATURE_DAYS,
@@ -100,9 +105,9 @@ def data_through(as_of_bucket: datetime) -> datetime:
 
 
 def oi_boundaries(as_of_bucket: datetime) -> tuple:
-    """Window ends and starts that the OI as-of read must cover: t, t−1h, t−24h."""
+    """Window ends and starts that the OI as-of read must cover: t, t−1h, t−4h, t−24h."""
     end = data_through(as_of_bucket)
-    return (end - timedelta(hours=1), end - timedelta(hours=24), end)
+    return (end - timedelta(hours=1), end - timedelta(hours=4), end - timedelta(hours=24), end)
 
 
 def _liq_side(cfg, buckets: Sequence[datetime], metrics_by_bucket: Mapping[datetime, Mapping],
@@ -137,7 +142,13 @@ def _liq_side(cfg, buckets: Sequence[datetime], metrics_by_bucket: Mapping[datet
 
 
 def _baseline_1h(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_bucket: datetime) -> dict:
-    from .context import rolling_1h_values
+    return _baseline_tod(cfg, metrics_by_bucket, end_bucket, _H1_BUCKETS)
+
+
+def _baseline_tod(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_bucket: datetime,
+                  n: int) -> dict:
+    """Time-of-day baseline of an n-bucket rolling window (12 = 1h, 48 = 4h)."""
+    from .context import rolling_window_values
     window_end = data_through(end_bucket)
     target = window_end.hour * 60 + window_end.minute
     daily = {m: [] for m in _METRICS}
@@ -147,7 +158,7 @@ def _baseline_1h(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_bucket:
         samples = {m: [] for m in _METRICS}
         for delta in range(-_TOLERANCE_MIN, _TOLERANCE_MIN + 1, 5):
             wend = midnight + timedelta(minutes=target + delta)
-            sample = rolling_1h_values(cfg, metrics_by_bucket, wend - BUCKET)
+            sample = rolling_window_values(cfg, metrics_by_bucket, wend - BUCKET, n)
             if sample is None:
                 continue
             for m in _METRICS:
@@ -202,19 +213,26 @@ def _oi_for(cfg, start: datetime, end: datetime, oi_by_boundary: Optional[Mappin
     return {"oi_change_pct": _median(vals) if vals else None, "oi_by_venue": by}
 
 
-def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_bucket: datetime) -> dict:
+def span_min_present(n: int) -> int:
+    """The 24h completeness rule (282 of 288) scaled to an n-bucket span."""
+    return n - (n * (_H24_BUCKETS - _H24_PRICE_MIN)) // _H24_BUCKETS
+
+
+def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_bucket: datetime,
+                       n: int = _H24_BUCKETS, min_present: int = _H24_PRICE_MIN) -> dict:
     """Rolling 24h over the last 288 closed buckets ending at ``end_bucket``.
 
     Price and range need at least 282 buckets with the first and last present.
     The volume ratio needs every bucket. A partial sum is kept and marked partial.
+    `n` / `min_present` reuse the same rule for another span (the /catchup window).
     """
-    buckets = _window_buckets(_utc(end_bucket), _H24_BUCKETS)
+    buckets = _window_buckets(_utc(end_bucket), n)
     rows = [metrics_by_bucket.get(b) for b in buckets]
     present = sum(row is not None for row in rows)
     first_ok = rows[0] is not None
     last_ok = rows[-1] is not None
     ends_ok = first_ok and last_ok
-    price_window = present >= _H24_PRICE_MIN and ends_ok
+    price_window = present >= min_present and ends_ok
     vols = []
     volume_gap = False
     for row in rows:
@@ -223,8 +241,8 @@ def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_b
             continue
         vols.append(float(row["c:volume_notional_usd_sum"]))
     volume = float(math.fsum(vols)) if vols else None
-    volume_complete = (not volume_gap) and present == _H24_BUCKETS and len(vols) == _H24_BUCKETS
-    ranges, moves, highs, lows = [], [], [], []
+    volume_complete = (not volume_gap) and present == n and len(vols) == n
+    ranges, moves, highs, lows, opens, closes = [], [], [], [], [], []
     if price_window:
         for ex in cfg.exchanges:
             o = rows[0].get(metric_key(ex, "kline_open"))
@@ -246,11 +264,13 @@ def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_b
             moves.append((float(c) - float(o)) / float(o) * 100.0)
             highs.append(max(hs))
             lows.append(min(ls))
+            opens.append(float(o))
+            closes.append(float(c))
     enough = len(moves) >= cfg.min_venues
     return {
         "buckets": buckets,
         "buckets_present": present,
-        "buckets_expected": _H24_BUCKETS,
+        "buckets_expected": n,
         "price_complete": bool(price_window and enough),
         "volume_complete": bool(volume_complete),
         "volume_partial": bool(volume is not None and not volume_complete),
@@ -258,8 +278,10 @@ def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_b
         "range_width_pct": _median(ranges) if enough else None,
         "high": _median(highs) if enough else None,
         "low": _median(lows) if enough else None,
+        "open": _median(opens) if enough else None,
+        "close": _median(closes) if enough else None,
         "volume_notional_usd": volume,
-        "buckets_missing": present < _H24_BUCKETS,
+        "buckets_missing": present < n,
     }
 
 
@@ -327,6 +349,8 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
     end_row = metrics_by_bucket.get(as_of_bucket) or {}
     funding = end_row.get("c:funding_rate_median")
     oi_1h = _oi_for(cfg, end - timedelta(hours=1), end, oi_by_boundary)
+    h4 = _window_block(cfg, metrics_by_bucket, as_of_bucket, _H4_BUCKETS,
+                       _oi_for(cfg, end - timedelta(hours=4), end, oi_by_boundary))
     h24 = rolling_24h_values(cfg, metrics_by_bucket, as_of_bucket)
     h24_buckets = h24["buckets"]
     base24 = _baseline_24h(cfg, metrics_by_bucket, as_of_bucket)
@@ -371,6 +395,7 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
                 "venues": _liq_side(cfg, h1_buckets, metrics_by_bucket, buckets_missing=h1_missing),
             },
         },
+        "4h": h4,
         "24h": {
             "price_complete": h24["price_complete"],
             "volume_complete": h24["volume_complete"],
@@ -406,5 +431,39 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
     }
 
 
+def _window_block(cfg, metrics_by_bucket: Mapping[datetime, Mapping], as_of_bucket: datetime, n: int,
+                  oi: Mapping) -> dict:
+    """The 1h block's fields for an n-bucket window. Every bucket is required."""
+    from .context import rolling_window_values
+    buckets = _window_buckets(as_of_bucket, n)
+    missing = any(metrics_by_bucket.get(b) is None for b in buckets)
+    cur = None if missing else rolling_window_values(cfg, metrics_by_bucket, as_of_bucket, n)
+    complete = cur is not None
+    base = _baseline_tod(cfg, metrics_by_bucket, as_of_bucket, n) if complete else _empty_metric_baseline()
+    price = cur.get("price_move_pct_median") if complete else None
+    rng = cur.get("range_width_pct_median") if complete else None
+    vol = cur.get("volume_notional_usd_sum") if complete else None
+    return {
+        "complete": complete,
+        "window_start": iso(buckets[0]),
+        "window_end": iso(data_through(as_of_bucket)),
+        "price_move_pct": price,
+        "range_width_pct": rng,
+        "volume_notional_usd": vol,
+        "baseline_days": base["days"],
+        "baseline_median": base["median"],
+        "range_ratio": _ratio(rng, base["median"]["range_width_pct_median"]),
+        "volume_ratio": _ratio(vol, base["median"]["volume_notional_usd_sum"]),
+        "taker_delta_notional_usd_sum": _sum_metric(buckets, metrics_by_bucket, "c:taker_delta_notional_usd_sum"),
+        "oi_change_pct": oi["oi_change_pct"],
+        "oi_by_venue": oi["oi_by_venue"],
+        "liquidations": {
+            "buckets_missing": missing,
+            "venues": _liq_side(cfg, buckets, metrics_by_bucket, buckets_missing=missing),
+        },
+    }
+
+
 def empty_horizons() -> dict:
-    return {"version": HORIZON_VERSION, "digest": verify_horizon_digest(), "1h": None, "24h": None}
+    return {"version": HORIZON_VERSION, "digest": verify_horizon_digest(), "1h": None, "4h": None,
+            "24h": None}
