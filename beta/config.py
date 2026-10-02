@@ -57,7 +57,7 @@ _TOP_KEYS = frozenset({
     "same_event_cooldown_min", "delivery_ttl_s", "max_new_pushes_per_utc_day",
     "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
-    "horizon_changes", "access", "telemetry", "feedback", "regime_d7",
+    "horizon_changes", "access", "telemetry", "feedback", "regime_d7", "briefing",
 })
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
@@ -108,6 +108,9 @@ _TELEMETRY_KEYS = {"retention_days", "rejected_start_retention_days"}
 
 # /feedback limits. Presentation only. They never enter the rules digest.
 _FEEDBACK_KEYS = {"max_chars", "max_per_utc_day"}
+# Morning briefing (PRODUCT_FIRST_DECISION_V1 §3 row 3). Not detection, not the rules
+# digest. `enabled` is a committed allow; sending also needs the global push switches.
+_BRIEFING_KEYS = {"enabled", "time_kyiv", "max_delay_min"}
 
 # D7 regime line. Display only. It never enters the rules digest.
 _REGIME_D7_KEYS = {"enabled"}
@@ -324,6 +327,18 @@ def _validate(d: Mapping[str, Any]) -> None:
     _validate_telemetry(d)
     _validate_feedback(d)
     _validate_regime_d7(d)
+    _validate_briefing(d)
+
+
+def _validate_briefing(d: Mapping[str, Any]) -> None:
+    b = d["briefing"]
+    _exact_keys(b, _BRIEFING_KEYS, "briefing")
+    _bool(b["enabled"], "briefing.enabled")
+    t = b["time_kyiv"]
+    if not isinstance(t, str) or len(t) != 5 or t[2] != ":" or not (t[:2] + t[3:]).isdigit() \
+            or int(t[:2]) > 23 or int(t[3:]) > 59:
+        raise BetaConfigError("briefing.time_kyiv must be HH:MM")
+    _int(b["max_delay_min"], "briefing.max_delay_min", minimum=1)
 
 
 def _validate_temporal_context(d: Mapping[str, Any]) -> None:

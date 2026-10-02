@@ -124,6 +124,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                     await conn.record_activity(user_pk=row["user_pk"], action="push_delivered",
                                                lang=lang, at=sent_at)
                 report["sent"] += 1
+            report["briefs"] = await run_due_briefs(conn, cfg, sender=sender, clock=clock, push_on=push_on)
             # this run is itself the notifier heartbeat (recorded before evaluating alerts)
             await conn.record_health("notifier", now=clock(), success=True)
             # owner health alerts (operational; owner only; rate-limited per key)
@@ -146,3 +147,94 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             await conn.record_health("notifier", now=clock(), success=True,
                                      detail={k: v for k, v in report.items() if isinstance(v, int)})
     return {"status": "OK", **report}
+
+
+def brief_slot(now: datetime, time_kyiv: str):
+    """(Kyiv date, UTC instant) of today's briefing slot, or None before it."""
+    from datetime import time as dtime
+    from .i18n import KYIV
+    local = now.astimezone(KYIV)
+    hh, mm = int(time_kyiv[:2]), int(time_kyiv[3:])
+    slot = datetime.combine(local.date(), dtime(hh, mm), tzinfo=KYIV)
+    if local < slot:
+        return None
+    return local.date(), slot.astimezone(now.tzinfo)
+
+
+async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender], clock, push_on: bool) -> dict:
+    """The morning briefing inside the existing notifier cycle and outbox.
+
+    Once per Kyiv day after `briefing.time_kyiv`: build ONE shared view (kind
+    'brief', the /catchup render path), persist it, and materialize one PENDING
+    outbox row per ACTIVE participant with the briefing on. Each row then follows
+    the outbox rules: at most one send attempt, never late (expired after
+    `max_delay_min`), suppressed while pushes are switched off. Push rows, push
+    decisions and push policy are not read or changed here."""
+    from .formatter import btc_buttons, format_catchup
+    from .market_view import BRIEF_WINDOW_HOURS, build_view, maturity_days, persist_view
+    from .config import effective_d7_enabled
+    b = cfg.section("briefing")
+    out = {"scheduled": 0, "sent": 0, "failed": 0, "unknown": 0, "expired": 0, "suppressed": 0}
+    max_delay = timedelta(minutes=int(b["max_delay_min"]))
+    now = clock()
+    slot = brief_slot(now, b["time_kyiv"])
+    if b["enabled"] and push_on and slot is not None and now - slot[1] <= max_delay \
+            and not await conn.brief_scheduled(slot[0]):
+        view = await build_view(conn, cfg, now=now, kind="brief", window_hours=BRIEF_WINDOW_HOURS,
+                                maturity_days=maturity_days(cfg),
+                                d7_enabled=effective_d7_enabled(cfg, await conn.get_admin_d7_enabled()))
+        view_pk = await persist_view(conn, view, now=now, text=format_catchup(cfg, view, "ru"), lang="ru",
+                                     kind="brief")
+        out["scheduled"] = await conn.materialize_brief_deliveries(brief_date=slot[0], view_pk=view_pk,
+                                                                   decision_ts=slot[1])
+    views: dict = {}
+    for row in await conn.fetch_pending_brief_deliveries(cfg["notifications"]["max_deliveries_per_run"]):
+        now = clock()
+        did = row["delivery_id"]
+        if now - row["decision_ts"] > max_delay:
+            await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_EXPIRED, now=now,
+                                           suppression_reason=DELIVERY_TOO_OLD)
+            out["expired"] += 1
+            continue
+        if not (b["enabled"] and push_on):
+            await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                           suppression_reason=PUSH_DISABLED)
+            out["suppressed"] += 1
+            continue
+        if row["user_status"] != "ACTIVE" or not row.get("brief_enabled", True):
+            await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                           suppression_reason=USER_INACTIVE)
+            out["suppressed"] += 1
+            continue
+        if sender is None:
+            await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_FAILED, now=now,
+                                           error_summary="sender unavailable (no bot token)")
+            out["failed"] += 1
+            continue
+        payload = views.get(row["view_pk"])
+        if payload is None:
+            payload = views[row["view_pk"]] = (await conn.fetch_btc_view(row["view_pk"]))["payload"]
+        lang = row.get("user_lang") or "ru"
+        text = format_catchup(cfg, payload, lang)
+        if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
+            continue
+        try:
+            message_id = await sender.send(chat_id=row["chat_id"], html=text,
+                                           buttons=btc_buttons(payload, lang, row["view_pk"]))
+        except DeliveryRejected as exc:
+            await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_FAILED, now=clock(),
+                                           error_summary=str(exc)[:300])
+            out["failed"] += 1
+            continue
+        except Exception as exc:  # noqa: BLE001 - ambiguous: never resend
+            await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_UNKNOWN, now=clock(),
+                                           error_summary=type(exc).__name__)
+            out["unknown"] += 1
+            continue
+        sent_at = clock()
+        await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_SENT, now=sent_at,
+                                       message_id=int(message_id))
+        if row.get("user_pk") is not None:
+            await conn.record_activity(user_pk=row["user_pk"], action="brief_delivered", lang=lang, at=sent_at)
+        out["sent"] += 1
+    return out

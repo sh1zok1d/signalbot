@@ -194,9 +194,22 @@ def test_missing_or_immature_oi_keeps_the_price_fact(oi_case):
     assert it.interpretation_text(r, "ru") == "снижение, OI н/д"
 
 
-def test_directional_price_with_flat_oi_is_the_price_fact():
-    assert key(C(0.9, 0.5, 0.9)) == "up"
-    assert key(C(0.1, 0.5, 0.1)) == "down"
+def test_directional_price_with_neutral_oi_names_the_stable_oi():
+    r = it.interpret(CFG, C(0.9, 0.5, 0.9), horizon="1h")
+    assert (r["kind"], r["key"], it.interpretation_text(r, "ru")) == (
+        it.FACTUAL, "up_oi_stable", "рост при стабильном OI")
+    r = it.interpret(CFG, C(0.1, 0.5, 0.1), horizon="4h")
+    assert it.interpretation_text(r, "ru") == "снижение при стабильном OI"
+    # no bare «рост» / «снижение» phrase exists any more
+    assert "up" not in it.LABEL_KEYS and "down" not in it.LABEL_KEYS
+
+
+def test_calm_market_mixed_venue_signs_are_not_divergence():
+    """The divergence check is gated on an unusual aggregate move."""
+    calm = {"binance": 0.01, "bybit": -0.02, "okx": -0.01}
+    assert key(C(0.55, 0.5, 0.5, venues=calm)) == "normal"
+    assert key(C(0.5, 0.5, 0.5, rng=0.1, venues=calm)) == "compression"
+    assert key(C(0.9, 0.1, 0.9, venues={"binance": 0.5, "bybit": -0.2, "okx": -0.1})) == "venues_diverge"
 
 
 def test_price_agreement_below_two_venues_gives_no_label():

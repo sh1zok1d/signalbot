@@ -502,6 +502,62 @@ def format_btc(cfg, view: Mapping[str, Any], lang: str = "en") -> str:
     return _ok("\n".join(lines), lang)
 
 
+def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en") -> str:
+    """/catchup and the morning briefing: one render path over the shared view.
+
+    What happened in the window, which detector events fired, how the last 1h and
+    4h look (interpretation labels, «похоже на …» when inferred), the 24h line and
+    the data time. Descriptive only; never a direction of what comes next."""
+    from .interpretation import interpretation_text
+    market = view.get("market") or {}
+    hours = int(market.get("window_hours") or 8)
+    price = (view.get("now") or {}).get("reference_price")
+    brief = view.get("kind") == "brief"
+    key = ("brief_title" if brief else "catchup_title") + ("" if price is not None else "_noprice")
+    lines = [f"<b>{_e(t(lang, key, price=fmt_price(price, lang) if price is not None else '', hours=hours))}</b>"]
+    if view.get("product_status") in ("DATA STALE", "DATA DEGRADED") or not market.get("complete"):
+        lines.append(t(lang, "insufficient"))
+    else:
+        lines.append(_span_line(market.get("window") or {}, hours, lang))
+        events = market.get("events") or []
+        if events:
+            items = [f"{plain_name(e['event_type'], lang)} {fmt_kyiv_hm(_dt(e['triggered_at']))}" for e in events]
+            lines.append(t(lang, "catchup_events", items=" · ".join(items)))
+        else:
+            lines.append(t(lang, "catchup_no_events"))
+        for h in ("1h", "4h"):
+            res = (market.get("interpretation") or {}).get(h)
+            if res is None:
+                continue
+            extra = []
+            for metric, word in (("range_width_pct_median", "lvl_range"), ("volume_notional_usd_sum", "lvl_volume")):
+                level = ((market.get("levels") or {}).get(h) or {}).get(metric)
+                if level and level != "normal":
+                    extra.append(t(lang, word, level=t(lang, "level_" + level)))
+            lines.append(t(lang, "interp_line", h=t(lang, "hz_" + h), label=interpretation_text(res, lang),
+                           extra="" if not extra else " · " + " · ".join(extra)))
+        day = _day_line(view, lang)
+        if day:
+            lines.append(day)
+    clock = _clock_of(view)
+    lines.append(t(lang, "data_only", clock=fmt_clock(clock, lang)) if clock else t(lang, "no_evaluation_line"))
+    return _ok("\n".join(lines), lang)
+
+
+def _span_line(window: Mapping[str, Any], hours: int, lang: str) -> str:
+    if not window.get("price_complete") or window.get("price_move_pct") is None:
+        return t(lang, "span_incomplete", hours=hours)
+    parts = [fmt_signed_pct(window["price_move_pct"], lang, nd=1)]
+    if window.get("range_width_pct") is not None and window.get("low") is not None:
+        parts.append(t(lang, "span_range", rng=fmt_plain_pct(window["range_width_pct"], lang, nd=1),
+                       low=fmt_price(window["low"], lang), high=fmt_price(window["high"], lang)))
+    if window.get("volume_notional_usd") is not None:
+        parts.append(t(lang, "h_vol_amount", amount=fmt_usd(window["volume_notional_usd"], lang)))
+    if window.get("oi_change_pct") is not None:
+        parts.append(t(lang, "h_oi", pct=fmt_signed_pct(window["oi_change_pct"], lang, nd=1)))
+    return t(lang, "span_line", hours=hours, body=" · ".join(parts))
+
+
 def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int] = None):
     """Event only with an open or retained episode. 1h outside fail-closed. Readiness unchanged."""
     row = []

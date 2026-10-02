@@ -23,6 +23,11 @@ from .i18n import assert_descriptive, t
 from .state_tape import BUCKET
 
 INTERPRETATION_VERSION = "BETA_INTERPRETATION_V1"
+# PROVISIONAL until the recorded-tape dry run is reviewed (owner, Step 2): the
+# venue-agreement check runs only when the aggregate price move is in the up/down
+# band. The band itself is not frozen yet.
+INTERPRETATION_STATUS = "PROVISIONAL_PENDING_DRY_RUN"
+DIVERGENCE_GATE = "PRICE_RANK_IN_UP_OR_DOWN_BAND"
 INTERPRETED_HORIZONS = ("1h", "4h")
 MATURE = "mature"
 
@@ -55,7 +60,7 @@ LABEL_KEYS = {
     "up_oi_down": "fact_up_oi_down", "up_oi_up": "fact_up_oi_up",
     "down_oi_up": "fact_down_oi_up", "down_oi_down": "fact_down_oi_down",
     "up_oi_na": "fact_up_oi_na", "down_oi_na": "fact_down_oi_na",
-    "up": "fact_up", "down": "fact_down",
+    "up_oi_stable": "fact_up_oi_stable", "down_oi_stable": "fact_down_oi_stable",
     "venues_diverge": "interp_venues_diverge", "insufficient": "interp_insufficient",
     "missing": "interp_missing",
 }
@@ -67,6 +72,7 @@ def definition(cfg: BetaConfig) -> dict:
             "up_rank_min": float(c["label_elevated"]), "down_rank_max": float(c["tail_display_max"]),
             "compression_range_rank_max": float(c["tail_display_max"]),
             "requires": ["price", "oi", "taker"], "min_price_venue_agreement": cfg.min_venues,
+            "divergence_gate": DIVERGENCE_GATE,
             "flush_requires": "a LIQUIDATION_STRESS episode of the matching side overlapping the window",
             "never": "future direction"}
 
@@ -148,17 +154,19 @@ def interpret(cfg: BetaConfig, ctx: Optional[Mapping[str, Any]], *, horizon: str
 
     if price_st == "MISSING":
         return done(DATA_MISSING, "missing")
-    if agree < cfg.min_venues:
-        return done(VENUES_DIVERGE, "venues_diverge")
     if price_st == "IMMATURE":
         return done(INSUFFICIENT_HISTORY, "insufficient")
 
     if price in ("up", "down"):
+        # Venue disagreement is checked only after an unusual aggregate move
+        # (DIVERGENCE_GATE): tiny calm-market moves of mixed sign are not news.
+        if agree < cfg.min_venues:
+            return done(VENUES_DIVERGE, "venues_diverge")
         if oi is None:                                     # OI missing, immature or < 2 venues
             return done(FACTUAL, f"{price}_oi_na")
         row = _ROWS.get((price, oi))
-        if row is None:                                    # OI flat: the price fact only
-            return done(FACTUAL, price)
+        if row is None:                                    # OI available and mature, but neutral
+            return done(FACTUAL, f"{price}_oi_stable")
         label, need, fallback = row
         if taker != need:                                  # taker missing, flat or opposite
             return done(FACTUAL, fallback)

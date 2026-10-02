@@ -222,19 +222,19 @@ class BetaConn:
                               context_state_digest: Optional[str], episodization_version: Optional[str],
                               episodization_digest: Optional[str], payload: Mapping[str, Any],
                               payload_digest: str, rendered_sha256: str, rendered_html: str,
-                              lang: str = "ru") -> int:
+                              lang: str = "ru", kind: str = "btc") -> int:
         return await self.conn.fetchval(
             """INSERT INTO beta_btc_views (requested_at, as_of_bucket, context_state_digest,
                    episodization_version, episodization_digest, payload, payload_digest,
-                   rendered_sha256, rendered_html, lang)
-               VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10)
+                   rendered_sha256, rendered_html, lang, kind)
+               VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11)
                RETURNING view_pk""",
             requested_at, as_of_bucket, context_state_digest, episodization_version,
-            episodization_digest, _j(payload), payload_digest, rendered_sha256, rendered_html, lang)
+            episodization_digest, _j(payload), payload_digest, rendered_sha256, rendered_html, lang, kind)
 
     async def fetch_btc_view(self, view_pk: int):
         r = await self.conn.fetchrow(
-            """SELECT view_pk, payload, payload_digest, lang, rendered_html
+            """SELECT view_pk, payload, payload_digest, lang, rendered_html, kind
                FROM beta_btc_views WHERE view_pk=$1""", view_pk)
         return None if r is None else {**dict(r), "payload": _load(r["payload"])}
 
@@ -496,6 +496,17 @@ class BetaConn:
             symbol, limit)
         return [dict(r) for r in rows]
 
+    async def fetch_liquidation_episodes(self, *, symbol: str, start: datetime, end: datetime) -> list:
+        """Triggered LIQUIDATION_STRESS episodes whose buckets reach into [start, end). Read-only."""
+        rows = await self.conn.fetch(
+            """SELECT public_id, event_type, opened_bucket, last_bucket, triggered_at FROM beta_episodes
+               WHERE symbol=$1 AND event_type IN ('LIQUIDATION_STRESS_LONG', 'LIQUIDATION_STRESS_SHORT')
+                 AND triggered_at IS NOT NULL AND opened_bucket < $3 AND last_bucket >= $2
+               ORDER BY opened_bucket""", symbol, start, end)
+        from beta.state_tape import iso
+        return [{"episode_id": r["public_id"], "event_type": r["event_type"], "opened_bucket": iso(r["opened_bucket"]),
+                 "last_bucket": iso(r["last_bucket"]), "triggered_at": iso(r["triggered_at"])} for r in rows]
+
     async def fetch_episode_by_pk(self, episode_pk: int):
         r = await self.conn.fetchrow(
             f"SELECT {_EPISODE_COLS} FROM beta_episodes WHERE episode_pk=$1", episode_pk)
@@ -608,8 +619,42 @@ class BetaConn:
             """SELECT x.delivery_id, x.decision_id, x.episode_pk, x.user_pk, x.decision_ts,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
-               WHERE x.state='PENDING' ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
+               WHERE x.state='PENDING' AND x.kind='push'
+               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
         return [dict(r) for r in rows]
+
+    # ---- morning briefing rows in the same outbox (kind = 'brief') ----------
+    async def brief_scheduled(self, brief_date) -> bool:
+        return bool(await self.conn.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM beta_notification_deliveries WHERE kind='brief' AND brief_date=$1)",
+            brief_date))
+
+    async def materialize_brief_deliveries(self, *, brief_date, view_pk: int, decision_ts: datetime) -> int:
+        """One PENDING row per ACTIVE participant with the briefing on. The partial
+        unique index (brief_date, user_pk) makes this idempotent."""
+        status = await self.conn.execute(
+            """INSERT INTO beta_notification_deliveries (kind, brief_date, view_pk, user_pk, state,
+                   decision_ts)
+               SELECT 'brief', $1, $2, u.user_pk, 'PENDING', $3
+               FROM beta_users u WHERE u.status='ACTIVE' AND u.brief_enabled
+               ON CONFLICT (brief_date, user_pk) WHERE kind='brief' DO NOTHING""",
+            brief_date, view_pk, decision_ts)
+        return int(status.split()[-1])
+
+    async def fetch_pending_brief_deliveries(self, limit: int) -> list:
+        rows = await self.conn.fetch(
+            """SELECT x.delivery_id, x.view_pk, x.brief_date, x.user_pk, x.decision_ts,
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.brief_enabled
+               FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
+               WHERE x.state='PENDING' AND x.kind='brief'
+               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
+        return [dict(r) for r in rows]
+
+    async def set_brief_enabled(self, telegram_user_id: int, enabled: bool) -> bool:
+        status = await self.conn.execute(
+            "UPDATE beta_users SET brief_enabled=$2, updated_at=now() WHERE telegram_user_id=$1",
+            telegram_user_id, enabled)
+        return status == "UPDATE 1"
 
     async def transition_delivery(self, delivery_id: int, *, from_state: str, to_state: str,
                                   now: datetime, suppression_reason: Optional[str] = None,
@@ -627,7 +672,7 @@ class BetaConn:
     async def delivery_state_counts(self, *, since: Optional[datetime] = None) -> dict:
         rows = await self.conn.fetch(
             "SELECT state, count(*) AS n FROM beta_notification_deliveries "
-            "WHERE $1::timestamptz IS NULL OR created_at >= $1 GROUP BY state", since)
+            "WHERE kind='push' AND ($1::timestamptz IS NULL OR created_at >= $1) GROUP BY state", since)
         return {r["state"]: int(r["n"]) for r in rows}
 
     async def push_decision_counts(self, *, since: datetime) -> list:
@@ -659,7 +704,7 @@ class BetaConn:
     async def get_user(self, telegram_user_id: int):
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
-                      invite_code, privacy_notice_version
+                      invite_code, privacy_notice_version, brief_enabled
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 

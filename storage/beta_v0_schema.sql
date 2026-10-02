@@ -465,7 +465,7 @@ CREATE TABLE IF NOT EXISTS beta_user_activity (
     action       TEXT NOT NULL CHECK (action IN (
         'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
         'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
-        'lang_set', 'push_delivered')),
+        'lang_set', 'push_delivered', 'cmd_catchup', 'cmd_brief', 'brief_delivered')),
     detail       TEXT,
     lang         TEXT CHECK (lang IS NULL OR lang IN ('ru', 'en')),
     at           TIMESTAMPTZ NOT NULL
@@ -489,7 +489,7 @@ END $$;
 ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CHECK (action IN (
     'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
     'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
-    'lang_set', 'push_delivered'));
+    'lang_set', 'push_delivered', 'cmd_catchup', 'cmd_brief', 'brief_delivered'));
 
 -- Free-text /feedback. user_pk only; /delete_me cascades. Not the Useful/Noise votes.
 CREATE TABLE IF NOT EXISTS beta_feedback_messages (
@@ -542,3 +542,23 @@ CREATE TABLE IF NOT EXISTS beta_d7_hour_states (
     computed_at         TIMESTAMPTZ NOT NULL,
     definition_digest   TEXT NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$')
 );
+
+-- PRODUCT_FIRST_DECISION_V1 §3 rows 1-3: one view table for /btc, /catchup and the
+-- morning briefing; the briefing goes through the existing outbox. Push rows keep
+-- every existing column and constraint meaning (kind = 'push').
+ALTER TABLE beta_btc_views ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'btc'
+    CHECK (kind IN ('btc', 'catchup', 'brief'));
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS brief_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'push';
+ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS view_pk BIGINT REFERENCES beta_btc_views (view_pk);
+ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS brief_date DATE;
+ALTER TABLE beta_notification_deliveries ALTER COLUMN decision_id DROP NOT NULL;
+ALTER TABLE beta_notification_deliveries ALTER COLUMN episode_pk DROP NOT NULL;
+ALTER TABLE beta_notification_deliveries DROP CONSTRAINT IF EXISTS ck_beta_delivery_kind_shape;
+ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_kind_shape CHECK (
+    (kind = 'push' AND decision_id IS NOT NULL AND episode_pk IS NOT NULL
+        AND view_pk IS NULL AND brief_date IS NULL)
+    OR (kind = 'brief' AND decision_id IS NULL AND episode_pk IS NULL
+        AND view_pk IS NOT NULL AND brief_date IS NOT NULL));
+CREATE UNIQUE INDEX IF NOT EXISTS uq_beta_delivery_brief_identity
+    ON beta_notification_deliveries (brief_date, user_pk) WHERE kind = 'brief';

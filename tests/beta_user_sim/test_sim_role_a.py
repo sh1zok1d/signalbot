@@ -130,7 +130,7 @@ def test_command_allowlist_is_derived_from_the_real_handler():
     assert {"start", "btc", "history", "terms", "help", "feedback", "stop", "lang", "delete_me"} <= real
     assert set(SIM_COMMANDS) <= real and "lang" not in SIM_COMMANDS and "delete_me" not in SIM_COMMANDS
     with pytest.raises(ValueError):
-        RoleAUser(FakeUserModel(), allowed_commands=("btc", "catchup"))
+        RoleAUser(FakeUserModel(), allowed_commands=("btc", "analogues"))
 
 
 def test_rejected_and_fabricated_actions_never_reach_the_handler():

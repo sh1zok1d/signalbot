@@ -519,15 +519,13 @@ def test_admin_d7_defaults_off_and_both_switches_gate_the_line():
                 "SELECT action, authorized, result FROM beta_admin_audit ORDER BY audit_id")
             assert [dict(r) for r in audit] == [
                 {"action": "admin_d7_on", "authorized": False, "result": "REFUSED"}]
-            view = {"product_status": "NO ACTIVE EVENTS"}
-            await bot._attach_regime(conn, view, NOW)
+            view = await bot._view(conn, NOW, kind="btc")          # the shared builder path
             assert "regime" not in view
         turned = await bot.handle(_admin_msg(owner, "/admin_d7_on", 2))
         assert "effective D7 line ON" in turned[0].html
         async with store.connect() as conn:
             assert await conn.get_admin_d7_enabled() is True
-            view = {"product_status": "NO ACTIVE EVENTS"}
-            await bot._attach_regime(conn, view, NOW)
+            view = await bot._view(conn, NOW, kind="btc")
             assert view["regime"]["shown"] is False
             row = await conn.conn.fetchrow(
                 "SELECT action, authorized, result, detail::text AS detail FROM beta_admin_audit "
@@ -543,8 +541,7 @@ def test_admin_d7_defaults_off_and_both_switches_gate_the_line():
         assert "remains OFF" in reply[0].html
         async with store.connect() as conn:
             assert await conn.get_admin_d7_enabled() is True
-            view = {"product_status": "NO ACTIVE EVENTS"}
-            await blocked._attach_regime(conn, view, NOW)
+            view = await blocked._view(conn, NOW, kind="btc")
             assert "regime" not in view
         await pool.close()
     run(body())

@@ -35,6 +35,7 @@ This map covers every top-level `docs/*.md` file and each `docs/` subdirectory. 
 **REFERENCE**
 - `E1_DETECTOR_SEPARATION_PREREG.md`, `E1_DATA_INVENTORY_2026-08-25.md`, `E1_VPS_RUNBOOK.md` and `e1/`: the frozen `E1-RUN-001` records.
 - `PRIVATE_BETA_V0_DEPLOY.md`, `BETA_BTC_TEMPORAL_CONTEXT_V0.md` and `BETA_BTC_MAIN_SCREEN_UX_V1.md`: beta operations, the `/btc` view model, and the main-screen wording.
+- `BETA_CATCHUP_AND_BRIEFING_V1.md`: how build-to-test rows 1–6 are implemented: 1h/4h context labels, the shared view builder, `/catchup`, the morning briefing through the existing outbox, `/brief`, and the read-only recorded-tape dry run. UX thresholds are provisional until the dry run is reviewed.
 - `VPS_DEPLOY.md`, `SHADOW_TIMER_DEPLOY.md`, `TELEGRAM_NOTIFIER_DEPLOY.md` and `DATA_DURABILITY_RUNBOOK.md`: operations. Following them does not authorize a deploy.
 - `research/`: mixed status. Each file's label is given in §1 and in the Generator V0 section.
 - `research_data/` and `manifests/`: frozen dataset evidence and manifests.

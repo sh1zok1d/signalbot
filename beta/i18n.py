@@ -315,7 +315,9 @@ _CATALOG: dict[str, dict[str, str]] = {
             "и сообщает, когда одно из них наблюдается. Он не говорит, что делать со сделкой.\n\n"
             "/btc — компактное состояние BTC perpetual (спокойно, необычно сейчас, затихло, "
             "бот собирает историю или данные неполные). Кнопки открывают измерения.\n"
+            "/catchup — что было за последние часы (по умолчанию 8 ч; /catchup 1–24)\n"
             "/history — недавние эпизоды детектора, с доставкой или без, с фактическими диапазонами\n"
+            "/brief on|off — утренняя сводка в 08:00 (Киев)\n"
             "/terms — термины\n"
             "/lang — язык сообщений\n"
             "/feedback — отзыв или вопрос\n"
@@ -327,7 +329,9 @@ _CATALOG: dict[str, dict[str, str]] = {
             "is observed. It does not tell you what to trade.\n\n"
             "/btc — compact BTC perpetual state (calm, unusual now, calmed, history building, "
             "or data incomplete). Buttons hold the measurements.\n"
+            "/catchup — what happened over the last hours (8h by default; /catchup 1–24)\n"
             "/history — recent detector episodes, pushed or not, with factual follow-up ranges\n"
+            "/brief on|off — morning summary at 08:00 Kyiv\n"
             "/terms — glossary\n"
             "/lang — message language\n"
             "/feedback — a comment or a question\n"
@@ -508,11 +512,36 @@ _CATALOG: dict[str, dict[str, str]] = {
     "fact_down_oi_down": {"ru": "снижение при снижении OI", "en": "decline while OI fell"},
     "fact_up_oi_na": {"ru": "рост, OI н/д", "en": "rise, OI n/a"},
     "fact_down_oi_na": {"ru": "снижение, OI н/д", "en": "decline, OI n/a"},
-    "fact_up": {"ru": "рост", "en": "rise"},
-    "fact_down": {"ru": "снижение", "en": "decline"},
+    "fact_up_oi_stable": {"ru": "рост при стабильном OI", "en": "rise with stable OI"},
+    "fact_down_oi_stable": {"ru": "снижение при стабильном OI", "en": "decline with stable OI"},
     "interp_venues_diverge": {"ru": "биржи расходятся", "en": "venues disagree"},
     "interp_insufficient": {"ru": "мало истории", "en": "not enough history"},
     "interp_missing": {"ru": "н/д", "en": "n/a"},
+    # /catchup and the morning briefing (PRODUCT_FIRST_DECISION_V1 §3 rows 2-3)
+    "catchup_title": {"ru": "BTC {price} · за {hours} ч", "en": "BTC {price} · last {hours}h"},
+    "catchup_title_noprice": {"ru": "BTC · за {hours} ч", "en": "BTC · last {hours}h"},
+    "brief_title": {"ru": "Утро · BTC {price} · за {hours} ч", "en": "Morning · BTC {price} · last {hours}h"},
+    "brief_title_noprice": {"ru": "Утро · BTC · за {hours} ч", "en": "Morning · BTC · last {hours}h"},
+    "span_line": {"ru": "{hours} ч: {body}", "en": "{hours}h: {body}"},
+    "span_range": {"ru": "диапазон {rng} ({low}–{high})", "en": "range {rng} ({low}–{high})"},
+    "span_incomplete": {"ru": "{hours} ч: неполные данные", "en": "{hours}h: incomplete"},
+    "h_vol_amount": {"ru": "объём {amount}", "en": "vol {amount}"},
+    "catchup_events": {"ru": "События: {items}", "en": "Events: {items}"},
+    "catchup_no_events": {"ru": "Событий детектора не было", "en": "No detector events"},
+    "interp_line": {"ru": "{h}: {label}{extra}", "en": "{h}: {label}{extra}"},
+    "hz_1h": {"ru": "1ч", "en": "1h"},
+    "hz_4h": {"ru": "4ч", "en": "4h"},
+    "lvl_range": {"ru": "диапазон {level}", "en": "range {level}"},
+    "lvl_volume": {"ru": "объём {level}", "en": "volume {level}"},
+    "catchup_usage": {"ru": "Использование: /catchup или /catchup 1–24 (часы).",
+                      "en": "Usage: /catchup or /catchup 1–24 (hours)."},
+    "brief_usage": {"ru": "Утренняя сводка: {state}. /brief on — включить, /brief off — выключить.",
+                    "en": "Morning summary: {state}. /brief on to turn it on, /brief off to turn it off."},
+    "brief_state_on": {"ru": "включена", "en": "on"},
+    "brief_state_off": {"ru": "выключена", "en": "off"},
+    "brief_on_ok": {"ru": "Утренняя сводка включена: 08:00 (Киев).", "en": "Morning summary on: 08:00 Kyiv."},
+    "brief_off_ok": {"ru": "Утренняя сводка выключена. Пуши о событиях это не меняет.",
+                     "en": "Morning summary off. Event pushes are not affected."},
     "evt_buy": {"ru": "агрессивные покупки", "en": "aggressive buying"},
     "evt_sell": {"ru": "агрессивные продажи", "en": "aggressive selling"},
     "evt_liq_long": {"ru": "ликвидационный стресс (ликвидации лонгов)", "en": "liquidation stress (long-side liquidations)"},
