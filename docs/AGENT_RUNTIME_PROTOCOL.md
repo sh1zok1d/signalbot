@@ -239,3 +239,38 @@ The first 30-card run must:
 - leave Memory Finalizer V1 unchanged.
 
 `MEMORY_FINALIZER_V1` remains the only memory writer. This repair does not execute the live 30-card campaign.
+
+## 20. Fast test execution policy
+
+For ordinary bounded PR work, do **not** run the full repository pytest suite locally by default.
+
+The repository already separates the required ordinary PR gate from full regression:
+- **FAST PR GATE:** `python scripts/ci/pr_gate.py` — required for ordinary PR iteration;
+- **FULL REGRESSION:** `python -m pytest -q` — reserved for `.github/workflows/full-regression.yml` on push to `main`, explicit `workflow_dispatch`, an explicit owner request, or a genuinely repository-wide/shared-core change where the fast gate cannot provide meaningful coverage.
+
+During implementation:
+- run only the new/modified test files and directly affected neighboring tests;
+- use the narrowest relevant pytest node/file target;
+- do not repeatedly run the complete Generator V0 suite after every edit.
+
+Before opening an ordinary PR, the local requirement is:
+1. task-specific acceptance/fault tests;
+2. `python -m compileall -q .`;
+3. `python scripts/ci/pr_gate.py`;
+4. `git diff --check`;
+5. secret scan when the task touches credentials, live-provider artifacts, or persisted run state.
+
+For changes to shared Generator V0 infrastructure such as `provider.py`, `ledger.py`, `routing.py`, `openai_provider.py`, `anthropic_provider.py`, `runner.py`, or `derive.py`, run the task-specific tests plus one complete focused `test_generator_v0_*.py` gate at the end, unless `pr_gate.py` already selects that complete focused surface. Do not automatically escalate to the full repository suite.
+
+If a broader suite was run and failures are clearly pre-existing or outside the diff, report them but do not debug unrelated code or block the PR solely on those failures when the fast gate and directly relevant tests pass.
+
+Agents must report:
+- `TASK_SPECIFIC_TESTS`;
+- `FAST_PR_GATE`;
+- `GENERATOR_V0_FOCUSED_SUITE` when relevant;
+- `COMPILEALL`;
+- `GIT_DIFF_CHECK`;
+- `FULL_REPO_REGRESSION = NOT_RUN_BY_POLICY` unless it was intentionally required, in which case state the reason.
+
+The goal is strong change-specific assurance without spending hours on low-information full-suite execution during ordinary iteration.
+
