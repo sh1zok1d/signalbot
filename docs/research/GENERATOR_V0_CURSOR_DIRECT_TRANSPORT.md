@@ -1,7 +1,7 @@
 # Generator V0 — Cursor DIRECT transport amendment
 
-**Status:** `IMPLEMENTED`, infrastructure only  
-**Date:** 2026-10-02  
+**Status:** `IMPLEMENTED`, infrastructure only
+**Date:** 2026-10-02
 **LLM calls:** 0
 
 ```
