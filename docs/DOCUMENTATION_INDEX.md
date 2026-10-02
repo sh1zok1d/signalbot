@@ -409,6 +409,10 @@ Before using an operational runbook, compare it with current code/config and run
   - It is not a lifting of the predictive freeze.
 - `BETA_HISTORICAL_FOLLOW_UP_V0.md`: foundation for "what happened after previous comparable states?" — `EVENT_COMPARABILITY_V0`, fail-closed display sufficiency, 1h/4h absolute range only, ordinary same-time and volatility-matched baselines, provenance classes. Pure code, not wired into `/btc`, no historical replay.
 - `BETA_BTC_MULTI_HORIZON_UX_V1.md` (**OWNER_DECISIONS_RECORDED / READY_FOR_IMPLEMENTATION**, not implemented): the next `/btc` UX pass and its implementation authority. Main screen with price, `1h` and `24h` lines; Details as Event / 1h / 24h tabs; per-user `ru`/`en` (default `ru`); Kyiv time; per-venue OI numbers; per-venue liquidations (never summed, Binance as a lower bound); time-of-day `×` baselines; "Changes vs previous 24h"; the step plan to the first traders. Detector, rules, tape schema and push are unchanged. `BETA_BTC_MAIN_SCREEN_UX_V1.md` and `BETA_BTC_TEMPORAL_CONTEXT_V0.md` stay authoritative for what runs until an implementing PR updates them.
+- `BETA_SYNTHETIC_USER_V0.md` (**SYNTHETIC / DESCRIPTIVE_MONITORING / IMPLEMENTED_OFFLINE / NOT_ACTIVATED**): the offline synthetic beta user (Role A) and delayed outcome auditor (Role B) in `tools/beta_user_sim/`.
+  - It replays persisted beta payloads as-of through the real handler in an in-memory sandbox.
+  - It produces a deterministic claim manifest, a frozen simple baseline and a blind A/B judge with controls.
+  - It is not research, not ledger evidence, not PMF/WTP/retention evidence, and has no route into rules, wording, push or config. No live mirror, no network by default.
 - `PRODUCT_DIRECTION_V0.md` (**OWNER_DIRECTION_RECORDED / NO_SCOPE_AUTHORITY**, 2026-10-01): the product decision record.
   - What is and is not a moat; the main bet is an accumulated evidence base on market states.
   - The immutable claim ledger, the what-was-known-then record, the research pipeline, and the personal decision history (later).
