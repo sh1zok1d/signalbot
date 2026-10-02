@@ -1,12 +1,22 @@
-## SEED-0001 regular divergence — card frozen, feasibility below the floor — 2026-10-02
+## SEED-0001 regular divergence — retrospective leg closed outcome-blind — 2026-10-02
 
 `SEED0001_CARD = FROZEN_BEFORE_COUNTS_AND_OUTCOMES`
 `SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR (BTC A = 36 episodes / 33 dates; STRESS power at 10 pp = 0.10; MDE about 30 pp)`
-`TF-SEED0001-RD-RETRO1 = REGISTERED_NOT_EXECUTED`
-`TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED`
+`SEED0001_RETROSPECTIVE_LEG = CLOSED_OUTCOME_BLIND (owner decision 2026-10-02; verdict INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR)`
+`TF-SEED0001-RD-RETRO1 = REGISTERED_NOT_EXECUTED (never executed; closed outcome-blind)`
+`TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED (prospective preregistration frozen; not activated)`
 `MARKET_OUTCOMES_COMPUTED = false`
 `PROTECTED_2025_2026_OPENED = false`
-`NEXT_UNIT = OWNER_DECISION on SEED-0001 (outcomes stay closed; see SEED0001_FEASIBILITY_REPORT.md)`
+`SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0`
+`NEW_DESIGN_REQUIRES_NEW_RESEARCH_OBJECT_ID = true`
+`NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_FEASIBILITY_STOP (routing returns to the research queue below)`
+
+**Owner decision (2026-10-02).** The SEED-0001 retrospective leg is accepted as `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR` and closed outcome-blind.
+- **Outcomes stay closed.** Forward outcomes remain unopened and must not be computed: no future return, +1R/−1R, +2R/−1R, MFE/MAE or post-decision price.
+- **No rescue.** No threshold modification, parameter tuning or reinterpretation of SEED-0001 is authorized. The detector, thresholds, covariates (including `RISK_ATR`), contrasts, hard floor and power rule stay as preregistered.
+- **Prospective leg.** The preregistration stays frozen, but it is not activated automatically. Running the detector on the protected 2026 segment, or on the cohort at all, needs a separate explicit owner decision.
+- **Track B.** Longer-history proxy research for the book observable, if pursued, is a separate research card or seed with its own `TEST_FAMILY_ID`. It is not a continuation or rescue of SEED-0001.
+- **Routing.** No feasibility-qualified unit is authorized now. The queue below is the generator V03 derived continuation (`ladder-40-card-v03-r02-derived-critics-v1`; live calls not authorized), plus backlog seeds, which enter only through GV0R02 V1 feasibility and a separate design freeze.
 
 **Feasibility (`docs/research/SEED0001_FEASIBILITY_REPORT.md`).** This was an outcome-blind count pass.
 - **BTC eligible:** 743 episodes, A/B/C/D = 36/259/63/385; A falls on 33 dates and 24 weekly clusters.
@@ -28,7 +38,7 @@
 - **Confirmation is prospective.** It covers decisions from 2026-10-05 and stops at 30 Arm-A episodes or 2028-10-05. Its protected 2026 segment needs an owner decision before any detector run, and opening the cohort needs a separate owner decision.
 - **ETH** is robustness only.
 
-**Not active.** `NEXT_UNIT` lines below this section belong to their own programs (beta P1, generator r02).
+**Below this section.** The `NEXT_UNIT` lines below belong to their own programs (beta P1, generator r02); the generator routing is the current research queue.
 
 ## Beta V0.3 — market briefing and analogue gate — 2026-10-02
 

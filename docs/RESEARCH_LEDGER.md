@@ -7280,3 +7280,24 @@ NEXT_UNIT = OWNER_DECISION on SEED-0001
 ```
 
 Record: `docs/research/SEED0001_FEASIBILITY_REPORT.{md,json}`.
+
+## SEED-0001 owner decision — retrospective leg closed outcome-blind — 2026-10-02
+
+The owner accepted the SEED-0001 feasibility stop. The retrospective leg (`TF-SEED0001-RD-RETRO1`) is closed outcome-blind with the frozen verdict `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR`.
+- **Outcomes.** Forward outcomes remain unopened and must not be computed. The 2023–2024 outcome surface of this card is not consumed.
+- **No rescue.** No threshold modification, parameter tuning or reinterpretation of SEED-0001 is authorized. Preregistration, detector, feasibility rule, report, episode sets and manifest are unchanged.
+- **Prospective leg.** The preregistration (`TF-SEED0001-RD-PROSP1`) stays frozen and is not activated. Any detector run on the protected 2026 segment, or on the prospective cohort, needs a separate explicit owner decision.
+- **Track B.** Longer-history proxy research for the book observable, if pursued, is a separate card or seed. It is not a continuation or rescue of SEED-0001.
+- **Routing.** It returns to the research queue in `CURRENT_RESEARCH_STATE.md`. This entry supersedes the `NEXT_UNIT = OWNER_DECISION on SEED-0001` line of the feasibility entry above.
+
+```
+SEED0001_RETROSPECTIVE_LEG = CLOSED_OUTCOME_BLIND
+SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR
+TF-SEED0001-RD-RETRO1 = REGISTERED_NOT_EXECUTED
+TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED
+MARKET_OUTCOMES_COMPUTED = false
+PROTECTED_2025_2026_OPENED = false
+SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0
+NEW_DESIGN_REQUIRES_NEW_RESEARCH_OBJECT_ID = true
+NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_FEASIBILITY_STOP
+```
