@@ -7267,3 +7267,31 @@ SCIENTIFIC_DESIGN_CHANGED = false
 ```
 
 Record: `docs/research/GV0V03L40_C033_V2_FEASIBILITY.md`.
+
+## GV0V03L40 C025-R1 outcome-blind stop — 2026-10-02
+
+Owner-authorized manual escalation of C025. The original card was not edited. Critic verdicts remain novelty REJECT, feasibility REJECT, red team REJECT. The executed design is C025-R1: a past-only 60-minute refractory replaces the original rule that dropped a burst because another burst fell inside the outcome window. That future-burst rule was not run.
+
+The count uses pinned Binance BTCUSDT perpetual 1m bars for 2020-01..2024-12 only. No post-T impact ratio was computed. The window is not a consumed confirmatory result.
+
+```
+PRIMARY_VARIANT = theta 0.70 / quantile 0.999 / W 30m
+RAW_BURSTS = 2895
+ONE_SIDED_N = 1
+TWO_SIDED_N = 879
+MATCHABLE_ONE_SIDED_N = 1
+MATCHABLE_TWO_SIDED_N = 169
+FEASIBILITY_STATUS = INFORMATIONALLY_WEAK
+BLOCKER = MDE_TOO_LARGE
+EFFECTIVE_N = 0.994
+MDE_STRESS = 5.620
+POWER_STRESS = 0.035
+EXECUTION_PERFORMED = false
+PREREGISTRATION_CREATED = false
+MARKET_OUTCOMES_OPENED = false
+PROTECTED_2025_2026_OPENED = false
+OTHER_VARIANTS_ESTIMATED = false
+RESCUE_ATTEMPTED = false
+```
+
+Record: `docs/research/GV0V03L40_C025_R1_CLOSE.md`.

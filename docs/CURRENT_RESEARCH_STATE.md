@@ -1,3 +1,26 @@
+## GV0V03L40 C025-R1 — closed outcome-blind — 2026-10-02
+
+`DESIGN_VERSION = C025-R1`
+`SELECTION_PIPELINE_OVERRIDDEN = true`
+`ORIGINAL_CRITIC_VERDICTS = REJECT / REJECT / REJECT` (novelty, feasibility, red team; unchanged)
+`GV0R02_SCHEMA = GV0R02_SCHEMA_V2`
+`GV0R02_POLICY = GV0R02_POLICY_V2`
+`FEASIBILITY_STATUS = INFORMATIONALLY_WEAK`
+`BLOCKER = MDE_TOO_LARGE`
+`ONE_SIDED_N = 1`
+`TWO_SIDED_N = 879`
+`MATCHABLE_ONE_SIDED_N = 1`
+`MATCHABLE_TWO_SIDED_N = 169`
+`EFFECTIVE_N = 0.994`
+`MDE_STRESS = 5.620`
+`POWER_STRESS = 0.035`
+`EXECUTION_PERFORMED = false`
+`MARKET_OUTCOMES_OPENED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`C025_NEXT = STOP`
+
+Owner-authorized manual escalation of C025. The original card's future-burst exclusion was not executed. The versioned rule is a past-only 60-minute refractory. The frozen cell is theta 0.70, quantile 0.999, horizon 30m, bar 0.30 SD. One admitted one-sided burst in 2020–2024 is not enough for that bar. No preregistration, no permit, no outcome, no other variant. Record: `docs/research/GV0V03L40_C025_R1_CLOSE.md`.
+
 ## Product-first decision — research serves the product — 2026-10-02
 
 `OPERATING_MODE = PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`
