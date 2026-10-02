@@ -253,8 +253,8 @@ _CATALOG: dict[str, dict[str, str]] = {
         ),
     },
     "welcome_push": {
-        "ru": "Иногда бот сам пришлёт короткое сообщение — не больше 3 в день.",
-        "en": "Sometimes the bot will send a short message on its own — no more than 3 a day.",
+        "ru": "Иногда бот сам пришлёт короткое сообщение — не больше 2 в день.",
+        "en": "Sometimes the bot will send a short message on its own — no more than 2 a day.",
     },
     "feedback_usage": {
         "ru": "Напишите отзыв: /feedback ваш текст",
@@ -318,6 +318,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "/catchup — что было за последние часы (по умолчанию 8 ч; /catchup 1–24)\n"
             "/history — недавние эпизоды детектора, с доставкой или без, с фактическими диапазонами\n"
             "/brief on|off — утренняя сводка в 08:00 (Киев)\n"
+            "/push on|off — сообщения о необычном часе (не больше 2 в день)\n"
             "/terms — термины\n"
             "/lang — язык сообщений\n"
             "/feedback — отзыв или вопрос\n"
@@ -332,6 +333,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "/catchup — what happened over the last hours (8h by default; /catchup 1–24)\n"
             "/history — recent detector episodes, pushed or not, with factual follow-up ranges\n"
             "/brief on|off — morning summary at 08:00 Kyiv\n"
+            "/push on|off — unusual-hour messages (no more than 2 a day)\n"
             "/terms — glossary\n"
             "/lang — message language\n"
             "/feedback — a comment or a question\n"
@@ -461,7 +463,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "side_long": {"ru": "лонгов", "en": "long"},
     "side_short": {"ru": "шортов", "en": "short"},
     "liq_count": {
-        "ru": "Ликвидации {side} {votes}/{eligible} площадок",
+        "ru": "Ликвидации {side} {votes}/{eligible} бирж",
         "en": "{Side}-side liquidations {votes}/{eligible} venues",
     },
     "liq_not_evaluable": {
@@ -517,44 +519,121 @@ _CATALOG: dict[str, dict[str, str]] = {
     "interp_venues_diverge": {"ru": "биржи расходятся", "en": "venues disagree"},
     "interp_insufficient": {"ru": "мало истории", "en": "not enough history"},
     "interp_missing": {"ru": "н/д", "en": "n/a"},
-    # /catchup and the morning briefing (PRODUCT_FIRST_DECISION_V1 §3 rows 2-3)
-    "catchup_title": {"ru": "BTC {price} · за {hours} ч", "en": "BTC {price} · last {hours}h"},
-    "catchup_title_noprice": {"ru": "BTC · за {hours} ч", "en": "BTC · last {hours}h"},
-    "brief_title": {"ru": "Утро · BTC {price} · за {hours} ч", "en": "Morning · BTC {price} · last {hours}h"},
-    "brief_title_noprice": {"ru": "Утро · BTC · за {hours} ч", "en": "Morning · BTC · last {hours}h"},
-    "span_line": {"ru": "{hours} ч: {body}", "en": "{hours}h: {body}"},
-    "span_range": {"ru": "диапазон {rng} ({low}–{high})", "en": "range {rng} ({low}–{high})"},
-    "span_incomplete": {"ru": "{hours} ч: неполные данные", "en": "{hours}h: incomplete"},
-    "h_vol_amount": {"ru": "объём {amount}", "en": "vol {amount}"},
-    "catchup_events": {"ru": "События: {items}", "en": "Events: {items}"},
-    "catchup_no_events": {"ru": "Событий детектора не было", "en": "No detector events"},
-    "interp_line": {"ru": "{h}: {label}{extra}", "en": "{h}: {label}{extra}"},
+    # /catchup, the morning briefing and the unusual-hour push (BETA_COPY_CONTRACT_V1).
+    "catchup_title": {"ru": "BTC за {hours} ч · {span}", "en": "BTC, last {hours}h · {span}"},
+    "brief_title": {"ru": "BTC за ночь · {span}", "en": "BTC overnight · {span}"},
+    "span_hours": {"ru": "{hours} ч", "en": "{hours}h"},
+    "window_kyiv": {"ru": "{start}–{end} (Киев)", "en": "{start}–{end} Kyiv"},
+    "price_span": {"ru": "Цена {open} → {close} ({pct})", "en": "Price {open} → {close} ({pct})"},
+    "price_span_minmax": {"ru": ", мин {low}, макс {high}", "en": ", low {low}, high {high}"},
+    "price_span_incomplete": {"ru": "Цена: данные неполные", "en": "Price: incomplete data"},
+    "no_unusual_hours": {"ru": "Необычных часов не было.", "en": "No unusual hours."},
+    "unusual_immature": {
+        "ru": "Необычные часы пока не отмечаем: мало истории ({days} дн. из 30).",
+        "en": "Unusual hours are not marked yet: not enough history ({days} of 30 days).",
+    },
+    "unusual_head": {"ru": "Необычный час: {span} — {label}", "en": "Unusual hour: {span} — {label}"},
+    "hour_facts": {"ru": "Цена {pct}, OI {oi}, Delta {delta}", "en": "Price {pct}, OI {oi}, Delta {delta}"},
+    "liq_votes_line": {
+        "ru": "Ликвидации {side} — топ-5% на {k} из {n} бирж",
+        "en": "{side} liquidations — top 5% on {k} of {n} exchanges",
+    },
+    "unsigned_range": {"ru": "Диапазон — в топ-5% часовых окон за 30 дней",
+                       "en": "Range — in the top 5% of hourly windows over 30 days"},
+    "unsigned_volume": {"ru": "Объём — в топ-5% часовых окон за 30 дней",
+                        "en": "Volume — in the top 5% of hourly windows over 30 days"},
+    "unsigned_both": {"ru": "Диапазон и объём — оба в топ-5% часовых окон за 30 дней",
+                      "en": "Range and volume — both in the top 5% of hourly windows over 30 days"},
+    "venues_line": {"ru": "Биржи: {k} из {n} в одну сторону", "en": "Exchanges: {k} of {n} the same way"},
+    "note_quiet": {"ru": "Ночью с {s} до {e} бот не пишет, поэтому это только в сводке.",
+                   "en": "The bot does not write between {s} and {e}, so this is only in the summary."},
+    "note_cap": {"ru": "Сообщения об этом часе не было: за сутки уже было {n}.",
+                 "en": "No message about this hour: there were already {n} today."},
+    "note_cooldown": {"ru": "Отдельного сообщения не было: незадолго до этого бот уже писал.",
+                      "en": "No separate message: the bot had written shortly before."},
+    "now_head": {"ru": "Сейчас", "en": "Now"},
+    "now_line": {"ru": "{h}: {body}", "en": "{h}: {body}"},
     "hz_1h": {"ru": "1ч", "en": "1h"},
     "hz_4h": {"ru": "4ч", "en": "4h"},
-    "lvl_range": {"ru": "диапазон {level}", "en": "range {level}"},
-    "lvl_volume": {"ru": "объём {level}", "en": "volume {level}"},
-    "catchup_usage": {"ru": "Использование: /catchup или /catchup 1–24 (часы).",
-                      "en": "Usage: /catchup or /catchup 1–24 (hours)."},
+    "hz_24h": {"ru": "24ч", "en": "24h"},
+    "hz_windows_1h": {"ru": "часовых", "en": "hourly"},
+    "hz_windows_4h": {"ru": "4-часовых", "en": "4-hour"},
+    "beside_facts": {"ru": "{label} — цена {pct}, OI {oi}, Delta {delta}",
+                     "en": "{label} — price {pct}, OI {oi}, Delta {delta}"},
+    "beside_compression": {"ru": "{label} — диапазон {rng}, в нижних 20% {hz} окон за 30 дней",
+                           "en": "{label} — range {rng}, in the bottom 20% of {hz} windows over 30 days"},
+    "beside_oi": {"ru": " · OI {oi}", "en": " · OI {oi}"},
+    "beside_venues": {"ru": "{label} — {venues}", "en": "{label} — {venues}"},
+    "beside_insufficient": {"ru": "{label} — цена {pct}, OI {oi}", "en": "{label} — price {pct}, OI {oi}"},
+    "beside_oi_na": {"ru": "{dir}, Delta {delta} · OI н/д: сейчас есть с {k} из {n} бирж",
+                     "en": "{dir}, Delta {delta} · OI n/a: available from {k} of {n} exchanges"},
+    "beside_delta_na": {"ru": "{label} — Delta н/д — без неё не интерпретируем",
+                        "en": "{label} — Delta n/a — no interpretation without it"},
+    "beside_delta_na_bare": {"ru": "Delta н/д — без неё не интерпретируем",
+                             "en": "Delta n/a — no interpretation without it"},
+    "beside_delta_against": {"ru": "{label} — Delta {delta} — против направления цены, без интерпретации",
+                             "en": "{label} — Delta {delta} — against the price direction, no interpretation"},
+    "delta_against_suffix": {"ru": " — против направления цены, без интерпретации",
+                             "en": " — against the price direction, no interpretation"},
+    "dir_up": {"ru": "рост", "en": "rise"},
+    "dir_down": {"ru": "снижение", "en": "decline"},
+    "data_incomplete": {"ru": "данные неполные", "en": "incomplete data"},
+    "range_24h": {"ru": "{low}–{high}", "en": "{low}–{high}"},
+    "range_24h_na": {"ru": "диапазон н/д", "en": "range n/a"},
+    "pos_low": {"ru": "цена у нижней границы", "en": "price at the low end"},
+    "pos_lowish": {"ru": "цена ближе к нижней границе", "en": "price closer to the low end"},
+    "pos_mid": {"ru": "цена в середине", "en": "price in the middle"},
+    "pos_highish": {"ru": "цена ближе к верхней границе", "en": "price closer to the high end"},
+    "pos_high": {"ru": "цена у верхней границы", "en": "price at the high end"},
+    "oi_24h": {"ru": "OI {oi} за 24ч", "en": "OI {oi} over 24h"},
+    "funding_avg": {"ru": "средний Funding {f}", "en": "average Funding {f}"},
+    "funding_avg_na": {"ru": "средний Funding н/д", "en": "average Funding n/a"},
+    "payer_longs": {"ru": "платят лонги", "en": "longs pay"},
+    "payer_shorts": {"ru": "платят шорты", "en": "shorts pay"},
+    "data_at": {"ru": "Данные на {clock}", "en": "Data as of {clock}"},
+    "brief_off_hint": {"ru": "Отключить утреннюю сводку: /brief off", "en": "Turn the morning summary off: /brief off"},
+    "catchup_usage": {"ru": "Окно — от 1 до 24 часов. Например: /catchup 4",
+                      "en": "The window is 1 to 24 hours. For example: /catchup 4"},
     "brief_usage": {"ru": "Утренняя сводка: {state}. /brief on — включить, /brief off — выключить.",
                     "en": "Morning summary: {state}. /brief on to turn it on, /brief off to turn it off."},
     "brief_state_on": {"ru": "включена", "en": "on"},
     "brief_state_off": {"ru": "выключена", "en": "off"},
     "brief_on_ok": {"ru": "Утренняя сводка включена: 08:00 (Киев).", "en": "Morning summary on: 08:00 Kyiv."},
-    "brief_off_ok": {"ru": "Утренняя сводка выключена. Пуши о событиях это не меняет.",
-                     "en": "Morning summary off. Event pushes are not affected."},
+    "brief_off_ok": {"ru": "Утренняя сводка выключена. Сообщения о необычном часе это не меняет.",
+                     "en": "Morning summary off. Unusual-hour messages are not affected."},
+    "push_usage": {"ru": "Сообщения о необычном часе: {state}. /push on — включить, /push off — выключить.",
+                   "en": "Unusual-hour messages: {state}. /push on to turn them on, /push off to turn them off."},
+    "push_state_on": {"ru": "включены", "en": "on"},
+    "push_state_off": {"ru": "выключены", "en": "off"},
+    "push_on_ok": {"ru": "Сообщения о необычном часе включены: не больше 2 в день, ночью бот не пишет.",
+                   "en": "Unusual-hour messages on: no more than 2 a day, none at night."},
+    "push_off_ok": {"ru": "Сообщения о необычном часе выключены. Утреннюю сводку это не меняет.",
+                    "en": "Unusual-hour messages off. The morning summary is not affected."},
+    # push (BETA_COPY_CONTRACT_V1 §1.2)
+    "push_hour_title": {"ru": "BTC · необычный час", "en": "BTC · unusual hour"},
+    "price_line": {"ru": "Цена {pct} ({open} → {close})", "en": "Price {pct} ({open} → {close})"},
+    "price_line_noprices": {"ru": "Цена {pct}", "en": "Price {pct}"},
+    "price_line_na": {"ru": "Цена: н/д", "en": "Price: n/a"},
+    "price_tail": {"ru": ": {dir}", "en": ": {dir}"},
+    "price_rise_95": {"ru": "рост сильнее, чем в 95% часовых окон за 30 дней",
+                      "en": "a rise stronger than in 95% of hourly windows over 30 days"},
+    "price_drop_95": {"ru": "падение глубже, чем в 95% часовых окон за 30 дней",
+                      "en": "a drop deeper than in 95% of hourly windows over 30 days"},
+    "oi_delta_line": {"ru": "OI {oi} · Delta {delta}", "en": "OI {oi} · Delta {delta}"},
+    "oi_only_line": {"ru": "OI {oi}", "en": "OI {oi}"},
     "evt_buy": {"ru": "агрессивные покупки", "en": "aggressive buying"},
     "evt_sell": {"ru": "агрессивные продажи", "en": "aggressive selling"},
     "evt_liq_long": {"ru": "ликвидационный стресс (ликвидации лонгов)", "en": "liquidation stress (long-side liquidations)"},
     "evt_liq_short": {"ru": "ликвидационный стресс (ликвидации шортов)", "en": "liquidation stress (short-side liquidations)"},
     "desc_down": {
         "ru": ("Движение цены за 5м в нижних 5% последних 30 дней при снижении открытого "
-               "интереса в его нижних 10%, не менее чем на 2 площадках."),
+               "интереса в его нижних 10%, не менее чем на 2 биржах."),
         "en": ("5m price move in the bottom 5% of the last 30 days while open "
                "interest fell in its bottom 10%, on at least 2 venues."),
     },
     "desc_up": {
         "ru": ("Движение цены за 5м в верхних 5% последних 30 дней при снижении открытого "
-               "интереса в его нижних 10%, не менее чем на 2 площадках."),
+               "интереса в его нижних 10%, не менее чем на 2 биржах."),
         "en": ("5m price move in the top 5% of the last 30 days while open "
                "interest fell in its bottom 10%, on at least 2 venues."),
     },
@@ -574,13 +653,13 @@ _CATALOG: dict[str, dict[str, str]] = {
     },
     "desc_liq_long": {
         "ru": ("Номинал ликвидаций лонгов в верхних 5% собственной 30-дневной истории "
-               "не менее чем на 2 площадках с живой лентой в том же 5м бакете."),
+               "не менее чем на 2 биржах с живой лентой в том же 5м бакете."),
         "en": ("Long-side liquidation notional in the top 5% of its own 30d history "
                "on at least 2 venues with a live feed in the same 5m bucket."),
     },
     "desc_liq_short": {
         "ru": ("Номинал ликвидаций шортов в верхних 5% собственной 30-дневной истории "
-               "не менее чем на 2 площадках с живой лентой в том же 5м бакете."),
+               "не менее чем на 2 биржах с живой лентой в том же 5м бакете."),
         "en": ("Short-side liquidation notional in the top 5% of its own 30d history "
                "on at least 2 venues with a live feed in the same 5m bucket."),
     },
@@ -589,6 +668,8 @@ _CATALOG: dict[str, dict[str, str]] = {
     "state_triggered": {"ru": "зафиксирована", "en": "triggered"},
     "state_ended": {"ru": "завершена", "en": "ended"},
     "state_expired": {"ru": "истекла", "en": "expired"},
+    # Legacy V0.2 event-push keys. Not delivered to users since the unusual-hour push
+    # (BETA_COPY_CONTRACT_V1); kept for `format_push_v02`, an offline replay helper.
     "push_title": {"ru": "BTCUSDT perp — СОБЫТИЕ: {name}", "en": "BTCUSDT perp — EVENT: {name}"},
     "push_decision": {
         "ru": "Время решения: {when} (закрытие 5м бакета)",
@@ -598,7 +679,6 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "Сводная цена на решении: {price} ({venues})",
         "en": "Composite close at decision: {price} ({venues})",
     },
-    "push_id": {"ru": "Эпизод {pid} · правила {rules}", "en": "Episode {pid} · rules {rules}"},
     "status_title": {"ru": "BTCUSDT perp — {status}", "en": "BTCUSDT perp — {status}"},
     "status_eval": {
         "ru": "Последняя оценка: 5м бакет закрыт {when}",
@@ -606,7 +686,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     },
     "status_eval_none": {"ru": "Последняя оценка: ещё нет", "en": "Last evaluation: none yet"},
     "status_episode": {"ru": "• {name} — {state} (с {when})", "en": "• {name} — {state} (since {when})"},
-    "status_context": {"ru": "Контекст (5м, по площадкам)", "en": "Context (5m, cross-venue)"},
+    "status_context": {"ru": "Контекст (5м, по биржам)", "en": "Context (5m, cross-venue)"},
     "status_price": {"ru": "движение цены: {v}", "en": "price move: {v}"},
     "status_oi": {"ru": "изменение OI: {v}", "en": "OI change: {v}"},
     "status_range": {"ru": "ширина диапазона: {v}", "en": "range width: {v}"},
@@ -777,7 +857,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "fam_volume": {"ru": "объёма", "en": "volume"},
     "fam_taker": {"ru": "Delta", "en": "Delta"},
     "reason_venues": {
-        "ru": "меньше {n} пригодных площадок для {fam}",
+        "ru": "меньше {n} пригодных бирж для {fam}",
         "en": "fewer than {n} usable venues for {fam}",
     },
     "reason_eligible": {

@@ -203,9 +203,19 @@ class BetaBotHandler:
             hours = parse_catchup_hours(args)
             if hours is None:
                 return [_msg(chat_id, t(lang, "catchup_usage"), lang=lang)]
-            html_text, buttons = await self._catchup(conn, now, lang, hours)
+            html_text, buttons = await self._catchup(conn, now, lang, hours,
+                                                    push_enabled=bool(user.get("push_enabled", True)))
             return await self._reply(conn, user, chat_id, lang, now, "cmd_catchup",
                                      [_msg(chat_id, html_text, buttons, lang=lang)])
+        if cmd == "push":
+            arg = (args or "").strip().lower()
+            if arg in ("on", "off"):
+                await conn.set_push_enabled(uid, arg == "on")
+                reply = t(lang, "push_on_ok" if arg == "on" else "push_off_ok")
+            else:
+                on = user.get("push_enabled", True)
+                reply = t(lang, "push_usage", state=t(lang, "push_state_on" if on else "push_state_off"))
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_push", [_msg(chat_id, reply, lang=lang)])
         if cmd == "brief":
             arg = (args or "").strip().lower()
             if arg in ("on", "off"):
@@ -331,11 +341,11 @@ class BetaBotHandler:
         view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="btc")
         return text, btc_buttons(view, lang, view_pk)
 
-    async def _catchup(self, conn, now: datetime, lang: str, hours: int):
+    async def _catchup(self, conn, now: datetime, lang: str, hours: int, *, push_enabled: bool = True):
         """/catchup: the same view object with the window summary and 1h/4h labels."""
         from beta.formatter import btc_buttons, format_catchup
         view = await self._view(conn, now, kind="catchup", window_hours=hours)
-        text = format_catchup(self.cfg, view, lang)
+        text = format_catchup(self.cfg, view, lang, push_enabled=push_enabled)
         view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="catchup")
         return text, btc_buttons(view, lang, view_pk)
 

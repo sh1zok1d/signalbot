@@ -35,47 +35,8 @@ def test_brief_slot_is_08_kyiv_in_summer_and_winter_time():
     assert brief_slot(datetime(2026, 12, 1, 22, 30, tzinfo=UTC), "08:00") is None
 
 
-def _view(kind="catchup", market=None, status="NO ACTIVE EVENTS"):
-    return {"product_status": status, "kind": kind, "now": {"reference_price": 84133.0},
-            "data_through": "2026-10-01T16:00:00Z", "horizons": None, "market": market}
-
-
-def _market(h1, h4, *, events=(), levels=None):
-    return {"version": "BETA_MARKET_VIEW_V1", "window_hours": 8, "complete": True,
-            "window": {"price_complete": True, "price_move_pct": 1.24, "range_width_pct": 2.1,
-                       "low": 83100.0, "high": 84900.0, "volume_notional_usd": 1.4e10, "oi_change_pct": -0.4},
-            "events": list(events), "interpretation": {"1h": h1, "4h": h4},
-            "levels": levels or {"1h": {"range_width_pct_median": "high"}, "4h": {}}}
-
-
-def test_catchup_renders_window_events_labels_and_data_time_in_both_languages():
-    h1 = it.interpret(CFG, C(0.92, 0.08, 0.90), horizon="1h")
-    h4 = it.interpret(CFG, C(0.5, 0.5, 0.5, rng=0.1), horizon="4h")
-    ev = [{"event_type": "TAKER_FLOW_EXTREME_BUY", "triggered_at": "2026-10-01T15:50:00Z"}]
-    ru = format_catchup(CFG, _view(market=_market(h1, h4, events=ev)), "ru")
-    lines = ru.split("\n")
-    assert lines[0] == "<b>BTC 84 133 · за 8 ч</b>"
-    assert lines[1] == "8 ч: +1,2% · диапазон 2,1% (83 100–84 900) · объём $14 млрд · OI −0,4%"
-    assert lines[2] == "События: агрессивные покупки 18:50"
-    assert lines[3] == "1ч: похоже на выход шортов · диапазон высокий"
-    assert lines[4] == "4ч: сжатие"
-    assert lines[-1] == "данные 19:00 (Киев)"
-    en = format_catchup(CFG, _view(kind="brief", market=_market(h1, h4)), "en")
-    assert en.startswith("<b>Morning · BTC 84,133 · last 8h</b>")
-    assert "No detector events" in en and "1h: looks like shorts exiting · range high" in en
-    for text, lang in ((ru, "ru"), (en, "en")):
-        assert_descriptive(text, lang)
-
-
-def test_catchup_fails_closed_and_degrades_per_part():
-    ru = format_catchup(CFG, _view(status="DATA STALE", market=_market(None, None)), "ru")
-    assert "нельзя" in ru.lower() or "недостаточно" in ru.lower()
-    assert "похоже" not in ru
-    incomplete = _market(it.interpret(CFG, None, horizon="1h"),
-                         it.interpret(CFG, C(0.92, 0.08, 0.9, tier="building"), horizon="4h"))
-    incomplete["window"] = {"price_complete": False}
-    ru = format_catchup(CFG, _view(market=incomplete), "ru")
-    assert "8 ч: неполные данные" in ru and "1ч: н/д" in ru and "4ч: мало истории" in ru
+# The rendered /catchup and briefing texts are covered against BETA_COPY_CONTRACT_V1 in
+# test_beta_product_first.py; this file keeps the pure window / horizon / dry-run parts.
 
 
 def test_view_kinds_and_default_window():
@@ -110,19 +71,18 @@ def test_market_block_window_and_stale_context_is_not_interpreted():
     tape = {"as_of": as_of, "metrics": hist, "oi": {}}
     stale = {"context_1h": dict(C(0.92, 0.08, 0.9), window_end=cx.iso(as_of)),   # one bucket behind
              "context_4h": None, "open": {}, "last_ended": {}}
-    block = market_block(CFG, {}, stale, tape, window_hours=8, episodes=[])
+    block = market_block(CFG, {}, stale, tape, window_hours=8)
     assert block["window"]["price_complete"] and block["window"]["window_end"] == cx.iso(as_of + BUCKET)
     assert block["interpretation"]["1h"]["kind"] == it.DATA_MISSING
     fresh = dict(stale, context_1h=dict(C(0.92, 0.08, 0.9), window_end=cx.iso(as_of + BUCKET)))
-    assert market_block(CFG, {}, fresh, tape, window_hours=8, episodes=[])["interpretation"]["1h"]["label"] == "short_exit"
-    eps = [{"event_type": "PRICE_OI_CONTRACTION_DOWN", "opened_bucket": as_of - 3 * BUCKET,
-            "last_bucket": as_of - 2 * BUCKET, "triggered_at": as_of - BUCKET, "terminal_at": None},
-           {"event_type": "PRICE_OI_CONTRACTION_UP", "opened_bucket": as_of - timedelta(hours=9),
-            "last_bucket": as_of - timedelta(hours=9), "triggered_at": as_of - timedelta(hours=9),
-            "terminal_at": None}]
-    events = market_block(CFG, {}, fresh, tape, window_hours=8, episodes=eps)["events"]
-    assert [e["event_type"] for e in events] == ["PRICE_OI_CONTRACTION_DOWN"]    # only inside the window
-    assert market_block(CFG, {}, fresh, None, window_hours=8, episodes=eps)["complete"] is False
+    assert market_block(CFG, {}, fresh, tape, window_hours=8)["interpretation"]["1h"]["label"] == "short_exit"
+    gate = {"qualified": True, "window_start": cx.iso(as_of - 12 * BUCKET), "window_end": cx.iso(as_of)}
+    rows = [{"decision_ts": as_of - BUCKET, "decision": "PUSH", "suppression_reason": None, "gate": gate},
+            {"decision_ts": as_of - timedelta(hours=9), "decision": "PUSH", "suppression_reason": None,
+             "gate": dict(gate, window_start=cx.iso(as_of - timedelta(hours=10)))}]
+    hours = market_block(CFG, {}, fresh, tape, window_hours=8, qualified=rows)["unusual_hours"]
+    assert [h["decision_ts"] for h in hours] == [cx.iso(as_of - BUCKET)]          # only inside the window
+    assert market_block(CFG, {}, fresh, None, window_hours=8, qualified=rows)["complete"] is False
 
 
 # ---- recorded-tape dry run (pure) ----------------------------------------------------------------

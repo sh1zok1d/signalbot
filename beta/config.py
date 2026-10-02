@@ -58,6 +58,7 @@ _TOP_KEYS = frozenset({
     "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
     "horizon_changes", "access", "telemetry", "feedback", "regime_d7", "briefing",
+    "push_policy",
 })
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
@@ -114,6 +115,9 @@ _BRIEFING_KEYS = {"enabled", "time_kyiv", "max_delay_min"}
 
 # D7 regime line. Display only. It never enters the rules digest.
 _REGIME_D7_KEYS = {"enabled"}
+# Delivery-side push policy (PRODUCT_FIRST_DECISION_V1 §3 row 8): quiet hours in Kyiv
+# time and one cooldown across event types. Policy only; never the rules digest.
+_PUSH_POLICY_KEYS = {"quiet_hours_kyiv", "global_cooldown_min"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
 # cooldown / cap only enter the config digest).
@@ -241,6 +245,16 @@ class BetaConfig:
         return timedelta(minutes=self.raw["same_event_cooldown_min"])
 
     @property
+    def global_cooldown(self) -> timedelta:
+        return timedelta(minutes=self.raw["push_policy"]["global_cooldown_min"])
+
+    @property
+    def quiet_hours_kyiv(self) -> tuple:
+        """(start, end) as HH:MM Kyiv wall-clock strings; the window wraps midnight."""
+        q = self.raw["push_policy"]["quiet_hours_kyiv"]
+        return (str(q[0]), str(q[1]))
+
+    @property
     def delivery_ttl(self) -> timedelta:
         return timedelta(seconds=self.raw["delivery_ttl_s"])
 
@@ -328,6 +342,24 @@ def _validate(d: Mapping[str, Any]) -> None:
     _validate_feedback(d)
     _validate_regime_d7(d)
     _validate_briefing(d)
+    _validate_push_policy(d)
+
+
+def _hhmm(value, name: str) -> None:
+    if not isinstance(value, str) or len(value) != 5 or value[2] != ":" or not (value[:2] + value[3:]).isdigit() \
+            or int(value[:2]) > 23 or int(value[3:]) > 59:
+        raise BetaConfigError(f"{name} must be HH:MM")
+
+
+def _validate_push_policy(d: Mapping[str, Any]) -> None:
+    p = d["push_policy"]
+    _exact_keys(p, _PUSH_POLICY_KEYS, "push_policy")
+    q = p["quiet_hours_kyiv"]
+    if not isinstance(q, (list, tuple)) or len(q) != 2:
+        raise BetaConfigError("push_policy.quiet_hours_kyiv must be [start, end] in HH:MM")
+    _hhmm(q[0], "push_policy.quiet_hours_kyiv[0]")
+    _hhmm(q[1], "push_policy.quiet_hours_kyiv[1]")
+    _int(p["global_cooldown_min"], "push_policy.global_cooldown_min", minimum=1)
 
 
 def _validate_briefing(d: Mapping[str, Any]) -> None:

@@ -7,14 +7,32 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from beta_fakes import (CFG, EXS, FEATURE_CODE, ON, ON_PUSH, S2, T0, TEST_DSN, Clock, ScenarioReader,
-                        deps, down_move, fresh_pool, history_buckets, history_metrics, quiet, run,
-                        seed_history, seed_live_klines)
+from beta_fakes import (CFG as CFG_COMMITTED, EXS, FEATURE_CODE, ON, ON_PUSH, S2, T0, TEST_DSN, Clock,
+                        ScenarioReader, deps, down_move, fresh_pool, history_buckets, history_metrics, quiet,
+                        run, seed_history, seed_live_klines)
+from beta import detector as det
 from beta.detector import run_bootstrap_once, run_detector_once
 from beta.state_tape import materialize_bucket
 from storage.beta_v0_store import BetaStore, apply_beta_schema
 
 pytestmark = pytest.mark.skipif(not TEST_DSN, reason="BETA_TEST_DSN not set (local PostgreSQL)")
+
+# The detector / episode / outbox pipeline is exercised under the V0.2 delivery policy
+# (3 a day, no global cooldown, no quiet hours) with the unusual-hour gate answered
+# "qualified": these tests pin the pipeline BELOW the product gate. The gate itself,
+# the committed policy and /push off are tested separately (test_gate_* below).
+CFG = CFG_COMMITTED.with_overrides(max_new_pushes_per_utc_day=3,
+                                   push_policy={"quiet_hours_kyiv": ["00:00", "00:00"], "global_cooldown_min": 1})
+REAL_HOUR_GATE = det._hour_gate
+
+
+async def _qualified_gate(conn, cfg, hour_ctx, snapshot):
+    return {"version": "TEST_GATE", "qualified": True, "status": "QUALIFIED"}
+
+
+@pytest.fixture(autouse=True)
+def _answer_the_hour_gate(monkeypatch):
+    monkeypatch.setattr(det, "_hour_gate", _qualified_gate)
 
 B0 = T0 + timedelta(days=40)
 BUCKET = timedelta(minutes=5)
@@ -386,7 +404,7 @@ def test_delivery_sent_once_ttl_and_user_inactive():
         s = FakeSender()
         r = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(decision_ts + timedelta(seconds=40)))
         assert r["sent"] == 1 and r["materialized"] == 2 and len(s.sent) == 1
-        assert "Decision time" in s.sent[0][1] and s.sent[0][2][0][0][0] == "Details"
+        assert s.sent[0][1].startswith("<b>BTC · unusual hour</b>") and s.sent[0][2][0][0][0] == "Details"
         again = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(decision_ts + timedelta(seconds=100)))
         assert again["sent"] == 0 and len(s.sent) == 1              # never re-sent
         states = await _rows(pool, "SELECT state, suppression_reason FROM beta_notification_deliveries ORDER BY delivery_id")
@@ -1057,5 +1075,76 @@ def test_details_tab_check_widens_a_pr1_database_and_stays_idempotent():
                 await c.execute("UPDATE beta_details_opens SET lang='en'")
             with pytest.raises(asyncpg.InsufficientPrivilegeError):
                 await c.execute("DELETE FROM beta_details_opens")
+        await pool.close()
+    run(body())
+
+
+# --------------------------------------------------------------- product gate and push policy
+def test_gate_blocks_pushes_until_the_hour_is_readable_and_records_what_it_saw(monkeypatch):
+    """Under the committed config, a TRIGGERED episode on a tape without mature 1h
+    ranks is HOUR_NOT_UNUSUAL: nothing is materialized for delivery, and the gate
+    record says why (decision §3 row 7)."""
+    async def body():
+        monkeypatch.setattr(det, "_hour_gate", REAL_HOUR_GATE)
+        pool = await _setup()
+        await _detect(pool, ScenarioReader(down_move), B0, switches=ON_PUSH, cfg=CFG_COMMITTED)
+        r = await _detect(pool, ScenarioReader(down_move), B0 + BUCKET, switches=ON_PUSH, cfg=CFG_COMMITTED)
+        assert r["processed"][0]["push_decisions"][0][1:] == ("SUPPRESSED", "HOUR_NOT_UNUSUAL")
+        pd = await _rows(pool, "SELECT would_push, decision, suppression_reason, gate->>'status' AS st, "
+                               "(gate->>'qualified')::boolean AS q FROM beta_push_decisions")
+        assert pd == [{"would_push": False, "decision": "SUPPRESSED", "suppression_reason": "HOUR_NOT_UNUSUAL",
+                       "st": "CONTEXT_UNAVAILABLE", "q": False}]        # V1 history rows: no 1h window yet
+        store = BetaStore(pool)
+        async with store.connect() as c:
+            assert await c.fetch_undispatched_push_decisions(10) == []
+            assert await c.fetch_qualified_hours(symbol="BTCUSDT", start=B0 - timedelta(days=1), end=B0 + timedelta(days=1)) == []
+        await pool.close()
+    run(body())
+
+
+def test_push_off_is_a_recipient_preference_with_no_delivery_row():
+    async def body():
+        from beta.delivery import run_notify_once
+        pool = await _setup()
+        await _triggered_push(pool)
+        async with pool.acquire() as c:
+            await c.execute("INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at, joined_at,"
+                            " stopped_at, lang, push_enabled) VALUES (13, 13, 'ACTIVE', now(), now(), NULL, 'ru', FALSE)")
+        s = FakeSender()
+        r = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(B0 + 2 * BUCKET + timedelta(seconds=40)))
+        assert r["sent"] == 1 and [x[0] for x in s.sent] == [11]
+        rows = await _rows(pool, "SELECT u.telegram_user_id AS uid, x.state FROM beta_notification_deliveries x "
+                                 "JOIN beta_users u USING (user_pk) ORDER BY uid")
+        assert rows == [{"uid": 11, "state": "SENT"}, {"uid": 12, "state": "SUPPRESSED"}]   # no row for 13
+        text = s.sent[0][1]
+        assert text.startswith("<b>BTC · unusual hour</b>") and "EV-" not in text and "EVENT" not in text
+        await pool.close()
+    run(body())
+
+
+def test_push_command_and_admin_known_flag():
+    async def body():
+        from runtime.beta_bot import BetaBotHandler
+        pool = await _setup()
+        h = BetaBotHandler(BetaStore(pool), CFG, switches=lambda: ON, owner_user_id=OWNER, clock=Clock(B0))
+        await h.handle(_msg(OWNER, f"/admin_add {ALICE}", 1))
+        await h.handle(_msg(ALICE, "/start", 2))
+        await h.handle(_cb(ALICE, "pick:en", 3))
+        await h.handle(_cb(ALICE, "join:en", 4))
+        out = await h.handle(_msg(ALICE, "/push", 5))
+        assert "Unusual-hour messages: on" in out[0].html
+        out = await h.handle(_msg(ALICE, "/push off", 6))
+        assert "Unusual-hour messages off" in out[0].html and "morning summary" in out[0].html.lower()
+        assert (await _rows(pool, "SELECT push_enabled, known_contact FROM beta_users")) == \
+            [{"push_enabled": False, "known_contact": False}]
+        out = await h.handle(_msg(OWNER, f"/admin_known {ALICE} on", 7))
+        assert "known_contact=true" in out[0].html
+        assert (await _rows(pool, "SELECT known_contact FROM beta_users")) == [{"known_contact": True}]
+        out = await h.handle(_msg(OWNER, "/admin_users", 8))
+        assert "known" in out[0].html
+        audit = await _rows(pool, "SELECT action, result FROM beta_admin_audit WHERE action='admin_known'")
+        assert audit == [{"action": "admin_known", "result": "OK"}]
+        acts = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
+        assert acts.count("cmd_push") == 2
         await pool.close()
     run(body())

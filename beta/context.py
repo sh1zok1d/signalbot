@@ -398,7 +398,7 @@ def rolling_window_values(cfg: BetaConfig, metrics_by_bucket: Mapping[datetime, 
     volume = math.fsum(vols) if all(v is not None for v in vols) else None
     takers = [r.get("c:taker_delta_notional_usd_sum") for r in rows]
     taker = math.fsum(takers) if all(v is not None for v in takers) else None
-    ranges, moves, venues = [], [], []
+    ranges, moves, venues, opens, closes = [], [], [], [], []
     for ex in cfg.exchanges:
         o = rows[0].get(metric_key(ex, "kline_open"))
         c = rows[-1].get(metric_key(ex, "kline_close"))
@@ -408,6 +408,8 @@ def rolling_window_values(cfg: BetaConfig, metrics_by_bucket: Mapping[datetime, 
             continue
         ranges.append((max(hs) - min(ls)) / o * 100.0)
         moves.append((c - o) / o * 100.0)
+        opens.append(float(o))
+        closes.append(float(c))
         venues.append(ex)
     enough = len(venues) >= cfg.min_venues
     return {"window_start": iso(buckets[0]), "window_end": iso(end_bucket + BUCKET),
@@ -415,7 +417,10 @@ def rolling_window_values(cfg: BetaConfig, metrics_by_bucket: Mapping[datetime, 
             "price_move_pct_median": _median(moves) if enough else None,
             "volume_notional_usd_sum": volume, "venues": venues,
             "taker_delta_notional_usd_sum": taker,
-            "price_move_pct_by_venue": dict(zip(venues, moves))}
+            "price_move_pct_by_venue": dict(zip(venues, moves)),
+            # presentation only (the push and /catchup price line); medians over venues
+            "open_median": _median(opens) if enough else None,
+            "close_median": _median(closes) if enough else None}
 
 
 def _median(xs: Sequence[float]) -> float:

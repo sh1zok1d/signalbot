@@ -100,7 +100,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 if ep is None:
                     ep = episodes[row["episode_pk"]] = await conn.fetch_episode_by_pk(row["episode_pk"])
                 lang = row.get("user_lang") or "ru"
-                text = format_push(ep, lang=lang)
+                text = format_push(ep, lang=lang, gate=row.get("gate"))
                 # (2) commit PENDING -> SENDING before the single API call
                 if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
                     continue
@@ -215,7 +215,8 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
         if payload is None:
             payload = views[row["view_pk"]] = (await conn.fetch_btc_view(row["view_pk"]))["payload"]
         lang = row.get("user_lang") or "ru"
-        text = format_catchup(cfg, payload, lang)
+        text = format_catchup(cfg, payload, lang, push_enabled=bool(row.get("push_enabled", True)),
+                              first_brief=bool(row.get("first_brief", False)))
         if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
             continue
         try:

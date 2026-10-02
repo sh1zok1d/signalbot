@@ -457,6 +457,12 @@ class BetaConn:
             "SELECT max(decision_ts) FROM beta_push_decisions WHERE event_type=$1 AND would_push "
             "AND episode_pk IS DISTINCT FROM $2", event_type, exclude_pk)
 
+    async def latest_any_would_push(self, *, exclude_pk: Optional[int]) -> Optional[datetime]:
+        """Newest would-push decision of ANY event type (the global cooldown)."""
+        return await self.conn.fetchval(
+            "SELECT max(decision_ts) FROM beta_push_decisions WHERE would_push "
+            "AND episode_pk IS DISTINCT FROM $1", exclude_pk)
+
     async def count_would_push(self, utc_day: date) -> int:
         return int(await self.conn.fetchval(
             "SELECT count(*) FROM beta_push_decisions WHERE utc_day=$1 AND would_push", utc_day))
@@ -464,13 +470,25 @@ class BetaConn:
     async def insert_push_decision(self, *, episode_pk: int, event_type: str,
                                    decision_ts: datetime, would_push: bool, decision: str,
                                    suppression_reason: Optional[str],
-                                   push_enabled_effective: bool) -> int:
+                                   push_enabled_effective: bool,
+                                   gate: Optional[Mapping[str, Any]] = None) -> int:
         return await self.conn.fetchval(
             """INSERT INTO beta_push_decisions (episode_pk, event_type, decision_ts, utc_day,
-                   would_push, decision, suppression_reason, push_enabled_effective)
-               VALUES ($1,$2,$3,($3 AT TIME ZONE 'UTC')::date,$4,$5,$6,$7) RETURNING decision_id""",
+                   would_push, decision, suppression_reason, push_enabled_effective, gate)
+               VALUES ($1,$2,$3,($3 AT TIME ZONE 'UTC')::date,$4,$5,$6,$7,$8::jsonb) RETURNING decision_id""",
             episode_pk, event_type, decision_ts, would_push, decision, suppression_reason,
-            push_enabled_effective)
+            push_enabled_effective, None if gate is None else _j(gate))
+
+    async def fetch_qualified_hours(self, *, symbol: str, start: datetime, end: datetime) -> list:
+        """Push decisions whose unusual-hour gate PASSED, decided in [start, end], oldest
+        first. Delivery-side suppression is reported, never filtered (decision §3.1b.3)."""
+        rows = await self.conn.fetch(
+            """SELECT d.decision_ts, d.decision, d.suppression_reason, d.gate, e.public_id, e.event_type
+               FROM beta_push_decisions d JOIN beta_episodes e USING (episode_pk)
+               WHERE e.symbol=$1 AND d.decision_ts >= $2 AND d.decision_ts <= $3
+                 AND d.gate IS NOT NULL AND (d.gate->>'qualified')::boolean
+               ORDER BY d.decision_ts, d.decision_id""", symbol, start, end)
+        return [{**dict(r), "gate": _load(r["gate"])} for r in rows]
 
     async def flag_correction(self, *, snapshot_digests: Sequence[str], note: str) -> int:
         """Annotate (never rewrite) episodes decided from a later-corrected snapshot."""
@@ -495,6 +513,17 @@ class BetaConn:
                 WHERE e.symbol=$1 ORDER BY e.opened_at DESC, e.episode_pk DESC LIMIT $2""",
             symbol, limit)
         return [dict(r) for r in rows]
+
+    async def fetch_triggered_episodes(self, *, symbol: str, start: datetime, end: datetime) -> list:
+        """Every TRIGGERED episode whose buckets reach into [start, end). Read-only (the
+        gate coverage diagnostic)."""
+        rows = await self.conn.fetch(
+            """SELECT public_id, event_type, opened_bucket, last_bucket, triggered_at FROM beta_episodes
+               WHERE symbol=$1 AND triggered_at IS NOT NULL AND opened_bucket < $3 AND last_bucket >= $2
+               ORDER BY opened_bucket""", symbol, start, end)
+        from beta.state_tape import iso
+        return [{"episode_id": r["public_id"], "event_type": r["event_type"], "opened_bucket": iso(r["opened_bucket"]),
+                 "last_bucket": iso(r["last_bucket"]), "triggered_at": iso(r["triggered_at"])} for r in rows]
 
     async def fetch_liquidation_episodes(self, *, symbol: str, start: datetime, end: datetime) -> list:
         """Triggered LIQUIDATION_STRESS episodes whose buckets reach into [start, end). Read-only."""
@@ -609,7 +638,7 @@ class BetaConn:
                       CASE WHEN $4::boolean THEN 'DELIVERY_TOO_OLD'
                            WHEN u.status='ACTIVE' THEN NULL ELSE 'USER_INACTIVE' END,
                       $3
-               FROM beta_users u
+               FROM beta_users u WHERE u.push_enabled
                ON CONFLICT (decision_id, user_pk) DO NOTHING""",
             decision_id, episode_pk, decision_ts, expired)
         return int(status.split()[-1])
@@ -617,11 +646,12 @@ class BetaConn:
     async def fetch_pending_deliveries(self, limit: int) -> list:
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.decision_id, x.episode_pk, x.user_pk, x.decision_ts,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, d.gate
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
+               LEFT JOIN beta_push_decisions d ON d.decision_id = x.decision_id
                WHERE x.state='PENDING' AND x.kind='push'
                ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
-        return [dict(r) for r in rows]
+        return [{**dict(r), "gate": _load(r["gate"]) if r["gate"] is not None else None} for r in rows]
 
     # ---- morning briefing rows in the same outbox (kind = 'brief') ----------
     async def brief_scheduled(self, brief_date) -> bool:
@@ -644,11 +674,27 @@ class BetaConn:
     async def fetch_pending_brief_deliveries(self, limit: int) -> list:
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.view_pk, x.brief_date, x.user_pk, x.decision_ts,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.brief_enabled
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.brief_enabled,
+                      u.push_enabled,
+                      NOT EXISTS (SELECT 1 FROM beta_notification_deliveries y
+                                  WHERE y.kind='brief' AND y.user_pk=x.user_pk AND y.state='SENT'
+                                    AND y.brief_date < x.brief_date) AS first_brief
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                WHERE x.state='PENDING' AND x.kind='brief'
                ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
         return [dict(r) for r in rows]
+
+    async def set_push_enabled(self, telegram_user_id: int, enabled: bool) -> bool:
+        status = await self.conn.execute(
+            "UPDATE beta_users SET push_enabled=$2, updated_at=now() WHERE telegram_user_id=$1",
+            telegram_user_id, enabled)
+        return status == "UPDATE 1"
+
+    async def set_known_contact(self, telegram_user_id: int, known: bool) -> bool:
+        status = await self.conn.execute(
+            "UPDATE beta_users SET known_contact=$2, updated_at=now() WHERE telegram_user_id=$1",
+            telegram_user_id, known)
+        return status == "UPDATE 1"
 
     async def set_brief_enabled(self, telegram_user_id: int, enabled: bool) -> bool:
         status = await self.conn.execute(
@@ -704,7 +750,7 @@ class BetaConn:
     async def get_user(self, telegram_user_id: int):
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
-                      invite_code, privacy_notice_version, brief_enabled
+                      invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
@@ -1014,10 +1060,11 @@ class BetaConn:
 
     async def list_users(self) -> list:
         rows = await self.conn.fetch(
-            """SELECT a.telegram_user_id, u.status, u.joined_at, u.stopped_at
+            """SELECT a.telegram_user_id, u.status, u.joined_at, u.stopped_at, u.known_contact
                FROM beta_allowlist a LEFT JOIN beta_users u USING (telegram_user_id)
                UNION ALL
-               SELECT u.telegram_user_id, u.status, u.joined_at, u.stopped_at FROM beta_users u
+               SELECT u.telegram_user_id, u.status, u.joined_at, u.stopped_at, u.known_contact
+               FROM beta_users u
                WHERE NOT EXISTS (SELECT 1 FROM beta_allowlist a WHERE a.telegram_user_id=u.telegram_user_id)
                ORDER BY 3 NULLS LAST""")
         return [dict(r) for r in rows]

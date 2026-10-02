@@ -242,7 +242,7 @@ def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_b
         vols.append(float(row["c:volume_notional_usd_sum"]))
     volume = float(math.fsum(vols)) if vols else None
     volume_complete = (not volume_gap) and present == n and len(vols) == n
-    ranges, moves, highs, lows = [], [], [], []
+    ranges, moves, highs, lows, opens, closes = [], [], [], [], [], []
     if price_window:
         for ex in cfg.exchanges:
             o = rows[0].get(metric_key(ex, "kline_open"))
@@ -264,6 +264,8 @@ def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_b
             moves.append((float(c) - float(o)) / float(o) * 100.0)
             highs.append(max(hs))
             lows.append(min(ls))
+            opens.append(float(o))
+            closes.append(float(c))
     enough = len(moves) >= cfg.min_venues
     return {
         "buckets": buckets,
@@ -276,6 +278,8 @@ def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_b
         "range_width_pct": _median(ranges) if enough else None,
         "high": _median(highs) if enough else None,
         "low": _median(lows) if enough else None,
+        "open": _median(opens) if enough else None,
+        "close": _median(closes) if enough else None,
         "volume_notional_usd": volume,
         "buckets_missing": present < n,
     }

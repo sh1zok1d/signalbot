@@ -40,17 +40,17 @@ def test_catchup_renders_the_shared_view_and_records_it():
         h = await _joined(pool, B0 + 3 * BUCKET + timedelta(seconds=30))
         out = await h.handle(_msg(ALICE, "/catchup", 5))
         text = out[0].html
-        assert "BTC" in text and "last 8h" in text
-        assert "Events: sharp drop" in text                           # the triggered episode in the window
-        assert "1h: " in text and "4h: " in text                       # interpretation lines
-        assert "data 03:15 Kyiv" in text
+        assert text.startswith("<b>BTC, last 8h · ")
+        assert "No unusual hours." in text                             # no qualified hour on a 3-bucket tape
+        assert "<b>Now</b>\n1h: " in text and "\n4h: " in text and "\n24h: " in text
+        assert "Data as of 03:15 Kyiv" in text
         assert "trade" not in text.lower() and "next" not in text.lower()
         views = await _rows(pool, "SELECT kind, lang, payload->>'kind' AS pk FROM beta_btc_views ORDER BY view_pk")
         assert views[-1] == {"kind": "catchup", "lang": "en", "pk": "catchup"}
         out = await h.handle(_msg(ALICE, "/catchup 3", 6))
-        assert "last 3h" in out[0].html
+        assert out[0].html.startswith("<b>BTC, last 3h · ")
         out = await h.handle(_msg(ALICE, "/catchup 25", 7))
-        assert out[0].html.startswith("Usage: /catchup")
+        assert out[0].html.startswith("The window is 1 to 24 hours")
         await h.handle(_msg(ALICE, "/btc", 8))
         kinds = [r["kind"] for r in await _rows(pool, "SELECT kind FROM beta_btc_views ORDER BY view_pk")]
         assert kinds == ["catchup", "catchup", "btc"]                 # /btc keeps its own kind
@@ -71,7 +71,7 @@ def test_brief_command_turns_the_morning_summary_on_and_off():
         out = await h.handle(_msg(ALICE, "/brief", 5))
         assert "Morning summary: on" in out[0].html
         out = await h.handle(_msg(ALICE, "/brief off", 6))
-        assert "Morning summary off" in out[0].html and "Event pushes are not affected" in out[0].html
+        assert "Morning summary off" in out[0].html and "Unusual-hour messages are not affected" in out[0].html
         assert (await _rows(pool, "SELECT brief_enabled FROM beta_users"))[0]["brief_enabled"] is False
         await h.handle(_msg(ALICE, "/brief on", 7))
         assert (await _rows(pool, "SELECT brief_enabled FROM beta_users"))[0]["brief_enabled"] is True
@@ -102,7 +102,8 @@ def test_brief_is_sent_once_per_day_through_the_outbox_and_never_touches_pushes(
         assert before["briefs"]["scheduled"] == 0 and s.sent == []
         r = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(SLOT + timedelta(minutes=1)))
         assert r["briefs"] == {"scheduled": 1, "sent": 1, "failed": 0, "unknown": 0, "expired": 0, "suppressed": 0}
-        assert len(s.sent) == 1 and s.sent[0][0] == 21 and "Morning · BTC" in s.sent[0][1]
+        assert len(s.sent) == 1 and s.sent[0][0] == 21 and s.sent[0][1].startswith("<b>BTC overnight · ")
+        assert "/brief off" in s.sent[0][1]                                 # the first brief carries the hint
         again = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(SLOT + timedelta(minutes=30)))
         assert again["briefs"]["scheduled"] == 0 and len(s.sent) == 1        # once per day, never re-sent
         rows = await _rows(pool, "SELECT kind, state, decision_id, episode_pk, brief_date::text AS d "

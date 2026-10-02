@@ -502,60 +502,211 @@ def format_btc(cfg, view: Mapping[str, Any], lang: str = "en") -> str:
     return _ok("\n".join(lines), lang)
 
 
-def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en") -> str:
-    """/catchup and the morning briefing: one render path over the shared view.
-
-    What happened in the window, which detector events fired, how the last 1h and
-    4h look (interpretation labels, «похоже на …» when inferred), the 24h line and
-    the data time. Descriptive only; never a direction of what comes next."""
-    from .interpretation import interpretation_text
+def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabled: bool = True,
+                   first_brief: bool = False) -> str:
+    """/catchup and the morning briefing: one render path over the shared view
+    (BETA_COPY_CONTRACT_V1 §1.1). Window price path, the unusual hours of the window
+    (the push gate's own qualification, read from the market side), the 1h / 4h state
+    and the 24h context line, then the data time. Descriptive only; never what comes
+    next. `push_enabled` is the recipient's preference: a user with push off sees the
+    same hours and no note about withheld messages (decision §3.1b.4)."""
     market = view.get("market") or {}
     hours = int(market.get("window_hours") or 8)
-    price = (view.get("now") or {}).get("reference_price")
+    window = market.get("window") or {}
     brief = view.get("kind") == "brief"
-    key = ("brief_title" if brief else "catchup_title") + ("" if price is not None else "_noprice")
-    lines = [f"<b>{_e(t(lang, key, price=fmt_price(price, lang) if price is not None else '', hours=hours))}</b>"]
-    if view.get("product_status") in ("DATA STALE", "DATA DEGRADED") or not market.get("complete"):
+    span = _window_span(window, hours, lang)
+    lines = [f"<b>{_e(t(lang, 'brief_title' if brief else 'catchup_title', hours=hours, span=span))}</b>"]
+    degraded = view.get("product_status") in ("DATA STALE", "DATA DEGRADED") or not market.get("complete")
+    if degraded:
         lines.append(t(lang, "insufficient"))
     else:
-        lines.append(_span_line(market.get("window") or {}, hours, lang))
-        events = market.get("events") or []
-        if events:
-            items = [f"{plain_name(e['event_type'], lang)} {fmt_kyiv_hm(_dt(e['triggered_at']))}" for e in events]
-            lines.append(t(lang, "catchup_events", items=" · ".join(items)))
-        else:
-            lines.append(t(lang, "catchup_no_events"))
-        for h in ("1h", "4h"):
-            res = (market.get("interpretation") or {}).get(h)
-            if res is None:
-                continue
-            extra = []
-            for metric, word in (("range_width_pct_median", "lvl_range"), ("volume_notional_usd_sum", "lvl_volume")):
-                level = ((market.get("levels") or {}).get(h) or {}).get(metric)
-                if level and level != "normal":
-                    extra.append(t(lang, word, level=t(lang, "level_" + level)))
-            lines.append(t(lang, "interp_line", h=t(lang, "hz_" + h), label=interpretation_text(res, lang),
-                           extra="" if not extra else " · " + " · ".join(extra)))
-        day = _day_line(view, lang)
-        if day:
-            lines.append(day)
+        lines.append(_price_span_line(window, lang))
+        lines.extend(_unusual_hours_lines(cfg, market, lang, push_enabled=push_enabled))
+    lines.append("")
+    lines.append(f"<b>{t(lang, 'now_head')}</b>")
+    for h in ("1h", "4h"):
+        res = (market.get("interpretation") or {}).get(h)
+        body = t(lang, "data_incomplete") if degraded or res is None else _state_body(
+            cfg, res, (market.get("values") or {}).get(h) or {}, h, lang)
+        lines.append(t(lang, "now_line", h=t(lang, "hz_" + h), body=body))
+    lines.append(_line_24h(view, lang))
     clock = _clock_of(view)
-    lines.append(t(lang, "data_only", clock=fmt_clock(clock, lang)) if clock else t(lang, "no_evaluation_line"))
+    lines.append("")
+    lines.append(t(lang, "data_at", clock=fmt_clock(clock, lang)) if clock else t(lang, "no_evaluation_line"))
+    if brief and first_brief:
+        lines.append(t(lang, "brief_off_hint"))
     return _ok("\n".join(lines), lang)
 
 
-def _span_line(window: Mapping[str, Any], hours: int, lang: str) -> str:
-    if not window.get("price_complete") or window.get("price_move_pct") is None:
-        return t(lang, "span_incomplete", hours=hours)
-    parts = [fmt_signed_pct(window["price_move_pct"], lang, nd=1)]
-    if window.get("range_width_pct") is not None and window.get("low") is not None:
-        parts.append(t(lang, "span_range", rng=fmt_plain_pct(window["range_width_pct"], lang, nd=1),
-                       low=fmt_price(window["low"], lang), high=fmt_price(window["high"], lang)))
-    if window.get("volume_notional_usd") is not None:
-        parts.append(t(lang, "h_vol_amount", amount=fmt_usd(window["volume_notional_usd"], lang)))
-    if window.get("oi_change_pct") is not None:
-        parts.append(t(lang, "h_oi", pct=fmt_signed_pct(window["oi_change_pct"], lang, nd=1)))
-    return t(lang, "span_line", hours=hours, body=" · ".join(parts))
+def _window_span(window: Mapping[str, Any], hours: int, lang: str) -> str:
+    start, end = window.get("window_start"), window.get("window_end")
+    if not start or not end:
+        return t(lang, "span_hours", hours=hours)
+    return t(lang, "window_kyiv", start=fmt_kyiv_hm(_dt(start)), end=fmt_kyiv_hm(_dt(end)))
+
+
+def _price_span_line(window: Mapping[str, Any], lang: str) -> str:
+    if not window.get("price_complete") or window.get("price_move_pct") is None \
+            or window.get("open") is None or window.get("close") is None:
+        return t(lang, "price_span_incomplete")
+    body = t(lang, "price_span", open=fmt_price(window["open"], lang), close=fmt_price(window["close"], lang),
+             pct=fmt_signed_pct(window["price_move_pct"], lang))
+    if window.get("low") is not None and window.get("high") is not None:
+        body += t(lang, "price_span_minmax", low=fmt_price(window["low"], lang), high=fmt_price(window["high"], lang))
+    return body
+
+
+_CATCHUP_MAX_LINES = 15
+_CATCHUP_TAIL_LINES = 6          # Сейчас, 1ч, 4ч, 24ч, Данные, and the first-brief hint at most
+
+
+def _unusual_hours_lines(cfg, market: Mapping[str, Any], lang: str, *, push_enabled: bool) -> list:
+    hours = market.get("unusual_hours") or []
+    if not hours:
+        days = market.get("history_days")
+        if market.get("ranks_immature") and days is not None:
+            return [t(lang, "unusual_immature", days=int(days))]
+        return [t(lang, "no_unusual_hours")]
+    out, budget = [], _CATCHUP_MAX_LINES - 2 - _CATCHUP_TAIL_LINES
+    for hour in hours[:3]:
+        block = _hour_block(cfg, hour, lang, push_enabled=push_enabled)
+        if out and len(out) + len(block) > budget:
+            break
+        out.extend(block)
+    return out
+
+
+def _hour_block(cfg, hour: Mapping[str, Any], lang: str, *, push_enabled: bool) -> list:
+    gate = hour.get("gate") or {}
+    values = gate.get("values") or {}
+    label = _gate_state_text(gate, lang)
+    span = t(lang, "window_kyiv", start=fmt_kyiv_hm(_dt(gate["window_start"])),
+             end=fmt_kyiv_hm(_dt(gate["window_end"]))) if gate.get("window_start") else ""
+    lines = [t(lang, "unusual_head", span=span, label=label), _facts_line(values, lang)]
+    liq = _liq_votes_line(gate, lang)
+    if liq:
+        lines.append(liq)
+    unsigned = _unsigned_line(gate, lang)
+    if unsigned:
+        lines.append(unsigned)
+    if push_enabled:
+        note = _withheld_note(cfg, hour.get("suppression_reason"), lang)
+        if note:
+            lines.append(note)
+    return lines
+
+
+def _withheld_note(cfg, reason: Optional[str], lang: str) -> Optional[str]:
+    if reason == "QUIET_HOURS":
+        s, e = cfg.quiet_hours_kyiv
+        return t(lang, "note_quiet", s=s, e=e)
+    if reason == "DAILY_CAP":
+        return t(lang, "note_cap", n=int(cfg["max_new_pushes_per_utc_day"]))
+    if reason in ("GLOBAL_COOLDOWN", "SAME_EVENT_COOLDOWN"):
+        return t(lang, "note_cooldown")
+    return None
+
+
+def _facts_line(values: Mapping[str, Any], lang: str) -> str:
+    return t(lang, "hour_facts", pct=_pct_or_na(values.get("price_move_pct"), lang, nd=1),
+             oi=_pct_or_na(values.get("oi_change_pct"), lang, nd=1), delta=_usd_or_na(values.get("taker_delta_notional_usd"), lang))
+
+
+def _pct_or_na(v, lang: str, nd: int = 2) -> str:
+    return na(lang) if v is None else fmt_signed_pct(float(v), lang, nd=nd)
+
+
+def _usd_or_na(v, lang: str) -> str:
+    return na(lang) if v is None else fmt_usd(float(v), lang, signed=True)
+
+
+def _gate_state_text(gate: Mapping[str, Any], lang: str) -> str:
+    from .interpretation import LABEL_KEYS
+    res = gate.get("interpretation") or {}
+    key = res.get("key") or "missing"
+    return t(lang, LABEL_KEYS.get(key, "interp_missing"))
+
+
+def _liq_votes_line(gate: Mapping[str, Any], lang: str) -> Optional[str]:
+    liq = gate.get("liquidation")
+    if not liq:
+        return None
+    n = len(gate.get("values", {}).get("ranks", {})) and 3
+    return t(lang, "liq_votes_line", side=t(lang, "side_" + liq["side"]), k=len(liq.get("voting") or ()),
+             n=max(n, len(liq.get("eligible") or ()), 1))
+
+
+def _unsigned_line(gate: Mapping[str, Any], lang: str) -> Optional[str]:
+    passed = gate.get("passed") or {}
+    if passed.get("range") and passed.get("volume"):
+        return t(lang, "unsigned_both")
+    if passed.get("range"):
+        return t(lang, "unsigned_range")
+    if passed.get("volume"):
+        return t(lang, "unsigned_volume")
+    return None
+
+
+def _state_body(cfg, res: Mapping[str, Any], values: Mapping[str, Any], h: str, lang: str) -> str:
+    """The 1h / 4h state and what must stand beside it (BETA_COPY_CONTRACT_V1 §2)."""
+    from .interpretation import (COMPRESSION, FACTUAL, INSUFFICIENT_HISTORY, INTERPRETED, NORMAL,
+                                 VENUES_DIVERGE, interpretation_text)
+    kind, key = res.get("kind"), res.get("key") or "missing"
+    label = interpretation_text(res, lang)
+    pct = _pct_or_na(values.get("price_move_pct"), lang, nd=1)
+    oi = _pct_or_na(values.get("oi_change_pct"), lang, nd=1)
+    delta = _usd_or_na(values.get("taker_delta_notional_usd"), lang)
+    if kind == NORMAL:
+        return label
+    if kind == INTERPRETED:
+        return t(lang, "beside_facts", label=label, pct=pct, oi=oi, delta=delta)
+    if kind == COMPRESSION:
+        rng = values.get("range_width_pct")
+        body = t(lang, "beside_compression", label=label,
+                 rng=na(lang) if rng is None else fmt_plain_pct(float(rng), lang), hz=t(lang, "hz_windows_" + h))
+        return body + (t(lang, "beside_oi", oi=oi) if key != "compression_oi_na" else "")
+    if kind == VENUES_DIVERGE:
+        by = values.get("price_move_pct_by_venue") or {}
+        parts = [f"{venue_name(ex)} {fmt_signed_pct(float(v), lang)}" for ex, v in by.items()]
+        return t(lang, "beside_venues", label=label, venues=", ".join(parts) or na(lang))
+    if kind == INSUFFICIENT_HISTORY:
+        return t(lang, "beside_insufficient", label=label, pct=pct, oi=oi)
+    if kind == FACTUAL:
+        taker = (res.get("inputs") or {}).get("taker")
+        if key.endswith("_oi_na"):
+            dirn = t(lang, "dir_up" if key.startswith("up") else "dir_down")
+            k = len(values.get("oi_venues") or ())
+            return t(lang, "beside_oi_na", dir=dirn, delta=delta, k=k, n=len(cfg.exchanges))
+        if taker in ("MISSING", "IMMATURE", None):
+            return t(lang, "beside_delta_na", label=label)
+        return t(lang, "beside_delta_against", label=label, delta=delta)
+    return t(lang, "data_incomplete")
+
+
+def _line_24h(view: Mapping[str, Any], lang: str) -> str:
+    block = ((view.get("horizons") or {}).get("24h")) or {}
+    price = (view.get("now") or {}).get("reference_price")
+    parts = []
+    low, high = block.get("low"), block.get("high")
+    if block.get("price_complete") and low is not None and high is not None:
+        rng = t(lang, "range_24h", low=fmt_price(low, lang), high=fmt_price(high, lang))
+        if price is not None and high > low:
+            q = (float(price) - float(low)) / (float(high) - float(low))
+            pos = ("pos_low" if q < 0.1 else "pos_lowish" if q < 0.4 else "pos_mid" if q <= 0.6
+                   else "pos_highish" if q <= 0.9 else "pos_high")
+            rng += ", " + t(lang, pos)
+        parts.append(rng)
+    else:
+        parts.append(t(lang, "range_24h_na"))
+    oi = block.get("oi_change_pct")
+    parts.append(t(lang, "oi_24h", oi=na(lang) if oi is None else fmt_signed_pct(float(oi), lang, nd=1)))
+    avg = block.get("funding_rate_avg")
+    if avg is None:
+        parts.append(t(lang, "funding_avg_na"))
+    else:
+        payer = t(lang, "payer_longs") if avg > 0 else t(lang, "payer_shorts") if avg < 0 else ""
+        parts.append(t(lang, "funding_avg", f=fmt_funding(float(avg), lang)) + (f" ({payer})" if payer else ""))
+    return t(lang, "now_line", h=t(lang, "hz_24h"), body=" · ".join(parts))
 
 
 def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int] = None):
@@ -951,14 +1102,66 @@ def format_status(status: Mapping[str, Any], open_episodes: Sequence[Any],
     return _ok("\n".join(lines), lang)
 
 
-def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang: str = "en") -> str:
+def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang: str = "en",
+                gate: Optional[Mapping[str, Any]] = None) -> str:
+    """The unusual-hour push (BETA_COPY_CONTRACT_V1 §1.2): the 1h state around the
+    TRIGGERED episode, never the detector name, never an id. At most 8 non-empty
+    lines. `gate` is the push decision's stored hour gate; without it only the hour
+    and the time are known."""
+    gate = gate or {}
+    values = gate.get("values") or {}
+    when = episode.triggered_at
+    if gate.get("window_start") and gate.get("window_end"):
+        span = t(lang, "window_kyiv", start=fmt_kyiv_hm(_dt(gate["window_start"])), end=fmt_kyiv_hm(_dt(gate["window_end"])))
+    else:
+        span = t(lang, "window_kyiv", start=fmt_kyiv_hm(when - timedelta(hours=1)), end=fmt_kyiv_hm(when))
+    state = _gate_state_text(gate, lang)
+    lines = [f"<b>{_e(t(lang, 'push_hour_title'))}</b>", span, "", _e(state[:1].upper() + state[1:])]
+    pct = values.get("price_move_pct")
+    if pct is None:
+        lines.append(t(lang, "price_line_na"))
+    else:
+        if values.get("open") is not None and values.get("close") is not None:
+            price = t(lang, "price_line", pct=fmt_signed_pct(float(pct), lang), open=fmt_price(values["open"], lang),
+                      close=fmt_price(values["close"], lang))
+        else:
+            price = t(lang, "price_line_noprices", pct=fmt_signed_pct(float(pct), lang))
+        tail = (gate.get("passed") or {}).get("price")
+        if tail in ("up", "down"):
+            price += t(lang, "price_tail", dir=t(lang, "price_rise_95" if tail == "up" else "price_drop_95"))
+        lines.append(price)
+    res = gate.get("interpretation") or {}
+    taker = (res.get("inputs") or {}).get("taker")
+    oi, delta = values.get("oi_change_pct"), values.get("taker_delta_notional_usd")
+    oi_txt = na(lang) if oi is None else fmt_signed_pct(float(oi), lang, nd=1)
+    if delta is None:
+        lines.append(t(lang, "oi_only_line", oi=oi_txt))
+        lines.append(t(lang, "beside_delta_na_bare"))
+    else:
+        line = t(lang, "oi_delta_line", oi=oi_txt, delta=fmt_usd(float(delta), lang, signed=True))
+        if res.get("kind") == "FACTUAL" and taker in ("up", "down", "flat"):
+            line += t(lang, "delta_against_suffix")
+        lines.append(line)
+    liq = _liq_votes_line(gate, lang)
+    if liq:
+        lines.append(liq)
+    unsigned = _unsigned_line(gate, lang)
+    if unsigned:
+        lines.append(unsigned)
+    if gate.get("venues_agree") is not None:
+        lines.append(t(lang, "venues_line", k=int(gate["venues_agree"]), n=max(int(gate.get("venues") or 0), 3)))
+    return _ok("\n".join(lines), lang)
+
+
+def format_push_v02(episode: Any, lang: str = "en") -> str:
+    """The V0.2 event-push text. Never delivered since the unusual-hour push
+    (BETA_COPY_CONTRACT_V1); kept only for offline replay of recorded V0.2 pushes."""
     lines = [f"<b>{_e(t(lang, 'push_title', name=event_label(episode.event_type, lang)))}</b>",
              t(lang, "push_decision", when=fmt_kyiv_date_hm(episode.triggered_at, lang)),
              _e(event_description(episode.event_type, lang))]
     if episode.reference_price is not None:
         lines.append(t(lang, "push_close", price=fmt_price(episode.reference_price, lang),
                        venues=", ".join(venue_name(ex) for ex in episode.reference_exchanges)))
-    lines.append(t(lang, "push_id", pid=episode.public_id, rules=_e(episode.rules_version)))
     lines.append("\n" + t(lang, "disclaimer"))
     return _ok("\n".join(lines), lang)
 

@@ -67,10 +67,15 @@ async def build_view(conn, cfg: BetaConfig, *, now: datetime, kind: str = "btc",
         from .regime_d7 import regime_for_status
         view["regime"] = await regime_for_status(conn, now=now, product_status=view.get("product_status") or "")
     if kind != "btc":
-        events = await conn.fetch_episode_history(symbol=cfg.symbol, limit=_EVENT_HISTORY_LIMIT)
+        hours = hours or CATCHUP_DEFAULT_HOURS
+        qualified = []
+        if tape is not None:
+            from .horizons import data_through
+            end = data_through(tape["as_of"])
+            qualified = await conn.fetch_qualified_hours(symbol=cfg.symbol, start=end - timedelta(hours=hours), end=end)
         view["kind"] = kind
         view["market"] = market_block(cfg, view, ctx["state"] if ctx else None, tape,
-                                      window_hours=hours or CATCHUP_DEFAULT_HOURS, episodes=events)
+                                      window_hours=hours, qualified=qualified)
     return view
 
 
@@ -122,9 +127,35 @@ def _horizons(cfg: BetaConfig, view: Mapping[str, Any], tape: Optional[Mapping[s
                           oi_by_boundary=tape["oi"])
 
 
+UNUSUAL_HOURS_MAX = 3
+_UNUSUAL_MERGE = timedelta(minutes=60)        # one entry per hour, as one push per hour
+
+
+def unusual_hours(qualified, *, start: datetime, end: datetime) -> list:
+    """The «Необычные часы» entries of a window from the push decisions whose gate
+    passed (decision §3.1b.3): chronological, one per hour (decisions inside 60 minutes
+    of the kept one describe the same hour), at most UNUSUAL_HOURS_MAX. Delivery-side
+    suppression is carried as a fact, never as a filter."""
+    out, last = [], None
+    for row in sorted(qualified or (), key=lambda r: r["decision_ts"]):
+        ts = row["decision_ts"]
+        gate = row.get("gate") or {}
+        ws = gate.get("window_start")
+        wstart = datetime.fromisoformat(ws) if ws else ts - timedelta(hours=1)
+        if wstart < start - _UNUSUAL_MERGE or ts > end:
+            continue
+        if last is not None and ts - last < _UNUSUAL_MERGE:
+            continue
+        out.append({"decision_ts": iso(ts), "decision": row.get("decision"),
+                    "suppression_reason": row.get("suppression_reason"), "gate": gate})
+        last = ts
+    return out[:UNUSUAL_HOURS_MAX]
+
+
 def market_block(cfg: BetaConfig, view: Mapping[str, Any], state: Optional[Mapping[str, Any]],
-                 tape: Optional[Mapping[str, Any]], *, window_hours: int, episodes) -> dict:
-    """Window summary, events in the window and the 1h / 4h interpretation.
+                 tape: Optional[Mapping[str, Any]], *, window_hours: int, qualified=()) -> dict:
+    """Window summary, the unusual hours of the window and the 1h / 4h interpretation
+    with the values that stand beside it.
 
     Language-neutral; the interpretation is computed from the projection's own
     1h / 4h context readings at the same as-of bucket."""
@@ -132,7 +163,8 @@ def market_block(cfg: BetaConfig, view: Mapping[str, Any], state: Optional[Mappi
     from .horizons import _oi_for, data_through, rolling_24h_values, span_min_present
     from .interpretation import interpret, liquidation_episodes
     block: dict = {"version": MARKET_VIEW_VERSION, "window_hours": window_hours, "window": None,
-                   "events": [], "interpretation": {}, "levels": {}, "complete": tape is not None}
+                   "unusual_hours": [], "interpretation": {}, "levels": {}, "values": {},
+                   "history_days": None, "ranks_immature": False, "complete": tape is not None}
     if tape is None:
         return block
     as_of = tape["as_of"]
@@ -147,18 +179,13 @@ def market_block(cfg: BetaConfig, view: Mapping[str, Any], state: Optional[Mappi
         "range_width_pct": span["range_width_pct"] if span["price_complete"] else None,
         "high": span["high"] if span["price_complete"] else None,
         "low": span["low"] if span["price_complete"] else None,
+        "open": span["open"] if span["price_complete"] else None,
+        "close": span["close"] if span["price_complete"] else None,
         "volume_notional_usd": span["volume_notional_usd"] if span["volume_complete"] else None,
         "oi_change_pct": oi["oi_change_pct"],
     }
     start = end - timedelta(hours=window_hours)
-    for row in episodes or ():
-        trig = row.get("triggered_at")
-        if trig is None or not (start <= trig <= end):
-            continue
-        block["events"].append({"event_type": row["event_type"], "opened_bucket": iso(row["opened_bucket"]),
-                                "last_bucket": iso(row["last_bucket"]), "triggered_at": iso(trig),
-                                "terminal_at": iso(row.get("terminal_at"))})
-    block["events"].sort(key=lambda e: e["triggered_at"])
+    block["unusual_hours"] = unusual_hours(qualified, start=start, end=end)
     liq = liquidation_episodes(state)
     for h in ("1h", "4h"):
         ctx = (state or {}).get(f"context_{h}")
@@ -168,4 +195,17 @@ def market_block(cfg: BetaConfig, view: Mapping[str, Any], state: Optional[Mappi
         pct = (ctx or {}).get("percentiles") or {}
         block["levels"][h] = {m: level_label(cfg, (pct.get(m) or {}).get("rank"), (pct.get(m) or {}).get("tier"))
                               for m in ("range_width_pct_median", "volume_notional_usd_sum")}
+        block["values"][h] = {
+            "price_move_pct": (ctx or {}).get("price_move_pct_median"),
+            "oi_change_pct": (ctx or {}).get("oi_change_pct_median"),
+            "taker_delta_notional_usd": (ctx or {}).get("taker_delta_notional_usd_sum"),
+            "range_width_pct": (ctx or {}).get("range_width_pct_median"),
+            "oi_venues": list((ctx or {}).get("oi_venues") or ()),
+            "price_move_pct_by_venue": dict((ctx or {}).get("price_move_pct_by_venue") or {}),
+        }
+        if h == "1h":
+            p = pct.get("price_move_pct_median") or {}
+            if p.get("sample_size") is not None:
+                block["history_days"] = int(p["sample_size"]) // 288
+            block["ranks_immature"] = ctx is not None and p.get("tier") != "mature"
     return block

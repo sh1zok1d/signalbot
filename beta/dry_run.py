@@ -58,12 +58,18 @@ def run_dry_run(cfg: BetaConfig, *, sample_buckets: Sequence[datetime],
                 metrics_by_bucket: Mapping[datetime, Mapping[str, Any]], oi_rows: Sequence[Mapping],
                 liquidation_episodes: Sequence[Mapping], identity: Mapping[str, Any], code_version: str,
                 tiers: Mapping[str, Any], ignore_maturity: bool = False, n_examples: int = 3,
-                reference_prices: Optional[Mapping[datetime, float]] = None) -> dict:
+                reference_prices: Optional[Mapping[datetime, float]] = None,
+                triggered_episodes: Sequence[Mapping] = ()) -> dict:
     """Pure. `metrics_by_bucket` is the recorded tape (history before every sample
-    included); every reading uses only buckets <= its sample bucket."""
+    included); every reading uses only buckets <= its sample bucket.
+
+    `gate_coverage` is the decision's §3 row 7 diagnostic: of the sampled 1h windows
+    that pass the unusual-hour gate, how many contain a TRIGGERED detector episode
+    (`triggered_episodes`). A coverage check for the gate, never a research unit."""
     from .context import context_1h, history_span
     from .formatter import format_catchup
     from .horizons import build_horizons
+    from .hour_gate import evaluate_hour
     from .interpretation import interpret, interpretation_text
     from .market_view import market_block
     from .oi_asof import OiAsofIndex
@@ -78,6 +84,7 @@ def run_dry_run(cfg: BetaConfig, *, sample_buckets: Sequence[datetime],
     kinds = {"1h": Counter(), "4h": Counter()}
     oi_degraded = {"1h": Counter(), "4h": Counter()}
     rendered: dict = {}
+    coverage = {"unusual_hours": 0, "covered_by_triggered_episode": 0, "statuses": Counter()}
     span = history_span(cfg)
     for b in sample_buckets:
         if b not in metrics_by_bucket:
@@ -93,6 +100,13 @@ def run_dry_run(cfg: BetaConfig, *, sample_buckets: Sequence[datetime],
             state[f"context_{h}"] = ctx
             res = interpret(cfg, ctx, horizon=h, liquidation_episodes=liq)
             state[f"result_{h}"] = res
+            if h == "1h":
+                gate = evaluate_hour(cfg, ctx, liquidation_episodes=liq)
+                coverage["statuses"][gate["status"]] += 1
+                if gate["qualified"]:
+                    coverage["unusual_hours"] += 1
+                    if _hour_has_triggered(triggered_episodes, b):
+                        coverage["covered_by_triggered_episode"] += 1
             counts[h][res["key"]] += 1
             kinds[h][res["kind"]] += 1
             if res["inputs"].get("oi") in ("MISSING", "IMMATURE"):
@@ -131,11 +145,15 @@ def run_dry_run(cfg: BetaConfig, *, sample_buckets: Sequence[datetime],
                     "data_through": iso(b + BUCKET),
                     "horizons": build_horizons(cfg, as_of_bucket=b, metrics_by_bucket=metrics, oi_by_boundary=oi)}
             state["open"] = {e["event_type"]: e for e in liq}
-            view["market"] = market_block(cfg, view, state, tape, window_hours=8, episodes=[])
+            view["market"] = market_block(cfg, view, state, tape, window_hours=8)
             rendered[category] = {"bucket": iso(b), "ru": format_catchup(cfg, view, "ru")}
     total = {h: sum(c.values()) for h, c in counts.items()}
+    coverage["statuses"] = dict(coverage["statuses"])
+    coverage["share"] = (round(coverage["covered_by_triggered_episode"] / coverage["unusual_hours"], 4)
+                         if coverage["unusual_hours"] else None)
     return {
         "version": DRY_RUN_VERSION,
+        "gate_coverage": coverage,
         "status": "PROVISIONAL_RANKS_IGNORE_MATURITY" if ignore_maturity else "PRODUCTION_MATURITY_RULES",
         "samples": len([b for b in sample_buckets if b in metrics_by_bucket]),
         "first_sample": iso(min(sample_buckets)) if sample_buckets else None,
@@ -151,6 +169,20 @@ def run_dry_run(cfg: BetaConfig, *, sample_buckets: Sequence[datetime],
         "rendered_catchup_ru": [{"category": c, **rendered[c]} for c in RENDER_CATEGORIES if c in rendered],
         "oi_rows": len(oi_rows), "liquidation_episodes": len(liquidation_episodes),
     }
+
+
+def _hour_has_triggered(episodes: Sequence[Mapping], bucket: datetime) -> bool:
+    """A TRIGGERED episode whose qualifying buckets reach into the rolling hour ending
+    at `bucket` (12 closed 5m buckets)."""
+    start, end = bucket - 11 * BUCKET, bucket + BUCKET
+    for ep in episodes:
+        if not ep.get("triggered_at") or not ep.get("opened_bucket"):
+            continue
+        first = datetime.fromisoformat(ep["opened_bucket"])
+        last = datetime.fromisoformat(ep.get("last_bucket") or ep["opened_bucket"])
+        if first < end and last + BUCKET > start:
+            return True
+    return False
 
 
 def _close_median(cfg: BetaConfig, metrics: Mapping[str, Any]) -> Optional[float]:
@@ -191,12 +223,13 @@ async def run_dry_run_from_db(conn, cfg: BetaConfig, stage2_config, *, end: date
     oi_rows = await conn.fetch_open_interest_range(symbol=cfg.symbol, exchanges=list(cfg.exchanges),
                                                    start=start - span - OI_ASOF_TOLERANCE, end=end + BUCKET)
     liq = await conn.fetch_liquidation_episodes(symbol=cfg.symbol, start=start - timedelta(hours=4), end=end + BUCKET)
+    triggered = await conn.fetch_triggered_episodes(symbol=cfg.symbol, start=start - timedelta(hours=4), end=end + BUCKET)
     tiers = stage2_config.resolve(cfg.symbol)["percentiles"]["confidence_tiers"]
     metrics = {b: m for b, m in hist}
     prices = {b: _close_median(cfg, m) for b, m in hist}
     report = run_dry_run(cfg, sample_buckets=sample_grid(start, end, stride_buckets), metrics_by_bucket=metrics,
                          oi_rows=oi_rows, liquidation_episodes=liq, identity=ident,
                          code_version=snap.get("feature_code_version") or "dry-run", tiers=tiers,
-                         ignore_maturity=ignore_maturity, reference_prices=prices)
+                         ignore_maturity=ignore_maturity, reference_prices=prices, triggered_episodes=triggered)
     report["tape_rows"] = len(hist)
     return report

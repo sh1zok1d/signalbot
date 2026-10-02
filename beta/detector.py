@@ -24,7 +24,8 @@ from .config import (BetaConfig, BetaSwitches, EVENT_TYPES, LIQUIDATION_STRESS_L
                      PRICE_OI_CONTRACTION_DOWN, PRICE_OI_CONTRACTION_UP,
                      TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL, effective_push_enabled)
 from .models import (ARMED, CORE_FAMILIES, DAILY_CAP, DATA_DEGRADED_REASON, DELIVERY_TOO_OLD,
-                     EARLY, ENDED, EXPIRED, Episode, NOT_EVALUABLE, ORIGIN_BOOTSTRAP,
+                     EARLY, ENDED, EXPIRED, Episode, GLOBAL_COOLDOWN, HOUR_NOT_UNUSUAL,
+                     NOT_EVALUABLE, ORIGIN_BOOTSTRAP, QUIET_HOURS,
                      ORIGIN_CORRECTION_CHECK, ORIGIN_LIVE, PUSH, PUSH_DISABLED, QUALIFIES,
                      REASON_CONDITION_FAILED, REASON_CONDITION_MET, REASON_DETECTION_GAP,
                      REASON_DETECTOR_VERSION_CHANGED, REASON_MAX_DURATION, REASON_NOT_EVALUABLE,
@@ -175,22 +176,48 @@ def step_episode(cfg: BetaConfig, event_type: str, open_ep: Optional[Episode],
 
 
 # ---- push policy (pure) ------------------------------------------------------
+def in_quiet_hours(cfg: BetaConfig, decision_ts: datetime) -> bool:
+    """Kyiv wall-clock quiet window [start, end), wrapping midnight when start > end."""
+    from .i18n import KYIV
+    start, end = cfg.quiet_hours_kyiv
+    local = decision_ts.astimezone(KYIV)
+    now_m = local.hour * 60 + local.minute
+    s = int(start[:2]) * 60 + int(start[3:])
+    e = int(end[:2]) * 60 + int(end[3:])
+    if s == e:
+        return False
+    return (s <= now_m < e) if s < e else (now_m >= s or now_m < e)
+
+
 def push_policy(cfg: BetaConfig, *, decision_ts: datetime, evaluated_at: datetime,
                 snapshot: Mapping[str, Any], last_same_type_terminal: Optional[datetime],
                 last_same_type_would_push: Optional[datetime], would_push_today: int,
-                push_enabled: bool) -> tuple:
+                push_enabled: bool, hour: Optional[Mapping[str, Any]] = None,
+                last_any_would_push: Optional[datetime] = None) -> tuple:
     """(would_push, decision, suppression_reason). Evaluated in a fixed order;
     `would_push` means every gate except PUSH_DISABLED passed (the daily cap
-    counts would-push decisions so a push-disabled soak still measures it)."""
+    counts would-push decisions so a push-disabled soak still measures it).
+
+    `hour` is the product-level unusual-hour gate (`beta.hour_gate.evaluate_hour`) of
+    the rolling 1h around this decision; an absent or unqualified hour never pushes
+    (`HOUR_NOT_UNUSUAL`). Every reason after it implies the hour qualified
+    (PRODUCT_FIRST_DECISION_V1 §3.1b.3)."""
+    from .hour_gate import is_qualified
     fams = snapshot.get("families") or {}
     if not snapshot.get("evaluation_fresh") or not all((fams.get(f) or {}).get("usable")
                                                        for f in CORE_FAMILIES):
         return False, SUPPRESSED, DATA_DEGRADED_REASON
     if evaluated_at - decision_ts > cfg.delivery_ttl:
         return False, SUPPRESSED, DELIVERY_TOO_OLD
+    if not is_qualified(hour):
+        return False, SUPPRESSED, HOUR_NOT_UNUSUAL
     for last in (last_same_type_terminal, last_same_type_would_push):
         if last is not None and decision_ts - last < cfg.cooldown:
             return False, SUPPRESSED, SAME_EVENT_COOLDOWN
+    if last_any_would_push is not None and decision_ts - last_any_would_push < cfg.global_cooldown:
+        return False, SUPPRESSED, GLOBAL_COOLDOWN
+    if in_quiet_hours(cfg, decision_ts):
+        return False, SUPPRESSED, QUIET_HOURS
     if would_push_today >= cfg["max_new_pushes_per_utc_day"]:
         return False, SUPPRESSED, DAILY_CAP
     if not push_enabled:
@@ -261,7 +288,7 @@ async def build_live_record(deps: DetectorDeps, cfg: BetaConfig, conn, bucket_ts
 
 async def _apply_step(conn, cfg: BetaConfig, event_type: str, step: Step, ctx: BucketContext,
                       snapshot: Mapping[str, Any], evaluated_at: datetime, push_enabled: bool,
-                      report: dict) -> None:
+                      report: dict, hour_ctx: Optional[Mapping[str, Any]] = None) -> None:
     if step.terminated is not None:
         ep = step.terminated
         await conn.update_episode(ep, expected_state=step.terminated_from)
@@ -295,6 +322,7 @@ async def _apply_step(conn, cfg: BetaConfig, event_type: str, step: Step, ctx: B
             snapshot_digest=ctx.snapshot_digest, reason=REASON_CONDITION_MET)
         report["transitions"].append((target.public_id, None, target.state, REASON_CONDITION_MET))
     if step.triggered is not None:
+        gate = await _hour_gate(conn, cfg, hour_ctx, snapshot)
         would, decision, reason = push_policy(
             cfg, decision_ts=ctx.decision_ts, evaluated_at=evaluated_at, snapshot=snapshot,
             last_same_type_terminal=await conn.latest_same_type_terminal(
@@ -302,12 +330,29 @@ async def _apply_step(conn, cfg: BetaConfig, event_type: str, step: Step, ctx: B
             last_same_type_would_push=await conn.latest_same_type_would_push(
                 event_type=event_type, exclude_pk=target_pk),
             would_push_today=await conn.count_would_push(ctx.decision_ts.date()),
-            push_enabled=push_enabled)
+            push_enabled=push_enabled, hour=gate,
+            last_any_would_push=await conn.latest_any_would_push(exclude_pk=target_pk))
         await conn.insert_push_decision(
             episode_pk=target_pk, event_type=event_type, decision_ts=ctx.decision_ts,
             would_push=would, decision=decision, suppression_reason=reason,
-            push_enabled_effective=push_enabled)
+            push_enabled_effective=push_enabled, gate=gate)
         report["push_decisions"].append((target.public_id, decision, reason))
+
+
+async def _hour_gate(conn, cfg: BetaConfig, hour_ctx: Optional[Mapping[str, Any]],
+                     snapshot: Mapping[str, Any]) -> dict:
+    """The unusual-hour gate for this decision, from the rolling-1h reading computed
+    for the same bucket and the liquidation-stress episodes reaching into that hour."""
+    from .hour_gate import evaluate_hour
+    liq = ()
+    if hour_ctx and hour_ctx.get("window_start") and hour_ctx.get("window_end"):
+        try:
+            liq = await conn.fetch_liquidation_episodes(
+                symbol=cfg.symbol, start=datetime.fromisoformat(hour_ctx["window_start"]),
+                end=datetime.fromisoformat(hour_ctx["window_end"]))
+        except Exception:  # noqa: BLE001 - evidence only; the gate degrades to "no flush"
+            liq = ()
+    return evaluate_hour(cfg, hour_ctx, liquidation_episodes=liq, snapshot=snapshot)
 
 
 async def process_live_bucket(deps: DetectorDeps, cfg: BetaConfig, switches: BetaSwitches,
@@ -327,13 +372,21 @@ async def process_live_bucket(deps: DetectorDeps, cfg: BetaConfig, switches: Bet
         context_state, context_error = None, None
         async with conn.transaction():
             tape_id = await conn.insert_tape(rec)
+            # The rolling 1h/4h readings of THIS bucket, computed once before any push
+            # decision (the unusual-hour gate needs the 1h reading) and reused by the
+            # projection below. A failure here only means "no readable hour": detection
+            # is unchanged and the projection recomputes in its own savepoint.
+            try:
+                bucket_ctx = await context_asof(cfg, deps.stage2_config, conn, bucket_ts, rec.snapshot, tape_id)
+            except Exception as exc:  # noqa: BLE001 - isolated; the gate fails closed
+                bucket_ctx, context_error = None, type(exc).__name__
             admin_push = await conn.get_admin_push_enabled()
             push_enabled = effective_push_enabled(switches, admin_push)
             open_eps = await conn.fetch_open_episodes(symbol=cfg.symbol)
             for et in EVENT_TYPES:
                 step = step_episode(cfg, et, open_eps.get(et), evaluations[et], ctx)
                 await _apply_step(conn, cfg, et, step, ctx, rec.snapshot, rec.evaluated_at,
-                                  push_enabled, report)
+                                  push_enabled, report, hour_ctx=(bucket_ctx or {}).get("1h"))
             await conn.advance_watermark(DETECTOR, symbol=cfg.symbol, market_type=cfg.market_type,
                                          timeframe=cfg.timeframe, bucket_ts=bucket_ts)
             # Presentation-only projection, AFTER every detector decision of this bucket
@@ -342,7 +395,8 @@ async def process_live_bucket(deps: DetectorDeps, cfg: BetaConfig, switches: Bet
             # re-projects any bucket it missed from the LIVE rows).
             try:
                 async with conn.transaction():
-                    context_state = await advance_context(deps, cfg, conn, bucket_ts, rec, tape_id)
+                    context_state = await advance_context(deps, cfg, conn, bucket_ts, rec, tape_id,
+                                                          precomputed=bucket_ctx)
             except Exception as exc:  # noqa: BLE001 - isolated; reported, never raised
                 context_error = type(exc).__name__
         report.update(materialized=rec.materialized, evaluation_fresh=rec.evaluation_fresh,
@@ -407,7 +461,7 @@ async def _oi_index(cfg: BetaConfig, conn, bucket_ts: datetime, span: timedelta)
 
 
 async def advance_context(deps: "DetectorDeps", cfg: BetaConfig, conn, bucket_ts: datetime,
-                          rec, tape_id: int) -> dict:
+                          rec, tape_id: int, precomputed: Optional[Mapping[str, Any]] = None) -> dict:
     """Advance the persisted context projection to `bucket_ts` (stepping through any
     buckets without a state first) and persist one state per bucket."""
     from .context import (adopt_predecessor_state, predecessor_context_digests, state_digest,
@@ -442,8 +496,9 @@ async def advance_context(deps: "DetectorDeps", cfg: BetaConfig, conn, bucket_ts
                                            prev_state_digest=prev_digest, state_digest=digest)
         prev_digest, b = digest, b + BUCKET
     row = {"tape_id": tape_id, "revision": 1, "snapshot_digest": rec.snapshot_digest, "snapshot": rec.snapshot}
-    ctx = await context_asof(cfg, deps.stage2_config, conn, bucket_ts, rec.snapshot, tape_id)
-    state = step_context(cfg, state, bucket_ts, row, ctx["1h"], ctx["4h"])
+    ctx = precomputed if precomputed is not None else await context_asof(
+        cfg, deps.stage2_config, conn, bucket_ts, rec.snapshot, tape_id)
+    state = step_context(cfg, state, bucket_ts, row, ctx.get("1h"), ctx.get("4h"))
     digest = state_digest(state)
     await conn.insert_context_snapshot(state, bucket_ts=bucket_ts, tape_id=tape_id, tape_revision=1,
                                        prev_state_digest=prev_digest, state_digest=digest)
