@@ -123,3 +123,75 @@ def test_scientific_stages_refuse_without_a_frozen_spec(tmp_path, monkeypatch):
     monkeypatch.setattr(sr, "SPEC_PATH", tmp_path / "missing.json")
     with pytest.raises(SystemExit):
         sr.h1(tmp_path)
+
+
+def _synthetic_run(tmp_path, monkeypatch):
+    """Three synthetic years of minute data with injected same-side flow and drift after episodes."""
+    monkeypatch.setattr(sr, "SURFACES", {"DISCOVERY": ("2028-01", "2030-12"), "REPLICATION": ("2031-01", "2031-12")})
+    monkeypatch.setattr(sr, "SPEC_PATH", tmp_path / "spec.json")
+    monkeypatch.setattr(sr, "BOOT_B", 500)
+    monkeypatch.setattr(sr, "HET_B", 200)
+    rng = np.random.default_rng(9)
+    run = tmp_path / "run"
+    (run / "months").mkdir(parents=True)
+    log = []
+    for surface, n_eps in (("DISCOVERY", 600), ("REPLICATION", 150)):
+        start, end = sr._surface_bounds(surface)
+        minutes = np.arange(start // sr.MIN, end // sr.MIN)
+        n = len(minutes)
+        buy = rng.gamma(2.0, 50_000, n); sell = rng.gamma(2.0, 50_000, n)
+        lr = rng.normal(0, 0.0008, n)
+        T = np.sort(rng.choice(np.arange(start + 31 * sr.DAY, end - 7 * sr.HOUR, 7 * sr.HOUR), n_eps, replace=False))
+        side = rng.choice([-1, 1], n_eps)
+        for t, s in zip(T, side):
+            i0 = int(sr.ceil_min(t) // sr.MIN - minutes[0])
+            (buy if s > 0 else sell)[i0:i0 + 60] += 400_000
+            lr[i0:i0 + 60] += s * 0.0003 / 6
+        close = 30_000 * np.exp(np.cumsum(lr))
+        df = pd.DataFrame({"minute": minutes, "n": 10, "buy_usd": buy, "sell_usd": sell, "close": close})
+        ym = pd.to_datetime(df.minute * sr.MIN, unit="ms").dt.strftime("%Y-%m")
+        for m, part in df.groupby(ym):
+            part.to_parquet(run / "months" / f"minutes_{m}.parquet", index=False)
+            log.append({"ym": m, "sha256": "0" * 64})
+        pd.DataFrame({"T": T, "side": side, "start": T - 20 * sr.MIN, "end": (T + 40 * sr.MIN).astype(float),
+                      "chains": 1, "slices": 30, "period_ms": 10_000.0, "key_types": "Q"}
+                     ).to_parquet(run / f"episodes_{surface}.parquet", index=False)
+    (run / "ingest_log.jsonl").write_text("\n".join(map(__import__("json").dumps, log)) + "\n")
+    (run / "calibration.json").write_text('{"SELECTED": {"TAU_MS": 250, "K": 20, "MIN_DURATION_MIN": 15}}')
+    return run
+
+
+def test_sealed_stages_end_to_end_on_synthetic_data(tmp_path, monkeypatch):
+    import json
+    run = _synthetic_run(tmp_path, monkeypatch)
+    cnt = sr.counts(run)
+    assert cnt["STATUS"] == "FEASIBLE" and cnt["GATES"]["REPLICATION_SUPPORT"]
+    with pytest.raises(SystemExit):
+        sr.h1(run)                                   # nothing runs before the freeze record exists
+    rec = sr.freeze(run)
+    (run / "freeze_record.json").write_text(json.dumps({"SHA256": rec["SHA256"]}))
+    h = sr.h1(run)
+    assert h["PASS"] and h["RATIO"] > 1.10
+    price = sr.price_cells(run)
+    assert set(price["CELLS"]) == {"H2_1h", "H2_6h", "H3"}
+    assert price["CELLS"]["H2_1h"]["MEAN_BPS"] > 10 and price["CELLS"]["H2_1h"]["SUPPORTED"]
+    assert price["CELLS"]["H2_1h"]["HETEROGENEITY"]["OUTCOME"] in ("PASS", "PASS_MAGNITUDE_VARIES_BY_EPOCH")
+    planned = price["CELLS"]["H2_1h"]["HETEROGENEITY"]["ASSESSABILITY_PLANNED"]["STATUS"]
+    assert price["CELLS"]["H2_1h"]["HETEROGENEITY_GATE"] == ("NOT_ASSESSABLE" if planned == "NOT_ASSESSABLE"
+                                                             else price["CELLS"]["H2_1h"]["HETEROGENEITY"]["OUTCOME"])
+    sr.h1(run, "REPLICATION")
+    sr.price_cells(run, "REPLICATION", only_cells=[c for c, r in price["CELLS"].items() if r.get("SUPPORTED")])
+    assert sr.classify(run)["STATUS"] in ("SUPPORTED_WITH_REPLICATION", "DISCOVERY_SUPPORTED_REPLICATION_FAILED")
+
+
+def test_replication_outcomes_refused_when_its_support_gate_failed(tmp_path, monkeypatch):
+    import json
+    run = _synthetic_run(tmp_path, monkeypatch)
+    sr.counts(run)
+    c = json.loads((run / "counts.json").read_text())
+    c["GATES"]["REPLICATION_SUPPORT"] = False
+    (run / "counts.json").write_text(json.dumps(c))
+    rec = sr.freeze(run)
+    (run / "freeze_record.json").write_text(json.dumps({"SHA256": rec["SHA256"]}))
+    with pytest.raises(SystemExit):
+        sr.h1(run, "REPLICATION")

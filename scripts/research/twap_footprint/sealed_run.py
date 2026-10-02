@@ -478,7 +478,10 @@ def freeze(run: Path) -> dict:
             "P_TWO_SIDED": "(1 + #{|b - m| >= |m|}) / (B + 1)",
             "P_REPLICATION": "(1 + #{s(b - m) >= s m}) / (B + 1), s = sign of the discovery estimate",
             "HOLM": "m = 3 cells always (H2_1h, H2_6h, H3); a cell not run counts as p = 1",
-            "HETEROGENEITY_BLOCKS": "26-week blocks from the surface start; each block belongs to the year of its start; permutation shuffles block-to-year assignment keeping each year's block count",
+            "HETEROGENEITY_BLOCKS": "26-week blocks implemented as calendar half-years (Jan-Jun, Jul-Dec) so each block lies in one epoch; epochs are calendar years; permutation reassigns blocks across years keeping each year's block count; the observed SD of yearly means is the identity draw",
+            "HETEROGENEITY_SUPPORTED": "if the planned outcome-blind assessability of a cell is NOT_ASSESSABLE, its gate result is NOT_ASSESSABLE and is not a failure (plan section 8); the computed test is then reported as a non-deciding diagnostic and never as stability. Otherwise a cell passing Holm and the floor is supported unless the gate outcome is HETEROGENEOUS_UNEXPLAINED",
+            "HETEROGENEITY_DIAGNOSTICS": "largest epoch share and leave-one-epoch-out means are reported and never decide",
+            "FINAL_CLASSIFICATION": "H1 fail -> MECHANISM_NOT_SUPPORTED; H1 pass and no supported price cell -> MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED; at least one supported cell and the replication support gate failed -> DISCOVERY_SUPPORTED_REPLICATION_INSUFFICIENT; every supported cell replicates -> SUPPORTED_WITH_REPLICATION; otherwise DISCOVERY_SUPPORTED_REPLICATION_FAILED; cells are always reported individually, with the H3 sign (negative = reversal, the temporary-impact fingerprint)",
             "HETEROGENEITY_ASSESSABILITY": "outcome-blind: per-episode SD = unconditional h-return SD x sqrt(1 + 1/5); difference = 10 bps between the two smallest years; two-sided alpha 0.05; NOT_ASSESSABLE if power < 0.50",
             "REPLICATION_H1": "computed on the replication surface and reported descriptively, only if the replication support gate passes; replication classification uses the frozen cell rule only",
             "REPLICATION_GATE_FAILED": "no replication outcome (flow or price) is computed; replication status INFERENCE_INSUFFICIENT; no substitute surface",
@@ -532,24 +535,35 @@ def holm(ps: dict) -> dict:
     return out
 
 
-def heterogeneity(values: np.ndarray, t: np.ndarray, days: np.ndarray, surface: str, pooled: float) -> dict:
-    start, _ = _surface_bounds(surface)
-    years = pd.to_datetime(t, unit="ms").year.to_numpy()
+def heterogeneity(values: np.ndarray, t: np.ndarray, days: np.ndarray, pooled: float) -> dict:
+    """V1 section 4 epoch-heterogeneity gate. Epochs are calendar years. The 26-week blocks are
+    calendar half-years, so every block lies inside one epoch and the observed statistic is the
+    identity draw of the permutation null (blocks are reassigned across years, each year keeping
+    its block count)."""
+    ts = pd.to_datetime(t, unit="ms")
+    years = ts.year.to_numpy()
+    block = years * 2 + (ts.month.to_numpy() > 6)
     ys = sorted(set(years.tolist()))
     est = {int(y): float(values[years == y].mean()) for y in ys}
-    sd_obs = float(np.std(list(est.values()), ddof=1)) if len(ys) >= 2 else 0.0
-    block = (t - start) // (26 * 7 * DAY)
+    n_y = {int(y): int((years == y).sum()) for y in ys}
+    tot = float(values.sum())
+    diag = {"LARGEST_EPOCH_SHARE": max(abs(n_y[y] * est[y]) for y in est) / sum(abs(n_y[y] * est[y]) for y in est)
+            if any(est.values()) else None,
+            "SIGNED_EPOCH_SHARE": {y: (n_y[y] * est[y] / tot if tot else None) for y in est},
+            "LEAVE_ONE_EPOCH_OUT": {y: float(values[years != y].mean()) for y in est if (years != y).any()}}
+    if len(ys) < 3:
+        return {"YEARLY": est, "N_BY_YEAR": n_y, "OUTCOME": "NOT_ASSESSABLE", "REASON": "FEWER_THAN_3_EPOCHS",
+                "DIAGNOSTICS": diag}
+    sd_obs = float(np.std(list(est.values()), ddof=1))
     ub = np.unique(block)
-    block_year = {int(b): int(pd.Timestamp(start + int(b) * 26 * 7 * DAY, unit="ms").year) for b in ub}
-    slots = [block_year[int(b)] for b in ub]
+    slots = np.array([int(b_ // 2) for b_ in ub])
+    pos = np.searchsorted(ub, block)
     rng = np.random.default_rng(HET_SEED)
     exceed = 0
     for _ in range(HET_B):
-        perm = rng.permutation(slots)
-        ymap = {int(b): int(y) for b, y in zip(ub, perm)}
-        py = np.array([ymap[int(b)] for b in block])
-        means = [values[py == y].mean() for y in ys if (py == y).any()]
-        if len(means) >= 2 and np.std(means, ddof=1) >= sd_obs:
+        py = rng.permutation(slots)[pos]
+        means = [values[py == y].mean() for y in ys]
+        if np.std(means, ddof=1) >= sd_obs:
             exceed += 1
     p_het = (1 + exceed) / (HET_B + 1)
     sgn = 1.0 if pooled > 0 else -1.0
@@ -567,7 +581,8 @@ def heterogeneity(values: np.ndarray, t: np.ndarray, days: np.ndarray, surface: 
         outcome = "PASS_MAGNITUDE_VARIES_BY_EPOCH"
     else:
         outcome = "PASS"
-    return {"YEARLY": est, "SD_YEARLY": sd_obs, "P_HET": p_het, "P_OPPOSITE_BY_YEAR": opp, "OUTCOME": outcome}
+    return {"YEARLY": est, "N_BY_YEAR": n_y, "SD_YEARLY": sd_obs, "P_HET": p_het, "P_OPPOSITE_BY_YEAR": opp,
+            "OUTCOME": outcome, "DIAGNOSTICS": diag}
 
 
 # ----------------------------------------------------------------------------- outcomes
@@ -611,6 +626,7 @@ def h1(run: Path, surface: str = "DISCOVERY") -> dict:
     p = p_one_sided(b, m, 1.0)
     ratio = math.exp(m)
     res = {"SURFACE": surface, "N": int(len(v)), "N_NO_CONTROL": no_ctrl, "DAYS": int(len(set(days))),
+           "MEAN_CONTROLS": float(np.mean([len(c_) for c_ in ctr if c_])),
            "MEAN_LOG_RATIO": m, "RATIO": ratio, "CI95_RATIO": [math.exp(float(np.quantile(b, 0.025))), math.exp(float(np.quantile(b, 0.975)))],
            "P_ONE_SIDED": p, "PASS": bool(p < ALPHA and ratio >= H1_RATIO_MIN)}
     _write(run / f"h1_{surface}.json", res)
@@ -653,7 +669,9 @@ def price_cells(run: Path, surface: str = "DISCOVERY", only_cells=None) -> dict:
         v, d, t = _cell_values(M, frame[col].tolist(), frame.side.tolist(), cmap, h)
         m = float(v.mean()) if len(v) else float("nan")
         b = day_bootstrap(v, d, BOOT_B, BOOT_SEED) if len(v) else np.array([np.nan])
-        out["CELLS"][cell] = {"N": int(len(v)), "DAYS": int(len(set(d.tolist()))), "MEAN": m, "MEAN_BPS": m * 1e4,
+        out["CELLS"][cell] = {"N": int(len(v)), "N_NO_CONTROL": int(sum(1 for c_ in cmap if not c_)),
+                              "MEAN_CONTROLS": float(np.mean([len(c_) for c_ in cmap if c_])) if len(v) else 0.0,
+                              "DAYS": int(len(set(d.tolist()))), "MEAN": m, "MEAN_BPS": m * 1e4,
                               "CI95_BPS": [float(np.quantile(b, 0.025)) * 1e4, float(np.quantile(b, 0.975)) * 1e4],
                               "P_TWO_SIDED": p_two_sided(b, m), "_v": v, "_d": d, "_t": t, "_b": b}
     if surface == "DISCOVERY":
@@ -667,10 +685,16 @@ def price_cells(run: Path, surface: str = "DISCOVERY", only_cells=None) -> dict:
             r["P_HOLM"] = adj[c]
             r["PASS_HOLM_AND_FLOOR"] = bool(adj[c] < ALPHA and abs(r["MEAN"]) >= FLOOR_LOG)
             if r["PASS_HOLM_AND_FLOOR"]:
-                r["HETEROGENEITY"] = heterogeneity(r["_v"], r["_t"], r["_d"], surface, r["MEAN"])
-                r["HETEROGENEITY"]["ASSESSABILITY"] = spec["HETEROGENEITY_ASSESSABILITY_PLANNED"][c]
-                het = r["HETEROGENEITY"]["OUTCOME"]
-                r["SUPPORTED"] = het != "HETEROGENEOUS_UNEXPLAINED"
+                r["HETEROGENEITY"] = heterogeneity(r["_v"], r["_t"], r["_d"], r["MEAN"])
+                planned = spec["HETEROGENEITY_ASSESSABILITY_PLANNED"][c]
+                r["HETEROGENEITY"]["ASSESSABILITY_PLANNED"] = planned
+                if planned["STATUS"] == "NOT_ASSESSABLE":
+                    r["HETEROGENEITY_GATE"] = "NOT_ASSESSABLE"           # plan section 8: not a failure
+                    r["HETEROGENEITY"]["DECIDES"] = False
+                else:
+                    r["HETEROGENEITY_GATE"] = r["HETEROGENEITY"]["OUTCOME"]
+                    r["HETEROGENEITY"]["DECIDES"] = True
+                r["SUPPORTED"] = r["HETEROGENEITY_GATE"] != "HETEROGENEOUS_UNEXPLAINED"
             else:
                 r["SUPPORTED"] = False
     else:
@@ -688,6 +712,32 @@ def price_cells(run: Path, surface: str = "DISCOVERY", only_cells=None) -> dict:
     return out
 
 
+# ----------------------------------------------------------------------------- final classification
+def classify(run: Path) -> dict:
+    spec = _assert_frozen(run)
+    gates = spec["COUNTS_AND_GATES"]["GATES"]
+    h1res = json.loads((run / "h1_DISCOVERY.json").read_text())
+    out = {"H1_PASS": h1res["PASS"], "GATES": gates}
+    if not h1res["PASS"]:
+        out["STATUS"] = "MECHANISM_NOT_SUPPORTED"
+    else:
+        disc = json.loads((run / "price_DISCOVERY.json").read_text())["CELLS"]
+        supported = [c for c, r in disc.items() if r.get("SUPPORTED")]
+        out["SUPPORTED_CELLS"] = supported
+        if not supported:
+            out["STATUS"] = "MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED"
+        elif not gates["REPLICATION_SUPPORT"]:
+            out["STATUS"] = "DISCOVERY_SUPPORTED_REPLICATION_INSUFFICIENT"
+            out["REPLICATION"] = "INFERENCE_INSUFFICIENT"
+        else:
+            rep = json.loads((run / "price_REPLICATION.json").read_text())["CELLS"]
+            out["REPLICATED_CELLS"] = [c for c in supported if rep.get(c, {}).get("REPLICATES")]
+            out["STATUS"] = ("SUPPORTED_WITH_REPLICATION" if len(out["REPLICATED_CELLS"]) == len(supported)
+                             else "DISCOVERY_SUPPORTED_REPLICATION_FAILED")
+    _write(run / "final.json", out)
+    return out
+
+
 if __name__ == "__main__":
     stage, run = sys.argv[1], Path(sys.argv[2])
     if stage == "detect_one":
@@ -696,5 +746,6 @@ if __name__ == "__main__":
         print(json.dumps(h1(run, "REPLICATION"), indent=1, default=str)); sys.exit()
     if stage == "price_rep":
         print(json.dumps(price_cells(run, "REPLICATION", only_cells=sys.argv[3].split(",")), indent=1, default=str)); sys.exit()
-    fn = {"calibrate": calibrate, "detect": detect, "counts": counts, "freeze": freeze, "h1": h1, "price": price_cells}[stage]
+    fn = {"calibrate": calibrate, "detect": detect, "counts": counts, "freeze": freeze, "h1": h1, "price": price_cells,
+          "classify": classify}[stage]
     print(json.dumps(fn(run), indent=1, default=str))
