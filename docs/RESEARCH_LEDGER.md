@@ -7445,3 +7445,33 @@ After V0, the owner authorized a new outcome-blind unit: `DIVERGENCE_CONDITIONAL
 - **Unchanged constraints.** E1 stays absolute and D2 stays released. SEED-0003 is not created. Nothing protected was opened.
 
 Records: `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V2.md` and `docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_DESIGN.json`.
+
+## Divergence conditional-support feasibility V1 — result — 2026-10-02
+
+This was an outcome-blind run of the design frozen in `323451e`. The six-symbol panel and the V0 digests reproduce. The primary estimand is `A − B`, at 15 pp.
+
+**Window proxies:**
+
+| Measure | Proxy 1 | Proxy 2 |
+|---|---:|---:|
+| A episodes | 134 | 125 |
+| A dates | 98 | 88 |
+| A week clusters | 57 | 55 |
+| STRESS power at 15 pp (10k replicates) | 0.813 | 0.789 |
+
+Other numbers:
+- **Design effect on A − B (STRESS):** about 1.45.
+- **Historical window alone:** `INFORMATIONALLY_WEAK`.
+- **Combined design.** The window plus a prospective panel stream from 2026-10-05 reaches 0.80 after about 4 weeks: 0.812 on proxy 2, 0.825 on proxy 1 at 0 weeks. It is the same with BTC excluded from the prospective part.
+  - **Frozen-form stop:** cumulative A ≥ 135 and A week clusters ≥ 59.
+  - **Deadline:** 2026-11-30.
+  - **Verdict:** `FEASIBLE_FOR_PREREGISTRATION`, with a thin margin.
+- **Secondary interaction:** 0.61–0.64.
+- **Nothing consumed:** no outcome was computed and no protected byte was read. SEED-0003 was not created.
+
+```
+HISTORICAL_ONLY_VERDICT = INFORMATIONALLY_WEAK
+COMBINED_DESIGN_VERDICT = FEASIBLE_FOR_PREREGISTRATION
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1
+```

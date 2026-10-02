@@ -79,3 +79,18 @@ def test_design_binds_code_and_frozen_rules():
     assert rule["GATE_PROFILE"] == V1.GATE_PROFILE == "STRESS" and rule["GATE_REPS"] == V1.GATE_REPS == 10_000
     assert design["V0_VERDICT_UNCHANGED"] == "INFORMATIONALLY_WEAK"
     assert design["BOUNDARY"]["PROTECTED_2025_2026_OPENED"] is False and design["BOUNDARY"]["SEED0003_CREATED"] is False
+
+
+def test_report_is_outcome_blind_and_verdicts_follow_the_frozen_rule():
+    report = json.loads((REPO / V1.REPORT_REL).read_text())
+    assert report["DESIGN_SHA256"] == hashlib.sha256((REPO / V1.DESIGN_REL).read_bytes()).hexdigest()
+    assert report["OUTCOMES_COMPUTED"] is False and report["PROTECTED_2025_2026_OPENED"] is False
+    assert report["SEED0003_CREATED"] is False and report["V0_VERDICT_UNCHANGED"] == "INFORMATIONALLY_WEAK"
+    gates = [h["GATE"] for h in report["HISTORICAL_WINDOW_PROXIES"].values()]
+    assert all(g["REPS"] == V1.GATE_REPS for g in gates)
+    hist_pass = all(g["POWER_A_MINUS_B"] >= V1.TARGET_POWER for g in gates)
+    assert (report["HISTORICAL_ONLY_VERDICT"] == "FEASIBLE_FOR_PREREGISTRATION") is hist_pass
+    rule = report["COMBINED_DESIGN"]["ALL_SIX_SYMBOLS"]["STOPPING_RULE"]
+    assert (report["COMBINED_DESIGN_VERDICT"] == "FEASIBLE_FOR_PREREGISTRATION") is (rule is not None)
+    for search in report["COMBINED_DESIGN"]["ALL_SIX_SYMBOLS"]["SEARCH"]:
+        assert search["FIRST_PASS"]["CONFIRMED_POWER"]["POWER_A_MINUS_B"] >= V1.TARGET_POWER

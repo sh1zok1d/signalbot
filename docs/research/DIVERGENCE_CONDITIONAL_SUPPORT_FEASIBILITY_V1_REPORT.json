@@ -1,0 +1,1412 @@
+{
+ "COMBINED_DESIGN": {
+  "ALL_SIX_SYMBOLS": {
+   "SEARCH": [
+    {
+     "FIRST_PASS": {
+      "CONFIRMED_POWER": {
+       "MC_SE": 0.003796246040498429,
+       "PASS": true,
+       "POWER_A_MINUS_B": 0.8254,
+       "POWER_INTERACTION": 0.6478,
+       "REPS": 10000
+      },
+      "PROSPECTIVE_PART": null,
+      "PROSPECTIVE_WEEKS": 0,
+      "TOTAL": {
+       "A_BY_EPOCH": {
+        "2023H1": 43,
+        "2023H2": 37,
+        "2024H1": 32,
+        "2024H2": 22
+       },
+       "A_BY_SYMBOL": {
+        "BNBUSDT": 25,
+        "BTCUSDT": 30,
+        "DOGEUSDT": 15,
+        "ETHUSDT": 27,
+        "SOLUSDT": 23,
+        "XRPUSDT": 14
+       },
+       "A_DECISION_DATES": 98,
+       "A_EPISODES": 134,
+       "A_MAX_EPOCH_SHARE": 0.3208955223880597,
+       "A_MAX_SYMBOL_SHARE": 0.22388059701492538,
+       "A_WEEK_CLUSTERS": 57,
+       "B_EPISODES": 1213,
+       "B_WEEK_CLUSTERS": 85,
+       "WEEK_CLUSTERS": 85
+      }
+     },
+     "PROXY": "FIRST_WEEKS",
+     "SCREEN_POWER_BY_WEEKS": {
+      "0": 0.82
+     }
+    },
+    {
+     "FIRST_PASS": {
+      "CONFIRMED_POWER": {
+       "MC_SE": 0.0039055237804934686,
+       "PASS": true,
+       "POWER_A_MINUS_B": 0.8122,
+       "POWER_INTERACTION": 0.6357,
+       "REPS": 10000
+      },
+      "PROSPECTIVE_PART": {
+       "A_BY_EPOCH": {
+        "PROSPECTIVE": 10
+       },
+       "A_BY_SYMBOL": {
+        "BTCUSDT": 3,
+        "DOGEUSDT": 2,
+        "ETHUSDT": 3,
+        "SOLUSDT": 1,
+        "XRPUSDT": 1
+       },
+       "A_DECISION_DATES": 7,
+       "A_EPISODES": 10,
+       "A_MAX_EPOCH_SHARE": 1.0,
+       "A_MAX_SYMBOL_SHARE": 0.3,
+       "A_WEEK_CLUSTERS": 4,
+       "B_EPISODES": 66,
+       "B_WEEK_CLUSTERS": 4,
+       "WEEK_CLUSTERS": 4
+      },
+      "PROSPECTIVE_WEEKS": 4,
+      "TOTAL": {
+       "A_BY_EPOCH": {
+        "2023H1": 12,
+        "2023H2": 37,
+        "2024H1": 32,
+        "2024H2": 44,
+        "PROSPECTIVE": 10
+       },
+       "A_BY_SYMBOL": {
+        "BNBUSDT": 25,
+        "BTCUSDT": 31,
+        "DOGEUSDT": 14,
+        "ETHUSDT": 27,
+        "SOLUSDT": 24,
+        "XRPUSDT": 14
+       },
+       "A_DECISION_DATES": 95,
+       "A_EPISODES": 135,
+       "A_MAX_EPOCH_SHARE": 0.32592592592592595,
+       "A_MAX_SYMBOL_SHARE": 0.22962962962962963,
+       "A_WEEK_CLUSTERS": 59,
+       "B_EPISODES": 1261,
+       "B_WEEK_CLUSTERS": 89,
+       "WEEK_CLUSTERS": 89
+      }
+     },
+     "PROXY": "LAST_WEEKS",
+     "SCREEN_POWER_BY_WEEKS": {
+      "0": 0.7865,
+      "4": 0.81625
+     }
+    }
+   ],
+   "STOPPING_RULE": {
+    "AT_DEADLINE_BELOW_THRESHOLDS": "INCONCLUSIVE; no extension (a new preregistration on later data)",
+    "CUMULATIVE_A_EPISODES": 135,
+    "CUMULATIVE_A_WEEK_CLUSTERS": 59,
+    "DEADLINE_UTC": "2026-11-30T00:00:00Z",
+    "EXPECTED_PROSPECTIVE_WEEKS": 4,
+    "EXPECTED_STOP_DATE_UTC": "2026-11-02T00:00:00Z",
+    "MONITORING": "counts only (episodes, arms, week clusters); no outcome before the stop",
+    "STOP_WHEN": "cumulative (historical window + prospective) A episodes >= 135 AND cumulative A week clusters >= 59"
+   }
+  },
+  "PROSPECTIVE_READS_NOT_BEFORE_UTC": "2026-08-27T00:00:00Z",
+  "PROSPECTIVE_START_UTC": "2026-10-05T00:00:00Z",
+  "PROSPECTIVE_WITHOUT_BTC": {
+   "SEARCH": [
+    {
+     "FIRST_PASS": {
+      "CONFIRMED_POWER": {
+       "MC_SE": 0.0038166870450693233,
+       "PASS": true,
+       "POWER_A_MINUS_B": 0.823,
+       "POWER_INTERACTION": 0.6478,
+       "REPS": 10000
+      },
+      "PROSPECTIVE_PART": null,
+      "PROSPECTIVE_WEEKS": 0,
+      "TOTAL": {
+       "A_BY_EPOCH": {
+        "2023H1": 43,
+        "2023H2": 37,
+        "2024H1": 32,
+        "2024H2": 22
+       },
+       "A_BY_SYMBOL": {
+        "BNBUSDT": 25,
+        "BTCUSDT": 30,
+        "DOGEUSDT": 15,
+        "ETHUSDT": 27,
+        "SOLUSDT": 23,
+        "XRPUSDT": 14
+       },
+       "A_DECISION_DATES": 98,
+       "A_EPISODES": 134,
+       "A_MAX_EPOCH_SHARE": 0.3208955223880597,
+       "A_MAX_SYMBOL_SHARE": 0.22388059701492538,
+       "A_WEEK_CLUSTERS": 57,
+       "B_EPISODES": 1213,
+       "B_WEEK_CLUSTERS": 85,
+       "WEEK_CLUSTERS": 85
+      }
+     },
+     "PROXY": "FIRST_WEEKS",
+     "SCREEN_POWER_BY_WEEKS": {
+      "0": 0.81275
+     }
+    },
+    {
+     "FIRST_PASS": {
+      "CONFIRMED_POWER": {
+       "MC_SE": 0.0039047241900036934,
+       "PASS": true,
+       "POWER_A_MINUS_B": 0.8123,
+       "POWER_INTERACTION": 0.6313,
+       "REPS": 10000
+      },
+      "PROSPECTIVE_PART": {
+       "A_BY_EPOCH": {
+        "PROSPECTIVE": 7
+       },
+       "A_BY_SYMBOL": {
+        "DOGEUSDT": 2,
+        "ETHUSDT": 3,
+        "SOLUSDT": 1,
+        "XRPUSDT": 1
+       },
+       "A_DECISION_DATES": 6,
+       "A_EPISODES": 7,
+       "A_MAX_EPOCH_SHARE": 1.0,
+       "A_MAX_SYMBOL_SHARE": 0.42857142857142855,
+       "A_WEEK_CLUSTERS": 4,
+       "B_EPISODES": 47,
+       "B_WEEK_CLUSTERS": 4,
+       "WEEK_CLUSTERS": 4
+      },
+      "PROSPECTIVE_WEEKS": 4,
+      "TOTAL": {
+       "A_BY_EPOCH": {
+        "2023H1": 12,
+        "2023H2": 37,
+        "2024H1": 32,
+        "2024H2": 44,
+        "PROSPECTIVE": 7
+       },
+       "A_BY_SYMBOL": {
+        "BNBUSDT": 25,
+        "BTCUSDT": 28,
+        "DOGEUSDT": 14,
+        "ETHUSDT": 27,
+        "SOLUSDT": 24,
+        "XRPUSDT": 14
+       },
+       "A_DECISION_DATES": 94,
+       "A_EPISODES": 132,
+       "A_MAX_EPOCH_SHARE": 0.3333333333333333,
+       "A_MAX_SYMBOL_SHARE": 0.21212121212121213,
+       "A_WEEK_CLUSTERS": 59,
+       "B_EPISODES": 1242,
+       "B_WEEK_CLUSTERS": 89,
+       "WEEK_CLUSTERS": 89
+      }
+     },
+     "PROXY": "LAST_WEEKS",
+     "SCREEN_POWER_BY_WEEKS": {
+      "0": 0.7905,
+      "4": 0.818
+     }
+    }
+   ],
+   "STOPPING_RULE": {
+    "AT_DEADLINE_BELOW_THRESHOLDS": "INCONCLUSIVE; no extension (a new preregistration on later data)",
+    "CUMULATIVE_A_EPISODES": 134,
+    "CUMULATIVE_A_WEEK_CLUSTERS": 59,
+    "DEADLINE_UTC": "2026-11-30T00:00:00Z",
+    "EXPECTED_PROSPECTIVE_WEEKS": 4,
+    "EXPECTED_STOP_DATE_UTC": "2026-11-02T00:00:00Z",
+    "MONITORING": "counts only (episodes, arms, week clusters); no outcome before the stop",
+    "STOP_WHEN": "cumulative (historical window + prospective) A episodes >= 134 AND cumulative A week clusters >= 59"
+   }
+  }
+ },
+ "COMBINED_DESIGN_VERDICT": "FEASIBLE_FOR_PREREGISTRATION",
+ "DESIGN_PATH": "docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_DESIGN.json",
+ "DESIGN_SHA256": "f94bc9ff90dadd0e78f0a6840b0149657322903462903ad4c2a5d4cbf64ce20b",
+ "FULL_2023_2024_LAYOUT_REFERENCE": {
+  "COUNTS": {
+   "A_BY_EPOCH": {
+    "2023H1": 43,
+    "2023H2": 37,
+    "2024H1": 32,
+    "2024H2": 44
+   },
+   "A_BY_SYMBOL": {
+    "BNBUSDT": 28,
+    "BTCUSDT": 36,
+    "DOGEUSDT": 16,
+    "ETHUSDT": 32,
+    "SOLUSDT": 28,
+    "XRPUSDT": 16
+   },
+   "A_DECISION_DATES": 110,
+   "A_EPISODES": 156,
+   "A_MAX_EPOCH_SHARE": 0.28205128205128205,
+   "A_MAX_SYMBOL_SHARE": 0.23076923076923078,
+   "A_WEEK_CLUSTERS": 67,
+   "B_EPISODES": 1434,
+   "B_WEEK_CLUSTERS": 101,
+   "WEEK_CLUSTERS": 101
+  },
+  "POWER": {
+   "BASE": {
+    "AT": {
+     "0.10": {
+      "A_MINUS_B": 0.6265,
+      "INTERACTION": 0.5015
+     },
+     "0.15": {
+      "A_MINUS_B": 0.9295,
+      "INTERACTION": 0.8285
+     },
+     "0.20": {
+      "A_MINUS_B": 0.9975,
+      "INTERACTION": 0.9695
+     }
+    },
+    "MDE80_A_MINUS_B": 0.125,
+    "MDE80_INTERACTION": 0.15,
+    "POWER_BY_EFFECT": {
+     "0.025": {
+      "A_MINUS_B": 0.087,
+      "INTERACTION": 0.072
+     },
+     "0.050": {
+      "A_MINUS_B": 0.224,
+      "INTERACTION": 0.1695
+     },
+     "0.075": {
+      "A_MINUS_B": 0.3935,
+      "INTERACTION": 0.293
+     },
+     "0.100": {
+      "A_MINUS_B": 0.6265,
+      "INTERACTION": 0.5015
+     },
+     "0.125": {
+      "A_MINUS_B": 0.804,
+      "INTERACTION": 0.6715
+     },
+     "0.150": {
+      "A_MINUS_B": 0.9295,
+      "INTERACTION": 0.8285
+     },
+     "0.175": {
+      "A_MINUS_B": 0.981,
+      "INTERACTION": 0.934
+     },
+     "0.200": {
+      "A_MINUS_B": 0.9975,
+      "INTERACTION": 0.9695
+     },
+     "0.225": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 0.9935
+     },
+     "0.250": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.275": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 0.9995
+     },
+     "0.300": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.325": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.350": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.375": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.400": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     }
+    }
+   },
+   "COLLAPSED": {
+    "AT": {
+     "0.10": {
+      "A_MINUS_B": 0.495,
+      "INTERACTION": 0.3455
+     },
+     "0.15": {
+      "A_MINUS_B": 0.8305,
+      "INTERACTION": 0.67
+     },
+     "0.20": {
+      "A_MINUS_B": 0.979,
+      "INTERACTION": 0.8925
+     }
+    },
+    "MDE80_A_MINUS_B": 0.15,
+    "MDE80_INTERACTION": 0.175,
+    "POWER_BY_EFFECT": {
+     "0.025": {
+      "A_MINUS_B": 0.066,
+      "INTERACTION": 0.0595
+     },
+     "0.050": {
+      "A_MINUS_B": 0.172,
+      "INTERACTION": 0.1275
+     },
+     "0.075": {
+      "A_MINUS_B": 0.3155,
+      "INTERACTION": 0.2135
+     },
+     "0.100": {
+      "A_MINUS_B": 0.495,
+      "INTERACTION": 0.3455
+     },
+     "0.125": {
+      "A_MINUS_B": 0.683,
+      "INTERACTION": 0.5125
+     },
+     "0.150": {
+      "A_MINUS_B": 0.8305,
+      "INTERACTION": 0.67
+     },
+     "0.175": {
+      "A_MINUS_B": 0.945,
+      "INTERACTION": 0.808
+     },
+     "0.200": {
+      "A_MINUS_B": 0.979,
+      "INTERACTION": 0.8925
+     },
+     "0.225": {
+      "A_MINUS_B": 0.997,
+      "INTERACTION": 0.9555
+     },
+     "0.250": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 0.9875
+     },
+     "0.275": {
+      "A_MINUS_B": 0.9995,
+      "INTERACTION": 0.994
+     },
+     "0.300": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 0.999
+     },
+     "0.325": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 0.9995
+     },
+     "0.350": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.375": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.400": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     }
+    }
+   },
+   "INDEPENDENT": {
+    "AT": {
+     "0.10": {
+      "A_MINUS_B": 0.678,
+      "INTERACTION": 0.517
+     },
+     "0.15": {
+      "A_MINUS_B": 0.949,
+      "INTERACTION": 0.849
+     },
+     "0.20": {
+      "A_MINUS_B": 0.9985,
+      "INTERACTION": 0.982
+     }
+    },
+    "MDE80_A_MINUS_B": 0.125,
+    "MDE80_INTERACTION": 0.15,
+    "POWER_BY_EFFECT": {
+     "0.025": {
+      "A_MINUS_B": 0.092,
+      "INTERACTION": 0.0735
+     },
+     "0.050": {
+      "A_MINUS_B": 0.212,
+      "INTERACTION": 0.1565
+     },
+     "0.075": {
+      "A_MINUS_B": 0.426,
+      "INTERACTION": 0.291
+     },
+     "0.100": {
+      "A_MINUS_B": 0.678,
+      "INTERACTION": 0.517
+     },
+     "0.125": {
+      "A_MINUS_B": 0.828,
+      "INTERACTION": 0.667
+     },
+     "0.150": {
+      "A_MINUS_B": 0.949,
+      "INTERACTION": 0.849
+     },
+     "0.175": {
+      "A_MINUS_B": 0.988,
+      "INTERACTION": 0.928
+     },
+     "0.200": {
+      "A_MINUS_B": 0.9985,
+      "INTERACTION": 0.982
+     },
+     "0.225": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 0.9925
+     },
+     "0.250": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 0.999
+     },
+     "0.275": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.300": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.325": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.350": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.375": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.400": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     }
+    }
+   },
+   "STRESS": {
+    "AT": {
+     "0.10": {
+      "A_MINUS_B": 0.519,
+      "INTERACTION": 0.3705
+     },
+     "0.15": {
+      "A_MINUS_B": 0.8665,
+      "INTERACTION": 0.7175
+     },
+     "0.20": {
+      "A_MINUS_B": 0.9895,
+      "INTERACTION": 0.926
+     }
+    },
+    "MDE80_A_MINUS_B": 0.15,
+    "MDE80_INTERACTION": 0.175,
+    "POWER_BY_EFFECT": {
+     "0.025": {
+      "A_MINUS_B": 0.081,
+      "INTERACTION": 0.0575
+     },
+     "0.050": {
+      "A_MINUS_B": 0.182,
+      "INTERACTION": 0.1295
+     },
+     "0.075": {
+      "A_MINUS_B": 0.3275,
+      "INTERACTION": 0.232
+     },
+     "0.100": {
+      "A_MINUS_B": 0.519,
+      "INTERACTION": 0.3705
+     },
+     "0.125": {
+      "A_MINUS_B": 0.708,
+      "INTERACTION": 0.5235
+     },
+     "0.150": {
+      "A_MINUS_B": 0.8665,
+      "INTERACTION": 0.7175
+     },
+     "0.175": {
+      "A_MINUS_B": 0.949,
+      "INTERACTION": 0.821
+     },
+     "0.200": {
+      "A_MINUS_B": 0.9895,
+      "INTERACTION": 0.926
+     },
+     "0.225": {
+      "A_MINUS_B": 0.9965,
+      "INTERACTION": 0.965
+     },
+     "0.250": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 0.9865
+     },
+     "0.275": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 0.9985
+     },
+     "0.300": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.325": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.350": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.375": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     },
+     "0.400": {
+      "A_MINUS_B": 1.0,
+      "INTERACTION": 1.0
+     }
+    }
+   }
+  }
+ },
+ "HISTORICAL_ONLY_VERDICT": "INFORMATIONALLY_WEAK",
+ "HISTORICAL_WINDOW_PROXIES": {
+  "FIRST_WEEKS": {
+   "COUNTS": {
+    "A_BY_EPOCH": {
+     "2023H1": 43,
+     "2023H2": 37,
+     "2024H1": 32,
+     "2024H2": 22
+    },
+    "A_BY_SYMBOL": {
+     "BNBUSDT": 25,
+     "BTCUSDT": 30,
+     "DOGEUSDT": 15,
+     "ETHUSDT": 27,
+     "SOLUSDT": 23,
+     "XRPUSDT": 14
+    },
+    "A_DECISION_DATES": 98,
+    "A_EPISODES": 134,
+    "A_MAX_EPOCH_SHARE": 0.3208955223880597,
+    "A_MAX_SYMBOL_SHARE": 0.22388059701492538,
+    "A_WEEK_CLUSTERS": 57,
+    "B_EPISODES": 1213,
+    "B_WEEK_CLUSTERS": 85,
+    "WEEK_CLUSTERS": 85
+   },
+   "DESIGN_EFFECT": {
+    "BASE": {
+     "A_PLUS_B_EFFECTIVE_N": 1183.1186581507766,
+     "DESIGN_EFFECT_A_MINUS_B": 1.1385164038452162
+    },
+    "STRESS": {
+     "A_PLUS_B_EFFECTIVE_N": 928.4763343424705,
+     "DESIGN_EFFECT_A_MINUS_B": 1.4507639561474877
+    }
+   },
+   "GATE": {
+    "MC_SE": 0.0038991152842664197,
+    "PASS": true,
+    "POWER_A_MINUS_B": 0.813,
+    "POWER_INTERACTION": 0.6406,
+    "REPS": 10000
+   },
+   "POWER": {
+    "BASE": {
+     "AT": {
+      "0.10": {
+       "A_MINUS_B": 0.5625,
+       "INTERACTION": 0.446
+      },
+      "0.15": {
+       "A_MINUS_B": 0.8915,
+       "INTERACTION": 0.7715
+      },
+      "0.20": {
+       "A_MINUS_B": 0.987,
+       "INTERACTION": 0.953
+      }
+     },
+     "MDE80_A_MINUS_B": 0.15,
+     "MDE80_INTERACTION": 0.175,
+     "POWER_BY_EFFECT": {
+      "0.025": {
+       "A_MINUS_B": 0.086,
+       "INTERACTION": 0.075
+      },
+      "0.050": {
+       "A_MINUS_B": 0.193,
+       "INTERACTION": 0.1485
+      },
+      "0.075": {
+       "A_MINUS_B": 0.3545,
+       "INTERACTION": 0.2655
+      },
+      "0.100": {
+       "A_MINUS_B": 0.5625,
+       "INTERACTION": 0.446
+      },
+      "0.125": {
+       "A_MINUS_B": 0.756,
+       "INTERACTION": 0.6125
+      },
+      "0.150": {
+       "A_MINUS_B": 0.8915,
+       "INTERACTION": 0.7715
+      },
+      "0.175": {
+       "A_MINUS_B": 0.9645,
+       "INTERACTION": 0.8835
+      },
+      "0.200": {
+       "A_MINUS_B": 0.987,
+       "INTERACTION": 0.953
+      },
+      "0.225": {
+       "A_MINUS_B": 0.998,
+       "INTERACTION": 0.9835
+      },
+      "0.250": {
+       "A_MINUS_B": 0.9995,
+       "INTERACTION": 0.9965
+      },
+      "0.275": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.9995
+      },
+      "0.300": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.999
+      },
+      "0.325": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.350": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.375": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.400": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      }
+     }
+    },
+    "COLLAPSED": {
+     "AT": {
+      "0.10": {
+       "A_MINUS_B": 0.434,
+       "INTERACTION": 0.297
+      },
+      "0.15": {
+       "A_MINUS_B": 0.7975,
+       "INTERACTION": 0.622
+      },
+      "0.20": {
+       "A_MINUS_B": 0.9635,
+       "INTERACTION": 0.851
+      }
+     },
+     "MDE80_A_MINUS_B": 0.175,
+     "MDE80_INTERACTION": 0.2,
+     "POWER_BY_EFFECT": {
+      "0.025": {
+       "A_MINUS_B": 0.0755,
+       "INTERACTION": 0.057
+      },
+      "0.050": {
+       "A_MINUS_B": 0.15,
+       "INTERACTION": 0.107
+      },
+      "0.075": {
+       "A_MINUS_B": 0.2955,
+       "INTERACTION": 0.2015
+      },
+      "0.100": {
+       "A_MINUS_B": 0.434,
+       "INTERACTION": 0.297
+      },
+      "0.125": {
+       "A_MINUS_B": 0.621,
+       "INTERACTION": 0.4715
+      },
+      "0.150": {
+       "A_MINUS_B": 0.7975,
+       "INTERACTION": 0.622
+      },
+      "0.175": {
+       "A_MINUS_B": 0.902,
+       "INTERACTION": 0.732
+      },
+      "0.200": {
+       "A_MINUS_B": 0.9635,
+       "INTERACTION": 0.851
+      },
+      "0.225": {
+       "A_MINUS_B": 0.9915,
+       "INTERACTION": 0.925
+      },
+      "0.250": {
+       "A_MINUS_B": 0.999,
+       "INTERACTION": 0.9735
+      },
+      "0.275": {
+       "A_MINUS_B": 0.9995,
+       "INTERACTION": 0.9905
+      },
+      "0.300": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.9945
+      },
+      "0.325": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.9995
+      },
+      "0.350": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.375": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.400": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      }
+     }
+    },
+    "INDEPENDENT": {
+     "AT": {
+      "0.10": {
+       "A_MINUS_B": 0.603,
+       "INTERACTION": 0.4465
+      },
+      "0.15": {
+       "A_MINUS_B": 0.9215,
+       "INTERACTION": 0.7845
+      },
+      "0.20": {
+       "A_MINUS_B": 0.9965,
+       "INTERACTION": 0.9635
+      }
+     },
+     "MDE80_A_MINUS_B": 0.15,
+     "MDE80_INTERACTION": 0.175,
+     "POWER_BY_EFFECT": {
+      "0.025": {
+       "A_MINUS_B": 0.0825,
+       "INTERACTION": 0.0755
+      },
+      "0.050": {
+       "A_MINUS_B": 0.2025,
+       "INTERACTION": 0.137
+      },
+      "0.075": {
+       "A_MINUS_B": 0.368,
+       "INTERACTION": 0.2725
+      },
+      "0.100": {
+       "A_MINUS_B": 0.603,
+       "INTERACTION": 0.4465
+      },
+      "0.125": {
+       "A_MINUS_B": 0.777,
+       "INTERACTION": 0.615
+      },
+      "0.150": {
+       "A_MINUS_B": 0.9215,
+       "INTERACTION": 0.7845
+      },
+      "0.175": {
+       "A_MINUS_B": 0.9775,
+       "INTERACTION": 0.905
+      },
+      "0.200": {
+       "A_MINUS_B": 0.9965,
+       "INTERACTION": 0.9635
+      },
+      "0.225": {
+       "A_MINUS_B": 0.999,
+       "INTERACTION": 0.9885
+      },
+      "0.250": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.997
+      },
+      "0.275": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.300": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.325": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.350": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.375": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.400": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      }
+     }
+    },
+    "STRESS": {
+     "AT": {
+      "0.10": {
+       "A_MINUS_B": 0.4615,
+       "INTERACTION": 0.3235
+      },
+      "0.15": {
+       "A_MINUS_B": 0.819,
+       "INTERACTION": 0.6445
+      },
+      "0.20": {
+       "A_MINUS_B": 0.97,
+       "INTERACTION": 0.892
+      }
+     },
+     "MDE80_A_MINUS_B": 0.15,
+     "MDE80_INTERACTION": 0.2,
+     "POWER_BY_EFFECT": {
+      "0.025": {
+       "A_MINUS_B": 0.0725,
+       "INTERACTION": 0.063
+      },
+      "0.050": {
+       "A_MINUS_B": 0.1865,
+       "INTERACTION": 0.1265
+      },
+      "0.075": {
+       "A_MINUS_B": 0.319,
+       "INTERACTION": 0.2145
+      },
+      "0.100": {
+       "A_MINUS_B": 0.4615,
+       "INTERACTION": 0.3235
+      },
+      "0.125": {
+       "A_MINUS_B": 0.6805,
+       "INTERACTION": 0.5115
+      },
+      "0.150": {
+       "A_MINUS_B": 0.819,
+       "INTERACTION": 0.6445
+      },
+      "0.175": {
+       "A_MINUS_B": 0.9325,
+       "INTERACTION": 0.796
+      },
+      "0.200": {
+       "A_MINUS_B": 0.97,
+       "INTERACTION": 0.892
+      },
+      "0.225": {
+       "A_MINUS_B": 0.9905,
+       "INTERACTION": 0.946
+      },
+      "0.250": {
+       "A_MINUS_B": 0.998,
+       "INTERACTION": 0.9795
+      },
+      "0.275": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.9925
+      },
+      "0.300": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.9985
+      },
+      "0.325": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.350": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.375": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.400": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      }
+     }
+    }
+   }
+  },
+  "LAST_WEEKS": {
+   "COUNTS": {
+    "A_BY_EPOCH": {
+     "2023H1": 12,
+     "2023H2": 37,
+     "2024H1": 32,
+     "2024H2": 44
+    },
+    "A_BY_SYMBOL": {
+     "BNBUSDT": 25,
+     "BTCUSDT": 28,
+     "DOGEUSDT": 12,
+     "ETHUSDT": 24,
+     "SOLUSDT": 23,
+     "XRPUSDT": 13
+    },
+    "A_DECISION_DATES": 88,
+    "A_EPISODES": 125,
+    "A_MAX_EPOCH_SHARE": 0.352,
+    "A_MAX_SYMBOL_SHARE": 0.224,
+    "A_WEEK_CLUSTERS": 55,
+    "B_EPISODES": 1195,
+    "B_WEEK_CLUSTERS": 85,
+    "WEEK_CLUSTERS": 85
+   },
+   "DESIGN_EFFECT": {
+    "BASE": {
+     "A_PLUS_B_EFFECTIVE_N": 1138.3068473502726,
+     "DESIGN_EFFECT_A_MINUS_B": 1.159617025121714
+    },
+    "STRESS": {
+     "A_PLUS_B_EFFECTIVE_N": 883.7116804004611,
+     "DESIGN_EFFECT_A_MINUS_B": 1.4936998449560284
+    }
+   },
+   "GATE": {
+    "MC_SE": 0.00408159968639748,
+    "PASS": false,
+    "POWER_A_MINUS_B": 0.7888,
+    "POWER_INTERACTION": 0.6244,
+    "REPS": 10000
+   },
+   "POWER": {
+    "BASE": {
+     "AT": {
+      "0.10": {
+       "A_MINUS_B": 0.5425,
+       "INTERACTION": 0.419
+      },
+      "0.15": {
+       "A_MINUS_B": 0.873,
+       "INTERACTION": 0.742
+      },
+      "0.20": {
+       "A_MINUS_B": 0.9885,
+       "INTERACTION": 0.947
+      }
+     },
+     "MDE80_A_MINUS_B": 0.15,
+     "MDE80_INTERACTION": 0.175,
+     "POWER_BY_EFFECT": {
+      "0.025": {
+       "A_MINUS_B": 0.0815,
+       "INTERACTION": 0.0745
+      },
+      "0.050": {
+       "A_MINUS_B": 0.1665,
+       "INTERACTION": 0.137
+      },
+      "0.075": {
+       "A_MINUS_B": 0.32,
+       "INTERACTION": 0.244
+      },
+      "0.100": {
+       "A_MINUS_B": 0.5425,
+       "INTERACTION": 0.419
+      },
+      "0.125": {
+       "A_MINUS_B": 0.716,
+       "INTERACTION": 0.5685
+      },
+      "0.150": {
+       "A_MINUS_B": 0.873,
+       "INTERACTION": 0.742
+      },
+      "0.175": {
+       "A_MINUS_B": 0.952,
+       "INTERACTION": 0.8625
+      },
+      "0.200": {
+       "A_MINUS_B": 0.9885,
+       "INTERACTION": 0.947
+      },
+      "0.225": {
+       "A_MINUS_B": 0.996,
+       "INTERACTION": 0.978
+      },
+      "0.250": {
+       "A_MINUS_B": 0.999,
+       "INTERACTION": 0.992
+      },
+      "0.275": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.999
+      },
+      "0.300": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.325": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.350": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.375": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.400": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      }
+     }
+    },
+    "COLLAPSED": {
+     "AT": {
+      "0.10": {
+       "A_MINUS_B": 0.4335,
+       "INTERACTION": 0.3165
+      },
+      "0.15": {
+       "A_MINUS_B": 0.737,
+       "INTERACTION": 0.5615
+      },
+      "0.20": {
+       "A_MINUS_B": 0.953,
+       "INTERACTION": 0.831
+      }
+     },
+     "MDE80_A_MINUS_B": 0.175,
+     "MDE80_INTERACTION": 0.2,
+     "POWER_BY_EFFECT": {
+      "0.025": {
+       "A_MINUS_B": 0.066,
+       "INTERACTION": 0.057
+      },
+      "0.050": {
+       "A_MINUS_B": 0.134,
+       "INTERACTION": 0.108
+      },
+      "0.075": {
+       "A_MINUS_B": 0.262,
+       "INTERACTION": 0.1895
+      },
+      "0.100": {
+       "A_MINUS_B": 0.4335,
+       "INTERACTION": 0.3165
+      },
+      "0.125": {
+       "A_MINUS_B": 0.6015,
+       "INTERACTION": 0.4455
+      },
+      "0.150": {
+       "A_MINUS_B": 0.737,
+       "INTERACTION": 0.5615
+      },
+      "0.175": {
+       "A_MINUS_B": 0.871,
+       "INTERACTION": 0.721
+      },
+      "0.200": {
+       "A_MINUS_B": 0.953,
+       "INTERACTION": 0.831
+      },
+      "0.225": {
+       "A_MINUS_B": 0.986,
+       "INTERACTION": 0.92
+      },
+      "0.250": {
+       "A_MINUS_B": 0.996,
+       "INTERACTION": 0.954
+      },
+      "0.275": {
+       "A_MINUS_B": 0.999,
+       "INTERACTION": 0.9845
+      },
+      "0.300": {
+       "A_MINUS_B": 0.9995,
+       "INTERACTION": 0.9965
+      },
+      "0.325": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.9995
+      },
+      "0.350": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.375": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.400": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      }
+     }
+    },
+    "INDEPENDENT": {
+     "AT": {
+      "0.10": {
+       "A_MINUS_B": 0.583,
+       "INTERACTION": 0.4305
+      },
+      "0.15": {
+       "A_MINUS_B": 0.8925,
+       "INTERACTION": 0.764
+      },
+      "0.20": {
+       "A_MINUS_B": 0.9965,
+       "INTERACTION": 0.9495
+      }
+     },
+     "MDE80_A_MINUS_B": 0.15,
+     "MDE80_INTERACTION": 0.175,
+     "POWER_BY_EFFECT": {
+      "0.025": {
+       "A_MINUS_B": 0.0925,
+       "INTERACTION": 0.0665
+      },
+      "0.050": {
+       "A_MINUS_B": 0.2025,
+       "INTERACTION": 0.155
+      },
+      "0.075": {
+       "A_MINUS_B": 0.365,
+       "INTERACTION": 0.2525
+      },
+      "0.100": {
+       "A_MINUS_B": 0.583,
+       "INTERACTION": 0.4305
+      },
+      "0.125": {
+       "A_MINUS_B": 0.7585,
+       "INTERACTION": 0.5995
+      },
+      "0.150": {
+       "A_MINUS_B": 0.8925,
+       "INTERACTION": 0.764
+      },
+      "0.175": {
+       "A_MINUS_B": 0.9675,
+       "INTERACTION": 0.8855
+      },
+      "0.200": {
+       "A_MINUS_B": 0.9965,
+       "INTERACTION": 0.9495
+      },
+      "0.225": {
+       "A_MINUS_B": 0.9985,
+       "INTERACTION": 0.984
+      },
+      "0.250": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.998
+      },
+      "0.275": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.9995
+      },
+      "0.300": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.325": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.350": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.375": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.400": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      }
+     }
+    },
+    "STRESS": {
+     "AT": {
+      "0.10": {
+       "A_MINUS_B": 0.4495,
+       "INTERACTION": 0.314
+      },
+      "0.15": {
+       "A_MINUS_B": 0.7885,
+       "INTERACTION": 0.611
+      },
+      "0.20": {
+       "A_MINUS_B": 0.9585,
+       "INTERACTION": 0.8615
+      }
+     },
+     "MDE80_A_MINUS_B": 0.175,
+     "MDE80_INTERACTION": 0.2,
+     "POWER_BY_EFFECT": {
+      "0.025": {
+       "A_MINUS_B": 0.076,
+       "INTERACTION": 0.0655
+      },
+      "0.050": {
+       "A_MINUS_B": 0.1595,
+       "INTERACTION": 0.1275
+      },
+      "0.075": {
+       "A_MINUS_B": 0.302,
+       "INTERACTION": 0.2195
+      },
+      "0.100": {
+       "A_MINUS_B": 0.4495,
+       "INTERACTION": 0.314
+      },
+      "0.125": {
+       "A_MINUS_B": 0.645,
+       "INTERACTION": 0.4745
+      },
+      "0.150": {
+       "A_MINUS_B": 0.7885,
+       "INTERACTION": 0.611
+      },
+      "0.175": {
+       "A_MINUS_B": 0.8945,
+       "INTERACTION": 0.7495
+      },
+      "0.200": {
+       "A_MINUS_B": 0.9585,
+       "INTERACTION": 0.8615
+      },
+      "0.225": {
+       "A_MINUS_B": 0.9905,
+       "INTERACTION": 0.926
+      },
+      "0.250": {
+       "A_MINUS_B": 0.998,
+       "INTERACTION": 0.9715
+      },
+      "0.275": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.993
+      },
+      "0.300": {
+       "A_MINUS_B": 0.9995,
+       "INTERACTION": 0.997
+      },
+      "0.325": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 0.9995
+      },
+      "0.350": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.375": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      },
+      "0.400": {
+       "A_MINUS_B": 1.0,
+       "INTERACTION": 1.0
+      }
+     }
+    }
+   }
+  }
+ },
+ "MIN_EFFECT": 0.15,
+ "OUTCOMES_COMPUTED": false,
+ "PER_SYMBOL": {
+  "BNBUSDT": {
+   "DATA_OK": true,
+   "EPISODE_DIGEST": "5e670d60365f2cd34175aaf1ddd7ef0d77aa5d9f712340533df2711b0e252209"
+  },
+  "BTCUSDT": {
+   "DATA_OK": true,
+   "EPISODE_DIGEST": "3f90eefc8cc04adafab6db8e37e74140cd7b01284b9ee9c207e40c353920d0e5"
+  },
+  "DOGEUSDT": {
+   "DATA_OK": true,
+   "EPISODE_DIGEST": "535e21f0b0b2fd942155d390ce11ec6b028c15d72da8045fd59e05df553a22ca"
+  },
+  "ETHUSDT": {
+   "DATA_OK": true,
+   "EPISODE_DIGEST": "080b99d686ca5ecb2fd64a6f7b93ce4d13efee6961667835ec8ee0281dfc86c9"
+  },
+  "SOLUSDT": {
+   "DATA_OK": true,
+   "EPISODE_DIGEST": "e4c4cc624e1ce8b6ae85e63caa1f71a1626641c35c43ea252e3a8c1d4f71a5ac"
+  },
+  "XRPUSDT": {
+   "DATA_OK": true,
+   "EPISODE_DIGEST": "910ea96a5a2d2afa130704e0a008e1a2e9512523df1dadc711e6b7e5b7eb45f2"
+  }
+ },
+ "PRIMARY_ESTIMAND": "A - B",
+ "PROTECTED_2025_2026_OPENED": false,
+ "REPORT": "DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1",
+ "RUNNER_SHA256": "451c663cb1beaf22deee39a0da4491512d907c7321cbbdf7b76e351afa33aa88",
+ "SECONDARY_ESTIMAND": "(A - B) - (C - D)",
+ "SEED0003_CREATED": false,
+ "SPEND_WINDOW_ESTIMATE_RATE_SCALED": {
+  "A": 129.7,
+  "B": 1192.7,
+  "C": 274.4,
+  "D": 2094.1
+ },
+ "V0_VERDICT_UNCHANGED": "INFORMATIONALLY_WEAK"
+}

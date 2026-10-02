@@ -1,3 +1,21 @@
+## Divergence conditional-support feasibility V1 — window alone weak; combined design feasible (thin margin) — 2026-10-02
+
+`HISTORICAL_ONLY_VERDICT = INFORMATIONALLY_WEAK (STRESS power of A − B at 15 pp: 0.813 / 0.789, 10k replicates)`
+`COMBINED_DESIGN_VERDICT = FEASIBLE_FOR_PREREGISTRATION (window + ~4 prospective weeks; stop at cumulative A >= 135 and A week clusters >= 59; deadline 2026-11-30 under the frozen rule form)`
+`PROTECTED_2025_2026_OPENED = false`
+`SEED0003_CREATED = false`
+`NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1`
+
+This line supersedes `NEXT_UNIT = DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1` below.
+- **Report:** `docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_REPORT.md`.
+- **Caveats before SEED-0003:**
+  - **Thin margin.** COLLAPSED gives 0.74–0.80.
+  - **Tight deadline.** A smaller A yield would end the design `INCONCLUSIVE`.
+  - **Freeze timing.** The freeze must precede the prospective start of 2026-10-05, or that start moves.
+  - **Protected steps.** Counts-only detection on the window and the prospective 2026 segment need the opening decision.
+  - **SEED-0001 overlap.** The SEED-0001 prospective BTC leg overlaps; the without-BTC variant costs nothing.
+- **Expectation.** SEED-0001's exploratory A − B estimates are far below 15 pp.
+
 ## Divergence program — owner decisions V2; conditional-support feasibility V1 authorized — 2026-10-02
 
 `DIVERGENCE_PANEL_FEASIBILITY_V0 = INFORMATIONALLY_WEAK (unchanged)`
