@@ -1,11 +1,19 @@
-## SEED-0001 regular divergence — card frozen, counts next — 2026-10-02
+## SEED-0001 regular divergence — card frozen, feasibility below the floor — 2026-10-02
 
 `SEED0001_CARD = FROZEN_BEFORE_COUNTS_AND_OUTCOMES`
+`SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR (BTC A = 36 episodes / 33 dates; STRESS power at 10 pp = 0.10; MDE about 30 pp)`
 `TF-SEED0001-RD-RETRO1 = REGISTERED_NOT_EXECUTED`
 `TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED`
 `MARKET_OUTCOMES_COMPUTED = false`
 `PROTECTED_2025_2026_OPENED = false`
-`NEXT_UNIT = SEED0001_OUTCOME_BLIND_FEASIBILITY_COUNT_PASS (counts and power only; outcomes need a separate owner authorization)`
+`NEXT_UNIT = OWNER_DECISION on SEED-0001 (outcomes stay closed; see SEED0001_FEASIBILITY_REPORT.md)`
+
+**Feasibility (`docs/research/SEED0001_FEASIBILITY_REPORT.md`).** This was an outcome-blind count pass.
+- **BTC eligible:** 743 episodes, A/B/C/D = 36/259/63/385; A falls on 33 dates and 24 weekly clusters.
+- **Floor and power:** A is below the 40-episode floor, and the conjunction is about 10% powered at 10 pp.
+- **Prospective:** the frozen stop of 30 A episodes is about 15% powered.
+- **ETH:** A = 32 episodes on 27 dates.
+- **Not changed:** no definition changed after the counts.
 
 **What is frozen.** `docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.{md,json}`: the owner's regular bullish divergence with order-book support.
 - **Event.** On 1h BTC perps:

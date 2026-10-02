@@ -350,3 +350,83 @@ def test_power_is_zero_without_an_arm_and_layout_prefix_stops_at_a():
     pre = F.prospective_layout(eps, 5)
     assert pre[0].count('A') == 5 and pre[0][-1] == 'A'
     assert F.prospective_layout(eps, 10_000) is None
+
+
+# ------------------------------------------------------------ runner guards
+
+from scripts.research import seed0001_feasibility as R  # noqa: E402
+
+
+def test_runner_urls_stay_before_the_protected_surface():
+    days = R.book_days()
+    assert days[0] == '2023-01-01' and days[-1] == '2024-12-31' and len(days) == 731
+    assert R.KLINE_MONTHS[0] == '2022-11' and R.KLINE_MONTHS[-1] == '2024-12' and len(R.KLINE_MONTHS) == 26
+    for s in R.SYMBOLS:
+        for m in R.KLINE_MONTHS:
+            R.assert_url_allowed(R.kline_url(s, m))
+        for d in days:
+            R.assert_url_allowed(R.book_url(s, d))
+    for bad in (R.kline_url('BTCUSDT', '2025-01'), R.book_url('ETHUSDT', '2026-10-05'), R.ARCHIVE + '/x.zip'):
+        with pytest.raises(R.ProtectedAccessError):
+            R.assert_url_allowed(bad)
+
+
+def test_runner_decision_window_matches_the_prereg():
+    prereg = json.loads(PREREG_JSON.read_text())
+    window = prereg['SURFACES']['DISCOVERY']
+    assert L.iso_utc(R.DECISION_START_MS) == window['DECISION_START_UTC']
+    assert L.iso_utc(R.DECISION_LAST_MS) == window['DECISION_LAST_UTC']
+    assert R.DECISION_LAST_MS + L.SENSITIVITY_CAP_HOURS * L.BAR_MS == L.PROTECTED_START_MS
+
+
+def test_runner_pins_kline_months_to_the_accepted_inventories():
+    pinned = R.pinned_kline_sha256()
+    assert set(pinned) == set(R.SYMBOLS)
+    for s in R.SYMBOLS:
+        assert list(pinned[s]) == R.KLINE_MONTHS and all(len(v) == 64 for v in pinned[s].values())
+
+
+# ------------------------------------------------------- feasibility report
+
+REPORT = REPO / 'docs/research/SEED0001_FEASIBILITY_REPORT.json'
+_INT = {'DECISION_TIME_MS', 'WEEK_BLOCK', 'COMPARISON_GAP_BARS', 'MAX_INPUT_BAR_CLOSE_MS', 'TOD_HOUR_UTC',
+        'DIV_COUNT', 'SUPPORT_TRAILING_PRESENT', 'CHAIN_48H'}
+_BOOL = {'RSI14_DIV', 'RSI21_DIV', 'RSI_FAMILY', 'MACD_FAMILY', 'CVD_FAMILY', 'DIVERGENCE', 'SUPPORT'}
+_STR = {'DECISION_TIME_UTC', 'DECISION_DATE_UTC', 'EPOCH', 'PIVOT_BAR_OPEN_UTC', 'COMPARISON_PIVOT_OPEN_UTC', 'ARM',
+        'SYMBOL', 'EPISODE_ID'}
+
+
+def _episodes_csv(symbol):
+    import csv
+    rows = list(csv.DictReader((REPO / f'docs/research/seed0001/EPISODES_{symbol}.csv').open()))
+    out = []
+    for r in rows:
+        out.append({k: (int(v) if k in _INT else v == 'True' if k in _BOOL else v if k in _STR else float(v))
+                    for k, v in r.items()})
+    return out
+
+
+def test_report_is_outcome_blind_and_bound_to_the_frozen_prereg():
+    report = json.loads(REPORT.read_text())
+    assert report['PREREG_SHA256'] == hashlib.sha256(PREREG_JSON.read_bytes()).hexdigest()
+    assert report['OUTCOMES_COMPUTED'] is False and report['FORBIDDEN_FIELDS_COMPUTED'] == []
+    assert report['PROTECTED_2025_VALUES_OPENED'] is False and report['PROTECTED_2026_VALUES_OPENED'] is False
+    assert report['OUTCOME_OPENING_AUTHORIZED'] is False
+    v = report['VERDICT_INPUTS']
+    assert report['VERDICT'] == F.verdict(v['BTC_A_EPISODES'], v['BTC_A_DISTINCT_DATES'], v['BTC_MAX_ABS_SMD'],
+                                          v['BTC_STRESS_POWER_AT_MIN_EFFECT'])
+    for sym in R.SYMBOLS:
+        audit = report['SYMBOLS'][sym]['PIT_TRUNCATION_AUDIT']
+        assert audit['CHECKED'] == audit['IDENTICAL'] >= 1
+
+
+def test_frozen_episode_sets_reproduce_the_report_digests():
+    report = json.loads(REPORT.read_text())
+    for sym in R.SYMBOLS:
+        eps = _episodes_csv(sym)
+        L.assert_outcome_blind(eps)
+        rows = L.episode_digest_rows(eps, sym)
+        assert hashlib.sha256('\n'.join(rows).encode()).hexdigest() == report['SYMBOLS'][sym]['EPISODE_DIGEST']
+        arms = report['SYMBOLS'][sym]['LAYOUT']['BY_ARM']
+        assert {a: arms[a]['EPISODES'] for a in L.ARMS} == {a: sum(e['ARM'] == a for e in eps) for a in L.ARMS}
+        assert all(e['DECISION_TIME_MS'] <= R.DECISION_LAST_MS for e in eps)

@@ -7228,3 +7228,28 @@ MARKET_OUTCOMES_COMPUTED = false
 PROTECTED_2025_2026_OPENED = false
 NEXT_UNIT = SEED0001_OUTCOME_BLIND_FEASIBILITY_COUNT_PASS
 ```
+
+## SEED-0001 outcome-blind feasibility — 2026-10-02
+
+The count pass ran after the freeze commit. It used Binance UM klines (2022-11..2024-12, pinned to the CORE inventories) and bookDepth for 2023–2024; 3 BTC and 2 ETH days are missing in the archive.
+- **Not computed:** no outcome, R-multiple, MFE/MAE or post-decision price.
+- **Point-in-time audit:** 30/30 identical per symbol.
+- **BTC eligible:** 743 episodes, A/B/C/D = 36/259/63/385.
+  - A falls on 33 dates and in 24 weekly clusters, with 10/6/9/11 by half-year.
+  - Divergence is the rare part (13% of eligible episodes); support holds in 40%.
+- **Dependence:** every A episode shares a 48h overlap chain with another episode, and 22% of windows cross a week boundary.
+- **Power.** The Holm conjunction of P1 and P2 has STRESS power 0.10 at the 10 pp bar, and the MDE is about 30 pp. Covariate support passes (max |SMD| 0.61). Heterogeneity is `NOT_ASSESSABLE`.
+- **Prospective.** The stop at 30 A episodes is about 15% powered at 10 pp.
+- **ETH (robustness):** A = 32 episodes on 27 dates.
+- **Verdict (frozen rule):** `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR`. It would also be `INFORMATIONALLY_WEAK` above the floor.
+
+**Nothing changed or opened.** Definitions were not changed after the counts. The 2023–2024 outcome surface for this card is unopened, not consumed. Outcomes need a separate owner authorization, and the report does not recommend opening them at this power.
+
+```
+SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR
+MARKET_OUTCOMES_COMPUTED = false
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = OWNER_DECISION on SEED-0001
+```
+
+Record: `docs/research/SEED0001_FEASIBILITY_REPORT.{md,json}`.
