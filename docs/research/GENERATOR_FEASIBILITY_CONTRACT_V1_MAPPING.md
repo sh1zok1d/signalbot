@@ -100,13 +100,20 @@ The conversion is done once per shortlisted card, outcome-blind, and sealed befo
 
 ## Complexity ladder (owner decision 2026-10-02)
 
-The generator must go from simple to complex, not "generate more complex". Simple effects are the base vocabulary that a complex claim is decomposed into: does A work, does B work, and does A × B add anything beyond A and B? A backlog made only of interactions repeats the old `X → return` trap from the other side.
+The generator must go from simple to complex, not "generate more complex". Simple mechanisms build the library of tested base effects. A backlog made only of interactions repeats the old `X → return` trap from the other side.
+
+**Interaction and composite claims are about control, not prior support.**
+- Each component's main effect is in the baseline.
+- The joint term is the mechanism variable.
+- The primary claim tests the joint term's incremental effect over the components' main effects.
+
+The components need not work on their own: A ≈ 0, B ≈ 0 and A × B ≠ 0 is a valid interaction. A component's own result is never a precondition.
 
 | Class | Definition | Planning-object rule |
 |---|---|---|
 | `ATOMIC` | one mechanism → one observable → one outcome | exactly 1 mechanism variable, `TARGET_CLASS = UNCONDITIONAL`, no components |
 | `CONDITIONAL` | one simple mechanism in a regime declared in advance | exactly 1 mechanism variable, `TARGET_CLASS = CONDITIONAL` (the compiler checks the regime), no components |
-| `INTERACTION` | two independent layers, e.g. TWAP × divergence | 2 distinct components, each component's main effect in `NUISANCE_BASELINE_VARIABLES`, the mechanism variable is the joint term (not a component), `CLAIM_TYPE = INCREMENTAL` |
+| `INTERACTION` | two independent layers, e.g. TWAP × divergence | 2 distinct components, each component's main effect controlled in `NUISANCE_BASELINE_VARIABLES` (no support required), the mechanism variable is the joint term (not a component), `CLAIM_TYPE = INCREMENTAL` |
 | `COMPOSITE` | a market state from several independent components | 3–5 distinct components, otherwise as `INTERACTION` |
 
 **Simplicity is not banality.** An `ATOMIC` card still needs a market mechanism: who acts, under which constraint, and why the effect should exist.
@@ -126,10 +133,10 @@ This cannot be checked mechanically. It is the novelty critic's job, in the amen
 
 ## Next unit: `GENERATOR_V0_COMPLEXITY_LADDER_AMENDMENT`
 
-This amendment comes before the fresh shadow campaign. It is a proposal; the owner fixes it at amendment time.
-- **Slot plan.** Each slot gets a `COMPLEXITY_CLASS`, the way it already gets `MECHANISM_FAMILY` and `INFORMATION_SOURCE`, so the generator is told which rung to write instead of choosing.
-  - Proposed mix for 40 slots: 14 `ATOMIC`, 12 `CONDITIONAL`, 8 `INTERACTION`, 6 `COMPOSITE`.
-  - Simple rungs get more slots because the novelty critic should cull banal simple cards.
+This amendment comes before the fresh shadow campaign. Owner decision, 2026-10-02:
+- **Slot plan.** Each slot gets a `COMPLEXITY_CLASS`, the way it already gets `MECHANISM_FAMILY` and `INFORMATION_SOURCE`. The class is assigned to the slot deterministically, before the LLM call; the LLM never chooses its own class.
+  - Initial mix for 40 slots: 16 `ATOMIC`, 14 `CONDITIONAL`, 7 `INTERACTION`, 3 `COMPOSITE`.
+  - The library of simple tested mechanisms matters most for now. Complex and composite cards must not take a disproportionate share of paid generation for one shortlist seat.
   - `diversity()` checks the mix.
 - **Card contract `V03`.**
   - The card copies the slot's `COMPLEXITY_CLASS` exactly (slot identity) and adds `COMPONENTS` (none for simple rungs, 2 for interaction, 3–5 for composite).

@@ -1,14 +1,20 @@
 """Complexity ladder for generated hypotheses (owner decision 2026-10-02).
 
-Generation goes from simple to complex, and simple effects stay in the
-shortlist as the base vocabulary that complex claims are decomposed into:
-does A work, does B work, does A x B add anything beyond A and B?
+Generation goes from simple to complex, and simple mechanisms stay in the
+shortlist so that the library of tested base effects keeps growing.
 
   ATOMIC       one mechanism -> one observable -> one outcome, unconditional
   CONDITIONAL  one simple mechanism inside a regime declared in advance
-  INTERACTION  two independent layers; the claim is the interaction beyond both main effects
-  COMPOSITE    a market state built from 3-5 independent components; the claim is beyond
-               the components taken separately
+  INTERACTION  two independent layers; the claim is the joint term's incremental effect
+               over the components' main effects
+  COMPOSITE    a market state built from 3-5 independent components; the claim is the joint
+               state's incremental effect over the components' main effects
+
+For INTERACTION and COMPOSITE the requirement is control, not prior support:
+every component's main effect is in the baseline, the joint term is the
+mechanism variable, and the primary claim is the joint term's increment over
+those main effects. The components need not have supported effects of their
+own: A ~ 0, B ~ 0 and A x B != 0 is a valid interaction.
 
 Simplicity is not banality: an ATOMIC card still needs a market mechanism (who
 acts, under which constraint, why the effect should exist). An indicator
@@ -59,6 +65,7 @@ def check_planning_ladder(proposal: dict) -> None:
     else:
         if proposal["CLAIM_TYPE"] != "INCREMENTAL":
             _reject("COMPLEXITY_CLASS", f"{cls} is a claim beyond its components: CLAIM_TYPE INCREMENTAL")
+        # Main effects are controlled, not required to be supported (A ~ 0, B ~ 0, A x B != 0 is valid).
         missing = [c for c in components if c not in nuisance]
         if missing:
             _reject("COMPONENTS", "each component's main effect must be in NUISANCE_BASELINE_VARIABLES: " + ", ".join(missing))

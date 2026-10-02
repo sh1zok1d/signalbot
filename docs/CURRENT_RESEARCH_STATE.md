@@ -12,8 +12,8 @@ A shortlisted card becomes a V1 planning object through `scripts/research/genera
 - **The contract checks shape only.** The V1 compiler stays the single adjudicator of the V1 rules.
 - **Unchanged:** the generator card (`GENERATOR_CONTRACT_V02`, `CANDIDATE_SCHEMA_FROZEN`), its prompt, and the V0 planning contract.
 
-**Complexity ladder (owner decision).** Generation goes from simple to complex. Simple effects are the base vocabulary that complex claims decompose into.
-- **Planning rungs.** The planning object declares its rung. Interaction and composite claims must keep each component's main effect in the nuisance baseline.
+**Complexity ladder (owner decision).** Generation goes from simple to complex, and simple mechanisms build the library of tested base effects.
+- **Planning rungs.** The planning object declares its rung. For interaction and composite claims, each component's main effect is controlled in the baseline, the joint term is the mechanism, and the claim is its incremental effect. The components need not be supported on their own: A ≈ 0, B ≈ 0 and A × B ≠ 0 is valid.
 - **Shortlist quota.** 2 atomic, 2 conditional, 1 complex. An unfilled seat passes down the ladder, never up.
 - **Simplicity is not banality.** An indicator threshold is a weak atomic card.
 - **Generation itself is a separate amendment** to the frozen generator design, made before the campaign: rung-assigned slots, card contract V03, the novelty-critic rule and the quota in the runner.

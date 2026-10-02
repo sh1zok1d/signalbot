@@ -45,7 +45,9 @@ def test_atomic_and_conditional_rungs():
         validate_planning_v1(planning(COMPONENTS=["A"]))                     # simple rungs have no components
 
 
-def test_interaction_must_beat_both_main_effects():
+def test_interaction_controls_for_component_main_effects():
+    """Main effects are controlled, never required to be supported: A ~ 0, B ~ 0, A x B != 0 is valid.
+    The contract has no field for a component's own result and no rule that reads one."""
     p = interaction()
     validate_planning_v1(p)
     mapped = to_compiler_proposal_v1(p)
