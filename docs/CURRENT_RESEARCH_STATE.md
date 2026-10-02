@@ -1,3 +1,21 @@
+## TWAP V1 closed — owner decision — 2026-10-02
+
+`TWAP_V1 = CLOSED`
+`TWAP_SEALED_RUN_V1 = MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED (merged #287 at becb6cd)`
+`RERUN_AUTHORIZED = false`
+`NEARBY_VARIANTS_AUTHORIZED = false (no K, duration, tolerance, horizon or floor rescue; no "early TWAP" re-detection)`
+`PRODUCT_DIRECTIONAL_CLAIM = NONE`
+`NEXT_UNIT = GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING`
+
+The owner closed the TWAP branch after reviewing the sealed run. The closure covers only the narrow region tested: a regular-slice spot BTCUSDT footprint under this detector at the 10 bps scale. It does not close algorithmic execution as a mechanism family. A new execution-family card would need its own seed, novelty check and V1 design freeze, and must not be a variant of this one.
+
+The compiler side of the V1 mapping is done (`GV0R02_SCHEMA_V1 = IMPLEMENTED`). The remaining route is:
+1. Generator-side feasibility-contract mapping to V1.
+2. A fresh Generator V0 shadow campaign under a new run ID with a capped budget.
+3. A shortlist of at most 5.
+4. GV0R02 feasibility.
+5. New preregistrations.
+
 ## TWAP sealed end-to-end run V1 — 2026-10-02
 
 `TWAP_SEALED_RUN_V1 = MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED`
