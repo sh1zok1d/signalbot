@@ -7381,3 +7381,25 @@ PROTECTED_2025_2026_OPENED = false
 PROTECTED_SPEND_DECIDED = false
 NEXT_UNIT = DIVERGENCE_PANEL_FEASIBILITY_V0
 ```
+
+## Divergence program owner decisions V1; D2 reservation released — 2026-10-02
+
+Record: `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V1.md`. The feasibility design was frozen before any download or count in `docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_DESIGN.json`.
+- **Authorized now.** `DIVERGENCE_PANEL_FEASIBILITY_V0`, on 2023–2024 only, outcome-blind, for the panel BTC, ETH, SOL, XRP, BNB and DOGE.
+- **Conditional spend window.** Decisions 2025-01-01..2026-08-11, only if the panel reaches power 0.80 at 15 pp under the dependence-aware STRESS profile.
+  - 10 pp is diagnostic.
+  - 20 pp alone never authorizes opening.
+- **E1 untouched.** The E1-RUN-001 holdout stays strictly protected.
+- **D2 (superseding; history unchanged).** The reservation on 2025 (primary confirmation surface) and on pre-E1 2026 (second reserved surface) is released.
+  - **Why:** the frozen D2 confirmation has negligible yield on a one-year surface (power 0.011).
+  - **What remains:** D2 stays a valid historical research object. A future D2 confirmation needs a new independent dataset or a prospective surface.
+- **Estimands.** The primary is `(A − B) − (C − D)`; `A − B` is the key secondary. Both are frozen before any protected opening.
+- **What SEED-0003 must freeze** before any opening: the list of 17 items in the decision record.
+- **Nothing opened.** No protected byte was read.
+
+```
+DIVERGENCE_PANEL_FEASIBILITY_V0 = AUTHORIZED
+HOLDOUT_SPEND_WINDOW = 2025-01-01..2026-08-11 (CONDITIONAL)
+D2_RESERVATION_ON_SPEND_SURFACE = RELEASED
+PROTECTED_2025_2026_OPENED = false
+```

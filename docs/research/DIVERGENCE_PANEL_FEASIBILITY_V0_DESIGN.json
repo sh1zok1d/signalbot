@@ -1,0 +1,143 @@
+{
+ "DESIGN": "DIVERGENCE_PANEL_FEASIBILITY_V0_DESIGN",
+ "STATUS": "FROZEN_BEFORE_DOWNLOAD_AND_COUNTS",
+ "DATE": "2026-10-02",
+ "PROGRAM": "docs/research/DIVERGENCE_RESEARCH_MAP_V0.md",
+ "OWNER_DECISIONS": "docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V1.md",
+ "SCOPE": "outcome-blind feasibility on 2023-2024 only; no outcome on any symbol; no byte dated 2025 or later",
+ "PANEL_RULE": "BTC, ETH, SOL, XRP, BNB, DOGE UM perps: the symbols with checked bookDepth from 2023-01-01; fixed before counting; no symbol added or dropped after counting",
+ "DETECTOR": "SEED0001_DETECTOR_V1 unchanged (scripts/research/seed0001_regular_divergence_lib.py); BTC and ETH must reproduce the frozen SEED-0001 episode digests. If SEED-0003 changes any definition, this feasibility must be re-run before any protected opening.",
+ "SURFACE": {
+  "KLINES_1M": "2022-11..2024-12",
+  "BOOKDEPTH": "2023-01-01..2024-12-31",
+  "DECISIONS": "2023-01-01..2024-12-28 (T + 96h <= 2025-01-01)"
+ },
+ "PRIMARY_ESTIMAND": "(A - B) - (C - D)",
+ "SECONDARY_ESTIMAND": "A - B (does divergence add value conditional on support)",
+ "ESTIMAND_RELATIONSHIP": "interaction primary, A - B secondary; frozen now and again in SEED-0003 before protected data are opened; never chosen after outcomes",
+ "PLANNED_INFERENCE": "episode-level linear probability model Y ~ 1 + A + B + C (D reference) + symbol fixed effects (+ the SEED-0003 covariates); CR1 cluster-robust variance with panel-wide UTC-week clusters (all symbols in a week form one cluster), t(G - 1); primary two-sided alpha 0.05 with a positive estimate required",
+ "DEPENDENCE_ASSUMPTIONS": [
+  "episodes on different symbols are NOT independent: all symbols in a UTC week share one inference cluster, which allows arbitrary within-week correlation across symbols, arms and overlapping windows",
+  "residual dependence across week boundaries (windows up to 96h) is a known limitation and is reported (48h chains, boundary straddling)",
+  "power is computed under explicit cross-symbol shocks (BASE: per UTC date across symbols and arms; STRESS: per (UTC date, arm) across symbols, latent ICC 0.50) and on a COLLAPSED layout that merges same-day same-arm episodes into one unit",
+  "a panel that is feasible only under INDEPENDENT fails"
+ ],
+ "FROZEN_RULES": {
+  "PANEL": [
+   "BTCUSDT",
+   "ETHUSDT",
+   "SOLUSDT",
+   "XRPUSDT",
+   "BNBUSDT",
+   "DOGEUSDT"
+  ],
+  "MIN_EFFECT_OF_INTEREST": 0.15,
+  "DIAGNOSTIC_EFFECTS": [
+   0.1,
+   0.2
+  ],
+  "DIAGNOSTIC_EFFECT_ROLES": {
+   "0.10": "diagnostic only",
+   "0.20": "stress / easy case; passing only at 0.20 never authorizes opening"
+  },
+  "TARGET_POWER": 0.8,
+  "ALPHA_TWO_SIDED": 0.05,
+  "COMPARATOR_RATE": 0.5,
+  "PLANNING_ALTERNATIVE": "p = 0.5 in B, C, D and 0.5 + delta in A, so the interaction and A - B both equal delta",
+  "POWER_REPS": 2000,
+  "POWER_SEED": 20261005,
+  "EFFECT_GRID": [
+   0.025,
+   0.05,
+   0.075,
+   0.1,
+   0.125,
+   0.15,
+   0.175,
+   0.2,
+   0.225,
+   0.25,
+   0.275,
+   0.3,
+   0.325,
+   0.35,
+   0.375,
+   0.4
+  ],
+  "PROFILES": {
+   "INDEPENDENT": {
+    "SHOCK": null,
+    "LATENT_ICC": 0.0,
+    "ROLE": "diagnostic: episodes treated as independent"
+   },
+   "BASE": {
+    "SHOCK": "DATE",
+    "LATENT_ICC": 0.25,
+    "ROLE": "one probit shock per UTC decision date shared by all symbols and arms"
+   },
+   "STRESS": {
+    "SHOCK": "DATE_X_ARM",
+    "LATENT_ICC": 0.5,
+    "ROLE": "GATE: one shock per (UTC date, arm) shared across symbols; same-day same-arm episodes move together"
+   }
+  },
+  "COLLAPSED_PROFILE": {
+   "SHOCK": "DATE",
+   "LATENT_ICC": 0.25,
+   "ROLE": "diagnostic lower bound: same-day same-arm episodes merged into one unit across symbols"
+  },
+  "GATE_PROFILE": "STRESS",
+  "PROJECTED_LAYOUTS": "the first and the last 85-week runs of the 2023-2024 panel layout (the spend window spans 85 week blocks); the gate uses the minimum STRESS power over both",
+  "MIN_A_WEEK_CLUSTERS": 30,
+  "MIN_C_WEEK_CLUSTERS": 30,
+  "MAX_SYMBOL_SHARE_OF_A": 0.5,
+  "MIN_BOOK_HOUR_COVERAGE": 0.95,
+  "STATUS_PRIORITY": [
+   "DEFINITION_INCOMPLETE",
+   "DATA_BLOCKED",
+   "PIT_BLOCKED",
+   "INFERENCE_SUPPORT_INSUFFICIENT",
+   "STRUCTURAL_INFERENCE_RISK",
+   "INFORMATIONALLY_WEAK",
+   "FEASIBLE_FOR_PREREGISTRATION"
+  ],
+  "VERDICT_ORDER": [
+   "DATA_BLOCKED: a panel symbol misses a kline month or has book-hour coverage below 0.95",
+   "INFERENCE_SUPPORT_INSUFFICIENT: a projected layout has < 30 week clusters containing A, or < 30 containing C",
+   "STRUCTURAL_INFERENCE_RISK: one symbol holds > 50% of A episodes",
+   "INFORMATIONALLY_WEAK: STRESS power of the interaction at 0.15 < 0.80 on either projected layout",
+   "FEASIBLE_FOR_PREREGISTRATION otherwise"
+  ],
+  "IF_NOT_FEASIBLE": "stop after feasibility, report the required sample/history, do not spend the holdout",
+  "REQUIRED_HISTORY": "STRESS power at 0.15 on the 2023-2024 layout stacked k times (independent copies; optimistic), k in 1, 2, 3, 4, 6, 8, 10"
+ },
+ "SPEND_WINDOW_CONDITIONAL": {
+  "DECISIONS_UTC": [
+   "2025-01-01T00:00:00Z",
+   "2026-08-11T00:00:00Z"
+  ],
+  "WEEK_BLOCKS": 85,
+  "E1_HOLDOUT_UTC": [
+   "2026-08-16T00:00:00Z",
+   "2026-08-25T17:20:00Z"
+  ],
+  "E1_RULE": "no input window, baseline, feature construction, outcome horizon or auxiliary calculation may touch the E1 holdout; the last decision plus 96h ends at least one day before it, and trailing baselines only look backward",
+  "OPENING_REQUIRES": [
+   "FEASIBLE_FOR_PREREGISTRATION here",
+   "owner review of this report",
+   "a frozen SEED-0003 twin prereg covering every item of the owner list",
+   "policy documents updated in the opening decision"
+  ]
+ },
+ "CODE_IDENTITY": {
+  "scripts/research/divergence_panel_feasibility_v0.py": "dd8d77c40e88d202564db94fea3f2adb277b29c53a7a284e0b6bedb6dfd6dadd",
+  "scripts/research/seed0001_regular_divergence_lib.py": "c72e49683fc6cb61006584eae5a3adc1c0f6a126f8490d48786dc2b116240762",
+  "scripts/research/seed0001_feasibility.py": "747e1da47a5ac4eab236ff554d19785d124220421eb0f6efa687c6093c9dc3b3"
+ },
+ "BOUNDARY": {
+  "PROTECTED_2025_2026_OPENED": false,
+  "OUTCOMES_COMPUTED": false,
+  "NEW_SYMBOL_OUTCOMES_OPENED": false,
+  "SEED0003_PREREG_CREATED": false
+ }
+}

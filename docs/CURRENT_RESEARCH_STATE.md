@@ -1,3 +1,17 @@
+## Divergence program — owner decisions V1; panel feasibility authorized — 2026-10-02
+
+`DIVERGENCE_PANEL_FEASIBILITY_V0 = AUTHORIZED (2023-2024 only; outcome-blind; design frozen before counts)`
+`HOLDOUT_SPEND_WINDOW = decisions 2025-01-01 .. 2026-08-11 (CONDITIONAL on the 15 pp feasibility gate)`
+`E1_RUN_001_HOLDOUT = STRICTLY PROTECTED [2026-08-16T00:00Z, 2026-08-25T17:20Z)`
+`D2_RESERVATION_ON_SPEND_SURFACE = RELEASED (superseding; D2 history unchanged)`
+`PROTECTED_2025_2026_OPENED = false`
+`NEXT_UNIT = DIVERGENCE_PANEL_FEASIBILITY_V0`
+
+This section supersedes the `NEXT_UNIT` and the "proposed, not decided" spend wording of the map section below. The decision record is `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V1.md`.
+- **Gate and estimand.** The minimum effect of interest is 15 pp at power 0.80, under a dependence profile with shared cross-symbol shocks. The primary estimand is the interaction `(A − B) − (C − D)`; `A − B` is the key secondary.
+- **D2.** D2's reservation on 2025 and on pre-E1 2026 is released, because its one-year confirmation power is 0.011. Any future D2 confirmation needs a new independent or prospective surface.
+- **What comes next.** SEED-0003 is not created and 2025–2026 is not opened until the feasibility report is reviewed by the owner.
+
 ## Divergence research program — map V0 — 2026-10-02
 
 `DIVERGENCE_RESEARCH_MAP_V0 = PROGRAM_MAP / NO_DATA_OPENED`
