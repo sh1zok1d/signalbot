@@ -4,7 +4,8 @@
 **Date:** 2026-10-02
 **Version:** `GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1`, which emits `GV0R02_SCHEMA_V1` / `GV0R02_POLICY_V1` proposals under `HYPOTHESIS_EVALUATION_CONTRACT_V1`
 **Code:** `scripts/research/generator_v0/feasibility_contract_v1.py`
-**Tests:** `tests/research/test_gv0r03_generator_feasibility_contract_v1.py`
+**Tests:** `tests/research/test_gv0r03_generator_feasibility_contract_v1.py`, `tests/research/test_generator_v0_complexity_ladder.py`
+**Complexity ladder:** `scripts/research/generator_v0/complexity.py`
 
 ```
 V0_PLANNING_CONTRACT_CHANGED   = false
@@ -13,7 +14,8 @@ GENERATOR_PROMPT_CHANGED       = false
 COMPILER_CHANGED               = false
 LLM_CALLS                      = 0
 MARKET_OUTCOMES_OPENED         = false
-NEXT_UNIT                      = GENERATOR_V0_FRESH_SHADOW_CAMPAIGN (owner budget decision required)
+COMPLEXITY_LADDER              = PLANNING_CONTRACT_AND_SHORTLIST_QUOTA_IMPLEMENTED
+NEXT_UNIT                      = GENERATOR_V0_COMPLEXITY_LADDER_AMENDMENT, then GENERATOR_V0_FRESH_SHADOW_CAMPAIGN
 ```
 
 ## Decision: V1 lives on the planning object, not on the card
@@ -96,10 +98,53 @@ The conversion is done once per shortlisted card, outcome-blind, and sealed befo
 - A downstream rewrite of any V1 design field is refused.
 - The generator card schema is still frozen and carries no V1 field.
 
-## Next unit
+## Complexity ladder (owner decision 2026-10-02)
+
+The generator must go from simple to complex, not "generate more complex". Simple effects are the base vocabulary that a complex claim is decomposed into: does A work, does B work, and does A × B add anything beyond A and B? A backlog made only of interactions repeats the old `X → return` trap from the other side.
+
+| Class | Definition | Planning-object rule |
+|---|---|---|
+| `ATOMIC` | one mechanism → one observable → one outcome | exactly 1 mechanism variable, `TARGET_CLASS = UNCONDITIONAL`, no components |
+| `CONDITIONAL` | one simple mechanism in a regime declared in advance | exactly 1 mechanism variable, `TARGET_CLASS = CONDITIONAL` (the compiler checks the regime), no components |
+| `INTERACTION` | two independent layers, e.g. TWAP × divergence | 2 distinct components, each component's main effect in `NUISANCE_BASELINE_VARIABLES`, the mechanism variable is the joint term (not a component), `CLAIM_TYPE = INCREMENTAL` |
+| `COMPOSITE` | a market state from several independent components | 3–5 distinct components, otherwise as `INTERACTION` |
+
+**Simplicity is not banality.** An `ATOMIC` card still needs a market mechanism: who acts, under which constraint, and why the effect should exist.
+- Weak `ATOMIC`: "RSI < 30 → return" (an indicator threshold).
+- Good `ATOMIC`: "after a liquidation shock, the speed of OI recovery predicts continuation versus reversal".
+
+This cannot be checked mechanically. It is the novelty critic's job, in the amendment below.
+
+**Shortlist quota (implemented as `complexity_shortlist`):**
+- **Seats:** of at most 5, 2 `ATOMIC`, 2 `CONDITIONAL` and 1 complex (`INTERACTION` or `COMPOSITE`).
+- **Filling a seat.** Each seat takes the best unused survivor of its class in the existing deterministic ordinal order.
+- **Unfilled seats.** A seat with no survivor of its class passes down the ladder (complex → conditional → atomic), never up. A complex card never takes a simple seat. A seat with no eligible survivor stays empty, so a batch of complex survivors alone yields one shortlisted card, not five.
+
+**The ladder fields are sealed.** `COMPLEXITY_CLASS` and `COMPONENTS` are sealed with the rest of the planning object.
+
+**What this PR does not do.** It does not wire the ladder into generation. The card's required fields come from the frozen `HYPOTHESIS_GENERATOR_V0_DESIGN.json`, and the context pins derive from the memory chain, so a card field is a generator design amendment of its own.
+
+## Next unit: `GENERATOR_V0_COMPLEXITY_LADDER_AMENDMENT`
+
+This amendment comes before the fresh shadow campaign. It is a proposal; the owner fixes it at amendment time.
+- **Slot plan.** Each slot gets a `COMPLEXITY_CLASS`, the way it already gets `MECHANISM_FAMILY` and `INFORMATION_SOURCE`, so the generator is told which rung to write instead of choosing.
+  - Proposed mix for 40 slots: 14 `ATOMIC`, 12 `CONDITIONAL`, 8 `INTERACTION`, 6 `COMPOSITE`.
+  - Simple rungs get more slots because the novelty critic should cull banal simple cards.
+  - `diversity()` checks the mix.
+- **Card contract `V03`.**
+  - The card copies the slot's `COMPLEXITY_CLASS` exactly (slot identity) and adds `COMPONENTS` (none for simple rungs, 2 for interaction, 3–5 for composite).
+  - For interaction and composite cards, `BASELINE_OR_NULL` must name the component-only baselines.
+  - `V02` runs stay replayable through contract versioning, as `v0.1` runs are now.
+- **Critics.**
+  - The novelty critic gets the "simplicity is not banality" rule: an indicator-threshold card is scored low on mechanism distance.
+  - The red team treats a card that does not fit its rung as a hard fail, for example an `ATOMIC` card that bundles two mechanisms.
+- **Shortlist.** The runner's `order[:5]` becomes `complexity_shortlist(order, classes)`.
+- **Governance.** The design change is recorded as an amendment (`.md` + `.json`), like earlier generator amendments. The context pins are regenerated through the chain finalizer, never hand-edited.
+
+## Then: `GENERATOR_V0_FRESH_SHADOW_CAMPAIGN`
 
 `GENERATOR_V0_FRESH_SHADOW_CAMPAIGN`: a fresh Generator V0 shadow campaign under a new run ID with a capped budget. It follows `docs/AGENT_RUNTIME_PROTOCOL.md` and the first-campaign architecture freeze, and it is a paid LLM run, so the owner sets the budget cap before it starts. Then:
-1. a shortlist of at most 5;
+1. a shortlist of at most 5, by the complexity quota;
 2. a V1 planning object per shortlisted card, through this contract;
 3. GV0R02 V1 compilation;
 4. one or two preregistrations.

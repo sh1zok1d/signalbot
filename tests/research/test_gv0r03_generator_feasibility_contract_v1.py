@@ -43,6 +43,8 @@ def planning(**overrides):
         "REPLICATION_SURFACE": {"KIND": "HISTORICAL", "ID": "BITMEX_2016_2019", "START": "2016-01-01",
                                 "END": "2020-01-01", "NOMINAL_OBSERVATION_COUNT": 8000},
         "EPOCHS": "CALENDAR_YEAR",
+        "COMPLEXITY_CLASS": "ATOMIC",
+        "COMPONENTS": [],
     })
     p.update(overrides)
     return p
@@ -172,7 +174,7 @@ def test_the_compiler_stays_the_single_adjudicator_of_v1_rules():
     result = compile_proposal_v1(to_compiler_proposal_v1(planning(VARIABLE_ROLES=roles, INTRADAY=True)))
     assert "STANDARD_NUISANCE_MISSING" in codes(result)
 
-    conditional = planning(TARGET_CLASS="CONDITIONAL")
+    conditional = planning(TARGET_CLASS="CONDITIONAL", COMPLEXITY_CLASS="CONDITIONAL")
     assert "REGIME_MISSING_FOR_CONDITIONAL_CLAIM" in codes(compile_proposal_v1(to_compiler_proposal_v1(conditional)))
 
 

@@ -16,11 +16,16 @@ Unchanged by this module:
 - the GENERATOR_CONTRACT_V02 card and the frozen CANDIDATE_SCHEMA. The V1
   fields are design-freeze decisions taken when a shortlisted card becomes a
   planning object; the generator card does not emit them.
+
+The planning object also carries its rung on the complexity ladder
+(COMPLEXITY_CLASS, COMPONENTS; see complexity.py). Interaction and composite
+claims must keep every component's main effect in the nuisance baseline.
 """
 from __future__ import annotations
 
 import datetime as dt
 
+from . import complexity
 from . import feasibility_contract as v0
 from .context import ContractError
 
@@ -56,10 +61,12 @@ V1_FIELDS = (
     "EPOCHS",
 )
 OPTIONAL_V1_FIELDS = ("NUISANCE_EXCLUSIONS", "NUISANCE_DIAGNOSTIC_PLANNED")
-REQUIRED_FIELDS = v0.REQUIRED_FIELDS + V1_FIELDS
+# Complexity ladder (complexity.py). Not compiler fields; carried for provenance.
+LADDER_FIELDS = ("COMPLEXITY_CLASS", "COMPONENTS")
+REQUIRED_FIELDS = v0.REQUIRED_FIELDS + V1_FIELDS + LADDER_FIELDS
 
 # Downstream code may not rewrite these either: they are the twin preregistration's design.
-SEALED_FIELDS = v0.SEALED_FIELDS + V1_FIELDS + OPTIONAL_V1_FIELDS
+SEALED_FIELDS = v0.SEALED_FIELDS + V1_FIELDS + OPTIONAL_V1_FIELDS + LADDER_FIELDS
 
 
 def _reject(field: str, reason: str) -> None:
@@ -186,6 +193,11 @@ def validate_planning_v1(proposal: dict) -> None:
     if "NUISANCE_DIAGNOSTIC_PLANNED" in proposal and not isinstance(proposal["NUISANCE_DIAGNOSTIC_PLANNED"], bool):
         _reject("NUISANCE_DIAGNOSTIC_PLANNED", "must be true or false")
 
+    for field in LADDER_FIELDS:
+        if field not in proposal:
+            _reject(field, "required ladder field omitted")
+    complexity.check_planning_ladder(proposal)
+
     by_year = proposal["NOMINAL_OBSERVATION_COUNT_CONSTRUCTION"].get("DECLARED_COUNT_BY_YEAR")
     if by_year is not None:
         if not isinstance(by_year, dict) or not all(str(y).isdigit() and _pos_int(n) for y, n in by_year.items()):
@@ -211,6 +223,8 @@ def to_compiler_proposal_v1(proposal: dict) -> dict:
     base["NUISANCE_EXCLUSIONS"] = [dict(r) for r in proposal.get("NUISANCE_EXCLUSIONS", [])]
     if "NUISANCE_DIAGNOSTIC_PLANNED" in proposal:
         base["NUISANCE_DIAGNOSTIC_PLANNED"] = proposal["NUISANCE_DIAGNOSTIC_PLANNED"]
+    base["COMPLEXITY_CLASS"] = proposal["COMPLEXITY_CLASS"]
+    base["COMPONENTS"] = list(proposal["COMPONENTS"])
     return base
 
 

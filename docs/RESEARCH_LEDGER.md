@@ -7094,11 +7094,13 @@ NEXT_UNIT = GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING
 Tooling only. No LLM call, no market data and no scientific outcome. `GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1` maps a shortlisted card's planning object to `GV0R02_SCHEMA_V1`.
 - The V1 design fields live on the planning object, not on the frozen V02 card.
 - The contract checks shape only; the compiler adjudicates the V1 rules.
+- Owner decision, same day: the complexity ladder `ATOMIC` / `CONDITIONAL` / `INTERACTION` / `COMPOSITE`. It applies on the planning object, and interaction and composite claims must keep each component's main effect in the baseline. The shortlist quota is 2/2/1; an unfilled seat passes down the ladder, never up.
 
 ```
 GENERATOR_FEASIBILITY_CONTRACT_V1 = IMPLEMENTED
+COMPLEXITY_LADDER = PLANNING_CONTRACT_AND_SHORTLIST_QUOTA_IMPLEMENTED
 GENERATOR_CARD_SCHEMA_CHANGED = false
-NEXT_UNIT = GENERATOR_V0_FRESH_SHADOW_CAMPAIGN
+NEXT_UNIT = GENERATOR_V0_COMPLEXITY_LADDER_AMENDMENT
 ```
 
 Record: `docs/research/GENERATOR_FEASIBILITY_CONTRACT_V1_MAPPING.md`.
