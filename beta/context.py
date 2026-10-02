@@ -28,10 +28,16 @@ What the projection adds per closed bucket:
   every metric shown for the anchor comes from that one bucket;
 * NOW (the latest bucket) and the rolling-1h background (raw last-12-bucket
   values ranked by the frozen percentile core against rolling-1h history).
+
+`market_context` (BETA_CONTEXT_1H_V2, PRODUCT_FIRST_DECISION_V1 §3 rows 4 and 6) is
+the shared 1h / 4h context for later surfaces: the same rolling machinery with 12
+and 48 buckets, and taker delta and the Stage-1 as-of OI change added to the ranked
+metrics. It is pinned but not yet the configured projection version.
 Nothing here reads forward prices or outcomes.
 """
 from __future__ import annotations
 
+import bisect
 import hashlib
 import math
 from dataclasses import asdict, fields
@@ -46,6 +52,7 @@ from .config import (EVENT_TYPES, LIQUIDATION_STRESS_LONG, LIQUIDATION_STRESS_SH
                      TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL, BetaConfig, canonical_json)
 from .detector import BucketContext, step_episode
 from .models import STATE_ORDER, TRIGGERED, Episode
+from .oi_asof import OI_ASOF_TOLERANCE, pick_oi_asof, venue_oi_change_pct
 from .state_tape import BUCKET, TEMPORAL_CONTEXT_SCHEMA_VERSION, iso, metric_key, sha256_json
 
 ACTIVE_EPISODIZATION_VERSION = "STRICT_QUALIFICATION_V1"
@@ -57,6 +64,9 @@ KNOWN_EPISODIZATION_DIGESTS = {
 KNOWN_CONTEXT_DIGESTS = {
     "BETA_CONTEXT_1H_V0": "7f94fde838a33fb094c6683b8834a2f9accbf96f6fb6d3fcc356aab9f49dc701",
     "BETA_CONTEXT_1H_V1": "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576",
+    # Shared 1h/4h context with taker-delta and OI ranks (PRODUCT_FIRST_DECISION_V1 §3 rows
+    # 4 and 6). Not yet the configured live projection version.
+    "BETA_CONTEXT_1H_V2": "0a37f4ed20c3032851749d8cf9cfefaa0defb1fe0fa1c5b3c6d14b07c785ab36",
 }
 
 ANCHOR_STRONGEST = "STRONGEST_OBSERVED_BUCKET"
@@ -88,6 +98,8 @@ def episodization_payload(cfg: BetaConfig) -> dict:
 
 def context_payload(cfg: BetaConfig) -> dict:
     c = cfg.section("context")
+    if c["version"] == CONTEXT_V2_VERSION:
+        return market_context_payload(cfg)
     return {
         "version": c["version"], "rolling_buckets": c["rolling_buckets"],
         "labels": [float(c["label_elevated"]), float(c["label_high"]), float(c["label_extreme"])],
@@ -311,20 +323,24 @@ def state_digest(state: Mapping[str, Any]) -> str:
 
 
 # ---- rolling 1h context --------------------------------------------------------------
-def rolling_1h_values(cfg: BetaConfig, metrics_by_bucket: Mapping[datetime, Mapping[str, Any]],
-                      end_bucket: datetime) -> Optional[dict]:
-    """Raw rolling-1h metrics over the last `rolling_buckets` closed buckets ending at
+def rolling_window_values(cfg: BetaConfig, metrics_by_bucket: Mapping[datetime, Mapping[str, Any]],
+                          end_bucket: datetime, n_buckets: int) -> Optional[dict]:
+    """Raw rolling metrics over the last `n_buckets` closed 5m buckets ending at
     `end_bucket` (inclusive). Computed from raw per-bucket values (never from 5m
-    percentiles); None when any bucket or required value is missing."""
-    n = cfg.section("context")["rolling_buckets"]
-    buckets = [end_bucket - i * BUCKET for i in range(n - 1, -1, -1)]
+    percentiles); None when any bucket is missing. Sums (volume, taker delta) need
+    every bucket's value: a partial sum is not a value."""
+    buckets = [end_bucket - i * BUCKET for i in range(n_buckets - 1, -1, -1)]
     rows = [metrics_by_bucket.get(b) for b in buckets]
     if any(r is None for r in rows):
         return None
-    vols = [r.get("c:volume_notional_usd_sum") for r in rows]
-    volume = math.fsum(vols) if all(v is not None for v in vols) else None
-    ranges, moves, venues = [], [], []
+
+    def _sum(key):
+        vals = [r.get(key) for r in rows]
+        return math.fsum(vals) if all(v is not None for v in vals) else None
+
+    ranges, moves, venues, venue_moves = [], [], [], {}
     for ex in cfg.exchanges:
+        venue_moves[ex] = None
         o = rows[0].get(metric_key(ex, "kline_open"))
         c = rows[-1].get(metric_key(ex, "kline_close"))
         hs = [r.get(metric_key(ex, "kline_high")) for r in rows]
@@ -334,11 +350,25 @@ def rolling_1h_values(cfg: BetaConfig, metrics_by_bucket: Mapping[datetime, Mapp
         ranges.append((max(hs) - min(ls)) / o * 100.0)
         moves.append((c - o) / o * 100.0)
         venues.append(ex)
+        venue_moves[ex] = moves[-1]
     enough = len(venues) >= cfg.min_venues
     return {"window_start": iso(buckets[0]), "window_end": iso(end_bucket + BUCKET),
             "range_width_pct_median": _median(ranges) if enough else None,
             "price_move_pct_median": _median(moves) if enough else None,
-            "volume_notional_usd_sum": volume, "venues": venues}
+            "volume_notional_usd_sum": _sum("c:volume_notional_usd_sum"),
+            "taker_delta_notional_usd_sum": _sum("c:taker_delta_notional_usd_sum"),
+            "venues": venues, "venue_price_move_pct": venue_moves}
+
+
+def rolling_1h_values(cfg: BetaConfig, metrics_by_bucket: Mapping[datetime, Mapping[str, Any]],
+                      end_bucket: datetime) -> Optional[dict]:
+    """Raw rolling-1h metrics over the last `rolling_buckets` closed buckets ending at
+    `end_bucket` (inclusive), in the BETA_CONTEXT_1H_V0/V1 shape (unchanged)."""
+    v = rolling_window_values(cfg, metrics_by_bucket, end_bucket, cfg.section("context")["rolling_buckets"])
+    if v is None:
+        return None
+    return {k: v[k] for k in ("window_start", "window_end", "range_width_pct_median",
+                              "price_move_pct_median", "volume_notional_usd_sum", "venues")}
 
 
 def _median(xs: Sequence[float]) -> float:
@@ -384,6 +414,142 @@ def context_1h(cfg: BetaConfig, *, bucket_ts: datetime, current_metrics: Mapping
             calculation_version=identity["calculation_version"]))
         out["percentiles"][m] = {"rank": snap.percentile_rank, "tier": snap.confidence_tier,
                                  "sample_size": snap.sample_size}
+    return out
+
+
+# ---- shared 1h / 4h market context (BETA_CONTEXT_1H_V2) ------------------------------
+# PRODUCT_FIRST_DECISION_V1 §3 rows 4 and 6: the 1h machinery above parameterised by
+# bucket count (4h = 48 buckets), the same 30-day ranks, plus taker delta and the
+# Stage-1 as-of OI change as ranked metrics. Shared by every later surface; it owns no
+# episode, no detector state and no delivery decision.
+CONTEXT_V2_VERSION = "BETA_CONTEXT_1H_V2"
+CONTEXT_V2_4H_BUCKETS = 48
+CONTEXT_V2_METRICS = ("range_width_pct_median", "price_move_pct_median", "volume_notional_usd_sum",
+                      "taker_delta_notional_usd_sum", "oi_change_pct_median")
+
+
+def context_v2_horizons(cfg: BetaConfig) -> dict:
+    return {"1h": cfg.section("context")["rolling_buckets"], "4h": CONTEXT_V2_4H_BUCKETS}
+
+
+def market_context_payload(cfg: BetaConfig) -> dict:
+    """Identity of the shared 1h/4h context. Pinned in KNOWN_CONTEXT_DIGESTS."""
+    c = cfg.section("context")
+    return {
+        "version": CONTEXT_V2_VERSION, "horizons": context_v2_horizons(cfg),
+        "labels": [float(c["label_elevated"]), float(c["label_high"]), float(c["label_extreme"])],
+        "tail_display_max": float(c["tail_display_max"]),
+        "last_event_retention_min": c["last_event_retention_min"],
+        "metrics": {"range_width_pct_median": "median over venues of (max high - min low) / first open",
+                    "price_move_pct_median": "median over venues of (last close - first open) / first open",
+                    "volume_notional_usd_sum": "sum of the 5m cross-venue volume sums; every bucket required",
+                    "taker_delta_notional_usd_sum": "sum of the 5m cross-venue taker delta sums (USD notional); "
+                                                    "every bucket required",
+                    "oi_change_pct_median": "median over >= min_venue_coverage venues of the stage-1 "
+                                            "open_interest as-of change between window start and end"},
+        "min_venue_coverage": cfg.min_venues,
+        "oi_asof": {"tolerance_min": int(OI_ASOF_TOLERANCE.total_seconds() // 60),
+                    "rule": "beta.oi_asof.pick_oi_asof / venue_oi_change_pct",
+                    "rows_after_decision_boundary": "ignored"},
+        "window": "30d", "sample_step": "5m", "percentile_core": "analytics.percentile_engine (mid-rank)",
+        "requires_state_schema_version": TEMPORAL_CONTEXT_SCHEMA_VERSION,
+        "history_state_schema_versions": "CURRENT_ONLY",
+    }
+
+
+def verify_market_context_version(cfg: BetaConfig) -> str:
+    d = _digest(market_context_payload(cfg))
+    if KNOWN_CONTEXT_DIGESTS.get(CONTEXT_V2_VERSION) != d:
+        raise ContextVersionError(f"context {CONTEXT_V2_VERSION!r} is not pinned to digest {d}")
+    return d
+
+
+def oi_asof_index(oi_rows_by_venue: Mapping[str, Sequence[Mapping[str, Any]]], *,
+                  not_after: datetime) -> dict:
+    """Per venue, Stage-1 OI rows sorted by ts. Rows after `not_after` (the decision
+    boundary) are dropped, so no window can read a later observation."""
+    out = {}
+    for ex, rows in (oi_rows_by_venue or {}).items():
+        ordered = sorted((dict(r) for r in rows if r.get("ts") is not None and r["ts"] <= not_after),
+                         key=lambda r: r["ts"])
+        out[ex] = ([r["ts"] for r in ordered], ordered)
+    return out
+
+
+def _oi_asof(index: Mapping[str, tuple], venue: str, boundary: datetime) -> Optional[dict]:
+    entry = index.get(venue)
+    if entry is None:
+        return None
+    ts, rows = entry
+    lo = bisect.bisect_left(ts, boundary - OI_ASOF_TOLERANCE)
+    hi = bisect.bisect_right(ts, boundary)
+    return pick_oi_asof(rows[lo:hi], boundary) if hi > lo else None
+
+
+def window_oi_change(cfg: BetaConfig, index: Mapping[str, tuple], start: datetime, end: datetime) -> dict:
+    """Stage-1 as-of OI change per venue between `start` and `end`; the aggregate is the
+    median of venue percents and needs `min_venue_coverage` venues (else None)."""
+    by = {ex: venue_oi_change_pct(_oi_asof(index, ex, start), _oi_asof(index, ex, end))
+          for ex in cfg.exchanges}
+    vals = [v for v in by.values() if v is not None]
+    return {"oi_change_pct_median": _median(vals) if len(vals) >= cfg.min_venues else None,
+            "venue_oi_change_pct": by}
+
+
+def _window_with_oi(cfg: BetaConfig, by_bucket, end_bucket: datetime, n: int, index) -> Optional[dict]:
+    v = rolling_window_values(cfg, by_bucket, end_bucket, n)
+    if v is None:
+        return None
+    start = end_bucket - (n - 1) * BUCKET
+    return {**v, **window_oi_change(cfg, index, start, end_bucket + BUCKET)}
+
+
+def market_context(cfg: BetaConfig, *, bucket_ts: datetime, current_metrics: Mapping[str, Any],
+                   history: Iterable[tuple], oi_rows_by_venue: Mapping[str, Sequence[Mapping[str, Any]]],
+                   identity: Mapping[str, Any], code_version: str,
+                   tiers: Mapping[str, Any]) -> dict:
+    """Shared rolling 1h and 4h context at `bucket_ts` (BETA_CONTEXT_1H_V2).
+
+    Per horizon: the raw window values, the per-venue price moves and OI changes, and
+    the percentile of each CONTEXT_V2_METRICS value against the same-length rolling
+    windows sampled at every 5m step in [bucket_ts - 30d, bucket_ts) (frozen percentile
+    core). `history` = [(bucket_ts, metrics)] strictly before `bucket_ts`, reaching back
+    30d + the longest window; `oi_rows_by_venue` = Stage-1 open_interest rows. A horizon
+    whose current window is incomplete is None. Pure: no I/O, inputs are not mutated."""
+    verify_market_context_version(cfg)
+    by_bucket = {b: m for b, m in history if b < bucket_ts}
+    by_bucket[bucket_ts] = current_metrics
+    index = oi_asof_index(oi_rows_by_venue, not_after=bucket_ts + BUCKET)
+    thresholds = ConfidenceTierThresholds(
+        none_below_days=tiers["none_below_days"], low_below_days=tiers["low_below_days"],
+        building_below_days=tiers["building_below_days"])
+    start = bucket_ts - timedelta(days=30)
+    samples_at = sorted(b for b in by_bucket if start <= b < bucket_ts)
+    out = {"version": CONTEXT_V2_VERSION, "digest": _digest(market_context_payload(cfg)),
+           "bucket_ts": iso(bucket_ts)}
+    for horizon, n in context_v2_horizons(cfg).items():
+        cur = _window_with_oi(cfg, by_bucket, bucket_ts, n, index)
+        if cur is None:
+            out[horizon] = None
+            continue
+        series = {b: _window_with_oi(cfg, by_bucket, b, n, index) for b in samples_at}
+        pct = {}
+        for m in CONTEXT_V2_METRICS:
+            samples = [PercentileSample(
+                scope="consensus", exchange="", symbol=cfg.symbol, market_type=cfg.market_type,
+                metric=m, timeframe=horizon, bucket_ts=b, value=(v or {}).get(m),
+                feature_schema_version=identity["feature_schema_version"],
+                calculation_version=identity["calculation_version"]) for b, v in series.items()]
+            snap = compute_percentile_snapshot(PercentileRequest(
+                scope="consensus", exchange="", symbol=cfg.symbol, market_type=cfg.market_type,
+                metric=m, timeframe=horizon, percentile_window="30d", bucket_ts=bucket_ts,
+                value=cur[m], samples=samples, confidence_tier_thresholds=thresholds,
+                config_hash=identity["stage2_config_hash"], config_version=identity["stage2_config_version"],
+                code_version=code_version, feature_schema_version=identity["feature_schema_version"],
+                calculation_version=identity["calculation_version"]))
+            pct[m] = {"rank": snap.percentile_rank, "tier": snap.confidence_tier,
+                      "sample_size": snap.sample_size}
+        out[horizon] = {**cur, "horizon": horizon, "buckets": n, "percentiles": pct}
     return out
 
 
