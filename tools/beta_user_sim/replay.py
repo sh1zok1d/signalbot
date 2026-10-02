@@ -248,10 +248,12 @@ class ReplayEngine:
             reason = "ACTION_RESULT"
 
     def _flush_pushes(self) -> None:
-        """Deliver every push whose arrival time has passed, in order (never later state)."""
-        while self._events and self._events[0][0] <= self.clock and self._events[0][1] == "PUSH":
-            at, _kind, item = self._events.pop(0)
-            self._deliver_push(at, item)
+        """Deliver every push whose arrival time has passed, in order (never later state).
+        Availability and idle ticks already passed during an action chain are dropped."""
+        while self._events and self._events[0][0] <= self.clock:
+            at, kind, item = self._events.pop(0)
+            if kind == "PUSH":
+                self._deliver_push(at, item)
 
     def _deliver_push(self, at: datetime, item: ReplayItem) -> None:
         if not self._participant_active():

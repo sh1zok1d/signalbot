@@ -143,7 +143,7 @@ def _strip_disclaimer(text: str, lang: str) -> str:
 def _forward_slot(m: Manifest, text: str, lang: str) -> None:
     try:
         assert_descriptive(text, lang)
-        status, detail = NO_DIRECTIONAL_CLAIM, "template catalog has no forward claim; descriptive guard passes"
+        status, detail = NO_DIRECTIONAL_CLAIM, "frozen template catalog makes no forward claim; descriptive guard passes"
     except ForbiddenWordingError as exc:
         status, detail = NOT_EVALUABLE, f"forbidden wording present ({exc}); absence of a forward claim unproven"
     m.add(claim_type="FORWARD_DIRECTION_ASSERTION", evaluation_class=FORWARD_OUTCOME, source_fields=[],
@@ -392,6 +392,13 @@ def _view_claims(cfg: BetaConfig, item, payload: Mapping[str, Any]) -> Manifest:
         m.add(claim_type="UNRECOGNIZED_FRAGMENT", evaluation_class=AT_T_FACT, source_fields=[],
               rendered_text_fragment=line, evaluation_rule="LEGACY_PATTERN_UNKNOWN", status=NOT_EVALUABLE,
               detail="no V0 rule for this line")
+    fwd = m.claims[0]
+    if fwd.status == NO_DIRECTIONAL_CLAIM and item.template_check != "TEMPLATE_MATCH" and \
+            any(c.claim_type == "UNRECOGNIZED_FRAGMENT" for c in m.claims):
+        # The forbidden-wording guard is a blocklist; it cannot prove that unparsed,
+        # non-template text makes no forward claim.
+        fwd.status = NOT_EVALUABLE
+        fwd.detail = "text is not reproduced by the frozen template and has unparsed fragments"
     return m
 
 
