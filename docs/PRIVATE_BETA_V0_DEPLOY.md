@@ -172,6 +172,8 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
 
 **Config (committed):** a `decision:` section (`max_price_alerts: 5`, `forecast_tracking: true`, `market_alerts: {enabled: true, max_per_utc_day: 4, move_cooldown_min: 120, event_lead_min: 30, touch_max_age_min: 10}`); `briefing.enabled: true`. Market alerts also need effective push (`BETA_PUSH_ENABLED` and no `/admin_pause_push`) and respect quiet hours (23:00–07:00 Kyiv) except personal `/alert`.
 
+**Protected window:** the E1-RUN-001 final holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)` is never fetched (fully covered days) or stored (rows of partly covered objects are dropped); the grid keeps it as a gap.
+
 **Network:** the history sync reads `https://data.binance.vision` only (about 4,500 objects on the first run, a few per night afterwards). Nothing else new leaves the VPS.
 
 **One-shot helper:** after updating the code, `cd /opt/signalbot && sudo deploy/beta_v2_upgrade.sh` runs steps 2–8 below in order (each idempotent, stops on the first failure; `--skip-rewind` skips step 5). The manual steps are the same:

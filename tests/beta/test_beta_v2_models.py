@@ -89,6 +89,21 @@ def test_plan_monthly_until_last_month_then_daily_and_metrics_daily():
     assert len(hd.daily_fallback(objs[1])) == 30
 
 
+def test_the_e1_holdout_is_never_planned_or_stored():
+    objs = hd.planned_objects(date(2026, 9, 1), klines_start=date(2026, 7, 1), metrics_start=date(2026, 8, 1))
+    keys = {o.key for o in objs}
+    assert "daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-08-20.zip" not in keys
+    assert "daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-08-25.zip" in keys          # partly outside: rows filtered
+    assert "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip" in keys
+    fb = {o.key for o in hd.daily_fallback(hd.klines_monthly(2026, 8))}
+    assert "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-16.zip" not in fb and len(fb) == 31 - 9
+    rows, _ = synthetic_rows(datetime(2026, 8, 25, 17, tzinfo=UTC), 1)
+    kept = hd.drop_protected(rows, "open_time_ms")
+    first = min(r["open_time_ms"] for r in kept)
+    assert first == int(datetime(2026, 8, 25, 17, 20, tzinfo=UTC).timestamp() * 1000)
+    assert hd.in_protected_window(int(datetime(2026, 8, 16, tzinfo=UTC).timestamp() * 1000))
+
+
 def test_parse_klines_with_and_without_header_and_microseconds():
     rows, _ = synthetic_rows(T0, 1)
     a = hd.parse_klines(kline_zip(rows[:3], "x.zip", header=True))

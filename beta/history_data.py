@@ -8,7 +8,8 @@ files). Two series:
 - the `metrics` series (5m open interest, base BTC and USD) from 2020-09-01 (daily objects).
 
 The owner opened 2025/2026 for product use (PRODUCT_DECISION_V2 §4); this module reads every
-year up to yesterday (UTC). Every object is checksum-verified before its rows are written, and
+year up to yesterday (UTC), except the protected windows below (the E1-RUN-001 final holdout),
+whose rows are never stored. Every object is checksum-verified before its rows are written, and
 the object ledger (`beta_hist_objects`) makes the sync resumable and idempotent: an object
 already OK is never fetched again. A missing object (404) leaves its bars absent; nothing is
 filled in.
@@ -37,6 +38,32 @@ MISSING_RETRY_DAYS = 14          # a 404 for an object younger than this is retr
 MISSING_MAX_ATTEMPTS = 3         # an older object that answered 404 this many times is left alone
 DEFAULT_CONCURRENCY = 6
 HISTORY_DATA_VERSION = "BETA_HISTORY_VISION_V1"
+
+# AGENTS.md: the E1-RUN-001 final holdout is opened only by its frozen one-shot evaluator.
+# The product history never stores a bar or an OI snapshot inside it (PRODUCT_DECISION_V2 §4).
+PROTECTED_WINDOWS = (
+    ("E1-RUN-001 final holdout", datetime(2026, 8, 16, tzinfo=timezone.utc),
+     datetime(2026, 8, 25, 17, 20, tzinfo=timezone.utc)),
+)
+
+
+def _protected_ms() -> list:
+    return [(int(a.timestamp() * 1000), int(z.timestamp() * 1000)) for _n, a, z in PROTECTED_WINDOWS]
+
+
+def in_protected_window(ms: int) -> bool:
+    return any(a <= int(ms) < z for a, z in _protected_ms())
+
+
+def day_fully_protected(d: date) -> bool:
+    a = datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
+    z = a + timedelta(days=1)
+    return any(w0 <= a and z <= w1 for _n, w0, w1 in PROTECTED_WINDOWS)
+
+
+def drop_protected(rows: list, key: str) -> list:
+    return [r for r in rows if not in_protected_window(r[key])]
+
 
 KLINE_HEADER = ("open_time", "open", "high", "low", "close", "volume", "close_time", "quote_volume",
                 "count", "taker_buy_volume", "taker_buy_quote_volume", "ignore")
@@ -86,11 +113,13 @@ def planned_objects(today: date, *, klines_start: date = KLINES_START,
     objs = [klines_monthly(y, m) for y, m in _months(klines_start, month_start)]
     d = max(month_start, klines_start)
     while d < today:
-        objs.append(klines_daily(d))
+        if not day_fully_protected(d):
+            objs.append(klines_daily(d))
         d += timedelta(days=1)
     d = metrics_start
     while d < today:
-        objs.append(metrics_daily(d))
+        if not day_fully_protected(d):
+            objs.append(metrics_daily(d))
         d += timedelta(days=1)
     return objs
 
@@ -98,7 +127,8 @@ def planned_objects(today: date, *, klines_start: date = KLINES_START,
 def daily_fallback(obj: VisionObject) -> list:
     """Daily kline objects that stand in for a monthly object that is not published yet."""
     first = obj.period_end.replace(day=1)
-    return [klines_daily(first + timedelta(days=k)) for k in range((obj.period_end - first).days + 1)]
+    days = (first + timedelta(days=k) for k in range((obj.period_end - first).days + 1))
+    return [klines_daily(d) for d in days if not day_fully_protected(d)]
 
 
 # ---- parsing (pure) -------------------------------------------------------------------
@@ -260,11 +290,11 @@ async def sync_history(store, *, now: datetime, fetch: Optional[Fetch] = None,
                                     report["fallback_daily"] += len(extra)
                                 return extra
                             if obj.kind.startswith("klines"):
-                                rows = parse_klines(body)
+                                rows = drop_protected(parse_klines(body), "open_time_ms")
                                 n = await conn.upsert_hist_bars(rows, fetched_at=now)
                                 report["bars_written"] += n
                             else:
-                                rows = parse_metrics(body)
+                                rows = drop_protected(parse_metrics(body), "ts_ms")
                                 n = await conn.upsert_hist_oi(rows, fetched_at=now)
                                 report["oi_written"] += n
                             await conn.record_hist_object(obj.key, obj.kind, status="OK", sha256=sha,

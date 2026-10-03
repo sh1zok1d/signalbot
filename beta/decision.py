@@ -72,6 +72,8 @@ async def load_live_bars(conn, cfg: BetaConfig, *, now: datetime, days: int = LO
         tail_start = max(start, from_ms(int(hist[-1]["open_time_ms"]) + BAR_MS))
     tail_start = max(tail_start, now - timedelta(days=LIVE_TAIL_DAYS))
     live = await conn.fetch_live_klines_1m(exchange=LIVE_EXCHANGE, symbol=cfg.symbol, start=tail_start, end=now)
+    from .history_data import in_protected_window
+    live = [r for r in live if not in_protected_window(to_ms(r["ts"]))]
     price, price_ts = None, None
     closed_1m = [r for r in live if r["ts"] + timedelta(minutes=1) <= now]
     if closed_1m:

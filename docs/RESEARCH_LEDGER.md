@@ -7684,6 +7684,7 @@ PROTECTED_2025_2026_PRODUCT_USE = OPENED
 PRODUCT_FEATURES = range/volatility (1h/4h/24h corridor model), level first-touch reactions
                    (PDH/PDL/PWH/PWL/PMH/PML, round numbers, previous-day POC), 1h/4h price/OI/taker
                    state labels and their forward 1h/4h/24h outcomes, CPI/FOMC/expiry hour and day sizes
+EXCLUDED = E1-RUN-001 final holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) — never stored
 RESEARCH_STATUS_OF_2025_2026 = CONSUMED for any hypothesis over the product features
 SEALED_VERDICTS_REOPENED = false
 RESCUE_ATTEMPTED = false
