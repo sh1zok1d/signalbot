@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta, timezone
 import pytest
 
 from beta_fakes import CFG, ON_PUSH, TEST_DSN, Clock, fresh_pool, run
+from beta import history_data as hd
 from storage.beta_v0_store import BetaStore
 from v2_fakes import checksum_text, kline_zip, metrics_zip, one_minute_rows, synthetic_rows
 
@@ -90,8 +91,12 @@ def test_history_sync_verifies_resumes_and_falls_back_to_daily_objects():
     def on(d):
         return [r for r in rows if datetime.fromtimestamp(r["open_time_ms"] / 1000, tz=UTC).date() == d]
 
+    # August 2026 holds the E1-RUN-001 final holdout: the archive below has no object that
+    # overlaps it (the fake could not serve one); only the allowed August days exist.
+    allowed_aug = [date(2026, 8, d) for d in list(range(1, 16)) + list(range(26, 32))]
     objects = {
-        "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip": kline_zip(month(2026, 8), "a.zip"),
+        **{f"daily/klines/BTCUSDT/5m/BTCUSDT-5m-{d.isoformat()}.zip": kline_zip(on(d), f"a{d.day}.zip")
+           for d in allowed_aug},
         "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-01.zip": kline_zip(on(date(2026, 9, 1)), "b.zip", header=False),
         "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-01.zip": kline_zip(on(date(2026, 10, 1)), "c.zip"),
         "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-02.zip": kline_zip(on(date(2026, 10, 2)), "d.zip"),
@@ -106,6 +111,7 @@ def test_history_sync_verifies_resumes_and_falls_back_to_daily_objects():
     async def fetch(url):
         key = url.split("/data/futures/um/", 1)[1]
         calls.append(key)
+        assert hd.url_refusal(url) is None, f"a protected object reached the network: {key}"
         if key.endswith(".CHECKSUM"):
             body = objects.get(key[: -len(".CHECKSUM")])
             if key.startswith("daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-02"):
@@ -118,11 +124,22 @@ def test_history_sync_verifies_resumes_and_falls_back_to_daily_objects():
         store = BetaStore(pool)
         now = datetime(2026, 10, 3, 3, tzinfo=UTC)
         rep = await sync_history(store, now=now, fetch=fetch, klines_start=date(2026, 8, 1),
-                                 metrics_start=date(2026, 10, 1))
+                                 metrics_start=date(2026, 8, 10))
         assert rep["status"] == "PARTIAL" and any("checksum mismatch" in e for e in rep["errors"])
         assert rep["fallback_daily"] == 30                     # September's monthly object is not published
+        # E1: rejected in the plan, never requested — neither an archive nor its CHECKSUM
+        e1 = (["monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip"]
+              + [f"daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-{d:02d}.zip" for d in range(16, 26)]
+              + [f"daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-08-{d:02d}.zip" for d in range(16, 26)])
+        assert rep["protected_rejected"] == 21 and rep["protected_rejected_keys"] == e1
+        assert not {c.removesuffix(".CHECKSUM") for c in calls} & set(e1)
+        assert all(hd.url_refusal(c) is None for c in calls)
+        assert not any("ProtectedObjectRefused" in e for e in rep["errors"])   # the plan never tried
+        assert "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-15.zip" in calls
+        assert "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-26.zip" in calls
         ledger = {r["object_key"]: r["status"] for r in await _rows(pool, "SELECT object_key, status FROM beta_hist_objects")}
-        assert ledger["monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip"] == "OK"
+        assert not set(ledger) & set(e1)
+        assert ledger["daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-15.zip"] == "OK"
         assert ledger["monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09.zip"] == "MISSING"
         assert ledger["daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-01.zip"] == "OK"
         assert ledger["daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-02.zip"] == "MISSING"
@@ -131,10 +148,9 @@ def test_history_sync_verifies_resumes_and_falls_back_to_daily_objects():
         assert "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-02.zip" not in ledger      # never recorded as OK
         assert ledger["daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-10-02.zip"] == "MISSING"
         n = (await _rows(pool, "SELECT count(*) AS n FROM beta_hist_bars_5m"))[0]["n"]
-        protected = 9 * 288 + (17 * 60 + 20) // 5        # E1-RUN-001 holdout 2026-08-16 → 08-25 17:20, never stored
-        assert n == 31 * 288 + 288 + 288 - protected
+        assert n == 21 * 288 + 288 + 288          # Aug 1-15 and 26-31, Sep 1, Oct 1; nothing of Aug 16-25
         inside = await _rows(pool, "SELECT count(*) AS n FROM beta_hist_bars_5m WHERE open_time >= $1 AND open_time < $2",
-                             datetime(2026, 8, 16, tzinfo=UTC), datetime(2026, 8, 25, 17, 20, tzinfo=UTC))
+                             datetime(2026, 8, 16, tzinfo=UTC), datetime(2026, 8, 26, tzinfo=UTC))
         assert inside == [{"n": 0}]
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_hist_oi_5m"))[0]["n"] == 288
         calls.clear()
@@ -144,6 +160,27 @@ def test_history_sync_verifies_resumes_and_falls_back_to_daily_objects():
         assert again["bars_written"] == 0 or again["status"] == "PARTIAL"
         health = await _rows(pool, "SELECT component FROM beta_runtime_health")
         assert {"component": "history_sync"} in health
+        await pool.close()
+    run(body())
+
+
+def test_an_overlapping_object_in_the_plan_is_refused_without_a_request(monkeypatch):
+    from beta.history_data import sync_history
+    calls = []
+
+    async def fetch(url):
+        calls.append(url)
+        return None
+
+    bad = [hd.klines_monthly(2026, 8), hd.metrics_daily(date(2026, 8, 25)), hd.klines_daily(date(2026, 8, 15))]
+    monkeypatch.setattr(hd, "plan_objects", lambda today, **kw: (bad, []))
+
+    async def body():
+        pool = await fresh_pool()
+        rep = await sync_history(BetaStore(pool), now=datetime(2026, 10, 3, 3, tzinfo=UTC), fetch=fetch)
+        refused = [e for e in rep["errors"] if "ProtectedObjectRefused" in e]
+        assert len(refused) == 2 and rep["fetched"] == 1
+        assert [c.rsplit("/", 1)[-1] for c in calls] == ["BTCUSDT-5m-2026-08-15.zip"]   # only the allowed day
         await pool.close()
     run(body())
 

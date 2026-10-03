@@ -173,7 +173,7 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
 
 **Config (committed):** a `decision:` section (`max_price_alerts: 5`, `forecast_tracking: true`, `market_alerts: {enabled: true, max_per_utc_day: 4, move_cooldown_min: 120, event_lead_min: 30, touch_max_age_min: 10}`); `briefing.enabled: true`. Market alerts also need effective push (`BETA_PUSH_ENABLED` and no `/admin_pause_push`) and respect quiet hours (23:00–07:00 Kyiv) except personal `/alert`.
 
-**Protected window:** the E1-RUN-001 final holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)` is never fetched (fully covered days) or stored (rows of partly covered objects are dropped); the grid keeps it as a gap.
+**Protected window:** the E1-RUN-001 final holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)` is never requested: every archive object whose period overlaps it is rejected before any request (the August 2026 monthly klines; the daily klines and metrics of 2026-08-16 … 2026-08-25, the 25th whole). August is read from its other daily objects, and the grid keeps 2026-08-16 00:00 → 2026-08-26 00:00 as a gap. The sync report lists them as `protected_rejected_keys` (21 objects).
 
 **Network:** the history sync reads `https://data.binance.vision` only (about 4,500 objects on the first run, a few per night afterwards). Nothing else new leaves the VPS.
 

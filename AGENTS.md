@@ -48,7 +48,7 @@ rather than proliferate RV_ABSTENTION.
 - Do not evaluate the archived `RSI_GRADIENT_SUPPORT_CANDIDATE`.
 - Routing follows `PRODUCT_FIRST_DECISION_V1`.
 
-**Product statistics (2026-10-03, `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §4).** The owner opened Binance USD-M BTCUSDT 2025/2026 5m klines and OI metrics for the product's decision-support statistics, up to yesterday, **except the E1-RUN-001 final holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)`**, which the history sync never stores. For research this BTC surface is consumed for hypotheses over the product features (range/volatility, levels, price/OI/taker states, event days); sealed verdicts are not reopened.
+**Product statistics (2026-10-03, `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §4).** The owner opened Binance USD-M BTCUSDT 2025/2026 5m klines and OI metrics for the product's decision-support statistics, up to yesterday, **except the E1-RUN-001 final holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)`**: the history sync never requests an archive object that overlaps it (object level, before any fetch) and never stores a row inside it. For research this BTC surface is consumed for hypotheses over the product features (range/volatility, levels, price/OI/taker states, event days); sealed verdicts are not reopened.
 
 `FORWARD_MARKET_OBSERVABILITY_V1` collector implementation remains frozen; authoritative collection has not been started by this cleanup. B2-06 remains blocked on the missing/legally-timestamped observable problem.
 

@@ -8,8 +8,12 @@ files). Two series:
 - the `metrics` series (5m open interest, base BTC and USD) from 2020-09-01 (daily objects).
 
 The owner opened 2025/2026 for product use (PRODUCT_DECISION_V2 §4); this module reads every
-year up to yesterday (UTC), except the protected windows below (the E1-RUN-001 final holdout),
-whose rows are never stored. Every object is checksum-verified before its rows are written, and
+year up to yesterday (UTC), except the protected windows below (the E1-RUN-001 final holdout).
+Protection is at the object level, before any request: an archive object whose period
+intersects a protected window is never requested (a complete month that does is replaced by
+its days that do not; a day that does is dropped whole, even when part of it lies outside),
+and every request URL is checked again just before it is made. Rows inside a window are also
+dropped after parsing, as a last line. Every object is checksum-verified before its rows are written, and
 the object ledger (`beta_hist_objects`) makes the sync resumable and idempotent: an object
 already OK is never fetched again. A missing object (404) leaves its bars absent; nothing is
 filled in.
@@ -23,6 +27,7 @@ import csv
 import hashlib
 import io
 import logging
+import re
 import zipfile
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -40,7 +45,8 @@ DEFAULT_CONCURRENCY = 6
 HISTORY_DATA_VERSION = "BETA_HISTORY_VISION_V1"
 
 # AGENTS.md: the E1-RUN-001 final holdout is opened only by its frozen one-shot evaluator.
-# The product history never stores a bar or an OI snapshot inside it (PRODUCT_DECISION_V2 §4).
+# The product history never requests an archive object that overlaps it, and never stores a bar
+# or an OI snapshot inside it (PRODUCT_DECISION_V2 §4). Half-open: [start, end).
 PROTECTED_WINDOWS = (
     ("E1-RUN-001 final holdout", datetime(2026, 8, 16, tzinfo=timezone.utc),
      datetime(2026, 8, 25, 17, 20, tzinfo=timezone.utc)),
@@ -48,21 +54,66 @@ PROTECTED_WINDOWS = (
 
 
 def _protected_ms() -> list:
-    return [(int(a.timestamp() * 1000), int(z.timestamp() * 1000)) for _n, a, z in PROTECTED_WINDOWS]
+    return [(n, int(a.timestamp() * 1000), int(z.timestamp() * 1000)) for n, a, z in PROTECTED_WINDOWS]
 
 
 def in_protected_window(ms: int) -> bool:
-    return any(a <= int(ms) < z for a, z in _protected_ms())
+    """A timestamp (a bar's open, an OI snapshot's time) inside a protected window."""
+    return any(a <= int(ms) < z for _n, a, z in _protected_ms())
 
 
-def day_fully_protected(d: date) -> bool:
-    a = datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
-    z = a + timedelta(days=1)
-    return any(w0 <= a and z <= w1 for _n, w0, w1 in PROTECTED_WINDOWS)
+def protected_overlap(start_ms: int, end_ms: int) -> Optional[str]:
+    """The name of a protected window that the period [start_ms, end_ms) intersects, else None."""
+    for name, a, z in _protected_ms():
+        if int(start_ms) < z and a < int(end_ms):
+            return name
+    return None
 
 
 def drop_protected(rows: list, key: str) -> list:
     return [r for r in rows if not in_protected_window(r[key])]
+
+
+class ProtectedObjectRefused(RuntimeError):
+    """A request for an archive object that overlaps a protected window (or whose period cannot
+    be read from its name) was refused before it was made."""
+
+
+_KEY_PERIOD = re.compile(r"-(\d{4})-(\d{2})(?:-(\d{2}))?\.zip(?:\.CHECKSUM)?$")
+
+
+def key_period_ms(key_or_url: str) -> Optional[tuple]:
+    """[start, end) in ms of the calendar period an archive object's name covers: a day
+    (``…-YYYY-MM-DD.zip``) or a month (``…-YYYY-MM.zip``); None when the name has no period."""
+    m = _KEY_PERIOD.search(key_or_url)
+    if not m:
+        return None
+    y, mo, d = int(m.group(1)), int(m.group(2)), m.group(3)
+    if d is not None:
+        a = datetime(y, mo, int(d), tzinfo=timezone.utc)
+        z = a + timedelta(days=1)
+    else:
+        a = datetime(y, mo, 1, tzinfo=timezone.utc)
+        z = datetime(y + (mo == 12), mo % 12 + 1, 1, tzinfo=timezone.utc)
+    return int(a.timestamp() * 1000), int(z.timestamp() * 1000)
+
+
+def url_refusal(url: str) -> Optional[str]:
+    """Why a request must not be made (fail closed), else None."""
+    period = key_period_ms(url)
+    if period is None:
+        return "NO_PERIOD_IN_NAME"
+    return protected_overlap(*period)
+
+
+def guard_fetch(fetch: "Fetch") -> "Fetch":
+    """The request gate: every URL is checked before the underlying fetch is called."""
+    async def guarded(url: str):
+        why = url_refusal(url)
+        if why is not None:
+            raise ProtectedObjectRefused(f"{why}: {url.rsplit('/', 1)[-1]}")
+        return await fetch(url)
+    return guarded
 
 
 KLINE_HEADER = ("open_time", "open", "high", "low", "close", "volume", "close_time", "quote_volume",
@@ -78,15 +129,30 @@ class VisionObject:
     key: str            # path below VISION_ROOT
     kind: str           # klines_monthly | klines_daily | metrics_daily
     period_end: date    # last calendar day covered by the object
+    period_start: Optional[date] = None   # first calendar day covered (None: same as period_end)
 
     @property
     def url(self) -> str:
         return f"{VISION_ROOT}/{self.key}"
 
+    @property
+    def period_ms(self) -> tuple:
+        """[first day 00:00 UTC, day after the last 00:00 UTC) in ms."""
+        a = self.period_start or self.period_end
+        z = self.period_end + timedelta(days=1)
+        return (int(datetime(a.year, a.month, a.day, tzinfo=timezone.utc).timestamp() * 1000),
+                int(datetime(z.year, z.month, z.day, tzinfo=timezone.utc).timestamp() * 1000))
+
+
+def object_protected(obj: VisionObject) -> Optional[str]:
+    """The protected window an object's period intersects (the object is then never requested)."""
+    return protected_overlap(*obj.period_ms)
+
 
 def klines_monthly(y: int, m: int) -> VisionObject:
     last = (date(y + (m == 12), m % 12 + 1, 1) - timedelta(days=1))
-    return VisionObject(f"monthly/klines/{SYMBOL}/5m/{SYMBOL}-5m-{y:04d}-{m:02d}.zip", "klines_monthly", last)
+    return VisionObject(f"monthly/klines/{SYMBOL}/5m/{SYMBOL}-5m-{y:04d}-{m:02d}.zip", "klines_monthly", last,
+                        date(y, m, 1))
 
 
 def klines_daily(d: date) -> VisionObject:
@@ -105,30 +171,53 @@ def _months(start: date, end_exclusive: date) -> list:
     return out
 
 
-def planned_objects(today: date, *, klines_start: date = KLINES_START,
-                    metrics_start: date = METRICS_START) -> list:
-    """Every object the history should hold as of `today` (UTC): monthly klines for complete
-    months, daily klines for the current month up to yesterday, daily metrics up to yesterday."""
+def plan_objects(today: date, *, klines_start: date = KLINES_START,
+                 metrics_start: date = METRICS_START) -> tuple:
+    """(planned, rejected) as of `today` (UTC). Planned: monthly klines for complete months,
+    daily klines for the current month up to yesterday, daily metrics up to yesterday. Rejected:
+    every object whose period intersects a protected window; it is never requested. A complete
+    month that intersects one is replaced by its daily objects that do not."""
+    planned: list = []
+    rejected: list = []
+
+    def take(o: VisionObject) -> None:
+        (rejected if object_protected(o) else planned).append(o)
+
     month_start = today.replace(day=1)
-    objs = [klines_monthly(y, m) for y, m in _months(klines_start, month_start)]
+    for y, m in _months(klines_start, month_start):
+        mo = klines_monthly(y, m)
+        if object_protected(mo) is None:
+            planned.append(mo)
+            continue
+        rejected.append(mo)
+        for d in _days(mo):
+            if d >= klines_start:
+                take(klines_daily(d))
     d = max(month_start, klines_start)
     while d < today:
-        if not day_fully_protected(d):
-            objs.append(klines_daily(d))
+        take(klines_daily(d))
         d += timedelta(days=1)
     d = metrics_start
     while d < today:
-        if not day_fully_protected(d):
-            objs.append(metrics_daily(d))
+        take(metrics_daily(d))
         d += timedelta(days=1)
-    return objs
+    return planned, rejected
+
+
+def planned_objects(today: date, *, klines_start: date = KLINES_START,
+                    metrics_start: date = METRICS_START) -> list:
+    return plan_objects(today, klines_start=klines_start, metrics_start=metrics_start)[0]
+
+
+def _days(month_obj: VisionObject) -> list:
+    first = month_obj.period_start or month_obj.period_end.replace(day=1)
+    return [first + timedelta(days=k) for k in range((month_obj.period_end - first).days + 1)]
 
 
 def daily_fallback(obj: VisionObject) -> list:
-    """Daily kline objects that stand in for a monthly object that is not published yet."""
-    first = obj.period_end.replace(day=1)
-    days = (first + timedelta(days=k) for k in range((obj.period_end - first).days + 1))
-    return [klines_daily(d) for d in days if not day_fully_protected(d)]
+    """Daily kline objects that stand in for a monthly object that is not published yet; a day
+    that intersects a protected window is left out whole."""
+    return [o for o in (klines_daily(d) for d in _days(obj)) if object_protected(o) is None]
 
 
 # ---- parsing (pure) -------------------------------------------------------------------
@@ -250,7 +339,8 @@ async def sync_history(store, *, now: datetime, fetch: Optional[Fetch] = None,
     from storage.beta_v0_store import HISTORY_LOCK_KEY
     today = now.astimezone(timezone.utc).date()
     report = {"status": "OK", "planned": 0, "fetched": 0, "ok": 0, "missing": 0, "bad": 0, "fallback_daily": 0,
-              "bars_written": 0, "oi_written": 0, "errors": []}
+              "bars_written": 0, "oi_written": 0, "protected_rejected": 0, "protected_rejected_keys": [],
+              "errors": []}
     async with store.advisory_lock(HISTORY_LOCK_KEY) as acquired:
         if not acquired:
             return {"status": "BUSY"}
@@ -260,11 +350,14 @@ async def sync_history(store, *, now: datetime, fetch: Optional[Fetch] = None,
             session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=120),
                                             headers={"User-Agent": "signalbot-beta-history/1"})
             fetch = lambda url: _aiohttp_fetch(session, url)  # noqa: E731
+        fetch = guard_fetch(fetch)              # every request URL is checked before it is made
         try:
             async with store.connect() as conn:
                 ledger = await conn.hist_object_ledger()
-            plan = [o for o in planned_objects(today, klines_start=klines_start, metrics_start=metrics_start)
-                    if _needs_fetch(o, ledger, today)]
+            planned, rejected = plan_objects(today, klines_start=klines_start, metrics_start=metrics_start)
+            report["protected_rejected"] = len(rejected)
+            report["protected_rejected_keys"] = [o.key for o in rejected]
+            plan = [o for o in planned if _needs_fetch(o, ledger, today)]
             report["planned"] = len(plan)
             if max_objects is not None:
                 plan = plan[: int(max_objects)]
@@ -272,6 +365,10 @@ async def sync_history(store, *, now: datetime, fetch: Optional[Fetch] = None,
 
             async def one(obj: VisionObject) -> list:
                 async with sem:
+                    why = object_protected(obj)
+                    if why is not None:             # never reached through the plan; refused, not fetched
+                        report["errors"].append(f"{obj.key}: ProtectedObjectRefused: {why}")
+                        return []
                     try:
                         body, sha = await _fetch_verified(fetch, obj)
                     except Exception as exc:  # noqa: BLE001 - one object never stops the sync

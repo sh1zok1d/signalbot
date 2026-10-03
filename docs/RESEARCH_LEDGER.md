@@ -7690,4 +7690,6 @@ SEALED_VERDICTS_REOPENED = false
 RESCUE_ATTEMPTED = false
 ```
 
+**Correction (2026-10-03, red-team of the V2 branch, before any deploy).** The first implementation dropped holdout rows only after parsing: it planned the August 2026 monthly klines archive and the 2026-08-25 metrics file, both of which overlap the holdout, so a sync would have downloaded holdout bytes. It never ran against the network (no deploy; this environment cannot reach Binance), so no holdout byte was fetched. The planner now rejects every overlapping object before any request (21 objects: the August monthly klines, daily klines and metrics of 2026-08-16 … 2026-08-25), and a request gate refuses any overlapping URL. `PROTECTED_BYTES_FETCHED = NO`.
+
 These statistics are product evidence (descriptive, with N, a comparable baseline and a verdict), not research claims. Development numbers seen while building them (2022–2024 repository archives, synthetic OI only for the analogue mechanics) are recorded in the implementation review, not as results.

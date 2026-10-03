@@ -3,6 +3,7 @@
 PRODUCT_DECISION_V2. No database, no network. Real Binance 5m archives committed in the
 repository (MARKET_06 durable raw copies, 2022-2024) are used where calibration is checked.
 """
+import asyncio
 import math
 import random
 from datetime import date, datetime, timedelta, timezone
@@ -77,31 +78,98 @@ def test_forward_extremes_use_the_following_bars_only():
 
 # ---- history_data ----------------------------------------------------------------------
 def test_plan_monthly_until_last_month_then_daily_and_metrics_daily():
-    objs = hd.planned_objects(date(2026, 10, 3), klines_start=date(2026, 8, 1), metrics_start=date(2026, 10, 1))
+    objs = hd.planned_objects(date(2026, 10, 3), klines_start=date(2026, 9, 1), metrics_start=date(2026, 10, 1))
     keys = [o.key for o in objs]
-    assert keys == ["monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip",
-                    "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09.zip",
+    assert keys == ["monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09.zip",
                     "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-01.zip",
                     "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-02.zip",
                     "daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-10-01.zip",
                     "daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-10-02.zip"]
-    assert objs[1].url.startswith("https://data.binance.vision/data/futures/um/monthly/klines/")
-    assert len(hd.daily_fallback(objs[1])) == 30
+    assert objs[0].url.startswith("https://data.binance.vision/data/futures/um/monthly/klines/")
+    assert len(hd.daily_fallback(objs[0])) == 30
 
 
-def test_the_e1_holdout_is_never_planned_or_stored():
-    objs = hd.planned_objects(date(2026, 9, 1), klines_start=date(2026, 7, 1), metrics_start=date(2026, 8, 1))
-    keys = {o.key for o in objs}
-    assert "daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-08-20.zip" not in keys
-    assert "daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-08-25.zip" in keys          # partly outside: rows filtered
-    assert "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip" in keys
-    fb = {o.key for o in hd.daily_fallback(hd.klines_monthly(2026, 8))}
-    assert "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-16.zip" not in fb and len(fb) == 31 - 9
+# ---- E1-RUN-001 final holdout [2026-08-16 00:00, 2026-08-25 17:20): object level, before any request
+E1_REJECTED = (["monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip"]
+               + [f"daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-{d:02d}.zip" for d in range(16, 26)]
+               + [f"daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-08-{d:02d}.zip" for d in range(16, 26)])
+
+
+def _ms(*a):
+    return int(datetime(*a, tzinfo=UTC).timestamp() * 1000)
+
+
+def test_e1_every_overlapping_object_is_rejected_and_august_is_planned_from_allowed_days():
+    planned, rejected = hd.plan_objects(date(2026, 10, 3))
+    assert [o.key for o in rejected] == E1_REJECTED
+    keys = {o.key for o in planned}
+    assert not keys & set(E1_REJECTED)
+    assert all(hd.url_refusal(o.url) is None for o in planned)            # nothing planned overlaps
+    aug = sorted(int(k[-6:-4]) for k in keys if k.startswith("daily/klines/") and "-2026-08-" in k)
+    assert aug == list(range(1, 16)) + list(range(26, 32))                 # 1..15 and 26..31
+    met = sorted(int(k[-6:-4]) for k in keys if k.startswith("daily/metrics/") and "-2026-08-" in k)
+    assert met == aug
+    assert {"monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-07.zip",
+            "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09.zip"} <= keys
+
+
+@pytest.mark.parametrize("when,inside", [
+    ((2026, 8, 15, 23, 55), False),     # last bar before the window: [23:55, 00:00)
+    ((2026, 8, 16, 0, 0), True),        # first protected bar
+    ((2026, 8, 25, 17, 15), True),      # last protected bar: [17:15, 17:20)
+    ((2026, 8, 25, 17, 20), False),     # first bar after the window
+])
+def test_e1_boundaries_bar_level(when, inside):
+    t = _ms(*when)
+    assert hd.in_protected_window(t) is inside
+    assert (hd.protected_overlap(t, t + 300_000) is not None) is inside   # the 5m bar opening at t
+
+
+@pytest.mark.parametrize("day,rejected", [(15, False), (16, True), (24, True), (25, True), (26, False)])
+def test_e1_boundaries_object_level(day, rejected):
+    """2026-08-25 is rejected whole although its tail after 17:20 is outside the window."""
+    for obj in (hd.klines_daily(date(2026, 8, day)), hd.metrics_daily(date(2026, 8, day))):
+        assert (hd.object_protected(obj) is not None) is rejected
+        assert (hd.url_refusal(obj.url) is not None) is rejected
+        assert (hd.url_refusal(obj.url + ".CHECKSUM") is not None) is rejected
+
+
+def test_e1_plans_during_and_right_after_the_window():
+    planned, rejected = hd.plan_objects(date(2026, 8, 20), klines_start=date(2026, 8, 1), metrics_start=date(2026, 8, 1))
+    assert sorted(o.period_end.day for o in planned if o.kind == "klines_daily") == list(range(1, 16))
+    assert sorted(o.period_end.day for o in rejected if o.kind == "klines_daily") == [16, 17, 18, 19]
+    planned, rejected = hd.plan_objects(date(2026, 9, 2), klines_start=date(2026, 8, 1), metrics_start=date(2026, 9, 1))
+    assert "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08.zip" in {o.key for o in rejected}
+    fb = hd.daily_fallback(hd.klines_monthly(2026, 8))
+    assert sorted(o.period_end.day for o in fb) == list(range(1, 16)) + list(range(26, 32))
+    assert len(hd.daily_fallback(hd.klines_monthly(2026, 7))) == 31
+
+
+def test_e1_request_gate_refuses_before_the_network_call():
+    calls = []
+
+    async def inner(url):
+        calls.append(url)
+        return b"x"
+    gate = hd.guard_fetch(inner)
+    base = hd.VISION_ROOT + "/"
+    refused = [base + E1_REJECTED[0], base + E1_REJECTED[0] + ".CHECKSUM", base + E1_REJECTED[1],
+               base + E1_REJECTED[-1] + ".CHECKSUM", base + "daily/klines/BTCUSDT/5m/README.zip"]
+    for url in refused:
+        with pytest.raises(hd.ProtectedObjectRefused):
+            asyncio.run(gate(url))
+    allowed = [base + "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-08-15.zip",
+               base + "daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-08-26.zip.CHECKSUM",
+               base + "monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-07.zip"]
+    for url in allowed:
+        assert asyncio.run(gate(url)) == b"x"
+    assert calls == allowed                                                  # refused URLs never reached it
+
+
+def test_e1_rows_inside_the_window_are_still_dropped_after_parsing():
     rows, _ = synthetic_rows(datetime(2026, 8, 25, 17, tzinfo=UTC), 1)
     kept = hd.drop_protected(rows, "open_time_ms")
-    first = min(r["open_time_ms"] for r in kept)
-    assert first == int(datetime(2026, 8, 25, 17, 20, tzinfo=UTC).timestamp() * 1000)
-    assert hd.in_protected_window(int(datetime(2026, 8, 16, tzinfo=UTC).timestamp() * 1000))
+    assert min(r["open_time_ms"] for r in kept) == _ms(2026, 8, 25, 17, 20)
 
 
 def test_parse_klines_with_and_without_header_and_microseconds():
