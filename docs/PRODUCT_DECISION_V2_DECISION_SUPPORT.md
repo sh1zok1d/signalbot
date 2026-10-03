@@ -36,6 +36,8 @@ The product answers three questions for an intraday BTC-perpetual trader, in Rus
 
 **Pushes** become timely: the first touch of a key level (previous day/week/month high or low) with its history, a reminder before CPI / FOMC, a sharp 15-minute move, and the user's own price alerts. The late unusual-hour push stays available and can be switched off per user.
 
+**Event zones (2026-10-03, `BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1.md` §9).** The corridor's CPI/FOMC conditioning is not calibrated at the live cadence. So for horizon H, while now ∈ [release − H, release + 60 min) the product shows no numerical corridor for H, no touch chance, `/risk` figure or alert corridor line derived from it, and no «4 из 5». It names the release and its time and says the usual corridor calibration does not apply around a release; no event-size multiplier is shown. Outside every zone the generic corridor is unchanged.
+
 ### 2.4 Research ↔ bot
 
 - **Source.** One registry entry per closed unit: id, status, RU/EN text (at most 220 characters, guard-checked), the data it was measured on, the record path, the bot contexts and a priority. `beta/research_link.py` validates it (unique ids, length, wording, record present unless `pending_merge`).

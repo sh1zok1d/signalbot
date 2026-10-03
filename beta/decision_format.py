@@ -110,29 +110,47 @@ def unavailable_line(block: Optional[Mapping[str, Any]], lang: str) -> Optional[
     return t(lang, "dc_unavailable", reason=t(lang, reason))
 
 
+def zone_note(zones: Optional[Mapping[str, Any]], horizons: Sequence[str], lang: str) -> Optional[str]:
+    """Why a horizon shows no number: the scheduled release(s) whose event zone holds now
+    (BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1 §9). None outside every zone."""
+    zones = zones or {}
+    hs = [h for h in horizons if zones.get(h)]
+    if not hs:
+        return None
+    seen, events = set(), []
+    for h in hs:
+        for e in zones[h]:
+            if (e["kind"], e["at"]) not in seen:
+                seen.add((e["kind"], e["at"]))
+                events.append(e)
+    events.sort(key=lambda e: e["at"])
+    parts = [t(lang, "ez_event", name=_e(EVENT_NAMES.get(e["kind"], (e["kind"], e["kind"]))[_ix(lang)]),
+               when=_when(datetime.fromisoformat(e["at"]), lang, with_day=True)) for e in events]
+    return t(lang, "ez_note", hs=", ".join(_hz(h, lang) for h in hs), events="; ".join(parts))
+
+
 def corridor_lines(block: Mapping[str, Any], lang: str, horizons: Sequence[str] = ("4h", "24h")) -> list:
     c = block.get("corridor") or {}
     hz = c.get("horizons") or {}
     parts = []
-    events = []
     for h in horizons:
         x = hz.get(h)
         if not x:
             continue
         parts.append(t(lang, "dc_corridor_part", h=_hz(h, lang), low=fmt_price(x["lower"], lang),
                        high=fmt_price(x["upper"], lang), half=_pct(x["half_width_pct"], lang, 1)))
-        for k, on in (x.get("event_in_window") or {}).items():
-            if on and k not in events:
-                events.append(k)
+    note = zone_note(block.get("event_zone"), horizons, lang)
+    if note:                      # an event context: no coverage claim in the header
+        return [t(lang, "dc_corridor_head_event")] + ([" · ".join(parts)] if parts else []) + [note]
     if not parts:
         return []
-    line = " · ".join(parts)
-    if events:
-        line += t(lang, "dc_corridor_event", event=", ".join(EVENT_NAMES.get(k, (k, k))[_ix(lang)] for k in events))
-    return [t(lang, "dc_corridor_head"), line]
+    return [t(lang, "dc_corridor_head"), " · ".join(parts)]
 
 
-def _level_line(zone: Mapping[str, Any], lang: str, arrow: str) -> str:
+def _level_line(zone: Mapping[str, Any], lang: str, arrow: str, *, with_p: bool = True) -> str:
+    if not with_p:
+        return t(lang, "dc_level_line_nop", arrow=arrow, price=zone_price(zone, lang),
+                 name=_e(zone_names(zone, lang)), dist=fmt_signed_pct(zone["distance_pct"], lang))
     p = (zone.get("touch") or {}).get("24h")
     return t(lang, "dc_level_line", arrow=arrow, price=zone_price(zone, lang), name=_e(zone_names(zone, lang)),
              dist=fmt_signed_pct(zone["distance_pct"], lang), p=fmt_prob(p, lang))
@@ -157,13 +175,14 @@ def levels_lines(block: Mapping[str, Any], lang: str, each_side: int = 2) -> lis
     at = lv.get("at")
     if not (above or below or at):
         return []
-    lines = [t(lang, "dc_levels_head")]
-    lines.extend(_level_line(z, lang, "↑") for z in reversed(above))
+    with_p = not (block.get("event_zone") or {}).get("24h")     # 24h touch chances are withheld in its zone
+    lines = [t(lang, "dc_levels_head" if with_p else "dc_levels_head_plain")]
+    lines.extend(_level_line(z, lang, "↑", with_p=with_p) for z in reversed(above))
     if at:
         lines.append(t(lang, "dc_level_at", price=zone_price(at, lang), name=_e(zone_names(at, lang))))
     elif block.get("price") is not None:
         lines.append(t(lang, "dc_level_now", price=fmt_price(block["price"], lang)))
-    lines.extend(_level_line(z, lang, "↓") for z in below)
+    lines.extend(_level_line(z, lang, "↓", with_p=with_p) for z in below)
     return lines
 
 
@@ -268,7 +287,10 @@ def btc_lines(view: Mapping[str, Any], lang: str) -> list:
         return []
     out = []
     x = ((block.get("corridor") or {}).get("horizons") or {}).get("4h")
-    if x:
+    note = zone_note(block.get("event_zone"), ["4h"], lang)
+    if note:
+        out.append(note)
+    elif x:
         out.append(t(lang, "dc_btc_corridor", low=fmt_price(x["lower"], lang), high=fmt_price(x["upper"], lang),
                      half=_pct(x["half_width_pct"], lang, 1)))
     lv = block.get("levels") or {}
@@ -304,8 +326,12 @@ def _zone_block(z: Mapping[str, Any], lang: str, side: int) -> list:
     lines = [t(lang, "lv_zone", price=zone_price(z, lang), names=_e(zone_names(z, lang, limit=3)),
                dist=fmt_signed_pct(z["distance_pct"], lang))]
     touch = z.get("touch") or {}
-    if touch:
-        lines.append(t(lang, "lv_touch", p4=fmt_prob(touch.get("4h"), lang), p24=fmt_prob(touch.get("24h"), lang)))
+    if "4h" in touch and "24h" in touch:
+        lines.append(t(lang, "lv_touch", p4=fmt_prob(touch["4h"], lang), p24=fmt_prob(touch["24h"], lang)))
+    elif "4h" in touch:
+        lines.append(t(lang, "lv_touch_4h", p4=fmt_prob(touch["4h"], lang)))
+    elif "24h" in touch:
+        lines.append(t(lang, "lv_touch_24h", p24=fmt_prob(touch["24h"], lang)))
     lines.extend(_hist_lines(z.get("history"), lang, side))
     return lines
 
@@ -333,9 +359,13 @@ def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
     if not below:
         lines.append(t(lang, "lv_none"))
     x = ((block.get("corridor") or {}).get("horizons") or {}).get("24h")
-    if x:
+    note = zone_note(block.get("event_zone"), ["4h", "24h"], lang)
+    if x or note:
         lines.append("")
+    if x:
         lines.append(t(lang, "lv_corridor", low=fmt_price(x["lower"], lang), high=fmt_price(x["upper"], lang)))
+    if note:
+        lines.append(note)
     lines.append(t(lang, "lv_footer"))
     return assert_descriptive("\n".join(lines), lang)
 
@@ -370,19 +400,28 @@ def format_risk(block: Mapping[str, Any], model: Optional[Mapping[str, Any]], la
     price = float(block["price"])
     lines = [t(lang, "rk_title", price=fmt_price(price, lang))]
 
+    zones = block.get("event_zone") or {}
+
     def prob(h, pct):
         x = hz.get(h)
         return None if not x else touch_probability(model, h, x["scale_pct"], pct)
 
+    def cell(h, pct):
+        return "—" if zones.get(h) else fmt_prob(prob(h, pct), lang)     # withheld in its event zone
+
     if stop_pct is not None:
         lines.append(t(lang, "rk_stop", pct=_pct(stop_pct, lang), usd=fmt_usd(price * stop_pct / 100.0, lang)))
         for h in ("1h", "4h", "24h"):
-            lines.append(t(lang, "rk_line", h=_hz(h, lang), p=fmt_prob(prob(h, stop_pct), lang)))
+            lines.append(t(lang, "rk_line_zone", h=_hz(h, lang)) if zones.get(h)
+                         else t(lang, "rk_line", h=_hz(h, lang), p=fmt_prob(prob(h, stop_pct), lang)))
     else:
         lines.append(t(lang, "rk_table_head"))
         for pct in (0.25, 0.5, 1.0, 2.0):
-            lines.append(t(lang, "rk_table_line", pct=_pct(pct, lang), p1=fmt_prob(prob("1h", pct), lang),
-                           p4=fmt_prob(prob("4h", pct), lang), p24=fmt_prob(prob("24h", pct), lang)))
+            lines.append(t(lang, "rk_table_line", pct=_pct(pct, lang), p1=cell("1h", pct),
+                           p4=cell("4h", pct), p24=cell("24h", pct)))
+    note = zone_note(zones, ["1h", "4h", "24h"], lang)
+    if note:
+        lines.append(note)
     if all(hz.get(h) for h in ("1h", "4h", "24h")):
         lines.append(t(lang, "rk_typical", h1=_pct(hz["1h"]["typical_move_pct"], lang),
                        h4=_pct(hz["4h"]["typical_move_pct"], lang), h24=_pct(hz["24h"]["typical_move_pct"], lang)))
@@ -450,6 +489,7 @@ ALERT_MAX_LINES = 8
 
 def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
     at = datetime.fromisoformat(payload["at"])
+    zones = payload.get("event_zone") or {}
     lines: list = []
     if kind == "level":
         names = [level_name({"kind": k}, lang) for k in [payload["level_kind"]] + list(payload.get("also_kinds") or ())]
@@ -472,25 +512,26 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
                            back=_pct(r1["back_median"], lang)))
         nxt = payload.get("next")
         if nxt:
-            lines.append(t(lang, "pa_next", price=zone_price(nxt, lang), name=_e(zone_names(nxt, lang, limit=1)),
-                           dist=fmt_signed_pct(nxt["distance_pct"], lang),
-                           p=fmt_prob((nxt.get("touch") or {}).get("24h"), lang)))
-        cl = _corridor_line(payload.get("corridor_4h"), "pa_corridor", lang)
+            p24 = (nxt.get("touch") or {}).get("24h")
+            if zones.get("24h") or p24 is None:
+                lines.append(t(lang, "pa_next_nop", price=zone_price(nxt, lang),
+                               name=_e(zone_names(nxt, lang, limit=1)), dist=fmt_signed_pct(nxt["distance_pct"], lang)))
+            else:
+                lines.append(t(lang, "pa_next", price=zone_price(nxt, lang), name=_e(zone_names(nxt, lang, limit=1)),
+                               dist=fmt_signed_pct(nxt["distance_pct"], lang), p=fmt_prob(p24, lang)))
+        cl = None if zones.get("4h") else _corridor_line(payload.get("corridor_4h"), "pa_corridor", lang)
         if cl:
             lines.append(cl)
+        note = zone_note(zones, ["4h", "24h"], lang)
+        if note:
+            lines.append(note)
     elif kind == "event":
+        # always inside the release's 1h zone (30 minutes ahead): no corridor, no multiplier
         name = EVENT_NAMES.get(payload["event_kind"], (payload["event_kind"],) * 2)[_ix(lang)]
         lines.append(t(lang, "pa_event_title", mins=int(payload["minutes"]), name=_e(name)))
         lines.append(t(lang, "pa_event_when", clock=fmt_clock(datetime.fromisoformat(payload["event_at"]), lang),
                        price=fmt_price(payload["price"], lang)))
-        st = payload.get("stats") or {}
-        if st.get("hour") and st.get("day"):
-            lines.append(t(lang, "pa_event_size", hour=_x(st["hour"]["median_ratio"], lang),
-                           day=_x(st["day"]["median_ratio"], lang),
-                           n=_n(min(st["hour"]["n"], st["day"]["n"]), lang)))
-        cl = _corridor_line(payload.get("corridor_1h"), "pa_corridor_1h", lang)
-        if cl:
-            lines.append(cl)
+        lines.append(t(lang, "ez_event_note"))
     elif kind == "move":
         start = datetime.fromisoformat(payload["start"])
         lines.append(t(lang, "pa_move_title", pct=fmt_signed_pct(payload["move_pct"], lang)))
@@ -498,9 +539,12 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
                        open=fmt_price(payload["open"], lang), close=fmt_price(payload["close"], lang)))
         if payload.get("every_days"):
             lines.append(t(lang, "pa_move_rare", days=_x(payload["every_days"], lang)))
-        cl = _corridor_line(payload.get("corridor_1h"), "pa_corridor_1h_plain", lang)
+        cl = None if zones.get("1h") else _corridor_line(payload.get("corridor_1h"), "pa_corridor_1h_plain", lang)
         if cl:
             lines.append(cl)
+        note = zone_note(zones, ["1h"], lang)
+        if note:
+            lines.append(note)
         near = payload.get("near") or []
         if near:
             parts = [t(lang, "dc_btc_level_part", arrow="↑" if z["distance_pct"] > 0 else "↓",
@@ -514,9 +558,12 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
                            price=fmt_price(payload["price"], lang)))
         else:
             lines.append(t(lang, "pa_price_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang)))
-        cl = _corridor_line(payload.get("corridor_4h"), "pa_corridor", lang)
+        cl = None if zones.get("4h") else _corridor_line(payload.get("corridor_4h"), "pa_corridor", lang)
         if cl:
             lines.append(cl)
+        note = zone_note(zones, ["4h"], lang)
+        if note:
+            lines.append(note)
         lines.append(t(lang, "pa_price_footer"))
     else:
         raise ValueError(f"unknown alert kind {kind!r}")

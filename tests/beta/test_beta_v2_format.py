@@ -32,9 +32,9 @@ def block(**over):
              "1h": {"scale_pct": 0.6, "half_width_pct": 0.7, "lower": 62043.0, "upper": 62917.0,
                     "typical_move_pct": 0.25, "event_in_window": {"CPI": False, "FOMC": False}},
              "4h": {"scale_pct": 1.2, "half_width_pct": 1.4, "lower": 61605.0, "upper": 63355.0,
-                    "typical_move_pct": 0.5, "event_in_window": {"CPI": True, "FOMC": False}},
+                    "typical_move_pct": 0.5, "event_in_window": {"CPI": False, "FOMC": False}},
              "24h": {"scale_pct": 3.0, "half_width_pct": 3.6, "lower": 60230.0, "upper": 64730.0,
-                     "typical_move_pct": 1.4, "event_in_window": {"CPI": True, "FOMC": False}}}},
+                     "typical_move_pct": 1.4, "event_in_window": {"CPI": False, "FOMC": False}}}},
          "levels": {"above": [_zone(["PDH"], 62950.0, 62950.0, 0.75, hist=HIST),
                               _zone(["WO", "ROUND"], 64000.0, 64000.0, 2.43, 0.05, 0.21),
                               _zone(["ROUND"], 65000.0, 65000.0, 4.0, 0.01, 0.1)],
@@ -55,7 +55,7 @@ def plain(html):
 def test_brief_block_ladder_corridor_and_today():
     lines = df.brief_lines({"decision": block()}, "ru")
     text = plain("\n".join(lines))
-    assert "Коридор" in text and "4ч: 61 605–63 355 (±1,4%) · 24ч: 60 230–64 730 (±3,6%) · в окне — CPI США (инфляция)" in text
+    assert "Коридор" in text and "4ч: 61 605–63 355 (±1,4%) · 24ч: 60 230–64 730 (±3,6%)\n" in text
     ladder = text[text.index("Уровни"):text.index("Сегодня")].strip().splitlines()
     assert ladder[1].startswith("↑ 64 000 — открытие недели, круглый уровень · +2,43% · 21%")
     assert ladder[2].startswith("↑ 62 950 — максимум вчера · +0,75% · 60%")

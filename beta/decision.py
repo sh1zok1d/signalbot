@@ -33,6 +33,10 @@ LOOKBACK_DAYS = 70
 LIVE_TAIL_DAYS = 35
 STALE_AFTER = timedelta(minutes=10)
 STATS_RELOAD_S = 300
+# BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1 §9: around a scheduled CPI / FOMC release the
+# corridor's event term is not calibrated at the live cadence, so for horizon H no numerical
+# corridor (nor anything derived from it) is shown while now ∈ [release − H, release + 60 min).
+EVENT_ZONE_POST_MS = 60 * 60_000
 EVENTS_AHEAD_H = 24
 SHOWN_EVENT_KINDS = ("CPI", "FOMC", "EXPIRY_MONTHLY", "EXPIRY_QUARTERLY")
 
@@ -164,11 +168,16 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
     cal = load_calendar()
     events = event_times_ms(cal)
     fc = forecast(model, b, price=price, events=events) if model else None
+    zones = event_zones(to_ms(now), cal)
+    block["event_zone"] = zones
+    # horizons inside their event zone are dropped here, at the source: no corridor, no touch
+    # probability, no /risk figure and no tracked forecast can be built from them downstream
+    shown = {"horizons": {h: x for h, x in fc["horizons"].items() if h not in zones}} if fc is not None else None
     if capture is not None:
-        capture.update(calendar=cal, events=events, forecast=fc)
+        capture.update(calendar=cal, events=events, forecast=shown, event_zone=zones)
     if fc is not None:
         block["corridor"] = {"coverage": fc["coverage"], "anchor_close_ms": fc["anchor_close_ms"],
-                             "horizons": fc["horizons"]}
+                             "horizons": shown["horizons"]}
         cal_rep = model.get("calibration") or {}
         block["corridor"]["holdout"] = {h: {"coverage_realized": c.get("coverage_realized"),
                                             "n_days": c.get("n_days"), "from_ms": c.get("holdout_from_ms"),
@@ -178,13 +187,13 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
                                         start=now - timedelta(hours=24), end=now)
     now_ms = to_ms(now)
     lv = compute_levels(b, now_ms=now_ms, price=price, liquidations=liq)
-    reach = ((fc or {}).get("horizons", {}).get("24h") or {}).get("half_width_pct")
+    reach = ((shown or {}).get("horizons", {}).get("24h") or {}).get("half_width_pct")
     near = nearest_zones(merge_zones(lv, price=price), price=price, reach_pct=reach)
     lstats = (stats or {}).get("levels")
     block["levels"] = {
-        "above": [_zone_out(z, model=model, fc=fc, levels_stats=lstats, price=price, side=+1) for z in near["above"]],
-        "below": [_zone_out(z, model=model, fc=fc, levels_stats=lstats, price=price, side=-1) for z in near["below"]],
-        "at": _zone_out(near["at"], model=model, fc=fc, levels_stats=lstats, price=price,
+        "above": [_zone_out(z, model=model, fc=shown, levels_stats=lstats, price=price, side=+1) for z in near["above"]],
+        "below": [_zone_out(z, model=model, fc=shown, levels_stats=lstats, price=price, side=-1) for z in near["below"]],
+        "at": _zone_out(near["at"], model=model, fc=shown, levels_stats=lstats, price=price,
                         side=+1 if near["at"]["mid"] >= price else -1) if near["at"] else None,
         "all": [{"kind": x["kind"], "price": _round(x["price"], 2)} for x in lv],
     }
@@ -203,6 +212,20 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
     block["weekend"] = kyiv(now).weekday() >= 5
     block["available"] = True
     return block
+
+
+def event_zones(now_ms: int, cal: Mapping[str, Any]) -> dict:
+    """{horizon: [releases]} for every horizon whose event zone holds `now_ms`: a CPI or FOMC
+    release r (the kinds the corridor model conditions on) with r − H <= now < r + 60 min."""
+    from .rangecast import EVENT_KINDS, HORIZON_MS
+    rel = sorted((e for e in cal.get("events") or () if e["kind"] in EVENT_KINDS), key=lambda e: e["at"])
+    out: dict = {}
+    for h, hms in HORIZON_MS.items():
+        hits = [{"kind": e["kind"], "at": e["at"].isoformat()} for e in rel
+                if to_ms(e["at"]) - hms <= int(now_ms) < to_ms(e["at"]) + EVENT_ZONE_POST_MS]
+        if hits:
+            out[h] = hits
+    return out
 
 
 def corridor_for_record(block: Mapping[str, Any]) -> list:

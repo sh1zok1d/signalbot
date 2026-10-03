@@ -1,19 +1,19 @@
 # Event corridor — temporal repair design record V1
 
-**Status:** `DESIGN_ONLY / NO_CODE_CHANGE / NO_RETRAIN / NOT_DEPLOYED`
+**Status:** `DESIGN_ONLY for the event model (K1 not implemented, no retrain) / §9 FALLBACK IMPLEMENTED in the V2 branch / NOT_DEPLOYED`
 **Date:** 2026-10-03
 **Scope:** the scheduled-release conditioning (CPI, FOMC) of the decision-support range corridor (`beta/rangecast.py`, `PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §2). It does not change the generic range model, thresholds, the research registry, user copy or deployment. Those are separate tasks.
 **Trigger:** red-team of branch `ccr-b5339153-71haxv` at `86dd802` (owner-relayed), plus the read-only checks in §4.
 
 ```
-EVENT_CODE_CHANGED              = NO
+EVENT_CODE_CHANGED_FOR_K1       = NO
 EVENT_MODEL_RETRAINED           = NO
 EVENT_SEMANTICS_STATUS          = FAILS_IN_LIVE_USE / NOT_CALIBRATED
-GENERIC_RANGECAST_SKILL_STATUS  = SUPPORTED_ON_EXPOSED_2024 (diagnostic, not confirmatory)
+GENERIC_RANGECAST_SKILL_STATUS  = DIAGNOSTICALLY_SUPPORTED / NOT YET PROSPECTIVELY CONFIRMED
 DATA_2024_EVENT_WINDOWS         = EXPOSED / DIAGNOSTIC / REPAIR DATA
-CONFIRMATION                    = PROSPECTIVE ONLY (primary); BitMEX 2017-2019 = unaudited secondary
-FEASIBILITY                     = FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM
-FALLBACK                        = PRE-COMMITTED (§9): no numerical corridor around releases
+CONFIRMATION                    = PROSPECTIVE ONLY; BitMEX 2017-2019 = NOT_PROVABLY_INDEPENDENT (§6)
+FEASIBILITY                     = FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM (§8, exact method)
+FALLBACK                        = IMPLEMENTED (§9): no numerical corridor in an event zone; no multiplier
 ```
 
 ## 1. Current semantics
@@ -51,7 +51,7 @@ A is about every ordinary hour. B is about about 20 releases a year. Evidence fo
 
 ## 4. Evidence status
 
-### 4.1 Question A — `SUPPORTED_ON_EXPOSED_2024` (diagnostic)
+### 4.1 Question A — `DIAGNOSTICALLY_SUPPORTED / NOT YET PROSPECTIVELY CONFIRMED`
 
 - **Setup.** Binance BTCUSDT 5m, repository archives, 2022–2024. Fitted on 2022–2023, evaluated on the 2024 hourly anchors. Every anchor with a CPI/FOMC release in `[t − 60 min, t + H)` is excluded, and the constant band is fitted on training anchors with the same exclusion.
 - **Results.**
@@ -63,7 +63,8 @@ A is about every ordinary hour. B is about about 20 releases a year. Evidence fo
 | 24h | 8 279 | 79.0% / 78.7% | 69, 76, 80, 82, 85% | 87, 81, 80, 77, 71% | −0.53 [−0.95; −0.15] |
 
 - **Reading.**
-  - Marginal coverage is the same for a model and a constant by construction, so it says nothing about skill.
+  - Marginal coverage is the same for a model and a constant by construction, so the aggregate ~80% is not evidence of skill and is not used as such.
+  - The only skill evidence is this exposed diagnostic: conditional adaptation across volatility regimes and the interval-score improvement. 2024 is not a new holdout.
   - The constant over-covers calm hours and misses volatile ones. The model stays near 80% across regimes and has a lower interval score on all three horizons.
   - Remaining weakness: the model under-covers the calmest fifth (69–76%).
 - **Status limits.**
@@ -90,15 +91,22 @@ A is about every ordinary hour. B is about about 20 releases a year. Evidence fo
 
 ## 6. Independent confirmation surface (none opened)
 
-1. **Prospective releases — primary.**
+1. **Prospective releases — the only eligible surface.**
    - **Scope.** Every scheduled CPI and FOMC release after the event semantics are frozen, scored from the project's own Stage-1 Binance 1m data with event-relative forecast tracking.
    - **Calendar now.** CPI 2026-10-14, 2026-11-10, 2026-12-10. FOMC 2026-10-28, 2026-12-09 and 8 meetings in 2027. 2027 CPI dates go in when BLS publishes them.
    - **Rate.** About 20 releases a year pooled (8 FOMC + 12 CPI).
-2. **BitMEX XBTUSD 2017–2019 — secondary, not audited, not opened.**
-   - **What exists.** 5m data is in the repository (`docs/research_data/D2_BITMEX_PRE2020_XBTUSD`). D2 (daily) and D7 (hourly) read it in bulk for generic volatility persistence. The ledger records no event-conditioned outcome on it.
-   - **Size.** About 24 FOMC and 36 CPI releases.
-   - **Before use.** It needs a point-in-time 2017–2019 release calendar (not in the repository) and an exposure audit.
-   - **What it can show.** Being another venue and an inverse contract, it could confirm the temporal mechanism, not the Binance calibration.
+2. **BitMEX XBTUSD 2017–2019 — `NOT_PROVABLY_INDEPENDENT`.** Provenance audit of 2026-10-03; no outcome was computed for it.
+   - **Who read it.** The 5m data (`docs/research_data/D2_BITMEX_PRE2020_XBTUSD`, `docs/research_data/D7_BITMEX_ACTIVITY_V0`) was read in bulk by:
+     - D2: calendar and schema feasibility (`d2_bitmex_pre2020.py`), the replication and its corrected one-shot (daily decisions 2017-01-24 … 2019-12-30), and the alternative-surface feasibility;
+     - D7: activity check, support and power, dependence review, and the confirmatory primary run (hourly states for every hour 2016–2019).
+   - **What was published.** Aggregates only: D2 means and per-year values, D7 theta, standard error and per-year theta, state counts by year and volatility bucket. The committed result files hold no per-hour or per-day outcomes.
+   - **Event timestamps and calendars.** No BitMEX-reading script joins a CPI or FOMC calendar; their "calendar" fields are the 5m time grid. The ledger records no event-conditioned BitMEX outcome.
+   - **Leak paths that cannot be excluded.**
+     - Every hour, event hours included, entered D7's states and D2's daily volatility, so post-event volatility shaped published aggregates.
+     - The C012 feasibility triage (`GV0R01_STREAM_B_FEASIBILITY_TRIAGE.json`) already named this surface as a confirmation candidate "around 2017-09..2019-12 scheduled events".
+     - The raw pages are in the repository and were read whole.
+   - **Missing before any use.** No point-in-time 2017–2019 release calendar is in the repository, and the instrument equivalence (inverse XBTUSD against linear BTCUSDT) is not adjudicated.
+   - **Verdict.** Provenance is not provably clean, so the surface is `NOT_PROVABLY_INDEPENDENT`. It is not a confirmation surface for the event semantics.
 3. **Not eligible.** Everything in §5 except item 1. Binance 2025–2026 is excluded although unread: by governance and because the nightly build fits on it.
 
 ## 7. Candidate temporal semantics (defined before any fit)
@@ -127,62 +135,85 @@ Notation: anchor close t, release r of one kind, horizon H.
 
 ## 8. Feasibility (outcome-blind)
 
-- **Independent units.** Releases: all 5-minute anchors around one release share one market reaction. About 20 a year pooled; FOMC alone 8 a year.
-- **Coverage around releases (binomial).**
-  - 95% Wilson interval for an observed 80%, by number of releases n:
+**Method, fixed before computing (2026-10-03).** Sample sizes are small (8–300 releases), so the binomial rows use exact calculations, not normal approximations. Each method was chosen before its number was computed and was not tuned to earlier figures.
+
+- **Unit.** One release. All 5-minute anchors around a release share one market reaction, so they are not independent. Per release there is one PRE unit and one POST unit (§7), each analysed separately. Releases are treated as independent Bernoulli trials.
+- **Outcome.** 1 when the corridor issued at the unit's anchor contains the realised maximum excursion over its horizon.
+- **Detection rows (falsification).**
+  - Test: exact one-sided binomial test of H0: p = 0.80 (calibrated) against H1: p = p1 < 0.80 (under-coverage), α = 0.05.
+  - Rejection region: X ≤ c(n), where c(n) is the largest c with P(X ≤ c | n, 0.80) ≤ 0.05; the attained size is reported.
+  - Power(n) = P(X ≤ c(n) | n, p1); target power 0.80.
+  - Rounding: n\* is the smallest n with power ≥ 0.80 for every m in [n, n + 100]. This handles the sawtooth of exact binomial power.
+- **Precision rows (estimation).**
+  - Interval: two-sided 95% Wilson score interval at the expected p̂ = 0.80.
+  - Criterion for "±d": both sides within d, i.e. p̂ − L ≤ d and U − p̂ ≤ d.
+  - Rounding: n\* is the smallest n meeting the criterion for every m in [n, n + 100].
+- **Script.** The rows are reproducible with SciPy `binom` / `norm`. They read no market data.
+
+| Question | H0 | H1 / effect | Sided | α | Power | Method | n\* (releases) | Notes |
+|---|---|---|---|---|---|---|---|---|
+| Detect a gross failure | p = 0.80 | p = 0.40 | one | 0.05 | 0.80 | exact binomial | **12** | reject if X ≤ 6; size 0.019; power 0.84; first n reaching 0.80 is 10 |
+| Detect a clear failure | p = 0.80 | p = 0.60 | one | 0.05 | 0.80 | exact binomial | **38** | reject if X ≤ 25; size 0.029; power 0.81; first n reaching 0.80 is 35 |
+| Detect a moderate failure | p = 0.80 | p = 0.70 | one | 0.05 | 0.80 | exact binomial | **127** | reject if X ≤ 93; size 0.040; power 0.81; first n reaching 0.80 is 116 |
+| Estimate coverage to ±10 pp | — | — | two | 0.05 | — | Wilson | **81** | interval [0.700; 0.873] |
+| Estimate coverage to ±5 pp | — | — | two | 0.05 | — | Wilson | **289** | interval [0.750; 0.842] |
+
+- **Wilson 95% interval for an observed 80%.**
 
 | n | 95% interval |
 |---|---|
-| 8 | [45%; 95%] |
-| 12 | [52%; 94%] |
-| 20 | [58%; 92%] |
-| 40 | [65%; 90%] |
-| 60 | [68%; 88%] |
-| 100 | [71%; 87%] |
+| 8 | [0.455; 0.950] |
+| 12 | [0.517; 0.937] |
+| 20 | [0.584; 0.919] |
+| 40 | [0.652; 0.895] |
+| 60 | [0.682; 0.882] |
+| 100 | [0.711; 0.867] |
 
-  - Releases needed (one-sided 5%, power 80%):
+- **Superseded figures.** The first version of this record gave 8 / 29 / 109 / 62 / 246. They reproduce exactly from two different normal approximations:
+  - n = ⌈((z₀.₉₅√(p₀q₀) + z₀.₈₀√(p₁q₁)) / (p₀ − p₁))²⌉;
+  - n = ⌈(z₀.₉₇₅√(p₀q₀) / d)²⌉.
 
-| Question | Releases needed |
-|---|---|
-| Detect a true coverage of 40% against 80% | 8 |
-| Detect 60% against 80% | 29 |
-| Detect 70% against 80% | 109 |
-| Estimate coverage to ±10 pp | 62 |
-| Estimate coverage to ±5 pp | 246 |
+  No method was declared, and at these sizes both approximations are optimistic. They are superseded by the table above.
+- **Scale calibration (continuous, per release; planning only).**
+  - Method: normal theory, two-sided 95% half-width 1.96·σ/√n.
+  - σ = 0.50 is the upper end of the 0.49–0.50 log-range residual on 2022–2023 training anchors without releases. It is a lower bound for event hours.
 
-- **Scale calibration (continuous, per release).**
-  - The log-range residual on training anchors without releases has σ ≈ 0.49–0.50 at all horizons. Event hours are likely noisier, so this is a lower bound.
-  - The 95% interval of the mean log ratio (realized / predicted) is ±0.98/√n:
-
-| n | 95% interval, log units | As a factor |
+| n | 95% half-width, log units | As a factor |
 |---|---|---|
 | 20 | ±0.22 | ×1.24 |
 | 40 | ±0.15 | ×1.17 |
 
-  - An error of ×2.7, like the current pre-release box, shows within a handful of releases.
-- **Prospective timeline at about 20 releases a year.**
-  - A gross failure (true coverage at or below 60%) can be falsified within about 1.5 years.
-  - Coverage to ±10 pp needs about 3 years; to ±5 pp, over 10 years.
-  - FOMC alone needs about 3.6 years for the 60%-against-80% question.
-- **Status.** `FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM`.
-  - An "80% around events" or «4 из 5» claim cannot be independently confirmed for years.
-  - No per-bin target (5- or 30-minute) is fixed. With these sample sizes a bin-level target would be unsupported.
-  - A prospective falsification rule, PRE and POST units separately with a minimum number of releases, is to be pre-registered before the first prospective release is scored.
+- **Prospective timeline at about 20 releases a year pooled (8 FOMC + 12 CPI).**
+
+| Question | Releases | Time |
+|---|---|---|
+| p = 0.40 against 0.80 | 12 | under 1 year |
+| p = 0.60 against 0.80 | 38 | about 2 years |
+| p = 0.70 against 0.80 | 127 | about 6 years |
+| ±10 pp | 81 | about 4 years |
+| ±5 pp | 289 | about 14 years |
+
+  FOMC alone needs about 4.75 years for 38 releases.
+- **Status.** `FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM`. No per-bin target is fixed. A prospective falsification rule is to be frozen in a separate evaluation contract before the first prospective release is scored.
 
 ## 9. Fallback product behavior (pre-committed)
 
-This applies until an event semantics passes the pre-registered prospective check. It is the planned behavior; its implementation needs separate approval.
+This applies until an event semantics passes the pre-registered prospective check. **Implemented** in the V2 branch (owner authorisation of 2026-10-03), not deployed.
 
 - **Event span.** For each horizon H, the span around a scheduled CPI or FOMC release r is `[r − H, r + 60 min)`. About 6% of hours a year for 24h, less for 1h and 4h.
 - **Inside the span, Signalbot:**
   - shows no numerical corridor for that horizon and no touch probability or `/risk` figure derived from it;
   - drops «Коридор 1ч с учётом события» from the event reminder push;
   - never writes «4 из 5» or any coverage claim.
-- **What it shows instead.**
-  - The release and its time.
-  - A descriptive event-risk line from the event-day statistics: the median size of such hours and days against a usual hour and day, with N and the period (Binance, since 2020).
-  - No direction, no probability, no corridor.
+- **What it shows instead (as implemented).** The release, its day and time, and a neutral statement that around a release the usual corridor calibration does not apply. No direction, no probability, no corridor.
+  - **No multiplier.** The «×N шире обычного» line is not shown. Its window, comparator and timestamp semantics have not been separately verified for this purpose; the event reminder no longer carries it either.
 - **Outside the spans,** the generic corridor stays as it is; its own wording issues are a separate task.
+
+- **Implementation.**
+  - **Source.** `beta/decision.py` `event_zones()` computes the zones, CPI and FOMC only, at the clock time `now`. `_build` drops every horizon whose zone holds `now` from `block["corridor"]["horizons"]` and from every zone's touch chances, and records `block["event_zone"]`.
+  - **Downstream.** No text, `/risk` figure, `/alert` reply, alert line or tracked forecast can be built from a withheld horizon. The texts name the release and its time (`zone_note`). The corridor header drops «4 из 5» in an event context. The «Коридор 1ч с учётом события» string is removed.
+  - **Outside every zone.** The generic corridor is unchanged, and its event flag can never be on there.
+  - **Tests.** `tests/beta/test_beta_v2_event_zone.py`: the zone boundaries for 1h/4h/24h; every surface in RU/EN; alert payloads that still carry a corridor; an end-to-end PostgreSQL run around a CPI release.
 
 ## 10. What this record does not do
 

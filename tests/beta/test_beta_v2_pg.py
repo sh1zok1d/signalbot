@@ -40,7 +40,7 @@ async def _rows(pool, sql, *args):
         return [dict(r) for r in await c.fetch(sql, *args)]
 
 
-async def _seed(pool, *, touch_at_minute=357):
+async def _seed(pool, *, touch_at_minute=357, minutes=6 * 60):
     """History for 131 days, then today's Binance 1m tail: flat below yesterday's high, one touch."""
     from beta.hist_series import bars_from_rows
     rows, ois = synthetic_rows(T0, HIST_DAYS, seed=11)
@@ -53,7 +53,7 @@ async def _seed(pool, *, touch_at_minute=357):
     pdh = float(max(r["high"] for r in rows[-288:]))
     base = min(rows[-1]["close"], pdh * 0.995)
     recs = []
-    for m in range(6 * 60):
+    for m in range(minutes):
         ts = DAY + timedelta(minutes=m)
         hi = pdh + 5.0 if m == touch_at_minute else base * 1.0005
         recs.append(("binance", "BTCUSDT", ts, base, hi, base * 0.9995, base, 10.0, 5.0, "live"))
@@ -220,8 +220,13 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         text = plain(out[-1].html)
         assert text.startswith("Уровни BTC · Binance · цена ") and "\nВыше\n" in text and "\nНиже\n" in text
         assert "дойти: за 4ч" in text and "после первого касания" in text
+        # NOW is 06:00 UTC on a CPI day (12:30 UTC): inside the 24h event zone, outside the 1h/4h ones
+        assert "за 24ч" not in text and "Коридор 24ч" not in text
+        assert "24ч: числовую оценку не показываем — CPI США (инфляция), Вт 12.05 15:30 (Киев)" in text
         out = await h.handle(msgs[A]("/risk 0.5", 101))
-        assert "Стоп 0,50%" in plain(out[-1].html) and "за 24ч — в " in plain(out[-1].html)
+        risk = plain(out[-1].html)
+        assert "Стоп 0,50%" in risk and "за 1ч — в " in risk and "за 4ч — в " in risk
+        assert "за 24ч — без оценки" in risk and "24ч: числовую оценку не показываем" in risk
         out = await h.handle(msgs[A]("/events", 102))
         assert plain(out[-1].html).startswith("События (время — Киев)")
         out = await h.handle(msgs[A]("/accuracy", 103))
@@ -241,7 +246,9 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         assert out[-1].buttons[-1] == [("Уровни", "L:levels"), ("Риск", "L:risk")]
         out = await h.handle(msgs[A]("/catchup", 114))
         catchup = plain(out[-1].html)
-        assert "Уровни (шанс дойти за 24ч)" in catchup and ("— сейчас " in catchup or "Цена у уровня" in catchup)
+        assert "Уровни\n" in catchup and "шанс дойти" not in catchup
+        assert "— сейчас " in catchup or "Цена у уровня" in catchup
+        assert "в 4 из 5" not in catchup and "4ч: " in catchup and "24ч: числовую оценку не показываем" in catchup
         assert "15:30 — CPI США (инфляция)" in catchup                 # 2026-05-12 is a CPI day
         views = await _rows(pool, "SELECT kind, payload->'decision'->>'available' AS ok FROM beta_btc_views ORDER BY view_pk")
         assert views[-2:] == [{"kind": "btc", "ok": "true"}, {"kind": "catchup", "ok": "true"}]
@@ -251,7 +258,9 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         brief_cfg = CFG.with_overrides(briefing={"enabled": True, "time_kyiv": "08:00", "max_delay_min": 120})
         r = await run_notify_once(store, brief_cfg, ON_PUSH, sender=s, clock=Clock(NOW))
         m = r["market"]
-        assert m["pushed"] == 1 and m["sent"] == 1 and m["forecasts_recorded"] == 3
+        assert m["pushed"] == 1 and m["sent"] == 1 and m["forecasts_recorded"] == 2      # 24h is in its zone
+        tracked = await _rows(pool, "SELECT horizon FROM beta_forecasts ORDER BY horizon")
+        assert tracked == [{"horizon": "1h"}, {"horizon": "4h"}]
         alerts = await _rows(pool, "SELECT kind, alert_key, decision FROM beta_market_alerts")
         assert alerts == [{"kind": "level", "alert_key": f"level:PDH:{DAY.date().isoformat()}", "decision": "PUSH"}]
         level_msgs = [x for x in s.sent if "максимум вчера" in plain(x[1]) and "первое касание" in plain(x[1])]

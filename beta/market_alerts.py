@@ -129,7 +129,8 @@ def detect_level_touches(block: Mapping[str, Any], b: Bars, closed_1m, *, now: d
                     "payload": {"at": touched.isoformat(), "level_kind": kind, "level": lv["price"],
                                 "side": side, "period": pname, "price": block["price"],
                                 "history": {k: rec[k] for k in ("real", "control", "verdicts")} if rec else None,
-                                "next": _zone_brief(nxt), "corridor_4h": corridor_4h}})
+                                "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
+                                "event_zone": block.get("event_zone") or {}}})
     return _one_per_price(out)
 
 
@@ -157,7 +158,6 @@ def detect_events(block: Mapping[str, Any], cal, *, now: datetime, lead: timedel
     from .calendar_events import PUSH_KINDS
     out = []
     ev_stats = ((stats or {}).get("events") or {}).get("kinds") or {}
-    corridor_1h = ((block.get("corridor") or {}).get("horizons") or {}).get("1h")
     for e in cal["events"]:
         if e["kind"] not in PUSH_KINDS or not (now < e["at"] <= now + lead):
             continue
@@ -165,7 +165,7 @@ def detect_events(block: Mapping[str, Any], cal, *, now: datetime, lead: timedel
         out.append({"kind": "event", "key": f"event:{e['kind']}:{e['at'].isoformat()}",
                     "payload": {"at": now.isoformat(), "event_kind": e["kind"], "event_at": e["at"].isoformat(),
                                 "minutes": mins, "price": block["price"], "stats": ev_stats.get(e["kind"]),
-                                "corridor_1h": corridor_1h}})
+                                "event_zone": block.get("event_zone") or {}}})
     return out
 
 
@@ -197,7 +197,7 @@ def detect_move(block: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime, 
                          "open": o, "close": c, "move_pct": move, "ratio": abs(move) / S,
                          "every_days": (1.0 / eps) if eps else None,
                          "corridor_1h": ((block.get("corridor") or {}).get("horizons") or {}).get("1h"),
-                         "near": [_zone_brief(z) for z in near]}}]
+                         "near": [_zone_brief(z) for z in near], "event_zone": block.get("event_zone") or {}}}]
 
 
 def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any], now: Optional[datetime] = None,
@@ -217,7 +217,8 @@ def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any],
         out.append({"kind": "price", "key": f"price:{a['price_alert_pk']}", "price_alert_pk": a["price_alert_pk"],
                     "target_user_pk": a["user_pk"],
                     "payload": {"at": at.isoformat(), "level": float(a["price"]), "late": late,
-                                "price": block["price"], "corridor_4h": corridor_4h}})
+                                "price": block["price"], "corridor_4h": corridor_4h,
+                                "event_zone": block.get("event_zone") or {}}})
     return out
 
 

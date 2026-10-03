@@ -7713,3 +7713,9 @@ FALLBACK                       = no numerical corridor around releases until a p
 EVENT_CODE_CHANGED             = NO
 EVENT_MODEL_RETRAINED          = NO
 ```
+
+**Follow-up (2026-10-03, owner scope "product safety fallback + feasibility clarification").**
+- **Feasibility.** Recomputed with methods fixed before computing: exact one-sided binomial for detection, Wilson for precision. 12 / 38 / 127 releases to detect a true coverage of 40% / 60% / 70% against 80% (α = 0.05, power 0.80); 81 / 289 releases for ±10 / ±5 pp. The earlier 8 / 29 / 109 / 62 / 246 came from two undeclared normal approximations and are superseded.
+- **BitMEX XBTUSD 2017–2019.** Provenance audit, no outcome computed: read in bulk by D2 and D7; only aggregates published; no CPI/FOMC calendar ever joined. Every hour, event hours included, entered D7 states and D2 volatility, and the C012 triage already named the surface for scheduled events. Verdict: `NOT_PROVABLY_INDEPENDENT`.
+- **Product fallback.** Implemented in the V2 branch: no numerical corridor, touch chance or `/risk` figure inside `[release − H, release + 60 min)`; no multiplier; no forecast tracked there.
+- **Unchanged.** `EVENT_CODE_CHANGED_FOR_K1 = NO`, `EVENT_MODEL_RETRAINED = NO`, `PROTECTED_BYTES_FETCHED = NO`.

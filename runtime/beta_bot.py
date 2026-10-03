@@ -465,14 +465,16 @@ class BetaBotHandler:
             return t(lang, "al_limit", n=int(self.cfg.section("decision")["max_price_alerts"]))
         stats = await latest_stats(conn, now=now)
         model = (stats or {}).get("range_model")
-        hz = ((block.get("corridor") or {}).get("horizons") or {}).get("24h")
+        hz = ((block.get("corridor") or {}).get("horizons") or {}).get("24h")     # absent in its event zone
         if model and hz:
             from beta.rangecast import touch_probability
             p = touch_probability(model, "24h", hz["scale_pct"], abs(dist))
             return t(lang, "al_set", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
                      now=fmt_price(price, lang), p=df.fmt_prob(p, lang))
-        return t(lang, "al_set_plain", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
-                 now=fmt_price(price, lang))
+        reply = t(lang, "al_set_plain", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
+                  now=fmt_price(price, lang))
+        note = df.zone_note(block.get("event_zone"), ["24h"], lang)
+        return reply + "\n" + note if note else reply
 
     async def _view(self, conn, now: datetime, *, kind: str, window_hours: Optional[int] = None) -> dict:
         return await build_view(conn, self.cfg, now=now, kind=kind, window_hours=window_hours,
