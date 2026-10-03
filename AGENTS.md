@@ -60,6 +60,9 @@ A narrow **descriptive private beta V0.2** is authorized (`docs/PRIVATE_BETA_V0_
 - **V0.3 (2026-10-02):** the surface is a market briefing (`docs/BETA_V0_3_MARKET_BRIEFING.md`).
   - **One narrow exception to the predictive freeze:** outcome-aware historical analogue summaries, only under `docs/BETA_HISTORICAL_ANALOGUE_GATE_V1.md`. That means a baseline beside every number, N and spread, a mandatory verdict, separate historical and live cohorts, and no 2025/2026 data.
   - **Superseded 2026-10-03 by PRODUCT_DECISION_V2:** directional history, range forecasts and touch probabilities are allowed in the product; trade recommendations, targets and direct long/short calls stay forbidden.
+- **Research ↔ bot (PRODUCT_DECISION_V2 §2.4).** `config/beta_research_findings.yaml` lists closed research units in trader language (confirmed, discovery-only, below the bar, not confirmed, side findings, underpowered). The bot shows one «Проверено: …» line in the matching context and the full list in `/research`.
+  - **When a research unit closes,** add or update its entry in the same change: a text that states only what its record states, its own numbers, its record path, and the bot contexts it applies to (`pending_merge: true` while the record is on an unmerged branch; remove the flag when it merges).
+  - Never turn a null into a trade call, never extend a result beyond its tested scope (D11 is FOMC only; C012 says nothing either way), and never edit a sealed record to fit a bot text.
 
 ## Read these sources first
 

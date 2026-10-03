@@ -23,6 +23,12 @@ _FORBIDDEN_EN = [
     r"\b(open|enter)\s+(a\s+)?(long|short)\b", r"\bentry\s+points?\b", r"\btake[- ]?profit\b",
     r"\bprice\s+targets?\b", r"\btargets?\b", r"\brecommend", r"\bguaranteed\b", r"\byou\s+should\b",
     r"\bto\s+the\s+moon\b", r"\bpump(ing)?\b", r"\bdump(ing)?\b",
+    # instructions to act ("buy BTC at 64000", "sell here", "entry: 64,000", "stop loss at", "10x leverage");
+    # the nouns the texts use (buyers, buyer-initiated, aggressive selling, a stop 0.5% away) stay allowed
+    r"\b(buy|sell|long|short)(ing)?\s+(btc|bitcoin|here|there|at|from|above|below|the\s+(dip|break|top|bottom))\b",
+    r"\bentry\s*[:=@]", r"\benter\s+(here|at|now|above|below)\b",
+    r"\bstop[- ]?loss\s+(at|@|to|below|above)\b", r"\b(set|place|move)\s+(your|a|the)\s+stop\b",
+    r"\b\d+\s*x\s+leverage\b", r"\b(use|with|take)\s+\d+\s*x\b",
 ]
 _FORBIDDEN_EN_CASE = [r"\bLONG\b", r"\bSHORT\b", r"\bBUY\b", r"\bSELL\b"]
 
@@ -45,6 +51,14 @@ _FORBIDDEN_RU = [
     r"(?<!\w)дамп\w*",
     r"(?<!\w)ракет\w*",
     r"(?<!\w)обвал\w*",
+    # first-person / imperative calls to act («покупаем», «входим», «шорт от 66000», «вход в лонг»)
+    r"(?<!\w)(?:покупаем|покупаю|прода[её]м|продаю|входим|вхожу|заходим|захожу)(?!\w)",
+    r"(?<!\w)(?:открываем|открываю|берите|бери|бер[её]м|беру|ставим|ставьте|набираем|набирайте)\s+(?:в\s+)?(?:лонг|шорт)\w*",
+    r"(?<!\w)(?:лонг|шорт)\s+(?:от|с|по|на)\s+\d",
+    r"(?<!\w)вход\w*\s+(?:в\s+(?:лонг|шорт)|на\s+\d|по\s+\d|от\s+\d)",
+    r"(?<!\w)стоп(?:-лосс)?\w*\s+(?:ставим|ставьте|поставьте|переносим|переносите)(?!\w)",
+    r"(?<!\w)(?:ставим|ставьте|поставьте|переносим|переносите)\s+стоп\w*",
+    r"(?<!\w)плеч\w*\s+[xх]?\d+", r"(?<!\w)[xх]\d+\s+плеч\w*",
     # attributions nobody can observe (kept from V0.2: they are claims, not forecasts)
     r"(?<!\w)толкают(?!\w)",
     r"(?<!\w)сливают(?!\w)",

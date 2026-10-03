@@ -32,7 +32,15 @@ The product answers three questions for an intraday BTC-perpetual trader, in Rus
 2. **Where are the levels everyone watches, and what happened there before?** Objective levels only: previous day/week/month high and low, day/week/month open, session highs/lows, day VWAP, the previous day's volume point of control, round numbers and recent liquidation clusters. Nearby levels merge into zones. Each zone shows its distance and the chance to reach it. Each level type shows what happened after the first touch, beside a random level at the same distance.
 3. **What happened after similar situations, and what is scheduled today?** For each 1h / 4h state label: N, how often price was higher after 1h / 4h / 24h, median move and the typical move up and down, always beside "обычно" in the same volatility. A verdict is computed: «как обычно» or «отличается». A calendar shows CPI, FOMC, Deribit expiry and funding times, with the historical size of such days.
 
+4. **What did our own research find?** `config/beta_research_findings.yaml` turns the closed research units into short trader-language lines (§2.4). A line appears where its result applies, prefixed «Проверено:»: for example, H01 beside a «сжатие» label (a lull did not announce a breakout), D11 beside an FOMC reminder, R03-C1 on a weekend, H03 under a sharp-move alert, D2 in `/risk`. `/research` lists all of them by status: replicated, found once, below the bar, beliefs that did not hold, side findings of hypotheses that missed their own target, and units with too few cases for a verdict.
+
 **Pushes** become timely: the first touch of a key level (previous day/week/month high or low) with its history, a reminder before CPI / FOMC, a sharp 15-minute move, and the user's own price alerts. The late unusual-hour push stays available and can be switched off per user.
+
+### 2.4 Research ↔ bot
+
+- **Source.** One registry entry per closed unit: id, status, RU/EN text (at most 220 characters, guard-checked), the data it was measured on, the record path, the bot contexts and a priority. `beta/research_link.py` validates it (unique ids, length, wording, record present unless `pending_merge`).
+- **Rules.** A text states only what its record states. A discovery-only result says so; a result below its frozen materiality bar says so; an underpowered unit is listed in `/research` but never shown as «Проверено». Research verdicts are unchanged by being shown.
+- **Upkeep.** When a research unit closes, its entry is added or updated in the same change (AGENTS.md). Entries from `OWNER_CARDS_R03` carry `pending_merge: true` until that branch merges.
 
 ## 3. Rules that stay
 
@@ -68,7 +76,7 @@ Unchanged: one detector, one episodization, one context projection, one outbox, 
 
 ## 6. User test
 
-The 30-day test of `PRODUCT_FIRST_DECISION_V1.md` §7 (U1a, U1b, U2, U3, U4, U5 and the Continue / Reposition / Pivot / Stop rules) runs on this V2 surface. Its thresholds are fixed before the first invitation as written there. The new commands are counted as pull (`cmd_levels`, `cmd_risk`, `cmd_alert`, `cmd_events`, `cmd_accuracy`); `alert_delivered` counts as a push.
+The 30-day test of `PRODUCT_FIRST_DECISION_V1.md` §7 (U1a, U1b, U2, U3, U4, U5 and the Continue / Reposition / Pivot / Stop rules) runs on this V2 surface. Its thresholds are fixed before the first invitation as written there. The new commands are counted as pull (`cmd_levels`, `cmd_risk`, `cmd_alert`, `cmd_events`, `cmd_accuracy`, `cmd_research`); `alert_delivered` counts as a push.
 
 ## 7. Implementation map
 
@@ -83,6 +91,7 @@ The 30-day test of `PRODUCT_FIRST_DECISION_V1.md` §7 (U1a, U1b, U2, U3, U4, U5 
 | Live decision block for every surface | `beta/decision.py` |
 | Market alerts (levels, events, sharp moves, user alerts), forecast tracking | `beta/market_alerts.py` (inside `--beta-notify-once`) |
 | Texts | `beta/decision_format.py`, `beta/i18n.py` |
+| Research findings in the bot («Проверено», `/research`) | `beta/research_link.py`, `config/beta_research_findings.yaml` |
 | V2 tape rewind (removes «мало истории» where raw data exist) | `--beta-bootstrap-rewind` |
 | VPS upgrade helper | `deploy/beta_v2_upgrade.sh` |
 

@@ -23,7 +23,12 @@ from .i18n import assert_descriptive, t
 
 FINDINGS_PATH = Path(__file__).resolve().parent.parent / "config" / "beta_research_findings.yaml"
 REPO_ROOT = Path(__file__).resolve().parent.parent
-STATUSES = ("CONFIRMED", "NOT_CONFIRMED", "SIDE_FINDING", "UNDERPOWERED")
+# CONFIRMED: replicated on an independent surface; DISCOVERY: one run, not replicated; WEAK: the
+# effect is there but below the frozen materiality bar; NOT_CONFIRMED: the tested belief failed;
+# SIDE_FINDING: the hypothesis failed but the record states something else; UNDERPOWERED: too
+# few cases for any verdict (shown only in /research, never as «Проверено»).
+STATUSES = ("CONFIRMED", "DISCOVERY", "WEAK", "NOT_CONFIRMED", "SIDE_FINDING", "UNDERPOWERED")
+CONTEXT_STATUSES = ("CONFIRMED", "DISCOVERY", "WEAK", "NOT_CONFIRMED", "SIDE_FINDING")
 MAX_TEXT = 220
 
 
@@ -79,7 +84,8 @@ def validate(findings: Iterable[Mapping[str, Any]]) -> list:
 
 def for_context(context: str, findings: Optional[Iterable[Mapping[str, Any]]] = None) -> list:
     fs = load_findings() if findings is None else findings
-    return sorted((f for f in fs if context in f["contexts"]), key=lambda f: (f["priority"], f["id"]))
+    return sorted((f for f in fs if context in f["contexts"] and f["status"] in CONTEXT_STATUSES),
+                  key=lambda f: (f["priority"], f["id"]))
 
 
 def context_line(contexts: Iterable[str], lang: str,
@@ -99,17 +105,39 @@ def label_contexts(window: str, key: Optional[str]) -> list:
     return [f"label:{window}:{key}", f"label:{key}"]
 
 
-def format_research(lang: str, findings: Optional[Iterable[Mapping[str, Any]]] = None) -> str:
+TELEGRAM_SAFE_CHARS = 3800          # Telegram's limit is 4096; leave room for entities
+
+
+def format_research(lang: str, findings: Optional[Iterable[Mapping[str, Any]]] = None,
+                    limit: int = TELEGRAM_SAFE_CHARS) -> list:
+    """/research as one or more messages, each under `limit` characters, split between status
+    groups (or between items of a long group); the title opens the first, the footer closes the last."""
     fs = list(load_findings() if findings is None else findings)
-    lines = [t(lang, "rs_title")]
+    blocks = []
     for status in STATUSES:
         group = sorted((f for f in fs if f["status"] == status), key=lambda f: (f["priority"], f["id"]))
-        if not group:
-            continue
-        lines.append("")
-        lines.append(t(lang, "rs_group_" + status.lower()))
-        for f in group:
-            lines.append(t(lang, "rs_item", text=f[f"text_{lang}"], id=f["id"], data=f["data"]))
-    lines.append("")
-    lines.append(t(lang, "rs_footer"))
-    return assert_descriptive("\n".join(lines), lang)
+        if group:
+            blocks.append([t(lang, "rs_group_" + status.lower())] +
+                          [t(lang, "rs_item", text=f[f"text_{lang}"], id=f["id"], data=f["data"]) for f in group])
+    parts, cur = [], [t(lang, "rs_title")]
+
+    def fits(lines):
+        return len("\n".join(lines)) <= limit
+
+    for block in blocks:
+        head, items = block[0], block[1:]
+        for k, line in enumerate(items):
+            add = (["", head] if k == 0 else []) + [line]
+            if fits(cur + add):
+                cur += add
+                continue
+            parts.append(cur)                       # a new message; a split group says so
+            cur = [head if k == 0 else f"{head} {t(lang, 'rs_continued')}", line]
+    footer = t(lang, "rs_footer")
+    if fits(cur + ["", footer]):
+        cur += ["", footer]
+    else:
+        parts.append(cur)
+        cur = [footer]
+    parts.append(cur)
+    return [assert_descriptive("\n".join(p), lang) for p in parts]

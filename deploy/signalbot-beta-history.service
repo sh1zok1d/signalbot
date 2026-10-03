@@ -18,8 +18,9 @@ ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
 ExecStartPre=/usr/bin/test -r /opt/signalbot/.env
 ExecStartPre=/usr/bin/test -f /opt/signalbot/main.py
 ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py --postgres-only --timeout 60
-# 1) fetch the objects the ledger does not hold yet (resumable; a few objects a night)
-ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/main.py --beta-history-sync --beta-json --log-level INFO
+# 1) fetch the objects the ledger does not hold yet (resumable; a few objects a night).
+#    "-": a failed sync (network down) must not skip the build over the history already stored.
+ExecStart=-/opt/signalbot/.venv/bin/python /opt/signalbot/main.py --beta-history-sync --beta-json --log-level INFO
 # 2) rebuild the statistics from the stored history (appends one beta_hist_stats row)
 ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/main.py --beta-history-build --beta-json --log-level INFO
 TimeoutStartSec=3600

@@ -29,7 +29,7 @@ from typing import Any, Mapping, Optional
 from .config import BetaConfig
 from .hist_series import BAR_MS, Bars, from_ms, to_ms
 from .models import D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED, D_UNKNOWN, \
-    DELIVERY_TOO_OLD, USER_INACTIVE
+    DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE
 
 logger = logging.getLogger("beta.market_alerts")
 
@@ -37,6 +37,8 @@ MARKET_ALERTS_VERSION = "BETA_MARKET_ALERTS_V1"
 CAPPED_KINDS = ("level", "move")
 QUIET_KINDS = ("level", "move", "event")
 RECORD_WINDOW_MIN = 10
+SCORE_SETTLE = timedelta(minutes=3)     # the window's last 1m bars have closed and been collected
+SAME_PRICE_FRAC = 0.0005                # push levels this close are one touch (zones merge at levels.ZONE_TOL_PCT)
 DAY_MS = 86_400_000
 
 
@@ -53,18 +55,28 @@ def _period_start(name: str, now: datetime) -> datetime:
     return d.replace(day=1)
 
 
-def _series_since(b: Bars, closed_1m, start: datetime):
-    """[(open time, high, low, close, minutes)] of bars opening at or after `start`: closed 5m
-    bars of the grid, then the closed 1m bars after the grid's last bar."""
-    out = []
-    a = max(0, -(-(to_ms(start) - b.t0) // BAR_MS))      # first 5m bar opening at or after start
+def _series_since(b: Bars, closed_1m, start: datetime, end: Optional[datetime] = None):
+    """[(open time, high, low, close, minutes)] of the closed bars lying wholly inside [start, end),
+    in time order: 5m grid bars where a whole 5m bar fits, 1m bars of the Stage-1 tail for the
+    rest (the partial 5m bars at either edge and the minutes after the grid's last bar). A bar
+    that only partly overlaps the window is never counted whole."""
+    s_ms = to_ms(start)
+    e_ms = to_ms(end) if end is not None else None
+    out, used5 = [], set()
+    a = max(0, -(-(s_ms - b.t0) // BAR_MS))               # first 5m bar opening at or after start
     for i in range(int(a), b.n):
+        t = b.t0 + i * BAR_MS
+        if e_ms is not None and t + BAR_MS > e_ms:
+            break
         if math.isfinite(b.close[i]):
-            out.append((from_ms(b.t0 + i * BAR_MS), float(b.high[i]), float(b.low[i]), float(b.close[i]), 5))
-    last5 = from_ms(b.end_ms)
+            out.append((from_ms(t), float(b.high[i]), float(b.low[i]), float(b.close[i]), 5))
+            used5.add(t)
     for r in closed_1m or ():
-        if r["ts"] >= max(last5, start):
-            out.append((r["ts"], float(r["high"]), float(r["low"]), float(r["close"]), 1))
+        t = to_ms(r["ts"])
+        if t < s_ms or (e_ms is not None and t + 60_000 > e_ms) or (t - t % BAR_MS) in used5:
+            continue
+        out.append((r["ts"], float(r["high"]), float(r["low"]), float(r["close"]), 1))
+    out.sort(key=lambda x: x[0])
     return out
 
 
@@ -118,7 +130,26 @@ def detect_level_touches(block: Mapping[str, Any], b: Bars, closed_1m, *, now: d
                                 "side": side, "period": pname, "price": block["price"],
                                 "history": {k: rec[k] for k in ("real", "control", "verdicts")} if rec else None,
                                 "next": _zone_brief(nxt), "corridor_4h": corridor_4h}})
-    return out
+    return _one_per_price(out)
+
+
+_PUSH_RANK = {"M": 0, "W": 1, "D": 2}                     # month > week > day
+
+
+def _one_per_price(cands: list) -> list:
+    """A week high that is also the day high is one market fact: keep the most important kind
+    and name the others in it, so one touch sends one message and uses one daily slot."""
+    cands = sorted(cands, key=lambda c: (_PUSH_RANK[c["payload"]["level_kind"][1]], c["key"]))
+    kept: list = []
+    for c in cands:
+        p = c["payload"]
+        same = next((k for k in kept if k["payload"]["side"] == p["side"]
+                     and abs(k["payload"]["level"] - p["level"]) <= SAME_PRICE_FRAC * p["level"]), None)
+        if same is None:
+            kept.append(c)
+        else:
+            same["payload"].setdefault("also_kinds", []).append(p["level_kind"])
+    return kept
 
 
 def detect_events(block: Mapping[str, Any], cal, *, now: datetime, lead: timedelta,
@@ -139,34 +170,41 @@ def detect_events(block: Mapping[str, Any], cal, *, now: datetime, lead: timedel
 
 
 def detect_move(block: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime, model, events) -> list:
+    """A sharp 15-minute move on the closed 5m grid: |close[i] / close[i-3] - 1| over the 1h scale
+    known before the move began. It is the statistic the threshold was calibrated on
+    (`rangecast.move_ratio`), so «примерно раз в N дней» holds; it is checked once per closed
+    5m bar (a sliding 1m window would fire more often than the calibration says)."""
     from .rangecast import MOVE_WINDOW_BARS, scale_at
     thr = ((model or {}).get("move") or {})
-    if not model or not thr.get("threshold") or not closed_1m:
+    if not model or not thr.get("threshold") or b.n <= MOVE_WINDOW_BARS:
         return []
-    last = closed_1m[-1]
-    start_ts = last["ts"] + timedelta(minutes=1) - timedelta(minutes=5 * MOVE_WINDOW_BARS)
-    first = next((r for r in closed_1m if r["ts"] == start_ts), None)
-    if first is None:
+    if to_ms(now) - b.end_ms >= BAR_MS:                  # the grid's last bar is not the latest closed one
         return []
-    o, c = float(first["open"]), float(last["close"])
+    i = b.n - 1
+    j = i - MOVE_WINDOW_BARS                              # last 5m bar closed before the move began
+    o, c = float(b.close[j]), float(b.close[i])
+    if not (math.isfinite(o) and math.isfinite(c)) or o <= 0:
+        return []
     move = (c - o) / o * 100.0
-    i = (to_ms(start_ts) - b.t0) // BAR_MS - 1            # last 5m bar closed before the move began
-    S = scale_at(model, b, int(min(i, b.n - 1)), "1h", events=events) if i >= 0 else None
+    S = scale_at(model, b, j, "1h", events=events)
     if not S or abs(move) / S < float(thr["threshold"]):
         return []
     lv = block.get("levels") or {}
     near = [z for z in ((lv.get("above") or [])[:1] + (lv.get("below") or [])[:1]) if z]
-    slot = to_ms(now) // (15 * 60_000)
     eps = thr.get("episodes_per_day")
-    return [{"kind": "move", "key": f"move:{slot}",
-             "payload": {"at": (last["ts"] + timedelta(minutes=1)).isoformat(), "start": start_ts.isoformat(),
+    return [{"kind": "move", "key": f"move:{b.end_ms // BAR_MS}",
+             "payload": {"at": from_ms(b.end_ms).isoformat(), "start": from_ms(b.t0 + (j + 1) * BAR_MS).isoformat(),
                          "open": o, "close": c, "move_pct": move, "ratio": abs(move) / S,
                          "every_days": (1.0 / eps) if eps else None,
                          "corridor_1h": ((block.get("corridor") or {}).get("horizons") or {}).get("1h"),
                          "near": [_zone_brief(z) for z in near]}}]
 
 
-def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any]) -> list:
+def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any], now: Optional[datetime] = None,
+                        max_age: Optional[timedelta] = None) -> list:
+    """A personal alert fires on the first touch after it was set. A touch older than `max_age`
+    (the participant was stopped, or pushes were paused) is still reported, marked `late`, so
+    the message names the day and time instead of looking current."""
     out = []
     corridor_4h = ((block.get("corridor") or {}).get("horizons") or {}).get("4h")
     for a in active:
@@ -174,9 +212,11 @@ def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any])
         touched = first_touch(_series_since(b, closed_1m, a["created_at"]), float(a["price"]), side)
         if touched is None:
             continue
+        at = max(touched, a["created_at"])
+        late = bool(now is not None and max_age is not None and now - at > max_age)
         out.append({"kind": "price", "key": f"price:{a['price_alert_pk']}", "price_alert_pk": a["price_alert_pk"],
                     "target_user_pk": a["user_pk"],
-                    "payload": {"at": max(touched, a["created_at"]).isoformat(), "level": float(a["price"]),
+                    "payload": {"at": at.isoformat(), "level": float(a["price"]), "late": late,
                                 "price": block["price"], "corridor_4h": corridor_4h}})
     return out
 
@@ -197,14 +237,15 @@ async def _decide_and_record(conn, cfg: BetaConfig, cand: Mapping[str, Any], *, 
     elif kind in CAPPED_KINDS and await conn.count_market_pushes(utc_day=now.astimezone(timezone.utc).date(),
                                                                  kinds=CAPPED_KINDS) >= int(m["max_per_utc_day"]):
         reason = "DAILY_CAP"
-    pk = await conn.insert_market_alert(kind=kind, alert_key=cand["key"], decision_ts=now,
-                                        decision="PUSH" if reason is None else "SUPPRESSED",
-                                        suppression_reason=reason, payload=cand["payload"],
-                                        target_user_pk=cand.get("target_user_pk"))
+    async with conn.transaction():          # a price alert is recorded and consumed together
+        pk = await conn.insert_market_alert(kind=kind, alert_key=cand["key"], decision_ts=now,
+                                            decision="PUSH" if reason is None else "SUPPRESSED",
+                                            suppression_reason=reason, payload=cand["payload"],
+                                            target_user_pk=cand.get("target_user_pk"))
+        if kind == "price":
+            await conn.mark_price_alert_triggered(cand["price_alert_pk"], at=now)
     if pk is None:
         return "DUPLICATE"
-    if kind == "price":
-        await conn.mark_price_alert_triggered(cand["price_alert_pk"], at=now)
     return "PUSH" if reason is None else reason
 
 
@@ -231,8 +272,8 @@ async def record_forecasts(conn, block: Mapping[str, Any], *, now: datetime) -> 
 
 async def score_forecasts(conn, b: Bars, closed_1m, *, now: datetime) -> dict:
     out = {"scored": 0, "no_data": 0}
-    for f in await conn.fetch_matured_forecasts(now=now):
-        series = [x for x in _series_since(b, closed_1m, f["issued_at"]) if x[0] < f["horizon_end"]]
+    for f in await conn.fetch_matured_forecasts(now=now - SCORE_SETTLE):
+        series = _series_since(b, closed_1m, f["issued_at"], f["horizon_end"])
         minutes = (f["horizon_end"] - f["issued_at"]).total_seconds() / 60
         covered = sum(x[4] for x in series)
         if not series or covered < 0.9 * minutes:
@@ -274,7 +315,8 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             if last_move is None or now - last_move >= timedelta(minutes=int(m["move_cooldown_min"])):
                 cands += detect_move(block, b, closed, now=now, model=cap.get("model"), events=cap.get("events"))
             if push_on:
-                cands += detect_price_alerts(await conn.fetch_active_price_alerts(), b, closed, block=block)
+                cands += detect_price_alerts(await conn.fetch_active_price_alerts(), b, closed, block=block, now=now,
+                                             max_age=timedelta(minutes=int(m["touch_max_age_min"])))
         known = await conn.market_alert_keys([c["key"] for c in cands]) if cands else set()
         for c in cands:
             if c["key"] in known:
@@ -292,7 +334,7 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
     for a in await conn.fetch_undispatched_market_alerts(cfg["notifications"]["max_deliveries_per_run"]):
         rep["materialized"] += await conn.materialize_alert_deliveries(
             alert_pk=a["alert_pk"], kind=a["kind"], decision_ts=a["decision_ts"],
-            target_user_pk=a["target_user_pk"], expired=(now - a["decision_ts"] > ttl))
+            target_user_pk=a["target_user_pk"], expired=(now - a["decision_ts"] > ttl), now=now)
     for row in await conn.fetch_pending_alert_deliveries(cfg["notifications"]["max_deliveries_per_run"]):
         now = clock()
         did = row["delivery_id"]
@@ -300,6 +342,11 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_EXPIRED, now=now,
                                            suppression_reason=DELIVERY_TOO_OLD)
             rep["expired"] += 1
+            continue
+        if not push_on:             # paused after the row was made: never sent late
+            await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                           suppression_reason=PUSH_DISABLED)
+            rep["suppressed"] += 1
             continue
         if row["user_status"] != "ACTIVE":
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,

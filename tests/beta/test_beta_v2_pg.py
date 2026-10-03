@@ -94,6 +94,9 @@ def test_history_sync_verifies_resumes_and_falls_back_to_daily_objects():
         "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-01.zip": kline_zip(on(date(2026, 9, 1)), "b.zip", header=False),
         "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-01.zip": kline_zip(on(date(2026, 10, 1)), "c.zip"),
         "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-02.zip": kline_zip(on(date(2026, 10, 2)), "d.zip"),
+        # verifies against its CHECKSUM but holds a row with high < low: BAD, and the sync goes on
+        "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-03.zip": kline_zip(
+            [{**r, "high": r["low"] - 1.0} if k == 5 else r for k, r in enumerate(on(date(2026, 9, 3)))], "e.zip"),
         "daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-10-01.zip": metrics_zip(
             [o for o in ois if datetime.fromtimestamp(o["ts_ms"] / 1000, tz=UTC).date() == date(2026, 10, 1)], "m.zip"),
     }
@@ -122,6 +125,8 @@ def test_history_sync_verifies_resumes_and_falls_back_to_daily_objects():
         assert ledger["monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09.zip"] == "MISSING"
         assert ledger["daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-01.zip"] == "OK"
         assert ledger["daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-02.zip"] == "MISSING"
+        assert ledger["daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-09-03.zip"] == "BAD" and rep["bad"] == 1
+        assert any("BTCUSDT-5m-2026-09-03" in e and "HistoryDataError" in e for e in rep["errors"])
         assert "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-02.zip" not in ledger      # never recorded as OK
         assert ledger["daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-10-02.zip"] == "MISSING"
         n = (await _rows(pool, "SELECT count(*) AS n FROM beta_hist_bars_5m"))[0]["n"]
@@ -249,10 +254,11 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
                                        taker_buy_volume, source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
                                    ON CONFLICT DO NOTHING""", later)
         await run_notify_once(store, CFG, ON_PUSH, sender=Sender(), clock=Clock(DAY + timedelta(hours=7, minutes=5, seconds=40)))
-        scored = await _rows(pool, "SELECT horizon, outcome FROM beta_forecasts WHERE outcome IS NOT NULL")
-        assert scored == [{"horizon": "1h", "outcome": "INSIDE"}]
+        scored = await _rows(pool, "SELECT horizon, outcome, realized_high AS high FROM beta_forecasts WHERE outcome IS NOT NULL")
+        # the 06:01 minute (the personal alert's +2% spike) is inside the window issued at 06:00:40
+        assert scored == [{"horizon": "1h", "outcome": "OUTSIDE", "high": target + 1.0}]
         out = await h.handle(msgs[A]("/accuracy", 200))
-        assert "1ч — 100% (из 1)" in plain(out[-1].html)
+        assert "1ч — 0% (из 1)" in plain(out[-1].html)
 
         # ---- /delete_me removes the participant's alerts ------------------------------------
         await h.handle(msgs[B]("/delete_me", 201))
@@ -277,5 +283,64 @@ def test_bootstrap_rewind_only_moves_the_watermark_back():
                                                   bucket_ts=NOW.replace(second=0))       # never forward
             wm = await conn.get_watermark("bootstrap", symbol="BTCUSDT", market_type="perp", timeframe="5m")
             assert wm == NOW.replace(second=0) - timedelta(days=30)
+        await pool.close()
+    run(body())
+
+
+def test_a_failing_update_never_replays_and_undeliverable_alerts_never_block():
+    from beta.market_alerts import run_market_alerts
+    from runtime.beta_bot import BOT_NAME
+
+    def event(at):
+        return {"at": at.isoformat(), "event_kind": "CPI", "event_at": (at + timedelta(minutes=30)).isoformat(),
+                "minutes": 30, "price": 60000.0, "stats": None, "corridor_1h": None}
+
+    async def body():
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        h = _handler(pool, 900000000001, Clock(NOW))
+        async with store.connect() as conn:
+            await conn.allowlist_add(A)
+        msg = await _join(h, A, 10)
+        out = await h.handle(msg("/alert nan", 20))                 # parses as a float; never reaches the DB
+        assert "/alert" in plain(out[-1].html)
+
+        async def boom(conn, update):
+            raise RuntimeError("bad update")
+        real, h._dispatch = h._dispatch, boom
+        assert await h.handle(msg("/btc", 21)) == []                 # logged, rolled back, skipped
+        h._dispatch = real
+        async with store.connect() as conn:
+            assert await conn.get_last_update_id(BOT_NAME) == 21     # the next poll does not fetch it again
+
+        # moves nobody receives (A switched them off) are marked dispatched, so they never crowd
+        # out the alerts behind them
+        cfg = CFG.with_overrides(notifications={**dict(CFG["notifications"]), "max_deliveries_per_run": 2})
+        async with store.connect() as conn:
+            await conn.set_push_pref(A, "push_moves", False)
+            for k in range(3):
+                await conn.insert_market_alert(kind="move", alert_key=f"move:t{k}", decision_ts=NOW - timedelta(minutes=3 - k),
+                                               decision="PUSH", suppression_reason=None, payload={"x": k})
+            await conn.insert_market_alert(kind="event", alert_key="event:t", decision_ts=NOW, decision="PUSH",
+                                           suppression_reason=None, payload=event(NOW))
+        s = Sender()
+        reps = []
+        for _ in range(2):
+            async with store.connect() as conn:
+                reps.append(await run_market_alerts(conn, cfg, sender=s, clock=Clock(NOW), push_on=True))
+        assert [r["materialized"] for r in reps] == [0, 1] and [r["sent"] for r in reps] == [0, 1]
+        assert [x[0] for x in s.sent] == [A] and "CPI" in plain(s.sent[0][1])
+        left = await _rows(pool, "SELECT count(*) AS n FROM beta_market_alerts WHERE dispatched_at IS NULL")
+        assert left == [{"n": 0}]
+
+        # a pause after the row was made: the pending row is suppressed, never sent late
+        async with store.connect() as conn:
+            await conn.insert_market_alert(kind="event", alert_key="event:t2", decision_ts=NOW, decision="PUSH",
+                                           suppression_reason=None, payload=event(NOW))
+            r = await run_market_alerts(conn, cfg, sender=s, clock=Clock(NOW), push_on=False)
+        assert r["materialized"] == 1 and r["sent"] == 0 and r["suppressed"] == 1 and len(s.sent) == 1
+        rows = await _rows(pool, "SELECT x.state, x.suppression_reason FROM beta_notification_deliveries x "
+                                 "JOIN beta_market_alerts a USING (alert_pk) WHERE a.alert_key='event:t2'")
+        assert rows == [{"state": "SUPPRESSED", "suppression_reason": "PUSH_DISABLED"}]
         await pool.close()
     run(body())

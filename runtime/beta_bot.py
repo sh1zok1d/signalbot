@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import html
 import logging
+import math
 import signal
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -140,14 +141,24 @@ class BetaBotHandler:
 
     async def handle(self, update: Mapping[str, Any]) -> list:
         update_id = int(update["update_id"])
+        try:
+            async with self.store.connect() as conn:
+                async with conn.transaction():
+                    last = await conn.get_last_update_id(BOT_NAME)
+                    if last is not None and update_id <= last:
+                        return []
+                    out = await self._dispatch(conn, update)
+                    await conn.set_last_update_id(BOT_NAME, update_id)
+            return out
+        except Exception as exc:  # noqa: BLE001 - one bad update must not crash-loop the poller
+            logger.warning("beta bot update failed: %s", type(exc).__name__)
+        # the update's own writes were rolled back; move past it so the next poll does not replay it
         async with self.store.connect() as conn:
             async with conn.transaction():
                 last = await conn.get_last_update_id(BOT_NAME)
-                if last is not None and update_id <= last:
-                    return []
-                out = await self._dispatch(conn, update)
-                await conn.set_last_update_id(BOT_NAME, update_id)
-        return out
+                if last is None or update_id > last:
+                    await conn.set_last_update_id(BOT_NAME, update_id)
+        return []
 
     async def _allowed(self, conn, uid: int) -> bool:
         return is_owner(self.owner, uid) or await conn.allowlist_contains(uid)
@@ -216,7 +227,7 @@ class BetaBotHandler:
         if cmd == "research":
             from beta.research_link import format_research
             return await self._reply(conn, user, chat_id, lang, now, "cmd_research",
-                                     [_msg(chat_id, format_research(lang), lang=lang)])
+                                     [_msg(chat_id, part, lang=lang) for part in format_research(lang)])
         if cmd in ("levels", "risk", "alert", "events", "accuracy"):
             reply = await self._decision_cmd(conn, cmd, user, now, lang, args)
             return await self._reply(conn, user, chat_id, lang, now, f"cmd_{cmd}",
@@ -438,6 +449,8 @@ class BetaBotHandler:
         try:
             level = float(raw)
         except ValueError:
+            return t(lang, "al_usage")
+        if not math.isfinite(level):        # "nan" / "inf" parse as floats
             return t(lang, "al_usage")
         if not price:
             return t(lang, "al_no_price")

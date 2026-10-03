@@ -18,6 +18,11 @@ from .models import (D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRE
                      DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE)
 
 
+# A PUSH decision nobody could receive never gets a delivery row; the scan stops looking
+# for rows that old so such decisions cannot crowd out new ones (at most two pushes a day).
+UNDISPATCHED_LOOKBACK = timedelta(days=7)
+
+
 class DeliveryRejected(RuntimeError):
     """Telegram explicitly rejected the send (safe to record FAILED)."""
 
@@ -53,7 +58,8 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
         async with store.connect() as conn:
             now = clock()
             report["recovered_unknown"] = await conn.recover_sending(now)
-            for d in await conn.fetch_undispatched_push_decisions(cfg["notifications"]["max_deliveries_per_run"]):
+            for d in await conn.fetch_undispatched_push_decisions(cfg["notifications"]["max_deliveries_per_run"],
+                                                                  since=now - UNDISPATCHED_LOOKBACK):
                 report["materialized"] += await conn.materialize_deliveries(
                     decision_id=d["decision_id"], episode_pk=d["episode_pk"],
                     decision_ts=d["decision_ts"], expired=(now - d["decision_ts"] > ttl))

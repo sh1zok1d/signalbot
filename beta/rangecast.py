@@ -70,11 +70,13 @@ def weekend_share(b: Bars, h: int) -> np.ndarray:
 
 
 def event_in_window(anchor_close_ms: np.ndarray, events_ms: Sequence[int], horizon_ms: int) -> np.ndarray:
+    """1 when an event falls in [anchor close, anchor close + H): the forward window starts at the
+    anchor's close, so a release exactly on the hour belongs to the window that starts then."""
     ev = np.sort(np.asarray(list(events_ms), dtype=np.int64))
     if ev.size == 0:
         return np.zeros(anchor_close_ms.shape[0])
-    a = np.searchsorted(ev, anchor_close_ms, side="right")
-    z = np.searchsorted(ev, anchor_close_ms + horizon_ms, side="right")
+    a = np.searchsorted(ev, anchor_close_ms, side="left")
+    z = np.searchsorted(ev, anchor_close_ms + horizon_ms, side="left")
     return (z > a).astype(np.float64)
 
 

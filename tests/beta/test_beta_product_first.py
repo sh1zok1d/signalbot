@@ -93,7 +93,10 @@ def test_push_unusual_hour_inferred_label_matches_the_reference_message():
                     "Цена −1,90% (61 950 → 60 770): падение глубже, чем в 95% часовых окон за 30 дней\n"
                     "OI +2,4% · Delta −$84 млн\n"
                     "Диапазон и объём — оба в топ-5% часовых окон за 30 дней\n"
-                    "Биржи: 3 из 3 в одну сторону")
+                    "Биржи: 3 из 3 в одну сторону\n"
+                    # the research registry's line for this 1h label (PRODUCT_DECISION_V2 §2.4)
+                    "↳ Проверено: после импульса рост OI вместе с продолжением цены не давал более сильного "
+                    "продолжения в следующий час, чем такой же импульс без роста OI (MARKET-02)")
     assert len(_lines(text)) <= 8
     assert_descriptive(text, "ru")
     assert_descriptive(format_push(_episode(), lang="en", gate=g), "en")

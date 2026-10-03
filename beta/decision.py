@@ -123,7 +123,14 @@ async def build_decision(conn, cfg: BetaConfig, *, now: datetime,
     the calendar the block was built from."""
     from .history_stats import json_safe
     try:
-        block = await _build(conn, cfg, now=now, market=market, capture=capture)
+        tx = getattr(conn, "transaction", None)
+        if tx is None:
+            block = await _build(conn, cfg, now=now, market=market, capture=capture)
+        else:
+            # a savepoint inside the caller's transaction: a failed read here rolls back to it,
+            # so the bot's own writes (the view, the activity row) still commit
+            async with tx():
+                block = await _build(conn, cfg, now=now, market=market, capture=capture)
     except Exception as exc:  # noqa: BLE001 - decision support must never break a view
         logger.warning("decision block failed: %s", type(exc).__name__)
         block = {"version": DECISION_VERSION, "available": False, "reason": "ERROR",
@@ -166,7 +173,8 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
         block["corridor"]["holdout"] = {h: {"coverage_realized": c.get("coverage_realized"),
                                             "n_days": c.get("n_days"), "from_ms": c.get("holdout_from_ms"),
                                             "to_ms": c.get("holdout_to_ms")} for h, c in cal_rep.items()}
-    liq = await conn.fetch_liquidations(symbol=cfg.symbol, exchanges=cfg.exchanges,
+    from .levels import LIQ_VENUES
+    liq = await conn.fetch_liquidations(symbol=cfg.symbol, exchanges=[e for e in cfg.exchanges if e in LIQ_VENUES],
                                         start=now - timedelta(hours=24), end=now)
     now_ms = to_ms(now)
     lv = compute_levels(b, now_ms=now_ms, price=price, liquidations=liq)

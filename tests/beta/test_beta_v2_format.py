@@ -212,25 +212,26 @@ def test_event_reminder_window():
     assert [(c["payload"]["event_kind"], c["payload"]["minutes"]) for c in out] == [("CPI", 20)]
 
 
-def test_sharp_move_uses_the_scale_known_before_the_move():
+def test_sharp_move_uses_the_closed_5m_grid_and_the_scale_known_before_the_move():
     day0 = datetime(2026, 10, 7, tzinfo=UTC)
     import numpy as np
     rng = np.random.default_rng(1)
     closes = list(100 * np.exp(np.cumsum(rng.normal(0, 0.001, 2100))))
-    b = _grid(day0, closes, [c * 1.001 for c in closes], [c * 0.999 for c in closes])
-    end = day0 + timedelta(minutes=5 * 2100)
     last = closes[-1]
-    closed = [{"ts": end + timedelta(minutes=m), "open": last, "high": last, "low": last,
-               "close": last * (1 - 0.02 * (m == 14))} for m in range(15)]
+    closes += [last, last, last * 0.98]                    # the last 15 minutes: -2% close to close
+    b = _grid(day0, closes, [c * 1.001 for c in closes], [c * 0.999 for c in closes])
+    end = day0 + timedelta(minutes=5 * len(closes))
     model = {"move": {"threshold": 2.0, "episodes_per_day": 0.33},
              "horizons": {"1h": {"beta": [0.0] * 9, "season": [0.0] * 24}}}     # S = 1% for any input
-    out = ma.detect_move({"price": last, "levels": {}, "corridor": {}}, b, closed, now=end + timedelta(minutes=15),
-                         model=model, events={})
+    blk = {"price": last * 0.98, "levels": {}, "corridor": {}}
+    out = ma.detect_move(blk, b, [], now=end + timedelta(seconds=40), model=model, events={})
     assert len(out) == 1 and out[0]["payload"]["move_pct"] == pytest.approx(-2.0)
     assert out[0]["payload"]["every_days"] == pytest.approx(1 / 0.33)
+    assert out[0]["payload"]["start"] == (end - timedelta(minutes=15)).isoformat()
+    # the same statistic the threshold was calibrated on: no sliding 1m window between grid closes
+    assert ma.detect_move(blk, b, [], now=end + timedelta(minutes=5), model=model, events={}) == []
     model["move"]["threshold"] = 2.5
-    assert ma.detect_move({"price": last, "levels": {}, "corridor": {}}, b, closed, now=end + timedelta(minutes=15),
-                          model=model, events={}) == []
+    assert ma.detect_move(blk, b, [], now=end + timedelta(seconds=40), model=model, events={}) == []
 
 
 def test_price_alert_triggers_only_after_creation():
@@ -242,6 +243,75 @@ def test_price_alert_triggers_only_after_creation():
     closed = [{"ts": day0 + timedelta(minutes=20), "open": 100.0, "high": 102.5, "low": 100.0, "close": 102.2}]
     out = ma.detect_price_alerts([alert], b, closed, block={"price": 102.2})
     assert out[0]["key"] == "price:7" and out[0]["target_user_pk"] == 3
+
+
+def test_price_alert_watches_the_minutes_of_the_5m_bar_it_was_set_in():
+    day0 = datetime(2026, 10, 14, tzinfo=UTC)
+    b = _grid(day0, [100.0, 101.0, 100.0], [100.0, 102.6, 100.0])      # 00:05 bar reached 102.6
+    one = [{"ts": day0 + timedelta(minutes=5 + m), "open": 100.0, "close": 100.0, "low": 100.0,
+            "high": {0: 102.6, 3: 102.1}.get(m, 100.5)} for m in range(5)]
+    alert = {"price_alert_pk": 8, "user_pk": 3, "price": 102.0, "direction": "above",
+             "created_at": day0 + timedelta(minutes=7)}               # set at 00:07, after the 00:05 spike
+    now = day0 + timedelta(minutes=15)
+    out = ma.detect_price_alerts([alert], b, one, block={"price": 100.0}, now=now, max_age=timedelta(minutes=10))
+    assert out[0]["payload"]["at"] == (day0 + timedelta(minutes=8)).isoformat()   # the 00:08 minute, not 00:05
+    assert out[0]["payload"]["late"] is False
+    alert["created_at"] = day0 + timedelta(minutes=9)
+    assert ma.detect_price_alerts([alert], b, one, block={"price": 100.0}) == []   # nothing after 00:09
+    alert["created_at"] = day0 + timedelta(minutes=7)
+    late = ma.detect_price_alerts([alert], b, one, block={"price": 100.0}, now=now + timedelta(days=2),
+                                  max_age=timedelta(minutes=10))
+    assert late[0]["payload"]["late"] is True
+    text = df.format_alert("price", {**late[0]["payload"], "corridor_4h": None}, "ru")
+    assert "пока сообщения не отправлялись" in text and "14.10 03:08" in text
+
+
+def test_series_window_counts_only_bars_wholly_inside_it():
+    day0 = datetime(2026, 10, 14, tzinfo=UTC)
+    b = _grid(day0, [100.0] * 12)                                       # 00:00 .. 00:55
+    one = [{"ts": day0 + timedelta(minutes=m), "open": 1.0, "high": 1.0, "low": 1.0, "close": 1.0}
+           for m in range(60)]
+    s = ma._series_since(b, one, day0 + timedelta(minutes=3), day0 + timedelta(minutes=33))
+    assert sum(x[4] for x in s) == 30 and s[0][0] == day0 + timedelta(minutes=3)
+    assert s[-1][0] == day0 + timedelta(minutes=32) and s[-1][4] == 1
+    assert [x[4] for x in s].count(5) == 5                              # 00:05 .. 00:25 as 5m bars
+
+
+def test_one_touch_of_a_shared_price_sends_one_level_alert():
+    cands = [{"kind": "level", "key": f"level:{k}:2026-10-12", "payload": {"level_kind": k, "level": 64000.0,
+                                                                            "side": 1}} for k in ("PDH", "PWH")]
+    cands.append({"kind": "level", "key": "level:PDL:2026-10-14", "payload": {"level_kind": "PDL", "level": 61000.0,
+                                                                              "side": -1}})
+    out = ma._one_per_price(cands)
+    assert [c["payload"]["level_kind"] for c in out] == ["PWH", "PDL"]
+    assert out[0]["payload"]["also_kinds"] == ["PDH"]
+
+
+def test_a_release_on_the_hour_belongs_to_the_window_starting_then():
+    import numpy as np
+    from beta.rangecast import event_in_window
+    h = 3_600_000
+    fomc = 1_734_544_800_000                                            # 2024-12-18 18:00 UTC
+    flags = event_in_window(np.array([fomc - h, fomc, fomc + 1]), [fomc], h)
+    assert flags.tolist() == [0.0, 1.0, 0.0]
+
+
+@pytest.mark.parametrize("text,lang", [
+    ("Buy BTC at 64000", "en"), ("Sell here", "en"), ("Entry: 64,000", "en"), ("Short BTC here", "en"),
+    ("Stop loss at 64000", "en"), ("Use 10x leverage", "en"), ("Покупаем на 64000", "ru"), ("Продаём", "ru"),
+    ("Входим", "ru"), ("Открываем шорт", "ru"), ("Берите лонг", "ru"), ("Шорт от 66000", "ru"),
+    ("Вход в лонг", "ru"), ("Ставьте стоп на 63000", "ru")])
+def test_guard_blocks_direct_trade_calls(text, lang):
+    with pytest.raises(ForbiddenWordingError):
+        assert_descriptive(text, lang)
+
+
+@pytest.mark.parametrize("text,lang", [
+    ("The bot never says whether to buy or sell.", "en"), ("A stop 0.5% (≈ 320) away", "en"),
+    ("buyers 62% · aggressive selling", "en"), ("Бот не говорит, покупать или продавать.", "ru"),
+    ("Одинаково для лонга и шорта", "ru"), ("ликвидации шортов на 2 биржах", "ru")])
+def test_guard_keeps_the_descriptive_vocabulary(text, lang):
+    assert assert_descriptive(text, lang) == text
 
 
 def _telegram_html_ok(html: str) -> bool:

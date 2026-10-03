@@ -6,6 +6,7 @@ text passes `assert_descriptive` (no direct trade calls, no hype).
 from __future__ import annotations
 
 import html
+import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Sequence
 
@@ -349,6 +350,8 @@ def parse_risk_arg(args: Optional[str], price: Optional[float]) -> tuple:
         v = float(text)
     except ValueError:
         return "bad", None
+    if not math.isfinite(v):
+        return "bad", None
     if v >= 100:
         if not price:
             return "bad", None
@@ -442,12 +445,15 @@ def _corridor_line(c: Optional[Mapping[str, Any]], key: str, lang: str) -> Optio
              half=_pct(c["half_width_pct"], lang, 1))
 
 
+ALERT_MAX_LINES = 8
+
+
 def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
     at = datetime.fromisoformat(payload["at"])
     lines: list = []
     if kind == "level":
-        member = {"kind": payload["level_kind"]}
-        lines.append(t(lang, "pa_level_title", name=_e(level_name(member, lang)),
+        names = [level_name({"kind": k}, lang) for k in [payload["level_kind"]] + list(payload.get("also_kinds") or ())]
+        lines.append(t(lang, "pa_level_title", name=_e(" = ".join(names)),
                        level=fmt_price(payload["level"], lang)))
         lines.append(t(lang, "pa_level_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
                        period=t(lang, "pa_period_" + payload.get("period", "day"))))
@@ -503,7 +509,11 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
             lines.append(t(lang, "pa_levels_near", parts=" · ".join(parts)))
     elif kind == "price":
         lines.append(t(lang, "pa_price_title", level=fmt_price(payload["level"], lang)))
-        lines.append(t(lang, "pa_price_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang)))
+        if payload.get("late"):
+            lines.append(t(lang, "pa_price_late", when=_when(at, lang, with_day=True),
+                           price=fmt_price(payload["price"], lang)))
+        else:
+            lines.append(t(lang, "pa_price_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang)))
         cl = _corridor_line(payload.get("corridor_4h"), "pa_corridor", lang)
         if cl:
             lines.append(cl)
@@ -514,6 +524,6 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
                 "event": [f"event:{payload.get('event_kind')}", "event"],
                 "move": ["move"]}.get(kind, [])
     checked = research_line(contexts, lang)
-    if checked:
+    if checked and sum(1 for x in lines if x.strip()) < ALERT_MAX_LINES:     # an extra, never a 9th line
         lines.append(checked)
     return assert_descriptive("\n".join(lines), lang)

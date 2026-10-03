@@ -249,7 +249,7 @@ async def sync_history(store, *, now: datetime, fetch: Optional[Fetch] = None,
     `max_objects` bounds one run (None = everything)."""
     from storage.beta_v0_store import HISTORY_LOCK_KEY
     today = now.astimezone(timezone.utc).date()
-    report = {"status": "OK", "planned": 0, "fetched": 0, "ok": 0, "missing": 0, "fallback_daily": 0,
+    report = {"status": "OK", "planned": 0, "fetched": 0, "ok": 0, "missing": 0, "bad": 0, "fallback_daily": 0,
               "bars_written": 0, "oi_written": 0, "errors": []}
     async with store.advisory_lock(HISTORY_LOCK_KEY) as acquired:
         if not acquired:
@@ -279,27 +279,45 @@ async def sync_history(store, *, now: datetime, fetch: Optional[Fetch] = None,
                         return []
                     report["fetched"] += 1
                     extra = []
-                    async with store.connect() as conn:
-                        async with conn.transaction():
-                            if body is None:
-                                await conn.record_hist_object(obj.key, obj.kind, status="MISSING", now=now)
-                                report["missing"] += 1
-                                if obj.kind == "klines_monthly" and (today - obj.period_end).days <= 40:
-                                    extra = [d for d in daily_fallback(obj)
-                                             if _needs_fetch(d, ledger, today)]
-                                    report["fallback_daily"] += len(extra)
-                                return extra
+                    rows = None
+                    if body is not None:
+                        try:                    # parse first: a malformed archive is BAD, a DB error is not
                             if obj.kind.startswith("klines"):
                                 rows = drop_protected(parse_klines(body), "open_time_ms")
-                                n = await conn.upsert_hist_bars(rows, fetched_at=now)
-                                report["bars_written"] += n
                             else:
                                 rows = drop_protected(parse_metrics(body), "ts_ms")
-                                n = await conn.upsert_hist_oi(rows, fetched_at=now)
-                                report["oi_written"] += n
-                            await conn.record_hist_object(obj.key, obj.kind, status="OK", sha256=sha,
-                                                          rows=len(rows), now=now)
-                            report["ok"] += 1
+                        except Exception as exc:  # noqa: BLE001 - a malformed object never stops the sync
+                            # BAD is retried like MISSING, so a fixed upstream file is picked up and a
+                            # broken one stops costing runs; nothing of it is stored
+                            report["errors"].append(f"{obj.key}: {type(exc).__name__}: {str(exc)[:120]}")
+                            report["bad"] += 1
+                            try:
+                                async with store.connect() as conn:
+                                    await conn.record_hist_object(obj.key, obj.kind, status="BAD", now=now)
+                            except Exception:  # noqa: BLE001
+                                pass
+                            return []
+                    try:
+                        async with store.connect() as conn:
+                            async with conn.transaction():
+                                if body is None:
+                                    await conn.record_hist_object(obj.key, obj.kind, status="MISSING", now=now)
+                                    report["missing"] += 1
+                                    if obj.kind == "klines_monthly" and (today - obj.period_end).days <= 40:
+                                        extra = [d for d in daily_fallback(obj)
+                                                 if _needs_fetch(d, ledger, today)]
+                                        report["fallback_daily"] += len(extra)
+                                    return extra
+                                if obj.kind.startswith("klines"):
+                                    report["bars_written"] += await conn.upsert_hist_bars(rows, fetched_at=now)
+                                else:
+                                    report["oi_written"] += await conn.upsert_hist_oi(rows, fetched_at=now)
+                                await conn.record_hist_object(obj.key, obj.kind, status="OK", sha256=sha,
+                                                              rows=len(rows), now=now)
+                                report["ok"] += 1
+                    except Exception as exc:  # noqa: BLE001 - one object never stops the sync
+                        report["errors"].append(f"{obj.key}: {type(exc).__name__}: {str(exc)[:120]}")
+                        return []
                     return extra
 
             pending = list(plan)

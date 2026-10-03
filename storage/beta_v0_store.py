@@ -617,12 +617,16 @@ class BetaConn:
             "WHERE state='SENDING'", now)
         return int(status.split()[-1])
 
-    async def fetch_undispatched_push_decisions(self, limit: int) -> list:
+    async def fetch_undispatched_push_decisions(self, limit: int, *, since: Optional[datetime] = None) -> list:
+        """PUSH decisions without delivery rows. `since` bounds the scan: a decision nobody could
+        receive (every participant had pushes off) never gets a row and must not stay at the head
+        of every batch."""
         rows = await self.conn.fetch(
             """SELECT d.decision_id, d.episode_pk, d.decision_ts FROM beta_push_decisions d
-               WHERE d.decision='PUSH' AND NOT EXISTS (
+               WHERE d.decision='PUSH' AND ($2::timestamptz IS NULL OR d.decision_ts >= $2::timestamptz)
+                 AND NOT EXISTS (
                    SELECT 1 FROM beta_notification_deliveries x WHERE x.decision_id=d.decision_id)
-               ORDER BY d.decision_ts, d.decision_id LIMIT $1""", limit)
+               ORDER BY d.decision_ts, d.decision_id LIMIT $1""", limit, since)
         return [dict(r) for r in rows]
 
     async def materialize_deliveries(self, *, decision_id: int, episode_pk: int,
@@ -1387,16 +1391,17 @@ class BetaConn:
     async def fetch_undispatched_market_alerts(self, limit: int) -> list:
         rows = await self.conn.fetch(
             """SELECT a.alert_pk, a.kind, a.decision_ts, a.target_user_pk FROM beta_market_alerts a
-               WHERE a.decision='PUSH' AND NOT EXISTS (
-                   SELECT 1 FROM beta_notification_deliveries x WHERE x.alert_pk=a.alert_pk)
+               WHERE a.decision='PUSH' AND a.dispatched_at IS NULL
                ORDER BY a.decision_ts, a.alert_pk LIMIT $1""", limit)
         return [dict(r) for r in rows]
 
     async def materialize_alert_deliveries(self, *, alert_pk: int, kind: str, decision_ts: datetime,
-                                           target_user_pk: Optional[int], expired: bool) -> int:
+                                           target_user_pk: Optional[int], expired: bool,
+                                           now: Optional[datetime] = None) -> int:
         """One row per recipient. Market kinds go to participants with push on and the kind's
         preference on; a personal price alert goes to its participant only. STOPPED
-        participants get a SUPPRESSED row (as for the existing pushes)."""
+        participants get a SUPPRESSED row (as for the existing pushes). The alert is then marked
+        dispatched, also when nobody qualified, so it never blocks later alerts."""
         pref = {"level": "push_levels", "event": "push_events", "move": "push_moves"}.get(kind)
         if kind == "price":
             where = "u.user_pk = $4::bigint"
@@ -1416,6 +1421,8 @@ class BetaConn:
                 FROM beta_users u WHERE {where}
                 ON CONFLICT (alert_pk, user_pk) WHERE kind='alert' DO NOTHING""",
             alert_pk, decision_ts, expired, target_user_pk if kind == "price" else None)
+        await self.conn.execute("UPDATE beta_market_alerts SET dispatched_at=$2 WHERE alert_pk=$1",
+                                alert_pk, now or decision_ts)
         return int(status.split()[-1])
 
     async def fetch_pending_alert_deliveries(self, limit: int) -> list:

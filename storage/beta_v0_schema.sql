@@ -576,6 +576,10 @@ CREATE TABLE IF NOT EXISTS beta_market_alerts (
     CONSTRAINT ck_beta_alert_reason CHECK ((decision = 'PUSH') = (suppression_reason IS NULL))
 );
 CREATE INDEX IF NOT EXISTS ix_beta_market_alerts_day ON beta_market_alerts (utc_day, kind);
+-- set once the alert's delivery rows were materialized (also when nobody qualified)
+ALTER TABLE beta_market_alerts ADD COLUMN IF NOT EXISTS dispatched_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS ix_beta_market_alerts_undispatched ON beta_market_alerts (decision_ts)
+    WHERE decision = 'PUSH' AND dispatched_at IS NULL;
 
 ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'push';
 ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS view_pk BIGINT REFERENCES beta_btc_views (view_pk);
@@ -662,7 +666,7 @@ CREATE TABLE IF NOT EXISTS beta_hist_oi_5m (
 CREATE TABLE IF NOT EXISTS beta_hist_objects (
     object_key        TEXT PRIMARY KEY,
     kind              TEXT NOT NULL CHECK (kind IN ('klines_monthly', 'klines_daily', 'metrics_daily')),
-    status            TEXT NOT NULL CHECK (status IN ('OK', 'MISSING')),
+    status            TEXT NOT NULL,
     sha256            TEXT CHECK (sha256 IS NULL OR sha256 ~ '^[0-9a-f]{64}$'),
     row_count         INTEGER,
     attempts          INTEGER NOT NULL DEFAULT 1 CHECK (attempts >= 1),
@@ -670,6 +674,10 @@ CREATE TABLE IF NOT EXISTS beta_hist_objects (
     last_attempt_at   TIMESTAMPTZ NOT NULL,
     CONSTRAINT ck_beta_hist_object_ok CHECK ((status = 'OK') = (sha256 IS NOT NULL))
 );
+-- BAD: the archive verified against its CHECKSUM but its content did not parse (retried like MISSING)
+ALTER TABLE beta_hist_objects DROP CONSTRAINT IF EXISTS beta_hist_objects_status_check;
+ALTER TABLE beta_hist_objects DROP CONSTRAINT IF EXISTS ck_beta_hist_object_status;
+ALTER TABLE beta_hist_objects ADD CONSTRAINT ck_beta_hist_object_status CHECK (status IN ('OK', 'MISSING', 'BAD'));
 
 -- Nightly statistics build (range model, level reactions, state analogues, event days).
 -- Append-only; the newest row is the one the product reads.

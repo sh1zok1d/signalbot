@@ -5,6 +5,11 @@
 Sources (no network):
 - CPI 2020-2024: docs/research_data/BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0/EVENTS.json
   (point-in-time BLS schedule, SCHEDULED_RELEASE_UTC);
+- CPI Jan - Oct 2025: `CPI_2025_RELEASE_DATES` below, from the BLS schedule of CPI releases
+  (https://www.bls.gov/schedule/news_release/cpi.htm) and the September 2025 reschedule notice
+  (https://www.bls.gov/bls/092025-cpi-reschedule-notice.htm: released 2025-10-24; the October
+  2025 release was cancelled). The repository holds no capture of the 2025 page, so these are
+  listed by hand, 08:30 America/New_York each;
 - CPI Dec 2025 - Dec 2026: the BLS schedule page captured live in the same dataset (raw/live);
 - FOMC 2020-2024: docs/research_data/D11_FOMC_OFFICIAL_V0/PIN.json (statement times);
 - FOMC 2025-2027: the Federal Reserve calendar page captured in the same dataset
@@ -38,10 +43,17 @@ def _utc(d: date, hh: int, mm: int) -> str:
     return local.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+CPI_2025_RELEASE_DATES = (date(2025, 1, 15), date(2025, 2, 12), date(2025, 3, 12), date(2025, 4, 10),
+                          date(2025, 5, 13), date(2025, 6, 11), date(2025, 7, 15), date(2025, 8, 12),
+                          date(2025, 9, 11), date(2025, 10, 24))
+
+
 def cpi_events() -> list:
     out = {}
     for e in json.loads((BLS / "EVENTS.json").read_text())["EVENTS"]:
         out[e["SCHEDULED_RELEASE_UTC"]] = "bls_schedule_archive_2020_2024"
+    for d in CPI_2025_RELEASE_DATES:
+        out.setdefault(_utc(d, 8, 30), "bls_cpi_schedule_2025_listed_by_hand")
     for f in sorted((BLS / "raw/live").glob("*.bin")):
         text = f.read_bytes().decode("utf-8", "ignore")
         if "Schedule of Releases for the Consumer Price Index" not in text:

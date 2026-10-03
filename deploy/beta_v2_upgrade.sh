@@ -32,7 +32,7 @@ step "1/6 install beta units"
 step "2/6 history sync (Binance Vision; resumable)"
 for i in $(seq 1 6); do
   out="$(as_sb "${PY}" main.py --beta-history-sync --beta-json --log-level WARNING | tail -n 1)"
-  echo "${out}" | "${PY}" -c 'import json,sys; r=json.loads(sys.stdin.read()); print({k: r.get(k) for k in ("status","planned","ok","missing","fallback_daily","bars_written","oi_written","bars_from","bars_through","oi_from","oi_through")}); print("errors:", len(r.get("errors") or []))'
+  echo "${out}" | "${PY}" -c 'import json,sys; r=json.loads(sys.stdin.read()); print({k: r.get(k) for k in ("status","planned","ok","missing","bad","fallback_daily","bars_written","oi_written","bars_from","bars_through","oi_from","oi_through")}); print("errors:", len(r.get("errors") or []))'
   status="$(echo "${out}" | "${PY}" -c 'import json,sys; print(json.loads(sys.stdin.read()).get("status"))')"
   if [[ "${status}" == "OK" ]]; then break; fi
   if [[ "${status}" != "PARTIAL" ]]; then echo "history sync status ${status}; stopping"; exit 2; fi
@@ -61,4 +61,4 @@ as_sb "${PY}" main.py --beta-health --beta-json --log-level WARNING | tail -n 1 
   "${PY}" -c 'import json,sys; r=json.loads(sys.stdin.read()); h=r.get("health") or {}; print("status:", r.get("status"), "alerts:", [a.get("key") for a in h.get("alerts") or []])'
 
 echo
-echo "Done. In Telegram: /levels, /risk 0.5, /events, /accuracy, /alert <price>, /btc, /catchup."
+echo "Done. In Telegram: /levels, /risk 0.5, /events, /accuracy, /alert <price>, /research, /btc, /catchup."

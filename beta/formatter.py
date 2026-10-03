@@ -1153,6 +1153,9 @@ def format_status(status: Mapping[str, Any], open_episodes: Sequence[Any],
     return _ok("\n".join(lines), lang)
 
 
+PUSH_MAX_LINES = 8
+
+
 def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang: str = "en",
                 gate: Optional[Mapping[str, Any]] = None, analog: Optional[Mapping[str, Any]] = None,
                 since_year: Optional[int] = None) -> str:
@@ -1201,14 +1204,16 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
         lines.append(unsigned)
     if gate.get("venues_agree") is not None:
         lines.append(t(lang, "venues_line", k=int(gate["venues_agree"]), n=max(int(gate.get("venues") or 0), 3)))
+    # the history line and the research line are extras: each is added only while the push
+    # stays within its 8 non-empty lines (BETA_COPY_CONTRACT_V1 §5)
+    extras = []
     if analog:
         from .decision_format import analog_line
-        line = analog_line(analog, lang, since_year=since_year)
-        if line:
+        extras.append(analog_line(analog, lang, since_year=since_year))
+    extras.append(_research_line(gate.get("interpretation") or {}, "1h", lang))
+    for line in extras:
+        if line and sum(1 for x in lines if x.strip()) < PUSH_MAX_LINES:
             lines.append(line)
-    checked = _research_line(gate.get("interpretation") or {}, "1h", lang)
-    if checked:
-        lines.append(checked)
     return _ok("\n".join(lines), lang)
 
 
