@@ -114,3 +114,18 @@ def test_feasibility_code_reads_no_market_values():
 def test_design_constants_locked():
     K.assert_locked()
     assert K.MIN_MEANINGFUL_EFFECT == 0.5 and K.DISCOVERY_END_MS == RW.date_ms(_d("2025-01-01"))
+
+
+def test_closure_record_is_final_and_does_not_rescue_b1():
+    decision = (REPO / "docs/research/AUTOGEN_G01_DECISION.md").read_text()
+    for line in ("G01_STATUS             = CLOSED_NO_SURVIVORS", "CANDIDATES_FROZEN      = 0",
+                 "CANDIDATES_EXECUTED    = 0", "MARKET_OUTCOMES_OPENED = NO",
+                 "G01-B1                 = FUTURE_CANDIDATE / NATURAL_DATA_ACCUMULATION"):
+        assert line in decision, line
+    assert "PRE_FREEZE_DEFINITIONAL_CORRECTION" in decision and "did not rescue the hypothesis" in decision
+    assert "not a claim that the high-frequency mechanism space is exhausted" in decision
+    state = (REPO / "docs/CURRENT_RESEARCH_STATE.md").read_text()
+    assert state.startswith("## Autonomous research generation G01 — CLOSED_NO_SURVIVORS")
+    assert "`G01_STATUS = CLOSED_NO_SURVIVORS (owner-accepted)`" in state
+    assert not (REPO / "docs/research/AUTOGEN_G01_PREREG.json").exists()
+    assert not (REPO / "docs/research/AUTOGEN_G01_RESULT.json").exists()

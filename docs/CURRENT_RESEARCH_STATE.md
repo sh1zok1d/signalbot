@@ -1,6 +1,8 @@
-## Autonomous research generation G01 — no survivor; nothing frozen or executed — 2026-10-03
+## Autonomous research generation G01 — CLOSED_NO_SURVIVORS; nothing frozen or executed — 2026-10-03
 
-`AUTOGEN_G01 = CLOSED_AT_FEASIBILITY / NOTHING_EXECUTED`
+`G01_STATUS = CLOSED_NO_SURVIVORS (owner-accepted)`
+`CANDIDATES_FROZEN = 0 | CANDIDATES_EXECUTED = 0 | MARKET_OUTCOMES_OPENED = NO`
+`G01-B1 = FUTURE_CANDIDATE / NATURAL_DATA_ACCUMULATION (no bar change, no 2025-2026 surface, no prospective automation in G01)`
 `SEARCH_FAMILY = SF-AUTOGEN-G01 (owner override of NEW_RESEARCH_PROGRAMS_AUTHORIZED = false, for this program only; docs/research/AUTOGEN_G01_DECISION.md)`
 `CANDIDATES = 14 generated | 8 closed at red team | 2 closed at dedupe | 4 compiled`
 `FEASIBILITY = G01-A1, G01-A2, G01-A3, G01-B1 -> INFORMATIONALLY_WEAK; none executable`
@@ -32,6 +34,8 @@ Done end to end on branch `research/autonomous-generation-g01`, from `main` at `
   - leakage from R03's exposed epoch trend;
   - hidden repeats of GV0V03L40-C027/C003 and the D2 neighbourhood.
 - **No repair.** No card was repaired.
+- **G01-B1 correction.** Its stopping-rule correction (`MIN_N` 252 → 52) was made before freeze and before any outcome access, and it did not rescue the hypothesis.
+- **What we learned.** The AUTOGEN_G01 search over the authorized research map and the current candidate sources found no new high-frequency hypothesis that was at once incremental to prior work, identifiable, research-authorized and sufficiently powered at the frozen 0.5 SD bar. This is a statement about this search, not a claim that the high-frequency mechanism space is exhausted. The four hypotheses that reached the compiler were low-frequency calendar or natural-experiment cells, whose independent units per era are too few for discovery plus time-disjoint replication at that bar.
 
 **Records:**
 - `AUTOGEN_G01_DECISION.md`;

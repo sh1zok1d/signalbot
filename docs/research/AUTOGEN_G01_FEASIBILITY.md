@@ -20,9 +20,9 @@ Effect bar 0.5 comparator-SD for every hypothesis (not lowered). A hypothesis is
 - **G01-A3 (month-end mark hour).** One state hour per month: discovery MDE 0.78, as expected (the R03-A2/A3 precedent).
 - **G01-B1 (ETF fixing window).** One post-launch year: the unit-level MDE is 0.5005, above the bar by 5e-4. The prospective replication declared at 52 weeks is also underpowered. A natural experiment with a single launch has no historical replication surface.
 
-## Definitional correction before freeze
+## G01-B1 — PRE_FREEZE_DEFINITIONAL_CORRECTION
 
-First compile (same day, before freeze): G01-B1 returned `DEFINITION_INCOMPLETE / STOPPING_RULE_INVALID` because the prospective rule declared `MIN_N = 252` above `MAX_EPISODES = 104`. The 252 double-counted the frozen pre-launch arm (52 prospective + 200 pre weeks) against the stated intent of at least 52 prospective weeks. It was corrected to `MIN_N = 52` before any freeze. This is a definitional fix; it changes neither the bar, nor the discovery screen, nor the unit-level screen, and every other number below is from the recompile.
+First compile (same day, before freeze): G01-B1 returned `DEFINITION_INCOMPLETE / STOPPING_RULE_INVALID` because the prospective rule declared `MIN_N = 252` above `MAX_EPISODES = 104`. Initial `MIN_N = 252` wrongly added the fixed historical (pre-launch) arm to the prospective arm; corrected `MIN_N = 52` reflects the intended prospective requirement. The correction was made before freeze and before any outcome access. It changes neither the bar, nor the discovery screen, nor the unit-level screen, and it did not rescue the hypothesis: final feasibility is still `INFORMATIONALLY_WEAK`. Every other number above is from the recompile.
 
 ## What is not done
 

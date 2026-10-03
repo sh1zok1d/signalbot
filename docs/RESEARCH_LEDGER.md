@@ -7731,3 +7731,16 @@ FROZEN = 0; EXECUTED = 0; PROMISING_PROTOTYPES = 0
 MARKET_VALUES_READ = false; OBJECTS_2025_2026_USED = none; E1_RUN_001_OPENED = false; B2_06_OPENED = false
 NEXT_UNIT = none (research); routing returns to PRODUCT_FIRST_DECISION_V1
 ```
+
+## 2026-10-03 — AUTOGEN_G01 closure accepted: CLOSED_NO_SURVIVORS
+
+The owner accepted the G01 result. The cleanup is documentation only: no compiler, R03, frozen contract, product code or production change.
+
+**What we learned.** The AUTOGEN_G01 search over the authorized research map and the current candidate sources found no new high-frequency hypothesis that was at once incremental to prior work, identifiable, research-authorized and sufficiently powered at the frozen 0.5 SD bar. This is a statement about this search, not a claim that the high-frequency mechanism space is exhausted. The four hypotheses that reached the compiler were low-frequency calendar or natural-experiment cells, whose independent units per era are too few for discovery plus time-disjoint replication at that bar.
+
+**G01-B1.** Initial `MIN_N = 252` wrongly added the fixed historical (pre-launch) arm to the prospective arm. Corrected `MIN_N = 52` reflects the intended prospective requirement. The correction was made before freeze and before any outcome access. It did not rescue the hypothesis: final feasibility is still `INFORMATIONALLY_WEAK` (unit-level MDE 0.5005 > 0.5; prospective replication underpowered). It stays only as `FUTURE_CANDIDATE / NATURAL_DATA_ACCUMULATION`: no lowered bar, no 2025–2026 surface, no prospective automation within G01.
+
+```
+G01_STATUS = CLOSED_NO_SURVIVORS
+CANDIDATES_FROZEN = 0; CANDIDATES_EXECUTED = 0; MARKET_OUTCOMES_OPENED = NO
+```

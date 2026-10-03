@@ -1,6 +1,6 @@
 # AUTOGEN_G01 — autonomous research generation 1: owner decision and program record
 
-**Status:** `OWNER_AUTHORIZED / CLOSED_AT_FEASIBILITY / NOTHING_EXECUTED`. No hypothesis survived feasibility; see `AUTOGEN_G01_FEASIBILITY.md`. Nothing was frozen or executed and no market value was read.
+**Status:** `CLOSED_NO_SURVIVORS` (accepted by the owner, 2026-10-03). No hypothesis survived feasibility; see `AUTOGEN_G01_FEASIBILITY.md` and §7. Nothing was frozen or executed and no market value was read.
 **Date:** 2026-10-03
 **Search family:** `SF-AUTOGEN-G01`
 **Branch:** `research/autonomous-generation-g01`, from `main` at `a7d738f`
@@ -124,3 +124,24 @@ The program stops a card, rather than ask, if it would need any of the following
 ## 6. What this record does not claim
 
 No market outcome was computed when it was written, and none was computed later: the program closed at feasibility. Nothing here is a trading edge, a direction or a cause.
+
+## 7. Final closure (owner-accepted, 2026-10-03; documentation only)
+
+```
+G01_STATUS             = CLOSED_NO_SURVIVORS
+CANDIDATES_GENERATED   = 14
+CANDIDATES_FROZEN      = 0
+CANDIDATES_EXECUTED    = 0
+MARKET_OUTCOMES_OPENED = NO
+G01-B1                 = FUTURE_CANDIDATE / NATURAL_DATA_ACCUMULATION
+```
+
+**WHAT_WE_LEARNED.** The AUTOGEN_G01 search over the authorized research map and the current candidate sources found no new high-frequency hypothesis that was at once incremental to prior work, identifiable, research-authorized and sufficiently powered at the frozen 0.5 SD bar. This is a statement about this search, not a claim that the high-frequency mechanism space is exhausted. The four hypotheses that reached the compiler were low-frequency calendar or natural-experiment cells, whose independent units per era are too few for discovery plus time-disjoint replication at that bar.
+
+**G01-B1 — PRE_FREEZE_DEFINITIONAL_CORRECTION.** Initial `MIN_N = 252` wrongly added the fixed historical (pre-launch) arm to the prospective arm. Corrected `MIN_N = 52` reflects the intended prospective requirement. The correction was made before freeze and before any outcome access. It did not rescue the hypothesis: final feasibility is still `INFORMATIONALLY_WEAK` (unit-level MDE 0.5005 > 0.5; prospective replication underpowered).
+
+**G01-B1 — future handling.** It is kept only as `FUTURE_CANDIDATE / NATURAL_DATA_ACCUMULATION`. Post-launch weeks will accumulate naturally. Any later test is a new search object with its own test family and freeze.
+- The 0.5 SD bar is not lowered.
+- The 2025–2026 surface is not opened for it.
+- No prospective collection or automation is started within G01.
+- G01-B1 is not rescued.

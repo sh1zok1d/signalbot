@@ -226,10 +226,11 @@ def run_support() -> tuple[dict, dict, dict]:
 FEASIBILITY_MD = REPO / "docs/research/AUTOGEN_G01_FEASIBILITY.md"
 FIRST_COMPILE_NOTE = (
     "First compile (same day, before freeze): G01-B1 returned `DEFINITION_INCOMPLETE / STOPPING_RULE_INVALID` "
-    "because the prospective rule declared `MIN_N = 252` above `MAX_EPISODES = 104`. The 252 double-counted the "
-    "frozen pre-launch arm (52 prospective + 200 pre weeks) against the stated intent of at least 52 prospective "
-    "weeks. It was corrected to `MIN_N = 52` before any freeze. This is a definitional fix; it changes neither the "
-    "bar, nor the discovery screen, nor the unit-level screen, and every other number below is from the recompile."
+    "because the prospective rule declared `MIN_N = 252` above `MAX_EPISODES = 104`. Initial `MIN_N = 252` wrongly "
+    "added the fixed historical (pre-launch) arm to the prospective arm; corrected `MIN_N = 52` reflects the intended "
+    "prospective requirement. The correction was made before freeze and before any outcome access. It changes neither "
+    "the bar, nor the discovery screen, nor the unit-level screen, and it did not rescue the hypothesis: final "
+    "feasibility is still `INFORMATIONALLY_WEAK`. Every other number above is from the recompile."
 )
 
 
@@ -268,7 +269,7 @@ def feasibility_markdown(plans: dict, feas: dict) -> str:
               "- **G01-B1 (ETF fixing window).** One post-launch year: the unit-level MDE is 0.5005, above the bar by "
               "5e-4. The prospective replication declared at 52 weeks is also underpowered. A natural experiment with a "
               "single launch has no historical replication surface.", "",
-              "## Definitional correction before freeze", "", FIRST_COMPILE_NOTE, "",
+              "## G01-B1 — PRE_FREEZE_DEFINITIONAL_CORRECTION", "", FIRST_COMPILE_NOTE, "",
               "## What is not done", "",
               "- No price, volume or trade count was read. Only calendars and BitMEX 5m bar open times (for replication availability) were used.",
               "- No closed hypothesis is repaired: the replication surface, minimum N, pre-period, block length and bar stay as declared. "
