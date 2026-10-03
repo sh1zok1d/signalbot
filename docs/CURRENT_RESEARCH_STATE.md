@@ -1,3 +1,49 @@
+## Autonomous research generation G01 — CLOSED_NO_SURVIVORS; nothing frozen or executed — 2026-10-03
+
+`G01_STATUS = CLOSED_NO_SURVIVORS (owner-accepted)`
+`CANDIDATES_FROZEN = 0 | CANDIDATES_EXECUTED = 0 | MARKET_OUTCOMES_OPENED = NO`
+`G01-B1 = FUTURE_CANDIDATE / NATURAL_DATA_ACCUMULATION (no bar change, no 2025-2026 surface, no prospective automation in G01)`
+`SEARCH_FAMILY = SF-AUTOGEN-G01 (owner override of NEW_RESEARCH_PROGRAMS_AUTHORIZED = false, for this program only; docs/research/AUTOGEN_G01_DECISION.md)`
+`CANDIDATES = 14 generated | 8 closed at red team | 2 closed at dedupe | 4 compiled`
+`FEASIBILITY = G01-A1, G01-A2, G01-A3, G01-B1 -> INFORMATIONALLY_WEAK; none executable`
+`FROZEN = 0 | EXECUTED = 0 | PROMISING_PROTOTYPES = 0`
+`MARKET_VALUES_READ = false (calendars and BitMEX bar open times only)`
+`OBJECTS_2025_2026_USED = none`
+`E1_RUN_001_OPENED = false`
+`B2_06_OI_FUNDING_OPENED = false`
+`NEXT_UNIT = none (research); routing returns to PRODUCT_FIRST_DECISION_V1`
+`NEW_RESEARCH_PROGRAMS_AUTHORIZED = false (unchanged after this program)`
+
+**Owner instruction (2026-10-03).** Act as an autonomous research agent for one generation:
+- rebuild the research map;
+- generate hypotheses, red-team and dedupe them;
+- run feasibility outcome-blind;
+- freeze and execute only the survivors.
+
+Done end to end on branch `research/autonomous-generation-g01`, from `main` at `a7d738f`.
+
+**Outcome.** Nothing survived feasibility, so nothing was frozen or executed and no market outcome was computed.
+- **Turn-of-month clock (G01-A1/A2).** It is powered on discovery (unit MDE 0.486 at a 0.5 bar), but its time-disjoint replication surface (36 BitMEX months) is not (MDE 0.63).
+- **Month-end mark hour (G01-A3).** Underpowered (MDE 0.78).
+- **ETF NAV fixing-hour natural experiment (G01-B1).** With one post-launch year, the unit-level MDE is 0.5005, just above the bar, and the declared prospective replication is underpowered.
+- **Closed before feasibility.** The other ten were closed at red team or dedupe for:
+  - clocks that cannot be identified;
+  - exchange-specific artifacts;
+  - outcomes not in doubt;
+  - rare-event N;
+  - leakage from R03's exposed epoch trend;
+  - hidden repeats of GV0V03L40-C027/C003 and the D2 neighbourhood.
+- **No repair.** No card was repaired.
+- **G01-B1 correction.** Its stopping-rule correction (`MIN_N` 252 → 52) was made before freeze and before any outcome access, and it did not rescue the hypothesis.
+- **What we learned.** The AUTOGEN_G01 search over the authorized research map and the current candidate sources found no new high-frequency hypothesis that was at once incremental to prior work, identifiable, research-authorized and sufficiently powered at the frozen 0.5 SD bar. This is a statement about this search, not a claim that the high-frequency mechanism space is exhausted. The four hypotheses that reached the compiler were low-frequency calendar or natural-experiment cells, whose independent units per era are too few for discovery plus time-disjoint replication at that bar.
+
+**Records:**
+- `AUTOGEN_G01_DECISION.md`;
+- `AUTOGEN_G01_CANDIDATES.{md,json}`;
+- `AUTOGEN_G01_FEASIBILITY.{md,json}`;
+- `AUTOGEN_G01_PLANNING.json`;
+- `SCIENTIFIC_TEST_LEDGER.json` (`SF-AUTOGEN-G01`, no test registered).
+
 ## Product decision V2 — decision support; protected 2025/2026 opened for product — 2026-10-03
 
 `OPERATING_MODE = PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS`
@@ -10,6 +56,28 @@
 `NEXT_UNIT = none (research); product: owner test and deploy of PRODUCT_DECISION_V2`
 
 The owner lifted the predictive freeze for the product and opened Binance 2025/2026 for its statistics. The product statistics are product evidence, not research claims: a range model with a held-out-year coverage check, level first-touch reactions against random levels at the same distance, state analogues against a volatility-matched "обычно", event-day sizes. Each verdict uses a day-clustered bootstrap with a Holm correction and a materiality floor. A future research claim over range/volatility, levels, price/OI/taker states or event days needs a window other than Binance 2025/2026 or a prospective test. Record: `docs/RESEARCH_LEDGER.md` (2026-10-03).
+
+## Owner cards R03 — executed once, closed; nothing promoted — 2026-10-03
+
+`OWNER_CARDS_R03 = EXECUTED_ONCE / CLOSED`
+`SEARCH_FAMILY = SF-OWNER-CARDS-R03 (owner override of NEW_RESEARCH_PROGRAMS_AUTHORIZED = false, for this program only; see docs/research/OWNER_CARDS_R03_DECISION.md)`
+`CARDS = R03-A expiry clock (G) | R03-B panel breadth (H) | R03-C session clock (J)`
+`EXECUTED = A1, A4, B2, C1, C2, C4 -> all NO_INCREMENTAL_STRUCTURE`
+`CLOSED_AT_FEASIBILITY = A2, A3, C3 (INFORMATIONALLY_WEAK) | B1, B3, B4 (INFORMATIONALLY_WEAK_AT_UNIT_LEVEL)`
+`PROMISING_PROTOTYPES = 0`
+`REPLICATION_EXECUTED = false (BitMEX 2017-2019 surface declared, not opened)`
+`RERUN_AUTHORIZED = false`
+`B2_06_OI_FUNDING_OPENED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`E1_RUN_001_OPENED = false`
+`NEXT_UNIT = none (research); routing returns to PRODUCT_FIRST_DECISION_V1`
+`NEW_RESEARCH_PROGRAMS_AUTHORIZED = false (unchanged after this program)`
+
+**Owner instruction (2026-10-03).** Three author-written cards of four hypotheses, oriented by the tested-family map; feasibility; freeze of the viable ones; one execution. Done end to end on branch `research/owner-cards-r03`.
+
+**Outcome.** Six hypotheses reached the one-shot; none met the frozen bar (0.5 comparator-SD of standardized log range with the declared sign). One, weekend hours (C1), is a clear and growing negative effect (about −0.4 SD, Holm p 0.0001, −0.19 in 2020 to −0.65 in 2024) that sits below the bar and is classified `NO_INCREMENTAL_STRUCTURE` under the frozen rule, not rescued. Records: `docs/research/OWNER_CARDS_R03_{DECISION,CARDS,FEASIBILITY,PREREG,RESULT}.md`, permit and ledger entries `TF-R03-A-EXPIRY-CLOCK`, `TF-R03-B-PANEL-STATES`, `TF-R03-C-SESSION-CLOCK`.
+
+**Not done:** no replication outcome, no 2025/2026 object, no B2_06 byte, no product change. A follow-up on weekend baselines is a product-first question (baseline construction), not a new research unit.
 
 ## Final owner routing decision — divergence / selling-exhaustion line closed; product-first controls routing — 2026-10-03
 

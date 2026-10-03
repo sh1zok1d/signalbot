@@ -7675,6 +7675,25 @@ RESCUE_ATTEMPTED = false
 
 Record: `docs/research/GV0V03L40_C025_R1_CLOSE.md`.
 
+## 2026-10-03 — Owner cards R03 executed once and closed
+
+Owner-authorized program `SF-OWNER-CARDS-R03` (override of the product-first "no new research programs" rule for this program only; `docs/research/OWNER_CARDS_R03_DECISION.md`). Three cards of four `CONTEXT_DESCRIPTIVE` hypotheses on window range versus an ordinary-conditions comparator: scheduled derivatives-expiry clock (G), panel breadth/dispersion states (H), session/participant-clock structure (J).
+
+- **Consumed by this record:** the discovery surface Binance BTCUSDT 2020–2024 for the twelve frozen definitions (six executed, six closed outcome-blind). No rescue of any of the twelve.
+- **Not consumed:** BitMEX 2017–2019 (declared replication; no outcome opened), the 2025/2026 surfaces, the B2_06 OI/funding snapshot (not used).
+- **Result:** all six executed hypotheses `NO_INCREMENTAL_STRUCTURE`; zero prototypes; nothing promoted. Weekend hours (C1) show a clear negative effect (≈ −0.4 SD, Holm p 0.0001, growing by year) that is below the frozen 0.5 SD bar.
+
+```
+EXECUTED = R03-A1, R03-A4, R03-B2, R03-C1, R03-C2, R03-C4
+CLOSED_AT_FEASIBILITY = R03-A2, R03-A3, R03-C3, R03-B1, R03-B3, R03-B4
+PROMISING_PROTOTYPES = 0
+REPLICATION_EXECUTED = false
+RERUN_AUTHORIZED = false
+PROTECTED_2025_2026_OPENED = false
+```
+
+Records: `docs/research/OWNER_CARDS_R03_RESULT.md`, `SCIENTIFIC_TEST_LEDGER.json` (`TF-R03-A-EXPIRY-CLOCK`, `TF-R03-B-PANEL-STATES`, `TF-R03-C-SESSION-CLOCK`).
+
 ## Protected Binance 2025/2026 opened for product statistics — 2026-10-03
 
 Owner decision (`docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §4). The decision-support statistics of the product read Binance USD-M BTCUSDT 5m klines (2020-01 → yesterday) and Vision OI metrics (2020-09 → yesterday), 2025/2026 included.
@@ -7744,4 +7763,55 @@ CALIBRATION_PROCEDURE_CHANGED  = NO
 THRESHOLD_DIAGNOSTIC           = OLD 2.0618 -> NEW 2.0963 (repo archives 2022-2024, pooled, same procedure; not used
                                  to change anything)
 CORRIDOR_MODEL_CHANGED         = NO (K0 event term, coefficients, fit, forecast)
+```
+
+## 2026-10-03 — Autonomous research generation G01: no survivor, nothing executed
+
+**Program.** `SF-AUTOGEN-G01` is an owner override of `NEW_RESEARCH_PROGRAMS_AUTHORIZED = false` for this program only (`AUTOGEN_G01_DECISION.md`). The research map was rebuilt from `main` at `a7d738f`.
+
+**Candidates.** Fourteen were generated (`AUTOGEN_G01_CANDIDATES.md`).
+- **Closed at red team (8):**
+  - HK ETF 08:00 UTC fixing: confounded with funding and expiry;
+  - weekend BTC share of the spot panel: fee-promotion and FDUSD-migration artifacts;
+  - session taker-sign profile: directional, clock not identified;
+  - taker-sign persistence: outcome not in doubt;
+  - equity OPEX hour: rare N;
+  - Asia lunch participation: clock not identified;
+  - ETF-era weekend gap: leakage from R03-C1's exposed epoch trend;
+  - bank-holiday fiat rails: rare N.
+- **Closed at dedupe (2):**
+  - signed-shock range asymmetry: repeats GV0V03L40-C027/C003 and sits in the D2/D8 neighbourhood;
+  - unusual-hour persistence: D2 RV neighbourhood, outcome not in doubt.
+
+**Compiled under `GV0R02_SCHEMA_V2` plus unit screens (`AUTOGEN_G01_FEASIBILITY.md`):** all four are `INFORMATIONALLY_WEAK`.
+
+| Hypothesis | Discovery | Replication | Blocker |
+|---|---|---|---|
+| G01-A1 turn-of-month participation | 59 months, unit MDE 0.486 | 36 BitMEX months, MDE 0.63 | replication MDE too large |
+| G01-A2 turn-of-month range | same | same | same |
+| G01-A3 month-end mark hour | MDE 0.78 | — | MDE too large |
+| G01-B1 ETF NAV fixing-hour participation, DiD at the 2024-01-11 launch | 210 pre / 51 post weeks, unit MDE 0.5005 | prospective, underpowered | above the bar |
+
+A definitional error in B1's prospective stopping rule (`MIN_N` above `MAX_EPISODES`) was corrected before freeze and recorded.
+
+**Not consumed.** Nothing was consumed: no market value was read, and no hypothesis was frozen, registered or executed.
+
+```
+AUTOGEN_G01 = CLOSED_AT_FEASIBILITY / NOTHING_EXECUTED
+FROZEN = 0; EXECUTED = 0; PROMISING_PROTOTYPES = 0
+MARKET_VALUES_READ = false; OBJECTS_2025_2026_USED = none; E1_RUN_001_OPENED = false; B2_06_OPENED = false
+NEXT_UNIT = none (research); routing returns to PRODUCT_FIRST_DECISION_V1
+```
+
+## 2026-10-03 — AUTOGEN_G01 closure accepted: CLOSED_NO_SURVIVORS
+
+The owner accepted the G01 result. The cleanup is documentation only: no compiler, R03, frozen contract, product code or production change.
+
+**What we learned.** The AUTOGEN_G01 search over the authorized research map and the current candidate sources found no new high-frequency hypothesis that was at once incremental to prior work, identifiable, research-authorized and sufficiently powered at the frozen 0.5 SD bar. This is a statement about this search, not a claim that the high-frequency mechanism space is exhausted. The four hypotheses that reached the compiler were low-frequency calendar or natural-experiment cells, whose independent units per era are too few for discovery plus time-disjoint replication at that bar.
+
+**G01-B1.** Initial `MIN_N = 252` wrongly added the fixed historical (pre-launch) arm to the prospective arm. Corrected `MIN_N = 52` reflects the intended prospective requirement. The correction was made before freeze and before any outcome access. It did not rescue the hypothesis: final feasibility is still `INFORMATIONALLY_WEAK` (unit-level MDE 0.5005 > 0.5; prospective replication underpowered). It stays only as `FUTURE_CANDIDATE / NATURAL_DATA_ACCUMULATION`: no lowered bar, no 2025–2026 surface, no prospective automation within G01.
+
+```
+G01_STATUS = CLOSED_NO_SURVIVORS
+CANDIDATES_FROZEN = 0; CANDIDATES_EXECUTED = 0; MARKET_OUTCOMES_OPENED = NO
 ```

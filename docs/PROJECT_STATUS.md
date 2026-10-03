@@ -24,7 +24,7 @@ A narrow descriptive private beta is authorized by `docs/PRIVATE_BETA_V0_RESTART
 - **Current state (2026-10-02):** V0.2 ran for the owner only; the owner judged the 5m event feed unactionable (`CHANGE PRODUCT`). No external users yet. The implementation scope is now the build-to-test MUST list of `docs/PRODUCT_FIRST_DECISION_V1.md` §3; `BETA_V0_3_MARKET_BRIEFING.md` is superseded where it differs (briefing episodes, 24h label, 90-day baselines, separate notifier).
 - **Build-to-test (2026-10-02):** the MUST scope is implemented in code (see the decision's §11 amendment log and `PRIVATE_BETA_V0_DEPLOY.md`, "Product-first V1").
 - **Decision support V2 (2026-10-03):** implemented in code on top of V1 (`PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §7); the morning briefing is committed on. Not deployed.
-- **Next step:** owner test and red-team of V2, then deploy to the owner-only beta (history sync, first build, V2 tape rewind, history timer); then the 30-day user test of `PRODUCT_FIRST_DECISION_V1.md` §7 on the V2 surface.
+- **Next step:** owner test and red-team of V2, then deploy to the owner-only beta (history sync, first build, V2 tape rewind, history timer), run the gate coverage diagnostic and the owner review of the interpretation dry run; external launch follows data maturity (§6 of `PRODUCT_FIRST_DECISION_V1.md`), then the 30-day user test of `PRODUCT_FIRST_DECISION_V1.md` §7 on the V2 surface.
 - **Research boundary:** beta events are not hypotheses, and beta outcomes are not confirmation.
 
 ## Current evidence

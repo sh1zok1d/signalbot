@@ -1,0 +1,601 @@
+{
+  "DETAIL": {
+    "G01-A1": {
+      "COMPILER": {
+        "ALPHA_ATTAINABLE": true,
+        "ALPHA_PER_CELL_HOLM_FIRST_STEP": 0.05,
+        "BLOCKERS": [
+          {
+            "BLOCKER_CODE": "REPLICATION_MDE_TOO_LARGE",
+            "BLOCKER_OBJECT": {
+              "EFFECTIVE_N": null,
+              "MDE_STRESS": 0.9338617393709893,
+              "N": null,
+              "NON_IDENTIFIABLE": false,
+              "POWER_STRESS": 0.3227710359563173,
+              "SURFACE": "REPLICATION"
+            }
+          }
+        ],
+        "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+        "COMPILER_POLICY_VERSION": "GV0R02_POLICY_V2",
+        "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V2",
+        "DISCOVERY_SCREEN": {
+          "EFFECTIVE_N": 162.95238095238096,
+          "MDE_BASE": 0.2194691502155967,
+          "MDE_STRESS": 0.4389383004311934,
+          "NON_IDENTIFIABLE": false,
+          "POWER_BASE": 0.9999951257097297,
+          "POWER_STRESS": 0.8909051436813524
+        },
+        "EVALUATION_CONTRACT": "HYPOTHESIS_EVALUATION_CONTRACT_V1",
+        "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+        "FEATURE_REGISTRY_DIGEST": "ed97085d137eddec69e8b7dbf34351937d4a6f3fbc205190f49478c9f7f5c92d",
+        "HETEROGENEITY_ASSESSABILITY": {
+          "NOT_EVIDENCE_OF_STABILITY": true,
+          "POWER": 0.08674863998383209,
+          "REASON": "POWER_TO_DETECT_A_DIFFERENCE_OF_THE_MIN_EFFECT_BETWEEN_THE_TWO_SMALLEST_EPOCHS",
+          "STATUS": "NOT_ASSESSABLE",
+          "THRESHOLD": 0.5
+        },
+        "MARKET_OUTCOMES_OPENED": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "POWER_ASSUMPTION_PROFILE_VERSION": "GV0R02_POWER_PROFILE_V0",
+        "PRIMARY_CELL_COUNT": 1,
+        "PRIMARY_LABEL_ORBIT_SIZE": "576460752303423488",
+        "PRIMARY_MECHANISM_SUPPORT": [
+          {
+            "CELL_INDEX": 0,
+            "EFFECTIVE_N": 162.95238095238096,
+            "IDENTIFIABLE": true,
+            "KIND": "BINARY",
+            "MECHANISM_ACTIVE_N": 203,
+            "MECHANISM_INACTIVE_N": 826,
+            "MECHANISM_VARIABLE": "STATE_TOM_PARTICIPATION",
+            "SPARSE_STATE": false,
+            "ZERO_SIDE": null
+          }
+        ],
+        "PROPOSAL_DIGEST": "537bf5af5e35cb223c5cb176bc96647f688c94f23e1b30f448e81b9e43ae28f8",
+        "PROPOSAL_ID": "G01-A1",
+        "PROSPECTIVE_MECHANISM_SUPPORT": null,
+        "PROTECTED_2025_VALUES_OPENED": false,
+        "PROTECTED_2026_VALUES_OPENED": false,
+        "PROTECTED_OVERLAP": [],
+        "REPLICATION_KIND": "HISTORICAL",
+        "REPLICATION_SCREEN": {
+          "EFFECTIVE_N": null,
+          "MDE_STRESS": 0.9338617393709893,
+          "NON_IDENTIFIABLE": false,
+          "POWER_STRESS": 0.3227710359563173
+        },
+        "RESULT_ID": "72e5416b1fe7c94310c7d2514ead578b1a1217c31a988f4c7d1f5280c56eb69f",
+        "SPARSE_STATE_MINORITY_FRACTION": 0.05,
+        "STATUS_REASONS": [
+          "replication stress screen misses the target at the mechanism effective N"
+        ],
+        "TARGET_CLASS": "UNCONDITIONAL",
+        "TARGET_POWER": 0.8,
+        "V1_LAYER": {
+          "ALPHA_ATTAINABLE": true,
+          "BLOCKERS": [
+            {
+              "BLOCKER_CODE": "REPLICATION_MDE_TOO_LARGE",
+              "BLOCKER_OBJECT": {
+                "MDE_STRESS": 0.9338617393709893,
+                "N": 36.0,
+                "POWER_STRESS": 0.3227710359563173,
+                "SURFACE": "REPLICATION"
+              }
+            }
+          ],
+          "COMPILER_POLICY_VERSION": "GV0R02_POLICY_V1",
+          "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V1",
+          "DISCOVERY_SCREEN": {
+            "MDE_BASE": 0.08733657365899347,
+            "MDE_STRESS": 0.17467314731798694,
+            "POWER_BASE": 1.0,
+            "POWER_STRESS": 0.9999999993174579
+          },
+          "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+          "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+          "REPLICATION_SCREEN": {
+            "MDE_STRESS": 0.9338617393709893,
+            "POWER_STRESS": 0.3227710359563173
+          }
+        }
+      },
+      "EXECUTABLE": false,
+      "OWN_UNIT_SCREEN": {
+        "ALPHA": 0.05,
+        "HOLM_M": 0,
+        "MDE_STRESS": 0.48624017115295426,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "N_UNITS": 59,
+        "SE_STRESS": 0.17355894370418815,
+        "WEAK": false
+      },
+      "REPLICATION_AVAILABLE_UNITS": 36,
+      "REPLICATION_NOMINAL_UNITS": 36,
+      "REPLICATION_UNIT_SCREEN": {
+        "ALPHA": 0.05,
+        "HOLM_M": 1,
+        "MDE_STRESS": 0.6319992688606867,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "N_UNITS": 36,
+        "SE_STRESS": 0.2255863090562618,
+        "WEAK": true
+      },
+      "STATUS": "INFORMATIONALLY_WEAK"
+    },
+    "G01-A2": {
+      "COMPILER": {
+        "ALPHA_ATTAINABLE": true,
+        "ALPHA_PER_CELL_HOLM_FIRST_STEP": 0.05,
+        "BLOCKERS": [
+          {
+            "BLOCKER_CODE": "REPLICATION_MDE_TOO_LARGE",
+            "BLOCKER_OBJECT": {
+              "EFFECTIVE_N": null,
+              "MDE_STRESS": 0.9338617393709893,
+              "N": null,
+              "NON_IDENTIFIABLE": false,
+              "POWER_STRESS": 0.3227710359563173,
+              "SURFACE": "REPLICATION"
+            }
+          }
+        ],
+        "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+        "COMPILER_POLICY_VERSION": "GV0R02_POLICY_V2",
+        "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V2",
+        "DISCOVERY_SCREEN": {
+          "EFFECTIVE_N": 162.95238095238096,
+          "MDE_BASE": 0.2194691502155967,
+          "MDE_STRESS": 0.4389383004311934,
+          "NON_IDENTIFIABLE": false,
+          "POWER_BASE": 0.9999951257097297,
+          "POWER_STRESS": 0.8909051436813524
+        },
+        "EVALUATION_CONTRACT": "HYPOTHESIS_EVALUATION_CONTRACT_V1",
+        "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+        "FEATURE_REGISTRY_DIGEST": "ed97085d137eddec69e8b7dbf34351937d4a6f3fbc205190f49478c9f7f5c92d",
+        "HETEROGENEITY_ASSESSABILITY": {
+          "NOT_EVIDENCE_OF_STABILITY": true,
+          "POWER": 0.08674863998383209,
+          "REASON": "POWER_TO_DETECT_A_DIFFERENCE_OF_THE_MIN_EFFECT_BETWEEN_THE_TWO_SMALLEST_EPOCHS",
+          "STATUS": "NOT_ASSESSABLE",
+          "THRESHOLD": 0.5
+        },
+        "MARKET_OUTCOMES_OPENED": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "POWER_ASSUMPTION_PROFILE_VERSION": "GV0R02_POWER_PROFILE_V0",
+        "PRIMARY_CELL_COUNT": 1,
+        "PRIMARY_LABEL_ORBIT_SIZE": "576460752303423488",
+        "PRIMARY_MECHANISM_SUPPORT": [
+          {
+            "CELL_INDEX": 0,
+            "EFFECTIVE_N": 162.95238095238096,
+            "IDENTIFIABLE": true,
+            "KIND": "BINARY",
+            "MECHANISM_ACTIVE_N": 203,
+            "MECHANISM_INACTIVE_N": 826,
+            "MECHANISM_VARIABLE": "STATE_TOM_RANGE",
+            "SPARSE_STATE": false,
+            "ZERO_SIDE": null
+          }
+        ],
+        "PROPOSAL_DIGEST": "359c052f388da9240fa4d22952ae015a16eac63b1fed3b51c770009a8cc1c38e",
+        "PROPOSAL_ID": "G01-A2",
+        "PROSPECTIVE_MECHANISM_SUPPORT": null,
+        "PROTECTED_2025_VALUES_OPENED": false,
+        "PROTECTED_2026_VALUES_OPENED": false,
+        "PROTECTED_OVERLAP": [],
+        "REPLICATION_KIND": "HISTORICAL",
+        "REPLICATION_SCREEN": {
+          "EFFECTIVE_N": null,
+          "MDE_STRESS": 0.9338617393709893,
+          "NON_IDENTIFIABLE": false,
+          "POWER_STRESS": 0.3227710359563173
+        },
+        "RESULT_ID": "8acb792caa08ae24b50df851180b024edfc33b292a06073a47597bb1b3b21af4",
+        "SPARSE_STATE_MINORITY_FRACTION": 0.05,
+        "STATUS_REASONS": [
+          "replication stress screen misses the target at the mechanism effective N"
+        ],
+        "TARGET_CLASS": "UNCONDITIONAL",
+        "TARGET_POWER": 0.8,
+        "V1_LAYER": {
+          "ALPHA_ATTAINABLE": true,
+          "BLOCKERS": [
+            {
+              "BLOCKER_CODE": "REPLICATION_MDE_TOO_LARGE",
+              "BLOCKER_OBJECT": {
+                "MDE_STRESS": 0.9338617393709893,
+                "N": 36.0,
+                "POWER_STRESS": 0.3227710359563173,
+                "SURFACE": "REPLICATION"
+              }
+            }
+          ],
+          "COMPILER_POLICY_VERSION": "GV0R02_POLICY_V1",
+          "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V1",
+          "DISCOVERY_SCREEN": {
+            "MDE_BASE": 0.08733657365899347,
+            "MDE_STRESS": 0.17467314731798694,
+            "POWER_BASE": 1.0,
+            "POWER_STRESS": 0.9999999993174579
+          },
+          "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+          "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+          "REPLICATION_SCREEN": {
+            "MDE_STRESS": 0.9338617393709893,
+            "POWER_STRESS": 0.3227710359563173
+          }
+        }
+      },
+      "EXECUTABLE": false,
+      "OWN_UNIT_SCREEN": {
+        "ALPHA": 0.05,
+        "HOLM_M": 0,
+        "MDE_STRESS": 0.48624017115295426,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "N_UNITS": 59,
+        "SE_STRESS": 0.17355894370418815,
+        "WEAK": false
+      },
+      "REPLICATION_AVAILABLE_UNITS": 36,
+      "REPLICATION_NOMINAL_UNITS": 36,
+      "REPLICATION_UNIT_SCREEN": {
+        "ALPHA": 0.05,
+        "HOLM_M": 1,
+        "MDE_STRESS": 0.6319992688606867,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "N_UNITS": 36,
+        "SE_STRESS": 0.2255863090562618,
+        "WEAK": true
+      },
+      "STATUS": "INFORMATIONALLY_WEAK"
+    },
+    "G01-A3": {
+      "COMPILER": {
+        "ALPHA_ATTAINABLE": true,
+        "ALPHA_PER_CELL_HOLM_FIRST_STEP": 0.05,
+        "BLOCKERS": [
+          {
+            "BLOCKER_CODE": "MDE_TOO_LARGE",
+            "BLOCKER_OBJECT": {
+              "ALPHA_PER_CELL": 0.05,
+              "EFFECTIVE_N": 51.333333333333336,
+              "MDE_STRESS": 0.7820492428619618,
+              "MIN_MEANINGFUL_EFFECT": 0.5,
+              "POWER_STRESS": 0.4329841059381264,
+              "SURFACE": "DISCOVERY"
+            }
+          },
+          {
+            "BLOCKER_CODE": "REPLICATION_MDE_TOO_LARGE",
+            "BLOCKER_OBJECT": {
+              "EFFECTIVE_N": null,
+              "MDE_STRESS": 0.9753867754584759,
+              "N": null,
+              "NON_IDENTIFIABLE": false,
+              "POWER_STRESS": 0.3002007149947124,
+              "SURFACE": "REPLICATION"
+            }
+          }
+        ],
+        "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+        "COMPILER_POLICY_VERSION": "GV0R02_POLICY_V2",
+        "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V2",
+        "DISCOVERY_SCREEN": {
+          "EFFECTIVE_N": 51.333333333333336,
+          "MDE_BASE": 0.3910246214309809,
+          "MDE_STRESS": 0.7820492428619618,
+          "NON_IDENTIFIABLE": false,
+          "POWER_BASE": 0.9476411595396816,
+          "POWER_STRESS": 0.4329841059381264
+        },
+        "EVALUATION_CONTRACT": "HYPOTHESIS_EVALUATION_CONTRACT_V1",
+        "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+        "FEATURE_REGISTRY_DIGEST": "ed97085d137eddec69e8b7dbf34351937d4a6f3fbc205190f49478c9f7f5c92d",
+        "HETEROGENEITY_ASSESSABILITY": {
+          "NOT_EVIDENCE_OF_STABILITY": true,
+          "POWER": 0.08477331734411325,
+          "REASON": "POWER_TO_DETECT_A_DIFFERENCE_OF_THE_MIN_EFFECT_BETWEEN_THE_TWO_SMALLEST_EPOCHS",
+          "STATUS": "NOT_ASSESSABLE",
+          "THRESHOLD": 0.5
+        },
+        "MARKET_OUTCOMES_OPENED": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "POWER_ASSUMPTION_PROFILE_VERSION": "GV0R02_POWER_PROFILE_V0",
+        "PRIMARY_CELL_COUNT": 1,
+        "PRIMARY_LABEL_ORBIT_SIZE": 36028797018963968,
+        "PRIMARY_MECHANISM_SUPPORT": [
+          {
+            "CELL_INDEX": 0,
+            "EFFECTIVE_N": 51.333333333333336,
+            "IDENTIFIABLE": true,
+            "KIND": "BINARY",
+            "MECHANISM_ACTIVE_N": 55,
+            "MECHANISM_INACTIVE_N": 770,
+            "MECHANISM_VARIABLE": "STATE_MONTH_END_MARK_HOUR",
+            "SPARSE_STATE": false,
+            "ZERO_SIDE": null
+          }
+        ],
+        "PROPOSAL_DIGEST": "e6ae564925bff4b50a0252248a044abf6daa1d385c7a69e227d0634a7d6544a5",
+        "PROPOSAL_ID": "G01-A3",
+        "PROSPECTIVE_MECHANISM_SUPPORT": null,
+        "PROTECTED_2025_VALUES_OPENED": false,
+        "PROTECTED_2026_VALUES_OPENED": false,
+        "PROTECTED_OVERLAP": [],
+        "REPLICATION_KIND": "HISTORICAL",
+        "REPLICATION_SCREEN": {
+          "EFFECTIVE_N": null,
+          "MDE_STRESS": 0.9753867754584759,
+          "NON_IDENTIFIABLE": false,
+          "POWER_STRESS": 0.3002007149947124
+        },
+        "RESULT_ID": "eed8a670f2fd54c8b9e90b234c04ce188963e915583c4e213901b14231c02dbd",
+        "SPARSE_STATE_MINORITY_FRACTION": 0.05,
+        "STATUS_REASONS": [
+          "discovery stress screen misses the target at the mechanism effective N",
+          "replication stress screen misses the target at the mechanism effective N"
+        ],
+        "TARGET_CLASS": "UNCONDITIONAL",
+        "TARGET_POWER": 0.8,
+        "V1_LAYER": {
+          "ALPHA_ATTAINABLE": true,
+          "BLOCKERS": [
+            {
+              "BLOCKER_CODE": "REPLICATION_MDE_TOO_LARGE",
+              "BLOCKER_OBJECT": {
+                "MDE_STRESS": 0.9753867754584759,
+                "N": 33.0,
+                "POWER_STRESS": 0.3002007149947124,
+                "SURFACE": "REPLICATION"
+              }
+            }
+          ],
+          "COMPILER_POLICY_VERSION": "GV0R02_POLICY_V1",
+          "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V1",
+          "DISCOVERY_SCREEN": {
+            "MDE_BASE": 0.09753867754584758,
+            "MDE_STRESS": 0.19507735509169516,
+            "POWER_BASE": 1.0,
+            "POWER_STRESS": 0.9999999108948792
+          },
+          "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+          "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+          "REPLICATION_SCREEN": {
+            "MDE_STRESS": 0.9753867754584759,
+            "POWER_STRESS": 0.3002007149947124
+          }
+        }
+      },
+      "EXECUTABLE": false,
+      "OWN_UNIT_SCREEN": {
+        "ALPHA": 0.05,
+        "HOLM_M": 0,
+        "MDE_STRESS": 0.7820492428619618,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "N_UNITS": 55,
+        "SE_STRESS": 0.27914526311954124,
+        "WEAK": true
+      },
+      "REPLICATION_AVAILABLE_UNITS": 33,
+      "REPLICATION_NOMINAL_UNITS": 33,
+      "REPLICATION_UNIT_SCREEN": {
+        "ALPHA": 0.05,
+        "HOLM_M": 1,
+        "MDE_STRESS": 1.0096212311728325,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "N_UNITS": 33,
+        "SE_STRESS": 0.3603749850782236,
+        "WEAK": true
+      },
+      "STATUS": "INFORMATIONALLY_WEAK"
+    },
+    "G01-B1": {
+      "COMPILER": {
+        "ALPHA_ATTAINABLE": true,
+        "ALPHA_PER_CELL_HOLM_FIRST_STEP": 0.05,
+        "BLOCKERS": [
+          {
+            "BLOCKER_CODE": "REPLICATION_MDE_TOO_LARGE",
+            "BLOCKER_OBJECT": {
+              "EFFECTIVE_N": null,
+              "MDE_STRESS": 0.7770199351144823,
+              "N": null,
+              "NON_IDENTIFIABLE": false,
+              "POWER_STRESS": 0.43754820601709854,
+              "SURFACE": "REPLICATION"
+            }
+          }
+        ],
+        "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+        "COMPILER_POLICY_VERSION": "GV0R02_POLICY_V2",
+        "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V2",
+        "DISCOVERY_SCREEN": {
+          "EFFECTIVE_N": 193.69774919614147,
+          "MDE_BASE": 0.201298968842238,
+          "MDE_STRESS": 0.402597937684476,
+          "NON_IDENTIFIABLE": false,
+          "POWER_BASE": 0.9999997115634198,
+          "POWER_STRESS": 0.9356715297235216
+        },
+        "EVALUATION_CONTRACT": "HYPOTHESIS_EVALUATION_CONTRACT_V1",
+        "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+        "FEATURE_REGISTRY_DIGEST": "ed97085d137eddec69e8b7dbf34351937d4a6f3fbc205190f49478c9f7f5c92d",
+        "HETEROGENEITY_ASSESSABILITY": {
+          "NOT_EVIDENCE_OF_STABILITY": true,
+          "POWER": 0.24660598921791793,
+          "REASON": "POWER_TO_DETECT_A_DIFFERENCE_OF_THE_MIN_EFFECT_BETWEEN_THE_TWO_SMALLEST_EPOCHS",
+          "STATUS": "NOT_ASSESSABLE",
+          "THRESHOLD": 0.5
+        },
+        "MARKET_OUTCOMES_OPENED": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "POWER_ASSUMPTION_PROFILE_VERSION": "GV0R02_POWER_PROFILE_V0",
+        "PRIMARY_CELL_COUNT": 1,
+        "PRIMARY_LABEL_ORBIT_SIZE": 20448884000160,
+        "PRIMARY_MECHANISM_SUPPORT": [
+          {
+            "CELL_INDEX": 0,
+            "EFFECTIVE_N": 193.69774919614147,
+            "IDENTIFIABLE": true,
+            "KIND": "BINARY",
+            "MECHANISM_ACTIVE_N": 240,
+            "MECHANISM_INACTIVE_N": 1004,
+            "MECHANISM_VARIABLE": "STATE_ETF_FIXING_HOUR_PARTICIPATION",
+            "SPARSE_STATE": false,
+            "ZERO_SIDE": null
+          }
+        ],
+        "PROPOSAL_DIGEST": "24499b816776af3fa1207ee8b87a2c6bc99dd8e0d10a53ef8c5edcd58a022ea7",
+        "PROPOSAL_ID": "G01-B1",
+        "PROSPECTIVE_MECHANISM_SUPPORT": {
+          "APPLIES": false,
+          "GUARANTEED": null
+        },
+        "PROTECTED_2025_VALUES_OPENED": false,
+        "PROTECTED_2026_VALUES_OPENED": false,
+        "PROTECTED_OVERLAP": [],
+        "REPLICATION_KIND": "PROSPECTIVE",
+        "REPLICATION_SCREEN": {
+          "EFFECTIVE_N": null,
+          "MDE_STRESS": 0.7770199351144823,
+          "NON_IDENTIFIABLE": false,
+          "POWER_STRESS": 0.43754820601709854
+        },
+        "RESULT_ID": "93ad9f38f0b11db243eb39e02e23c2df3934ddde860ebdd8efbdc4066c5ef906",
+        "SPARSE_STATE_MINORITY_FRACTION": 0.05,
+        "STATUS_REASONS": [
+          "replication stress screen misses the target at the mechanism effective N"
+        ],
+        "TARGET_CLASS": "UNCONDITIONAL",
+        "TARGET_POWER": 0.8,
+        "V1_LAYER": {
+          "ALPHA_ATTAINABLE": true,
+          "BLOCKERS": [
+            {
+              "BLOCKER_CODE": "REPLICATION_MDE_TOO_LARGE",
+              "BLOCKER_OBJECT": {
+                "MDE_STRESS": 0.7770199351144823,
+                "N": 52.0,
+                "POWER_STRESS": 0.43754820601709854,
+                "SURFACE": "REPLICATION"
+              }
+            }
+          ],
+          "COMPILER_POLICY_VERSION": "GV0R02_POLICY_V1",
+          "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V1",
+          "DISCOVERY_SCREEN": {
+            "MDE_BASE": 0.0794316615335369,
+            "MDE_STRESS": 0.1588633230670738,
+            "POWER_BASE": 1.0,
+            "POWER_STRESS": 0.9999999999964995
+          },
+          "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+          "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+          "REPLICATION_SCREEN": {
+            "MDE_STRESS": 0.7770199351144823,
+            "POWER_STRESS": 0.43754820601709854
+          }
+        }
+      },
+      "EXECUTABLE": false,
+      "OWN_UNIT_SCREEN": {
+        "ALPHA": 0.05,
+        "HOLM_M": 1,
+        "MDE_STRESS": 0.5004657513835169,
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "N_POST": 51,
+        "N_PRE": 210,
+        "SE_STRESS": 0.17863663334168003,
+        "WEAK": true
+      },
+      "REPLICATION_AVAILABLE_UNITS": 0,
+      "REPLICATION_NOMINAL_UNITS": 0,
+      "REPLICATION_UNIT_SCREEN": null,
+      "STATUS": "INFORMATIONALLY_WEAK"
+    }
+  },
+  "FEATURE_REGISTRY": {
+    "EXTENDED_FROM_FROZEN_DIGEST": "3336ede59cadc7980f4dc145c242178415f7291ddf71b5a02e2129eee7365198",
+    "EXTENSION_ROWS": [
+      "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+      "D2_BITMEX_PRE2020_XBTUSD"
+    ],
+    "FEATURE_REGISTRY_DIGEST": "ed97085d137eddec69e8b7dbf34351937d4a6f3fbc205190f49478c9f7f5c92d"
+  },
+  "MARKET_OUTCOMES_OPENED": false,
+  "MARKET_VALUES_READ": false,
+  "PROGRAM_ID": "AUTOGEN_G01",
+  "SUMMARY": {
+    "G01-A1": {
+      "BLOCKERS": [
+        "REPLICATION_MDE_TOO_LARGE"
+      ],
+      "COMPILER_STATUS": "INFORMATIONALLY_WEAK",
+      "EFFECTIVE_N": 162.95238095238096,
+      "EXECUTABLE": false,
+      "MDE_STRESS_COMPILER": 0.4389383004311934,
+      "MDE_STRESS_UNITS": 0.48624017115295426,
+      "N_UNITS": 59,
+      "REPLICATION_AVAILABLE_UNITS": 36,
+      "REPLICATION_MDE_STRESS_UNITS": 0.6319992688606867,
+      "STATUS": "INFORMATIONALLY_WEAK"
+    },
+    "G01-A2": {
+      "BLOCKERS": [
+        "REPLICATION_MDE_TOO_LARGE"
+      ],
+      "COMPILER_STATUS": "INFORMATIONALLY_WEAK",
+      "EFFECTIVE_N": 162.95238095238096,
+      "EXECUTABLE": false,
+      "MDE_STRESS_COMPILER": 0.4389383004311934,
+      "MDE_STRESS_UNITS": 0.48624017115295426,
+      "N_UNITS": 59,
+      "REPLICATION_AVAILABLE_UNITS": 36,
+      "REPLICATION_MDE_STRESS_UNITS": 0.6319992688606867,
+      "STATUS": "INFORMATIONALLY_WEAK"
+    },
+    "G01-A3": {
+      "BLOCKERS": [
+        "MDE_TOO_LARGE",
+        "REPLICATION_MDE_TOO_LARGE"
+      ],
+      "COMPILER_STATUS": "INFORMATIONALLY_WEAK",
+      "EFFECTIVE_N": 51.333333333333336,
+      "EXECUTABLE": false,
+      "MDE_STRESS_COMPILER": 0.7820492428619618,
+      "MDE_STRESS_UNITS": 0.7820492428619618,
+      "N_UNITS": 55,
+      "REPLICATION_AVAILABLE_UNITS": 33,
+      "REPLICATION_MDE_STRESS_UNITS": 1.0096212311728325,
+      "STATUS": "INFORMATIONALLY_WEAK"
+    },
+    "G01-B1": {
+      "BLOCKERS": [
+        "REPLICATION_MDE_TOO_LARGE"
+      ],
+      "COMPILER_STATUS": "INFORMATIONALLY_WEAK",
+      "EFFECTIVE_N": 193.69774919614147,
+      "EXECUTABLE": false,
+      "MDE_STRESS_COMPILER": 0.402597937684476,
+      "MDE_STRESS_UNITS": 0.5004657513835169,
+      "N_UNITS": 261,
+      "REPLICATION_AVAILABLE_UNITS": 0,
+      "REPLICATION_MDE_STRESS_UNITS": null,
+      "STATUS": "INFORMATIONALLY_WEAK"
+    }
+  },
+  "TIMESTAMPS_READ": [
+    "BitMEX 5m bar open times (replication availability)"
+  ]
+}
