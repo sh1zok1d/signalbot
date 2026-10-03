@@ -1,0 +1,446 @@
+{
+ "SCHEMA": "SEED0001_PREREG_V1",
+ "CARD_ID": "SEED0001_REGULAR_DIVERGENCE_BOOK_SUPPORT_V1",
+ "HYPOTHESIS_ID": "SEED0001-RD-V1",
+ "SEED_ID": "SEED-0001",
+ "SEARCH_FAMILY_ID": "SF-OWNER-SEEDS",
+ "TEST_FAMILY_ID": "TF-SEED0001-RD-RETRO1",
+ "REPLICATION_TEST_FAMILY_ID": "TF-SEED0001-RD-PROSP1",
+ "DETECTOR_VERSION": "SEED0001_DETECTOR_V1",
+ "STATUS": "FROZEN_BEFORE_COUNTS_AND_OUTCOMES",
+ "DATE": "2026-10-02",
+ "EVALUATION_CONTRACT": "HYPOTHESIS_EVALUATION_CONTRACT_V1",
+ "HUMAN_READABLE_TWIN": "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.md",
+ "SEED_RECORD": "docs/research/SEED_ABSORPTION_DIVERGENCE_V0.md",
+ "EVIDENCE_LABELS": {
+  "RETROSPECTIVE_2023_2024": "RETROSPECTIVE_EVIDENCE. Never a holdout, never a final confirmation: the rule reached the project as a working scheme from this period and 2024 is owner-exposed.",
+  "OBSERVABLE": "RETROSPECTIVE_PROXY_TO_OWNER_OBSERVABLE. Binance UM perp bookDepth within 5%; the owner watched a Hyblock spot bid/ask 0-5% indicator.",
+  "PROSPECTIVE": "PROSPECTIVE_CONFIRMATION. Episodes whose decision time is after the freeze, same frozen code."
+ },
+ "CLAIM": {
+  "TEXT": "On BTCUSDT perpetual 1h bars, at a confirmed swing low that makes a lower low after a pronounced decline, the conjunction of order-book bid support within 5% and regular bullish divergence in at least 2 of 3 indicator families (arm A) reaches +1R before -1R within 48h more often than support alone (arm B) and than divergence alone (arm C), after the frozen adjustment set.",
+  "OBJECT": "order-book support x regular divergence state; CVD is one of three divergence families",
+  "NOT_THE_CLAIM": [
+   "taker imbalance predicts future return (H05, rejected, stays closed)",
+   "divergence alone predicts a bounce",
+   "book support alone predicts a bounce",
+   "mean reversion after a decline (A vs D)"
+  ],
+  "DIRECTION": "A above B and A above C"
+ },
+ "CLAIM_TYPE": "INCREMENTAL",
+ "TARGET_CLASS": "UNCONDITIONAL",
+ "INTRADAY": true,
+ "VARIABLE_ROLES": {
+  "REGIME_VARIABLES": [],
+  "MECHANISM_VARIABLES": [
+   "BOOK_SUPPORT_5PCT",
+   "DIVERGENCE_FAMILY_COUNT",
+   "SWING_LOW_LOWER_LOW",
+   "PRONOUNCED_DECLINE_ELIGIBILITY"
+  ],
+  "NUISANCE_BASELINE_VARIABLES": [
+   "PRIOR_REALIZED_VOLATILITY",
+   "TIME_OF_DAY",
+   "LAGGED_TARGET",
+   "PRE_DECISION_NET_FLOW",
+   "RISK_WIDTH_ATR"
+  ],
+  "NUISANCE_REALIZATION": {
+   "PRIOR_REALIZED_VOLATILITY": "RV24: sample SD (ddof 1) of the 24 hourly log close-to-close returns ending at bar i+3; entered as log(RV24)",
+   "TIME_OF_DAY": "UTC hour of the decision time T; entered as sin(2 pi h/24) and cos(2 pi h/24)",
+   "LAGGED_TARGET": "DECLINE_ATR: (max high of bars i-48..i minus low_i) / ATR14(i). The magnitude of the preceding decline is the lagged-target term (seed V1 framing); its eligibility threshold stays a mechanism variable",
+   "PRE_DECISION_NET_FLOW": "NETFLOW24: sum(2 taker_buy - volume) / sum(volume) over the 24 bars ending at bar i+3",
+   "RISK_WIDTH_ATR": "RISK_ATR: (close of bar i+3 - low_i) / ATR14(i). Card-specific, added at design: the bracket width relative to volatility drives the chance of a 48h timeout. The owner may strike it before outcomes are opened; nothing may be added after."
+  }
+ },
+ "SURFACES": {
+  "DISCOVERY": {
+   "ID": "BINANCE_UM_2023_2024_BOOKDEPTH",
+   "DECISION_START_UTC": "2023-01-01T00:00:00Z",
+   "DECISION_LAST_UTC": "2024-12-28T00:00:00Z",
+   "RULE": "decision time T with T + 96h <= 2025-01-01T00:00:00Z, so every primary and sensitivity window ends inside 2024"
+  },
+  "WARMUP": {
+   "KLINES_FROM_MONTH": "2022-11",
+   "BOOKDEPTH_FROM_DAY": "2023-01-01"
+  },
+  "PRIMARY_INSTRUMENT": "BTCUSDT",
+  "ROBUSTNESS_INSTRUMENT": "ETHUSDT",
+  "PROTECTED": "No byte dated 2025-01-01 or later is fetched for the retrospective test. Protected 2025/2026 stays sealed."
+ },
+ "DATA": {
+  "KLINES": {
+   "SOURCE": "https://data.binance.vision/data/futures/um/monthly/klines/{SYMBOL}/1m/{SYMBOL}-1m-{YYYY-MM}.zip",
+   "MONTHS": "2022-11..2024-12",
+   "PINNED_AGAINST": {
+    "BTCUSDT": "docs/research_data/C012_DISCOVERY_BTC_1M_V0/MANIFEST.json SOURCE_ZIP_SHA256 (CORE_BTC_BINANCE_V0 snapshot 717d37a4)",
+    "ETHUSDT": "docs/research_data/CORE_ETH_BINANCE_V0/SOURCE_INVENTORY.json checksum_records"
+   },
+   "ALSO_VERIFIED_AGAINST": "the published .CHECKSUM"
+  },
+  "BOOKDEPTH": {
+   "SOURCE": "https://data.binance.vision/data/futures/um/daily/bookDepth/{SYMBOL}/{SYMBOL}-bookDepth-{YYYY-MM-DD}.zip",
+   "DAYS": "2023-01-01..2024-12-31",
+   "FIELDS_USED": "timestamp (UTC), percentage in {-5, +5}, notional (cumulative within the band)",
+   "VERIFIED_AGAINST": "the published .CHECKSUM; every object SHA256 is pinned in the dataset manifest written by the count pass",
+   "MISSING_DAY": "recorded; affected hours are NaN and their episodes are excluded and counted"
+  },
+  "DATASET_ID": "SEED0001_BINANCE_UM_1H_BOOKDEPTH_V0"
+ },
+ "FROZEN_CONSTANTS": {
+  "PIVOT_LEFT": 3,
+  "PIVOT_RIGHT": 3,
+  "DECLINE_LOOKBACK_BARS": 48,
+  "DECLINE_MIN_ATR": 3.0,
+  "COMPARISON_MIN_GAP": 5,
+  "COMPARISON_MAX_GAP": 48,
+  "RSI_PERIODS": [
+   14,
+   21
+  ],
+  "MACD_FAST": 12,
+  "MACD_SLOW": 26,
+  "ATR_PERIOD": 14,
+  "MIN_DIVERGENT_FAMILIES": 2,
+  "MIN_RISK_ATR": 0.25,
+  "RV_BARS": 24,
+  "FLOW_BARS": 24,
+  "WARMUP_BARS": 720,
+  "BOOK_BAND_PCT": 5,
+  "BOOK_MIN_SNAPSHOTS_PER_HOUR": 60,
+  "SUPPORT_HOURS_AFTER_LOW": [
+   1,
+   2,
+   3
+  ],
+  "SUPPORT_TRAILING_HOURS": 720,
+  "SUPPORT_MIN_PRESENT_HOURS": 480,
+  "SUPPORT_QUANTILE": 0.8,
+  "PRIMARY_CAP_HOURS": 48,
+  "SENSITIVITY_CAP_HOURS": 96,
+  "PROTECTED_START_MS": 1735689600000,
+  "WEEK_ANCHOR_MS": 1672617600000
+ },
+ "DEFINITIONS": {
+  "S2_BARS": "UTC 1h bars [h, h+1h) from 1m klines; a bar needs all 60 minutes, otherwise it is incomplete and splits the series into segments. Indicators restart in each segment.",
+  "S3_EVENT": "Swing low at bar i: low_i < min(low_{i-3..i-1}) and low_i <= min(low_{i+1..i+3}). Decision time T = close of bar i+3. Pronounced decline: max(high_{i-48..i}) - low_i >= 3.0 x ATR14(i). Comparison pivot j: the most recent swing low with i-48 <= j <= i-5; the episode needs low_i < low_j (lower low), otherwise it is outside the population. The episode needs i at least 720 bars into its segment and bars i..i+3 in the same segment.",
+  "S4_DIVERGENCE": "Values at the pivot bars i and j. RSI family: Wilder RSI14(i) > RSI14(j) AND RSI21(i) > RSI21(j). MACD family: MACD line EMA12(close) - EMA26(close) at i > at j (EMA alpha 2/(n+1), seeded with the first close; the signal line is unused). CVD family: sum over bars j+1..i of (2 taker_buy - volume) > 0. Divergence = at least 2 of the 3 families. Strict inequalities, no minimum difference.",
+  "S5_SUPPORT": "Hourly imbalance = mean over snapshots t in [h, h+1h) of (bid5 - ask5)/(bid5 + ask5), bid5/ask5 = cumulative notional at percentage -5/+5; an hour needs >= 60 valid snapshots. Support = some hour among i+1, i+2, i+3 has imbalance > 0 AND >= the 0.80 quantile (numpy linear) of the present hourly values of hours i-719..i, with at least 480 present. Any missing support hour excludes the episode; fewer than 480 trailing hours excludes it as immature.",
+  "S6_ARMS": "A = support and divergence; B = support without divergence; C = divergence without support; D = neither.",
+  "S6_EXCLUSIONS": "First match, counted in the funnel: kline window incomplete; not a pronounced decline; no comparison pivot; not a lower low; risk width < 0.25 ATR14(i); a support hour missing; book baseline immature.",
+  "S7_ADJUSTMENT": "See VARIABLE_ROLES.NUISANCE_REALIZATION. No covariate may be added after outcomes.",
+  "PIT": "Every field of an episode uses bars up to i+3 and book hours up to i+3 only, all closed at T. Tested by truncation invariance: data ending at T reproduce the same record."
+ },
+ "ENDPOINTS": {
+  "ENTRY": "E = close of bar i+3 (the decision price at T)",
+  "STOP": "S = low_i; the stop event is the first 1m bar after T with low < S",
+  "RISK": "R = E - S (> 0.25 ATR14(i) by eligibility)",
+  "TARGET_K": "the first 1m bar after T with high >= E + k R",
+  "SAME_MINUTE": "stop and target in the same minute count as the stop (loss)",
+  "TIMEOUT": "neither within the cap counts as failure",
+  "PRIMARY": {
+   "ID": "Y1_48H",
+   "K": 1,
+   "CAP_HOURS": 48
+  },
+  "SECONDARY": [
+   {
+    "ID": "Y2_48H",
+    "K": 2,
+    "CAP_HOURS": 48
+   }
+  ],
+  "SENSITIVITY": [
+   {
+    "ID": "Y1_96H",
+    "K": 1,
+    "CAP_HOURS": 96
+   },
+   {
+    "ID": "Y2_96H",
+    "K": 2,
+    "CAP_HOURS": 96
+   }
+  ],
+  "PATH_SOURCE": "pinned 1m klines, minutes [T, T + cap)",
+  "MISSING_PATH_MINUTE": "an episode with any missing minute in its window is UNAVAILABLE for that endpoint, decided from timestamps only, and reported",
+  "COMPUTED_IN_FEASIBILITY_PASS": false
+ },
+ "PRIMARY_TEST_FAMILY": {
+  "TEST_FAMILY_ID": "TF-SEED0001-RD-RETRO1",
+  "CELLS": [
+   {
+    "ID": "P1",
+    "CONTRAST": "A_VS_B",
+    "REGIME": null,
+    "ESTIMAND": "adjusted risk difference P(Y1_48H) A minus B",
+    "HORIZON": "48h"
+   },
+   {
+    "ID": "P2",
+    "CONTRAST": "A_VS_C",
+    "REGIME": null,
+    "ESTIMAND": "adjusted risk difference P(Y1_48H) A minus C",
+    "HORIZON": "48h"
+   }
+  ],
+  "MODEL": "linear probability model on all eligible BTC episodes: Y1_48H ~ 1 + A + B + C (D reference) + log RV24 + sin(hour) + cos(hour) + DECLINE_ATR + NETFLOW24 + RISK_ATR",
+  "VARIANCE": "CR1 cluster-robust, clusters = UTC weeks starting Monday 00:00 (WEEK_ANCHOR_MS), t reference with G - 1 degrees of freedom",
+  "TEST": "two-sided p for beta_A - beta_B and beta_A - beta_C",
+  "MULTIPLICITY": "HOLM",
+  "FAMILY_ALPHA": 0.05,
+  "CONCLUSION_REQUIRES": "BOTH_P1_AND_P2",
+  "STATISTICAL_GATE": "Holm rejects both P1 and P2 (smaller p <= 0.025 and larger p <= 0.05) and both estimates are positive",
+  "NOT_SUFFICIENT": [
+   "A beating D",
+   "one passing contrast",
+   "a high raw A rate"
+  ],
+  "DEPENDENCE_NOTE": "a 48h window spans at most two weekly clusters; the share of windows crossing a week boundary and the 48h overlap-chain structure are reported by the feasibility pass"
+ },
+ "PRACTICAL_GATE": {
+  "BASIS": "COSTS",
+  "ROUND_TRIP_COST_FRACTION": 0.001,
+  "COST_BASIS": "0.04% taker fee per side and 0.01% slippage per side",
+  "RULES": [
+   "both adjusted risk differences >= MIN_MEANINGFUL_EFFECT (0.10)",
+   "the adjusted A rate (mean fitted value over all eligible episodes with the arm set to A) >= the mean over A episodes of 0.5 + (0.0010 / RISK_FRACTION) / 2, the break-even rate of a 1R:1R bracket with timeouts counted as full losses"
+  ]
+ },
+ "EPOCH_GATE": {
+  "EPOCHS": [
+   "2023H1",
+   "2023H2",
+   "2024H1",
+   "2024H2"
+  ],
+  "ROLE": "HYPOTHESIS_EVALUATION_CONTRACT_V1 section 4 gate, run on each primary contrast. No half-year needs to be individually significant; the epochs detect concentration. Primary inference stays the frozen clustered analysis.",
+  "EPOCH_ESTIMATE": "within-epoch LPM with arm dummies only, CR1 by week",
+  "HETEROGENEITY_TEST": "Q = sum_e (theta_e - theta_w)^2 / se_e^2 against a block permutation of whole weekly clusters across epochs (week counts per epoch kept), seed 20261003, 2000 draws, alpha_het 0.05",
+  "OPPOSITE_SIGN_TEST": "an epoch fails if its estimate has the sign opposite to the pooled estimate with one-sided p < 0.05",
+  "LOW_POWER": "if the feasibility pass finds the gate NOT_ASSESSABLE it cannot fail the card, and records say heterogeneity could not be reliably assessed at this N, never stable",
+  "DIAGNOSTICS": "largest epoch share of A episodes and leave-one-epoch-out estimates, reported, never deciding"
+ },
+ "SECONDARY_AND_SENSITIVITY": {
+  "RULE": "descriptive only; none changes the primary conclusion",
+  "ITEMS": [
+   "S1 Y2_48H, P1 and P2",
+   "S2 Y1_96H, P1 and P2",
+   "S3 Y2_96H, P1 and P2",
+   "S4 Y1_48H with 48h overlap-chain clusters instead of weeks, P1 and P2",
+   "raw unadjusted arm rates and A vs D"
+  ]
+ },
+ "ETH_ROBUSTNESS": {
+  "INSTRUMENT": "ETHUSDT perpetual",
+  "RULES": [
+   "exactly the same frozen definitions, constants and code as BTC",
+   "no tuning on BTC followed by a change for ETH; no change after seeing ETH",
+   "reported separately; never pooled with BTC",
+   "ETH cannot rescue BTC or change the verdict"
+  ],
+  "LABELS": [
+   "ETH_SAME_DIRECTION (both ETH contrasts positive)",
+   "ETH_NOT_SAME_DIRECTION",
+   "ETH_INSUFFICIENT (an arm with fewer than 2 episodes)"
+  ]
+ },
+ "H05_DISTANCE": {
+  "STATEMENT": "The CVD family is close to the rejected H05_TAKER_IMBALANCE_SUBSEQUENT_RETURN. This card does not test whether taker imbalance predicts future return, and H05 stays closed.",
+  "WHY_DIFFERENT": [
+   "the object is the order-book support x regular divergence state; CVD is only one of three divergence families and never sufficient on its own",
+   "the comparison is within the same swing-low lower-low population, between arms that differ in support or divergence",
+   "incremental value is required over support alone (P1), over divergence alone (P2) and over pre-decision net flow (NETFLOW24 in the adjustment set)"
+  ],
+  "OTHER_CLOSED_CARDS": {
+   "H02_FAILED_BREAKOUT_MEAN_REVERSION": "killed; mean reversion is the A-vs-D story, which this card refuses as evidence",
+   "H03_EXTREME_IMPULSE_CONTINUATION_EXHAUSTION": "rejected; exhaustion after an impulse is close to the decline filter, which is an eligibility condition shared by all arms",
+   "RESCUE": "this card rescues none of them; its provenance is prior owner practice"
+  }
+ },
+ "FEASIBILITY_RULE": {
+  "POWER_PROFILE_ID": "SEED0001_BINARY_POWER_PROFILE_V1",
+  "COMPARATOR_RATE": 0.5,
+  "LATENT_ICC": {
+   "BASE": 0.1,
+   "STRESS": 0.25
+  },
+  "SHOCK_LEVEL": {
+   "BASE": "WEEK",
+   "STRESS": "WEEK_X_ARM"
+  },
+  "ALPHA_FAMILY": 0.05,
+  "TARGET_POWER": 0.8,
+  "POWER_REPS": 2000,
+  "POWER_SEED": 20261002,
+  "EFFECT_GRID": [
+   0.025,
+   0.05,
+   0.075,
+   0.1,
+   0.125,
+   0.15,
+   0.175,
+   0.2,
+   0.225,
+   0.25,
+   0.275,
+   0.3,
+   0.325,
+   0.35,
+   0.375,
+   0.4
+  ],
+  "MIN_MEANINGFUL_EFFECT": 0.1,
+  "PLANNING_FRACTIONS": [
+   0.5,
+   0.75,
+   1.0
+  ],
+  "MIN_ARM_A_EPISODES": 40,
+  "MIN_ARM_A_DISTINCT_DAYS": 30,
+  "SMD_LIMIT": 1.0,
+  "ALPHA_HET": 0.05,
+  "HET_ASSESSABLE_POWER": 0.5,
+  "PROSPECTIVE_STOP_A": 30,
+  "PROSPECTIVE_MIN_A": 20,
+  "COVARIATES": [
+   "RV24_LOG",
+   "TOD_SIN",
+   "TOD_COS",
+   "DECLINE_ATR",
+   "NETFLOW24",
+   "RISK_ATR"
+  ],
+  "ORDER": [
+   "BTC A episodes < 40 or A distinct decision dates < 30 -> INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR",
+   "max |SMD| of a frozen covariate, A vs B or A vs C, > 1.0 -> INCONCLUSIVE_SAMPLE / NUISANCE_SUPPORT_INSUFFICIENT",
+   "STRESS conjunction power at MIN_MEANINGFUL_EFFECT < 0.80 -> INCONCLUSIVE_SAMPLE / INFORMATIONALLY_WEAK",
+   "otherwise FEASIBLE_FOR_OUTCOME_OPENING_REQUEST (outcomes still need a separate owner authorization)"
+  ],
+  "FLOOR_IS_NOT_POWER": "40 A episodes and 30 A dates are a hard floor, not evidence of power",
+  "POWER_METHOD": "simulation of synthetic Bernoulli outcomes on the real arm x week layout; frozen procedure without covariates; Holm conjunction with positive signs",
+  "MUST_NOT_COMPUTE": [
+   "future return",
+   "+1R/-1R",
+   "+2R/-1R",
+   "MFE/MAE",
+   "any post-decision price field"
+  ],
+  "NO_WEAKENING": "definitions do not change after the counts, whatever they are"
+ },
+ "PROSPECTIVE_CONFIRMATION": {
+  "TEST_FAMILY_ID": "TF-SEED0001-RD-PROSP1",
+  "KIND": "PROSPECTIVE",
+  "START_UTC": "2026-10-05T00:00:00Z",
+  "STARTS_AFTER_FREEZE": true,
+  "COHORT": "BTC episodes with decision time T >= START, frozen detector and constants",
+  "STOP": "the first of: the decision time of the 30th Arm-A episode (cohort = episodes with T up to it), or END_DATE (cohort = T < END_DATE)",
+  "MAX_A_EPISODES": 30,
+  "END_DATE_UTC": "2028-10-05T00:00:00Z",
+  "MIN_A_EPISODES": 20,
+  "BELOW_MIN_AT_END": "INCONCLUSIVE; extending is a new preregistration on later data",
+  "OUTCOME_MATURITY": "the analysis waits until every cohort window plus 96h has closed and been published",
+  "MONITORING": "counts only (eligibility funnel and arm counts); no outcome, effect estimate or test statistic before the stop",
+  "PROTECTED_SEGMENT": "decisions before 2027-01-01 fall in protected 2026. Their archive objects may be acquired and pinned by checksum and timestamp metadata only (no value parsed). Running the detector on them, even counts-only, needs an explicit owner decision under the protected-data rules.",
+  "OPENING": "the one analysis at the stop needs a separate explicit owner decision (an execution permit); no 2026 outcome may influence any retrospective definition",
+  "REPLICATION_RULE": "same model, covariates and clusters; one-sided tests in the discovery direction; Holm over P1, P2 at family alpha 0.05; both positive and rejected, and the practical gate, give REPLICATION_PASS",
+  "SAME_PERIOD_ETH": "ETH prospective episodes are descriptive robustness only",
+  "PRODUCT_EXPOSURE_HANDLING": "The beta V0.3 briefing does not compute or show this state or any statistic of it. If any product surface starts showing it during the window, that is recorded before the stop with its first date. The owner sees live charts and may trade the rule; the rule and code are frozen, so that cannot change the cohort, and the label stays OWNER_UNBLINDED_TO_LIVE_CHARTS."
+ },
+ "OUTCOME_CLASSES": {
+  "DISCOVERY": {
+   "PROMISING_PROTOTYPE": "statistical, practical and epoch gates pass on BTC 2023-2024",
+   "NO_INCREMENTAL_STRUCTURE": "statistical or practical failure on P1 or P2",
+   "HETEROGENEOUS_UNEXPLAINED": "statistical and practical pass, epoch gate fails",
+   "INCONCLUSIVE": "support, power or data insufficient"
+  },
+  "CARD": "SUPPORTED_UNCONDITIONAL only with a PROMISING_PROTOTYPE discovery and a REPLICATION_PASS prospective; otherwise as HYPOTHESIS_EVALUATION_CONTRACT_V1 section 5",
+  "RETROSPECTIVE_IS_NEVER_CONFIRMATION": true
+ },
+ "NO_RESCUE": [
+  "no parameter, timeframe, horizon, side, threshold, regime, baseline or claim-type change after any count or outcome",
+  "hidden divergences are SEED-0002 and never enter this card",
+  "4h and 1D are separate future cards, not variants of this one",
+  "a flow surrogate for the book is Track B, a separate card, never this card's confirmation"
+ ],
+ "COMPILER_V1_DECLARATION": {
+  "COMPILER_SCHEMA_VERSION": "GV0R02_SCHEMA_V1",
+  "CLAIM_TYPE": "INCREMENTAL",
+  "TARGET_CLASS": "UNCONDITIONAL",
+  "INTRADAY": true,
+  "ENDPOINT_MOMENT": "FIRST_MOMENT",
+  "VARIABLE_ROLES": {
+   "REGIME_VARIABLES": [],
+   "MECHANISM_VARIABLES": [
+    "BOOK_SUPPORT_5PCT",
+    "DIVERGENCE_FAMILY_COUNT",
+    "SWING_LOW_LOWER_LOW",
+    "PRONOUNCED_DECLINE_ELIGIBILITY"
+   ],
+   "NUISANCE_BASELINE_VARIABLES": [
+    "PRIOR_REALIZED_VOLATILITY",
+    "TIME_OF_DAY",
+    "LAGGED_TARGET",
+    "PRE_DECISION_NET_FLOW",
+    "RISK_WIDTH_ATR"
+   ]
+  },
+  "PRIMARY_CELLS": [
+   {
+    "REGIME": null,
+    "ESTIMAND": "adjusted risk difference A minus B, Y1_48H",
+    "HORIZON": "48h"
+   },
+   {
+    "REGIME": null,
+    "ESTIMAND": "adjusted risk difference A minus C, Y1_48H",
+    "HORIZON": "48h"
+   }
+  ],
+  "PRACTICAL_BAR_BASIS": "COSTS",
+  "DISCOVERY_SURFACE": {
+   "ID": "BINANCE_UM_2023_2024_BOOKDEPTH",
+   "START": "2023-01-01",
+   "END": "2025-01-01"
+  },
+  "REPLICATION_SURFACE": {
+   "KIND": "PROSPECTIVE",
+   "ID": "BINANCE_UM_PROSPECTIVE_FROM_2026_10_05",
+   "START": "2026-10-05",
+   "STARTS_AFTER_FREEZE": true,
+   "STOPPING_RULE": {
+    "MAX_EPISODES": 30,
+    "END_DATE": "2028-10-05",
+    "MIN_N": 20,
+    "COUNTS_ONLY_MONITORING": true,
+    "PRODUCT_EXPOSURE_HANDLING": "see PROSPECTIVE_CONFIRMATION.PRODUCT_EXPOSURE_HANDLING"
+   }
+  },
+  "EPOCHS": [
+   "2023H1",
+   "2023H2",
+   "2024H1",
+   "2024H2"
+  ],
+  "NOTE": "MAX_EPISODES and MIN_N count Arm-A episodes. The V0 inference-class enum has no model-based cluster-robust class, so the feasibility pass runs the class-agnostic V1 checks (definition, protected window) and computes power for the frozen procedure directly."
+ },
+ "CODE_IDENTITY": {
+  "DETECTOR_LIB_PATH": "scripts/research/seed0001_regular_divergence_lib.py",
+  "DETECTOR_LIB_SHA256": "c72e49683fc6cb61006584eae5a3adc1c0f6a126f8490d48786dc2b116240762",
+  "FEASIBILITY_LIB_PATH": "scripts/research/seed0001_feasibility_lib.py",
+  "FEASIBILITY_LIB_SHA256": "494d8a62c21b820c42c1cce0618516151fbdc091a8e6eda0d2a21c79592ffa0d",
+  "TESTS_PATH": "tests/research/test_seed0001_regular_divergence.py",
+  "OUTCOME_EVALUATOR": "not implemented; it is written and frozen before any outcome opening request"
+ },
+ "BOUNDARY": {
+  "MARKET_DATA_OPENED_BEFORE_FREEZE": false,
+  "MARKET_OUTCOMES_COMPUTED": false,
+  "PROTECTED_2025_VALUES_OPENED": false,
+  "PROTECTED_2026_VALUES_OPENED": false,
+  "LLM_CALLS": 0,
+  "NOTE": "Before this freeze, only format probes touched market files: the BTCUSDT bookDepth file of 2023-01-01 was opened and its first rows read to learn the columns (timestamp, percentage, depth, notional); the 2022-12-31 file was confirmed absent (404); two .CHECKSUM files were fetched. No kline value and no outcome was read."
+ },
+ "NEXT_UNIT": "SEED0001_OUTCOME_BLIND_FEASIBILITY_COUNT_PASS"
+}

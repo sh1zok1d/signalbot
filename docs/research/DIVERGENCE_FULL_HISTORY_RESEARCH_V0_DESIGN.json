@@ -1,0 +1,271 @@
+{
+ "DESIGN": "DIVERGENCE_FULL_HISTORY_RESEARCH_V0_DESIGN",
+ "STATUS": "FROZEN_BEFORE_ANY_2025_PLUS_BYTE",
+ "DATE": "2026-10-02",
+ "HUMAN_READABLE_TWIN": "docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_DESIGN.md",
+ "KIND": "RESEARCH / DISCOVERY PROGRAM; never one independent confirmatory test over 2023-2026",
+ "OBJECTIVES": [
+  "whether divergence adds value conditional on support",
+  "stability across epochs and symbols",
+  "market states that distinguish successful from failed divergences",
+  "whether divergence affects win probability, excursion, timing or payoff shape",
+  "classical oscillator divergence versus a broader weakening-of-selling-pressure state"
+ ],
+ "SLICES": {
+  "DISCOVERY": {
+   "LABEL": "DISCOVERY / PREVIOUSLY OBSERVED",
+   "DECISIONS_UTC": [
+    "2023-01-01T00:00:00Z",
+    "2024-12-28T00:00:00Z"
+   ],
+   "ROLE": "estimation and mechanism research; never independent validation evidence"
+  },
+  "VALIDATION": {
+   "LABEL": "VALIDATION / PREVIOUSLY UNSEEN",
+   "DECISIONS_UTC": [
+    "2025-01-01T00:00:00Z",
+    "2026-08-11T00:00:00Z"
+   ],
+   "ROLE": "the only source of an independent validation statement; evaluated once"
+  },
+  "POOLED": {
+   "LABEL": "POOLED FULL HISTORY",
+   "ROLE": "estimation, mechanism, stability, descriptive modelling, heterogeneity; never independent replication, confirmation or fresh holdout evidence"
+  },
+  "GAP": "decisions in (2024-12-28, 2025-01-01) belong to no slice (their 96h windows would straddle the slices)"
+ },
+ "BOUNDARIES": {
+  "E1_HOLDOUT_UTC": [
+   "2026-08-16T00:00:00Z",
+   "2026-08-25T17:20:00Z"
+  ],
+  "DERIVATION": "the longest forward read is T + 96h (bracket, forward return, MFE/MAE, time-to); every lookback (detector warm-up, book baseline 720h, OI 24h/leg/6h, volume baseline 720h, EMA168, RET_7D, market 24h) only reads before T. Last decision = E1 start - 96h - 24h margin = 2026-08-11T00:00Z; read horizon = 2026-08-15T00:00Z (exclusive).",
+  "VALIDATION_DECISIONS_UTC": [
+   "2025-01-01T00:00:00Z",
+   "2026-08-11T00:00:00Z"
+  ],
+  "READ_HORIZON_EXCLUSIVE_UTC": "2026-08-15T00:00:00Z",
+  "OBJECTS": "monthly klines only up to 2026-07 (the 2026-08 monthly file contains E1 bytes); daily klines, bookDepth and metrics only up to 2026-08-14",
+  "DETECTOR_GUARD": "the SEED-0001 detector refuses windows reaching 2025; for this program its guard constant is substituted, inside a scoped context only, by the E1 holdout start; detector logic unchanged"
+ },
+ "PANEL": [
+  "BTCUSDT",
+  "ETHUSDT",
+  "SOLUSDT",
+  "XRPUSDT",
+  "BNBUSDT",
+  "DOGEUSDT"
+ ],
+ "PANEL_RULE": "the feasibility-qualified panel; no symbol added or removed after protected outcomes are opened",
+ "DETECTOR": "SEED0001_DETECTOR_V1 unchanged; discovery episodes must reproduce the V0 per-symbol digests",
+ "ARMS": {
+  "A": "support + regular bullish divergence",
+  "B": "support only",
+  "C": "divergence only",
+  "D": "neither",
+  "RULE": "definitions unchanged; never altered after opening"
+ },
+ "ESTIMANDS": {
+  "PRIMARY_PRACTICAL": {
+   "CONTRAST": "A - B",
+   "QUESTION": "Conditional on an already-present support state, does regular bullish divergence improve the subsequent trading outcome?",
+   "NOTE": "not an interaction estimand"
+  },
+  "SECONDARY_MECHANISTIC": {
+   "CONTRAST": "(A - B) - (C - D)",
+   "QUESTION": "Does the contribution of divergence differ depending on whether support is present?"
+  },
+  "DESCRIPTIVE": {
+   "A - D": "context only; never promoted",
+   "C - D": "divergence without support (support-necessity question)"
+  }
+ },
+ "PRIMARY_OUTCOME": "Y1_48H",
+ "OUTCOMES": {
+  "BRACKET": "SEED-0001 definitions: entry close of bar i+3, stop low_i (low < S), target E + kR, same minute = stop, timeout = NEUTRAL; Y1/Y2 at 48h and 96h",
+  "COSTS": "round trip 0.0010 of entry; COST_R = 0.0010 x E / R",
+  "NET_R": "NET_Rk_cap = k (WIN), -1 (LOSS) or FWD_R_cap (NEUTRAL, exit at the cap close), minus COST_R",
+  "CONTINUOUS": {
+   "FWD_RET_cap": "C_cap/E - 1",
+   "FWD_R_cap": "(C_cap - E)/R",
+   "MFE_R_cap": "(max high - E)/R over [T, T+cap)",
+   "MAE_R_cap": "(E - min low)/R over [T, T+cap)",
+   "T_MFE_H_cap": "hours to the first minute at the window max high",
+   "T_MAE_H_cap": "hours to the first minute at the window min low",
+   "T_HIT_P1R_H": "hours to the first minute with high >= E + R within 96h (none if not hit)",
+   "T_HIT_M1R_H": "hours to the first minute with low < S within 96h (none if not hit)"
+  },
+  "RESOLUTION": "1m bars; missing minute in a window -> UNAVAILABLE (timestamps only)",
+  "NO_OPTIMIZATION": "entry, stop, target, horizon and costs are never changed after validation outcomes are visible"
+ },
+ "FEATURE_REGISTRY": {
+  "ROLE": "point-in-time research covariates; never inclusion or exclusion rules",
+  "FEATURES": [
+   "DIV_RSI14_DELTA",
+   "DIV_RSI21_DELTA",
+   "DIV_MACD_DELTA_ATR",
+   "DIV_CVD_SHARE",
+   "LEG_DEPTH_ATR",
+   "NEW_LOW_DEPTH_ATR",
+   "PIVOT_SPACING_BARS",
+   "SUPPORT_EXCESS",
+   "BOOK_IMB_AT_LOW",
+   "NETFLOW24",
+   "SELL_PRESSURE_CHANGE",
+   "FLOW_AFTER_LOW",
+   "OI_CHG_24H",
+   "OI_CHG_LEG",
+   "LIQ_PROXY",
+   "RV24_LOG",
+   "ATR_PCT",
+   "HTF_EMA168_DIST_ATR",
+   "RET_7D",
+   "NEW_LOW_30D_ATR",
+   "MKT_RET24",
+   "BTC_RET24"
+  ],
+  "DEFINITIONS": {
+   "DIV_RSI14_DELTA": "RSI14(i) - RSI14(j)",
+   "DIV_RSI21_DELTA": "RSI21(i) - RSI21(j)",
+   "DIV_MACD_DELTA_ATR": "(MACD line(i) - MACD line(j)) / ATR14(i)",
+   "DIV_CVD_SHARE": "sum(2 taker_buy - volume) / sum(volume), bars j+1..i",
+   "LEG_DEPTH_ATR": "DECLINE_ATR (max high i-48..i minus low_i) / ATR14(i)",
+   "NEW_LOW_DEPTH_ATR": "(low_j - low_i) / ATR14(i)",
+   "PIVOT_SPACING_BARS": "i - j",
+   "SUPPORT_EXCESS": "max support-hour imbalance minus its trailing P80",
+   "BOOK_IMB_AT_LOW": "hourly book imbalance of the pivot hour i",
+   "NETFLOW24": "net taker share, 24 bars ending at i+3",
+   "SELL_PRESSURE_CHANGE": "net taker share over bars j+1..i minus over the previous equal-length leg ending at j (positive = selling weakened into the new low)",
+   "FLOW_AFTER_LOW": "net taker share over bars i+1..i+3",
+   "OI_CHG_24H": "OI(T) / OI(T - 24h) - 1",
+   "OI_CHG_LEG": "OI(close of bar i) / OI(close of bar j) - 1",
+   "LIQ_PROXY": "1 if OI(close of i) / OI(close of i - 6h) - 1 <= -1% AND max hourly volume of bars i-5..i >= 3 x median hourly volume of bars i-720..i-1",
+   "RV24_LOG": "log RV24",
+   "ATR_PCT": "ATR14(i) / close(i)",
+   "HTF_EMA168_DIST_ATR": "(close(i+3) - EMA168(close)(i+3)) / ATR14(i)",
+   "RET_7D": "close(i+3) / close(i+3-168) - 1",
+   "NEW_LOW_30D_ATR": "(min low of bars i-720..i-1 - low_i) / ATR14(i)",
+   "MKT_RET24": "mean over the six panel symbols of log(close at T / close at T - 24h)",
+   "BTC_RET24": "log(BTC close at T / BTC close at T - 24h)"
+  },
+  "OI_PIT": "Binance UM metrics sum_open_interest, 5m; a record labelled create_time is available at create_time + 5min; a value older than 30 min is missing",
+  "MISSING": "NaN; reported per feature and slice; complete-case only inside the models that use the feature",
+  "DEEPER_STATE_FLOW_OI": "1 if SELL_PRESSURE_CHANGE > 0 and OI_CHG_LEG <= 0 (no oscillator input)",
+  "MECHANISM_SUBSET_FOR_M1": [
+   "SUPPORT_EXCESS",
+   "BOOK_IMB_AT_LOW",
+   "SELL_PRESSURE_CHANGE",
+   "FLOW_AFTER_LOW",
+   "OI_CHG_LEG",
+   "OI_CHG_24H",
+   "LIQ_PROXY",
+   "ATR_PCT",
+   "HTF_EMA168_DIST_ATR",
+   "RET_7D",
+   "NEW_LOW_30D_ATR",
+   "MKT_RET24"
+  ]
+ },
+ "INFERENCE": {
+  "MODEL": "OLS (linear probability for binary outcomes) with arm dummies (D reference), symbol fixed effects and the SEED-0001 covariates (log RV24, sin/cos hour, DECLINE_ATR, NETFLOW24, RISK_ATR); pooled models add a slice fixed effect",
+  "VARIANCE": "CR1 with panel-wide UTC-week clusters (all symbols in a week share one cluster), t(G - 1); cross-symbol episodes are never treated as independent",
+  "BOOTSTRAP": "primary A - B: pairs bootstrap over whole weeks, 4999 resamples, seed 20261007, percentile 95% CI",
+  "SUB_GROUP_MODELS": "by symbol: arm-only, CR1 by week; by half-year / year: arm-only with symbol fixed effects; heterogeneity Q with inverse-variance weights (descriptive)"
+ },
+ "VALIDATION_LABELS": {
+  "FORM": "a list of descriptive tags, never a forced PASS/FAIL",
+  "RULES": [
+   "INCONCLUSIVE_SAMPLE if validation A episodes < 30 or A week clusters < 30",
+   "SAME_DIRECTION / OPPOSITE_DIRECTION: sign of the validation estimate vs the discovery estimate of the same frozen model",
+   "COMPATIBLE_WITH_ZERO / DISTINGUISHABLE_FROM_ZERO: CR1 95% CI includes 0 or not",
+   "AT_OR_ABOVE_MEOI / BELOW_MEOI: point estimate vs 0.15",
+   "ECONOMICALLY_SMALL: point estimate < 0.05 and CI upper bound < 0.15",
+   "HETEROGENEOUS_ACROSS_SYMBOLS / NO_DETECTED_SYMBOL_HETEROGENEITY: symbol-level Q p < 0.05 or not (no detected heterogeneity is not evidence of stability)"
+  ],
+  "APPLIES_TO": [
+   "A - B",
+   "(A - B) - (C - D)"
+  ]
+ },
+ "PLANNED_ANALYSES": {
+  "STAGE_1_VALIDATION_ONCE": [
+   "A/B/C/D counts by symbol; arm summaries with WIN/LOSS/NEUTRAL counts",
+   "frozen model for every outcome: A - B, interaction, A - D, C - D with CR1 CIs",
+   "primary A - B week bootstrap",
+   "by symbol and by half-year (Y1_48H, FWD_R_48H) with heterogeneity Q",
+   "the same for the discovery slice (comparison)",
+   "validation labels",
+   "persist VALIDATION.json and the per-episode validation CSV before stage 2; a second stage-1 run is refused"
+  ],
+  "STAGE_2_POOLED_AND_MECHANISM": [
+   "pooled models with a slice fixed effect for every outcome",
+   "validation-minus-discovery differences (arm x slice terms)",
+   "by year and by symbol (pooled) with heterogeneity Q",
+   "feature SMD (A vs B) and missingness per slice and pooled",
+   "within-support models: M0 DIV; M1 DIV + standardized mechanism subset (complete cases); M2 RSI/MACD/CVD family flags with and without the subset; M3 DEEPER_STATE_FLOW_OI alone and with DIV; M0 on NET_R1_48H",
+   "failure states within A and within B: one standardized feature at a time (symbol and slice fixed effects, CR1), Holm across features",
+   "stage 2 verifies that the validation episodes reproduce the persisted CSV byte-for-byte"
+  ],
+  "LABEL_OF_STAGE_2": "EXPLORATORY; kept separate from the frozen arm-level estimates"
+ },
+ "PROHIBITED_AFTER_OPENING": [
+  "any change of detector, support or divergence rule, arm definition, threshold, horizon, outcome, cost, entry, stop or target",
+  "any change of the symbol panel",
+  "any subgroup selection or filter presented as a result",
+  "combinatorial threshold or setup search",
+  "a second stage-1 evaluation",
+  "presenting pooled results as independent replication, confirmation or fresh holdout evidence",
+  "promoting A - D or an exploratory model to the primary",
+  "activating the V1 prospective continuation",
+  "creating SEED-0003"
+ ],
+ "PROSPECTIVE": "not activated; the stream after 2026-10-05 stays a future independent resource",
+ "SEED0003": "not created; decided only after this program reports",
+ "ORDER": [
+  "freeze this design (commit and push)",
+  "verify frozen artifact hashes",
+  "acquire 2025-01-01..2026-08-14 and OI metrics",
+  "stage 1 validation once; persist; commit",
+  "stage 2 pooled and mechanism; commit"
+ ],
+ "CODE_IDENTITY": {
+  "scripts/research/divergence_full_history_v0.py": "988662b882789b4985b656e496124be6ff300c428e9e36b5aa1075e545a4ddc9",
+  "scripts/research/divergence_full_history_v0_lib.py": "03c94abb82b5f9a9a0ce395f7ce9019e78301fc5d089261b64b27be2e01ba87b",
+  "scripts/research/seed0001_regular_divergence_lib.py": "c72e49683fc6cb61006584eae5a3adc1c0f6a126f8490d48786dc2b116240762",
+  "scripts/research/seed0001_feasibility.py": "747e1da47a5ac4eab236ff554d19785d124220421eb0f6efa687c6093c9dc3b3",
+  "scripts/research/seed0001_exploratory_outcomes.py": "bdbdb5b5f05a2f0f91b82ddad57bcd1d71e9c6d818216fe19cf647c58bf6ff44",
+  "scripts/research/divergence_panel_feasibility_v0.py": "dd8d77c40e88d202564db94fea3f2adb277b29c53a7a284e0b6bedb6dfd6dadd",
+  "scripts/research/divergence_conditional_support_feasibility_v1.py": "451c663cb1beaf22deee39a0da4491512d907c7321cbbdf7b76e351afa33aa88"
+ },
+ "FROZEN_ARTIFACTS": {
+  "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json": "c6f02ecbdd02346e33d3505d6e5353bd0e30abf47a1899d1290f2cccbf6b630c",
+  "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.md": "96e66dbc7c4c1dae4409da497a8a420af877f5b65e854d16c201383ba7ee5dfa",
+  "docs/research/SEED0001_FEASIBILITY_REPORT.json": "a7076d6e808816cab4cd35b1822634c901d983c86e34b1f93c4ae95a2c432561",
+  "docs/research/SEED0001_FEASIBILITY_REPORT.md": "2d3fdbd5dbe95389d73bf4ef9773f4cd8f23d435d2f88636030b1cefbc838b4c",
+  "docs/research/seed0001/EPISODES_BTCUSDT.csv": "7260df8cbd1cf0ba7b2705c82d50bd71695adc858cebfb5b2e07b759d7aada1c",
+  "docs/research/seed0001/EPISODES_ETHUSDT.csv": "f58cfa016cd8b41960c4ab34124530b90434ffff8de02f999e855e5a9c048459",
+  "docs/research/seed0001/OUTCOMES_BTCUSDT.csv": "1a633f8c857ee081d70fbfa6add12cc4ea72ad62bd697d4aeab422aacdb2fff3",
+  "docs/research/seed0001/OUTCOMES_ETHUSDT.csv": "7e758c7433505d986a55f88c8433a9d44551cd0860009fa4e2af00acb38e6ca5",
+  "docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json": "2221b20c84e9d1563e7427a2856e0efd3cd7de1616eeba0c9e3955811bcf0433",
+  "docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.json": "3a1ca9a7e8b7a85daa4e322250a2c7eb8c1fb261fc3a1202bbf34bde951f6d4a",
+  "docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.md": "5ed3feb0c401d9445a21de8b4f0c1661f854ad886248078cfd59d37df258c143",
+  "docs/research_data/SEED0001_BINANCE_UM_1H_BOOKDEPTH_V0/DATASET_MANIFEST.json": "8ac3a03c23e0bb24eb553b5dcd2ace22175d8c826c824fb5e4fb64eafcd5302f",
+  "docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_DESIGN.json": "dedb62b362283e40154d18b9f02c5a46de6c69ed455a1fd96bd3c0304d4b236a",
+  "docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_REPORT.json": "1ebdf6ca00f733e61dbafc00374dc159f2cc44f4cb317b974e4a8f58b514e747",
+  "docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_REPORT.md": "119353d4f67c283394f38fd947c42358402ba423607fd3c6b01c7fe2e8465998",
+  "docs/research_data/DIVERGENCE_PANEL_V0_BINANCE_UM/DATASET_MANIFEST.json": "272a45f131498ab22c06735e5b7d2a9344494c0c65f51349f428cb16c1cca0b3",
+  "docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_DESIGN.json": "f94bc9ff90dadd0e78f0a6840b0149657322903462903ad4c2a5d4cbf64ce20b",
+  "docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_REPORT.json": "f3ca532f177098a3fbf655c7c794876ca7d1981c55febd5d5e90fe181524ad53",
+  "docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_REPORT.md": "752af07de7afc1eb8cea513e05d4c50f654e571f44501c84037a66248dca4906",
+  "docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md": "a5db85549e3858c01bf0a55cf5e8864961269baf6f8bcff472a841cac3dae13b",
+  "docs/e1/E1_RUN_001_FINAL_HOLDOUT_EVALUATOR_FREEZE.md": "afff6c6ad2ab393f874ca8c92900ee24c58bfc485188215d97c4c17097ccac56",
+  "docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.md": "2f9d2acafd89462438175373f3b3cb05be3ce0b0ed4a300ddef8ac024d47136b",
+  "docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.json": "24ee431227de710e72c0c60653b58dc8406d1754ab7bd8498247a0f5e4cfb5b9"
+ },
+ "BOUNDARY_FLAGS": {
+  "PROTECTED_2025_PLUS_READ_AT_FREEZE": false,
+  "E1_INTERVAL_TOUCHED": false,
+  "PROSPECTIVE_ACTIVATED": false,
+  "SEED0003_CREATED": false
+ }
+}

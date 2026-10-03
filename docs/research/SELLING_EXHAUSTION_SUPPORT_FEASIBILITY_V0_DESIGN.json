@@ -1,0 +1,209 @@
+{
+  "BINARY_VS_CONTINUOUS": {
+    "DGP_LINEAR": "P(y) = 0.5 + beta * z (z = standardized score), with beta chosen so that the implied mean E - S rate gap equals delta; clipped to [0.01, 0.99], clipped share reported",
+    "DGP_STEP": "P(y) = 0.5 + delta * E",
+    "EFFECTS": [
+      0.03,
+      0.04,
+      0.05,
+      0.075,
+      0.1
+    ],
+    "PROFILES": [
+      "INDEPENDENT",
+      "BASE",
+      "STRESS",
+      "EMPIRICAL"
+    ],
+    "READING": "The continuous score improves efficiency materially only if it beats the binary test under DGP_LINEAR without losing much under DGP_STEP. Reported, not used for the primary verdict.",
+    "TESTS": "binary E coefficient vs continuous z slope, each in its own OLS with symbol FE, CR1 by week"
+  },
+  "CANDIDATE_STATES": {
+    "CONCEPT": "Price makes a new local low (the detector requires low_i < low_j after a >= 3 ATR decline). Aggressive selling weakens relative to the prior downswing or a local baseline. Open interest does not expand. Support is present. No oscillator input.",
+    "DIVERGENCE_FLAGS": "RSI/MACD/CVD families and DIVERGENCE are descriptive cross-tabulations only, never in an inclusion rule",
+    "PIT": "Every input ends at or before the close of pivot bar i, three bars before T. A truncation audit recomputes the inputs on bars and OI truncated at T: 30 episodes per symbol must be identical.",
+    "SELECTION": "Both variants are reported in full. No variant is selected by outcome performance. A later choice may use only counts, dependence and concept.",
+    "UNDEFINED": "A missing OI as-of value or zero volume makes that variant's state undefined. The episode is excluded from that variant's E/S and counted.",
+    "VARIANTS": {
+      "SE_BASELINE": {
+        "FLOW_INPUT": "APPROACH_FLOW_EXCESS = share(i-23..i) - median over k in [i-696, i-24] of share(k-23..k); every bar lies in i-719..i",
+        "JUSTIFICATION": "Windows reuse the frozen SEED-0001 constants FLOW_BARS = 24 and WARMUP_BARS = 720, which the detector already guarantees to be complete. The thresholds are the median (flow) and the no-change point (OI). No pivot-spacing dependence.",
+        "OI_INPUT": "APPROACH_OI_CHANGE = OI(close of bar i) / OI(close of bar i - 24h) - 1",
+        "REFERENCE": "local baseline",
+        "RULE": "E iff APPROACH_FLOW_EXCESS > 0 AND APPROACH_OI_CHANGE <= 0"
+      },
+      "SE_LEG": {
+        "FLOW_INPUT": "LEG_FLOW_CHANGE = share(j+1..i) - share(max(j-(i-j)+1, 0)..j), where share(window) = sum(2*taker_buy - volume) / sum(volume) over 1h bars",
+        "JUSTIFICATION": "Both thresholds are the no-change point, not chosen from data. The first-leg window has the same length as the second leg. This is the state pre-specified as DEEPER_STATE_FLOW_OI in the full-history design frozen before any 2025+ byte (c122040). Its exploratory association is not used.",
+        "OI_INPUT": "LEG_OI_CHANGE = OI(close of bar i) / OI(close of bar j) - 1, using 5m metrics available at create_time + 5 min, stale after 30 min",
+        "REFERENCE": "prior downswing",
+        "RULE": "E iff LEG_FLOW_CHANGE > 0 AND LEG_OI_CHANGE <= 0"
+      }
+    }
+  },
+  "CODE_IDENTITY": {
+    "scripts/research/divergence_full_history_v0.py": "988662b882789b4985b656e496124be6ff300c428e9e36b5aa1075e545a4ddc9",
+    "scripts/research/divergence_full_history_v0_lib.py": "03c94abb82b5f9a9a0ce395f7ce9019e78301fc5d089261b64b27be2e01ba87b",
+    "scripts/research/divergence_panel_feasibility_v0.py": "dd8d77c40e88d202564db94fea3f2adb277b29c53a7a284e0b6bedb6dfd6dadd",
+    "scripts/research/seed0001_feasibility.py": "747e1da47a5ac4eab236ff554d19785d124220421eb0f6efa687c6093c9dc3b3",
+    "scripts/research/seed0001_regular_divergence_lib.py": "c72e49683fc6cb61006584eae5a3adc1c0f6a126f8490d48786dc2b116240762",
+    "scripts/research/selling_exhaustion_support_feasibility_v0.py": "52dccdde6ac3759712794eb0af6e4bc3959f6138bf3925eda0e487dd757682a0",
+    "scripts/research/selling_exhaustion_support_feasibility_v0_lib.py": "91fab0499b61a8ebcb1374bfe56c6ee7e6bbc118572009a3b7abacc532f41ec2"
+  },
+  "CONTINUOUS_SCORE": {
+    "CONSTANTS": "per-symbol median and MAD over that variant's defined support episodes on the exposed surface; feature values only; frozen in the result for any future use",
+    "DEFINITION": "SCORE_<variant> = mean over its two components of clip((sign * (x - median_symbol)) / (1.4826 * MAD_symbol), -3, 3). The components are the flow input (sign +1) and the OI input (sign -1).",
+    "RESEARCHER_DEGREES_OF_FREEDOM": "one transformation per variant, fixed here: no component, weight, clip or scaling choice is left open"
+  },
+  "DATE": "2026-10-02",
+  "DEPENDENCE": {
+    "PROFILES": {
+      "BASE": "one probit shock per UTC date shared by all symbols and both states, latent ICC 0.25 (V0/V1 BASE)",
+      "COLLAPSED": "one unit per (UTC date, state) with the BASE shock (diagnostic lower bound)",
+      "EMPIRICAL": "probit week, date and within-symbol-chain components calibrated to state-blind outcome pair correlations",
+      "EMPIRICAL_UPPER": "the same calibration at the 95th week-bootstrap percentile of each pair-class correlation",
+      "INDEPENDENT": "diagnostic only",
+      "STRESS": "one probit shock per (UTC date, state), latent ICC 0.50 (V0/V1 STRESS); the verdict gate"
+    },
+    "STATE_BLIND_OUTCOME_CALIBRATION": {
+      "BOOTSTRAP": "999 week resamples, seed 20261009",
+      "INPUT": "an outcome vector with symbol, decision time and week only; no candidate state is ever passed",
+      "LINK": "rho = sin(pi * phi / 2); week = rho_W; date = rho_D - rho_W; chain = rho_C - rho_W, each floored at 0; tau^2 = rho / (1 - sum rho)",
+      "OUTCOMES": "Y1_48H of support episodes inside the frozen DISCOVERY and VALIDATION slices only. These were already opened by DIVERGENCE_FULL_HISTORY_RESEARCH_V0; no gap-day outcome is opened.",
+      "PAIR_CLASSES": "same week/other date/other symbol (W); same date/other symbol (D); same symbol 48h chain/other date/same week (C)"
+    },
+    "STRUCTURAL": [
+      "nominal E and S",
+      "unique decision times",
+      "decision dates",
+      "UTC week clusters",
+      "within-symbol 48h overlap chains",
+      "panel 24h market chains",
+      "max episodes per date",
+      "symbol concentration (shares, max, HHI)",
+      "epoch (half-year) concentration",
+      "cross-symbol same-state co-occurrence within 0/6/24h"
+    ]
+  },
+  "EFFECTS": {
+    "DECISION": [
+      0.04,
+      0.05
+    ],
+    "GRID": "0.010 .. 0.150 step 0.005 (MDE80 = first grid point with power >= 0.80; analytic MDE80 = 2.8016 * null SD also reported)",
+    "PLANNING_COMPARATOR_RATE": 0.5,
+    "REPORTED": [
+      0.03,
+      0.05,
+      0.075,
+      0.1
+    ]
+  },
+  "ESTIMAND": {
+    "NO_OUTCOME_CONTRAST": "No E-versus-S outcome statistic is computed on any surface in this unit",
+    "PLANNING_MODEL": "OLS/LPM of the outcome on the E indicator plus symbol fixed effects; CR1 by panel-wide UTC week; t(G - 1); two-sided 0.05 with a positive estimate required",
+    "PLANNING_OUTCOME": "Y1_48H: +1R before -1R within 48h under the SEED-0001 bracket",
+    "PRIMARY": "E - S (conditional on support, does the exhaustion state add value?)"
+  },
+  "FROZEN_ARTIFACTS": {
+    "docs/e1/E1_RUN_001_FINAL_HOLDOUT_EVALUATOR_FREEZE.md": "afff6c6ad2ab393f874ca8c92900ee24c58bfc485188215d97c4c17097ccac56",
+    "docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md": "a5db85549e3858c01bf0a55cf5e8864961269baf6f8bcff472a841cac3dae13b",
+    "docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.json": "24ee431227de710e72c0c60653b58dc8406d1754ab7bd8498247a0f5e4cfb5b9",
+    "docs/research/D2_CONFIRMATION_FEASIBILITY_AND_DESIGN.md": "2f9d2acafd89462438175373f3b3cb05be3ce0b0ed4a300ddef8ac024d47136b",
+    "docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_DESIGN.json": "f94bc9ff90dadd0e78f0a6840b0149657322903462903ad4c2a5d4cbf64ce20b",
+    "docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_REPORT.json": "f3ca532f177098a3fbf655c7c794876ca7d1981c55febd5d5e90fe181524ad53",
+    "docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_REPORT.md": "752af07de7afc1eb8cea513e05d4c50f654e571f44501c84037a66248dca4906",
+    "docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_DESIGN.json": "cf6a78d2ec315c6db3006905b65a01c53a90a78b84c8ab41dfc36f44a5a5eefb",
+    "docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_REPORT.md": "5eff6d0af126a361086e42b478da2bccc947b4eb6a8ebcb75b744d1bd9164292",
+    "docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_RESEARCH.json": "449e6a78dbd4085f0a8dc9fd2589bf728e1a407ca9fe29a6948564ffcc3b93e1",
+    "docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_VALIDATION.json": "91409e272343fcfedca2b2112e3a6c14d884a6d467721cb7e2d1a4d67cf13c43",
+    "docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_DESIGN.json": "dedb62b362283e40154d18b9f02c5a46de6c69ed455a1fd96bd3c0304d4b236a",
+    "docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_REPORT.json": "1ebdf6ca00f733e61dbafc00374dc159f2cc44f4cb317b974e4a8f58b514e747",
+    "docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_REPORT.md": "119353d4f67c283394f38fd947c42358402ba423607fd3c6b01c7fe2e8465998",
+    "docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md": "fb2958cd32da710d4ea094fa33e80a80947743f5035ffbb3e88493ea4f4bce59",
+    "docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json": "2221b20c84e9d1563e7427a2856e0efd3cd7de1616eeba0c9e3955811bcf0433",
+    "docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.json": "3a1ca9a7e8b7a85daa4e322250a2c7eb8c1fb261fc3a1202bbf34bde951f6d4a",
+    "docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.md": "5ed3feb0c401d9445a21de8b4f0c1661f854ad886248078cfd59d37df258c143",
+    "docs/research/SEED0001_FEASIBILITY_REPORT.json": "a7076d6e808816cab4cd35b1822634c901d983c86e34b1f93c4ae95a2c432561",
+    "docs/research/SEED0001_FEASIBILITY_REPORT.md": "2d3fdbd5dbe95389d73bf4ef9773f4cd8f23d435d2f88636030b1cefbc838b4c",
+    "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json": "c6f02ecbdd02346e33d3505d6e5353bd0e30abf47a1899d1290f2cccbf6b630c",
+    "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.md": "96e66dbc7c4c1dae4409da497a8a420af877f5b65e854d16c201383ba7ee5dfa",
+    "docs/research/divergence_full_history_v0/VALIDATION_EPISODES.csv": "e84facccd8353757f5bee3b8d05bb761cfe28c7566213c79e19d47cdc522dde0",
+    "docs/research/seed0001/EPISODES_BTCUSDT.csv": "7260df8cbd1cf0ba7b2705c82d50bd71695adc858cebfb5b2e07b759d7aada1c",
+    "docs/research/seed0001/EPISODES_ETHUSDT.csv": "f58cfa016cd8b41960c4ab34124530b90434ffff8de02f999e855e5a9c048459",
+    "docs/research/seed0001/OUTCOMES_BTCUSDT.csv": "1a633f8c857ee081d70fbfa6add12cc4ea72ad62bd697d4aeab422aacdb2fff3",
+    "docs/research/seed0001/OUTCOMES_ETHUSDT.csv": "7e758c7433505d986a55f88c8433a9d44551cd0860009fa4e2af00acb38e6ca5",
+    "docs/research_data/DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM/DATASET_MANIFEST.json": "92effded015c7e3229acb2bbb557238430d1b7d8e5a0a85beaa88c1a065c9b6b",
+    "docs/research_data/DIVERGENCE_PANEL_V0_BINANCE_UM/DATASET_MANIFEST.json": "272a45f131498ab22c06735e5b7d2a9344494c0c65f51349f428cb16c1cca0b3",
+    "docs/research_data/SEED0001_BINANCE_UM_1H_BOOKDEPTH_V0/DATASET_MANIFEST.json": "8ac3a03c23e0bb24eb553b5dcd2ace22175d8c826c824fb5e4fb64eafcd5302f"
+  },
+  "KIND": "FEASIBILITY_ONLY. A new research object; not a continuation or rescue of SEED-0001 and not a re-analysis of the divergence result. No SEED is created.",
+  "MOTIVATION_NOT_EVIDENCE": "An exploratory pooled observation of about +4 pp (DEEPER_STATE_FLOW_OI, DIVERGENCE_FULL_HISTORY_RESEARCH_V0 stage 2) on already-opened data. It is not prior confirmatory evidence and is not used here.",
+  "OWNER_DECISION": "docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md",
+  "POPULATION": {
+    "DETECTOR": "SEED0001_DETECTOR_V1, unchanged; the E1-safe scoped guard substitution of DIVERGENCE_FULL_HISTORY_RESEARCH_V0 is reused",
+    "EPISODES": "support episodes (SUPPORT = True, arms A and B) with decision time in [2023-01-01, 2026-08-11], including the 2024-12-28..2025-01-01 gap days, which are exposed on both sides",
+    "INTEGRITY": "Discovery-window episodes must reproduce the V0 per-symbol digests. Validation-window episode ids must reproduce DIVERGENCE_FULL_HISTORY_RESEARCH_V0 VALIDATION_EPISODES.csv.",
+    "SUPPORT_DEFINITION": "unchanged SEED-0001 book support: in one of hours i+1..i+3 the bid5/ask5 imbalance is > 0 and >= its trailing 720h P80"
+  },
+  "POWER": {
+    "COMPARE_REPS": 2000,
+    "CONFIRM_REPS": 4000,
+    "CURVE_REPS": 2000,
+    "NULL_REPS": 4000,
+    "SEED_BASE": 20261008,
+    "SYNTHETIC_OUTCOMES_ONLY": true
+  },
+  "PROHIBITED": [
+    "computing any E-versus-S outcome contrast",
+    "selecting a variant or a score transformation by outcome",
+    "changing the detector, support rule, panel, windows or thresholds after counts",
+    "putting divergence flags in an inclusion rule",
+    "touching E1-RUN-001 by any route",
+    "presenting the exposed surface as validation",
+    "creating a SEED",
+    "activating any prospective stream",
+    "merging PR #303"
+  ],
+  "PROJECTION": {
+    "METHOD": "Weeks for 80% power = W_ref * (2.8016 * SD / mean estimate)^2, from the simulation at each effect on the exposed layout (W_ref = calendar weeks spanned). Each projection <= 520 weeks is confirmed by direct simulation on a prospective stand-in that cycles the exposed weeks, rounded up to 4 weeks.",
+    "PLANNING_START_UTC": "2026-10-12T00:00:00Z",
+    "PROSPECTIVE_ONLY": "Confirmation needs prospective data alone; the exposed surface cannot contribute confirmatory information."
+  },
+  "QUESTION": "Within an already-present support state, does a pre-specified state of weakening selling pressure and non-expanding open interest carry useful information about subsequent reversal/trading outcomes, independently of classical oscillator divergence?",
+  "RSI_GRADIENT_SUPPORT_CANDIDATE": "Recorded separately in the owner decision V3. Not evaluated, not combined, not primary.",
+  "STATUS": "FROZEN_BEFORE_STATE_COUNTS",
+  "SURFACE": {
+    "CLEAN_CONFIRMATION_SURFACE": "prospective data after a new, separately authorized freeze; no other protected source is identified",
+    "E1_HOLDOUT_UTC": [
+      "2026-08-16T00:00:00Z",
+      "2026-08-25T17:20:00Z"
+    ],
+    "E1_ROUTES_CLOSED": "Detector windows, feature lookbacks, the 720h book and flow baselines and the OI windows all end at or before the decision time (<= 2026-08-11). The only forward read is the 48h state-blind outcome for dependence calibration (<= 2026-08-13). Loaders assert the 2026-08-15 read horizon. No auxiliary join reads later bytes. No download is made: the verified local archive of DIVERGENCE_FULL_HISTORY_RESEARCH_V0 is reused.",
+    "FIRST_DECISION_UTC": "2023-01-01T00:00:00Z",
+    "LAST_DECISION_UTC": "2026-08-11T00:00:00Z",
+    "PANEL": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "SOLUSDT",
+      "BNBUSDT",
+      "DOGEUSDT",
+      "XRPUSDT"
+    ],
+    "PANEL_EXPANSION": "none",
+    "READ_HORIZON_EXCLUSIVE_UTC": "2026-08-15T00:00:00Z",
+    "STATUS": "PREVIOUSLY EXPOSED: discovery for this hypothesis (detector construction, counts, dependence, feasibility, descriptive mechanism). Never presented as pristine validation."
+  },
+  "UNIT": "SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0",
+  "VERDICT_RULE": {
+    "FEASIBLE_FOR_PREREGISTRATION": "some variant reaches 80% power at 5 pp under STRESS within REALISTIC_HORIZON_WEEKS of prospective data",
+    "FOUR_PP": "reported beside 5 pp; the decision line is 5 pp",
+    "HORIZON_JUSTIFICATION": "the length of the frozen SEED-0001 prospective leg (2026-10-05 .. 2028-10-05)",
+    "INFERENCE_SUPPORT_INSUFFICIENT": "no variant has >= 30 E episodes in >= 30 week clusters on the exposed surface",
+    "INFORMATIONALLY_WEAK / FEASIBLE_ONLY_UNDER_WEAKER_DEPENDENCE": "not under STRESS, but under BASE or EMPIRICAL within the horizon",
+    "INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON": "otherwise",
+    "PIT_BLOCKED": "a truncation-audit mismatch",
+    "PRIMARY": "binary E - S",
+    "REALISTIC_HORIZON_WEEKS": 104
+  }
+}
