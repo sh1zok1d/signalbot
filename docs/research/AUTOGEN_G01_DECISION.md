@@ -1,6 +1,6 @@
 # AUTOGEN_G01 — autonomous research generation 1: owner decision and program record
 
-**Status:** `OWNER_AUTHORIZED / IN_PROGRESS`
+**Status:** `OWNER_AUTHORIZED / CLOSED_AT_FEASIBILITY / NOTHING_EXECUTED`. No hypothesis survived feasibility; see `AUTOGEN_G01_FEASIBILITY.md`. Nothing was frozen or executed and no market value was read.
 **Date:** 2026-10-03
 **Search family:** `SF-AUTOGEN-G01`
 **Branch:** `research/autonomous-generation-g01`, from `main` at `a7d738f`
@@ -123,4 +123,4 @@ The program stops a card, rather than ask, if it would need any of the following
 
 ## 6. What this record does not claim
 
-No market outcome was computed when it was written. Nothing here is a trading edge, a direction or a cause.
+No market outcome was computed when it was written, and none was computed later: the program closed at feasibility. Nothing here is a trading edge, a direction or a cause.

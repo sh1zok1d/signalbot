@@ -35,6 +35,23 @@
       "REGISTERED_TESTS": 3,
       "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
       "SOURCE": "Owner-authorized cards R03 (OWNER_CARDS_R03_DECISION.md); 3 cards x 4 author-written hypotheses registered 2026-10-03"
+    },
+    {
+      "CLOSED_AT_FEASIBILITY": {
+        "G01-A1": "INFORMATIONALLY_WEAK",
+        "G01-A2": "INFORMATIONALLY_WEAK",
+        "G01-A3": "INFORMATIONALLY_WEAK",
+        "G01-B1": "INFORMATIONALLY_WEAK"
+      },
+      "CLOSED_BEFORE_FEASIBILITY": 10,
+      "EXECUTABLE_NOW_CARDS": 0,
+      "EXECUTED_HYPOTHESES": 0,
+      "EXECUTED_TESTS": 0,
+      "GENERATED_CARDS": 14,
+      "PROMISING_PROTOTYPES": 0,
+      "REGISTERED_TESTS": 0,
+      "SEARCH_FAMILY_ID": "SF-AUTOGEN-G01",
+      "SOURCE": "Owner-authorized autonomous research generation G01 (AUTOGEN_G01_DECISION.md); 14 generated candidates, 10 closed at red team or dedupe, 4 compiled and closed at feasibility, none registered or executed (2026-10-03)"
     }
   ],
   "TESTS": [

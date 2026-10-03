@@ -7693,3 +7693,41 @@ PROTECTED_2025_2026_OPENED = false
 ```
 
 Records: `docs/research/OWNER_CARDS_R03_RESULT.md`, `SCIENTIFIC_TEST_LEDGER.json` (`TF-R03-A-EXPIRY-CLOCK`, `TF-R03-B-PANEL-STATES`, `TF-R03-C-SESSION-CLOCK`).
+
+## 2026-10-03 — Autonomous research generation G01: no survivor, nothing executed
+
+**Program.** `SF-AUTOGEN-G01` is an owner override of `NEW_RESEARCH_PROGRAMS_AUTHORIZED = false` for this program only (`AUTOGEN_G01_DECISION.md`). The research map was rebuilt from `main` at `a7d738f`.
+
+**Candidates.** Fourteen were generated (`AUTOGEN_G01_CANDIDATES.md`).
+- **Closed at red team (8):**
+  - HK ETF 08:00 UTC fixing: confounded with funding and expiry;
+  - weekend BTC share of the spot panel: fee-promotion and FDUSD-migration artifacts;
+  - session taker-sign profile: directional, clock not identified;
+  - taker-sign persistence: outcome not in doubt;
+  - equity OPEX hour: rare N;
+  - Asia lunch participation: clock not identified;
+  - ETF-era weekend gap: leakage from R03-C1's exposed epoch trend;
+  - bank-holiday fiat rails: rare N.
+- **Closed at dedupe (2):**
+  - signed-shock range asymmetry: repeats GV0V03L40-C027/C003 and sits in the D2/D8 neighbourhood;
+  - unusual-hour persistence: D2 RV neighbourhood, outcome not in doubt.
+
+**Compiled under `GV0R02_SCHEMA_V2` plus unit screens (`AUTOGEN_G01_FEASIBILITY.md`):** all four are `INFORMATIONALLY_WEAK`.
+
+| Hypothesis | Discovery | Replication | Blocker |
+|---|---|---|---|
+| G01-A1 turn-of-month participation | 59 months, unit MDE 0.486 | 36 BitMEX months, MDE 0.63 | replication MDE too large |
+| G01-A2 turn-of-month range | same | same | same |
+| G01-A3 month-end mark hour | MDE 0.78 | — | MDE too large |
+| G01-B1 ETF NAV fixing-hour participation, DiD at the 2024-01-11 launch | 210 pre / 51 post weeks, unit MDE 0.5005 | prospective, underpowered | above the bar |
+
+A definitional error in B1's prospective stopping rule (`MIN_N` above `MAX_EPISODES`) was corrected before freeze and recorded.
+
+**Not consumed.** Nothing was consumed: no market value was read, and no hypothesis was frozen, registered or executed.
+
+```
+AUTOGEN_G01 = CLOSED_AT_FEASIBILITY / NOTHING_EXECUTED
+FROZEN = 0; EXECUTED = 0; PROMISING_PROTOTYPES = 0
+MARKET_VALUES_READ = false; OBJECTS_2025_2026_USED = none; E1_RUN_001_OPENED = false; B2_06_OPENED = false
+NEXT_UNIT = none (research); routing returns to PRODUCT_FIRST_DECISION_V1
+```

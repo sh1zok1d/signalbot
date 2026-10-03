@@ -1,3 +1,45 @@
+## Autonomous research generation G01 — no survivor; nothing frozen or executed — 2026-10-03
+
+`AUTOGEN_G01 = CLOSED_AT_FEASIBILITY / NOTHING_EXECUTED`
+`SEARCH_FAMILY = SF-AUTOGEN-G01 (owner override of NEW_RESEARCH_PROGRAMS_AUTHORIZED = false, for this program only; docs/research/AUTOGEN_G01_DECISION.md)`
+`CANDIDATES = 14 generated | 8 closed at red team | 2 closed at dedupe | 4 compiled`
+`FEASIBILITY = G01-A1, G01-A2, G01-A3, G01-B1 -> INFORMATIONALLY_WEAK; none executable`
+`FROZEN = 0 | EXECUTED = 0 | PROMISING_PROTOTYPES = 0`
+`MARKET_VALUES_READ = false (calendars and BitMEX bar open times only)`
+`OBJECTS_2025_2026_USED = none`
+`E1_RUN_001_OPENED = false`
+`B2_06_OI_FUNDING_OPENED = false`
+`NEXT_UNIT = none (research); routing returns to PRODUCT_FIRST_DECISION_V1`
+`NEW_RESEARCH_PROGRAMS_AUTHORIZED = false (unchanged after this program)`
+
+**Owner instruction (2026-10-03).** Act as an autonomous research agent for one generation:
+- rebuild the research map;
+- generate hypotheses, red-team and dedupe them;
+- run feasibility outcome-blind;
+- freeze and execute only the survivors.
+
+Done end to end on branch `research/autonomous-generation-g01`, from `main` at `a7d738f`.
+
+**Outcome.** Nothing survived feasibility, so nothing was frozen or executed and no market outcome was computed.
+- **Turn-of-month clock (G01-A1/A2).** It is powered on discovery (unit MDE 0.486 at a 0.5 bar), but its time-disjoint replication surface (36 BitMEX months) is not (MDE 0.63).
+- **Month-end mark hour (G01-A3).** Underpowered (MDE 0.78).
+- **ETF NAV fixing-hour natural experiment (G01-B1).** With one post-launch year, the unit-level MDE is 0.5005, just above the bar, and the declared prospective replication is underpowered.
+- **Closed before feasibility.** The other ten were closed at red team or dedupe for:
+  - clocks that cannot be identified;
+  - exchange-specific artifacts;
+  - outcomes not in doubt;
+  - rare-event N;
+  - leakage from R03's exposed epoch trend;
+  - hidden repeats of GV0V03L40-C027/C003 and the D2 neighbourhood.
+- **No repair.** No card was repaired.
+
+**Records:**
+- `AUTOGEN_G01_DECISION.md`;
+- `AUTOGEN_G01_CANDIDATES.{md,json}`;
+- `AUTOGEN_G01_FEASIBILITY.{md,json}`;
+- `AUTOGEN_G01_PLANNING.json`;
+- `SCIENTIFIC_TEST_LEDGER.json` (`SF-AUTOGEN-G01`, no test registered).
+
 ## Owner cards R03 — executed once, closed; nothing promoted — 2026-10-03
 
 `OWNER_CARDS_R03 = EXECUTED_ONCE / CLOSED`
