@@ -1,0 +1,2526 @@
+# SIGNALBOT_RESEARCH_ATLAS_V1 — units (hand-maintained source).
+#
+# One record per research unit (a tested hypothesis, a card, a seed, a frozen experiment).
+# Units with `memory: true` take their texts (mechanism, function, what was tested, verdict,
+# what it closes, what remains open, rescue warning, anti-rescue scope, blocker) from
+# MECHANISM_MEMORY_V0.json and GOVERNANCE_REGION_AUTHORITY_V0.json at build time; those files
+# are derived caches of the generator memory chain and are never edited here.
+# Every other unit carries its texts itself.
+#
+# Fields: id, row (REGION.row), col (taxonomy column), state (taxonomy state), datasets
+# (ATLAS_SURFACES_V1 ids), period, units_n, practical_bar, verdict, why_closed, reopen,
+# forbidden, records, revisit (FUTURE_NATURAL_ACCUMULATION only), note.
+version: SIGNALBOT_RESEARCH_ATLAS_V1
+
+# The verdict class of a record maps to an atlas state; `state_override` + `note` record an exception.
+verdict_map:
+  NO_USEFUL_STRUCTURE: NO_STRUCTURE
+  NO_INCREMENTAL_STRUCTURE: NO_STRUCTURE
+  NO_EVIDENCE: NO_STRUCTURE
+  KILL: NO_STRUCTURE
+  REJECTED_SPECIFIC_CLAIM: CLOSED_ON_SURFACE
+  CLOSED_NO_PROMOTION: CLOSED_ON_SURFACE
+  REPRODUCED_DIRECTION_EXTERNAL: CLOSED_ON_SURFACE
+  PROMISING_PROTOTYPE: LIVE_SIGNAL
+  CONFIRMED_UNDER_MAINTAINED_ASSUMPTIONS: CONFIRMED
+  INFORMATIONALLY_WEAK: INFORMATIONALLY_WEAK
+  PIPELINE_SURVIVOR: CANDIDATE_UNTESTED
+  NOT_EXECUTED: CANDIDATE_UNTESTED
+  PIPELINE_BLOCKED_METHOD: BLOCKED_METHOD
+  PIPELINE_BLOCKED_DATA: BLOCKED_DATA
+  DEVELOPMENT_CONSUMED: EXPOSED_ONLY
+
+units:
+  # ---- Batch 01 (CORE_BTC Binance 2020-2024) ------------------------------------------------------
+  - {id: H01, memory: true, row: VOLATILITY_STATE.compression, col: CANDLES, state: CLOSED_ON_SURFACE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024, records: [
+     docs/research/H01_DEV_SUMMARY.md], note: 'Claim rejected; the record states the reverse side finding (after quiet 30-120 min expansion was rarer than
+     usual), so not NO_STRUCTURE.'}
+  - {id: H02, memory: true, row: PRICE_STRUCTURE.breakout, col: CANDLES, state: NO_STRUCTURE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024, records: [
+     docs/research/H02_DEV_SUMMARY.md]}
+  - {id: H03, memory: true, row: PRICE_STRUCTURE.impulse, col: CANDLES, state: NO_STRUCTURE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024, records: [
+     docs/research/H03_DEV_SUMMARY.md], note: No steady continuation or fade; the sign changed with horizon and year.}
+  - {id: H04, memory: true, row: PRICE_STRUCTURE.pullback, col: CANDLES, state: CLOSED_ON_SURFACE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024, records: [
+     docs/research/H04_DEV_SUMMARY.md]}
+  - {id: H05, memory: true, row: FLOW.taker_imbalance, col: PERP_FLOW, state: CLOSED_ON_SURFACE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024, records: [
+     docs/research/H05_DEV_SUMMARY.md]}
+  # ---- Batch 02 ------------------------------------------------------------------------------------
+  - {id: B2-01, memory: true, row: VOLATILITY_STATE.regime_transition, col: CANDLES, state: CLOSED_ON_SURFACE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024}
+  - {id: B2-02, memory: true, row: PRICE_STRUCTURE.breakout, col: CANDLES, state: CLOSED_ON_SURFACE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024}
+  - {id: B2-03, memory: true, row: PRICE_STRUCTURE.impulse, col: CANDLES, state: CLOSED_ON_SURFACE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024}
+  - {id: B2-04, memory: true, row: PRICE_STRUCTURE.pullback, col: CANDLES, state: CLOSED_ON_SURFACE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024}
+  - {id: B2-05, memory: true, row: FLOW.absorption, col: PERP_FLOW, state: EXPOSED_ONLY, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024,
+     note: "Development-consumed; recovery archived under operator adjudication; no scientific closeout. Taker-flow absorption on CORE_BTC cannot be a confirmation."}
+  - {id: B2-06, memory: true, row: DERIVATIVES.leverage_crowding, col: POSITIONING, state: BLOCKED_DATA, datasets: [B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0],
+     records: [docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md, docs/research/B2_06_FUNDING_PUBLICATION_AUTHORITY.md], note: Funding publication-latency
+     observable unproven (no legally timestamped observable). FORWARD_MARKET_OBSERVABILITY_V1 collector frozen.}
+  # ---- Discovery D1-D13 ----------------------------------------------------------------------------
+  - {id: D1, memory: true, row: VOLATILITY_STATE.state_detection, col: CANDLES, state: BLOCKED_METHOD, datasets: [CORE_BTC_BINANCE_V0]}
+  - {id: D2, memory: true, row: VOLATILITY_STATE.tail_risk, col: CANDLES, state: LIVE_SIGNAL, datasets: [CORE_BTC_BINANCE_V0, D2_BITMEX_PRE2020_XBTUSD], period: 2020-2024;
+     BitMEX 2017-2019 replication, records: [docs/research/discovery_results/D2_DISCOVERY_RESULT.md, docs/research/D2_BITMEX_REPLICATION_CORRECTED_RESULT.md,
+     docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.md], note: 'Independently replicated mechanism candidate (RULE_1 RV abstention). RULE_2 dislocation
+     abstention failed discovery. Excess-alignment decomposition consumed (volatility-scale compatible, no excess alignment).'}
+  - {id: D3, memory: true, row: PRICE_STRUCTURE.path_shape, col: CANDLES, state: NO_STRUCTURE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024}
+  - {id: D4, memory: true, row: CROSS_ASSET_REGION.btc_eth, col: CROSS_ASSET, state: NO_STRUCTURE, datasets: [CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0], period: 2020-2024,
+     note: "Rolling 90d correlation range NO_USEFUL_STRUCTURE; 1-day lead-lag deferred and raw lead-lag rescue forbidden."}
+  - {id: D5, memory: true, row: METHOD.composition, col: CANDLES, state: NO_STRUCTURE, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024}
+  - {id: D6, memory: true, row: LONG_HORIZON.external_reproduction, col: CANDLES, state: BLOCKED_DATA, datasets: [CORE_BTC_BINANCE_V0],
+     note: "External source not pinned; diagnostically insufficient episodes."}
+  - {id: D7, memory: true, row: VOLATILITY_STATE.execution_impact, col: PERP_FLOW, state: CONFIRMED, datasets: [CORE_BTC_BINANCE_V0, D7_BITMEX_ACTIVITY_V0],
+     period: 2020-2024; BitMEX 2016-2019 confirmatory, records: [docs/research/D7_CAMPAIGN_CLOSE_V1.md, docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.md,
+     docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.json, docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_D7_POWER_GATE_V1.md, docs/research/D7_BITMEX_ACTIVITY_V0.md],
+     note: Kline-derived impact state. After the memory snapshot the pre-registered BitMEX 2016-2019 confirmation passed (CONFIRMED_UNDER_MAINTAINED_ASSUMPTIONS)
+     and the campaign was closed (D7_CAMPAIGN_CLOSED). Not order-book liquidity; no L2 card may be justified as a better D7.}
+  - {id: D8, memory: true, row: EVENTS.endogenous_shocks, col: CANDLES, state: BLOCKED_METHOD, datasets: [CORE_BTC_BINANCE_V0],
+     note: "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT; not a null. Thresholds and control semantics may not be weakened."}
+  - {id: D9, memory: true, row: SPOT_PERP.lead_lag, col: SPOT, state: NO_STRUCTURE, datasets: [MARKET_06_OKX_BINANCE_FEASIBILITY_V0], period: 2022-2024}
+  - {id: D10, memory: true, row: CROSS_ASSET_REGION.btc_eth, col: CROSS_ASSET, state: NO_STRUCTURE, datasets: [CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0], period: 2020-2024}
+  - {id: D11, memory: true, row: EVENTS.fomc, col: CANDLES, state: LIVE_SIGNAL, datasets: [CORE_BTC_BINANCE_V0, D11_FOMC_OFFICIAL_V0], period: 2020-2024, units_n: 39,
+     records: [docs/research/discovery_results/D11_DISCOVERY_RESULT.md], note: 'Unsigned 6h RV after scheduled FOMC; adaptive discovery, not replicated. No
+     horizon/direction/recovery child and no CPI copy of the template.'}
+  - {id: D12, memory: true, row: CALENDAR.sessions, col: PERP_FLOW, state: LIVE_SIGNAL, datasets: [CORE_BTC_BINANCE_V0], period: 2020-2024, units_n: 10, records: [
+     docs/research/discovery_results/D12_DISCOVERY_RESULT.md]}
+  - {id: D13, memory: true, row: CROSS_ASSET_REGION.cross_section, col: CROSS_ASSET, state: NO_STRUCTURE, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0], period: 2020-2024}
+  # ---- Generator V0 calibration --------------------------------------------------------------------
+  - {id: GV0CAL-C001, memory: true, row: FLOW.participant_composition, col: PERP_FLOW, state: CANDIDATE_UNTESTED, datasets: [CORE_BTC_BINANCE_V0]}
+  - {id: GV0CAL-C002, memory: true, row: SPOT_PERP.lead_lag, col: SPOT, state: CANDIDATE_UNTESTED, datasets: [MARKET_06_OKX_BINANCE_FEASIBILITY_V0]}
+  - {id: GV0CAL-C003, memory: true, row: DERIVATIVES.funding_clock, col: CROSS_VENUE, state: BLOCKED_METHOD, datasets: [D2_BITMEX_PRE2020_XBTUSD, CORE_BTC_BINANCE_V0]}
+  - {id: GV0CAL-C004, memory: true, row: EVENTS.etf_fix, col: CANDLES, state: BLOCKED_METHOD, datasets: [CORE_BTC_BINANCE_V0]}
+  - {id: GV0CAL-C005, memory: true, row: CROSS_ASSET_REGION.cross_section, col: CROSS_ASSET, state: CANDIDATE_UNTESTED, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0]}
+  # ---- Generator V0 first campaign GV0R01 ----------------------------------------------------------
+  - {id: GV0R01-C002, memory: true, row: SPOT_PERP.lead_lag, col: SPOT, state: BLOCKED_METHOD, datasets: [MARKET_06_OKX_BINANCE_FEASIBILITY_V0]}
+  - {id: GV0R01-C003, memory: true, row: PRICE_STRUCTURE.path_shape, col: CANDLES, state: BLOCKED_METHOD, datasets: [D2_BITMEX_PRE2020_XBTUSD, CORE_BTC_BINANCE_V0]}
+  - {id: GV0R01-C004, memory: true, row: EVENTS.fomc, col: CROSS_ASSET, state: INFORMATIONALLY_WEAK, datasets: [D11_FOMC_OFFICIAL_V0, CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0],
+     records: [docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.md, docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.json, docs/research/GV0R01_C004_OUTCOME_BLIND_DESIGN.md,
+     docs/research/GV0R01_C004_CLOSE.json], note: 'Closed outcome-blind after feasibility (CURRENT_STATE: C012, C004, C020 informationally weak or insufficient
+     inference support); the memory snapshot shows the earlier DATA_FEASIBILITY_REQUIRED.'}
+  - {id: GV0R01-C005, memory: true, row: CROSS_ASSET_REGION.cross_section, col: CROSS_ASSET, state: BLOCKED_METHOD, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0]}
+  - {id: GV0R01-C006, memory: true, row: OPTIONS_REGION.implied_vs_realized, col: OPTIONS, state: BLOCKED_DATA, datasets: [DERIBIT_OPTIONS_HISTORY], records: [
+     docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.md, docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.json]}
+  - {id: GV0R01-C007, memory: true, row: LONG_HORIZON.stablecoin_flows, col: FLOWS_ONCHAIN, state: BLOCKED_METHOD, datasets: [ONCHAIN_STABLECOIN_LOGS]}
+  - {id: GV0R01-C008, memory: true, row: CROSS_VENUE_REGION.price_discovery, col: ORDER_BOOK, state: BLOCKED_METHOD, datasets: [BINANCE_UM_BOOKDEPTH_ARCHIVE, VENDOR_L2_ORDER_BOOK]}
+  - {id: GV0R01-C010, memory: true, row: CALENDAR.sessions, col: CROSS_VENUE, state: BLOCKED_METHOD, datasets: [MARKET_06_OKX_BINANCE_FEASIBILITY_V0]}
+  - {id: GV0R01-C012, memory: true, row: EVENTS.cpi, col: CANDLES, state: INFORMATIONALLY_WEAK, datasets: [C012_DISCOVERY_BTC_1M_V0, D11_FOMC_OFFICIAL_V0, BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0],
+     aliases: [C012], records: [docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.md, docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.json, docs/research/GV0R01_C012_OUTCOME_BLIND_DESIGN.md,
+     docs/research/GV0R01_C012_POWER.json, docs/research/GV0R01_C012_CLOSE.json], note: 'Pre-announcement drift before FOMC and CPI; closed before any outcome
+     was counted: too few events for a verdict either way (findings registry: UNDERPOWERED).'}
+  - {id: GV0R01-C013, memory: true, row: CROSS_ASSET_REGION.cross_section, col: CROSS_ASSET, state: LIVE_SIGNAL, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0],
+     records: [docs/research/GV0R01_C013_MARKET_TEST_OUTCOME.md, docs/research/GV0R01_C013_MARKET_TEST_RESULT.json, docs/research/GV0R01_C013_CONFIRMATION_FEASIBILITY_AND_DESIGN.md,
+     docs/research/GV0R01_C013_CONFIRMATION_POWER.json], revisit: 'An adequate independent surface needs about 468 fresh weeks (about 9 years) for 80% power;
+     the confirmation design is recorded, not frozen. Binance 2025/2026 alone is not adequate.', note: 'After the memory snapshot: discovery-tier PROMISING_PROTOTYPE;
+     confirmation deferred for low power (WAIT_FOR_MORE_FRESH_DATA): the between-year spread is about 2.5 times the pooled effect, so a 1-2 year fresh surface
+     would measure which kind of year it was.'}
+  - {id: GV0R01-C014, memory: true, row: OPTIONS_REGION.implied_vs_realized, col: OPTIONS, state: BLOCKED_DATA, datasets: [DERIBIT_OPTIONS_HISTORY], records: [
+     docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.md, docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.json]}
+  - {id: GV0R01-C015, memory: true, row: LONG_HORIZON.stablecoin_flows, col: FLOWS_ONCHAIN, state: BLOCKED_METHOD, datasets: [ONCHAIN_STABLECOIN_LOGS]}
+  - {id: GV0R01-C016, memory: true, row: MICROSTRUCTURE.liquidity_withdrawal, col: ORDER_BOOK, state: BLOCKED_DATA, datasets: [BINANCE_UM_BOOKDEPTH_ARCHIVE,
+     VENDOR_L2_ORDER_BOOK], records: [docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.md, docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.json]}
+  - {id: GV0R01-C017, memory: true, row: PRICE_STRUCTURE.levels, col: CANDLES, state: BLOCKED_METHOD, datasets: [CORE_BTC_BINANCE_V0]}
+  - {id: GV0R01-C018, memory: true, row: CROSS_VENUE_REGION.venue_disagreement, col: CROSS_VENUE, state: BLOCKED_METHOD, datasets: [MARKET_06_OKX_BINANCE_FEASIBILITY_V0]}
+  - {id: GV0R01-C020, memory: true, row: CALENDAR.holidays_tax, col: PERP_FLOW, state: INFORMATIONALLY_WEAK, datasets: [CORE_BTC_BINANCE_V0, CN_STATE_COUNCIL_HOLIDAY_NOTICES_V0,
+     NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0, US_OPM_FEDERAL_HOLIDAY_LIST_V0], records: [docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.md, docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.json,
+     docs/research/GV0R01_C020_OUTCOME_BLIND_DESIGN.md, docs/research/GV0R01_C020_CLOSE.json], note: Closed outcome-blind after feasibility (CURRENT_STATE).}
+  - {id: GV0R01-C021, memory: true, row: CROSS_ASSET_REGION.cross_section, col: CROSS_ASSET, state: BLOCKED_METHOD, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0]}
+  - {id: GV0R01-C022, memory: true, row: OPTIONS_REGION.expiry_pinning, col: OPTIONS, state: BLOCKED_METHOD, datasets: [DERIBIT_OPTIONS_HISTORY, CORE_BTC_BINANCE_V0]}
+  - {id: GV0R01-C025, memory: true, row: PRICE_STRUCTURE.path_shape, col: CANDLES, state: BLOCKED_METHOD, datasets: [CORE_BTC_BINANCE_V0]}
+  - {id: GV0R01-C026, memory: true, row: SPOT_PERP.lead_lag, col: SPOT, state: BLOCKED_METHOD, datasets: [MARKET_06_OKX_BINANCE_FEASIBILITY_V0]}
+  - {id: GV0R01-C029, memory: true, row: CROSS_ASSET_REGION.cross_section, col: CROSS_ASSET, state: BLOCKED_METHOD, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0]}
+  - {id: GV0R01-C030, memory: true, row: OPTIONS_REGION.dealer_gamma, col: OPTIONS, state: BLOCKED_METHOD, datasets: [DERIBIT_OPTIONS_HISTORY]}
+  # ---- Generator V0 V03 L40 campaign ---------------------------------------------------------------
+  - {id: GV0V03L40-C001, memory: true, row: DERIVATIVES.liquidation_cascades, col: CANDLES, state: CANDIDATE_UNTESTED, datasets: [CORE_BTC_BINANCE_V0]}
+  - {id: GV0V03L40-C002, memory: true, row: SPOT_PERP.basis_dislocation, col: SPOT, state: BLOCKED_METHOD, datasets: [MARKET_06_OKX_BINANCE_FEASIBILITY_V0]}
+  - {id: GV0V03L40-C003, memory: true, row: DERIVATIVES.liquidation_cascades, col: CANDLES, state: BLOCKED_METHOD, datasets: [D2_BITMEX_PRE2020_XBTUSD]}
+  - {id: GV0V03L40-C004, memory: true, row: EVENTS.protocol_events, col: CROSS_ASSET, state: BLOCKED_METHOD, datasets: [CORE_ETH_BINANCE_V0, CORE_BTC_BINANCE_V0]}
+  - {id: GV0V03L40-C005, memory: true, row: CROSS_ASSET_REGION.cross_section, col: CROSS_ASSET, state: BLOCKED_DATA, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0],
+     records: [docs/research/GV0V03L40_SHORTLIST_BLOCKER_TRIAGE.md]}
+  - {id: GV0V03L40-C007, memory: true, row: LONG_HORIZON.stablecoin_flows, col: FLOWS_ONCHAIN, state: BLOCKED_DATA, datasets: [ONCHAIN_STABLECOIN_LOGS]}
+  - {id: GV0V03L40-C010, memory: true, row: EVENTS.market_closures, col: SPOT, state: BLOCKED_METHOD, datasets: [MARKET_06_OKX_BINANCE_FEASIBILITY_V0]}
+  - {id: GV0V03L40-C021, memory: true, row: CROSS_ASSET_REGION.cross_section, col: CROSS_ASSET, state: BLOCKED_DATA, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0]}
+  - {id: GV0V03L40-C022, memory: true, row: EVENTS.market_closures, col: OPTIONS, state: BLOCKED_METHOD, datasets: [DERIBIT_OPTIONS_HISTORY, CORE_BTC_BINANCE_V0]}
+  - {id: GV0V03L40-C023, memory: true, row: LONG_HORIZON.exchange_flows, col: FLOWS_ONCHAIN, state: BLOCKED_METHOD, datasets: [ONCHAIN_EXCHANGE_FLOWS]}
+  - {id: GV0V03L40-C024, memory: true, row: CROSS_ASSET_REGION.btc_eth, col: ORDER_BOOK, state: BLOCKED_DATA, datasets: [BINANCE_UM_BOOKDEPTH_ARCHIVE], records: [
+     docs/research/GV0V03L40_SHORTLIST_BLOCKER_TRIAGE.md]}
+  - {id: GV0V03L40-C027, memory: true, row: DERIVATIVES.liquidation_cascades, col: CANDLES, state: BLOCKED_METHOD, datasets: [D2_BITMEX_PRE2020_XBTUSD]}
+  - {id: GV0V03L40-C028, memory: true, row: CALENDAR.holidays_tax, col: CROSS_ASSET, state: BLOCKED_METHOD, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0]}
+  - {id: GV0V03L40-C029, memory: true, row: CROSS_ASSET_REGION.cross_section, col: CROSS_ASSET, state: BLOCKED_DATA, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0]}
+  - {id: GV0V03L40-C031, memory: true, row: LONG_HORIZON.exchange_flows, col: FLOWS_ONCHAIN, state: BLOCKED_DATA, datasets: [ONCHAIN_EXCHANGE_FLOWS], records: [
+     docs/research/GV0V03L40_SHORTLIST_BLOCKER_TRIAGE.md]}
+  - {id: GV0V03L40-C032, memory: true, row: MICROSTRUCTURE.replenishment, col: ORDER_BOOK, state: BLOCKED_METHOD, datasets: [BINANCE_UM_BOOKDEPTH_ARCHIVE, VENDOR_L2_ORDER_BOOK]}
+  - {id: GV0V03L40-C033, memory: true, row: VOLATILITY_STATE.shock_recovery, col: CANDLES, state: BLOCKED_METHOD, datasets: [CORE_BTC_BINANCE_V0], records: [
+     docs/research/GV0V03L40_C033_V1_FEASIBILITY.md, docs/research/GV0V03L40_C033_V2_FEASIBILITY.md, docs/research/GV0V03L40_C033_V2_FEASIBILITY.json], note: 'After
+     the memory snapshot: V1 feasibility counted 1383 shocks, but the V2 recompile found the joint four-part state never occurs in 2020-2024 (MECHANISM_ACTIVE_N
+     = 0, alpha unattainable): STOP / NOT_PREREGISTRABLE_UNDER_FROZEN_DESIGN.'}
+  - {id: GV0V03L40-C034, memory: true, row: SPOT_PERP.basis_dislocation, col: SPOT, state: BLOCKED_METHOD, datasets: [MARKET_06_OKX_BINANCE_FEASIBILITY_V0]}
+  - {id: GV0V03L40-C036, memory: true, row: EVENTS.fomc, col: CANDLES, state: BLOCKED_METHOD, datasets: [D11_FOMC_OFFICIAL_V0, CORE_BTC_BINANCE_V0]}
+  - {id: GV0V03L40-C037, memory: true, row: CROSS_ASSET_REGION.cross_section, col: CROSS_ASSET, state: BLOCKED_DATA, datasets: [SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0],
+     records: [docs/research/GV0V03L40_SHORTLIST_BLOCKER_TRIAGE.md]}
+  - {id: GV0V03L40-C038, memory: true, row: OPTIONS_REGION.event_implied_variance, col: OPTIONS, state: BLOCKED_METHOD, datasets: [DERIBIT_OPTIONS_HISTORY, D11_FOMC_OFFICIAL_V0]}
+  - {id: GV0V03L40-C039, memory: true, row: CROSS_VENUE_REGION.venue_disagreement, col: FLOWS_ONCHAIN, state: BLOCKED_METHOD, datasets: [ONCHAIN_EXCHANGE_FLOWS, MARKET_06_OKX_BINANCE_FEASIBILITY_V0]}
+  # ---- MARKET program ------------------------------------------------------------------------------
+  - {id: MARKET-01, memory: true, row: DERIVATIVES.oi_buildup, col: POSITIONING, state: NO_STRUCTURE, datasets: [CORE_BTC_BINANCE_V0, B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0],
+     period: 2020-2024, records: [docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.md]}
+  - {id: MARKET-02, memory: true, row: DERIVATIVES.oi_buildup, col: POSITIONING, state: NO_STRUCTURE, datasets: [CORE_BTC_BINANCE_V0, B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0],
+     period: 2020-2024, records: [docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_RESULT.md]}
+  - {id: MARKET-03, memory: true, row: LONG_HORIZON.external_reproduction, col: CANDLES, state: CLOSED_ON_SURFACE, datasets: [MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0, MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0],
+     note: "External reproduction of a published strategy direction; not an internal discovery."}
+  - {id: MARKET-04, memory: true, row: DERIVATIVES.funding_basis, col: POSITIONING, state: BLOCKED_DATA, datasets: [B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0],
+     aliases: [MARKET-04H], records: [docs/research/MARKET_04H_PREMIUM_OBSERVABLE_ADJUDICATION.md, docs/research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.md],
+     note: 'MARKET-04 / 04H: BLOCKED_OBSERVABLE / NOT_TESTED; not rejected.'}
+  - {id: MARKET-05, memory: true, row: CROSS_ASSET_REGION.btc_eth, col: CROSS_ASSET, state: NO_STRUCTURE, datasets: [CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0],
+     period: 2020-2024, records: [docs/research/MARKET_05_RESULT.md]}
+  - {id: MARKET-06, memory: true, row: SPOT_PERP.basis_dislocation, col: SPOT, state: NO_STRUCTURE, datasets: [MARKET_06_OKX_BINANCE_FEASIBILITY_V0], period: 2022-2024,
+     records: [docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.md]}
+  # ---- units after the memory snapshot (2026-09-24): appended below -------------------------------
+
+  # ---- OWNER_CARDS_R03 (owner cards, executed once, closed 2026-10-03) -----------------------------
+  - id: R03-A1
+    title: WEEKLY_EXPIRY_HOUR
+    program: OWNER_CARDS_R03
+    row: EVENTS.expiries
+    col: CANDLES
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication
+      declared BITMEX_2016_2019 (HISTORICAL, 2017-01-01..2020-01-01, 156 units) - not opened
+    units_n: '260 ISO weeks (2020: 51, 2021: 53, 2022: 52, 2023: 52, 2024: 52); 260 state / 1040 comparator windows;
+      compiler n_eff 208.0; replication 156 BitMEX weeks'
+    practical_bar: '0.5 comparator-SD, declared sign POSITIVE; Holm m = 2 in TF-R03-A-EXPIRY-CLOCK. |estimate| >=
+      0.5 comparator-SD of standardized log range with the declared sign (any sign for TWO_SIDED); one bar for all
+      twelve, set before any count or outcome (PRODUCT_RELEVANCE: a half-SD shift roughly doubles the beta''s extreme-hour
+      flag rate). Statistical gate: Holm within the card over executed hypotheses, two-sided sign-flip (20000 draws),
+      family alpha 0.05. Product-frequency gate: >= 12 evaluated units per year on average.'
+    mechanism: Deribit settles every listed option and future at 08:00 UTC on Fridays; dealers and basis traders unwind
+      hedges and roll positions into and out of that hour, so the hour carries more price discovery than the same
+      hour on other weekdays (descriptive motivation, not a claim).
+    function: calendar state Friday 08:00-09:00 UTC (Deribit weekly/monthly/quarterly expiry hour) -> standardized
+      log range of that 60m window minus mean of the 08:00-09:00 UTC windows Mon-Thu of the same ISO week; expected
+      POSITIVE (wider)
+    verdict: NO_INCREMENTAL_STRUCTURE (DISCOVERY_CLASS and FINAL_CLASS); estimate +0.077 SD; SE sign-flip/block 0.077/0.074;
+      p 0.32; Holm p 0.61; statistical fail; practical fail; nuisance-adjusted +0.013 (retention 0.16, 'reflects the
+      general volatility regime'); epochs 2020-2024 +0.18/+0.23/+0.03/+0.05/−0.10, Q-test p 0.75; feasibility MDE
+      stress compiler 0.389, units (alpha/m) 0.428; 0 of 1300 windows unavailable
+    why_closed: '''Neither the Deribit expiry hour nor the four hours before it differ from the same hours on other
+      weekdays by anything close to the bar.'' (RESULT.md, Reading)'
+    reopen: 'Not within R03: RERUN_AUTHORIZED = false; ''A closed hypothesis is not re-scored, re-thresholded or re-horizoned.
+      A later variant is a new search object'' (DECISION §5). RESULT: ''no threshold, horizon, bar, unit or comparator
+      may be changed for these twelve ids. A later weekend-structure or settlement-clock question is a new search
+      object with its own test family and a surface it has not seen.'' The BitMEX 2017-2019 replication surface was
+      declared but no outcome on it was opened; it remains unconsumed for these rules.'
+    forbidden: 'any change to a window, state, comparator, unit, standardization or seed (PREREG FORBIDDEN_AFTER_OUTCOMES);
+      any added hypothesis, regime, horizon or sign; any rescue of a closed hypothesis; any rerun (RERUN_AUTHORIZED
+      = false); any 2025/2026 object; settlement-expiry neighbourhood: AUTOGEN_G01 map lists ''G: ... settlement expiries
+      (R03-A)'' as exhausted/forbidden; family G anti-rescue (R03 DECISION §4): no FOMC child (G/D11); D8 not to be
+      weakened (G01 map)'
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/OWNER_CARDS_R03_RESULT.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/owner_cards_r03/UNITS_R03-A1.json
+    - docs/research/owner_cards_r03/UNITS_R03-A1_REPLICATION.json
+    - config/beta_research_findings.yaml
+    note: Card R03-A 'Scheduled derivatives-expiry clock' (family G, EVENT_RESPONSE / scheduled derivative settlement,
+      not FOMC/CPI/NFP), TF-R03-A-EXPIRY-CLOCK. Epoch gate NOT_ASSESSABLE (compiler) so epoch record is descriptive.
+      Bot finding R03-A1 status NOT_CONFIRMED (contexts event:EXPIRY_WEEKLY/MONTHLY/QUARTERLY); its text says monthly
+      and quarterly expiries were not tested separately (R03-A2 closed at feasibility). Executed 2026-10-03T01:35:45Z
+      at dea7b07.
+  - id: R03-A2
+    title: LARGE_EXPIRY_INCREMENT
+    program: OWNER_CARDS_R03
+    row: EVENTS.expiries
+    col: CANDLES
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication
+      declared BITMEX_2016_2019 2017-01-01..2020-01-01 (36 units)
+    units_n: 60 calendar months (12 per year 2020-2024); 60 state / 201 comparator windows; compiler n_eff 46.2; replication
+      36 BitMEX months
+    practical_bar: '0.5 comparator-SD, declared sign POSITIVE (never applied: not executed)'
+    mechanism: Monthly and quarterly expiries carry much larger open interest than weeklies; if the expiry-hour effect
+      scales with settled notional, the last-Friday hour should exceed the ordinary weekly expiry hour.
+    function: state 08:00-09:00 UTC on the last Friday of the calendar month (monthly/quarterly expiry) -> standardized
+      log range vs 08:00-09:00 UTC on the other Fridays of the same month; expected POSITIVE
+    verdict: INFORMATIONALLY_WEAK (closed at feasibility, compiler; never executed); MDE stress (compiler) 0.824;
+      MDE stress (units, alpha/m = 0.025, m = 2) 0.909; blockers MDE_TOO_LARGE, REPLICATION_MDE_TOO_LARGE; discovery
+      POWER_STRESS 0.3972110560310207; replication MDE_STRESS 0.9338617393709893 (FEASIBILITY.json)
+    why_closed: 'Compiler: ''discovery stress screen misses the target at the mechanism effective N''; ''replication
+      stress screen misses the target at the mechanism effective N''. RESULT: ''The larger monthly and CME settlements
+      could not be tested at this bar (closed at feasibility).'''
+    reopen: 'Not within R03: ''Closed at feasibility (never executed, no rescue)'' (FEASIBILITY.md). ''A closed hypothesis
+      is not re-scored, re-thresholded or re-horizoned. A later variant is a new search object'' (DECISION §5); RESULT:
+      no threshold, horizon, bar, unit or comparator may be changed for these twelve ids.'
+    forbidden: re-scoring, re-thresholding or re-horizoning this id (DECISION §5); any rescue of a closed hypothesis
+      (PREREG); settlement-expiry neighbourhood (R03-A) listed as exhausted in the AUTOGEN_G01 map
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'One state hour per monthly unit: the R03-A2/A3 compiler closure is the cited precedent for rare-event N
+      in AUTOGEN_G01 (G01-A3, G01-X7 ''paired MDE about 0.84 SD ... as for R03-A2/A3''). No outcome computed.'
+  - id: R03-A3
+    title: CME_EXPIRY_HOUR
+    program: OWNER_CARDS_R03
+    row: EVENTS.expiries
+    col: CANDLES
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication
+      declared BitMEX 2018-01..2019-12 only (CME BTC futures listed 2017-12-18), 24 units
+    units_n: 60 calendar months (12 per year 2020-2024); 60 state / 201 comparator windows; compiler n_eff 46.2; replication
+      24 BitMEX months
+    practical_bar: '0.5 comparator-SD, declared sign POSITIVE (never applied: not executed)'
+    mechanism: CME Bitcoin futures settle to the CME CF Bitcoin Reference Rate computed over 15:00-16:00 London on
+      the last Friday; basis and cash-and-carry positions close around that fixing, and the hour after it absorbs
+      the unwinds.
+    function: state = the hour starting 16:00 London time on the last Friday of the month (CME BRR final settlement)
+      -> standardized log range vs the same London hour on the other Fridays of the month; expected POSITIVE
+    verdict: INFORMATIONALLY_WEAK (closed at feasibility, compiler; never executed); MDE stress (compiler) 0.824;
+      MDE stress (units, alpha/m = 0.025, m = 2) 0.909; blockers MDE_TOO_LARGE, REPLICATION_MDE_TOO_LARGE; replication
+      MDE_STRESS 1.143742375883448 (FEASIBILITY.json)
+    why_closed: 'Compiler: discovery and replication stress screens miss the target at the mechanism effective N.
+      RESULT: ''The larger monthly and CME settlements could not be tested at this bar (closed at feasibility).'''
+    reopen: 'Not within R03: ''Closed at feasibility (never executed, no rescue)'' (FEASIBILITY.md). ''A closed hypothesis
+      is not re-scored, re-thresholded or re-horizoned. A later variant is a new search object'' (DECISION §5); RESULT:
+      no threshold, horizon, bar, unit or comparator may be changed for these twelve ids.'
+    forbidden: re-scoring, re-thresholding or re-horizoning this id (DECISION §5); any rescue of a closed hypothesis
+      (PREREG); settlement-expiry neighbourhood (R03-A) listed as exhausted in the AUTOGEN_G01 map
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: Card R03-A. Pool candidate S4-C05 named as the never-tested origin of Deribit/CME settlement clocks (DECISION
+      §4). AUTOGEN_G01 cites GV0CAL-C004 (CME monthly settlement fixing, blocked on confounding) as a neighbour. No
+      outcome computed.
+  - id: R03-A4
+    title: PRE_EXPIRY_PINNING
+    program: OWNER_CARDS_R03
+    row: OPTIONS_REGION.expiry_pinning
+    col: CANDLES
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication
+      declared BITMEX_2016_2019 2017-01-01..2020-01-01 (156 units) - not opened
+    units_n: '260 ISO weeks (2020: 51, 2021: 53, 2022: 52, 2023: 52, 2024: 52); 260 state / 1040 comparator windows;
+      compiler n_eff 208.0; replication 156 BitMEX weeks'
+    practical_bar: 0.5 comparator-SD, declared sign NEGATIVE; Holm m = 2 in TF-R03-A-EXPIRY-CLOCK
+    mechanism: Into a large options expiry, dealer gamma hedging near popular strikes pins the spot price, so the
+      pre-expiry window should show a narrower range than the same window on other weekdays.
+    function: state Friday 04:00-08:00 UTC (four hours before the Deribit expiry) -> standardized log range of that
+      240m window vs 04:00-08:00 UTC Mon-Thu of the same ISO week; expected NEGATIVE (narrower)
+    verdict: NO_INCREMENTAL_STRUCTURE (DISCOVERY_CLASS and FINAL_CLASS); estimate +0.067 SD (wrong sign); SE sign-flip/block
+      0.064/0.058; p 0.30; Holm p 0.61; statistical fail; practical fail (wrong sign); nuisance-adjusted −0.004 (retention
+      −0.06, 'reflects the general volatility regime'); epochs 2020-2024 +0.25/+0.01/−0.01/+0.14/−0.05, Q-test p 0.70;
+      feasibility MDE stress compiler 0.389, units 0.428
+    why_closed: '''The pre-expiry window is, if anything, slightly wider, not narrower.'' Statistical and practical
+      gates failed (RESULT.md).'
+    reopen: 'Not within R03: RERUN_AUTHORIZED = false; ''A closed hypothesis is not re-scored, re-thresholded or re-horizoned.
+      A later variant is a new search object'' (DECISION §5). RESULT: ''no threshold, horizon, bar, unit or comparator
+      may be changed for these twelve ids. A later weekend-structure or settlement-clock question is a new search
+      object with its own test family and a surface it has not seen.'' BitMEX 2017-2019 replication declared, not
+      opened, unconsumed for these rules.'
+    forbidden: any change to a window, state, comparator, unit, standardization or seed (PREREG FORBIDDEN_AFTER_OUTCOMES);
+      any added hypothesis, regime, horizon or sign; any rescue of a closed hypothesis; any rerun (RERUN_AUTHORIZED
+      = false); any 2025/2026 object; no sign flip / reverse-effect relabel ('any added ... sign' forbidden); settlement-expiry
+      neighbourhood (R03-A) listed as exhausted in the AUTOGEN_G01 map
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/OWNER_CARDS_R03_RESULT.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/owner_cards_r03/UNITS_R03-A4.json
+    - docs/research/owner_cards_r03/UNITS_R03-A4_REPLICATION.json
+    - config/beta_research_findings.yaml
+    note: Pinning tested through the perp range only (no options data); the pre-expiry window was slightly wider,
+      not narrower.; Card R03-A, TF-R03-A-EXPIRY-CLOCK. Bot finding R03-A4 status NOT_CONFIRMED ('price did not pin
+      before the Friday expiry'), contexts event:EXPIRY_*. Window is 4h, not 1h.
+  - id: R03-B1
+    title: RETURN_DISPERSION_HIGH
+    program: OWNER_CARDS_R03
+    row: CROSS_ASSET_REGION.breadth
+    col: CROSS_ASSET
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0
+    - CORE_BTC_BINANCE_V0
+    period: 'discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication:
+      prospective BINANCE_SPOT_PANEL_PROSPECTIVE_R03B from 2027-01-01, stop at 730 days or 2028-12-31, minimum 365
+      days with >= 60 state and >= 240 comparator days, counts-only monitoring'
+    units_n: '49 calendar months with both state and comparator days (2020: 6, 2021: 10, 2022: 11, 2023: 11, 2024:
+      11); 353 state / 1142 comparator windows; compiler n_eff 269.6; replication units 0 (prospective)'
+    practical_bar: '0.5 comparator-SD, declared sign POSITIVE (never applied: not executed)'
+    mechanism: High dispersion means idiosyncratic repricing dominates the common factor; that ends when the common
+      factor moves, so the next BTC day should carry a wider range.
+    function: day-d cross-sectional SD of daily log returns >= trailing-180-day P80 -> standardized BTC log range
+      of the next UTC day [T, T+24h) vs other eligible days of the same calendar month; expected POSITIVE
+    verdict: INFORMATIONALLY_WEAK_AT_UNIT_LEVEL (closed at feasibility; compiler status FEASIBLE_FOR_PREREGISTRATION);
+      MDE stress (compiler) 0.341; MDE stress (units, alpha 0.0125, Holm m = 4) 0.544 > 0.5; panel diagnostic DEFINED_DAYS
+      1647, MONTHS_WITH_BOTH 49, STATE_DAYS 353
+    why_closed: 'Passed the compiler but failed the paired-unit power screen at the card''s Holm first-step alpha.
+      RESULT: ''The three sibling states were closed outcome-blind for too few paired months; they were not executed.'''
+    reopen: 'Not within R03: ''Closed at feasibility (never executed, no rescue)'' (FEASIBILITY.md). ''A closed hypothesis
+      is not re-scored, re-thresholded or re-horizoned. A later variant is a new search object'' (DECISION §5); RESULT:
+      no threshold, horizon, bar, unit or comparator may be changed for these twelve ids.'
+    forbidden: 'any rescue of a closed hypothesis (PREREG); family H anti-rescue: no SHARE variant (H/D9), no momentum/reversal
+      relabel (H/D13) (DECISION §4); ''R03 breadth states'' listed as exhausted in the AUTOGEN_G01 map (H)'
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Card R03-B ''Cross-sectional panel breadth and dispersion states'' (family H, true panel; not D9 share,
+      not D13 relative momentum), TF-R03-B-PANEL-STATES. Universe at UTC day d: USDT-quoted spot symbols not in EXCLUSION_LISTS.json,
+      with 30 prior days present, top 100 by trailing-30-day median quote volume; at least 20 symbols; BTC included.
+      States are past-only trailing-180-day quantiles of the day-d metric; decision boundary T = d+1 00:00 UTC; target
+      is the BTC day [T, T+24h). Origin: S4-C03 pool candidate.'
+  - id: R03-B2
+    title: BREADTH_SYNCHRONY
+    program: OWNER_CARDS_R03
+    row: CROSS_ASSET_REGION.breadth
+    col: CROSS_ASSET
+    state: NO_STRUCTURE
+    datasets:
+    - SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0
+    - CORE_BTC_BINANCE_V0
+    period: 'discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication:
+      prospective BINANCE_SPOT_PANEL_PROSPECTIVE_R03B from 2027-01-01, stop at 730 days or 2028-12-31, minimum 365
+      days with >= 60 state and >= 240 comparator days, counts-only monitoring (not run: no discovery prototype)'
+    units_n: '53 calendar months (2020: 6, 2021: 12, 2022: 11, 2023: 12, 2024: 12); 357 state / 1257 comparator windows;
+      compiler n_eff 278.0; replication 0 (prospective)'
+    practical_bar: 0.5 comparator-SD, declared sign POSITIVE; Holm m = 1 in TF-R03-B-PANEL-STATES
+    mechanism: When nearly every symbol moves the same way, the move is a common-factor shock; common shocks cluster,
+      so the next BTC day should carry a wider range.
+    function: day-d |fraction of eligible symbols with a positive daily return - 0.5| >= trailing-180-day P80 -> standardized
+      BTC log range of the next UTC day [T, T+24h) vs other eligible days of the same month; expected POSITIVE
+    verdict: NO_INCREMENTAL_STRUCTURE (DISCOVERY_CLASS and FINAL_CLASS); estimate +0.037 SD; SE sign-flip/block 0.057/0.057;
+      p 0.53; Holm p 0.53; statistical fail; practical fail; nuisance-adjusted −0.173 (retention −4.7, 'reflects the
+      general volatility regime'); epochs 2020-2024 −0.09/−0.12/+0.16/+0.12/+0.06, Q-test p 0.60; feasibility MDE
+      stress compiler 0.336, units (alpha 0.0125, m = 4) 0.459
+    why_closed: '''High breadth-synchrony days do not precede a wider BTC day.'' (RESULT.md, Reading)'
+    reopen: 'Not within R03: RERUN_AUTHORIZED = false; ''A closed hypothesis is not re-scored, re-thresholded or re-horizoned.
+      A later variant is a new search object'' (DECISION §5). RESULT: ''no threshold, horizon, bar, unit or comparator
+      may be changed for these twelve ids. A later weekend-structure or settlement-clock question is a new search
+      object with its own test family and a surface it has not seen.'''
+    forbidden: 'any change to a window, state, comparator, unit, standardization or seed (PREREG FORBIDDEN_AFTER_OUTCOMES);
+      any added hypothesis, regime, horizon or sign; any rescue of a closed hypothesis; any rerun (RERUN_AUTHORIZED
+      = false); any 2025/2026 object; family H anti-rescue: no SHARE variant (H/D9), no momentum/reversal relabel
+      (H/D13); ''R03 breadth states'' listed as exhausted in the AUTOGEN_G01 map (H)'
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/OWNER_CARDS_R03_RESULT.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/owner_cards_r03/UNITS_R03-B2.json
+    - config/beta_research_findings.yaml
+    note: 'RESULT.json records PRODUCT_FREQUENCY_GATE = false for B2 (gate: >= 12 evaluated units per year on average;
+      53 units over 5 years) - not mentioned in RESULT.md, did not matter since primary gates failed. Nuisance-adjusted
+      estimate moved away from zero (−0.173; adjusted p 0.00119994000299985 in JSON); RESULT.md states this caveat
+      is not a finding and changes no class. Prospective panel leg PRODUCT_EXPOSURE_HANDLING: if the product adds
+      a breadth/dispersion/volume-shock/BTC-share statistic before the stop, the prospective leg is void. Bot finding
+      R03-B2 NOT_CONFIRMED (no bot context). Universe at UTC day d: USDT-quoted spot symbols not in EXCLUSION_LISTS.json,
+      with 30 prior days present, top 100 by trailing-30-day median quote volume; at least 20 symbols; BTC included.
+      States are past-only trailing-180-day quantiles of the day-d metric; decision boundary T = d+1 00:00 UTC; target
+      is the BTC day [T, T+24h).'
+  - id: R03-B3
+    title: VOLUME_SHOCK_FRACTION
+    program: OWNER_CARDS_R03
+    row: CROSS_ASSET_REGION.breadth
+    col: CROSS_ASSET
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0
+    - CORE_BTC_BINANCE_V0
+    period: 'discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication:
+      prospective BINANCE_SPOT_PANEL_PROSPECTIVE_R03B from 2027-01-01, stop at 730 days or 2028-12-31, minimum 365
+      days with >= 60 state and >= 240 comparator days, counts-only monitoring'
+    units_n: '48 calendar months (2020: 4, 2021: 10, 2022: 11, 2023: 11, 2024: 12); 332 state / 1129 comparator windows;
+      compiler n_eff 256.6; replication 0'
+    practical_bar: '0.5 comparator-SD, declared sign POSITIVE (never applied: not executed)'
+    mechanism: A broad volume shock across the panel signals a change in participation that is not specific to one
+      coin; it should carry into the next BTC day.
+    function: day-d fraction of eligible symbols with quote volume >= 2x own trailing-30-day median, at or above its
+      trailing-180-day P80 -> standardized BTC next-UTC-day log range vs other eligible days of the same month; expected
+      POSITIVE
+    verdict: INFORMATIONALLY_WEAK_AT_UNIT_LEVEL (closed at feasibility; compiler FEASIBLE_FOR_PREREGISTRATION); MDE
+      stress (compiler) 0.350; MDE stress (units, alpha 0.0125, m = 4) 0.588; panel diagnostic DEFINED_DAYS 1647,
+      MONTHS_WITH_BOTH 48, STATE_DAYS 332
+    why_closed: Unit-level MDE above the bar; 'closed outcome-blind for too few paired months; they were not executed.'
+      (RESULT.md)
+    reopen: 'Not within R03: ''Closed at feasibility (never executed, no rescue)'' (FEASIBILITY.md). ''A closed hypothesis
+      is not re-scored, re-thresholded or re-horizoned. A later variant is a new search object'' (DECISION §5); RESULT:
+      no threshold, horizon, bar, unit or comparator may be changed for these twelve ids.'
+    forbidden: any rescue of a closed hypothesis (PREREG); 'R03 breadth states' listed as exhausted in the AUTOGEN_G01
+      map (H)
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Card R03-B, TF-R03-B-PANEL-STATES. Universe at UTC day d: USDT-quoted spot symbols not in EXCLUSION_LISTS.json,
+      with 30 prior days present, top 100 by trailing-30-day median quote volume; at least 20 symbols; BTC included.
+      States are past-only trailing-180-day quantiles of the day-d metric; decision boundary T = d+1 00:00 UTC; target
+      is the BTC day [T, T+24h).'
+  - id: R03-B4
+    title: BTC_SHARE_LOW
+    program: OWNER_CARDS_R03
+    row: CROSS_ASSET_REGION.breadth
+    col: CROSS_ASSET
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0
+    - CORE_BTC_BINANCE_V0
+    period: 'discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication:
+      prospective BINANCE_SPOT_PANEL_PROSPECTIVE_R03B from 2027-01-01, stop at 730 days or 2028-12-31, minimum 365
+      days with >= 60 state and >= 240 comparator days, counts-only monitoring'
+    units_n: '41 calendar months (2020: 5, 2021: 11, 2022: 2, 2023: 11, 2024: 12); 422 state / 826 comparator windows;
+      compiler n_eff 279.3; replication 0'
+    practical_bar: '0.5 comparator-SD, any sign (TWO_SIDED) (never applied: not executed)'
+    mechanism: Days when activity concentrates in altcoins describe a different participant mix; whether BTC's next-day
+      range is wider or narrower on such days is not known, so the claim is two-sided.
+    function: day-d BTC share of eligible-panel quote volume <= trailing-180-day P20 -> standardized BTC next-UTC-day
+      log range vs other eligible days of the same month; TWO_SIDED
+    verdict: INFORMATIONALLY_WEAK_AT_UNIT_LEVEL (closed at feasibility; compiler FEASIBLE_FOR_PREREGISTRATION); MDE
+      stress (compiler) 0.335; MDE stress (units, alpha 0.0125, m = 4) 0.602; panel diagnostic DEFINED_DAYS 1647,
+      MONTHS_WITH_BOTH 41, STATE_DAYS 482
+    why_closed: Unit-level MDE above the bar; 'closed outcome-blind for too few paired months; they were not executed.'
+      (RESULT.md)
+    reopen: 'Not within R03: ''Closed at feasibility (never executed, no rescue)'' (FEASIBILITY.md). ''A closed hypothesis
+      is not re-scored, re-thresholded or re-horizoned. A later variant is a new search object'' (DECISION §5); RESULT:
+      no threshold, horizon, bar, unit or comparator may be changed for these twelve ids.'
+    forbidden: any rescue of a closed hypothesis (PREREG); no SHARE variant (H/D9) (DECISION §4 anti-rescue); 'R03
+      breadth states' listed as exhausted in the AUTOGEN_G01 map (H)
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Card R03-B. STATE_DAYS 482 vs 422 active windows: only months with both a state and a comparator day count
+      (2022 has 2 such months). Related AUTOGEN_G01 closure G01-X2 (weekend BTC share of the spot panel) was closed
+      because BTC share of USDT pairs is a fee-promotion/FDUSD-migration artifact (zero-fee BTC 2022-07 to 2023-03;
+      2023 FDUSD migration) - the R03 record itself does not state this. Universe at UTC day d: USDT-quoted spot symbols
+      not in EXCLUSION_LISTS.json, with 30 prior days present, top 100 by trailing-30-day median quote volume; at
+      least 20 symbols; BTC included. States are past-only trailing-180-day quantiles of the day-d metric; decision
+      boundary T = d+1 00:00 UTC; target is the BTC day [T, T+24h).'
+  - id: R03-C1
+    title: WEEKEND_HOURS
+    program: OWNER_CARDS_R03
+    row: CALENDAR.weekday_weekend
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication
+      declared BITMEX_2016_2019 2017-01-01..2020-01-01 (156 units) - not opened
+    units_n: 260 ISO weeks (52 per year 2020-2024); 12480 state / 18720 comparator windows; compiler n_eff 7488.0;
+      replication 156 BitMEX weeks
+    practical_bar: 0.5 comparator-SD, declared sign NEGATIVE; Holm m = 3 in TF-R03-C-SESSION-CLOCK
+    mechanism: Traditional-finance participants and their funding rails are closed at the weekend, so the hourly range
+      should be narrower hour for hour.
+    function: every UTC hour of Saturday and Sunday -> standardized log range vs the same UTC hour of Tue, Wed and
+      Thu of the same ISO week; expected NEGATIVE (narrower)
+    verdict: NO_INCREMENTAL_STRUCTURE (statistical pass, practical fail; DISCOVERY_CLASS and FINAL_CLASS); estimate
+      −0.396 SD; SE sign-flip/block 0.036/0.033; p <0.0001; Holm p 0.0001; statistical pass; practical fail (0.40
+      < 0.50); epochs 2020-2024 −0.19/−0.21/−0.43/−0.49/−0.65, heterogeneity Q-test p 0.0005, no opposite-sign year,
+      recorded MAGNITUDE_VARIES_BY_EPOCH and NOT_ASSESSABLE; nuisance-adjusted −0.104 (retention 0.26, 'reflects the
+      general volatility regime'); feasibility MDE stress compiler 0.065, units 0.075; 0 of 31200 windows unavailable
+    why_closed: '''Weekend hours are narrower than the same hour on Tuesday-Thursday by about 0.4 comparator-SD, with
+      a very small p, and the gap widened each year ... Under the frozen bar this is below product relevance, so the
+      class is NO_INCREMENTAL_STRUCTURE. It is not rescued here.'' (RESULT.md)'
+    reopen: 'Not within R03: RERUN_AUTHORIZED = false; ''A closed hypothesis is not re-scored, re-thresholded or re-horizoned.
+      A later variant is a new search object'' (DECISION §5). RESULT: ''no threshold, horizon, bar, unit or comparator
+      may be changed for these twelve ids. A later weekend-structure or settlement-clock question is a new search
+      object with its own test family and a surface it has not seen.'' BitMEX 2017-2019 replication declared, not
+      opened, unconsumed for these rules. CURRENT_RESEARCH_STATE: ''A follow-up on weekend baselines is a product-first
+      question (baseline construction), not a new research unit.'' RESULT product note: any product change goes through
+      the product-first decision, not this record.'
+    forbidden: 'any change to a window, state, comparator, unit, standardization or seed (PREREG FORBIDDEN_AFTER_OUTCOMES);
+      any added hypothesis, regime, horizon or sign; any rescue of a closed hypothesis; any rerun (RERUN_AUTHORIZED
+      = false); any 2025/2026 object; no rescue of the weekend narrowing: AUTOGEN_G01 map lists ''J: ... R03 sessions,
+      including the weekend narrowing (no rescue)''; G01-X9 ETF_WEEKEND_GAP_GROWTH closed at red team as leakage from
+      R03-C1''s exposed epoch trend and ''a rescue of a closed card''; no lowered bar, no epoch/regime split (e.g.
+      late-years only) of the same surface; family J anti-rescue: D12 DST and hour-slice neighbours'
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/OWNER_CARDS_R03_RESULT.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/owner_cards_r03/UNITS_R03-C1.json
+    - docs/research/owner_cards_r03/UNITS_R03-C1_REPLICATION.json
+    - config/beta_research_findings.yaml
+    - docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md
+    note: 'State CLOSED_ON_SURFACE, not NO_STRUCTURE: the weekend narrowing is clear and grew every year but stayed
+      below the 0.5 SD bar. Weekend baselines are a product-first baseline question, not a research unit.; Weekend
+      effect is clear (Holm p 0.0001, monotone growth 2020->2024) but below the frozen 0.5 SD bar; the record''s product
+      note: a same-hour baseline that mixes weekdays and weekends is mis-calibrated for the beta''s unusual-hour flags
+      by roughly 0.4 SD in 2020-2024 and more recently by more - a baseline-construction observation, not a market
+      claim. Nuisance caveat (RESULT.md): the lagged target of a Sunday hour is the Saturday hour, so the adjustment
+      partly conditions on the state itself. Bot finding R03-C1 status WEAK, context ''weekend''. The only R03 unit
+      with a statistical pass. ''No epoch-split rescue'' line above is the atlas reading of the PREREG ''any added
+      ... regime'' ban plus G01-X9, not a separate sentence in the record.'
+  - id: R03-C2
+    title: MONDAY_US_OPEN
+    program: OWNER_CARDS_R03
+    row: CALENDAR.sessions
+    col: CANDLES
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication
+      declared BitMEX 2017-2019 (156 units; NYSE closures not pinned for those years, so Monday closures not excluded
+      there) - not opened
+    units_n: '232 ISO weeks (2020: 48, 2021: 47, 2022: 45, 2023: 45, 2024: 47); 232 state / 696 comparator windows;
+      compiler n_eff 174.0; replication 156'
+    practical_bar: 0.5 comparator-SD, declared sign POSITIVE; Holm m = 3 in TF-R03-C-SESSION-CLOCK
+    mechanism: Information that accumulates over the weekend is priced by US-session participants when they return;
+      the first US-open hour of the week should carry a wider range than the same hour later in the week.
+    function: Monday 09:30-10:30 America/New_York (excluding NYSE full-day closures) -> standardized log range vs
+      09:30-10:30 New York on Tue-Thu of the same ISO week; expected POSITIVE
+    verdict: NO_INCREMENTAL_STRUCTURE (DISCOVERY_CLASS and FINAL_CLASS); estimate +0.066 SD; SE sign-flip/block 0.079/0.073;
+      p 0.41; Holm p 0.41; statistical fail; practical fail; nuisance-adjusted +0.220 (retention 3.3, 'state-specific
+      beyond the volatility regime'); epochs 2020-2024 +0.04/−0.03/+0.04/+0.16/+0.12, Q-test p 0.96; feasibility MDE
+      stress compiler 0.425, units 0.491
+    why_closed: '''The Monday US-open and Friday US-close hours show nothing.'' (RESULT.md, Reading)'
+    reopen: 'Not within R03: RERUN_AUTHORIZED = false; ''A closed hypothesis is not re-scored, re-thresholded or re-horizoned.
+      A later variant is a new search object'' (DECISION §5). RESULT: ''no threshold, horizon, bar, unit or comparator
+      may be changed for these twelve ids. A later weekend-structure or settlement-clock question is a new search
+      object with its own test family and a surface it has not seen.'' BitMEX 2017-2019 replication declared, not
+      opened, unconsumed for these rules.'
+    forbidden: 'any change to a window, state, comparator, unit, standardization or seed (PREREG FORBIDDEN_AFTER_OUTCOMES);
+      any added hypothesis, regime, horizon or sign; any rescue of a closed hypothesis; any rerun (RERUN_AUTHORIZED
+      = false); any 2025/2026 object; ''R03 sessions'' listed as exhausted in the AUTOGEN_G01 map (J); family J anti-rescue:
+      D12 DST and hour-slice neighbours; no promotion of the nuisance-adjusted estimate (RESULT: diagnostic decides
+      wording, not gates)'
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/OWNER_CARDS_R03_RESULT.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/owner_cards_r03/UNITS_R03-C2.json
+    - docs/research/owner_cards_r03/UNITS_R03-C2_REPLICATION.json
+    - config/beta_research_findings.yaml
+    note: 'Nuisance-adjusted estimate moved away from zero (+0.220; adjusted p 0.0025498725063746812 in RESULT.json).
+      RESULT.md: ''for B2 and C2 the adjusted estimate moves away from zero. None of this changes a class'' - not
+      a finding. Bot finding R03-C2-C4 (joint) NOT_CONFIRMED, no bot context. Origin pool candidate S4-C10; nearest
+      prior D12 (not re-scored).'
+    aliases:
+    - R03-C2-C4
+  - id: R03-C3
+    title: NYSE_CLOSURE_US_OPEN
+    program: OWNER_CARDS_R03
+    row: EVENTS.market_closures
+    col: CANDLES
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: 'discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication:
+      CARDS.md/PREREG.json ''no replication surface'' / ''NOT_AVAILABLE'' (no pinned NYSE calendar for 2017-2019),
+      but PLANNING.json declares a prospective BINANCE_PROSPECTIVE_R03-C3 from 2027-01-01 to 2032-12-31 (MIN_N 50,
+      MAX_EPISODES 60)'
+    units_n: '46 closure days (2020: 8, 2021: 9, 2022: 9, 2023: 10, 2024: 10); 46 state / 184 comparator windows;
+      compiler n_eff 36.8; replication units 0'
+    practical_bar: '0.5 comparator-SD, declared sign NEGATIVE (never applied: not executed)'
+    mechanism: On a US holiday the US equity session does not open, so the hour that usually carries the US open should
+      show a narrower range.
+    function: 09:30-10:30 America/New_York on a weekday NYSE full-day closure -> standardized log range vs the same
+      local hour on the other non-closure weekdays of the same ISO week; expected NEGATIVE
+    verdict: INFORMATIONALLY_WEAK (closed at feasibility, compiler; never executed); MDE stress (compiler) 0.924;
+      MDE stress (units, alpha/m = 0.0167, m = 3) 1.067; blockers MDE_TOO_LARGE, REPLICATION_MDE_TOO_LARGE (compiler
+      replication screen on the prospective surface MDE_STRESS 0.792407962319869)
+    why_closed: 'Compiler: discovery and replication stress screens miss the target at the mechanism effective N (rare-event
+      N, ~46 closure days).'
+    reopen: 'Not within R03: ''Closed at feasibility (never executed, no rescue)'' (FEASIBILITY.md). ''A closed hypothesis
+      is not re-scored, re-thresholded or re-horizoned. A later variant is a new search object'' (DECISION §5); RESULT:
+      no threshold, horizon, bar, unit or comparator may be changed for these twelve ids.'
+    forbidden: 'any rescue of a closed hypothesis (PREREG); ''R03 sessions'' listed as exhausted in the AUTOGEN_G01
+      map (J); holiday participant-removal neighbours: AUTOGEN_G01 closed G01-X10 (bank-holiday fiat rails) as rare
+      N and a close neighbour of GV0R01-C020'
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Ambiguity: CARDS.md says ''C3 has no replication surface'' and PREREG.json REPLICATION_NOTE says ''replication
+      NOT_AVAILABLE'', while PLANNING.json/compiler used a prospective surface; its PRODUCT_EXPOSURE_HANDLING text
+      is copied from card B (mentions panel statistics). The closure does not depend on it (discovery MDE alone fails).'
+  - id: R03-C4
+    title: FRIDAY_US_CLOSE
+    program: OWNER_CARDS_R03
+    row: CALENDAR.sessions
+    col: CANDLES
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01) (HISTORICAL_WINDOW 2020-01..2024-12); replication
+      declared BitMEX 2017-2019 (156 units; NYSE early closes not pinned, no exclusion there) - not opened
+    units_n: '246 ISO weeks (2020: 47, 2021: 49, 2022: 50, 2023: 50, 2024: 50); 246 state / 738 comparator windows;
+      compiler n_eff 184.5; replication 156'
+    practical_bar: 0.5 comparator-SD, declared sign POSITIVE; Holm m = 3 in TF-R03-C-SESSION-CLOCK
+    mechanism: Before the weekend, participants who cannot manage risk over two closed days square positions in the
+      last regular US hour of the week.
+    function: Friday 15:00-16:00 America/New_York (excluding NYSE closures and early-close days) -> standardized log
+      range vs 15:00-16:00 New York on Tue-Thu of the same ISO week; expected POSITIVE
+    verdict: NO_INCREMENTAL_STRUCTURE (DISCOVERY_CLASS and FINAL_CLASS); estimate −0.123 SD (wrong sign); SE sign-flip/block
+      0.071/0.069; p 0.077; Holm p 0.15; statistical fail; practical fail (wrong sign); nuisance-adjusted −0.110 (retention
+      0.90, 'state-specific beyond the volatility regime'); epochs 2020-2024 +0.12/−0.09/−0.23/−0.14/−0.25, Q-test
+      p 0.72; feasibility MDE stress compiler 0.413, units 0.476
+    why_closed: '''The Monday US-open and Friday US-close hours show nothing.'' (RESULT.md, Reading)'
+    reopen: 'Not within R03: RERUN_AUTHORIZED = false; ''A closed hypothesis is not re-scored, re-thresholded or re-horizoned.
+      A later variant is a new search object'' (DECISION §5). RESULT: ''no threshold, horizon, bar, unit or comparator
+      may be changed for these twelve ids. A later weekend-structure or settlement-clock question is a new search
+      object with its own test family and a surface it has not seen.'' BitMEX 2017-2019 replication declared, not
+      opened, unconsumed for these rules.'
+    forbidden: any change to a window, state, comparator, unit, standardization or seed (PREREG FORBIDDEN_AFTER_OUTCOMES);
+      any added hypothesis, regime, horizon or sign; any rescue of a closed hypothesis; any rerun (RERUN_AUTHORIZED
+      = false); any 2025/2026 object; no sign flip ('Friday close is narrower') - 'any added ... sign' forbidden;
+      'R03 sessions' listed as exhausted in the AUTOGEN_G01 map (J)
+    records:
+    - docs/research/OWNER_CARDS_R03_DECISION.md
+    - docs/research/OWNER_CARDS_R03_CARDS.md
+    - docs/research/OWNER_CARDS_R03_PLANNING.json
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.md
+    - docs/research/OWNER_CARDS_R03_FEASIBILITY.json
+    - docs/research/OWNER_CARDS_R03_PREREG.md
+    - docs/research/OWNER_CARDS_R03_PREREG.json
+    - docs/research/OWNER_CARDS_R03_EXECUTION_PERMIT.json
+    - docs/research/OWNER_CARDS_R03_RESULT.md
+    - docs/research/OWNER_CARDS_R03_RESULT.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/owner_cards_r03/UNITS_R03-C4.json
+    - docs/research/owner_cards_r03/UNITS_R03-C4_REPLICATION.json
+    - config/beta_research_findings.yaml
+    note: Same New York 15:00-16:00 hour later reused by G01-B1 with a different comparator and question (ETF launch
+      DiD); G01-B1 lists R03-C4 as prior overlap ('different comparator and question; null'). Bot finding R03-C2-C4
+      NOT_CONFIRMED.
+  # ---- AUTOGEN_G01 (closed, no survivors, 2026-10-03) ----------------------------------------------
+  - id: G01-A1
+    title: TOM_PARTICIPATION
+    program: AUTOGEN_G01
+    row: CALENDAR.month_boundary
+    col: PERP_FLOW
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - D2_BITMEX_PRE2020_XBTUSD
+    period: discovery BINANCE_2020_2024 [2020-01-01, 2025-01-01); replication BITMEX_2016_2019 surface 2017-01-01..2020-01-01
+      (HISTORICAL, 36 months)
+    units_n: '59 calendar months (2020: 12, 2021: 12, 2022: 11, 2023: 12, 2024: 12); 203 state / 826 comparator day-windows;
+      compiler n_eff 163.0; replication 36 of 36 BitMEX months'
+    practical_bar: '0.5 comparator-SD with declared sign POSITIVE (''the same product-relevance bar as R03: a shift
+      that roughly doubles the rate of extreme-day flags''); Holm within TF-G01-A-TURN-OF-MONTH, alpha 0.05'
+    mechanism: Recurring fiat-rail cash flows (salary-linked purchases, monthly DCA plans, fund subscriptions and
+      month-end marks) concentrate around the turn of the month, so participation rises on the first days of a month.
+    function: turn-of-month UTC days (last day of previous month and days 1-3, minus last-Friday expiry day and fixed
+      holiday windows) -> z(log daily trade count) vs days 8-21 of the same month; expected POSITIVE; same day
+    verdict: INFORMATIONALLY_WEAK (closed at feasibility; never frozen or executed); MDE stress (compiler) 0.439;
+      MDE stress (units) 0.4862; replication MDE (units) 0.632; compiler replication MDE_STRESS 0.9338617393709893;
+      blocker REPLICATION_MDE_TOO_LARGE
+    why_closed: '''The discovery surface alone would carry the bar (unit MDE 0.486 at the Holm first-step alpha).
+      The declared time-disjoint replication surface, 36 BitMEX months, cannot (MDE about 0.63), and the compiler
+      requires it to. A monthly calendar clock has too few independent units per era.'''
+    reopen: 'Not within G01. FEASIBILITY.md: ''No closed hypothesis is repaired: the replication surface, minimum
+      N, pre-period, block length and bar stay as declared. A later variant is a new search object with its own test
+      family.'' Bar 0.5 SD not lowered.'
+    forbidden: no repair of the replication surface, minimum N, pre-period, block length or bar; no 2025/2026 surface
+      (not authorized for this program); no lowered bar
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/research/AUTOGEN_G01_PLANNING.json
+    - docs/research/AUTOGEN_G01_FEASIBILITY.md
+    - docs/research/AUTOGEN_G01_FEASIBILITY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - scripts/research/autogen_g01/candidates.py
+    - scripts/research/autogen_g01/support.py
+    note: 'Card G01-A ''CALENDAR_CASH_FLOW_CLOCK'' (J-adjacent, new subfamily), TF-G01-A-TURN-OF-MONTH. Prior overlap
+      listed: R03-A2 (different clock; last-Friday day excluded), R03-C weekday/session clock, GV0V03L40-C028 (tax-year-end
+      panel turnover). FEASIBILITY.json OWN_UNIT_SCREEN records ALPHA 0.05 with HOLM_M 0: support.py sets m = number
+      of card hypotheses passing the compiler (none did), alpha = 0.05/max(1, m); so the 0.486 unit MDE is at alpha
+      0.05. Product relevance: a turn-of-month shift would mis-calibrate a 30-day activity baseline. No market value
+      read.'
+  - id: G01-A2
+    title: TOM_RANGE
+    program: AUTOGEN_G01
+    row: CALENDAR.month_boundary
+    col: CANDLES
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - D2_BITMEX_PRE2020_XBTUSD
+    period: 'as G01-A1: discovery 2020-01..2024-12 Binance; replication BitMEX 2017-01..2019-12 (36 months)'
+    units_n: 59 calendar months; 203 state / 826 comparator days; compiler n_eff 163.0; replication 36 BitMEX months
+    practical_bar: 0.5 comparator-SD, declared sign POSITIVE; Holm within TF-G01-A-TURN-OF-MONTH
+    mechanism: If turn-of-month flows are directional and lumpy, they move price more on those days than mid-month,
+      widening the daily range.
+    function: turn-of-month UTC days (as G01-A1) -> z(log daily range ln(max high / min low)) vs days 8-21 of the
+      same month; expected POSITIVE; same day
+    verdict: 'INFORMATIONALLY_WEAK (closed at feasibility; never frozen or executed); same as G01-A1: MDE stress compiler
+      0.439; units 0.4862; replication MDE (units) 0.632; blocker REPLICATION_MDE_TOO_LARGE'
+    why_closed: 'As G01-A1: replication surface (36 BitMEX months) cannot carry the bar; ''A monthly calendar clock
+      has too few independent units per era.'''
+    reopen: 'Not within G01. FEASIBILITY.md: ''No closed hypothesis is repaired: the replication surface, minimum
+      N, pre-period, block length and bar stay as declared. A later variant is a new search object with its own test
+      family.'' Bar 0.5 SD not lowered.'
+    forbidden: no repair of the replication surface, minimum N, pre-period, block length or bar; no 2025/2026 surface;
+      no lowered bar
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/research/AUTOGEN_G01_PLANNING.json
+    - docs/research/AUTOGEN_G01_FEASIBILITY.md
+    - docs/research/AUTOGEN_G01_FEASIBILITY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - scripts/research/autogen_g01/candidates.py
+    note: Range target is the product-facing one, participation (A1) the direct mechanism observable; kept as separate
+      cells (Holm m <= 3). Identical feasibility numbers to A1 (same unit sets).
+  - id: G01-A3
+    title: MONTH_END_MARK_HOUR
+    program: AUTOGEN_G01
+    row: CALENDAR.month_boundary
+    col: CANDLES
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - D2_BITMEX_PRE2020_XBTUSD
+    period: discovery Binance 2020-01..2024-12; replication BitMEX 2017-01-01..2020-01-01 (33 months)
+    units_n: 55 calendar months (11 per year 2020-2024), one state hour each; 55 state / 770 comparator windows; compiler
+      n_eff 51.3; replication 33 of 33 BitMEX months
+    practical_bar: 0.5 comparator-SD, declared sign POSITIVE
+    mechanism: Crypto funds and treasuries mark month-end NAV at 00:00 UTC; rebalancing and marking trades concentrate
+      in the last UTC hour of the month.
+    function: 23:00-24:00 UTC on the last day of the month -> z(log range of the hour) vs the same hour on days 8-21
+      of the same month; expected POSITIVE
+    verdict: INFORMATIONALLY_WEAK (closed at feasibility; never frozen or executed); MDE stress (compiler) 0.782;
+      MDE stress (units) 0.7820; replication MDE (units) 1.010; blockers MDE_TOO_LARGE, REPLICATION_MDE_TOO_LARGE
+    why_closed: '''One state hour per month: discovery MDE 0.78, as expected (the R03-A2/A3 precedent).'''
+    reopen: 'Not within G01. FEASIBILITY.md: ''No closed hypothesis is repaired: the replication surface, minimum
+      N, pre-period, block length and bar stay as declared. A later variant is a new search object with its own test
+      family.'' Bar 0.5 SD not lowered.'
+    forbidden: no repair of surfaces, N or bar; no 2025/2026 surface
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/research/AUTOGEN_G01_PLANNING.json
+    - docs/research/AUTOGEN_G01_FEASIBILITY.md
+    - docs/research/AUTOGEN_G01_FEASIBILITY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - scripts/research/autogen_g01/candidates.py
+    note: Sent to the compiler deliberately ('Rare-event N is the expected failure; ... the R03 precedent is a compiler
+      decision'). RESEARCH_LEDGER table shows replication as '—' while FEASIBILITY.md lists 33 BitMEX months, MDE
+      1.010. Daily 00:00 UTC funding/candle close affects state and comparator alike.
+  - id: G01-B1
+    title: ETF_FIXING_HOUR_PARTICIPATION
+    program: AUTOGEN_G01
+    row: EVENTS.etf_fix
+    col: PERP_FLOW
+    state: FUTURE_NATURAL_ACCUMULATION
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - BINANCE_UM_LIVE_FORWARD
+    period: pre 2020-01-01..2024-01-07, post 2024-01-15..2024-12-31 (launch week 2024-W02 dropped); no historical
+      replication (no prior ETF era); prospective BINANCE_PERP_PROSPECTIVE_G01B from 2027-01-01 to 2029-12-31 (MIN_N
+      52, MAX_EPISODES 104, MIN_MECHANISM_ACTIVE_N 52, MIN_MECHANISM_INACTIVE_N 200; inactive arm = frozen pre-launch
+      weeks)
+    units_n: 261 ISO weeks (210 pre / 51 post); 240 post days / 1004 pre days; compiler n_eff 193.7; epochs are 2024
+      quarters (single post year)
+    practical_bar: 0.5 comparator-SD, declared sign POSITIVE; two-sided block permutation of era labels over 4-week
+      blocks, p <= 0.05
+    mechanism: US spot bitcoin ETFs (trading from 2024-01-11) strike NAV on reference rates computed over 15:00-16:00
+      New York; authorized-participant and market-maker execution and the associated CME basis activity concentrate
+      in that window on NYSE trading days, raising its participation relative to the adjacent afternoon hours.
+    function: 'difference-in-differences over ISO weeks: post-launch minus pre-launch mean of d_week, d_week = mean
+      over NYSE full trading days of [z(log quote volume 15:00-16:00 NY) - mean z(log quote volume 13:00-14:00, 14:00-15:00
+      NY)]; expected POSITIVE'
+    verdict: INFORMATIONALLY_WEAK (closed at feasibility); program label FUTURE_CANDIDATE / NATURAL_DATA_ACCUMULATION;
+      MDE stress (compiler) 0.403; MDE stress (units) 0.5005 (above the bar by 5e-4); replication 'compiler only'
+      (compiler prospective MDE_STRESS 0.7770199351144823); blocker REPLICATION_MDE_TOO_LARGE
+    why_closed: '''One post-launch year: the unit-level MDE is 0.5005, above the bar by 5e-4. The prospective replication
+      declared at 52 weeks is also underpowered. A natural experiment with a single launch has no historical replication
+      surface.'''
+    reopen: '''Post-launch weeks will accumulate naturally. Any later test is a new search object with its own test
+      family and freeze.'' The 0.5 SD bar is not lowered; the 2025-2026 surface is not opened for it; no prospective
+      collection or automation is started within G01; G01-B1 is not rescued.'
+    forbidden: lowering the 0.5 SD bar; opening the 2025-2026 surface for it; prospective collection/automation within
+      G01; rescuing G01-B1 inside G01; adding the range target (excluded at red team to keep a single primary cell)
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/research/AUTOGEN_G01_PLANNING.json
+    - docs/research/AUTOGEN_G01_FEASIBILITY.md
+    - docs/research/AUTOGEN_G01_FEASIBILITY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - scripts/research/autogen_g01/candidates.py
+    - scripts/research/autogen_g01/support.py
+    - config/beta_research_findings.yaml
+    note: 'FUTURE candidate: natural data accumulation only. PRE_FREEZE_DEFINITIONAL_CORRECTION: first compile returned
+      DEFINITION_INCOMPLETE / STOPPING_RULE_INVALID (MIN_N = 252 above MAX_EPISODES = 104; 252 wrongly added the fixed
+      pre-launch arm); corrected MIN_N = 52 before freeze and before any outcome; did not rescue it. Unresolvable
+      confound stated: ETF-unrelated hour-specific trends at 15:00-16:00 NY (equity close, CME daily settle sit there
+      in both eras). Prospective leg is void if the product adds a fixing-hour participation statistic before the
+      stop. Maintainer caution (atlas, not the G01 record): PRODUCT_DECISION_V2 §4 (same day) opened Binance BTCUSDT
+      2025/2026 5m klines for product statistics and marks that surface consumed for research over product features.
+      Prior overlap: R03-C4, GV0CAL-C004, D12.'
+    revisit: 'Prospective surface 2027-01-01..2029-12-31 declared in the G01 planning record: one analysis at the
+      earliest of 104 episodes or the end date, minimum 52 eligible post-launch weeks; a new search object with its
+      own freeze. Binance 2025/2026 is not eligible.'
+  - id: G01-X1
+    title: HK_ETF_FIXING_0800UTC
+    program: AUTOGEN_G01
+    row: EVENTS.etf_fix
+    col: CANDLES
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: Hong Kong spot bitcoin ETFs (from 2024-04-30) strike NAV at 16:00 HKT (08:00 UTC).
+    function: Range or participation of 08:00-09:00 UTC after 2024-04-30 vs before, relative to adjacent hours.
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: 'Not identifiable: 08:00 UTC is also the Binance funding settlement and the Deribit expiry hour (the
+      GV0CAL-C003 causal-identification blocker class). HK ETF flows are also very small.'
+    reopen: Not stated; closed before feasibility 'no outcome, no repair' (CANDIDATES.md). Any later variant would
+      be a new search object (G01 rule for closed hypotheses).
+    forbidden: GV0CAL-C003 causal-identification blocker class (08:00 UTC = funding settlement + Deribit expiry);
+      settlement-expiry neighbourhood (R03-A)
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Closed at red team: the 08:00 UTC clock is confounded with funding and the Deribit expiry.; Record id G01-X1
+      (named in CANDIDATES.md/.json, not derived). Family G-adjacent. Data surface and units not stated in the record.'
+  - id: G01-X2
+    title: WEEKEND_BTC_SHARE_PANEL
+    program: AUTOGEN_G01
+    row: CALENDAR.weekday_weekend
+    col: CROSS_ASSET
+    state: BLOCKED_DATA
+    datasets:
+    - SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0
+    mechanism: Weekend participants are retail-heavy and rotate into altcoins, lowering BTC's share of spot USDT volume
+      on weekends.
+    function: BTC share of the top-100 spot USDT panel quote volume is lower on Saturday-Sunday than Tuesday-Thursday
+      of the same week.
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: Exchange-specific artifact. Binance zero-fee BTC spot trading (2022-07 to 2023-03) and the 2023 migration
+      of BTC spot liquidity to FDUSD pairs make the BTC share of USDT pairs a measure of fee promotions rather than
+      participant composition. Product relevance is low (the briefing is BTC perp). Acquiring the 18k-object panel
+      is not justified for this card.
+    reopen: Not stated; closed before feasibility 'no outcome, no repair' (CANDIDATES.md). Any later variant would
+      be a new search object (G01 rule for closed hypotheses).
+    forbidden: R03 breadth states / BTC-share (R03-B4) and D9 share variants (H); R03 sessions incl. weekend (J)
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Closed at red team: exchange-specific artifacts (zero-fee promotions, FDUSD migration) contaminate the
+      BTC share of USDT pairs.; Record id G01-X2 (named in CANDIDATES.md/.json, not derived). Family H/J. Shares the
+      BTC-share metric with R03-B4 (closed at unit-level feasibility).'
+  - id: G01-X3
+    title: SESSION_TAKER_SIGN_PROFILE
+    program: AUTOGEN_G01
+    row: CALENDAR.sessions
+    col: PERP_FLOW
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: Regional participant populations differ in aggressiveness, so net taker share differs by session.
+    function: Mean net taker share in US-session hours minus Asia-session hours differs from zero.
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: A directional flow claim is INCREMENTAL, not context. A UTC-hour profile does not identify an institutional
+      clock; the only identification (DST shifts) is the D12 template, whose neighbors are forbidden. Funding hours
+      (00/08/16 UTC) confound the session blocks.
+    reopen: Not stated; closed before feasibility 'no outcome, no repair' (CANDIDATES.md). Any later variant would
+      be a new search object (G01 rule for closed hypotheses).
+    forbidden: D12 DST template and its neighbours (forbidden); directional flow claims presented as context
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Closed at red team: directional and the clock is not identified.; Record id G01-X3 (named in CANDIDATES.md/.json,
+      not derived). Family J. Data surface not stated.'
+  - id: G01-X4
+    title: TAKER_SIGN_PERSISTENCE
+    program: AUTOGEN_G01
+    row: FLOW.taker_imbalance
+    col: PERP_FLOW
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: Order splitting makes the sign of hourly net taker flow persistent.
+    function: P(sign of next-hour net taker share equals this hour's) exceeds 0.5 by a bar.
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: The outcome is not in doubt (long memory of order signs is a known stylized fact), so a test is not
+      informative. H05 and B2-05 governance also deprioritize taker/flow children presented as fresh formulas.
+    reopen: Not stated; closed before feasibility 'no outcome, no repair' (CANDIDATES.md). Any later variant would
+      be a new search object (G01 rule for closed hypotheses).
+    forbidden: taker/flow children presented as fresh formulas (H05, B2-05 governance)
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Closed at red team: outcome not in doubt (order-sign persistence is known), so the question carries no
+      information.; Record id G01-X4 (named in CANDIDATES.md/.json, not derived). Family B/E. Data surface not stated.'
+  - id: G01-X5
+    title: SIGNED_SHOCK_RANGE_ASYMMETRY
+    program: AUTOGEN_G01
+    row: VOLATILITY_STATE.shock_recovery
+    col: CANDLES
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: Long-liquidation convexity makes ranges after down-shocks wider than after equal-magnitude up-shocks.
+    function: Next-4h range after a down-shock hour exceeds that after an up-shock hour of matched magnitude.
+    verdict: CLOSED_AT_DEDUPE
+    why_closed: Hidden repeat of GV0V03L40-C027 and C003 (inverse-margin and liquidation convexity, down- vs up-shock
+      paths; blocked for confounding control and lookahead), which it does not resolve. Volatility-conditioning neighbor
+      of D2 and D8 (forbidden RV-threshold children; D8 not to be weakened).
+    reopen: Not stated; closed before feasibility 'no outcome, no repair' (CANDIDATES.md). Any later variant would
+      be a new search object (G01 rule for closed hypotheses).
+    forbidden: GV0V03L40-C027 / C003 repeats; RV-threshold children of D2; weakening D8
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Closed at dedupe: repeats GV0V03L40-C027/C003 and sits in the D2/D8 neighbourhood; not a new signature.;
+      Record id G01-X5 (named in CANDIDATES.md/.json, not derived). Family A/F. Data surface not stated.'
+  - id: G01-X6
+    title: UNUSUAL_HOUR_PERSISTENCE
+    program: AUTOGEN_G01
+    row: VOLATILITY_STATE.tail_risk
+    col: CANDLES
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: An hour with an extreme same-hour range rank is followed by elevated ranges.
+    function: Next-hour standardized range after a rank >= 0.95 hour exceeds that after ordinary hours.
+    verdict: CLOSED_AT_DEDUPE
+    why_closed: Volatility clustering. The outcome is not in doubt, and the card is an RV-threshold child of D2 (forbidden).
+    reopen: Not stated; closed before feasibility 'no outcome, no repair' (CANDIDATES.md). Any later variant would
+      be a new search object (G01 rule for closed hypotheses).
+    forbidden: RV-threshold children of D2
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Closed at dedupe: volatility clustering in the D2 RV neighbourhood; outcome not in doubt.; Record id G01-X6
+      (named in CANDIDATES.md/.json, not derived). Family A. Directly mirrors the beta''s unusual-hour flag; outcome
+      not in doubt.'
+  - id: G01-X7
+    title: EQUITY_OPEX_HOUR
+    program: AUTOGEN_G01
+    row: EVENTS.expiries
+    col: CANDLES
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    units_n: one state hour per monthly unit; paired MDE about 0.84 SD
+    mechanism: US equity monthly options expiry (third Friday) dealer hedging spills into BTC through cross-asset
+      books.
+    function: 15:00-16:00 NY range on the third Friday exceeds the same hour on other Fridays of the month.
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: 'Rare-event N: one state hour per monthly unit. Under the frozen stress SD the paired MDE is about
+      0.84 SD, far above the bar, as for R03-A2/A3. The mechanism is also weak a priori.'
+    reopen: Not stated; closed before feasibility 'no outcome, no repair' (CANDIDATES.md). Any later variant would
+      be a new search object (G01 rule for closed hypotheses).
+    forbidden: monthly single-hour cells at the 0.5 bar (R03-A2/A3 precedent)
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Closed at red team: rare-event N (one state hour per month).; Record id G01-X7 (named in CANDIDATES.md/.json,
+      not derived). Family G. Author-closed for rare N (contrast: G01-A3 was sent to the compiler).'
+  - id: G01-X8
+    title: ASIA_LUNCH_PARTICIPATION
+    program: AUTOGEN_G01
+    row: CALENDAR.sessions
+    col: PERP_FLOW
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: Asian retail lunch breaks lower participation at fixed UTC hours.
+    function: 02:30-05:00 UTC participation is below adjacent hours.
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: 'Not identifiable: Asian clocks have no DST, so the claim cannot be separated from a generic UTC hour-of-day
+      profile. Holiday-based identification is the GV0R01-C020 neighbor (data/feasibility blocked).'
+    reopen: Not stated; closed before feasibility 'no outcome, no repair' (CANDIDATES.md). Any later variant would
+      be a new search object (G01 rule for closed hypotheses).
+    forbidden: GV0R01-C020 holiday participant-removal neighbour; generic UTC hour-of-day profiles
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Closed at red team: Asian no-DST clock not identified.; Record id G01-X8 (named in CANDIDATES.md/.json,
+      not derived). Family J. Data surface not stated.'
+  - id: G01-X9
+    title: ETF_WEEKEND_GAP_GROWTH
+    program: AUTOGEN_G01
+    row: CALENDAR.weekday_weekend
+    col: CANDLES
+    state: EXPOSED_ONLY
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: ETF-era weekday participation widens the weekday/weekend gap.
+    function: The weekend-minus-weekday range gap widened after 2024-01-11.
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: 'Leakage from previously exposed outcomes: the idea follows from R03-C1''s observed epoch trend (-0.19
+      in 2020 to -0.65 in 2024) on the same surface. That is post-hoc and a rescue of a closed card.'
+    reopen: Not stated; closed before feasibility 'no outcome, no repair' (CANDIDATES.md). Any later variant would
+      be a new search object (G01 rule for closed hypotheses).
+    forbidden: rescue of R03-C1 (closed card); any idea derived from R03-C1's exposed epoch trend on the same surface
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Closed at red team: leakage from R03-C1''s exposed epoch trend; a rescue of a closed card.; Record id G01-X9
+      (named in CANDIDATES.md/.json, not derived). Family J. Key precedent for exposed-outcome leakage: ideas motivated
+      by an observed epoch trend are rescues.'
+  - id: G01-X10
+    title: BANK_HOLIDAY_FIAT_RAIL
+    program: AUTOGEN_G01
+    row: CALENDAR.holidays_tax
+    col: CANDLES
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    units_n: about 10 days in 2020-2024
+    mechanism: US bank holidays with NYSE open (Columbus Day, Veterans Day) close fiat rails and lower US participation.
+    function: Participation on those days is below matched weekdays.
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: Rare-event N (about 10 days in 2020-2024). Close neighbor of the holiday participant-removal card
+      GV0R01-C020.
+    reopen: Not stated; closed before feasibility 'no outcome, no repair' (CANDIDATES.md). Any later variant would
+      be a new search object (G01 rule for closed hypotheses).
+    forbidden: GV0R01-C020 holiday participant-removal neighbour; rare-event holiday cells (cf. R03-C3)
+    records:
+    - docs/research/AUTOGEN_G01_DECISION.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.md
+    - docs/research/AUTOGEN_G01_CANDIDATES.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Closed at red team: about 10 bank-holiday days in 2020-2024.; Record id G01-X10 (named in CANDIDATES.md/.json,
+      not derived). Family J/G. Data surface not stated.'
+
+  # ---- Divergence / selling-exhaustion program (2026-10-01..03, closed as a route) -----------------
+  - id: SEED-0001
+    title: SEED-0001 regular bullish divergence with order-book support, 1h BTCUSDT perp — retrospective card (outcome-blind
+      feasibility, then owner-authorized exploratory outcome analysis)
+    program: SF-OWNER-SEEDS / SEED-0001 (HYPOTHESIS_ID SEED0001-RD-V1, card SEED0001_REGULAR_DIVERGENCE_BOOK_SUPPORT_V1)
+    row: PRICE_STRUCTURE.divergence
+    col: ORDER_BOOK
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - SEED0001_BINANCE_UM_1H_BOOKDEPTH_V0
+    - CORE_BTC_BINANCE_V0
+    period: 'discovery: decisions 2023-01-01..2024-12-28 (klines 2022-11..2024-12; bookDepth 2023-01-01..2024-12-31);
+      label RETROSPECTIVE_EVIDENCE, never a holdout (2024 owner-exposed); replication: prospective leg TF-SEED0001-RD-PROSP1
+      (frozen, not started); ETH same period = robustness only; binance_2025_2026_used: no (every outcome window ends
+      by 2025-01-01T00:00Z)'
+    units_n: BTC eligible 743 episodes; weekly clusters G = 101 (mean 7.4, max 14); A = 36 episodes on 33 dates in
+      24 weekly clusters; 71 48h overlap chains (36 of 36 A share a chain); ETH A = 32 episodes on 27 dates.
+    practical_bar: MIN_MEANINGFUL_EFFECT = 0.10 on both adjusted risk differences AND adjusted A rate >= mean 1R:1R
+      break-even at 0.10% round-trip cost; feasibility hard floor 40 A episodes / 30 A dates; STRESS conjunction power
+      >= 0.80 at 0.10.
+    mechanism: 'Owner''s discretionary rule: after a pronounced decline, aggressive selling stops pushing price efficiently,
+      resting bid liquidity appears ("green bars", bid support within 5%), and momentum/flow indicators diverge from
+      the price low; the claim is the combination: the joint state should be followed by a better reversal distribution
+      than support alone or divergence alone (A beating D alone is ordinary mean reversion and is not evidence).'
+    function: 'INCREMENTAL / UNCONDITIONAL binary-arm contrast at a point-in-time confirmed swing low (lower low after
+      a >= 3 ATR decline): arm A (book support AND >= 2 of 3 regular bullish divergence families) vs B (support only,
+      P1) and vs C (divergence only, P2) on a bracket hit endpoint; LPM with frozen adjustment set, CR1 weekly clusters,
+      Holm, both contrasts required.'
+    verdict: 'Feasibility: INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR; then EXECUTED under exploratory permit: INCONCLUSIVE_DISCOVERY
+      (EXPLORATORY / UNDERPOWERED); BTC A/B/C/D = 36/259/63/385; STRESS power at 10 pp = 0.10 (0.096); MDE (80%) =
+      0.30; prospective stop at 30 A episodes about 15% powered at 10 pp; P1 A - B = +0.042 [-0.099, +0.184], p 0.554,
+      Holm p 0.554; P2 A - C = +0.148 [-0.037, +0.332], p 0.117, Holm p 0.233; raw A 20 WIN / 15 LOSS / 1 NEUTRAL
+      of 36 (0.556); adjusted A 0.557 < mean A break-even 0.564; ETH P1 -0.089, P2 -0.138 -> ETH_NOT_SAME_DIRECTION;
+      half-year heterogeneity permutation p = 0.55 (P1), 0.35 (P2); gate NOT_ASSESSABLE before opening'
+    why_closed: Below the 40-episode hard floor and about 10% powered at the 10 pp bar; retrospective leg first closed
+      outcome-blind, then the owner authorized an exploratory look with classification fixed before outcomes; statistical
+      gate FAIL, practical gate FAIL, ETH points the other way. RERUN_AUTHORIZED = false.
+    reopen: 'Any variant (threshold, horizon, stop, entry, exit, subgroup, timeframe, surrogate) needs a new research
+      object / SEED with its own TEST_FAMILY_ID. Prospective leg is separate and needs explicit owner decisions (detector
+      run on protected 2026 segment; opening). After 2026-10-03 the whole divergence line is closed: NEW_DIVERGENCE_RESEARCH_UNIT_AUTHORIZED
+      = false.'
+    forbidden: No threshold modification, parameter tuning, reinterpretation, alternative threshold/stop/entry/exit/horizon,
+      subgroup selection or rescue analysis; definitions not weakened to increase N; ETH never pooled and cannot rescue
+      BTC; no rerun; H02/H03/H05 stay closed and this card is not their rescue.
+    exposure: 'CONSUMED: 2023-2024 Binance UM 1h outcome surface (BTCUSDT, ETHUSDT) for this card and for nearby questions
+      (forward outcomes, MFE/MAE, forward returns opened for the frozen episodes). bookDepth 2023-2024 and klines
+      2022-11..2024-12 read for counts. Before the freeze only format probes (first rows of BTCUSDT bookDepth 2023-01-01;
+      two .CHECKSUM files).'
+    records:
+    - docs/research/SEED_ABSORPTION_DIVERGENCE_V0.md
+    - docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.md
+    - docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json
+    - docs/research/SEED0001_FEASIBILITY_REPORT.md
+    - docs/research/SEED0001_FEASIBILITY_REPORT.json
+    - docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json
+    - docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.md
+    - docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.json
+    - docs/research/seed0001/EPISODES_BTCUSDT.csv
+    - docs/research/seed0001/EPISODES_ETHUSDT.csv
+    - docs/research/seed0001/OUTCOMES_BTCUSDT.csv
+    - docs/research/seed0001/OUTCOMES_ETHUSDT.csv
+    - docs/research_data/SEED0001_BINANCE_UM_1H_BOOKDEPTH_V0/DATASET_MANIFEST.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    note: 'Executed only under an exploratory permit after feasibility fell below the hard floor; the 2023-2024 BTC/ETH
+      outcome surface is consumed for this card and nearby questions. Inconclusive, not a null.; Origin TRADER_HEURISTIC
+      / USER_USED_BEFORE_RESEARCH (owner, since about 2024; BTC/ETH perps; 1h/4h/1D). Perp bookDepth is labelled RETROSPECTIVE_PROXY_TO_OWNER_OBSERVABLE:
+      the owner watched a Hyblock spot bid/ask 0-5% indicator (no spot bookDepth archive exists). Commits: prereg
+      8e213d3, feasibility 138e1c1, permit df9e351, evaluator + run 1e4f848. Bot research-findings entry for the line
+      is id DIVERGENCE (status NOT_CONFIRMED).'
+    source_id: TF-SEED0001-RD-RETRO1
+  - id: SEED-0001-PROSP
+    title: SEED-0001 prospective confirmation on BTCUSDT perp, decisions from 2026-10-05
+    program: SF-OWNER-SEEDS / SEED-0001 prospective confirmation leg
+    row: PRICE_STRUCTURE.divergence
+    col: ORDER_BOOK
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - BINANCE_UM_BOOKDEPTH_ARCHIVE
+    period: 'discovery: None; replication: prospective cohort T >= 2026-10-05T00:00Z; stop at decision time of the
+      30th Arm-A episode or deadline 2028-10-05T00:00Z; minimum 20 Arm-A episodes; binance_2025_2026_used: would use
+      protected 2026 (decisions before 2027-01-01); detector run on that segment needs a separate explicit owner decision;
+      nothing run'
+    units_n: planned 30 A episodes (minimum 20); prefix stand-in 30 / 223 / 58 / 331 in 85 weeks
+    practical_bar: MIN_MEANINGFUL_EFFECT = 0.10 (as the card)
+    mechanism: Same as TF-SEED0001-RD-RETRO1 (support + regular bullish divergence at a confirmed lower low after
+      a decline).
+    function: Same frozen detector, model, covariates and clusters; one-sided tests in the discovery direction, Holm
+      over P1/P2 at 0.05, plus the practical gate; one analysis after the stop.
+    verdict: 'REGISTERED_NOT_STARTED (NOT_EXECUTED); power at 0.10 (BASE / STRESS) at 30 A = 0.16 / 0.15; at 0.20
+      = 0.53 / 0.47; MDE 0.30; 20 A minimum: 0.14 / 0.13 at 0.10; MDE 0.325-0.35; about 20 months to 30 A at the 2023-2024
+      rate'
+    why_closed: 'Never activated: needs owner decisions under protected-data rules; frozen and separate; the divergence
+      line was closed on 2026-10-03 (PROSPECTIVE_DIVERGENCE_STREAM_ACTIVE = false). Low power: can confirm only a
+      large (about 30 pp) effect.'
+    reopen: 'Explicit owner decision to run the detector on the protected 2026 segment / cohort plus a separate execution
+      permit; nothing seen in the exploratory pass may modify it. Owner V2 note: overlaps a would-be SEED-0003 prospective
+      A - B leg (retire one or keep disjoint).'
+    forbidden: No change of definitions after any prospective count or outcome; extension past the deadline is a new
+      preregistration on later data.
+    exposure: None (no detector run, no outcome). Archive objects may be pinned by checksum/timestamp metadata only.
+    records:
+    - docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.md
+    - docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json
+    - docs/research/SEED0001_FEASIBILITY_REPORT.md
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    note: Registered, never started; the test ledger still lists it REGISTERED_NOT_STARTED. The owner closed the divergence
+      / selling-exhaustion line on 2026-10-03 (no new divergence or exhaustion unit, SEED or prospective stream);
+      starting this needs a new owner decision.; Owner label OWNER_UNBLINDED_TO_LIVE_CHARTS (owner sees live charts
+      and may trade the rule). Ledger status still REGISTERED_NOT_STARTED; no record retires it explicitly.
+    source_id: TF-SEED0001-RD-PROSP1
+  - id: H-DIV-1
+    title: Divergence research map V0 and first hypothesis H-DIV-1 (divergence as seller-exhaustion marker inside
+      support)
+    program: 'Divergence research program (owner direction 2026-10-02: turn SEED-0001 into a program)'
+    row: FLOW.exhaustion
+    col: ORDER_BOOK
+    state: EXPOSED_ONLY
+    datasets:
+    - DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM
+    period: 'discovery: map only; SEED-0001 exploratory numbers are the hypothesis'' origin, not evidence; replication:
+      proposed protected spend 2025-01-01..2026-08-11 (decisions), or prospective from 2026-10-05; binance_2025_2026_used:
+      no (map: only HTTP status of pre-2025 .CHECKSUM objects)'
+    units_n: BTC-only replica on the spend window about 30 A episodes; six-symbol panel about 180 A (estimate)
+    practical_bar: power at 10 pp in the map; later gate set to 15 pp by owner decisions V1
+    mechanism: 'Regular bullish divergence is close to useless on its own; its value appears when it marks seller
+      exhaustion inside an already confirmed support state. Deeper framing: price down + downside momentum weakening
+      + selling pressure weakening + support persisting -> higher chance of a local reversal; a classic MACD/RSI divergence
+      may be only one visual symptom.'
+    function: Interaction contrast (A - B) - (C - D) on the frozen bracket endpoint; predicts A - B > 0 and C - D
+      <= 0.
+    verdict: 'PROGRAM_MAP / NO_DATA_OPENED (H-DIV-1 later tested only as the secondary interaction in DIVERGENCE_FULL_HISTORY_RESEARCH_V0);
+      SEED-0001 raw interaction (A - B) - (C - D): BTC +0.16, ETH -0.13 (arithmetic only, no inference); BTC-only
+      replica: ~30 A, power ~0.15 at 10 pp, MDE ~0.30; BTC A rate 18.8 per year (2023-2024); later: validation interaction
+      +0.018 [-0.094, +0.129], p 0.75; pooled +0.021 [-0.057, +0.099]'
+    why_closed: 'Superseded as primary by owner decisions V2 (A - B primary); interaction measured as secondary in
+      the full-history program: compatible with zero; line closed 2026-10-03.'
+    reopen: None authorized (NEW_DIVERGENCE_RESEARCH_UNIT_AUTHORIZED = false); any new card must be frozen before
+      any byte and is a new research object.
+    forbidden: Divergence types never mixed (not even as a flag); tracks never pooled; Track B never presented as
+      the owner's strategy or as confirmation of Track A.
+    exposure: None at the map stage (HTTP checks of pre-2025 .CHECKSUM objects only).
+    records:
+    - docs/research/DIVERGENCE_RESEARCH_MAP_V0.md
+    - docs/research/DIVERGENCE_RESEARCH_MAP_V0.json
+    note: Tested only as the secondary, exploratory interaction inside DIVERGENCE_FULL_HISTORY_RESEARCH_V0.; Map lists
+      Tracks A (book-faithful), B (long-history surrogate), C (prospective), divergence types (regular bullish, hidden
+      bullish = SEED-0002, regular/hidden bearish later), failure-mode questions, and a metrics battery; never-executed
+      items are separate records below.
+    source_id: H-DIV-1 (DIVERGENCE_RESEARCH_MAP_V0)
+  - id: DIV-PANEL-FEAS-V0
+    title: Six-symbol panel feasibility of the SEED-0001 detector (outcome-blind, 2023-2024)
+    program: Divergence research program
+    row: PRICE_STRUCTURE.divergence
+    col: ORDER_BOOK
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - DIVERGENCE_PANEL_V0_BINANCE_UM
+    period: 'discovery: decisions 2023-01-01..2024-12-28; replication: projected spend window 2025-01-01..2026-08-11
+      (proxies = first and last 85 weeks of 2023-2024); binance_2025_2026_used: no'
+    units_n: '4438 nominal episodes; 2085 distinct decision times; 666 dates; 101 panel-wide week clusters; A: 156
+      episodes, 135 distinct times, 110 dates, 67 week clusters, 96 24h market chains; 48h chains merge the period
+      into 14 clusters.'
+    practical_bar: STRESS power of the interaction at 15 pp >= 0.80 on the projected spend layouts
+    mechanism: As H-DIV-1 (interaction of divergence with support).
+    function: Outcome-blind counts + dependence-aware power of the interaction (A - B) - (C - D) (primary) and A -
+      B (secondary) projected onto the 85-week spend window.
+    verdict: INFORMATIONALLY_WEAK; Panel A/B/C/D = 156 / 1434 / 330 / 2518; STRESS power at 15 pp on projected layouts
+      = 0.655 / 0.609 (< 0.80); INDEPENDENT 0.78 / 0.76; COLLAPSED 0.61 / 0.58; MDE80 under STRESS = 20 pp; STRESS
+      design effect 1.35; 74% of A have another-symbol episode at the same hour; A - B STRESS at 15 pp = 0.82 / 0.78;
+      needs about 2.5-3 years of panel history at this density
+    why_closed: Gate failed (also fails under independence); by owner rule the holdout is not spent and no SEED-0003
+      prereg written.
+    reopen: 'Options listed for owner (each needs own outcome-blind feasibility): larger panel by fixed rule, window
+      + prospective stream, more efficient estimand (A - B primary), larger minimum effect (20 pp excluded as sole
+      basis).'
+    forbidden: Verdict not reinterpreted or rescued (owner V2); no symbol added or dropped after counting.
+    exposure: Counts only on 2023-2024 for six symbols; no outcome on any symbol; no byte dated 2025 or later.
+    records:
+    - docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_DESIGN.json
+    - docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_REPORT.md
+    - docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_REPORT.json
+    - docs/research_data/DIVERGENCE_PANEL_V0_BINANCE_UM/DATASET_MANIFEST.json
+    - docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V1.md
+    note: Design frozen in 1404346 before any download; PIT truncation audit 30/30 on all six symbols; BTC/ETH reproduce
+      SEED-0001 digests.
+    source_id: DIVERGENCE_PANEL_FEASIBILITY_V0
+  - id: DIV-COND-SUPPORT-FEAS-V1
+    title: 'Conditional-support feasibility V1: power of A - B at 15 pp (outcome-blind)'
+    program: Divergence research program
+    row: PRICE_STRUCTURE.divergence
+    col: ORDER_BOOK
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - DIVERGENCE_PANEL_V0_BINANCE_UM
+    period: 'discovery: 2023-2024 layouts as structural stand-ins; replication: spend window 2025-01-01..2026-08-11
+      + prospective panel stream from 2026-10-05 (reads from 2026-08-27); binance_2025_2026_used: no'
+    units_n: projected A 134 / 125 episodes; A dates 98 / 88; A week clusters 57 / 55; B week clusters 85
+    practical_bar: STRESS power of A - B at 15 pp >= 0.80 on both proxies, 10 000 replicates
+    mechanism: Divergence adds value conditional on an existing support state.
+    function: Outcome-blind power/MDE of A - B (primary) and interaction (secondary) on two 85-week proxies; historical-only
+      gate and pre-specified combined design (window + prospective stream).
+    verdict: 'HISTORICAL_ONLY_VERDICT = INFORMATIONALLY_WEAK; COMBINED_DESIGN_VERDICT = FEASIBLE_FOR_PREREGISTRATION
+      (thin margin); STRESS gate at 15 pp: 0.813 +- 0.004 (proxy 1) / 0.789 +- 0.004 (proxy 2); design effect on Var(A
+      - B) STRESS about 1.45; combined: +4 prospective weeks (0.812, proxy 2); stop at cumulative A >= 135 (134 without
+      BTC) AND A week clusters >= 59; deadline 2026-11-30; COLLAPSED 0.74-0.80; secondary interaction 0.61-0.64'
+    why_closed: Superseded by the owner's choice of DIVERGENCE_FULL_HISTORY_RESEARCH_V0 (research program opening
+      the window) instead of a SEED-0003 confirmatory card; SEED-0003 never created.
+    reopen: None (line closed); combined design would have needed SEED-0003 frozen before 2026-10-05.
+    forbidden: No continuous or graded model as primary; no panel expansion; V0 verdict not reinterpreted.
+    exposure: None (no outcome, no protected byte).
+    records:
+    - docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_DESIGN.json
+    - docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_REPORT.md
+    - docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_REPORT.json
+    - docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V2.md
+    note: 'Design frozen in 323451e. Report expectation: SEED-0001 exploratory A - B estimates are far below 15 pp.'
+    source_id: DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1
+  - id: DIVERGENCE-FULL-HISTORY-V0
+    title: 'Divergence full-history research V0: validation once on 2025-01-01..2026-08-11, then pooled + exploratory
+      mechanism'
+    program: Divergence research program
+    row: PRICE_STRUCTURE.divergence
+    col: ORDER_BOOK
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM
+    - DIVERGENCE_PANEL_V0_BINANCE_UM
+    period: 'discovery: decisions 2023-01-01..2024-12-28 (DISCOVERY / PREVIOUSLY OBSERVED); replication: VALIDATION
+      decisions 2025-01-01..2026-08-11 (PREVIOUSLY UNSEEN, evaluated once); read horizon 2026-08-15T00:00Z exclusive;
+      POOLED never replication; binance_2025_2026_used: YES - opened the six-symbol 2025-01-01..2026-08-15 surface
+      (klines, bookDepth, OI metrics)'
+    units_n: 'Validation: A 160 / B 1251 / C 342 / D 2010; A on 112 dates in 62 of 85 weekly clusters. Pooled: N =
+      8201, 186 weekly clusters; pooled A 316 episodes in 129 of 186 weekly clusters.'
+    practical_bar: MEOI = 0.15 (AT_OR_ABOVE_MEOI / BELOW_MEOI); ECONOMICALLY_SMALL = point < 0.05 and CI upper < 0.15
+    mechanism: Conditional value of regular bullish divergence inside support; versus a broader weakening-of-selling-pressure
+      (flow/OI) state.
+    function: 'Stage 1 (validation, once): frozen LPM with arm dummies (D ref), symbol FE, SEED-0001 covariates, CR1
+      panel-wide UTC-week clusters; primary A - B on Y1_48H, secondary interaction; descriptive A - D, C - D; validation
+      tags. Stage 2 (exploratory): pooled with slice FE, by year/symbol heterogeneity, within-support models M0-M3
+      incl. DEEPER_STATE_FLOW_OI, failure states within A and B over 22 features (Holm).'
+    verdict: 'COMPLETE; validation tags SAME_DIRECTION, COMPATIBLE_WITH_ZERO, BELOW_MEOI, ECONOMICALLY_SMALL, NO_DETECTED_SYMBOL_HETEROGENEITY;
+      stage 2 EXPLORATORY; VALIDATION A - B (Y1_48H) = +0.011 [-0.087, +0.109], p 0.83; week bootstrap [-0.083, +0.105];
+      VALIDATION interaction = +0.018 [-0.094, +0.129], p 0.75; DISCOVERY A - B = +0.026 [-0.058, +0.110]; POOLED
+      A - B = +0.019 [-0.047, +0.084]; mean net R after costs negative in every arm and slice (A -0.067 / -0.049 /
+      -0.058); year Q p = 0.94; symbol Q p = 0.40; DEEPER_STATE_FLOW_OI +0.038 [-0.000, +0.075], p = 0.050 (exploratory);
+      inside B: RSI14 delta +0.0376 per SD (Holm p 0.031), RSI21 delta +0.0387 per SD (Holm p 0.027), N = 2685 (exploratory);
+      MACD family +0.008 [-0.053, +0.070]; RSI family +0.057 (p = 0.06); CVD family -0.052 (p = 0.14); failure states
+      within A: none survive Holm (smallest RET_7D raw p 0.03, Holm 0.73)'
+    why_closed: 'Validation slice is incompatible with the 15 pp effect (upper bound +10.9 pp); effect compatible
+      with zero and economically small; owner accepted (V3): no confirmatory SEED for A - B >= 15 pp.'
+    reopen: None for divergence (line closed 2026-10-03). A second stage-1 evaluation is refused by the runner.
+    forbidden: 'After opening: no change of detector, rules, arms, thresholds, horizons, outcomes, costs, entry/stop/target,
+      or panel; no subgroup/filter as result; no combinatorial threshold search; no second validation; pooled never
+      presented as replication; no promotion of A - D or an exploratory model; REINTERPRETATION_AS_DIVERGENCE_WORKS
+      forbidden (V3).'
+    exposure: 'OPENED and CONSUMED for divergence / support / exhaustion / mechanism questions: six-symbol Binance
+      UM 2025-01-01..2026-08-15 (exclusive) 1m klines, bookDepth, OI metrics (plus OI metrics 2022-11..2024-12), with
+      post-low outcomes seen on validation and pooled 2023-2026. E1 holdout never requested.'
+    records:
+    - docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_DESIGN.md
+    - docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_DESIGN.json
+    - docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_VALIDATION.json
+    - docs/research/divergence_full_history_v0/VALIDATION_EPISODES.csv
+    - docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_RESEARCH.json
+    - docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_REPORT.md
+    - docs/research_data/DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM/DATASET_MANIFEST.json
+    - docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Validation ran once on 2025-01-01..2026-08-11 (same direction, compatible with zero, economically small);
+      the line is COMPLETED and closed as a research route (2026-10-03).; Commits: freeze c12204079462c0c173eebdc8b81308174d21f457
+      (before any 2025+ byte), stage 1 fca3ab54633d7c47e651ffb9d773a779473ae614, stage 2 b100619. Missing bookDepth
+      SOL/XRP 2026-01-14. Report''s own recommendation 4: close regular bullish divergence as a trading-edge line
+      and use features only as descriptive product context. Bot entries DIVERGENCE (NOT_CONFIRMED) and DIVERGENCE-RSI
+      (SIDE_FINDING).'
+    aliases:
+    - DIVERGENCE
+    source_id: DIVERGENCE_FULL_HISTORY_RESEARCH_V0
+  - id: SELLING-EXHAUSTION-FEAS-V0
+    title: 'Selling-exhaustion state inside support: outcome-blind feasibility of E - S (variants SE_LEG and SE_BASELINE)'
+    program: Divergence / selling-exhaustion line (new research object, not a SEED-0001 continuation)
+    row: FLOW.exhaustion
+    col: PERP_FLOW
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM
+    period: 'discovery: decisions 2023-01-01..2026-08-11, read horizon 2026-08-15 (exposed surface; discovery only,
+      never validation); replication: prospective only after a new freeze (assumed start 2026-10-12); horizon of interest
+      104 weeks; binance_2025_2026_used: yes, previously opened surface reused (verified local archive; no new download;
+      no new protected outcome)'
+    units_n: 3,005 support episodes over 186 weeks (1,590 discovery-window, 1,411 validation-window, 4 between); SE_LEG
+      E 667 on 433 dates / 573 times in 172 week clusters; SE_BASELINE E 349 on 274 dates / 328 times in 150 week
+      clusters.
+    practical_bar: decision line 5 pp E - S under STRESS within 104 prospective weeks (4 pp reported); power reported
+      at 3 / 5 / 7.5 / 10 pp
+    mechanism: Within an existing support state at a new local low, a pre-specified state of weakening aggressive
+      selling and non-expanding open interest may carry information about the subsequent reversal, independently of
+      oscillator divergence.
+    function: Binary state E vs support-only S inside support episodes (E - S), LPM with symbol FE, CR1 by panel-wide
+      week; feasibility (counts, dependence, power, prospective weeks), plus a continuous-score efficiency comparison;
+      no E - S outcome contrast computed.
+    verdict: 'INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON; SE_LEG E 667 (22.2% of support), S 2,335;
+      SE_BASELINE E 349 (11.6%), S 2,649; Jaccard of E sets 0.13; state-blind phi: same date other symbol 0.227; same
+      week other date 0.026; same-symbol chain 0.003; exposed-size MDE80: SE_LEG 6.5-8.0 pp; SE_BASELINE 8.0-9.5 pp;
+      104 prospective weeks MDE80: SE_LEG 8.3-9.9 pp; SE_BASELINE 10.8-12.2 pp; weeks for 80% at 5 pp: SE_LEG 270-430
+      (5.2-8.2 y); SE_BASELINE 472-604; at 4 pp SE_LEG 453-665; continuous score LINEAR world 5 pp: SE_LEG 87-122
+      weeks; STEP world 860-1048 weeks; E carries divergence flag 19% vs 8% (SE_LEG)'
+    why_closed: 4-5 pp not testable with realistic prospective data under any variant or dependence profile; owner
+      accepted and closed the line 2026-10-03.
+    reopen: None authorized (NEW_SELLING_EXHAUSTION_RESEARCH_UNIT_AUTHORIZED = false). Clean confirmation would require
+      prospective data after a new separately authorized freeze.
+    forbidden: No variant selected by outcome; no E - S outcome contrast; no SEED; exposed history never presented
+      as validation; not a rescue of SEED-0001.
+    exposure: Reused already-opened outcomes only for state-blind dependence calibration (outcome, symbol, time, week;
+      no state); counts on exposed 2023-01-01..2026-08-11; E1 not reachable (forward read <= 2026-08-13).
+    records:
+    - docs/research/SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0.md
+    - docs/research/SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0_DESIGN.json
+    - docs/research/SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0.json
+    note: Design frozen a4b76fd, result 62653a3. SE_LEG is the DEEPER_STATE_FLOW_OI state pre-specified in the full-history
+      design (its exploratory association not used). Ran on the research branch after PRODUCT_FIRST_DECISION_V1 was
+      on main (see chronology).
+    source_id: SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0
+  - id: RSI-GRADIENT-SUPPORT
+    title: Graded RSI14/RSI21 momentum change between pivots inside support-only episodes
+    program: Divergence / selling-exhaustion line (archived candidate)
+    row: PRICE_STRUCTURE.divergence
+    col: ORDER_BOOK
+    state: EXPOSED_ONLY
+    datasets:
+    - DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM
+    period: 'discovery: found in pooled 2023-01..2026-08 data that includes the validation slice; replication: None;
+      binance_2025_2026_used: yes (found on data including the opened 2025-2026 slice)'
+    units_n: N = 2685 support-only episodes, 186 week clusters (pooled)
+    mechanism: A graded momentum change between the two pivots may carry reversal information that the binary divergence flag does not (atlas wording, outcome-neutral).
+    function: Continuous RSI delta (per SD) inside support-only (B) episodes -> +1R-before-1R rate.
+    verdict: ARCHIVED_CANDIDATE / NOT_AUTHORIZED (exploratory; found on exposed data; not independently validated)
+      — NOT_EXECUTED; about +3.8 pp per SD; RSI14 +0.0376 (Holm p 0.031), RSI21 +0.0387 (Holm p 0.027) among 22 features
+    why_closed: Product-first routing; line closed 2026-10-03; not authorized for feasibility or execution.
+    reopen: Owner V3 had allowed 'its own future feasibility unit if warranted'; superseded by the final routing (not
+      authorized under product-first).
+    forbidden: Not combined with the selling-exhaustion state into one optimized model; not promoted to primary.
+    exposure: The surface on which it was found (six-symbol 2023-2026) cannot confirm it.
+    records:
+    - docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_REPORT.md
+    - docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_RESEARCH.json
+    - docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Found exploratorily on the opened 2025/2026 surface; archived, never evaluated (AGENTS.md: do not evaluate
+      it).; Inside B, a deeper new low and higher RV24 go with a lower rate (Holm 0.07 and 0.34). Bot entry DIVERGENCE-RSI
+      = SIDE_FINDING.'
+    aliases:
+    - DIVERGENCE-RSI
+    source_id: RSI_GRADIENT_SUPPORT_CANDIDATE
+  - id: SE-CONTINUOUS-SCORE
+    title: Graded selling-exhaustion score (SCORE_SE_LEG / SCORE_SE_BASELINE)
+    program: Divergence / selling-exhaustion line (recorded candidate)
+    row: FLOW.exhaustion
+    col: PERP_FLOW
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM
+    period: 'discovery: feasibility only on exposed 2023-01-01..2026-08-11; replication: prospective only; binance_2025_2026_used:
+      yes (feature values only)'
+    units_n: as SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0
+    practical_bar: 5 pp-equivalent gradient (about +3.6 pp per SD for SE_LEG, +3.4 for SE_BASELINE)
+    mechanism: If the exhaustion effect is graded rather than a step, a continuous selling-pressure/OI score is more
+      efficient than the binary state.
+    function: Slope per SD of SCORE_<variant> inside support -> Y1_48H (a different estimand from E - S).
+    verdict: 'RECORDED_CANDIDATE / NOT_AUTHORIZED — NOT_EXECUTED; LINEAR world 5 pp: SE_LEG 87-122 weeks (binary 268-436);
+      STEP world: 860-1048 (binary 283-422); 4 pp-equivalent: 139-182 weeks (SE_LEG)'
+    why_closed: Efficiency advantage depends on an unverified graded-effect assumption; changes the estimand; line
+      closed 2026-10-03.
+    reopen: Not authorized; would need a new research object and prospective data.
+    forbidden: Score transformation is fixed (one per variant); not selected by outcome.
+    exposure: Feature values only; no outcome contrast.
+    records:
+    - docs/research/SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: The owner closed the divergence / selling-exhaustion line on 2026-10-03 (no new divergence or exhaustion
+      unit, SEED or prospective stream); starting this needs a new owner decision.; Atlas label; the record calls
+      it 'a graded selling-exhaustion score'.
+    source_id: SE_CONTINUOUS_SCORE_CANDIDATE
+  - id: SEED-0003
+    title: 'SEED-0003: frozen confirmatory regular-bullish divergence card (A - B >= 15 pp) on spend window + prospective
+      panel'
+    program: Divergence research program (never created)
+    row: PRICE_STRUCTURE.divergence
+    col: ORDER_BOOK
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM
+    period: 'discovery: None; replication: spend window 2025-01-01..2026-08-11 + prospective from 2026-10-05; binance_2025_2026_used:
+      planned, never executed as a confirmatory card'
+    units_n: planned ~130 A episodes in ~56 week clusters + ~10 prospective A
+    practical_bar: 15 pp
+    mechanism: As H-DIV-1 / conditional support.
+    function: Confirmatory A - B at 15 pp under the combined design (window + prospective stream; stop A >= 135 and
+      A week clusters >= 59; deadline 2026-11-30).
+    verdict: 'NOT_EXECUTED (owner V3: CONFIRMATORY_SEED_FOR_A_MINUS_B_GE_15PP = not to be created); combined design
+      STRESS 0.812 (proxy 2, +4 weeks)'
+    why_closed: The full-history validation slice already excludes 15 pp, so a confirmation would answer a settled
+      question.
+    reopen: None.
+    forbidden: Do not spend prospective data on A - B >= 15 pp.
+    exposure: The spend window was opened by the full-history program instead (validation, once).
+    records:
+    - docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_REPORT.md
+    - docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V1.md
+    - docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md
+    note: 'Owner V3: the confirmatory A - B seed is not to be created. The owner closed the divergence / selling-exhaustion
+      line on 2026-10-03 (no new divergence or exhaustion unit, SEED or prospective stream); starting this needs a
+      new owner decision.; Atlas label. Other owner options from the V0 report never pursued: larger panel by fixed
+      rule, accept a larger minimum effect.'
+    source_id: SEED-0003_CONFIRMATORY_A_MINUS_B
+  - id: DIV-TRACK-B
+    title: 'Track B: long-history flow/OI proxy for book support'
+    program: Divergence research program (planned, never executed)
+    row: PRICE_STRUCTURE.divergence
+    col: PERP_FLOW
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - BINANCE_UM_TRADES_AGGTRADES_ARCHIVE
+    - D2_BITMEX_PRE2020_XBTUSD
+    period: 'discovery: Binance UM 2020-01..2022-12 (never used for divergence); replication: BitMEX XBTUSD 2016-2019
+      (or Binance spot 2017-2019); binance_2025_2026_used: no'
+    mechanism: Same support x divergence mechanism with book support replaced by a frozen point-in-time flow/OI proxy,
+      to get hundreds of episodes.
+    function: Surrogate arms on longer history; replication on a time-disjoint venue.
+    verdict: NOT_EXECUTED (design never written)
+    why_closed: Never authorized; label SURROGATE; line closed 2026-10-03.
+    reopen: Separate card/seed with its own TEST_FAMILY_ID; never a SEED-0001 continuation or rescue.
+    forbidden: Never presented as 'reproduced the owner's strategy'; cannot confirm Track A.
+    exposure: None. Note BitMEX 2016-2019 is already used by D2 and D7 (event-corridor audit calls it NOT_PROVABLY_INDEPENDENT
+      for scheduled events).
+    records:
+    - docs/research/DIVERGENCE_RESEARCH_MAP_V0.md
+    - docs/research/SEED_ABSORPTION_DIVERGENCE_V0.md
+    - docs/research/SEED0001_FEASIBILITY_REPORT.md
+    note: The owner closed the divergence / selling-exhaustion line on 2026-10-03 (no new divergence or exhaustion
+      unit, SEED or prospective stream); starting this needs a new owner decision.; Atlas label.
+    source_id: DIVERGENCE_TRACK_B_LONG_HISTORY_SURROGATE
+  - id: DIV-BEARISH-TYPES
+    title: Regular bearish and hidden bearish divergence cards
+    program: Divergence research program (planned later, never executed)
+    row: PRICE_STRUCTURE.divergence
+    col: CANDLES
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    mechanism: 'Mirror mechanisms: regular bearish = reversal after a rally; hidden bearish = continuation of a downtrend
+      after a failed pullback.'
+    function: One card per type; never mixed.
+    verdict: NOT_EXECUTED
+    why_closed: Listed as 'later, as separate objects'; never defined; line closed 2026-10-03.
+    reopen: New research object each; owner authorization under product-first.
+    forbidden: Not a flag on an existing card.
+    exposure: None.
+    records:
+    - docs/research/DIVERGENCE_RESEARCH_MAP_V0.md
+    note: The owner closed the divergence / selling-exhaustion line on 2026-10-03 (no new divergence or exhaustion
+      unit, SEED or prospective stream); starting this needs a new owner decision.; Atlas label. Hidden bullish =
+      SEED-0002 (group 3). Owner's example practice was a hidden bearish divergence.
+    source_id: DIVERGENCE_TYPES_REGULAR_AND_HIDDEN_BEARISH
+  - id: SEED-0001-4H-1D
+    title: SEED-0001 construction on 4h and 1D timeframes
+    program: SEED-0001 family (planned separate cards, never executed)
+    row: PRICE_STRUCTURE.divergence
+    col: ORDER_BOOK
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    units_n: expected fewer episodes than 1h ('1D will almost certainly lack support')
+    mechanism: 'Owner prior: a higher timeframe means a larger structural break and a larger/longer subsequent move
+      (a separate axis to test).'
+    function: Separate cards, or one pre-declared monotonic check across timeframes.
+    verdict: NOT_EXECUTED
+    why_closed: Support too thin; never authorized; line closed.
+    reopen: New card per timeframe.
+    forbidden: Not a rescue of the 1h null.
+    exposure: 2023-2024 BTC/ETH outcome surface consumed for 'nearby questions' by SEED-0001.
+    records:
+    - docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.md
+    - docs/research/SEED_ABSORPTION_DIVERGENCE_V0.md
+    - docs/research/SEED0001_FEASIBILITY_REPORT.md
+    note: 'A timeframe change of SEED-0001 is a PARAMETER_NEIGHBOR under atlas rules: admissible only with a new mechanism
+      or a surface SEED-0001 did not see. The owner closed the divergence / selling-exhaustion line on 2026-10-03
+      (no new divergence or exhaustion unit, SEED or prospective stream); starting this needs a new owner decision.;
+      Atlas label.'
+    source_id: SEED0001_OTHER_TIMEFRAMES_4H_1D
+  - id: H-DIV-FAILURE-MODES
+    title: 'When does divergence fail/work: selling exhaustion into the low, OI falling into the low, liquidation
+      flush, bid holding'
+    program: Divergence research program (questions, never registered)
+    row: FLOW.exhaustion
+    col: POSITIONING
+    state: EXPOSED_ONLY
+    datasets:
+    - DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM
+    period: 'discovery: only exploratory looks inside DIVERGENCE_FULL_HISTORY_RESEARCH_V0 stage 2 (pooled 2023-2026);
+      replication: None; binance_2025_2026_used: yes (exploratory stage 2)'
+    units_n: 'within A: N = 316; within B: N = 2685'
+    mechanism: The edge, if any, appears only when sellers are exhausted, OI falls (positions close, no fresh shorts),
+      a liquidation flush has happened, or the bid holds; disappears with rising OI or aggressive selling.
+    function: Each a separate pre-registered conditional question with its own TEST_FAMILY_ID.
+    verdict: 'NOT_EXECUTED as registered cards; exploratory: no failure state within A survives Holm; within A smallest
+      RET_7D raw p 0.033, Holm 0.727; LIQ_PROXY within A +0.013 (p 0.677)'
+    why_closed: Exploratory nulls on exposed data; line closed 2026-10-03; the flow/OI part became SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0.
+    reopen: None authorized.
+    forbidden: Not a rescue of SEED-0001; no subgroup/filter as result.
+    exposure: Exposed via full-history stage 2.
+    records:
+    - docs/research/DIVERGENCE_RESEARCH_MAP_V0.md
+    - docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_RESEARCH.json
+    note: Asked exploratorily inside the full-history research on the opened surface; never registered as cards.;
+      Atlas label.
+    source_id: H-DIV_FAILURE_MODE_CONDITIONAL_QUESTIONS
+
+  # ---- Generator units after the memory snapshot ---------------------------------------------------
+  - id: GV0V03L40-C025-R1
+    title: 'C025-R1: taker one-sidedness at high-volume BTC perp bursts and impact-per-volume persistence'
+    program: Generator V0 GV0V03L40 — owner-authorized manual escalation (selection pipeline overridden)
+    row: VOLATILITY_STATE.execution_impact
+    col: PERP_FLOW
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: 'discovery: 2020-01..2024-12 (count only); replication: prospective floors 698 / 698 declared; not run;
+      binance_2025_2026_used: no'
+    units_n: RAW_BURSTS 2895; declustered 880; ONE_SIDED_N 1; TWO_SIDED_N 879; matchable 1 / 169; 117 distinct event
+      days
+    practical_bar: 0.30 SD
+    mechanism: At matched high-volume bursts, strong taker one-sidedness is associated with greater subsequent impact-per-volume
+      persistence than two-sided bursts; allowed reading 'consistent with maker inventory loading' (causal reading
+      forbidden).
+    function: 'INCREMENTAL / UNCONDITIONAL / ATOMIC: one-sided vs matched two-sided bursts (quote-volume bin, |1m
+      return| bin, UTC hour, year) on post-T impact ratio.'
+    verdict: CLOSED_OUTCOME_BLIND_INFORMATIONALLY_WEAK (FEASIBILITY_STATUS = INFORMATIONALLY_WEAK; BLOCKER = MDE_TOO_LARGE);
+      EFFECTIVE_N = 0.994; MDE_STRESS = 5.620; POWER_STRESS = 0.035; frozen cell theta 0.70 / quantile 0.999 / W 30m
+      / TWO_SIDED_MAX 0.30; single one-sided event is in 2021
+    why_closed: Frozen primary cell has one admitted one-sided event in 2020-2024; original critic verdicts REJECT/REJECT/REJECT
+      (causality, confounding, no-lookahead) stay.
+    reopen: Not authorized by this close; other 11 cells not estimated.
+    forbidden: NEARBY_THRESHOLD_RESCUE = FORBIDDEN; theta, quantile and horizon not changed; original future-burst
+      exclusion never executed.
+    exposure: Pinned BTCUSDT perp 1m 2020-2024 read for counts; no post-T impact ratio; not a consumed confirmatory
+      result.
+    records:
+    - docs/research/GV0V03L40_C025_R1_DESIGN_REPAIR.md
+    - docs/research/GV0V03L40_C025_R1_PLANNING.json
+    - docs/research/GV0V03L40_C025_R1_SUPPORT.json
+    - docs/research/GV0V03L40_C025_R1_FEASIBILITY.md
+    - docs/research/GV0V03L40_C025_R1_FEASIBILITY.json
+    - docs/research/GV0V03L40_C025_R1_RESULT.md
+    - docs/research/GV0V03L40_C025_R1_RESULT.json
+    - docs/research/GV0V03L40_C025_R1_CLOSE.md
+    - docs/research/GV0V03L40_C025_R1_CLOSE.json
+    note: Repair of a V03 ladder card after the memory snapshot; closed outcome-blind (MDE too large).; Not in memory
+      (attempt GV0V03L40-C025 is linked to canonical signature C001 in ATTEMPT_RECORDS).
+
+  # ---- Discovery sprints 03/04 candidate pools and other never-executed candidates -----------------
+  - id: SEED-0002
+    title: Hidden divergence continuation (owner's practice)
+    program: HYPOTHESIS_SEED_BACKLOG (TRADER_HEURISTIC, USER_USED_BEFORE_RESEARCH)
+    row: PRICE_STRUCTURE.divergence
+    col: PERP_FLOW
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - BINANCE_UM_TRADES_AGGTRADES_ARCHIVE
+    - CORE_BTC_BINANCE_V0
+    period: 'discovery: planned 2023-2024 = retrospective evidence; replication: future frozen data = prospective
+      confirmation; binance_2025_2026_used: no'
+    mechanism: A pullback inside a trend fails to restore momentum and the trend resumes (continuation, not reversal);
+      sign may be opposite to SEED-0001, so mixing the two could average to nothing.
+    function: Trend + pullback swing with hidden divergence (price lower high while indicator higher high, bearish
+      example), at least 2 of 3 families, confirmed point-in-time -> continuation outcome vs pullbacks without hidden
+      divergence.
+    verdict: SEED_ONLY — NOT_EXECUTED
+    why_closed: 'Never designed: seed does not change NEXT_UNIT; backlog is not an execution queue; divergence line
+      closed 2026-10-03 (NEW_DIVERGENCE_RESEARCH_UNIT_AUTHORIZED = false).'
+    reopen: Novelty check, GV0R02 V1 feasibility and a separate design freeze under HYPOTHESIS_EVALUATION_CONTRACT_V1;
+      under product-first now also an owner authorization.
+    forbidden: Never one card with a 'hidden' flag on SEED-0001; not a rescue of H04 TREND_PULLBACK_CONTINUATION (rejected);
+      time-disjoint confirmation required.
+    exposure: 'None for this seed. Note: 2023-2024 Binance UM 1h BTC/ETH outcome surface is consumed by SEED-0001
+      ''for nearby questions'', and 2025-01..2026-08 six-symbol surface is opened for divergence questions; any retrospective
+      SEED-0002 test there would be on exposed data.'
+    records:
+    - docs/research/HYPOTHESIS_SEED_BACKLOG.md
+    - docs/research/SEED_HIDDEN_DIVERGENCE_CONTINUATION_V0.md
+    - docs/research/SEED_ABSORPTION_DIVERGENCE_V0.md
+    - docs/research/DIVERGENCE_RESEARCH_MAP_V0.md
+    note: The owner closed the divergence / selling-exhaustion line on 2026-10-03 (no new divergence or exhaustion
+      unit, SEED or prospective stream); starting this needs a new owner decision.; Bid/ask indicator definition NOT
+      FROZEN (Hyblock reconstruction) applies here too.
+  - id: S3-C4
+    title: Options implied-vol state vs subsequent realized vol
+    program: Discovery Sprint 03 candidate pool
+    row: OPTIONS_REGION.implied_vs_realized
+    col: OPTIONS
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - BINANCE_OPTIONS_BVOL
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    units_n: one IV-state hour/day
+    mechanism: Option-implied vol state adds subsequent RV information beyond lagged RV.
+    function: Subsequent RV residual after lagged RV, by IV state.
+    verdict: NOT_SELECTED — NOT_EXECUTED
+    why_closed: Sprint 03 already spent one acquisition card on FOMC; scientifically valuable, not a neighbor rescue.
+    reopen: Acquisition budget; region later named the only B-eligible 'forward expectations' region (S4-C04); GV0R01-C006/C014
+      carry it but are blocked on DVOL PIT semantics.
+    forbidden: Not D1 GARCH; not B2-01 transition grid.
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_03.md
+    - docs/research/DISCOVERY_SPRINT_03.json
+    note: Not selected for budget reasons, not on merit; the region is the 'forward expectations' gap named by Sprint
+      04.; Binance BVOLIndex exists only from 2023-06-20 per Stream-B triage.
+    source_id: SPRINT03-C4_OPTIONS_IV_STATE_VS_RV
+  - id: S3-C5
+    title: Cross-sectional breadth/stress as a BTC risk state
+    program: Discovery Sprint 03 candidate pool
+    row: CROSS_ASSET_REGION.breadth
+    col: CROSS_ASSET
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    units_n: one as-of universe day
+    mechanism: Cross-sectional market-breadth state as BTC risk state (not MAE prediction).
+    function: Persistence of breadth-stress state vs BTC-only RV-matched state.
+    verdict: NOT_SELECTED — NOT_EXECUTED
+    why_closed: True panel absent then; new dataset build; family H already represented by D9.
+    reopen: Later partly covered by D13 (panel), R03-B2 (executed, null) and R03-B1/B3/B4 (closed at feasibility).
+    forbidden: Not a 24h MAE predictor (MARKET-05/06 region).
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_03.json
+    note: Later partly covered by D13 (panel) and R03-B (B2 executed; B1/B3/B4 closed at feasibility).
+    source_id: SPRINT03-C5_CROSS_SECTIONAL_BREADTH_STATE
+  - id: S3-C6
+    title: True order-book spread/depth state vs subsequent impact (OKX L2)
+    program: Discovery Sprint 03 candidate pool
+    row: MICROSTRUCTURE.spread_expansion
+    col: ORDER_BOOK
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - OKX_OFFICIAL_ARCHIVES
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    mechanism: Order-book liquidity state persists and predicts subsequent impact.
+    function: Next-interval impact/spread persistence vs kline IMPACT_PROXY-matched hours.
+    verdict: NOT_SELECTED — NOT_EXECUTED
+    why_closed: Family E cooldown after D7; rationale would be 'D7 worked, so acquire L2'.
+    reopen: Post-gate acquisition decision; D7 campaign close forbids L2 'better D7' cards.
+    forbidden: No L2 card justified as 'better D7'.
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_03.json
+    note: May be selected only on its own order-book mechanism, never as a 'better D7'.; Same as Sprint 04 S4-C12.
+    source_id: SPRINT03-C6_OKX_L2_SPREAD_STATE
+  - id: S4-C03
+    title: CROSS_SECTIONAL_SYNCHRONIZATION_AS_BTC_RISK_STATE
+    program: Discovery Sprint 04 candidate pool
+    row: CROSS_ASSET_REGION.breadth
+    col: CROSS_ASSET
+    state: BLOCKED_METHOD
+    datasets:
+    - SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    mechanism: When altcoin returns become highly synchronized (low dispersion / high mean pairwise correlation),
+      BTC subsequently has elevated realized volatility.
+    function: State -> subsequent BTC realized volatility.
+    verdict: NOT_SELECTED — NOT_EXECUTED
+    why_closed: Volatility target and BTC-conditional scalar-prediction pattern; BTC common-factor confound; one panel
+      card per sprint.
+    reopen: Later partly covered by R03-B (B2 executed null; B1 closed at feasibility).
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_04.md
+    - docs/research/DISCOVERY_SPRINT_04.json
+  - id: S4-C04
+    title: OPTIONS_IMPLIED_VS_REALIZED_VARIANCE
+    program: Discovery Sprint 04 candidate pool
+    row: OPTIONS_REGION.implied_vs_realized
+    col: OPTIONS
+    state: BLOCKED_DATA
+    datasets:
+    - DERIBIT_DVOL_API
+    period: 'discovery: DVOL from about 2021-03 (about 3.7 years); replication: None; binance_2025_2026_used: no'
+    mechanism: Option-implied volatility contains information about future BTC realized variance beyond BTC's own
+      trailing realized variance.
+    function: Incremental forecast information of DVOL over HAR-RV.
+    verdict: 'NOT_SELECTED — NOT_EXECUTED (named the only B-eligible uncovered region: forward expectations)'
+    why_closed: Second new-dataset acquisition not allowed; volatility target; positive largely literature-predicted;
+      DVOL history start/non-revision/as-of semantics unverified.
+    reopen: PIT evidence that historical DVOL values were not revised; GV0R01-C006/C014 remain BLOCKED_POINT_IN_TIME_SEMANTICS.
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_04.md
+    - docs/research/DISCOVERY_SPRINT_04.json
+    - docs/research/POST_SPRINT03_PROGRAM_DECISION.md
+  - id: S4-C05
+    title: DERIVATIVES_EXPIRY_SETTLEMENT_CLOCK_VOL
+    program: Discovery Sprint 04 candidate pool
+    row: EVENTS.expiries
+    col: CANDLES
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    mechanism: Monthly/quarterly options/futures settlement (e.g. Deribit Friday 08:00 UTC) induces hedging flows
+      that change BTC volatility around settlement.
+    function: Scheduled-event unsigned vol response vs year x weekday x UTC_HOUR non-expiry windows.
+    verdict: NOT_SELECTED — NOT_EXECUTED (as an RV card)
+    why_closed: Structural copy of the D11 template right after D11 was positive; volatility target.
+    reopen: 'Region later tested as R03-A (range target): A1/A4 executed NO_INCREMENTAL_STRUCTURE; A2/A3 closed at
+      feasibility.'
+    forbidden: No D11-template copies.
+    exposure: None (as S4-C05); the R03-A surface 2020-2024 is consumed for its definitions.
+    records:
+    - docs/research/DISCOVERY_SPRINT_04.md
+    - docs/research/DISCOVERY_SPRINT_04.json
+    note: Closed at selection as a structural copy of the D11 template; the region was later tested as R03-A.
+  - id: S4-C06
+    title: PERP_LEVERAGE_CROWDING_FUNDING_PREMIUM_STATE
+    program: Discovery Sprint 04 candidate pool
+    row: DERIVATIVES.leverage_crowding
+    col: POSITIONING
+    state: BLOCKED_DATA
+    datasets:
+    - BINANCE_UM_PREMIUM_MARK_INDEX_KLINES
+    - B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    mechanism: Crowded leveraged positioning (funding / premium / OI) predicts the subsequent deleveraging path.
+    function: State -> subsequent return / drawdown.
+    verdict: NOT_SELECTED / BLOCKED — NOT_EXECUTED
+    why_closed: 'Observable blocked: as-of availability of funding/premium unproven (FUNDING_PUBLICATION_LATENCY_UNPROVEN);
+      executing would violate no-lookahead.'
+    reopen: Proven legal publication latency; B2-06 / MARKET-04 region stays blocked.
+    forbidden: B2-06 snapshot SNAPSHOT_MATERIALIZED_NOT_RESEARCH_AUTHORIZED.
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_04.md
+    - docs/research/DISCOVERY_SPRINT_04.json
+  - id: S4-C07
+    title: TRADFI_STRESS_CONDITIONED_BTC_EQUITY_COUPLING
+    program: Discovery Sprint 04 candidate pool
+    row: CROSS_ASSET_REGION.tradfi_context
+    col: CROSS_ASSET
+    state: BLOCKED_DATA
+    datasets:
+    - MACRO_CROSS_ASSET
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    mechanism: In TradFi stress regimes (high VIX) BTC co-moves more strongly with US equities.
+    function: 'Regime-conditioned cross-market coupling: 20-day BTC-SPX correlation in high- vs low-VIX regimes.'
+    verdict: NOT_SELECTED — NOT_EXECUTED
+    why_closed: Second new dataset; endogenous common-volatility confound; TradFi linkage probed more cleanly by D12;
+      FRED/ALFRED licensing and vintage semantics unverified.
+    reopen: Revisit only if D12 shows US-clock anchoring (D12 is a prototype).
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_04.md
+    - docs/research/DISCOVERY_SPRINT_04.json
+  - id: S4-C08
+    title: STABLECOIN_PEG_STRESS_REVERSION
+    program: Discovery Sprint 04 candidate pool
+    row: LONG_HORIZON.stablecoin_flows
+    col: SPOT
+    state: BLOCKED_METHOD
+    datasets:
+    - BINANCE_SPOT_KLINES_ARCHIVE
+    period: 'discovery: 2020-2024 (planned); replication: None; binance_2025_2026_used: no'
+    mechanism: Stablecoin peg deviations mean-revert at a speed set by redemption-arbitrage capacity; stress widens
+      and slows reversion.
+    function: Deviation half-life vs random-walk deviation.
+    verdict: NOT_SELECTED — NOT_EXECUTED
+    why_closed: Near-mechanical tick-scale reversion; one episode (2023-03) dominates; low relevance; closure-function
+      neighbor of D9.
+    reopen: A redesign must remove the tick-scale mechanics and the single-episode (2023-03) dependence and name its
+      product relevance (RESOLVES_BLOCKER).
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_04.md
+    - docs/research/DISCOVERY_SPRINT_04.json
+  - id: S4-C09
+    title: ON_CHAIN_STABLECOIN_ISSUANCE_PARTICIPATION
+    program: Discovery Sprint 04 candidate pool
+    row: LONG_HORIZON.stablecoin_flows
+    col: FLOWS_ONCHAIN
+    state: BLOCKED_DATA
+    datasets:
+    - ONCHAIN_STABLECOIN_LOGS
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    mechanism: Net stablecoin issuance signals capital entering crypto and precedes higher spot participation.
+    function: Inflow -> subsequent participation / return.
+    verdict: NOT_SELECTED — NOT_EXECUTED
+    why_closed: No point-in-time provenance for free supply data (revised in place); external-scalar -> BTC-outcome
+      pattern.
+    reopen: PIT (unrevised) supply series.
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_04.md
+    - docs/research/DISCOVERY_SPRINT_04.json
+  - id: S4-C10
+    title: WEEKEND_TRADFI_CLOSURE_REGIME
+    program: Discovery Sprint 04 candidate pool
+    row: CALENDAR.weekday_weekend
+    col: CANDLES
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    mechanism: When TradFi markets are closed (weekends), BTC participation and price formation differ structurally.
+    function: Calendar contrast weekend vs weekday activity/vol.
+    verdict: NOT_SELECTED — NOT_EXECUTED (as S4-C10)
+    why_closed: Cannot separate TradFi closure from a crypto-native weekly cycle; S4-C01 (D12) answers with a natural
+      experiment.
+    reopen: 'Weekend range later tested as R03-C1 (executed: -0.396 SD, below 0.5 bar, NO_INCREMENTAL_STRUCTURE).'
+    forbidden: G01-X9 shows an ETF-era weekend-gap variant is treated as an R03-C1 rescue.
+    exposure: None (as S4-C10); R03-C1 consumed 2020-2024 for its definition.
+    records:
+    - docs/research/DISCOVERY_SPRINT_04.md
+    - docs/research/DISCOVERY_SPRINT_04.json
+    note: The weekend question was later tested as R03-C1.
+  - id: S4-C11
+    title: BTC_ETH_COMMON_FACTOR_PRESERVING_LEAD_LAG
+    program: Discovery Sprint 04 candidate pool
+    row: CROSS_ASSET_REGION.btc_eth
+    col: CROSS_ASSET
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - CORE_ETH_BINANCE_V0
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    mechanism: BTC leads ETH at 1-day lag once the null preserves common-factor dependence.
+    function: 'Lead-lag: ETH next-day return given BTC today vs common-factor-preserving surrogate.'
+    verdict: NOT_SELECTED — NOT_EXECUTED
+    why_closed: Anti-rescue rule (no raw lead-lag rescue after D10); BTC-ETH subfamily deprioritized after D4, D10,
+      MARKET-05.
+    reopen: Only a mechanism that is not raw BTC->ETH lead-lag (anti-rescue after D10) or a surface D4/D10/MARKET-05
+      did not see.
+    forbidden: No raw lead-lag rescue.
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_04.md
+    - docs/research/DISCOVERY_SPRINT_04.json
+  - id: S4-C12
+    title: OKX_L2_SPREAD_DEPTH_STATE
+    program: Discovery Sprint 04 candidate pool
+    row: MICROSTRUCTURE.spread_expansion
+    col: ORDER_BOOK
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - OKX_OFFICIAL_ARCHIVES
+    period: 'discovery: None; replication: None; binance_2025_2026_used: no'
+    mechanism: True order-book spread/depth state persists and predicts subsequent impact.
+    function: State persistence vs kline IMPACT_PROXY-matched hours.
+    verdict: NOT_SELECTED — NOT_EXECUTED
+    why_closed: Family E cooldown after D7; main justification D7 follow-on; heavy engineering.
+    reopen: 'D7 campaign close: no L2 card justified as ''better D7''.'
+    forbidden: No D7 child.
+    exposure: None.
+    records:
+    - docs/research/DISCOVERY_SPRINT_04.md
+    - docs/research/DISCOVERY_SPRINT_04.json
+    note: Not selected because of the family-E cooldown after D7 and heavy engineering; selectable only on its own
+      order-book mechanism.; Same as Sprint 03 C6.
+  - id: PRICE-OI-PILOT-V0
+    title: OI-only ablation of PRICE_OI_CONTRACTION on the Signalbot live archive
+    program: Live-archive audit (owner-run, read-only); pilot only, not confirmatory
+    row: DERIVATIVES.oi_buildup
+    col: POSITIONING
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - STAGE1_LIVE_OI_FUNDING
+    period: 'discovery: Phase A grid AUTHORIZED_BUCKETS = 12434 (2026-08-16T19:30Z-2026-09-25T12:40Z and 2026-09-25T13:05Z-2026-09-28T23:55Z);
+      klines read to 2026-09-29T04:00Z; replication: a survive verdict would only justify designing a separate long-history
+      test; binance_2025_2026_used: live archive 2026 (not the Binance Vision archive)'
+    units_n: 'data gate: exactly 25 triggered DOWN and 19 triggered UP episodes'
+    practical_bar: range ratio 1.25 (ln 1.25 = 0.2231) on median d(4h) and first-per-cluster median
+    mechanism: Does the OI-contraction component add forward realized-range information beyond the extreme, persistent
+      price move that defines the event (else the event is mostly an extreme-price / vol-clustering filter).
+    function: Matched A (PRICE_OI_CONTRACTION_{DOWN,UP} trigger) vs B (same price condition, OI rank >= 0.50 mature);
+      median d_e = ln(R_e) - mean ln(R_c) at 4h; k = 3 nearest controls, caliper 0.75, with replacement; B-vs-B placebo.
+    verdict: 'FROZEN_BEFORE_OUTCOMES / PILOT_ONLY — NOT_EXECUTED (CURRENT_STATE: not run, no result)'
+    why_closed: Implemented as an owner-run read-only audit; not run.
+    reopen: Owner runs the frozen runner; changed design = new pilot identity.
+    forbidden: No threshold, caliper, gate or endpoint change after outcomes; old matched-baseline design not reused
+      or repaired.
+    exposure: P4 owner-run record (larger 1h/4h range after triggered states vs ordinary anchors, uncontrolled) was
+      read before the protocol.
+    records:
+    - docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0.md
+    - docs/research/price_oi_incremental_information_pilot_v0.json
+    - docs/audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md
+    - docs/CURRENT_STATE.md
+    note: 'OPEN QUESTION before any run: the frozen live-archive grid starts 2026-08-16T19:30Z, inside the calendar
+      span of the E1-RUN-001 holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z). The pilot record does not discuss E1;
+      resolve this with the owner before the runner is used.; AMBIGUITY: the frozen live-archive grid starts 2026-08-16T19:30Z,
+      inside the calendar span of the E1-RUN-001 holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) whose E1 analysis
+      reads are ''DB market reads hard-capped strictly before holdout''. The pilot record does not discuss E1; not
+      assessed here.'
+    source_id: PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0
+  - id: BETA-V0-FWD-Q1Q2
+    title: 'Q1: TRIGGERED event vs matched non-event controls on 4h absolute range (Q2: 1h)'
+    program: Beta V0 product/research sidecar (prereg-like)
+    row: VOLATILITY_STATE.state_detection
+    col: CANDLES
+    state: BLOCKED_METHOD
+    datasets:
+    - BINANCE_UM_LIVE_FORWARD
+    period: 'discovery: None; replication: prospective: >= 30 TRIGGERED per family; stop at 60 or 12 weeks; binance_2025_2026_used:
+      no (protected research data not used)'
+    units_n: 30-60 TRIGGERED episodes per family (planned)
+    mechanism: Beta detector TRIGGERED states precede larger subsequent absolute range than matched ordinary conditions.
+    function: Median over events of (event range - mean matched control range); one-sided sign test; bootstrap CI;
+      per family, no pooling.
+    verdict: SUPERSEDED_BEFORE_INSPECTION (neither passed nor failed) — NOT_EXECUTED
+    why_closed: Product would display historical follow-up statistics before the stopping rule, so later observations
+      cannot be an untouched realization; analysis script never written.
+    reopen: A new prospective contract frozen before its data exists, stating how it handles the product's own display
+      of follow-up statistics.
+    forbidden: Changing Q1/Q2 afterwards creates a new evaluation; never rescues this one.
+    exposure: Live collection started before the amendment; no Q1/Q2 statistic computed or inspected.
+    records:
+    - docs/research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md
+    - docs/BETA_HISTORICAL_FOLLOW_UP_V0.md
+    note: 'Superseded before inspection: the product''s own display of follow-up statistics would contaminate the
+      prospective realization.; Ledger entry 2026-09-28.'
+    source_id: BETA_V0_PROSPECTIVE_FORWARD_EVALUATION_Q1_Q2
+
+  # ---- Product event-corridor track (K1) -----------------------------------------------------------
+  - id: EVCORR-K1-CPI
+    title: K1 event semantics for the CPI/FOMC range-corridor term (PRE in [t, t+H) and POST in [t-60m, t))
+    program: Product decision support V2 — event safety (product evidence, not research)
+    row: EVENTS.cpi
+    col: CANDLES
+    state: FUTURE_NATURAL_ACCUMULATION
+    datasets:
+    - BINANCE_UM_KLINES_5M_PRODUCT
+    - BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0
+    period: 'discovery: 2024 scheduled releases (12 CPI, 8 FOMC) = EXPOSED / DIAGNOSTIC / REPAIR DATA; replication:
+      prospective releases after K1 freeze (primary); BitMEX 2017-2019 NOT_PROVABLY_INDEPENDENT; binance_2025_2026_used:
+      2025-2026 EXPOSED_FOR_OTHER_PURPOSES / NOT CONFIRMATORY'
+    units_n: releases, about 20 per year
+    mechanism: A scheduled CPI/FOMC release widens the subsequent range; the current flag only marks 'release ahead'
+      and drops at the first 5-minute anchor after the release.
+    function: Corridor coverage around releases under K1; detection vs 80% nominal coverage (exact one-sided binomial),
+      precision (Wilson 95%).
+    verdict: 'DESIGN_ONLY (K1 not implemented); FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM
+      — NOT_EXECUTED; LOCKED table: 12 / 38 / 127 releases to detect true coverage 40% / 60% / 70% vs 80%; 81 / 289
+      releases for +-10 / +-5 pp'
+    why_closed: 'Product fallback instead: no numerical corridor, touch chance or /risk figure inside [release - H,
+      release + 60 min).'
+    reopen: K1 freeze, then prospective releases; no change after prospective outcomes without a dated amendment.
+    forbidden: 2024 not a confirmatory holdout for any new event semantics; candidates not chosen by 2024 coverage.
+    exposure: 2024 Binance USD-M BTCUSDT release windows exposed (red-team table and design record).
+    records:
+    - docs/BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1.md
+    - docs/RESEARCH_LEDGER.md
+    - docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md
+    note: Product calibration track, not a research claim. The live K0 event semantics fail in live use; the product
+      shows no corridor number inside [release - H, release + 60 min) until K1 passes.; Product-safety record; included
+      because it fixes the status of 2024 release windows and BitMEX for event questions.
+    revisit: 'After K1 and its falsification rule are frozen in a separate evaluation contract: about 12 prospective
+      releases detect a true coverage of 40% against the nominal 80%, 38 detect 60%, 127 detect 70% (LOCKED table).
+      CPI and FOMC together give about 20 releases a year and share one count.'
+    source_id: EVENT_CORRIDOR_K1_PROSPECTIVE_CONFIRMATION
+  - id: EVCORR-K1-FOMC
+    title: K1 event semantics for the CPI/FOMC range-corridor term (PRE in [t, t+H) and POST in [t-60m, t))
+    program: Product decision support V2 — event safety (product evidence, not research)
+    row: EVENTS.fomc
+    col: CANDLES
+    state: FUTURE_NATURAL_ACCUMULATION
+    datasets:
+    - BINANCE_UM_KLINES_5M_PRODUCT
+    - D11_FOMC_OFFICIAL_V0
+    period: 'discovery: 2024 scheduled releases (12 CPI, 8 FOMC) = EXPOSED / DIAGNOSTIC / REPAIR DATA; replication:
+      prospective releases after K1 freeze (primary); BitMEX 2017-2019 NOT_PROVABLY_INDEPENDENT; binance_2025_2026_used:
+      2025-2026 EXPOSED_FOR_OTHER_PURPOSES / NOT CONFIRMATORY'
+    units_n: releases, about 20 per year
+    mechanism: A scheduled CPI/FOMC release widens the subsequent range; the current flag only marks 'release ahead'
+      and drops at the first 5-minute anchor after the release.
+    function: Corridor coverage around releases under K1; detection vs 80% nominal coverage (exact one-sided binomial),
+      precision (Wilson 95%).
+    verdict: 'DESIGN_ONLY (K1 not implemented); FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM
+      — NOT_EXECUTED; LOCKED table: 12 / 38 / 127 releases to detect true coverage 40% / 60% / 70% vs 80%; 81 / 289
+      releases for +-10 / +-5 pp'
+    why_closed: 'Product fallback instead: no numerical corridor, touch chance or /risk figure inside [release - H,
+      release + 60 min).'
+    reopen: K1 freeze, then prospective releases; no change after prospective outcomes without a dated amendment.
+    forbidden: 2024 not a confirmatory holdout for any new event semantics; candidates not chosen by 2024 coverage.
+    exposure: 2024 Binance USD-M BTCUSDT release windows exposed (red-team table and design record).
+    records:
+    - docs/BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1.md
+    - docs/RESEARCH_LEDGER.md
+    - docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md
+    note: Same K1 track as EVCORR-K1-CPI (one shared release count). D11's unsigned 6h RV discovery is separate and
+      is not confirmed by it.; Product-safety record; included because it fixes the status of 2024 release windows
+      and BitMEX for event questions.
+    revisit: 'After K1 and its falsification rule are frozen in a separate evaluation contract: about 12 prospective
+      releases detect a true coverage of 40% against the nominal 80%, 38 detect 60%, 127 detect 70% (LOCKED table).
+      CPI and FOMC together give about 20 releases a year and share one count.'
+    source_id: EVENT_CORRIDOR_K1_PROSPECTIVE_CONFIRMATION
+
+  # ---- Frozen experiments, sealed runs and product statistics --------------------------------------
+  - id: V3-MICROSCOPE
+    title: V3 Microscope synthetic confirmatory calibration (closed, immutable)
+    program: MICROSCOPE (HARNESS_SYNTHETIC_EDGE_CALIBRATION V1 -> V2 -> V3)
+    row: METHOD.methodology
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - SYNTHETIC_DGP
+    period: Canonical grid world_index 10000..10399, executed once 2026-09-17.
+    units_n: 400 worlds per cell x 4 cells (EASY, MODERATE, NULL, NONSTATIONARY_TRAP) = 1600 terminal worlds; support_count
+      >= 50 hard floor per world.
+    practical_bar: 'Frozen Wilson (z 1.6448536269514722) cell targets: EASY power_min 0.9 (PASS_min_x 370); MODERATE
+      power_min 0.7 (PASS_min_x 296); NULL fpr_max 0.05 (PASS_max_x 12, FAIL_min_x 28); NONSTATIONARY_TRAP detect_max
+      0.2 (PASS_max_x 66, FAIL_min_x 94).'
+    mechanism: None (not a market hypothesis). Methodology calibration of the confirmatory validator on a frozen synthetic
+      DGP.
+    function: 'Question (prereg §1): "Given one prospectively frozen conditional claim, can the validator detect its
+      predeclared incremental predictive effect with adequate power while respecting a fixed false-positive budget
+      and preserved nonstationary-trap protection?" V3 is a bounded repair of V2''s over-conservative pooled AND-of-gates
+      decision.'
+    verdict: 'V3_CALIBRATION_CLOSED = YES; V3_METHODOLOGY_CLAIMABLE = NO; methodology_claimable = false; EASY PASS,
+      MODERATE PASS, NULL INDETERMINATE, NONSTATIONARY_TRAP FAIL; EASY: 400/400 DETECTED, Wilson lower 0.99328, `PASS`;
+      MODERATE: 313/400 DETECTED, Wilson lower 0.74673, `PASS`; NULL: 21/400 DETECTED, Wilson upper 0.07403, `INDETERMINATE`;
+      NONSTATIONARY_TRAP: 188/400 DETECTED, Wilson lower 0.42929, `FAIL`; WORLD_RECORDS SHA256 `5d09631db5180f562076b2191fe002aa21318a3925d3cd1c4014d83e4b41eb4f`;
+      RESULT SHA256 `f72eedcdcb511e2c7f22369cbdef164688317dfc99f9ab3e533df14cb2a27866`; V2 (development-consumed,
+      from V3 prereg §0): EASY `365/400=0.9125` (Wilson lower `0.8807` → `INDETERMINATE` vs 0.90), MODERATE `108/400=0.27`
+      (lower `0.2288` → `FAIL` vs 0.70), NULL `2/400=0.005` (upper `0.0180` → `PASS` vs 0.05), TRAP `PASS`'
+    why_closed: 'Ledger 2026-09-17: V3 repaired the measured V2 sensitivity problem (EASY/MODERATE PASS) but did not
+      establish a generally claimable methodology (NULL INDETERMINATE, TRAP FAIL). "the current V3 confirmatory decision
+      is insufficiently protected against the frozen nonstationary trap". Microscope no longer the active research
+      program; MARKET phase opened.'
+    reopen: Future methodology repair requires independent new evidence from actual research workload or a separately
+      justified fresh calibration design (ledger). Not authorization for immediate V4.
+    forbidden: No repair, rerun or reinterpretation of V3; no selective rerun, second reservation or second RESULT;
+      DEFAULT_V4 = NO; do not treat V3 DETECTED/PASS as a robust market-edge claim (RR-022); do not translate 188/400
+      into a real-market FPR (RR-023); MARKET tests are not V3-calibrated (RR-024).
+    exposure: No market data. Consumes no market window.
+    records:
+    - docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md
+    - docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.json
+    - docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_CONFIRMATORY_DESIGN.md
+    - docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_CONFIRMATORY_SPEC.md
+    - docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_IMPLEMENTATION_FREEZE.md
+    - docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PRODUCTION_ARM.md
+    - docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_RESULT.json
+    - docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_WORLD_RECORDS.json
+    - docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_POSTRUN_FORENSIC_REVIEW.md
+    - docs/RESEARCH_LEDGER.md
+    - docs/ACTIVE_RESEARCH_RISKS.md
+    note: 'Synthetic calibration only: V3_CALIBRATION_CLOSED = YES, V3_METHODOLOGY_CLAIMABLE = NO, V3_RERUN_AUTHORIZED
+      = NO, DEFAULT_V4 = NO. Its PASS cells are not a market claim.; Program lineage: V1 (canonical 3200-world attempt;
+      RR-021: "V1 attempt is permanently non-claimable", do not salvage the V1 3087-world subset), V2 (rank-degeneracy
+      policy, canonical RESULT `761cc9af…`, development-consumed), V3 (this record). b2_06_scientific_execution_authorized
+      = false and market_execution_authorized = false in RESULT. Run identity ce66442985a637f05508c980257f5ca8b869df15e2b94b87d1110c3ef75fd69f.
+      The WORLD_RECORDS file is ~101 MB.'
+    source_id: HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3
+  - id: E1-RUN-001
+    title: E1-RUN-001 — frozen V2 Stage-5 detector separation (holdout protected, unopened)
+    program: E1 (V2 Stage-5 detector separation)
+    row: METHOD.composition
+    col: CANDLES
+    state: EXPOSED_ONLY
+    datasets:
+    - STAGE1_LIVE_KLINES_3VENUE
+    - STAGE1_LIVE_OI_FUNDING
+    period: Full candidate window [2026-08-02T00:00:00Z, 2026-08-25T17:20:00Z); development [2026-08-02T00:00:00Z,
+      2026-08-16T00:00:00Z); holdout [2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z).
+    units_n: 6,832 legal 5m decision boundaries; raw FULL candidates 290 (TP=198, CB=47, FB=45); development 149 FULL
+      (TP=93, CB=30, FB=26); holdout 141 FULL (TP=105, CB=17, FB=19). UTC-day clustering / block bootstrap mandated;
+      30m/60m cluster counts.
+    practical_bar: Frozen verdict vocabulary SURVIVES / SIMPLIFY / DEMOTE_TO_BASELINE / KILL / INCONCLUSIVE_SAMPLE.
+      SURVIVES "Requires the frozen FULL family to show reasonably stable positive separation from its matched/random/time-shift
+      controls across multiple horizons, without dependence on one UTC day, and without a simpler preregistered variant
+      clearly matching or improving it." UTC-day block bootstrap, seed 20260825, 10,000 resamples, 95% percentile
+      interval.
+    mechanism: Whether frozen V2 Stage-5 setup qualification (TREND_PULLBACK, COMPRESSION_BREAKOUT, CONFIRMED_BREAKOUT,
+      with 4h regime and 1h bias) separates future BTCUSDT perp behaviour from simple/matched controls before Stage-6
+      lifecycle.
+    function: Falsification gate on detector separation (not a full V2 backtest; cannot promote V2 by itself).
+    verdict: 'DEVELOPMENT_CONSUMED / HOLDOUT_STILL_UNOPENED / FINAL_EVALUATOR_FROZEN; families RETIRED_CURRENT_FORMULATION;
+      E1_HOLDOUT = UNOPENED_AND_NOT_SPENT; legal 5m decision boundaries: `6,832`; raw FULL candidates: `290` (`TP=198`,
+      `CB=47`, `FB=45`); development ... `149` FULL (`TP=93`, `CB=30`, `FB=26`); holdout ... `141` FULL (`TP=105`,
+      `CB=17`, `FB=19`); FB holdout direction = 19 LONG / 0 SHORT; FULL outcomes: 147 full-horizon eligible/reference-usable
+      candidates; development ablation outcome rows: 2,232 eligible, 28 purged; latest observed Binance 1m bar start:
+      `2026-08-25T21:39:00Z`; required shifted-control last bar start: `2026-08-26T00:44:00Z`; one historical gap:
+      `2026-08-24T12:29:00Z`; `ready_for_single_holdout_outcome_open=false` at that last verified run'
+    why_closed: 'Ledger 2026-08-28: the three Stage-5 formulations are RETIRED_CURRENT_FORMULATION, combining consumed
+      E1 development evidence (TP near SIMPLIFY/KILL; CB SIMPLIFY/INCONCLUSIVE; CONFIRMED_BREAKOUT strong KILL candidate)
+      with the Batch01 H01-H05 results; "there is no research justification to spend the frozen E1 holdout on rescue".'
+    reopen: The final holdout may be opened only by its frozen one-shot evaluator (scripts/research/v2_e1_final_holdout_evaluator.py)
+      after the timestamp-only coverage preflight (primary +4h and +6h time-shift control) actually reruns and passes;
+      otherwise close explicitly as technically incomplete (AGENTS.md, RR-014).
+    forbidden: No change to TP/CB/FB definitions, thresholds/directions, horizons, ablation/control definitions, delay/cost
+      grid, holdout split or verdict criteria; no threshold tuning, direction flip, family change, regime rescue or
+      variant search after development inspection; new ideas need a new hypothesis/window.
+    exposure: Development [2026-08-02, 2026-08-16) consumed. Holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) protected
+      and never read by any program (divergence read horizon stops at 2026-08-15; product history sync rejects 21
+      overlapping archive objects before any request). Holdout candidate census (counts, directions) inspected without
+      prices.
+    records:
+    - docs/E1_DETECTOR_SEPARATION_PREREG.md
+    - docs/E1_DATA_INVENTORY_2026-08-25.md
+    - docs/E1_VPS_RUNBOOK.md
+    - docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md
+    - docs/e1/E1_RUN_001_FINAL_HOLDOUT_EVALUATOR_FREEZE.md
+    - docs/e1/E1_RUN_001_ABLATION_PROTOCOL_FREEZE.md
+    - docs/e1/E1_RUN_001_ABLATION_OUTCOME_REPORTING_FREEZE.md
+    - docs/e1/E1_RUN_001_CONTROL_PROTOCOL_FREEZE.md
+    - docs/e1/E1_RUN_001_COVERAGE_PREFLIGHT_CLARIFICATION.md
+    - docs/e1/E1_RUN_001_HOLDOUT_COVERAGE_READINESS_CLARIFICATION.md
+    - docs/e1/E1_RUN_001_DEVELOPMENT_OUTCOMES.md
+    - docs/e1/E1_RUN_001_DEVELOPMENT_CONTROLS.md
+    - docs/e1/E1_RUN_001_DEVELOPMENT_ABLATIONS.md
+    - scripts/research/v2_e1_final_holdout_evaluator.py
+    - docs/RESEARCH_LEDGER.md
+    note: 'Development consumed; the three Stage-5 formulations are RETIRED_CURRENT_FORMULATION. The final holdout
+      stays sealed and may be opened only by its frozen one-shot evaluator.; Implementation base main@8081eb31657f127141efb3a455f86690258164bc;
+      evaluator commit f093fc35c5095110fddb2e76f287aa045fd06e7f. Abbreviations: TP = TREND_PULLBACK; CB and FB map
+      to COMPRESSION_BREAKOUT and CONFIRMED_BREAKOUT by the ledger''s ordering (prereg §: "CONFIRMED_BREAKOUT=19 (42.2%
+      of FB)"), not by an explicit legend in the files read. Historical hypothesis ids H-002..H-016 in the ledger
+      inventory were marked E1_TESTING.'
+  - id: TWAP-V1
+    title: TWAP execution footprint in Binance spot BTCUSDT aggTrades — sealed end-to-end run V1
+    program: Decision-layer research program V0 (owner decision 2026-10-01); family B with a new observable
+    row: FLOW.participant_composition
+    col: SPOT
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - BINANCE_SPOT_BTCUSDT_AGGTRADES
+    period: 'discovery: 2020-01..2024-12; replication: 2017-08..2019-12 (counts only; support gate failed); binance_2025_2026_used:
+      no'
+    units_n: 1,207 persistence-eligible episodes on 702 UTC days (buy 712 / sell 495); replication 19 on 16 days
+    practical_bar: 'H1: p < 0.05 and ratio >= 1.10; price cells: 10 bps floor and Holm'
+    mechanism: 'A regular-slice algorithmic (TWAP-like) execution keeps executing after detection; if real, its remaining
+      flow could push price in the execution direction (L2) and its end could leave a temporary-impact reversal (L3).
+      Origin: owner''s observation of a third-party TWAP-detection bot (reason to test, not evidence).'
+    function: 'INCREMENTAL over matched net taker flow: H1 same-side taker notional in [t0, t0+60m) vs 5 matched controls
+      (mechanism gate); H2 side-signed log return minus matched controls at 1h and 6h; H3 post-end 1h reversal; day-block
+      bootstrap, Holm m = 3, 10 bps floor.'
+    verdict: 'MECHANISM_SUPPORTED_PRICE_EFFECT_NOT_SUPPORTED; owner: TWAP_V1 = CLOSED; H1 ratio 1.264 [1.203, 1.329],
+      one-sided p < 0.0001 (discovery only; partly mechanical); H2_1h +5.0 bps [-0.1, +10.1], p 0.057, Holm 0.170;
+      H2_6h -0.4 bps [-11.1, +10.4], Holm 1.000; H3 post-end 1h +0.5 bps [-4.5, +5.3], Holm 1.000; replication support
+      19 < 100 -> INFERENCE_INSUFFICIENT; median remaining execution at detection 11 min; 89% declared ended within
+      the first post-detection hour'
+    why_closed: No price cell supported at the frozen scale; replication support insufficient; owner closed the branch
+      2026-10-02.
+    reopen: 'Not closed (and not authorized): other venues/instruments (USD-M perp, Coinbase, ETH), footprints this
+      detector cannot see (randomized slices, iceberg/limit, < $1k slices), earlier detection, effects below 10 bps.'
+    forbidden: No rerun; no nearby tolerance, K, duration, horizon or floor variant; no product directional claim;
+      no Delta-direction arm (H05 variant).
+    exposure: Binance spot BTCUSDT aggTrades 2020-2024 CONSUMED for this footprint; 2017-08..2019-12 consumed for
+      counts only.
+    records:
+    - docs/research/DECISION_LAYER_RESEARCH_PROGRAM_V0.md
+    - docs/research/TWAP_SEALED_SPEC_V1.json
+    - docs/research/TWAP_SEALED_RUN_V1_RESULT.md
+    note: Mechanism supported (TWAP footprint exists), price effect not supported; owner TWAP_V1 = CLOSED.; Freeze
+      commit 5a0cd66; spec SHA-256 961c7578... Post-run erratum on the zero-denominator admissibility wording (selection
+      unchanged). Bot entry TWAP = SIDE_FINDING.
+    aliases:
+    - TWAP
+    source_id: TWAP_SEALED_RUN_V1
+  - id: PRODUCT-V2-RANGE
+    title: Range/volatility corridor model (1h/4h/24h) with held-out-year coverage check and live tracking
+    program: PRODUCT_DECISION_V2 §2 (question 1)
+    row: VOLATILITY_STATE.range_forecast
+    col: CANDLES
+    state: EXPOSED_ONLY
+    datasets:
+    - BINANCE_UM_KLINES_5M_PRODUCT
+    period: 2020 → yesterday; check on a held-out last year; development diagnostics on 2022–2024 repository archives
+      (fit 2022–2023, evaluate 2024).
+    units_n: Anchors (hourly); 2024 diagnostic 8 720 / 8 660 / 8 279 anchors (1h/4h/24h); day bootstrap for interval
+      score.
+    practical_bar: 'Honesty rule: each forecast shown with its tracked accuracy; build check `corridor_coverage_holdout`
+      each about 0.80 (0.76–0.84 is fine).'
+    mechanism: Conditional scale of the forward BTC range from recent realized ranges, time of day, weekend and scheduled
+      events.
+    function: Range forecast (corridor), touch probabilities, /risk translation of a stop distance; product evidence,
+      not a research claim.
+    verdict: 'GENERIC_RANGECAST_SKILL_STATUS = DIAGNOSTICALLY_SUPPORTED / NOT YET PROSPECTIVELY CONFIRMED; product
+      evidence; Read `corridor_coverage_holdout` (each about 0.80; 0.76–0.84 is fine); 1h coverage model / constant
+      79.4% / 79.5%; 4h 79.6% / 80.6%; 24h 79.0% / 78.7% (2024 diagnostic); Remaining weakness: the model under-covers
+      the calmest fifth (69–76%).'
+    reopen: Prospective live tracking (beta_forecasts) is the confirmation path for generic scale skill.
+    forbidden: 2024 hourly anchors are an exposed diagnostic, not a new holdout; any research claim over range/volatility
+      needs a window other than Binance 2025/2026 or a prospective test.
+    exposure: Reads 2025/2026 Binance BTCUSDT (opened for product 2026-10-03); 2025/2026 consumed for research over
+      range/volatility features; E1 holdout excluded at object level.
+    records:
+    - docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md
+    - docs/BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1.md
+    - docs/PRIVATE_BETA_V0_DEPLOY.md
+    - beta/rangecast.py
+    - beta/history_stats.py
+    - beta/history_data.py
+    note: Product evidence, not a research claim. Tracked accuracy is the product's confirmation path.; IMPLEMENTED_IN_CODE
+      (not deployed, not user-tested). Inside event zones the corridor is withheld (see BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_V1).
+      D2 finding rides on /risk (corridor context).
+    source_id: PRODUCT_V2_RANGE_CORRIDOR_MODEL
+  - id: PRODUCT-V2-LEVELS
+    title: 'Objective levels: first-touch reactions vs random levels at the same distance'
+    program: PRODUCT_DECISION_V2 §2 (question 2)
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: EXPOSED_ONLY
+    datasets:
+    - BINANCE_UM_KLINES_5M_PRODUCT
+    period: 2020 → yesterday
+    units_n: Periods (period-clustered bootstrap); MIN_EVENTS = 30, MIN_PERIODS = 15.
+    practical_bar: Verdict «отличается» only if Holm-adjusted p < 0.05 (BOOTSTRAP_B = 1000) and |diff| >= MATERIAL_DIFF
+      = 0.03; otherwise «как обычно»; too little data «мало данных».
+    mechanism: Market-wide visible levels (PDH/PDL, PWH/PWL, PMH/PML, round numbers, previous-day POC) may change
+      what happens after the first touch relative to a random level.
+    function: Descriptive level statistics shown beside level pushes; never steers the push decision.
+    verdict: product evidence (computed nightly; no committed result numbers found)
+    reopen: A research claim on this feature needs a surface the product did not read (another venue, pre-2020 BitMEX,
+      or prospective data after a dated freeze); the 2025/2026 Binance BTCUSDT surface cannot confirm it.
+    forbidden: Any research claim over levels needs a window other than Binance 2025/2026 or a prospective test (PRODUCT_DECISION_V2
+      §4).
+    exposure: 2025/2026 Binance BTCUSDT consumed for research over level features.
+    records:
+    - docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md
+    - beta/levels.py
+    - beta/history_stats.py
+    note: Product evidence, not a research claim.; Liquidation clusters (live collector only, Binance+Bybit) appear
+      as levels but have no history card. Parameters quoted from beta/levels.py constants. H02 and DIVERGENCE findings
+      ride on level contexts.
+    source_id: PRODUCT_V2_LEVEL_FIRST_TOUCH_REACTIONS
+  - id: PRODUCT-V2-ANALOGUES
+    title: 1h/4h state analogues («что было после похожих») vs volatility-matched «обычно»
+    program: PRODUCT_DECISION_V2 §2 (question 3)
+    row: VOLATILITY_STATE.state_detection
+    col: POSITIONING
+    state: EXPOSED_ONLY
+    datasets:
+    - BINANCE_UM_KLINES_5M_PRODUCT
+    - BINANCE_UM_OI_METRICS_PRODUCT
+    period: 2020 (OI 2020-09) → yesterday
+    units_n: Days (day-clustered bootstrap); MIN_N = 30, MIN_DAYS = 15; hourly anchors.
+    practical_bar: Day-clustered bootstrap (B = 1000) with Holm correction; materiality p_up 0.03 or range ratio 1.15.
+    mechanism: Current 1h/4h price/OI/taker state labels may be followed by distributions different from the volatility-matched
+      baseline.
+    function: 'Descriptive history per state label: N, share higher after 1h/4h/24h, median move, typical up/down
+      move, verdict.'
+    verdict: product evidence (no committed result numbers found)
+    reopen: A research claim on this feature needs a surface the product did not read (another venue, pre-2020 BitMEX,
+      or prospective data after a dated freeze); the 2025/2026 Binance BTCUSDT surface cannot confirm it.
+    forbidden: Research claims over price/OI/taker states need a window other than Binance 2025/2026 or a prospective
+      test; sealed verdicts (MARKET-01/02, H05...) not reopened.
+    exposure: 2025/2026 Binance BTCUSDT consumed for research over state features. Development used 2022–2024 repository
+      archives and synthetic OI only for the analogue mechanics.
+    records:
+    - docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md
+    - beta/analogues.py
+    - beta/history_stats.py
+    note: Product evidence, not a research claim (price / OI / taker state labels).; Parameters quoted from beta/analogues.py
+      constants. The implementation review said to hold development numbers was not found under docs/. MARKET-02 and
+      H01 findings ride on label contexts.
+    source_id: PRODUCT_V2_STATE_ANALOGUES
+  - id: PRODUCT-V2-EVENT-DAYS
+    title: Event-hour / event-day sizes for CPI, FOMC, Deribit monthly/quarterly expiry
+    program: PRODUCT_DECISION_V2 §2 (question 3, calendar)
+    row: EVENTS.cpi
+    col: CANDLES
+    state: EXPOSED_ONLY
+    datasets:
+    - BINANCE_UM_KLINES_5M_PRODUCT
+    - BETA_CALENDAR
+    period: '2020 → yesterday (calendar: CPI 2020-01..2026-12, FOMC 2020-01..2027-12)'
+    units_n: Releases / expiries.
+    mechanism: Scheduled releases and expiries are associated with larger hourly/daily ranges.
+    function: Descriptive event sizes; since 2026-10-03 not shown to users (no multiplier on any surface).
+    verdict: product evidence; EVENT_MULTIPLIER_USER_FACING = NO; CPI hour ×3.2 and FOMC hour ×3.3 by median, 2022–2024
+    why_closed: 'Multiplier removed from user surfaces: its window, comparator and timestamp semantics were not verified
+      for this purpose (event corridor record §9).'
+    reopen: Event sizes return to a user surface only after a verified window / comparator / timestamp design (the
+      K1 track). A research claim on this feature needs a surface the product did not read (another venue, pre-2020
+      BitMEX, or prospective data after a dated freeze); the 2025/2026 Binance BTCUSDT surface cannot confirm it.
+    forbidden: Research over event days needs a window other than Binance 2025/2026 or a prospective test; D11 (FOMC
+      only, unsigned 6h RV) must not be extended to CPI.
+    exposure: 2025/2026 Binance BTCUSDT consumed for research over event-day features.
+    records:
+    - docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md
+    - beta/calendar_events.py
+    - config/beta_calendar.yaml
+    - docs/BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1.md
+    note: Covers CPI, FOMC and Deribit monthly/quarterly expiry days; product evidence, not shown to users since 2026-10-03.;
+      R03-A1 and R03-A4 findings attach to expiry event contexts; no «Проверено» line on CPI/FOMC surfaces since 2026-10-03.
+    source_id: PRODUCT_V2_EVENT_DAY_SIZES

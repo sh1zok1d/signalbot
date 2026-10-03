@@ -50,6 +50,12 @@ rather than proliferate RV_ABSTENTION.
 
 **Product statistics (2026-10-03, `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §4).** The owner opened Binance USD-M BTCUSDT 2025/2026 5m klines and OI metrics for the product's decision-support statistics, up to yesterday, **except the E1-RUN-001 final holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)`**: the history sync never requests an archive object that overlaps it (object level, before any fetch) and never stores a row inside it. For research this BTC surface is consumed for hypotheses over the product features (range/volatility, levels, price/OI/taker states, event days); sealed verdicts are not reopened.
 
+**Research Atlas (2026-10-03, `docs/research/SIGNALBOT_RESEARCH_ATLAS_V1.md`).** Research is chosen from one permanent map (Mechanism × Data surface × State), not from numbered campaigns.
+- Never reopen a closed cell for a new threshold, window or horizon; a new branch needs a new mechanism or a new data surface (§5 reopen keys and forbidden moves).
+- Generators read only `docs/research/atlas/ATLAS_GENERATOR_VIEW_V1.json`; the full view is for the owner, selector and critics.
+- When a unit closes, add it to `docs/research/atlas/ATLAS_UNITS_V1.yaml` (and the surfaces' exposure ledger) in the same change and rebuild with `python -m scripts.research.atlas.build_atlas`; never hand-edit the derived files.
+- A batch still needs its own owner go.
+
 `FORWARD_MARKET_OBSERVABILITY_V1` collector implementation remains frozen; authoritative collection has not been started by this cleanup. B2-06 remains blocked on the missing/legally-timestamped observable problem.
 
 There is still no claim of a durable trading edge.
