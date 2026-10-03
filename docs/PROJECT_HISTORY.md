@@ -453,3 +453,16 @@ Asked "does the bot offer a decision or anything like it — what does a trader 
 - **Why.** Every directional research test was null, but volatility clusters and calendars are known in advance; a trader can act on "how far, where, and how often before" without being told a side.
 - **What stayed.** No direct trade calls, no hype; N and "обычно" beside every historical number; one detector, one outbox, one notifier; sealed research verdicts. Binance 2025/2026 is opened for product statistics and consumed for research over the same features.
 - **Research reaches the trader.** The owner asked for the research and the bot to be connected, failed hypotheses and side findings included. `config/beta_research_findings.yaml` now turns each closed unit into a short "Проверено:" line where it applies (a lull did not announce a breakout; a failed breakout did not revert more than a real one; Fed hours are ~1.8× as volatile; weekends are calmer) and `/research` lists them all. The years of null results become what a trader can stop believing, not only what the project did not find.
+
+## 22. One permanent research map (2026-10-03)
+
+**Why the change.** After G01 closed with no survivors, the owner saw that campaign after campaign (G01 → G02 → …) would keep re-searching the same neighbourhoods, and proposed one permanent map instead: Mechanism × Data surface × Research state, where a family is never reopened for a new threshold and a new branch needs a new mechanism or a new data surface.
+
+**What was built.** `docs/research/SIGNALBOT_RESEARCH_ATLAS_V1.md` transfers everything the project tested, blocked, parked or exposed onto that map: 145 units in 436 applicable cells.
+
+**What the map shows.**
+- Most effort went into price structure on candles, calendar and event clocks, and the alt cross-section.
+- Spot↔perp and order-book mechanisms are almost untouched.
+- The order-book data already in hand is not pristine for them.
+
+**How it is kept honest.** Generators get an outcome-blind view of the same map, so a promising cell and a dead one look alike to them. The selector and critics see everything.

@@ -1,0 +1,125 @@
+{
+ "RECORD": "PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM",
+ "RECORD_TYPE": "APPEND_ONLY_GOVERNANCE_ERRATUM",
+ "RECORDED": "2026-10-03",
+ "CONCERNS": [
+  "docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0.md",
+  "docs/research/price_oi_incremental_information_pilot_v0.json"
+ ],
+ "CONCERNED_RECORDS_EDITED": false,
+ "PROTECTED_INTERVAL": {
+  "id": "E1_RUN_001_FINAL_HOLDOUT",
+  "start": "2026-08-16T00:00:00Z",
+  "end_exclusive": "2026-08-25T17:20:00Z"
+ },
+ "FROZEN_GRID": {
+  "authorized_buckets": 12434,
+  "segments": [
+   [
+    "2026-08-16T19:30:00Z",
+    "2026-09-25T12:40:00Z"
+   ],
+   [
+    "2026-09-25T13:05:00Z",
+    "2026-09-28T23:55:00Z"
+   ]
+  ],
+  "bucket_minutes": 5,
+  "buckets_inside_protected_interval": 2566,
+  "first_inside": "2026-08-16T19:30:00Z",
+  "last_inside": "2026-08-25T17:15:00Z",
+  "buckets_after_protected_interval": 9868
+ },
+ "RUNNER_EXECUTED": false,
+ "PILOT_OUTCOMES_EXIST": false,
+ "E1_EVALUATOR_TOUCHED": false,
+ "E1_SEALED_ARTIFACTS_OPENED": false,
+ "E1_OUTCOME_SURFACE_OPENED_BY_P4": true,
+ "E1_PRISTINE_HOLDOUT_STATUS": "INVALIDATED_FOR_P4_OVERLAP",
+ "SEGMENT_EXECUTION": "INVALID",
+ "FROZEN_PILOT_EXECUTABLE_AS_FROZEN": false,
+ "WHY_NOT_EXECUTABLE_AS_FROZEN": "The data gate requires 12434 buckets and 25 DOWN / 19 UP triggered episodes over the full grid; a grid without the protected segment cannot meet it, so any execution is a new pilot identity under the protocol's own rule.",
+ "FUTURE_EXECUTION": "NEW_EXPLICIT_PERMIT_REQUIRED",
+ "EARLIEST_ELIGIBLE_GRID_TIMESTAMP": "2026-08-25T17:20:00Z",
+ "EARLIEST_ELIGIBLE_GRID_TIMESTAMP_SUPERSEDED_BY": "AMENDMENT_1",
+ "INPUT_FOOTPRINT_CONDITION": {
+  "rule": "no input of an evaluated bucket may lie inside the protected interval",
+  "inputs": [
+   "30-day percentile ranks",
+   "persistence predecessor bucket",
+   "pre-anchor covariates up to 4h",
+   "matched controls at or before the anchor"
+  ],
+  "input_clean_decision_bucket_from": "2026-09-24T17:20:00Z",
+  "superseded_by": "AMENDMENT_1"
+ },
+ "RELATED_EXPOSURE_FLAGGED": {
+  "record": "docs/audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md",
+  "fact": "the owner-run P4 descriptive follow-up used the same 12434 authorized buckets and reported 1h/4h realized ranges after triggered PRICE_OI_CONTRACTION states",
+  "adjudicated": true,
+  "decision": "AMENDMENT_1"
+ },
+ "ATLAS": {
+  "unit": "PRICE-OI-PILOT-V0",
+  "state": "BLOCKED_GOVERNANCE",
+  "blocker": "HOLDOUT_OVERLAP",
+  "reservation": "E1_RUN_001_FINAL_HOLDOUT"
+ },
+ "AMENDMENTS": [
+  {
+   "id": "AMENDMENT_1",
+   "recorded": "2026-10-03",
+   "by": "owner",
+   "decision": "P4 contaminated the E1 protected outcome surface for every timestamp it read inside the E1 protected interval",
+   "E1_EVALUATOR_TOUCHED": false,
+   "E1_SEALED_ARTIFACTS_OPENED": false,
+   "E1_OUTCOME_SURFACE_OPENED_BY_P4": true,
+   "E1_PRISTINE_HOLDOUT_STATUS": "INVALIDATED_FOR_P4_OVERLAP",
+   "E1_RECORDS_REWRITTEN": false,
+   "P4_ROW_LEVEL_LOG_IN_REPOSITORY": false,
+   "DERIVED_FROM": [
+    "docs/audit/live_archive_price_oi_p4_followup_v0/p4_followup_summary.json",
+    "scripts/audit/live_archive_replay_preflight/run_price_oi_semantic_replay.py@364db27",
+    "scripts/audit/live_archive_replay_preflight/price_oi_semantic_replay.py@364db27",
+    "beta/followup.py@9e1ba03638b5e53fedea5b91cb60d41e23288f5e"
+   ],
+   "P4_TABLES_READ": [
+    "klines_1m",
+    "open_interest"
+   ],
+   "P4_READ_FILTER": "symbol = 'BTCUSDT' AND source = 'live'",
+   "P4_RECORDED_READ_WINDOW": {
+    "start": "2026-07-17T19:30:00Z",
+    "end_exclusive": "2026-09-29T00:00:00Z"
+   },
+   "P4_MAXIMAL_FOLLOW_UP_EXTENSION": {
+    "start": "2026-09-29T00:00:00Z",
+    "end_exclusive": "2026-09-29T04:00:00Z",
+    "actually_read": "NOT_RECORDED"
+   },
+   "P4_EXPOSED_TREATED": {
+    "start": "2026-07-17T19:30:00Z",
+    "end_exclusive": "2026-09-29T04:00:00Z"
+   },
+   "E1_P4_EXPOSED_INTERVAL": {
+    "start": "2026-08-16T00:00:00Z",
+    "end_exclusive": "2026-08-25T17:20:00Z",
+    "share_of_protected_interval": "ALL"
+   },
+   "FUTURE_PILOT_RULES": {
+    "exclude_outcome_timestamps": {
+     "start": "2026-07-17T19:30:00Z",
+     "end_exclusive": "2026-09-29T04:00:00Z"
+    },
+    "exclude_anchors_whose_feature_lookback_or_control_window_touches_exposed": true,
+    "earliest_input_clean_anchor_under_v0_lookbacks": "2026-10-29T04:00:00Z",
+    "new_explicit_execution_permit_required": true,
+    "old_frozen_data_gate_reusable": false
+   },
+   "SUPERSEDES": [
+    "EARLIEST_ELIGIBLE_GRID_TIMESTAMP",
+    "INPUT_FOOTPRINT_CONDITION"
+   ]
+  }
+ ]
+}

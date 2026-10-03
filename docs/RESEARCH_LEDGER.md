@@ -7815,3 +7815,97 @@ The owner accepted the G01 result. The cleanup is documentation only: no compile
 G01_STATUS = CLOSED_NO_SURVIVORS
 CANDIDATES_FROZEN = 0; CANDIDATES_EXECUTED = 0; MARKET_OUTCOMES_OPENED = NO
 ```
+
+## 2026-10-03 — Research Atlas V1: past research transferred onto one permanent map
+
+**Decision (owner proposal of 2026-10-03).** Numbered generation campaigns are replaced by `SIGNALBOT_RESEARCH_ATLAS_V1`: Mechanism (66 rows in 13 regions) × Data surface (10 columns) × Research state (11 states). This is documentation and tooling only:
+- no market value was read;
+- no test was registered or run;
+- no window was consumed;
+- no sealed record or memory-chain file was edited.
+
+**Recorded on the map.** Each of the 145 units carries:
+- what was tested;
+- data and period;
+- the practical bar;
+- the verdict;
+- why it closed;
+- what would reopen it;
+- forbidden rescues;
+- records.
+
+Every surface carries an exposure ledger.
+
+**Facts made explicit by the transfer:**
+- **Order book.** Binance USD-M bookDepth for BTC/ETH in 2023–2024 and for six symbols in 2025–2026 is exposed for book-imbalance and depth-asymmetry mechanisms, because the SEED-0001 and divergence "book support" state was a ±5% depth imbalance computed with outcomes.
+- **D7.** Recorded as CONFIRMED (the BitMEX confirmation).
+- **GV0V03L40-C033.** Recorded as BLOCKED_METHOD (V2 recompile: the joint state never occurs).
+- **PRICE_OI pilot.** Its frozen grid starts inside the calendar span of the E1-RUN-001 holdout. This is flagged for the owner; nothing was run.
+
+```
+ATLAS = SIGNALBOT_RESEARCH_ATLAS_V1
+WINDOWS_CONSUMED = none; MARKET_VALUES_READ = none; NEW_TESTS = none
+```
+
+## 2026-10-03 — Atlas governance cleanup before merge: PRICE_OI/E1 erratum, SEED-0001 prospective closure, memory reconciliation, reserve, event log
+
+No market value was read and no test was registered or run. Every change is append-only or a new record:
+- the frozen PRICE_OI preregistration and its twin are unchanged;
+- the SEED-0001 preregistration and the `SCIENTIFIC_TEST_LEDGER.json` entry are unchanged;
+- the generator memory chain is unchanged.
+
+**PRICE_OI pilot vs E1-RUN-001 (`PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md`).**
+- **Overlap.** The frozen 12434-bucket grid starts at 2026-08-16T19:30Z; 2566 buckets lie inside the protected interval `[2026-08-16T00:00Z, 2026-08-25T17:20Z)`.
+- **Not run, and not runnable as frozen.** The runner was never executed. Execution on the segment is invalid, and the frozen data gate cannot be met without it, so a future execution is a new pilot identity with a new explicit permit.
+- **Boundaries.** The earliest eligible grid timestamp is 2026-08-25T17:20:00Z; the input-clean decision bucket is from 2026-09-24T17:20:00Z (30-day percentile lookback).
+- **Atlas.** `BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP`.
+- **E1.** The pilot never read E1-RUN-001; E1's evaluator and sealed artifacts were not touched.
+- **P4.** The owner-run P4 descriptive follow-up (2026-09-29) used the same grid and reported 1h/4h realized ranges. The owner adjudicated this the same day (next entry).
+
+**SEED-0001 prospective (`SEED0001_PROSPECTIVE_CLOSURE_V1.md`).**
+- `TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START`, superseded by the divergence program closure.
+- Never started, no prospective outcome opened, no confirmation surface consumed.
+
+**Atlas.**
+- **Memory reconciliation layer.** D7 is CONFIRMED and GV0V03L40-C033 is BLOCKED_METHOD by atlas authority; the memory statuses are preserved.
+- **Reservations.** The E1 holdout is the only reserved surface; it is invisible to generation and needs a permit.
+- **Event log.** Append-only and hash-chained; event 1 reproduces the transfer digest.
+- **Designs only.** Generator contract V04 and the confirmation budget.
+- **Bot bridge.** Atlas → proposed registry diff → review → bot; no automatic coupling.
+
+**Product.** V2 is recorded as deployed to production from `main` `a16b876` (owner-reported).
+
+```
+WINDOWS_CONSUMED = none; MARKET_VALUES_READ = none; NEW_TESTS = none; PROTECTED_SURFACES_CONSUMED = none
+PRICE_OI_PILOT_V0 = BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP
+TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START
+```
+
+## 2026-10-03 — Owner decision: P4 opened the E1-RUN-001 protected outcome surface
+
+The owner ruled that the P4 owner-run descriptive follow-up contaminated the E1 protected outcome surface for every timestamp it read inside the protected interval. It is recorded as Amendment 1 of `docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md`; the historical E1 records are not rewritten.
+
+```
+E1_EVALUATOR_TOUCHED = NO
+E1_SEALED_ARTIFACTS_OPENED = NO
+E1_OUTCOME_SURFACE_OPENED_BY_P4 = YES
+E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP
+```
+
+**Exposed interval, derived from P4's records.** P4 has no row-level log in the repository. The interval comes from its manifest (`authorized_buckets = 12434`, `as_of = 2026-09-29T15:03Z`) and the frozen code it names:
+- **Replay (`364db27`).** It read `klines_1m` and `open_interest`, BTCUSDT, live, over `[2026-07-17T19:30:00Z, 2026-09-29T00:00:00Z)`, with no exclusion inside.
+- **Follow-up (`beta/followup.py` at `9e1ba036`).** Its 1h/4h outcome windows can extend to at most `2026-09-29T04:00:00Z`. Whether it actually read past 00:00Z is not recorded.
+
+**Consequences:**
+- **E1.** Inside the E1 interval, the exposure is the whole interval `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)`.
+- **Treated as P4-exposed:** `[2026-07-17T19:30:00Z, 2026-09-29T04:00:00Z)`.
+- **Future PRICE_OI or related pilots** must:
+  - exclude those timestamps;
+  - exclude every anchor whose feature, lookback or control window touches them (under the V0 lookbacks, anchors from `2026-10-29T04:00:00Z`);
+  - have a new explicit permit;
+  - not reuse the old frozen data gate.
+- **Atlas.** The E1 reservation stays `RESERVED`, with `pristine_status = INVALIDATED_FOR_P4_OVERLAP`. The live-archive surfaces carry the P4 window as exposure for all rows.
+
+```
+WINDOWS_CONSUMED = none by this record (it records a past exposure); MARKET_VALUES_READ = none; NEW_TESTS = none
+```

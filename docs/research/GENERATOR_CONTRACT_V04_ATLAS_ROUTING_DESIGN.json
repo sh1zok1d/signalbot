@@ -1,0 +1,32 @@
+{
+ "CONTRACT": "GENERATOR_CONTRACT_V04",
+ "STATUS": "DESIGN_ONLY_NOT_ACTIVE",
+ "RECORDED": "2026-10-03",
+ "ACTIVE_GENERATOR_AUTHORITY_UNCHANGED": "docs/research/GENERATOR_V0_FIRST_30_CARD_ARCHITECTURE_FREEZE.md",
+ "GENERATOR_CODE_CHANGED": false,
+ "SELECTION": {
+  "selector": "deterministic, no LLM",
+  "cells_per_packet": 1,
+  "lanes": {
+   "FRONTIER": "highest-value OPEN_FRONTIER cell with frontier_eligible and data_readiness > 0 in owner-authorized regions; atlas tie-break order",
+   "REOPEN": "a cell with prior work, only with a recorded reopen key and its evidence"
+  },
+  "reopen_keys_for_closed_cells": ["NEW_MECHANISM", "NEW_SURFACE", "NEW_CONFIRMATION_SURFACE", "RECORDED_REOPEN_CONDITION", "BLOCKER_RESOLVED", "NEW_INDEPENDENT_UNITS", "PROSPECTIVE_DATA", "OWNER_DECISION"],
+  "never_a_reopen": ["threshold", "percentile", "horizon", "lookback", "window", "clock", "lag", "nearby parameter"]
+ },
+ "PACKET_FIELDS": {
+  "atlas": {"version": "str", "sources_digest": "sha256", "event_head_hash": "sha256"},
+  "lane": "FRONTIER | REOPEN",
+  "cell": {"row": "REGION.row", "col": "COLUMN", "row_name": "str", "region": "str", "native_layer": "COLUMN", "native": "bool"},
+  "row_context": {"applicable_columns": ["COLUMN"], "prior_signatures": [{"id": "str", "mechanism": "str", "function": "str"}]},
+  "allowed_surfaces": [{"id": "str", "col": "COLUMN", "also_cols": ["COLUMN"], "coverage": "str", "availability": "str", "unavailable_periods": [{"start": "ISO8601", "end_exclusive": "ISO8601"}]}],
+  "reopen_conditions": {"forbidden_moves": ["PARAMETER_NEIGHBOR", "FUNCTIONAL_RELABEL", "EXACT_DUPLICATE", "OBSERVABLE_SUBSTITUTION", "SUBGROUP_MINING", "REVERSE_EFFECT_RESCUE", "COMPOSITION_OF_CONSUMED", "CONFIRMATION_ON_EXPOSED"], "reopen_key": "REOPEN lane only", "selector_statement": "outcome-neutral, REOPEN lane only"},
+  "restrictions": {"unavailable_periods": "from active reservations", "exposed_surfaces_not_confirmation": true},
+  "rules": "the generator-view RULES block"
+ },
+ "PACKET_SOURCE": "docs/research/atlas/ATLAS_GENERATOR_VIEW_V1.json only",
+ "PACKET_MUST_NOT_CARRY": ["research states other than OPEN, PRIOR_WORK, DATA_REQUIRED, UNDERPOWERED_NOW", "verdicts", "effect sizes", "result direction", "pass/fail words", "result numbers", "unit reopen texts"],
+ "CARD_ADDITIONS": ["atlas_cell", "lane", "native_layer", "added_layer", "novelty_relation", "reopen_key", "datasets", "confirmation_plan"],
+ "ADMISSION_REJECTS": ["cell differs from selection", "dataset outside allowed_surfaces", "period inside unavailable_periods", "forbidden move against a row prior signature", "confirmation on an exposed or reserved surface without permit", "REOPEN novelty not matching the recorded key"],
+ "ACTIVATION": ["owner decision", "implementation with blind-packet flip test and admission fixtures", "amend or supersede the Generator V0 architecture freeze and role matrix", "mock dry run without market data", "first batch under its own owner go"]
+}

@@ -44,6 +44,47 @@ Done end to end on branch `research/autonomous-generation-g01`, from `main` at `
 - `AUTOGEN_G01_PLANNING.json`;
 - `SCIENTIFIC_TEST_LEDGER.json` (`SF-AUTOGEN-G01`, no test registered).
 
+## Research Atlas V1 — the permanent research map; governance cleanup before merge; no research executed — 2026-10-03
+
+`ATLAS = SIGNALBOT_RESEARCH_ATLAS_V1 (docs/research/SIGNALBOT_RESEARCH_ATLAS_V1.md)`
+`UNITS_ON_MAP = 145 (all 79 memory entries, R03, G01, divergence program, sprint pools, seeds, TWAP, E1, V3, product statistics, K1)`
+`CELLS = 436 applicable | 73 with prior work | 328 open with data | 17 open without data`
+`MARKET_VALUES_READ = none | NEW_TESTS = none | MEMORY_CHAIN_EDITED = no | SEALED_RECORDS_EDITED = no`
+`PRICE_OI_PILOT_V0 = BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP (erratum; not executed; new explicit permit required)`
+`TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START (superseded by divergence program closure; closure record; prereg and ledger entry preserved)`
+`D7 = CONFIRMED (atlas authority; memory status preserved) | GV0V03L40-C033 = BLOCKED_METHOD (atlas authority; memory status preserved)`
+`RESERVED_SURFACES = E1_RUN_001_FINAL_HOLDOUT only | ATLAS_EVENTS = hash-chained, append-only`
+`E1_EVALUATOR_TOUCHED = NO | E1_SEALED_ARTIFACTS_OPENED = NO | E1_OUTCOME_SURFACE_OPENED_BY_P4 = YES | E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP`
+`GENERATOR_CONTRACT_V04 = DESIGN_ONLY / NOT_ACTIVE | CONFIRMATION_BUDGET = DESIGN_ONLY`
+`NEXT_UNIT = none until an owner go names a batch; selection then follows the atlas frontier (§7 batch protocol)`
+
+**What changed.** Research is chosen from one permanent map, Mechanism × Data surface × State, instead of numbered campaigns. A family is not reopened for a new threshold, and a closed cell reopens only with a new mechanism, a new surface, naturally accumulated units, a resolved blocker, prospective data or an owner decision.
+
+**Two views.**
+- **Full governance view** (`docs/research/atlas/SIGNALBOT_RESEARCH_ATLAS_V1.json`, `ATLAS_MATRIX_V1.md`): for the owner, the selector and the critics.
+- **Outcome-blind generator view** (`ATLAS_GENERATOR_VIEW_V1.json`): for hypothesis generators. Its blindness is enforced by tests.
+
+**Memory reconciliation.** Neither the memory chain nor any sealed record was edited. The atlas carries an explicit reconciliation layer (atlas §3a), and the atlas is the authority for current routing.
+- **D7 → CONFIRMED.** The BitMEX confirmation passed after the memory snapshot.
+- **GV0V03L40-C033 → BLOCKED_METHOD.** The V2 recompile found that its joint state never occurs.
+- **GV0R01-C004, -C012, -C013, -C020.** Post-memory closures and results.
+- **H01, H03.** Classification readings.
+
+**Governance records appended (no record edited in place).**
+- **PRICE_OI pilot (`docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md`).**
+  - The frozen grid overlaps the protected E1 holdout (2566 of 12434 buckets), and the runner was never executed.
+  - Execution on that segment is invalid, and the frozen data gate cannot be met without it, so any execution is a new pilot needing a new explicit permit.
+  - The earliest eligible grid timestamp is 2026-08-25T17:20:00Z; inputs are clean from 2026-09-24T17:20:00Z.
+  - The pilot never read E1-RUN-001, and E1's evaluator and sealed artifacts were not touched.
+  - **Owner decision (erratum Amendment 1):** the earlier owner-run P4 descriptive follow-up, which used the same grid, opened the E1 protected outcome surface.
+    - Its replay (`364db27`) read `klines_1m` and `open_interest` over `[2026-07-17T19:30Z, 2026-09-29T00:00Z)`, which includes the whole holdout. The E1 holdout is no longer pristine.
+    - A future PRICE_OI or related pilot must exclude `[2026-07-17T19:30Z, 2026-09-29T04:00Z)` and every anchor whose windows touch it (anchors from 2026-10-29T04:00Z under the V0 lookbacks), needs a new permit, and may not reuse the old data gate.
+- **SEED-0001 prospective (`docs/research/SEED0001_PROSPECTIVE_CLOSURE_V1.md`).** Closed before start: execution never started, no prospective outcome was opened (the cohort starts 2026-10-05), and no confirmation surface was consumed.
+
+**Owner priority.** MICROSTRUCTURE and SPOT_PERP get +2 in frontier routing; this is not an execution authorization.
+
+**Order book is not pristine.** The divergence program's "book support" state was a ±5% depth imbalance, so Binance bookDepth for BTC/ETH in 2023–2024 and for six symbols in 2025–2026 is exposed for book imbalance and depth asymmetry.
+
 ## Product decision V2 — decision support; protected 2025/2026 opened for product — 2026-10-03
 
 `OPERATING_MODE = PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS`
