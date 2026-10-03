@@ -124,8 +124,8 @@ def test_live_btc_and_readiness_paths_fail_closed_in_the_sandbox():
         await _join(store, h)
         with pytest.raises(Unreplayable):
             await h.handle(message_update(4, "/btc"))
-        with pytest.raises(Unreplayable):
-            await h.handle(callback_update(5, "r:latest", 3))
+        out = await h.handle(callback_update(5, "r:latest", 3))       # owner-only: never reaches live state
+        assert [o.kind for o in out] == ["answer"]
     asyncio.run(go())
     assert store.activity[-1]["action"] == "cmd_start"   # the failed transactions rolled back
 

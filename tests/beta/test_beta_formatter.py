@@ -72,7 +72,15 @@ def test_status_history_details_render():
                  delivery_states=None) for et in EVENT_TYPES]
     outs = {1: [{"horizon": "4h", "status": "COMPLETE", "realized_range_pct": 1.23, "revision": 2}]}
     h = format_history(rows, outs)
-    assert "SUPPRESSED (PUSH_DISABLED)" in h and "corrected input" in h and "4h range 1.23%*" in h
+    assert "no message" in h and "corrected input" in h and "4h range 1.23%*" in h
+    # BETA_COPY_CONTRACT_V1 §5 rule 5: no internal id, delivery state, suppression or reason code
+    for internal in ("EV-ABCDEF0123", "SUPPRESSED", "PUSH_DISABLED", "condition failed", "detector", "episode"):
+        assert internal not in h
+    sent = [dict(rows[0], decision="PUSH", suppression_reason=None, delivery_states=["SENT"],
+                 terminal_reason="MAX_DURATION")]
+    h = format_history(sent, {1: [{"horizon": "1h", "status": "INCOMPLETE_DATA"}]}, "ru")
+    assert "сообщение отправлено" in h and "лимит длительности" in h and "1h н/д" in h
+    assert "SENT" not in h and "MAX_DURATION" not in h and "incomplete" not in h.lower()
     d = format_details(_ep(EVENT_TYPES[0], correction_flag=True, correction_note="input corrected"),
                        [{"decision_ts": T, "to_state": "ARMED", "reason": "CONDITION_MET"}],
                        [{"horizon": "1h", "status": "COMPLETE", "realized_range_pct": 1.0, "max_up_pct": 0.5,

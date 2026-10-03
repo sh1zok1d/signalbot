@@ -517,7 +517,13 @@ def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabl
     window = market.get("window") or {}
     brief = view.get("kind") == "brief"
     span = _window_span(window, hours, lang)
-    lines = [f"<b>{_e(t(lang, 'brief_title' if brief else 'catchup_title', hours=hours, span=span))}</b>"]
+    if brief:
+        title = t(lang, "brief_title", span=span)
+    elif window.get("window_start") and window.get("window_end"):
+        title = t(lang, "catchup_title", hours=hours, span=span)
+    else:                                       # no window: never «BTC за 8 ч · 8 ч»
+        title = t(lang, "catchup_title_nospan", hours=hours)
+    lines = [f"<b>{_e(title)}</b>"]
     degraded = view.get("product_status") in ("DATA STALE", "DATA DEGRADED") or not market.get("complete")
     if degraded:
         lines.append(t(lang, "insufficient"))
@@ -756,7 +762,9 @@ def _line_24h(view: Mapping[str, Any], lang: str) -> str:
 
 
 def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int] = None):
-    """Event only with an open or retained episode. 1h outside fail-closed. Readiness unchanged."""
+    """Event only with an open or retained episode. 1h outside fail-closed. No Readiness button:
+    the per-rule readiness details carry tiers, sample counts, reason codes and the read-model
+    version (BETA_COPY_CONTRACT_V1 §5 rule 5); the main screen already names what is building."""
     row = []
     fail = view.get("product_status") in ("DATA STALE", "DATA DEGRADED")
     focus = view.get("active_episode") or view.get("last_event")
@@ -765,9 +773,6 @@ def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int
     if view_pk is not None and not fail:
         row.append((t(lang, "btn_1h"), f"o:{int(view_pk)}:1h"))
         row.append((t(lang, "btn_24h"), f"o:{int(view_pk)}:24h"))
-    rd = view.get("readiness")
-    if rd and any(g.get("status") != "READY" for g in rd.get("groups") or ()):
-        row.append((t(lang, "btn_readiness"), "r:latest"))
     rows = [row] if row else []
     if (view.get("decision") or {}).get("available"):
         rows.append([(t(lang, "btn_levels"), "L:levels"), (t(lang, "btn_risk"), "L:risk")])
@@ -1231,19 +1236,22 @@ def format_push_v02(episode: Any, lang: str = "en") -> str:
 
 
 def push_status_label(row: Mapping[str, Any], lang: str = "en") -> str:
+    """What happened to the message, in words: never a delivery state or suppression code."""
     decision = row.get("decision")
-    if decision is None:
+    if decision is None or decision == "SUPPRESSED":
         return t(lang, "push_none")
-    if decision == "SUPPRESSED":
-        return f"SUPPRESSED ({row.get('suppression_reason')})"
     states = set(row.get("delivery_states") or ())
     if "SENT" in states:
-        return "SENT"
+        return t(lang, "push_sent")
     if "DELIVERY_UNKNOWN" in states:
-        return "UNKNOWN"
+        return t(lang, "push_unconfirmed")
     if "EXPIRED_UNDELIVERED" in states:
-        return "EXPIRED"
+        return t(lang, "push_expired")
     return t(lang, "push_pending")
+
+
+_END_KEYS = {"NOT_EVALUABLE": "end_not_evaluable", "MAX_DURATION": "end_max_duration",
+             "DETECTOR_VERSION_CHANGED": "end_version_changed", "DETECTION_GAP": "end_detection_gap"}
 
 
 def _range_summary(outcomes: Iterable[Mapping[str, Any]], lang: str) -> str:
@@ -1256,7 +1264,7 @@ def _range_summary(outcomes: Iterable[Mapping[str, Any]], lang: str) -> str:
                 pct = pct.replace(".", ",")
             parts.append(t(lang, "range_complete", h=o["horizon"], pct=pct, mark=mark))
         else:
-            parts.append(f"{o['horizon']} {o['status'].lower().replace('_', ' ')}")
+            parts.append(t(lang, "range_na", h=o["horizon"]))
     return "; ".join(parts) if parts else t(lang, "follow_pending")
 
 
@@ -1267,9 +1275,10 @@ def format_history(rows: Sequence[Mapping[str, Any]],
         lines.append(t(lang, "history_empty"))
     for r in rows:
         corr = t(lang, "history_corrected") if r.get("correction_flag") else ""
-        term = f", {r['terminal_reason'].lower().replace('_', ' ')}" if r.get("terminal_reason") else ""
+        end = _END_KEYS.get(r.get("terminal_reason") or "")
+        term = f", {t(lang, end)}" if end else ""
         lines.append(
-            f"• {r['public_id']} {_e(event_label(r['event_type'], lang))} — "
+            f"• {_e(event_label(r['event_type'], lang))} — "
             f"{state_label(r['state'], lang)}{term}{corr}\n"
             f"  {t(lang, 'history_times', opened=_when(r['opened_at'], lang), triggered=_when(r.get('triggered_at'), lang), push=push_status_label(r, lang))}\n"
             f"  {_range_summary(outcomes_by_pk.get(r['episode_pk'], ()), lang)}")

@@ -77,7 +77,8 @@ def test_all_immature_is_history_building_not_no_active_events():
     assert "BTC 83,500 · history building" in out and "NO ACTIVE EVENTS" not in out and "HISTORY BUILDING" not in out
     assert "Price/OI history 8.4d / 30d" in out and "Unusual states are not evaluated yet" in out
     assert "Delta:" not in out and "Liquidations:" not in out
-    assert ("Readiness", "r:latest") in btc_buttons(v)[0]
+    # the per-rule details are owner diagnostics: no Readiness button for participants
+    assert all(d != "r:latest" for row in (btc_buttons(v) or ()) for _, d in row)
     details = format_readiness_details(CFG, r)
     assert "history building · OI history 8.4d / 30d" in details
     assert "history building · Delta history 8.4d / 30d" in details

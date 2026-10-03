@@ -427,6 +427,8 @@ class BetaBotHandler:
         price = block.get("price")
         if parts and parts[0] in ("del", "delete", "удалить", "rm"):
             alerts = await conn.list_price_alerts(user["user_pk"])
+            if not alerts:
+                return t(lang, "al_list_none")
             if len(parts) == 2 and parts[1] in ("all", "все"):
                 n = await conn.cancel_price_alerts(user["user_pk"], now=now)
             elif len(parts) == 2 and parts[1].isdigit() and 1 <= int(parts[1]) <= len(alerts):
@@ -454,9 +456,11 @@ class BetaBotHandler:
             return t(lang, "al_usage")
         if not price:
             return t(lang, "al_no_price")
-        dist = (level / price - 1) * 100.0
-        if level <= 0 or abs(dist) > 30:
+        if level <= 0:
             return t(lang, "al_usage")
+        dist = (level / price - 1) * 100.0
+        if abs(dist) > 30:
+            return t(lang, "al_too_far", now=fmt_price(price, lang))
         if abs(dist) < 0.05:
             return t(lang, "al_too_close", now=fmt_price(price, lang))
         made = await conn.add_price_alert(user_pk=user["user_pk"], price=level, created_price=price, now=now,
@@ -582,6 +586,9 @@ class BetaBotHandler:
         if user is None or user["status"] != "ACTIVE" or len(data) < 3 or data[1] != ":":
             return [answer(t(lang, "not_available"))]
         if data == "r:latest":
+            # Owner-only diagnostics (an older /btc may still carry the button).
+            if not is_owner(self.owner, uid):
+                return [answer(t(lang, "not_available"))]
             return await self._readiness_details(conn, chat_id, answer, lang)
         if data in ("L:levels", "L:risk"):
             cmd = data[2:]

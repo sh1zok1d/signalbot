@@ -163,6 +163,8 @@ DECISION_CATALOG: dict = {
                       "Already {n} alerts — the maximum. Delete one: /alert del 1"),
     "al_usage": _pair("Уровень ценой: /alert 65000 · список: /alert · удалить: /alert del 1",
                       "A price: /alert 65000 · list: /alert · delete: /alert del 1"),
+    "al_too_far": _pair("Уровень дальше 30% от текущей цены {now}. Укажите ближе.",
+                        "That is more than 30% from the current price {now}. Pick a closer level."),
     "al_too_close": _pair("Это слишком близко к текущей цене {now}.", "That is too close to the current price {now}."),
     "al_no_price": _pair("Цена Binance сейчас недоступна, попробуйте позже.", "The Binance price is unavailable now; try later."),
     # ---- /push ----
@@ -246,7 +248,7 @@ DECISION_HELP = {
         "/research — что проверили исследования: что подтвердилось, что нет\n"
         "/brief on|off — утренняя сводка в 08:00 (Киев)\n"
         "/push — какие сообщения присылать\n"
-        "/history — недавние эпизоды детектора\n"
+        "/history — недавние необычные события\n"
         "/terms — термины · /lang — язык сообщений · /feedback — отзыв\n"
         "/stop — пауза · /delete_me — удалить ваши данные"
     ),
@@ -265,7 +267,7 @@ DECISION_HELP = {
         "/research — what the research tested: what held up, what did not\n"
         "/brief on|off — morning briefing at 08:00 Kyiv\n"
         "/push — which messages to receive\n"
-        "/history — recent detector episodes\n"
+        "/history — recent unusual events\n"
         "/terms — terms · /lang — message language · /feedback — feedback\n"
         "/stop — pause · /delete_me — delete your data"
     ),
