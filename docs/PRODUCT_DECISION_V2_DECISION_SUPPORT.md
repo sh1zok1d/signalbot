@@ -59,7 +59,7 @@ The owner opened Binance USD-M BTCUSDT 2025/2026 history for product use. Conseq
 | Historical analogue cards on DO-NOT-BUILD-YET; the heavy promotion procedure (spec digest, 1000-replicate null calibration before any card) | `PRODUCT_FIRST_DECISION_V1.md` §5; `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` | §3 honesty rule (N, "обычно", day-clustered bootstrap with Holm, materiality floor) |
 | Calendar not in MUST; "no new backfill only to launch earlier" | `PRODUCT_FIRST_DECISION_V1.md` §6, §9 | §2; the history sync and the V2 tape rewind (`PRIVATE_BETA_V0_DEPLOY.md`, "Decision support V2") |
 | The forbidden-word lists against forecasting vocabulary (вероятность, прогноз, ожидается, разворот, продолжение, стоп) | `beta/i18n.py`, `BETA_COPY_CONTRACT_V1.md` §4 | the trade-call and hype guard of §3 |
-| `/catchup` and briefing 15-line limit | `BETA_COPY_CONTRACT_V1.md` §5 rule 8 | up to 30 lines for the briefing and `/catchup`; pushes stay short |
+| `/catchup` and briefing 15-line limit | `BETA_COPY_CONTRACT_V1.md` §5 rule 8 | the briefing and `/catchup` add the corridor, the level ladder and today's events (about 22 lines); pushes stay at most 8 lines |
 | Push cap of 2 a day as the only push budget | `PRODUCT_FIRST_DECISION_V1.md` §3 row 8 | the unusual-hour cap is unchanged; market alerts (levels, sharp moves) have their own daily cap; event reminders and personal price alerts are user-controlled |
 | `AGENTS.md` beta line "never predictive wording" | `AGENTS.md` | this file |
 
@@ -80,8 +80,9 @@ The 30-day test of `PRODUCT_FIRST_DECISION_V1.md` §7 (U1a, U1b, U2, U3, U4, U5 
 | Event calendar and event-day statistics | `beta/calendar_events.py`, `config/beta_calendar.yaml`, `scripts/beta/build_calendar.py` |
 | Nightly statistics build | `beta/history_stats.py`, `--beta-history-build`, `deploy/signalbot-beta-history.{service,timer}` |
 | Live decision block for every surface | `beta/decision.py` |
-| Market alerts (levels, events, sharp moves, user alerts), forecast tracking | `beta/market_alerts.py`, `beta/forecast_tracking.py` |
+| Market alerts (levels, events, sharp moves, user alerts), forecast tracking | `beta/market_alerts.py` (inside `--beta-notify-once`) |
 | Texts | `beta/decision_format.py`, `beta/i18n.py` |
 | V2 tape rewind (removes «мало истории» where raw data exist) | `--beta-bootstrap-rewind` |
+| VPS upgrade helper | `deploy/beta_v2_upgrade.sh` |
 
 Deploy and verification steps: `PRIVATE_BETA_V0_DEPLOY.md`, section "Decision support V2".

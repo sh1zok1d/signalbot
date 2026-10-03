@@ -7311,4 +7311,3 @@ RESCUE_ATTEMPTED = false
 ```
 
 These statistics are product evidence (descriptive, with N, a comparable baseline and a verdict), not research claims. Development numbers seen while building them (2022–2024 repository archives, synthetic OI only for the analogue mechanics) are recorded in the implementation review, not as results.
-
