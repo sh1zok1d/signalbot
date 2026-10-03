@@ -418,6 +418,48 @@ d7_missing AS (
         SELECT 1 FROM beta_d7_hour_states s WHERE s.hour_start = c.hour_start
     )
 ),
+-- Stage-1 startup recovery (common.startup_recovery): the newest readiness row,
+-- and decided buckets whose raw 1m bars arrived after the bucket was decided
+-- ("raw recovered, tape still stale"). Window: deploy_ts - 24h .. last closed bucket.
+recovery_run AS (
+    SELECT r.id, r.status, r.started_at, r.finished_at, r.note
+    FROM backfill_runs r
+    WHERE r.source = 'startup_recovery' AND r.exchange = '*' AND r.symbol = 'BTCUSDT'
+    ORDER BY r.id DESC
+    LIMIT 1
+),
+decided_bucket AS (
+    SELECT DISTINCT ON (t.bucket_ts) t.bucket_ts, t.snapshot
+    FROM beta_state_tape t
+    JOIN bounds b ON t.bucket_ts >= b.deploy_ts - interval '24 hours'
+                 AND t.bucket_ts <= b.last_closed_bucket
+    WHERE t.symbol = 'BTCUSDT'
+      AND t.market_type = 'perp'
+      AND t.timeframe = '5m'
+      AND t.origin IN ('LIVE', 'CORRECTION_CHECK')
+      AND t.state_schema_version = (SELECT schema_version FROM params)
+      AND t.rules_digest = (SELECT rules_digest FROM params)
+    ORDER BY t.bucket_ts, t.tape_id DESC
+),
+raw_bucket AS (
+    SELECT k.exchange,
+           date_bin('5 minutes', k.ts, TIMESTAMPTZ '2000-01-01 00:00:00+00') AS bucket_ts,
+           count(*) AS bars
+    FROM klines_1m k
+    JOIN bounds b ON k.ts >= b.deploy_ts - interval '24 hours' AND k.ts < b.as_of
+    WHERE k.symbol = 'BTCUSDT'
+      AND k.exchange IN ('binance', 'bybit', 'okx')
+    GROUP BY 1, 2
+),
+stale_after_raw AS (
+    SELECT d.bucket_ts, v.exchange,
+           COALESCE((d.snapshot->'venues'->v.exchange->>'bars')::int, 0) AS stored_bars,
+           r.bars AS raw_bars
+    FROM decided_bucket d
+    CROSS JOIN venues v
+    JOIN raw_bucket r ON r.exchange = v.exchange AND r.bucket_ts = d.bucket_ts
+    WHERE r.bars > COALESCE((d.snapshot->'venues'->v.exchange->>'bars')::int, 0)
+),
 checks AS (
     SELECT '0. window'::text AS section, 'PASS'::text AS status,
            format('deploy_ts=%s as_of=%s transaction=READ ONLY', deploy_ts, as_of) AS detail
@@ -721,6 +763,41 @@ checks AS (
                            (SELECT count(*) FROM d7_complete),
                            (SELECT count(*) FROM d7_missing))
            END
+
+    UNION ALL
+    SELECT 'I. Startup recovery',
+           CASE
+               WHEN r.id IS NULL THEN 'WARN'
+               WHEN r.status = 'complete' THEN 'PASS'
+               WHEN r.status = 'partial' THEN 'WARN'
+               WHEN r.status = 'running' AND p.as_of - r.started_at < interval '60 minutes' THEN 'WARN'
+               ELSE 'FAIL'
+           END,
+           CASE
+               WHEN r.id IS NULL
+                   THEN 'no Stage-1 startup_recovery row: Stage-1 predates the readiness signal, the detector does not wait'
+               ELSE format('newest Stage-1 startup recovery run=%s status=%s started=%s finished=%s %s',
+                           r.id, r.status, r.started_at, COALESCE(r.finished_at::text, '-'),
+                           COALESCE(r.note, ''))
+           END
+    FROM params p
+    LEFT JOIN recovery_run r ON TRUE
+
+    UNION ALL
+    SELECT 'I. Startup recovery',
+           CASE
+               WHEN count(*) = 0 THEN 'PASS'
+               WHEN count(*) FILTER (WHERE stored_bars = 0) > 0 THEN 'FAIL'
+               ELSE 'WARN'
+           END,
+           CASE
+               WHEN count(*) = 0
+                   THEN 'raw recovered, tape stale: none (no decided bucket has fewer bars than raw now holds)'
+               ELSE format('raw recovered, tape stale: buckets=%s venue-buckets=%s with no stored bar=%s first=%s last=%s (runbook: startup recovery)',
+                           count(DISTINCT bucket_ts), count(*), count(*) FILTER (WHERE stored_bars = 0),
+                           min(bucket_ts), max(bucket_ts))
+           END
+    FROM stale_after_raw
 ),
 rollup AS (
     SELECT 'Z. rollup'::text AS section,

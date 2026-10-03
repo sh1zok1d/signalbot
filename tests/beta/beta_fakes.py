@@ -149,6 +149,11 @@ CREATE TABLE IF NOT EXISTS open_interest (
     exchange TEXT NOT NULL, symbol TEXT NOT NULL, ts TIMESTAMPTZ NOT NULL,
     oi_raw DOUBLE PRECISION, oi_unit TEXT, contract_value DOUBLE PRECISION,
     PRIMARY KEY (exchange, symbol, ts));
+CREATE TABLE IF NOT EXISTS backfill_runs (
+    id BIGSERIAL PRIMARY KEY, exchange TEXT NOT NULL, symbol TEXT NOT NULL, source TEXT NOT NULL,
+    window_start TIMESTAMPTZ NOT NULL, window_end TIMESTAMPTZ NOT NULL,
+    status TEXT NOT NULL DEFAULT 'running', rows_written INTEGER NOT NULL DEFAULT 0,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT now(), finished_at TIMESTAMPTZ, note TEXT);
 """
 
 
@@ -204,7 +209,7 @@ class Clock:
 
 
 def deps(pool, reader, clock, *, declared=None, raw_revision=0, feature_code=FEATURE_CODE,
-         code=BETA_CODE):
+         code=BETA_CODE, host_boot_time=None):
     from beta.detector import DetectorDeps
     from storage.beta_v0_store import BetaStore
     declared = declared or {ex: True for ex in EXS}
@@ -217,4 +222,5 @@ def deps(pool, reader, clock, *, declared=None, raw_revision=0, feature_code=FEA
 
     return DetectorDeps(reader=reader, store=BetaStore(pool), stage2_config=S2,
                         declared_liquidation_available=_declared, raw_revision=_raw, clock=clock,
-                        code_version=code, feature_code_version=feature_code)
+                        code_version=code, feature_code_version=feature_code,
+                        host_boot_time=host_boot_time)

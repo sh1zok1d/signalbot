@@ -259,6 +259,57 @@ Re-run the same script with the original `deploy_ts`. Read:
 
 Do not query `beta_episode_outcomes`. Do not compute forward returns, PnL, MAE, MFE, or hit rate.
 
+## Startup recovery (reboot / power cycle)
+
+**Incident 2026-10-02.** After a power cycle the persistent detector timer fired at 22:57:00, one second before Stage-1 was ready and 11 s before its startup gap-fill had restored the outage's raw 1m bars (22:35–22:54). The detector caught up 22:35, 22:40, 22:45 and 22:50 without raw bars. Their LIVE rows kept NULL kline OHLC: the 4h window was incomplete, and 8h had 92 of 96 valid buckets against a minimum of 94.
+
+**Readiness barrier.** Every live Stage-1 start records one row in `backfill_runs` (`exchange='*'`, `source='startup_recovery'`, `common/startup_recovery.py`):
+
+- **Lifecycle.** The row is `running` from before the startup backfill/gap-fill until the gap-fill is done. It then becomes `complete`, or `partial` if a venue's gap-fill failed.
+- **Clean stop or error.** A clean stop or an error marks it `cancelled` / `failed`.
+- **Killed process.** A killed process leaves it `running`, and the next start sweeps it to `cancelled`.
+
+The detector reads the newest row on every run (`beta/recovery.py`) and does **not** decide any bucket while it is not ready:
+
+| Gate state | Meaning | Detector |
+|---|---|---|
+| `NO_SIGNAL` | no row at all (Stage-1 predates the signal) | runs as before |
+| `WAITING_FOR_STAGE1_START` | the newest row started before this host booted (`/proc/stat` `btime`): this boot's Stage-1 has not begun its recovery | waits |
+| `RECOVERING` | `running` | waits |
+| `NOT_READY` | `cancelled` / `failed`: waiting for Stage-1 to restart | waits |
+| `READY` | `complete` / `partial` | runs, then repairs (below) |
+| `OVERDUE` | waited `max_catchup_buckets_per_run` × 5m = 60 min | runs, owner alert |
+
+The 60 minutes count from the start of the detector's continuous block. A Stage-1 crash loop writes a new row on every start, but it does not restart that count.
+
+- **Waiting is not skipping.** The watermark stays where it is, and the next run catches up normally with the restored raw.
+- **Why the wait is bounded at 60 minutes.** Beyond that, catch-up would drop buckets as `DETECTION_GAP` anyway.
+- **Why there is no fixed delay.** A sleep only guesses how long the gap-fill takes.
+- **Why `After=signalbot.service` is not the fix.** `After=` orders the unit only behind Stage-1's *start* (`Type=simple`), not behind the end of its gap-fill.
+
+**Automatic bounded repair.** On the first `READY` run after a recovery, the detector re-checks the decided buckets in the window [recovery start − 12 buckets, recovery finish]. It picks only those whose stored per-venue bar count is below the raw count now in PostgreSQL, and re-checks them through the existing `CORRECTION_CHECK` path:
+
+- **What gets written.** The detector appends a new tape revision (`supersedes_tape_id` = the LIVE row). It never updates the LIVE row. Product history and `/catchup` read the newest revision.
+- **What does not change.** No episode, transition, push decision or notification is created. Affected episodes are only annotated (`correction_flag`).
+- **Restored bars keep their source.** Restored bars stay `source=backfill`: they fill OHLC but never count as a live heartbeat, so the venue's `live_bars` stays 0 and its liquidation vote stays not evaluable.
+- **Cap per run.** At most 12 buckets are re-checked per run; the rest are deferred to the next run.
+- **Done marker.** Each bucket is its own transaction. The done marker (`beta_runtime_health` component `startup_recovery_repair`, keyed by the recovery run id) is written only when nothing failed. A crash or failure is therefore retried on the next run, and repeated runs append nothing.
+
+**Observability.** The `--beta-once --beta-json` report and the detector's health detail carry `startup_recovery` (gate state, run id, wait time) and `recovery_repair` (`degraded`, `appended`, `unchanged`, `failed`, `deferred`). The journal has one line per blocked/resumed transition and one summary line per repair. Stage-1 logs `Stage-1 startup recovery started` / `READY`.
+
+**Smoke.** Section `I. Startup recovery` reports two things:
+
+- **The newest readiness row.** `complete` → PASS. `partial`, missing, or `running` for less than 60 minutes → WARN. Anything else → FAIL.
+- **"Raw recovered, tape stale".** Decided buckets since `deploy_ts − 24h` whose raw bars now exceed the stored bars. FAIL when a venue has no stored bar at all.
+
+**Existing 2026-10-02 buckets (operator step, not automatic).** Those buckets predate any readiness row, so the automatic repair window does not reach them. If the owner wants them repaired, run the existing explicit correction path once per bucket, after reviewing the smoke output:
+
+```bash
+python main.py --beta-once --beta-json --beta-bucket-ts '2026-10-02T22:35:00+00:00'   # then 22:40, 22:45, 22:50
+```
+
+Each run appends one `CORRECTION_CHECK` revision, or reports `UNCHANGED`. Nothing is sent.
+
 ## Environment (`/opt/signalbot/.env`, never committed, never printed)
 
 | Variable | Meaning |
@@ -332,6 +383,8 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 - `NOTIFIER_NOT_RUNNING`
 - `DELIVERY_FAILURE_SPIKE`
 - `D7_HOUR_STATE_STALE` (only while `regime_d7.enabled` is true, and only when the newest hour state's `available_at` is older than 70 minutes; independent of `/admin_d7_on`)
+- `STAGE1_RECOVERY_NOT_READY` (the detector has waited for Stage-1's startup recovery for at least `health.detector_stall_s`, or proceeded without it as `OVERDUE`; see "Startup recovery" below)
+- `STARTUP_RECOVERY_REPAIR_INCOMPLETE` (the post-recovery repair failed on a bucket or deferred buckets to the next run)
 
 A DB outage makes every beta command exit with status 2 and report `DB_UNAVAILABLE`. systemd records that as a failed unit.
 
