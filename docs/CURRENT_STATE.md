@@ -1,23 +1,48 @@
 # Signalbot — Current State
 
 **Status:** `ACTIVE SUMMARY` (a pointer document; it is not an authority)
-**As of:** 2026-10-02
-**Posture:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN` (`PRODUCT_FIRST_DECISION_V1.md`, 2026-10-02)
+**As of:** 2026-10-03
+**Posture:** `PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS` (`PRODUCT_DECISION_V2_DECISION_SUPPORT.md`, 2026-10-03); before it `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN` (`PRODUCT_FIRST_DECISION_V1.md`, 2026-10-02)
 
 This page answers "where are we now?" in one screen. It restates facts recorded elsewhere and adds no new decisions. If this page ever disagrees with the documents below, they win:
 - `CURRENT_RESEARCH_STATE.md`: canonical routing and the exact next research unit.
 - `PROJECT_STATUS.md`: posture and freeze.
 - `RESEARCH_LEDGER.md`: consumed windows and results.
 - `PRIVATE_BETA_V0_RESTART_DECISION.md`: beta governance.
-- `PRODUCT_FIRST_DECISION_V1.md`: the canonical product decision, build-to-test scope and user-test design.
+- `PRODUCT_DECISION_V2_DECISION_SUPPORT.md`: the canonical product decision (decision support; predictive freeze lifted for the product; no direct trade calls).
+- `PRODUCT_FIRST_DECISION_V1.md`: build-to-test scope, architecture constraint and user-test design (superseded where V2 differs).
 
 ## 1. Headline
 
 **Signalbot has no validated trading edge.** No result in this repository establishes direction prediction, profitability, a trading edge, or information beyond current volatility.
 
+## 1a. Production state (recorded 2026-10-03, owner-reported deploy)
+
+V2 decision support is merged and deployed to production.
+
+| Item | State |
+|---|---|
+| V2 merged into `main` | `a16b8761e45c15473664021cad03b285f747132e` |
+| Production deploy | SUCCESS |
+| History sync | OK |
+| Statistics build | OK |
+| 30-day bootstrap | COMPLETE |
+| Bot | active / running |
+| Health | OK |
+| Smoke: `/events` | PASS |
+| Smoke: `/research` | PASS |
+| Smoke: invalid `/alert nan` | handled |
+| Smoke: `/btc` after invalid input | PASS |
+
+Source: the owner's deploy report. No host, identifier, token or secret is recorded here. Deployment does not change research posture: no research claim follows from it, and beta outcomes are not confirmation.
+
 ## 2. Active research stage
 
-- **Research routing.** The latest entry in `CURRENT_RESEARCH_STATE.md` is the GV0R03 generator feasibility contract (2026-09-25), with `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`. No new research unit is authorized by that routing.
+- **Research routing (2026-10-03).** The latest entry in `CURRENT_RESEARCH_STATE.md` is the final owner routing decision on the divergence / selling-exhaustion line:
+  - the line is `COMPLETED` and closed as an active research route;
+  - no research unit or SEED is authorized;
+  - `NEXT_UNIT = none (research); product build-to-test per PRODUCT_FIRST_DECISION_V1.md §3`.
+  The GV0R03 generator contract (2026-09-25, `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`) is an earlier entry.
 - **Generator V0.**
   - The first 30-card campaign GV0R01 is sealed and memory-finalized.
   - C013 is a discovery-tier `PROMISING_PROTOTYPE` whose confirmation is deferred for low power.
@@ -78,7 +103,8 @@ There is no authorized next unit in the research routing (see §2). For the beta
 
 ## 6. Product validation status
 
-- **Product-first since 2026-10-02.** The product hypothesis, build-to-test scope, DO-NOT-BUILD-YET list and 30-day user test are in `PRODUCT_FIRST_DECISION_V1.md`. The MUST scope is implemented in code (`/catchup`, morning briefing, 1h/4h context with interpretation, unusual-hour push gate, push policy, telemetry); not deployed. The owner-only V0.2 run ended in `CHANGE PRODUCT`; no external user has seen the product yet.
+- **Decision support since 2026-10-03.** Corridor (range forecast with a held-out-year check and live tracking), levels with the chance to reach them and their first-touch history beside random levels, «что было после похожих», event calendar, `/risk`, `/alert`, market alerts (`PRODUCT_DECISION_V2_DECISION_SUPPORT.md`). Implemented and deployed to production (main `a16b876`, owner-reported 2026-10-03; §1a). Binance 2025/2026 opened for product statistics.
+- **Product-first since 2026-10-02.** The product hypothesis, build-to-test scope, DO-NOT-BUILD-YET list and 30-day user test are in `PRODUCT_FIRST_DECISION_V1.md`. The MUST scope is implemented in code (`/catchup`, morning briefing, 1h/4h context with interpretation, unusual-hour push gate, push policy, telemetry); deployed with V2 (§1a). The owner-only V0.2 run ended in `CHANGE PRODUCT`; no external user has seen the product yet.
 - **Predictive claims:** frozen. Descriptive interpretation with shown uncertainty is product evidence, not a research claim.
 - **Descriptive private beta V0.2:** authorized with narrow scope (`PRIVATE_BETA_V0_RESTART_DECISION.md`). Its code and units live only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.
 - **Last recorded state** (`PROJECT_STATUS.md`): implemented, push disabled, no users. The next operator step is the 7-day push-disabled shadow soak. This page did not verify runtime state.
@@ -86,6 +112,9 @@ There is no authorized next unit in the research routing (see §2). For the beta
 
 ## 7. Protected-data posture
 
-- Binance 2025/2026 remain **sealed**. Opening them requires explicit owner authorization.
+- Binance 2025/2026 are **not globally unopened**.
+  - **Opened (2026-10-02):** the six-symbol USD-M divergence/support surface 2025-01-01..2026-08-15 (exclusive), under `research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md`. It is no longer pristine OOS for divergence/support/mechanism hypotheses.
+  - **Still sealed:** everything else in 2025/2026, the E1-RUN-001 holdout and every byte at or after 2026-08-15. Opening more requires explicit owner authorization.
+  - `DIVERGENCE_SUPPORT_2025_2026_SURFACE_OPENED = true`; `E1_RUN_001_OPENED = false` (holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)`).
 - Binance 2020–2024 is the discovery surface. BitMEX 2016–2019 is a historical replication surface.
 - Binance-only history is a different detector identity from the three-venue beta detector. It must not be mixed into beta follow-up statistics.

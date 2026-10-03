@@ -1,0 +1,295 @@
+# SIGNALBOT_RESEARCH_ATLAS_V1 — taxonomy (hand-maintained source).
+#
+# The Atlas is one permanent map: Mechanism (rows) x Data surface (columns) x Research state.
+# Units of past research are placed on it (ATLAS_UNITS_V1.yaml); the builder
+# (scripts/research/atlas/build_atlas.py) derives the cells, the frontier ranking, the
+# full governance view and the outcome-blind generator view. Authority and rules:
+# docs/research/SIGNALBOT_RESEARCH_ATLAS_V1.md.
+version: SIGNALBOT_RESEARCH_ATLAS_V1
+
+# ---- columns: the market data layer a mechanism is observed through --------------------------
+# A calendar (CPI, FOMC, DST, expiries, holidays) is a lens that defines rows, not a column:
+# "FOMC response observed through candles" is EVENTS.fomc x CANDLES.
+columns:
+  - id: CANDLES
+    name: Perp price path
+    covers: BTC perpetual OHLCV, realized volatility, range, wicks, path shape
+  - id: PERP_FLOW
+    name: Trade flow
+    covers: taker buy/sell flow, volume, trade count and size, aggressive flow persistence
+  - id: POSITIONING
+    name: Positioning
+    covers: open interest, funding, premium and same-venue basis, long/short ratios
+  - id: LIQUIDATIONS
+    name: Liquidations
+    covers: forced-flow prints, liquidation clusters and cascades
+  - id: ORDER_BOOK
+    name: Order book
+    covers: depth by distance, spread, book imbalance, replenishment, withdrawal (the pre-trade layer)
+  - id: SPOT
+    name: Spot and spot-perp
+    covers: spot price and volume, spot-led vs perp-led moves, spot participation, spot/perp basis
+  - id: CROSS_VENUE
+    name: Cross-venue
+    covers: the same instrument class on several venues (Binance, Bybit, OKX, BitMEX, CME), venue share, disagreement
+  - id: CROSS_ASSET
+    name: Cross-asset
+    covers: ETH and other crypto assets, cross-sectional panels, non-crypto assets
+  - id: OPTIONS
+    name: Options
+    covers: implied volatility, skew, dealer gamma, expiry and strike structure
+  - id: FLOWS_ONCHAIN
+    name: Capital flows
+    covers: stablecoin supply and transfers, exchange deposits, ETF creations/flows, on-chain activity
+
+# ---- rows: mechanisms grouped by region -----------------------------------------------------------
+# legacy_family: the family letter of HETEROGENEOUS_FAMILY_ROTATION_V3 (A..J) where one applies.
+# product_relevance (0-3): how directly a confirmed result would change what the bot shows
+#   3 = changes a core surface (corridor, levels, alerts, briefing); 2 = adds a descriptive state
+#   the bot can show; 1 = context for /research only; 0 = methodology, no product surface.
+# Each region lists the columns on which its mechanisms can be observed (`cols`, first = the native
+# layer that defines the mechanism); a row may override them. A cell outside a row's `cols` does not
+# exist: e.g. order-book imbalance cannot be studied on candles alone. A non-native column means
+# "the native layer plus this layer" (e.g. liquidity withdrawal + OI). `frontier: false` keeps a
+# region off the frontier (method rows are not market mechanisms). `needs` names the datasets that can
+# serve a row's native layer when the column holds others that cannot (macro needs macro series, dealer
+# gamma needs option open interest by strike).
+regions:
+  - id: PRICE_STRUCTURE
+    name: Price structure
+    cols: [CANDLES, PERP_FLOW, POSITIONING, LIQUIDATIONS, ORDER_BOOK, SPOT, CROSS_VENUE, CROSS_ASSET]
+    rows:
+      - {id: breakout, name: "Breakout and failed breakout", legacy_family: B, product_relevance: 3}
+      - {id: impulse, name: "Impulse continuation vs exhaustion", legacy_family: B, product_relevance: 3}
+      - {id: pullback, name: "Trend pullback continuation", legacy_family: B, product_relevance: 2}
+      - {id: divergence, name: "Price/oscillator divergence", legacy_family: B, product_relevance: 2}
+      - {id: levels, name: "Reaction at levels (prior highs/lows, round numbers)", legacy_family: C, product_relevance: 3}
+      - {id: path_shape, name: "Path shape, wicks and jump clustering", legacy_family: C, product_relevance: 1}
+  - id: VOLATILITY_STATE
+    name: Volatility and state
+    cols: [CANDLES, PERP_FLOW, POSITIONING, LIQUIDATIONS, ORDER_BOOK, SPOT, CROSS_VENUE, CROSS_ASSET, OPTIONS]
+    rows:
+      - {id: compression, name: "Compression -> expansion", legacy_family: F, product_relevance: 3}
+      - {id: regime_transition, name: "Volatility regime transition", legacy_family: F, product_relevance: 3}
+      - {id: range_forecast, name: "Range / volatility scale forecast", legacy_family: null, product_relevance: 3}
+      - {id: tail_risk, name: "Conditional tail risk and abstention", legacy_family: A, product_relevance: 3}
+      - {id: execution_impact, name: "Execution-impact state persistence", legacy_family: E, product_relevance: 2}
+      - {id: state_detection, name: "Structural state detection", legacy_family: F, product_relevance: 1}
+      - {id: shock_recovery, name: "Shock recovery and volatility decay", legacy_family: G, product_relevance: 2}
+  - id: FLOW
+    name: Flow
+    cols: [PERP_FLOW, SPOT, POSITIONING, LIQUIDATIONS, ORDER_BOOK, CROSS_VENUE, CROSS_ASSET]
+    rows:
+      - {id: taker_imbalance, name: "Taker imbalance -> price", legacy_family: B, product_relevance: 2}
+      - {id: absorption, name: "Absorption of aggressive flow", legacy_family: B, product_relevance: 3}
+      - {id: exhaustion, name: "Flow exhaustion (selling/buying)", legacy_family: B, product_relevance: 3}
+      - {id: participant_composition, name: "Participant composition (trade size, algorithmic execution)", legacy_family: E, product_relevance: 1}
+      - {id: flow_conditional_response, name: "Price response conditional on flow", legacy_family: B, product_relevance: 2}
+  - id: DERIVATIVES
+    name: Derivatives positioning
+    cols: [POSITIONING, PERP_FLOW, LIQUIDATIONS, ORDER_BOOK, SPOT, CROSS_VENUE, CROSS_ASSET, OPTIONS]
+    rows:
+      - {id: oi_buildup, name: "OI build-up and continuation", legacy_family: B, product_relevance: 3}
+      - {id: leverage_crowding, name: "Leverage crowding (OI + funding state)", legacy_family: B, product_relevance: 3}
+      - {id: funding_basis, name: "Funding, premium and basis", legacy_family: B, product_relevance: 2, cols: [POSITIONING, SPOT, CROSS_VENUE, PERP_FLOW, OPTIONS]}
+      - {id: funding_clock, name: "Funding settlement clock", legacy_family: J, product_relevance: 1, cols: [POSITIONING, CANDLES, PERP_FLOW, CROSS_VENUE, SPOT]}
+      - {id: liquidation_cascades, name: "Liquidation cascades and forced flow", legacy_family: C, product_relevance: 3, cols: [LIQUIDATIONS, CANDLES, PERP_FLOW, POSITIONING, ORDER_BOOK, CROSS_VENUE]}
+  - id: OPTIONS_REGION
+    name: Options structure
+    cols: [OPTIONS, SPOT, POSITIONING, CROSS_ASSET]
+    rows:
+      - {id: implied_vs_realized, name: "Implied vs realized volatility", legacy_family: F, product_relevance: 3}
+      - {id: dealer_gamma, name: "Dealer gamma state", legacy_family: null, product_relevance: 2, cols: [OPTIONS, ORDER_BOOK, PERP_FLOW, SPOT], needs: [DERIBIT_OPTIONS_HISTORY]}
+      - {id: expiry_pinning, name: "Expiry and strike pinning", legacy_family: G, product_relevance: 2, cols: [OPTIONS, CANDLES, SPOT, ORDER_BOOK], needs: [DERIBIT_OPTIONS_HISTORY]}
+      - {id: event_implied_variance, name: "Event variance priced vs realized", legacy_family: G, product_relevance: 2, cols: [OPTIONS, CANDLES]}
+  - id: SPOT_PERP
+    name: Spot <-> perp
+    cols: [SPOT, PERP_FLOW, POSITIONING, LIQUIDATIONS, ORDER_BOOK, CROSS_VENUE]
+    rows:
+      - {id: lead_lag, name: "Spot-led vs perp-led moves", legacy_family: H, product_relevance: 3}
+      - {id: basis_dislocation, name: "Basis and spot/perp dislocation", legacy_family: H, product_relevance: 2}
+      - {id: volume_share, name: "Spot volume share migration", legacy_family: H, product_relevance: 2}
+      - {id: spot_confirmation, name: "Funding/OI moves with vs without spot confirmation", legacy_family: B, product_relevance: 3}
+      - {id: stress_lead_lag, name: "Lead/lag around stress", legacy_family: H, product_relevance: 2}
+  - id: CROSS_VENUE_REGION
+    name: Cross-venue
+    cols: [CROSS_VENUE, ORDER_BOOK, POSITIONING, LIQUIDATIONS, SPOT, PERP_FLOW]
+    rows:
+      - {id: venue_disagreement, name: "Venue price disagreement (Binance/Bybit/OKX)", legacy_family: H, product_relevance: 2, cols: [CROSS_VENUE, ORDER_BOOK, POSITIONING, LIQUIDATIONS, SPOT, PERP_FLOW, FLOWS_ONCHAIN]}
+      - {id: price_discovery, name: "Price-discovery leadership", legacy_family: H, product_relevance: 2, cols: [CROSS_VENUE, ORDER_BOOK, PERP_FLOW, SPOT]}
+      - {id: oi_disagreement, name: "OI disagreement across venues", legacy_family: null, product_relevance: 2, cols: [CROSS_VENUE, POSITIONING, LIQUIDATIONS]}
+      - {id: liquidation_concentration, name: "Liquidation concentration by venue", legacy_family: null, product_relevance: 2, cols: [LIQUIDATIONS, CROSS_VENUE, POSITIONING]}
+      - {id: venue_anomalies, name: "Venue-specific anomalies and outages", legacy_family: H, product_relevance: 1}
+  - id: MICROSTRUCTURE
+    name: Microstructure (order book)
+    cols: [ORDER_BOOK, PERP_FLOW, SPOT, POSITIONING, LIQUIDATIONS, CROSS_VENUE]
+    rows:
+      - {id: book_imbalance, name: "Order-book imbalance", legacy_family: E, product_relevance: 3}
+      - {id: depth_asymmetry, name: "Depth asymmetry by side and distance", legacy_family: E, product_relevance: 3}
+      - {id: spread_expansion, name: "Spread expansion", legacy_family: E, product_relevance: 2}
+      - {id: liquidity_withdrawal, name: "Liquidity withdrawal before moves", legacy_family: E, product_relevance: 3}
+      - {id: replenishment, name: "Replenishment / absorption after sweeps", legacy_family: E, product_relevance: 3}
+      - {id: sweep_intensity, name: "Sweep intensity", legacy_family: E, product_relevance: 2, cols: [ORDER_BOOK, PERP_FLOW, SPOT, LIQUIDATIONS, CROSS_VENUE]}
+      - {id: book_recovery, name: "Book recovery after an impulse", legacy_family: E, product_relevance: 3}
+  - id: CROSS_ASSET_REGION
+    name: Cross-asset
+    cols: [CROSS_ASSET, POSITIONING, PERP_FLOW, SPOT, ORDER_BOOK, OPTIONS]
+    rows:
+      - {id: btc_eth, name: "BTC-ETH relative structure", legacy_family: D, product_relevance: 1, cols: [CROSS_ASSET, ORDER_BOOK, POSITIONING, PERP_FLOW, OPTIONS]}
+      - {id: breadth, name: "Market breadth and co-movement", legacy_family: H, product_relevance: 2, cols: [CROSS_ASSET, POSITIONING, PERP_FLOW]}
+      - {id: cross_section, name: "Cross-sectional anomalies (alt panel)", legacy_family: H, product_relevance: 0}
+      - {id: tradfi_context, name: "Non-crypto cross-asset context", legacy_family: D, product_relevance: 2, cols: [CROSS_ASSET, OPTIONS], needs: [MACRO_CROSS_ASSET]}
+  - id: EVENTS
+    name: Scheduled and exogenous events
+    cols: [CANDLES, PERP_FLOW, POSITIONING, LIQUIDATIONS, ORDER_BOOK, SPOT, CROSS_VENUE, CROSS_ASSET, OPTIONS]
+    rows:
+      - {id: cpi, name: "CPI releases", legacy_family: G, product_relevance: 3}
+      - {id: fomc, name: "FOMC decisions and communications", legacy_family: G, product_relevance: 3}
+      - {id: etf_fix, name: "ETF flows and fixing windows", legacy_family: G, product_relevance: 2, cols: [CANDLES, PERP_FLOW, POSITIONING, LIQUIDATIONS, ORDER_BOOK, SPOT, CROSS_VENUE, CROSS_ASSET, OPTIONS, FLOWS_ONCHAIN]}
+      - {id: expiries, name: "Options and futures expiries", legacy_family: G, product_relevance: 2}
+      - {id: market_closures, name: "TradFi closures and reopenings (CME weekend, holidays)", legacy_family: J, product_relevance: 2}
+      - {id: protocol_events, name: "Protocol and network events", legacy_family: G, product_relevance: 0, cols: [CANDLES, PERP_FLOW, POSITIONING, LIQUIDATIONS, ORDER_BOOK, SPOT, CROSS_VENUE, CROSS_ASSET, OPTIONS, FLOWS_ONCHAIN]}
+      - {id: endogenous_shocks, name: "Endogenous shocks", legacy_family: G, product_relevance: 2}
+  - id: CALENDAR
+    name: Calendar and clock
+    cols: [CANDLES, PERP_FLOW, POSITIONING, LIQUIDATIONS, ORDER_BOOK, SPOT, CROSS_VENUE, CROSS_ASSET]
+    rows:
+      - {id: sessions, name: "Sessions and participation clock (DST)", legacy_family: J, product_relevance: 2}
+      - {id: weekday_weekend, name: "Weekday / weekend", legacy_family: J, product_relevance: 3}
+      - {id: month_boundary, name: "Month and quarter boundaries", legacy_family: J, product_relevance: 1}
+      - {id: holidays_tax, name: "Holidays and tax-year effects", legacy_family: J, product_relevance: 0}
+  - id: LONG_HORIZON
+    name: Longer-term structure
+    cols: [FLOWS_ONCHAIN, SPOT, CROSS_ASSET]
+    rows:
+      - {id: stablecoin_flows, name: "Stablecoin supply and flows", legacy_family: null, product_relevance: 1, cols: [FLOWS_ONCHAIN, SPOT, CROSS_ASSET]}
+      - {id: exchange_flows, name: "Exchange deposits and on-chain transfers", legacy_family: null, product_relevance: 1, cols: [FLOWS_ONCHAIN, SPOT, CROSS_VENUE]}
+      - {id: etf_flows, name: "ETF flows", legacy_family: null, product_relevance: 2, cols: [FLOWS_ONCHAIN, SPOT, CANDLES]}
+      - {id: macro_regime, name: "Macro regimes", legacy_family: null, product_relevance: 1, cols: [CROSS_ASSET, CANDLES, OPTIONS], needs: [MACRO_CROSS_ASSET]}
+      - {id: external_reproduction, name: "External published mechanisms", legacy_family: null, product_relevance: 0, cols: [CANDLES, PERP_FLOW, POSITIONING, SPOT, CROSS_VENUE]}
+  - id: METHOD
+    name: Method and frozen experiments (not a market mechanism)
+    cols: [CANDLES, PERP_FLOW, POSITIONING, LIQUIDATIONS, ORDER_BOOK, SPOT, CROSS_VENUE, CROSS_ASSET, OPTIONS, FLOWS_ONCHAIN]
+    frontier: false
+    rows:
+      - {id: composition, name: "Composition of mechanisms", legacy_family: A, product_relevance: 0}
+      - {id: methodology, name: "Methodology calibration and frozen confirmatory experiments", legacy_family: null, product_relevance: 0}
+
+# ---- research states ------------------------------------------------------------------------------
+# outcome_neutral: may appear in the generator view (it is a fact known before outcomes are seen).
+states:
+  OPEN_FRONTIER:
+    meaning: Nothing has been defined in this cell. The territory is unexplored.
+    routing: Generation allowed (row-level anti-rescue still applies).
+    outcome_neutral: true
+  CANDIDATE_UNTESTED:
+    meaning: A card or seed exists and passed or awaits feasibility, but no market outcome was computed.
+    routing: Do not regenerate the same card; it may be selected for feasibility/freeze as is.
+    outcome_neutral: true
+  BLOCKED_METHOD:
+    meaning: A card was defined but stopped by a method blocker (identification, confounding, lookahead, null model).
+    routing: Region open. A redesigned card must name and resolve the blocker (RESOLVES_BLOCKER).
+    outcome_neutral: true
+  BLOCKED_GOVERNANCE:
+    meaning: A defined unit may not run because a governance rule blocks it (e.g. its frozen data window overlaps a protected or reserved surface).
+    routing: Not executable. Only a new explicit permit that removes the conflict reopens it; the old freeze is never edited in place.
+    outcome_neutral: true
+  BLOCKED_DATA:
+    meaning: No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).
+    routing: Reopens when the data surface becomes available (collector, vendor, pinned source).
+    outcome_neutral: true
+  INFORMATIONALLY_WEAK:
+    meaning: The question is legitimate, but there are too few independent units now (MDE above the practical bar).
+    routing: Do not run now; no proxy or pooling to manufacture N.
+    outcome_neutral: true
+  CLOSED_BEFORE_START:
+    meaning: A registered or recorded unit was withdrawn before any outcome was computed; it consumed no surface.
+    routing: Inactive. A restart is a new unit with its own registration and permit.
+    outcome_neutral: true
+  FUTURE_NATURAL_ACCUMULATION:
+    meaning: Weak now; becomes testable when independent units accumulate naturally.
+    routing: Revisit at the recorded trigger (date or N). Nothing earlier.
+    outcome_neutral: true
+  EXPOSED_ONLY:
+    meaning: The data were looked at (descriptively, for the product, or for feasibility) without a confirmatory test.
+    routing: Cannot serve as confirmation for this mechanism. Discovery elsewhere, confirmation on fresh data.
+    outcome_neutral: false
+  CONFIRMED:
+    meaning: A pre-registered confirmation on an independent surface passed; the claim holds under its maintained assumptions on the surfaces tested.
+    routing: Do not re-confirm the same claim. Product use only under its own gate. New work only as a new mechanism or a new surface, never a 'better X' neighbour.
+    outcome_neutral: false
+  LIVE_SIGNAL:
+    meaning: A discovery or replication result that is not yet confirmed (promising prototype, replicated candidate).
+    routing: Only a pre-registered confirmation on a fresh surface. No threshold/horizon neighbours.
+    outcome_neutral: false
+  NO_STRUCTURE:
+    meaning: The mechanism was tested under a frozen contract and gave no practically meaningful effect on this surface.
+    routing: Closed on this surface. Reopen only with a new mechanism or a new surface.
+    outcome_neutral: false
+  CLOSED_ON_SURFACE:
+    meaning: Tested under a frozen contract; the outcome is specific to the claim or surface (a specific claim rejected, an external reproduction, a mixed result).
+    routing: Closed on this surface for this function. Reopen only with a new mechanism or a new surface.
+    outcome_neutral: false
+
+# Cell summary = the first state in this order present among the cell's units; the cell also
+# lists the count of every state, so a mixed cell is never reported as one state only.
+cell_precedence:
+  - CONFIRMED
+  - LIVE_SIGNAL
+  - NO_STRUCTURE
+  - CLOSED_ON_SURFACE
+  - FUTURE_NATURAL_ACCUMULATION
+  - INFORMATIONALLY_WEAK
+  - BLOCKED_GOVERNANCE
+  - BLOCKED_METHOD
+  - BLOCKED_DATA
+  - CANDIDATE_UNTESTED
+  - EXPOSED_ONLY
+  - CLOSED_BEFORE_START
+  - OPEN_FRONTIER
+
+# ---- reopening ----------------------------------------------------------------------------------
+reopen_keys:
+  NEW_MECHANISM: An orthogonal mechanism (novelty relation ORTHOGONAL_MECHANISM), not a relabel of the tested function.
+  NEW_SURFACE: A data layer, venue or instrument the closed unit did not use, with its own preregistration.
+  NEW_CONFIRMATION_SURFACE: A new independent confirmation surface (time-disjoint or prospective) that the closed unit never touched.
+  NEW_INDEPENDENT_UNITS: Independent units accumulated naturally to the recorded N (never by pooling proxies).
+  BLOCKER_RESOLVED: The named blocker is resolved (novelty relation RESOLVES_BLOCKER).
+  PROSPECTIVE_DATA: Fresh data collected after a freeze, scored only under that freeze.
+  OWNER_DECISION: An explicit, recorded owner decision.
+  RECORDED_REOPEN_CONDITION: The unit's own recorded reopen condition (its `reopen` text) is met, with the record that shows it.
+forbidden_moves:
+  PARAMETER_NEIGHBOR: Another threshold, percentile, window, lookback, horizon, clock, lag or nearby parameter of the same function.
+  FUNCTIONAL_RELABEL: The same function under a new name.
+  EXACT_DUPLICATE: The same card again.
+  OBSERVABLE_SUBSTITUTION: Swapping the observable inside the same function (e.g. a better proxy of the same thing).
+  SUBGROUP_MINING: Years, regimes, weekdays or venues carved out after the outcome was seen.
+  REVERSE_EFFECT_RESCUE: Testing the opposite sign after a null or a wrong-sign result.
+  COMPOSITION_OF_CONSUMED: Combining consumed components into a composite.
+  CONFIRMATION_ON_EXPOSED: Calling exposed data a confirmation.
+
+# ---- frontier value (outcome-neutral inputs only) -----------------------------------------------
+# frontier_value = product_relevance (row, 0-3) + data_readiness (cell, 0-3) + novelty (cell, 0-3)
+#                + confirmation_path (column, 0-2) - saturation (row, 0-3) + owner_priority (0-2)
+# data_readiness (best dataset of the column): 3 pinned in the repository and pristine for the row;
+#   2 pinned but exposed for the row or its region, or acquirable from a free public archive and pristine;
+#   1 acquirable but exposed, or only by forward collection (prospective); 0 not available or blocked.
+# novelty: 3 no prior signature in the row; 2 the row is explored on other columns only; 0 the cell has prior work.
+# confirmation_path: the weaker of the cell's column and the row's native column (a combined cell needs both).
+# A non-native cell's data_readiness is likewise the weaker of its column and the native column.
+# saturation: floor(prior signatures in the row / 3), capped at 3.
+frontier_value:
+  components: [product_relevance, data_readiness, novelty, confirmation_path, saturation, owner_priority]
+  tie_break: [owner_priority, product_relevance, data_readiness]
+
+# ---- owner priorities (routing weight, not an execution authorization) ---------------------------
+# target: a region, a row (REGION.row), a column, or a cell (REGION.rowxCOLUMN / REGIONxCOLUMN).
+owner_priorities:
+  - target: MICROSTRUCTURE
+    value: 2
+    since: "2026-10-03"
+    note: "Owner proposal: the first new frontier is microstructure / spot-perp (order book -> trades -> spot/perp disagreement -> OI -> price). A batch still needs its own owner go."
+  - target: SPOT_PERP
+    value: 2
+    since: "2026-10-03"
+    note: "Owner proposal, same decision: who leads the move (spot or perp), basis, spot confirmation."

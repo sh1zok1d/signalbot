@@ -1,0 +1,137 @@
+{
+ "PERMIT": "SEED0001_EXPLORATORY_OUTCOME_PERMIT_V1",
+ "AUTHORIZED_BY": "owner",
+ "AUTHORIZED_AT_UTC": "2026-10-02T18:09:54Z",
+ "AUTHORIZATION_BASE_HEAD": "b6a71e848439dc021bea9c1709a8c94af126727e",
+ "HYPOTHESIS_ID": "SEED0001-RD-V1",
+ "TEST_FAMILY_ID": "TF-SEED0001-RD-RETRO1",
+ "SEARCH_FAMILY_ID": "SF-OWNER-SEEDS",
+ "PREREG_PATH": "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json",
+ "PREREG_SHA256": "c6f02ecbdd02346e33d3505d6e5353bd0e30abf47a1899d1290f2cccbf6b630c",
+ "SCOPE": "EXPLORATORY_OUTCOME_ANALYSIS_ONLY",
+ "EVIDENCE_LABEL": "EXPLORATORY / UNDERPOWERED. Never confirmatory evidence.",
+ "FEASIBILITY_VERDICT": "INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR",
+ "FEASIBILITY_VERDICT_CHANGED": false,
+ "OWNER_ACCEPTS_UNDERPOWERED_SAMPLE": true,
+ "CONFIRMATORY": false,
+ "CONVERTS_PREREGISTERED_TEST_TO_SUCCESS": false,
+ "CLASSIFICATION_FIXED_BEFORE_OUTCOMES": "INCONCLUSIVE_DISCOVERY",
+ "CLASSIFICATION_RULE": "TF-SEED0001-RD-RETRO1 is classified INCONCLUSIVE_DISCOVERY whatever the outcome statistics, because its frozen feasibility verdict is INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR. The gates below are evaluated mechanically and reported as exploratory only.",
+ "EXECUTION_AUTHORIZED": true,
+ "RERUN_AUTHORIZED": false,
+ "DESIGN_CHANGE_AUTHORIZED": false,
+ "PROTECTED_2025_2026_AUTHORIZED": false,
+ "PROSPECTIVE_LEG": "TF-SEED0001-RD-PROSP1 stays separate, frozen and not activated. Nothing seen in this exploratory pass may modify its definitions.",
+ "FROZEN_ARTIFACT_SHA256_BEFORE_OPENING": {
+  "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json": "c6f02ecbdd02346e33d3505d6e5353bd0e30abf47a1899d1290f2cccbf6b630c",
+  "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.md": "96e66dbc7c4c1dae4409da497a8a420af877f5b65e854d16c201383ba7ee5dfa",
+  "scripts/research/seed0001_regular_divergence_lib.py": "c72e49683fc6cb61006584eae5a3adc1c0f6a126f8490d48786dc2b116240762",
+  "scripts/research/seed0001_feasibility_lib.py": "494d8a62c21b820c42c1cce0618516151fbdc091a8e6eda0d2a21c79592ffa0d",
+  "scripts/research/seed0001_feasibility.py": "747e1da47a5ac4eab236ff554d19785d124220421eb0f6efa687c6093c9dc3b3",
+  "docs/research/SEED0001_FEASIBILITY_REPORT.json": "a7076d6e808816cab4cd35b1822634c901d983c86e34b1f93c4ae95a2c432561",
+  "docs/research/SEED0001_FEASIBILITY_REPORT.md": "2d3fdbd5dbe95389d73bf4ef9773f4cd8f23d435d2f88636030b1cefbc838b4c",
+  "docs/research/seed0001/EPISODES_BTCUSDT.csv": "7260df8cbd1cf0ba7b2705c82d50bd71695adc858cebfb5b2e07b759d7aada1c",
+  "docs/research/seed0001/EPISODES_ETHUSDT.csv": "f58cfa016cd8b41960c4ab34124530b90434ffff8de02f999e855e5a9c048459",
+  "docs/research_data/SEED0001_BINANCE_UM_1H_BOOKDEPTH_V0/DATASET_MANIFEST.json": "8ac3a03c23e0bb24eb553b5dcd2ace22175d8c826c824fb5e4fb64eafcd5302f"
+ },
+ "FROZEN_EPISODE_DIGESTS": {
+  "BTCUSDT": "3f90eefc8cc04adafab6db8e37e74140cd7b01284b9ee9c207e40c353920d0e5",
+  "ETHUSDT": "080b99d686ca5ecb2fd64a6f7b93ce4d13efee6961667835ec8ee0281dfc86c9"
+ },
+ "FROZEN_EPISODE_COUNTS": {
+  "BTCUSDT": {
+   "A": 36,
+   "B": 259,
+   "C": 63,
+   "D": 385
+  },
+  "ETHUSDT": {
+   "A": 32,
+   "B": 264,
+   "C": 48,
+   "D": 392
+  }
+ },
+ "EPISODE_SET_RULE": "Outcomes are computed only for the episodes in the frozen CSVs, verified by SHA256 and episode digest. No episode is added, removed or regenerated; the 36 BTC Arm-A episodes are used as frozen.",
+ "PRICE_SOURCE": "pinned Binance UM 1m klines 2022-11..2024-12 (objects verified against DATASET_MANIFEST.json); every window ends by 2025-01-01T00:00:00Z; no 2025/2026 byte is read",
+ "OUTCOME_DEFINITIONS": {
+  "PREREGISTERED_BRACKET": {
+   "SOURCE": "SEED0001_REGULAR_DIVERGENCE_PREREG.json ENDPOINTS, unchanged",
+   "ENTRY": "E = ENTRY_REF_PRICE (close of bar i+3, the decision price at T)",
+   "STOP": "S = STOP_PRICE (low_i); stop event = first 1m bar with open time in [T, T + cap) whose low < S",
+   "RISK": "R = E - S",
+   "TARGET": "target event = first 1m bar with open time in [T, T + cap) whose high >= E + k R",
+   "SAME_MINUTE": "stop and target in the same minute count as the stop",
+   "Y": "Yk_cap = 1 if the target event is strictly first, else 0 (stop first, same minute, or timeout)",
+   "ENDPOINTS": {
+    "Y1_48H": "primary",
+    "Y2_48H": "secondary",
+    "Y1_96H": "sensitivity",
+    "Y2_96H": "sensitivity"
+   },
+   "MISSING_MINUTE": "an episode with any missing minute in [T, T + cap) is UNAVAILABLE for that endpoint (timestamps only)"
+  },
+  "WIN_LOSS_NEUTRAL": "per endpoint: WIN = target first; LOSS = stop first or same minute; NEUTRAL = neither within the cap (timeout)",
+  "DESCRIPTIVE_DEFINED_IN_THIS_PERMIT_BEFORE_OPENING": {
+   "NOTE": "Requested by the owner; not preregistered endpoints; descriptive only; never used for any gate",
+   "HORIZONS_HOURS": [
+    48,
+    96
+   ],
+   "FWD_RET_h": "C_h / E - 1, with C_h the close of the 1m bar whose open time is T + h - 1 minute",
+   "FWD_R_h": "(C_h - E) / R",
+   "MFE_R_h": "(max 1m high over open times [T, T + h) - E) / R, over the full window regardless of stop or target",
+   "MAE_R_h": "(E - min 1m low over open times [T, T + h)) / R, over the full window regardless of stop or target"
+  }
+ },
+ "ANALYSIS_PLAN": {
+  "PRIMARY_AS_PREREGISTERED": "BTC, Y1_48H ~ 1 + A + B + C (D reference) + log RV24 + sin(2 pi hour/24) + cos(2 pi hour/24) + DECLINE_ATR + NETFLOW24 + RISK_ATR; OLS (linear probability); CR1 cluster-robust variance with weekly clusters (WEEK_BLOCK), t reference on G - 1 df; P1 = beta_A - beta_B, P2 = beta_A - beta_C; two-sided p; Holm over {P1, P2} at 0.05",
+  "INTERVALS": {
+   "CR1_T": "95% CI = estimate +- t(0.975, G - 1) x CR1 SE",
+   "WEEK_CLUSTER_BOOTSTRAP": "pairs bootstrap over whole weekly clusters, 4999 resamples, numpy default_rng seed 20261004, percentile 95% CI of P1 and P2 from the same model; resamples with an absent arm or a singular design are skipped and counted"
+  },
+  "GATES_REPORTED_MECHANICALLY": {
+   "STATISTICAL": "Holm rejects both P1 and P2 and both estimates are positive",
+   "PRACTICAL": "both adjusted risk differences >= 0.10, and the adjusted A rate (mean fitted value over all eligible episodes with the arm set to A) >= mean over A episodes of 0.5 + (0.0010 / RISK_FRACTION) / 2",
+   "ROLE": "reported for transparency; cannot change CLASSIFICATION_FIXED_BEFORE_OUTCOMES"
+  },
+  "SECONDARY_AS_PREREGISTERED": [
+   "S1 Y2_48H P1/P2",
+   "S2 Y1_96H P1/P2",
+   "S3 Y2_96H P1/P2",
+   "S4 Y1_48H P1/P2 with 48h overlap-chain clusters (CHAIN_48H)",
+   "raw arm rates (arm-only model, CR1 weekly) and A vs D"
+  ],
+  "DESCRIPTIVE": "per arm and endpoint: WIN/LOSS/NEUTRAL counts; per arm: mean and median of FWD_RET_h, FWD_R_h, MFE_R_h, MAE_R_h at 48h and 96h; A minus B and A minus C differences of the means from an arm-only OLS with CR1 weekly clusters and t(G - 1) 95% CI",
+  "EPOCHS": {
+   "BLOCKS": [
+    "2023H1",
+    "2023H2",
+    "2024H1",
+    "2024H2"
+   ],
+   "ROLE": "descriptive robustness only, never a selection rule; the feasibility pass recorded the epoch gate NOT_ASSESSABLE, so it cannot fail the card",
+   "EPOCH_ESTIMATE": "within-epoch OLS of Y1_48H on arm dummies only, CR1 by week, P1 and P2 with t(G_e - 1) 95% CI",
+   "HETEROGENEITY_TEST_AS_PREREGISTERED": "Q = sum_e (theta_e - theta_w)^2 / se_e^2 against a block permutation of whole weekly clusters across epochs (week counts per epoch kept), seed 20261003, 2000 draws",
+   "OPPOSITE_SIGN_TEST_AS_PREREGISTERED": "an epoch estimate with the sign opposite to the pooled estimate and one-sided p < 0.05",
+   "SIGN_CONSISTENCY": "number of epochs whose P1 and P2 point estimates share the pooled sign"
+  },
+  "ETH": "identical model and plan run separately on the frozen ETH episodes; robustness only; never pooled; cannot change anything about BTC"
+ },
+ "FORBIDDEN_AFTER_OUTCOMES": [
+  "any threshold, horizon, stop, entry or exit change",
+  "any subgroup selection or regime filter",
+  "any added or removed covariate",
+  "any new clustering or inference method presented as primary",
+  "rescue analysis of any kind",
+  "any change to the prospective preregistration",
+  "a later variant is a new research object / SEED with its own TEST_FAMILY_ID"
+ ],
+ "OUTPUTS": [
+  "docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.json",
+  "docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.md",
+  "docs/research/seed0001/OUTCOMES_BTCUSDT.csv",
+  "docs/research/seed0001/OUTCOMES_ETHUSDT.csv"
+ ],
+ "ORDER": "this permit is committed first; the evaluator is implemented and tested on synthetic paths and committed second; only then is it run once on the frozen episodes"
+}

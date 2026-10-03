@@ -1133,9 +1133,9 @@ def test_push_command_and_admin_known_flag():
         await h.handle(_cb(ALICE, "pick:en", 3))
         await h.handle(_cb(ALICE, "join:en", 4))
         out = await h.handle(_msg(ALICE, "/push", 5))
-        assert "Unusual-hour messages: on" in out[0].html
+        assert out[0].html.startswith("Messages: on") and "• unusual hour: on" in out[0].html
         out = await h.handle(_msg(ALICE, "/push off", 6))
-        assert "Unusual-hour messages off" in out[0].html and "morning summary" in out[0].html.lower()
+        assert "Messages: off" in out[0].html and "morning briefing is separate" in out[0].html.lower()
         assert (await _rows(pool, "SELECT push_enabled, known_contact FROM beta_users")) == \
             [{"push_enabled": False, "known_contact": False}]
         out = await h.handle(_msg(OWNER, f"/admin_known {ALICE} on", 7))
@@ -1159,6 +1159,20 @@ def test_push_command_and_admin_known_flag():
             ("cmd_brief", "off"), ("cmd_brief", "status"), ("cmd_brief", "on")]
         assert (await _rows(pool, "SELECT push_enabled, brief_enabled FROM beta_users")) == \
             [{"push_enabled": True, "brief_enabled": True}]
+        # per-kind preferences (PRODUCT_DECISION_V2): each switch is its own column and activity detail
+        out = await h.handle(_msg(ALICE, "/push levels off", 13))
+        assert "• levels (first touch" in out[0].html and "highs and lows): off" in out[0].html
+        await h.handle(_msg(ALICE, "/push hour off", 14))
+        await h.handle(_msg(ALICE, "/push moves off", 15))
+        await h.handle(_msg(ALICE, "/push events off", 16))
+        await h.handle(_msg(ALICE, "/push events on", 17))
+        assert (await _rows(pool, "SELECT push_enabled, push_levels, push_events, push_moves, push_hours "
+                                  "FROM beta_users")) == [{"push_enabled": True, "push_levels": False,
+                                                           "push_events": True, "push_moves": False,
+                                                           "push_hours": False}]
+        details = [r["detail"] for r in await _rows(pool, "SELECT detail FROM beta_user_activity "
+                                                          "WHERE action='cmd_push' ORDER BY activity_pk")][3:]
+        assert details == ["levels:off", "hours:off", "moves:off", "events:off", "events:on"]
         await pool.close()
     run(body())
 

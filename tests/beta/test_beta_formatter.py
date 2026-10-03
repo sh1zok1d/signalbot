@@ -23,16 +23,27 @@ def _ep(et, **kw):
     return Episode(**base)
 
 
+# PRODUCT_DECISION_V2 §3: direct trade calls and hype stay forbidden; forecasting vocabulary
+# (probability, forecast, stop, likely …) is allowed and pinned by the test below.
 @pytest.mark.parametrize("text", [
-    "BUY now", "consider a SELL", "LONG NOW", "short now please", "go long", "entry at 65k",
-    "stop-loss 64k", "take profit", "target 70k", "use leverage", "position sizing",
-    "70% probability", "likely to pump", "an impulse is coming", "win rate 60%", "a loss",
-    "MFE 2%", "we recommend", "trading signal", "forecast up", "we predict",
+    "BUY now", "consider a SELL", "LONG NOW", "short now please", "go long", "entry point 65k",
+    "take profit", "target 70k", "price targets", "likely to pump", "we recommend", "open a long",
+    "enter short", "guaranteed", "you should", "to the moon", "dumping",
 ])
 def test_forbidden_wording_rejected(text):
     with pytest.raises(ForbiddenWordingError):
         assert_descriptive(text)
 
+
+
+@pytest.mark.parametrize("text", [
+    "70% probability", "forecast corridor", "a stop 0.4% away", "likely", "win rate 60%", "a loss",
+    "MFE 2%", "entry", "Вероятность 58%", "прогноз коридора", "стоп 0,4%", "разворот", "продолжение",
+    "ожидается CPI", "сигнал", "плечо", "Бот не говорит, покупать или продавать",
+])
+def test_forecast_vocabulary_is_allowed(text):
+    assert assert_descriptive(text, "ru") == text
+    assert assert_descriptive(text, "en") == text
 
 def test_static_texts_are_descriptive():
     for t in (CLOSED_BETA_TEXT, PRIVACY_NOTICE, HELP_TEXT, *EVENT_LABELS.values(), *EVENT_DESCRIPTIONS.values()):

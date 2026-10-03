@@ -14,28 +14,32 @@ NOW = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
 OWNER = 900000000001
 WELCOME_RU = (
     "Добро пожаловать в Signalbot (закрытая бета).\n"
-    "Бот следит за BTC-фьючерсами на Binance, Bybit и OKX и показывает, когда на рынке "
-    "происходит что-то необычное: резкие движения цены, всплески Delta, ликвидации, "
-    "заметные изменения OI.\n"
-    "/btc — состояние рынка сейчас. Кнопки 1ч и 24ч — картина за час и сутки.\n"
+    "Бот следит за BTC-фьючерсами на Binance, Bybit и OKX. Он не говорит, покупать или "
+    "продавать, а показывает: насколько сейчас рискованно (коридор и /risk), где уровни, "
+    "которые видит весь рынок (/levels), что было в похожих ситуациях раньше и что сегодня "
+    "в календаре (/events).\n"
+    "/btc — состояние рынка сейчас. /help — все команды.\n"
     "/terms — что значат термины.\n"
     "/lang — сменить язык.\n"
-    "Бот только описывает рынок, это не торговые советы.\n"
+    "Это статистика и описание рынка, не торговые советы.\n"
     "Отзывы и вопросы: /feedback ваш текст"
 )
 WELCOME_EN = (
     "Welcome to Signalbot (closed beta).\n"
-    "The bot watches BTC perpetual futures on Binance, Bybit and OKX and shows when "
-    "something unusual happens: sharp price moves, Delta spikes, liquidations, notable "
-    "OI changes.\n"
-    "/btc — the market right now. The 1h and 24h buttons show the last hour and day.\n"
+    "The bot watches BTC perpetual futures on Binance, Bybit and OKX. It never says whether "
+    "to buy or sell; it shows how risky the market is now (corridor and /risk), where the "
+    "levels everyone watches are (/levels), what happened in similar situations before and "
+    "what is in today's calendar (/events).\n"
+    "/btc — the market right now. /help — all commands.\n"
     "/terms — what the terms mean.\n"
     "/lang — change the language.\n"
-    "The bot only describes the market; it is not trading advice.\n"
+    "These are statistics and market description, not trading advice.\n"
     "Feedback and questions: /feedback your text"
 )
-PUSH_RU = "Иногда бот сам пришлёт короткое сообщение — не больше 2 в день."
-PUSH_EN = "Sometimes the bot will send a short message on its own — no more than 2 a day."
+PUSH_RU = ("Бот сам пришлёт короткое сообщение при первом касании важного уровня, за 30 минут до CPI "
+           "или ФРС и при резком движении. Настроить: /push.")
+PUSH_EN = ("The bot will message you at the first touch of a key level, 30 minutes before CPI or the Fed "
+           "and on a sharp move. Settings: /push.")
 
 
 def _msg(uid, text, update_id):
@@ -219,7 +223,7 @@ def test_admin_reply_owner_only_wording_and_audit():
         assert "unknown fingerprint" in missing[0].html
         assert len(missing) == 1
 
-        bad = await h.handle(_msg(OWNER, f"/admin_reply {fp} please buy this", 6))
+        bad = await h.handle(_msg(OWNER, f"/admin_reply {fp} please buy now", 6))
         assert "forbidden wording" in bad[0].html and "bbuy" in bad[0].html
         assert len(bad) == 1
 
@@ -254,6 +258,6 @@ def test_existing_user_on_privacy_v2_sees_the_feedback_notice_once():
         second = await h.handle(_msg(uid, "/help", 2))
         assert len(second) == 1 and "Тексты отзывов" not in second[0].html
         version = await _rows(pool, "SELECT privacy_notice_version FROM beta_users")
-        assert version == [{"privacy_notice_version": 3}]
+        assert version == [{"privacy_notice_version": 4}]
         await pool.close()
     run(body())

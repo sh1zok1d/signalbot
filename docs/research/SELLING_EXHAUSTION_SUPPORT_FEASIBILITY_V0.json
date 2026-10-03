@@ -1,0 +1,3793 @@
+{
+  "CONTINUOUS_OPTION_WEEKS_FOR_80_AT_5PP_LINEAR_DGP": {
+    "SE_BASELINE": {
+      "BASE": 123.77452025508319,
+      "EMPIRICAL": 131.49311511345337,
+      "INDEPENDENT": 113.77676451377181,
+      "STRESS": 149.32323419338894
+    },
+    "SE_LEG": {
+      "BASE": 103.77097740213888,
+      "EMPIRICAL": 105.94587419893784,
+      "INDEPENDENT": 86.89631634913215,
+      "STRESS": 122.10809917050508
+    }
+  },
+  "DESCRIPTIVE_CROSSTABS": {
+    "SE_BASELINE": {
+      "E": {
+        "CVD_FAMILY_SHARE": 0.2607449856733524,
+        "DIVERGENCE_SHARE": 0.1489971346704871,
+        "MACD_FAMILY_SHARE": 0.22063037249283668,
+        "RSI_FAMILY_SHARE": 0.12320916905444126
+      },
+      "S": {
+        "CVD_FAMILY_SHARE": 0.07285768214420536,
+        "DIVERGENCE_SHARE": 0.09966024915062288,
+        "MACD_FAMILY_SHARE": 0.19365798414496035,
+        "RSI_FAMILY_SHARE": 0.16836542091355228
+      }
+    },
+    "SE_LEG": {
+      "E": {
+        "CVD_FAMILY_SHARE": 0.1934032983508246,
+        "DIVERGENCE_SHARE": 0.1904047976011994,
+        "MACD_FAMILY_SHARE": 0.25337331334332835,
+        "RSI_FAMILY_SHARE": 0.2908545727136432
+      },
+      "S": {
+        "CVD_FAMILY_SHARE": 0.06638115631691649,
+        "DIVERGENCE_SHARE": 0.08094218415417559,
+        "MACD_FAMILY_SHARE": 0.1802997858672377,
+        "RSI_FAMILY_SHARE": 0.12633832976445397
+      }
+    },
+    "VARIANT_OVERLAP": {
+      "JACCARD_E": 0.13028953229398663,
+      "LEG0_BASE0": 2100,
+      "LEG0_BASE1": 232,
+      "LEG1_BASE0": 549,
+      "LEG1_BASE1": 117
+    }
+  },
+  "DESIGN_SHA256": "f9da0083ce41e8bd8750d10dce95c86a4872a7e20bfd8dab765493d4529765e8",
+  "E1_INTERVAL_TOUCHED": false,
+  "E_MINUS_S_OUTCOME_CONTRAST_COMPUTED": false,
+  "GENERATED_UTC": "2026-10-02T22:36:37Z",
+  "LIB_SHA256": "91fab0499b61a8ebcb1374bfe56c6ee7e6bbc118572009a3b7abacc532f41ec2",
+  "OUTCOME_DEPENDENCE_STATE_BLIND": {
+    "EMPIRICAL_PROFILE": {
+      "CHAIN": 0.0,
+      "DATE": 0.474564694098588,
+      "LATENT_CORR": {
+        "CHAIN": 0.0,
+        "DATE": 0.3087259812913693,
+        "WEEK": 0.04072840263034467
+      },
+      "WEEK": 0.06260652846432133
+    },
+    "EMPIRICAL_UPPER_PROFILE": {
+      "CHAIN": 0.0,
+      "DATE": 0.5434763995526315,
+      "LATENT_CORR": {
+        "CHAIN": 0.0,
+        "DATE": 0.32568385895987995,
+        "WEEK": 0.07505578819320677
+      },
+      "WEEK": 0.12524737843349446
+    },
+    "N": 3001,
+    "PHI": {
+      "DATE_OTHER_SYMBOL": 0.22726607151566622,
+      "DATE_OTHER_SYMBOL_PAIRS": 4877.0,
+      "SYMBOL_CHAIN_OTHER_DATE_SAME_WEEK": 0.003248616272780365,
+      "SYMBOL_CHAIN_OTHER_DATE_SAME_WEEK_PAIRS": 3335.0,
+      "WEEK_OTHER_DATE_OTHER_SYMBOL": 0.025935680147388618,
+      "WEEK_OTHER_DATE_OTHER_SYMBOL_PAIRS": 18456.0
+    },
+    "PHI_IMPLIED_BY_ASSUMED_PROFILES": {
+      "BASE": {
+        "DATE_OTHER_SYMBOL": 0.16086124651033248,
+        "SYMBOL_CHAIN_OTHER_DATE_SAME_WEEK": 0.0,
+        "WEEK_OTHER_DATE_OTHER_SYMBOL": 0.0
+      },
+      "STRESS": {
+        "DATE_OTHER_SYMBOL_OTHER_STATE": 0.0,
+        "DATE_OTHER_SYMBOL_SAME_STATE": 0.33333333333333337,
+        "SYMBOL_CHAIN_OTHER_DATE_SAME_WEEK": 0.0,
+        "WEEK_OTHER_DATE_OTHER_SYMBOL": 0.0
+      }
+    },
+    "PHI_WEEK_BOOTSTRAP": {
+      "DATE_OTHER_SYMBOL": {
+        "Q05": 0.18851002914126544,
+        "Q95": 0.2624936170907248
+      },
+      "SYMBOL_CHAIN_OTHER_DATE_SAME_WEEK": {
+        "Q05": -0.02682046021286556,
+        "Q95": 0.03635470941805632
+      },
+      "WEEK_OTHER_DATE_OTHER_SYMBOL": {
+        "Q05": 0.004490177446134333,
+        "Q95": 0.047826975194358134
+      }
+    },
+    "STATE_BLIND": true,
+    "SUPPORT_POPULATION_Y1_48H_RATE": 0.48117294235254915,
+    "WEEK_CLUSTERS": 186
+  },
+  "PER_SYMBOL": {
+    "BNBUSDT": {
+      "BOOK_DAYS_MISSING": [
+        "2023-02-08",
+        "2023-02-09",
+        "2023-11-16"
+      ],
+      "DISCOVERY_DIGEST_REPRODUCED": true,
+      "EPISODES_ALL_ARMS": 1345,
+      "FUNNEL": {
+        "ELIGIBLE": 1345,
+        "EXCLUDED_BOOK_BASELINE_IMMATURE": 15,
+        "EXCLUDED_BOOK_WINDOW_MISSING": 12,
+        "EXCLUDED_DEGENERATE_RISK": 18,
+        "EXCLUDED_KLINE_WINDOW_INCOMPLETE": 0,
+        "NOT_LOWER_LOW": 1102,
+        "NOT_PRONOUNCED_DECLINE": 648,
+        "NO_COMPARISON_PIVOT": 0,
+        "POPULATION": 1390,
+        "SWING_LOW_IN_DECISION_WINDOW": 3140
+      },
+      "OI_DAYS_MISSING": 0,
+      "PIT_AUDIT": {
+        "CHECKED": 30,
+        "IDENTICAL": 30
+      },
+      "SUPPORT_EPISODES": 458,
+      "VALIDATION_IDS_REPRODUCED": true
+    },
+    "BTCUSDT": {
+      "BOOK_DAYS_MISSING": [
+        "2023-02-08",
+        "2023-02-09",
+        "2024-04-18"
+      ],
+      "DISCOVERY_DIGEST_REPRODUCED": true,
+      "EPISODES_ALL_ARMS": 1370,
+      "FUNNEL": {
+        "ELIGIBLE": 1370,
+        "EXCLUDED_BOOK_BASELINE_IMMATURE": 13,
+        "EXCLUDED_BOOK_WINDOW_MISSING": 7,
+        "EXCLUDED_DEGENERATE_RISK": 14,
+        "EXCLUDED_KLINE_WINDOW_INCOMPLETE": 0,
+        "NOT_LOWER_LOW": 1151,
+        "NOT_PRONOUNCED_DECLINE": 664,
+        "NO_COMPARISON_PIVOT": 0,
+        "POPULATION": 1404,
+        "SWING_LOW_IN_DECISION_WINDOW": 3219
+      },
+      "OI_DAYS_MISSING": 0,
+      "PIT_AUDIT": {
+        "CHECKED": 30,
+        "IDENTICAL": 30
+      },
+      "SUPPORT_EPISODES": 543,
+      "VALIDATION_IDS_REPRODUCED": true
+    },
+    "DOGEUSDT": {
+      "BOOK_DAYS_MISSING": [
+        "2023-02-08",
+        "2023-02-09",
+        "2024-04-18"
+      ],
+      "DISCOVERY_DIGEST_REPRODUCED": true,
+      "EPISODES_ALL_ARMS": 1403,
+      "FUNNEL": {
+        "ELIGIBLE": 1403,
+        "EXCLUDED_BOOK_BASELINE_IMMATURE": 21,
+        "EXCLUDED_BOOK_WINDOW_MISSING": 12,
+        "EXCLUDED_DEGENERATE_RISK": 12,
+        "EXCLUDED_KLINE_WINDOW_INCOMPLETE": 0,
+        "NOT_LOWER_LOW": 1147,
+        "NOT_PRONOUNCED_DECLINE": 622,
+        "NO_COMPARISON_PIVOT": 0,
+        "POPULATION": 1448,
+        "SWING_LOW_IN_DECISION_WINDOW": 3217
+      },
+      "OI_DAYS_MISSING": 0,
+      "PIT_AUDIT": {
+        "CHECKED": 30,
+        "IDENTICAL": 30
+      },
+      "SUPPORT_EPISODES": 492,
+      "VALIDATION_IDS_REPRODUCED": true
+    },
+    "ETHUSDT": {
+      "BOOK_DAYS_MISSING": [
+        "2023-02-08",
+        "2023-02-09"
+      ],
+      "DISCOVERY_DIGEST_REPRODUCED": true,
+      "EPISODES_ALL_ARMS": 1348,
+      "FUNNEL": {
+        "ELIGIBLE": 1348,
+        "EXCLUDED_BOOK_BASELINE_IMMATURE": 19,
+        "EXCLUDED_BOOK_WINDOW_MISSING": 9,
+        "EXCLUDED_DEGENERATE_RISK": 7,
+        "EXCLUDED_KLINE_WINDOW_INCOMPLETE": 0,
+        "NOT_LOWER_LOW": 1181,
+        "NOT_PRONOUNCED_DECLINE": 657,
+        "NO_COMPARISON_PIVOT": 0,
+        "POPULATION": 1383,
+        "SWING_LOW_IN_DECISION_WINDOW": 3221
+      },
+      "OI_DAYS_MISSING": 0,
+      "PIT_AUDIT": {
+        "CHECKED": 30,
+        "IDENTICAL": 30
+      },
+      "SUPPORT_EPISODES": 509,
+      "VALIDATION_IDS_REPRODUCED": true
+    },
+    "SOLUSDT": {
+      "BOOK_DAYS_MISSING": [
+        "2023-02-08",
+        "2023-02-09",
+        "2023-11-13",
+        "2024-04-18",
+        "2026-01-14"
+      ],
+      "DISCOVERY_DIGEST_REPRODUCED": true,
+      "EPISODES_ALL_ARMS": 1344,
+      "FUNNEL": {
+        "ELIGIBLE": 1344,
+        "EXCLUDED_BOOK_BASELINE_IMMATURE": 18,
+        "EXCLUDED_BOOK_WINDOW_MISSING": 13,
+        "EXCLUDED_DEGENERATE_RISK": 26,
+        "EXCLUDED_KLINE_WINDOW_INCOMPLETE": 0,
+        "NOT_LOWER_LOW": 1029,
+        "NOT_PRONOUNCED_DECLINE": 695,
+        "NO_COMPARISON_PIVOT": 0,
+        "POPULATION": 1401,
+        "SWING_LOW_IN_DECISION_WINDOW": 3125
+      },
+      "OI_DAYS_MISSING": 0,
+      "PIT_AUDIT": {
+        "CHECKED": 30,
+        "IDENTICAL": 30
+      },
+      "SUPPORT_EPISODES": 532,
+      "VALIDATION_IDS_REPRODUCED": true
+    },
+    "XRPUSDT": {
+      "BOOK_DAYS_MISSING": [
+        "2023-02-08",
+        "2023-02-09",
+        "2023-11-01",
+        "2026-01-14"
+      ],
+      "DISCOVERY_DIGEST_REPRODUCED": true,
+      "EPISODES_ALL_ARMS": 1406,
+      "FUNNEL": {
+        "ELIGIBLE": 1406,
+        "EXCLUDED_BOOK_BASELINE_IMMATURE": 18,
+        "EXCLUDED_BOOK_WINDOW_MISSING": 14,
+        "EXCLUDED_DEGENERATE_RISK": 11,
+        "EXCLUDED_KLINE_WINDOW_INCOMPLETE": 0,
+        "NOT_LOWER_LOW": 1178,
+        "NOT_PRONOUNCED_DECLINE": 612,
+        "NO_COMPARISON_PIVOT": 0,
+        "POPULATION": 1449,
+        "SWING_LOW_IN_DECISION_WINDOW": 3239
+      },
+      "OI_DAYS_MISSING": 0,
+      "PIT_AUDIT": {
+        "CHECKED": 30,
+        "IDENTICAL": 30
+      },
+      "SUPPORT_EPISODES": 471,
+      "VALIDATION_IDS_REPRODUCED": true
+    }
+  },
+  "PER_VARIANT": {
+    "SE_BASELINE": {
+      "BINARY_VS_CONTINUOUS": {
+        "N": 2998,
+        "POINT_BISERIAL_STATE_SCORE": 0.47896350405919424,
+        "PROFILES": {
+          "BASE": {
+            "LINEAR": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.1745,
+                  "WEEKS_FOR_80": 1244.0826441532254
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.5185,
+                  "WEEKS_FOR_80": 339.6257953612857
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.2835,
+                  "WEEKS_FOR_80": 681.8349964056595
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.7715,
+                  "WEEKS_FOR_80": 192.93285687918103
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.413,
+                  "WEEKS_FOR_80": 470.50892734112847
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.925,
+                  "WEEKS_FOR_80": 123.77452025508319
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.7325,
+                  "WEEKS_FOR_80": 212.91661022092904
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.9995,
+                  "WEEKS_FOR_80": 53.32134589478246
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.9365,
+                  "WEEKS_FOR_80": 116.12827005561758
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 29.700143301715446
+                }
+              }
+            },
+            "NULL_REJECTION": {
+              "BINARY": 0.02275,
+              "CONTINUOUS": 0.02325
+            },
+            "STEP": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.1735,
+                  "WEEKS_FOR_80": 1386.990969469393
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.06,
+                  "WEEKS_FOR_80": 7253.923004374541
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.2585,
+                  "WEEKS_FOR_80": 824.0232458436619
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.09,
+                  "WEEKS_FOR_80": 3927.102409776885
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.386,
+                  "WEEKS_FOR_80": 505.54736981321616
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.128,
+                  "WEEKS_FOR_80": 2331.4026016907487
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.7165,
+                  "WEEKS_FOR_80": 235.70356049014293
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.2325,
+                  "WEEKS_FOR_80": 1143.1606598365315
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.921,
+                  "WEEKS_FOR_80": 123.23695548675451
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.362,
+                  "WEEKS_FOR_80": 590.5021665598598
+                }
+              }
+            }
+          },
+          "EMPIRICAL": {
+            "LINEAR": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.166,
+                  "WEEKS_FOR_80": 1591.678362933726
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.4835,
+                  "WEEKS_FOR_80": 388.43551236309577
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.274,
+                  "WEEKS_FOR_80": 815.1397721795366
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.7245,
+                  "WEEKS_FOR_80": 215.32744387221254
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.3925,
+                  "WEEKS_FOR_80": 518.942521380127
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.897,
+                  "WEEKS_FOR_80": 131.49311511345337
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.724,
+                  "WEEKS_FOR_80": 209.7309580126314
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.998,
+                  "WEEKS_FOR_80": 60.34222201223475
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.9245,
+                  "WEEKS_FOR_80": 126.48604083851895
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 31.89810640411271
+                }
+              }
+            },
+            "NULL_REJECTION": {
+              "BINARY": 0.0275,
+              "CONTINUOUS": 0.02775
+            },
+            "STEP": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.197,
+                  "WEEKS_FOR_80": 1280.12444226799
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.0755,
+                  "WEEKS_FOR_80": 6286.938710796251
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.2805,
+                  "WEEKS_FOR_80": 774.0103018104173
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.094,
+                  "WEEKS_FOR_80": 3908.1753327548013
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.4135,
+                  "WEEKS_FOR_80": 504.81885058286105
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.114,
+                  "WEEKS_FOR_80": 2359.4763836937086
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.7265,
+                  "WEEKS_FOR_80": 215.51700092325314
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.188,
+                  "WEEKS_FOR_80": 1185.6243411665075
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.922,
+                  "WEEKS_FOR_80": 123.93145876350493
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.3205,
+                  "WEEKS_FOR_80": 668.3861558915926
+                }
+              }
+            }
+          },
+          "INDEPENDENT": {
+            "LINEAR": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.1875,
+                  "WEEKS_FOR_80": 1323.0510813275368
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.5935,
+                  "WEEKS_FOR_80": 301.0353535083569
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.2965,
+                  "WEEKS_FOR_80": 746.8281580080918
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.821,
+                  "WEEKS_FOR_80": 188.2685038276919
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.4075,
+                  "WEEKS_FOR_80": 482.2225355232811
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.947,
+                  "WEEKS_FOR_80": 113.77676451377181
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.7585,
+                  "WEEKS_FOR_80": 198.54100966247174
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 44.99059210622999
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.941,
+                  "WEEKS_FOR_80": 116.61699725856384
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 24.94958302322152
+                }
+              }
+            },
+            "NULL_REJECTION": {
+              "BINARY": 0.0255,
+              "CONTINUOUS": 0.0315
+            },
+            "STEP": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.2035,
+                  "WEEKS_FOR_80": 1191.1166858000583
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.08,
+                  "WEEKS_FOR_80": 5292.38062887471
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.297,
+                  "WEEKS_FOR_80": 727.4695145490666
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.098,
+                  "WEEKS_FOR_80": 3309.011199293297
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.4225,
+                  "WEEKS_FOR_80": 460.63608959858465
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.1545,
+                  "WEEKS_FOR_80": 2065.481925677256
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.762,
+                  "WEEKS_FOR_80": 200.8090769634694
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.2505,
+                  "WEEKS_FOR_80": 873.0339246972856
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.934,
+                  "WEEKS_FOR_80": 122.75547815502122
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.401,
+                  "WEEKS_FOR_80": 490.91095102946724
+                }
+              }
+            }
+          },
+          "STRESS": {
+            "LINEAR": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.14,
+                  "WEEKS_FOR_80": 1842.5456317619496
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.449,
+                  "WEEKS_FOR_80": 424.96484362851646
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.247,
+                  "WEEKS_FOR_80": 1052.1167975873946
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.7175,
+                  "WEEKS_FOR_80": 229.5806908240202
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.326,
+                  "WEEKS_FOR_80": 595.2449124497236
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.874,
+                  "WEEKS_FOR_80": 149.32323419338894
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.6565,
+                  "WEEKS_FOR_80": 265.70132706030745
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.9975,
+                  "WEEKS_FOR_80": 64.01934717992727
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.87,
+                  "WEEKS_FOR_80": 150.98147914260176
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 35.826803339008016
+                }
+              }
+            },
+            "NULL_REJECTION": {
+              "BINARY": 0.027,
+              "CONTINUOUS": 0.02525
+            },
+            "STEP": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.1385,
+                  "WEEKS_FOR_80": 1716.4239799695958
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.064,
+                  "WEEKS_FOR_80": 7529.340531391368
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.224,
+                  "WEEKS_FOR_80": 948.3084478223536
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.0815,
+                  "WEEKS_FOR_80": 4382.4819783781795
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.351,
+                  "WEEKS_FOR_80": 635.6079190377027
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.1205,
+                  "WEEKS_FOR_80": 2792.528144879336
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.6465,
+                  "WEEKS_FOR_80": 263.7990855585519
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.224,
+                  "WEEKS_FOR_80": 1178.6123929631242
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.878,
+                  "WEEKS_FOR_80": 149.1666398041615
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.2955,
+                  "WEEKS_FOR_80": 685.1794017258685
+                }
+              }
+            }
+          }
+        },
+        "SCORE_MEAN_GAP_E_MINUS_S_SD": 1.4934144814036914
+      },
+      "LAYOUT": {
+        "E": {
+          "BY_EPOCH": {
+            "2023H1": 47,
+            "2023H2": 47,
+            "2024H1": 57,
+            "2024H2": 37,
+            "2025H1": 58,
+            "2025H2": 38,
+            "2026H1": 55,
+            "2026H2": 10
+          },
+          "BY_SYMBOL": {
+            "BNBUSDT": 62,
+            "BTCUSDT": 58,
+            "DOGEUSDT": 57,
+            "ETHUSDT": 45,
+            "SOLUSDT": 60,
+            "XRPUSDT": 67
+          },
+          "DECISION_DATES": 274,
+          "DISTINCT_DECISION_TIMES": 328,
+          "EPISODES": 349,
+          "MAX_EPISODES_PER_DATE": 4,
+          "MAX_EPOCH_SHARE": 0.166189111747851,
+          "MAX_SYMBOL_SHARE": 0.19197707736389685,
+          "PANEL_24H_MARKET_CHAINS": 233,
+          "SYMBOL_48H_OVERLAP_CHAINS": 281,
+          "SYMBOL_HHI": 0.16889023899639577,
+          "WEEK_CLUSTERS": 150,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_0H": 0.1174785100286533,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_24H": 0.4040114613180516,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_6H": 0.22636103151862463
+        },
+        "PREVALENCE_E_AMONG_DEFINED_SUPPORT": 0.11641094062708472,
+        "S": {
+          "BY_EPOCH": {
+            "2023H1": 346,
+            "2023H2": 338,
+            "2024H1": 355,
+            "2024H2": 360,
+            "2025H1": 394,
+            "2025H2": 394,
+            "2026H1": 395,
+            "2026H2": 67
+          },
+          "BY_SYMBOL": {
+            "BNBUSDT": 395,
+            "BTCUSDT": 484,
+            "DOGEUSDT": 435,
+            "ETHUSDT": 461,
+            "SOLUSDT": 470,
+            "XRPUSDT": 404
+          },
+          "DECISION_DATES": 874,
+          "DISTINCT_DECISION_TIMES": 1785,
+          "EPISODES": 2649,
+          "MAX_EPISODES_PER_DATE": 13,
+          "MAX_EPOCH_SHARE": 0.14911287278218197,
+          "MAX_SYMBOL_SHARE": 0.18271045677614195,
+          "PANEL_24H_MARKET_CHAINS": 431,
+          "SYMBOL_48H_OVERLAP_CHAINS": 988,
+          "SYMBOL_HHI": 0.16760856643553462,
+          "WEEK_CLUSTERS": 186,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_0H": 0.5398263495658739,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_24H": 0.9346923367308418,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_6H": 0.7912419781049452
+        }
+      },
+      "POWER": {
+        "BASE": {
+          "AT": {
+            "0.030": 0.1805,
+            "0.050": 0.4275,
+            "0.075": 0.7045,
+            "0.100": 0.923
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.0329836256700793,
+          "EFFECTIVE_UNITS": 2902.272529300982,
+          "E_UNITS": 349,
+          "MDE80_ANALYTIC": 0.08191110061627867,
+          "MDE80_GRID": 0.085,
+          "NULL_REJECTION_RATE": 0.02475,
+          "NULL_SD": 0.0292374117648474,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.009926036346933982,
+              "POWER": 0.05,
+              "SD_ESTIMATE": 0.029104187196608153
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.014497695820406175,
+              "POWER": 0.078,
+              "SD_ESTIMATE": 0.029245797126876766
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.019610648630339997,
+              "POWER": 0.098,
+              "SD_ESTIMATE": 0.029025616783013432
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.025897688936229967,
+              "POWER": 0.1515,
+              "SD_ESTIMATE": 0.02963860307519073
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.02971133428808686,
+              "POWER": 0.1805,
+              "SD_ESTIMATE": 0.029513332853820448
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.034665894383036334,
+              "POWER": 0.229,
+              "SD_ESTIMATE": 0.02911304048082044
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.03977303691022564,
+              "POWER": 0.279,
+              "SD_ESTIMATE": 0.029764608607161475
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.04526806896656127,
+              "POWER": 0.336,
+              "SD_ESTIMATE": 0.029479582297457545
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.05106363732605192,
+              "POWER": 0.4275,
+              "SD_ESTIMATE": 0.029243183421656768
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.05454207065960483,
+              "POWER": 0.457,
+              "SD_ESTIMATE": 0.02952570093268872
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.05967894484195355,
+              "POWER": 0.527,
+              "SD_ESTIMATE": 0.02907268806260643
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.0654434308094082,
+              "POWER": 0.616,
+              "SD_ESTIMATE": 0.028975860084847142
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.06965617892143794,
+              "POWER": 0.656,
+              "SD_ESTIMATE": 0.029353916853240958
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.07344798720232192,
+              "POWER": 0.7045,
+              "SD_ESTIMATE": 0.028654109773640187
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.08021769698309905,
+              "POWER": 0.7865,
+              "SD_ESTIMATE": 0.02892821060870563
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08449477630085121,
+              "POWER": 0.825,
+              "SD_ESTIMATE": 0.029292909601800907
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.08951299104711685,
+              "POWER": 0.8605,
+              "SD_ESTIMATE": 0.028935513635350935
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.09522740539061561,
+              "POWER": 0.902,
+              "SD_ESTIMATE": 0.0287979035674283
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.09964997186886247,
+              "POWER": 0.923,
+              "SD_ESTIMATE": 0.029138252162340877
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10477811883401492,
+              "POWER": 0.95,
+              "SD_ESTIMATE": 0.028286848704552642
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.10891915555324094,
+              "POWER": 0.9615,
+              "SD_ESTIMATE": 0.02865629321437937
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.113960542786394,
+              "POWER": 0.9755,
+              "SD_ESTIMATE": 0.029649896015484636
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.11893121477225164,
+              "POWER": 0.983,
+              "SD_ESTIMATE": 0.028721869862510716
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.12577448356738527,
+              "POWER": 0.99,
+              "SD_ESTIMATE": 0.028746261605370325
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.1298847169586906,
+              "POWER": 0.9935,
+              "SD_ESTIMATE": 0.028464268128615643
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.13517582186869795,
+              "POWER": 0.9975,
+              "SD_ESTIMATE": 0.028290848225664543
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.13947889352586249,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.028001194585911264
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.14479031654135802,
+              "POWER": 0.998,
+              "SD_ESTIMATE": 0.02898126490641981
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.15037191168430397,
+              "POWER": 0.9995,
+              "SD_ESTIMATE": 0.028024107962640675
+            }
+          },
+          "UNITS": 2998,
+          "WEEKS_FOR_80": {
+            "0.04": 817.6048604562986,
+            "0.05": 478.7914887713067
+          },
+          "WEEK_CLUSTERS": 186
+        },
+        "COLLAPSED": {
+          "AT": {
+            "0.030": 0.1365,
+            "0.050": 0.304,
+            "0.075": 0.606,
+            "0.100": 0.852
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.334363958636488,
+          "EFFECTIVE_UNITS": 2246.763321652879,
+          "E_UNITS": 274,
+          "MDE80_ANALYTIC": 0.09309646581294441,
+          "MDE80_GRID": 0.095,
+          "NULL_REJECTION_RATE": 0.025,
+          "NULL_SD": 0.03322992469086852,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.009031848703001426,
+              "POWER": 0.046,
+              "SD_ESTIMATE": 0.033874252823885925
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.015140456663715652,
+              "POWER": 0.0685,
+              "SD_ESTIMATE": 0.033634084569329384
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.021675595884347358,
+              "POWER": 0.1,
+              "SD_ESTIMATE": 0.03355691609811745
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.024488103191968997,
+              "POWER": 0.1175,
+              "SD_ESTIMATE": 0.034374856433568454
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.02910359284437675,
+              "POWER": 0.1365,
+              "SD_ESTIMATE": 0.032928160300408106
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.03545746546626788,
+              "POWER": 0.1765,
+              "SD_ESTIMATE": 0.03220698369785648
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.03876438557517231,
+              "POWER": 0.221,
+              "SD_ESTIMATE": 0.03354350861898697
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.04505100302326732,
+              "POWER": 0.276,
+              "SD_ESTIMATE": 0.033854781563727544
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.04967810135462412,
+              "POWER": 0.304,
+              "SD_ESTIMATE": 0.03372968089394562
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.05454340309676112,
+              "POWER": 0.37,
+              "SD_ESTIMATE": 0.03305508457839045
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.059884685730511464,
+              "POWER": 0.433,
+              "SD_ESTIMATE": 0.03352842097698441
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.06565905560473685,
+              "POWER": 0.5005,
+              "SD_ESTIMATE": 0.033143519556068916
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.07099441280128263,
+              "POWER": 0.567,
+              "SD_ESTIMATE": 0.03354217780308025
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.07518604369540147,
+              "POWER": 0.606,
+              "SD_ESTIMATE": 0.032812524297164504
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.07983193305383404,
+              "POWER": 0.667,
+              "SD_ESTIMATE": 0.033294159338344925
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08504006246972541,
+              "POWER": 0.7245,
+              "SD_ESTIMATE": 0.033697499381704715
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.0891648307137248,
+              "POWER": 0.7655,
+              "SD_ESTIMATE": 0.03216659717210889
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.0953740166029162,
+              "POWER": 0.817,
+              "SD_ESTIMATE": 0.032717151536006364
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.0999294751874925,
+              "POWER": 0.852,
+              "SD_ESTIMATE": 0.03299280930616692
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10466104745360687,
+              "POWER": 0.881,
+              "SD_ESTIMATE": 0.033029917779260926
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.10943362591658436,
+              "POWER": 0.9125,
+              "SD_ESTIMATE": 0.033024983646998914
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11551648599442095,
+              "POWER": 0.944,
+              "SD_ESTIMATE": 0.03166985406675153
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.12070199936528067,
+              "POWER": 0.961,
+              "SD_ESTIMATE": 0.032113659278442265
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.12513131169720537,
+              "POWER": 0.966,
+              "SD_ESTIMATE": 0.03217515972534256
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.13019014849087154,
+              "POWER": 0.972,
+              "SD_ESTIMATE": 0.03253699770860424
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.13416250062636736,
+              "POWER": 0.984,
+              "SD_ESTIMATE": 0.03267843272185851
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.1402716472631911,
+              "POWER": 0.987,
+              "SD_ESTIMATE": 0.03264886202332304
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.1444199251699542,
+              "POWER": 0.9935,
+              "SD_ESTIMATE": 0.033000584655437475
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.14930642319063264,
+              "POWER": 0.995,
+              "SD_ESTIMATE": 0.031715878003046795
+            }
+          },
+          "UNITS": 1148,
+          "WEEKS_FOR_80": {
+            "0.04": 1093.129927011046,
+            "0.05": 673.0000637631294
+          },
+          "WEEK_CLUSTERS": 186
+        },
+        "EMPIRICAL": {
+          "AT": {
+            "0.030": 0.185,
+            "0.050": 0.399,
+            "0.075": 0.711,
+            "0.100": 0.932
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.0519277314990394,
+          "EFFECTIVE_UNITS": 2850.005670758132,
+          "E_UNITS": 349,
+          "MDE80_ANALYTIC": 0.08265878074885126,
+          "MDE80_GRID": 0.085,
+          "NULL_REJECTION_RATE": 0.02425,
+          "NULL_SD": 0.029504289291091702,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.010328161568970507,
+              "POWER": 0.05,
+              "SD_ESTIMATE": 0.028875529961850256
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.015128695887287213,
+              "POWER": 0.074,
+              "SD_ESTIMATE": 0.029101637455188418
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.019971832333704385,
+              "POWER": 0.098,
+              "SD_ESTIMATE": 0.029815417815599078
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.024156350567367056,
+              "POWER": 0.1205,
+              "SD_ESTIMATE": 0.029194880300724063
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.03115120083076675,
+              "POWER": 0.185,
+              "SD_ESTIMATE": 0.02955274033183836
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.034412096822993364,
+              "POWER": 0.2095,
+              "SD_ESTIMATE": 0.02954942192995071
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.03924678783016743,
+              "POWER": 0.255,
+              "SD_ESTIMATE": 0.028688012947873775
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.0450222769961561,
+              "POWER": 0.3315,
+              "SD_ESTIMATE": 0.02944409439390406
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.05026603721665184,
+              "POWER": 0.399,
+              "SD_ESTIMATE": 0.029891977568522785
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.05453348163970921,
+              "POWER": 0.4485,
+              "SD_ESTIMATE": 0.030463432481585735
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.060191908183784205,
+              "POWER": 0.5375,
+              "SD_ESTIMATE": 0.029601935727267607
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.06423413490443966,
+              "POWER": 0.58,
+              "SD_ESTIMATE": 0.030549721116487915
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.07072397364372099,
+              "POWER": 0.6715,
+              "SD_ESTIMATE": 0.02894190701993731
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.07453069577175866,
+              "POWER": 0.711,
+              "SD_ESTIMATE": 0.029977815892084002
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.07972176836630883,
+              "POWER": 0.7675,
+              "SD_ESTIMATE": 0.02981898747819518
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08396607733710246,
+              "POWER": 0.809,
+              "SD_ESTIMATE": 0.029171912112806432
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.09009160276528069,
+              "POWER": 0.855,
+              "SD_ESTIMATE": 0.029716544392829496
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.0938341583838229,
+              "POWER": 0.8975,
+              "SD_ESTIMATE": 0.028838228474532733
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.10004177853363704,
+              "POWER": 0.932,
+              "SD_ESTIMATE": 0.028884048584717676
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10507949990456562,
+              "POWER": 0.9445,
+              "SD_ESTIMATE": 0.02926674114706654
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.11101369129154949,
+              "POWER": 0.9595,
+              "SD_ESTIMATE": 0.0292216733650972
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11533189253145434,
+              "POWER": 0.979,
+              "SD_ESTIMATE": 0.028750225142303253
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.1192331298728435,
+              "POWER": 0.9835,
+              "SD_ESTIMATE": 0.028662612237888085
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.12476391207527414,
+              "POWER": 0.99,
+              "SD_ESTIMATE": 0.029017789003812
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.12851872682782475,
+              "POWER": 0.992,
+              "SD_ESTIMATE": 0.02873931128529433
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.13607300181266954,
+              "POWER": 0.993,
+              "SD_ESTIMATE": 0.0291372815890001
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.14089348624633613,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.027814117153110846
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.14529010564708206,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.027931546242786903
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.1499204414674163,
+              "POWER": 0.999,
+              "SD_ESTIMATE": 0.029093939620651776
+            }
+          },
+          "UNITS": 2998,
+          "WEEKS_FOR_80": {
+            "0.04": 780.0336177247086,
+            "0.05": 516.2744316574128
+          },
+          "WEEK_CLUSTERS": 186
+        },
+        "EMPIRICAL_UPPER": {
+          "AT": {
+            "0.030": 0.183,
+            "0.050": 0.392,
+            "0.075": 0.721,
+            "0.100": 0.919
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.0932240537380868,
+          "EFFECTIVE_UNITS": 2742.347270670516,
+          "E_UNITS": 349,
+          "MDE80_ANALYTIC": 0.08426566105831552,
+          "MDE80_GRID": 0.085,
+          "NULL_REJECTION_RATE": 0.02275,
+          "NULL_SD": 0.030077850394668124,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.009799291621166386,
+              "POWER": 0.0605,
+              "SD_ESTIMATE": 0.02990481989452664
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.014864376308828557,
+              "POWER": 0.0765,
+              "SD_ESTIMATE": 0.030380346566858053
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.019623596255898924,
+              "POWER": 0.098,
+              "SD_ESTIMATE": 0.030171028572175723
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.02434970375547576,
+              "POWER": 0.133,
+              "SD_ESTIMATE": 0.03044520375214558
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.030956696879969024,
+              "POWER": 0.183,
+              "SD_ESTIMATE": 0.03038759391366646
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.03518383606060389,
+              "POWER": 0.2255,
+              "SD_ESTIMATE": 0.03022364504681003
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.04053644687039714,
+              "POWER": 0.2735,
+              "SD_ESTIMATE": 0.029748694798516405
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.04500521428961148,
+              "POWER": 0.3155,
+              "SD_ESTIMATE": 0.029067072003362723
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.04980593646749978,
+              "POWER": 0.392,
+              "SD_ESTIMATE": 0.029901434288396065
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.05392924204503017,
+              "POWER": 0.437,
+              "SD_ESTIMATE": 0.030065744594990083
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.060148478336535346,
+              "POWER": 0.5355,
+              "SD_ESTIMATE": 0.029655736233210876
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.06494749623733734,
+              "POWER": 0.593,
+              "SD_ESTIMATE": 0.028971661053186118
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.06945737642050413,
+              "POWER": 0.646,
+              "SD_ESTIMATE": 0.028440337004187702
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.07479392237512685,
+              "POWER": 0.721,
+              "SD_ESTIMATE": 0.028882030495698773
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.08078935383413414,
+              "POWER": 0.774,
+              "SD_ESTIMATE": 0.029143695111646696
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08569405027318665,
+              "POWER": 0.8265,
+              "SD_ESTIMATE": 0.02953220074860873
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.08996833894452556,
+              "POWER": 0.8425,
+              "SD_ESTIMATE": 0.030193893535267507
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.0949486011572281,
+              "POWER": 0.895,
+              "SD_ESTIMATE": 0.029117226362142215
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.09983315425349724,
+              "POWER": 0.919,
+              "SD_ESTIMATE": 0.029394209077936363
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10396948024619712,
+              "POWER": 0.9445,
+              "SD_ESTIMATE": 0.029344952718613378
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.11011158945994369,
+              "POWER": 0.96,
+              "SD_ESTIMATE": 0.029086998276465215
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11498001000665409,
+              "POWER": 0.977,
+              "SD_ESTIMATE": 0.028388152344574424
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.11897064961628437,
+              "POWER": 0.981,
+              "SD_ESTIMATE": 0.029449759404371383
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.12460659953781208,
+              "POWER": 0.989,
+              "SD_ESTIMATE": 0.028303749470194407
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.12995379174181448,
+              "POWER": 0.991,
+              "SD_ESTIMATE": 0.028853650207168253
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.13420999876531403,
+              "POWER": 0.996,
+              "SD_ESTIMATE": 0.028789809880813075
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.13886493450683754,
+              "POWER": 0.9965,
+              "SD_ESTIMATE": 0.028524154870523736
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.1448992907563413,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.028897544460703067
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.14961611870345193,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.028442084208425596
+            }
+          },
+          "UNITS": 2998,
+          "WEEKS_FOR_80": {
+            "0.04": 786.2580287765799,
+            "0.05": 526.1898176186954
+          },
+          "WEEK_CLUSTERS": 186
+        },
+        "INDEPENDENT": {
+          "AT": {
+            "0.030": 0.1785,
+            "0.050": 0.423,
+            "0.075": 0.7605,
+            "0.100": 0.9365
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.0,
+          "EFFECTIVE_UNITS": 2998.0,
+          "E_UNITS": 349,
+          "MDE80_ANALYTIC": 0.08059276256068533,
+          "MDE80_GRID": 0.08,
+          "NULL_REJECTION_RATE": 0.028,
+          "NULL_SD": 0.028766843157092784,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.010009303408485753,
+              "POWER": 0.056,
+              "SD_ESTIMATE": 0.02873145562666038
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.013876732811632842,
+              "POWER": 0.073,
+              "SD_ESTIMATE": 0.02817179197374093
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.019698477182295684,
+              "POWER": 0.099,
+              "SD_ESTIMATE": 0.02826961135554135
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.02467242052729139,
+              "POWER": 0.1355,
+              "SD_ESTIMATE": 0.02812902752451414
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.029276078218613725,
+              "POWER": 0.1785,
+              "SD_ESTIMATE": 0.028504314987300768
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.03529116293936649,
+              "POWER": 0.238,
+              "SD_ESTIMATE": 0.02941528280266324
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.03986130186273915,
+              "POWER": 0.279,
+              "SD_ESTIMATE": 0.027727760377639424
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.04431664585438401,
+              "POWER": 0.3425,
+              "SD_ESTIMATE": 0.028108521019140274
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.049828258381134076,
+              "POWER": 0.423,
+              "SD_ESTIMATE": 0.02834057278113776
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.054556742120212026,
+              "POWER": 0.4855,
+              "SD_ESTIMATE": 0.028353264388536182
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.06072436408540453,
+              "POWER": 0.559,
+              "SD_ESTIMATE": 0.02911206515152234
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.06499134491195219,
+              "POWER": 0.62,
+              "SD_ESTIMATE": 0.028195766183953214
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.06950260374049562,
+              "POWER": 0.681,
+              "SD_ESTIMATE": 0.02843506929290034
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.07562910823099807,
+              "POWER": 0.7605,
+              "SD_ESTIMATE": 0.028123828113378126
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.07984598450142097,
+              "POWER": 0.8035,
+              "SD_ESTIMATE": 0.028550877827199415
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08415622073179255,
+              "POWER": 0.8365,
+              "SD_ESTIMATE": 0.028024712243403294
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.08996616627250677,
+              "POWER": 0.8825,
+              "SD_ESTIMATE": 0.027582934588684736
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.09427074386978337,
+              "POWER": 0.916,
+              "SD_ESTIMATE": 0.02816367717196642
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.09897489126593294,
+              "POWER": 0.9365,
+              "SD_ESTIMATE": 0.02824236817913697
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10526832361967181,
+              "POWER": 0.9605,
+              "SD_ESTIMATE": 0.02788124289339458
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.10880643938707199,
+              "POWER": 0.966,
+              "SD_ESTIMATE": 0.0283853540070211
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11423847932276969,
+              "POWER": 0.9775,
+              "SD_ESTIMATE": 0.028346122122340407
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.11982317224871974,
+              "POWER": 0.9895,
+              "SD_ESTIMATE": 0.02720529402114486
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.12497833984348117,
+              "POWER": 0.9955,
+              "SD_ESTIMATE": 0.027260157494620657
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.1308279942516964,
+              "POWER": 0.995,
+              "SD_ESTIMATE": 0.027396382641859438
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.13435854686332516,
+              "POWER": 0.997,
+              "SD_ESTIMATE": 0.02826893225125751
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.1390094278339964,
+              "POWER": 0.9995,
+              "SD_ESTIMATE": 0.028178997777814282
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.14558622135264465,
+              "POWER": 0.999,
+              "SD_ESTIMATE": 0.028468163067082445
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.15016560114886857,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.027538896461325593
+            }
+          },
+          "UNITS": 2998,
+          "WEEKS_FOR_80": {
+            "0.04": 706.3943974630536,
+            "0.05": 472.26574942938794
+          },
+          "WEEK_CLUSTERS": 186
+        },
+        "STRESS": {
+          "AT": {
+            "0.030": 0.151,
+            "0.050": 0.337,
+            "0.075": 0.6305,
+            "0.100": 0.8715
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.291638504633006,
+          "EFFECTIVE_UNITS": 2321.082864320326,
+          "E_UNITS": 349,
+          "MDE80_ANALYTIC": 0.09159389641772549,
+          "MDE80_GRID": 0.095,
+          "NULL_REJECTION_RATE": 0.02275,
+          "NULL_SD": 0.032693596405901706,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.009853823515947902,
+              "POWER": 0.045,
+              "SD_ESTIMATE": 0.03218388949926258
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.015056736136493054,
+              "POWER": 0.065,
+              "SD_ESTIMATE": 0.032882391511743915
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.01985444699847539,
+              "POWER": 0.0975,
+              "SD_ESTIMATE": 0.0333833484791468
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.023572880521639247,
+              "POWER": 0.1155,
+              "SD_ESTIMATE": 0.03286097983463097
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.03009289136332544,
+              "POWER": 0.151,
+              "SD_ESTIMATE": 0.03254226681211017
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.03438418154807517,
+              "POWER": 0.196,
+              "SD_ESTIMATE": 0.0329967286441542
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.03986232750088571,
+              "POWER": 0.2305,
+              "SD_ESTIMATE": 0.03271682570384621
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.04404766507944865,
+              "POWER": 0.2765,
+              "SD_ESTIMATE": 0.03278538942807783
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.05005863560685744,
+              "POWER": 0.337,
+              "SD_ESTIMATE": 0.032211779655931146
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.05557592291660548,
+              "POWER": 0.4005,
+              "SD_ESTIMATE": 0.03285893371222432
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.059291894162025335,
+              "POWER": 0.447,
+              "SD_ESTIMATE": 0.03302148885449175
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.06504325092933198,
+              "POWER": 0.516,
+              "SD_ESTIMATE": 0.03162415013770143
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.06991093852265627,
+              "POWER": 0.568,
+              "SD_ESTIMATE": 0.033025263021131325
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.0745410430739017,
+              "POWER": 0.6305,
+              "SD_ESTIMATE": 0.032707083500647834
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.07925862324020717,
+              "POWER": 0.6845,
+              "SD_ESTIMATE": 0.03169847156150474
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08574270481653999,
+              "POWER": 0.7585,
+              "SD_ESTIMATE": 0.03221791834947017
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.08880803880898575,
+              "POWER": 0.784,
+              "SD_ESTIMATE": 0.03195286666013796
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.0946406701553151,
+              "POWER": 0.833,
+              "SD_ESTIMATE": 0.032549832268853676
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.1003294381312484,
+              "POWER": 0.8715,
+              "SD_ESTIMATE": 0.03185883407036568
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10508051058307676,
+              "POWER": 0.9005,
+              "SD_ESTIMATE": 0.03316613544522059
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.10881095265255641,
+              "POWER": 0.9195,
+              "SD_ESTIMATE": 0.031886030283763835
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11472992204039142,
+              "POWER": 0.9525,
+              "SD_ESTIMATE": 0.031161109474178297
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.12066735748439013,
+              "POWER": 0.9625,
+              "SD_ESTIMATE": 0.032061896356334926
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.12602610854697613,
+              "POWER": 0.9735,
+              "SD_ESTIMATE": 0.032004878188256744
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.12951371439811626,
+              "POWER": 0.9775,
+              "SD_ESTIMATE": 0.031570735296994376
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.13495212167972084,
+              "POWER": 0.987,
+              "SD_ESTIMATE": 0.03213857692592322
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.13985127495941588,
+              "POWER": 0.9935,
+              "SD_ESTIMATE": 0.031176707232907906
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.14635274342239196,
+              "POWER": 0.994,
+              "SD_ESTIMATE": 0.03182507239450121
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.1527748406388006,
+              "POWER": 0.997,
+              "SD_ESTIMATE": 0.031059121497349927
+            }
+          },
+          "UNITS": 2998,
+          "WEEKS_FOR_80": {
+            "0.04": 983.4168237310216,
+            "0.05": 604.4940652106465
+          },
+          "WEEK_CLUSTERS": 186
+        }
+      },
+      "PROSPECTIVE_CONFIRMATION": {
+        "BASE": {
+          "0.04": {
+            "CONFIRMED": null,
+            "NOTE": "beyond 520 weeks; not simulated",
+            "WEEKS_FOR_80_ANALYTIC": 817.6048604562986
+          },
+          "0.05": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2035-12-24T00:00:00Z",
+            "PROSPECTIVE_E": 898,
+            "PROSPECTIVE_S": 6776,
+            "SIMULATED_POWER": 0.7835,
+            "SIMULATED_WEEKS": 480,
+            "WEEKS_FOR_80_ANALYTIC": 478.7914887713067
+          }
+        },
+        "EMPIRICAL": {
+          "0.04": {
+            "CONFIRMED": null,
+            "NOTE": "beyond 520 weeks; not simulated",
+            "WEEKS_FOR_80_ANALYTIC": 780.0336177247086
+          },
+          "0.05": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2036-09-29T00:00:00Z",
+            "PROSPECTIVE_E": 970,
+            "PROSPECTIVE_S": 7412,
+            "SIMULATED_POWER": 0.8025,
+            "SIMULATED_WEEKS": 520,
+            "WEEKS_FOR_80_ANALYTIC": 516.2744316574128
+          }
+        },
+        "EMPIRICAL_UPPER": {
+          "0.04": {
+            "CONFIRMED": null,
+            "NOTE": "beyond 520 weeks; not simulated",
+            "WEEKS_FOR_80_ANALYTIC": 786.2580287765799
+          },
+          "0.05": {
+            "CONFIRMED": null,
+            "NOTE": "beyond 520 weeks; not simulated",
+            "WEEKS_FOR_80_ANALYTIC": 526.1898176186954
+          }
+        },
+        "INDEPENDENT": {
+          "0.04": {
+            "CONFIRMED": null,
+            "NOTE": "beyond 520 weeks; not simulated",
+            "WEEKS_FOR_80_ANALYTIC": 706.3943974630536
+          },
+          "0.05": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2035-11-26T00:00:00Z",
+            "PROSPECTIVE_E": 891,
+            "PROSPECTIVE_S": 6713,
+            "SIMULATED_POWER": 0.801,
+            "SIMULATED_WEEKS": 476,
+            "WEEKS_FOR_80_ANALYTIC": 472.26574942938794
+          }
+        },
+        "STRESS": {
+          "0.04": {
+            "CONFIRMED": null,
+            "NOTE": "beyond 520 weeks; not simulated",
+            "WEEKS_FOR_80_ANALYTIC": 983.4168237310216
+          },
+          "0.05": {
+            "CONFIRMED": null,
+            "NOTE": "beyond 520 weeks; not simulated",
+            "WEEKS_FOR_80_ANALYTIC": 604.4940652106465
+          }
+        }
+      },
+      "SCORE_CONSTANTS": {
+        "BNBUSDT": {
+          "APPROACH_FLOW_EXCESS": {
+            "MEDIAN": -0.014582047527687532,
+            "SCALE": 0.024283358301266194
+          },
+          "APPROACH_OI_CHANGE": {
+            "MEDIAN": -0.0031442261464402765,
+            "SCALE": 0.029670625436614192
+          }
+        },
+        "BTCUSDT": {
+          "APPROACH_FLOW_EXCESS": {
+            "MEDIAN": -0.019778684349876875,
+            "SCALE": 0.021944009854800064
+          },
+          "APPROACH_OI_CHANGE": {
+            "MEDIAN": 0.0009832791931358997,
+            "SCALE": 0.030111381295709578
+          }
+        },
+        "DOGEUSDT": {
+          "APPROACH_FLOW_EXCESS": {
+            "MEDIAN": -0.014442237415604816,
+            "SCALE": 0.02070011567257999
+          },
+          "APPROACH_OI_CHANGE": {
+            "MEDIAN": -0.008979455972414174,
+            "SCALE": 0.035796971256365724
+          }
+        },
+        "ETHUSDT": {
+          "APPROACH_FLOW_EXCESS": {
+            "MEDIAN": -0.01790145059438055,
+            "SCALE": 0.021906029276665382
+          },
+          "APPROACH_OI_CHANGE": {
+            "MEDIAN": 0.0006303878935005613,
+            "SCALE": 0.029519669257261728
+          }
+        },
+        "SOLUSDT": {
+          "APPROACH_FLOW_EXCESS": {
+            "MEDIAN": -0.01524792213451874,
+            "SCALE": 0.019427487484145512
+          },
+          "APPROACH_OI_CHANGE": {
+            "MEDIAN": -0.002571501856588221,
+            "SCALE": 0.03590579797516727
+          }
+        },
+        "XRPUSDT": {
+          "APPROACH_FLOW_EXCESS": {
+            "MEDIAN": -0.012480129946298048,
+            "SCALE": 0.020129108558647357
+          },
+          "APPROACH_OI_CHANGE": {
+            "MEDIAN": -0.007270917840992763,
+            "SCALE": 0.030167408029086833
+          }
+        }
+      },
+      "SUPPORT_OK": true,
+      "UNDEFINED_STATE_EPISODES": 7,
+      "WEEKS_FOR_80": {
+        "BASE": {
+          "0.04": 817.6048604562986,
+          "0.05": 478.7914887713067
+        },
+        "COLLAPSED": {
+          "0.04": 1093.129927011046,
+          "0.05": 673.0000637631294
+        },
+        "EMPIRICAL": {
+          "0.04": 780.0336177247086,
+          "0.05": 516.2744316574128
+        },
+        "EMPIRICAL_UPPER": {
+          "0.04": 786.2580287765799,
+          "0.05": 526.1898176186954
+        },
+        "INDEPENDENT": {
+          "0.04": 706.3943974630536,
+          "0.05": 472.26574942938794
+        },
+        "STRESS": {
+          "0.04": 983.4168237310216,
+          "0.05": 604.4940652106465
+        }
+      },
+      "YIELDS": {
+        "E_PER_WEEK": 1.8763440860215055,
+        "E_PER_YEAR": 97.9049539170507,
+        "E_WEEK_CLUSTERS_PER_YEAR": 42.0794930875576,
+        "SHARE_OF_WEEKS_WITH_E": 0.8064516129032258,
+        "S_PER_WEEK": 14.241935483870968,
+        "S_PER_YEAR": 743.1238479262673
+      }
+    },
+    "SE_LEG": {
+      "BINARY_VS_CONTINUOUS": {
+        "N": 3002,
+        "POINT_BISERIAL_STATE_SCORE": 0.5771737694415051,
+        "PROFILES": {
+          "BASE": {
+            "LINEAR": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.272,
+                  "WEEKS_FOR_80": 801.3150703166904
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.6285,
+                  "WEEKS_FOR_80": 274.59136210292786
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.4425,
+                  "WEEKS_FOR_80": 461.364897443117
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.852,
+                  "WEEKS_FOR_80": 165.76914531470072
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.6065,
+                  "WEEKS_FOR_80": 300.00195415776756
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.9665,
+                  "WEEKS_FOR_80": 103.77097740213888
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.9185,
+                  "WEEKS_FOR_80": 127.60431064361153
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 42.66941979053353
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.993,
+                  "WEEKS_FOR_80": 70.84089962059907
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 23.345917168469246
+                }
+              }
+            },
+            "NULL_REJECTION": {
+              "BINARY": 0.02675,
+              "CONTINUOUS": 0.02625
+            },
+            "STEP": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.2895,
+                  "WEEKS_FOR_80": 780.7680288829272
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.1375,
+                  "WEEKS_FOR_80": 2227.2971707174547
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.4375,
+                  "WEEKS_FOR_80": 464.7660510990468
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.1765,
+                  "WEEKS_FOR_80": 1488.1027457769976
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.611,
+                  "WEEKS_FOR_80": 297.16186353744337
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.245,
+                  "WEEKS_FOR_80": 930.0278382146379
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.9165,
+                  "WEEKS_FOR_80": 132.0367460301479
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.4705,
+                  "WEEKS_FOR_80": 422.18947131640607
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.993,
+                  "WEEKS_FOR_80": 71.70621404608758
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.7235,
+                  "WEEKS_FOR_80": 225.63799715598552
+                }
+              }
+            }
+          },
+          "EMPIRICAL": {
+            "LINEAR": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.283,
+                  "WEEKS_FOR_80": 761.5046463620589
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.6325,
+                  "WEEKS_FOR_80": 269.2755596132261
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.431,
+                  "WEEKS_FOR_80": 430.22542423295835
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.862,
+                  "WEEKS_FOR_80": 151.99951394698235
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.629,
+                  "WEEKS_FOR_80": 271.24514026920264
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.9585,
+                  "WEEKS_FOR_80": 105.94587419893784
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.9095,
+                  "WEEKS_FOR_80": 128.4517445488122
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 42.08215548789042
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.995,
+                  "WEEKS_FOR_80": 71.26626858263897
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 24.455279441052728
+                }
+              }
+            },
+            "NULL_REJECTION": {
+              "BINARY": 0.0285,
+              "CONTINUOUS": 0.02525
+            },
+            "STEP": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.2565,
+                  "WEEKS_FOR_80": 868.8939939087018
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.111,
+                  "WEEKS_FOR_80": 2660.5157403941184
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.4455,
+                  "WEEKS_FOR_80": 464.78036854402745
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.187,
+                  "WEEKS_FOR_80": 1419.820428091323
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.5885,
+                  "WEEKS_FOR_80": 294.35797177226414
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.247,
+                  "WEEKS_FOR_80": 920.153265627978
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.912,
+                  "WEEKS_FOR_80": 132.24500970029885
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.45,
+                  "WEEKS_FOR_80": 447.8398230972382
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.996,
+                  "WEEKS_FOR_80": 69.0609617024928
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.7055,
+                  "WEEKS_FOR_80": 218.36120946445027
+                }
+              }
+            }
+          },
+          "INDEPENDENT": {
+            "LINEAR": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.2745,
+                  "WEEKS_FOR_80": 819.2532735884527
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.646,
+                  "WEEKS_FOR_80": 266.3043370942291
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.435,
+                  "WEEKS_FOR_80": 432.136355766595
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.891,
+                  "WEEKS_FOR_80": 139.38835343889153
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.629,
+                  "WEEKS_FOR_80": 268.40117416570314
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.982,
+                  "WEEKS_FOR_80": 86.89631634913215
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.9275,
+                  "WEEKS_FOR_80": 123.50458679766355
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 40.838885396344445
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.9965,
+                  "WEEKS_FOR_80": 67.48092188106203
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 21.153386603677127
+                }
+              }
+            },
+            "NULL_REJECTION": {
+              "BINARY": 0.0275,
+              "CONTINUOUS": 0.02325
+            },
+            "STEP": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.2655,
+                  "WEEKS_FOR_80": 786.7653444620559
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.1155,
+                  "WEEKS_FOR_80": 2300.0271737097314
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.438,
+                  "WEEKS_FOR_80": 440.64360857047353
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.161,
+                  "WEEKS_FOR_80": 1368.7559076715847
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.6105,
+                  "WEEKS_FOR_80": 282.54218015403706
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.2595,
+                  "WEEKS_FOR_80": 860.3492206917324
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.928,
+                  "WEEKS_FOR_80": 122.91223917516304
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.485,
+                  "WEEKS_FOR_80": 371.6709098103859
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.994,
+                  "WEEKS_FOR_80": 69.34590477798825
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.756,
+                  "WEEKS_FOR_80": 209.23759688998288
+                }
+              }
+            }
+          },
+          "STRESS": {
+            "LINEAR": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.2075,
+                  "WEEKS_FOR_80": 1190.1278432670713
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.5745,
+                  "WEEKS_FOR_80": 319.0759045343706
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.3045,
+                  "WEEKS_FOR_80": 676.2489815202624
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.795,
+                  "WEEKS_FOR_80": 181.94378229650815
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.4505,
+                  "WEEKS_FOR_80": 435.60174086291676
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.9365,
+                  "WEEKS_FOR_80": 122.10809917050508
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.798,
+                  "WEEKS_FOR_80": 189.11425334836787
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 0.9995,
+                  "WEEKS_FOR_80": 50.90351209856076
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.967,
+                  "WEEKS_FOR_80": 103.15147119179653
+                },
+                "CLIPPED_SHARE": 0.0,
+                "CONTINUOUS": {
+                  "POWER": 1.0,
+                  "WEEKS_FOR_80": 26.413971167995772
+                }
+              }
+            },
+            "NULL_REJECTION": {
+              "BINARY": 0.02875,
+              "CONTINUOUS": 0.0255
+            },
+            "STEP": {
+              "0.030": {
+                "BINARY": {
+                  "POWER": 0.205,
+                  "WEEKS_FOR_80": 1157.7839217682877
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.1075,
+                  "WEEKS_FOR_80": 2618.7514240531927
+                }
+              },
+              "0.040": {
+                "BINARY": {
+                  "POWER": 0.3005,
+                  "WEEKS_FOR_80": 705.8715514226766
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.1345,
+                  "WEEKS_FOR_80": 1634.448201080836
+                }
+              },
+              "0.050": {
+                "BINARY": {
+                  "POWER": 0.454,
+                  "WEEKS_FOR_80": 422.4500521371014
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.222,
+                  "WEEKS_FOR_80": 1048.4771040106023
+                }
+              },
+              "0.075": {
+                "BINARY": {
+                  "POWER": 0.7925,
+                  "WEEKS_FOR_80": 182.24160862106797
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.4235,
+                  "WEEKS_FOR_80": 443.1122175983995
+                }
+              },
+              "0.100": {
+                "BINARY": {
+                  "POWER": 0.9625,
+                  "WEEKS_FOR_80": 99.81085577308593
+                },
+                "CONTINUOUS": {
+                  "POWER": 0.6545,
+                  "WEEKS_FOR_80": 257.55805022140316
+                }
+              }
+            }
+          }
+        },
+        "SCORE_MEAN_GAP_E_MINUS_S_SD": 1.3883882008375754
+      },
+      "LAYOUT": {
+        "E": {
+          "BY_EPOCH": {
+            "2023H1": 88,
+            "2023H2": 77,
+            "2024H1": 85,
+            "2024H2": 91,
+            "2025H1": 108,
+            "2025H2": 101,
+            "2026H1": 99,
+            "2026H2": 18
+          },
+          "BY_SYMBOL": {
+            "BNBUSDT": 121,
+            "BTCUSDT": 111,
+            "DOGEUSDT": 115,
+            "ETHUSDT": 99,
+            "SOLUSDT": 105,
+            "XRPUSDT": 116
+          },
+          "DECISION_DATES": 433,
+          "DISTINCT_DECISION_TIMES": 573,
+          "EPISODES": 667,
+          "MAX_EPISODES_PER_DATE": 6,
+          "MAX_EPOCH_SHARE": 0.1619190404797601,
+          "MAX_SYMBOL_SHARE": 0.18140929535232383,
+          "PANEL_24H_MARKET_CHAINS": 315,
+          "SYMBOL_48H_OVERLAP_CHAINS": 506,
+          "SYMBOL_HHI": 0.1673878203327122,
+          "WEEK_CLUSTERS": 172,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_0H": 0.25787106446776614,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_24H": 0.6806596701649176,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_6H": 0.4332833583208396
+        },
+        "PREVALENCE_E_AMONG_DEFINED_SUPPORT": 0.22218520986009327,
+        "S": {
+          "BY_EPOCH": {
+            "2023H1": 305,
+            "2023H2": 308,
+            "2024H1": 331,
+            "2024H2": 306,
+            "2025H1": 344,
+            "2025H2": 331,
+            "2026H1": 351,
+            "2026H2": 59
+          },
+          "BY_SYMBOL": {
+            "BNBUSDT": 337,
+            "BTCUSDT": 432,
+            "DOGEUSDT": 377,
+            "ETHUSDT": 408,
+            "SOLUSDT": 426,
+            "XRPUSDT": 355
+          },
+          "DECISION_DATES": 863,
+          "DISTINCT_DECISION_TIMES": 1679,
+          "EPISODES": 2335,
+          "MAX_EPISODES_PER_DATE": 11,
+          "MAX_EPOCH_SHARE": 0.15032119914346895,
+          "MAX_SYMBOL_SHARE": 0.18501070663811564,
+          "PANEL_24H_MARKET_CHAINS": 440,
+          "SYMBOL_48H_OVERLAP_CHAINS": 998,
+          "SYMBOL_HHI": 0.16805744443782125,
+          "WEEK_CLUSTERS": 186,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_0H": 0.48394004282655245,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_24H": 0.9297644539614561,
+          "WITH_OTHER_SYMBOL_SAME_STATE_WITHIN_6H": 0.7481798715203426
+        }
+      },
+      "POWER": {
+        "BASE": {
+          "AT": {
+            "0.030": 0.28,
+            "0.050": 0.5855,
+            "0.075": 0.924,
+            "0.100": 0.9945
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.042837664029955,
+          "EFFECTIVE_UNITS": 2878.683905986895,
+          "E_UNITS": 667,
+          "MDE80_ANALYTIC": 0.0631185688367104,
+          "MDE80_GRID": 0.065,
+          "NULL_REJECTION_RATE": 0.0245,
+          "NULL_SD": 0.02252959090040618,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.010547206610457384,
+              "POWER": 0.0725,
+              "SD_ESTIMATE": 0.022659999229586003
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.015666319606678757,
+              "POWER": 0.101,
+              "SD_ESTIMATE": 0.021872965271570902
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.020408189963319924,
+              "POWER": 0.15,
+              "SD_ESTIMATE": 0.02248632675751738
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.025086226349054802,
+              "POWER": 0.2025,
+              "SD_ESTIMATE": 0.022702353532407526
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.030086711545879295,
+              "POWER": 0.28,
+              "SD_ESTIMATE": 0.022653202048923085
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.035159791559552386,
+              "POWER": 0.349,
+              "SD_ESTIMATE": 0.022182865915469252
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.040193639175402966,
+              "POWER": 0.43,
+              "SD_ESTIMATE": 0.022917308346133144
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.04467074472457121,
+              "POWER": 0.5175,
+              "SD_ESTIMATE": 0.022026579758169254
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.0490090720800953,
+              "POWER": 0.5855,
+              "SD_ESTIMATE": 0.022598962635766634
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.05491479413794088,
+              "POWER": 0.6905,
+              "SD_ESTIMATE": 0.022405308936519788
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.06036439402341394,
+              "POWER": 0.7785,
+              "SD_ESTIMATE": 0.02209858980715476
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.0648823389599067,
+              "POWER": 0.834,
+              "SD_ESTIMATE": 0.021881656737377908
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.07049628923661837,
+              "POWER": 0.8745,
+              "SD_ESTIMATE": 0.022546327218204855
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.07470466874623755,
+              "POWER": 0.924,
+              "SD_ESTIMATE": 0.02188612591685556
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.08006540300487165,
+              "POWER": 0.95,
+              "SD_ESTIMATE": 0.0219674507336898
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08495030948554219,
+              "POWER": 0.9675,
+              "SD_ESTIMATE": 0.022246618446756735
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.09011580301181712,
+              "POWER": 0.9845,
+              "SD_ESTIMATE": 0.021392203773565408
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.09554530747334335,
+              "POWER": 0.9905,
+              "SD_ESTIMATE": 0.022382977346485314
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.09951422200974576,
+              "POWER": 0.9945,
+              "SD_ESTIMATE": 0.022353028318635042
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10450014823390284,
+              "POWER": 0.9975,
+              "SD_ESTIMATE": 0.021879463390556502
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.10939671892858402,
+              "POWER": 0.998,
+              "SD_ESTIMATE": 0.021823368729494457
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11395814721580236,
+              "POWER": 0.999,
+              "SD_ESTIMATE": 0.022287530607055066
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.11983264238103436,
+              "POWER": 0.9995,
+              "SD_ESTIMATE": 0.022291257965159645
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.1246916113820902,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021916009631234384
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.1301094180245645,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021311831243477457
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.13335939630285273,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021148148389094668
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.14023627878877631,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02160843138360636
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.14532784686170344,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021632307379047932
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.14904353390886593,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021963547594426452
+            }
+          },
+          "UNITS": 3002,
+          "WEEKS_FOR_80": {
+            "0.04": 474.6059473146325,
+            "0.05": 310.41640674630935
+          },
+          "WEEK_CLUSTERS": 186
+        },
+        "COLLAPSED": {
+          "AT": {
+            "0.030": 0.1845,
+            "0.050": 0.4235,
+            "0.075": 0.768,
+            "0.100": 0.949
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.7389148306859536,
+          "EFFECTIVE_UNITS": 1726.3640214143174,
+          "E_UNITS": 433,
+          "MDE80_ANALYTIC": 0.08150569306491096,
+          "MDE80_GRID": 0.08,
+          "NULL_REJECTION_RATE": 0.031,
+          "NULL_SD": 0.029092705279124016,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.01040310801516849,
+              "POWER": 0.055,
+              "SD_ESTIMATE": 0.027978271569258598
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.015207256763158067,
+              "POWER": 0.0815,
+              "SD_ESTIMATE": 0.028158331774414132
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.019916298480782017,
+              "POWER": 0.103,
+              "SD_ESTIMATE": 0.028368390247371943
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.024980728111561365,
+              "POWER": 0.153,
+              "SD_ESTIMATE": 0.028831995228714193
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.02878664977159578,
+              "POWER": 0.1845,
+              "SD_ESTIMATE": 0.028738453018354128
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.03561473082512032,
+              "POWER": 0.2375,
+              "SD_ESTIMATE": 0.028034183510549166
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.039977704125733954,
+              "POWER": 0.3025,
+              "SD_ESTIMATE": 0.028030600998668862
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.044094234623835264,
+              "POWER": 0.3615,
+              "SD_ESTIMATE": 0.02883129563389533
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.05014920827769325,
+              "POWER": 0.4235,
+              "SD_ESTIMATE": 0.028061212790175993
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.0552860208895874,
+              "POWER": 0.5015,
+              "SD_ESTIMATE": 0.028011434629818685
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.06077420192197081,
+              "POWER": 0.592,
+              "SD_ESTIMATE": 0.0271302879239054
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.06522914988532973,
+              "POWER": 0.6435,
+              "SD_ESTIMATE": 0.02794346092125138
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.07046255208347306,
+              "POWER": 0.705,
+              "SD_ESTIMATE": 0.028627910359914247
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.0757925933755981,
+              "POWER": 0.768,
+              "SD_ESTIMATE": 0.027707988593749924
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.07988588333837364,
+              "POWER": 0.816,
+              "SD_ESTIMATE": 0.028253788998274527
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08655871349473779,
+              "POWER": 0.8675,
+              "SD_ESTIMATE": 0.027795566465628807
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.08983949057881262,
+              "POWER": 0.894,
+              "SD_ESTIMATE": 0.027812582952822244
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.09434705188142797,
+              "POWER": 0.9215,
+              "SD_ESTIMATE": 0.02776769929357613
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.1004163774255447,
+              "POWER": 0.949,
+              "SD_ESTIMATE": 0.027551740014078986
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.1054085699223133,
+              "POWER": 0.9645,
+              "SD_ESTIMATE": 0.027965863927398003
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.11078846550113897,
+              "POWER": 0.975,
+              "SD_ESTIMATE": 0.027580068161640485
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11607655501111948,
+              "POWER": 0.983,
+              "SD_ESTIMATE": 0.027298501629090734
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.12115260557858513,
+              "POWER": 0.994,
+              "SD_ESTIMATE": 0.027510331852434476
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.1251756935765727,
+              "POWER": 0.9965,
+              "SD_ESTIMATE": 0.027766442765025056
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.12991063452856624,
+              "POWER": 0.9965,
+              "SD_ESTIMATE": 0.027001855479193097
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.13473718485652153,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.02724492807071933
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.13947366054822483,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.028037879829582273
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.1454350297983031,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.027223595282511445
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.14963488582446463,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02733530580519726
+            }
+          },
+          "UNITS": 1296,
+          "WEEKS_FOR_80": {
+            "0.04": 717.7112253493586,
+            "0.05": 457.09380025990345
+          },
+          "WEEK_CLUSTERS": 186
+        },
+        "EMPIRICAL": {
+          "AT": {
+            "0.030": 0.2645,
+            "0.050": 0.6025,
+            "0.075": 0.911,
+            "0.100": 0.9915
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.0370830963090623,
+          "EFFECTIVE_UNITS": 2894.6571501203707,
+          "E_UNITS": 667,
+          "MDE80_ANALYTIC": 0.06294417805793964,
+          "MDE80_GRID": 0.065,
+          "NULL_REJECTION_RATE": 0.028,
+          "NULL_SD": 0.022467343720615512,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.010546098162027978,
+              "POWER": 0.061,
+              "SD_ESTIMATE": 0.022196373867376096
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.015038666436203862,
+              "POWER": 0.0995,
+              "SD_ESTIMATE": 0.02204733486960618
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.02005653146902717,
+              "POWER": 0.14,
+              "SD_ESTIMATE": 0.022230590540028336
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.026198543790874163,
+              "POWER": 0.2085,
+              "SD_ESTIMATE": 0.022583474914887165
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.02993723845840313,
+              "POWER": 0.2645,
+              "SD_ESTIMATE": 0.022149927191897012
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.035099060028351274,
+              "POWER": 0.347,
+              "SD_ESTIMATE": 0.02276250379116063
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.040850568559559396,
+              "POWER": 0.437,
+              "SD_ESTIMATE": 0.02316146616576112
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.044705069059724205,
+              "POWER": 0.514,
+              "SD_ESTIMATE": 0.022666371891165746
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.04974967169565598,
+              "POWER": 0.6025,
+              "SD_ESTIMATE": 0.022667560281894168
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.05399265417816443,
+              "POWER": 0.6655,
+              "SD_ESTIMATE": 0.02237610268144168
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.05912013325264666,
+              "POWER": 0.7515,
+              "SD_ESTIMATE": 0.0223515622985016
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.06526420428374974,
+              "POWER": 0.8185,
+              "SD_ESTIMATE": 0.02208165869457554
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.06992080814537512,
+              "POWER": 0.8745,
+              "SD_ESTIMATE": 0.022018413739126795
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.07417308333325297,
+              "POWER": 0.911,
+              "SD_ESTIMATE": 0.022158713303483818
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.07968423705534164,
+              "POWER": 0.9355,
+              "SD_ESTIMATE": 0.022187198863991432
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08475753320630397,
+              "POWER": 0.9645,
+              "SD_ESTIMATE": 0.021881489828409293
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.0907854333133043,
+              "POWER": 0.981,
+              "SD_ESTIMATE": 0.022339918523048834
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.09524147697265715,
+              "POWER": 0.9865,
+              "SD_ESTIMATE": 0.022338788598553715
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.10025667634440022,
+              "POWER": 0.9915,
+              "SD_ESTIMATE": 0.02201229839607802
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10501484855653741,
+              "POWER": 0.998,
+              "SD_ESTIMATE": 0.022251093723059983
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.10954731145607317,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.021623008512737477
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11528048850323173,
+              "POWER": 0.9995,
+              "SD_ESTIMATE": 0.02156077339298496
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.1200804827688215,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02175040684581962
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.12430788313907334,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021845250708954614
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.12987779220459936,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02215243080467386
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.13522946317638485,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021334665455401212
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.13993913807360944,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02220406966032461
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.14472034229629935,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021377109272216158
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.15064871428837967,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.022306460567317506
+            }
+          },
+          "UNITS": 3002,
+          "WEEKS_FOR_80": {
+            "0.04": 469.3064284919971,
+            "0.05": 303.07473861428485
+          },
+          "WEEK_CLUSTERS": 186
+        },
+        "EMPIRICAL_UPPER": {
+          "AT": {
+            "0.030": 0.2745,
+            "0.050": 0.604,
+            "0.075": 0.909,
+            "0.100": 0.9935
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.0354069245060145,
+          "EFFECTIVE_UNITS": 2899.3431750828145,
+          "E_UNITS": 667,
+          "MDE80_ANALYTIC": 0.06289329114171494,
+          "MDE80_GRID": 0.065,
+          "NULL_REJECTION_RATE": 0.02775,
+          "NULL_SD": 0.02244918010528241,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.010271019328715315,
+              "POWER": 0.0655,
+              "SD_ESTIMATE": 0.02287847810868074
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.015156943464957578,
+              "POWER": 0.1015,
+              "SD_ESTIMATE": 0.0226005519527237
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.019731552214708067,
+              "POWER": 0.1345,
+              "SD_ESTIMATE": 0.022707393305966023
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.02457833056685339,
+              "POWER": 0.1835,
+              "SD_ESTIMATE": 0.021791561363801087
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.030852378235768266,
+              "POWER": 0.2745,
+              "SD_ESTIMATE": 0.02241121549930305
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.03427598461243345,
+              "POWER": 0.3275,
+              "SD_ESTIMATE": 0.022964607447609357
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.0404233801718979,
+              "POWER": 0.4455,
+              "SD_ESTIMATE": 0.022807004833938684
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.04475424517334205,
+              "POWER": 0.511,
+              "SD_ESTIMATE": 0.022668168086472006
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.04992991028844593,
+              "POWER": 0.604,
+              "SD_ESTIMATE": 0.022723245508315438
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.054598306337734825,
+              "POWER": 0.691,
+              "SD_ESTIMATE": 0.02281311917057618
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.06060540324841177,
+              "POWER": 0.762,
+              "SD_ESTIMATE": 0.0226598052406848
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.06571230883245091,
+              "POWER": 0.8315,
+              "SD_ESTIMATE": 0.022229782478378483
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.07057600090992508,
+              "POWER": 0.8785,
+              "SD_ESTIMATE": 0.022721692055395416
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.07510198515944953,
+              "POWER": 0.909,
+              "SD_ESTIMATE": 0.022021799777694605
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.08012037197710918,
+              "POWER": 0.941,
+              "SD_ESTIMATE": 0.02223221679411403
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08421223294200496,
+              "POWER": 0.961,
+              "SD_ESTIMATE": 0.022951443284815385
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.08964271848303244,
+              "POWER": 0.98,
+              "SD_ESTIMATE": 0.022250619433216
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.09502646084802256,
+              "POWER": 0.9855,
+              "SD_ESTIMATE": 0.023136869928645287
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.10036165830456938,
+              "POWER": 0.9935,
+              "SD_ESTIMATE": 0.02192205341099721
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10460665307266198,
+              "POWER": 0.995,
+              "SD_ESTIMATE": 0.022634161560711456
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.10932394238860647,
+              "POWER": 0.998,
+              "SD_ESTIMATE": 0.022085760824984913
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11453875524965028,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02185148853369745
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.12010262488388838,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.022433466211994404
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.1251339403442981,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02247057959516722
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.12908378996426717,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.022187260169869445
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.1348170817552026,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021415572854965564
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.1394111316022726,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.0216224824035386
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.14455329311002382,
+              "POWER": 0.9995,
+              "SD_ESTIMATE": 0.02214137632778048
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.1500238687709875,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021811657600188085
+            }
+          },
+          "UNITS": 3002,
+          "WEEKS_FOR_80": {
+            "0.04": 464.72054832556455,
+            "0.05": 302.370744198995
+          },
+          "WEEK_CLUSTERS": 186
+        },
+        "INDEPENDENT": {
+          "AT": {
+            "0.030": 0.2565,
+            "0.050": 0.6205,
+            "0.075": 0.9195,
+            "0.100": 0.9925
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.0,
+          "EFFECTIVE_UNITS": 3002.0,
+          "E_UNITS": 667,
+          "MDE80_ANALYTIC": 0.06180858324581202,
+          "MDE80_GRID": 0.065,
+          "NULL_REJECTION_RATE": 0.026,
+          "NULL_SD": 0.022062003627875977,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.009633610009747703,
+              "POWER": 0.066,
+              "SD_ESTIMATE": 0.021819439960259354
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.015012612705781678,
+              "POWER": 0.0985,
+              "SD_ESTIMATE": 0.022393871992285583
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.019832876846501493,
+              "POWER": 0.145,
+              "SD_ESTIMATE": 0.02185938227725563
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.025304019282085147,
+              "POWER": 0.2245,
+              "SD_ESTIMATE": 0.022659308143512982
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.028993830947086664,
+              "POWER": 0.2565,
+              "SD_ESTIMATE": 0.022033602177597436
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.03510768275517725,
+              "POWER": 0.3595,
+              "SD_ESTIMATE": 0.021915479582201466
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.04038301294776308,
+              "POWER": 0.4545,
+              "SD_ESTIMATE": 0.02248302219294993
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.0449532509384396,
+              "POWER": 0.5335,
+              "SD_ESTIMATE": 0.021898319302204514
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.050203784284975086,
+              "POWER": 0.6205,
+              "SD_ESTIMATE": 0.021593385207769787
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.055756456111944123,
+              "POWER": 0.723,
+              "SD_ESTIMATE": 0.021736731608016854
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.06018522118744266,
+              "POWER": 0.7805,
+              "SD_ESTIMATE": 0.02172680495675639
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.06573672677217311,
+              "POWER": 0.841,
+              "SD_ESTIMATE": 0.021902932274524778
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.06994142882556474,
+              "POWER": 0.882,
+              "SD_ESTIMATE": 0.022350691489007334
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.07469829279259557,
+              "POWER": 0.9195,
+              "SD_ESTIMATE": 0.021865214746212443
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.08040050959797279,
+              "POWER": 0.964,
+              "SD_ESTIMATE": 0.02126214981423474
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08474639227158906,
+              "POWER": 0.97,
+              "SD_ESTIMATE": 0.021741964413773966
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.09055172269749681,
+              "POWER": 0.989,
+              "SD_ESTIMATE": 0.02155595643484663
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.09464333451493338,
+              "POWER": 0.989,
+              "SD_ESTIMATE": 0.02189776326753652
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.099549888475802,
+              "POWER": 0.9925,
+              "SD_ESTIMATE": 0.02192848275927704
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10471402230172662,
+              "POWER": 0.997,
+              "SD_ESTIMATE": 0.021626639850962758
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.10973675146891655,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.021991279318989806
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11477578667798746,
+              "POWER": 0.9995,
+              "SD_ESTIMATE": 0.021430545937519124
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.11989375396119029,
+              "POWER": 0.9995,
+              "SD_ESTIMATE": 0.02136462115331606
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.12597998400810703,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021350178665432058
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.1300006367460133,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.021515461193702297
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.13512286860128456,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.0213790529713791
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.14100450353803076,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02142404511401332
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.14514695915130876,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02105698632169595
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.14985671038003628,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02128526061458546
+            }
+          },
+          "UNITS": 3002,
+          "WEEKS_FOR_80": {
+            "0.04": 452.5145633270713,
+            "0.05": 270.0779781058251
+          },
+          "WEEK_CLUSTERS": 186
+        },
+        "STRESS": {
+          "AT": {
+            "0.030": 0.1945,
+            "0.050": 0.446,
+            "0.075": 0.7975,
+            "0.100": 0.9665
+          },
+          "DESIGN_EFFECT_VS_INDEPENDENT": 1.447424948482538,
+          "EFFECTIVE_UNITS": 2074.028089088321,
+          "E_UNITS": 667,
+          "MDE80_ANALYTIC": 0.07436127301457007,
+          "MDE80_GRID": 0.08,
+          "NULL_REJECTION_RATE": 0.02225,
+          "NULL_SD": 0.02654257044683322,
+          "POWER_BY_EFFECT": {
+            "0.010": {
+              "MEAN_ESTIMATE": 0.008661706770374792,
+              "POWER": 0.054,
+              "SD_ESTIMATE": 0.027127689023894234
+            },
+            "0.015": {
+              "MEAN_ESTIMATE": 0.015255576252856638,
+              "POWER": 0.0905,
+              "SD_ESTIMATE": 0.0279115432199271
+            },
+            "0.020": {
+              "MEAN_ESTIMATE": 0.019369425765606286,
+              "POWER": 0.1015,
+              "SD_ESTIMATE": 0.026553874620415155
+            },
+            "0.025": {
+              "MEAN_ESTIMATE": 0.025122695293504846,
+              "POWER": 0.161,
+              "SD_ESTIMATE": 0.027113415911176157
+            },
+            "0.030": {
+              "MEAN_ESTIMATE": 0.02946277400431591,
+              "POWER": 0.1945,
+              "SD_ESTIMATE": 0.02696572604228512
+            },
+            "0.035": {
+              "MEAN_ESTIMATE": 0.03472549770514698,
+              "POWER": 0.273,
+              "SD_ESTIMATE": 0.027774611937139145
+            },
+            "0.040": {
+              "MEAN_ESTIMATE": 0.04015955288509074,
+              "POWER": 0.325,
+              "SD_ESTIMATE": 0.027111020300720354
+            },
+            "0.045": {
+              "MEAN_ESTIMATE": 0.04435665358545446,
+              "POWER": 0.3835,
+              "SD_ESTIMATE": 0.027040049042195737
+            },
+            "0.050": {
+              "MEAN_ESTIMATE": 0.04859382962337166,
+              "POWER": 0.446,
+              "SD_ESTIMATE": 0.026384208450756962
+            },
+            "0.055": {
+              "MEAN_ESTIMATE": 0.056233155611205676,
+              "POWER": 0.5555,
+              "SD_ESTIMATE": 0.02703167867568543
+            },
+            "0.060": {
+              "MEAN_ESTIMATE": 0.060059863102633546,
+              "POWER": 0.606,
+              "SD_ESTIMATE": 0.02677955496001067
+            },
+            "0.065": {
+              "MEAN_ESTIMATE": 0.06425312673035678,
+              "POWER": 0.6685,
+              "SD_ESTIMATE": 0.026575944660470554
+            },
+            "0.070": {
+              "MEAN_ESTIMATE": 0.07106152227628508,
+              "POWER": 0.757,
+              "SD_ESTIMATE": 0.026616647134893773
+            },
+            "0.075": {
+              "MEAN_ESTIMATE": 0.07551326671025342,
+              "POWER": 0.7975,
+              "SD_ESTIMATE": 0.02719359665020982
+            },
+            "0.080": {
+              "MEAN_ESTIMATE": 0.07944303185408956,
+              "POWER": 0.836,
+              "SD_ESTIMATE": 0.027000559661100456
+            },
+            "0.085": {
+              "MEAN_ESTIMATE": 0.08483875716834666,
+              "POWER": 0.885,
+              "SD_ESTIMATE": 0.025943370887161473
+            },
+            "0.090": {
+              "MEAN_ESTIMATE": 0.08929703378677685,
+              "POWER": 0.913,
+              "SD_ESTIMATE": 0.026350565566646663
+            },
+            "0.095": {
+              "MEAN_ESTIMATE": 0.09481864304540205,
+              "POWER": 0.9465,
+              "SD_ESTIMATE": 0.02632052668087777
+            },
+            "0.100": {
+              "MEAN_ESTIMATE": 0.10046444224911588,
+              "POWER": 0.9665,
+              "SD_ESTIMATE": 0.02654556702572128
+            },
+            "0.105": {
+              "MEAN_ESTIMATE": 0.10526945984813826,
+              "POWER": 0.976,
+              "SD_ESTIMATE": 0.02618157541872082
+            },
+            "0.110": {
+              "MEAN_ESTIMATE": 0.11011149387305545,
+              "POWER": 0.9855,
+              "SD_ESTIMATE": 0.026531226168342612
+            },
+            "0.115": {
+              "MEAN_ESTIMATE": 0.11576378943483175,
+              "POWER": 0.989,
+              "SD_ESTIMATE": 0.026454031104075598
+            },
+            "0.120": {
+              "MEAN_ESTIMATE": 0.12022922712613097,
+              "POWER": 0.9975,
+              "SD_ESTIMATE": 0.0258354096665512
+            },
+            "0.125": {
+              "MEAN_ESTIMATE": 0.12512108721344864,
+              "POWER": 0.996,
+              "SD_ESTIMATE": 0.02608311051015472
+            },
+            "0.130": {
+              "MEAN_ESTIMATE": 0.12992967601527555,
+              "POWER": 0.9985,
+              "SD_ESTIMATE": 0.026309395024343016
+            },
+            "0.135": {
+              "MEAN_ESTIMATE": 0.1349697448171404,
+              "POWER": 0.999,
+              "SD_ESTIMATE": 0.02598882759876866
+            },
+            "0.140": {
+              "MEAN_ESTIMATE": 0.1397578561900686,
+              "POWER": 0.999,
+              "SD_ESTIMATE": 0.026035225489577377
+            },
+            "0.145": {
+              "MEAN_ESTIMATE": 0.14475686887880804,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.026435779091352744
+            },
+            "0.150": {
+              "MEAN_ESTIMATE": 0.14967819245023248,
+              "POWER": 1.0,
+              "SD_ESTIMATE": 0.02576591910527409
+            }
+          },
+          "UNITS": 3002,
+          "WEEKS_FOR_80": {
+            "0.04": 665.3261683516818,
+            "0.05": 430.37447356971467
+          },
+          "WEEK_CLUSTERS": 186
+        }
+      },
+      "PROSPECTIVE_CONFIRMATION": {
+        "BASE": {
+          "0.04": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2035-11-26T00:00:00Z",
+            "PROSPECTIVE_E": 1679,
+            "PROSPECTIVE_S": 5937,
+            "SIMULATED_POWER": 0.805,
+            "SIMULATED_WEEKS": 476,
+            "WEEKS_FOR_80_ANALYTIC": 474.6059473146325
+          },
+          "0.05": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2032-10-04T00:00:00Z",
+            "PROSPECTIVE_E": 1113,
+            "PROSPECTIVE_S": 3923,
+            "SIMULATED_POWER": 0.82225,
+            "SIMULATED_WEEKS": 312,
+            "WEEKS_FOR_80_ANALYTIC": 310.41640674630935
+          }
+        },
+        "EMPIRICAL": {
+          "0.04": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2035-10-29T00:00:00Z",
+            "PROSPECTIVE_E": 1674,
+            "PROSPECTIVE_S": 5910,
+            "SIMULATED_POWER": 0.81625,
+            "SIMULATED_WEEKS": 472,
+            "WEEKS_FOR_80_ANALYTIC": 469.3064284919971
+          },
+          "0.05": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2032-08-09T00:00:00Z",
+            "PROSPECTIVE_E": 1055,
+            "PROSPECTIVE_S": 3769,
+            "SIMULATED_POWER": 0.79675,
+            "SIMULATED_WEEKS": 304,
+            "WEEKS_FOR_80_ANALYTIC": 303.07473861428485
+          }
+        },
+        "EMPIRICAL_UPPER": {
+          "0.04": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2035-10-01T00:00:00Z",
+            "PROSPECTIVE_E": 1660,
+            "PROSPECTIVE_S": 5872,
+            "SIMULATED_POWER": 0.79275,
+            "SIMULATED_WEEKS": 468,
+            "WEEKS_FOR_80_ANALYTIC": 464.72054832556455
+          },
+          "0.05": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2032-08-09T00:00:00Z",
+            "PROSPECTIVE_E": 1055,
+            "PROSPECTIVE_S": 3769,
+            "SIMULATED_POWER": 0.79325,
+            "SIMULATED_WEEKS": 304,
+            "WEEKS_FOR_80_ANALYTIC": 302.370744198995
+          }
+        },
+        "INDEPENDENT": {
+          "0.04": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2035-07-09T00:00:00Z",
+            "PROSPECTIVE_E": 1616,
+            "PROSPECTIVE_S": 5713,
+            "SIMULATED_POWER": 0.802,
+            "SIMULATED_WEEKS": 456,
+            "WEEKS_FOR_80_ANALYTIC": 452.5145633270713
+          },
+          "0.05": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2031-12-29T00:00:00Z",
+            "PROSPECTIVE_E": 955,
+            "PROSPECTIVE_S": 3394,
+            "SIMULATED_POWER": 0.7885,
+            "SIMULATED_WEEKS": 272,
+            "WEEKS_FOR_80_ANALYTIC": 270.0779781058251
+          }
+        },
+        "STRESS": {
+          "0.04": {
+            "CONFIRMED": null,
+            "NOTE": "beyond 520 weeks; not simulated",
+            "WEEKS_FOR_80_ANALYTIC": 665.3261683516818
+          },
+          "0.05": {
+            "END_DATE_IF_STARTED_AT_PLANNING_START": "2035-01-22T00:00:00Z",
+            "PROSPECTIVE_E": 1531,
+            "PROSPECTIVE_S": 5395,
+            "SIMULATED_POWER": 0.809,
+            "SIMULATED_WEEKS": 432,
+            "WEEKS_FOR_80_ANALYTIC": 430.37447356971467
+          }
+        }
+      },
+      "SCORE_CONSTANTS": {
+        "BNBUSDT": {
+          "LEG_FLOW_CHANGE": {
+            "MEDIAN": -0.005783038363229281,
+            "SCALE": 0.04366195180924691
+          },
+          "LEG_OI_CHANGE": {
+            "MEDIAN": -0.0027104835817787776,
+            "SCALE": 0.016966335007149995
+          }
+        },
+        "BTCUSDT": {
+          "LEG_FLOW_CHANGE": {
+            "MEDIAN": -0.006947157502522269,
+            "SCALE": 0.039661805432466134
+          },
+          "LEG_OI_CHANGE": {
+            "MEDIAN": 0.00154289885442771,
+            "SCALE": 0.020269728181878607
+          }
+        },
+        "DOGEUSDT": {
+          "LEG_FLOW_CHANGE": {
+            "MEDIAN": -0.006041981243080372,
+            "SCALE": 0.037190139448701545
+          },
+          "LEG_OI_CHANGE": {
+            "MEDIAN": -0.005201507306836051,
+            "SCALE": 0.02349745154923591
+          }
+        },
+        "ETHUSDT": {
+          "LEG_FLOW_CHANGE": {
+            "MEDIAN": -0.00929362506216213,
+            "SCALE": 0.037943578806636534
+          },
+          "LEG_OI_CHANGE": {
+            "MEDIAN": -0.0004022404999391993,
+            "SCALE": 0.020690738002969535
+          }
+        },
+        "SOLUSDT": {
+          "LEG_FLOW_CHANGE": {
+            "MEDIAN": -0.006855018736947431,
+            "SCALE": 0.03184493106096089
+          },
+          "LEG_OI_CHANGE": {
+            "MEDIAN": 5.399053309762536e-06,
+            "SCALE": 0.02444018377448378
+          }
+        },
+        "XRPUSDT": {
+          "LEG_FLOW_CHANGE": {
+            "MEDIAN": -0.005561322351422815,
+            "SCALE": 0.03538557037587108
+          },
+          "LEG_OI_CHANGE": {
+            "MEDIAN": -0.004048930979688836,
+            "SCALE": 0.018296598913219903
+          }
+        }
+      },
+      "SUPPORT_OK": true,
+      "UNDEFINED_STATE_EPISODES": 3,
+      "WEEKS_FOR_80": {
+        "BASE": {
+          "0.04": 474.6059473146325,
+          "0.05": 310.41640674630935
+        },
+        "COLLAPSED": {
+          "0.04": 717.7112253493586,
+          "0.05": 457.09380025990345
+        },
+        "EMPIRICAL": {
+          "0.04": 469.3064284919971,
+          "0.05": 303.07473861428485
+        },
+        "EMPIRICAL_UPPER": {
+          "0.04": 464.72054832556455,
+          "0.05": 302.370744198995
+        },
+        "INDEPENDENT": {
+          "0.04": 452.5145633270713,
+          "0.05": 270.0779781058251
+        },
+        "STRESS": {
+          "0.04": 665.3261683516818,
+          "0.05": 430.37447356971467
+        }
+      },
+      "YIELDS": {
+        "E_PER_WEEK": 3.586021505376344,
+        "E_PER_YEAR": 187.11347926267283,
+        "E_WEEK_CLUSTERS_PER_YEAR": 48.25115207373272,
+        "SHARE_OF_WEEKS_WITH_E": 0.9247311827956989,
+        "S_PER_WEEK": 12.553763440860216,
+        "S_PER_YEAR": 655.0374423963134
+      }
+    }
+  },
+  "PIT_AUDIT_OK": true,
+  "PLANNING_START_UTC": "2026-10-12T00:00:00Z",
+  "PROFILES_USED": {
+    "BASE": {
+      "DATE": 0.3333333333333333
+    },
+    "EMPIRICAL": {
+      "CHAIN": 0.0,
+      "DATE": 0.474564694098588,
+      "WEEK": 0.06260652846432133
+    },
+    "EMPIRICAL_UPPER": {
+      "CHAIN": 0.0,
+      "DATE": 0.5434763995526315,
+      "WEEK": 0.12524737843349446
+    },
+    "INDEPENDENT": {},
+    "STRESS": {
+      "DATE_X_STATE": 1.0
+    }
+  },
+  "PROSPECTIVE_ACTIVATED": false,
+  "REALISTIC_HORIZON_WEEKS": 104,
+  "RUNNER_SHA256": "52dccdde6ac3759712794eb0af6e4bc3959f6138bf3925eda0e487dd757682a0",
+  "SEED_CREATED": false,
+  "STAGE": "FEASIBILITY_ONLY",
+  "SUPPORT_EPISODES": 3005,
+  "SUPPORT_EPISODES_BY_SLICE": {
+    "BETWEEN_SLICES": 4,
+    "DISCOVERY": 1590,
+    "VALIDATION": 1411
+  },
+  "SURFACE": {
+    "DECISIONS_UTC": [
+      "2023-01-01T00:00:00Z",
+      "2026-08-11T00:00:00Z"
+    ],
+    "READ_HORIZON_EXCLUSIVE_UTC": "2026-08-15T00:00:00Z",
+    "STATUS": "PREVIOUSLY EXPOSED (discovery for this hypothesis); never pristine validation",
+    "WEEKS_SPANNED": 186
+  },
+  "UNIT": "SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0",
+  "VERDICT_BINARY_PRIMARY": {
+    "REASONS": [
+      "NOT_TESTABLE_WITHIN_REALISTIC_HORIZON"
+    ],
+    "STATUS": "INFORMATIONALLY_WEAK"
+  }
+}

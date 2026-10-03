@@ -1,6 +1,7 @@
 # Product-first decision V1 — canonical product decision record
 
 **Status:** `OWNER_DECISION_RECORDED / CANONICAL_PRODUCT_DECISION / BUILD_TO_TEST_IMPLEMENTED (code; not deployed, not user-tested)`
+**2026-10-03:** superseded where `PRODUCT_DECISION_V2_DECISION_SUPPORT.md` differs: the predictive freeze (§1, §3.1 "labels never say what follows"), analogue cards and the calendar on DO-NOT-BUILD-YET (§5), "no new backfill" (§6). The architecture constraint, the still-forbidden items listed in V2 §3 and the 30-day user test (§7) stay.
 **Date:** 2026-10-02 (repair and freeze passes the same day: §3.1b, §11)
 **Freeze (2026-10-02):** this decision and `BETA_COPY_CONTRACT_V1.md` are frozen as the basis for implementation, subject only to their not-yet-merged status (neither is in `main` yet). Frozen means the text and rules change only by a new owner decision. It does **not** mean any of the described behavior is implemented: `BUILD_TO_TEST_NOT_STARTED` still holds, and no runtime code, config, schema or test has changed under this decision.
 **Operating mode from this decision:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`

@@ -445,3 +445,24 @@ After an independent external assessment of the project (commercial prospects, r
 - **Build-to-test.** A shared view builder, `/catchup`, a morning briefing, 1h/4h context with "похоже на …" labels resting on price, OI and taker flow with factual fallbacks, a product-level 1h gate over existing `TRIGGERED` episodes, a stricter push policy, a cleaned user surface and minimal telemetry. One detector, one episodization, one context projection, one shared view builder, one outbox, one notifier.
 - **Superseded.** Briefing episodes and a 1h detector as a push source, a 24h interpretation label, a mandatory backfill before launch, a separate briefing notifier, a full 30-day product freeze, reading a recruitment failure as absence of product value, and the rule that product decisions wait for a validated mechanism.
 - **Next.** Build the MUST scope; launch to unknown-to-founder traders when V2 tape data are mature (baselines about 2026-10-21, full 30d ranks about 2026-10-31); run the 30-day test with pre-fixed thresholds; decide Continue / Reposition / Pivot / Stop.
+
+## 21. Decision support: the predictive freeze lifted for the product (2026-10-03)
+
+Asked "does the bot offer a decision or anything like it — what does a trader do with this?", the honest answer was no: by design the V1 surface described the market and refused to interpret what follows. Reading it as an intraday trader, the owner saw no value and decided to do everything possible, with one line kept: no direct long/short.
+- **What changed.** `PRODUCT_DECISION_V2_DECISION_SUPPORT.md`. The bot forecasts what is forecastable — the size of the move (a corridor checked on a held-out year: about 80% coverage at the 80% target on Binance 2024) — and shows direction only as honest history beside "обычно": levels the whole market sees with the chance to reach them and what happened at their first touch versus a random level, «что было после похожих» for the 1h / 4h states, the size of CPI / FOMC / expiry hours and days, `/risk` for a stop, personal `/alert`, and timely alerts (first touch of a key level, 30 minutes before CPI / FOMC, a sharp 15-minute move).
+- **Why.** Every directional research test was null, but volatility clusters and calendars are known in advance; a trader can act on "how far, where, and how often before" without being told a side.
+- **What stayed.** No direct trade calls, no hype; N and "обычно" beside every historical number; one detector, one outbox, one notifier; sealed research verdicts. Binance 2025/2026 is opened for product statistics and consumed for research over the same features.
+- **Research reaches the trader.** The owner asked for the research and the bot to be connected, failed hypotheses and side findings included. `config/beta_research_findings.yaml` now turns each closed unit into a short "Проверено:" line where it applies (a lull did not announce a breakout; a failed breakout did not revert more than a real one; Fed hours are ~1.8× as volatile; weekends are calmer) and `/research` lists them all. The years of null results become what a trader can stop believing, not only what the project did not find.
+
+## 22. One permanent research map (2026-10-03)
+
+**Why the change.** After G01 closed with no survivors, the owner saw that campaign after campaign (G01 → G02 → …) would keep re-searching the same neighbourhoods, and proposed one permanent map instead: Mechanism × Data surface × Research state, where a family is never reopened for a new threshold and a new branch needs a new mechanism or a new data surface.
+
+**What was built.** `docs/research/SIGNALBOT_RESEARCH_ATLAS_V1.md` transfers everything the project tested, blocked, parked or exposed onto that map: 145 units in 436 applicable cells.
+
+**What the map shows.**
+- Most effort went into price structure on candles, calendar and event clocks, and the alt cross-section.
+- Spot↔perp and order-book mechanisms are almost untouched.
+- The order-book data already in hand is not pristine for them.
+
+**How it is kept honest.** Generators get an outcome-blind view of the same map, so a promising cell and a dead one look alike to them. The selector and critics see everything.

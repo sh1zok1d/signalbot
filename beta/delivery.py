@@ -8,7 +8,7 @@ past the TTL become EXPIRED_UNDELIVERED; they stay visible in history.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Protocol, Sequence
 
 from .admin import collect_health, fingerprint
@@ -16,6 +16,11 @@ from .config import BetaConfig, BetaSwitches, effective_push_enabled
 from .formatter import format_owner_alert, format_push
 from .models import (D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED, D_UNKNOWN,
                      DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE)
+
+
+# A PUSH decision nobody could receive never gets a delivery row; the scan stops looking
+# for rows that old so such decisions cannot crowd out new ones (at most two pushes a day).
+UNDISPATCHED_LOOKBACK = timedelta(days=7)
 
 
 class DeliveryRejected(RuntimeError):
@@ -53,7 +58,8 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
         async with store.connect() as conn:
             now = clock()
             report["recovered_unknown"] = await conn.recover_sending(now)
-            for d in await conn.fetch_undispatched_push_decisions(cfg["notifications"]["max_deliveries_per_run"]):
+            for d in await conn.fetch_undispatched_push_decisions(cfg["notifications"]["max_deliveries_per_run"],
+                                                                  since=now - UNDISPATCHED_LOOKBACK):
                 report["materialized"] += await conn.materialize_deliveries(
                     decision_id=d["decision_id"], episode_pk=d["episode_pk"],
                     decision_ts=d["decision_ts"], expired=(now - d["decision_ts"] > ttl))
@@ -73,6 +79,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             report["purged_rejected_starts"] = await conn.purge_rejected_starts_before(rejected_cutoff)
             push_on = effective_push_enabled(switches, await conn.get_admin_push_enabled())
             episodes: dict = {}
+            analogues, since_year = await _analogue_source(conn, now)
             for row in await conn.fetch_pending_deliveries(cfg["notifications"]["max_deliveries_per_run"]):
                 now = clock()
                 did = row["delivery_id"]
@@ -100,7 +107,8 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 if ep is None:
                     ep = episodes[row["episode_pk"]] = await conn.fetch_episode_by_pk(row["episode_pk"])
                 lang = row.get("user_lang") or "ru"
-                text = format_push(ep, lang=lang, gate=row.get("gate"))
+                text = format_push(ep, lang=lang, gate=row.get("gate"),
+                                   analog=_push_analogue(analogues, row.get("gate")), since_year=since_year)
                 # (2) commit PENDING -> SENDING before the single API call
                 if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
                     continue
@@ -124,6 +132,11 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                     await conn.record_activity(user_pk=row["user_pk"], action="push_delivered",
                                                lang=lang, at=sent_at)
                 report["sent"] += 1
+            try:
+                from .market_alerts import run_market_alerts
+                report["market"] = await run_market_alerts(conn, cfg, sender=sender, clock=clock, push_on=push_on)
+            except Exception as exc:  # noqa: BLE001 - decision support never stops the outbox
+                report["market_error"] = type(exc).__name__
             report["briefs"] = await run_due_briefs(conn, cfg, sender=sender, clock=clock, push_on=push_on)
             # this run is itself the notifier heartbeat (recorded before evaluating alerts)
             await conn.record_health("notifier", now=clock(), success=True)
@@ -147,6 +160,29 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             await conn.record_health("notifier", now=clock(), success=True,
                                      detail={k: v for k, v in report.items() if isinstance(v, int)})
     return {"status": "OK", **report}
+
+
+async def _analogue_source(conn, now: datetime) -> tuple:
+    """(analogue statistics, first year of the history) for the push's «после похожих» line."""
+    try:
+        from .decision import latest_stats
+        stats = await latest_stats(conn, now=now)
+    except Exception:  # noqa: BLE001 - the line is optional; the push is not
+        return None, None
+    if not stats:
+        return None, None
+    ms = (stats.get("data") or {}).get("from_ms")
+    year = datetime.fromtimestamp(ms / 1000, tz=timezone.utc).year if ms else None
+    return stats.get("analogues"), year
+
+
+def _push_analogue(analogues, gate) -> Optional[dict]:
+    from .analogues import lookup
+    from .interpretation import COMPRESSION, FACTUAL, INTERPRETED
+    res = (gate or {}).get("interpretation") or {}
+    if res.get("kind") not in (INTERPRETED, FACTUAL, COMPRESSION):
+        return None
+    return lookup(analogues, "1h", res.get("key"))
 
 
 def brief_slot(now: datetime, time_kyiv: str):

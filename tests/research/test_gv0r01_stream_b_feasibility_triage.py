@@ -57,7 +57,8 @@ def test_boundary_flags_and_untouched_authorities():
     assert t['LLM_API_CALLS'] == 0 and t['METADATA_ACCESS_LOG']['PAYLOAD_GETS'] == 0
     assert t['PROGRAM_DECISION']['C013_PROGRAM_STATE'] == ['PROMISING_PROTOTYPE', 'CONFIRMATION_DEFERRED_LOW_POWER']
     ledger = json.loads((REPO / 'docs/research/SCIENTIFIC_TEST_LEDGER.json').read_text())
-    assert [x['TEST_FAMILY_ID'] for x in ledger['TESTS']] == ['TF-GV0R01-C013-MT1']
+    gv0r01 = [x for x in ledger['TESTS'] if x['SEARCH_FAMILY_ID'] == 'SF-GENERATOR_V0-GV0R01']
+    assert [x['TEST_FAMILY_ID'] for x in gv0r01] == ['TF-GV0R01-C013-MT1']
     assert ledger['SEARCH_FAMILIES'][0]['EXECUTED_TESTS'] == 1
 
 

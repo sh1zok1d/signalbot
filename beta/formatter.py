@@ -485,6 +485,8 @@ def format_btc(cfg, view: Mapping[str, Any], lang: str = "en") -> str:
         d7 = _d7_main_line(view, lang)
         if d7:
             lines.append(d7)
+        from .decision_format import btc_lines
+        lines.extend(btc_lines(view, lang))
     clock = _clock_of(view)
     if market_ok and state == t(lang, "title_calm") and shown is None:
         status_bit = t(lang, "notable_none", span=_retention_phrase(cfg, lang))
@@ -529,13 +531,46 @@ def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabl
         body = t(lang, "data_incomplete") if degraded or res is None else _state_body(
             cfg, res, (market.get("values") or {}).get(h) or {}, h, lang)
         lines.append(t(lang, "now_line", h=t(lang, "hz_" + h), body=body))
+        if not degraded and res is not None:
+            line = _analog_line(view, res, h, lang)
+            if line:
+                lines.append(line)
+            checked = _research_line(res, h, lang)
+            if checked:
+                lines.append(checked)
     lines.append(_line_24h(view, lang))
+    from .decision_format import brief_lines
+    lines.extend(brief_lines(view, lang))
     clock = _clock_of(view)
     lines.append("")
     lines.append(t(lang, "data_at", clock=fmt_clock(clock, lang)) if clock else t(lang, "no_evaluation_line"))
     if brief and first_brief:
         lines.append(t(lang, "brief_off_hint"))
     return _ok("\n".join(lines), lang)
+
+
+def _analog_line(view: Mapping[str, Any], res: Mapping[str, Any], h: str, lang: str) -> Optional[str]:
+    """«После похожих» under a 1h / 4h state that says something (PRODUCT_DECISION_V2 §2.3)."""
+    from .decision_format import _since_year, analog_line
+    from .interpretation import COMPRESSION, FACTUAL, INTERPRETED
+    if res.get("kind") not in (INTERPRETED, FACTUAL, COMPRESSION):
+        return None
+    block = view.get("decision") or {}
+    card = (block.get("analogues") or {}).get(h)
+    return analog_line(card, lang, since_year=_since_year(block)) if card else None
+
+
+def _research_line(res: Mapping[str, Any], h: str, lang: str) -> Optional[str]:
+    """«Проверено: …» from the research record for a state that says something (research ↔ bot)."""
+    from .interpretation import COMPRESSION, FACTUAL, INTERPRETED
+    if res.get("kind") not in (INTERPRETED, FACTUAL, COMPRESSION):
+        return None
+    try:
+        from .research_link import context_line, label_contexts
+        line = context_line(label_contexts(h, res.get("key")), lang)
+    except Exception:  # noqa: BLE001 - the registry is optional context, never a failure
+        return None
+    return ("↳ " + line) if line else None
 
 
 def _window_span(window: Mapping[str, Any], hours: int, lang: str) -> str:
@@ -733,7 +768,10 @@ def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int
     rd = view.get("readiness")
     if rd and any(g.get("status") != "READY" for g in rd.get("groups") or ()):
         row.append((t(lang, "btn_readiness"), "r:latest"))
-    return [row] if row else None
+    rows = [row] if row else []
+    if (view.get("decision") or {}).get("available"):
+        rows.append([(t(lang, "btn_levels"), "L:levels"), (t(lang, "btn_risk"), "L:risk")])
+    return rows or None
 
 
 def detail_tab_buttons(view: Mapping[str, Any], lang: str, view_pk: int):
@@ -1115,8 +1153,12 @@ def format_status(status: Mapping[str, Any], open_episodes: Sequence[Any],
     return _ok("\n".join(lines), lang)
 
 
+PUSH_MAX_LINES = 8
+
+
 def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang: str = "en",
-                gate: Optional[Mapping[str, Any]] = None) -> str:
+                gate: Optional[Mapping[str, Any]] = None, analog: Optional[Mapping[str, Any]] = None,
+                since_year: Optional[int] = None) -> str:
     """The unusual-hour push (BETA_COPY_CONTRACT_V1 §1.2): the 1h state around the
     TRIGGERED episode, never the detector name, never an id. At most 8 non-empty
     lines. `gate` is the push decision's stored hour gate; without it only the hour
@@ -1162,6 +1204,16 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
         lines.append(unsigned)
     if gate.get("venues_agree") is not None:
         lines.append(t(lang, "venues_line", k=int(gate["venues_agree"]), n=max(int(gate.get("venues") or 0), 3)))
+    # the history line and the research line are extras: each is added only while the push
+    # stays within its 8 non-empty lines (BETA_COPY_CONTRACT_V1 §5)
+    extras = []
+    if analog:
+        from .decision_format import analog_line
+        extras.append(analog_line(analog, lang, since_year=since_year))
+    extras.append(_research_line(gate.get("interpretation") or {}, "1h", lang))
+    for line in extras:
+        if line and sum(1 for x in lines if x.strip()) < PUSH_MAX_LINES:
+            lines.append(line)
     return _ok("\n".join(lines), lang)
 
 

@@ -492,7 +492,9 @@ END $$;
 ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CHECK (action IN (
     'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
     'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
-    'lang_set', 'push_delivered', 'cmd_catchup', 'cmd_brief', 'brief_delivered', 'cmd_push'));
+    'lang_set', 'push_delivered', 'cmd_catchup', 'cmd_brief', 'brief_delivered', 'cmd_push',
+    'cmd_levels', 'cmd_risk', 'cmd_alert', 'cmd_events', 'cmd_accuracy', 'alert_delivered',
+    'btn_levels', 'btn_risk', 'cmd_research'));
 
 -- Free-text /feedback. user_pk only; /delete_me cascades. Not the Useful/Noise votes.
 CREATE TABLE IF NOT EXISTS beta_feedback_messages (
@@ -552,19 +554,52 @@ CREATE TABLE IF NOT EXISTS beta_d7_hour_states (
 ALTER TABLE beta_btc_views ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'btc'
     CHECK (kind IN ('btc', 'catchup', 'brief'));
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS brief_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- PRODUCT_DECISION_V2 §2: market alerts (first touch of a key level, a scheduled event
+-- soon, a sharp 15-minute move, a participant's own price alert). One row per alert
+-- identity (`alert_key` is unique, so a level touched twice in its period alerts once).
+-- `decision` records whether the market-side policy allowed a push; the payload is the
+-- by-value input of the rendered text. A personal alert names its participant
+-- (`target_user_pk`, nulled when the participant is deleted).
+CREATE TABLE IF NOT EXISTS beta_market_alerts (
+    alert_pk           BIGSERIAL PRIMARY KEY,
+    kind               TEXT NOT NULL CHECK (kind IN ('level', 'event', 'move', 'price')),
+    alert_key          TEXT NOT NULL UNIQUE,
+    decision_ts        TIMESTAMPTZ NOT NULL,
+    utc_day            DATE NOT NULL,
+    decision           TEXT NOT NULL CHECK (decision IN ('PUSH', 'SUPPRESSED')),
+    suppression_reason TEXT CHECK (suppression_reason IS NULL OR suppression_reason IN (
+        'QUIET_HOURS', 'DAILY_CAP', 'KIND_COOLDOWN', 'PUSH_DISABLED', 'DATA_STALE')),
+    target_user_pk     BIGINT REFERENCES beta_users (user_pk) ON DELETE SET NULL,
+    payload            JSONB NOT NULL,
+    recorded_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_beta_alert_reason CHECK ((decision = 'PUSH') = (suppression_reason IS NULL))
+);
+CREATE INDEX IF NOT EXISTS ix_beta_market_alerts_day ON beta_market_alerts (utc_day, kind);
+-- set once the alert's delivery rows were materialized (also when nobody qualified)
+ALTER TABLE beta_market_alerts ADD COLUMN IF NOT EXISTS dispatched_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS ix_beta_market_alerts_undispatched ON beta_market_alerts (decision_ts)
+    WHERE decision = 'PUSH' AND dispatched_at IS NULL;
+
 ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'push';
 ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS view_pk BIGINT REFERENCES beta_btc_views (view_pk);
 ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS brief_date DATE;
+ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS alert_pk BIGINT
+    REFERENCES beta_market_alerts (alert_pk);
 ALTER TABLE beta_notification_deliveries ALTER COLUMN decision_id DROP NOT NULL;
 ALTER TABLE beta_notification_deliveries ALTER COLUMN episode_pk DROP NOT NULL;
 ALTER TABLE beta_notification_deliveries DROP CONSTRAINT IF EXISTS ck_beta_delivery_kind_shape;
 ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_kind_shape CHECK (
     (kind = 'push' AND decision_id IS NOT NULL AND episode_pk IS NOT NULL
-        AND view_pk IS NULL AND brief_date IS NULL)
+        AND view_pk IS NULL AND brief_date IS NULL AND alert_pk IS NULL)
     OR (kind = 'brief' AND decision_id IS NULL AND episode_pk IS NULL
-        AND view_pk IS NOT NULL AND brief_date IS NOT NULL));
+        AND view_pk IS NOT NULL AND brief_date IS NOT NULL AND alert_pk IS NULL)
+    OR (kind = 'alert' AND decision_id IS NULL AND episode_pk IS NULL
+        AND view_pk IS NULL AND brief_date IS NULL AND alert_pk IS NOT NULL));
 CREATE UNIQUE INDEX IF NOT EXISTS uq_beta_delivery_brief_identity
     ON beta_notification_deliveries (brief_date, user_pk) WHERE kind = 'brief';
+CREATE UNIQUE INDEX IF NOT EXISTS uq_beta_delivery_alert_identity
+    ON beta_notification_deliveries (alert_pk, user_pk) WHERE kind = 'alert';
 
 -- PRODUCT_FIRST_DECISION_V1 §3 rows 7-8 and 10 (additive; existing rows keep their meaning).
 -- The unusual-hour gate evaluated with each push decision, by value: what was known
@@ -593,3 +628,113 @@ END $$;
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT TRUE;
 -- known versus unknown-to-founder participant (§3 row 10). Owner-set; never shown to users.
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS known_contact BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- ===========================================================================
+-- PRODUCT_DECISION_V2 (2026-10-03): decision support. Additive only.
+-- ===========================================================================
+-- Binance USD-M BTCUSDT history from data.binance.vision (checksum-verified objects).
+-- One venue, declared as such in every text that uses it. Never Stage-1 tables.
+CREATE TABLE IF NOT EXISTS beta_hist_bars_5m (
+    open_time        TIMESTAMPTZ PRIMARY KEY
+        CHECK (date_part('second', open_time) = 0 AND (date_part('minute', open_time)::int % 5) = 0),
+    open             DOUBLE PRECISION NOT NULL CHECK (open > 0),
+    high             DOUBLE PRECISION NOT NULL,
+    low              DOUBLE PRECISION NOT NULL CHECK (low > 0),
+    close            DOUBLE PRECISION NOT NULL CHECK (close > 0),
+    volume           DOUBLE PRECISION,
+    quote_volume     DOUBLE PRECISION,
+    taker_buy_quote  DOUBLE PRECISION,
+    trades           INTEGER,
+    source           TEXT NOT NULL CHECK (source = 'vision'),
+    fetched_at       TIMESTAMPTZ NOT NULL,
+    CONSTRAINT ck_beta_hist_bar_ohlc CHECK (high >= low AND high >= open AND high >= close
+                                            AND low <= open AND low <= close)
+);
+
+-- Vision `metrics` 5m open interest. `ts` is the Vision create_time label; the value is
+-- used only from ts + 5m on (conservative availability, beta/hist_series.py).
+CREATE TABLE IF NOT EXISTS beta_hist_oi_5m (
+    ts          TIMESTAMPTZ PRIMARY KEY
+        CHECK (date_part('second', ts) = 0 AND (date_part('minute', ts)::int % 5) = 0),
+    oi_base     DOUBLE PRECISION NOT NULL CHECK (oi_base >= 0),
+    oi_usd      DOUBLE PRECISION,
+    source      TEXT NOT NULL CHECK (source = 'vision'),
+    fetched_at  TIMESTAMPTZ NOT NULL
+);
+
+-- Object ledger: an OK object is never fetched again; a MISSING one is retried while young.
+CREATE TABLE IF NOT EXISTS beta_hist_objects (
+    object_key        TEXT PRIMARY KEY,
+    kind              TEXT NOT NULL CHECK (kind IN ('klines_monthly', 'klines_daily', 'metrics_daily')),
+    status            TEXT NOT NULL,
+    sha256            TEXT CHECK (sha256 IS NULL OR sha256 ~ '^[0-9a-f]{64}$'),
+    row_count         INTEGER,
+    attempts          INTEGER NOT NULL DEFAULT 1 CHECK (attempts >= 1),
+    first_attempt_at  TIMESTAMPTZ NOT NULL,
+    last_attempt_at   TIMESTAMPTZ NOT NULL,
+    CONSTRAINT ck_beta_hist_object_ok CHECK ((status = 'OK') = (sha256 IS NOT NULL))
+);
+-- BAD: the archive verified against its CHECKSUM but its content did not parse (retried like MISSING)
+ALTER TABLE beta_hist_objects DROP CONSTRAINT IF EXISTS beta_hist_objects_status_check;
+ALTER TABLE beta_hist_objects DROP CONSTRAINT IF EXISTS ck_beta_hist_object_status;
+ALTER TABLE beta_hist_objects ADD CONSTRAINT ck_beta_hist_object_status CHECK (status IN ('OK', 'MISSING', 'BAD'));
+
+-- Nightly statistics build (range model, level reactions, state analogues, event days).
+-- Append-only; the newest row is the one the product reads.
+CREATE TABLE IF NOT EXISTS beta_hist_stats (
+    stats_pk        BIGSERIAL PRIMARY KEY,
+    version         TEXT NOT NULL,
+    built_at        TIMESTAMPTZ NOT NULL,
+    data_from       TIMESTAMPTZ,
+    data_through    TIMESTAMPTZ,
+    payload         JSONB NOT NULL,
+    payload_digest  TEXT NOT NULL CHECK (payload_digest ~ '^[0-9a-f]{64}$')
+);
+CREATE INDEX IF NOT EXISTS ix_beta_hist_stats_built ON beta_hist_stats (built_at DESC);
+
+-- Issued corridors and their outcome (live accuracy; PRODUCT_DECISION_V2 §3 honesty rule).
+CREATE TABLE IF NOT EXISTS beta_forecasts (
+    forecast_pk     BIGSERIAL PRIMARY KEY,
+    horizon         TEXT NOT NULL CHECK (horizon IN ('1h', '4h', '24h')),
+    issued_at       TIMESTAMPTZ NOT NULL,
+    horizon_end     TIMESTAMPTZ NOT NULL,
+    anchor_price    DOUBLE PRECISION NOT NULL CHECK (anchor_price > 0),
+    lower           DOUBLE PRECISION NOT NULL,
+    upper           DOUBLE PRECISION NOT NULL,
+    coverage        DOUBLE PRECISION NOT NULL CHECK (coverage > 0 AND coverage < 1),
+    model_version   TEXT NOT NULL,
+    stats_pk        BIGINT REFERENCES beta_hist_stats (stats_pk),
+    outcome         TEXT CHECK (outcome IS NULL OR outcome IN ('INSIDE', 'OUTSIDE', 'NO_DATA')),
+    realized_high   DOUBLE PRECISION,
+    realized_low    DOUBLE PRECISION,
+    evaluated_at    TIMESTAMPTZ,
+    CONSTRAINT uq_beta_forecast UNIQUE (horizon, issued_at),
+    CONSTRAINT ck_beta_forecast_band CHECK (lower < anchor_price AND anchor_price < upper)
+);
+CREATE INDEX IF NOT EXISTS ix_beta_forecasts_open ON beta_forecasts (horizon_end) WHERE outcome IS NULL;
+
+-- A participant's own price alerts (personal data; /delete_me cascades).
+CREATE TABLE IF NOT EXISTS beta_price_alerts (
+    price_alert_pk  BIGSERIAL PRIMARY KEY,
+    user_pk         BIGINT NOT NULL REFERENCES beta_users (user_pk) ON DELETE CASCADE,
+    price           DOUBLE PRECISION NOT NULL CHECK (price > 0),
+    direction       TEXT NOT NULL CHECK (direction IN ('above', 'below')),
+    created_at      TIMESTAMPTZ NOT NULL,
+    created_price   DOUBLE PRECISION NOT NULL CHECK (created_price > 0),
+    triggered_at    TIMESTAMPTZ,
+    cancelled_at    TIMESTAMPTZ,
+    CONSTRAINT ck_beta_price_alert_side CHECK (
+        (direction = 'above' AND price > created_price) OR (direction = 'below' AND price < created_price))
+);
+CREATE INDEX IF NOT EXISTS ix_beta_price_alerts_active ON beta_price_alerts (user_pk)
+    WHERE triggered_at IS NULL AND cancelled_at IS NULL;
+
+-- Per-type push preferences (all on by default; `push_enabled` stays the master switch for
+-- market pushes; a personal price alert is delivered whenever the participant is ACTIVE).
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_levels BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_events BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_moves BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_hours BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- The bootstrap watermark may be rewound by the operator (--beta-bootstrap-rewind) so the
+-- existing bounded bootstrap refills V2 tape rows over the last 30 days from raw data.

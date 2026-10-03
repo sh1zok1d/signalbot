@@ -106,6 +106,9 @@ def product_status(cfg: BetaConfig, *, now: datetime, latest_live: Optional[Mapp
     return {**base, "status": S_NO_ACTIVE, "reasons": []}
 
 
+HISTORY_BUILD_STALE_S = 50 * 3600          # the build runs daily; two missed nights alert
+
+
 def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any],
                   detector_watermark: Optional[datetime], latest_live: Optional[Mapping[str, Any]],
                   runtime: Mapping[str, Mapping[str, Any]], delivery_problems: int,
@@ -157,4 +160,7 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
         stale = d7_newest_available_at is None or (now - d7_newest_available_at) > HOUR_STATE_STALE_AFTER
         if stale:
             alerts.append({"key": "D7_HOUR_STATE_STALE", "detail": {}})
+    # Decision support (PRODUCT_DECISION_V2): once the nightly build has run, it must keep running.
+    if "history_build" in runtime and _stalled("history_build", HISTORY_BUILD_STALE_S):
+        alerts.append({"key": "HISTORY_STATS_STALE", "detail": {}})
     return alerts

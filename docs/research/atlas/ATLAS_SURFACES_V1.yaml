@@ -1,0 +1,435 @@
+# SIGNALBOT_RESEARCH_ATLAS_V1 — data surfaces (hand-maintained source).
+#
+# Every dataset a unit used or a future card could use, by column. `availability`:
+#   PINNED        in the repository with a manifest (docs/research_data) or a product table; usable now
+#   ACQUIRABLE    a public archive exists but is not pinned yet (needs a manifest, checksums, point-in-time check)
+#   FORWARD_ONLY  only by live / prospective collection from now on
+#   BLOCKED       exists but may not be used (frozen collector, unresolved timestamp semantics)
+#   NOT_AVAILABLE paid, unpinnable or nonexistent today
+# `exposure` lists periods already looked at (`rows`: REGION or REGION.row ids, or scope ALL).
+# The E1-RUN-001 holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) is protected on every surface.
+# A dataset with col LENS is a calendar or definition source: it defines rows, it is not a column.
+version: SIGNALBOT_RESEARCH_ATLAS_V1
+
+# confirmation_path (0-2): 2 = a time-disjoint era AND a prospective surface exist for the column;
+# 1 = only one of them; 0 = neither. A same-period other venue is robustness, not replication
+# (HYPOTHESIS_EVALUATION_CONTRACT_V1 §7).
+columns:
+  CANDLES: {confirmation_path: 2, note: "BitMEX XBTUSD 2016-2019 earlier era; live Binance klines prospective"}
+  PERP_FLOW: {confirmation_path: 2, note: "BitMEX volume 2016-2019; live taker split prospective"}
+  POSITIONING: {confirmation_path: 1, note: "OI from 2020-09 only; prospective live OI/funding"}
+  LIQUIDATIONS: {confirmation_path: 1, note: "live only since 2026-07-17"}
+  ORDER_BOOK: {confirmation_path: 1, note: "bookDepth from 2023-01 only; prospective needs a depth collector"}
+  SPOT: {confirmation_path: 2, note: "Binance spot archives from 2017 (earlier era) and live spot possible"}
+  CROSS_VENUE: {confirmation_path: 1, note: "same-period venues are robustness only; prospective 3-venue Stage-1"}
+  CROSS_ASSET: {confirmation_path: 1, note: "panels 2019-12..2024-12; 2025/2026 exposed; prospective only"}
+  OPTIONS: {confirmation_path: 1, note: "DVOL from 2021-03; prospective"}
+  FLOWS_ONCHAIN: {confirmation_path: 0, note: "nothing pinned"}
+
+datasets:
+  # ---- perp price / flow ------------------------------------------------------------------------
+  - id: CORE_BTC_BINANCE_V0
+    col: CANDLES
+    also_cols: [PERP_FLOW]
+    venue: Binance USD-M
+    instrument: BTCUSDT perpetual
+    data: 1m klines (OHLCV, quote volume, trade count, taker-buy volume)
+    coverage: "legal 2020-01..2024-12 (bytes to 2026-08-25; the E1 holdout is never read)"
+    availability: PINNED
+    live_in_product: true
+    exposure:
+      - {period: 2020-2024, scope: ALL, status: EXPOSED, note: "Historically exposed program surface (H01-H05, B2, D1-D12, MARKET-01/02/05, R03, G01, GV0 cards). Discovery only, with time-disjoint replication."}
+    records: [docs/research_data/CORE_BTC_BINANCE_V0]
+  - id: BINANCE_UM_KLINES_5M_PRODUCT
+    col: CANDLES
+    also_cols: [PERP_FLOW]
+    venue: Binance USD-M (data.binance.vision)
+    instrument: BTCUSDT perpetual
+    data: 5m klines, product history (beta_hist_bars_5m)
+    coverage: "2020-01 -> yesterday, E1 holdout objects never requested"
+    availability: PINNED
+    live_in_product: true
+    exposure:
+      - {period: 2022-2024, rows: [VOLATILITY_STATE.range_forecast], status: EXPOSED, note: "rangecast fit 2022-2023, 2024 diagnostic holdout examined"}
+      - {period: 2025-2026, rows: [VOLATILITY_STATE.range_forecast, PRICE_STRUCTURE.levels, FLOW.flow_conditional_response, DERIVATIVES.oi_buildup, EVENTS.cpi, EVENTS.fomc, EVENTS.expiries], status: PRODUCT_OPEN, note: "PRODUCT_DECISION_V2 §4: consumed for research over the product features"}
+    records: [docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md, beta/history_data.py]
+  - id: C012_DISCOVERY_BTC_1M_V0
+    col: CANDLES
+    venue: Binance USD-M
+    instrument: BTCUSDT perpetual
+    data: 1m klines pinned for C012 (prices never opened)
+    coverage: 2020-2024
+    availability: PINNED
+    records: [docs/research_data/C012_DISCOVERY_BTC_1M_V0]
+  - id: D2_BITMEX_PRE2020_XBTUSD
+    col: CANDLES
+    also_cols: [PERP_FLOW]
+    venue: BitMEX
+    instrument: XBTUSD inverse perpetual
+    data: 5m tradeBin OHLCV and volume
+    coverage: 2016-05-13 .. 2019-12-31
+    availability: PINNED
+    exposure:
+      - {period: 2016-2019, rows: [VOLATILITY_STATE.tail_risk, VOLATILITY_STATE.execution_impact], status: CONSUMED, note: "D2 replication and D7 confirmatory primary; read in bulk, aggregates published"}
+      - {period: 2016-2019, rows: [EVENTS], status: EXPOSED, note: "NOT_PROVABLY_INDEPENDENT for event semantics (event corridor design record §6)"}
+    records: [docs/research_data/D2_BITMEX_PRE2020_XBTUSD]
+  - id: D7_BITMEX_ACTIVITY_V0
+    col: PERP_FLOW
+    venue: BitMEX
+    instrument: XBTUSD
+    data: hourly activity states from 5m bars
+    coverage: 2016-2019
+    availability: PINNED
+    exposure:
+      - {period: 2016-2019, rows: [VOLATILITY_STATE.execution_impact], status: CONSUMED}
+    records: [docs/research_data/D7_BITMEX_ACTIVITY_V0]
+  - id: BINANCE_UM_TRADES_AGGTRADES_ARCHIVE
+    col: PERP_FLOW
+    venue: Binance USD-M
+    instrument: BTCUSDT perpetual
+    data: raw trades / aggTrades (tick, aggressor side)
+    coverage: official archive from 2020 (not materialized)
+    availability: ACQUIRABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  # ---- positioning ----------------------------------------------------------------------------------
+  - id: B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
+    col: POSITIONING
+    venue: Binance USD-M
+    instrument: BTCUSDT perpetual
+    data: OI metrics 5m + settled funding (snapshot 5a9d036b)
+    coverage: 2020-09-01 .. 2024-12-31
+    availability: PINNED
+    exposure:
+      - {period: 2020-09..2024-12, rows: [DERIVATIVES.oi_buildup], status: CONSUMED, note: "MARKET-01/02 used the OI half; B2-06 science never run; funding never used (publication latency unproven)"}
+    records: [docs/research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0, docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md]
+  - id: BINANCE_UM_OI_METRICS_PRODUCT
+    col: POSITIONING
+    venue: Binance USD-M (data.binance.vision metrics)
+    instrument: BTCUSDT perpetual
+    data: OI 5m (product history, beta_hist_oi_5m)
+    coverage: "2020-09-01 -> yesterday, E1 holdout objects never requested"
+    availability: PINNED
+    live_in_product: true
+    exposure:
+      - {period: 2025-2026, rows: [FLOW.flow_conditional_response, DERIVATIVES.oi_buildup], status: PRODUCT_OPEN, note: "product state analogues; also opened for the divergence program (six symbols)"}
+    records: [docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md]
+  - id: MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0
+    col: POSITIONING
+    venue: Binance USD-M REST
+    instrument: BTCUSDT perpetual
+    data: funding rate history
+    coverage: 2019-09-01 .. 2024-12-31
+    availability: PINNED
+    exposure:
+      - {period: 2019-09..2024-12, rows: [LONG_HORIZON.external_reproduction], status: CONSUMED}
+    records: [docs/research_data/MARKET_03_BINANCE_UM_BTCUSDT_FUNDINGRATE_REST_V0]
+  - id: BINANCE_UM_PREMIUM_MARK_INDEX_KLINES
+    col: POSITIONING
+    venue: Binance USD-M (data.binance.vision)
+    instrument: BTCUSDT perpetual
+    data: premium-index, mark-price and index-price klines
+    coverage: archive from 2020 (not materialized)
+    availability: ACQUIRABLE
+    note: "MARKET-04H adjudicated the premium observable as blocked for its purpose; the archive itself is public."
+    records: [docs/research/MARKET_04H_PREMIUM_OBSERVABLE_ADJUDICATION.md]
+  - id: FMO_V1_FORWARD_COLLECTOR
+    col: POSITIONING
+    venue: Binance USD-M
+    instrument: BTCUSDT perpetual
+    data: point-in-time funding / premium / mark (forward collector)
+    coverage: not started
+    availability: BLOCKED
+    note: "FORWARD_MARKET_OBSERVABILITY_V1 collector implemented and frozen; authoritative collection not started."
+    records: [docs/research/FORWARD_MARKET_OBSERVABILITY_V1.md]
+  - id: STAGE1_LIVE_OI_FUNDING
+    col: POSITIONING
+    also_cols: [CROSS_VENUE]
+    venue: Binance, Bybit, OKX
+    instrument: BTCUSDT perpetuals
+    data: live OI (~15 s), funding, mark price
+    coverage: "live since 2026-07-17 (OKX OI live only)"
+    availability: FORWARD_ONLY
+    live_in_product: true
+    exposure:
+      - {period: 2026-08-02..2026-08-16, rows: [METHOD.methodology], status: CONSUMED, note: "E1-RUN-001 development"}
+      - {period: "2026-07-17T19:30Z..2026-09-29T04:00Z", scope: ALL, status: EXPOSED, note: "P4 owner-run descriptive follow-up (as_of 2026-09-29T15:03Z): its replay (364db27) read klines_1m and open_interest, BTCUSDT live, over [2026-07-17T19:30Z, 2026-09-29T00:00Z); follow-up 1h/4h outcome windows can extend to 04:00Z (actual reads not recorded, treated as exposed). Contains the whole E1-RUN-001 holdout; owner decision 2026-10-03: E1 outcome surface opened by P4 (erratum Amendment 1)."}
+    records: [docs/E1_DATA_INVENTORY_2026-08-25.md, docs/audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md]
+  # ---- liquidations ---------------------------------------------------------------------------------
+  - id: STAGE1_LIVE_LIQUIDATIONS
+    col: LIQUIDATIONS
+    venue: Binance, Bybit (OKX not present)
+    instrument: BTCUSDT perpetuals
+    data: live forced-order prints
+    coverage: live since 2026-07-17, never backfilled
+    availability: FORWARD_ONLY
+    live_in_product: true
+    records: [docs/E1_DATA_INVENTORY_2026-08-25.md]
+  - id: HISTORICAL_LIQUIDATIONS_VENDOR
+    col: LIQUIDATIONS
+    also_cols: [CROSS_VENUE]
+    venue: vendor (Tardis) / Binance liquidationSnapshot archive (gaps)
+    instrument: BTC perpetuals
+    data: historical liquidations, multi-venue OI
+    coverage: none pinned; Binance archive has gaps (404 for sampled days)
+    availability: NOT_AVAILABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  # ---- order book -----------------------------------------------------------------------------------
+  - id: BINANCE_UM_BOOKDEPTH_ARCHIVE
+    col: ORDER_BOOK
+    venue: Binance USD-M (data.binance.vision bookDepth)
+    instrument: BTCUSDT and other USD-M perpetuals
+    data: aggregated depth by distance band, daily files
+    coverage: from 2023-01-01 (absent before)
+    availability: ACQUIRABLE
+    exposure:
+      - {period: 2023-2024, rows: [PRICE_STRUCTURE.divergence, FLOW.exhaustion, PRICE_STRUCTURE.levels, MICROSTRUCTURE], status: EXPOSED, note: "BTC/ETH consumed by SEED-0001 (exploratory, divergence/support). Its book-support state was a +-5% bid/ask depth imbalance, so book imbalance and depth asymmetry on this surface are exposed too."}
+      - {period: 2025-01-01..2026-08-14, rows: [PRICE_STRUCTURE.divergence, FLOW.exhaustion, PRICE_STRUCTURE.levels, MICROSTRUCTURE], status: EXPOSED, note: "opened 2026-10-02 for the divergence/support program (six symbols); the same depth-imbalance support state was computed with outcomes"}
+    records: [docs/research/DIVERGENCE_RESEARCH_MAP_V0.md]
+  - id: SEED0001_BINANCE_UM_1H_BOOKDEPTH_V0
+    col: ORDER_BOOK
+    venue: Binance USD-M
+    instrument: BTCUSDT, ETHUSDT perpetuals
+    data: 1h bookDepth features pinned for SEED-0001
+    coverage: 2023-01..2024-12
+    availability: PINNED
+    exposure:
+      - {period: 2023-2024, rows: [PRICE_STRUCTURE.divergence, FLOW.exhaustion, MICROSTRUCTURE], status: CONSUMED, note: "hourly +-5% depth-imbalance support features computed with outcomes"}
+    records: [docs/research_data/SEED0001_BINANCE_UM_1H_BOOKDEPTH_V0]
+  - id: BINANCE_UM_BOOKTICKER_ARCHIVE
+    col: ORDER_BOOK
+    venue: Binance USD-M
+    instrument: BTCUSDT perpetual
+    data: top of book (bookTicker), tick
+    coverage: 2023-05-16 .. 2024-03-30 only
+    availability: ACQUIRABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  - id: OKX_OFFICIAL_ARCHIVES
+    col: CROSS_VENUE
+    also_cols: [ORDER_BOOK, SPOT, POSITIONING]
+    venue: OKX
+    instrument: BTC spot and perpetual swap
+    data: tick trades (2021-09+), funding (2022-03+), L2 order book (2023-03+), OHLC
+    coverage: see data
+    availability: ACQUIRABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  - id: VENDOR_L2_ORDER_BOOK
+    col: ORDER_BOOK
+    venue: vendor (Tardis incremental L2)
+    instrument: BTC perpetuals
+    data: full L2/L3 order book replay
+    coverage: none pinned
+    availability: NOT_AVAILABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  # ---- spot -----------------------------------------------------------------------------------------
+  - id: MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0
+    col: SPOT
+    venue: Binance spot
+    instrument: BTCUSDT
+    data: 1h spot klines incl. taker-buy volume
+    coverage: 2019-08-01 .. 2024-12-31
+    availability: PINNED
+    exposure:
+      - {period: 2019-10..2024-12, rows: [LONG_HORIZON.external_reproduction], status: CONSUMED}
+    records: [docs/research_data/MARKET_03_BINANCE_SPOT_BTCUSDT_1H_V0]
+  - id: BINANCE_SPOT_BTCUSDT_AGGTRADES
+    col: SPOT
+    also_cols: [PERP_FLOW]
+    venue: Binance spot
+    instrument: BTCUSDT
+    data: aggTrades with aggressor side
+    coverage: 2017-08 .. 2024-12 (89 monthly files checked)
+    availability: PINNED
+    exposure:
+      - {period: 2020-2024, rows: [FLOW.participant_composition], status: CONSUMED, note: "TWAP footprint discovery"}
+      - {period: 2017-08..2019-12, rows: [FLOW.participant_composition], status: EXPOSED, note: "counts only"}
+    records: [docs/research/TWAP_SEALED_RUN_V1_RESULT.md]
+  - id: BINANCE_SPOT_KLINES_ARCHIVE
+    col: SPOT
+    venue: Binance spot (data.binance.vision)
+    instrument: BTCUSDT and other spot pairs
+    data: 1m spot klines incl. taker-buy volume
+    coverage: public archive from 2017 (not pinned at 1m)
+    availability: ACQUIRABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  - id: MARKET_06_OKX_BINANCE_FEASIBILITY_V0
+    col: SPOT
+    also_cols: [CROSS_VENUE]
+    venue: OKX spot + Binance USD-M
+    instrument: BTC-USDT spot (OKX) and BTCUSDT perpetual (Binance)
+    data: two-leg 5m OHLC
+    coverage: 2022-01-01 .. 2024-12-31
+    availability: PINNED
+    exposure:
+      - {period: 2022-2024, rows: [SPOT_PERP, CROSS_VENUE_REGION, CALENDAR.sessions, EVENTS.market_closures], status: CONSUMED, note: "MARKET-06 one-shot, D9, GV0 cross-venue cards"}
+    records: [docs/research_data/MARKET_06_OKX_BINANCE_FEASIBILITY_V0]
+  # ---- cross-venue ----------------------------------------------------------------------------------
+  - id: BYBIT_BTCUSDT_PUBLIC_HISTORY
+    col: CROSS_VENUE
+    also_cols: [CANDLES, POSITIONING]
+    venue: Bybit
+    instrument: BTCUSDT linear perpetual
+    data: public klines (1m+), funding history
+    coverage: klines verified from 2020-04
+    availability: ACQUIRABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  - id: STAGE1_LIVE_KLINES_3VENUE
+    col: CROSS_VENUE
+    also_cols: [CANDLES, PERP_FLOW]
+    venue: Binance, Bybit, OKX
+    instrument: BTCUSDT perpetuals
+    data: live 1m OHLCV with taker split
+    coverage: live since 2026-06/07
+    availability: FORWARD_ONLY
+    live_in_product: true
+    exposure:
+      - {period: 2026-08-02..2026-08-16, rows: [METHOD.methodology], status: CONSUMED, note: "E1-RUN-001 development"}
+      - {period: "2026-07-17T19:30Z..2026-09-29T04:00Z", scope: ALL, status: EXPOSED, note: "P4 owner-run descriptive follow-up (as_of 2026-09-29T15:03Z): its replay (364db27) read klines_1m and open_interest, BTCUSDT live, over [2026-07-17T19:30Z, 2026-09-29T00:00Z); follow-up 1h/4h outcome windows can extend to 04:00Z (actual reads not recorded, treated as exposed). Contains the whole E1-RUN-001 holdout; owner decision 2026-10-03: E1 outcome surface opened by P4 (erratum Amendment 1)."}
+    records: [docs/E1_DATA_INVENTORY_2026-08-25.md, docs/audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md]
+  - id: BINANCE_UM_LIVE_FORWARD
+    col: PERP_FLOW
+    also_cols: [CANDLES]
+    venue: Binance USD-M
+    instrument: BTCUSDT perpetual
+    data: prospective klines / quote volume after a freeze
+    coverage: from a future freeze
+    availability: FORWARD_ONLY
+    live_in_product: true
+    records: [docs/research/AUTOGEN_G01_FEASIBILITY.md]
+  # ---- cross-asset ----------------------------------------------------------------------------------
+  - id: CORE_ETH_BINANCE_V0
+    col: CROSS_ASSET
+    venue: Binance USD-M
+    instrument: ETHUSDT perpetual
+    data: 1m klines incl. taker-buy volume
+    coverage: legal 2020-01..2024-12
+    availability: PINNED
+    exposure:
+      - {period: 2020-2024, rows: [CROSS_ASSET_REGION.btc_eth, EVENTS.fomc, EVENTS.protocol_events], status: CONSUMED, note: "D4, D10, MARKET-05, GV0 cards"}
+    records: [docs/research_data/CORE_ETH_BINANCE_V0]
+  - id: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0
+    col: CROSS_ASSET
+    venue: Binance spot
+    instrument: all USDT-quoted spot pairs
+    data: daily OHLCV cross-sectional panel
+    coverage: 2019-12 .. 2024-12
+    availability: PINNED
+    exposure:
+      - {period: 2019-12..2024-12, rows: [CROSS_ASSET_REGION.cross_section, CROSS_ASSET_REGION.breadth, CALENDAR.weekday_weekend], status: CONSUMED, note: "D13, C013 market test, R03-B, GV0 cards"}
+    records: [docs/research_data/SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0]
+  - id: DIVERGENCE_PANEL_V0_BINANCE_UM
+    col: CROSS_ASSET
+    also_cols: [CANDLES, POSITIONING, ORDER_BOOK]
+    venue: Binance USD-M
+    instrument: six USD-M perpetuals (BTC, ETH, SOL, BNB, DOGE, XRP)
+    data: 1m klines, OI metrics, bookDepth
+    coverage: 2022-11 .. 2024-12
+    availability: PINNED
+    exposure:
+      - {period: 2022-11..2024-12, rows: [PRICE_STRUCTURE.divergence, FLOW.exhaustion, MICROSTRUCTURE], status: EXPOSED, note: "panel feasibility; outcomes of non-BTC symbols unopened but exposed by correlation"}
+    records: [docs/research_data/DIVERGENCE_PANEL_V0_BINANCE_UM]
+  - id: DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM
+    col: CROSS_ASSET
+    also_cols: [CANDLES, POSITIONING, ORDER_BOOK]
+    venue: Binance USD-M
+    instrument: six USD-M perpetuals
+    data: 1m klines, OI metrics, bookDepth
+    coverage: 2025-01-01 .. 2026-08-14 (E1 holdout excluded)
+    availability: PINNED
+    exposure:
+      - {period: 2025-01-01..2026-08-14, rows: [PRICE_STRUCTURE.divergence, FLOW.exhaustion, PRICE_STRUCTURE.levels, MICROSTRUCTURE], status: CONSUMED, note: "divergence/support program (DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3)"}
+    records: [docs/research_data/DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM]
+  - id: MACRO_CROSS_ASSET
+    col: CROSS_ASSET
+    venue: FRED / ALFRED / equities / rates / FX
+    instrument: macro series and non-crypto assets
+    data: vintages and prices
+    coverage: none pinned
+    availability: NOT_AVAILABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  # ---- options --------------------------------------------------------------------------------------
+  - id: DERIBIT_DVOL_API
+    col: OPTIONS
+    venue: Deribit
+    instrument: BTC options volatility index (DVOL)
+    data: implied volatility index
+    coverage: free API history from 2021-03
+    availability: ACQUIRABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  - id: BINANCE_OPTIONS_BVOL
+    col: OPTIONS
+    venue: Binance options
+    instrument: BVOLIndex
+    data: options volatility index
+    coverage: from 2023-06-20
+    availability: ACQUIRABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  - id: DERIBIT_OPTIONS_HISTORY
+    col: OPTIONS
+    venue: Deribit / vendor
+    instrument: BTC options
+    data: option marks, quotes, trades, strikes (gamma, skew, term structure)
+    coverage: paid history only
+    availability: NOT_AVAILABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  # ---- capital flows --------------------------------------------------------------------------------
+  - id: ONCHAIN_STABLECOIN_LOGS
+    col: FLOWS_ONCHAIN
+    venue: Ethereum / Tron
+    instrument: USDT issuance and transfers
+    data: contract event logs with block timestamps
+    coverage: none pinned (provenance and point-in-time labels unresolved)
+    availability: NOT_AVAILABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  - id: ONCHAIN_EXCHANGE_FLOWS
+    col: FLOWS_ONCHAIN
+    venue: Bitcoin / exchange address labels
+    instrument: exchange deposits and withdrawals
+    data: labelled on-chain transfers
+    coverage: none pinned (labels are not point-in-time)
+    availability: NOT_AVAILABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  - id: ETF_FLOWS
+    col: FLOWS_ONCHAIN
+    venue: US spot bitcoin ETFs
+    instrument: creations / redemptions, flows
+    data: daily flows
+    coverage: none specified
+    availability: NOT_AVAILABLE
+    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  # ---- lenses (calendars, synthetic) ----------------------------------------------------------------
+  - {id: D11_FOMC_OFFICIAL_V0, col: LENS, data: "scheduled FOMC calendar 2020-2024 (39 events)", coverage: 2020-2024, availability: PINNED, records: [docs/research_data/D11_FOMC_OFFICIAL_V0]}
+  - {id: BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0, col: LENS, data: "CPI release schedule 2020-2024 (60 events)", coverage: 2020-2024, availability: PINNED, records: [docs/research_data/BLS_CPI_RELEASE_SCHEDULE_ARCHIVE_V0]}
+  - {id: BETA_CALENDAR, col: LENS, data: "product calendar: CPI 2020..2026-12, FOMC 2020..2027-12, expiry and funding rules", coverage: "2020-2027", availability: PINNED, records: [config/beta_calendar.yaml]}
+  - {id: CN_STATE_COUNCIL_HOLIDAY_NOTICES_V0, col: LENS, data: "China holiday notices", coverage: 2020-2024, availability: PINNED, records: [docs/research_data/CN_STATE_COUNCIL_HOLIDAY_NOTICES_V0]}
+  - {id: NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0, col: LENS, data: "NYSE closures", coverage: 2020-2024, availability: PINNED, records: [docs/research_data/NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0]}
+  - {id: US_OPM_FEDERAL_HOLIDAY_LIST_V0, col: LENS, data: "US federal holidays", coverage: 2020-2024, availability: PINNED, records: [docs/research_data/US_OPM_FEDERAL_HOLIDAY_LIST_V0]}
+  - {id: SYNTHETIC_DGP, col: LENS, data: "synthetic data-generating process (V3 Microscope)", coverage: "synthetic worlds", availability: PINNED, records: [docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3_PREREG.md]}
+
+# ---- reserved confirmation surfaces ----------------------------------------------------------------
+# A reserved surface is invisible to exploratory outcome generation (a dataset held whole is left out of
+# the generator view; a held period appears there only as an unavailable period), cannot be consumed
+# without an explicit permit, records the region/cells and the intended confirmation use, and stays
+# reserved if feasibility fails before its outcomes are opened. Status: RESERVED | RELEASED | CONSUMED.
+# Only surfaces already reserved by a record are listed here; adding one needs an owner decision.
+reservations:
+  - id: E1_RUN_001_FINAL_HOLDOUT
+    status: RESERVED
+    # every atlas dataset whose coverage (or stored bytes) includes the period
+    datasets: [CORE_BTC_BINANCE_V0, BINANCE_UM_KLINES_5M_PRODUCT, BINANCE_UM_TRADES_AGGTRADES_ARCHIVE, BINANCE_UM_OI_METRICS_PRODUCT,
+               BINANCE_UM_PREMIUM_MARK_INDEX_KLINES, STAGE1_LIVE_OI_FUNDING, STAGE1_LIVE_LIQUIDATIONS, STAGE1_LIVE_KLINES_3VENUE,
+               BINANCE_UM_BOOKDEPTH_ARCHIVE, OKX_OFFICIAL_ARCHIVES, BINANCE_SPOT_KLINES_ARCHIVE, BYBIT_BTCUSDT_PUBLIC_HISTORY,
+               DERIBIT_DVOL_API, BINANCE_OPTIONS_BVOL]
+    period: {start: "2026-08-16T00:00:00Z", end_exclusive: "2026-08-25T17:20:00Z"}
+    scope: {regions: [METHOD], cells: ["METHOD.composition|CANDLES"], note: "every BTC market row in the period, on every venue and archive"}
+    intended_use: "E1-RUN-001 final chronological holdout: one open by the frozen one-shot evaluator after the timestamp-only coverage gate passes, or an explicit close as technically incomplete"
+    holder_units: [E1-RUN-001]
+    permit_required: true
+    permit: null
+    authority: [AGENTS.md, docs/e1/E1_RUN_001_FINAL_HOLDOUT_EVALUATOR_FREEZE.md, docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md]
+    # pristine_status records whether the reserved slice is still unread; a non-PRISTINE status names what opened it.
+    pristine_status: INVALIDATED_FOR_P4_OVERLAP
+    contamination:
+      - {by: "P4 owner-run descriptive follow-up (2026-09-29)", period: {start: "2026-08-16T00:00:00Z", end_exclusive: "2026-08-25T17:20:00Z"},
+         tables: [klines_1m, open_interest], evaluator_touched: false, sealed_artifacts_opened: false,
+         decided: "owner, 2026-10-03", record: docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md}
+    note: "The product history sync never requests an archive object overlapping this period; the divergence program read horizon stops at 2026-08-15."

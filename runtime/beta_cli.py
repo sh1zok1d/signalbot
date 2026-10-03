@@ -8,6 +8,9 @@
   --beta-outcomes-once  forward outcome tracker pass
   --beta-notify-once    outbox pass (at most one send attempt per user per notification)
   --beta-health         READ-ONLY health / owner-alert evaluation
+  --beta-history-sync   fetch / verify / upsert Binance Vision history (5m klines 2020→, OI 2020-09→)
+  --beta-history-build  nightly statistics build (range model, levels, analogues, events)
+  --beta-bootstrap-rewind  rewind the bootstrap watermark 30 days (then run the bootstrap runner)
 
 No beta command imports or invokes the frozen V1/V2 forecast engines. Stage-2
 schema/revision/instrument bootstrap reuses the shadow CLI helpers unchanged.
@@ -22,10 +25,11 @@ from typing import Any, Optional
 from beta.config import BetaConfig, BetaSecrets, BetaSwitches, resolve_switches
 
 BETA_CODE_PATHS = ("beta", "runtime/beta_cli.py", "runtime/beta_bot.py", "storage/beta_v0_store.py",
-                   "storage/beta_v0_schema.sql", "config/beta_v0.yaml")
+                   "storage/beta_v0_schema.sql", "config/beta_v0.yaml", "config/beta_calendar.yaml")
 BETA_COMMAND_FLAGS = ("beta_bootstrap", "beta_once", "beta_status", "beta_outcomes_once",
                       "beta_notify_once", "beta_health", "beta_usage_report",
-                      "beta_d7_once", "beta_d7_backfill", "beta_context_dry_run")
+                      "beta_d7_once", "beta_d7_backfill", "beta_context_dry_run",
+                      "beta_history_sync", "beta_history_build", "beta_bootstrap_rewind")
 READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report", "beta_context_dry_run")
 
 
@@ -56,6 +60,14 @@ def add_beta_arguments(parser) -> None:
                    help="Beta V0.2: resumable D7 1m backfill (default 90 days) and hour states.")
     g.add_argument("--beta-context-dry-run", action="store_true",
                    help="Beta: READ-ONLY recorded-tape dry run of the 1h/4h interpretation labels.")
+    g.add_argument("--beta-history-sync", action="store_true",
+                   help="Beta V2: fetch, verify and upsert the Binance Vision history (resumable).")
+    g.add_argument("--beta-history-build", action="store_true",
+                   help="Beta V2: build the decision-support statistics from the stored history.")
+    g.add_argument("--beta-bootstrap-rewind", action="store_true",
+                   help="Beta V2: rewind the bootstrap watermark so the bootstrap refills 30 days of V2 tape.")
+    parser.add_argument("--history-max-objects", type=int, default=None,
+                        help="Bound one --beta-history-sync run to N archive objects (default: all).")
     parser.add_argument("--beta-bucket-ts", default=None,
                         help="Explicit ISO-8601 UTC 5m bucket open (--beta-once only).")
     parser.add_argument("--days", type=int, default=None,
@@ -95,6 +107,10 @@ def validate_beta_args(parser, args, *, other_command_selected: bool) -> None:
         parser.error("--dry-run-provisional is only valid with --beta-context-dry-run")
     if dry and (args.dry_run_days < 1 or args.dry_run_days > 30 or args.dry_run_stride < 1):
         parser.error("--dry-run-days must be 1..30 and --dry-run-stride >= 1")
+    if getattr(args, "history_max_objects", None) is not None and not getattr(args, "beta_history_sync", False):
+        parser.error("--history-max-objects is only valid with --beta-history-sync")
+    if getattr(args, "history_max_objects", None) is not None and args.history_max_objects < 1:
+        parser.error("--history-max-objects must be an int >= 1")
     if getattr(args, "beta_json", False) and not selected:
         parser.error("--beta-json is only valid with a --beta-* command")
 
@@ -301,6 +317,27 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
         from beta.delivery import run_notify_once
         return await run_notify_once(db.beta_store(), cfg, switches, sender=sender, clock=clock,
                                      owner_user_id=secrets.owner_user_id)
+
+    if getattr(args, "beta_history_sync", False) or getattr(args, "beta_history_build", False) \
+            or getattr(args, "beta_bootstrap_rewind", False):
+        if not switches.enabled:
+            return {"status": "DISABLED"}
+        await db.init_beta_v0_schema()
+        store = db.beta_store()
+        if args.beta_history_sync:
+            from beta.history_data import sync_history
+            return await sync_history(store, now=clock(), max_objects=getattr(args, "history_max_objects", None))
+        if args.beta_history_build:
+            from beta.history_stats import run_history_build
+            return await run_history_build(store, cfg, now=clock())
+        from beta.state_tape import BUCKET as _BUCKET, select_latest_closed_bucket
+        target = select_latest_closed_bucket(clock(), grace_s=cfg["bucket_close_grace_s"])
+        rewind_to = target - timedelta(days=cfg["bootstrap"]["lookback_days"]) - _BUCKET
+        async with store.connect() as conn:
+            prev = await conn.rewind_bootstrap_watermark(symbol=cfg.symbol, market_type=cfg.market_type,
+                                                         timeframe=cfg.timeframe, bucket_ts=rewind_to)
+        return {"status": "OK", "previous_watermark": prev, "rewound_to": rewind_to,
+                "next": "python -m runtime.beta_bootstrap_runner"}
 
     if args.beta_d7_once or args.beta_d7_backfill:
         if not switches.enabled:

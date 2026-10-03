@@ -14,46 +14,56 @@ LANGS = ("ru", "en")
 KYIV = ZoneInfo("Europe/Kyiv")
 MINUS = "−"
 
-# English list: the historical patterns, plus the §9 bans. Nothing was removed.
+# PRODUCT_DECISION_V2 §3 (owner, 2026-10-03): forecasts, probabilities and historical
+# statistics are allowed; direct trade calls and hype are not. The English list applies to
+# every text; Russian text is also checked against the Russian list. The V0.2 / V1 lists that
+# banned forecasting vocabulary are superseded (history: git, PRODUCT_DECISION_V2 §5).
 _FORBIDDEN_EN = [
-    r"\bbuy\b", r"\bsell\b", r"\b(long|short)\s+now\b", r"\bgo\s+(long|short)\b",
-    r"\bentry\b", r"\bentries\b", r"\bstop[- ]?loss\b", r"\btake[- ]?profit\b", r"\btargets?\b",
-    r"\bleverage\b", r"\bposition[- ]siz", r"probabilit", r"\blikely\b", r"\bimpulse\b",
-    r"\bwin(s|ning)?\b", r"\bloss(es)?\b", r"win[- ]?rate", r"\bmfe\b", r"\bmae\b",
-    r"\brecommend", r"\bprofit\b", r"\bsignal\b", r"\bforecast", r"\bpredict",
-    r"\bpushing\b", r"\bdumping\b", r"\bwhales\b", r"\bshort covering\b", r"\blong unwind\b",
-    r"\bhealthy\b", r"\bcontinuation\b", r"\breversal\b",
+    r"\bbuy\s+now\b", r"\bsell\s+now\b", r"\b(long|short)\s+now\b", r"\bgo\s+(long|short)\b",
+    r"\b(open|enter)\s+(a\s+)?(long|short)\b", r"\bentry\s+points?\b", r"\btake[- ]?profit\b",
+    r"\bprice\s+targets?\b", r"\btargets?\b", r"\brecommend", r"\bguaranteed\b", r"\byou\s+should\b",
+    r"\bto\s+the\s+moon\b", r"\bpump(ing)?\b", r"\bdump(ing)?\b",
+    # instructions to act ("buy BTC at 64000", "sell here", "entry: 64,000", "stop loss at", "10x leverage");
+    # the nouns the texts use (buyers, buyer-initiated, aggressive selling, a stop 0.5% away) stay allowed
+    r"\b(buy|sell|long|short)(ing)?\s+(btc|bitcoin|here|there|at|from|above|below|the\s+(dip|break|top|bottom))\b",
+    r"\bentry\s*[:=@]", r"\benter\s+(here|at|now|above|below)\b",
+    r"\bstop[- ]?loss\s+(at|@|to|below|above)\b", r"\b(set|place|move)\s+(your|a|the)\s+stop\b",
+    r"\b\d+\s*x\s+leverage\b", r"\b(use|with|take)\s+\d+\s*x\b",
 ]
 _FORBIDDEN_EN_CASE = [r"\bLONG\b", r"\bSHORT\b", r"\bBUY\b", r"\bSELL\b"]
 
-# Russian list (§3.1 minimum, plus the §9 equivalents). Case-insensitive, word boundaries.
 _FORBIDDEN_RU = [
-    r"(?<!\w)купи(?:ть|те)(?!\w)",
+    r"(?<!\w)купи(?:ть|те)?(?!\w)",
     r"(?<!\w)покупай(?:те)?(?!\w)",
     r"(?<!\w)прода(?:й|йте|вай|вайте|ть)(?!\w)",
-    r"(?<!\w)входи(?:ть|те)(?!\w)",
-    r"(?<!\w)точка входа(?!\w)",
-    r"(?<!\w)стоп-лосс(?!\w)",
-    r"(?<!\w)тейк-профит(?!\w)",
-    r"(?<!\w)цел(?:ь|и)(?!\w)",
-    r"(?<!\w)плеч(?:о|а)(?!\w)",
-    r"(?<!\w)вероятн\w*",
-    r"(?<!\w)скорее всего(?!\w)",
-    r"(?<!\w)прогноз\w*",
-    r"(?<!\w)предсказ\w*",
-    r"(?<!\w)ожида(?:ется|ем|ют)(?!\w)",
-    r"(?<!\w)сигнал\w*",
-    r"(?<!\w)рекоменд\w*",
-    r"(?<!\w)прибыл\w*",
-    r"(?<!\w)убыт\w*",
-    r"(?<!\w)лонг сейчас(?!\w)",
-    r"(?<!\w)шорт сейчас(?!\w)",
+    r"(?<!\w)(?:входи|заходи)(?:ть|те)?(?!\w)",
+    r"(?<!\w)точк[аиуе] входа(?!\w)",
+    r"(?<!\w)(?:открывай|открывайте|открой|откройте)\s+(?:лонг|шорт)\w*",
+    r"(?<!\w)(?:лонг|шорт)\s+сейчас(?!\w)",
+    r"(?<!\w)(?:лонгуй|шорти)\w*",
+    r"(?<!\w)тейк-профит\w*",
+    r"(?<!\w)цел(?:ь|и|ью|ей)(?!\w)",
+    r"(?<!\w)таргет\w*",
+    r"(?<!\w)гарантированн\w*",
+    r"(?<!\w)(?:рекомендуем|советуем)(?!\w)",
+    r"(?<!\w)срочно(?!\w)",
+    r"(?<!\w)памп\w*",
+    r"(?<!\w)дамп\w*",
+    r"(?<!\w)ракет\w*",
+    r"(?<!\w)обвал\w*",
+    # first-person / imperative calls to act («покупаем», «входим», «шорт от 66000», «вход в лонг»)
+    r"(?<!\w)(?:покупаем|покупаю|прода[её]м|продаю|входим|вхожу|заходим|захожу)(?!\w)",
+    r"(?<!\w)(?:открываем|открываю|берите|бери|бер[её]м|беру|ставим|ставьте|набираем|набирайте)\s+(?:в\s+)?(?:лонг|шорт)\w*",
+    r"(?<!\w)(?:лонг|шорт)\s+(?:от|с|по|на)\s+\d",
+    r"(?<!\w)вход\w*\s+(?:в\s+(?:лонг|шорт)|на\s+\d|по\s+\d|от\s+\d)",
+    r"(?<!\w)стоп(?:-лосс)?\w*\s+(?:ставим|ставьте|поставьте|переносим|переносите)(?!\w)",
+    r"(?<!\w)(?:ставим|ставьте|поставьте|переносим|переносите)\s+стоп\w*",
+    r"(?<!\w)плеч\w*\s+[xх]?\d+", r"(?<!\w)[xх]\d+\s+плеч\w*",
+    # attributions nobody can observe (kept from V0.2: they are claims, not forecasts)
     r"(?<!\w)толкают(?!\w)",
     r"(?<!\w)сливают(?!\w)",
     r"(?<!\w)киты(?!\w)",
     r"(?<!\w)закрытие шортов(?!\w)",
-    r"(?<!\w)разворот(?!\w)",
-    r"(?<!\w)продолжение(?!\w)",
 ]
 
 
@@ -66,10 +76,10 @@ def normalize_lang(lang: str | None) -> str:
 
 
 def assert_descriptive(text: str, lang: str = "en") -> str:
-    """Reject trade-instruction and predictive wording.
+    """Reject direct trade calls and hype (PRODUCT_DECISION_V2 §3).
 
     English text is checked against the English list. Russian text is checked
-    against that list and the Russian list. Neither list is relaxed.
+    against that list and the Russian list.
     """
     plain = re.sub(r"<[^>]+>", " ", text)
     for pat in _FORBIDDEN_EN:
@@ -184,9 +194,9 @@ _CATALOG: dict[str, dict[str, str]] = {
     "usd_m": {"ru": "млн", "en": "M"},
     "usd_k": {"ru": "тыс", "en": "K"},
     "disclaimer": {
-        "ru": ("<i>Экспериментальная закрытая бета. Только описание состояния рынка — "
+        "ru": ("<i>Экспериментальная закрытая бета. Статистика и описание рынка — "
                "не инвестиционный совет и не указание к сделке.</i>"),
-        "en": ("<i>Experimental closed beta. Descriptive market-state observation only — "
+        "en": ("<i>Experimental closed beta. Market statistics and description — "
                "not investment advice and not a trade instruction.</i>"),
     },
     "closed_beta": {
@@ -231,30 +241,34 @@ _CATALOG: dict[str, dict[str, str]] = {
     "welcome": {
         "ru": (
             "Добро пожаловать в Signalbot (закрытая бета).\n"
-            "Бот следит за BTC-фьючерсами на Binance, Bybit и OKX и показывает, когда на рынке "
-            "происходит что-то необычное: резкие движения цены, всплески Delta, ликвидации, "
-            "заметные изменения OI.\n"
-            "/btc — состояние рынка сейчас. Кнопки 1ч и 24ч — картина за час и сутки.\n"
+            "Бот следит за BTC-фьючерсами на Binance, Bybit и OKX. Он не говорит, покупать или "
+            "продавать, а показывает: насколько сейчас рискованно (коридор и /risk), где уровни, "
+            "которые видит весь рынок (/levels), что было в похожих ситуациях раньше и что сегодня "
+            "в календаре (/events).\n"
+            "/btc — состояние рынка сейчас. /help — все команды.\n"
             "/terms — что значат термины.\n"
             "/lang — сменить язык.\n"
-            "Бот только описывает рынок, это не торговые советы.\n"
+            "Это статистика и описание рынка, не торговые советы.\n"
             "Отзывы и вопросы: /feedback ваш текст"
         ),
         "en": (
             "Welcome to Signalbot (closed beta).\n"
-            "The bot watches BTC perpetual futures on Binance, Bybit and OKX and shows when "
-            "something unusual happens: sharp price moves, Delta spikes, liquidations, notable "
-            "OI changes.\n"
-            "/btc — the market right now. The 1h and 24h buttons show the last hour and day.\n"
+            "The bot watches BTC perpetual futures on Binance, Bybit and OKX. It never says whether "
+            "to buy or sell; it shows how risky the market is now (corridor and /risk), where the "
+            "levels everyone watches are (/levels), what happened in similar situations before and "
+            "what is in today's calendar (/events).\n"
+            "/btc — the market right now. /help — all commands.\n"
             "/terms — what the terms mean.\n"
             "/lang — change the language.\n"
-            "The bot only describes the market; it is not trading advice.\n"
+            "These are statistics and market description, not trading advice.\n"
             "Feedback and questions: /feedback your text"
         ),
     },
     "welcome_push": {
-        "ru": "Иногда бот сам пришлёт короткое сообщение — не больше 2 в день.",
-        "en": "Sometimes the bot will send a short message on its own — no more than 2 a day.",
+        "ru": ("Бот сам пришлёт короткое сообщение при первом касании важного уровня, за 30 минут до CPI "
+               "или ФРС и при резком движении. Настроить: /push."),
+        "en": ("The bot will message you at the first touch of a key level, 30 minutes before CPI or the Fed "
+               "and on a sharp move. Settings: /push."),
     },
     "feedback_usage": {
         "ru": "Напишите отзыв: /feedback ваш текст",
@@ -286,10 +300,12 @@ _CATALOG: dict[str, dict[str, str]] = {
             "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
             "/delete_me удаляет их вместе с остальными вашими данными.\n"
             "• Тексты отзывов (/feedback) хранятся 120 дней и удаляются командой /delete_me.\n"
+            "• Ваши уровни (/alert) хранятся, пока вы их не удалите; /delete_me удаляет их.\n"
             "• /stop приостанавливает все сообщения. /delete_me удаляет ваши данные участника "
             "и исключает вас из беты.\n"
             "• После /stop данные удаляются автоматически через 30 дней.\n"
-            "• Это не инвестиционный совет; бот не совершает и не предлагает сделки.\n\n"
+            "• Это не инвестиционный совет; бот не совершает сделки и не говорит, покупать или продавать. "
+            "Исторические цифры описывают прошлое.\n\n"
             "Нажмите <b>Вступить</b>, чтобы принять условия и войти в бету."
         ),
         "en": (
@@ -301,10 +317,12 @@ _CATALOG: dict[str, dict[str, str]] = {
             "you came from, so we can improve the bot. These records are kept for 120 days. "
             "/delete_me deletes them with the rest of your data.\n"
             "• Feedback texts are stored for 120 days and deleted by /delete_me.\n"
+            "• Your price alerts (/alert) are kept until you delete them; /delete_me deletes them.\n"
             "• /stop pauses all messages. /delete_me deletes your participant data and removes "
             "you from the beta.\n"
             "• After /stop, your data is deleted automatically after 30 days.\n"
-            "• Nothing here is investment advice; the bot never places or suggests trades.\n\n"
+            "• Nothing here is investment advice; the bot never places trades and never says whether to "
+            "buy or sell. Historical numbers describe the past.\n\n"
             "Press <b>Join</b> to accept and join the beta."
         ),
     },
@@ -964,3 +982,16 @@ _CATALOG: dict[str, dict[str, str]] = {
         ),
     },
 }
+
+
+def _merge_decision_catalog() -> None:
+    from .i18n_decision import DECISION_CATALOG, DECISION_HELP, DECISION_TERMS
+    for key, val in DECISION_CATALOG.items():
+        if key in _CATALOG:
+            raise KeyError(f"duplicate catalog key {key!r}")
+        _CATALOG[key] = val
+    _CATALOG["help"] = dict(DECISION_HELP)
+    _CATALOG["terms"] = {lang: _CATALOG["terms"][lang] + DECISION_TERMS[lang] for lang in LANGS}
+
+
+_merge_decision_catalog()

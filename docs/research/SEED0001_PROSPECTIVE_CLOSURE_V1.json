@@ -1,0 +1,21 @@
+{
+ "RECORD": "SEED0001_PROSPECTIVE_CLOSURE_V1",
+ "RECORD_TYPE": "APPEND_ONLY_CLOSURE_RECORD",
+ "RECORDED": "2026-10-03",
+ "TEST_FAMILY_ID": "TF-SEED0001-RD-PROSP1",
+ "HYPOTHESIS_ID": "SEED0001-RD-V1",
+ "STATUS": "CLOSED_BEFORE_START",
+ "REASON": "superseded by divergence program closure",
+ "CLOSING_DECISION": "owner routing decision 2026-10-03: divergence / selling-exhaustion line COMPLETED and closed; PROSPECTIVE_DIVERGENCE_STREAM_ACTIVE = false",
+ "PREREG_PATH": "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json",
+ "PREREG_SHA256": "c6f02ecbdd02346e33d3505d6e5353bd0e30abf47a1899d1290f2cccbf6b630c",
+ "PREREG_EDITED": false,
+ "LEDGER_ENTRY_EDITED": false,
+ "EXECUTION_STARTED": false,
+ "PERMIT_ISSUED": false,
+ "PROSPECTIVE_OUTCOMES_OPENED": false,
+ "PROSPECTIVE_COHORT_START": "2026-10-05T00:00:00Z",
+ "CONFIRMATION_SURFACE_CONSUMED": false,
+ "RESTART": "a new unit with a new TEST_FAMILY_ID, its own registration and an explicit owner permit",
+ "ATLAS": {"unit": "SEED-0001-PROSP", "state": "CLOSED_BEFORE_START"}
+}

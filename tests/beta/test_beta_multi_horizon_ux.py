@@ -18,7 +18,7 @@ from beta.horizons import HORIZON_DIGEST, HORIZON_VERSION, build_horizons, empty
 from beta.i18n import _CATALOG, fmt_clock, fmt_kyiv_hm, fmt_price, fmt_ratio, fmt_signed_pct, fmt_usd, kyiv
 from beta.state_tape import BUCKET, metric_key
 
-RU_DISCLAIMER = ("Экспериментальная закрытая бета. Только описание состояния рынка — "
+RU_DISCLAIMER = ("Экспериментальная закрытая бета. Статистика и описание рынка — "
                  "не инвестиционный совет и не указание к сделке.")
 EN_FAIL = ("Current observability is insufficient; the absence of events cannot be claimed right now.")
 RU_FAIL = "Текущих данных недостаточно: отсутствие событий сейчас подтвердить нельзя."
@@ -302,12 +302,15 @@ def test_kyiv_dst_boundaries_2026():
 
 def test_russian_forbidden_list_and_disclaimer():
     from beta.i18n import ForbiddenWordingError
-    for sample in ("купить", "купите", "покупайте", "продай", "точка входа", "стоп-лосс", "тейк-профит",
-                   "цель", "плечо", "вероятность роста", "скорее всего", "прогноз",
-                   "ожидается", "сигналы", "рекомендуем", "прибыль", "лонг сейчас",
-                   "толкают", "киты", "разворот", "продолжение"):
+    # PRODUCT_DECISION_V2 §3: direct trade calls, targets, hype and unobservable attributions
+    for sample in ("купить", "купите", "покупайте", "продай", "точка входа", "тейк-профит",
+                   "цель", "таргет", "рекомендуем", "лонг сейчас", "шорт сейчас", "открывайте лонг",
+                   "срочно", "памп", "обвал", "толкают", "киты", "закрытие шортов"):
         with pytest.raises(ForbiddenWordingError):
             assert_descriptive(sample, "ru")
+    # forecasting vocabulary is allowed since PRODUCT_DECISION_V2
+    for sample in ("вероятность роста", "прогноз", "ожидается", "разворот", "продолжение", "стоп 0,4%"):
+        assert_descriptive(sample, "ru")
     assert_descriptive(RU_DISCLAIMER, "ru")
     for pair in _CATALOG.values():
         for lang, text in pair.items():
@@ -763,8 +766,9 @@ def test_immature_baseline_omits_main_ratios_and_tabs_count_down():
 
 def test_glossary_is_verbatim_and_passes_both_forbidden_lists():
     from beta.i18n import t
-    assert t("ru", "terms") == RU_TERMS
-    assert t("en", "terms") == EN_TERMS
+    from beta.i18n_decision import DECISION_TERMS
+    assert t("ru", "terms") == RU_TERMS + DECISION_TERMS["ru"]
+    assert t("en", "terms") == EN_TERMS + DECISION_TERMS["en"]
     assert_descriptive(RU_TERMS, "ru")
     assert_descriptive(EN_TERMS, "en")
     assert_descriptive(RU_TERMS, "en")

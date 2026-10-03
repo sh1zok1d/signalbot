@@ -58,7 +58,7 @@ _TOP_KEYS = frozenset({
     "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
     "horizon_changes", "access", "telemetry", "feedback", "regime_d7", "briefing",
-    "push_policy",
+    "push_policy", "decision",
 })
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
@@ -118,6 +118,10 @@ _REGIME_D7_KEYS = {"enabled"}
 # Delivery-side push policy (PRODUCT_FIRST_DECISION_V1 §3 row 8): quiet hours in Kyiv
 # time and one cooldown across event types. Policy only; never the rules digest.
 _PUSH_POLICY_KEYS = {"quiet_hours_kyiv", "global_cooldown_min"}
+# PRODUCT_DECISION_V2: decision support. Presentation and market-alert policy only.
+_DECISION_KEYS = {"max_price_alerts", "forecast_tracking", "market_alerts"}
+_MARKET_ALERT_KEYS = {"enabled", "max_per_utc_day", "move_cooldown_min", "event_lead_min",
+                      "touch_max_age_min"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
 # cooldown / cap only enter the config digest).
@@ -343,6 +347,19 @@ def _validate(d: Mapping[str, Any]) -> None:
     _validate_regime_d7(d)
     _validate_briefing(d)
     _validate_push_policy(d)
+    _validate_decision(d)
+
+
+def _validate_decision(d: Mapping[str, Any]) -> None:
+    x = d["decision"]
+    _exact_keys(x, _DECISION_KEYS, "decision")
+    _int(x["max_price_alerts"], "decision.max_price_alerts", minimum=1)
+    _bool(x["forecast_tracking"], "decision.forecast_tracking")
+    m = x["market_alerts"]
+    _exact_keys(m, _MARKET_ALERT_KEYS, "decision.market_alerts")
+    _bool(m["enabled"], "decision.market_alerts.enabled")
+    for key in ("max_per_utc_day", "move_cooldown_min", "event_lead_min", "touch_max_age_min"):
+        _int(m[key], f"decision.market_alerts.{key}", minimum=1)
 
 
 def _hhmm(value, name: str) -> None:

@@ -7267,3 +7267,645 @@ SCIENTIFIC_DESIGN_CHANGED = false
 ```
 
 Record: `docs/research/GV0V03L40_C033_V2_FEASIBILITY.md`.
+
+## SEED-0001 regular divergence card registered — 2026-10-02
+
+The owner's SEED-0001 decisions (2026-10-02) are frozen into a twin preregistration: `docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.{md,json}`.
+- **Retrospective card.** BTCUSDT perp 1h, decisions 2023-01-01..2024-12-28, labelled `RETROSPECTIVE_EVIDENCE` (never a holdout or final confirmation).
+- **Prospective confirmation.** Decisions from 2026-10-05; stop at 30 Arm-A episodes or 2028-10-05, minimum 20.
+  - The protected 2026 segment may be pinned only by metadata; running the detector on it needs an owner decision.
+  - The single analysis needs a separate owner decision.
+- **Primary family.** P1 = A vs B and P2 = A vs C on +1R before −1R within 48h, Holm, both required. +2R and 96h are secondary.
+- **ETH.** Robustness only, identical definitions, never pooled.
+- **Adjustment set.** Prior RV, time of day, decline magnitude and pre-decision net flow, plus the bracket width (design addition, strikable before outcomes).
+- **H05.** The distance is stated; H05 stays closed.
+- **Not consumed.** No window is consumed and no outcome is computed. Only a format probe of one 2023 bookDepth file preceded the freeze.
+
+```
+TF-SEED0001-RD-RETRO1 = REGISTERED_NOT_EXECUTED
+TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED
+SEARCH_FAMILY_ID = SF-OWNER-SEEDS
+MARKET_OUTCOMES_COMPUTED = false
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = SEED0001_OUTCOME_BLIND_FEASIBILITY_COUNT_PASS
+```
+
+## SEED-0001 outcome-blind feasibility — 2026-10-02
+
+The count pass ran after the freeze commit. It used Binance UM klines (2022-11..2024-12, pinned to the CORE inventories) and bookDepth for 2023–2024; 3 BTC and 2 ETH days are missing in the archive.
+- **Not computed:** no outcome, R-multiple, MFE/MAE or post-decision price.
+- **Point-in-time audit:** 30/30 identical per symbol.
+- **BTC eligible:** 743 episodes, A/B/C/D = 36/259/63/385.
+  - A falls on 33 dates and in 24 weekly clusters, with 10/6/9/11 by half-year.
+  - Divergence is the rare part (13% of eligible episodes); support holds in 40%.
+- **Dependence:** every A episode shares a 48h overlap chain with another episode, and 22% of windows cross a week boundary.
+- **Power.** The Holm conjunction of P1 and P2 has STRESS power 0.10 at the 10 pp bar, and the MDE is about 30 pp. Covariate support passes (max |SMD| 0.61). Heterogeneity is `NOT_ASSESSABLE`.
+- **Prospective.** The stop at 30 A episodes is about 15% powered at 10 pp.
+- **ETH (robustness):** A = 32 episodes on 27 dates.
+- **Verdict (frozen rule):** `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR`. It would also be `INFORMATIONALLY_WEAK` above the floor.
+
+**Nothing changed or opened.** Definitions were not changed after the counts. The 2023–2024 outcome surface for this card is unopened, not consumed. Outcomes need a separate owner authorization, and the report does not recommend opening them at this power.
+
+```
+SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR
+MARKET_OUTCOMES_COMPUTED = false
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = OWNER_DECISION on SEED-0001
+```
+
+Record: `docs/research/SEED0001_FEASIBILITY_REPORT.{md,json}`.
+
+## SEED-0001 owner decision — retrospective leg closed outcome-blind — 2026-10-02
+
+The owner accepted the SEED-0001 feasibility stop. The retrospective leg (`TF-SEED0001-RD-RETRO1`) is closed outcome-blind with the frozen verdict `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR`.
+- **Outcomes.** Forward outcomes remain unopened and must not be computed. The 2023–2024 outcome surface of this card is not consumed.
+- **No rescue.** No threshold modification, parameter tuning or reinterpretation of SEED-0001 is authorized. Preregistration, detector, feasibility rule, report, episode sets and manifest are unchanged.
+- **Prospective leg.** The preregistration (`TF-SEED0001-RD-PROSP1`) stays frozen and is not activated. Any detector run on the protected 2026 segment, or on the prospective cohort, needs a separate explicit owner decision.
+- **Track B.** Longer-history proxy research for the book observable, if pursued, is a separate card or seed. It is not a continuation or rescue of SEED-0001.
+- **Routing.** It returns to the research queue in `CURRENT_RESEARCH_STATE.md`. This entry supersedes the `NEXT_UNIT = OWNER_DECISION on SEED-0001` line of the feasibility entry above.
+
+```
+SEED0001_RETROSPECTIVE_LEG = CLOSED_OUTCOME_BLIND
+SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR
+TF-SEED0001-RD-RETRO1 = REGISTERED_NOT_EXECUTED
+TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED
+MARKET_OUTCOMES_COMPUTED = false
+PROTECTED_2025_2026_OPENED = false
+SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0
+NEW_DESIGN_REQUIRES_NEW_RESEARCH_OBJECT_ID = true
+NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_FEASIBILITY_STOP
+```
+
+## SEED-0001 owner decision — exploratory outcome analysis authorized — 2026-10-02
+
+This supersedes the routing of the feasibility-stop entry above. That entry stays as the historically correct record.
+- **Owner decision.** SEED-0001 continues despite `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR`, which is unchanged. The owner accepts that the retrospective sample is underpowered and authorizes an exploratory outcome-analysis phase.
+- **Status of the test.** It is not a conversion of the preregistered retrospective test into a confirmatory success. The classification is fixed before outcomes as `INCONCLUSIVE_DISCOVERY`.
+- **Frozen inputs.** The preregistration, detector, thresholds, covariates, contrasts, hard floor, episode sets and feasibility report stay frozen. Their SHA256s are re-verified and recorded in `docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json`.
+- **Allowed scope.** Outcomes are opened only for the frozen episodes and the frozen outcome definitions. The forward return, MFE and MAE definitions are fixed in the permit before opening. All statistics are exploratory / underpowered.
+- **Changes need a new SEED.** Any later parameter change, alternative threshold, stop, entry, exit, subgroup selection or rescue analysis needs a new research object / SEED.
+- **Prospective leg.** It stays separate and frozen.
+- **Consumption.** Opening outcomes consumes the 2023–2024 Binance UM 1h outcome surface for this card and for nearby questions. A later variant cannot use it as untouched evidence.
+
+```
+SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR
+SEED0001_EXPLORATORY_OUTCOME_PERMIT = docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json
+EVIDENCE_LABEL = EXPLORATORY / UNDERPOWERED
+CLASSIFICATION_FIXED_BEFORE_OUTCOMES = INCONCLUSIVE_DISCOVERY
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = SEED0001_EXPLORATORY_OUTCOME_ANALYSIS
+```
+
+## SEED-0001 exploratory outcome analysis — result — 2026-10-02
+
+This ran under `docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json`, authorized in `df9e351`. The evaluator was committed in `1e4f848` before the one run.
+- **Checked before the run:** the frozen artifacts were re-verified and the frozen episode sets were used as they are.
+- **No unavailable windows.** No byte from 2025 or 2026 was read.
+- **Label.** `EXPLORATORY / UNDERPOWERED`. The classification is `INCONCLUSIVE_DISCOVERY`, as fixed before outcomes.
+
+**BTC, Y1_48H (+1R before −1R).** Raw WIN/LOSS/NEUTRAL counts by arm:
+
+| Arm | WIN | LOSS | NEUTRAL |
+|---|---:|---:|---:|
+| A | 20 | 15 | 1 |
+| B | 130 | 121 | 8 |
+| C | 26 | 29 | 8 |
+| D | 201 | 159 | 25 |
+
+Adjusted contrasts, with CR1 weekly-cluster 95% CIs, the week-bootstrap CIs (4999 resamples) and Holm p-values:
+
+| Contrast | Estimate | CR1 95% CI | Bootstrap 95% CI | Holm p |
+|---|---:|---|---|---:|
+| P1, A − B | +0.042 | [−0.099, +0.184] | [−0.111, +0.180] | 0.554 |
+| P2, A − C | +0.148 | [−0.037, +0.332] | [−0.044, +0.331] | 0.233 |
+
+- **Gates.** The statistical gate fails and the practical gate fails.
+- **Secondaries.** Y2_48H, the 96h endpoints and chain clustering: none rejects.
+- **Half-years.** 3 of 4 epochs share the pooled sign for each contrast. The heterogeneity permutation p is 0.55 for P1 and 0.35 for P2, and the gate was `NOT_ASSESSABLE` before opening.
+- **ETH (robustness only).** P1 is −0.089 and P2 is −0.138, so `ETH_NOT_SAME_DIRECTION`.
+
+**Consumed.** The 2023–2024 Binance UM 1h outcome surface is consumed for this card and for nearby questions. No threshold, horizon, stop, entry, exit or subgroup was searched after outcomes. The prospective preregistration is unchanged and not activated.
+
+```
+TF-SEED0001-RD-RETRO1 = EXECUTED / INCONCLUSIVE_DISCOVERY
+EVIDENCE_LABEL = EXPLORATORY / UNDERPOWERED
+RESULT = docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.{md,json}
+PROTECTED_2025_2026_OPENED = false
+RERUN_AUTHORIZED = false
+NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_EXPLORATORY_OUTCOME_ANALYSIS
+```
+
+## Divergence research program — map V0 — 2026-10-02
+
+The owner directed that SEED-0001 become a research program on divergences, with the program mapped before any new outcome test. Record: `docs/research/DIVERGENCE_RESEARCH_MAP_V0.{md,json}`.
+- **First hypothesis.** H-DIV-1, the interaction of divergence with a confirmed support state.
+- **Origin.** It is motivated by mechanism. SEED-0001's exploratory numbers are its origin, not evidence.
+- **Spend of 2025–2026.** The owner proposes spending 2025–2026 before the prospective stream on one frozen divergence card. This is not decided.
+- **Conditions in the map:**
+  - the card is frozen first;
+  - its feasibility comes from 2023–2024 layouts;
+  - no access to the E1-RUN-001 holdout `[2026-08-16, 2026-08-25 17:20)`;
+  - an explicit owner decision on D2's 2025/2026 reservation;
+  - policy documents and a new compiler policy version are updated with the decision.
+- **Nothing consumed.** No data was opened and no window was consumed. The only access was HTTP checks of pre-2025 `.CHECKSUM` objects, to establish availability.
+
+```
+DIVERGENCE_RESEARCH_MAP_V0 = PROGRAM_MAP / NO_DATA_OPENED
+PROTECTED_2025_2026_OPENED = false
+PROTECTED_SPEND_DECIDED = false
+NEXT_UNIT = DIVERGENCE_PANEL_FEASIBILITY_V0
+```
+
+## Divergence program owner decisions V1; D2 reservation released — 2026-10-02
+
+Record: `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V1.md`. The feasibility design was frozen before any download or count in `docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_DESIGN.json`.
+- **Authorized now.** `DIVERGENCE_PANEL_FEASIBILITY_V0`, on 2023–2024 only, outcome-blind, for the panel BTC, ETH, SOL, XRP, BNB and DOGE.
+- **Conditional spend window.** Decisions 2025-01-01..2026-08-11, only if the panel reaches power 0.80 at 15 pp under the dependence-aware STRESS profile.
+  - 10 pp is diagnostic.
+  - 20 pp alone never authorizes opening.
+- **E1 untouched.** The E1-RUN-001 holdout stays strictly protected.
+- **D2 (superseding; history unchanged).** The reservation on 2025 (primary confirmation surface) and on pre-E1 2026 (second reserved surface) is released.
+  - **Why:** the frozen D2 confirmation has negligible yield on a one-year surface (power 0.011).
+  - **What remains:** D2 stays a valid historical research object. A future D2 confirmation needs a new independent dataset or a prospective surface.
+- **Estimands.** The primary is `(A − B) − (C − D)`; `A − B` is the key secondary. Both are frozen before any protected opening.
+- **What SEED-0003 must freeze** before any opening: the list of 17 items in the decision record.
+- **Nothing opened.** No protected byte was read.
+
+```
+DIVERGENCE_PANEL_FEASIBILITY_V0 = AUTHORIZED
+HOLDOUT_SPEND_WINDOW = 2025-01-01..2026-08-11 (CONDITIONAL)
+D2_RESERVATION_ON_SPEND_SURFACE = RELEASED
+PROTECTED_2025_2026_OPENED = false
+```
+
+## Divergence panel feasibility V0 — INFORMATIONALLY_WEAK — 2026-10-02
+
+The pass ran under the design frozen in `1404346`.
+- **Detector and data.** The SEED-0001 detector, unchanged, on six UM perps for 2023–2024. The BTC and ETH digests reproduce. The PIT audit is 30/30 on each symbol. bookDepth days missing in the archive are listed in the report.
+- **Not computed.** No outcome on any symbol, and no byte from 2025 or 2026.
+- **Panel counts.** A/B/C/D are 156 / 1434 / 330 / 2518. The A episodes fall on 110 distinct dates and in 67 week clusters.
+- **Concentration.** The largest symbol share of A is 23%.
+- **Interaction power at 15 pp on the projected 85-week spend layouts:**
+
+| Profile | Power |
+|---|---|
+| STRESS (the gate) | 0.655 / 0.609 |
+| INDEPENDENT | 0.78 / 0.76 |
+| COLLAPSED | 0.61 / 0.58 |
+
+- **MDE80 under STRESS.** 20 pp.
+- **Verdict.** `INFORMATIONALLY_WEAK`.
+- **Required history.** About 2.5–3 years of panel history at the 2023–2024 density.
+- **Consequence.** The conditional holdout spend is not authorized and 2025–2026 stays sealed. No SEED-0003 prereg was written. Nothing is consumed: 2023–2024 counts carry no outcome information.
+
+```
+DIVERGENCE_PANEL_FEASIBILITY_V0 = INFORMATIONALLY_WEAK
+HOLDOUT_SPEND = NOT AUTHORIZED
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_PANEL_FEASIBILITY_V0
+```
+
+## Divergence program owner decisions V2 — conditional-support feasibility V1 authorized — 2026-10-02
+
+After V0, the owner authorized a new outcome-blind unit: `DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1`. The V0 verdict `INFORMATIONALLY_WEAK` stands; it is not reinterpreted or rescued.
+- **New question.** Does regular bullish divergence add practically meaningful value conditional on support?
+  - The primary estimand is `A − B`, which is not an interaction.
+  - The secondary is `(A − B) − (C − D)`.
+- **Bar.** The minimum effect stays 15 pp.
+- **Allowed scope.** The historical window and a pre-specified combined design with a prospective panel stream from 2026-10-05.
+- **Excluded.**
+  - Continuous models are secondary concepts only.
+  - There is no panel expansion.
+- **Unchanged constraints.** E1 stays absolute and D2 stays released. SEED-0003 is not created. Nothing protected was opened.
+
+Records: `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V2.md` and `docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_DESIGN.json`.
+
+## Divergence conditional-support feasibility V1 — result — 2026-10-02
+
+This was an outcome-blind run of the design frozen in `323451e`. The six-symbol panel and the V0 digests reproduce. The primary estimand is `A − B`, at 15 pp.
+
+**Window proxies:**
+
+| Measure | Proxy 1 | Proxy 2 |
+|---|---:|---:|
+| A episodes | 134 | 125 |
+| A dates | 98 | 88 |
+| A week clusters | 57 | 55 |
+| STRESS power at 15 pp (10k replicates) | 0.813 | 0.789 |
+
+Other numbers:
+- **Design effect on A − B (STRESS):** about 1.45.
+- **Historical window alone:** `INFORMATIONALLY_WEAK`.
+- **Combined design.** The window plus a prospective panel stream from 2026-10-05 reaches 0.80 after about 4 weeks: 0.812 on proxy 2, 0.825 on proxy 1 at 0 weeks. It is the same with BTC excluded from the prospective part.
+  - **Frozen-form stop:** cumulative A ≥ 135 and A week clusters ≥ 59.
+  - **Deadline:** 2026-11-30.
+  - **Verdict:** `FEASIBLE_FOR_PREREGISTRATION`, with a thin margin.
+- **Secondary interaction:** 0.61–0.64.
+- **Nothing consumed:** no outcome was computed and no protected byte was read. SEED-0003 was not created.
+
+```
+HISTORICAL_ONLY_VERDICT = INFORMATIONALLY_WEAK
+COMBINED_DESIGN_VERDICT = FEASIBLE_FOR_PREREGISTRATION
+PROTECTED_2025_2026_OPENED = false
+NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1
+```
+
+## Divergence full-history research V0 — design frozen — 2026-10-02
+
+The owner accepted the V1 results unchanged and authorized `DIVERGENCE_FULL_HISTORY_RESEARCH_V0`, a pre-specified research program rather than a confirmatory test.
+
+**Slices.**
+- **Discovery** is 2023–2024, previously observed.
+- **Validation** is 2025-01-01..2026-08-11, previously unseen. The previously protected surface is opened for this program only after the freeze, and it is evaluated once.
+- **Pooled** results are never presented as replication.
+
+**Boundaries.** The E1-safe cutoffs are derived mechanically: last decision 2026-08-11 and read horizon 2026-08-15. The E1 holdout is untouched.
+
+**What is frozen.** The six-symbol panel, the unchanged detector and arms, the primary A − B, the secondary interaction, the SEED-0001 outcomes plus net R and timing, costs, a 22-feature PIT mechanism registry, weekly clustering, the labels, the analyses and the prohibited actions. All are frozen with code and frozen-artifact hashes in `docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_DESIGN.{md,json}`.
+
+**Not activated.** The prospective stream is not activated, and no SEED-0003 is created.
+
+```
+DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = DESIGN FROZEN
+PROTECTED_2025_PLUS_READ_AT_FREEZE = false
+E1_INTERVAL_TOUCHED = false
+```
+
+## Divergence full-history research V0 — stage 1 validation and stage 2 pooled/mechanism — 2026-10-02
+
+**Commits.** Freeze `c12204079462c0c173eebdc8b81308174d21f457`, before any 2025+ byte. Stage-1 validation result `fca3ab54633d7c47e651ffb9d773a779473ae614`, persisted before any pooled or mechanism step. Stage 2 is the commit that adds this entry.
+
+**Consumed.**
+- The VALIDATION slice (decisions 2025-01-01..2026-08-11) of the six-symbol UM panel. It was evaluated once, and a second evaluation is refused by the runner.
+- Reads end at the 2026-08-15 read horizon. The E1 holdout [2026-08-16, 2026-08-25 17:20) was never requested.
+
+**Stage 1 (VALIDATION / PREVIOUSLY UNSEEN).**
+- **Counts:** A 160, B 1251, C 342, D 2010. A falls on 112 dates and in 62 of 85 weekly clusters.
+- **Primary A − B, Y1_48H:** +0.011 [−0.087, +0.109], p = 0.83; week bootstrap [−0.083, +0.105].
+- **Interaction:** +0.018 [−0.094, +0.129].
+- **Tags:** `SAME_DIRECTION`, `COMPATIBLE_WITH_ZERO`, `BELOW_MEOI`, `ECONOMICALLY_SMALL`, `NO_DETECTED_SYMBOL_HETEROGENEITY`.
+- **Discovery** under the same frozen model: A − B +0.026 [−0.058, +0.110].
+
+**Stage 2 (POOLED FULL HISTORY + EXPLORATORY MECHANISM; never replication or confirmation).**
+- **Pooled A − B:** +0.019 [−0.047, +0.084], with N = 8201 and 186 weekly clusters.
+- **Net R.** After costs, mean net R of the 1R bracket is negative in every arm and slice.
+- **Heterogeneity.** Years and symbols show none detected (Q p = 0.94 and 0.40).
+- **Divergence inside support:** about +2 pp. The MACD family carries nothing.
+- **Exploratory.** A flow/OI selling-exhaustion state gives +0.038 [−0.000, +0.075], and a graded RSI change inside support-only episodes gives about +3.8 pp per SD (Holm p ≈ 0.03 among 22 features). Both were seen on data that includes validation and are not evidence.
+- **Failure states within A.** None survive Holm.
+
+**Report:** `docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_REPORT.md`.
+
+```
+DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = COMPLETE
+VALIDATION_A_MINUS_B_15PP = EXCLUDED (upper 95% bound +0.109)
+PROTECTED_2025_PLUS_OPENED_FOR_DIVERGENCE = true (2025-01-01..2026-08-15 read horizon)
+E1_INTERVAL_TOUCHED = false
+PROSPECTIVE_ACTIVATED = false
+SEED0003_CREATED = false
+NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_FULL_HISTORY_RESEARCH_V0
+```
+
+## Selling-exhaustion support feasibility V0 — design frozen — 2026-10-02
+
+The owner accepted `DIVERGENCE_FULL_HISTORY_RESEARCH_V0` (`DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md`) and authorized a feasibility-only new research object: `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0`.
+
+**Population.** Support episodes of the unchanged SEED-0001 detector on the exposed six-symbol surface: decisions 2023-01-01..2026-08-11, read horizon 2026-08-15.
+
+**Candidate states.** No oscillator input; thresholds are no-change points or medians; windows reuse frozen constants.
+- `SE_LEG`: weaker net taker selling over the second leg than the first, AND OI not up over the leg.
+- `SE_BASELINE`: 24-bar approach flow above its local 720-bar median, AND OI not up over 24h.
+
+**Primary:** `E − S`. Power is reported at 3 / 5 / 7.5 / 10 pp; the decision line is 5 pp within 104 prospective weeks under STRESS.
+
+**Dependence calibration.** It is state-blind, using already-opened outcomes only.
+
+**Not done.** No E − S outcome contrast is computed, and no SEED is created.
+
+```
+SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = DESIGN FROZEN
+NEW_PROTECTED_OUTCOMES_OPENED = false
+E1_INTERVAL_TOUCHED = false
+```
+
+## Selling-exhaustion support feasibility V0 — result — 2026-10-02
+
+**Run.** One run of the design frozen in `a4b76fd`, on the exposed six-symbol surface. It used no new protected outcome, computed no E − S outcome contrast, and touched no E1 byte.
+
+**Integrity.** The PIT truncation audit was 30/30 on every symbol. The discovery digests and the validation ids reproduced.
+
+**Counts.** There are 3,005 support episodes over 186 weeks.
+- **`SE_LEG`:** 667 E (22%) and 2,335 S.
+- **`SE_BASELINE`:** 349 E (12%) and 2,649 S.
+- **Concentration:** the maximum symbol share of E is 0.18–0.19, and the maximum half-year share is 0.16–0.17.
+
+**State-blind outcome dependence.** Same-date cross-symbol φ = 0.227; same-week other-date φ = 0.026; same-symbol chain φ ≈ 0.
+
+**Power.**
+- **Exposed-sized sample, MDE80:** 6.5–8.0 pp (`SE_LEG`) and 8.0–9.5 pp (`SE_BASELINE`).
+- **Prospective weeks for 80% at 5 pp:** 270–430 (`SE_LEG`) and 472–604 (`SE_BASELINE`).
+- **At 4 pp:** 453–665 (`SE_LEG`).
+
+**Continuous score.** It is 3–4× more efficient only under a graded effect, and about 3× worse under a step.
+
+**Report:** `docs/research/SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0.md`.
+
+```
+SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON
+NEW_PROTECTED_OUTCOMES_OPENED = false
+E_MINUS_S_OUTCOME_CONTRAST_COMPUTED = false
+E1_INTERVAL_TOUCHED = false
+SEED_CREATED = false
+NEXT_UNIT = OWNER_DECISION_AFTER_SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0
+```
+
+## Divergence / selling-exhaustion line — final owner routing decision — 2026-10-03
+
+The owner accepted `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON` and closed the divergence / selling-exhaustion line as an active research route.
+- **Status of the observations.** They are not declared false. They stay available as descriptive context.
+- **Routing** returns to `PRODUCT_FIRST_DECISION_V1`.
+- **Consumed by this record:** nothing. No research unit ran and no market outcome was computed.
+- **Unchanged:** every result file, frozen design and earlier ledger entry.
+
+**Chronology (UTC).**
+- The six-symbol surface was opened by the full-history validation run at 20:06 on 2026-10-02 (`fca3ab5`).
+- `PRODUCT_FIRST_DECISION_V1` reached `main` at 21:22 (`8973d1d`).
+- `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0` was authorized at 22:22 (`b701864`) and completed by 22:39 (`62653a3`), on the research branch before it contained the product-first records. The lines met in the merge `c896fa2`.
+
+```
+REGULAR_BULLISH_DIVERGENCE_PROGRAM = COMPLETED
+SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON
+NEW_DIVERGENCE_RESEARCH_UNIT_AUTHORIZED = false
+NEW_SELLING_EXHAUSTION_RESEARCH_UNIT_AUTHORIZED = false
+RSI_GRADIENT_SUPPORT_CANDIDATE = ARCHIVED_CANDIDATE / NOT_AUTHORIZED (exploratory; found on exposed data; not independently validated)
+PROSPECTIVE_DIVERGENCE_STREAM_ACTIVE = false
+SEED_CREATED = false
+DIVERGENCE_SUPPORT_2025_2026_SURFACE_OPENED = true (BTC/ETH/SOL/BNB/DOGE/XRP USD-M; 2025-01-01..2026-08-15 exclusive)
+E1_RUN_001_OPENED = false (holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) never requested)
+NEXT_UNIT = none (research); product build-to-test per PRODUCT_FIRST_DECISION_V1.md §3
+NEW_RESEARCH_PROGRAMS_AUTHORIZED = false
+```
+
+
+## GV0V03L40 C025-R1 outcome-blind stop — 2026-10-02
+
+Owner-authorized manual escalation of C025. The original card was not edited. Critic verdicts remain novelty REJECT, feasibility REJECT, red team REJECT. The executed design is C025-R1: a past-only 60-minute refractory replaces the original rule that dropped a burst because another burst fell inside the outcome window. That future-burst rule was not run.
+
+The count uses pinned Binance BTCUSDT perpetual 1m bars for 2020-01..2024-12 only. No post-T impact ratio was computed. The window is not a consumed confirmatory result.
+
+```
+PRIMARY_VARIANT = theta 0.70 / quantile 0.999 / W 30m
+RAW_BURSTS = 2895
+ONE_SIDED_N = 1
+TWO_SIDED_N = 879
+MATCHABLE_ONE_SIDED_N = 1
+MATCHABLE_TWO_SIDED_N = 169
+FEASIBILITY_STATUS = INFORMATIONALLY_WEAK
+BLOCKER = MDE_TOO_LARGE
+EFFECTIVE_N = 0.994
+MDE_STRESS = 5.620
+POWER_STRESS = 0.035
+EXECUTION_PERFORMED = false
+PREREGISTRATION_CREATED = false
+MARKET_OUTCOMES_OPENED = false
+PROTECTED_2025_2026_OPENED = false
+OTHER_VARIANTS_ESTIMATED = false
+RESCUE_ATTEMPTED = false
+```
+
+Record: `docs/research/GV0V03L40_C025_R1_CLOSE.md`.
+
+## 2026-10-03 — Owner cards R03 executed once and closed
+
+Owner-authorized program `SF-OWNER-CARDS-R03` (override of the product-first "no new research programs" rule for this program only; `docs/research/OWNER_CARDS_R03_DECISION.md`). Three cards of four `CONTEXT_DESCRIPTIVE` hypotheses on window range versus an ordinary-conditions comparator: scheduled derivatives-expiry clock (G), panel breadth/dispersion states (H), session/participant-clock structure (J).
+
+- **Consumed by this record:** the discovery surface Binance BTCUSDT 2020–2024 for the twelve frozen definitions (six executed, six closed outcome-blind). No rescue of any of the twelve.
+- **Not consumed:** BitMEX 2017–2019 (declared replication; no outcome opened), the 2025/2026 surfaces, the B2_06 OI/funding snapshot (not used).
+- **Result:** all six executed hypotheses `NO_INCREMENTAL_STRUCTURE`; zero prototypes; nothing promoted. Weekend hours (C1) show a clear negative effect (≈ −0.4 SD, Holm p 0.0001, growing by year) that is below the frozen 0.5 SD bar.
+
+```
+EXECUTED = R03-A1, R03-A4, R03-B2, R03-C1, R03-C2, R03-C4
+CLOSED_AT_FEASIBILITY = R03-A2, R03-A3, R03-C3, R03-B1, R03-B3, R03-B4
+PROMISING_PROTOTYPES = 0
+REPLICATION_EXECUTED = false
+RERUN_AUTHORIZED = false
+PROTECTED_2025_2026_OPENED = false
+```
+
+Records: `docs/research/OWNER_CARDS_R03_RESULT.md`, `SCIENTIFIC_TEST_LEDGER.json` (`TF-R03-A-EXPIRY-CLOCK`, `TF-R03-B-PANEL-STATES`, `TF-R03-C-SESSION-CLOCK`).
+
+## Protected Binance 2025/2026 opened for product statistics — 2026-10-03
+
+Owner decision (`docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §4). The decision-support statistics of the product read Binance USD-M BTCUSDT 5m klines (2020-01 → yesterday) and Vision OI metrics (2020-09 → yesterday), 2025/2026 included.
+
+```
+PROTECTED_2025_2026_PRODUCT_USE = OPENED
+PRODUCT_FEATURES = range/volatility (1h/4h/24h corridor model), level first-touch reactions
+                   (PDH/PDL/PWH/PWL/PMH/PML, round numbers, previous-day POC), 1h/4h price/OI/taker
+                   state labels and their forward 1h/4h/24h outcomes, CPI/FOMC/expiry hour and day sizes
+EXCLUDED = E1-RUN-001 final holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) — never stored
+RESEARCH_STATUS_OF_2025_2026 = CONSUMED for any hypothesis over the product features
+SEALED_VERDICTS_REOPENED = false
+RESCUE_ATTEMPTED = false
+```
+
+**Correction (2026-10-03, red-team of the V2 branch, before any deploy).** The first implementation dropped holdout rows only after parsing: it planned the August 2026 monthly klines archive and the 2026-08-25 metrics file, both of which overlap the holdout, so a sync would have downloaded holdout bytes. It never ran against the network (no deploy; this environment cannot reach Binance), so no holdout byte was fetched. The planner now rejects every overlapping object before any request (21 objects: the August monthly klines, daily klines and metrics of 2026-08-16 … 2026-08-25), and a request gate refuses any overlapping URL. `PROTECTED_BYTES_FETCHED = NO`.
+
+These statistics are product evidence (descriptive, with N, a comparable baseline and a verdict), not research claims. Development numbers seen while building them (2022–2024 repository archives, synthetic OI only for the analogue mechanics) are recorded in the implementation review, not as results.
+
+---
+
+## 2026-10-03 — Event corridor temporal repair: 2024 release windows become repair data
+
+Design record: `docs/BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1.md` (design only; no code change, no retrain). The product corridor's CPI/FOMC term (`event_in_window`, release in `[t, t + H)`) widens the corridor before a release and drops it from the first 5-minute live anchor after it; the hourly calibration never sees that moment. The owner-relayed red-team table (2024 FOMC, −60…+60 min around the release) showed it and shaped the redesign.
+
+```
+SURFACE                        = Binance USD-M BTCUSDT 2024 scheduled releases (12 CPI, 8 FOMC)
+STATUS                         = EXPOSED / DIAGNOSTIC / REPAIR DATA (event semantics)
+ALLOWED                        = reproduce the failure; outcome-blind implementation checks
+FORBIDDEN                      = confirmatory holdout for any new event semantics; choosing candidates by 2024 coverage
+GENERIC_2024_HOLDOUT           = exposed (examined at build, by the red team and by the design record); diagnostic only
+PREFERRED_CANDIDATE            = K1 (PRE in [t, t+H) and POST in [t-60m, t)), fixed before any fit
+CONFIRMATION                   = prospective releases after the freeze (primary); BitMEX 2017-2019 = unaudited secondary, not opened
+FEASIBILITY                    = FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM (units = releases, ~20/year)
+FALLBACK                       = no numerical corridor around releases until a prospective check passes
+EVENT_CODE_CHANGED             = NO
+EVENT_MODEL_RETRAINED          = NO
+```
+
+**Follow-up (2026-10-03, owner scope "product safety fallback + feasibility clarification").**
+- **Feasibility.** Recomputed with methods fixed before computing: exact one-sided binomial for detection, Wilson for precision. 12 / 38 / 127 releases to detect a true coverage of 40% / 60% / 70% against 80% (α = 0.05, power 0.80); 81 / 289 releases for ±10 / ±5 pp. The earlier 8 / 29 / 109 / 62 / 246 came from two undeclared normal approximations and are superseded.
+- **BitMEX XBTUSD 2017–2019.** Provenance audit, no outcome computed: read in bulk by D2 and D7; only aggregates published; no CPI/FOMC calendar ever joined. Every hour, event hours included, entered D7 states and D2 volatility, and the C012 triage already named the surface for scheduled events. Verdict: `NOT_PROVABLY_INDEPENDENT`.
+- **Product fallback.** Implemented in the V2 branch: no numerical corridor, touch chance or `/risk` figure inside `[release − H, release + 60 min)`; no multiplier; no forecast tracked there.
+- **Unchanged.** `EVENT_CODE_CHANGED_FOR_K1 = NO`, `EVENT_MODEL_RETRAINED = NO`, `PROTECTED_BYTES_FETCHED = NO`.
+
+**Follow-up (2026-10-03, owner scope "EVENT SAFETY cleanup").** No surface opened, no outcome read.
+
+```
+EVENT_FEASIBILITY_TABLE        = LOCKED: 12 / 38 / 127 / 81 / 289 (exact one-sided binomial, H0 p = 0.80, alpha 0.05,
+                                 power 0.80, stable for every m in [n, n+100]; Wilson 95% for precision);
+                                 no change after prospective outcomes without a dated amendment
+PRIMARY_CONFIRMATION_SURFACE   = PROSPECTIVE RELEASES AFTER K1 FREEZE
+BITMEX_CONFIRMATION_STATUS     = NOT_PROVABLY_INDEPENDENT
+SURFACE_2024                   = EXPOSED / DIAGNOSTIC / REPAIR
+SURFACE_2025_2026              = EXPOSED_FOR_OTHER_PURPOSES / NOT CONFIRMATORY
+EVENT_MULTIPLIER_USER_FACING   = NO
+RAPID_MOVE_EVENT_RISK_CLASS    = C / EVENT_FLAG_DECISION_RELEVANT_UNCALIBRATED (design record §10); detector unchanged
+```
+
+**Follow-up (2026-10-03, owner authorisation "sharp-move event fallback, Option 1").** A product safety fallback. It is not research and not a confirmation of any event semantics.
+
+```
+SHARP_MOVE_EVENT_CONDITIONING  = DISABLED_PENDING_VALIDATION
+STATISTIC                      = MOVE15_OVER_1H_SCALE_EVENT_NEUTRAL_V1 (1h rangecast scale, CPI/FOMC columns at 0),
+                                 one function for live detection and nightly calibration
+CALIBRATION_PROCEDURE_CHANGED  = NO
+THRESHOLD_DIAGNOSTIC           = OLD 2.0618 -> NEW 2.0963 (repo archives 2022-2024, pooled, same procedure; not used
+                                 to change anything)
+CORRIDOR_MODEL_CHANGED         = NO (K0 event term, coefficients, fit, forecast)
+```
+
+## 2026-10-03 — Autonomous research generation G01: no survivor, nothing executed
+
+**Program.** `SF-AUTOGEN-G01` is an owner override of `NEW_RESEARCH_PROGRAMS_AUTHORIZED = false` for this program only (`AUTOGEN_G01_DECISION.md`). The research map was rebuilt from `main` at `a7d738f`.
+
+**Candidates.** Fourteen were generated (`AUTOGEN_G01_CANDIDATES.md`).
+- **Closed at red team (8):**
+  - HK ETF 08:00 UTC fixing: confounded with funding and expiry;
+  - weekend BTC share of the spot panel: fee-promotion and FDUSD-migration artifacts;
+  - session taker-sign profile: directional, clock not identified;
+  - taker-sign persistence: outcome not in doubt;
+  - equity OPEX hour: rare N;
+  - Asia lunch participation: clock not identified;
+  - ETF-era weekend gap: leakage from R03-C1's exposed epoch trend;
+  - bank-holiday fiat rails: rare N.
+- **Closed at dedupe (2):**
+  - signed-shock range asymmetry: repeats GV0V03L40-C027/C003 and sits in the D2/D8 neighbourhood;
+  - unusual-hour persistence: D2 RV neighbourhood, outcome not in doubt.
+
+**Compiled under `GV0R02_SCHEMA_V2` plus unit screens (`AUTOGEN_G01_FEASIBILITY.md`):** all four are `INFORMATIONALLY_WEAK`.
+
+| Hypothesis | Discovery | Replication | Blocker |
+|---|---|---|---|
+| G01-A1 turn-of-month participation | 59 months, unit MDE 0.486 | 36 BitMEX months, MDE 0.63 | replication MDE too large |
+| G01-A2 turn-of-month range | same | same | same |
+| G01-A3 month-end mark hour | MDE 0.78 | — | MDE too large |
+| G01-B1 ETF NAV fixing-hour participation, DiD at the 2024-01-11 launch | 210 pre / 51 post weeks, unit MDE 0.5005 | prospective, underpowered | above the bar |
+
+A definitional error in B1's prospective stopping rule (`MIN_N` above `MAX_EPISODES`) was corrected before freeze and recorded.
+
+**Not consumed.** Nothing was consumed: no market value was read, and no hypothesis was frozen, registered or executed.
+
+```
+AUTOGEN_G01 = CLOSED_AT_FEASIBILITY / NOTHING_EXECUTED
+FROZEN = 0; EXECUTED = 0; PROMISING_PROTOTYPES = 0
+MARKET_VALUES_READ = false; OBJECTS_2025_2026_USED = none; E1_RUN_001_OPENED = false; B2_06_OPENED = false
+NEXT_UNIT = none (research); routing returns to PRODUCT_FIRST_DECISION_V1
+```
+
+## 2026-10-03 — AUTOGEN_G01 closure accepted: CLOSED_NO_SURVIVORS
+
+The owner accepted the G01 result. The cleanup is documentation only: no compiler, R03, frozen contract, product code or production change.
+
+**What we learned.** The AUTOGEN_G01 search over the authorized research map and the current candidate sources found no new high-frequency hypothesis that was at once incremental to prior work, identifiable, research-authorized and sufficiently powered at the frozen 0.5 SD bar. This is a statement about this search, not a claim that the high-frequency mechanism space is exhausted. The four hypotheses that reached the compiler were low-frequency calendar or natural-experiment cells, whose independent units per era are too few for discovery plus time-disjoint replication at that bar.
+
+**G01-B1.** Initial `MIN_N = 252` wrongly added the fixed historical (pre-launch) arm to the prospective arm. Corrected `MIN_N = 52` reflects the intended prospective requirement. The correction was made before freeze and before any outcome access. It did not rescue the hypothesis: final feasibility is still `INFORMATIONALLY_WEAK` (unit-level MDE 0.5005 > 0.5; prospective replication underpowered). It stays only as `FUTURE_CANDIDATE / NATURAL_DATA_ACCUMULATION`: no lowered bar, no 2025–2026 surface, no prospective automation within G01.
+
+```
+G01_STATUS = CLOSED_NO_SURVIVORS
+CANDIDATES_FROZEN = 0; CANDIDATES_EXECUTED = 0; MARKET_OUTCOMES_OPENED = NO
+```
+
+## 2026-10-03 — Research Atlas V1: past research transferred onto one permanent map
+
+**Decision (owner proposal of 2026-10-03).** Numbered generation campaigns are replaced by `SIGNALBOT_RESEARCH_ATLAS_V1`: Mechanism (66 rows in 13 regions) × Data surface (10 columns) × Research state (11 states). This is documentation and tooling only:
+- no market value was read;
+- no test was registered or run;
+- no window was consumed;
+- no sealed record or memory-chain file was edited.
+
+**Recorded on the map.** Each of the 145 units carries:
+- what was tested;
+- data and period;
+- the practical bar;
+- the verdict;
+- why it closed;
+- what would reopen it;
+- forbidden rescues;
+- records.
+
+Every surface carries an exposure ledger.
+
+**Facts made explicit by the transfer:**
+- **Order book.** Binance USD-M bookDepth for BTC/ETH in 2023–2024 and for six symbols in 2025–2026 is exposed for book-imbalance and depth-asymmetry mechanisms, because the SEED-0001 and divergence "book support" state was a ±5% depth imbalance computed with outcomes.
+- **D7.** Recorded as CONFIRMED (the BitMEX confirmation).
+- **GV0V03L40-C033.** Recorded as BLOCKED_METHOD (V2 recompile: the joint state never occurs).
+- **PRICE_OI pilot.** Its frozen grid starts inside the calendar span of the E1-RUN-001 holdout. This is flagged for the owner; nothing was run.
+
+```
+ATLAS = SIGNALBOT_RESEARCH_ATLAS_V1
+WINDOWS_CONSUMED = none; MARKET_VALUES_READ = none; NEW_TESTS = none
+```
+
+## 2026-10-03 — Atlas governance cleanup before merge: PRICE_OI/E1 erratum, SEED-0001 prospective closure, memory reconciliation, reserve, event log
+
+No market value was read and no test was registered or run. Every change is append-only or a new record:
+- the frozen PRICE_OI preregistration and its twin are unchanged;
+- the SEED-0001 preregistration and the `SCIENTIFIC_TEST_LEDGER.json` entry are unchanged;
+- the generator memory chain is unchanged.
+
+**PRICE_OI pilot vs E1-RUN-001 (`PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md`).**
+- **Overlap.** The frozen 12434-bucket grid starts at 2026-08-16T19:30Z; 2566 buckets lie inside the protected interval `[2026-08-16T00:00Z, 2026-08-25T17:20Z)`.
+- **Not run, and not runnable as frozen.** The runner was never executed. Execution on the segment is invalid, and the frozen data gate cannot be met without it, so a future execution is a new pilot identity with a new explicit permit.
+- **Boundaries.** The earliest eligible grid timestamp is 2026-08-25T17:20:00Z; the input-clean decision bucket is from 2026-09-24T17:20:00Z (30-day percentile lookback).
+- **Atlas.** `BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP`.
+- **E1.** The pilot never read E1-RUN-001; E1's evaluator and sealed artifacts were not touched.
+- **P4.** The owner-run P4 descriptive follow-up (2026-09-29) used the same grid and reported 1h/4h realized ranges. The owner adjudicated this the same day (next entry).
+
+**SEED-0001 prospective (`SEED0001_PROSPECTIVE_CLOSURE_V1.md`).**
+- `TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START`, superseded by the divergence program closure.
+- Never started, no prospective outcome opened, no confirmation surface consumed.
+
+**Atlas.**
+- **Memory reconciliation layer.** D7 is CONFIRMED and GV0V03L40-C033 is BLOCKED_METHOD by atlas authority; the memory statuses are preserved.
+- **Reservations.** The E1 holdout is the only reserved surface; it is invisible to generation and needs a permit.
+- **Event log.** Append-only and hash-chained; event 1 reproduces the transfer digest.
+- **Designs only.** Generator contract V04 and the confirmation budget.
+- **Bot bridge.** Atlas → proposed registry diff → review → bot; no automatic coupling.
+
+**Product.** V2 is recorded as deployed to production from `main` `a16b876` (owner-reported).
+
+```
+WINDOWS_CONSUMED = none; MARKET_VALUES_READ = none; NEW_TESTS = none; PROTECTED_SURFACES_CONSUMED = none
+PRICE_OI_PILOT_V0 = BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP
+TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START
+```
+
+## 2026-10-03 — Owner decision: P4 opened the E1-RUN-001 protected outcome surface
+
+The owner ruled that the P4 owner-run descriptive follow-up contaminated the E1 protected outcome surface for every timestamp it read inside the protected interval. It is recorded as Amendment 1 of `docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md`; the historical E1 records are not rewritten.
+
+```
+E1_EVALUATOR_TOUCHED = NO
+E1_SEALED_ARTIFACTS_OPENED = NO
+E1_OUTCOME_SURFACE_OPENED_BY_P4 = YES
+E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP
+```
+
+**Exposed interval, derived from P4's records.** P4 has no row-level log in the repository. The interval comes from its manifest (`authorized_buckets = 12434`, `as_of = 2026-09-29T15:03Z`) and the frozen code it names:
+- **Replay (`364db27`).** It read `klines_1m` and `open_interest`, BTCUSDT, live, over `[2026-07-17T19:30:00Z, 2026-09-29T00:00:00Z)`, with no exclusion inside.
+- **Follow-up (`beta/followup.py` at `9e1ba036`).** Its 1h/4h outcome windows can extend to at most `2026-09-29T04:00:00Z`. Whether it actually read past 00:00Z is not recorded.
+
+**Consequences:**
+- **E1.** Inside the E1 interval, the exposure is the whole interval `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)`.
+- **Treated as P4-exposed:** `[2026-07-17T19:30:00Z, 2026-09-29T04:00:00Z)`.
+- **Future PRICE_OI or related pilots** must:
+  - exclude those timestamps;
+  - exclude every anchor whose feature, lookback or control window touches them (under the V0 lookbacks, anchors from `2026-10-29T04:00:00Z`);
+  - have a new explicit permit;
+  - not reuse the old frozen data gate.
+- **Atlas.** The E1 reservation stays `RESERVED`, with `pristine_status = INVALIDATED_FOR_P4_OVERLAP`. The live-archive surfaces carry the P4 window as exposure for all rows.
+
+```
+WINDOWS_CONSUMED = none by this record (it records a past exposure); MARKET_VALUES_READ = none; NEW_TESTS = none
+```

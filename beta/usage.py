@@ -82,10 +82,16 @@ def _active_pks(rows: Sequence[dict]) -> list:
     return sorted({r["user_pk"] for r in rows})
 
 
+DECISION_PULLS = ("cmd_catchup", "cmd_levels", "cmd_risk", "cmd_alert", "cmd_events", "cmd_accuracy",
+                  "cmd_research", "btn_levels", "btn_risk")
+
+
 def _window_block(rows: Sequence[dict], *, pushes_by_user: dict, stops: int, deletions: int) -> dict:
     active = _active_pks(rows)
     return {"active_users": len(active), **_btc_stats(rows, active, pushes_by_user),
             "tabs": _tab_counts(rows), "terms_opens": sum(1 for r in rows if r["action"] == "cmd_terms"),
+            "pulls": {a: sum(1 for r in rows if r["action"] == a) for a in DECISION_PULLS},
+            "alerts_delivered": sum(1 for r in rows if r["action"] == "alert_delivered"),
             "stops": stops, "deletions": deletions}
 
 
@@ -140,7 +146,8 @@ def build_usage_report(facts: dict, *, now: datetime, owner_user_id: Optional[in
     activity = [dict(r) for r in facts["activity"] if r["user_pk"] in external_pks]
     pushes: dict = {}
     for row in activity:
-        if row["action"] == "push_delivered":
+        # a market alert (PRODUCT_DECISION_V2) prompts an open exactly like a push
+        if row["action"] in ("push_delivered", "alert_delivered"):
             pushes.setdefault(row["user_pk"], []).append(_aware(row["at"]))
     origin = min((_aware(u["joined_at"]) for u in users), default=None)
     fp_of = {u["user_pk"]: fingerprint(int(u["telegram_user_id"])) for u in users}

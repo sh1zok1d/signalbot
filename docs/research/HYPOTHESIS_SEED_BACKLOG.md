@@ -91,8 +91,9 @@ DATA_NEEDED:          Binance UM bookDepth (+-1..5 %, from 2023-01); aggTrades f
                       klines. The bid/ask indicator definition and source are NOT FROZEN.
 POSSIBLE_COMPARATOR:  A both / B book support only / C divergence only / D decline only
 
-STATUS:               SEED_ONLY
-DETAIL:               SEED_ABSORPTION_DIVERGENCE_V0.md
+STATUS:               CARD_REGISTERED (2026-10-02): regular divergence, 1h BTC perp,
+                      TF-SEED0001-RD-RETRO1 + TF-SEED0001-RD-PROSP1; no outcome opened
+DETAIL:               SEED_ABSORPTION_DIVERGENCE_V0.md, SEED0001_REGULAR_DIVERGENCE_PREREG.md
 ```
 
 Evidence levels: 2023–2024 = retrospective evidence. Future frozen data = prospective confirmation.

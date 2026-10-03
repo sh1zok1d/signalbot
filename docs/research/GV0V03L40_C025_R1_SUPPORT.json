@@ -1,0 +1,345 @@
+{
+  "ADMITTED_COUNT_BY_YEAR_ARM": {
+    "2020": {
+      "ONE_SIDED": 0,
+      "TWO_SIDED": 189
+    },
+    "2021": {
+      "ONE_SIDED": 1,
+      "TWO_SIDED": 169
+    },
+    "2022": {
+      "ONE_SIDED": 0,
+      "TWO_SIDED": 174
+    },
+    "2023": {
+      "ONE_SIDED": 0,
+      "TWO_SIDED": 193
+    },
+    "2024": {
+      "ONE_SIDED": 0,
+      "TWO_SIDED": 154
+    }
+  },
+  "ADMITTED_DISTINCT_DAYS": 613,
+  "ALPHA_ATTAINABLE": true,
+  "APPLIED_EDGES": {
+    "ret": [],
+    "rv": [],
+    "vol": []
+  },
+  "ARM_ELIGIBLE_BEFORE_DECLUSTER": 1644,
+  "COUNT_BY_YEAR_ARM": {
+    "2020": {
+      "ONE_SIDED": 0,
+      "TWO_SIDED": 0
+    },
+    "2021": {
+      "ONE_SIDED": 1,
+      "TWO_SIDED": 169
+    },
+    "2022": {
+      "ONE_SIDED": 0,
+      "TWO_SIDED": 0
+    },
+    "2023": {
+      "ONE_SIDED": 0,
+      "TWO_SIDED": 0
+    },
+    "2024": {
+      "ONE_SIDED": 0,
+      "TWO_SIDED": 0
+    }
+  },
+  "DATASET": {
+    "DATASET_ID": "CORE_BTC_BINANCE_V0",
+    "HISTORICAL_WINDOW": "2020-01..2024-12",
+    "MANIFEST_DIGEST": "717d37a404f81eefd58c9a796cc11868c48226baf1de8ffecad5e5607f8dd415",
+    "MONTHS": [
+      "2020-01",
+      "2020-02",
+      "2020-03",
+      "2020-04",
+      "2020-05",
+      "2020-06",
+      "2020-07",
+      "2020-08",
+      "2020-09",
+      "2020-10",
+      "2020-11",
+      "2020-12",
+      "2021-01",
+      "2021-02",
+      "2021-03",
+      "2021-04",
+      "2021-05",
+      "2021-06",
+      "2021-07",
+      "2021-08",
+      "2021-09",
+      "2021-10",
+      "2021-11",
+      "2021-12",
+      "2022-01",
+      "2022-02",
+      "2022-03",
+      "2022-04",
+      "2022-05",
+      "2022-06",
+      "2022-07",
+      "2022-08",
+      "2022-09",
+      "2022-10",
+      "2022-11",
+      "2022-12",
+      "2023-01",
+      "2023-02",
+      "2023-03",
+      "2023-04",
+      "2023-05",
+      "2023-06",
+      "2023-07",
+      "2023-08",
+      "2023-09",
+      "2023-10",
+      "2023-11",
+      "2023-12",
+      "2024-01",
+      "2024-02",
+      "2024-03",
+      "2024-04",
+      "2024-05",
+      "2024-06",
+      "2024-07",
+      "2024-08",
+      "2024-09",
+      "2024-10",
+      "2024-11",
+      "2024-12"
+    ],
+    "MONTH_SHA256": {
+      "2020-01": "b4e13ea185ba96c413ac9167cfbb6e238eb5eae119a7a77f41f4c61c5e099d03",
+      "2020-02": "f32b20168ea590cd7d04a2995bc5ec500ea06331c8174f7fd14f29c1078e5ed2",
+      "2020-03": "15790b4b031cbc5f59cae30e523fb8341588d279fe3839ba1224c7fe8a6bc929",
+      "2020-04": "f45228183c21030fc3a787109eada99187d9ba8c4d5d7ea5c178967150fa7467",
+      "2020-05": "bc5bdae217f9ef6a32ffcc7653e3d45e007a2d9b2e93b752bdc7805254446821",
+      "2020-06": "91f18492445c0a9609d70bd4603c73c8588a88c06105ade34082417f8b2e7e6d",
+      "2020-07": "4cb7dcf6e1adb17e8ab8787c459f3f645b7070633f530485f0f93dd45a9de693",
+      "2020-08": "7596de0f26df44d782713475f97af34f27a287faf084c73bdcc61819215b060a",
+      "2020-09": "9f2d575ffc17a14320bc08a99d51a5580fd7f058f1495cfec598fbbd959792c2",
+      "2020-10": "f35bc01dc1bba142c87033b33055c34a0ba37c2a2abd6c115af6a9c4f238dd03",
+      "2020-11": "8eb55b2a547c35d792f88186168774804346426b82289bc9b1633406c0ff9e40",
+      "2020-12": "72cfa1e9aeb851871af0168eb7ee22d334b5efb3aa4a76d7382754dac5e885d8",
+      "2021-01": "ba7aeda6a99e0828b39da1b0605aaefcb40882fe9d44034598c4404f8a07783f",
+      "2021-02": "0a270f354b15b053824a7bb87c652aa95acb4a255fc968fe0a24bdc9e785223e",
+      "2021-03": "15a2676410d5104fac1ea15f7302addbf4d0de14f6db8ce10a4930c3f5d5e7fa",
+      "2021-04": "d957fcde82f9b5a9a05264a9602e5deae03472aa0d424ddb0f27a04e58723217",
+      "2021-05": "dcf7c567cbde49a5e564b29f01be95e28d32f12cb68c40b2a14da75930187dc8",
+      "2021-06": "a640c7f935a1136d2f65f28f9606f0e063185c500f982aec273bb2ed3f61bfc5",
+      "2021-07": "1367b5cd230474b0ecc6031b9e18cffe66e011c8fdd01c3325985a39c5d5ed48",
+      "2021-08": "a864bdf38c9d06b7a6a1dc07c5593bbe7387cec3b869e9ebee020da053d94f37",
+      "2021-09": "6e7bbfe650e6c56e189e78d521b3714feffd38468d1268b706a6626737326676",
+      "2021-10": "4b78dd0174890c975effca2ed078163d6e9b4f7437f692e2c430c724b7eafc24",
+      "2021-11": "67da3342f014166d2af97321599e0011453c4bd5a9282ef12c1a6131efd12993",
+      "2021-12": "c905c5c8ff36d0dfac3a0581225ab305f72d1e11e634953d8d3a136161d10956",
+      "2022-01": "9cdbcf68903434c850f9bec60d8174c2cfd105dd24a7566965b442ec15124e04",
+      "2022-02": "63672d552f98ec125ac4d90d82154313fb9832b7e1aaed196101816bd61bfb89",
+      "2022-03": "4532faf2f92d205fac79b7d25327d2045843b60a4494e00b0962e6b7f028bc06",
+      "2022-04": "0f509e296da62eed5f4e903507ced0de9738ea96a7a885e76dd2394b8049e689",
+      "2022-05": "768bdbbd11b08d935b3753ecfee7f1e351a346c71b11cf68a4a51296d694f368",
+      "2022-06": "8587319eaf1b1f6d73fd34446acdecdc72c47b23ecfd2d88e2a6dd2a35470565",
+      "2022-07": "6fc45fa135a6be85679a6ab0b1268fbd1f8258079295cd134b9a4c535c6b6b65",
+      "2022-08": "806ee1d6efa856984fe79453d17f04c0fb5e447413fe828cbd3ec2df9a1f5fc4",
+      "2022-09": "fa1adecbe41b530c12f481882115511297ac7b78a9a7ae9d9d21b11c745649a4",
+      "2022-10": "0f2d2cd67b30ab186bf3db5a07acfe835f1d74335c6493c80e9e4f0598e29b2c",
+      "2022-11": "96916aba47f230a9bc68cd3fd98d0d352e1fd8f23c16c515107c4d965a2067a3",
+      "2022-12": "0f4788019cdb29f4db7b03d9efefce099d7adf49c0daf70a144b814b292bf577",
+      "2023-01": "b7b04483464b36c89f519bf35d6461d278c709577562108b6a00fb786b92e6a6",
+      "2023-02": "b62ca5df57b1715109cb1fd57097529b28410fb36b0db5bd41dbefe7e070db68",
+      "2023-03": "1cb47aae71e941d3e9d333f9c96723eb35c8b4a7ec90e819c59a7c02f89b03bb",
+      "2023-04": "2c22e2e460bf0e41884bf71031eebf60224ba470b25777a4d17ddc9298390650",
+      "2023-05": "cf9e0ab390e3872ddb9d807ad161933a28e374e09dbee2b9addf659856d1e656",
+      "2023-06": "8dac3fe301198e752b257817542a7ded393dbe00b604f67aba6bc0090778ae95",
+      "2023-07": "5cc84c767c9f4d1fa3cb3d33bd009a0b5e3a445e9c89ad2ef259c90b0365cbc3",
+      "2023-08": "8d77e6f898fba3aa5bf643d128e0aaa1b722ea6881cd26a3d19088705117a1d7",
+      "2023-09": "ea43f6e612b54e165c47ea30955b8d9e825b1d3ad1846f12c03ad0f0fced9029",
+      "2023-10": "153f1322695d16a12cab261b7798045323d9f893b19d35d95ffe94a62530b4de",
+      "2023-11": "63aa156170b2316927ae4c4928cc78866934a02b4bbc14c730b5fe4790383a80",
+      "2023-12": "947ea9b1c5dfa301f1d5ff89d28f3ee49bc73eef2cfa1f0dc4024048458eb60b",
+      "2024-01": "21eeac04a76a7a35b10467e5e752fb2f8cff77cdeb57df6b50a23ce8d69bb190",
+      "2024-02": "1407acbf8ad99911bdf582805699b7e85fdbc346dbe12618ce8b6369f0d8058d",
+      "2024-03": "040b8e448e4243072b88b0d9908dfebed91bba943b75f4e831fa5337a2e1dab9",
+      "2024-04": "6a41f002da0c8e3f60bd46c841ea4ed766fb195764ad3b6b10e4f508d29c2eb7",
+      "2024-05": "42de617ed643def54b5a2c3fceb7cd2edec91aafaa01104a097b2ded5c5122d4",
+      "2024-06": "93499da4990fec5471bb0d73c91116e7d20a8b2697d7a4491665d6d1b8e85c85",
+      "2024-07": "97f9cd5104a33828c5c2d8d03a2796d600102ab88737d1c6da515b9609540c3c",
+      "2024-08": "f69dbcebfd7108dc97825bd6c35d8d9a51745082f66617cb69de888e867e8e89",
+      "2024-09": "16fe2e13728236bfbd3efee99671612daadeea3b62dfd55d8874feae9faa4946",
+      "2024-10": "aa8c79ad120a8d870e23276d1ad5966f99f59bc0a1886ef5927a3808a5efee36",
+      "2024-11": "9c3dad038f4b043ec51d4200f57d15a0a07b3fc32b3ea3dca6a96543b9624941",
+      "2024-12": "bfce141d2a152c2b94d85b797fe18ebfa195fa0e6091a7ccc06663ae1309466f"
+    },
+    "PROTECTED_2025_2026_SELECTED": false,
+    "ZIP_LIST_SHA256": "936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b"
+  },
+  "DECLUSTERED_BURSTS": 880,
+  "DISTINCT_EVENT_DAYS": 117,
+  "EDGES": {
+    "pre_decile": [
+      2.5313619548762048e-11,
+      3.1096555478409106e-11,
+      3.622132146439938e-11,
+      4.139856404417582e-11,
+      4.843243685362037e-11,
+      5.691763677120426e-11,
+      7.055268559800093e-11,
+      1.0758111733019054e-10,
+      1.929573977520983e-10
+    ],
+    "ret": [
+      0.0027349846879532883,
+      0.005561505286132574
+    ],
+    "ret2": [
+      0.004105881998797708
+    ],
+    "rv": [
+      0.007747731468350356,
+      0.012262515150412195
+    ],
+    "rv2": [
+      0.009704832571629246
+    ],
+    "vol": [
+      0.9993287037037037,
+      0.9996527777777777
+    ],
+    "vol2": [
+      0.9994907407407407
+    ]
+  },
+  "EFFECTIVE_N": 0.9941176470588236,
+  "LEVELS_TRIED": [
+    {
+      "ADMISSIBLE": false,
+      "MATCHABLE_ONE_SIDED_N": 1,
+      "MATCHABLE_TWO_SIDED_N": 2,
+      "MATCHED_STRATA_N": 1,
+      "MAX_ABS_SMD": null,
+      "PRIMARY_LABEL_ORBIT_SIZE": "3",
+      "RETENTION_ONE": 1.0,
+      "RETENTION_TWO": 0.0022753128555176336,
+      "id": "L0_YEAR_HOUR_V3_R3_RV3_FUND"
+    },
+    {
+      "ADMISSIBLE": false,
+      "MATCHABLE_ONE_SIDED_N": 1,
+      "MATCHABLE_TWO_SIDED_N": 3,
+      "MATCHED_STRATA_N": 1,
+      "MAX_ABS_SMD": null,
+      "PRIMARY_LABEL_ORBIT_SIZE": "4",
+      "RETENTION_ONE": 1.0,
+      "RETENTION_TWO": 0.0034129692832764505,
+      "id": "L1_YEAR_BLOCK_V3_R3_RV3_FUND"
+    },
+    {
+      "ADMISSIBLE": false,
+      "MATCHABLE_ONE_SIDED_N": 1,
+      "MATCHABLE_TWO_SIDED_N": 6,
+      "MATCHED_STRATA_N": 1,
+      "MAX_ABS_SMD": null,
+      "PRIMARY_LABEL_ORBIT_SIZE": "7",
+      "RETENTION_ONE": 1.0,
+      "RETENTION_TWO": 0.006825938566552901,
+      "id": "L2_YEAR_BLOCK_V2_R2_RV2_FUND"
+    },
+    {
+      "ADMISSIBLE": false,
+      "MATCHABLE_ONE_SIDED_N": 1,
+      "MATCHABLE_TWO_SIDED_N": 6,
+      "MATCHED_STRATA_N": 1,
+      "MAX_ABS_SMD": null,
+      "PRIMARY_LABEL_ORBIT_SIZE": "7",
+      "RETENTION_ONE": 1.0,
+      "RETENTION_TWO": 0.006825938566552901,
+      "id": "L3_YEAR_BLOCK_V2_R2_RV2"
+    },
+    {
+      "ADMISSIBLE": false,
+      "MATCHABLE_ONE_SIDED_N": 1,
+      "MATCHABLE_TWO_SIDED_N": 37,
+      "MATCHED_STRATA_N": 1,
+      "MAX_ABS_SMD": null,
+      "PRIMARY_LABEL_ORBIT_SIZE": "38",
+      "RETENTION_ONE": 1.0,
+      "RETENTION_TWO": 0.04209328782707622,
+      "id": "L4_YEAR_V2_R2_RV2"
+    },
+    {
+      "ADMISSIBLE": false,
+      "MATCHABLE_ONE_SIDED_N": 1,
+      "MATCHABLE_TWO_SIDED_N": 46,
+      "MATCHED_STRATA_N": 1,
+      "MAX_ABS_SMD": null,
+      "PRIMARY_LABEL_ORBIT_SIZE": "47",
+      "RETENTION_ONE": 1.0,
+      "RETENTION_TWO": 0.05233219567690557,
+      "id": "L5_YEAR_V2_R2"
+    },
+    {
+      "ADMISSIBLE": false,
+      "MATCHABLE_ONE_SIDED_N": 1,
+      "MATCHABLE_TWO_SIDED_N": 169,
+      "MATCHED_STRATA_N": 1,
+      "MAX_ABS_SMD": null,
+      "PRIMARY_LABEL_ORBIT_SIZE": "170",
+      "RETENTION_ONE": 1.0,
+      "RETENTION_TWO": 0.19226393629124006,
+      "id": "L6_YEAR"
+    }
+  ],
+  "LEVEL_SPEC": {
+    "bins": 1,
+    "funding": false,
+    "hour": "NONE",
+    "id": "L6_YEAR",
+    "use_ret": false,
+    "use_rv": false,
+    "use_vol": false
+  },
+  "MARKET_OUTCOMES_OPENED": false,
+  "MATCHABLE_ONE_SIDED_N": 1,
+  "MATCHABLE_TWO_SIDED_N": 169,
+  "MATCHED_STRATA_N": 1,
+  "MATCHING": {
+    "LEVEL": "L6_YEAR",
+    "MATCHABLE_ONE_SIDED_N": 1,
+    "MATCHABLE_TWO_SIDED_N": 169,
+    "MATCHED_STRATA_N": 1,
+    "PRIMARY_LABEL_ORBIT_SIZE": 170,
+    "REASON": "no collapse level met the predeclared count, retention, balance, and orbit floors",
+    "STATUS": "INFERENCE_SUPPORT_INSUFFICIENT"
+  },
+  "MATCHING_LEVEL": "L6_YEAR",
+  "MATCHING_REASON": "no collapse level met the predeclared count, retention, balance, and orbit floors",
+  "MATCHING_STATUS": "INFERENCE_SUPPORT_INSUFFICIENT",
+  "MAX_ABS_SMD": null,
+  "MIN_ATTAINABLE_P": 0.0058823529411764705,
+  "NEITHER_N": 1251,
+  "ONE_SIDED_N": 1,
+  "PLACEBO_CANDIDATE_N": 114686,
+  "POST_T_TARGET_COMPUTED": false,
+  "PRIMARY_LABEL_ORBIT_SIZE": "170",
+  "RAW_BURSTS": 2895,
+  "REFRACTORY_REJECTED": 764,
+  "RETENTION_ONE": 1.0,
+  "RETENTION_TWO": 0.19226393629124006,
+  "SMD": {
+    "abs_ret": null,
+    "log_quote": null,
+    "pre_impact": null,
+    "prior_rv": null
+  },
+  "TOTAL_MINUTES": 2630880,
+  "TWO_SIDED_N": 879
+}
