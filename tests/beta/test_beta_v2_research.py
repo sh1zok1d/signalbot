@@ -121,3 +121,30 @@ def test_a_level_alert_with_its_research_line_stays_within_eight_lines(lang):
                                     "move_pct": -1.56, "ratio": 3.1, "every_days": 3.0, "corridor_1h": None,
                                     "near": []}, lang)
     assert move.splitlines()[-1].endswith("(H03)")
+
+
+R03_IDS = ("R03-C1", "R03-A1", "R03-A4", "R03-C2-C4", "R03-B2")
+
+
+def test_r03_entries_are_merged_and_point_at_an_existing_record():
+    by_id = {f["id"]: f for f in FINDINGS}
+    for fid in R03_IDS:
+        f = by_id[fid]
+        assert not f.get("pending_merge"), fid
+        assert f["record"] == "docs/research/OWNER_CARDS_R03_RESULT.md"
+        assert (rl.REPO_ROOT / f["record"]).exists(), fid
+    assert {by_id[i]["status"] for i in R03_IDS} == {"WEAK", "NOT_CONFIRMED"}
+
+
+def test_a_closed_program_without_results_is_a_recorded_no_context_decision():
+    import yaml
+    raw = yaml.safe_load(rl.FINDINGS_PATH.read_text(encoding="utf-8"))
+    decisions = {d["program"]: d for d in raw.get("no_bot_context") or ()}
+    g01 = decisions["AUTOGEN_G01"]
+    assert g01["bot_context"] == "NONE" and g01["status"] == "CLOSED_NO_SURVIVORS"
+    for rel in g01["record"].split(";"):
+        assert (rl.REPO_ROOT / rel.strip()).exists(), rel
+    # no user-facing line: no finding, nothing in /research
+    assert not any(f["id"].startswith(("G01", "AUTOGEN")) for f in FINDINGS)
+    for lang in ("ru", "en"):
+        assert "G01" not in "\n".join(rl.format_research(lang))

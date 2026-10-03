@@ -11,8 +11,16 @@
 #   weekend                             today's block on a Saturday or Sunday (Kyiv)
 # Every entry is listed in /research by status. `pending_merge: true` marks a unit whose record
 # lives on a research branch that is not merged yet (its record path is checked once it is).
-# When a research unit closes, add or update its entry here (AGENTS.md).
+# When a research unit closes, add or update its entry here (AGENTS.md). A closed program with
+# nothing to state (no executed unit, no outcome) gets no finding and no /research line; it is
+# listed under `no_bot_context` with its record, so the omission is a recorded decision.
 version: BETA_RESEARCH_FINDINGS_V1
+no_bot_context:
+  - program: AUTOGEN_G01
+    status: CLOSED_NO_SURVIVORS
+    bot_context: NONE
+    reason: "0 frozen, 0 executed, no market outcome opened, no product implication; G01-B1 is only a future candidate"
+    record: "docs/research/AUTOGEN_G01_DECISION.md; docs/research/AUTOGEN_G01_FEASIBILITY.md"
 findings:
   # ---- replicated on an independent venue ----------------------------------------------------
   - id: D7
@@ -57,7 +65,6 @@ findings:
     text_en: "weekend hours are calmer than the same hour on Tue–Thu; the gap grew every year from 2020 to 2024 but stayed below the test's materiality bar"
     data: "Binance 2020–2024, 260 недель"
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
-    pending_merge: true
     contexts: [weekend]
     priority: 10
 
@@ -140,7 +147,6 @@ findings:
     text_en: "the Friday Deribit options expiry hour (08:00 UTC) was no wider than the same hour on other weekdays; monthly and quarterly expiries were not tested separately"
     data: "Binance 2020–2024, 260 пятниц"
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
-    pending_merge: true
     contexts: ["event:EXPIRY_WEEKLY", "event:EXPIRY_MONTHLY", "event:EXPIRY_QUARTERLY"]
     priority: 10
   - id: R03-A4
@@ -149,7 +155,6 @@ findings:
     text_en: "price did not 'pin' before the Friday expiry (04–08 UTC): those hours were slightly wider, not narrower, than on other weekdays"
     data: "Binance 2020–2024, 260 пятниц"
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
-    pending_merge: true
     contexts: ["event:EXPIRY_WEEKLY", "event:EXPIRY_MONTHLY", "event:EXPIRY_QUARTERLY"]
     priority: 20
   - id: R03-C2-C4
@@ -158,7 +163,6 @@ findings:
     text_en: "the Monday US open and the Friday US close were no wider than the same hour on Tue–Thu"
     data: "Binance 2020–2024, 232 и 246 недель"
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
-    pending_merge: true
     contexts: []
     priority: 50
   - id: R03-B2
@@ -167,7 +171,6 @@ findings:
     text_en: "days when most altcoins moved together did not precede a wider BTC day"
     data: "Binance 2020–2024, 53 месяца"
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
-    pending_merge: true
     contexts: []
     priority: 50
 
