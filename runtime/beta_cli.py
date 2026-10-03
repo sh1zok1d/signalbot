@@ -182,10 +182,12 @@ def build_detector_deps(db, stage2_config, cfg: BetaConfig, *, clock, code_versi
     async def raw_revision():
         return await db.fetch_stage2_raw_revision(symbol=cfg.symbol, market_type=cfg.market_type)
 
+    from beta.recovery import read_host_boot_time
     return DetectorDeps(reader=db, store=db.beta_store(), stage2_config=stage2_config,
                         declared_liquidation_available=declared, raw_revision=raw_revision,
                         clock=clock, code_version=code_version,
-                        feature_code_version=feature_code_version)
+                        feature_code_version=feature_code_version,
+                        host_boot_time=read_host_boot_time())
 
 
 async def soak_metrics(conn, cfg: BetaConfig, now: datetime, days: int = 7) -> dict:

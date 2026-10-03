@@ -15,6 +15,7 @@ The frozen V1/V2 forecast engines are never imported or called.
 from __future__ import annotations
 
 import hashlib
+import logging
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Sequence
@@ -30,6 +31,7 @@ from .models import (ARMED, CORE_FAMILIES, DAILY_CAP, DATA_DEGRADED_REASON, DELI
                      REASON_CONDITION_FAILED, REASON_CONDITION_MET, REASON_DETECTION_GAP,
                      REASON_DETECTOR_VERSION_CHANGED, REASON_MAX_DURATION, REASON_NOT_EVALUABLE,
                      SAME_EVENT_COOLDOWN, STATE_ORDER, SUPPRESSED, TRIGGERED)
+from . import recovery
 from .health import venue_states
 from .rules import evaluate_bucket
 from .state_tape import (BUCKET, PERCENTILE_HISTORY_SCHEMA_VERSIONS, build_tape_record,
@@ -39,6 +41,8 @@ from .state_tape import (BUCKET, PERCENTILE_HISTORY_SCHEMA_VERSIONS, build_tape_
 
 DETECTOR = "detector"
 BOOTSTRAP = "bootstrap"
+
+logger = logging.getLogger("beta.detector")
 
 
 # ---- lifecycle thresholds per event type (from config) -----------------------
@@ -231,7 +235,8 @@ class DetectorDeps:
     """Runtime collaborators (all injectable for offline tests).
     reader: RawBundleReader (Database); store: storage.beta_v0_store.BetaStore;
     declared_liquidation_available: async (exchanges) -> {ex: bool};
-    raw_revision: async () -> Optional[int]; clock: () -> datetime."""
+    raw_revision: async () -> Optional[int]; clock: () -> datetime;
+    host_boot_time: this host's boot time (None: the boot check is skipped)."""
     reader: Any
     store: Any
     stage2_config: Any
@@ -240,6 +245,7 @@ class DetectorDeps:
     clock: Any
     code_version: str
     feature_code_version: str
+    host_boot_time: Optional[datetime] = None
 
 
 async def _materialize(deps: DetectorDeps, cfg: BetaConfig, conn, bucket_ts: datetime):
@@ -554,6 +560,28 @@ async def run_detector_once(deps: DetectorDeps, cfg: BetaConfig, switches: BetaS
         async with deps.store.connect() as conn:
             wm = await conn.get_watermark(DETECTOR, symbol=cfg.symbol, market_type=cfg.market_type,
                                           timeframe=cfg.timeframe)
+            stage1 = await conn.fetch_stage1_startup_recovery(symbol=cfg.symbol)
+            previous = (await conn.fetch_health()).get(DETECTOR)
+            wait = recovery.max_wait(cfg)
+            gate = recovery.startup_gate(
+                stage1, now=now, host_boot_time=deps.host_boot_time, max_wait=wait,
+                blocked_since=recovery.continuing_block(previous, now=now, max_wait=wait))
+            was_blocked = (((previous or {}).get("detail") or {}).get("startup_recovery") or {}
+                           ).get("state") in recovery.BLOCKING
+            if not gate["proceed"]:
+                # Stage-1 has not restored the raw bars of a possible outage yet: no
+                # bucket is decided now; the watermark stays and the next run catches up.
+                await conn.record_health(DETECTOR, now=deps.clock(), success=True,
+                                         detail={"buckets": 0, "skipped": 0, "startup_recovery": gate})
+                if not was_blocked:
+                    logger.warning("detector blocked: Stage-1 startup recovery %s (run %s)",
+                                   gate["state"], gate["recovery_run_id"])
+                return {"status": "WAITING_FOR_STAGE1_RECOVERY", "startup_recovery": gate,
+                        "watermark_before": wm}
+            if was_blocked or gate["state"] == recovery.OVERDUE:
+                log = logger.warning if gate["state"] == recovery.OVERDUE else logger.info
+                log("detector resumed: Stage-1 startup recovery %s (run %s)", gate["state"],
+                    gate["recovery_run_id"])
         target = select_latest_closed_bucket(now, grace_s=cfg["bucket_close_grace_s"])
         if explicit_bucket is not None:
             if wm is not None and explicit_bucket <= wm:
@@ -566,11 +594,15 @@ async def run_detector_once(deps: DetectorDeps, cfg: BetaConfig, switches: BetaS
         reports = []
         for b in buckets:
             reports.append(await process_live_bucket(deps, cfg, switches, b))
+        repair = None
+        if gate["state"] == recovery.READY:
+            repair = await repair_after_startup_recovery(deps, cfg, stage1)
         async with deps.store.connect() as conn:
             await conn.record_health(DETECTOR, now=deps.clock(), success=True,
-                                     detail={"buckets": len(reports), "skipped": skipped})
+                                     detail={"buckets": len(reports), "skipped": skipped,
+                                             "startup_recovery": gate})
         return {"status": "OK", "processed": reports, "skipped_buckets": skipped,
-                "watermark_before": wm}
+                "watermark_before": wm, "startup_recovery": gate, "recovery_repair": repair}
 
 
 def _detector_lock_key() -> int:
@@ -611,6 +643,57 @@ async def _correction_check(deps: DetectorDeps, cfg: BetaConfig, bucket_ts: date
                 note=f"input corrected: bucket {bucket_ts.isoformat()} revision {revision}")
         return {"status": "CORRECTION_APPENDED", "bucket_ts": bucket_ts, "tape_id": tape_id,
                 "revision": revision, "episodes_flagged": flagged}
+
+
+REPAIR_MAX_BUCKETS_PER_RUN = 12           # = the catch-up bound: a run does at most 2 x 12 buckets
+
+
+async def repair_after_startup_recovery(deps: DetectorDeps, cfg: BetaConfig,
+                                        stage1: Mapping[str, Any]) -> dict:
+    """Once per ready Stage-1 startup recovery: re-check, through the existing
+    CORRECTION_CHECK path, the decided buckets of its window whose raw 1m bars
+    arrived after they were decided. Append-only (a new tape revision, never an
+    UPDATE of the LIVE row); no episode, transition, push decision or delivery.
+    Bounded (recovery window, at most REPAIR_MAX_BUCKETS_PER_RUN per run), idempotent
+    (a repaired bucket no longer has missing bars; an unchanged one is UNCHANGED)
+    and crash-safe (each bucket is its own transaction; the done marker is written
+    only after every candidate was re-checked without failure). Reads only this
+    recovery's own window; never a general backfill."""
+    run_id = stage1["id"]
+    async with deps.store.connect() as conn:
+        marker = ((await conn.fetch_health()).get(recovery.REPAIR_COMPONENT) or {}).get("detail") or {}
+        if marker.get("recovery_run_id") == run_id and marker.get("complete"):
+            return {"status": "ALREADY_DONE", "recovery_run_id": run_id}
+        max_catchup = cfg["detector"]["max_catchup_buckets_per_run"]
+        start, end = recovery.repair_window(stage1, max_catchup=max_catchup)
+        decided = await conn.fetch_decided_venue_bars(
+            symbol=cfg.symbol, rules_digest=cfg.rules_digest,
+            state_schema_version=cfg.state_schema_version, start=start, end=end)
+        raw = await conn.fetch_kline_bucket_counts(exchanges=cfg.exchanges, symbol=cfg.symbol,
+                                                   start=start, end=end)
+    stale = recovery.stale_buckets(decided, raw, cfg.exchanges)
+    limit = REPAIR_MAX_BUCKETS_PER_RUN
+    counts = {"appended": 0, "unchanged": 0, "failed": 0}
+    for b in stale[:limit]:
+        try:
+            res = await _correction_check(deps, cfg, b)
+        except Exception as exc:  # noqa: BLE001 - counted; the marker stays open for a retry
+            counts["failed"] += 1
+            logger.warning("startup-recovery repair of %s failed: %s", b.isoformat(), type(exc).__name__)
+            continue
+        counts["appended" if res["status"] == "CORRECTION_APPENDED" else "unchanged"] += 1
+    complete = counts["failed"] == 0 and len(stale) <= limit
+    summary = {"recovery_run_id": run_id, "window": [start.isoformat(), end.isoformat()],
+               "degraded": len(stale), **counts, "deferred": max(0, len(stale) - limit),
+               "complete": complete}
+    async with deps.store.connect() as conn:
+        await conn.record_health(recovery.REPAIR_COMPONENT, now=deps.clock(), success=counts["failed"] == 0,
+                                 error_type=None if counts["failed"] == 0 else "REPAIR_FAILED",
+                                 detail=summary)
+    logger.info("startup-recovery repair run %s: degraded=%s appended=%s unchanged=%s failed=%s deferred=%s",
+                run_id, len(stale), counts["appended"], counts["unchanged"], counts["failed"],
+                summary["deferred"])
+    return {"status": "DONE" if complete else "INCOMPLETE", **summary}
 
 
 async def run_bootstrap_once(deps: DetectorDeps, cfg: BetaConfig, switches: BetaSwitches) -> dict:

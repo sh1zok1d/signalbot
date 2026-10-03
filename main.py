@@ -29,7 +29,9 @@ import contextlib
 import logging
 import signal
 import sys
+from datetime import datetime, timezone
 
+from common import startup_recovery
 from common.config import Config, load_secrets
 from common.logging_setup import setup_logging
 from runtime.shadow_cli import is_shadow_command, run_shadow_cli_command
@@ -101,10 +103,20 @@ async def run(args: argparse.Namespace) -> None:
             pass
 
     manager = None
+    recovery_id = None
     try:
         if args.validate:
             await validate_ingestion(db, cfg, redis=redis_state)
             return
+
+        if not args.backfill_only:
+            # Durable readiness signal for the beta detector: one row per process
+            # start, 'running' until the startup backfill/gap-fill below is done
+            # (common.startup_recovery). A new start always writes a new row.
+            started = datetime.now(tz=timezone.utc)
+            recovery_id = await db.start_backfill_run(
+                startup_recovery.EXCHANGE, cfg.symbol, startup_recovery.SOURCE, started, started)
+            logger.info("Stage-1 startup recovery started (run %s)", recovery_id)
 
         if not args.skip_backfill:
             await _run_cancellable(
@@ -125,11 +137,15 @@ async def run(args: argparse.Namespace) -> None:
         # Close the residual klines gap between the newest stored bar and the
         # current closed minute right before going live, so the series is
         # continuous across the backfill/skip-backfill -> live handoff.
-        await _run_cancellable(
+        gap_fill = await _run_cancellable(
             run_gap_fill(db, symbol=cfg.symbol, exchanges=cfg.enabled_exchanges), stop_event)
         if stop_event.is_set():
             logger.info("Stop requested during gap-fill; shutting down.")
             return
+        status, rows, note = startup_recovery.finish_status(gap_fill or {})
+        await db.finish_backfill_run(recovery_id, status, rows, note)
+        recovery_id = None
+        logger.info("Stage-1 startup recovery READY (%s): %s", status, note)
 
         manager = IngestionManager(cfg, db, redis_state)
         await manager.start()
@@ -138,13 +154,20 @@ async def run(args: argparse.Namespace) -> None:
         await stop_event.wait()
         logger.info("Shutting down...")
     finally:
+        if recovery_id is not None:
+            # Never left 'running' by a clean exit: the detector keeps waiting on a
+            # cancelled/failed recovery until the next start records a new row.
+            ended = startup_recovery.CANCELLED if stop_event.is_set() else startup_recovery.FAILED
+            with contextlib.suppress(Exception):
+                await db.finish_backfill_run(recovery_id, ended, 0, "startup recovery did not finish")
+            logger.warning("Stage-1 startup recovery %s (run %s)", ended, recovery_id)
         if manager is not None:
             await manager.stop()
         await redis_state.close()
         await db.close()
 
 
-async def _run_cancellable(coro, stop_event: asyncio.Event) -> None:
+async def _run_cancellable(coro, stop_event: asyncio.Event):
     """Run `coro`, but if `stop_event` fires first, cancel it and let it unwind
     cleanly (rolling back any open DB transaction). Used so SIGINT interrupts a
     long backfill/gap-fill promptly instead of waiting for it to finish."""
@@ -153,8 +176,7 @@ async def _run_cancellable(coro, stop_event: asyncio.Event) -> None:
     try:
         await asyncio.wait({task, stopper}, return_when=asyncio.FIRST_COMPLETED)
         if task.done():
-            await task  # propagate result/exception
-            return
+            return await task  # propagate result/exception
         # Stop requested first: cancel the workload and await its unwind.
         task.cancel()
         try:

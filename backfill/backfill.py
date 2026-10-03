@@ -35,6 +35,7 @@ from typing import Callable, Optional
 
 import aiohttp
 
+from common.startup_recovery import GAP_CURRENT, GAP_FAILED, GAP_FILLED, GAP_NO_HISTORY, GAP_UNSUPPORTED
 from common.symbol_mapper import to_exchange_symbol
 from storage.db import Database
 
@@ -630,7 +631,7 @@ async def run_backfill(db: Database, symbol: str, exchanges: list[str], window_d
     logger.info("Backfill pass complete for all configured exchanges")
 
 
-async def run_gap_fill(db: Database, symbol: str, exchanges: list[str]) -> None:
+async def run_gap_fill(db: Database, symbol: str, exchanges: list[str]) -> dict:
     """Fill the klines gap between the newest bar already in the DB and the
     current CLOSED minute, per exchange, right before live ingestion starts.
 
@@ -641,6 +642,9 @@ async def run_gap_fill(db: Database, symbol: str, exchanges: list[str]) -> None:
     exchange whose live WS trade tape is blocked (e.g. Binance from an EEA IP),
     REST klines still work, so this keeps its history current at startup even
     though live bars won't accumulate.
+
+    Returns {exchange: {"status", "bars"}} (common.startup_recovery GAP_*), which
+    main.py records as the Stage-1 startup-recovery readiness row.
     """
     global _rate_sem
     now = datetime.now(tz=timezone.utc)
@@ -648,27 +652,33 @@ async def run_gap_fill(db: Database, symbol: str, exchanges: list[str]) -> None:
     closed_minute = now.replace(second=0, microsecond=0)
     end_ms = _ms(closed_minute)  # bars with ts < end_ms, i.e. up to closed_minute-1m
     _rate_sem = asyncio.Semaphore(_CONCURRENCY)
+    results: dict = {}
 
     async def _one(session: aiohttp.ClientSession, exchange: str) -> None:
         fetch = KLINES_FETCHERS.get(exchange)
         if fetch is None:
+            results[exchange] = {"status": GAP_UNSUPPORTED, "bars": 0}
             return
         last = await db.fetchval(
             "SELECT max(ts) FROM klines_1m WHERE exchange=$1 AND symbol=$2", exchange, symbol)
         if last is None:
             logger.warning("[%s] gap-fill: no bars in DB yet, skipping (run backfill first)", exchange)
+            results[exchange] = {"status": GAP_NO_HISTORY, "bars": 0}
             return
         start_ms = _ms(last) + 60_000
         if start_ms >= end_ms:
             logger.info("[%s] gap-fill: already current (last bar %s)", exchange, last)
+            results[exchange] = {"status": GAP_CURRENT, "bars": 0}
             return
         try:
             rows = await fetch(session, symbol, start_ms, end_ms)
         except Exception as exc:  # noqa: BLE001
             logger.warning("[%s] gap-fill failed: %s", exchange, exc)
+            results[exchange] = {"status": GAP_FAILED, "bars": 0}
             return
         written = await db.insert_klines(rows, source="backfill")
         logger.info("[%s] gap-fill %s -> %s: %s bars", exchange, last, closed_minute, written)
+        results[exchange] = {"status": GAP_FILLED, "bars": int(written or 0)}
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -676,3 +686,4 @@ async def run_gap_fill(db: Database, symbol: str, exchanges: list[str]) -> None:
     finally:
         _rate_sem = None
     logger.info("Gap-fill pass complete")
+    return results
