@@ -6,6 +6,7 @@ import pytest
 
 from beta import decision_format as df
 from beta import market_alerts as ma
+from beta import rangecast as rc
 from beta.config import BetaConfig
 from beta.hist_series import bars_from_rows
 from beta.i18n import ForbiddenWordingError, assert_descriptive, t
@@ -227,17 +228,17 @@ def test_sharp_move_uses_the_closed_5m_grid_and_the_scale_known_before_the_move(
     closes += [last, last, last * 0.98]                    # the last 15 minutes: -2% close to close
     b = _grid(day0, closes, [c * 1.001 for c in closes], [c * 0.999 for c in closes])
     end = day0 + timedelta(minutes=5 * len(closes))
-    model = {"move": {"threshold": 2.0, "episodes_per_day": 0.33},
+    model = {"move": {"threshold": 2.0, "episodes_per_day": 0.33, "statistic": rc.MOVE_STATISTIC},
              "horizons": {"1h": {"beta": [0.0] * 9, "season": [0.0] * 24}}}     # S = 1% for any input
     blk = {"price": last * 0.98, "levels": {}, "corridor": {}}
-    out = ma.detect_move(blk, b, [], now=end + timedelta(seconds=40), model=model, events={})
+    out = ma.detect_move(blk, b, [], now=end + timedelta(seconds=40), model=model)
     assert len(out) == 1 and out[0]["payload"]["move_pct"] == pytest.approx(-2.0)
     assert out[0]["payload"]["every_days"] == pytest.approx(1 / 0.33)
     assert out[0]["payload"]["start"] == (end - timedelta(minutes=15)).isoformat()
     # the same statistic the threshold was calibrated on: no sliding 1m window between grid closes
-    assert ma.detect_move(blk, b, [], now=end + timedelta(minutes=5), model=model, events={}) == []
+    assert ma.detect_move(blk, b, [], now=end + timedelta(minutes=5), model=model) == []
     model["move"]["threshold"] = 2.5
-    assert ma.detect_move(blk, b, [], now=end + timedelta(seconds=40), model=model, events={}) == []
+    assert ma.detect_move(blk, b, [], now=end + timedelta(seconds=40), model=model) == []
 
 
 def test_price_alert_triggers_only_after_creation():

@@ -1,6 +1,6 @@
 # Event corridor — temporal repair design record V1
 
-**Status:** `DESIGN_ONLY for the event model (K1 not implemented, no retrain) / §9 FALLBACK IMPLEMENTED in the V2 branch / NOT_DEPLOYED`
+**Status:** `DESIGN_ONLY for the event model (K1 not implemented, no retrain) / §9 corridor FALLBACK and §10 sharp-move FALLBACK IMPLEMENTED in the V2 branch / NOT_DEPLOYED`
 **Date:** 2026-10-03
 **Scope:** the scheduled-release conditioning (CPI, FOMC) of the decision-support range corridor (`beta/rangecast.py`, `PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §2). It does not change the generic range model, thresholds, the research registry, user copy or deployment. Those are separate tasks.
 **Trigger:** red-team of branch `ccr-b5339153-71haxv` at `86dd802` (owner-relayed), plus the read-only checks in §4.
@@ -21,8 +21,17 @@ EVENT_FEASIBILITY_METHOD        = EXACT ONE-SIDED BINOMIAL (detection) + WILSON 
 EVENT_FEASIBILITY_TABLE         = LOCKED 2026-10-03: 12 / 38 / 127 / 81 / 289 releases; earlier figures in §12 only
 FALLBACK                        = IMPLEMENTED (§9): no numerical corridor in an event zone
 EVENT_MULTIPLIER_USER_FACING    = NO (§9; /events, briefing «Сегодня», reminder, glossary)
-RAPID_MOVE_EVENT_RISK_CLASS     = C / EVENT_FLAG_DECISION_RELEVANT_UNCALIBRATED (§10); detector unchanged
+RAPID_MOVE_EVENT_RISK_CLASS     = C / EVENT_FLAG_DECISION_RELEVANT_UNCALIBRATED (§10, audit)
+SHARP_MOVE_EVENT_CONDITIONING   = DISABLED_PENDING_VALIDATION (§10, Option 1 implemented)
 ```
+
+**Current product safety state (V2 branch, not deployed).** These are fallbacks. None of them confirms any event semantics.
+1. The numerical corridor is suppressed around CPI/FOMC releases (§9).
+2. Event-specific touch probabilities and `/risk` figures are suppressed there (§9).
+3. Event multipliers are removed from every user-facing event surface (§9).
+4. The sharp-move detector no longer uses the unvalidated event coefficients (§10).
+5. K1 remains `DESIGN_ONLY`.
+6. Prospective releases after the K1 freeze remain the only primary confirmation surface (§6).
 
 ## 1. Current semantics
 
@@ -292,7 +301,7 @@ This applies until an event semantics passes the pre-registered prospective chec
   - The threshold targets about 0.35 episodes a day pooled over all bars. Nothing calibrates the alert rate around releases.
   - The past-range features also rise after any large move. That part is generic, not event-specific.
 - **Class: C — `EVENT_FLAG_DECISION_RELEVANT_UNCALIBRATED`.**
-- **Minimal fallback (proposed, NOT implemented; a detector change needs separate owner authorisation).**
+- **Minimal fallback, as proposed in the audit.** Option 1 below was authorised by the owner on 2026-10-03 and is implemented; see "Implemented".
   - **Option 1 (preferred).** Drop the event term from the move scale only: compute S from the same model with the event columns at 0, in both `detect_move` and `move_ratio` / `sharp_move_threshold`. The next nightly build then recalibrates the threshold on the same statistic.
     - An identical move gets an identical decision on both sides of a release.
     - The corridor model and its coefficients are untouched.
@@ -300,13 +309,52 @@ This applies until an event semantics passes the pre-registered prospective chec
   - **Option 2.** No sharp-move push while E is in the 1h event zone [r − 60m, r + 60m). This is simpler, but the release move itself is then never alerted; the reminder 30 minutes before stays.
   - **Either way.** Inside a zone the move alert already shows no corridor (§9). The «примерно раз в N дней» line is an unconditional, all-hours frequency; whether it stays inside an event zone is a copy question for the same authorisation.
 
+### Implemented (Option 1, owner authorisation of 2026-10-03)
+
+`SHARP_MOVE_EVENT_CONDITIONING = DISABLED_PENDING_VALIDATION`. This is a product safety fallback for the move detector. It neither repairs nor confirms the event model.
+
+- **One statistic, one function.**
+  - `rangecast.sharp_move_scale()` is the 1h rangecast scale with every CPI/FOMC column at 0. It keeps the same fitted coefficients and the same volatility (1h, 4h, 24h, 7d past ranges), time-of-day and weekend terms. It is not a constant scale.
+  - `move_ratio()` divides the 15-minute move by it and no longer takes events.
+  - The nightly calibration (`fit_range_model` → `sharp_move_threshold` → `move_ratio`) and the live detector (`detect_move` → `move_ratio_at` → `move_ratio` on the bars ≤ i slice) call the same function. `detect_move` no longer takes events.
+  - There are no other call sites, and no replay or backfill path for the detector exists.
+- **The threshold is tied to its statistic.**
+  - `model["move"]["statistic"] = "MOVE15_OVER_1H_SCALE_EVENT_NEUTRAL_V1"`.
+  - The detector refuses a threshold without that tag. A stats row built before this change sends no sharp-move push until the next nightly build.
+- **Unchanged.**
+  - The calibration procedure: quantiles 0.99 / 0.995 / 0.998 / 0.999 / 0.9995, target 0.35 episodes a day, 2h declustering, 15-minute window, and the closest-to-target selection.
+  - The corridor model: `design`, `event_in_window` (K0), the event coefficients, the fit and `forecast`. A pre-change snapshot of the 2022-01..04 fit and forecast is reproduced exactly.
+  - The §9 corridor fallback.
+- **Threshold, as a diagnostic consequence only.** Same procedure, same fitted model, Binance BTCUSDT 5m repository archives 2022-01..2024-12, pooled over all bars:
+  - **OLD:** 2.0618 (event-conditioned statistic; quantile 0.998; 0.323 episodes a day).
+  - **NEW:** 2.0963 (event-neutral statistic; quantile 0.998; 0.319 episodes a day).
+
+  The production value comes from the nightly build on the server's history. The difference changes nothing in the algorithm.
+- **Copy inside the release's 1h zone.** The move alert keeps:
+  - the fact of the move;
+  - its size, time span and prices;
+  - the nearest levels;
+  - the neutral warning.
+
+  It drops «Такой ход бывает примерно раз в N дней», which is a pooled all-hours frequency. It also drops the «Проверено» line, because no research unit tested release moves. Outside the 1h zone the generic copy is unchanged.
+- **Tests.** `tests/beta/test_beta_v2_sharp_move.py`:
+  - the discontinuity at r − 61m … r + 61m with an identical market state;
+  - live = calibration `move_ratio`;
+  - one shared function;
+  - CPI and FOMC flags with no effect on the move scale;
+  - the non-event conditioning kept;
+  - the threshold procedure and the statistic tag;
+  - the corridor's K0 term and the pre-change corridor snapshot;
+  - the copy in RU/EN;
+  - an end-to-end PostgreSQL run with a move in [r, r + 15m).
+
 ## 11. What this record does not do
 
 - It changes no code and retrains nothing.
 - It does not fix thresholds to reach 80%.
 - It does not touch the research registry, user copy or weekend calibration.
 - It does not open any confirmation surface or the E1 holdout.
-- It does not change the sharp-move detector (§10 is an audit).
+- Its §10 fallback changes only the scale of the sharp-move statistic and the copy inside the 1h zone. It is not a confirmation of any event semantics.
 - It deploys nothing.
 
 ## 12. Changelog
@@ -323,3 +371,8 @@ This applies until an event semantics passes the pre-registered prospective chec
   - The glossary was corrected.
   - The feasibility table was locked (§8) and the confirmation surfaces recorded (§6).
   - The detector audit was added (§10, class C, no code change).
+- **2026-10-03, sharp-move fallback (Option 1).**
+  - The sharp-move statistic became event-neutral, shared by the live detector and the calibration, and tagged.
+  - In the release's 1h zone, the move alert's pooled frequency line and research line were removed.
+  - OLD/NEW thresholds were recorded as a diagnostic.
+  - `SHARP_MOVE_EVENT_CONDITIONING = DISABLED_PENDING_VALIDATION`.

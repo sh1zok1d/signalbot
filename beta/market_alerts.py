@@ -6,7 +6,7 @@ Four alert kinds, each with a unique identity (`alert_key`) so one market fact a
   (the period must have opened on the approach side), with the history of such touches;
 - `event`: CPI or FOMC within `event_lead_min`, with how big such hours were;
 - `move`: a 15-minute move larger than the historical threshold (about one episode in three
-  days), relative to the 1h scale known before the move;
+  days), relative to the 1h scale known before the move, without the CPI/FOMC term;
 - `price`: a participant's own /alert level.
 
 Policy (market side, recorded on the alert row): the global push switch; quiet hours (Kyiv) and
@@ -169,14 +169,16 @@ def detect_events(block: Mapping[str, Any], cal, *, now: datetime, lead: timedel
     return out
 
 
-def detect_move(block: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime, model, events) -> list:
+def detect_move(block: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime, model) -> list:
     """A sharp 15-minute move on the closed 5m grid: |close[i] / close[i-3] - 1| over the 1h scale
-    known before the move began. It is the statistic the threshold was calibrated on
-    (`rangecast.move_ratio`), so «примерно раз в N дней» holds; it is checked once per closed
-    5m bar (a sliding 1m window would fire more often than the calibration says)."""
-    from .rangecast import MOVE_WINDOW_BARS, scale_at
+    known before the move began, with the CPI/FOMC term at 0 (SHARP_MOVE_EVENT_CONDITIONING =
+    DISABLED_PENDING_VALIDATION). It is `rangecast.move_ratio`, the statistic the threshold was
+    calibrated on, so «примерно раз в N дней» holds; a threshold built on another statistic is
+    never used. It is checked once per closed 5m bar (a sliding 1m window would fire more often
+    than the calibration says)."""
+    from .rangecast import MOVE_STATISTIC, MOVE_WINDOW_BARS, move_ratio_at
     thr = ((model or {}).get("move") or {})
-    if not model or not thr.get("threshold") or b.n <= MOVE_WINDOW_BARS:
+    if not model or not thr.get("threshold") or thr.get("statistic") != MOVE_STATISTIC or b.n <= MOVE_WINDOW_BARS:
         return []
     if to_ms(now) - b.end_ms >= BAR_MS:                  # the grid's last bar is not the latest closed one
         return []
@@ -186,15 +188,15 @@ def detect_move(block: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime, 
     if not (math.isfinite(o) and math.isfinite(c)) or o <= 0:
         return []
     move = (c - o) / o * 100.0
-    S = scale_at(model, b, j, "1h", events=events)
-    if not S or abs(move) / S < float(thr["threshold"]):
+    ratio = move_ratio_at(model, b, i)
+    if ratio is None or ratio < float(thr["threshold"]):
         return []
     lv = block.get("levels") or {}
     near = [z for z in ((lv.get("above") or [])[:1] + (lv.get("below") or [])[:1]) if z]
     eps = thr.get("episodes_per_day")
     return [{"kind": "move", "key": f"move:{b.end_ms // BAR_MS}",
              "payload": {"at": from_ms(b.end_ms).isoformat(), "start": from_ms(b.t0 + (j + 1) * BAR_MS).isoformat(),
-                         "open": o, "close": c, "move_pct": move, "ratio": abs(move) / S,
+                         "open": o, "close": c, "move_pct": move, "ratio": ratio,
                          "every_days": (1.0 / eps) if eps else None,
                          "corridor_1h": ((block.get("corridor") or {}).get("horizons") or {}).get("1h"),
                          "near": [_zone_brief(z) for z in near], "event_zone": block.get("event_zone") or {}}}]
@@ -314,7 +316,7 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
                                    lead=timedelta(minutes=int(m["event_lead_min"])), stats=cap.get("stats"))
             last_move = await conn.last_market_push_ts(kind="move")
             if last_move is None or now - last_move >= timedelta(minutes=int(m["move_cooldown_min"])):
-                cands += detect_move(block, b, closed, now=now, model=cap.get("model"), events=cap.get("events"))
+                cands += detect_move(block, b, closed, now=now, model=cap.get("model"))
             if push_on:
                 cands += detect_price_alerts(await conn.fetch_active_price_alerts(), b, closed, block=block, now=now,
                                              max_age=timedelta(minutes=int(m["touch_max_age_min"])))

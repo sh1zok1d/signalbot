@@ -546,7 +546,8 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         lines.append(t(lang, "pa_move_title", pct=fmt_signed_pct(payload["move_pct"], lang)))
         lines.append(t(lang, "pa_move_span", span=f"{fmt_kyiv_hm(start)}–{fmt_kyiv_hm(at)} {t(lang, 'zone')}",
                        open=fmt_price(payload["open"], lang), close=fmt_price(payload["close"], lang)))
-        if payload.get("every_days"):
+        # «раз в N дней» is a pooled all-hours frequency, not a release-conditioned one: none in a zone
+        if payload.get("every_days") and not zones.get("1h"):
             lines.append(t(lang, "pa_move_rare", days=_x(payload["every_days"], lang)))
         cl = None if zones.get("1h") else _corridor_line(payload.get("corridor_1h"), "pa_corridor_1h_plain", lang)
         if cl:
@@ -578,7 +579,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         raise ValueError(f"unknown alert kind {kind!r}")
     contexts = {"level": [f"level:{payload.get('level_kind')}", "level"],
                 "event": _event_contexts([payload.get("event_kind")]),
-                "move": ["move"]}.get(kind, [])
+                "move": [] if zones.get("1h") else ["move"]}.get(kind, [])      # no unit tested release moves
     checked = research_line(contexts, lang)
     if checked and sum(1 for x in lines if x.strip()) < ALERT_MAX_LINES:     # an extra, never a 9th line
         lines.append(checked)

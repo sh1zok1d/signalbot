@@ -198,7 +198,7 @@ def test_alerts_outside_the_zone_keep_their_corridor(lang):
 WARN = {"ru": "вокруг публикации обычная калибровка коридора не применяется.",
         "en": "around the release, the usual corridor calibration does not apply."}
 EVENT_FORBIDDEN = re.compile(r"×|\d\s*раз|\btimes\b|4 из 5|4 of 5|4 out of 5|\d\s*%|вероятн|probab|шанс|chance|"
-                             r"выше|ниже|higher|lower|рост|паден|\bup\b|\bdown\b|Проверено|Checked|случа|cases",
+                             r"выше|ниже|higher|lower|рост|паден|\bup\b|\bdown\b|Проверено|Tested|Checked|случа|cases",
                              re.I)
 STATS = {"hour": {"n": 61, "median_ratio": 3.2}, "day": {"n": 61, "median_ratio": 1.5}}
 EVENTS = [{"kind": "CPI", "at": "2026-10-14T12:30:00+00:00", "stats": STATS},
@@ -241,7 +241,7 @@ def test_event_reminder_shows_name_time_and_the_warning_only(lang, kind):
     p = {**payload("event", {"1h", "4h", "24h"}), "event_kind": kind}
     text = plain(df.format_alert("event", p, lang))
     assert "15:30" in text and "×" not in text and "1,76" not in text and "1.76" not in text
-    assert not re.search(r"4 из 5|4 of 5|4 out of 5|80\s*%|вероятн|probab|Проверено|Checked", text, re.I), text
+    assert not re.search(r"4 из 5|4 of 5|4 out of 5|80\s*%|вероятн|probab|Проверено|Tested|Checked", text, re.I), text
 
 
 def test_event_facing_catalog_entries_carry_no_size_share_or_probability():

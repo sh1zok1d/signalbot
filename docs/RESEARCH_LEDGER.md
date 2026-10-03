@@ -7733,3 +7733,15 @@ SURFACE_2025_2026              = EXPOSED_FOR_OTHER_PURPOSES / NOT CONFIRMATORY
 EVENT_MULTIPLIER_USER_FACING   = NO
 RAPID_MOVE_EVENT_RISK_CLASS    = C / EVENT_FLAG_DECISION_RELEVANT_UNCALIBRATED (design record §10); detector unchanged
 ```
+
+**Follow-up (2026-10-03, owner authorisation "sharp-move event fallback, Option 1").** A product safety fallback. It is not research and not a confirmation of any event semantics.
+
+```
+SHARP_MOVE_EVENT_CONDITIONING  = DISABLED_PENDING_VALIDATION
+STATISTIC                      = MOVE15_OVER_1H_SCALE_EVENT_NEUTRAL_V1 (1h rangecast scale, CPI/FOMC columns at 0),
+                                 one function for live detection and nightly calibration
+CALIBRATION_PROCEDURE_CHANGED  = NO
+THRESHOLD_DIAGNOSTIC           = OLD 2.0618 -> NEW 2.0963 (repo archives 2022-2024, pooled, same procedure; not used
+                                 to change anything)
+CORRIDOR_MODEL_CHANGED         = NO (K0 event term, coefficients, fit, forecast)
+```

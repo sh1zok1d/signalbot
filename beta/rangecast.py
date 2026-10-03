@@ -48,6 +48,12 @@ MOVE_QUANTILES = (0.99, 0.995, 0.998, 0.999, 0.9995)
 MOVE_TARGET_EPISODES_PER_DAY = 0.35
 MOVE_DECLUSTER_BARS = 24             # 2h between two sharp-move episodes
 MOVE_WINDOW_BARS = 3                 # 15 minutes
+# SHARP_MOVE_EVENT_CONDITIONING = DISABLED_PENDING_VALIDATION
+# (BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1 §10). The sharp-move statistic divides by the 1h
+# scale with every CPI/FOMC column at 0; the corridor keeps its event term. A threshold is only
+# used with the statistic it was calibrated on, named here.
+MOVE_STATISTIC = "MOVE15_OVER_1H_SCALE_EVENT_NEUTRAL_V1"
+_NO_EVENTS: Mapping[str, Sequence[int]] = {}
 
 
 class RangeModelError(RuntimeError):
@@ -201,15 +207,25 @@ def fit_range_model(b: Bars, *, events: Mapping[str, Sequence[int]], stride: int
         out["horizons"][h_name] = _fit_one(b, idx, h_name, logs=logs, events=events, tg=tg, weekend=weekend)
         out["horizons"][h_name]["data_from_ms"] = int(close_ms[0])
         out["horizons"][h_name]["data_to_ms"] = int(close_ms[-1])
-    out["move"] = sharp_move_threshold(b, out, logs=logs, events=events)
+    out["move"] = sharp_move_threshold(b, out, logs=logs)
     return out
 
 
 # ---- sharp 15-minute move (push) ----------------------------------------------------------
-def move_ratio(b: Bars, model: Mapping[str, Any], *, logs, events) -> np.ndarray:
-    """|15-minute return| over the 1h scale known before the move started, for every bar."""
-    w = MOVE_WINDOW_BARS
+def sharp_move_scale(b: Bars, idx: np.ndarray, model: Mapping[str, Any], *, logs) -> np.ndarray:
+    """The 1h rangecast scale at anchors `idx` with every CPI/FOMC column at 0: same fitted
+    coefficients, same volatility, time-of-day and weekend terms; the event term contributes
+    nothing. The only scale the sharp-move statistic uses, live and in calibration."""
     m1h = model["horizons"]["1h"]
+    X = design(b, idx, "1h", logs=logs, season=m1h["season"], events=_NO_EVENTS)
+    return np.exp(X @ np.asarray(m1h["beta"]))
+
+
+def move_ratio(b: Bars, model: Mapping[str, Any], *, logs) -> np.ndarray:
+    """|15-minute return| over the event-neutral 1h scale known before the move started, for
+    every bar. The nightly threshold is calibrated on it and the live detector reads it
+    (`move_ratio_at`)."""
+    w = MOVE_WINDOW_BARS
     idx = np.arange(b.n)
     ok = np.ones(b.n, dtype=bool)
     for n in PAST_WINDOWS:
@@ -218,9 +234,8 @@ def move_ratio(b: Bars, model: Mapping[str, Any], *, logs, events) -> np.ndarray
     base = idx[ok]
     if base.size == 0:
         return out
-    X = design(b, base, "1h", logs=logs, season=m1h["season"], events=events)
     S = np.full(b.n, np.nan)
-    S[base] = np.exp(X @ np.asarray(m1h["beta"]))
+    S[base] = sharp_move_scale(b, base, model, logs=logs)
     with np.errstate(invalid="ignore", divide="ignore"):
         prev_close = np.roll(b.close, w)
         prev_S = np.roll(S, w)
@@ -236,11 +251,22 @@ def _episodes(flags: np.ndarray, gap: int) -> int:
     return int(1 + np.sum(np.diff(hits) > gap))
 
 
-def sharp_move_threshold(b: Bars, model: Mapping[str, Any], *, logs, events) -> dict:
-    r = move_ratio(b, model, logs=logs, events=events)
+def move_ratio_at(model: Mapping[str, Any], b: Bars, i: int) -> Optional[float]:
+    """`move_ratio` for the move ending at the close of bar i, from bars <= i only: the same
+    function the threshold is calibrated with, on the slice that bar's features need."""
+    w = MOVE_WINDOW_BARS
+    if i is None or i < w or i >= b.n:
+        return None
+    sub = b.slice(max(0, i - w - max(PAST_WINDOWS) - 1), i + 1)
+    r = float(move_ratio(sub, model, logs=past_log_ranges(sub))[-1])
+    return r if math.isfinite(r) else None
+
+
+def sharp_move_threshold(b: Bars, model: Mapping[str, Any], *, logs) -> dict:
+    r = move_ratio(b, model, logs=logs)
     fin = r[np.isfinite(r)]
     if fin.size < BARS_PER_DAY * 30:
-        return {"threshold": None, "reason": "NOT_ENOUGH_DATA"}
+        return {"threshold": None, "reason": "NOT_ENOUGH_DATA", "statistic": MOVE_STATISTIC}
     days = fin.size / BARS_PER_DAY
     best = None
     for q in MOVE_QUANTILES:
@@ -252,6 +278,7 @@ def sharp_move_threshold(b: Bars, model: Mapping[str, Any], *, logs, events) -> 
             best = cand
     best["window_minutes"] = MOVE_WINDOW_BARS * 5
     best["decluster_minutes"] = MOVE_DECLUSTER_BARS * 5
+    best["statistic"] = MOVE_STATISTIC
     return best
 
 
