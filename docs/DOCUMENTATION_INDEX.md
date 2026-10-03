@@ -396,6 +396,8 @@ Before using an operational runbook, compare it with current code/config and run
 
 ---
 
+- `WEEKDAY_WEEKEND_BASELINE_CALIBRATION_DESIGN_V1.md` / `.json` (**DESIGN_DRAFT / NOT_FROZEN / NOT_EXECUTED**, revision 2, 2026-10-03) — PRODUCT_FIRST calibration design written against the restored implementation (`a7d738f`): does splitting the 1h rank reference distributions by UTC weekday type improve the calibration of the unusual-hour gate against its nominal rates without degrading prospective calibration or raising false alerts in other regimes. C0 = current pooled 30d reference; C1 = same-type days, primary; C1-LONG = sensitivity. Stage H is `HISTORICAL / EXPOSED / PROXY EVALUATION` on 2020–2024 (no historical holdout; R03 exposed that surface); Stage P on the product tape is the only confirmatory object, with a count-defined start, an information-defined stop (720 usable hours per stratum) and counts-only operation until the stop. The opened 2025-01..2026-08-15 surface is classified `NOT_PROVABLY_INDEPENDENT` and not a holdout. Motivated by R03-C1, not a continuation of R03. No data opened, nothing frozen.
+
 ## 7a. Descriptive private beta V0.2 (authorized 2026-09-25)
 
 - **2026-10-02:** `PRODUCT_FIRST_DECISION_V1.md` is the canonical product decision for the beta's implementation scope and its first external test. The entries below keep their own records; where they differ from the decision they are superseded and say so in their headers (`BETA_V0_3_MARKET_BRIEFING.md`: briefing episodes, 24h label, 90-day baselines; `BETA_HISTORICAL_ANALOGUE_GATE_V1.md`: DO-NOT-BUILD-YET; `PRODUCT_DIRECTION_V0.md` and `PRODUCT_DIRECTION_AFTER_BETA_PROPOSAL.md`: partly superseded).
