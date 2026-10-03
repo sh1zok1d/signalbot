@@ -7815,3 +7815,34 @@ The owner accepted the G01 result. The cleanup is documentation only: no compile
 G01_STATUS = CLOSED_NO_SURVIVORS
 CANDIDATES_FROZEN = 0; CANDIDATES_EXECUTED = 0; MARKET_OUTCOMES_OPENED = NO
 ```
+
+## 2026-10-03 — Research Atlas V1: past research transferred onto one permanent map
+
+**Decision (owner proposal of 2026-10-03).** Numbered generation campaigns are replaced by `SIGNALBOT_RESEARCH_ATLAS_V1`: Mechanism (66 rows in 13 regions) × Data surface (10 columns) × Research state (11 states). This is documentation and tooling only:
+- no market value was read;
+- no test was registered or run;
+- no window was consumed;
+- no sealed record or memory-chain file was edited.
+
+**Recorded on the map.** Each of the 145 units carries:
+- what was tested;
+- data and period;
+- the practical bar;
+- the verdict;
+- why it closed;
+- what would reopen it;
+- forbidden rescues;
+- records.
+
+Every surface carries an exposure ledger.
+
+**Facts made explicit by the transfer:**
+- **Order book.** Binance USD-M bookDepth for BTC/ETH in 2023–2024 and for six symbols in 2025–2026 is exposed for book-imbalance and depth-asymmetry mechanisms, because the SEED-0001 and divergence "book support" state was a ±5% depth imbalance computed with outcomes.
+- **D7.** Recorded as CONFIRMED (the BitMEX confirmation).
+- **GV0V03L40-C033.** Recorded as BLOCKED_METHOD (V2 recompile: the joint state never occurs).
+- **PRICE_OI pilot.** Its frozen grid starts inside the calendar span of the E1-RUN-001 holdout. This is flagged for the owner; nothing was run.
+
+```
+ATLAS = SIGNALBOT_RESEARCH_ATLAS_V1
+WINDOWS_CONSUMED = none; MARKET_VALUES_READ = none; NEW_TESTS = none
+```

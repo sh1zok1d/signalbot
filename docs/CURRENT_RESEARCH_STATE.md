@@ -44,6 +44,32 @@ Done end to end on branch `research/autonomous-generation-g01`, from `main` at `
 - `AUTOGEN_G01_PLANNING.json`;
 - `SCIENTIFIC_TEST_LEDGER.json` (`SF-AUTOGEN-G01`, no test registered).
 
+## Research Atlas V1 — the permanent research map; no research executed — 2026-10-03
+
+`ATLAS = SIGNALBOT_RESEARCH_ATLAS_V1 (docs/research/SIGNALBOT_RESEARCH_ATLAS_V1.md)`
+`UNITS_ON_MAP = 145 (all 79 memory entries, R03, G01, divergence program, sprint pools, seeds, TWAP, E1, V3, product statistics, K1)`
+`CELLS = 436 applicable | 73 with prior work | 328 open with data | 17 open without data`
+`MARKET_VALUES_READ = none | NEW_TESTS = none | MEMORY_CHAIN_EDITED = no | SEALED_RECORDS_EDITED = no`
+`NEXT_UNIT = none until an owner go names a batch; selection then follows the atlas frontier (§7 batch protocol)`
+
+**What changed.** Research is chosen from one permanent map, Mechanism × Data surface × State, instead of numbered campaigns. A family is not reopened for a new threshold, and a closed cell reopens only with a new mechanism, a new surface, naturally accumulated units, a resolved blocker, prospective data or an owner decision.
+
+**Two views.**
+- **Full governance view** (`docs/research/atlas/SIGNALBOT_RESEARCH_ATLAS_V1.json`, `ATLAS_MATRIX_V1.md`): for the owner, the selector and the critics.
+- **Outcome-blind generator view** (`ATLAS_GENERATOR_VIEW_V1.json`): for hypothesis generators. Its blindness is enforced by tests.
+
+**State corrections recorded on the map.** Neither the memory chain nor any sealed record was edited.
+- **D7 → CONFIRMED.** The BitMEX confirmation passed after the memory snapshot.
+- **GV0V03L40-C033 → BLOCKED_METHOD.** The V2 recompile found that its joint state never occurs.
+
+**Open questions surfaced, not resolved.**
+- The PRICE_OI pilot grid starts inside the calendar span of the E1-RUN-001 holdout.
+- The SEED-0001 prospective leg is still `REGISTERED_NOT_STARTED`, although the divergence line is closed.
+
+**Owner priority.** MICROSTRUCTURE and SPOT_PERP get +2 in frontier routing; this is not an execution authorization.
+
+**Order book is not pristine.** The divergence program's "book support" state was a ±5% depth imbalance, so Binance bookDepth for BTC/ETH in 2023–2024 and for six symbols in 2025–2026 is exposed for book imbalance and depth asymmetry.
+
 ## Product decision V2 — decision support; protected 2025/2026 opened for product — 2026-10-03
 
 `OPERATING_MODE = PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS`
