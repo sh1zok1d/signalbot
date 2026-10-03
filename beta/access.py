@@ -19,7 +19,7 @@ PRIVACY_NOTICE_VERSION = 3
 ACTIVITY_ACTIONS = (
     "cmd_start", "cmd_btc", "cmd_history", "cmd_help", "cmd_terms", "cmd_lang", "cmd_stop",
     "cmd_feedback", "tab_event", "tab_1h", "tab_24h", "btn_details", "btn_useful", "btn_noise",
-    "lang_set", "push_delivered", "cmd_catchup", "cmd_brief", "brief_delivered", "cmd_push",
+    "lang_set", "push_delivered",
 )
 
 

@@ -41,18 +41,8 @@ PUSH_DISABLED = "PUSH_DISABLED"
 DELIVERY_TOO_OLD = "DELIVERY_TOO_OLD"
 DATA_DEGRADED_REASON = "DATA_DEGRADED"
 USER_INACTIVE = "USER_INACTIVE"
-# PRODUCT_FIRST_DECISION_V1 §3 rows 7-8: the product-level unusual-hour gate and the
-# delivery-side policy. Evaluated in a fixed order (see beta.detector.push_policy), so
-# a reason that comes after the gate implies the hour qualified.
-HOUR_NOT_UNUSUAL = "HOUR_NOT_UNUSUAL"
-QUIET_HOURS = "QUIET_HOURS"
-GLOBAL_COOLDOWN = "GLOBAL_COOLDOWN"
 SUPPRESSION_REASONS = (DAILY_CAP, SAME_EVENT_COOLDOWN, PUSH_DISABLED, DELIVERY_TOO_OLD,
-                       DATA_DEGRADED_REASON, USER_INACTIVE, HOUR_NOT_UNUSUAL, QUIET_HOURS,
-                       GLOBAL_COOLDOWN)
-# Reasons recorded AFTER the hour gate passed: the hour stays eligible for /catchup and
-# the morning briefing (decision §3.1b.3); only delivery was withheld.
-QUALIFIED_SUPPRESSIONS = (SAME_EVENT_COOLDOWN, GLOBAL_COOLDOWN, QUIET_HOURS, DAILY_CAP, PUSH_DISABLED)
+                       DATA_DEGRADED_REASON, USER_INACTIVE)
 
 # ---- delivery state machine (at most ONE send attempt per user/notification) --
 D_PENDING, D_SENDING, D_SENT, D_FAILED = "PENDING", "SENDING", "SENT", "FAILED"

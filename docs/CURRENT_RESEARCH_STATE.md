@@ -1,3 +1,72 @@
+## Final owner routing decision — divergence / selling-exhaustion line closed; product-first controls routing — 2026-10-03
+
+`REGULAR_BULLISH_DIVERGENCE_PROGRAM = COMPLETED`
+`SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON`
+`NEW_DIVERGENCE_RESEARCH_UNIT_AUTHORIZED = false`
+`NEW_SELLING_EXHAUSTION_RESEARCH_UNIT_AUTHORIZED = false`
+`RSI_GRADIENT_SUPPORT_CANDIDATE = ARCHIVED_CANDIDATE / NOT_AUTHORIZED`
+`PROSPECTIVE_DIVERGENCE_STREAM_ACTIVE = false`
+`SEED_CREATED = false`
+`OPERATING_MODE = PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`
+`CANONICAL_PRODUCT_DECISION = docs/PRODUCT_FIRST_DECISION_V1.md`
+`NEXT_UNIT = none (research); product build-to-test per PRODUCT_FIRST_DECISION_V1.md §3`
+`NEW_RESEARCH_PROGRAMS_AUTHORIZED = false`
+`DIVERGENCE_SUPPORT_2025_2026_SURFACE_OPENED = true`
+`E1_RUN_001_OPENED = false`
+
+**Supersedes:**
+- `NEXT_UNIT = OWNER_DECISION_AFTER_SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0` and `RESEARCH_NEXT_UNIT = OWNER_DECISION_AFTER_...` in the sections below. The owner decision has been made.
+- The coarse `PROTECTED_2025_2026_OPENED = false` flag of the product-first section below, as a description of current state. The earlier per-unit `PROTECTED_2025_2026_OPENED = false` lines stay true for their own units and are not rewritten.
+
+**Owner decision.** The owner accepted `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0` as `INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON` and closed the divergence / selling-exhaustion line as an active research route. This does not mean the observations are false or useless:
+- the tested effects are too small to confirm prospectively within a realistic horizon;
+- no further SEED or research unit is authorized from this line;
+- the results stay available as descriptive product and research context;
+- routing returns to `PRODUCT_FIRST_DECISION_V1`.
+
+**2025/2026 surface status (precise; not a global boolean).**
+- **Opened:** `DIVERGENCE_SUPPORT_2025_2026_SURFACE_OPENED = true`.
+  - Symbols: BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, DOGEUSDT and XRPUSDT, Binance USD-M.
+  - Data: 1m klines, bookDepth and OI metrics.
+  - Span: 2025-01-01 up to the exclusive read horizon 2026-08-15T00:00Z, with decisions to 2026-08-11.
+  - Opened by the `DIVERGENCE_FULL_HISTORY_RESEARCH_V0` validation run (`fca3ab5`), after its freeze (`c122040`).
+- **What the opening means.**
+  - The surface is no longer pristine OOS for divergence, support or exhaustion hypotheses generated from this program.
+  - It is usable as previously exposed historical data.
+  - It is not automatically spent for unrelated research families; that is decided per family.
+- **E1:** `E1_RUN_001_OPENED = false`. The E1-RUN-001 final holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)` stays protected, and no byte at or after 2026-08-15T00:00Z was requested or read. The divergence work did not open E1.
+- **Other surfaces.** This program opened no other 2025/2026 surface.
+
+**Chronology (UTC commit times; nothing here is retroactive).**
+1. **19:36–20:26 on 2026-10-02.** The owner-authorized divergence research had already progressed (`DIVERGENCE_PROGRAM_OWNER_DECISIONS_V1`/`V2`).
+   - `DIVERGENCE_FULL_HISTORY_RESEARCH_V0` was frozen at 19:36 (`c122040`).
+   - It opened the six-symbol surface in its one validation run, committed at 20:06 (`fca3ab5`).
+   - Stage 2 was committed at 20:26 (`b100619`).
+2. **21:22.** `PRODUCT_FIRST_DECISION_V1` reached `main` (PR #312, merge `8973d1d`). It became the canonical routing, with no new research programs or one-shot confirmation units.
+3. **22:22–22:39.** On this research branch, which did not yet contain the product-first records, the owner's `DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3` (`b701864`) authorized the feasibility-only `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0`. It was frozen (`a4b76fd`) and completed (`62653a3`). The two lines first met in the merge `c896fa2` at 22:42.
+4. **2026-10-03.** After that completion no further divergence or exhaustion research is authorized.
+5. **Forward policy.** `PRODUCT_FIRST_DECISION_V1` is the controlling forward policy.
+
+What this chronology does not say:
+- `PRODUCT_FIRST_DECISION_V1` did not authorize the divergence work, retroactively or otherwise.
+- The divergence research happened.
+- The six-symbol surface is opened.
+
+**Scientific conclusions preserved (no result file changed; no exploratory result upgraded into evidence).**
+- **Divergence inside support.** Regular bullish divergence inside support showed only a small effect, about +1–3 pp. The independent validation slice ruled out the pre-specified +15 pp effect.
+- **Binary exhaustion state.** The binary selling-exhaustion candidate, at about 4–5 pp, is not realistically testable prospectively with current information rates.
+- **Continuous score.** It does not justify a new unit: its efficiency advantage depends on an unverified graded-effect assumption.
+- **No trading claim.** No economically meaningful trading claim was established.
+- **`RSI_GRADIENT_SUPPORT_CANDIDATE`.** Kept only as an archived exploratory observation. It was discovered on exposed data and was not independently validated. It is not authorized for feasibility or execution under the product-first policy.
+
+**Not done:**
+- no new research was started;
+- `RSI_GRADIENT_SUPPORT_CANDIDATE` was not evaluated;
+- no SEED was created and no prospective stream was activated;
+- no market outcome was computed;
+- PR #303 is not merged.
+
+
 ## GV0V03L40 C025-R1 — closed outcome-blind — 2026-10-02
 
 `DESIGN_VERSION = C025-R1`
@@ -20,6 +89,281 @@
 `C025_NEXT = STOP`
 
 Owner-authorized manual escalation of C025. The original card's future-burst exclusion was not executed. The versioned rule is a past-only 60-minute refractory. The frozen cell is theta 0.70, quantile 0.999, horizon 30m, bar 0.30 SD. One admitted one-sided burst in 2020–2024 is not enough for that bar. No preregistration, no permit, no outcome, no other variant. Record: `docs/research/GV0V03L40_C025_R1_CLOSE.md`.
+
+## Merge reconciliation — product-first decision and divergence program decisions — 2026-10-02
+
+Two owner decision lines dated 2026-10-02 met when `main` was merged into the divergence research branch (PR #303). Both records are kept unchanged below.
+- **`PRODUCT_FIRST_DECISION_V1.md`** (from `main`, PR #312): product-first mode; no new research programs or one-shot confirmation units.
+- **`DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md`** (this branch): it authorized the feasibility-only `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0`.
+
+`SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = COMPLETE (INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON)`
+`RESEARCH_NEXT_UNIT = OWNER_DECISION_AFTER_SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 (no research unit authorized; consistent with product-first)`
+`PROTECTED_2025_2026 = not globally unopened: the six-symbol divergence/support surface 2025-01-01..2026-08-15 is opened (DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md); E1-RUN-001 and everything after 2026-08-15 stay protected`
+
+**Open for the owner.** How further divergence or seller-exhaustion research relates to the product-first rule ("no new research programs") is the owner's decision.
+
+**Superseded flag.** The `PROTECTED_2025_2026_OPENED = false` line in the product-first section below is superseded by the surface note above. The section itself is not rewritten.
+
+## Selling-exhaustion support feasibility V0 — INFORMATIONALLY_WEAK; 4–5 pp not testable in a realistic horizon — 2026-10-02
+
+`SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON`
+`E_FREQUENCY = SE_LEG 22% of support (~187/yr) | SE_BASELINE 12% (~98/yr)`
+`PROSPECTIVE_WEEKS_FOR_80_AT_5PP = SE_LEG 270-430 (5.2-8.2 y) | SE_BASELINE 472-604; at 4 pp SE_LEG 453-665`
+`MDE80_WITH_104_PROSPECTIVE_WEEKS = SE_LEG 8.3-9.9 pp | SE_BASELINE 10.8-12.2 pp`
+`CONTINUOUS_SCORE = 3-4x more efficient only if the effect is graded (5 pp-equivalent: SE_LEG 87-122 w); about 3x worse if it is a step; a different estimand`
+`E_MINUS_S_OUTCOME_CONTRAST = not computed`
+`SEED_CREATED = false`
+`NEXT_UNIT = OWNER_DECISION_AFTER_SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0`
+
+This section supersedes `NEXT_UNIT = SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 run (once)` below.
+- **Report:** `docs/research/SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0.md`, with result `.json`. Design frozen in `a4b76fd`.
+- **Dependence.** Same-date cross-symbol outcome dependence is strong (φ = 0.23, state-blind). Inside E − S it largely cancels unless the shocks are state-specific (STRESS).
+- **Candidates recorded, none authorized:** `RSI_GRADIENT_SUPPORT_CANDIDATE` and a graded selling-exhaustion score. Neither is created.
+
+## Selling-exhaustion support feasibility V0 — design frozen; counts next — 2026-10-02
+
+`SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = DESIGN FROZEN (before state counts)`
+`VARIANTS = SE_LEG (prior downswing) | SE_BASELINE (local baseline); no oscillator input; no outcome-based selection`
+`PRIMARY = E - S inside support; effects 3 / 5 / 7.5 / 10 pp; decision line 5 pp (4 pp reported)`
+`SURFACE = exposed 2023-01-01..2026-08-11 (read horizon 2026-08-15); discovery only, never validation`
+`E_MINUS_S_OUTCOME_CONTRAST = never computed in this unit`
+`SEED_CREATED = false`
+`NEXT_UNIT = SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 run (once)`
+
+This section supersedes `NEXT_UNIT = SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 (feasibility only; ...)` below.
+- **Design:** `docs/research/SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0.md`, with the authoritative twin `_DESIGN.json`. Code and frozen-artifact hashes are bound.
+
+## Divergence program — owner decisions V3; selling-exhaustion feasibility authorized — 2026-10-02
+
+`DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = ACCEPTED (no large practical edge; validation rules out +15 pp; pooled about +1-3 pp)`
+`CONFIRMATORY_SEED_FOR_A_MINUS_B_GE_15PP = not to be created`
+`REVERSAL_SELLER_EXHAUSTION_THEME = open`
+`RSI_GRADIENT_SUPPORT_CANDIDATE = recorded separately; not primary; no unit authorized`
+`SEED_CREATION = not authorized`
+`NEXT_UNIT = SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 (feasibility only; a new research object, not a SEED-0001 continuation)`
+
+This section supersedes `NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_FULL_HISTORY_RESEARCH_V0` below.
+- **Record:** `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md`.
+- **Primary candidate estimand:** `E − S`, inside support. E = the frozen exhaustion state; S = support without it. Divergence flags are descriptive covariates only.
+- **Data surfaces.** 2023–2024 and the opened six-symbol 2025-01-01..2026-08-15 surface are exposed and serve as discovery. Prospective data after a new freeze is the only clean confirmation surface. E1-RUN-001 stays absolutely protected.
+- **Surface wording corrected.** `AGENTS.md`, `PROJECT_STATUS.md` and `RESEARCH_ROADMAP.md` no longer state that all of 2025/2026 is unopened. The six-symbol divergence/support surface is opened; nothing is declared spent for unrelated families.
+
+## Divergence full-history research V0 — complete; validation excludes 15 pp; owner decision next — 2026-10-02
+
+`DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = COMPLETE (stage 1 validation evaluated once; stage 2 pooled + mechanism, exploratory)`
+`VALIDATION_A_MINUS_B (Y1_48H) = +0.011 [-0.087, +0.109] (85 week clusters; A = 160 on 112 dates)`
+`VALIDATION_TAGS = SAME_DIRECTION, COMPATIBLE_WITH_ZERO, BELOW_MEOI, ECONOMICALLY_SMALL, NO_DETECTED_SYMBOL_HETEROGENEITY`
+`POOLED_A_MINUS_B = +0.019 [-0.047, +0.084] (never replication or confirmation)`
+`MEAN_NET_R_AFTER_COSTS = negative in every arm and slice`
+`E1_INTERVAL_TOUCHED = false`
+`PROSPECTIVE_ACTIVATED = false`
+`SEED0003_CREATED = false`
+`NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_FULL_HISTORY_RESEARCH_V0`
+
+This section supersedes `NEXT_UNIT = DIVERGENCE_FULL_HISTORY_RESEARCH_V0 stage 1 (validation once), then stage 2 (pooled + mechanism)` below.
+- **Commits:** freeze `c12204079462c0c173eebdc8b81308174d21f457`; stage-1 validation `fca3ab54633d7c47e651ffb9d773a779473ae614`; stage 2 follows.
+- **Report:** `docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_REPORT.md`.
+- **Independent statement.** The validation slice is incompatible with an A − B effect of 15 pp; the effect is compatible with zero and economically small.
+- **Exploratory only.** A flow/OI selling-exhaustion state (about +3.8 pp, p = 0.05) and a graded RSI change inside support-only episodes (about +3.8 pp per SD) were seen on pooled data that includes validation. They are not evidence and no hypothesis was created.
+- **The 2025+ surface is opened.** Six-symbol UM data from 2025-01-01 to the 2026-08-15 read horizon has been read, and post-low outcomes on it have been seen. It is consumed for divergence and support questions and is no longer untouched OOS for them. Whether it can serve as OOS for unrelated families is an owner decision. The E1 holdout and everything after 2026-08-15 stay sealed.
+
+## Divergence full-history research V0 — design frozen; validation slice next — 2026-10-02
+
+`DIVERGENCE_FULL_HISTORY_RESEARCH_V0 = DESIGN FROZEN (before any 2025+ byte)`
+`SLICES = DISCOVERY 2023-01-01..2024-12-28 (previously observed) | VALIDATION 2025-01-01..2026-08-11 (previously unseen) | POOLED (never confirmation)`
+`E1_SAFE_READ_HORIZON = 2026-08-15T00:00Z (E1 holdout [2026-08-16, 2026-08-25 17:20) untouched)`
+`PRIMARY = A - B (conditional value of divergence inside support); SECONDARY = (A - B) - (C - D)`
+`PROSPECTIVE_ACTIVATED = false`
+`SEED0003_CREATED = false`
+`NEXT_UNIT = DIVERGENCE_FULL_HISTORY_RESEARCH_V0 stage 1 (validation once), then stage 2 (pooled + mechanism)`
+
+This section supersedes `NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1` below.
+- **Owner decision.** The V1 results are accepted unchanged, and the previously protected 2025-01-01..2026-08-11 surface may be opened for this program after the freeze.
+- **Not confirmation.** The program is research; it is never one confirmatory test.
+- **Design:** `docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_DESIGN.{md,json}`.
+
+## Divergence conditional-support feasibility V1 — window alone weak; combined design feasible (thin margin) — 2026-10-02
+
+`HISTORICAL_ONLY_VERDICT = INFORMATIONALLY_WEAK (STRESS power of A − B at 15 pp: 0.813 / 0.789, 10k replicates)`
+`COMBINED_DESIGN_VERDICT = FEASIBLE_FOR_PREREGISTRATION (window + ~4 prospective weeks; stop at cumulative A >= 135 and A week clusters >= 59; deadline 2026-11-30 under the frozen rule form)`
+`PROTECTED_2025_2026_OPENED = false`
+`SEED0003_CREATED = false`
+`NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1`
+
+This line supersedes `NEXT_UNIT = DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1` below.
+- **Report:** `docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_REPORT.md`.
+- **Caveats before SEED-0003:**
+  - **Thin margin.** COLLAPSED gives 0.74–0.80.
+  - **Tight deadline.** A smaller A yield would end the design `INCONCLUSIVE`.
+  - **Freeze timing.** The freeze must precede the prospective start of 2026-10-05, or that start moves.
+  - **Protected steps.** Counts-only detection on the window and the prospective 2026 segment need the opening decision.
+  - **SEED-0001 overlap.** The SEED-0001 prospective BTC leg overlaps; the without-BTC variant costs nothing.
+- **Expectation.** SEED-0001's exploratory A − B estimates are far below 15 pp.
+
+## Divergence program — owner decisions V2; conditional-support feasibility V1 authorized — 2026-10-02
+
+`DIVERGENCE_PANEL_FEASIBILITY_V0 = INFORMATIONALLY_WEAK (unchanged)`
+`DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1 = AUTHORIZED (outcome-blind; design frozen before computation)`
+`PRIMARY_ESTIMAND = A - B (conditional value of divergence inside support); SECONDARY = (A - B) - (C - D)`
+`MINIMUM_EFFECT_OF_INTEREST = 0.15`
+`PROTECTED_2025_2026_OPENED = false`
+`SEED0003_CREATED = false`
+`NEXT_UNIT = DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1`
+
+This line supersedes `NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_PANEL_FEASIBILITY_V0` below.
+- **Records:** `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V2.md` and `docs/research/DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_DESIGN.json`.
+- **E1.** Protection stays absolute.
+- **D2.** The reservation stays released.
+
+## Divergence panel feasibility V0 — INFORMATIONALLY_WEAK; holdout not spent — 2026-10-02
+
+`DIVERGENCE_PANEL_FEASIBILITY_V0 = INFORMATIONALLY_WEAK`
+`GATE = STRESS power of (A − B) − (C − D) at 15 pp on the projected spend window: 0.655 / 0.609 < 0.80`
+`HOLDOUT_SPEND = NOT AUTHORIZED (gate failed; 2025-2026 stays sealed)`
+`SEED0003_PREREG_CREATED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`NEXT_UNIT = OWNER_DECISION_AFTER_DIVERGENCE_PANEL_FEASIBILITY_V0`
+
+This line supersedes `NEXT_UNIT = DIVERGENCE_PANEL_FEASIBILITY_V0` below.
+
+**Result (`docs/research/DIVERGENCE_PANEL_FEASIBILITY_V0_REPORT.md`).** This was an outcome-blind pass on 2023–2024.
+- **Panel A/B/C/D:** 156 / 1434 / 330 / 2518. The A episodes fall on 110 distinct dates, in 67 week clusters and 96 market chains of 24h.
+- **Cross-symbol overlap:** 74% of A episodes have an episode on another symbol at the same hour, and 53% have another A within 24h.
+- **Dependence:** the STRESS design effect is 1.35.
+- **Power at 15 pp:** even with independence assumed, the projected power is 0.78 / 0.76, so the result is not an artifact of the dependence model. The MDE80 under STRESS is 20 pp.
+- **What would be needed:** about 2.5–3 years of panel history at this density, roughly 1.6–1.9 times the window.
+- **What does not happen.** By the owner's rule the holdout is not spent and no SEED-0003 prereg is written.
+
+## Divergence program — owner decisions V1; panel feasibility authorized — 2026-10-02
+
+`DIVERGENCE_PANEL_FEASIBILITY_V0 = AUTHORIZED (2023-2024 only; outcome-blind; design frozen before counts)`
+`HOLDOUT_SPEND_WINDOW = decisions 2025-01-01 .. 2026-08-11 (CONDITIONAL on the 15 pp feasibility gate)`
+`E1_RUN_001_HOLDOUT = STRICTLY PROTECTED [2026-08-16T00:00Z, 2026-08-25T17:20Z)`
+`D2_RESERVATION_ON_SPEND_SURFACE = RELEASED (superseding; D2 history unchanged)`
+`PROTECTED_2025_2026_OPENED = false`
+`NEXT_UNIT = DIVERGENCE_PANEL_FEASIBILITY_V0`
+
+This section supersedes the `NEXT_UNIT` and the "proposed, not decided" spend wording of the map section below. The decision record is `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V1.md`.
+- **Gate and estimand.** The minimum effect of interest is 15 pp at power 0.80, under a dependence profile with shared cross-symbol shocks. The primary estimand is the interaction `(A − B) − (C − D)`; `A − B` is the key secondary.
+- **D2.** D2's reservation on 2025 and on pre-E1 2026 is released, because its one-year confirmation power is 0.011. Any future D2 confirmation needs a new independent or prospective surface.
+- **What comes next.** SEED-0003 is not created and 2025–2026 is not opened until the feasibility report is reviewed by the owner.
+
+## Divergence research program — map V0 — 2026-10-02
+
+`DIVERGENCE_RESEARCH_MAP_V0 = PROGRAM_MAP / NO_DATA_OPENED`
+`PROTECTED_2025_2026_OPENED = false`
+`PROTECTED_SPEND_DECIDED = false (proposal: decisions 2025-01-01..2026-08-11 for one frozen divergence card, under conditions)`
+`NEXT_UNIT = DIVERGENCE_PANEL_FEASIBILITY_V0 (outcome-blind; no 2025-2026 byte)`
+
+This line supersedes `NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_EXPLORATORY_OUTCOME_ANALYSIS` in the section below.
+
+**Map (`docs/research/DIVERGENCE_RESEARCH_MAP_V0.md`).** At the owner's direction, SEED-0001 becomes a program on divergences.
+- **Program question:** does divergence add information to a support state that already exists?
+- **First hypothesis:** H-DIV-1, estimated by the interaction contrast `(A − B) − (C − D)`.
+- **Also in the map:** mechanism features (discovery only), failure-mode questions, Tracks A, B and C, divergence types one card each, and a metrics battery with one primary per card.
+- **Origin of H-DIV-1.** SEED-0001's exploratory numbers are its origin, not evidence. On BTC the divergence increment inside support was about zero, and ETH reversed.
+- **Card name.** The next regular-bullish card is `SEED-0003` or a new id, because `SEED-0002` is the hidden-divergence seed.
+
+**Protected spend (proposed, not decided).** The owner proposes spending 2025–2026, before the prospective stream, on one frozen divergence card. The map supports this under conditions:
+- the card is frozen before any byte is read;
+- its feasibility comes from 2023–2024 layouts;
+- the E1-RUN-001 holdout `[2026-08-16, 2026-08-25 17:20)` stays untouched;
+- D2's 2025/2026 reservation is released or explicitly shared;
+- `AGENTS.md`, `PROJECT_STATUS.md` and a new compiler policy version follow the decision.
+
+**Size of the question.** A BTC-only replica on that window has about 30 A episodes, about 15% power at 10 pp. A six-symbol panel may reach 15–20 pp; the next unit sizes it.
+
+## SEED-0001 — exploratory outcome analysis complete — 2026-10-02
+
+`SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR (unchanged)`
+`TF-SEED0001-RD-RETRO1 = EXECUTED / INCONCLUSIVE_DISCOVERY (exploratory permit; never confirmatory)`
+`EVIDENCE_LABEL = EXPLORATORY / UNDERPOWERED`
+`TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED (separate, frozen, not activated)`
+`PROTECTED_2025_2026_OPENED = false`
+`NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_EXPLORATORY_OUTCOME_ANALYSIS`
+
+This line supersedes `NEXT_UNIT = SEED0001_EXPLORATORY_OUTCOME_ANALYSIS` in the authorization section below; that unit is done. Routing returns to the research queue further below.
+
+**Result (`docs/research/SEED0001_EXPLORATORY_OUTCOME_RESULT.md`).** The analysis ran once, at `1e4f848`, on the frozen episodes. It covers BTC Y1_48H, +1R before −1R:
+- **Raw rate of A:** 20 of 36 (0.556).
+- **Adjusted P1, A − B:** +0.042, CR1 95% CI [−0.099, +0.184].
+- **Adjusted P2, A − C:** +0.148 [−0.037, +0.332].
+- **Gates:** Holm rejects neither contrast, and the practical gate fails.
+- **ETH (robustness):** both contrasts are negative.
+
+The observed BTC point estimates are positive. The evidence for them is weak to none, so this is not a finding.
+
+**Consumed.** The 2023–2024 Binance UM 1h outcome surface is consumed for this card and for nearby questions. Any variant needs a new research object / SEED.
+
+## SEED-0001 — exploratory outcome analysis authorized (supersedes the feasibility-stop routing) — 2026-10-02
+
+`SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR (unchanged)`
+`SEED0001_EXPLORATORY_OUTCOME_PERMIT = docs/research/SEED0001_EXPLORATORY_OUTCOME_PERMIT.json (owner, 2026-10-02)`
+`EVIDENCE_LABEL = EXPLORATORY / UNDERPOWERED (never confirmatory)`
+`TF-SEED0001-RD-RETRO1 classification fixed before outcomes = INCONCLUSIVE_DISCOVERY`
+`TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED (separate, frozen, not activated)`
+`PROTECTED_2025_2026_OPENED = false`
+`NEXT_UNIT = SEED0001_EXPLORATORY_OUTCOME_ANALYSIS`
+
+`NEXT_UNIT` is a routing field naming the next unit of work. It is not a scientific status. This line supersedes `NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_FEASIBILITY_STOP` in the section below. That section stays as the historically correct record of the feasibility stop.
+
+**Owner decision (2026-10-02).** SEED-0001 continues despite the feasibility result.
+- **The result is unchanged.** The feasibility result stays exactly `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR`.
+- **Exploratory continuation.** The owner accepts that the retrospective sample is underpowered and authorizes an exploratory outcome-analysis phase.
+- **Not a confirmatory success.** This does not convert the preregistered retrospective test into a successful confirmatory test.
+- **Frozen and unchanged:** the preregistration, detector, thresholds, covariates (including `RISK_ATR`), contrasts, hard floor, episode sets (the 36 BTC Arm-A episodes included) and the feasibility report.
+- **Allowed scope.** Outcomes may be opened only for the frozen episode sets and the frozen outcome definitions in the permit. Every statistic is labelled exploratory / underpowered and is never presented as confirmatory evidence.
+- **Forbidden after outcomes:**
+  - definition tuning;
+  - an alternative threshold, stop, entry, exit or horizon;
+  - subgroup selection;
+  - rescue analysis.
+
+  Any of these needs a new research object / SEED.
+- **Prospective leg.** The preregistration stays separate and frozen. Nothing seen in the exploratory pass may modify it.
+- **Order.** The permit is committed first, then the evaluator with synthetic tests, and only then the one run.
+
+## SEED-0001 regular divergence — retrospective leg closed outcome-blind — 2026-10-02
+
+`SEED0001_CARD = FROZEN_BEFORE_COUNTS_AND_OUTCOMES`
+`SEED0001_FEASIBILITY = INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR (BTC A = 36 episodes / 33 dates; STRESS power at 10 pp = 0.10; MDE about 30 pp)`
+`SEED0001_RETROSPECTIVE_LEG = CLOSED_OUTCOME_BLIND (owner decision 2026-10-02; verdict INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR)`
+`TF-SEED0001-RD-RETRO1 = REGISTERED_NOT_EXECUTED (never executed; closed outcome-blind)`
+`TF-SEED0001-RD-PROSP1 = REGISTERED_NOT_STARTED (prospective preregistration frozen; not activated)`
+`MARKET_OUTCOMES_COMPUTED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`SCIENTIFIC_DEGREES_OF_FREEDOM_REMAINING = 0`
+`NEW_DESIGN_REQUIRES_NEW_RESEARCH_OBJECT_ID = true`
+`NEXT_UNIT = NONE_AUTHORIZED_AFTER_SEED0001_FEASIBILITY_STOP (routing returns to the research queue below)`
+
+**Owner decision (2026-10-02).** The SEED-0001 retrospective leg is accepted as `INCONCLUSIVE_SAMPLE / BELOW_HARD_FLOOR` and closed outcome-blind.
+- **Outcomes stay closed.** Forward outcomes remain unopened and must not be computed: no future return, +1R/−1R, +2R/−1R, MFE/MAE or post-decision price.
+- **No rescue.** No threshold modification, parameter tuning or reinterpretation of SEED-0001 is authorized. The detector, thresholds, covariates (including `RISK_ATR`), contrasts, hard floor and power rule stay as preregistered.
+- **Prospective leg.** The preregistration stays frozen, but it is not activated automatically. Running the detector on the protected 2026 segment, or on the cohort at all, needs a separate explicit owner decision.
+- **Track B.** Longer-history proxy research for the book observable, if pursued, is a separate research card or seed with its own `TEST_FAMILY_ID`. It is not a continuation or rescue of SEED-0001.
+- **Routing.** No feasibility-qualified unit is authorized now. The queue below is the generator V03 derived continuation (`ladder-40-card-v03-r02-derived-critics-v1`; live calls not authorized), plus backlog seeds, which enter only through GV0R02 V1 feasibility and a separate design freeze.
+
+**Feasibility (`docs/research/SEED0001_FEASIBILITY_REPORT.md`).** This was an outcome-blind count pass.
+- **BTC eligible:** 743 episodes, A/B/C/D = 36/259/63/385; A falls on 33 dates and 24 weekly clusters.
+- **Floor and power:** A is below the 40-episode floor, and the conjunction is about 10% powered at 10 pp.
+- **Prospective:** the frozen stop of 30 A episodes is about 15% powered.
+- **ETH:** A = 32 episodes on 27 dates.
+- **Not changed:** no definition changed after the counts.
+
+**What is frozen.** `docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.{md,json}`: the owner's regular bullish divergence with order-book support.
+- **Event.** On 1h BTC perps:
+  - a confirmed swing low with a lower low after a ≥3 ATR decline;
+  - book support within 5% from Binance UM `bookDepth`;
+  - ≥2 of 3 divergence families (RSI 14 and 21, MACD line, CVD).
+- **Arms.** A, B, C, D.
+- **Primary.** P1 (A vs B) and P2 (A vs C) on +1R before −1R within 48h, Holm, both required.
+
+**Evidence labels.**
+- **2023–2024 is retrospective evidence only.** It is never a holdout.
+- **Confirmation is prospective.** It covers decisions from 2026-10-05 and stops at 30 Arm-A episodes or 2028-10-05. Its protected 2026 segment needs an owner decision before any detector run, and opening the cohort needs a separate owner decision.
+- **ETH** is robustness only.
+
+**Below this section.** The `NEXT_UNIT` lines below belong to their own programs (beta P1, generator r02); the generator routing is the current research queue.
 
 ## Product-first decision — research serves the product — 2026-10-02
 

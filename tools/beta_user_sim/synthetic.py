@@ -41,14 +41,6 @@ _TAKER_BUY = {"taker": 0.995}
 _BUILDUP = {"range": 0.2, "oi": 0.9, "volume": 0.7}
 
 
-def _v02_push_cfg(cfg: BetaConfig) -> BetaConfig:
-    """The harness replays the V0.2 event push (`format_push_v02`), so its synthetic
-    decisions use the V0.2 delivery policy: 3 a day, no global cooldown, no quiet
-    hours. The unusual-hour gate itself is answered by `hour={"qualified": True}`."""
-    return cfg.with_overrides(max_new_pushes_per_utc_day=3,
-                              push_policy={"quiet_hours_kyiv": ["00:00", "00:00"], "global_cooldown_min": 1})
-
-
 def _regime(i: int) -> dict:
     if 14 <= i <= 17:
         return _DOWN
@@ -222,10 +214,9 @@ def make_synthetic_bundle(cfg: BetaConfig, *, langs: tuple = ("ru", "en"), bucke
                 evaluated = ctx.decision_ts + timedelta(seconds=10)
                 day = ctx.decision_ts.date()
                 would, decision, reason = push_policy(
-                    _v02_push_cfg(cfg), decision_ts=ctx.decision_ts, evaluated_at=evaluated, snapshot=s,
+                    cfg, decision_ts=ctx.decision_ts, evaluated_at=evaluated, snapshot=s,
                     last_same_type_terminal=last_terminal.get(et), last_same_type_would_push=last_would.get(et),
-                    would_push_today=per_day.get(day, 0), push_enabled=True,
-                    hour={"qualified": True})      # synthetic tape: no 1h ranks; treat every hour as qualified
+                    would_push_today=per_day.get(day, 0), push_enabled=True)
                 if would:
                     per_day[day] = per_day.get(day, 0) + 1
                     last_would[et] = ctx.decision_ts

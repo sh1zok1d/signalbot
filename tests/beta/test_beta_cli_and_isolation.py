@@ -38,17 +38,6 @@ def test_cross_command_exclusivity(argv):
         main.parse_args(argv)
 
 
-def test_context_dry_run_flag_and_its_options():
-    args = main.parse_args(["--beta-context-dry-run", "--dry-run-days", "7", "--dry-run-provisional"])
-    assert is_beta_command(args) and args.dry_run_days == 7 and args.dry_run_provisional
-    from runtime.beta_cli import READ_ONLY_COMMANDS
-    assert "beta_context_dry_run" in READ_ONLY_COMMANDS
-    for argv in (["--beta-status", "--dry-run-provisional"], ["--beta-context-dry-run", "--dry-run-days", "0"],
-                 ["--beta-context-dry-run", "--dry-run-days", "31"], ["--beta-context-dry-run", "--beta-once"]):
-        with pytest.raises(SystemExit):
-            main.parse_args(argv)
-
-
 def test_bucket_ts_allowed_with_beta_once_only():
     args = main.parse_args(["--beta-once", "--beta-bucket-ts", "2026-03-01T00:05:00Z"])
     assert args.beta_once and args.beta_bucket_ts

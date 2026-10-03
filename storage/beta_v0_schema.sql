@@ -153,10 +153,8 @@ CREATE TABLE IF NOT EXISTS beta_push_decisions (
     utc_day                 DATE NOT NULL,
     would_push              BOOLEAN NOT NULL,
     decision                TEXT NOT NULL CHECK (decision IN ('PUSH', 'SUPPRESSED')),
-    suppression_reason      TEXT CONSTRAINT ck_beta_push_suppression CHECK (
-        suppression_reason IS NULL OR suppression_reason IN (
-        'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED',
-        'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN')),
+    suppression_reason      TEXT CHECK (suppression_reason IS NULL OR suppression_reason IN (
+        'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED')),
     push_enabled_effective  BOOLEAN NOT NULL,
     recorded_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_beta_push_reason CHECK ((decision = 'PUSH') = (suppression_reason IS NULL)),
@@ -321,7 +319,7 @@ CREATE TABLE IF NOT EXISTS beta_admin_audit (
         'admin_resume_push', 'admin_d7_on', 'admin_d7_off', 'admin_broadcast',
         'admin_health', 'admin_invite_new', 'admin_invites', 'admin_invite_revoke',
         'admin_waitlist', 'admin_waitlist_admit', 'admin_stats', 'admin_reply',
-        'admin_known', 'user_delete_me', 'retention_purge')),
+        'user_delete_me', 'retention_purge')),
     authorized          BOOLEAN NOT NULL,
     actor_fingerprint   TEXT NOT NULL,
     target_fingerprint  TEXT,
@@ -454,8 +452,7 @@ ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK 
     'admin_status', 'admin_users', 'admin_add', 'admin_remove', 'admin_pause_push',
     'admin_resume_push', 'admin_d7_on', 'admin_d7_off', 'admin_broadcast', 'admin_health',
     'admin_invite_new', 'admin_invites', 'admin_invite_revoke', 'admin_waitlist',
-    'admin_waitlist_admit', 'admin_stats', 'admin_reply', 'admin_known', 'user_delete_me',
-    'retention_purge'));
+    'admin_waitlist_admit', 'admin_stats', 'admin_reply', 'user_delete_me', 'retention_purge'));
 
 CREATE TABLE IF NOT EXISTS beta_waitlist (
     telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),
@@ -468,7 +465,7 @@ CREATE TABLE IF NOT EXISTS beta_user_activity (
     action       TEXT NOT NULL CHECK (action IN (
         'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
         'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
-        'lang_set', 'push_delivered', 'cmd_catchup', 'cmd_brief', 'brief_delivered', 'cmd_push')),
+        'lang_set', 'push_delivered')),
     detail       TEXT,
     lang         TEXT CHECK (lang IS NULL OR lang IN ('ru', 'en')),
     at           TIMESTAMPTZ NOT NULL
@@ -492,7 +489,7 @@ END $$;
 ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CHECK (action IN (
     'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
     'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
-    'lang_set', 'push_delivered', 'cmd_catchup', 'cmd_brief', 'brief_delivered', 'cmd_push'));
+    'lang_set', 'push_delivered'));
 
 -- Free-text /feedback. user_pk only; /delete_me cascades. Not the Useful/Noise votes.
 CREATE TABLE IF NOT EXISTS beta_feedback_messages (
@@ -545,51 +542,3 @@ CREATE TABLE IF NOT EXISTS beta_d7_hour_states (
     computed_at         TIMESTAMPTZ NOT NULL,
     definition_digest   TEXT NOT NULL CHECK (definition_digest ~ '^[0-9a-f]{64}$')
 );
-
--- PRODUCT_FIRST_DECISION_V1 §3 rows 1-3: one view table for /btc, /catchup and the
--- morning briefing; the briefing goes through the existing outbox. Push rows keep
--- every existing column and constraint meaning (kind = 'push').
-ALTER TABLE beta_btc_views ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'btc'
-    CHECK (kind IN ('btc', 'catchup', 'brief'));
-ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS brief_enabled BOOLEAN NOT NULL DEFAULT TRUE;
-ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'push';
-ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS view_pk BIGINT REFERENCES beta_btc_views (view_pk);
-ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS brief_date DATE;
-ALTER TABLE beta_notification_deliveries ALTER COLUMN decision_id DROP NOT NULL;
-ALTER TABLE beta_notification_deliveries ALTER COLUMN episode_pk DROP NOT NULL;
-ALTER TABLE beta_notification_deliveries DROP CONSTRAINT IF EXISTS ck_beta_delivery_kind_shape;
-ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_kind_shape CHECK (
-    (kind = 'push' AND decision_id IS NOT NULL AND episode_pk IS NOT NULL
-        AND view_pk IS NULL AND brief_date IS NULL)
-    OR (kind = 'brief' AND decision_id IS NULL AND episode_pk IS NULL
-        AND view_pk IS NOT NULL AND brief_date IS NOT NULL));
-CREATE UNIQUE INDEX IF NOT EXISTS uq_beta_delivery_brief_identity
-    ON beta_notification_deliveries (brief_date, user_pk) WHERE kind = 'brief';
-
--- PRODUCT_FIRST_DECISION_V1 §3 rows 7-8 and 10 (additive; existing rows keep their meaning).
--- The unusual-hour gate evaluated with each push decision, by value: what was known
--- at the decision bucket (1h window, ranks, passed metrics, venue agreement, the
--- interpretation). `gate->>'qualified'` is the market-side eligibility of the hour for
--- /catchup and the briefing; delivery-side suppression never changes it.
-ALTER TABLE beta_push_decisions ADD COLUMN IF NOT EXISTS gate JSONB;
-DO $$
-DECLARE
-    cname text;
-BEGIN
-    SELECT conname INTO cname
-    FROM pg_constraint
-    WHERE conrelid = 'beta_push_decisions'::regclass AND contype = 'c'
-      AND pg_get_constraintdef(oid) LIKE '%SAME_EVENT_COOLDOWN%'
-      AND pg_get_constraintdef(oid) NOT LIKE '%HOUR_NOT_UNUSUAL%';
-    IF cname IS NOT NULL THEN
-        EXECUTE format('ALTER TABLE beta_push_decisions DROP CONSTRAINT %I', cname);
-        ALTER TABLE beta_push_decisions ADD CONSTRAINT ck_beta_push_suppression CHECK (
-            suppression_reason IS NULL OR suppression_reason IN (
-            'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED',
-            'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN'));
-    END IF;
-END $$;
--- /push off is a recipient preference (§3.1b.4): no delivery row is created for the user.
-ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_enabled BOOLEAN NOT NULL DEFAULT TRUE;
--- known versus unknown-to-founder participant (§3 row 10). Owner-set; never shown to users.
-ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS known_contact BOOLEAN NOT NULL DEFAULT FALSE;

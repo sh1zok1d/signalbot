@@ -1,0 +1,91 @@
+{
+ "DESIGN": "DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1_DESIGN",
+ "STATUS": "FROZEN_BEFORE_COMPUTATION",
+ "DATE": "2026-10-02",
+ "OWNER_DECISIONS": "docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V2.md",
+ "QUESTION": "Conditional on an already-present support state, does regular bullish divergence add practically meaningful trading value?",
+ "PRIMARY_ESTIMAND": "A - B",
+ "SECONDARY_ESTIMAND": "(A - B) - (C - D)",
+ "ESTIMAND_NOTE": "A - B is the conditional incremental value of divergence inside support; it is not an interaction effect. The interaction stays a secondary mechanistic estimand.",
+ "V0_VERDICT_UNCHANGED": "INFORMATIONALLY_WEAK",
+ "WHY_ALLOWED": [
+  "protected 2025+ outcomes remain unopened",
+  "V0 was an outcome-blind feasibility calculation",
+  "this is a new research design, not a reinterpretation of the V0 verdict",
+  "2023-2024 is discovery/spent and treated as such"
+ ],
+ "PANEL_AND_DETECTOR": "same six symbols and unchanged SEED-0001 detector as V0; V0 per-symbol episode digests must reproduce; no panel expansion",
+ "PLANNED_INFERENCE": "as V0: linear probability model with arm dummies (D reference) and symbol fixed effects, CR1 by panel-wide UTC week, t(G - 1); primary A - B two-sided alpha 0.05 with a positive estimate required",
+ "FROZEN_RULES": {
+  "MIN_EFFECT_OF_INTEREST": 0.15,
+  "REPORTED_EFFECTS": [
+   0.1,
+   0.15,
+   0.2
+  ],
+  "TARGET_POWER": 0.8,
+  "PROFILES": {
+   "INDEPENDENT": {
+    "SHOCK": null,
+    "LATENT_ICC": 0.0,
+    "ROLE": "diagnostic: episodes treated as independent"
+   },
+   "BASE": {
+    "SHOCK": "DATE",
+    "LATENT_ICC": 0.25,
+    "ROLE": "one probit shock per UTC decision date shared by all symbols and arms"
+   },
+   "STRESS": {
+    "SHOCK": "DATE_X_ARM",
+    "LATENT_ICC": 0.5,
+    "ROLE": "GATE: one shock per (UTC date, arm) shared across symbols; same-day same-arm episodes move together"
+   }
+  },
+  "COLLAPSED_PROFILE": {
+   "SHOCK": "DATE",
+   "LATENT_ICC": 0.25,
+   "ROLE": "diagnostic lower bound: same-day same-arm episodes merged into one unit across symbols"
+  },
+  "GATE_PROFILE": "STRESS",
+  "CURVE_REPS": 2000,
+  "GATE_REPS": 10000,
+  "SEED": 20261006,
+  "GATE": "STRESS power of A - B at 0.15, computed with 10000 replicates, >= 0.80 on BOTH proxy windows (first and last 85 weeks of the 2023-2024 layout)",
+  "SUPPORT": {
+   "MIN_A_WEEK_CLUSTERS": 30,
+   "MIN_B_WEEK_CLUSTERS": 30,
+   "MAX_SYMBOL_SHARE_OF_A": 0.5
+  },
+  "STATUS_PRIORITY": [
+   "DEFINITION_INCOMPLETE",
+   "DATA_BLOCKED",
+   "PIT_BLOCKED",
+   "INFERENCE_SUPPORT_INSUFFICIENT",
+   "STRUCTURAL_INFERENCE_RISK",
+   "INFORMATIONALLY_WEAK",
+   "FEASIBLE_FOR_PREREGISTRATION"
+  ],
+  "HISTORICAL_ONLY": "the gate on the two 85-week proxies of the spend window 2025-01-01..2026-08-11",
+  "COMBINED_DESIGN": {
+   "SURFACE": "spend window + prospective panel stream with decisions from 2026-10-05; prospective reads (klines, book baselines) start no earlier than 2026-08-27, after the E1 holdout",
+   "STAND_IN": "each proxy is extended by w weeks cycled from the 2023-2024 layout with new week ids and shifted dates (no shared cluster or shock)",
+   "SEARCH": "w on a 4-week grid from 0 to 156; screen with 4000 replicates; the first screened pass must be confirmed with 10000 replicates",
+   "STOPPING_RULE_FORM": "stop at the first decision time when cumulative A episodes >= N_A AND cumulative A week clusters >= G_A (both taken from the more demanding proxy at its first confirmed pass), or at a deadline = 2026-10-05 + ceil(2 x expected weeks); below the thresholds at the deadline the result is INCONCLUSIVE with no extension",
+   "VARIANT_WITHOUT_BTC": "the same search with BTC excluded from the prospective part, because the SEED-0001 prospective leg (BTC, from 2026-10-05) tests a near-identical A vs B contrast on the same episodes"
+  },
+  "CONTINUOUS_MODELS": "not evaluated in V1; any graded/continuous primary needs its own frozen research object",
+  "PANEL_EXPANSION": "not evaluated in V1; needs a fixed eligibility rule, PIT availability, liquidity/history and its own dependence and information-gain comparison"
+ },
+ "E1_RULE": "no baseline, detector input, outcome window, feature window or auxiliary read may touch [2026-08-16T00:00Z, 2026-08-25T17:20Z)",
+ "CODE_IDENTITY": {
+  "scripts/research/divergence_conditional_support_feasibility_v1.py": "451c663cb1beaf22deee39a0da4491512d907c7321cbbdf7b76e351afa33aa88",
+  "scripts/research/divergence_panel_feasibility_v0.py": "dd8d77c40e88d202564db94fea3f2adb277b29c53a7a284e0b6bedb6dfd6dadd",
+  "scripts/research/seed0001_regular_divergence_lib.py": "c72e49683fc6cb61006584eae5a3adc1c0f6a126f8490d48786dc2b116240762",
+  "scripts/research/seed0001_feasibility.py": "747e1da47a5ac4eab236ff554d19785d124220421eb0f6efa687c6093c9dc3b3"
+ },
+ "BOUNDARY": {
+  "PROTECTED_2025_2026_OPENED": false,
+  "OUTCOMES_COMPUTED": false,
+  "SEED0003_CREATED": false
+ }
+}

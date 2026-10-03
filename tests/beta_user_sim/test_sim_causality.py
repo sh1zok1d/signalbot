@@ -4,8 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from beta.formatter import format_details
-from beta.formatter import format_push_v02 as format_push
+from beta.formatter import format_details, format_push
 from beta.outcomes import LAST_BAR_GRACE
 from sim_helpers import CFG, ScriptedUser, bundle, raw_bundle, run
 from tools.beta_user_sim.bundle import BundleError, bundle_from_dict

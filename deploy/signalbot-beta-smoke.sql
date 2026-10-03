@@ -42,14 +42,14 @@ params AS (
            now() AS as_of,
            2 AS schema_version,
            '9e9d2c631a1abfdb710dc2147835b3a0ccd4620512d3a0d6828140c96de17210' AS rules_digest,
-           'BETA_CONTEXT_1H_V2' AS context_version,
-            '68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25' AS context_digest,
+           'BETA_CONTEXT_1H_V1' AS context_version,
+           '59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576' AS context_digest,
            :'d7_enabled'::boolean AS d7_enabled,
            CASE
-                WHEN :'d7_enabled'::boolean
-                    THEN NULLIF(:'d7_deploy_ts', '')::timestamptz
-                ELSE NULL
-            END AS d7_deploy_ts,
+               WHEN :'d7_enabled'::boolean AND :'d7_deploy_ts' <> ''
+                   THEN :'d7_deploy_ts'::timestamptz
+               ELSE NULL
+           END AS d7_deploy_ts,
            420::double precision AS max_lag_s
 ),
 bounds AS (

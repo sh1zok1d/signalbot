@@ -6,7 +6,7 @@ import pytest
 from beta.config import EVENT_TYPES
 from beta.formatter import (CLOSED_BETA_TEXT, EVENT_DESCRIPTIONS, EVENT_LABELS, HELP_TEXT,
                             PRIVACY_NOTICE, ForbiddenWordingError, assert_descriptive,
-                            event_label, format_details, format_history, format_push, format_status)
+                            format_details, format_history, format_push, format_status)
 from beta.models import Episode
 
 T = datetime(2026, 3, 1, 12, 0, tzinfo=timezone.utc)
@@ -43,12 +43,9 @@ def test_static_texts_are_descriptive():
 
 
 @pytest.mark.parametrize("et", EVENT_TYPES)
-def test_push_names_the_hour_never_the_detector_or_an_id(et):
-    text = format_push(_ep(et), lang="ru")
-    assert text.startswith("<b>BTC · необычный час</b>\n13:00–14:00 (Киев)")
-    assert "EV-ABCDEF0123" not in text and "BETA_EVENT_RULES" not in text and "СОБЫТИЕ" not in text
-    assert event_label(et, "ru") not in text
-    assert len([ln for ln in text.split("\n") if ln.strip()]) <= 8
+def test_push_shows_decision_time_and_passes_wording(et):
+    text = format_push(_ep(et))
+    assert "Decision time: 2026-03-01 14:00 Kyiv" in text and "EV-ABCDEF0123" in text
 
 
 def test_status_history_details_render():

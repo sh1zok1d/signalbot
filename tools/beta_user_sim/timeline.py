@@ -23,8 +23,7 @@ from datetime import datetime
 from typing import Optional, Sequence
 
 from beta.config import BetaConfig
-from beta.formatter import btc_buttons, feedback_buttons, format_btc
-from beta.formatter import format_push_v02 as format_push   # harness frozen at the V0.2 push text
+from beta.formatter import btc_buttons, feedback_buttons, format_btc, format_push
 from beta.models import TRIGGERED, Episode
 
 from .bundle import ReplayBundle

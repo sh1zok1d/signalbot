@@ -57,8 +57,7 @@ _TOP_KEYS = frozenset({
     "same_event_cooldown_min", "delivery_ttl_s", "max_new_pushes_per_utc_day",
     "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
-    "horizon_changes", "access", "telemetry", "feedback", "regime_d7", "briefing",
-    "push_policy",
+    "horizon_changes", "access", "telemetry", "feedback", "regime_d7",
 })
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
@@ -94,8 +93,8 @@ _PERCENTILE_KEYS = {
 # Temporal-context sections (episodization + 1h context). They never enter the
 # rules digest: they change presentation / episode projection, not detection.
 _EPISODIZATION_KEYS = {"version", "live_hysteresis_enabled"}
-_CONTEXT_KEYS = {"version", "rolling_buckets", "rolling_buckets_4h", "label_elevated", "label_high",
-                 "label_extreme", "tail_display_max", "last_event_retention_min"}
+_CONTEXT_KEYS = {"version", "rolling_buckets", "label_elevated", "label_high", "label_extreme",
+                 "tail_display_max", "last_event_retention_min"}
 
 # Presentation thresholds for "Changes vs previous 24h". They never enter the
 # rules digest: they do not change detection.
@@ -109,15 +108,9 @@ _TELEMETRY_KEYS = {"retention_days", "rejected_start_retention_days"}
 
 # /feedback limits. Presentation only. They never enter the rules digest.
 _FEEDBACK_KEYS = {"max_chars", "max_per_utc_day"}
-# Morning briefing (PRODUCT_FIRST_DECISION_V1 §3 row 3). Not detection, not the rules
-# digest. `enabled` is a committed allow; sending also needs the global push switches.
-_BRIEFING_KEYS = {"enabled", "time_kyiv", "max_delay_min"}
 
 # D7 regime line. Display only. It never enters the rules digest.
 _REGIME_D7_KEYS = {"enabled"}
-# Delivery-side push policy (PRODUCT_FIRST_DECISION_V1 §3 row 8): quiet hours in Kyiv
-# time and one cooldown across event types. Policy only; never the rules digest.
-_PUSH_POLICY_KEYS = {"quiet_hours_kyiv", "global_cooldown_min"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
 # cooldown / cap only enter the config digest).
@@ -245,16 +238,6 @@ class BetaConfig:
         return timedelta(minutes=self.raw["same_event_cooldown_min"])
 
     @property
-    def global_cooldown(self) -> timedelta:
-        return timedelta(minutes=self.raw["push_policy"]["global_cooldown_min"])
-
-    @property
-    def quiet_hours_kyiv(self) -> tuple:
-        """(start, end) as HH:MM Kyiv wall-clock strings; the window wraps midnight."""
-        q = self.raw["push_policy"]["quiet_hours_kyiv"]
-        return (str(q[0]), str(q[1]))
-
-    @property
     def delivery_ttl(self) -> timedelta:
         return timedelta(seconds=self.raw["delivery_ttl_s"])
 
@@ -341,36 +324,6 @@ def _validate(d: Mapping[str, Any]) -> None:
     _validate_telemetry(d)
     _validate_feedback(d)
     _validate_regime_d7(d)
-    _validate_briefing(d)
-    _validate_push_policy(d)
-
-
-def _hhmm(value, name: str) -> None:
-    if not isinstance(value, str) or len(value) != 5 or value[2] != ":" or not (value[:2] + value[3:]).isdigit() \
-            or int(value[:2]) > 23 or int(value[3:]) > 59:
-        raise BetaConfigError(f"{name} must be HH:MM")
-
-
-def _validate_push_policy(d: Mapping[str, Any]) -> None:
-    p = d["push_policy"]
-    _exact_keys(p, _PUSH_POLICY_KEYS, "push_policy")
-    q = p["quiet_hours_kyiv"]
-    if not isinstance(q, (list, tuple)) or len(q) != 2:
-        raise BetaConfigError("push_policy.quiet_hours_kyiv must be [start, end] in HH:MM")
-    _hhmm(q[0], "push_policy.quiet_hours_kyiv[0]")
-    _hhmm(q[1], "push_policy.quiet_hours_kyiv[1]")
-    _int(p["global_cooldown_min"], "push_policy.global_cooldown_min", minimum=1)
-
-
-def _validate_briefing(d: Mapping[str, Any]) -> None:
-    b = d["briefing"]
-    _exact_keys(b, _BRIEFING_KEYS, "briefing")
-    _bool(b["enabled"], "briefing.enabled")
-    t = b["time_kyiv"]
-    if not isinstance(t, str) or len(t) != 5 or t[2] != ":" or not (t[:2] + t[3:]).isdigit() \
-            or int(t[:2]) > 23 or int(t[3:]) > 59:
-        raise BetaConfigError("briefing.time_kyiv must be HH:MM")
-    _int(b["max_delay_min"], "briefing.max_delay_min", minimum=1)
 
 
 def _validate_temporal_context(d: Mapping[str, Any]) -> None:
@@ -386,9 +339,6 @@ def _validate_temporal_context(d: Mapping[str, Any]) -> None:
     if not isinstance(c["version"], str) or not c["version"].strip():
         raise BetaConfigError("context.version must be a non-empty string")
     _int(c["rolling_buckets"], "context.rolling_buckets", minimum=2)
-    _int(c["rolling_buckets_4h"], "context.rolling_buckets_4h", minimum=2)
-    if c["rolling_buckets_4h"] <= c["rolling_buckets"]:
-        raise BetaConfigError("context.rolling_buckets_4h must be longer than rolling_buckets")
     for k in ("label_elevated", "label_high", "label_extreme", "tail_display_max"):
         _unit(c[k], f"context.{k}")
     if not (0.5 <= c["label_elevated"] < c["label_high"] < c["label_extreme"] < 1.0):

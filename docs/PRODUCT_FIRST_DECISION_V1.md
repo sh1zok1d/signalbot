@@ -1,6 +1,6 @@
 # Product-first decision V1 — canonical product decision record
 
-**Status:** `OWNER_DECISION_RECORDED / CANONICAL_PRODUCT_DECISION / BUILD_TO_TEST_IMPLEMENTED (code; not deployed, not user-tested)`
+**Status:** `OWNER_DECISION_RECORDED / CANONICAL_PRODUCT_DECISION / BUILD_TO_TEST_NOT_STARTED`
 **Date:** 2026-10-02 (repair and freeze passes the same day: §3.1b, §11)
 **Freeze (2026-10-02):** this decision and `BETA_COPY_CONTRACT_V1.md` are frozen as the basis for implementation, subject only to their not-yet-merged status (neither is in `main` yet). Frozen means the text and rules change only by a new owner decision. It does **not** mean any of the described behavior is implemented: `BUILD_TO_TEST_NOT_STARTED` still holds, and no runtime code, config, schema or test has changed under this decision.
 **Operating mode from this decision:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`
@@ -230,8 +230,7 @@ Unchanged by this decision: every sealed research verdict, `V3`, `E1-RUN-001`, `
 ## 10. Open questions (not decided here)
 
 - Exact coverage threshold for the gate diagnostic (§3.7) below which the gate rule itself is revisited before launch. Proposed: if fewer than 80% of unusual 1h windows on the recorded tape contain a `TRIGGERED` episode, the gate inputs are reviewed; still no second detector.
-- ~~Whether the 1h context used by the gate comes from the previous bucket's persisted snapshot or from an as-of computation inside the decision transaction.~~ Decided in code: the 1h/4h readings of the decision bucket are computed once (`context_asof`) before any push decision and reused by the projection; a failed computation leaves detection unchanged and the gate answers `CONTEXT_UNAVAILABLE`.
-- The venue-agreement check of the interpretation runs only after an unusual aggregate price move (`DIVERGENCE_GATE`, `INTERPRETATION_STATUS = PROVISIONAL_PENDING_DRY_RUN`): the owner reviews the recorded-tape dry run before this reading of §3.1 is frozen.
+- Whether the 1h context used by the gate comes from the previous bucket's persisted snapshot or from an as-of computation inside the decision transaction. Implementation choice, to be recorded in the PR.
 - The second acquisition channel for U4 beyond Russian-speaking perp chats.
 - The exact day of the first external invitation, set by §6 maturity and MUST completion.
 - Whether `/btc` keeps its current layout unchanged for the whole test or is reduced to a short form of the same view. Default: unchanged.
@@ -241,5 +240,4 @@ Unchanged by this decision: every sealed research verdict, `V3`, `E1-RUN-001`, `
 | Date | Change | Where |
 |---|---|---|
 | 2026-10-02 | Repair pass after the copy-contract finalization: symmetric extreme price move for push qualification (rank ≥ 0.95 or ≤ 0.05), «сжатие» pinned to range rank ≤ 0.20 with OI rank > 0.20, `/catchup` and briefing eligibility from market qualification (survives quiet hours, daily cap, global cooldown), `/push off` as a recipient preference without suppression entries, no contributing-exchange counts for aggregated Delta or volume in V1. No detector, state, label or config key added. | §3 rows 2, 3, 7, 8; §3.1; §3.1b |
-| 2026-10-02 | Build-to-test MUST scope implemented in code (integration branch over `main`): shared view builder (`beta/market_view.py`), `/catchup`, morning briefing through the existing outbox (`kind = 'brief'`), 1h/4h context `BETA_CONTEXT_1H_V2` with taker-delta and OI-change ranks, pure interpretation (`beta/interpretation.py`), the unusual-hour gate as a product-level step of `push_policy` (`beta/hour_gate.py`, stored by value in `beta_push_decisions.gate`), push policy (cap 2, quiet hours, global cooldown, `/push off` as a recipient preference), push and `/catchup` text per `BETA_COPY_CONTRACT_V1`, `cmd_push` / `known_contact` / `brief_delivered` telemetry, the gate coverage diagnostic in `--beta-context-dry-run`. Deviations recorded in `BETA_COPY_CONTRACT_V1.md` §7. No rules-digest, tape-schema or outcome change. | §3, §9 |
 | 2026-10-02 | Freeze pass: liquidation labels are `похоже на вынос лонгов / шортов` (§3 row 5, §3.1), raw liquidation figures stay factual supporting evidence; `SAME_EVENT_COOLDOWN` named beside quiet hours, daily cap and global cooldown as a delivery-side suppression that keeps a qualifying hour eligible (§3 row 7, §3.1b). No other rule changed. Freeze note added to the header. | header; §3 rows 5, 7; §3.1; §3.1b |

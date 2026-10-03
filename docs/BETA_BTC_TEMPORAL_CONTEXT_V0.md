@@ -136,19 +136,6 @@ The active context identity is therefore `BETA_CONTEXT_1H_V1` (pinned in `beta/c
 
 Deploy transient: LAST EVENT memory restarts. Open-episode details are hidden until those episodes end.
 
-## Context identity `BETA_CONTEXT_1H_V2` (product context, `PRODUCT_FIRST_DECISION_V1.md` §3 rows 4–6)
-
-- **Two windows from one machinery.** `rolling_window_values` is the former rolling-1h code with the bucket count as a parameter: 1h = 12 buckets (`context.rolling_buckets`), 4h = 48 (`context.rolling_buckets_4h`). The persisted state carries `context_1h` and `context_4h`. 24h stays a view-time horizon (`BETA_HORIZON_TOD_V1`), unchanged.
-- **Two more ranked metrics per window.**
-  - Signed taker delta: the sum of the 5m consensus value, already on the tape. Every bucket's value is required.
-  - OI change: Stage-1 `open_interest` as-of at the window start and end, with the same 2-minute tolerance, unit and contract-value rules as the horizon OI. The median is taken over venues, and fewer than `min_venue_coverage` venues is not a value. One range read per bucket (`fetch_open_interest_range`) feeds `OiAsofIndex`, which applies the unchanged `pick_oi_asof` rule.
-
-  Both are ranked over 30 days with the same percentile core as range, price move and volume.
-- **Missing parts degrade separately.** A failed or absent OI read sets `oi_status: OI_UNAVAILABLE` and leaves only the OI value and rank empty. Taker, price, range and volume are unaffected, and the 1h values of the three V1 metrics are computed exactly as before.
-- **No reset on deploy.** `CONTEXT_PREDECESSORS` declares V1 as the predecessor of V2. When no V2 snapshot exists yet, the projection adopts the latest V1 snapshot's episode memory (open episodes, last ended per type, as-of bucket). Episodes depend only on the episodization version, which must match. The adopted state's context readings are cleared and recomputed from the tape on the next step, and the chain continues (`prev_state_digest` = the V1 snapshot). V0 is not a predecessor and is still ignored. The V0→V1 transient described above does not repeat.
-- **Untouched.** `BETA_EVENT_RULES_V1`, the rules digest, tape schema V2, `STRICT_QUALIFICATION_V1`, `/btc` rendering, push policy and delivery.
-- **Interpretation.** The 1h/4h interpretation (`beta/interpretation.py`, `BETA_INTERPRETATION_V1`) is a pure function over one window's reading. It is not yet rendered anywhere.
-
 ## Deferred
 
 - 15m context and time-of-day normalized thresholds.

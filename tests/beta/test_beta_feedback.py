@@ -34,8 +34,8 @@ WELCOME_EN = (
     "The bot only describes the market; it is not trading advice.\n"
     "Feedback and questions: /feedback your text"
 )
-PUSH_RU = "Иногда бот сам пришлёт короткое сообщение — не больше 2 в день."
-PUSH_EN = "Sometimes the bot will send a short message on its own — no more than 2 a day."
+PUSH_RU = "Иногда бот сам пришлёт короткое сообщение — не больше 3 в день."
+PUSH_EN = "Sometimes the bot will send a short message on its own — no more than 3 a day."
 
 
 def _msg(uid, text, update_id):

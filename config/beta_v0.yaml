@@ -37,7 +37,7 @@ beta:
   bucket_close_grace_s: 20                  # wait after 5m close before evaluating
   same_event_cooldown_min: 20               # same-event PUSH cooldown after terminal
   delivery_ttl_s: 600                       # never push older than this
-  max_new_pushes_per_utc_day: 2             # global safety fuse (PRODUCT_FIRST_DECISION_V1 §3 row 8)
+  max_new_pushes_per_utc_day: 3             # global safety fuse
   forward_horizons: [15m, 30m, 1h, 4h, 24h]
 
   detector:
@@ -113,9 +113,8 @@ beta:
     version: STRICT_QUALIFICATION_V1
     live_hysteresis_enabled: false
   context:
-    version: BETA_CONTEXT_1H_V2             # V2: + 4h window, + taker-delta and OI-change ranks
+    version: BETA_CONTEXT_1H_V1
     rolling_buckets: 12                     # rolling 1h = last 12 closed 5m buckets
-    rolling_buckets_4h: 48                  # rolling 4h = last 48 closed 5m buckets (same machinery)
     label_elevated: 0.80                    # percentile-rank labels (unsigned dims)
     label_high: 0.95
     label_extreme: 0.99
@@ -145,19 +144,5 @@ beta:
   # D7 "High impact" line on /btc. Display only. Not detection, not the rules digest.
   # This committed flag is the hard allow. The line also needs the durable owner
   # state (/admin_d7_on), which defaults off and can never exceed this switch.
-  # Morning briefing (PRODUCT_FIRST_DECISION_V1 §3 row 3). Same view and render path
-  # as /catchup, delivered by the existing notifier through the existing outbox.
-  # Not detection, not the rules digest. Committed OFF: the owner enables it; it also
-  # needs the global push switches (BETA_PUSH_ENABLED, no /admin_pause_push).
-  briefing:
-    enabled: false
-    time_kyiv: "08:00"
-    max_delay_min: 120                      # a brief not sent within this is expired, never late
   regime_d7:
     enabled: true
-  # Delivery-side push policy (PRODUCT_FIRST_DECISION_V1 §3 row 8). Policy only: it
-  # enters the config digest, never the rules digest. The unusual-hour gate itself
-  # reuses context.label_high and has no key of its own (§3.1b).
-  push_policy:
-    quiet_hours_kyiv: ["23:00", "07:00"]    # no event push between these Kyiv wall-clock times
-    global_cooldown_min: 60                 # one push per hour across every event type

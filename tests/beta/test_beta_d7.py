@@ -45,24 +45,18 @@ def test_beta_modules_do_not_import_scripts_research():
                     assert not alias.name.startswith("scripts.research"), path
 
 
-def test_context_identity_is_v2_and_v1_v0_stay_pinned():
+def test_context_identity_is_v1_and_v0_stays_pinned():
     from beta.config import BetaConfig
     from beta.context import KNOWN_CONTEXT_DIGESTS, context_digest, verify_versions
     from test_beta_config import PINNED_RULES_DIGEST
     cfg = BetaConfig.load()
     versions = verify_versions(cfg)
-    assert cfg.section("context")["version"] == "BETA_CONTEXT_1H_V2"
-    assert versions["context_version"] == "BETA_CONTEXT_1H_V2"
-    assert versions["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"]
-    assert context_digest(cfg) == "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25"
-    assert KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"] == (
-        "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576")
+    assert cfg.section("context")["version"] == "BETA_CONTEXT_1H_V1"
+    assert versions["context_version"] == "BETA_CONTEXT_1H_V1"
+    assert versions["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"]
+    assert context_digest(cfg) == "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576"
     assert KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V0"] == (
         "7f94fde838a33fb094c6683b8834a2f9accbf96f6fb6d3fcc356aab9f49dc701")
-    # The kept V1 definition still reproduces its pinned digest: the V2 carry-over
-    # looks the predecessor's snapshots up by exactly that digest.
-    v1 = cfg.with_overrides(context={**dict(cfg.section("context")), "version": "BETA_CONTEXT_1H_V1"})
-    assert context_digest(v1) == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"]
     assert cfg.rules_digest == PINNED_RULES_DIGEST
     assert cfg["regime_d7"]["enabled"] is True
 
@@ -230,15 +224,8 @@ def test_d7_units_and_smoke_identity_are_wired():
     check = (REPO / "deploy" / "check_beta_units.sh").read_text(encoding="utf-8")
     assert "signalbot-beta-d7.timer" in install and "signalbot-beta-d7.timer" in check
     smoke = (REPO / "deploy" / "signalbot-beta-smoke.sql").read_text(encoding="utf-8")
-    # The smoke check pins the ACTIVE context identity (BETA_CONTEXT_1H_V2 since the
-    # Product-First deploy, PR #316): the configured version and its pinned digest.
-    from beta.context import verify_versions
-    active = verify_versions(CFG)
-    assert (active["context_version"], active["context_digest"]) == (
-        "BETA_CONTEXT_1H_V2", "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25")
-    assert active["context_version"] in smoke and active["context_digest"] in smoke
-    # the stale V1 identity (its digest) is no longer what the smoke pins
-    assert "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576" not in smoke
+    assert "BETA_CONTEXT_1H_V1" in smoke
+    assert "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576" in smoke
     assert "context_gaps" in smoke and "d7_missing" in smoke
 
 
@@ -370,8 +357,7 @@ def test_d7_backfill_pages_resumes_and_paces():
 
 
 @pytestmark_pg
-def test_v0_context_snapshot_is_ignored_and_a_current_chain_starts():
-    # V0 is not a declared predecessor of the active label, so nothing is carried.
+def test_v0_context_snapshot_is_ignored_and_a_v1_chain_starts():
     import json
     import random
     from beta.context import KNOWN_CONTEXT_DIGESTS, verify_versions
@@ -411,71 +397,12 @@ def test_v0_context_snapshot_is_ignored_and_a_current_chain_starts():
             rows = await conn.fetch(
                 """SELECT context_version, context_digest, prev_state_digest, state::text AS state
                    FROM beta_context_snapshots ORDER BY bucket_ts""")
-        assert [r["context_version"] for r in rows] == ["BETA_CONTEXT_1H_V0", "BETA_CONTEXT_1H_V2"]
+        assert [r["context_version"] for r in rows] == ["BETA_CONTEXT_1H_V0", "BETA_CONTEXT_1H_V1"]
         assert rows[0]["state"].find(marker) >= 0
         assert rows[1]["prev_state_digest"] is None
-        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"]
+        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"]
         assert marker not in rows[1]["state"]
         assert '"regime"' not in rows[1]["state"]
-        await pool.close()
-    run(body())
-
-
-@pytestmark_pg
-def test_v1_context_snapshot_hands_its_episode_memory_to_the_v2_chain():
-    """The declared predecessor (V1) is adopted: the first V2 snapshot continues its
-    chain and keeps its episode memory instead of restarting empty."""
-    import json
-    import random
-    from beta.context import KNOWN_CONTEXT_DIGESTS, verify_versions
-    from beta.detector import run_detector_once
-    from beta.state_tape import BUCKET, iso, materialize_bucket
-    from beta_fakes import (FEATURE_CODE, ON, S2, T0, Clock, ScenarioReader, deps, fresh_pool,
-                            history_buckets, history_metrics, quiet, seed_history, seed_live_klines)
-    from storage.beta_v0_store import BetaStore
-    b0 = T0 + timedelta(days=40)
-    mat = run(materialize_bucket(
-        ScenarioReader(quiet), S2, CFG, bucket_ts=b0, code_version=FEATURE_CODE,
-        liquidation_feed_available_by_exchange={"binance": True, "bybit": True, "okx": True}))
-    calc = mat.consensus_feature.calculation_version
-
-    async def body():
-        pool = await fresh_pool()
-        rng = random.Random(7)
-        await seed_history(pool, calculation_version=calc, buckets=history_buckets(b0, 8),
-                           metrics_fn=lambda b: history_metrics(rng))
-        await seed_live_klines(pool, [b0 + i * BUCKET for i in range(300)])
-        versions = verify_versions(CFG)
-        marker = "EV-V1-CARRIED"
-        state = {"context_version": "BETA_CONTEXT_1H_V1",
-                 "context_digest": KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"],
-                 "episodization_version": versions["episodization_version"],
-                 "episodization_digest": versions["episodization_digest"], "rules_digest": CFG.rules_digest,
-                 "as_of_bucket": iso(b0 - BUCKET), "open": {}, "now": None, "context_1h": None,
-                 "input": None, "last_ended": {"PRICE_OI_CONTRACTION_DOWN": {
-                     "episode_id": marker, "event_type": "PRICE_OI_CONTRACTION_DOWN",
-                     "terminal_at": iso(b0 - BUCKET)}}}
-        async with BetaStore(pool).connect() as conn:
-            await conn.conn.execute(
-                """INSERT INTO beta_context_snapshots (symbol, bucket_ts, episodization_version,
-                       episodization_digest, context_version, context_digest, rules_digest,
-                       prev_state_digest, state, state_digest)
-                   VALUES ('BTCUSDT',$1,$2,$3,'BETA_CONTEXT_1H_V1',$4,$5,$6,$7::jsonb,$8)""",
-                b0 - BUCKET, versions["episodization_version"], versions["episodization_digest"],
-                KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"], CFG.rules_digest, None,
-                json.dumps(state), "ab" * 32)
-        clock = Clock(b0 + BUCKET + timedelta(seconds=30))
-        await run_detector_once(deps(pool, ScenarioReader(quiet), clock), CFG, ON)
-        async with pool.acquire() as conn:
-            rows = await conn.fetch(
-                """SELECT context_version, context_digest, prev_state_digest, state::text AS state
-                   FROM beta_context_snapshots ORDER BY bucket_ts""")
-        assert [r["context_version"] for r in rows] == ["BETA_CONTEXT_1H_V1", "BETA_CONTEXT_1H_V2"]
-        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"]
-        assert rows[1]["prev_state_digest"] == "ab" * 32
-        assert marker in rows[1]["state"]
-        new_state = json.loads(rows[1]["state"])
-        assert new_state["context_version"] == "BETA_CONTEXT_1H_V2" and "context_4h" in new_state
         await pool.close()
     run(body())
 
@@ -526,13 +453,15 @@ def test_admin_d7_defaults_off_and_both_switches_gate_the_line():
                 "SELECT action, authorized, result FROM beta_admin_audit ORDER BY audit_id")
             assert [dict(r) for r in audit] == [
                 {"action": "admin_d7_on", "authorized": False, "result": "REFUSED"}]
-            view = await bot._view(conn, NOW, kind="btc")          # the shared builder path
+            view = {"product_status": "NO ACTIVE EVENTS"}
+            await bot._attach_regime(conn, view, NOW)
             assert "regime" not in view
         turned = await bot.handle(_admin_msg(owner, "/admin_d7_on", 2))
         assert "effective D7 line ON" in turned[0].html
         async with store.connect() as conn:
             assert await conn.get_admin_d7_enabled() is True
-            view = await bot._view(conn, NOW, kind="btc")
+            view = {"product_status": "NO ACTIVE EVENTS"}
+            await bot._attach_regime(conn, view, NOW)
             assert view["regime"]["shown"] is False
             row = await conn.conn.fetchrow(
                 "SELECT action, authorized, result, detail::text AS detail FROM beta_admin_audit "
@@ -548,7 +477,8 @@ def test_admin_d7_defaults_off_and_both_switches_gate_the_line():
         assert "remains OFF" in reply[0].html
         async with store.connect() as conn:
             assert await conn.get_admin_d7_enabled() is True
-            view = await blocked._view(conn, NOW, kind="btc")
+            view = {"product_status": "NO ACTIVE EVENTS"}
+            await blocked._attach_regime(conn, view, NOW)
             assert "regime" not in view
         await pool.close()
     run(body())

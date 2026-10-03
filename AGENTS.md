@@ -21,20 +21,30 @@ The MARKET program is through MARKET-06:
 - MARKET-05: `MARKET_05_NO_EVIDENCE`;
 - MARKET-06: `MARKET_06_NO_EVIDENCE`, canonical one-shot consumed and sealed; no rerun or reverse-effect rescue;
 - internal historical candidates promoted: `0`;
-- protected 2025/2026 OOS: unopened.
+- protected 2025/2026 OOS: not globally unopened; see the surface note below.
 
 The exact/near-exact M05/M06 cell (external/cross-market observable -> additive incremental term beside BTC own-state controls -> 24h direction-aligned adverse-path prediction -> holdout MAE improvement) is `REPEATED_NULL / LOW_PRIORITY_FOR_NOW`. The broader short-horizon BTC conditional scalar-prediction family is `LOW_PRIORITY / SATURATED_FOR_NOW` as a search-priority conclusion, not a claim that every member is false.
 
 Do **not** create MARKET-07 merely to continue a queue. D2 / RULE_1 is an
 `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`, not a validated trading edge
-and not a reason to restart product work. Protected Binance 2025/2026 remain
-sealed. The D2 excess direction-aligned path-risk decomposition one-shot
+and not a reason to restart product work. The D2 excess direction-aligned path-risk decomposition one-shot
 is consumed (`D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`; no
 rerun). The exact next research unit is recorded in
 `docs/CURRENT_RESEARCH_STATE.md`. Do not generate nearby D2
 threshold/horizon/RV variants.
 New discovery cards, if defined, must rotate across heterogeneous families
 rather than proliferate RV_ABSTENTION.
+
+**2025/2026 surface note (2026-10-02, `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md`).**
+- **Opened.** The six-symbol Binance USD-M surface (BTC, ETH, SOL, BNB, DOGE and XRP: 1m klines, bookDepth and OI metrics) from 2025-01-01 to the exclusive read horizon 2026-08-15 was opened for the divergence/support research program.
+- **Status.** It is no longer pristine OOS for hypotheses generated from divergence, support or mechanism research. It stays usable as previously exposed data for estimation and feasibility.
+- **E1-RUN-001** stays protected and unopened: the holdout `[2026-08-16, 2026-08-25 17:20)`, and nothing at or after 2026-08-15 is read.
+- **Everything else is unopened.** Other 2025/2026 venues, symbols and observables remain so, and all of 2025/2026 is not declared spent for unrelated families; that is decided per family.
+
+**Divergence / selling-exhaustion line (2026-10-03).** `COMPLETED` and closed as an active research route.
+- Do not start another divergence or exhaustion unit, SEED or prospective stream.
+- Do not evaluate the archived `RSI_GRADIENT_SUPPORT_CANDIDATE`.
+- Routing follows `PRODUCT_FIRST_DECISION_V1`.
 
 `FORWARD_MARKET_OBSERVABILITY_V1` collector implementation remains frozen; authoritative collection has not been started by this cleanup. B2-06 remains blocked on the missing/legally-timestamped observable problem.
 

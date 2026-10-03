@@ -123,35 +123,6 @@ A fresh deployment has a **warm-up period**. Readiness follows the accumulated *
 
 **Soak planning:** until the Price/OI families are ready, the soak cannot observe core events. Start judging event behaviour from the first bucket in which the relevant family reports `ready`.
 
-## Product-first V1: /catchup, morning briefing, unusual-hour push (build-to-test)
-
-Authority: `docs/PRODUCT_FIRST_DECISION_V1.md` §3 and `docs/BETA_COPY_CONTRACT_V1.md`. One detector, one episodization, one context projection (`BETA_CONTEXT_1H_V2`), one shared view builder (`beta/market_view.py`), one outbox, one notifier. No new unit and no new timer.
-
-**What changes at deployment (all additive, applied by the usual schema init: `main.py --beta-once` and the other `--beta-*` commands run `storage/beta_v0_schema.sql` idempotently):**
-- `beta_push_decisions.gate JSONB` (the unusual-hour gate by value) and the suppression reasons `HOUR_NOT_UNUSUAL`, `QUIET_HOURS`, `GLOBAL_COOLDOWN` (the old unnamed check constraint is replaced by `ck_beta_push_suppression`);
-- `beta_users.brief_enabled`, `beta_users.push_enabled` (both default true), `beta_users.known_contact` (default false);
-- `beta_btc_views.kind` (`btc` / `catchup` / `brief`); `beta_notification_deliveries.kind` / `view_pk` / `brief_date`, with `decision_id` and `episode_pk` nullable for `kind = 'brief'`;
-- `beta_user_activity.action` accepts `cmd_catchup`, `cmd_brief`, `cmd_push`, `brief_delivered`; `beta_admin_audit.action` accepts `admin_known`.
-- Rules digest unchanged (`BETA_EVENT_RULES_V1`); tape schema V2 unchanged; `BETA_OUTCOME_V1` unchanged.
-
-**Config (committed, `config/beta_v0.yaml`):** `max_new_pushes_per_utc_day: 2`; `push_policy.quiet_hours_kyiv: ["23:00", "07:00"]`; `push_policy.global_cooldown_min: 60`; `context.version: BETA_CONTEXT_1H_V2` with `rolling_buckets_4h: 48`; `briefing.enabled: false` (committed off; see below). None of these enters the rules digest.
-
-**Behaviour after restart:**
-- **Context V2 warm-up.** The projection adopts the open-episode memory of `BETA_CONTEXT_1H_V1` and recomputes the 1h/4h readings (now with taker-delta and OI-change ranks) from V2 tape rows. Ranks are `mature` only with 30 days of V2 rows (written since 2026-10-01); until then `/catchup` prints «мало истории» and the gate answers `IMMATURE`.
-- **Pushes.** Every `TRIGGERED` episode is still decided and recorded, but it is delivered only when the rolling 1h around it passes the gate (two of three ranked metrics extreme and 2 of 3 venues agreeing). Expect `HOUR_NOT_UNUSUAL` on most decisions, and `IMMATURE` in `gate->>'status'` until the ranks mature. Quiet hours 23:00–07:00 Kyiv, at most 2 a day, one per hour. The push text is the 1h state, never a detector name or an id.
-- **`/catchup`** works at once (facts; labels follow maturity). **`/push on|off`** and **`/brief on|off`** work at once.
-- **Morning briefing** needs `briefing.enabled: true` (committed, a separate PR) **and** effective push (hard switch + admin state). It is built once a day after 08:00 Kyiv inside the notifier run and sent through the outbox as `kind = 'brief'`; a brief not sent within `briefing.max_delay_min` expires and is never sent late.
-
-**Operator steps (in this order):**
-1. Deploy, restart the bot (`signalbot-beta-bot`), let the timers pick up the new code. Schema init is part of every `--beta-*` command.
-2. `python main.py --beta-health --beta-json` and `/admin_status`.
-3. **Gate coverage diagnostic** (decision §3 row 7, read-only): `python main.py --beta-context-dry-run --dry-run-days 14 --dry-run-provisional --beta-json`. Read `dry_run.gate_coverage`: `unusual_hours`, `covered_by_triggered_episode`, `share`. Below about 0.8 the gate inputs are reviewed before invitations (decision §10); the second detector is never the answer. The same report shows label frequencies and rendered `/catchup` samples for the owner review of the interpretation (`INTERPRETATION_STATUS = PROVISIONAL_PENDING_DRY_RUN`).
-4. Owner-only use until V2 ranks are mature (about 2026-10-31) and the owner has seen real unusual-hour pushes. Mark the owner's acquaintances with `/admin_known <telegram_user_id> on` as they join.
-5. Enable the briefing with a one-line config PR (`briefing.enabled: true`) when the owner wants it; nothing else is needed.
-6. Invitations only after the decision's §6 maturity and the pre-invitation commit that fixes the §7 thresholds.
-
-**Rollback:** the schema changes are additive and keep V0.2 rows valid. Reverting the code leaves `gate`, `kind`, `brief_*` columns unused.
-
 ## POST-DEPLOY V2 SMOKE CHECK
 
 Run this after the detector is active. The SQL file is read-only (`BEGIN TRANSACTION READ ONLY`). It does not read outcomes and does not compute forward returns, PnL, MAE, MFE, or hit rate. Any `FAIL` row is an operational stop.
@@ -165,14 +136,6 @@ Run this after the detector is active. The SQL file is read-only (`BEGIN TRANSAC
 ```bash
 psql "$DSN" \
   -v deploy_ts='<UTC deployment timestamp>' \
-  -f deploy/signalbot-beta-smoke.sql
-
-# If regime_d7.enabled is true, also pass a timestamp from which D7 hour-state
-# coverage is expected to be continuous:
-psql "$DSN" \
-  -v deploy_ts='<UTC deployment timestamp>' \
-  -v d7_enabled=true \
-  -v d7_deploy_ts='<UTC D7 coverage start>' \
   -f deploy/signalbot-beta-smoke.sql
 ```
 
@@ -252,7 +215,7 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 
 **Recipients:** every `ACTIVE` beta user. While only the owner has joined, this is the owner-only live push of the rollout. Do not hand out invite codes until the owner has seen real pushes.
 
-**Limits:** at most `max_new_pushes_per_utc_day` = 2 new pushes per UTC day (3 in V0.2), `same_event_cooldown_min` = 20, `push_policy.global_cooldown_min` = 60 across event types, quiet hours 23:00–07:00 Kyiv, nothing older than `delivery_ttl_s` = 600 s, and only hours that pass the unusual-hour gate (see the Product-first V1 section). D7 and readiness changes never push.
+**Limits (unchanged):** at most `max_new_pushes_per_utc_day` = 3 new pushes per UTC day, `same_event_cooldown_min` = 20, nothing older than `delivery_ttl_s` = 600 s. D7 and readiness changes never push.
 
 **Enable:**
 1. From the owner account, send `/admin_pause_push` before touching `.env`. A missing admin row counts as resumed, so without this step push starts at the first restart.

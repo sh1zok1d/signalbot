@@ -11,6 +11,7 @@ raw id. No raw Telegram id is ever logged.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import html
 import logging
 import signal
@@ -22,9 +23,8 @@ from beta.access import PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
 from beta.admin import collect_status, fingerprint, handle_admin, is_owner, parse_command
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
-from beta.formatter import assert_descriptive, format_history
+from beta.formatter import assert_descriptive, format_details, format_history
 from beta.i18n import t
-from beta.market_view import build_view, parse_catchup_hours, persist_view
 from common.logging_setup import setup_logging
 from notifications.telegram_client import TelegramSender, sanitize_telegram_error
 
@@ -199,36 +199,6 @@ class BetaBotHandler:
             html_text, buttons = await self._btc(conn, now, lang)
             return await self._reply(conn, user, chat_id, lang, now, "cmd_btc",
                                      [_msg(chat_id, html_text, buttons, lang=lang)])
-        if cmd == "catchup":
-            hours = parse_catchup_hours(args)
-            if hours is None:
-                return [_msg(chat_id, t(lang, "catchup_usage"), lang=lang)]
-            html_text, buttons = await self._catchup(conn, now, lang, hours,
-                                                    push_enabled=bool(user.get("push_enabled", True)))
-            return await self._reply(conn, user, chat_id, lang, now, "cmd_catchup",
-                                     [_msg(chat_id, html_text, buttons, lang=lang)])
-        if cmd == "push":
-            arg = (args or "").strip().lower()
-            if arg in ("on", "off"):
-                await conn.set_push_enabled(uid, arg == "on")
-                reply = t(lang, "push_on_ok" if arg == "on" else "push_off_ok")
-            else:
-                on = user.get("push_enabled", True)
-                reply = t(lang, "push_usage", state=t(lang, "push_state_on" if on else "push_state_off"))
-            # detail = the requested state ("on" / "off") or "status": the on/off history is
-            # reconstructable from the activity log, not only the current beta_users value.
-            return await self._reply(conn, user, chat_id, lang, now, "cmd_push", [_msg(chat_id, reply, lang=lang)],
-                                     detail=arg if arg in ("on", "off") else "status")
-        if cmd == "brief":
-            arg = (args or "").strip().lower()
-            if arg in ("on", "off"):
-                await conn.set_brief_enabled(uid, arg == "on")
-                reply = t(lang, "brief_on_ok" if arg == "on" else "brief_off_ok")
-            else:
-                on = user.get("brief_enabled", True)
-                reply = t(lang, "brief_usage", state=t(lang, "brief_state_on" if on else "brief_state_off"))
-            return await self._reply(conn, user, chat_id, lang, now, "cmd_brief", [_msg(chat_id, reply, lang=lang)],
-                                     detail=arg if arg in ("on", "off") else "status")
         if cmd == "history":
             rows = await conn.fetch_episode_history(symbol=self.cfg.symbol, limit=HISTORY_LIMIT)
             outcomes = {r["episode_pk"]: await conn.fetch_outcomes(r["episode_pk"]) for r in rows}
@@ -312,12 +282,12 @@ class BetaBotHandler:
                 f"Reply: /admin_reply {fp} &lt;text&gt;")
         return Outgoing(kind="message", chat_id=int(self.owner), html=body)
 
-    async def _note(self, conn, user, action: str, at: datetime, detail: Optional[str] = None) -> None:
+    async def _note(self, conn, user, action: str, at: datetime) -> None:
         if not user or user.get("user_pk") is None:
             return
         try:
             await conn.record_activity(user_pk=user["user_pk"], action=action,
-                                       lang=_lang_of(user), at=at, detail=detail)
+                                       lang=_lang_of(user), at=at)
         except Exception as exc:  # noqa: BLE001 - telemetry must not fail the reply
             logger.warning("beta activity note failed: %s", type(exc).__name__)
 
@@ -331,32 +301,78 @@ class BetaBotHandler:
         user["privacy_notice_version"] = PRIVACY_NOTICE_VERSION
         return [_msg(chat_id, t(lang, "privacy"), lang=lang), *out]
 
-    async def _reply(self, conn, user, chat_id, lang, now, action, out, detail: Optional[str] = None) -> list:
+    async def _reply(self, conn, user, chat_id, lang, now, action, out) -> list:
         if action:
-            await self._note(conn, user, action, now, detail)
+            await self._note(conn, user, action, now)
         return await self._prepend_notice(conn, user, chat_id, lang, out)
 
     async def _btc(self, conn, now: datetime, lang: str):
-        """Render /btc from the shared view builder and record exactly what was shown
-        (view model + rendered text + digests + lang; no user id)."""
+        """Render /btc from the persisted context projection and record exactly what
+        was shown (view model + rendered text + digests + lang; no user id)."""
+        from beta.context import btc_view, episodization_digest
         from beta.formatter import btc_buttons, format_btc
-        view = await self._view(conn, now, kind="btc")
+        from beta.readiness import readiness
+        from beta.state_tape import sha256_json
+        st = await collect_status(conn, self.cfg, now)
+        ctx = await conn.fetch_latest_context_state(symbol=self.cfg.symbol,
+                                                    episodization_digest=episodization_digest(self.cfg))
+        rd = readiness(self.cfg, st["latest"], maturity_days=self._maturity_days())
+        view = btc_view(self.cfg, product=st["status"], state=ctx["state"] if ctx else None,
+                        state_digest_value=ctx["state_digest"] if ctx else None, now=now, readiness=rd,
+                        detector_open_ids=[e.public_id for e in st["open_episodes"]])
+        await self._attach_horizons(conn, view)
+        await self._attach_regime(conn, view, now)
         text = format_btc(self.cfg, view, lang)
-        view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="btc")
+        digest = sha256_json(view)
+        view_pk = await conn.insert_btc_view(
+            requested_at=now, as_of_bucket=datetime.fromisoformat(view["as_of_bucket"]) if view["as_of_bucket"] else None,
+            context_state_digest=view["context_state_digest"],
+            episodization_version=view["episodization_version"],
+            episodization_digest=view["episodization_digest"], payload=view,
+            payload_digest=digest, rendered_sha256=hashlib.sha256(text.encode("utf-8")).hexdigest(),
+            rendered_html=text, lang=lang)
         return text, btc_buttons(view, lang, view_pk)
 
-    async def _catchup(self, conn, now: datetime, lang: str, hours: int, *, push_enabled: bool = True):
-        """/catchup: the same view object with the window summary and 1h/4h labels."""
-        from beta.formatter import btc_buttons, format_catchup
-        view = await self._view(conn, now, kind="catchup", window_hours=hours)
-        text = format_catchup(self.cfg, view, lang, push_enabled=push_enabled)
-        view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="catchup")
-        return text, btc_buttons(view, lang, view_pk)
+    async def _attach_horizons(self, conn, view: dict) -> None:
+        """Presentation-only 1h and 24h baselines. Fail-closed screens store an empty block.
 
-    async def _view(self, conn, now: datetime, *, kind: str, window_hours: Optional[int] = None) -> dict:
-        return await build_view(conn, self.cfg, now=now, kind=kind, window_hours=window_hours,
-                                maturity_days=self._maturity_days(),
-                                d7_enabled=effective_d7_enabled(self.cfg, await conn.get_admin_d7_enabled()))
+        Tape history covers the 24h window plus 30 prior days, each of which needs its
+        own 24h lookback, so the fetch starts 31 days and 24h before data-through.
+        """
+        from datetime import timedelta
+        from beta.horizons import build_horizons, empty_horizons, oi_boundaries
+        from beta.state_tape import BUCKET
+        if view.get("product_status") in ("DATA STALE", "DATA DEGRADED") or not view.get("as_of_bucket"):
+            view["horizons"] = empty_horizons()
+            return
+        as_of = datetime.fromisoformat(view["as_of_bucket"])
+        latest = await conn.fetch_latest_live_tape(symbol=self.cfg.symbol)
+        calc = (((latest or {}).get("snapshot") or {}).get("identity") or {}).get("calculation_version")
+        if not calc:
+            view["horizons"] = empty_horizons()
+            return
+        hist = await conn.fetch_tape_history(
+            symbol=self.cfg.symbol, market_type=self.cfg.market_type, timeframe=self.cfg.timeframe,
+            calculation_version=calc, state_schema_versions=(self.cfg.state_schema_version,),
+            start=as_of - timedelta(days=31, hours=24), end=as_of + BUCKET)
+        bounds = oi_boundaries(as_of)
+        oi = await conn.fetch_open_interest_asof(
+            symbol=self.cfg.symbol, exchanges=self.cfg.exchanges, boundaries=bounds)
+        view["horizons"] = build_horizons(self.cfg, as_of_bucket=as_of,
+                                          metrics_by_bucket={b: m for b, m in hist},
+                                          oi_by_boundary=oi)
+
+    async def _attach_regime(self, conn, view: dict, now: datetime) -> None:
+        """D7 is a view-payload field. It is not part of the context snapshot.
+
+        The line is attached only when the committed hard allow and the durable
+        owner state are both on.
+        """
+        if not effective_d7_enabled(self.cfg, await conn.get_admin_d7_enabled()):
+            return
+        from beta.regime_d7 import regime_for_status
+        view["regime"] = await regime_for_status(
+            conn, now=now, product_status=view.get("product_status") or "")
 
     def _maturity_days(self) -> float:
         """The percentile core's maturity span (Stage-2 confidence tiers), not a UI constant."""
@@ -460,13 +476,17 @@ class BetaBotHandler:
             return [answer(t(lang, "not_available"))]
         if data == "r:latest":
             return await self._readiness_details(conn, chat_id, answer, lang)
-        if data == "n:latest" or data[0] in ("c", "d"):
-            # Retired: live-state Details, and the episode Details of older pushes (they
-            # show the detector name, internal id and rules version; decision §3 row 9).
+        if data == "n:latest" or data[0] == "c":
+            # Retired live-state Details. Tabs render only a persisted view.
             return [answer(t(lang, "not_available"))]
         ep = await conn.fetch_episode_by_public_id(data[2:])
         if ep is None:
             return [answer(t(lang, "unknown_episode"))]
+        if data[0] == "d":
+            body = [answer(""), _msg(chat_id, format_details(
+                ep, await conn.fetch_transitions(ep.episode_pk), await conn.fetch_outcomes(ep.episode_pk), lang),
+                lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_details", body)
         if data[0] in ("u", "n"):
             await conn.upsert_feedback(user_pk=user["user_pk"], episode_pk=ep.episode_pk,
                                        vote="USEFUL" if data[0] == "u" else "NOISE")

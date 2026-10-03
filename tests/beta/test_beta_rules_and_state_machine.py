@@ -228,34 +228,22 @@ def test_every_event_type_has_a_lifecycle():
 
 
 # ---- push policy -----------------------------------------------------------------------
-PT = T + timedelta(hours=12)        # 14:00 Kyiv: outside the quiet hours
-
-
 def _pp(**kw):
-    base = dict(decision_ts=PT, evaluated_at=PT + timedelta(seconds=30), snapshot=snap(),
+    base = dict(decision_ts=T, evaluated_at=T + timedelta(seconds=30), snapshot=snap(),
                 last_same_type_terminal=None, last_same_type_would_push=None, would_push_today=0,
-                push_enabled=True, hour={"qualified": True}, last_any_would_push=None)
+                push_enabled=True)
     base.update(kw)
     return push_policy(CFG, **base)
 
 
 def test_push_policy_order_and_reasons():
-    from beta.models import GLOBAL_COOLDOWN, HOUR_NOT_UNUSUAL, QUIET_HOURS
     assert _pp() == (True, PUSH, None)
     assert _pp(push_enabled=False) == (True, SUPPRESSED, PUSH_DISABLED)
-    assert _pp(would_push_today=2) == (False, SUPPRESSED, DAILY_CAP)
-    assert _pp(hour=None) == (False, SUPPRESSED, HOUR_NOT_UNUSUAL)
-    assert _pp(hour={"qualified": False}) == (False, SUPPRESSED, HOUR_NOT_UNUSUAL)
-    assert _pp(last_any_would_push=PT - timedelta(minutes=59)) == (False, SUPPRESSED, GLOBAL_COOLDOWN)
-    assert _pp(last_any_would_push=PT - timedelta(minutes=60)) == (True, PUSH, None)
-    night = datetime(2026, 3, 1, 21, 30, tzinfo=timezone.utc)   # 23:30 Kyiv (EET)
-    assert _pp(decision_ts=night, evaluated_at=night + timedelta(seconds=30)) == (False, SUPPRESSED, QUIET_HOURS)
-    # the gate is evaluated before every delivery-side reason, so those imply a qualified hour
-    assert _pp(hour=None, would_push_today=2)[2] == HOUR_NOT_UNUSUAL
-    assert _pp(last_same_type_terminal=PT - timedelta(minutes=19)) == (False, SUPPRESSED, SAME_EVENT_COOLDOWN)
-    assert _pp(last_same_type_terminal=PT - timedelta(minutes=20)) == (True, PUSH, None)
-    assert _pp(last_same_type_would_push=PT - timedelta(minutes=5))[2] == SAME_EVENT_COOLDOWN
-    assert _pp(evaluated_at=PT + timedelta(seconds=601)) == (False, SUPPRESSED, DELIVERY_TOO_OLD)
+    assert _pp(would_push_today=3) == (False, SUPPRESSED, DAILY_CAP)
+    assert _pp(last_same_type_terminal=T - timedelta(minutes=19)) == (False, SUPPRESSED, SAME_EVENT_COOLDOWN)
+    assert _pp(last_same_type_terminal=T - timedelta(minutes=20)) == (True, PUSH, None)
+    assert _pp(last_same_type_would_push=T - timedelta(minutes=5))[2] == SAME_EVENT_COOLDOWN
+    assert _pp(evaluated_at=T + timedelta(seconds=601)) == (False, SUPPRESSED, DELIVERY_TOO_OLD)
     assert _pp(snapshot=snap(fresh=False)) == (False, SUPPRESSED, DATA_DEGRADED_REASON)
     assert _pp(snapshot=snap(families_ok=("price_structure", "oi"))) == (False, SUPPRESSED, DATA_DEGRADED_REASON)
 
