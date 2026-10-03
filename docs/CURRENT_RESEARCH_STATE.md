@@ -44,6 +44,28 @@ Done end to end on branch `research/autonomous-generation-g01`, from `main` at `
 - `AUTOGEN_G01_PLANNING.json`;
 - `SCIENTIFIC_TEST_LEDGER.json` (`SF-AUTOGEN-G01`, no test registered).
 
+## E1-RUN-001 — exposed fixed-prereg execution authorized; classified before execution; not executed (environment) — 2026-10-03
+
+`E1_RUN_001_EVIDENCE_CLASS = EXPOSED_FIXED_PREREG_SUPPORTING_EVIDENCE | PRISTINE_CONFIRMATION = NO | INDEPENDENT_REPLICATION = NO`
+`PROVENANCE_GATE = PASS | CONTRACT_CHANGED_AFTER_P4 = NO | RUNNER_SHA256 = e96d1b53…667f (= freeze f093fc3)`
+`E1_EXECUTION_STATUS = NOT_EXECUTED (BLOCKED_ENVIRONMENT: no live-archive DSN, no VPS artifacts, no VPS access from the session container)`
+`HOLDOUT_ROWS_READ = NO | ONE_SHOT_MARKER_CONSUMED = NO | RESCUE_ATTEMPTED = NO | PARAMETERS_CHANGED = NO`
+`NEXT_UNIT = owner-run E1 on the VPS (strengthened timestamp-only preflight, then the single frozen evaluator), per docs/research/E1_RUN_001_EXPOSED_FIXED_PREREG_EXECUTION_V1.md §4`
+
+**What the owner authorized.** The owner authorized one execution of E1-RUN-001 exactly as preregistered. The P4 follow-up had already opened the holdout's outcome surface, so the result counts as supporting evidence on a fixed, pre-P4 design, not as pristine confirmation.
+
+**Recorded before any outcome exists (`docs/research/E1_RUN_001_EXPOSED_FIXED_PREREG_EXECUTION_V1.md`).**
+- **Evidence class and interpretation**, fixed in advance:
+  - PASS is supporting only, with no CONFIRMED status on E1 alone.
+  - FAIL is real negative evidence, with no rescue.
+  - INCONCLUSIVE is for planning only.
+- **Mapping of the frozen family verdicts** (`SURVIVES`, `SIMPLIFY`, `DEMOTE_TO_BASELINE`, `KILL`, `INCONCLUSIVE_SAMPLE`). The `SIMPLIFY` row needs owner confirmation.
+- **Provenance gate evidence.** The prereg (`1e33880`, 2026-08-25) and every frozen element up to the evaluator freeze (`a9c3833`, 2026-08-26) predate P4 (2026-09-29T15:03Z). Nothing in the contract changed after P4.
+- **Execution identity.** Runner path, runner hash, grid and spec.
+- **The exact frozen procedure for the VPS.**
+
+**Why it was not executed.** The evaluator needs the live-archive database and the VPS `artifacts/e1/` inputs, the outcome-free inventory and a re-run strengthened preflight. This session has neither. Nothing was started, so the one-shot marker is unused.
+
 ## Research Atlas V1 — the permanent research map; governance cleanup before merge; no research executed — 2026-10-03
 
 `ATLAS = SIGNALBOT_RESEARCH_ATLAS_V1 (docs/research/SIGNALBOT_RESEARCH_ATLAS_V1.md)`

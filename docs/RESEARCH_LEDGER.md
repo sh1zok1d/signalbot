@@ -7909,3 +7909,20 @@ E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP
 ```
 WINDOWS_CONSUMED = none by this record (it records a past exposure); MARKET_VALUES_READ = none; NEW_TESTS = none
 ```
+
+## 2026-10-03 — E1-RUN-001: exposed fixed-prereg execution authorized and classified before execution; not executed
+
+**Authorization.** The owner authorized one execution of E1-RUN-001 exactly as preregistered, as `EXPOSED_FIXED_PREREG_SUPPORTING_EVIDENCE`. It is neither a pristine confirmation nor an independent replication, because P4 opened the holdout's outcome surface (erratum Amendment 1).
+
+**Provenance gate: PASS.**
+- The prereg `1e33880` (2026-08-25T17:02:09Z, final form `adc69ca`) and all frozen elements up to the evaluator freeze `a9c3833` predate P4 (2026-09-29T15:03Z).
+- No contract file and no module on the evaluator's execution path changed after P4.
+- The runner SHA-256 `e96d1b53…667f` is identical at the freeze and now.
+
+**Interpretation fixed in advance.** PASS is supporting evidence only, FAIL is negative evidence with no rescue, and INCONCLUSIVE is for planning only. The frozen verdict mapping is recorded; its `SIMPLIFY` row awaits owner confirmation.
+
+**Not executed.** This session has no live-archive DSN and no VPS artifacts, so no holdout row was read and the one-shot marker was not consumed. The owner-run procedure is in `docs/research/E1_RUN_001_EXPOSED_FIXED_PREREG_EXECUTION_V1.md` §4.
+
+```
+WINDOWS_CONSUMED = none; MARKET_VALUES_READ = none; E1_EXECUTION_STATUS = NOT_EXECUTED (BLOCKED_ENVIRONMENT)
+```
