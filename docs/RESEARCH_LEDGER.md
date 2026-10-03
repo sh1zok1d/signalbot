@@ -7674,3 +7674,22 @@ RESCUE_ATTEMPTED = false
 ```
 
 Record: `docs/research/GV0V03L40_C025_R1_CLOSE.md`.
+
+## 2026-10-03 — Owner cards R03 executed once and closed
+
+Owner-authorized program `SF-OWNER-CARDS-R03` (override of the product-first "no new research programs" rule for this program only; `docs/research/OWNER_CARDS_R03_DECISION.md`). Three cards of four `CONTEXT_DESCRIPTIVE` hypotheses on window range versus an ordinary-conditions comparator: scheduled derivatives-expiry clock (G), panel breadth/dispersion states (H), session/participant-clock structure (J).
+
+- **Consumed by this record:** the discovery surface Binance BTCUSDT 2020–2024 for the twelve frozen definitions (six executed, six closed outcome-blind). No rescue of any of the twelve.
+- **Not consumed:** BitMEX 2017–2019 (declared replication; no outcome opened), the 2025/2026 surfaces, the B2_06 OI/funding snapshot (not used).
+- **Result:** all six executed hypotheses `NO_INCREMENTAL_STRUCTURE`; zero prototypes; nothing promoted. Weekend hours (C1) show a clear negative effect (≈ −0.4 SD, Holm p 0.0001, growing by year) that is below the frozen 0.5 SD bar.
+
+```
+EXECUTED = R03-A1, R03-A4, R03-B2, R03-C1, R03-C2, R03-C4
+CLOSED_AT_FEASIBILITY = R03-A2, R03-A3, R03-C3, R03-B1, R03-B3, R03-B4
+PROMISING_PROTOTYPES = 0
+REPLICATION_EXECUTED = false
+RERUN_AUTHORIZED = false
+PROTECTED_2025_2026_OPENED = false
+```
+
+Records: `docs/research/OWNER_CARDS_R03_RESULT.md`, `SCIENTIFIC_TEST_LEDGER.json` (`TF-R03-A-EXPIRY-CLOCK`, `TF-R03-B-PANEL-STATES`, `TF-R03-C-SESSION-CLOCK`).

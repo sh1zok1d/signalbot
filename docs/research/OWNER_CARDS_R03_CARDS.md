@@ -1,6 +1,6 @@
 # Owner cards R03 — the three cards and twelve hypotheses
 
-**Status:** `DESIGN_FROZEN_OUTCOME_BLIND` (constants in `scripts/research/owner_cards_r03/constants.py`)
+**Status:** `DESIGN_FROZEN / EXECUTED_ONCE` (result: `OWNER_CARDS_R03_RESULT.md`) (constants in `scripts/research/owner_cards_r03/constants.py`)
 **Decision record:** `OWNER_CARDS_R03_DECISION.md`
 **Planning objects:** `OWNER_CARDS_R03_PLANNING.json` (one `GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1` object per hypothesis)
 

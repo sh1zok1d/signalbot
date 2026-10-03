@@ -1,6 +1,6 @@
 # Owner cards R03 — owner decision and program record
 
-**Status:** `OWNER_AUTHORIZED / OUTCOME_BLIND_UNTIL_PERMIT`
+**Status:** `OWNER_AUTHORIZED / EXECUTED_ONCE / CLOSED` (result: `OWNER_CARDS_R03_RESULT.md`; six executed, all `NO_INCREMENTAL_STRUCTURE`; six closed at feasibility)
 **Date:** 2026-10-03
 **Search family:** `SF-OWNER-CARDS-R03`
 **Owner instruction (2026-10-03, verbatim intent):** author three cards of four hypotheses each, oriented by the map of already-tested families; test them; freeze the viable ones under the existing plan; execute.
@@ -51,4 +51,4 @@ Anti-rescue rules observed: no RV threshold/window child (A/D2), no IMPACT_PROXY
 
 ## 6. What this record does not claim
 
-No market outcome was computed when it was written. Nothing here is a trading edge, a direction, or a cause.
+No market outcome was computed when it was written; the outcome is in `OWNER_CARDS_R03_RESULT.md`. Nothing here is a trading edge, a direction, or a cause.
