@@ -1,3 +1,25 @@
+## Owner cards R03 — executed once, closed; nothing promoted — 2026-10-03
+
+`OWNER_CARDS_R03 = EXECUTED_ONCE / CLOSED`
+`SEARCH_FAMILY = SF-OWNER-CARDS-R03 (owner override of NEW_RESEARCH_PROGRAMS_AUTHORIZED = false, for this program only; see docs/research/OWNER_CARDS_R03_DECISION.md)`
+`CARDS = R03-A expiry clock (G) | R03-B panel breadth (H) | R03-C session clock (J)`
+`EXECUTED = A1, A4, B2, C1, C2, C4 -> all NO_INCREMENTAL_STRUCTURE`
+`CLOSED_AT_FEASIBILITY = A2, A3, C3 (INFORMATIONALLY_WEAK) | B1, B3, B4 (INFORMATIONALLY_WEAK_AT_UNIT_LEVEL)`
+`PROMISING_PROTOTYPES = 0`
+`REPLICATION_EXECUTED = false (BitMEX 2017-2019 surface declared, not opened)`
+`RERUN_AUTHORIZED = false`
+`B2_06_OI_FUNDING_OPENED = false`
+`PROTECTED_2025_2026_OPENED = false`
+`E1_RUN_001_OPENED = false`
+`NEXT_UNIT = none (research); routing returns to PRODUCT_FIRST_DECISION_V1`
+`NEW_RESEARCH_PROGRAMS_AUTHORIZED = false (unchanged after this program)`
+
+**Owner instruction (2026-10-03).** Three author-written cards of four hypotheses, oriented by the tested-family map; feasibility; freeze of the viable ones; one execution. Done end to end on branch `research/owner-cards-r03`.
+
+**Outcome.** Six hypotheses reached the one-shot; none met the frozen bar (0.5 comparator-SD of standardized log range with the declared sign). One, weekend hours (C1), is a clear and growing negative effect (about −0.4 SD, Holm p 0.0001, −0.19 in 2020 to −0.65 in 2024) that sits below the bar and is classified `NO_INCREMENTAL_STRUCTURE` under the frozen rule, not rescued. Records: `docs/research/OWNER_CARDS_R03_{DECISION,CARDS,FEASIBILITY,PREREG,RESULT}.md`, permit and ledger entries `TF-R03-A-EXPIRY-CLOCK`, `TF-R03-B-PANEL-STATES`, `TF-R03-C-SESSION-CLOCK`.
+
+**Not done:** no replication outcome, no 2025/2026 object, no B2_06 byte, no product change. A follow-up on weekend baselines is a product-first question (baseline construction), not a new research unit.
+
 ## Final owner routing decision — divergence / selling-exhaustion line closed; product-first controls routing — 2026-10-03
 
 `REGULAR_BULLISH_DIVERGENCE_PROGRAM = COMPLETED`

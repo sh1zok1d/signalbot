@@ -1,0 +1,1856 @@
+{
+  "DATASETS": {
+    "BITMEX": {
+      "DATASET_ID": "D2_BITMEX_PRE2020_XBTUSD",
+      "GZ_SHA256": "8e027433b528a8ee084a90690ff4b0c4f819d1f1b66c776d635cf466bd8e56fa"
+    },
+    "BTC": {
+      "DATASET_ID": "CORE_BTC_BINANCE_V0",
+      "MONTHS": "2020-01..2024-12",
+      "ZIP_LIST_SHA256": "936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b"
+    },
+    "NYSE": {
+      "DATASET_ID": "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+      "EVENTS_SHA256": "69ee28a5192e4eb69e538e72f49164af820b2eeb841f380f24e337b2acef0be2"
+    },
+    "PANEL": {
+      "DATASET_ID": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+      "LEDGER_KEYSET_SHA256": "30f2011a6bfa9daffdf9cfd212ddafea54f3cabd753b70383798e2f76ddb555a",
+      "OBJECTS": 18296
+    },
+    "PROTECTED_2025_2026_SELECTED": false
+  },
+  "PLANNING": {
+    "R03-A1": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-A1-WEEKLY_EXPIRY_HOUR",
+      "CARD_ID": "R03-A",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over ISO_WEEK units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "D2_BITMEX_PRE2020_XBTUSD"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "ISO_WEEK",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "Friday 08:00-09:00 UTC, the Deribit weekly, monthly and quarterly expiry hour",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "POSITIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (Friday 08:00-09:00 UTC, the Deribit weekly, monthly and quarterly expiry hour) minus the mean standardized log range of the comparator windows (08:00-09:00 UTC on Monday-Thursday of the same ISO week), averaged over ISO_WEEK units, has the expected sign (POSITIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-A-EXPIRY-CLOCK.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "D2_BITMEX_PRE2020_XBTUSD"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "1152921504606846976"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": true,
+      "MECHANISM": "Deribit settles every listed option and future at 08:00 UTC on Fridays. Dealers and basis traders unwind hedges and roll positions into and out of that hour, so the hour carries more price discovery than the same hour on other weekdays.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "ISO_WEEK_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 51,
+          "2021": 53,
+          "2022": 52,
+          "2023": 52,
+          "2024": 52
+        },
+        "DECLARED_NOMINAL_COUNT": 1300,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: Friday 08:00-09:00 UTC, the Deribit weekly, monthly and quarterly expiry hour. COMPARATOR: 08:00-09:00 UTC on Monday-Thursday of the same ISO week. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "D2_BITMEX_PRE2020_XBTUSD",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over ISO_WEEK units of standardized log-range difference, state minus comparator",
+          "HORIZON": "60m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 260,
+          "MECHANISM_INACTIVE_N": 1040,
+          "MECHANISM_VARIABLE": "STATE_WEEKLY_EXPIRY_HOUR"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_WEEKLY_EXPIRY_HOUR",
+      "PROPOSAL_ID": "R03-A1",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "END": "2020-01-01",
+        "ID": "BITMEX_2016_2019",
+        "KIND": "HISTORICAL",
+        "NOMINAL_OBSERVATION_COUNT": 156,
+        "START": "2017-01-01"
+      },
+      "REPLICATION_UNIT_COUNT": 156,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-A-EXPIRY-CLOCK",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 260,
+        "INACTIVE_WINDOWS": 1040,
+        "UNITS": 260,
+        "UNITS_BY_YEAR": {
+          "2020": 51,
+          "2021": 53,
+          "2022": 52,
+          "2023": 52,
+          "2024": 52
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_WEEKLY_EXPIRY_HOUR"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET",
+          "TIME_OF_DAY"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-A2": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-A2-LARGE_EXPIRY_INCREMENT",
+      "CARD_ID": "R03-A",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over CALENDAR_MONTH units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "D2_BITMEX_PRE2020_XBTUSD"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "CALENDAR_MONTH",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "08:00-09:00 UTC on the last Friday of the calendar month (monthly and quarterly expiry)",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "POSITIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (08:00-09:00 UTC on the last Friday of the calendar month (monthly and quarterly expiry)) minus the mean standardized log range of the comparator windows (08:00-09:00 UTC on the other Fridays of the same calendar month), averaged over CALENDAR_MONTH units, has the expected sign (POSITIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-A-EXPIRY-CLOCK.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "D2_BITMEX_PRE2020_XBTUSD"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "1152921504606846976"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": true,
+      "MECHANISM": "Monthly and quarterly expiries carry much larger open interest than weeklies. If the expiry-hour effect scales with settled notional, the last-Friday hour should exceed the ordinary weekly expiry hour.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "CALENDAR_MONTH_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 12,
+          "2021": 12,
+          "2022": 12,
+          "2023": 12,
+          "2024": 12
+        },
+        "DECLARED_NOMINAL_COUNT": 261,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: 08:00-09:00 UTC on the last Friday of the calendar month (monthly and quarterly expiry). COMPARATOR: 08:00-09:00 UTC on the other Fridays of the same calendar month. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "D2_BITMEX_PRE2020_XBTUSD",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over CALENDAR_MONTH units of standardized log-range difference, state minus comparator",
+          "HORIZON": "60m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 60,
+          "MECHANISM_INACTIVE_N": 201,
+          "MECHANISM_VARIABLE": "STATE_LARGE_EXPIRY_INCREMENT"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_LARGE_EXPIRY_INCREMENT",
+      "PROPOSAL_ID": "R03-A2",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "END": "2020-01-01",
+        "ID": "BITMEX_2016_2019",
+        "KIND": "HISTORICAL",
+        "NOMINAL_OBSERVATION_COUNT": 36,
+        "START": "2017-01-01"
+      },
+      "REPLICATION_UNIT_COUNT": 36,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-A-EXPIRY-CLOCK",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 60,
+        "INACTIVE_WINDOWS": 201,
+        "UNITS": 60,
+        "UNITS_BY_YEAR": {
+          "2020": 12,
+          "2021": 12,
+          "2022": 12,
+          "2023": 12,
+          "2024": 12
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_LARGE_EXPIRY_INCREMENT"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET",
+          "TIME_OF_DAY"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-A3": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-A3-CME_EXPIRY_HOUR",
+      "CARD_ID": "R03-A",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over CALENDAR_MONTH units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "D2_BITMEX_PRE2020_XBTUSD"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "CALENDAR_MONTH",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "The hour starting 16:00 London time on the last Friday of the month (CME Bitcoin futures final settlement on the BRR)",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "POSITIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (The hour starting 16:00 London time on the last Friday of the month (CME Bitcoin futures final settlement on the BRR)) minus the mean standardized log range of the comparator windows (The hour starting 16:00 London time on the other Fridays of the same month), averaged over CALENDAR_MONTH units, has the expected sign (POSITIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-A-EXPIRY-CLOCK.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "D2_BITMEX_PRE2020_XBTUSD"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "1152921504606846976"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": true,
+      "MECHANISM": "CME Bitcoin futures settle to the CME CF Bitcoin Reference Rate computed over 15:00-16:00 London on the last Friday. Basis and cash-and-carry positions close around that fixing, and the hour after it absorbs the unwinds.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "CALENDAR_MONTH_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 12,
+          "2021": 12,
+          "2022": 12,
+          "2023": 12,
+          "2024": 12
+        },
+        "DECLARED_NOMINAL_COUNT": 261,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: The hour starting 16:00 London time on the last Friday of the month (CME Bitcoin futures final settlement on the BRR). COMPARATOR: The hour starting 16:00 London time on the other Fridays of the same month. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "D2_BITMEX_PRE2020_XBTUSD",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over CALENDAR_MONTH units of standardized log-range difference, state minus comparator",
+          "HORIZON": "60m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 60,
+          "MECHANISM_INACTIVE_N": 201,
+          "MECHANISM_VARIABLE": "STATE_CME_EXPIRY_HOUR"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_CME_EXPIRY_HOUR",
+      "PROPOSAL_ID": "R03-A3",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "END": "2020-01-01",
+        "ID": "BITMEX_2016_2019",
+        "KIND": "HISTORICAL",
+        "NOMINAL_OBSERVATION_COUNT": 24,
+        "START": "2017-01-01"
+      },
+      "REPLICATION_UNIT_COUNT": 24,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-A-EXPIRY-CLOCK",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 60,
+        "INACTIVE_WINDOWS": 201,
+        "UNITS": 60,
+        "UNITS_BY_YEAR": {
+          "2020": 12,
+          "2021": 12,
+          "2022": 12,
+          "2023": 12,
+          "2024": 12
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_CME_EXPIRY_HOUR"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET",
+          "TIME_OF_DAY"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-A4": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-A4-PRE_EXPIRY_PINNING",
+      "CARD_ID": "R03-A",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over ISO_WEEK units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "D2_BITMEX_PRE2020_XBTUSD"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "ISO_WEEK",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "Friday 04:00-08:00 UTC, the four hours before the Deribit expiry",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "NEGATIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (Friday 04:00-08:00 UTC, the four hours before the Deribit expiry) minus the mean standardized log range of the comparator windows (04:00-08:00 UTC on Monday-Thursday of the same ISO week), averaged over ISO_WEEK units, has the expected sign (NEGATIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-A-EXPIRY-CLOCK.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "D2_BITMEX_PRE2020_XBTUSD"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "1152921504606846976"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": true,
+      "MECHANISM": "Into a large options expiry, dealer gamma hedging near popular strikes pins the spot price, so the pre-expiry window should show a narrower range than the same window on other weekdays.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "ISO_WEEK_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 51,
+          "2021": 53,
+          "2022": 52,
+          "2023": 52,
+          "2024": 52
+        },
+        "DECLARED_NOMINAL_COUNT": 1300,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: Friday 04:00-08:00 UTC, the four hours before the Deribit expiry. COMPARATOR: 04:00-08:00 UTC on Monday-Thursday of the same ISO week. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "D2_BITMEX_PRE2020_XBTUSD",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over ISO_WEEK units of standardized log-range difference, state minus comparator",
+          "HORIZON": "240m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 260,
+          "MECHANISM_INACTIVE_N": 1040,
+          "MECHANISM_VARIABLE": "STATE_PRE_EXPIRY_PINNING"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_PRE_EXPIRY_PINNING",
+      "PROPOSAL_ID": "R03-A4",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "END": "2020-01-01",
+        "ID": "BITMEX_2016_2019",
+        "KIND": "HISTORICAL",
+        "NOMINAL_OBSERVATION_COUNT": 156,
+        "START": "2017-01-01"
+      },
+      "REPLICATION_UNIT_COUNT": 156,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-A-EXPIRY-CLOCK",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 260,
+        "INACTIVE_WINDOWS": 1040,
+        "UNITS": 260,
+        "UNITS_BY_YEAR": {
+          "2020": 51,
+          "2021": 53,
+          "2022": 52,
+          "2023": 52,
+          "2024": 52
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_PRE_EXPIRY_PINNING"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET",
+          "TIME_OF_DAY"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-B1": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-B1-RETURN_DISPERSION_HIGH",
+      "CARD_ID": "R03-B",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over CALENDAR_MONTH units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "CALENDAR_MONTH",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "UTC day whose cross-sectional SD of daily log returns across the eligible panel is at or above its trailing-180-day 0.80 quantile",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "POSITIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (UTC day whose cross-sectional SD of daily log returns across the eligible panel is at or above its trailing-180-day 0.80 quantile) minus the mean standardized log range of the comparator windows (Other eligible UTC days of the same calendar month), averaged over CALENDAR_MONTH units, has the expected sign (POSITIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-B-PANEL-STATES.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "562949953421312"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": false,
+      "MECHANISM": "High dispersion means idiosyncratic repricing dominates the common factor. That ends when the common factor moves; the next BTC day should carry a wider range.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "CALENDAR_MONTH_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 6,
+          "2021": 10,
+          "2022": 11,
+          "2023": 11,
+          "2024": 11
+        },
+        "DECLARED_NOMINAL_COUNT": 1495,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: UTC day whose cross-sectional SD of daily log returns across the eligible panel is at or above its trailing-180-day 0.80 quantile. COMPARATOR: Other eligible UTC days of the same calendar month. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over CALENDAR_MONTH units of standardized log-range difference, state minus comparator",
+          "HORIZON": "1440m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 353,
+          "MECHANISM_INACTIVE_N": 1142,
+          "MECHANISM_VARIABLE": "STATE_RETURN_DISPERSION_HIGH"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_RETURN_DISPERSION_HIGH",
+      "PROPOSAL_ID": "R03-B1",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "ID": "BINANCE_SPOT_PANEL_PROSPECTIVE_R03B",
+        "KIND": "PROSPECTIVE",
+        "START": "2027-01-01",
+        "STARTS_AFTER_FREEZE": true,
+        "STOPPING_RULE": {
+          "COUNTS_ONLY_MONITORING": true,
+          "END_DATE": "2028-12-31",
+          "MAX_EPISODES": 730,
+          "MIN_MECHANISM_ACTIVE_N": 60,
+          "MIN_MECHANISM_INACTIVE_N": 240,
+          "MIN_N": 365,
+          "PRODUCT_EXPOSURE_HANDLING": "The beta product shows no panel breadth, dispersion, volume-shock or BTC-share statistic. No product exposure of these states exists; if one is added before the stop, the prospective leg is void and needs a new preregistration."
+        }
+      },
+      "REPLICATION_UNIT_COUNT": 0,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-B-PANEL-STATES",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 353,
+        "INACTIVE_WINDOWS": 1142,
+        "UNITS": 49,
+        "UNITS_BY_YEAR": {
+          "2020": 6,
+          "2021": 10,
+          "2022": 11,
+          "2023": 11,
+          "2024": 11
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_RETURN_DISPERSION_HIGH"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-B2": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-B2-BREADTH_SYNCHRONY",
+      "CARD_ID": "R03-B",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over CALENDAR_MONTH units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "CALENDAR_MONTH",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "UTC day whose |fraction of eligible symbols with a positive daily return - 0.5| is at or above its trailing-180-day 0.80 quantile",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "POSITIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (UTC day whose |fraction of eligible symbols with a positive daily return - 0.5| is at or above its trailing-180-day 0.80 quantile) minus the mean standardized log range of the comparator windows (Other eligible UTC days of the same calendar month), averaged over CALENDAR_MONTH units, has the expected sign (POSITIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-B-PANEL-STATES.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "9007199254740992"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": false,
+      "MECHANISM": "When nearly every symbol moves the same way, the move is a common-factor shock. Common shocks cluster, so the next BTC day should carry a wider range.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "CALENDAR_MONTH_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 6,
+          "2021": 12,
+          "2022": 11,
+          "2023": 12,
+          "2024": 12
+        },
+        "DECLARED_NOMINAL_COUNT": 1614,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: UTC day whose |fraction of eligible symbols with a positive daily return - 0.5| is at or above its trailing-180-day 0.80 quantile. COMPARATOR: Other eligible UTC days of the same calendar month. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over CALENDAR_MONTH units of standardized log-range difference, state minus comparator",
+          "HORIZON": "1440m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 357,
+          "MECHANISM_INACTIVE_N": 1257,
+          "MECHANISM_VARIABLE": "STATE_BREADTH_SYNCHRONY"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_BREADTH_SYNCHRONY",
+      "PROPOSAL_ID": "R03-B2",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "ID": "BINANCE_SPOT_PANEL_PROSPECTIVE_R03B",
+        "KIND": "PROSPECTIVE",
+        "START": "2027-01-01",
+        "STARTS_AFTER_FREEZE": true,
+        "STOPPING_RULE": {
+          "COUNTS_ONLY_MONITORING": true,
+          "END_DATE": "2028-12-31",
+          "MAX_EPISODES": 730,
+          "MIN_MECHANISM_ACTIVE_N": 60,
+          "MIN_MECHANISM_INACTIVE_N": 240,
+          "MIN_N": 365,
+          "PRODUCT_EXPOSURE_HANDLING": "The beta product shows no panel breadth, dispersion, volume-shock or BTC-share statistic. No product exposure of these states exists; if one is added before the stop, the prospective leg is void and needs a new preregistration."
+        }
+      },
+      "REPLICATION_UNIT_COUNT": 0,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-B-PANEL-STATES",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 357,
+        "INACTIVE_WINDOWS": 1257,
+        "UNITS": 53,
+        "UNITS_BY_YEAR": {
+          "2020": 6,
+          "2021": 12,
+          "2022": 11,
+          "2023": 12,
+          "2024": 12
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_BREADTH_SYNCHRONY"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-B3": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-B3-VOLUME_SHOCK_FRACTION",
+      "CARD_ID": "R03-B",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over CALENDAR_MONTH units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "CALENDAR_MONTH",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "UTC day whose fraction of eligible symbols with quote volume at or above 2x their own trailing-30-day median is at or above its trailing-180-day 0.80 quantile",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "POSITIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (UTC day whose fraction of eligible symbols with quote volume at or above 2x their own trailing-30-day median is at or above its trailing-180-day 0.80 quantile) minus the mean standardized log range of the comparator windows (Other eligible UTC days of the same calendar month), averaged over CALENDAR_MONTH units, has the expected sign (POSITIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-B-PANEL-STATES.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "281474976710656"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": false,
+      "MECHANISM": "A broad volume shock across the panel signals a change in participation that is not specific to one coin; it should carry into the next BTC day.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "CALENDAR_MONTH_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 4,
+          "2021": 10,
+          "2022": 11,
+          "2023": 11,
+          "2024": 12
+        },
+        "DECLARED_NOMINAL_COUNT": 1461,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: UTC day whose fraction of eligible symbols with quote volume at or above 2x their own trailing-30-day median is at or above its trailing-180-day 0.80 quantile. COMPARATOR: Other eligible UTC days of the same calendar month. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over CALENDAR_MONTH units of standardized log-range difference, state minus comparator",
+          "HORIZON": "1440m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 332,
+          "MECHANISM_INACTIVE_N": 1129,
+          "MECHANISM_VARIABLE": "STATE_VOLUME_SHOCK_FRACTION"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_VOLUME_SHOCK_FRACTION",
+      "PROPOSAL_ID": "R03-B3",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "ID": "BINANCE_SPOT_PANEL_PROSPECTIVE_R03B",
+        "KIND": "PROSPECTIVE",
+        "START": "2027-01-01",
+        "STARTS_AFTER_FREEZE": true,
+        "STOPPING_RULE": {
+          "COUNTS_ONLY_MONITORING": true,
+          "END_DATE": "2028-12-31",
+          "MAX_EPISODES": 730,
+          "MIN_MECHANISM_ACTIVE_N": 60,
+          "MIN_MECHANISM_INACTIVE_N": 240,
+          "MIN_N": 365,
+          "PRODUCT_EXPOSURE_HANDLING": "The beta product shows no panel breadth, dispersion, volume-shock or BTC-share statistic. No product exposure of these states exists; if one is added before the stop, the prospective leg is void and needs a new preregistration."
+        }
+      },
+      "REPLICATION_UNIT_COUNT": 0,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-B-PANEL-STATES",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 332,
+        "INACTIVE_WINDOWS": 1129,
+        "UNITS": 48,
+        "UNITS_BY_YEAR": {
+          "2020": 4,
+          "2021": 10,
+          "2022": 11,
+          "2023": 11,
+          "2024": 12
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_VOLUME_SHOCK_FRACTION"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-B4": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-B4-BTC_SHARE_LOW",
+      "CARD_ID": "R03-B",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over CALENDAR_MONTH units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "CALENDAR_MONTH",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "UTC day whose BTC share of eligible-panel quote volume (BTC included) is at or below its trailing-180-day 0.20 quantile",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "TWO_SIDED",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (UTC day whose BTC share of eligible-panel quote volume (BTC included) is at or below its trailing-180-day 0.20 quantile) minus the mean standardized log range of the comparator windows (Other eligible UTC days of the same calendar month), averaged over CALENDAR_MONTH units, has the expected sign (TWO_SIDED), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-B-PANEL-STATES.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "2199023255552"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": false,
+      "MECHANISM": "Days when activity concentrates in altcoins describe a different participant mix. Whether BTC's next-day range is wider or narrower on such days is not known, so the claim is two-sided.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "CALENDAR_MONTH_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 5,
+          "2021": 11,
+          "2022": 2,
+          "2023": 11,
+          "2024": 12
+        },
+        "DECLARED_NOMINAL_COUNT": 1248,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: UTC day whose BTC share of eligible-panel quote volume (BTC included) is at or below its trailing-180-day 0.20 quantile. COMPARATOR: Other eligible UTC days of the same calendar month. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over CALENDAR_MONTH units of standardized log-range difference, state minus comparator",
+          "HORIZON": "1440m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 422,
+          "MECHANISM_INACTIVE_N": 826,
+          "MECHANISM_VARIABLE": "STATE_BTC_SHARE_LOW"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_BTC_SHARE_LOW",
+      "PROPOSAL_ID": "R03-B4",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "ID": "BINANCE_SPOT_PANEL_PROSPECTIVE_R03B",
+        "KIND": "PROSPECTIVE",
+        "START": "2027-01-01",
+        "STARTS_AFTER_FREEZE": true,
+        "STOPPING_RULE": {
+          "COUNTS_ONLY_MONITORING": true,
+          "END_DATE": "2028-12-31",
+          "MAX_EPISODES": 730,
+          "MIN_MECHANISM_ACTIVE_N": 60,
+          "MIN_MECHANISM_INACTIVE_N": 240,
+          "MIN_N": 365,
+          "PRODUCT_EXPOSURE_HANDLING": "The beta product shows no panel breadth, dispersion, volume-shock or BTC-share statistic. No product exposure of these states exists; if one is added before the stop, the prospective leg is void and needs a new preregistration."
+        }
+      },
+      "REPLICATION_UNIT_COUNT": 0,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-B-PANEL-STATES",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 422,
+        "INACTIVE_WINDOWS": 826,
+        "UNITS": 41,
+        "UNITS_BY_YEAR": {
+          "2020": 5,
+          "2021": 11,
+          "2022": 2,
+          "2023": 11,
+          "2024": 12
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_BTC_SHARE_LOW"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-C1": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-C1-WEEKEND_HOURS",
+      "CARD_ID": "R03-C",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over ISO_WEEK units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+          "D2_BITMEX_PRE2020_XBTUSD"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "ISO_WEEK",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "Every UTC hour of Saturday and Sunday",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "NEGATIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (Every UTC hour of Saturday and Sunday) minus the mean standardized log range of the comparator windows (The same UTC hour of Tuesday, Wednesday and Thursday of the same ISO week), averaged over ISO_WEEK units, has the expected sign (NEGATIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-C-SESSION-CLOCK.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+        "D2_BITMEX_PRE2020_XBTUSD"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "1152921504606846976"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": true,
+      "MECHANISM": "Traditional-finance participants and their funding rails are closed at the weekend, so the hourly range should be narrower hour for hour.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "ISO_WEEK_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 52,
+          "2021": 52,
+          "2022": 52,
+          "2023": 52,
+          "2024": 52
+        },
+        "DECLARED_NOMINAL_COUNT": 31200,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: Every UTC hour of Saturday and Sunday. COMPARATOR: The same UTC hour of Tuesday, Wednesday and Thursday of the same ISO week. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+          "PIT_STATUS": "VERIFIED_PREANNOUNCED"
+        },
+        {
+          "DATASET_ID": "D2_BITMEX_PRE2020_XBTUSD",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over ISO_WEEK units of standardized log-range difference, state minus comparator",
+          "HORIZON": "60m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 12480,
+          "MECHANISM_INACTIVE_N": 18720,
+          "MECHANISM_VARIABLE": "STATE_WEEKEND_HOURS"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_WEEKEND_HOURS",
+      "PROPOSAL_ID": "R03-C1",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "END": "2020-01-01",
+        "ID": "BITMEX_2016_2019",
+        "KIND": "HISTORICAL",
+        "NOMINAL_OBSERVATION_COUNT": 156,
+        "START": "2017-01-01"
+      },
+      "REPLICATION_UNIT_COUNT": 156,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-C-SESSION-CLOCK",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 12480,
+        "INACTIVE_WINDOWS": 18720,
+        "UNITS": 260,
+        "UNITS_BY_YEAR": {
+          "2020": 52,
+          "2021": 52,
+          "2022": 52,
+          "2023": 52,
+          "2024": 52
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_WEEKEND_HOURS"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET",
+          "TIME_OF_DAY"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-C2": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-C2-MONDAY_US_OPEN",
+      "CARD_ID": "R03-C",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over ISO_WEEK units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+          "D2_BITMEX_PRE2020_XBTUSD"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "ISO_WEEK",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "Monday 09:30-10:30 America/New_York, excluding Mondays that are NYSE full-day closures",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "POSITIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (Monday 09:30-10:30 America/New_York, excluding Mondays that are NYSE full-day closures) minus the mean standardized log range of the comparator windows (09:30-10:30 America/New_York on Tuesday-Thursday of the same ISO week), averaged over ISO_WEEK units, has the expected sign (POSITIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-C-SESSION-CLOCK.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+        "D2_BITMEX_PRE2020_XBTUSD"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "1152921504606846976"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": true,
+      "MECHANISM": "Information that accumulates over the weekend is priced by US-session participants when they return; the first US-open hour of the week should carry a wider range than the same hour later in the week.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "ISO_WEEK_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 48,
+          "2021": 47,
+          "2022": 45,
+          "2023": 45,
+          "2024": 47
+        },
+        "DECLARED_NOMINAL_COUNT": 928,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: Monday 09:30-10:30 America/New_York, excluding Mondays that are NYSE full-day closures. COMPARATOR: 09:30-10:30 America/New_York on Tuesday-Thursday of the same ISO week. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+          "PIT_STATUS": "VERIFIED_PREANNOUNCED"
+        },
+        {
+          "DATASET_ID": "D2_BITMEX_PRE2020_XBTUSD",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over ISO_WEEK units of standardized log-range difference, state minus comparator",
+          "HORIZON": "60m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 232,
+          "MECHANISM_INACTIVE_N": 696,
+          "MECHANISM_VARIABLE": "STATE_MONDAY_US_OPEN"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_MONDAY_US_OPEN",
+      "PROPOSAL_ID": "R03-C2",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "END": "2020-01-01",
+        "ID": "BITMEX_2016_2019",
+        "KIND": "HISTORICAL",
+        "NOMINAL_OBSERVATION_COUNT": 156,
+        "START": "2017-01-01"
+      },
+      "REPLICATION_UNIT_COUNT": 156,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-C-SESSION-CLOCK",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 232,
+        "INACTIVE_WINDOWS": 696,
+        "UNITS": 232,
+        "UNITS_BY_YEAR": {
+          "2020": 48,
+          "2021": 47,
+          "2022": 45,
+          "2023": 45,
+          "2024": 47
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_MONDAY_US_OPEN"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET",
+          "TIME_OF_DAY"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-C3": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-C3-NYSE_CLOSURE_US_OPEN",
+      "CARD_ID": "R03-C",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over CLOSURE_DAY units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "CLOSURE_DAY",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "09:30-10:30 America/New_York on a weekday that is a NYSE full-day closure",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "NEGATIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (09:30-10:30 America/New_York on a weekday that is a NYSE full-day closure) minus the mean standardized log range of the comparator windows (09:30-10:30 America/New_York on the other non-closure weekdays of the same ISO week), averaged over CLOSURE_DAY units, has the expected sign (NEGATIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-C-SESSION-CLOCK.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "70368744177664"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": true,
+      "MECHANISM": "On a US holiday the US equity session does not open, so the hour that usually carries the US open should show a narrower range.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "CLOSURE_DAY_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 8,
+          "2021": 9,
+          "2022": 9,
+          "2023": 10,
+          "2024": 10
+        },
+        "DECLARED_NOMINAL_COUNT": 230,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: 09:30-10:30 America/New_York on a weekday that is a NYSE full-day closure. COMPARATOR: 09:30-10:30 America/New_York on the other non-closure weekdays of the same ISO week. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+          "PIT_STATUS": "VERIFIED_PREANNOUNCED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over CLOSURE_DAY units of standardized log-range difference, state minus comparator",
+          "HORIZON": "60m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 46,
+          "MECHANISM_INACTIVE_N": 184,
+          "MECHANISM_VARIABLE": "STATE_NYSE_CLOSURE_US_OPEN"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_NYSE_CLOSURE_US_OPEN",
+      "PROPOSAL_ID": "R03-C3",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "ID": "BINANCE_PROSPECTIVE_R03-C3",
+        "KIND": "PROSPECTIVE",
+        "START": "2027-01-01",
+        "STARTS_AFTER_FREEZE": true,
+        "STOPPING_RULE": {
+          "COUNTS_ONLY_MONITORING": true,
+          "END_DATE": "2032-12-31",
+          "MAX_EPISODES": 60,
+          "MIN_MECHANISM_ACTIVE_N": 10,
+          "MIN_MECHANISM_INACTIVE_N": 40,
+          "MIN_N": 50,
+          "PRODUCT_EXPOSURE_HANDLING": "The beta product shows no panel breadth, dispersion, volume-shock or BTC-share statistic. No product exposure of these states exists; if one is added before the stop, the prospective leg is void and needs a new preregistration."
+        }
+      },
+      "REPLICATION_UNIT_COUNT": 0,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-C-SESSION-CLOCK",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 46,
+        "INACTIVE_WINDOWS": 184,
+        "UNITS": 46,
+        "UNITS_BY_YEAR": {
+          "2020": 8,
+          "2021": 9,
+          "2022": 9,
+          "2023": 10,
+          "2024": 10
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_NYSE_CLOSURE_US_OPEN"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET",
+          "TIME_OF_DAY"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    },
+    "R03-C4": {
+      "ALLOWED_INTERPRETATION": "A non-directional description of the range of a scheduled or calendar-defined hour or day relative to a named ordinary-conditions comparator, with the nuisance diagnostic deciding whether the state is more than the general volatility regime.",
+      "BLOCKING_ASSUMPTIONS": [
+        "Within a unit the state and comparator windows share the slow volatility regime, so the within-unit difference removes it; what remains can still be serially dependent across units.",
+        "The standardization scale (per year and per window definition) is label-blind and symmetric.",
+        "The claim is descriptive. It does not identify which participants act."
+      ],
+      "CANDIDATE_ID": "R03-C4-FRIDAY_US_CLOSE",
+      "CARD_ID": "R03-C",
+      "CLAIM_TYPE": "CONTEXT_DESCRIPTIVE",
+      "COMPLEXITY_CLASS": "ATOMIC",
+      "COMPONENTS": [],
+      "CONTRACT_VERSION": "GV0R03_GENERATOR_FEASIBILITY_CONTRACT_V1",
+      "COUNTERFACTUAL_CLASS": "Sign-flip randomization of the per-unit state-minus-comparator difference over ISO_WEEK units, 20000 draws, seed 20261003 plus the hypothesis index, two-sided p = (1 + count(|T_perm| >= |T_obs|)) / (1 + draws). Units are time-separated and each difference is computed inside its own unit, so slow volatility regimes cancel within the unit; a moving-block standard error over units is reported as a dependence diagnostic.",
+      "DATA_SOURCE_REFS": {
+        "FEATURE_IDS": [
+          "CORE_BTC_BINANCE_V0",
+          "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+          "D2_BITMEX_PRE2020_XBTUSD"
+        ],
+        "FEATURE_REGISTRY_VERSION": "GV0R02_FEATURE_REGISTRY_V0"
+      },
+      "DEPENDENCE_CLUSTERING_UNIT": "ISO_WEEK",
+      "DISCOVERY_SURFACE": {
+        "END": "2025-01-01",
+        "ID": "BINANCE_2020_2024",
+        "START": "2020-01-01"
+      },
+      "ENDPOINT_MOMENT": "SECOND_MOMENT",
+      "EPOCHS": "CALENDAR_YEAR",
+      "ERA_INVARIANCE_PRIOR": "UNKNOWN",
+      "ERA_INVARIANCE_RATIONALE": "Calendar and venue structure changed between 2017-2019 and 2020-2024; the epoch-heterogeneity gate is assessed, never assumed.",
+      "ERA_ROLES": {
+        "BINANCE_2020_2024": "DISCOVERY",
+        "BITMEX_2016_2019": "HISTORICAL_REPLICATION_CANDIDATE",
+        "Y2025_2026": "PROTECTED_HOLDOUT"
+      },
+      "EVENT_OR_STATE_DEFINITION": "Friday 15:00-16:00 America/New_York, excluding Fridays that are NYSE closures or early-close days",
+      "EXPECTED_EFFECT": {
+        "DIRECTION": "POSITIVE",
+        "MIN_MEANINGFUL_EFFECT": 0.5,
+        "RATIONALE": "The beta briefing flags an hour whose range sits in the extreme of its same-hour baseline. A scheduled state that shifts the range distribution by half a comparator SD roughly doubles that flag rate; a smaller shift is not worth a user-facing sentence. The bar was set before any count or outcome and is the same for all twelve hypotheses.",
+        "UNITS": "SD_OF_STANDARDIZED_LOG_RANGE"
+      },
+      "FALSIFIABLE_CLAIM": "The standardized log range of the state window (Friday 15:00-16:00 America/New_York, excluding Fridays that are NYSE closures or early-close days) minus the mean standardized log range of the comparator windows (15:00-16:00 America/New_York on Tuesday-Thursday of the same ISO week), averaged over ISO_WEEK units, has the expected sign (POSITIVE), magnitude at least 0.5 SD, and a Holm-adjusted two-sided sign-flip p at or below 0.05 within TF-R03-C-SESSION-CLOCK.",
+      "FEATURE_REQUIREMENTS": [
+        "CORE_BTC_BINANCE_V0",
+        "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+        "D2_BITMEX_PRE2020_XBTUSD"
+      ],
+      "FORBIDDEN_INTERPRETATION": "No direction, no trade, no target, no probability of direction, no causal claim about dealers, hedgers or any participant group, no generalization beyond the venue and years tested.",
+      "FROZEN_OUTCOME_BLIND_SCREEN": {
+        "EXACT_ENUMERATION": false,
+        "MIN_ATTAINABLE_P": 4.999750012499375e-05,
+        "MONTE_CARLO_DRAWS": 20000,
+        "PRIMARY_LABEL_ORBIT_SIZE": "1152921504606846976"
+      },
+      "HISTORICAL_WINDOW": "2020-01..2024-12",
+      "INTRADAY": true,
+      "MECHANISM": "Before the weekend, participants who cannot manage risk over two closed days square positions in the last regular US hour of the week.",
+      "NAMED_INFERENCE_CLASS": "PERMUTATION_GROUP_INVARIANCE",
+      "NOMINAL_OBSERVATION_COUNT_CONSTRUCTION": {
+        "COUNTING_UNIT": "ISO_WEEK_WITH_STATE_AND_COMPARATOR_WINDOWS",
+        "DECLARED_COUNT_BY_YEAR": {
+          "2020": 47,
+          "2021": 49,
+          "2022": 50,
+          "2023": 50,
+          "2024": 50
+        },
+        "DECLARED_NOMINAL_COUNT": 984,
+        "EXCLUSION_RULE": "Units without a state or without a comparator window; windows with any missing bar are dropped at outcome time from timestamps only. No outcome filter.",
+        "INCLUSION_RULE": "STATE: Friday 15:00-16:00 America/New_York, excluding Fridays that are NYSE closures or early-close days. COMPARATOR: 15:00-16:00 America/New_York on Tuesday-Thursday of the same ISO week. A unit needs at least one state window and one comparator window.",
+        "OUTCOME_FILTER": "NONE",
+        "WINDOW": "2020-01..2024-12"
+      },
+      "NUISANCE_DIAGNOSTIC_PLANNED": true,
+      "POINT_IN_TIME_REQUIREMENTS": [
+        {
+          "DATASET_ID": "CORE_BTC_BINANCE_V0",
+          "PIT_STATUS": "VERIFIED"
+        },
+        {
+          "DATASET_ID": "NYSE_HOLIDAY_CALENDAR_ARCHIVE_V0",
+          "PIT_STATUS": "VERIFIED_PREANNOUNCED"
+        },
+        {
+          "DATASET_ID": "D2_BITMEX_PRE2020_XBTUSD",
+          "PIT_STATUS": "VERIFIED"
+        }
+      ],
+      "PRACTICAL_BAR_BASIS": "PRODUCT_RELEVANCE",
+      "PRIMARY_CELLS": [
+        {
+          "ESTIMAND": "mean over ISO_WEEK units of standardized log-range difference, state minus comparator",
+          "HORIZON": "60m window",
+          "REGIME": null
+        }
+      ],
+      "PRIMARY_MECHANISM_SUPPORT": [
+        {
+          "KIND": "BINARY",
+          "MECHANISM_ACTIVE_N": 246,
+          "MECHANISM_INACTIVE_N": 738,
+          "MECHANISM_VARIABLE": "STATE_FRIDAY_US_CLOSE"
+        }
+      ],
+      "PRIMARY_OBSERVABLE": "STATE_FRIDAY_US_CLOSE",
+      "PROPOSAL_ID": "R03-C4",
+      "QUALITATIVE_DEPENDENCE_SOURCES": [
+        "volatility clustering across units",
+        "shared macro weeks",
+        "exchange outages"
+      ],
+      "REPLICATION_SURFACE": {
+        "END": "2020-01-01",
+        "ID": "BITMEX_2016_2019",
+        "KIND": "HISTORICAL",
+        "NOMINAL_OBSERVATION_COUNT": 156,
+        "START": "2017-01-01"
+      },
+      "REPLICATION_UNIT_COUNT": 156,
+      "REQUIRED_STRESS_SCREENS": [
+        "STRESS_SD_MULTIPLIER",
+        "HOMOGENEOUS_EFFECT",
+        "ZERO_EFFECT_IN_ONE_ERA"
+      ],
+      "SEARCH_FAMILY_ID": "SF-OWNER-CARDS-R03",
+      "TARGET_CLASS": "UNCONDITIONAL",
+      "TEST_FAMILY_ID": "TF-R03-C-SESSION-CLOCK",
+      "UNIT_COUNTS": {
+        "ACTIVE_WINDOWS": 246,
+        "INACTIVE_WINDOWS": 738,
+        "UNITS": 246,
+        "UNITS_BY_YEAR": {
+          "2020": 47,
+          "2021": 49,
+          "2022": 50,
+          "2023": 50,
+          "2024": 50
+        }
+      },
+      "VARIABLE_ROLES": {
+        "MECHANISM_VARIABLES": [
+          "STATE_FRIDAY_US_CLOSE"
+        ],
+        "NUISANCE_BASELINE_VARIABLES": [
+          "PRIOR_REALIZED_VOLATILITY",
+          "LAGGED_TARGET",
+          "TIME_OF_DAY"
+        ],
+        "REGIME_VARIABLES": []
+      }
+    }
+  },
+  "PROGRAM_ID": "OWNER_CARDS_R03"
+}
