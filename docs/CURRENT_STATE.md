@@ -82,6 +82,8 @@ There is no authorized next unit in the research routing (see §2). For the beta
 
 ## 6. Product validation status
 
+- **Product-first since 2026-10-02.** The product hypothesis, build-to-test scope, DO-NOT-BUILD-YET list and 30-day user test are in `PRODUCT_FIRST_DECISION_V1.md`. The MUST scope is implemented in code (`/catchup`, morning briefing, 1h/4h context with interpretation, unusual-hour push gate, push policy, telemetry); not deployed. The owner-only V0.2 run ended in `CHANGE PRODUCT`; no external user has seen the product yet.
+
 - **Product-first since 2026-10-02.** The product hypothesis, build-to-test scope, DO-NOT-BUILD-YET list and 30-day user test are in `PRODUCT_FIRST_DECISION_V1.md`. The owner-only V0.2 run ended in `CHANGE PRODUCT`; no external user has seen the product yet.
 - **Predictive claims:** frozen. Descriptive interpretation with shown uncertainty is product evidence, not a research claim.
 - **Descriptive private beta V0.2:** authorized with narrow scope (`PRIVATE_BETA_V0_RESTART_DECISION.md`). Its code and units live only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.

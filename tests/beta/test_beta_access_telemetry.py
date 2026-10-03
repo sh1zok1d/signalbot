@@ -260,6 +260,10 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         await h.handle(_msg(uid, "/terms", 7))
         await h.handle(_msg(uid, "/lang", 8))
         await h.handle(_cb(uid, "set:en", 9))
+        await h.handle(_msg(uid, "/catchup", 20))
+        await h.handle(_msg(uid, "/brief on", 21))
+        await h.handle(_msg(uid, "/push off", 22))
+        await h.handle(_msg(uid, "/push on", 23))         # back on: the push below must still reach this user
         async with store.connect() as conn:
             view_pk = await conn.insert_btc_view(
                 requested_at=NOW, as_of_bucket=NOW, context_state_digest=None,
@@ -276,11 +280,11 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
                        opening_tape_digest, trigger_tape_digest, last_bucket, last_streak)
                    VALUES ('EV-AABBCCDDEE','BTCUSDT','PRICE_OI_CONTRACTION_DOWN','TRIGGERED',$1,$1,$1,
                            'BETA_EVENT_RULES_V1',$2,'code','calc',$2,$2,$1,1)""", NOW, HEX64)
-        for tab, n in (("event", 10), ("1h", 11), ("24h", 12)):
+        for tab, n in (("event", 30), ("1h", 31), ("24h", 32)):
             await h.handle(_cb(uid, f"o:{view_pk}:{tab}", n))
-        await h.handle(_cb(uid, "d:EV-AABBCCDDEE", 13))
-        await h.handle(_cb(uid, "u:EV-AABBCCDDEE", 14))
-        await h.handle(_cb(uid, "n:EV-AABBCCDDEE", 15))
+        await h.handle(_cb(uid, "d:EV-AABBCCDDEE", 33))
+        await h.handle(_cb(uid, "u:EV-AABBCCDDEE", 34))
+        await h.handle(_cb(uid, "n:EV-AABBCCDDEE", 35))
         async with store.connect() as conn:
             await conn.conn.execute(
                 """INSERT INTO beta_push_decisions (episode_pk, event_type, decision_ts, utc_day, would_push,
@@ -299,6 +303,17 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         from beta.delivery import run_notify_once
         report = await run_notify_once(store, CFG, ON_PUSH, sender=Sender(), clock=Clock(NOW))
         assert report["sent"] == 1
+        # the morning briefing through the same outbox (kind 'brief') records brief_delivered
+        async with store.connect() as conn:
+            brief_pk = await conn.insert_btc_view(
+                requested_at=NOW, as_of_bucket=NOW, context_state_digest=None, episodization_version=None,
+                episodization_digest=None, payload={"product_status": "DATA STALE", "kind": "brief", "now": {},
+                                                    "horizons": None, "market": {"complete": False}},
+                payload_digest=HEX64, rendered_sha256=HEX64, rendered_html="brief", lang="en", kind="brief")
+            assert await conn.materialize_brief_deliveries(brief_date=NOW.date(), view_pk=brief_pk, decision_ts=NOW) == 1
+        brief_cfg = CFG.with_overrides(briefing={"enabled": True, "time_kyiv": "08:00", "max_delay_min": 120})
+        report = await run_notify_once(store, brief_cfg, ON_PUSH, sender=Sender(), clock=Clock(NOW))
+        assert report["briefs"]["sent"] == 1
 
         async def boom(self, **_kw):
             raise RuntimeError("boom")
@@ -307,15 +322,17 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         BetaConn.record_activity = boom
         try:
             with caplog.at_level(logging.WARNING):
-                replied = await h.handle(_msg(uid, "/help", 16))
+                replied = await h.handle(_msg(uid, "/help", 36))
         finally:
             BetaConn.record_activity = original
         assert replied and "/btc" in replied[-1].html
         assert str(uid) not in caplog.text
-        await h.handle(_msg(uid, "/feedback noted", 17))
-        await h.handle(_msg(uid, "/stop", 18))
+        await h.handle(_msg(uid, "/feedback noted", 37))
+        await h.handle(_msg(uid, "/stop", 38))
         actions = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
-        assert set(actions) == set(ACTIVITY_ACTIONS)
+        # btn_details stays a valid historical action, but the episode Details are retired
+        # (they exposed internals) and record nothing new.
+        assert set(actions) == set(ACTIVITY_ACTIONS) - {"btn_details"}
         cols = await _rows(pool, """SELECT column_name FROM information_schema.columns
                                     WHERE table_name='beta_user_activity'""")
         assert "telegram" not in " ".join(r["column_name"] for r in cols)

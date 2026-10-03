@@ -20,6 +20,8 @@ A narrow descriptive private beta is authorized by `docs/PRIVATE_BETA_V0_RESTART
 - **What it is:** a descriptive attention engine only. It carries no predictive claim, no trade instruction and no edge claim.
 - **What stays frozen:** predictive product work, and the V1 and V2 semantics.
 - **Current state (2026-10-02):** V0.2 ran for the owner only; the owner judged the 5m event feed unactionable (`CHANGE PRODUCT`). No external users yet. The implementation scope is now the build-to-test MUST list of `docs/PRODUCT_FIRST_DECISION_V1.md` §3; `BETA_V0_3_MARKET_BRIEFING.md` is superseded where it differs (briefing episodes, 24h label, 90-day baselines, separate notifier).
+- **Build-to-test (2026-10-02):** the MUST scope is implemented in code (see the decision's §11 amendment log and `PRIVATE_BETA_V0_DEPLOY.md`, "Product-first V1"). Not deployed; the morning briefing is committed off (`briefing.enabled: false`).
+- **Next step:** deploy to the owner-only beta, run the gate coverage diagnostic, owner review of the interpretation dry run; external launch follows data maturity (§6 of the decision), then the 30-day user test (§7).
 - **Next step:** build the MUST scope; external launch follows data maturity (§6 of the decision), then the 30-day user test (§7).
 - **Research boundary:** beta events are not hypotheses, and beta outcomes are not confirmation.
 

@@ -22,7 +22,7 @@ from .health import health_alerts, ingestion_heartbeat, product_status
 ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "admin_pause_push",
                   "admin_resume_push", "admin_d7_on", "admin_d7_off", "admin_broadcast",
                   "admin_health", "admin_invite_new", "admin_invites", "admin_invite_revoke",
-                  "admin_waitlist", "admin_waitlist_admit", "admin_stats", "admin_reply")
+                  "admin_waitlist", "admin_waitlist_admit", "admin_stats", "admin_reply", "admin_known")
 UNAUTHORIZED_ACTOR = "unauthorized"
 
 
@@ -151,6 +151,7 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
     elif command == "admin_users":
         rows = await conn.list_users()
         reply = "\n".join(f"{r['telegram_user_id']} {r['status'] or 'INVITED'} joined {r['joined_at']}"
+                          f"{' known' if r.get('known_contact') else ''}"
                           for r in rows) or "no users"
         detail = {"count": len(rows)}
     elif command in ("admin_add", "admin_remove"):
@@ -253,6 +254,18 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                 direct = [(uid, t("ru", "access_granted"))]
                 reply = "already allowlisted" if added == "ALREADY" else f"admitted {target}"
             detail = {"result": added}
+    elif command == "admin_known":
+        parts = args.split()
+        if len(parts) != 2 or not parts[0].isdigit() or int(parts[0]) <= 0 or parts[1] not in ("on", "off"):
+            result, reply = "INVALID_ARGUMENT", "usage: /admin_known <telegram_user_id> on|off"
+        else:
+            uid, known = int(parts[0]), parts[1] == "on"
+            target = fingerprint(uid)
+            if await conn.set_known_contact(uid, known):
+                reply = f"known_contact={'true' if known else 'false'}"
+                detail = {"known_contact": known}
+            else:
+                result, reply = "NOT_FOUND", "no such participant"
     elif command == "admin_reply":
         parsed = parse_admin_reply(args)
         if parsed is None:

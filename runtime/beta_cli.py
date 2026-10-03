@@ -25,8 +25,8 @@ BETA_CODE_PATHS = ("beta", "runtime/beta_cli.py", "runtime/beta_bot.py", "storag
                    "storage/beta_v0_schema.sql", "config/beta_v0.yaml")
 BETA_COMMAND_FLAGS = ("beta_bootstrap", "beta_once", "beta_status", "beta_outcomes_once",
                       "beta_notify_once", "beta_health", "beta_usage_report",
-                      "beta_d7_once", "beta_d7_backfill")
-READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report")
+                      "beta_d7_once", "beta_d7_backfill", "beta_context_dry_run")
+READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report", "beta_context_dry_run")
 
 
 class BetaCliError(RuntimeError):
@@ -54,10 +54,18 @@ def add_beta_arguments(parser) -> None:
                    help="Beta V0.2: one D7 hour pass (closed 1m bars + missing hour states).")
     g.add_argument("--beta-d7-backfill", action="store_true",
                    help="Beta V0.2: resumable D7 1m backfill (default 90 days) and hour states.")
+    g.add_argument("--beta-context-dry-run", action="store_true",
+                   help="Beta: READ-ONLY recorded-tape dry run of the 1h/4h interpretation labels.")
     parser.add_argument("--beta-bucket-ts", default=None,
                         help="Explicit ISO-8601 UTC 5m bucket open (--beta-once only).")
     parser.add_argument("--days", type=int, default=None,
                         help="D7 backfill length in days (--beta-d7-backfill only; default 90).")
+    parser.add_argument("--dry-run-days", type=int, default=7,
+                        help="Days of recorded tape to sample (--beta-context-dry-run only).")
+    parser.add_argument("--dry-run-stride", type=int, default=12,
+                        help="Sample every N 5m buckets (--beta-context-dry-run only; 12 = hourly).")
+    parser.add_argument("--dry-run-provisional", action="store_true",
+                        help="Rank against existing history, ignoring the maturity tiers (PROVISIONAL).")
     parser.add_argument("--beta-json", action="store_true",
                         help="Emit the beta report as one JSON object (all --beta-* commands).")
 
@@ -82,6 +90,11 @@ def validate_beta_args(parser, args, *, other_command_selected: bool) -> None:
         parser.error("--days is only valid with --beta-d7-backfill")
     if getattr(args, "beta_d7_backfill", False) and args.days is not None and args.days < 1:
         parser.error("--days must be an int >= 1")
+    dry = getattr(args, "beta_context_dry_run", False)
+    if getattr(args, "dry_run_provisional", False) and not dry:
+        parser.error("--dry-run-provisional is only valid with --beta-context-dry-run")
+    if dry and (args.dry_run_days < 1 or args.dry_run_days > 30 or args.dry_run_stride < 1):
+        parser.error("--dry-run-days must be 1..30 and --dry-run-stride >= 1")
     if getattr(args, "beta_json", False) and not selected:
         parser.error("--beta-json is only valid with a --beta-* command")
 
@@ -220,6 +233,16 @@ def _command_name(args) -> str:
 async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
                     resolve_feature_code_version, metadata_fetch_json, sender, env) -> dict:
     from beta.admin import collect_health, collect_status
+    if getattr(args, "beta_context_dry_run", False):
+        from beta.dry_run import run_dry_run_from_db
+        store = db.beta_store()
+        async with store.connect() as conn:
+            if not await conn.schema_present():
+                return {"status": "NOT_INITIALIZED"}
+            report = await run_dry_run_from_db(
+                conn, cfg, Stage2Config.load(), end=clock(), days=args.dry_run_days,
+                stride_buckets=args.dry_run_stride, ignore_maturity=args.dry_run_provisional)
+            return {"status": "OK", "dry_run": report}
     if args.beta_status or args.beta_health or args.beta_usage_report:
         store = db.beta_store()
         async with store.connect() as conn:
