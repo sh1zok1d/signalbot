@@ -7693,3 +7693,23 @@ RESCUE_ATTEMPTED = false
 **Correction (2026-10-03, red-team of the V2 branch, before any deploy).** The first implementation dropped holdout rows only after parsing: it planned the August 2026 monthly klines archive and the 2026-08-25 metrics file, both of which overlap the holdout, so a sync would have downloaded holdout bytes. It never ran against the network (no deploy; this environment cannot reach Binance), so no holdout byte was fetched. The planner now rejects every overlapping object before any request (21 objects: the August monthly klines, daily klines and metrics of 2026-08-16 … 2026-08-25), and a request gate refuses any overlapping URL. `PROTECTED_BYTES_FETCHED = NO`.
 
 These statistics are product evidence (descriptive, with N, a comparable baseline and a verdict), not research claims. Development numbers seen while building them (2022–2024 repository archives, synthetic OI only for the analogue mechanics) are recorded in the implementation review, not as results.
+
+---
+
+## 2026-10-03 — Event corridor temporal repair: 2024 release windows become repair data
+
+Design record: `docs/BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1.md` (design only; no code change, no retrain). The product corridor's CPI/FOMC term (`event_in_window`, release in `[t, t + H)`) widens the corridor before a release and drops it from the first 5-minute live anchor after it; the hourly calibration never sees that moment. The owner-relayed red-team table (2024 FOMC, −60…+60 min around the release) showed it and shaped the redesign.
+
+```
+SURFACE                        = Binance USD-M BTCUSDT 2024 scheduled releases (12 CPI, 8 FOMC)
+STATUS                         = EXPOSED / DIAGNOSTIC / REPAIR DATA (event semantics)
+ALLOWED                        = reproduce the failure; outcome-blind implementation checks
+FORBIDDEN                      = confirmatory holdout for any new event semantics; choosing candidates by 2024 coverage
+GENERIC_2024_HOLDOUT           = exposed (examined at build, by the red team and by the design record); diagnostic only
+PREFERRED_CANDIDATE            = K1 (PRE in [t, t+H) and POST in [t-60m, t)), fixed before any fit
+CONFIRMATION                   = prospective releases after the freeze (primary); BitMEX 2017-2019 = unaudited secondary, not opened
+FEASIBILITY                    = FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM (units = releases, ~20/year)
+FALLBACK                       = no numerical corridor around releases until a prospective check passes
+EVENT_CODE_CHANGED             = NO
+EVENT_MODEL_RETRAINED          = NO
+```
