@@ -228,7 +228,10 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         assert "Стоп 0,50%" in risk and "за 1ч — в " in risk and "за 4ч — в " in risk
         assert "за 24ч — без оценки" in risk and "24ч: числовую оценку не показываем" in risk
         out = await h.handle(msgs[A]("/events", 102))
-        assert plain(out[-1].html).startswith("События (время — Киев)")
+        ev = plain(out[-1].html)
+        assert ev.startswith("События (время — Киев)") and "\nВт 12.05 15:30 — CPI США (инфляция)\n" in ev
+        assert ev.endswith("\nCPI США (инфляция): вокруг публикации обычная калибровка коридора не применяется.")
+        assert "×" not in ev and "случа" not in ev                 # a plain calendar: no size, no N
         out = await h.handle(msgs[A]("/accuracy", 103))
         assert "Живые прогнозы ещё не созрели" in plain(out[-1].html)
         target = round(seed["base"] * 1.02)
@@ -269,6 +272,10 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         # the morning briefing renders the decision block in the same cycle
         briefs = [x for x in s.sent if plain(x[1]).startswith("BTC за ночь")]
         assert len(briefs) == 3 and "Коридор (Binance" in plain(briefs[0][1])
+        today = plain(briefs[0][1]).split("Сегодня\n", 1)[1].splitlines()
+        assert today[:2] == ["15:30 — CPI США (инфляция)",
+                             "CPI США (инфляция): вокруг публикации обычная калибровка коридора не применяется."]
+        assert "×" not in plain(briefs[0][1].split("Сегодня", 1)[1])
         r2 = await run_notify_once(store, brief_cfg, ON_PUSH, sender=s, clock=Clock(NOW + timedelta(minutes=1)))
         assert r2["market"]["pushed"] == 0 and r2["market"]["forecasts_recorded"] == 0
 

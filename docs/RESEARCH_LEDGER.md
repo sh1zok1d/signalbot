@@ -7719,3 +7719,17 @@ EVENT_MODEL_RETRAINED          = NO
 - **BitMEX XBTUSD 2017–2019.** Provenance audit, no outcome computed: read in bulk by D2 and D7; only aggregates published; no CPI/FOMC calendar ever joined. Every hour, event hours included, entered D7 states and D2 volatility, and the C012 triage already named the surface for scheduled events. Verdict: `NOT_PROVABLY_INDEPENDENT`.
 - **Product fallback.** Implemented in the V2 branch: no numerical corridor, touch chance or `/risk` figure inside `[release − H, release + 60 min)`; no multiplier; no forecast tracked there.
 - **Unchanged.** `EVENT_CODE_CHANGED_FOR_K1 = NO`, `EVENT_MODEL_RETRAINED = NO`, `PROTECTED_BYTES_FETCHED = NO`.
+
+**Follow-up (2026-10-03, owner scope "EVENT SAFETY cleanup").** No surface opened, no outcome read.
+
+```
+EVENT_FEASIBILITY_TABLE        = LOCKED: 12 / 38 / 127 / 81 / 289 (exact one-sided binomial, H0 p = 0.80, alpha 0.05,
+                                 power 0.80, stable for every m in [n, n+100]; Wilson 95% for precision);
+                                 no change after prospective outcomes without a dated amendment
+PRIMARY_CONFIRMATION_SURFACE   = PROSPECTIVE RELEASES AFTER K1 FREEZE
+BITMEX_CONFIRMATION_STATUS     = NOT_PROVABLY_INDEPENDENT
+SURFACE_2024                   = EXPOSED / DIAGNOSTIC / REPAIR
+SURFACE_2025_2026              = EXPOSED_FOR_OTHER_PURPOSES / NOT CONFIRMATORY
+EVENT_MULTIPLIER_USER_FACING   = NO
+RAPID_MOVE_EVENT_RISK_CLASS    = C / EVENT_FLAG_DECISION_RELEVANT_UNCALIBRATED (design record §10); detector unchanged
+```

@@ -8,7 +8,7 @@ from __future__ import annotations
 import html
 import math
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from .i18n import (assert_descriptive, fmt_clock, fmt_kyiv_hm, fmt_plain_pct, fmt_price, fmt_signed_pct,
                    fmt_usd, kyiv, na, t)
@@ -194,26 +194,30 @@ def _when(at: datetime, lang: str, *, with_day: bool) -> str:
     return f"{WEEKDAYS[lang if lang in WEEKDAYS else 'ru'][local.weekday()]} {local.strftime('%d.%m')} {hm}"
 
 
-def _event_size(stats: Optional[Mapping[str, Any]], lang: str) -> str:
-    if not stats:
-        return ""
-    hour, day = stats.get("hour") or {}, stats.get("day") or {}
-    if not hour or not day:
-        return ""
-    hr, dr = hour.get("median_ratio"), day.get("median_ratio")
-    n = _n(min(int(hour.get("n") or 0), int(day.get("n") or 0)), lang)
-    key = "dc_event_size_plain" if 0.8 <= hr <= 1.25 and 0.8 <= dr <= 1.25 else "dc_event_size"
-    return t(lang, key, hour=_x(hr, lang), day=_x(dr, lang), n=n)
-
-
 def event_lines(events: Sequence[Mapping[str, Any]], lang: str, *, with_day: bool = False) -> list:
     out = []
     for e in events:
         at = datetime.fromisoformat(e["at"]) if isinstance(e["at"], str) else e["at"]
         name = EVENT_NAMES.get(e["kind"], (e["kind"], e["kind"]))[_ix(lang)]
-        out.append(t(lang, "dc_event_line", when=_when(at, lang, with_day=with_day), name=_e(name),
-                     size=_event_size(e.get("stats"), lang)))
+        out.append(t(lang, "dc_event_line", when=_when(at, lang, with_day=with_day), name=_e(name)))
     return out
+
+
+def _event_contexts(kinds: Iterable[str]) -> list:
+    """Research contexts for listed events. CPI/FOMC get none: around a release the bot shows no size or
+    multiplier at all (design record §9), so a registry line such as D11's never rides on those surfaces."""
+    from .rangecast import EVENT_KINDS
+    return [f"event:{k}" for k in kinds if k not in EVENT_KINDS]
+
+
+def event_note(events: Sequence[Mapping[str, Any]], lang: str) -> Optional[str]:
+    """The neutral warning for listed CPI/FOMC releases: no size, no share, no direction (event-zone kinds only)."""
+    from .rangecast import EVENT_KINDS
+    kinds = [k for k in EVENT_KINDS if any(e["kind"] == k for e in events)]
+    if not kinds:
+        return None
+    names = ", ".join(_e(EVENT_NAMES.get(k, (k, k))[_ix(lang)]) for k in kinds)
+    return t(lang, "ev_release_note", names=names)
 
 
 def research_line(contexts: Sequence[str], lang: str) -> Optional[str]:
@@ -230,7 +234,10 @@ def today_lines(block: Mapping[str, Any], lang: str) -> list:
     if evs is None:
         return []
     out = [t(lang, "dc_today_head")] + (event_lines(evs, lang) or [t(lang, "dc_no_events")])
-    contexts = [f"event:{e['kind']}" for e in evs] + (["weekend"] if block.get("weekend") else [])
+    note = event_note(evs, lang)
+    if note:
+        out.append(note)
+    contexts = _event_contexts(e["kind"] for e in evs) + (["weekend"] if block.get("weekend") else [])
     line = research_line(contexts, lang)
     if line:
         out.append(line)
@@ -446,7 +453,9 @@ def format_events(events: Sequence[Mapping[str, Any]], lang: str, *, funding_utc
             hh, mm = (int(x) for x in str(s).split(":"))
             times.append(fmt_kyiv_hm(today.replace(hour=hh, minute=mm)))
         lines.append(t(lang, "ev_funding", times=", ".join(sorted(times))))
-    lines.append(t(lang, "ev_footer"))
+    note = event_note(events, lang)
+    if note:
+        lines.append(note)
     return assert_descriptive("\n".join(lines), lang)
 
 
@@ -568,7 +577,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
     else:
         raise ValueError(f"unknown alert kind {kind!r}")
     contexts = {"level": [f"level:{payload.get('level_kind')}", "level"],
-                "event": [f"event:{payload.get('event_kind')}", "event"],
+                "event": _event_contexts([payload.get("event_kind")]),
                 "move": ["move"]}.get(kind, [])
     checked = research_line(contexts, lang)
     if checked and sum(1 for x in lines if x.strip()) < ALERT_MAX_LINES:     # an extra, never a 9th line

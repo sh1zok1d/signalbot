@@ -61,7 +61,10 @@ def test_brief_block_ladder_corridor_and_today():
     assert ladder[2].startswith("↑ 62 950 — максимум вчера · +0,75% · 60%")
     assert ladder[3] == "— сейчас 62 480 —"
     assert ladder[4].startswith("↓ 61 900 — минимум Азии") and "ликвидации лонгов $38 млн" in ladder[5]
-    assert "15:30 — CPI США (инфляция): час выхода обычно ×3,2, день ×1,5 (61 случай)" in text
+    today = text[text.index("Сегодня"):].strip().splitlines()
+    assert today[1] == "15:30 — CPI США (инфляция)"                # name and time only: no size, no share
+    assert today[2] == "CPI США (инфляция): вокруг публикации обычная калибровка коридора не применяется."
+    assert "×" not in "\n".join(today)
     for lang in ("ru", "en"):
         assert_descriptive("\n".join(df.brief_lines({"decision": block()}, lang)), lang)
 
@@ -126,8 +129,11 @@ def test_events_and_accuracy_cards():
            {"kind": "EXPIRY_MONTHLY", "at": "2026-10-30T08:00:00+00:00",
             "stats": {"hour": {"n": 70, "median_ratio": 1.1}, "day": {"n": 70, "median_ratio": 0.97}}}]
     text = plain(df.format_events(evs, "ru", funding_utc=["00:00", "08:00", "16:00"]))
-    assert "Ср 14.10 15:30 — CPI США (инфляция): час выхода обычно ×3,2, день ×1,5 (61 случай)" in text
-    assert "Пт 30.10 10:00 — месячная экспирация опционов Deribit: час ×1,1, день ×1,0 (70 случаев) — почти как обычно" in text
+    lines = text.splitlines()
+    assert lines[1:3] == ["Ср 14.10 15:30 — CPI США (инфляция)",
+                          "Пт 30.10 10:00 — месячная экспирация опционов Deribit"]
+    assert lines[3].startswith("Funding Binance: ")                  # Kyiv clock of today's funding (DST-dependent)
+    assert lines[4:] == ["CPI США (инфляция): вокруг публикации обычная калибровка коридора не применяется."]
     model = {"calibration": {"1h": {"coverage_realized": 0.793, "holdout_from_ms": 1727740800000,
                                     "holdout_to_ms": 1759276800000}}}
     acc = plain(df.format_accuracy(model, {"4h": {"INSIDE": 82, "OUTSIDE": 18}}, "ru"))

@@ -192,6 +192,74 @@ def test_alerts_outside_the_zone_keep_their_corridor(lang):
         assert ZONE_RU not in text and ZONE_EN not in text
 
 
+# ---- event-facing surfaces: name, exact time and the neutral warning — nothing else -----------
+# No size multiplier, no "4 of 5", no 80%, no probability, no direction: none of them is
+# supported for the release window (design record §9). Unrelated generic percentages elsewhere stay.
+WARN = {"ru": "вокруг публикации обычная калибровка коридора не применяется.",
+        "en": "around the release, the usual corridor calibration does not apply."}
+EVENT_FORBIDDEN = re.compile(r"×|\d\s*раз|\btimes\b|4 из 5|4 of 5|4 out of 5|\d\s*%|вероятн|probab|шанс|chance|"
+                             r"выше|ниже|higher|lower|рост|паден|\bup\b|\bdown\b|Проверено|Checked|случа|cases",
+                             re.I)
+STATS = {"hour": {"n": 61, "median_ratio": 3.2}, "day": {"n": 61, "median_ratio": 1.5}}
+EVENTS = [{"kind": "CPI", "at": "2026-10-14T12:30:00+00:00", "stats": STATS},
+          {"kind": "FOMC", "at": "2026-10-28T18:00:00+00:00", "stats": STATS},
+          {"kind": "EXPIRY_MONTHLY", "at": "2026-10-30T08:00:00+00:00", "stats": STATS}]
+LINE = {"ru": r"^(Пн|Вт|Ср|Чт|Пт|Сб|Вс) \d\d\.\d\d \d\d:\d\d — [^:]+$",
+        "en": r"^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d\d\.\d\d \d\d:\d\d — [^:]+$"}
+
+
+@pytest.mark.parametrize("lang", ["ru", "en"])
+def test_events_card_is_a_plain_calendar(lang):
+    text = plain(df.format_events(EVENTS, lang))
+    lines = text.splitlines()
+    assert all(re.match(LINE[lang], x) for x in lines[1:4]), lines
+    cpi, fomc = (("CPI США (инфляция)", "решение ФРС (FOMC)") if lang == "ru"
+                 else ("US CPI (inflation)", "Fed decision (FOMC)"))
+    assert lines[4:] == [f"{cpi}, {fomc}: {WARN[lang]}"]
+    body = "\n".join(re.sub(r"\d\d\.\d\d \d\d:\d\d", "", x) for x in lines)
+    assert not EVENT_FORBIDDEN.search(body), body
+    # expiries alone make no event zone: no warning
+    only_expiry = plain(df.format_events(EVENTS[2:], lang))
+    assert WARN[lang] not in only_expiry and "×" not in only_expiry
+
+
+@pytest.mark.parametrize("lang", ["ru", "en"])
+def test_brief_today_shows_name_time_and_the_warning_only(lang):
+    b = block()
+    b["events"] = [{**EVENTS[0], "at": "2026-10-14T12:30:00+00:00"}, {**EVENTS[1], "at": "2026-10-14T18:00:00+00:00"}]
+    for lines in (df.today_lines(b, lang), df.brief_lines({"decision": b}, lang)):
+        text = plain("\n".join(lines))
+        today = text[text.index("Сегодня" if lang == "ru" else "Today"):].splitlines()
+        assert [x[:8] for x in today[1:3]] == ["15:30 — ", "21:00 — "]
+        assert today[3].endswith(WARN[lang]) and len(today) == 4        # no D11 «1,76 раза» line, no size
+        assert not EVENT_FORBIDDEN.search("\n".join(re.sub(r"^\d\d:\d\d", "", x) for x in today)), today
+
+
+@pytest.mark.parametrize("lang", ["ru", "en"])
+@pytest.mark.parametrize("kind", ["CPI", "FOMC"])
+def test_event_reminder_shows_name_time_and_the_warning_only(lang, kind):
+    p = {**payload("event", {"1h", "4h", "24h"}), "event_kind": kind}
+    text = plain(df.format_alert("event", p, lang))
+    assert "15:30" in text and "×" not in text and "1,76" not in text and "1.76" not in text
+    assert not re.search(r"4 из 5|4 of 5|4 out of 5|80\s*%|вероятн|probab|Проверено|Checked", text, re.I), text
+
+
+def test_event_facing_catalog_entries_carry_no_size_share_or_probability():
+    from beta import i18n
+    from beta.i18n_decision import EVENT_NAMES
+    keys = [k for k in i18n._CATALOG if k.startswith(("ev_", "ez_", "pa_event", "dc_event", "dc_today",
+                                                       "dc_no_events", "dc_corridor_head_event"))]
+    assert {"ev_title", "ev_release_note", "ez_note", "ez_event_note", "dc_event_line", "pa_event_title"} <= set(keys)
+    for k in keys:
+        for lang in ("ru", "en"):
+            assert not re.search(r"×|4 из 5|4 of 5|4 out of 5|80\s*%|\{p\b|\{size|\{n\}|вероятн|probab|шанс|chance",
+                                 i18n._CATALOG[k][lang], re.I), (k, lang)
+    for ru, en in EVENT_NAMES.values():
+        assert "×" not in ru + en
+    for gone in ("dc_event_size", "dc_event_size_plain", "ev_footer", "pa_event_size", "dc_corridor_event"):
+        assert gone not in i18n._CATALOG, gone
+
+
 # ---- end to end on PostgreSQL: the real decision block, commands and the event reminder -------
 from beta_fakes import CFG, ON_PUSH, TEST_DSN, Clock, run          # noqa: E402
 
@@ -251,7 +319,8 @@ def test_end_to_end_suppression_around_a_cpi_release():
             h = _handler(pool, owner, Clock(now))
             for uid, lang in ((ru, "ru"), (en, "en")):
                 note = ZONE_RU if lang == "ru" else ZONE_EN
-                for cmd in ("/btc", "/catchup", "/levels", "/risk", "/risk 0.5", "/alert %d" % (blk["price"] * 1.01 + 7 * k)):
+                for cmd in ("/btc", "/catchup", "/levels", "/events", "/risk", "/risk 0.5",
+                            "/alert %d" % (blk["price"] * 1.01 + 7 * k)):
                     k += 1
                     out = await h.handle(msgs[uid](cmd, k))
                     text = plain(out[-1].html)
@@ -259,6 +328,11 @@ def test_end_to_end_suppression_around_a_cpi_release():
                         assert no_numbers_for(text, hz, lang), (now, cmd, hz, text)
                     if hs:
                         assert "4 из 5" not in text and "4 of 5" not in text, (now, cmd)
+                    if cmd in ("/events", "/catchup"):                 # no size multiplier, anywhere around it
+                        assert "×" not in text and "1,76" not in text and "1.76" not in text, (now, cmd)
+                    if cmd == "/events":                               # the warning goes with a listed release
+                        assert text.rstrip().endswith(WARN[lang]) is ("CPI" in text), (now, text)
+                        assert ("CPI" in text) is (now <= PG_R), (now, text)          # listed up to the release minute
                     if cmd.startswith("/alert"):
                         k += 1
                         await h.handle(msgs[uid]("/alert del all", k))         # stay under the cap of 5

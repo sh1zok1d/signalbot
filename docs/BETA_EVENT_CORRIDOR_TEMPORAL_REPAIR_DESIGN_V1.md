@@ -11,9 +11,17 @@ EVENT_MODEL_RETRAINED           = NO
 EVENT_SEMANTICS_STATUS          = FAILS_IN_LIVE_USE / NOT_CALIBRATED
 GENERIC_RANGECAST_SKILL_STATUS  = DIAGNOSTICALLY_SUPPORTED / NOT YET PROSPECTIVELY CONFIRMED
 DATA_2024_EVENT_WINDOWS         = EXPOSED / DIAGNOSTIC / REPAIR DATA
-CONFIRMATION                    = PROSPECTIVE ONLY; BitMEX 2017-2019 = NOT_PROVABLY_INDEPENDENT (§6)
-FEASIBILITY                     = FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM (§8, exact method)
-FALLBACK                        = IMPLEMENTED (§9): no numerical corridor in an event zone; no multiplier
+PRIMARY_CONFIRMATION_SURFACE    = PROSPECTIVE RELEASES AFTER K1 FREEZE (§6)
+BITMEX_CONFIRMATION_STATUS      = NOT_PROVABLY_INDEPENDENT (§6)
+SURFACE_2024                    = EXPOSED / DIAGNOSTIC / REPAIR
+SURFACE_2025_2026               = EXPOSED_FOR_OTHER_PURPOSES / NOT CONFIRMATORY
+HISTORICAL_SURFACE_OPENED       = NONE
+FEASIBILITY                     = FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM (§8)
+EVENT_FEASIBILITY_METHOD        = EXACT ONE-SIDED BINOMIAL (detection) + WILSON 95% (precision) (§8)
+EVENT_FEASIBILITY_TABLE         = LOCKED 2026-10-03: 12 / 38 / 127 / 81 / 289 releases; earlier figures in §12 only
+FALLBACK                        = IMPLEMENTED (§9): no numerical corridor in an event zone
+EVENT_MULTIPLIER_USER_FACING    = NO (§9; /events, briefing «Сегодня», reminder, glossary)
+RAPID_MOVE_EVENT_RISK_CLASS     = C / EVENT_FLAG_DECISION_RELEVANT_UNCALIBRATED (§10); detector unchanged
 ```
 
 ## 1. Current semantics
@@ -85,13 +93,21 @@ A is about every ordinary hour. B is about about 20 releases a year. Evidence fo
 | Binance BTCUSDT 2024 releases (12 CPI, 8 FOMC) | `EXPOSED / DIAGNOSTIC / REPAIR DATA` | Reproduce the bug; outcome-blind implementation checks (flags on the right anchors). Never a confirmatory holdout for any new event semantics, and never a basis for choosing between candidates by coverage |
 | Binance 2024 hourly anchors (all hours) | Exposed holdout for question A | Diagnostic only |
 | Binance 2020–2023 releases (48 CPI, 31 FOMC) | Training | Fitting. FOMC post-release volatility 2020–2024 is also exposed by D11 |
-| Binance 2025-01-01 → 2026-10-03 (20 CPI, 14 FOMC) | Opened by the owner for product statistics; `RESEARCH_LEDGER`: consumed for research over event days. Its event hours have not been read in this branch | Not independent: it would also be part of the VPS fit |
+| Binance 2025-01-01 → 2026-10-03 (20 CPI, 14 FOMC) | `EXPOSED_FOR_OTHER_PURPOSES / NOT CONFIRMATORY`: opened by the owner for product statistics; `RESEARCH_LEDGER`: consumed for research over event days. Its event hours have not been read in this branch | Not a confirmation surface. Not independent either: it would also be part of the VPS fit |
 | E1-RUN-001 holdout `[2026-08-16, 2026-08-25 17:20)` | Protected | Never read (`beta/history_data.py` rejects every overlapping object) |
 | Other venues for the same dates (OKX spot 2022–2024 in the repository, Bybit live) | Same releases, same market reaction | Not independent units |
 
 ## 6. Independent confirmation surface (none opened)
 
-1. **Prospective releases — the only eligible surface.**
+```
+PRIMARY_CONFIRMATION_SURFACE = PROSPECTIVE RELEASES AFTER K1 FREEZE
+BITMEX_CONFIRMATION_STATUS   = NOT_PROVABLY_INDEPENDENT
+2024                         = EXPOSED / DIAGNOSTIC / REPAIR
+2025-2026                    = EXPOSED_FOR_OTHER_PURPOSES / NOT CONFIRMATORY
+HISTORICAL SURFACES OPENED   = NONE (this record opens no historical surface)
+```
+
+1. **Prospective releases after the K1 freeze — primary, and the only eligible surface.**
    - **Scope.** Every scheduled CPI and FOMC release after the event semantics are frozen, scored from the project's own Stage-1 Binance 1m data with event-relative forecast tracking.
    - **Calendar now.** CPI 2026-10-14, 2026-11-10, 2026-12-10. FOMC 2026-10-28, 2026-12-09 and 8 meetings in 2027. 2027 CPI dates go in when BLS publishes them.
    - **Rate.** About 20 releases a year pooled (8 FOMC + 12 CPI).
@@ -107,7 +123,9 @@ A is about every ordinary hour. B is about about 20 releases a year. Evidence fo
      - The raw pages are in the repository and were read whole.
    - **Missing before any use.** No point-in-time 2017–2019 release calendar is in the repository, and the instrument equivalence (inverse XBTUSD against linear BTCUSDT) is not adjudicated.
    - **Verdict.** Provenance is not provably clean, so the surface is `NOT_PROVABLY_INDEPENDENT`. It is not a confirmation surface for the event semantics.
-3. **Not eligible.** Everything in §5 except item 1. Binance 2025–2026 is excluded although unread: by governance and because the nightly build fits on it.
+3. **Not eligible.** Everything in §5 except item 1.
+   - 2024 is `EXPOSED / DIAGNOSTIC / REPAIR`.
+   - 2025–2026 is `EXPOSED_FOR_OTHER_PURPOSES / NOT CONFIRMATORY`. It is excluded although its event hours are unread here: it was opened for product statistics and research, and the nightly build fits on it.
 
 ## 7. Candidate temporal semantics (defined before any fit)
 
@@ -136,6 +154,20 @@ Notation: anchor close t, release r of one kind, horizon H.
 ## 8. Feasibility (outcome-blind)
 
 **Method, fixed before computing (2026-10-03).** Sample sizes are small (8–300 releases), so the binomial rows use exact calculations, not normal approximations. Each method was chosen before its number was computed and was not tuned to earlier figures.
+
+**Locked (2026-10-03).** The table below is the only current feasibility table. Its parameters:
+
+```
+H0                  = p = 0.80 (the corridor's nominal coverage)
+SIDEDNESS / ALPHA   = one-sided (under-coverage), alpha = 0.05, attained size <= alpha
+POWER               = 0.80
+REJECTION RULE      = reject H0 iff X <= c(n), c(n) = max{ c : P(X <= c | n, p = 0.80) <= 0.05 }
+STABILITY           = n* = smallest n with power >= 0.80 for every m in [n, n + 100]
+PRECISION           = two-sided Wilson 95% interval at p-hat = 0.80; both sides within d,
+                      for every m in [n, n + 100]
+```
+
+After any prospective outcome is seen, none of these numbers, parameters or rules changes except by a written, dated amendment to this record that states the change, its reason, and which prospective outcomes had been seen when it was made. The earlier figures are kept in §12 (changelog) only.
 
 - **Unit.** One release. All 5-minute anchors around a release share one market reaction, so they are not independent. Per release there is one PRE unit and one POST unit (§7), each analysed separately. Releases are treated as independent Bernoulli trials.
 - **Outcome.** 1 when the corridor issued at the unit's anchor contains the realised maximum excursion over its horizon.
@@ -169,11 +201,6 @@ Notation: anchor close t, release r of one kind, horizon H.
 | 60 | [0.682; 0.882] |
 | 100 | [0.711; 0.867] |
 
-- **Superseded figures.** The first version of this record gave 8 / 29 / 109 / 62 / 246. They reproduce exactly from two different normal approximations:
-  - n = ⌈((z₀.₉₅√(p₀q₀) + z₀.₈₀√(p₁q₁)) / (p₀ − p₁))²⌉;
-  - n = ⌈(z₀.₉₇₅√(p₀q₀) / d)²⌉.
-
-  No method was declared, and at these sizes both approximations are optimistic. They are superseded by the table above.
 - **Scale calibration (continuous, per release; planning only).**
   - Method: normal theory, two-sided 95% half-width 1.96·σ/√n.
   - σ = 0.50 is the upper end of the 0.49–0.50 log-range residual on 2022–2023 training anchors without releases. It is a lower bound for event hours.
@@ -206,7 +233,13 @@ This applies until an event semantics passes the pre-registered prospective chec
   - drops «Коридор 1ч с учётом события» from the event reminder push;
   - never writes «4 из 5» or any coverage claim.
 - **What it shows instead (as implemented).** The release, its day and time, and a neutral statement that around a release the usual corridor calibration does not apply. No direction, no probability, no corridor.
-  - **No multiplier.** The «×N шире обычного» line is not shown. Its window, comparator and timestamp semantics have not been separately verified for this purpose; the event reminder no longer carries it either.
+  - **No multiplier anywhere.** No «×N» is shown for a scheduled event. Its window, comparator and timestamp semantics have not been verified for this purpose. The 2026-10-03 cleanup removed it from every event-facing surface:
+    - the event reminder;
+    - `/events`, which is now a plain calendar: each line has the name and the exact Kyiv time;
+    - the briefing's and `/catchup`'s «Сегодня» lines.
+  - **The neutral warning.** When a CPI or FOMC release is listed, one line follows the list: «<release>: вокруг публикации обычная калибровка коридора не применяется.» / "<release>: around the release, the usual corridor calibration does not apply." Expiries make no zone and get no warning.
+  - **Research lines.** A CPI/FOMC event context no longer adds a «Проверено» line on these surfaces (D11's «в 1,76 раза» would otherwise ride on them). The registry is unchanged and `/research` still lists every unit.
+  - **Glossary.** The corridor entry no longer says the corridor accounts for events. It says that around CPI and Fed decisions the numerical corridor and the chance to reach are not shown.
 - **Outside the spans,** the generic corridor stays as it is; its own wording issues are a separate task.
 
 - **Implementation.**
@@ -215,10 +248,78 @@ This applies until an event semantics passes the pre-registered prospective chec
   - **Outside every zone.** The generic corridor is unchanged, and its event flag can never be on there.
   - **Tests.** `tests/beta/test_beta_v2_event_zone.py`: the zone boundaries for 1h/4h/24h; every surface in RU/EN; alert payloads that still carry a corridor; an end-to-end PostgreSQL run around a CPI release.
 
-## 10. What this record does not do
+## 10. Rapid-move detector: event-feature audit (read-only, detector unchanged)
+
+- **Where the detector reads the event feature.**
+  - `beta/market_alerts.py` `detect_move()` computes `S = scale_at(model, b, j, "1h", events=events)`, where j is the last 5m bar closed before the 15-minute move began.
+  - `scale_at` → `design()` → `event_in_window(close_ms, events[k], HORIZON_MS["1h"])` (`beta/rangecast.py`).
+  - The threshold is calibrated nightly by `sharp_move_threshold()` on `move_ratio()`. That builds S with the same `design()` and the same event columns, at the same anchor (the bar three bars back).
+  - Only the 1h flags enter. The 4h and 24h flags are not used by the detector.
+- **What changes when the flag is 1.**
+  - S is multiplied by exp(β): ×2.81 for CPI and ×2.69 for FOMC in the 2022–2024 local fit.
+  - The rule is `|move| / S ≥ threshold`, so a move must be about 2.7–2.8 times larger in % to alert.
+- **What it affects.**
+  - **Affected:** the push decision, i.e. whether a candidate exists at all (eligibility, via the effective threshold).
+  - **Not affected directly:** the 120-minute cooldown, the UTC-day cap for level + move, quiet hours, the dedup key, and the text. The «примерно раз в N дней» line uses the calibration's pooled episode rate; the payload's `ratio` is stored and not rendered. There is no severity field.
+  - **Indirect effect:** the cooldown and the cap start only from a pushed move, so a suppressed move also changes what can fire after it.
+- **Semantics.** The move window is `[E − 15 min, E)`, where E is the close of the last closed 5m bar, and the anchor is a = E − 15 min. The flag is 1 ⇔ r ∈ [a, a + 60 min) ⇔ E ∈ (r − 45 min, r + 15 min].
+
+| now (detector on time) | Move window checked | 1h flag | Effective threshold |
+|---|---|---|---|
+| r − H for 24h / 4h | [r − H − 15m, r − H) | 0 | normal |
+| r − 60m (r − H for 1h) | [r − 75m, r − 60m) | 0 | normal |
+| r − 5m | [r − 20m, r − 5m) | 1 | ×2.7–2.8 |
+| r (release) | [r − 15m, r) | 1 | ×2.7–2.8 |
+| r + 5m | [r − 10m, r + 5m) | 1 | ×2.7–2.8 |
+| r + 30m | [r + 15m, r + 30m) | 0 | normal |
+| r + 60m | [r + 45m, r + 60m) | 0 | normal |
+| r + 61m | [r + 45m, r + 60m) (E = r + 60m) | 0 | normal |
+
+- **Grid boundaries.**
+  - E = r − 45m: last normal window before the release.
+  - E = r − 40m: first inflated window.
+  - E = r + 15m, i.e. the window [r, r + 15m): last inflated window.
+  - E = r + 20m: first normal window after the release.
+- **Check.** Synthetic bars and a synthetic model carrying only the CPI coefficient; no market data was read. The same 1.0% 15-minute move at threshold 0.5:
+  - alerts at E = r − 60m, r − 45m, r + 20m, r + 30m and r + 60m;
+  - is suppressed at every E from r − 40m to r + 15m.
+- **Pre/post asymmetry: possible.**
+  - The flag covers windows that start in (r − 60m, r]: windows before the release, the ones that cross it, and only one window entirely after it, [r, r + 15m).
+  - A move made in the first minutes after the release is checked only in windows ending at r + 5m, r + 10m and r + 15m, all inflated. The same move in [r + 5m, r + 20m) is checked against the normal threshold.
+  - Before the release, the same move alerts in [r − 60m, r − 45m) and needs about ×2.8 in [r − 55m, r − 40m).
+- **Calibration.**
+  - β was fitted for the 1h forward range at hourly anchors, not for 15-minute close-to-close moves.
+  - The threshold targets about 0.35 episodes a day pooled over all bars. Nothing calibrates the alert rate around releases.
+  - The past-range features also rise after any large move. That part is generic, not event-specific.
+- **Class: C — `EVENT_FLAG_DECISION_RELEVANT_UNCALIBRATED`.**
+- **Minimal fallback (proposed, NOT implemented; a detector change needs separate owner authorisation).**
+  - **Option 1 (preferred).** Drop the event term from the move scale only: compute S from the same model with the event columns at 0, in both `detect_move` and `move_ratio` / `sharp_move_threshold`. The next nightly build then recalibrates the threshold on the same statistic.
+    - An identical move gets an identical decision on both sides of a release.
+    - The corridor model and its coefficients are untouched.
+    - About two call sites plus tests.
+  - **Option 2.** No sharp-move push while E is in the 1h event zone [r − 60m, r + 60m). This is simpler, but the release move itself is then never alerted; the reminder 30 minutes before stays.
+  - **Either way.** Inside a zone the move alert already shows no corridor (§9). The «примерно раз в N дней» line is an unconditional, all-hours frequency; whether it stays inside an event zone is a copy question for the same authorisation.
+
+## 11. What this record does not do
 
 - It changes no code and retrains nothing.
 - It does not fix thresholds to reach 80%.
 - It does not touch the research registry, user copy or weekend calibration.
 - It does not open any confirmation surface or the E1 holdout.
+- It does not change the sharp-move detector (§10 is an audit).
 - It deploys nothing.
+
+## 12. Changelog
+
+- **2026-10-03, first version.** Feasibility figures 8 / 29 / 109 / 62 / 246 releases. No method was declared. They reproduce exactly from two different normal approximations:
+  - n = ⌈((z₀.₉₅√(p₀q₀) + z₀.₈₀√(p₁q₁)) / (p₀ − p₁))²⌉;
+  - n = ⌈(z₀.₉₇₅√(p₀q₀) / d)²⌉.
+
+  At these sizes both approximations are optimistic. **Superseded** by the exact table in §8, which was computed with methods fixed beforehand.
+- **2026-10-03, fallback.** §9 was implemented in the V2 branch, and BitMEX 2017–2019 was audited as `NOT_PROVABLY_INDEPENDENT` (§6).
+- **2026-10-03, event safety cleanup.**
+  - The event multiplier was removed from `/events` and from «Сегодня».
+  - The neutral warning was added, and CPI/FOMC research lines were taken off event surfaces.
+  - The glossary was corrected.
+  - The feasibility table was locked (§8) and the confirmation surfaces recorded (§6).
+  - The detector audit was added (§10, class C, no code change).

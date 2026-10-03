@@ -55,14 +55,14 @@ DECISION_CATALOG: dict = {
     "dc_corridor_part": _pair("{h}: {low}–{high} (±{half})", "{h}: {low}–{high} (±{half})"),
     # event zone (BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1 §9): numbers are withheld on purpose
     "dc_corridor_head_event": _pair("<b>Коридор</b> (Binance)", "<b>Corridor</b> (Binance)"),
-    "ez_note": _pair("{hs}: числовую оценку не показываем — {events} (Киев). Вокруг релиза обычная калибровка "
+    "ez_note": _pair("{hs}: числовую оценку не показываем — {events} (Киев). Вокруг публикации обычная калибровка "
                      "коридора не применяется.",
-                     "{hs}: no numerical estimate — {events} (Kyiv). Around a release the usual corridor "
+                     "{hs}: no numerical estimate — {events} (Kyiv). Around the release, the usual corridor "
                      "calibration does not apply."),
     "ez_event": _pair("{name}, {when}", "{name}, {when}"),
-    "ez_event_note": _pair("Числовой коридор на это время не показываем: вокруг релиза обычная калибровка "
+    "ez_event_note": _pair("Числовой коридор на это время не показываем: вокруг публикации обычная калибровка "
                            "коридора не применяется.",
-                           "No numerical corridor for this time: around a release the usual corridor "
+                           "No numerical corridor for this time: around the release, the usual corridor "
                            "calibration does not apply."),
     "dc_levels_head_plain": _pair("<b>Уровни</b>", "<b>Levels</b>"),
     "dc_level_line_nop": _pair("{arrow} {price} — {name} · {dist}", "{arrow} {price} — {name} · {dist}"),
@@ -71,11 +71,7 @@ DECISION_CATALOG: dict = {
     "dc_level_at": _pair("Цена у уровня {price} — {name}", "Price is at {price} — {name}"),
     "dc_level_now": _pair("— сейчас {price} —", "— now {price} —"),
     "dc_today_head": _pair("<b>Сегодня</b>", "<b>Today</b>"),
-    "dc_event_line": _pair("{when} — {name}{size}", "{when} — {name}{size}"),
-    "dc_event_size": _pair(": час выхода обычно ×{hour}, день ×{day} ({n})",
-                           ": the release hour is usually ×{hour}, the day ×{day} ({n})"),
-    "dc_event_size_plain": _pair(": час ×{hour}, день ×{day} ({n}) — почти как обычно",
-                                 ": hour ×{hour}, day ×{day} ({n}) — close to usual"),
+    "dc_event_line": _pair("{when} — {name}", "{when} — {name}"),
     "dc_no_events": _pair("Крупных событий в ближайшие 24ч нет.", "No major scheduled events in the next 24h."),
     "dc_analog_line": _pair("↳ после похожих ({n}): через {h} выше в {p_up} (обычно {base_up}) — {dir_verdict}; "
                             "ход ×{ratio} — {range_verdict}",
@@ -142,8 +138,8 @@ DECISION_CATALOG: dict = {
     "ev_title": _pair("<b>События</b> (время — Киев)", "<b>Events</b> (Kyiv time)"),
     "ev_none": _pair("В ближайшие 14 дней в календаре ничего нет.", "Nothing in the calendar for the next 14 days."),
     "ev_funding": _pair("Funding Binance: {times} (Киев)", "Binance funding: {times} Kyiv"),
-    "ev_footer": _pair("Размер — медиана к обычному часу и дню (Binance, с 2020 года).",
-                       "Size is the median against a usual hour and day (Binance, since 2020)."),
+    "ev_release_note": _pair("{names}: вокруг публикации обычная калибровка коридора не применяется.",
+                             "{names}: around the release, the usual corridor calibration does not apply."),
     # ---- /accuracy ----
     "ac_title": _pair("<b>Точность коридора</b> (доля случаев, когда цена не вышла за коридор; расчётная — 80%)",
                       "<b>Corridor accuracy</b> (share of cases the price stayed inside; designed for 80%)"),
@@ -279,7 +275,9 @@ DECISION_TERMS = {
     "ru": (
         "\n\nРЕШЕНИЯ И ИСТОРИЯ\n"
         "Коридор — диапазон, в котором цена оставалась в 4 из 5 похожих случаев за 1ч, 4ч или 24ч. "
-        "Считается по Binance с 2020 года: недавняя волатильность, время суток, выходные и события (CPI, ФРС). "
+        "Считается по Binance с 2020 года: недавняя волатильность, время суток и выходные. "
+        "Около CPI и решений ФРС числовой коридор и шанс дойти не показываем: вокруг публикации обычная "
+        "калибровка коридора не применяется. "
         "Точность проверяется на отложенном годе и на живых прогнозах (/accuracy).\n"
         "Шанс дойти — как часто цена проходила такое расстояние в одну сторону за это время в похожих условиях. "
         "Направление модель не предсказывает: для роста и падения шанс одинаковый.\n"
@@ -296,7 +294,9 @@ DECISION_TERMS = {
     "en": (
         "\n\nDECISIONS AND HISTORY\n"
         "Corridor — the range the price stayed in in 4 of 5 similar cases over 1h, 4h or 24h. "
-        "Built on Binance since 2020: recent volatility, time of day, weekends and events (CPI, Fed). "
+        "Built on Binance since 2020: recent volatility, time of day and weekends. "
+        "Around CPI and Fed decisions the numerical corridor and the chance to reach are not shown: around the "
+        "release, the usual corridor calibration does not apply. "
         "Accuracy is checked on a held-out year and on live forecasts (/accuracy).\n"
         "Chance to reach — how often the price moved that far in one direction within that time in similar conditions. "
         "The model does not forecast direction: the chance is the same up and down.\n"
