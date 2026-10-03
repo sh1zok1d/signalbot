@@ -1,8 +1,8 @@
-# Weekday / weekend reference-distribution calibration — design V1, revision 4
+# Weekday / weekend reference-distribution calibration — design V1, revision 5
 
 **Status:** `DESIGN_DRAFT / NOT_FROZEN / NOT_EXECUTED`
 **Kind:** PRODUCT_FIRST calibration unit (product evidence, not a research claim)
-**Date:** 2026-10-03 (revision 4: final design-only repair after the owner's review of revision 3 `86d9eda`; written against the repaired `main` at `a7d738f`)
+**Date:** 2026-10-03 (revision 5: Stage H semantics, tercile rule and owner contract decisions after the owner's acceptance of revision 4 `8c8a5bf` as the pre-freeze design; written against the repaired `main` at `a7d738f`)
 **Authority:** `PRODUCT_FIRST_DECISION_V1.md` §3 row 7, §3.1b, §6, §11. This design changes nothing in that decision and opens no amendment.
 **Machine twin (draft, not frozen):** `WEEKDAY_WEEKEND_BASELINE_CALIBRATION_DESIGN_V1.json`
 **Motivation, as a basis only:** `research/OWNER_CARDS_R03_RESULT.md`, hypothesis R03-C1 (weekend hours narrower than the same weekday hour on Binance 2020–2024; below the research bar; `NO_INCREMENTAL_STRUCTURE`). That verdict is not reopened. No R03 estimate, year value or unit file is an input, offset or prior here.
@@ -73,7 +73,19 @@ Push-delivery counts are never a primary metric and never decide.
 ### 3.5 Strata and guardrail cells
 
 - Primary strata: `WEEKDAY`, `WEEKEND`, `AGGREGATE` (weekday type of the window start).
-- Pre-declared guardrail cells (never added after outcomes): weekday type × UTC session band of the window start (`ASIA 00–08`, `EUROPE 08–13`, `US 13–21`, `LATE 21–24`) × trailing-30-day realized-volatility tercile. Tercile edges are fixed once from Stage H and carried unchanged into Stage P. A cell is assessable with ≥ 100 common-support hours.
+- Pre-declared guardrail cells (never added after outcomes): weekday type × UTC session band of the window start (`ASIA 00–08`, `EUROPE 08–13`, `US 13–21`, `LATE 21–24`): **eight calendar-defined cells**, no value enters their definition. A cell is assessable with ≥ 100 common-support hours.
+- **Realized-volatility terciles are not part of the frozen primary contract** (revision 5). They are not needed for the primary decision or for any §5 guardrail; keeping them would have imported value-derived edges from a single-venue 2020–2024 proxy into a 2026–27 cross-venue tape, where they would be unbalanced and would give Stage H a value-based lever over Stage P cells. A volatility-tercile breakdown is reported **descriptively only** at the Stage P stop, from the Stage P hours themselves, by the deterministic rule in §3.6; it decides nothing.
+
+### 3.6 Deterministic descriptive tercile rule (reporting only; never a gate)
+
+- **Variable:** trailing-30-day realized variance at the window start `H−1:00`: the sum of squared 5m consensus log returns (`ln(close_median/prev close_median)`) over the present buckets in `[H−1:00 − 30d, H−1:00)`, scaled by `expected buckets / present buckets`; undefined (`MISSING`) if fewer than 80 % of buckets are present. Computed once, at the single run at the stop, never before.
+- **Observations:** the common-support hours of the stratum being reported, each exactly once.
+- **Quantile algorithm:** `numpy.quantile(values, [1/3, 2/3], method="linear")` over the defined values of that stratum; edges `e1 ≤ e2`.
+- **Bins:** `LOW = [min, e1]`, `MID = (e1, e2]`, `HIGH = (e2, max]`; closed on the right.
+- **Ties:** an hour equal to an edge goes to the lower bin (closed-right intervals); if `e1 == e2` the MID bin is empty and reported as such; no re-binning.
+- **Missing:** `MISSING` hours are reported as a fourth group and excluded from the three bins.
+- **Independence:** the inputs are the volatility values and the hour set only; no rank, flag, gap, C0 or C1 quantity enters; the number of bins (3) and the method are fixed here; edges are never recomputed after any C0/C1 result is seen.
+
 
 ## 4. Primary calibration metrics
 
@@ -108,9 +120,9 @@ For scheme S, stratum s, metric m ∈ {range, volume, price}:
 - Data: pinned `CORE_BTC_BINANCE_V0` BTCUSDT perpetual 1m, 2020-01..2024-12, through the existing SHA256-verified loaders. 5m buckets from 1m bars; rolling-1h values with the product definitions; single venue, so consensus = that venue and venue agreement is `NOT_EVALUABLE`. Label: `PROXY_SINGLE_VENUE_EXPOSED`.
 - **Classification.** The whole 2020–2024 surface is **historically exposed for this product decision**: R03 computed and published weekend-vs-weekday range differences on it, year by year. There is **no historical holdout** inside 2020–2024; none is created after the fact, and no sub-period is called holdout.
 - **What Stage H can do:** check the mechanics (point-in-time ranks, same-type sampling, maturity), the **direction and rough size** of the calibration error under C0 and its change under C1, the feasibility numbers (usable hours, usability loss, cell support), fix the RV tercile edges, and sanity-check the guardrails.
-- **What Stage H cannot do:** authorize a product change, or produce a confirmatory `PASS` on its own. Its outcome is one of `H_SUPPORTS_PROSPECTIVE` (go to Stage P), `H_REFUTES` (close C1), `H_INFEASIBLE`.
+- **What Stage H cannot do:** authorize a product change, produce a confirmatory `PASS`, or add evidentiary weight to one. It is an eligibility and sanity check only. Its outcome is one of `H_ELIGIBLE_FOR_PROSPECTIVE` (Stage P may be activated), `H_REFUTES` (C1 closed), `H_INFEASIBLE` (§8 not met). Confirmatory evidence comes from Stage P alone; `H_ELIGIBLE_FOR_PROSPECTIVE` and `P_PASS` are a gate and a test, not two independent confirmations.
 - Years are reported separately as a descriptive stability record, never as a selection rule.
-- Stage H also reports surface B (availability) and the empirical date-cluster design effect, descriptively; the pinned 1m panel is gapless, so Stage H availability is calendar-driven and the C1 same-type rule never bites there.
+- Stage H also reports surface B (availability) and the empirical date-cluster design effect, descriptively; the pinned 1m panel is gapless, so Stage H availability is calendar-driven and the C1 same-type rule never bites there. Stage H fixes no edge, threshold or parameter for Stage P (the only pre-P amendment it can trigger is raising the information requirement).
 
 ### C1 calendar feasibility (outcome-blind; calendar arithmetic only, no data read)
 
@@ -153,7 +165,7 @@ For every clock hour, the number of distinct same-type UTC dates whose window st
 - **Start** is defined by counts, not by a calendar date: the first UTC 00:00 bucket at which **both** C0 and C1 have usable observations (3.2) for the weekend stratum and the weekday stratum, determined from the tape's timestamps at freeze time plus the frozen rule. (Decision §6 makes the end of October 2026 the expectation; the date is not the rule.) Every Stage P hour lies after the freeze commit and after the start bucket.
 - **Stop.** The first UTC Monday 00:00 at which both primary strata hold ≥ 2 250 common-support hours. Expected clock from the calendar alone at full availability: the weekend stratum sets it, 47 weekends (≈ 11 months); the weekday stratum needs about 19 weeks. A hard cap of 52 weeks after the start yields `INCONCLUSIVE`, never a continuation.
 - **Pre-stop storage model (blindness).** Before the stop, the only artefact that may exist is the **timestamp census** (same definition as the pre-freeze census, §13, re-run on the Stage P period), whose fields are exactly: clock-hour timestamp; stratum (from the window-start date); ISO week and month identifiers; per-venue and cross-venue **presence** booleans of the 12 buckets (no OHLC, volume or any value); usable yes/no per scheme; the single fixed unusable reason per scheme (3.2); common-support yes/no; and the per-stratum totals of those. **Not stored, computed or previewed before the stop, for either scheme:** ranks, rank summaries, flags, exceedance or qualified counts, calibration gaps, C0-vs-C1 differences, and anything derived from a value. Detector state (`TRIGGERED` episodes) is scheme-independent raw detector output, but it is not needed for the stop and is **not** stored before it either; the surface C counts are computed once at the stop from `beta_episodes` and `beta_push_decisions`. At the stop a single run computes the per-date sufficient statistics (`n_d`, `x_{S,d,m}`, the paired per-date differences, qualified and triggered counts per date) and writes them, with the derived estimates, into the result file; those tables are the sealed sufficient statistics of the unit and are published with it.
-- **Frozen before Stage P starts:** every threshold and tolerance in §4–§6 and §9, the stop rule, the start rule, the RV tercile edges from Stage H, the evaluator code and the product config snapshot. Nothing in Stage H's outcome may move any of them; the only path to a different threshold is a written amendment **before** Stage P starts, with a new design version, or a restart of Stage P on later data under a new preregistration.
+- **Frozen before Stage P starts:** every threshold and tolerance in §4–§6 and §9, the stop rule, the start rule, the evaluator code and the product config snapshot. Nothing in Stage H's outcome may move any of them; the only path to a different threshold is a written amendment **before** Stage P starts, with a new design version, or a restart of Stage P on later data under a new preregistration.
 
 ### The 2025-01..2026-08-15 surface — provenance and status for this decision
 
@@ -183,17 +195,17 @@ Read only from existing ledgers and records; no byte was opened for this section
 ## 9. Decision rule
 
 **Stage H (not confirmatory):**
-- `H_SUPPORTS_PROSPECTIVE`: `P_C1 ≤ P_C0 − 0.01` and every §5/§6 guardrail assessable on the proxy holds, and §8 met.
+- `H_ELIGIBLE_FOR_PROSPECTIVE`: `P_C1 ≤ P_C0 − 0.01` on the proxy and every §5/§6 guardrail assessable on the proxy holds, and §8 met. Eligibility only: it carries no evidentiary weight into the product decision.
 - `H_REFUTES`: `P_C1 > P_C0 + 0.005`, or a §5/§6 guardrail breached → C1 closed; a different scheme is a new design.
 - `H_INFEASIBLE`: §8 not met.
-- Neither `H_SUPPORTS_PROSPECTIVE` nor anything else in Stage H authorizes a product change.
+- Nothing in Stage H authorizes a product change or counts as confirmatory evidence.
 
 **Stage P (confirmatory, non-inferiority with tolerance):**
 - `P_PASS`: §8 met (all three primary metrics at their own requirement, hence 2 250 hours); on common support `|G_C1(s, m)| ≤ 0.02` for both primary strata and all metrics and `P_C1 ≤ P_C0`; every §5 (item 0 availability included) and §6 guardrail holds.
 - `P_FAIL`: any guardrail breached, or `|G_C1(s, m)| > 0.03` for a primary stratum and metric, or `P_C1 > P_C0 + 0.005`.
 - `P_INCONCLUSIVE`: otherwise, or §8 not met at the hard cap.
 
-**Product decision:** `PASS` = `H_SUPPORTS_PROSPECTIVE` and `P_PASS` → a change may be **proposed** under `PRODUCT_FIRST_DECISION_V1` §11 (new context version label, config digest, deploy note); this design makes no change. `FAIL` = `H_REFUTES` or `P_FAIL`. `INCONCLUSIVE` otherwise. All numbers in §4–§9 are set now, before any count, and are not tuned after Stage H.
+**Product decision:** `PASS` = `H_ELIGIBLE_FOR_PROSPECTIVE` (gate) **and** `P_PASS` (the only confirmatory test) → a change may be **proposed** under `PRODUCT_FIRST_DECISION_V1` §11 (new context version label, config digest, deploy note); this design makes no change. `FAIL` = `H_REFUTES` or `P_FAIL`. `INCONCLUSIVE` otherwise. All numbers in §4–§9 are set now, before any count, and are not tuned after Stage H. The 52-week hard cap is `PROVISIONAL / NOT_FROZEN` (owner, 2026-10-03): it is not changed automatically by any result; a change is a separate owner authorization.
 
 ## 10. Stop conditions (→ `ABORTED`, no rate is computed)
 
@@ -207,7 +219,7 @@ Read only from existing ledgers and records; no byte was opened for this section
 
 **Allowed:** `CORE_BTC_BINANCE_V0` 1m 2020–2024 (Stage H, exposed proxy); beta state tape V2 rows (Stage P, read-only, after the start bucket); product config values at freeze (`label_high 0.95`, `rolling_buckets 12`, `percentile_window 30d`, tiers 3/7/30, `min_venue_coverage 2`, push policy parameters for the descriptive push counts); the UTC calendar.
 
-**Frozen at freeze (digests recorded then):** this design and its twin; the evaluator; the config snapshot; the loader identities; the start and stop rules; the RV tercile edges after Stage H.
+**Frozen at freeze (digests recorded then):** this design and its twin; the evaluator; the config snapshot; the loader identities; the start and stop rules; the census spec and runner digests.
 
 **Forbidden:** `B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0` and any OI/funding snapshot; research-protected 2025/2026 objects; the opened 2025-01..2026-08-15 surface (§7) unless the owner decides otherwise; E1-RUN-001 data; R03 unit files, results and estimates as inputs; holiday calendars; user-reaction telemetry.
 
@@ -215,7 +227,7 @@ Read only from existing ledgers and records; no byte was opened for this section
 
 - A rank at `t` uses only buckets strictly before `t`; the weekday type of a sample is that of its own window end; the weekday type of the evaluated window is that of `t`.
 - C1 is fixed now; it may not be modified after any Stage H count is seen.
-- Tercile edges come from Stage H only and are carried into Stage P unchanged.
+- No value-derived stratification edge enters any gate; the descriptive tercile rule (§3.6) runs only at the stop.
 - Stage P is read once, at the stop defined by counts.
 - No R03 number is an input, prior or offset.
 - No evaluation-period data sets a threshold.
@@ -228,15 +240,39 @@ Read only from existing ledgers and records; no byte was opened for this section
 4. Owner authorization to run Stage H.
 5. Freeze of thresholds, start/stop rules and tercile edges **before** Stage P starts; owner authorization to activate Stage P and, at its stop, to open it.
 
+## 13a. Owner contract decisions recorded before the census (2026-10-03)
+
+1. Primary candidate C1; `MIN_SAME_TYPE_DAYS = 8`; C1-LONG sensitivity only.
+2. Price stays primary; target SE 1 pp; `PRIMARY_N_PRICE = 2 250`; range/volume 1 200; the Stage P stop follows the largest requirement, 2 250.
+3. PASS/FAIL bands are not widened to shorten the horizon.
+4. Availability tolerance stays the proposed 5 pp (`A_C1 ≥ A_C0 − 0.05`, `CS ≥ A_C0 − 0.05`); the census cannot change it.
+5. 2025–2026: `NOT_PROVABLY_INDEPENDENT / EXPOSED_FOR_OTHER_PURPOSES`; never a confirmatory holdout. E1, B2_06, OI/funding are not opened or used.
+6. The 52-week hard cap is `PROVISIONAL / NOT_FROZEN`; not changed automatically.
+7. Census verdicts: `CENSUS_FEASIBLE` if 2 250 weekend common-support hours are attainable with reasonable headroom; else `DESIGN_BLOCKED_BY_FEASIBILITY`, in which case nothing in items 1–6 changes automatically and a decision memo with projected horizons is prepared instead.
+
+## 13b. Census execution (owner-authorized; metadata only)
+
+- **Authorized artefacts:** spec sha256 `d13913ee94a2e392397b5ea3ec68fb0c2378abc8867f9746a57a02cc78e2b56b`; runner sha256 `9f65b914b096009373b7703843ae26b529330da175505f36bb3ee9bc7d5e9a6a`. The operator verifies both with `sha256sum` before running; any mismatch is `CENSUS_SPEC_VIOLATION` and nothing runs.
+- **Invocation (on the deploy host, which holds the tape):** `BETA_DSN=<postgres dsn> python -m scripts.product.weekday_weekend_census --calculation-version <current> --schema-version <current> --venues binance,bybit,okx`. The identity values are the ones `verify_versions` reports for the running beta. Output: `docs/WEEKDAY_WEEKEND_CALIBRATION_CENSUS_RESULT.json` (counts and rates only).
+- **Status (2026-10-03):** the runner was re-verified against both digests in the development environment, which has **no connection to the production tape** (no DSN, no local PostgreSQL). The census therefore has **not run**; the feasibility fields below stay unmeasured until the operator runs it.
+- **Projection rule after the census (no model):** with `CS_w` the observed weekend common-support rate, `weeks_to_N = N / (48 × CS_w)` and `N_at_52 = 52 × 48 × CS_w`; headroom `= N_at_52 − 2 250`. Weekday analogously with 120 hours per week. The same rule gives, before the census, the break-even `CS_w = 0.901` for 2 250 hours in 52 weeks.
+
 ## 14. Owner decisions pending
 
-0. **Price metric information requirement (contract decision).** Keep price primary with target SE 1 pp (2 250 hours per stratum; weekend horizon ≈ 47 weekends, no margin under the 52-week cap), or set a separate target SE / band for price, or make price a secondary surface with range and volume primary (1 200 hours; ≈ 25 weekends). Not taken here.
-1. Freeze (with or without amendments); C1 confirmed primary by the owner (2026-10-03), `MIN_SAME_TYPE_DAYS = 8` confirmed, C1-LONG sensitivity only.
+0. **Hard cap** if the census returns `DESIGN_BLOCKED_BY_FEASIBILITY`: a separate authorization, decided from the decision memo (§13a item 7); no option is pre-selected.
+1. Freeze (with or without amendments).
 2. Stage H execution.
 3. Whether the opened 2025-01..2026-08-15 surface may be used as an additional `EXPOSED` sensitivity slice (never confirmatory; the owner confirmed on 2026-10-03 that it is not a confirmatory holdout).
-3a. The availability tolerance of 5 pp (§5 item 0) is a proposed frozen value; if the census shows it makes the design infeasible, that is reported as a decision, the tolerance is not widened.
+
 4. Stage P activation; later, its opening at the stop.
 5. On `PASS`: the product change under the decision's amendment process.
+
+## 15b. Revision 5 changes (2026-10-03)
+
+- `H_SUPPORTS_PROSPECTIVE` renamed `H_ELIGIBLE_FOR_PROSPECTIVE`; Stage H is an eligibility/sanity gate with no evidentiary weight; product PASS = gate and `P_PASS`, not two confirmations.
+- Realized-volatility terciles removed from the frozen primary contract; guardrail cells are the eight calendar-defined weekday-type × session cells; a deterministic descriptive tercile rule (§3.6) is recorded for reporting at the stop only.
+- Owner contract decisions before the census recorded (§13a); hard cap marked `PROVISIONAL / NOT_FROZEN`.
+- Census execution section (§13b) with the authorized digests, operator invocation, projection rule, and the fact that it could not run from the development environment.
 
 ## 15a. Revision 4 changes (final design-only repair, 2026-10-03)
 

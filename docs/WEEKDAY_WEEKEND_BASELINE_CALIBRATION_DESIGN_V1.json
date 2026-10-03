@@ -1,6 +1,6 @@
 {
   "DESIGN": "WEEKDAY_WEEKEND_BASELINE_CALIBRATION_DESIGN_V1",
-  "REVISION": 4,
+  "REVISION": 5,
   "STATUS": "DESIGN_DRAFT_NOT_FROZEN_NOT_EXECUTED",
   "KIND": "PRODUCT_FIRST_CALIBRATION_UNIT",
   "DATE": "2026-10-03",
@@ -82,7 +82,8 @@
         24
       ]
     },
-    "rv_tercile": "trailing-30d realized volatility tercile; edges fixed from Stage H and carried unchanged",
+    "cells": 8,
+    "value_derived_edges": false,
     "min_hours_assessable": 100
   },
   "METRICS": {
@@ -117,7 +118,6 @@
       "mechanics",
       "direction and rough size of calibration error",
       "feasibility",
-      "tercile edges",
       "guardrail sanity"
     ],
     "cannot": [
@@ -130,14 +130,16 @@
       "basis": "common-support hours"
     },
     "outcomes": [
-      "H_SUPPORTS_PROSPECTIVE",
+      "H_ELIGIBLE_FOR_PROSPECTIVE",
       "H_REFUTES",
       "H_INFEASIBLE"
     ],
     "also_reports": [
       "surface B availability (calendar-driven on the gapless pinned panel)",
       "empirical date-cluster DEFF (descriptive; may only raise the Stage P requirement)"
-    ]
+    ],
+    "semantics": "eligibility / sanity gate only; no evidentiary weight; confirmatory evidence comes from Stage P alone",
+    "fixes_for_stage_P": "nothing (may only raise the information requirement by pre-P amendment)"
   },
   "STAGE_P": {
     "label": "PROSPECTIVE / CONFIRMATORY",
@@ -221,7 +223,11 @@
       "C0-vs-C1 differences",
       "TRIGGERED / episode counts (scheme-independent but not needed; computed once at the stop)",
       "anything derived from a value"
-    ]
+    ],
+    "hard_cap": {
+      "weeks": 52,
+      "status": "PROVISIONAL / NOT_FROZEN (owner 2026-10-03); not changed automatically"
+    }
   },
   "SURFACE_2025_2026": {
     "window": "2025-01-01..2026-08-15 exclusive, six Binance USD-M symbols, 1m klines + bookDepth + OI metrics",
@@ -242,14 +248,14 @@
     "status_r3": "unchanged: NOT_PROVABLY_INDEPENDENT / EXPOSED_FOR_OTHER_PURPOSES; not opened; not a holdout"
   },
   "DECISION_RULE": {
-    "H_SUPPORTS_PROSPECTIVE": "P_C1 <= P_C0 - 0.01, assessable guardrails hold, min N met",
     "H_REFUTES": "P_C1 > P_C0 + 0.005 or a guardrail breached -> C1 closed",
     "H_INFEASIBLE": "min N unmet",
     "P_PASS": "min N and diversity met; on common support |G_C1| <= 0.02 in both primary strata for all metrics and P_C1 <= P_C0; all guardrails incl. availability hold",
     "P_FAIL": "any guardrail breached, or |G_C1| > 0.03, or P_C1 > P_C0 + 0.005",
     "P_INCONCLUSIVE": "otherwise or min N unmet at the hard cap",
-    "PRODUCT": "PASS iff H_SUPPORTS_PROSPECTIVE and P_PASS (a proposal under PRODUCT_FIRST_DECISION_V1 section 11, not a change); FAIL iff H_REFUTES or P_FAIL; else INCONCLUSIVE",
-    "H_ALONE_AUTHORIZES_PRODUCT_CHANGE": false
+    "PRODUCT": "PASS iff H_ELIGIBLE_FOR_PROSPECTIVE (gate) and P_PASS (the only confirmatory test) -> proposal under PRODUCT_FIRST_DECISION_V1 section 11; FAIL iff H_REFUTES or P_FAIL; else INCONCLUSIVE",
+    "H_ALONE_AUTHORIZES_PRODUCT_CHANGE": false,
+    "H_ELIGIBLE_FOR_PROSPECTIVE": "P_C1 <= P_C0 - 0.01, assessable guardrails hold, min N met; eligibility only"
   },
   "STOP_CONDITIONS": [
     "product rule / cut / venue minimum / context version / tape schema change during Stage P",
@@ -262,10 +268,10 @@
     "ranks at t use buckets strictly before t",
     "weekday type of a sample from its own window end",
     "C1 fixed before any count",
-    "tercile edges from Stage H only",
     "Stage P read once at the count-defined stop",
     "no R03 number as input",
-    "no evaluation-period data sets a threshold"
+    "no evaluation-period data sets a threshold",
+    "no value-derived stratification edge enters any gate; descriptive terciles computed only at the stop"
   ],
   "FORBIDDEN_DATA": [
     "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0",
@@ -284,13 +290,13 @@
     "freeze of thresholds/start/stop/terciles before Stage P; owner Stage P activation and opening"
   ],
   "OWNER_DECISIONS_PENDING": [
-    "price metric information requirement: keep primary at SE 1 pp (2250 h, ~47 weekends, no margin) vs separate SE/band vs secondary",
+    "run the census on the deploy host (operator) and read its verdict",
+    "hard cap if DESIGN_BLOCKED_BY_FEASIBILITY (separate authorization from the decision memo)",
     "freeze",
     "Stage H execution",
     "2025-2026 surface as EXPOSED sensitivity slice",
     "Stage P activation and opening",
-    "product change on PASS",
-    "availability tolerance if census shows infeasibility"
+    "product change on PASS"
   ],
   "DATA_OPENED": false,
   "PRODUCT_CODE_CHANGED": false,
@@ -331,7 +337,7 @@
     "verdict": "not at the calendar floor; tolerates 1-2 missing weekend dates; actual availability depends on tape completeness -> timestamp-only census prerequisite",
     "if_census_fails_availability_rule": "DESIGN_BLOCKED_BY_FEASIBILITY (C1-LONG does not become primary by this route)"
   },
-  "DESIGN_READY_TO_FREEZE": "YES_CONDITIONAL_ON_PRICE_REQUIREMENT_DECISION_AND_CENSUS",
+  "DESIGN_READY_TO_FREEZE": "YES_PENDING_CENSUS_VERDICT",
   "CENSUS": {
     "authorized": "owner, 2026-10-03, before full freeze, after spec written and hashed",
     "spec_path": "docs/WEEKDAY_WEEKEND_CALIBRATION_CENSUS_SPEC_V1.md",
@@ -353,8 +359,10 @@
       "flags",
       "episode outcomes"
     ],
-    "status": "SPEC_WRITTEN_AND_HASHED / NOT_RUN (no production tape connection in this environment)",
-    "cannot": "change C1 to C1-LONG or any parameter; failing result -> DESIGN_BLOCKED_BY_FEASIBILITY"
+    "status": "SPEC_AND_RUNNER_REVERIFIED / NOT_RUN: the development environment has no connection to the production tape (no DSN, no local PostgreSQL); operator invocation recorded in the design section 13b",
+    "cannot": "change C1 to C1-LONG or any parameter; failing result -> DESIGN_BLOCKED_BY_FEASIBILITY",
+    "authorized_run": "owner 2026-10-03 for exactly spec d13913ee... and runner 9f65b914...",
+    "projection_rule": "weeks_to_N = N / (48 * CS_weekend); N_at_52 = 52*48*CS_weekend; headroom = N_at_52 - 2250; weekday with 120 hours/week; break-even CS_weekend = 0.901"
   },
   "OWNER_CONFIRMED_2026_10_03": {
     "PRIMARY": "C1",
@@ -363,5 +371,32 @@
     "SURFACE_2025_2026": "NOT_PROVABLY_INDEPENDENT / EXPOSED_FOR_OTHER_PURPOSES; not a confirmatory holdout",
     "STAGE_H": "HISTORICAL / EXPOSED / PROXY; no product PASS alone",
     "AVAILABILITY_TOLERANCE_PP": "5 proposed frozen; not changed by census results"
-  }
+  },
+  "DESCRIPTIVE_TERCILE_RULE": {
+    "role": "reporting only at the Stage P stop; never a gate; not in the frozen primary contract",
+    "variable": "trailing-30d realized variance at window start from 5m consensus log returns over present buckets, scaled by expected/present; MISSING below 80% presence",
+    "observations": "common-support hours of the reported stratum, once each",
+    "quantile": "numpy.quantile(values,[1/3,2/3],method='linear')",
+    "bins": "LOW [min,e1], MID (e1,e2], HIGH (e2,max]; closed-right; ties to the lower bin; e1==e2 -> empty MID reported",
+    "missing": "fourth group, excluded from bins",
+    "independence": "inputs are volatility values and the hour set only; no rank/flag/gap/C0/C1 quantity; bins=3 and method fixed; never recomputed after any result"
+  },
+  "OWNER_CONTRACT_DECISIONS_PRE_CENSUS_2026_10_03": {
+    "PRIMARY": "C1",
+    "MIN_SAME_TYPE_DAYS": 8,
+    "C1_LONG": "sensitivity only",
+    "PRICE": "primary, target SE 1 pp, N=2250",
+    "RANGE_VOLUME_N": 1200,
+    "OVERALL_STOP_N": 2250,
+    "BANDS": "not widened for horizon",
+    "AVAILABILITY_TOLERANCE_PP": 5,
+    "SURFACE_2025_2026": "NOT_PROVABLY_INDEPENDENT / EXPOSED_FOR_OTHER_PURPOSES; not a holdout",
+    "E1_B2_06_OI_FUNDING": "not opened, not used",
+    "HARD_CAP": "52 weeks PROVISIONAL / NOT_FROZEN",
+    "CENSUS_VERDICTS": [
+      "CENSUS_FEASIBLE",
+      "DESIGN_BLOCKED_BY_FEASIBILITY -> decision memo, no automatic change"
+    ]
+  },
+  "DESIGN_FEASIBILITY": "UNDETERMINED_PENDING_CENSUS"
 }
