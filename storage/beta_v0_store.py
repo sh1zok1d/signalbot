@@ -369,6 +369,40 @@ class BetaConn:
                 {"event_type": r["event_type"], "ts": r["ts"], "detail": _load(r["detail"]) or {}})
         return out
 
+    async def fetch_stage1_startup_recovery(self, *, symbol: str) -> Optional[dict]:
+        """The newest Stage-1 startup-recovery readiness row (common.startup_recovery)."""
+        from common.startup_recovery import EXCHANGE, SOURCE
+        row = await self.conn.fetchrow(
+            "SELECT id, status, started_at, finished_at, rows_written, note FROM backfill_runs "
+            "WHERE source=$1 AND exchange=$2 AND symbol=$3 ORDER BY id DESC LIMIT 1",
+            SOURCE, EXCHANGE, symbol)
+        return dict(row) if row else None
+
+    async def fetch_decided_venue_bars(self, *, symbol: str, rules_digest: str,
+                                       state_schema_version: int, start: datetime,
+                                       end: datetime) -> dict:
+        """bucket -> {venue: stored 1m-bar count} of each bucket's newest decided row
+        (LIVE / CORRECTION_CHECK of this rules digest and schema) in [start, end]."""
+        rows = await self.conn.fetch(
+            """SELECT DISTINCT ON (bucket_ts) bucket_ts, snapshot->'venues' AS venues
+               FROM beta_state_tape
+               WHERE symbol=$1 AND origin IN ('LIVE','CORRECTION_CHECK') AND rules_digest=$2
+                 AND state_schema_version=$3 AND bucket_ts >= $4 AND bucket_ts <= $5
+               ORDER BY bucket_ts, tape_id DESC""",
+            symbol, rules_digest, state_schema_version, start, end)
+        return {r["bucket_ts"]: {ex: int((v or {}).get("bars") or 0)
+                                 for ex, v in (_load(r["venues"]) or {}).items()} for r in rows}
+
+    async def fetch_kline_bucket_counts(self, *, exchanges: Sequence[str], symbol: str,
+                                        start: datetime, end: datetime) -> dict:
+        """(5m bucket, venue) -> raw 1m-bar count (any source) for buckets in [start, end]."""
+        rows = await self.conn.fetch(
+            "SELECT to_timestamp(floor(extract(epoch FROM ts) / 300) * 300) AS bucket_ts, exchange, "
+            "count(*) AS n FROM klines_1m WHERE exchange = ANY($1::text[]) AND symbol=$2 "
+            "AND ts >= $3 AND ts < $4 GROUP BY 1, 2",
+            list(exchanges), symbol, start, end + timedelta(minutes=5))
+        return {(r["bucket_ts"], r["exchange"]): int(r["n"]) for r in rows}
+
     async def fetch_newest_live_kline(self, *, exchanges: Sequence[str], symbol: str,
                                       since: datetime) -> Mapping:
         rows = await self.conn.fetch(

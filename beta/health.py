@@ -127,6 +127,20 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
         if latest_live is not None and not latest_live["snapshot"].get("materialized"):
             alerts.append({"key": "MATERIALIZATION_FAILURE",
                            "detail": {"error": latest_live["snapshot"].get("materialization_error")}})
+        # Stage-1 startup recovery (beta.recovery), as the detector last saw it: still
+        # blocking after the stall limit, or proceeding without readiness (OVERDUE).
+        from .recovery import BLOCKING, OVERDUE, REPAIR_COMPONENT
+        gate = (((runtime.get("detector") or {}).get("detail") or {}).get("startup_recovery")) or {}
+        if gate.get("state") == OVERDUE or (gate.get("state") in BLOCKING
+                                            and (gate.get("waited_s") or 0) >= h["detector_stall_s"]):
+            alerts.append({"key": "STAGE1_RECOVERY_NOT_READY",
+                           "detail": {"state": gate.get("state"), "recovery_run_id": gate.get("recovery_run_id"),
+                                      "waiting_since": gate.get("waiting_since")}})
+        repair = ((runtime.get(REPAIR_COMPONENT) or {}).get("detail")) or {}
+        if repair and not repair.get("complete"):
+            alerts.append({"key": "STARTUP_RECOVERY_REPAIR_INCOMPLETE",
+                           "detail": {k: repair.get(k) for k in ("recovery_run_id", "degraded", "appended",
+                                                                 "unchanged", "failed", "deferred")}})
     if switches.outcome_tracking and _stalled("outcomes", h["outcome_stall_s"]):
         alerts.append({"key": "OUTCOME_TRACKER_NOT_ADVANCING", "detail": {}})
     # Telegram liveness is only checked when Telegram is part of the deployment

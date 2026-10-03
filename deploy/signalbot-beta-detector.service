@@ -4,7 +4,12 @@ Documentation=file:/opt/signalbot/docs/PRIVATE_BETA_V0_DEPLOY.md
 # Ordering only — independent of Stage 1 ingestion (signalbot.service), the
 # shadow forecast one-shot and the legacy Telegram notifier. It never requires,
 # starts, stops or restarts any of them.
-After=network-online.target docker.service
+# After=signalbot.service only orders a boot-time start behind Stage-1's start
+# (Type=simple: "started" is NOT "gap-fill done"). The real barrier is in the
+# detector: it does not catch up while Stage-1's startup-recovery row in
+# PostgreSQL (backfill_runs, source 'startup_recovery') is not complete for
+# this boot (beta/recovery.py; runbook: startup recovery).
+After=network-online.target docker.service signalbot.service
 Wants=network-online.target
 
 [Service]
