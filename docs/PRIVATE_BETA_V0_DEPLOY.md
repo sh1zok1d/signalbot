@@ -174,6 +174,8 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
 
 **Network:** the history sync reads `https://data.binance.vision` only (about 4,500 objects on the first run, a few per night afterwards). Nothing else new leaves the VPS.
 
+**One-shot helper:** after updating the code, `cd /opt/signalbot && sudo deploy/beta_v2_upgrade.sh` runs steps 2–8 below in order (each idempotent, stops on the first failure; `--skip-rewind` skips step 5). The manual steps are the same:
+
 **VPS steps (in this order; run as the `signalbot` user from `/opt/signalbot` with the venv python)**
 1. Update the code: `git fetch origin && git checkout <this branch or the merge commit>`; no new Python dependency.
 2. Install the units (copies and `daemon-reload`, enables nothing): `sudo deploy/install_beta_units.sh`.
