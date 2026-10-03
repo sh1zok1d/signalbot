@@ -1,0 +1,26 @@
+# C025-R1 feasibility
+
+Outcome-blind. Compiler `GV0R02_SCHEMA_V2` / `GV0R02_POLICY_V2`. Practical bar 0.30 SD was not lowered.
+
+```
+FEASIBILITY_STATUS = INFORMATIONALLY_WEAK
+BLOCKER = MDE_TOO_LARGE
+MECHANISM_ACTIVE_N = 1
+MECHANISM_INACTIVE_N = 169
+EFFECTIVE_N = 0.9941176470588236
+MDE_STRESS = 5.619723413016076
+POWER_STRESS = 0.03511643935327302
+PRIMARY_LABEL_ORBIT_SIZE = 170
+MIN_ATTAINABLE_P = 0.0058823529411764705
+ALPHA_ATTAINABLE = true
+MATCHING_STATUS = INFERENCE_SUPPORT_INSUFFICIENT
+MATCHING_LEVEL_REACHED = L6_YEAR
+PROSPECTIVE_ARM_FLOOR = 698
+PROSPECTIVE_REPLICATION_NOT_EXECUTED = true
+MARKET_OUTCOMES_OPENED = false
+PROTECTED_2025_2026_OPENED = false
+```
+
+Discovery stress power at the realized mechanism support misses 0.80. The prospective floors (698 and 698) are a stopping-rule declaration derived from the frozen power profile. They were not estimated from 2025 or 2026, and replication was not run.
+
+C025_NEXT = STOP. No threshold rescue.
