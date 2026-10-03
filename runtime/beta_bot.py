@@ -141,24 +141,24 @@ class BetaBotHandler:
 
     async def handle(self, update: Mapping[str, Any]) -> list:
         update_id = int(update["update_id"])
-        try:
-            async with self.store.connect() as conn:
-                async with conn.transaction():
-                    last = await conn.get_last_update_id(BOT_NAME)
-                    if last is not None and update_id <= last:
-                        return []
-                    out = await self._dispatch(conn, update)
-                    await conn.set_last_update_id(BOT_NAME, update_id)
-            return out
-        except Exception as exc:  # noqa: BLE001 - one bad update must not crash-loop the poller
-            logger.warning("beta bot update failed: %s", type(exc).__name__)
-        # the update's own writes were rolled back; move past it so the next poll does not replay it
+        async with self.store.connect() as conn:
+            async with conn.transaction():
+                last = await conn.get_last_update_id(BOT_NAME)
+                if last is not None and update_id <= last:
+                    return []
+                out = await self._dispatch(conn, update)
+                await conn.set_last_update_id(BOT_NAME, update_id)
+        return out
+
+    async def skip(self, update: Mapping[str, Any]) -> None:
+        """Move the offset past an update whose handling failed (its writes were rolled back),
+        so the next poll does not fetch it again: one bad update never crash-loops the poller."""
+        update_id = int(update["update_id"])
         async with self.store.connect() as conn:
             async with conn.transaction():
                 last = await conn.get_last_update_id(BOT_NAME)
                 if last is None or update_id > last:
                     await conn.set_last_update_id(BOT_NAME, update_id)
-        return []
 
     async def _allowed(self, conn, uid: int) -> bool:
         return is_owner(self.owner, uid) or await conn.allowlist_contains(uid)
@@ -654,7 +654,13 @@ async def run_bot_service(*, store, cfg: BetaConfig, switches: Callable[[], Beta
                 updates, ok = [], False
                 await asyncio.sleep(5)
             for u in updates:
-                await deliver_outgoing(sender, await handler.handle(u))
+                try:
+                    out = await handler.handle(u)
+                except Exception as exc:  # noqa: BLE001 - never log ids/text; skip, do not replay
+                    logger.warning("beta bot update failed: %s", type(exc).__name__)
+                    await handler.skip(u)
+                    continue
+                await deliver_outgoing(sender, out)
             async with store.connect() as conn:
                 await conn.record_health("bot", now=datetime.now(timezone.utc), success=ok,
                                          detail={"updates": len(updates)})

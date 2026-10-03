@@ -1,6 +1,7 @@
 """Decision support V2 on real PostgreSQL ($BETA_TEST_DSN): history sync, nightly build,
 decision block in every view, commands, market alerts through the outbox, forecast tracking,
 privacy (PRODUCT_DECISION_V2). Synthetic data only; no network, no Telegram."""
+import asyncio
 import re
 from datetime import date, datetime, timedelta, timezone
 
@@ -308,10 +309,39 @@ def test_a_failing_update_never_replays_and_undeliverable_alerts_never_block():
         async def boom(conn, update):
             raise RuntimeError("bad update")
         real, h._dispatch = h._dispatch, boom
-        assert await h.handle(msg("/btc", 21)) == []                 # logged, rolled back, skipped
-        h._dispatch = real
+        stop = asyncio.Event()
+
+        class Poller:
+            def __init__(self):
+                self.offsets, self.sent = [], []
+
+            async def get_me(self):
+                return None
+
+            async def get_updates(self, *, offset, timeout):
+                self.offsets.append(offset)
+                if len(self.offsets) > 1:
+                    stop.set()
+                    return []
+                return [msg("/btc", 21)]
+
+            async def send(self, *, chat_id, html, buttons=None):
+                self.sent.append(chat_id)
+                return 1
+        from runtime import beta_bot
+        poller = Poller()
+        orig_cls = beta_bot.BetaBotHandler
+        beta_bot.BetaBotHandler = lambda *a, **k: h                  # the service polls with this handler
+        try:
+            await asyncio.wait_for(beta_bot.run_bot_service(store=store, cfg=CFG, switches=lambda: ON_PUSH,
+                                                            sender=poller, owner_user_id=None, stop=stop,
+                                                            poll_timeout_s=0), 30)
+        finally:
+            beta_bot.BetaBotHandler = orig_cls
+            h._dispatch = real
+        assert poller.offsets == [21, 22] and poller.sent == []     # logged, rolled back, skipped, not replayed
         async with store.connect() as conn:
-            assert await conn.get_last_update_id(BOT_NAME) == 21     # the next poll does not fetch it again
+            assert await conn.get_last_update_id(BOT_NAME) == 21
 
         # moves nobody receives (A switched them off) are marked dispatched, so they never crowd
         # out the alerts behind them
