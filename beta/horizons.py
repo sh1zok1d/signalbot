@@ -223,8 +223,16 @@ def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_b
     """Rolling 24h over the last 288 closed buckets ending at ``end_bucket``.
 
     Price and range need at least 282 buckets with the first and last present.
+    The rule is applied PER VENUE: a venue is usable when its open (first bucket),
+    close (last bucket) and high/low at both ends are present and it has at least
+    `min_present` buckets with a valid high/low. A missing row and a present row
+    whose kline OHLC is NULL for that venue are both one missing observation;
+    neither drops the venue while it stays within the allowance. `price_complete`
+    needs `min_venue_coverage` usable venues.
     The volume ratio needs every bucket. A partial sum is kept and marked partial.
     `n` / `min_present` reuse the same rule for another span (the /catchup window).
+    The 1h / 4h windows (`beta.context.rolling_window_values`) are stricter and do
+    not use this function: there every bucket must be complete.
     """
     buckets = _window_buckets(_utc(end_bucket), n)
     rows = [metrics_by_bucket.get(b) for b in buckets]
@@ -244,21 +252,26 @@ def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_b
     volume_complete = (not volume_gap) and present == n and len(vols) == n
     ranges, moves, highs, lows, opens, closes = [], [], [], [], [], []
     if price_window:
+        last = len(rows) - 1
         for ex in cfg.exchanges:
             o = rows[0].get(metric_key(ex, "kline_open"))
             c = rows[-1].get(metric_key(ex, "kline_close"))
-            hs, ls, bad = [], [], o is None or c is None or o <= 0
-            for row in rows:
+            if o is None or c is None or o <= 0:
+                continue
+            hs, ls, ends_ok_ex = [], [], True
+            for idx, row in enumerate(rows):
                 if row is None:
-                    continue
+                    continue                                   # missing row: one missing observation
                 h = row.get(metric_key(ex, "kline_high"))
                 low = row.get(metric_key(ex, "kline_low"))
                 if h is None or low is None:
-                    bad = True
-                    break
+                    if idx in (0, last):                       # the ends stay mandatory
+                        ends_ok_ex = False
+                        break
+                    continue                                   # internal OHLC gap: one missing observation
                 hs.append(float(h))
                 ls.append(float(low))
-            if bad or not hs:
+            if not ends_ok_ex or len(hs) < min_present:        # per-venue allowance
                 continue
             ranges.append((max(hs) - min(ls)) / float(o) * 100.0)
             moves.append((float(c) - float(o)) / float(o) * 100.0)
