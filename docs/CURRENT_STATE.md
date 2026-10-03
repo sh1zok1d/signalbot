@@ -1,15 +1,16 @@
 # Signalbot — Current State
 
 **Status:** `ACTIVE SUMMARY` (a pointer document; it is not an authority)
-**As of:** 2026-10-02
-**Posture:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN` (`PRODUCT_FIRST_DECISION_V1.md`, 2026-10-02)
+**As of:** 2026-10-03
+**Posture:** `PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS` (`PRODUCT_DECISION_V2_DECISION_SUPPORT.md`, 2026-10-03); before it `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN` (`PRODUCT_FIRST_DECISION_V1.md`, 2026-10-02)
 
 This page answers "where are we now?" in one screen. It restates facts recorded elsewhere and adds no new decisions. If this page ever disagrees with the documents below, they win:
 - `CURRENT_RESEARCH_STATE.md`: canonical routing and the exact next research unit.
 - `PROJECT_STATUS.md`: posture and freeze.
 - `RESEARCH_LEDGER.md`: consumed windows and results.
 - `PRIVATE_BETA_V0_RESTART_DECISION.md`: beta governance.
-- `PRODUCT_FIRST_DECISION_V1.md`: the canonical product decision, build-to-test scope and user-test design.
+- `PRODUCT_DECISION_V2_DECISION_SUPPORT.md`: the canonical product decision (decision support; predictive freeze lifted for the product; no direct trade calls).
+- `PRODUCT_FIRST_DECISION_V1.md`: build-to-test scope, architecture constraint and user-test design (superseded where V2 differs).
 
 ## 1. Headline
 
@@ -82,9 +83,8 @@ There is no authorized next unit in the research routing (see §2). For the beta
 
 ## 6. Product validation status
 
+- **Decision support since 2026-10-03.** Corridor (range forecast with a held-out-year check and live tracking), levels with the chance to reach them and their first-touch history beside random levels, «что было после похожих», event calendar, `/risk`, `/alert`, market alerts (`PRODUCT_DECISION_V2_DECISION_SUPPORT.md`). Implemented in code; not deployed. Binance 2025/2026 opened for product statistics.
 - **Product-first since 2026-10-02.** The product hypothesis, build-to-test scope, DO-NOT-BUILD-YET list and 30-day user test are in `PRODUCT_FIRST_DECISION_V1.md`. The MUST scope is implemented in code (`/catchup`, morning briefing, 1h/4h context with interpretation, unusual-hour push gate, push policy, telemetry); not deployed. The owner-only V0.2 run ended in `CHANGE PRODUCT`; no external user has seen the product yet.
-
-- **Product-first since 2026-10-02.** The product hypothesis, build-to-test scope, DO-NOT-BUILD-YET list and 30-day user test are in `PRODUCT_FIRST_DECISION_V1.md`. The owner-only V0.2 run ended in `CHANGE PRODUCT`; no external user has seen the product yet.
 - **Predictive claims:** frozen. Descriptive interpretation with shown uncertainty is product evidence, not a research claim.
 - **Descriptive private beta V0.2:** authorized with narrow scope (`PRIVATE_BETA_V0_RESTART_DECISION.md`). Its code and units live only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.
 - **Last recorded state** (`PROJECT_STATUS.md`): implemented, push disabled, no users. The next operator step is the 7-day push-disabled shadow soak. This page did not verify runtime state.

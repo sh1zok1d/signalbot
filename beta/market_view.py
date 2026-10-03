@@ -4,6 +4,7 @@ One assembly path for `/btc`, `/catchup` and the morning briefing:
 
     collect_status → context projection state → btc_view → horizons (1h/4h/24h)
     → D7 line (when enabled) → [catchup / brief: window summary + 1h/4h interpretation]
+    → decision support (corridor, levels, events, «после похожих»; PRODUCT_DECISION_V2)
 
 `/btc` gets exactly the payload it had before (same keys). `/catchup` and the
 briefing add a `market` block. Rendering lives in `beta.formatter`; nothing here
@@ -47,8 +48,9 @@ def parse_catchup_hours(args: Optional[str]) -> Optional[int]:
 
 async def build_view(conn, cfg: BetaConfig, *, now: datetime, kind: str = "btc",
                      window_hours: Optional[int] = None, maturity_days: float,
-                     d7_enabled: bool = False) -> dict:
-    """The one view object every user surface renders."""
+                     d7_enabled: bool = False, decision: bool = True) -> dict:
+    """The one view object every user surface renders. `decision` adds the decision-support
+    block (corridor, levels, events, «после похожих»; PRODUCT_DECISION_V2) by value."""
     if kind not in VIEW_KINDS:
         raise ValueError(f"unknown view kind {kind!r}")
     from .admin import collect_status
@@ -76,6 +78,9 @@ async def build_view(conn, cfg: BetaConfig, *, now: datetime, kind: str = "btc",
         view["kind"] = kind
         view["market"] = market_block(cfg, view, ctx["state"] if ctx else None, tape,
                                       window_hours=hours, qualified=qualified)
+    if decision:
+        from .decision import build_decision
+        view["decision"] = await build_decision(conn, cfg, now=now, market=view.get("market"))
     return view
 
 

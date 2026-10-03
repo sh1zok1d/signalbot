@@ -147,10 +147,10 @@ beta:
   # state (/admin_d7_on), which defaults off and can never exceed this switch.
   # Morning briefing (PRODUCT_FIRST_DECISION_V1 §3 row 3). Same view and render path
   # as /catchup, delivered by the existing notifier through the existing outbox.
-  # Not detection, not the rules digest. Committed OFF: the owner enables it; it also
-  # needs the global push switches (BETA_PUSH_ENABLED, no /admin_pause_push).
+  # Not detection, not the rules digest. Committed ON since PRODUCT_DECISION_V2 (owner, 2026-10-03);
+  # it also needs the global push switches (BETA_PUSH_ENABLED, no /admin_pause_push).
   briefing:
-    enabled: false
+    enabled: true                           # PRODUCT_DECISION_V2: the briefing carries corridor, levels, events
     time_kyiv: "08:00"
     max_delay_min: 120                      # a brief not sent within this is expired, never late
   regime_d7:
@@ -161,3 +161,15 @@ beta:
   push_policy:
     quiet_hours_kyiv: ["23:00", "07:00"]    # no event push between these Kyiv wall-clock times
     global_cooldown_min: 60                 # one push per hour across every event type
+  # Decision support (PRODUCT_DECISION_V2, 2026-10-03): corridor, levels, «после похожих»,
+  # events, /risk, /alert, market alerts. Presentation and market-alert policy only; not
+  # detection, not the rules digest. Market alerts go through the existing outbox.
+  decision:
+    max_price_alerts: 5                     # personal /alert levels per participant
+    forecast_tracking: true                 # record each hour's corridors and their outcome (/accuracy)
+    market_alerts:
+      enabled: true                         # also needs BETA_PUSH_ENABLED and no /admin_pause_push
+      max_per_utc_day: 4                    # level touches and sharp moves together
+      move_cooldown_min: 120                # one sharp-move message per 2h
+      event_lead_min: 30                    # CPI / FOMC reminder this long before the release
+      touch_max_age_min: 10                 # a level touch older than this is not pushed (missed run)

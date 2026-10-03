@@ -7694,6 +7694,77 @@ PROTECTED_2025_2026_OPENED = false
 
 Records: `docs/research/OWNER_CARDS_R03_RESULT.md`, `SCIENTIFIC_TEST_LEDGER.json` (`TF-R03-A-EXPIRY-CLOCK`, `TF-R03-B-PANEL-STATES`, `TF-R03-C-SESSION-CLOCK`).
 
+## Protected Binance 2025/2026 opened for product statistics — 2026-10-03
+
+Owner decision (`docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §4). The decision-support statistics of the product read Binance USD-M BTCUSDT 5m klines (2020-01 → yesterday) and Vision OI metrics (2020-09 → yesterday), 2025/2026 included.
+
+```
+PROTECTED_2025_2026_PRODUCT_USE = OPENED
+PRODUCT_FEATURES = range/volatility (1h/4h/24h corridor model), level first-touch reactions
+                   (PDH/PDL/PWH/PWL/PMH/PML, round numbers, previous-day POC), 1h/4h price/OI/taker
+                   state labels and their forward 1h/4h/24h outcomes, CPI/FOMC/expiry hour and day sizes
+EXCLUDED = E1-RUN-001 final holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) — never stored
+RESEARCH_STATUS_OF_2025_2026 = CONSUMED for any hypothesis over the product features
+SEALED_VERDICTS_REOPENED = false
+RESCUE_ATTEMPTED = false
+```
+
+**Correction (2026-10-03, red-team of the V2 branch, before any deploy).** The first implementation dropped holdout rows only after parsing: it planned the August 2026 monthly klines archive and the 2026-08-25 metrics file, both of which overlap the holdout, so a sync would have downloaded holdout bytes. It never ran against the network (no deploy; this environment cannot reach Binance), so no holdout byte was fetched. The planner now rejects every overlapping object before any request (21 objects: the August monthly klines, daily klines and metrics of 2026-08-16 … 2026-08-25), and a request gate refuses any overlapping URL. `PROTECTED_BYTES_FETCHED = NO`.
+
+These statistics are product evidence (descriptive, with N, a comparable baseline and a verdict), not research claims. Development numbers seen while building them (2022–2024 repository archives, synthetic OI only for the analogue mechanics) are recorded in the implementation review, not as results.
+
+---
+
+## 2026-10-03 — Event corridor temporal repair: 2024 release windows become repair data
+
+Design record: `docs/BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1.md` (design only; no code change, no retrain). The product corridor's CPI/FOMC term (`event_in_window`, release in `[t, t + H)`) widens the corridor before a release and drops it from the first 5-minute live anchor after it; the hourly calibration never sees that moment. The owner-relayed red-team table (2024 FOMC, −60…+60 min around the release) showed it and shaped the redesign.
+
+```
+SURFACE                        = Binance USD-M BTCUSDT 2024 scheduled releases (12 CPI, 8 FOMC)
+STATUS                         = EXPOSED / DIAGNOSTIC / REPAIR DATA (event semantics)
+ALLOWED                        = reproduce the failure; outcome-blind implementation checks
+FORBIDDEN                      = confirmatory holdout for any new event semantics; choosing candidates by 2024 coverage
+GENERIC_2024_HOLDOUT           = exposed (examined at build, by the red team and by the design record); diagnostic only
+PREFERRED_CANDIDATE            = K1 (PRE in [t, t+H) and POST in [t-60m, t)), fixed before any fit
+CONFIRMATION                   = prospective releases after the freeze (primary); BitMEX 2017-2019 = unaudited secondary, not opened
+FEASIBILITY                    = FALSIFICATION_FEASIBLE / CALIBRATION_CONFIRMATION_NOT_FEASIBLE_SHORT_TERM (units = releases, ~20/year)
+FALLBACK                       = no numerical corridor around releases until a prospective check passes
+EVENT_CODE_CHANGED             = NO
+EVENT_MODEL_RETRAINED          = NO
+```
+
+**Follow-up (2026-10-03, owner scope "product safety fallback + feasibility clarification").**
+- **Feasibility.** Recomputed with methods fixed before computing: exact one-sided binomial for detection, Wilson for precision. 12 / 38 / 127 releases to detect a true coverage of 40% / 60% / 70% against 80% (α = 0.05, power 0.80); 81 / 289 releases for ±10 / ±5 pp. The earlier 8 / 29 / 109 / 62 / 246 came from two undeclared normal approximations and are superseded.
+- **BitMEX XBTUSD 2017–2019.** Provenance audit, no outcome computed: read in bulk by D2 and D7; only aggregates published; no CPI/FOMC calendar ever joined. Every hour, event hours included, entered D7 states and D2 volatility, and the C012 triage already named the surface for scheduled events. Verdict: `NOT_PROVABLY_INDEPENDENT`.
+- **Product fallback.** Implemented in the V2 branch: no numerical corridor, touch chance or `/risk` figure inside `[release − H, release + 60 min)`; no multiplier; no forecast tracked there.
+- **Unchanged.** `EVENT_CODE_CHANGED_FOR_K1 = NO`, `EVENT_MODEL_RETRAINED = NO`, `PROTECTED_BYTES_FETCHED = NO`.
+
+**Follow-up (2026-10-03, owner scope "EVENT SAFETY cleanup").** No surface opened, no outcome read.
+
+```
+EVENT_FEASIBILITY_TABLE        = LOCKED: 12 / 38 / 127 / 81 / 289 (exact one-sided binomial, H0 p = 0.80, alpha 0.05,
+                                 power 0.80, stable for every m in [n, n+100]; Wilson 95% for precision);
+                                 no change after prospective outcomes without a dated amendment
+PRIMARY_CONFIRMATION_SURFACE   = PROSPECTIVE RELEASES AFTER K1 FREEZE
+BITMEX_CONFIRMATION_STATUS     = NOT_PROVABLY_INDEPENDENT
+SURFACE_2024                   = EXPOSED / DIAGNOSTIC / REPAIR
+SURFACE_2025_2026              = EXPOSED_FOR_OTHER_PURPOSES / NOT CONFIRMATORY
+EVENT_MULTIPLIER_USER_FACING   = NO
+RAPID_MOVE_EVENT_RISK_CLASS    = C / EVENT_FLAG_DECISION_RELEVANT_UNCALIBRATED (design record §10); detector unchanged
+```
+
+**Follow-up (2026-10-03, owner authorisation "sharp-move event fallback, Option 1").** A product safety fallback. It is not research and not a confirmation of any event semantics.
+
+```
+SHARP_MOVE_EVENT_CONDITIONING  = DISABLED_PENDING_VALIDATION
+STATISTIC                      = MOVE15_OVER_1H_SCALE_EVENT_NEUTRAL_V1 (1h rangecast scale, CPI/FOMC columns at 0),
+                                 one function for live detection and nightly calibration
+CALIBRATION_PROCEDURE_CHANGED  = NO
+THRESHOLD_DIAGNOSTIC           = OLD 2.0618 -> NEW 2.0963 (repo archives 2022-2024, pooled, same procedure; not used
+                                 to change anything)
+CORRIDOR_MODEL_CHANGED         = NO (K0 event term, coefficients, fit, forecast)
+```
+
 ## 2026-10-03 — Autonomous research generation G01: no survivor, nothing executed
 
 **Program.** `SF-AUTOGEN-G01` is an owner override of `NEW_RESEARCH_PROGRAMS_AUTHORIZED = false` for this program only (`AUTOGEN_G01_DECISION.md`). The research map was rebuilt from `main` at `a7d738f`.

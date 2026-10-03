@@ -1,0 +1,211 @@
+# Research findings the bot shows (PRODUCT_DECISION_V2 §2.4; beta/research_link.py).
+#
+# One entry per closed research unit, in trader language. A text states only what its record
+# states, with its own numbers; it never turns a result into a trade call. `contexts` are the
+# places where the bot adds one «Проверено: …» line (the lowest `priority` wins):
+#   label:<key> / label:<1h|4h>:<key>   the 1h / 4h state label (beta/interpretation.py keys)
+#   level / level:<kind>                a level alert (PDH, PWL, …)
+#   event:<kind>                        today's events and the event reminder (CPI, FOMC, EXPIRY_*)
+#   move                                the sharp 15-minute move alert
+#   corridor                            /risk
+#   weekend                             today's block on a Saturday or Sunday (Kyiv)
+# Every entry is listed in /research by status. `pending_merge: true` marks a unit whose record
+# lives on a research branch that is not merged yet (its record path is checked once it is).
+# When a research unit closes, add or update its entry here (AGENTS.md). A closed program with
+# nothing to state (no executed unit, no outcome) gets no finding and no /research line; it is
+# listed under `no_bot_context` with its record, so the omission is a recorded decision.
+version: BETA_RESEARCH_FINDINGS_V1
+no_bot_context:
+  - program: AUTOGEN_G01
+    status: CLOSED_NO_SURVIVORS
+    bot_context: NONE
+    reason: "0 frozen, 0 executed, no market outcome opened, no product implication; G01-B1 is only a future candidate"
+    record: "docs/research/AUTOGEN_G01_DECISION.md; docs/research/AUTOGEN_G01_FEASIBILITY.md"
+findings:
+  # ---- replicated on an independent venue ----------------------------------------------------
+  - id: D7
+    status: CONFIRMED
+    text_ru: "после часа, когда цена ушла необычно далеко для своего объёма, следующий час был таким же примерно в 1 из 5 случаев (обычно в 1 из 10); направление не оценивалось"
+    text_en: "after an hour in which price moved unusually far for its volume, the next hour was the same kind about 1 time in 5 (usually 1 in 10); direction was not assessed"
+    data: "Binance 2020–2024, 4545 таких часов; повтор на BitMEX 2017–2019"
+    record: "docs/research/D7_CAMPAIGN_CLOSE_V1.md; docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.md"
+    contexts: [move]
+    priority: 20
+  - id: D2
+    status: CONFIRMED
+    text_ru: "после дня с очень высокой волатильностью откат против вчерашнего направления за следующие 24 ч был больше обычного (в среднем 4,0% против 2,6%), но это размах в обе стороны: перекоса против тренда нет"
+    text_en: "after a very volatile day the next 24h move against the previous direction was larger than usual (4.0% vs 2.6% on average), but it is a wider swing both ways: no tilt against the trend"
+    data: "Binance 2020–2024, 163 таких дня из 1791; повтор на BitMEX 2017–2019; разложение по направлению"
+    record: "docs/research/discovery_results/D2_DISCOVERY_RESULT.md; docs/research/D2_BITMEX_REPLICATION_CORRECTED_RESULT.md; docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.md"
+    contexts: [corridor]
+    priority: 10
+
+  # ---- found once, not replicated --------------------------------------------------------------
+  - id: D11
+    status: DISCOVERY
+    text_ru: "после плановых решений ФРС следующие 6 ч были в среднем в 1,76 раза волатильнее обычного, и так в каждом году 2020–2024; направление не оценивалось"
+    text_en: "after scheduled Fed decisions the next 6h were on average 1.76 times as volatile as usual, in every year 2020–2024; direction was not assessed"
+    data: "Binance 2020–2024, 39 заседаний против 551 обычного окна"
+    record: "docs/research/discovery_results/D11_DISCOVERY_RESULT.md"
+    contexts: ["event:FOMC"]
+    priority: 10
+  - id: D12
+    status: DISCOVERY
+    text_ru: "дневной профиль объёма BTC сдвигался на час вместе с переводом часов в США: время активной торговли привязано к американским часам"
+    text_en: "BTC's intraday volume profile shifted by an hour with the US clock change: the busy hours are tied to the US clock"
+    data: "Binance 2020–2024, 10 переводов часов против 239 обычных воскресений"
+    record: "docs/research/discovery_results/D12_DISCOVERY_RESULT.md"
+    contexts: []
+    priority: 50
+
+  # ---- present, below the materiality bar ----------------------------------------------------
+  - id: R03-C1
+    status: WEAK
+    text_ru: "выходные часы спокойнее того же часа во вт–чт; разрыв рос каждый год с 2020 по 2024, но остался ниже порога значимости проверки"
+    text_en: "weekend hours are calmer than the same hour on Tue–Thu; the gap grew every year from 2020 to 2024 but stayed below the test's materiality bar"
+    data: "Binance 2020–2024, 260 недель"
+    record: "docs/research/OWNER_CARDS_R03_RESULT.md"
+    contexts: [weekend]
+    priority: 10
+
+  # ---- popular beliefs that did not hold -------------------------------------------------------
+  - id: H03
+    status: NOT_CONFIRMED
+    text_ru: "после резкого импульса за 15–60 мин не было устойчивого ни продолжения, ни выдыхания: знак менялся с горизонтом и годом"
+    text_en: "after a sharp 15–60 min impulse there was neither a steady continuation nor a steady fade: the sign changed with the horizon and the year"
+    data: "Binance 2020–2024, горизонты 15–240 мин"
+    record: "docs/research/H03_DEV_SUMMARY.md"
+    contexts: [move]
+    priority: 10
+  - id: H02
+    status: NOT_CONFIRMED
+    text_ru: "ложный пробой диапазона последних 1–4 ч (вышли за край и вернулись) не давал отката сильнее, чем настоящий пробой: эффект около 1 б.п."
+    text_en: "a failed breakout of the last 1–4h range (out and back in) was not followed by a bigger pullback than a real breakout: about 1 bp"
+    data: "Binance 2020–2024, горизонты 15–240 мин"
+    record: "docs/research/H02_DEV_SUMMARY.md"
+    contexts: [level]
+    priority: 30
+  - id: DIVERGENCE
+    status: NOT_CONFIRMED
+    text_ru: "бычья дивергенция (RSI, MACD, CVD) у поддержки в стакане почти не меняла шанс дойти до +1R раньше −1R: около 50% и с ней, и без неё"
+    text_en: "a bullish divergence (RSI, MACD, CVD) at order-book support barely changed the chance of +1R before −1R: about 50% with or without it"
+    data: "Binance, 6 монет; найдено на 2023–2024, проверено на 2025–2026"
+    record: "docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_REPORT.md"
+    contexts: [level]
+    priority: 40
+  - id: MARKET-02
+    status: NOT_CONFIRMED
+    text_ru: "после импульса рост OI вместе с продолжением цены не давал более сильного продолжения в следующий час, чем такой же импульс без роста OI"
+    text_en: "after an impulse, rising OI with price continuing did not lead to a stronger continuation over the next hour than the same impulse without it"
+    data: "Binance 2020–2024, 2487 импульсов"
+    record: "docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_RESULT.md"
+    contexts: ["label:1h:long_build", "label:1h:short_build"]
+    priority: 10
+  - id: MARKET-01
+    status: NOT_CONFIRMED
+    text_ru: "рост OI при буксующей цене после импульса не давал более сильного отката в следующий час, чем обычный импульс"
+    text_en: "rising OI while price stalls after an impulse did not lead to a bigger pullback over the next hour than an ordinary impulse"
+    data: "Binance 2020–2024, 7701 случай"
+    record: "docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.md"
+    contexts: []
+    priority: 20
+  - id: H05
+    status: NOT_CONFIRMED
+    text_ru: "резкий перекос агрессивных покупок или продаж за 15–60 мин не давал устойчивого продолжения или разворота цены в следующие 15–240 мин"
+    text_en: "a sharp skew of aggressive buying or selling over 15–60 min gave no steady continuation or reversal over the next 15–240 min"
+    data: "Binance 2020–2024, 45 вариантов порогов и горизонтов"
+    record: "docs/research/H05_DEV_SUMMARY.md"
+    contexts: []
+    priority: 30
+  - id: H04
+    status: NOT_CONFIRMED
+    text_ru: "откат внутри тренда не давал устойчивого продолжения: эффект нашёлся только в одной узкой полосе глубины отката, и этого мало"
+    text_en: "a pullback inside a trend gave no steady continuation: an effect showed up only in one narrow band of pullback depth, which is not enough"
+    data: "Binance 2020–2024, 45 вариантов"
+    record: "docs/research/H04_DEV_SUMMARY.md"
+    contexts: []
+    priority: 40
+  - id: MARKET-05
+    status: NOT_CONFIRMED
+    text_ru: "то, что ETH за сутки шёл туда же, куда BTC, не уменьшало откат BTC в следующие 24 ч"
+    text_en: "ETH moving the same way as BTC over a day did not make BTC's next-24h pullback smaller"
+    data: "Binance 2022–2024, 1825 дней"
+    record: "docs/research/MARKET_05_RESULT.md"
+    contexts: []
+    priority: 50
+  - id: MARKET-06
+    status: NOT_CONFIRMED
+    text_ru: "необычное расхождение цены фьючерса Binance и спота OKX не добавляло информации о размере отката BTC в следующие 24 ч"
+    text_en: "an unusual gap between the Binance perpetual and OKX spot price added nothing about the size of BTC's next-24h pullback"
+    data: "Binance и OKX 2022–2024, проверка на 2023–2024"
+    record: "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.md"
+    contexts: []
+    priority: 50
+  - id: R03-A1
+    status: NOT_CONFIRMED
+    text_ru: "час пятничной экспирации опционов Deribit (08:00 UTC) был не шире того же часа в другие будни; месячные и квартальные экспирации отдельно не проверялись"
+    text_en: "the Friday Deribit options expiry hour (08:00 UTC) was no wider than the same hour on other weekdays; monthly and quarterly expiries were not tested separately"
+    data: "Binance 2020–2024, 260 пятниц"
+    record: "docs/research/OWNER_CARDS_R03_RESULT.md"
+    contexts: ["event:EXPIRY_WEEKLY", "event:EXPIRY_MONTHLY", "event:EXPIRY_QUARTERLY"]
+    priority: 10
+  - id: R03-A4
+    status: NOT_CONFIRMED
+    text_ru: "перед пятничной экспирацией (04–08 UTC) цена не «прилипала»: эти часы были даже чуть шире, а не уже, чем в другие будни"
+    text_en: "price did not 'pin' before the Friday expiry (04–08 UTC): those hours were slightly wider, not narrower, than on other weekdays"
+    data: "Binance 2020–2024, 260 пятниц"
+    record: "docs/research/OWNER_CARDS_R03_RESULT.md"
+    contexts: ["event:EXPIRY_WEEKLY", "event:EXPIRY_MONTHLY", "event:EXPIRY_QUARTERLY"]
+    priority: 20
+  - id: R03-C2-C4
+    status: NOT_CONFIRMED
+    text_ru: "открытие США в понедельник и закрытие в пятницу были не шире того же часа во вт–чт"
+    text_en: "the Monday US open and the Friday US close were no wider than the same hour on Tue–Thu"
+    data: "Binance 2020–2024, 232 и 246 недель"
+    record: "docs/research/OWNER_CARDS_R03_RESULT.md"
+    contexts: []
+    priority: 50
+  - id: R03-B2
+    status: NOT_CONFIRMED
+    text_ru: "дни, когда большинство альткоинов двигались вместе, не предшествовали более широкому дню BTC"
+    text_en: "days when most altcoins moved together did not precede a wider BTC day"
+    data: "Binance 2020–2024, 53 месяца"
+    record: "docs/research/OWNER_CARDS_R03_RESULT.md"
+    contexts: []
+    priority: 50
+
+  # ---- the hypothesis failed, the record states something else ---------------------------------
+  - id: H01
+    status: SIDE_FINDING
+    text_ru: "затишье не предвещало взрыва: после тихих 30–120 мин расширение волатильности случалось в 2–7% случаев против ~25% обычно"
+    text_en: "a lull did not announce a breakout: after a quiet 30–120 min, volatility expanded in 2–7% of cases against about 25% usually"
+    data: "Binance 2020–2024, 172 400 точек; обратная связь отдельно не перепроверялась"
+    record: "docs/research/H01_DEV_SUMMARY.md"
+    contexts: ["label:compression", "label:compression_oi_na"]
+    priority: 10
+  - id: TWAP
+    status: SIDE_FINDING
+    text_ru: "найденные алгоритмические TWAP-исполнения на споте продолжались (поток в ту же сторону в 1,26 раза выше обычного), но цену заметнее 10 б.п. за 1–6 ч не сдвигали"
+    text_en: "detected algorithmic TWAP executions on spot kept going (same-side flow 1.26 times the usual), but did not move price by more than 10 bp over 1–6h"
+    data: "Binance spot 2020–2024, 1207 исполнений"
+    record: "docs/research/TWAP_SEALED_RUN_V1_RESULT.md"
+    contexts: []
+    priority: 50
+  - id: DIVERGENCE-RSI
+    status: SIDE_FINDING
+    text_ru: "в той же проверке дивергенций у поддержки более сильный рост RSI шёл с чуть большим шансом +1R раньше −1R, около +3,8 п.п. на одно отклонение; разведочно, не перепроверено"
+    text_en: "in the same divergence test, a stronger RSI rise at support came with a slightly higher chance of +1R before −1R, about +3.8 pp per SD; exploratory, not replicated"
+    data: "Binance, 6 монет, 2023–2026 вместе"
+    record: "docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_REPORT.md"
+    contexts: []
+    priority: 60
+
+  # ---- too few cases for a verdict ---------------------------------------------------------------
+  - id: C012
+    status: UNDERPOWERED
+    text_ru: "был ли дрейф цены перед решениями ФРС и CPI, по 2020–2024 установить нельзя: событий слишком мало для вывода в любую сторону"
+    text_en: "whether price drifts before Fed and CPI releases cannot be told from 2020–2024: too few events for a verdict either way"
+    data: "Binance 2020–2024; проверка закрыта до подсчёта результата"
+    record: "docs/research/GV0R01_C012_CLOSE.json"
+    contexts: []
+    priority: 50

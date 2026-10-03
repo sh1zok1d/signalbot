@@ -1,0 +1,14 @@
+[Unit]
+Description=Run Signalbot private beta history sync + statistics build daily at 02:20 UTC
+Documentation=file:/opt/signalbot/docs/PRIVATE_BETA_V0_DEPLOY.md
+
+[Timer]
+# Binance Vision publishes the previous day's daily objects in the early UTC morning.
+OnCalendar=*-*-* 02:20:00 UTC
+AccuracySec=1min
+RandomizedDelaySec=0
+Persistent=true
+Unit=signalbot-beta-history.service
+
+[Install]
+WantedBy=timers.target
