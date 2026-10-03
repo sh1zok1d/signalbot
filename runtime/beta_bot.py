@@ -23,7 +23,7 @@ from beta.access import PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
 from beta.admin import collect_status, fingerprint, handle_admin, is_owner, parse_command
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
-from beta.formatter import assert_descriptive, format_history
+from beta.formatter import PUSH_BTC_ACTION, assert_descriptive, format_history
 from beta.i18n import t
 from beta.market_view import build_view, parse_catchup_hours, persist_view
 from common.logging_setup import setup_logging
@@ -114,7 +114,12 @@ def _help(lang: str) -> str:
 
 
 def _help_buttons(lang: str) -> list:
-    return [[(t(lang, "btn_terms"), "terms")]]
+    # «Другие монеты»: the U5 fake door (BETA_MEASUREMENT_CONTRACT_V1 §6). Only here, never
+    # pushed or repeated elsewhere; nothing multi-asset exists behind it.
+    return [[(t(lang, "btn_terms"), "terms"), (t(lang, "btn_other_assets"), OTHER_ASSETS)]]
+
+
+OTHER_ASSETS = "x:assets"
 
 
 def _lang_of(user) -> str:
@@ -374,9 +379,14 @@ class BetaBotHandler:
 
     def _push_status(self, user, lang: str) -> str:
         word = lambda v: t(lang, "on_word" if v else "off_word")  # noqa: E731
-        return t(lang, "push_status", master=word(user.get("push_enabled", True)),
+        text = t(lang, "push_status", master=word(user.get("push_enabled", True)),
                  levels=word(user.get("push_levels", True)), events=word(user.get("push_events", True)),
                  moves=word(user.get("push_moves", True)), hours=word(user.get("push_hours", True)))
+        if not user.get("push_enabled", True):
+            # the categories are kept as they are, not reset; say so right under the master line
+            head, _, rest = text.partition("\n")
+            text = f"{head}\n{t(lang, 'push_master_off_note')}\n{rest}"
+        return text
 
     async def _push_cmd(self, conn, uid: int, user, lang: str, args) -> tuple:
         parts = (args or "").strip().lower().split()
@@ -427,6 +437,8 @@ class BetaBotHandler:
         price = block.get("price")
         if parts and parts[0] in ("del", "delete", "удалить", "rm"):
             alerts = await conn.list_price_alerts(user["user_pk"])
+            if not alerts:
+                return t(lang, "al_list_none")
             if len(parts) == 2 and parts[1] in ("all", "все"):
                 n = await conn.cancel_price_alerts(user["user_pk"], now=now)
             elif len(parts) == 2 and parts[1].isdigit() and 1 <= int(parts[1]) <= len(alerts):
@@ -454,9 +466,11 @@ class BetaBotHandler:
             return t(lang, "al_usage")
         if not price:
             return t(lang, "al_no_price")
-        dist = (level / price - 1) * 100.0
-        if level <= 0 or abs(dist) > 30:
+        if level <= 0:
             return t(lang, "al_usage")
+        dist = (level / price - 1) * 100.0
+        if abs(dist) > 30:
+            return t(lang, "al_too_far", now=fmt_price(price, lang))
         if abs(dist) < 0.05:
             return t(lang, "al_too_close", now=fmt_price(price, lang))
         made = await conn.add_price_alert(user_pk=user["user_pk"], price=level, created_price=price, now=now,
@@ -582,7 +596,17 @@ class BetaBotHandler:
         if user is None or user["status"] != "ACTIVE" or len(data) < 3 or data[1] != ":":
             return [answer(t(lang, "not_available"))]
         if data == "r:latest":
+            # Owner-only diagnostics (an older /btc may still carry the button).
+            if not is_owner(self.owner, uid):
+                return [answer(t(lang, "not_available"))]
             return await self._readiness_details(conn, chat_id, answer, lang)
+        if data == PUSH_BTC_ACTION:                         # «📊 BTC сейчас» under a push
+            html_text, buttons = await self._btc(conn, self.clock(), lang)
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_btc_now",
+                                     [answer(""), _msg(chat_id, html_text, buttons, lang=lang)])
+        if data == OTHER_ASSETS:                            # U5 fake door: one activity row per tap
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_other_assets",
+                                     [answer(""), _msg(chat_id, t(lang, "other_assets_reply"), lang=lang)])
         if data in ("L:levels", "L:risk"):
             cmd = data[2:]
             reply = await self._decision_cmd(conn, cmd, user, self.clock(), lang, "")

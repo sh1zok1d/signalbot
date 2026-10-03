@@ -117,7 +117,7 @@ A fresh deployment has a **warm-up period**. Readiness follows the accumulated *
   - `data unavailable · <reason>`;
   - `degraded · <reason>`;
   - `disabled`.
-- The **Readiness** button shows the per-rule tier, sample count, span and venue eligibility.
+- The per-rule readiness details (tier, sample count, span, venue eligibility, read-model version) are owner diagnostics: participants get no Readiness button, and `r:latest` from an older message answers "not available" to anyone but the owner (`BETA_COPY_CONTRACT_V1` §5 rule 5: no internal states, codes or versions on the user surface).
 - **Headline precedence:** DATA STALE, then DATA DEGRADED, then WATCH / EVENT ACTIVE, then HISTORY BUILDING (or DETECTOR NOT READY), then NO ACTIVE EVENTS. NO ACTIVE EVENTS is shown only when the Price/OI families are actually evaluable.
 - **Absence of an event is not a negative detector decision** until the relevant family is `ready`. A valid event from a ready family is always shown, even while other families are still building.
 - **No pushes:** readiness changes never send notifications.
@@ -238,7 +238,7 @@ psql "$DSN" \
 
 6. Manual Telegram `/btc` check.
 
-On a fresh deployment, `HISTORY BUILDING` is normal. `DETECTOR NOT READY` is also valid when live quorum or a required input is missing. `NO ACTIVE EVENTS` is not valid while the mandatory Price/OI scope is immature. The readiness Details button should work. Temporal-context Details exists only when an ACTIVE EVENT or a retained LAST EVENT exists. No temporal Details button immediately after a quiet fresh deployment is normal.
+On a fresh deployment, `HISTORY BUILDING` is normal. `DETECTOR NOT READY` is also valid when live quorum or a required input is missing. `NO ACTIVE EVENTS` is not valid while the mandatory Price/OI scope is immature. Participants see no Readiness button (owner diagnostics only). Temporal-context Details exists only when an ACTIVE EVENT or a retained LAST EVENT exists. No temporal Details button immediately after a quiet fresh deployment is normal.
 
 ### Live OI sampling is the Day-0 gate
 

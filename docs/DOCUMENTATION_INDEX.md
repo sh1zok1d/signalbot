@@ -400,6 +400,15 @@ Before using an operational runbook, compare it with current code/config and run
 
 - **2026-10-02:** `PRODUCT_FIRST_DECISION_V1.md` is the canonical product decision for the beta's implementation scope and its first external test. The entries below keep their own records; where they differ from the decision they are superseded and say so in their headers (`BETA_V0_3_MARKET_BRIEFING.md`: briefing episodes, 24h label, 90-day baselines; `BETA_HISTORICAL_ANALOGUE_GATE_V1.md`: DO-NOT-BUILD-YET; `PRODUCT_DIRECTION_V0.md` and `PRODUCT_DIRECTION_AFTER_BETA_PROPOSAL.md`: partly superseded).
 - `BETA_COPY_CONTRACT_V1.md` (**FROZEN_FOR_IMPLEMENTATION / COPY_CONTRACT / IMPLEMENTED_WITH_RECORDED_DEVIATIONS**, 2026-10-02): the user-facing wording and rendering contract for `/catchup`, the morning briefing and the unusual-hour push. It works within `PRODUCT_FIRST_DECISION_V1.md` and is subordinate to it. `PRIVATE_BETA_V0_DEPLOY.md` ("Product-first V1") records what deployment changes and the operator steps.
+- `BETA_MEASUREMENT_CONTRACT_V1.md` (**FREEZE_READY / owner decisions recorded 2026-10-03 / Day 0 not declared**): operational definitions for the §7 user test of `PRODUCT_FIRST_DECISION_V1.md`. It covers:
+  - the population, the 24 h known/unknown deadline and the enrollment window (cohort days 0–12);
+  - the denominator, kept after `/delete_me` through a cohort record;
+  - Kyiv days and notification classes (BRIEF, EVENT_MOVE_LEVEL_PUSH) with a 10-minute reaction window;
+  - the U1a withdrawal instrument (rule frozen in config, `day0_kyiv` set once at Day 0), the U5 fake door, and the U3 payment ledger kept outside git;
+  - read-only SQL executed by the journey test.
+
+  It changes no §7 threshold. It is binding at the merge commit that carries it.
+- `BETA_INVITE_CANDIDATE_CHECKLIST.md` (**OPERATIONAL CHECKLIST**, 2026-10-03): from the current state to the first invites: what was validated off-production and the owner-run VPS steps with pass conditions (startup recovery, candidate smoke, soak, real-event UX review, measurement freeze, telemetry, onboarding, invite ladder).
 - `PRIVATE_BETA_V0_RESTART_DECISION.md` is the governance authority. It covers the scope, the frozen rule identity, the soak gate, and the rollout and exit criteria. It is descriptive only, and the predictive product stays frozen.
 - `research/BETA_V0_PROSPECTIVE_FORWARD_EVALUATION.md` carries the label `PROSPECTIVE_PRE_REGISTERED_FORWARD_EVALUATION / OWNER_UNBLINDED`. It is never independent confirmation. Its Q1/Q2 were superseded on 2026-09-28, before any statistic was inspected, because the product will show historical follow-up statistics before the stopping rule (see its amendment).
 - `BETA_V0_3_MARKET_BRIEFING.md` (**OWNER_DECISION_RECORDED / CONTRACT / NOT_IMPLEMENTED / PARTLY_SUPERSEDED_2026-10-02**, 2026-10-02): the P1 contract that turned the beta into a market briefing (`CHANGE PRODUCT`). Its briefing episodes, 24h label and 90-day baselines are superseded by `PRODUCT_FIRST_DECISION_V1.md` §3.

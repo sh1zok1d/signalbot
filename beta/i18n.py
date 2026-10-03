@@ -233,6 +233,10 @@ _CATALOG: dict[str, dict[str, str]] = {
     "btn_24h": {"ru": "24ч", "en": "24h"},
     "btn_terms": {"ru": "Термины", "en": "Glossary"},
     "btn_readiness": {"ru": "Готовность", "en": "Readiness"},
+    "btn_btc_now": {"ru": "📊 BTC сейчас", "en": "📊 BTC now"},
+    "btn_other_assets": {"ru": "Другие монеты", "en": "Other coins"},
+    "other_assets_reply": {"ru": "Пока доступен только BTC. Интерес к другим монетам записан.",
+                           "en": "Only BTC is available for now. Your interest in other coins is noted."},
     "btn_details": {"ru": "Подробнее", "en": "Details"},
     "btn_useful": {"ru": "Полезно", "en": "Useful"},
     "btn_noise": {"ru": "Шум", "en": "Noise"},
@@ -293,6 +297,8 @@ _CATALOG: dict[str, dict[str, str]] = {
     "privacy": {
         "ru": (
             "<b>Signalbot, закрытая бета — конфиденциальность</b>\n"
+            "Signalbot наблюдает за BTC и показывает необычные состояния рынка и контекст.\n"
+            "Торговых рекомендаций бот не даёт.\n\n"
             "• Мы храним ваш Telegram id и id чата, чтобы отправлять сообщения беты, "
             "а также голоса «полезно / шум» и статус доставки.\n"
             "• Записи рынка и событий не содержат персональных данных.\n"
@@ -310,6 +316,8 @@ _CATALOG: dict[str, dict[str, str]] = {
         ),
         "en": (
             "<b>Signalbot closed beta — privacy notice</b>\n"
+            "Signalbot watches BTC and shows unusual market states and their context.\n"
+            "The bot gives no trading advice.\n\n"
             "• We store your Telegram user id and chat id to send you beta messages, plus your "
             "Useful/Noise votes and delivery status.\n"
             "• Market/event records contain no personal data.\n"
@@ -334,7 +342,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "/btc — компактное состояние BTC perpetual (спокойно, необычно сейчас, затихло, "
             "бот собирает историю или данные неполные). Кнопки открывают измерения.\n"
             "/catchup — что было за последние часы (по умолчанию 8 ч; /catchup 1–24)\n"
-            "/history — недавние эпизоды детектора, с доставкой или без, с фактическими диапазонами\n"
+            "/history — недавние необычные события, с сообщением или без, с фактическими диапазонами\n"
             "/brief on|off — утренняя сводка в 08:00 (Киев)\n"
             "/push on|off — сообщения о необычном часе (не больше 2 в день)\n"
             "/terms — термины\n"
@@ -349,7 +357,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "/btc — compact BTC perpetual state (calm, unusual now, calmed, history building, "
             "or data incomplete). Buttons hold the measurements.\n"
             "/catchup — what happened over the last hours (8h by default; /catchup 1–24)\n"
-            "/history — recent detector episodes, pushed or not, with factual follow-up ranges\n"
+            "/history — recent unusual events, with or without a message, with factual follow-up ranges\n"
             "/brief on|off — morning summary at 08:00 Kyiv\n"
             "/push on|off — unusual-hour messages (no more than 2 a day)\n"
             "/terms — glossary\n"
@@ -539,6 +547,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "interp_missing": {"ru": "н/д", "en": "n/a"},
     # /catchup, the morning briefing and the unusual-hour push (BETA_COPY_CONTRACT_V1).
     "catchup_title": {"ru": "BTC за {hours} ч · {span}", "en": "BTC, last {hours}h · {span}"},
+    "catchup_title_nospan": {"ru": "BTC за {hours} ч", "en": "BTC, last {hours}h"},
     "brief_title": {"ru": "BTC за ночь · {span}", "en": "BTC overnight · {span}"},
     "span_hours": {"ru": "{hours} ч", "en": "{hours}h"},
     "window_kyiv": {"ru": "{start}–{end} (Киев)", "en": "{start}–{end} Kyiv"},
@@ -715,10 +724,10 @@ _CATALOG: dict[str, dict[str, str]] = {
     "rank_immature": {"ru": "нельзя оценить (история: {tier})", "en": "not evaluable ({tier} history)"},
     "rank_pct": {"ru": "{n}-й перцентиль за 30 дн.", "en": "{n}th pct of 30d"},
     "history_title": {
-        "ru": "История детектора (все эпизоды, с доставкой или без)",
-        "en": "Detector history (all episodes, pushed or not)",
+        "ru": "Необычные события BTC (с сообщением или без)",
+        "en": "BTC unusual events (with or without a message)",
     },
-    "history_empty": {"ru": "Эпизодов ещё нет.", "en": "No episodes recorded yet."},
+    "history_empty": {"ru": "Событий ещё нет.", "en": "No events yet."},
     "history_note": {
         "ru": ("Диапазоны — абсолютное движение (макс − мин) после времени решения; "
                "* = пересмотрено после исправления данных."),
@@ -727,11 +736,21 @@ _CATALOG: dict[str, dict[str, str]] = {
     },
     "history_corrected": {"ru": " ⚠ вход исправлен", "en": " ⚠ corrected input"},
     "history_times": {
-        "ru": "открыт {opened}; зафиксирован {triggered}; доставка {push}",
-        "en": "opened {opened}; triggered {triggered}; push {push}",
+        "ru": "начало {opened}; зафиксировано {triggered}; {push}",
+        "en": "started {opened}; triggered {triggered}; {push}",
     },
-    "push_none": {"ru": "без доставки (не зафиксировано)", "en": "no push (not triggered)"},
-    "push_pending": {"ru": "ДОСТАВКА (ожидает)", "en": "PUSH (pending)"},
+    # /history delivery wording: never a raw delivery state or suppression code
+    # (BETA_COPY_CONTRACT_V1 §5 rule 5).
+    "push_none": {"ru": "без сообщения", "en": "no message"},
+    "push_pending": {"ru": "сообщение в очереди", "en": "message queued"},
+    "push_sent": {"ru": "сообщение отправлено", "en": "message sent"},
+    "push_unconfirmed": {"ru": "доставка не подтверждена", "en": "delivery not confirmed"},
+    "push_expired": {"ru": "сообщение не отправлено: устарело", "en": "message not sent: too old"},
+    "end_not_evaluable": {"ru": "нет данных", "en": "no data"},
+    "end_max_duration": {"ru": "лимит длительности", "en": "duration limit"},
+    "end_version_changed": {"ru": "смена версии", "en": "version change"},
+    "end_detection_gap": {"ru": "пропуск данных", "en": "data gap"},
+    "range_na": {"ru": "{h} н/д", "en": "{h} n/a"},
     "follow_pending": {"ru": "данные после события ещё не собраны", "en": "follow-up pending"},
     "range_complete": {"ru": "{h} диапазон {pct}%{mark}", "en": "{h} range {pct}%{mark}"},
     "details_rules": {"ru": "Правила {ver} ({digest})", "en": "Rules {ver} ({digest})"},

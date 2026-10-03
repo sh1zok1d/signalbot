@@ -101,7 +101,8 @@ def test_brief_is_sent_once_per_day_through_the_outbox_and_never_touches_pushes(
         before = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(SLOT - timedelta(minutes=1)))
         assert before["briefs"]["scheduled"] == 0 and s.sent == []
         r = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(SLOT + timedelta(minutes=1)))
-        assert r["briefs"] == {"scheduled": 1, "sent": 1, "failed": 0, "unknown": 0, "expired": 0, "suppressed": 0}
+        assert r["briefs"] == {"scheduled": 1, "sent": 1, "failed": 0, "unknown": 0, "expired": 0, "suppressed": 0,
+                               "withheld": 0}
         assert len(s.sent) == 1 and s.sent[0][0] == 21 and s.sent[0][1].startswith("<b>BTC overnight · ")
         assert "/brief off" in s.sent[0][1]                                 # the first brief carries the hint
         again = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(SLOT + timedelta(minutes=30)))
@@ -168,5 +169,43 @@ def test_context_dry_run_reads_the_recorded_tape_read_only():
         after = await _rows(pool, "SELECT (SELECT count(*) FROM beta_state_tape) AS t,"
                                   " (SELECT count(*) FROM beta_context_snapshots) AS c")
         assert before == after                                       # nothing written
+        await pool.close()
+    run(body())
+
+
+def test_u1a_withdrawal_day_withholds_the_brief_for_everyone_and_records_it():
+    """BETA_MEASUREMENT_CONTRACT_V1 §6: on a withdrawal day every participant who would get
+    the brief gets none; each one has a SUPPRESSED outbox row (BRIEF_WITHDRAWAL) and a
+    `brief_withheld` activity row. Other days are untouched."""
+    from beta.delivery import brief_withdrawal_dates, run_notify_once
+
+    slot_day = SLOT.date()                                     # 2026-04-10, 08:00 Kyiv
+    day0 = next(slot_day - timedelta(days=n) for n in range(14, 28)
+                if slot_day in brief_withdrawal_dates({"withdrawal": {
+                    "day0_kyiv": (slot_day - timedelta(days=n)).isoformat(), "seed": 20261003, "count": 3,
+                    "first_cohort_day": 14, "last_cohort_day": 27}}))
+    rule = {"day0_kyiv": day0.isoformat(), "seed": 20261003, "count": 3, "first_cohort_day": 14,
+            "last_cohort_day": 27}
+    withdrawn = BRIEF_ON.with_overrides(briefing={**dict(BRIEF_ON.section("briefing")), "withdrawal": rule})
+
+    async def body():
+        pool = await _setup()
+        await _detect(pool, ScenarioReader(quiet), B0)
+        await _users(pool)
+        s = FakeSender()
+        r = await run_notify_once(BetaStore(pool), withdrawn, ON_PUSH, sender=s, clock=Clock(SLOT + timedelta(minutes=1)))
+        assert r["briefs"]["scheduled"] == 1 and r["briefs"]["withheld"] == 1 and r["briefs"]["sent"] == 0
+        assert s.sent == []
+        rows = await _rows(pool, "SELECT u.telegram_user_id AS uid, d.state, d.suppression_reason AS why "
+                                 "FROM beta_notification_deliveries d JOIN beta_users u USING (user_pk) ORDER BY 1")
+        assert {(x["uid"], x["state"], x["why"]) for x in rows} >= {(21, "SUPPRESSED", "BRIEF_WITHDRAWAL")}
+        acts = await _rows(pool, "SELECT u.telegram_user_id AS uid, a.action, a.detail FROM beta_user_activity a "
+                                 "JOIN beta_users u USING (user_pk)")
+        assert acts == [{"uid": 21, "action": "brief_withheld", "detail": slot_day.isoformat()}]
+        # the next day is not a withdrawal day under the same frozen rule: the brief goes out
+        next_day = SLOT + timedelta(days=1, minutes=1)
+        if (next_day.date()) not in brief_withdrawal_dates(withdrawn.section("briefing")):
+            r2 = await run_notify_once(BetaStore(pool), withdrawn, ON_PUSH, sender=s, clock=Clock(next_day))
+            assert r2["briefs"]["sent"] == 1 and r2["briefs"]["withheld"] == 0
         await pool.close()
     run(body())

@@ -38,9 +38,9 @@ def _body_lines(html):
 
 def _budget(html):
     body, disc = _body_lines(html)
-    assert disc and len(disc) == 1
+    assert disc == []                      # /btc carries no disclaimer (only /start and /terms)
     assert len(body) <= 8, body
-    assert_descriptive(html, "ru" if disc[0].startswith("Экспериментальная") else "en")
+    assert_descriptive(html, "ru" if re.search("[а-яА-Я]", _plain(html)) else "en")
     return body
 
 
@@ -179,11 +179,12 @@ def test_main_screen_full_body_both_languages(name, lang):
     body = _budget(text)
     plain = _plain(text)
     assert_descriptive(text, lang)
+    # the disclaimer lives in /start and /terms only (BETA_COPY_CONTRACT_V1 §5 rule 8; owner 2026-10-03)
     if lang == "ru":
-        assert RU_DISCLAIMER in plain
+        assert RU_DISCLAIMER not in plain
         assert "Киев" in plain or view.get("data_through") is None
     else:
-        assert "not a trade instruction" in plain
+        assert "not a trade instruction" not in plain
     if name in ("stale_open", "stale_none", "degraded"):
         assert (RU_FAIL if lang == "ru" else EN_FAIL) in plain
         assert "1ч:" not in plain and "1h:" not in plain
@@ -540,14 +541,14 @@ def test_start_and_lang_choice():
         joined = await h.handle(_cb(1, "join:ru", 4))
         assert conn.users[1]["lang"] == "ru" and "/lang" in joined[1].html
         again = await h.handle(_msg(1, "/start", 5))
-        assert "/btc" in again[0].html and again[0].buttons == [[("Термины", "terms")]]
+        assert "/btc" in again[0].html and again[0].buttons == [[("Термины", "terms"), ("Другие монеты", "x:assets")]]
         picker = await h.handle(_msg(1, "/lang", 6))
         assert picker[0].buttons == [[("Русский", "set:ru"), ("English", "set:en")]]
         saved = await h.handle(_cb(1, "set:en", 7))
         assert conn.users[1]["lang"] == "en" and "Language: English." in saved[1].html
         help_en = await h.handle(_msg(1, "/help", 8))
         assert "message language" in help_en[0].html
-        assert help_en[0].buttons == [[("Glossary", "terms")]]
+        assert help_en[0].buttons == [[("Glossary", "terms"), ("Other coins", "x:assets")]]
         alice = await h.handle(_msg(2, "/start", 9))
         assert alice[0].buttons == [[("Русский", "pick:ru"), ("English", "pick:en")]]
         en = await h.handle(_cb(2, "pick:en", 10))

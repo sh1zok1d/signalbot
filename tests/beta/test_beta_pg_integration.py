@@ -405,7 +405,8 @@ def test_delivery_sent_once_ttl_and_user_inactive():
         r = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(decision_ts + timedelta(seconds=40)))
         assert r["sent"] == 1 and r["materialized"] == 2 and len(s.sent) == 1
         assert s.sent[0][1].startswith("<b>BTC · unusual hour</b>")
-        assert [b[0] for b in s.sent[0][2][0]] == ["Useful", "Noise"]       # no Details: it exposed internals
+        assert s.sent[0][2][0] == [("📊 BTC now", "b:now")]                 # push -> /btc in one tap
+        assert [b[0] for b in s.sent[0][2][1]] == ["Useful", "Noise"]       # no Details: it exposed internals
         again = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(decision_ts + timedelta(seconds=100)))
         assert again["sent"] == 0 and len(s.sent) == 1              # never re-sent
         states = await _rows(pool, "SELECT state, suppression_reason FROM beta_notification_deliveries ORDER BY delivery_id")
@@ -532,7 +533,9 @@ def test_bot_unauthorized_admin_join_feedback_delete_me():
         out = await h.handle(_msg(ALICE, "/btc", 7))
         assert "· unusual now" in out[0].html
         out = await h.handle(_msg(ALICE, "/history", 8))
-        assert pid in out[0].html and "SUPPRESSED (PUSH_DISABLED)" in out[0].html
+        # the episode is listed in words: no internal id, no delivery state or suppression code
+        assert "price + OI contraction down" in out[0].html and "no message" in out[0].html
+        assert pid not in out[0].html and "SUPPRESSED" not in out[0].html and "PUSH_DISABLED" not in out[0].html
         await h.handle(_cb(ALICE, f"u:{pid}", 9))
         await h.handle(_cb(ALICE, f"n:{pid}", 10))
         fb = await _rows(pool, "SELECT vote FROM beta_feedback")
@@ -826,7 +829,7 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         payload = _j(v["payload"])
         all_ready = payload.get("readiness") and all(
             g["status"] == "READY" for g in payload["readiness"]["groups"])
-        assert (("Readiness", "r:latest") in buttons) is (not all_ready)
+        assert all_ready is not None and ("Readiness", "r:latest") not in buttons
         assert v["rendered_html"] == text and v["lang"] == "en"
         assert v["rendered_sha256"] == hashlib.sha256(text.encode("utf-8")).hexdigest()
         assert v["payload_digest"] == sha256_json(payload)
@@ -991,7 +994,7 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
         text = out[0].html
         assert "· history building" in text and "NO ACTIVE EVENTS" not in text
         assert "Price/OI history 29.9d / 30d" in text
-        assert ("Readiness", "r:latest") in out[0].buttons[0]
+        assert ("Readiness", "r:latest") not in out[0].buttons[0]      # owner diagnostics only
 
         h.clock = Clock(B0 + 2 * BUCKET + timedelta(seconds=40))
         await _detect(pool, ScenarioReader(quiet), B0 + BUCKET)                     # first mature bucket
@@ -1003,8 +1006,8 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
         mature_buttons = out[0].buttons
         assert "· calm</b>" in text and "NO ACTIVE EVENTS" not in text
         assert "Detector ready" not in text and "Ready:" not in text
-        details = await h.handle(_cb(ALICE, "r:latest", 7))
-        assert "Detector readiness" in details[1].html and "OI history: mature" in details[1].html
+        details = await h.handle(_cb(ALICE, "r:latest", 7))           # an older message's button
+        assert len(details) == 1 and details[0].kind == "answer" and "Detector readiness" not in details[0].html
 
         # the readiness transition produced no push decision and no delivery
         for t in ("beta_push_decisions", "beta_notification_deliveries"):
@@ -1015,7 +1018,7 @@ def test_readiness_follows_the_real_percentile_maturity_boundary_without_pushes(
         ready = _j(views[1]["payload"])["readiness"]
         all_ready = all(g["status"] == "READY" for g in ready["groups"])
         row = mature_buttons[0] if mature_buttons else []
-        assert (("Readiness", "r:latest") in row) is (not all_ready)
+        assert all_ready is not None and ("Readiness", "r:latest") not in row
         again = readiness(CFG, {"bucket_ts": B0 + BUCKET, "snapshot": snap1}, maturity_days=30.0)
         assert canonical_json(_j(views[1]["payload"])["readiness"]) == canonical_json(json.loads(json.dumps(again)))
         await pool.close()

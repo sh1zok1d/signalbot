@@ -494,7 +494,28 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
     'lang_set', 'push_delivered', 'cmd_catchup', 'cmd_brief', 'brief_delivered', 'cmd_push',
     'cmd_levels', 'cmd_risk', 'cmd_alert', 'cmd_events', 'cmd_accuracy', 'alert_delivered',
-    'btn_levels', 'btn_risk', 'cmd_research'));
+    'btn_levels', 'btn_risk', 'cmd_research',
+    -- BETA_MEASUREMENT_CONTRACT_V1: U1a withheld briefing, U5 fake door, push "BTC now" action
+    'brief_withheld', 'btn_other_assets', 'btn_btc_now'));
+
+-- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
+-- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_notification_deliveries'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%USER_INACTIVE%'
+      AND pg_get_constraintdef(oid) NOT LIKE '%BRIEF_WITHDRAWAL%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_notification_deliveries DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+            'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL'));
+    END IF;
+END $$;
 
 -- Free-text /feedback. user_pk only; /delete_me cascades. Not the Useful/Noise votes.
 CREATE TABLE IF NOT EXISTS beta_feedback_messages (

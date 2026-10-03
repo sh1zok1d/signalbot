@@ -41,6 +41,8 @@ PUSH_DISABLED = "PUSH_DISABLED"
 DELIVERY_TOO_OLD = "DELIVERY_TOO_OLD"
 DATA_DEGRADED_REASON = "DATA_DEGRADED"
 USER_INACTIVE = "USER_INACTIVE"
+# Delivery-only: a briefing withheld on a U1a withdrawal day (BETA_MEASUREMENT_CONTRACT_V1 §6).
+BRIEF_WITHDRAWAL = "BRIEF_WITHDRAWAL"
 # PRODUCT_FIRST_DECISION_V1 §3 rows 7-8: the product-level unusual-hour gate and the
 # delivery-side policy. Evaluated in a fixed order (see beta.detector.push_policy), so
 # a reason that comes after the gate implies the hour qualified.

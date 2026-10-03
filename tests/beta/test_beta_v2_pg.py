@@ -268,7 +268,7 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         assert alerts == [{"kind": "level", "alert_key": f"level:PDH:{DAY.date().isoformat()}", "decision": "PUSH"}]
         level_msgs = [x for x in s.sent if "максимум вчера" in plain(x[1]) and "первое касание" in plain(x[1])]
         assert [x[0] for x in level_msgs] == [A]                  # B: levels off; C: push off
-        assert level_msgs[0][2] == [[("Уровни", "L:levels"), ("Риск", "L:risk")]]
+        assert level_msgs[0][2] == [[("📊 BTC сейчас", "b:now")], [("Уровни", "L:levels"), ("Риск", "L:risk")]]
         # the morning briefing renders the decision block in the same cycle
         briefs = [x for x in s.sent if plain(x[1]).startswith("BTC за ночь")]
         assert len(briefs) == 3 and "Коридор (Binance" in plain(briefs[0][1])
