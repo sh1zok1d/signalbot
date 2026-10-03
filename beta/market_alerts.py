@@ -365,9 +365,11 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
         if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
             continue
         try:
+            from .formatter import push_action_row
             from .i18n import t
             message_id = await sender.send(chat_id=row["chat_id"], html=text,
-                                           buttons=[[(t(lang, "btn_levels"), "L:levels"),
+                                           buttons=[push_action_row(lang),
+                                                    [(t(lang, "btn_levels"), "L:levels"),
                                                      (t(lang, "btn_risk"), "L:risk")]])
         except DeliveryRejected as exc:
             await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_FAILED, now=clock(),
@@ -383,6 +385,9 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
         await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_SENT, now=sent_at,
                                        message_id=int(message_id))
         if row.get("user_pk") is not None:
-            await conn.record_activity(user_pk=row["user_pk"], action="alert_delivered", lang=lang, at=sent_at)
+            # detail = the alert kind (level / event / move / price): the measurement contract
+            # keeps market alerts and personal /alert deliveries apart
+            await conn.record_activity(user_pk=row["user_pk"], action="alert_delivered", lang=lang, at=sent_at,
+                                       detail=row["kind"])
         rep["sent"] += 1
     return rep

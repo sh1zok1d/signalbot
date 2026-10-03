@@ -99,7 +99,7 @@ def test_legacy_payload_without_horizons_maps_unknown_fragments_to_not_evaluable
 def test_unrecognized_or_ambiguous_text_is_not_evaluable():
     b, views, tl = _views()
     item, payload = views[0]
-    odd = item.html.replace("\n\n<i>", "\nЦена может вырасти · 1ч OI сильный\n\n<i>")
+    odd = item.html + "\nЦена может вырасти · 1ч OI сильный"       # /btc ends without a disclaimer
     m = build_manifest(CFG, _item(odd, payload), payload=payload)
     unknown = [c for c in m.claims if c.claim_type == "UNRECOGNIZED_FRAGMENT"]
     assert unknown and all(c.status == NOT_EVALUABLE for c in unknown)
@@ -110,7 +110,7 @@ def test_unrecognized_or_ambiguous_text_is_not_evaluable():
 def test_forbidden_forward_wording_blocks_a_no_directional_verdict():
     b, views, tl = _views()
     item, payload = views[0]
-    odd = item.html.replace("\n\n<i>", "\nexpect a bounce soon\n\n<i>")
+    odd = item.html + "\nexpect a bounce soon"
     m = build_manifest(CFG, _item(odd, payload), payload=payload)
     fwd = [c for c in m.claims if c.evaluation_class == FORWARD_OUTCOME][0]
     assert fwd.status == NOT_EVALUABLE

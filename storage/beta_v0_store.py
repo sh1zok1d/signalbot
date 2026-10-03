@@ -825,7 +825,18 @@ class BetaConn:
         """Delete the participant's personal beta records: user row (feedback and
         activity cascade; delivery rows keep only an anonymous NULL user_pk), the
         allowlist entry, and the waitlist row. Market/event records contain no
-        identity and remain."""
+        identity and remain.
+
+        `cohort` keeps the participant countable without identity
+        (BETA_MEASUREMENT_CONTRACT_V1 §1.3): the Kyiv join date and the known-contact
+        flag only, so the frozen enrollment rule can still count them."""
+        from beta.i18n import KYIV
+        row = await self.conn.fetchrow(
+            "SELECT joined_at, known_contact FROM beta_users WHERE telegram_user_id=$1", telegram_user_id)
+        cohort = None
+        if row is not None and row["joined_at"] is not None:
+            cohort = {"joined_kyiv_date": row["joined_at"].astimezone(KYIV).date().isoformat(),
+                      "known_contact": bool(row["known_contact"])}
         activity = int(await self.conn.fetchval(
             """SELECT count(*) FROM beta_user_activity a
                JOIN beta_users u USING (user_pk) WHERE u.telegram_user_id=$1""",
@@ -837,7 +848,7 @@ class BetaConn:
         wait = await self.conn.execute("DELETE FROM beta_waitlist WHERE telegram_user_id=$1",
                                        telegram_user_id)
         return {"users": int(users.split()[-1]), "allowlist": int(allow.split()[-1]),
-                "waitlist": int(wait.split()[-1]), "activity": activity}
+                "waitlist": int(wait.split()[-1]), "activity": activity, "cohort": cohort}
 
     async def mark_privacy_notice_seen(self, telegram_user_id: int, version: int) -> None:
         await self.conn.execute(

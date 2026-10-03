@@ -10,9 +10,9 @@ A step is DONE only when its pass condition holds on production for the exact ca
 
 ## 1. Startup-recovery race (PR #319)
 
-**Off-production status.** On a local PostgreSQL 16, #319 merges into the current main without conflicts. The full beta, user-sim, deploy and Stage-1 main suites pass on the merge: 1118 passed, 1 environmental skip.
+**Status.** #319 is merged into main (owner-authorised, 2026-10-03). It was reconciled with the current main and passed its targeted tests: startup recovery, deploy/systemd and beta runtime.
 
-**On the VPS** (after the owner merges #319 and deploys):
+**On the VPS** (after the owner authorises the deploy):
 
 1. Restart Stage-1 and watch the journal:
 
@@ -93,11 +93,18 @@ Keep a log: one line per observation, with date, time and the screenshot file na
 
 Walk push → `/btc` → «После похожих» / tabs → Levels → Risk. After each screen, write one sentence: "what do I now know about the market?" Any line you had to think about to understand goes on the list for the owner's copy decision. It is not changed silently.
 
-**Known journey gap.** The unusual-hour push has only Useful / Noise buttons, so `/btc` must be typed. `BETA_COPY_CONTRACT_V1` §5 rule 8 says a push has no buttons, and the votes are U2's input. Adding Levels / Risk buttons to the push is an owner copy decision.
+**Push action.** Every push now starts with «📊 BTC сейчас», which opens the current `/btc` (owner decision 2026-10-03; `BETA_COPY_CONTRACT_V1` §7). Walk the journey from that button.
 
 ## 5. Measurement freeze
 
-The owner resolves the open decisions in `BETA_MEASUREMENT_CONTRACT_V1.md` §9 and fills §0. Day 0 is not declared before that.
+`BETA_MEASUREMENT_CONTRACT_V1.md` is FREEZE_READY: the owner decisions of 2026-10-03 are recorded in its §9. The owner fills §0 with the merge commit hash.
+
+When the first enrolled unknown participant joins:
+
+1. Record Day 0 in §0.
+2. Set `briefing.withdrawal.day0_kyiv` in `config/beta_v0.yaml` once and deploy. This is the only post-freeze value; it activates U1a.
+3. Mark every known contact with `/admin_known` within 24 h.
+4. Keep the U3 ledger outside git (contract §7).
 
 ## 6. Telemetry end-to-end
 
@@ -126,7 +133,7 @@ Right after Join, the welcome states what the bot is and what it never does.
 
 `/history` and the readiness details no longer show internal ids, raw states, codes or versions (this PR).
 
-**Owner decision.** The pre-Join screen does not yet say in one line what the bot is; it says so right after Join.
+**Before Join.** The privacy screen now opens with what the bot is and that it gives no trading recommendations (owner decision 2026-10-03). `/btc` no longer repeats the disclaimer, which lives in `/start` and `/terms` only.
 
 ## 8. Freeze → READY_FOR_INVITES
 

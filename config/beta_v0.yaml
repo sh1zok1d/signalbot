@@ -153,6 +153,15 @@ beta:
     enabled: true                           # PRODUCT_DECISION_V2: the briefing carries corridor, levels, events
     time_kyiv: "08:00"
     max_delay_min: 120                      # a brief not sent within this is expired, never late
+    # U1a withdrawal test (BETA_MEASUREMENT_CONTRACT_V1 §6), frozen before Day 0: the briefing is
+    # withheld for everyone on `count` weekdays drawn with `seed` from cohort days
+    # first..last (weeks 3-4). Only day0_kyiv is set, once, when Day 0 happens.
+    withdrawal:
+      day0_kyiv: null                       # "YYYY-MM-DD" (Kyiv) once Day 0 is declared; null = off
+      seed: 20261003
+      count: 3
+      first_cohort_day: 14
+      last_cohort_day: 27
   regime_d7:
     enabled: true
   # Delivery-side push policy (PRODUCT_FIRST_DECISION_V1 §3 row 8). Policy only: it

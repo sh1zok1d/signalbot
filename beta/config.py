@@ -11,7 +11,7 @@ import hashlib
 import math
 import os
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import date, timedelta
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping, Optional
@@ -111,7 +111,10 @@ _TELEMETRY_KEYS = {"retention_days", "rejected_start_retention_days"}
 _FEEDBACK_KEYS = {"max_chars", "max_per_utc_day"}
 # Morning briefing (PRODUCT_FIRST_DECISION_V1 §3 row 3). Not detection, not the rules
 # digest. `enabled` is a committed allow; sending also needs the global push switches.
-_BRIEFING_KEYS = {"enabled", "time_kyiv", "max_delay_min"}
+_BRIEFING_KEYS = {"enabled", "time_kyiv", "max_delay_min", "withdrawal"}
+# U1a withdrawal test (BETA_MEASUREMENT_CONTRACT_V1 §6): the rule is frozen before Day 0;
+# only `day0_kyiv` is filled in when Day 0 happens. Null = no briefing is ever withheld.
+_BRIEF_WITHDRAWAL_KEYS = {"day0_kyiv", "seed", "count", "first_cohort_day", "last_cohort_day"}
 
 # D7 regime line. Display only. It never enters the rules digest.
 _REGIME_D7_KEYS = {"enabled"}
@@ -381,13 +384,31 @@ def _validate_push_policy(d: Mapping[str, Any]) -> None:
 
 def _validate_briefing(d: Mapping[str, Any]) -> None:
     b = d["briefing"]
-    _exact_keys(b, _BRIEFING_KEYS, "briefing")
+    # `withdrawal` may be absent (off) in an override; the committed config carries it.
+    _exact_keys(b, _BRIEFING_KEYS if "withdrawal" in b else _BRIEFING_KEYS - {"withdrawal"}, "briefing")
     _bool(b["enabled"], "briefing.enabled")
     t = b["time_kyiv"]
     if not isinstance(t, str) or len(t) != 5 or t[2] != ":" or not (t[:2] + t[3:]).isdigit() \
             or int(t[:2]) > 23 or int(t[3:]) > 59:
         raise BetaConfigError("briefing.time_kyiv must be HH:MM")
     _int(b["max_delay_min"], "briefing.max_delay_min", minimum=1)
+    w = b.get("withdrawal")
+    if w is None:
+        return
+    _exact_keys(w, _BRIEF_WITHDRAWAL_KEYS, "briefing.withdrawal")
+    day0 = w["day0_kyiv"]
+    if day0 is not None:
+        try:
+            date.fromisoformat(day0)
+        except (TypeError, ValueError):
+            raise BetaConfigError("briefing.withdrawal.day0_kyiv must be null or a quoted YYYY-MM-DD") from None
+    _int(w["seed"], "briefing.withdrawal.seed", minimum=0)
+    if w["count"] != 3:
+        raise BetaConfigError("briefing.withdrawal.count must be 3 (PRODUCT_FIRST_DECISION_V1 §7 U1a)")
+    first = _int(w["first_cohort_day"], "briefing.withdrawal.first_cohort_day", minimum=1)
+    last = _int(w["last_cohort_day"], "briefing.withdrawal.last_cohort_day", minimum=1)
+    if last - first < 6:
+        raise BetaConfigError("briefing.withdrawal cohort-day range must hold at least one full week")
 
 
 def _validate_temporal_context(d: Mapping[str, Any]) -> None:

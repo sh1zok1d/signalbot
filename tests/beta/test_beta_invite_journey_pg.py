@@ -9,6 +9,7 @@ and the unusual-hour gate (answered "qualified" so a push exists on a synthetic 
 It pins two things the 30-day user test depends on:
 - every participant action leaves the activity row the measurement contract reads;
 - nothing internal reaches a participant (BETA_COPY_CONTRACT_V1 §5 rule 5)."""
+import json
 import random
 import re
 from datetime import timedelta
@@ -123,6 +124,9 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
         assert "не говорит, покупать или продавать" in welcome and "/help" in welcome
         privacy = next(t for w, t, _ in seen if w == A and "конфиденциальность" in t)
         assert "/delete_me" in privacy and "/stop" in privacy and "не инвестиционный совет" in privacy
+        # before Join: one concise line on what the bot is (owner decision 2026-10-03)
+        assert ("Signalbot наблюдает за BTC и показывает необычные состояния рынка и контекст.\n"
+                "Торговых рекомендаций бот не даёт.") in privacy
         await say(OWNER, f"/admin_add {B}")
         await say(B, "/start")
         await click(B, "pick:en")
@@ -144,12 +148,20 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
                 for row in brief_buttons:
                     for _, d in row:
                         await click(A, d)
+                # «📊 BTC сейчас» above Useful / Noise on the push: one tap to the current /btc
+                push_buttons = next(btn for c, html, btn in s.sent if c == A and "u:EV-" in str(btn))
+                assert push_buttons[0] == [("📊 BTC сейчас", "b:now")]
+                assert [lbl for lbl, _ in push_buttons[1]] == ["Полезно", "Шум"]
+                now_view = await click(A, "b:now")
+                assert plain(now_view[-1].html).startswith("BTC ") and now_view[-1].buttons
         assert pushed_at is not None
 
         # ---- every command, with wrong arguments ------------------------------------------
         h.clock = Clock(NOW)
         out = await say(A, "/btc")
         assert all(d != "r:latest" for row in (out[-1].buttons or ()) for _, d in row)
+        assert "не инвестиционный совет" not in plain(out[-1].html)          # disclaimer: /start, /terms only
+        assert "Прошлое не гарантирует будущего" in plain((await say(A, "/terms"))[-1].html)
         for text in ("/catchup", "/catchup 3", "/catchup 99", "/levels", "/risk", "/risk 0.5", "/risk abc",
                      "/events", "/accuracy", "/research", "/alert", "/alert del 1", "/alert 1000000",
                      "/alert abc", "/push", "/push off", "/push on", "/push levels off", "/push levels on",
@@ -166,6 +178,24 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
                 assert hist.startswith("Необычные события BTC") and "сообщение отправлено" in hist
         out = await click(A, "r:latest")                  # an older message's button: owner-only
         assert [o.kind for o in out] == ["answer"]
+
+        # ---- /push off keeps the categories and says so -----------------------------------
+        await say(A, "/push levels off")
+        off = plain((await say(A, "/push off"))[-1].html)
+        assert off.splitlines()[1] == ("Сейчас не приходит ничего из списка ниже. Настройки категорий "
+                                       "сохранены и снова заработают после /push on.")
+        assert "месячных максимумов и минимумов): выкл" in off and "необычный час: вкл" in off
+        on = plain((await say(A, "/push on"))[-1].html)
+        assert "Сейчас не приходит" not in on and "месячных максимумов и минимумов): выкл" in on
+        await say(A, "/push levels on")
+
+        # ---- U5 fake door: only in /help, one activity row per tap, nothing behind it -------
+        help_out = await say(A, "/help")
+        assert ("Другие монеты", "x:assets") in [b for row in help_out[-1].buttons for b in row]
+        for _ in range(2):
+            door = await click(A, "x:assets")
+            assert plain(door[-1].html) == "Пока доступен только BTC. Интерес к другим монетам записан."
+            assert door[-1].buttons is None
 
         # ---- a level alert through the outbox ----------------------------------------------
         s = Sender(seen)
@@ -196,8 +226,12 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
         for expected in ("cmd_start", "push_delivered", "brief_delivered", "alert_delivered", "btn_levels",
                          "btn_risk", "cmd_btc", "cmd_catchup", "cmd_levels", "cmd_risk", "cmd_events",
                          "cmd_accuracy", "cmd_research", "cmd_alert", "cmd_history", "cmd_terms", "cmd_help",
-                         "cmd_feedback", "cmd_lang", "tab_1h", "tab_24h"):
+                         "cmd_feedback", "cmd_lang", "tab_1h", "tab_24h", "btn_btc_now", "btn_other_assets"):
             assert expected in {a for a, _ in actions}, expected
+        assert sum(1 for r in act if r["action"] == "btn_other_assets") == 2    # one row per tap
+        # market alerts carry their kind, so personal /alert deliveries stay a separate class
+        assert {r["detail"] for r in act if r["action"] == "alert_delivered"} <= {"level", "event", "move", "price"}
+        assert all(r["detail"] for r in act if r["action"] == "alert_delivered")
         for detail in (("cmd_push", "off"), ("cmd_push", "on"), ("cmd_push", "levels:off"),
                        ("cmd_brief", "off"), ("cmd_brief", "on")):
             assert detail in actions, detail
@@ -210,11 +244,12 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
         doc = (Path(__file__).resolve().parents[2] / "docs" / "BETA_MEASUREMENT_CONTRACT_V1.md").read_text("utf-8")
         sql = doc.split("```sql", 1)[1].split("```", 1)[0].replace(":owner", str(OWNER))
         sql = sql.replace(":day0", "TIMESTAMPTZ '%s'" % (E0 - timedelta(hours=1)).isoformat())
+        statements = [x.strip() for x in sql.split(";")
+                      if x.strip() and not all(ln.strip().startswith("--") for ln in x.splitlines() if ln.strip())]
         results = []
         async with pool.acquire() as c:
-            for stmt in (x.strip() for x in sql.split(";")):
-                if stmt and not all(ln.strip().startswith("--") for ln in stmt.splitlines() if ln.strip()):
-                    results.append([dict(r) for r in await c.fetch(stmt)])
+            for stmt in statements:
+                results.append([dict(r) for r in await c.fetch(stmt)])
         a_pk = (await _rows(pool, "SELECT user_pk FROM beta_users WHERE telegram_user_id=$1", A))[0]["user_pk"]
         enrolled, pulls, reactions, blocked, _deletions = results
         assert {r["user_pk"] for r in enrolled} >= {a_pk}
@@ -236,7 +271,14 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
         await say(A, "/delete_me")
         assert await _rows(pool, "SELECT count(*) AS n FROM beta_user_activity a JOIN beta_users u USING (user_pk) "
                                  "WHERE u.telegram_user_id=$1", A) == [{"n": 0}]
-        audit = await _rows(pool, "SELECT action FROM beta_admin_audit WHERE action='user_delete_me'")
-        assert audit == [{"action": "user_delete_me"}]               # the deletion itself stays countable
+        audit = await _rows(pool, "SELECT action, detail->'cohort' AS cohort FROM beta_admin_audit "
+                                  "WHERE action='user_delete_me'")
+        # the participant stays countable for the frozen denominator, without identity
+        assert [(a["action"], json.loads(a["cohort"])) for a in audit] == [
+            ("user_delete_me", {"joined_kyiv_date": "2026-05-12", "known_contact": False})]
+        assert "telegram" not in str(audit) and str(A) not in str(audit)
+        async with pool.acquire() as c:                       # the contract's denominator part 2 sees it
+            cohort = [dict(r) for r in await c.fetch(statements[-1])]
+        assert cohort == [{"joined_kyiv_date": "2026-05-12", "known_contact": False, "n": 1}]
         await pool.close()
     run(body())

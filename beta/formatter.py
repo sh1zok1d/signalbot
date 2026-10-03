@@ -500,7 +500,8 @@ def format_btc(cfg, view: Mapping[str, Any], lang: str = "en") -> str:
         lines.append(t(lang, "data_line", status=status_bit, clock=fmt_clock(clock, lang)))
     else:
         lines.append(t(lang, "data_only", clock=fmt_clock(clock, lang)))
-    lines.append("\n" + t(lang, "disclaimer"))
+    # No disclaimer here: it lives in /start and /terms only (BETA_COPY_CONTRACT_V1 §4, §5 rule 8;
+    # owner decision 2026-10-03). The no-trading-advice wording stays in onboarding and /terms.
     return _ok("\n".join(lines), lang)
 
 
@@ -1112,9 +1113,19 @@ def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str
 def feedback_buttons(public_id: str, lang: str = "en") -> list:
     """Useful / Noise under the product push. No Details button: the episode details
     expose the detector name, internal id and rules version (PRODUCT_FIRST_DECISION_V1
-    §3 row 9, BETA_COPY_CONTRACT_V1 §4). The id travels only in callback data."""
-    return [[(t(lang, "btn_useful"), f"u:{public_id}"),
+    §3 row 9, BETA_COPY_CONTRACT_V1 §4). The id travels only in callback data. Above them
+    the «BTC сейчас» action (owner decision 2026-10-03): push → /btc in one tap."""
+    return [push_action_row(lang),
+            [(t(lang, "btn_useful"), f"u:{public_id}"),
              (t(lang, "btn_noise"), f"n:{public_id}")]]
+
+
+PUSH_BTC_ACTION = "b:now"
+
+
+def push_action_row(lang: str = "en") -> list:
+    """The one action under every push: open the current /btc view (activity `btn_btc_now`)."""
+    return [(t(lang, "btn_btc_now"), PUSH_BTC_ACTION)]
 
 
 # ---- legacy status / push / history / readiness (same facts, catalog wording) ----

@@ -168,6 +168,10 @@ DECISION_CATALOG: dict = {
     "al_too_close": _pair("Это слишком близко к текущей цене {now}.", "That is too close to the current price {now}."),
     "al_no_price": _pair("Цена Binance сейчас недоступна, попробуйте позже.", "The Binance price is unavailable now; try later."),
     # ---- /push ----
+    "push_master_off_note": _pair("Сейчас не приходит ничего из списка ниже. Настройки категорий сохранены "
+                                  "и снова заработают после /push on.",
+                                  "Nothing below arrives now. Your category settings are kept and work "
+                                  "again after /push on."),
     "push_status": _pair("Сообщения: {master}\n• уровни (первое касание вчерашних, недельных, месячных максимумов и минимумов): {levels}\n"
                          "• события (CPI, ФРС за 30 минут): {events}\n• резкие движения (за 15 минут): {moves}\n"
                          "• необычный час: {hours}\nЛичные уровни (/alert) приходят всегда. "

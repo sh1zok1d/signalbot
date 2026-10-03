@@ -233,6 +233,10 @@ _CATALOG: dict[str, dict[str, str]] = {
     "btn_24h": {"ru": "24ч", "en": "24h"},
     "btn_terms": {"ru": "Термины", "en": "Glossary"},
     "btn_readiness": {"ru": "Готовность", "en": "Readiness"},
+    "btn_btc_now": {"ru": "📊 BTC сейчас", "en": "📊 BTC now"},
+    "btn_other_assets": {"ru": "Другие монеты", "en": "Other coins"},
+    "other_assets_reply": {"ru": "Пока доступен только BTC. Интерес к другим монетам записан.",
+                           "en": "Only BTC is available for now. Your interest in other coins is noted."},
     "btn_details": {"ru": "Подробнее", "en": "Details"},
     "btn_useful": {"ru": "Полезно", "en": "Useful"},
     "btn_noise": {"ru": "Шум", "en": "Noise"},
@@ -293,6 +297,8 @@ _CATALOG: dict[str, dict[str, str]] = {
     "privacy": {
         "ru": (
             "<b>Signalbot, закрытая бета — конфиденциальность</b>\n"
+            "Signalbot наблюдает за BTC и показывает необычные состояния рынка и контекст.\n"
+            "Торговых рекомендаций бот не даёт.\n\n"
             "• Мы храним ваш Telegram id и id чата, чтобы отправлять сообщения беты, "
             "а также голоса «полезно / шум» и статус доставки.\n"
             "• Записи рынка и событий не содержат персональных данных.\n"
@@ -310,6 +316,8 @@ _CATALOG: dict[str, dict[str, str]] = {
         ),
         "en": (
             "<b>Signalbot closed beta — privacy notice</b>\n"
+            "Signalbot watches BTC and shows unusual market states and their context.\n"
+            "The bot gives no trading advice.\n\n"
             "• We store your Telegram user id and chat id to send you beta messages, plus your "
             "Useful/Noise votes and delivery status.\n"
             "• Market/event records contain no personal data.\n"

@@ -9,13 +9,13 @@ past the TTL become EXPIRED_UNDELIVERED; they stay visible in history.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, Protocol, Sequence
+from typing import Any, Mapping, Optional, Protocol, Sequence
 
 from .admin import collect_health, fingerprint
 from .config import BetaConfig, BetaSwitches, effective_push_enabled
 from .formatter import format_owner_alert, format_push
-from .models import (D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED, D_UNKNOWN,
-                     DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE)
+from .models import (BRIEF_WITHDRAWAL, D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED,
+                     D_UNKNOWN, DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE)
 
 
 # A PUSH decision nobody could receive never gets a delivery row; the scan stops looking
@@ -67,10 +67,10 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             cutoff = now - timedelta(days=cfg["privacy"]["stopped_user_retention_days"])
             for uid in await conn.stopped_users_before(cutoff):
                 async with conn.transaction():
-                    await conn.delete_participant(uid)
+                    removed = await conn.delete_participant(uid)
                     await conn.insert_audit(action="retention_purge", authorized=True,
                                             actor_fingerprint="system", target_fingerprint=fingerprint(uid),
-                                            result="OK")
+                                            result="OK", detail=removed)
                 report["purged_users"] += 1
             activity_cutoff = now - timedelta(days=cfg["telemetry"]["retention_days"])
             report["purged_activity"] = await conn.purge_activity_before(activity_cutoff)
@@ -197,6 +197,23 @@ def brief_slot(now: datetime, time_kyiv: str):
     return local.date(), slot.astimezone(now.tzinfo)
 
 
+def brief_withdrawal_dates(briefing: Mapping[str, Any]) -> frozenset:
+    """The U1a withdrawal days (Kyiv dates), the same for every participant.
+
+    Frozen before Day 0 (BETA_MEASUREMENT_CONTRACT_V1 §6): `count` weekdays drawn with
+    `seed` from cohort days first..last (Day 0 = cohort day 0). Only `day0_kyiv` is filled
+    in when Day 0 happens; nothing here may change after it. Empty while day0 is unset."""
+    import random
+    from datetime import date
+    w = briefing.get("withdrawal") or {}
+    if not w.get("day0_kyiv"):
+        return frozenset()
+    day0 = date.fromisoformat(w["day0_kyiv"])
+    weekdays = [day0 + timedelta(days=n) for n in range(int(w["first_cohort_day"]), int(w["last_cohort_day"]) + 1)
+                if (day0 + timedelta(days=n)).weekday() < 5]
+    return frozenset(random.Random(int(w["seed"])).sample(weekdays, int(w["count"])))
+
+
 async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender], clock, push_on: bool) -> dict:
     """The morning briefing inside the existing notifier cycle and outbox.
 
@@ -210,8 +227,9 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
     from .market_view import BRIEF_WINDOW_HOURS, build_view, maturity_days, persist_view
     from .config import effective_d7_enabled
     b = cfg.section("briefing")
-    out = {"scheduled": 0, "sent": 0, "failed": 0, "unknown": 0, "expired": 0, "suppressed": 0}
+    out = {"scheduled": 0, "sent": 0, "failed": 0, "unknown": 0, "expired": 0, "suppressed": 0, "withheld": 0}
     max_delay = timedelta(minutes=int(b["max_delay_min"]))
+    withdrawn = brief_withdrawal_dates(b)
     now = clock()
     slot = brief_slot(now, b["time_kyiv"])
     if b["enabled"] and push_on and slot is not None and now - slot[1] <= max_delay \
@@ -241,6 +259,16 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
                                            suppression_reason=USER_INACTIVE)
             out["suppressed"] += 1
+            continue
+        if row["brief_date"] in withdrawn:
+            # U1a: withheld for everyone who would have received it; observable per participant
+            await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                           suppression_reason=BRIEF_WITHDRAWAL)
+            if row.get("user_pk") is not None:
+                await conn.record_activity(user_pk=row["user_pk"], action="brief_withheld",
+                                           lang=row.get("user_lang") or "ru", at=now,
+                                           detail=row["brief_date"].isoformat())
+            out["withheld"] += 1
             continue
         if sender is None:
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_FAILED, now=now,

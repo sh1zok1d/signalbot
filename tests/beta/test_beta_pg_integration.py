@@ -405,7 +405,8 @@ def test_delivery_sent_once_ttl_and_user_inactive():
         r = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(decision_ts + timedelta(seconds=40)))
         assert r["sent"] == 1 and r["materialized"] == 2 and len(s.sent) == 1
         assert s.sent[0][1].startswith("<b>BTC · unusual hour</b>")
-        assert [b[0] for b in s.sent[0][2][0]] == ["Useful", "Noise"]       # no Details: it exposed internals
+        assert s.sent[0][2][0] == [("📊 BTC now", "b:now")]                 # push -> /btc in one tap
+        assert [b[0] for b in s.sent[0][2][1]] == ["Useful", "Noise"]       # no Details: it exposed internals
         again = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(decision_ts + timedelta(seconds=100)))
         assert again["sent"] == 0 and len(s.sent) == 1              # never re-sent
         states = await _rows(pool, "SELECT state, suppression_reason FROM beta_notification_deliveries ORDER BY delivery_id")

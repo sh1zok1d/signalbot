@@ -343,12 +343,15 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         assert str(uid) not in caplog.text
         await h.handle(_msg(uid, "/feedback noted", 37))
         await h.handle(_cb(uid, "L:risk", 38))
-        await h.handle(_msg(uid, "/research", 39))
-        await h.handle(_msg(uid, "/stop", 40))
+        await h.handle(_cb(uid, "b:now", 39))                 # «📊 BTC сейчас» under a push
+        await h.handle(_cb(uid, "x:assets", 40))              # U5 fake door
+        await h.handle(_msg(uid, "/research", 41))
+        await h.handle(_msg(uid, "/stop", 42))
         actions = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         # btn_details stays a valid historical action, but the episode Details are retired
         # (they exposed internals) and record nothing new.
-        assert set(actions) == set(ACTIVITY_ACTIONS) - {"btn_details"}
+        # brief_withheld (U1a) needs a withdrawal day: test_beta_invite_journey_pg covers it.
+        assert set(actions) == set(ACTIVITY_ACTIONS) - {"btn_details", "brief_withheld"}
         cols = await _rows(pool, """SELECT column_name FROM information_schema.columns
                                     WHERE table_name='beta_user_activity'""")
         assert "telegram" not in " ".join(r["column_name"] for r in cols)
