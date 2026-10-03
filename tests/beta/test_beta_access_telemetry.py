@@ -63,7 +63,7 @@ def test_join_by_code_and_rejected_codes_offer_the_waitlist():
         await h.handle(_cb(alice, "pick:ru", 2))
         await h.handle(_cb(alice, "join:ru", 3))
         joined = await _rows(pool, "SELECT invite_code, privacy_notice_version, lang FROM beta_users")
-        assert joined == [{"invite_code": good, "privacy_notice_version": 3, "lang": "ru"}]
+        assert joined == [{"invite_code": good, "privacy_notice_version": 4, "lang": "ru"}]
         assert (await _rows(pool, "SELECT used_count FROM beta_invites WHERE code=$1", good))[0]["used_count"] == 1
 
         async def rejected(uid, code, update_id):
@@ -264,6 +264,13 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         await h.handle(_msg(uid, "/brief on", 21))
         await h.handle(_msg(uid, "/push off", 22))
         await h.handle(_msg(uid, "/push on", 23))         # back on: the push below must still reach this user
+        # decision support (PRODUCT_DECISION_V2): every command records its action, also without data
+        await h.handle(_msg(uid, "/levels", 24))
+        await h.handle(_msg(uid, "/risk 0.5", 25))
+        await h.handle(_msg(uid, "/alert 65000", 26))
+        await h.handle(_msg(uid, "/events", 27))
+        await h.handle(_msg(uid, "/accuracy", 28))
+        await h.handle(_cb(uid, "L:levels", 29))
         async with store.connect() as conn:
             view_pk = await conn.insert_btc_view(
                 requested_at=NOW, as_of_bucket=NOW, context_state_digest=None,
@@ -300,9 +307,16 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
             async def send(self, *, chat_id, html, buttons=None):
                 return 42
 
+        async with store.connect() as conn:
+            await conn.insert_market_alert(
+                kind="event", alert_key="event:CPI:test", decision_ts=NOW, decision="PUSH",
+                suppression_reason=None,
+                payload={"at": NOW.isoformat(), "event_kind": "CPI", "event_at": (NOW + timedelta(minutes=30)).isoformat(),
+                         "minutes": 30, "price": 61000.0, "stats": None, "corridor_1h": None})
         from beta.delivery import run_notify_once
         report = await run_notify_once(store, CFG, ON_PUSH, sender=Sender(), clock=Clock(NOW))
         assert report["sent"] == 1
+        assert report["market"]["sent"] == 1
         # the morning briefing through the same outbox (kind 'brief') records brief_delivered
         async with store.connect() as conn:
             brief_pk = await conn.insert_btc_view(
@@ -328,7 +342,8 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         assert replied and "/btc" in replied[-1].html
         assert str(uid) not in caplog.text
         await h.handle(_msg(uid, "/feedback noted", 37))
-        await h.handle(_msg(uid, "/stop", 38))
+        await h.handle(_cb(uid, "L:risk", 38))
+        await h.handle(_msg(uid, "/stop", 39))
         actions = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         # btn_details stays a valid historical action, but the episode Details are retired
         # (they exposed internals) and record nothing new.
@@ -397,7 +412,7 @@ def test_existing_user_sees_the_updated_privacy_notice_once():
         second = await h.handle(_msg(8675309, "/help", 2))
         assert len(second) == 1 and "конфиденциальность" not in second[0].html
         version = await _rows(pool, "SELECT privacy_notice_version FROM beta_users")
-        assert version == [{"privacy_notice_version": 3}]
+        assert version == [{"privacy_notice_version": 4}]
         await pool.close()
     run(body())
 

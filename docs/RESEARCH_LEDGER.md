@@ -7295,3 +7295,20 @@ RESCUE_ATTEMPTED = false
 ```
 
 Record: `docs/research/GV0V03L40_C025_R1_CLOSE.md`.
+
+## Protected Binance 2025/2026 opened for product statistics — 2026-10-03
+
+Owner decision (`docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §4). The decision-support statistics of the product read Binance USD-M BTCUSDT 5m klines (2020-01 → yesterday) and Vision OI metrics (2020-09 → yesterday), 2025/2026 included.
+
+```
+PROTECTED_2025_2026_PRODUCT_USE = OPENED
+PRODUCT_FEATURES = range/volatility (1h/4h/24h corridor model), level first-touch reactions
+                   (PDH/PDL/PWH/PWL/PMH/PML, round numbers, previous-day POC), 1h/4h price/OI/taker
+                   state labels and their forward 1h/4h/24h outcomes, CPI/FOMC/expiry hour and day sizes
+RESEARCH_STATUS_OF_2025_2026 = CONSUMED for any hypothesis over the product features
+SEALED_VERDICTS_REOPENED = false
+RESCUE_ATTEMPTED = false
+```
+
+These statistics are product evidence (descriptive, with N, a comparable baseline and a verdict), not research claims. Development numbers seen while building them (2022–2024 repository archives, synthetic OI only for the analogue mechanics) are recorded in the implementation review, not as results.
+

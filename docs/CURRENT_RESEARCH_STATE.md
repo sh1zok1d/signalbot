@@ -1,3 +1,16 @@
+## Product decision V2 — decision support; protected 2025/2026 opened for product — 2026-10-03
+
+`OPERATING_MODE = PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS`
+`CANONICAL_PRODUCT_DECISION = docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md`
+`PREDICTIVE_PRODUCT_FROZEN = false (product surfaces only)`
+`PROTECTED_2025_2026_PRODUCT_USE = opened (owner, 2026-10-03)`
+`PROTECTED_2025_2026_RESEARCH_STATUS = consumed for hypotheses over the product features`
+`SEALED_VERDICTS_CHANGED = false`
+`NEW_RESEARCH_PROGRAMS_AUTHORIZED = false (unchanged)`
+`NEXT_UNIT = none (research); product: owner test and deploy of PRODUCT_DECISION_V2`
+
+The owner lifted the predictive freeze for the product and opened Binance 2025/2026 for its statistics. The product statistics are product evidence, not research claims: a range model with a held-out-year coverage check, level first-touch reactions against random levels at the same distance, state analogues against a volatility-matched "обычно", event-day sizes. Each verdict uses a day-clustered bootstrap with a Holm correction and a materiality floor. A future research claim over range/volatility, levels, price/OI/taker states or event days needs a window other than Binance 2025/2026 or a prospective test. Record: `docs/RESEARCH_LEDGER.md` (2026-10-03).
+
 ## GV0V03L40 C025-R1 — closed outcome-blind — 2026-10-02
 
 `DESIGN_VERSION = C025-R1`

@@ -1,14 +1,16 @@
 # Signalbot — Current Project Status
 
-**Status date:** 2026-09-22 (routing pointer updated 2026-09-29; product-first decision 2026-10-02)
-**Operating mode:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN` (since 2026-10-02, `docs/PRODUCT_FIRST_DECISION_V1.md`). The earlier mode `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN` is historical.
+**Status date:** 2026-09-22 (routing pointer updated 2026-09-29; product-first decision 2026-10-02; decision support 2026-10-03)
+**Operating mode:** `PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS` (since 2026-10-03, `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md`). The earlier modes `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN` (2026-10-02) and `RESEARCH_FIRST / DESCRIPTIVE_PRIVATE_BETA_V0_AUTHORIZED / PREDICTIVE_PRODUCT_FROZEN` are historical.
 **Active phase:** see `docs/CURRENT_RESEARCH_STATE.md`. As of 2026-09-29 its latest entry is the GV0R03 generator feasibility contract, with `NEXT_UNIT = NONE_AUTHORIZED_AFTER_GV0R03_CONTRACT`. The earlier phase `POST_SPRINT03_DISCOVERY_PROGRAM_DECISION` is historical.
 
 This file is intentionally concise. The pre-cleanup long-form status remains immutable in git at `b25d9ca99498630183813d0ccb8c6d67b93ad915`; experiment history remains in `docs/RESEARCH_LEDGER.md`.
 
-## Current decision (2026-10-02)
+## Current decision (2026-10-03)
 
-**Product-first.** The canonical product decision is `docs/PRODUCT_FIRST_DECISION_V1.md`. It fixes the product hypothesis (a Russian-language market briefing that compresses "what happened, who dominates, how unusual"), the build-to-test MUST scope, the architectural constraint (one detector, one episodization, one context projection, one shared view builder, one outbox, one notifier), the DO-NOT-BUILD-YET list, the data maturity orientation (V2 tape since 2026-10-01; baselines about 2026-10-21; full 30d ranks about 2026-10-31) and the 30-day user test with its decision rules.
+**Decision support.** The owner, reading the V1 surface as a trader, found no answer to "what do I do with this", and lifted the predictive freeze for the product: `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md`. The bot now forecasts the range (1h / 4h / 24h corridor, checked on a held-out year and tracked live), shows the levels the whole market watches with the chance to reach them and what happened at their first touch beside a random level, «что было после похожих» for the 1h / 4h states, the CPI / FOMC / expiry calendar with the historical size of such hours and days, `/risk` and personal `/alert`, and sends timely market alerts. Direct trade calls stay forbidden. Binance 2025/2026 is opened for product statistics. Implemented in code; not deployed; deploy steps in `PRIVATE_BETA_V0_DEPLOY.md`, "Decision support V2".
+
+**Product-first (2026-10-02, kept where V2 does not differ).** The canonical product decision is `docs/PRODUCT_FIRST_DECISION_V1.md`. It fixes the product hypothesis (a Russian-language market briefing that compresses "what happened, who dominates, how unusual"), the build-to-test MUST scope, the architectural constraint (one detector, one episodization, one context projection, one shared view builder, one outbox, one notifier), the DO-NOT-BUILD-YET list, the data maturity orientation (V2 tape since 2026-10-01; baselines about 2026-10-21; full 30d ranks about 2026-10-31) and the 30-day user test with its decision rules.
 
 Research infrastructure is kept and research serves the product: only small, feasibility-confirmed units; no new programs, no new one-shot confirmations, no research surface widening for the hope of an edge. Signalbot still has no validated durable trading edge and makes no predictive claim.
 
@@ -20,8 +22,9 @@ A narrow descriptive private beta is authorized by `docs/PRIVATE_BETA_V0_RESTART
 - **What it is:** a descriptive attention engine only. It carries no predictive claim, no trade instruction and no edge claim.
 - **What stays frozen:** predictive product work, and the V1 and V2 semantics.
 - **Current state (2026-10-02):** V0.2 ran for the owner only; the owner judged the 5m event feed unactionable (`CHANGE PRODUCT`). No external users yet. The implementation scope is now the build-to-test MUST list of `docs/PRODUCT_FIRST_DECISION_V1.md` §3; `BETA_V0_3_MARKET_BRIEFING.md` is superseded where it differs (briefing episodes, 24h label, 90-day baselines, separate notifier).
-- **Build-to-test (2026-10-02):** the MUST scope is implemented in code (see the decision's §11 amendment log and `PRIVATE_BETA_V0_DEPLOY.md`, "Product-first V1"). Not deployed; the morning briefing is committed off (`briefing.enabled: false`).
-- **Next step:** deploy to the owner-only beta, run the gate coverage diagnostic, owner review of the interpretation dry run; external launch follows data maturity (§6 of the decision), then the 30-day user test (§7).
+- **Build-to-test (2026-10-02):** the MUST scope is implemented in code (see the decision's §11 amendment log and `PRIVATE_BETA_V0_DEPLOY.md`, "Product-first V1").
+- **Decision support V2 (2026-10-03):** implemented in code on top of V1 (`PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §7); the morning briefing is committed on. Not deployed.
+- **Next step:** owner test and red-team of V2, then deploy to the owner-only beta (history sync, first build, V2 tape rewind, history timer); then the 30-day user test of `PRODUCT_FIRST_DECISION_V1.md` §7 on the V2 surface.
 - **Research boundary:** beta events are not hypotheses, and beta outcomes are not confirmation.
 
 ## Current evidence

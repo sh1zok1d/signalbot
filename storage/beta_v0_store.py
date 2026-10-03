@@ -35,6 +35,7 @@ NOTIFIER_LOCK_KEY = 7_311_000_003
 BOT_LOCK_KEY = 7_311_000_004
 ACCESS_LOCK_KEY = 7_311_000_005
 D7_LOCK_KEY = 7_311_000_006
+HISTORY_LOCK_KEY = 7_311_000_007
 
 _EPISODE_COLS = """episode_pk, public_id, symbol, event_type, state, opened_bucket, opened_at,
     armed_at, triggered_at, terminal_at, terminal_reason, rules_version, rules_digest,
@@ -638,7 +639,7 @@ class BetaConn:
                       CASE WHEN $4::boolean THEN 'DELIVERY_TOO_OLD'
                            WHEN u.status='ACTIVE' THEN NULL ELSE 'USER_INACTIVE' END,
                       $3
-               FROM beta_users u WHERE u.push_enabled
+               FROM beta_users u WHERE u.push_enabled AND u.push_hours
                ON CONFLICT (decision_id, user_pk) DO NOTHING""",
             decision_id, episode_pk, decision_ts, expired)
         return int(status.split()[-1])
@@ -750,7 +751,8 @@ class BetaConn:
     async def get_user(self, telegram_user_id: int):
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
-                      invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact
+                      invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact,
+                      push_levels, push_events, push_moves, push_hours
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
@@ -1206,3 +1208,292 @@ class BetaConn:
     async def newest_d7_available_at(self) -> Optional[datetime]:
         return await self.conn.fetchval(
             "SELECT available_at FROM beta_d7_hour_states ORDER BY hour_start DESC LIMIT 1")
+
+    # ------------------------------------------- decision support V2: history (Vision)
+    async def hist_object_ledger(self) -> dict:
+        rows = await self.conn.fetch("SELECT object_key, status, attempts FROM beta_hist_objects")
+        return {r["object_key"]: {"status": r["status"], "attempts": r["attempts"]} for r in rows}
+
+    async def record_hist_object(self, key: str, kind: str, *, status: str, now: datetime,
+                                 sha256: Optional[str] = None, rows: Optional[int] = None) -> None:
+        await self.conn.execute(
+            """INSERT INTO beta_hist_objects (object_key, kind, status, sha256, row_count, attempts,
+                   first_attempt_at, last_attempt_at)
+               VALUES ($1,$2,$3,$4,$5,1,$6,$6)
+               ON CONFLICT (object_key) DO UPDATE SET status=EXCLUDED.status, sha256=EXCLUDED.sha256,
+                   row_count=EXCLUDED.row_count, attempts=beta_hist_objects.attempts + 1,
+                   last_attempt_at=EXCLUDED.last_attempt_at""",
+            key, kind, status, sha256, rows, now)
+
+    async def upsert_hist_bars(self, rows: Sequence[Mapping], *, fetched_at: datetime) -> int:
+        if not rows:
+            return 0
+        await self.conn.executemany(
+            """INSERT INTO beta_hist_bars_5m (open_time, open, high, low, close, volume, quote_volume,
+                   taker_buy_quote, trades, source, fetched_at)
+               VALUES (to_timestamp($1::bigint / 1000.0), $2,$3,$4,$5,$6,$7,$8,$9,'vision',$10)
+               ON CONFLICT (open_time) DO UPDATE SET open=EXCLUDED.open, high=EXCLUDED.high,
+                   low=EXCLUDED.low, close=EXCLUDED.close, volume=EXCLUDED.volume,
+                   quote_volume=EXCLUDED.quote_volume, taker_buy_quote=EXCLUDED.taker_buy_quote,
+                   trades=EXCLUDED.trades, fetched_at=EXCLUDED.fetched_at""",
+            [(int(r["open_time_ms"]), r["open"], r["high"], r["low"], r["close"], r.get("volume"),
+              r.get("quote_volume"), r.get("taker_buy_quote"), r.get("trades"), fetched_at) for r in rows])
+        return len(rows)
+
+    async def upsert_hist_oi(self, rows: Sequence[Mapping], *, fetched_at: datetime) -> int:
+        if not rows:
+            return 0
+        await self.conn.executemany(
+            """INSERT INTO beta_hist_oi_5m (ts, oi_base, oi_usd, source, fetched_at)
+               VALUES (to_timestamp($1::bigint / 1000.0), $2, $3, 'vision', $4)
+               ON CONFLICT (ts) DO UPDATE SET oi_base=EXCLUDED.oi_base, oi_usd=EXCLUDED.oi_usd,
+                   fetched_at=EXCLUDED.fetched_at""",
+            [(int(r["ts_ms"]), r["oi_base"], r.get("oi_usd"), fetched_at) for r in rows])
+        return len(rows)
+
+    async def hist_bounds(self) -> dict:
+        b = await self.conn.fetchrow(
+            "SELECT min(open_time) AS lo, max(open_time) AS hi, count(*) AS n FROM beta_hist_bars_5m")
+        o = await self.conn.fetchrow("SELECT min(ts) AS lo, max(ts) AS hi, count(*) AS n FROM beta_hist_oi_5m")
+        return {"bars_from": b["lo"], "bars_through": b["hi"], "bars_count": int(b["n"]),
+                "oi_from": o["lo"], "oi_through": o["hi"], "oi_count": int(o["n"])}
+
+    async def fetch_hist_bars(self, *, start: datetime, end: datetime) -> list:
+        rows = await self.conn.fetch(
+            """SELECT (extract(epoch FROM open_time) * 1000)::bigint AS open_time_ms, open, high, low,
+                      close, volume, quote_volume, taker_buy_quote
+               FROM beta_hist_bars_5m WHERE open_time >= $1 AND open_time < $2 ORDER BY open_time""",
+            start, end)
+        return [dict(r) for r in rows]
+
+    async def fetch_hist_oi(self, *, start: datetime, end: datetime) -> list:
+        rows = await self.conn.fetch(
+            """SELECT (extract(epoch FROM ts) * 1000)::bigint AS ts_ms, oi_base AS oi
+               FROM beta_hist_oi_5m WHERE ts >= $1 AND ts < $2 ORDER BY ts""", start, end)
+        return [dict(r) for r in rows]
+
+    async def insert_hist_stats(self, *, version: str, built_at: datetime, data_from: Optional[datetime],
+                                data_through: Optional[datetime], payload: Mapping[str, Any]) -> int:
+        import hashlib
+        body = _j(payload)
+        return await self.conn.fetchval(
+            """INSERT INTO beta_hist_stats (version, built_at, data_from, data_through, payload, payload_digest)
+               VALUES ($1,$2,$3,$4,$5::jsonb,$6) RETURNING stats_pk""",
+            version, built_at, data_from, data_through, body, hashlib.sha256(body.encode("utf-8")).hexdigest())
+
+    async def fetch_latest_hist_stats(self) -> Optional[dict]:
+        r = await self.conn.fetchrow(
+            """SELECT stats_pk, version, built_at, data_from, data_through, payload, payload_digest
+               FROM beta_hist_stats ORDER BY built_at DESC, stats_pk DESC LIMIT 1""")
+        return None if r is None else {**dict(r), "payload": _load(r["payload"])}
+
+    async def fetch_latest_hist_stats_meta(self) -> Optional[dict]:
+        r = await self.conn.fetchrow(
+            """SELECT stats_pk, version, built_at, data_through, payload_digest
+               FROM beta_hist_stats ORDER BY built_at DESC, stats_pk DESC LIMIT 1""")
+        return None if r is None else dict(r)
+
+    # ------------------------------------------------ Stage-1 read-only (decision support)
+    async def fetch_live_klines_1m(self, *, exchange: str, symbol: str, start: datetime,
+                                   end: datetime) -> list:
+        rows = await self.conn.fetch(
+            """SELECT ts, open, high, low, close, volume, taker_buy_volume FROM klines_1m
+               WHERE exchange=$1 AND symbol=$2 AND ts >= $3 AND ts < $4 ORDER BY ts""",
+            exchange, symbol, start, end)
+        return [dict(r) for r in rows]
+
+    async def fetch_liquidations(self, *, symbol: str, exchanges: Sequence[str], start: datetime,
+                                 end: datetime) -> list:
+        rows = await self.conn.fetch(
+            """SELECT exchange, ts, side, price, qty, notional, is_snapshot_feed FROM liquidations
+               WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts >= $3 AND ts < $4""",
+            symbol, list(exchanges), start, end)
+        return [dict(r) for r in rows]
+
+    # ------------------------------------------------------------- forecast tracking
+    async def insert_forecast(self, *, horizon: str, issued_at: datetime, horizon_end: datetime,
+                              anchor_price: float, lower: float, upper: float, coverage: float,
+                              model_version: str, stats_pk: Optional[int]) -> bool:
+        wrote = await self.conn.fetchval(
+            """INSERT INTO beta_forecasts (horizon, issued_at, horizon_end, anchor_price, lower, upper,
+                   coverage, model_version, stats_pk)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+               ON CONFLICT (horizon, issued_at) DO NOTHING RETURNING forecast_pk""",
+            horizon, issued_at, horizon_end, anchor_price, lower, upper, coverage, model_version, stats_pk)
+        return wrote is not None
+
+    async def forecast_issued_since(self, *, horizon: str, since: datetime) -> bool:
+        return bool(await self.conn.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM beta_forecasts WHERE horizon=$1 AND issued_at >= $2)",
+            horizon, since))
+
+    async def fetch_matured_forecasts(self, *, now: datetime, limit: int = 200) -> list:
+        rows = await self.conn.fetch(
+            """SELECT forecast_pk, horizon, issued_at, horizon_end, anchor_price, lower, upper
+               FROM beta_forecasts WHERE outcome IS NULL AND horizon_end <= $1
+               ORDER BY horizon_end LIMIT $2""", now, limit)
+        return [dict(r) for r in rows]
+
+    async def set_forecast_outcome(self, forecast_pk: int, *, outcome: str, high: Optional[float],
+                                   low: Optional[float], now: datetime) -> None:
+        await self.conn.execute(
+            """UPDATE beta_forecasts SET outcome=$2, realized_high=$3, realized_low=$4, evaluated_at=$5
+               WHERE forecast_pk=$1 AND outcome IS NULL""", forecast_pk, outcome, high, low, now)
+
+    async def forecast_accuracy(self, *, since: datetime) -> dict:
+        rows = await self.conn.fetch(
+            """SELECT horizon, outcome, count(*) AS n, count(DISTINCT issued_at::date) AS days
+               FROM beta_forecasts WHERE issued_at >= $1 AND outcome IS NOT NULL
+               GROUP BY horizon, outcome""", since)
+        out: dict = {}
+        for r in rows:
+            out.setdefault(r["horizon"], {})[r["outcome"]] = int(r["n"])
+        return out
+
+    # ---------------------------------------------------------------- market alerts
+    async def insert_market_alert(self, *, kind: str, alert_key: str, decision_ts: datetime,
+                                  decision: str, suppression_reason: Optional[str],
+                                  payload: Mapping[str, Any], target_user_pk: Optional[int] = None
+                                  ) -> Optional[int]:
+        return await self.conn.fetchval(
+            """INSERT INTO beta_market_alerts (kind, alert_key, decision_ts, utc_day, decision,
+                   suppression_reason, target_user_pk, payload)
+               VALUES ($1,$2,$3,($3 AT TIME ZONE 'UTC')::date,$4,$5,$6,$7::jsonb)
+               ON CONFLICT (alert_key) DO NOTHING RETURNING alert_pk""",
+            kind, alert_key, decision_ts, decision, suppression_reason, target_user_pk, _j(payload))
+
+    async def market_alert_keys(self, keys: Sequence[str]) -> set:
+        rows = await self.conn.fetch(
+            "SELECT alert_key FROM beta_market_alerts WHERE alert_key = ANY($1::text[])", list(keys))
+        return {r["alert_key"] for r in rows}
+
+    async def count_market_pushes(self, *, utc_day, kinds: Sequence[str]) -> int:
+        return int(await self.conn.fetchval(
+            """SELECT count(*) FROM beta_market_alerts
+               WHERE utc_day=$1 AND kind = ANY($2::text[]) AND decision='PUSH'""", utc_day, list(kinds)))
+
+    async def last_market_push_ts(self, *, kind: str) -> Optional[datetime]:
+        return await self.conn.fetchval(
+            "SELECT max(decision_ts) FROM beta_market_alerts WHERE kind=$1 AND decision='PUSH'", kind)
+
+    async def fetch_market_alerts(self, *, start: datetime, end: datetime,
+                                  kinds: Sequence[str] = ("level", "move")) -> list:
+        rows = await self.conn.fetch(
+            """SELECT alert_pk, kind, alert_key, decision_ts, decision, suppression_reason, payload
+               FROM beta_market_alerts WHERE decision_ts >= $1 AND decision_ts < $2
+                 AND kind = ANY($3::text[]) ORDER BY decision_ts""", start, end, list(kinds))
+        return [{**dict(r), "payload": _load(r["payload"])} for r in rows]
+
+    async def fetch_undispatched_market_alerts(self, limit: int) -> list:
+        rows = await self.conn.fetch(
+            """SELECT a.alert_pk, a.kind, a.decision_ts, a.target_user_pk FROM beta_market_alerts a
+               WHERE a.decision='PUSH' AND NOT EXISTS (
+                   SELECT 1 FROM beta_notification_deliveries x WHERE x.alert_pk=a.alert_pk)
+               ORDER BY a.decision_ts, a.alert_pk LIMIT $1""", limit)
+        return [dict(r) for r in rows]
+
+    async def materialize_alert_deliveries(self, *, alert_pk: int, kind: str, decision_ts: datetime,
+                                           target_user_pk: Optional[int], expired: bool) -> int:
+        """One row per recipient. Market kinds go to participants with push on and the kind's
+        preference on; a personal price alert goes to its participant only. STOPPED
+        participants get a SUPPRESSED row (as for the existing pushes)."""
+        pref = {"level": "push_levels", "event": "push_events", "move": "push_moves"}.get(kind)
+        if kind == "price":
+            where = "u.user_pk = $4::bigint"
+        elif pref is not None:
+            where = f"$4::bigint IS NULL AND u.push_enabled AND u.{pref}"
+        else:
+            raise ValueError(f"unknown alert kind {kind!r}")
+        status = await self.conn.execute(
+            f"""INSERT INTO beta_notification_deliveries (kind, alert_pk, user_pk, state,
+                    suppression_reason, decision_ts)
+                SELECT 'alert', $1, u.user_pk,
+                       CASE WHEN $3::boolean THEN 'EXPIRED_UNDELIVERED'
+                            WHEN u.status='ACTIVE' THEN 'PENDING' ELSE 'SUPPRESSED' END,
+                       CASE WHEN $3::boolean THEN 'DELIVERY_TOO_OLD'
+                            WHEN u.status='ACTIVE' THEN NULL ELSE 'USER_INACTIVE' END,
+                       $2
+                FROM beta_users u WHERE {where}
+                ON CONFLICT (alert_pk, user_pk) WHERE kind='alert' DO NOTHING""",
+            alert_pk, decision_ts, expired, target_user_pk if kind == "price" else None)
+        return int(status.split()[-1])
+
+    async def fetch_pending_alert_deliveries(self, limit: int) -> list:
+        rows = await self.conn.fetch(
+            """SELECT x.delivery_id, x.alert_pk, x.user_pk, x.decision_ts, a.kind, a.payload,
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang
+               FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
+               JOIN beta_market_alerts a ON a.alert_pk = x.alert_pk
+               WHERE x.state='PENDING' AND x.kind='alert'
+               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
+        return [{**dict(r), "payload": _load(r["payload"])} for r in rows]
+
+    # ------------------------------------------------------------ personal price alerts
+    async def add_price_alert(self, *, user_pk: int, price: float, created_price: float, now: datetime,
+                              max_active: int) -> Optional[int]:
+        """None when the participant already has `max_active` active alerts."""
+        n = int(await self.conn.fetchval(
+            """SELECT count(*) FROM beta_price_alerts
+               WHERE user_pk=$1 AND triggered_at IS NULL AND cancelled_at IS NULL""", user_pk))
+        if n >= max_active:
+            return None
+        direction = "above" if price > created_price else "below"
+        return await self.conn.fetchval(
+            """INSERT INTO beta_price_alerts (user_pk, price, direction, created_at, created_price)
+               VALUES ($1,$2,$3,$4,$5) RETURNING price_alert_pk""",
+            user_pk, price, direction, now, created_price)
+
+    async def list_price_alerts(self, user_pk: int) -> list:
+        rows = await self.conn.fetch(
+            """SELECT price_alert_pk, price, direction, created_at, created_price FROM beta_price_alerts
+               WHERE user_pk=$1 AND triggered_at IS NULL AND cancelled_at IS NULL
+               ORDER BY price""", user_pk)
+        return [dict(r) for r in rows]
+
+    async def cancel_price_alerts(self, user_pk: int, *, now: datetime,
+                                  price_alert_pk: Optional[int] = None) -> int:
+        status = await self.conn.execute(
+            """UPDATE beta_price_alerts SET cancelled_at=$2
+               WHERE user_pk=$1 AND triggered_at IS NULL AND cancelled_at IS NULL
+                 AND ($3::bigint IS NULL OR price_alert_pk=$3::bigint)""", user_pk, now, price_alert_pk)
+        return int(status.split()[-1])
+
+    async def fetch_active_price_alerts(self) -> list:
+        rows = await self.conn.fetch(
+            """SELECT p.price_alert_pk, p.user_pk, p.price, p.direction, p.created_at, p.created_price
+               FROM beta_price_alerts p JOIN beta_users u USING (user_pk)
+               WHERE p.triggered_at IS NULL AND p.cancelled_at IS NULL AND u.status='ACTIVE'""")
+        return [dict(r) for r in rows]
+
+    async def mark_price_alert_triggered(self, price_alert_pk: int, *, at: datetime) -> bool:
+        status = await self.conn.execute(
+            """UPDATE beta_price_alerts SET triggered_at=$2
+               WHERE price_alert_pk=$1 AND triggered_at IS NULL AND cancelled_at IS NULL""",
+            price_alert_pk, at)
+        return status == "UPDATE 1"
+
+    _PUSH_PREFS = ("push_enabled", "push_levels", "push_events", "push_moves", "push_hours")
+
+    async def set_push_pref(self, telegram_user_id: int, field: str, enabled: bool) -> bool:
+        if field not in self._PUSH_PREFS:
+            raise ValueError(f"unknown push preference {field!r}")
+        status = await self.conn.execute(
+            f"UPDATE beta_users SET {field}=$2, updated_at=now() WHERE telegram_user_id=$1",
+            telegram_user_id, enabled)
+        return status == "UPDATE 1"
+
+    # ------------------------------------------------------ bootstrap rewind (operator)
+    async def rewind_bootstrap_watermark(self, *, symbol: str, market_type: str, timeframe: str,
+                                         bucket_ts: datetime) -> Optional[datetime]:
+        """Set the bootstrap watermark back to `bucket_ts` (only ever earlier). The existing
+        bounded bootstrap then refills missing current-schema tape rows from there; rows that
+        exist are skipped, so nothing already recorded is rewritten."""
+        prev = await self.get_watermark("bootstrap", symbol=symbol, market_type=market_type,
+                                        timeframe=timeframe)
+        await self.conn.execute(
+            """INSERT INTO beta_detector_watermark (runner_name, symbol, market_type, timeframe, bucket_ts)
+               VALUES ('bootstrap',$1,$2,$3,$4)
+               ON CONFLICT (runner_name, symbol, market_type, timeframe) DO UPDATE
+               SET bucket_ts = LEAST(beta_detector_watermark.bucket_ts, EXCLUDED.bucket_ts),
+                   updated_at = now()""", symbol, market_type, timeframe, bucket_ts)
+        return prev

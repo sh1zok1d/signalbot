@@ -57,7 +57,7 @@ def test_catchup_renders_the_shared_view_and_records_it():
         import json
         from test_beta_btc_view import VIEW_KEYS
         btc_payload = json.loads((await _rows(pool, "SELECT payload FROM beta_btc_views WHERE kind='btc'"))[0]["payload"])
-        assert set(btc_payload) == VIEW_KEYS                           # /btc payload keys unchanged
+        assert set(btc_payload) == VIEW_KEYS | {"decision"}            # V1 keys unchanged + decision support
         acts = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         assert acts.count("cmd_catchup") == 2                          # usage replies are not activity
         await pool.close()

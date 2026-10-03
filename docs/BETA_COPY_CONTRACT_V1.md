@@ -1,6 +1,7 @@
 # Beta copy contract V1 — `/catchup`, утренняя сводка, push о необычном часе
 
 **Статус:** `FROZEN_FOR_IMPLEMENTATION / COPY_CONTRACT / IMPLEMENTED_WITH_RECORDED_DEVIATIONS (§7) / CANONICAL (решение в main с PR #312)`
+**2026-10-03:** запреты прогнозной лексики (§3.14, §4 «Прогноз и совет», §5 правило 3) и лимит 15 строк (§5 правило 8) заменены `PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §3 и §5. Прямые торговые призывы, хайп и список внутренностей, которые не показываются, остаются в силе.
 **Дата:** 2026-10-02 (финализирующий проход и freeze-проход — тот же день)
 **Подчинён:** `docs/PRODUCT_FIRST_DECISION_V1.md` в редакции этой ветки: исходный `d7f931d` (перенесён как `d16436c`), ремонт `fbcee7d` и freeze-проход.
 

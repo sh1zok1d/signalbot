@@ -1,6 +1,7 @@
 # Beta — historical analogue gate V1 ("Что было после похожих")
 
 **Status:** `OWNER_DECISION_RECORDED / GATE_FROZEN_BEFORE_IMPLEMENTATION / NOT_ACTIVE / DO_NOT_BUILD_YET (2026-10-02)`
+**2026-10-03:** superseded by `PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §3: analogue statistics are built (`beta/analogues.py`, `beta/levels.py`) under the lighter honesty rule — N and a volatility-matched "обычно" beside every number, a day-clustered bootstrap with Holm across the family and a materiality floor for «отличается». This gate's spec-digest and 1000-replicate null-calibration preconditions no longer apply. Kept as the record of the earlier design.
 **2026-10-02:** analogue cards are on the DO-NOT-BUILD-YET list of `PRODUCT_FIRST_DECISION_V1.md` §5 until user evidence from its §7 test exists. The gate text is unchanged and remains the only path for this surface when it is built.
 **Date:** 2026-10-02 (repair of the same day: sufficiency split, calibration bound, floors, historical proxy mapping, R8, control share)
 **Authority:** owner decision 2026-10-02, recorded in §9. It is the promotion gate (restart decision 7) for one surface: historical analogue summaries.

@@ -4,7 +4,9 @@ This file tells coding/review agents what is authoritative **now**. Keep it conc
 
 ## Project posture
 
-**Mode since 2026-10-02:** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`. The canonical product decision is `docs/PRODUCT_FIRST_DECISION_V1.md`: the product hypothesis, the build-to-test MUST scope, the architectural constraint (one detector, one episodization, one context projection, one shared view builder, one outbox, one notifier), the DO-NOT-BUILD-YET list, the data/launch orientation and the 30-day user test. Research infrastructure is kept, but it no longer sets the pace of product work; no new research programs or one-shot confirmation units are started. Two evidence standards are kept apart: **product evidence** (honest descriptive/heuristic interpretation with uncertainty and provenance) and **research claim** (the existing research contract). "Do not lie" does not mean "do not interpret".
+**Mode since 2026-10-03:** `PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS`. The canonical product decision is `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md`: the owner lifted the predictive freeze for the product (forecasts of range, touch probabilities, levels, historical statistics with direction, an event calendar, timely market alerts) and opened Binance 2025/2026 for product statistics. Still forbidden in every user text: direct trade calls (buy/sell, long/short now, entries, targets), hype, unobservable attributions. Every historical number carries N and a comparable "обычно"; every forecast carries its tracked accuracy. Where it differs, it wins over the V1 decision below.
+
+**Mode 2026-10-02 → 2026-10-03 (superseded where V2 differs):** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`. The canonical product decision is `docs/PRODUCT_FIRST_DECISION_V1.md`: the product hypothesis, the build-to-test MUST scope, the architectural constraint (one detector, one episodization, one context projection, one shared view builder, one outbox, one notifier), the DO-NOT-BUILD-YET list, the data/launch orientation and the 30-day user test. Research infrastructure is kept, but it no longer sets the pace of product work; no new research programs or one-shot confirmation units are started. Two evidence standards are kept apart: **product evidence** (honest descriptive/heuristic interpretation with uncertainty and provenance) and **research claim** (the existing research contract). "Do not lie" does not mean "do not interpret".
 
 The research posture below is kept as the record of what is sealed and frozen. It is no longer the research-first routing of product work.
 
@@ -21,14 +23,14 @@ The MARKET program is through MARKET-06:
 - MARKET-05: `MARKET_05_NO_EVIDENCE`;
 - MARKET-06: `MARKET_06_NO_EVIDENCE`, canonical one-shot consumed and sealed; no rerun or reverse-effect rescue;
 - internal historical candidates promoted: `0`;
-- protected 2025/2026 OOS: unopened.
+- protected 2025/2026 OOS: unopened for research tests; opened for product statistics on 2026-10-03 (see below).
 
 The exact/near-exact M05/M06 cell (external/cross-market observable -> additive incremental term beside BTC own-state controls -> 24h direction-aligned adverse-path prediction -> holdout MAE improvement) is `REPEATED_NULL / LOW_PRIORITY_FOR_NOW`. The broader short-horizon BTC conditional scalar-prediction family is `LOW_PRIORITY / SATURATED_FOR_NOW` as a search-priority conclusion, not a claim that every member is false.
 
 Do **not** create MARKET-07 merely to continue a queue. D2 / RULE_1 is an
 `INDEPENDENTLY_REPLICATED_MECHANISM_CANDIDATE`, not a validated trading edge
 and not a reason to restart product work. Protected Binance 2025/2026 remain
-sealed. The D2 excess direction-aligned path-risk decomposition one-shot
+sealed for research tests (product statistics read them since 2026-10-03). The D2 excess direction-aligned path-risk decomposition one-shot
 is consumed (`D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT`; no
 rerun). The exact next research unit is recorded in
 `docs/CURRENT_RESEARCH_STATE.md`. Do not generate nearby D2
@@ -36,23 +38,26 @@ threshold/horizon/RV variants.
 New discovery cards, if defined, must rotate across heterogeneous families
 rather than proliferate RV_ABSTENTION.
 
+Protected Binance 2025/2026: opened for **product** statistics by the owner on 2026-10-03 (PRODUCT_DECISION_V2 §4). For research it is consumed for any hypothesis over the product features (range/volatility, levels, price/OI/taker states, event days); sealed verdicts are not reopened.
+
 `FORWARD_MARKET_OBSERVABILITY_V1` collector implementation remains frozen; authoritative collection has not been started by this cleanup. B2-06 remains blocked on the missing/legally-timestamped observable problem.
 
 There is still no claim of a durable trading edge.
 
 A narrow **descriptive private beta V0.2** is authorized (`docs/PRIVATE_BETA_V0_RESTART_DECISION.md`). Since 2026-10-02 its implementation scope is the build-to-test MUST list of `docs/PRODUCT_FIRST_DECISION_V1.md` §3; `docs/BETA_V0_3_MARKET_BRIEFING.md` is superseded where the two differ (briefing episodes, 24h label, 90-day baselines, separate notifier).
 - **Where it lives:** beta work belongs only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.
-- **What it must never do:** never predictive wording, never V1/V2 changes, never a research promotion without a separate gate.
+- **What it must never do:** never a direct trade call (PRODUCT_DECISION_V2 §3), never V1/V2 forecast-engine changes, never a research claim without the research contract. Forecasting vocabulary is allowed since 2026-10-03.
 - **V0.3 (2026-10-02):** the surface is a market briefing (`docs/BETA_V0_3_MARKET_BRIEFING.md`).
   - **One narrow exception to the predictive freeze:** outcome-aware historical analogue summaries, only under `docs/BETA_HISTORICAL_ANALOGUE_GATE_V1.md`. That means a baseline beside every number, N and spread, a mandatory verdict, separate historical and live cohorts, and no 2025/2026 data.
-  - **Still forbidden everywhere:** trade recommendations, directional forecasts, targets, probabilities of direction, bias/lean labels and optimized signal thresholds.
+  - **Superseded 2026-10-03 by PRODUCT_DECISION_V2:** directional history, range forecasts and touch probabilities are allowed in the product; trade recommendations, targets and direct long/short calls stay forbidden.
 
 ## Read these sources first
 
 For any new task, use this authority order:
 
 0. `docs/SIGNALBOT_MANDATE_V1.md` — owner-approved strategic mandate; project success criteria, anti-sycophancy rule, scientific/product/commercial principles. It does not override frozen experiment-specific scientific authorities;
-0a. `docs/PRODUCT_FIRST_DECISION_V1.md` — canonical product decision (2026-10-02): product hypothesis, build-to-test scope, architecture constraint, DO-NOT-BUILD-YET, user-test design. For any product/beta task read it before the beta documents;
+0a. `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` — canonical product decision (2026-10-03): decision support (corridor, levels, history, events, market alerts), the rules that stay, protected 2025/2026 opened for product use. Read it first for any product/beta task;
+0b. `docs/PRODUCT_FIRST_DECISION_V1.md` — product decision of 2026-10-02 (hypothesis, architecture constraint, DO-NOT-BUILD-YET, user-test design); superseded where V2 differs;
 1. `docs/CURRENT_RESEARCH_STATE.md` — compact current routing and exact next unit;
 2. `docs/PROJECT_STATUS.md` — current posture and freeze;
 3. `docs/RESEARCH_ROADMAP.md` — active execution order;
@@ -77,7 +82,7 @@ Generator V0 mechanism memory is an append-only event chain (`docs/research/gene
 
 ## Hard development freeze
 
-Product work is allowed only inside the build-to-test MUST scope of `docs/PRODUCT_FIRST_DECISION_V1.md` §3 and never inside its §5 DO-NOT-BUILD-YET list. Research work follows `PRODUCT_FIRST_DECISION_V1.md` §1: small, feasibility-confirmed, product-serving only.
+Product work is allowed inside `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §2 and the build-to-test scope of `docs/PRODUCT_FIRST_DECISION_V1.md` §3, and never inside the still-forbidden items listed in V2 §3 (LLM in production, web UI, payments, multi-asset scanner, order book / liquidation heatmaps, exchange keys, a second detector engine). Research work follows `PRODUCT_FIRST_DECISION_V1.md` §1: small, feasibility-confirmed, product-serving only.
 
 Unless a task explicitly changes the project posture, do not build:
 

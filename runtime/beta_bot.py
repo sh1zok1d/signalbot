@@ -208,17 +208,15 @@ class BetaBotHandler:
             return await self._reply(conn, user, chat_id, lang, now, "cmd_catchup",
                                      [_msg(chat_id, html_text, buttons, lang=lang)])
         if cmd == "push":
-            arg = (args or "").strip().lower()
-            if arg in ("on", "off"):
-                await conn.set_push_enabled(uid, arg == "on")
-                reply = t(lang, "push_on_ok" if arg == "on" else "push_off_ok")
-            else:
-                on = user.get("push_enabled", True)
-                reply = t(lang, "push_usage", state=t(lang, "push_state_on" if on else "push_state_off"))
-            # detail = the requested state ("on" / "off") or "status": the on/off history is
-            # reconstructable from the activity log, not only the current beta_users value.
+            reply, detail = await self._push_cmd(conn, uid, user, lang, args)
+            # detail = what was requested ("on", "off", "levels:off", …) or "status": the history
+            # of preferences is reconstructable from the activity log.
             return await self._reply(conn, user, chat_id, lang, now, "cmd_push", [_msg(chat_id, reply, lang=lang)],
-                                     detail=arg if arg in ("on", "off") else "status")
+                                     detail=detail)
+        if cmd in ("levels", "risk", "alert", "events", "accuracy"):
+            reply = await self._decision_cmd(conn, cmd, user, now, lang, args)
+            return await self._reply(conn, user, chat_id, lang, now, f"cmd_{cmd}",
+                                     [_msg(chat_id, reply, lang=lang)])
         if cmd == "brief":
             arg = (args or "").strip().lower()
             if arg in ("on", "off"):
@@ -353,6 +351,112 @@ class BetaBotHandler:
         view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="catchup")
         return text, btc_buttons(view, lang, view_pk)
 
+    # ---- decision support (PRODUCT_DECISION_V2) ------------------------------------------
+    _PUSH_PREFS = {"levels": "push_levels", "level": "push_levels", "уровни": "push_levels",
+                   "events": "push_events", "event": "push_events", "события": "push_events",
+                   "moves": "push_moves", "move": "push_moves", "движения": "push_moves",
+                   "hour": "push_hours", "hours": "push_hours", "час": "push_hours"}
+
+    def _push_status(self, user, lang: str) -> str:
+        word = lambda v: t(lang, "on_word" if v else "off_word")  # noqa: E731
+        return t(lang, "push_status", master=word(user.get("push_enabled", True)),
+                 levels=word(user.get("push_levels", True)), events=word(user.get("push_events", True)),
+                 moves=word(user.get("push_moves", True)), hours=word(user.get("push_hours", True)))
+
+    async def _push_cmd(self, conn, uid: int, user, lang: str, args) -> tuple:
+        parts = (args or "").strip().lower().split()
+        if len(parts) == 1 and parts[0] in ("on", "off"):
+            await conn.set_push_pref(uid, "push_enabled", parts[0] == "on")
+            detail = parts[0]
+        elif len(parts) == 2 and parts[0] in self._PUSH_PREFS and parts[1] in ("on", "off"):
+            await conn.set_push_pref(uid, self._PUSH_PREFS[parts[0]], parts[1] == "on")
+            detail = f"{self._PUSH_PREFS[parts[0]][5:]}:{parts[1]}"
+        else:
+            return self._push_status(user, lang), "status"
+        fresh = await conn.get_user(uid)
+        return t(lang, "push_pref_ok", status=self._push_status(fresh, lang)), detail
+
+    async def _decision_cmd(self, conn, cmd: str, user, now: datetime, lang: str, args) -> str:
+        from beta import decision_format as df
+        from beta.decision import build_decision, latest_stats
+        if cmd == "events":
+            from beta.calendar_events import load_calendar, upcoming
+            cal = load_calendar()
+            stats = await latest_stats(conn, now=now)
+            kinds = ((stats or {}).get("events") or {}).get("kinds") or {}
+            evs = [{"kind": e["kind"], "at": e["at"].isoformat(), "stats": kinds.get(e["kind"])}
+                   for e in upcoming(cal, now=now, hours=14 * 24) if e["kind"] != "EXPIRY_WEEKLY"]
+            return df.format_events(evs, lang, funding_utc=(cal["recurring"].get("funding_utc") or ()))
+        if cmd == "accuracy":
+            from datetime import timedelta
+            stats = await latest_stats(conn, now=now)
+            live = await conn.forecast_accuracy(since=now - timedelta(days=30))
+            return df.format_accuracy((stats or {}).get("range_model"), live, lang)
+        block = await build_decision(conn, self.cfg, now=now)
+        if cmd == "levels":
+            return df.format_levels(block, lang, now=now)
+        if cmd == "risk":
+            mode, val = df.parse_risk_arg(args, block.get("price"))
+            if mode == "bad":
+                return t(lang, "rk_usage")
+            stats = await latest_stats(conn, now=now)
+            return df.format_risk(block, (stats or {}).get("range_model"), lang,
+                                  stop_pct=val if mode == "pct" else None)
+        return await self._alert_cmd(conn, user, now, lang, args, block)
+
+    async def _alert_cmd(self, conn, user, now: datetime, lang: str, args, block) -> str:
+        from beta import decision_format as df
+        from beta.decision import latest_stats
+        from beta.i18n import fmt_price, fmt_signed_pct
+        parts = (args or "").strip().lower().split()
+        price = block.get("price")
+        if parts and parts[0] in ("del", "delete", "удалить", "rm"):
+            alerts = await conn.list_price_alerts(user["user_pk"])
+            if len(parts) == 2 and parts[1] in ("all", "все"):
+                n = await conn.cancel_price_alerts(user["user_pk"], now=now)
+            elif len(parts) == 2 and parts[1].isdigit() and 1 <= int(parts[1]) <= len(alerts):
+                n = await conn.cancel_price_alerts(user["user_pk"], now=now,
+                                                   price_alert_pk=alerts[int(parts[1]) - 1]["price_alert_pk"])
+            else:
+                return t(lang, "al_usage")
+            return t(lang, "al_deleted", n=n)
+        if not parts:
+            alerts = await conn.list_price_alerts(user["user_pk"])
+            if not alerts:
+                return t(lang, "al_list_none")
+            lines = [t(lang, "al_list_head")]
+            for k, a in enumerate(alerts, 1):
+                dist = fmt_signed_pct((a["price"] / price - 1) * 100.0, lang) if price else "—"
+                lines.append(t(lang, "al_list_line", k=k, price=fmt_price(a["price"], lang), dist=dist))
+            lines.append(t(lang, "al_list_footer"))
+            return "\n".join(lines)
+        raw = "".join(parts).replace(",", ".").replace("$", "")
+        try:
+            level = float(raw)
+        except ValueError:
+            return t(lang, "al_usage")
+        if not price:
+            return t(lang, "al_no_price")
+        dist = (level / price - 1) * 100.0
+        if level <= 0 or abs(dist) > 30:
+            return t(lang, "al_usage")
+        if abs(dist) < 0.05:
+            return t(lang, "al_too_close", now=fmt_price(price, lang))
+        made = await conn.add_price_alert(user_pk=user["user_pk"], price=level, created_price=price, now=now,
+                                          max_active=int(self.cfg.section("decision")["max_price_alerts"]))
+        if made is None:
+            return t(lang, "al_limit", n=int(self.cfg.section("decision")["max_price_alerts"]))
+        stats = await latest_stats(conn, now=now)
+        model = (stats or {}).get("range_model")
+        hz = ((block.get("corridor") or {}).get("horizons") or {}).get("24h")
+        if model and hz:
+            from beta.rangecast import touch_probability
+            p = touch_probability(model, "24h", hz["scale_pct"], abs(dist))
+            return t(lang, "al_set", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
+                     now=fmt_price(price, lang), p=df.fmt_prob(p, lang))
+        return t(lang, "al_set_plain", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
+                 now=fmt_price(price, lang))
+
     async def _view(self, conn, now: datetime, *, kind: str, window_hours: Optional[int] = None) -> dict:
         return await build_view(conn, self.cfg, now=now, kind=kind, window_hours=window_hours,
                                 maturity_days=self._maturity_days(),
@@ -460,6 +564,11 @@ class BetaBotHandler:
             return [answer(t(lang, "not_available"))]
         if data == "r:latest":
             return await self._readiness_details(conn, chat_id, answer, lang)
+        if data in ("L:levels", "L:risk"):
+            cmd = data[2:]
+            reply = await self._decision_cmd(conn, cmd, user, self.clock(), lang, "")
+            return await self._reply(conn, user, chat_id, lang, self.clock(), f"btn_{cmd}",
+                                     [answer(""), _msg(chat_id, reply, lang=lang)])
         if data == "n:latest" or data[0] in ("c", "d"):
             # Retired: live-state Details, and the episode Details of older pushes (they
             # show the detector name, internal id and rules version; decision §3 row 9).
