@@ -230,8 +230,15 @@ def test_d7_units_and_smoke_identity_are_wired():
     check = (REPO / "deploy" / "check_beta_units.sh").read_text(encoding="utf-8")
     assert "signalbot-beta-d7.timer" in install and "signalbot-beta-d7.timer" in check
     smoke = (REPO / "deploy" / "signalbot-beta-smoke.sql").read_text(encoding="utf-8")
-    assert "BETA_CONTEXT_1H_V1" in smoke
-    assert "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576" in smoke
+    # The smoke check pins the ACTIVE context identity (BETA_CONTEXT_1H_V2 since the
+    # Product-First deploy, PR #316): the configured version and its pinned digest.
+    from beta.context import verify_versions
+    active = verify_versions(CFG)
+    assert (active["context_version"], active["context_digest"]) == (
+        "BETA_CONTEXT_1H_V2", "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25")
+    assert active["context_version"] in smoke and active["context_digest"] in smoke
+    # the stale V1 identity (its digest) is no longer what the smoke pins
+    assert "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576" not in smoke
     assert "context_gaps" in smoke and "d7_missing" in smoke
 
 
