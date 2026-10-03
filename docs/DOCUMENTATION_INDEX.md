@@ -392,6 +392,8 @@ Before using an operational runbook, compare it with current code/config and run
 
 ---
 
+- `WEEKDAY_WEEKEND_BASELINE_CALIBRATION_DESIGN_V1.md` / `.json` (**DESIGN_DRAFT / NOT_FROZEN / NOT_EXECUTED**, 2026-10-03) — PRODUCT_FIRST calibration design: does splitting the 1h rank reference distributions by UTC weekday type improve the calibration of unusual-hour flags against their nominal rates without degrading holdout/prospective calibration or raising false alerts in other regimes. Baseline C0 (pooled 30d), candidate C1 (same-type days), two stages (historical single-venue proxy 2020–2024 with a 2023–2024 proxy holdout; prospective product tape from about 2026-10-31), two-sided exceedance-gap metrics with under-flagging guardrails, PASS/FAIL/INCONCLUSIVE rule and stop conditions. Motivated by R03-C1 but not a continuation of R03; no data opened, nothing frozen. Records that the PR #303 merge commit removed the product-first implementation from `main` (execution prerequisite).
+
 ## 7a. Descriptive private beta V0.2 (authorized 2026-09-25)
 
 - **2026-10-02:** `PRODUCT_FIRST_DECISION_V1.md` is the canonical product decision for the beta's implementation scope and its first external test. The entries below keep their own records; where they differ from the decision they are superseded and say so in their headers (`BETA_V0_3_MARKET_BRIEFING.md`: briefing episodes, 24h label, 90-day baselines; `BETA_HISTORICAL_ANALOGUE_GATE_V1.md`: DO-NOT-BUILD-YET; `PRODUCT_DIRECTION_V0.md` and `PRODUCT_DIRECTION_AFTER_BETA_PROPOSAL.md`: partly superseded).
