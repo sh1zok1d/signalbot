@@ -191,6 +191,8 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
         card = lookup(ana, w, res.get("key"))
         if card is not None:
             block["analogues"][w] = card
+    from .i18n import kyiv
+    block["weekend"] = kyiv(now).weekday() >= 5
     block["available"] = True
     return block
 

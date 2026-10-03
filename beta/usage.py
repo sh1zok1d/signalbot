@@ -83,7 +83,7 @@ def _active_pks(rows: Sequence[dict]) -> list:
 
 
 DECISION_PULLS = ("cmd_catchup", "cmd_levels", "cmd_risk", "cmd_alert", "cmd_events", "cmd_accuracy",
-                  "btn_levels", "btn_risk")
+                  "cmd_research", "btn_levels", "btn_risk")
 
 
 def _window_block(rows: Sequence[dict], *, pushes_by_user: dict, stops: int, deletions: int) -> dict:

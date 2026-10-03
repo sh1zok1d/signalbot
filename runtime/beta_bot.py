@@ -213,6 +213,10 @@ class BetaBotHandler:
             # of preferences is reconstructable from the activity log.
             return await self._reply(conn, user, chat_id, lang, now, "cmd_push", [_msg(chat_id, reply, lang=lang)],
                                      detail=detail)
+        if cmd == "research":
+            from beta.research_link import format_research
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_research",
+                                     [_msg(chat_id, format_research(lang), lang=lang)])
         if cmd in ("levels", "risk", "alert", "events", "accuracy"):
             reply = await self._decision_cmd(conn, cmd, user, now, lang, args)
             return await self._reply(conn, user, chat_id, lang, now, f"cmd_{cmd}",

@@ -535,6 +535,9 @@ def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabl
             line = _analog_line(view, res, h, lang)
             if line:
                 lines.append(line)
+            checked = _research_line(res, h, lang)
+            if checked:
+                lines.append(checked)
     lines.append(_line_24h(view, lang))
     from .decision_format import brief_lines
     lines.extend(brief_lines(view, lang))
@@ -555,6 +558,19 @@ def _analog_line(view: Mapping[str, Any], res: Mapping[str, Any], h: str, lang: 
     block = view.get("decision") or {}
     card = (block.get("analogues") or {}).get(h)
     return analog_line(card, lang, since_year=_since_year(block)) if card else None
+
+
+def _research_line(res: Mapping[str, Any], h: str, lang: str) -> Optional[str]:
+    """«Проверено: …» from the research record for a state that says something (research ↔ bot)."""
+    from .interpretation import COMPRESSION, FACTUAL, INTERPRETED
+    if res.get("kind") not in (INTERPRETED, FACTUAL, COMPRESSION):
+        return None
+    try:
+        from .research_link import context_line, label_contexts
+        line = context_line(label_contexts(h, res.get("key")), lang)
+    except Exception:  # noqa: BLE001 - the registry is optional context, never a failure
+        return None
+    return ("↳ " + line) if line else None
 
 
 def _window_span(window: Mapping[str, Any], hours: int, lang: str) -> str:
@@ -1190,6 +1206,9 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
         line = analog_line(analog, lang, since_year=since_year)
         if line:
             lines.append(line)
+    checked = _research_line(gate.get("interpretation") or {}, "1h", lang)
+    if checked:
+        lines.append(checked)
     return _ok("\n".join(lines), lang)
 
 

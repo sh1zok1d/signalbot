@@ -196,11 +196,25 @@ def event_lines(events: Sequence[Mapping[str, Any]], lang: str, *, with_day: boo
     return out
 
 
+def research_line(contexts: Sequence[str], lang: str) -> Optional[str]:
+    """One «Проверено: …» line from the research registry, or None (the registry is optional)."""
+    try:
+        from .research_link import context_line
+        return context_line(contexts, lang)
+    except Exception:  # noqa: BLE001 - never let the registry break a message
+        return None
+
+
 def today_lines(block: Mapping[str, Any], lang: str) -> list:
     evs = block.get("events")
     if evs is None:
         return []
-    return [t(lang, "dc_today_head")] + (event_lines(evs, lang) or [t(lang, "dc_no_events")])
+    out = [t(lang, "dc_today_head")] + (event_lines(evs, lang) or [t(lang, "dc_no_events")])
+    contexts = [f"event:{e['kind']}" for e in evs] + (["weekend"] if block.get("weekend") else [])
+    line = research_line(contexts, lang)
+    if line:
+        out.append(line)
+    return out
 
 
 def analog_line(card: Optional[Mapping[str, Any]], lang: str, *, since_year: Optional[int] = None) -> Optional[str]:
@@ -370,6 +384,9 @@ def format_risk(block: Mapping[str, Any], model: Optional[Mapping[str, Any]], la
         lines.append(t(lang, "rk_typical", h1=_pct(hz["1h"]["typical_move_pct"], lang),
                        h4=_pct(hz["4h"]["typical_move_pct"], lang), h24=_pct(hz["24h"]["typical_move_pct"], lang)))
     lines.append(t(lang, "rk_note"))
+    checked = research_line(["corridor"], lang)
+    if checked:
+        lines.append(checked)
     if stop_pct is None:
         lines.append(t(lang, "rk_usage"))
     return assert_descriptive("\n".join(lines), lang)
@@ -493,4 +510,10 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         lines.append(t(lang, "pa_price_footer"))
     else:
         raise ValueError(f"unknown alert kind {kind!r}")
+    contexts = {"level": [f"level:{payload.get('level_kind')}", "level"],
+                "event": [f"event:{payload.get('event_kind')}", "event"],
+                "move": ["move"]}.get(kind, [])
+    checked = research_line(contexts, lang)
+    if checked:
+        lines.append(checked)
     return assert_descriptive("\n".join(lines), lang)

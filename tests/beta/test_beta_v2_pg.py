@@ -125,7 +125,11 @@ def test_history_sync_verifies_resumes_and_falls_back_to_daily_objects():
         assert "daily/klines/BTCUSDT/5m/BTCUSDT-5m-2026-10-02.zip" not in ledger      # never recorded as OK
         assert ledger["daily/metrics/BTCUSDT/BTCUSDT-metrics-2026-10-02.zip"] == "MISSING"
         n = (await _rows(pool, "SELECT count(*) AS n FROM beta_hist_bars_5m"))[0]["n"]
-        assert n == 31 * 288 + 288 + 288
+        protected = 9 * 288 + (17 * 60 + 20) // 5        # E1-RUN-001 holdout 2026-08-16 → 08-25 17:20, never stored
+        assert n == 31 * 288 + 288 + 288 - protected
+        inside = await _rows(pool, "SELECT count(*) AS n FROM beta_hist_bars_5m WHERE open_time >= $1 AND open_time < $2",
+                             datetime(2026, 8, 16, tzinfo=UTC), datetime(2026, 8, 25, 17, 20, tzinfo=UTC))
+        assert inside == [{"n": 0}]
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_hist_oi_5m"))[0]["n"] == 288
         calls.clear()
         again = await sync_history(store, now=now, fetch=fetch, klines_start=date(2026, 8, 1),

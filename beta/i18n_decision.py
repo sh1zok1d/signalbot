@@ -194,6 +194,20 @@ DECISION_CATALOG: dict = {
     "pa_price_title": _pair("<b>BTC дошёл до вашего уровня {level}</b>", "<b>BTC reached your level {level}</b>"),
     "pa_price_now": _pair("{clock} · цена {price} (Binance)", "{clock} · price {price} (Binance)"),
     "pa_price_footer": _pair("Ваши уровни: /alert", "Your alerts: /alert"),
+    # ---- research ↔ bot (config/beta_research_findings.yaml) ----
+    "rs_line": _pair("Проверено: {text} ({id})", "Tested: {text} ({id})"),
+    "rs_title": _pair("<b>Что проверили исследования</b> (история, не прогноз)",
+                      "<b>What the research tested</b> (history, not a forecast)"),
+    "rs_group_confirmed": _pair("<b>Подтвердилось</b>", "<b>Held up</b>"),
+    "rs_group_not_confirmed": _pair("<b>Не подтвердилось</b>", "<b>Did not hold</b>"),
+    "rs_group_side_finding": _pair("<b>Побочные находки</b> (проверяли другое — нашли это)",
+                                   "<b>Side findings</b> (tested something else, found this)"),
+    "rs_group_underpowered": _pair("<b>Данных не хватило для вывода</b>", "<b>Not enough data for a verdict</b>"),
+    "rs_item": _pair("• {text} — {data} ({id})", "• {text} — {data} ({id})"),
+    "rs_footer": _pair("Каждая строка — закрытая проверка с записью в репозитории; в сообщениях бота такие строки "
+                       "начинаются с «Проверено:».",
+                       "Each line is a closed test with its record in the repository; in the bot's messages "
+                       "such lines start with \"Tested:\"."),
     "n_cases": _pair("{n} {word}", "{n} {word}"),
     "since_year": _pair("с {year}", "since {year}"),
 }
@@ -211,6 +225,7 @@ DECISION_HELP = {
         "/alert 65000 — сообщить, когда цена дойдёт (/alert — список)\n"
         "/events — события: CPI, ФРС, экспирации\n"
         "/accuracy — насколько точен коридор\n"
+        "/research — что проверили исследования: что подтвердилось, что нет\n"
         "/brief on|off — утренняя сводка в 08:00 (Киев)\n"
         "/push — какие сообщения присылать\n"
         "/history — недавние эпизоды детектора\n"
@@ -229,6 +244,7 @@ DECISION_HELP = {
         "/alert 65000 — message me when the price gets there (/alert — list)\n"
         "/events — CPI, Fed, options expiries\n"
         "/accuracy — how accurate the corridor is\n"
+        "/research — what the research tested: what held up, what did not\n"
         "/brief on|off — morning briefing at 08:00 Kyiv\n"
         "/push — which messages to receive\n"
         "/history — recent detector episodes\n"

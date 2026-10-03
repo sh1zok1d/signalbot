@@ -129,7 +129,9 @@ def test_brief_off_by_config_or_push_switch_and_never_late():
         await _detect(pool, ScenarioReader(quiet), B0)
         await _users(pool)
         s = FakeSender()
-        assert (await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s,
+        brief_off = CFG.with_overrides(briefing={**dict(CFG.section("briefing")), "enabled": False})
+        assert CFG.section("briefing")["enabled"] is True          # committed on since PRODUCT_DECISION_V2
+        assert (await run_notify_once(BetaStore(pool), brief_off, ON_PUSH, sender=s,
                                       clock=Clock(SLOT + timedelta(minutes=1))))["briefs"]["scheduled"] == 0
         assert (await run_notify_once(BetaStore(pool), BRIEF_ON, ON, sender=s,
                                       clock=Clock(SLOT + timedelta(minutes=1))))["briefs"]["scheduled"] == 0

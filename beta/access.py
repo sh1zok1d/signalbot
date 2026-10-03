@@ -21,7 +21,7 @@ ACTIVITY_ACTIONS = (
     "cmd_feedback", "tab_event", "tab_1h", "tab_24h", "btn_details", "btn_useful", "btn_noise",
     "lang_set", "push_delivered", "cmd_catchup", "cmd_brief", "brief_delivered", "cmd_push",
     "cmd_levels", "cmd_risk", "cmd_alert", "cmd_events", "cmd_accuracy", "alert_delivered",
-    "btn_levels", "btn_risk",
+    "btn_levels", "btn_risk", "cmd_research",
 )
 
 

@@ -343,7 +343,8 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         assert str(uid) not in caplog.text
         await h.handle(_msg(uid, "/feedback noted", 37))
         await h.handle(_cb(uid, "L:risk", 38))
-        await h.handle(_msg(uid, "/stop", 39))
+        await h.handle(_msg(uid, "/research", 39))
+        await h.handle(_msg(uid, "/stop", 40))
         actions = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         # btn_details stays a valid historical action, but the episode Details are retired
         # (they exposed internals) and record nothing new.

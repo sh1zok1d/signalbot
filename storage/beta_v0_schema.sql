@@ -494,7 +494,7 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
     'lang_set', 'push_delivered', 'cmd_catchup', 'cmd_brief', 'brief_delivered', 'cmd_push',
     'cmd_levels', 'cmd_risk', 'cmd_alert', 'cmd_events', 'cmd_accuracy', 'alert_delivered',
-    'btn_levels', 'btn_risk'));
+    'btn_levels', 'btn_risk', 'cmd_research'));
 
 -- Free-text /feedback. user_pk only; /delete_me cascades. Not the Useful/Noise votes.
 CREATE TABLE IF NOT EXISTS beta_feedback_messages (
