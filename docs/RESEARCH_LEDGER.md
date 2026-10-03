@@ -7618,3 +7618,30 @@ E1_INTERVAL_TOUCHED = false
 SEED_CREATED = false
 NEXT_UNIT = OWNER_DECISION_AFTER_SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0
 ```
+
+## Divergence / selling-exhaustion line — final owner routing decision — 2026-10-03
+
+The owner accepted `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON` and closed the divergence / selling-exhaustion line as an active research route.
+- **Status of the observations.** They are not declared false. They stay available as descriptive context.
+- **Routing** returns to `PRODUCT_FIRST_DECISION_V1`.
+- **Consumed by this record:** nothing. No research unit ran and no market outcome was computed.
+- **Unchanged:** every result file, frozen design and earlier ledger entry.
+
+**Chronology (UTC).**
+- The six-symbol surface was opened by the full-history validation run at 20:06 on 2026-10-02 (`fca3ab5`).
+- `PRODUCT_FIRST_DECISION_V1` reached `main` at 21:22 (`8973d1d`).
+- `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0` was authorized at 22:22 (`b701864`) and completed by 22:39 (`62653a3`), on the research branch before it contained the product-first records. The lines met in the merge `c896fa2`.
+
+```
+REGULAR_BULLISH_DIVERGENCE_PROGRAM = COMPLETED
+SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON
+NEW_DIVERGENCE_RESEARCH_UNIT_AUTHORIZED = false
+NEW_SELLING_EXHAUSTION_RESEARCH_UNIT_AUTHORIZED = false
+RSI_GRADIENT_SUPPORT_CANDIDATE = ARCHIVED_CANDIDATE / NOT_AUTHORIZED (exploratory; found on exposed data; not independently validated)
+PROSPECTIVE_DIVERGENCE_STREAM_ACTIVE = false
+SEED_CREATED = false
+DIVERGENCE_SUPPORT_2025_2026_SURFACE_OPENED = true (BTC/ETH/SOL/BNB/DOGE/XRP USD-M; 2025-01-01..2026-08-15 exclusive)
+E1_RUN_001_OPENED = false (holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) never requested)
+NEXT_UNIT = none (research); product build-to-test per PRODUCT_FIRST_DECISION_V1.md §3
+NEW_RESEARCH_PROGRAMS_AUTHORIZED = false
+```

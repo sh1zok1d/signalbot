@@ -33,9 +33,13 @@ A narrow descriptive private beta is authorized by `docs/PRIVATE_BETA_V0_RESTART
 - MARKET-05: `MARKET_05_NO_EVIDENCE`.
 - MARKET-06: `MARKET_06_NO_EVIDENCE`; exact one-shot RESULT sealed at `80c7d19f622cc7b5576154de59dbb9cdf85d4dcf`; rerun forbidden.
 - Internal historical candidates promoted: `0`.
+- Regular bullish divergence / selling-exhaustion program: `COMPLETED`, closed as an active research route on 2026-10-03.
+  - **Results:** about +1–3 pp inside support, with +15 pp ruled out by validation. `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON`.
+  - **Not authorized:** any further unit or SEED. `RSI_GRADIENT_SUPPORT_CANDIDATE` is archived. See `CURRENT_RESEARCH_STATE.md`.
 - Protected 2025/2026 OOS: not globally unopened.
   - **Opened (2026-10-02).** The six-symbol USD-M divergence/support surface 2025-01-01..2026-08-15 (exclusive): BTC, ETH, SOL, BNB, DOGE and XRP 1m klines, bookDepth and OI metrics. It is no longer pristine OOS for divergence/support/mechanism hypotheses, and it stays usable as exposed data for estimation and feasibility.
   - **Still protected:** the E1-RUN-001 holdout and everything at or after 2026-08-15.
+  - **Fields:** `DIVERGENCE_SUPPORT_2025_2026_SURFACE_OPENED = true`; `E1_RUN_001_OPENED = false` (holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)`).
   - **Unrelated families:** this does not declare all of 2025/2026 spent for them; their use is an owner decision. See `docs/research/DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3.md`.
 
 The exact M05/M06 additive 24h adverse-path MAE cell is `REPEATED_NULL / LOW_PRIORITY_FOR_NOW`. The broader short-horizon BTC conditional scalar-prediction family is `LOW_PRIORITY / SATURATED_FOR_NOW` as a program search-priority conclusion only.

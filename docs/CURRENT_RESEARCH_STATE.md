@@ -1,3 +1,71 @@
+## Final owner routing decision — divergence / selling-exhaustion line closed; product-first controls routing — 2026-10-03
+
+`REGULAR_BULLISH_DIVERGENCE_PROGRAM = COMPLETED`
+`SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 = INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON`
+`NEW_DIVERGENCE_RESEARCH_UNIT_AUTHORIZED = false`
+`NEW_SELLING_EXHAUSTION_RESEARCH_UNIT_AUTHORIZED = false`
+`RSI_GRADIENT_SUPPORT_CANDIDATE = ARCHIVED_CANDIDATE / NOT_AUTHORIZED`
+`PROSPECTIVE_DIVERGENCE_STREAM_ACTIVE = false`
+`SEED_CREATED = false`
+`OPERATING_MODE = PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`
+`CANONICAL_PRODUCT_DECISION = docs/PRODUCT_FIRST_DECISION_V1.md`
+`NEXT_UNIT = none (research); product build-to-test per PRODUCT_FIRST_DECISION_V1.md §3`
+`NEW_RESEARCH_PROGRAMS_AUTHORIZED = false`
+`DIVERGENCE_SUPPORT_2025_2026_SURFACE_OPENED = true`
+`E1_RUN_001_OPENED = false`
+
+**Supersedes:**
+- `NEXT_UNIT = OWNER_DECISION_AFTER_SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0` and `RESEARCH_NEXT_UNIT = OWNER_DECISION_AFTER_...` in the sections below. The owner decision has been made.
+- The coarse `PROTECTED_2025_2026_OPENED = false` flag of the product-first section below, as a description of current state. The earlier per-unit `PROTECTED_2025_2026_OPENED = false` lines stay true for their own units and are not rewritten.
+
+**Owner decision.** The owner accepted `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0` as `INFORMATIONALLY_WEAK / NOT_TESTABLE_WITHIN_REALISTIC_HORIZON` and closed the divergence / selling-exhaustion line as an active research route. This does not mean the observations are false or useless:
+- the tested effects are too small to confirm prospectively within a realistic horizon;
+- no further SEED or research unit is authorized from this line;
+- the results stay available as descriptive product and research context;
+- routing returns to `PRODUCT_FIRST_DECISION_V1`.
+
+**2025/2026 surface status (precise; not a global boolean).**
+- **Opened:** `DIVERGENCE_SUPPORT_2025_2026_SURFACE_OPENED = true`.
+  - Symbols: BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, DOGEUSDT and XRPUSDT, Binance USD-M.
+  - Data: 1m klines, bookDepth and OI metrics.
+  - Span: 2025-01-01 up to the exclusive read horizon 2026-08-15T00:00Z, with decisions to 2026-08-11.
+  - Opened by the `DIVERGENCE_FULL_HISTORY_RESEARCH_V0` validation run (`fca3ab5`), after its freeze (`c122040`).
+- **What the opening means.**
+  - The surface is no longer pristine OOS for divergence, support or exhaustion hypotheses generated from this program.
+  - It is usable as previously exposed historical data.
+  - It is not automatically spent for unrelated research families; that is decided per family.
+- **E1:** `E1_RUN_001_OPENED = false`. The E1-RUN-001 final holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)` stays protected, and no byte at or after 2026-08-15T00:00Z was requested or read. The divergence work did not open E1.
+- **Other surfaces.** This program opened no other 2025/2026 surface.
+
+**Chronology (UTC commit times; nothing here is retroactive).**
+1. **19:36–20:26 on 2026-10-02.** The owner-authorized divergence research had already progressed (`DIVERGENCE_PROGRAM_OWNER_DECISIONS_V1`/`V2`).
+   - `DIVERGENCE_FULL_HISTORY_RESEARCH_V0` was frozen at 19:36 (`c122040`).
+   - It opened the six-symbol surface in its one validation run, committed at 20:06 (`fca3ab5`).
+   - Stage 2 was committed at 20:26 (`b100619`).
+2. **21:22.** `PRODUCT_FIRST_DECISION_V1` reached `main` (PR #312, merge `8973d1d`). It became the canonical routing, with no new research programs or one-shot confirmation units.
+3. **22:22–22:39.** On this research branch, which did not yet contain the product-first records, the owner's `DIVERGENCE_PROGRAM_OWNER_DECISIONS_V3` (`b701864`) authorized the feasibility-only `SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0`. It was frozen (`a4b76fd`) and completed (`62653a3`). The two lines first met in the merge `c896fa2` at 22:42.
+4. **2026-10-03.** After that completion no further divergence or exhaustion research is authorized.
+5. **Forward policy.** `PRODUCT_FIRST_DECISION_V1` is the controlling forward policy.
+
+What this chronology does not say:
+- `PRODUCT_FIRST_DECISION_V1` did not authorize the divergence work, retroactively or otherwise.
+- The divergence research happened.
+- The six-symbol surface is opened.
+
+**Scientific conclusions preserved (no result file changed; no exploratory result upgraded into evidence).**
+- **Divergence inside support.** Regular bullish divergence inside support showed only a small effect, about +1–3 pp. The independent validation slice ruled out the pre-specified +15 pp effect.
+- **Binary exhaustion state.** The binary selling-exhaustion candidate, at about 4–5 pp, is not realistically testable prospectively with current information rates.
+- **Continuous score.** It does not justify a new unit: its efficiency advantage depends on an unverified graded-effect assumption.
+- **No trading claim.** No economically meaningful trading claim was established.
+- **`RSI_GRADIENT_SUPPORT_CANDIDATE`.** Kept only as an archived exploratory observation. It was discovered on exposed data and was not independently validated. It is not authorized for feasibility or execution under the product-first policy.
+
+**Not done:**
+- no new research was started;
+- `RSI_GRADIENT_SUPPORT_CANDIDATE` was not evaluated;
+- no SEED was created and no prospective stream was activated;
+- no market outcome was computed;
+- PR #303 is not merged.
+
 ## Merge reconciliation — product-first decision and divergence program decisions — 2026-10-02
 
 Two owner decision lines dated 2026-10-02 met when `main` was merged into the divergence research branch (PR #303). Both records are kept unchanged below.

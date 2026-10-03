@@ -41,6 +41,11 @@ rather than proliferate RV_ABSTENTION.
 - **E1-RUN-001** stays protected and unopened: the holdout `[2026-08-16, 2026-08-25 17:20)`, and nothing at or after 2026-08-15 is read.
 - **Everything else is unopened.** Other 2025/2026 venues, symbols and observables remain so, and all of 2025/2026 is not declared spent for unrelated families; that is decided per family.
 
+**Divergence / selling-exhaustion line (2026-10-03).** `COMPLETED` and closed as an active research route.
+- Do not start another divergence or exhaustion unit, SEED or prospective stream.
+- Do not evaluate the archived `RSI_GRADIENT_SUPPORT_CANDIDATE`.
+- Routing follows `PRODUCT_FIRST_DECISION_V1`.
+
 `FORWARD_MARKET_OBSERVABILITY_V1` collector implementation remains frozen; authoritative collection has not been started by this cleanup. B2-06 remains blocked on the missing/legally-timestamped observable problem.
 
 There is still no claim of a durable trading edge.
