@@ -3,6 +3,7 @@ import copy
 from pathlib import Path
 
 import pytest
+from datetime import timedelta
 import yaml
 
 from beta.config import (BetaConfig, BetaConfigError, BetaSecrets, EVENT_TYPES,
@@ -27,7 +28,8 @@ def test_committed_config_loads_with_contract_minimum_keys():
     assert (c.symbol, c.market_type, c.timeframe) == ("BTCUSDT", "perp", "5m")
     assert c.exchanges == ("binance", "bybit", "okx")
     assert (c["max_state_age_s"], c["same_event_cooldown_min"], c["delivery_ttl_s"],
-            c["max_new_pushes_per_utc_day"]) == (420, 20, 600, 3)
+            c["max_new_pushes_per_utc_day"]) == (420, 20, 600, 2)
+    assert c.quiet_hours_kyiv == ("23:00", "07:00") and c.global_cooldown == timedelta(minutes=60)
     assert c.horizons == ("15m", "30m", "1h", "4h", "24h")
 
 

@@ -130,7 +130,7 @@ def test_command_allowlist_is_derived_from_the_real_handler():
     assert {"start", "btc", "history", "terms", "help", "feedback", "stop", "lang", "delete_me"} <= real
     assert set(SIM_COMMANDS) <= real and "lang" not in SIM_COMMANDS and "delete_me" not in SIM_COMMANDS
     with pytest.raises(ValueError):
-        RoleAUser(FakeUserModel(), allowed_commands=("btc", "catchup"))
+        RoleAUser(FakeUserModel(), allowed_commands=("btc", "analogues"))
 
 
 def test_rejected_and_fabricated_actions_never_reach_the_handler():
@@ -147,7 +147,7 @@ def test_accepted_click_runs_the_real_handler_with_the_hidden_callback():
         for m in t["new_messages"]:
             if m["text"].startswith("BTCUSDT perp"):
                 return {"action": "CLICK_BUTTON", "message_id": m["message_id"],
-                        "button_id": m["buttons"][2]["button_id"]}            # Noise vote
+                        "button_id": m["buttons"][1]["button_id"]}            # Noise vote (Useful, Noise)
         return {"action": "NO_ACTION"}
     e, r = run(ScriptedUser(decide))
     clicks = [t for t in r["transcript"] if t["event"] == "ROLE_A_TURN" and t["action"] == "CLICK_BUTTON"]
