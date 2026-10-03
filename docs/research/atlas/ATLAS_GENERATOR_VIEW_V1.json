@@ -327,7 +327,7 @@
      "mechanism": "As H-DIV-1 (interaction of divergence with support)."
     },
     {
-     "function": "Divergence full-history research V0: validation once on (omitted), then pooled + exploratory mechanism",
+     "function": "Divergence inside support versus a broader weakening-of-selling-pressure (flow/OI) state, six-symbol panel",
      "id": "DIVERGENCE-FULL-HISTORY-V0",
      "mechanism": "Conditional value of regular bullish divergence inside support; versus a broader weakening-of-selling-pressure (flow/OI) state."
     },
@@ -337,7 +337,7 @@
      "mechanism": "A graded momentum change between the two pivots may carry reversal information that the binary divergence flag does not (atlas wording, outcome-neutral)."
     },
     {
-     "function": "SEED-0001 regular bullish divergence with order-book support, 1h BTCUSDT perp — retrospective card (outcome-blind feasibility, then owner-authorized exploratory outcome analysis)",
+     "function": "SEED-0001 regular bullish divergence with order-book support, 1h BTCUSDT perp",
      "id": "SEED-0001",
      "mechanism": "Owner's discretionary rule: after a pronounced decline, aggressive selling stops pushing price efficiently, resting bid liquidity appears (\"green bars\", bid support within 5%), and momentum/flow indicators diverge from the price low; the claim is the combination: the joint state should be followed by a better reversal distribution than support alone or divergence alone (A beating D alone is ordinary mean reversion and is not evidence)."
     },
@@ -1413,7 +1413,7 @@
     {
      "function": "Divergence research map V0 and first hypothesis H-DIV-1 (divergence as seller-exhaustion marker inside support)",
      "id": "H-DIV-1",
-     "mechanism": "Regular bullish divergence is close to useless on its own; its value appears when it marks seller exhaustion inside an already (omitted) support state. Deeper framing: price down + downside momentum weakening + selling pressure weakening + support persisting -> higher chance of a local reversal; a classic MACD/RSI divergence may be only one visual symptom."
+     "mechanism": "Divergence as a seller-exhaustion marker inside an existing support state: price down, downside momentum and selling pressure weakening, support persisting."
     }
    ],
    "row": "FLOW.exhaustion"
@@ -4614,7 +4614,7 @@
      "mechanism": "Composed decision mechanism (exploratory R-F)"
     },
     {
-     "function": "E1-RUN-001 — frozen V2 Stage-5 detector separation (holdout protected, unopened)",
+     "function": "E1-RUN-001 V2 Stage-5 detector separation",
      "id": "E1-RUN-001",
      "mechanism": "Whether frozen V2 Stage-5 setup qualification (TREND_PULLBACK, COMPRESSION_BREAKOUT, (omitted), with 4h regime and 1h bias) separates future BTCUSDT perp behaviour from simple/matched controls before Stage-6 lifecycle."
     }
@@ -4711,7 +4711,7 @@
    "prior_signature_count": 1,
    "prior_signatures": [
     {
-     "function": "V3 Microscope synthetic confirmatory calibration (closed, immutable)",
+     "function": "V3 Microscope synthetic confirmatory calibration",
      "id": "V3-MICROSCOPE",
      "mechanism": "None (not a market hypothesis). Methodology calibration of the confirmatory validator on a frozen synthetic DGP."
     }
@@ -7465,9 +7465,10 @@
   "DATA_REQUIRED": "No usable data surface yet. A card here must name the data it needs and how it would be obtained.",
   "OPEN": "Unexplored. Generate here first, highest frontier_value first.",
   "PRIOR_WORK": "Prior signatures exist. A new card must be an orthogonal mechanism, use a data surface the prior signatures did not use, or resolve a named blocker; never a parameter neighbour or relabel.",
+  "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "765be4424045e54a02b2fb5cd3e6dd189fe3cc0ac1fb10d46d8179e9345af002",
+ "SOURCES_DIGEST": "98416896e99736e9373f5a8b4c61e9b491ff250eb0cf571d4e25b9e5156284d8",
  "SURFACES": [
   {
    "also_cols": [
@@ -7476,7 +7477,13 @@
    "availability": "PINNED",
    "col": "CANDLES",
    "coverage": "legal 2020-01..2024-12 (bytes to 2026-08-25; the E1 holdout is never read)",
-   "id": "CORE_BTC_BINANCE_V0"
+   "id": "CORE_BTC_BINANCE_V0",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [
@@ -7485,7 +7492,13 @@
    "availability": "PINNED",
    "col": "CANDLES",
    "coverage": "2020-01 -> yesterday, E1 holdout objects never requested",
-   "id": "BINANCE_UM_KLINES_5M_PRODUCT"
+   "id": "BINANCE_UM_KLINES_5M_PRODUCT",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [],
@@ -7515,7 +7528,13 @@
    "availability": "ACQUIRABLE",
    "col": "PERP_FLOW",
    "coverage": "official archive from 2020 (not materialized)",
-   "id": "BINANCE_UM_TRADES_AGGTRADES_ARCHIVE"
+   "id": "BINANCE_UM_TRADES_AGGTRADES_ARCHIVE",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [],
@@ -7529,7 +7548,13 @@
    "availability": "PINNED",
    "col": "POSITIONING",
    "coverage": "2020-09-01 -> yesterday, E1 holdout objects never requested",
-   "id": "BINANCE_UM_OI_METRICS_PRODUCT"
+   "id": "BINANCE_UM_OI_METRICS_PRODUCT",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [],
@@ -7543,7 +7568,13 @@
    "availability": "ACQUIRABLE",
    "col": "POSITIONING",
    "coverage": "archive from 2020 (not materialized)",
-   "id": "BINANCE_UM_PREMIUM_MARK_INDEX_KLINES"
+   "id": "BINANCE_UM_PREMIUM_MARK_INDEX_KLINES",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [],
@@ -7559,14 +7590,26 @@
    "availability": "FORWARD_ONLY",
    "col": "POSITIONING",
    "coverage": "live since 2026-07-17 (OKX OI live only)",
-   "id": "STAGE1_LIVE_OI_FUNDING"
+   "id": "STAGE1_LIVE_OI_FUNDING",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [],
    "availability": "FORWARD_ONLY",
    "col": "LIQUIDATIONS",
    "coverage": "live since 2026-07-17, never backfilled",
-   "id": "STAGE1_LIVE_LIQUIDATIONS"
+   "id": "STAGE1_LIVE_LIQUIDATIONS",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [
@@ -7582,7 +7625,13 @@
    "availability": "ACQUIRABLE",
    "col": "ORDER_BOOK",
    "coverage": "from 2023-01-01 (absent before)",
-   "id": "BINANCE_UM_BOOKDEPTH_ARCHIVE"
+   "id": "BINANCE_UM_BOOKDEPTH_ARCHIVE",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [],
@@ -7607,7 +7656,13 @@
    "availability": "ACQUIRABLE",
    "col": "CROSS_VENUE",
    "coverage": "see data",
-   "id": "OKX_OFFICIAL_ARCHIVES"
+   "id": "OKX_OFFICIAL_ARCHIVES",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [],
@@ -7637,7 +7692,13 @@
    "availability": "ACQUIRABLE",
    "col": "SPOT",
    "coverage": "public archive from 2017 (not pinned at 1m)",
-   "id": "BINANCE_SPOT_KLINES_ARCHIVE"
+   "id": "BINANCE_SPOT_KLINES_ARCHIVE",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [
@@ -7656,7 +7717,13 @@
    "availability": "ACQUIRABLE",
    "col": "CROSS_VENUE",
    "coverage": "klines verified from 2020-04",
-   "id": "BYBIT_BTCUSDT_PUBLIC_HISTORY"
+   "id": "BYBIT_BTCUSDT_PUBLIC_HISTORY",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [
@@ -7666,7 +7733,13 @@
    "availability": "FORWARD_ONLY",
    "col": "CROSS_VENUE",
    "coverage": "live since 2026-06/07",
-   "id": "STAGE1_LIVE_KLINES_3VENUE"
+   "id": "STAGE1_LIVE_KLINES_3VENUE",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [
@@ -7725,14 +7798,26 @@
    "availability": "ACQUIRABLE",
    "col": "OPTIONS",
    "coverage": "free API history from 2021-03",
-   "id": "DERIBIT_DVOL_API"
+   "id": "DERIBIT_DVOL_API",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [],
    "availability": "ACQUIRABLE",
    "col": "OPTIONS",
    "coverage": "from 2023-06-20",
-   "id": "BINANCE_OPTIONS_BVOL"
+   "id": "BINANCE_OPTIONS_BVOL",
+   "unavailable_periods": [
+    {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    }
+   ]
   },
   {
    "also_cols": [],

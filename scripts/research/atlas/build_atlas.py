@@ -15,6 +15,11 @@ Derived (never edit by hand):
     SIGNALBOT_RESEARCH_ATLAS_V1.json   full governance view (verdicts, numbers, why closed, reopen)
     ATLAS_GENERATOR_VIEW_V1.json       outcome-blind view for hypothesis generators
     ATLAS_MATRIX_V1.md                 human-readable matrix, frontier and cell details
+Append-only:
+    ATLAS_EVENTS_V1.jsonl              hash-chained change events; every change of the sources appends one
+
+    python -m scripts.research.atlas.build_atlas --append-event --change-type GOVERNANCE_RECORD \
+        --reason "..." --record docs/research/SOME_RECORD.md
 """
 from __future__ import annotations
 
@@ -24,6 +29,7 @@ import json
 import re
 import sys
 from collections import Counter, defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -36,6 +42,7 @@ UNITS = ATLAS_DIR / "ATLAS_UNITS_V1.yaml"
 OUT_FULL = ATLAS_DIR / "SIGNALBOT_RESEARCH_ATLAS_V1.json"
 OUT_GENERATOR = ATLAS_DIR / "ATLAS_GENERATOR_VIEW_V1.json"
 OUT_MATRIX = ATLAS_DIR / "ATLAS_MATRIX_V1.md"
+EVENTS = ATLAS_DIR / "ATLAS_EVENTS_V1.jsonl"
 MEMORY = ROOT / "docs" / "research" / "MECHANISM_MEMORY_V0.json"
 GOVERNANCE = ROOT / "docs" / "research" / "GOVERNANCE_REGION_AUTHORITY_V0.json"
 BLIND = ROOT / "docs" / "research" / "BLIND_MECHANISM_MAP_V0.json"
@@ -45,15 +52,23 @@ DESIGN = ROOT / "docs" / "research" / "HYPOTHESIS_GENERATOR_V0_DESIGN.json"
 VERSION = "SIGNALBOT_RESEARCH_ATLAS_V1"
 TESTED_STATES = ("CONFIRMED", "LIVE_SIGNAL", "NO_STRUCTURE", "CLOSED_ON_SURFACE")
 NEEDS_REOPEN = TESTED_STATES + ("INFORMATIONALLY_WEAK", "FUTURE_NATURAL_ACCUMULATION", "BLOCKED_METHOD",
-                                "BLOCKED_DATA", "EXPOSED_ONLY", "CANDIDATE_UNTESTED")
+                                "BLOCKED_DATA", "BLOCKED_GOVERNANCE", "EXPOSED_ONLY", "CANDIDATE_UNTESTED",
+                                "CLOSED_BEFORE_START")
 NON_MEMORY_REQUIRED = ("title", "program", "mechanism", "function", "verdict", "records")
 # what the generator view may say about a cell (outcome-neutral)
 GEN_OPEN, GEN_PRIOR, GEN_DATA, GEN_WEAK = "OPEN", "PRIOR_WORK", "DATA_REQUIRED", "UNDERPOWERED_NOW"
-PRIOR_STATES = ("CONFIRMED", "LIVE_SIGNAL", "NO_STRUCTURE", "CLOSED_ON_SURFACE", "EXPOSED_ONLY", "CANDIDATE_UNTESTED", "BLOCKED_METHOD")
+PRIOR_STATES = ("CONFIRMED", "LIVE_SIGNAL", "NO_STRUCTURE", "CLOSED_ON_SURFACE", "EXPOSED_ONLY", "CANDIDATE_UNTESTED",
+                "BLOCKED_METHOD", "BLOCKED_GOVERNANCE", "CLOSED_BEFORE_START")
 ABBR = {"OPEN_FRONTIER": "·", "CANDIDATE_UNTESTED": "CU", "BLOCKED_METHOD": "BM", "BLOCKED_DATA": "BD",
         "INFORMATIONALLY_WEAK": "IW", "FUTURE_NATURAL_ACCUMULATION": "FA", "EXPOSED_ONLY": "EX",
+        "BLOCKED_GOVERNANCE": "BG", "CLOSED_BEFORE_START": "CB",
         "CONFIRMED": "CF", "LIVE_SIGNAL": "LS", "NO_STRUCTURE": "NS", "CLOSED_ON_SURFACE": "CS"}
 LENS = "LENS"  # datasets that only define when something happens (calendars, synthetic DGPs); never a data column
+RECONCILIATION_KINDS = ("POST_MEMORY_RECORD", "ATLAS_CLASSIFICATION")
+RESERVATION_STATUSES = ("RESERVED", "RELEASED", "CONSUMED")
+EVENT_TYPES = ("INITIAL_TRANSFER", "GOVERNANCE_RECORD", "UNIT_ADDED", "UNIT_STATE_CHANGE", "UNIT_TEXT_CHANGE",
+               "TAXONOMY_CHANGE", "SURFACE_CHANGE", "RESERVATION_CHANGE", "RECONCILIATION")
+BLIND_ONLY_FIELDS = ("blind_mechanism", "blind_function")
 GEN_FORBIDDEN_KEYS = ("verdict", "key_numbers", "why_closed", "state", "states", "note", "practical_bar")
 
 
@@ -117,6 +132,9 @@ def validate(tax, surf, units_doc, memory, findings) -> list:
     for c in cols:
         if c not in (surf.get("columns") or {}):
             problems.append(f"surfaces: column {c} has no confirmation_path entry")
+    unit_ids = {u["id"] for u in units_doc["units"]}
+    reservations = {r["id"]: r for r in surf.get("reservations") or ()}
+    problems += _validate_reservations(surf, ds, unit_ids)
     seen = Counter(u["id"] for u in units_doc["units"])
     problems += [f"duplicate unit id {k}" for k, n in seen.items() if n > 1]
     for u in units_doc["units"]:
@@ -149,13 +167,107 @@ def validate(tax, surf, units_doc, memory, findings) -> list:
                 problems.append(f"{uid}: missing forbidden")
         if u.get("state") == "FUTURE_NATURAL_ACCUMULATION" and not u.get("revisit"):
             problems.append(f"{uid}: FUTURE_NATURAL_ACCUMULATION needs revisit")
+        if u.get("state") == "BLOCKED_GOVERNANCE":
+            if not u.get("blocker"):
+                problems.append(f"{uid}: BLOCKED_GOVERNANCE needs blocker")
+            if u.get("blocker") == "HOLDOUT_OVERLAP" and u.get("reservation") not in reservations:
+                problems.append(f"{uid}: HOLDOUT_OVERLAP must name a reservation")
+        if u.get("state") == "CLOSED_BEFORE_START" and not u.get("why_closed"):
+            problems.append(f"{uid}: CLOSED_BEFORE_START needs why_closed")
+        if u.get("memory") and any(u.get(k) for k in BLIND_ONLY_FIELDS):
+            problems.append(f"{uid}: memory units take their blind texts from BLIND_MECHANISM_MAP_V0")
         for rec in u.get("records") or ():
             if not (ROOT / rec.split("#")[0]).exists():
                 problems.append(f"{uid}: record {rec} not found")
     covered = {u["id"] for u in units_doc["units"] if u.get("memory")}
     problems += [f"memory entry {k} has no atlas unit" for k in memory if k not in covered]
+    problems += _validate_reconciliation(units_doc, memory)
     ids = {u["id"] for u in units_doc["units"]} | {a for u in units_doc["units"] for a in (u.get("aliases") or ())}
     problems += [f"findings registry id {f} has no atlas unit or alias" for f in findings if f not in ids]
+    return problems
+
+
+def _validate_reservations(surf, ds, unit_ids) -> list:
+    problems = []
+    for r in surf.get("reservations") or ():
+        rid = r.get("id")
+        for k in ("id", "status", "datasets", "period", "scope", "intended_use", "holder_units", "authority"):
+            if not r.get(k):
+                problems.append(f"reservation {rid}: missing {k}")
+        if r.get("status") not in RESERVATION_STATUSES:
+            problems.append(f"reservation {rid}: invalid status {r.get('status')}")
+        if r.get("status") == "RESERVED" and r.get("permit_required") is not True:
+            problems.append(f"reservation {rid}: a RESERVED surface needs permit_required: true")
+        if r.get("status") == "CONSUMED" and not r.get("permit"):
+            problems.append(f"reservation {rid}: CONSUMED needs the permit that consumed it")
+        if r.get("datasets") != "*":
+            for d in r.get("datasets") or ():
+                if d not in ds:
+                    problems.append(f"reservation {rid}: unknown dataset {d}")
+        period = r.get("period") or {}
+        if r.get("period") and not (period.get("start") and period.get("end_exclusive")):
+            problems.append(f"reservation {rid}: period needs start and end_exclusive")
+        for u in r.get("holder_units") or ():
+            if u not in unit_ids:
+                problems.append(f"reservation {rid}: unknown holder unit {u}")
+        for rec in list(r.get("authority") or ()) + ([r["permit"]] if r.get("permit") else []):
+            if not (ROOT / rec.split("#")[0]).exists():
+                problems.append(f"reservation {rid}: record {rec} not found")
+    return problems
+
+
+def memory_implied_state(status, rules):
+    """The atlas state the frozen memory status would map to (first matching rule)."""
+    for r in rules:
+        if re.search(r["pattern"], status or ""):
+            return r["state"]
+    return None
+
+
+def _validate_reconciliation(units_doc, memory) -> list:
+    """Every memory unit whose atlas state differs from the state its memory status implies needs an explicit,
+    current reconciliation entry; memory itself is never edited."""
+    problems = []
+    rules = units_doc.get("memory_status_map") or []
+    recs = {r["id"]: r for r in units_doc.get("memory_reconciliation") or ()}
+    for k, n in Counter(r["id"] for r in units_doc.get("memory_reconciliation") or ()).items():
+        if n > 1:
+            problems.append(f"reconciliation {k}: duplicate entry")
+    units = {u["id"]: u for u in units_doc["units"] if u.get("memory")}
+    for uid, u in units.items():
+        if uid not in memory:
+            continue
+        status = memory[uid].get("STATUS_EVIDENCE_CLASS")
+        implied = memory_implied_state(status, rules)
+        if implied is None:
+            problems.append(f"{uid}: memory status not covered by memory_status_map")
+            continue
+        r = recs.get(uid)
+        if implied == u["state"]:
+            if r:
+                problems.append(f"reconciliation {uid}: stale entry (atlas state equals the memory-implied state)")
+            continue
+        if not r:
+            problems.append(f"{uid}: atlas state {u['state']} differs from memory-implied {implied} without a reconciliation entry")
+            continue
+        if r.get("kind") not in RECONCILIATION_KINDS:
+            problems.append(f"reconciliation {uid}: invalid kind {r.get('kind')}")
+        if r.get("memory_status") != status:
+            problems.append(f"reconciliation {uid}: memory_status no longer matches the memory chain; review the entry")
+        if r.get("memory_implied_state") != implied:
+            problems.append(f"reconciliation {uid}: memory_implied_state should be {implied}")
+        if r.get("atlas_state") != u["state"]:
+            problems.append(f"reconciliation {uid}: atlas_state should be {u['state']}")
+        if not r.get("reason"):
+            problems.append(f"reconciliation {uid}: missing reason")
+        if r.get("kind") == "POST_MEMORY_RECORD" and not r.get("records"):
+            problems.append(f"reconciliation {uid}: POST_MEMORY_RECORD needs the records that changed the status")
+        for rec in r.get("records") or ():
+            if not (ROOT / rec.split("#")[0]).exists():
+                problems.append(f"reconciliation {uid}: record {rec} not found")
+    for uid in recs:
+        if uid not in units:
+            problems.append(f"reconciliation {uid}: not a memory unit")
     return problems
 
 
@@ -177,11 +289,19 @@ def _memory_texts(uid, memory, gov):
 
 def full_units(units_doc, memory, gov) -> list:
     out = []
+    rules = units_doc.get("memory_status_map") or []
+    recs = {r["id"]: r for r in units_doc.get("memory_reconciliation") or ()}
     for u in units_doc["units"]:
         rec = {}
         if u.get("memory"):
             rec.update(_memory_texts(u["id"], memory, gov))
             rec["records"] = rec["records"] + list(u.get("records") or ())
+            status = memory[u["id"]].get("STATUS_EVIDENCE_CLASS")
+            rec["memory_status"] = status
+            rec["memory_implied_state"] = memory_implied_state(status, rules)
+            rec["routing_authority"] = VERSION
+            if u["id"] in recs:
+                rec["reconciliation"] = {k: v for k, v in recs[u["id"]].items() if k != "id"}
         for k, v in u.items():
             if k == "records" and u.get("memory"):
                 continue
@@ -209,6 +329,8 @@ def readiness(row, region, col, surf, units_by_dataset_rows, only=None) -> int:
         if col not in [d["col"]] + list(d.get("also_cols") or ()):
             continue
         if only and d["id"] not in only:
+            continue
+        if d.get("_fully_reserved"):
             continue
         avail = d["availability"]
         if avail in ("NOT_AVAILABLE", "BLOCKED"):
@@ -294,12 +416,11 @@ def build(check_only=False) -> dict:
     if problems:
         raise AtlasError("atlas sources invalid:\n  " + "\n  ".join(problems))
     priorities = list(tax.get("owner_priorities") or ())
+    surf = _mark_reservations(surf)
     units = full_units(units_doc, memory, gov)
     by_id = {u["id"]: u for u in units}
     cell_list = cells(tax, surf, units, priorities)
-    sources = {"taxonomy": _load_yaml(TAXONOMY), "surfaces": surf, "units": units_doc,
-               "memory_ids": sorted(memory), "findings_ids": sorted(findings)}
-    digest = _digest(sources)
+    digest = sources_digest(_load_yaml(TAXONOMY), _load_yaml(SURFACES), units_doc, memory, findings)
     frontier = sorted((c for c in cell_list if c["state"] == "OPEN_FRONTIER" and c["frontier_eligible"]
                        and c["value"]["data_readiness"] > 0),
                       key=lambda c: (-c["value"]["total"], -c["value"]["owner_priority"],
@@ -315,6 +436,8 @@ def build(check_only=False) -> dict:
                        "units_by_state": dict(sorted(Counter(u["state"] for u in units).items())),
                        "cells_by_state": dict(sorted(Counter(c["state"] for c in cell_list).items()))},
             "STATES": tax["states"], "REOPEN_KEYS": tax["reopen_keys"], "FORBIDDEN_MOVES": tax["forbidden_moves"],
+            "MEMORY_RECONCILIATION": units_doc.get("memory_reconciliation") or [],
+            "RESERVATIONS": surf.get("reservations") or [],
             "FRONTIER_VALUE": tax["frontier_value"], "OWNER_PRIORITIES": priorities,
             "COLUMNS": tax["columns"], "REGIONS": tax["regions"], "SURFACES": surf,
             "UNITS": units, "CELLS": cell_list,
@@ -325,14 +448,41 @@ def build(check_only=False) -> dict:
     matrix = render_matrix(tax, surf, cell_list, units, by_id, frontier, data_blocked, revisits, digest)
     outputs = {OUT_FULL: _dump(full), OUT_GENERATOR: _dump(gen), OUT_MATRIX: matrix}
     stale = [p.name for p, text in outputs.items() if not p.exists() or p.read_text(encoding="utf-8") != text]
+    event_problems = verify_events(load_events(), digest, unit_index(units_doc))
     if check_only:
         if stale:
             raise AtlasError("derived atlas files are stale: " + ", ".join(stale)
                              + " (run python -m scripts.research.atlas.build_atlas)")
+        if event_problems:
+            raise AtlasError("atlas event chain:\n  " + "\n  ".join(event_problems))
     else:
         for p, text in outputs.items():
             p.write_text(text, encoding="utf-8")
-    return {"digest": digest, "units": len(units), "frontier": len(frontier), "stale": stale}
+    return {"digest": digest, "units": len(units), "frontier": len(frontier), "stale": stale,
+            "event_required": bool(event_problems)}
+
+
+def sources_digest(tax, surf, units_doc, memory, findings) -> str:
+    return _digest({"taxonomy": tax, "surfaces": surf, "units": units_doc,
+                    "memory_ids": sorted(memory), "findings_ids": sorted(findings)})
+
+
+def _mark_reservations(surf):
+    """Datasets wholly held by an active reservation are invisible to discovery; period reservations become
+    unavailable periods. Works on a copy; the digest is computed from the unmodified sources."""
+    surf = json.loads(json.dumps(surf, default=str))
+    active = [r for r in surf.get("reservations") or () if r.get("status") == "RESERVED"]
+    for d in surf["datasets"]:
+        periods = []
+        for r in active:
+            if r["datasets"] == "*" or d["id"] in r["datasets"]:
+                if r.get("period"):
+                    periods.append({"start": r["period"]["start"], "end_exclusive": r["period"]["end_exclusive"]})
+                else:
+                    d["_fully_reserved"] = True
+        if periods:
+            d["_unavailable_periods"] = periods
+    return surf
 
 
 def _dump(obj) -> str:
@@ -350,7 +500,8 @@ def generator_view(tax, surf, cell_list, by_id, blind, frontier, digest) -> dict
         # units outside the memory chain: the card's own short name stands in for the function, because the
         # record's function text carries design detail (tests, bars, horizons) that a generator must not see
         u = by_id[uid]
-        return {"id": uid, "mechanism": scrub(u["mechanism"]), "function": scrub(u.get("title") or u["function"])}
+        return {"id": uid, "mechanism": scrub(u.get("blind_mechanism") or u["mechanism"]),
+                "function": scrub(u.get("blind_function") or u.get("title") or u["function"])}
 
     cells_out = []
     for c in cell_list:
@@ -363,8 +514,15 @@ def generator_view(tax, surf, cell_list, by_id, blind, frontier, digest) -> dict
         if gs == GEN_WEAK and c["revisit"]:
             entry["revisit"] = c["revisit"]
         cells_out.append(entry)
-    surfaces = [{"id": d["id"], "col": d["col"], "also_cols": d.get("also_cols") or [], "coverage": d.get("coverage"),
-                 "availability": d["availability"]} for d in surf["datasets"]]
+    surfaces = []
+    for d in surf["datasets"]:
+        if d.get("_fully_reserved"):
+            continue  # a reserved confirmation surface is invisible to exploratory generation
+        entry = {"id": d["id"], "col": d["col"], "also_cols": d.get("also_cols") or [], "coverage": d.get("coverage"),
+                 "availability": d["availability"]}
+        if d.get("_unavailable_periods"):
+            entry["unavailable_periods"] = d["_unavailable_periods"]
+        surfaces.append(entry)
     view = {"ATLAS": VERSION, "VIEW": "GENERATOR_BLIND", "SOURCES_DIGEST": digest,
             "RULES": {
                 "OPEN": "Unexplored. Generate here first, highest frontier_value first.",
@@ -372,6 +530,7 @@ def generator_view(tax, surf, cell_list, by_id, blind, frontier, digest) -> dict
                               "prior signatures did not use, or resolve a named blocker; never a parameter neighbour or relabel.",
                 "DATA_REQUIRED": "No usable data surface yet. A card here must name the data it needs and how it would be obtained.",
                 "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point.",
+                "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
                 "BLINDNESS": "This view carries no outcomes, verdicts, effect sizes or rankings by result.",
             },
             "COLUMNS": [{"id": c["id"], "name": c["name"], "covers": c["covers"]} for c in tax["columns"]],
@@ -479,6 +638,26 @@ def render_matrix(tax, surf, cell_list, units, by_id, frontier, data_blocked, re
         L.append(f"| `{d['id']}` | {cs} | {d.get('coverage') or '—'} | {d['availability']} | "
                  f"{'yes' if d.get('live_in_product') else 'no'} |")
     L.append("")
+    L.append("## Reserved confirmation surfaces")
+    L.append("")
+    for r in surf.get("reservations") or ():
+        per = r.get("period") or {}
+        L.append(f"- `{r['id']}` {r['status']}: {r['datasets'] if r['datasets'] == '*' else ', '.join(r['datasets'])}"
+                 + (f" [{per.get('start')}, {per.get('end_exclusive')})" if per else "")
+                 + f" — {_short(r['intended_use'], 200)} (holders: {', '.join(r['holder_units'])})")
+    if not surf.get("reservations"):
+        L.append("- none")
+    L.append("")
+    L.append("## Memory reconciliation (memory preserved; the atlas is the routing authority)")
+    L.append("")
+    L.append("| Unit | Kind | Memory status (preserved) | Memory implies | Atlas state | Reason |")
+    L.append("|---|---|---|---|---|---|")
+    for u in units:
+        r = u.get("reconciliation")
+        if r:
+            L.append(f"| {u['id']} | {r['kind']} | {_short(r['memory_status'], 70)} | {r['memory_implied_state']} | "
+                     f"**{r['atlas_state']}** | {_short(r['reason'], 160)} |")
+    L.append("")
     L.append("## Cells with prior work")
     L.append("")
     for reg in tax["regions"]:
@@ -515,11 +694,126 @@ def _short(text, n) -> str:
     return text if len(text) <= n else text[: n - 1].rstrip() + "…"
 
 
+# ---- append-only event chain ----------------------------------------------------------------------
+def unit_index(units_doc) -> dict:
+    """Per-unit content digest and cell, so an event can state exactly what changed."""
+    return {u["id"]: {"d": hashlib.sha256(json.dumps(u, sort_keys=True, ensure_ascii=False, default=str)
+                                          .encode("utf-8")).hexdigest()[:16],
+                      "cell": f"{u['row']}|{u['col']}"} for u in units_doc["units"]}
+
+
+def event_hash(event) -> str:
+    body = {k: v for k, v in event.items() if k != "event_hash"}
+    return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def load_events(path=None) -> list:
+    path = path or EVENTS
+    if not Path(path).exists():
+        return []
+    return [json.loads(line) for line in Path(path).read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def verify_events(events, digest=None, index=None) -> list:
+    """The chain is intact (hashes, links, contiguous sequence, prior digests) and its head is the current atlas."""
+    problems = []
+    if not events:
+        return ["no atlas events recorded"]
+    prev = None
+    for i, ev in enumerate(events):
+        tag = f"event {ev.get('seq')}"
+        if ev.get("seq") != i + 1:
+            problems.append(f"{tag}: sequence must be {i + 1}")
+        if ev.get("event_hash") != event_hash(ev):
+            problems.append(f"{tag}: hash does not match its content (an event was rewritten)")
+        if ev.get("change_type") not in EVENT_TYPES:
+            problems.append(f"{tag}: unknown change_type {ev.get('change_type')}")
+        if not ev.get("reason") or not ev.get("source_records") or not ev.get("timestamp"):
+            problems.append(f"{tag}: needs reason, source_records and timestamp")
+        if prev is None:
+            if ev.get("prev_event_hash") is not None or ev.get("prior_atlas_digest") is not None:
+                problems.append(f"{tag}: the first event has no predecessor")
+        else:
+            if ev.get("prev_event_hash") != prev["event_hash"]:
+                problems.append(f"{tag}: prev_event_hash does not link to event {prev.get('seq')}")
+            if ev.get("prior_atlas_digest") != prev.get("new_atlas_digest"):
+                problems.append(f"{tag}: prior_atlas_digest is not the previous event's new digest")
+            if ev.get("timestamp", "") < prev.get("timestamp", ""):
+                problems.append(f"{tag}: timestamp earlier than event {prev.get('seq')}")
+        prev = ev
+    if digest is not None and prev.get("new_atlas_digest") != digest:
+        problems.append("the atlas sources changed after the last event; append one with --append-event")
+    if index is not None and digest is not None and prev.get("new_atlas_digest") == digest and prev.get("unit_index") != index:
+        problems.append("the last event's unit index does not match the current units")
+    return problems
+
+
+def layer_digests(tax, surf, units_doc) -> dict:
+    return {"taxonomy": _digest(tax), "surfaces": _digest(surf), "units": _digest(units_doc)}
+
+
+def make_event(prev, change_type, reason, records, new_digest, new_index, old_index, timestamp, layer_digests) -> dict:
+    if change_type not in EVENT_TYPES:
+        raise AtlasError(f"unknown change_type {change_type}")
+    if not reason or not records:
+        raise AtlasError("an atlas event needs a reason and at least one source record")
+    for rec in records:
+        if not (ROOT / rec.split("#")[0]).exists():
+            raise AtlasError(f"source record {rec} not found")
+    old_index = old_index or {}
+    added = sorted(set(new_index) - set(old_index))
+    removed = sorted(set(old_index) - set(new_index))
+    changed = sorted(k for k in set(new_index) & set(old_index) if new_index[k]["d"] != old_index[k]["d"])
+    cells = sorted({new_index[k]["cell"] for k in added + changed} | {old_index[k]["cell"] for k in removed + changed})
+    ev = {"seq": (prev["seq"] + 1) if prev else 1, "timestamp": timestamp, "change_type": change_type,
+          "prior_atlas_digest": prev["new_atlas_digest"] if prev else None, "new_atlas_digest": new_digest,
+          "prev_event_hash": prev["event_hash"] if prev else None,
+          "affected_units": {"added": added, "removed": removed, "changed": changed}, "affected_cells": cells,
+          "affected_layers": sorted(k for k, v in layer_digests.items()
+                                    if not prev or (prev.get("layer_digests") or {}).get(k) != v),
+          "layer_digests": layer_digests, "source_records": list(records), "reason": reason, "unit_index": new_index}
+    ev["event_hash"] = event_hash(ev)
+    return ev
+
+
+def append_event(change_type, reason, records, timestamp=None) -> dict:
+    tax, surf, units_doc = _load_yaml(TAXONOMY), _load_yaml(SURFACES), _load_yaml(UNITS)
+    memory = _load_json(MEMORY)["ENTRIES"]
+    findings = [f["id"] for f in (_load_yaml(FINDINGS) or {}).get("findings") or ()]
+    problems = validate(tax, surf, units_doc, memory, findings)
+    if problems:
+        raise AtlasError("atlas sources invalid:\n  " + "\n  ".join(problems))
+    events = load_events()
+    chain = verify_events(events) if events else []
+    if chain:
+        raise AtlasError("atlas event chain broken; fix it before appending:\n  " + "\n  ".join(chain))
+    digest = sources_digest(tax, surf, units_doc, memory, findings)
+    prev = events[-1] if events else None
+    if prev and prev["new_atlas_digest"] == digest:
+        raise AtlasError("nothing changed since the last event")
+    ev = make_event(prev, change_type, reason, records, digest, unit_index(units_doc),
+                    prev.get("unit_index") if prev else None,
+                    timestamp or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    layer_digests(tax, surf, units_doc))
+    with open(EVENTS, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(ev, sort_keys=True, ensure_ascii=False) + "\n")
+    return ev
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--check", action="store_true", help="validate and fail if derived files are stale")
+    ap.add_argument("--check", action="store_true", help="validate and fail if derived files or the event chain are stale")
+    ap.add_argument("--append-event", action="store_true", help="append a hash-chained change event for the current sources")
+    ap.add_argument("--change-type", choices=EVENT_TYPES)
+    ap.add_argument("--reason")
+    ap.add_argument("--record", action="append", default=[])
     args = ap.parse_args(argv)
     try:
+        if args.append_event:
+            ev = append_event(args.change_type, args.reason, args.record)
+            print(json.dumps({k: ev[k] for k in ("seq", "change_type", "prior_atlas_digest", "new_atlas_digest",
+                                                 "affected_units", "event_hash")}, sort_keys=True))
+            return 0
         rep = build(check_only=args.check)
     except AtlasError as exc:
         print(str(exc), file=sys.stderr)

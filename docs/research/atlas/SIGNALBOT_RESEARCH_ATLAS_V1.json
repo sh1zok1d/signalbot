@@ -646,7 +646,8 @@
   {
    "col": "ORDER_BOOK",
    "counts": {
-    "CANDIDATE_UNTESTED": 3,
+    "CANDIDATE_UNTESTED": 2,
+    "CLOSED_BEFORE_START": 1,
     "CLOSED_ON_SURFACE": 1,
     "EXPOSED_ONLY": 1,
     "INFORMATIONALLY_WEAK": 3
@@ -3339,7 +3340,7 @@
   {
    "col": "POSITIONING",
    "counts": {
-    "CANDIDATE_UNTESTED": 1,
+    "BLOCKED_GOVERNANCE": 1,
     "NO_STRUCTURE": 2
    },
    "frontier_eligible": true,
@@ -10074,8 +10075,10 @@
   "units": 145,
   "units_by_state": {
    "BLOCKED_DATA": 18,
+   "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 45,
-   "CANDIDATE_UNTESTED": 16,
+   "CANDIDATE_UNTESTED": 14,
+   "CLOSED_BEFORE_START": 1,
    "CLOSED_ON_SURFACE": 12,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 10,
@@ -10091,7 +10094,7 @@
   "EXACT_DUPLICATE": "The same card again.",
   "FUNCTIONAL_RELABEL": "The same function under a new name.",
   "OBSERVABLE_SUBSTITUTION": "Swapping the observable inside the same function (e.g. a better proxy of the same thing).",
-  "PARAMETER_NEIGHBOR": "Another threshold, percentile, window, horizon, clock or lag of the same function.",
+  "PARAMETER_NEIGHBOR": "Another threshold, percentile, window, lookback, horizon, clock, lag or nearby parameter of the same function.",
   "REVERSE_EFFECT_RESCUE": "Testing the opposite sign after a null or a wrong-sign result.",
   "SUBGROUP_MINING": "Years, regimes, weekdays or venues carved out after the outcome was seen."
  },
@@ -14599,6 +14602,102 @@
    "data_readiness"
   ]
  },
+ "MEMORY_RECONCILIATION": [
+  {
+   "atlas_state": "CONFIRMED",
+   "id": "D7",
+   "kind": "POST_MEMORY_RECORD",
+   "memory_implied_state": "LIVE_SIGNAL",
+   "memory_status": "PROMISING_PROTOTYPE; adaptive discovery only; NOT independently replicated",
+   "reason": "The pre-registered BitMEX 2016-2019 confirmation passed after the memory snapshot (CONFIRMED_UNDER_MAINTAINED_ASSUMPTIONS) and the campaign was closed (D7_CAMPAIGN_CLOSED).",
+   "records": [
+    "docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.md",
+    "docs/research/D7_CAMPAIGN_CLOSE_V1.md"
+   ]
+  },
+  {
+   "atlas_state": "BLOCKED_METHOD",
+   "id": "GV0V03L40-C033",
+   "kind": "POST_MEMORY_RECORD",
+   "memory_implied_state": "CANDIDATE_UNTESTED",
+   "memory_status": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
+   "reason": "The V2 feasibility recompile found that the joint four-part state never occurs in 2020-2024 (MECHANISM_ACTIVE_N = 0, alpha unattainable): STOP / NOT_PREREGISTRABLE_UNDER_FROZEN_DESIGN.",
+   "records": [
+    "docs/research/GV0V03L40_C033_V2_FEASIBILITY.md",
+    "docs/research/GV0V03L40_C033_V2_FEASIBILITY.json"
+   ]
+  },
+  {
+   "atlas_state": "INFORMATIONALLY_WEAK",
+   "id": "GV0R01-C004",
+   "kind": "POST_MEMORY_RECORD",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
+   "reason": "After the Stream-B data acquisition, the card was closed outcome-blind with insufficient inference support.",
+   "records": [
+    "docs/research/GV0R01_C004_OUTCOME_BLIND_DESIGN.md",
+    "docs/research/GV0R01_C004_CLOSE.json"
+   ]
+  },
+  {
+   "atlas_state": "INFORMATIONALLY_WEAK",
+   "id": "GV0R01-C012",
+   "kind": "POST_MEMORY_RECORD",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
+   "reason": "After the Stream-B data acquisition, the card was closed outcome-blind as informationally weak (too few events for a verdict either way).",
+   "records": [
+    "docs/research/GV0R01_C012_OUTCOME_BLIND_DESIGN.md",
+    "docs/research/GV0R01_C012_CLOSE.json"
+   ]
+  },
+  {
+   "atlas_state": "LIVE_SIGNAL",
+   "id": "GV0R01-C013",
+   "kind": "POST_MEMORY_RECORD",
+   "memory_implied_state": "CANDIDATE_UNTESTED",
+   "memory_status": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
+   "reason": "Executed once after the memory snapshot as a discovery-tier market test; confirmation deferred for low power.",
+   "records": [
+    "docs/research/GV0R01_C013_MARKET_TEST_OUTCOME.md",
+    "docs/research/GV0R01_C013_CONFIRMATION_FEASIBILITY_AND_DESIGN.md"
+   ]
+  },
+  {
+   "atlas_state": "INFORMATIONALLY_WEAK",
+   "id": "GV0R01-C020",
+   "kind": "POST_MEMORY_RECORD",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
+   "reason": "After the holiday-calendar pin, the card was closed outcome-blind as an informationally weak reference test.",
+   "records": [
+    "docs/research/GV0R01_C020_OUTCOME_BLIND_DESIGN.md",
+    "docs/research/GV0R01_C020_CLOSE.json"
+   ]
+  },
+  {
+   "atlas_state": "CLOSED_ON_SURFACE",
+   "id": "H01",
+   "kind": "ATLAS_CLASSIFICATION",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "H01_KILL / REJECTED; 0/5 Batch01 promoted",
+   "reason": "The claim was rejected, but the record states a reverse side finding (after quiet 30-120 min, expansion was rarer than usual), so the cell is closed on this surface rather than without structure.",
+   "records": [
+    "docs/research/H01_DEV_SUMMARY.md"
+   ]
+  },
+  {
+   "atlas_state": "NO_STRUCTURE",
+   "id": "H03",
+   "kind": "ATLAS_CLASSIFICATION",
+   "memory_implied_state": "CLOSED_ON_SURFACE",
+   "memory_status": "H03_REJECTED_SPECIFIC_CLAIM",
+   "reason": "The specific claim was rejected and the record shows no steady continuation or fade (the sign changed with horizon and year), so the atlas reads it as no structure on this surface.",
+   "records": [
+    "docs/research/H03_DEV_SUMMARY.md"
+   ]
+  }
+ ],
  "OWNER_PRIORITIES": [
   {
    "note": "Owner proposal: the first new frontier is microstructure / spot-perp (order book -> trades -> spot/perp disagreement -> OI -> price). A batch still needs its own owner go.",
@@ -15358,12 +15457,61 @@
  ],
  "REOPEN_KEYS": {
   "BLOCKER_RESOLVED": "The named blocker is resolved (novelty relation RESOLVES_BLOCKER).",
+  "NEW_CONFIRMATION_SURFACE": "A new independent confirmation surface (time-disjoint or prospective) that the closed unit never touched.",
   "NEW_INDEPENDENT_UNITS": "Independent units accumulated naturally to the recorded N (never by pooling proxies).",
   "NEW_MECHANISM": "An orthogonal mechanism (novelty relation ORTHOGONAL_MECHANISM), not a relabel of the tested function.",
   "NEW_SURFACE": "A data layer, venue or instrument the closed unit did not use, with its own preregistration.",
   "OWNER_DECISION": "An explicit, recorded owner decision.",
-  "PROSPECTIVE_DATA": "Fresh data collected after a freeze, scored only under that freeze."
+  "PROSPECTIVE_DATA": "Fresh data collected after a freeze, scored only under that freeze.",
+  "RECORDED_REOPEN_CONDITION": "The unit's own recorded reopen condition (its `reopen` text) is met, with the record that shows it."
  },
+ "RESERVATIONS": [
+  {
+   "authority": [
+    "AGENTS.md",
+    "docs/e1/E1_RUN_001_FINAL_HOLDOUT_EVALUATOR_FREEZE.md",
+    "docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md"
+   ],
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "BINANCE_UM_KLINES_5M_PRODUCT",
+    "BINANCE_UM_TRADES_AGGTRADES_ARCHIVE",
+    "BINANCE_UM_OI_METRICS_PRODUCT",
+    "BINANCE_UM_PREMIUM_MARK_INDEX_KLINES",
+    "STAGE1_LIVE_OI_FUNDING",
+    "STAGE1_LIVE_LIQUIDATIONS",
+    "STAGE1_LIVE_KLINES_3VENUE",
+    "BINANCE_UM_BOOKDEPTH_ARCHIVE",
+    "OKX_OFFICIAL_ARCHIVES",
+    "BINANCE_SPOT_KLINES_ARCHIVE",
+    "BYBIT_BTCUSDT_PUBLIC_HISTORY",
+    "DERIBIT_DVOL_API",
+    "BINANCE_OPTIONS_BVOL"
+   ],
+   "holder_units": [
+    "E1-RUN-001"
+   ],
+   "id": "E1_RUN_001_FINAL_HOLDOUT",
+   "intended_use": "E1-RUN-001 final chronological holdout: one open by the frozen one-shot evaluator after the timestamp-only coverage gate passes, or an explicit close as technically incomplete",
+   "note": "The product history sync never requests an archive object overlapping this period; the divergence program read horizon stops at 2026-08-15.",
+   "period": {
+    "end_exclusive": "2026-08-25T17:20:00Z",
+    "start": "2026-08-16T00:00:00Z"
+   },
+   "permit": null,
+   "permit_required": true,
+   "scope": {
+    "cells": [
+     "METHOD.composition|CANDLES"
+    ],
+    "note": "every BTC market row in the period, on every venue and archive",
+    "regions": [
+     "METHOD"
+    ]
+   },
+   "status": "RESERVED"
+  }
+ ],
  "REVISIT_SCHEDULE": [
   {
    "col": "CANDLES",
@@ -15419,12 +15567,17 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "765be4424045e54a02b2fb5cd3e6dd189fe3cc0ac1fb10d46d8179e9345af002",
+ "SOURCES_DIGEST": "98416896e99736e9373f5a8b4c61e9b491ff250eb0cf571d4e25b9e5156284d8",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
    "outcome_neutral": true,
    "routing": "Reopens when the data surface becomes available (collector, vendor, pinned source)."
+  },
+  "BLOCKED_GOVERNANCE": {
+   "meaning": "A defined unit may not run because a governance rule blocks it (e.g. its frozen data window overlaps a protected or reserved surface).",
+   "outcome_neutral": true,
+   "routing": "Not executable. Only a new explicit permit that removes the conflict reopens it; the old freeze is never edited in place."
   },
   "BLOCKED_METHOD": {
    "meaning": "A card was defined but stopped by a method blocker (identification, confounding, lookahead, null model).",
@@ -15435,6 +15588,11 @@
    "meaning": "A card or seed exists and passed or awaits feasibility, but no market outcome was computed.",
    "outcome_neutral": true,
    "routing": "Do not regenerate the same card; it may be selected for feasibility/freeze as is."
+  },
+  "CLOSED_BEFORE_START": {
+   "meaning": "A registered or recorded unit was withdrawn before any outcome was computed; it consumed no surface.",
+   "outcome_neutral": true,
+   "routing": "Inactive. A restart is a new unit with its own registration and permit."
   },
   "CLOSED_ON_SURFACE": {
    "meaning": "Tested under a frozen contract; the outcome is specific to the claim or surface (a specific claim rejected, an external reproduction, a mixed result).",
@@ -15522,6 +15680,12 @@
   },
   "datasets": [
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "also_cols": [
      "PERP_FLOW"
     ],
@@ -15546,6 +15710,12 @@
     "venue": "Binance USD-M"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "also_cols": [
      "PERP_FLOW"
     ],
@@ -15654,6 +15824,12 @@
     "venue": "BitMEX"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "availability": "ACQUIRABLE",
     "col": "PERP_FLOW",
     "coverage": "official archive from 2020 (not materialized)",
@@ -15689,6 +15865,12 @@
     "venue": "Binance USD-M"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "availability": "PINNED",
     "col": "POSITIONING",
     "coverage": "2020-09-01 -> yesterday, E1 holdout objects never requested",
@@ -15734,6 +15916,12 @@
     "venue": "Binance USD-M REST"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "availability": "ACQUIRABLE",
     "col": "POSITIONING",
     "coverage": "archive from 2020 (not materialized)",
@@ -15760,6 +15948,12 @@
     "venue": "Binance USD-M"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "also_cols": [
      "CROSS_VENUE"
     ],
@@ -15775,17 +15969,32 @@
        "METHOD.methodology"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "P4 owner-run descriptive follow-up of PRICE_OI_CONTRACTION (1h/4h realized ranges) on the 12434-bucket grid; the grid starts inside the E1-RUN-001 holdout span (flagged in PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM, not adjudicated)",
+      "period": "2026-08-16T19:30Z..2026-09-28T23:55Z",
+      "rows": [
+       "DERIVATIVES.oi_buildup"
+      ],
+      "status": "EXPOSED"
      }
     ],
     "id": "STAGE1_LIVE_OI_FUNDING",
     "instrument": "BTCUSDT perpetuals",
     "live_in_product": true,
     "records": [
-     "docs/E1_DATA_INVENTORY_2026-08-25.md"
+     "docs/E1_DATA_INVENTORY_2026-08-25.md",
+     "docs/audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md"
     ],
     "venue": "Binance, Bybit, OKX"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "availability": "FORWARD_ONLY",
     "col": "LIQUIDATIONS",
     "coverage": "live since 2026-07-17, never backfilled",
@@ -15814,6 +16023,12 @@
     "venue": "vendor (Tardis) / Binance liquidationSnapshot archive (gaps)"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "availability": "ACQUIRABLE",
     "col": "ORDER_BOOK",
     "coverage": "from 2023-01-01 (absent before)",
@@ -15886,6 +16101,12 @@
     "venue": "Binance USD-M"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "also_cols": [
      "ORDER_BOOK",
      "SPOT",
@@ -15969,6 +16190,12 @@
     "venue": "Binance spot"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "availability": "ACQUIRABLE",
     "col": "SPOT",
     "coverage": "public archive from 2017 (not pinned at 1m)",
@@ -16009,6 +16236,12 @@
     "venue": "OKX spot + Binance USD-M"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "also_cols": [
      "CANDLES",
      "POSITIONING"
@@ -16025,6 +16258,12 @@
     "venue": "Bybit"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "also_cols": [
      "CANDLES",
      "PERP_FLOW"
@@ -16041,13 +16280,22 @@
        "METHOD.methodology"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "P4 owner-run descriptive follow-up of PRICE_OI_CONTRACTION (1h/4h realized ranges) on the 12434-bucket grid; the grid starts inside the E1-RUN-001 holdout span (flagged in PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM, not adjudicated)",
+      "period": "2026-08-16T19:30Z..2026-09-28T23:55Z",
+      "rows": [
+       "DERIVATIVES.oi_buildup"
+      ],
+      "status": "EXPOSED"
      }
     ],
     "id": "STAGE1_LIVE_KLINES_3VENUE",
     "instrument": "BTCUSDT perpetuals",
     "live_in_product": true,
     "records": [
-     "docs/E1_DATA_INVENTORY_2026-08-25.md"
+     "docs/E1_DATA_INVENTORY_2026-08-25.md",
+     "docs/audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md"
     ],
     "venue": "Binance, Bybit, OKX"
    },
@@ -16187,6 +16435,12 @@
     "venue": "FRED / ALFRED / equities / rates / FX"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "availability": "ACQUIRABLE",
     "col": "OPTIONS",
     "coverage": "free API history from 2021-03",
@@ -16199,6 +16453,12 @@
     "venue": "Deribit"
    },
    {
+    "_unavailable_periods": [
+     {
+      "end_exclusive": "2026-08-25T17:20:00Z",
+      "start": "2026-08-16T00:00:00Z"
+     }
+    ],
     "availability": "ACQUIRABLE",
     "col": "OPTIONS",
     "coverage": "from 2023-06-20",
@@ -16329,6 +16589,53 @@
     ]
    }
   ],
+  "reservations": [
+   {
+    "authority": [
+     "AGENTS.md",
+     "docs/e1/E1_RUN_001_FINAL_HOLDOUT_EVALUATOR_FREEZE.md",
+     "docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md"
+    ],
+    "datasets": [
+     "CORE_BTC_BINANCE_V0",
+     "BINANCE_UM_KLINES_5M_PRODUCT",
+     "BINANCE_UM_TRADES_AGGTRADES_ARCHIVE",
+     "BINANCE_UM_OI_METRICS_PRODUCT",
+     "BINANCE_UM_PREMIUM_MARK_INDEX_KLINES",
+     "STAGE1_LIVE_OI_FUNDING",
+     "STAGE1_LIVE_LIQUIDATIONS",
+     "STAGE1_LIVE_KLINES_3VENUE",
+     "BINANCE_UM_BOOKDEPTH_ARCHIVE",
+     "OKX_OFFICIAL_ARCHIVES",
+     "BINANCE_SPOT_KLINES_ARCHIVE",
+     "BYBIT_BTCUSDT_PUBLIC_HISTORY",
+     "DERIBIT_DVOL_API",
+     "BINANCE_OPTIONS_BVOL"
+    ],
+    "holder_units": [
+     "E1-RUN-001"
+    ],
+    "id": "E1_RUN_001_FINAL_HOLDOUT",
+    "intended_use": "E1-RUN-001 final chronological holdout: one open by the frozen one-shot evaluator after the timestamp-only coverage gate passes, or an explicit close as technically incomplete",
+    "note": "The product history sync never requests an archive object overlapping this period; the divergence program read horizon stops at 2026-08-15.",
+    "period": {
+     "end_exclusive": "2026-08-25T17:20:00Z",
+     "start": "2026-08-16T00:00:00Z"
+    },
+    "permit": null,
+    "permit_required": true,
+    "scope": {
+     "cells": [
+      "METHOD.composition|CANDLES"
+     ],
+     "note": "every BTC market row in the period, on every venue and archive",
+     "regions": [
+      "METHOD"
+     ]
+    },
+    "status": "RESERVED"
+   }
+  ],
   "version": "SIGNALBOT_RESEARCH_ATLAS_V1"
  },
  "UNITS": [
@@ -16372,11 +16679,14 @@
    "id": "GV0V03L40-C028",
    "information_source": "OFFICIAL_CALENDAR: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0, US_IRC_1091_WASH_SALE_SCOPE_AND_TAX_YEAR_REFERENCE",
    "mechanism": "Tax-year-end loss realization without a wash-sale constraint: late-December turnover of calendar-year losers",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_LOOKAHEAD_VIOLATION_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C028"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_LOOKAHEAD_VIOLATION; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must use only information observable at or before the decision time before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CALENDAR.holidays_tax",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -16402,8 +16712,21 @@
    "id": "GV0R01-C020",
    "information_source": "OFFICIAL_CALENDAR: CORE_BTC_BINANCE_V0, STATUTORY_DST_CALENDARS, NYSE_HOLIDAY_CALENDAR_ARCHIVE, CN_STATE_COUNCIL_HOLIDAY_NOTICES, US_OPM_FEDERAL_HOLIDAY_LIST",
    "mechanism": "Official-holiday participant removal and BTC intraday session volume shares",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
    "note": "Closed outcome-blind after feasibility (CURRENT_STATE).",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
+   "reconciliation": {
+    "atlas_state": "INFORMATIONALLY_WEAK",
+    "kind": "POST_MEMORY_RECORD",
+    "memory_implied_state": "BLOCKED_DATA",
+    "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
+    "reason": "After the holiday-calendar pin, the card was closed outcome-blind as an informationally weak reference test.",
+    "records": [
+     "docs/research/GV0R01_C020_OUTCOME_BLIND_DESIGN.md",
+     "docs/research/GV0R01_C020_CLOSE.json"
+    ]
+   },
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C020",
     "docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.md",
@@ -16412,6 +16735,7 @@
     "docs/research/GV0R01_C020_CLOSE.json"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_FEASIBILITY_REQUIRED; orthogonal mechanisms remain open. Blocker requirement: The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CALENDAR.holidays_tax",
    "source": "MECHANISM_MEMORY_V0",
    "state": "INFORMATIONALLY_WEAK",
@@ -16623,11 +16947,14 @@
    "id": "GV0R01-C010",
    "information_source": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, STATUTORY_DST_CALENDARS, CORE_BTC_BINANCE_V0",
    "mechanism": "Staggered US-EU DST windows as identification of the clock governing cross-venue dislocation",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_LOOKAHEAD_VIOLATION_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C010"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_LOOKAHEAD_VIOLATION; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must use only information observable at or before the decision time before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CALENDAR.sessions",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -16650,6 +16977,8 @@
    "id": "D12",
    "information_source": "CORE_BTC_BINANCE_V0 hourly quote_volume; W=6 Monday-Saturday before/after each US DST Sunday",
    "mechanism": "Participation-clock anchoring (family J)",
+   "memory_implied_state": "LIVE_SIGNAL",
+   "memory_status": "PROMISING_PROTOTYPE; adaptive discovery only; US_TRANSITION_N=10; NOT independently replicated",
    "period": "2020-2024",
    "program": "DISCOVERY",
    "records": [
@@ -16657,6 +16986,7 @@
     "docs/research/discovery_results/D12_DISCOVERY_RESULT.md"
    ],
    "reopen": "Independent confirmation. Not participant identity, ETF/equity causality, direction, trading alpha, or volatility. EU MEAN_A is secondary diagnostic only.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CALENDAR.sessions",
    "source": "MECHANISM_MEMORY_V0",
    "state": "LIVE_SIGNAL",
@@ -17051,12 +17381,15 @@
    "id": "D10",
    "information_source": "CORE_BTC snapshot 717d37a4… and CORE_ETH snapshot 4b9c113f…",
    "mechanism": "Cross-asset residual shock persistence after removing the BTC common factor",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "NO_USEFUL_STRUCTURE",
    "period": "2020-2024",
    "program": "DISCOVERY",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#D10"
    ],
    "reopen": "Orthogonal families remain as already recorded. Residual calendar clustering remains a recorded discovery-stage limitation. Do not convert this null into neighbor rescue.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.btc_eth",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -17080,6 +17413,8 @@
    "id": "D4",
    "information_source": "CORE_BTC + CORE_ETH",
    "mechanism": "BTC-ETH relative structure",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "ROLLING_CORRELATION_90D=NO_USEFUL_STRUCTURE; LEAD_LAG_1DAY=DEFERRED_FROM_SPRINT_01",
    "note": "Rolling 90d correlation range NO_USEFUL_STRUCTURE; 1-day lead-lag deferred and raw lead-lag rescue forbidden.",
    "period": "2020-2024",
    "program": "DISCOVERY",
@@ -17087,6 +17422,7 @@
     "docs/research/MECHANISM_MEMORY_V0.json#D4"
    ],
    "reopen": "D10 tested ETH residual persistence after a frozen pre-event beta and classified NO_USEFUL_STRUCTURE. Raw independent-block lead-lag remains deferred.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.btc_eth",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -17110,6 +17446,8 @@
    "id": "MARKET-05",
    "information_source": "CORE_BTC + CORE_ETH",
    "mechanism": "Cross-asset / ETH additive incremental 24h adverse-path MAE",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "MARKET_05_NO_EVIDENCE; consumed; no rerun",
    "period": "2020-2024",
    "program": "MARKET",
    "records": [
@@ -17117,6 +17455,7 @@
     "docs/research/MARKET_05_RESULT.md"
    ],
    "reopen": "Other ETH functions (residual persistence) are not this cell",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.btc_eth",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -17164,12 +17503,15 @@
    "id": "GV0V03L40-C024",
    "information_source": "ORDER_BOOK: BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE, TARDIS_BINANCE_FUTURES_L2_INCREMENTAL, CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0",
    "mechanism": "Relative ETH-versus-BTC book thinness and ETH pass-through beta in high-volatility hours",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C024",
     "docs/research/GV0V03L40_SHORTLIST_BLOCKER_TRIAGE.md"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_FEASIBILITY_REQUIRED; orthogonal mechanisms remain open. Blocker requirement: The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.btc_eth",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -17192,12 +17534,15 @@
    "id": "D13",
    "information_source": "SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0 SNAPSHOT_BOUND_OBJECT_LEDGER; Monday 00:00 UTC decision clock",
    "mechanism": "Cross-sectional weekly relative-return structure (family H true panel)",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "NO_USEFUL_STRUCTURE; observed pooled sign REVERSAL (IC<0); practical gate failed",
    "period": "2020-2024",
    "program": "DISCOVERY",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#D13"
    ],
    "reopen": "Orthogonal families already recorded. Not other horizons/venues. Residual serial dependence is a declared limitation, not a rescue path.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.cross_section",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -17220,11 +17565,14 @@
    "id": "GV0CAL-C005",
    "information_source": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
    "mechanism": "Listing-age lifecycle drift in the Binance spot USDT cross-section",
+   "memory_implied_state": "CANDIDATE_UNTESTED",
+   "memory_status": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0CAL",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0CAL-C005"
    ],
    "reopen": "Market-outcome testing only if later selected under a separate frozen research contract; orthogonal mechanisms remain open.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.cross_section",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CANDIDATE_UNTESTED",
@@ -17247,11 +17595,14 @@
    "id": "GV0R01-C005",
    "information_source": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
    "mechanism": "Stress-week flight-from-illiquidity gradient in the Binance spot USDT cross-section",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C005"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW, DATA_BLOCKED_MISSING_OBSERVABLE.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.cross_section",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -17274,8 +17625,21 @@
    "id": "GV0R01-C013",
    "information_source": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
    "mechanism": "Persistence of intraday wick morphology across the Binance spot USDT cross-section",
+   "memory_implied_state": "CANDIDATE_UNTESTED",
+   "memory_status": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
    "note": "After the memory snapshot: discovery-tier PROMISING_PROTOTYPE; confirmation deferred for low power (WAIT_FOR_MORE_FRESH_DATA): the between-year spread is about 2.5 times the pooled effect, so a 1-2 year fresh surface would measure which kind of year it was.",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
+   "reconciliation": {
+    "atlas_state": "LIVE_SIGNAL",
+    "kind": "POST_MEMORY_RECORD",
+    "memory_implied_state": "CANDIDATE_UNTESTED",
+    "memory_status": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
+    "reason": "Executed once after the memory snapshot as a discovery-tier market test; confirmation deferred for low power.",
+    "records": [
+     "docs/research/GV0R01_C013_MARKET_TEST_OUTCOME.md",
+     "docs/research/GV0R01_C013_CONFIRMATION_FEASIBILITY_AND_DESIGN.md"
+    ]
+   },
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C013",
     "docs/research/GV0R01_C013_MARKET_TEST_OUTCOME.md",
@@ -17285,6 +17649,7 @@
    ],
    "reopen": "Market-outcome testing only if later selected under a separate frozen research contract; orthogonal mechanisms remain open.",
    "revisit": "An adequate independent surface needs about 468 fresh weeks (about 9 years) for 80% power; the confirmation design is recorded, not frozen. Binance 2025/2026 alone is not adequate.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.cross_section",
    "source": "MECHANISM_MEMORY_V0",
    "state": "LIVE_SIGNAL",
@@ -17307,11 +17672,14 @@
    "id": "GV0R01-C021",
    "information_source": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
    "mechanism": "Liquidity-gradient lagged diffusion of the BTC daily factor across Binance spot USDT names",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C021"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.cross_section",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -17334,11 +17702,14 @@
    "id": "GV0R01-C029",
    "information_source": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0, Binance spot tick-size change announcements archive, Historical Binance spot exchangeInfo PRICE_FILTER snapshots per symbol",
    "mechanism": "Binance spot tick-size change natural experiment on cross-sectional liquidity proxies",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C029"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW, DATA_BLOCKED_PROVENANCE.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.cross_section",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -17361,12 +17732,15 @@
    "id": "GV0V03L40-C005",
    "information_source": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0, BINANCE_UM_PERPETUAL_LISTING_ANNOUNCEMENTS_ARCHIVE, BINANCE_UM_EXCHANGEINFO_ONBOARDDATE_SNAPSHOTS",
    "mechanism": "Perpetual-cover spread gap on BTC stress days",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C005",
     "docs/research/GV0V03L40_SHORTLIST_BLOCKER_TRIAGE.md"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_FEASIBILITY_REQUIRED; orthogonal mechanisms remain open. Blocker requirement: The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.cross_section",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -17389,11 +17763,14 @@
    "id": "GV0V03L40-C021",
    "information_source": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0, CORE_BTC_BINANCE_V0",
    "mechanism": "Attention-spike names under high market-wide volatility: joint drawdown-tail exposure in the Binance spot USDT panel",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C021"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW; orthogonal mechanisms remain open. Blocker requirement: A human must adjudicate the disagreement between the generated and the critic data status before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.cross_section",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -17416,11 +17793,14 @@
    "id": "GV0V03L40-C029",
    "information_source": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0",
    "mechanism": "Lottery-demand MAX effect in the Binance spot USDT cross-section inside a risk-on regime",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C029"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW; orthogonal mechanisms remain open. Blocker requirement: A human must adjudicate the disagreement between the generated and the critic data status before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.cross_section",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -17443,12 +17823,15 @@
    "id": "GV0V03L40-C037",
    "information_source": "CROSS_SECTIONAL_PANEL: SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0, CIRCULATING_SUPPLY_HISTORY_AGGREGATOR",
    "mechanism": "Disposition-driven capital-gains overhang in Binance spot USDT names",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_BLOCKED_POINT_IN_TIME_SEMANTICS_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C037",
     "docs/research/GV0V03L40_SHORTLIST_BLOCKER_TRIAGE.md"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_BLOCKED_POINT_IN_TIME_SEMANTICS; orthogonal mechanisms remain open. Blocker requirement: The data blocker DATA_BLOCKED_POINT_IN_TIME_SEMANTICS must be resolved with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_ASSET_REGION.cross_section",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -17495,11 +17878,14 @@
    "id": "GV0R01-C008",
    "information_source": "ORDER_BOOK: BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE, OKX_SPOT_ORDERBOOK_HISTORICAL_ARCHIVE, VENDOR_L2_ORDERBOOK_REPLAY, OKX_SPOT_KLINE_PUBLIC_ARCHIVE, MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0",
    "mechanism": "Near-touch depth share as a determinant of cross-venue price-discovery leadership",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C008"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_VENUE_REGION.price_discovery",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -17522,11 +17908,14 @@
    "id": "GV0R01-C018",
    "information_source": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0",
    "mechanism": "Retention of venue-idiosyncratic versus common 5m jumps across the Binance perpetual and OKX spot",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C018"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_VENUE_REGION.venue_disagreement",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -17550,11 +17939,14 @@
    "id": "GV0V03L40-C039",
    "information_source": "ONCHAIN: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0, BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS",
    "mechanism": "On-chain transfer cost x dislocation magnitude in cross-venue convergence",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C039"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "CROSS_VENUE_REGION.venue_disagreement",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -17580,6 +17972,8 @@
    "id": "MARKET-04",
    "information_source": "Intended funding/premium observables",
    "mechanism": "Funding / premium / same-venue basis family (04 / 04H)",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "BLOCKED_OBSERVABLE / NOT_TESTED; not rejected",
    "note": "MARKET-04 / 04H: BLOCKED_OBSERVABLE / NOT_TESTED; not rejected.",
    "program": "MARKET",
    "records": [
@@ -17588,6 +17982,7 @@
     "docs/research/MARKET_04_FUNDING_AVAILABILITY_AUDIT.md"
    ],
    "reopen": "Observable/provenance still blocked; B2-06 related funding latency unproven Blocker requirement: Proven safe-usable-at time and archive identity for funding/premium observables",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "DERIVATIVES.funding_basis",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -17611,11 +18006,14 @@
    "id": "GV0CAL-C003",
    "information_source": "PRE2020_SURFACE: D2_BITMEX_PRE2020_XBTUSD, CORE_BTC_BINANCE_V0, BITMEX_XBTUSD_FUNDING_SCHEDULE_SPEC, BINANCE_UM_BTCUSDT_FUNDING_SCHEDULE_SPEC",
    "mechanism": "Funding-settlement clock microstructure identified by offset settlement schedules across BitMEX and Binance",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0CAL",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0CAL-C003"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "DERIVATIVES.funding_clock",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -17638,6 +18036,8 @@
    "id": "B2-06",
    "information_source": "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0 snapshot 5a9d036b…",
    "mechanism": "Leverage crowding (OI + funding state)",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "BLOCKED_MISSING_OBSERVABLE",
    "note": "Funding publication-latency observable unproven (no legally timestamped observable). FORWARD_MARKET_OBSERVABILITY_V1 collector frozen.",
    "program": "BATCH02",
    "records": [
@@ -17646,6 +18046,7 @@
     "docs/research/B2_06_FUNDING_PUBLICATION_AUTHORITY.md"
    ],
    "reopen": "Funding publication-latency observable still unproven Blocker requirement: First-party authority for when settled funding became public (FUNDING_PUBLICATION_LATENCY_UNPROVEN)",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "DERIVATIVES.leverage_crowding",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -17693,11 +18094,14 @@
    "id": "GV0V03L40-C001",
    "information_source": "KLINES: CORE_BTC_BINANCE_V0",
    "mechanism": "Liquidation-sweep wick count and next-24h unsigned tail excursion",
+   "memory_implied_state": "CANDIDATE_UNTESTED",
+   "memory_status": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C001"
    ],
    "reopen": "Market-outcome testing only if later selected under a separate frozen research contract; orthogonal mechanisms remain open.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "DERIVATIVES.liquidation_cascades",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CANDIDATE_UNTESTED",
@@ -17720,11 +18124,14 @@
    "id": "GV0V03L40-C003",
    "information_source": "PRE2020_SURFACE: D2_BITMEX_PRE2020_XBTUSD, CORE_BTC_BINANCE_V0",
    "mechanism": "Inverse-collateral convexity and down-move cascade run length",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_LOOKAHEAD_VIOLATION_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C003"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_LOOKAHEAD_VIOLATION; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must use only information observable at or before the decision time before this signature can advance. Also unresolved for this signature: DATA_READY_CLAIM_NOT_CONFIRMED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "DERIVATIVES.liquidation_cascades",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -17747,11 +18154,14 @@
    "id": "GV0V03L40-C027",
    "information_source": "PRE2020_SURFACE: D2_BITMEX_PRE2020_XBTUSD, CORE_BTC_BINANCE_V0",
    "mechanism": "Inverse-margin liquidation convexity and down-versus-up shock recovery on BitMEX XBTUSD",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C027"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "DERIVATIVES.liquidation_cascades",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -17775,6 +18185,8 @@
    "id": "MARKET-01",
    "information_source": "CORE_BTC + OI snapshot 5a9d036b…",
    "mechanism": "OI expansion weak continuation",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "NO_EVIDENCE; consumed; no rerun",
    "period": "2020-2024",
    "program": "MARKET",
    "records": [
@@ -17782,6 +18194,7 @@
     "docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.md"
    ],
    "reopen": "Not a rejection of all OI hypotheses; B2-06 still blocked",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "DERIVATIVES.oi_buildup",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -17805,6 +18218,8 @@
    "id": "MARKET-02",
    "information_source": "CORE_BTC + OI",
    "mechanism": "OI expansion price confirmation",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "NO_EVIDENCE; consumed; no rerun",
    "period": "2020-2024",
    "program": "MARKET",
    "records": [
@@ -17812,6 +18227,7 @@
     "docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_RESULT.md"
    ],
    "reopen": "Not a rejection of all confirmation-filter ideas",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "DERIVATIVES.oi_buildup",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -17822,6 +18238,7 @@
    "why_closed": "This OI-expansion price-confirmation confirmatory cell"
   },
   {
+   "blocker": "HOLDOUT_OVERLAP",
    "col": "POSITIONING",
    "datasets": [
     "STAGE1_LIVE_OI_FUNDING"
@@ -17831,7 +18248,7 @@
    "function": "Matched A (PRICE_OI_CONTRACTION_{DOWN,UP} trigger) vs B (same price condition, OI rank >= 0.50 mature); median d_e = ln(R_e) - mean ln(R_c) at 4h; k = 3 nearest controls, caliper 0.75, with replacement; B-vs-B placebo.",
    "id": "PRICE-OI-PILOT-V0",
    "mechanism": "Does the OI-contraction component add forward realized-range information beyond the extreme, persistent price move that defines the event (else the event is mostly an extreme-price / vol-clustering filter).",
-   "note": "OPEN QUESTION before any run: the frozen live-archive grid starts 2026-08-16T19:30Z, inside the calendar span of the E1-RUN-001 holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z). The pilot record does not discuss E1; resolve this with the owner before the runner is used.; AMBIGUITY: the frozen live-archive grid starts 2026-08-16T19:30Z, inside the calendar span of the E1-RUN-001 holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) whose E1 analysis reads are 'DB market reads hard-capped strictly before holdout'. The pilot record does not discuss E1; not assessed here.",
+   "note": "BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP until a future execution permit exists (erratum 2026-10-03). E1-RUN-001 untouched. Flagged, not adjudicated: the owner-run P4 descriptive follow-up used the same grid.",
    "period": "discovery: Phase A grid AUTHORIZED_BUCKETS = 12434 (2026-08-16T19:30Z-2026-09-25T12:40Z and 2026-09-25T13:05Z-2026-09-28T23:55Z); klines read to 2026-09-29T04:00Z; replication: a survive verdict would only justify designing a separate long-history test; binance_2025_2026_used: live archive 2026 (not the Binance Vision archive)",
    "practical_bar": "range ratio 1.25 (ln 1.25 = 0.2231) on median d(4h) and first-per-cluster median",
    "program": "Live-archive audit (owner-run, read-only); pilot only, not confirmatory",
@@ -17839,17 +18256,20 @@
     "docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0.md",
     "docs/research/price_oi_incremental_information_pilot_v0.json",
     "docs/audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md",
-    "docs/CURRENT_STATE.md"
+    "docs/CURRENT_STATE.md",
+    "docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md",
+    "docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.json"
    ],
-   "reopen": "Owner runs the frozen runner; changed design = new pilot identity.",
+   "reopen": "Only a new explicit execution permit recorded after the erratum. It is a new pilot identity under the protocol's own rule; earliest eligible grid timestamp 2026-08-25T17:20:00Z, and every input (30-day percentile history, persistence predecessor, 4h covariates, matched controls) must lie outside the protected interval, which the frozen design meets only from 2026-09-24T17:20:00Z.",
+   "reservation": "E1_RUN_001_FINAL_HOLDOUT",
    "row": "DERIVATIVES.oi_buildup",
    "source": "ATLAS_UNITS_V1",
    "source_id": "PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0",
-   "state": "CANDIDATE_UNTESTED",
+   "state": "BLOCKED_GOVERNANCE",
    "title": "OI-only ablation of PRICE_OI_CONTRACTION on the Signalbot live archive",
    "units_n": "data gate: exactly 25 triggered DOWN and 19 triggered UP episodes",
    "verdict": "FROZEN_BEFORE_OUTCOMES / PILOT_ONLY — NOT_EXECUTED (CURRENT_STATE: not run, no result)",
-   "why_closed": "Implemented as an owner-run read-only audit; not run."
+   "why_closed": "Not run. The frozen 12434-bucket grid starts at 2026-08-16T19:30Z, inside the protected E1-RUN-001 holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) (2566 buckets inside). Execution on that segment is invalid, and without it the frozen data gate (12434 buckets, 25 DOWN / 19 UP episodes) cannot be met."
   },
   {
    "col": "CANDLES",
@@ -17899,8 +18319,21 @@
    "id": "GV0R01-C012",
    "information_source": "OFFICIAL_CALENDAR: D11_FOMC_OFFICIAL_V0, CORE_BTC_BINANCE_V0, STATUTORY_DST_CALENDARS, BLS_CPI_RELEASE_SCHEDULE_ARCHIVE",
    "mechanism": "Pre-announcement BTC drift before scheduled FOMC and CPI releases",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
    "note": "Pre-announcement drift before FOMC and CPI; closed before any outcome was counted: too few events for a verdict either way (findings registry: UNDERPOWERED).",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
+   "reconciliation": {
+    "atlas_state": "INFORMATIONALLY_WEAK",
+    "kind": "POST_MEMORY_RECORD",
+    "memory_implied_state": "BLOCKED_DATA",
+    "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
+    "reason": "After the Stream-B data acquisition, the card was closed outcome-blind as informationally weak (too few events for a verdict either way).",
+    "records": [
+     "docs/research/GV0R01_C012_OUTCOME_BLIND_DESIGN.md",
+     "docs/research/GV0R01_C012_CLOSE.json"
+    ]
+   },
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C012",
     "docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.md",
@@ -17910,6 +18343,7 @@
     "docs/research/GV0R01_C012_CLOSE.json"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_FEASIBILITY_REQUIRED; orthogonal mechanisms remain open. Blocker requirement: The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "EVENTS.cpi",
    "source": "MECHANISM_MEMORY_V0",
    "state": "INFORMATIONALLY_WEAK",
@@ -17962,12 +18396,15 @@
    "id": "D8",
    "information_source": "CORE_BTC_BINANCE_V0 1h",
    "mechanism": "Endogenous high-magnitude + high-activity shock recovery",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT; NOT NO_USEFUL_STRUCTURE; recovery unevaluated",
    "note": "DEFERRED_INSUFFICIENT_CONTROL_SUPPORT; not a null. Thresholds and control semantics may not be weakened.",
    "program": "DISCOVERY",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#D8"
    ],
    "reopen": "This endogenous shock/recovery card is non-executable as frozen; D11 unsigned scheduled-FOMC vol response does not rescue D8. Other event families remain open only if orthogonal. Blocker requirement: A control design with adequate support that keeps D8's frozen event thresholds unchanged",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "EVENTS.endogenous_shocks",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -18016,11 +18453,14 @@
    "id": "GV0CAL-C004",
    "information_source": "OFFICIAL_CALENDAR: CORE_BTC_BINANCE_V0, STATUTORY_DST_CALENDARS, CME_BITCOIN_FUTURES_FINAL_SETTLEMENT_CALENDAR, CME_CF_BRR_METHODOLOGY_ARCHIVE",
    "mechanism": "Reference-rate fixing window footprint on Binance perpetual activity at CME bitcoin futures settlement",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0CAL",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0CAL-C004"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "EVENTS.etf_fix",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -18246,6 +18686,8 @@
    "id": "D11",
    "information_source": "docs/research_data/D11_FOMC_OFFICIAL_V0 + CORE_BTC_BINANCE_V0",
    "mechanism": "Exogenous scheduled-FOMC unsigned volatility response",
+   "memory_implied_state": "LIVE_SIGNAL",
+   "memory_status": "PROMISING_PROTOTYPE; adaptive discovery only; N=39 scheduled FOMC events; NOT independently replicated",
    "note": "Unsigned 6h RV after scheduled FOMC; adaptive discovery, not replicated. No horizon/direction/recovery child and no CPI copy of the template.",
    "period": "2020-2024",
    "program": "DISCOVERY",
@@ -18254,6 +18696,7 @@
     "docs/research/discovery_results/D11_DISCOVERY_RESULT.md"
    ],
    "reopen": "Independent confirmation; N=39 is the frozen scheduled-FOMC family size. Not a directional or trading claim.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "EVENTS.fomc",
    "source": "MECHANISM_MEMORY_V0",
    "state": "LIVE_SIGNAL",
@@ -18308,11 +18751,14 @@
    "id": "GV0V03L40-C036",
    "information_source": "OFFICIAL_CALENDAR: D11_FOMC_OFFICIAL_V0, STATUTORY_DST_CALENDARS, CORE_BTC_BINANCE_V0, FED_SPEAKER_CALENDAR_ARCHIVE, BLS_CPI_RELEASE_SCHEDULE_ARCHIVE",
    "mechanism": "FOMC communications blackout and US-hours BTC jump intensity",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C036"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "EVENTS.fomc",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -18337,8 +18783,21 @@
    "id": "GV0R01-C004",
    "information_source": "OFFICIAL_CALENDAR: D11_FOMC_OFFICIAL_V0, CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0, BLS_CPI_RELEASE_SCHEDULE_ARCHIVE",
    "mechanism": "Common-factor dominance of ETH versus BTC in scheduled FOMC windows",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
    "note": "Closed outcome-blind after feasibility (CURRENT_STATE: C012, C004, C020 informationally weak or insufficient inference support); the memory snapshot shows the earlier DATA_FEASIBILITY_REQUIRED.",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
+   "reconciliation": {
+    "atlas_state": "INFORMATIONALLY_WEAK",
+    "kind": "POST_MEMORY_RECORD",
+    "memory_implied_state": "BLOCKED_DATA",
+    "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
+    "reason": "After the Stream-B data acquisition, the card was closed outcome-blind with insufficient inference support.",
+    "records": [
+     "docs/research/GV0R01_C004_OUTCOME_BLIND_DESIGN.md",
+     "docs/research/GV0R01_C004_CLOSE.json"
+    ]
+   },
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C004",
     "docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.md",
@@ -18347,6 +18806,7 @@
     "docs/research/GV0R01_C004_CLOSE.json"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_FEASIBILITY_REQUIRED; orthogonal mechanisms remain open. Blocker requirement: The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "EVENTS.fomc",
    "source": "MECHANISM_MEMORY_V0",
    "state": "INFORMATIONALLY_WEAK",
@@ -18406,11 +18866,14 @@
    "id": "GV0V03L40-C022",
    "information_source": "OPTIONS: DERIBIT_OPTIONS_QUOTES_VENDOR_HISTORY, DERIBIT_OPTIONS_TRADES_PUBLIC_HISTORY, CORE_BTC_BINANCE_V0, STATUTORY_DST_CALENDARS, CME_BITCOIN_FUTURES_TRADING_HOURS_AND_HOLIDAY_ARCHIVE",
    "mechanism": "Options-implied synthetic forward deviation and Binance perpetual drift during CME-closed weekends",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C022"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_BLOCKED_COST.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "EVENTS.market_closures",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -18433,11 +18896,14 @@
    "id": "GV0V03L40-C010",
    "information_source": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, STATUTORY_DST_CALENDARS, CME_GLOBEX_CRYPTO_SESSION_HOURS_AND_HOLIDAY_ARCHIVE",
    "mechanism": "CME Globex Sunday reopen clock and Binance perpetual versus OKX spot dislocation",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C010"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "EVENTS.market_closures",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -18461,11 +18927,14 @@
    "id": "GV0V03L40-C004",
    "information_source": "OFFICIAL_CALENDAR: CORE_ETH_BINANCE_V0, CORE_BTC_BINANCE_V0, ETHEREUM_MAINNET_UPGRADE_ACTIVATION_CALENDAR",
    "mechanism": "ETH residual return in the window after scheduled Ethereum network-upgrade activation",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C004"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "EVENTS.protocol_events",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -18488,6 +18957,8 @@
    "id": "B2-05",
    "information_source": "CORE_BTC_BINANCE_V0 taker/flow fields",
    "mechanism": "Flow absorption",
+   "memory_implied_state": "EXPOSED_ONLY",
+   "memory_status": "DEVELOPMENT_CONSUMED / B2_05_RECOVERY_ARCHIVED_OPERATOR_ADJUDICATED",
    "note": "Development-consumed; recovery archived under operator adjudication; no scientific closeout. Taker-flow absorption on CORE_BTC cannot be a confirmation.",
    "period": "2020-2024",
    "program": "BATCH02",
@@ -18495,6 +18966,7 @@
     "docs/research/MECHANISM_MEMORY_V0.json#B2-05"
    ],
    "reopen": "No cryptographic historical-byte proof; no RESULT.md as scientific closeout",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "FLOW.absorption",
    "source": "MECHANISM_MEMORY_V0",
    "state": "EXPOSED_ONLY",
@@ -18505,6 +18977,7 @@
    "why_closed": "Do not invent a clean scientific terminal RESULT for B2-05. Do not treat formula-changed taker/flow children as fresh (with H05)."
   },
   {
+   "blind_mechanism": "Divergence as a seller-exhaustion marker inside an existing support state: price down, downside momentum and selling pressure weakening, support persisting.",
    "col": "ORDER_BOOK",
    "datasets": [
     "DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM"
@@ -18629,11 +19102,14 @@
    "id": "GV0CAL-C001",
    "information_source": "KLINES: CORE_BTC_BINANCE_V0",
    "mechanism": "Average trade size as participant-composition state and subsequent sub-hour variance ratio",
+   "memory_implied_state": "CANDIDATE_UNTESTED",
+   "memory_status": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0CAL",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0CAL-C001"
    ],
    "reopen": "Market-outcome testing only if later selected under a separate frozen research contract; orthogonal mechanisms remain open.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "FLOW.participant_composition",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CANDIDATE_UNTESTED",
@@ -18714,6 +19190,8 @@
    "id": "H05",
    "information_source": "CORE_BTC_BINANCE_V0 taker-buy quote volume",
    "mechanism": "Taker imbalance -> subsequent return",
+   "memory_implied_state": "CLOSED_ON_SURFACE",
+   "memory_status": "H05_REJECTED_SPECIFIC_CLAIM",
    "period": "2020-2024",
    "program": "BATCH01",
    "records": [
@@ -18721,6 +19199,7 @@
     "docs/research/H05_DEV_SUMMARY.md"
    ],
    "reopen": "POSTHOC BUY/SELL asymmetry quarantined; richer L2 flow not tested",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "FLOW.taker_imbalance",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CLOSED_ON_SURFACE",
@@ -18743,11 +19222,14 @@
    "id": "GV0V03L40-C023",
    "information_source": "ONCHAIN: BITCOIN_BLOCKCHAIN_FULL_NODE_EXPORT, EXCHANGE_DEPOSIT_ADDRESS_LABELS_POINT_IN_TIME, CORE_BTC_BINANCE_V0",
    "mechanism": "Large-holder BTC exchange deposits and downside-dominant subsequent path shape",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_LOOKAHEAD_VIOLATION_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C023"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_LOOKAHEAD_VIOLATION; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must use only information observable at or before the decision time before this signature can advance. Also unresolved for this signature: DATA_BLOCKED_POINT_IN_TIME_SEMANTICS.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "LONG_HORIZON.exchange_flows",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -18770,12 +19252,15 @@
    "id": "GV0V03L40-C031",
    "information_source": "ONCHAIN: BITCOIN_BLOCKCHAIN_FULL_NODE_BLOCKS, EXCHANGE_DEPOSIT_ADDRESS_LABELS_BTC, BINANCE_BTC_DEPOSIT_CONFIRMATION_POLICY_ARCHIVE, CORE_BTC_BINANCE_V0",
    "mechanism": "Deposit credit-latency footprint of large on-chain BTC inflows to exchange addresses",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_BLOCKED_PROVENANCE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C031",
     "docs/research/GV0V03L40_SHORTLIST_BLOCKER_TRIAGE.md"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_BLOCKED_PROVENANCE; orthogonal mechanisms remain open. Blocker requirement: The data blocker DATA_BLOCKED_PROVENANCE must be resolved with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "LONG_HORIZON.exchange_flows",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -18798,12 +19283,15 @@
    "id": "D6",
    "information_source": "Unpinned external source vs CORE_BTC",
    "mechanism": "External mechanism benchmark",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "DEFERRED (source not pinned; diagnostically insufficient episodes in red-team)",
    "note": "External source not pinned; diagnostically insufficient episodes.",
    "program": "DISCOVERY",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#D6"
    ],
    "reopen": "Pin an external mechanism outcome-blind before inspecting outcomes Blocker requirement: Pin the external source outcome-blind before inspecting outcomes",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "LONG_HORIZON.external_reproduction",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -18827,12 +19315,15 @@
    "id": "MARKET-03",
    "information_source": "External published mechanism + CORE BTC",
    "mechanism": "External/public strategy reproduction",
+   "memory_implied_state": "CLOSED_ON_SURFACE",
+   "memory_status": "REPRODUCED_DIRECTION; EXTERNAL; not internal discovery",
    "note": "External reproduction of a published strategy direction; not an internal discovery.",
    "program": "MARKET",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#MARKET-03"
    ],
    "reopen": "External benchmarks remain diagnostic (family I / D6)",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "LONG_HORIZON.external_reproduction",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CLOSED_ON_SURFACE",
@@ -18855,11 +19346,14 @@
    "id": "GV0R01-C007",
    "information_source": "ONCHAIN: ETHEREUM_USDT_CONTRACT_ISSUE_EVENT_LOGS, TRON_USDT_TRC20_ISSUANCE_LOGS, EXCHANGE_DEPOSIT_ADDRESS_LABELS, CORE_BTC_BINANCE_V0",
    "mechanism": "BTC response to large on-chain USDT issuance events under demand-state matching",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_LOOKAHEAD_VIOLATION_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C007"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_LOOKAHEAD_VIOLATION; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must use only information observable at or before the decision time before this signature can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "LONG_HORIZON.stablecoin_flows",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -18882,11 +19376,14 @@
    "id": "GV0R01-C015",
    "information_source": "ONCHAIN: ETHEREUM_USDT_ERC20_TRANSFER_LOGS, TRON_USDT_TRC20_TRANSFER_LOGS, EXCHANGE_WALLET_ADDRESS_LABELS, CORE_BTC_BINANCE_V0",
    "mechanism": "Stablecoin supply events as an execution-liquidity state for the BTC perpetual",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_LOOKAHEAD_VIOLATION_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C015"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_LOOKAHEAD_VIOLATION; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must use only information observable at or before the decision time before this signature can advance. Also unresolved for this signature: DATA_BLOCKED_PROVENANCE.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "LONG_HORIZON.stablecoin_flows",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -18909,11 +19406,14 @@
    "id": "GV0V03L40-C007",
    "information_source": "ONCHAIN: CORE_BTC_BINANCE_V0, ETHEREUM_USDT_ERC20_TRANSFER_LOGS, TRON_USDT_TRC20_TRANSFER_LOGS, EXCHANGE_DEPOSIT_ADDRESS_LABELS",
    "mechanism": "On-chain stablecoin exchange inflow and recovery inside down-shock windows",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_BLOCKED_POINT_IN_TIME_SEMANTICS_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C007"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_BLOCKED_POINT_IN_TIME_SEMANTICS; orthogonal mechanisms remain open. Blocker requirement: The data blocker DATA_BLOCKED_POINT_IN_TIME_SEMANTICS must be resolved with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "LONG_HORIZON.stablecoin_flows",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -18982,12 +19482,15 @@
    "id": "D5",
    "information_source": "CORE_BTC plus D2-like components",
    "mechanism": "Composed decision mechanism (exploratory R-F)",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "NO_USEFUL_STRUCTURE; HIGH rescue/multiple-testing risk recorded",
    "period": "2020-2024",
    "program": "DISCOVERY",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#D5"
    ],
    "reopen": "Composition remains HIGH rescue risk",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "METHOD.composition",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -18998,6 +19501,7 @@
    "why_closed": "Nearby composed-rule / AND-filter children of failed components"
   },
   {
+   "blind_function": "E1-RUN-001 V2 Stage-5 detector separation",
    "col": "CANDLES",
    "datasets": [
     "STAGE1_LIVE_KLINES_3VENUE",
@@ -19039,6 +19543,7 @@
    "why_closed": "Ledger 2026-08-28: the three Stage-5 formulations are RETIRED_CURRENT_FORMULATION, combining consumed E1 development evidence (TP near SIMPLIFY/KILL; CB SIMPLIFY/INCONCLUSIVE; CONFIRMED_BREAKOUT strong KILL candidate) with the Batch01 H01-H05 results; \"there is no research justification to spend the frozen E1 holdout on rescue\"."
   },
   {
+   "blind_function": "V3 Microscope synthetic confirmatory calibration",
    "col": "CANDLES",
    "datasets": [
     "SYNTHETIC_DGP"
@@ -19089,6 +19594,8 @@
    "id": "GV0R01-C016",
    "information_source": "ORDER_BOOK: BINANCE_PUBLIC_DATA_UM_BOOKDEPTH, BINANCE_PUBLIC_DATA_UM_BOOKTICKER, TARDIS_BINANCE_FUTURES_L2_INCREMENTAL, CORE_BTC_BINANCE_V0",
    "mechanism": "Order-book depth thinning as a leading indicator of volatility-regime transition",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C016",
@@ -19096,6 +19603,7 @@
     "docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.json"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_FEASIBILITY_REQUIRED; orthogonal mechanisms remain open. Blocker requirement: The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "MICROSTRUCTURE.liquidity_withdrawal",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -19119,11 +19627,14 @@
    "id": "GV0V03L40-C032",
    "information_source": "ORDER_BOOK: BINANCE_UM_BOOKDEPTH_PUBLIC_ARCHIVE, CORE_BTC_BINANCE_V0, CME_BITCOIN_FUTURES_TRADING_HOURS_ARCHIVE",
    "mechanism": "Weekend hedge-venue closure and maker depth replenishment after taker sweeps",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C032"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "MICROSTRUCTURE.replenishment",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -19196,11 +19707,14 @@
    "id": "GV0R01-C030",
    "information_source": "OPTIONS: Deribit BTC option trades with aggressor side, strike, expiry and implied volatility, Deribit BTC option open interest by strike and expiry, hourly snapshots, Options dealer net inventory by strike, CORE_BTC_BINANCE_V0",
    "mechanism": "Options-dealer gamma sign state and sub-hour return autocorrelation of the BTC perpetual",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C030"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_BLOCKED_COST.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "OPTIONS_REGION.dealer_gamma",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -19224,11 +19738,14 @@
    "id": "GV0V03L40-C038",
    "information_source": "OPTIONS: DERIBIT_OPTIONS_HISTORICAL_MARKS_VENDOR, DERIBIT_EXPIRY_CALENDAR_ARCHIVE, D11_FOMC_OFFICIAL_V0, CORE_BTC_BINANCE_V0",
    "mechanism": "Option dealers' pricing of scheduled FOMC jump variance and its realization in BTC",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C038"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_BLOCKED_COST.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "OPTIONS_REGION.event_implied_variance",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -19292,11 +19809,14 @@
    "id": "GV0R01-C022",
    "information_source": "OPTIONS: Deribit BTC option open interest by strike and expiry, hourly snapshots, Deribit BTC option expiry calendar and delivery prices, CORE_BTC_BINANCE_V0",
    "mechanism": "Deribit expiry strike-pinning footprint on Binance BTC perpetual price at 08:00 UTC",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C022"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_BLOCKED_COST.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "OPTIONS_REGION.expiry_pinning",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -19319,6 +19839,8 @@
    "id": "GV0R01-C006",
    "information_source": "OPTIONS: DERIBIT_DVOL_INDEX_PUBLIC_API, DERIBIT_OPTIONS_HISTORICAL_MARKS_VENDOR, CORE_BTC_BINANCE_V0",
    "mechanism": "Option-implied volatility gap as a precursor of realized-volatility regime transitions",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C006",
@@ -19326,6 +19848,7 @@
     "docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.json"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_FEASIBILITY_REQUIRED; orthogonal mechanisms remain open. Blocker requirement: The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "OPTIONS_REGION.implied_vs_realized",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -19348,6 +19871,8 @@
    "id": "GV0R01-C014",
    "information_source": "OPTIONS: DERIBIT_DVOL_INDEX_HISTORY, DERIBIT_OPTIONS_QUOTES_VENDOR_HISTORY, CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0",
    "mechanism": "Options-implied ETH-BTC relative variance spread and subsequent realized relative variance",
+   "memory_implied_state": "BLOCKED_DATA",
+   "memory_status": "PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C014",
@@ -19355,6 +19880,7 @@
     "docs/research/GV0R01_STREAM_B_FEASIBILITY_TRIAGE.json"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves DATA_FEASIBILITY_REQUIRED; orthogonal mechanisms remain open. Blocker requirement: The required observables must be sourced with point-in-time semantics and archive provenance before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "OPTIONS_REGION.implied_vs_realized",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_DATA",
@@ -19428,12 +19954,15 @@
    "id": "B2-02",
    "information_source": "CORE_BTC_BINANCE_V0",
    "mechanism": "Boundary interaction path",
+   "memory_implied_state": "CLOSED_ON_SURFACE",
+   "memory_status": "CLOSED_NO_PROMOTION",
    "period": "2020-2024",
    "program": "BATCH02",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#B2-02"
    ],
    "reopen": "Not a proof that every boundary mechanism is false",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "PRICE_STRUCTURE.breakout",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CLOSED_ON_SURFACE",
@@ -19456,6 +19985,8 @@
    "id": "H02",
    "information_source": "CORE_BTC_BINANCE_V0",
    "mechanism": "Failed breakout -> mean reversion",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "H02_KILL",
    "period": "2020-2024",
    "program": "BATCH01",
    "records": [
@@ -19463,6 +19994,7 @@
     "docs/research/H02_DEV_SUMMARY.md"
    ],
    "reopen": "Other reversion constructions not tested; not a rescue of H02",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "PRICE_STRUCTURE.breakout",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -19562,6 +20094,7 @@
    "aliases": [
     "DIVERGENCE"
    ],
+   "blind_function": "Divergence inside support versus a broader weakening-of-selling-pressure (flow/OI) state, six-symbol panel",
    "col": "ORDER_BOOK",
    "datasets": [
     "DIVERGENCE_FULL_HISTORY_V0_BINANCE_UM",
@@ -19630,6 +20163,7 @@
    "why_closed": "Product-first routing; line closed 2026-10-03; not authorized for feasibility or execution."
   },
   {
+   "blind_function": "SEED-0001 regular bullish divergence with order-book support, 1h BTCUSDT perp",
    "col": "ORDER_BOOK",
    "datasets": [
     "SEED0001_BINANCE_UM_1H_BOOKDEPTH_V0",
@@ -19709,7 +20243,7 @@
    "function": "Same frozen detector, model, covariates and clusters; one-sided tests in the discovery direction, Holm over P1/P2 at 0.05, plus the practical gate; one analysis after the stop.",
    "id": "SEED-0001-PROSP",
    "mechanism": "Same as TF-SEED0001-RD-RETRO1 (support + regular bullish divergence at a confirmed lower low after a decline).",
-   "note": "Registered, never started; the test ledger still lists it REGISTERED_NOT_STARTED. The owner closed the divergence / selling-exhaustion line on 2026-10-03 (no new divergence or exhaustion unit, SEED or prospective stream); starting this needs a new owner decision.; Owner label OWNER_UNBLINDED_TO_LIVE_CHARTS (owner sees live charts and may trade the rule). Ledger status still REGISTERED_NOT_STARTED; no record retires it explicitly.",
+   "note": "Closure is recorded append-only; the preregistration and the ledger registration entry are preserved unchanged.",
    "period": "discovery: None; replication: prospective cohort T >= 2026-10-05T00:00Z; stop at decision time of the 30th Arm-A episode or deadline 2028-10-05T00:00Z; minimum 20 Arm-A episodes; binance_2025_2026_used: would use protected 2026 (decisions before 2027-01-01); detector run on that segment needs a separate explicit owner decision; nothing run",
    "practical_bar": "MIN_MEANINGFUL_EFFECT = 0.10 (as the card)",
    "program": "SF-OWNER-SEEDS / SEED-0001 prospective confirmation leg",
@@ -19717,17 +20251,19 @@
     "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.md",
     "docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json",
     "docs/research/SEED0001_FEASIBILITY_REPORT.md",
-    "docs/research/SCIENTIFIC_TEST_LEDGER.json"
+    "docs/research/SCIENTIFIC_TEST_LEDGER.json",
+    "docs/research/SEED0001_PROSPECTIVE_CLOSURE_V1.md",
+    "docs/research/SEED0001_PROSPECTIVE_CLOSURE_V1.json"
    ],
-   "reopen": "Explicit owner decision to run the detector on the protected 2026 segment / cohort plus a separate execution permit; nothing seen in the exploratory pass may modify it. Owner V2 note: overlaps a would-be SEED-0003 prospective A - B leg (retire one or keep disjoint).",
+   "reopen": "None for this test family. A restart is a new unit with a new TEST_FAMILY_ID, its own registration and an explicit owner permit.",
    "row": "PRICE_STRUCTURE.divergence",
    "source": "ATLAS_UNITS_V1",
    "source_id": "TF-SEED0001-RD-PROSP1",
-   "state": "CANDIDATE_UNTESTED",
+   "state": "CLOSED_BEFORE_START",
    "title": "SEED-0001 prospective confirmation on BTCUSDT perp, decisions from 2026-10-05",
    "units_n": "planned 30 A episodes (minimum 20); prefix stand-in 30 / 223 / 58 / 331 in 85 weeks",
    "verdict": "REGISTERED_NOT_STARTED (NOT_EXECUTED); power at 0.10 (BASE / STRESS) at 30 A = 0.16 / 0.15; at 0.20 = 0.53 / 0.47; MDE 0.30; 20 A minimum: 0.14 / 0.13 at 0.10; MDE 0.325-0.35; about 20 months to 30 A at the 2023-2024 rate",
-   "why_closed": "Never activated: needs owner decisions under protected-data rules; frozen and separate; the divergence line was closed on 2026-10-03 (PROSPECTIVE_DIVERGENCE_STREAM_ACTIVE = false). Low power: can confirm only a large (about 30 pp) effect."
+   "why_closed": "CLOSED_BEFORE_START: superseded by the divergence program closure (owner routing decision 2026-10-03). Execution never started, no prospective outcome was opened (the cohort starts 2026-10-05T00:00Z) and no confirmation surface was consumed."
   },
   {
    "col": "ORDER_BOOK",
@@ -19827,12 +20363,15 @@
    "id": "B2-03",
    "information_source": "CORE_BTC_BINANCE_V0",
    "mechanism": "Impulse morphology",
+   "memory_implied_state": "CLOSED_ON_SURFACE",
+   "memory_status": "CLOSED_NO_PROMOTION",
    "period": "2020-2024",
    "program": "BATCH02",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#B2-03"
    ],
    "reopen": "Exogenous scheduled-FOMC event-vol response is a different function",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "PRICE_STRUCTURE.impulse",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CLOSED_ON_SURFACE",
@@ -19855,14 +20394,27 @@
    "id": "H03",
    "information_source": "CORE_BTC_BINANCE_V0",
    "mechanism": "Extreme impulse -> continuation vs exhaustion",
+   "memory_implied_state": "CLOSED_ON_SURFACE",
+   "memory_status": "H03_REJECTED_SPECIFIC_CLAIM",
    "note": "No steady continuation or fade; the sign changed with horizon and year.",
    "period": "2020-2024",
    "program": "BATCH01",
+   "reconciliation": {
+    "atlas_state": "NO_STRUCTURE",
+    "kind": "ATLAS_CLASSIFICATION",
+    "memory_implied_state": "CLOSED_ON_SURFACE",
+    "memory_status": "H03_REJECTED_SPECIFIC_CLAIM",
+    "reason": "The specific claim was rejected and the record shows no steady continuation or fade (the sign changed with horizon and year), so the atlas reads it as no structure on this surface.",
+    "records": [
+     "docs/research/H03_DEV_SUMMARY.md"
+    ]
+   },
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#H03",
     "docs/research/H03_DEV_SUMMARY.md"
    ],
    "reopen": "Other event families (exogenous calendar, liquidations) not tested here",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "PRICE_STRUCTURE.impulse",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -19885,11 +20437,14 @@
    "id": "GV0R01-C017",
    "information_source": "KLINES: CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0",
    "mechanism": "Response after first touches of untouched round-number price levels, compared with placebo grids",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C017"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "PRICE_STRUCTURE.levels",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -19940,12 +20495,15 @@
    "id": "D3",
    "information_source": "CORE_BTC 5m close path",
    "mechanism": "Path morphology (unsigned close-path)",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "NO_USEFUL_STRUCTURE",
    "period": "2020-2024",
    "program": "DISCOVERY",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#D3"
    ],
    "reopen": "Event-conditional path after a different event class is not D3",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "PRICE_STRUCTURE.path_shape",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -19969,11 +20527,14 @@
    "id": "GV0R01-C003",
    "information_source": "PRE2020_SURFACE: D2_BITMEX_PRE2020_XBTUSD, CORE_BTC_BINANCE_V0",
    "mechanism": "Cascade contiguity of top intraday 5m moves across the BitMEX (omitted) and Binance eras",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C003"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "PRICE_STRUCTURE.path_shape",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -19996,11 +20557,14 @@
    "id": "GV0R01-C025",
    "information_source": "KLINES: CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0",
    "mechanism": "Time-reversal asymmetry (Zumbach effect) in the BTC perpetual volatility cascade",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C025"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "PRICE_STRUCTURE.path_shape",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -20023,12 +20587,15 @@
    "id": "B2-04",
    "information_source": "CORE_BTC_BINANCE_V0",
    "mechanism": "Moderate pullback structure (explicit H04 child)",
+   "memory_implied_state": "CLOSED_ON_SURFACE",
+   "memory_status": "CLOSED_NO_PROMOTION; B2_04_POSTHOC_PROVENANCE=H04_EXPLICIT_CHILD",
    "period": "2020-2024",
    "program": "BATCH02",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#B2-04"
    ],
    "reopen": "None inside current V2",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "PRICE_STRUCTURE.pullback",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CLOSED_ON_SURFACE",
@@ -20051,6 +20618,8 @@
    "id": "H04",
    "information_source": "CORE_BTC_BINANCE_V0",
    "mechanism": "Trend pullback -> continuation",
+   "memory_implied_state": "CLOSED_ON_SURFACE",
+   "memory_status": "H04_REJECTED_SPECIFIC_CLAIM",
    "period": "2020-2024",
    "program": "BATCH01",
    "records": [
@@ -20058,6 +20627,7 @@
     "docs/research/H04_DEV_SUMMARY.md"
    ],
    "reopen": "POSTHOC local/moderate-depth pattern untested; not a pass",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "PRICE_STRUCTURE.pullback",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CLOSED_ON_SURFACE",
@@ -20080,11 +20650,14 @@
    "id": "GV0V03L40-C002",
    "information_source": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0",
    "mechanism": "Weekend perp-premium propagation into OKX spot",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CONFOUNDING_CONTROL_INADEQUATE_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C002"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CONFOUNDING_CONTROL_INADEQUATE; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must control the correlated calendar, volatility, liquidity and contemporaneous event structure that confound this signature before it can advance. Also unresolved for this signature: DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW, DATA_FEASIBILITY_REQUIRED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "SPOT_PERP.basis_dislocation",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -20107,11 +20680,14 @@
    "id": "GV0V03L40-C034",
    "information_source": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0",
    "mechanism": "Inventory-asymmetric closure of perp-discount versus perp-premium cross-venue dislocations",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C034"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "SPOT_PERP.basis_dislocation",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -20134,6 +20710,8 @@
    "id": "MARKET-06",
    "information_source": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0 snapshot e0403e40…",
    "mechanism": "Cross-venue dislocation -> 24h BTC adverse-path MAE",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "MARKET_06_NO_EVIDENCE; one-shot consumed; no rerun",
    "period": "2022-2024",
    "program": "MARKET",
    "records": [
@@ -20141,6 +20719,7 @@
     "docs/research/MARKET_06_CROSS_VENUE_DISLOCATION_RESULT.md"
    ],
    "reopen": "D9 tested 5m SHARE-on-closing-extremes conditional venue-resolution attribution and classified NO_USEFUL_STRUCTURE. Higher-resolution / third-venue price-discovery remains untested; not PRICE_DISCOVERY_LEADERSHIP.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "SPOT_PERP.basis_dislocation",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -20163,12 +20742,15 @@
    "id": "D9",
    "information_source": "MARKET_06_OKX_BINANCE_FEASIBILITY_V0 snapshot e0403e40…",
    "mechanism": "Conditional venue-resolution attribution (unclipped PERP_RESOLUTION_SHARE)",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "NO_USEFUL_STRUCTURE",
    "period": "2022-2024",
    "program": "DISCOVERY",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#D9"
    ],
    "reopen": "Orthogonal families remain as already recorded. Higher-resolution / third-venue price-discovery is not this card. Do not convert this null into neighbor rescue.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "SPOT_PERP.lead_lag",
    "source": "MECHANISM_MEMORY_V0",
    "state": "NO_STRUCTURE",
@@ -20191,11 +20773,14 @@
    "id": "GV0CAL-C002",
    "information_source": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, STATUTORY_DST_CALENDARS",
    "mechanism": "Intraday rotation of perpetual-versus-spot price-discovery locus and its displacement at US DST shifts",
+   "memory_implied_state": "CANDIDATE_UNTESTED",
+   "memory_status": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0CAL",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0CAL-C002"
    ],
    "reopen": "Market-outcome testing only if later selected under a separate frozen research contract; orthogonal mechanisms remain open.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "SPOT_PERP.lead_lag",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CANDIDATE_UNTESTED",
@@ -20218,11 +20803,14 @@
    "id": "GV0R01-C002",
    "information_source": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0",
    "mechanism": "Opening-leg identity and directional continuation of the cross-venue midpoint",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C002"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "SPOT_PERP.lead_lag",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -20245,11 +20833,14 @@
    "id": "GV0R01-C026",
    "information_source": "CROSS_VENUE: MARKET_06_OKX_BINANCE_FEASIBILITY_V0, CORE_BTC_BINANCE_V0",
    "mechanism": "Cross-venue Epps-curve speed of the Binance BTC perpetual versus OKX spot as a transmission-capacity clock",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "program": "GENERATOR_V0_CAMPAIGN_GV0R01",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0R01-C026"
    ],
    "reopen": "A materially redesigned candidate that explicitly resolves METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING; orthogonal mechanisms remain open. Blocker requirement: A predeclared design must separately identify the proposed mechanism from correlated timing, venue and calendar structure and address its causal interpretation before this signature can advance. Also unresolved for this signature: DATA_READY_CLAIM_NOT_CONFIRMED.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "SPOT_PERP.lead_lag",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -20272,14 +20863,27 @@
    "id": "H01",
    "information_source": "CORE_BTC_BINANCE_V0 15m grid",
    "mechanism": "Compression -> subsequent RV expansion",
+   "memory_implied_state": "NO_STRUCTURE",
+   "memory_status": "H01_KILL / REJECTED; 0/5 Batch01 promoted",
    "note": "Claim rejected; the record states the reverse side finding (after quiet 30-120 min expansion was rarer than usual), so not NO_STRUCTURE.",
    "period": "2020-2024",
    "program": "BATCH01",
+   "reconciliation": {
+    "atlas_state": "CLOSED_ON_SURFACE",
+    "kind": "ATLAS_CLASSIFICATION",
+    "memory_implied_state": "NO_STRUCTURE",
+    "memory_status": "H01_KILL / REJECTED; 0/5 Batch01 promoted",
+    "reason": "The claim was rejected, but the record states a reverse side finding (after quiet 30-120 min, expansion was rarer than usual), so the cell is closed on this surface rather than without structure.",
+    "records": [
+     "docs/research/H01_DEV_SUMMARY.md"
+    ]
+   },
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#H01",
     "docs/research/H01_DEV_SUMMARY.md"
    ],
    "reopen": "POSTHOC reverse volatility-persistence untested; not a pass",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "VOLATILITY_STATE.compression",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CLOSED_ON_SURFACE",
@@ -20303,9 +20907,22 @@
    "id": "D7",
    "information_source": "CORE_BTC_BINANCE_V0 1m->1h kline proxy",
    "mechanism": "Kline-derived hourly execution-impact state persistence",
+   "memory_implied_state": "LIVE_SIGNAL",
+   "memory_status": "PROMISING_PROTOTYPE; adaptive discovery only; NOT independently replicated",
    "note": "Kline-derived impact state. After the memory snapshot the pre-registered BitMEX 2016-2019 confirmation passed (CONFIRMED_UNDER_MAINTAINED_ASSUMPTIONS) and the campaign was closed (D7_CAMPAIGN_CLOSED). Not order-book liquidity; no L2 card may be justified as a better D7.",
    "period": "2020-2024; BitMEX 2016-2019 confirmatory",
    "program": "DISCOVERY",
+   "reconciliation": {
+    "atlas_state": "CONFIRMED",
+    "kind": "POST_MEMORY_RECORD",
+    "memory_implied_state": "LIVE_SIGNAL",
+    "memory_status": "PROMISING_PROTOTYPE; adaptive discovery only; NOT independently replicated",
+    "reason": "The pre-registered BitMEX 2016-2019 confirmation passed after the memory snapshot (CONFIRMED_UNDER_MAINTAINED_ASSUMPTIONS) and the campaign was closed (D7_CAMPAIGN_CLOSED).",
+    "records": [
+     "docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.md",
+     "docs/research/D7_CAMPAIGN_CLOSE_V1.md"
+    ]
+   },
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#D7",
     "docs/research/D7_CAMPAIGN_CLOSE_V1.md",
@@ -20315,6 +20932,7 @@
     "docs/research/D7_BITMEX_ACTIVITY_V0.md"
    ],
    "reopen": "Confirmation candidate but NOT selected now; not order-book liquidity; not alpha",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "VOLATILITY_STATE.execution_impact",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CONFIRMED",
@@ -20402,12 +21020,15 @@
    "id": "B2-01",
    "information_source": "CORE_BTC_BINANCE_V0",
    "mechanism": "Volatility-state transition",
+   "memory_implied_state": "CLOSED_ON_SURFACE",
+   "memory_status": "CLOSED_NO_PROMOTION",
    "period": "2020-2024",
    "program": "BATCH02",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#B2-01"
    ],
    "reopen": "Other vol observables (options IV) are not B2-01",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "VOLATILITY_STATE.regime_transition",
    "source": "MECHANISM_MEMORY_V0",
    "state": "CLOSED_ON_SURFACE",
@@ -20456,8 +21077,21 @@
    "id": "GV0V03L40-C033",
    "information_source": "KLINES: CORE_BTC_BINANCE_V0, CORE_ETH_BINANCE_V0",
    "mechanism": "Forced-flow deleveraging state and realized-volatility decay speed",
+   "memory_implied_state": "CANDIDATE_UNTESTED",
+   "memory_status": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
    "note": "After the memory snapshot: V1 feasibility counted 1383 shocks, but the V2 recompile found the joint four-part state never occurs in 2020-2024 (MECHANISM_ACTIVE_N = 0, alpha unattainable): STOP / NOT_PREREGISTRABLE_UNDER_FROZEN_DESIGN.",
    "program": "GENERATOR_V0_CAMPAIGN_GV0V03L40",
+   "reconciliation": {
+    "atlas_state": "BLOCKED_METHOD",
+    "kind": "POST_MEMORY_RECORD",
+    "memory_implied_state": "CANDIDATE_UNTESTED",
+    "memory_status": "PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS",
+    "reason": "The V2 feasibility recompile found that the joint four-part state never occurs in 2020-2024 (MECHANISM_ACTIVE_N = 0, alpha unattainable): STOP / NOT_PREREGISTRABLE_UNDER_FROZEN_DESIGN.",
+    "records": [
+     "docs/research/GV0V03L40_C033_V2_FEASIBILITY.md",
+     "docs/research/GV0V03L40_C033_V2_FEASIBILITY.json"
+    ]
+   },
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#GV0V03L40-C033",
     "docs/research/GV0V03L40_C033_V1_FEASIBILITY.md",
@@ -20465,6 +21099,7 @@
     "docs/research/GV0V03L40_C033_V2_FEASIBILITY.json"
    ],
    "reopen": "Market-outcome testing only if later selected under a separate frozen research contract; orthogonal mechanisms remain open.",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "VOLATILITY_STATE.shock_recovery",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -20514,11 +21149,14 @@
    "id": "D1",
    "information_source": "CORE_BTC; intended RV_20 288x5m observable",
    "mechanism": "Structural state detection (reclassified R-A)",
+   "memory_implied_state": "BLOCKED_METHOD",
+   "memory_status": "DEFERRED_NULL_MODEL_OBSERVABLE_MISMATCH; not executed",
    "program": "DISCOVERY",
    "records": [
     "docs/research/MECHANISM_MEMORY_V0.json#D1"
    ],
    "reopen": "Null-model/observable blocker; family F remains blocked until closed Blocker requirement: A null model that can generate the card's own observable, frozen before outcomes",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "VOLATILITY_STATE.state_detection",
    "source": "MECHANISM_MEMORY_V0",
    "state": "BLOCKED_METHOD",
@@ -20571,6 +21209,8 @@
    "id": "D2",
    "information_source": "CORE_BTC; BitMEX XBTUSD 5m for replication",
    "mechanism": "Conditional abstention / tail-risk (RULE_1 RV_ABSTENTION)",
+   "memory_implied_state": "LIVE_SIGNAL",
+   "memory_status": "PROMISING_PROTOTYPE; independent pre-2020 BitMEX replication SUPPORTED; decomposition D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT",
    "note": "Independently replicated mechanism candidate (RULE_1 RV abstention). RULE_2 dislocation abstention failed discovery. Excess-alignment decomposition consumed (volatility-scale compatible, no excess alignment).",
    "period": "2020-2024; BitMEX 2017-2019 replication",
    "program": "DISCOVERY",
@@ -20581,6 +21221,7 @@
     "docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.md"
    ],
    "reopen": "Confirmation candidate but 2025 single-year underpowered; 2025/2026 sealed",
+   "routing_authority": "SIGNALBOT_RESEARCH_ATLAS_V1",
    "row": "VOLATILITY_STATE.tail_risk",
    "source": "MECHANISM_MEMORY_V0",
    "state": "LIVE_SIGNAL",

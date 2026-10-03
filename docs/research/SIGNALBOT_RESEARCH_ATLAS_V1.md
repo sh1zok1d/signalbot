@@ -1,6 +1,6 @@
 # SIGNALBOT_RESEARCH_ATLAS_V1
 
-**Status:** ACTIVE — the permanent research map (2026-10-03). It replaces numbered generation campaigns (G01 → G02 → …) as the way research is chosen. It does not authorize execution: every batch still needs its own owner go under `PRODUCT_FIRST_DECISION_V1` §1 and `PRODUCT_DECISION_V2_DECISION_SUPPORT.md`. It does not override frozen experiment contracts, the evaluation contract, protected-data rules or sealed verdicts. Where it differs from a sealed record, the record wins and the atlas is corrected.
+**Status:** ACTIVE — the permanent research map (2026-10-03; pre-merge governance cleanup the same day). It replaces numbered generation campaigns (G01 → G02 → …) as the way research is chosen. It does not authorize execution: every batch still needs its own owner go under `PRODUCT_FIRST_DECISION_V1` §1 and `PRODUCT_DECISION_V2_DECISION_SUPPORT.md`. It does not override frozen experiment contracts, the evaluation contract, protected-data rules or sealed verdicts. Where it differs from a sealed record, the record wins and the atlas is corrected.
 
 **Origin.** Owner proposal of 2026-10-03:
 - one permanent map, Mechanism × Data surface × Research state, instead of campaign-by-campaign generation;
@@ -18,7 +18,10 @@ This V1 transfers every past research unit onto that map. It also adds a few str
 | Columns (data surfaces) | 10: CANDLES, PERP_FLOW, POSITIONING, LIQUIDATIONS, ORDER_BOOK, SPOT, CROSS_VENUE, CROSS_ASSET, OPTIONS, FLOWS_ONCHAIN | taxonomy |
 | Applicable cells | 436 (a cell exists only where the mechanism can be observed, §2) | derived |
 | Datasets / surfaces | 44, each with coverage, availability and an exposure ledger | `atlas/ATLAS_SURFACES_V1.yaml` |
+| Reserved confirmation surfaces | 1 (the E1-RUN-001 final holdout) | `atlas/ATLAS_SURFACES_V1.yaml`, `reservations:` |
 | Research units | 145 | `atlas/ATLAS_UNITS_V1.yaml` |
+| States | 13 | taxonomy |
+| Change events | append-only, hash-chained | `atlas/ATLAS_EVENTS_V1.jsonl` |
 
 **What the 145 units cover:**
 - all 79 entries of `MECHANISM_MEMORY_V0.json`: H01–H05, B2-01..06, D1–D13, MARKET-01..06, and Generator V0 calibration, GV0R01 and GV0V03L40;
@@ -59,23 +62,42 @@ Memory units take these texts from the memory chain at build time. Later facts a
 
 ## 3. States
 
-The owner's seven states, plus four that the transfer showed are needed (marked +).
+The owner's seven states, plus four that the transfer showed are needed (marked +) and two governance states added at the pre-merge cleanup (marked ++).
 
 | State | Meaning | Routing | Outcome-neutral |
 |---|---|---|---|
 | OPEN_FRONTIER | Nothing defined in this cell | Generation allowed (row anti-rescue still applies) | yes |
 | + CANDIDATE_UNTESTED | A card/seed exists, no market outcome computed | Do not regenerate; may be selected for feasibility/freeze as is | yes |
 | + BLOCKED_METHOD | Stopped by a method blocker (identification, confounding, lookahead, null model, red team) | A redesign must name and resolve the blocker | yes |
+| ++ BLOCKED_GOVERNANCE | A defined unit may not run because a governance rule blocks it, e.g. its frozen window overlaps a protected or reserved surface (`blocker` names why) | Not executable; only a new explicit permit that removes the conflict reopens it; the old freeze is never edited in place | yes |
 | BLOCKED_DATA | No permitted data (missing, unpinned, not legally timestamped, not collected) | Reopens when the surface becomes available | yes |
 | INFORMATIONALLY_WEAK | Legitimate question, too few independent units (MDE above the bar) | Do not run now; no proxy or pooling to manufacture N | yes |
 | FUTURE_NATURAL_ACCUMULATION | Weak now; testable when units accumulate | Revisit at the recorded trigger, nothing earlier | yes |
+| ++ CLOSED_BEFORE_START | A registered or recorded unit withdrawn before any outcome was computed; it consumed no surface | Inactive; a restart is a new unit with its own registration and permit | yes |
 | EXPOSED_ONLY | Data looked at (descriptively, for the product, for feasibility, exploratorily) without a confirmatory test | Cannot confirm this mechanism; confirmation needs fresh data | no |
 | + LIVE_SIGNAL | Discovery or replication result not yet confirmed | Only a pre-registered confirmation on a fresh surface | no |
 | + CONFIRMED | Pre-registered confirmation on an independent surface passed | Do not re-confirm; product use under its own gate; new work only as a new mechanism/surface | no |
 | NO_STRUCTURE | Tested under a frozen contract, no practically meaningful effect | Closed on this surface; reopen only with a new mechanism or surface | no |
 | CLOSED_ON_SURFACE | Tested; the outcome is specific to the claim or surface (rejected claim, external reproduction, mixed) | Closed on this surface for this function | no |
 
-Precedence: CONFIRMED > LIVE_SIGNAL > NO_STRUCTURE > CLOSED_ON_SURFACE > FUTURE_NATURAL_ACCUMULATION > INFORMATIONALLY_WEAK > BLOCKED_METHOD > BLOCKED_DATA > CANDIDATE_UNTESTED > EXPOSED_ONLY > OPEN_FRONTIER.
+Precedence: CONFIRMED > LIVE_SIGNAL > NO_STRUCTURE > CLOSED_ON_SURFACE > FUTURE_NATURAL_ACCUMULATION > INFORMATIONALLY_WEAK > BLOCKED_GOVERNANCE > BLOCKED_METHOD > BLOCKED_DATA > CANDIDATE_UNTESTED > EXPOSED_ONLY > CLOSED_BEFORE_START > OPEN_FRONTIER.
+
+### 3a. Memory reconciliation
+
+`MECHANISM_MEMORY_V0.json` is preserved as provenance and history; the atlas never edits it and Generator V0 memory is still ingested only through `finalize_memory`. **The atlas is the authority for current routing.**
+- `memory_status_map` in the units file maps each frozen memory status to the state it implies (first matching pattern).
+- Wherever the atlas state differs, `memory_reconciliation` records the preserved memory status, the implied state, the current atlas state, the kind (`POST_MEMORY_RECORD` or `ATLAS_CLASSIFICATION`), the reason and the records.
+- The build fails if an entry is missing, stale, or no longer matches the memory chain. If memory ever changes, its entries must be reviewed.
+
+| Unit | Memory status (preserved) | Current atlas authority | Kind |
+|---|---|---|---|
+| D7 | PROMISING_PROTOTYPE; not independently replicated | **CONFIRMED** (BitMEX confirmation passed; campaign closed) | POST_MEMORY_RECORD |
+| GV0V03L40-C033 | PIPELINE_SURVIVOR | **BLOCKED_METHOD** (joint state never occurs; not preregistrable) | POST_MEMORY_RECORD |
+| GV0R01-C004, -C012, -C020 | PIPELINE_BLOCKED_DATA (feasibility required) | INFORMATIONALLY_WEAK (closed outcome-blind) | POST_MEMORY_RECORD |
+| GV0R01-C013 | PIPELINE_SURVIVOR | LIVE_SIGNAL (discovery-tier market test) | POST_MEMORY_RECORD |
+| H01, H03 | KILL / REJECTED_SPECIFIC_CLAIM | CLOSED_ON_SURFACE / NO_STRUCTURE (reading of the record) | ATLAS_CLASSIFICATION |
+
+Each memory unit in the full view carries `memory_status`, `memory_implied_state` and `routing_authority`.
 
 ## 4. Two lenses
 
@@ -84,7 +106,7 @@ The generator role matrix (`docs/research/GENERATOR_V0_MEMORY_FINALIZER.md`) for
 | View | File | Readers | Carries |
 |---|---|---|---|
 | FULL_GOVERNANCE | `atlas/SIGNALBOT_RESEARCH_ATLAS_V1.json`, `atlas/ATLAS_MATRIX_V1.md` | owner, selector, red team, novelty critic | everything: states, verdicts, numbers, why closed, reopen, forbidden, exposure, frontier |
-| GENERATOR_BLIND | `atlas/ATLAS_GENERATOR_VIEW_V1.json` | hypothesis generators | rows, applicable columns, surfaces (coverage, availability), per cell one of OPEN / PRIOR_WORK / DATA_REQUIRED / UNDERPOWERED_NOW, prior signatures (mechanism + function only), outcome-neutral frontier value |
+| GENERATOR_BLIND | `atlas/ATLAS_GENERATOR_VIEW_V1.json` | hypothesis generators | rows, applicable columns, surfaces (coverage, availability, unavailable periods from reservations; wholly reserved datasets are left out), per cell one of OPEN / PRIOR_WORK / DATA_REQUIRED / UNDERPOWERED_NOW, prior signatures (mechanism + function only), outcome-neutral frontier value |
 
 **How the blind view is built.**
 - Prior signatures of memory units come from `BLIND_MECHANISM_MAP_V0.json`.
@@ -100,13 +122,15 @@ The generator role matrix (`docs/research/GENERATOR_V0_MEMORY_FINALIZER.md`) for
 **A closed cell reopens only with one of these keys:**
 - `NEW_MECHANISM`: orthogonal, not a relabel;
 - `NEW_SURFACE`: a layer, venue or instrument the closed unit did not use, with its own preregistration;
+- `NEW_CONFIRMATION_SURFACE`: a new independent (time-disjoint or prospective) confirmation surface the closed unit never touched;
+- `RECORDED_REOPEN_CONDITION`: the unit's own recorded reopen condition is met, with the record that shows it;
 - `NEW_INDEPENDENT_UNITS`: accumulated naturally to the recorded N;
 - `BLOCKER_RESOLVED`;
 - `PROSPECTIVE_DATA`: collected after a freeze;
 - `OWNER_DECISION`.
 
 **Forbidden moves:**
-- `PARAMETER_NEIGHBOR`: threshold, window, horizon, clock or lag of the same function;
+- `PARAMETER_NEIGHBOR`: threshold, percentile, window, lookback, horizon, clock, lag or nearby parameter of the same function;
 - `FUNCTIONAL_RELABEL`;
 - `EXACT_DUPLICATE`;
 - `OBSERVABLE_SUBSTITUTION`: a better proxy of the same thing;
@@ -162,8 +186,10 @@ The steps, each under the existing contracts:
 7. **Update the map in the same change.**
    - Append each unit, with its verdict, why it closed, reopen key and records, to `ATLAS_UNITS_V1.yaml`.
    - Extend the exposure ledger of every surface read.
-   - Run the builder and the tests.
-   - Update the findings registry when a unit closes (AGENTS.md research ↔ bot rule).
+   - Run the builder, append an atlas event (§8a), and run the tests.
+   - Propose the findings-registry change through the bridge (§8b); the atlas does not edit bot copy.
+
+Generator contract V04 (`GENERATOR_CONTRACT_V04_ATLAS_ROUTING_DESIGN.md`, design only, not active) specifies how steps 2–4 become mechanical: the atlas selects one cell, the generator receives a blind packet for it, and admission rejects any card outside that cell or any parameter neighbour of a closed cell.
 
 ## 8. Maintenance
 
@@ -178,7 +204,46 @@ The steps, each under the existing contracts:
   - missing why-closed, reopen or forbidden fields, or a missing revisit trigger;
   - a record path that does not exist;
   - a memory entry or findings id that is not on the map.
-- **Post-memory facts.** When a sealed record changed a memory unit's status after the memory snapshot, the units file records the corrected state with the record that changed it. The memory entry itself is left untouched. On 2026-10-03 this applied to D7 (→ CONFIRMED) and GV0V03L40-C033 (→ BLOCKED_METHOD), and records were added to C004, C012, C013 and C020.
+- **Post-memory facts.** When a sealed record changed a memory unit's status after the memory snapshot, the reconciliation layer (§3a) records it. The memory entry itself is left untouched.
+- **Reserved surfaces.** They are listed in `reservations:` of the surfaces file and governed by `ATLAS_CONFIRMATION_GOVERNANCE_V1.md`. They are invisible to generation, need a permit to consume, and stay reserved through failed feasibility.
+
+### 8a. Event log
+
+Every change of the atlas sources appends one event to `atlas/ATLAS_EVENTS_V1.jsonl`:
+
+```
+python -m scripts.research.atlas.build_atlas --append-event --change-type <TYPE> --reason "..." --record <path> [--record <path> ...]
+```
+
+**What an event carries:**
+- sequence number;
+- UTC timestamp;
+- change type;
+- prior and new atlas digest;
+- the previous event's hash;
+- affected units (added, removed, changed), computed from per-unit content digests;
+- affected cells and layers;
+- source records (checked to exist);
+- reason;
+- its own hash.
+
+`--check` fails when any of these holds:
+- an earlier event was rewritten (hash mismatch);
+- a link or sequence number is broken;
+- the sources changed after the last event.
+
+Event 1 (`INITIAL_TRANSFER`) reproduces the transfer digest of commit `ec32e06` / `b3c5030`.
+
+### 8b. Bot bridge (defined; no automatic coupling)
+
+`ATLAS → proposed research-registry diff → review → bot surface`
+
+1. **Atlas.** A unit that carries a findings-registry id or alias changes state, and the event records it.
+2. **Proposed diff.** The maintainer writes a proposed change to `config/beta_research_findings.yaml`: what the record states, its own numbers, its record path, and the bot contexts it applies to. The proposal sits in a reviewable change; it is never applied by the builder.
+3. **Review.** The owner or a reviewer accepts it under the AGENTS.md research ↔ bot rules: no trade call, no extension beyond the tested scope, no edit of a sealed record.
+4. **Bot surface.** Only the reviewed registry change reaches `/research` and the «Проверено: …» lines.
+
+The atlas builder reads the registry and never writes it (tested). No production copy changes automatically.
 
 ## 9. Snapshot 2026-10-03 (what the map shows)
 
@@ -190,11 +255,13 @@ The steps, each under the existing contracts:
 | INFORMATIONALLY_WEAK | 19 |
 | BLOCKED_DATA | 18 |
 | NO_STRUCTURE | 17 |
-| CANDIDATE_UNTESTED | 16 |
+| CANDIDATE_UNTESTED | 14 |
 | CLOSED_ON_SURFACE | 12 |
 | EXPOSED_ONLY | 10 |
 | LIVE_SIGNAL | 4 |
 | FUTURE_NATURAL_ACCUMULATION | 3 |
+| BLOCKED_GOVERNANCE | 1 |
+| CLOSED_BEFORE_START | 1 |
 | CONFIRMED | 1 |
 
 **Cells:** 73 of 436 hold prior work. 328 open cells have data and 17 do not.
@@ -222,11 +289,12 @@ The steps, each under the existing contracts:
   - K1 event corridor (CPI/FOMC): after the K1 freeze, about 12 prospective releases.
   - G01-B1 ETF fixing hour: from 2027 onward, prospectively.
   - GV0R01-C013: needs about 468 fresh weeks.
-- **Open questions found during the transfer (not resolved here):**
-  1. **E1 overlap.** The frozen PRICE_OI pilot grid starts 2026-08-16T19:30Z, inside the calendar span of the E1-RUN-001 holdout. The pilot record does not discuss E1. Resolve this with the owner before the runner is used.
-  2. **SEED-0001 prospective leg.** It is still REGISTERED_NOT_STARTED in the test ledger, although the divergence line was closed on 2026-10-03. A record retiring it is missing.
-  3. **Stale memory statuses.** Memory entries for some ids still show pre-closure statuses. The atlas records the later facts; the memory chain is unchanged.
-  4. **PR #303.** CURRENT_RESEARCH_STATE says PR #303 is not merged; git history shows it merged as `04e1300` and then restored by `a7d738f`.
+- **Questions found during the transfer, and how the pre-merge cleanup handled them:**
+  1. **E1 overlap. Recorded.** The frozen PRICE_OI pilot grid starts 2026-08-16T19:30Z, inside the E1-RUN-001 holdout. The append-only erratum `PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md` records that no execution occurred and that execution on that segment is invalid. Any future execution needs a new explicit permit; the earliest eligible grid timestamp is 2026-08-25T17:20:00Z, and inputs are clean only from 2026-09-24T17:20:00Z. The unit is `BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP`.
+  2. **P4 exposure. Flagged, not adjudicated (owner).** The erratum also notes that the owner-run P4 descriptive follow-up used the same grid, so live-archive rows inside the holdout span were read by that audit. E1's own flags and evaluator are untouched.
+  3. **SEED-0001 prospective leg. Recorded.** `SEED0001_PROSPECTIVE_CLOSURE_V1.md` closes it as `CLOSED_BEFORE_START`, superseded by the divergence program closure. It never started, no prospective outcome was opened, and no surface was consumed. The preregistration and the ledger entry are preserved.
+  4. **Stale memory statuses. Reconciled.** The reconciliation layer (§3a) covers them; the memory chain is unchanged.
+  5. **PR #303. Not changed here.** CURRENT_RESEARCH_STATE says PR #303 is not merged; git history shows it merged as `04e1300` and then restored by `a7d738f`.
 
 ## 10. Known limits of V1
 
@@ -248,11 +316,11 @@ The steps, each under the existing contracts:
 6. **Revisit schedule** for FUTURE_NATURAL_ACCUMULATION and LIVE_SIGNAL units.
 7. **Fail-closed coverage** of memory and of the bot's research findings.
 
-**Proposed, not implemented (each needs an owner decision):**
-1. **Generator contract V04 reads the atlas.** The generator receives the blind view plus one selected cell, and every card declares its cell and reopen key. This changes the Generator V0 architecture freeze.
-2. **Surface openers ranked by value of information.** For each acquirable or forward dataset, count the frontier cells it would open or upgrade, for example OKX L2 2023-03+, Bybit OI history, Deribit DVOL with point-in-time proof, and a forward Binance depth collector. Acquisitions are then chosen by that count, not by the last result.
-3. **Pristine reserve.** Declare some surfaces as confirmation-only reserve (for example BitMEX 2016–2019 per region, OKX L2) so discovery cannot spend them.
-4. **Confirmation budget per region.** Cap confirmatory looks per region and surface, so surfaces are not spent silently.
-5. **Prospective-first lane for LIVE_SIGNAL units** (D2, D11, D12, C013). Collectors accumulate fresh units for the revisit triggers instead of new discovery. This requires unfreezing a forward collector.
-6. **Append-only atlas event log.** Each batch appends a hashed event, and the units file becomes derived from the log, as with the memory chain. This makes the map tamper-evident.
-7. **Product bridge.** When a cell changes state, the matching «Проверено: …» line in the bot updates in the same change.
+**Proposals and their status after the pre-merge cleanup (2026-10-03):**
+1. **Generator contract V04 reads the atlas.** Design recorded and not active (`GENERATOR_CONTRACT_V04_ATLAS_ROUTING_DESIGN.md`). Activation needs an owner decision.
+2. **Surface openers ranked by value of information.** Proposed, not designed yet.
+3. **Pristine reserve.** Governance implemented (`ATLAS_CONFIRMATION_GOVERNANCE_V1.md` §2). Only the already protected E1 holdout is registered; new reservations need an owner decision.
+4. **Confirmation budget per region.** Design only (`ATLAS_CONFIRMATION_GOVERNANCE_V1.md` §3). The budget unit is the time-disjoint outcome slice, not the dataset.
+5. **Prospective-first lane for LIVE_SIGNAL units.** Proposed. It needs a forward collector to be unfrozen.
+6. **Append-only atlas event log.** Implemented (§8a).
+7. **Product bridge.** Defined as ATLAS → proposed registry diff → review → bot surface (§8b), with no automatic coupling.

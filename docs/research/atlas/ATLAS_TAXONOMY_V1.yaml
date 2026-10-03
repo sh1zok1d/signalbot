@@ -190,6 +190,10 @@ states:
     meaning: A card was defined but stopped by a method blocker (identification, confounding, lookahead, null model).
     routing: Region open. A redesigned card must name and resolve the blocker (RESOLVES_BLOCKER).
     outcome_neutral: true
+  BLOCKED_GOVERNANCE:
+    meaning: A defined unit may not run because a governance rule blocks it (e.g. its frozen data window overlaps a protected or reserved surface).
+    routing: Not executable. Only a new explicit permit that removes the conflict reopens it; the old freeze is never edited in place.
+    outcome_neutral: true
   BLOCKED_DATA:
     meaning: No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).
     routing: Reopens when the data surface becomes available (collector, vendor, pinned source).
@@ -197,6 +201,10 @@ states:
   INFORMATIONALLY_WEAK:
     meaning: The question is legitimate, but there are too few independent units now (MDE above the practical bar).
     routing: Do not run now; no proxy or pooling to manufacture N.
+    outcome_neutral: true
+  CLOSED_BEFORE_START:
+    meaning: A registered or recorded unit was withdrawn before any outcome was computed; it consumed no surface.
+    routing: Inactive. A restart is a new unit with its own registration and permit.
     outcome_neutral: true
   FUTURE_NATURAL_ACCUMULATION:
     meaning: Weak now; becomes testable when independent units accumulate naturally.
@@ -232,22 +240,26 @@ cell_precedence:
   - CLOSED_ON_SURFACE
   - FUTURE_NATURAL_ACCUMULATION
   - INFORMATIONALLY_WEAK
+  - BLOCKED_GOVERNANCE
   - BLOCKED_METHOD
   - BLOCKED_DATA
   - CANDIDATE_UNTESTED
   - EXPOSED_ONLY
+  - CLOSED_BEFORE_START
   - OPEN_FRONTIER
 
 # ---- reopening ----------------------------------------------------------------------------------
 reopen_keys:
   NEW_MECHANISM: An orthogonal mechanism (novelty relation ORTHOGONAL_MECHANISM), not a relabel of the tested function.
   NEW_SURFACE: A data layer, venue or instrument the closed unit did not use, with its own preregistration.
+  NEW_CONFIRMATION_SURFACE: A new independent confirmation surface (time-disjoint or prospective) that the closed unit never touched.
   NEW_INDEPENDENT_UNITS: Independent units accumulated naturally to the recorded N (never by pooling proxies).
   BLOCKER_RESOLVED: The named blocker is resolved (novelty relation RESOLVES_BLOCKER).
   PROSPECTIVE_DATA: Fresh data collected after a freeze, scored only under that freeze.
   OWNER_DECISION: An explicit, recorded owner decision.
+  RECORDED_REOPEN_CONDITION: The unit's own recorded reopen condition (its `reopen` text) is met, with the record that shows it.
 forbidden_moves:
-  PARAMETER_NEIGHBOR: Another threshold, percentile, window, horizon, clock or lag of the same function.
+  PARAMETER_NEIGHBOR: Another threshold, percentile, window, lookback, horizon, clock, lag or nearby parameter of the same function.
   FUNCTIONAL_RELABEL: The same function under a new name.
   EXACT_DUPLICATE: The same card again.
   OBSERVABLE_SUBSTITUTION: Swapping the observable inside the same function (e.g. a better proxy of the same thing).

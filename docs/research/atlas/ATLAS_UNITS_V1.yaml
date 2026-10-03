@@ -12,23 +12,99 @@
 # forbidden, records, revisit (FUTURE_NATURAL_ACCUMULATION only), note.
 version: SIGNALBOT_RESEARCH_ATLAS_V1
 
-# The verdict class of a record maps to an atlas state; `state_override` + `note` record an exception.
-verdict_map:
-  NO_USEFUL_STRUCTURE: NO_STRUCTURE
-  NO_INCREMENTAL_STRUCTURE: NO_STRUCTURE
-  NO_EVIDENCE: NO_STRUCTURE
-  KILL: NO_STRUCTURE
-  REJECTED_SPECIFIC_CLAIM: CLOSED_ON_SURFACE
-  CLOSED_NO_PROMOTION: CLOSED_ON_SURFACE
-  REPRODUCED_DIRECTION_EXTERNAL: CLOSED_ON_SURFACE
-  PROMISING_PROTOTYPE: LIVE_SIGNAL
-  CONFIRMED_UNDER_MAINTAINED_ASSUMPTIONS: CONFIRMED
-  INFORMATIONALLY_WEAK: INFORMATIONALLY_WEAK
-  PIPELINE_SURVIVOR: CANDIDATE_UNTESTED
-  NOT_EXECUTED: CANDIDATE_UNTESTED
-  PIPELINE_BLOCKED_METHOD: BLOCKED_METHOD
-  PIPELINE_BLOCKED_DATA: BLOCKED_DATA
-  DEVELOPMENT_CONSUMED: EXPOSED_ONLY
+# Memory reconciliation. MECHANISM_MEMORY_V0.json is preserved as provenance and history and is never edited.
+# memory_status_map turns a frozen memory status into the atlas state it implies (first matching pattern).
+# Wherever the atlas state differs, memory_reconciliation records the preserved memory status, the implied
+# state, the current atlas state and why; the build fails if an entry is missing, stale or no longer matches
+# the memory chain. The atlas is the authority for current routing.
+memory_status_map:
+  - {pattern: "^PIPELINE_SURVIVOR", state: CANDIDATE_UNTESTED}
+  - {pattern: "^PIPELINE_BLOCKED_METHOD", state: BLOCKED_METHOD}
+  - {pattern: "^PIPELINE_BLOCKED_DATA", state: BLOCKED_DATA}
+  - {pattern: "PROMISING_PROTOTYPE", state: LIVE_SIGNAL}
+  - {pattern: "^DEFERRED_(NULL_MODEL|INSUFFICIENT_CONTROL)", state: BLOCKED_METHOD}
+  - {pattern: "^BLOCKED|^DEFERRED", state: BLOCKED_DATA}
+  - {pattern: "NO_USEFUL_STRUCTURE|NO_EVIDENCE|_KILL\\b", state: NO_STRUCTURE}
+  - {pattern: "REJECTED_SPECIFIC_CLAIM|CLOSED_NO_PROMOTION|REPRODUCED_DIRECTION", state: CLOSED_ON_SURFACE}
+  - {pattern: "^DEVELOPMENT_CONSUMED", state: EXPOSED_ONLY}
+memory_reconciliation:
+  - id: D7
+    kind: POST_MEMORY_RECORD
+    memory_status: PROMISING_PROTOTYPE; adaptive discovery only; NOT independently replicated
+    memory_implied_state: LIVE_SIGNAL
+    atlas_state: CONFIRMED
+    reason: The pre-registered BitMEX 2016-2019 confirmation passed after the memory snapshot (CONFIRMED_UNDER_MAINTAINED_ASSUMPTIONS)
+      and the campaign was closed (D7_CAMPAIGN_CLOSED).
+    records:
+    - docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.md
+    - docs/research/D7_CAMPAIGN_CLOSE_V1.md
+  - id: GV0V03L40-C033
+    kind: POST_MEMORY_RECORD
+    memory_status: PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS
+    memory_implied_state: CANDIDATE_UNTESTED
+    atlas_state: BLOCKED_METHOD
+    reason: 'The V2 feasibility recompile found that the joint four-part state never occurs in 2020-2024 (MECHANISM_ACTIVE_N
+      = 0, alpha unattainable): STOP / NOT_PREREGISTRABLE_UNDER_FROZEN_DESIGN.'
+    records:
+    - docs/research/GV0V03L40_C033_V2_FEASIBILITY.md
+    - docs/research/GV0V03L40_C033_V2_FEASIBILITY.json
+  - id: GV0R01-C004
+    kind: POST_MEMORY_RECORD
+    memory_status: PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS
+    memory_implied_state: BLOCKED_DATA
+    atlas_state: INFORMATIONALLY_WEAK
+    reason: After the Stream-B data acquisition, the card was closed outcome-blind with insufficient inference support.
+    records:
+    - docs/research/GV0R01_C004_OUTCOME_BLIND_DESIGN.md
+    - docs/research/GV0R01_C004_CLOSE.json
+  - id: GV0R01-C012
+    kind: POST_MEMORY_RECORD
+    memory_status: PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS
+    memory_implied_state: BLOCKED_DATA
+    atlas_state: INFORMATIONALLY_WEAK
+    reason: After the Stream-B data acquisition, the card was closed outcome-blind as informationally weak (too few
+      events for a verdict either way).
+    records:
+    - docs/research/GV0R01_C012_OUTCOME_BLIND_DESIGN.md
+    - docs/research/GV0R01_C012_CLOSE.json
+  - id: GV0R01-C013
+    kind: POST_MEMORY_RECORD
+    memory_status: PIPELINE_SURVIVOR_NO_SCIENTIFIC_STATUS
+    memory_implied_state: CANDIDATE_UNTESTED
+    atlas_state: LIVE_SIGNAL
+    reason: Executed once after the memory snapshot as a discovery-tier market test; confirmation deferred for low
+      power.
+    records:
+    - docs/research/GV0R01_C013_MARKET_TEST_OUTCOME.md
+    - docs/research/GV0R01_C013_CONFIRMATION_FEASIBILITY_AND_DESIGN.md
+  - id: GV0R01-C020
+    kind: POST_MEMORY_RECORD
+    memory_status: PIPELINE_BLOCKED_DATA_FEASIBILITY_REQUIRED_NO_SCIENTIFIC_STATUS
+    memory_implied_state: BLOCKED_DATA
+    atlas_state: INFORMATIONALLY_WEAK
+    reason: After the holiday-calendar pin, the card was closed outcome-blind as an informationally weak reference
+      test.
+    records:
+    - docs/research/GV0R01_C020_OUTCOME_BLIND_DESIGN.md
+    - docs/research/GV0R01_C020_CLOSE.json
+  - id: H01
+    kind: ATLAS_CLASSIFICATION
+    memory_status: H01_KILL / REJECTED; 0/5 Batch01 promoted
+    memory_implied_state: NO_STRUCTURE
+    atlas_state: CLOSED_ON_SURFACE
+    reason: The claim was rejected, but the record states a reverse side finding (after quiet 30-120 min, expansion
+      was rarer than usual), so the cell is closed on this surface rather than without structure.
+    records:
+    - docs/research/H01_DEV_SUMMARY.md
+  - id: H03
+    kind: ATLAS_CLASSIFICATION
+    memory_status: H03_REJECTED_SPECIFIC_CLAIM
+    memory_implied_state: CLOSED_ON_SURFACE
+    atlas_state: NO_STRUCTURE
+    reason: The specific claim was rejected and the record shows no steady continuation or fade (the sign changed
+      with horizon and year), so the atlas reads it as no structure on this surface.
+    records:
+    - docs/research/H03_DEV_SUMMARY.md
 
 units:
   # ---- Batch 01 (CORE_BTC Binance 2020-2024) ------------------------------------------------------
@@ -1297,12 +1373,13 @@ units:
       8e213d3, feasibility 138e1c1, permit df9e351, evaluator + run 1e4f848. Bot research-findings entry for the line
       is id DIVERGENCE (status NOT_CONFIRMED).'
     source_id: TF-SEED0001-RD-RETRO1
+    blind_function: SEED-0001 regular bullish divergence with order-book support, 1h BTCUSDT perp
   - id: SEED-0001-PROSP
     title: SEED-0001 prospective confirmation on BTCUSDT perp, decisions from 2026-10-05
     program: SF-OWNER-SEEDS / SEED-0001 prospective confirmation leg
     row: PRICE_STRUCTURE.divergence
     col: ORDER_BOOK
-    state: CANDIDATE_UNTESTED
+    state: CLOSED_BEFORE_START
     datasets:
     - BINANCE_UM_BOOKDEPTH_ARCHIVE
     period: 'discovery: None; replication: prospective cohort T >= 2026-10-05T00:00Z; stop at decision time of the
@@ -1318,12 +1395,11 @@ units:
     verdict: 'REGISTERED_NOT_STARTED (NOT_EXECUTED); power at 0.10 (BASE / STRESS) at 30 A = 0.16 / 0.15; at 0.20
       = 0.53 / 0.47; MDE 0.30; 20 A minimum: 0.14 / 0.13 at 0.10; MDE 0.325-0.35; about 20 months to 30 A at the 2023-2024
       rate'
-    why_closed: 'Never activated: needs owner decisions under protected-data rules; frozen and separate; the divergence
-      line was closed on 2026-10-03 (PROSPECTIVE_DIVERGENCE_STREAM_ACTIVE = false). Low power: can confirm only a
-      large (about 30 pp) effect.'
-    reopen: 'Explicit owner decision to run the detector on the protected 2026 segment / cohort plus a separate execution
-      permit; nothing seen in the exploratory pass may modify it. Owner V2 note: overlaps a would-be SEED-0003 prospective
-      A - B leg (retire one or keep disjoint).'
+    why_closed: 'CLOSED_BEFORE_START: superseded by the divergence program closure (owner routing decision 2026-10-03).
+      Execution never started, no prospective outcome was opened (the cohort starts 2026-10-05T00:00Z) and no confirmation
+      surface was consumed.'
+    reopen: None for this test family. A restart is a new unit with a new TEST_FAMILY_ID, its own registration and
+      an explicit owner permit.
     forbidden: No change of definitions after any prospective count or outcome; extension past the deadline is a new
       preregistration on later data.
     exposure: None (no detector run, no outcome). Archive objects may be pinned by checksum/timestamp metadata only.
@@ -1332,10 +1408,9 @@ units:
     - docs/research/SEED0001_REGULAR_DIVERGENCE_PREREG.json
     - docs/research/SEED0001_FEASIBILITY_REPORT.md
     - docs/research/SCIENTIFIC_TEST_LEDGER.json
-    note: Registered, never started; the test ledger still lists it REGISTERED_NOT_STARTED. The owner closed the divergence
-      / selling-exhaustion line on 2026-10-03 (no new divergence or exhaustion unit, SEED or prospective stream);
-      starting this needs a new owner decision.; Owner label OWNER_UNBLINDED_TO_LIVE_CHARTS (owner sees live charts
-      and may trade the rule). Ledger status still REGISTERED_NOT_STARTED; no record retires it explicitly.
+    - docs/research/SEED0001_PROSPECTIVE_CLOSURE_V1.md
+    - docs/research/SEED0001_PROSPECTIVE_CLOSURE_V1.json
+    note: Closure is recorded append-only; the preregistration and the ledger registration entry are preserved unchanged.
     source_id: TF-SEED0001-RD-PROSP1
   - id: H-DIV-1
     title: Divergence research map V0 and first hypothesis H-DIV-1 (divergence as seller-exhaustion marker inside
@@ -1376,6 +1451,8 @@ units:
       bullish = SEED-0002, regular/hidden bearish later), failure-mode questions, and a metrics battery; never-executed
       items are separate records below.
     source_id: H-DIV-1 (DIVERGENCE_RESEARCH_MAP_V0)
+    blind_mechanism: 'Divergence as a seller-exhaustion marker inside an existing support state: price down, downside
+      momentum and selling pressure weakening, support persisting.'
   - id: DIV-PANEL-FEAS-V0
     title: Six-symbol panel feasibility of the SEED-0001 detector (outcome-blind, 2023-2024)
     program: Divergence research program
@@ -1504,6 +1581,8 @@ units:
     aliases:
     - DIVERGENCE
     source_id: DIVERGENCE_FULL_HISTORY_RESEARCH_V0
+    blind_function: Divergence inside support versus a broader weakening-of-selling-pressure (flow/OI) state, six-symbol
+      panel
   - id: SELLING-EXHAUSTION-FEAS-V0
     title: 'Selling-exhaustion state inside support: outcome-blind feasibility of E - S (variants SE_LEG and SE_BASELINE)'
     program: Divergence / selling-exhaustion line (new research object, not a SEED-0001 continuation)
@@ -2100,7 +2179,7 @@ units:
     program: Live-archive audit (owner-run, read-only); pilot only, not confirmatory
     row: DERIVATIVES.oi_buildup
     col: POSITIONING
-    state: CANDIDATE_UNTESTED
+    state: BLOCKED_GOVERNANCE
     datasets:
     - STAGE1_LIVE_OI_FUNDING
     period: 'discovery: Phase A grid AUTHORIZED_BUCKETS = 12434 (2026-08-16T19:30Z-2026-09-25T12:40Z and 2026-09-25T13:05Z-2026-09-28T23:55Z);
@@ -2113,8 +2192,13 @@ units:
     function: Matched A (PRICE_OI_CONTRACTION_{DOWN,UP} trigger) vs B (same price condition, OI rank >= 0.50 mature);
       median d_e = ln(R_e) - mean ln(R_c) at 4h; k = 3 nearest controls, caliper 0.75, with replacement; B-vs-B placebo.
     verdict: 'FROZEN_BEFORE_OUTCOMES / PILOT_ONLY — NOT_EXECUTED (CURRENT_STATE: not run, no result)'
-    why_closed: Implemented as an owner-run read-only audit; not run.
-    reopen: Owner runs the frozen runner; changed design = new pilot identity.
+    why_closed: Not run. The frozen 12434-bucket grid starts at 2026-08-16T19:30Z, inside the protected E1-RUN-001
+      holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) (2566 buckets inside). Execution on that segment is invalid,
+      and without it the frozen data gate (12434 buckets, 25 DOWN / 19 UP episodes) cannot be met.
+    reopen: Only a new explicit execution permit recorded after the erratum. It is a new pilot identity under the
+      protocol's own rule; earliest eligible grid timestamp 2026-08-25T17:20:00Z, and every input (30-day percentile
+      history, persistence predecessor, 4h covariates, matched controls) must lie outside the protected interval,
+      which the frozen design meets only from 2026-09-24T17:20:00Z.
     forbidden: No threshold, caliper, gate or endpoint change after outcomes; old matched-baseline design not reused
       or repaired.
     exposure: P4 owner-run record (larger 1h/4h range after triggered states vs ordinary anchors, uncontrolled) was
@@ -2124,13 +2208,13 @@ units:
     - docs/research/price_oi_incremental_information_pilot_v0.json
     - docs/audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md
     - docs/CURRENT_STATE.md
-    note: 'OPEN QUESTION before any run: the frozen live-archive grid starts 2026-08-16T19:30Z, inside the calendar
-      span of the E1-RUN-001 holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z). The pilot record does not discuss E1;
-      resolve this with the owner before the runner is used.; AMBIGUITY: the frozen live-archive grid starts 2026-08-16T19:30Z,
-      inside the calendar span of the E1-RUN-001 holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) whose E1 analysis
-      reads are ''DB market reads hard-capped strictly before holdout''. The pilot record does not discuss E1; not
-      assessed here.'
+    - docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md
+    - docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.json
+    note: 'BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP until a future execution permit exists (erratum 2026-10-03). E1-RUN-001
+      untouched. Flagged, not adjudicated: the owner-run P4 descriptive follow-up used the same grid.'
     source_id: PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0
+    blocker: HOLDOUT_OVERLAP
+    reservation: E1_RUN_001_FINAL_HOLDOUT
   - id: BETA-V0-FWD-Q1Q2
     title: 'Q1: TRIGGERED event vs matched non-event controls on 4h absolute range (Q2: 1h)'
     program: Beta V0 product/research sidecar (prereg-like)
@@ -2290,6 +2374,7 @@ units:
       = false and market_execution_authorized = false in RESULT. Run identity ce66442985a637f05508c980257f5ca8b869df15e2b94b87d1110c3ef75fd69f.
       The WORLD_RECORDS file is ~101 MB.'
     source_id: HARNESS_SYNTHETIC_EDGE_CALIBRATION_V3
+    blind_function: V3 Microscope synthetic confirmatory calibration
   - id: E1-RUN-001
     title: E1-RUN-001 — frozen V2 Stage-5 detector separation (holdout protected, unopened)
     program: E1 (V2 Stage-5 detector separation)
@@ -2355,6 +2440,7 @@ units:
       to COMPRESSION_BREAKOUT and CONFIRMED_BREAKOUT by the ledger''s ordering (prereg §: "CONFIRMED_BREAKOUT=19 (42.2%
       of FB)"), not by an explicit legend in the files read. Historical hypothesis ids H-002..H-016 in the ledger
       inventory were marked E1_TESTING.'
+    blind_function: E1-RUN-001 V2 Stage-5 detector separation
   - id: TWAP-V1
     title: TWAP execution footprint in Binance spot BTCUSDT aggTrades — sealed end-to-end run V1
     program: Decision-layer research program V0 (owner decision 2026-10-01); family B with a new observable

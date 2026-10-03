@@ -7846,3 +7846,37 @@ Every surface carries an exposure ledger.
 ATLAS = SIGNALBOT_RESEARCH_ATLAS_V1
 WINDOWS_CONSUMED = none; MARKET_VALUES_READ = none; NEW_TESTS = none
 ```
+
+## 2026-10-03 — Atlas governance cleanup before merge: PRICE_OI/E1 erratum, SEED-0001 prospective closure, memory reconciliation, reserve, event log
+
+No market value was read and no test was registered or run. Every change is append-only or a new record:
+- the frozen PRICE_OI preregistration and its twin are unchanged;
+- the SEED-0001 preregistration and the `SCIENTIFIC_TEST_LEDGER.json` entry are unchanged;
+- the generator memory chain is unchanged.
+
+**PRICE_OI pilot vs E1-RUN-001 (`PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md`).**
+- **Overlap.** The frozen 12434-bucket grid starts at 2026-08-16T19:30Z; 2566 buckets lie inside the protected interval `[2026-08-16T00:00Z, 2026-08-25T17:20Z)`.
+- **Not run, and not runnable as frozen.** The runner was never executed. Execution on the segment is invalid, and the frozen data gate cannot be met without it, so a future execution is a new pilot identity with a new explicit permit.
+- **Boundaries.** The earliest eligible grid timestamp is 2026-08-25T17:20:00Z; the input-clean decision bucket is from 2026-09-24T17:20:00Z (30-day percentile lookback).
+- **Atlas.** `BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP`.
+- **E1.** E1-RUN-001 is untouched.
+- **Flagged for the owner, not adjudicated.** The owner-run P4 descriptive follow-up (2026-09-29) used the same grid and reported 1h/4h realized ranges.
+
+**SEED-0001 prospective (`SEED0001_PROSPECTIVE_CLOSURE_V1.md`).**
+- `TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START`, superseded by the divergence program closure.
+- Never started, no prospective outcome opened, no confirmation surface consumed.
+
+**Atlas.**
+- **Memory reconciliation layer.** D7 is CONFIRMED and GV0V03L40-C033 is BLOCKED_METHOD by atlas authority; the memory statuses are preserved.
+- **Reservations.** The E1 holdout is the only reserved surface; it is invisible to generation and needs a permit.
+- **Event log.** Append-only and hash-chained; event 1 reproduces the transfer digest.
+- **Designs only.** Generator contract V04 and the confirmation budget.
+- **Bot bridge.** Atlas → proposed registry diff → review → bot; no automatic coupling.
+
+**Product.** V2 is recorded as deployed to production from `main` `a16b876` (owner-reported).
+
+```
+WINDOWS_CONSUMED = none; MARKET_VALUES_READ = none; NEW_TESTS = none; PROTECTED_SURFACES_CONSUMED = none
+PRICE_OI_PILOT_V0 = BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP
+TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START
+```

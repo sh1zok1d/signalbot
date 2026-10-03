@@ -1,6 +1,6 @@
 # Product decision V2 — decision support (levels, ranges, history, events)
 
-**Status:** `OWNER_DECISION_RECORDED / CANONICAL_PRODUCT_DECISION / IMPLEMENTED_IN_CODE (not deployed, not user-tested)`
+**Status:** `OWNER_DECISION_RECORDED / CANONICAL_PRODUCT_DECISION / IMPLEMENTED_IN_CODE / DEPLOYED (main a16b876, production deploy owner-reported 2026-10-03; not user-tested)`
 **Date:** 2026-10-03
 **Operating mode from this decision:** `PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS`
 **Authority:** owner decision of 2026-10-03, recorded verbatim in §1. This file is the canonical product decision. Where `PRODUCT_FIRST_DECISION_V1.md`, `BETA_COPY_CONTRACT_V1.md`, `BETA_HISTORICAL_ANALOGUE_GATE_V1.md` or any older beta document disagrees with it, this file wins. It changes no sealed research verdict and no frozen experiment (`E1-RUN-001`, V3, D2, D7, C013 and the rest stay exactly as they are).

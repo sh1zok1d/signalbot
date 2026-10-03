@@ -44,12 +44,17 @@ Done end to end on branch `research/autonomous-generation-g01`, from `main` at `
 - `AUTOGEN_G01_PLANNING.json`;
 - `SCIENTIFIC_TEST_LEDGER.json` (`SF-AUTOGEN-G01`, no test registered).
 
-## Research Atlas V1 — the permanent research map; no research executed — 2026-10-03
+## Research Atlas V1 — the permanent research map; governance cleanup before merge; no research executed — 2026-10-03
 
 `ATLAS = SIGNALBOT_RESEARCH_ATLAS_V1 (docs/research/SIGNALBOT_RESEARCH_ATLAS_V1.md)`
 `UNITS_ON_MAP = 145 (all 79 memory entries, R03, G01, divergence program, sprint pools, seeds, TWAP, E1, V3, product statistics, K1)`
 `CELLS = 436 applicable | 73 with prior work | 328 open with data | 17 open without data`
 `MARKET_VALUES_READ = none | NEW_TESTS = none | MEMORY_CHAIN_EDITED = no | SEALED_RECORDS_EDITED = no`
+`PRICE_OI_PILOT_V0 = BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP (erratum; not executed; new explicit permit required)`
+`TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START (superseded by divergence program closure; closure record; prereg and ledger entry preserved)`
+`D7 = CONFIRMED (atlas authority; memory status preserved) | GV0V03L40-C033 = BLOCKED_METHOD (atlas authority; memory status preserved)`
+`RESERVED_SURFACES = E1_RUN_001_FINAL_HOLDOUT only | ATLAS_EVENTS = hash-chained, append-only`
+`GENERATOR_CONTRACT_V04 = DESIGN_ONLY / NOT_ACTIVE | CONFIRMATION_BUDGET = DESIGN_ONLY`
 `NEXT_UNIT = none until an owner go names a batch; selection then follows the atlas frontier (§7 batch protocol)`
 
 **What changed.** Research is chosen from one permanent map, Mechanism × Data surface × State, instead of numbered campaigns. A family is not reopened for a new threshold, and a closed cell reopens only with a new mechanism, a new surface, naturally accumulated units, a resolved blocker, prospective data or an owner decision.
@@ -58,13 +63,20 @@ Done end to end on branch `research/autonomous-generation-g01`, from `main` at `
 - **Full governance view** (`docs/research/atlas/SIGNALBOT_RESEARCH_ATLAS_V1.json`, `ATLAS_MATRIX_V1.md`): for the owner, the selector and the critics.
 - **Outcome-blind generator view** (`ATLAS_GENERATOR_VIEW_V1.json`): for hypothesis generators. Its blindness is enforced by tests.
 
-**State corrections recorded on the map.** Neither the memory chain nor any sealed record was edited.
+**Memory reconciliation.** Neither the memory chain nor any sealed record was edited. The atlas carries an explicit reconciliation layer (atlas §3a), and the atlas is the authority for current routing.
 - **D7 → CONFIRMED.** The BitMEX confirmation passed after the memory snapshot.
 - **GV0V03L40-C033 → BLOCKED_METHOD.** The V2 recompile found that its joint state never occurs.
+- **GV0R01-C004, -C012, -C013, -C020.** Post-memory closures and results.
+- **H01, H03.** Classification readings.
 
-**Open questions surfaced, not resolved.**
-- The PRICE_OI pilot grid starts inside the calendar span of the E1-RUN-001 holdout.
-- The SEED-0001 prospective leg is still `REGISTERED_NOT_STARTED`, although the divergence line is closed.
+**Governance records appended (no record edited in place).**
+- **PRICE_OI pilot (`docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md`).**
+  - The frozen grid overlaps the protected E1 holdout (2566 of 12434 buckets), and the runner was never executed.
+  - Execution on that segment is invalid, and the frozen data gate cannot be met without it, so any execution is a new pilot needing a new explicit permit.
+  - The earliest eligible grid timestamp is 2026-08-25T17:20:00Z; inputs are clean from 2026-09-24T17:20:00Z.
+  - E1-RUN-001 is untouched.
+  - **For the owner (flagged, not adjudicated):** the earlier owner-run P4 descriptive follow-up used the same grid.
+- **SEED-0001 prospective (`docs/research/SEED0001_PROSPECTIVE_CLOSURE_V1.md`).** Closed before start: execution never started, no prospective outcome was opened (the cohort starts 2026-10-05), and no confirmation surface was consumed.
 
 **Owner priority.** MICROSTRUCTURE and SPOT_PERP get +2 in frontier routing; this is not an execution authorization.
 

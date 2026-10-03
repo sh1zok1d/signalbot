@@ -1,6 +1,7 @@
 """SIGNALBOT_RESEARCH_ATLAS_V1: sources are valid, derived files are current, every closed unit is
 on the map, reopening rules are complete and the generator view is outcome-blind."""
 import copy
+import hashlib
 import json
 import re
 
@@ -95,11 +96,13 @@ def test_owner_priority_is_applied_to_the_frontier(full):
 
 # ---- the generator view is outcome-blind ------------------------------------------------------------
 OUTCOME_WORDS = re.compile(r"NO_STRUCTURE|LIVE_SIGNAL|CLOSED_ON_SURFACE|EXPOSED_ONLY|\bCONFIRMED\b|PROMISING|NO_EVIDENCE|"
-                           r"NO_USEFUL|NO_INCREMENTAL|p[-_ ]?value|\bHolm\b|\bSD\b|\d\.\d", re.IGNORECASE)
+                           r"NO_USEFUL|NO_INCREMENTAL|p[-_ ]?value|\bHolm\b|\bSD\b|\d\.\d|surviv|inconclusive|underpowered(?!_NOW)|"
+                           r"exploratory outcome|validation once|compatible with zero|economically small|close to useless|"
+                           r"\(closed|BLOCKED_GOVERNANCE|CLOSED_BEFORE_START|INFORMATIONALLY_WEAK|verdict", re.IGNORECASE)
 
 
 def test_generator_view_carries_no_outcomes(gen):
-    text = json.dumps(gen, ensure_ascii=False)
+    text = json.dumps({k: v for k, v in gen.items() if k != "RULES"}, ensure_ascii=False)  # RULES is fixed policy text
     hits = OUTCOME_WORDS.findall(text)
     assert not hits, hits[:10]
     assert {c["generator_state"] for c in gen["CELLS"]} <= {"OPEN", "PRIOR_WORK", "DATA_REQUIRED", "UNDERPOWERED_NOW"}
@@ -111,13 +114,16 @@ def test_flipping_an_outcome_cannot_change_the_generator_view(monkeypatch):
     """NO_STRUCTURE <-> LIVE_SIGNAL (and a changed verdict text) leave the blind view byte-identical."""
     base = ba._load_yaml(ba.UNITS)
     flipped = copy.deepcopy(base)
+    swap = {"NO_STRUCTURE": "LIVE_SIGNAL", "LIVE_SIGNAL": "NO_STRUCTURE", "CONFIRMED": "CLOSED_ON_SURFACE",
+            "CLOSED_ON_SURFACE": "CONFIRMED"}
     for u in flipped["units"]:
-        if u["state"] == "NO_STRUCTURE":
-            u["state"] = "LIVE_SIGNAL"
-        elif u["state"] == "LIVE_SIGNAL":
-            u["state"] = "NO_STRUCTURE"
-        if u.get("verdict"):
-            u["verdict"] = "SUPPORTED " + u["verdict"]
+        u["state"] = swap.get(u["state"], u["state"])
+        for k in ("verdict", "why_closed", "note", "practical_bar"):
+            if u.get(k):
+                u[k] = "SUPPORTED, effect +9.9 SD " + u[k]
+    for r in flipped.get("memory_reconciliation") or ():
+        r["atlas_state"] = swap.get(r["atlas_state"], r["atlas_state"])
+        r["reason"] = "PASSED " + r["reason"]
 
     def view(units_doc):
         tax, surf = ba._load_yaml(ba.TAXONOMY), ba._load_yaml(ba.SURFACES)
@@ -149,3 +155,165 @@ def test_validate_reports_broken_sources(sources):
                    "X-3: column CANDLES is not applicable to row MICROSTRUCTURE.book_imbalance",
                    "memory entry D2 has no atlas unit", "findings registry id NO_SUCH_FINDING"):
         assert needle in problems, needle
+
+
+# ---- memory reconciliation: memory preserved, atlas authoritative ----------------------------------------
+def test_memory_reconciliation_layer(full, sources):
+    tax, surf, units, memory, findings = sources
+    recs = {r["id"]: r for r in units["memory_reconciliation"]}
+    assert recs["D7"]["atlas_state"] == "CONFIRMED" and recs["D7"]["memory_implied_state"] == "LIVE_SIGNAL"
+    assert recs["GV0V03L40-C033"]["atlas_state"] == "BLOCKED_METHOD"
+    assert recs["GV0V03L40-C033"]["memory_implied_state"] == "CANDIDATE_UNTESTED"
+    for uid, r in recs.items():
+        assert r["memory_status"] == memory[uid]["STATUS_EVIDENCE_CLASS"], uid  # the memory chain is untouched
+    by = {u["id"]: u for u in full["UNITS"]}
+    assert by["D7"]["state"] == "CONFIRMED" and by["D7"]["memory_status"].startswith("PROMISING_PROTOTYPE")
+    assert all(u["routing_authority"] == ba.VERSION for u in full["UNITS"] if u["source"] == "MECHANISM_MEMORY_V0")
+
+
+def test_reconciliation_fails_closed(sources):
+    tax, surf, units, memory, findings = sources
+    missing = copy.deepcopy(units)
+    missing["memory_reconciliation"] = [r for r in missing["memory_reconciliation"] if r["id"] != "D7"]
+    stale = copy.deepcopy(units)
+    stale["memory_reconciliation"].append(dict(stale["memory_reconciliation"][0], id="D2", atlas_state="LIVE_SIGNAL"))
+    drift = copy.deepcopy(units)
+    next(r for r in drift["memory_reconciliation"] if r["id"] == "GV0V03L40-C033")["memory_status"] = "EDITED"
+    assert "D7: atlas state CONFIRMED differs from memory-implied LIVE_SIGNAL" in "\n".join(
+        ba.validate(tax, surf, missing, memory, findings))
+    assert "reconciliation D2: stale entry" in "\n".join(ba.validate(tax, surf, stale, memory, findings))
+    assert "reconciliation GV0V03L40-C033: memory_status no longer matches" in "\n".join(
+        ba.validate(tax, surf, drift, memory, findings))
+
+
+# ---- governance records ---------------------------------------------------------------------------------
+def test_price_oi_pilot_is_blocked_by_the_e1_overlap(full):
+    u = next(x for x in full["UNITS"] if x["id"] == "PRICE-OI-PILOT-V0")
+    assert (u["state"], u["blocker"], u["reservation"]) == ("BLOCKED_GOVERNANCE", "HOLDOUT_OVERLAP", "E1_RUN_001_FINAL_HOLDOUT")
+    err = ba._load_json(ba.ROOT / "docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.json")
+    assert err["RUNNER_EXECUTED"] is False and err["E1_RUN_001_TOUCHED"] is False and err["CONCERNED_RECORDS_EDITED"] is False
+    assert err["PROTECTED_INTERVAL"] == {"id": "E1_RUN_001_FINAL_HOLDOUT", "start": "2026-08-16T00:00:00Z",
+                                         "end_exclusive": "2026-08-25T17:20:00Z"}
+    assert err["FUTURE_EXECUTION"] == "NEW_EXPLICIT_PERMIT_REQUIRED"
+    assert err["EARLIEST_ELIGIBLE_GRID_TIMESTAMP"] == "2026-08-25T17:20:00Z"
+    g = err["FROZEN_GRID"]
+    assert g["buckets_inside_protected_interval"] + g["buckets_after_protected_interval"] == g["authorized_buckets"] == 12434
+    frozen = (ba.ROOT / "docs/research/price_oi_incremental_information_pilot_v0.json").read_text()
+    assert "E1_OVERLAP" not in frozen  # the frozen twin was not edited
+
+
+def test_seed0001_prospective_closed_before_start(full):
+    u = next(x for x in full["UNITS"] if x["id"] == "SEED-0001-PROSP")
+    assert u["state"] == "CLOSED_BEFORE_START"
+    rec = ba._load_json(ba.ROOT / "docs/research/SEED0001_PROSPECTIVE_CLOSURE_V1.json")
+    assert rec["STATUS"] == "CLOSED_BEFORE_START" and rec["REASON"] == "superseded by divergence program closure"
+    assert rec["EXECUTION_STARTED"] is False and rec["PROSPECTIVE_OUTCOMES_OPENED"] is False
+    assert rec["CONFIRMATION_SURFACE_CONSUMED"] is False
+    prereg = (ba.ROOT / rec["PREREG_PATH"]).read_bytes()
+    assert hashlib.sha256(prereg).hexdigest() == rec["PREREG_SHA256"]  # preregistration preserved byte-for-byte
+    ledger = ba._load_json(ba.ROOT / "docs/research/SCIENTIFIC_TEST_LEDGER.json")
+    entry = next(t for t in ledger["TESTS"] if t["TEST_FAMILY_ID"] == "TF-SEED0001-RD-PROSP1")
+    assert entry["STATUS"] == "REGISTERED_NOT_STARTED" and entry["PREREG_SHA256"] == rec["PREREG_SHA256"]
+
+
+# ---- reserved confirmation surfaces --------------------------------------------------------------------
+def test_reserved_surfaces_are_invisible_to_generation(gen, sources):
+    tax, surf, units, memory, findings = sources
+    res = {r["id"]: r for r in surf["reservations"]}
+    assert list(res) == ["E1_RUN_001_FINAL_HOLDOUT"]
+    e1 = res["E1_RUN_001_FINAL_HOLDOUT"]
+    assert e1["status"] == "RESERVED" and e1["permit_required"] is True and e1["permit"] is None
+    period = {"start": "2026-08-16T00:00:00Z", "end_exclusive": "2026-08-25T17:20:00Z"}
+    shown = {s["id"]: s for s in gen["SURFACES"]}
+    for d in e1["datasets"]:
+        assert shown[d]["unavailable_periods"] == [period], d
+    # a dataset held whole disappears from the generator view and from data readiness
+    held = copy.deepcopy(surf)
+    held["reservations"].append({"id": "X", "status": "RESERVED", "datasets": ["D2_BITMEX_PRE2020_XBTUSD"],
+                                 "scope": {"regions": ["VOLATILITY_STATE"]}, "intended_use": "test", "period": None,
+                                 "holder_units": ["D2"], "permit_required": True, "authority": ["AGENTS.md"]})
+    marked = ba._mark_reservations(held)
+    assert next(d for d in marked["datasets"] if d["id"] == "D2_BITMEX_PRE2020_XBTUSD")["_fully_reserved"]
+    assert ba.readiness("VOLATILITY_STATE.tail_risk", "VOLATILITY_STATE", "CANDLES", marked, {},
+                        only=["D2_BITMEX_PRE2020_XBTUSD"]) == 0
+
+
+def test_reservation_rules_fail_closed(sources):
+    tax, surf, units, memory, findings = sources
+    bad = copy.deepcopy(surf)
+    bad["reservations"].append({"id": "R1", "status": "RESERVED", "datasets": ["CORE_BTC_BINANCE_V0"], "period": None,
+                                "scope": {"regions": ["EVENTS"]}, "intended_use": "x", "holder_units": ["D11"],
+                                "permit_required": False, "authority": ["AGENTS.md"]})
+    bad["reservations"].append({"id": "R2", "status": "CONSUMED", "datasets": ["CORE_BTC_BINANCE_V0"], "period": None,
+                                "scope": {"regions": ["EVENTS"]}, "intended_use": "x", "holder_units": ["D11"],
+                                "permit_required": True, "authority": ["AGENTS.md"]})
+    u = copy.deepcopy(units)
+    next(x for x in u["units"] if x["id"] == "PRICE-OI-PILOT-V0")["reservation"] = "NOPE"
+    problems = "\n".join(ba.validate(tax, bad, u, memory, findings))
+    for needle in ("reservation R1: a RESERVED surface needs permit_required: true",
+                   "reservation R2: CONSUMED needs the permit", "PRICE-OI-PILOT-V0: HOLDOUT_OVERLAP must name a reservation"):
+        assert needle in problems, needle
+
+
+# ---- reopen / rescue rules --------------------------------------------------------------------------
+def test_reopen_keys_and_forbidden_moves(full):
+    keys, moves = set(full["REOPEN_KEYS"]), full["FORBIDDEN_MOVES"]
+    assert {"NEW_MECHANISM", "NEW_SURFACE", "NEW_CONFIRMATION_SURFACE", "RECORDED_REOPEN_CONDITION"} <= keys
+    for word in ("threshold", "percentile", "lookback", "horizon", "nearby parameter"):
+        assert word in moves["PARAMETER_NEIGHBOR"], word
+    assert not keys & set(moves)
+    for u in full["UNITS"]:
+        if u["state"] == "BLOCKED_GOVERNANCE":
+            assert u.get("blocker") and u.get("reopen"), u["id"]
+
+
+# ---- append-only event chain --------------------------------------------------------------------------
+def test_event_chain_is_intact_and_current():
+    events = ba.load_events()
+    assert events[0]["change_type"] == "INITIAL_TRANSFER" and events[0]["prior_atlas_digest"] is None
+    assert events[0]["new_atlas_digest"] == "765be4424045e54a02b2fb5cd3e6dd189fe3cc0ac1fb10d46d8179e9345af002"
+    assert len(events[0]["affected_units"]["added"]) == 145
+    tax, surf, units = ba._load_yaml(ba.TAXONOMY), ba._load_yaml(ba.SURFACES), ba._load_yaml(ba.UNITS)
+    memory = ba._load_json(ba.MEMORY)["ENTRIES"]
+    findings = [f["id"] for f in ba._load_yaml(ba.FINDINGS)["findings"]]
+    digest = ba.sources_digest(tax, surf, units, memory, findings)
+    assert ba.verify_events(events, digest, ba.unit_index(units)) == []
+    for ev in events:
+        assert {"prior_atlas_digest", "new_atlas_digest", "timestamp", "change_type", "affected_units",
+                "affected_cells", "source_records", "reason", "event_hash"} <= set(ev)
+
+
+def test_event_chain_detects_rewrites_and_staleness():
+    events = ba.load_events()
+    rewritten = copy.deepcopy(events)
+    rewritten[0]["reason"] = "rewritten"
+    assert any("hash does not match" in p for p in ba.verify_events(rewritten))
+    dropped = copy.deepcopy(events[1:])
+    assert any("sequence" in p or "first event" in p for p in ba.verify_events(dropped))
+    relinked = copy.deepcopy(events)
+    relinked[-1]["prior_atlas_digest"] = "0" * 64
+    relinked[-1]["event_hash"] = ba.event_hash(relinked[-1])
+    assert any("prior_atlas_digest" in p for p in ba.verify_events(relinked))
+    assert any("sources changed" in p for p in ba.verify_events(events, "f" * 64))
+
+
+def test_appending_requires_a_change_and_links_to_the_head(tmp_path, monkeypatch):
+    path = tmp_path / "events.jsonl"
+    path.write_text(ba.EVENTS.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr(ba, "EVENTS", path)
+    with pytest.raises(ba.AtlasError, match="nothing changed"):
+        ba.append_event("GOVERNANCE_RECORD", "no-op", ["AGENTS.md"])
+    head = ba.load_events(path)[-1]
+    ev = ba.make_event(head, "UNIT_TEXT_CHANGE", "test", ["AGENTS.md"], "a" * 64, head["unit_index"],
+                       head["unit_index"], "2099-01-01T00:00:00Z", head["layer_digests"])
+    assert ev["seq"] == head["seq"] + 1 and ev["prev_event_hash"] == head["event_hash"]
+    assert ba.verify_events(ba.load_events(path) + [ev], "a" * 64) == []
+
+
+# ---- bot bridge: the atlas never writes bot copy --------------------------------------------------------
+def test_atlas_never_writes_the_findings_registry():
+    before = ba.FINDINGS.read_bytes()
+    ba.build(check_only=True)
+    assert ba.FINDINGS.read_bytes() == before
+    src = (ba.ROOT / "scripts/research/atlas/build_atlas.py").read_text()
+    assert re.findall(r"FINDINGS\b[^\n]*", src) and not re.search(r"FINDINGS[^\n]*(write|open\([^)]*['\"]w)", src)

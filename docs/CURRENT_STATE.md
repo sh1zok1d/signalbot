@@ -16,6 +16,26 @@ This page answers "where are we now?" in one screen. It restates facts recorded 
 
 **Signalbot has no validated trading edge.** No result in this repository establishes direction prediction, profitability, a trading edge, or information beyond current volatility.
 
+## 1a. Production state (recorded 2026-10-03, owner-reported deploy)
+
+V2 decision support is merged and deployed to production.
+
+| Item | State |
+|---|---|
+| V2 merged into `main` | `a16b8761e45c15473664021cad03b285f747132e` |
+| Production deploy | SUCCESS |
+| History sync | OK |
+| Statistics build | OK |
+| 30-day bootstrap | COMPLETE |
+| Bot | active / running |
+| Health | OK |
+| Smoke: `/events` | PASS |
+| Smoke: `/research` | PASS |
+| Smoke: invalid `/alert nan` | handled |
+| Smoke: `/btc` after invalid input | PASS |
+
+Source: the owner's deploy report. No host, identifier, token or secret is recorded here. Deployment does not change research posture: no research claim follows from it, and beta outcomes are not confirmation.
+
 ## 2. Active research stage
 
 - **Research routing (2026-10-03).** The latest entry in `CURRENT_RESEARCH_STATE.md` is the final owner routing decision on the divergence / selling-exhaustion line:
@@ -83,8 +103,8 @@ There is no authorized next unit in the research routing (see §2). For the beta
 
 ## 6. Product validation status
 
-- **Decision support since 2026-10-03.** Corridor (range forecast with a held-out-year check and live tracking), levels with the chance to reach them and their first-touch history beside random levels, «что было после похожих», event calendar, `/risk`, `/alert`, market alerts (`PRODUCT_DECISION_V2_DECISION_SUPPORT.md`). Implemented in code; not deployed. Binance 2025/2026 opened for product statistics.
-- **Product-first since 2026-10-02.** The product hypothesis, build-to-test scope, DO-NOT-BUILD-YET list and 30-day user test are in `PRODUCT_FIRST_DECISION_V1.md`. The MUST scope is implemented in code (`/catchup`, morning briefing, 1h/4h context with interpretation, unusual-hour push gate, push policy, telemetry); not deployed. The owner-only V0.2 run ended in `CHANGE PRODUCT`; no external user has seen the product yet.
+- **Decision support since 2026-10-03.** Corridor (range forecast with a held-out-year check and live tracking), levels with the chance to reach them and their first-touch history beside random levels, «что было после похожих», event calendar, `/risk`, `/alert`, market alerts (`PRODUCT_DECISION_V2_DECISION_SUPPORT.md`). Implemented and deployed to production (main `a16b876`, owner-reported 2026-10-03; §1a). Binance 2025/2026 opened for product statistics.
+- **Product-first since 2026-10-02.** The product hypothesis, build-to-test scope, DO-NOT-BUILD-YET list and 30-day user test are in `PRODUCT_FIRST_DECISION_V1.md`. The MUST scope is implemented in code (`/catchup`, morning briefing, 1h/4h context with interpretation, unusual-hour push gate, push policy, telemetry); deployed with V2 (§1a). The owner-only V0.2 run ended in `CHANGE PRODUCT`; no external user has seen the product yet.
 - **Predictive claims:** frozen. Descriptive interpretation with shown uncertainty is product evidence, not a research claim.
 - **Descriptive private beta V0.2:** authorized with narrow scope (`PRIVATE_BETA_V0_RESTART_DECISION.md`). Its code and units live only in `beta/`, `runtime/beta_*`, `storage/beta_v0_*`, `config/beta_v0.yaml` and `deploy/signalbot-beta-*`.
 - **Last recorded state** (`PROJECT_STATUS.md`): implemented, push disabled, no users. The next operator step is the 7-day push-disabled shadow soak. This page did not verify runtime state.

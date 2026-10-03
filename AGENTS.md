@@ -54,6 +54,10 @@ rather than proliferate RV_ABSTENTION.
 - Never reopen a closed cell for a new threshold, window or horizon; a new branch needs a new mechanism or a new data surface (§5 reopen keys and forbidden moves).
 - Generators read only `docs/research/atlas/ATLAS_GENERATOR_VIEW_V1.json`; the full view is for the owner, selector and critics.
 - When a unit closes, add it to `docs/research/atlas/ATLAS_UNITS_V1.yaml` (and the surfaces' exposure ledger) in the same change and rebuild with `python -m scripts.research.atlas.build_atlas`; never hand-edit the derived files.
+- Every change of the atlas sources appends a hash-chained event (`--append-event`); never rewrite `ATLAS_EVENTS_V1.jsonl`.
+- The atlas is the authority for current routing; generator memory stays provenance. Where they differ, the reconciliation layer says why.
+- Reserved confirmation surfaces (`reservations:`; today only the E1-RUN-001 holdout) are invisible to generation and need an explicit permit to consume.
+- Atlas state changes reach the bot only as a reviewed findings-registry change, never automatically.
 - A batch still needs its own owner go.
 
 `FORWARD_MARKET_OBSERVABILITY_V1` collector implementation remains frozen; authoritative collection has not been started by this cleanup. B2-06 remains blocked on the missing/legally-timestamped observable problem.
