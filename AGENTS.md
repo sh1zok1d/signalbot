@@ -177,6 +177,8 @@ Do not change its:
 
 The final holdout may be opened only by its frozen one-shot evaluator after the timestamp-only coverage gate passes. Correctness fixes require explicit documentation and may not be motivated by observed holdout metrics.
 
+Owner decision 2026-10-03 (`docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md`, Amendment 1): the P4 owner-run descriptive follow-up read live `klines_1m` / `open_interest` over the whole holdout interval. `E1_EVALUATOR_TOUCHED = NO`, `E1_SEALED_ARTIFACTS_OPENED = NO`, `E1_OUTCOME_SURFACE_OPENED_BY_P4 = YES`, `E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP`. The E1 records are not rewritten and the rules above still apply.
+
 ## V3 Microscope load-bearing rule
 
 Canonical V3 is closed immutable historical evidence. Do not change V3 scientific code, prereg, WORLD_RECORDS, or RESULT. Do not repair, rerun, or reinterpret V3. Do not create V4. `V3_CALIBRATION_CLOSED = YES`. `V3_METHODOLOGY_CLAIMABLE = NO`. `V3_RERUN_AUTHORIZED = NO`. `DEFAULT_V4 = NO`.

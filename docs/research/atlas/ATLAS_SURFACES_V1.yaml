@@ -152,7 +152,7 @@ datasets:
     live_in_product: true
     exposure:
       - {period: 2026-08-02..2026-08-16, rows: [METHOD.methodology], status: CONSUMED, note: "E1-RUN-001 development"}
-      - {period: 2026-08-16T19:30Z..2026-09-28T23:55Z, rows: [DERIVATIVES.oi_buildup], status: EXPOSED, note: "P4 owner-run descriptive follow-up of PRICE_OI_CONTRACTION (1h/4h realized ranges) on the 12434-bucket grid; the grid starts inside the E1-RUN-001 holdout span (flagged in PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM, not adjudicated)"}
+      - {period: "2026-07-17T19:30Z..2026-09-29T04:00Z", scope: ALL, status: EXPOSED, note: "P4 owner-run descriptive follow-up (as_of 2026-09-29T15:03Z): its replay (364db27) read klines_1m and open_interest, BTCUSDT live, over [2026-07-17T19:30Z, 2026-09-29T00:00Z); follow-up 1h/4h outcome windows can extend to 04:00Z (actual reads not recorded, treated as exposed). Contains the whole E1-RUN-001 holdout; owner decision 2026-10-03: E1 outcome surface opened by P4 (erratum Amendment 1)."}
     records: [docs/E1_DATA_INVENTORY_2026-08-25.md, docs/audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md]
   # ---- liquidations ---------------------------------------------------------------------------------
   - id: STAGE1_LIVE_LIQUIDATIONS
@@ -283,7 +283,7 @@ datasets:
     live_in_product: true
     exposure:
       - {period: 2026-08-02..2026-08-16, rows: [METHOD.methodology], status: CONSUMED, note: "E1-RUN-001 development"}
-      - {period: 2026-08-16T19:30Z..2026-09-28T23:55Z, rows: [DERIVATIVES.oi_buildup], status: EXPOSED, note: "P4 owner-run descriptive follow-up of PRICE_OI_CONTRACTION (1h/4h realized ranges) on the 12434-bucket grid; the grid starts inside the E1-RUN-001 holdout span (flagged in PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM, not adjudicated)"}
+      - {period: "2026-07-17T19:30Z..2026-09-29T04:00Z", scope: ALL, status: EXPOSED, note: "P4 owner-run descriptive follow-up (as_of 2026-09-29T15:03Z): its replay (364db27) read klines_1m and open_interest, BTCUSDT live, over [2026-07-17T19:30Z, 2026-09-29T00:00Z); follow-up 1h/4h outcome windows can extend to 04:00Z (actual reads not recorded, treated as exposed). Contains the whole E1-RUN-001 holdout; owner decision 2026-10-03: E1 outcome surface opened by P4 (erratum Amendment 1)."}
     records: [docs/E1_DATA_INVENTORY_2026-08-25.md, docs/audit/live_archive_price_oi_p4_followup_v0/P4_FINAL_REPORT.md]
   - id: BINANCE_UM_LIVE_FORWARD
     col: PERP_FLOW
@@ -426,4 +426,10 @@ reservations:
     permit_required: true
     permit: null
     authority: [AGENTS.md, docs/e1/E1_RUN_001_FINAL_HOLDOUT_EVALUATOR_FREEZE.md, docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md]
+    # pristine_status records whether the reserved slice is still unread; a non-PRISTINE status names what opened it.
+    pristine_status: INVALIDATED_FOR_P4_OVERLAP
+    contamination:
+      - {by: "P4 owner-run descriptive follow-up (2026-09-29)", period: {start: "2026-08-16T00:00:00Z", end_exclusive: "2026-08-25T17:20:00Z"},
+         tables: [klines_1m, open_interest], evaluator_touched: false, sealed_artifacts_opened: false,
+         decided: "owner, 2026-10-03", record: docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md}
     note: "The product history sync never requests an archive object overlapping this period; the divergence program read horizon stops at 2026-08-15."

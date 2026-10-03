@@ -207,6 +207,15 @@ def _validate_reservations(surf, ds, unit_ids) -> list:
         period = r.get("period") or {}
         if r.get("period") and not (period.get("start") and period.get("end_exclusive")):
             problems.append(f"reservation {rid}: period needs start and end_exclusive")
+        if r.get("pristine_status", "PRISTINE") != "PRISTINE":
+            if not r.get("contamination"):
+                problems.append(f"reservation {rid}: a non-pristine reservation must record its contamination")
+            for c in r.get("contamination") or ():
+                for k in ("by", "period", "decided", "record"):
+                    if not c.get(k):
+                        problems.append(f"reservation {rid}: contamination entry missing {k}")
+                if c.get("record") and not (ROOT / c["record"].split("#")[0]).exists():
+                    problems.append(f"reservation {rid}: record {c['record']} not found")
         for u in r.get("holder_units") or ():
             if u not in unit_ids:
                 problems.append(f"reservation {rid}: unknown holder unit {u}")
@@ -644,7 +653,12 @@ def render_matrix(tax, surf, cell_list, units, by_id, frontier, data_blocked, re
         per = r.get("period") or {}
         L.append(f"- `{r['id']}` {r['status']}: {r['datasets'] if r['datasets'] == '*' else ', '.join(r['datasets'])}"
                  + (f" [{per.get('start')}, {per.get('end_exclusive')})" if per else "")
-                 + f" — {_short(r['intended_use'], 200)} (holders: {', '.join(r['holder_units'])})")
+                 + f" — {_short(r['intended_use'], 200)} (holders: {', '.join(r['holder_units'])}; "
+                 f"pristine status: {r.get('pristine_status', 'PRISTINE')})")
+        for c in r.get("contamination") or ():
+            per = c.get("period") or {}
+            L.append(f"  - opened by {c['by']}: [{per.get('start')}, {per.get('end_exclusive')}), "
+                     f"tables {', '.join(c.get('tables') or [])}; decided {c['decided']} ({c['record']})")
     if not surf.get("reservations"):
         L.append("- none")
     L.append("")

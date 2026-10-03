@@ -291,7 +291,9 @@ The atlas builder reads the registry and never writes it (tested). No production
   - GV0R01-C013: needs about 468 fresh weeks.
 - **Questions found during the transfer, and how the pre-merge cleanup handled them:**
   1. **E1 overlap. Recorded.** The frozen PRICE_OI pilot grid starts 2026-08-16T19:30Z, inside the E1-RUN-001 holdout. The append-only erratum `PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md` records that no execution occurred and that execution on that segment is invalid. Any future execution needs a new explicit permit; the earliest eligible grid timestamp is 2026-08-25T17:20:00Z, and inputs are clean only from 2026-09-24T17:20:00Z. The unit is `BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP`.
-  2. **P4 exposure. Flagged, not adjudicated (owner).** The erratum also notes that the owner-run P4 descriptive follow-up used the same grid, so live-archive rows inside the holdout span were read by that audit. E1's own flags and evaluator are untouched.
+  2. **P4 exposure. Decided by the owner (erratum Amendment 1).** The owner-run P4 descriptive follow-up used the same grid, and its replay read `klines_1m` and `open_interest` over `[2026-07-17T19:30Z, 2026-09-29T00:00Z)`, which includes the whole E1 holdout.
+     - Recorded: `E1_EVALUATOR_TOUCHED = NO`, `E1_SEALED_ARTIFACTS_OPENED = NO`, `E1_OUTCOME_SURFACE_OPENED_BY_P4 = YES`, `E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP`.
+     - A future PRICE_OI or related pilot must exclude `[2026-07-17T19:30Z, 2026-09-29T04:00Z)` and every anchor whose windows touch it.
   3. **SEED-0001 prospective leg. Recorded.** `SEED0001_PROSPECTIVE_CLOSURE_V1.md` closes it as `CLOSED_BEFORE_START`, superseded by the divergence program closure. It never started, no prospective outcome was opened, and no surface was consumed. The preregistration and the ledger entry are preserved.
   4. **Stale memory statuses. Reconciled.** The reconciliation layer (§3a) covers them; the memory chain is unchanged.
   5. **PR #303. Not changed here.** CURRENT_RESEARCH_STATE says PR #303 is not merged; git history shows it merged as `04e1300` and then restored by `a7d738f`.

@@ -54,6 +54,7 @@ Done end to end on branch `research/autonomous-generation-g01`, from `main` at `
 `TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START (superseded by divergence program closure; closure record; prereg and ledger entry preserved)`
 `D7 = CONFIRMED (atlas authority; memory status preserved) | GV0V03L40-C033 = BLOCKED_METHOD (atlas authority; memory status preserved)`
 `RESERVED_SURFACES = E1_RUN_001_FINAL_HOLDOUT only | ATLAS_EVENTS = hash-chained, append-only`
+`E1_EVALUATOR_TOUCHED = NO | E1_SEALED_ARTIFACTS_OPENED = NO | E1_OUTCOME_SURFACE_OPENED_BY_P4 = YES | E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP`
 `GENERATOR_CONTRACT_V04 = DESIGN_ONLY / NOT_ACTIVE | CONFIRMATION_BUDGET = DESIGN_ONLY`
 `NEXT_UNIT = none until an owner go names a batch; selection then follows the atlas frontier (§7 batch protocol)`
 
@@ -74,8 +75,10 @@ Done end to end on branch `research/autonomous-generation-g01`, from `main` at `
   - The frozen grid overlaps the protected E1 holdout (2566 of 12434 buckets), and the runner was never executed.
   - Execution on that segment is invalid, and the frozen data gate cannot be met without it, so any execution is a new pilot needing a new explicit permit.
   - The earliest eligible grid timestamp is 2026-08-25T17:20:00Z; inputs are clean from 2026-09-24T17:20:00Z.
-  - E1-RUN-001 is untouched.
-  - **For the owner (flagged, not adjudicated):** the earlier owner-run P4 descriptive follow-up used the same grid.
+  - The pilot never read E1-RUN-001, and E1's evaluator and sealed artifacts were not touched.
+  - **Owner decision (erratum Amendment 1):** the earlier owner-run P4 descriptive follow-up, which used the same grid, opened the E1 protected outcome surface.
+    - Its replay (`364db27`) read `klines_1m` and `open_interest` over `[2026-07-17T19:30Z, 2026-09-29T00:00Z)`, which includes the whole holdout. The E1 holdout is no longer pristine.
+    - A future PRICE_OI or related pilot must exclude `[2026-07-17T19:30Z, 2026-09-29T04:00Z)` and every anchor whose windows touch it (anchors from 2026-10-29T04:00Z under the V0 lookbacks), needs a new permit, and may not reuse the old data gate.
 - **SEED-0001 prospective (`docs/research/SEED0001_PROSPECTIVE_CLOSURE_V1.md`).** Closed before start: execution never started, no prospective outcome was opened (the cohort starts 2026-10-05), and no confirmation surface was consumed.
 
 **Owner priority.** MICROSTRUCTURE and SPOT_PERP get +2 in frontier routing; this is not an execution authorization.

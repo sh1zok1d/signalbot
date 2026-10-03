@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 import re
+import subprocess
 
 import pytest
 
@@ -191,7 +192,10 @@ def test_price_oi_pilot_is_blocked_by_the_e1_overlap(full):
     u = next(x for x in full["UNITS"] if x["id"] == "PRICE-OI-PILOT-V0")
     assert (u["state"], u["blocker"], u["reservation"]) == ("BLOCKED_GOVERNANCE", "HOLDOUT_OVERLAP", "E1_RUN_001_FINAL_HOLDOUT")
     err = ba._load_json(ba.ROOT / "docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.json")
-    assert err["RUNNER_EXECUTED"] is False and err["E1_RUN_001_TOUCHED"] is False and err["CONCERNED_RECORDS_EDITED"] is False
+    assert err["RUNNER_EXECUTED"] is False and err["CONCERNED_RECORDS_EDITED"] is False
+    assert "E1_RUN_001_TOUCHED" not in err  # no bare "E1 untouched" claim survives the owner decision
+    assert (err["E1_EVALUATOR_TOUCHED"], err["E1_SEALED_ARTIFACTS_OPENED"], err["E1_OUTCOME_SURFACE_OPENED_BY_P4"],
+            err["E1_PRISTINE_HOLDOUT_STATUS"]) == (False, False, True, "INVALIDATED_FOR_P4_OVERLAP")
     assert err["PROTECTED_INTERVAL"] == {"id": "E1_RUN_001_FINAL_HOLDOUT", "start": "2026-08-16T00:00:00Z",
                                          "end_exclusive": "2026-08-25T17:20:00Z"}
     assert err["FUTURE_EXECUTION"] == "NEW_EXPLICIT_PERMIT_REQUIRED"
@@ -317,3 +321,44 @@ def test_atlas_never_writes_the_findings_registry():
     assert ba.FINDINGS.read_bytes() == before
     src = (ba.ROOT / "scripts/research/atlas/build_atlas.py").read_text()
     assert re.findall(r"FINDINGS\b[^\n]*", src) and not re.search(r"FINDINGS[^\n]*(write|open\([^)]*['\"]w)", src)
+
+
+# ---- owner decision on P4 / E1 (erratum Amendment 1) -------------------------------------------------
+def test_p4_exposure_is_derived_from_its_records_and_recorded_everywhere(sources):
+    tax, surf, units, memory, findings = sources
+    err = ba._load_json(ba.ROOT / "docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.json")
+    a1 = next(a for a in err["AMENDMENTS"] if a["id"] == "AMENDMENT_1")
+    assert a1["E1_RECORDS_REWRITTEN"] is False and a1["P4_ROW_LEVEL_LOG_IN_REPOSITORY"] is False
+    # the recorded read window is the one in the P4-era replay code (364db27), not an estimate
+    replay = subprocess.check_output(["git", "show", "364db27:scripts/audit/live_archive_replay_preflight/"
+                                      "run_price_oi_semantic_replay.py"], cwd=ba.ROOT, text=True)
+    assert "ts >= TIMESTAMPTZ '2026-07-17 19:30:00+00'" in replay and "ts < TIMESTAMPTZ '2026-09-29 00:00:00+00'" in replay
+    assert a1["P4_RECORDED_READ_WINDOW"] == {"start": "2026-07-17T19:30:00Z", "end_exclusive": "2026-09-29T00:00:00Z"}
+    summary = ba._load_json(ba.ROOT / "docs/audit/live_archive_price_oi_p4_followup_v0/p4_followup_summary.json")
+    assert summary["authorized_buckets"] == 12434 and "PHASE_A_AUTHORIZED_BUCKETS = 12434" in subprocess.check_output(
+        ["git", "show", "364db27:scripts/audit/live_archive_replay_preflight/price_oi_semantic_replay.py"],
+        cwd=ba.ROOT, text=True)
+    # the replay window contains the whole protected interval, so the E1 exposure is the interval itself
+    assert a1["E1_P4_EXPOSED_INTERVAL"] == {"start": "2026-08-16T00:00:00Z", "end_exclusive": "2026-08-25T17:20:00Z",
+                                            "share_of_protected_interval": "ALL"}
+    rules = a1["FUTURE_PILOT_RULES"]
+    assert rules["exclude_outcome_timestamps"] == a1["P4_EXPOSED_TREATED"]
+    assert rules["new_explicit_execution_permit_required"] is True and rules["old_frozen_data_gate_reusable"] is False
+    assert rules["earliest_input_clean_anchor_under_v0_lookbacks"] == "2026-10-29T04:00:00Z"
+    e1 = next(r for r in surf["reservations"] if r["id"] == "E1_RUN_001_FINAL_HOLDOUT")
+    assert e1["status"] == "RESERVED" and e1["pristine_status"] == "INVALIDATED_FOR_P4_OVERLAP"
+    assert e1["contamination"][0]["period"] == {"start": "2026-08-16T00:00:00Z", "end_exclusive": "2026-08-25T17:20:00Z"}
+    live = [d for d in surf["datasets"] if d["id"] in ("STAGE1_LIVE_KLINES_3VENUE", "STAGE1_LIVE_OI_FUNDING")]
+    for d in live:
+        assert any(e.get("scope") == "ALL" and e["period"] == "2026-07-17T19:30Z..2026-09-29T04:00Z"
+                   for e in d["exposure"]), d["id"]
+    md = (ba.ROOT / "docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md").read_text()
+    assert "E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP" in md and not re.search(r"E1[^\n]{0,20}is untouched", md)
+
+
+def test_non_pristine_reservation_must_record_its_contamination(sources):
+    tax, surf, units, memory, findings = sources
+    bad = copy.deepcopy(surf)
+    next(r for r in bad["reservations"] if r["id"] == "E1_RUN_001_FINAL_HOLDOUT").pop("contamination")
+    assert "reservation E1_RUN_001_FINAL_HOLDOUT: a non-pristine reservation must record its contamination" in "\n".join(
+        ba.validate(tax, bad, units, memory, findings))

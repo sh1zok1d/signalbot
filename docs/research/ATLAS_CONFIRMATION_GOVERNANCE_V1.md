@@ -38,9 +38,11 @@ The builder enforces:
 
 **Registry now:**
 
-| id | status | period | holder | authority |
-|---|---|---|---|---|
-| `E1_RUN_001_FINAL_HOLDOUT` | RESERVED | `[2026-08-16T00:00Z, 2026-08-25T17:20Z)` on every atlas dataset covering it | E1-RUN-001 | AGENTS.md; `docs/e1/E1_RUN_001_FINAL_HOLDOUT_EVALUATOR_FREEZE.md`; `docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md` |
+| id | status | pristine status | period | holder | authority |
+|---|---|---|---|---|---|
+| `E1_RUN_001_FINAL_HOLDOUT` | RESERVED | `INVALIDATED_FOR_P4_OVERLAP` | `[2026-08-16T00:00Z, 2026-08-25T17:20Z)` on every atlas dataset covering it | E1-RUN-001 | AGENTS.md; `docs/e1/E1_RUN_001_FINAL_HOLDOUT_EVALUATOR_FREEZE.md`; `docs/e1/E1_RUN_001_PRE_HOLDOUT_FREEZE.md` |
+
+**Pristine status.** A reservation may record a `pristine_status` other than `PRISTINE`; it must then list its contamination (who opened it, the period, the decision and the record), and the builder fails otherwise. Contamination does not release a reservation. The E1 holdout's outcome surface was opened by the P4 owner-run follow-up over the whole interval (owner decision 2026-10-03, erratum Amendment 1). Its evaluator and sealed artifacts were not touched.
 
 History, not registered: D2's reservation on 2025 and pre-E1 2026 was released by the divergence owner decisions (`CURRENT_RESEARCH_STATE.md`). Adding a reservation needs an owner decision; the atlas never creates one on its own.
 
@@ -55,8 +57,9 @@ History, not registered: D2's reservation on 2025 and pre-E1 2026 was released b
 | Binance 2020–2024 | Discovery surface for almost every unit (`CORE_BTC_BINANCE_V0` is exposed for all rows). Not a confirmation surface for any region. |
 | BitMEX 2016–2019 | **The only time-disjoint historical slice left.** Spent for VOLATILITY_STATE.tail_risk (D2 replication) and VOLATILITY_STATE.execution_impact (D7 confirmation). Declared but never opened as the replication surface of R03 (expiries, sessions, weekday) and G01 (month boundary). Unspent for the other regions. |
 | Binance 2025-01 .. 2026-08-15 | Opened for the divergence/support program (divergence, exhaustion, levels, book support). Consumed for product-feature research (range/volatility, levels, price/OI/taker states, event days). Not declared spent for unrelated families. |
-| E1 holdout | Reserved (§2). |
-| Live archive after 2026-08-25T17:20Z | Short. Exposed for the PRICE_OI row by the P4 owner-run follow-up. |
+| E1 holdout | Reserved (§2), no longer pristine: its outcome surface was opened by P4. |
+| Live archive 2026-07-17T19:30Z .. 2026-09-29T04:00Z | Exposed for all rows by the P4 owner-run follow-up (it contains the E1 holdout). |
+| Live archive after 2026-09-29T04:00Z | Short and growing; unread by any recorded analysis. |
 | Prospective, after a dated freeze | The only renewable source. It accrues with time. |
 
 **Proposed rules (owner decision):**

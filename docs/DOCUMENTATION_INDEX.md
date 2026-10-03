@@ -626,7 +626,7 @@ When adding documentation:
   - **Change events:** `research/atlas/ATLAS_EVENTS_V1.jsonl` (append-only, hash-chained; `--append-event`).
 - `research/ATLAS_CONFIRMATION_GOVERNANCE_V1.md` (**ACTIVE — reserved confirmation surfaces implemented; per-region confirmation budget design only**).
 - `research/GENERATOR_CONTRACT_V04_ATLAS_ROUTING_DESIGN.{md,json}` (**DESIGN ONLY / NOT ACTIVE**): atlas selects one cell; generator gets a blind packet; admission rejects other cells and parameter neighbours. The Generator V0 architecture freeze stays the operational authority.
-- `research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.{md,json}` (**APPEND-ONLY ERRATUM, 2026-10-03**): the frozen PRICE_OI pilot grid overlaps the protected E1 holdout; not executed; `BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP`; new explicit permit required.
+- `research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.{md,json}` (**APPEND-ONLY ERRATUM, 2026-10-03, with Amendment 1 (owner decision)**): the frozen PRICE_OI pilot grid overlaps the protected E1 holdout; not executed; `BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP`. Amendment 1 records that the P4 follow-up opened the E1 outcome surface (`E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP`; evaluator and sealed artifacts untouched), derives P4's exposed window from its records, and sets the rules for any future PRICE_OI pilot.
 - `research/SEED0001_PROSPECTIVE_CLOSURE_V1.{md,json}` (**APPEND-ONLY CLOSURE, 2026-10-03**): `TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START`; nothing started, opened or consumed.
 - `research/SCIENTIFIC_TEST_LEDGER.json` — **active** global machine-readable ledger of executed scientific tests and search families, registered before outcomes. Generated cards are not counted.
 

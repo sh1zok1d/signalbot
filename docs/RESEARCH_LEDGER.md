@@ -7859,8 +7859,8 @@ No market value was read and no test was registered or run. Every change is appe
 - **Not run, and not runnable as frozen.** The runner was never executed. Execution on the segment is invalid, and the frozen data gate cannot be met without it, so a future execution is a new pilot identity with a new explicit permit.
 - **Boundaries.** The earliest eligible grid timestamp is 2026-08-25T17:20:00Z; the input-clean decision bucket is from 2026-09-24T17:20:00Z (30-day percentile lookback).
 - **Atlas.** `BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP`.
-- **E1.** E1-RUN-001 is untouched.
-- **Flagged for the owner, not adjudicated.** The owner-run P4 descriptive follow-up (2026-09-29) used the same grid and reported 1h/4h realized ranges.
+- **E1.** The pilot never read E1-RUN-001; E1's evaluator and sealed artifacts were not touched.
+- **P4.** The owner-run P4 descriptive follow-up (2026-09-29) used the same grid and reported 1h/4h realized ranges. The owner adjudicated this the same day (next entry).
 
 **SEED-0001 prospective (`SEED0001_PROSPECTIVE_CLOSURE_V1.md`).**
 - `TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START`, superseded by the divergence program closure.
@@ -7879,4 +7879,33 @@ No market value was read and no test was registered or run. Every change is appe
 WINDOWS_CONSUMED = none; MARKET_VALUES_READ = none; NEW_TESTS = none; PROTECTED_SURFACES_CONSUMED = none
 PRICE_OI_PILOT_V0 = BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP
 TF-SEED0001-RD-PROSP1 = CLOSED_BEFORE_START
+```
+
+## 2026-10-03 — Owner decision: P4 opened the E1-RUN-001 protected outcome surface
+
+The owner ruled that the P4 owner-run descriptive follow-up contaminated the E1 protected outcome surface for every timestamp it read inside the protected interval. It is recorded as Amendment 1 of `docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md`; the historical E1 records are not rewritten.
+
+```
+E1_EVALUATOR_TOUCHED = NO
+E1_SEALED_ARTIFACTS_OPENED = NO
+E1_OUTCOME_SURFACE_OPENED_BY_P4 = YES
+E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP
+```
+
+**Exposed interval, derived from P4's records.** P4 has no row-level log in the repository. The interval comes from its manifest (`authorized_buckets = 12434`, `as_of = 2026-09-29T15:03Z`) and the frozen code it names:
+- **Replay (`364db27`).** It read `klines_1m` and `open_interest`, BTCUSDT, live, over `[2026-07-17T19:30:00Z, 2026-09-29T00:00:00Z)`, with no exclusion inside.
+- **Follow-up (`beta/followup.py` at `9e1ba036`).** Its 1h/4h outcome windows can extend to at most `2026-09-29T04:00:00Z`. Whether it actually read past 00:00Z is not recorded.
+
+**Consequences:**
+- **E1.** Inside the E1 interval, the exposure is the whole interval `[2026-08-16T00:00:00Z, 2026-08-25T17:20:00Z)`.
+- **Treated as P4-exposed:** `[2026-07-17T19:30:00Z, 2026-09-29T04:00:00Z)`.
+- **Future PRICE_OI or related pilots** must:
+  - exclude those timestamps;
+  - exclude every anchor whose feature, lookback or control window touches them (under the V0 lookbacks, anchors from `2026-10-29T04:00:00Z`);
+  - have a new explicit permit;
+  - not reuse the old frozen data gate.
+- **Atlas.** The E1 reservation stays `RESERVED`, with `pristine_status = INVALIDATED_FOR_P4_OVERLAP`. The live-archive surfaces carry the P4 window as exposure for all rows.
+
+```
+WINDOWS_CONSUMED = none by this record (it records a past exposure); MARKET_VALUES_READ = none; NEW_TESTS = none
 ```

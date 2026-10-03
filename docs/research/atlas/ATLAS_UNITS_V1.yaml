@@ -2195,10 +2195,10 @@ units:
     why_closed: Not run. The frozen 12434-bucket grid starts at 2026-08-16T19:30Z, inside the protected E1-RUN-001
       holdout [2026-08-16T00:00Z, 2026-08-25T17:20Z) (2566 buckets inside). Execution on that segment is invalid,
       and without it the frozen data gate (12434 buckets, 25 DOWN / 19 UP episodes) cannot be met.
-    reopen: Only a new explicit execution permit recorded after the erratum. It is a new pilot identity under the
-      protocol's own rule; earliest eligible grid timestamp 2026-08-25T17:20:00Z, and every input (30-day percentile
-      history, persistence predecessor, 4h covariates, matched controls) must lie outside the protected interval,
-      which the frozen design meets only from 2026-09-24T17:20:00Z.
+    reopen: 'Only a new explicit execution permit recorded after the erratum and its Amendment 1, for a new pilot
+      identity with its own data gate (the old gate is defined on the P4-exposed grid and is not reusable). It must
+      exclude every P4-exposed timestamp [2026-07-17T19:30:00Z, 2026-09-29T04:00:00Z) and every anchor whose feature,
+      lookback or control window touches it: under the V0 lookbacks, anchors only from 2026-10-29T04:00:00Z.'
     forbidden: No threshold, caliper, gate or endpoint change after outcomes; old matched-baseline design not reused
       or repaired.
     exposure: P4 owner-run record (larger 1h/4h range after triggered states vs ordinary anchors, uncontrolled) was
@@ -2210,8 +2210,9 @@ units:
     - docs/CURRENT_STATE.md
     - docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md
     - docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.json
-    note: 'BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP until a future execution permit exists (erratum 2026-10-03). E1-RUN-001
-      untouched. Flagged, not adjudicated: the owner-run P4 descriptive follow-up used the same grid.'
+    note: 'BLOCKED_GOVERNANCE / HOLDOUT_OVERLAP until a future execution permit exists. Owner decision 2026-10-03
+      (erratum Amendment 1): the owner-run P4 follow-up, which used the same grid, opened the E1 protected outcome
+      surface; E1 evaluator not touched, sealed artifacts not opened, E1 holdout no longer pristine.'
     source_id: PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0
     blocker: HOLDOUT_OVERLAP
     reservation: E1_RUN_001_FINAL_HOLDOUT
@@ -2434,12 +2435,15 @@ units:
     - docs/e1/E1_RUN_001_DEVELOPMENT_ABLATIONS.md
     - scripts/research/v2_e1_final_holdout_evaluator.py
     - docs/RESEARCH_LEDGER.md
+    - docs/research/PRICE_OI_INCREMENTAL_INFORMATION_PILOT_V0_E1_OVERLAP_ERRATUM.md
     note: 'Development consumed; the three Stage-5 formulations are RETIRED_CURRENT_FORMULATION. The final holdout
       stays sealed and may be opened only by its frozen one-shot evaluator.; Implementation base main@8081eb31657f127141efb3a455f86690258164bc;
       evaluator commit f093fc35c5095110fddb2e76f287aa045fd06e7f. Abbreviations: TP = TREND_PULLBACK; CB and FB map
       to COMPRESSION_BREAKOUT and CONFIRMED_BREAKOUT by the ledger''s ordering (prereg §: "CONFIRMED_BREAKOUT=19 (42.2%
       of FB)"), not by an explicit legend in the files read. Historical hypothesis ids H-002..H-016 in the ledger
-      inventory were marked E1_TESTING.'
+      inventory were marked E1_TESTING. Owner decision 2026-10-03: E1_EVALUATOR_TOUCHED = NO, E1_SEALED_ARTIFACTS_OPENED
+      = NO, E1_OUTCOME_SURFACE_OPENED_BY_P4 = YES, E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP (the P4
+      replay read the whole holdout interval; erratum Amendment 1). E1 records are not rewritten.'
     blind_function: E1-RUN-001 V2 Stage-5 detector separation
   - id: TWAP-V1
     title: TWAP execution footprint in Binance spot BTCUSDT aggTrades — sealed end-to-end run V1
