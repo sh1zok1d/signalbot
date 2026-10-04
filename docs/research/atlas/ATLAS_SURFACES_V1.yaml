@@ -297,6 +297,47 @@ datasets:
       - {period: 2020-2024, rows: [SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: CONSUMED, note: "DH2 one-shot discovery (spot states)"}
       - {period: 2017-2019, rows: [PRICE_STRUCTURE.levels], status: EXPOSED, note: "DH2-L3 replication-surface feasibility counted events and states only; no outcome read"}
     records: [docs/research_data/DH2_BINANCE_SPOT_ALTS_5M_V0, docs/research/DH2_FEASIBILITY.md]
+  - id: DH3_BINANCE_UM_BTC_METRICS_5M_V0
+    col: POSITIONING
+    venue: Binance USD-M (data.binance.vision metrics)
+    instrument: BTCUSDT perpetual
+    data: 5m open interest and global long/short account ratio (the product's metrics surface)
+    coverage: 2020-09-01..2024-12-31, 1583 daily objects, checksums verified
+    availability: PINNED
+    exposure:
+      - {period: 2020-2024, rows: [VOLATILITY_STATE.compression, VOLATILITY_STATE.shock_recovery, DERIVATIVES.leverage_crowding], status: CONSUMED, note: "DH3-P one-shot discovery (P3 crowd long/short is a LIVE_SIGNAL; confirmation only prospective)"}
+    records: [docs/research_data/DH3_BINANCE_UM_BTC_METRICS_5M_V0, docs/research/DH3_RESULT.md]
+  - id: DH3_BINANCE_UM_BOOKDEPTH_V0
+    col: ORDER_BOOK
+    venue: Binance USD-M (data.binance.vision bookDepth)
+    instrument: BTC, ETH, BNB, XRP, DOGE, SOL USDT perpetuals
+    data: ±1 % notional of the last snapshot at or before each 5m close
+    coverage: 2023-01-01..2024-12-31, 4386 daily objects (18 missing), checksums verified
+    availability: PINNED
+    exposure:
+      - {period: 2023-2024, rows: [MICROSTRUCTURE], status: CONSUMED, note: "DH3-L one-shot discovery (thin book, ±1 % imbalance, book recovery)"}
+    records: [docs/research_data/DH3_BINANCE_UM_BOOKDEPTH_V0, docs/research/DH3_RESULT.md]
+  - id: DH3_DERIBIT_DVOL_1H_V0
+    col: OPTIONS
+    venue: Deribit (public API)
+    instrument: BTC and ETH DVOL
+    data: hourly DVOL candles, committed CSV with digest
+    coverage: 2021-03-25..2024-12-31
+    availability: PINNED
+    exposure:
+      - {period: 2021-2024, rows: [OPTIONS_REGION.implied_vs_realized], status: CONSUMED, note: "DH3-O one-shot discovery"}
+    records: [docs/research_data/DH3_DERIBIT_DVOL_1H_V0, docs/research/DH3_RESULT.md]
+  - id: DH3_BINANCE_AGGTRADES_STRESS_V0
+    col: SPOT
+    also_cols: [PERP_FLOW]
+    venue: Binance USD-M and spot (data.binance.vision aggTrades)
+    instrument: BTCUSDT
+    data: per stress hour, 1-second spot/perp lead score and count of perp prints >= 1M USD (from 120 verified monthly zips)
+    coverage: 2020-01..2024-12, 4368 stress hours
+    availability: PINNED
+    exposure:
+      - {period: 2020-2024, rows: [SPOT_PERP.stress_lead_lag, FLOW.participant_composition], status: CONSUMED, note: "DH3-S one-shot discovery"}
+    records: [docs/research_data/DH3_BINANCE_AGGTRADES_STRESS_V0, docs/research/DH3_RESULT.md]
   - id: MARKET_06_OKX_BINANCE_FEASIBILITY_V0
     col: SPOT
     also_cols: [CROSS_VENUE]

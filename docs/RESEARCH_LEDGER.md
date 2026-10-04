@@ -8006,3 +8006,58 @@ WINDOWS_CONSUMED = six-coin Binance 2020-2024 for PRICE_STRUCTURE.levels, SPOT_P
 TESTS_EXECUTED = 2 families (TF-DH2-L-LEVEL-HOLD, TF-DH2-B-BARRIER); PROMISING_PROTOTYPES = 0; RERUN_AUTHORIZED = false
 OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
 ```
+
+## 2026-10-04 — DH3: five cards of three (direction and range), frozen before any outcome
+
+**Owner decision** (`DH3_DESIGN.md`):
+- 15 hypotheses in 5 cards: positioning (OI metrics), liquidity (bookDepth), options (DVOL), levels extended, and spot↔perp at one second (aggTrades);
+- 9 range endpoints (bar log 1.15) and 6 directional endpoints (bar 3 pp);
+- OI history and heavy free data allowed; funding and the premium index stay out (MARKET-04H, B2-06).
+
+**Data pinned** (free):
+- BTC metrics: 1583 days;
+- bookDepth, six coins 2023–2024: 4386 objects, 18 missing days;
+- Deribit DVOL hourly for BTC/ETH: 66144 rows, committed CSV;
+- aggTrades USD-M and spot BTC 2020–2024: 120 monthly zips verified, streamed into 4368 stress-hour features.
+
+**Outcome-blind feasibility** (`DH3_FEASIBILITY.{md,json}`): 14 cells executable; DH3-S2 `INFORMATIONALLY_WEAK` (MDE 6.7 pp).
+
+**PRE_FREEZE_DEFINITIONAL_CORRECTION:**
+- **Error:** card L's two-year surface could never meet the 3-calendar-year rule.
+- **Fix:** half-year epochs were declared before any outcome.
+- **Unchanged:** no state, bar or endpoint.
+
+```
+SEARCH_FAMILY = SF-DH3; TEST_FAMILIES = TF-DH3-P, TF-DH3-L, TF-DH3-O, TF-DH3-V, TF-DH3-S (14 primary cells)
+PREREG = docs/research/DH3_PREREG.json; MARKET_OUTCOMES_OPENED = NO at freeze; OBJECTS_2025_2026_USED = none
+```
+
+## 2026-10-04 — DH3 executed once: two promising cells (P3 crowd positioning, V3 retests), range states below the bar
+
+**Discovery** (`DH3_RESULT_DISCOVERY.json`), 14 cells:
+- **DH3-P3** `PROMISING_PROTOTYPE`: −5.92 pp, CI −8.32 … −3.52, Brier +0.0024, negative in every year.
+- **DH3-V3** `PROMISING_PROTOTYPE`: +3.87 pp, CI +1.58 … +6.15.
+- **Significant but below the 15 % range bar:**
+  - P1 +13.4 %;
+  - O2 +9.6 %;
+  - L3 +6.5 %;
+  - S1 −5.9 %;
+  - V2 +2.3 %.
+- **Null or heterogeneous:** P2, L1, L2, O1, O3, V1, S3.
+
+**Replication** (`DH3_RESULT_REPLICATION.json`, card V only). DH3-V3 on spot BTC/ETH/BNB/XRP 2017–2019 gave −0.71 pp (CI −4.75 … +3.06). That is `REPLICATION_INCONCLUSIVE` (the surface was underpowered), and the effect did not show.
+
+**Bot.** `/research` gains 14 lines; there is no alert change and no deploy.
+
+```
+WINDOWS_CONSUMED = BTC 2020-2024 OI metrics + long/short ratio; six-coin bookDepth 2023-2024; BTC/ETH DVOL 2021-2024; BTC aggTrades stress features 2020-2024; six-coin levels 2020-2024 (session, key-level controls, retests); spot 2017-2019 for DH3-V3
+TESTS_EXECUTED = 5 families; PROMISING_PROTOTYPES = 2; SUPPORTED = 0; RERUN_AUTHORIZED = false; OBJECTS_2025_2026_USED = none
+```
+
+## 2026-10-04 — Owner decision: DH3 closed
+
+The owner merged DH3 and declared it `CLOSED`. P3 live tracking is not started. The merge triggers no deploy. DH3-P3 and DH3-V3 stay `PROMISING_PROTOTYPE`; the bot shows them only as «Гипотеза» lines in `/research`. Any later live test is a new unit with its own owner go.
+
+```
+DH3_STATUS = CLOSED; LIVE_TRACKING_P3 = NOT_STARTED; DEPLOY = none; WINDOWS_CONSUMED = none by this record
+```

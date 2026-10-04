@@ -637,6 +637,10 @@ When adding documentation:
   - **Cells:** DH1-L1, L3 and B2 on BTC, ETH, BNB, XRP, DOGE and SOL (Binance 2020–2024), with coin fixed effects, a coin-heterogeneity gate and the BTC-only estimate.
   - **Data:** `research_data/DH2_*`.
   - **Code and tests:** `scripts/research/dh2/`; `tests/research/test_dh2.py`.
+- `research/DH3_DESIGN.md`, `research/DH3_FEASIBILITY.{md,json}`, `research/DH3_PREREG.json`, `research/DH3_RESULT_*.json`, `research/DH3_RESULT.md` (**DH3 — five cards of three, direction and range, owner decision 2026-10-04**).
+  - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
+  - **Data:** `research_data/DH3_*`.
+  - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.
 - `research/SIGNALBOT_RESEARCH_ATLAS_V1.md` (**ACTIVE — PERMANENT RESEARCH MAP**): Mechanism × Data surface × State for every research unit.
   - **Sources:** `research/atlas/ATLAS_TAXONOMY_V1.yaml`, `ATLAS_SURFACES_V1.yaml`, `ATLAS_UNITS_V1.yaml`.
   - **Derived (never hand-edited):** `research/atlas/SIGNALBOT_RESEARCH_ATLAS_V1.json` (full governance view), `ATLAS_GENERATOR_VIEW_V1.json` (outcome-blind generator view), `ATLAS_MATRIX_V1.md` (matrix, frontier, cell details).

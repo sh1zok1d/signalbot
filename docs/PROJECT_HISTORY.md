@@ -484,3 +484,8 @@ Asked "does the bot offer a decision or anything like it — what does a trader 
 - **DH2:** the owner chose to pool six coins. Spot confirmation, staleness and spot share did not move a level-hold or barrier probability by 3 pp either.
 - **Bot:** no probability line; four `NOT_CONFIRMED` lines in `/research`.
 - **Lesson:** the honest directional output on these surfaces is the base rate with N. The next useful step is live tracking of what the bot already says.
+
+**DH3 (same day).** The owner asked for five cards of three, covering direction and range, with heavy free data allowed.
+- **The first directional effect in the project to pass discovery:** when Binance accounts are unusually long, price goes up first less often over the next 4h (−5.9 pp, every year). It is BTC-only and needs live confirmation.
+- **A second, weaker one:** retested daily levels hold slightly more often. It did not repeat on 2017–2019.
+- **Range states:** OI build-up, DVOL jumps and unrecovered books move the next range, but below the product's 15 % bar.

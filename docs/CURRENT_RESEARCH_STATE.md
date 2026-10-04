@@ -1,3 +1,14 @@
+## Five cards of three (DH3) — CLOSED (owner, 2026-10-04); two «Гипотеза» results
+
+`PROGRAM = DIRECTIONAL_AND_RANGE_DH3 (owner decision; docs/research/DH3_DESIGN.md) | 15 cells, 14 executed (S2 INFORMATIONALLY_WEAK)`
+`DH3-P3 crowd long (Binance long/short account ratio) -> up first in 4h = PROMISING_PROTOTYPE: -5.92 pp (47.7 % vs 53.5 %), CI -8.3..-3.5; confirmation prospective only`
+`DH3-V3 retested PDH/PDL -> 4h hold = PROMISING_PROTOTYPE: +3.87 pp, CI +1.6..+6.2; spot 2017-2019 replication -0.7 pp (REPLICATION_INCONCLUSIVE; did not show it)`
+`BELOW THE 15 % RANGE BAR = P1 OI build-up in a quiet market +13.4 %, O2 DVOL jump +9.6 %, L3 book not recovered +6.5 %, S1 spot-led stress -5.9 %, V2 +2.3 %`
+`NULL OR HETEROGENEOUS = P2, L1, L2, O1, O3, V1, S3 | SUPPORTED = 0 | OBJECTS_2025_2026_USED = none`
+`BOT = /research lines only (2 DISCOVERY, 5 WEAK, 7 NOT_CONFIRMED); no live-screen change; no deploy`
+`DH3_STATUS = CLOSED (owner, 2026-10-04) | LIVE_TRACKING_P3 = NOT_STARTED (owner: not now) | DEPLOY = none`
+`NEXT_UNIT = none (no research unit started)`
+
 ## Pooled directional hypotheses (DH2) — executed once; nothing for the bot to state — 2026-10-04
 
 `PROGRAM = DIRECTIONAL_HYPOTHESES_DH2 (owner decision; docs/research/DH2_POOLED_DESIGN.md; atlas no-pooling routing overridden for DH2 only)`
