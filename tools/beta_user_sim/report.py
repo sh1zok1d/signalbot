@@ -130,7 +130,8 @@ def build_report(result: dict, *, run_at: Optional[datetime] = None, commit: Opt
         "engine_version": result["engine_version"], "replay_config": result["replay_config"],
         "window": result["window"], "bundle": result["bundle"],
         "replay_input_ids": result["replay_input_ids"], "skipped_inputs": result["skipped_inputs"],
-        "models": result["models"], "prompt_versions": result["prompt_versions"],
+        "models": result["models"], "api_usage": result.get("api_usage"),
+        "prompt_versions": result["prompt_versions"],
         "outcome_version": result["outcome_version"], "outcome_ledger_version": result["outcome_ledger_version"],
         "baseline": result["baseline"],
         "reproducibility": "Deterministic for the fake models. Real models are not bit-identical across runs.",
@@ -141,6 +142,23 @@ def build_report(result: dict, *, run_at: Optional[datetime] = None, commit: Opt
 
 def _kv(d: dict) -> str:
     return ", ".join(f"{k}={v}" for k, v in d.items()) or "none"
+
+
+def _unknown(value) -> str:
+    return "unknown" if value is None else str(value)
+
+
+def _usage_line(usage: Optional[dict]) -> str:
+    if not usage or not usage.get("by_role"):
+        return "- api usage: unknown"
+    total = usage.get("total") or {}
+    parts = [f"total calls {_unknown(total.get('calls'))} in {_unknown(total.get('input_tokens'))} "
+             f"out {_unknown(total.get('output_tokens'))} cached {_unknown(total.get('cached_input_tokens'))} "
+             f"sum {_unknown(total.get('total_tokens'))} model {_unknown(total.get('model'))}"]
+    for role, row in usage["by_role"].items():
+        parts.append(f"{role} calls {_unknown(row.get('calls'))} in {_unknown(row.get('input_tokens'))} "
+                     f"out {_unknown(row.get('output_tokens'))}")
+    return "- api usage: " + "; ".join(parts)
 
 
 def _export_line(export: Optional[dict]) -> str:
@@ -168,6 +186,7 @@ def render_markdown(report: dict) -> str:
         f"- seeds: replay {m['replay_config']['replay_seed']}, attention {m['replay_config']['attention']['seed']}, "
         f"judge {m['replay_config']['judge_seed']}",
         f"- models: " + "; ".join(f"{r} {x['model_id']}" for r, x in m["models"].items()),
+        _usage_line(m.get("api_usage")),
         f"- prompts: {_kv(m['prompt_versions'])}",
         f"- outcome_version {m['outcome_version']}; baseline {m['baseline']['baseline_version']}",
         f"- replay inputs: {len(m['replay_input_ids'])} ordered ids; skipped {len(m['skipped_inputs'])}",

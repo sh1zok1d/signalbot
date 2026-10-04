@@ -2,8 +2,12 @@
 
 `OpenAIChatModel` exists only so a later, explicitly authorized smoke run does not
 need new code. It refuses to construct unless `allow_network=True` is passed AND
-SIGNALBOT_SIM_ALLOW_NETWORK=1 AND OPENAI_API_KEY are set. No test constructs it
-with network allowed.
+SIGNALBOT_SIM_ALLOW_NETWORK=1 AND OPENAI_API_KEY are set. Tests may construct it
+only against a mocked HTTP response; they do not open a socket.
+
+Temperature is optional. When it is unset the request omits the field and the
+manifest records DEFAULT. The client sends the requested model id unchanged,
+does not retry, and does not replace a rejected parameter with another value.
 """
 from __future__ import annotations
 
@@ -138,35 +142,180 @@ class NetworkNotAuthorized(RuntimeError):
     pass
 
 
-class OpenAIChatModel:
-    """Chat Completions client (stdlib only). Never used in tests or by default."""
+class OpenAIRequestError(RuntimeError):
+    """A sanitized Chat Completions failure. No key, header, or request body."""
 
-    def __init__(self, model_id: str, *, allow_network: bool = False, temperature: float = 0.0,
+    def __init__(self, status: Optional[int], error_type: Optional[str], code: Optional[str],
+                 param: Optional[str], message: str):
+        self.status, self.error_type, self.code, self.param = status, error_type, code, param
+        self.message = message
+        super().__init__(
+            f"OpenAI HTTP {status} type={error_type} code={code} param={param}: {message}")
+
+
+_BEARER = re.compile(r"Bearer\s+\S+", re.IGNORECASE)
+_SK = re.compile(r"sk-[A-Za-z0-9_\-]{8,}")
+_USAGE_FIELDS = ("model", "input_tokens", "cached_input_tokens", "output_tokens", "total_tokens")
+TEMPERATURE_DEFAULT = "DEFAULT"
+
+
+def _sanitize(text: Optional[str], secret: Optional[str]) -> str:
+    out = "" if text is None else str(text)
+    if secret:
+        out = out.replace(secret, "[REDACTED]")
+    out = _BEARER.sub("Bearer [REDACTED]", out)
+    out = _SK.sub("[REDACTED]", out)
+    return out[:1000]
+
+
+def openai_chat_body(model_id: str, messages: Sequence[Mapping[str, str]], *,
+                     temperature: Optional[float] = None, seed: Optional[int] = None) -> dict:
+    """Chat Completions body. An unset temperature is omitted, not sent as 0."""
+    body = {"model": model_id, "messages": [dict(m) for m in messages],
+            "response_format": {"type": "json_object"}}
+    if temperature is not None:
+        body["temperature"] = temperature
+    if seed is not None:
+        body["seed"] = seed
+    return body
+
+
+def _present(mapping: Mapping, *keys: str):
+    for key in keys:
+        if key in mapping:
+            return mapping[key]
+    return None
+
+
+def usage_from_payload(payload: Mapping) -> dict:
+    """Copy usage the response actually exposes. Missing fields stay None."""
+    model = payload.get("model") if isinstance(payload, Mapping) else None
+    usage = payload.get("usage") if isinstance(payload, Mapping) else None
+    if not isinstance(usage, Mapping):
+        return {"model": model, "input_tokens": None, "cached_input_tokens": None,
+                "output_tokens": None, "total_tokens": None}
+    cached = None
+    for details_key in ("prompt_tokens_details", "input_tokens_details"):
+        details = usage.get(details_key)
+        if isinstance(details, Mapping) and "cached_tokens" in details:
+            cached = details["cached_tokens"]
+            break
+    if cached is None and "cached_tokens" in usage:
+        cached = usage["cached_tokens"]
+    return {"model": model,
+            "input_tokens": _present(usage, "prompt_tokens", "input_tokens"),
+            "cached_input_tokens": cached,
+            "output_tokens": _present(usage, "completion_tokens", "output_tokens"),
+            "total_tokens": usage["total_tokens"] if "total_tokens" in usage else None}
+
+
+def _blank_usage() -> dict:
+    return {"calls": None, "model": None, "input_tokens": None, "cached_input_tokens": None,
+            "output_tokens": None, "total_tokens": None}
+
+
+def _rollup(rows: Sequence[Mapping]) -> dict:
+    out = _blank_usage()
+    out["calls"] = len(rows)
+    models = [row.get("model") for row in rows]
+    if rows and all(isinstance(m, str) and m for m in models) and len(set(models)) == 1:
+        out["model"] = models[0]
+    for field in ("input_tokens", "cached_input_tokens", "output_tokens", "total_tokens"):
+        vals = [row.get(field) for row in rows]
+        if rows and all(isinstance(v, int) and not isinstance(v, bool) for v in vals):
+            out[field] = sum(vals)
+    return out
+
+
+def aggregate_api_usage(models: Mapping) -> dict:
+    """Per-call usage plus role and total rollups. Fake models stay unknown, not zero."""
+    roles = (ROLE_USER, ROLE_AUDITOR, ROLE_JUDGE)
+    seen = set()
+    recorded = False
+    calls: list = []
+    for model in models.values():
+        if id(model) in seen:
+            continue
+        seen.add(id(model))
+        got = getattr(model, "api_calls", None)
+        if got is not None:
+            recorded = True
+            calls.extend(got)
+    if not recorded:
+        return {"calls": [], "by_role": {role: _blank_usage() for role in roles}, "total": _blank_usage()}
+    return {"calls": list(calls),
+            "by_role": {role: _rollup([c for c in calls if c.get("role") == role]) for role in roles},
+            "total": _rollup(calls)}
+
+
+def openai_http_error(exc, *, secret: Optional[str]) -> OpenAIRequestError:
+    raw = ""
+    try:
+        raw = exc.read().decode("utf-8", errors="replace")
+    except Exception:  # noqa: BLE001 - a closed error body still needs a status
+        raw = ""
+    error_type = code = param = None
+    message = _sanitize(getattr(exc, "reason", None) or getattr(exc, "msg", None), secret)
+    try:
+        parsed = json.loads(raw) if raw else None
+    except (TypeError, ValueError):
+        parsed = None
+    if isinstance(parsed, Mapping):
+        err = parsed.get("error")
+        if isinstance(err, Mapping):
+            error_type = err.get("type")
+            code = err.get("code")
+            param = err.get("param")
+            if err.get("message") is not None:
+                message = _sanitize(err.get("message"), secret)
+        elif raw:
+            message = _sanitize(raw, secret)
+    elif raw:
+        message = _sanitize(raw, secret)
+    return OpenAIRequestError(getattr(exc, "code", None), error_type, code, param, message)
+
+
+class OpenAIChatModel:
+    """Chat Completions client (stdlib only). Offline unless explicitly authorized."""
+
+    def __init__(self, model_id: str, *, allow_network: bool = False, temperature: Optional[float] = None,
                  seed: Optional[int] = None, timeout_s: float = 60.0):
         if not allow_network or os.environ.get("SIGNALBOT_SIM_ALLOW_NETWORK") != "1":
             raise NetworkNotAuthorized("real model calls need --allow-network and SIGNALBOT_SIM_ALLOW_NETWORK=1")
         self._key = os.environ.get("OPENAI_API_KEY")
         if not self._key:
             raise NetworkNotAuthorized("OPENAI_API_KEY is not set")
-        self.model_id, self.temperature, self.seed, self.timeout_s = model_id, temperature, seed, timeout_s
+        self.model_id = model_id
+        self.temperature = temperature
+        self.seed = seed
+        self.timeout_s = timeout_s
+        self.api_calls: list = []
 
     def settings(self) -> dict:
-        return {"temperature": self.temperature, "seed": self.seed, "response_format": "json_object",
-                "network": True, "bit_identical_reproducibility": "NOT_GUARANTEED"}
+        return {"temperature": TEMPERATURE_DEFAULT if self.temperature is None else self.temperature,
+                "seed": self.seed, "response_format": "json_object", "network": True,
+                "bit_identical_reproducibility": "NOT_GUARANTEED"}
 
     def complete(self, messages: Sequence[Mapping[str, str]], *, role: str) -> str:
+        import urllib.error
         import urllib.request
-        body = {"model": self.model_id, "messages": list(messages), "temperature": self.temperature,
-                "response_format": {"type": "json_object"}}
-        if self.seed is not None:
-            body["seed"] = self.seed
+        body = openai_chat_body(self.model_id, messages, temperature=self.temperature, seed=self.seed)
         req = urllib.request.Request("https://api.openai.com/v1/chat/completions",
                                      data=json.dumps(body).encode("utf-8"), method="POST",
                                      headers={"Authorization": f"Bearer {self._key}",
                                               "Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:  # noqa: S310 - fixed https host
-            out = json.loads(resp.read().decode("utf-8"))
-        return out["choices"][0]["message"]["content"]
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:  # noqa: S310 - fixed https host
+                payload = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            raise openai_http_error(exc, secret=self._key) from None
+        if not isinstance(payload, Mapping):
+            raise OpenAIRequestError(None, None, None, None, "response is not a JSON object")
+        self.api_calls.append({"role": role, **usage_from_payload(payload)})
+        try:
+            return payload["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError):
+            raise OpenAIRequestError(None, None, None, None, "response has no message content") from None
 
 
 def build_models(kind: str, *, model_id: Optional[str] = None, allow_network: bool = False,
@@ -176,6 +325,7 @@ def build_models(kind: str, *, model_id: Optional[str] = None, allow_network: bo
     if kind == "openai":
         if not model_id:
             raise ValueError("--model-id is required for --model openai")
-        m = OpenAIChatModel(model_id, allow_network=allow_network, seed=seed)
+        # Temperature stays unset: the request uses the model default and never rewrites the id.
+        m = OpenAIChatModel(model_id, allow_network=allow_network, temperature=None, seed=seed)
         return {ROLE_USER: m, ROLE_AUDITOR: m, ROLE_JUDGE: m}
     raise ValueError(f"unknown model kind {kind!r}")
