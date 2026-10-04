@@ -1,0 +1,381 @@
+{
+  "ATLAS_OVERRIDE": "Owner decision 2026-10-04 overrides the INFORMATIONALLY_WEAK routing 'no pooling to manufacture N' for DH2 only; the claim is about six coins, guarded by the coin-heterogeneity gate.",
+  "BTC_ONLY": "reported for every executed cell; descriptive, never gates",
+  "CARDS": {
+    "DH2-B": {
+      "ENDPOINT": "BARRIER_FIRST_PASSAGE_4H",
+      "NUISANCE_EXTRA": [
+        "MOVE_TERCILE"
+      ],
+      "TEST_FAMILY_ID": "TF-DH2-B-BARRIER",
+      "TITLE": "Sharp 15-minute move on six coins"
+    },
+    "DH2-L": {
+      "ENDPOINT": "LEVEL_HOLD_4H",
+      "NUISANCE_EXTRA": [
+        "TYPE_GROUP"
+      ],
+      "TEST_FAMILY_ID": "TF-DH2-L-LEVEL-HOLD",
+      "TITLE": "First touch of a key level on six coins"
+    }
+  },
+  "CELLS": {
+    "DH2-B2": {
+      "ATLAS_CELL": "SPOT_PERP.volume_share x SPOT",
+      "CARD": "DH2-B",
+      "DECISION": {
+        "EXECUTE": true,
+        "HET_EPOCH_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_EPOCH_REPLICATION": "NOT_ASSESSABLE",
+        "HET_SYMBOL_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_SYMBOL_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [],
+        "REPLICATION_POWERED": false,
+        "STATUS": "EXECUTABLE"
+      },
+      "EXECUTE": true,
+      "FEASIBILITY_STATUS": "EXECUTABLE",
+      "NUISANCE": [
+        "HOUR_BLOCK",
+        "RV_TERCILE",
+        "LAG_TERCILE",
+        "SYMBOL",
+        "MOVE_TERCILE",
+        "PERP_IMB_TERCILE"
+      ],
+      "PLANNING": {
+        "DISCOVERY": {
+          "BTC_ONLY_MDE_80": 0.10363648699247645,
+          "HET_POWER_EPOCH_2X": 0.145,
+          "HET_POWER_SYMBOL_2X": 0.185,
+          "MDE_80": 0.035699181687798946,
+          "N": 9630,
+          "N_COMPARATOR": 6487,
+          "N_STATE": 3143,
+          "POWER_AT_50PCT_PLANNING": 0.6533515784667032,
+          "POWER_AT_75PCT_PLANNING": 0.9419698646945818
+        },
+        "REPLICATION": {
+          "BTC_ONLY_MDE_80": null,
+          "HET_POWER_EPOCH_2X": 0.0,
+          "HET_POWER_SYMBOL_2X": 0.0,
+          "MDE_80": 0.15723922059027676,
+          "N": 885,
+          "N_COMPARATOR": 761,
+          "N_STATE": 124,
+          "POWER_AT_50PCT_PLANNING": 0.08332151055269693,
+          "POWER_AT_75PCT_PLANNING": 0.1262692484132557
+        }
+      },
+      "REPLICATION": "BTC_BITMEX",
+      "SOURCE": "DH1-B2",
+      "STATE": "SPOT_SHARE_HIGH_MOVE"
+    },
+    "DH2-L1": {
+      "ATLAS_CELL": "SPOT_PERP.spot_confirmation x SPOT",
+      "CARD": "DH2-L",
+      "DECISION": {
+        "EXECUTE": true,
+        "HET_EPOCH_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_EPOCH_REPLICATION": "NOT_ASSESSABLE",
+        "HET_SYMBOL_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_SYMBOL_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [],
+        "REPLICATION_POWERED": false,
+        "STATUS": "EXECUTABLE"
+      },
+      "EXECUTE": true,
+      "FEASIBILITY_STATUS": "EXECUTABLE",
+      "NUISANCE": [
+        "HOUR_BLOCK",
+        "RV_TERCILE",
+        "LAG_TERCILE",
+        "SYMBOL",
+        "TYPE_GROUP",
+        "PERP_IMB_TERCILE"
+      ],
+      "PLANNING": {
+        "DISCOVERY": {
+          "BTC_ONLY_MDE_80": 0.105851693567149,
+          "HET_POWER_EPOCH_2X": 0.155,
+          "HET_POWER_SYMBOL_2X": 0.135,
+          "MDE_80": 0.03858180462697836,
+          "N": 16362,
+          "N_COMPARATOR": 2717,
+          "N_STATE": 13645,
+          "POWER_AT_50PCT_PLANNING": 0.5619300313571476,
+          "POWER_AT_75PCT_PLANNING": 0.9122101484210241
+        },
+        "REPLICATION": {
+          "BTC_ONLY_MDE_80": null,
+          "HET_POWER_EPOCH_2X": 0.025,
+          "HET_POWER_SYMBOL_2X": 0.0,
+          "MDE_80": 0.1322851519691863,
+          "N": 1309,
+          "N_COMPARATOR": 244,
+          "N_STATE": 1065,
+          "POWER_AT_50PCT_PLANNING": 0.0631473537083031,
+          "POWER_AT_75PCT_PLANNING": 0.11700634011688155
+        }
+      },
+      "REPLICATION": "BTC_BITMEX",
+      "SOURCE": "DH1-L1",
+      "STATE": "SPOT_CONFIRMED_APPROACH"
+    },
+    "DH2-L3": {
+      "ATLAS_CELL": "PRICE_STRUCTURE.levels x CANDLES",
+      "CARD": "DH2-L",
+      "DECISION": {
+        "EXECUTE": true,
+        "HET_EPOCH_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_EPOCH_REPLICATION": "NOT_ASSESSABLE",
+        "HET_SYMBOL_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_SYMBOL_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [],
+        "REPLICATION_POWERED": false,
+        "STATUS": "EXECUTABLE"
+      },
+      "EXECUTE": true,
+      "FEASIBILITY_STATUS": "EXECUTABLE",
+      "NUISANCE": [
+        "HOUR_BLOCK",
+        "RV_TERCILE",
+        "LAG_TERCILE",
+        "SYMBOL",
+        "TYPE_GROUP"
+      ],
+      "PLANNING": {
+        "DISCOVERY": {
+          "BTC_ONLY_MDE_80": 0.09709130527346864,
+          "HET_POWER_EPOCH_2X": 0.13,
+          "HET_POWER_SYMBOL_2X": 0.11,
+          "MDE_80": 0.04159809037359566,
+          "N": 16373,
+          "N_COMPARATOR": 11596,
+          "N_STATE": 4777,
+          "POWER_AT_50PCT_PLANNING": 0.49283696527127546,
+          "POWER_AT_75PCT_PLANNING": 0.8629681869463235
+        },
+        "REPLICATION": {
+          "BTC_ONLY_MDE_80": 0.15285508239139778,
+          "HET_POWER_EPOCH_2X": 0.11,
+          "HET_POWER_SYMBOL_2X": 0.08,
+          "MDE_80": 0.07965364648575106,
+          "N": 4524,
+          "N_COMPARATOR": 3215,
+          "N_STATE": 1309,
+          "POWER_AT_50PCT_PLANNING": 0.1403510901902813,
+          "POWER_AT_75PCT_PLANNING": 0.3086908966655518
+        }
+      },
+      "REPLICATION": "SPOT_4_COINS",
+      "SOURCE": "DH1-L3",
+      "STATE": "STALE_LEVEL"
+    }
+  },
+  "CLAIM_TYPE": "INCREMENTAL",
+  "CLASSIFICATION": "as DH1 (DH1_PREREG.json CLASSIFICATION), plus the coin gate",
+  "CODE_DIGESTS": {
+    "beta/hist_series.py": "d5b3c9f88cbfd60bcf1bf62fb41650157b767a1f55277f1411d8ff5cc935c35a",
+    "beta/levels.py": "d6e5e8d920a7722f436f0003f6ee5aac597b332c5ebd4039644e590bceaf1518",
+    "scripts/research/dh1/constants.py": "5f70833f3c73ca8e69f93cbb41bef14b5dfa52bc2bdc27ed91a5075aea17a68a",
+    "scripts/research/dh1/data.py": "e8303aa302590e4798a9ed993a24544e087ca1a7bec6d810f8ff1a980e1e3702",
+    "scripts/research/dh1/evaluate.py": "bf233b3bfac8e9da9fbc68765dcfe168337da287ed0f16495de812064f9cd079",
+    "scripts/research/dh1/events.py": "6c3af3465c7cd0908d05862a006527e4dcfeb657978c87e8d4160791aa37b756",
+    "scripts/research/dh1/outcomes.py": "92e7192ca998302bca40e6eaa107478df6ae3412e86eb7990eed37a98437b2d4",
+    "scripts/research/dh1/stats.py": "23db3d29438812c698e5ccd3cbad00f6e37504e4faa7d4ba28275fc51476c1ef",
+    "scripts/research/dh2/constants.py": "cc0a2c44ab7060d775ba2674619c25765d6044e7d9c998fe4e5e6d77e1e66193",
+    "scripts/research/dh2/data.py": "7a34f1ca0be3f55c9d8bf73632724094b0d4d2d375f77202e39e5209205caef1",
+    "scripts/research/dh2/evaluate.py": "a237005b6f47e17b9bd2b9bc42b17bd43e20cc771a7cfff0be674d802bac83d5",
+    "scripts/research/dh2/events.py": "218613e1d826e5f8334168ced3354736649c587378d1144608480db888629c82",
+    "scripts/research/dh2/feasibility.py": "33d6fa426bc3815be62ef561af9087b258ecb683f4351057bb6938e7390be40e",
+    "scripts/research/owner_cards_r03/data.py": "9e53d9673ccd126df69d8aaf0ba0d68b1642d5dd19dbc9ad661e4cebb0d1dae1"
+  },
+  "DATASETS": {
+    "DH1": {
+      "OBJECTS_2025_2026": "none",
+      "PERP_DISCOVERY": {
+        "DATASET_ID": "CORE_BTC_BINANCE_V0",
+        "MONTHS": "2020-01..2024-12",
+        "ZIP_LIST_SHA256": "936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b"
+      },
+      "PERP_REPLICATION": {
+        "CANONICAL_SHA256": "df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f",
+        "DATASET_ID": "DH1_BITMEX_XBTUSD_TRADES_5M_V0",
+        "DAYS": "2017-08-01..2019-12-31",
+        "OBJECT_LIST_SHA256": "649710ec605b4e16334c5281f830efe77c27a014e684d8f0b913be630f157100"
+      },
+      "SPOT": {
+        "DATASET_ID": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+        "MONTHS": "2017-08..2024-12",
+        "OBJECT_LIST_SHA256": "5a27ea4883284c995bbb091067867b45927b67e3d4b244ed11c3b97e5887cb37"
+      }
+    },
+    "OBJECTS_2025_2026": "none",
+    "SPOT_ALTS": {
+      "DATASET_ID": "DH2_BINANCE_SPOT_ALTS_5M_V0",
+      "OBJECTS": 354,
+      "OBJECT_LIST_SHA256": "499b129c1e131461329cf678a0c3534ee8bcd8488b69630c2ac3621ad61fc9df"
+    },
+    "UM_ALTS": {
+      "DATASET_ID": "DH2_BINANCE_UM_ALTS_5M_V0",
+      "OBJECTS": 281,
+      "OBJECT_LIST_SHA256": "0e943d0a00d1eb859330869c48dafd5d47cc0823fca865de22c351009e03f485"
+    }
+  },
+  "DECISION_RECORD": "docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md",
+  "DESIGN_DATE": "2026-10-04",
+  "DESIGN_RECORD": "docs/research/DH2_POOLED_DESIGN.md",
+  "DISCOVERY": {
+    "END": "2025-01-01",
+    "EPOCHS": [
+      [
+        "2020",
+        "2020-01-01",
+        "2021-01-01"
+      ],
+      [
+        "2021",
+        "2021-01-01",
+        "2022-01-01"
+      ],
+      [
+        "2022",
+        "2022-01-01",
+        "2023-01-01"
+      ],
+      [
+        "2023",
+        "2023-01-01",
+        "2024-01-01"
+      ],
+      [
+        "2024",
+        "2024-01-01",
+        "2025-01-01"
+      ]
+    ],
+    "SYMBOL_STARTS": {
+      "BNB": [
+        "2020-03-01",
+        "2020-04-01"
+      ],
+      "BTC": [
+        "2020-01-01",
+        "2020-02-01"
+      ],
+      "DOGE": [
+        "2020-08-01",
+        "2020-09-01"
+      ],
+      "ETH": [
+        "2020-01-01",
+        "2020-02-01"
+      ],
+      "SOL": [
+        "2020-10-01",
+        "2020-11-01"
+      ],
+      "XRP": [
+        "2020-02-01",
+        "2020-03-01"
+      ]
+    }
+  },
+  "ESTIMAND": "State coefficient of a linear probability model with nuisance dummies and coin fixed effects.",
+  "EVALUATION_CONTRACT": "HYPOTHESIS_EVALUATION_CONTRACT_V1",
+  "FEASIBILITY_SHA256": "b513dd813863f2a82687a12f9748978a96b2abfaf8765360894de1ca38ec9c00",
+  "HETEROGENEITY": {
+    "EPOCH": "as DH1",
+    "SYMBOL": "Q over coins with fixed inverse-variance weights; null by permuting week x coin clusters across coins; a significant Q with a coin significantly opposite fails the cell when the gate's power for a 2x difference is >= 0.5, otherwise NOT_ASSESSABLE"
+  },
+  "INFERENCE": "ISO-week clusters pooled across coins and cut at year boundaries; bootstrap 2000 draws, seed base 20261007; Holm within each card at 0.05.",
+  "LEVEL_TYPES": [
+    "PMH",
+    "PML",
+    "PWH",
+    "PWL",
+    "PDH",
+    "PDL",
+    "POC_UP",
+    "POC_DOWN"
+  ],
+  "MARKET_OUTCOMES_OPENED_AT_FREEZE": false,
+  "NO_RESCUE": "A failed cell is never re-scored with new parameters, states, coins, horizons, sides, baselines or claim type.",
+  "OBJECTS_2025_2026_USED": "none",
+  "PRACTICAL_BAR": {
+    "ABS_SHIFT_MIN": 0.03,
+    "BRIER_SKILL": "> 0"
+  },
+  "PROGRAM_ID": "DIRECTIONAL_HYPOTHESES_DH2",
+  "PROSPECTIVE": {
+    "EXPOSURE_HANDLING": "The bot may show the frozen discovery estimate («Гипотеза») during the window. The prospective analysis uses only events after the freeze and the frozen discovery model; showing a frozen number cannot change BTC outcomes, and no interim statistic is computed.",
+    "KIND": "PROSPECTIVE_LIVE_TRACKING",
+    "SOURCE": "Binance Vision daily 5m klines (USD-M BTCUSDT and spot BTCUSDT), read after each day closes",
+    "START": "2026-10-05",
+    "STARTS_AFTER_FREEZE": true,
+    "STOPPING_RULE": {
+      "COUNTS_ONLY_MONITORING": true,
+      "END_DATE": "2027-12-31",
+      "MAX_EVENTS": 1000,
+      "MIN_N": 300
+    },
+    "SYMBOLS": [
+      "BTC",
+      "ETH",
+      "BNB",
+      "XRP",
+      "DOGE",
+      "SOL"
+    ]
+  },
+  "REPLICATION": {
+    "BTC_BITMEX": "DH1 replication surface 2017-09..2019-12",
+    "END": "2020-01-01",
+    "EPOCHS": [
+      [
+        "2017H2",
+        "2017-09-01",
+        "2018-01-01"
+      ],
+      [
+        "2018",
+        "2018-01-01",
+        "2019-01-01"
+      ],
+      [
+        "2019",
+        "2019-01-01",
+        "2020-01-01"
+      ]
+    ],
+    "SPOT_4_COINS": {
+      "BNB": [
+        "2017-12-01",
+        "2018-01-01"
+      ],
+      "BTC": [
+        "2017-08-01",
+        "2017-09-01"
+      ],
+      "ETH": [
+        "2017-08-01",
+        "2017-09-01"
+      ],
+      "XRP": [
+        "2018-06-01",
+        "2018-07-01"
+      ]
+    }
+  },
+  "SEARCH_FAMILY_ID": "SF-DH2",
+  "SYMBOLS": [
+    "BTC",
+    "ETH",
+    "BNB",
+    "XRP",
+    "DOGE",
+    "SOL"
+  ],
+  "TARGET_CLASS": "UNCONDITIONAL over the pooled event population of six coins (coin fixed effects)"
+}

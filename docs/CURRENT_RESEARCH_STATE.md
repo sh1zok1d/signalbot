@@ -1,3 +1,11 @@
+## Pooled directional hypotheses (DH2) — frozen; discovery pending — 2026-10-04
+
+`PROGRAM = DIRECTIONAL_HYPOTHESES_DH2 (owner decision; docs/research/DH2_POOLED_DESIGN.md)`
+`CELLS = DH2-L1 (spot-confirmed approach), DH2-L3 (stale level), DH2-B2 (spot share in a sharp move); six coins pooled, coin fixed effects`
+`FEASIBILITY = all EXECUTABLE (MDE 3.6-4.2 pp); heterogeneity gates NOT_ASSESSABLE; replication underpowered (live tracking decides)`
+`PREREG = docs/research/DH2_PREREG.json | MARKET_OUTCOMES_OPENED_AT_FREEZE = NO | OBJECTS_2025_2026_USED = none`
+`NEXT_UNIT = DH2 one-shot discovery (python -m scripts.research.dh2.evaluate --surface DISCOVERY)`
+
 ## Directional hypotheses for the bot (DH1) — executed once; no probability line for the bot — 2026-10-04
 
 `PROGRAM = DIRECTIONAL_HYPOTHESES_DH1 (owner decision, docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md)`

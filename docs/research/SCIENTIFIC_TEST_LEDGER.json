@@ -69,6 +69,18 @@
       "REGISTERED_TESTS": 1,
       "SEARCH_FAMILY_ID": "SF-DH1",
       "SOURCE": "Owner decision 2026-10-04 (DIRECTIONAL_HYPOTHESES_DECISION_V1.md): directional hypotheses for the bot; 15 candidates, 9 closed at red team, 1 deferred, 5 to feasibility"
+    },
+    {
+      "CLOSED_AT_FEASIBILITY": {},
+      "CLOSED_BEFORE_FEASIBILITY": 0,
+      "EXECUTABLE_NOW_CARDS": 2,
+      "EXECUTED_HYPOTHESES": 0,
+      "EXECUTED_TESTS": 0,
+      "GENERATED_CARDS": 3,
+      "PROMISING_PROTOTYPES": 0,
+      "REGISTERED_TESTS": 3,
+      "SEARCH_FAMILY_ID": "SF-DH2",
+      "SOURCE": "Owner decision 2026-10-04 (DH2_POOLED_DESIGN.md): DH1-L1, L3, B2 pooled over six coins"
     }
   ],
   "TESTS": [
@@ -237,6 +249,52 @@
       "SECONDARY_TEST_COUNT": 0,
       "STATUS": "EXECUTED_CLOSED",
       "TEST_FAMILY_ID": "TF-DH1-L-LEVEL-HOLD"
+    },
+    {
+      "CLASSIFICATION": null,
+      "DATASET_ID": "CORE_BTC_BINANCE_V0 + DH1_BINANCE_SPOT_BTCUSDT_5M_V0 + DH2_BINANCE_UM_ALTS_5M_V0 + DH2_BINANCE_SPOT_ALTS_5M_V0 (discovery); spot 4 coins or DH1 BitMEX (replication)",
+      "EVIDENCE_LABEL": "DISCOVERY_ON_SIX_COINS_2020_2024 (BTC levels exposed; alt levels unused); REPLICATION_2017_2019",
+      "EXECUTED": null,
+      "HYPOTHESIS_ID": "DH2-L1,DH2-L3",
+      "MULTIPLICITY_METHOD": "Holm over the 2 executed cells of the card, week-cluster bootstrap two-sided p at 0.05",
+      "PREREG_PATH": "docs/research/DH2_PREREG.json",
+      "PREREG_SHA256": "cb8bef28f8bdb50c0df9226e6b3c35259dddfbfcc5947bcba80baa9a173353b6",
+      "PRIMARY_TEST_COUNT": 2,
+      "REGISTERED": "2026-10-04",
+      "REPLICATION_EXECUTED": false,
+      "REPLICATION_OF": null,
+      "REPLICATION_SURFACE": "per cell: spot BTC/ETH/BNB/XRP 2017-2019 (DH2-L3) or DH1 BitMEX BTC (DH2-L1, DH2-B2); live tracking",
+      "RERUN_AUTHORIZED": false,
+      "RESULT_PATH": "docs/research/DH2_RESULT_DISCOVERY.json",
+      "RESULT_SHA256": null,
+      "ROBUSTNESS_TEST_COUNT": 0,
+      "SEARCH_FAMILY_ID": "SF-DH2",
+      "SECONDARY_TEST_COUNT": 0,
+      "STATUS": "REGISTERED",
+      "TEST_FAMILY_ID": "TF-DH2-L-LEVEL-HOLD"
+    },
+    {
+      "CLASSIFICATION": null,
+      "DATASET_ID": "CORE_BTC_BINANCE_V0 + DH1_BINANCE_SPOT_BTCUSDT_5M_V0 + DH2_BINANCE_UM_ALTS_5M_V0 + DH2_BINANCE_SPOT_ALTS_5M_V0 (discovery); spot 4 coins or DH1 BitMEX (replication)",
+      "EVIDENCE_LABEL": "DISCOVERY_ON_SIX_COINS_2020_2024 (BTC levels exposed; alt levels unused); REPLICATION_2017_2019",
+      "EXECUTED": null,
+      "HYPOTHESIS_ID": "DH2-B2",
+      "MULTIPLICITY_METHOD": "Holm over the 1 executed cells of the card, week-cluster bootstrap two-sided p at 0.05",
+      "PREREG_PATH": "docs/research/DH2_PREREG.json",
+      "PREREG_SHA256": "cb8bef28f8bdb50c0df9226e6b3c35259dddfbfcc5947bcba80baa9a173353b6",
+      "PRIMARY_TEST_COUNT": 1,
+      "REGISTERED": "2026-10-04",
+      "REPLICATION_EXECUTED": false,
+      "REPLICATION_OF": null,
+      "REPLICATION_SURFACE": "per cell: spot BTC/ETH/BNB/XRP 2017-2019 (DH2-L3) or DH1 BitMEX BTC (DH2-L1, DH2-B2); live tracking",
+      "RERUN_AUTHORIZED": false,
+      "RESULT_PATH": "docs/research/DH2_RESULT_DISCOVERY.json",
+      "RESULT_SHA256": null,
+      "ROBUSTNESS_TEST_COUNT": 0,
+      "SEARCH_FAMILY_ID": "SF-DH2",
+      "SECONDARY_TEST_COUNT": 0,
+      "STATUS": "REGISTERED",
+      "TEST_FAMILY_ID": "TF-DH2-B-BARRIER"
     }
   ]
 }

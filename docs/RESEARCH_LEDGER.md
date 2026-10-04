@@ -7957,3 +7957,28 @@ WINDOWS_CONSUMED = Binance BTCUSDT 2020-2024 for PRICE_STRUCTURE.levels (DH1-L2 
 TESTS_EXECUTED = 1 (TF-DH1-L-LEVEL-HOLD); PROMISING_PROTOTYPES = 0; RERUN_AUTHORIZED = false
 OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
 ```
+
+## 2026-10-04 — DH2: DH1-L1, L3, B2 pooled over six coins, frozen before any outcome
+
+**Owner decision** (`DH2_POOLED_DESIGN.md`):
+- pool BTC, ETH, BNB, XRP, DOGE and SOL (Binance USD-M 2020–2024);
+- this overrides, for DH2 only, the atlas rule against pooling to manufacture N;
+- coin fixed effects, a coin-heterogeneity gate and the BTC-only estimate are always reported.
+
+**Data pinned (free, checksums verified):** USD-M alts 5m (281 months) and spot alts 5m (354 months, including ETH/BNB/XRP 2017–2019).
+
+**Outcome-blind feasibility** (`DH2_FEASIBILITY.{md,json}`). All three cells are executable:
+
+| Cell | N | MDE | Power at 3 pp |
+|---|---|---|---|
+| DH2-L1 | 16362 | 3.9 pp | 0.56 |
+| DH2-L3 | 16373 | 4.2 pp | 0.49 |
+| DH2-B2 | 9630 | 3.6 pp | 0.65 |
+
+- **Heterogeneity gates:** both the epoch and the coin gate are `NOT_ASSESSABLE` (power 0.11–0.19).
+- **Replication:** underpowered; DH2-L3 on spot 4 coins has an MDE of 8.0 pp, and DH2-L1 / B2 on BitMEX BTC have MDEs of 13–16 pp.
+
+```
+SEARCH_FAMILY = SF-DH2; TEST_FAMILIES = TF-DH2-L-LEVEL-HOLD (DH2-L1, DH2-L3), TF-DH2-B-BARRIER (DH2-B2)
+PREREG = docs/research/DH2_PREREG.json (sha256 cb8bef28…53b6); MARKET_OUTCOMES_OPENED = NO at freeze; OBJECTS_2025_2026_USED = none
+```
