@@ -125,7 +125,7 @@ def test_closure_record_is_final_and_does_not_rescue_b1():
     assert "PRE_FREEZE_DEFINITIONAL_CORRECTION" in decision and "did not rescue the hypothesis" in decision
     assert "not a claim that the high-frequency mechanism space is exhausted" in decision
     state = (REPO / "docs/CURRENT_RESEARCH_STATE.md").read_text()
-    assert state.startswith("## Autonomous research generation G01 — CLOSED_NO_SURVIVORS")
+    assert "\n## Autonomous research generation G01 — CLOSED_NO_SURVIVORS" in "\n" + state
     assert "`G01_STATUS = CLOSED_NO_SURVIVORS (owner-accepted)`" in state
     assert not (REPO / "docs/research/AUTOGEN_G01_PREREG.json").exists()
     assert not (REPO / "docs/research/AUTOGEN_G01_RESULT.json").exists()

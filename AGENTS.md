@@ -6,6 +6,14 @@ This file tells coding/review agents what is authoritative **now**. Keep it conc
 
 **Mode since 2026-10-03:** `PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS`. The canonical product decision is `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md`: the owner lifted the predictive freeze for the product (forecasts of range, touch probabilities, levels, historical statistics with direction, an event calendar, timely market alerts) and opened Binance 2025/2026 for product statistics. Still forbidden in every user text: direct trade calls (buy/sell, long/short now, entries, targets), hype, unobservable attributions. Every historical number carries N and a comparable "обычно"; every forecast carries its tracked accuracy. Where it differs, it wins over the V1 decision below.
 
+**Directional hypotheses for the bot (2026-10-04, `docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md`).** For program `DH1` only, the owner lets research target directional outcomes so the bot can state probabilities with a status.
+- **Endpoints:** level hold 4h after a first touch; barrier first-passage ±X within 4h.
+- **Bar:** 3 pp against "обычно" plus a positive Brier skill score.
+- **Display:** «Проверено» needs a replicated result; «Гипотеза» is a discovery-only `PROMISING_PROTOTYPE`, labelled not confirmed.
+- **Data:** discovery on Binance 2020–2024; confirmation on 2017–2019 (BitMEX trades plus Binance spot) and live tracking. No 2025/2026 objects, no paid data.
+- **Rules:** contract V1 applies in full (`INCREMENTAL` claims); no direct trade calls; no deploy without a separate owner go.
+- **Status (2026-10-04):** DH1 and DH2 (six coins pooled, `docs/research/DH2_POOLED_DESIGN.md`) each executed once. No cell moved a directional probability by 3 pp; nothing replicated; no probability line in the bot (`docs/research/DH1_RESULT.md`, `docs/research/DH2_RESULT.md`).
+
 **Mode 2026-10-02 → 2026-10-03 (superseded where V2 differs):** `PRODUCT_FIRST / RESEARCH_SERVES_PRODUCT / PREDICTIVE_CLAIMS_FROZEN`. The canonical product decision is `docs/PRODUCT_FIRST_DECISION_V1.md`: the product hypothesis, the build-to-test MUST scope, the architectural constraint (one detector, one episodization, one context projection, one shared view builder, one outbox, one notifier), the DO-NOT-BUILD-YET list, the data/launch orientation and the 30-day user test. Research infrastructure is kept, but it no longer sets the pace of product work; no new research programs or one-shot confirmation units are started. Two evidence standards are kept apart: **product evidence** (honest descriptive/heuristic interpretation with uncertainty and provenance) and **research claim** (the existing research contract). "Do not lie" does not mean "do not interpret".
 
 The research posture below is kept as the record of what is sealed and frozen. It is no longer the research-first routing of product work.

@@ -2614,3 +2614,513 @@ units:
     note: Covers CPI, FOMC and Deribit monthly/quarterly expiry days; product evidence, not shown to users since 2026-10-03.;
       R03-A1 and R03-A4 findings attach to expiry event contexts; no «Проверено» line on CPI/FOMC surfaces since 2026-10-03.
     source_id: PRODUCT_V2_EVENT_DAY_SIZES
+  # ---- DIRECTIONAL_HYPOTHESES_DH1 (owner decision 2026-10-04) ----------------------------------------
+  - id: DH1-L2
+    title: CONFLUENT_LEVEL_HOLD_4H
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    - DH1_BITMEX_XBTUSD_TRADES_5M_V0
+    period: discovery Binance 2020-02..2024-12; replication BitMEX XBTUSD trades + Binance spot 2017-09..2019-12 (declared);
+      replication not opened (nothing promising)
+    units_n: 4622 first touches (2049 confluent / 2573 lone), 261 week clusters; replication surface 1481 (not opened)
+    practical_bar: '|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; Holm m = 1 in TF-DH1-L-LEVEL-HOLD; week-cluster bootstrap'
+    mechanism: A level that coincides with other watched levels concentrates resting orders and stops, so the reaction at its
+      first touch differs from a lone level.
+    function: first touch of PDH/PDL/PWH/PWL/PMH/PML/round/POC (product rules) -> 4h hold beyond the level; state = another
+      level kind within 0.15 % at the touch; LPM with hour, 24h RV, prior 4h return and level-type nuisance
+    verdict: 'INCONCLUSIVE (frozen class; CI reaches the bar by 0.03-0.06 pp): hold 46.5 % vs 46.3 %, adjusted +0.05 pp, 95
+      % CI -3.03..+3.06 pp, p 0.95, Brier skill -0.0008; years -6.9/+5.3/-0.3/-4.2/+1.2 pp, heterogeneity p 0.13 (not assessable
+      at this power)'
+    why_closed: No difference between zone and lone levels in the 4h hold; a gap above about 3 pp is all but ruled out on Binance
+      2020-2024.
+    reopen: Only a new mechanism or a new surface (other symbols pooled under a declared homogeneity assumption, or prospective
+      data); not a re-score of this cell.
+    forbidden: re-scoring DH1-L2 with another tolerance, horizon, side, level subset or baseline; confirming on Binance 2020-2024
+      or 2025/2026
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/DH1_PREREG.json
+    - docs/research/DH1_RESULT.md
+    - docs/research/DH1_RESULT_DISCOVERY.json
+    - docs/research/DH1_RESULT_REPLICATION.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - config/beta_research_findings.yaml
+    note: Bot finding DH1-L2, status NOT_CONFIRMED, /research only (the level alert keeps H02).
+  - id: DH1-L1
+    title: SPOT_CONFIRMED_APPROACH_HOLD_4H
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: SPOT_PERP.spot_confirmation
+    col: SPOT
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    - DH1_BITMEX_XBTUSD_TRADES_5M_V0
+    period: discovery Binance 2020-02..2024-12; replication BitMEX XBTUSD trades + Binance spot 2017-09..2019-12 (declared)
+    units_n: 4616 touches; smaller arm 631
+    practical_bar: '|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; feasibility rule: discovery MDE <= 6 pp'
+    mechanism: A push into a level carried by spot taker flow is less likely to be unwound than one carried by perp flow alone.
+    function: level first touch -> 4h hold; state = spot taker net flow over the hour into the touch points in the approach
+      direction; perp imbalance in the nuisance
+    verdict: 'INFORMATIONALLY_WEAK (closed at feasibility): N 4616 (3985 / 631), discovery MDE 8.5 pp > 6 pp rule; replication
+      MDE 13 pp; never frozen as executable; no outcome computed'
+    why_closed: Too few events for a 3-6 pp directional effect on one symbol and venue.
+    reopen: A new search object with more independent events (pooled symbols under a declared homogeneity assumption, a wider
+      level population, or prospective data); B1 additionally needs a non-degenerate state (e.g. spot imbalance relative to
+      perp), which is a new candidate.
+    forbidden: lowering the 3 pp bar or the feasibility rule for this cell; rescuing it inside DH1
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/DH1_PREREG.json
+    - docs/research/DH1_RESULT.md
+  - id: DH1-L3
+    title: STALE_LEVEL_HOLD_4H
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    - DH1_BITMEX_XBTUSD_TRADES_5M_V0
+    period: discovery Binance 2020-02..2024-12; replication BitMEX XBTUSD trades + Binance spot 2017-09..2019-12 (declared)
+    units_n: 4622 touches; smaller arm 1506
+    practical_bar: '|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; feasibility rule: discovery MDE <= 6 pp'
+    mechanism: Orders and stops accumulate at a level the market has not visited for a while.
+    function: level first touch -> 4h hold; state = level price not traded during the 24h before the touch
+    verdict: 'INFORMATIONALLY_WEAK (closed at feasibility): N 4622 (1506 / 3116), discovery MDE 7.4 pp > 6 pp rule; replication
+      MDE 14.6 pp; never frozen as executable; no outcome computed'
+    why_closed: Too few events for a 3-6 pp directional effect on one symbol and venue.
+    reopen: A new search object with more independent events (pooled symbols under a declared homogeneity assumption, a wider
+      level population, or prospective data); B1 additionally needs a non-degenerate state (e.g. spot imbalance relative to
+      perp), which is a new candidate.
+    forbidden: lowering the 3 pp bar or the feasibility rule for this cell; rescuing it inside DH1
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/DH1_PREREG.json
+    - docs/research/DH1_RESULT.md
+  - id: DH1-B1
+    title: SPOT_CONFIRMED_SHARP_MOVE_BARRIER_4H
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: SPOT_PERP.spot_confirmation
+    col: SPOT
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    - DH1_BITMEX_XBTUSD_TRADES_5M_V0
+    period: discovery Binance 2020-02..2024-12; replication BitMEX XBTUSD trades + Binance spot 2017-09..2019-12 (declared)
+    units_n: 1852 moves; smaller arm 45
+    practical_bar: '|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; feasibility rule: discovery MDE <= 6 pp'
+    mechanism: A sharp move carried by spot flow reflects unlevered demand; a perp-only move is more often leverage that unwinds.
+    function: sharp 15m move (>= 2x the 1h scale) -> barrier +X before -X in the move direction within 4h (X = half the 4h corridor
+      half-width); state = spot taker net flow over the move points in its direction
+    verdict: 'INFORMATIONALLY_WEAK (closed at feasibility): the sign state is degenerate, spot agrees with the move in 97.6
+      % of 1852 moves (45 not); MDE 26 pp; never frozen as executable; no outcome computed'
+    why_closed: Too few events for a 3-6 pp directional effect on one symbol and venue.
+    reopen: A new search object with more independent events (pooled symbols under a declared homogeneity assumption, a wider
+      level population, or prospective data); B1 additionally needs a non-degenerate state (e.g. spot imbalance relative to
+      perp), which is a new candidate.
+    forbidden: lowering the 3 pp bar or the feasibility rule for this cell; rescuing it inside DH1
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/DH1_PREREG.json
+    - docs/research/DH1_RESULT.md
+  - id: DH1-B2
+    title: SPOT_SHARE_HIGH_SHARP_MOVE_BARRIER_4H
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: SPOT_PERP.volume_share
+    col: SPOT
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    - DH1_BITMEX_XBTUSD_TRADES_5M_V0
+    period: discovery Binance 2020-02..2024-12; replication BitMEX XBTUSD trades + Binance spot 2017-09..2019-12 (declared)
+    units_n: 1846 moves; smaller arm 289
+    practical_bar: '|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; feasibility rule: discovery MDE <= 6 pp'
+    mechanism: Moves with unusually high spot participation are less leverage-driven, so they are less often reversed.
+    function: sharp 15m move -> barrier first-passage 4h; state = spot share of spot+perp quote volume in the move above its
+      prior-24h share
+    verdict: 'INFORMATIONALLY_WEAK (closed at feasibility): N 1846 (289 / 1557), discovery MDE 11.4 pp; replication 17.3 pp;
+      never frozen as executable; no outcome computed'
+    why_closed: Too few events for a 3-6 pp directional effect on one symbol and venue.
+    reopen: A new search object with more independent events (pooled symbols under a declared homogeneity assumption, a wider
+      level population, or prospective data); B1 additionally needs a non-degenerate state (e.g. spot imbalance relative to
+      perp), which is a new candidate.
+    forbidden: lowering the 3 pp bar or the feasibility rule for this cell; rescuing it inside DH1
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - docs/research/DH1_PREREG.json
+    - docs/research/DH1_RESULT.md
+  - id: DH1-X1
+    title: APPROACH_SPEED_LEVEL_HOLD
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: A fast impulse into a level breaks it more often than a slow drift.
+    function: approach speed into a level -> 4h hold
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: Composition of consumed path families (H02, B2-02, H03/B2-03).
+    reopen: A new search object; DH1 records it as closed before data (no outcome, no repair).
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+  - id: DH1-X2
+    title: OI_ON_APPROACH_LEVEL_HOLD
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: DERIVATIVES.oi_buildup
+    col: POSITIONING
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: New positions opened on the approach push price through the level.
+    function: OI change on the approach -> 4h hold
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: OI-continuation neighbourhood (MARKET-01/02 NO_EVIDENCE); no earlier-era OI for confirmation.
+    reopen: A new search object; DH1 records it as closed before data (no outcome, no repair).
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+  - id: DH1-X3
+    title: OI_DURING_SHARP_MOVE_BARRIER
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: DERIVATIVES.oi_buildup
+    col: POSITIONING
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: A sharp move with rising OI continues; with falling OI it reverses.
+    function: OI change during a sharp move -> barrier first-passage
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: Same OI-continuation neighbourhood as DH1-X2.
+    reopen: A new search object; DH1 records it as closed before data (no outcome, no repair).
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+  - id: DH1-X4
+    title: SESSION_OF_TOUCH_OR_MOVE
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: CALENDAR.sessions
+    col: CANDLES
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: The session of the touch or move changes the direction that follows.
+    function: time of day -> direction
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: Family J sessions exhausted (D12, R03); time of day is a nuisance term, not a mechanism.
+    reopen: A new search object; DH1 records it as closed before data (no outcome, no repair).
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+  - id: DH1-X5
+    title: SPOT_PERP_1M_LEAD_IN_MOVE
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: SPOT_PERP.lead_lag
+    col: SPOT
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: A move led by spot at 1m resolution persists.
+    function: spot vs perp 1m lead inside a sharp move -> barrier
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: D9 venue-resolution attribution NO_STRUCTURE; its reopen note forbids a neighbour conversion.
+    reopen: A new search object; DH1 records it as closed before data (no outcome, no repair).
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+  - id: DH1-X6
+    title: SHARP_MOVE_INTO_LEVEL_BARRIER
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: PRICE_STRUCTURE.impulse
+    col: CANDLES
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: A sharp move that ends into a key level reverses.
+    function: sharp move ending at a level -> barrier
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: Subgroup of the rejected H03 impulse claim.
+    reopen: A new search object; DH1 records it as closed before data (no outcome, no repair).
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+  - id: DH1-X7
+    title: PREMIUM_DURING_MOVE_BARRIER
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: SPOT_PERP.basis_dislocation
+    col: SPOT
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: A move with an expanding perp premium is leverage-driven and unwinds.
+    function: perp premium during a sharp move -> barrier
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: Basis x SPOT NO_STRUCTURE (GV0V03L40-C002/C034); MARKET-04H premium observable blocked.
+    reopen: A new search object; DH1 records it as closed before data (no outcome, no repair).
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+  - id: DH1-X8
+    title: OKX_L2_BOOK_RECOVERY_BARRIER
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: MICROSTRUCTURE.book_recovery
+    col: ORDER_BOOK
+    state: BLOCKED_DATA
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: When book depth does not recover after a sharp move, the move continues.
+    function: near-touch depth recovery after a sharp move (OKX L2) -> barrier
+    verdict: DEFERRED (FUTURE_CANDIDATE)
+    why_closed: 'Deferred: OKX L2 is free and pristine from 2023-03 but heavy and unpinned; no time-disjoint history, live only.
+      Needs its own data-feasibility pass.'
+    reopen: Pin OKX L2 and run a data-feasibility pass; confirmation only prospective.
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+  - id: DH1-X9
+    title: DVOL_MINUS_RV_DIRECTION
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: OPTIONS_REGION.implied_vs_realized
+    col: OPTIONS
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: Options-implied minus realized volatility tells the direction.
+    function: DVOL - RV -> direction
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: Not a directional mechanism; DVOL belongs in the product as a descriptive number.
+    reopen: A new search object; DH1 records it as closed before data (no outcome, no repair).
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+  - id: DH1-X10
+    title: PERP_TAKER_IMBALANCE_BARRIER
+    program: DIRECTIONAL_HYPOTHESES_DH1
+    row: FLOW.taker_imbalance
+    col: PERP_FLOW
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: Perp taker imbalance alone predicts the barrier.
+    function: perp taker imbalance -> barrier
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: H05 closed; B2-05 governance forbids formula-changed taker children.
+    reopen: A new search object; DH1 records it as closed before data (no outcome, no repair).
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md
+    - docs/research/DH1_CANDIDATES.md
+    - docs/research/DH1_FEASIBILITY.md
+    - docs/research/DH1_FEASIBILITY.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+  # ---- DIRECTIONAL_HYPOTHESES_DH2 (owner decision 2026-10-04; pooled six coins) ---------------------
+  - id: DH2-L1
+    title: SPOT_CONFIRMED_APPROACH_HOLD_4H_POOLED
+    program: DIRECTIONAL_HYPOTHESES_DH2
+    row: SPOT_PERP.spot_confirmation
+    col: SPOT
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - DH2_BINANCE_SPOT_ALTS_5M_V0
+    period: discovery Binance USD-M + spot, six coins, 2020-2024 (each coin from its first full month + 1); replication not
+      opened (nothing promising)
+    units_n: 16362 first touches (13645 / 2717), six coins
+    practical_bar: '|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; Holm within card; coin fixed effects; week clusters
+      pooled across coins'
+    mechanism: A push into a level carried by spot taker flow is less likely to be unwound than one carried by perp flow alone.
+    function: first touch of PDH/PDL/PWH/PWL/PMH/PML/POC -> 4h hold; state = spot taker net flow over the hour into the touch
+      points in the approach direction; nuisance incl. perp imbalance and coin
+    verdict: 'INCONCLUSIVE: 45.2 % vs 46.1 %, adjusted -1.75 pp, 95 % CI -3.78..+0.36, Holm p 0.21, Brier skill +0.0001; BTC
+      alone -5.1 pp (CI -11.1..+1.1); coin and year gates not assessable'
+    why_closed: 'The belief that spot confirmation helps a level hold did not hold: a positive effect above +0.4 pp is excluded
+      on the pooled data; a negative effect of up to about 4 pp is not excluded.'
+    reopen: Only a new mechanism or a new surface (prospective data); not a re-score with another coin set, window, side or
+      threshold.
+    forbidden: re-scoring with a subset of coins, another state threshold, horizon or side; rescuing DH1/DH2 cells; confirming
+      on Binance 2020-2024
+    records:
+    - docs/research/DH2_POOLED_DESIGN.md
+    - docs/research/DH2_FEASIBILITY.md
+    - docs/research/DH2_FEASIBILITY.json
+    - docs/research/DH2_PREREG.json
+    - docs/research/DH2_RESULT.md
+    - docs/research/DH2_RESULT_DISCOVERY.json
+    - docs/research/DH2_RESULT_REPLICATION.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - config/beta_research_findings.yaml
+    note: Bot finding DH2-L1 NOT_CONFIRMED (/research only).
+  - id: DH2-L3
+    title: STALE_LEVEL_HOLD_4H_POOLED
+    program: DIRECTIONAL_HYPOTHESES_DH2
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - DH2_BINANCE_SPOT_ALTS_5M_V0
+    period: discovery Binance USD-M + spot, six coins, 2020-2024 (each coin from its first full month + 1); replication not
+      opened (nothing promising)
+    units_n: 16373 first touches (4777 / 11596), six coins
+    practical_bar: '|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; Holm within card; coin fixed effects; week clusters
+      pooled across coins'
+    mechanism: Orders and stops accumulate at a level the market has not visited for a while.
+    function: first touch -> 4h hold; state = level price not traded during the 24h before the touch
+    verdict: 'INCONCLUSIVE: 45.2 % vs 45.4 %, adjusted -0.61 pp, 95 % CI -3.49..+2.27, Holm p 0.67, Brier skill -0.0002; BTC
+      alone +3.9 pp (CI -1.8..+9.7), DOGE -4.5 pp; gates not assessable'
+    why_closed: No detectable difference between stale and fresh levels; effects beyond about +-3.5 pp excluded; coins disagree
+      in sign.
+    reopen: Only a new mechanism or a new surface (prospective data); not a re-score with another coin set, window, side or
+      threshold.
+    forbidden: re-scoring with a subset of coins, another state threshold, horizon or side; rescuing DH1/DH2 cells; confirming
+      on Binance 2020-2024
+    records:
+    - docs/research/DH2_POOLED_DESIGN.md
+    - docs/research/DH2_FEASIBILITY.md
+    - docs/research/DH2_FEASIBILITY.json
+    - docs/research/DH2_PREREG.json
+    - docs/research/DH2_RESULT.md
+    - docs/research/DH2_RESULT_DISCOVERY.json
+    - docs/research/DH2_RESULT_REPLICATION.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - config/beta_research_findings.yaml
+    note: Bot finding DH2-L3 NOT_CONFIRMED (/research only).
+  - id: DH2-B2
+    title: SPOT_SHARE_HIGH_SHARP_MOVE_BARRIER_4H_POOLED
+    program: DIRECTIONAL_HYPOTHESES_DH2
+    row: SPOT_PERP.volume_share
+    col: SPOT
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - DH2_BINANCE_SPOT_ALTS_5M_V0
+    period: discovery Binance USD-M + spot, six coins, 2020-2024 (each coin from its first full month + 1); replication not
+      opened (nothing promising)
+    units_n: 9629 sharp moves (3143 / 6486), six coins
+    practical_bar: '|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; Holm within card; coin fixed effects; week clusters
+      pooled across coins'
+    mechanism: Moves with unusually high spot participation are less leverage-driven, so they are less often reversed.
+    function: sharp 15m move -> barrier +X before -X in the move direction within 4h (X = half the 4h corridor half-width);
+      state = spot share of quote volume in the move above its prior-24h share
+    verdict: 'NO_INCREMENTAL_STRUCTURE: 51.6 % vs 52.0 %, adjusted +0.55 pp, 95 % CI -1.78..+2.84, Holm p 0.64, Brier skill
+      -0.0001; BTC alone -3.3 pp (CI -10.1..+3.2)'
+    why_closed: Spot participation in a sharp move does not change which edge is reached first; the whole interval lies inside
+      +-3 pp.
+    reopen: Only a new mechanism or a new surface (prospective data); not a re-score with another coin set, window, side or
+      threshold.
+    forbidden: re-scoring with a subset of coins, another state threshold, horizon or side; rescuing DH1/DH2 cells; confirming
+      on Binance 2020-2024
+    records:
+    - docs/research/DH2_POOLED_DESIGN.md
+    - docs/research/DH2_FEASIBILITY.md
+    - docs/research/DH2_FEASIBILITY.json
+    - docs/research/DH2_PREREG.json
+    - docs/research/DH2_RESULT.md
+    - docs/research/DH2_RESULT_DISCOVERY.json
+    - docs/research/DH2_RESULT_REPLICATION.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    - config/beta_research_findings.yaml
+    note: Bot finding DH2-B2 NOT_CONFIRMED (/research only).

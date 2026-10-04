@@ -1,0 +1,354 @@
+{
+  "ALLOWED_INTERPRETATION": "A historical conditional probability on one venue: how often the stated event followed the state, beside the same probability without the state after the nuisance adjustment, with N and an interval and its status («Проверено» or «Гипотеза»).",
+  "CARDS": {
+    "DH1-B": {
+      "ENDPOINT": "BARRIER_FIRST_PASSAGE_4H",
+      "ENDPOINT_TEXT": "1 if price reaches close*(1 + d*X) before close*(1 - d*X) within 4h, 0 if the reverse, 0.5 if neither or both in the same bar; d = move direction, X = half of the 4h corridor half-width",
+      "EVENT": "SHARP_MOVE",
+      "NUISANCE_EXTRA": [
+        "MOVE_TERCILE"
+      ],
+      "TEST_FAMILY_ID": "TF-DH1-B-BARRIER",
+      "TITLE": "Sharp 15-minute move: which edge is reached first in the next 4h"
+    },
+    "DH1-L": {
+      "ENDPOINT": "LEVEL_HOLD_4H",
+      "ENDPOINT_TEXT": "the close 4h after the touch bar is beyond the level, on the side of the approach",
+      "EVENT": "LEVEL_FIRST_TOUCH",
+      "NUISANCE_EXTRA": [
+        "TYPE_GROUP"
+      ],
+      "TEST_FAMILY_ID": "TF-DH1-L-LEVEL-HOLD",
+      "TITLE": "First touch of a key level: what changes how often price holds beyond it"
+    }
+  },
+  "CELLS": {
+    "DH1-B1": {
+      "ATLAS_CELL": "SPOT_PERP.spot_confirmation x SPOT",
+      "CARD": "DH1-B",
+      "COMPARATOR": "spot taker net flow zero or against the move",
+      "EXECUTE": false,
+      "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+      "MECHANISM": "A sharp move carried by spot flow reflects unlevered demand; a move carried by perpetual flow alone is more often leverage that unwinds.",
+      "NUISANCE": [
+        "HOUR_BLOCK",
+        "RV_TERCILE",
+        "LAG_TERCILE",
+        "MOVE_TERCILE",
+        "PERP_IMB_TERCILE"
+      ],
+      "PLANNING": {
+        "DISCOVERY": {
+          "HET_POWER_2X": 0.0,
+          "MDE_80": 0.2647950890054927,
+          "N": 1852,
+          "N_COMPARATOR": 45,
+          "N_STATE": 1807,
+          "POWER_AT_50PCT_PLANNING": 0.0340272180212679,
+          "POWER_AT_75PCT_PLANNING": 0.045790274354396976
+        },
+        "REPLICATION": {
+          "HET_POWER_2X": 0.0,
+          "MDE_80": 0.2610134038568784,
+          "N": 896,
+          "N_COMPARATOR": 47,
+          "N_STATE": 849,
+          "POWER_AT_50PCT_PLANNING": 0.03429594208585618,
+          "POWER_AT_75PCT_PLANNING": 0.0464222644691909
+        }
+      },
+      "REPLICATION_POWERED": false,
+      "STATE": "SPOT_CONFIRMED_MOVE",
+      "STATE_TEXT": "spot taker net flow over the three 5m bars of the move points in the move direction"
+    },
+    "DH1-B2": {
+      "ATLAS_CELL": "SPOT_PERP.volume_share x SPOT",
+      "CARD": "DH1-B",
+      "COMPARATOR": "spot share at or below its 24h share",
+      "EXECUTE": false,
+      "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+      "MECHANISM": "Moves with unusually high spot participation are less leverage-driven, so they are less often reversed.",
+      "NUISANCE": [
+        "HOUR_BLOCK",
+        "RV_TERCILE",
+        "LAG_TERCILE",
+        "MOVE_TERCILE",
+        "PERP_IMB_TERCILE"
+      ],
+      "PLANNING": {
+        "DISCOVERY": {
+          "HET_POWER_2X": 0.045,
+          "MDE_80": 0.11404749374902608,
+          "N": 1846,
+          "N_COMPARATOR": 1557,
+          "N_STATE": 289,
+          "POWER_AT_50PCT_PLANNING": 0.07743361723464681,
+          "POWER_AT_75PCT_PLANNING": 0.15297118515171532
+        },
+        "REPLICATION": {
+          "HET_POWER_2X": 0.0,
+          "MDE_80": 0.17303499518150553,
+          "N": 885,
+          "N_COMPARATOR": 761,
+          "N_STATE": 124,
+          "POWER_AT_50PCT_PLANNING": 0.046674216357842246,
+          "POWER_AT_75PCT_PLANNING": 0.07615759717499804
+        }
+      },
+      "REPLICATION_POWERED": false,
+      "STATE": "SPOT_SHARE_HIGH_MOVE",
+      "STATE_TEXT": "spot share of spot+perp quote volume during the move exceeds its share over the 24h before the move"
+    },
+    "DH1-L1": {
+      "ATLAS_CELL": "SPOT_PERP.spot_confirmation x SPOT",
+      "CARD": "DH1-L",
+      "COMPARATOR": "spot taker net flow zero or against the approach",
+      "EXECUTE": false,
+      "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+      "MECHANISM": "A push into a level carried by unlevered spot buying (or selling) is less likely to be unwound than one carried by perpetual flow alone.",
+      "NUISANCE": [
+        "HOUR_BLOCK",
+        "RV_TERCILE",
+        "LAG_TERCILE",
+        "TYPE_GROUP",
+        "PERP_IMB_TERCILE"
+      ],
+      "PLANNING": {
+        "DISCOVERY": {
+          "HET_POWER_2X": 0.04,
+          "MDE_80": 0.08513423309185199,
+          "N": 4616,
+          "N_COMPARATOR": 631,
+          "N_STATE": 3985,
+          "POWER_AT_50PCT_PLANNING": 0.10516124983779862,
+          "POWER_AT_75PCT_PLANNING": 0.24709772467557123
+        },
+        "REPLICATION": {
+          "HET_POWER_2X": 0.03,
+          "MDE_80": 0.1298480261736396,
+          "N": 1471,
+          "N_COMPARATOR": 279,
+          "N_STATE": 1192,
+          "POWER_AT_50PCT_PLANNING": 0.050678096608248124,
+          "POWER_AT_75PCT_PLANNING": 0.10179019032541503
+        }
+      },
+      "REPLICATION_POWERED": false,
+      "STATE": "SPOT_CONFIRMED_APPROACH",
+      "STATE_TEXT": "spot taker net flow over the hour into the touch (touch bar included) points in the approach direction"
+    },
+    "DH1-L2": {
+      "ATLAS_CELL": "PRICE_STRUCTURE.levels x CANDLES",
+      "CARD": "DH1-L",
+      "COMPARATOR": "no other level within 0.15 %",
+      "EXECUTE": true,
+      "FEASIBILITY_STATUS": "EXECUTABLE",
+      "MECHANISM": "A level that coincides with other watched levels concentrates resting orders and stops, so the reaction there differs from an isolated level.",
+      "NUISANCE": [
+        "HOUR_BLOCK",
+        "RV_TERCILE",
+        "LAG_TERCILE",
+        "TYPE_GROUP"
+      ],
+      "PLANNING": {
+        "DISCOVERY": {
+          "HET_POWER_2X": 0.1,
+          "MDE_80": 0.057786071082904254,
+          "N": 4622,
+          "N_COMPARATOR": 2573,
+          "N_STATE": 2049,
+          "POWER_AT_50PCT_PLANNING": 0.2375757232956902,
+          "POWER_AT_75PCT_PLANNING": 0.5500133520462598
+        },
+        "REPLICATION": {
+          "HET_POWER_2X": 0.08,
+          "MDE_80": 0.10646749747334663,
+          "N": 1481,
+          "N_COMPARATOR": 852,
+          "N_STATE": 629,
+          "POWER_AT_50PCT_PLANNING": 0.06960865176478764,
+          "POWER_AT_75PCT_PLANNING": 0.1524343051839962
+        }
+      },
+      "REPLICATION_POWERED": false,
+      "STATE": "CONFLUENT_LEVEL",
+      "STATE_TEXT": "another objective level of a different kind lies within 0.15 % of the touched level at the touch"
+    },
+    "DH1-L3": {
+      "ATLAS_CELL": "PRICE_STRUCTURE.levels x CANDLES",
+      "CARD": "DH1-L",
+      "COMPARATOR": "the level price was traded during those 24h",
+      "EXECUTE": false,
+      "FEASIBILITY_STATUS": "INFORMATIONALLY_WEAK",
+      "MECHANISM": "Orders and stops accumulate at a level the market has not visited for a while; a recently traded level carries less of them.",
+      "NUISANCE": [
+        "HOUR_BLOCK",
+        "RV_TERCILE",
+        "LAG_TERCILE",
+        "TYPE_GROUP"
+      ],
+      "PLANNING": {
+        "DISCOVERY": {
+          "HET_POWER_2X": 0.085,
+          "MDE_80": 0.07407991330650851,
+          "N": 4622,
+          "N_COMPARATOR": 3116,
+          "N_STATE": 1506,
+          "POWER_AT_50PCT_PLANNING": 0.13936274199021725,
+          "POWER_AT_75PCT_PLANNING": 0.3341474986928439
+        },
+        "REPLICATION": {
+          "HET_POWER_2X": 0.07,
+          "MDE_80": 0.14570845435878557,
+          "N": 1481,
+          "N_COMPARATOR": 1062,
+          "N_STATE": 419,
+          "POWER_AT_50PCT_PLANNING": 0.04311814026736638,
+          "POWER_AT_75PCT_PLANNING": 0.08189698559896308
+        }
+      },
+      "REPLICATION_POWERED": false,
+      "STATE": "STALE_LEVEL",
+      "STATE_TEXT": "the level price was not traded during the 24h before the touch bar"
+    }
+  },
+  "CLAIM_TYPE": "INCREMENTAL",
+  "CLASSIFICATION": {
+    "BOT_STATUS": {
+      "OTHER": "no number",
+      "PROMISING_PROTOTYPE": "Гипотеза",
+      "REPLICATION_INCONCLUSIVE": "Гипотеза (live tracking decides)",
+      "SUPPORTED_UNCONDITIONAL": "Проверено"
+    },
+    "DISCOVERY": "PROMISING_PROTOTYPE if Holm p < 0.05, |shift| >= 0.03 and Brier skill > 0 (and heterogeneity not failed when assessable); HETEROGENEOUS_UNEXPLAINED if only heterogeneity fails; NO_INCREMENTAL_STRUCTURE if the 95% CI lies inside (-0.03, 0.03), or the shift is significant but below the bar or not calibrated; otherwise INCONCLUSIVE",
+    "REPLICATION": "only PROMISING_PROTOTYPE cells; SUPPORTED_UNCONDITIONAL if same sign, Holm p < 0.05, |shift| >= 0.03, frozen Brier skill > 0 and heterogeneity not failed; REPLICATION_INCONCLUSIVE if the replication surface was not powered and nothing significant; otherwise REPLICATION_FAILED"
+  },
+  "CODE_DIGESTS": {
+    "beta/hist_series.py": "d5b3c9f88cbfd60bcf1bf62fb41650157b767a1f55277f1411d8ff5cc935c35a",
+    "beta/levels.py": "d6e5e8d920a7722f436f0003f6ee5aac597b332c5ebd4039644e590bceaf1518",
+    "scripts/research/dh1/constants.py": "5f70833f3c73ca8e69f93cbb41bef14b5dfa52bc2bdc27ed91a5075aea17a68a",
+    "scripts/research/dh1/data.py": "e8303aa302590e4798a9ed993a24544e087ca1a7bec6d810f8ff1a980e1e3702",
+    "scripts/research/dh1/evaluate.py": "bf233b3bfac8e9da9fbc68765dcfe168337da287ed0f16495de812064f9cd079",
+    "scripts/research/dh1/events.py": "6c3af3465c7cd0908d05862a006527e4dcfeb657978c87e8d4160791aa37b756",
+    "scripts/research/dh1/feasibility.py": "0c192169bf710252116b6c25630bb3c7f39aa801ad3aed49a31396cd28662874",
+    "scripts/research/dh1/outcomes.py": "92e7192ca998302bca40e6eaa107478df6ae3412e86eb7990eed37a98437b2d4",
+    "scripts/research/dh1/stats.py": "23db3d29438812c698e5ccd3cbad00f6e37504e4faa7d4ba28275fc51476c1ef",
+    "scripts/research/owner_cards_r03/data.py": "9e53d9673ccd126df69d8aaf0ba0d68b1642d5dd19dbc9ad661e4cebb0d1dae1"
+  },
+  "DATASETS": {
+    "OBJECTS_2025_2026": "none",
+    "PERP_DISCOVERY": {
+      "DATASET_ID": "CORE_BTC_BINANCE_V0",
+      "MONTHS": "2020-01..2024-12",
+      "ZIP_LIST_SHA256": "936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b"
+    },
+    "PERP_REPLICATION": {
+      "CANONICAL_SHA256": "df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f",
+      "DATASET_ID": "DH1_BITMEX_XBTUSD_TRADES_5M_V0",
+      "DAYS": "2017-08-01..2019-12-31",
+      "OBJECT_LIST_SHA256": "649710ec605b4e16334c5281f830efe77c27a014e684d8f0b913be630f157100"
+    },
+    "SPOT": {
+      "DATASET_ID": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+      "MONTHS": "2017-08..2024-12",
+      "OBJECT_LIST_SHA256": "5a27ea4883284c995bbb091067867b45927b67e3d4b244ed11c3b97e5887cb37"
+    }
+  },
+  "DECISION_RECORD": "docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md",
+  "DESIGN_DATE": "2026-10-04",
+  "ESTIMAND": "Coefficient of the state indicator in a linear probability model of the endpoint on the state and the nuisance dummies (first level dropped); every event weighs the same.",
+  "EVALUATION_CONTRACT": "HYPOTHESIS_EVALUATION_CONTRACT_V1",
+  "FEASIBILITY_SHA256": "802d4110fcbbfb99799c9be405d1b1754c85d6b84faac7acd697038d235877c0",
+  "FORBIDDEN_INTERPRETATION": "No trade call (buy/sell, long/short now, entry, target, take-profit), no edge claim, no causal claim about participants, no wording stronger than the status.",
+  "HETEROGENEITY": {
+    "EPOCHS": "calendar years (replication: 2017H2, 2018, 2019)",
+    "TEST": "Cochran-type Q with fixed inverse-variance weights, null by permuting week clusters across epochs (1000 draws, seed 20261005); opposite-sign one-sided p < 0.05; NOT_ASSESSABLE when the outcome-blind power to detect a 2x epoch difference is below 0.5 (does not fail the cell)"
+  },
+  "INFERENCE": "Cluster bootstrap over ISO weeks cut at epoch boundaries, 2000 draws, seed base 20261004; two-sided p = 2 min(P(b*<=0), P(b*>=0)); Holm within each card at 0.05.",
+  "MARKET_OUTCOMES_OPENED_AT_FREEZE": false,
+  "NO_RESCUE": "A failed cell is never re-scored with new parameters, states, horizons, sides, baselines or claim type.",
+  "OBJECTS_2025_2026_USED": "none",
+  "PRACTICAL_BAR": {
+    "ABS_SHIFT_MIN": 0.03,
+    "BRIER_SKILL": "> 0 (discovery: leave-one-epoch-out cross-fit; replication: frozen discovery models)",
+    "RATIONALE": "owner bar 2026-10-04: 3 pp against 'обычно' plus calibration; the product's materiality floor (beta MATERIAL_DIFF = 0.03)"
+  },
+  "PROGRAM_ID": "DIRECTIONAL_HYPOTHESES_DH1",
+  "PROSPECTIVE": {
+    "EXPOSURE_HANDLING": "The bot may show the frozen discovery estimate («Гипотеза») during the window. The prospective analysis uses only events after the freeze and the frozen discovery model; showing a frozen number cannot change BTC outcomes, and no interim statistic is computed.",
+    "KIND": "PROSPECTIVE_LIVE_TRACKING",
+    "SOURCE": "Binance Vision daily 5m klines (USD-M BTCUSDT and spot BTCUSDT), read after each day closes",
+    "START": "2026-10-05",
+    "STARTS_AFTER_FREEZE": true,
+    "STOPPING_RULE": {
+      "COUNTS_ONLY_MONITORING": true,
+      "END_DATE": "2027-12-31",
+      "MAX_EVENTS": 1000,
+      "MIN_N": 300
+    }
+  },
+  "SEARCH_FAMILY_ID": "SF-DH1",
+  "SURFACES": {
+    "DISCOVERY": {
+      "DATA_START": "2020-01-01",
+      "END": "2025-01-01",
+      "EPOCHS": [
+        [
+          "2020",
+          "2020-02-01",
+          "2021-01-01"
+        ],
+        [
+          "2021",
+          "2021-01-01",
+          "2022-01-01"
+        ],
+        [
+          "2022",
+          "2022-01-01",
+          "2023-01-01"
+        ],
+        [
+          "2023",
+          "2023-01-01",
+          "2024-01-01"
+        ],
+        [
+          "2024",
+          "2024-01-01",
+          "2025-01-01"
+        ]
+      ],
+      "EVENT_START": "2020-02-01",
+      "ID": "BINANCE_2020_2024",
+      "PERP": "CORE_BTC_BINANCE_V0 (Binance USD-M BTCUSDT 1m klines, aggregated to 5m)",
+      "SPOT": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0 (Binance spot BTCUSDT 5m klines)"
+    },
+    "REPLICATION": {
+      "DATA_START": "2017-08-01",
+      "END": "2020-01-01",
+      "EPOCHS": [
+        [
+          "2017H2",
+          "2017-09-01",
+          "2018-01-01"
+        ],
+        [
+          "2018",
+          "2018-01-01",
+          "2019-01-01"
+        ],
+        [
+          "2019",
+          "2019-01-01",
+          "2020-01-01"
+        ]
+      ],
+      "EVENT_START": "2017-09-01",
+      "ID": "BITMEX_BINANCE_SPOT_2017_2019",
+      "PERP": "DH1_BITMEX_XBTUSD_TRADES_5M_V0 (BitMEX XBTUSD public trades, aggregated to 5m)",
+      "SPOT": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0 (Binance spot BTCUSDT 5m klines)"
+    }
+  },
+  "TARGET_CLASS": "UNCONDITIONAL over the declared event population of each card"
+}

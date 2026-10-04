@@ -39,6 +39,7 @@ datasets:
     live_in_product: true
     exposure:
       - {period: 2020-2024, scope: ALL, status: EXPOSED, note: "Historically exposed program surface (H01-H05, B2, D1-D12, MARKET-01/02/05, R03, G01, GV0 cards). Discovery only, with time-disjoint replication."}
+      - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "DH1-L2 one-shot discovery (confluent vs lone level -> 4h hold), 2026-10-04"}
     records: [docs/research_data/CORE_BTC_BINANCE_V0]
   - id: BINANCE_UM_KLINES_5M_PRODUCT
     col: CANDLES
@@ -251,6 +252,51 @@ datasets:
     coverage: public archive from 2017 (not pinned at 1m)
     availability: ACQUIRABLE
     records: [docs/HISTORICAL_DATA_STRATEGY.md]
+  - id: DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    col: SPOT
+    also_cols: [PERP_FLOW]
+    venue: Binance spot (data.binance.vision)
+    instrument: BTCUSDT
+    data: 5m spot klines incl. quote and taker-buy quote volume
+    coverage: 2017-08..2024-12 (89 monthly objects, archive checksums verified)
+    availability: PINNED
+    exposure:
+      - {period: 2017-2024, rows: [SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: EXPOSED, note: "DH1 outcome-blind feasibility counted spot states at level touches and sharp moves (no outcome); B1 sign state degenerate (97.6 % agree)"}
+    records: [docs/research_data/DH1_BINANCE_SPOT_BTCUSDT_5M_V0, docs/research/DH1_FEASIBILITY.md]
+  - id: DH1_BITMEX_XBTUSD_TRADES_5M_V0
+    col: PERP_FLOW
+    also_cols: [CANDLES]
+    venue: BitMEX (public.bitmex.com trade archive)
+    instrument: XBTUSD inverse perpetual
+    data: 5m bars aggregated from public trades with the taker side (OHLC, XBT volume, USD quote, taker-buy USD)
+    coverage: 2017-08-01..2019-12-31 (883 daily files pinned by SHA256; canonical 5m file committed)
+    availability: PINNED
+    exposure:
+      - {period: 2017-2019, rows: [PRICE_STRUCTURE.levels, SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: EXPOSED, note: "DH1 replication-surface feasibility counted events and states only; no outcome read (nothing reached replication)"}
+    records: [docs/research_data/DH1_BITMEX_XBTUSD_TRADES_5M_V0, docs/research/DH1_FEASIBILITY.md]
+  - id: DH2_BINANCE_UM_ALTS_5M_V0
+    col: CROSS_ASSET
+    also_cols: [CANDLES, PERP_FLOW]
+    venue: Binance USD-M (data.binance.vision)
+    instrument: ETH, XRP, BNB, DOGE, SOL USDT perpetuals
+    data: 5m klines incl. quote and taker-buy quote volume
+    coverage: first full month after listing (2020-01..2020-10) .. 2024-12; 281 monthly objects, checksums verified
+    availability: PINNED
+    exposure:
+      - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels, SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: CONSUMED, note: "DH2 one-shot discovery pooled over six coins (L1, L3, B2), 2026-10-04"}
+    records: [docs/research_data/DH2_BINANCE_UM_ALTS_5M_V0, docs/research/DH2_RESULT.md]
+  - id: DH2_BINANCE_SPOT_ALTS_5M_V0
+    col: SPOT
+    also_cols: [CROSS_ASSET]
+    venue: Binance spot (data.binance.vision)
+    instrument: ETH, XRP, BNB, DOGE, SOL USDT spot
+    data: 5m klines incl. quote and taker-buy quote volume
+    coverage: discovery months 2020..2024 plus ETH/BNB/XRP 2017-08..2019-12; 354 monthly objects, checksums verified
+    availability: PINNED
+    exposure:
+      - {period: 2020-2024, rows: [SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: CONSUMED, note: "DH2 one-shot discovery (spot states)"}
+      - {period: 2017-2019, rows: [PRICE_STRUCTURE.levels], status: EXPOSED, note: "DH2-L3 replication-surface feasibility counted events and states only; no outcome read"}
+    records: [docs/research_data/DH2_BINANCE_SPOT_ALTS_5M_V0, docs/research/DH2_FEASIBILITY.md]
   - id: MARKET_06_OKX_BINANCE_FEASIBILITY_V0
     col: SPOT
     also_cols: [CROSS_VENUE]

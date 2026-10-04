@@ -1,0 +1,162 @@
+{
+  "CELLS": {
+    "DH1-L2": {
+      "ADJUSTED_SHIFT": 0.0005252454235886161,
+      "BOT_STATUS": null,
+      "BRIER_SKILL": -0.0007951548447100443,
+      "CI95": [
+        -0.030342637624101006,
+        0.03064666716014159
+      ],
+      "CLASS": "INCONCLUSIVE",
+      "CLUSTERS": 261,
+      "HETEROGENEITY": {
+        "EPOCHS": {
+          "2020": {
+            "BETA": -0.06923022322096506,
+            "N_COMPARATOR": 329,
+            "N_STATE": 288,
+            "SE": 0.041873344450840906
+          },
+          "2021": {
+            "BETA": 0.05259049007379013,
+            "N_COMPARATOR": 748,
+            "N_STATE": 427,
+            "SE": 0.030868029195507588
+          },
+          "2022": {
+            "BETA": -0.002582960849000726,
+            "N_COMPARATOR": 505,
+            "N_STATE": 359,
+            "SE": 0.03845934424862955
+          },
+          "2023": {
+            "BETA": -0.042251505251370225,
+            "N_COMPARATOR": 369,
+            "N_STATE": 399,
+            "SE": 0.03297851870358787
+          },
+          "2024": {
+            "BETA": 0.011882944247079141,
+            "N_COMPARATOR": 622,
+            "N_STATE": 576,
+            "SE": 0.029637814588811682
+          }
+        },
+        "OPPOSITE_EPOCHS": [
+          "2020"
+        ],
+        "P_HET": 0.13186813186813187,
+        "Q": 7.413207966280249,
+        "STATUS": "PASS"
+      },
+      "HOLM_FAMILY": [
+        "DH1-L2"
+      ],
+      "MISSING_OUTCOME_DROPPED": 0,
+      "MODEL": {
+        "BETA_FULL": [
+          0.4557765246875618,
+          0.0005252454235886161,
+          -0.023382399826069374,
+          0.02553831087088447,
+          -0.036658295168753345,
+          -0.06314081207524458,
+          -0.07086952313547137,
+          0.0016768267820657101,
+          -0.0455703601424674,
+          0.01908861273555723,
+          0.04849178135800419,
+          -0.017098474775907202,
+          0.028590676120260783,
+          0.01994684951501169,
+          0.03806664375215418
+        ],
+        "BETA_NULL": [
+          0.45619545155827657,
+          -0.023361495636490273,
+          0.025591631674833984,
+          -0.03666619926805956,
+          -0.06319641533562813,
+          -0.07094178473971427,
+          0.0016378782042378304,
+          -0.045656592675593466,
+          0.019054876557586975,
+          0.0484231184174119,
+          -0.017163881397619818,
+          0.02845856568786964,
+          0.019763557928882625,
+          0.037918380289486686
+        ],
+        "LABELS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=ROUND",
+          "TYPE_GROUP=WEEK"
+        ],
+        "LEVELS": {
+          "HOUR_BLOCK": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "LAG_TERCILE": [
+            0,
+            1,
+            2
+          ],
+          "RV_TERCILE": [
+            0,
+            1,
+            2
+          ],
+          "TYPE_GROUP": [
+            "DAY",
+            "MONTH",
+            "POC",
+            "ROUND",
+            "WEEK"
+          ]
+        }
+      },
+      "N": 4622,
+      "N_COMPARATOR": 2573,
+      "N_STATE": 2049,
+      "P_BOOT": 0.954,
+      "P_HOLM": 0.954,
+      "RATE_ALL": 0.4640848117697966,
+      "RATE_COMPARATOR": 0.46327244461717837,
+      "RATE_STATE": 0.46510492923377256
+    }
+  },
+  "CODE_DIGESTS": {
+    "beta/hist_series.py": "d5b3c9f88cbfd60bcf1bf62fb41650157b767a1f55277f1411d8ff5cc935c35a",
+    "beta/levels.py": "d6e5e8d920a7722f436f0003f6ee5aac597b332c5ebd4039644e590bceaf1518",
+    "scripts/research/dh1/constants.py": "5f70833f3c73ca8e69f93cbb41bef14b5dfa52bc2bdc27ed91a5075aea17a68a",
+    "scripts/research/dh1/data.py": "e8303aa302590e4798a9ed993a24544e087ca1a7bec6d810f8ff1a980e1e3702",
+    "scripts/research/dh1/evaluate.py": "bf233b3bfac8e9da9fbc68765dcfe168337da287ed0f16495de812064f9cd079",
+    "scripts/research/dh1/events.py": "6c3af3465c7cd0908d05862a006527e4dcfeb657978c87e8d4160791aa37b756",
+    "scripts/research/dh1/feasibility.py": "0c192169bf710252116b6c25630bb3c7f39aa801ad3aed49a31396cd28662874",
+    "scripts/research/dh1/outcomes.py": "92e7192ca998302bca40e6eaa107478df6ae3412e86eb7990eed37a98437b2d4",
+    "scripts/research/dh1/stats.py": "23db3d29438812c698e5ccd3cbad00f6e37504e4faa7d4ba28275fc51476c1ef",
+    "scripts/research/owner_cards_r03/data.py": "9e53d9673ccd126df69d8aaf0ba0d68b1642d5dd19dbc9ad661e4cebb0d1dae1"
+  },
+  "ONE_SHOT": true,
+  "PREREG_SHA256": "20ee090c7d8e9348a1b5709c7ed0c9f703b6561fc200b50666a7cb25975ebe00",
+  "PROGRAM_ID": "DIRECTIONAL_HYPOTHESES_DH1",
+  "SURFACE": "DISCOVERY"
+}

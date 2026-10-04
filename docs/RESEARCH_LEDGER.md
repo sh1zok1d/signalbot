@@ -7909,3 +7909,100 @@ E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP
 ```
 WINDOWS_CONSUMED = none by this record (it records a past exposure); MARKET_VALUES_READ = none; NEW_TESTS = none
 ```
+
+## 2026-10-04 — DH1: directional hypotheses for the bot, frozen before any outcome
+
+**Owner decision.** `docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md`: research may target the directional probabilities the bot states.
+- **Endpoints:** level hold 4h after a first touch; barrier first-passage ±X in 4h.
+- **Bar:** 3 pp plus a positive Brier skill score.
+- **Statuses:** «Проверено» or «Гипотеза».
+- **Data:** discovery on Binance 2020–2024; confirmation on 2017–2019 and live tracking.
+
+**Funnel** (`DH1_CANDIDATES.md`): 15 candidates; 9 closed at red team (approach speed, OI, sessions, D9/H03/basis neighbours, perp taker imbalance, DVOL); 1 deferred (OKX L2 book recovery).
+
+**Outcome-blind feasibility** (`DH1_FEASIBILITY.{md,json}`). The frozen rule runs a cell only if its discovery MDE is at most 6 pp.
+- **Executes:** DH1-L2, confluent level vs isolated level (N 4622, MDE 5.8 pp).
+- **Closed `INFORMATIONALLY_WEAK`:**
+  - DH1-L1 (spot-confirmed approach, MDE 8.5 pp);
+  - DH1-L3 (stale level, MDE 7.4 pp);
+  - DH1-B2 (spot share in a sharp move, MDE 11 pp; smaller arm 289);
+  - DH1-B1 (spot-confirmed sharp move): degenerate, since spot taker flow agrees with the move's direction in 97.6 % of moves.
+- **Replication surface:** underpowered for every cell (MDE ≥ 10.6 pp), so confirmation in practice comes from live tracking.
+
+**Data pinned (free).**
+- Binance spot BTCUSDT 5m klines 2017-08..2024-12: 89 months, archive checksums verified.
+- BitMEX XBTUSD public trades 2017-08-01..2019-12-31: 883 daily files pinned by SHA256, aggregated to 5m with the taker side.
+- Discovery perp: `CORE_BTC_BINANCE_V0`.
+
+```
+SEARCH_FAMILY = SF-DH1; TEST_FAMILY = TF-DH1-L-LEVEL-HOLD (1 primary cell: DH1-L2); TF-DH1-B-BARRIER not registered (no executable cell)
+PREREG = docs/research/DH1_PREREG.json; MARKET_OUTCOMES_OPENED = NO at freeze; OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
+```
+
+## 2026-10-04 — DH1 executed once: DH1-L2 inconclusive by a hair, practically null; nothing replicated
+
+**Discovery** (Binance 2020–2024, one shot; `DH1_RESULT_DISCOVERY.json`). DH1-L2, confluent vs lone key level at its first touch, measured by 4h hold:
+- 4622 touches (2049 / 2573); hold 46.5 % vs 46.3 %;
+- nuisance-adjusted +0.05 pp, 95 % CI −3.03 … +3.06 pp, Holm p 0.95, Brier skill −0.0008;
+- years −6.9 / +5.3 / −0.3 / −4.2 / +1.2 pp, heterogeneity p 0.13 (not assessable at this power).
+
+**Class.** Frozen class `INCONCLUSIVE`, because the interval reaches the ±3 pp bar by 0.03–0.06 pp. In practice it is null, recorded in the atlas as `NO_STRUCTURE`.
+
+**Replication.** There was no `PROMISING_PROTOTYPE`, so the 2017–2019 surface was not opened (`DH1_RESULT_REPLICATION.json`: no outcome read).
+
+**Bot.** No probability line. `/research` gets one `NOT_CONFIRMED` line (DH1-L2); the level-alert line stays H02.
+
+```
+WINDOWS_CONSUMED = Binance BTCUSDT 2020-2024 for PRICE_STRUCTURE.levels (DH1-L2 state); 2017-2019 not consumed (states counted only)
+TESTS_EXECUTED = 1 (TF-DH1-L-LEVEL-HOLD); PROMISING_PROTOTYPES = 0; RERUN_AUTHORIZED = false
+OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
+```
+
+## 2026-10-04 — DH2: DH1-L1, L3, B2 pooled over six coins, frozen before any outcome
+
+**Owner decision** (`DH2_POOLED_DESIGN.md`):
+- pool BTC, ETH, BNB, XRP, DOGE and SOL (Binance USD-M 2020–2024);
+- this overrides, for DH2 only, the atlas rule against pooling to manufacture N;
+- coin fixed effects, a coin-heterogeneity gate and the BTC-only estimate are always reported.
+
+**Data pinned (free, checksums verified):** USD-M alts 5m (281 months) and spot alts 5m (354 months, including ETH/BNB/XRP 2017–2019).
+
+**Outcome-blind feasibility** (`DH2_FEASIBILITY.{md,json}`). All three cells are executable:
+
+| Cell | N | MDE | Power at 3 pp |
+|---|---|---|---|
+| DH2-L1 | 16362 | 3.9 pp | 0.56 |
+| DH2-L3 | 16373 | 4.2 pp | 0.49 |
+| DH2-B2 | 9630 | 3.6 pp | 0.65 |
+
+- **Heterogeneity gates:** both the epoch and the coin gate are `NOT_ASSESSABLE` (power 0.11–0.19).
+- **Replication:** underpowered; DH2-L3 on spot 4 coins has an MDE of 8.0 pp, and DH2-L1 / B2 on BitMEX BTC have MDEs of 13–16 pp.
+
+```
+SEARCH_FAMILY = SF-DH2; TEST_FAMILIES = TF-DH2-L-LEVEL-HOLD (DH2-L1, DH2-L3), TF-DH2-B-BARRIER (DH2-B2)
+PREREG = docs/research/DH2_PREREG.json (sha256 cb8bef28…53b6); MARKET_OUTCOMES_OPENED = NO at freeze; OBJECTS_2025_2026_USED = none
+```
+
+## 2026-10-04 — DH2 executed once: no pooled cell moves a directional probability; nothing replicated
+
+**Discovery** (six coins, Binance 2020–2024, one shot; `DH2_RESULT_DISCOVERY.json`):
+
+| Cell | Shift | 95 % CI | Holm p | Class |
+|---|---|---|---|---|
+| DH2-L1 | −1.75 pp | −3.78 … +0.36 | 0.21 | `INCONCLUSIVE` |
+| DH2-L3 | −0.61 pp | −3.49 … +2.27 | 0.67 | `INCONCLUSIVE` |
+| DH2-B2 | +0.55 pp | −1.78 … +2.84 | 0.64 | `NO_INCREMENTAL_STRUCTURE` |
+
+- **Brier skill:** at or below about zero for all three.
+- **Coin gate:** passed (p 0.51–0.70), but not assessable at this power.
+- **BTC alone:** −5.1, +3.9 and −3.3 pp, all with wide intervals.
+
+**Replication.** There was no `PROMISING_PROTOTYPE`, so no replication outcome was read.
+
+**Bot.** Three `NOT_CONFIRMED` `/research` lines; the alert texts are unchanged.
+
+```
+WINDOWS_CONSUMED = six-coin Binance 2020-2024 for PRICE_STRUCTURE.levels, SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share (DH2 states)
+TESTS_EXECUTED = 2 families (TF-DH2-L-LEVEL-HOLD, TF-DH2-B-BARRIER); PROMISING_PROTOTYPES = 0; RERUN_AUTHORIZED = false
+OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
+```

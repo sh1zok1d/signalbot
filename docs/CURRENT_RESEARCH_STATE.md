@@ -1,3 +1,37 @@
+## Pooled directional hypotheses (DH2) — executed once; nothing for the bot to state — 2026-10-04
+
+`PROGRAM = DIRECTIONAL_HYPOTHESES_DH2 (owner decision; docs/research/DH2_POOLED_DESIGN.md; atlas no-pooling routing overridden for DH2 only)`
+`DH2-L1 spot-confirmed approach -> 4h hold = INCONCLUSIVE (-1.75 pp, CI -3.78..+0.36; a positive effect above +0.4 pp excluded)`
+`DH2-L3 stale level -> 4h hold = INCONCLUSIVE (-0.61 pp, CI -3.49..+2.27)`
+`DH2-B2 spot share in a sharp move -> barrier = NO_INCREMENTAL_STRUCTURE (+0.55 pp, CI -1.78..+2.84)`
+`PROMISING_PROTOTYPES = 0 | REPLICATION not opened | BOT = three NOT_CONFIRMED /research lines, no probability line`
+`OBJECTS_2025_2026_USED = none | E1 / B2-06 untouched`
+`NEXT_UNIT = none started; recommended next: live tracking of the bot's own statements (docs/research/DH2_RESULT.md §5)`
+
+**What DH1 and DH2 say together.** Six cells were tested on free data, and none moved a level-hold or barrier probability by 3 pp. Spot confirmation, spot share, confluence and staleness carry no directional information at the 3–4 pp scale on Binance 2020–2024.
+
+## Directional hypotheses for the bot (DH1) — executed once; no probability line for the bot — 2026-10-04
+
+`PROGRAM = DIRECTIONAL_HYPOTHESES_DH1 (owner decision, docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md)`
+`ENDPOINTS = LEVEL_HOLD_4H; BARRIER_FIRST_PASSAGE_4H | BAR = 3 pp + Brier skill > 0 | CLAIM_TYPE = INCREMENTAL`
+`CANDIDATES = 15 | CLOSED_AT_RED_TEAM = 9 | DEFERRED = 1 (OKX L2 book recovery) | TO_FEASIBILITY = 5`
+`FEASIBILITY = DH1-L2 EXECUTABLE; DH1-L1, L3, B1, B2 INFORMATIONALLY_WEAK (B1 degenerate: spot agrees with 97.6 % of sharp moves)`
+`DH1-L2 = INCONCLUSIVE by the frozen rule (hold 46.5 % vs 46.3 %; adjusted +0.05 pp, CI -3.03..+3.06 pp; Brier skill -0.0008) -> atlas NO_STRUCTURE`
+`REPLICATION = not opened (no PROMISING_PROTOTYPE) | PROMISING_PROTOTYPES = 0 | SUPPORTED = 0`
+`BOT = no «Гипотеза»/«Проверено» probability line; /research lists DH1-L2 as NOT_CONFIRMED`
+`OBJECTS_2025_2026_USED = none | E1_RUN_001_OPENED = false | B2_06_OPENED = false`
+`NEXT_UNIT = none started; options for an owner go are in docs/research/DH1_RESULT.md §6`
+
+**What we learned.** On one venue and one symbol, free history gives about 900 level touches and 375 sharp moves a year, so a conditional state can show at best a 6–11 pp shift. The 2017–2019 era is too short to confirm anything under 10 pp. The owner's 3 pp bar needs several thousand independent events. The options are pooled symbols, a wider level population, or long live tracking, and each needs an owner go.
+
+**Records:**
+- `DH1_CANDIDATES.md`
+- `DH1_FEASIBILITY.{md,json}`
+- `DH1_PREREG.json`
+- `DH1_RESULT.md`, `DH1_RESULT_{DISCOVERY,REPLICATION}.json`
+- `SCIENTIFIC_TEST_LEDGER.json` (`TF-DH1-L-LEVEL-HOLD`)
+- the atlas: 15 DH1 units, 2 new pinned surfaces
+
 ## Autonomous research generation G01 — CLOSED_NO_SURVIVORS; nothing frozen or executed — 2026-10-03
 
 `G01_STATUS = CLOSED_NO_SURVIVORS (owner-accepted)`

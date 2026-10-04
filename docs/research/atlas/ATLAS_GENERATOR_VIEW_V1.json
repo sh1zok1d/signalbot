@@ -88,15 +88,20 @@
   {
    "col": "CANDLES",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 7,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 2,
+   "prior_signature_count": 3,
    "prior_signatures": [
     {
      "function": "Morphology components after impulse (F1)",
      "id": "B2-03",
      "mechanism": "Impulse morphology"
+    },
+    {
+     "function": "SHARP_MOVE_INTO_LEVEL_BARRIER",
+     "id": "DH1-X6",
+     "mechanism": "A sharp move that ends into a key level reverses."
     },
     {
      "function": "Signed continuation after extreme impulse windows",
@@ -109,7 +114,7 @@
   {
    "col": "PERP_FLOW",
    "data_readiness": 3,
-   "frontier_value": 10,
+   "frontier_value": 9,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -118,7 +123,7 @@
   {
    "col": "POSITIONING",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -127,7 +132,7 @@
   {
    "col": "LIQUIDATIONS",
    "data_readiness": 1,
-   "frontier_value": 7,
+   "frontier_value": 6,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -136,7 +141,7 @@
   {
    "col": "ORDER_BOOK",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -145,7 +150,7 @@
   {
    "col": "SPOT",
    "data_readiness": 3,
-   "frontier_value": 10,
+   "frontier_value": 9,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -154,7 +159,7 @@
   {
    "col": "CROSS_VENUE",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -163,7 +168,7 @@
   {
    "col": "CROSS_ASSET",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -389,11 +394,31 @@
   {
    "col": "CANDLES",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 6,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 2,
+   "prior_signature_count": 6,
    "prior_signatures": [
+    {
+     "function": "CONFLUENT_LEVEL_HOLD_4H",
+     "id": "DH1-L2",
+     "mechanism": "A level that coincides with other watched levels concentrates resting orders and stops, so the reaction at its first touch differs from a lone level."
+    },
+    {
+     "function": "STALE_LEVEL_HOLD_4H",
+     "id": "DH1-L3",
+     "mechanism": "Orders and stops accumulate at a level the market has not visited for a while."
+    },
+    {
+     "function": "APPROACH_SPEED_LEVEL_HOLD",
+     "id": "DH1-X1",
+     "mechanism": "A fast impulse into a level breaks it more often than a slow drift."
+    },
+    {
+     "function": "STALE_LEVEL_HOLD_4H_POOLED",
+     "id": "DH2-L3",
+     "mechanism": "Orders and stops accumulate at a level the market has not visited for a while."
+    },
     {
      "function": "Event-response characterization at first touches of untouched round-number levels, compared with placebo levels",
      "id": "GV0R01-C017",
@@ -410,7 +435,7 @@
   {
    "col": "PERP_FLOW",
    "data_readiness": 3,
-   "frontier_value": 10,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -419,7 +444,7 @@
   {
    "col": "POSITIONING",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -428,7 +453,7 @@
   {
    "col": "LIQUIDATIONS",
    "data_readiness": 1,
-   "frontier_value": 7,
+   "frontier_value": 5,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -437,7 +462,7 @@
   {
    "col": "ORDER_BOOK",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -446,7 +471,7 @@
   {
    "col": "SPOT",
    "data_readiness": 3,
-   "frontier_value": 10,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -455,7 +480,7 @@
   {
    "col": "CROSS_VENUE",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -464,7 +489,7 @@
   {
    "col": "CROSS_ASSET",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -1205,11 +1230,16 @@
   {
    "col": "PERP_FLOW",
    "data_readiness": 3,
-   "frontier_value": 7,
+   "frontier_value": 6,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 2,
+   "prior_signature_count": 3,
    "prior_signatures": [
+    {
+     "function": "PERP_TAKER_IMBALANCE_BARRIER",
+     "id": "DH1-X10",
+     "mechanism": "Perp taker imbalance alone predicts the barrier."
+    },
     {
      "function": "TAKER_SIGN_PERSISTENCE",
      "id": "G01-X4",
@@ -1226,7 +1256,7 @@
   {
    "col": "SPOT",
    "data_readiness": 3,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -1235,7 +1265,7 @@
   {
    "col": "POSITIONING",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -1244,7 +1274,7 @@
   {
    "col": "LIQUIDATIONS",
    "data_readiness": 1,
-   "frontier_value": 6,
+   "frontier_value": 5,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -1253,7 +1283,7 @@
   {
    "col": "ORDER_BOOK",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -1262,7 +1292,7 @@
   {
    "col": "CROSS_VENUE",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -1271,7 +1301,7 @@
   {
    "col": "CROSS_ASSET",
    "data_readiness": 3,
-   "frontier_value": 8,
+   "frontier_value": 7,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -1582,8 +1612,18 @@
    "frontier_value": 6,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 3,
+   "prior_signature_count": 5,
    "prior_signatures": [
+    {
+     "function": "OI_ON_APPROACH_LEVEL_HOLD",
+     "id": "DH1-X2",
+     "mechanism": "New positions opened on the approach push price through the level."
+    },
+    {
+     "function": "OI_DURING_SHARP_MOVE_BARRIER",
+     "id": "DH1-X3",
+     "mechanism": "A sharp move with rising OI continues; with falling OI it reverses."
+    },
     {
      "function": "Confirmatory incremental continuation after OI expansion",
      "id": "MARKET-01",
@@ -1930,8 +1970,13 @@
    "frontier_value": 4,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 4,
+   "prior_signature_count": 5,
    "prior_signatures": [
+    {
+     "function": "DVOL_MINUS_RV_DIRECTION",
+     "id": "DH1-X9",
+     "mechanism": "Options-implied minus realized volatility tells the direction."
+    },
     {
      "function": "Regime-transition characterization: test whether the option-implied volatility state, relative to trailing realized volatility, adds information about transitions into a high realized-volatility regime beyond kline-based volatility state.",
      "id": "GV0R01-C006",
@@ -2106,12 +2151,17 @@
    "frontier_value": 9,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 4,
+   "prior_signature_count": 5,
    "prior_signatures": [
     {
      "function": "Conditional venue-resolution attribution of actual D-closure among closing extremes",
      "id": "D9",
      "mechanism": "Conditional venue-resolution attribution (unclipped PERP_RESOLUTION_SHARE)"
+    },
+    {
+     "function": "SPOT_PERP_1M_LEAD_IN_MOVE",
+     "id": "DH1-X5",
+     "mechanism": "A move led by spot at 1m resolution persists."
     },
     {
      "function": "Measure the intraday profile of perpetual-versus-spot price-discovery share and test whether it shifts with the US DST clock change.",
@@ -2182,8 +2232,13 @@
    "frontier_value": 8,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 3,
+   "prior_signature_count": 4,
    "prior_signatures": [
+    {
+     "function": "PREMIUM_DURING_MOVE_BARRIER",
+     "id": "DH1-X7",
+     "mechanism": "A move with an expanding perp premium is leverage-driven and unwinds."
+    },
     {
      "function": "Regime fixed in advance: WEEKEND, meaning decision times T from Saturday 00:00 UTC to Sunday 23:55 UTC. Within this regime only, measure the mean OKX spot log return over (T, T+H] signed by sign(Z_D(T)), for events with |Z_D(T)| at least z. Weekday events are neither pooled nor used to choose z or H.",
      "id": "GV0V03L40-C002",
@@ -2250,16 +2305,28 @@
   {
    "col": "SPOT",
    "data_readiness": 3,
-   "frontier_value": 12,
-   "generator_state": "OPEN",
+   "frontier_value": 9,
+   "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 0,
+   "prior_signature_count": 2,
+   "prior_signatures": [
+    {
+     "function": "SPOT_SHARE_HIGH_SHARP_MOVE_BARRIER_4H",
+     "id": "DH1-B2",
+     "mechanism": "Moves with unusually high spot participation are less leverage-driven, so they are less often reversed."
+    },
+    {
+     "function": "SPOT_SHARE_HIGH_SHARP_MOVE_BARRIER_4H_POOLED",
+     "id": "DH2-B2",
+     "mechanism": "Moves with unusually high spot participation are less leverage-driven, so they are less often reversed."
+    }
+   ],
    "row": "SPOT_PERP.volume_share"
   },
   {
    "col": "PERP_FLOW",
    "data_readiness": 3,
-   "frontier_value": 12,
+   "frontier_value": 11,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2268,7 +2335,7 @@
   {
    "col": "POSITIONING",
    "data_readiness": 3,
-   "frontier_value": 11,
+   "frontier_value": 10,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2277,7 +2344,7 @@
   {
    "col": "LIQUIDATIONS",
    "data_readiness": 1,
-   "frontier_value": 9,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2286,7 +2353,7 @@
   {
    "col": "ORDER_BOOK",
    "data_readiness": 3,
-   "frontier_value": 11,
+   "frontier_value": 10,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2295,7 +2362,7 @@
   {
    "col": "CROSS_VENUE",
    "data_readiness": 2,
-   "frontier_value": 10,
+   "frontier_value": 9,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2304,16 +2371,33 @@
   {
    "col": "SPOT",
    "data_readiness": 3,
-   "frontier_value": 13,
-   "generator_state": "OPEN",
+   "frontier_value": 9,
+   "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 0,
+   "prior_signature_count": 3,
+   "prior_signatures": [
+    {
+     "function": "(omitted)",
+     "id": "DH1-B1",
+     "mechanism": "A sharp move carried by spot flow reflects unlevered demand; a perp-only move is more often leverage that unwinds."
+    },
+    {
+     "function": "(omitted)",
+     "id": "DH1-L1",
+     "mechanism": "A push into a level carried by spot taker flow is less likely to be unwound than one carried by perp flow alone."
+    },
+    {
+     "function": "(omitted)",
+     "id": "DH2-L1",
+     "mechanism": "A push into a level carried by spot taker flow is less likely to be unwound than one carried by perp flow alone."
+    }
+   ],
    "row": "SPOT_PERP.spot_confirmation"
   },
   {
    "col": "PERP_FLOW",
    "data_readiness": 3,
-   "frontier_value": 13,
+   "frontier_value": 11,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2322,7 +2406,7 @@
   {
    "col": "POSITIONING",
    "data_readiness": 3,
-   "frontier_value": 12,
+   "frontier_value": 10,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2331,7 +2415,7 @@
   {
    "col": "LIQUIDATIONS",
    "data_readiness": 1,
-   "frontier_value": 10,
+   "frontier_value": 8,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2340,7 +2424,7 @@
   {
    "col": "ORDER_BOOK",
    "data_readiness": 3,
-   "frontier_value": 12,
+   "frontier_value": 10,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2349,7 +2433,7 @@
   {
    "col": "CROSS_VENUE",
    "data_readiness": 2,
-   "frontier_value": 11,
+   "frontier_value": 9,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2981,16 +3065,23 @@
   {
    "col": "ORDER_BOOK",
    "data_readiness": 2,
-   "frontier_value": 11,
-   "generator_state": "OPEN",
+   "frontier_value": 8,
+   "generator_state": "DATA_REQUIRED",
    "native": true,
-   "prior_signature_count": 0,
+   "prior_signature_count": 1,
+   "prior_signatures": [
+    {
+     "function": "OKX_L2_BOOK_RECOVERY_BARRIER",
+     "id": "DH1-X8",
+     "mechanism": "When book depth does not recover after a sharp move, the move continues."
+    }
+   ],
    "row": "MICROSTRUCTURE.book_recovery"
   },
   {
    "col": "PERP_FLOW",
    "data_readiness": 2,
-   "frontier_value": 11,
+   "frontier_value": 10,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -2999,7 +3090,7 @@
   {
    "col": "SPOT",
    "data_readiness": 2,
-   "frontier_value": 11,
+   "frontier_value": 10,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -3008,7 +3099,7 @@
   {
    "col": "POSITIONING",
    "data_readiness": 2,
-   "frontier_value": 11,
+   "frontier_value": 10,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -3017,7 +3108,7 @@
   {
    "col": "LIQUIDATIONS",
    "data_readiness": 1,
-   "frontier_value": 10,
+   "frontier_value": 9,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -3026,7 +3117,7 @@
   {
    "col": "CROSS_VENUE",
    "data_readiness": 2,
-   "frontier_value": 11,
+   "frontier_value": 10,
    "generator_state": "OPEN",
    "native": false,
    "prior_signature_count": 0,
@@ -4012,8 +4103,13 @@
    "frontier_value": 5,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 2,
+   "prior_signature_count": 3,
    "prior_signatures": [
+    {
+     "function": "SESSION_OF_TOUCH_OR_MOVE",
+     "id": "DH1-X4",
+     "mechanism": "The session of the touch or move changes the direction that follows."
+    },
     {
      "function": "MONDAY_US_OPEN",
      "id": "R03-C2",
@@ -4855,26 +4951,6 @@
  "FRONTIER": [
   {
    "col": "PERP_FLOW",
-   "frontier_value": 13,
-   "row": "SPOT_PERP.spot_confirmation"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 13,
-   "row": "SPOT_PERP.spot_confirmation"
-  },
-  {
-   "col": "ORDER_BOOK",
-   "frontier_value": 12,
-   "row": "SPOT_PERP.spot_confirmation"
-  },
-  {
-   "col": "POSITIONING",
-   "frontier_value": 12,
-   "row": "SPOT_PERP.spot_confirmation"
-  },
-  {
-   "col": "PERP_FLOW",
    "frontier_value": 12,
    "row": "SPOT_PERP.stress_lead_lag"
   },
@@ -4882,16 +4958,6 @@
    "col": "SPOT",
    "frontier_value": 12,
    "row": "SPOT_PERP.stress_lead_lag"
-  },
-  {
-   "col": "PERP_FLOW",
-   "frontier_value": 12,
-   "row": "SPOT_PERP.volume_share"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 12,
-   "row": "SPOT_PERP.volume_share"
   },
   {
    "col": "PERP_FLOW",
@@ -4899,86 +4965,61 @@
    "row": "SPOT_PERP.lead_lag"
   },
   {
-   "col": "CROSS_VENUE",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.book_imbalance"
-  },
-  {
-   "col": "ORDER_BOOK",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.book_imbalance"
-  },
-  {
    "col": "PERP_FLOW",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.book_imbalance"
-  },
-  {
-   "col": "POSITIONING",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.book_imbalance"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.book_imbalance"
-  },
-  {
-   "col": "CROSS_VENUE",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.book_recovery"
-  },
-  {
-   "col": "ORDER_BOOK",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.book_recovery"
-  },
-  {
-   "col": "PERP_FLOW",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.book_recovery"
-  },
-  {
-   "col": "POSITIONING",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.book_recovery"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.book_recovery"
-  },
-  {
-   "col": "CROSS_VENUE",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.depth_asymmetry"
-  },
-  {
-   "col": "ORDER_BOOK",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.depth_asymmetry"
-  },
-  {
-   "col": "PERP_FLOW",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.depth_asymmetry"
-  },
-  {
-   "col": "POSITIONING",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.depth_asymmetry"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 11,
-   "row": "MICROSTRUCTURE.depth_asymmetry"
-  },
-  {
-   "col": "CROSS_VENUE",
    "frontier_value": 11,
    "row": "SPOT_PERP.spot_confirmation"
   },
   {
+   "col": "CROSS_VENUE",
+   "frontier_value": 11,
+   "row": "MICROSTRUCTURE.book_imbalance"
+  },
+  {
+   "col": "ORDER_BOOK",
+   "frontier_value": 11,
+   "row": "MICROSTRUCTURE.book_imbalance"
+  },
+  {
+   "col": "PERP_FLOW",
+   "frontier_value": 11,
+   "row": "MICROSTRUCTURE.book_imbalance"
+  },
+  {
+   "col": "POSITIONING",
+   "frontier_value": 11,
+   "row": "MICROSTRUCTURE.book_imbalance"
+  },
+  {
+   "col": "SPOT",
+   "frontier_value": 11,
+   "row": "MICROSTRUCTURE.book_imbalance"
+  },
+  {
+   "col": "CROSS_VENUE",
+   "frontier_value": 11,
+   "row": "MICROSTRUCTURE.depth_asymmetry"
+  },
+  {
+   "col": "ORDER_BOOK",
+   "frontier_value": 11,
+   "row": "MICROSTRUCTURE.depth_asymmetry"
+  },
+  {
+   "col": "PERP_FLOW",
+   "frontier_value": 11,
+   "row": "MICROSTRUCTURE.depth_asymmetry"
+  },
+  {
+   "col": "POSITIONING",
+   "frontier_value": 11,
+   "row": "MICROSTRUCTURE.depth_asymmetry"
+  },
+  {
+   "col": "SPOT",
+   "frontier_value": 11,
+   "row": "MICROSTRUCTURE.depth_asymmetry"
+  },
+  {
    "col": "ORDER_BOOK",
    "frontier_value": 11,
    "row": "SPOT_PERP.stress_lead_lag"
@@ -4989,12 +5030,7 @@
    "row": "SPOT_PERP.stress_lead_lag"
   },
   {
-   "col": "ORDER_BOOK",
-   "frontier_value": 11,
-   "row": "SPOT_PERP.volume_share"
-  },
-  {
-   "col": "POSITIONING",
+   "col": "PERP_FLOW",
    "frontier_value": 11,
    "row": "SPOT_PERP.volume_share"
   },
@@ -5009,6 +5045,36 @@
    "row": "SPOT_PERP.lead_lag"
   },
   {
+   "col": "ORDER_BOOK",
+   "frontier_value": 10,
+   "row": "SPOT_PERP.spot_confirmation"
+  },
+  {
+   "col": "POSITIONING",
+   "frontier_value": 10,
+   "row": "SPOT_PERP.spot_confirmation"
+  },
+  {
+   "col": "CROSS_VENUE",
+   "frontier_value": 10,
+   "row": "MICROSTRUCTURE.book_recovery"
+  },
+  {
+   "col": "PERP_FLOW",
+   "frontier_value": 10,
+   "row": "MICROSTRUCTURE.book_recovery"
+  },
+  {
+   "col": "POSITIONING",
+   "frontier_value": 10,
+   "row": "MICROSTRUCTURE.book_recovery"
+  },
+  {
+   "col": "SPOT",
+   "frontier_value": 10,
+   "row": "MICROSTRUCTURE.book_recovery"
+  },
+  {
    "col": "CROSS_VENUE",
    "frontier_value": 10,
    "row": "MICROSTRUCTURE.liquidity_withdrawal"
@@ -5056,17 +5122,7 @@
   {
    "col": "LIQUIDATIONS",
    "frontier_value": 10,
-   "row": "MICROSTRUCTURE.book_recovery"
-  },
-  {
-   "col": "LIQUIDATIONS",
-   "frontier_value": 10,
    "row": "MICROSTRUCTURE.depth_asymmetry"
-  },
-  {
-   "col": "LIQUIDATIONS",
-   "frontier_value": 10,
-   "row": "SPOT_PERP.spot_confirmation"
   },
   {
    "col": "PERP_FLOW",
@@ -5074,6 +5130,16 @@
    "row": "SPOT_PERP.basis_dislocation"
   },
   {
+   "col": "ORDER_BOOK",
+   "frontier_value": 10,
+   "row": "SPOT_PERP.volume_share"
+  },
+  {
+   "col": "POSITIONING",
+   "frontier_value": 10,
+   "row": "SPOT_PERP.volume_share"
+  },
+  {
    "col": "CROSS_VENUE",
    "frontier_value": 10,
    "row": "MICROSTRUCTURE.sweep_intensity"
@@ -5097,11 +5163,6 @@
    "col": "CROSS_VENUE",
    "frontier_value": 10,
    "row": "SPOT_PERP.stress_lead_lag"
-  },
-  {
-   "col": "CROSS_VENUE",
-   "frontier_value": 10,
-   "row": "SPOT_PERP.volume_share"
   },
   {
    "col": "SPOT",
@@ -5121,26 +5182,6 @@
   {
    "col": "PERP_FLOW",
    "frontier_value": 10,
-   "row": "PRICE_STRUCTURE.impulse"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 10,
-   "row": "PRICE_STRUCTURE.impulse"
-  },
-  {
-   "col": "PERP_FLOW",
-   "frontier_value": 10,
-   "row": "PRICE_STRUCTURE.levels"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 10,
-   "row": "PRICE_STRUCTURE.levels"
-  },
-  {
-   "col": "PERP_FLOW",
-   "frontier_value": 10,
    "row": "VOLATILITY_STATE.compression"
   },
   {
@@ -5194,6 +5235,16 @@
    "row": "SPOT_PERP.lead_lag"
   },
   {
+   "col": "CROSS_VENUE",
+   "frontier_value": 9,
+   "row": "SPOT_PERP.spot_confirmation"
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "frontier_value": 9,
+   "row": "MICROSTRUCTURE.book_recovery"
+  },
+  {
    "col": "LIQUIDATIONS",
    "frontier_value": 9,
    "row": "MICROSTRUCTURE.liquidity_withdrawal"
@@ -5234,6 +5285,11 @@
    "row": "MICROSTRUCTURE.spread_expansion"
   },
   {
+   "col": "CROSS_VENUE",
+   "frontier_value": 9,
+   "row": "SPOT_PERP.volume_share"
+  },
+  {
    "col": "LIQUIDATIONS",
    "frontier_value": 9,
    "row": "MICROSTRUCTURE.sweep_intensity"
@@ -5242,11 +5298,6 @@
    "col": "LIQUIDATIONS",
    "frontier_value": 9,
    "row": "SPOT_PERP.stress_lead_lag"
-  },
-  {
-   "col": "LIQUIDATIONS",
-   "frontier_value": 9,
-   "row": "SPOT_PERP.volume_share"
   },
   {
    "col": "PERP_FLOW",
@@ -5349,44 +5400,14 @@
    "row": "PRICE_STRUCTURE.breakout"
   },
   {
-   "col": "CROSS_ASSET",
+   "col": "PERP_FLOW",
    "frontier_value": 9,
    "row": "PRICE_STRUCTURE.impulse"
   },
   {
-   "col": "CROSS_VENUE",
+   "col": "SPOT",
    "frontier_value": 9,
    "row": "PRICE_STRUCTURE.impulse"
-  },
-  {
-   "col": "ORDER_BOOK",
-   "frontier_value": 9,
-   "row": "PRICE_STRUCTURE.impulse"
-  },
-  {
-   "col": "POSITIONING",
-   "frontier_value": 9,
-   "row": "PRICE_STRUCTURE.impulse"
-  },
-  {
-   "col": "CROSS_ASSET",
-   "frontier_value": 9,
-   "row": "PRICE_STRUCTURE.levels"
-  },
-  {
-   "col": "CROSS_VENUE",
-   "frontier_value": 9,
-   "row": "PRICE_STRUCTURE.levels"
-  },
-  {
-   "col": "ORDER_BOOK",
-   "frontier_value": 9,
-   "row": "PRICE_STRUCTURE.levels"
-  },
-  {
-   "col": "POSITIONING",
-   "frontier_value": 9,
-   "row": "PRICE_STRUCTURE.levels"
   },
   {
    "col": "CROSS_ASSET",
@@ -5497,11 +5518,6 @@
    "col": "POSITIONING",
    "frontier_value": 9,
    "row": "FLOW.flow_conditional_response"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 9,
-   "row": "FLOW.taker_imbalance"
   },
   {
    "col": "PERP_FLOW",
@@ -5539,6 +5555,11 @@
    "row": "SPOT_PERP.lead_lag"
   },
   {
+   "col": "LIQUIDATIONS",
+   "frontier_value": 8,
+   "row": "SPOT_PERP.spot_confirmation"
+  },
+  {
    "col": "CROSS_VENUE",
    "frontier_value": 8,
    "row": "SPOT_PERP.basis_dislocation"
@@ -5547,6 +5568,11 @@
    "col": "LIQUIDATIONS",
    "frontier_value": 8,
    "row": "MICROSTRUCTURE.spread_expansion"
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "frontier_value": 8,
+   "row": "SPOT_PERP.volume_share"
   },
   {
    "col": "CROSS_VENUE",
@@ -5632,6 +5658,36 @@
    "col": "CROSS_VENUE",
    "frontier_value": 8,
    "row": "FLOW.exhaustion"
+  },
+  {
+   "col": "CROSS_ASSET",
+   "frontier_value": 8,
+   "row": "PRICE_STRUCTURE.impulse"
+  },
+  {
+   "col": "CROSS_VENUE",
+   "frontier_value": 8,
+   "row": "PRICE_STRUCTURE.impulse"
+  },
+  {
+   "col": "ORDER_BOOK",
+   "frontier_value": 8,
+   "row": "PRICE_STRUCTURE.impulse"
+  },
+  {
+   "col": "POSITIONING",
+   "frontier_value": 8,
+   "row": "PRICE_STRUCTURE.impulse"
+  },
+  {
+   "col": "PERP_FLOW",
+   "frontier_value": 8,
+   "row": "PRICE_STRUCTURE.levels"
+  },
+  {
+   "col": "SPOT",
+   "frontier_value": 8,
+   "row": "PRICE_STRUCTURE.levels"
   },
   {
    "col": "OPTIONS",
@@ -5714,22 +5770,7 @@
    "row": "EVENTS.market_closures"
   },
   {
-   "col": "CROSS_ASSET",
-   "frontier_value": 8,
-   "row": "FLOW.taker_imbalance"
-  },
-  {
-   "col": "CROSS_VENUE",
-   "frontier_value": 8,
-   "row": "FLOW.taker_imbalance"
-  },
-  {
-   "col": "ORDER_BOOK",
-   "frontier_value": 8,
-   "row": "FLOW.taker_imbalance"
-  },
-  {
-   "col": "POSITIONING",
+   "col": "SPOT",
    "frontier_value": 8,
    "row": "FLOW.taker_imbalance"
   },
@@ -5809,6 +5850,26 @@
    "row": "SPOT_PERP.basis_dislocation"
   },
   {
+   "col": "CROSS_ASSET",
+   "frontier_value": 7,
+   "row": "PRICE_STRUCTURE.levels"
+  },
+  {
+   "col": "CROSS_VENUE",
+   "frontier_value": 7,
+   "row": "PRICE_STRUCTURE.levels"
+  },
+  {
+   "col": "ORDER_BOOK",
+   "frontier_value": 7,
+   "row": "PRICE_STRUCTURE.levels"
+  },
+  {
+   "col": "POSITIONING",
+   "frontier_value": 7,
+   "row": "PRICE_STRUCTURE.levels"
+  },
+  {
    "col": "OPTIONS",
    "frontier_value": 7,
    "row": "DERIVATIVES.oi_buildup"
@@ -5837,16 +5898,6 @@
    "col": "LIQUIDATIONS",
    "frontier_value": 7,
    "row": "PRICE_STRUCTURE.breakout"
-  },
-  {
-   "col": "LIQUIDATIONS",
-   "frontier_value": 7,
-   "row": "PRICE_STRUCTURE.impulse"
-  },
-  {
-   "col": "LIQUIDATIONS",
-   "frontier_value": 7,
-   "row": "PRICE_STRUCTURE.levels"
   },
   {
    "col": "LIQUIDATIONS",
@@ -5927,6 +5978,26 @@
    "col": "POSITIONING",
    "frontier_value": 7,
    "row": "EVENTS.market_closures"
+  },
+  {
+   "col": "CROSS_ASSET",
+   "frontier_value": 7,
+   "row": "FLOW.taker_imbalance"
+  },
+  {
+   "col": "CROSS_VENUE",
+   "frontier_value": 7,
+   "row": "FLOW.taker_imbalance"
+  },
+  {
+   "col": "ORDER_BOOK",
+   "frontier_value": 7,
+   "row": "FLOW.taker_imbalance"
+  },
+  {
+   "col": "POSITIONING",
+   "frontier_value": 7,
+   "row": "FLOW.taker_imbalance"
   },
   {
    "col": "CROSS_VENUE",
@@ -6194,6 +6265,11 @@
    "row": "OPTIONS_REGION.implied_vs_realized"
   },
   {
+   "col": "LIQUIDATIONS",
+   "frontier_value": 6,
+   "row": "PRICE_STRUCTURE.impulse"
+  },
+  {
    "col": "CROSS_ASSET",
    "frontier_value": 6,
    "row": "CALENDAR.sessions"
@@ -6247,11 +6323,6 @@
    "col": "LIQUIDATIONS",
    "frontier_value": 6,
    "row": "EVENTS.endogenous_shocks"
-  },
-  {
-   "col": "LIQUIDATIONS",
-   "frontier_value": 6,
-   "row": "FLOW.taker_imbalance"
   },
   {
    "col": "LIQUIDATIONS",
@@ -6369,6 +6440,11 @@
    "row": "LONG_HORIZON.external_reproduction"
   },
   {
+   "col": "LIQUIDATIONS",
+   "frontier_value": 5,
+   "row": "PRICE_STRUCTURE.levels"
+  },
+  {
    "col": "CROSS_ASSET",
    "frontier_value": 5,
    "row": "PRICE_STRUCTURE.divergence"
@@ -6397,6 +6473,11 @@
    "col": "LIQUIDATIONS",
    "frontier_value": 5,
    "row": "EVENTS.market_closures"
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "frontier_value": 5,
+   "row": "FLOW.taker_imbalance"
   },
   {
    "col": "OPTIONS",
@@ -7468,7 +7549,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "55f5d643024dcd9f013699e681bd040261178d23fe4bdd47522ab9c292422a23",
+ "SOURCES_DIGEST": "2ecec41a6b7622ecf37a6b62f70d5e2fc5cbfee50ed0ba6339fe0bc7ea585049",
  "SURFACES": [
   {
    "also_cols": [
@@ -7699,6 +7780,43 @@
      "start": "2026-08-16T00:00:00Z"
     }
    ]
+  },
+  {
+   "also_cols": [
+    "PERP_FLOW"
+   ],
+   "availability": "PINNED",
+   "col": "SPOT",
+   "coverage": "2017-08..2024-12 (89 monthly objects, archive checksums verified)",
+   "id": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0"
+  },
+  {
+   "also_cols": [
+    "CANDLES"
+   ],
+   "availability": "PINNED",
+   "col": "PERP_FLOW",
+   "coverage": "2017-08-01..2019-12-31 (883 daily files pinned by SHA256; canonical 5m file committed)",
+   "id": "DH1_BITMEX_XBTUSD_TRADES_5M_V0"
+  },
+  {
+   "also_cols": [
+    "CANDLES",
+    "PERP_FLOW"
+   ],
+   "availability": "PINNED",
+   "col": "CROSS_ASSET",
+   "coverage": "first full month after listing (2020-01..2020-10) .. 2024-12; 281 monthly objects, checksums verified",
+   "id": "DH2_BINANCE_UM_ALTS_5M_V0"
+  },
+  {
+   "also_cols": [
+    "CROSS_ASSET"
+   ],
+   "availability": "PINNED",
+   "col": "SPOT",
+   "coverage": "discovery months 2020..2024 plus ETH/BNB/XRP 2017-08..2019-12; 354 monthly objects, checksums verified",
+   "id": "DH2_BINANCE_SPOT_ALTS_5M_V0"
   },
   {
    "also_cols": [

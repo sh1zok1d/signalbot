@@ -1,0 +1,571 @@
+{
+  "CELLS": {
+    "DH2-B2": {
+      "CARD": "DH2-B",
+      "DECISION": {
+        "EXECUTE": true,
+        "HET_EPOCH_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_EPOCH_REPLICATION": "NOT_ASSESSABLE",
+        "HET_SYMBOL_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_SYMBOL_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [],
+        "REPLICATION_POWERED": false,
+        "STATUS": "EXECUTABLE"
+      },
+      "DISCOVERY": {
+        "ALPHA_HOLM_FIRST_STEP": 0.05,
+        "BTC_ONLY_MDE_80": 0.10363648699247645,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "SYMBOL=BTC",
+          "SYMBOL=DOGE",
+          "SYMBOL=ETH",
+          "SYMBOL=SOL",
+          "SYMBOL=XRP",
+          "MOVE_TERCILE=1",
+          "MOVE_TERCILE=2",
+          "PERP_IMB_TERCILE=1",
+          "PERP_IMB_TERCILE=2"
+        ],
+        "EPOCHS": {
+          "2020": {
+            "N_COMPARATOR": 1055,
+            "N_STATE": 299
+          },
+          "2021": {
+            "N_COMPARATOR": 1209,
+            "N_STATE": 623
+          },
+          "2022": {
+            "N_COMPARATOR": 1307,
+            "N_STATE": 905
+          },
+          "2023": {
+            "N_COMPARATOR": 1497,
+            "N_STATE": 779
+          },
+          "2024": {
+            "N_COMPARATOR": 1419,
+            "N_STATE": 537
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 5,
+        "HET_POWER_EPOCH_2X": 0.145,
+        "HET_POWER_SYMBOL_2X": 0.185,
+        "MDE_80": 0.035699181687798946,
+        "N": 9630,
+        "N_COMPARATOR": 6487,
+        "N_STATE": 3143,
+        "PLANNING_SE": 0.012742493591483339,
+        "POWER_AT_50PCT_PLANNING": 0.6533515784667032,
+        "POWER_AT_75PCT_PLANNING": 0.9419698646945818,
+        "POWER_AT_BAR": 0.6533515784667032,
+        "STATE_SHARE": 0.32637590861889926,
+        "SYMBOLS": {
+          "BNB": {
+            "N_COMPARATOR": 997,
+            "N_STATE": 515
+          },
+          "BTC": {
+            "N_COMPARATOR": 1557,
+            "N_STATE": 289
+          },
+          "DOGE": {
+            "N_COMPARATOR": 863,
+            "N_STATE": 728
+          },
+          "ETH": {
+            "N_COMPARATOR": 1233,
+            "N_STATE": 575
+          },
+          "SOL": {
+            "N_COMPARATOR": 578,
+            "N_STATE": 658
+          },
+          "XRP": {
+            "N_COMPARATOR": 1259,
+            "N_STATE": 378
+          }
+        },
+        "SYMBOLS_WITH_BOTH_ARMS_GE_MIN": 6,
+        "WEEK_CLUSTERS": 260
+      },
+      "REPLICATION": {
+        "ALPHA_HOLM_FIRST_STEP": 0.05,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "MOVE_TERCILE=1",
+          "MOVE_TERCILE=2",
+          "PERP_IMB_TERCILE=1",
+          "PERP_IMB_TERCILE=2"
+        ],
+        "EPOCHS": {
+          "2017H2": {
+            "N_COMPARATOR": 71,
+            "N_STATE": 9
+          },
+          "2018": {
+            "N_COMPARATOR": 345,
+            "N_STATE": 67
+          },
+          "2019": {
+            "N_COMPARATOR": 345,
+            "N_STATE": 48
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 2,
+        "HET_POWER_EPOCH_2X": 0.0,
+        "HET_POWER_SYMBOL_2X": 0.0,
+        "MDE_80": 0.15723922059027676,
+        "N": 885,
+        "N_COMPARATOR": 761,
+        "N_STATE": 124,
+        "PLANNING_SE": 0.05612508931503665,
+        "POWER_AT_50PCT_PLANNING": 0.08332151055269693,
+        "POWER_AT_75PCT_PLANNING": 0.1262692484132557,
+        "POWER_AT_BAR": 0.08332151055269693,
+        "STATE_SHARE": 0.1401129943502825,
+        "SYMBOLS": {
+          "BTC": {
+            "N_COMPARATOR": 761,
+            "N_STATE": 124
+          }
+        },
+        "SYMBOLS_WITH_BOTH_ARMS_GE_MIN": 1,
+        "WEEK_CLUSTERS": 124
+      },
+      "STATE": "SPOT_SHARE_HIGH_MOVE"
+    },
+    "DH2-L1": {
+      "CARD": "DH2-L",
+      "DECISION": {
+        "EXECUTE": true,
+        "HET_EPOCH_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_EPOCH_REPLICATION": "NOT_ASSESSABLE",
+        "HET_SYMBOL_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_SYMBOL_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [],
+        "REPLICATION_POWERED": false,
+        "STATUS": "EXECUTABLE"
+      },
+      "DISCOVERY": {
+        "ALPHA_HOLM_FIRST_STEP": 0.025,
+        "BTC_ONLY_MDE_80": 0.105851693567149,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "SYMBOL=BTC",
+          "SYMBOL=DOGE",
+          "SYMBOL=ETH",
+          "SYMBOL=SOL",
+          "SYMBOL=XRP",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=WEEK",
+          "PERP_IMB_TERCILE=1",
+          "PERP_IMB_TERCILE=2"
+        ],
+        "EPOCHS": {
+          "2020": {
+            "N_COMPARATOR": 470,
+            "N_STATE": 1867
+          },
+          "2021": {
+            "N_COMPARATOR": 655,
+            "N_STATE": 2946
+          },
+          "2022": {
+            "N_COMPARATOR": 563,
+            "N_STATE": 2919
+          },
+          "2023": {
+            "N_COMPARATOR": 530,
+            "N_STATE": 2868
+          },
+          "2024": {
+            "N_COMPARATOR": 499,
+            "N_STATE": 3045
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 5,
+        "HET_POWER_EPOCH_2X": 0.155,
+        "HET_POWER_SYMBOL_2X": 0.135,
+        "MDE_80": 0.03858180462697836,
+        "N": 16362,
+        "N_COMPARATOR": 2717,
+        "N_STATE": 13645,
+        "PLANNING_SE": 0.01251427336044391,
+        "POWER_AT_50PCT_PLANNING": 0.5619300313571476,
+        "POWER_AT_75PCT_PLANNING": 0.9122101484210241,
+        "POWER_AT_BAR": 0.5619300313571476,
+        "STATE_SHARE": 0.8339445055616673,
+        "SYMBOLS": {
+          "BNB": {
+            "N_COMPARATOR": 517,
+            "N_STATE": 2320
+          },
+          "BTC": {
+            "N_COMPARATOR": 361,
+            "N_STATE": 2495
+          },
+          "DOGE": {
+            "N_COMPARATOR": 468,
+            "N_STATE": 2037
+          },
+          "ETH": {
+            "N_COMPARATOR": 358,
+            "N_STATE": 2513
+          },
+          "SOL": {
+            "N_COMPARATOR": 402,
+            "N_STATE": 2095
+          },
+          "XRP": {
+            "N_COMPARATOR": 611,
+            "N_STATE": 2185
+          }
+        },
+        "SYMBOLS_WITH_BOTH_ARMS_GE_MIN": 6,
+        "WEEK_CLUSTERS": 261
+      },
+      "REPLICATION": {
+        "ALPHA_HOLM_FIRST_STEP": 0.025,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=WEEK",
+          "PERP_IMB_TERCILE=1",
+          "PERP_IMB_TERCILE=2"
+        ],
+        "EPOCHS": {
+          "2017H2": {
+            "N_COMPARATOR": 64,
+            "N_STATE": 136
+          },
+          "2018": {
+            "N_COMPARATOR": 94,
+            "N_STATE": 453
+          },
+          "2019": {
+            "N_COMPARATOR": 86,
+            "N_STATE": 476
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 3,
+        "HET_POWER_EPOCH_2X": 0.025,
+        "HET_POWER_SYMBOL_2X": 0.0,
+        "MDE_80": 0.1322851519691863,
+        "N": 1309,
+        "N_COMPARATOR": 244,
+        "N_STATE": 1065,
+        "PLANNING_SE": 0.04290759774654723,
+        "POWER_AT_50PCT_PLANNING": 0.0631473537083031,
+        "POWER_AT_75PCT_PLANNING": 0.11700634011688155,
+        "POWER_AT_BAR": 0.0631473537083031,
+        "STATE_SHARE": 0.813598166539343,
+        "SYMBOLS": {
+          "BTC": {
+            "N_COMPARATOR": 244,
+            "N_STATE": 1065
+          }
+        },
+        "SYMBOLS_WITH_BOTH_ARMS_GE_MIN": 1,
+        "WEEK_CLUSTERS": 124
+      },
+      "STATE": "SPOT_CONFIRMED_APPROACH"
+    },
+    "DH2-L3": {
+      "CARD": "DH2-L",
+      "DECISION": {
+        "EXECUTE": true,
+        "HET_EPOCH_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_EPOCH_REPLICATION": "NOT_ASSESSABLE",
+        "HET_SYMBOL_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_SYMBOL_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [],
+        "REPLICATION_POWERED": false,
+        "STATUS": "EXECUTABLE"
+      },
+      "DISCOVERY": {
+        "ALPHA_HOLM_FIRST_STEP": 0.025,
+        "BTC_ONLY_MDE_80": 0.09709130527346864,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "SYMBOL=BTC",
+          "SYMBOL=DOGE",
+          "SYMBOL=ETH",
+          "SYMBOL=SOL",
+          "SYMBOL=XRP",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=WEEK"
+        ],
+        "EPOCHS": {
+          "2020": {
+            "N_COMPARATOR": 1665,
+            "N_STATE": 678
+          },
+          "2021": {
+            "N_COMPARATOR": 2607,
+            "N_STATE": 999
+          },
+          "2022": {
+            "N_COMPARATOR": 2497,
+            "N_STATE": 985
+          },
+          "2023": {
+            "N_COMPARATOR": 2285,
+            "N_STATE": 1113
+          },
+          "2024": {
+            "N_COMPARATOR": 2542,
+            "N_STATE": 1002
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 5,
+        "HET_POWER_EPOCH_2X": 0.13,
+        "HET_POWER_SYMBOL_2X": 0.11,
+        "MDE_80": 0.04159809037359566,
+        "N": 16373,
+        "N_COMPARATOR": 11596,
+        "N_STATE": 4777,
+        "PLANNING_SE": 0.013492626362106906,
+        "POWER_AT_50PCT_PLANNING": 0.49283696527127546,
+        "POWER_AT_75PCT_PLANNING": 0.8629681869463235,
+        "POWER_AT_BAR": 0.49283696527127546,
+        "STATE_SHARE": 0.2917608257497099,
+        "SYMBOLS": {
+          "BNB": {
+            "N_COMPARATOR": 2008,
+            "N_STATE": 830
+          },
+          "BTC": {
+            "N_COMPARATOR": 1986,
+            "N_STATE": 873
+          },
+          "DOGE": {
+            "N_COMPARATOR": 1768,
+            "N_STATE": 738
+          },
+          "ETH": {
+            "N_COMPARATOR": 2008,
+            "N_STATE": 867
+          },
+          "SOL": {
+            "N_COMPARATOR": 1819,
+            "N_STATE": 679
+          },
+          "XRP": {
+            "N_COMPARATOR": 2007,
+            "N_STATE": 790
+          }
+        },
+        "SYMBOLS_WITH_BOTH_ARMS_GE_MIN": 6,
+        "WEEK_CLUSTERS": 261
+      },
+      "REPLICATION": {
+        "ALPHA_HOLM_FIRST_STEP": 0.025,
+        "BTC_ONLY_MDE_80": 0.15285508239139778,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "SYMBOL=BTC",
+          "SYMBOL=ETH",
+          "SYMBOL=XRP",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=WEEK"
+        ],
+        "EPOCHS": {
+          "2017H2": {
+            "N_COMPARATOR": 271,
+            "N_STATE": 103
+          },
+          "2018": {
+            "N_COMPARATOR": 1380,
+            "N_STATE": 526
+          },
+          "2019": {
+            "N_COMPARATOR": 1564,
+            "N_STATE": 680
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 3,
+        "HET_POWER_EPOCH_2X": 0.11,
+        "HET_POWER_SYMBOL_2X": 0.08,
+        "MDE_80": 0.07965364648575106,
+        "N": 4524,
+        "N_COMPARATOR": 3215,
+        "N_STATE": 1309,
+        "PLANNING_SE": 0.025836207401813253,
+        "POWER_AT_50PCT_PLANNING": 0.1403510901902813,
+        "POWER_AT_75PCT_PLANNING": 0.3086908966655518,
+        "POWER_AT_BAR": 0.1403510901902813,
+        "STATE_SHARE": 0.28934571175950485,
+        "SYMBOLS": {
+          "BNB": {
+            "N_COMPARATOR": 796,
+            "N_STATE": 328
+          },
+          "BTC": {
+            "N_COMPARATOR": 901,
+            "N_STATE": 361
+          },
+          "ETH": {
+            "N_COMPARATOR": 924,
+            "N_STATE": 370
+          },
+          "XRP": {
+            "N_COMPARATOR": 594,
+            "N_STATE": 250
+          }
+        },
+        "SYMBOLS_WITH_BOTH_ARMS_GE_MIN": 4,
+        "WEEK_CLUSTERS": 124
+      },
+      "STATE": "STALE_LEVEL"
+    }
+  },
+  "DATASETS": {
+    "DH1": {
+      "OBJECTS_2025_2026": "none",
+      "PERP_DISCOVERY": {
+        "DATASET_ID": "CORE_BTC_BINANCE_V0",
+        "MONTHS": "2020-01..2024-12",
+        "ZIP_LIST_SHA256": "936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b"
+      },
+      "PERP_REPLICATION": {
+        "CANONICAL_SHA256": "df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f",
+        "DATASET_ID": "DH1_BITMEX_XBTUSD_TRADES_5M_V0",
+        "DAYS": "2017-08-01..2019-12-31",
+        "OBJECT_LIST_SHA256": "649710ec605b4e16334c5281f830efe77c27a014e684d8f0b913be630f157100"
+      },
+      "SPOT": {
+        "DATASET_ID": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+        "MONTHS": "2017-08..2024-12",
+        "OBJECT_LIST_SHA256": "5a27ea4883284c995bbb091067867b45927b67e3d4b244ed11c3b97e5887cb37"
+      }
+    },
+    "OBJECTS_2025_2026": "none",
+    "SPOT_ALTS": {
+      "DATASET_ID": "DH2_BINANCE_SPOT_ALTS_5M_V0",
+      "OBJECTS": 354,
+      "OBJECT_LIST_SHA256": "499b129c1e131461329cf678a0c3534ee8bcd8488b69630c2ac3621ad61fc9df"
+    },
+    "UM_ALTS": {
+      "DATASET_ID": "DH2_BINANCE_UM_ALTS_5M_V0",
+      "OBJECTS": 281,
+      "OBJECT_LIST_SHA256": "0e943d0a00d1eb859330869c48dafd5d47cc0823fca865de22c351009e03f485"
+    }
+  },
+  "EVENTS": {
+    "DISCOVERY": {
+      "DH2-B": {
+        "BNB": 1515,
+        "BTC": 1852,
+        "DOGE": 1594,
+        "ETH": 1812,
+        "SOL": 1238,
+        "XRP": 1644
+      },
+      "DH2-L": {
+        "BNB": 2838,
+        "BTC": 2859,
+        "DOGE": 2506,
+        "ETH": 2875,
+        "SOL": 2498,
+        "XRP": 2797
+      }
+    },
+    "REPLICATION": {
+      "DH2-B2": {
+        "BNB": 0,
+        "BTC": 897,
+        "DOGE": 0,
+        "ETH": 0,
+        "SOL": 0,
+        "XRP": 0
+      },
+      "DH2-L1": {
+        "BNB": 0,
+        "BTC": 1317,
+        "DOGE": 0,
+        "ETH": 0,
+        "SOL": 0,
+        "XRP": 0
+      },
+      "DH2-L3": {
+        "BNB": 1126,
+        "BTC": 1265,
+        "DOGE": 0,
+        "ETH": 1297,
+        "SOL": 0,
+        "XRP": 845
+      }
+    }
+  },
+  "MARKET_OUTCOMES_OPENED": false,
+  "MARKET_VALUES_READ": "prices and taker flows up to each decision time (states and nuisance only); no outcome",
+  "OBJECTS_2025_2026_USED": "none",
+  "PROGRAM_ID": "DIRECTIONAL_HYPOTHESES_DH2",
+  "SEARCH_FAMILY_ID": "SF-DH2"
+}

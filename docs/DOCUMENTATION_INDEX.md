@@ -627,6 +627,16 @@ When adding documentation:
   - **Compiled:** turn-of-month participation and range, month-end mark hour, and an ETF NAV fixing-hour DiD. All four are `INFORMATIONALLY_WEAK` under `GV0R02_SCHEMA_V2` and the unit screens.
   - **Not done:** no market value read, no test registered, no 2025/2026 object, no B2-06.
   - **Code and tests:** `scripts/research/autogen_g01/`; `tests/research/test_autogen_g01.py`.
+- `research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md`, `research/DH1_CANDIDATES.md`, `research/DH1_FEASIBILITY.{md,json}`, `research/DH1_PREREG.json`, `research/DH1_RESULT_*.json`, `research/DH1_RESULT.md` (**DH1 — DIRECTIONAL HYPOTHESES FOR THE BOT, owner decision 2026-10-04**).
+  - **What it allows:** research targets the directional probabilities the bot may state.
+  - **Endpoints and bar:** level hold 4h and barrier ±X 4h; 3 pp plus Brier skill.
+  - **Statuses:** «Проверено» / «Гипотеза».
+  - **Data:** discovery Binance 2020–2024; confirmation 2017–2019 (BitMEX trades + Binance spot, pinned in `research_data/DH1_*`) and live tracking.
+  - **Code and tests:** `scripts/research/dh1/`; `tests/research/test_dh1.py`.
+- `research/DH2_POOLED_DESIGN.md`, `research/DH2_FEASIBILITY.{md,json}`, `research/DH2_PREREG.json`, `research/DH2_RESULT_*.json`, `research/DH2_RESULT.md` (**DH2 — DH1 cells pooled over six coins, owner decision 2026-10-04**).
+  - **Cells:** DH1-L1, L3 and B2 on BTC, ETH, BNB, XRP, DOGE and SOL (Binance 2020–2024), with coin fixed effects, a coin-heterogeneity gate and the BTC-only estimate.
+  - **Data:** `research_data/DH2_*`.
+  - **Code and tests:** `scripts/research/dh2/`; `tests/research/test_dh2.py`.
 - `research/SIGNALBOT_RESEARCH_ATLAS_V1.md` (**ACTIVE — PERMANENT RESEARCH MAP**): Mechanism × Data surface × State for every research unit.
   - **Sources:** `research/atlas/ATLAS_TAXONOMY_V1.yaml`, `ATLAS_SURFACES_V1.yaml`, `ATLAS_UNITS_V1.yaml`.
   - **Derived (never hand-edited):** `research/atlas/SIGNALBOT_RESEARCH_ATLAS_V1.json` (full governance view), `ATLAS_GENERATOR_VIEW_V1.json` (outcome-blind generator view), `ATLAS_MATRIX_V1.md` (matrix, frontier, cell details).

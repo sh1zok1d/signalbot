@@ -1,0 +1,901 @@
+{
+  "COLUMNS_USED": "open_time, open, high, low, close, volume, quote_volume, taker_buy_quote_volume",
+  "DATASET_ID": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+  "INSTRUMENT": "Binance spot BTCUSDT",
+  "INTERVAL": "5m",
+  "MONTHS": "2017-08..2024-12",
+  "OBJECTS": [
+    {
+      "BYTES": 188524,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1502942400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2017-08.zip",
+      "LAST_OPEN_MS": 1504223700000,
+      "MONTH": "2017-08",
+      "ROWS": 4272,
+      "SHA256": "d18c324e86822142d45f2ff33d3d0e193726fe1584ffd148c50f91fa4b2fdadd"
+    },
+    {
+      "BYTES": 416706,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1504224000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2017-09.zip",
+      "LAST_OPEN_MS": 1506815700000,
+      "MONTH": "2017-09",
+      "ROWS": 8556,
+      "SHA256": "b9b27b4fc6a12746dcf8dec6cd8efd3c4dfe746789c4e1162ebfe33a2989e3e5"
+    },
+    {
+      "BYTES": 453032,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1506816000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2017-10.zip",
+      "LAST_OPEN_MS": 1509494100000,
+      "MONTH": "2017-10",
+      "ROWS": 8928,
+      "SHA256": "4e1a5d3eb8accc2911f1fd1060ad15b1e3bbb1ff674d494ad01bc40a6bf53f9c"
+    },
+    {
+      "BYTES": 478139,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1509494400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2017-11.zip",
+      "LAST_OPEN_MS": 1512086100000,
+      "MONTH": "2017-11",
+      "ROWS": 8640,
+      "SHA256": "dbd53002ea79d6bfea2cdf8c00976a9c2f0647a2ad5e2b619ae60e1db2b93a07"
+    },
+    {
+      "BYTES": 498150,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1512086400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2017-12.zip",
+      "LAST_OPEN_MS": 1514764500000,
+      "MONTH": "2017-12",
+      "ROWS": 8915,
+      "SHA256": "fab87582c0bfd79f200dfbbeebbce39fabf7c137c768daa867d9d688f64c6b19"
+    },
+    {
+      "BYTES": 465740,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1514764800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-01.zip",
+      "LAST_OPEN_MS": 1517442900000,
+      "MONTH": "2018-01",
+      "ROWS": 8904,
+      "SHA256": "c08222ead41339fe656ac2e4389d365a0cadcc0e24c6e538bb76006e4e9ee5e0"
+    },
+    {
+      "BYTES": 404071,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1517443200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-02.zip",
+      "LAST_OPEN_MS": 1519862100000,
+      "MONTH": "2018-02",
+      "ROWS": 7654,
+      "SHA256": "44bc33f321fbc4a4dd5c99bec7bbb4ca86e5cc33ddc6459610a18db7ae872c0b"
+    },
+    {
+      "BYTES": 463234,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1519862400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-03.zip",
+      "LAST_OPEN_MS": 1522540500000,
+      "MONTH": "2018-03",
+      "ROWS": 8928,
+      "SHA256": "9f79a89dad86fbce45f7be8f0487e115a4e8d609b4c415b5a32781e823df0cd4"
+    },
+    {
+      "BYTES": 442723,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1522540800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-04.zip",
+      "LAST_OPEN_MS": 1525132500000,
+      "MONTH": "2018-04",
+      "ROWS": 8640,
+      "SHA256": "7cb8824ccd38c38320f5ec095d8e6d0fec7a6707b9a935873da9898939bca07c"
+    },
+    {
+      "BYTES": 458172,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1525132800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-05.zip",
+      "LAST_OPEN_MS": 1527810900000,
+      "MONTH": "2018-05",
+      "ROWS": 8928,
+      "SHA256": "c2965719efcc49fa3b63d53a37f4b612985836c0064297fb79af798f26e9e955"
+    },
+    {
+      "BYTES": 435306,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1527811200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-06.zip",
+      "LAST_OPEN_MS": 1530402900000,
+      "MONTH": "2018-06",
+      "ROWS": 8499,
+      "SHA256": "5bc6c6bbf69e088fe7b5715052d42eae8fd8681e26cb437881b74c77f457847b"
+    },
+    {
+      "BYTES": 453601,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1530403200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-07.zip",
+      "LAST_OPEN_MS": 1533081300000,
+      "MONTH": "2018-07",
+      "ROWS": 8837,
+      "SHA256": "f2c64ad1821b5f495694d4669895c62f961c585639cce4a0cd06214f406631ae"
+    },
+    {
+      "BYTES": 462986,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1533081600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-08.zip",
+      "LAST_OPEN_MS": 1535759700000,
+      "MONTH": "2018-08",
+      "ROWS": 8928,
+      "SHA256": "f1277c6c1e25a0c6f36a82a7c655094756ebf51b161176ad17410a73f96fddef"
+    },
+    {
+      "BYTES": 443173,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1535760000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-09.zip",
+      "LAST_OPEN_MS": 1538351700000,
+      "MONTH": "2018-09",
+      "ROWS": 8640,
+      "SHA256": "820d494c55b1b0149872f54af63d8245a98c48d83ede5f8b949ee49f42b52704"
+    },
+    {
+      "BYTES": 442764,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1538352000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-10.zip",
+      "LAST_OPEN_MS": 1541030100000,
+      "MONTH": "2018-10",
+      "ROWS": 8886,
+      "SHA256": "1dbf662fb263e9cd25889eac5ebb79f9d5b4af0b264598970fccd03324c9cbb0"
+    },
+    {
+      "BYTES": 437072,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1541030400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-11.zip",
+      "LAST_OPEN_MS": 1543622100000,
+      "MONTH": "2018-11",
+      "ROWS": 8556,
+      "SHA256": "98463143980a2cf664ee9416d7e7d585551cd76b97475ec319b370a2a120e5e9"
+    },
+    {
+      "BYTES": 461718,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1543622400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2018-12.zip",
+      "LAST_OPEN_MS": 1546300500000,
+      "MONTH": "2018-12",
+      "ROWS": 8928,
+      "SHA256": "75680727b955d3b371fc72e34aef79fa19ff4f3ad777016bcca9ee9cb26ec619"
+    },
+    {
+      "BYTES": 450178,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1546300800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-01.zip",
+      "LAST_OPEN_MS": 1548978900000,
+      "MONTH": "2019-01",
+      "ROWS": 8928,
+      "SHA256": "e5a64b286a194f690779557f87fc84eb35a09aae2f1e284a7da85289fe848f42"
+    },
+    {
+      "BYTES": 406026,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1548979200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-02.zip",
+      "LAST_OPEN_MS": 1551398100000,
+      "MONTH": "2019-02",
+      "ROWS": 8064,
+      "SHA256": "01c1e37145ad1a27f1159c17f5d13ee29e367838033835ea3a8808fe9148aff3"
+    },
+    {
+      "BYTES": 443439,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1551398400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-03.zip",
+      "LAST_OPEN_MS": 1554076500000,
+      "MONTH": "2019-03",
+      "ROWS": 8856,
+      "SHA256": "c91f75887afbfd6bf7da205b35c248e56b394fb12437aa0d7cd90670883122af"
+    },
+    {
+      "BYTES": 442993,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1554076800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-04.zip",
+      "LAST_OPEN_MS": 1556668500000,
+      "MONTH": "2019-04",
+      "ROWS": 8640,
+      "SHA256": "785a918b0dc9d9657578ffa7c356fa10d040c9a0262485cf1f744d2cef8467c3"
+    },
+    {
+      "BYTES": 464129,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1556668800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-05.zip",
+      "LAST_OPEN_MS": 1559346900000,
+      "MONTH": "2019-05",
+      "ROWS": 8808,
+      "SHA256": "1133835a11452420295c07d14a8b51e84c202d59af1ba4c0d89ffc531428b27b"
+    },
+    {
+      "BYTES": 459498,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1559347200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-06.zip",
+      "LAST_OPEN_MS": 1561938900000,
+      "MONTH": "2019-06",
+      "ROWS": 8628,
+      "SHA256": "afb029797231b99b7e5267d819ce77f99f0460320cea1d7f594023a63f46151e"
+    },
+    {
+      "BYTES": 480172,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1561939200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-07.zip",
+      "LAST_OPEN_MS": 1564617300000,
+      "MONTH": "2019-07",
+      "ROWS": 8928,
+      "SHA256": "514253f42219318868610b2402ef01a5509b883b3453b05b8ca04162713a5f04"
+    },
+    {
+      "BYTES": 467170,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1564617600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-08.zip",
+      "LAST_OPEN_MS": 1567295700000,
+      "MONTH": "2019-08",
+      "ROWS": 8832,
+      "SHA256": "a05861391ccc27354bd8b10e9c194f98c9ba59d1fb52711e86ec08484b9e1b78"
+    },
+    {
+      "BYTES": 453008,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1567296000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-09.zip",
+      "LAST_OPEN_MS": 1569887700000,
+      "MONTH": "2019-09",
+      "ROWS": 8640,
+      "SHA256": "359e30bfcfe07292be3eac91d99addf1db1b986eef5023b1d6d19a450903ae49"
+    },
+    {
+      "BYTES": 468385,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1569888000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-10.zip",
+      "LAST_OPEN_MS": 1572566100000,
+      "MONTH": "2019-10",
+      "ROWS": 8928,
+      "SHA256": "24cb68fee29a479e9ddfccb0e09442c1f308820c86e06a94a689bf8021f9d7c9"
+    },
+    {
+      "BYTES": 451056,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1572566400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-11.zip",
+      "LAST_OPEN_MS": 1575158100000,
+      "MONTH": "2019-11",
+      "ROWS": 8588,
+      "SHA256": "9165c6d5e2eaa27733cf5a6cf298baf3ca70b91db12de80cc1dd1eefe6f27b15"
+    },
+    {
+      "BYTES": 464301,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1575158400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2019-12.zip",
+      "LAST_OPEN_MS": 1577836500000,
+      "MONTH": "2019-12",
+      "ROWS": 8928,
+      "SHA256": "ca816089ea5bcecbad5dfcc4ad84a3d1d15aed16b18664095235db29aa87b110"
+    },
+    {
+      "BYTES": 469558,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1577836800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-01.zip",
+      "LAST_OPEN_MS": 1580514900000,
+      "MONTH": "2020-01",
+      "ROWS": 8928,
+      "SHA256": "06d2ae5dc44a5d679ee795107988491265678572cb851bf68aefdd67296d1649"
+    },
+    {
+      "BYTES": 437971,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1580515200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-02.zip",
+      "LAST_OPEN_MS": 1583020500000,
+      "MONTH": "2020-02",
+      "ROWS": 8270,
+      "SHA256": "5a55ea80e8139c03d5ffd1cf5d442ff2060168e7054889718e5f4b5cf417b2db"
+    },
+    {
+      "BYTES": 479177,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1583020800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-03.zip",
+      "LAST_OPEN_MS": 1585698900000,
+      "MONTH": "2020-03",
+      "ROWS": 8903,
+      "SHA256": "18e19c32d81eba36afc03029bd124b2468a4ae07d68a780a81fd3453a5784265"
+    },
+    {
+      "BYTES": 456571,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1585699200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-04.zip",
+      "LAST_OPEN_MS": 1588290900000,
+      "MONTH": "2020-04",
+      "ROWS": 8610,
+      "SHA256": "0284b9c8e7fc2545249637bc76a5f0eecc267f2cb7374f8b0f0648d8feaf7587"
+    },
+    {
+      "BYTES": 477076,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1588291200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-05.zip",
+      "LAST_OPEN_MS": 1590969300000,
+      "MONTH": "2020-05",
+      "ROWS": 8928,
+      "SHA256": "798617aa2af58b8f350e27807e9816e0c86f9f5f606a4bb945c8a6f9a90cc8e1"
+    },
+    {
+      "BYTES": 450231,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1590969600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-06.zip",
+      "LAST_OPEN_MS": 1593561300000,
+      "MONTH": "2020-06",
+      "ROWS": 8598,
+      "SHA256": "854b542e3c20cf4c106bbcb9fe761e35de756f1d061f0ef887c9f84a7a37f930"
+    },
+    {
+      "BYTES": 465604,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1593561600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-07.zip",
+      "LAST_OPEN_MS": 1596239700000,
+      "MONTH": "2020-07",
+      "ROWS": 8928,
+      "SHA256": "99f3c881214d0b940f562d4b4a8660a5bfee17b34a114a0aa01d3f1b064ea4eb"
+    },
+    {
+      "BYTES": 474677,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1596240000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-08.zip",
+      "LAST_OPEN_MS": 1598918100000,
+      "MONTH": "2020-08",
+      "ROWS": 8928,
+      "SHA256": "21435bfdff6477504a5611c4749d3c6dd35a4ba52db6ecc5adf05ce25b2faebf"
+    },
+    {
+      "BYTES": 458044,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1598918400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-09.zip",
+      "LAST_OPEN_MS": 1601510100000,
+      "MONTH": "2020-09",
+      "ROWS": 8640,
+      "SHA256": "7d74fdf334c4a334857dede2224d214bb9c40c07d5fc20eeeb57f5022b4a2616"
+    },
+    {
+      "BYTES": 469954,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1601510400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-10.zip",
+      "LAST_OPEN_MS": 1604188500000,
+      "MONTH": "2020-10",
+      "ROWS": 8928,
+      "SHA256": "c7a6731dfa5f936f626c28090a4e76cd952a0998958d4f717ee76cea1b8d2135"
+    },
+    {
+      "BYTES": 468732,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1604188800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-11.zip",
+      "LAST_OPEN_MS": 1606780500000,
+      "MONTH": "2020-11",
+      "ROWS": 8628,
+      "SHA256": "b6eaa1dc16993083d794cf2445c5596dbc298df5b8ab4d891a45435564d1bb92"
+    },
+    {
+      "BYTES": 484075,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1606780800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2020-12.zip",
+      "LAST_OPEN_MS": 1609458900000,
+      "MONTH": "2020-12",
+      "ROWS": 8870,
+      "SHA256": "c169b2a72cc188c8089abc9f3c6f9699e4759a5e7d0d7a7c69d9117b0da68049"
+    },
+    {
+      "BYTES": 502729,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1609459200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-01.zip",
+      "LAST_OPEN_MS": 1612137300000,
+      "MONTH": "2021-01",
+      "ROWS": 8928,
+      "SHA256": "5eda1c9f22259d37f6602ca3ee8072a670131939c7a4bc7e048a2a0077e03d6f"
+    },
+    {
+      "BYTES": 452415,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1612137600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-02.zip",
+      "LAST_OPEN_MS": 1614556500000,
+      "MONTH": "2021-02",
+      "ROWS": 8049,
+      "SHA256": "64cacfee55b7e73d6728a6e7cf32b03be2f205c06ad27a99889f002d0c853769"
+    },
+    {
+      "BYTES": 498443,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1614556800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-03.zip",
+      "LAST_OPEN_MS": 1617234900000,
+      "MONTH": "2021-03",
+      "ROWS": 8910,
+      "SHA256": "d67c748616c67d16d92695e42c32084818adf53100931f7d6bb01d1c6a21cf65"
+    },
+    {
+      "BYTES": 475842,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1617235200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-04.zip",
+      "LAST_OPEN_MS": 1619826900000,
+      "MONTH": "2021-04",
+      "ROWS": 8554,
+      "SHA256": "e365a42f9b3cd6262110977b37d341f90e339ef5b617de2d90c945c53a930854"
+    },
+    {
+      "BYTES": 504630,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1619827200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-05.zip",
+      "LAST_OPEN_MS": 1622505300000,
+      "MONTH": "2021-05",
+      "ROWS": 8928,
+      "SHA256": "1c6ef655c4cd33fa6777ad02e60a78ffc254a69a217a22a56e57c125faf20b6b"
+    },
+    {
+      "BYTES": 482776,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1622505600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-06.zip",
+      "LAST_OPEN_MS": 1625097300000,
+      "MONTH": "2021-06",
+      "ROWS": 8640,
+      "SHA256": "de8a478e5e30da06250976df98bf0a8b3aa040c4667334263f7c126097665bdb"
+    },
+    {
+      "BYTES": 488756,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1625097600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-07.zip",
+      "LAST_OPEN_MS": 1627775700000,
+      "MONTH": "2021-07",
+      "ROWS": 8928,
+      "SHA256": "fbd9221353c0471581c7b7e3bec7538c79e3472da2bf30cfdee4f766dbf28e73"
+    },
+    {
+      "BYTES": 485921,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1627776000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-08.zip",
+      "LAST_OPEN_MS": 1630454100000,
+      "MONTH": "2021-08",
+      "ROWS": 8874,
+      "SHA256": "ad8168331b2f0c83e7d4dea149b09881d5f4ecb0e6c7049f8637f2ef5a6dbf78"
+    },
+    {
+      "BYTES": 459071,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1630454400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-09.zip",
+      "LAST_OPEN_MS": 1633046100000,
+      "MONTH": "2021-09",
+      "ROWS": 8616,
+      "SHA256": "73eef8294b704bcde8f35cf26098c79cc50591e49a65a970eff97ac10e78fac1"
+    },
+    {
+      "BYTES": 477592,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1633046400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-10.zip",
+      "LAST_OPEN_MS": 1635724500000,
+      "MONTH": "2021-10",
+      "ROWS": 8928,
+      "SHA256": "cf28329e5f490ccb0e6759b8f66930a7397e65c2d8f5c4dfd727f44a54bbfae4"
+    },
+    {
+      "BYTES": 461307,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1635724800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-11.zip",
+      "LAST_OPEN_MS": 1638316500000,
+      "MONTH": "2021-11",
+      "ROWS": 8640,
+      "SHA256": "69725bd82baef5339e32c773937966ec413648dfaf985741f9be730b9cddd915"
+    },
+    {
+      "BYTES": 473801,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1638316800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2021-12.zip",
+      "LAST_OPEN_MS": 1640994900000,
+      "MONTH": "2021-12",
+      "ROWS": 8928,
+      "SHA256": "17c2731a870d09d0ea1345b9af40234fae47c947ff373499799169cdfda3b41c"
+    },
+    {
+      "BYTES": 471666,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1640995200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-01.zip",
+      "LAST_OPEN_MS": 1643673300000,
+      "MONTH": "2022-01",
+      "ROWS": 8928,
+      "SHA256": "be1f2f943b365b9b00c1be4cbcb7c631990318baf36e7a4d8410ea9dc7bc1cda"
+    },
+    {
+      "BYTES": 426425,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1643673600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-02.zip",
+      "LAST_OPEN_MS": 1646092500000,
+      "MONTH": "2022-02",
+      "ROWS": 8064,
+      "SHA256": "3cdb10f37876bb53487a5f68bdb00f87a2fa0dba0706133264bfcb5170d35cdd"
+    },
+    {
+      "BYTES": 470542,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1646092800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-03.zip",
+      "LAST_OPEN_MS": 1648770900000,
+      "MONTH": "2022-03",
+      "ROWS": 8928,
+      "SHA256": "e980799352cf0447752d97a20704ffdcce18544525743a4d3ec9dc076cc25765"
+    },
+    {
+      "BYTES": 451680,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1648771200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-04.zip",
+      "LAST_OPEN_MS": 1651362900000,
+      "MONTH": "2022-04",
+      "ROWS": 8640,
+      "SHA256": "a738199ee22e198fd9e51a7ecbcbd656c11603a530750ba26efa4c13d891ecd6"
+    },
+    {
+      "BYTES": 472624,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1651363200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-05.zip",
+      "LAST_OPEN_MS": 1654041300000,
+      "MONTH": "2022-05",
+      "ROWS": 8928,
+      "SHA256": "9e342e114551ef3598fb1bf9d385878861878b9c9c42714eca82e867a9feda81"
+    },
+    {
+      "BYTES": 458989,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1654041600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-06.zip",
+      "LAST_OPEN_MS": 1656633300000,
+      "MONTH": "2022-06",
+      "ROWS": 8640,
+      "SHA256": "5d4ef9d9fd134a239daebe1cd9261da7379991503d3093a0848d85c6172c9ab0"
+    },
+    {
+      "BYTES": 484900,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1656633600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-07.zip",
+      "LAST_OPEN_MS": 1659311700000,
+      "MONTH": "2022-07",
+      "ROWS": 8928,
+      "SHA256": "f55cca50df856fdf179a2193e1bcf4507bc27a296042486e023814c3b21c62c7"
+    },
+    {
+      "BYTES": 487491,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1659312000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-08.zip",
+      "LAST_OPEN_MS": 1661990100000,
+      "MONTH": "2022-08",
+      "ROWS": 8928,
+      "SHA256": "d65ea001b11191e31f6637f5893155273fcd02da3b269b9296007fbc1d49513e"
+    },
+    {
+      "BYTES": 475148,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1661990400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-09.zip",
+      "LAST_OPEN_MS": 1664582100000,
+      "MONTH": "2022-09",
+      "ROWS": 8640,
+      "SHA256": "87208eb2b3b67f105b40ebff1a5eb81ca1d377ddd70936eecf224bafcee4e5b9"
+    },
+    {
+      "BYTES": 484426,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1664582400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-10.zip",
+      "LAST_OPEN_MS": 1667260500000,
+      "MONTH": "2022-10",
+      "ROWS": 8928,
+      "SHA256": "b94e591ff353f2001d801ffcd2d7e2e2649f9efed49ac636f19a241ead90e19e"
+    },
+    {
+      "BYTES": 472167,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1667260800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-11.zip",
+      "LAST_OPEN_MS": 1669852500000,
+      "MONTH": "2022-11",
+      "ROWS": 8640,
+      "SHA256": "928433fc8313bc1616a2c5ca79b78525bb09ea2ca84a81c66500cdfb6bcccc40"
+    },
+    {
+      "BYTES": 477480,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1669852800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2022-12.zip",
+      "LAST_OPEN_MS": 1672530900000,
+      "MONTH": "2022-12",
+      "ROWS": 8928,
+      "SHA256": "3e1195cefa671991251ab5e1f606b9d7f7b7279dfd7efd033ae1aca2190ff698"
+    },
+    {
+      "BYTES": 485503,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1672531200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-01.zip",
+      "LAST_OPEN_MS": 1675209300000,
+      "MONTH": "2023-01",
+      "ROWS": 8928,
+      "SHA256": "0b77520b2fc89c896430fd885bda345a808d61a512ef34ce62cf6a150b81e9ff"
+    },
+    {
+      "BYTES": 443952,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1675209600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-02.zip",
+      "LAST_OPEN_MS": 1677628500000,
+      "MONTH": "2023-02",
+      "ROWS": 8064,
+      "SHA256": "337dd3741251bafe88c6e6faf39bcb89b75b6504f9d5ddc67221ee9371a7e7d4"
+    },
+    {
+      "BYTES": 486093,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1677628800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-03.zip",
+      "LAST_OPEN_MS": 1680306900000,
+      "MONTH": "2023-03",
+      "ROWS": 8912,
+      "SHA256": "840da3f1dba73d44c483b2c600528ee845366a8f2dec3db1d0be9e128741ec19"
+    },
+    {
+      "BYTES": 446470,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1680307200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-04.zip",
+      "LAST_OPEN_MS": 1682898900000,
+      "MONTH": "2023-04",
+      "ROWS": 8640,
+      "SHA256": "0ce744f9e9712a818b0090572d5541b83c2acec7d67de808ee5a66ff4299b008"
+    },
+    {
+      "BYTES": 458040,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1682899200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-05.zip",
+      "LAST_OPEN_MS": 1685577300000,
+      "MONTH": "2023-05",
+      "ROWS": 8928,
+      "SHA256": "d288014d0cde16c31d524dc63a9ed779de6c1a65e08df6b069ced8b688da21e4"
+    },
+    {
+      "BYTES": 443755,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1685577600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-06.zip",
+      "LAST_OPEN_MS": 1688169300000,
+      "MONTH": "2023-06",
+      "ROWS": 8640,
+      "SHA256": "781415877a1eaf4b376351bb3dc3cc31bc941b009a7b89a6a833cb6fb757279f"
+    },
+    {
+      "BYTES": 446813,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1688169600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-07.zip",
+      "LAST_OPEN_MS": 1690847700000,
+      "MONTH": "2023-07",
+      "ROWS": 8928,
+      "SHA256": "88859cd91277f3e0c9df85bb66f5c2d91273612a7ccd60e2a4be86ea3cc4b84c"
+    },
+    {
+      "BYTES": 443882,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1690848000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-08.zip",
+      "LAST_OPEN_MS": 1693526100000,
+      "MONTH": "2023-08",
+      "ROWS": 8928,
+      "SHA256": "a36e0b195d907bf100788f48ebae360ade5a31066bdee8469f610b802ff8e8f0"
+    },
+    {
+      "BYTES": 431662,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1693526400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-09.zip",
+      "LAST_OPEN_MS": 1696118100000,
+      "MONTH": "2023-09",
+      "ROWS": 8640,
+      "SHA256": "4058d18e256eb96841c67cb6e27375f0dcee6d2d425b4ad5907f055890ca5761"
+    },
+    {
+      "BYTES": 455417,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1696118400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-10.zip",
+      "LAST_OPEN_MS": 1698796500000,
+      "MONTH": "2023-10",
+      "ROWS": 8928,
+      "SHA256": "6a14d2b75ad5020d56c12cd17e90e6661023f34a12fa4173364fd26a9879ae56"
+    },
+    {
+      "BYTES": 444556,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1698796800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-11.zip",
+      "LAST_OPEN_MS": 1701388500000,
+      "MONTH": "2023-11",
+      "ROWS": 8640,
+      "SHA256": "dcf1c619885ca4fc351b4c990afe850141563f09e61b386a8d9151ea402575e2"
+    },
+    {
+      "BYTES": 462569,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1701388800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2023-12.zip",
+      "LAST_OPEN_MS": 1704066900000,
+      "MONTH": "2023-12",
+      "ROWS": 8928,
+      "SHA256": "8e3b780eddcff7f19f24f25d799b2affe03113b90457b8caa22a454f065fbf56"
+    },
+    {
+      "BYTES": 465498,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1704067200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-01.zip",
+      "LAST_OPEN_MS": 1706745300000,
+      "MONTH": "2024-01",
+      "ROWS": 8928,
+      "SHA256": "a375f811f672ad70de97af533f6e70181647a9e978838b451ac17d5c17313ad8"
+    },
+    {
+      "BYTES": 434210,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1706745600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-02.zip",
+      "LAST_OPEN_MS": 1709250900000,
+      "MONTH": "2024-02",
+      "ROWS": 8352,
+      "SHA256": "4bbed105653be96229f6678b3ce3df7366a6ced5aea32285da2bf62ac5f890ed"
+    },
+    {
+      "BYTES": 474003,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1709251200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-03.zip",
+      "LAST_OPEN_MS": 1711929300000,
+      "MONTH": "2024-03",
+      "ROWS": 8928,
+      "SHA256": "fd3670210b38640ee9562b7761879fae8cfed3beec7d7313b868cf618ca4c72a"
+    },
+    {
+      "BYTES": 454656,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1711929600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-04.zip",
+      "LAST_OPEN_MS": 1714521300000,
+      "MONTH": "2024-04",
+      "ROWS": 8640,
+      "SHA256": "b41c6d2703ee9e4c8167de082dcd363fac39ed176ebe9eacf7f0109e284a5948"
+    },
+    {
+      "BYTES": 462542,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1714521600000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-05.zip",
+      "LAST_OPEN_MS": 1717199700000,
+      "MONTH": "2024-05",
+      "ROWS": 8928,
+      "SHA256": "3a9c810274f38b18abda912c3446df51cb160c4c0e376655fb7defb1cacf5de2"
+    },
+    {
+      "BYTES": 440069,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1717200000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-06.zip",
+      "LAST_OPEN_MS": 1719791700000,
+      "MONTH": "2024-06",
+      "ROWS": 8640,
+      "SHA256": "627dd48125d89759e498d2db2e523166787bda4dd9a64ca56abf9fba235ba71e"
+    },
+    {
+      "BYTES": 461448,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1719792000000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-07.zip",
+      "LAST_OPEN_MS": 1722470100000,
+      "MONTH": "2024-07",
+      "ROWS": 8928,
+      "SHA256": "7fcfb7aa22c344f0c6bb0a7d2ae2dbfd1a1e597fc80806daa341068dfdab6586"
+    },
+    {
+      "BYTES": 464434,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1722470400000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-08.zip",
+      "LAST_OPEN_MS": 1725148500000,
+      "MONTH": "2024-08",
+      "ROWS": 8928,
+      "SHA256": "4ead243e5f862df551e12815d8ddc4c67da711fda253325c36f83a1ff3ef36d7"
+    },
+    {
+      "BYTES": 441999,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1725148800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-09.zip",
+      "LAST_OPEN_MS": 1727740500000,
+      "MONTH": "2024-09",
+      "ROWS": 8640,
+      "SHA256": "a9989fa72ee8eba72cdd79b0e251652fcd456a31548a3014a8660b65405bc67a"
+    },
+    {
+      "BYTES": 458990,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1727740800000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-10.zip",
+      "LAST_OPEN_MS": 1730418900000,
+      "MONTH": "2024-10",
+      "ROWS": 8928,
+      "SHA256": "5cd2d0dcc2dc193fc7b31be69166021fca41b9fce61ab6a0771ce00db864c327"
+    },
+    {
+      "BYTES": 458714,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1730419200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-11.zip",
+      "LAST_OPEN_MS": 1733010900000,
+      "MONTH": "2024-11",
+      "ROWS": 8640,
+      "SHA256": "72851d323b0d43f7c8cdf177ca85ded66ec511ed3b1a53e63cca0d2501c75bc0"
+    },
+    {
+      "BYTES": 474874,
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "FIRST_OPEN_MS": 1733011200000,
+      "KEY": "data/spot/monthly/klines/BTCUSDT/5m/BTCUSDT-5m-2024-12.zip",
+      "LAST_OPEN_MS": 1735689300000,
+      "MONTH": "2024-12",
+      "ROWS": 8928,
+      "SHA256": "0a2f70744f9244a066ab4ced934a725d85b247e917cfe22ada218435c1573301"
+    }
+  ],
+  "OBJECT_LIST_SHA256": "5a27ea4883284c995bbb091067867b45927b67e3d4b244ed11c3b97e5887cb37",
+  "SOURCE": "https://data.binance.vision/data/spot/monthly/klines/BTCUSDT/5m/"
+}
