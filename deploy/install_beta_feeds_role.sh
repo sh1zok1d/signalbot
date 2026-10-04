@@ -11,6 +11,12 @@ set -euo pipefail
 # enables, starts or restarts a unit, never prints a password or the core .env, and passes the
 # password to psql on stdin only (not in a process list). The env file is root:root 0600: systemd
 # reads it for the feed units; neither the bot nor the feed processes can read it from disk.
+#
+# Password rotation keeps the database and the env file in step: runs are serialized (flock); the
+# new file is written privately first and removed on any failure; the role's password changes only
+# then, immediately followed by an atomic rename; the login is verified at the end. If a run is cut
+# off between the password change and the rename, the feeds fail to authenticate (never fall back to
+# the core role): run --set-password again.
 
 ROOT=${SIGNALBOT_ROOT:-/opt/signalbot}
 CONTAINER=${CONTAINER:-btcbot_timescaledb}
@@ -31,6 +37,18 @@ PORT=$(core_value POSTGRES_PORT); PORT=${PORT:-5432}
 
 psql_su() { docker exec -i "${CONTAINER}" psql -U "${SU}" -d "${DB}" -v ON_ERROR_STOP=1 -q "$@"; }
 
+# the feed role logs in over TCP with the password of the env file; the password goes on stdin only
+verify_login() {
+  grep -E '^POSTGRES_PASSWORD=' "${ENV_FEEDS}" | cut -d= -f2- | docker exec -i "${CONTAINER}" sh -c \
+    'IFS= read -r PGPASSWORD; export PGPASSWORD; exec psql -h 127.0.0.1 -p 5432 -U "$1" -d "$2" -tA -v ON_ERROR_STOP=1 -c "SELECT current_user"' \
+    sh "${ROLE}" "${DB}"
+}
+
+# one run at a time: two concurrent rotations could leave the env file with the losing password
+umask 077
+exec 9>"${ROOT}/.beta-feeds-role.lock"
+flock -w 120 9 || { echo "another install_beta_feeds_role.sh run holds the lock" >&2; exit 2; }
+
 # the feed tables are created by the core role (bot start-up or any beta command); never here
 n=$(psql_su -tA -c "SELECT count(*) FROM unnest(ARRAY['beta_feed_metrics_5m','beta_feed_dvol_1h','beta_feed_depth',
       'beta_feed_spot_5m','beta_feed_stress_hours','beta_runtime_health','beta_hist_oi_5m']) AS t
@@ -45,9 +63,8 @@ echo "role ${ROLE}: grants applied"
 
 if [ "${1:-}" = "--set-password" ]; then
   pw=$(openssl rand -hex 24)
-  printf "ALTER ROLE %s PASSWORD '%s';\n" "${ROLE}" "${pw}" | psql_su
-  umask 077
   tmp=$(mktemp "${ENV_FEEDS}.XXXXXX")
+  trap 'rm -f "${tmp}"' EXIT                    # a failed run leaves no credential file behind
   {
     echo "# Research feed units only (deploy/beta-feeds.env.example). Written by deploy/install_beta_feeds_role.sh."
     echo "POSTGRES_HOST=${HOST}"
@@ -60,8 +77,21 @@ if [ "${1:-}" = "--set-password" ]; then
   } > "${tmp}"
   chown root:root "${tmp}"
   chmod 0600 "${tmp}"
+  # the file is ready before the password changes; the rename follows at once (atomic)
+  printf "ALTER ROLE %s PASSWORD '%s';\n" "${ROLE}" "${pw}" | psql_su
   mv -f "${tmp}" "${ENV_FEEDS}"
+  trap - EXIT
   unset pw
   echo "role ${ROLE}: new password set; ${ENV_FEEDS} written (root:root 0600)"
+fi
+if [ -f "${ENV_FEEDS}" ]; then
+  who=$(verify_login) || who=""
+  if [ "${who}" != "${ROLE}" ]; then
+    echo "login as ${ROLE} with ${ENV_FEEDS} failed: run this script with --set-password" >&2
+    exit 3
+  fi
+  echo "role ${ROLE}: login verified with ${ENV_FEEDS}"
+else
+  echo "no ${ENV_FEEDS} yet: run this script with --set-password"
 fi
 echo "Nothing was enabled or started. Activation needs a separate owner go (docs/RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md §D)."

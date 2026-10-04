@@ -97,6 +97,13 @@ The remaining over-grant is `beta_runtime_health`: the role can write any compon
   - It refuses to run unless the seven tables exist.
   - It applies the SQL through `docker exec … psql`.
   - With `--set-password`, it generates `openssl rand -hex 24`, sets it through **stdin** (not visible in a process list), and writes `/opt/signalbot/.env.beta-feeds` (§A.3).
+  - Rotation keeps the database and the file in step:
+    - runs are serialized with `flock`;
+    - the new private file is written first and removed on any failure;
+    - the role's password changes only then, followed at once by an atomic rename;
+    - at the end the script verifies a TCP login as the role, with the password passed on stdin.
+
+    If a run is cut off between the password change and the rename, the feeds fail to authenticate; they never fall back to the core role. Recovery is to rerun `--set-password`.
   - It never enables, starts or restarts a unit.
 
 Before the first `--set-password`, confirm that statements are not logged:

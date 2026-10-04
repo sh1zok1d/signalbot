@@ -171,6 +171,13 @@ def test_feed_role_install_script_never_activates_and_never_exposes_the_password
     outside = lines[:start] + lines[end + 1:]
     assert not any("${pw}" in l for l in outside if "printf" not in l and "pw=$(" not in l)
     assert "chmod 0600" in code and "chown root:root" in code
+    # rotation keeps the database and the env file in step: serialized, file first, then the password,
+    # then an atomic rename; a failed run removes its temp file; the login is verified at the end
+    assert "flock -w" in code and "trap 'rm -f \"${tmp}\"' EXIT" in code
+    order = [code.index(x) for x in ('tmp=$(mktemp', '} > "${tmp}"', "ALTER ROLE %s PASSWORD", 'mv -f "${tmp}"',
+                                      "who=$(verify_login)")]
+    assert order == sorted(order)
+    assert "IFS= read -r PGPASSWORD" in code and "-h 127.0.0.1" in code         # TCP login, password on stdin
     assert ". \"${ENV_CORE}\"" not in code and "source " not in code                        # core .env never sourced
     example = (DEPLOY / "beta-feeds.env.example").read_text()
     keys = {l.split("=", 1)[0] for l in example.splitlines() if l and not l.startswith("#")}

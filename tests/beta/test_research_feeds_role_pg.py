@@ -459,8 +459,10 @@ def test_the_install_script_applies_the_grants_and_writes_a_private_env_file(tmp
                                    "TELEGRAM_BOT_TOKEN=must-not-be-copied\nBETA_ENABLED=true\n")
         shim = tmp_path / "bin"
         shim.mkdir()
-        (shim / "docker").write_text("#!/bin/sh\n# docker exec -i CONTAINER psql ... -> local psql\n"
-                                     "shift 4\nexec psql -h \"$PGHOST\" -p \"$PGPORT\" \"$@\"\n")
+        (shim / "docker").write_text("#!/bin/sh\n# docker exec -i CONTAINER psql|sh ... -> the same on this host\n"
+                                     "shift 3\nif [ \"$1\" = psql ]; then shift; "
+                                     "exec psql -h \"$PGHOST\" -p \"$PGPORT\" \"$@\"; fi\n"
+                                     "unset PGPASSWORD\nexec \"$@\"\n")
         (shim / "docker").chmod(0o755)
         env = {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}", "SIGNALBOT_ROOT": str(root),
                "PGHOST": u.hostname, "PGPORT": str(u.port or 5432), "PGPASSWORD": u.password or ""}
@@ -469,6 +471,30 @@ def test_the_install_script_applies_the_grants_and_writes_a_private_env_file(tmp
             res = subprocess.run(["bash", str(script), *args], env=env, capture_output=True, text=True, timeout=60)
             assert res.returncode == 0, res.stderr
             assert "must-not-be-copied" not in res.stdout + res.stderr
+            if args:
+                assert f"role {ROLE}: login verified" in res.stdout, res.stdout
+        # two rotations at once are serialized: the file always holds the password the role has
+        procs = [subprocess.Popen(["bash", str(script), "--set-password"], env=env, stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, text=True) for _ in range(2)]
+        outs = [pr.communicate(timeout=120) for pr in procs]
+        assert [pr.returncode for pr in procs] == [0, 0], outs
+        assert all(f"role {ROLE}: login verified" in o for o, _e in outs)
+        assert [x.name for x in root.glob(".env.beta-feeds.*")] == []
+        # a broken password change leaves no temp credential file and the old file untouched
+        before = (root / ".env.beta-feeds").read_text()
+        (shim / "docker").write_text("#!/bin/sh\n# as above, but the password change fails\nshift 3\n"
+                                     "if [ \"$1\" = psql ]; then shift; t=$(mktemp); cat > \"$t\"; "
+                                     "if grep -q 'PASSWORD' \"$t\"; then rm -f \"$t\"; exit 1; fi; "
+                                     "psql -h \"$PGHOST\" -p \"$PGPORT\" \"$@\" < \"$t\"; r=$?; rm -f \"$t\"; "
+                                     "exit $r; fi\nunset PGPASSWORD\nexec \"$@\"\n")
+        bad = subprocess.run(["bash", str(script), "--set-password"], env=env, capture_output=True, text=True,
+                             timeout=60, stdin=subprocess.DEVNULL)
+        assert bad.returncode != 0
+        assert (root / ".env.beta-feeds").read_text() == before
+        assert [x.name for x in root.glob(".env.beta-feeds.*")] == []
+        (shim / "docker").write_text("#!/bin/sh\nshift 3\nif [ \"$1\" = psql ]; then shift; "
+                                     "exec psql -h \"$PGHOST\" -p \"$PGPORT\" \"$@\"; fi\n"
+                                     "unset PGPASSWORD\nexec \"$@\"\n")
         f = root / ".env.beta-feeds"
         st = f.stat()
         assert oct(st.st_mode & 0o777) == "0o600" and st.st_uid == 0 and st.st_gid == 0
