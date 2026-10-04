@@ -1,6 +1,6 @@
 # Hypothesis evaluation contract V2 — draft
 
-**Status:** `DRAFT / NOT_ADOPTED / DESIGN_ONLY` (2026-10-04)
+**Status:** `DRAFT / NOT_ADOPTED / DESIGN_ONLY` (2026-10-04; owner decisions D1–D6 recorded in §12a; red-team pass in §13)
 **Supersedes when adopted:** `HYPOTHESIS_EVALUATION_CONTRACT_V1.md` for cards registered after adoption. **Not retroactive:** every V1 preregistration, permit, result, verdict and ledger row keeps its force and its numbers. V1 stays the adopted contract until the owner records adoption of V2.
 **Motivation record:** the owner review of 2026-10-04 (this draft's §0) and the internal evidence in §0.2.
 **Authority unchanged:** `EDGE_RESEARCH_PROTOCOL.md`, the protected-data rules, `PRODUCT_FIRST_DECISION_V1.md`.
@@ -63,13 +63,15 @@ The V1 classes map as follows and are retired for new cards: `PROMISING_PROTOTYP
 
 ## 3. `STRUCTURE_BELOW_PRACTICAL_BAR`
 
-This is the combination `EMPIRICAL = STRUCTURE_DETECTED` with `CLAIM = BELOW_BAR` on a declared track. It is assigned only when **all** of these hold, on the frozen estimator and interval of the preregistration:
+**Decision-compatible interval.** V2 does not use a generic confidence interval. Each decision uses the **`DECISION_COMPATIBLE_INTERVAL`**: the 95 % interval produced by the preregistered inference procedure of that decision, under that decision's preregistered multiplicity regime (for a Holm-adjusted test the interval is the one that is dual to the adjusted test; for a sign-flip or permutation test the test-inverted interval at the adjusted level; for a cluster-robust estimator the `t_{G−1}` interval at the adjusted level). Its construction is frozen in the twin; no other interval decides anything. The level stays 95 %; a stricter level is not introduced (owner, 2026-10-04).
 
-1. the interval excludes zero in the declared direction (detection);
-2. the interval's bound on the practical side (the upper bound for a positive bar, the lower bound for a negative one) lies **below** the frozen bar (the bar is resolved against, not merely missed by the point estimate);
-3. the planned precision was reached (the unit's information requirement is met).
+`STRUCTURE_BELOW_PRACTICAL_BAR` is the combination `EMPIRICAL = STRUCTURE_DETECTED` with `CLAIM = BELOW_BAR` on a declared track. It is assigned only when **all** of these hold on the frozen estimator:
 
-If condition 2 fails because the interval straddles the bar, the result is `CLAIM = BAR_NOT_RESOLVED` with `EMPIRICAL = STRUCTURE_DETECTED`: "we know there is structure; we do not yet know whether it is large enough". That is a different statement from "the effect is small", and the ledger keeps them apart. Nothing in §3 is a lower gate: it changes labels, never promotion.
+1. the null is excluded: the `DECISION_COMPATIBLE_INTERVAL` excludes zero in the declared direction;
+2. the **claim-aligned bound** of the `DECISION_COMPATIBLE_INTERVAL` (the bound on the side of the frozen practical bar: upper for a positive bar, lower for a negative one) lies **below** the frozen bar;
+3. the **preregistered precision target** is reached (the unit's information requirement as frozen in the twin).
+
+If 1 holds but 2 fails because the interval straddles the bar, the result is `CLAIM = BAR_NOT_RESOLVED` with `EMPIRICAL = STRUCTURE_DETECTED`: "structure is known; whether it is large enough is not". If 3 fails, `EMPIRICAL = INDETERMINATE`. Nothing in §3 lowers a gate: it changes labels, never promotion.
 
 ## 4. Claim-specific bars (frozen before outcomes)
 
@@ -106,7 +108,13 @@ A scheduled event observed on three venues is one event with three measurements 
 
 ### 5.3 Stress profile
 
-The V1 planning stress (SD × 2.0, power 0.8) remains the **conservative fallback**. A design may instead freeze a variance estimate from exposed data with a declared estimator, data window and a cap (the estimate may never be smaller than the exposed-data sample variance of the unit statistic, and never smaller than 60 % of the fallback). Which of the two applies is chosen outcome-blind and recorded in the feasibility report.
+The V1 planning stress (SD × 2.0, power 0.8) remains the **conservative fallback**. A design may instead freeze a variance estimate from exposed data with a declared estimator, data window and a cap, chosen outcome-blind and recorded in the feasibility report.
+
+**Scale of the floor (owner, 2026-10-04: keep 0.60, define it).** The floor is applied on the **variance** scale of the unit statistic used for planning:
+
+`VAR_PLANNING = max( VAR_EXPOSED_ESTIMATE , 0.60 × VAR_FALLBACK )`, where `VAR_FALLBACK = (2.0 × SD_BASE)²` for the same unit statistic.
+
+Equivalently the planning SD and SE may never fall below `√0.60 ≈ 0.775` of the fallback SD and SE. The estimate also may never be smaller than the exposed-data sample variance of the unit statistic. The number 0.60 is provisional: the red team (§13, R2) runs an outcome-blind sensitivity check at `0.60 / 0.75 / 1.00` on synthetic and positive-control designs, and the adopted value is frozen after that check, not changed by hand.
 
 ### 5.4 Epochs
 
@@ -125,10 +133,17 @@ For mechanisms whose independent units arrive slowly (scheduled settlements, hol
 
 ## 7. The 2025 disclosure tranche
 
-- **One** preregistered, irreversible disclosure of the Binance 2025 surface (2025-01-01 .. 2025-12-31) for an **enumerated** set of hypotheses and families, with the multiplicity treatment frozen across the whole tranche before any 2025 value is read. The enumeration, the per-hypothesis frozen rules and the tranche-level Holm (or a pre-declared alternative) are one preregistration with one permit.
-- A hypothesis not in the enumeration does not get 2025 later from this tranche; a further tranche would be a new owner decision, and V2 does not pre-authorize one.
-- **2026 stays sealed.** E1-RUN-001 stays sealed. The six-symbol divergence surface already opened (2025-01-01 .. 2026-08-15) keeps its recorded status (`exposed for the divergence/support family; not spent for unrelated families; decided per family`) and is **not** silently folded into the tranche: a family that wants to use that surface says so in the tranche enumeration and carries the exposure label.
-- The tranche is the natural first replication surface for `STRUCTURE_DETECTED` results whose mechanism post-dates BitMEX; it replaces, for them, a prospective wait to 2027+. Prospective replication remains available and remains the only surface for anything that reads 2026.
+- **One** preregistered, irreversible disclosure of the Binance 2025 surface (2025-01-01 .. 2025-12-31) for an **enumerated** set of units and families, with the multiplicity treatment frozen across the whole tranche before any 2025 value is read.
+- **`TRANCHE_MANIFEST` (frozen, separate artifact, owner 2026-10-04).** Before any 2025 value is read, a manifest is committed with:
+  - an **outcome-blind, deterministic eligibility rule** that selects units and families from the ledger using only fields that exist before outcomes (track declared, design class, data requirements, registration date, feasibility status computed without 2025) — **never** an observed effect, p-value, interval, classification or any 2020–2024 outcome quantity;
+  - the full list of units and families the rule selects, with the rule's inputs shown per unit so the selection is reproducible;
+  - the per-unit frozen rules (the twins) and the **tranche-level multiplicity** (Holm or a pre-declared alternative over the whole tranche);
+  - the digests of everything above and of the loaders.
+  A tranche formed from results chosen for their observed promise is forbidden; the manifest's reproducibility is the check.
+- **R03-C1 and D12 are not in the first tranche by default.** They go through `PRODUCT_EVIDENCE` (§8). They may enter a tranche only if the independent, pre-frozen eligibility rule selects them without using their observed effects or p-values.
+- A unit not in the manifest does not get 2025 later from this tranche; a further tranche would be a new owner decision, and V2 does not pre-authorize one.
+- **2026 stays sealed.** E1-RUN-001 stays sealed. The six-symbol divergence surface already opened (2025-01-01 .. 2026-08-15) keeps its recorded status and is not folded into the tranche silently: a family that wants to use it says so in the manifest and carries the exposure label.
+- The tranche is the natural first replication surface for `STRUCTURE_DETECTED` results whose mechanism post-dates BitMEX. Prospective replication remains available and remains the only surface for anything that reads 2026.
 
 ## 8. `PRODUCT_EVIDENCE` track
 
@@ -140,13 +155,25 @@ Permission for the product to use a **descriptive** fact: a baseline differs by 
 
 It is not a reduced rung of `EDGE` promotion. A `PRODUCT_EVIDENCE` result never supports: a direction, a probability of direction, a bias or lean label, a target, a trade, or any sentence that implies the state predicts movement. The allowed vocabulary is the descriptive vocabulary of `BETA_COPY_CONTRACT_V1` ("обычно", "по сравнению с обычным", named comparator), and the unit's preregistration lists the exact sentences it may enable.
 
-### 8.3 Allowed uses
+### 8.3 Allowed uses and the `PRODUCT_USE` record
 
-`CALIBRATION_ALLOWED`: reference distributions, baselines, maturity rules, suppression and flag-rate calibration. `WORDING_ALLOWED`: a named descriptive sentence with its comparator and uncertainty. Each use is granted per unit by an owner decision recorded in the ledger (`PRODUCT_USE`), after the unit's own gates pass; the evaluator never grants it.
+`CALIBRATION_ALLOWED`: reference distributions, baselines, maturity rules, suppression and flag-rate calibration. `WORDING_ALLOWED`: a named descriptive sentence with its comparator and uncertainty. Each use is granted per unit by an owner decision recorded in the ledger, after the unit's own gates pass; the evaluator never grants it.
 
-### 8.4 Replication
+A `PRODUCT_USE` grant is a record with at least these fields (owner, 2026-10-04):
 
-`REPLICATION = NOT_REQUIRED` for `PRODUCT_USE = CALIBRATION_ALLOWED` when the unit's design contains its own prospective guard (a counts-only, blinded prospective stage with a frozen stop and degradation guardrails, as in the weekday/weekend calibration design). `WORDING_ALLOWED` additionally requires stability across at least three epochs or a transportability check, as declared.
+| Field | Content |
+|---|---|
+| `SCOPE` | the exact product surfaces and mechanisms the grant covers (for example "1h rank reference distribution of the unusual-hour gate"); anything outside it is not granted |
+| `ALLOWED_WORDING_CLASS` | `NONE` for a calibration-only grant; otherwise the named descriptive class from `BETA_COPY_CONTRACT_V1` with the exact enabled sentences; **never** a directional, probability, bias or lean class |
+| `EVIDENCE_VERSION` | the result digest and design revision the grant rests on; a new evidence version needs a new grant |
+| `PROSPECTIVE_GUARD` | the blinded prospective stage (counts-only, frozen stop, degradation guardrails) that protects the grant, with its status |
+
+**A calibration grant never enables language.** `CALIBRATION_ALLOWED` with `ALLOWED_WORDING_CLASS = NONE` changes numbers inside the product and no sentence; directional or probability wording is not grantable under any field value.
+
+### 8.4 Replication and prospective guards
+
+- **`WORDING_ALLOWED` always requires at least one completed blinded prospective stage** for the unit (counts-only operation to a frozen stop, one analysis). No exception (owner, 2026-10-04). Stability across epochs or transportability is additional, as declared, never a substitute.
+- **`CALIBRATION_ALLOWED` may exist before a replication or before the prospective stage completes**, but only inside a pre-written **internal product-use scope** (the `SCOPE` field, written before the grant) and only while a `PROSPECTIVE_GUARD` is active: the prospective stage is declared and running, its guardrails are frozen, and a guardrail breach at its stop revokes the grant automatically. A calibration grant without an active guard is not valid.
 
 ### 8.5 Reference design and first candidates
 
@@ -160,7 +187,7 @@ Twin preregistration (V1 §1) with the §5.1 fields added; claim type and variab
 ## 10. Migration
 
 - **No V1 result is rescored.** Numbers, verdicts and ledger rows stand.
-- **Annotation only.** A V1 result may receive the V2 `EMPIRICAL` field as an annotation computed from its **frozen** estimate and interval, with no new computation on market data, and recorded as a separate ledger field (`V2_EMPIRICAL_ANNOTATION`) beside the untouched V1 classification. Proposed annotations: R03-C1 → `STRUCTURE_DETECTED` with `CLAIM(PRODUCT_EVIDENCE) = NOT_DECLARED` (R03 declared no product track); C025-R1, R03-A2/A3/C3, B1/B3/B4 → `INDETERMINATE (feasibility)`; the six executed R03 cells other than C1 → `NO_STRUCTURE_DETECTED`. Annotations need an owner decision and are listed, not applied, here.
+- **Annotation only, as one mechanical batch (owner, 2026-10-04).** V1 results receive the V2 `EMPIRICAL` field as an annotation computed by one deterministic script from the **frozen** estimates and intervals already in the result files, with no new computation on market data, written to a separate ledger field (`V2_EMPIRICAL_ANNOTATION`) beside the untouched V1 classification. The batch runs once over every eligible V1 unit under one rule; units are not annotated one by one. Expected outputs of that rule: R03-C1 → `STRUCTURE_DETECTED` with `CLAIM(PRODUCT_EVIDENCE) = NOT_DECLARED`; C025-R1, R03-A2/A3/C3, B1/B3/B4 → `INDETERMINATE (feasibility)`; the other five executed R03 cells → `NO_STRUCTURE_DETECTED`. Any later correction is a separate, auditable amendment record that names the batch digest; the original results are never recomputed.
 - **Ledger schema V2** adds the four fields of §2, the track declaration, and the §5.1 design fields; existing rows keep V1 fields verbatim.
 - **Compiler V3** implements §5; V0–V2 compilers and their goldens stay reproducible and untouched.
 
@@ -173,10 +200,61 @@ Twin preregistration (V1 §1) with the §5.1 fields added; claim type and variab
 | Applies from | the commit that records adoption; cards registered after it; not retroactive |
 | Prerequisites | owner review of this draft; ledger schema V2 and compiler V3 as separate implementation units; a red-team pass on §4 (bar functions as a new degree of freedom) and §7 (tranche enumeration) |
 
+## 12a. Owner decisions recorded (2026-10-04)
+
+| # | Decision | Where |
+|---|---|---|
+| D1 | 95 % level kept; `DECISION_COMPATIBLE_INTERVAL` replaces the generic CI; `STRUCTURE_BELOW_PRACTICAL_BAR` needs null excluded, claim-aligned bound below the bar, precision target reached | §3 |
+| D2 | 0.60 floor kept on the **variance** scale; red-team sensitivity 0.60 / 0.75 / 1.00 on synthetic and positive-control designs; adopted value frozen after that | §5.3, §13 R2 |
+| D3 | frozen `TRANCHE_MANIFEST` with outcome-blind deterministic eligibility, full list, tranche-level multiplicity; R03-C1 and D12 not in the first tranche by default | §7 |
+| D4 | `WORDING_ALLOWED` always needs a completed blinded prospective stage; `CALIBRATION_ALLOWED` before completion only inside a pre-written internal scope with an active prospective guard | §8.4 |
+| D5 | V2 annotations of V1 units as one mechanical batch from frozen numbers; corrections as separate auditable amendments | §10 |
+| D6 | `PRODUCT_USE` carries `SCOPE`, `ALLOWED_WORDING_CLASS`, `EVIDENCE_VERSION`, `PROSPECTIVE_GUARD`; a calibration grant never enables directional or probability language | §8.3 |
+
+## 13. Red-team pass on the new degrees of freedom (§4 bar functions, §7 tranche; 2026-10-04)
+
+Scope: only what V2 adds. Each finding has a proposed repair; repairs are **not applied** in this revision, they await the owner.
+
+**R1 — Post-outcome flexibility in the bar function and its inputs (§4).**
+Attack: a unit freezes a bar *function* whose inputs include quantities computed "before the decision boundary" that are nonetheless correlated with the outcome (an event-frequency count that rises exactly when the effect is present; a cost model whose spread input is itself volatility). The frozen function then moves with the data. Second vector: the same mechanism is registered twice with two bar functions, and the one that passes is reported.
+Repair: (a) every bar input must be either a constant in the twin or a quantity computed from data **outside the evaluation period** of the decision (prior era or outcome-blind feasibility counts), never from the decision's own surface; (b) a bar function is registered once per `TEST_FAMILY_ID`; a second registration of the same mechanism with another bar is a new family and both are listed in the ledger with a cross-reference; (c) the feasibility report prints the bar's realized value from the outcome-blind inputs before any outcome, and the permit binds that value.
+
+**R2 — The 0.60 floor as a new degree of freedom (§5.3).**
+Attack: the exposed-data variance estimate is chosen (window, estimator) so that the floor binds exactly where it makes the unit "feasible". Repair: the estimator and window are fixed in the twin and the choice between fallback and exposed estimate is made **before** the count pass; the red-team sensitivity at 0.60 / 0.75 / 1.00 on synthetic and positive-control designs is run outcome-blind and its report is bound in the adoption record; the adopted floor is then a constant of the contract, not a per-unit choice.
+
+**R3 — Track switching and dual use to escape a negative decision (§1, §2).**
+Attack: a unit that declares `EDGE` and fails `MEETS_BAR` is "re-read" as `PRODUCT_EVIDENCE` with a product bar it would pass; or a unit declares all three tracks so that at least one reads well. Repair: (a) tracks are declared before outcomes and the set is closed; (b) a product-track grant for a unit that also declared `EDGE` and got `BELOW_BAR` is possible only through a **new** `PRODUCT_EVIDENCE` unit with its own prospective guard, never by relabelling; (c) the ledger row shows every declared track and every track's result on one line, so a positive on one track is always read beside the negative on another; (d) declaring both `EDGE` and `PRODUCT_EVIDENCE` is allowed but each has its own multiplicity, and the product grant still needs §8.4.
+
+**R4 — Leakage of `PRODUCT_EVIDENCE` into directional or probability wording (§8).**
+Attack: a calibration grant ("weekend reference differs") is rendered by the product as "weekends are quieter, so expect…"; or `ALLOWED_WORDING_CLASS` is set to a descriptive class whose sentence template, combined with another product line, reads as a forecast. Repair: (a) `ALLOWED_WORDING_CLASS` enumerates exact sentences, and the copy contract's isolation test is extended to assert that no enabled sentence co-occurs with a directional line in the same rendered block; (b) a calibration grant has `ALLOWED_WORDING_CLASS = NONE` by construction and the renderer has no code path from a calibration input to text; (c) the §8.2 forbidden list is pinned by a test on the i18n catalog, as the current beta does for predictive wording.
+
+**R5 — Optional stopping and indefinite extension through `ACCUMULATING` (§6).**
+Attack: the accumulation target is raised whenever an interim count suggests the result would be null (raising is allowed "before analysis"), or a unit stays `ACCUMULATING` forever to avoid a negative. Second vector: counts-only monitoring leaks because the count of qualifying events is itself correlated with the effect. Repair: (a) a raise of the target is allowed **once**, must be filed before 50 % of the original target is reached, and must cite an outcome-blind reason (a variance re-estimate on exposed data, a design-effect finding from another unit); (b) a hard calendar cap is frozen in the twin; reaching it yields `INDETERMINATE` and closes the unit; (c) the monitored count is the count of **eligibility** units from timestamps and calendars, never of outcome-defined events; (d) an `ACCUMULATING` unit is listed in the ledger with its target, its current count and its cap, so an endless unit is visible.
+
+**R6 — Data reuse across tracks, multiplicity and tranche accounting (§6, §7).**
+Attack: the same 2020–2024 outcomes feed a `STRUCTURE` test, then a `PRODUCT_EVIDENCE` bar, then are used as the exposed-data variance estimate for a third unit, with Holm applied inside each but never across; the 2025 tranche then admits a family whose per-unit rules were refined on those reuses. Repair: (a) every reuse of a surface by a unit is a ledger row with the surface's exposure label; a surface's "spent-for-family" status is derived from those rows, not asserted; (b) tranche-level multiplicity counts every unit in the manifest, including units that enter only for replication; (c) a unit may use a surface as a variance source only if that surface is already exposed for its family, and that use is itself a row; (d) the eligibility rule of the manifest excludes any unit whose twin was amended after a 2020–2024 outcome was seen for the same mechanism.
+
+**R7 — The eligibility rule itself (§7).**
+Attack: the "outcome-blind deterministic" rule is written after looking at which units look promising, encoding promise through proxies (registration date, design class). Repair: the rule is written and committed **before** the ledger snapshot it will be applied to is fixed, and applied to that snapshot by a script whose inputs are listed; the red team checks whether any rule clause has no justification other than the units it selects.
+
+### 13.1 Where V2 still allows researcher degrees of freedom (residual list)
+
+1. **Choice of the bar function form** (§4) before outcomes: unavoidable and intended; constrained by R1(a–c) but still a design choice.
+2. **Choice of the inference procedure and clustering key** (§5.1) before outcomes: the `DECISION_COMPATIBLE_INTERVAL` inherits it; two reasonable keys can give different intervals.
+3. **Choice between fallback and exposed-data variance** (§5.3) and the estimator window, until the R2 freeze makes the floor a constant.
+4. **Track declaration set** (§1): declaring several tracks multiplies ways to read a result, even with closed sets and one-line ledger rows.
+5. **One target raise in `ACCUMULATING`** (R5a) and the initial target itself.
+6. **Writing the eligibility rule** of the tranche manifest (R7): deterministic and outcome-blind, but authored.
+7. **`SCOPE` wording of a `PRODUCT_USE` grant** (§8.3): human-written; a broad scope widens a grant.
+8. **Choice of the exposure label and "family" boundaries** when deciding whether a surface is spent (R6): family definitions are human.
+9. **Amendments before Stage P / before analysis** (§6, §8.4): allowed in the stricter direction only, but "stricter" needs a reviewer to confirm.
+10. **The 95 % level and the precision target** (§3): both frozen per unit, but set by the designer.
+
+These are the places where V2 relies on preregistration discipline and review rather than on mechanics. None of them is new relative to V1 except items 1, 3, 4, 5, 6 and 7, which are the price of the three tracks, the rare-event track and the tranche.
+
 ## 12. Open points for the owner
 
-1. §3 precision condition: interval bound below the bar (as drafted) versus a stricter "bar outside a 90 % interval"; the drafted form uses the preregistered 95 % interval.
-2. §5.3 floor of 60 % of the fallback variance: keep, raise, or drop the cap.
-3. §7 tranche: who enumerates, and whether R03-C1 and D12 are inside the first tranche or only on the product track.
-4. §8.4: whether `WORDING_ALLOWED` should always require a prospective stage, not only stability.
-5. §10 annotations: approve the listed annotations as a batch or decide per unit.
+Items 1–5 of the previous revision are decided (§12a). Remaining:
+1. Which of the §13 repairs R1–R7 to apply into the contract text before the next review.
+2. The 0.60 / 0.75 / 1.00 sensitivity check: who runs it and on which synthetic and positive-control designs (proposal: the compiler golden cases plus the R03 unit screen as positive control).
+3. Whether the residual degrees of freedom in §13.1 items 4 and 7 need a mechanical constraint or stay under review.
