@@ -83,5 +83,5 @@ Live tracking scores every probability the bot shows against what happened; the 
 - Candidates, red team and dedupe: `docs/research/DH1_CANDIDATES.md`.
 - Data inventories: `docs/research_data/DH1_*`.
 - Feasibility and preregistration: `docs/research/DH1_FEASIBILITY.{md,json}` and `docs/research/DH1_PREREG.json`, written before any outcome.
-- Results: `docs/research/DH1_RESULT.{md,json}`.
+- Results: `docs/research/DH1_RESULT.md` and `docs/research/DH1_RESULT_{DISCOVERY,REPLICATION}.json`.
 - Code and tests: `scripts/research/dh1/`, `tests/research/test_dh1.py`.
