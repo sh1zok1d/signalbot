@@ -3124,3 +3124,522 @@ units:
     - docs/CURRENT_RESEARCH_STATE.md
     - config/beta_research_findings.yaml
     note: Bot finding DH2-B2 NOT_CONFIRMED (/research only).
+  # ---- DIRECTIONAL_AND_RANGE_DH3 (owner decision 2026-10-04; five cards of three) -----------------------
+  - id: DH3-P1
+    title: LEVERAGE_LOADING_RANGE
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: VOLATILITY_STATE.compression
+    col: POSITIONING
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH3_BINANCE_UM_BTC_METRICS_5M_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: OI build-up over 4h in a quiet market (bottom-tercile prior range) vs not -> next 4h log range
+    verdict: +13.4 % (CI +9.9..+17.1), Holm p 0.0015, MSE skill +0.0077; below the 15 % bar; magnitude varies by year
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-P2
+    title: DELEVERAGING_RANGE
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: VOLATILITY_STATE.shock_recovery
+    col: POSITIONING
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH3_BINANCE_UM_BTC_METRICS_5M_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: 1h OI change in the bottom decile vs other hours -> next 4h log range
+    verdict: +0.7 % (CI -1.3..+2.7), Holm p 0.50
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-P3
+    title: CROWD_LONG_UP_FIRST
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: DERIVATIVES.leverage_crowding
+    col: POSITIONING
+    state: LIVE_SIGNAL
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH3_BINANCE_UM_BTC_METRICS_5M_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: 'global long/short account ratio z (30 days): top vs bottom quintile -> +X before -X within 4h'
+    verdict: 'PROMISING_PROTOTYPE: -5.92 pp (47.7 % vs 53.5 %), CI -8.32..-3.52, Holm p 0.0015, Brier skill +0.0024; every year
+      negative; confirmation only prospective'
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-L1
+    title: THIN_BOOK_RANGE
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: MICROSTRUCTURE.liquidity_withdrawal
+    col: ORDER_BOOK
+    state: NO_STRUCTURE
+    datasets:
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - CORE_BTC_BINANCE_V0
+    - DH3_BINANCE_UM_BOOKDEPTH_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: ±1 % depth bottom quintile of its 7-day median -> next 4h log range
+    verdict: +3.1 % (CI -0.3..+6.9), Holm p 0.14
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-L2
+    title: BID_HEAVY_UP_FIRST
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: MICROSTRUCTURE.book_imbalance
+    col: ORDER_BOOK
+    state: NO_STRUCTURE
+    datasets:
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - CORE_BTC_BINANCE_V0
+    - DH3_BINANCE_UM_BOOKDEPTH_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: log(bid/ask ±1 %) top vs bottom quintile -> up first within 4h
+    verdict: +0.21 pp (CI -1.23..+1.58), Holm p 0.78
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-L3
+    title: BOOK_NOT_RECOVERED_RANGE
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: MICROSTRUCTURE.book_recovery
+    col: ORDER_BOOK
+    state: NO_STRUCTURE
+    datasets:
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - CORE_BTC_BINANCE_V0
+    - DH3_BINANCE_UM_BOOKDEPTH_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: ±1 % depth 30 min after a sharp move relative to before, bottom tercile -> next 4h log range
+    verdict: +6.5 % (CI +1.9..+11.1), Holm p 0.012, below the 15 % bar
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-O1
+    title: IMPLIED_ABOVE_REALIZED_RANGE
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: OPTIONS_REGION.implied_vs_realized
+    col: OPTIONS
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - DH3_DERIBIT_DVOL_1H_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: DVOL-implied 4h sigma over realized, top tercile -> next 4h log range
+    verdict: '+6.8 % pooled (CI +3.6..+9.9) but heterogeneous: -9 / +5 / -8 / -1 % by year; below the bar'
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-O2
+    title: DVOL_JUMP_RANGE
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: OPTIONS_REGION.implied_vs_realized
+    col: OPTIONS
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - DH3_DERIBIT_DVOL_1H_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: 1h DVOL change top decile -> next 4h log range
+    verdict: +9.6 % (CI +6.6..+12.5), Holm p 0.0015, below the 15 % bar; BTC alone +10.5 %
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-O3
+    title: UP_VOL_REGIME_UP_FIRST
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: OPTIONS_REGION.implied_vs_realized
+    col: OPTIONS
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - DH3_DERIBIT_DVOL_1H_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: 24h correlation of DVOL and price changes > 0 -> up first within 4h
+    verdict: +0.56 pp (CI -0.58..+1.70), heterogeneous by year
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-V1
+    title: SESSION_EXTREME_HOLD
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - DH2_BINANCE_SPOT_ALTS_5M_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: first touch of a session high/low vs random control levels at the same distance -> 4h hold
+    verdict: -0.39 pp (45.3 % vs 45.7 %), CI -0.90..+0.11
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-V2
+    title: KEY_LEVEL_RANGE
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - DH2_BINANCE_SPOT_ALTS_5M_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: first touch of PD/PW/PM/POC levels vs random control levels -> next 4h log range
+    verdict: +2.3 % (CI +1.4..+3.2), real but tiny
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-V3
+    title: RETEST_HOLD
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: LIVE_SIGNAL
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH2_BINANCE_UM_ALTS_5M_V0
+    - DH2_BINANCE_SPOT_ALTS_5M_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: second touch of PDH/PDL after a retreat of X vs first touches -> 4h hold
+    verdict: 'PROMISING_PROTOTYPE: +3.87 pp (47.2 % vs 45.0 %), CI +1.58..+6.15, Holm p 0.002; replication spot 2017-2019 -0.71
+      pp (CI -4.75..+3.06) REPLICATION_INCONCLUSIVE (underpowered; did not show the effect)'
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-S1
+    title: SPOT_LED_STRESS_RANGE
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: SPOT_PERP.stress_lead_lag
+    col: SPOT
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH3_BINANCE_AGGTRADES_STRESS_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: spot-led vs perp-led stress hour (1-second lead score) -> next 4h log range
+    verdict: -5.9 % (CI -10.1..-1.4), Holm p 0.016, below the bar; opposite to the stated mechanism
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-S2
+    title: SPOT_LED_STRESS_CONTINUATION
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: SPOT_PERP.stress_lead_lag
+    col: PERP_FLOW
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH3_BINANCE_AGGTRADES_STRESS_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: spot-led stress hour -> continuation barrier
+    verdict: 'closed at feasibility: MDE 6.7 pp > 6 pp; no outcome computed'
+    why_closed: too few events for the 3 pp bar
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-S3
+    title: LARGE_PERP_PRINTS_RANGE
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: FLOW.participant_composition
+    col: PERP_FLOW
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH3_BINANCE_AGGTRADES_STRESS_V0
+    mechanism: see docs/research/DH3_DESIGN.md §3
+    function: perp prints >= 1M USD in a stress hour, top tercile -> next 4h log range
+    verdict: -3.9 % (CI -8.2..+0.5), heterogeneous by year
+    why_closed: one-shot discovery under the frozen DH3 rules
+    reopen: only a new mechanism or a new surface (prospective data); no re-score with other thresholds, windows, coins or horizons
+    forbidden: re-scoring this cell; rescuing it with a neighbouring state or endpoint
+    records:
+    - docs/research/DH3_DESIGN.md
+    - docs/research/DH3_FEASIBILITY.md
+    - docs/research/DH3_PREREG.json
+    - docs/research/DH3_RESULT.md
+    - docs/research/DH3_RESULT_DISCOVERY.json
+    - docs/research/SCIENTIFIC_TEST_LEDGER.json
+    - docs/RESEARCH_LEDGER.md
+    - config/beta_research_findings.yaml
+  - id: DH3-X1
+    title: PREMIUM_FUNDING_EXTREME_DIRECTION
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: DERIVATIVES.funding_basis
+    col: POSITIONING
+    state: BLOCKED_DATA
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: see docs/research/DH3_DESIGN.md §4
+    function: premium funding extreme direction
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: MARKET-04H premium archive BLOCKED (PIT unproven); B2-06 funding publication latency
+    reopen: a new search object; closed before data (no outcome, no repair)
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DH3_DESIGN.md
+  - id: DH3-X2
+    title: LARGE_PRINT_IMBALANCE_DIRECTION
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: FLOW.taker_imbalance
+    col: PERP_FLOW
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: see docs/research/DH3_DESIGN.md §4
+    function: large print imbalance direction
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: H05 closed; B2-05 governance forbids formula-changed taker children
+    reopen: a new search object; closed before data (no outcome, no repair)
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DH3_DESIGN.md
+  - id: DH3-X3
+    title: SPOT_WHALES_VS_PERP_WHALES
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: SPOT_PERP.spot_confirmation
+    col: SPOT
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: see docs/research/DH3_DESIGN.md §4
+    function: spot whales vs perp whales
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: spot-confirmation family null in DH1/DH2
+    reopen: a new search object; closed before data (no outcome, no repair)
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DH3_DESIGN.md
+  - id: DH3-X4
+    title: OI_ON_LEVEL_APPROACH
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: DERIVATIVES.oi_buildup
+    col: POSITIONING
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: see docs/research/DH3_DESIGN.md §4
+    function: oi on level approach
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: DH1-X2 closure (OI-continuation neighbourhood)
+    reopen: a new search object; closed before data (no outcome, no repair)
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DH3_DESIGN.md
+  - id: DH3-X5
+    title: CME_GAP_FILL
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: EVENTS.market_closures
+    col: CANDLES
+    state: INFORMATIONALLY_WEAK
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: see docs/research/DH3_DESIGN.md §4
+    function: cme gap fill
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: about 260 weekends on 2020-2024, MDE about 12 pp
+    reopen: a new search object; closed before data (no outcome, no repair)
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DH3_DESIGN.md
+  - id: DH3-X6
+    title: VENUE_GAP_RANGE
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: CROSS_VENUE_REGION.venue_disagreement
+    col: CROSS_VENUE
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: see docs/research/DH3_DESIGN.md §4
+    function: venue gap range
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: MARKET-06 venue-dislocation observable (REPEATED_NULL family)
+    reopen: a new search object; closed before data (no outcome, no repair)
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DH3_DESIGN.md
+  - id: DH3-X7
+    title: ALT_STRESS_SPILLOVER
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: CROSS_ASSET_REGION.breadth
+    col: CROSS_ASSET
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: see docs/research/DH3_DESIGN.md §4
+    function: alt stress spillover
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: R03-B breadth states NO_INCREMENTAL neighbourhood
+    reopen: a new search object; closed before data (no outcome, no repair)
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DH3_DESIGN.md
+  - id: DH3-X8
+    title: DVOL_LEVEL_DIRECTION
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: OPTIONS_REGION.implied_vs_realized
+    col: OPTIONS
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: see docs/research/DH3_DESIGN.md §4
+    function: dvol level direction
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: no directional mechanism; DVOL level is a regime already in the RV nuisance
+    reopen: a new search object; closed before data (no outcome, no repair)
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DH3_DESIGN.md
+  - id: DH3-X9
+    title: BOOK_IMBALANCE_5PCT_AT_SUPPORT
+    program: DIRECTIONAL_AND_RANGE_DH3
+    row: MICROSTRUCTURE.book_imbalance
+    col: ORDER_BOOK
+    state: BLOCKED_METHOD
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    mechanism: see docs/research/DH3_DESIGN.md §4
+    function: book imbalance 5pct at support
+    verdict: CLOSED_AT_RED_TEAM
+    why_closed: SEED-0001 / divergence line closed (functional relabel)
+    reopen: a new search object; closed before data (no outcome, no repair)
+    forbidden: treating this as an untested neighbour of the closed unit it names
+    records:
+    - docs/research/DH3_DESIGN.md

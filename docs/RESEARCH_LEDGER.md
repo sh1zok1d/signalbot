@@ -8031,3 +8031,25 @@ OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
 SEARCH_FAMILY = SF-DH3; TEST_FAMILIES = TF-DH3-P, TF-DH3-L, TF-DH3-O, TF-DH3-V, TF-DH3-S (14 primary cells)
 PREREG = docs/research/DH3_PREREG.json; MARKET_OUTCOMES_OPENED = NO at freeze; OBJECTS_2025_2026_USED = none
 ```
+
+## 2026-10-04 — DH3 executed once: two promising cells (P3 crowd positioning, V3 retests), range states below the bar
+
+**Discovery** (`DH3_RESULT_DISCOVERY.json`), 14 cells:
+- **DH3-P3** `PROMISING_PROTOTYPE`: −5.92 pp, CI −8.32 … −3.52, Brier +0.0024, negative in every year.
+- **DH3-V3** `PROMISING_PROTOTYPE`: +3.87 pp, CI +1.58 … +6.15.
+- **Significant but below the 15 % range bar:**
+  - P1 +13.4 %;
+  - O2 +9.6 %;
+  - L3 +6.5 %;
+  - S1 −5.9 %;
+  - V2 +2.3 %.
+- **Null or heterogeneous:** P2, L1, L2, O1, O3, V1, S3.
+
+**Replication** (`DH3_RESULT_REPLICATION.json`, card V only). DH3-V3 on spot BTC/ETH/BNB/XRP 2017–2019 gave −0.71 pp (CI −4.75 … +3.06). That is `REPLICATION_INCONCLUSIVE` (the surface was underpowered), and the effect did not show.
+
+**Bot.** `/research` gains 14 lines; there is no alert change and no deploy.
+
+```
+WINDOWS_CONSUMED = BTC 2020-2024 OI metrics + long/short ratio; six-coin bookDepth 2023-2024; BTC/ETH DVOL 2021-2024; BTC aggTrades stress features 2020-2024; six-coin levels 2020-2024 (session, key-level controls, retests); spot 2017-2019 for DH3-V3
+TESTS_EXECUTED = 5 families; PROMISING_PROTOTYPES = 2; SUPPORTED = 0; RERUN_AUTHORIZED = false; OBJECTS_2025_2026_USED = none
+```

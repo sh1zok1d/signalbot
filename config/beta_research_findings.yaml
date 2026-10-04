@@ -26,6 +26,11 @@ no_bot_context:
     bot_context: NONE
     reason: "closed outcome-blind (INFORMATIONALLY_WEAK; B1 degenerate as defined); no outcome computed, nothing to state. DH1-L2 is listed as a finding"
     record: "docs/research/DH1_RESULT.md; docs/research/DH1_FEASIBILITY.md"
+  - program: DIRECTIONAL_AND_RANGE_DH3 (cell S2)
+    status: CLOSED_AT_FEASIBILITY
+    bot_context: NONE
+    reason: "INFORMATIONALLY_WEAK (MDE 6.7 pp > 6 pp); no outcome computed, nothing to state"
+    record: "docs/research/DH3_RESULT.md; docs/research/DH3_FEASIBILITY.md"
 findings:
   # ---- replicated on an independent venue ----------------------------------------------------
   - id: D7
@@ -46,6 +51,22 @@ findings:
     priority: 10
 
   # ---- found once, not replicated --------------------------------------------------------------
+  - id: DH3-P3
+    status: DISCOVERY
+    text_ru: "когда доля счетов в лонге на Binance необычно высока, цена в следующие 4 ч реже шла сначала вверх: 48% против 54% при «толпе в шортах»; найдено на 2020–2024, не подтверждено"
+    text_en: "when the share of long accounts on Binance was unusually high, price went up first less often over the next 4h: 48% vs 54% when the crowd was short; found on 2020–2024, not confirmed"
+    data: "Binance BTCUSDT 2020–2024, 14218 часов"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 10
+  - id: DH3-V3
+    status: DISCOVERY
+    text_ru: "повторное касание вчерашнего максимума или минимума после отката удерживалось за уровнем чуть чаще первого: 47% против 45% через 4 ч; на 2017–2019 не повторилось"
+    text_en: "a retest of yesterday's high or low after a pullback held beyond it slightly more often than the first touch: 47% vs 45% after 4h; it did not repeat on 2017–2019"
+    data: "Binance 2020–2024, 6 монет, 13622 касания; проверка на споте 2017–2019"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 20
   - id: D11
     status: DISCOVERY
     text_ru: "после плановых решений ФРС следующие 6 ч были в среднем в 1,76 раза волатильнее обычного, и так в каждом году 2020–2024; направление не оценивалось"
@@ -64,6 +85,46 @@ findings:
     priority: 50
 
   # ---- present, below the materiality bar ----------------------------------------------------
+  - id: DH3-P1
+    status: WEAK
+    text_ru: "рост открытого интереса за 4 ч в тихом рынке: следующие 4 ч в среднем на 13% шире обычного, ниже порога значимости 15%"
+    text_en: "open interest building up over 4h in a quiet market: the next 4h were on average 13% wider than usual, below the 15% materiality bar"
+    data: "Binance BTCUSDT 2020–2024, 12397 тихих часов"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 10
+  - id: DH3-O2
+    status: WEAK
+    text_ru: "резкий рост опционной волатильности DVOL за час: следующие 4 ч в среднем на 10% шире обычного, ниже порога значимости 15%"
+    text_en: "a sharp one-hour rise in options volatility (DVOL): the next 4h were on average 10% wider than usual, below the 15% materiality bar"
+    data: "BTC и ETH 2021–2024, 65464 часа"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 20
+  - id: DH3-L3
+    status: WEAK
+    text_ru: "если стакан в пределах ±1% не восстановился через 30 мин после резкого движения, следующие 4 ч были в среднем на 6–7% шире, ниже порога 15%"
+    text_en: "if the ±1% order book had not recovered 30 min after a sharp move, the next 4h were on average 6–7% wider, below the 15% bar"
+    data: "Binance 2023–2024, 6 монет, 4101 резкое движение"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 30
+  - id: DH3-S1
+    status: WEAK
+    text_ru: "стресс-час, в котором цену вёл спот, а не перп, сопровождался чуть меньшим размахом следующих 4 ч (−6%), ниже порога 15%"
+    text_en: "a stress hour led by spot rather than the perp was followed by a slightly smaller next-4h range (−6%), below the 15% bar"
+    data: "Binance BTCUSDT 2020–2024, 4299 стресс-часов, сделки по секундам"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 40
+  - id: DH3-V2
+    status: WEAK
+    text_ru: "после первого касания ключевого уровня размах следующих 4 ч лишь на 2% больше, чем после касания случайного уровня"
+    text_en: "after the first touch of a key level the next 4h range was only 2% wider than after touching a random level"
+    data: "Binance 2020–2024, 6 монет, 52004 касания"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 50
   - id: R03-C1
     status: WEAK
     text_ru: "выходные часы спокойнее того же часа во вт–чт; разрыв рос каждый год с 2020 по 2024, но остался ниже порога значимости проверки"
@@ -114,6 +175,62 @@ findings:
     record: "docs/research/DH2_RESULT.md"
     contexts: [level]
     priority: 37
+  - id: DH3-P2
+    status: NOT_CONFIRMED
+    text_ru: "резкий сброс открытого интереса за час не делал следующие 4 ч заметно спокойнее или резче обычного (+0,7%)"
+    text_en: "a sharp one-hour drop in open interest did not make the next 4h noticeably calmer or wilder than usual (+0.7%)"
+    data: "Binance BTCUSDT 2020–2024, 37147 часов"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 50
+  - id: DH3-L1
+    status: NOT_CONFIRMED
+    text_ru: "тонкий стакан (±1%) сам по себе не давал заметно более широкого движения в следующие 4 ч: +3%, незначимо"
+    text_en: "a thin ±1% order book by itself did not lead to a noticeably wider next 4h: +3%, not significant"
+    data: "Binance 2023–2024, 6 монет, 101112 часов"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 50
+  - id: DH3-L2
+    status: NOT_CONFIRMED
+    text_ru: "больше заявок на покупку, чем на продажу, в пределах ±1% не меняло шанс дойти сначала вверх: 49,5% против 49,7%"
+    text_en: "more bids than asks within ±1% did not change the chance of going up first: 49.5% vs 49.7%"
+    data: "Binance 2023–2024, 6 монет, 41076 часов"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 50
+  - id: DH3-O1
+    status: NOT_CONFIRMED
+    text_ru: "когда опционы закладывали больше движения, чем было за сутки, следующие 4 ч не были устойчиво шире: знак менялся по годам"
+    text_en: "when options priced more movement than the last day showed, the next 4h were not steadily wider: the sign changed by year"
+    data: "BTC и ETH 2021–2024, 65464 часа"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 50
+  - id: DH3-O3
+    status: NOT_CONFIRMED
+    text_ru: "когда опционная волатильность росла вместе с ценой, шанс дойти сначала вверх устойчиво не менялся (знак менялся по годам)"
+    text_en: "when options volatility rose together with price, the chance of going up first did not change steadily (the sign changed by year)"
+    data: "BTC и ETH 2021–2024, 65464 часа"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 50
+  - id: DH3-V1
+    status: NOT_CONFIRMED
+    text_ru: "максимумы и минимумы сессий (Азия, Европа, США) после касания удерживались так же, как случайные уровни: 45,3% против 45,7%"
+    text_en: "session highs and lows (Asia, Europe, US) held after a touch about as often as random levels: 45.3% vs 45.7%"
+    data: "Binance 2020–2024, 6 монет, 120212 касаний"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 50
+  - id: DH3-S3
+    status: NOT_CONFIRMED
+    text_ru: "много крупных сделок (от 1 млн $) в стресс-час не давало устойчиво более широкого движения дальше: знак менялся по годам"
+    text_en: "many large trades (from $1M) in a stress hour did not steadily lead to a wider move afterwards: the sign changed by year"
+    data: "Binance BTCUSDT 2020–2024, 4299 стресс-часов"
+    record: "docs/research/DH3_RESULT.md"
+    contexts: []
+    priority: 50
   - id: DIVERGENCE
     status: NOT_CONFIRMED
     text_ru: "бычья дивергенция (RSI, MACD, CVD) у поддержки в стакане почти не меняла шанс дойти до +1R раньше −1R: около 50% и с ней, и без неё"

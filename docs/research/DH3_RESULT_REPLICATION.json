@@ -1,0 +1,234 @@
+{
+  "CELLS": {
+    "DH3-V3": {
+      "ADJUSTED_SHIFT": -0.007054987682832789,
+      "BAR": 0.03,
+      "BOT_STATUS": "\u0413\u0438\u043f\u043e\u0442\u0435\u0437\u0430",
+      "BTC_ONLY": {
+        "ADJUSTED_SHIFT": -0.017434770370916564,
+        "CI95": [
+          -0.08556037092314449,
+          0.05065854430525723
+        ],
+        "N": 1037,
+        "ROLE": "descriptive"
+      },
+      "BY_SYMBOL": {
+        "BNB": {
+          "MEAN_COMPARATOR": 0.5336617405582923,
+          "MEAN_STATE": 0.48872180451127817,
+          "N": 875
+        },
+        "BTC": {
+          "MEAN_COMPARATOR": 0.5146036161335188,
+          "MEAN_STATE": 0.4559748427672956,
+          "N": 1037
+        },
+        "ETH": {
+          "MEAN_COMPARATOR": 0.5271428571428571,
+          "MEAN_STATE": 0.4919614147909968,
+          "N": 1011
+        },
+        "XRP": {
+          "MEAN_COMPARATOR": 0.45598194130925507,
+          "MEAN_STATE": 0.46153846153846156,
+          "N": 638
+        }
+      },
+      "CI95": [
+        -0.04753746545077168,
+        0.03058775181095501
+      ],
+      "CLASS": "REPLICATION_INCONCLUSIVE",
+      "ENDPOINT": "LEVEL_HOLD_4H",
+      "HETEROGENEITY": {
+        "EPOCHS": {
+          "2017H2": {
+            "BETA": -0.05042718121818235,
+            "N_COMPARATOR": 209,
+            "N_STATE": 84,
+            "SE": 0.04869178144056282
+          },
+          "2018": {
+            "BETA": -0.050894750605589234,
+            "N_COMPARATOR": 1053,
+            "N_STATE": 469,
+            "SE": 0.03074512302062102
+          },
+          "2019": {
+            "BETA": 0.04428997949581899,
+            "N_COMPARATOR": 1209,
+            "N_STATE": 537,
+            "SE": 0.029163571894307634
+          }
+        },
+        "OPPOSITE_EPOCHS": [],
+        "P_HET": 0.0969030969030969,
+        "Q": 5.9193432607461345,
+        "STATUS": "PASS"
+      },
+      "HETEROGENEITY_SYMBOL": {
+        "EPOCHS": {
+          "BNB": {
+            "BETA": -0.018989442454543145,
+            "N_COMPARATOR": 609,
+            "N_STATE": 266,
+            "SE": 0.0406067843926079
+          },
+          "BTC": {
+            "BETA": -0.017434770370917226,
+            "N_COMPARATOR": 719,
+            "N_STATE": 318,
+            "SE": 0.03398888899183422
+          },
+          "ETH": {
+            "BETA": -0.0036257993494550585,
+            "N_COMPARATOR": 700,
+            "N_STATE": 311,
+            "SE": 0.041942850778219735
+          },
+          "XRP": {
+            "BETA": 0.03222481600346745,
+            "N_COMPARATOR": 443,
+            "N_STATE": 195,
+            "SE": 0.04292253340391787
+          }
+        },
+        "OPPOSITE_EPOCHS": [],
+        "P_HET": 0.8071928071928072,
+        "Q": 1.0045680873600005,
+        "STATUS": "PASS"
+      },
+      "HOLM_FAMILY": [
+        "DH3-V3"
+      ],
+      "MEAN_COMPARATOR": 0.5123431808984217,
+      "MEAN_STATE": 0.47522935779816516,
+      "MISSING_OUTCOME_DROPPED": 2,
+      "MODEL": {
+        "BETA_FULL": [
+          0.5010807269770114,
+          -0.007054987682832789,
+          0.008117054137743279,
+          0.029388326412913425,
+          0.022862874824504272,
+          -0.027234984506885187,
+          0.005543327865161385,
+          -0.031111443551192032,
+          -0.07509580669175299,
+          0.05045427134618073,
+          0.11403825690262685,
+          -0.023930560216277895,
+          5.3978008238117303e-17,
+          -0.004229961210376725,
+          0.0,
+          -0.06275055893533445,
+          -0.010291540217817688
+        ],
+        "BETA_NULL": [
+          0.4990761225421263,
+          0.007020839853407956,
+          0.02785380154723993,
+          0.02098842805062473,
+          -0.0296834572831699,
+          0.0029820323894316214,
+          -0.03185492606124868,
+          -0.07668803954120884,
+          0.05263548758083991,
+          0.11712440676973979,
+          -0.023821503560734897,
+          -6.880346341637524e-16,
+          -0.004141271012831349,
+          0.0,
+          -0.06256477304820507,
+          -0.010341426711919066
+        ],
+        "LABELS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "SYMBOL=BTC",
+          "SYMBOL=DOGE",
+          "SYMBOL=ETH",
+          "SYMBOL=SOL",
+          "SYMBOL=XRP",
+          "TYPE=PDL"
+        ],
+        "LEVELS": {
+          "HOUR_BLOCK": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "LAG_TERCILE": [
+            0,
+            1,
+            2
+          ],
+          "RV_TERCILE": [
+            0,
+            1,
+            2
+          ],
+          "SYMBOL": [
+            "BNB",
+            "BTC",
+            "DOGE",
+            "ETH",
+            "SOL",
+            "XRP"
+          ],
+          "TYPE": [
+            "PDH",
+            "PDL"
+          ]
+        }
+      },
+      "N": 3561,
+      "N_COMPARATOR": 2471,
+      "N_STATE": 1090,
+      "P_BOOT": 0.71,
+      "P_HOLM": 0.71,
+      "SKILL": -0.001384283041638401,
+      "SKILL_KIND": "BRIER",
+      "WEEK_CLUSTERS": 124
+    }
+  },
+  "CODE_DIGESTS": {
+    "beta/hist_series.py": "d5b3c9f88cbfd60bcf1bf62fb41650157b767a1f55277f1411d8ff5cc935c35a",
+    "beta/levels.py": "d6e5e8d920a7722f436f0003f6ee5aac597b332c5ebd4039644e590bceaf1518",
+    "scripts/research/dh1/constants.py": "5f70833f3c73ca8e69f93cbb41bef14b5dfa52bc2bdc27ed91a5075aea17a68a",
+    "scripts/research/dh1/data.py": "e8303aa302590e4798a9ed993a24544e087ca1a7bec6d810f8ff1a980e1e3702",
+    "scripts/research/dh1/evaluate.py": "bf233b3bfac8e9da9fbc68765dcfe168337da287ed0f16495de812064f9cd079",
+    "scripts/research/dh1/events.py": "6c3af3465c7cd0908d05862a006527e4dcfeb657978c87e8d4160791aa37b756",
+    "scripts/research/dh1/outcomes.py": "92e7192ca998302bca40e6eaa107478df6ae3412e86eb7990eed37a98437b2d4",
+    "scripts/research/dh1/stats.py": "23db3d29438812c698e5ccd3cbad00f6e37504e4faa7d4ba28275fc51476c1ef",
+    "scripts/research/dh2/constants.py": "cc0a2c44ab7060d775ba2674619c25765d6044e7d9c998fe4e5e6d77e1e66193",
+    "scripts/research/dh2/data.py": "7a34f1ca0be3f55c9d8bf73632724094b0d4d2d375f77202e39e5209205caef1",
+    "scripts/research/dh2/events.py": "218613e1d826e5f8334168ced3354736649c587378d1144608480db888629c82",
+    "scripts/research/dh2/feasibility.py": "33d6fa426bc3815be62ef561af9087b258ecb683f4351057bb6938e7390be40e",
+    "scripts/research/dh3/aggtrades.py": "d38636837ec95b58ba0d982a0d07fd795bef4db6535cc2e5161f6343515fbeaa",
+    "scripts/research/dh3/constants.py": "7772c372cb88de503d6bec7a152c814359b5a3a69b090ffd42a4df2ab548f841",
+    "scripts/research/dh3/data.py": "06b0b838223d011cd2eb0b96ed35094d6ec9cab641672b0e6246dfdd85f0c4e0",
+    "scripts/research/dh3/evaluate.py": "ef0bcdfec90b05a86c9655e5fbba6c93eccd0ad4e44c46dcd15d66bde0dcce52",
+    "scripts/research/dh3/feasibility.py": "3ad15a97ea72fcfc951f9da615c57e8ae6e162440f1a6e1047ae65d4d8e003e7",
+    "scripts/research/dh3/features.py": "a0e12c079de1516e2c08984988ca67ec61e262ef4774e3ff976c7a520d46ac43",
+    "scripts/research/dh3/outcomes.py": "4339be00b8a93e3f960beb2a7dd6c8afdde871141f6eb4e70b6186adda73223b",
+    "scripts/research/owner_cards_r03/data.py": "9e53d9673ccd126df69d8aaf0ba0d68b1642d5dd19dbc9ad661e4cebb0d1dae1"
+  },
+  "ONE_SHOT": true,
+  "PREREG_SHA256": "c1cddcc9333661f502e7f274783905769b44acdf2921c50622e0a92a1efcb315",
+  "PROGRAM_ID": "DIRECTIONAL_AND_RANGE_DH3",
+  "SURFACE": "REPLICATION"
+}
