@@ -1,0 +1,913 @@
+{
+  "DATASET_ID": "DH3_BINANCE_AGGTRADES_STRESS_V0",
+  "FEATURES_FILE": "stress_hour_features.csv",
+  "FEATURES_SHA256": "05e7bfa0cb1ffb7b1fca68dbe5d4f1d3795cf46d8b030d2a9635f8c30886a982",
+  "INSTRUMENTS": "Binance USD-M BTCUSDT and spot BTCUSDT aggTrades",
+  "MONTHS": "2020-01..2024-12",
+  "OBJECTS": [
+    {
+      "MONTH": "2020-01",
+      "SPOT": {
+        "BYTES": 214923676,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-01.zip",
+        "SHA256": "ea2f0aa850fb08b5c8124d2f8080c03689c30cdadf797363fc74b506b92a8d8b"
+      },
+      "UM": {
+        "BYTES": 102586079,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-01.zip",
+        "SHA256": "d93f4201d012c74648d65727be0e17b2f7e38d2f6f9d8cb6817e8486b7ffe435"
+      }
+    },
+    {
+      "MONTH": "2020-02",
+      "SPOT": {
+        "BYTES": 257304829,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-02.zip",
+        "SHA256": "f7f56e2d26261d7c6ce97859c7064ad650b106602db28c59365de8a315c9bc99"
+      },
+      "UM": {
+        "BYTES": 95404861,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-02.zip",
+        "SHA256": "b7dc6afee2b2620226f2adc6b2b9d1b2b7f556a6df4414502ca47bfe2cf4906a"
+      }
+    },
+    {
+      "MONTH": "2020-03",
+      "SPOT": {
+        "BYTES": 394451403,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-03.zip",
+        "SHA256": "cd4ea1f7795a35b6c8e7e4e3c7a1050b22f09eb907cec04510eb4bc8730481f3"
+      },
+      "UM": {
+        "BYTES": 278452440,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-03.zip",
+        "SHA256": "67f9a6c1de9b3ac7aac9627ebfe626797103521fdf32b33b494d3e74cde0501d"
+      }
+    },
+    {
+      "MONTH": "2020-04",
+      "SPOT": {
+        "BYTES": 308144501,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-04.zip",
+        "SHA256": "94048b161517f2299b22e90a8a736f77f7c88e76b44c7e5d886884ba05f19935"
+      },
+      "UM": {
+        "BYTES": 264084162,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-04.zip",
+        "SHA256": "5e639fe3454b7488cc6ce0ceb46887ca9a02a7b50ab2c633774467d1583ad779"
+      }
+    },
+    {
+      "MONTH": "2020-05",
+      "SPOT": {
+        "BYTES": 358364065,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-05.zip",
+        "SHA256": "aa3fd6cfd761c4c74e22777eb95b8718424566705572a4970894be3d79c839dd"
+      },
+      "UM": {
+        "BYTES": 271584445,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-05.zip",
+        "SHA256": "b30d82e565b5ab4d3a0fbe799771506711465a9b54f3a44a184c025b1276f9ec"
+      }
+    },
+    {
+      "MONTH": "2020-06",
+      "SPOT": {
+        "BYTES": 221733819,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-06.zip",
+        "SHA256": "ecf7ff0737dde7cb331f54579c276ddec1e7b1361733a4c8650580055375fbf1"
+      },
+      "UM": {
+        "BYTES": 171082940,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-06.zip",
+        "SHA256": "63970e3dfa969cb707d07145ef8729dc98d9d0cfa207bd83c9a1298ce7241450"
+      }
+    },
+    {
+      "MONTH": "2020-07",
+      "SPOT": {
+        "BYTES": 277117854,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-07.zip",
+        "SHA256": "65c948cf3d564bea39ec17a07f6c408164fa1286c4b6fc830e24f3ee0d528f4e"
+      },
+      "UM": {
+        "BYTES": 143914643,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-07.zip",
+        "SHA256": "f2c2bb4fd5c19d2d1876107c36fd95db6decc16ab11b1c5c5980e548f9a8370a"
+      }
+    },
+    {
+      "MONTH": "2020-08",
+      "SPOT": {
+        "BYTES": 387525281,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-08.zip",
+        "SHA256": "ae9e76d34ef90179fa5548b308bb5acb922bd013a9e8dfee599241e2e6824cf7"
+      },
+      "UM": {
+        "BYTES": 188469212,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-08.zip",
+        "SHA256": "adf3a390a6976495f6a7e556d9698fd442ae76dfe80fc03fc65e683d04b6d039"
+      }
+    },
+    {
+      "MONTH": "2020-09",
+      "SPOT": {
+        "BYTES": 326073370,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-09.zip",
+        "SHA256": "8a5e42ca83492dfcee4e4ad3d2d03a0f7eccc8906b23bf6b0f47b270a645e4fb"
+      },
+      "UM": {
+        "BYTES": 173277644,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-09.zip",
+        "SHA256": "9ec215595ce7e678829d6fdf893bb76ce53b8eb40a002c59ac95b100ea79b584"
+      }
+    },
+    {
+      "MONTH": "2020-10",
+      "SPOT": {
+        "BYTES": 267408909,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-10.zip",
+        "SHA256": "dfe4ce8ec1ef04ddeec888ec34b56f6bd05f902359718604f9cfd1f011f7303a"
+      },
+      "UM": {
+        "BYTES": 193037027,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-10.zip",
+        "SHA256": "8a6889342a3703b61436e95e2c8530c9d42a0c09afa1bc2bbead3308132128c9"
+      }
+    },
+    {
+      "MONTH": "2020-11",
+      "SPOT": {
+        "BYTES": 506462233,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-11.zip",
+        "SHA256": "6ffc17890013df71dc9e8ab1e44fe687207bf1bdb58ba925ec31e33a272b4716"
+      },
+      "UM": {
+        "BYTES": 270677573,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-11.zip",
+        "SHA256": "29ae7f18acbc10c3b93925b65ffc852a4991de9ba1508b2d2c95fd09272a46f2"
+      }
+    },
+    {
+      "MONTH": "2020-12",
+      "SPOT": {
+        "BYTES": 585162605,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-12.zip",
+        "SHA256": "1a90fdd37ea9635af11641826f828a714e7d3f39c1b7416f63ec0e65212b88e1"
+      },
+      "UM": {
+        "BYTES": 455123064,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-12.zip",
+        "SHA256": "48d164fa72b2b7e34c86f4400444cfa07036ba105ff1bf22dce3ffef670d29fb"
+      }
+    },
+    {
+      "MONTH": "2021-01",
+      "SPOT": {
+        "BYTES": 1004319450,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-01.zip",
+        "SHA256": "36ec7f23cea403ecd040b01b6eb4562dc035466fa269599edd76f6270e2dbbed"
+      },
+      "UM": {
+        "BYTES": 917138866,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-01.zip",
+        "SHA256": "27ba71d5da2bdf4933bc176a855e93797a8b94598cace9725de34b2dd4896844"
+      }
+    },
+    {
+      "MONTH": "2021-02",
+      "SPOT": {
+        "BYTES": 901070030,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-02.zip",
+        "SHA256": "8c8cbb14c061c3b7dc9acd3965c5b3c6a2d671ef8a5cc61c3c77026271e9a739"
+      },
+      "UM": {
+        "BYTES": 741585262,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-02.zip",
+        "SHA256": "6f8fe48bc9b634ab364163b321a456b71286d7816957de7d9aa38a0721335cd1"
+      }
+    },
+    {
+      "MONTH": "2021-03",
+      "SPOT": {
+        "BYTES": 827846806,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-03.zip",
+        "SHA256": "e80a1b3ccddd210f850c5bc480bba7733f79d3762ac24a4508ad29c1f62daa3f"
+      },
+      "UM": {
+        "BYTES": 825286804,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-03.zip",
+        "SHA256": "50af1fc70d949b4986f2accef9a356842fd5403d4aa24595e3bc3b78a6470b8a"
+      }
+    },
+    {
+      "MONTH": "2021-04",
+      "SPOT": {
+        "BYTES": 784690641,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-04.zip",
+        "SHA256": "cde7e2fb3647143b994337f474c22ce4af7b8b17e5944e7f7714d6d5078199c8"
+      },
+      "UM": {
+        "BYTES": 651957126,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-04.zip",
+        "SHA256": "58fb7066d32f37cdd7ff702f6c5731a297642662884aa4d85037a66a475677fa"
+      }
+    },
+    {
+      "MONTH": "2021-05",
+      "SPOT": {
+        "BYTES": 1119069626,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-05.zip",
+        "SHA256": "19f2b095ccffba90c9be84a0864d845cb859e2d83a7e3a173caefb5d1861c945"
+      },
+      "UM": {
+        "BYTES": 1312994321,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-05.zip",
+        "SHA256": "11d546ec4752291f425d3bdeac0df1af5a7f48a08a700ba33a571bcbe590330b"
+      }
+    },
+    {
+      "MONTH": "2021-06",
+      "SPOT": {
+        "BYTES": 713347281,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-06.zip",
+        "SHA256": "ad9eb0eed3c49fed631942bad159bc365b58eed580e82b29c31db26be40675a5"
+      },
+      "UM": {
+        "BYTES": 1389535988,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-06.zip",
+        "SHA256": "4dbaa7b1a10719e1f365fed37b1b182c1f6de85f96bf3a0b90ae839656fd4aec"
+      }
+    },
+    {
+      "MONTH": "2021-07",
+      "SPOT": {
+        "BYTES": 492306386,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-07.zip",
+        "SHA256": "150a7815fae5378edc42b3f2d26bf4697d529b19b4f552fc11c68629341df42b"
+      },
+      "UM": {
+        "BYTES": 918401418,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-07.zip",
+        "SHA256": "e803c876d0861b2ff417e770c718692713b9f503cea800c7140833cbbcf03dd6"
+      }
+    },
+    {
+      "MONTH": "2021-08",
+      "SPOT": {
+        "BYTES": 574367420,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-08.zip",
+        "SHA256": "94587b981b05fc2228b85493691df7934e2f648521b0ab049b8d1b1225e55216"
+      },
+      "UM": {
+        "BYTES": 868784067,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-08.zip",
+        "SHA256": "14d9ec6159be7762bae6cce54d80e966284db0c1832f89d305f6961204a025cd"
+      }
+    },
+    {
+      "MONTH": "2021-09",
+      "SPOT": {
+        "BYTES": 500555801,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-09.zip",
+        "SHA256": "b786adc7f362c594d08b65967bafae892f3eec4c2232391af35cb3ffdf0e1ab9"
+      },
+      "UM": {
+        "BYTES": 706068758,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-09.zip",
+        "SHA256": "62b07cc69a0ef8e0b4f8ee758711990e972f34204a62bbc35a35a067c84d750b"
+      }
+    },
+    {
+      "MONTH": "2021-10",
+      "SPOT": {
+        "BYTES": 593247533,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-10.zip",
+        "SHA256": "0416f8fe93439f9fcf03fe9a2ccae872677fe15800657f6d5edfbb03c6e398bf"
+      },
+      "UM": {
+        "BYTES": 715736480,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-10.zip",
+        "SHA256": "d8934b9d0d68a509b9ddf1c2708b148a6af2fb6ed0e4c87e4ea284c419a74a31"
+      }
+    },
+    {
+      "MONTH": "2021-11",
+      "SPOT": {
+        "BYTES": 566323681,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-11.zip",
+        "SHA256": "ce8dfe87129f78efb5047f4d764454970362aff04229857b14ded6fc91f4be76"
+      },
+      "UM": {
+        "BYTES": 589726378,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-11.zip",
+        "SHA256": "a577856c9233677adaf0e4738eaa833c795da880b7fbd5ea0b6db093c7e8d488"
+      }
+    },
+    {
+      "MONTH": "2021-12",
+      "SPOT": {
+        "BYTES": 970678033,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-12.zip",
+        "SHA256": "2ff67048929833d8db2ec32df829d2594052c31799d694486d997bc85b89d42c"
+      },
+      "UM": {
+        "BYTES": 710121918,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-12.zip",
+        "SHA256": "0b12890c302188b203490087fefb517120dba6513a7dd4b6f227b1f50ddfa772"
+      }
+    },
+    {
+      "MONTH": "2022-01",
+      "SPOT": {
+        "BYTES": 443094740,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-01.zip",
+        "SHA256": "89ab10f323b53d5d8c4de40ec6833b93f37ebd9be8f520688d4f080be3dec001"
+      },
+      "UM": {
+        "BYTES": 782927921,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-01.zip",
+        "SHA256": "873b626270ec6317ccf8d2ccdecce744f3ebe8ea289ede1495713b5dfda11ce0"
+      }
+    },
+    {
+      "MONTH": "2022-02",
+      "SPOT": {
+        "BYTES": 382097433,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-02.zip",
+        "SHA256": "84074272816323f4af4c45ef48ce550429fd12b5af98d0c95a7731daf6e6d89c"
+      },
+      "UM": {
+        "BYTES": 704418112,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-02.zip",
+        "SHA256": "40b7bf2a16b847b35083827bd96689558fce736fc7238d7dd32d6c8709957a2b"
+      }
+    },
+    {
+      "MONTH": "2022-03",
+      "SPOT": {
+        "BYTES": 418697157,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-03.zip",
+        "SHA256": "c970b71594351b1e5feb97796a0c234f5d11aaa157b4a63abb51b2170ffed6d2"
+      },
+      "UM": {
+        "BYTES": 626225460,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-03.zip",
+        "SHA256": "2ab2e1c9acf2ff9808dcb0d5c739a5527fe071aba0dab54c6a66b9fb99f7249d"
+      }
+    },
+    {
+      "MONTH": "2022-04",
+      "SPOT": {
+        "BYTES": 360485100,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-04.zip",
+        "SHA256": "2d215b317ace4a4f2ff74ad33d9dd71c46865f9e4e02817efd1bed088d639f72"
+      },
+      "UM": {
+        "BYTES": 476128482,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-04.zip",
+        "SHA256": "765ca594403f9bc6b00371457f3d5033561c5cad59c997bbe287ac219920f748"
+      }
+    },
+    {
+      "MONTH": "2022-05",
+      "SPOT": {
+        "BYTES": 529004310,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-05.zip",
+        "SHA256": "d907f8858c7f161f9067515c7897cc3177dd2cb83f83cb8f392be033066ae479"
+      },
+      "UM": {
+        "BYTES": 803006107,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-05.zip",
+        "SHA256": "9faf406cb4a4c94a6b36735ee59bd4c8f63520706c14139bd7106ed2c5f23659"
+      }
+    },
+    {
+      "MONTH": "2022-06",
+      "SPOT": {
+        "BYTES": 477803237,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-06.zip",
+        "SHA256": "b3975ceb7666d9d27d8f29760c6ff7b5e385373101f8afce81e508db1299bc05"
+      },
+      "UM": {
+        "BYTES": 977571627,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-06.zip",
+        "SHA256": "0ebb64cfc49dc8f842af23d3f139c718f6a688775606033e489b6f861c9311de"
+      }
+    },
+    {
+      "MONTH": "2022-07",
+      "SPOT": {
+        "BYTES": 1530382626,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-07.zip",
+        "SHA256": "cb0f3a5a4a0a63f3440642c9bbda229e30f40dacdbf05e943213f29368353207"
+      },
+      "UM": {
+        "BYTES": 829086641,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-07.zip",
+        "SHA256": "5facf3abcde715b0c625ee5c9837f148bf3c79d0b107122ef78812df3a5636fb"
+      }
+    },
+    {
+      "MONTH": "2022-08",
+      "SPOT": {
+        "BYTES": 2238736907,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-08.zip",
+        "SHA256": "6469d05e76327f92debc71ea22ef56d31f418ad8eac8897647c02d4e13b8d22d"
+      },
+      "UM": {
+        "BYTES": 541529123,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-08.zip",
+        "SHA256": "e9232addc9ebc351b327280e23d75785ee3639cc32ae9054293a6c0481d9fb89"
+      }
+    },
+    {
+      "MONTH": "2022-09",
+      "SPOT": {
+        "BYTES": 2254775142,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-09.zip",
+        "SHA256": "3de2f4dcf73c7e59c8e18ba8f75876761d15e76db1742d0a25f84620c7313c53"
+      },
+      "UM": {
+        "BYTES": 548619640,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-09.zip",
+        "SHA256": "b39acd27634cdb861fce7196182110f585b6c17fae7baae116f0d72ecd5f891b"
+      }
+    },
+    {
+      "MONTH": "2022-10",
+      "SPOT": {
+        "BYTES": 1897220182,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-10.zip",
+        "SHA256": "f933409fc7a9a987c366928de0f9b1ef0b99bf65170f5e58bcde6c9b0334b0d4"
+      },
+      "UM": {
+        "BYTES": 382702187,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-10.zip",
+        "SHA256": "94ce0bc37751a64ed4fd425aa7b021c1ee43ff52c4a531b6d524063685e03ffe"
+      }
+    },
+    {
+      "MONTH": "2022-11",
+      "SPOT": {
+        "BYTES": 2460042801,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-11.zip",
+        "SHA256": "09d3c20e467b50921172986ae41615eb97043354eca24c7a4785fe14720f8ac5"
+      },
+      "UM": {
+        "BYTES": 465824209,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-11.zip",
+        "SHA256": "0eb04067026d5d9493c1b5c14b45d1e0a04ed281d627f0ae480f6604665ccad8"
+      }
+    },
+    {
+      "MONTH": "2022-12",
+      "SPOT": {
+        "BYTES": 1582989803,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-12.zip",
+        "SHA256": "18816b904549e62c485a29b56ecf0c4b139cf2a7379efc74d8ed7caa717219ab"
+      },
+      "UM": {
+        "BYTES": 235806432,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-12.zip",
+        "SHA256": "dc966c85fe09ddce5b39f448c6760aa062917af27ecf2aa94b989e795d87a19d"
+      }
+    },
+    {
+      "MONTH": "2023-01",
+      "SPOT": {
+        "BYTES": 2278512445,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-01.zip",
+        "SHA256": "183a1a7b76a6fd451d057a9f543ee6537ef245a95a987076a4fec1202419a4e9"
+      },
+      "UM": {
+        "BYTES": 388543348,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-01.zip",
+        "SHA256": "1d94d39b36b5e15bf1b6df323ef0764d9b7a5ec648a87d7b9388dc661c900c66"
+      }
+    },
+    {
+      "MONTH": "2023-02",
+      "SPOT": {
+        "BYTES": 2624704281,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-02.zip",
+        "SHA256": "e774176a49181dcc260fcc1fab23a4fbdd19d8420732634ee6deb9f9e1afd7f1"
+      },
+      "UM": {
+        "BYTES": 432051041,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-02.zip",
+        "SHA256": "c96a721238c9dca750ec5498501e3a5091d96f5f95f9b8878a9496e168e5a46d"
+      }
+    },
+    {
+      "MONTH": "2023-03",
+      "SPOT": {
+        "BYTES": 2658089884,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-03.zip",
+        "SHA256": "7cf72c122904abccc2d6cd3fe2614b94b89c6d747653eb8eaae8bedde6c4e224"
+      },
+      "UM": {
+        "BYTES": 767678501,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-03.zip",
+        "SHA256": "b527a01289ba5c1804219a9eaf5cf684e8a401b7d66a79f8fcaa488d8ad990ac"
+      }
+    },
+    {
+      "MONTH": "2023-04",
+      "SPOT": {
+        "BYTES": 392591107,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-04.zip",
+        "SHA256": "957181967871816db30c674c2f445b7d887f766c9fc272add0fde1c2213c771a"
+      },
+      "UM": {
+        "BYTES": 512842183,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-04.zip",
+        "SHA256": "ccf03f522d5f84597dfb714c350ccf6224f7b640918aed4cdd6e08c31cad0de7"
+      }
+    },
+    {
+      "MONTH": "2023-05",
+      "SPOT": {
+        "BYTES": 327821304,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-05.zip",
+        "SHA256": "10b783ee0fa015dba06074808c1665c0551392370c746b21631892b235fc7096"
+      },
+      "UM": {
+        "BYTES": 468405603,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-05.zip",
+        "SHA256": "301acec76a7644aa73180fd7f8d913ce4eecfa7e7bca5057f1782f96d91b9ef0"
+      }
+    },
+    {
+      "MONTH": "2023-06",
+      "SPOT": {
+        "BYTES": 317893465,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-06.zip",
+        "SHA256": "2fc41412732f3d00f0404c7ea1649e46ed0295d167bd5a2bc0099fef02be5394"
+      },
+      "UM": {
+        "BYTES": 509287275,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-06.zip",
+        "SHA256": "36bbf14b48f8552c57ee79c6f3054bbc2aa58d90206a1ead2a0ec1b42b9954d8"
+      }
+    },
+    {
+      "MONTH": "2023-07",
+      "SPOT": {
+        "BYTES": 230203311,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-07.zip",
+        "SHA256": "46d1c77edc0381446a88947d31c78ff434010f1459ebef516451494ec1992f56"
+      },
+      "UM": {
+        "BYTES": 329652487,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-07.zip",
+        "SHA256": "03607e1cb87a22462898b1dcfbd5b96de72e2eb5912124ae12aa4576d122b78a"
+      }
+    },
+    {
+      "MONTH": "2023-08",
+      "SPOT": {
+        "BYTES": 221084986,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-08.zip",
+        "SHA256": "9a1cb942fdec911bde0783794c12b4bd05565440ed663d38780da9e9348fd4a4"
+      },
+      "UM": {
+        "BYTES": 316899048,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-08.zip",
+        "SHA256": "de112685f8f6bf7d6341fdee2ea46075d8661926cbcff7c478466be3f6ac9b52"
+      }
+    },
+    {
+      "MONTH": "2023-09",
+      "SPOT": {
+        "BYTES": 227441546,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-09.zip",
+        "SHA256": "339d011e9c41fa9b40ad965a5656fa921337158b48da5d21d28f7a6fec037fef"
+      },
+      "UM": {
+        "BYTES": 295563986,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-09.zip",
+        "SHA256": "15cd54b4be3d6f5975a6e6e237ecad37c524db9a39be276784b5881a2737e7cf"
+      }
+    },
+    {
+      "MONTH": "2023-10",
+      "SPOT": {
+        "BYTES": 422423079,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-10.zip",
+        "SHA256": "4086f8b319f950ee1d568b6b86c92ec07c93f12372c411120447541528541528"
+      },
+      "UM": {
+        "BYTES": 492720741,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-10.zip",
+        "SHA256": "d3fe5fa477d68d6730248d634e1bd37ae4838839d78709ef355d9d9c6749fea4"
+      }
+    },
+    {
+      "MONTH": "2023-11",
+      "SPOT": {
+        "BYTES": 404195156,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-11.zip",
+        "SHA256": "ac67c2b049babf2546a3df5a0de481345c7671550b7a7ce2c2284c76c1d76aaa"
+      },
+      "UM": {
+        "BYTES": 408417791,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-11.zip",
+        "SHA256": "64d34dc8970219f232cc2e5655fef1a3af6064d17399e1b1624f82525d6ea518"
+      }
+    },
+    {
+      "MONTH": "2023-12",
+      "SPOT": {
+        "BYTES": 483390162,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-12.zip",
+        "SHA256": "a5a890bdf2cc349435f61bb134c7726fef1dd9d88bea7356716d5975f2ee5ce7"
+      },
+      "UM": {
+        "BYTES": 431442108,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-12.zip",
+        "SHA256": "f56d85c15dc93b658f808c56688658d9f9aabe9797823b973830b3696642d03f"
+      }
+    },
+    {
+      "MONTH": "2024-01",
+      "SPOT": {
+        "BYTES": 566954365,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-01.zip",
+        "SHA256": "6713db84b8836aec43bb52471735b2e057ed2cd8b571d7bdc81672826d8c8a19"
+      },
+      "UM": {
+        "BYTES": 522743749,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-01.zip",
+        "SHA256": "d752f50932091dd209803187ca2354a9eadbfe8e4b9c481c3581a1bbb1bd8282"
+      }
+    },
+    {
+      "MONTH": "2024-02",
+      "SPOT": {
+        "BYTES": 504930291,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-02.zip",
+        "SHA256": "5134af82d946b46c2be160f71d94e3ef5b0f4e8565b4211869169092ea7e5ca5"
+      },
+      "UM": {
+        "BYTES": 472350747,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-02.zip",
+        "SHA256": "3c2426d3f2435ace18b0e9b3acf45144b1710dad08cb184487539d5d829ccef3"
+      }
+    },
+    {
+      "MONTH": "2024-03",
+      "SPOT": {
+        "BYTES": 812423059,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-03.zip",
+        "SHA256": "a8422806f8ea1b32ca01500690d7e40e1a6b9192a5e63bc33a46cecaedd3e621"
+      },
+      "UM": {
+        "BYTES": 847406944,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-03.zip",
+        "SHA256": "8ceb6fd06fc3bff87870e7adc362ca0e2f463f57a04599d2506e40320921401d"
+      }
+    },
+    {
+      "MONTH": "2024-04",
+      "SPOT": {
+        "BYTES": 598656631,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-04.zip",
+        "SHA256": "2ec052570a4665e386c55b607856f5c6650e2212bd5b4a216836edf8effca4d8"
+      },
+      "UM": {
+        "BYTES": 673475890,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-04.zip",
+        "SHA256": "d1e56775acae2b93b387df44f6074e94fb635dfdb65271537889e32e1556f05d"
+      }
+    },
+    {
+      "MONTH": "2024-05",
+      "SPOT": {
+        "BYTES": 428790217,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-05.zip",
+        "SHA256": "ddca1ae99be8085ee0698c8fc7aa76bcc64be1bc8e4f9b79cf07216d214d5069"
+      },
+      "UM": {
+        "BYTES": 502066717,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-05.zip",
+        "SHA256": "8fca38cac627bb1fb3a5c9982ce56351be6783ec136369a3e856ae49bb971a43"
+      }
+    },
+    {
+      "MONTH": "2024-06",
+      "SPOT": {
+        "BYTES": 353905374,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-06.zip",
+        "SHA256": "9d1974850dfc5545156c1b95462cb6103962f609b65d156d605914395d8c7036"
+      },
+      "UM": {
+        "BYTES": 340036587,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-06.zip",
+        "SHA256": "5ded996c5ee1985b4e3d7935f9be95c2e1f946a173fd87dbb0107c02fa68ca89"
+      }
+    },
+    {
+      "MONTH": "2024-07",
+      "SPOT": {
+        "BYTES": 508450051,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-07.zip",
+        "SHA256": "dc8bce722672a68c4659ff30dc41842b89416e53a735ec99b66bcf72459a2cf1"
+      },
+      "UM": {
+        "BYTES": 488332735,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-07.zip",
+        "SHA256": "d6a6528d6fb5a78ddcc0607469e9569f40ab497359b2e3ba876145a5463d68c5"
+      }
+    },
+    {
+      "MONTH": "2024-08",
+      "SPOT": {
+        "BYTES": 549860689,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-08.zip",
+        "SHA256": "7907ddfba9109ad94668945f66b28cbb84f35fb1a7ad64e1c23f2132be777789"
+      },
+      "UM": {
+        "BYTES": 621175912,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-08.zip",
+        "SHA256": "91c95f779e58f8aea2735c838085dcaaaf0a9f3e162ebf9cd477b686666a93c8"
+      }
+    },
+    {
+      "MONTH": "2024-09",
+      "SPOT": {
+        "BYTES": 476263781,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-09.zip",
+        "SHA256": "89a543b1d3fd1c6461f6c775a2e698a9339826fe01e5fac1807cf0016878eb18"
+      },
+      "UM": {
+        "BYTES": 457356098,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-09.zip",
+        "SHA256": "3450edcaeb8a2c7f2f70f3136cc28753245311452369de0e990fad390a5a9113"
+      }
+    },
+    {
+      "MONTH": "2024-10",
+      "SPOT": {
+        "BYTES": 521055221,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-10.zip",
+        "SHA256": "f06a5b527b26c44c434ebffda790aad0caca9ef3830521fb8b563864ddf75952"
+      },
+      "UM": {
+        "BYTES": 480827973,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-10.zip",
+        "SHA256": "f8c76ee5d4467c85a592d7ef9433ee6f7f7c4b2af9c1b9b2538ae4795f60dad3"
+      }
+    },
+    {
+      "MONTH": "2024-11",
+      "SPOT": {
+        "BYTES": 942421554,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-11.zip",
+        "SHA256": "548cb1ae70d1a51f1e7fb180c114cc619bb9f96bf40fb6b0cabede880526c22e"
+      },
+      "UM": {
+        "BYTES": 729944402,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-11.zip",
+        "SHA256": "28a34b83dc97c8519515d5a2982629906d748a98e7a9aa52796ad1d1380d9fe7"
+      }
+    },
+    {
+      "MONTH": "2024-12",
+      "SPOT": {
+        "BYTES": 865044678,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/spot/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-12.zip",
+        "SHA256": "2293764f3dee1c4b4a396c81bc24ac58ce9b211fcf8c4a77faf0840a65280116"
+      },
+      "UM": {
+        "BYTES": 683913057,
+        "CHECKSUM_VERIFICATION": "VERIFIED",
+        "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-12.zip",
+        "SHA256": "4d17630b90c9497bfba4d18e94d5fb8a66d8ade41ecab1583824baffd6d8a513"
+      }
+    }
+  ],
+  "OBJECT_LIST_SHA256": "ddb68d32313573a87568739ae81fd8402fc3d1b3c4a0cbe133f606c293318199",
+  "SOURCE": "https://data.binance.vision/",
+  "STRESS_HOURS": 4368,
+  "STRESS_RULE": "hour perp log range >= 0.01795447469978486 (top decile of the DH3-S surface, CORE_BTC 5m bars)"
+}

@@ -8006,3 +8006,28 @@ WINDOWS_CONSUMED = six-coin Binance 2020-2024 for PRICE_STRUCTURE.levels, SPOT_P
 TESTS_EXECUTED = 2 families (TF-DH2-L-LEVEL-HOLD, TF-DH2-B-BARRIER); PROMISING_PROTOTYPES = 0; RERUN_AUTHORIZED = false
 OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
 ```
+
+## 2026-10-04 — DH3: five cards of three (direction and range), frozen before any outcome
+
+**Owner decision** (`DH3_DESIGN.md`):
+- 15 hypotheses in 5 cards: positioning (OI metrics), liquidity (bookDepth), options (DVOL), levels extended, and spot↔perp at one second (aggTrades);
+- 9 range endpoints (bar log 1.15) and 6 directional endpoints (bar 3 pp);
+- OI history and heavy free data allowed; funding and the premium index stay out (MARKET-04H, B2-06).
+
+**Data pinned** (free):
+- BTC metrics: 1583 days;
+- bookDepth, six coins 2023–2024: 4386 objects, 18 missing days;
+- Deribit DVOL hourly for BTC/ETH: 66144 rows, committed CSV;
+- aggTrades USD-M and spot BTC 2020–2024: 120 monthly zips verified, streamed into 4368 stress-hour features.
+
+**Outcome-blind feasibility** (`DH3_FEASIBILITY.{md,json}`): 14 cells executable; DH3-S2 `INFORMATIONALLY_WEAK` (MDE 6.7 pp).
+
+**PRE_FREEZE_DEFINITIONAL_CORRECTION:**
+- **Error:** card L's two-year surface could never meet the 3-calendar-year rule.
+- **Fix:** half-year epochs were declared before any outcome.
+- **Unchanged:** no state, bar or endpoint.
+
+```
+SEARCH_FAMILY = SF-DH3; TEST_FAMILIES = TF-DH3-P, TF-DH3-L, TF-DH3-O, TF-DH3-V, TF-DH3-S (14 primary cells)
+PREREG = docs/research/DH3_PREREG.json; MARKET_OUTCOMES_OPENED = NO at freeze; OBJECTS_2025_2026_USED = none
+```

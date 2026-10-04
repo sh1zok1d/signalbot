@@ -1,3 +1,10 @@
+## Five cards of three (DH3) — frozen; discovery pending — 2026-10-04
+
+`PROGRAM = DIRECTIONAL_AND_RANGE_DH3 (owner decision; docs/research/DH3_DESIGN.md)`
+`CARDS = P positioning (OI), L liquidity (bookDepth), O options (DVOL), V levels extended, S spot<->perp 1s (aggTrades)`
+`FEASIBILITY = 14 EXECUTABLE; DH3-S2 INFORMATIONALLY_WEAK | PREREG = docs/research/DH3_PREREG.json | OUTCOMES_OPENED_AT_FREEZE = NO`
+`NEXT_UNIT = DH3 one-shot discovery (python -m scripts.research.dh3.evaluate --surface DISCOVERY)`
+
 ## Pooled directional hypotheses (DH2) — executed once; nothing for the bot to state — 2026-10-04
 
 `PROGRAM = DIRECTIONAL_HYPOTHESES_DH2 (owner decision; docs/research/DH2_POOLED_DESIGN.md; atlas no-pooling routing overridden for DH2 only)`
