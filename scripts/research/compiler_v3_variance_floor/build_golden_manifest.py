@@ -151,7 +151,7 @@ def build() -> dict:
                             "SEED_RANGE": {"STAGE_A": [base, base + STAGE_A - 1], "STAGE_B": [base, base + STAGE_B - 1]},
                         })
     return {
-        "MANIFEST": "COMPILER_V3_VARIANCE_FLOOR_GOLDEN_MANIFEST_V1", "STATUS": "DRAFT_NOT_FROZEN",
+        "MANIFEST": "COMPILER_V3_VARIANCE_FLOOR_GOLDEN_MANIFEST_V1", "STATUS": "FROZEN_2026-10-04",
         "SPEC": "docs/research/COMPILER_V3_VARIANCE_FLOOR_VALIDATION_SPEC_V1.md",
         "CONSTANTS": {"SD_BASE": SD_BASE, "VAR_FALLBACK": VAR_FALLBACK, "POWER": POWER, "HOLM_FAMILY": HOLM_FAMILY,
                       "ALPHA": ALPHA, "Z_ALPHA": Z_A, "Z_BETA": Z_B, "K_GRID": K_GRID, "Q_GRID": Q_GRID,
@@ -162,25 +162,60 @@ def build() -> dict:
     }
 
 
+REQUIRED_FIELDS = ("CELL_ID", "DESIGN_ID", "VARIANT_ID", "SCENARIO", "INFERENCE", "INDEPENDENT_UNIT",
+                   "GENERATOR_PARAMS", "GRID", "STRESS", "VARIANCE_RELATIONSHIPS", "N_ORACLE_80", "ORACLE_UNIT",
+                   "ORACLE_ROUNDING", "SIZE_MULTIPLIER", "SAMPLE_SIZE", "TRUE_EFFECT", "EXPECTED_CLASSIFICATION",
+                   "ROLE", "CHECK", "MULTIPLICITY_ALPHA", "SEED_RANGE")
+
+
+def var_planning(cell: dict, f: float) -> float:
+    """Exact frozen arithmetic: VAR_PLANNING = VAR_FALLBACK * max(q*k, f)."""
+    vr = cell["VARIANCE_RELATIONSHIPS"]
+    return vr["VAR_FALLBACK"] * max(vr["q"] * vr["k"], f)
+
+
 def validate(manifest: dict) -> dict:
     cells = manifest["CELLS"]
     ids = [c["CELL_ID"] for c in cells]
     assert len(ids) == len(set(ids)), "duplicate CELL_ID"
+    # schema
+    schema_ok = all(all(k in c for k in REQUIRED_FIELDS) for c in cells)
+    # oracle / label validity: classification is a pure function of grid and size multiplier;
+    # oracle counts positive; sample sizes monotone in the multiplier within a (design, variant, k, q, stress)
+    labels_ok = all(
+        (c["EXPECTED_CLASSIFICATION"] == (SIZE_MULT[c["SIZE_MULTIPLIER"]] if c["GRID"] == "3A" else "BOUNDARY_NO_REQUIREMENT"))
+        and c["N_ORACLE_80"] > 0 and c["SAMPLE_SIZE"]["COUNT"] > 0
+        and (c["ROLE"] == "STRESS_REGRESSION") == (c["GRID"] == "3B")
+        for c in cells)
+    groups: dict = {}
+    for c in cells:
+        key = (c["DESIGN_ID"], c["VARIANT_ID"], c["STRESS"], c["VARIANCE_RELATIONSHIPS"]["k"], c["VARIANCE_RELATIONSHIPS"]["q"], c["TRUE_EFFECT"])
+        groups.setdefault(key, []).append((c["SIZE_MULTIPLIER"], c["SAMPLE_SIZE"]["COUNT"]))
+    monotone_ok = all(sorted(g) == sorted(g, key=lambda x: x[0]) and all(a[1] <= b[1] for a, b in zip(sorted(g), sorted(g)[1:])) for g in groups.values())
+    # 3B candidate invariance: the floor must not bind in any 3B cell
+    dependent = [c["CELL_ID"] for c in cells if c["GRID"] == "3B"
+                 and len({round(var_planning(c, f), 12) for f in manifest["CANDIDATE_FLOORS"]}) != 1]
+    # seeds
     ranges = sorted((c["SEED_RANGE"]["STAGE_B"][0], c["SEED_RANGE"]["STAGE_B"][1], c["CELL_ID"]) for c in cells)
     overlaps = [(a[2], b[2]) for a, b in zip(ranges, ranges[1:]) if b[0] <= a[1]]
     prefix_ok = all(c["SEED_RANGE"]["STAGE_A"][0] == c["SEED_RANGE"]["STAGE_B"][0]
                     and c["SEED_RANGE"]["STAGE_A"][1] < c["SEED_RANGE"]["STAGE_B"][1] for c in cells)
     sizes_ok = all(c["SEED_RANGE"]["STAGE_A"][1] - c["SEED_RANGE"]["STAGE_A"][0] + 1 == STAGE_A
                    and c["SEED_RANGE"]["STAGE_B"][1] - c["SEED_RANGE"]["STAGE_B"][0] + 1 == STAGE_B for c in cells)
-    return {"CELLS": len(cells), "STAGE_A_PREFIX_OF_STAGE_B": prefix_ok, "RANGE_SIZES_OK": sizes_ok,
-            "PAIRWISE_DISJOINT": not overlaps, "OVERLAPS": overlaps, "MIN_SEED": ranges[0][0], "MAX_SEED": ranges[-1][1]}
+    out = {"CELLS": len(cells), "SCHEMA_VALID": schema_ok, "ORACLE_LABELS_VALID": labels_ok and monotone_ok,
+           "CELLS_3B": sum(1 for c in cells if c["GRID"] == "3B"),
+           "THREE_B_CANDIDATE_INVARIANT": not dependent, "THREE_B_FLOOR_DEPENDENT_CELLS": dependent,
+           "STAGE_A_PREFIX_OF_STAGE_B": prefix_ok, "RANGE_SIZES_OK": sizes_ok,
+           "PAIRWISE_DISJOINT": not overlaps, "OVERLAPS": overlaps, "MIN_SEED": ranges[0][0], "MAX_SEED": ranges[-1][1]}
+    out["FREEZE_OK"] = all([schema_ok, labels_ok, monotone_ok, not dependent, prefix_ok, sizes_ok, not overlaps])
+    return out
 
 
 if __name__ == "__main__":
     m = build()
     v = validate(m)
-    if not (v["PAIRWISE_DISJOINT"] and v["STAGE_A_PREFIX_OF_STAGE_B"] and v["RANGE_SIZES_OK"]):
-        raise SystemExit(f"FREEZE_FAIL seed manifest: {v}")
-    m["SEED_VALIDATION"] = v
+    if not v["FREEZE_OK"]:
+        raise SystemExit(f"FREEZE_FAIL: {v}")
+    m["MANIFEST_VALIDATION"] = v
     OUT.write_text(json.dumps(m, indent=1) + "\n")
     print(json.dumps(v, indent=1))

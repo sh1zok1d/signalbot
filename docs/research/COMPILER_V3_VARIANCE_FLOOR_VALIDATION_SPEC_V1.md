@@ -1,6 +1,6 @@
-# `COMPILER_V3_VARIANCE_FLOOR_VALIDATION` — specification V1 (revision 3)
+# `COMPILER_V3_VARIANCE_FLOOR_VALIDATION` — specification V1 (revision 4, frozen)
 
-**Status:** `SPEC_DRAFT / NOT_FROZEN / NOT_RUN / NOT_ADOPTED` (2026-10-04, revision 3: the owner's four final repairs; golden manifest generated, not frozen). An adoption gate of `HYPOTHESIS_EVALUATION_CONTRACT_V2_DRAFT.md` §5.3. Nothing here runs until the owner freezes this spec (digest recorded in the V2 draft) and authorizes the run. No generator code exists yet.
+**Status:** `FROZEN / NOT_RUN / NOT_ADOPTED` (2026-10-04, revision 4: the owner's last repair, 3B stress-adoption gate and candidate invariance; frozen by owner authorization together with the golden manifest and the builder; digests in §11 and in `COMPILER_V3_VARIANCE_FLOOR_FREEZE_RECORD.json`). A simulation generator may now be written; no official sensitivity run without a separate authorization. An adoption gate of `HYPOTHESIS_EVALUATION_CONTRACT_V2_DRAFT.md` §5.3. Nothing here runs until the owner freezes this spec (digest recorded in the V2 draft) and authorizes the run. No generator code exists yet.
 **Purpose:** choose the adopted value of the planning variance floor `f` by a frozen two-sided rule (safety and utility) on a synthetic suite with known ground truth. Not a test of any market hypothesis.
 
 ## 1. Rules that bind the run
@@ -39,15 +39,16 @@ Frozen grid of `(k, q)`:
 
 Twelve points. For each design, each candidate `f ∈ {0.60, 0.75, 1.00}` and each grid point: the compiler is handed `VAR_EXPOSED_ESTIMATE = q·k·VAR_FALLBACK` and plans with `VAR_PLANNING = VAR_FALLBACK × max(q·k, f)` at nominal power 0.80 for the design's declared effect `δ_min` and its multiplicity alpha, declaring the cell `FEASIBLE` or not at the cell's sample size; the **evaluation samples are generated under `VAR_TRUE = k·VAR_FALLBACK`** and the empirical power and size are measured. This grid asks exactly one question: **does the floor protect feasibility verdicts against an understating exposed estimator when the fallback is conservative?** The true variance never exceeds the fallback here, so no candidate `f ≤ 1` is asked to compensate a regime shift.
 
-### 3B. DISTRIBUTIONAL / STRESS REGRESSION grid (can block adoption; never selects `f`)
+### 3B. DISTRIBUTIONAL / STRESS REGRESSION grid (stress-adoption gate; never selects `f`)
 
-Run only for the candidate selected by §4, and reported for all candidates descriptively:
-
-- **regime shift:** `k ∈ {1.50, 2.00}` with `q = 1` (true variance above the fallback); measured: empirical size (must hold) and power loss (reported);
+Cells (frozen in the manifest):
+- **regime shift:** `k ∈ {1.50, 2.00}` with `q = 1` (true variance above the fallback);
 - **heavy tails:** innovations `t₄` and `t₃` scaled to the design's `VAR_TRUE`, at `k = 1, q = 1`;
-- **dependence stress:** for clustered designs, ICC doubled relative to the manifest value; for the venue design, venue correlation 0.95.
+- **dependence stress:** for S4, ICC doubled; for S5, venue correlation 0.95; at `k = 1, q = 1`.
 
-Blocking criterion of 3B: **size** must satisfy the §4 safety size requirement on every 3B cell; a size breach is `ADOPTION_BLOCKED_BY_STRESS` with the cell named. Power under 3B is reported, never thresholded, because a floor `f ≤ 1` cannot and should not absorb a true variance above the fallback.
+**Role.** 3B never participates in choosing `f`: it cannot move the choice between 0.60, 0.75 and 1.00. After the 3A selection (§4) has produced `ADOPTED_FLOOR_CANDIDATE`, the **stress-adoption gate** runs on the 3B cells **at that candidate only**: for every 3B cell the compiler actually declares `FEASIBLE`, the same safety requirements as in §4 apply (empirical power ≥ 0.75 at `δ_min`, ≥ 0.95 at `2δ_min`, size ≤ α + 0.01 at `δ = 0`), decided by the same Stage A/B Monte Carlo rule and the same one-sided 99 % Clopper–Pearson bounds (§6). Outcome: any decisive 3B safety `FAIL` → `ADOPTION_BLOCKED_BY_STRESS`; no `FAIL` but an unresolved Stage-B cell → `STRESS_VALIDATION_INDETERMINATE`; otherwise the stress gate is `PASS`.
+
+**Candidate invariance (freeze invariant).** By the exact frozen arithmetic `VAR_PLANNING = VAR_FALLBACK × max(q·k, f)`, every 3B cell has `q·k ≥ 1 ≥ f`, so `VAR_PLANNING(0.60) = VAR_PLANNING(0.75) = VAR_PLANNING(1.00)` in every 3B cell: the floor never binds there. The manifest validator computes `VAR_PLANNING` at all three candidates for every 3B cell and requires equality; any 3B cell whose planning variance depends on the candidate is `FREEZE_FAIL`. This guarantees that 3B can block adoption but cannot select the floor by a hidden route.
 
 ## 4. Selection rule (frozen): safety and utility
 
@@ -56,7 +57,19 @@ For a candidate `f`, over the §3A grid and the golden manifest (§5):
 - **SAFETY (on actual `FEASIBLE`, every 3A cell).** For **every** 3A cell, whatever its expected classification (`MUST_BE_FEASIBLE`, `MUST_NOT_BE_FEASIBLE` or `BOUNDARY_NO_REQUIREMENT`): if the compiler declares it `FEASIBLE` under `f`, it must show empirical **power ≥ 0.75** at `δ_min`, **power ≥ 0.95** at `2δ_min`, and empirical **size ≤ α + 0.01** at `δ = 0`, each decided by the Monte Carlo procedure of §6. `BOUNDARY_NO_REQUIREMENT` only means that no compiler classification is required of the cell; it never exempts a cell the candidate actually declares feasible from the power and size rule. Separately, any cell with expected classification `MUST_NOT_BE_FEASIBLE` that the compiler declares `FEASIBLE` under `f` is a safety failure (false-feasible). The expected-classification check and the safety-on-actual-`FEASIBLE` check are two different checks and both apply.
 - **UTILITY.** Every cell with expected classification `MUST_BE_FEASIBLE` must be declared `FEASIBLE` under `f`. A candidate that is safe only because it refuses mandatory cells fails here.
 - **Candidate status:** `PASS` if every decisive check passes; `FAIL` if any decisive check fails; `INDETERMINATE` if no check fails but at least one decisive check is `VALIDATION_INDETERMINATE` after §6. Decisive checks are: every safety check on a cell actually declared `FEASIBLE` (3A), every false-feasible check, every utility check.
-- **Selection:** `ADOPTED_FLOOR = min { f : status(f) = PASS }`. If no candidate is `PASS` and at least one is `INDETERMINATE`: gate result `VALIDATION_INDETERMINATE` (no floor; the suite's replication budget is revisited by amendment). If every candidate is `FAIL`: `VARIANCE_MODEL_REDESIGN_REQUIRED`. No manual override field exists.
+- **Selection (3A only):** `ADOPTED_FLOOR_CANDIDATE = min { f : 3A status(f) = PASS }`. 3B cells take no part in this step.
+
+**Final status state machine (no manual override):**
+
+| Condition | Result |
+|---|---|
+| no 3A candidate `PASS`, at least one 3A candidate `INDETERMINATE` | `VALIDATION_INDETERMINATE` |
+| every 3A candidate `FAIL` | `VARIANCE_MODEL_REDESIGN_REQUIRED` |
+| 3A floor selected, 3B stress gate has a decisive `FAIL` | `ADOPTION_BLOCKED_BY_STRESS` |
+| 3A floor selected, no stress `FAIL`, a stress cell `VALIDATION_INDETERMINATE` | `STRESS_VALIDATION_INDETERMINATE` |
+| 3A floor selected, 3B stress gate `PASS` | `VALIDATION_PASS` with `ADOPTED_FLOOR = ADOPTED_FLOOR_CANDIDATE` |
+
+Only `VALIDATION_PASS` completes the variance-floor validation for adoption.
 
 ## 5. Golden manifest (frozen before the run; labels immutable afterwards)
 
@@ -96,7 +109,7 @@ One JSON record per cell, schema:
 - `1.50 × N_ORACLE_80` → `MUST_BE_FEASIBLE`.
 Every multiplier is rounded **up** to the design's discreteness (even counts for two arms, a multiple of 3 for eras, an integer number of clusters with a floor of 4 so that `t_{G−1}` exists); the rounding rule and the raw value are recorded per cell in the manifest (`ORACLE_ROUNDING`, `SAMPLE_SIZE.ROUNDING`) **before** the freeze and are never changed after a run. The compiler's verdict for a cell does not depend on the true effect of the evaluation sample, so the null, `δ_min` and `2δ_min` variants of a cell share the expected classification and differ only in the check they run (size, power ≥ 0.75, power ≥ 0.95).
 
-3B cells carry `EXPECTED_CLASSIFICATION = BOUNDARY_NO_REQUIREMENT` and `ROLE = STRESS_REGRESSION`; they never select `f` and block adoption only through the §3B size rule.
+3B cells carry `EXPECTED_CLASSIFICATION = BOUNDARY_NO_REQUIREMENT` and `ROLE = STRESS_REGRESSION`; they never select `f` and act only through the §3B stress-adoption gate.
 
 ## 6. Monte Carlo procedure (deterministic escalation; no boundary lottery)
 
@@ -108,7 +121,7 @@ Every multiplier is rounded **up** to the design's discreteness (even counts for
 - **Stage B (automatic, no decision):** the cell is extended with the pre-assigned additional seeds to a **total of 10 000 replications** (`base … base+9999`); the same bounds are recomputed on the pooled count; `PASS` / `FAIL` as above.
 - **Unresolved after Stage B:** cell status `VALIDATION_INDETERMINATE`.
 - **Seed namespace (collision-proof):** `base = 10¹² × design_index + 10⁶ × cell_index`, `seed = base + replicate_index` with `0 ≤ replicate_index < 10 000`; Stage A is the **prefix** `[base, base + 1 999]` of Stage B `[base, base + 9 999]`. With at most 10⁶ cells per design and 10⁴ replications per cell no two cells can overlap.
-- **Manifest validation (part of the freeze; a failure is `FREEZE_FAIL`):** every cell has both ranges; Stage A is the prefix of Stage B; the Stage A and Stage B lengths are exactly 2 000 and 10 000; the Stage B ranges of distinct `CELL_ID`s are pairwise disjoint (sorted-adjacent check); any duplicate seed anywhere fails the freeze. The check runs in `build_golden_manifest.py` and its output is stored in the manifest (`SEED_VALIDATION`).
+- **Manifest validation (part of the freeze; a failure is `FREEZE_FAIL`):** schema (every required field on every cell); oracle/label validity (expected classification is the pure function of grid and size multiplier; positive counts; sizes monotone in the multiplier); 3B candidate invariance (§3B); seeds: every cell has both ranges, Stage A is the prefix of Stage B, lengths exactly 2 000 and 10 000, Stage-B ranges of distinct `CELL_ID`s pairwise disjoint (sorted-adjacent check), any duplicate seed fails. The check runs in `build_golden_manifest.py` and its output is stored in the manifest (`MANIFEST_VALIDATION`, with `FREEZE_OK`).
 - **Aggregation rule:** a candidate is `FAIL` if any decisive cell (role `SAFETY`, `UTILITY` or `BOTH`) is `FAIL`; else `INDETERMINATE` if any decisive cell is `VALIDATION_INDETERMINATE`; else `PASS`. `BOUNDARY_NO_REQUIREMENT` and `STRESS_REGRESSION` cells never enter the aggregation except through the 3B size block of §3B.
 
 ## 7. Suite designs (generators; parameters frozen in the manifest)
@@ -131,7 +144,7 @@ Historical exposed units (R03 cells, C025-R1, SEED-0001 feasibility, D-series fe
 ## 9. Outputs (one run)
 
 - `COMPILER_V3_VARIANCE_FLOOR_VALIDATION_RESULT.json`: per cell × candidate: compiler verdict, Stage A and (if any) Stage B counts and bounds, cell status, with the digests of this spec, the golden manifest, the seed manifest and the generator code.
-- The §4 evaluation per candidate and the gate result: `ADOPTED_FLOOR = f`, `VALIDATION_INDETERMINATE`, `VARIANCE_MODEL_REDESIGN_REQUIRED`, or `ADOPTION_BLOCKED_BY_STRESS`.
+- The §4 evaluation per candidate, the 3B stress-gate evaluation at the candidate, and the final state-machine result (`VALIDATION_PASS` with `ADOPTED_FLOOR`, `VALIDATION_INDETERMINATE`, `VARIANCE_MODEL_REDESIGN_REQUIRED`, `ADOPTION_BLOCKED_BY_STRESS`, `STRESS_VALIDATION_INDETERMINATE`).
 - A markdown table of the manifest with results; no narrative choice.
 
 ## 10. Not in scope
@@ -142,8 +155,11 @@ Market data; real variance estimates; any executed unit before adoption; the str
 
 | Field | Value |
 |---|---|
-| Spec digest | — (recorded in the V2 draft at freeze) |
-| Golden manifest | `COMPILER_V3_VARIANCE_FLOOR_GOLDEN_MANIFEST_V1.json` — generated by `scripts/research/compiler_v3_variance_floor/build_golden_manifest.py` (analytic oracle, no simulation); `DRAFT_NOT_FROZEN`; digest at freeze |
-| Simulation generator | not written (owner: only after the freeze commit); digest at freeze |
-| Run authorized | — |
+| Frozen | 2026-10-04, owner authorization after the manifest sanity review and the §3B repair |
+| Spec digest | the digest of this file cannot be stored inside it; it is recorded in `COMPILER_V3_VARIANCE_FLOOR_FREEZE_RECORD.json` and in `HYPOTHESIS_EVALUATION_CONTRACT_V2_DRAFT.md` §5.3 |
+| Golden manifest | `COMPILER_V3_VARIANCE_FLOOR_GOLDEN_MANIFEST_V1.json`, sha256 `4a03855324478671a4cb0952066c1c1d58d854d05098c40e5420acc6c9b0c4fd` |
+| Builder / validator | `scripts/research/compiler_v3_variance_floor/build_golden_manifest.py`, sha256 `6d4b99b655728345f145f00335cd5f36dd6f7cae430b3eb27e16d7c8fa07e095` |
+| Manifest validation at freeze | `FREEZE_OK = true` (1 068 cells; schema, oracle/labels, 3B candidate invariance, seed prefix/lengths/pairwise-disjoint all true; stored in the manifest's `MANIFEST_VALIDATION`) |
+| Simulation generator | not written at freeze; may be written after it; its digest is recorded in the freeze record before any run |
+| Run authorized | — (separate authorization) |
 | Adopted floor | — |
