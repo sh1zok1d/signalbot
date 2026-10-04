@@ -1,0 +1,198 @@
+{
+  "ADOPTION": false,
+  "AMENDMENT_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_FREEZE_AMENDMENT_V3",
+  "BOUND_ARTIFACTS": {
+    "AMENDMENT_V1": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_FREEZE_AMENDMENT_V1.json",
+      "SHA256": "ee319868a199b4c98ac05f5ddbc022b4e3be09854867bd1447c8c52737b58e34"
+    },
+    "AMENDMENT_V2": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_FREEZE_AMENDMENT_V2.json",
+      "SHA256": "d8368f4252654d6c9f1155379efb87b83b0ffd82c15c6a32555c83577a367659"
+    },
+    "DENSE_BUILDER": {
+      "PATH": "scripts/research/compiler_v3_estimator_calibration/build_dense_support_cells.py",
+      "SHA256": "26a63b8e783031b71a4cc6f3e0fe126f21515b10d50f68931a55d3dd3f91cfc2"
+    },
+    "GRID": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_GRID_V1.json",
+      "SHA256": "440fe897d62a467e5b71c2168177d0002f4a3f64b414d8e4a0c68dc84b8e7db4"
+    },
+    "GRID_DENSE_SUPPORT": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_GRID_DENSE_SUPPORT_V1.json",
+      "SHA256": "5d85ec7fe8e4b42d7c2931abaa9690071e9bef8093081712aa75ec165ec86e49"
+    },
+    "GRID_PROBES": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_GRID_PROBES_V1.json",
+      "SHA256": "6c0b88bb8d49e05952c442e912d0fe542a465bfd1065c545289f84faac166403"
+    },
+    "PROTOCOL_V1": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EFFECTIVE_PROTOCOL_V1.md",
+      "SHA256": "b3cb784c054ad0915d6a3a74b0214f44440c382422d54ebc4fa12fc80cf97714"
+    },
+    "PROTOCOL_V2": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EFFECTIVE_PROTOCOL_V2.md",
+      "SHA256": "806b9394d83bb2cbba940a04451a59d2312296ec51fb403708033ea9f3021808"
+    },
+    "PROTOCOL_V3": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EFFECTIVE_PROTOCOL_V3.md",
+      "SHA256": "dc25cde892b478325ec5f281286305e40cf3bb8075c09c543bd76d1b7a0a3890"
+    },
+    "SPEC": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_SPEC_V1.md",
+      "SHA256": "4524e0434336b21ebdf272c501a1ebc353fb0dee2215a924fc68293bf7436448"
+    }
+  },
+  "CAL_OR_EVAL_SIMULATED": false,
+  "DATE": "2026-10-04",
+  "DENSE_SUPPORT": {
+    "BY_CLASS": {
+      "CLUSTERED": 624,
+      "PAIRED_UNITS": 1272,
+      "RARE_EVENT": 1536,
+      "TWO_SAMPLE": 1284
+    },
+    "CANDIDATE_C_APPLICATION": "largest calibrated n_i <= n; frozen c_env(class, n_i); the EVAL cell at exactly n must pass; below min / above max calibrated size unsupported; count inside class range",
+    "COUNT_SUPPORT_RULE": "n SUPPORTED for X iff in range, in the support set, and every EVAL cell at (class, n) is coverage PASS and utility PASS for X; any FAIL -> UNSUPPORTED_DECISIVE; unresolved -> UNSUPPORTED_UNRESOLVED; absent -> NOT_FEASIBLE_INFORMATION_INSUFFICIENT",
+    "DENSE_CELLS": 4716,
+    "DENSE_COUNTS_BY_CLASS": {
+      "CLUSTERED": 26,
+      "PAIRED_UNITS": 212,
+      "RARE_EVENT": 64,
+      "TWO_SAMPLE": 214
+    },
+    "NO_INTERPOLATION": true,
+    "NO_MONOTONICITY_ASSUMPTION": true,
+    "PROBES_198_PRESERVED": true,
+    "RANGE_RULE": "[n_min, REALISTIC_MAX]; support requires utility, which is defined only in range",
+    "SEED_DISJOINTNESS": {
+      "DISJOINT_FROM_621_AND_198": true,
+      "DISJOINT_FROM_RUN1": true,
+      "EVERY_INTEGER_COUNT_COVERED": true,
+      "EVERY_MUST_LEVEL_AT_EVERY_COUNT": true,
+      "EXISTING_SEED_ENVELOPE": [
+        9001000000000,
+        9014197119999
+      ],
+      "GRID_OK": true,
+      "MAX_SEED": 9244715119999,
+      "MIN_SEED": 9210000100000,
+      "NO_ID_COLLISION": true,
+      "PAIRWISE_DISJOINT": true,
+      "UNIQUE_CELL_IDS": true
+    },
+    "SEED_FORMULA": "9e12 + 1e10 * family_index (21-24) + 1e6 * cell_index; EVAL Stage A [base+1e5, +3999], Stage B [base+1e5, +19999]",
+    "SUPPORTED_RANGE": {
+      "CLUSTERED": [
+        8,
+        40
+      ],
+      "PAIRED_UNITS": [
+        40,
+        260
+      ],
+      "RARE_EVENT": [
+        30,
+        100
+      ],
+      "TWO_SAMPLE": [
+        30,
+        250
+      ]
+    },
+    "SUPPORT_SET_SHA256": "c6b0444de824281c7bdea7724ed51a63fb34ab82e9d9ef6c94900b0d0620fe5e",
+    "SUPPORT_SET_SIZE": 5148
+  },
+  "ERROR_BUDGET": {
+    "ALPHA_CLASS_CANDIDATE": 0.0008333333333333334,
+    "ALPHA_FAMILY": 0.01,
+    "CANDIDATES_PER_CLASS": 3,
+    "CONF_CLASS_CANDIDATE": 0.9991666666666666,
+    "CONF_CLASS_CANDIDATE_RATIONAL": "1199/1200",
+    "MUST_CELL_BONFERRONI": "NONE (intersection-union)",
+    "REFERENCE_D_CONFIDENCE": 0.99,
+    "REQUIRED_CLASSES": 4,
+    "STAGE_THRESHOLDS": {
+      "20000": {
+        "COVERAGE_FAIL_IF_MISSES_GE": 465,
+        "COVERAGE_PASS_IF_MISSES_LE": 156,
+        "UTILITY_FAIL_IF_SUCCESSES_LE": 15820,
+        "UTILITY_PASS_IF_SUCCESSES_GE": 16178
+      },
+      "4000": {
+        "COVERAGE_FAIL_IF_MISSES_GE": 110,
+        "COVERAGE_PASS_IF_MISSES_LE": 21,
+        "UTILITY_FAIL_IF_SUCCESSES_LE": 3119,
+        "UTILITY_PASS_IF_SUCCESSES_GE": 3280
+      }
+    }
+  },
+  "EXECUTION_AUTHORIZED": false,
+  "EXECUTOR_WRITTEN": false,
+  "EXISTING_CELLS_RENUMBERED": false,
+  "IMMUTABLE": true,
+  "KIND": "PRE_RUN_AMENDMENT",
+  "ORIGINAL_ARTIFACTS_EDITED": false,
+  "OWNER_DECISION": "amendment 0043ebe accepted as audit artifact; final outcome-blind amendment V3: per-class candidate selection, error budget 1/1200, class and global status, exact-count EVAL support for Candidate C, TWO_SAMPLE equal arms only, per-class PASS output; executor and CAL/EVAL not allowed",
+  "PASS_OUTPUT_PER_CLASS_FIELDS": [
+    "SELECTED_CANDIDATE",
+    "ESTIMATOR",
+    "UPPER_BOUND_FORMULA",
+    "CONFIDENCE_SEMANTICS",
+    "SUPPORTED_COUNT_SET",
+    "ALLOCATION_DOMAIN",
+    "DEPENDENCE_DOMAIN",
+    "BOUND_KIND",
+    "UTILITY_FRONTIER",
+    "DOWNSTREAM_REVALIDATION"
+  ],
+  "PER_CLASS_SELECTION": {
+    "ELIGIBLE": "coverage PASS on all required cells of the class AND utility PASS (B4 over all in-range sizes carrying cells) AND no execution-error or unresolved cell",
+    "REFERENCE_ONLY": [
+      "D"
+    ],
+    "REQUIRED_FOR_V3": [
+      "TWO_SAMPLE",
+      "PAIRED_UNITS",
+      "CLUSTERED",
+      "RARE_EVENT"
+    ],
+    "RULE": "SELECTED_CANDIDATE(class) = first ELIGIBLE candidate in A -> B -> C, independently per class; no global candidate",
+    "SELECTABLE": [
+      "A",
+      "B",
+      "C"
+    ]
+  },
+  "PREVIOUS_AMENDMENT_COMMIT": "0043ebec6aa1414d67506a643486a05bea229628",
+  "RUN_AUTHORIZATION_CREATED": false,
+  "STATUS_MACHINE": {
+    "CLASS": [
+      "CALIBRATION_CLASS_PASS",
+      "CALIBRATION_CLASS_FAIL_INFORMATION_INSUFFICIENT",
+      "CALIBRATION_CLASS_INDETERMINATE",
+      "CALIBRATION_CLASS_EXECUTION_ERROR"
+    ],
+    "CLASS_PASS_PRESERVED": true,
+    "GLOBAL_PASS": "only if every REQUIRED_FOR_V3 class is CALIBRATION_CLASS_PASS",
+    "GLOBAL_PRECEDENCE": [
+      "ESTIMATOR_CALIBRATION_EXECUTION_ERROR",
+      "ESTIMATOR_CALIBRATION_FAIL_INFORMATION_INSUFFICIENT",
+      "CALIBRATION_INDETERMINATE",
+      "ESTIMATOR_CALIBRATION_PASS"
+    ],
+    "LITERAL_TEXT": "protocol V3 section C6",
+    "REFERENCE_IMPLEMENTATION": "scripts/research/compiler_v3_estimator_calibration/amendment_v3.py (class_state, global_status)"
+  },
+  "SUPERSEDES": "amendment V1 A2/A3 (global selection, 299/300), amendment V2 B1 (interval support), B3 (joint selection in PASS output), B4 candidate-level aggregation",
+  "TWO_SAMPLE_ALLOCATION_DOMAIN": "EQUAL_ARMS_ONLY",
+  "TWO_SAMPLE_ALLOCATION_NOTE": "all CAL/EVAL/probe/dense TWO_SAMPLE claims refer to n_a = n_b only; unequal arms -> NOT_FEASIBLE_INFORMATION_INSUFFICIENT; no sparse ratios; unequal contrasts need a separate preregistered unit TWO_SAMPLE_UNEQUAL_ALLOCATION_CALIBRATION with its own two-dimensional outcome-blind surface",
+  "UNIT_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_V1",
+  "VALIDATOR": "scripts/research/compiler_v3_estimator_calibration/amendment_v3.py",
+  "WRITTEN_BEFORE": {
+    "ANY_CAL_REPLICATE": true,
+    "ANY_EVAL_REPLICATE": true,
+    "EXECUTOR_EXISTS": false,
+    "RUN1_OUTCOMES_READ": false
+  }
+}
