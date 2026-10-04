@@ -478,3 +478,9 @@ Asked "does the bot offer a decision or anything like it — what does a trader 
 - **Data:** discovery on Binance 2020–2024; confirmation on the earlier era 2017–2019 (free BitMEX and Binance spot archives) and on live tracking.
 
 **What stayed.** The evaluation contract applies in full, with directional claims as `INCREMENTAL`. There are no direct trade calls, no rescue of sealed nulls, no 2025/2026 objects and no deploy without a separate go.
+
+**What came out (same day).**
+- **DH1:** confluence did not change the 4h hold on BTC.
+- **DH2:** the owner chose to pool six coins. Spot confirmation, staleness and spot share did not move a level-hold or barrier probability by 3 pp either.
+- **Bot:** no probability line; four `NOT_CONFIRMED` lines in `/research`.
+- **Lesson:** the honest directional output on these surfaces is the base rate with N. The next useful step is live tracking of what the bot already says.

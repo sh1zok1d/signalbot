@@ -98,6 +98,22 @@ findings:
     record: "docs/research/DH1_RESULT.md"
     contexts: [level]
     priority: 35
+  - id: DH2-L1
+    status: NOT_CONFIRMED
+    text_ru: "подход к уровню на покупках/продажах спота не делал удержание за уровнем чаще: 45,2% против 46,1% через 4 ч, если и разница, то скорее в обратную сторону (незначимо)"
+    text_en: "an approach to a level backed by spot taker flow did not hold beyond it more often: 45.2% vs 46.1% after 4h; if anything the gap points the other way (not significant)"
+    data: "Binance 2020–2024, 6 монет (BTC, ETH, BNB, XRP, DOGE, SOL), 16362 первых касания"
+    record: "docs/research/DH2_RESULT.md"
+    contexts: [level]
+    priority: 36
+  - id: DH2-L3
+    status: NOT_CONFIRMED
+    text_ru: "давно не тронутый уровень (24 ч без сделок на нём) удерживался после первого касания так же часто, как свежий: 45,2% против 45,4% через 4 ч"
+    text_en: "a level untouched for 24h held after its first touch about as often as a fresh one: 45.2% vs 45.4% after 4h"
+    data: "Binance 2020–2024, 6 монет, 16373 первых касания"
+    record: "docs/research/DH2_RESULT.md"
+    contexts: [level]
+    priority: 37
   - id: DIVERGENCE
     status: NOT_CONFIRMED
     text_ru: "бычья дивергенция (RSI, MACD, CVD) у поддержки в стакане почти не меняла шанс дойти до +1R раньше −1R: около 50% и с ней, и без неё"
@@ -105,6 +121,14 @@ findings:
     data: "Binance, 6 монет; найдено на 2023–2024, проверено на 2025–2026"
     record: "docs/research/DIVERGENCE_FULL_HISTORY_RESEARCH_V0_REPORT.md"
     contexts: [level]
+    priority: 40
+  - id: DH2-B2
+    status: NOT_CONFIRMED
+    text_ru: "резкое 15-минутное движение с необычно большой долей спота не чаще доходило дальше в свою сторону, чем обычное: 51,6% против 52,0% за 4 ч"
+    text_en: "a sharp 15-minute move with an unusually large spot share did not run further its own way more often than an ordinary one: 51.6% vs 52.0% within 4h"
+    data: "Binance 2020–2024, 6 монет, 9629 резких движений"
+    record: "docs/research/DH2_RESULT.md"
+    contexts: [move]
     priority: 40
   - id: MARKET-02
     status: NOT_CONFIRMED

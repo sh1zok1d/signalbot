@@ -274,6 +274,29 @@ datasets:
     exposure:
       - {period: 2017-2019, rows: [PRICE_STRUCTURE.levels, SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: EXPOSED, note: "DH1 replication-surface feasibility counted events and states only; no outcome read (nothing reached replication)"}
     records: [docs/research_data/DH1_BITMEX_XBTUSD_TRADES_5M_V0, docs/research/DH1_FEASIBILITY.md]
+  - id: DH2_BINANCE_UM_ALTS_5M_V0
+    col: CROSS_ASSET
+    also_cols: [CANDLES, PERP_FLOW]
+    venue: Binance USD-M (data.binance.vision)
+    instrument: ETH, XRP, BNB, DOGE, SOL USDT perpetuals
+    data: 5m klines incl. quote and taker-buy quote volume
+    coverage: first full month after listing (2020-01..2020-10) .. 2024-12; 281 monthly objects, checksums verified
+    availability: PINNED
+    exposure:
+      - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels, SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: CONSUMED, note: "DH2 one-shot discovery pooled over six coins (L1, L3, B2), 2026-10-04"}
+    records: [docs/research_data/DH2_BINANCE_UM_ALTS_5M_V0, docs/research/DH2_RESULT.md]
+  - id: DH2_BINANCE_SPOT_ALTS_5M_V0
+    col: SPOT
+    also_cols: [CROSS_ASSET]
+    venue: Binance spot (data.binance.vision)
+    instrument: ETH, XRP, BNB, DOGE, SOL USDT spot
+    data: 5m klines incl. quote and taker-buy quote volume
+    coverage: discovery months 2020..2024 plus ETH/BNB/XRP 2017-08..2019-12; 354 monthly objects, checksums verified
+    availability: PINNED
+    exposure:
+      - {period: 2020-2024, rows: [SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: CONSUMED, note: "DH2 one-shot discovery (spot states)"}
+      - {period: 2017-2019, rows: [PRICE_STRUCTURE.levels], status: EXPOSED, note: "DH2-L3 replication-surface feasibility counted events and states only; no outcome read"}
+    records: [docs/research_data/DH2_BINANCE_SPOT_ALTS_5M_V0, docs/research/DH2_FEASIBILITY.md]
   - id: MARKET_06_OKX_BINANCE_FEASIBILITY_V0
     col: SPOT
     also_cols: [CROSS_VENUE]

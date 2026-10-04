@@ -7982,3 +7982,27 @@ OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
 SEARCH_FAMILY = SF-DH2; TEST_FAMILIES = TF-DH2-L-LEVEL-HOLD (DH2-L1, DH2-L3), TF-DH2-B-BARRIER (DH2-B2)
 PREREG = docs/research/DH2_PREREG.json (sha256 cb8bef28…53b6); MARKET_OUTCOMES_OPENED = NO at freeze; OBJECTS_2025_2026_USED = none
 ```
+
+## 2026-10-04 — DH2 executed once: no pooled cell moves a directional probability; nothing replicated
+
+**Discovery** (six coins, Binance 2020–2024, one shot; `DH2_RESULT_DISCOVERY.json`):
+
+| Cell | Shift | 95 % CI | Holm p | Class |
+|---|---|---|---|---|
+| DH2-L1 | −1.75 pp | −3.78 … +0.36 | 0.21 | `INCONCLUSIVE` |
+| DH2-L3 | −0.61 pp | −3.49 … +2.27 | 0.67 | `INCONCLUSIVE` |
+| DH2-B2 | +0.55 pp | −1.78 … +2.84 | 0.64 | `NO_INCREMENTAL_STRUCTURE` |
+
+- **Brier skill:** at or below about zero for all three.
+- **Coin gate:** passed (p 0.51–0.70), but not assessable at this power.
+- **BTC alone:** −5.1, +3.9 and −3.3 pp, all with wide intervals.
+
+**Replication.** There was no `PROMISING_PROTOTYPE`, so no replication outcome was read.
+
+**Bot.** Three `NOT_CONFIRMED` `/research` lines; the alert texts are unchanged.
+
+```
+WINDOWS_CONSUMED = six-coin Binance 2020-2024 for PRICE_STRUCTURE.levels, SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share (DH2 states)
+TESTS_EXECUTED = 2 families (TF-DH2-L-LEVEL-HOLD, TF-DH2-B-BARRIER); PROMISING_PROTOTYPES = 0; RERUN_AUTHORIZED = false
+OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
+```

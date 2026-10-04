@@ -752,6 +752,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
+    "CLOSED_ON_SURFACE": 1,
     "EXPOSED_ONLY": 1,
     "INFORMATIONALLY_WEAK": 1,
     "NO_STRUCTURE": 1
@@ -768,6 +769,7 @@
     "DH1-L2",
     "DH1-L3",
     "DH1-X1",
+    "DH2-L3",
     "GV0R01-C017",
     "PRODUCT-V2-LEVELS"
    ],
@@ -777,8 +779,8 @@
     "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 7
+    "saturation": 2,
+    "total": 6
    }
   },
   {
@@ -799,8 +801,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
+    "saturation": 2,
+    "total": 8
    }
   },
   {
@@ -821,8 +823,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -843,8 +845,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 6
+    "saturation": 2,
+    "total": 5
    }
   },
   {
@@ -865,8 +867,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -887,8 +889,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
+    "saturation": 2,
+    "total": 8
    }
   },
   {
@@ -909,8 +911,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -931,8 +933,8 @@
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
+    "saturation": 2,
+    "total": 7
    }
   },
   {
@@ -4698,18 +4700,20 @@
   {
    "col": "SPOT",
    "counts": {
-    "INFORMATIONALLY_WEAK": 1
+    "INFORMATIONALLY_WEAK": 1,
+    "NO_STRUCTURE": 1
    },
    "frontier_eligible": true,
-   "mixed": false,
+   "mixed": true,
    "native": true,
    "region": "SPOT_PERP",
    "revisit": [],
    "row": "SPOT_PERP.volume_share",
    "row_name": "Spot volume share migration",
-   "state": "INFORMATIONALLY_WEAK",
+   "state": "NO_STRUCTURE",
    "units": [
-    "DH1-B2"
+    "DH1-B2",
+    "DH2-B2"
    ],
    "value": {
     "confirmation_path": 2,
@@ -4834,19 +4838,21 @@
   {
    "col": "SPOT",
    "counts": {
+    "CLOSED_ON_SURFACE": 1,
     "INFORMATIONALLY_WEAK": 2
    },
    "frontier_eligible": true,
-   "mixed": false,
+   "mixed": true,
    "native": true,
    "region": "SPOT_PERP",
    "revisit": [],
    "row": "SPOT_PERP.spot_confirmation",
    "row_name": "Funding/OI moves with vs without spot confirmation",
-   "state": "INFORMATIONALLY_WEAK",
+   "state": "CLOSED_ON_SURFACE",
    "units": [
     "DH1-B1",
-    "DH1-L1"
+    "DH1-L1",
+    "DH2-L1"
    ],
    "value": {
     "confirmation_path": 2,
@@ -4854,8 +4860,8 @@
     "novelty": 0,
     "owner_priority": 2,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
+    "saturation": 1,
+    "total": 9
    }
   },
   {
@@ -4876,8 +4882,8 @@
     "novelty": 2,
     "owner_priority": 2,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 12
+    "saturation": 1,
+    "total": 11
    }
   },
   {
@@ -4898,8 +4904,8 @@
     "novelty": 2,
     "owner_priority": 2,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 11
+    "saturation": 1,
+    "total": 10
    }
   },
   {
@@ -4920,8 +4926,8 @@
     "novelty": 2,
     "owner_priority": 2,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
+    "saturation": 1,
+    "total": 8
    }
   },
   {
@@ -4942,8 +4948,8 @@
     "novelty": 2,
     "owner_priority": 2,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 11
+    "saturation": 1,
+    "total": 10
    }
   },
   {
@@ -4964,8 +4970,8 @@
     "novelty": 2,
     "owner_priority": 2,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
+    "saturation": 1,
+    "total": 9
    }
   },
   {
@@ -10093,29 +10099,29 @@
    "BLOCKED_DATA": 7,
    "BLOCKED_METHOD": 22,
    "CANDIDATE_UNTESTED": 4,
-   "CLOSED_ON_SURFACE": 9,
+   "CLOSED_ON_SURFACE": 10,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 5,
    "FUTURE_NATURAL_ACCUMULATION": 2,
-   "INFORMATIONALLY_WEAK": 9,
+   "INFORMATIONALLY_WEAK": 7,
    "LIVE_SIGNAL": 4,
-   "NO_STRUCTURE": 13,
+   "NO_STRUCTURE": 14,
    "OPEN_FRONTIER": 360
   },
-  "units": 160,
+  "units": 163,
   "units_by_state": {
    "BLOCKED_DATA": 19,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 54,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 12,
+   "CLOSED_ON_SURFACE": 14,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 10,
    "FUTURE_NATURAL_ACCUMULATION": 3,
    "INFORMATIONALLY_WEAK": 23,
    "LIVE_SIGNAL": 4,
-   "NO_STRUCTURE": 18
+   "NO_STRUCTURE": 19
   }
  },
  "FORBIDDEN_MOVES": {
@@ -10129,19 +10135,6 @@
   "SUBGROUP_MINING": "Years, regimes, weekdays or venues carved out after the outcome was seen."
  },
  "FRONTIER": [
-  {
-   "col": "PERP_FLOW",
-   "row": "SPOT_PERP.spot_confirmation",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 12
-   }
-  },
   {
    "col": "PERP_FLOW",
    "row": "SPOT_PERP.stress_lead_lag",
@@ -10182,28 +10175,15 @@
    }
   },
   {
-   "col": "ORDER_BOOK",
+   "col": "PERP_FLOW",
    "row": "SPOT_PERP.spot_confirmation",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 2,
     "product_relevance": 3,
-    "saturation": 0,
-    "total": 11
-   }
-  },
-  {
-   "col": "POSITIONING",
-   "row": "SPOT_PERP.spot_confirmation",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
+    "saturation": 1,
     "total": 11
    }
   },
@@ -10403,164 +10383,177 @@
    }
   },
   {
-   "col": "CROSS_VENUE",
-   "row": "MICROSTRUCTURE.book_recovery",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "PERP_FLOW",
-   "row": "MICROSTRUCTURE.book_recovery",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "POSITIONING",
-   "row": "MICROSTRUCTURE.book_recovery",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "SPOT",
-   "row": "MICROSTRUCTURE.book_recovery",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "CROSS_VENUE",
-   "row": "MICROSTRUCTURE.liquidity_withdrawal",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "PERP_FLOW",
-   "row": "MICROSTRUCTURE.liquidity_withdrawal",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "POSITIONING",
-   "row": "MICROSTRUCTURE.liquidity_withdrawal",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "SPOT",
-   "row": "MICROSTRUCTURE.liquidity_withdrawal",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "CROSS_VENUE",
-   "row": "MICROSTRUCTURE.replenishment",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "PERP_FLOW",
-   "row": "MICROSTRUCTURE.replenishment",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "POSITIONING",
-   "row": "MICROSTRUCTURE.replenishment",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "SPOT",
-   "row": "MICROSTRUCTURE.replenishment",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 2,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 10
-   }
-  },
-  {
-   "col": "CROSS_VENUE",
+   "col": "ORDER_BOOK",
    "row": "SPOT_PERP.spot_confirmation",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 1,
+    "total": 10
+   }
+  },
+  {
+   "col": "POSITIONING",
+   "row": "SPOT_PERP.spot_confirmation",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 1,
+    "total": 10
+   }
+  },
+  {
+   "col": "CROSS_VENUE",
+   "row": "MICROSTRUCTURE.book_recovery",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "PERP_FLOW",
+   "row": "MICROSTRUCTURE.book_recovery",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "POSITIONING",
+   "row": "MICROSTRUCTURE.book_recovery",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "SPOT",
+   "row": "MICROSTRUCTURE.book_recovery",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "CROSS_VENUE",
+   "row": "MICROSTRUCTURE.liquidity_withdrawal",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "PERP_FLOW",
+   "row": "MICROSTRUCTURE.liquidity_withdrawal",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "POSITIONING",
+   "row": "MICROSTRUCTURE.liquidity_withdrawal",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "SPOT",
+   "row": "MICROSTRUCTURE.liquidity_withdrawal",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "CROSS_VENUE",
+   "row": "MICROSTRUCTURE.replenishment",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "PERP_FLOW",
+   "row": "MICROSTRUCTURE.replenishment",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "POSITIONING",
+   "row": "MICROSTRUCTURE.replenishment",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 0,
+    "total": 10
+   }
+  },
+  {
+   "col": "SPOT",
+   "row": "MICROSTRUCTURE.replenishment",
    "value": {
     "confirmation_path": 1,
     "data_readiness": 2,
@@ -10884,6 +10877,19 @@
    }
   },
   {
+   "col": "CROSS_VENUE",
+   "row": "SPOT_PERP.spot_confirmation",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 2,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 1,
+    "total": 9
+   }
+  },
+  {
    "col": "LIQUIDATIONS",
    "row": "MICROSTRUCTURE.book_recovery",
    "value": {
@@ -10912,19 +10918,6 @@
   {
    "col": "LIQUIDATIONS",
    "row": "MICROSTRUCTURE.replenishment",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 1,
-    "novelty": 2,
-    "owner_priority": 2,
-    "product_relevance": 3,
-    "saturation": 0,
-    "total": 9
-   }
-  },
-  {
-   "col": "LIQUIDATIONS",
-   "row": "SPOT_PERP.spot_confirmation",
    "value": {
     "confirmation_path": 1,
     "data_readiness": 1,
@@ -11328,32 +11321,6 @@
   {
    "col": "SPOT",
    "row": "PRICE_STRUCTURE.impulse",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
-   }
-  },
-  {
-   "col": "PERP_FLOW",
-   "row": "PRICE_STRUCTURE.levels",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 9
-   }
-  },
-  {
-   "col": "SPOT",
-   "row": "PRICE_STRUCTURE.levels",
    "value": {
     "confirmation_path": 2,
     "data_readiness": 3,
@@ -11742,6 +11709,19 @@
    }
   },
   {
+   "col": "LIQUIDATIONS",
+   "row": "SPOT_PERP.spot_confirmation",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 1,
+    "novelty": 2,
+    "owner_priority": 2,
+    "product_relevance": 3,
+    "saturation": 1,
+    "total": 8
+   }
+  },
+  {
    "col": "CROSS_VENUE",
    "row": "SPOT_PERP.basis_dislocation",
    "value": {
@@ -12054,54 +12034,28 @@
    }
   },
   {
-   "col": "CROSS_ASSET",
+   "col": "PERP_FLOW",
    "row": "PRICE_STRUCTURE.levels",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
+    "saturation": 2,
     "total": 8
    }
   },
   {
-   "col": "CROSS_VENUE",
+   "col": "SPOT",
    "row": "PRICE_STRUCTURE.levels",
    "value": {
-    "confirmation_path": 1,
+    "confirmation_path": 2,
     "data_readiness": 3,
     "novelty": 2,
     "owner_priority": 0,
     "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
-   }
-  },
-  {
-   "col": "ORDER_BOOK",
-   "row": "PRICE_STRUCTURE.levels",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 8
-   }
-  },
-  {
-   "col": "POSITIONING",
-   "row": "PRICE_STRUCTURE.levels",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
+    "saturation": 2,
     "total": 8
    }
   },
@@ -12518,6 +12472,58 @@
     "owner_priority": 2,
     "product_relevance": 2,
     "saturation": 1,
+    "total": 7
+   }
+  },
+  {
+   "col": "CROSS_ASSET",
+   "row": "PRICE_STRUCTURE.levels",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "CROSS_VENUE",
+   "row": "PRICE_STRUCTURE.levels",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "ORDER_BOOK",
+   "row": "PRICE_STRUCTURE.levels",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 7
+   }
+  },
+  {
+   "col": "POSITIONING",
+   "row": "PRICE_STRUCTURE.levels",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 3,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
     "total": 7
    }
   },
@@ -13562,19 +13568,6 @@
    }
   },
   {
-   "col": "LIQUIDATIONS",
-   "row": "PRICE_STRUCTURE.levels",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 1,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 1,
-    "total": 6
-   }
-  },
-  {
    "col": "CROSS_ASSET",
    "row": "CALENDAR.sessions",
    "value": {
@@ -14014,6 +14007,19 @@
     "product_relevance": 0,
     "saturation": 0,
     "total": 6
+   }
+  },
+  {
+   "col": "LIQUIDATIONS",
+   "row": "PRICE_STRUCTURE.levels",
+   "value": {
+    "confirmation_path": 1,
+    "data_readiness": 1,
+    "novelty": 2,
+    "owner_priority": 0,
+    "product_relevance": 3,
+    "saturation": 2,
+    "total": 5
    }
   },
   {
@@ -15576,7 +15582,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "b0f5bfe120f8b9123fc19c606639c08867ebb7d0dbc00633fb91a4558e4eea59",
+ "SOURCES_DIGEST": "2ecec41a6b7622ecf37a6b62f70d5e2fc5cbfee50ed0ba6339fe0bc7ea585049",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16276,6 +16282,70 @@
      "docs/research/DH1_FEASIBILITY.md"
     ],
     "venue": "BitMEX (public.bitmex.com trade archive)"
+   },
+   {
+    "also_cols": [
+     "CANDLES",
+     "PERP_FLOW"
+    ],
+    "availability": "PINNED",
+    "col": "CROSS_ASSET",
+    "coverage": "first full month after listing (2020-01..2020-10) .. 2024-12; 281 monthly objects, checksums verified",
+    "data": "5m klines incl. quote and taker-buy quote volume",
+    "exposure": [
+     {
+      "note": "DH2 one-shot discovery pooled over six coins (L1, L3, B2), 2026-10-04",
+      "period": "2020-2024",
+      "rows": [
+       "PRICE_STRUCTURE.levels",
+       "SPOT_PERP.spot_confirmation",
+       "SPOT_PERP.volume_share"
+      ],
+      "status": "CONSUMED"
+     }
+    ],
+    "id": "DH2_BINANCE_UM_ALTS_5M_V0",
+    "instrument": "ETH, XRP, BNB, DOGE, SOL USDT perpetuals",
+    "records": [
+     "docs/research_data/DH2_BINANCE_UM_ALTS_5M_V0",
+     "docs/research/DH2_RESULT.md"
+    ],
+    "venue": "Binance USD-M (data.binance.vision)"
+   },
+   {
+    "also_cols": [
+     "CROSS_ASSET"
+    ],
+    "availability": "PINNED",
+    "col": "SPOT",
+    "coverage": "discovery months 2020..2024 plus ETH/BNB/XRP 2017-08..2019-12; 354 monthly objects, checksums verified",
+    "data": "5m klines incl. quote and taker-buy quote volume",
+    "exposure": [
+     {
+      "note": "DH2 one-shot discovery (spot states)",
+      "period": "2020-2024",
+      "rows": [
+       "SPOT_PERP.spot_confirmation",
+       "SPOT_PERP.volume_share"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "DH2-L3 replication-surface feasibility counted events and states only; no outcome read",
+      "period": "2017-2019",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "EXPOSED"
+     }
+    ],
+    "id": "DH2_BINANCE_SPOT_ALTS_5M_V0",
+    "instrument": "ETH, XRP, BNB, DOGE, SOL USDT spot",
+    "records": [
+     "docs/research_data/DH2_BINANCE_SPOT_ALTS_5M_V0",
+     "docs/research/DH2_FEASIBILITY.md"
+    ],
+    "venue": "Binance spot (data.binance.vision)"
    },
    {
     "also_cols": [
@@ -20799,6 +20869,44 @@
    "why_closed": "Composition of consumed path families (H02, B2-02, H03/B2-03)."
   },
   {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+    "DH2_BINANCE_UM_ALTS_5M_V0",
+    "DH2_BINANCE_SPOT_ALTS_5M_V0"
+   ],
+   "forbidden": "re-scoring with a subset of coins, another state threshold, horizon or side; rescuing DH1/DH2 cells; confirming on Binance 2020-2024",
+   "function": "first touch -> 4h hold; state = level price not traded during the 24h before the touch",
+   "id": "DH2-L3",
+   "mechanism": "Orders and stops accumulate at a level the market has not visited for a while.",
+   "note": "Bot finding DH2-L3 NOT_CONFIRMED (/research only).",
+   "period": "discovery Binance USD-M + spot, six coins, 2020-2024 (each coin from its first full month + 1); replication not opened (nothing promising)",
+   "practical_bar": "|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; Holm within card; coin fixed effects; week clusters pooled across coins",
+   "program": "DIRECTIONAL_HYPOTHESES_DH2",
+   "records": [
+    "docs/research/DH2_POOLED_DESIGN.md",
+    "docs/research/DH2_FEASIBILITY.md",
+    "docs/research/DH2_FEASIBILITY.json",
+    "docs/research/DH2_PREREG.json",
+    "docs/research/DH2_RESULT.md",
+    "docs/research/DH2_RESULT_DISCOVERY.json",
+    "docs/research/DH2_RESULT_REPLICATION.json",
+    "docs/research/SCIENTIFIC_TEST_LEDGER.json",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md",
+    "config/beta_research_findings.yaml"
+   ],
+   "reopen": "Only a new mechanism or a new surface (prospective data); not a re-score with another coin set, window, side or threshold.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "STALE_LEVEL_HOLD_4H_POOLED",
+   "units_n": "16373 first touches (4777 / 11596), six coins",
+   "verdict": "INCONCLUSIVE: 45.2 % vs 45.4 %, adjusted -0.61 pp, 95 % CI -3.49..+2.27, Holm p 0.67, Brier skill -0.0002; BTC alone +3.9 pp (CI -1.8..+9.7), DOGE -4.5 pp; gates not assessable",
+   "why_closed": "No detectable difference between stale and fresh levels; effects beyond about +-3.5 pp excluded; coins disagree in sign."
+  },
+  {
    "blocker": "METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING",
    "col": "CANDLES",
    "data_state": "DATA_READY; generated candidate; market outcomes not tested; protected 2025/2026 unopened",
@@ -21349,6 +21457,44 @@
    "datasets": [
     "CORE_BTC_BINANCE_V0",
     "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+    "DH2_BINANCE_UM_ALTS_5M_V0",
+    "DH2_BINANCE_SPOT_ALTS_5M_V0"
+   ],
+   "forbidden": "re-scoring with a subset of coins, another state threshold, horizon or side; rescuing DH1/DH2 cells; confirming on Binance 2020-2024",
+   "function": "first touch of PDH/PDL/PWH/PWL/PMH/PML/POC -> 4h hold; state = spot taker net flow over the hour into the touch points in the approach direction; nuisance incl. perp imbalance and coin",
+   "id": "DH2-L1",
+   "mechanism": "A push into a level carried by spot taker flow is less likely to be unwound than one carried by perp flow alone.",
+   "note": "Bot finding DH2-L1 NOT_CONFIRMED (/research only).",
+   "period": "discovery Binance USD-M + spot, six coins, 2020-2024 (each coin from its first full month + 1); replication not opened (nothing promising)",
+   "practical_bar": "|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; Holm within card; coin fixed effects; week clusters pooled across coins",
+   "program": "DIRECTIONAL_HYPOTHESES_DH2",
+   "records": [
+    "docs/research/DH2_POOLED_DESIGN.md",
+    "docs/research/DH2_FEASIBILITY.md",
+    "docs/research/DH2_FEASIBILITY.json",
+    "docs/research/DH2_PREREG.json",
+    "docs/research/DH2_RESULT.md",
+    "docs/research/DH2_RESULT_DISCOVERY.json",
+    "docs/research/DH2_RESULT_REPLICATION.json",
+    "docs/research/SCIENTIFIC_TEST_LEDGER.json",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md",
+    "config/beta_research_findings.yaml"
+   ],
+   "reopen": "Only a new mechanism or a new surface (prospective data); not a re-score with another coin set, window, side or threshold.",
+   "row": "SPOT_PERP.spot_confirmation",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "SPOT_CONFIRMED_APPROACH_HOLD_4H_POOLED",
+   "units_n": "16362 first touches (13645 / 2717), six coins",
+   "verdict": "INCONCLUSIVE: 45.2 % vs 46.1 %, adjusted -1.75 pp, 95 % CI -3.78..+0.36, Holm p 0.21, Brier skill +0.0001; BTC alone -5.1 pp (CI -11.1..+1.1); coin and year gates not assessable",
+   "why_closed": "The belief that spot confirmation helps a level hold did not hold: a positive effect above +0.4 pp is excluded on the pooled data; a negative effect of up to about 4 pp is not excluded."
+  },
+  {
+   "col": "SPOT",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
     "DH1_BITMEX_XBTUSD_TRADES_5M_V0"
    ],
    "forbidden": "lowering the 3 pp bar or the feasibility rule for this cell; rescuing it inside DH1",
@@ -21376,6 +21522,44 @@
    "units_n": "1846 moves; smaller arm 289",
    "verdict": "INFORMATIONALLY_WEAK (closed at feasibility): N 1846 (289 / 1557), discovery MDE 11.4 pp; replication 17.3 pp; never frozen as executable; no outcome computed",
    "why_closed": "Too few events for a 3-6 pp directional effect on one symbol and venue."
+  },
+  {
+   "col": "SPOT",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+    "DH2_BINANCE_UM_ALTS_5M_V0",
+    "DH2_BINANCE_SPOT_ALTS_5M_V0"
+   ],
+   "forbidden": "re-scoring with a subset of coins, another state threshold, horizon or side; rescuing DH1/DH2 cells; confirming on Binance 2020-2024",
+   "function": "sharp 15m move -> barrier +X before -X in the move direction within 4h (X = half the 4h corridor half-width); state = spot share of quote volume in the move above its prior-24h share",
+   "id": "DH2-B2",
+   "mechanism": "Moves with unusually high spot participation are less leverage-driven, so they are less often reversed.",
+   "note": "Bot finding DH2-B2 NOT_CONFIRMED (/research only).",
+   "period": "discovery Binance USD-M + spot, six coins, 2020-2024 (each coin from its first full month + 1); replication not opened (nothing promising)",
+   "practical_bar": "|nuisance-adjusted shift| >= 3 pp and Brier skill > 0; Holm within card; coin fixed effects; week clusters pooled across coins",
+   "program": "DIRECTIONAL_HYPOTHESES_DH2",
+   "records": [
+    "docs/research/DH2_POOLED_DESIGN.md",
+    "docs/research/DH2_FEASIBILITY.md",
+    "docs/research/DH2_FEASIBILITY.json",
+    "docs/research/DH2_PREREG.json",
+    "docs/research/DH2_RESULT.md",
+    "docs/research/DH2_RESULT_DISCOVERY.json",
+    "docs/research/DH2_RESULT_REPLICATION.json",
+    "docs/research/SCIENTIFIC_TEST_LEDGER.json",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md",
+    "config/beta_research_findings.yaml"
+   ],
+   "reopen": "Only a new mechanism or a new surface (prospective data); not a re-score with another coin set, window, side or threshold.",
+   "row": "SPOT_PERP.volume_share",
+   "source": "ATLAS_UNITS_V1",
+   "state": "NO_STRUCTURE",
+   "title": "SPOT_SHARE_HIGH_SHARP_MOVE_BARRIER_4H_POOLED",
+   "units_n": "9629 sharp moves (3143 / 6486), six coins",
+   "verdict": "NO_INCREMENTAL_STRUCTURE: 51.6 % vs 52.0 %, adjusted +0.55 pp, 95 % CI -1.78..+2.84, Holm p 0.64, Brier skill -0.0001; BTC alone -3.3 pp (CI -10.1..+3.2)",
+   "why_closed": "Spot participation in a sharp move does not change which edge is reached first; the whole interval lies inside +-3 pp."
   },
   {
    "blocker": null,

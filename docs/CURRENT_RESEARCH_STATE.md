@@ -1,10 +1,14 @@
-## Pooled directional hypotheses (DH2) — frozen; discovery pending — 2026-10-04
+## Pooled directional hypotheses (DH2) — executed once; nothing for the bot to state — 2026-10-04
 
-`PROGRAM = DIRECTIONAL_HYPOTHESES_DH2 (owner decision; docs/research/DH2_POOLED_DESIGN.md)`
-`CELLS = DH2-L1 (spot-confirmed approach), DH2-L3 (stale level), DH2-B2 (spot share in a sharp move); six coins pooled, coin fixed effects`
-`FEASIBILITY = all EXECUTABLE (MDE 3.6-4.2 pp); heterogeneity gates NOT_ASSESSABLE; replication underpowered (live tracking decides)`
-`PREREG = docs/research/DH2_PREREG.json | MARKET_OUTCOMES_OPENED_AT_FREEZE = NO | OBJECTS_2025_2026_USED = none`
-`NEXT_UNIT = DH2 one-shot discovery (python -m scripts.research.dh2.evaluate --surface DISCOVERY)`
+`PROGRAM = DIRECTIONAL_HYPOTHESES_DH2 (owner decision; docs/research/DH2_POOLED_DESIGN.md; atlas no-pooling routing overridden for DH2 only)`
+`DH2-L1 spot-confirmed approach -> 4h hold = INCONCLUSIVE (-1.75 pp, CI -3.78..+0.36; a positive effect above +0.4 pp excluded)`
+`DH2-L3 stale level -> 4h hold = INCONCLUSIVE (-0.61 pp, CI -3.49..+2.27)`
+`DH2-B2 spot share in a sharp move -> barrier = NO_INCREMENTAL_STRUCTURE (+0.55 pp, CI -1.78..+2.84)`
+`PROMISING_PROTOTYPES = 0 | REPLICATION not opened | BOT = three NOT_CONFIRMED /research lines, no probability line`
+`OBJECTS_2025_2026_USED = none | E1 / B2-06 untouched`
+`NEXT_UNIT = none started; recommended next: live tracking of the bot's own statements (docs/research/DH2_RESULT.md §5)`
+
+**What DH1 and DH2 say together.** Six cells were tested on free data, and none moved a level-hold or barrier probability by 3 pp. Spot confirmation, spot share, confluence and staleness carry no directional information at the 3–4 pp scale on Binance 2020–2024.
 
 ## Directional hypotheses for the bot (DH1) — executed once; no probability line for the bot — 2026-10-04
 
