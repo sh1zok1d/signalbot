@@ -11,6 +11,8 @@
   --beta-history-sync   fetch / verify / upsert Binance Vision history (5m klines 2020→, OI 2020-09→)
   --beta-history-build  nightly statistics build (range model, levels, analogues, events)
   --beta-bootstrap-rewind  rewind the bootstrap watermark 30 days (then run the bootstrap runner)
+  --beta-feeds-once     research-evidence read-only public feeds (OI / long-short ratio, DVOL, depth, spot)
+  --beta-stress-once    research-evidence stress hours (public aggTrades of both venues, stress hours only)
 
 No beta command imports or invokes the frozen V1/V2 forecast engines. Stage-2
 schema/revision/instrument bootstrap reuses the shadow CLI helpers unchanged.
@@ -29,7 +31,8 @@ BETA_CODE_PATHS = ("beta", "runtime/beta_cli.py", "runtime/beta_bot.py", "storag
 BETA_COMMAND_FLAGS = ("beta_bootstrap", "beta_once", "beta_status", "beta_outcomes_once",
                       "beta_notify_once", "beta_health", "beta_usage_report",
                       "beta_d7_once", "beta_d7_backfill", "beta_context_dry_run",
-                      "beta_history_sync", "beta_history_build", "beta_bootstrap_rewind")
+                      "beta_history_sync", "beta_history_build", "beta_bootstrap_rewind",
+                      "beta_feeds_once", "beta_stress_once")
 READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report", "beta_context_dry_run")
 
 
@@ -66,6 +69,10 @@ def add_beta_arguments(parser) -> None:
                    help="Beta V2: build the decision-support statistics from the stored history.")
     g.add_argument("--beta-bootstrap-rewind", action="store_true",
                    help="Beta V2: rewind the bootstrap watermark so the bootstrap refills 30 days of V2 tape.")
+    g.add_argument("--beta-feeds-once", action="store_true",
+                   help="Beta: one pass of the research-evidence read-only public feeds.")
+    g.add_argument("--beta-stress-once", action="store_true",
+                   help="Beta: check the last completed hours for DH3-S stress hours (public aggTrades).")
     parser.add_argument("--history-max-objects", type=int, default=None,
                         help="Bound one --beta-history-sync run to N archive objects (default: all).")
     parser.add_argument("--beta-bucket-ts", default=None,
@@ -338,6 +345,19 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
                                                          timeframe=cfg.timeframe, bucket_ts=rewind_to)
         return {"status": "OK", "previous_watermark": prev, "rewound_to": rewind_to,
                 "next": "python -m runtime.beta_bootstrap_runner"}
+
+    if getattr(args, "beta_feeds_once", False) or getattr(args, "beta_stress_once", False):
+        if not switches.enabled:
+            return {"status": "DISABLED"}
+        rcfg = cfg.section("decision")["research_evidence"]
+        key = "feeds_enabled" if args.beta_feeds_once else "stress_hours_enabled"
+        if not (rcfg["enabled"] and rcfg[key]):
+            return {"status": "DISABLED", "reason": f"decision.research_evidence.{key}"}
+        await db.init_beta_v0_schema()
+        from beta.research_feeds import run_feeds_job, run_stress_job
+        if args.beta_feeds_once:
+            return await run_feeds_job(db.beta_store(), now=clock())
+        return await run_stress_job(db.beta_store(), now=clock())
 
     if args.beta_d7_once or args.beta_d7_backfill:
         if not switches.enabled:

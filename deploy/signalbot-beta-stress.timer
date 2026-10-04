@@ -1,0 +1,14 @@
+[Unit]
+Description=Run Signalbot private beta research-evidence stress-hour check at HH:02 UTC
+Documentation=file:/opt/signalbot/docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md
+
+[Timer]
+OnCalendar=*-*-* *:02:00 UTC
+AccuracySec=1s
+RandomizedDelaySec=0
+# The job looks back 6 completed hours, so a missed run is caught up on the next one.
+Persistent=true
+Unit=signalbot-beta-stress.service
+
+[Install]
+WantedBy=timers.target

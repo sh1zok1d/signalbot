@@ -220,6 +220,26 @@ def event_note(events: Sequence[Mapping[str, Any]], lang: str) -> Optional[str]:
     return t(lang, "ev_release_note", names=names)
 
 
+MAIN_RESEARCH_LINES = 2          # owner task 2026-10-04: at most 2 research conclusions on a main surface
+RISK_TOPICS = ("RANGE_1H", "RANGE_4H", "RANGE_24H", "CALENDAR_VOL")
+
+
+def _block_now(block: Mapping[str, Any]) -> Optional[datetime]:
+    at = block.get("as_of")
+    return datetime.fromisoformat(at) if at else None
+
+
+def evidence_lines(block: Mapping[str, Any], surface: str, lang: str, *, limit: int = MAIN_RESEARCH_LINES,
+                   since: Optional[datetime] = None, topics: Optional[Sequence[str]] = None,
+                   running: bool = True) -> list:
+    """Research conclusions for a surface from the block's research evidence: the live state and
+    what the closed research found after it, by the evidence hierarchy (beta/research_evidence.py)."""
+    from .research_render import surface_lines
+    now = _block_now(block)
+    return surface_lines(block.get("evidence"), surface, lang, limit=limit, since=since, topics=topics,
+                         now=now if running else None)
+
+
 def research_line(contexts: Sequence[str], lang: str) -> Optional[str]:
     """One «Проверено: …» line from the research registry, or None (the registry is optional)."""
     try:
@@ -237,10 +257,6 @@ def today_lines(block: Mapping[str, Any], lang: str) -> list:
     note = event_note(evs, lang)
     if note:
         out.append(note)
-    contexts = _event_contexts(e["kind"] for e in evs) + (["weekend"] if block.get("weekend") else [])
-    line = research_line(contexts, lang)
-    if line:
-        out.append(line)
     return out
 
 
@@ -273,7 +289,8 @@ def analog_line(card: Optional[Mapping[str, Any]], lang: str, *, since_year: Opt
 
 
 def brief_lines(view: Mapping[str, Any], lang: str) -> list:
-    """Corridor, levels and today's events for the briefing and /catchup (after «Сейчас»)."""
+    """Corridor, levels, today's events and what the research says about the window's states, for
+    the briefing and /catchup (after «Сейчас»)."""
     block = view.get("decision")
     if not block:
         return []
@@ -281,7 +298,11 @@ def brief_lines(view: Mapping[str, Any], lang: str) -> list:
     if gone:
         return ["", gone]
     out = []
-    for part in (corridor_lines(block, lang), levels_lines(block, lang), today_lines(block, lang)):
+    surface = "brief" if view.get("kind") == "brief" else "catchup"
+    window = ((view.get("market") or {}).get("window") or {})
+    since = datetime.fromisoformat(window["window_start"]) if window.get("window_start") else None
+    research = evidence_lines(block, surface, lang, since=since, running=False)
+    for part in (corridor_lines(block, lang), levels_lines(block, lang), today_lines(block, lang), research):
         if part:
             out.append("")
             out.extend(part)
@@ -308,6 +329,7 @@ def btc_lines(view: Mapping[str, Any], lang: str) -> list:
                            name=_e(zone_names(z, lang, limit=1)), dist=fmt_signed_pct(z["distance_pct"], lang)))
     if parts:
         out.append(t(lang, "dc_btc_levels", parts=" · ".join(parts)))
+    out.extend(evidence_lines(block, "btc", lang))
     return out
 
 
@@ -329,7 +351,16 @@ def _hist_lines(hist: Optional[Mapping[str, Any]], lang: str, side: int) -> list
             t(lang, "lv_hist_move", further=_pct(r1["further_median"], lang), back=_pct(r1["back_median"], lang))]
 
 
-def _zone_block(z: Mapping[str, Any], lang: str, side: int) -> list:
+def _zone_research(cond: Sequence[Mapping[str, Any]], lang: str) -> list:
+    """The strongest conditional finding for a zone (one line): what such a touch was followed by."""
+    from .research_render import line
+    try:
+        return [line(cond[0], lang)] if cond else []
+    except Exception:  # noqa: BLE001 - research context never breaks /levels
+        return []
+
+
+def _zone_block(z: Mapping[str, Any], lang: str, side: int, cond: Sequence[Mapping[str, Any]] = ()) -> list:
     lines = [t(lang, "lv_zone", price=zone_price(z, lang), names=_e(zone_names(z, lang, limit=3)),
                dist=fmt_signed_pct(z["distance_pct"], lang))]
     touch = z.get("touch") or {}
@@ -340,6 +371,7 @@ def _zone_block(z: Mapping[str, Any], lang: str, side: int) -> list:
     elif "24h" in touch:
         lines.append(t(lang, "lv_touch_24h", p24=fmt_prob(touch["24h"], lang)))
     lines.extend(_hist_lines(z.get("history"), lang, side))
+    lines.extend(_zone_research(cond, lang))
     return lines
 
 
@@ -353,16 +385,21 @@ def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
         lines.append(t(lang, "dc_level_at", price=zone_price(lv["at"], lang), name=_e(zone_names(lv["at"], lang))))
     lines.append("")
     lines.append(t(lang, "lv_above"))
+    zc = ((block.get("evidence") or {}).get("zones") or {})
+
+    def cond(side: str, k: int) -> list:
+        lst = zc.get(side) or []
+        return list(lst[k]) if k < len(lst) else []
     above = lv.get("above") or []
-    for z in above:
-        lines.extend(_zone_block(z, lang, +1))
+    for k, z in enumerate(above):
+        lines.extend(_zone_block(z, lang, +1, cond("above", k)))
     if not above:
         lines.append(t(lang, "lv_none"))
     lines.append("")
     lines.append(t(lang, "lv_below"))
     below = lv.get("below") or []
-    for z in below:
-        lines.extend(_zone_block(z, lang, -1))
+    for k, z in enumerate(below):
+        lines.extend(_zone_block(z, lang, -1, cond("below", k)))
     if not below:
         lines.append(t(lang, "lv_none"))
     x = ((block.get("corridor") or {}).get("horizons") or {}).get("24h")
@@ -433,9 +470,7 @@ def format_risk(block: Mapping[str, Any], model: Optional[Mapping[str, Any]], la
         lines.append(t(lang, "rk_typical", h1=_pct(hz["1h"]["typical_move_pct"], lang),
                        h4=_pct(hz["4h"]["typical_move_pct"], lang), h24=_pct(hz["24h"]["typical_move_pct"], lang)))
     lines.append(t(lang, "rk_note"))
-    checked = research_line(["corridor"], lang)
-    if checked:
-        lines.append(checked)
+    lines.extend(evidence_lines(block, "risk", lang, topics=RISK_TOPICS))
     if stop_pct is None:
         lines.append(t(lang, "rk_usage"))
     return assert_descriptive("\n".join(lines), lang)
@@ -577,10 +612,13 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         lines.append(t(lang, "pa_price_footer"))
     else:
         raise ValueError(f"unknown alert kind {kind!r}")
-    contexts = {"level": [f"level:{payload.get('level_kind')}", "level"],
-                "event": _event_contexts([payload.get("event_kind")]),
-                "move": [] if zones.get("1h") else ["move"]}.get(kind, [])      # no unit tested release moves
-    checked = research_line(contexts, lang)
-    if checked and sum(1 for x in lines if x.strip()) < ALERT_MAX_LINES:     # an extra, never a 9th line
-        lines.append(checked)
+    # research evidence recorded with the alert (beta/research_evidence.py); no unit tested release moves
+    surface = {"level": "level_alert", "move": "move_alert"}.get(kind)
+    if surface and not (kind == "move" and zones.get("1h")):
+        from .research_render import surface_lines
+        ev = {"matches": payload.get("evidence") or []}
+        for x in surface_lines(ev, surface, lang, limit=MAIN_RESEARCH_LINES):
+            if sum(1 for y in lines if y.strip()) >= ALERT_MAX_LINES:            # an extra, never a 9th line
+                break
+            lines.append(x)
     return assert_descriptive("\n".join(lines), lang)

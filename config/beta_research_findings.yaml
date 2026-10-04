@@ -11,6 +11,14 @@
 #   weekend                             today's block on a Saturday or Sunday (Kyiv)
 # Every entry is listed in /research by status. `pending_merge: true` marks a unit whose record
 # lives on a research branch that is not merged yet (its record path is checked once it is).
+# `live:` (research evidence integration, owner task 2026-10-04; beta/research_evidence.py) makes a
+# finding part of the live market analysis: `state` names the frozen research state the engine
+# recognises (beta/research_states.py, cut points in config/beta_research_cuts.json); `topic` and
+# `mechanism` drive the evidence hierarchy and the NOT_CONFIRMED veto; `direction` is SUPPORTS (the
+# finding says what the state was followed by), REFUTES (the natural reading of the state did not
+# hold) or DESCRIPTIVE; `effect_*`, `comparator_*`, `n`, `replication_*` and `limitations_*` state
+# only what the record states (`effect_alt_*`: the comparator arm of a two-arm state). A finding
+# without `live:` stays in /research only.
 # When a research unit closes, add or update its entry here (AGENTS.md). A closed program with
 # nothing to state (no executed unit, no outcome) gets no finding and no /research line; it is
 # listed under `no_bot_context` with its record, so the omission is a recorded decision.
@@ -41,6 +49,22 @@ findings:
     record: "docs/research/D7_CAMPAIGN_CLOSE_V1.md; docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.md"
     contexts: [move]
     priority: 20
+    live:
+      state: D7_HOUR
+      topic: RANGE_1H
+      mechanism: execution_impact
+      direction: SUPPORTS
+      horizon_h: 1
+      n: 4545
+      surfaces: [btc, catchup, brief, risk, move_alert, details]
+      effect_ru: "следующий час был таким же примерно в 1 из 5 случаев (обычно в 1 из 10); направление не оценивалось"
+      effect_en: "the next hour was the same kind about 1 time in 5 (usually 1 in 10); direction was not assessed"
+      comparator_ru: "все часы: такой час примерно 1 из 10"
+      comparator_en: "all hours: such an hour about 1 in 10"
+      replication_ru: "повторилось на BitMEX 2017–2019"
+      replication_en: "repeated on BitMEX 2017–2019"
+      limitations_ru: "про следующий час и его размах, не про направление"
+      limitations_en: "about the next hour and its size, not its direction"
   - id: D2
     status: CONFIRMED
     text_ru: "после дня с очень высокой волатильностью откат против вчерашнего направления за следующие 24 ч был больше обычного (в среднем 4,0% против 2,6%), но это размах в обе стороны: перекоса против тренда нет"
@@ -49,6 +73,22 @@ findings:
     record: "docs/research/discovery_results/D2_DISCOVERY_RESULT.md; docs/research/D2_BITMEX_REPLICATION_CORRECTED_RESULT.md; docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.md"
     contexts: [corridor]
     priority: 10
+    live:
+      state: D2_HIGH_RV_DAY
+      topic: RANGE_24H
+      mechanism: daily_vol_clustering
+      direction: SUPPORTS
+      horizon_h: 24
+      n: 1791
+      surfaces: [btc, catchup, brief, risk, details]
+      effect_ru: "после таких дней откат против вчерашнего направления за 24 ч был больше обычного (в среднем 4,0% против 2,6%), но это размах в обе стороны, без перекоса против тренда"
+      effect_en: "after such days the next 24h move against the previous direction was larger than usual (4.0% vs 2.6% on average), but it is a wider swing both ways, with no tilt against the trend"
+      comparator_ru: "остальные дни (2,6%); 163 таких дня из 1791"
+      comparator_en: "the other days (2.6%); 163 such days of 1791"
+      replication_ru: "повторилось на BitMEX 2017–2019; разложение по направлению перекоса не нашло"
+      replication_en: "repeated on BitMEX 2017–2019; the direction decomposition found no tilt"
+      limitations_ru: "про размах за 24 ч, не про направление"
+      limitations_en: "about the 24h swing, not its direction"
 
   # ---- found once, not replicated --------------------------------------------------------------
   - id: DH3-P3
@@ -59,6 +99,24 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 10
+    live:
+      state: P3_CROWD
+      topic: DIRECTION_4H
+      mechanism: crowd_positioning
+      direction: SUPPORTS
+      horizon_h: 4
+      n: 14218
+      surfaces: [btc, catchup, brief, details]
+      effect_ru: "при таком перекосе цена в следующие 4 ч реже шла сначала вверх: 48% против 54%, когда толпа в шортах"
+      effect_en: "with such a skew price went up first less often over the next 4h: 48% vs 54% when the crowd was short"
+      effect_alt_ru: "при таком перекосе цена в следующие 4 ч чаще шла сначала вверх: 54% против 48%, когда толпа в лонгах"
+      effect_alt_en: "with such a skew price went up first more often over the next 4h: 54% vs 48% when the crowd was long"
+      comparator_ru: "противоположный перекос толпы (по 7109 часов)"
+      comparator_en: "the opposite crowd skew (7109 hours each)"
+      replication_ru: "найдено на 2020–2024, независимого подтверждения нет"
+      replication_en: "found on 2020–2024, no independent confirmation"
+      limitations_ru: "только BTC и только Binance; «сначала вверх» — раньше дойти до +X, чем до −X (X — половина 4-часового коридора); величина менялась по годам"
+      limitations_en: "BTC and Binance only; 'up first' means reaching +X before −X (X is half of the 4h corridor); the size varied by year"
   - id: DH3-V3
     status: DISCOVERY
     text_ru: "повторное касание вчерашнего максимума или минимума после отката удерживалось за уровнем чуть чаще первого: 47% против 45% через 4 ч; на 2017–2019 не повторилось"
@@ -67,6 +125,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 20
+    live:
+      state: V3_RETEST
+      topic: LEVEL_HOLD
+      mechanism: retest_hold
+      direction: SUPPORTS
+      horizon_h: 4
+      n: 13622
+      surfaces: [levels, btc, catchup, details]
+      effect_ru: "повторное касание вчерашнего максимума или минимума после отката удерживалось за уровнем чуть чаще первого: 47% против 45% через 4 ч"
+      effect_en: "a retest of yesterday's high or low after a pullback held beyond it slightly more often than the first touch: 47% vs 45% after 4h"
+      comparator_ru: "первые касания (9091 против 4531 повторных)"
+      comparator_en: "first touches (9091 vs 4531 retests)"
+      replication_ru: "на 2017–2019 не повторилось (выборка была мала для вывода)"
+      replication_en: "it did not repeat on 2017–2019 (that sample was too small for a verdict)"
+      limitations_ru: "6 монет вместе; разница 2–4 п.п."
+      limitations_en: "six coins pooled; a 2–4 pp difference"
   - id: D11
     status: DISCOVERY
     text_ru: "после плановых решений ФРС следующие 6 ч были в среднем в 1,76 раза волатильнее обычного, и так в каждом году 2020–2024; направление не оценивалось"
@@ -83,6 +157,22 @@ findings:
     record: "docs/research/discovery_results/D12_DISCOVERY_RESULT.md"
     contexts: []
     priority: 50
+    live:
+      state: D12_US_CLOCK_WEEK
+      topic: CALENDAR
+      mechanism: us_clock
+      direction: DESCRIPTIVE
+      horizon_h: 168
+      n: 10
+      surfaces: [brief, catchup, details]
+      effect_ru: "дневной профиль объёма BTC сдвигался на час вместе с переводом часов в США: время активной торговли привязано к американским часам"
+      effect_en: "BTC's intraday volume profile shifted by an hour with the US clock change: the busy hours are tied to the US clock"
+      comparator_ru: "239 обычных воскресений"
+      comparator_en: "239 ordinary Sundays"
+      replication_ru: "один прогон, не перепроверено"
+      replication_en: "one run, not replicated"
+      limitations_ru: "про часы активности, не про цену"
+      limitations_en: "about the busy hours, not about price"
 
   # ---- present, below the materiality bar ----------------------------------------------------
   - id: DH3-P1
@@ -93,6 +183,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 10
+    live:
+      state: P1_LEVERAGE_LOADING
+      topic: RANGE_4H
+      mechanism: leverage_release
+      direction: SUPPORTS
+      horizon_h: 4
+      n: 12397
+      surfaces: [btc, catchup, brief, risk, details]
+      effect_ru: "следующие 4 ч после такого были в среднем на 13% шире обычного"
+      effect_en: "the next 4h after this were on average 13% wider than usual"
+      comparator_ru: "тихие часы без такого роста OI (3581 против 8816)"
+      comparator_en: "quiet hours without such an OI build-up (3581 vs 8816)"
+      replication_ru: "независимой проверки нет"
+      replication_en: "no independent check"
+      limitations_ru: "ниже нашего порога значимости 15%; величина менялась по годам; BTC, Binance"
+      limitations_en: "below our 15% materiality bar; the size varied by year; BTC, Binance"
   - id: DH3-O2
     status: WEAK
     text_ru: "резкий рост опционной волатильности DVOL за час: следующие 4 ч в среднем на 10% шире обычного, ниже порога значимости 15%"
@@ -101,6 +207,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 20
+    live:
+      state: O2_DVOL_JUMP
+      topic: RANGE_4H
+      mechanism: dvol_jump
+      direction: SUPPORTS
+      horizon_h: 4
+      n: 65464
+      surfaces: [btc, catchup, risk, details]
+      effect_ru: "следующие 4 ч после такого были в среднем на 10% шире обычного"
+      effect_en: "the next 4h after this were on average 10% wider than usual"
+      comparator_ru: "остальные часы (6548 против 58916; BTC и ETH)"
+      comparator_en: "the other hours (6548 vs 58916; BTC and ETH)"
+      replication_ru: "независимой проверки нет"
+      replication_en: "no independent check"
+      limitations_ru: "ниже нашего порога значимости 15%; у BTC отдельно +10,5%"
+      limitations_en: "below our 15% materiality bar; BTC alone +10.5%"
   - id: DH3-L3
     status: WEAK
     text_ru: "если стакан в пределах ±1% не восстановился через 30 мин после резкого движения, следующие 4 ч были в среднем на 6–7% шире, ниже порога 15%"
@@ -109,6 +231,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 30
+    live:
+      state: L3_BOOK_NOT_RECOVERED
+      topic: RANGE_4H
+      mechanism: book_recovery
+      direction: SUPPORTS
+      horizon_h: 4
+      n: 4101
+      surfaces: [btc, catchup, risk, details]
+      effect_ru: "следующие 4 ч после такого были в среднем на 6–7% шире"
+      effect_en: "the next 4h after this were on average 6–7% wider"
+      comparator_ru: "резкие движения, после которых стакан восстановился (1369 против 2732)"
+      comparator_en: "sharp moves after which the book recovered (1369 vs 2732)"
+      replication_ru: "независимой проверки нет"
+      replication_en: "no independent check"
+      limitations_ru: "ниже нашего порога значимости 15%; 6 монет, 2023–2024"
+      limitations_en: "below our 15% materiality bar; six coins, 2023–2024"
   - id: DH3-S1
     status: WEAK
     text_ru: "стресс-час, в котором цену вёл спот, а не перп, сопровождался чуть меньшим размахом следующих 4 ч (−6%), ниже порога 15%"
@@ -117,6 +255,24 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 40
+    live:
+      state: S1_STRESS_LEADER
+      topic: RANGE_4H
+      mechanism: stress_leader
+      direction: SUPPORTS
+      horizon_h: 4
+      n: 4299
+      surfaces: [btc, catchup, risk, details]
+      effect_ru: "следующие 4 ч после такого были в среднем на 6% уже, чем после стресс-часа, который вёл перп"
+      effect_en: "the next 4h after this were on average 6% narrower than after a stress hour led by the perp"
+      effect_alt_ru: "следующие 4 ч после такого были в среднем на 6% шире, чем после стресс-часа, который вёл спот"
+      effect_alt_en: "the next 4h after this were on average 6% wider than after a stress hour led by spot"
+      comparator_ru: "стресс-часы с другим лидером (967 спот против 3332 перп)"
+      comparator_en: "stress hours with the other leader (967 spot vs 3332 perp)"
+      replication_ru: "независимой проверки нет"
+      replication_en: "no independent check"
+      limitations_ru: "ниже нашего порога значимости 15%; знак обратный исходной гипотезе"
+      limitations_en: "below our 15% materiality bar; the sign is opposite to the original hypothesis"
   - id: DH3-V2
     status: WEAK
     text_ru: "после первого касания ключевого уровня размах следующих 4 ч лишь на 2% больше, чем после касания случайного уровня"
@@ -125,6 +281,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 50
+    live:
+      state: V2_KEY_LEVEL_TOUCH
+      topic: RANGE_4H
+      mechanism: key_level_range
+      direction: DESCRIPTIVE
+      horizon_h: 4
+      n: 52004
+      surfaces: [level_alert, levels, btc, catchup, details]
+      effect_ru: "после первого касания ключевого уровня размах следующих 4 ч лишь на 2% больше, чем после касания случайного уровня"
+      effect_en: "after the first touch of a key level the next 4h range was only 2% wider than after touching a random level"
+      comparator_ru: "случайные уровни на том же расстоянии (16912 против 35092)"
+      comparator_en: "random levels at the same distance (16912 vs 35092)"
+      replication_ru: "независимой проверки нет"
+      replication_en: "no independent check"
+      limitations_ru: "эффект реальный, но очень маленький; 6 монет"
+      limitations_en: "the effect is real but very small; six coins"
   - id: R03-C1
     status: WEAK
     text_ru: "выходные часы спокойнее того же часа во вт–чт; разрыв рос каждый год с 2020 по 2024, но остался ниже порога значимости проверки"
@@ -133,6 +305,22 @@ findings:
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
     contexts: [weekend]
     priority: 10
+    live:
+      state: R03_WEEKEND
+      topic: CALENDAR_VOL
+      mechanism: weekend_calm
+      direction: SUPPORTS
+      horizon_h: 24
+      n: 260
+      surfaces: [brief, catchup, btc, risk, details]
+      effect_ru: "выходные часы спокойнее того же часа во вт–чт; разрыв рос каждый год с 2020 по 2024"
+      effect_en: "weekend hours are calmer than the same hour on Tue–Thu; the gap grew every year from 2020 to 2024"
+      comparator_ru: "тот же час во вт–чт"
+      comparator_en: "the same hour on Tue–Thu"
+      replication_ru: "независимой проверки нет"
+      replication_en: "no independent check"
+      limitations_ru: "ниже порога значимости проверки"
+      limitations_en: "below the test's materiality bar"
 
   # ---- popular beliefs that did not hold -------------------------------------------------------
   - id: H03
@@ -143,6 +331,22 @@ findings:
     record: "docs/research/H03_DEV_SUMMARY.md"
     contexts: [move]
     priority: 10
+    live:
+      state: H03_IMPULSE
+      topic: CONTINUATION
+      mechanism: impulse_continuation
+      direction: REFUTES
+      horizon_h: 4
+      n: null
+      surfaces: [move_alert, btc, catchup, details]
+      effect_ru: "после таких импульсов не было устойчивого ни продолжения, ни выдыхания: знак менялся с горизонтом и годом"
+      effect_en: "after such impulses there was neither a steady continuation nor a steady fade: the sign changed with the horizon and the year"
+      comparator_ru: "случайные моменты с похожим временем суток"
+      comparator_en: "random moments at similar times of day"
+      replication_ru: "не требовалось: гипотеза отклонена на 2020–2024"
+      replication_en: "not needed: rejected on 2020–2024"
+      limitations_ru: "про направление на 15–240 мин"
+      limitations_en: "about direction over 15–240 min"
   - id: H02
     status: NOT_CONFIRMED
     text_ru: "ложный пробой диапазона последних 1–4 ч (вышли за край и вернулись) не давал отката сильнее, чем настоящий пробой: эффект около 1 б.п."
@@ -151,6 +355,22 @@ findings:
     record: "docs/research/H02_DEV_SUMMARY.md"
     contexts: [level]
     priority: 30
+    live:
+      state: H02_FAILED_BREAKOUT
+      topic: REVERSAL
+      mechanism: failed_breakout_reversal
+      direction: REFUTES
+      horizon_h: 4
+      n: null
+      surfaces: [btc, catchup, details]
+      effect_ru: "ложный пробой не давал отката сильнее, чем настоящий пробой: разница около 1 б.п."
+      effect_en: "a failed breakout was not followed by a bigger pullback than a real breakout: about 1 bp"
+      comparator_ru: "настоящие пробои того же диапазона"
+      comparator_en: "real breakouts of the same range"
+      replication_ru: "не требовалось: гипотеза отклонена на 2020–2024"
+      replication_en: "not needed: rejected on 2020–2024"
+      limitations_ru: "диапазон последних 1–4 ч; горизонты 15–240 мин"
+      limitations_en: "the last 1–4h range; horizons 15–240 min"
   - id: DH1-L2
     status: NOT_CONFIRMED
     text_ru: "уровень, совпавший с другим уровнем (зона), после первого касания удерживался не чаще одиночного: 46,5% против 46,3% через 4 ч; разница больше 3 п.п. почти исключена"
@@ -159,6 +379,22 @@ findings:
     record: "docs/research/DH1_RESULT.md"
     contexts: [level]
     priority: 35
+    live:
+      state: L_CONFLUENCE
+      topic: LEVEL_HOLD
+      mechanism: confluence_hold
+      direction: REFUTES
+      horizon_h: 4
+      n: 4622
+      surfaces: [level_alert, levels, btc, catchup, details]
+      effect_ru: "уровень, совпавший с другим уровнем, после первого касания удерживался не чаще одиночного: 46,5% против 46,3% через 4 ч"
+      effect_en: "a level that coincided with another held no more often after its first touch than a lone level: 46.5% vs 46.3% after 4h"
+      comparator_ru: "одиночные уровни"
+      comparator_en: "lone levels"
+      replication_ru: "разница больше 3 п.п. почти исключена"
+      replication_en: "a gap above 3 pp is all but ruled out"
+      limitations_ru: "первые касания ключевых уровней BTC"
+      limitations_en: "first touches of BTC key levels"
   - id: DH2-L1
     status: NOT_CONFIRMED
     text_ru: "подход к уровню на покупках/продажах спота не делал удержание за уровнем чаще: 45,2% против 46,1% через 4 ч, если и разница, то скорее в обратную сторону (незначимо)"
@@ -167,6 +403,22 @@ findings:
     record: "docs/research/DH2_RESULT.md"
     contexts: [level]
     priority: 36
+    live:
+      state: L_SPOT_APPROACH
+      topic: LEVEL_HOLD
+      mechanism: spot_backed_approach
+      direction: REFUTES
+      horizon_h: 4
+      n: 16362
+      surfaces: [btc, catchup, details]
+      effect_ru: "подход к уровню на потоке спота не делал удержание за уровнем чаще: 45,2% против 46,1% через 4 ч"
+      effect_en: "an approach backed by spot taker flow did not hold beyond the level more often: 45.2% vs 46.1% after 4h"
+      comparator_ru: "подходы без спотового потока в ту же сторону"
+      comparator_en: "approaches without spot flow the same way"
+      replication_ru: "если и разница, то скорее в обратную сторону (незначимо)"
+      replication_en: "if anything the gap points the other way (not significant)"
+      limitations_ru: "6 монет, 2020–2024"
+      limitations_en: "six coins, 2020–2024"
   - id: DH2-L3
     status: NOT_CONFIRMED
     text_ru: "давно не тронутый уровень (24 ч без сделок на нём) удерживался после первого касания так же часто, как свежий: 45,2% против 45,4% через 4 ч"
@@ -175,6 +427,22 @@ findings:
     record: "docs/research/DH2_RESULT.md"
     contexts: [level]
     priority: 37
+    live:
+      state: L_STALE
+      topic: LEVEL_HOLD
+      mechanism: stale_level_hold
+      direction: REFUTES
+      horizon_h: 4
+      n: 16373
+      surfaces: [level_alert, levels, btc, catchup, details]
+      effect_ru: "давно не тронутый уровень удерживался после первого касания так же часто, как свежий: 45,2% против 45,4% через 4 ч"
+      effect_en: "a level untouched for 24h held after its first touch about as often as a fresh one: 45.2% vs 45.4% after 4h"
+      comparator_ru: "уровни, которые торговались в предыдущие 24 ч"
+      comparator_en: "levels traded during the previous 24h"
+      replication_ru: "не требовалось: эффекта нет"
+      replication_en: "not needed: no effect"
+      limitations_ru: "6 монет, 2020–2024"
+      limitations_en: "six coins, 2020–2024"
   - id: DH3-P2
     status: NOT_CONFIRMED
     text_ru: "резкий сброс открытого интереса за час не делал следующие 4 ч заметно спокойнее или резче обычного (+0,7%)"
@@ -183,6 +451,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 50
+    live:
+      state: P2_DELEVERAGING
+      topic: RANGE_4H
+      mechanism: deleveraging_calm
+      direction: REFUTES
+      horizon_h: 4
+      n: 37147
+      surfaces: [btc, catchup, risk, details]
+      effect_ru: "после такого сброса следующие 4 ч не были заметно спокойнее или резче обычного (+0,7%)"
+      effect_en: "after such a drop the next 4h were not noticeably calmer or wilder than usual (+0.7%)"
+      comparator_ru: "остальные часы"
+      comparator_en: "the other hours"
+      replication_ru: "не требовалось: эффекта нет"
+      replication_en: "not needed: no effect"
+      limitations_ru: "BTC, Binance"
+      limitations_en: "BTC, Binance"
   - id: DH3-L1
     status: NOT_CONFIRMED
     text_ru: "тонкий стакан (±1%) сам по себе не давал заметно более широкого движения в следующие 4 ч: +3%, незначимо"
@@ -191,6 +475,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 50
+    live:
+      state: L1_THIN_BOOK
+      topic: RANGE_4H
+      mechanism: thin_book_range
+      direction: REFUTES
+      horizon_h: 4
+      n: 101112
+      surfaces: [btc, catchup, risk, details]
+      effect_ru: "тонкий стакан сам по себе не давал заметно более широкого движения в следующие 4 ч: +3%, незначимо"
+      effect_en: "a thin order book by itself did not lead to a noticeably wider next 4h: +3%, not significant"
+      comparator_ru: "остальные часы"
+      comparator_en: "the other hours"
+      replication_ru: "не требовалось: эффекта нет"
+      replication_en: "not needed: no effect"
+      limitations_ru: "6 монет, 2023–2024"
+      limitations_en: "six coins, 2023–2024"
   - id: DH3-L2
     status: NOT_CONFIRMED
     text_ru: "больше заявок на покупку, чем на продажу, в пределах ±1% не меняло шанс дойти сначала вверх: 49,5% против 49,7%"
@@ -199,6 +499,24 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 50
+    live:
+      state: L2_BOOK_SKEW
+      topic: DIRECTION_4H
+      mechanism: book_imbalance_direction
+      direction: REFUTES
+      horizon_h: 4
+      n: 41076
+      surfaces: [btc, catchup, details]
+      effect_ru: "такой перекос стакана не менял шанс дойти сначала вверх: 49,5% против 49,7%"
+      effect_en: "such a book skew did not change the chance of going up first: 49.5% vs 49.7%"
+      effect_alt_ru: "такой перекос стакана не менял шанс дойти сначала вверх: 49,7% против 49,5%"
+      effect_alt_en: "such a book skew did not change the chance of going up first: 49.7% vs 49.5%"
+      comparator_ru: "противоположный перекос стакана"
+      comparator_en: "the opposite book skew"
+      replication_ru: "не требовалось: эффекта нет"
+      replication_en: "not needed: no effect"
+      limitations_ru: "стакан в пределах ±1%; 6 монет, 2023–2024"
+      limitations_en: "the ±1% book; six coins, 2023–2024"
   - id: DH3-O1
     status: NOT_CONFIRMED
     text_ru: "когда опционы закладывали больше движения, чем было за сутки, следующие 4 ч не были устойчиво шире: знак менялся по годам"
@@ -207,6 +525,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 50
+    live:
+      state: O1_IMPLIED_ABOVE_REALIZED
+      topic: RANGE_4H
+      mechanism: implied_premium
+      direction: REFUTES
+      horizon_h: 4
+      n: 65464
+      surfaces: [btc, catchup, risk, details]
+      effect_ru: "следующие 4 ч не были устойчиво шире: знак менялся по годам"
+      effect_en: "the next 4h were not steadily wider: the sign changed by year"
+      comparator_ru: "остальные часы"
+      comparator_en: "the other hours"
+      replication_ru: "не требовалось: устойчивого эффекта нет"
+      replication_en: "not needed: no steady effect"
+      limitations_ru: "BTC и ETH, 2021–2024"
+      limitations_en: "BTC and ETH, 2021–2024"
   - id: DH3-O3
     status: NOT_CONFIRMED
     text_ru: "когда опционная волатильность росла вместе с ценой, шанс дойти сначала вверх устойчиво не менялся (знак менялся по годам)"
@@ -215,6 +549,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 50
+    live:
+      state: O3_UP_VOL
+      topic: DIRECTION_4H
+      mechanism: vol_price_regime
+      direction: REFUTES
+      horizon_h: 4
+      n: 65464
+      surfaces: [btc, catchup, details]
+      effect_ru: "шанс дойти сначала вверх устойчиво не менялся (знак менялся по годам)"
+      effect_en: "the chance of going up first did not change steadily (the sign changed by year)"
+      comparator_ru: "часы, когда DVOL и цена шли врозь"
+      comparator_en: "hours when DVOL and price moved apart"
+      replication_ru: "не требовалось: устойчивого эффекта нет"
+      replication_en: "not needed: no steady effect"
+      limitations_ru: "BTC и ETH, 2021–2024"
+      limitations_en: "BTC and ETH, 2021–2024"
   - id: DH3-V1
     status: NOT_CONFIRMED
     text_ru: "максимумы и минимумы сессий (Азия, Европа, США) после касания удерживались так же, как случайные уровни: 45,3% против 45,7%"
@@ -223,6 +573,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 50
+    live:
+      state: V1_SESSION_EXTREME
+      topic: LEVEL_HOLD
+      mechanism: session_extreme_hold
+      direction: REFUTES
+      horizon_h: 4
+      n: 120212
+      surfaces: [levels, btc, catchup, details]
+      effect_ru: "максимумы и минимумы сессий после касания удерживались так же, как случайные уровни: 45,3% против 45,7%"
+      effect_en: "session highs and lows held after a touch about as often as random levels: 45.3% vs 45.7%"
+      comparator_ru: "случайные уровни на том же расстоянии"
+      comparator_en: "random levels at the same distance"
+      replication_ru: "не требовалось: эффекта нет"
+      replication_en: "not needed: no effect"
+      limitations_ru: "первое касание в течение 24 ч после сессии; 6 монет"
+      limitations_en: "the first touch within 24h after the session; six coins"
   - id: DH3-S3
     status: NOT_CONFIRMED
     text_ru: "много крупных сделок (от 1 млн $) в стресс-час не давало устойчиво более широкого движения дальше: знак менялся по годам"
@@ -231,6 +597,22 @@ findings:
     record: "docs/research/DH3_RESULT.md"
     contexts: []
     priority: 50
+    live:
+      state: S3_LARGE_PRINTS
+      topic: RANGE_4H
+      mechanism: large_prints
+      direction: REFUTES
+      horizon_h: 4
+      n: 4299
+      surfaces: [btc, catchup, risk, details]
+      effect_ru: "столько крупных сделок не давало устойчиво более широкого движения дальше: знак менялся по годам"
+      effect_en: "that many large trades did not steadily lead to a wider move afterwards: the sign changed by year"
+      comparator_ru: "стресс-часы с меньшим числом крупных сделок"
+      comparator_en: "stress hours with fewer large trades"
+      replication_ru: "не требовалось: устойчивого эффекта нет"
+      replication_en: "not needed: no steady effect"
+      limitations_ru: "BTC, Binance, 2020–2024"
+      limitations_en: "BTC, Binance, 2020–2024"
   - id: DIVERGENCE
     status: NOT_CONFIRMED
     text_ru: "бычья дивергенция (RSI, MACD, CVD) у поддержки в стакане почти не меняла шанс дойти до +1R раньше −1R: около 50% и с ней, и без неё"
@@ -247,6 +629,22 @@ findings:
     record: "docs/research/DH2_RESULT.md"
     contexts: [move]
     priority: 40
+    live:
+      state: B2_SPOT_SHARE_MOVE
+      topic: CONTINUATION
+      mechanism: spot_share_continuation
+      direction: REFUTES
+      horizon_h: 4
+      n: 9629
+      surfaces: [move_alert, btc, catchup, details]
+      effect_ru: "такие движения не чаще доходили дальше в свою сторону, чем обычные: 51,6% против 52,0% за 4 ч"
+      effect_en: "such moves did not run further their own way more often than ordinary ones: 51.6% vs 52.0% within 4h"
+      comparator_ru: "резкие движения с обычной долей спота"
+      comparator_en: "sharp moves with a usual spot share"
+      replication_ru: "не требовалось: эффекта нет"
+      replication_en: "not needed: no effect"
+      limitations_ru: "6 монет, 2020–2024"
+      limitations_en: "six coins, 2020–2024"
   - id: MARKET-02
     status: NOT_CONFIRMED
     text_ru: "после импульса рост OI вместе с продолжением цены не давал более сильного продолжения в следующий час, чем такой же импульс без роста OI"
@@ -255,6 +653,22 @@ findings:
     record: "docs/research/MARKET_02_OI_EXPANSION_PRICE_CONFIRMATION_RESULT.md"
     contexts: ["label:1h:long_build", "label:1h:short_build"]
     priority: 10
+    live:
+      state: M02_OI_CONFIRMED_IMPULSE
+      topic: CONTINUATION
+      mechanism: oi_confirmation
+      direction: REFUTES
+      horizon_h: 1
+      n: 2487
+      surfaces: [btc, catchup, brief, details]
+      effect_ru: "это не давало более сильного продолжения в следующий час, чем такой же импульс без роста OI"
+      effect_en: "this did not lead to a stronger continuation over the next hour than the same impulse without it"
+      comparator_ru: "такие же импульсы без продолжения цены"
+      comparator_en: "the same impulses without price continuing"
+      replication_ru: "не требовалось: гипотеза отклонена"
+      replication_en: "not needed: rejected"
+      limitations_ru: "BTC, Binance, 2020–2024; про следующий час"
+      limitations_en: "BTC, Binance, 2020–2024; about the next hour"
   - id: MARKET-01
     status: NOT_CONFIRMED
     text_ru: "рост OI при буксующей цене после импульса не давал более сильного отката в следующий час, чем обычный импульс"
@@ -263,6 +677,22 @@ findings:
     record: "docs/research/MARKET_01_OI_EXPANSION_WEAK_CONTINUATION_RESULT.md"
     contexts: []
     priority: 20
+    live:
+      state: M01_OI_STALLED_IMPULSE
+      topic: REVERSAL
+      mechanism: oi_stall_reversal
+      direction: REFUTES
+      horizon_h: 1
+      n: 7701
+      surfaces: [btc, catchup, brief, details]
+      effect_ru: "это не давало более сильного отката в следующий час, чем обычный импульс"
+      effect_en: "this did not lead to a bigger pullback over the next hour than an ordinary impulse"
+      comparator_ru: "импульсы, после которых цена продолжила"
+      comparator_en: "impulses after which price continued"
+      replication_ru: "не требовалось: гипотеза отклонена"
+      replication_en: "not needed: rejected"
+      limitations_ru: "BTC, Binance, 2020–2024; про следующий час"
+      limitations_en: "BTC, Binance, 2020–2024; about the next hour"
   - id: H05
     status: NOT_CONFIRMED
     text_ru: "резкий перекос агрессивных покупок или продаж за 15–60 мин не давал устойчивого продолжения или разворота цены в следующие 15–240 мин"
@@ -271,6 +701,22 @@ findings:
     record: "docs/research/H05_DEV_SUMMARY.md"
     contexts: []
     priority: 30
+    live:
+      state: H05_TAKER_SKEW
+      topic: CONTINUATION
+      mechanism: taker_flow_direction
+      direction: REFUTES
+      horizon_h: 4
+      n: null
+      surfaces: [btc, catchup, details]
+      effect_ru: "такой перекос не давал устойчивого продолжения или разворота цены в следующие 15–240 мин"
+      effect_en: "such a skew gave no steady continuation or reversal over the next 15–240 min"
+      comparator_ru: "случайные моменты с похожим временем суток"
+      comparator_en: "random moments at similar times of day"
+      replication_ru: "не требовалось: гипотеза отклонена"
+      replication_en: "not needed: rejected"
+      limitations_ru: "45 вариантов окон, порогов и горизонтов"
+      limitations_en: "45 variants of windows, thresholds and horizons"
   - id: H04
     status: NOT_CONFIRMED
     text_ru: "откат внутри тренда не давал устойчивого продолжения: эффект нашёлся только в одной узкой полосе глубины отката, и этого мало"
@@ -279,6 +725,22 @@ findings:
     record: "docs/research/H04_DEV_SUMMARY.md"
     contexts: []
     priority: 40
+    live:
+      state: H04_TREND_PULLBACK
+      topic: CONTINUATION
+      mechanism: pullback_continuation
+      direction: REFUTES
+      horizon_h: 4
+      n: null
+      surfaces: [btc, catchup, details]
+      effect_ru: "откат внутри тренда не давал устойчивого продолжения: эффект нашёлся только в одной узкой полосе глубины отката"
+      effect_en: "a pullback inside a trend gave no steady continuation: an effect showed up only in one narrow band of pullback depth"
+      comparator_ru: "тот же тренд без отката"
+      comparator_en: "the same trend without a pullback"
+      replication_ru: "не требовалось: гипотеза отклонена"
+      replication_en: "not needed: rejected"
+      limitations_ru: "тренд 4–16 ч, откат за 60 мин"
+      limitations_en: "a 4–16h trend, a 60-minute pullback"
   - id: MARKET-05
     status: NOT_CONFIRMED
     text_ru: "то, что ETH за сутки шёл туда же, куда BTC, не уменьшало откат BTC в следующие 24 ч"
@@ -303,6 +765,22 @@ findings:
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
     contexts: ["event:EXPIRY_WEEKLY", "event:EXPIRY_MONTHLY", "event:EXPIRY_QUARTERLY"]
     priority: 10
+    live:
+      state: R03_EXPIRY_HOUR
+      topic: CALENDAR_VOL
+      mechanism: expiry_hour_vol
+      direction: REFUTES
+      horizon_h: 24
+      n: 260
+      surfaces: [brief, catchup, btc, details]
+      effect_ru: "пятничный час экспирации (08:00 UTC) был не шире того же часа в другие будни; месячные и квартальные экспирации отдельно не проверялись"
+      effect_en: "the Friday expiry hour (08:00 UTC) was no wider than the same hour on other weekdays; monthly and quarterly expiries were not tested separately"
+      comparator_ru: "тот же час в другие будни"
+      comparator_en: "the same hour on other weekdays"
+      replication_ru: "не требовалось: эффекта нет"
+      replication_en: "not needed: no effect"
+      limitations_ru: "пятничная экспирация; месячные и квартальные отдельно не проверялись"
+      limitations_en: "the Friday expiry; monthly and quarterly ones were not tested separately"
   - id: R03-A4
     status: NOT_CONFIRMED
     text_ru: "перед пятничной экспирацией (04–08 UTC) цена не «прилипала»: эти часы были даже чуть шире, а не уже, чем в другие будни"
@@ -311,6 +789,22 @@ findings:
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
     contexts: ["event:EXPIRY_WEEKLY", "event:EXPIRY_MONTHLY", "event:EXPIRY_QUARTERLY"]
     priority: 20
+    live:
+      state: R03_EXPIRY_PIN
+      topic: CALENDAR_VOL
+      mechanism: expiry_pinning
+      direction: REFUTES
+      horizon_h: 24
+      n: 260
+      surfaces: [brief, catchup, btc, details]
+      effect_ru: "перед пятничной экспирацией цена не «прилипала»: часы 04–08 UTC были даже чуть шире, а не уже"
+      effect_en: "price did not 'pin' before the Friday expiry: 04–08 UTC was slightly wider, not narrower"
+      comparator_ru: "те же часы в другие будни"
+      comparator_en: "the same hours on other weekdays"
+      replication_ru: "не требовалось: эффекта нет"
+      replication_en: "not needed: no effect"
+      limitations_ru: "пятничная экспирация Deribit"
+      limitations_en: "the Friday Deribit expiry"
   - id: R03-C2-C4
     status: NOT_CONFIRMED
     text_ru: "открытие США в понедельник и закрытие в пятницу были не шире того же часа во вт–чт"
@@ -319,6 +813,22 @@ findings:
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
     contexts: []
     priority: 50
+    live:
+      state: R03_US_OPEN_CLOSE
+      topic: CALENDAR_VOL
+      mechanism: us_open_close_vol
+      direction: REFUTES
+      horizon_h: 24
+      n: 478
+      surfaces: [brief, catchup, btc, details]
+      effect_ru: "открытие США в понедельник и закрытие в пятницу были не шире того же часа во вт–чт"
+      effect_en: "the Monday US open and the Friday US close were no wider than the same hour on Tue–Thu"
+      comparator_ru: "тот же час во вт–чт"
+      comparator_en: "the same hour on Tue–Thu"
+      replication_ru: "не требовалось: эффекта нет"
+      replication_en: "not needed: no effect"
+      limitations_ru: "232 понедельника и 246 пятниц"
+      limitations_en: "232 Mondays and 246 Fridays"
   - id: R03-B2
     status: NOT_CONFIRMED
     text_ru: "дни, когда большинство альткоинов двигались вместе, не предшествовали более широкому дню BTC"
@@ -337,6 +847,22 @@ findings:
     record: "docs/research/H01_DEV_SUMMARY.md"
     contexts: ["label:compression", "label:compression_oi_na"]
     priority: 10
+    live:
+      state: H01_COMPRESSION
+      topic: RANGE_4H
+      mechanism: lull_breakout
+      direction: REFUTES
+      horizon_h: 4
+      n: 172400
+      surfaces: [catchup, brief, details]
+      effect_ru: "после тихих 30–120 мин расширение волатильности случалось в 2–7% случаев против ~25% обычно: затишье не предвещало взрыва"
+      effect_en: "after a quiet 30–120 min volatility expanded in 2–7% of cases against about 25% usually: a lull did not announce a breakout"
+      comparator_ru: "все моменты (~25%)"
+      comparator_en: "all moments (about 25%)"
+      replication_ru: "обратная связь отдельно не перепроверялась"
+      replication_en: "the reverse link was not checked separately"
+      limitations_ru: "побочный результат проверки другой гипотезы"
+      limitations_en: "a side result of testing another hypothesis"
   - id: TWAP
     status: SIDE_FINDING
     text_ru: "найденные алгоритмические TWAP-исполнения на споте продолжались (поток в ту же сторону в 1,26 раза выше обычного), но цену заметнее 10 б.п. за 1–6 ч не сдвигали"

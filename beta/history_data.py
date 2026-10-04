@@ -5,7 +5,8 @@ files). Two series:
 
 - 5m klines from 2020-01 (monthly objects; daily objects for the current month and for a
   just-ended month whose monthly object is not published yet);
-- the `metrics` series (5m open interest, base BTC and USD) from 2020-09-01 (daily objects).
+- the `metrics` series (5m open interest, base BTC and USD, and the global long/short account
+  ratio) from 2020-09-01 (daily objects).
 
 The owner opened 2025/2026 for product use (PRODUCT_DECISION_V2 §4); this module reads every
 year up to yesterday (UTC), except the protected windows below (the E1-RUN-001 final holdout).
@@ -258,8 +259,18 @@ def parse_klines(zip_bytes: bytes) -> list:
     return rows
 
 
+def _ratio(raw: Optional[str]) -> Optional[float]:
+    v = (raw or "").strip().strip('"')
+    try:
+        x = float(v) if v else None
+    except ValueError:
+        return None
+    return x if x is not None and x > 0 else None
+
+
 def parse_metrics(zip_bytes: bytes) -> list:
-    """5m OI rows (ts = Vision create_time, base BTC and USD). Rows without OI are skipped."""
+    """5m OI rows (ts = Vision create_time, base BTC and USD) with the global long/short account
+    ratio (`count_long_short_ratio`, None when absent). Rows without OI are skipped."""
     rows = []
     reader = csv.DictReader(io.StringIO(_csv_text(zip_bytes)))
     for rec in reader:
@@ -271,7 +282,8 @@ def parse_metrics(zip_bytes: bytes) -> list:
         ms = int(ts.timestamp() * 1000)
         if ms % 300_000:
             continue                       # off-grid snapshots are not used
-        rows.append({"ts_ms": ms, "oi_base": float(oi), "oi_usd": float(oiv) if oiv else None})
+        rows.append({"ts_ms": ms, "oi_base": float(oi), "oi_usd": float(oiv) if oiv else None,
+                     "ls_account_ratio": _ratio(rec.get("count_long_short_ratio"))})
     return rows
 
 

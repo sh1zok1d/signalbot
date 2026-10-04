@@ -641,6 +641,9 @@ When adding documentation:
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.
+- `research/RESEARCH_EVIDENCE_INTEGRATION_V1.md` (**ACTIVE — research evidence in the live analysis, owner task 2026-10-04; implemented, not deployed**): the audit of every closed research result against the live bot, the read-only public feeds it added, the evidence engine (exact frozen states, hierarchy, NOT_CONFIRMED veto, status wording), the surfaces and the MODEL_INTEGRATION_CANDIDATES.
+  - **Code:** `beta/research_states.py`, `beta/research_evidence.py`, `beta/research_inputs.py`, `beta/research_feeds.py`, `beta/research_render.py`; frozen cut points `config/beta_research_cuts.json` (`scripts/research/evidence/freeze_live_cuts.py`).
+  - **Tests:** `tests/beta/test_research_evidence.py`, `tests/beta/test_research_evidence_pg.py`, `tests/research/test_research_evidence_parity.py`.
 - `research/SIGNALBOT_RESEARCH_ATLAS_V1.md` (**ACTIVE — PERMANENT RESEARCH MAP**): Mechanism × Data surface × State for every research unit.
   - **Sources:** `research/atlas/ATLAS_TAXONOMY_V1.yaml`, `ATLAS_SURFACES_V1.yaml`, `ATLAS_UNITS_V1.yaml`.
   - **Derived (never hand-edited):** `research/atlas/SIGNALBOT_RESEARCH_ATLAS_V1.json` (full governance view), `ATLAS_GENERATOR_VIEW_V1.json` (outcome-blind generator view), `ATLAS_MATRIX_V1.md` (matrix, frontier, cell details).

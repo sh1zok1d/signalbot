@@ -417,7 +417,11 @@ class BetaBotHandler:
             stats = await latest_stats(conn, now=now)
             live = await conn.forecast_accuracy(since=now - timedelta(days=30))
             return df.format_accuracy((stats or {}).get("range_model"), live, lang)
-        block = await build_decision(conn, self.cfg, now=now)
+        regime = None
+        if effective_d7_enabled(self.cfg, await conn.get_admin_d7_enabled()):
+            from beta.regime_d7 import regime_for_status
+            regime = await regime_for_status(conn, now=now, product_status="")
+        block = await build_decision(conn, self.cfg, now=now, regime=regime)
         if cmd == "levels":
             return df.format_levels(block, lang, now=now)
         if cmd == "risk":
@@ -517,7 +521,7 @@ class BetaBotHandler:
                         user=None) -> list:
         """Render a tab from the persisted view only, then record the open."""
         from beta.formatter import (detail_tab_buttons, format_1h_tab, format_24h_tab, format_event_tab,
-                                    view_id8)
+                                    format_research_tab, view_id8)
         row = await conn.fetch_btc_view(view_pk)
         if row is None:
             return [answer(t("ru", "not_available"))]
@@ -528,8 +532,12 @@ class BetaBotHandler:
             return [answer(t(lang, "not_available"))]
         if tab in ("1h", "24h") and fail:
             return [answer(t(lang, "not_available"))]
+        if tab == "research" and not (payload.get("decision") or {}).get("evidence"):
+            return [answer(t(lang, "not_available"))]
         vid = view_id8(row.get("payload_digest") or "")
-        if tab == "event":
+        if tab == "research":
+            html_text = format_research_tab(self.cfg, payload, lang, vid)
+        elif tab == "event":
             html_text = format_event_tab(self.cfg, payload, lang, vid)
         elif tab == "24h":
             html_text = format_24h_tab(self.cfg, payload, lang, vid)
@@ -633,7 +641,7 @@ def _parse_tab(data: str):
     if len(data) > 64:
         return None
     parts = data.split(":")
-    if len(parts) != 3 or parts[0] not in ("o", "e") or parts[2] not in ("event", "1h", "24h"):
+    if len(parts) != 3 or parts[0] not in ("o", "e") or parts[2] not in ("event", "1h", "24h", "research"):
         return None
     if not parts[1].isdigit():
         return None

@@ -1,0 +1,15 @@
+[Unit]
+Description=Run Signalbot private beta research-evidence feeds every 5 minutes (+40 s)
+Documentation=file:/opt/signalbot/docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md
+
+[Timer]
+# 40 s after each 5m boundary: the previous 5m metrics row and spot bar are published by then.
+OnCalendar=*-*-* *:00/5:40 UTC
+AccuracySec=1s
+RandomizedDelaySec=0
+# The job pages forward from the last stored row, so a missed run is caught up on the next one.
+Persistent=true
+Unit=signalbot-beta-feeds.service
+
+[Install]
+WantedBy=timers.target

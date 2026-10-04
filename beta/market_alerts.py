@@ -293,6 +293,48 @@ async def score_forecasts(conn, b: Bars, closed_1m, *, now: datetime) -> dict:
     return out
 
 
+async def _regime(conn, cfg: BetaConfig, *, now: datetime) -> Optional[dict]:
+    """The D7 hour state for research evidence, only where the D7 line itself may show."""
+    from .config import effective_d7_enabled
+    getter = getattr(conn, "get_admin_d7_enabled", None)
+    from .regime_d7 import regime_for_status
+    tx = getattr(conn, "transaction", None)
+    try:
+        if tx is None:
+            if getter is None or not effective_d7_enabled(cfg, await getter()):
+                return None
+            return await regime_for_status(conn, now=now, product_status="")
+        async with tx():                    # a savepoint: a failed read never aborts the caller's transaction
+            if getter is None or not effective_d7_enabled(cfg, await getter()):
+                return None
+            return await regime_for_status(conn, now=now, product_status="")
+    except Exception:  # noqa: BLE001 - research context never blocks alerts
+        return None
+
+
+def attach_evidence(cand: dict, block: Mapping[str, Any], cap: Mapping[str, Any]) -> None:
+    """Record the research evidence that describes a level touch or a sharp move with the alert
+    (beta/research_evidence.py). It is part of the rendered text's by-value input; it never takes
+    part in detection, the push decision or the alert identity."""
+    from .research_evidence import for_level_touch, for_move
+    ev = block.get("evidence")
+    if not ev or ev.get("error_type") or cand["kind"] not in ("level", "move"):
+        return
+    try:
+        if cand["kind"] == "level":
+            b = cap.get("bars")
+            now_ms = int(datetime.fromisoformat(block["as_of"]).timestamp() * 1000)
+            found = for_level_touch(ev, b, cand["payload"], levels=(block.get("levels") or {}).get("all") or (),
+                                    now_ms=now_ms)
+        else:
+            found = for_move(ev, cand["payload"])
+    except Exception as exc:  # noqa: BLE001 - research context never blocks alerts
+        logger.warning("alert evidence failed: %s", type(exc).__name__)
+        return
+    from .history_stats import json_safe
+    cand["payload"]["evidence"] = json_safe(found)
+
+
 async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bool) -> dict:
     """Detect, decide, materialize and send market alerts; record and score corridors."""
     from .decision import build_decision
@@ -304,7 +346,7 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
            "unknown": 0, "expired": 0, "forecasts_recorded": 0, "forecasts_scored": 0}
     now = clock()
     cap: dict = {}
-    block = await build_decision(conn, cfg, now=now, capture=cap)
+    block = await build_decision(conn, cfg, now=now, capture=cap, regime=await _regime(conn, cfg, now=now))
     b, closed = cap.get("bars"), cap.get("closed_1m") or []
     if block.get("available") and b is not None:
         cands = []
@@ -325,6 +367,7 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             if c["key"] in known:
                 continue
             rep["detected"] += 1
+            attach_evidence(c, block, cap)        # text context only: the decision below never reads it
             res = await _decide_and_record(conn, cfg, c, now=now, push_on=push_on)
             if res == "PUSH":
                 rep["pushed"] += 1

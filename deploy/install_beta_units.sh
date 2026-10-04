@@ -11,7 +11,9 @@ UNITS=(signalbot-beta-detector.service signalbot-beta-detector.timer
        signalbot-beta-notify.service signalbot-beta-notify.timer
        signalbot-beta-bot.service
        signalbot-beta-d7.service signalbot-beta-d7.timer
-       signalbot-beta-history.service signalbot-beta-history.timer)
+       signalbot-beta-history.service signalbot-beta-history.timer
+       signalbot-beta-feeds.service signalbot-beta-feeds.timer
+       signalbot-beta-stress.service signalbot-beta-stress.timer)
 
 for u in "${UNITS[@]}"; do
   install -m 0644 "${SRC_DIR}/${u}" "/etc/systemd/system/${u}"
