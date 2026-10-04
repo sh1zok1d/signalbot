@@ -176,3 +176,42 @@ def test_btc_shows_at_most_two_research_lines_and_the_research_tab_opens_and_is_
         assert {"tab": "research"} in opens
         await pool.close()
     run(body())
+
+
+def test_stress_job_failure_is_isolated_and_recorded_on_health():
+    """A failing aggTrades response leaves the stress hour INCOMPLETE (retried later) and health says
+    PARTIAL; a failing 1h klines request records the failure on health and then fails the unit."""
+    from beta.research_feeds import FAPI, run_stress_job
+
+    async def body():
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        now = NOW
+        h0 = _ms(now) - _ms(now) % 3_600_000
+        hour = h0 - 3_600_000
+        k1h = [[hour, "60000", "61500", "60000", "61000", "1", hour + 3_599_999]]
+
+        async def agg_fails(url, params):
+            if url == FAPI + "/fapi/v1/klines":
+                return k1h
+            raise ValueError("unexpected JSON body")
+        rep = await run_stress_job(store, now=now, fetch=agg_fails, pause=lambda s: asyncio.sleep(0))
+        assert rep["status"] == "PARTIAL" and rep["incomplete"] == 1 and rep["errors"].startswith("ValueError")
+        rows = await _rows(pool, "SELECT status FROM beta_feed_stress_hours")
+        assert [r["status"] for r in rows] == ["INCOMPLETE"]
+        hl = (await _rows(pool, "SELECT last_success_at, last_error_type FROM beta_runtime_health "
+                                "WHERE component='research_stress_hours'"))[0]
+        assert hl["last_success_at"] is None and hl["last_error_type"] == "ValueError"
+
+        async def k1h_fails(url, params):
+            raise TimeoutError("read timeout")
+        with pytest.raises(TimeoutError):
+            await run_stress_job(store, now=now + timedelta(minutes=5), fetch=k1h_fails,
+                                 pause=lambda s: asyncio.sleep(0))
+        hl = (await _rows(pool, "SELECT last_run_at, last_success_at, last_error_type FROM beta_runtime_health "
+                                "WHERE component='research_stress_hours'"))[0]
+        assert hl["last_success_at"] is None and hl["last_error_type"] == "TimeoutError"
+        assert hl["last_run_at"] == now + timedelta(minutes=5)
+        assert [r["status"] for r in await _rows(pool, "SELECT status FROM beta_feed_stress_hours")] == ["INCOMPLETE"]
+        await pool.close()
+    run(body())

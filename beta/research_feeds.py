@@ -442,8 +442,8 @@ async def run_stress_job(store, *, now: datetime, cut: Optional[float] = None, f
                                                             pace_s=perp_pace_s, pause=pause)
                         spot_pages, s_ok = await _agg_pages(fetch, SPOT_API + "/api/v3/aggTrades", hour=hour,
                                                             pace_s=spot_pace_s, pause=pause)
-                    except RateLimited as exc:
-                        report["errors"] = str(exc)
+                    except Exception as exc:  # noqa: BLE001 - the hour stays INCOMPLETE and is retried later
+                        report["errors"] = f"{type(exc).__name__}: {str(exc)[:120]}"
                         p_ok = s_ok = False
                         perp_pages = spot_pages = []
                     if not (p_ok and s_ok):
@@ -455,11 +455,24 @@ async def run_stress_job(store, *, now: datetime, cut: Optional[float] = None, f
                 async with store.connect() as conn:
                     await conn.upsert_feed_stress_hour(row, now=now)
                 if report.get("errors"):
-                    break
+                    break                                # a failing host is not called again in this run
+            if report.get("errors"):
+                report["status"] = "PARTIAL"
             async with store.connect() as conn:
                 await conn.record_health("research_stress_hours", now=now, success="errors" not in report,
+                                         error_type=report.get("errors", "").split(":", 1)[0] or None,
                                          detail={k: v for k, v in report.items() if isinstance(v, (int, str))})
             return report
+        except Exception as exc:
+            # the run itself failed (the 1h klines or the database): health says so, then the unit fails
+            logger.warning("stress-hour job failed: %s", type(exc).__name__)
+            try:
+                async with store.connect() as conn:
+                    await conn.record_health("research_stress_hours", now=now, success=False,
+                                             error_type=type(exc).__name__)
+            except Exception as record_exc:  # noqa: BLE001 - the original error is the one to raise
+                logger.warning("stress-hour health record failed: %s", type(record_exc).__name__)
+            raise
         finally:
             if session is not None:
                 await session.close()
