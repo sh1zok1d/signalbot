@@ -466,3 +466,15 @@ Asked "does the bot offer a decision or anything like it — what does a trader 
 - The order-book data already in hand is not pristine for them.
 
 **How it is kept honest.** Generators get an outcome-blind view of the same map, so a promising cell and a dead one look alike to them. The selector and critics see everything.
+
+## 23. Research aims at the bot's directional statements (2026-10-04)
+
+**Why the change.** The bot already showed directional history (for example, how often price stayed beyond a level after its first touch), but research had stopped at non-directional context claims. The owner asked for hypotheses that make those percentages more informative and let the bot write "в следующие 4ч вероятность … (гипотеза)". The aim is honest probability statements with a status, not maximum accuracy.
+
+**What was decided.** `docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md`, program DH1:
+- **Endpoints:** level hold 4h after a first touch, and barrier first-passage ±X within 4h.
+- **Bar:** 3 pp against "обычно" plus calibration (a positive Brier skill score).
+- **Statuses:** a replicated result is «Проверено». A discovery-only result is «Гипотеза», labelled not confirmed. Nothing else is shown as a probability.
+- **Data:** discovery on Binance 2020–2024; confirmation on the earlier era 2017–2019 (free BitMEX and Binance spot archives) and on live tracking.
+
+**What stayed.** The evaluation contract applies in full, with directional claims as `INCREMENTAL`. There are no direct trade calls, no rescue of sealed nulls, no 2025/2026 objects and no deploy without a separate go.

@@ -1,3 +1,11 @@
+## Directional hypotheses for the bot (DH1) — frozen; discovery pending — 2026-10-04
+
+`PROGRAM = DIRECTIONAL_HYPOTHESES_DH1 (owner decision, docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md)`
+`ENDPOINTS = LEVEL_HOLD_4H; BARRIER_FIRST_PASSAGE_4H | BAR = 3 pp + Brier skill > 0 | CLAIM_TYPE = INCREMENTAL`
+`CANDIDATES = 15 | CLOSED_AT_RED_TEAM = 9 | DEFERRED = 1 | FEASIBILITY: EXECUTABLE = DH1-L2; INFORMATIONALLY_WEAK = DH1-L1, L3, B1, B2`
+`PREREG = docs/research/DH1_PREREG.json | MARKET_OUTCOMES_OPENED_AT_FREEZE = NO | OBJECTS_2025_2026_USED = none`
+`NEXT_UNIT = DH1 one-shot discovery of DH1-L2 (python -m scripts.research.dh1.evaluate --surface DISCOVERY)`
+
 ## Autonomous research generation G01 — CLOSED_NO_SURVIVORS; nothing frozen or executed — 2026-10-03
 
 `G01_STATUS = CLOSED_NO_SURVIVORS (owner-accepted)`

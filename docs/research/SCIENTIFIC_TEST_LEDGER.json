@@ -52,6 +52,23 @@
       "REGISTERED_TESTS": 0,
       "SEARCH_FAMILY_ID": "SF-AUTOGEN-G01",
       "SOURCE": "Owner-authorized autonomous research generation G01 (AUTOGEN_G01_DECISION.md); 14 generated candidates, 10 closed at red team or dedupe, 4 compiled and closed at feasibility, none registered or executed (2026-10-03)"
+    },
+    {
+      "CLOSED_AT_FEASIBILITY": {
+        "DH1-B1": "INFORMATIONALLY_WEAK",
+        "DH1-B2": "INFORMATIONALLY_WEAK",
+        "DH1-L1": "INFORMATIONALLY_WEAK",
+        "DH1-L3": "INFORMATIONALLY_WEAK"
+      },
+      "CLOSED_BEFORE_FEASIBILITY": 10,
+      "EXECUTABLE_NOW_CARDS": 1,
+      "EXECUTED_HYPOTHESES": 0,
+      "EXECUTED_TESTS": 0,
+      "GENERATED_CARDS": 15,
+      "PROMISING_PROTOTYPES": 0,
+      "REGISTERED_TESTS": 1,
+      "SEARCH_FAMILY_ID": "SF-DH1",
+      "SOURCE": "Owner decision 2026-10-04 (DIRECTIONAL_HYPOTHESES_DECISION_V1.md): directional hypotheses for the bot; 15 candidates, 9 closed at red team, 1 deferred, 5 to feasibility"
     }
   ],
   "TESTS": [
@@ -197,6 +214,29 @@
       "SECONDARY_TEST_COUNT": 0,
       "STATUS": "EXECUTED_CLOSED",
       "TEST_FAMILY_ID": "TF-R03-C-SESSION-CLOCK"
+    },
+    {
+      "CLASSIFICATION": null,
+      "DATASET_ID": "CORE_BTC_BINANCE_V0 + DH1_BINANCE_SPOT_BTCUSDT_5M_V0 (discovery); DH1_BITMEX_XBTUSD_TRADES_5M_V0 + DH1_BINANCE_SPOT_BTCUSDT_5M_V0 (replication)",
+      "EVIDENCE_LABEL": "DISCOVERY_ON_BINANCE_2020_2024 (levels product-exposed, states new); REPLICATION_ON_BITMEX_BINANCE_SPOT_2017_2019",
+      "EXECUTED": null,
+      "HYPOTHESIS_ID": "DH1-L2",
+      "MULTIPLICITY_METHOD": "Holm over the 1 executed cells of the card, week-cluster bootstrap two-sided p at 0.05",
+      "PREREG_PATH": "docs/research/DH1_PREREG.json",
+      "PREREG_SHA256": "20ee090c7d8e9348a1b5709c7ed0c9f703b6561fc200b50666a7cb25975ebe00",
+      "PRIMARY_TEST_COUNT": 1,
+      "REGISTERED": "2026-10-04",
+      "REPLICATION_EXECUTED": false,
+      "REPLICATION_OF": null,
+      "REPLICATION_SURFACE": "BitMEX XBTUSD trades + Binance spot 2017-09..2019-12 (same frozen rule); live tracking",
+      "RERUN_AUTHORIZED": false,
+      "RESULT_PATH": "docs/research/DH1_RESULT_DISCOVERY.json",
+      "RESULT_SHA256": null,
+      "ROBUSTNESS_TEST_COUNT": 0,
+      "SEARCH_FAMILY_ID": "SF-DH1",
+      "SECONDARY_TEST_COUNT": 0,
+      "STATUS": "REGISTERED",
+      "TEST_FAMILY_ID": "TF-DH1-L-LEVEL-HOLD"
     }
   ]
 }

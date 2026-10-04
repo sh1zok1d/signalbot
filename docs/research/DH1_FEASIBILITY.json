@@ -1,0 +1,1494 @@
+{
+  "CELLS": {
+    "DH1-B1": {
+      "CARD": "DH1-B",
+      "DECISION": {
+        "EXECUTE": false,
+        "HET_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [
+          "discovery MDE 0.2648 > 0.06",
+          "smaller arm 45 < 300",
+          "fewer than 3 discovery epochs with both arms >= 30"
+        ],
+        "REPLICATION_POWERED": false,
+        "STATUS": "INFORMATIONALLY_WEAK"
+      },
+      "DISCOVERY": {
+        "ALPHA_HOLM_FIRST_STEP": 0.025,
+        "CLUSTERS": 260,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "MOVE_TERCILE=1",
+          "MOVE_TERCILE=2",
+          "PERP_IMB_TERCILE=1",
+          "PERP_IMB_TERCILE=2"
+        ],
+        "EPOCHS": {
+          "2020": {
+            "N_COMPARATOR": 10,
+            "N_STATE": 316
+          },
+          "2021": {
+            "N_COMPARATOR": 15,
+            "N_STATE": 310
+          },
+          "2022": {
+            "N_COMPARATOR": 12,
+            "N_STATE": 404
+          },
+          "2023": {
+            "N_COMPARATOR": 6,
+            "N_STATE": 427
+          },
+          "2024": {
+            "N_COMPARATOR": 2,
+            "N_STATE": 350
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 0,
+        "EVENTS_PER_YEAR": 376.6386414253897,
+        "HET_POWER_2X": 0.0,
+        "MDE_80": 0.2647950890054927,
+        "N": 1852,
+        "NUISANCE_SUPPORT_[COMPARATOR,STATE]": {
+          "HOUR_BLOCK": {
+            "0": [
+              11,
+              286
+            ],
+            "1": [
+              4,
+              146
+            ],
+            "2": [
+              6,
+              228
+            ],
+            "3": [
+              12,
+              460
+            ],
+            "4": [
+              8,
+              349
+            ],
+            "5": [
+              4,
+              338
+            ]
+          },
+          "LAG_TERCILE": {
+            "0": [
+              29,
+              589
+            ],
+            "1": [
+              9,
+              608
+            ],
+            "2": [
+              7,
+              610
+            ]
+          },
+          "MOVE_TERCILE": {
+            "0": [
+              22,
+              596
+            ],
+            "1": [
+              14,
+              603
+            ],
+            "2": [
+              9,
+              608
+            ]
+          },
+          "PERP_IMB_TERCILE": {
+            "0": [
+              32,
+              586
+            ],
+            "1": [
+              8,
+              609
+            ],
+            "2": [
+              5,
+              612
+            ]
+          },
+          "RV_TERCILE": {
+            "0": [
+              13,
+              605
+            ],
+            "1": [
+              6,
+              611
+            ],
+            "2": [
+              26,
+              591
+            ]
+          }
+        },
+        "N_COMPARATOR": 45,
+        "N_STATE": 1807,
+        "PLANNING_SE": 0.08588810607372914,
+        "POWER_AT_50PCT_PLANNING": 0.0340272180212679,
+        "POWER_AT_75PCT_PLANNING": 0.045790274354396976,
+        "POWER_AT_BAR": 0.0340272180212679,
+        "STATE_SHARE": 0.9757019438444925
+      },
+      "REPLICATION": {
+        "ALPHA_HOLM_FIRST_STEP": 0.025,
+        "CLUSTERS": 124,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "MOVE_TERCILE=1",
+          "MOVE_TERCILE=2",
+          "PERP_IMB_TERCILE=1",
+          "PERP_IMB_TERCILE=2"
+        ],
+        "EPOCHS": {
+          "2017H2": {
+            "N_COMPARATOR": 12,
+            "N_STATE": 68
+          },
+          "2018": {
+            "N_COMPARATOR": 22,
+            "N_STATE": 400
+          },
+          "2019": {
+            "N_COMPARATOR": 13,
+            "N_STATE": 381
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 0,
+        "EVENTS_PER_YEAR": 384.11267605633805,
+        "HET_POWER_2X": 0.0,
+        "MDE_80": 0.2610134038568784,
+        "N": 896,
+        "NUISANCE_SUPPORT_[COMPARATOR,STATE]": {
+          "HOUR_BLOCK": {
+            "0": [
+              8,
+              139
+            ],
+            "1": [
+              5,
+              78
+            ],
+            "2": [
+              9,
+              124
+            ],
+            "3": [
+              8,
+              169
+            ],
+            "4": [
+              8,
+              161
+            ],
+            "5": [
+              9,
+              178
+            ]
+          },
+          "LAG_TERCILE": {
+            "0": [
+              23,
+              276
+            ],
+            "1": [
+              13,
+              285
+            ],
+            "2": [
+              11,
+              288
+            ]
+          },
+          "MOVE_TERCILE": {
+            "0": [
+              24,
+              275
+            ],
+            "1": [
+              11,
+              287
+            ],
+            "2": [
+              12,
+              287
+            ]
+          },
+          "PERP_IMB_TERCILE": {
+            "0": [
+              23,
+              276
+            ],
+            "1": [
+              12,
+              286
+            ],
+            "2": [
+              12,
+              287
+            ]
+          },
+          "RV_TERCILE": {
+            "0": [
+              13,
+              286
+            ],
+            "1": [
+              14,
+              284
+            ],
+            "2": [
+              20,
+              279
+            ]
+          }
+        },
+        "N_COMPARATOR": 47,
+        "N_STATE": 849,
+        "PLANNING_SE": 0.08466149051827639,
+        "POWER_AT_50PCT_PLANNING": 0.03429594208585618,
+        "POWER_AT_75PCT_PLANNING": 0.0464222644691909,
+        "POWER_AT_BAR": 0.03429594208585618,
+        "STATE_SHARE": 0.9475446428571429
+      },
+      "STATE": "SPOT_CONFIRMED_MOVE"
+    },
+    "DH1-B2": {
+      "CARD": "DH1-B",
+      "DECISION": {
+        "EXECUTE": false,
+        "HET_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [
+          "discovery MDE 0.1140 > 0.06",
+          "smaller arm 289 < 300"
+        ],
+        "REPLICATION_POWERED": false,
+        "STATUS": "INFORMATIONALLY_WEAK"
+      },
+      "DISCOVERY": {
+        "ALPHA_HOLM_FIRST_STEP": 0.025,
+        "CLUSTERS": 260,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "MOVE_TERCILE=1",
+          "MOVE_TERCILE=2",
+          "PERP_IMB_TERCILE=1",
+          "PERP_IMB_TERCILE=2"
+        ],
+        "EPOCHS": {
+          "2020": {
+            "N_COMPARATOR": 275,
+            "N_STATE": 48
+          },
+          "2021": {
+            "N_COMPARATOR": 247,
+            "N_STATE": 75
+          },
+          "2022": {
+            "N_COMPARATOR": 334,
+            "N_STATE": 82
+          },
+          "2023": {
+            "N_COMPARATOR": 400,
+            "N_STATE": 33
+          },
+          "2024": {
+            "N_COMPARATOR": 301,
+            "N_STATE": 51
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 5,
+        "EVENTS_PER_YEAR": 375.41842984409794,
+        "HET_POWER_2X": 0.045,
+        "MDE_80": 0.11404749374902608,
+        "N": 1846,
+        "NUISANCE_SUPPORT_[COMPARATOR,STATE]": {
+          "HOUR_BLOCK": {
+            "0": [
+              226,
+              70
+            ],
+            "1": [
+              118,
+              32
+            ],
+            "2": [
+              204,
+              29
+            ],
+            "3": [
+              420,
+              52
+            ],
+            "4": [
+              313,
+              43
+            ],
+            "5": [
+              276,
+              63
+            ]
+          },
+          "LAG_TERCILE": {
+            "0": [
+              560,
+              56
+            ],
+            "1": [
+              533,
+              82
+            ],
+            "2": [
+              464,
+              151
+            ]
+          },
+          "MOVE_TERCILE": {
+            "0": [
+              516,
+              100
+            ],
+            "1": [
+              523,
+              92
+            ],
+            "2": [
+              518,
+              97
+            ]
+          },
+          "PERP_IMB_TERCILE": {
+            "0": [
+              533,
+              83
+            ],
+            "1": [
+              504,
+              111
+            ],
+            "2": [
+              520,
+              95
+            ]
+          },
+          "RV_TERCILE": {
+            "0": [
+              563,
+              53
+            ],
+            "1": [
+              513,
+              102
+            ],
+            "2": [
+              481,
+              134
+            ]
+          }
+        },
+        "N_COMPARATOR": 1557,
+        "N_STATE": 289,
+        "PLANNING_SE": 0.03699208802303779,
+        "POWER_AT_50PCT_PLANNING": 0.07743361723464681,
+        "POWER_AT_75PCT_PLANNING": 0.15297118515171532,
+        "POWER_AT_BAR": 0.07743361723464681,
+        "STATE_SHARE": 0.15655471289274106
+      },
+      "REPLICATION": {
+        "ALPHA_HOLM_FIRST_STEP": 0.025,
+        "CLUSTERS": 124,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "MOVE_TERCILE=1",
+          "MOVE_TERCILE=2",
+          "PERP_IMB_TERCILE=1",
+          "PERP_IMB_TERCILE=2"
+        ],
+        "EPOCHS": {
+          "2017H2": {
+            "N_COMPARATOR": 71,
+            "N_STATE": 9
+          },
+          "2018": {
+            "N_COMPARATOR": 345,
+            "N_STATE": 67
+          },
+          "2019": {
+            "N_COMPARATOR": 345,
+            "N_STATE": 48
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 2,
+        "EVENTS_PER_YEAR": 379.3970070422535,
+        "HET_POWER_2X": 0.0,
+        "MDE_80": 0.17303499518150553,
+        "N": 885,
+        "NUISANCE_SUPPORT_[COMPARATOR,STATE]": {
+          "HOUR_BLOCK": {
+            "0": [
+              127,
+              20
+            ],
+            "1": [
+              66,
+              16
+            ],
+            "2": [
+              116,
+              14
+            ],
+            "3": [
+              147,
+              28
+            ],
+            "4": [
+              144,
+              21
+            ],
+            "5": [
+              161,
+              25
+            ]
+          },
+          "LAG_TERCILE": {
+            "0": [
+              258,
+              38
+            ],
+            "1": [
+              262,
+              32
+            ],
+            "2": [
+              241,
+              54
+            ]
+          },
+          "MOVE_TERCILE": {
+            "0": [
+              248,
+              47
+            ],
+            "1": [
+              252,
+              43
+            ],
+            "2": [
+              261,
+              34
+            ]
+          },
+          "PERP_IMB_TERCILE": {
+            "0": [
+              249,
+              46
+            ],
+            "1": [
+              251,
+              44
+            ],
+            "2": [
+              261,
+              34
+            ]
+          },
+          "RV_TERCILE": {
+            "0": [
+              284,
+              11
+            ],
+            "1": [
+              254,
+              41
+            ],
+            "2": [
+              223,
+              72
+            ]
+          }
+        },
+        "N_COMPARATOR": 761,
+        "N_STATE": 124,
+        "PLANNING_SE": 0.05612508931503665,
+        "POWER_AT_50PCT_PLANNING": 0.046674216357842246,
+        "POWER_AT_75PCT_PLANNING": 0.07615759717499804,
+        "POWER_AT_BAR": 0.046674216357842246,
+        "STATE_SHARE": 0.1401129943502825
+      },
+      "STATE": "SPOT_SHARE_HIGH_MOVE"
+    },
+    "DH1-L1": {
+      "CARD": "DH1-L",
+      "DECISION": {
+        "EXECUTE": false,
+        "HET_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [
+          "discovery MDE 0.0851 > 0.06"
+        ],
+        "REPLICATION_POWERED": false,
+        "STATUS": "INFORMATIONALLY_WEAK"
+      },
+      "DISCOVERY": {
+        "ALPHA_HOLM_FIRST_STEP": 0.016666666666666666,
+        "CLUSTERS": 261,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=ROUND",
+          "TYPE_GROUP=WEEK",
+          "PERP_IMB_TERCILE=1",
+          "PERP_IMB_TERCILE=2"
+        ],
+        "EPOCHS": {
+          "2020": {
+            "N_COMPARATOR": 98,
+            "N_STATE": 517
+          },
+          "2021": {
+            "N_COMPARATOR": 232,
+            "N_STATE": 939
+          },
+          "2022": {
+            "N_COMPARATOR": 107,
+            "N_STATE": 757
+          },
+          "2023": {
+            "N_COMPARATOR": 66,
+            "N_STATE": 702
+          },
+          "2024": {
+            "N_COMPARATOR": 128,
+            "N_STATE": 1070
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 5,
+        "EVENTS_PER_YEAR": 938.7494432071269,
+        "HET_POWER_2X": 0.04,
+        "MDE_80": 0.08513423309185199,
+        "N": 4616,
+        "NUISANCE_SUPPORT_[COMPARATOR,STATE]": {
+          "HOUR_BLOCK": {
+            "0": [
+              462,
+              1629
+            ],
+            "1": [
+              55,
+              525
+            ],
+            "2": [
+              38,
+              495
+            ],
+            "3": [
+              43,
+              665
+            ],
+            "4": [
+              27,
+              418
+            ],
+            "5": [
+              6,
+              253
+            ]
+          },
+          "LAG_TERCILE": {
+            "0": [
+              386,
+              1153
+            ],
+            "1": [
+              158,
+              1380
+            ],
+            "2": [
+              87,
+              1452
+            ]
+          },
+          "PERP_IMB_TERCILE": {
+            "0": [
+              462,
+              1077
+            ],
+            "1": [
+              106,
+              1432
+            ],
+            "2": [
+              63,
+              1476
+            ]
+          },
+          "RV_TERCILE": {
+            "0": [
+              145,
+              1394
+            ],
+            "1": [
+              194,
+              1344
+            ],
+            "2": [
+              292,
+              1247
+            ]
+          },
+          "TYPE_GROUP": {
+            "DAY": [
+              96,
+              1415
+            ],
+            "MONTH": [
+              0,
+              55
+            ],
+            "POC": [
+              255,
+              805
+            ],
+            "ROUND": [
+              270,
+              1490
+            ],
+            "WEEK": [
+              10,
+              220
+            ]
+          }
+        },
+        "N_COMPARATOR": 631,
+        "N_STATE": 3985,
+        "PLANNING_SE": 0.026311721443177363,
+        "POWER_AT_50PCT_PLANNING": 0.10516124983779862,
+        "POWER_AT_75PCT_PLANNING": 0.24709772467557123,
+        "POWER_AT_BAR": 0.10516124983779862,
+        "STATE_SHARE": 0.8633015597920277
+      },
+      "REPLICATION": {
+        "ALPHA_HOLM_FIRST_STEP": 0.016666666666666666,
+        "CLUSTERS": 124,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=ROUND",
+          "TYPE_GROUP=WEEK",
+          "PERP_IMB_TERCILE=1",
+          "PERP_IMB_TERCILE=2"
+        ],
+        "EPOCHS": {
+          "2017H2": {
+            "N_COMPARATOR": 78,
+            "N_STATE": 156
+          },
+          "2018": {
+            "N_COMPARATOR": 104,
+            "N_STATE": 511
+          },
+          "2019": {
+            "N_COMPARATOR": 97,
+            "N_STATE": 525
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 3,
+        "EVENTS_PER_YEAR": 630.6135563380282,
+        "HET_POWER_2X": 0.03,
+        "MDE_80": 0.1298480261736396,
+        "N": 1471,
+        "NUISANCE_SUPPORT_[COMPARATOR,STATE]": {
+          "HOUR_BLOCK": {
+            "0": [
+              181,
+              475
+            ],
+            "1": [
+              41,
+              194
+            ],
+            "2": [
+              23,
+              173
+            ],
+            "3": [
+              19,
+              158
+            ],
+            "4": [
+              12,
+              110
+            ],
+            "5": [
+              3,
+              82
+            ]
+          },
+          "LAG_TERCILE": {
+            "0": [
+              161,
+              330
+            ],
+            "1": [
+              62,
+              428
+            ],
+            "2": [
+              56,
+              434
+            ]
+          },
+          "PERP_IMB_TERCILE": {
+            "0": [
+              158,
+              333
+            ],
+            "1": [
+              67,
+              423
+            ],
+            "2": [
+              54,
+              436
+            ]
+          },
+          "RV_TERCILE": {
+            "0": [
+              78,
+              413
+            ],
+            "1": [
+              90,
+              400
+            ],
+            "2": [
+              111,
+              379
+            ]
+          },
+          "TYPE_GROUP": {
+            "DAY": [
+              73,
+              630
+            ],
+            "MONTH": [
+              3,
+              20
+            ],
+            "POC": [
+              162,
+              320
+            ],
+            "ROUND": [
+              35,
+              127
+            ],
+            "WEEK": [
+              6,
+              95
+            ]
+          }
+        },
+        "N_COMPARATOR": 279,
+        "N_STATE": 1192,
+        "PLANNING_SE": 0.04013103742816469,
+        "POWER_AT_50PCT_PLANNING": 0.050678096608248124,
+        "POWER_AT_75PCT_PLANNING": 0.10179019032541503,
+        "POWER_AT_BAR": 0.050678096608248124,
+        "STATE_SHARE": 0.8103331067301156
+      },
+      "STATE": "SPOT_CONFIRMED_APPROACH"
+    },
+    "DH1-L2": {
+      "CARD": "DH1-L",
+      "DECISION": {
+        "EXECUTE": true,
+        "HET_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [],
+        "REPLICATION_POWERED": false,
+        "STATUS": "EXECUTABLE"
+      },
+      "DISCOVERY": {
+        "ALPHA_HOLM_FIRST_STEP": 0.016666666666666666,
+        "CLUSTERS": 261,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=ROUND",
+          "TYPE_GROUP=WEEK"
+        ],
+        "EPOCHS": {
+          "2020": {
+            "N_COMPARATOR": 329,
+            "N_STATE": 288
+          },
+          "2021": {
+            "N_COMPARATOR": 748,
+            "N_STATE": 427
+          },
+          "2022": {
+            "N_COMPARATOR": 505,
+            "N_STATE": 359
+          },
+          "2023": {
+            "N_COMPARATOR": 369,
+            "N_STATE": 399
+          },
+          "2024": {
+            "N_COMPARATOR": 622,
+            "N_STATE": 576
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 5,
+        "EVENTS_PER_YEAR": 939.9696547884187,
+        "HET_POWER_2X": 0.1,
+        "MDE_80": 0.057786071082904254,
+        "N": 4622,
+        "NUISANCE_SUPPORT_[COMPARATOR,STATE]": {
+          "HOUR_BLOCK": {
+            "0": [
+              1175,
+              920
+            ],
+            "1": [
+              297,
+              284
+            ],
+            "2": [
+              247,
+              286
+            ],
+            "3": [
+              394,
+              314
+            ],
+            "4": [
+              286,
+              160
+            ],
+            "5": [
+              174,
+              85
+            ]
+          },
+          "LAG_TERCILE": {
+            "0": [
+              786,
+              755
+            ],
+            "1": [
+              792,
+              748
+            ],
+            "2": [
+              995,
+              546
+            ]
+          },
+          "RV_TERCILE": {
+            "0": [
+              673,
+              868
+            ],
+            "1": [
+              858,
+              682
+            ],
+            "2": [
+              1042,
+              499
+            ]
+          },
+          "TYPE_GROUP": {
+            "DAY": [
+              540,
+              974
+            ],
+            "MONTH": [
+              31,
+              24
+            ],
+            "POC": [
+              600,
+              460
+            ],
+            "ROUND": [
+              1245,
+              518
+            ],
+            "WEEK": [
+              157,
+              73
+            ]
+          }
+        },
+        "N_COMPARATOR": 2573,
+        "N_STATE": 2049,
+        "PLANNING_SE": 0.017859455008992643,
+        "POWER_AT_50PCT_PLANNING": 0.2375757232956902,
+        "POWER_AT_75PCT_PLANNING": 0.5500133520462598,
+        "POWER_AT_BAR": 0.2375757232956902,
+        "STATE_SHARE": 0.4433145824318477
+      },
+      "REPLICATION": {
+        "ALPHA_HOLM_FIRST_STEP": 0.016666666666666666,
+        "CLUSTERS": 124,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=ROUND",
+          "TYPE_GROUP=WEEK"
+        ],
+        "EPOCHS": {
+          "2017H2": {
+            "N_COMPARATOR": 136,
+            "N_STATE": 98
+          },
+          "2018": {
+            "N_COMPARATOR": 377,
+            "N_STATE": 246
+          },
+          "2019": {
+            "N_COMPARATOR": 339,
+            "N_STATE": 285
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 3,
+        "EVENTS_PER_YEAR": 634.9005281690141,
+        "HET_POWER_2X": 0.08,
+        "MDE_80": 0.10646749747334663,
+        "N": 1481,
+        "NUISANCE_SUPPORT_[COMPARATOR,STATE]": {
+          "HOUR_BLOCK": {
+            "0": [
+              362,
+              299
+            ],
+            "1": [
+              118,
+              119
+            ],
+            "2": [
+              112,
+              86
+            ],
+            "3": [
+              100,
+              78
+            ],
+            "4": [
+              94,
+              28
+            ],
+            "5": [
+              66,
+              19
+            ]
+          },
+          "LAG_TERCILE": {
+            "0": [
+              267,
+              227
+            ],
+            "1": [
+              254,
+              239
+            ],
+            "2": [
+              331,
+              163
+            ]
+          },
+          "RV_TERCILE": {
+            "0": [
+              207,
+              287
+            ],
+            "1": [
+              301,
+              192
+            ],
+            "2": [
+              344,
+              150
+            ]
+          },
+          "TYPE_GROUP": {
+            "DAY": [
+              284,
+              421
+            ],
+            "MONTH": [
+              15,
+              8
+            ],
+            "POC": [
+              340,
+              147
+            ],
+            "ROUND": [
+              133,
+              31
+            ],
+            "WEEK": [
+              80,
+              22
+            ]
+          }
+        },
+        "N_COMPARATOR": 852,
+        "N_STATE": 629,
+        "PLANNING_SE": 0.03290501405290743,
+        "POWER_AT_50PCT_PLANNING": 0.06960865176478764,
+        "POWER_AT_75PCT_PLANNING": 0.1524343051839962,
+        "POWER_AT_BAR": 0.06960865176478764,
+        "STATE_SHARE": 0.424713031735314
+      },
+      "STATE": "CONFLUENT_LEVEL"
+    },
+    "DH1-L3": {
+      "CARD": "DH1-L",
+      "DECISION": {
+        "EXECUTE": false,
+        "HET_DISCOVERY": "NOT_ASSESSABLE",
+        "HET_REPLICATION": "NOT_ASSESSABLE",
+        "REASONS": [
+          "discovery MDE 0.0741 > 0.06"
+        ],
+        "REPLICATION_POWERED": false,
+        "STATUS": "INFORMATIONALLY_WEAK"
+      },
+      "DISCOVERY": {
+        "ALPHA_HOLM_FIRST_STEP": 0.016666666666666666,
+        "CLUSTERS": 261,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=ROUND",
+          "TYPE_GROUP=WEEK"
+        ],
+        "EPOCHS": {
+          "2020": {
+            "N_COMPARATOR": 417,
+            "N_STATE": 200
+          },
+          "2021": {
+            "N_COMPARATOR": 835,
+            "N_STATE": 340
+          },
+          "2022": {
+            "N_COMPARATOR": 599,
+            "N_STATE": 265
+          },
+          "2023": {
+            "N_COMPARATOR": 490,
+            "N_STATE": 278
+          },
+          "2024": {
+            "N_COMPARATOR": 775,
+            "N_STATE": 423
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 5,
+        "EVENTS_PER_YEAR": 939.9696547884187,
+        "HET_POWER_2X": 0.085,
+        "MDE_80": 0.07407991330650851,
+        "N": 4622,
+        "NUISANCE_SUPPORT_[COMPARATOR,STATE]": {
+          "HOUR_BLOCK": {
+            "0": [
+              1871,
+              224
+            ],
+            "1": [
+              411,
+              170
+            ],
+            "2": [
+              350,
+              183
+            ],
+            "3": [
+              331,
+              377
+            ],
+            "4": [
+              125,
+              321
+            ],
+            "5": [
+              28,
+              231
+            ]
+          },
+          "LAG_TERCILE": {
+            "0": [
+              1352,
+              189
+            ],
+            "1": [
+              1021,
+              519
+            ],
+            "2": [
+              743,
+              798
+            ]
+          },
+          "RV_TERCILE": {
+            "0": [
+              941,
+              600
+            ],
+            "1": [
+              1026,
+              514
+            ],
+            "2": [
+              1149,
+              392
+            ]
+          },
+          "TYPE_GROUP": {
+            "DAY": [
+              954,
+              560
+            ],
+            "MONTH": [
+              3,
+              52
+            ],
+            "POC": [
+              994,
+              66
+            ],
+            "ROUND": [
+              1130,
+              633
+            ],
+            "WEEK": [
+              35,
+              195
+            ]
+          }
+        },
+        "N_COMPARATOR": 3116,
+        "N_STATE": 1506,
+        "PLANNING_SE": 0.022895255793901444,
+        "POWER_AT_50PCT_PLANNING": 0.13936274199021725,
+        "POWER_AT_75PCT_PLANNING": 0.3341474986928439,
+        "POWER_AT_BAR": 0.13936274199021725,
+        "STATE_SHARE": 0.32583297273907397
+      },
+      "REPLICATION": {
+        "ALPHA_HOLM_FIRST_STEP": 0.016666666666666666,
+        "CLUSTERS": 124,
+        "DESIGN_COLUMNS": [
+          "INTERCEPT",
+          "S",
+          "HOUR_BLOCK=1",
+          "HOUR_BLOCK=2",
+          "HOUR_BLOCK=3",
+          "HOUR_BLOCK=4",
+          "HOUR_BLOCK=5",
+          "RV_TERCILE=1",
+          "RV_TERCILE=2",
+          "LAG_TERCILE=1",
+          "LAG_TERCILE=2",
+          "TYPE_GROUP=MONTH",
+          "TYPE_GROUP=POC",
+          "TYPE_GROUP=ROUND",
+          "TYPE_GROUP=WEEK"
+        ],
+        "EPOCHS": {
+          "2017H2": {
+            "N_COMPARATOR": 181,
+            "N_STATE": 53
+          },
+          "2018": {
+            "N_COMPARATOR": 443,
+            "N_STATE": 180
+          },
+          "2019": {
+            "N_COMPARATOR": 438,
+            "N_STATE": 186
+          }
+        },
+        "EPOCHS_WITH_BOTH_ARMS_GE_MIN": 3,
+        "EVENTS_PER_YEAR": 634.9005281690141,
+        "HET_POWER_2X": 0.07,
+        "MDE_80": 0.14570845435878557,
+        "N": 1481,
+        "NUISANCE_SUPPORT_[COMPARATOR,STATE]": {
+          "HOUR_BLOCK": {
+            "0": [
+              608,
+              53
+            ],
+            "1": [
+              189,
+              48
+            ],
+            "2": [
+              138,
+              60
+            ],
+            "3": [
+              92,
+              86
+            ],
+            "4": [
+              28,
+              94
+            ],
+            "5": [
+              7,
+              78
+            ]
+          },
+          "LAG_TERCILE": {
+            "0": [
+              437,
+              57
+            ],
+            "1": [
+              350,
+              143
+            ],
+            "2": [
+              275,
+              219
+            ]
+          },
+          "RV_TERCILE": {
+            "0": [
+              347,
+              147
+            ],
+            "1": [
+              332,
+              161
+            ],
+            "2": [
+              383,
+              111
+            ]
+          },
+          "TYPE_GROUP": {
+            "DAY": [
+              466,
+              239
+            ],
+            "MONTH": [
+              2,
+              21
+            ],
+            "POC": [
+              464,
+              23
+            ],
+            "ROUND": [
+              120,
+              44
+            ],
+            "WEEK": [
+              10,
+              92
+            ]
+          }
+        },
+        "N_COMPARATOR": 1062,
+        "N_STATE": 419,
+        "PLANNING_SE": 0.04503288658121732,
+        "POWER_AT_50PCT_PLANNING": 0.04311814026736638,
+        "POWER_AT_75PCT_PLANNING": 0.08189698559896308,
+        "POWER_AT_BAR": 0.04311814026736638,
+        "STATE_SHARE": 0.28291694800810263
+      },
+      "STATE": "STALE_LEVEL"
+    }
+  },
+  "DATASETS": {
+    "OBJECTS_2025_2026": "none",
+    "PERP_DISCOVERY": {
+      "DATASET_ID": "CORE_BTC_BINANCE_V0",
+      "MONTHS": "2020-01..2024-12",
+      "ZIP_LIST_SHA256": "936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b"
+    },
+    "PERP_REPLICATION": {
+      "CANONICAL_SHA256": "df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f",
+      "DATASET_ID": "DH1_BITMEX_XBTUSD_TRADES_5M_V0",
+      "DAYS": "2017-08-01..2019-12-31",
+      "OBJECT_LIST_SHA256": "649710ec605b4e16334c5281f830efe77c27a014e684d8f0b913be630f157100"
+    },
+    "SPOT": {
+      "DATASET_ID": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+      "MONTHS": "2017-08..2024-12",
+      "OBJECT_LIST_SHA256": "5a27ea4883284c995bbb091067867b45927b67e3d4b244ed11c3b97e5887cb37"
+    }
+  },
+  "DESIGN_DATE": "2026-10-04",
+  "MARKET_OUTCOMES_OPENED": false,
+  "MARKET_VALUES_READ": "prices and taker flows up to each decision time (states and nuisance only); no outcome",
+  "OBJECTS_2025_2026_USED": "none",
+  "PROGRAM_ID": "DIRECTIONAL_HYPOTHESES_DH1",
+  "RULES": {
+    "DEFF_PLANNING": 1.25,
+    "EXECUTE_MDE_MAX": 0.06,
+    "EXECUTE_MIN_ARM": 300,
+    "HET_POWER": "2x epoch difference (0.03 vs 0.06), >= 0.5 to be assessable",
+    "OUTCOME_VARIANCE": 0.25,
+    "PLANNING_EFFECT": 0.06
+  },
+  "SEARCH_FAMILY_ID": "SF-DH1",
+  "SURFACES": {
+    "DISCOVERY": {
+      "BARS": 526176,
+      "BARS_PRESENT": 526176,
+      "LEVEL_EVENTS": 4622,
+      "LEVEL_EVENTS_BY_TYPE": {
+        "PDH": 812,
+        "PDL": 702,
+        "PMH": 38,
+        "PML": 17,
+        "POC_DOWN": 571,
+        "POC_UP": 489,
+        "PWH": 133,
+        "PWL": 97,
+        "ROUND_DOWN": 889,
+        "ROUND_UP": 874
+      },
+      "MOVE_EVENTS": 1852,
+      "SPOT_BARS_PRESENT": 525714
+    },
+    "REPLICATION": {
+      "BARS": 254304,
+      "BARS_PRESENT": 254252,
+      "LEVEL_EVENTS": 1481,
+      "LEVEL_EVENTS_BY_TYPE": {
+        "PDH": 352,
+        "PDL": 353,
+        "PMH": 10,
+        "PML": 13,
+        "POC_DOWN": 279,
+        "POC_UP": 208,
+        "PWH": 54,
+        "PWL": 48,
+        "ROUND_DOWN": 79,
+        "ROUND_UP": 85
+      },
+      "MOVE_EVENTS": 897,
+      "SPOT_BARS_PRESENT": 248407
+    }
+  }
+}

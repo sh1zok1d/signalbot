@@ -7909,3 +7909,32 @@ E1_PRISTINE_HOLDOUT_STATUS = INVALIDATED_FOR_P4_OVERLAP
 ```
 WINDOWS_CONSUMED = none by this record (it records a past exposure); MARKET_VALUES_READ = none; NEW_TESTS = none
 ```
+
+## 2026-10-04 — DH1: directional hypotheses for the bot, frozen before any outcome
+
+**Owner decision.** `docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md`: research may target the directional probabilities the bot states.
+- **Endpoints:** level hold 4h after a first touch; barrier first-passage ±X in 4h.
+- **Bar:** 3 pp plus a positive Brier skill score.
+- **Statuses:** «Проверено» or «Гипотеза».
+- **Data:** discovery on Binance 2020–2024; confirmation on 2017–2019 and live tracking.
+
+**Funnel** (`DH1_CANDIDATES.md`): 15 candidates; 9 closed at red team (approach speed, OI, sessions, D9/H03/basis neighbours, perp taker imbalance, DVOL); 1 deferred (OKX L2 book recovery).
+
+**Outcome-blind feasibility** (`DH1_FEASIBILITY.{md,json}`). The frozen rule runs a cell only if its discovery MDE is at most 6 pp.
+- **Executes:** DH1-L2, confluent level vs isolated level (N 4622, MDE 5.8 pp).
+- **Closed `INFORMATIONALLY_WEAK`:**
+  - DH1-L1 (spot-confirmed approach, MDE 8.5 pp);
+  - DH1-L3 (stale level, MDE 7.4 pp);
+  - DH1-B2 (spot share in a sharp move, MDE 11 pp; smaller arm 289);
+  - DH1-B1 (spot-confirmed sharp move): degenerate, since spot taker flow agrees with the move's direction in 97.6 % of moves.
+- **Replication surface:** underpowered for every cell (MDE ≥ 10.6 pp), so confirmation in practice comes from live tracking.
+
+**Data pinned (free).**
+- Binance spot BTCUSDT 5m klines 2017-08..2024-12: 89 months, archive checksums verified.
+- BitMEX XBTUSD public trades 2017-08-01..2019-12-31: 883 daily files pinned by SHA256, aggregated to 5m with the taker side.
+- Discovery perp: `CORE_BTC_BINANCE_V0`.
+
+```
+SEARCH_FAMILY = SF-DH1; TEST_FAMILY = TF-DH1-L-LEVEL-HOLD (1 primary cell: DH1-L2); TF-DH1-B-BARRIER not registered (no executable cell)
+PREREG = docs/research/DH1_PREREG.json; MARKET_OUTCOMES_OPENED = NO at freeze; OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
+```
