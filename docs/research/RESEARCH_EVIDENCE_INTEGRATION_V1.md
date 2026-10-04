@@ -1,6 +1,6 @@
 # Research evidence integration V1
 
-**Status:** IMPLEMENTED on branch `claude/research-evidence-engine` (owner task, 2026-10-04). Not deployed.
+**Status:** IMPLEMENTED and merged to `main` (PR #326, merge `423b9b8`; owner task, 2026-10-04). Not deployed; the feed units are not enabled. Deploy plan: `docs/RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md`.
 
 **Owner authorization:** the task "INTEGRATE ALL RESEARCH EVIDENCE INTO LIVE MARKET ANALYSIS" (2026-10-04).
 - It authorizes **read-only, free, public** market-data collectors and derived features when a closed research unit needs them for live matching.
