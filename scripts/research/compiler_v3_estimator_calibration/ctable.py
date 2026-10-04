@@ -18,16 +18,16 @@ QUANTILE = 0.99
 
 
 def build_c_table(cal_rows: list[dict], cal_cells: list[dict]) -> dict:
-    """cal_rows: CAL replicate rows (CELL_ID, SEED, V_A, VAR_TRUE_USED, ERROR). Pool per (class, n) over MUST cells."""
+    """cal_rows: slim CAL rows (C, S, VA, T, E). Pool per (class, n) over MUST cells."""
     by_cell = {c["CELL_ID"]: c for c in cal_cells}
     pools: dict[tuple[str, int], list[float]] = {}
     ids: dict[tuple[str, int], set] = {}
     for r in cal_rows:
-        cell = by_cell[r["CELL_ID"]]
-        if r.get("ERROR"):
-            raise RuntimeError(f"CAL row with error cannot enter the pool: {r['CELL_ID']} {r['SEED']}")
+        cell = by_cell[r["C"]]
+        if r.get("E"):
+            raise RuntimeError(f"CAL row with error cannot enter the pool: {r['C']} {r['S']}")
         key = (cell["CLASS"], int(cell["N"]))
-        pools.setdefault(key, []).append(r["VAR_TRUE_USED"] / r["V_A"])
+        pools.setdefault(key, []).append(r["T"] / r["VA"])
         ids.setdefault(key, set()).add(cell["CELL_ID"])
     table = {}
     classes = sorted({c["CLASS"] for c in cal_cells})

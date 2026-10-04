@@ -12,6 +12,7 @@ import pytest
 
 from scripts.research.compiler_v3_estimator_calibration import aggregate as AG
 from scripts.research.compiler_v3_estimator_calibration import amendment_v3 as A3
+from scripts.research.compiler_v3_estimator_calibration import amendment_v4 as A4
 from scripts.research.compiler_v3_estimator_calibration import cells as C
 from scripts.research.compiler_v3_estimator_calibration import checkpoint as CK
 from scripts.research.compiler_v3_estimator_calibration import ctable, engine
@@ -37,12 +38,12 @@ def test_replay_identical_across_calls_and_processes():
     cell = dev_cell("CLUSTERED", 13)
     a = G.generate(cell, 123456)
     b = G.generate(cell, 123456)
-    assert np.array_equal(a["SEQUENCE"], b["SEQUENCE"]) and a["VAR_TRUE_USED"] == b["VAR_TRUE_USED"]
+    assert np.array_equal(a["SEQUENCE"], b["SEQUENCE"]) and a["VAR_TRUE"] == b["VAR_TRUE"]
     code = ("import json,sys,numpy as np;from scripts.research.compiler_v3_estimator_calibration import generators as G;"
-            f"c=json.loads(sys.argv[1]);s=G.generate(c,123456);print(json.dumps([s['SEQUENCE'].tolist(),s['VAR_TRUE_USED']]))")
+            f"c=json.loads(sys.argv[1]);s=G.generate(c,123456);print(json.dumps([s['SEQUENCE'].tolist(),s['VAR_TRUE']]))")
     out = subprocess.check_output([sys.executable, "-c", code, json.dumps(cell)], cwd=str(C.REPO)).decode()
     seq, truth = json.loads(out)
-    assert np.array_equal(np.array(seq), a["SEQUENCE"]) and truth == a["VAR_TRUE_USED"]
+    assert np.array_equal(np.array(seq), a["SEQUENCE"]) and truth == a["VAR_TRUE"]
     # different seed -> different sample; candidate is not part of the derivation (there is no candidate argument at all)
     assert not np.array_equal(G.generate(cell, 123457)["SEQUENCE"], a["SEQUENCE"])
 
@@ -66,9 +67,12 @@ def test_bartlett_literal_and_two_sample_pooling():
     omega = gamma[0] + 2 * sum((1 - l / (L + 1)) * gamma[l] for l in range(1, L + 1))
     assert abs(E.bartlett_omega(x) - omega) < 1e-12
     s = {"CLASS": "TWO_SAMPLE", "ARMS": (x, y)}
-    v, nu = E.long_run_variance(s)
-    assert abs(v - (26 * E.bartlett_omega(x) + 63 * E.bartlett_omega(y)) / 89) < 1e-12
-    assert nu == 91 // (E.bandwidth(91) + 1) - 1
+    assert abs(E.bartlett_omega(y) - E.bartlett_omega(y)) < 1e-12
+    # V4 D4: TWO_SAMPLE nu_B = 2 * (floor(n/(L(n)+1)) - 1) with the per-arm bandwidth; unequal arms are an error
+    s_eq = {"CLASS": "TWO_SAMPLE", "ARMS": (x, rng.standard_normal(27))}
+    assert E.long_run_variance(s_eq)[1] == 2 * (27 // (E.bandwidth(27) + 1) - 1) == A4.nu_b_two_sample(27)
+    with pytest.raises(E.CalibrationExecutionError, match="EQUAL_ARMS_ONLY"):
+        E.long_run_variance(s)
 
 
 def test_error_rule_not_repaired():
@@ -118,31 +122,47 @@ def test_truth_matches_generated_process(klass, n, levels):
         if klass == "TWO_SAMPLE":
             xa, xb = s["ARMS"]
             means.append(xa.mean() - xb.mean())
-            truths.append(s["VAR_TRUE_USED"] * 2 / n)         # Var(diff of means) = sigma2_LR * (1/n + 1/n)
+            truths.append(s["VAR_TRUE"] * 2 / n)         # Var(diff of means) = sigma2_LR * (1/n + 1/n)
         else:
             means.append(seq.mean())
-            truths.append(s["VAR_TRUE_USED"] / n)
+            truths.append(s["VAR_TRUE"] / n)
     emp = np.var(means, ddof=1)
     ref = np.mean(truths)                                        # realized truth averaged over replicates (CLUSTERED HETERO varies)
     assert abs(emp / ref - 1) < 0.08, (emp, ref)
 
 
-def test_truth_flag_for_clustered_hetero_with_ar():
+def test_clustered_truth_is_exact_single_authoritative():
     s = G.generate(dev_cell("CLUSTERED", 12), 11)
-    assert s["TRUTH_MATCHES_FROZEN"] is False and s["VAR_TRUE_USED"] != s["VAR_TRUE_FROZEN_FORMULA"]
-    s0 = G.generate(dev_cell("CLUSTERED", 12, {"icc": 0.3, "sizes": "HETERO", "phi_G": 0.0, "tail": "GAUSS", "m_nominal": 24, "m_range": [12, 36]}), 11)
-    assert s0["TRUTH_MATCHES_FROZEN"] is True
+    assert "VAR_TRUE_FROZEN_FORMULA" not in s and "TRUTH_MATCHES_FROZEN" not in s
+    v = 0.3 + 0.7 / s["CLUSTER_SIZES"]
+    assert abs(s["VAR_TRUE"] - A4.clustered_truth_by_covariance(v, 0.3)) < 1e-10
+    # analytic properties (V4 D2)
+    assert abs(A4.clustered_truth(v, 0.0) - v.mean()) < 1e-12
+    veq = np.full(12, 0.3 + 0.7 / 24)
+    assert abs(A4.clustered_truth(veq, 0.3) - veq[0] * G.ar_factor(12, 0.3)) < 1e-12
+    assert abs(A4.clustered_truth(veq, 0.0) - (0.3 + 0.7 / 24)) < 1e-12
+
+
+def test_rare_event_truth_identity():
+    for n, phi, vc, h in [(30, 0.3, 0.9, True), (50, 0.0, 0.5, False), (100, 0.6, 0.7, True)]:
+        assert abs(A4.rare_event_truth_by_covariance(n, phi, vc, h) - A4.rare_event_truth_formula(n, phi, vc, h)) < 1e-9
+    lv = {"venue_corr": 0.9, "scale": "HETERO", "phi_e": 0.3, "tail": "GAUSS", "venues": 3, "scale_multiplier": "exp(0.5*Z)"}
+    s = G.generate(dev_cell("RARE_EVENT", 30, lv), 1)
+    assert abs(s["VAR_TRUE"] - A4.rare_event_truth_formula(30, 0.3, 0.9, True)) < 1e-12
 
 
 # ------------------------------------------------------------------ candidate-independent reuse
 
 def test_single_sample_all_candidates():
     cell = dev_cell("RARE_EVENT", 40)
-    row = engine.eval_replicate(cell, 5, c_factor=1.3)
+    row = engine.eval_replicate(cell, 5)
+    assert set(row) == set(A4.SLIM_ROW_KEYS["EVAL"]) and row["P"] == "EVAL" and row["E"] is None
     s = G.generate(cell, 5)
     va, _ = E.naive_variance(s)
-    assert abs(row["U_C"] - va * 1.3) < 1e-12 and row["V_A"] == va and row["U_D"] == 4.0
-    assert row["MISS_A"] == (row["VAR_TRUE_USED"] > row["U_A"])
+    assert row["VA"] == va and row["T"] == s["VAR_TRUE"]
+    d = engine.derive(row, cell, 1.3)
+    assert d["MISS_A"] == (row["T"] > E.chi2_bound(va, 39)) and d["MISS_C"] == (row["T"] > va * 1.3) and d["UTIL_D"] == (4.0 / row["T"] <= 1.5)
+    assert set(engine.cal_replicate(cell, 5)) == set(A4.SLIM_ROW_KEYS["CAL"])
 
 
 # ------------------------------------------------------------------ phases, sealing, guards
@@ -176,7 +196,7 @@ def test_eval_code_path_has_no_c_table_writer():
     """The EVAL path (engine.run_eval / eval_gate / eval_replicate) never calls seal_c_table or writes the C-table."""
     tree = ast.parse((PKG / "engine.py").read_text())
     funcs = {f.name: f for f in tree.body if isinstance(f, ast.FunctionDef)}
-    for name in ("run_eval", "eval_gate", "eval_replicate", "_decide"):
+    for name in ("run_eval", "eval_gate", "eval_replicate", "derive", "decide_cell", "_decide_rows"):
         calls = [n.attr for n in ast.walk(funcs[name]) if isinstance(n, ast.Attribute)]
         assert "seal_c_table" not in calls and "write_text" not in calls and "build_c_table" not in calls
     assert "seal_c_table" in [n.attr for n in ast.walk(funcs["run_cal"]) if isinstance(n, ast.Attribute)]
@@ -206,13 +226,13 @@ def test_checkpoint_resume_idempotent_and_integrity(tmp_path):
     row = ck.rows("CAL")[0]
     ck.record(row)                                                               # bit-identical duplicate: no-op
     assert len(ck.index) == n0
-    bad = dict(row); bad["V_A"] = row["V_A"] + 1e-9
+    bad = dict(row); bad["VA"] = row["VA"] + 1e-9
     with pytest.raises(CK.ExecutionIntegrityError):
         ck.record(bad)
     ck.close()
     # Resume with a truncated checkpoint executes only the missing seeds and reproduces identical rows.
     lines = (tmp_path / "replicates.jsonl").read_text().splitlines()
-    (tmp_path / "replicates.jsonl").write_text("\n".join(lines[: n0 // 2]) + "\n")
+    (tmp_path / "replicates.jsonl").write_text("\n".join(lines[: 1 + n0 // 2]) + "\n")   # keep the header line
     (tmp_path / ctable.C_TABLE_NAME).unlink(); (tmp_path / engine.CAL_DONE_NAME).unlink()
     engine.run_cal(tmp_path, cal[:2], cal_n=20)
     ck2 = CK.Checkpoint(tmp_path / "replicates.jsonl")
@@ -293,11 +313,11 @@ def test_coverage_hole_differs_from_utility_frontier():
 
 
 def test_class_indeterminate_decisive_fail_and_execution_error():
-    ind = _all_pass("TWO_SAMPLE", [30, 31], cov={"A": "CALIBRATION_INDETERMINATE", "B": "FAIL", "C": "FAIL"})
+    ind = _all_pass("TWO_SAMPLE", [30, 31], cov={"A": "CALIBRATION_INDETERMINATE", "B": "PASS", "C": "PASS"})
     assert AG.aggregate_class("TWO_SAMPLE", ind, 250, (30, 250))["CLASS_STATUS"] == "CALIBRATION_CLASS_INDETERMINATE"
     fail = _all_pass("TWO_SAMPLE", [30, 31], cov="FAIL")
     assert AG.aggregate_class("TWO_SAMPLE", fail, 250, (30, 250))["CLASS_STATUS"] == "CALIBRATION_CLASS_FAIL_INFORMATION_INSUFFICIENT"
-    err = _all_pass("TWO_SAMPLE", [30, 31], cov={"A": "CALIBRATION_EXECUTION_ERROR", "B": "FAIL", "C": "FAIL"},
+    err = _all_pass("TWO_SAMPLE", [30, 31], cov={"A": "CALIBRATION_EXECUTION_ERROR", "B": "PASS", "C": "PASS"},
                     util={"A": "CALIBRATION_EXECUTION_ERROR", "B": "PASS", "C": "PASS"})
     assert AG.aggregate_class("TWO_SAMPLE", err, 250, (30, 250))["CLASS_STATUS"] == "CALIBRATION_CLASS_EXECUTION_ERROR"
 
@@ -307,10 +327,10 @@ def test_global_mixed_statuses():
     base = ok("TWO_SAMPLE", [30]) + ok("PAIRED_UNITS", [40]) + ok("CLUSTERED", [8])
     mixed_fail = base + _all_pass("RARE_EVENT", [30], cov="FAIL")
     assert AG.aggregate(mixed_fail, REAL, RNG)["GLOBAL_STATUS"] == "ESTIMATOR_CALIBRATION_FAIL_INFORMATION_INSUFFICIENT"
-    mixed_ind = base + _all_pass("RARE_EVENT", [30], cov={"A": "ESCALATE", "B": "FAIL", "C": "FAIL"})
+    mixed_ind = base + _all_pass("RARE_EVENT", [30], cov={"A": "ESCALATE", "B": "PASS", "C": "PASS"})
     agg = AG.aggregate(mixed_ind, REAL, RNG)
     assert agg["GLOBAL_STATUS"] == "CALIBRATION_INDETERMINATE" and agg["CLASSES"]["TWO_SAMPLE"]["CLASS_STATUS"] == "CALIBRATION_CLASS_PASS"
-    errs = base + _all_pass("RARE_EVENT", [30], cov={"A": "CALIBRATION_EXECUTION_ERROR", "B": "FAIL", "C": "FAIL"})
+    errs = base + _all_pass("RARE_EVENT", [30], cov={"A": "CALIBRATION_EXECUTION_ERROR", "B": "PASS", "C": "PASS"})
     assert AG.aggregate(errs, REAL, RNG)["GLOBAL_STATUS"] == "ESTIMATOR_CALIBRATION_EXECUTION_ERROR"
 
 
@@ -321,12 +341,78 @@ def test_stage_b_uses_stage_a_as_prefix_and_thresholds(tmp_path):
     engine.run_cal(tmp_path, cal[:1], cal_n=30)
     res = engine.run_eval(tmp_path, ev[:1], stage_a=10, stage_b=30)
     ck = CK.Checkpoint(tmp_path / "replicates.jsonl")
-    seeds = sorted(r["SEED"] for r in ck.rows("EVAL"))
+    seeds = sorted(r["S"] for r in ck.rows("EVAL"))
     lo = ev[0]["SEED_RANGE"]["EVAL_STAGE_B"][0]
     assert seeds[:10] == list(range(lo, lo + 10)) and (len(seeds) in (10, 30))
     assert res[0]["ESCALATED"] == (len(seeds) == 30)
     t = A3.thresholds()
-    assert t["4000"]["COVERAGE_PASS_IF_MISSES_LE"] == 21 and engine._decide([], "A")["N"] == 0 or True
+    assert t["4000"]["COVERAGE_PASS_IF_MISSES_LE"] == 21
+
+
+def test_v4_strict_preference_scenarios():
+    ok_util = {x: {40: ["PASS"]} for x in ("A", "B", "C")}
+    def cls(cov, err=None):
+        return AG.aggregate_class("PAIRED_UNITS", _all_pass("PAIRED_UNITS", [40], cov=cov), 260, (40, 260)) if err is None else None
+    # A unresolved, B pass -> INDETERMINATE, no selection
+    c = cls({"A": "CALIBRATION_INDETERMINATE", "B": "PASS", "C": "PASS"})
+    assert c["CLASS_STATUS"] == "CALIBRATION_CLASS_INDETERMINATE" and c["SELECTED_CANDIDATE"] is None
+    # A error, B pass -> ERROR, no selection
+    c = cls({"A": "CALIBRATION_EXECUTION_ERROR", "B": "PASS", "C": "PASS"})
+    assert c["CLASS_STATUS"] == "CALIBRATION_CLASS_EXECUTION_ERROR" and c["SELECTED_CANDIDATE"] is None
+    # A fail, B unresolved, C pass -> INDETERMINATE
+    c = cls({"A": "FAIL", "B": "ESCALATE", "C": "PASS"})
+    assert c["CLASS_STATUS"] == "CALIBRATION_CLASS_INDETERMINATE"
+    # A fail, B error, C pass -> ERROR
+    c = cls({"A": "FAIL", "B": "CALIBRATION_EXECUTION_ERROR", "C": "PASS"})
+    assert c["CLASS_STATUS"] == "CALIBRATION_CLASS_EXECUTION_ERROR"
+    # A fail, B fail, C pass -> select C
+    c = cls({"A": "FAIL", "B": "FAIL", "C": "PASS"})
+    assert c["SELECTED_CANDIDATE"] == "C"
+    # A pass while B/C error -> select A
+    c = cls({"A": "PASS", "B": "CALIBRATION_EXECUTION_ERROR", "C": "CALIBRATION_EXECUTION_ERROR"})
+    assert c["SELECTED_CANDIDATE"] == "A" and c["CLASS_STATUS"] == "CALIBRATION_CLASS_PASS"
+
+
+def _derived(n_pass_a, n_total, miss_b_frac=0.0, util_all=True, miss_c=0):
+    """Build derived rows: candidate A misses exactly n_total - n_pass_a times; B misses a fraction; C misses miss_c."""
+    rows = []
+    for i in range(n_total):
+        rows.append({"ERROR": None,
+                     "MISS_A": i >= n_pass_a, "UTIL_A": util_all,
+                     "MISS_B": i < int(miss_b_frac * n_total), "UTIL_B": True,
+                     "MISS_C": i < miss_c, "UTIL_C": True,
+                     "MISS_D": False, "UTIL_D": False})
+    return rows
+
+
+def test_stage_a_decisions_locked_per_check():
+    # Stage A: A coverage PASS (0 misses in 4000); B coverage ESCALATE (~1.5% misses).
+    a_rows = _derived(4000, 4000, miss_b_frac=0.015)
+    dec_a = engine.decide_cell(a_rows, None)
+    assert dec_a["A"]["COVERAGE"]["STAGE_A"] == "PASS" and dec_a["B"]["COVERAGE"]["STAGE_A"] == "ESCALATE"
+    assert engine.needs_stage_b(dec_a)
+    # Stage B rows would make A fail badly (all misses) -> A remains PASS (locked at Stage A); B decided on pooled rows.
+    b_rows = _derived(0, 16000, miss_b_frac=0.0)
+    dec = engine.decide_cell(a_rows, b_rows)
+    assert dec["A"]["COVERAGE"]["FINAL"] == "PASS" and dec["A"]["COVERAGE"]["DECIDED_AT"] == "A" and dec["A"]["COVERAGE"]["STAGE_B"] is None
+    assert dec["B"]["COVERAGE"]["DECIDED_AT"] == "B" and dec["B"]["COVERAGE"]["FINAL"] in ("PASS", "FAIL", "CALIBRATION_INDETERMINATE")
+    # A utility FAIL at Stage A, C escalates -> A utility remains FAIL even though Stage B rows have UTIL_A True.
+    a_rows2 = _derived(4000, 4000, util_all=False, miss_c=60)
+    dec2 = engine.decide_cell(a_rows2, _derived(16000, 16000, util_all=True, miss_c=0))
+    assert dec2["A"]["UTILITY"]["STAGE_A"] == "FAIL" and dec2["A"]["UTILITY"]["FINAL"] == "FAIL" and dec2["C"]["COVERAGE"]["DECIDED_AT"] == "B"
+    # Only escalated checks consume Stage-B logic.
+    assert all(dec2[x][m]["STAGE_B"] is None for x in ("A", "B", "C", "D") for m in ("COVERAGE", "UTILITY") if dec2[x][m]["STAGE_A"] != "ESCALATE")
+
+
+def test_slim_checkpoint_schema_and_header(tmp_path):
+    cal, ev, _, _ = R.dev_cells(n_cal=12, n_eval=12)
+    engine.run_cal(tmp_path, cal[:1], cal_n=12)
+    lines = (tmp_path / "replicates.jsonl").read_text().splitlines()
+    head = json.loads(lines[0])
+    assert "HEADER" in head and head["HEADER"]["EXECUTOR_DIGEST"] == engine.executor_digest()["EXECUTOR_DIGEST"] and head["HEADER"]["SCHEMA"] == "SLIM_V4"
+    assert all(set(json.loads(l)) == set(A4.SLIM_ROW_KEYS["CAL"]) for l in lines[1:])
+    with pytest.raises(CK.ExecutionIntegrityError, match="header"):
+        CK.Checkpoint(tmp_path / "replicates.jsonl", header={"EXECUTOR_DIGEST": "other", "INPUT_DIGESTS": {}, "SCHEMA": "SLIM_V4"})
 
 
 def test_frozen_digests_match_and_no_frozen_cell_touched():

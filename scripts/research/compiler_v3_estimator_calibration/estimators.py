@@ -2,7 +2,8 @@
 
 Candidate A: naive design-specific independent-unit variance (sample variance, ddof 1).
 Candidate B: Bartlett long-run variance, L = ceil(n^(1/3)), divisor n, pooled by (n_h - 1)
-             for TWO_SAMPLE; no clipping, no floor, no alternate kernel or bandwidth.
+             for TWO_SAMPLE with nu_B = 2 * (floor(n/(L(n)+1)) - 1) (V4 D4, per-arm bandwidth);
+             no clipping, no floor, no alternate kernel or bandwidth.
 Candidate C: V_A times the sealed c_env(class, n_i), n_i = largest calibrated size <= n.
 Candidate D: VAR_FALLBACK = 4 (reference only).
 Bound A/B: V * nu / chi2_{0.01, nu}. Non-finite or non-positive -> CalibrationExecutionError.
@@ -59,9 +60,10 @@ def long_run_variance(sample: dict) -> tuple[float, int]:
     if sample["CLASS"] == "TWO_SAMPLE":
         xa, xb = sample["ARMS"]
         na, nb = len(xa), len(xb)
+        if na != nb:
+            raise CalibrationExecutionError("TWO_SAMPLE_ALLOCATION_DOMAIN = EQUAL_ARMS_ONLY")
         v = ((na - 1) * bartlett_omega(xa) + (nb - 1) * bartlett_omega(xb)) / (na + nb - 2)
-        n_pool = na + nb
-        return _check(v, "V_LR"), n_pool // (bandwidth(n_pool) + 1) - 1
+        return _check(v, "V_LR"), 2 * (na // (bandwidth(na) + 1) - 1)        # V4 D4: nu_B = 2 * nu_arm, per-arm bandwidth
     s = sample["SEQUENCE"]
     n = len(s)
     return _check(bartlett_omega(s), "V_LR"), n // (bandwidth(n) + 1) - 1

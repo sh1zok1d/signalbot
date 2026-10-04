@@ -5,10 +5,9 @@ reserved_ss = root.spawn(2); DATA = default_rng(data_ss); child 1 is reserved an
 The candidate never enters the derivation. A sample is generated ONCE per (cell, seed)
 and every candidate is applied to that same sample.
 
-Truth: each sample carries VAR_TRUE_USED, the exact variance (n x Var of the unit-mean
-statistic) of the process that was generated, and VAR_TRUE_FROZEN_FORMULA, the value or
-formula of the frozen grid. They coincide except in the CLUSTERED HETERO cells with
-phi_G > 0 (see INTERPRETATIONS in the executor README section of the audit).
+Truth (amendment V4): each sample carries ONE authoritative exact truth VAR_TRUE, the
+exact variance (n x Var of the unit-mean statistic) of the generated process. CLUSTERED
+uses the exact conditional finite-G formula (1/G) sum_g sum_h sqrt(v_g v_h) phi^|g-h|.
 
 No Run 1 artifact and no market data is read here.
 """
@@ -54,6 +53,15 @@ def ar_factor(n: int, phi: float) -> float:
     return 1.0 + 2.0 * sum((1.0 - h / n) * phi**h for h in range(1, n))
 
 
+def clustered_truth(v: np.ndarray, phi: float) -> float:
+    """V4 D2: VAR_TRUE = G * Var(mean_g X_g | m) = (1/G) sum_g sum_h sqrt(v_g v_h) phi^|g-h|."""
+    v = np.asarray(v, dtype=float)
+    G = v.size
+    sv = np.sqrt(v)
+    idx = np.arange(G)
+    return float((sv[:, None] * sv[None, :] * phi ** np.abs(idx[:, None] - idx[None, :])).sum()) / G
+
+
 def generate(cell: dict, seed: int) -> dict:
     """Return the sample for one cell and replicate seed, with the exact truth."""
     rng, _reserved = substreams(seed)
@@ -64,15 +72,11 @@ def generate(cell: dict, seed: int) -> dict:
     if fam == "F1":
         phi, tail = lv["phi"], lv["tail"]
         xa, xb = ar1_unit(rng, n, phi, tail), ar1_unit(rng, n, phi, tail)
-        truth = ar_factor(n, phi)
-        return {"CLASS": "TWO_SAMPLE", "ARMS": (xa, xb), "VAR_TRUE_USED": lam * truth,
-                "VAR_TRUE_FROZEN_FORMULA": lam * truth, "TRUTH_MATCHES_FROZEN": True}
+        return {"CLASS": "TWO_SAMPLE", "ARMS": (xa, xb), "VAR_TRUE": lam * ar_factor(n, phi)}
     if fam == "F2":
         phi, tail = lv["phi"], lv["tail"]
         d = ar1_unit(rng, n, phi, tail)
-        truth = ar_factor(n, phi)
-        return {"CLASS": "PAIRED_UNITS", "SEQUENCE": d, "VAR_TRUE_USED": lam * truth,
-                "VAR_TRUE_FROZEN_FORMULA": lam * truth, "TRUTH_MATCHES_FROZEN": True}
+        return {"CLASS": "PAIRED_UNITS", "SEQUENCE": d, "VAR_TRUE": lam * ar_factor(n, phi)}
     if fam == "F3":
         icc, phi, tail = lv["icc"], lv["phi_G"], lv["tail"]
         if lv["sizes"] == "EQUAL":
@@ -83,15 +87,8 @@ def generate(cell: dict, seed: int) -> dict:
         v = icc + (1.0 - icc) / m                                  # variance of each cluster mean
         z = ar1_unit(rng, n, phi, tail)                            # unit-variance AR(1) across ordered clusters
         s = np.sqrt(v) * z                                         # cluster-level mean statistic
-        frozen = float(np.mean(v)) * ar_factor(n, phi)
-        if phi == 0.0 or lv["sizes"] == "EQUAL":
-            exact = frozen
-        else:
-            sv = np.sqrt(v)
-            idx = np.arange(n)
-            exact = float((sv[:, None] * sv[None, :] * phi ** np.abs(idx[:, None] - idx[None, :])).sum()) / n
-        return {"CLASS": "CLUSTERED", "SEQUENCE": s, "CLUSTER_SIZES": m, "VAR_TRUE_USED": lam * exact,
-                "VAR_TRUE_FROZEN_FORMULA": lam * frozen, "TRUTH_MATCHES_FROZEN": math.isclose(exact, frozen, rel_tol=1e-12)}
+        exact = clustered_truth(v, phi)                            # amendment V4 D2: exact conditional finite-G truth
+        return {"CLASS": "CLUSTERED", "SEQUENCE": s, "CLUSTER_SIZES": m, "VAR_TRUE": lam * exact}
     if fam == "F4":
         vc, phi, tail = lv["venue_corr"], lv["phi_e"], lv["tail"]
         c = (1.0 + 2.0 * vc) / 3.0                                 # variance of the venue-averaged statistic
@@ -101,7 +98,6 @@ def generate(cell: dict, seed: int) -> dict:
         else:
             mult, em2 = None, 1.0
         s = math.sqrt(c) * ar1_unit(rng, n, phi, tail, scale=mult)
-        truth = c * em2 * ar_factor(n, phi)                        # exact: Var(s_g) = c E[m^2], Cov = phi^h Var
-        return {"CLASS": "RARE_EVENT", "SEQUENCE": s, "VAR_TRUE_USED": lam * truth,
-                "VAR_TRUE_FROZEN_FORMULA": lam * truth, "TRUTH_MATCHES_FROZEN": True}
+        truth = c * em2 * ar_factor(n, phi)                        # exact: Var(s_g) = c E[m^2], Cov = phi^h Var (V4 D5)
+        return {"CLASS": "RARE_EVENT", "SEQUENCE": s, "VAR_TRUE": lam * truth}
     raise KeyError(f"unsupported family {cell['FAMILY']}")

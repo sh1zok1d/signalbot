@@ -11,6 +11,7 @@ eligible, with operational support starting at the frontier.
 from __future__ import annotations
 
 from scripts.research.compiler_v3_estimator_calibration import amendment_v3 as A3
+from scripts.research.compiler_v3_estimator_calibration import amendment_v4 as A4
 
 CANDIDATES = ("A", "B", "C")
 ESTIMATOR_TEXT = {
@@ -51,7 +52,7 @@ def aggregate_class(klass: str, results: list[dict], realistic_max: int, support
         err[x] = any(r["DECISIONS"][x]["COVERAGE"] == "CALIBRATION_EXECUTION_ERROR" for r in req)
         cov[x] = ["CALIBRATION_INDETERMINATE" if c == "CALIBRATION_EXECUTION_ERROR" else c for c in cov[x]]
         util[x] = {n: ["CALIBRATION_INDETERMINATE" if u == "CALIBRATION_EXECUTION_ERROR" else u for u in us] for n, us in util[x].items()}
-    state = A3.class_state(cov, util, err, realistic_max)
+    state = A4.class_state(cov, util, err, realistic_max)       # V4 D1 strict preference A -> B -> C
     sel = state["SELECTED_CANDIDATE"]
     out = {"CLASS": klass, "REQUIRED_CELLS": len(req), "CLASS_STATUS": state["CLASS_STATUS"], "SELECTED_CANDIDATE": sel,
            "CANDIDATES": state["CANDIDATES"], "COUNT_SUPPORT": {x: count_support_map(req, x) for x in CANDIDATES},
@@ -75,5 +76,5 @@ def aggregate_class(klass: str, results: list[dict], realistic_max: int, support
 
 def aggregate(results: list[dict], realistic_max: dict, supported_range: dict, required_classes=A3.REQUIRED_CLASSES) -> dict:
     classes = {k: aggregate_class(k, results, realistic_max[k], tuple(supported_range[k])) for k in required_classes}
-    status = A3.global_status({k: classes[k]["CLASS_STATUS"] for k in required_classes})
+    status = A4.global_status({k: classes[k]["CLASS_STATUS"] for k in required_classes})
     return {"GLOBAL_STATUS": status, "CLASSES": classes}
