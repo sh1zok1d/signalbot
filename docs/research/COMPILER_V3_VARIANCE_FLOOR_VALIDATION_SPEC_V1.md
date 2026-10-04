@@ -1,6 +1,6 @@
-# `COMPILER_V3_VARIANCE_FLOOR_VALIDATION` — specification V1 (revision 2)
+# `COMPILER_V3_VARIANCE_FLOOR_VALIDATION` — specification V1 (revision 3)
 
-**Status:** `SPEC_DRAFT / NOT_FROZEN / NOT_RUN / NOT_ADOPTED` (2026-10-04, revision 2 after the owner's spec review). An adoption gate of `HYPOTHESIS_EVALUATION_CONTRACT_V2_DRAFT.md` §5.3. Nothing here runs until the owner freezes this spec (digest recorded in the V2 draft) and authorizes the run. No generator code exists yet.
+**Status:** `SPEC_DRAFT / NOT_FROZEN / NOT_RUN / NOT_ADOPTED` (2026-10-04, revision 3: the owner's four final repairs; golden manifest generated, not frozen). An adoption gate of `HYPOTHESIS_EVALUATION_CONTRACT_V2_DRAFT.md` §5.3. Nothing here runs until the owner freezes this spec (digest recorded in the V2 draft) and authorizes the run. No generator code exists yet.
 **Purpose:** choose the adopted value of the planning variance floor `f` by a frozen two-sided rule (safety and utility) on a synthetic suite with known ground truth. Not a test of any market hypothesis.
 
 ## 1. Rules that bind the run
@@ -18,7 +18,7 @@ For a design's unit statistic (the quantity whose mean is the estimand):
 |---|---|
 | `VAR_TRUE` | the true variance of the unit statistic in the evaluation sample, known from the generator |
 | `VAR_FALLBACK` | the frozen conservative planning variance of V1: `VAR_FALLBACK = (2.0 × SD_BASE)²`, with `SD_BASE` the design's declared base SD of the unit statistic (`SD_BASE = 1` in the compiler's effect units) |
-| `VAR_EXPOSED_ESTIMATE` | the variance the compiler would be handed from an exposed-data estimator: in the suite, the sample variance of the unit statistic computed on an **independent** synthetic sample from the same generator, then multiplied by the understatement factor `q` of the grid (§3A) |
+| `VAR_EXPOSED_ESTIMATE` | the planning input the compiler is handed. **In this gate it is a controlled input, not an estimate:** `VAR_EXPOSED_ESTIMATE := q × VAR_TRUE` with `q` read directly from the frozen grid (§3A). No exposed sample is drawn and no estimator is evaluated here; the gate tests compiler robustness to a given degree of understatement. A sampling/calibration check of a real exposed estimator is a separate unit and takes no part in choosing the floor |
 | `VAR_PLANNING` | `VAR_PLANNING = max( VAR_EXPOSED_ESTIMATE , f × VAR_FALLBACK )`, the variance the compiler uses to declare feasibility and to size the design |
 
 Two frozen ratios parameterize the suite:
@@ -37,7 +37,7 @@ Frozen grid of `(k, q)`:
 - `k ∈ {0.50, 0.75, 1.00}` (fallback conservative by 2×, 1.33×, exact);
 - `q ∈ {1.00, 0.75, 0.50, 0.33}` (exposed estimator honest, or understating the truth by 1.33×, 2×, 3×).
 
-Twelve points. For each design, each candidate `f ∈ {0.60, 0.75, 1.00}` and each grid point: the compiler plans with `VAR_PLANNING = VAR_FALLBACK × max(q·k, f)` at nominal power 0.80 for the design's declared effect `δ_min` and its multiplicity alpha, declaring the cell `FEASIBLE` or not at the cell's sample size; the evaluation sample is then drawn with `VAR_TRUE = k·VAR_FALLBACK` and the empirical power and size are measured. This grid asks exactly one question: **does the floor protect feasibility verdicts against an understating exposed estimator when the fallback is conservative?** The true variance never exceeds the fallback here, so no candidate `f ≤ 1` is asked to compensate a regime shift.
+Twelve points. For each design, each candidate `f ∈ {0.60, 0.75, 1.00}` and each grid point: the compiler is handed `VAR_EXPOSED_ESTIMATE = q·k·VAR_FALLBACK` and plans with `VAR_PLANNING = VAR_FALLBACK × max(q·k, f)` at nominal power 0.80 for the design's declared effect `δ_min` and its multiplicity alpha, declaring the cell `FEASIBLE` or not at the cell's sample size; the **evaluation samples are generated under `VAR_TRUE = k·VAR_FALLBACK`** and the empirical power and size are measured. This grid asks exactly one question: **does the floor protect feasibility verdicts against an understating exposed estimator when the fallback is conservative?** The true variance never exceeds the fallback here, so no candidate `f ≤ 1` is asked to compensate a regime shift.
 
 ### 3B. DISTRIBUTIONAL / STRESS REGRESSION grid (can block adoption; never selects `f`)
 
@@ -53,9 +53,9 @@ Blocking criterion of 3B: **size** must satisfy the §4 safety size requirement 
 
 For a candidate `f`, over the §3A grid and the golden manifest (§5):
 
-- **SAFETY.** Every cell whose role is `SAFETY` and which the compiler declares `FEASIBLE` under `f` must show empirical **power ≥ 0.75** at `δ_min` and empirical **size ≤ α + 0.01** at `δ = 0`, each decided by the Monte Carlo procedure of §6. Any cell with expected classification `MUST_NOT_BE_FEASIBLE` that the compiler declares `FEASIBLE` under `f` is a safety failure (false-feasible).
-- **UTILITY.** Every cell with expected classification `MUST_BE_FEASIBLE` must be declared `FEASIBLE` under `f`. A candidate that is safe only because it refuses mandatory positive controls fails here.
-- **Candidate status:** `PASS` if every decisive cell passes both sides; `FAIL` if any decisive cell fails; `INDETERMINATE` if no cell fails but at least one decisive cell is `VALIDATION_INDETERMINATE` after §6.
+- **SAFETY (on actual `FEASIBLE`, every 3A cell).** For **every** 3A cell, whatever its expected classification (`MUST_BE_FEASIBLE`, `MUST_NOT_BE_FEASIBLE` or `BOUNDARY_NO_REQUIREMENT`): if the compiler declares it `FEASIBLE` under `f`, it must show empirical **power ≥ 0.75** at `δ_min`, **power ≥ 0.95** at `2δ_min`, and empirical **size ≤ α + 0.01** at `δ = 0`, each decided by the Monte Carlo procedure of §6. `BOUNDARY_NO_REQUIREMENT` only means that no compiler classification is required of the cell; it never exempts a cell the candidate actually declares feasible from the power and size rule. Separately, any cell with expected classification `MUST_NOT_BE_FEASIBLE` that the compiler declares `FEASIBLE` under `f` is a safety failure (false-feasible). The expected-classification check and the safety-on-actual-`FEASIBLE` check are two different checks and both apply.
+- **UTILITY.** Every cell with expected classification `MUST_BE_FEASIBLE` must be declared `FEASIBLE` under `f`. A candidate that is safe only because it refuses mandatory cells fails here.
+- **Candidate status:** `PASS` if every decisive check passes; `FAIL` if any decisive check fails; `INDETERMINATE` if no check fails but at least one decisive check is `VALIDATION_INDETERMINATE` after §6. Decisive checks are: every safety check on a cell actually declared `FEASIBLE` (3A), every false-feasible check, every utility check.
 - **Selection:** `ADOPTED_FLOOR = min { f : status(f) = PASS }`. If no candidate is `PASS` and at least one is `INDETERMINATE`: gate result `VALIDATION_INDETERMINATE` (no floor; the suite's replication budget is revisited by amendment). If every candidate is `FAIL`: `VARIANCE_MODEL_REDESIGN_REQUIRED`. No manual override field exists.
 
 ## 5. Golden manifest (frozen before the run; labels immutable afterwards)
@@ -79,11 +79,24 @@ One JSON record per cell, schema:
 }
 ```
 
-**Expected-classification logic (frozen, mechanical, written before any run):**
-- `MUST_BE_FEASIBLE`: the cell's sample size is **1.5×** the size at which the compiler declares the design feasible under `f = 1.00` with an honest estimator (`q = 1`) at the cell's `k`. Such a cell has ample information under the most conservative candidate; a candidate that refuses it is useless.
-- `MUST_NOT_BE_FEASIBLE`: the cell's sample size is **0.50×** the size at which true power 0.80 is attained given `VAR_TRUE` (computed analytically from the generator). Declaring it feasible is a false-feasible verdict whatever the estimator says.
-- `BOUNDARY_NO_REQUIREMENT`: sizes between those two (the `0.75×` and `1.0×` cells); reported, never decisive for selection.
-Positive controls (`2× δ_min`) are `MUST_BE_FEASIBLE` at the `1.0×` size; null controls carry the size requirement only.
+**Candidate-independent oracle (frozen, mechanical, written before any run).** For every design/scenario cell the manifest records `N_ORACLE_80`: the information count (observations, pairs, clusters or events, as the design's independent unit) at which the design's **own inference procedure** reaches **power 0.80** for `δ_min` under **`VAR_TRUE`**, computed analytically **without** any candidate floor `f`, without `VAR_EXPOSED_ESTIMATE` and without any compiler decision:
+
+- S1/S2 (two-sample `t`): per arm `n = 2·VAR_TRUE·(z_{α/2} + z_{0.80})² / δ_min²`, total `2·⌈n⌉`;
+- S3 (sign-flip over pairs, normal approximation): `⌈VAR_TRUE·(z_{α/2} + z_{0.80})² / δ_min²⌉` pairs;
+- S4 (cluster-robust with `t_{G−1}`): the smallest integer `G` with `G ≥ DEFF·VAR_TRUE·(t_{G−1,α/2} + t_{G−1,0.80})² / (m·δ_min²)`, `DEFF = 1 + (m−1)·ICC`, `m = 24`; the `t` quantiles are iterated on `G−1`;
+- S5 (sign-flip over events; venues are measurements): `⌈VAR_TRUE·(z_{α/2} + z_{0.80})² / δ_min²⌉` events, where `VAR_TRUE` is the variance of the venue-averaged event statistic;
+- S6 (era-stratified sign-flip): as S5, rounded up to a multiple of 3 (equal era allocation).
+
+`α` is the Holm first step for a family of 4 (`0.0125`, two-sided). `δ_min` is frozen per design (`0.5·SD_BASE` for S1–S4, `1.0·SD_BASE` for the rare-event designs S5–S6).
+
+**Sample-size grid and expected classification (relative to `N_ORACLE_80` only):**
+- `0.50 × N_ORACLE_80` → `MUST_NOT_BE_FEASIBLE`;
+- `0.75 × N_ORACLE_80` → `BOUNDARY_NO_REQUIREMENT`;
+- `1.00 × N_ORACLE_80` → `BOUNDARY_NO_REQUIREMENT`;
+- `1.50 × N_ORACLE_80` → `MUST_BE_FEASIBLE`.
+Every multiplier is rounded **up** to the design's discreteness (even counts for two arms, a multiple of 3 for eras, an integer number of clusters with a floor of 4 so that `t_{G−1}` exists); the rounding rule and the raw value are recorded per cell in the manifest (`ORACLE_ROUNDING`, `SAMPLE_SIZE.ROUNDING`) **before** the freeze and are never changed after a run. The compiler's verdict for a cell does not depend on the true effect of the evaluation sample, so the null, `δ_min` and `2δ_min` variants of a cell share the expected classification and differ only in the check they run (size, power ≥ 0.75, power ≥ 0.95).
+
+3B cells carry `EXPECTED_CLASSIFICATION = BOUNDARY_NO_REQUIREMENT` and `ROLE = STRESS_REGRESSION`; they never select `f` and block adoption only through the §3B size rule.
 
 ## 6. Monte Carlo procedure (deterministic escalation; no boundary lottery)
 
@@ -94,7 +107,8 @@ Positive controls (`2× δ_min`) are `MUST_BE_FEASIBLE` at the `1.0×` size; nul
   - Size check (threshold `α + 0.01`): `PASS` if the 99 % **upper** bound ≤ α + 0.01; `FAIL` if the 99 % **lower** bound > α + 0.01; otherwise **escalate**.
 - **Stage B (automatic, no decision):** the cell is extended with the pre-assigned additional seeds to a **total of 10 000 replications** (`base … base+9999`); the same bounds are recomputed on the pooled count; `PASS` / `FAIL` as above.
 - **Unresolved after Stage B:** cell status `VALIDATION_INDETERMINATE`.
-- **Seed manifest:** `base = 1_000_000 × design_index + 10_000 × cell_index`, with the `(design_index, cell_index)` table frozen in the golden manifest; the generator is seeded per replication with `base + r`.
+- **Seed namespace (collision-proof):** `base = 10¹² × design_index + 10⁶ × cell_index`, `seed = base + replicate_index` with `0 ≤ replicate_index < 10 000`; Stage A is the **prefix** `[base, base + 1 999]` of Stage B `[base, base + 9 999]`. With at most 10⁶ cells per design and 10⁴ replications per cell no two cells can overlap.
+- **Manifest validation (part of the freeze; a failure is `FREEZE_FAIL`):** every cell has both ranges; Stage A is the prefix of Stage B; the Stage A and Stage B lengths are exactly 2 000 and 10 000; the Stage B ranges of distinct `CELL_ID`s are pairwise disjoint (sorted-adjacent check); any duplicate seed anywhere fails the freeze. The check runs in `build_golden_manifest.py` and its output is stored in the manifest (`SEED_VALIDATION`).
 - **Aggregation rule:** a candidate is `FAIL` if any decisive cell (role `SAFETY`, `UTILITY` or `BOTH`) is `FAIL`; else `INDETERMINATE` if any decisive cell is `VALIDATION_INDETERMINATE`; else `PASS`. `BOUNDARY_NO_REQUIREMENT` and `STRESS_REGRESSION` cells never enter the aggregation except through the 3B size block of §3B.
 
 ## 7. Suite designs (generators; parameters frozen in the manifest)
@@ -129,7 +143,7 @@ Market data; real variance estimates; any executed unit before adoption; the str
 | Field | Value |
 |---|---|
 | Spec digest | — (recorded in the V2 draft at freeze) |
-| Golden manifest | `COMPILER_V3_VARIANCE_FLOOR_GOLDEN_MANIFEST_V1.json` — to be written before freeze; digest at freeze |
-| Generator code | `scripts/research/compiler_v3_variance_floor/` — not written; digest at freeze |
+| Golden manifest | `COMPILER_V3_VARIANCE_FLOOR_GOLDEN_MANIFEST_V1.json` — generated by `scripts/research/compiler_v3_variance_floor/build_golden_manifest.py` (analytic oracle, no simulation); `DRAFT_NOT_FROZEN`; digest at freeze |
+| Simulation generator | not written (owner: only after the freeze commit); digest at freeze |
 | Run authorized | — |
 | Adopted floor | — |
