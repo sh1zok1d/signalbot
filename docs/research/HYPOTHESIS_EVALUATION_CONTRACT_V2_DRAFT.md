@@ -41,7 +41,7 @@ Every unit declares, before any outcome, which tracks it will be judged on. A un
 
 `STRUCTURE` is always declared (it is the empirical layer). `EDGE` and `PRODUCT_EVIDENCE` are declared only when the unit intends that claim, and only with **every** track-specific field filled in the twin: the claim, the bar function (§4) with its realized outcome-blind value, the decision rule, and for `PRODUCT_EVIDENCE` the §8.3 grant skeleton (`SCOPE`, `ALLOWED_WORDING_CLASS`, `PROSPECTIVE_GUARD`). **The set of declared tracks is closed before outcomes.**
 
-**Two tracks on one unit (R3).** If both `EDGE` and `PRODUCT_EVIDENCE` are declared, the twin also freezes `TRACK_RELATIONSHIP`: the error-control relationship between the two decisions (one common family under one multiplicity rule; a hierarchy or gatekeeping order; or justified independent families) and which decision is read first. A result on one track is always recorded beside the result on the other.
+**Two tracks on one unit (R3).** If both `EDGE` and `PRODUCT_EVIDENCE` are declared, the twin also freezes `TRACK_RELATIONSHIP` from the **closed enum** `COMMON_FAMILY` (one family under one multiplicity rule), `HIERARCHY_GATEKEEPING` (a frozen order; the second decision is read only if the first passes), `JUSTIFIED_INDEPENDENT` (separate families). `JUSTIFIED_INDEPENDENT` needs a frozen **structured justification** (shared selection mechanism: yes/no; shared outcome surface: yes/no; does the creation or decision of one track depend on the exposure or outcome of the other: yes/no; reason) and **reviewer approval before outcomes**. The compiler **rejects** `JUSTIFIED_INDEPENDENT` whenever the two tracks share a selection or disclosure mechanism such that the decision or creation of one depends on the exposure or outcome of the other; it does not otherwise decide the relationship, which stays a reviewed design choice (owner, 2026-10-04). A result on one track is always recorded beside the result on the other.
 
 **No late track.** A `PRODUCT_EVIDENCE` claim that was frozen before outcomes keeps its own decision even when the unit's `EDGE` decision is `BELOW_BAR`: no new unit is needed for the already-declared product claim. A product track that was **not** declared before outcomes can never be added to that unit; the product question then needs a new `PRODUCT_EVIDENCE` unit with its own prospective guard.
 
@@ -163,6 +163,7 @@ For mechanisms whose independent units arrive slowly (scheduled settlements, hol
 
 - Every reuse of an evaluation or exposed surface by any unit, on any track, is a **separate exposure-ledger row** (unit, surface, purpose: test / bar input / variance source / replication, date, digest).
 - A surface's `spent` status for a family is **derived mechanically** from those rows, never asserted in prose.
+- **Structured family identifiers (owner, 2026-10-04).** Every unit carries `FAMILY_ID`, `MECHANISM_ID`, `OUTCOME_SURFACE_ID`, `SELECTION_SURFACE_ID` and `FAMILY_RELATIONSHIP` (to each other unit sharing a `MECHANISM_ID`, `OUTCOME_SURFACE_ID` or `SELECTION_SURFACE_ID`: `SAME_FAMILY`, `HIERARCHY_GATEKEEPING`, `JUSTIFIED_INDEPENDENT`). Fully mechanical family assignment is **not** introduced. A split into separate families is **suspicious and needs a frozen justification plus pre-outcome review** when the units share a selection mechanism, share an outcome or exposure surface, or when the new unit was created after the exposure of an earlier unit of the same mechanism. The compiler blocks a split that is plainly incompatible (same `SELECTION_SURFACE_ID` and same `OUTCOME_SURFACE_ID` with `JUSTIFIED_INDEPENDENT` and no justification record); the substantive family boundary stays review-controlled.
 - All confirmatory decisions that share a disclosure or selection mechanism must define their error-control relationship **before** outcomes (common family; hierarchy / gatekeeping; or justified independent families). Choosing the relationship after outcomes is forbidden.
 - A variance source (§5.3) may use only a surface that is already legally exposed for that family under the frozen rules, and that use is itself a row.
 
@@ -273,10 +274,10 @@ Still open, and relying on preregistration discipline and review rather than mec
 1. **Form of the bar function** before outcomes (§4): intended; constrained to frozen constants and off-surface inputs, but still authored.
 2. **Inference procedure and clustering key** (§5.1): the `DECISION_COMPATIBLE_INTERVAL` inherits whichever reasonable key was frozen.
 3. **Variance floor** until `COMPILER_V3_VARIANCE_FLOOR_VALIDATION` adopts a value; the selection rule is frozen, the suite is authored.
-4. **Which tracks to declare and the `TRACK_RELATIONSHIP`** (§1): closed before outcomes and with a frozen hierarchy, but the hierarchy itself is a design choice.
+4. **Which tracks to declare and the `TRACK_RELATIONSHIP`** (§1): closed enum, structured justification and reviewer approval for `JUSTIFIED_INDEPENDENT`, compiler rejection of incompatible independence; the substantive choice stays reviewed, by decision.
 5. **The initial `TARGET_INFORMATION_COUNT`, `CALENDAR_CAP` and any frozen adaptation rule** (§6): immutable after start, authored before.
 6. **Authorship of the tranche eligibility rule** (§7): committed before the snapshot and clause-checked, but written by a person.
-7. **Family boundaries** behind the mechanical `spent` derivation (§7.1): rows are mechanical, the family definition of a new unit is human.
+7. **Family boundaries** (§7.1): structured identifiers and a compiler block for plainly incompatible splits; suspicious splits need frozen justification and pre-outcome review; the substantive boundary stays review-controlled, by decision.
 8. **Stricter-only amendments** before Stage P or before analysis: "stricter" is confirmed by a reviewer.
 9. **The precision target per unit** (§3): frozen per unit, set by the designer.
 10. **Registry extensions** (§8.3a): a contract amendment, but the registries can grow.
@@ -298,7 +299,7 @@ Items 1, 3, 4, 5, 6 and 10 are the price of the three tracks, the rare-event tra
 ## 12. Open points for the owner
 
 Decided: D1–D6 (§12a) and R1–R7 (§12b). Remaining before adoption:
-1. Review of `COMPILER_V3_VARIANCE_FLOOR_VALIDATION_SPEC_V1.md` (suite manifest and selection rule) and authorization to run it; the floor is adopted only through that gate.
+1. Review of `COMPILER_V3_VARIANCE_FLOOR_VALIDATION_SPEC_V1.md` revision 2 (variance concepts, 3A/3B grids, safety/utility rule, golden manifest with expected classifications, Monte Carlo Stage A/B), then the golden manifest JSON, then freeze, generator code, and authorization to run; the floor is adopted only through that gate.
 2. Initial contents of the two closed registries (§8.3a) and the first template artifacts under the copy contract.
 3. Ledger schema V2 and compiler V3 as implementation units (fields of §5.1, exposure rows of §7.1, `PRODUCT_USE` record of §8.3).
-4. Whether residual items 4 and 7 of §13.1 get a mechanical constraint.
+4. Decided (owner, 2026-10-04): residual items 4 and 7 stay review-controlled with the structured constraints now in §1 and §7.1; the contract's architecture is not extended further.
