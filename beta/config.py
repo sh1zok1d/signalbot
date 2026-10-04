@@ -127,7 +127,9 @@ _MARKET_ALERT_KEYS = {"enabled", "max_per_utc_day", "move_cooldown_min", "event_
                       "touch_max_age_min"}
 # Research evidence (owner task 2026-10-04; docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md):
 # live matching of closed research units and the read-only public feeds it needs. Presentation
-# only: never detection, push gating, corridors or touch probabilities.
+# only: never detection, push gating, corridors or touch probabilities. `enabled` is the
+# presentation switch (with BETA_RESEARCH_EVIDENCE_ENABLED, research_presentation_enabled);
+# `feeds_enabled` / `stress_hours_enabled` alone gate collection (deploy plan PREREQ-2).
 _RESEARCH_EVIDENCE_KEYS = {"enabled", "feeds_enabled", "stress_hours_enabled", "main_surface_max"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
@@ -568,6 +570,21 @@ def resolve_switches(cfg: BetaConfig, env: Optional[Mapping[str, str]] = None) -
 def effective_push_enabled(switches: BetaSwitches, admin_push_enabled: bool) -> bool:
     """Admin durable state can only further restrict the hard switch."""
     return bool(switches.push_hard and admin_push_enabled is True)
+
+
+def research_presentation_enabled(cfg: BetaConfig, env: Optional[Mapping[str, str]] = None) -> bool:
+    """Research evidence on the bot's surfaces: `decision.research_evidence.enabled` AND
+    BETA_RESEARCH_EVIDENCE_ENABLED. An unset env value leaves the config in charge; the env can
+    only switch presentation off, and an unrecognised value is read as off (fail closed). It
+    never gates collection: the feed jobs follow `feeds_enabled` / `stress_hours_enabled`."""
+    env = os.environ if env is None else env
+    rcfg = cfg.section("decision").get("research_evidence") or {}
+    if not rcfg.get("enabled"):
+        return False
+    try:
+        return _env_flag(env, "BETA_RESEARCH_EVIDENCE_ENABLED", default=True)
+    except BetaConfigError:
+        return False
 
 
 def effective_d7_enabled(cfg: BetaConfig, admin_d7_enabled: bool) -> bool:

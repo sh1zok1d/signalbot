@@ -540,3 +540,57 @@ def test_feeds_use_public_market_data_endpoints_only():
         assert host in ("fapi.binance.com", "data-api.binance.vision", "www.deribit.com"), host
     for forbidden in ("X-MBX-APIKEY", "signature", "/fapi/v1/order", "/fapi/v2/account", "listenKey", "api_key"):
         assert forbidden not in text
+
+
+# ---- collection vs presentation (docs/RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md PREREQ-2) ----------------------
+def _with_research(**kw):
+    from beta.config import BetaConfig
+    base = BetaConfig.load()
+    d = base.section("decision")
+    return base.with_overrides(decision={**d, "research_evidence": {**d["research_evidence"], **kw}})
+
+
+def test_the_presentation_env_switch_can_only_turn_presentation_off():
+    from beta.config import research_presentation_enabled
+    on, off = _with_research(enabled=True), _with_research(enabled=False)
+    for raw, want in ((None, True), ("", True), ("1", True), ("true", True), ("0", False), ("false", False),
+                      ("maybe", False)):                                  # an unrecognised value fails closed
+        env = {} if raw is None else {"BETA_RESEARCH_EVIDENCE_ENABLED": raw}
+        assert research_presentation_enabled(on, env) is want, raw
+        assert research_presentation_enabled(off, env) is False, raw     # the env never turns it on
+
+
+def test_collection_is_gated_only_by_its_own_flags_and_never_applies_the_schema(monkeypatch):
+    import asyncio
+    import main
+    from beta import research_feeds as RF
+    from beta.config import BetaConfig
+    from runtime.beta_cli import run_beta_cli_command
+    calls = []
+
+    async def job(store, *, now, expected_role=None):
+        calls.append(expected_role)
+        return {"status": "OK"}
+    monkeypatch.setattr(RF, "run_feeds_job", job)
+    monkeypatch.setattr(RF, "run_stress_job", job)
+
+    class Db:                      # any other DB access (e.g. init_beta_v0_schema) fails the test
+        def beta_store(self):
+            return object()
+
+        def __getattr__(self, name):
+            raise AssertionError(f"DB touched: {name}")
+
+    def cli(flag, cfg, env):
+        monkeypatch.setattr(BetaConfig, "load", classmethod(lambda cls, *a, **k: cfg))
+        return asyncio.run(run_beta_cli_command(main.parse_args([flag, "--beta-json"]), db=Db(), env=env))
+    env = {"BETA_ENABLED": "1", "BETA_FEEDS_EXPECTED_DB_ROLE": "signalbot_beta_feeds"}
+    for flag in ("--beta-feeds-once", "--beta-stress-once"):
+        assert cli(flag, _with_research(enabled=False), env)["status"] == "OK"             # presentation off
+        assert cli(flag, _with_research(enabled=True), {**env, "BETA_RESEARCH_EVIDENCE_ENABLED": "0"})["status"] == "OK"
+        assert cli(flag, _with_research(enabled=True), env)["status"] == "OK"
+    assert calls == ["signalbot_beta_feeds"] * 6
+    assert cli("--beta-feeds-once", _with_research(feeds_enabled=False), env)["status"] == "DISABLED"
+    assert cli("--beta-stress-once", _with_research(stress_hours_enabled=False), env)["status"] == "DISABLED"
+    assert cli("--beta-feeds-once", _with_research(), {"BETA_ENABLED": "0"})["status"] == "DISABLED"
+    assert len(calls) == 6

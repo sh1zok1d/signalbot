@@ -257,6 +257,81 @@ def definition_check(feed: Sequence[Mapping[str, Any]], vision: Sequence[Mapping
     return out
 
 
+# ---- schema readiness (read-only; deploy plan PREREQ-1) ---------------------------------
+# The core DB role applies storage/beta_v0_schema.sql (bot start-up, the history and detector
+# commands). A feed job never runs DDL: it reads the catalog to verify that every table, column,
+# key and check it uses exists and that the connected role holds the grants it needs, and it
+# refuses to run otherwise (SCHEMA_NOT_READY, nothing written). With an expected role set (the feed
+# units set it), another connected role is refused (WRONG_DB_ROLE): no silent run as the core role.
+FEED_TABLE_COLUMNS = {
+    "beta_feed_metrics_5m": ("ts", "oi_base", "oi_usd", "ls_account_ratio", "source", "fetched_at"),
+    "beta_feed_dvol_1h": ("hour_start", "open", "high", "low", "close", "source", "fetched_at"),
+    "beta_feed_spot_5m": ("open_time", "open", "high", "low", "close", "volume", "quote_volume",
+                          "taker_buy_quote", "trades", "source", "fetched_at"),
+    "beta_feed_depth": ("ts", "mid", "bid1_usd", "ask1_usd", "bid_reach_pct", "ask_reach_pct", "levels", "source",
+                        "fetched_at"),
+    "beta_feed_stress_hours": ("hour_start", "perp_log_range", "status", "lead_score", "n_large_perp",
+                               "n_perp_trades", "n_spot_trades", "computed_at"),
+    "beta_runtime_health": ("component", "last_run_at", "last_success_at", "last_error_type", "detail"),
+    "beta_hist_oi_5m": ("ts", "oi_base", "ls_account_ratio"),
+}
+FEED_TABLE_CHECKS = {"beta_feed_depth": ("ck_beta_feed_depth_cover",),
+                     "beta_feed_stress_hours": ("ck_beta_feed_stress_ok",)}
+# per job: {table: table privileges}; every written table needs its primary key (ON CONFLICT)
+FEED_JOB_GRANTS = {
+    "feeds": {"beta_feed_metrics_5m": ("SELECT", "INSERT", "UPDATE"),
+              "beta_feed_dvol_1h": ("SELECT", "INSERT", "UPDATE"),
+              "beta_feed_spot_5m": ("SELECT", "INSERT", "UPDATE"),
+              "beta_feed_depth": ("SELECT", "INSERT"),
+              "beta_runtime_health": ("SELECT", "INSERT", "UPDATE")},
+    "stress": {"beta_feed_stress_hours": ("SELECT", "INSERT", "UPDATE"),
+               "beta_runtime_health": ("SELECT", "INSERT", "UPDATE")},
+}
+# per job: columns read from tables the job does not write (column grants are enough)
+FEED_JOB_COLUMN_READS = {"feeds": {"beta_hist_oi_5m": ("ts", "oi_base", "ls_account_ratio")}, "stress": {}}
+
+
+async def feed_schema_readiness(conn, job: str, *, expected_role: Optional[str] = None) -> dict:
+    """{"ready", "status", "db_role", "missing"} for `job` ("feeds" | "stress"). Catalog reads only."""
+    grants, reads = FEED_JOB_GRANTS[job], FEED_JOB_COLUMN_READS[job]
+    role = await conn.db_role()
+    if expected_role and role["name"] != expected_role:
+        return {"ready": False, "status": "WRONG_DB_ROLE", "db_role": role["name"],
+                "missing": [f"role:{expected_role}"]}
+    tables = sorted(set(grants) | set(reads))
+    cat = await conn.catalog_tables(tables)
+    missing: list = []
+    present = []
+    for t in tables:
+        info = cat.get(t) or {"present": False}
+        if not info["present"]:
+            missing.append(f"table:{t}")
+            continue
+        present.append(t)
+        missing += [f"column:{t}.{c}" for c in FEED_TABLE_COLUMNS[t] if c not in info["columns"]]
+        missing += [f"check:{t}.{k}" for k in FEED_TABLE_CHECKS.get(t, ()) if k not in info["constraints"]]
+        if t in grants and not info["has_pk"]:
+            missing.append(f"primary_key:{t}")
+    table_priv = await conn.table_privileges([(t, p) for t in present if t in grants for p in grants[t]])
+    missing += [f"grant:{p}:{t}" for (t, p), ok in sorted(table_priv.items()) if not ok]
+    col_priv = await conn.column_privileges([(t, c, "SELECT") for t in present if t in reads for c in reads[t]
+                                             if c in cat[t]["columns"]])
+    missing += [f"grant:SELECT:{t}.{c}" for (t, c, _p), ok in sorted(col_priv.items()) if not ok]
+    return {"ready": not missing, "status": "OK" if not missing else "SCHEMA_NOT_READY", "db_role": role["name"],
+            "missing": missing}
+
+
+async def _readiness(store, job: str, expected_role: Optional[str]) -> Optional[dict]:
+    """None when the job may run; otherwise the refusal report (logged, nothing written)."""
+    async with store.connect() as conn:
+        ready = await feed_schema_readiness(conn, job, expected_role=expected_role)
+    if ready["ready"]:
+        return None
+    logger.error("%s job refused: %s (%s)", job, ready["status"], ", ".join(ready["missing"][:12]))
+    return {"status": ready["status"], "version": FEEDS_VERSION, "db_role": ready["db_role"],
+            "missing": ready["missing"]}
+
+
 # ---- network ----------------------------------------------------------------------------
 def _session_fetch(session) -> FetchJson:
     async def fetch(url: str, params: Mapping[str, Any]):
@@ -340,10 +415,15 @@ async def sync_spot(conn, fetch: FetchJson, *, now: datetime) -> dict:
 
 
 async def run_feeds_job(store, *, now: datetime, fetch: Optional[FetchJson] = None,
-                        pause: Optional[Callable[[float], Awaitable[None]]] = None) -> dict:
+                        pause: Optional[Callable[[float], Awaitable[None]]] = None,
+                        expected_role: Optional[str] = None) -> dict:
     """One pass of every fast feed; a failing feed never stops the others. Records health
-    `research_feeds` and the REST-vs-Vision definition check `research_feeds_definition`."""
+    `research_feeds` and the REST-vs-Vision definition check `research_feeds_definition`.
+    Refuses to run (nothing written) unless `feed_schema_readiness` passes."""
     from storage.beta_v0_store import FEEDS_LOCK_KEY
+    refused = await _readiness(store, "feeds", expected_role)
+    if refused is not None:
+        return refused
     pause = pause or asyncio.sleep
     report: dict = {"status": "OK", "version": FEEDS_VERSION, "errors": {}}
     async with store.advisory_lock(FEEDS_LOCK_KEY) as acquired:
@@ -403,11 +483,16 @@ async def _agg_pages(fetch: FetchJson, url: str, *, hour: int, pace_s: float, pa
 
 async def run_stress_job(store, *, now: datetime, cut: Optional[float] = None, fetch: Optional[FetchJson] = None,
                          pause: Optional[Callable[[float], Awaitable[None]]] = None,
-                         perp_pace_s: float = 1.0, spot_pace_s: float = 0.25) -> dict:
+                         perp_pace_s: float = 1.0, spot_pace_s: float = 0.25,
+                         expected_role: Optional[str] = None) -> dict:
     """Check the last completed hours: record each one's perp log range; for a stress hour also the
-    DH3-S features. Perp aggTrades are paced at about one request a second (weight 20 each)."""
+    DH3-S features. Perp aggTrades are paced at about one request a second (weight 20 each).
+    Refuses to run (nothing written) unless `feed_schema_readiness` passes."""
     from storage.beta_v0_store import STRESS_LOCK_KEY
     from .research_evidence import load_cuts
+    refused = await _readiness(store, "stress", expected_role)
+    if refused is not None:
+        return refused
     pause = pause or asyncio.sleep
     cut = float(load_cuts()["S_STRESS_HOUR_LOG_RANGE_MIN"]) if cut is None else float(cut)
     now_ms = _ms(now)

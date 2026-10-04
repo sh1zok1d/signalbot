@@ -12,11 +12,20 @@ Type=oneshot
 User=signalbot
 Group=signalbot
 WorkingDirectory=/opt/signalbot
-# .env holds the DB password and the BETA_* kill switches. Never printed.
-EnvironmentFile=/opt/signalbot/.env
+# Isolated credentials (docs/RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md §A, PREREQ-3): only the feed
+# role's env file (deploy/beta-feeds.env.example; root:root 0600, read by systemd). A missing file
+# fails the unit; there is no fallback to the core .env or the core DB role.
+EnvironmentFile=/opt/signalbot/.env.beta-feeds
+# The shared .env (Telegram, owner, core DB secrets) never reaches this process: no dotenv load,
+# and the file is not even visible in this unit's mount namespace.
+Environment=SIGNALBOT_DOTENV=0
+InaccessiblePaths=-/opt/signalbot/.env
+# The DB role this job must run as: another connected role is refused (WRONG_DB_ROLE, exit 3).
+Environment=BETA_FEEDS_EXPECTED_DB_ROLE=signalbot_beta_feeds
+# load_secrets() requires REDIS_URL; beta commands never connect to Redis (.invalid never resolves).
+Environment=REDIS_URL=redis://unused.invalid:6379/0
 Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
-ExecStartPre=/usr/bin/test -r /opt/signalbot/.env
 ExecStartPre=/usr/bin/test -f /opt/signalbot/main.py
 ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py --postgres-only --timeout 60
 ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/main.py --beta-stress-once --beta-json --log-level INFO

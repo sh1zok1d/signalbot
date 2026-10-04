@@ -388,6 +388,7 @@ These documents may still be useful operationally, but following them is not aut
 - `SHADOW_TIMER_DEPLOY.md`
 - `TELEGRAM_NOTIFIER_DEPLOY.md`
 - `PRIVATE_BETA_V0_DEPLOY.md`: beta V0.2 deploy, soak and privacy runbook. Its units are prepared, not activated.
+- `RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md` (**PLAN ONLY, 2026-10-04; not executed; PREREQ-1–3 resolved in the prerequisites PR**): the production deploy plan for the research evidence integration: least-privilege DB role and env for the feed units, read-only schema readiness, collection separate from presentation, schema, units, initialization order, smoke and rollback.
 - `BETA_BTC_TEMPORAL_CONTEXT_V0.md`: the `/btc` temporal-context amendment. The active episodization `STRICT_QUALIFICATION_V1` keeps the detector's own episode boundaries. The amendment adds LAST EVENT memory, factual anchor buckets, the rolling-1h context `BETA_CONTEXT_1H_V0` and replay. Live hysteresis is disabled; an unfrozen taker-only calibration tool remains dormant. Detector rules and push decisions are unchanged.
 - `BETA_BTC_MAIN_SCREEN_UX_V1.md`: user-facing `/btc` wording. Presentation only. The view model, detector rules, and push switch are unchanged. Main is a compact state; Details keeps the measurements.
 - `E1_VPS_RUNBOOK.md`
@@ -641,7 +642,7 @@ When adding documentation:
   - **Cards:** positioning (OI), liquidity (bookDepth), options (DVOL), levels extended, spot↔perp at one second.
   - **Data:** `research_data/DH3_*`.
   - **Code and tests:** `scripts/research/dh3/`; `tests/research/test_dh3.py`.
-- `research/RESEARCH_EVIDENCE_INTEGRATION_V1.md` (**ACTIVE — research evidence in the live analysis, owner task 2026-10-04; implemented, not deployed**): the audit of every closed research result against the live bot, the read-only public feeds it added, the evidence engine (exact frozen states, hierarchy, NOT_CONFIRMED veto, status wording), the surfaces and the MODEL_INTEGRATION_CANDIDATES.
+- `research/RESEARCH_EVIDENCE_INTEGRATION_V1.md` (**ACTIVE — research evidence in the live analysis, owner task 2026-10-04; merged `423b9b8`, not deployed**): the audit of every closed research result against the live bot, the read-only public feeds it added, the evidence engine (exact frozen states, hierarchy, NOT_CONFIRMED veto, status wording), the surfaces and the MODEL_INTEGRATION_CANDIDATES.
   - **Code:** `beta/research_states.py`, `beta/research_evidence.py`, `beta/research_inputs.py`, `beta/research_feeds.py`, `beta/research_render.py`; frozen cut points `config/beta_research_cuts.json` (`scripts/research/evidence/freeze_live_cuts.py`).
   - **Tests:** `tests/beta/test_research_evidence.py`, `tests/beta/test_research_evidence_pg.py`, `tests/research/test_research_evidence_parity.py`.
 - `research/SIGNALBOT_RESEARCH_ATLAS_V1.md` (**ACTIVE — PERMANENT RESEARCH MAP**): Mechanism × Data surface × State for every research unit.
