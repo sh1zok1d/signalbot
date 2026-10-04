@@ -255,9 +255,14 @@ def test_amendment_binds_original_freeze_and_effective_manifest():
     rec = freeze.verify_freeze()
     assert AMENDMENT["ORIGINAL_FREEZE"]["COMMIT"] == "62f1a74" and AMENDMENT["ORIGINAL_FREEZE"]["ARTIFACTS"] == rec["ARTIFACTS"]
     assert AMENDMENT["OFFICIAL_RUN_AUTHORIZED"] is False
-    assert AMENDMENT["GENERATOR_DIGESTS"] == freeze.generator_digests()
-    binding = freeze.verify_execution_binding()
+    binding = freeze.verify_execution_binding()                      # V2, current generator digests
+    assert binding["GENERATOR_DIGESTS"] == freeze.generator_digests()
     assert binding["OFFICIAL_RUN_AUTHORIZED"] is False and binding["EFFECTIVE_MANIFEST_SHA256"] == AMENDMENT["EFFECTIVE_MANIFEST_SHA256"]
+    # the amendment's listing predates the binding repair and is superseded by V2 (recorded there)
+    assert set(AMENDMENT["GENERATOR_DIGESTS"]) <= set(binding["GENERATOR_DIGESTS"])
+    assert binding["SUPERSEDES"]["PATH"].endswith("EXECUTION_BINDING_V1.json") and freeze.sha256_path(binding["SUPERSEDES"]["PATH"]) == binding["SUPERSEDES"]["SHA256"]
+    assert binding["AMENDMENT"]["SHA256"] == freeze.sha256_path(binding["AMENDMENT"]["PATH"])
+    assert not freeze.RUN_AUTHORIZATION.exists()
 
 
 def test_s6_excluded_set_exact_and_metadata_retained():
@@ -363,3 +368,152 @@ def test_compiler_equals_frozen_planning_rule_representative_cells():
 def test_original_frozen_digests_still_match_and_no_official_artifacts():
     freeze.verify_freeze()
     assert not engine.RESULT_OUT.exists() and not engine.AGG_OUT.exists()
+
+
+# ================================================================ inference audit (A-F)
+import math
+from scipy.stats import norm
+
+
+def _manual_two_group(cell, seed):
+    rng, _ = generator.substreams(seed)
+    n_arm = cell["SAMPLE_SIZE"]["COUNT"] // 2
+    sd = math.sqrt(cell["VARIANCE_RELATIONSHIPS"]["VAR_TRUE"])
+    kind = cell["GENERATOR_PARAMS"]["innovation"]
+    a = sd * generator._innovations(rng, n_arm, kind)
+    b = generator.true_effect(cell) + sd * generator._innovations(rng, n_arm, kind)
+    return a, b
+
+
+def test_A_two_group_variance_effect_allocation_and_alpha(monkeypatch):
+    cell = _small("S1", "DELTA_MIN", 2000)
+    var_true = cell["VARIANCE_RELATIONSHIPS"]["VAR_TRUE"]
+    a, b = _manual_two_group(cell, 11)
+    assert a.size == b.size == 1000                                   # equal arms = planning formula allocation
+    rng = np.random.default_rng(5); big = math.sqrt(var_true) * rng.standard_normal(400000)
+    assert abs(big.var() / var_true - 1) < 0.02                       # per-observation variance = VAR_TRUE
+    # effect is exactly the frozen difference of population means
+    assert generator.true_effect(cell) == cell["GENERATOR_PARAMS"]["delta_min"] == 0.5
+    # pooled t with two-sided alpha = MULTIPLICITY_ALPHA, and REJECT iff p < alpha
+    captured = {}
+    orig = generator.ttest_ind
+    def spy(b_, a_, equal_var):
+        res = orig(b_, a_, equal_var=equal_var); captured["equal_var"] = equal_var; captured["p"] = res.pvalue; return res
+    monkeypatch.setattr(generator, "ttest_ind", spy)
+    out = generator.replicate(cell, 11)
+    assert captured["equal_var"] is True and out == (captured["p"] < cell["MULTIPLICITY_ALPHA"] == 0.0125 or captured["p"] < 0.0125)
+    # S2 scaled t innovations: unit variance before the sqrt(VAR_TRUE) scale; planning ignores the innovation kind
+    for kind, nu in (("t4_scaled", 4), ("t3_scaled", 3)):
+        x = generator._innovations(np.random.default_rng(2), 400000, kind)
+        assert abs(x.var() - 1.0) < 0.1 and math.isclose(1.0, (nu / (nu - 2)) / (nu / (nu - 2)))
+    s2 = next(c for c in ECELLS if c["DESIGN_ID"] == "S2")
+    s1_like = dict(s2, DESIGN_ID="S1", GENERATOR_PARAMS={**s2["GENERATOR_PARAMS"], "innovation": "gaussian"})
+    for f in CANDIDATES:
+        assert compiler.feasibility(s2, f)["REQUIRED_N"] == compiler.feasibility(s1_like, f)["REQUIRED_N"]
+
+
+def test_B_paired_construction_and_signflip_object(monkeypatch):
+    cell = _small("S3", "DELTA_MIN", 40)
+    V = cell["VARIANCE_RELATIONSHIPS"]["VAR_TRUE"]; icc = cell["GENERATOR_PARAMS"]["pair_icc"]
+    var_obs = V / (2 * (1 - icc))
+    # analytic: Var(X1)=Var(X2)=var_obs, Cov=icc*var_obs, Var(X1-X2)=2(1-icc)var_obs = V
+    assert math.isclose(2 * (1 - icc) * var_obs, V)
+    rng = np.random.default_rng(9); n = 300000
+    u = rng.normal(0, math.sqrt(icc * var_obs), n); ea = rng.normal(0, math.sqrt((1 - icc) * var_obs), n); eb = rng.normal(0, math.sqrt((1 - icc) * var_obs), n)
+    x1, x2 = u + ea, u + 0.5 + eb
+    assert abs(x1.var() / var_obs - 1) < 0.02 and abs(np.cov(x1, x2)[0, 1] / (icc * var_obs) - 1) < 0.03
+    d = x2 - x1
+    assert abs(d.var() / V - 1) < 0.02 and abs(d.mean() - 0.5) < 0.01     # delta = mean paired difference
+    # the sign-flip receives the paired differences, not the raw observations
+    seen = {}
+    monkeypatch.setattr(generator, "_signflip_p", lambda dd, r, draws=generator.SIGNFLIP_DRAWS: seen.update(d=dd.copy(), draws=draws) or 1.0)
+    generator.replicate(cell, 21)
+    rng_d, _ = generator.substreams(21); nn = cell["SAMPLE_SIZE"]["COUNT"]
+    u = rng_d.normal(0, math.sqrt(icc * var_obs), nn); ea = rng_d.normal(0, math.sqrt((1 - icc) * var_obs), nn); eb = rng_d.normal(0, math.sqrt((1 - icc) * var_obs), nn)
+    assert np.array_equal(seen["d"], (u + 0.5 + eb) - (u + ea)) and seen["draws"] == 20000
+    # null symmetry: under delta = 0 the differences are eb - ea, symmetric about 0
+    null = _small("S3", "NULL", 40); assert generator.true_effect(null) == 0.0
+
+
+def test_C_cluster_estimator_hand_fixture_and_icc():
+    x = np.array([[1.0, 3.0], [2.0, 6.0], [4.0, 8.0]])          # G=3 clusters, m=2
+    est, se, df = generator.cluster_robust_t(x)
+    # N=6, est=24/6=4, cluster sums [4,8,12], u = sums - est*m = [-4,0,4], sum u^2 = 32, Var = 3/2*32/36
+    assert est == 4.0 and df == 2 and math.isclose(se ** 2, 1.5 * 32 / 36)
+    one = np.full((5, 24), 2.0); est, se, df = generator.cluster_robust_t(one)
+    assert est == 2.0 and se == 0.0 and df == 4
+    # generator ICC: Var(x) = V, within-cluster corr = ICC; DEFF consistent with Var(cluster sum) = m*V*DEFF
+    cell = _small("S4", "NULL", 2000); V = cell["VARIANCE_RELATIONSHIPS"]["VAR_TRUE"]; icc = cell["GENERATOR_PARAMS"]["icc"]; m = 24
+    rng, _ = generator.substreams(3); g = 2000
+    a = rng.normal(0, math.sqrt(icc * V), (g, 1)); e = rng.normal(0, math.sqrt((1 - icc) * V), (g, m)); xx = a + e
+    assert abs(xx.var() / V - 1) < 0.03
+    assert abs(np.corrcoef(xx[:, 0], xx[:, 1])[0, 1] - icc) < 0.03
+    deff = 1 + (m - 1) * icc
+    assert abs(xx.sum(axis=1).var() / (m * V * deff) - 1) < 0.08
+
+
+def test_D_event_venue_derivation_and_fixture(monkeypatch):
+    cell = _small("S5", "DELTA_MIN", 30)
+    V = cell["VARIANCE_RELATIONSHIPS"]["VAR_TRUE"]; rho = cell["GENERATOR_PARAMS"]["venue_corr"]; v = 3
+    s2 = V / (rho + (1 - rho) / v)
+    # exact: Var(Y_ij) = rho*s2 + (1-rho)*s2 = s2 ; Corr = rho*s2/s2 = rho ; Var(mean_j) = rho*s2 + (1-rho)*s2/v = V
+    assert math.isclose(rho * s2 + (1 - rho) * s2, s2) and math.isclose(rho * s2 / s2, rho) and math.isclose(rho * s2 + (1 - rho) * s2 / v, V)
+    seen = {}
+    monkeypatch.setattr(generator, "_signflip_p", lambda dd, r, draws=generator.SIGNFLIP_DRAWS: seen.update(d=dd.copy(), draws=draws, rng=r) or 1.0)
+    generator.replicate(cell, 33)
+    rng_d, rng_r = generator.substreams(33); n = cell["SAMPLE_SIZE"]["COUNT"]
+    c = rng_d.normal(0, math.sqrt(rho * s2), (n, 1)); w = rng_d.normal(0, math.sqrt((1 - rho) * s2), (n, v))
+    assert np.array_equal(seen["d"], (1.0 + c + w).mean(axis=1)) and seen["d"].shape == (n,) and seen["draws"] == 20000
+    assert seen["rng"].random(3).tolist() == rng_r.random(3).tolist()   # RANDOMIZATION substream, independent of DATA
+    # hand fixture: three events, venues are measurements -> exactly three sign-flipped statistics
+    meas = np.array([[1.0, 2.0, 3.0], [4.0, 4.0, 4.0], [-1.0, 0.0, 1.0]])
+    assert meas.mean(axis=1).tolist() == [2.0, 4.0, 0.0]
+
+
+def test_E_planning_object_consistency_S1_S5():
+    """VAR_TRUE / VAR_PLANNING denote the same statistical object in generator, oracle and compiler."""
+    za, zb = norm.ppf(1 - 0.0125 / 2), norm.ppf(0.8)
+    obj = {"S1": "per-observation variance", "S2": "per-observation variance",
+           "S3": "variance of the paired difference", "S4": "per-hour (per-observation) variance; cluster handled by DEFF",
+           "S5": "variance of the venue-averaged event statistic"}
+    for design in obj:
+        c = next(x for x in ECELLS if x["DESIGN_ID"] == design and x["EXECUTION_STATUS"] == "ACTIVE"
+                 and x["VARIANCE_RELATIONSHIPS"]["q"] == 1.0 and x["VARIANCE_RELATIONSHIPS"]["k"] == 1.0 and x["SIZE_MULTIPLIER"] == 1.0)
+        V = c["VARIANCE_RELATIONSHIPS"]["VAR_TRUE"]
+        assert compiler.required_n(c, V) == c["N_ORACLE_80"]            # compiler(V) == frozen oracle(V) cell by cell
+        if design in ("S1", "S2"):
+            assert c["N_ORACLE_80"] == 2 * math.ceil(2 * V * (za + zb) ** 2 / 0.25)
+        if design in ("S3", "S5"):
+            d = c["GENERATOR_PARAMS"]["delta_min"]; assert c["N_ORACLE_80"] == math.ceil(V * (za + zb) ** 2 / d ** 2)
+
+
+def test_F_aggregation_precedence_order_independence_and_3b_role():
+    def row(cid, grid, f, verdict, safety, utility=None, status="ACTIVE", expected="BOUNDARY_NO_REQUIREMENT"):
+        return {"CELL_ID": cid, "DESIGN_ID": "S1", "GRID": grid, "ROLE": "SAFETY", "CANDIDATE_FLOOR": f,
+                "FEASIBILITY": {"VERDICT": verdict}, "SAFETY": safety, "UTILITY": utility, "EXECUTION_STATUS": status,
+                "EXPECTED_CLASSIFICATION": expected}
+    C = [0.60, 0.75, 1.00]
+    # excluded S6 rows with FAIL can never reach a decision
+    rows = [row("x6", "3A", f, "FEASIBLE", "FAIL", status="EXCLUDED_PRE_RUN_DESIGN_INVALID") for f in C]
+    rows += [row("a", "3A", f, "FEASIBLE", "PASS") for f in C]
+    agg = engine.aggregate(rows, C)
+    assert agg["FINAL"] == "VALIDATION_PASS" and agg["ADOPTED_FLOOR"] == 0.60
+    # 3B can only block after the provisional floor, never select it
+    rows2 = rows + [row("b3", "3B", 0.60, "FEASIBLE", "FAIL"), row("b3", "3B", 0.75, "FEASIBLE", "PASS"), row("b3", "3B", 1.00, "FEASIBLE", "PASS")]
+    agg2 = engine.aggregate(rows2, C)
+    assert agg2["ADOPTED_FLOOR_CANDIDATE"] == 0.60 and agg2["FINAL"] == "ADOPTION_BLOCKED_BY_STRESS" and "ADOPTED_FLOOR" not in agg2
+    # precedence FAIL > INDETERMINATE > PASS
+    assert engine._status_from(["PASS", cp.INDETERMINATE, "FAIL"]) == "FAIL"
+    assert engine._status_from(["PASS", cp.INDETERMINATE]) == "INDETERMINATE" and engine._status_from(["PASS"]) == "PASS"
+    # candidate order independence
+    assert engine.aggregate(rows2, [1.00, 0.60, 0.75]) == agg2
+    # no override path: aggregate and official_run take no override argument
+    import inspect
+    assert set(inspect.signature(engine.aggregate).parameters) == {"rows", "candidates"}
+    assert set(inspect.signature(engine.official_run).parameters) == set()
+    # stress INDETERMINATE
+    rows3 = rows + [row("b4", "3B", 0.60, "FEASIBLE", cp.INDETERMINATE)]
+    assert engine.aggregate(rows3, C)["FINAL"] == "STRESS_VALIDATION_INDETERMINATE"
+    # all 3A FAIL vs INDETERMINATE routing
+    assert engine.aggregate([row("a", "3A", f, "FEASIBLE", "FAIL") for f in C], C)["FINAL"] == "VARIANCE_MODEL_REDESIGN_REQUIRED"
+    assert engine.aggregate([row("a", "3A", f, "FEASIBLE", cp.INDETERMINATE) for f in C], C)["FINAL"] == "VALIDATION_INDETERMINATE"

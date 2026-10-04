@@ -184,8 +184,10 @@ def official_run() -> dict:
     """The one official run. Refuses without the execution binding and its authorization flag."""
     record = freeze.verify_freeze()
     binding = freeze.verify_execution_binding()
-    if binding.get("OFFICIAL_RUN_AUTHORIZED") is not True:
-        raise OfficialRunNotAuthorized("OFFICIAL_RUN_AUTHORIZED is not true in the execution binding")
+    try:
+        auth = freeze.verify_run_authorization(binding)      # separate immutable artifact, never the binding
+    except freeze.FreezeMismatch as exc:
+        raise OfficialRunNotAuthorized(str(exc)) from exc
     if RESULT_OUT.exists():
         raise OfficialRunNotAuthorized("a result already exists; the official run is one-shot")
     amendment = freeze.verify_amendment()
@@ -194,7 +196,7 @@ def official_run() -> dict:
                "MANIFEST": record["ARTIFACTS"][str(freeze.MANIFEST.relative_to(REPO))],
                "AMENDMENT": freeze.sha256_path(str(freeze.AMENDMENT.relative_to(REPO))),
                "EFFECTIVE_MANIFEST": amendment["EFFECTIVE_MANIFEST_SHA256"],
-               "GENERATOR": binding["GENERATOR_DIGESTS"]}
+               "GENERATOR": binding["GENERATOR_DIGESTS"], "RUN_AUTHORIZATION": auth.get("RUN_ID")}
     rows = run_cells(manifest["CELLS"], manifest["CONSTANTS"], manifest["CANDIDATE_FLOORS"], digests)
     agg = aggregate(rows, manifest["CANDIDATE_FLOORS"])
     payload = {"RUN": "COMPILER_V3_VARIANCE_FLOOR_VALIDATION", "AT_UTC": dt.datetime.now(tz=dt.timezone.utc).isoformat(),
