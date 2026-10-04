@@ -1,0 +1,194 @@
+{
+  "AMENDMENT_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_FREEZE_AMENDMENT_V1",
+  "CAL_OR_EVAL_SIMULATED": false,
+  "CANDIDATE_C": {
+    "APPLICATION": {
+      "ABOVE_N_MAX": "U_C = V_hat_A * c_env(class, n_max) (constant; pre-declared extrapolation rule)",
+      "BELOW_N_MIN": "NOT_APPLICABLE -> compiler returns NOT_FEASIBLE_INFORMATION_INSUFFICIENT",
+      "WITHIN": "U_C = V_hat_A * c_env(class, largest calibrated size <= n)"
+    },
+    "CAL_SIZES": {
+      "CLUSTERED": [
+        8,
+        15,
+        25,
+        40
+      ],
+      "PAIRED_UNITS": [
+        40,
+        60,
+        100,
+        160,
+        260,
+        400
+      ],
+      "RARE_EVENT": [
+        30,
+        50,
+        75,
+        100
+      ],
+      "TWO_SAMPLE": [
+        30,
+        60,
+        120,
+        250,
+        500
+      ]
+    },
+    "DECISION_SPLIT": "EVAL only; never used for fitting or tuning",
+    "ENVELOPE": "c_env(class, n_i) = max_{j>=i} c_raw(class, n_j) (suffix maximum; non-increasing in n)",
+    "FIT_SPLIT": "CAL only",
+    "LOCKED_AFTER_FIRST_EVAL_READ": [
+      "quantile",
+      "pooling rule",
+      "class grouping",
+      "smoothing (none)",
+      "interpolation (none)",
+      "monotonicity repair (suffix max only)",
+      "candidate grid"
+    ],
+    "POOL": "all MUST cells of the class at the calibrated size (all dependence/tail/ICC/size/scale levels); STRESS and OUT_OF_DOMAIN excluded",
+    "RATIO": "R = VAR_TRUE / V_hat_A per replicate",
+    "RAW_FACTOR": "order statistic of rank ceil(0.99*M) of the M pooled ratios (higher quantile, no interpolation)",
+    "TABLE_WRITTEN_AND_DIGESTED_BEFORE_EVAL": true
+  },
+  "CANDIDATE_SELECTION": {
+    "ALLOCATION": "BONFERRONI",
+    "ALPHA_CANDIDATE": 0.0033333333333333335,
+    "ALPHA_CHANGE_AFTER_RESULTS": "FORBIDDEN",
+    "ALPHA_FAMILY": 0.01,
+    "APPLIES_TO": "every candidate-decisive COVERAGE and UTILITY check of A, B, C (one-sided exact Clopper-Pearson)",
+    "CONF_CANDIDATE": 0.9966666666666667,
+    "CONF_CANDIDATE_RATIONAL": "299/300",
+    "REFERENCE_D_CONFIDENCE": 0.99,
+    "REFERENCE_ONLY": [
+      "D"
+    ],
+    "SELECTABLE": [
+      "A",
+      "B",
+      "C"
+    ],
+    "WITHIN_CANDIDATE": "intersection-union over MUST cells; no further adjustment"
+  },
+  "COVERAGE_RULE": {
+    "ELSE": "ESCALATE Stage A -> Stage B; after Stage B CALIBRATION_INDETERMINATE",
+    "FAIL": "one-sided CP lower bound of the miss rate > MISS_UNACCEPTABLE",
+    "MISS_TARGET": 0.01,
+    "MISS_UNACCEPTABLE": 0.02,
+    "PASS": "one-sided CP upper bound of the miss rate <= MISS_TARGET",
+    "REGIONS_DISJOINT_PROOF": "cp_lower <= misses/n <= cp_upper, so lower > 0.02 implies upper > 0.01",
+    "STAGE_THRESHOLDS": {
+      "20000": {
+        "FAIL_IF_MISSES_GE": 456,
+        "PASS_IF_MISSES_LE": 162
+      },
+      "4000": {
+        "FAIL_IF_MISSES_GE": 106,
+        "PASS_IF_MISSES_LE": 23
+      }
+    }
+  },
+  "DATE": "2026-10-04",
+  "EFFECTIVE_PROTOCOL": {
+    "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EFFECTIVE_PROTOCOL_V1.md",
+    "SHA256": "b3cb784c054ad0915d6a3a74b0214f44440c382422d54ebc4fa12fc80cf97714"
+  },
+  "ELIGIBILITY": {
+    "ELIGIBLE": "COVERAGE PASS on all MUST cells AND UTILITY PASS (frontier <= REALISTIC_MAX for every MUST class) AND no execution-error or CALIBRATION_INDETERMINATE cell",
+    "NONE_ELIGIBLE": {
+      "ALL_DECISIVE": "ESTIMATOR_CALIBRATION_FAIL_INFORMATION_INSUFFICIENT",
+      "UNRESOLVED_COULD_BE_FIRST": "CALIBRATION_INDETERMINATE"
+    },
+    "NOT_ELIGIBLE_DECISIVE": "COVERAGE FAIL or UTILITY FAIL",
+    "ORDER": [
+      "A",
+      "B",
+      "C"
+    ],
+    "SELECTED": "first ELIGIBLE",
+    "UNRESOLVED": "otherwise",
+    "UTILITY_CELL_RULE": {
+      "ELSE": "ESCALATE -> Stage B -> CALIBRATION_INDETERMINATE",
+      "EVENT": "rho = U / VAR_TRUE <= 1.5",
+      "FAIL": "cp_upper < 0.80",
+      "PASS": "cp_lower >= 0.80"
+    }
+  },
+  "EXACTNESS_LANGUAGE": {
+    "A_ELSEWHERE": "candidate formula, coverage checked empirically",
+    "A_EXACT_ONLY_IN": "independent Gaussian equal-variance cells: F1/F2 phi=0 GAUSS; F3 EQUAL phi_G=0 GAUSS; F4 HOMO phi_e=0 GAUSS",
+    "B": "explicitly approximate; right to use comes only from independent EVAL coverage"
+  },
+  "EXECUTION_AUTHORIZED": false,
+  "EXECUTOR_WRITTEN": false,
+  "GRID_DELTA": {
+    "CELLS_RENUMBERED": false,
+    "CELL_SEED_DIGEST": "eb4edcd24bc4b1573b527370c0086c8a931639b0fd51f8c42bc88d96e3653303",
+    "ORIGINAL_CELLS": 621,
+    "SEEDS_CHANGED": false,
+    "STATUS": "NONE"
+  },
+  "IMMUTABLE": true,
+  "KIND": "PRE_RUN_AMENDMENT",
+  "OFFICIAL_RUN_2": false,
+  "ORIGINAL_ARTIFACTS": {
+    "FREEZE_RECORD": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_FREEZE_RECORD_V1.json",
+      "SHA256": "656624c35f6d1e5cf94825988756438932ceeade980585d638db6570faa833a9"
+    },
+    "GRID": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_GRID_V1.json",
+      "SHA256": "440fe897d62a467e5b71c2168177d0002f4a3f64b414d8e4a0c68dc84b8e7db4"
+    },
+    "GRID_BUILDER": {
+      "PATH": "scripts/research/compiler_v3_estimator_calibration/build_calibration_grid.py",
+      "SHA256": "8a924bf0385beec5485ea45f8d069229c9fa18ad3446aa6e573eed5f80ae90f8"
+    },
+    "SPEC": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_SPEC_V1.md",
+      "SHA256": "4524e0434336b21ebdf272c501a1ebc353fb0dee2215a924fc68293bf7436448"
+    }
+  },
+  "ORIGINAL_ARTIFACTS_EDITED": false,
+  "ORIGINAL_FREEZE_COMMIT": "4c5dcee1c073cbc36bf1ad5fd0363b283b00706c",
+  "OWNER_DECISION": "calibration freeze 4c5dcee accepted as audit artifact; execution NOT authorized; amendment items 1-9 (coverage rule, candidate-selection alpha, eligibility, target variance objects, exactness language, Candidate C definition, information/outcome terminology, Run 1 relationship, artifacts)",
+  "RUN1_RELATIONSHIP": {
+    "RUN1_DOES_NOT_VALIDATE": "a real exposed estimator (none existed in GV0R02 V0-V2)",
+    "RUN1_INVALIDATED": false,
+    "RUN1_REWRITTEN": false,
+    "RUN1_VALIDATES": "floor behaviour conditional on controlled q = VAR_EXPOSED_ESTIMATE / VAR_TRUE",
+    "THIS_UNIT": "separate prerequisite on the operational compiler path; a PASS adopts nothing by itself"
+  },
+  "RUN1_S4_COMPATIBILITY": {
+    "CONSEQUENCE": "if a clustered candidate is accepted, downstream compiler validation for CLUSTERED must be separate/revalidated under the cluster-level planning object",
+    "ICC_ESTIMATION_TO_KEEP_OLD_FORMULA": "FORBIDDEN",
+    "POST_HOC_CONVERSION_OF_RUN1_S4": "FORBIDDEN",
+    "RUN1_S4_OBJECT": "per-hour (per-observation) variance with a separate DEFF = 1 + (m-1) ICC term",
+    "THIS_UNIT_CLUSTERED_OBJECT": "cluster-level variance bound",
+    "TRANSFERS_AUTOMATICALLY": false
+  },
+  "TARGET_VARIANCE_OBJECT": {
+    "CLUSTERED": "variance of the independent cluster-level mean/statistic (long-run across ordered clusters); NOT the marginal per-hour variance",
+    "ERA_STRATIFIED": "UNDEFINED (S6 excluded)",
+    "PAIRED_UNITS": "variance of the paired difference of one unit (long-run across units)",
+    "RARE_EVENT": "variance of the venue-averaged event statistic (long-run across ordered events)",
+    "TWO_SAMPLE": "variance of one observation within an arm (long-run, within-arm serial dependence included)"
+  },
+  "TERMINOLOGY": {
+    "COMPILE_TIME_INFORMATION": "NO_EVALUATION_WINDOW_OUTCOMES_AVAILABLE (declared exposed PIT-legal surface and its counts/statistics only; evaluation/holdout outcomes unavailable; every read is an exposure-ledger row under contract V2 draft section 7)",
+    "REPLACES": "'nothing from outcomes'",
+    "THIS_SYNTHETIC_CALIBRATION": "NO_MARKET_OUTCOMES_USED"
+  },
+  "UNIT_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_V1",
+  "V2_ADOPTION": false,
+  "VALIDATOR": {
+    "PATH": "scripts/research/compiler_v3_estimator_calibration/amendment.py"
+  },
+  "WRITTEN_BEFORE": {
+    "ANY_CAL_REPLICATE": true,
+    "ANY_EVAL_REPLICATE": true,
+    "RUN1_OUTCOMES_READ_FOR_THIS_AMENDMENT": false
+  }
+}
