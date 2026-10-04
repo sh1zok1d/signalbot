@@ -30,7 +30,7 @@ from .attention import AttentionConfig, AttentionSchedule
 from .baseline import baseline_meta, baseline_text
 from .bundle import ReplayBundle
 from .claims import Manifest, build_manifest, surface_manifest
-from .llm import ROLE_AUDITOR, ROLE_JUDGE, ROLE_USER
+from .llm import ROLE_AUDITOR, ROLE_JUDGE, ROLE_USER, aggregate_api_usage
 from .outcomes import OUTCOME_LEDGER_VERSION, OutcomeLedger, observations_as_dicts
 from .prompts import JUDGE_PROMPT_VERSION, ROLE_A_PROMPT_VERSION, ROLE_B_PROMPT_VERSION
 from .role_a import CLICK_BUTTON, NO_ACTION, SEND_COMMAND, RoleAUser
@@ -386,6 +386,7 @@ class ReplayEngine:
             "skipped_inputs": [{"source_id": s.source_id, "reason": s.reason} for s in self.timeline.skipped],
             "attention_schedule": self.schedule.as_list(),
             "models": {r: {"model_id": m.model_id, "settings": m.settings()} for r, m in self.models.items()},
+            "api_usage": aggregate_api_usage(self.models),
             "prompt_versions": {ROLE_USER: ROLE_A_PROMPT_VERSION, ROLE_AUDITOR: ROLE_B_PROMPT_VERSION,
                                 ROLE_JUDGE: JUDGE_PROMPT_VERSION},
             "outcome_version": self.cfg.outcome_version, "outcome_ledger_version": OUTCOME_LEDGER_VERSION,

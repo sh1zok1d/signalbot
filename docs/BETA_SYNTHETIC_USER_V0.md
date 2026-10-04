@@ -131,7 +131,7 @@ The blind judge prompt is `ROLE_B_BLIND_JUDGE_PROMPT_V0`.
 - **Restricted imports from the harness.** The harness imports no storage, network, Telegram or research code. Only the CLI `export` path can open a database connection.
 - **Synthetic participant.** It is `telegram_user_id = -7_311_000_001`. The production schema `CHECK (telegram_user_id > 0)` rejects it in `beta_allowlist` and `beta_users`, which is proven by a PostgreSQL test. Synthetic activity exists only in the sandbox.
 - **Beta metrics stay real-only.** `beta/usage.py` reports, the participant cap, rollout and real pushes are unaffected. `beta/usage.py` itself is unchanged.
-- **Real models.** `OpenAIChatModel` needs `--allow-network`, `SIGNALBOT_SIM_ALLOW_NETWORK=1` and `OPENAI_API_KEY`. Tests use fake models only, with sockets blocked.
+- **Real models.** `OpenAIChatModel` needs `--allow-network`, `SIGNALBOT_SIM_ALLOW_NETWORK=1` and `OPENAI_API_KEY`. Temperature is omitted unless the caller sets it, so the request uses the model default and the manifest records `DEFAULT`. The requested model id is not replaced after an error, and the client does not retry. A failed response keeps HTTP status, error type, code, parameter and message, with credentials removed. Usage tokens are copied from the response when present and left unknown when absent. Tests mock that HTTP response and do not open a socket. Fake models stay deterministic.
 - **No capabilities.** There is no trading, no exchange credentials, no config writes, no push or detector state, and no research state.
 
 ## 9. Reports
