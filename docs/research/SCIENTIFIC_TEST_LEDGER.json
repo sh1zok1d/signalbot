@@ -62,8 +62,8 @@
       },
       "CLOSED_BEFORE_FEASIBILITY": 10,
       "EXECUTABLE_NOW_CARDS": 1,
-      "EXECUTED_HYPOTHESES": 0,
-      "EXECUTED_TESTS": 0,
+      "EXECUTED_HYPOTHESES": 1,
+      "EXECUTED_TESTS": 1,
       "GENERATED_CARDS": 15,
       "PROMISING_PROTOTYPES": 0,
       "REGISTERED_TESTS": 1,
@@ -216,10 +216,10 @@
       "TEST_FAMILY_ID": "TF-R03-C-SESSION-CLOCK"
     },
     {
-      "CLASSIFICATION": null,
+      "CLASSIFICATION": "INCONCLUSIVE (DH1-L2; shift +0.05 pp, 95% CI -3.03..+3.06 pp, Brier skill -0.0008; practically null, CI reaches the 3 pp bar)",
       "DATASET_ID": "CORE_BTC_BINANCE_V0 + DH1_BINANCE_SPOT_BTCUSDT_5M_V0 (discovery); DH1_BITMEX_XBTUSD_TRADES_5M_V0 + DH1_BINANCE_SPOT_BTCUSDT_5M_V0 (replication)",
       "EVIDENCE_LABEL": "DISCOVERY_ON_BINANCE_2020_2024 (levels product-exposed, states new); REPLICATION_ON_BITMEX_BINANCE_SPOT_2017_2019",
-      "EXECUTED": null,
+      "EXECUTED": "2026-10-04",
       "HYPOTHESIS_ID": "DH1-L2",
       "MULTIPLICITY_METHOD": "Holm over the 1 executed cells of the card, week-cluster bootstrap two-sided p at 0.05",
       "PREREG_PATH": "docs/research/DH1_PREREG.json",
@@ -228,14 +228,14 @@
       "REGISTERED": "2026-10-04",
       "REPLICATION_EXECUTED": false,
       "REPLICATION_OF": null,
-      "REPLICATION_SURFACE": "BitMEX XBTUSD trades + Binance spot 2017-09..2019-12 (same frozen rule); live tracking",
+      "REPLICATION_SURFACE": "BitMEX XBTUSD trades + Binance spot 2017-09..2019-12 (same frozen rule); not opened: no PROMISING_PROTOTYPE",
       "RERUN_AUTHORIZED": false,
       "RESULT_PATH": "docs/research/DH1_RESULT_DISCOVERY.json",
-      "RESULT_SHA256": null,
+      "RESULT_SHA256": "01382984b3675329d9d4a9f0bbb5c026ad2582c447a6223667aa685da3dbc459",
       "ROBUSTNESS_TEST_COUNT": 0,
       "SEARCH_FAMILY_ID": "SF-DH1",
       "SECONDARY_TEST_COUNT": 0,
-      "STATUS": "REGISTERED",
+      "STATUS": "EXECUTED_CLOSED",
       "TEST_FAMILY_ID": "TF-DH1-L-LEVEL-HOLD"
     }
   ]

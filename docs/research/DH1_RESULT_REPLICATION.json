@@ -1,0 +1,20 @@
+{
+  "CELLS": {},
+  "CODE_DIGESTS": {
+    "beta/hist_series.py": "d5b3c9f88cbfd60bcf1bf62fb41650157b767a1f55277f1411d8ff5cc935c35a",
+    "beta/levels.py": "d6e5e8d920a7722f436f0003f6ee5aac597b332c5ebd4039644e590bceaf1518",
+    "scripts/research/dh1/constants.py": "5f70833f3c73ca8e69f93cbb41bef14b5dfa52bc2bdc27ed91a5075aea17a68a",
+    "scripts/research/dh1/data.py": "e8303aa302590e4798a9ed993a24544e087ca1a7bec6d810f8ff1a980e1e3702",
+    "scripts/research/dh1/evaluate.py": "bf233b3bfac8e9da9fbc68765dcfe168337da287ed0f16495de812064f9cd079",
+    "scripts/research/dh1/events.py": "6c3af3465c7cd0908d05862a006527e4dcfeb657978c87e8d4160791aa37b756",
+    "scripts/research/dh1/feasibility.py": "0c192169bf710252116b6c25630bb3c7f39aa801ad3aed49a31396cd28662874",
+    "scripts/research/dh1/outcomes.py": "92e7192ca998302bca40e6eaa107478df6ae3412e86eb7990eed37a98437b2d4",
+    "scripts/research/dh1/stats.py": "23db3d29438812c698e5ccd3cbad00f6e37504e4faa7d4ba28275fc51476c1ef",
+    "scripts/research/owner_cards_r03/data.py": "9e53d9673ccd126df69d8aaf0ba0d68b1642d5dd19dbc9ad661e4cebb0d1dae1"
+  },
+  "NOTE": "no cell to evaluate on this surface; no outcome was read",
+  "ONE_SHOT": true,
+  "PREREG_SHA256": "20ee090c7d8e9348a1b5709c7ed0c9f703b6561fc200b50666a7cb25975ebe00",
+  "PROGRAM_ID": "DIRECTIONAL_HYPOTHESES_DH1",
+  "SURFACE": "REPLICATION"
+}

@@ -21,6 +21,11 @@ no_bot_context:
     bot_context: NONE
     reason: "0 frozen, 0 executed, no market outcome opened, no product implication; G01-B1 is only a future candidate"
     record: "docs/research/AUTOGEN_G01_DECISION.md; docs/research/AUTOGEN_G01_FEASIBILITY.md"
+  - program: DIRECTIONAL_HYPOTHESES_DH1 (cells L1, L3, B1, B2)
+    status: CLOSED_AT_FEASIBILITY
+    bot_context: NONE
+    reason: "closed outcome-blind (INFORMATIONALLY_WEAK; B1 degenerate as defined); no outcome computed, nothing to state. DH1-L2 is listed as a finding"
+    record: "docs/research/DH1_RESULT.md; docs/research/DH1_FEASIBILITY.md"
 findings:
   # ---- replicated on an independent venue ----------------------------------------------------
   - id: D7
@@ -85,6 +90,14 @@ findings:
     record: "docs/research/H02_DEV_SUMMARY.md"
     contexts: [level]
     priority: 30
+  - id: DH1-L2
+    status: NOT_CONFIRMED
+    text_ru: "уровень, совпавший с другим уровнем (зона), после первого касания удерживался не чаще одиночного: 46,5% против 46,3% через 4 ч; разница больше 3 п.п. почти исключена"
+    text_en: "a level that coincided with another level (a zone) held no more often after its first touch than a lone level: 46.5% vs 46.3% after 4h; a gap above 3 pp is all but ruled out"
+    data: "Binance 2020–2024, 4622 первых касания ключевых уровней"
+    record: "docs/research/DH1_RESULT.md"
+    contexts: [level]
+    priority: 35
   - id: DIVERGENCE
     status: NOT_CONFIRMED
     text_ru: "бычья дивергенция (RSI, MACD, CVD) у поддержки в стакане почти не меняла шанс дойти до +1R раньше −1R: около 50% и с ней, и без неё"

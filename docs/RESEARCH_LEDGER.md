@@ -7938,3 +7938,22 @@ WINDOWS_CONSUMED = none by this record (it records a past exposure); MARKET_VALU
 SEARCH_FAMILY = SF-DH1; TEST_FAMILY = TF-DH1-L-LEVEL-HOLD (1 primary cell: DH1-L2); TF-DH1-B-BARRIER not registered (no executable cell)
 PREREG = docs/research/DH1_PREREG.json; MARKET_OUTCOMES_OPENED = NO at freeze; OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
 ```
+
+## 2026-10-04 — DH1 executed once: DH1-L2 inconclusive by a hair, practically null; nothing replicated
+
+**Discovery** (Binance 2020–2024, one shot; `DH1_RESULT_DISCOVERY.json`). DH1-L2, confluent vs lone key level at its first touch, measured by 4h hold:
+- 4622 touches (2049 / 2573); hold 46.5 % vs 46.3 %;
+- nuisance-adjusted +0.05 pp, 95 % CI −3.03 … +3.06 pp, Holm p 0.95, Brier skill −0.0008;
+- years −6.9 / +5.3 / −0.3 / −4.2 / +1.2 pp, heterogeneity p 0.13 (not assessable at this power).
+
+**Class.** Frozen class `INCONCLUSIVE`, because the interval reaches the ±3 pp bar by 0.03–0.06 pp. In practice it is null, recorded in the atlas as `NO_STRUCTURE`.
+
+**Replication.** There was no `PROMISING_PROTOTYPE`, so the 2017–2019 surface was not opened (`DH1_RESULT_REPLICATION.json`: no outcome read).
+
+**Bot.** No probability line. `/research` gets one `NOT_CONFIRMED` line (DH1-L2); the level-alert line stays H02.
+
+```
+WINDOWS_CONSUMED = Binance BTCUSDT 2020-2024 for PRICE_STRUCTURE.levels (DH1-L2 state); 2017-2019 not consumed (states counted only)
+TESTS_EXECUTED = 1 (TF-DH1-L-LEVEL-HOLD); PROMISING_PROTOTYPES = 0; RERUN_AUTHORIZED = false
+OBJECTS_2025_2026_USED = none; E1 / B2-06 untouched
+```
