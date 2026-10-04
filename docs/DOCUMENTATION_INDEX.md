@@ -388,7 +388,7 @@ These documents may still be useful operationally, but following them is not aut
 - `SHADOW_TIMER_DEPLOY.md`
 - `TELEGRAM_NOTIFIER_DEPLOY.md`
 - `PRIVATE_BETA_V0_DEPLOY.md`: beta V0.2 deploy, soak and privacy runbook. Its units are prepared, not activated.
-- `RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md` (**PLAN ONLY, 2026-10-04; not executed**): the production deploy plan for the research evidence integration: least-privilege DB role and env for the feed units, schema, units, initialization order, smoke, rollback and the code prerequisites still open.
+- `RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md` (**PLAN ONLY, 2026-10-04; not executed; PREREQ-1–3 resolved in the prerequisites PR**): the production deploy plan for the research evidence integration: least-privilege DB role and env for the feed units, read-only schema readiness, collection separate from presentation, schema, units, initialization order, smoke and rollback.
 - `BETA_BTC_TEMPORAL_CONTEXT_V0.md`: the `/btc` temporal-context amendment. The active episodization `STRICT_QUALIFICATION_V1` keeps the detector's own episode boundaries. The amendment adds LAST EVENT memory, factual anchor buckets, the rolling-1h context `BETA_CONTEXT_1H_V0` and replay. Live hysteresis is disabled; an unfrozen taker-only calibration tool remains dormant. Detector rules and push decisions are unchanged.
 - `BETA_BTC_MAIN_SCREEN_UX_V1.md`: user-facing `/btc` wording. Presentation only. The view model, detector rules, and push switch are unchanged. Main is a compact state; Details keeps the measurements.
 - `E1_VPS_RUNBOOK.md`

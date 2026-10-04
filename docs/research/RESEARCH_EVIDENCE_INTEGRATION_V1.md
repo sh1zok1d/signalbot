@@ -115,6 +115,10 @@ NOT_LIVE_USABLE         = 21 (8 registry + 13 outside it)
 - `main.py --beta-stress-once`, hourly at HH:02 (`deploy/signalbot-beta-stress.{service,timer}`).
 - Health is recorded under `research_feeds`, `research_feeds_definition` and `research_stress_hours`.
 - Config: `decision.research_evidence.{enabled, feeds_enabled, stress_hours_enabled, main_surface_max ≤ 2}`.
+- Collection and presentation are separate (deploy plan PREREQ-2):
+  - `feeds_enabled` / `stress_hours_enabled` gate the collectors;
+  - `enabled` AND the restrict-only env `BETA_RESEARCH_EVIDENCE_ENABLED` gate what the bot shows.
+- The feed units run as the least-privilege role `signalbot_beta_feeds` and only verify the schema (`docs/RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md` §A).
 
 **Definition check.**
 - **What it checks:** the REST tail of OI and the ratio is used only after it matches the Vision rows of the same labels. The check passes at offset 0 with ≥ 100 overlapping labels and ≥ 95 % within a 1e-6 relative difference.

@@ -520,6 +520,7 @@ class BetaBotHandler:
     async def _open_tab(self, conn, cq, chat_id: int, answer, *, kind: str, view_pk: int, tab: str,
                         user=None) -> list:
         """Render a tab from the persisted view only, then record the open."""
+        from beta.config import research_presentation_enabled
         from beta.formatter import (detail_tab_buttons, format_1h_tab, format_24h_tab, format_event_tab,
                                     format_research_tab, view_id8)
         row = await conn.fetch_btc_view(view_pk)
@@ -532,8 +533,9 @@ class BetaBotHandler:
             return [answer(t(lang, "not_available"))]
         if tab in ("1h", "24h") and fail:
             return [answer(t(lang, "not_available"))]
-        if tab == "research" and not (payload.get("decision") or {}).get("evidence"):
-            return [answer(t(lang, "not_available"))]
+        if tab == "research" and not ((payload.get("decision") or {}).get("evidence")
+                                      and research_presentation_enabled(self.cfg)):
+            return [answer(t(lang, "not_available"))]           # presentation off: no stored evidence either
         vid = view_id8(row.get("payload_digest") or "")
         if tab == "research":
             html_text = format_research_tab(self.cfg, payload, lang, vid)

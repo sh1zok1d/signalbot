@@ -4,10 +4,11 @@
 
 | Item | Value |
 | --- | --- |
-| Code | `main` at `423b9b8` (merge of PR #326; head `02919af`) |
+| Code | `main` at `423b9b8` (merge of PR #326; head `02919af`) plus the prerequisites PR from branch `claude/research-evidence-deploy-plan` (PREREQ-1–3, §G) |
+| PREREQ-1–3 | **RESOLVED** in that PR, proven by the tests named in §G. The PR is open and not merged. |
 | Units `signalbot-beta-feeds` / `signalbot-beta-stress` | not enabled |
 | P3 prospective confirmation | not started |
-| CI | GitHub Actions did not run on `02919af` or `423b9b8` (billing block). The only validation is local; see §0. |
+| CI | GitHub Actions has not run since `02919af` (billing block). The only validation is local; see §0. |
 
 Authority:
 - `docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md` (design);
@@ -29,6 +30,20 @@ The checks ran on a local PostgreSQL 16 (no TimescaleDB). Scratch scripts were u
 | Decision block, evidence ON vs OFF, same `now` (synthetic data) | Identical except the `evidence` key |
 | Focused tests on `02919af` | `test_research_evidence.py` + `test_research_evidence_pg.py` + `test_research_evidence_parity.py`: 40 passed |
 | `fapi.binance.com` from the dev sandbox | HTTP 451 (geo-restricted). Reachability and ±1 % depth coverage must be measured **from the production host** (§E.1, §E.4). |
+
+Prerequisites PR (PREREQ-1–3), on a local PostgreSQL 16 and committed as tests:
+
+| Check | Result |
+| --- | --- |
+| The core role applies the schema; `deploy/beta_feeds_role.sql` applied twice; both jobs run as `signalbot_beta_feeds` | OK. Rows in all five feed tables. Health recorded. Readiness `OK`. `statement_timeout` is `1min`. |
+| The feed role tries DDL, other tables, writes outside its grants, `SET ROLE`, or granting itself | All 23 attempts denied. `apply_beta_schema` under the role fails. The catalog is byte-identical before and after. |
+| Readiness: no schema; a dropped check and column; a revoked grant; the wrong role | Each is refused (`SCHEMA_NOT_READY` / `WRONG_DB_ROLE`) before any fetch. Nothing is written. The CLI exits 3. |
+| Feed commands with presentation off (config, or env `BETA_RESEARCH_EVIDENCE_ENABLED=0`) | Both collectors run, insert and record health. |
+| Decision block with presentation on, off by env, and off by config | Byte-identical JSON except `evidence`. `evidence` is absent when off. |
+| `run_market_alerts` with presentation on and off (two identical databases) | Same report, alert rows, decisions, suppression reasons and tracked forecasts. Only the payload `evidence` differs. |
+| Bot with presentation off | No 🔬 line, no research button. A stored view's research tab is refused, and no open is recorded. |
+| `deploy/install_beta_feeds_role.sh` against the local cluster (`docker` replaced by `psql`) | Idempotent over three runs. The env file is `root:root 0600` with exactly six keys. The password is never printed. Login as the role works. |
+| `SIGNALBOT_DOTENV=0` | `common.config` does not load the shared `.env`. Default unchanged. |
 
 ## A. Database / credential isolation
 
@@ -61,90 +76,84 @@ Three things the role never needs:
 
 The remaining over-grant is `beta_runtime_health`: the role can write any component's row. That table holds only operational health, so the impact is low. Narrowing it to `component LIKE 'research_%'` would take row-level security on a shared table; that is not proposed for V1.
 
-### A.2 Role SQL (exact; run once by the DB superuser)
+### A.2 Role SQL and install script (in the repo)
 
-The role is created without a password inside the script. The password is set from stdin so it never appears in a process list. The script never grants anything on other tables, and default privileges are unchanged, so tables added later are not granted.
+- **`deploy/beta_feeds_role.sql`** is idempotent. It runs as the core DB superuser in the beta database, after the core role has applied the schema. On every run it:
+  - creates the role if it is missing;
+  - sets LOGIN, NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOINHERIT, NOREPLICATION, NOBYPASSRLS, `CONNECTION LIMIT 4`, `statement_timeout = 60s` and `idle_in_transaction_session_timeout = 60s`;
+  - removes any role membership;
+  - **revokes everything** on the schema's tables, sequences, schema and database;
+  - grants exactly the §A.1 set.
 
-```sql
--- deploy step A, as the core DB superuser ($POSTGRES_USER) in database $POSTGRES_DB
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'signalbot_beta_feeds') THEN
-    CREATE ROLE signalbot_beta_feeds LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION
-      CONNECTION LIMIT 4;
-  END IF;
-END $$;
-ALTER ROLE signalbot_beta_feeds SET statement_timeout = '60s';
-ALTER ROLE signalbot_beta_feeds SET idle_in_transaction_session_timeout = '60s';
-GRANT CONNECT ON DATABASE :"dbname" TO signalbot_beta_feeds;
-GRANT USAGE ON SCHEMA public TO signalbot_beta_feeds;
-GRANT SELECT, INSERT, UPDATE ON beta_feed_metrics_5m, beta_feed_dvol_1h, beta_feed_spot_5m,
-                                 beta_feed_stress_hours TO signalbot_beta_feeds;
-GRANT SELECT, INSERT ON beta_feed_depth TO signalbot_beta_feeds;
-GRANT SELECT (ts, oi_base, ls_account_ratio) ON beta_hist_oi_5m TO signalbot_beta_feeds;
-GRANT SELECT, INSERT, UPDATE ON beta_runtime_health TO signalbot_beta_feeds;
--- must return f (PostgreSQL 15+ default; do not change PUBLIC's rights here)
-SELECT has_schema_privilege('signalbot_beta_feeds', 'public', 'CREATE') AS can_create;
-```
+  The script ends with assertions that roll the whole change back if the role could still:
+  - create in `public` or in the database;
+  - hold DELETE, TRUNCATE, REFERENCES or TRIGGER anywhere;
+  - reach any other table (for example through a grant to PUBLIC);
+  - read any `beta_hist_oi_5m` column other than `ts`, `oi_base` and `ls_account_ratio`.
 
-Commands on the host:
+  It holds no password.
+- **`deploy/install_beta_feeds_role.sh [--set-password]`** runs on the host as root.
+  - It reads `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_HOST` and `POSTGRES_PORT` from the core `.env` with `grep`. The file is never sourced or printed.
+  - It refuses to run unless the seven tables exist.
+  - It applies the SQL through `docker exec … psql`.
+  - With `--set-password`, it generates `openssl rand -hex 24`, sets it through **stdin** (not visible in a process list), and writes `/opt/signalbot/.env.beta-feeds` (§A.3).
+  - It never enables, starts or restarts a unit.
+
+Before the first `--set-password`, confirm that statements are not logged:
 
 ```bash
-cd /opt/signalbot
-# the feed tables must exist first (step D.2); then:
-DB=$(grep -E '^POSTGRES_DB=' .env | cut -d= -f2-); SU=$(grep -E '^POSTGRES_USER=' .env | cut -d= -f2-)
-docker exec -i btcbot_timescaledb psql -U "$SU" -d "$DB" -v ON_ERROR_STOP=1 -v dbname="$DB" < /path/to/beta_feeds_role.sql
-FEEDS_PW="$(openssl rand -hex 24)"
-printf "ALTER ROLE signalbot_beta_feeds PASSWORD '%s';\n" "$FEEDS_PW" \
-  | docker exec -i btcbot_timescaledb psql -U "$SU" -d "$DB" -v ON_ERROR_STOP=1 -q
+docker exec btcbot_timescaledb psql -U "$SU" -d "$DB" -tAc 'SHOW log_statement'   # must be none
 ```
 
-Before running it, confirm that `log_statement` is `none` or `ddl`-free, so the ALTER ROLE line is not logged:
-
-```bash
-docker exec btcbot_timescaledb psql -U "$SU" -d "$DB" -tAc 'SHOW log_statement'
-```
-
-Grants are lost after a restore. `deploy/backup.sh` dumps with `--no-owner --no-privileges`, so after any `deploy/restore.sh` re-run the GRANT block above. The role itself is cluster-level and survives.
+**After every restore,** run `sudo deploy/install_beta_feeds_role.sh` again, without `--set-password`. `deploy/backup.sh` dumps with `--no-owner --no-privileges`, so grants are not restored; the role itself is cluster-level and survives. Until this is done, the feed jobs refuse to run with `SCHEMA_NOT_READY` (`grant:…`) and exit 3. They never run with wider rights.
 
 ### A.3 Feed environment file
 
-Create `/opt/signalbot/.env.beta-feeds` with owner `root:signalbot` and mode `0640`. It holds **only**:
+`/opt/signalbot/.env.beta-feeds` is written by the install script as `root:root 0600`. systemd reads it as root for the two feed units only, so neither the bot nor the feed processes can read it from disk. The template is `deploy/beta-feeds.env.example`; `.gitignore` (`.env.*`) keeps the real file out of git. It holds **only**:
 
 ```
-POSTGRES_HOST=127.0.0.1
-POSTGRES_PORT=5432
+POSTGRES_HOST=<from .env, default 127.0.0.1>
+POSTGRES_PORT=<from .env, default 5432>
 POSTGRES_DB=<same as .env>
 POSTGRES_USER=signalbot_beta_feeds
-POSTGRES_PASSWORD=<FEEDS_PW from A.2>
-# required by common.config.load_secrets(); beta commands never connect to Redis — placeholder, no password
-REDIS_URL=redis://127.0.0.1:6379/15
-BETA_ENABLED=<same value as .env>
+POSTGRES_PASSWORD=<generated>
+BETA_ENABLED=<same value as .env, when set there>
 ```
 
-It must **not** contain:
+It never contains:
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`;
 - `BETA_TELEGRAM_BOT_TOKEN`, `BETA_OWNER_TELEGRAM_USER_ID`;
 - `BETA_PUSH_ENABLED`;
 - the core `POSTGRES_PASSWORD` or `POSTGRES_DSN`.
 
-### A.4 Unit wiring
+`REDIS_URL` (a placeholder that `load_secrets()` requires; beta commands never connect to Redis) and `BETA_FEEDS_EXPECTED_DB_ROLE` are set in the units, not in this file.
 
-This is either a repo change (PREREQ-3) or a systemd drop-in with the same content. The drop-in, applied with `sudo systemctl edit signalbot-beta-feeds.service` (and the same for `signalbot-beta-stress.service`), is:
+### A.4 Unit wiring (in the repo)
+
+`deploy/signalbot-beta-feeds.service` and `deploy/signalbot-beta-stress.service`:
 
 ```ini
-[Service]
-EnvironmentFile=
-EnvironmentFile=/opt/signalbot/.env.beta-feeds
-ExecStartPre=
-ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
-ExecStartPre=/usr/bin/test -r /opt/signalbot/.env.beta-feeds
-ExecStartPre=/usr/bin/test -f /opt/signalbot/main.py
-ExecStartPre=/opt/signalbot/.venv/bin/python /opt/signalbot/deploy/wait_for_infra.py --postgres-only --timeout 60
+EnvironmentFile=/opt/signalbot/.env.beta-feeds          # no "-": a missing file fails the unit
+Environment=SIGNALBOT_DOTENV=0                           # common/config.py does not load the shared .env
+InaccessiblePaths=-/opt/signalbot/.env                   # the shared .env is not even visible in the unit
+Environment=BETA_FEEDS_EXPECTED_DB_ROLE=signalbot_beta_feeds
+Environment=REDIS_URL=redis://unused.invalid:6379/0
 ```
 
-`wait_for_infra.py --postgres-only` then connects as the feed role (`SELECT 1`), which is enough.
+Why the dotenv switch is needed: `common/config.py` used to call `load_dotenv(ROOT_DIR / ".env")` on import. With only `EnvironmentFile=` changed, the feed process would still have loaded `/opt/signalbot/.env`, getting the Telegram tokens and the owner id. If that file sets `POSTGRES_DSN`, the process would also have connected **as the core role**, because `_build_postgres_dsn()` prefers `POSTGRES_DSN`. `SIGNALBOT_DOTENV=0` turns the load off for these units only; every other process behaves as before.
 
-**Blocker (PREREQ-1):** `main.py --beta-feeds-once` / `--beta-stress-once` call `db.init_beta_v0_schema()` (`runtime/beta_cli.py`, feeds/stress branch). Under this role that call fails, as §0 shows. The feed branch must replace it with a read-only readiness check before the role can be used; §G gives the patch. The core role keeps applying the schema.
+**No fallback to the core role.** If the connected role is not `signalbot_beta_feeds`, the job refuses with `WRONG_DB_ROLE` and exits 3. That covers a stray `POSTGRES_DSN` or a hand-edited env file. `wait_for_infra.py --postgres-only` connects as the feed role (`SELECT 1`), which is enough.
+
+### A.5 Read-only schema readiness (PREREQ-1)
+
+The feed commands no longer call `init_beta_v0_schema()`. Before any fetch or write, each job reads the catalog through `beta/research_feeds.feed_schema_readiness`. It checks, per job:
+- the tables and columns it uses;
+- the primary keys its `ON CONFLICT` needs;
+- `ck_beta_feed_depth_cover` and `ck_beta_feed_stress_ok`;
+- the table and column privileges of the connected role;
+- the expected role.
+
+If anything is missing, the job returns `SCHEMA_NOT_READY` or `WRONG_DB_ROLE` with the missing items, writes nothing, logs the reason, and the CLI exits 3, so the unit fails visibly. Creating and migrating the schema stays with the core role.
 
 ## B. Schema
 
@@ -152,7 +161,7 @@ Everything lives in `storage/beta_v0_schema.sql`. It is applied by `storage/beta
 - the beta bot at start-up (`runtime/beta_bot.py`);
 - every writing `--beta-*` CLI command.
 
-Today that includes the feed commands; PREREQ-1 removes them.
+The feed commands are **not** among them (PREREQ-1). They only verify the schema (§A.5).
 
 | Change | Kind |
 | --- | --- |
@@ -184,8 +193,9 @@ Today that includes the feed commands; PREREQ-1 removes them.
 | Service | `Type=oneshot`, `main.py --beta-feeds-once --beta-json`, `TimeoutStartSec=240`, user `signalbot`, hardening profile of `signalbot-telegram.service` | `Type=oneshot`, `main.py --beta-stress-once --beta-json`, `TimeoutStartSec=1800`, same user and profile |
 | Timer | `OnCalendar=*-*-* *:00/5:40 UTC`, `Persistent=true` | `OnCalendar=*-*-* *:02:00 UTC`, `Persistent=true` |
 | Cadence | every 5 min, 40 s after the bar boundary | hourly at HH:02 |
-| Env | `/opt/signalbot/.env.beta-feeds` (§A.3) | same file |
-| DB role | `signalbot_beta_feeds` (§A.2) | same role |
+| Env | `/opt/signalbot/.env.beta-feeds` only. The shared `.env` is not loaded (`SIGNALBOT_DOTENV=0`) and not visible (`InaccessiblePaths`). §A.3–A.4. | same |
+| DB role | `signalbot_beta_feeds` (§A.2), enforced by `BETA_FEEDS_EXPECTED_DB_ROLE` | same |
+| Schema | verified read-only before each run (§A.5); a refusal means exit 3 and nothing written | same |
 | Endpoints (public, no key, `User-Agent: signalbot-beta-feeds/1`) | `fapi.binance.com/futures/data/openInterestHist`, `…/futures/data/globalLongShortAccountRatio` (5m), `fapi.binance.com/fapi/v1/depth?limit=1000`, `data-api.binance.vision/api/v3/klines` (5m), `www.deribit.com/api/v2/public/get_volatility_index_data` (3600) | `fapi.binance.com/fapi/v1/klines` (1h), `fapi.binance.com/fapi/v1/aggTrades`, `data-api.binance.vision/api/v3/aggTrades` |
 | Timeouts | aiohttp total 30 s per request | aiohttp total 60 s per request |
 | Retry | none within a run; the next run continues from the last stored row (metrics from the last label, at most 30 days back; spot at most 3 days; DVOL at most 72 h) | none within a run; the last 6 completed hours are checked every run, and an `INCOMPLETE` hour is retried |
@@ -211,8 +221,12 @@ The prerequisites (§G) are merged first. In this order, nothing shows research 
    - Check out `main` with the prerequisites at `/opt/signalbot`.
    - `sudo deploy/install_beta_units.sh` copies the units and runs daemon-reload. It enables nothing.
    - No new Python dependency (`requirements*.txt` unchanged since `38f97bd`).
-   - Before restarting anything, run on the host venv: `python -m pytest -q tests/beta/test_research_evidence.py tests/research/test_research_evidence_parity.py`. These need no DB.
-   - Keep `decision.research_evidence.enabled: false` (display off; PREREQ-2).
+   - Before restarting anything, run on the host venv: `python -m pytest -q tests/beta/test_research_evidence.py tests/research/test_research_evidence_parity.py tests/deploy/test_beta_systemd.py`. These need no DB.
+   - **Presentation off:** add `BETA_RESEARCH_EVIDENCE_ENABLED=0` to `/opt/signalbot/.env` (PREREQ-2).
+     - The committed `decision.research_evidence.enabled: true` stays.
+     - The env can only switch presentation off; the collectors never read it.
+     - From the restart on, no surface shows live research evidence and no alert records it.
+     - The registry `/research` list and its «Проверено: …» context line predate PR #326 and are not part of this switch.
 2. **Schema.** Apply it as the core role.
    - If `signalbot-beta-bot.service` is active: `sudo systemctl restart signalbot-beta-bot.service`. The bot applies the schema at start-up.
    - Otherwise: `sudo systemctl start signalbot-beta-history.service`. Its first command applies the schema before it syncs.
@@ -227,7 +241,12 @@ The prerequisites (§G) are merged first. In this order, nothing shows research 
             WHERE table_name = 'beta_hist_oi_5m' AND column_name = 'ls_account_ratio') AS ls_col;
    ```
 
-   All five must be non-null and `ls_col = 1`. Then create the role and env file (§A.2–A.4).
+   All five must be non-null and `ls_col = 1`. Then create the role and the env file:
+
+   ```bash
+   sudo deploy/install_beta_feeds_role.sh --set-password
+   sudo stat -c '%U:%G %a %n' /opt/signalbot/.env.beta-feeds    # root:root 600
+   ```
 3. **Historical / definition parity sync.** This is needed for DH3-P3 only. Vision rows synced before this release have `ls_account_ratio = NULL`, because the object ledger never re-fetches an `OK` object. Without this step P3 needs about 26 days to mature: `crowd_z` needs at least 600 of the previous 720 hourly values.
    - The step re-queues the **last 35 daily `metrics` objects** (the same Vision objects as before, checksum-verified; no new source).
    - The selector stops at 2026-08-26, so the E1 holdout `[2026-08-16, 2026-08-25 17:20)` cannot be reached. Objects inside it are never planned in any case.
@@ -268,7 +287,9 @@ The prerequisites (§G) are merged first. In this order, nothing shows research 
    ```
 
    Expect about 288 per day.
-4. **Enable the feeds** (owner go). Collection only; display is still off.
+4. **Enable the feeds** (owner go). This is collection only; presentation is still off.
+
+   A refused run (`SCHEMA_NOT_READY` / `WRONG_DB_ROLE`, exit 3) appears in `journalctl -u signalbot-beta-feeds` with the missing items.
 
    ```bash
    sudo systemctl start signalbot-beta-feeds.service    # first run backfills: metrics ≤30 d, spot 3 d, DVOL 72 h
@@ -300,8 +321,8 @@ The prerequisites (§G) are merged first. In this order, nothing shows research 
 
    Collect for at least 24 h. Recommended: 5 days, so L1 can mature.
 7. **Only then is the evidence live.**
-   - Set `decision.research_evidence.enabled: true` (a reviewed one-line config change, or the env switch from PREREQ-2).
-   - `sudo systemctl restart signalbot-beta-bot.service`. The notify and detector one-shots read the config on their next run.
+   - Remove `BETA_RESEARCH_EVIDENCE_ENABLED=0` from `/opt/signalbot/.env`.
+   - `sudo systemctl restart signalbot-beta-bot.service`. The notify and detector one-shots read the env on their next run.
    - Run the surface smoke (§E.5–E.9).
 
 **Rules that hold at every step** (code; covered by the tests named in §E):
@@ -319,7 +340,15 @@ Run everything as the core role, read-only, with `psql` in the container or via 
             "https://www.deribit.com/api/v2/public/get_time"; do curl -sS -o /dev/null -w "%{http_code} $u\n" "$u"; done
    ```
    All must return `200`. A `451` or `403` means the host is geo-restricted, so the feeds cannot run there.
-2. **Feed health and fresh rows**:
+2. **Feed role and health.** First, confirm that the units run as the feed role and with the feed env only:
+   ```bash
+   systemctl show signalbot-beta-feeds -p EnvironmentFiles -p InaccessiblePaths
+   journalctl -u signalbot-beta-feeds -n 3 --no-pager      # last report "status": "OK" (not SCHEMA_NOT_READY / WRONG_DB_ROLE)
+   ```
+   ```sql
+   SELECT usename, count(*) FROM pg_stat_activity WHERE usename = 'signalbot_beta_feeds' GROUP BY 1;  -- during a run
+   ```
+   Then health and fresh rows:
    ```sql
    SELECT component, last_run_at, last_success_at, last_error_type, detail
    FROM beta_runtime_health WHERE component IN ('research_feeds', 'research_feeds_definition', 'research_stress_hours');
@@ -361,8 +390,9 @@ Run everything as the core role, read-only, with `psql` in the container or via 
 
    `evidence_onoff_check.py`:
    ```python
-   import asyncio, json
+   import asyncio, json, os
    from datetime import datetime, timezone
+   os.environ.pop("BETA_RESEARCH_EVIDENCE_ENABLED", None)   # this check compares the config on/off itself
    from beta.config import BetaConfig
    from beta.decision import build_decision, reset_cache
    from runtime.beta_cli import load_postgres_dsn
@@ -387,7 +417,7 @@ Run everything as the core role, read-only, with `psql` in the container or via 
                         ensure_ascii=False, default=str))
    asyncio.run(main())
    ```
-   Pass: `identical: true` and `evidence_error: null`. The check covers the corridor, levels, touch probabilities, price, events and analogues, i.e. the whole block except `evidence`. On synthetic data it returns `identical: true`.
+   Pass: `identical: true`, `evidence_error: null`, and `matches` or `unavailable` not both empty, which proves evidence was built. The check covers the corridor, levels, touch probabilities, price, events and analogues, i.e. the whole block except `evidence`. On synthetic data it returns `identical: true`.
 6. **Push decision identity.**
    - `python -m pytest -q tests/beta/test_research_evidence.py -k "push_decision or decision_block_numbers"` on the host venv.
    - Then compare `main.py --beta-status --beta-json` → `push_decisions` for the 7 days before and after step 7. Alert evidence is attached after the decision (`beta/market_alerts.py`: "text context only"), so the counts per decision reason must not shift because of it.
@@ -429,29 +459,32 @@ The bot keeps running without research evidence at every level below. No level s
 | Level | Action | Effect |
 | --- | --- | --- |
 | F1: feeds off | `sudo systemctl disable --now signalbot-beta-feeds.timer signalbot-beta-stress.timer` | No more fetches. After 15 min (spot), 75 min (OI, ratio, DVOL, depth) and 3 h (stress), the feed findings become `unavailable: STALE`. History findings stay. The bot is unaffected. |
-| F2: evidence display off | `decision.research_evidence.enabled: false` (or the PREREQ-2 env switch `BETA_RESEARCH_EVIDENCE_ENABLED=0`), then `sudo systemctl restart signalbot-beta-bot.service` | No research lines, no research tab content, no alert evidence. Corridors, levels, probabilities and push decisions are unchanged (§E.5–E.6). |
+| F2: evidence display off | `BETA_RESEARCH_EVIDENCE_ENABLED=0` in `/opt/signalbot/.env` (or `decision.research_evidence.enabled: false`), then `sudo systemctl restart signalbot-beta-bot.service` | No research lines and no research button. The research tab of a view stored earlier is refused too. No alert evidence. Corridors, levels, probabilities, tracked forecasts and push decisions are unchanged (tested). The collectors keep running. |
 | F3: feed broken while running | nothing to do | Per-feed exceptions are isolated, health records them, and the evidence for that source goes `unavailable`. `build_decision` and `surface_lines` catch evidence errors. |
-| F4: role revoke | `REVOKE ALL ON beta_feed_metrics_5m, beta_feed_dvol_1h, beta_feed_depth, beta_feed_spot_5m, beta_feed_stress_hours, beta_runtime_health FROM signalbot_beta_feeds; REVOKE SELECT (ts, oi_base, ls_account_ratio) ON beta_hist_oi_5m FROM signalbot_beta_feeds; ALTER ROLE signalbot_beta_feeds NOLOGIN;` | The feed jobs fail. The bot reads the tables as the core role and is unaffected. |
+| F4: role off | `ALTER ROLE signalbot_beta_feeds NOLOGIN;` (rerunning `deploy/install_beta_feeds_role.sh` restores the grants; `--set-password` restores the login) | The feed units fail at `wait_for_infra`. The bot reads the tables as the core role and is unaffected. |
 | F5: data cleanup (optional) | as the core role: `TRUNCATE beta_feed_metrics_5m, beta_feed_dvol_1h, beta_feed_depth, beta_feed_spot_5m, beta_feed_stress_hours;` | Only the evidence engine reads these tables. |
 
 **Do not roll back the code to before `423b9b8`.** Once anyone has opened the research tab, the old schema file cannot be applied, as §0 showed. It re-adds `ck_beta_details_opens_tab` and `beta_user_activity_action_check` without `research` / `tab_research`. The bot start-up and every beta CLI command would then fail at schema init. `beta_details_opens` is append-only, so the rows cannot simply be deleted.
 
 Use F1/F2 instead. If a code revert is ever needed, it must keep the widened CHECK lists.
 
-## G. Blockers / prerequisites (code; not done — needs owner go)
+## G. Prerequisites and remaining blockers
 
-- **PREREQ-1: the feed commands must not run DDL.** It blocks the DB role isolation in §A.
-  - In `runtime/beta_cli.py`, in the `--beta-feeds-once` / `--beta-stress-once` branch, replace `await db.init_beta_v0_schema()` with a read-only check. The check returns `{"status": "SCHEMA_NOT_READY"}` unless the five `beta_feed_*` tables and `beta_hist_oi_5m.ls_account_ratio` exist (`to_regclass` / `information_schema`).
-  - Add a PG test that runs both jobs under a role created with the §A.2 grants.
-- **PREREQ-2: separate collection from display.** It blocks the order in §D (collect before display).
-  - Today the feed commands return `DISABLED` unless `research_evidence.enabled` **and** their own flag are true. With display off, nothing can be collected.
-  - Proposal: gate the feed commands only by `feeds_enabled` / `stress_hours_enabled`.
-  - Add a restrict-only env switch `BETA_RESEARCH_EVIDENCE_ENABLED`, read where `enabled` is read: `beta/decision.research_evidence_block` is the only reader. Alert evidence and the `/levels` zone lines come from that block, so they turn off with it. This mirrors the existing `BETA_DETECTION_ENABLED` pattern: the env can only restrict.
-  - Ship with `enabled: false`; step 7 flips it.
-  - Without PREREQ-2, display starts at the code update. History findings show at once and feed findings stay `unavailable` until mature. That is still fail-closed, but it is not the requested order.
-- **PREREQ-3: units read `/opt/signalbot/.env.beta-feeds`** (repo change to the two `.service` files, or the §A.4 drop-ins). Also add the role SQL as `deploy/beta_feeds_role.sql`.
+PREREQ-1–3 are **RESOLVED** in the prerequisites PR (branch `claude/research-evidence-deploy-plan`). It is not merged and needs an owner merge.
+
+| Prerequisite | Change | Proven by |
+| --- | --- | --- |
+| **PREREQ-1** feed jobs never run DDL | `runtime/beta_cli.py`: the feed branch no longer calls `init_beta_v0_schema()`. `beta/research_feeds.feed_schema_readiness` reads the catalog only (`storage/beta_v0_store.py`: `db_role`, `catalog_tables`, `table_privileges`, `column_privileges`). A refusal returns `SCHEMA_NOT_READY` / `WRONG_DB_ROLE` with nothing written, and the CLI exits 3. | `tests/beta/test_research_feeds_role_pg.py`: `…restricted_role_runs_both_jobs`, `…cannot_run_ddl_reach_other_tables_or_escalate`, `…missing_schema_column_check_grant_or_role_fails_closed_and_writes_nothing`, `…feed_commands_never_initialize_the_schema_and_exit_3_when_refused`; `tests/beta/test_research_evidence.py::test_collection_is_gated_only_by_its_own_flags_and_never_applies_the_schema` |
+| **PREREQ-2** collection separate from presentation | The feed commands are gated only by `feeds_enabled` / `stress_hours_enabled` (and `BETA_ENABLED`). `beta/config.research_presentation_enabled` = `decision.research_evidence.enabled` AND `BETA_RESEARCH_EVIDENCE_ENABLED`; the env can only switch it off, and an unrecognised value counts as off. It is read by `beta/decision.research_evidence_block` (the only producer of evidence; alerts and `/levels` derive from it) and by the bot's research tab. One engine; matching unchanged. | `test_the_presentation_env_switch_can_only_turn_presentation_off`, `test_collection_is_gated_only_by_its_own_flags…`, `test_collection_runs_with_presentation_off_and_the_block_is_identical_without_evidence`, `test_presentation_never_changes_a_push_decision_or_a_tracked_forecast`, `test_presentation_off_hides_research_lines_the_button_and_a_stored_research_tab` |
+| **PREREQ-3** isolated feed credentials | `deploy/beta_feeds_role.sql`, `deploy/install_beta_feeds_role.sh`, `deploy/beta-feeds.env.example`, both feed units (§A.4), the `common/config.py` dotenv switch, and `deploy/check_beta_units.sh` (env-file owner and mode only). | `tests/deploy/test_beta_systemd.py`: `test_feed_units_read_only_the_feed_env_file_and_never_the_core_env`, `test_no_core_unit_depends_on_the_research_feeds`, `test_feed_role_sql_grants_exactly_what_the_jobs_verify_and_holds_no_secret`, `test_feed_role_install_script_never_activates_and_never_exposes_the_password`, `test_the_shared_env_file_is_not_loaded_when_a_unit_says_so`; `test_research_feeds_role_pg.py::test_the_install_script_applies_the_grants_and_writes_a_private_env_file` |
+
+Known limit: PUBLIC holds TEMPORARY on every database by default, so the feed role can create **session-local temporary** tables. These are not persistent schema and vanish at disconnect. Revoking TEMPORARY from PUBLIC would affect every role and is not part of this plan.
+
+Remaining blockers before production:
+- **The prerequisites PR is not merged** (owner).
 - **Production facts still to confirm on the host** (§E.1, §E.4):
   - Binance and Deribit reachability (the sandbox gets HTTP 451);
   - the share of depth snapshots covering ±1 %;
   - `log_statement` (§A.2).
 - **CI:** GitHub Actions has not run since the billing block. Restore it, or run the tests on the host (§D.1), before the restart.
+- **Owner go** for every production step in §D.

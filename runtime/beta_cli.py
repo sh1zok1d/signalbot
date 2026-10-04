@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -34,6 +35,13 @@ BETA_COMMAND_FLAGS = ("beta_bootstrap", "beta_once", "beta_status", "beta_outcom
                       "beta_history_sync", "beta_history_build", "beta_bootstrap_rewind",
                       "beta_feeds_once", "beta_stress_once")
 READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report", "beta_context_dry_run")
+
+
+# A feed job refused to run: its schema, columns, checks or grants are missing, or it is connected
+# as another DB role than the unit expects (deploy plan PREREQ-1 / PREREQ-3). Exit code 3.
+FAIL_CLOSED_STATUSES = ("SCHEMA_NOT_READY", "WRONG_DB_ROLE")
+# Set by the feed units (deploy/signalbot-beta-{feeds,stress}.service): the DB role they must run as.
+FEEDS_ROLE_ENV = "BETA_FEEDS_EXPECTED_DB_ROLE"
 
 
 class BetaCliError(RuntimeError):
@@ -248,6 +256,8 @@ async def run_beta_cli_command(args, stage1_config=None, secrets=None, *, db=Non
     report = {"command": _command_name(args), "switches": switches.as_dict(),
               "rules_version": cfg.rules_version, "rules_digest": cfg.rules_digest, **report}
     print(render(report, as_json=bool(getattr(args, "beta_json", False))))
+    if report.get("status") in FAIL_CLOSED_STATUSES:
+        raise SystemExit(3)                                   # the unit fails visibly; nothing was written
     return report
 
 
@@ -351,13 +361,17 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
             return {"status": "DISABLED"}
         rcfg = cfg.section("decision")["research_evidence"]
         key = "feeds_enabled" if args.beta_feeds_once else "stress_hours_enabled"
-        if not (rcfg["enabled"] and rcfg[key]):
+        # collection never depends on presentation (decision.research_evidence.enabled /
+        # BETA_RESEARCH_EVIDENCE_ENABLED): data matures before anything is shown (PREREQ-2)
+        if not rcfg[key]:
             return {"status": "DISABLED", "reason": f"decision.research_evidence.{key}"}
-        await db.init_beta_v0_schema()
+        # no DDL here: the core role applies the schema; the feed role only verifies it (PREREQ-1)
         from beta.research_feeds import run_feeds_job, run_stress_job
+        env_map = os.environ if env is None else env
+        expected = (env_map.get(FEEDS_ROLE_ENV) or "").strip() or None
         if args.beta_feeds_once:
-            return await run_feeds_job(db.beta_store(), now=clock())
-        return await run_stress_job(db.beta_store(), now=clock())
+            return await run_feeds_job(db.beta_store(), now=clock(), expected_role=expected)
+        return await run_stress_job(db.beta_store(), now=clock(), expected_role=expected)
 
     if args.beta_d7_once or args.beta_d7_backfill:
         if not switches.enabled:

@@ -19,3 +19,6 @@ for s in signalbot-beta-detector signalbot-beta-outcomes signalbot-beta-notify s
   echo "== recent journal: ${s} =="
   journalctl -u "${s}.service" -n 20 --no-pager || true
 done
+# research feed credentials (PREREQ-3): owner and mode only, never the content
+echo "== research feed env file =="
+stat -c '%U:%G %a %n' /opt/signalbot/.env.beta-feeds 2>/dev/null || echo "/opt/signalbot/.env.beta-feeds: missing"

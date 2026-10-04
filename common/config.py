@@ -20,7 +20,11 @@ from dotenv import load_dotenv
 ROOT_DIR = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT_DIR / "config" / "config.yaml"
 
-load_dotenv(ROOT_DIR / ".env")
+# A unit with its own environment sets SIGNALBOT_DOTENV=0 so the shared .env (Telegram, owner and
+# core DB secrets) is never read into that process: the research feed units, which get only
+# /opt/signalbot/.env.beta-feeds (docs/RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md §A). Default unchanged.
+if os.environ.get("SIGNALBOT_DOTENV", "").strip() != "0":
+    load_dotenv(ROOT_DIR / ".env")
 
 
 @dataclass(frozen=True)

@@ -1367,6 +1367,48 @@ class BetaConn:
         return [dict(r) for r in rows]
 
     # ------------------------------------------------ research evidence feeds (read-only public data)
+    async def db_role(self) -> dict:
+        """The connected role and whether it is a superuser (catalog read only)."""
+        row = await self.conn.fetchrow(
+            "SELECT current_user::text AS name, r.rolsuper AS superuser FROM pg_roles r WHERE r.rolname = current_user")
+        return {"name": row["name"], "superuser": bool(row["superuser"])}
+
+    async def catalog_tables(self, names: Sequence[str]) -> dict:
+        """{table: {present, columns, constraints, has_pk}} from the system catalog (read only; it
+        needs no privilege on the tables themselves). Names resolve through the search path."""
+        rows = await self.conn.fetch(
+            """SELECT r.t AS name, c.oid IS NOT NULL AS present,
+                      COALESCE((SELECT array_agg(a.attname::text) FROM pg_attribute a
+                                WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped), '{}') AS columns,
+                      COALESCE((SELECT array_agg(k.conname::text) FROM pg_constraint k
+                                WHERE k.conrelid = c.oid), '{}') AS constraints,
+                      EXISTS (SELECT 1 FROM pg_constraint k WHERE k.conrelid = c.oid AND k.contype = 'p') AS has_pk
+               FROM unnest($1::text[]) AS r(t)
+               LEFT JOIN pg_class c ON c.oid = to_regclass(r.t) AND c.relkind IN ('r', 'p')""",
+            list(names))
+        return {r["name"]: {"present": bool(r["present"]), "columns": set(r["columns"]),
+                            "constraints": set(r["constraints"]), "has_pk": bool(r["has_pk"])} for r in rows}
+
+    async def table_privileges(self, wanted: Sequence[tuple]) -> dict:
+        """{(table, privilege): bool} for the connected role; `wanted` holds existing tables only."""
+        if not wanted:
+            return {}
+        rows = await self.conn.fetch(
+            """SELECT w.t, w.p, has_table_privilege(to_regclass(w.t), w.p) AS ok
+               FROM unnest($1::text[], $2::text[]) AS w(t, p)""",
+            [t for t, _ in wanted], [p for _, p in wanted])
+        return {(r["t"], r["p"]): bool(r["ok"]) for r in rows}
+
+    async def column_privileges(self, wanted: Sequence[tuple]) -> dict:
+        """{(table, column, privilege): bool}; `wanted` holds existing columns only."""
+        if not wanted:
+            return {}
+        rows = await self.conn.fetch(
+            """SELECT w.t, w.c, w.p, has_column_privilege(to_regclass(w.t), w.c, w.p) AS ok
+               FROM unnest($1::text[], $2::text[], $3::text[]) AS w(t, c, p)""",
+            [t for t, _, _ in wanted], [c for _, c, _ in wanted], [p for _, _, p in wanted])
+        return {(r["t"], r["c"], r["p"]): bool(r["ok"]) for r in rows}
+
     async def fetch_hist_daily_rv(self, *, start: datetime, end: datetime) -> list:
         """Per UTC day of `beta_hist_bars_5m`: the number of 5m log returns whose previous bar is
         present, the sum of their squares (D2's RV_BTC_24H is sqrt of a full day's 288) and their

@@ -228,8 +228,8 @@ async def research_evidence_block(conn, cfg: BetaConfig, *, now: datetime, block
     """The research evidence of this block (beta/research_evidence.py). It reads the block and the
     bars it was built from and never changes them. Never raises: a failure is recorded on the
     block as an error type and the surfaces show no research line."""
-    rcfg = cfg.section("decision").get("research_evidence") or {}
-    if not rcfg.get("enabled") or capture is None or capture.get("bars") is None:
+    from .config import research_presentation_enabled
+    if not research_presentation_enabled(cfg) or capture is None or capture.get("bars") is None:
         return None
     from .research_evidence import evaluate
     from .research_inputs import build_inputs
