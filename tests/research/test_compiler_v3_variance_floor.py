@@ -11,7 +11,7 @@ import json
 import numpy as np
 import pytest
 
-from scripts.research.compiler_v3_variance_floor import compiler, cp, engine, freeze, generator
+from scripts.research.compiler_v3_variance_floor import amendment, compiler, cp, engine, freeze, generator
 from scripts.research.compiler_v3_variance_floor.build_golden_manifest import validate
 
 MANIFEST = freeze.load_manifest()
@@ -163,7 +163,7 @@ def _rate(cell: dict, seeds: range) -> float:
     return sum(generator.replicate(cell, s) for s in seeds) / len(seeds)
 
 
-def test_s1_size_and_power_direction():
+def test_s1_size_and_power_two_sided():
     null = _small("S1", "NULL", 120)
     assert _rate(null, range(1, 301)) < 0.05                     # alpha 0.0125 two-sided
     big = _small("S1", "2x_DELTA_MIN", 400)
@@ -242,4 +242,124 @@ def test_rows_and_state_machine_on_dev_fixture(monkeypatch):
 
 
 def test_no_frozen_cell_was_simulated_by_this_suite():
+    assert not engine.RESULT_OUT.exists() and not engine.AGG_OUT.exists()
+
+
+# ================================================================ amendment V1 (S6 exclusion and bound semantics)
+EFFECTIVE = freeze.load_effective_manifest()
+AMENDMENT = freeze.verify_amendment()
+ECELLS = EFFECTIVE["CELLS"]
+
+
+def test_amendment_binds_original_freeze_and_effective_manifest():
+    rec = freeze.verify_freeze()
+    assert AMENDMENT["ORIGINAL_FREEZE"]["COMMIT"] == "62f1a74" and AMENDMENT["ORIGINAL_FREEZE"]["ARTIFACTS"] == rec["ARTIFACTS"]
+    assert AMENDMENT["OFFICIAL_RUN_AUTHORIZED"] is False
+    assert AMENDMENT["GENERATOR_DIGESTS"] == freeze.generator_digests()
+    binding = freeze.verify_execution_binding()
+    assert binding["OFFICIAL_RUN_AUTHORIZED"] is False and binding["EFFECTIVE_MANIFEST_SHA256"] == AMENDMENT["EFFECTIVE_MANIFEST_SHA256"]
+
+
+def test_s6_excluded_set_exact_and_metadata_retained():
+    excluded = [c for c in ECELLS if c["EXECUTION_STATUS"] == amendment.EXCLUSION_STATUS]
+    assert len(excluded) == 168 and all(c["DESIGN_ID"] == "S6" for c in excluded)
+    assert sorted(c["CELL_ID"] for c in excluded) == AMENDMENT["A_S6_EXCLUSION"]["EXCLUDED_CELL_IDS"]
+    assert all(c["EXCLUSION_REASON"] == amendment.EXCLUSION_REASON for c in excluded)
+    frozen = {c["CELL_ID"]: c for c in CELLS}
+    for c in excluded:                      # frozen metadata and seeds untouched
+        f = frozen[c["CELL_ID"]]
+        assert c["SEED_RANGE"] == f["SEED_RANGE"] and c["N_ORACLE_80"] == f["N_ORACLE_80"] and c["SAMPLE_SIZE"] == f["SAMPLE_SIZE"]
+    assert not any(c["DESIGN_ID"] == "S6" and c["EXECUTION_STATUS"] == "ACTIVE" for c in ECELLS)
+
+
+def test_active_suite_exact_coverage_and_counts():
+    active = [c for c in ECELLS if c["EXECUTION_STATUS"] == "ACTIVE"]
+    assert len(active) == 900 and sum(c["GRID"] == "3A" for c in active) == 720 and sum(c["GRID"] == "3B" for c in active) == 180
+    assert {c["CELL_ID"] for c in ECELLS} == {c["CELL_ID"] for c in CELLS}          # no missing, no extra, no renumbering
+    assert {c["CELL_ID"] for c in active} == {c["CELL_ID"] for c in CELLS if c["DESIGN_ID"] != "S6"}
+    assert EFFECTIVE["ACTIVE_COUNTS"] == {"TOTAL": 900, "3A": 720, "3B": 180, "EXCLUDED": 168}
+    for c in ECELLS:                        # seeds identical to the frozen manifest
+        assert c["SEED_RANGE"] == next(f for f in CELLS if f["CELL_ID"] == c["CELL_ID"])["SEED_RANGE"]
+
+
+def test_s6_never_reaches_simulation_or_aggregation(monkeypatch):
+    calls = []
+    monkeypatch.setattr(generator, "replicate", lambda c, s: calls.append(c["CELL_ID"]) or 1)
+    s6 = [_dev(c, SEED_RANGE={"STAGE_A": [1, 3], "STAGE_B": [1, 6]}) for c in ECELLS if c["DESIGN_ID"] == "S6"][:4]
+    s1 = [_dev(c, SEED_RANGE={"STAGE_A": [10 + i, 12 + i], "STAGE_B": [10 + i, 15 + i]}) for i, c in enumerate([x for x in ECELLS if x["DESIGN_ID"] == "S1"][:2])]
+    rows = engine.run_cells(s6 + s1, {"STAGE_A": 3, "STAGE_B": 6}, CANDIDATES, {"dev": True})
+    assert not any(cid.startswith("DEV-S6") for cid in calls)
+    assert all(r["FEASIBILITY"] is None and r["EMPIRICAL_DECISION"] is None for r in rows if r["DESIGN_ID"] == "S6")
+    agg = engine.aggregate(rows, CANDIDATES)
+    assert all(d["DECISIVE_CHECKS"] <= 2 * 2 for d in agg["DETAIL_3A"].values())   # only the two S1 cells could count
+
+
+def test_two_sided_rejection_counts_regardless_of_sign(monkeypatch):
+    import scipy.stats
+    from types import SimpleNamespace
+    cell = _small("S1", "DELTA_MIN", 60)
+    monkeypatch.setattr(generator, "ttest_ind", lambda b, a, equal_var: SimpleNamespace(pvalue=1e-6, statistic=-9.0))
+    assert generator.replicate(cell, 1) == generator.REJECT          # wrong-sign but significant -> REJECT
+
+
+def test_s3_s5_exactly_20000_signflip_draws(monkeypatch):
+    seen = []
+    orig = generator._signflip_p
+    monkeypatch.setattr(generator, "_signflip_p", lambda d, rng, draws=generator.SIGNFLIP_DRAWS: seen.append(draws) or orig(d, rng, draws))
+    generator.replicate(_small("S3", "NULL", 10), 5)
+    generator.replicate(_small("S5", "NULL", 10), 5)
+    assert seen == [20000, 20000]
+    import numpy as _np
+    # plus-one form: with d = [1, 1] and 100 draws, |perm mean| >= 1 only when both signs agree (prob 1/2)
+    rng = _np.random.default_rng(1)
+    signs = rng.choice(_np.array([-1.0, 1.0]), size=(100, 2))
+    extreme = int(_np.sum(_np.abs(signs.mean(axis=1)) >= 1.0))
+    assert generator._signflip_p(_np.array([1.0, 1.0]), _np.random.default_rng(1), 100) == (1 + extreme) / 101
+
+
+def test_rng_substreams_reproducible_and_independent():
+    d1, r1 = generator.substreams(123)
+    d2, r2 = generator.substreams(123)
+    assert d1.random(5).tolist() == d2.random(5).tolist() and r1.random(5).tolist() == r2.random(5).tolist()
+    d3, r3 = generator.substreams(123)
+    d3.random(1000)                                                  # consuming DATA draws
+    assert r3.random(5).tolist() == r1.random(0).tolist() + generator.substreams(123)[1].random(5).tolist()  # RANDOMIZATION unaffected
+    d4, r4 = generator.substreams(124)
+    assert d4.random(5).tolist() != d1.random(5).tolist()
+
+
+def test_candidate_cannot_alter_data_or_draws():
+    cell = _small("S5", "DELTA_MIN", 12)
+    out = [generator.replicate(cell, s) for s in range(1, 15)]
+    for f in CANDIDATES:                                             # candidate is not a generator input at all
+        compiler.feasibility(cell, f)
+        assert [generator.replicate(cell, s) for s in range(1, 15)] == out
+
+
+def test_compiler_equals_frozen_planning_rule_representative_cells():
+    import math
+    from scipy.stats import norm, t as student_t
+    za, zb = norm.ppf(1 - 0.0125 / 2), norm.ppf(0.8)
+    for design in ("S1", "S2", "S3", "S4", "S5"):
+        c = next(x for x in ECELLS if x["DESIGN_ID"] == design and x["EXECUTION_STATUS"] == "ACTIVE")
+        for f in CANDIDATES:
+            vp = compiler.var_planning(c, f)
+            vr = c["VARIANCE_RELATIONSHIPS"]
+            assert vp == max(vr["q"] * vr["VAR_TRUE"], f * vr["VAR_FALLBACK"])
+            d = c["GENERATOR_PARAMS"]["delta_min"]
+            if design in ("S1", "S2"):
+                want = 2 * math.ceil(2 * vp * (za + zb) ** 2 / d ** 2)
+            elif design in ("S3", "S5"):
+                want = math.ceil(vp * (za + zb) ** 2 / d ** 2)
+            else:
+                m, icc = c["GENERATOR_PARAMS"]["m"], c["GENERATOR_PARAMS"]["icc"]; deff = 1 + (m - 1) * icc; g = 5
+                while g < vp * deff * (student_t.ppf(1 - 0.0125 / 2, g - 1) + student_t.ppf(0.8, g - 1)) ** 2 / (m * d ** 2):
+                    g += 1
+                want = g
+            assert compiler.required_n(c, vp) == want
+            assert compiler.feasibility(c, f)["VERDICT"] == ("FEASIBLE" if c["SAMPLE_SIZE"]["COUNT"] >= want else "NOT_FEASIBLE")
+
+
+def test_original_frozen_digests_still_match_and_no_official_artifacts():
+    freeze.verify_freeze()
     assert not engine.RESULT_OUT.exists() and not engine.AGG_OUT.exists()

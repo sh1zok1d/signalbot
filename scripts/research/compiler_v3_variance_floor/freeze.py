@@ -13,6 +13,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 FREEZE_RECORD = REPO / "docs/research/COMPILER_V3_VARIANCE_FLOOR_FREEZE_RECORD.json"
 EXECUTION_BINDING = REPO / "docs/research/COMPILER_V3_VARIANCE_FLOOR_EXECUTION_BINDING_V1.json"
+AMENDMENT = REPO / "docs/research/COMPILER_V3_VARIANCE_FLOOR_FREEZE_AMENDMENT_V1.json"
+EFFECTIVE_MANIFEST = REPO / "docs/research/COMPILER_V3_VARIANCE_FLOOR_EFFECTIVE_MANIFEST_V1.json"
+ORIGINAL_FREEZE_COMMIT = "62f1a74"
 MANIFEST = REPO / "docs/research/COMPILER_V3_VARIANCE_FLOOR_GOLDEN_MANIFEST_V1.json"
 SPEC = REPO / "docs/research/COMPILER_V3_VARIANCE_FLOOR_VALIDATION_SPEC_V1.md"
 GENERATOR_FILES = (
@@ -21,6 +24,7 @@ GENERATOR_FILES = (
     "scripts/research/compiler_v3_variance_floor/compiler.py",
     "scripts/research/compiler_v3_variance_floor/generator.py",
     "scripts/research/compiler_v3_variance_floor/engine.py",
+    "scripts/research/compiler_v3_variance_floor/amendment.py",
 )
 
 
@@ -61,3 +65,23 @@ def verify_execution_binding() -> dict:
 def load_manifest() -> dict:
     verify_freeze()
     return json.loads(MANIFEST.read_text())
+
+
+def verify_amendment() -> dict:
+    """The pre-run freeze amendment must reference the original freeze digests exactly and
+    the effective manifest must match the digest it records."""
+    record = verify_freeze()
+    if not AMENDMENT.exists():
+        raise FreezeMismatch("freeze amendment is absent")
+    amendment = json.loads(AMENDMENT.read_text())
+    if amendment["ORIGINAL_FREEZE"]["COMMIT"] != ORIGINAL_FREEZE_COMMIT or amendment["ORIGINAL_FREEZE"]["ARTIFACTS"] != record["ARTIFACTS"]:
+        raise FreezeMismatch("amendment does not bind the original freeze")
+    eff_rel = str(EFFECTIVE_MANIFEST.relative_to(REPO))
+    if sha256_path(eff_rel) != amendment["EFFECTIVE_MANIFEST_SHA256"]:
+        raise FreezeMismatch("effective manifest digest differs from the amendment")
+    return amendment
+
+
+def load_effective_manifest() -> dict:
+    verify_amendment()
+    return json.loads(EFFECTIVE_MANIFEST.read_text())

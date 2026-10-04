@@ -1,21 +1,36 @@
 {
   "BINDING": "COMPILER_V3_VARIANCE_FLOOR_EXECUTION_BINDING_V1",
   "CREATED": "2026-10-04",
+  "REVISION": 2,
+  "SUPERSEDES": {
+    "REVISION": 1,
+    "GENERATOR_DIGESTS": {
+      "scripts/research/compiler_v3_variance_floor/freeze.py": "a10ca0619c4dd6bb4e97dd8587032d1365d51dc5d7a070939f5af7dd8b923153",
+      "scripts/research/compiler_v3_variance_floor/cp.py": "f93702fe21e485b2482c9b5a8f8c9acea02f202757514131e41e9d3f0de2443a",
+      "scripts/research/compiler_v3_variance_floor/compiler.py": "fd342a38c983611505036c7f5777ec573810c8704c3604af884cfe3c6d445847",
+      "scripts/research/compiler_v3_variance_floor/generator.py": "f61388340d271638ce8b1c332b18e231f96a83f65c7d2797c6eb3738a06d1719",
+      "scripts/research/compiler_v3_variance_floor/engine.py": "088e5d30ef72077659810dccc2ce538671368dfd730036a11120c4358094b5c0"
+    },
+    "REASON": "freeze amendment V1 (S6 exclusion, power semantics, S5 randomization, RNG substreams, compiler feasibility semantics)"
+  },
   "FREEZE_RECORD": "docs/research/COMPILER_V3_VARIANCE_FLOOR_FREEZE_RECORD.json",
   "FREEZE_COMMIT": "62f1a74",
+  "FREEZE_AMENDMENT": "docs/research/COMPILER_V3_VARIANCE_FLOOR_FREEZE_AMENDMENT_V1.json",
   "FROZEN_ARTIFACTS": {
     "docs/research/COMPILER_V3_VARIANCE_FLOOR_VALIDATION_SPEC_V1.md": "929dfb294597c756c2447c48f5226ace72e1f0f8c7e2da62535e864841ec75f3",
     "docs/research/COMPILER_V3_VARIANCE_FLOOR_GOLDEN_MANIFEST_V1.json": "4a03855324478671a4cb0952066c1c1d58d854d05098c40e5420acc6c9b0c4fd",
     "scripts/research/compiler_v3_variance_floor/build_golden_manifest.py": "6d4b99b655728345f145f00335cd5f36dd6f7cae430b3eb27e16d7c8fa07e095"
   },
+  "EFFECTIVE_MANIFEST_SHA256": "5aa2fbaf57dffc68da0841827f73a915f4d189a0d1541c29603d302b42f92076",
   "GENERATOR_DIGESTS": {
-    "scripts/research/compiler_v3_variance_floor/freeze.py": "a10ca0619c4dd6bb4e97dd8587032d1365d51dc5d7a070939f5af7dd8b923153",
+    "scripts/research/compiler_v3_variance_floor/freeze.py": "2be21a16d612c528c01f7fd90510a8f2250d6a2dd80951229ee774ccb8f3e5fe",
     "scripts/research/compiler_v3_variance_floor/cp.py": "f93702fe21e485b2482c9b5a8f8c9acea02f202757514131e41e9d3f0de2443a",
     "scripts/research/compiler_v3_variance_floor/compiler.py": "fd342a38c983611505036c7f5777ec573810c8704c3604af884cfe3c6d445847",
-    "scripts/research/compiler_v3_variance_floor/generator.py": "f61388340d271638ce8b1c332b18e231f96a83f65c7d2797c6eb3738a06d1719",
-    "scripts/research/compiler_v3_variance_floor/engine.py": "088e5d30ef72077659810dccc2ce538671368dfd730036a11120c4358094b5c0"
+    "scripts/research/compiler_v3_variance_floor/generator.py": "85c4a207862273718718b791bb8fe6009598f0fcac1aab26e85dbf09285f3fc8",
+    "scripts/research/compiler_v3_variance_floor/engine.py": "88b4746d69494096145633450ad4f6823b99462c5216f84f6a86752ba2f8ea2a",
+    "scripts/research/compiler_v3_variance_floor/amendment.py": "003d18562ba706ee6fedf2aee05b75225d2550ec9c80c7b60888ddaecb01d201"
   },
-  "GENERATOR_STATUS": "IMPLEMENTED_S1_S5; S6 BLOCKED_FROZEN_SPEC_CONTRADICTION (see generator.FROZEN_S6_CONTRADICTION)",
+  "GENERATOR_STATUS": "IMPLEMENTED_S1_S5; S6 EXCLUDED_PRE_RUN_DESIGN_INVALID by amendment V1",
   "OFFICIAL_RUN_AUTHORIZED": false,
-  "RULE": "the official run is valid only if every FROZEN_ARTIFACTS digest and every GENERATOR_DIGESTS digest matches the committed tree at run time, OFFICIAL_RUN_AUTHORIZED is true by a separate owner decision, and no result artifact exists; this record is immutable except for the authorization flag set by that decision"
+  "RULE": "the official run is valid only if every FROZEN_ARTIFACTS digest, the effective-manifest digest and every GENERATOR_DIGESTS digest match the committed tree at run time, OFFICIAL_RUN_AUTHORIZED is true by a separate owner decision, and no result artifact exists"
 }

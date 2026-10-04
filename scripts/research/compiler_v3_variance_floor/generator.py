@@ -1,7 +1,14 @@
 """Design-specific data generators and inference for S1-S6 (spec §7, V2 §5 estimator).
 
-One replicate = one seed. The replicate's RNG draws the evaluation data first and
-then, for randomization tests, the sign-flip draws. Candidate floors never enter.
+One replicate = one seed. RNG SUBSTREAMS (freeze amendment V1, C): the replicate seed
+is expanded with numpy's SeedSequence and split into two independent substreams,
+`root = SeedSequence(seed); data_ss, rand_ss = root.spawn(2)`; child 0 drives data
+generation, child 1 drives the sign-flip draws. The number of draws taken by the data
+generator therefore never shifts the randomization sequence. Candidate floors never
+enter any substream.
+
+POWER SEMANTICS (amendment B): for every design S1-S5 a replicate is a REJECT iff the
+two-sided p-value is below alpha; no sign condition on the estimate.
 
 S6 is NOT implemented: the frozen S6 definition (random era location shifts of
 SD 0.5 under the null, an era-stratified sign-flip, and an oracle that assumes
@@ -37,9 +44,16 @@ def true_effect(cell: dict) -> float:
     return {"NULL": 0.0, "DELTA_MIN": d, "2x_DELTA_MIN": 2 * d}[cell["TRUE_EFFECT"]]
 
 
-def _signflip_p(d: np.ndarray, rng: np.random.Generator, draws: int = SIGNFLIP_DRAWS) -> float:
+def substreams(seed: int) -> tuple[np.random.Generator, np.random.Generator]:
+    """(DATA rng, RANDOMIZATION rng) from one replicate seed; deterministic and independent."""
+    data_ss, rand_ss = np.random.SeedSequence(seed).spawn(2)
+    return np.random.default_rng(data_ss), np.random.default_rng(rand_ss)
+
+
+def _signflip_p(d: np.ndarray, rng_rand: np.random.Generator, draws: int = SIGNFLIP_DRAWS) -> float:
+    """Two-sided sign-flip by absolute value; plus-one p = (1 + extreme) / (1 + draws)."""
     obs = abs(float(d.mean()))
-    signs = rng.choice(np.array([-1.0, 1.0]), size=(draws, d.size))
+    signs = rng_rand.choice(np.array([-1.0, 1.0]), size=(draws, d.size))
     perm = np.abs((signs * d[None, :]).mean(axis=1))
     return (1.0 + float(np.sum(perm >= obs))) / (1.0 + draws)
 
@@ -55,7 +69,7 @@ def _innovations(rng: np.random.Generator, n: int, kind: str) -> np.ndarray:
 
 
 def replicate_two_group(cell: dict, seed: int) -> int:
-    rng = np.random.default_rng(seed)
+    rng, _ = substreams(seed)
     n = cell["SAMPLE_SIZE"]["COUNT"]
     n_arm = n // 2
     sd = math.sqrt(cell["VARIANCE_RELATIONSHIPS"]["VAR_TRUE"])
@@ -64,13 +78,12 @@ def replicate_two_group(cell: dict, seed: int) -> int:
     a = sd * _innovations(rng, n_arm, kind)
     b = delta + sd * _innovations(rng, n_arm, kind)
     res = ttest_ind(b, a, equal_var=True)
-    alpha = cell["MULTIPLICITY_ALPHA"]
-    return REJECT if (res.pvalue < alpha and (delta == 0.0 or res.statistic > 0)) else ACCEPT
+    return REJECT if res.pvalue < cell["MULTIPLICITY_ALPHA"] else ACCEPT
 
 
 # ---------------------------------------------------------------- S3
 def replicate_paired(cell: dict, seed: int) -> int:
-    rng = np.random.default_rng(seed)
+    rng, rng_rand = substreams(seed)
     n = cell["SAMPLE_SIZE"]["COUNT"]
     icc = cell["GENERATOR_PARAMS"]["pair_icc"]
     var_true = cell["VARIANCE_RELATIONSHIPS"]["VAR_TRUE"]            # variance of the paired difference
@@ -80,8 +93,8 @@ def replicate_paired(cell: dict, seed: int) -> int:
     e_b = rng.normal(0.0, math.sqrt((1 - icc) * var_obs), n)
     delta = true_effect(cell)
     d = (u + delta + e_b) - (u + e_a)
-    p = _signflip_p(d, rng)
-    return REJECT if (p < cell["MULTIPLICITY_ALPHA"] and (delta == 0.0 or d.mean() > 0)) else ACCEPT
+    p = _signflip_p(d, rng_rand, SIGNFLIP_DRAWS)
+    return REJECT if p < cell["MULTIPLICITY_ALPHA"] else ACCEPT
 
 
 # ---------------------------------------------------------------- S4
@@ -96,7 +109,7 @@ def cluster_robust_t(x: np.ndarray) -> tuple[float, float, int]:
 
 
 def replicate_clustered(cell: dict, seed: int) -> int:
-    rng = np.random.default_rng(seed)
+    rng, _ = substreams(seed)
     g = cell["SAMPLE_SIZE"]["COUNT"]
     m, icc = cell["GENERATOR_PARAMS"]["m"], cell["GENERATOR_PARAMS"]["icc"]
     var_true = cell["VARIANCE_RELATIONSHIPS"]["VAR_TRUE"]
@@ -107,12 +120,12 @@ def replicate_clustered(cell: dict, seed: int) -> int:
     est, se, df = cluster_robust_t(x)
     tstat = est / se if se > 0 else 0.0
     p = 2 * (1 - student_t.cdf(abs(tstat), df))
-    return REJECT if (p < cell["MULTIPLICITY_ALPHA"] and (delta == 0.0 or est > 0)) else ACCEPT
+    return REJECT if p < cell["MULTIPLICITY_ALPHA"] else ACCEPT
 
 
 # ---------------------------------------------------------------- S5
 def replicate_event_venues(cell: dict, seed: int) -> int:
-    rng = np.random.default_rng(seed)
+    rng, rng_rand = substreams(seed)
     n = cell["SAMPLE_SIZE"]["COUNT"]
     v, rho = cell["GENERATOR_PARAMS"]["venues"], cell["GENERATOR_PARAMS"]["venue_corr"]
     var_true = cell["VARIANCE_RELATIONSHIPS"]["VAR_TRUE"]            # variance of the venue-averaged statistic
@@ -122,8 +135,8 @@ def replicate_event_venues(cell: dict, seed: int) -> int:
     delta = true_effect(cell)
     measurements = delta + c + w                                       # (n events, v venues)
     d = measurements.mean(axis=1)                                      # one statistic per event
-    p = _signflip_p(d, rng)
-    return REJECT if (p < cell["MULTIPLICITY_ALPHA"] and (delta == 0.0 or d.mean() > 0)) else ACCEPT
+    p = _signflip_p(d, rng_rand, SIGNFLIP_DRAWS)                       # event-level sign-flip, 20000 draws, plus-one p
+    return REJECT if p < cell["MULTIPLICITY_ALPHA"] else ACCEPT
 
 
 # ---------------------------------------------------------------- S6 (blocked)

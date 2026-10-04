@@ -116,7 +116,9 @@ def _status_from(decisions: list[str]) -> str:
 
 
 def aggregate(rows: list[dict], candidates: list[float]) -> dict:
-    """Spec §4 selection on 3A only, §3B stress gate at the candidate, final state machine."""
+    """Spec §4 selection on 3A only, §3B stress gate at the candidate, final state machine.
+    Excluded cells (amendment V1) never reach this function's decisions."""
+    rows = [r for r in rows if r.get("EXECUTION_STATUS", "ACTIVE") == "ACTIVE"]
     status_3a, detail = {}, {}
     for f in candidates:
         decisive = []
@@ -150,9 +152,29 @@ def aggregate(rows: list[dict], candidates: list[float]) -> dict:
     return out
 
 
+EXCLUDED = "EXCLUDED_PRE_RUN_DESIGN_INVALID"
+
+
+def is_active(cell: dict) -> bool:
+    return cell.get("EXECUTION_STATUS", "ACTIVE") == "ACTIVE"
+
+
+def excluded_rows(cell: dict, candidates: list[float], digests: dict) -> list[dict]:
+    """Audit rows for an excluded cell: no simulation, no feasibility, no decision."""
+    return [{"CELL_ID": cell["CELL_ID"], "DESIGN_ID": cell["DESIGN_ID"], "GRID": cell["GRID"], "ROLE": cell["ROLE"],
+             "CANDIDATE_FLOOR": f, "DIGESTS": digests, "EXECUTION_STATUS": cell["EXECUTION_STATUS"],
+             "EXCLUSION_REASON": cell.get("EXCLUSION_REASON"), "FEASIBILITY": None, "STAGE_A": None, "ESCALATED": False,
+             "STAGE_B": None, "EMPIRICAL_DECISION": None, "SAFETY": None, "UTILITY": None, "FALSE_FEASIBLE": None,
+             "EXPECTED_CLASSIFICATION": cell["EXPECTED_CLASSIFICATION"], "CHECK": cell["CHECK"], "ERROR": None}
+            for f in candidates]
+
+
 def run_cells(cells: list[dict], constants: dict, candidates: list[float], digests: dict) -> list[dict]:
     rows = []
     for cell in cells:
+        if not is_active(cell):
+            rows.extend(excluded_rows(cell, candidates, digests))
+            continue
         sim = simulate_cell(cell, constants)
         rows.extend(candidate_rows(cell, sim, candidates, digests))
     return rows
@@ -166,9 +188,12 @@ def official_run() -> dict:
         raise OfficialRunNotAuthorized("OFFICIAL_RUN_AUTHORIZED is not true in the execution binding")
     if RESULT_OUT.exists():
         raise OfficialRunNotAuthorized("a result already exists; the official run is one-shot")
-    manifest = freeze.load_manifest()
+    amendment = freeze.verify_amendment()
+    manifest = freeze.load_effective_manifest()
     digests = {"SPEC": record["ARTIFACTS"][str(freeze.SPEC.relative_to(REPO))],
                "MANIFEST": record["ARTIFACTS"][str(freeze.MANIFEST.relative_to(REPO))],
+               "AMENDMENT": freeze.sha256_path(str(freeze.AMENDMENT.relative_to(REPO))),
+               "EFFECTIVE_MANIFEST": amendment["EFFECTIVE_MANIFEST_SHA256"],
                "GENERATOR": binding["GENERATOR_DIGESTS"]}
     rows = run_cells(manifest["CELLS"], manifest["CONSTANTS"], manifest["CANDIDATE_FLOORS"], digests)
     agg = aggregate(rows, manifest["CANDIDATE_FLOORS"])
