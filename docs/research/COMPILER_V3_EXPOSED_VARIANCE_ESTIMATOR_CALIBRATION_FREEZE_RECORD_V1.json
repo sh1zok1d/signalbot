@@ -1,0 +1,73 @@
+{
+  "ARTIFACTS": {
+    "CP_HELPER_REUSED": {
+      "PATH": "scripts/research/compiler_v3_variance_floor/cp.py",
+      "SHA256": "f93702fe21e485b2482c9b5a8f8c9acea02f202757514131e41e9d3f0de2443a"
+    },
+    "GRID": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_GRID_V1.json",
+      "SHA256": "440fe897d62a467e5b71c2168177d0002f4a3f64b414d8e4a0c68dc84b8e7db4"
+    },
+    "GRID_BUILDER": {
+      "PATH": "scripts/research/compiler_v3_estimator_calibration/build_calibration_grid.py",
+      "SHA256": "8a924bf0385beec5485ea45f8d069229c9fa18ad3446aa6e573eed5f80ae90f8"
+    },
+    "SPEC": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_SPEC_V1.md",
+      "SHA256": "4524e0434336b21ebdf272c501a1ebc353fb0dee2215a924fc68293bf7436448"
+    }
+  },
+  "EXECUTION_AUTHORIZED": false,
+  "FROZEN_AT": "2026-10-04",
+  "FROZEN_ELEMENTS": [
+    "estimator definitions per class (spec 1.2-1.3)",
+    "calibration question (2)",
+    "candidate bound classes A/B/C/D and preference order (3)",
+    "truth-generating families F1-F5 and MUST/STRESS/OUT_OF_DOMAIN labels (4)",
+    "protocol, splits, seed space (5)",
+    "coverage target, utility metric, stopping rule (6)",
+    "pass/fail rules (7)"
+  ],
+  "GRID_COUNTS": {
+    "BY_CLASS": {
+      "CLUSTERED": 228,
+      "PAIRED_UNITS": 90,
+      "RARE_EVENT": 228,
+      "TWO_SAMPLE": 75
+    },
+    "CELLS": 621,
+    "MUST": 258,
+    "OUT_OF_DOMAIN": 57,
+    "STRESS": 306
+  },
+  "GRID_VALIDATION": {
+    "DISJOINT_FROM_RUN1": true,
+    "GRID_OK": true,
+    "PAIRWISE_DISJOINT": true,
+    "RUN1_MANIFEST_SHA256": "4a03855324478671a4cb0952066c1c1d58d854d05098c40e5420acc6c9b0c4fd",
+    "RUN1_SEED_ENVELOPE": [
+      1000001000000,
+      6001068009999
+    ],
+    "UNIQUE_CELL_IDS": true
+  },
+  "NEXT_STEP": "separate owner authorization before any execution; executor digest to be bound before a run",
+  "NOT_YET_EXISTING": [
+    "executor",
+    "execution binding",
+    "run authorization",
+    "RUN_ID"
+  ],
+  "OUTCOMES_READ": false,
+  "OWNER_DECISION": "2026-10-04: new separate unit authorized (estimator calibration, design only); SAFETY bar, UTILITY 1.5x, k in [0.5,1.0], Official Run 1 artifacts and the frozen V1 validation design unchanged; Official Run 2 not authorized",
+  "RUN1_RELATION": {
+    "GRID_REUSED": false,
+    "OUTCOME_ROWS_USED_FOR_SELECTION": false,
+    "RUN1_MANIFEST_SHA256": "4a03855324478671a4cb0952066c1c1d58d854d05098c40e5420acc6c9b0c4fd",
+    "RUN1_RESULT_SHA256": "a10efe4b5a9586cb61421a68bcf246ba85180492c6b5f197e5ea0a42f01bf229",
+    "SEEDS_REUSED": false,
+    "USE": "MOTIVATION_ONLY"
+  },
+  "STATUS": "FROZEN_DESIGN",
+  "UNIT_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_V1"
+}
