@@ -8053,3 +8053,11 @@ PREREG = docs/research/DH3_PREREG.json; MARKET_OUTCOMES_OPENED = NO at freeze; O
 WINDOWS_CONSUMED = BTC 2020-2024 OI metrics + long/short ratio; six-coin bookDepth 2023-2024; BTC/ETH DVOL 2021-2024; BTC aggTrades stress features 2020-2024; six-coin levels 2020-2024 (session, key-level controls, retests); spot 2017-2019 for DH3-V3
 TESTS_EXECUTED = 5 families; PROMISING_PROTOTYPES = 2; SUPPORTED = 0; RERUN_AUTHORIZED = false; OBJECTS_2025_2026_USED = none
 ```
+
+## 2026-10-04 — Owner decision: DH3 closed
+
+The owner merged DH3 and declared it `CLOSED`. P3 live tracking is not started. The merge triggers no deploy. DH3-P3 and DH3-V3 stay `PROMISING_PROTOTYPE`; the bot shows them only as «Гипотеза» lines in `/research`. Any later live test is a new unit with its own owner go.
+
+```
+DH3_STATUS = CLOSED; LIVE_TRACKING_P3 = NOT_STARTED; DEPLOY = none; WINDOWS_CONSUMED = none by this record
+```
