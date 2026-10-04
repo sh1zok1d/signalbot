@@ -80,7 +80,8 @@ async def build_view(conn, cfg: BetaConfig, *, now: datetime, kind: str = "btc",
                                       window_hours=hours, qualified=qualified)
     if decision:
         from .decision import build_decision
-        view["decision"] = await build_decision(conn, cfg, now=now, market=view.get("market"))
+        view["decision"] = await build_decision(conn, cfg, now=now, market=view.get("market"),
+                                                regime=view.get("regime"))
     return view
 
 

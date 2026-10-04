@@ -393,14 +393,15 @@ CREATE TABLE IF NOT EXISTS beta_details_opens (
     tab        TEXT NOT NULL,
     lang       TEXT NOT NULL CHECK (lang IN ('ru', 'en')),
     opened_at  TIMESTAMPTZ NOT NULL,
-    CONSTRAINT ck_beta_details_opens_tab CHECK (tab IN ('event', '1h', '24h'))
+    CONSTRAINT ck_beta_details_opens_tab CHECK (tab IN ('event', '1h', '24h', 'research'))
 );
 -- Widen tab to 24h. PR 1 created an unnamed column check (beta_details_opens_tab_check).
 -- Drop both that name and this name, then re-add the named check. Idempotent.
 ALTER TABLE beta_details_opens DROP CONSTRAINT IF EXISTS beta_details_opens_tab_check;
 ALTER TABLE beta_details_opens DROP CONSTRAINT IF EXISTS ck_beta_details_opens_tab;
+-- 'research': the research-evidence tab (owner task 2026-10-04; additive widening).
 ALTER TABLE beta_details_opens ADD CONSTRAINT ck_beta_details_opens_tab
-    CHECK (tab IN ('event', '1h', '24h'));
+    CHECK (tab IN ('event', '1h', '24h', 'research'));
 CREATE INDEX IF NOT EXISTS ix_beta_details_opens_view ON beta_details_opens (view_pk, opened_at);
 DROP TRIGGER IF EXISTS trg_beta_details_opens_append_only ON beta_details_opens;
 CREATE TRIGGER trg_beta_details_opens_append_only BEFORE UPDATE OR DELETE ON beta_details_opens
@@ -496,7 +497,9 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     'cmd_levels', 'cmd_risk', 'cmd_alert', 'cmd_events', 'cmd_accuracy', 'alert_delivered',
     'btn_levels', 'btn_risk', 'cmd_research',
     -- BETA_MEASUREMENT_CONTRACT_V1: U1a withheld briefing, U5 fake door, push "BTC now" action
-    'brief_withheld', 'btn_other_assets', 'btn_btc_now'));
+    'brief_withheld', 'btn_other_assets', 'btn_btc_now',
+    -- research evidence Details tab (owner task 2026-10-04)
+    'tab_research'));
 
 -- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
 -- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.
@@ -759,3 +762,87 @@ ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_hours BOOLEAN NOT NULL DEFA
 
 -- The bootstrap watermark may be rewound by the operator (--beta-bootstrap-rewind) so the
 -- existing bounded bootstrap refills V2 tape rows over the last 30 days from raw data.
+
+-- ===========================================================================
+-- Research evidence integration (owner task, 2026-10-04). Read-only public market feeds the
+-- live research-evidence engine needs to recognise the states of closed research units
+-- (docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md). Additive only. No exchange keys, no
+-- account endpoint, nothing here is a trading input. Rows are never stored inside a protected
+-- window (beta/history_data.py PROTECTED_WINDOWS).
+-- ===========================================================================
+-- Vision `metrics` global long/short account ratio (count_long_short_ratio), parsed from the
+-- same daily objects as the OI; NULL for objects synced before this column existed.
+ALTER TABLE beta_hist_oi_5m ADD COLUMN IF NOT EXISTS ls_account_ratio DOUBLE PRECISION;
+
+-- Binance USD-M BTCUSDT /futures/data openInterestHist + globalLongShortAccountRatio (5m): the
+-- live tail of the Vision `metrics` series (same label `ts`, used from ts + 5m on).
+CREATE TABLE IF NOT EXISTS beta_feed_metrics_5m (
+    ts                TIMESTAMPTZ PRIMARY KEY
+        CHECK (date_part('second', ts) = 0 AND (date_part('minute', ts)::int % 5) = 0),
+    oi_base           DOUBLE PRECISION CHECK (oi_base IS NULL OR oi_base >= 0),
+    oi_usd            DOUBLE PRECISION,
+    ls_account_ratio  DOUBLE PRECISION CHECK (ls_account_ratio IS NULL OR ls_account_ratio > 0),
+    source            TEXT NOT NULL CHECK (source = 'binance_futures_data'),
+    fetched_at        TIMESTAMPTZ NOT NULL
+);
+
+-- Deribit BTC DVOL hourly candles (public get_volatility_index_data, resolution 3600; the DH3
+-- research source). A candle is stored only once it has closed.
+CREATE TABLE IF NOT EXISTS beta_feed_dvol_1h (
+    hour_start  TIMESTAMPTZ PRIMARY KEY
+        CHECK (date_part('second', hour_start) = 0 AND date_part('minute', hour_start) = 0),
+    open        DOUBLE PRECISION NOT NULL CHECK (open > 0),
+    high        DOUBLE PRECISION NOT NULL CHECK (high > 0),
+    low         DOUBLE PRECISION NOT NULL CHECK (low > 0),
+    close       DOUBLE PRECISION NOT NULL CHECK (close > 0),
+    source      TEXT NOT NULL CHECK (source = 'deribit_dvol'),
+    fetched_at  TIMESTAMPTZ NOT NULL
+);
+
+-- Binance USD-M BTCUSDT order book (REST depth, 1000 levels a side): notional within ±1 % of the
+-- mid. A side is NULL when the snapshot does not reach 1 % on that side (never a partial sum).
+CREATE TABLE IF NOT EXISTS beta_feed_depth (
+    ts             TIMESTAMPTZ PRIMARY KEY,
+    mid            DOUBLE PRECISION NOT NULL CHECK (mid > 0),
+    bid1_usd       DOUBLE PRECISION CHECK (bid1_usd IS NULL OR bid1_usd >= 0),
+    ask1_usd       DOUBLE PRECISION CHECK (ask1_usd IS NULL OR ask1_usd >= 0),
+    bid_reach_pct  DOUBLE PRECISION NOT NULL,
+    ask_reach_pct  DOUBLE PRECISION NOT NULL,
+    levels         INTEGER NOT NULL CHECK (levels >= 0),
+    source         TEXT NOT NULL CHECK (source = 'binance_futures_depth'),
+    fetched_at     TIMESTAMPTZ NOT NULL,
+    CONSTRAINT ck_beta_feed_depth_cover CHECK ((bid1_usd IS NULL) = (bid_reach_pct < 1.0)
+                                               AND (ask1_usd IS NULL) = (ask_reach_pct < 1.0))
+);
+
+-- Binance spot BTCUSDT 5m klines (public market-data API), closed bars only.
+CREATE TABLE IF NOT EXISTS beta_feed_spot_5m (
+    open_time        TIMESTAMPTZ PRIMARY KEY
+        CHECK (date_part('second', open_time) = 0 AND (date_part('minute', open_time)::int % 5) = 0),
+    open             DOUBLE PRECISION NOT NULL CHECK (open > 0),
+    high             DOUBLE PRECISION NOT NULL,
+    low              DOUBLE PRECISION NOT NULL CHECK (low > 0),
+    close            DOUBLE PRECISION NOT NULL CHECK (close > 0),
+    volume           DOUBLE PRECISION NOT NULL,
+    quote_volume     DOUBLE PRECISION NOT NULL,
+    taker_buy_quote  DOUBLE PRECISION NOT NULL,
+    trades           INTEGER,
+    source           TEXT NOT NULL CHECK (source = 'binance_spot'),
+    fetched_at       TIMESTAMPTZ NOT NULL
+);
+
+-- One row per checked UTC hour: its perp log range and, for a stress hour (range >= the frozen
+-- DH3-S cut), the 1-second spot/perp lead score and the count of perp aggTrades >= 1M USD,
+-- computed from the public aggTrades of both venues exactly as scripts/research/dh3/aggtrades.py.
+CREATE TABLE IF NOT EXISTS beta_feed_stress_hours (
+    hour_start      TIMESTAMPTZ PRIMARY KEY
+        CHECK (date_part('second', hour_start) = 0 AND date_part('minute', hour_start) = 0),
+    perp_log_range  DOUBLE PRECISION NOT NULL CHECK (perp_log_range >= 0),
+    status          TEXT NOT NULL CHECK (status IN ('NOT_STRESS', 'OK', 'INSUFFICIENT_TRADES', 'INCOMPLETE')),
+    lead_score      DOUBLE PRECISION,
+    n_large_perp    INTEGER CHECK (n_large_perp IS NULL OR n_large_perp >= 0),
+    n_perp_trades   INTEGER,
+    n_spot_trades   INTEGER,
+    computed_at     TIMESTAMPTZ NOT NULL,
+    CONSTRAINT ck_beta_feed_stress_ok CHECK (status <> 'OK' OR (n_large_perp IS NOT NULL))
+);

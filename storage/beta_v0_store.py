@@ -36,6 +36,8 @@ BOT_LOCK_KEY = 7_311_000_004
 ACCESS_LOCK_KEY = 7_311_000_005
 D7_LOCK_KEY = 7_311_000_006
 HISTORY_LOCK_KEY = 7_311_000_007
+FEEDS_LOCK_KEY = 7_311_000_008
+STRESS_LOCK_KEY = 7_311_000_009
 
 _EPISODE_COLS = """episode_pk, public_id, symbol, event_type, state, opened_bucket, opened_at,
     armed_at, triggered_at, terminal_at, terminal_reason, rules_version, rules_digest,
@@ -1293,11 +1295,12 @@ class BetaConn:
         if not rows:
             return 0
         await self.conn.executemany(
-            """INSERT INTO beta_hist_oi_5m (ts, oi_base, oi_usd, source, fetched_at)
-               VALUES (to_timestamp($1::bigint / 1000.0), $2, $3, 'vision', $4)
+            """INSERT INTO beta_hist_oi_5m (ts, oi_base, oi_usd, ls_account_ratio, source, fetched_at)
+               VALUES (to_timestamp($1::bigint / 1000.0), $2, $3, $4, 'vision', $5)
                ON CONFLICT (ts) DO UPDATE SET oi_base=EXCLUDED.oi_base, oi_usd=EXCLUDED.oi_usd,
-                   fetched_at=EXCLUDED.fetched_at""",
-            [(int(r["ts_ms"]), r["oi_base"], r.get("oi_usd"), fetched_at) for r in rows])
+                   ls_account_ratio=EXCLUDED.ls_account_ratio, fetched_at=EXCLUDED.fetched_at""",
+            [(int(r["ts_ms"]), r["oi_base"], r.get("oi_usd"), r.get("ls_account_ratio"), fetched_at)
+             for r in rows])
         return len(rows)
 
     async def hist_bounds(self) -> dict:
@@ -1349,6 +1352,157 @@ class BetaConn:
             """SELECT ts, open, high, low, close, volume, taker_buy_volume FROM klines_1m
                WHERE exchange=$1 AND symbol=$2 AND ts >= $3 AND ts < $4 ORDER BY ts""",
             exchange, symbol, start, end)
+        return [dict(r) for r in rows]
+
+    async def fetch_live_flow_15m(self, *, exchange: str, symbol: str, start: datetime, end: datetime) -> list:
+        """Stage-1 1m klines summed into UTC 15-minute buckets (read-only): base volume, taker-buy
+        base volume and how many of the 15 minutes are present (H05 needs complete buckets)."""
+        rows = await self.conn.fetch(
+            """SELECT (floor(extract(epoch FROM ts) / 900) * 900000)::bigint AS bucket_ms,
+                      sum(volume) AS volume, sum(taker_buy_volume) AS taker_buy_volume,
+                      count(*) AS minutes, count(taker_buy_volume) AS taker_minutes
+               FROM klines_1m WHERE exchange=$1 AND symbol=$2 AND ts >= $3 AND ts < $4
+               GROUP BY 1 ORDER BY 1""",
+            exchange, symbol, start, end)
+        return [dict(r) for r in rows]
+
+    # ------------------------------------------------ research evidence feeds (read-only public data)
+    async def fetch_hist_daily_rv(self, *, start: datetime, end: datetime) -> list:
+        """Per UTC day of `beta_hist_bars_5m`: the number of 5m log returns whose previous bar is
+        present, the sum of their squares (D2's RV_BTC_24H is sqrt of a full day's 288) and their
+        sum (the day's log return; a zero return is ineligible in D2)."""
+        rows = await self.conn.fetch(
+            """WITH b AS (
+                   SELECT open_time, close,
+                          lag(close) OVER (ORDER BY open_time) AS prev_close,
+                          lag(open_time) OVER (ORDER BY open_time) AS prev_time
+                   FROM beta_hist_bars_5m WHERE open_time >= $1::timestamptz - interval '5 minutes'
+                     AND open_time < $2::timestamptz)
+               SELECT (extract(epoch FROM date_trunc('day', open_time)) * 1000)::bigint AS day_ms,
+                      count(*) AS n, sum(ln(close / prev_close) ^ 2) AS sum_r2, sum(ln(close / prev_close)) AS sum_r
+               FROM b WHERE open_time >= $1::timestamptz AND prev_time = open_time - interval '5 minutes'
+                        AND prev_close > 0 AND close > 0
+               GROUP BY 1 ORDER BY 1""",
+            start, end)
+        return [{"day_ms": int(r["day_ms"]), "n": int(r["n"]), "sum_r2": float(r["sum_r2"]), "sum_r": float(r["sum_r"])}
+                for r in rows]
+
+    async def fetch_hist_metrics(self, *, start: datetime, end: datetime) -> list:
+        rows = await self.conn.fetch(
+            """SELECT (extract(epoch FROM ts) * 1000)::bigint AS ts_ms, oi_base, ls_account_ratio
+               FROM beta_hist_oi_5m WHERE ts >= $1 AND ts < $2 ORDER BY ts""", start, end)
+        return [dict(r) for r in rows]
+
+    async def upsert_feed_metrics(self, rows: Sequence[Mapping], *, fetched_at: datetime) -> int:
+        if not rows:
+            return 0
+        await self.conn.executemany(
+            """INSERT INTO beta_feed_metrics_5m (ts, oi_base, oi_usd, ls_account_ratio, source, fetched_at)
+               VALUES (to_timestamp($1::bigint / 1000.0), $2, $3, $4, 'binance_futures_data', $5)
+               ON CONFLICT (ts) DO UPDATE SET
+                   oi_base=COALESCE(EXCLUDED.oi_base, beta_feed_metrics_5m.oi_base),
+                   oi_usd=COALESCE(EXCLUDED.oi_usd, beta_feed_metrics_5m.oi_usd),
+                   ls_account_ratio=COALESCE(EXCLUDED.ls_account_ratio, beta_feed_metrics_5m.ls_account_ratio),
+                   fetched_at=EXCLUDED.fetched_at""",
+            [(int(r["ts_ms"]), r.get("oi_base"), r.get("oi_usd"), r.get("ls_account_ratio"), fetched_at)
+             for r in rows])
+        return len(rows)
+
+    async def fetch_feed_metrics(self, *, start: datetime, end: datetime) -> list:
+        rows = await self.conn.fetch(
+            """SELECT (extract(epoch FROM ts) * 1000)::bigint AS ts_ms, oi_base, ls_account_ratio
+               FROM beta_feed_metrics_5m WHERE ts >= $1 AND ts < $2 ORDER BY ts""", start, end)
+        return [dict(r) for r in rows]
+
+    async def latest_feed_ts(self, table: str, column: str, *, where: str = "") -> Optional[datetime]:
+        allowed = {("beta_feed_metrics_5m", "ts"), ("beta_feed_dvol_1h", "hour_start"),
+                   ("beta_feed_spot_5m", "open_time"), ("beta_feed_depth", "ts"),
+                   ("beta_feed_stress_hours", "hour_start")}
+        if (table, column) not in allowed or where not in ("", "oi_base IS NOT NULL",
+                                                           "ls_account_ratio IS NOT NULL"):
+            raise ValueError(f"not a feed column: {table}.{column} {where}")
+        return await self.conn.fetchval(
+            f"SELECT max({column}) FROM {table}" + (f" WHERE {where}" if where else ""))
+
+    async def upsert_feed_dvol(self, rows: Sequence[Mapping], *, fetched_at: datetime) -> int:
+        if not rows:
+            return 0
+        await self.conn.executemany(
+            """INSERT INTO beta_feed_dvol_1h (hour_start, open, high, low, close, source, fetched_at)
+               VALUES (to_timestamp($1::bigint / 1000.0), $2, $3, $4, $5, 'deribit_dvol', $6)
+               ON CONFLICT (hour_start) DO UPDATE SET open=EXCLUDED.open, high=EXCLUDED.high,
+                   low=EXCLUDED.low, close=EXCLUDED.close, fetched_at=EXCLUDED.fetched_at""",
+            [(int(r["t_ms"]), r["open"], r["high"], r["low"], r["close"], fetched_at) for r in rows])
+        return len(rows)
+
+    async def fetch_feed_dvol(self, *, start: datetime, end: datetime) -> list:
+        rows = await self.conn.fetch(
+            """SELECT (extract(epoch FROM hour_start) * 1000)::bigint AS t_ms, close
+               FROM beta_feed_dvol_1h WHERE hour_start >= $1 AND hour_start < $2 ORDER BY hour_start""",
+            start, end)
+        return [dict(r) for r in rows]
+
+    async def insert_feed_depth(self, row: Mapping, *, fetched_at: datetime) -> bool:
+        wrote = await self.conn.fetchval(
+            """INSERT INTO beta_feed_depth (ts, mid, bid1_usd, ask1_usd, bid_reach_pct, ask_reach_pct, levels,
+                   source, fetched_at)
+               VALUES (to_timestamp($1::bigint / 1000.0), $2, $3, $4, $5, $6, $7, 'binance_futures_depth', $8)
+               ON CONFLICT (ts) DO NOTHING RETURNING 1""",
+            int(row["ts_ms"]), row["mid"], row.get("bid1_usd"), row.get("ask1_usd"), row["bid_reach_pct"],
+            row["ask_reach_pct"], int(row["levels"]), fetched_at)
+        return wrote is not None
+
+    async def fetch_feed_depth(self, *, start: datetime, end: datetime) -> list:
+        rows = await self.conn.fetch(
+            """SELECT (extract(epoch FROM ts) * 1000)::bigint AS ts_ms, bid1_usd, ask1_usd
+               FROM beta_feed_depth WHERE ts >= $1 AND ts < $2 ORDER BY ts""", start, end)
+        return [dict(r) for r in rows]
+
+    async def upsert_feed_spot(self, rows: Sequence[Mapping], *, fetched_at: datetime) -> int:
+        if not rows:
+            return 0
+        await self.conn.executemany(
+            """INSERT INTO beta_feed_spot_5m (open_time, open, high, low, close, volume, quote_volume,
+                   taker_buy_quote, trades, source, fetched_at)
+               VALUES (to_timestamp($1::bigint / 1000.0), $2,$3,$4,$5,$6,$7,$8,$9,'binance_spot',$10)
+               ON CONFLICT (open_time) DO UPDATE SET open=EXCLUDED.open, high=EXCLUDED.high, low=EXCLUDED.low,
+                   close=EXCLUDED.close, volume=EXCLUDED.volume, quote_volume=EXCLUDED.quote_volume,
+                   taker_buy_quote=EXCLUDED.taker_buy_quote, trades=EXCLUDED.trades,
+                   fetched_at=EXCLUDED.fetched_at""",
+            [(int(r["open_time_ms"]), r["open"], r["high"], r["low"], r["close"], r["volume"], r["quote_volume"],
+              r["taker_buy_quote"], r.get("trades"), fetched_at) for r in rows])
+        return len(rows)
+
+    async def fetch_feed_spot(self, *, start: datetime, end: datetime) -> list:
+        rows = await self.conn.fetch(
+            """SELECT (extract(epoch FROM open_time) * 1000)::bigint AS open_time_ms, close, quote_volume,
+                      taker_buy_quote
+               FROM beta_feed_spot_5m WHERE open_time >= $1 AND open_time < $2 ORDER BY open_time""",
+            start, end)
+        return [dict(r) for r in rows]
+
+    async def upsert_feed_stress_hour(self, row: Mapping, *, now: datetime) -> bool:
+        """One checked hour. A final row (anything but INCOMPLETE) is never replaced."""
+        wrote = await self.conn.fetchval(
+            """INSERT INTO beta_feed_stress_hours (hour_start, perp_log_range, status, lead_score, n_large_perp,
+                   n_perp_trades, n_spot_trades, computed_at)
+               VALUES (to_timestamp($1::bigint / 1000.0), $2, $3, $4, $5, $6, $7, $8)
+               ON CONFLICT (hour_start) DO UPDATE SET perp_log_range=EXCLUDED.perp_log_range,
+                   status=EXCLUDED.status, lead_score=EXCLUDED.lead_score, n_large_perp=EXCLUDED.n_large_perp,
+                   n_perp_trades=EXCLUDED.n_perp_trades, n_spot_trades=EXCLUDED.n_spot_trades,
+                   computed_at=EXCLUDED.computed_at
+               WHERE beta_feed_stress_hours.status = 'INCOMPLETE'
+               RETURNING 1""",
+            int(row["hour_ms"]), float(row["perp_log_range"]), row["status"], row.get("lead_score"),
+            row.get("n_large_perp"), row.get("n_perp_trades"), row.get("n_spot_trades"), now)
+        return wrote is not None
+
+    async def fetch_feed_stress_hours(self, *, start: datetime, end: datetime) -> list:
+        rows = await self.conn.fetch(
+            """SELECT (extract(epoch FROM hour_start) * 1000)::bigint AS hour_ms, perp_log_range, status,
+                      lead_score, n_large_perp
+               FROM beta_feed_stress_hours WHERE hour_start >= $1 AND hour_start < $2 ORDER BY hour_start""",
+            start, end)
         return [dict(r) for r in rows]
 
     async def fetch_liquidations(self, *, symbol: str, exchanges: Sequence[str], start: datetime,

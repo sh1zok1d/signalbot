@@ -12,8 +12,11 @@ Authority: `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`. The systemd artifacts are
 | `signalbot-beta-bot.service` | long-running (Restart=on-failure) | `python -m runtime.beta_bot` |
 | `signalbot-beta-d7.service` + `.timer` | every hour at HH:01 UTC | `main.py --beta-d7-once --beta-json` |
 | `signalbot-beta-history.service` + `.timer` | daily 02:20 UTC | `main.py --beta-history-sync` then `--beta-history-build` (decision support V2, below) |
+| `signalbot-beta-feeds.service` + `.timer` | every 5 min at :40 s | `main.py --beta-feeds-once` (research evidence: public OI / long-short ratio, DVOL, depth, spot; `docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md`) |
+| `signalbot-beta-stress.service` + `.timer` | every hour at HH:02 UTC | `main.py --beta-stress-once` (research evidence: public aggTrades of stress hours only) |
 
 - `deploy/install_beta_units.sh` copies the units and runs `daemon-reload`. It **never enables or starts** anything.
+- The research-evidence feed and stress units are activated only with a separate owner go: `sudo systemctl enable --now signalbot-beta-feeds.timer signalbot-beta-stress.timer`. Until then the evidence engine still runs on the history it has and lists the findings it cannot check, with the reason. Kill switches: `decision.research_evidence.{enabled, feeds_enabled, stress_hours_enabled}`.
 - `deploy/check_beta_units.sh` is read-only.
 - The detector and outcomes units wait for PostgreSQL first (`ExecStartPre=deploy/wait_for_infra.py --postgres-only --timeout 60`, the same readiness gate `signalbot.service` uses, minus Redis).
 - The bounded history bootstrap is run manually with `python -m runtime.beta_bootstrap_runner [--max-iterations N]` (default 40, cap 100; 30 days need 31 batches of `bootstrap.max_buckets_per_run` = 288). Each iteration runs the unchanged `main.py --beta-bootstrap --beta-json` and prints progress. The runner stops on the first error, and fails if the bootstrap is still incomplete at the bound. After completion it runs one extra bootstrap as an idempotency check, which may only write buckets that closed in the meantime. Exit codes: `0` verified, `2` bootstrap error, `3` iteration limit, `4` verification failed.

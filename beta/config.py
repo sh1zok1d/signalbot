@@ -122,9 +122,13 @@ _REGIME_D7_KEYS = {"enabled"}
 # time and one cooldown across event types. Policy only; never the rules digest.
 _PUSH_POLICY_KEYS = {"quiet_hours_kyiv", "global_cooldown_min"}
 # PRODUCT_DECISION_V2: decision support. Presentation and market-alert policy only.
-_DECISION_KEYS = {"max_price_alerts", "forecast_tracking", "market_alerts"}
+_DECISION_KEYS = {"max_price_alerts", "forecast_tracking", "market_alerts", "research_evidence"}
 _MARKET_ALERT_KEYS = {"enabled", "max_per_utc_day", "move_cooldown_min", "event_lead_min",
                       "touch_max_age_min"}
+# Research evidence (owner task 2026-10-04; docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md):
+# live matching of closed research units and the read-only public feeds it needs. Presentation
+# only: never detection, push gating, corridors or touch probabilities.
+_RESEARCH_EVIDENCE_KEYS = {"enabled", "feeds_enabled", "stress_hours_enabled", "main_surface_max"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
 # cooldown / cap only enter the config digest).
@@ -363,6 +367,12 @@ def _validate_decision(d: Mapping[str, Any]) -> None:
     _bool(m["enabled"], "decision.market_alerts.enabled")
     for key in ("max_per_utc_day", "move_cooldown_min", "event_lead_min", "touch_max_age_min"):
         _int(m[key], f"decision.market_alerts.{key}", minimum=1)
+    r = x["research_evidence"]
+    _exact_keys(r, _RESEARCH_EVIDENCE_KEYS, "decision.research_evidence")
+    for key in ("enabled", "feeds_enabled", "stress_hours_enabled"):
+        _bool(r[key], f"decision.research_evidence.{key}")
+    if _int(r["main_surface_max"], "decision.research_evidence.main_surface_max", minimum=1) > 2:
+        raise BetaConfigError("decision.research_evidence.main_surface_max must be 1 or 2 (owner task 2026-10-04)")
 
 
 def _hhmm(value, name: str) -> None:

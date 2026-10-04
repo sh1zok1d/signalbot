@@ -182,3 +182,12 @@ beta:
       move_cooldown_min: 120                # one sharp-move message per 2h
       event_lead_min: 30                    # CPI / FOMC reminder this long before the release
       touch_max_age_min: 10                 # a level touch older than this is not pushed (missed run)
+    # Research evidence (owner task 2026-10-04): the bot recognises the live states of closed research
+    # units and states what they found (docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md). Text only:
+    # never detection, push gating, corridors or touch probabilities. The feeds are public read-only
+    # market data (Binance futures data/depth/aggTrades, Binance spot market data, Deribit DVOL).
+    research_evidence:
+      enabled: true
+      feeds_enabled: true                   # --beta-feeds-once (every 5 min)
+      stress_hours_enabled: true            # --beta-stress-once (hourly; aggTrades of stress hours only)
+      main_surface_max: 2                   # research conclusions on a main surface (/btc, /catchup, alerts)

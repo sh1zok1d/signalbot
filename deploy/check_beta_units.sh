@@ -7,14 +7,15 @@ set -euo pipefail
 
 for u in signalbot-beta-detector.timer signalbot-beta-outcomes.timer \
          signalbot-beta-notify.timer signalbot-beta-bot.service \
-         signalbot-beta-d7.timer signalbot-beta-history.timer; do
+         signalbot-beta-d7.timer signalbot-beta-history.timer \
+         signalbot-beta-feeds.timer signalbot-beta-stress.timer; do
   echo "== ${u} =="
   systemctl is-enabled "${u}" || true
   systemctl is-active "${u}" || true
 done
 systemctl list-timers --all 'signalbot-beta-*' --no-pager || true
 for s in signalbot-beta-detector signalbot-beta-outcomes signalbot-beta-notify signalbot-beta-bot \
-         signalbot-beta-d7 signalbot-beta-history; do
+         signalbot-beta-d7 signalbot-beta-history signalbot-beta-feeds signalbot-beta-stress; do
   echo "== recent journal: ${s} =="
   journalctl -u "${s}.service" -n 20 --no-pager || true
 done

@@ -1,0 +1,113 @@
+{
+  "cuts": {
+    "L1_DEPTH_RATIO_MAX": 0.8729201861483271,
+    "L2_ASYM_ASK_HEAVY_MAX": -0.21777786020493362,
+    "L2_ASYM_BID_HEAVY_MIN": 0.301588080229333,
+    "L3_RECOVERY_MAX": 0.8514475324790234,
+    "O1_IMPLIED_REALIZED_MIN": 0.42417021276158856,
+    "O2_DVOL_JUMP_MIN": 0.008232931273149623,
+    "P1_DOI4_MIN": 0.006348206455052556,
+    "P1_QUIET_RANGE_MAX": -4.494866721060913,
+    "P2_DOI1_MAX": -0.009013565461395805,
+    "P3_CROWD_Z_LONG_MIN": 1.299169100936417,
+    "P3_CROWD_Z_SHORT_MAX": -1.0323772139418328,
+    "S3_LARGE_PRINTS_Q67": 35.0,
+    "S_STRESS_HOUR_LOG_RANGE_MIN": 0.01795447469978486
+  },
+  "datasets": {
+    "DH3_BINANCE_AGGTRADES_STRESS_V0": "ddb68d32313573a87568739ae81fd8402fc3d1b3c4a0cbe133f606c293318199",
+    "DH3_BINANCE_UM_BOOKDEPTH_V0": "c53fc179d922f83b572703d52e80f847fb54531961ac776929f2e3e95feeddce",
+    "DH3_BINANCE_UM_BTC_METRICS_5M_V0": "671a12a9c247b2b8c9a58cbeb2ad7704fcd53d54882585a40b0baf4c1626e320",
+    "DH3_DERIBIT_DVOL_1H_V0": "4ecccae45db88c84f42ebe5d364ad8e0ab4e1e07d757114c70b3ea29c5804267"
+  },
+  "definitions": {
+    "L1_DEPTH_RATIO_MAX": "(bid1 + ask1 notional at T) / median of the previous 168 hourly values (>= 120): <= cut",
+    "L2_ASYM_ASK_HEAVY_MAX": "log(bid1 / ask1) at T: <= cut (comparator arm)",
+    "L2_ASYM_BID_HEAVY_MIN": "log(bid1 / ask1) at T: >= cut (state arm)",
+    "L3_RECOVERY_MAX": "depth at move end + 30 min / depth 15 min before the move end (DH1 sharp move): <= cut",
+    "O1_IMPLIED_REALIZED_MIN": "log((DVOL_T-1h / 100 * sqrt(4/8760)) / (sigma5m_24h * sqrt(48))): >= cut",
+    "O2_DVOL_JUMP_MIN": "log(DVOL candle T-1h close / DVOL candle T-2h close): >= cut",
+    "P1_DOI4_MIN": "log(OI_T / OI_T-4h) (metrics snapshot labelled bar j's open, used at bar j's close): >= cut",
+    "P1_QUIET_RANGE_MAX": "log((max high - min low) / close) over the 48 bars ending at T: <= cut is a quiet hour",
+    "P2_DOI1_MAX": "log(OI_T / OI_T-1h): <= cut is the deleveraging state",
+    "P3_CROWD_Z_LONG_MIN": "same z: >= cut is the crowd-long state",
+    "P3_CROWD_Z_SHORT_MAX": "z of count_long_short_ratio vs the previous 720 hourly values (>= 600 finite): <= cut",
+    "S3_LARGE_PRINTS_Q67": "number of perp aggTrades >= 1M USD in a stress hour: > max(cut, 0) is the state",
+    "S_STRESS_HOUR_LOG_RANGE_MIN": "UTC hour perp log range (max high / min low of its 12 5m bars): >= cut"
+  },
+  "dh3_prereg_sha256": "c1cddcc9333661f502e7f274783905769b44acdf2921c50622e0a92a1efcb315",
+  "dh3_result_discovery_sha256": "16bbd2b334fd927671ba46f3d410e590f258bd304ad13fbf7901cf20fece7e57",
+  "outcomes_read": false,
+  "purpose": "frozen DH3 state cut points for live research-evidence matching; never recomputed on live data",
+  "recount_checks": {
+    "DH3-L1": {
+      "MATCH": true,
+      "RECORDED_BTC_ONLY_N": 16852,
+      "RECOUNT_N_BTC": 16852,
+      "RECOUNT_N_STATE_BTC": 3371
+    },
+    "DH3-L2": {
+      "MATCH": true,
+      "RECORDED_BTC_ONLY_N": 6846,
+      "RECOUNT_N_BTC": 6846,
+      "RECOUNT_N_STATE_BTC": 3423
+    },
+    "DH3-L3": {
+      "MATCH": true,
+      "RECORDED_BTC_ONLY_N": 762,
+      "RECOUNT_N_BTC": 762,
+      "RECOUNT_N_STATE_BTC": 254
+    },
+    "DH3-O1": {
+      "MATCH": true,
+      "RECORDED_BTC_ONLY_N": 32732,
+      "RECOUNT_N_BTC": 32732,
+      "RECOUNT_N_STATE_BTC": 10911
+    },
+    "DH3-O2": {
+      "MATCH": true,
+      "RECORDED_BTC_ONLY_N": 32732,
+      "RECOUNT_N_BTC": 32732,
+      "RECOUNT_N_STATE_BTC": 3274
+    },
+    "DH3-O3": {
+      "MATCH": true,
+      "RECORDED_BTC_ONLY_N": 32732,
+      "RECOUNT_N_BTC": 32732,
+      "RECOUNT_N_STATE_BTC": 13483
+    },
+    "DH3-P1": {
+      "MATCH": true,
+      "RECORDED_N_PLUS_DROPPED": 12397,
+      "RECOUNT_N": 12397,
+      "RECOUNT_N_STATE": 3581
+    },
+    "DH3-P2": {
+      "MATCH": true,
+      "RECORDED_N_PLUS_DROPPED": 37147,
+      "RECOUNT_N": 37147,
+      "RECOUNT_N_STATE": 3715
+    },
+    "DH3-P3": {
+      "MATCH": true,
+      "RECORDED_N_PLUS_DROPPED": 14218,
+      "RECOUNT_N": 14218,
+      "RECOUNT_N_STATE": 7109
+    },
+    "DH3-S1": {
+      "MATCH": true,
+      "RECORDED_N_PLUS_DROPPED": 4299,
+      "RECOUNT_N": 4299,
+      "RECOUNT_N_STATE": 967
+    },
+    "DH3-S3": {
+      "MATCH": true,
+      "RECORDED_N_PLUS_DROPPED": 4299,
+      "RECOUNT_N": 4299,
+      "RECOUNT_N_STATE": 1432
+    }
+  },
+  "source_code": "scripts/research/dh3/features.py (frozen; bound by DH3_PREREG.json CODE_DIGESTS)",
+  "symbol": "BTC (Binance USD-M BTCUSDT; card L and O cuts are the BTC-specific ones)",
+  "version": "BETA_RESEARCH_CUTS_V1"
+}

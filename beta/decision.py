@@ -121,20 +121,26 @@ def _zone_out(z: Mapping[str, Any], *, model, fc, levels_stats, price: float, si
 
 async def build_decision(conn, cfg: BetaConfig, *, now: datetime,
                          market: Optional[Mapping[str, Any]] = None,
-                         capture: Optional[dict] = None) -> dict:
+                         capture: Optional[dict] = None,
+                         regime: Optional[Mapping[str, Any]] = None) -> dict:
     """Never raises: any failure yields an unavailable block with the error type. `capture`
     (market alerts, forecast tracking) receives the bars, the closed 1m tail, the model and
-    the calendar the block was built from."""
+    the calendar the block was built from. `regime` is the view's D7 block (research evidence)."""
     from .history_stats import json_safe
+    cap = capture if capture is not None else {}
     try:
         tx = getattr(conn, "transaction", None)
         if tx is None:
-            block = await _build(conn, cfg, now=now, market=market, capture=capture)
+            block = await _build(conn, cfg, now=now, market=market, capture=cap)
         else:
             # a savepoint inside the caller's transaction: a failed read here rolls back to it,
             # so the bot's own writes (the view, the activity row) still commit
             async with tx():
-                block = await _build(conn, cfg, now=now, market=market, capture=capture)
+                block = await _build(conn, cfg, now=now, market=market, capture=cap)
+        if block.get("available"):
+            # read-only and after everything else: it never changes a number of the block
+            block["evidence"] = await research_evidence_block(conn, cfg, now=now, block=block, regime=regime,
+                                                              market=market, capture=cap)
     except Exception as exc:  # noqa: BLE001 - decision support must never break a view
         logger.warning("decision block failed: %s", type(exc).__name__)
         block = {"version": DECISION_VERSION, "available": False, "reason": "ERROR",
@@ -195,7 +201,8 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
         "below": [_zone_out(z, model=model, fc=shown, levels_stats=lstats, price=price, side=-1) for z in near["below"]],
         "at": _zone_out(near["at"], model=model, fc=shown, levels_stats=lstats, price=price,
                         side=+1 if near["at"]["mid"] >= price else -1) if near["at"] else None,
-        "all": [{"kind": x["kind"], "price": _round(x["price"], 2)} for x in lv],
+        "all": [{"kind": x["kind"], "price": _round(x["price"], 2),
+                 **({"ended_ms": int(x["ended_ms"])} if x.get("ended_ms") else {})} for x in lv],
     }
     ev_stats = ((stats or {}).get("events") or {}).get("kinds") or {}
     block["events"] = [{"kind": e["kind"], "at": e["at"].isoformat(), "stats": ev_stats.get(e["kind"])}
@@ -212,6 +219,45 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
     block["weekend"] = kyiv(now).weekday() >= 5
     block["available"] = True
     return block
+
+
+async def research_evidence_block(conn, cfg: BetaConfig, *, now: datetime, block: Mapping[str, Any],
+                                  regime: Optional[Mapping[str, Any]] = None,
+                                  market: Optional[Mapping[str, Any]] = None,
+                                  capture: Optional[dict] = None) -> Optional[dict]:
+    """The research evidence of this block (beta/research_evidence.py). It reads the block and the
+    bars it was built from and never changes them. Never raises: a failure is recorded on the
+    block as an error type and the surfaces show no research line."""
+    rcfg = cfg.section("decision").get("research_evidence") or {}
+    if not rcfg.get("enabled") or capture is None or capture.get("bars") is None:
+        return None
+    from .research_evidence import evaluate
+    from .research_inputs import build_inputs
+    try:
+        tx = getattr(conn, "transaction", None)
+        if tx is None:
+            inputs = await build_inputs(conn, cfg, now=now, b=capture["bars"], block=block, regime=regime, market=market)
+        else:
+            async with tx():
+                inputs = await build_inputs(conn, cfg, now=now, b=capture["bars"], block=block, regime=regime,
+                                            market=market)
+        capture["evidence_inputs"] = inputs
+        ev = evaluate(inputs)
+        ev["zones"] = _zone_conditionals(capture["bars"], block, now=now)
+        return ev
+    except Exception as exc:  # noqa: BLE001 - research context must never break a view or an alert
+        logger.warning("research evidence failed: %s", type(exc).__name__)
+        return {"version": "BETA_RESEARCH_EVIDENCE_V1", "error_type": type(exc).__name__, "matches": [],
+                "unavailable": [], "not_live": []}
+
+
+def _zone_conditionals(b, block: Mapping[str, Any], *, now: datetime) -> dict:
+    """{above|below: [conditional evidence per shown zone]} for /levels: what the research found
+    about touches of such a level, if price gets there (beta/research_evidence.level_conditionals)."""
+    from .research_evidence import level_conditionals
+    lv = block.get("levels") or {}
+    return {side: [level_conditionals(b, z, now_ms=to_ms(now)) for z in (lv.get(side) or ())]
+            for side in ("above", "below")}
 
 
 def event_zones(now_ms: int, cal: Mapping[str, Any]) -> dict:

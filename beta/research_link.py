@@ -75,11 +75,56 @@ def validate(findings: Iterable[Mapping[str, Any]]) -> list:
                 assert_descriptive(text, lang)
             except ValueError as exc:
                 problems.append(f"{fid}: text_{lang} {exc}")
+        problems.extend(validate_live(f))
         if not f.get("pending_merge"):
             for rel in str(f["record"]).split(";"):
                 if not (REPO_ROOT / rel.strip()).exists():
                     problems.append(f"{fid}: record {rel.strip()} not found")
     return problems
+
+
+LIVE_REQUIRED = ("state", "topic", "mechanism", "direction", "horizon_h", "surfaces", "effect_ru", "effect_en",
+                 "comparator_ru", "comparator_en", "replication_ru", "replication_en", "limitations_ru",
+                 "limitations_en")
+LIVE_TEXTS = ("effect", "effect_alt", "comparator", "replication", "limitations")
+LIVE_MAX_TEXT = 260
+
+
+def validate_live(f: Mapping[str, Any]) -> list:
+    """Problems with a finding's `live:` block (research evidence integration)."""
+    from .research_evidence import DIRECTIONS, STATE_SOURCES, SURFACES, TOPICS
+    lv = f.get("live")
+    if not lv:
+        return []
+    fid, out = f["id"], []
+    if f["status"] not in CONTEXT_STATUSES:
+        out.append(f"{fid}: status {f['status']} can never be live evidence")
+    for key in LIVE_REQUIRED:
+        if lv.get(key) in (None, "", []):
+            out.append(f"{fid}: live.{key} missing")
+    if lv.get("topic") not in TOPICS:
+        out.append(f"{fid}: live.topic {lv.get('topic')!r} unknown")
+    if lv.get("direction") not in DIRECTIONS:
+        out.append(f"{fid}: live.direction {lv.get('direction')!r} unknown")
+    if lv.get("state") not in STATE_SOURCES:
+        out.append(f"{fid}: live.state {lv.get('state')!r} has no matcher")
+    bad = [x for x in lv.get("surfaces") or () if x not in SURFACES]
+    if bad:
+        out.append(f"{fid}: live.surfaces {bad} unknown")
+    if ("effect_alt_ru" in lv) != ("effect_alt_en" in lv):
+        out.append(f"{fid}: live.effect_alt needs both languages")
+    for base in LIVE_TEXTS:
+        for lang in ("ru", "en"):
+            text = lv.get(f"{base}_{lang}")
+            if text is None:
+                continue
+            if len(text) > LIVE_MAX_TEXT:
+                out.append(f"{fid}: live.{base}_{lang} longer than {LIVE_MAX_TEXT}")
+            try:
+                assert_descriptive(text, lang)
+            except ValueError as exc:
+                out.append(f"{fid}: live.{base}_{lang} {exc}")
+    return out
 
 
 def for_context(context: str, findings: Optional[Iterable[Mapping[str, Any]]] = None) -> list:
@@ -95,7 +140,7 @@ def context_line(contexts: Iterable[str], lang: str,
         hits = for_context(c, findings)
         if hits:
             f = hits[0]
-            return t(lang, "rs_line", text=f[f"text_{lang}"], id=f["id"])
+            return t(lang, "rs_line_" + f["status"].lower(), text=f[f"text_{lang}"], id=f["id"])
     return None
 
 

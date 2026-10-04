@@ -7,7 +7,7 @@ push policy are unchanged; this module only renders.
 from __future__ import annotations
 
 import html
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from .config import (LIQUIDATION_STRESS_LONG, LIQUIDATION_STRESS_SHORT, POSITION_BUILDUP_COMPRESSION,
@@ -542,9 +542,6 @@ def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabl
             line = _analog_line(view, res, h, lang)
             if line:
                 lines.append(line)
-            checked = _research_line(res, h, lang)
-            if checked:
-                lines.append(checked)
     lines.append(_line_24h(view, lang))
     from .decision_format import brief_lines
     lines.extend(brief_lines(view, lang))
@@ -774,10 +771,17 @@ def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int
     if view_pk is not None and not fail:
         row.append((t(lang, "btn_1h"), f"o:{int(view_pk)}:1h"))
         row.append((t(lang, "btn_24h"), f"o:{int(view_pk)}:24h"))
+    if view_pk is not None and _has_research(view):
+        row.append((t(lang, "btn_research"), f"o:{int(view_pk)}:research"))
     rows = [row] if row else []
     if (view.get("decision") or {}).get("available"):
         rows.append([(t(lang, "btn_levels"), "L:levels"), (t(lang, "btn_risk"), "L:risk")])
     return rows or None
+
+
+def _has_research(view: Mapping[str, Any]) -> bool:
+    block = view.get("decision") or {}
+    return bool(block.get("available") and block.get("evidence") and not block["evidence"].get("error_type"))
 
 
 def detail_tab_buttons(view: Mapping[str, Any], lang: str, view_pk: int):
@@ -790,7 +794,20 @@ def detail_tab_buttons(view: Mapping[str, Any], lang: str, view_pk: int):
     if not fail:
         row.append((t(lang, "btn_1h"), f"e:{int(view_pk)}:1h"))
         row.append((t(lang, "btn_24h"), f"e:{int(view_pk)}:24h"))
+    if _has_research(view):
+        row.append((t(lang, "btn_research"), f"e:{int(view_pk)}:research"))
     return [row] if row else None
+
+
+def format_research_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str = "--------") -> str:
+    """Research tab from the persisted view: every research finding that describes the market at
+    the view's time, with comparator, N, replication and limits, and the ones that cannot be
+    checked now (no fresh data). Not recomputed."""
+    from .research_render import details_text
+    block = view.get("decision") or {}
+    at = block.get("as_of")
+    now = _dt(at) if at else datetime.now(timezone.utc)
+    return _ok(details_text(block.get("evidence"), lang, now=now), lang)
 
 
 def _window_kyiv(first_bucket: str, last_bucket: Optional[str] = None) -> str:

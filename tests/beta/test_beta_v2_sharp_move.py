@@ -259,7 +259,13 @@ def test_move_alert_outside_the_1h_zone_keeps_the_generic_frequency(lang):
     for zones in ({}, {"24h": [{"kind": "CPI", "at": (R + timedelta(hours=20)).isoformat()}]}):
         text = plain(df.format_alert("move", move_payload(zones), lang))
         assert ("примерно раз в 3,0 дн." if lang == "ru" else "about once every 3.0 days") in text, zones
-        assert ("Проверено:" if lang == "ru" else "Tested:") in text            # the generic research line stays
+        assert "🔬" not in text                     # research lines come only from the evidence recorded with the alert
+        from beta.research_evidence import _match, live_findings
+        at = int(datetime.fromisoformat(move_payload(zones)["at"]).timestamp() * 1000)
+        h03 = _match(live_findings()["H03"], key="H03_IMPULSE", at_ms=at, sources={},
+                     values={"window_min": 15, "ret_pct": -1.6, "top_pct": 1.0}).to_dict()
+        text = plain(df.format_alert("move", {**move_payload(zones), "evidence": [h03]}, lang))
+        assert "(H03)" in text and "🔬" in text
 
 
 # ---- end to end on PostgreSQL: a real move right after a CPI release ----------------------------
