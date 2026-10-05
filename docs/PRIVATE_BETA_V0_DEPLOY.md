@@ -210,6 +210,12 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
 - Pausing pushes (`/admin_pause_push` or the kill switch) also stops market alerts already queued; they are recorded `SUPPRESSED / PUSH_DISABLED`.
 - A command that fails inside the bot is logged and skipped; it is never replayed.
 - The corridor of the current hour is recorded once in its first 10 minutes and scored when its horizon ends (`/accuracy`).
+- The claim journal (`docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md` §7, `decision.claim_journal: true`) runs inside the same notifier step.
+  - **Writing.** Each hour's touch chances, distance grid, «после похожих» labels and DH3-P1 cohort are written in the hour's first 10 minutes; level-touch claims are written at each evaluation.
+  - **Scoring.** Claims are scored when their horizon ends.
+  - **Schema and units.** It adds three append-only tables (the schema apply is idempotent) and no timer.
+  - **Report.** `python main.py --beta-claims-report --beta-json` prints the per-cohort report (read-only).
+  - **Turning it off:** `decision.claim_journal: false`. The tables stay; nothing user-facing depends on them.
 
 **Rollback:** `sudo systemctl disable --now signalbot-beta-history.timer`, check out the previous commit and restart the bot. The tables are additive; the old code ignores them. Turning off only the pushes: `decision.market_alerts.enabled: false` (config), or per user `/push levels off` etc.
 

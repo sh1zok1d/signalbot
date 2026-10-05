@@ -215,11 +215,11 @@ class BetaConn:
 
     async def fetch_latest_context_state(self, *, symbol: str, episodization_digest: str):
         r = await self.conn.fetchrow(
-            """SELECT bucket_ts, state, state_digest FROM beta_context_snapshots
+            """SELECT context_pk, bucket_ts, state, state_digest FROM beta_context_snapshots
                WHERE symbol=$1 AND episodization_digest=$2 ORDER BY bucket_ts DESC LIMIT 1""",
             symbol, episodization_digest)
         return None if r is None else {"bucket_ts": r["bucket_ts"], "state": _load(r["state"]),
-                                       "state_digest": r["state_digest"]}
+                                       "state_digest": r["state_digest"], "context_pk": r["context_pk"]}
 
     async def insert_btc_view(self, *, requested_at: datetime, as_of_bucket: Optional[datetime],
                               context_state_digest: Optional[str], episodization_version: Optional[str],
@@ -1612,6 +1612,82 @@ class BetaConn:
         for r in eff:
             out.setdefault(r["horizon"], {})["N_EFF"] = int(r["n_eff"])
         return out
+
+    # ------------------------------------------------------- claim journal (append-only)
+    async def insert_claim(self, row: Mapping[str, Any]) -> Optional[int]:
+        """One claim; None when (class, subject, slot) is already journaled (idempotent writer)."""
+        return await self.conn.fetchval(
+            """INSERT INTO beta_claims (claim_class, level, issued_at, issue_slot, as_of, context_pk, stats_pk,
+                   stats_digest, subject, subject_key, numbers, rule_version, template_id, template_digest,
+                   eval_rule_id, eval_rule, eval_rule_digest, horizon_end, eligible_reason, claim_digest)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11::jsonb,$12,$13,$14,$15,$16::jsonb,$17,$18,$19,$20)
+               ON CONFLICT (claim_class, subject_key, issue_slot) DO NOTHING RETURNING claim_pk""",
+            row["claim_class"], row["level"], row["issued_at"], row["issue_slot"], row["as_of"],
+            row.get("context_pk"), row.get("stats_pk"), row.get("stats_digest"), _j(row["subject"]),
+            row["subject_key"], _j(row["numbers"]), row["rule_version"], row["template_id"],
+            row["template_digest"], row["eval_rule_id"], _j(row["eval_rule"]), row["eval_rule_digest"],
+            row["horizon_end"], row["eligible_reason"], row["claim_digest"])
+
+    async def fetch_due_claims(self, *, now: datetime, limit: int = 500) -> list:
+        """Claims whose horizon has passed and that have no outcome yet, oldest first."""
+        rows = await self.conn.fetch(
+            """SELECT c.claim_pk, c.claim_class, c.as_of, c.issue_slot, c.horizon_end, c.subject, c.numbers,
+                      c.eval_rule, c.eval_rule_digest
+               FROM beta_claims c
+               WHERE c.horizon_end <= $1
+                 AND NOT EXISTS (SELECT 1 FROM beta_claim_outcomes o WHERE o.claim_pk = c.claim_pk)
+               ORDER BY c.horizon_end, c.claim_pk LIMIT $2""", now, limit)
+        return [{**dict(r), "subject": _load(r["subject"]), "numbers": _load(r["numbers"]),
+                 "eval_rule": _load(r["eval_rule"])} for r in rows]
+
+    async def insert_claim_outcome(self, *, claim_pk: int, eval_rule_digest: str, status: str,
+                                   realized: Mapping[str, Any], computed_at: datetime, outcome_digest: str,
+                                   revision: int = 1, supersedes_outcome_pk: Optional[int] = None,
+                                   correction_note: Optional[str] = None) -> Optional[int]:
+        return await self.conn.fetchval(
+            """INSERT INTO beta_claim_outcomes (claim_pk, eval_rule_digest, revision, supersedes_outcome_pk,
+                   status, realized, computed_at, outcome_digest, correction_note)
+               VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9)
+               ON CONFLICT (claim_pk, revision) DO NOTHING RETURNING outcome_pk""",
+            claim_pk, eval_rule_digest, revision, supersedes_outcome_pk, status, _j(realized), computed_at,
+            outcome_digest, correction_note)
+
+    async def fetch_slot_claims(self, *, issue_slot: datetime, classes: Sequence[str]) -> list:
+        rows = await self.conn.fetch(
+            """SELECT claim_pk, claim_class, subject_key FROM beta_claims
+               WHERE issue_slot = $1 AND claim_class = ANY($2::text[])""", issue_slot, list(classes))
+        return [dict(r) for r in rows]
+
+    async def insert_claim_displays(self, rows: Sequence[Mapping[str, Any]]) -> int:
+        n = 0
+        for r in rows:
+            await self.conn.execute(
+                """INSERT INTO beta_claim_displays (claim_pk, surface, view_pk, alert_pk, shown_at)
+                   VALUES ($1,$2,$3,$4,$5)""",
+                r["claim_pk"], r["surface"], r.get("view_pk"), r.get("alert_pk"), r["shown_at"])
+            n += 1
+        return n
+
+    async def market_alert_pk(self, alert_key: str) -> Optional[int]:
+        return await self.conn.fetchval("SELECT alert_pk FROM beta_market_alerts WHERE alert_key=$1", alert_key)
+
+    async def fetch_claim_cohort(self, *, since: Optional[datetime] = None,
+                                 classes: Optional[Sequence[str]] = None) -> list:
+        """Claims with their newest outcome revision (if any) and whether any surface showed them."""
+        rows = await self.conn.fetch(
+            """SELECT c.claim_pk, c.claim_class, c.level, c.issue_slot, c.as_of, c.horizon_end, c.subject,
+                      c.subject_key, c.numbers, c.rule_version, c.template_digest, c.eval_rule_digest,
+                      c.eligible_reason, o.status, o.realized,
+                      EXISTS (SELECT 1 FROM beta_claim_displays d WHERE d.claim_pk = c.claim_pk) AS shown
+               FROM beta_claims c
+               LEFT JOIN LATERAL (SELECT status, realized FROM beta_claim_outcomes x
+                                  WHERE x.claim_pk = c.claim_pk ORDER BY x.revision DESC LIMIT 1) o ON TRUE
+               WHERE ($1::timestamptz IS NULL OR c.issue_slot >= $1)
+                 AND ($2::text[] IS NULL OR c.claim_class = ANY($2::text[]))
+               ORDER BY c.claim_class, c.issue_slot, c.claim_pk""",
+            since, list(classes) if classes is not None else None)
+        return [{**dict(r), "subject": _load(r["subject"]), "numbers": _load(r["numbers"]),
+                 "realized": _load(r["realized"]) if r["realized"] is not None else None} for r in rows]
 
     # ---------------------------------------------------------------- market alerts
     async def insert_market_alert(self, *, kind: str, alert_key: str, decision_ts: datetime,

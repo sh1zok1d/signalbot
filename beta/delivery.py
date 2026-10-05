@@ -239,6 +239,10 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
                                 d7_enabled=effective_d7_enabled(cfg, await conn.get_admin_d7_enabled()))
         view_pk = await persist_view(conn, view, now=now, text=format_catchup(cfg, view, "ru"), lang="ru",
                                      kind="brief")
+        if cfg.section("decision").get("claim_journal"):
+            from .claims import record_displays, shown_keys
+            await record_displays(conn, surface="brief", now=now, view_pk=view_pk,
+                                  shown=shown_keys("brief", view.get("decision"), market=view.get("market")))
         out["scheduled"] = await conn.materialize_brief_deliveries(brief_date=slot[0], view_pk=view_pk,
                                                                    decision_ts=slot[1])
     views: dict = {}

@@ -122,7 +122,7 @@ _REGIME_D7_KEYS = {"enabled"}
 # time and one cooldown across event types. Policy only; never the rules digest.
 _PUSH_POLICY_KEYS = {"quiet_hours_kyiv", "global_cooldown_min"}
 # PRODUCT_DECISION_V2: decision support. Presentation and market-alert policy only.
-_DECISION_KEYS = {"max_price_alerts", "forecast_tracking", "market_alerts", "research_evidence"}
+_DECISION_KEYS = {"max_price_alerts", "forecast_tracking", "claim_journal", "market_alerts", "research_evidence"}
 _MARKET_ALERT_KEYS = {"enabled", "max_per_utc_day", "move_cooldown_min", "event_lead_min",
                       "touch_max_age_min"}
 # Research evidence (owner task 2026-10-04; docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md):
@@ -364,6 +364,7 @@ def _validate_decision(d: Mapping[str, Any]) -> None:
     _exact_keys(x, _DECISION_KEYS, "decision")
     _int(x["max_price_alerts"], "decision.max_price_alerts", minimum=1)
     _bool(x["forecast_tracking"], "decision.forecast_tracking")
+    _bool(x["claim_journal"], "decision.claim_journal")
     m = x["market_alerts"]
     _exact_keys(m, _MARKET_ALERT_KEYS, "decision.market_alerts")
     _bool(m["enabled"], "decision.market_alerts.enabled")

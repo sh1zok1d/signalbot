@@ -176,6 +176,8 @@ beta:
   decision:
     max_price_alerts: 5                     # personal /alert levels per participant
     forecast_tracking: true                 # record each hour's corridors and their outcome (/accuracy)
+    claim_journal: true                     # journal every L2/L3 claim hourly and at alert evaluation, score it
+                                            # (docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md); internal tracking only
     market_alerts:
       enabled: true                         # also needs BETA_PUSH_ENABLED and no /admin_pause_push
       max_per_utc_day: 4                    # level touches and sharp moves together

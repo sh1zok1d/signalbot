@@ -335,6 +335,37 @@ def attach_evidence(cand: dict, block: Mapping[str, Any], cap: Mapping[str, Any]
     cand["payload"]["evidence"] = json_safe(found)
 
 
+async def _journal_level_touch(conn, cand: Mapping[str, Any], decision: str, *, now: datetime) -> None:
+    """The level-touch claims of an evaluated candidate (PUSH or SUPPRESSED) and, for a push, the link
+    to the alert that shows them. The journal never changes the decision and never stops the run."""
+    from .claims import record_displays, record_level_hold, shown_keys
+    try:
+        await record_level_hold(conn, cand, now=now)
+        if decision == "PUSH":
+            alert_pk = await conn.market_alert_pk(cand["key"])
+            keys = shown_keys("alert", None, alert=cand)
+            # the hold line belongs to the touch (its slot is the touch time); the next level's
+            # chance to the hour's grid
+            await record_displays(conn, surface="alert", shown=[k for k in keys if k[0].startswith("L2_")], now=now,
+                                  slot=datetime.fromisoformat(cand["payload"]["at"]), alert_pk=alert_pk)
+            await record_displays(conn, surface="alert", shown=[k for k in keys if k[0].startswith("L3_")], now=now,
+                                  alert_pk=alert_pk)
+    except Exception as exc:  # noqa: BLE001 - internal tracking never blocks an alert
+        logger.warning("claim journal (level touch) failed: %s", type(exc).__name__)
+
+
+async def _journal_hour(conn, cfg: BetaConfig, block: Mapping[str, Any], cap: Mapping[str, Any], *,
+                        now: datetime) -> dict:
+    from .claims import record_claims, score_claims
+    try:
+        rep = await record_claims(conn, cfg, block, now=now, capture=cap)
+        rep.update(await score_claims(conn, cap.get("bars"), cap.get("closed_1m") or [], now=now))
+        return rep
+    except Exception as exc:  # noqa: BLE001 - internal tracking never blocks the alert run
+        logger.warning("claim journal failed: %s", type(exc).__name__)
+        return {"error": type(exc).__name__}
+
+
 async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bool) -> dict:
     """Detect, decide, materialize and send market alerts; record and score corridors."""
     from .decision import build_decision
@@ -373,9 +404,13 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
                 rep["pushed"] += 1
             elif res != "DUPLICATE":
                 rep["suppressed"] += 1
+            if d["claim_journal"] and c["kind"] == "level" and res != "DUPLICATE":
+                await _journal_level_touch(conn, c, res, now=now)
         if d["forecast_tracking"]:
             rep["forecasts_recorded"] = await record_forecasts(conn, block, now=now)
             rep["forecasts_scored"] = (await score_forecasts(conn, b, closed, now=now))["scored"]
+        if d["claim_journal"]:
+            rep["claims"] = await _journal_hour(conn, cfg, block, cap, now=now)
     ttl = cfg.delivery_ttl
     for a in await conn.fetch_undispatched_market_alerts(cfg["notifications"]["max_deliveries_per_run"]):
         rep["materialized"] += await conn.materialize_alert_deliveries(

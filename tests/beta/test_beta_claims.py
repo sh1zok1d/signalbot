@@ -1,0 +1,318 @@
+"""Claim journal (docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md): writer, scorer, report, displays (pure)."""
+import asyncio
+import json
+import math
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from beta import claims as cj
+from beta import decision_format as df
+from beta.config import BetaConfig
+from beta.hist_series import BAR_MS, bars_from_rows
+from beta.state_tape import iso, sha256_json
+
+UTC = timezone.utc
+CFG = BetaConfig.load()
+ROOT = Path(__file__).resolve().parents[2]
+SLOT = datetime(2026, 10, 14, 6, 0, tzinfo=UTC)
+MODEL = {"version": "BETA_RANGE_MODEL_V1",
+         "horizons": {h: {"q_one": [0.01 * k for k in range(1, 100)] + [1.2, 1.5]} for h in ("1h", "4h", "24h")}}
+
+
+def _zone(kinds, edge, dist, p4=0.3, p24=0.6):
+    return {"low": edge, "high": edge, "edge": edge, "distance_pct": dist, "kinds": kinds,
+            "members": [{"kind": k, "price": edge} for k in kinds], "touch": {"4h": p4, "24h": p24}}
+
+
+def _block(**over):
+    hz = {h: {"scale_pct": s, "half_width_pct": s * 1.2, "lower": 60000.0, "upper": 64000.0, "typical_move_pct": s / 2}
+          for h, s in (("1h", 0.6), ("4h", 1.2), ("24h", 3.0))}
+    b = {"available": True, "price": 62480.0, "price_ts": (SLOT - timedelta(minutes=1)).isoformat(),
+         "corridor": {"coverage": 0.8, "horizons": hz}, "event_zone": {},
+         "levels": {"above": [_zone(["PDH"], 62950.0, 0.75)], "below": [_zone(["ASIA_L"], 61900.0, -0.93, 0.4, 0.55)],
+                    "at": None, "all": []},
+         "analogues": {}}
+    b.update(over)
+    return b
+
+
+def _grid(start, closes, highs=None, lows=None):
+    rows = [{"open_time_ms": int((start + timedelta(minutes=5 * k)).timestamp() * 1000), "open": c,
+             "high": (highs or closes)[k], "low": (lows or closes)[k], "close": c} for k, c in enumerate(closes)]
+    return bars_from_rows(rows)
+
+
+# ---- identities ----------------------------------------------------------------------------------
+def test_dh3_p1_numbers_are_the_research_record():
+    rec = json.loads((ROOT / "docs/research/DH3_RESULT_DISCOVERY.json").read_text())["CELLS"]["DH3-P1"]
+    assert cj.DH3_P1_RECORD["adjusted_shift_log"] == rec["ADJUSTED_SHIFT"]
+    assert cj.DH3_P1_RECORD["ci95_log"] == rec["CI95"]
+    assert cj.DH3_P1_RECORD["raw_mean_state"] == rec["MEAN_STATE"]
+    assert cj.DH3_P1_RECORD["raw_mean_comparator"] == rec["MEAN_COMPARATOR"]
+    assert (cj.DH3_P1_RECORD["n"], cj.DH3_P1_RECORD["n_state"], cj.DH3_P1_RECORD["n_comparator"]) == \
+        (rec["N"], rec["N_STATE"], rec["N_COMPARATOR"])
+    assert cj.DH3_P1_RECORD["bar_log"] == rec["BAR"] and rec["ENDPOINT"] == "RANGE_4H"
+    from beta.research_link import load_findings
+    entry = next(f for f in load_findings() if f["id"] == "DH3-P1")
+    assert entry["status"] == cj.DH3_P1_RECORD["status"] and entry["record"] == cj.DH3_P1_RECORD["record"]
+
+
+def test_every_class_has_a_level_a_template_and_a_frozen_rule():
+    for cls, (level, keys, rule) in cj.CLASSES.items():
+        assert cls.startswith(level + "_") and rule in cj.EVAL_RULES
+        assert len(cj.template_digest(cls)) == 64
+        r = cj.eval_rule(rule)
+        assert r["id"] == rule and r["journal"] == cj.JOURNAL_VERSION and sha256_json(r) == sha256_json(cj.eval_rule(rule))
+
+
+def test_a_template_change_changes_the_digest(monkeypatch):
+    from beta import i18n
+    before = cj.template_digest("L3_LEVEL_TOUCH_4H")
+    monkeypatch.setitem(i18n._CATALOG, "lv_touch", {"ru": "иначе", "en": "other"})
+    assert cj.template_digest("L3_LEVEL_TOUCH_4H") != before
+
+
+def test_printed_probability_is_what_the_surfaces_print():
+    for p in (0.004, 0.012, 0.334, 0.995):
+        assert cj.printed_prob(p) == df.fmt_prob(p, "ru").replace("&lt;", "<").replace("&gt;", ">")
+
+
+# ---- hourly writer --------------------------------------------------------------------------------
+def test_touch_claims_cover_every_zone_and_the_distance_grid():
+    rows = cj.touch_claims(_block(), MODEL, now=SLOT + timedelta(seconds=40), slot=SLOT)
+    level = [r for r in rows if r["claim_class"].startswith("L3_LEVEL_TOUCH_")]
+    grid = [r for r in rows if r["claim_class"].startswith("L3_DISTANCE_TOUCH_")]
+    assert len(level) == 4 and len(grid) == 3 * len(cj.TOUCH_GRID_PCT) * 2
+    pdh = next(r for r in level if r["claim_class"] == "L3_LEVEL_TOUCH_24H" and r["subject_key"] == "+1:62950.00")
+    assert pdh["numbers"] == {"probability": 0.6, "printed": "60%"} and pdh["subject"]["side"] == 1
+    assert pdh["as_of"] == SLOT and pdh["horizon_end"] == SLOT + timedelta(hours=24)
+    assert pdh["issue_slot"] == SLOT and pdh["eligible_reason"] == "LEVEL_ZONE_SHOWN"
+    from beta.rangecast import touch_probability
+    g = next(r for r in grid if r["claim_class"] == "L3_DISTANCE_TOUCH_4H" and r["subject_key"] == "-1:2.0")
+    assert g["numbers"]["probability"] == round(touch_probability(MODEL, "4h", 1.2, 2.0), 4)
+    assert g["subject"]["level"] == round(62480.0 * 0.98, 2)
+    assert {r["claim_digest"] for r in rows}.__len__() == len(rows)
+
+
+def test_no_claim_inside_an_event_zone_horizon():
+    blk = _block()
+    del blk["corridor"]["horizons"]["24h"]                       # decision.py drops it at the source
+    for z in blk["levels"]["above"] + blk["levels"]["below"]:
+        z["touch"].pop("24h")
+    rows = cj.touch_claims(blk, MODEL, now=SLOT, slot=SLOT)
+    assert rows and not [r for r in rows if r["claim_class"].endswith("_24H")]
+
+
+def _stats(n=412, base=0.51):
+    from beta.analogues import ANALOGUES_VERSION
+    cell = {"n": n, "days": 300, "p_up": 0.53, "baseline": {"p_up": base}, "range_ratio": 1.3,
+            "verdicts": {"direction": "as_usual", "range": "differs"}}
+    return {"_stats_pk": 7, "_payload_digest": "a" * 64,
+            "analogues": {"version": ANALOGUES_VERSION, "windows": {
+                "1h": {"short_exit": {"n_anchors": n, "outcomes": {"1h": cell, "4h": {**cell, "n": 20}}}},
+                "4h": {"squeeze": {"n_anchors": n, "outcomes": {"4h": cell, "24h": cell}}}}}}
+
+
+def test_analog_claims_mark_what_is_stated_and_keep_the_baseline_cohort(monkeypatch):
+    from beta import interpretation
+    keys = {"1h": "short_exit", "4h": "squeeze"}
+    monkeypatch.setattr(interpretation, "interpret", lambda cfg, ctx, horizon, liquidation_episodes=(): {"key": keys[horizon]})
+    b = _grid(SLOT - timedelta(days=40), [60000.0] * (40 * 288))
+    state = {"context_version": "BETA_CONTEXT_1H_V3",
+             "context_1h": {"window_end": iso(SLOT)}, "context_4h": {"window_end": iso(SLOT)}}
+    rows = cj.analog_claims(CFG, state, _stats(), b, now=SLOT, slot=SLOT, context_pk=11)
+    by = {r["claim_class"]: r for r in rows}
+    assert set(by) == {"L2_STATE_ANALOG_1H_1H", "L2_STATE_ANALOG_1H_4H", "L2_STATE_ANALOG_4H_4H", "L2_STATE_ANALOG_4H_24H"}
+    one = by["L2_STATE_ANALOG_1H_1H"]
+    assert one["eligible_reason"] == cj.SHOWN and one["numbers"]["diff_pp"] == 2.0
+    assert one["numbers"]["printed"] == {"observed": "53%", "baseline": "51%"}
+    assert one["context_pk"] == 11 and one["stats_pk"] == 7 and one["stats_digest"] == "a" * 64
+    assert one["rule_version"].endswith("BETA_CONTEXT_1H_V3")
+    assert by["L2_STATE_ANALOG_1H_4H"]["eligible_reason"] == cj.BASELINE_ONLY        # n = 20 < 30
+    assert by["L2_STATE_ANALOG_4H_24H"]["eligible_reason"] == cj.BASELINE_ONLY       # not the line's horizon
+    stale = {**state, "context_1h": {"window_end": iso(SLOT - timedelta(minutes=5))}}
+    assert {r["subject"]["window"] for r in cj.analog_claims(CFG, stale, _stats(), b, now=SLOT, slot=SLOT)} == {"4h"}
+
+
+def test_level_hold_claims_need_the_display_minimum():
+    hist = {"real": {"n": 812, "1h": {"hold_rate": 0.47}, "4h": {"hold_rate": 0.44}},
+            "control": {"n": 4000, "1h": {"hold_rate": 0.43}, "4h": {"hold_rate": 0.42}}, "verdicts": {"1h": "as_usual"}}
+    at = datetime(2026, 10, 14, 9, 2, tzinfo=UTC)
+    cand = {"kind": "level", "key": "level:PDH:2026-10-14",
+            "payload": {"at": at.isoformat(), "level_kind": "PDH", "level": 62950.0, "side": 1, "period": "day",
+                        "history": hist}}
+    rows = cj.level_hold_claims(cand, now=at + timedelta(minutes=3))
+    assert [r["claim_class"] for r in rows] == ["L2_LEVEL_FIRST_TOUCH_HOLD_1H", "L2_LEVEL_FIRST_TOUCH_HOLD_4H"]
+    assert rows[0]["as_of"] == at + timedelta(minutes=5) and rows[0]["issue_slot"] == at
+    assert rows[0]["numbers"]["diff_pp"] == 4.0 and rows[0]["subject_key"] == "level:PDH:2026-10-14"
+    small = {**cand, "payload": {**cand["payload"], "history": {**hist, "real": {**hist["real"], "n": 29}}}}
+    assert cj.level_hold_claims(small, now=at) == []
+
+
+def _p1_bars(oi_growth, wide=False):
+    n = 120
+    start = SLOT - timedelta(minutes=5 * n)
+    closes = [60000.0] * n
+    highs = [60000.0 * (1.02 if wide and k % 7 == 0 else 1.001) for k in range(n)]
+    lows = [60000.0 * 0.999] * n
+    b = _grid(start, closes, highs, lows)
+    oi = np.array([1.0e5 * (1 + oi_growth * k / n) for k in range(n)])
+    return b, oi
+
+
+def test_dh3_p1_writes_quiet_hours_with_their_arm():
+    from beta.research_evidence import load_cuts
+    cuts = load_cuts()
+    b, oi = _p1_bars(0.05)
+    rows = cj.dh3_p1_claim(b, oi, now=SLOT, slot=SLOT, cuts=cuts)
+    assert len(rows) == 1 and rows[0]["subject"]["arm"] == "STATE" and rows[0]["claim_class"] == "L2_DH3_P1_RANGE_4H"
+    assert rows[0]["numbers"]["claimed_shift_pct"] == 13.4 and rows[0]["horizon_end"] == SLOT + timedelta(hours=4)
+    b, oi = _p1_bars(0.0)
+    assert cj.dh3_p1_claim(b, oi, now=SLOT, slot=SLOT, cuts=cuts)[0]["subject"]["arm"] == "COMPARATOR"
+    b, oi = _p1_bars(0.05, wide=True)
+    assert cj.dh3_p1_claim(b, oi, now=SLOT, slot=SLOT, cuts=cuts) == []     # not a quiet hour: not in the cohort
+    assert cj.dh3_p1_claim(b, None, now=SLOT, slot=SLOT, cuts=cuts) == []
+
+
+class _Conn:
+    """Writer-side fake: any outcome read at write time fails the test."""
+    def __init__(self, state=None, have=()):
+        self.rows, self.state, self.have = [], state, list(have)
+
+    async def fetch_slot_claims(self, *, issue_slot, classes):
+        return [{"claim_class": c, "subject_key": "x", "claim_pk": 1} for c in self.have if c in classes]
+
+    async def fetch_latest_context_state(self, **_kw):
+        return self.state
+
+    async def insert_claim(self, row):
+        if any((r["claim_class"], r["subject_key"], r["issue_slot"]) ==
+               (row["claim_class"], row["subject_key"], row["issue_slot"]) for r in self.rows):
+            return None
+        self.rows.append(row)
+        return len(self.rows)
+
+    def __getattr__(self, name):
+        if "outcome" in name or name.startswith("fetch_due"):
+            raise AssertionError(f"outcome read at write time: {name}")
+        raise AttributeError(name)
+
+
+def test_the_hourly_writer_is_idempotent_reads_no_outcome_and_runs_only_early_in_the_hour():
+    blk = _block()
+    cap = {"stats": None, "bars": None, "model": MODEL}
+    conn = _Conn()
+    rep = asyncio.run(cj.record_claims(conn, CFG, blk, now=SLOT + timedelta(seconds=40), capture=cap))
+    assert rep["written"] == rep["candidates"] == 4 + 36
+    again = asyncio.run(cj.record_claims(conn, CFG, blk, now=SLOT + timedelta(minutes=2), capture=cap))
+    assert again["written"] == 0
+    late = asyncio.run(cj.record_claims(_Conn(), CFG, blk, now=SLOT + timedelta(minutes=11), capture=cap))
+    assert late == {"written": 0, "candidates": 0}
+    done = _Conn(have=["L3_DISTANCE_TOUCH_1H"])                    # the touch group already written this hour
+    assert asyncio.run(cj.record_claims(done, CFG, blk, now=SLOT, capture=cap))["candidates"] == 0
+    assert asyncio.run(cj.record_claims(_Conn(), CFG, {"available": False}, now=SLOT, capture=cap))["written"] == 0
+
+
+# ---- scorer --------------------------------------------------------------------------------------
+def _claim(rule, start, hours, subject):
+    return {"claim_pk": 1, "eval_rule": {"id": rule}, "as_of": start, "horizon_end": start + timedelta(hours=hours),
+            "subject": subject, "eval_rule_digest": "e" * 64}
+
+
+def test_touch_outcome_is_a_fact_or_waits_for_coverage():
+    b = _grid(SLOT - timedelta(hours=1), [60000.0] * 36, highs=[60000.0] * 20 + [60700.0] + [60000.0] * 15)
+    up = _claim("TOUCH_V1", SLOT, 1, {"side": 1, "level": 60600.0})
+    status, real = cj.evaluate(up, b, [], now=SLOT + timedelta(hours=2))
+    assert status == "COMPLETE" and real["touched"] is True
+    miss = _claim("TOUCH_V1", SLOT, 1, {"side": -1, "level": 59000.0})
+    status, real = cj.evaluate(miss, b, [], now=SLOT + timedelta(hours=2))
+    assert status == "COMPLETE" and real["touched"] is False and real["coverage"] >= 0.9
+    gap = _claim("TOUCH_V1", SLOT + timedelta(hours=1), 24, {"side": -1, "level": 59000.0})
+    assert cj.evaluate(gap, b, [], now=SLOT + timedelta(hours=26)) is None
+    assert cj.evaluate(gap, b, [], now=SLOT + timedelta(hours=32))[0] == "NO_DATA"
+
+
+def test_analog_hold_and_range_outcomes():
+    closes = [60000.0] * 12 + [60000.0 + 30 * k for k in range(1, 61)]
+    b = _grid(SLOT - timedelta(hours=1), closes, highs=[c + 50 for c in closes], lows=[c - 50 for c in closes])
+    status, real = cj.evaluate(_claim("ANALOG_V1", SLOT, 4, {}), b, [], now=SLOT + timedelta(hours=5))
+    at_4h = closes[12 + 47]                                    # the bar closing at SLOT + 4h
+    assert status == "COMPLETE" and real["went_up"] is True and real["return_pct"] == round((at_4h / 60000.0 - 1) * 100, 4)
+    hold = _claim("LEVEL_HOLD_V1", SLOT, 1, {"side": -1, "level": 60100.0})
+    assert cj.evaluate(hold, b, [], now=SLOT + timedelta(hours=2))[1]["hold"] is False      # closed above a low
+    status, real = cj.evaluate(_claim("DH3_P1_RANGE_4H_V1", SLOT, 4, {}), b, [], now=SLOT + timedelta(hours=5))
+    hi, lo = max(closes[12:60]) + 50, min(closes[12:60]) - 50  # the 48 bars after SLOT
+    assert status == "COMPLETE" and real["range_4h_log"] == round(math.log((hi - lo) / 60000.0), 6)
+    with pytest.raises(ValueError):
+        cj.evaluate(_claim("NOPE", SLOT, 1, {}), b, [], now=SLOT + timedelta(hours=2))
+
+
+# ---- report ----------------------------------------------------------------------------------------
+def _row(cls, at, **kw):
+    return {"claim_class": cls, "as_of": at, "status": "COMPLETE", "shown": False, **kw}
+
+
+def test_report_reliability_counts_independent_windows():
+    rows = []
+    midnight = SLOT.replace(hour=0)
+    for k in range(48):                                         # two UTC days of hourly 24h claims at 30%
+        at = midnight + timedelta(hours=k)
+        rows.append(_row("L3_DISTANCE_TOUCH_24H", at, numbers={"probability": 0.3}, realized={"touched": k % 3 == 0}))
+    rep = cj.claims_report(rows)["classes"]["L3_DISTANCE_TOUCH_24H"]
+    assert rep["scored"] == 48 and rep["n_eff"] == 2
+    assert rep["bins"] == [{"bin": [0.3, 0.5], "n": 48, "n_eff": 2, "predicted": 0.3, "realized": round(16 / 48, 4)}]
+    assert rep["base_rate"] == round(16 / 48, 4) and rep["brier_skill"] is not None
+
+
+def test_report_analog_reads_the_state_against_its_tercile_weighted_baseline():
+    rows = []
+    for d in range(10):
+        at = SLOT + timedelta(days=d)
+        rows.append(_row("L2_STATE_ANALOG_1H_1H", at, subject={"key": "short_exit", "tercile": 0}, eligible_reason=cj.SHOWN,
+                         numbers={"diff_pp": 2.0}, realized={"went_up": d % 2 == 0}))
+        rows.append(_row("L2_STATE_ANALOG_1H_1H", at + timedelta(hours=1), subject={"key": "calm", "tercile": 0},
+                         eligible_reason=cj.SHOWN, numbers={"diff_pp": 0.0}, realized={"went_up": False}))
+    rep = cj.claims_report(rows)["classes"]["L2_STATE_ANALOG_1H_1H"]["labels"]["short_exit"]
+    assert rep["live_share_up"] == 0.5 and rep["live_baseline_share_up"] == 0.25 and rep["live_diff_pp"] == 25.0
+    assert rep["claimed_diff_pp"] == 2.0 and rep["n_eff_days"] == 10
+
+
+def test_report_p1_shift_against_the_record():
+    rows = []
+    for k in range(12):
+        at = SLOT + timedelta(days=k)
+        rows.append(_row("L2_DH3_P1_RANGE_4H", at, subject={"arm": "STATE"}, realized={"range_4h_log": -4.4}))
+        rows.append(_row("L2_DH3_P1_RANGE_4H", at + timedelta(hours=1), subject={"arm": "COMPARATOR"},
+                         realized={"range_4h_log": -4.7}))
+    rep = cj.claims_report(rows)["classes"]["L2_DH3_P1_RANGE_4H"]
+    assert rep["n_state"] == rep["n_comparator"] == 12 and rep["live_raw_shift_log"] == 0.3
+    assert rep["record_raw_shift_log"] == round(-4.5103062282920785 + 4.744302154078247, 4)
+
+
+# ---- displays -----------------------------------------------------------------------------------------
+def test_shown_keys_follow_what_each_surface_prints():
+    from beta.interpretation import INTERPRETED
+    blk = _block(analogues={"1h": {"key": "short_exit", "outcomes": {"1h": {"n": 412, "baseline": {"p_up": 0.5}}}},
+                            "4h": {"key": "squeeze", "outcomes": {"4h": {"n": 12, "baseline": {"p_up": 0.5}}}}})
+    market = {"interpretation": {"1h": {"kind": INTERPRETED}, "4h": {"kind": INTERPRETED}}}
+    brief = cj.shown_keys("brief", blk, market=market)
+    assert ("L2_STATE_ANALOG_1H_1H", "1h:short_exit") in brief
+    assert not [k for k in brief if k[0] == "L2_STATE_ANALOG_4H_4H"]                    # «мало данных»: not stated
+    assert ("L3_LEVEL_TOUCH_24H", "+1:62950.00") in brief
+    assert len(cj.shown_keys("levels", blk)) == 4 and len(cj.shown_keys("risk", blk)) == 3 * 4 * 2
+    assert cj.shown_keys("levels", {"available": False}) == []
+    cand = {"kind": "level", "key": "level:PDH:2026-10-14",
+            "payload": {"side": 1, "next": _zone(["ROUND"], 64000.0, 2.4), "event_zone": {}}}
+    assert cj.shown_keys("alert", None, alert=cand) == [("L2_LEVEL_FIRST_TOUCH_HOLD_1H", "level:PDH:2026-10-14"),
+                                                         ("L3_LEVEL_TOUCH_24H", "+1:64000.00")]
+
+
+def test_display_links_never_fail_the_caller():
+    class Broken:
+        async def fetch_slot_claims(self, **_kw):
+            raise RuntimeError("db down")
+    assert asyncio.run(cj.record_displays(Broken(), surface="levels", shown=[("L3_LEVEL_TOUCH_4H", "x")],
+                                          now=SLOT)) == 0

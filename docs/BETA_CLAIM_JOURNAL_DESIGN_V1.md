@@ -1,8 +1,8 @@
 # Beta prospective claim journal — design V1
 
-**Status:** `DESIGN_ONLY / NOT_IMPLEMENTED / NO_SCHEMA_OR_CODE_CHANGE`
+**Status:** `IMPLEMENTED_IN_CODE (BETA_CLAIMS_V1; not deployed)` — the owner go is `PRE_BETA_SCOPE_DECISION_V1.md` §1 and §6.2 (full journal, first in order, with a DH3-P1 class). §7 records what was built and where it differs from §3–§6.
 **Date:** 2026-10-05
-**Authority:** `research/EVIDENCE_AND_CLAIMS_DECISION_V1.md` §5. It adds no product scope. The implementation unit in §6 needs a separate owner go.
+**Authority:** `research/EVIDENCE_AND_CLAIMS_DECISION_V1.md` §5. It adds no product scope. The implementation unit in §6 needs a separate owner go (given: see the status line).
 
 ## 1. Purpose
 
@@ -112,3 +112,50 @@ L3 wording for a class is permitted only after the class reaches the count its d
   - `L3_LEVEL_TOUCH_{4H,24H}` (today's «дойти» numbers, to start their live calibration);
   - `L1_WEEKEND_CALM` only if that line becomes live.
 - **Not in scope:** corridors stay in `beta_forecasts` unchanged. Migrating them into the journal is a separate decision.
+
+## 7. Implementation record (2026-10-05, `BETA_CLAIMS_V1`)
+
+**Code.**
+- Schema: `beta_claims`, `beta_claim_outcomes`, `beta_claim_displays` in `storage/beta_v0_schema.sql`. All three are append-only. A `BEFORE INSERT` guard refuses an outcome whose `eval_rule_digest` differs from its claim's.
+- Writer, scorer, display links and the pure report: `beta/claims.py`.
+- Store methods: `storage/beta_v0_store.py`.
+- Hooks inside `beta/market_alerts.py::run_market_alerts`, behind `decision.claim_journal` in `config/beta_v0.yaml`:
+  - the hourly writer and the scorer run beside `record_forecasts` / `score_forecasts`;
+  - the level-touch writer runs after each evaluated candidate.
+- Display links: the bot (`/catchup`, `/levels`, the `/risk` table) and the briefing (`beta/delivery.py`).
+- Report: `--beta-claims-report [--claims-days N]`. It is read-only and prints per-cohort JSON.
+- Tests: `tests/beta/test_beta_claims.py` (pure) and `tests/beta/test_beta_claims_pg.py` (PostgreSQL).
+
+**Classes as built.**
+
+| Class | When | Subject key | Rule |
+|---|---|---|---|
+| `L3_LEVEL_TOUCH_{4H,24H}` | hourly, every level zone of the decision block | `side:edge` | `TOUCH_V1` |
+| `L3_DISTANCE_TOUCH_{1H,4H,24H}` | hourly, distances 0.25 / 0.5 / 1 / 2 / 3 / 5 % on each side | `side:distance` | `TOUCH_V1` |
+| `L2_STATE_ANALOG_{1H_1H,1H_4H,4H_4H,4H_24H}` | hourly, the live 1h / 4h label of the full hour | `window:label` | `ANALOG_V1` |
+| `L2_LEVEL_FIRST_TOUCH_HOLD_{1H,4H}` | every level-touch evaluation (`PUSH` or `SUPPRESSED`), history N ≥ 30 | the alert key | `LEVEL_HOLD_V1` |
+| `L2_DH3_P1_RANGE_4H` | hourly, quiet hours only, arm `STATE` / `COMPARATOR` | `P1` | `DH3_P1_RANGE_4H_V1` |
+
+**Differences from §3–§6.**
+- **The `L3_DISTANCE_TOUCH_*` grid is added.** The `/risk` table and every arbitrary level of `/check` are read off the same distance curve. A user-independent grid is the unbiased sample for their calibration; user-chosen levels would make the display the sampling rule.
+- **Analogue classes are named by window and outcome horizon.** Only `1H_1H` and `4H_4H` are printed today. Every label with a history card is written, so the live baseline cohort is "every hour", as in history:
+  - rows under the display minimum, or for a horizon no line prints, carry `eligible_reason = BASELINE_COHORT_ONLY_N_BELOW_MIN`;
+  - only `SHOWN_N_AT_LEAST_MIN` rows are a stated claim.
+- **The level-hold class covers 1h as well as 4h.** The texts print the 1h hold rate.
+- **`L2_DH3_P1_RANGE_4H` is added (owner decision).**
+  - Its numbers are frozen from `research/DH3_RESULT_DISCOVERY.json` `CELLS.DH3-P1`, and a test keeps them equal to the record.
+  - The cohort is the record's cohort: quiet hours by the frozen cuts of `config/beta_research_cuts.json`.
+  - The live metric is the raw shift, read against the record's raw shift. The claim itself is the adjusted shift (+13.4 %). It is not shown as «Проверено» (status `WEAK`).
+- **`L1_WEEKEND_CALM` is not built.** That line is not live.
+- **Corridors stay in `beta_forecasts`** (§6).
+- **What gets a display link.** `/btc` prints no journaled number. The `/alert` reply and `/risk <stop>` print an off-grid distance, so they are not linked. Every other number on a surface listed in §3 is linked when the hour's claim already exists.
+- **`issue_slot`.**
+  - Hourly classes: the UTC hour.
+  - Level-touch claims: the touch time.
+  - `as_of` is the close of the last 1m bar for touch chances, and the full hour for analogue and DH3-P1 claims.
+  - For a level touch it is the touch bar's open + 5 min (the history uses the touching 5m bar's close).
+
+**What it does not do.**
+- It changes no text, corridor, touch chance, threshold or push decision.
+- It reads no outcome at write time.
+- Users see nothing from it until the `/check` design note (`PRE_BETA_SCOPE_DECISION_V1.md` §5) fixes the calibration bins, the tolerance and the effective-N threshold at which a live accuracy line appears.

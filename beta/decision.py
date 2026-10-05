@@ -57,7 +57,8 @@ async def latest_stats(conn, *, now: datetime) -> Optional[dict]:
         row = await conn.fetch_latest_hist_stats()
         _cache["pk"] = row["stats_pk"]
         _cache["payload"] = {**row["payload"], "_stats_pk": row["stats_pk"],
-                             "_built_at": row["built_at"].isoformat()}
+                             "_built_at": row["built_at"].isoformat(),
+                             "_payload_digest": row.get("payload_digest")}
     return _cache["payload"]
 
 

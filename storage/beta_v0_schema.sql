@@ -846,3 +846,94 @@ CREATE TABLE IF NOT EXISTS beta_feed_stress_hours (
     computed_at     TIMESTAMPTZ NOT NULL,
     CONSTRAINT ck_beta_feed_stress_ok CHECK (status <> 'OK' OR (n_large_perp IS NOT NULL))
 );
+
+-- ---------------------------------------------------------------------------
+-- Prospective claim journal (docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md, implemented under
+-- docs/PRE_BETA_SCOPE_DECISION_V1.md §6.2). Every L1-L3 number the bot is entitled to state is
+-- written on a user-independent grid (hourly, and at every market-alert evaluation) with the
+-- numbers exactly as the template prints them and an evaluation rule frozen at write. Outcomes
+-- are append-only revisions; whether a claim was shown is a separate link without a user id.
+-- Internal tracking, not a product feature (decision §3).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS beta_claims (
+    claim_pk          BIGSERIAL PRIMARY KEY,
+    claim_class       TEXT NOT NULL CHECK (claim_class ~ '^L[123]_[A-Z0-9_]+$'),
+    level             TEXT NOT NULL CHECK (level IN ('L1', 'L2', 'L3')),
+    issued_at         TIMESTAMPTZ NOT NULL,
+    issue_slot        TIMESTAMPTZ NOT NULL,
+    as_of             TIMESTAMPTZ NOT NULL,
+    context_pk        BIGINT REFERENCES beta_context_snapshots (context_pk),
+    stats_pk          BIGINT REFERENCES beta_hist_stats (stats_pk),
+    stats_digest      TEXT CHECK (stats_digest IS NULL OR stats_digest ~ '^[0-9a-f]{64}$'),
+    subject           JSONB NOT NULL,
+    subject_key       TEXT NOT NULL,
+    numbers           JSONB NOT NULL,
+    rule_version      TEXT NOT NULL,
+    template_id       TEXT NOT NULL,
+    template_digest   TEXT NOT NULL CHECK (template_digest ~ '^[0-9a-f]{64}$'),
+    eval_rule_id      TEXT NOT NULL,
+    eval_rule         JSONB NOT NULL,
+    eval_rule_digest  TEXT NOT NULL CHECK (eval_rule_digest ~ '^[0-9a-f]{64}$'),
+    horizon_end       TIMESTAMPTZ NOT NULL,
+    eligible_reason   TEXT NOT NULL,
+    claim_digest      TEXT NOT NULL CHECK (claim_digest ~ '^[0-9a-f]{64}$'),
+    recorded_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_beta_claim_level CHECK (left(claim_class, 2) = level),
+    CONSTRAINT ck_beta_claim_horizon CHECK (horizon_end > as_of),
+    CONSTRAINT uq_beta_claim UNIQUE (claim_class, subject_key, issue_slot)
+);
+CREATE INDEX IF NOT EXISTS ix_beta_claims_due ON beta_claims (horizon_end);
+CREATE INDEX IF NOT EXISTS ix_beta_claims_class ON beta_claims (claim_class, issue_slot);
+DROP TRIGGER IF EXISTS trg_beta_claims_append_only ON beta_claims;
+CREATE TRIGGER trg_beta_claims_append_only BEFORE UPDATE OR DELETE ON beta_claims
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+CREATE TABLE IF NOT EXISTS beta_claim_outcomes (
+    outcome_pk             BIGSERIAL PRIMARY KEY,
+    claim_pk               BIGINT NOT NULL REFERENCES beta_claims (claim_pk),
+    eval_rule_digest       TEXT NOT NULL CHECK (eval_rule_digest ~ '^[0-9a-f]{64}$'),
+    revision               INTEGER NOT NULL CHECK (revision >= 1),
+    supersedes_outcome_pk  BIGINT REFERENCES beta_claim_outcomes (outcome_pk),
+    status                 TEXT NOT NULL CHECK (status IN ('COMPLETE', 'INCOMPLETE_DATA', 'NO_DATA')),
+    realized               JSONB NOT NULL,
+    computed_at            TIMESTAMPTZ NOT NULL,
+    outcome_digest         TEXT NOT NULL CHECK (outcome_digest ~ '^[0-9a-f]{64}$'),
+    correction_note        TEXT,
+    CONSTRAINT ck_beta_claim_outcome_revision_link CHECK ((revision = 1) = (supersedes_outcome_pk IS NULL)),
+    CONSTRAINT ck_beta_claim_outcome_note CHECK (revision = 1 OR correction_note IS NOT NULL),
+    CONSTRAINT uq_beta_claim_outcome_revision UNIQUE (claim_pk, revision)
+);
+DROP TRIGGER IF EXISTS trg_beta_claim_outcomes_append_only ON beta_claim_outcomes;
+CREATE TRIGGER trg_beta_claim_outcomes_append_only BEFORE UPDATE OR DELETE ON beta_claim_outcomes
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+-- An outcome is scored only under the evaluation rule frozen on its claim.
+CREATE OR REPLACE FUNCTION beta_v0_claim_outcome_rule_guard() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.eval_rule_digest IS DISTINCT FROM
+       (SELECT eval_rule_digest FROM beta_claims WHERE claim_pk = NEW.claim_pk) THEN
+        RAISE EXCEPTION 'claim % outcome under another evaluation rule rejected', NEW.claim_pk
+            USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_beta_claim_outcome_rule ON beta_claim_outcomes;
+CREATE TRIGGER trg_beta_claim_outcome_rule BEFORE INSERT ON beta_claim_outcomes
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_claim_outcome_rule_guard();
+
+-- Which claims a surface showed (no user id; the claim is written whether shown or not).
+CREATE TABLE IF NOT EXISTS beta_claim_displays (
+    display_pk  BIGSERIAL PRIMARY KEY,
+    claim_pk    BIGINT NOT NULL REFERENCES beta_claims (claim_pk),
+    surface     TEXT NOT NULL CHECK (surface IN ('btc', 'catchup', 'brief', 'alert', 'levels', 'risk', 'check')),
+    view_pk     BIGINT REFERENCES beta_btc_views (view_pk),
+    alert_pk    BIGINT REFERENCES beta_market_alerts (alert_pk),
+    shown_at    TIMESTAMPTZ NOT NULL,
+    CONSTRAINT ck_beta_claim_display_ref CHECK (view_pk IS NULL OR alert_pk IS NULL)
+);
+CREATE INDEX IF NOT EXISTS ix_beta_claim_displays_claim ON beta_claim_displays (claim_pk);
+DROP TRIGGER IF EXISTS trg_beta_claim_displays_append_only ON beta_claim_displays;
+CREATE TRIGGER trg_beta_claim_displays_append_only BEFORE UPDATE OR DELETE ON beta_claim_displays
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();

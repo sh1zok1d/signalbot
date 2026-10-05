@@ -369,7 +369,18 @@ class BetaBotHandler:
         view = await self._view(conn, now, kind="catchup", window_hours=hours)
         text = format_catchup(self.cfg, view, lang, push_enabled=push_enabled)
         view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="catchup")
+        await self._shown(conn, "catchup", view.get("decision"), now, view_pk=view_pk, market=view.get("market"))
         return text, btc_buttons(view, lang, view_pk)
+
+    async def _shown(self, conn, surface: str, block, now: datetime, *, view_pk: Optional[int] = None,
+                     market=None) -> None:
+        """Link the journaled claims this reply printed (docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md; no user id).
+        Best-effort in a savepoint: it never changes or fails the reply."""
+        if not self.cfg.section("decision").get("claim_journal"):
+            return
+        from beta.claims import record_displays, shown_keys
+        await record_displays(conn, surface=surface, now=now, view_pk=view_pk,
+                              shown=shown_keys(surface, block, market=market))
 
     # ---- decision support (PRODUCT_DECISION_V2) ------------------------------------------
     _PUSH_PREFS = {"levels": "push_levels", "level": "push_levels", "уровни": "push_levels",
@@ -423,14 +434,19 @@ class BetaBotHandler:
             regime = await regime_for_status(conn, now=now, product_status="")
         block = await build_decision(conn, self.cfg, now=now, regime=regime)
         if cmd == "levels":
-            return df.format_levels(block, lang, now=now)
+            text = df.format_levels(block, lang, now=now)
+            await self._shown(conn, "levels", block, now)
+            return text
         if cmd == "risk":
             mode, val = df.parse_risk_arg(args, block.get("price"))
             if mode == "bad":
                 return t(lang, "rk_usage")
             stats = await latest_stats(conn, now=now)
-            return df.format_risk(block, (stats or {}).get("range_model"), lang,
+            text = df.format_risk(block, (stats or {}).get("range_model"), lang,
                                   stop_pct=val if mode == "pct" else None)
+            if mode != "pct":                     # the table prints the journal's distance grid
+                await self._shown(conn, "risk", block, now)
+            return text
         return await self._alert_cmd(conn, user, now, lang, args, block)
 
     async def _alert_cmd(self, conn, user, now: datetime, lang: str, args, block) -> str:
