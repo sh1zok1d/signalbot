@@ -1,3 +1,13 @@
+## Research history audit V1 — complete; no unit started — 2026-10-05
+
+`RECORD = docs/research/RESEARCH_HISTORY_AUDIT_V1.md (+ .json, _TABLE.md; builder scripts/research/history_audit.py --check)`
+`CENSUS = 188 units (187 atlas + WEEKDAY_WEEKEND_BASELINE_UNIT_V2) | completeness proof: memory 79/79, attempts 65 (16 linked), test ledger 26/26, findings 40/40, ledger headings and file names all placed`
+`TESTED = 57 research units with an outcome: 28 REAL_NULL + 6 STRONG_NEGATIVE, 9 POSITIVE_ALIVE, 7 BLOCKED_PRACTICAL_BAR, 4 INSUFFICIENT_INFORMATION, ...`
+`KILLED_BY_OLD_CONSERVATISM = YES 7 (R03-C1, D3, DH3-P1, DH3-O2, DH3-L3, G01-A1, G01-A2) | PARTLY 11 | most deaths were real`
+`VERDICTS_CHANGED = none | MARKET_DATA_READ = none | RERUNS = none | OBJECTS_2025_2026_USED = none`
+`PROPOSED_SECOND_CHANCES (each needs an owner go and a design note before any outcome) = turn-of-month baseline (G01-A1/A2); a new D8-successor shock-recovery object; low priority R03-B1/B3, H04 on a fresh surface`
+`NEXT_UNIT = none started`
+
 ## Weekday / weekend baseline calibration (product evidence) — executed once; CHANGE_BASELINE (C1) — 2026-10-05
 
 `UNIT = WEEKDAY_WEEKEND_BASELINE_UNIT_V2 (owner go 2026-10-05; amendment A1 2c1aed2; evaluator 86b2c09) | TRACK = PRODUCT_EVIDENCE`

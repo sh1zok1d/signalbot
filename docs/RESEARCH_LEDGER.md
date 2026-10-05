@@ -8108,3 +8108,31 @@ WINDOWS_CONSUMED = none by this record; MARKET_DATA_READ = none; OBJECTS_2025_20
 WINDOWS_CONSUMED = none new (2020-2024 already exposed); LIVE_TAPE_READ = no; OBJECTS_2025_2026_USED = none
 PRODUCT_CHANGE = none (C1 needs a separate owner go); CLAIM_JOURNAL = not started; PR_328 = not merged
 ```
+
+## 2026-10-05 — Research history audit V1 (forensic census; no verdict changed)
+
+**Record.** `docs/research/RESEARCH_HISTORY_AUDIT_V1.md`, with the JSON, the per-unit table, the assessments file and the builder `scripts/research/history_audit.py`.
+
+**Census.** 188 units: the 187 atlas units plus `WEEKDAY_WEEKEND_BASELINE_UNIT_V2`. Listed separately: 6 child executions, 6 methodology units, and the non-units (16 linked generator attempts, 10 never-produced ladder slots, H-001..H-016). The completeness proof reconciles the memory chain, the test ledger, the findings registry, this ledger's headings and the research file names, with zero unplaced ids.
+
+**Reading.**
+- 57 research units have a computed outcome. Of these, 34 are genuine nulls or negatives.
+- 27 units died from lack of information; 20 of these are honest limits.
+- 7 closures were driven by a framework rule against measured or available information (R03-C1, D3, DH3-P1, DH3-O2, DH3-L3, G01-A1, G01-A2), and 11 partly so.
+- The main methodology problems:
+  - fixed magnitude bars used as verdict switches;
+  - stacked feasibility screens before any estimate;
+  - gate conjunctions without conjunction power;
+  - a verdict vocabulary that mixes precise nulls with uninformative results.
+
+**Holes recorded:**
+- B2-02: durable result copy unavailable.
+- B2-05: bytes not provable, so not recoverable.
+- E1: holdout opened by P4, so no clean confirmation remains.
+- `WEEKDAY_WEEKEND_BASELINE_UNIT_V2` is not yet an atlas unit.
+
+```
+VERDICTS_CHANGED = none; RESULTS_CHANGED = none; MARKET_DATA_READ = none; RERUNS = none
+WINDOWS_CONSUMED = none; OBJECTS_2025_2026_USED = none; E1 / V3 / B2-06 untouched
+PROPOSED (owner go needed, design note before outcome) = turn-of-month baseline (G01-A1/A2); D8-successor shock-recovery object
+```

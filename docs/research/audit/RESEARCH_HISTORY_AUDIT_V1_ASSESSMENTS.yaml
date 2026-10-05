@@ -1,0 +1,751 @@
+# RESEARCH_HISTORY_AUDIT_V1 — per-unit independent assessments (hand-written source).
+#
+# This file holds the audit's judgments. Facts (title, data, N, official verdict, why closed, records)
+# come from the atlas at build time; numbers quoted here are copied from the cited result records.
+# Nothing here changes an official verdict: `official` stays whatever the sealed record says.
+#
+# Build: python -m scripts.research.history_audit  (writes RESEARCH_HISTORY_AUDIT_V1.json and _TABLE.md)
+#
+# Fields
+#   cat    primary category (CATEGORIES below); cat2 optional second category when one does not fit
+#   cons   did over-conservatism of the old framework substantially drive the decision?
+#          YES      the decision came from a framework rule, not from the data (data showed an effect or the
+#                   information was there)
+#          PARTLY   a framework rule was one of the deciding reasons; the data alone were also weak
+#          NO       the data (or a correctness / provenance fact) decided it
+#          NA       no evidential decision was taken (idea never tested, not selected, owner routing)
+#   level  maximum claim the existing evidence justifies today (EVIDENCE_AND_CLAIMS_DECISION_V1 ladder)
+#   needs  NONE | PROSPECTIVE | NEW_DATA | REDESIGN | NOT_RECOVERABLE | OWNER_DECISION (may combine with +)
+#   est / unc / stab   estimate, uncertainty, stability as recorded (executed units only)
+#   assess independent assessment today
+
+categories:
+  REAL_NULL: tested with enough information; the estimate is near zero or the interval excludes a meaningful effect
+  STRONG_NEGATIVE: tested; the claimed effect is reversed or the feature clearly makes forecasts worse
+  INSUFFICIENT_INFORMATION: tested; the interval is too wide to say either way
+  BLOCKED_FEASIBILITY_MDE: closed before any outcome because the minimum detectable effect exceeded the bar
+  BLOCKED_PRACTICAL_BAR: tested; a non-zero effect (interval excludes zero) was closed by a fixed magnitude bar
+  CERTIFICATION_MACHINERY: methodology / variance / certification apparatus, not a market hypothesis
+  INFERENCE_LIMITATION: decided by a multiple-testing, conjunction-gate or inference-resolution rule
+  DATA_PROVENANCE_PIT: blocked or impaired by data availability, provenance or point-in-time semantics
+  FLAWED_ESTIMAND_DESIGN: the estimand or design could not answer the question (degenerate state, wrong null)
+  EXPOSED_POTENTIALLY_USEFUL: data were looked at outside a confirmatory test; usable descriptively, not confirmable on the same data
+  POSITIVE_ALIVE: discovery / replicated / confirmed effect that is still standing
+  NOT_TESTED_METHOD_BLOCK: idea stopped before any measurement by a method critic (identification, confounding, lookahead)
+  NOT_TESTED_ANTI_RESCUE: idea stopped before any measurement as a neighbour, relabel or rescue of a closed unit
+  NOT_TESTED_NOT_SELECTED: idea never selected, or its line closed by owner routing, before any measurement
+  GOVERNANCE_BLOCKED: defined unit that may not run under a protected-surface rule
+  PRODUCT_EVIDENCE: product statistic or product-safety track, not a research hypothesis
+
+# Group defaults for idea-stage generator cards, keyed on the blocker named in the official verdict.
+generator_defaults:
+  METHOD_LOOKAHEAD_VIOLATION:
+    cat: NOT_TESTED_METHOD_BLOCK
+    cons: "NO"
+    level: L0
+    needs: REDESIGN
+    assess: "Idea-stage card. The critics found a no-lookahead defect in the card's own construction, which is a correctness block. Nothing was measured, so there is no evidence either way."
+  METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING:
+    cat: NOT_TESTED_METHOD_BLOCK
+    cons: NA
+    flag: STANDARD_MISMATCH_POSSIBLE
+    level: L0
+    needs: REDESIGN
+    assess: "Idea-stage card blocked by a causal-identification standard. That standard is right for a mechanism or edge claim, but a descriptive L1/L2 question on the same observable would not need it. No estimate exists, so no effect can be said to have been lost."
+  METHOD_CONFOUNDING_CONTROL_INADEQUATE:
+    cat: NOT_TESTED_METHOD_BLOCK
+    cons: NA
+    flag: STANDARD_MISMATCH_POSSIBLE
+    level: L0
+    needs: REDESIGN
+    assess: "Idea-stage card blocked for inadequate confounding control. That is right for a mechanism claim, but stricter than an L1/L2 descriptive line needs. No estimate exists."
+  DATA_FEASIBILITY_REQUIRED:
+    cat: DATA_PROVENANCE_PIT
+    cons: "NO"
+    level: L0
+    needs: NEW_DATA
+    assess: "Idea-stage card waiting on a data-feasibility pass that was never done. Nothing was measured."
+  DATA_BLOCKED_POINT_IN_TIME_SEMANTICS:
+    cat: DATA_PROVENANCE_PIT
+    cons: "NO"
+    level: L0
+    needs: NEW_DATA
+    assess: "Idea-stage card. Point-in-time semantics of the source are unproven, so any test would risk lookahead. A legitimate block."
+  DATA_BLOCKED_PROVENANCE:
+    cat: DATA_PROVENANCE_PIT
+    cons: "NO"
+    level: L0
+    needs: NEW_DATA
+    assess: "Idea-stage card. The source has no provable provenance. A legitimate block."
+  DATA_STATUS_DISAGREEMENT_REQUIRES_HUMAN_REVIEW:
+    cat: DATA_PROVENANCE_PIT
+    cons: "NO"
+    level: L0
+    needs: NEW_DATA
+    assess: "Idea-stage card. Critics disagreed on data status and no human review followed. Nothing was measured."
+  SURVIVOR:
+    cat: NOT_TESTED_NOT_SELECTED
+    cons: NA
+    level: L0
+    needs: OWNER_DECISION
+    assess: "Passed the generator's critics but was never selected for feasibility or a test. No evidence either way."
+
+units:
+  # ------------------------------------------------------------------ BATCH01 (2026-08-26/27)
+  H01:
+    cat: STRONG_NEGATIVE
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "compression predicted LOWER future realized volatility; decile order vs future RV Spearman 1.0 in the reverse direction"
+    unc: "every week-block bootstrap CI negative on the primary difference"
+    stab: "all 45 cells x 5 years = 225 year-blocks negative"
+    assess: "The claim (compression -> expansion) is clearly refuted; the data show the opposite, i.e. volatility persistence. That reverse side is a known stylized fact and an honest L2 descriptive line (\"after a quiet 30-120 min, expansion in 2-7 % of cases vs about 25 % usually\"), already a SIDE_FINDING in the bot."
+  H02:
+    cat: STRONG_NEGATIVE
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "failed-minus-successful breakout reversion -0.07 to -0.15 (normalized) in 44/45 cells"
+    unc: "10/45 cells with an entirely positive bootstrap CI on the raw bounce, but the mechanism contrast fails"
+    stab: "a short-horizon s=0 H=15 bounce is positive in 5/5 years, post-hoc"
+    assess: "The mechanism-specific contrast (closing back inside vs a successful breakout) goes the wrong way in almost every cell. That is a real negative for the failed-breakout mechanism. The short-horizon boundary bounce is generic and post-hoc."
+  H03:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "continuation MPIE 3/45 and exhaustion MPIE 11/45 isolated cells; signs flip between neighbouring q and H"
+    unc: "dependence L_dep 32 days; n_eff_h 180-2880 by horizon"
+    stab: "no year-stable sign; 2023 often the most negative year"
+    assess: "A genuine null. The sign is unstable across horizon, threshold and year, which is not a conservatism artefact. The bot line (\"neither a steady continuation nor a fade\") matches the record."
+  H04:
+    cat: INFERENCE_LIMITATION
+    cat2: EXPOSED_POTENTIALLY_USEFUL
+    cons: PARTLY
+    level: L1
+    needs: NEW_DATA
+    est: "means positive in 34/45 cells; MPIE (dMat >= 0.10) 16/45; all three gates 10/45, concentrated in the moderate depth band at L=480/960"
+    unc: "L=960 moderate H=15/30 and L=480 moderate H=15 have 1w/2w/4w bootstrap CIs entirely positive; most other MPIE cells include 0"
+    stab: "L=960 moderate H=15/30/240 positive in 5/5 years; the 45-cell surface is not 4/5-year stable"
+    assess: "The continuation signal exists in one depth band and was rejected mainly by the neighbourhood rule (two adjacent depth bands, both directions) and the conjunction of gates, applied after a 45-cell search. Its explicit child B2-04 measured a different estimand (RECOVERY_FRACTION added to an MAE model) and was negative, so the moderate-band pattern itself was never tested on fresh data. It is post-hoc on exposed 2020-2024 data. Only a pre-2020 or prospective surface can test it."
+  H05:
+    cat: BLOCKED_PRACTICAL_BAR
+    cat2: INFERENCE_LIMITATION
+    cons: PARTLY
+    level: L1
+    needs: NEW_DATA
+    est: "reversal after SELL-side taker imbalance in 45/45 cells (oriented primary); matched-random delta at most 0.052 (MPIE bar 0.10); structural delta at most 0.046 (bar 0.05)"
+    unc: "bootstrap 1w/2w pass 8/45, 4w 7/45 (reversal); 0/45 for continuation"
+    stab: "reversal year gate 22/45; BUY side mostly not reversing (8/45)"
+    assess: "There is a consistent, small, one-sided effect (selling imbalance is followed by a slight reversal), not a symmetric mechanism. It failed a magnitude bar and a nine-way gate conjunction, and the effect is small enough that the product value is doubtful. The bot text \"no steady continuation or reversal\" is broader than the record, which shows a consistent small SELL-side reversal; recorded as a methodology finding, not edited here."
+  # ------------------------------------------------------------------ BATCH02 (2026-09-02..07)
+  B2-01:
+    records: [docs/research/B2_01_VOLATILITY_TRANSITION_RESULT.md]
+    cat: REAL_NULL
+    cons: "NO"
+    level: L1
+    needs: NONE
+    est: "relative MAE improvement +0.23 % to +0.62 % in the W=60 cells (bootstrap positive), negative in the W=120 cells; materiality bar 2 %"
+    unc: "W=60 bootstrap CIs exclude 0; W=120 CIs mostly exclude 0 on the negative side"
+    stab: "W=60 cells positive in 2020-2022; 7 of 8 negative in 2023-2024 (W=60 D=120 H=30 stayed slightly positive, the only year-stable cell)"
+    assess: "A real but negligible improvement (at most 0.62 % vs a 2 % bar) that faded and turned negative in 2023-2024 in 7 of the 8 W=60 cells. Any sensible bar would reject it, so the 2 % bar was not the deciding factor."
+  B2-02:
+    records: [docs/research/B2_02_BOUNDARY_INTERACTION_PATH_RESULT.md]
+    cat: STRONG_NEGATIVE
+    cat2: DATA_PROVENANCE_PIT
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "mean AE improvement negative in all 12 cells (-0.0076 to -0.0122); path separation negative everywhere"
+    unc: "bootstrap CIs exclude 0 on the negative side for L=60/120"
+    stab: "0 positive years in 9/12 cells"
+    assess: "The feature made forecasts worse. Provenance note, from the status ledger: the durable copy of the RESULT artifact is UNAVAILABLE (POST_RUN_EVIDENCE_RETENTION_GAP). The numbers rest on RESULT.md and the recorded digest."
+  B2-03:
+    records: [docs/research/B2_03_IMPULSE_MORPHOLOGY_RESULT.md]
+    cat: STRONG_NEGATIVE
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "all five primary gates fail; positive_years = 0 in every one of 15 cells"
+    assess: "A clear negative; no rescue is warranted."
+  B2-04:
+    records: [docs/research/B2_04_MODERATE_PULLBACK_STRUCTURE_RESULT.md]
+    cat: STRONG_NEGATIVE
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "mean AE improvement negative in 15/15 cells; maximum positive years 2/5"
+    assess: "Adding RECOVERY_FRACTION systematically worsened forecasts. This closes the B2-04 estimand, not the H04 moderate-band continuation pattern (see H04)."
+  B2-05:
+    records: [docs/research/BATCH02_STATUS_LEDGER.md]
+    cat: DATA_PROVENANCE_PIT
+    cons: "NO"
+    level: L0
+    needs: NOT_RECOVERABLE
+    assess: "Development outcomes were read, but the durable evidence was archived under operator adjudication and its historical bytes are not cryptographically proven. No scientific result can be honestly reconstructed, and none is reconstructed here."
+  B2-06:
+    cat: DATA_PROVENANCE_PIT
+    cons: "NO"
+    level: L0
+    needs: NEW_DATA
+    assess: "Funding publication latency is unproven, so a test would risk lookahead. A correct block. Not negative evidence."
+  # ------------------------------------------------------------------ DISCOVERY D1-D13 (2026-09-21..22)
+  D1:
+    records: [docs/research/DISCOVERY_SPRINT_01_D1_NULL_ADEQUACY_GATE.md]
+    cat: FLAWED_ESTIMAND_DESIGN
+    cons: "NO"
+    level: L0
+    needs: REDESIGN
+    assess: "The null model did not match the observable, so the card could not answer its question. Deferred before execution. Not a negative."
+  D2:
+    cat: POSITIVE_ALIVE
+    cons: "NO"
+    level: L2
+    needs: PROSPECTIVE
+    est: "RULE_1 RV abstention; BitMEX 2017-2019 corrected replication DELTA 0.021, relative +67 %, MC p 1e-4"
+    unc: "1067 eligible days pre-2020"
+    stab: "2017 / 2018 / 2019 relative delta +0.53 / +0.75 / +0.86"
+    assess: "Replicated on an independent pre-2020 surface. The excess-alignment decomposition found it volatility-scale compatible, so it is \"high RV -> bigger adverse paths\", a scaling fact. RULE_2 (dislocation abstention) failed discovery. Child records: D2_BITMEX_REPLICATION (first run INVALID, corrected run SUPPORTED) and D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK."
+  D3:
+    records: [docs/research/discovery_results/D3_DISCOVERY_RESULT.md]
+    cat: BLOCKED_PRACTICAL_BAR
+    cons: "YES"
+    level: L1
+    needs: NONE
+    est: "realized 24h close-path functionals below the block-surrogate median by 13.3 % (max upside), 10.8 % (max downside) and 4.5 % (time to max excursion); practical bar 15 %"
+    unc: "all three empirical means lie outside the surrogate 2.5-97.5 % band (block length 12; also outside at block length 24)"
+    stab: "temporal consistency met for all three (at least 3 year-buckets same direction)"
+    assess: "The official word NO_USEFUL_STRUCTURE was given only because of a fixed 15 % bar; the statistical and temporal gates passed for all three functionals. Realized 24h excursions are about 11-13 % smaller than a block-shuffled path predicts, which is mild intraday mean reversion. As L1 descriptive context this is honest. Product value is low, because the product corridor is already fitted empirically and absorbs it."
+  D4:
+    records: [docs/research/discovery_results/D4_DISCOVERY_RESULT.md]
+    cat: REAL_NULL
+    cat2: FLAWED_ESTIMAND_DESIGN
+    cons: "NO"
+    level: L1
+    needs: NONE
+    est: "rolling 90d correlation range 0.379 vs null median 0.339 (excess 0.039, bar 0.15); variance below the null 97.5 %"
+    assess: "The statistical gate also failed, so this is a null. The 1-day lead-lag half was deferred for lack of a common-factor-preserving null (a design gap), not tested."
+  D5:
+    records: [docs/research/discovery_results/D5_DISCOVERY_RESULT.md]
+    cat: REAL_NULL
+    cons: "NO"
+    level: L1
+    needs: NONE
+    est: "composed rule did not beat its best component; component B delta -0.0013"
+    assess: "The composition added nothing over component A on the common 2022-2024 window. A real null for the composition."
+  D6:
+    records: [docs/research/DISCOVERY_SPRINT_01.md]
+    cat: DATA_PROVENANCE_PIT
+    cons: "NO"
+    level: L0
+    needs: NEW_DATA
+    assess: "External source never pinned. Nothing was measured."
+  D7:
+    cat: POSITIVE_ALIVE
+    cons: "NO"
+    level: L2
+    needs: PROSPECTIVE
+    est: "discovery DELTA 0.0909, MC p 1e-4, positive in all five years 2020-2024; BitMEX 2016-2019 confirmatory theta 2017/2018/2019 = 0.156/0.127/0.095, DWB p 1e-4"
+    unc: "CANDIDATE_N 4545 / ANALYSIS_N 42407 (discovery); T = 30354 hours (confirmation)"
+    stab: "positive every year on both surfaces"
+    assess: "The project's only preregistered independent confirmation that passed. Caveat from its own record — the baseline removes coarse volatility clustering, but not volatility variation inside the top RV bucket or relative volume. L3 needs live calibration."
+  D8:
+    records: [docs/research/DISCOVERY_SPRINT_02.md]
+    cat: FLAWED_ESTIMAND_DESIGN
+    cons: "NO"
+    level: L0
+    needs: REDESIGN
+    assess: "The matched-control design at P99/P90 thresholds had too few controls, so recovery was never evaluated. That is a design-support failure, not a null. Shock recovery is product-relevant (/risk). Any retry is a new object with its own design; the frozen thresholds stay frozen."
+  D9:
+    records: [docs/research/discovery_results/D9_DISCOVERY_RESULT.md]
+    cat: REAL_NULL
+    cons: "NO"
+    level: L1
+    needs: NONE
+    est: "median PERP_RESOLUTION_SHARE 0.580 vs 0.5 (p 0.64); vs matched controls delta 1.10 (p 0.002, secondary)"
+    stab: "yearly median share 0.548 / 0.597 / 0.656 (2022-2024)"
+    assess: "The primary estimand (perp resolves more than half of the closure) is a null. The large difference against matched controls is a secondary comparison of an unclipped ratio and is not a separate claim."
+  D10:
+    records: [docs/research/discovery_results/D10_DISCOVERY_RESULT.md]
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "residual persistence delta 0.14 bps, MC p 0.46"
+    stab: "yearly delta changes sign"
+    assess: "A clean null."
+  D11:
+    cat: POSITIVE_ALIVE
+    cons: "NO"
+    level: L2
+    needs: PROSPECTIVE
+    est: "post-FOMC 6h realized volatility 0.0250 vs matched control 0.0142 (+76 %), MC p 2e-4, N = 39 scheduled meetings"
+    stab: "yearly relative +0.21 / +0.37 / +0.97 / +1.13 / +1.14 (2020-2024), all positive"
+    assess: "A large, stable effect that agrees with a well-known one. The \"discovery only\" status reflects the missing replication, not weak evidence. It supports an L2 historical line now. L3 needs live calibration (about 8 meetings a year). BitMEX 2017-2019 is recorded as NOT_PROVABLY_INDEPENDENT for event questions, so a pre-2020 replication would carry that label."
+  D12:
+    cat: POSITIVE_ALIVE
+    cat2: INSUFFICIENT_INFORMATION
+    cons: "NO"
+    level: L1
+    needs: PROSPECTIVE
+    est: "mean A = 0.134 over N = 10 US DST transitions (pseudo-Sunday controls 239), MC p 1e-4"
+    stab: "yearly mean A 0.065 / 0.015 / -0.069 / 0.256 / 0.401"
+    assess: "Ten events, with one year negative and a rising trend. The p-value comes from many pseudo-controls, but the information is in the 10 transitions. At most L1. Only time (two transitions a year) adds information."
+  D13:
+    records: [docs/research/discovery_results/D13_DISCOVERY_RESULT.md]
+    cat: REAL_NULL
+    cons: "NO"
+    level: L1
+    needs: NONE
+    est: "mean weekly rank IC -0.027 (p 0.016, reversal) but Q5-Q1 spread +0.79 % (momentum sign); signed practical spread -0.79 % vs floor 0.4 %"
+    stab: "yearly IC negative in 4/5 years"
+    assess: "The two pre-declared estimators disagree in sign. The rank IC says reversal; the extreme quintiles say momentum. The practical gate correctly failed (the code signs the spread by the pooled IC). This is not a conservatism artefact. Weekly IC around -0.03 is small."
+  # ------------------------------------------------------------------ MARKET-01..06 (2026-09-17..21)
+  MARKET-01:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "beta_candidate -0.00016 (SE 0.00022), one-sided p 0.76; 1720 candidate / 5981 baseline episodes"
+    assess: "The point estimate has the wrong sign, with good support. A clean null."
+  MARKET-02:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "beta_confirmation -0.00018 (SE 0.00040), one-sided p 0.65; 767 / 1720 episodes"
+    assess: "A clean null."
+  MARKET-03:
+    records: [docs/research/MARKET_03_PUBLIC_STRATEGY_RESULT.md]
+    cat: POSITIVE_ALIVE
+    cat2: EXPOSED_POTENTIALLY_USEFUL
+    cons: "NO"
+    level: L1
+    needs: NONE
+    est: "external strategy reproduced; max drawdown 49.4 % -> 33.8 % (31.6 % relative), 97 -> 71 trades"
+    assess: "An external reproduction of a published filter's direction. It is a strategy statistic, not an internal discovery and not usable as a product trade line. Descriptive only."
+  MARKET-04:
+    cat: DATA_PROVENANCE_PIT
+    cons: "NO"
+    level: L0
+    needs: NEW_DATA
+    assess: "The premium / funding observable is blocked on point-in-time semantics. Not tested, and not a negative."
+  MARKET-05:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "relative MAE improvement -0.14 %"
+    assess: "A clean null."
+  MARKET-06:
+    cat: STRONG_NEGATIVE
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "relative MAE improvement -3.76 % [-6.45, -1.49]; beta 0.0018 [-0.0004, +0.0041]"
+    stab: "2023 -2.8 %, 2024 -4.5 %"
+    assess: "Adding the dislocation term made the 24h adverse-path forecast worse, and the interval excludes zero."
+  # ------------------------------------------------------------------ OWNER CARDS R03 (2026-10-03)
+  R03-A1:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "+0.077 SD (SE 0.077), p 0.32"
+    stab: "epochs +0.18 / +0.23 / +0.03 / +0.05 / -0.10"
+    assess: "An informative null. The interval excludes the 0.5 SD bar and most of the region a product would care about."
+  R03-A2:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: "NO"
+    level: L0
+    needs: PROSPECTIVE
+    assess: "One state hour per month; MDE 0.82-0.91 SD. The closure reflects real scarcity of units, not a strict rule; even a descriptive estimate would carry about ±0.4 SD. No outcome was computed."
+  R03-A3:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: "NO"
+    level: L0
+    needs: PROSPECTIVE
+    assess: "As R03-A2 (CME monthly expiry); MDE 0.82-0.91 SD. No outcome was computed."
+  R03-A4:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "+0.067 SD, wrong sign (SE 0.064), p 0.30"
+    assess: "No pinning; the window was if anything slightly wider. A clean null."
+  R03-B1:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: PARTLY
+    level: L0
+    needs: OWNER_DECISION
+    assess: "The compiler judged it feasible (MDE 0.341). It was closed only by the second, paired-month screen at Holm alpha 0.0125 (MDE 0.544 vs 0.5). That is a near miss produced by a stacked rule. Its executed sibling R03-B2 was a null (+0.037 SD), which lowers the prior. No outcome was computed; an estimate with an interval could be produced under a design note."
+  R03-B2:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "+0.037 SD (SE 0.057), p 0.53; nuisance-adjusted -0.173"
+    assess: "A clean null."
+  R03-B3:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: PARTLY
+    level: L0
+    needs: OWNER_DECISION
+    assess: "As R03-B1. Compiler MDE 0.350; paired-month MDE 0.588 vs 0.5. No outcome was computed."
+  R03-B4:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cat2: DATA_PROVENANCE_PIT
+    cons: PARTLY
+    level: L0
+    needs: OWNER_DECISION
+    assess: "As R03-B1 (paired-month MDE 0.602). The BTC-share metric is also contaminated by Binance fee promotions and the FDUSD migration (G01-X2), so it should stay closed."
+  R03-C1:
+    cat: BLOCKED_PRACTICAL_BAR
+    cons: "YES"
+    level: L2
+    needs: NONE
+    est: "-0.396 SD (SE 0.036), Holm p 0.0001; nuisance-adjusted -0.104"
+    unc: "12480 state / 18720 comparator windows, 260 weeks"
+    stab: "epochs -0.19 / -0.21 / -0.43 / -0.49 / -0.65, no opposite-sign year"
+    assess: "The clearest \"killed by the bar\" case. A precise, growing effect was labelled NO_INCREMENTAL_STRUCTURE only because 0.40 < 0.50. It already received its second chance, as a product baseline question (WEEKDAY_WEEKEND_BASELINE_UNIT_V2), and is in the product as C1. As a mechanism claim it is mostly the volatility regime (nuisance-adjusted -0.10)."
+  R03-C2:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "+0.066 SD (SE 0.079), p 0.41; nuisance-adjusted +0.220 (adjusted p 0.0025, recorded as a caveat, not a finding)"
+    assess: "Null on the frozen raw estimand. The nuisance-adjusted value moved away from zero, but the adjustment's own caveat applies, and reading a class off it would be method shopping."
+  R03-C3:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: "NO"
+    level: L0
+    needs: PROSPECTIVE
+    assess: "About 46 NYSE closure days; MDE 0.92-1.07 SD. Units are genuinely scarce. The record is ambiguous about its replication surface, but discovery alone fails, so the closure stands. No outcome was computed."
+  R03-C4:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "-0.123 SD, wrong sign (SE 0.071), p 0.077"
+    assess: "A clean null against the declared sign."
+  # ------------------------------------------------------------------ AUTOGEN_G01 (2026-10-03)
+  G01-A1:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: "YES"
+    level: L0
+    needs: OWNER_DECISION
+    assess: "The discovery surface alone carried the bar (unit MDE 0.486 < 0.5). The card was closed only because the declared replication surface (36 BitMEX months, MDE about 0.63) could not. Under the evidence model, a discovery estimate with an interval is a legitimate L1/L2 product baseline question, like weekday/weekend. No outcome was computed, so nothing is known about the effect."
+  G01-A2:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: "YES"
+    level: L0
+    needs: OWNER_DECISION
+    assess: "As G01-A1 (same unit sets; the range target is the product-facing one). Closed by the replication requirement, not by discovery information. No outcome was computed."
+  G01-A3:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: "NO"
+    level: L0
+    needs: PROSPECTIVE
+    assess: "One state hour per month; discovery MDE 0.78. The information is genuinely low."
+  G01-B1:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cat2: FLAWED_ESTIMAND_DESIGN
+    cons: PARTLY
+    level: L0
+    needs: PROSPECTIVE
+    assess: "Closed at unit MDE 0.5005 against a 0.5 bar (5e-4 above), a cliff-edge threshold. The decisive weaknesses are real, though. There is a single ETF launch, no historical replication surface, and an unresolvable hour-specific confound (equity close, CME settle). Prospective accumulation is the only path."
+  G01-X1: {cat: NOT_TESTED_METHOD_BLOCK, cons: "NO", level: L0, needs: REDESIGN, assess: 08:00 UTC coincides with funding settlement and Deribit expiry. Not identifiable. A correct block.}
+  G01-X2: {cat: DATA_PROVENANCE_PIT, cons: "NO", level: L0, needs: NONE, assess: The BTC share of USDT pairs measures fee promotions and the FDUSD migration. A correct block.}
+  G01-X3: {cat: NOT_TESTED_METHOD_BLOCK, cons: "NO", level: L0, needs: REDESIGN, assess: A directional flow claim on an unidentified clock, confounded by funding hours. A correct block.}
+  G01-X4: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: The outcome (order-sign persistence) is a known stylized fact, so a test carries no information.}
+  G01-X5: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: A hidden repeat of GV0V03L40-C027/C003 in the D2/D8 neighbourhood.}
+  G01-X6: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: Volatility clustering, an RV-threshold child of D2. The outcome is not in doubt.}
+  G01-X7: {cat: BLOCKED_FEASIBILITY_MDE, cons: "NO", level: L0, needs: PROSPECTIVE, assess: One state hour per month; paired MDE about 0.84 SD.}
+  G01-X8: {cat: NOT_TESTED_METHOD_BLOCK, cons: "NO", level: L0, needs: REDESIGN, assess: Asian clocks have no DST, so the claim cannot be separated from a generic hour-of-day profile.}
+  G01-X9: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: Motivated by R03-C1's exposed epoch trend, so leakage; a correct block. The weekend question was answered properly by WEEKDAY_WEEKEND_BASELINE_UNIT_V2.}
+  G01-X10: {cat: BLOCKED_FEASIBILITY_MDE, cons: "NO", level: L0, needs: PROSPECTIVE, assess: About 10 bank-holiday days in five years.}
+  # ------------------------------------------------------------------ DH1 / DH2 (2026-10-04)
+  DH1-L1:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: "NO"
+    level: L0
+    needs: NONE
+    assess: "Closed at feasibility (MDE 8.5 pp > 6 pp). It was then executed pooled over six coins as DH2-L1, an informative null, so no information was lost."
+  DH1-L2:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "hold 46.5 % vs 46.3 %, adjusted +0.05 pp, 95 % CI -3.03..+3.06 pp, Brier skill -0.0008, N 4622 touches / 261 week clusters"
+    stab: "years -6.9 / +5.3 / -0.3 / -4.2 / +1.2 pp"
+    assess: "An informative null. The frozen label INCONCLUSIVE (the CI reaches the 3 pp bar by 0.03 pp) understates what is known, which is that there is no zone-vs-lone difference larger than about 3 pp. In this case the old vocabulary was too agnostic, not too harsh."
+  DH1-L3:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: "NO"
+    level: L0
+    needs: NONE
+    assess: "Closed at feasibility (MDE 7.4 pp). Executed pooled as DH2-L3, an informative null."
+  DH1-B1:
+    cat: FLAWED_ESTIMAND_DESIGN
+    cons: "NO"
+    level: L0
+    needs: NONE
+    assess: "Degenerate state. Spot agrees with the move in 97.6 % of 1852 moves (45 do not), MDE 26 pp. The question cannot be asked with this state."
+  DH1-B2:
+    cat: BLOCKED_FEASIBILITY_MDE
+    cons: "NO"
+    level: L0
+    needs: NONE
+    assess: "MDE 11.4 pp. Executed pooled as DH2-B2, a null."
+  DH1-X1: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: A composition of consumed path families (H02, B2-02, H03/B2-03), all of which are real negatives.}
+  DH1-X2: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: OI-continuation neighbourhood of MARKET-01/02, both clean nulls.}
+  DH1-X3: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: Same as DH1-X2.}
+  DH1-X4: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: Time of day is a nuisance term for a directional claim. A reasonable closure.}
+  DH1-X5: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: D9 neighbour (null).}
+  DH1-X6: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: Subgroup of H03, a genuine null.}
+  DH1-X7: {cat: NOT_TESTED_ANTI_RESCUE, cat2: DATA_PROVENANCE_PIT, cons: "NO", level: L0, needs: NEW_DATA, assess: Basis family untested ideas plus the MARKET-04H premium block.}
+  DH1-X8: {cat: DATA_PROVENANCE_PIT, cons: "NO", level: L0, needs: NEW_DATA, assess: OKX L2 unpinned, with no time-disjoint history.}
+  DH1-X9: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: Not a directional mechanism. DVOL is used as a descriptive product number.}
+  DH1-X10: {cat: NOT_TESTED_ANTI_RESCUE, cons: PARTLY, level: L0, needs: OWNER_DECISION, assess: "Closed because the taker family is forbidden after H05 and B2-05. H05 is not a clean null (it shows a small, consistent SELL-side reversal), and B2-05 has no provable result at all, so the anti-rescue rule inherits from weak parents."}
+  DH2-L1:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "45.2 % vs 46.1 %, adjusted -1.75 pp, 95 % CI -3.78..+0.36, Holm p 0.21; 16362 touches, six coins"
+    assess: "Informative (official label INCONCLUSIVE). A positive effect above +0.4 pp is excluded. Spot confirmation does not help a level hold."
+  DH2-L3:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "adjusted -0.61 pp, 95 % CI -3.49..+2.27; 16373 touches; coins disagree in sign"
+    assess: "Informative (official label INCONCLUSIVE). Effects beyond about ±3.5 pp are excluded."
+  DH2-B2:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "adjusted +0.55 pp, 95 % CI -1.78..+2.84; 9629 moves"
+    assess: "A clean null; the whole interval lies inside ±3 pp."
+  # ------------------------------------------------------------------ DH3 (2026-10-04)
+  DH3-P1:
+    cat: BLOCKED_PRACTICAL_BAR
+    cons: "YES"
+    level: L2
+    needs: PROSPECTIVE
+    est: "next-4h range +13.4 % after OI build-up in a quiet market, 95 % CI +9.9..+17.1, Holm p 0.0015, MSE skill +0.0077; N 12397 (3581 / 8816)"
+    stab: "magnitude varies by year (recorded)"
+    assess: "A clear range effect after the volatility nuisance, whose interval overlaps the 15 % bar. The label NO_INCREMENTAL came from the bar alone. The bot already shows it as WEAK («есть, но слабее порога»). It is a legitimate L2 range line in the quantitative format. L3 needs live tracking."
+  DH3-P2: {cat: REAL_NULL, cons: "NO", level: L2, needs: NONE, est: "+0.7 % (CI -1.3..+2.7), Holm p 0.50", assess: A clean null.}
+  DH3-P3:
+    cat: POSITIVE_ALIVE
+    cons: "NO"
+    level: L2
+    needs: PROSPECTIVE
+    est: "-5.92 pp (47.7 % vs 53.5 % up-first), CI -8.32..-3.52, Holm p 0.0015, Brier skill +0.0024; N 14218"
+    stab: "-16.4 / -7.6 / -3.7 / -9.2 / -3.7 pp by year, all negative"
+    assess: "The only directional discovery above the 3 pp bar. It is BTC-only, has no earlier-era data and is not replicated, so prospective tracking is the path to L3."
+  DH3-L1: {cat: REAL_NULL, cons: "NO", level: L2, needs: NONE, est: "+3.1 % (CI -0.3..+6.9), Holm p 0.14", assess: Null or very small.}
+  DH3-L2: {cat: REAL_NULL, cons: "NO", level: L2, needs: NONE, est: "+0.21 pp (CI -1.23..+1.58)", assess: A clean null. Book imbalance carries no direction.}
+  DH3-L3:
+    cat: BLOCKED_PRACTICAL_BAR
+    cons: "YES"
+    level: L2
+    needs: PROSPECTIVE
+    est: "+6.5 % (CI +1.9..+11.1), Holm p 0.012; N 4101 (1369 / 2732)"
+    assess: "A real but modest range effect, killed by the 15 % bar. Already WEAK in the bot."
+  DH3-O1:
+    cat: REAL_NULL
+    cat2: INSUFFICIENT_INFORMATION
+    cons: "NO"
+    level: L1
+    needs: NONE
+    est: "+6.8 % pooled (CI +3.6..+9.9) but -9 / +5 / -8 / -1 % by year"
+    assess: "The pooled value is not supported by the years, so it is heterogeneous. No stable effect."
+  DH3-O2:
+    cat: BLOCKED_PRACTICAL_BAR
+    cons: "YES"
+    level: L2
+    needs: PROSPECTIVE
+    est: "+9.6 % (CI +6.6..+12.5), Holm p 0.0015; BTC alone +10.5 %; N 65464 (6548 / 58916)"
+    assess: "A clear range effect after a DVOL jump, killed by the 15 % bar. Already WEAK in the bot. Note the MSE skill is only +0.0001."
+  DH3-O3: {cat: REAL_NULL, cons: "NO", level: L2, needs: NONE, est: "+0.56 pp (CI -0.58..+1.70), heterogeneous", assess: A null.}
+  DH3-S1:
+    cat: BLOCKED_PRACTICAL_BAR
+    cons: PARTLY
+    level: L2
+    needs: PROSPECTIVE
+    est: "-5.9 % (CI -10.1..-1.4), Holm p 0.016; N 4299 (967 / 3332)"
+    assess: "Below the bar and opposite to the stated mechanism. As a descriptive range state it is real. As the hypothesized mechanism it failed."
+  DH3-S2: {cat: BLOCKED_FEASIBILITY_MDE, cons: PARTLY, level: L0, needs: PROSPECTIVE, assess: "MDE 6.7 pp vs a 6 pp rule, a cliff-edge closure. Its sibling S1 contradicts the stated mechanism, so the prior is low."}
+  DH3-S3: {cat: INSUFFICIENT_INFORMATION, cons: "NO", level: L1, needs: NONE, est: "-3.9 % (CI -8.2..+0.5), heterogeneous by year", assess: Inconclusive and unstable.}
+  DH3-V1: {cat: REAL_NULL, cons: "NO", level: L2, needs: NONE, est: "-0.39 pp (CI -0.90..+0.11), N 120212", assess: A precise null.}
+  DH3-V2: {cat: REAL_NULL, cons: "NO", level: L2, needs: NONE, est: "+2.3 % (CI +1.4..+3.2)", assess: "Real but negligible. Any sensible bar rejects it, so the 15 % bar was not decisive."}
+  DH3-V3:
+    cat: POSITIVE_ALIVE
+    cat2: INSUFFICIENT_INFORMATION
+    cons: "NO"
+    level: L2
+    needs: PROSPECTIVE
+    est: "+3.87 pp (CI +1.58..+6.15), Holm p 0.002; replication 2017-2019 -0.71 pp (CI -4.75..+3.06)"
+    stab: "years +4.1 / +6.1 / +3.0 / +4.4 / +0.9; ETH -0.2 pp"
+    assess: "Discovery positive. The earlier era did not show it, though that surface was underpowered by design (MDE 7.5 pp). Live tracking decides."
+  DH3-X1: {cat: DATA_PROVENANCE_PIT, cons: "NO", level: L0, needs: NEW_DATA, assess: Premium archive point-in-time unproven; funding latency.}
+  DH3-X2: {cat: NOT_TESTED_ANTI_RESCUE, cons: PARTLY, level: L0, needs: OWNER_DECISION, assess: "As DH1-X10: the taker-family ban inherits from H05 (small one-sided effect) and B2-05 (no provable result)."}
+  DH3-X3: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: The spot-confirmation family has informative nulls (DH1/DH2).}
+  DH3-X4: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: OI-continuation neighbourhood (clean nulls).}
+  DH3-X5: {cat: BLOCKED_FEASIBILITY_MDE, cons: "NO", level: L0, needs: PROSPECTIVE, assess: About 260 weekends; MDE about 12 pp.}
+  DH3-X6: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: MARKET-06 family, a strong negative.}
+  DH3-X7: {cat: NOT_TESTED_ANTI_RESCUE, cons: PARTLY, level: L0, needs: OWNER_DECISION, assess: "Cites the R03-B breadth 'null neighbourhood', but only R03-B2 was executed; B1/B3/B4 were closed for MDE, so the neighbourhood is less closed than the citation implies."}
+  DH3-X8: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: DVOL level is a regime already in the RV nuisance.}
+  DH3-X9: {cat: NOT_TESTED_ANTI_RESCUE, cons: "NO", level: L0, needs: NONE, assess: A relabel of the closed divergence line.}
+  # ------------------------------------------------------------------ Divergence / selling-exhaustion line (2026-10-01..03)
+  SEED-0001:
+    cat: INSUFFICIENT_INFORMATION
+    cons: "NO"
+    level: L1
+    needs: NONE
+    est: "P1 A - B +0.042 [-0.099, +0.184], p 0.55; P2 A - C +0.148 [-0.037, +0.332]; 36 A episodes"
+    stab: "ETH points the other way (P1 -0.089)"
+    assess: "Executed exploratorily below its own hard floor (about 10 % power at 10 pp). It says almost nothing. It was later superseded by the full-history program."
+  SEED-0001-PROSP: {cat: NOT_TESTED_NOT_SELECTED, cons: NA, level: L0, needs: NONE, assess: Closed before start by owner routing. No outcome opened.}
+  SEED-0001-4H-1D: {cat: NOT_TESTED_NOT_SELECTED, cons: NA, level: L0, needs: NONE, assess: Never defined; the line is closed.}
+  SEED-0002: {cat: NOT_TESTED_NOT_SELECTED, cons: NA, level: L0, needs: OWNER_DECISION, assess: "Seed only. The owner's hidden-divergence practice was never designed (the Hyblock indicator definition is not frozen)."}
+  SEED-0003: {cat: NOT_TESTED_NOT_SELECTED, cons: "NO", level: L0, needs: NONE, assess: The full-history validation already excludes the 15 pp target, so a confirmation would answer a settled question.}
+  H-DIV-1:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L1
+    needs: NONE
+    est: "validation interaction +0.018 [-0.094, +0.129]; pooled +0.021 [-0.057, +0.099]"
+    assess: "The interaction is compatible with zero on the validation slice (secondary, exploratory)."
+  H-DIV-FAILURE-MODES: {cat: EXPOSED_POTENTIALLY_USEFUL, cons: "NO", level: L1, needs: NONE, est: "no failure state within A survives Holm (smallest Holm 0.73), N = 316", assess: Exploratory nulls on exposed data. Never registered as cards.}
+  DIV-PANEL-FEAS-V0: {cat: BLOCKED_FEASIBILITY_MDE, cons: "NO", level: L0, needs: NONE, assess: "Power 0.61-0.66 at 15 pp (gate 0.80). Superseded by the full-history program."}
+  DIV-COND-SUPPORT-FEAS-V1: {cat: BLOCKED_FEASIBILITY_MDE, cons: "NO", level: L0, needs: NONE, assess: "Historical-only weak; combined design feasible by a thin margin. Superseded by owner choice."}
+  DIVERGENCE-FULL-HISTORY-V0:
+    cat: REAL_NULL
+    cons: "NO"
+    level: L2
+    needs: NONE
+    est: "validation A - B (48h) +0.011 [-0.087, +0.109], p 0.83; pooled +0.019 [-0.047, +0.084]; mean net R negative in every arm after costs"
+    unc: "validation A 160 episodes on 112 dates, 62 week clusters"
+    stab: "year Q p 0.94; symbol Q p 0.40"
+    assess: "The validation slice excludes the 15 pp claim (upper +10.9 pp), so the owner's trading heuristic is not supported as a large effect. A few pp cannot be excluded. It used the 2025/2026 six-symbol surface under an owner opening."
+  RSI-GRADIENT-SUPPORT: {cat: EXPOSED_POTENTIALLY_USEFUL, cons: NA, level: L1, needs: PROSPECTIVE+OWNER_DECISION, est: "about +3.8 pp per SD (RSI14 Holm p 0.031, RSI21 0.027) among 22 exploratory features, N 2685", assess: "Found exploratorily on data that include the validation slice. AGENTS.md forbids evaluating it. Only prospective data could test it."}
+  SELLING-EXHAUSTION-FEAS-V0: {cat: BLOCKED_FEASIBILITY_MDE, cons: "NO", level: L0, needs: NONE, assess: "4-5 pp would need 5-8 years of prospective data. A genuine information limit, honestly reported."}
+  SE-CONTINUOUS-SCORE: {cat: NOT_TESTED_NOT_SELECTED, cons: NA, level: L0, needs: NONE, assess: Its efficiency gain depends on an unverified graded-effect assumption. The line is closed.}
+  DIV-BEARISH-TYPES: {cat: NOT_TESTED_NOT_SELECTED, cons: NA, level: L0, needs: OWNER_DECISION, assess: Never defined.}
+  DIV-TRACK-B: {cat: NOT_TESTED_NOT_SELECTED, cons: NA, level: L0, needs: OWNER_DECISION, assess: Never designed.}
+  # ------------------------------------------------------------------ Generator V0 cards with outcome-blind work beyond the critics
+  GV0R01-C004: {cat: BLOCKED_FEASIBILITY_MDE, cat2: INFERENCE_LIMITATION, cons: "NO", level: L0, needs: PROSPECTIVE, assess: "38 FOMC windows. The exact permutation design had 16 label configurations (minimum p 0.0625 > alpha), and stress power at a 0.20 share decline was 0.11. The inference floor is a method artefact, but the information was too low regardless."}
+  GV0R01-C012: {cat: BLOCKED_FEASIBILITY_MDE, cons: "NO", level: L0, needs: PROSPECTIVE, assess: "Pre-announcement drift before FOMC/CPI. The first inference design failed a global invariance gate; after the amendment, MDE was 0.61 SD vs 0.5. No outcome was opened. An honest information limit."}
+  GV0R01-C013:
+    cat: POSITIVE_ALIVE
+    cat2: INSUFFICIENT_INFORMATION
+    cons: "NO"
+    level: L1
+    needs: PROSPECTIVE
+    est: "pooled weekly Spearman -0.0199 (permutation p 0.002), controlled partial -0.054, Newey-West t -2.48; 260 weeks"
+    stab: "2020 -0.069, 2021 -0.068, 2022 -0.031, 2023 +0.032, 2024 +0.036 (sign flipped in the last two years)"
+    assess: "Discovery-tier only. The sign reversed in 2023-2024, and confirmation needs about 468 fresh weeks."
+  GV0R01-C020: {cat: BLOCKED_FEASIBILITY_MDE, cons: "NO", level: L0, needs: PROSPECTIVE, assess: "47 holiday events. Closed outcome-blind as an informationally weak reference test."}
+  GV0V03L40-C025-R1: {cat: FLAWED_ESTIMAND_DESIGN, cons: "NO", level: L0, needs: NONE, assess: "The frozen primary cell has one admitted one-sided event in five years (EFFECTIVE_N 0.994), a degenerate state."}
+  GV0V03L40-C033: {cat: FLAWED_ESTIMAND_DESIGN, cons: "NO", level: L0, needs: NONE, assess: "The joint four-part state never occurs in 2020-2024 (MECHANISM_ACTIVE_N = 0), a degenerate state."}
+  # ------------------------------------------------------------------ Sprint 03/04 candidate pools (never executed)
+  S3-C4: {cat: NOT_TESTED_NOT_SELECTED, cons: NA, level: L0, needs: NONE, assess: "Not selected for budget reasons, not on merit. Later partly answered by DH3-O1/O2 (DVOL): range effect below the bar, no direction."}
+  S3-C5: {cat: NOT_TESTED_NOT_SELECTED, cons: NA, level: L0, needs: NONE, assess: Later partly covered by D13 and R03-B.}
+  S3-C6: {cat: NOT_TESTED_NOT_SELECTED, cons: NA, level: L0, needs: NEW_DATA, assess: OKX L2 order-book state. Not selected because of the D7 family cooldown and engineering cost; selectable on its own mechanism.}
+  S4-C03: {cat: NOT_TESTED_METHOD_BLOCK, cons: NA, level: L0, needs: NONE, assess: BTC common-factor confound. Partly covered by R03-B2 (null).}
+  S4-C04: {cat: DATA_PROVENANCE_PIT, cons: "NO", level: L0, needs: NEW_DATA, assess: DVOL as-of semantics unverified at selection time. DH3 later used DVOL 1h.}
+  S4-C05: {cat: NOT_TESTED_ANTI_RESCUE, cons: NA, level: L0, needs: NONE, assess: A structural copy of D11; later tested as R03-A.}
+  S4-C06: {cat: DATA_PROVENANCE_PIT, cons: "NO", level: L0, needs: NEW_DATA, assess: Funding/premium as-of availability unproven.}
+  S4-C07: {cat: DATA_PROVENANCE_PIT, cons: "NO", level: L0, needs: NEW_DATA, assess: FRED/ALFRED licensing and vintages unverified.}
+  S4-C08: {cat: NOT_TESTED_METHOD_BLOCK, cons: NA, level: L0, needs: NONE, assess: One episode (2023-03) dominates; low relevance.}
+  S4-C09: {cat: DATA_PROVENANCE_PIT, cons: "NO", level: L0, needs: NEW_DATA, assess: No point-in-time provenance for free stablecoin supply data.}
+  S4-C10: {cat: NOT_TESTED_METHOD_BLOCK, cons: NA, level: L0, needs: NONE, assess: Later tested as R03-C1.}
+  S4-C11: {cat: NOT_TESTED_ANTI_RESCUE, cons: NA, level: L0, needs: NONE, assess: BTC-ETH subfamily nulls (D4, D10, MARKET-05).}
+  S4-C12: {cat: NOT_TESTED_NOT_SELECTED, cons: NA, level: L0, needs: NEW_DATA, assess: Same as S3-C6.}
+  # ------------------------------------------------------------------ Single units
+  TWAP-V1:
+    cat: INSUFFICIENT_INFORMATION
+    cat2: POSITIVE_ALIVE
+    cons: "NO"
+    level: L1
+    needs: NONE
+    est: "footprint H1 ratio 1.264 [1.203, 1.329] (partly mechanical); price H2_1h +5.0 bps [-0.1, +10.1], p 0.057, Holm 0.17; H2_6h -0.4 bps; post-end 1h +0.5 bps"
+    unc: "1207 episodes on 702 days; replication support 19 < 100"
+    assess: "The execution footprint is real; the price effect is not shown. The 1h cell's interval touches zero even before Holm, so Holm did not decide it."
+  E1-RUN-001:
+    exposure: "EXPOSED: development outcomes read (2026-08-02..16); holdout outcome surface opened by the owner-run P4 follow-up (INVALIDATED_FOR_P4_OVERLAP); E1 evaluator and sealed artifacts untouched"
+    cat: INSUFFICIENT_INFORMATION
+    cat2: GOVERNANCE_BLOCKED
+    cons: "NO"
+    level: L0
+    needs: NOT_RECOVERABLE
+    est: "development 149 FULL candidates over 14 days (TP 93 / CB 30 / FB 26); TP near SIMPLIFY/KILL, CB SIMPLIFY/INCONCLUSIVE, FB strong KILL candidate"
+    assess: "Two weeks of live data cannot carry a separation claim, and the formulations were retired on that thin evidence plus Batch01. The holdout is no longer pristine (P4 overlap, owner decision 2026-10-03), so a clean confirmatory reading is no longer available. Its frozen evaluator could still be run, but the result would not be confirmatory."
+  V3-MICROSCOPE:
+    cat: CERTIFICATION_MACHINERY
+    cons: NA
+    level: L0
+    needs: NONE
+    assess: "Synthetic calibration of the confirmatory method. EASY / MODERATE pass, NULL indeterminate, nonstationary trap fail. It is not a market hypothesis and is immutable."
+  PRICE-OI-PILOT-V0: {cat: GOVERNANCE_BLOCKED, cons: "NO", level: L0, needs: OWNER_DECISION, assess: The frozen grid overlaps the E1 holdout. A correct block.}
+  BETA-V0-FWD-Q1Q2: {cat: FLAWED_ESTIMAND_DESIGN, cons: "NO", level: L0, needs: NONE, assess: The product would display follow-up statistics before the stopping rule, so the prospective realization would not be untouched. A correct closure.}
+  EVCORR-K1-CPI: {cat: PRODUCT_EVIDENCE, cons: NA, level: L0, needs: PROSPECTIVE, assess: Product-safety track. Calibration needs prospective releases.}
+  EVCORR-K1-FOMC: {cat: PRODUCT_EVIDENCE, cons: NA, level: L0, needs: PROSPECTIVE, assess: Same track as EVCORR-K1-CPI.}
+  PRODUCT-V2-RANGE: {cat: PRODUCT_EVIDENCE, cons: NA, level: L2, needs: PROSPECTIVE, est: "2024 diagnostic coverage 79-80 % at 1h/4h/24h; calmest fifth under-covered (69-76 %)", assess: Product forecast with tracked accuracy.}
+  PRODUCT-V2-LEVELS: {cat: PRODUCT_EVIDENCE, cons: NA, level: L2, needs: NONE, assess: Product evidence computed nightly. No committed result numbers were found, so none are reported here.}
+  PRODUCT-V2-ANALOGUES: {cat: PRODUCT_EVIDENCE, cons: NA, level: L2, needs: NONE, assess: Product evidence. No committed result numbers were found.}
+  PRODUCT-V2-EVENT-DAYS: {cat: PRODUCT_EVIDENCE, cons: NA, level: L1, needs: NONE, est: "CPI hour x3.2, FOMC hour x3.3 by median, 2022-2024", assess: Withheld from users until the event-window semantics are verified.}
+
+# Units completed after the atlas transfer (not atlas rows). Full fields given here.
+post_atlas_units:
+  WEEKDAY_WEEKEND_BASELINE_UNIT_V2:
+    title: "Same-day-type reference for the beta unusual-hour flags (C0 pooled vs C1/C2/C3 day-type references)"
+    program: "Product baseline unit under EVIDENCE_AND_CLAIMS_DECISION_V1 (second chance for R03-C1)"
+    date: '2026-10-05'
+    question: "Which reference makes the beta's unusual-hour flags equally calibrated on weekdays and weekends?"
+    data: "CORE BTC Binance 2020-2024 1m (EXPOSED; same surface as R03-C1); no 2025/2026"
+    units_n: "2020-2024 hourly decisions, flag rates by day type"
+    official: "C1 selected (same UTC day type, 30-day window); C0 weekday/weekend flag-rate gap 20.9 pp, C1 2.0, C2 2.5, C3 2.9"
+    framework: "EVIDENCE_AND_CLAIMS_DECISION_V1 design note before outcome (amendment A1), frozen evaluator, run once"
+    why_closed: "Completed; C1 adopted into the product as context V3 (PR #329, not deployed)"
+    records: [docs/WEEKDAY_WEEKEND_BASELINE_UNIT_V2.md, docs/WEEKDAY_WEEKEND_BASELINE_UNIT_V2_RESULT.md, docs/WEEKDAY_WEEKEND_BASELINE_UNIT_V2_RESULT.json, docs/BETA_C1_DAY_TYPE_BASELINE_V1.md]
+    cat: POSITIVE_ALIVE
+    cons: NA
+    level: L1
+    needs: PROSPECTIVE
+    est: "C0 P_S 20.9 pp; C1 2.0 pp; C2 2.5 pp (overdispersion 2.64 vs 2.04); C3 2.9 pp"
+    assess: "The R03-C1 effect, re-asked as a product baseline question with a quantitative, outcome-blind design. It is the only completed second-chance unit so far. Live monitoring is the REVIEW_TRIGGER rollout."
+
+# Executions folded under a parent unit (counted separately, not as census units).
+child_executions:
+  D2-BITMEX-REPLICATION: {parent: D2, official: "first run D2_BITMEX_REPLICATION_INVALID (integrity); corrected one-shot D2_BITMEX_REPLICATION_SUPPORTED", records: [docs/research/D2_BITMEX_REPLICATION_RESULT.md, docs/research/D2_BITMEX_REPLICATION_INTEGRITY_ADJUDICATION.md, docs/research/D2_BITMEX_REPLICATION_CORRECTED_RESULT.md]}
+  D2-EXCESS-PATH-RISK: {parent: D2, official: D2_VOLATILITY_SCALE_COMPATIBLE_NO_EXCESS_ALIGNMENT, records: [docs/research/D2_EXCESS_DIRECTION_ALIGNED_PATH_RISK_RESULT.md]}
+  D7-CONFIRMATORY: {parent: D7, official: "D7_DIRECTIONAL_CONFIRMATION_PASS = true (BitMEX 2016-2019)", records: [docs/research/D7_CONFIRMATORY_PRIMARY_RESULT_V1.md, docs/research/D7_CAMPAIGN_CLOSE_V1.md]}
+  DH3-V3-REPLICATION: {parent: DH3-V3, official: REPLICATION_INCONCLUSIVE (-0.71 pp, CI -4.75..+3.06), records: [docs/research/DH3_RESULT_REPLICATION.json]}
+  GV0R01-C013-CONFIRMATION-FEASIBILITY: {parent: GV0R01-C013, official: WAIT_FOR_MORE_FRESH_DATA (about 468 fresh weeks), records: [docs/research/GV0R01_C013_CONFIRMATION_FEASIBILITY_AND_DESIGN.md]}
+  MARKET-04H-ADJUDICATION: {parent: MARKET-04, official: BLOCKED_OBSERVABLE / NOT_TESTED, records: [docs/research/MARKET_04H_PREMIUM_OBSERVABLE_ADJUDICATION.md]}
+
+# Methodology / certification units (not market hypotheses; listed for completeness).
+methodology_units:
+  V1-AUTOPSY: {date: '2026-08-25', official: CONSUMED_DIAGNOSTIC, note: "V1 was a 5m reactive momentum detector used as a 15m-4h forecaster; latency ate any continuation (5093 signals, flip rate ~44 %)", records: [docs/RESEARCH_LEDGER.md]}
+  HARNESS_SYNTHETIC_EDGE_CALIBRATION_V1: {date: '2026-09-08', official: "canonical 3200-world attempt permanently non-claimable (RR-021)", records: [docs/RESEARCH_LEDGER.md]}
+  HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2: {date: '2026-09-15', official: "rank-degeneracy policy RESULT, development-consumed (EASY 365/400 INDETERMINATE vs 0.90)", records: [docs/research/HARNESS_SYNTHETIC_EDGE_CALIBRATION_V2_RANK_DEGENERACY_POLICY_RESULT.json]}
+  INFERENCE_PROFILE_SELF_REFERENTIAL: {date: '2026-09-30', official: served the D7 confirmatory inference (power gate, geometry admission, DWB); D7 confirmation passed, records: [docs/research/INFERENCE_PROFILE_SELF_REFERENTIAL_PRIMARY_METHOD_V1.md]}
+  COMPILER_V3_VARIANCE_FLOOR: {date: '2026-10-04', official: VARIANCE_MODEL_REDESIGN_REQUIRED, records: [docs/research/COMPILER_V3_VARIANCE_FLOOR_VALIDATION_RESULT_V1.json]}
+  COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION: {date: '2026-10-05', official: ESTIMATOR_CALIBRATION_FAIL_INFORMATION_INSUFFICIENT; line CLOSED, records: [docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_RESULT_V1.json, docs/research/COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md]}
+
+# Items found in the sources that are NOT units, with the reason.
+not_units:
+  H-002..H-016: Initial hypothesis inventory (RESEARCH_LEDGER); all marked E1_TESTING or UNRESOLVED and folded into E1-RUN-001; no separate execution exists
+  H-001: The V1 lateness hypothesis, consumed by the V1 autopsy (methodology_units.V1-AUTOPSY)
+  B01: No unit carries this id. The early series are BATCH01 (H01-H05) and BATCH02 (B2-01..B2-06), both fully in the census
+  GV0R01 linked attempts: C001, C009, C011, C019, C023, C024, C027, C028 — attempts linked to an earlier signature (duplicate / neighbour / blocker-resolution proposal); no separate signature, no test
+  GV0V03L40 linked attempts: C006, C008, C009, C025, C026, C030, C035, C040 — linked duplicates/neighbours (C025's repair is the census unit GV0V03L40-C025-R1)
+  GV0V03L40 empty slots: C011 emitted and failed intake; C012-C020 were never emitted by the provider (LADDER40_V03_R02_HYPOTHESIS_REVIEW.md)
+  EVIDENCE_FORMAT_SHADOW_REPORT_V1: Re-presentation of DH1-L2, R03-C1 and D12 in the evidence format; no new computation
+  GV0R02/GV0R03 feasibility compilers, Generator V0 campaigns, Research Atlas: Tooling and process records; they govern units but are not units
