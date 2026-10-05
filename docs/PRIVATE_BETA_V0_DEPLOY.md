@@ -232,6 +232,14 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
   - **Held-out bins.** The nightly build adds per-bin held-out reliability to `range_model.calibration.<h>.touch_bins`, and `/accuracy` shows it.
   - **Live bins.** The notifier refreshes the live bins from the journal once an hour (`beta_runtime_health` component `touch_live_cal`).
   - **Divergence.** A live bin that breaks the frozen rule falls back to «исторически в X % случаев» for the rest of the model version and raises `TOUCH_CALIBRATION_DIVERGED`.
+- `/admin_stats` and `--beta-usage-report` end with an owner breakdown (backlog H6; `beta/usage.py::owner_breakdown`), for the last 7 days and since the first external user.
+  - **Words.** It uses the measurement contract's: every pull (`/check` included), the inclusive 10-minute window after any delivery, and known and unknown participants apart.
+  - **What it counts.**
+    - Organic versus post-push pulls and Kyiv days, and participants with organic pulls on ≥ 2 days.
+    - `/check` and repeat `/check` (≥ 2 Kyiv days), and taps on «🎯 Проверить» and «🔔 Следить».
+    - Per delivery type: sent, reacted within 10 minutes, «Полезно» / «Шум» votes (unusual-hour pushes only, until votes exist on every type), per-type mutes and the current mute state.
+  - **Trader type.** The split appears once onboarding records one.
+  - **Status.** It is an operational overview over current rows, never the U1–U5 read (`BETA_MEASUREMENT_CONTRACT_V1.md` §0). A long report arrives as several owner messages.
 
 **Rollback:** `sudo systemctl disable --now signalbot-beta-history.timer`, check out the previous commit and restart the bot. The tables are additive; the old code ignores them. Turning off only the pushes: `decision.market_alerts.enabled: false` (config), or per user `/push levels off` etc.
 

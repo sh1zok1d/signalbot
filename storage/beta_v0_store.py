@@ -1091,11 +1091,16 @@ class BetaConn:
     async def usage_facts(self) -> dict:
         """Rows the usage report aggregates. The return value still has ids;
         only build_usage_report's result is shown to the owner."""
+        # trader_type: the onboarding answer once backlog E5 adds the column; NULL until then
         users = await self.conn.fetch(
-            """SELECT user_pk, telegram_user_id, status, lang, joined_at, invite_code
-               FROM beta_users""")
+            """SELECT user_pk, telegram_user_id, status, lang, joined_at, invite_code, known_contact,
+                      to_jsonb(u) ->> 'trader_type' AS trader_type
+               FROM beta_users u""")
         activity = await self.conn.fetch(
-            "SELECT user_pk, action, at FROM beta_user_activity")
+            "SELECT user_pk, action, detail, at FROM beta_user_activity")
+        # votes exist on unusual-hour pushes only (episodes); other types join with backlog F6
+        votes = await self.conn.fetch(
+            "SELECT user_pk, 'hour' AS kind, vote, updated_at AS at FROM beta_feedback")
         invites = await self.conn.fetch("SELECT code, label FROM beta_invites")
         deletions = await self.conn.fetch(
             """SELECT recorded_at FROM beta_admin_audit
@@ -1107,6 +1112,7 @@ class BetaConn:
         wait = int(await self.conn.fetchval("SELECT count(*) FROM beta_waitlist"))
         return {"users": [dict(r) for r in users],
                 "activity": [dict(r) for r in activity],
+                "votes": [dict(r) for r in votes],
                 "invites": [dict(r) for r in invites],
                 "deletions": [r["recorded_at"] for r in deletions],
                 "rejected_hashes": [dict(r) for r in hashes],

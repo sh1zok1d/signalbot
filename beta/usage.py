@@ -3,11 +3,19 @@
 Weeks are counted from the first external user's join (the owner is excluded).
 Week 1 is the seven days that start at that join. A /btc open is unprompted
 when no push_delivered for the same user falls in the 30 minutes before it.
+
+The owner breakdown (backlog H6) uses the measurement contract's words instead:
+the 10-minute window, every pull, delivery classes, known and unknown apart
+(`BETA_MEASUREMENT_CONTRACT_V1` §2–§3). It is still an operational overview over
+current rows, never the U1–U5 read (§0): no enrollment window, no Day 0, no
+classification deadline.
 """
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Sequence
+
+from beta.i18n import KYIV
 
 WEEK = timedelta(days=7)
 PROMPT_WINDOW = timedelta(minutes=30)
@@ -136,6 +144,117 @@ def _invite_block(users: Sequence[dict], activity: Sequence[dict], invites: Sequ
     return result
 
 
+REACTION_WINDOW = timedelta(minutes=10)                  # BETA_MEASUREMENT_CONTRACT_V1 §3
+# §2 pulls; /check stays a pull until the contract amendment fixes its class (scope decision §6.7)
+PULL_ACTIONS = ("cmd_btc", "cmd_catchup", "cmd_levels", "cmd_risk", "cmd_events", "cmd_accuracy",
+                "cmd_research", "cmd_history", "cmd_alert", "cmd_check")
+DELIVERIES = ("push_delivered", "alert_delivered", "brief_delivered")
+# delivery type -> (activity action, its detail or None); `price` is the personal /alert
+DELIVERY_TYPES = (("hour", "push_delivered", None), ("level", "alert_delivered", "level"),
+                  ("event", "alert_delivered", "event"), ("move", "alert_delivered", "move"),
+                  ("brief", "brief_delivered", None), ("price", "alert_delivered", "price"))
+# delivery type -> (settings action, detail prefix): `/push levels off` is `cmd_push` `levels:off`
+MUTES = {"hour": ("cmd_push", "hours:"), "level": ("cmd_push", "levels:"), "event": ("cmd_push", "events:"),
+         "move": ("cmd_push", "moves:"), "brief": ("cmd_brief", "")}
+
+
+def _kyiv_day(at: datetime):
+    return _aware(at).astimezone(KYIV).date()
+
+
+def _type_of(row: dict) -> Optional[str]:
+    for name, action, detail in DELIVERY_TYPES:
+        if row["action"] == action and (detail is None or row.get("detail") == detail):
+            return name
+    return None
+
+
+def _follows(at: datetime, starts: Sequence[datetime]) -> bool:
+    at = _aware(at)
+    return any(timedelta(0) <= at - s <= REACTION_WINDOW for s in starts)
+
+
+def _muted(rows: Sequence[dict], action: str, prefix: str) -> Optional[bool]:
+    """The last on/off a participant chose for one type, from the settings history (None: never set)."""
+    state = None
+    for row in sorted(rows, key=lambda r: _aware(r["at"])):
+        if row["action"] == action and row.get("detail") in (f"{prefix}on", f"{prefix}off"):
+            state = row["detail"] == f"{prefix}off"
+    return state
+
+
+def _group_block(pks: set, activity: Sequence[dict], votes: Sequence[dict], *, start: datetime,
+                 end: datetime) -> dict:
+    """One group of participants in [start, end]; deliveries before `start` still prompt."""
+    mine = [r for r in activity if r["user_pk"] in pks]
+    by_user: dict = {}
+    for row in mine:
+        by_user.setdefault(row["user_pk"], []).append(row)
+    inside = [r for r in mine if _aware(start) <= _aware(r["at"]) <= _aware(end)]
+    organic = post_push = 0
+    organic_days: dict = {}
+    pulled_days: dict = {}
+    for row in inside:
+        if row["action"] not in PULL_ACTIONS:
+            continue
+        sent = [_aware(r["at"]) for r in by_user[row["user_pk"]] if r["action"] in DELIVERIES]
+        day = _kyiv_day(row["at"])
+        pulled_days.setdefault(row["user_pk"], set()).add(day)
+        if _follows(row["at"], sent):
+            post_push += 1
+        else:
+            organic += 1
+            organic_days.setdefault(row["user_pk"], set()).add(day)
+    check_days: dict = {}
+    for row in inside:
+        if row["action"] == "cmd_check":
+            check_days.setdefault(row["user_pk"], set()).add(_kyiv_day(row["at"]))
+    types = {}
+    for name, _, _ in DELIVERY_TYPES:
+        sent = [r for r in inside if _type_of(r) == name]
+        reacted = 0
+        for row in sent:
+            buttons = [_aware(r["at"]) for r in by_user[row["user_pk"]]
+                       if r["action"].startswith(("tab_", "btn_")) and _aware(r["at"]) >= _aware(row["at"])]
+            reacted += any(b - _aware(row["at"]) <= REACTION_WINDOW for b in buttons)
+        cast = [v for v in votes if v["user_pk"] in pks and v["kind"] == name
+                and _aware(start) <= _aware(v["at"]) <= _aware(end)]
+        block = {"delivered": len(sent), "reacted": reacted,
+                 "useful": sum(1 for v in cast if v["vote"] == "USEFUL"),
+                 "noise": sum(1 for v in cast if v["vote"] == "NOISE")}
+        if name in MUTES:
+            action, prefix = MUTES[name]
+            block["mutes"] = sum(1 for r in inside if r["action"] == action and r.get("detail") == f"{prefix}off")
+            block["muted_now"] = sum(1 for pk in pks if _muted(by_user.get(pk, ()), action, prefix))
+        types[name] = block
+    return {"users": len(pks),
+            "pulls": {"organic": organic, "post_push": post_push},
+            "organic_days": sum(len(d) for d in organic_days.values()),
+            "post_push_only_days": sum(len(d - organic_days.get(pk, set())) for pk, d in pulled_days.items()),
+            "returning_users": sum(1 for d in organic_days.values() if len(d) >= 2),
+            "check": {"pulls": sum(1 for r in inside if r["action"] == "cmd_check"), "users": len(check_days),
+                      "repeat_users": sum(1 for d in check_days.values() if len(d) >= 2),
+                      "btn_check": sum(1 for r in inside if r["action"] == "btn_check"),
+                      "btn_watch": sum(1 for r in inside if r["action"] == "btn_watch")},
+            "types": types,
+            "push_off_now": sum(1 for pk in pks if _muted(by_user.get(pk, ()), "cmd_push", ""))}
+
+
+def owner_breakdown(users: Sequence[dict], activity: Sequence[dict], votes: Sequence[dict], *,
+                    start: datetime, end: datetime) -> dict:
+    """Backlog H6: organic versus post-push pulls, repeat /check and noise by type, known and
+    unknown apart, and by trader type once onboarding records one (backlog E5)."""
+    known = {u["user_pk"] for u in users if u.get("known_contact")}
+    unknown = {u["user_pk"] for u in users} - known
+    out = {"unknown": _group_block(unknown, activity, votes, start=start, end=end),
+           "known": _group_block(known, activity, votes, start=start, end=end), "trader_types": None}
+    if any(u.get("trader_type") for u in users):
+        kinds = sorted({u.get("trader_type") or "none" for u in users})
+        out["trader_types"] = {k: _group_block({u["user_pk"] for u in users if (u.get("trader_type") or "none") == k},
+                                               activity, votes, start=start, end=end) for k in kinds}
+    return out
+
+
 def build_usage_report(facts: dict, *, now: datetime, owner_user_id: Optional[int]) -> dict:
     """Build the owner report. `facts` may contain Telegram ids; the result does not."""
     from beta.admin import fingerprint
@@ -200,6 +319,7 @@ def build_usage_report(facts: dict, *, now: datetime, owner_user_id: Optional[in
                          "unsalted_count": count_days.get(day)})
     since_users = [u for u in users if origin is not None and _aware(u["joined_at"]) >= origin]
     last_users = [u for u in users if last_start <= _aware(u["joined_at"]) <= now]
+    votes = [dict(v) for v in facts.get("votes", ()) if v["user_pk"] in external_pks]
     return {
         "generated_at": now,
         "first_external_join": origin,
@@ -207,6 +327,7 @@ def build_usage_report(facts: dict, *, now: datetime, owner_user_id: Optional[in
             **_window_block(last_rows, pushes_by_user=pushes, stops=_stops(last_rows),
                             deletions=_deletions(last_start, now, inclusive_end=True)),
             "joins_by_invite": _invite_block(last_users, last_rows, facts["invites"]),
+            "owner_breakdown": owner_breakdown(users, activity, votes, start=last_start, end=now),
         },
         "since_first_external": {
             "active_users": len(_active_pks(since_rows)),
@@ -221,6 +342,8 @@ def build_usage_report(facts: dict, *, now: datetime, owner_user_id: Optional[in
             "deletions": _deletions(origin, now + timedelta(microseconds=1), inclusive_end=True) if origin else 0,
             **_btc_stats(since_rows, _active_pks(since_rows), pushes),
             "joins_by_invite": _invite_block(since_users, since_rows, facts["invites"]),
+            "owner_breakdown": (owner_breakdown(users, activity, votes, start=origin, end=now)
+                                if origin is not None else None),
         },
         "retention": _retention(users, activity, now),
         "language_split": lang,
@@ -251,6 +374,38 @@ def _invites(rows: Sequence[dict]) -> str:
     if not rows:
         return "none"
     return "; ".join(f"{r['label']}: joins {r['joins']}, active {r['active_users']}" for r in rows)
+
+
+def _breakdown_lines(name: str, block: dict) -> list:
+    pulls = block["pulls"]
+    chk = block["check"]
+    lines = [f"  {name} ({block['users']} users): pulls organic {pulls['organic']}, post-push {pulls['post_push']}"
+             f" · organic days {block['organic_days']}, post-push-only days {block['post_push_only_days']}"
+             f" · returning {block['returning_users']}",
+             f"    /check {chk['pulls']} by {chk['users']}, repeat {chk['repeat_users']}"
+             f" · check button {chk['btn_check']} · watch button {chk['btn_watch']}"
+             f" · push off now {block['push_off_now']}"]
+    for kind, row in block["types"].items():
+        parts = [f"sent {row['delivered']}", f"reacted {row['reacted']}",
+                 f"useful {row['useful']}", f"noise {row['noise']}"]
+        if "mutes" in row:
+            parts.append(f"muted {row['mutes']} (now {row['muted_now']})")
+        lines.append(f"    {kind}: " + ", ".join(parts))
+    return lines
+
+
+def _breakdown(title: str, data: Optional[dict]) -> list:
+    if data is None:
+        return []
+    lines = [title]
+    for name in ("unknown", "known"):
+        lines += _breakdown_lines(name, data[name])
+    if data["trader_types"] is None:
+        lines.append("  trader type: not recorded")
+    else:
+        for kind, block in data["trader_types"].items():
+            lines += _breakdown_lines(f"trader {kind}", block)
+    return lines
 
 
 def format_usage_report(report: dict) -> str:
@@ -311,4 +466,7 @@ def format_usage_report(report: dict) -> str:
             lines.append("  " + " ".join(parts))
     else:
         lines.append("  rejected: none")
+    lines.append("owner breakdown (10-min window, all pulls; operational, not U1-U5)")
+    lines += _breakdown("last 7 days", report["last_7_days"].get("owner_breakdown"))
+    lines += _breakdown("since first external user", report["since_first_external"].get("owner_breakdown"))
     return "\n".join(lines)

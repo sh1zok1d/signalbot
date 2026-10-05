@@ -183,8 +183,9 @@ class BetaBotHandler:
                                      bot_username=self.bot_username)
             if not res["authorized"]:
                 return [_msg(chat_id, t("ru", "unknown_cmd"), lang="ru")]
-            out = [Outgoing(kind="message", chat_id=chat_id,
-                            html=f"<pre>{html.escape(res['reply'] or '', quote=False)}</pre>")]
+            # Telegram caps a message at 4096 characters; /admin_stats grows with the weeks
+            out = [Outgoing(kind="message", chat_id=chat_id, html=f"<pre>{html.escape(part, quote=False)}</pre>")
+                   for part in _owner_parts(res["reply"] or "")]
             if res["broadcast"]:
                 out += [_msg(c, res["broadcast"], lang="ru") for c in await conn.active_user_chats()]
             for item in res.get("direct") or []:
@@ -691,6 +692,18 @@ class BetaBotHandler:
             return await self._reply(conn, user, chat_id, lang, self.clock(), action,
                                      [answer(t(lang, "feedback_recorded"))])
         return [answer(t(lang, "not_available"))]
+
+
+def _owner_parts(text: str, limit: int = 3500) -> list:
+    """Owner text in whole lines, each part under `limit` characters once escaped."""
+    parts, cur = [], ""
+    for line in text.split("\n"):
+        if cur and len(html.escape(cur + "\n" + line, quote=False)) > limit:
+            parts.append(cur)
+            cur = line
+        else:
+            cur = line if not cur else cur + "\n" + line
+    return parts + [cur]
 
 
 def _parse_tab(data: str):

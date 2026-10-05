@@ -495,7 +495,9 @@ def test_usage_report_fixture_weeks_and_unprompted_opens():
                 "INSERT INTO beta_rejected_start_counts (utc_day, attempt_count) VALUES ('2026-06-27', 4)")
         h = _handler(pool, when=now)
         out = await h.handle(_msg(owner, "/admin_stats", 1))
-        text = out[0].html.replace("<pre>", "").replace("</pre>", "")
+        # one report, in whole-line parts under Telegram's 4096-character cap
+        assert len(out) >= 2 and all(len(o.html) <= 4096 for o in out)
+        text = "\n".join(o.html.replace("<pre>", "").replace("</pre>", "") for o in out)
         assert "week 3 active: 2" in text
         assert "week 4 active: 2" in text
         assert "weeks 3-4 both active: 2" in text
@@ -533,6 +535,11 @@ def test_usage_report_fixture_weeks_and_unprompted_opens():
         assert usage["last_7_days"]["post_push_btc"] == 1
         assert usage["since_first_external"]["unprompted_btc"] == 15
         assert usage["since_first_external"]["post_push_btc"] == 2
+        # H6 breakdown from the same rows: every pull, the contract's inclusive 10-minute window
+        unknown = usage["since_first_external"]["owner_breakdown"]["unknown"]
+        assert unknown["pulls"] == {"organic": 15, "post_push": 2} and unknown["users"] == 4
+        assert unknown["types"]["hour"]["delivered"] == 2 and unknown["types"]["hour"]["reacted"] == 0
+        assert "owner breakdown (10-min window, all pulls; operational, not U1-U5)" in text
         assert format_usage_report(usage) == text
         import os
         os.makedirs("/opt/cursor/artifacts", exist_ok=True)
