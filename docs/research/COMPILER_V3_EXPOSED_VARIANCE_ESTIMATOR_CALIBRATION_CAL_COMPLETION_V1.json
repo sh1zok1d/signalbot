@@ -1,0 +1,160 @@
+{
+  "ARTIFACT": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_CAL_COMPLETION_V1.json",
+  "CAL_AUTHORIZATION_SHA256": "2a80a155f0c6c50ac5533f12a69ae705e21bce06299a8b91671ef71024a3f992",
+  "CHECKPOINT": {
+    "BYTES": 158690660,
+    "INTEGRITY": {
+      "COMPLETED": 1032000,
+      "DUPLICATES": 0,
+      "ERROR_ROWS": 0,
+      "EXPECTED": 1032000,
+      "MISSING": 0,
+      "NONFINITE_ROWS": 0,
+      "UNEXPECTED": 0
+    },
+    "PATH": "data/compiler_v3_estimator_calibration_run_1/replicates.jsonl",
+    "SHA256": "4d2fe70cbffe460f48aed368fe751cc8273d111971eb90b1b7744987cf99b409"
+  },
+  "COMMIT": "778d51d0885dd405c8d619c67f33d3d54988601f",
+  "C_TABLE": {
+    "COMMITTED_COPY": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_C_TABLE_V1.json",
+    "ROWS_PER_CLASS": {
+      "CLUSTERED": {
+        "15": {
+          "C_ENV": 6.768133682805558,
+          "C_RAW": 6.768133682805558,
+          "M": 96000,
+          "RANK": 95040
+        },
+        "25": {
+          "C_ENV": 4.966052616195864,
+          "C_RAW": 4.966052616195864,
+          "M": 96000,
+          "RANK": 95040
+        },
+        "40": {
+          "C_ENV": 4.09230221102395,
+          "C_RAW": 4.09230221102395,
+          "M": 96000,
+          "RANK": 95040
+        },
+        "8": {
+          "C_ENV": 12.324656118643778,
+          "C_RAW": 12.324656118643778,
+          "M": 96000,
+          "RANK": 95040
+        }
+      },
+      "PAIRED_UNITS": {
+        "100": {
+          "C_ENV": 6.836204445478243,
+          "C_RAW": 6.836204445478243,
+          "M": 24000,
+          "RANK": 23760
+        },
+        "160": {
+          "C_ENV": 6.181202914100134,
+          "C_RAW": 6.181202914100134,
+          "M": 24000,
+          "RANK": 23760
+        },
+        "260": {
+          "C_ENV": 5.689093073038329,
+          "C_RAW": 5.689093073038329,
+          "M": 24000,
+          "RANK": 23760
+        },
+        "40": {
+          "C_ENV": 9.369441713329095,
+          "C_RAW": 9.369441713329095,
+          "M": 24000,
+          "RANK": 23760
+        },
+        "400": {
+          "C_ENV": 5.2441066053441485,
+          "C_RAW": 5.2441066053441485,
+          "M": 24000,
+          "RANK": 23760
+        },
+        "60": {
+          "C_ENV": 7.939973930233741,
+          "C_RAW": 7.939973930233741,
+          "M": 24000,
+          "RANK": 23760
+        }
+      },
+      "RARE_EVENT": {
+        "100": {
+          "C_ENV": 3.5085017062729653,
+          "C_RAW": 3.5085017062729653,
+          "M": 96000,
+          "RANK": 95040
+        },
+        "30": {
+          "C_ENV": 5.609251955106839,
+          "C_RAW": 5.609251955106839,
+          "M": 96000,
+          "RANK": 95040
+        },
+        "50": {
+          "C_ENV": 4.44636961162189,
+          "C_RAW": 4.44636961162189,
+          "M": 96000,
+          "RANK": 95040
+        },
+        "75": {
+          "C_ENV": 3.8224129612756625,
+          "C_RAW": 3.8224129612756625,
+          "M": 96000,
+          "RANK": 95040
+        }
+      },
+      "TWO_SAMPLE": {
+        "120": {
+          "C_ENV": 5.741457684547839,
+          "C_RAW": 5.741457684547839,
+          "M": 24000,
+          "RANK": 23760
+        },
+        "250": {
+          "C_ENV": 5.149198768329139,
+          "C_RAW": 5.149198768329139,
+          "M": 24000,
+          "RANK": 23760
+        },
+        "30": {
+          "C_ENV": 8.079297112730913,
+          "C_RAW": 8.079297112730913,
+          "M": 24000,
+          "RANK": 23760
+        },
+        "500": {
+          "C_ENV": 4.794797979165769,
+          "C_RAW": 4.794797979165769,
+          "M": 24000,
+          "RANK": 23760
+        },
+        "60": {
+          "C_ENV": 6.61416183660072,
+          "C_RAW": 6.61416183660072,
+          "M": 24000,
+          "RANK": 23760
+        }
+      }
+    },
+    "SEALED_PATH": "data/compiler_v3_estimator_calibration_run_1/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_C_TABLE_V1.json",
+    "SHA256": "8f1bff84361303bc9360e4615aca2857b07c219b42e2471be4536f69a208baf7"
+  },
+  "ELAPSED_SECONDS": 188.6,
+  "ENGINE_CAL_RECORD_SHA256": "901c6a7110e3a542a90ebc0c4b08a3b3065e0453d0dff47ada0fe5331eb8051f",
+  "EVAL_AUTHORIZED": false,
+  "EVAL_REPLICATES_EXECUTED": 0,
+  "EXECUTION_BINDING_SHA256": "a8704a75ac3e6c0b24b49ea7ee4399a3a8df0592f972b70ffe7e27cab0cc3deb",
+  "EXECUTOR_DIGEST": "b1eb58231e570550cd59b3ada7fd72c6a941ff4b40e90b56b5da24a6d8c141f8",
+  "FINISHED_UTC": "2026-10-05T04:03:49.703577+00:00",
+  "IMMUTABLE": true,
+  "PHASE": "CAL",
+  "RUN_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_OFFICIAL_RUN_1",
+  "STARTED_UTC": "2026-10-05T04:00:20.210868+00:00",
+  "STATUS": "COMPLETE"
+}

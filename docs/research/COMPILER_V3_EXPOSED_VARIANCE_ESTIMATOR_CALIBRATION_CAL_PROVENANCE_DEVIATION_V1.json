@@ -1,0 +1,134 @@
+{
+  "ADMISSIBILITY_BASIS": [
+    "checkpoint surface exact",
+    "deterministic rebuild gives identical C-table digest",
+    "frozen executor/module digests match",
+    "driver audit finds no semantic mutation",
+    "no evidence of rerun or replacement",
+    "EVAL untouched"
+  ],
+  "ARTIFACT": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_CAL_PROVENANCE_DEVIATION_V1",
+  "CAL_ADMISSIBILITY_STATUS": "CAL_ADMISSIBLE_WITH_RECORDED_PROVENANCE_DEVIATION",
+  "CHECKPOINT_RECONSTRUCTION": {
+    "CHECKPOINT_SHA256": "4d2fe70cbffe460f48aed368fe751cc8273d111971eb90b1b7744987cf99b409",
+    "COMMITTED_COPY_SHA256": "8f1bff84361303bc9360e4615aca2857b07c219b42e2471be4536f69a208baf7",
+    "DUPLICATES": 0,
+    "ERROR_ROWS": 0,
+    "EVAL_ROWS": 0,
+    "EXACT_DIGEST_EQUALITY": true,
+    "EXPECTED": 1032000,
+    "METHOD": "deterministic reduction of the existing checkpoint with the committed V4 ctable.build_c_table; zero replicates generated",
+    "MISSING": 0,
+    "NOTE": "python dict comparison of TABLE differs only in tuple-vs-list typing of CAL_SEED_RANGES after JSON round trip; serialized bytes are identical",
+    "PHASES": [
+      "CAL"
+    ],
+    "REBUILT_C_TABLE_SHA256": "8f1bff84361303bc9360e4615aca2857b07c219b42e2471be4536f69a208baf7",
+    "ROWS": 1032000,
+    "SEALED_C_TABLE_SHA256": "8f1bff84361303bc9360e4615aca2857b07c219b42e2471be4536f69a208baf7",
+    "SEEDS_OUTSIDE_FROZEN_CAL_RANGES": 0,
+    "UNEXPECTED": 0
+  },
+  "DATE": "2026-10-05",
+  "DEVIATION_KIND": "PROTOCOL_AUDIT_CHAIN_DEVIATION (not a statistical failure)",
+  "DRIVER_AUDIT": {
+    "CANDIDATE_SPECIFIC_GENERATION": false,
+    "COMMIT": "2004a7a",
+    "COMMITTED_DRIVER_SHA256": "3bf2ebd71b2f19915a079205bc880400ef4f9c54c2e9b1481305fd99434f766d",
+    "ENGINE_REFERENCES": [
+      "engine.run_cal",
+      "engine.executor_digest",
+      "engine.RUN_AUTHORIZATION (runtime re-point to the CAL authorization for the CAL call only)"
+    ],
+    "FILTERS_ROWS": false,
+    "IMPLEMENTS_ESTIMATOR_OR_CALIBRATION_MATH": false,
+    "METHOD": "static AST scan of the committed file",
+    "MODIFIES_FROZEN_SEED_SETS": false,
+    "NUMPY_USE": "np.isfinite checks in the post-run integrity summary only",
+    "REPLACES_FAILED_REPLICATES": false,
+    "ROLE": "orchestrates preflight, binding, authorization, one engine.run_cal call, integrity summary from the checkpoint, byte-identical C-table copy, completion artifact",
+    "VERDICT": "NO_RESEARCH_SEMANTIC_LOGIC_OUTSIDE_FROZEN_EXECUTOR",
+    "WRITES_CHECKPOINT_ROWS": false
+  },
+  "EVAL_GOVERNANCE_RULE": {
+    "EVAL_AUTHORIZATION_CREATED_IN_THIS_STEP": false,
+    "FORBIDDEN": "the CAL pattern of commit-after-completion",
+    "MUST": "binding and EVAL authorization committed and pushed BEFORE the first EVAL replicate",
+    "ORDER": [
+      "1. create EVAL binding",
+      "2. create EVAL authorization",
+      "3. commit + push",
+      "4. verify committed digests and clean tree",
+      "5. only then execute EVAL",
+      "6. results go into a later separate commit"
+    ]
+  },
+  "EXECUTION_IDENTITY": {
+    "COMMITTED_DRIVER_BYTE_IDENTICAL_TO_EXECUTED": "NOT_PROVABLE_BY_HASH (see DRIVER_PRE_RUN_HASH_EVIDENCE)",
+    "COMPLETION_BINDS": {
+      "AUTHORIZATION": true,
+      "BINDING": true,
+      "CHECKPOINT": true,
+      "C_TABLE": true,
+      "ENGINE_CAL_RECORD": true
+    },
+    "C_TABLE_MODIFIED_AFTER_SEAL": false,
+    "EXECUTOR_DIGEST": "b1eb58231e570550cd59b3ada7fd72c6a941ff4b40e90b56b5da24a6d8c141f8",
+    "EXECUTOR_MATCHES": [
+      "amendment V4 EXECUTOR_AFTER_REPAIR",
+      "execution binding",
+      "checkpoint HEADER",
+      "sealed C-table EXECUTOR_DIGEST"
+    ],
+    "V4_FROZEN_DIGESTS_MATCH": true
+  },
+  "FACTS": {
+    "AUTHORIZATION_SHA256": "2a80a155f0c6c50ac5533f12a69ae705e21bce06299a8b91671ef71024a3f992",
+    "BINDING_AND_AUTHORIZATION_CREATED_BEFORE_FIRST_CAL_REPLICATE": true,
+    "BINDING_SHA256": "a8704a75ac3e6c0b24b49ea7ee4399a3a8df0592f972b70ffe7e27cab0cc3deb",
+    "CAL_EXECUTED_AT_HEAD": "778d51d0885dd405c8d619c67f33d3d54988601f",
+    "CAL_RERUN_FORBIDDEN_AFTER_C_TABLE_SEEN": true,
+    "COMMITTED_AFTER_RUN": true,
+    "COMMITTED_ONLY_AFTER_RUN_IN": "2004a7a",
+    "DEVIATION_STATUS": "RECORDED; not absent; not retroactively repaired; permanent recorded limitation",
+    "DRIVER_PATH": "scripts/research/compiler_v3_estimator_calibration/cal_official.py",
+    "DRIVER_UNTRACKED_DURING_RUN": true,
+    "EVAL_REPLICATES_EXECUTED": 0,
+    "FROZEN_PROTOCOL_AND_EXECUTOR_MODULES_COMMITTED_BEFORE_EXECUTION": true,
+    "RUN1_OUTCOMES_READ": false
+  },
+  "IMMUTABLE": true,
+  "NOT_DONE": [
+    "CAL rerun",
+    "EVAL execution",
+    "C-table modification",
+    "protocol/executor change",
+    "EVAL authorization"
+  ],
+  "PERMANENT_LIMITATION": "binding, authorization and driver were not committed before the first CAL replicate; pre-run hash evidence for binding and authorization exists only in the session transcript; none for the driver",
+  "PHASE": "CAL",
+  "PRE_RUN_EVIDENCE": {
+    "AUTHORIZATION_EVIDENCE_ARTIFACT": "session transcript tool result 04:00:14.861Z; digest 2a80a155f0c6c50ac5533f12a69ae705e21bce06299a8b91671ef71024a3f992",
+    "AUTHORIZATION_FILE": "contains the binding digest a8704a75...; its own pre-run existence is evidenced only by the session transcript",
+    "AUTHORIZATION_PRE_RUN_HASH_EVIDENCE": "YES",
+    "BINDING_EVIDENCE_ARTIFACT": "session transcript tool result 04:00:14.861Z; digest a8704a75ac3e6c0b24b49ea7ee4399a3a8df0592f972b70ffe7e27cab0cc3deb",
+    "BINDING_PRE_RUN_HASH_EVIDENCE": "YES",
+    "CHECKPOINT_HEADER": "contains EXECUTOR_DIGEST b1eb5823... and the four frozen input digests; does NOT contain the binding, authorization or driver digest",
+    "DRIVER_NOTE": "no digest of cal_official.py was computed or recorded anywhere before the first replicate; the committed driver (3bf2ebd7...) is the file the session executed, but this cannot be proven by hash",
+    "DRIVER_PRE_RUN_HASH_EVIDENCE": "NO",
+    "METHOD": "search of durable artifacts for the exact digests; file mtimes not used as proof",
+    "PREFLIGHT_ARTIFACT": "created before binding; contains no binding/authorization/driver digest; lists the driver as untracked",
+    "SESSION_TRANSCRIPT": {
+      "CONTAINS": [
+        "binding digest a8704a75...",
+        "authorization digest 2a80a155..."
+      ],
+      "EXECUTE_CALL_AT": "2026-10-05T04:00:18.663Z",
+      "FIRST_CAL_REPLICATE_AT": "2026-10-05T04:00:20 UTC (CAL_COMPLETION STARTED_UTC)",
+      "NATURE": "durable append-only log of this session, not cryptographically anchored and writable by the local root user",
+      "PATH": "/root/.claude/projects/-home-user-signalbot/f96d1f09-e1d6-5abb-919a-1ca9c579df18.jsonl (outside the repository)",
+      "TOOL_RESULT_AT": "2026-10-05T04:00:14.861Z"
+    }
+  },
+  "RUN_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_OFFICIAL_RUN_1"
+}

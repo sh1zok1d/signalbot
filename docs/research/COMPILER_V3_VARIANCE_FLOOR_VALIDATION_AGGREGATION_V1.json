@@ -1,0 +1,43 @@
+{
+ "DIGESTS": {
+  "SPEC": "929dfb294597c756c2447c48f5226ace72e1f0f8c7e2da62535e864841ec75f3",
+  "MANIFEST": "4a03855324478671a4cb0952066c1c1d58d854d05098c40e5420acc6c9b0c4fd",
+  "AMENDMENT": "3c75271aaa8fa493e8d3567f33885e5647fa6ed10ad87a7190e51e4a43f2b874",
+  "EFFECTIVE_MANIFEST": "5aa2fbaf57dffc68da0841827f73a915f4d189a0d1541c29603d302b42f92076",
+  "GENERATOR": {
+   "scripts/research/compiler_v3_variance_floor/freeze.py": "4e4d4a7991fe0e9de5294c638d7c4a618f8c5c92397ec1521590903a169f22d7",
+   "scripts/research/compiler_v3_variance_floor/cp.py": "f93702fe21e485b2482c9b5a8f8c9acea02f202757514131e41e9d3f0de2443a",
+   "scripts/research/compiler_v3_variance_floor/compiler.py": "fd342a38c983611505036c7f5777ec573810c8704c3604af884cfe3c6d445847",
+   "scripts/research/compiler_v3_variance_floor/generator.py": "85c4a207862273718718b791bb8fe6009598f0fcac1aab26e85dbf09285f3fc8",
+   "scripts/research/compiler_v3_variance_floor/engine.py": "7533598cf03da5a34370ae1f0016930e87a8b94dbb28f4240cb5d699107e4407",
+   "scripts/research/compiler_v3_variance_floor/amendment.py": "003d18562ba706ee6fedf2aee05b75225d2550ec9c80c7b60888ddaecb01d201",
+   "scripts/research/compiler_v3_variance_floor/binding.py": "67de5d5dbdc9eb48694a55904ed8ea6265e8e8e49666797f8e8c32ff473755a9"
+  },
+  "RUN_AUTHORIZATION": "COMPILER_V3_VARIANCE_FLOOR_VALIDATION_OFFICIAL_RUN_1"
+ },
+ "STATUS_3A": {
+  "0.6": "FAIL",
+  "0.75": "FAIL",
+  "1.0": "FAIL"
+ },
+ "DETAIL_3A": {
+  "0.6": {
+   "DECISIVE_CHECKS": 525,
+   "FAIL": 15,
+   "INDETERMINATE": 2
+  },
+  "0.75": {
+   "DECISIVE_CHECKS": 525,
+   "FAIL": 15,
+   "INDETERMINATE": 2
+  },
+  "1.0": {
+   "DECISIVE_CHECKS": 360,
+   "FAIL": 60,
+   "INDETERMINATE": 0
+  }
+ },
+ "ADOPTED_FLOOR_CANDIDATE": null,
+ "STRESS_3B": null,
+ "FINAL": "VARIANCE_MODEL_REDESIGN_REQUIRED"
+}

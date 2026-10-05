@@ -1,0 +1,15 @@
+{
+  "FREEZE": "COMPILER_V3_VARIANCE_FLOOR_VALIDATION_FREEZE_V1",
+  "FROZEN_AT": "2026-10-04",
+  "AUTHORIZED_BY": "owner (after manifest sanity review; 3B stress-gate repair applied)",
+  "ARTIFACTS": {
+    "docs/research/COMPILER_V3_VARIANCE_FLOOR_VALIDATION_SPEC_V1.md": "929dfb294597c756c2447c48f5226ace72e1f0f8c7e2da62535e864841ec75f3",
+    "docs/research/COMPILER_V3_VARIANCE_FLOOR_GOLDEN_MANIFEST_V1.json": "4a03855324478671a4cb0952066c1c1d58d854d05098c40e5420acc6c9b0c4fd",
+    "scripts/research/compiler_v3_variance_floor/build_golden_manifest.py": "6d4b99b655728345f145f00335cd5f36dd6f7cae430b3eb27e16d7c8fa07e095"
+  },
+  "MANIFEST_VALIDATION_FREEZE_OK": true,
+  "SIMULATION_GENERATOR": "NOT_WRITTEN_AT_FREEZE",
+  "OFFICIAL_RUN_AUTHORIZED": false,
+  "ADOPTED_FLOOR": null,
+  "RULE": "a run is valid only if the three digests above match the committed artifacts and the generator digest is appended here before the run"
+}
