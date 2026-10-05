@@ -489,3 +489,23 @@ Asked "does the bot offer a decision or anything like it — what does a trader 
 - **The first directional effect in the project to pass discovery:** when Binance accounts are unusually long, price goes up first less often over the next 4h (−5.9 pp, every year). It is BTC-only and needs live confirmation.
 - **A second, weaker one:** retested daily levels hold slightly more often. It did not repeat on 2017–2019.
 - **Range states:** OI build-up, DVOL jumps and unrecovered books move the next range, but below the product's 15 % bar.
+
+## 24. From certifying research to reporting evidence (2026-10-05)
+
+**Why the change.** After DH1–DH3 the research line turned to its own machinery. A "compiler V3" was meant to certify, before any outcome, that a test would be both safe and useful. Three units in a row showed the same thing:
+- the variance-floor run;
+- the redesign's identification theorem;
+- the exposed-variance estimator calibration (`ESTIMATOR_CALIBRATION_FAIL_INFORMATION_INSUFFICIENT`).
+
+At the project's sample sizes, near-absolute coverage safety and practical utility cannot be guaranteed together in advance. That arithmetic was already in the calibration spec's own preregistered expectation. Meanwhile a clear result had been recorded as "no structure" because of a fixed 0.5 SD bar: R03-C1, weekend hours about 0.4 SD calmer, every year. The system was pricing a false positive as unbounded and a missed effect at nothing. That suits a trading signal, but not baselines, context or descriptive history.
+
+**What was decided.** `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md`:
+- the compiler V3 variance line is closed as a negative methodological result, with no rerun and no repair;
+- research reports evidence apart from what may be said;
+- an L0–L4 ladder of allowed claims sets the evidence each kind of sentence needs. L2 historical direction is shown with numbers (observed vs baseline, difference, N, uncertainty), and a probability for now (L3) is shown only after live calibration;
+- every claim the bot is entitled to make is logged prospectively;
+- the method is chosen per design, not by a universal estimator.
+
+**What stayed.** Design before outcome, no rescue, the exposure and search ledger, sealed holdouts, preregistration where it is really needed, and every sealed verdict.
+
+**What was learned.** A research process can overfit to its own safety. The strict system showed its own limit, and the fix was a claim ladder, not a different statistics school.

@@ -1,0 +1,1503 @@
+{
+  "ARTIFACT": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_C_TABLE_V1.json",
+  "ENVELOPE": "suffix max over calibrated sizes",
+  "EXECUTOR_DIGEST": "b1eb58231e570550cd59b3ada7fd72c6a941ff4b40e90b56b5da24a6d8c141f8",
+  "INPUT_DIGESTS": {
+    "AMENDMENT_V3": "31b3d15c1d502ec89af25934a8852248cfc18e654eeed7e267ab9e91a4f9a192",
+    "DENSE": "5d85ec7fe8e4b42d7c2931abaa9690071e9bef8093081712aa75ec165ec86e49",
+    "GRID": "440fe897d62a467e5b71c2168177d0002f4a3f64b414d8e4a0c68dc84b8e7db4",
+    "PROBES": "6c0b88bb8d49e05952c442e912d0fe542a465bfd1065c545289f84faac166403"
+  },
+  "QUANTILE": 0.99,
+  "RANK_RULE": "ceil(0.99 * M)",
+  "TABLE": {
+    "CLUSTERED": {
+      "15": {
+        "CAL_CELL_IDS": [
+          "F3-CLUSTERED-G15-icc0.02-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.02-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.02-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.02-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.02-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.02-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.02-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.02-sizesHETERO-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.1-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.1-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.1-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.1-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.1-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.1-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.1-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.1-sizesHETERO-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.3-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.3-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.3-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.3-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.3-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.3-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.3-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G15-icc0.3-sizesHETERO-phi_G0.3-tailT4-m_nominal24"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9003186000000,
+            9003186003999
+          ],
+          [
+            9003187000000,
+            9003187003999
+          ],
+          [
+            9003189000000,
+            9003189003999
+          ],
+          [
+            9003190000000,
+            9003190003999
+          ],
+          [
+            9003195000000,
+            9003195003999
+          ],
+          [
+            9003196000000,
+            9003196003999
+          ],
+          [
+            9003198000000,
+            9003198003999
+          ],
+          [
+            9003199000000,
+            9003199003999
+          ],
+          [
+            9003204000000,
+            9003204003999
+          ],
+          [
+            9003205000000,
+            9003205003999
+          ],
+          [
+            9003207000000,
+            9003207003999
+          ],
+          [
+            9003208000000,
+            9003208003999
+          ],
+          [
+            9003213000000,
+            9003213003999
+          ],
+          [
+            9003214000000,
+            9003214003999
+          ],
+          [
+            9003216000000,
+            9003216003999
+          ],
+          [
+            9003217000000,
+            9003217003999
+          ],
+          [
+            9003222000000,
+            9003222003999
+          ],
+          [
+            9003223000000,
+            9003223003999
+          ],
+          [
+            9003225000000,
+            9003225003999
+          ],
+          [
+            9003226000000,
+            9003226003999
+          ],
+          [
+            9003231000000,
+            9003231003999
+          ],
+          [
+            9003232000000,
+            9003232003999
+          ],
+          [
+            9003234000000,
+            9003234003999
+          ],
+          [
+            9003235000000,
+            9003235003999
+          ]
+        ],
+        "C_ENV": 6.768133682805558,
+        "C_RAW": 6.768133682805558,
+        "M": 96000,
+        "RANK": 95040
+      },
+      "25": {
+        "CAL_CELL_IDS": [
+          "F3-CLUSTERED-G25-icc0.02-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.02-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.02-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.02-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.02-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.02-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.02-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.02-sizesHETERO-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.1-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.1-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.1-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.1-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.1-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.1-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.1-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.1-sizesHETERO-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.3-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.3-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.3-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.3-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.3-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.3-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.3-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G25-icc0.3-sizesHETERO-phi_G0.3-tailT4-m_nominal24"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9003240000000,
+            9003240003999
+          ],
+          [
+            9003241000000,
+            9003241003999
+          ],
+          [
+            9003243000000,
+            9003243003999
+          ],
+          [
+            9003244000000,
+            9003244003999
+          ],
+          [
+            9003249000000,
+            9003249003999
+          ],
+          [
+            9003250000000,
+            9003250003999
+          ],
+          [
+            9003252000000,
+            9003252003999
+          ],
+          [
+            9003253000000,
+            9003253003999
+          ],
+          [
+            9003258000000,
+            9003258003999
+          ],
+          [
+            9003259000000,
+            9003259003999
+          ],
+          [
+            9003261000000,
+            9003261003999
+          ],
+          [
+            9003262000000,
+            9003262003999
+          ],
+          [
+            9003267000000,
+            9003267003999
+          ],
+          [
+            9003268000000,
+            9003268003999
+          ],
+          [
+            9003270000000,
+            9003270003999
+          ],
+          [
+            9003271000000,
+            9003271003999
+          ],
+          [
+            9003276000000,
+            9003276003999
+          ],
+          [
+            9003277000000,
+            9003277003999
+          ],
+          [
+            9003279000000,
+            9003279003999
+          ],
+          [
+            9003280000000,
+            9003280003999
+          ],
+          [
+            9003285000000,
+            9003285003999
+          ],
+          [
+            9003286000000,
+            9003286003999
+          ],
+          [
+            9003288000000,
+            9003288003999
+          ],
+          [
+            9003289000000,
+            9003289003999
+          ]
+        ],
+        "C_ENV": 4.966052616195864,
+        "C_RAW": 4.966052616195864,
+        "M": 96000,
+        "RANK": 95040
+      },
+      "40": {
+        "CAL_CELL_IDS": [
+          "F3-CLUSTERED-G40-icc0.02-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.02-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.02-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.02-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.02-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.02-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.02-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.02-sizesHETERO-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.1-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.1-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.1-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.1-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.1-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.1-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.1-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.1-sizesHETERO-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.3-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.3-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.3-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.3-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.3-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.3-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.3-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G40-icc0.3-sizesHETERO-phi_G0.3-tailT4-m_nominal24"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9003294000000,
+            9003294003999
+          ],
+          [
+            9003295000000,
+            9003295003999
+          ],
+          [
+            9003297000000,
+            9003297003999
+          ],
+          [
+            9003298000000,
+            9003298003999
+          ],
+          [
+            9003303000000,
+            9003303003999
+          ],
+          [
+            9003304000000,
+            9003304003999
+          ],
+          [
+            9003306000000,
+            9003306003999
+          ],
+          [
+            9003307000000,
+            9003307003999
+          ],
+          [
+            9003312000000,
+            9003312003999
+          ],
+          [
+            9003313000000,
+            9003313003999
+          ],
+          [
+            9003315000000,
+            9003315003999
+          ],
+          [
+            9003316000000,
+            9003316003999
+          ],
+          [
+            9003321000000,
+            9003321003999
+          ],
+          [
+            9003322000000,
+            9003322003999
+          ],
+          [
+            9003324000000,
+            9003324003999
+          ],
+          [
+            9003325000000,
+            9003325003999
+          ],
+          [
+            9003330000000,
+            9003330003999
+          ],
+          [
+            9003331000000,
+            9003331003999
+          ],
+          [
+            9003333000000,
+            9003333003999
+          ],
+          [
+            9003334000000,
+            9003334003999
+          ],
+          [
+            9003339000000,
+            9003339003999
+          ],
+          [
+            9003340000000,
+            9003340003999
+          ],
+          [
+            9003342000000,
+            9003342003999
+          ],
+          [
+            9003343000000,
+            9003343003999
+          ]
+        ],
+        "C_ENV": 4.09230221102395,
+        "C_RAW": 4.09230221102395,
+        "M": 96000,
+        "RANK": 95040
+      },
+      "8": {
+        "CAL_CELL_IDS": [
+          "F3-CLUSTERED-G8-icc0.02-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.02-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.02-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.02-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.02-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.02-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.02-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.02-sizesHETERO-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.1-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.1-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.1-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.1-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.1-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.1-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.1-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.1-sizesHETERO-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.3-sizesEQUAL-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.3-sizesEQUAL-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.3-sizesEQUAL-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.3-sizesEQUAL-phi_G0.3-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.3-sizesHETERO-phi_G0.0-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.3-sizesHETERO-phi_G0.0-tailT4-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.3-sizesHETERO-phi_G0.3-tailGAUSS-m_nominal24",
+          "F3-CLUSTERED-G8-icc0.3-sizesHETERO-phi_G0.3-tailT4-m_nominal24"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9003132000000,
+            9003132003999
+          ],
+          [
+            9003133000000,
+            9003133003999
+          ],
+          [
+            9003135000000,
+            9003135003999
+          ],
+          [
+            9003136000000,
+            9003136003999
+          ],
+          [
+            9003141000000,
+            9003141003999
+          ],
+          [
+            9003142000000,
+            9003142003999
+          ],
+          [
+            9003144000000,
+            9003144003999
+          ],
+          [
+            9003145000000,
+            9003145003999
+          ],
+          [
+            9003150000000,
+            9003150003999
+          ],
+          [
+            9003151000000,
+            9003151003999
+          ],
+          [
+            9003153000000,
+            9003153003999
+          ],
+          [
+            9003154000000,
+            9003154003999
+          ],
+          [
+            9003159000000,
+            9003159003999
+          ],
+          [
+            9003160000000,
+            9003160003999
+          ],
+          [
+            9003162000000,
+            9003162003999
+          ],
+          [
+            9003163000000,
+            9003163003999
+          ],
+          [
+            9003168000000,
+            9003168003999
+          ],
+          [
+            9003169000000,
+            9003169003999
+          ],
+          [
+            9003171000000,
+            9003171003999
+          ],
+          [
+            9003172000000,
+            9003172003999
+          ],
+          [
+            9003177000000,
+            9003177003999
+          ],
+          [
+            9003178000000,
+            9003178003999
+          ],
+          [
+            9003180000000,
+            9003180003999
+          ],
+          [
+            9003181000000,
+            9003181003999
+          ]
+        ],
+        "C_ENV": 12.324656118643778,
+        "C_RAW": 12.324656118643778,
+        "M": 96000,
+        "RANK": 95040
+      }
+    },
+    "PAIRED_UNITS": {
+      "100": {
+        "CAL_CELL_IDS": [
+          "F2-PAIRED_UNITS-N_units100-phi0.0-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units100-phi0.0-tailT4",
+          "F2-PAIRED_UNITS-N_units100-phi0.3-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units100-phi0.3-tailT4",
+          "F2-PAIRED_UNITS-N_units100-phi0.6-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units100-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9002084000000,
+            9002084003999
+          ],
+          [
+            9002085000000,
+            9002085003999
+          ],
+          [
+            9002087000000,
+            9002087003999
+          ],
+          [
+            9002088000000,
+            9002088003999
+          ],
+          [
+            9002090000000,
+            9002090003999
+          ],
+          [
+            9002091000000,
+            9002091003999
+          ]
+        ],
+        "C_ENV": 6.836204445478243,
+        "C_RAW": 6.836204445478243,
+        "M": 24000,
+        "RANK": 23760
+      },
+      "160": {
+        "CAL_CELL_IDS": [
+          "F2-PAIRED_UNITS-N_units160-phi0.0-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units160-phi0.0-tailT4",
+          "F2-PAIRED_UNITS-N_units160-phi0.3-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units160-phi0.3-tailT4",
+          "F2-PAIRED_UNITS-N_units160-phi0.6-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units160-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9002096000000,
+            9002096003999
+          ],
+          [
+            9002097000000,
+            9002097003999
+          ],
+          [
+            9002099000000,
+            9002099003999
+          ],
+          [
+            9002100000000,
+            9002100003999
+          ],
+          [
+            9002102000000,
+            9002102003999
+          ],
+          [
+            9002103000000,
+            9002103003999
+          ]
+        ],
+        "C_ENV": 6.181202914100134,
+        "C_RAW": 6.181202914100134,
+        "M": 24000,
+        "RANK": 23760
+      },
+      "260": {
+        "CAL_CELL_IDS": [
+          "F2-PAIRED_UNITS-N_units260-phi0.0-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units260-phi0.0-tailT4",
+          "F2-PAIRED_UNITS-N_units260-phi0.3-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units260-phi0.3-tailT4",
+          "F2-PAIRED_UNITS-N_units260-phi0.6-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units260-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9002108000000,
+            9002108003999
+          ],
+          [
+            9002109000000,
+            9002109003999
+          ],
+          [
+            9002111000000,
+            9002111003999
+          ],
+          [
+            9002112000000,
+            9002112003999
+          ],
+          [
+            9002114000000,
+            9002114003999
+          ],
+          [
+            9002115000000,
+            9002115003999
+          ]
+        ],
+        "C_ENV": 5.689093073038329,
+        "C_RAW": 5.689093073038329,
+        "M": 24000,
+        "RANK": 23760
+      },
+      "40": {
+        "CAL_CELL_IDS": [
+          "F2-PAIRED_UNITS-N_units40-phi0.0-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units40-phi0.0-tailT4",
+          "F2-PAIRED_UNITS-N_units40-phi0.3-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units40-phi0.3-tailT4",
+          "F2-PAIRED_UNITS-N_units40-phi0.6-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units40-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9002060000000,
+            9002060003999
+          ],
+          [
+            9002061000000,
+            9002061003999
+          ],
+          [
+            9002063000000,
+            9002063003999
+          ],
+          [
+            9002064000000,
+            9002064003999
+          ],
+          [
+            9002066000000,
+            9002066003999
+          ],
+          [
+            9002067000000,
+            9002067003999
+          ]
+        ],
+        "C_ENV": 9.369441713329095,
+        "C_RAW": 9.369441713329095,
+        "M": 24000,
+        "RANK": 23760
+      },
+      "400": {
+        "CAL_CELL_IDS": [
+          "F2-PAIRED_UNITS-N_units400-phi0.0-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units400-phi0.0-tailT4",
+          "F2-PAIRED_UNITS-N_units400-phi0.3-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units400-phi0.3-tailT4",
+          "F2-PAIRED_UNITS-N_units400-phi0.6-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units400-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9002120000000,
+            9002120003999
+          ],
+          [
+            9002121000000,
+            9002121003999
+          ],
+          [
+            9002123000000,
+            9002123003999
+          ],
+          [
+            9002124000000,
+            9002124003999
+          ],
+          [
+            9002126000000,
+            9002126003999
+          ],
+          [
+            9002127000000,
+            9002127003999
+          ]
+        ],
+        "C_ENV": 5.2441066053441485,
+        "C_RAW": 5.2441066053441485,
+        "M": 24000,
+        "RANK": 23760
+      },
+      "60": {
+        "CAL_CELL_IDS": [
+          "F2-PAIRED_UNITS-N_units60-phi0.0-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units60-phi0.0-tailT4",
+          "F2-PAIRED_UNITS-N_units60-phi0.3-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units60-phi0.3-tailT4",
+          "F2-PAIRED_UNITS-N_units60-phi0.6-tailGAUSS",
+          "F2-PAIRED_UNITS-N_units60-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9002072000000,
+            9002072003999
+          ],
+          [
+            9002073000000,
+            9002073003999
+          ],
+          [
+            9002075000000,
+            9002075003999
+          ],
+          [
+            9002076000000,
+            9002076003999
+          ],
+          [
+            9002078000000,
+            9002078003999
+          ],
+          [
+            9002079000000,
+            9002079003999
+          ]
+        ],
+        "C_ENV": 7.939973930233741,
+        "C_RAW": 7.939973930233741,
+        "M": 24000,
+        "RANK": 23760
+      }
+    },
+    "RARE_EVENT": {
+      "100": {
+        "CAL_CELL_IDS": [
+          "F4-RARE_EVENT-n_events100-venue_corr0.5-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.5-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.5-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.5-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.5-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.5-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.5-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.5-scaleHOMO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.7-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.7-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.7-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.7-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.7-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.7-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.7-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.7-scaleHOMO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.9-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.9-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.9-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.9-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.9-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.9-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.9-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events100-venue_corr0.9-scaleHOMO-phi_e0.3-tailT4-venues3"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9004510000000,
+            9004510003999
+          ],
+          [
+            9004511000000,
+            9004511003999
+          ],
+          [
+            9004513000000,
+            9004513003999
+          ],
+          [
+            9004514000000,
+            9004514003999
+          ],
+          [
+            9004519000000,
+            9004519003999
+          ],
+          [
+            9004520000000,
+            9004520003999
+          ],
+          [
+            9004522000000,
+            9004522003999
+          ],
+          [
+            9004523000000,
+            9004523003999
+          ],
+          [
+            9004528000000,
+            9004528003999
+          ],
+          [
+            9004529000000,
+            9004529003999
+          ],
+          [
+            9004531000000,
+            9004531003999
+          ],
+          [
+            9004532000000,
+            9004532003999
+          ],
+          [
+            9004537000000,
+            9004537003999
+          ],
+          [
+            9004538000000,
+            9004538003999
+          ],
+          [
+            9004540000000,
+            9004540003999
+          ],
+          [
+            9004541000000,
+            9004541003999
+          ],
+          [
+            9004546000000,
+            9004546003999
+          ],
+          [
+            9004547000000,
+            9004547003999
+          ],
+          [
+            9004549000000,
+            9004549003999
+          ],
+          [
+            9004550000000,
+            9004550003999
+          ],
+          [
+            9004555000000,
+            9004555003999
+          ],
+          [
+            9004556000000,
+            9004556003999
+          ],
+          [
+            9004558000000,
+            9004558003999
+          ],
+          [
+            9004559000000,
+            9004559003999
+          ]
+        ],
+        "C_ENV": 3.5085017062729653,
+        "C_RAW": 3.5085017062729653,
+        "M": 96000,
+        "RANK": 95040
+      },
+      "30": {
+        "CAL_CELL_IDS": [
+          "F4-RARE_EVENT-n_events30-venue_corr0.5-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.5-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.5-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.5-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.5-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.5-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.5-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.5-scaleHOMO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.7-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.7-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.7-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.7-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.7-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.7-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.7-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.7-scaleHOMO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.9-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.9-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.9-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.9-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.9-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.9-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.9-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events30-venue_corr0.9-scaleHOMO-phi_e0.3-tailT4-venues3"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9004348000000,
+            9004348003999
+          ],
+          [
+            9004349000000,
+            9004349003999
+          ],
+          [
+            9004351000000,
+            9004351003999
+          ],
+          [
+            9004352000000,
+            9004352003999
+          ],
+          [
+            9004357000000,
+            9004357003999
+          ],
+          [
+            9004358000000,
+            9004358003999
+          ],
+          [
+            9004360000000,
+            9004360003999
+          ],
+          [
+            9004361000000,
+            9004361003999
+          ],
+          [
+            9004366000000,
+            9004366003999
+          ],
+          [
+            9004367000000,
+            9004367003999
+          ],
+          [
+            9004369000000,
+            9004369003999
+          ],
+          [
+            9004370000000,
+            9004370003999
+          ],
+          [
+            9004375000000,
+            9004375003999
+          ],
+          [
+            9004376000000,
+            9004376003999
+          ],
+          [
+            9004378000000,
+            9004378003999
+          ],
+          [
+            9004379000000,
+            9004379003999
+          ],
+          [
+            9004384000000,
+            9004384003999
+          ],
+          [
+            9004385000000,
+            9004385003999
+          ],
+          [
+            9004387000000,
+            9004387003999
+          ],
+          [
+            9004388000000,
+            9004388003999
+          ],
+          [
+            9004393000000,
+            9004393003999
+          ],
+          [
+            9004394000000,
+            9004394003999
+          ],
+          [
+            9004396000000,
+            9004396003999
+          ],
+          [
+            9004397000000,
+            9004397003999
+          ]
+        ],
+        "C_ENV": 5.609251955106839,
+        "C_RAW": 5.609251955106839,
+        "M": 96000,
+        "RANK": 95040
+      },
+      "50": {
+        "CAL_CELL_IDS": [
+          "F4-RARE_EVENT-n_events50-venue_corr0.5-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.5-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.5-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.5-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.5-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.5-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.5-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.5-scaleHOMO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.7-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.7-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.7-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.7-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.7-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.7-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.7-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.7-scaleHOMO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.9-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.9-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.9-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.9-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.9-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.9-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.9-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events50-venue_corr0.9-scaleHOMO-phi_e0.3-tailT4-venues3"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9004402000000,
+            9004402003999
+          ],
+          [
+            9004403000000,
+            9004403003999
+          ],
+          [
+            9004405000000,
+            9004405003999
+          ],
+          [
+            9004406000000,
+            9004406003999
+          ],
+          [
+            9004411000000,
+            9004411003999
+          ],
+          [
+            9004412000000,
+            9004412003999
+          ],
+          [
+            9004414000000,
+            9004414003999
+          ],
+          [
+            9004415000000,
+            9004415003999
+          ],
+          [
+            9004420000000,
+            9004420003999
+          ],
+          [
+            9004421000000,
+            9004421003999
+          ],
+          [
+            9004423000000,
+            9004423003999
+          ],
+          [
+            9004424000000,
+            9004424003999
+          ],
+          [
+            9004429000000,
+            9004429003999
+          ],
+          [
+            9004430000000,
+            9004430003999
+          ],
+          [
+            9004432000000,
+            9004432003999
+          ],
+          [
+            9004433000000,
+            9004433003999
+          ],
+          [
+            9004438000000,
+            9004438003999
+          ],
+          [
+            9004439000000,
+            9004439003999
+          ],
+          [
+            9004441000000,
+            9004441003999
+          ],
+          [
+            9004442000000,
+            9004442003999
+          ],
+          [
+            9004447000000,
+            9004447003999
+          ],
+          [
+            9004448000000,
+            9004448003999
+          ],
+          [
+            9004450000000,
+            9004450003999
+          ],
+          [
+            9004451000000,
+            9004451003999
+          ]
+        ],
+        "C_ENV": 4.44636961162189,
+        "C_RAW": 4.44636961162189,
+        "M": 96000,
+        "RANK": 95040
+      },
+      "75": {
+        "CAL_CELL_IDS": [
+          "F4-RARE_EVENT-n_events75-venue_corr0.5-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.5-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.5-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.5-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.5-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.5-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.5-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.5-scaleHOMO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.7-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.7-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.7-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.7-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.7-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.7-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.7-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.7-scaleHOMO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.9-scaleHETERO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.9-scaleHETERO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.9-scaleHETERO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.9-scaleHETERO-phi_e0.3-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.9-scaleHOMO-phi_e0.0-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.9-scaleHOMO-phi_e0.0-tailT4-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.9-scaleHOMO-phi_e0.3-tailGAUSS-venues3",
+          "F4-RARE_EVENT-n_events75-venue_corr0.9-scaleHOMO-phi_e0.3-tailT4-venues3"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9004456000000,
+            9004456003999
+          ],
+          [
+            9004457000000,
+            9004457003999
+          ],
+          [
+            9004459000000,
+            9004459003999
+          ],
+          [
+            9004460000000,
+            9004460003999
+          ],
+          [
+            9004465000000,
+            9004465003999
+          ],
+          [
+            9004466000000,
+            9004466003999
+          ],
+          [
+            9004468000000,
+            9004468003999
+          ],
+          [
+            9004469000000,
+            9004469003999
+          ],
+          [
+            9004474000000,
+            9004474003999
+          ],
+          [
+            9004475000000,
+            9004475003999
+          ],
+          [
+            9004477000000,
+            9004477003999
+          ],
+          [
+            9004478000000,
+            9004478003999
+          ],
+          [
+            9004483000000,
+            9004483003999
+          ],
+          [
+            9004484000000,
+            9004484003999
+          ],
+          [
+            9004486000000,
+            9004486003999
+          ],
+          [
+            9004487000000,
+            9004487003999
+          ],
+          [
+            9004492000000,
+            9004492003999
+          ],
+          [
+            9004493000000,
+            9004493003999
+          ],
+          [
+            9004495000000,
+            9004495003999
+          ],
+          [
+            9004496000000,
+            9004496003999
+          ],
+          [
+            9004501000000,
+            9004501003999
+          ],
+          [
+            9004502000000,
+            9004502003999
+          ],
+          [
+            9004504000000,
+            9004504003999
+          ],
+          [
+            9004505000000,
+            9004505003999
+          ]
+        ],
+        "C_ENV": 3.8224129612756625,
+        "C_RAW": 3.8224129612756625,
+        "M": 96000,
+        "RANK": 95040
+      }
+    },
+    "TWO_SAMPLE": {
+      "120": {
+        "CAL_CELL_IDS": [
+          "F1-TWO_SAMPLE-n_per_arm120-phi0.0-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm120-phi0.0-tailT4",
+          "F1-TWO_SAMPLE-n_per_arm120-phi0.3-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm120-phi0.3-tailT4",
+          "F1-TWO_SAMPLE-n_per_arm120-phi0.6-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm120-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9001024000000,
+            9001024003999
+          ],
+          [
+            9001025000000,
+            9001025003999
+          ],
+          [
+            9001027000000,
+            9001027003999
+          ],
+          [
+            9001028000000,
+            9001028003999
+          ],
+          [
+            9001030000000,
+            9001030003999
+          ],
+          [
+            9001031000000,
+            9001031003999
+          ]
+        ],
+        "C_ENV": 5.741457684547839,
+        "C_RAW": 5.741457684547839,
+        "M": 24000,
+        "RANK": 23760
+      },
+      "250": {
+        "CAL_CELL_IDS": [
+          "F1-TWO_SAMPLE-n_per_arm250-phi0.0-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm250-phi0.0-tailT4",
+          "F1-TWO_SAMPLE-n_per_arm250-phi0.3-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm250-phi0.3-tailT4",
+          "F1-TWO_SAMPLE-n_per_arm250-phi0.6-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm250-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9001036000000,
+            9001036003999
+          ],
+          [
+            9001037000000,
+            9001037003999
+          ],
+          [
+            9001039000000,
+            9001039003999
+          ],
+          [
+            9001040000000,
+            9001040003999
+          ],
+          [
+            9001042000000,
+            9001042003999
+          ],
+          [
+            9001043000000,
+            9001043003999
+          ]
+        ],
+        "C_ENV": 5.149198768329139,
+        "C_RAW": 5.149198768329139,
+        "M": 24000,
+        "RANK": 23760
+      },
+      "30": {
+        "CAL_CELL_IDS": [
+          "F1-TWO_SAMPLE-n_per_arm30-phi0.0-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm30-phi0.0-tailT4",
+          "F1-TWO_SAMPLE-n_per_arm30-phi0.3-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm30-phi0.3-tailT4",
+          "F1-TWO_SAMPLE-n_per_arm30-phi0.6-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm30-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9001000000000,
+            9001000003999
+          ],
+          [
+            9001001000000,
+            9001001003999
+          ],
+          [
+            9001003000000,
+            9001003003999
+          ],
+          [
+            9001004000000,
+            9001004003999
+          ],
+          [
+            9001006000000,
+            9001006003999
+          ],
+          [
+            9001007000000,
+            9001007003999
+          ]
+        ],
+        "C_ENV": 8.079297112730913,
+        "C_RAW": 8.079297112730913,
+        "M": 24000,
+        "RANK": 23760
+      },
+      "500": {
+        "CAL_CELL_IDS": [
+          "F1-TWO_SAMPLE-n_per_arm500-phi0.0-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm500-phi0.0-tailT4",
+          "F1-TWO_SAMPLE-n_per_arm500-phi0.3-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm500-phi0.3-tailT4",
+          "F1-TWO_SAMPLE-n_per_arm500-phi0.6-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm500-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9001048000000,
+            9001048003999
+          ],
+          [
+            9001049000000,
+            9001049003999
+          ],
+          [
+            9001051000000,
+            9001051003999
+          ],
+          [
+            9001052000000,
+            9001052003999
+          ],
+          [
+            9001054000000,
+            9001054003999
+          ],
+          [
+            9001055000000,
+            9001055003999
+          ]
+        ],
+        "C_ENV": 4.794797979165769,
+        "C_RAW": 4.794797979165769,
+        "M": 24000,
+        "RANK": 23760
+      },
+      "60": {
+        "CAL_CELL_IDS": [
+          "F1-TWO_SAMPLE-n_per_arm60-phi0.0-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm60-phi0.0-tailT4",
+          "F1-TWO_SAMPLE-n_per_arm60-phi0.3-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm60-phi0.3-tailT4",
+          "F1-TWO_SAMPLE-n_per_arm60-phi0.6-tailGAUSS",
+          "F1-TWO_SAMPLE-n_per_arm60-phi0.6-tailT4"
+        ],
+        "CAL_SEED_RANGES": [
+          [
+            9001012000000,
+            9001012003999
+          ],
+          [
+            9001013000000,
+            9001013003999
+          ],
+          [
+            9001015000000,
+            9001015003999
+          ],
+          [
+            9001016000000,
+            9001016003999
+          ],
+          [
+            9001018000000,
+            9001018003999
+          ],
+          [
+            9001019000000,
+            9001019003999
+          ]
+        ],
+        "C_ENV": 6.61416183660072,
+        "C_RAW": 6.61416183660072,
+        "M": 24000,
+        "RANK": 23760
+      }
+    }
+  }
+}

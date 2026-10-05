@@ -1,0 +1,402 @@
+{
+  "DESIGN": "WEEKDAY_WEEKEND_BASELINE_CALIBRATION_DESIGN_V1",
+  "REVISION": 5,
+  "STATUS": "DESIGN_DRAFT_NOT_FROZEN_NOT_EXECUTED",
+  "KIND": "PRODUCT_FIRST_CALIBRATION_UNIT",
+  "DATE": "2026-10-03",
+  "WRITTEN_AGAINST_MAIN": "a7d738f",
+  "AUTHORITY": "docs/PRODUCT_FIRST_DECISION_V1.md section 3 row 7, 3.1b, 6, 11",
+  "MOTIVATION_ONLY": "docs/research/OWNER_CARDS_R03_RESULT.md R03-C1; verdict unchanged; no R03 number is an input",
+  "QUESTION": "Does stratifying the 1h rank reference distributions by UTC weekday type (Mon-Fri vs Sat-Sun) improve the calibration of unusual-hour flags against their nominal rates without degrading prospective calibration and without raising false alerts in other regimes?",
+  "CURRENT_STATE_C0": {
+    "rolling_1h": "last 12 closed 5m buckets; None if any missing; consensus range/move = median over venues; volume = cross-venue sum",
+    "reference": "rolling-1h value at every present 5m bucket in [t-30d, t), weekday types pooled; percentile core timeframe 1h window 30d",
+    "maturity": "Stage-2 confidence tiers by span: none<3d, low<7d, building<30d, mature>=30d; gate uses mature only",
+    "flags": {
+      "range": ">= 0.95",
+      "volume": ">= 0.95",
+      "price": ">= 0.95 or <= 0.05"
+    },
+    "gate": "MIN_EXTREME_METRICS = 2 of 3 and venues agreeing with the median move sign >= min_venue_coverage = 2",
+    "push_policy_order": [
+      "DATA_DEGRADED",
+      "DELIVERY_TOO_OLD",
+      "HOUR_NOT_UNUSUAL",
+      "SAME_EVENT_COOLDOWN 20m",
+      "GLOBAL_COOLDOWN 60m",
+      "QUIET_HOURS 23:00-07:00 Kyiv",
+      "DAILY_CAP 2/UTC day",
+      "PUSH_DISABLED"
+    ],
+    "false_alert_surface": "gate qualification per hour (drives push text, /catchup and briefing eligibility); delivery suppression does not change eligibility",
+    "presentation_baseline_out_of_scope": "BETA_HORIZON_TOD_V2 same-UTC-time +-30min median over 30 prior days, mature 20 days, pooled weekday types; descriptive only"
+  },
+  "FIXED_PRODUCT_INPUTS": {
+    "label_high": 0.95,
+    "min_extreme_metrics": 2,
+    "min_venue_coverage": 2,
+    "percentile_window": "30d",
+    "rolling_buckets": 12,
+    "tier_days": {
+      "none_below": 3,
+      "low_below": 7,
+      "building_below": 30
+    }
+  },
+  "CANDIDATE_C1_PRIMARY": {
+    "reference": "same 30d lookback restricted to present buckets whose window end is on a UTC date of the same weekday type as t",
+    "MIN_SAME_TYPE_DAYS": 8,
+    "weekday_type_rule": "UTC date of the window end; Sat/Sun = WEEKEND",
+    "rationale": "minimal change to the current construction; tests the found calibration problem without changing the horizon"
+  },
+  "SECONDARY_C1_LONG": {
+    "reference": "most recent 30 same-type UTC dates",
+    "role": "sensitivity only; cannot decide; may become primary only by a written amendment before any Stage H count"
+  },
+  "COUNTING_UNIT": "non-overlapping hourly windows with usable ranks; 5m-step rates reported beside",
+  "PRIMARY_STRATA": [
+    "WEEKDAY",
+    "WEEKEND",
+    "AGGREGATE"
+  ],
+  "GUARDRAIL_CELLS": {
+    "weekday_type": [
+      "WEEKDAY",
+      "WEEKEND"
+    ],
+    "utc_session": {
+      "ASIA": [
+        0,
+        8
+      ],
+      "EUROPE": [
+        8,
+        13
+      ],
+      "US": [
+        13,
+        21
+      ],
+      "LATE": [
+        21,
+        24
+      ]
+    },
+    "cells": 8,
+    "value_derived_edges": false,
+    "min_hours_assessable": 100
+  },
+  "METRICS": {
+    "exceedance_gap": "G_S(s,m) = share(flag region) - nominal",
+    "nominal": {
+      "range": 0.05,
+      "volume": 0.05,
+      "price": 0.1
+    },
+    "primary": "P_S = max over WEEKDAY/WEEKEND and metrics of |G_S|",
+    "qualified_rate": "U_S(s); guardrails only; venue agreement NOT_EVALUABLE on the Stage H proxy",
+    "diagnostics": [
+      "Kolmogorov distance to uniform",
+      "block-bootstrap design effect (reporting only)"
+    ]
+  },
+  "GUARDRAILS": {
+    "no_over_flagging": "G_C1 <= G_C0 + 0.01",
+    "no_under_flagging": "G_C1 >= -0.02",
+    "weekday_not_sacrificed": "|G_C1(WEEKDAY)| <= |G_C0(WEEKDAY)| + 0.005",
+    "triggered_qualified_share_stage_P": "within +-0.05 of C0 per stratum",
+    "coverage_diagnostic_stage_P": "not more than 0.05 below C0",
+    "aggregate": "|G_C1(AGG)| <= |G_C0(AGG)| + 0.005",
+    "cells": "|G_C1(cell)| <= |G_C0(cell)| + 0.01",
+    "availability_surface_B": "A_C1(s) >= A_C0(s) - 0.05 and CS(s) >= A_C0(s) - 0.05 per primary stratum; tolerance set from the 10% tape-completeness tolerance, not from any result"
+  },
+  "STAGE_H": {
+    "label": "HISTORICAL / EXPOSED / PROXY EVALUATION",
+    "data": "CORE_BTC_BINANCE_V0 1m 2020-01..2024-12, single-venue proxy",
+    "classification": "whole surface historically exposed for this decision (R03 published weekend-vs-weekday differences on it); no historical holdout exists or is created",
+    "can": [
+      "mechanics",
+      "direction and rough size of calibration error",
+      "feasibility",
+      "guardrail sanity"
+    ],
+    "cannot": [
+      "authorize a product change",
+      "confirmatory PASS"
+    ],
+    "min_hours": {
+      "WEEKDAY": 7000,
+      "WEEKEND": 2800,
+      "basis": "common-support hours"
+    },
+    "outcomes": [
+      "H_ELIGIBLE_FOR_PROSPECTIVE",
+      "H_REFUTES",
+      "H_INFEASIBLE"
+    ],
+    "also_reports": [
+      "surface B availability (calendar-driven on the gapless pinned panel)",
+      "empirical date-cluster DEFF (descriptive; may only raise the Stage P requirement)"
+    ],
+    "semantics": "eligibility / sanity gate only; no evidentiary weight; confirmatory evidence comes from Stage P alone",
+    "fixes_for_stage_P": "nothing (may only raise the information requirement by pre-P amendment)"
+  },
+  "STAGE_P": {
+    "label": "PROSPECTIVE / CONFIRMATORY",
+    "data": "beta state tape schema V2, after the start bucket",
+    "start_rule": "first UTC 00:00 bucket at which both C0 and C1 have usable weekend and weekday ranks (mature tier; C1 also 8 same-type dates), determined mechanically from counts; calendar expectation only: late October 2026",
+    "information_requirement": {
+      "definition": "DEFF is a planning VARIANCE design effect",
+      "DEFF_planning": 2.5,
+      "target_se_pp": 1.0,
+      "per_metric": {
+        "range": {
+          "p": 0.05,
+          "n_indep": 475,
+          "n_hours": 1200
+        },
+        "volume": {
+          "p": 0.05,
+          "n_indep": 475,
+          "n_hours": 1200
+        },
+        "price": {
+          "p": 0.1,
+          "n_indep": 900,
+          "n_hours": 2250
+        }
+      },
+      "overall_required_common_support_hours_per_stratum": 2250,
+      "amendment_rule": "if Stage H empirical date-cluster DEFF > 2.5, raise each requirement to ceil(DEFF_H * n_indep / 50) * 50 before Stage P; never lower",
+      "supersedes": "r3: 1200 computed at p=0.05 only"
+    },
+    "stop_rule": "first UTC Monday 00:00 at which both primary strata hold >= 2250 common-support hours; hard cap 52 weeks after start -> INCONCLUSIVE; expected clock at full availability: 47 weekends",
+    "frozen_before_start": [
+      "all thresholds and tolerances",
+      "start and stop rules",
+      "tercile edges",
+      "evaluator code",
+      "config snapshot"
+    ],
+    "no_tuning_after_H": "only a written amendment before Stage P starts (new design version) or a restart on later data under a new preregistration",
+    "inference": {
+      "clusters": "UTC dates d=1..G with >=1 common-support hour",
+      "sufficient_statistics": "same n_d for both schemes; x_{S,d} flagged hours",
+      "level": "E_S = sum x_{S,d} / N; u_{S,d} = x_{S,d} - E_S n_d; Var(E_S) = G/(G-1) * sum u^2 / N^2",
+      "paired": "Delta = sum (x_{C1,d} - x_{C0,d}) / N; v_d = (x_{C1,d} - x_{C0,d}) - Delta n_d; Var(Delta) = G/(G-1) * sum v_d^2 / N^2",
+      "reference": "t_{G-1}",
+      "small_G": "G < 30 -> INCONCLUSIVE",
+      "week_sensitivity": "same formulas with ISO-week clusters; decision uses the larger of the date and week SEs (frozen now)",
+      "DEFF_role": "planning only; never in inference"
+    },
+    "temporal_diversity_rule": {
+      "rule": "none",
+      "reason": "redundant: 2250 weekend hours span >= 47 ISO weeks (<= 48 per week), 2250 weekday hours >= 19 weeks (<= 120 per week); max single-week share 2.1% / 5.3%; > 3 months necessarily"
+    },
+    "counts_only_storage_model": {
+      "before_stop": "timestamp census only (prestop_allowed_fields)",
+      "at_stop": "one run computes per-date sufficient statistics n_d, x_{S,d,m}, paired per-date differences, qualified and triggered counts, and publishes them with the estimates"
+    },
+    "hard_cap_feasibility": {
+      "weekend_clock_hours_in_52_weeks": 2496,
+      "weekday_clock_hours_in_52_weeks": 6240,
+      "weekend_required_cs_rate": 0.901,
+      "weekday_weeks_at_full_availability": 19,
+      "weekend_weeks_at_full_availability": 47,
+      "verdict": "weekday comfortable; weekend has no margin: feasible only if A_C0(WEEKEND) >= ~0.95 and C1 loses almost nothing; census decides; else DESIGN_BLOCKED_BY_FEASIBILITY and owner chooses (price SE/band, price secondary, longer cap)"
+    },
+    "prestop_allowed_fields": [
+      "clock-hour timestamp",
+      "stratum from window-start date",
+      "ISO week and month identifiers",
+      "per-venue and cross-venue presence booleans of the 12 buckets (no values)",
+      "usable yes/no per scheme",
+      "single fixed unusable reason per scheme",
+      "common-support yes/no",
+      "per-stratum totals of the above"
+    ],
+    "prestop_forbidden": [
+      "ranks or rank summaries",
+      "flags",
+      "exceedance or qualified counts",
+      "calibration gaps",
+      "C0-vs-C1 differences",
+      "TRIGGERED / episode counts (scheme-independent but not needed; computed once at the stop)",
+      "anything derived from a value"
+    ],
+    "hard_cap": {
+      "weeks": 52,
+      "status": "PROVISIONAL / NOT_FROZEN (owner 2026-10-03); not changed automatically"
+    }
+  },
+  "SURFACE_2025_2026": {
+    "window": "2025-01-01..2026-08-15 exclusive, six Binance USD-M symbols, 1m klines + bookDepth + OI metrics",
+    "opened_by": "DIVERGENCE_FULL_HISTORY_RESEARCH_V0 validation run fca3ab5",
+    "also_read_by": [
+      "SELLING_EXHAUSTION_SUPPORT_FEASIBILITY_V0 (decisions to 2026-08-11)"
+    ],
+    "not_read_by": [
+      "DIVERGENCE_CONDITIONAL_SUPPORT_FEASIBILITY_V1",
+      "SEED0001 exploratory (2022-11..2024-12)",
+      "OWNER_CARDS_R03"
+    ],
+    "statistics_known_from_records": "swing-low episodes, arm outcomes, 22-feature covariate comparison incl. log RV24, ATR%, 7-day return; no weekday/weekend, hour-of-day or unusual-hour calibration statistic recorded",
+    "product_side": "D7 regime backfill 90d and 30d bootstrap read Binance 1m from about 2026-07; no weekday statistics derived",
+    "independence_for_this_decision": "NOT_PROVABLY_INDEPENDENT / EXPOSED_FOR_OTHER_PURPOSES",
+    "admissible_role": "none now; at most an additional EXPOSED sensitivity slice by owner decision; never confirmatory",
+    "E1_RUN_001": "sealed, untouched",
+    "status_r3": "unchanged: NOT_PROVABLY_INDEPENDENT / EXPOSED_FOR_OTHER_PURPOSES; not opened; not a holdout"
+  },
+  "DECISION_RULE": {
+    "H_REFUTES": "P_C1 > P_C0 + 0.005 or a guardrail breached -> C1 closed",
+    "H_INFEASIBLE": "min N unmet",
+    "P_PASS": "min N and diversity met; on common support |G_C1| <= 0.02 in both primary strata for all metrics and P_C1 <= P_C0; all guardrails incl. availability hold",
+    "P_FAIL": "any guardrail breached, or |G_C1| > 0.03, or P_C1 > P_C0 + 0.005",
+    "P_INCONCLUSIVE": "otherwise or min N unmet at the hard cap",
+    "PRODUCT": "PASS iff H_ELIGIBLE_FOR_PROSPECTIVE (gate) and P_PASS (the only confirmatory test) -> proposal under PRODUCT_FIRST_DECISION_V1 section 11; FAIL iff H_REFUTES or P_FAIL; else INCONCLUSIVE",
+    "H_ALONE_AUTHORIZES_PRODUCT_CHANGE": false,
+    "H_ELIGIBLE_FOR_PROSPECTIVE": "P_C1 <= P_C0 - 0.01, assessable guardrails hold, min N met; eligibility only"
+  },
+  "STOP_CONDITIONS": [
+    "product rule / cut / venue minimum / context version / tape schema change during Stage P",
+    "gate absent from main at Stage P start",
+    "tape completeness below 0.90 (INCONCLUSIVE)",
+    "any pre-stop read of a Stage P rate (stage void)",
+    "owner instruction"
+  ],
+  "NO_LOOKAHEAD": [
+    "ranks at t use buckets strictly before t",
+    "weekday type of a sample from its own window end",
+    "C1 fixed before any count",
+    "Stage P read once at the count-defined stop",
+    "no R03 number as input",
+    "no evaluation-period data sets a threshold",
+    "no value-derived stratification edge enters any gate; descriptive terciles computed only at the stop"
+  ],
+  "FORBIDDEN_DATA": [
+    "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0",
+    "research-protected 2025/2026 objects",
+    "opened 2025-01..2026-08-15 surface unless the owner decides otherwise (sensitivity only)",
+    "E1-RUN-001 data",
+    "R03 unit files and results as inputs",
+    "holiday calendars",
+    "user-reaction telemetry"
+  ],
+  "PREREQUISITES": [
+    "owner freeze authorization",
+    "timestamp-only tape census (presence only, no values) to fix PROSPECTIVE_START and expected availability; if read as data opening, first step after freeze",
+    "offline evaluator with PIT, weekday-type, one-per-hour, usability-reason and census-no-values tests; no product code change",
+    "owner Stage H authorization",
+    "freeze of thresholds/start/stop/terciles before Stage P; owner Stage P activation and opening"
+  ],
+  "OWNER_DECISIONS_PENDING": [
+    "run the census on the deploy host (operator) and read its verdict",
+    "hard cap if DESIGN_BLOCKED_BY_FEASIBILITY (separate authorization from the decision memo)",
+    "freeze",
+    "Stage H execution",
+    "2025-2026 surface as EXPOSED sensitivity slice",
+    "Stage P activation and opening",
+    "product change on PASS"
+  ],
+  "DATA_OPENED": false,
+  "PRODUCT_CODE_CHANGED": false,
+  "EXECUTION_STARTED": false,
+  "SAMPLING_UNIT": {
+    "grid": "UTC clock hour H",
+    "observation": "rolling-1h window [H-1:00, H:00) = 12 closed 5m buckets ending at H:00-5m",
+    "typed_by": "UTC date and weekday type of the window start H-1:00",
+    "one_per": "(clock hour, stratum, metric, scheme)",
+    "overlapping_windows": "the eleven other rolling windows ending inside the hour are not observations; no 5m-step rates in Stage P",
+    "selection": "fixed grid; never chosen by TRIGGERED, flag, push or value; only timestamp-based unusability excludes an hour"
+  },
+  "USABILITY_REASONS_ORDER": [
+    "MISSING_1H_BUCKET",
+    "VENUE_COVERAGE_BELOW_MIN",
+    "REFERENCE_IMMATURE",
+    "INSUFFICIENT_SAME_TYPE_DATES (C1 only)",
+    "OTHER (verbatim)"
+  ],
+  "COMMON_SUPPORT_RULE": "primary comparison C0 vs C1 is paired on hours usable under both schemes; G_C0 and G_C1 computed on exactly the same hours",
+  "SURFACES": {
+    "A_calibration_primary": "paired common support; decides",
+    "B_operational_availability": "all clock hours; usable-hour rate per scheme, common-support rate, reasons; hard guardrail",
+    "C_product_qualification": "gate at TRIGGERED decision buckets and dry-run coverage grid; guardrails and descriptive push counts; never primary"
+  },
+  "C1_CALENDAR_FEASIBILITY": {
+    "method": "calendar arithmetic only; no data read",
+    "weekend_same_type_dates_in_window": [
+      9,
+      10
+    ],
+    "weekday_same_type_dates_in_window": [
+      21,
+      22,
+      23
+    ],
+    "min_required": 8,
+    "verdict": "not at the calendar floor; tolerates 1-2 missing weekend dates; actual availability depends on tape completeness -> timestamp-only census prerequisite",
+    "if_census_fails_availability_rule": "DESIGN_BLOCKED_BY_FEASIBILITY (C1-LONG does not become primary by this route)"
+  },
+  "DESIGN_READY_TO_FREEZE": "YES_PENDING_CENSUS_VERDICT",
+  "CENSUS": {
+    "authorized": "owner, 2026-10-03, before full freeze, after spec written and hashed",
+    "spec_path": "docs/WEEKDAY_WEEKEND_CALIBRATION_CENSUS_SPEC_V1.md",
+    "spec_sha256": "d13913ee94a2e392397b5ea3ec68fb0c2378abc8867f9746a57a02cc78e2b56b",
+    "runner_path": "scripts/product/weekday_weekend_census.py",
+    "runner_sha256": "9f65b914b096009373b7703843ae26b529330da175505f36bb3ee9bc7d5e9a6a",
+    "reads": [
+      "bucket_ts",
+      "per-venue OHLC presence booleans",
+      "cross-venue volume presence boolean"
+    ],
+    "never_reads": [
+      "OHLC values",
+      "returns",
+      "volume values",
+      "OI/funding",
+      "ranks",
+      "percentiles",
+      "flags",
+      "episode outcomes"
+    ],
+    "status": "SPEC_AND_RUNNER_REVERIFIED / NOT_RUN: the development environment has no connection to the production tape (no DSN, no local PostgreSQL); operator invocation recorded in the design section 13b",
+    "cannot": "change C1 to C1-LONG or any parameter; failing result -> DESIGN_BLOCKED_BY_FEASIBILITY",
+    "authorized_run": "owner 2026-10-03 for exactly spec d13913ee... and runner 9f65b914...",
+    "projection_rule": "weeks_to_N = N / (48 * CS_weekend); N_at_52 = 52*48*CS_weekend; headroom = N_at_52 - 2250; weekday with 120 hours/week; break-even CS_weekend = 0.901"
+  },
+  "OWNER_CONFIRMED_2026_10_03": {
+    "PRIMARY": "C1",
+    "MIN_SAME_TYPE_DAYS": 8,
+    "C1_LONG": "sensitivity only",
+    "SURFACE_2025_2026": "NOT_PROVABLY_INDEPENDENT / EXPOSED_FOR_OTHER_PURPOSES; not a confirmatory holdout",
+    "STAGE_H": "HISTORICAL / EXPOSED / PROXY; no product PASS alone",
+    "AVAILABILITY_TOLERANCE_PP": "5 proposed frozen; not changed by census results"
+  },
+  "DESCRIPTIVE_TERCILE_RULE": {
+    "role": "reporting only at the Stage P stop; never a gate; not in the frozen primary contract",
+    "variable": "trailing-30d realized variance at window start from 5m consensus log returns over present buckets, scaled by expected/present; MISSING below 80% presence",
+    "observations": "common-support hours of the reported stratum, once each",
+    "quantile": "numpy.quantile(values,[1/3,2/3],method='linear')",
+    "bins": "LOW [min,e1], MID (e1,e2], HIGH (e2,max]; closed-right; ties to the lower bin; e1==e2 -> empty MID reported",
+    "missing": "fourth group, excluded from bins",
+    "independence": "inputs are volatility values and the hour set only; no rank/flag/gap/C0/C1 quantity; bins=3 and method fixed; never recomputed after any result"
+  },
+  "OWNER_CONTRACT_DECISIONS_PRE_CENSUS_2026_10_03": {
+    "PRIMARY": "C1",
+    "MIN_SAME_TYPE_DAYS": 8,
+    "C1_LONG": "sensitivity only",
+    "PRICE": "primary, target SE 1 pp, N=2250",
+    "RANGE_VOLUME_N": 1200,
+    "OVERALL_STOP_N": 2250,
+    "BANDS": "not widened for horizon",
+    "AVAILABILITY_TOLERANCE_PP": 5,
+    "SURFACE_2025_2026": "NOT_PROVABLY_INDEPENDENT / EXPOSED_FOR_OTHER_PURPOSES; not a holdout",
+    "E1_B2_06_OI_FUNDING": "not opened, not used",
+    "HARD_CAP": "52 weeks PROVISIONAL / NOT_FROZEN",
+    "CENSUS_VERDICTS": [
+      "CENSUS_FEASIBLE",
+      "DESIGN_BLOCKED_BY_FEASIBILITY -> decision memo, no automatic change"
+    ]
+  },
+  "DESIGN_FEASIBILITY": "UNDETERMINED_PENDING_CENSUS"
+}

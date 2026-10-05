@@ -1,0 +1,61 @@
+{
+  "ALLOWED": [
+    "deterministic resume through the frozen checkpoint with the same seeds and header"
+  ],
+  "ARTIFACT": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EVAL_AUTHORIZATION_V1.json",
+  "C_TABLE_SHA256": "8f1bff84361303bc9360e4615aca2857b07c219b42e2471be4536f69a208baf7",
+  "DATE": "2026-10-05",
+  "DRIVER_SHA256": "3f73cfb4fb9537a02f8a45fd67c794f728a2cdd799d6055c9b7df422d21417cd",
+  "ENVIRONMENT": {
+    "DTYPE": "float64 (numpy default); seeds are Python int",
+    "MACHINE": "x86_64",
+    "NUMPY": "2.1.3",
+    "PARALLELISM": "up to 4 single-threaded worker processes over disjoint cell shards; scheduling-independent by construction",
+    "PLATFORM": "Linux-6.18.44-fc-v70-x86_64-with-glibc2.39",
+    "PYTHON": "3.11.15",
+    "RNG": "numpy.random.SeedSequence(seed).spawn(2) -> default_rng(child 0); child 1 reserved; candidate never enters the derivation",
+    "SCIPY": "1.17.1",
+    "THREADS": {
+      "MKL_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1"
+    }
+  },
+  "EVAL_BINDING": {
+    "COMMIT": "b42722e7afe64d6048350a99900fcbb46277c559",
+    "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EVAL_BINDING_V1.json",
+    "SHA256": "9e11a24ddb8991306b0e6aa92126d00fc747036712e52e9ced43b21ffc2de11c"
+  },
+  "EVAL_SURFACE": {
+    "BY_SOURCE": {
+      "DENSE_4716": 4716,
+      "GRID_621": 621,
+      "PROBES_198": 198
+    },
+    "CELLS": 5535,
+    "DECISIVE_CELLS": 5172,
+    "MAX_REPLICATES": 110700000,
+    "MAX_SEED": 9244715119999,
+    "MIN_SEED": 9001000100000,
+    "SEED_RANGES_SHA256": "f0ed0970eb4fa603cc88a1d3f624128fd5a1de868a4ecf8cba3e13a423847317",
+    "STAGE_A_REPLICATES": 22140000,
+    "STAGE_B_POOLED_PER_CELL": 20000
+  },
+  "EXECUTOR_DIGEST": "b1eb58231e570550cd59b3ada7fd72c6a941ff4b40e90b56b5da24a6d8c141f8",
+  "FORBIDDEN": [
+    "CAL rerun",
+    "new seeds",
+    "replacement seeds",
+    "manual candidate exclusion",
+    "parameter repair",
+    "C-table change",
+    "third stage",
+    "rerun of completed seeds",
+    "code fix inside the same official run"
+  ],
+  "IMMUTABLE": true,
+  "ONE_OFFICIAL_EVAL_EXECUTION": true,
+  "OWNER_DECISION": "2026-10-05: one official EVAL phase; CAL admissible with recorded provenance deviation; CAL rerun forbidden",
+  "PHASE": "EVAL",
+  "RUN_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_OFFICIAL_RUN_1"
+}

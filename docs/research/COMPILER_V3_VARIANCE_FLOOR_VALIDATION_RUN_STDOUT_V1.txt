@@ -1,0 +1,27 @@
+{
+ "STATUS_3A": {
+  "0.6": "FAIL",
+  "0.75": "FAIL",
+  "1.0": "FAIL"
+ },
+ "DETAIL_3A": {
+  "0.6": {
+   "DECISIVE_CHECKS": 525,
+   "FAIL": 15,
+   "INDETERMINATE": 2
+  },
+  "0.75": {
+   "DECISIVE_CHECKS": 525,
+   "FAIL": 15,
+   "INDETERMINATE": 2
+  },
+  "1.0": {
+   "DECISIVE_CHECKS": 360,
+   "FAIL": 60,
+   "INDETERMINATE": 0
+  }
+ },
+ "ADOPTED_FLOOR_CANDIDATE": null,
+ "STRESS_3B": null,
+ "FINAL": "VARIANCE_MODEL_REDESIGN_REQUIRED"
+}

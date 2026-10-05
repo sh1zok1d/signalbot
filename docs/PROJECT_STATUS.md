@@ -8,6 +8,14 @@ This file is intentionally concise. The pre-cleanup long-form status remains imm
 
 ## Current decision (2026-10-03)
 
+**Research transition (2026-10-05).** The compiler V3 variance line is closed as a negative methodological result. Research now follows `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md`:
+- evidence is reported apart from the claim decision;
+- an L0–L4 ladder of allowed claims sets what may be said, with quantitative L2 historical-direction wording and L3 probabilities only after live calibration;
+- every claim is logged prospectively;
+- there is no pre-certification gate.
+
+Next unit: `WEEKDAY_WEEKEND_BASELINE_UNIT_V2` (product evidence, not run). Routing: `docs/CURRENT_RESEARCH_STATE.md`.
+
 **Decision support.** The owner, reading the V1 surface as a trader, found no answer to "what do I do with this", and lifted the predictive freeze for the product: `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md`. The bot now forecasts the range (1h / 4h / 24h corridor, checked on a held-out year and tracked live), shows the levels the whole market watches with the chance to reach them and what happened at their first touch beside a random level, «что было после похожих» for the 1h / 4h states, the CPI / FOMC / expiry calendar (name and time only; no event-size multiplier since 2026-10-03), `/risk` and personal `/alert`, and sends timely market alerts. Direct trade calls stay forbidden. Binance 2025/2026 is opened for product statistics. Implemented and deployed to production (main `a16b876`, owner-reported 2026-10-03; see "Production state"); deploy steps in `PRIVATE_BETA_V0_DEPLOY.md`, "Decision support V2".
 
 **Product-first (2026-10-02, kept where V2 does not differ).** The canonical product decision is `docs/PRODUCT_FIRST_DECISION_V1.md`. It fixes the product hypothesis (a Russian-language market briefing that compresses "what happened, who dominates, how unusual"), the build-to-test MUST scope, the architectural constraint (one detector, one episodization, one context projection, one shared view builder, one outbox, one notifier), the DO-NOT-BUILD-YET list, the data maturity orientation (V2 tape since 2026-10-01; baselines about 2026-10-21; full 30d ranks about 2026-10-31) and the 30-day user test with its decision rules.

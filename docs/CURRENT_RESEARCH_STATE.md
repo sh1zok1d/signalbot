@@ -1,3 +1,45 @@
+## Weekday / weekend baseline calibration (product evidence) — executed once; CHANGE_BASELINE (C1) — 2026-10-05
+
+`UNIT = WEEKDAY_WEEKEND_BASELINE_UNIT_V2 (owner go 2026-10-05; amendment A1 2c1aed2; evaluator 86b2c09) | TRACK = PRODUCT_EVIDENCE`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 single-venue proxy | LIVE_TAPE_READ = no | OBJECTS_2025_2026_USED = none`
+`C0 (current pooled 30d) = weekend gate qualification 2.4 % vs weekday 7.1 %; weekend TOD "above usual" 32 % / 29 % vs 50 %; P_S 20.9 pp, growing 2020->2024`
+`C1 (same day type within the 30-day window) = all gaps within about ±2 pp; qualification 5.85 % / 5.91 %; P_S 2.0 pp; eligible`
+`C2 (last 30 same-type dates) = P_S 2.5 pp, not robust (weekend overdispersion 1.29 x C0) | C3 (pooled + weekend factor) = P_S 2.9 pp, eligible, not within 0.5 pp`
+`RECOMMENDATION = CHANGE_BASELINE (C1) | PRODUCT_CHANGE = none made (needs a separate owner go; new context version) | CLAIM = none about direction or edge`
+`CLOSED_LINE_GUARD = docs/research/CLOSED_RESEARCH_LINES_V1.json (compiler V3 official entry points hard-refused; preflight repair before this run)`
+`NEXT_UNIT = none started (owner decides on the C1 product change)`
+
+Result: `docs/WEEKDAY_WEEKEND_BASELINE_UNIT_V2_RESULT.md` (+ `.json`).
+
+## Research transition — compiler V3 variance line CLOSED; evidence-and-claims model adopted — 2026-10-05
+
+`DECISION = docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md (owner, 2026-10-05; new units; not retroactive)`
+`COMPILER_V3_VARIANCE_LINE = CLOSED (docs/research/COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md) | OFFICIAL_RUN_2 = never | RESULTS UNCHANGED`
+`VARIANCE_FLOOR_OFFICIAL_RUN_1 = VARIANCE_MODEL_REDESIGN_REQUIRED | ESTIMATOR_CALIBRATION_OFFICIAL_RUN_1 = ESTIMATOR_CALIBRATION_FAIL_INFORMATION_INSUFFICIENT (both stand)`
+`CONTRACT_V2_DRAFT = NOT_ADOPTED / SUPERSEDED AS THE PLAN | CONTRACT_V1 = in force for units registered under it`
+`PRE_CERTIFICATION_GATE = removed (feasibility numbers are reported as amount of information, never block a unit)`
+`CLAIM_LADDER = L0 observation | L1 historical context | L2 directional historical evidence (quantitative: observed vs baseline, difference, N, uncertainty) | L3 current probability only after live calibration | L4 actionable edge`
+`SHADOW_FORMAT_TEST = FORMAT_DISTINGUISHES_THE_THREE_TYPES (DH1-L2, R03-C1, D12; no status changed)`
+`NEXT_UNIT (at the time) = WEEKDAY_WEEKEND_BASELINE_UNIT_V2 — executed 2026-10-05, see the section above`
+`CLAIM_JOURNAL = docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md (design only; implementation BETA_CLAIM_JOURNAL_V1_IMPL needs an owner go)`
+`OBJECTS_2025_2026_USED = none | E1 / V3 / B2-06 untouched`
+
+**What changed.**
+- **Why the line closed.** Three units in a row (floor Run 1, the redesign's identification theorem, the estimator calibration) showed the same thing: at ≤ 100 effective units no rule can certify a design in advance as both 99 %-safe and 1.5×-useful. The line is closed as a negative methodological result. Nothing is rerun or repaired, and no market verdict changes.
+- **What research does now.**
+  - It answers market and product questions with a short design note before the outcome. The note records the estimand, the method chosen by design, the comparison, what would change our mind and the variants tried.
+  - Results are reported as evidence: estimate, uncertainty, information, stability, falsification, limitations and search exposure.
+  - What the bot may say is decided per claim on the L0–L4 ladder. A historical frequency is never phrased as a current probability.
+- **What is kept.** Design before outcome, no rescue, the exposure / search ledger, sealed holdouts, and full preregistration where it is really needed (L3 / L4, sealed surfaces, prospective confirmation).
+- **Do not start** any compiler V3 work: Run 2, variance-model validation, estimator calibration, compiler V3 implementation of contract V2 draft §5, or ledger schema V2 as its prerequisite.
+
+**Records:**
+- `COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md`, with the full compiler V3 audit trail merged unchanged from `research/hypothesis-evaluation-contract-v2-draft` (`8909f50`);
+- `EVIDENCE_AND_CLAIMS_DECISION_V1.md`;
+- `EVIDENCE_FORMAT_SHADOW_EXPECTATIONS_V1.md` (committed first) and `EVIDENCE_FORMAT_SHADOW_REPORT_V1.md`;
+- `docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md`;
+- `docs/WEEKDAY_WEEKEND_BASELINE_UNIT_V2.md`, which supersedes revision 5 of the weekday/weekend design, merged unchanged from `product/weekday-weekend-baseline-calibration-design-v2`.
+
 ## Five cards of three (DH3) — CLOSED (owner, 2026-10-04); two «Гипотеза» results
 
 `PROGRAM = DIRECTIONAL_AND_RANGE_DH3 (owner decision; docs/research/DH3_DESIGN.md) | 15 cells, 14 executed (S2 INFORMATIONALLY_WEAK)`

@@ -1,0 +1,36 @@
+{
+  "ARTIFACT": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EVAL_RESUME_AMENDMENT_V1.json",
+  "CHANGED": "only the operational disk gate for deterministic resume after an infrastructure interruption",
+  "DATE": "2026-10-05",
+  "IMMUTABLE": true,
+  "INITIAL_EVAL_GATE": {
+    "APPLIES": "before the first EVAL replicate only; was satisfied at 30,242,562,048 bytes",
+    "REQUIRED_FREE_BYTES": 25000000000
+  },
+  "KIND": "OPERATIONAL_AMENDMENT",
+  "OWNER_DECISION": "2026-10-05 option 1: resume the same official EVAL phase after an infrastructure interruption; not failed; not restarted",
+  "PAST_ARTIFACTS_MODIFIED": false,
+  "RESUME_CAPACITY_RULE": {
+    "ALLOWED_IFF": "FREE_BYTES >= RESUME_REQUIRED_FREE_BYTES",
+    "APPLICABLE_ONLY_AFTER": "a sealed interruption snapshot",
+    "REMAINING_MAX_ROWS": "sum over unfinished cells of (20000 - recorded frozen rows); completed cells 0; computed from frozen seed coverage only, never from observed PASS/FAIL/ESCALATE",
+    "RESUME_REQUIRED_FREE_BYTES": "512 * REMAINING_MAX_ROWS + 2_000_000_000"
+  },
+  "RESUME_SEMANTICS": [
+    "completed (CELL_ID, seed) rows never rerun",
+    "partial cells continue only their missing frozen seeds",
+    "cells with 20000 rows awaiting decision: decision/reduction only, zero new rows",
+    "not-started cells use their original frozen seeds",
+    "Stage-A locking unchanged",
+    "no seeds beyond the frozen 20000 per cell",
+    "no code repair during the resumed run",
+    "a second infrastructure interruption may resume again under the same rule"
+  ],
+  "RUN_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_OFFICIAL_RUN_1",
+  "SNAPSHOT_SHA256": "c8352e560e118faa08177c611b52d0f99169e1da0bc7fe278b63577fd4258c06",
+  "UNCHANGED": {
+    "EXECUTOR_DIGEST": "b1eb58231e570550cd59b3ada7fd72c6a941ff4b40e90b56b5da24a6d8c141f8",
+    "GRIDS_SEEDS_C_TABLE_CP_RULES_STAGE_RULES": "UNCHANGED",
+    "RESEARCH_STATISTICAL_SEMANTICS": true
+  }
+}

@@ -8061,3 +8061,50 @@ The owner merged DH3 and declared it `CLOSED`. P3 live tracking is not started. 
 ```
 DH3_STATUS = CLOSED; LIVE_TRACKING_P3 = NOT_STARTED; DEPLOY = none; WINDOWS_CONSUMED = none by this record
 ```
+
+## 2026-10-05 — Compiler V3 variance line closed; evidence-and-claims model adopted
+
+**Owner decision.** The compiler V3 variance research line is closed (`docs/research/COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md`). The line covered the variance-floor validation (Official Run 1 → `VARIANCE_MODEL_REDESIGN_REQUIRED`), the redesign (`NEXT_VALIDATION_POSSIBLE = NO`) and the exposed-variance estimator calibration (Official Run 1 → `ESTIMATOR_CALIBRATION_FAIL_INFORMATION_INSUFFICIENT`).
+- Both official results stand as recorded. There is no Official Run 2, no repair and no recomputation.
+- **Reason:** at the project's N, guaranteeing in advance both near-absolute coverage safety and practical utility is a dead end. This is a negative methodological result, not evidence about market structure.
+- **Audit trail:** the full record was merged unchanged from `research/hypothesis-evaluation-contract-v2-draft` at `8909f50`.
+
+**New research model.** `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md` applies to new units and is not retroactive.
+- **Before the outcome:** a design note (estimand, method chosen by design, comparison, what changes our mind, variants tried).
+- **Result:** reported as evidence (estimate, uncertainty, information, stability, falsification, limitations, search exposure).
+- **Claims:** a separate claim decision on the L0–L4 ladder. L2 directional historical wording is quantitative. L3 needs live calibration.
+- **Journal:** a prospective claim journal (`docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md`, design only).
+- **Contracts:** contract V2 draft is not adopted and is superseded as the plan. Contract V1 keeps its force for units registered under it.
+
+**Shadow formatting exercise.** Not a test.
+- Expectations were committed first (`6b0b542`). Then DH1-L2, R03-C1 and D12 were written in the new result record from their own records only (`docs/research/EVIDENCE_FORMAT_SHADOW_REPORT_V1.md`).
+- Outcome: `FORMAT_DISTINGUISHES_THE_THREE_TYPES`. No status, verdict, ledger row, atlas unit or findings entry changed.
+
+**Next unit recorded, not executed.** `WEEKDAY_WEEKEND_BASELINE_UNIT_V2` (`docs/WEEKDAY_WEEKEND_BASELINE_UNIT_V2.md`), a `PRODUCT_EVIDENCE` unit. It supersedes revision 5 of the weekday/weekend design as the plan; that revision was merged unchanged from `product/weekday-weekend-baseline-calibration-design-v2`.
+
+```
+COMPILER_V3_VARIANCE_LINE = CLOSED; OFFICIAL_RUN_2 = never; RESULTS_CHANGED = none
+CONTRACT_V2_DRAFT = NOT_ADOPTED / SUPERSEDED_AS_PLAN; CONTRACT_V1 = in force for its units
+WINDOWS_CONSUMED = none by this record; MARKET_DATA_READ = none; OBJECTS_2025_2026_USED = none
+```
+
+## 2026-10-05 — Closed-line tombstone; weekday/weekend baseline unit V2 executed once
+
+**Preflight repairs before the run (owner).**
+1. **Window.** The window was restored to 2020–2024 (amendment A1, `2c1aed2`, committed before any rate was computed). The only 2020 constraint is objective point-in-time: no pinned data before 2020-01-01, so each candidate's reference matures on its own calendar; warm-up hours are counted, not removed.
+2. **Tombstone.** The compiler V3 official entry points are hard-refused by an operational tombstone (`docs/research/CLOSED_RESEARCH_LINES_V1.json`, `scripts/research/closed_lines.py`, installed from the packages' `__init__.py`). Frozen code and artifacts are unchanged; override only by a new owner reopen authorization.
+
+**Unit.** `WEEKDAY_WEEKEND_BASELINE_UNIT_V2`, track `PRODUCT_EVIDENCE`.
+- **Run:** once. Evaluator committed first (`86b2c09`).
+- **Data:** `CORE_BTC_BINANCE_V0` 2020–2024 through the pinned R03 loader (digest `93659495…`), single-venue proxy.
+- **Result:** `CHANGE_BASELINE (C1)`.
+  - C0 weekend gate qualification is 2.4 % vs weekday 7.1 %, `P_S` 20.9 pp.
+  - C1 (same day type within the 30-day window): `P_S` 2.0 pp, all gaps within about ±2 pp.
+  - C2 is not robust (overdispersion); C3 is eligible at 2.9 pp.
+- **No product change made**; no directional or edge claim.
+- **Exposure:** the surface 2020–2024 was already exposed by R03 and is used as product evidence.
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 already exposed); LIVE_TAPE_READ = no; OBJECTS_2025_2026_USED = none
+PRODUCT_CHANGE = none (C1 needs a separate owner go); CLAIM_JOURNAL = not started; PR_328 = not merged
+```

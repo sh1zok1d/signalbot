@@ -1,0 +1,55 @@
+{
+  "ALLOWED": [
+    "deterministic resume after interruption with the same checkpoint and binding"
+  ],
+  "ARTIFACT": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_CAL_AUTHORIZATION_V1.json",
+  "CAL_SURFACE": {
+    "CELLS": 258,
+    "MAX_SEED": 9004559003999,
+    "MIN_SEED": 9001000000000,
+    "PER_CELL": 4000,
+    "REPLICATES": 1032000,
+    "SEED_RANGES_SHA256": "320556497d1d5ed3c66f09666360c75a2e39b008395c9aadbaab8cc56046ed22"
+  },
+  "COMMIT": "778d51d0885dd405c8d619c67f33d3d54988601f",
+  "DATE": "2026-10-05",
+  "ENVIRONMENT": {
+    "DTYPE": "float64 (numpy default); seeds are Python int",
+    "MACHINE": "x86_64",
+    "NUMPY": "2.1.3",
+    "PARALLELISM": "single process, single thread for this CAL execution",
+    "PLATFORM": "Linux-6.18.44-fc-v70-x86_64-with-glibc2.39",
+    "PYTHON": "3.11.15",
+    "RNG": "numpy.random.SeedSequence(seed).spawn(2) -> default_rng(child 0); child 1 reserved",
+    "SCIPY": "1.17.1",
+    "THREADS": {
+      "MKL_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1"
+    }
+  },
+  "EVAL_PERMITTED": false,
+  "EXECUTION_BINDING": {
+    "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EXECUTION_BINDING_V1.json",
+    "SHA256": "a8704a75ac3e6c0b24b49ea7ee4399a3a8df0592f972b70ffe7e27cab0cc3deb"
+  },
+  "EXECUTOR_DIGEST": "b1eb58231e570550cd59b3ada7fd72c6a941ff4b40e90b56b5da24a6d8c141f8",
+  "FORBIDDEN": [
+    "new seeds",
+    "replacement seeds",
+    "rerun of a completed replicate",
+    "parameter changes",
+    "executor changes",
+    "fitting-rule changes",
+    "EVAL"
+  ],
+  "IMMUTABLE": true,
+  "ONE_OFFICIAL_CAL_EXECUTION": true,
+  "OWNER_DECISION": "2026-10-05: official CAL phase only; EVAL forbidden",
+  "PHASE": "CAL",
+  "PREFLIGHT": {
+    "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_CAL_PREFLIGHT_V1.json",
+    "SHA256": "fa65aa2cd918ddc3dedcd0669d8ca304c87f59b733e55e65d3673b4e8e27a67b"
+  },
+  "RUN_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_OFFICIAL_RUN_1"
+}
