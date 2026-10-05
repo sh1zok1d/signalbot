@@ -8087,3 +8087,24 @@ COMPILER_V3_VARIANCE_LINE = CLOSED; OFFICIAL_RUN_2 = never; RESULTS_CHANGED = no
 CONTRACT_V2_DRAFT = NOT_ADOPTED / SUPERSEDED_AS_PLAN; CONTRACT_V1 = in force for its units
 WINDOWS_CONSUMED = none by this record; MARKET_DATA_READ = none; OBJECTS_2025_2026_USED = none
 ```
+
+## 2026-10-05 — Closed-line tombstone; weekday/weekend baseline unit V2 executed once
+
+**Preflight repairs before the run (owner).**
+1. **Window.** The window was restored to 2020–2024 (amendment A1, `2c1aed2`, committed before any rate was computed). The only 2020 constraint is objective point-in-time: no pinned data before 2020-01-01, so each candidate's reference matures on its own calendar; warm-up hours are counted, not removed.
+2. **Tombstone.** The compiler V3 official entry points are hard-refused by an operational tombstone (`docs/research/CLOSED_RESEARCH_LINES_V1.json`, `scripts/research/closed_lines.py`, installed from the packages' `__init__.py`). Frozen code and artifacts are unchanged; override only by a new owner reopen authorization.
+
+**Unit.** `WEEKDAY_WEEKEND_BASELINE_UNIT_V2`, track `PRODUCT_EVIDENCE`.
+- **Run:** once. Evaluator committed first (`86b2c09`).
+- **Data:** `CORE_BTC_BINANCE_V0` 2020–2024 through the pinned R03 loader (digest `93659495…`), single-venue proxy.
+- **Result:** `CHANGE_BASELINE (C1)`.
+  - C0 weekend gate qualification is 2.4 % vs weekday 7.1 %, `P_S` 20.9 pp.
+  - C1 (same day type within the 30-day window): `P_S` 2.0 pp, all gaps within about ±2 pp.
+  - C2 is not robust (overdispersion); C3 is eligible at 2.9 pp.
+- **No product change made**; no directional or edge claim.
+- **Exposure:** the surface 2020–2024 was already exposed by R03 and is used as product evidence.
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 already exposed); LIVE_TAPE_READ = no; OBJECTS_2025_2026_USED = none
+PRODUCT_CHANGE = none (C1 needs a separate owner go); CLAIM_JOURNAL = not started; PR_328 = not merged
+```

@@ -1,3 +1,16 @@
+## Weekday / weekend baseline calibration (product evidence) — executed once; CHANGE_BASELINE (C1) — 2026-10-05
+
+`UNIT = WEEKDAY_WEEKEND_BASELINE_UNIT_V2 (owner go 2026-10-05; amendment A1 2c1aed2; evaluator 86b2c09) | TRACK = PRODUCT_EVIDENCE`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 single-venue proxy | LIVE_TAPE_READ = no | OBJECTS_2025_2026_USED = none`
+`C0 (current pooled 30d) = weekend gate qualification 2.4 % vs weekday 7.1 %; weekend TOD "above usual" 32 % / 29 % vs 50 %; P_S 20.9 pp, growing 2020->2024`
+`C1 (same day type within the 30-day window) = all gaps within about ±2 pp; qualification 5.85 % / 5.91 %; P_S 2.0 pp; eligible`
+`C2 (last 30 same-type dates) = P_S 2.5 pp, not robust (weekend overdispersion 1.29 x C0) | C3 (pooled + weekend factor) = P_S 2.9 pp, eligible, not within 0.5 pp`
+`RECOMMENDATION = CHANGE_BASELINE (C1) | PRODUCT_CHANGE = none made (needs a separate owner go; new context version) | CLAIM = none about direction or edge`
+`CLOSED_LINE_GUARD = docs/research/CLOSED_RESEARCH_LINES_V1.json (compiler V3 official entry points hard-refused; preflight repair before this run)`
+`NEXT_UNIT = none started (owner decides on the C1 product change)`
+
+Result: `docs/WEEKDAY_WEEKEND_BASELINE_UNIT_V2_RESULT.md` (+ `.json`).
+
 ## Research transition — compiler V3 variance line CLOSED; evidence-and-claims model adopted — 2026-10-05
 
 `DECISION = docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md (owner, 2026-10-05; new units; not retroactive)`
@@ -7,7 +20,7 @@
 `PRE_CERTIFICATION_GATE = removed (feasibility numbers are reported as amount of information, never block a unit)`
 `CLAIM_LADDER = L0 observation | L1 historical context | L2 directional historical evidence (quantitative: observed vs baseline, difference, N, uncertainty) | L3 current probability only after live calibration | L4 actionable edge`
 `SHADOW_FORMAT_TEST = FORMAT_DISTINGUISHES_THE_THREE_TYPES (DH1-L2, R03-C1, D12; no status changed)`
-`NEXT_UNIT = WEEKDAY_WEEKEND_BASELINE_UNIT_V2 (PRODUCT_EVIDENCE; design note committed; not executed; needs an owner go to run)`
+`NEXT_UNIT (at the time) = WEEKDAY_WEEKEND_BASELINE_UNIT_V2 — executed 2026-10-05, see the section above`
 `CLAIM_JOURNAL = docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md (design only; implementation BETA_CLAIM_JOURNAL_V1_IMPL needs an owner go)`
 `OBJECTS_2025_2026_USED = none | E1 / V3 / B2-06 untouched`
 

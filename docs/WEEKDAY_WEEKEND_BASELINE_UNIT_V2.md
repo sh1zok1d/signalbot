@@ -1,6 +1,6 @@
 # Weekday / weekend baseline calibration — product-evidence unit V2
 
-**Status:** `DESIGN_NOTE_COMMITTED + PRE-OUTCOME AMENDMENT A1 (§9, wins where it differs) / OWNER GO 2026-10-05 / NO_PRODUCT_CHANGE`
+**Status:** `EXECUTED_ONCE 2026-10-05 — CHANGE_BASELINE (C1)` (result: `WEEKDAY_WEEKEND_BASELINE_UNIT_V2_RESULT.md`) / pre-outcome amendment A1 (§9) wins where it differs / `NO_PRODUCT_CHANGE`
 **Date:** 2026-10-05
 **Track:** `PRODUCT_EVIDENCE` only (`research/EVIDENCE_AND_CLAIMS_DECISION_V1.md`). No directional claim and no `STRUCTURE` or `EDGE` claim. A baseline is construction, not a claim; its user-visible effect is on L0 labels.
 **Supersedes as the plan to run:** `WEEKDAY_WEEKEND_BASELINE_CALIBRATION_DESIGN_V1.md` revision 5, kept unchanged as history.
