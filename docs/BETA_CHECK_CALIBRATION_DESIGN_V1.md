@@ -93,3 +93,20 @@ X is the model's estimate, printed as today (`decision_format.fmt_prob`). P and 
 **Not yet decided by this result.**
 - Production builds the bins nightly on 2020 → yesterday, and that verdict is the one the surfaces use.
 - The rule above did not change after the result.
+
+## 7. Addendum: the «ни один» chance of two levels (2026-10-05, committed before any result of it)
+
+`PRE_BETA_SCOPE_DECISION_V1.md` §5 requires the chance that neither of two levels is touched. It must come from the joint historical excursions, never as a product of two chances, and carry the same wording and accuracy as single-level chances.
+
+**Estimand.** For a level `d_up` % above and a level `d_dn` % below the close, it is the chance that within H the up excursion stays under `d_up` **and** the down excursion stays under `d_dn`. For two levels on the same side, «ни один» means the nearer one is not touched: one minus its single-level chance, under the §3 rule.
+
+**Model.** The range model stores the joint distribution of the standardized excursions (`z_up`, `z_dn`) of its own fit: a table of P(z_up ≤ u_i, z_dn ≤ v_j) on 21 × 21 marginal quantiles, interpolated bilinearly. The scale S is the same as for single levels.
+
+**Held-out check.** The setup is the same as §2:
+- the train-split model on the held-out year, event-zone anchors left out;
+- the pairs (`d_up`, `d_dn`) ∈ {0.5, 1, 2, 3} %²;
+- predicted is the joint table at (`d_up` / S, `d_dn` / S); realized is up < `d_up` and down < `d_dn`.
+
+The bins, effective N, tolerance, pass rule, wording and fallback are those of §2–§3. This adds 3 horizons × 7 bins = 21 cells, and no variant is tried after the result.
+
+**Live.** The claim journal writes `L3_NEITHER_{1H,4H,24H}` hourly on the same 16 pairs. The live line and the divergence rule of §3 apply unchanged.
