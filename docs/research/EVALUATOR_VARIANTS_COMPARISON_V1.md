@@ -78,7 +78,7 @@ Together they cover the three situations in the audit's candidate list.
   Heterogeneity p 0.048 and no opposite-sign year (`PASS_MAGNITUDE_VARIES_BY_EPOCH`).
 - **Bar and class.** The bar is log 1.15 (+15 %), the product's range materiality. The class is `NO_INCREMENTAL_STRUCTURE` because the CI is not wholly above the bar.
 - **Audit row.** `BLOCKED_PRACTICAL_BAR`, conservatism `YES`, maximum claim L2, needs `PROSPECTIVE`.
-- **In the bot.** `config/beta_research_findings.yaml` `DH3-P1` has status `WEAK` and a `live:` block, matched on its frozen state. The integration is merged at `423b9b8` and not deployed (`DOCUMENTATION_INDEX.md`).
+- **In the bot.** `config/beta_research_findings.yaml` `DH3-P1` has status `WEAK` and a `live:` block, matched on its frozen state. The integration (`423b9b8`) is in production code since `c980fae`; whether its lines are shown depends on `BETA_RESEARCH_EVIDENCE_ENABLED`, which is not recorded (`PRE_BETA_BACKLOG_V1.md` §4, item 4; corrected 2026-10-05 after #331 / #332, which postdate this note).
 - **Not a model-integration candidate.** `RESEARCH_EVIDENCE_INTEGRATION_V1.md` excludes it as below the 15 % bar.
 - **Not in the claim journal.** It is not among the first classes in `BETA_CLAIM_JOURNAL_DESIGN_V1.md` §6.
 
@@ -270,4 +270,9 @@ Together they cover the three situations in the audit's candidate list.
 - **Decision: O1.** `EVIDENCE_AND_CLAIMS_DECISION_V1` stays as written. A posterior or partial pooling is used only as a per-unit method choice in a design note (§3). The Appendix A clarification is not adopted, and no general posterior evaluator is built.
 - **Audit erratum.** §7.1 is recorded as `RESEARCH_HISTORY_AUDIT_V1_ERRATUM_1.md`: G01-A1/A2 conservatism reads `PARTLY`, giving `YES` 5 and `PARTLY` 13. The audit files are not edited.
 - **Next step.** G01-A1/A2 as a product baseline evaluation. Its design note, `docs/TURN_OF_MONTH_BASELINE_UNIT_V1.md`, is committed before any outcome. It runs only after a separate owner go.
-- **Not started.** The observations in §7.2–§7.4 are left for their own changes: a design-note convention, a product wording fix and the journal class.
+- **The other observations, after #331 / #332:**
+  - §7.2 (stress SE as a planning guide) stays a design-note convention, applied in `TURN_OF_MONTH_BASELINE_UNIT_V1.md` §5.
+  - §7.3 (materiality wording) is backlog item X2 in `PRE_BETA_BACKLOG_V1.md`: 4 templates and 8 registry lines.
+  - §7.4 (P1 journal class) is decided: `PRE_BETA_SCOPE_DECISION_V1.md` §6.2 puts the claim journal first, with a DH3-P1 class.
+
+  None of them is implemented here.

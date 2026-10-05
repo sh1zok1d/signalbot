@@ -1,7 +1,7 @@
 ## Turn-of-month baseline unit V1 (G01-A1/A2 successor) — design note committed; NOT RUN; awaits owner go — 2026-10-05
 
 `DESIGN = docs/TURN_OF_MONTH_BASELINE_UNIT_V1.md (committed before any outcome) | TRACKS = PRODUCT_EVIDENCE (Part B, decides) + STRUCTURE (Part A, L1 at most)`
-`PART_B = label calibration on turn-of-month vs mid-month days of the same months (G01 day sets unchanged), D = r_TOM - r_MID, month-clustered 95 % interval; C1 (main) primary, C0 (deployed) reported; 13 labels with tolerances 2 / 4 pp`
+`PART_B = label calibration on turn-of-month vs mid-month days of the same months (G01 day sets unchanged), D = r_TOM - r_MID, month-clustered 95 % interval; C1 (deployed 2026-10-05) primary, C0 (previous) reported; 13 labels with tolerances 2 / 4 pp`
 `PART_A = day-level z shift (log quote volume, log trade count, log range), mean over 58 months, t-interval, per-year | no bar, no prior (O1)`
 `DATA = CORE_BTC_BINANCE_V0 2020-2024 single-venue proxy | BitMEX 2017-2019, 2025/2026 product surface and live tape NOT used (2025/2026 slice = owner option at go)`
 `DECISION_RULE = PROPOSE_CORRECTION_UNIT if any label BEYOND_TOLERANCE (interval past tau and >= 4/5 years same sign), else NO_CHANGE with WITHIN_TOLERANCE / NOT_RESOLVED listed`

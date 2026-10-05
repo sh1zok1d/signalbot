@@ -15,7 +15,7 @@ There is no directional claim and no `EDGE` track.
 
 ## 1. Question (estimand)
 
-> Do the bot's reference distributions fire at the same rates on turn-of-month days as on mid-month days of the same months, under the construction on `main`? And how large is the day-level participation and range shift on those days?
+> Do the bot's reference distributions fire at the same rates on turn-of-month days as on mid-month days of the same months, under the deployed construction (C1)? And how large is the day-level participation and range shift on those days?
 
 **Day sets.** These are G01's, imported unchanged from `scripts/research/autogen_g01/states.py`.
 
@@ -48,8 +48,8 @@ Days in neither set are not compared. They stay in every reference, as in produc
 
 | Id | What | Status on 2026-10-05 |
 |---|---|---|
-| **C1** (primary) | same UTC day type inside the 30-day window: `BETA_CONTEXT_1H_V3` for 1h / 4h ranks of range, move and volume; `BETA_HORIZON_TOD_V3` for the 1h TOD range / volume baseline (≥ 8 same-type days) | on `main` (#329), not deployed |
-| **C0** (secondary) | pooled 30-day reference (`BETA_CONTEXT_1H_V2`, `BETA_HORIZON_TOD_V2`) | deployed |
+| **C1** (primary) | same UTC day type inside the 30-day window: `BETA_CONTEXT_1H_V3` for 1h / 4h ranks of range, move and volume; `BETA_HORIZON_TOD_V3` for the 1h TOD range / volume baseline (≥ 8 same-type days) | merged (#329, `c980fae`) and deployed 2026-10-05 12:44 UTC (owner-reported, `BETA_C1_DAY_TYPE_BASELINE_V1.md`) |
+| **C0** (secondary) | pooled 30-day reference (`BETA_CONTEXT_1H_V2`, `BETA_HORIZON_TOD_V2`) | the construction before C1; reported for comparison |
 
 The 24h baseline is the same in both: production `_baseline_24h`, the median of the prior 30 days' rolling 24h values, with ≥ 20 days.
 
