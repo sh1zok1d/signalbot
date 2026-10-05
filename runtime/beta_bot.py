@@ -429,9 +429,14 @@ class BetaBotHandler:
             return df.format_events(evs, lang, funding_utc=(cal["recurring"].get("funding_utc") or ()))
         if cmd == "accuracy":
             from datetime import timedelta
+            from beta.calendar_events import event_times_ms, load_calendar
+            from beta.rangecast import EVENT_KINDS
             stats = await latest_stats(conn, now=now)
             live = await conn.forecast_accuracy(since=now - timedelta(days=30))
-            return df.format_accuracy((stats or {}).get("range_model"), live, lang)
+            rows = await conn.forecast_rows(since=now - timedelta(days=max(df.ACCURACY_WINDOWS_DAYS)))
+            evs = event_times_ms(load_calendar())
+            detail = df.corridor_accuracy(rows, now=now, events_ms=[x for k in EVENT_KINDS for x in evs.get(k, ())])
+            return df.format_accuracy((stats or {}).get("range_model"), live, lang, detail=detail)
         regime = None
         if effective_d7_enabled(self.cfg, await conn.get_admin_d7_enabled()):
             from beta.regime_d7 import regime_for_status

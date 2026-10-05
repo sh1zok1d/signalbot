@@ -514,7 +514,77 @@ def format_events(events: Sequence[Mapping[str, Any]], lang: str, *, funding_utc
 
 
 # ---- /accuracy ---------------------------------------------------------------------------
-def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mapping[str, int]], lang: str) -> str:
+ACCURACY_WINDOWS_DAYS = (7, 30, 90)
+_H_MS = {"1h": 3_600_000, "4h": 14_400_000, "24h": 86_400_000}
+
+
+def corridor_accuracy(rows, *, now: datetime, events_ms=()) -> dict:
+    """The live corridor record by horizon (backlog B1): the share inside over 7 / 30 / 90 days with
+    its effective N (distinct horizon-length slots), the mean half-width, the misses above and below
+    with their median size, and two regimes over 90 days — forecasts issued on a CPI / FOMC day and
+    forecasts in the widest third (high volatility). Pure."""
+    from statistics import median
+    ev_days = {int(t) // 86_400_000 for t in events_ms}
+    out: dict = {}
+    for h, hms in _H_MS.items():
+        hr = [r for r in rows if r["horizon"] == h]
+        if not hr:
+            continue
+
+        def ms(r):
+            return int(r["issued_at"].timestamp() * 1000)
+
+        def share(sel):
+            n = len(sel)
+            return {"n": n, "n_eff": len({ms(r) // hms for r in sel}),
+                    "inside": (sum(1 for r in sel if r["outcome"] == "INSIDE") / n) if n else None}
+        rec: dict = {"windows": {}}
+        for d in ACCURACY_WINDOWS_DAYS:
+            since = now.timestamp() * 1000 - d * 86_400_000
+            rec["windows"][d] = share([r for r in hr if ms(r) >= since])
+        last30 = [r for r in hr if ms(r) >= now.timestamp() * 1000 - 30 * 86_400_000]
+        if last30:
+            rec["half_width_pct"] = sum((r["upper"] - r["lower"]) / 2 / r["anchor_price"] * 100 for r in last30) / len(last30)
+            up = [(r["realized_high"] / r["upper"] - 1) * 100 for r in last30
+                  if r["realized_high"] is not None and r["realized_high"] > r["upper"]]
+            dn = [(1 - r["realized_low"] / r["lower"]) * 100 for r in last30
+                  if r["realized_low"] is not None and r["realized_low"] < r["lower"]]
+            rec["miss_up"] = {"share": len(up) / len(last30), "median_pct": median(up) if up else None}
+            rec["miss_down"] = {"share": len(dn) / len(last30), "median_pct": median(dn) if dn else None}
+        widths = sorted((r["upper"] - r["lower"]) / r["anchor_price"] for r in hr)
+        cut = widths[int(len(widths) * 2 / 3)] if len(widths) >= 3 else None
+        rec["event_days"] = share([r for r in hr if ms(r) // 86_400_000 in ev_days])
+        rec["high_vol"] = share([r for r in hr if cut is not None and (r["upper"] - r["lower"]) / r["anchor_price"] >= cut])
+        out[h] = rec
+    return out
+
+
+def _share_part(x: Mapping[str, Any], key: str, lang: str, **kw) -> str:
+    if x["n_eff"] < MIN_N_SHOWN or x["inside"] is None:
+        return t(lang, key + "_short", n=x["n_eff"], **kw)
+    return t(lang, key, p=fmt_share(x["inside"], lang), n=x["n_eff"], **kw)
+
+
+def _accuracy_detail_lines(detail: Mapping[str, Any], lang: str) -> list:
+    lines = [t(lang, "ac_live_head")]
+    for h in ("1h", "4h", "24h"):
+        rec = detail.get(h)
+        if not rec:
+            continue
+        wins = " · ".join(_share_part(rec["windows"][d], "ac_win", lang, d=d) for d in ACCURACY_WINDOWS_DAYS)
+        width = rec.get("half_width_pct")
+        lines.append(t(lang, "ac_h_line", h=_hz(h, lang), windows=wins,
+                       width=_pct(width, lang, 2) if width is not None else na(lang)))
+        if rec.get("miss_up") is not None:
+            mu, md = rec["miss_up"], rec["miss_down"]
+            lines.append(t(lang, "ac_miss_line", up=fmt_share(mu["share"], lang), dn=fmt_share(md["share"], lang),
+                           up_size=_pct(mu["median_pct"], lang, 2) if mu["median_pct"] is not None else na(lang),
+                           dn_size=_pct(md["median_pct"], lang, 2) if md["median_pct"] is not None else na(lang)))
+        lines.append(t(lang, "ac_regime_line", ev=_share_part(rec["event_days"], "ac_reg", lang),
+                       hv=_share_part(rec["high_vol"], "ac_reg", lang)))
+    return lines if len(lines) > 1 else [t(lang, "ac_live_none")]
+def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mapping[str, int]], lang: str,
+                    detail: Optional[Mapping[str, Any]] = None) -> str:
     """Held-out and live corridor coverage against its target. A live share is computed over every
     scored hourly forecast, but its N is the number of non-overlapping horizon windows (`N_EFF`,
     `BetaConn.forecast_accuracy`): hourly 24h forecasts overlap 24 times, so the raw count would
@@ -534,7 +604,8 @@ def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mappi
                 a = datetime.fromtimestamp(c["holdout_from_ms"] / 1000, tz=timezone.utc).strftime("%Y-%m")
                 z = datetime.fromtimestamp(c["holdout_to_ms"] / 1000, tz=timezone.utc).strftime("%Y-%m")
                 period = f"{a} – {z}"
-        lines.append(t(lang, "ac_holdout", period=period, parts=", ".join(parts)))
+        days = max((int(c.get("n_days") or 0) for c in cal.values()), default=0)
+        lines.append(t(lang, "ac_holdout", period=period, days=days, parts=", ".join(parts)))
     parts = []
     for h in ("1h", "4h", "24h"):
         rec = live.get(h) or {}
@@ -546,7 +617,10 @@ def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mappi
             parts.append(t(lang, "ac_part_live_short", h=_hz(h, lang), n=n_eff))
         else:
             parts.append(t(lang, "ac_part_live", h=_hz(h, lang), p=fmt_share(rec.get("INSIDE", 0) / n, lang), n=n_eff))
-    lines.append(t(lang, "ac_live", parts=", ".join(parts)) if parts else t(lang, "ac_live_none"))
+    if detail is not None:
+        lines.extend(_accuracy_detail_lines(detail, lang))
+    else:
+        lines.append(t(lang, "ac_live", parts=", ".join(parts)) if parts else t(lang, "ac_live_none"))
     lines.extend(_touch_cal_lines(cal, lang))
     return assert_descriptive("\n".join(lines), lang)
 

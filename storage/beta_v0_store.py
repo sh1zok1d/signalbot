@@ -1710,6 +1710,14 @@ class BetaConn:
         return [{**dict(r), "subject": _load(r["subject"]), "numbers": _load(r["numbers"]),
                  "realized": _load(r["realized"]) if r["realized"] is not None else None} for r in rows]
 
+    async def forecast_rows(self, *, since: datetime) -> list:
+        """Scored corridor forecasts (INSIDE / OUTSIDE) since `since`, for the /accuracy breakdown."""
+        rows = await self.conn.fetch(
+            """SELECT horizon, issued_at, anchor_price, lower, upper, outcome, realized_high, realized_low
+               FROM beta_forecasts WHERE issued_at >= $1 AND outcome IN ('INSIDE', 'OUTSIDE')
+               ORDER BY issued_at""", since)
+        return [dict(r) for r in rows]
+
     # ---------------------------------------------------------------- market alerts
     async def insert_market_alert(self, *, kind: str, alert_key: str, decision_ts: datetime,
                                   decision: str, suppression_reason: Optional[str],

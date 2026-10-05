@@ -313,7 +313,7 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         # the 06:01 minute (the personal alert's +2% spike) is inside the window issued at 06:00:40
         assert scored == [{"horizon": "1h", "outcome": "OUTSIDE", "high": target + 1.0}]
         out = await h.handle(msgs[A]("/accuracy", 200))
-        assert "1ч — мало данных (N=1)" in plain(out[-1].html)       # one window: no share yet
+        assert "1ч: 7 дн. мало данных (N=1)" in plain(out[-1].html)   # one window: no share yet
         async with store.connect() as conn:
             acc = await conn.forecast_accuracy(since=DAY)
         assert acc == {"1h": {"OUTSIDE": 1, "N_EFF": 1}}

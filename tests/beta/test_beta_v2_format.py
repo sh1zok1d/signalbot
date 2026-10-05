@@ -166,10 +166,10 @@ def test_events_and_accuracy_cards():
     assert lines[3].startswith("Funding Binance: ")                  # Kyiv clock of today's funding (DST-dependent)
     assert lines[4:] == ["CPI США (инфляция): вокруг публикации обычная калибровка коридора не применяется."]
     model = {"calibration": {"1h": {"coverage_realized": 0.793, "holdout_from_ms": 1727740800000,
-                                    "holdout_to_ms": 1759276800000}}}
+                                    "holdout_to_ms": 1759276800000, "n_days": 365}}}
     acc = plain(df.format_accuracy(model, {"4h": {"INSIDE": 82, "OUTSIDE": 18, "N_EFF": 30}}, "ru"))
     assert "расчётная — 80%" in acc
-    assert "Проверка на отложенном годе (2024-10 – 2025-10): 1ч 79%" in acc
+    assert "Проверка на отложенном годе (2024-10 – 2025-10; 365 дн.): 1ч 79%" in acc
     assert "Живые прогнозы за 30 дней (N — непересекающиеся окна): 4ч — 82% (N=30)" in acc
     assert "ещё не созрели" in plain(df.format_accuracy(None, {}, "ru"))
 
@@ -384,3 +384,31 @@ def test_every_decision_text_is_valid_telegram_html(lang):
     assert "&lt;1%" in texts[2] and "&gt;99%" in texts[2]
     for text in texts:
         assert _telegram_html_ok(text), text
+
+
+def test_accuracy_breakdown_windows_width_misses_and_regimes():
+    now = datetime(2026, 12, 31, tzinfo=UTC)
+    rows = []
+    for k in range(90 * 24):                                    # 90 days of hourly 4h forecasts
+        at = now - timedelta(hours=k + 5)
+        anchor = 60000.0
+        out = k % 5 == 0                                          # 80 % inside
+        rows.append({"horizon": "4h", "issued_at": at, "anchor_price": anchor, "lower": 59400.0, "upper": 60600.0,
+                     "outcome": "OUTSIDE" if out else "INSIDE",
+                     "realized_high": 60900.0 if out and k % 10 == 0 else 60400.0,
+                     "realized_low": 59000.0 if out and k % 10 == 5 else 59600.0})
+    cpi = int((now - timedelta(days=3)).timestamp() * 1000)
+    det = df.corridor_accuracy(rows, now=now, events_ms=[cpi])["4h"]
+    assert det["windows"][7]["n"] == 164 and det["windows"][7]["n_eff"] == 41      # 4h slots, not hours
+    assert det["windows"][90]["inside"] == pytest.approx(0.8, abs=0.01)
+    assert det["half_width_pct"] == pytest.approx(1.0)
+    assert det["miss_up"]["share"] == pytest.approx(0.1, abs=0.01) and det["miss_up"]["median_pct"] == pytest.approx(0.495, abs=0.01)
+    assert det["event_days"]["n"] == 24 and det["event_days"]["n_eff"] == 6
+    text = plain(df.format_accuracy({"coverage": 0.8}, {}, "ru", detail={"4h": det}))
+    assert "Вживую (N — непересекающиеся окна):" in text
+    assert "4ч: 7 дн. 80% (N=41) · 30 дн. 80% (N=179) · 90 дн. 80% (N=539) · ширина ±1,00%" in text
+    assert "за 30 дн. вне коридора: выше 10% (медиана на 0,50%), ниже 10% (медиана на 0,67%)" in text
+    assert "в дни CPI/FOMC мало данных (N=6)" in text
+    for lang in ("ru", "en"):
+        assert_descriptive(df.format_accuracy({"coverage": 0.8}, {}, lang, detail={"4h": det}), lang)
+    assert "Живые прогнозы ещё не созрели" in plain(df.format_accuracy(None, {}, "ru", detail={}))
