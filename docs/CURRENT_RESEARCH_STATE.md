@@ -1,3 +1,12 @@
+## Evaluator variants note — owner decision pending; nothing run — 2026-10-05
+
+`RECORD = docs/research/EVALUATOR_VARIANTS_COMPARISON_V1.md | UNITS = DH3-P1, G01-A1, R03-B1 | OUTCOMES_COMPUTED = none | DATA_READ = none`
+`VARIANTS = (1) L0-L4, method per unit (in force) | (2) posterior only for suitable classes (= §3 per-unit method choice) | (3) general posterior evaluator (chat-only; conflicts with EVIDENCE_AND_CLAIMS §7; never built)`
+`FINDING = the claim ceiling of each unit is set by its surface and exposure, not by the estimator; no variant lifts DH3-P1 above L2 or G01-A1 / R03-B1 above L1`
+`RECOMMENDATION = variant 1 is enough; no amendment (optional §3 clarification text, Appendix A) | DECISION = owner`
+`OBSERVATIONS (not repaired) = G01-A1/A2 unit MDE recorded at alpha 0.05 (HOLM_M 0), ~0.535 at m = 2 | stress SE vs realized SE 0.41-0.55 (C1 1.55) | «ниже порога значимости 15%» also on DH3-P1/O2/L3/S1 | no journal class for P1`
+`NEXT_UNIT = none started`
+
 ## Research history audit V1 — complete; no unit started — 2026-10-05
 
 `RECORD = docs/research/RESEARCH_HISTORY_AUDIT_V1.md (+ .json, _TABLE.md; builder scripts/research/history_audit.py --check)`
