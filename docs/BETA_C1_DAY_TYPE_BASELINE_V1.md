@@ -1,6 +1,6 @@
 # Beta C1 — same-day-type reference (product change V1)
 
-**Status:** `IMPLEMENTED_ON_BRANCH claude/product-weekday-weekend-c1 / PARITY_TESTED / NOT_MERGED / NOT_DEPLOYED` (the mapping in §1–§3 was committed before the code, `d4b2e5b`)
+**Status:** `MERGED (#329, c980fae) / PARITY_TESTED / DEPLOYED 2026-10-05 12:44 UTC (owner-reported: smoke 27 PASS / 0 WARN / 0 FAIL; only BETA_CONTEXT_1H_V3 after deploy; analogues BETA_ANALOGUES_V2)` (the mapping in §1–§3 was committed before the code, `d4b2e5b`; the pre-deploy replay of §8 step 2 is not recorded)
 **Decision:** owner GO 2026-10-05, `CHANGE_BASELINE -> C1` from `WEEKDAY_WEEKEND_BASELINE_UNIT_V2_RESULT.md`.
 **Frozen evaluator (the reference implementation):** `scripts/product/weekday_weekend_baseline_v2/evaluate.py` (`86b2c09`, sha256 `5bda5d60e9b55812…`). C1 is implemented exactly as evaluated. It is not re-optimized or re-defined.
 

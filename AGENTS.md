@@ -6,6 +6,11 @@ This file tells coding/review agents what is authoritative **now**. Keep it conc
 
 **Mode since 2026-10-03:** `PRODUCT_FIRST / DECISION_SUPPORT / NO_DIRECT_TRADE_CALLS`. The canonical product decision is `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md`: the owner lifted the predictive freeze for the product (forecasts of range, touch probabilities, levels, historical statistics with direction, an event calendar, timely market alerts) and opened Binance 2025/2026 for product statistics. Still forbidden in every user text: direct trade calls (buy/sell, long/short now, entries, targets), hype, unobservable attributions. Every historical number carries N and a comparable "обычно"; every forecast carries its tracked accuracy. Where it differs, it wins over the V1 decision below.
 
+**Pre-beta scope (2026-10-05, `docs/PRE_BETA_SCOPE_DECISION_V1.md`).** Everything decidable without users ships before Day 0: plan A–J (trust, accuracy, screens, full `/check`, personal layer, push, context, feedback, access flags, onboarding) plus the owner-only signature index `/hypotheses`.
+- **Post-beta:** ETH, historical CPI/FOMC move sizes, fake doors or tariff pages with a price, «кто первый» for two levels (`/check` shows each level's touch chance and «ни один»), an automatic mute prompt after 👎.
+- **History first, live joins:** a market metric without live data yet is shown from a held-out historical check labelled «на истории»; live tracking runs from day one and its line appears by a rule frozen before Day 0. Not for user behaviour, the live pipeline or data with no history.
+- **Amends:** PRODUCT_FIRST §3 (scope extended), §5 (per-type mute allowed), §9 (per-user briefing time and time zone allowed); EVIDENCE_AND_CLAIMS §6 touch-chance wording = "B". The measurement contract is not frozen; it is amended (U1a from each user's briefing time, per-type mute as a negative U2 signal) and frozen on the final build commit. Research re-evaluation: option O1, EVIDENCE_AND_CLAIMS unchanged.
+
 **Directional hypotheses for the bot (2026-10-04, `docs/research/DIRECTIONAL_HYPOTHESES_DECISION_V1.md`).** For program `DH1` only, the owner lets research target directional outcomes so the bot can state probabilities with a status.
 - **Endpoints:** level hold 4h after a first touch; barrier first-passage ±X within 4h.
 - **Bar:** 3 pp against "обычно" plus a positive Brier skill score.
@@ -90,6 +95,7 @@ For any new task, use this authority order:
 
 0. `docs/SIGNALBOT_MANDATE_V1.md` — owner-approved strategic mandate; project success criteria, anti-sycophancy rule, scientific/product/commercial principles. It does not override frozen experiment-specific scientific authorities;
 0a. `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` — canonical product decision (2026-10-03): decision support (corridor, levels, history, events, market alerts), the rules that stay, protected 2025/2026 opened for product use. Read it first for any product/beta task;
+0a1. `docs/PRE_BETA_SCOPE_DECISION_V1.md` — owner pre-beta scope (2026-10-05): what is built before Day 0, what waits until after the beta, the history-first rule, the full `/check`, the signature index and the amendments to PRODUCT_FIRST and EVIDENCE_AND_CLAIMS;
 0b. `docs/PRODUCT_FIRST_DECISION_V1.md` — product decision of 2026-10-02 (hypothesis, architecture constraint, DO-NOT-BUILD-YET, user-test design); superseded where V2 differs;
 0c. `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md` — research decision (2026-10-05): evidence vs claim decision, L0–L4 ladder, design note before outcome, claim journal; read it before any new research unit or any product line that states a historical or probabilistic number;
 1. `docs/CURRENT_RESEARCH_STATE.md` — compact current routing and exact next unit;
@@ -116,7 +122,7 @@ Generator V0 mechanism memory is an append-only event chain (`docs/research/gene
 
 ## Hard development freeze
 
-Product work is allowed inside `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §2 and the build-to-test scope of `docs/PRODUCT_FIRST_DECISION_V1.md` §3, and never inside the still-forbidden items listed in V2 §3 (LLM in production, web UI, payments, multi-asset scanner, order book / liquidation heatmaps, exchange keys, a second detector engine). Research work follows `PRODUCT_FIRST_DECISION_V1.md` §1: small, feasibility-confirmed, product-serving only.
+Product work is allowed inside `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §2, the build-to-test scope of `docs/PRODUCT_FIRST_DECISION_V1.md` §3 and the pre-beta scope of `docs/PRE_BETA_SCOPE_DECISION_V1.md` §2.1 and §7, and never inside the still-forbidden items listed in V2 §3 (LLM in production, web UI, payments, multi-asset scanner, order book / liquidation heatmaps, exchange keys, a second detector engine). Research work follows `PRODUCT_FIRST_DECISION_V1.md` §1: small, feasibility-confirmed, product-serving only.
 
 Unless a task explicitly changes the project posture, do not build:
 
