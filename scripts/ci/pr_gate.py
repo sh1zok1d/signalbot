@@ -46,18 +46,6 @@ HEAVY_TEST_TO_SOURCE = {
     "tests/research/test_b2_06_oi_funding_materialization.py": (
         "scripts/research/b2_06_oi_funding_materialization.py",
     ),
-    # Closed compiler V3 variance line (2026-10-05): its simulation-heavy suite stays in
-    # FULL REGRESSION and runs on a PR only when its own sources change.
-    "tests/research/test_compiler_v3_variance_floor.py": (
-        "scripts/research/compiler_v3_variance_floor/engine.py",
-        "scripts/research/compiler_v3_variance_floor/generator.py",
-        "scripts/research/compiler_v3_variance_floor/compiler.py",
-        "scripts/research/compiler_v3_variance_floor/cp.py",
-        "scripts/research/compiler_v3_variance_floor/freeze.py",
-        "scripts/research/compiler_v3_variance_floor/amendment.py",
-        "scripts/research/compiler_v3_variance_floor/binding.py",
-        "scripts/research/compiler_v3_variance_floor/build_golden_manifest.py",
-    ),
 }
 
 

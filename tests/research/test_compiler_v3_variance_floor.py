@@ -42,7 +42,11 @@ def test_freeze_digests_match_and_mismatch_refuses(tmp_path, monkeypatch):
         freeze.verify_freeze()
 
 
-def test_official_run_refuses_without_authorized_binding(monkeypatch):
+def test_official_run_refuses_without_authorized_binding(monkeypatch, tmp_path):
+    # The real authorization exists since the one official run (0828ab0, 2026-10-04) and the line is
+    # closed (COMPILER_V3_VARIANCE_LINE_CLOSURE_V1). Never call official_run() against it from a test:
+    # the one-shot guard checks RESULT_OUT, while the official result is committed as *_RESULT_V1.json.
+    monkeypatch.setattr(freeze, "RUN_AUTHORIZATION", tmp_path / "absent_authorization.json")
     with pytest.raises((freeze.FreezeMismatch, engine.OfficialRunNotAuthorized)):
         engine.official_run()
 
@@ -262,7 +266,9 @@ def test_amendment_binds_original_freeze_and_effective_manifest():
     assert set(AMENDMENT["GENERATOR_DIGESTS"]) <= set(binding["GENERATOR_DIGESTS"])
     assert binding["SUPERSEDES"]["PATH"].endswith("EXECUTION_BINDING_V1.json") and freeze.sha256_path(binding["SUPERSEDES"]["PATH"]) == binding["SUPERSEDES"]["SHA256"]
     assert binding["AMENDMENT"]["SHA256"] == freeze.sha256_path(binding["AMENDMENT"]["PATH"])
-    assert not freeze.RUN_AUTHORIZATION.exists()
+    # post-run state: the separate authorization binds this binding, and the one result is recorded as V1
+    assert freeze.verify_run_authorization(binding)["OFFICIAL_RUN_AUTHORIZED"] is True
+    assert (freeze.REPO / "docs/research/COMPILER_V3_VARIANCE_FLOOR_VALIDATION_RESULT_V1.json").exists()
 
 
 def test_s6_excluded_set_exact_and_metadata_retained():

@@ -48,3 +48,18 @@ The lesson worth carrying forward is a sentence, not a gate:
 - **The GV0R02 compiler V0–V2 stay reproducible and untouched.** Their information numbers (MDE, unit counts) may still be computed and reported, but as **amount-of-information fields**, not as a pass/fail gate before a unit may run (`EVIDENCE_AND_CLAIMS_DECISION_V1.md` §3).
 - **Contract V2 draft.** `HYPOTHESIS_EVALUATION_CONTRACT_V2_DRAFT.md` is not adopted and will not be adopted as written. Its useful core is carried into `EVIDENCE_AND_CLAIMS_DECISION_V1.md`: tracks, evidence fields separate from decision fields, the rare-event accumulation idea and the exposure ledger. Its certification machinery is dropped: §4 bar-function compilation, §5 compiler V3 requirement, §7 tranche machinery and §8.3a closed registries. The draft file is kept as history with a pointer.
 - **Atlas.** The compiler is methodology, not a market unit, so no atlas unit or surface changes.
+
+## 5. Latent rerun path found while closing (recorded, code untouched)
+
+`scripts/research/compiler_v3_variance_floor/engine.py::official_run` guards the one-shot rule by refusing when `docs/research/COMPILER_V3_VARIANCE_FLOOR_VALIDATION_RESULT.json` exists. The official result was committed as `…_RESULT_V1.json`, and the run authorization exists. So the guard no longer stops a second run.
+
+The suite's `test_official_run_refuses_without_authorized_binding` was written before the authorization existed. On the merged tree it **started the official run** in this session's validation. The process was stopped within minutes, before it wrote anything; the tree was verified clean.
+
+**Repair, tests only.** The test now points the authorization at an absent file. Two pre-run assertions that became false after the run are replaced by post-run checks:
+- the authorization binds the binding;
+- the V1 result exists;
+- in the estimator suite, the committed C-table equals the sealed digest.
+
+`engine.py` and `freeze.py` are digest-bound by the execution binding, so they are **not** edited.
+
+**Rule:** `--official` must never be invoked again for this line. Any future code change to the guard is a new binding, which this closure forbids, so the rule is procedural.
