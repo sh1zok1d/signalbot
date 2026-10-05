@@ -33,6 +33,7 @@ logger = logging.getLogger("beta.claims")
 JOURNAL_VERSION = "BETA_CLAIMS_V1"
 HORIZON_MS = {"1h": 3_600_000, "4h": 14_400_000, "24h": 86_400_000}
 TOUCH_GRID_PCT = (0.25, 0.5, 1.0, 2.0, 3.0, 5.0)        # contains the /risk table (0.25 / 0.5 / 1 / 2)
+NEITHER_GRID_PCT = (0.5, 1.0, 2.0, 3.0)                 # «ни один» pairs (calibration note §7)
 WRITE_WINDOW = timedelta(minutes=10)                    # as the corridor forecasts (market_alerts)
 SETTLE = timedelta(minutes=3)
 NO_DATA_AFTER = timedelta(hours=6)
@@ -62,6 +63,12 @@ EVAL_RULES = {
         "complete": "touched, or not touched with >= 90% of the window's minutes present",
         "cohort_metric": "reliability by probability bin, Brier score and Brier skill against the cohort's "
                          "own base rate; N_eff = distinct horizon-length UTC slots",
+    },
+    "NEITHER_V1": {
+        "outcome": "neither: no closed bar wholly inside (as_of, horizon_end] with high >= level_up or "
+                   "low <= level_down",
+        "complete": "either level touched (neither = false), or >= 90% of the window's minutes present",
+        "cohort_metric": "as TOUCH_V1, on the «ни один» chance (calibration note §7)",
     },
     "ANALOG_V1": {
         "outcome": "return = close at horizon_end / close of the 5m bar closing at as_of - 1 (%); "
@@ -96,6 +103,9 @@ CLASSES = {
     "L3_DISTANCE_TOUCH_1H": ("L3", ("rk_line", "rk_table_line"), "TOUCH_V1"),
     "L3_DISTANCE_TOUCH_4H": ("L3", ("rk_line", "rk_table_line"), "TOUCH_V1"),
     "L3_DISTANCE_TOUCH_24H": ("L3", ("rk_line", "rk_table_line", "al_set"), "TOUCH_V1"),
+    "L3_NEITHER_1H": ("L3", ("ck_neither",), "NEITHER_V1"),
+    "L3_NEITHER_4H": ("L3", ("ck_neither",), "NEITHER_V1"),
+    "L3_NEITHER_24H": ("L3", ("ck_neither",), "NEITHER_V1"),
     "L2_STATE_ANALOG_1H_1H": ("L2", ("dc_analog_line",), "ANALOG_V1"),
     "L2_STATE_ANALOG_1H_4H": ("L2", ("dc_analog_line",), "ANALOG_V1"),
     "L2_STATE_ANALOG_4H_4H": ("L2", ("dc_analog_line",), "ANALOG_V1"),
@@ -195,6 +205,21 @@ def touch_claims(block: Mapping[str, Any], model: Optional[Mapping[str, Any]], *
                                      subject=subject, subject_key=f"{side:+d}:{float(z['edge']):.2f}",
                                      numbers=numbers, rule_version=version, eligible_reason="LEVEL_ZONE_SHOWN",
                                      horizon_ms=HORIZON_MS[h], **ids))
+    from .rangecast import neither_probability
+    for h, x in hz.items():
+        if "q_joint" not in ((model.get("horizons") or {}).get(h) or {}):
+            continue                                   # a statistics row built before the joint table
+        for du in NEITHER_GRID_PCT:
+            for dd in NEITHER_GRID_PCT:
+                pu, pd_ = (touch_probability(model, h, x["scale_pct"], d) for d in (du, dd))
+                p = neither_probability(model, h, x["scale_pct"], du, dd, p_up=pu, p_down=pd_)
+                subject = {"level_up": round(price * (1 + du / 100.0), 2), "level_down": round(price * (1 - dd / 100.0), 2),
+                           "up_pct": du, "down_pct": dd, "horizon": h, "price": price, "scale_pct": x["scale_pct"]}
+                numbers = {"probability": round(float(p), 4), "printed": printed_prob(p),
+                           "p_up": round(float(pu), 4), "p_down": round(float(pd_), 4)}
+                out.append(claim_row(f"L3_NEITHER_{h.upper()}", issued_at=now, issue_slot=slot, as_of=as_of,
+                                     subject=subject, subject_key=f"{du}:{dd}", numbers=numbers, rule_version=version,
+                                     eligible_reason="DISTANCE_GRID", horizon_ms=HORIZON_MS[h], **ids))
     for h, x in hz.items():
         for d in TOUCH_GRID_PCT:
             p = touch_probability(model, h, x["scale_pct"], d)
@@ -422,6 +447,16 @@ def evaluate(claim: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime,
                 return "COMPLETE", {"touched": False, "high": w["high"], "low": w["low"],
                                     "coverage": round(w["coverage"], 4)}
         return ("NO_DATA", {"coverage": round(w["coverage"], 4) if w else 0.0}) if late else None
+    if rule == "NEITHER_V1":
+        up, dn = float(s["level_up"]), float(s["level_down"])
+        if w is not None:
+            hit = next((x[0] for x in w["series"] if x[1] >= up or x[2] <= dn), None)
+            if hit is not None:
+                return "COMPLETE", {"neither": False, "first_touch": _iso(hit), "coverage": round(w["coverage"], 4)}
+            if w["coverage"] >= COVERAGE_MIN:
+                return "COMPLETE", {"neither": True, "high": w["high"], "low": w["low"],
+                                    "coverage": round(w["coverage"], 4)}
+        return ("NO_DATA", {"coverage": round(w["coverage"], 4) if w else 0.0}) if late else None
     complete = w is not None and w["coverage"] >= COVERAGE_MIN
     if rule == "ANALOG_V1":
         c0 = _close_at(b, start)
@@ -573,6 +608,11 @@ def _boot_diff(groups_a: Mapping[int, list], groups_b: Mapping[int, list], *, se
     return [round(float(np.quantile(d, 0.025)), 6), round(float(np.quantile(d, 0.975)), 6)]
 
 
+def _event(realized: Mapping[str, Any]) -> bool:
+    """The event an L3 chance was about: touched (single level) or neither touched (two levels)."""
+    return bool(realized.get("touched") if "touched" in realized else realized.get("neither"))
+
+
 def _touch_report(rows: Sequence[Mapping[str, Any]], horizon: str) -> dict:
     done = [r for r in rows if r.get("status") == "COMPLETE"]
     out = {"n": len(rows), "scored": len(done), "n_eff": len({_slot_id(r, horizon) for r in done}),
@@ -580,7 +620,7 @@ def _touch_report(rows: Sequence[Mapping[str, Any]], horizon: str) -> dict:
     if not done:
         return out
     p = np.array([float(r["numbers"]["probability"]) for r in done])
-    y = np.array([1.0 if r["realized"].get("touched") else 0.0 for r in done])
+    y = np.array([1.0 if _event(r["realized"]) else 0.0 for r in done])
     base = float(y.mean())
     brier = float(np.mean((p - y) ** 2))
     ref = base * (1 - base)
@@ -591,7 +631,7 @@ def _touch_report(rows: Sequence[Mapping[str, Any]], horizon: str) -> dict:
         if not sel:
             continue
         ps = np.array([float(r["numbers"]["probability"]) for r in sel])
-        ys = np.array([1.0 if r["realized"].get("touched") else 0.0 for r in sel])
+        ys = np.array([1.0 if _event(r["realized"]) else 0.0 for r in sel])
         out["bins"].append({"bin": [lo, min(hi, 1.0)], "n": len(sel), "n_eff": len({_slot_id(r, horizon) for r in sel}),
                             "predicted": round(float(ps.mean()), 4), "realized": round(float(ys.mean()), 4)})
     return out
@@ -679,7 +719,7 @@ def claims_report(rows: Sequence[Mapping[str, Any]]) -> dict:
         by_class.setdefault(r["claim_class"], []).append(r)
     for cls, rs in sorted(by_class.items()):
         rule = CLASSES.get(cls, (None, None, None))[2]
-        if rule == "TOUCH_V1":
+        if rule in ("TOUCH_V1", "NEITHER_V1"):
             out["classes"][cls] = _touch_report(rs, cls.rsplit("_", 1)[1].lower())
         elif rule == "ANALOG_V1":
             out["classes"][cls] = _analog_report(rs)
@@ -698,16 +738,19 @@ TOUCH_LIVE_DAYS = 120
 LIVE_TOLERANCE = 0.05
 
 
-def touch_classes(h: str) -> tuple:
+def touch_classes(h: str, kind: str = "touch") -> tuple:
+    if kind == "neither":
+        return (f"L3_NEITHER_{h.upper()}",)
     return (f"L3_LEVEL_TOUCH_{h.upper()}", f"L3_DISTANCE_TOUCH_{h.upper()}")
 
 
-def live_touch_bins(cells: Sequence[Mapping[str, Any]], h: str, *, seed: int = BOOT_SEED, reps: int = BOOT_B) -> list:
+def live_touch_bins(cells: Sequence[Mapping[str, Any]], h: str, *, kind: str = "touch", seed: int = BOOT_SEED,
+                    reps: int = BOOT_B) -> list:
     """Per probability bin of horizon h, pooled over its level and distance classes: N, effective N
     (distinct horizon slots), mean stated chance, realized share, the difference and a UTC-day-clustered
     95 % interval of it."""
     from .rangecast import TOUCH_CAL_BINS
-    mine = [c for c in cells if c["claim_class"] in touch_classes(h)]
+    mine = [c for c in cells if c["claim_class"] in touch_classes(h, kind)]
     out = []
     rng = np.random.default_rng(seed)
     for k, (lo, hi) in enumerate(zip(TOUCH_CAL_BINS[:-1], TOUCH_CAL_BINS[1:])):
@@ -760,22 +803,25 @@ async def refresh_touch_calibration(conn, *, now: datetime) -> Optional[dict]:
     if last is not None and now - last < timedelta(minutes=55):
         return None
     cells = await conn.touch_claim_cells(since=now - timedelta(days=TOUCH_LIVE_DAYS),
-                                         classes=[c for h in HORIZON_MS for c in touch_classes(h)])
+                                         classes=[c for h in HORIZON_MS for k in ("touch", "neither")
+                                                  for c in touch_classes(h, k)])
     pd_ = prev.get("detail") or {}
-    keep = pd_.get("diverged") if pd_.get("model") == RANGE_MODEL_VERSION else None
+    same = pd_.get("model") == RANGE_MODEL_VERSION
     detail = {"version": TOUCH_CAL_VERSION, "model": RANGE_MODEL_VERSION, "computed_at": _iso(now),
-              "days": TOUCH_LIVE_DAYS, "horizons": {}, "diverged": {}}
-    for h in HORIZON_MS:
-        bins = live_touch_bins(cells, h)
-        detail["horizons"][h] = {"bins": bins}
-        old = [list(b) for b in ((keep or {}).get(h) or [])]
-        detail["diverged"][h] = old + [b for b in diverged_bins(bins) if b not in old]
+              "days": TOUCH_LIVE_DAYS, "horizons": {}, "diverged": {}, "neither": {}, "diverged_neither": {}}
+    for kind, hkey, dkey in (("touch", "horizons", "diverged"), ("neither", "neither", "diverged_neither")):
+        keep = pd_.get(dkey) if same else None
+        for h in HORIZON_MS:
+            bins = live_touch_bins(cells, h, kind=kind)
+            detail[hkey][h] = {"bins": bins}
+            old = [list(b) for b in ((keep or {}).get(h) or [])]
+            detail[dkey][h] = old + [b for b in diverged_bins(bins) if b not in old]
     await conn.record_health(TOUCH_LIVE_COMPONENT, now=now, success=True, detail=detail)
     return detail
 
 
 def touch_wording(holdout: Optional[Mapping[str, Any]], live: Optional[Mapping[str, Any]], h: str,
-                  p: Optional[float]) -> dict:
+                  p: Optional[float], *, kind: str = "touch") -> dict:
     """Which wording a touch chance p of horizon h gets (design note §3):
     - `B` with the held-out line ('holdout') while the live bin is under its N_eff;
     - `B` with the live line ('live') once the live bin reaches it;
@@ -785,13 +831,15 @@ def touch_wording(holdout: Optional[Mapping[str, Any]], live: Optional[Mapping[s
     if p is None:
         return {"mode": "none"}
     b = touch_bin(float(p))
-    hb = next((x for x in ((((holdout or {}).get(h) or {}).get("touch_bins") or {}).get("bins") or ())
+    hkey, lkey, dkey = ("neither_bins", "neither", "diverged_neither") if kind == "neither" \
+        else ("touch_bins", "horizons", "diverged")
+    hb = next((x for x in ((((holdout or {}).get(h) or {}).get(hkey) or {}).get("bins") or ())
                if list(x["bin"]) == b), None)
     lv = (live or {})
-    diverged = [list(x) for x in ((lv.get("diverged") or {}).get(h) or ())]
+    diverged = [list(x) for x in ((lv.get(dkey) or {}).get(h) or ())]
     if b in diverged or hb is None or not hb.get("passed"):
         return {"mode": "fallback", "bin": b, "holdout": hb}
-    lb = next((x for x in (((lv.get("horizons") or {}).get(h) or {}).get("bins") or ()) if list(x["bin"]) == b), None)
+    lb = next((x for x in (((lv.get(lkey) or {}).get(h) or {}).get("bins") or ()) if list(x["bin"]) == b), None)
     if lb is not None and lb["n_eff"] >= TOUCH_CAL_MIN_NEFF:
         return {"mode": "B", "source": "live", "bin": b, "predicted": lb["predicted"], "realized": lb["realized"],
                 "n_eff": lb["n_eff"]}

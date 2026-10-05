@@ -216,6 +216,18 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
   - **Schema and units.** It adds three append-only tables (the schema apply is idempotent) and no timer.
   - **Report.** `python main.py --beta-claims-report --beta-json` prints the per-cohort report (read-only).
   - **Turning it off:** `decision.claim_journal: false`. The tables stay; nothing user-facing depends on them.
+- `/check <price | %> [<second price>]` (`PRE_BETA_SCOPE_DECISION_V1.md` §5; `beta/check.py`).
+  - **What it shows.**
+    - The chance to reach each level within 1h / 4h / 24h, under the wording rule of the calibration note.
+    - For two levels, the chance that neither is touched. Which comes first is never shown.
+    - The typical move, the next 24h events and the next objective level beyond.
+    - What followed touches: the level's own history when it is an objective level, else the nightly `distance_reactions` statistic.
+  - **Input.** «64000», «64к», «64 000», «65,000», «-3 %», «+1.5%», one or two levels.
+  - **Buttons.**
+    - «🔔 Следить» sets a personal `/alert` in one tap (`btn_watch`).
+    - Level and sharp-move alerts carry «🎯 Проверить <next level>».
+    - The briefing carries «🎯 Проверить» for the nearest level above and below (`btn_check`).
+  - **Activity.** New activity actions: `cmd_check`, `btn_check`, `btn_watch` (schema check widened). They still need their classes in `BETA_MEASUREMENT_CONTRACT_V1.md` §2 before the freeze (`PRE_BETA_SCOPE_DECISION_V1.md` §6.7).
 - Touch-chance calibration (`docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md`):
   - **Held-out bins.** The nightly build adds per-bin held-out reliability to `range_model.calibration.<h>.touch_bins`, and `/accuracy` shows it.
   - **Live bins.** The notifier refreshes the live bins from the journal once an hour (`beta_runtime_health` component `touch_live_cal`).

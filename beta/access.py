@@ -23,6 +23,7 @@ ACTIVITY_ACTIONS = (
     "cmd_levels", "cmd_risk", "cmd_alert", "cmd_events", "cmd_accuracy", "alert_delivered",
     "btn_levels", "btn_risk", "cmd_research",
     "brief_withheld", "btn_other_assets", "btn_btc_now", "tab_research",
+    "cmd_check", "btn_check", "btn_watch",
 )
 
 

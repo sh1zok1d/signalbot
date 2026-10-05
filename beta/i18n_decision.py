@@ -159,6 +159,45 @@ DECISION_CATALOG: dict = {
     "ac_touch_part_off": _pair("{p} → {r} (N={n})*", "{p} → {r} (N={n})*"),
     "ac_touch_note": _pair("* вне правила (±5 п.п. при N ≥ 30): такие шансы показываем как «исторически в X % случаев»",
                            "* outside the rule (±5 pp with N ≥ 30): such chances are shown as “historically in X % of cases”"),
+    # ---- /check (PRE_BETA_SCOPE_DECISION_V1 §5; docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md) ----
+    "ck_usage": _pair("Уровень ценой или в процентах: /check 64000 · /check 64к · /check -3% · два уровня: /check 64000 61000",
+                      "A level as a price or a percent: /check 64000 · /check 64k · /check -3% · two levels: /check 64000 61000"),
+    "ck_title_one": _pair("<b>BTC → {level}</b> ({dist}) · сейчас {price} · {clock}",
+                          "<b>BTC → {level}</b> ({dist}) · now {price} · {clock}"),
+    "ck_title_two": _pair("<b>BTC: {a} ({da}) и {b} ({db})</b> · сейчас {price} · {clock}",
+                          "<b>BTC: {a} ({da}) and {b} ({db})</b> · now {price} · {clock}"),
+    "ck_h_b_hold": _pair("{h}: шанс дойти ≈ {p} · на истории: говорили {P} → было {R} (N={n})",
+                         "{h}: chance to reach ≈ {p} · on history: said {P} → happened {R} (N={n})"),
+    "ck_h_b_live": _pair("{h}: шанс дойти ≈ {p} · вживую: говорили {P} → было {R} (N={n})",
+                         "{h}: chance to reach ≈ {p} · live: said {P} → happened {R} (N={n})"),
+    "ck_h_fallback": _pair("{h}: исторически цена доходила в {p} случаев", "{h}: historically the price got there in {p} of cases"),
+    "ck_arrow_up": _pair("↑", "↑"),
+    "ck_arrow_down": _pair("↓", "↓"),
+    "ck_neither": _pair("ни один", "neither"),
+    "ck_part_b": _pair("{label} ≈ {p}", "{label} ≈ {p}"),
+    "ck_part_fallback": _pair("{label} {p}*", "{label} {p}*"),
+    "ck_cal_part": _pair("{P} → {R}", "{P} → {R}"),
+    "ck_pair_line": _pair("{h}: {parts}", "{h}: {parts}"),
+    "ck_pair_cal_hold": _pair("   на истории говорили → было: {parts} (N от {n})",
+                              "   on history said → happened: {parts} (N from {n})"),
+    "ck_pair_cal_live": _pair("   вживую говорили → было: {parts} (N от {n})",
+                              "   live said → happened: {parts} (N from {n})"),
+    "ck_fallback_note": _pair("* исторически в стольких случаях; точность такой оценки не прошла проверку или ещё не набрала N",
+                              "* historically in that share of cases; the accuracy of such an estimate failed its check or has too little N yet"),
+    "ck_events": _pair("События в ближайшие 24ч: {list}", "Events in the next 24h: {list}"),
+    "ck_is_level": _pair("{level} — это {names}:", "{level} is {names}:"),
+    "ck_beyond": _pair("За {level} дальше: {price} — {name} ({dist})", "Beyond {level}: {price} — {name} ({dist})"),
+    "ck_dist": _pair("{level}: после касания цены на таком расстоянии (≈{d}, {n}) через 1ч цена была за ней в {hold}; "
+                     "медиана за 1ч: дальше {further}, обратно {back}. Так обычно ведёт себя произвольная цена.",
+                     "{level}: after a touch of a price this far (≈{d}, {n}), 1h later the price was beyond it in {hold}; "
+                     "1h median: {further} further, {back} back. That is how an arbitrary price usually behaves."),
+    "ck_dist_short": _pair("{level}: после касания цены на таком расстоянии — мало данных ({n})",
+                           "{level}: after a touch of a price this far — too little data ({n})"),
+    "ck_footer_one": _pair("Binance.", "Binance."),
+    "ck_footer_two": _pair("Binance. Какой из двух уровней будет первым — не показываем.",
+                           "Binance. Which of the two levels comes first is not shown."),
+    "btn_watch": _pair("🔔 Следить: {price}", "🔔 Watch: {price}"),
+    "btn_check": _pair("🎯 Проверить {price}", "🎯 Check {price}"),
     # ---- /alert ----
     "al_set": _pair("Сообщу, когда BTC дойдёт до {price} ({dist} от {now}). За 24ч до такого расстояния цена доходила в {p}.",
                     "I will message you when BTC reaches {price} ({dist} from {now}). Within 24h the price reached such a distance in {p}."),
@@ -392,6 +431,7 @@ DECISION_HELP = {
         "/levels — уровни: расстояние, шанс дойти, что было при касании\n"
         "/risk 0.5 — как часто цена проходит такой стоп против позиции\n"
         "/alert 65000 — сообщить, когда цена дойдёт (/alert — список)\n"
+        "/check 64000 — шанс дойти за 1ч / 4ч / 24ч и что бывало у таких уровней (два уровня: /check 64000 61000)\n"
         "/events — события: CPI, ФРС, экспирации\n"
         "/accuracy — насколько точен коридор\n"
         "/research — что проверили исследования: что подтвердилось, что нет\n"
@@ -411,6 +451,7 @@ DECISION_HELP = {
         "/levels — levels: distance, chance to reach, what happened at the touch\n"
         "/risk 0.5 — how often the price moves this far against a position\n"
         "/alert 65000 — message me when the price gets there (/alert — list)\n"
+        "/check 64000 — chance to reach it within 1h / 4h / 24h and what such levels did (two: /check 64000 61000)\n"
         "/events — CPI, Fed, options expiries\n"
         "/accuracy — how accurate the corridor is\n"
         "/research — what the research tested: what held up, what did not\n"

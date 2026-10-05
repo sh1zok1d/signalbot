@@ -499,7 +499,10 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     -- BETA_MEASUREMENT_CONTRACT_V1: U1a withheld briefing, U5 fake door, push "BTC now" action
     'brief_withheld', 'btn_other_assets', 'btn_btc_now',
     -- research evidence Details tab (owner task 2026-10-04)
-    'tab_research'));
+    'tab_research',
+    -- /check (PRE_BETA_SCOPE_DECISION_V1 §5): the command, «Проверить» from a push or the briefing,
+    -- «Следить» (a personal alert in one tap)
+    'cmd_check', 'btn_check', 'btn_watch'));
 
 -- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
 -- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.

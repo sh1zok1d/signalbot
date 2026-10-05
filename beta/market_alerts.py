@@ -335,6 +335,23 @@ def attach_evidence(cand: dict, block: Mapping[str, Any], cap: Mapping[str, Any]
     cand["payload"]["evidence"] = json_safe(found)
 
 
+def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
+    """«📊 BTC сейчас», Levels / Risk, and «🎯 Проверить» with the next level filled in (a level alert's
+    next level, a sharp move's nearest level; PRE_BETA_SCOPE_DECISION_V1 §5)."""
+    from .check import check_button
+    from .formatter import push_action_row
+    from .i18n import t
+    rows = [push_action_row(lang), [(t(lang, "btn_levels"), "L:levels"), (t(lang, "btn_risk"), "L:risk")]]
+    target = None
+    if kind == "level" and payload.get("next"):
+        target = payload["next"].get("edge")
+    elif kind == "move" and payload.get("near"):
+        target = (payload["near"][0] or {}).get("edge")
+    if target:
+        rows.append([check_button(float(target), lang)])
+    return rows
+
+
 async def _journal_level_touch(conn, cand: Mapping[str, Any], decision: str, *, now: datetime) -> None:
     """The level-touch claims of an evaluated candidate (PUSH or SUPPRESSED) and, for a push, the link
     to the alert that shows them. The journal never changes the decision and never stops the run."""
@@ -445,12 +462,8 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
         if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
             continue
         try:
-            from .formatter import push_action_row
-            from .i18n import t
             message_id = await sender.send(chat_id=row["chat_id"], html=text,
-                                           buttons=[push_action_row(lang),
-                                                    [(t(lang, "btn_levels"), "L:levels"),
-                                                     (t(lang, "btn_risk"), "L:risk")]])
+                                           buttons=alert_buttons(row["kind"], row["payload"], lang))
         except DeliveryRejected as exc:
             await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_FAILED, now=clock(),
                                            error_summary=str(exc)[:300])

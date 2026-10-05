@@ -346,7 +346,10 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         await h.handle(_cb(uid, "b:now", 39))                 # «📊 BTC сейчас» under a push
         await h.handle(_cb(uid, "x:assets", 40))              # U5 fake door
         await h.handle(_msg(uid, "/research", 41))
-        await h.handle(_msg(uid, "/stop", 42))
+        await h.handle(_msg(uid, "/check 70000", 42))         # /check (no price yet: the reply says why)
+        await h.handle(_cb(uid, "k:70000.00", 43))            # «🎯 Проверить» from a push or the briefing
+        await h.handle(_cb(uid, "w:70000.00", 44))            # «🔔 Следить»
+        await h.handle(_msg(uid, "/stop", 45))
         actions = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         # btn_details stays a valid historical action, but the episode Details are retired
         # (they exposed internals) and record nothing new.

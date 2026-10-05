@@ -432,3 +432,77 @@ def test_touch_wording_follows_the_frozen_rule():
     assert cj.touch_wording(hold, live, "4h", 0.34)["source"] == "holdout"
     assert cj.touch_wording(hold, {"diverged": {"4h": [[0.3, 0.5]]}}, "4h", 0.34)["mode"] == "fallback"
     assert cj.touch_wording(hold, None, "4h", None) == {"mode": "none"}
+
+
+# ---- «ни один» (calibration note §7) --------------------------------------------------------------
+def _joint_model():
+    from beta import rangecast as rc
+    q = [3.0 * p for p in rc.P_GRID]
+    lv = np.array(rc.JOINT_LEVELS)
+    u = list(np.interp(lv, rc.P_GRID, q))
+    return {"version": rc.RANGE_MODEL_VERSION,
+            "horizons": {h: {"q_one": q, "q_joint": {"u": u, "v": u, "F": [[float(a * b) for b in lv] for a in lv]}}
+                         for h in ("1h", "4h", "24h")}}
+
+
+def test_neither_claims_cover_the_pair_grid_and_stay_coherent():
+    rows = cj.touch_claims(_block(), _joint_model(), now=SLOT, slot=SLOT)
+    nei = [r for r in rows if r["claim_class"].startswith("L3_NEITHER_")]
+    assert len(nei) == 3 * len(cj.NEITHER_GRID_PCT) ** 2
+    r = next(x for x in nei if x["claim_class"] == "L3_NEITHER_4H" and x["subject_key"] == "1.0:2.0")
+    n = r["numbers"]
+    assert 1 - n["p_up"] - n["p_down"] - 1e-4 <= n["probability"] <= 1 - max(n["p_up"], n["p_down"]) + 1e-4
+    assert r["subject"]["level_up"] == round(62480.0 * 1.01, 2) and r["subject"]["level_down"] == round(62480.0 * 0.98, 2)
+
+
+def test_neither_outcome_and_report():
+    b = _grid(SLOT - timedelta(hours=1), [60000.0] * 36, highs=[60100.0] * 36, lows=[59900.0] * 36)
+    c = _claim("NEITHER_V1", SLOT, 1, {"level_up": 60600.0, "level_down": 59400.0})
+    assert cj.evaluate(c, b, [], now=SLOT + timedelta(hours=2))[1]["neither"] is True
+    c2 = _claim("NEITHER_V1", SLOT, 1, {"level_up": 60050.0, "level_down": 59400.0})
+    assert cj.evaluate(c2, b, [], now=SLOT + timedelta(hours=2))[1]["neither"] is False
+    rows = [_row("L3_NEITHER_1H", SLOT + timedelta(hours=k), numbers={"probability": 0.8},
+                 realized={"neither": k % 5 != 0}) for k in range(10)]
+    rep = cj.claims_report(rows)["classes"]["L3_NEITHER_1H"]
+    assert rep["base_rate"] == 0.8 and rep["bins"][0]["bin"] == [0.7, 0.85]
+
+
+def test_joint_table_margins_and_neither_chance():
+    from beta import rangecast as rc
+    rng = np.random.default_rng(1)
+    zu, zd = rng.exponential(1.0, 20000), rng.exponential(1.0, 20000)
+    tab = rc._joint_table(zu, zd)
+    big = 1e6
+    for a in (0.5, 1.0, 2.0):
+        assert abs(rc.joint_cdf(tab, np.array([a]), np.array([big]))[0] - np.mean(zu <= a)) < 0.02
+        assert abs(rc.joint_cdf(tab, np.array([a]), np.array([a]))[0] - np.mean((zu <= a) & (zd <= a))) < 0.02
+    m = {"horizons": {"4h": {"q_joint": tab}}}
+    assert rc.neither_probability(m, "4h", 1.0, 1.0, 1.0, p_up=0.37, p_down=0.37) == \
+        pytest.approx(min(max(float(rc.joint_cdf(tab, np.array([1.0]), np.array([1.0]))[0]), 0.26), 0.63))
+
+
+def test_neither_chances_on_the_real_held_out_year():
+    """Binance 2022–2024, held-out 2024 (note §7): 20 of 21 cells pass; 24h, bin 50–70 % is outside the rule
+    (−6.0 pp) and therefore falls back to the historical wording."""
+    import sys
+    sys.path.insert(0, str(ROOT / "tests" / "beta"))
+    from v2_fakes import repo_vision_zips
+    from beta import history_data as hd, hist_series as hs, rangecast as rc
+    from beta.calendar_events import event_times_ms, load_calendar
+    b = hs.bars_from_rows(hd.rows_from_local_zips(repo_vision_zips([f"{y}-{m:02d}" for y in (2022, 2023, 2024)
+                                                                      for m in range(1, 13)])))
+    model = rc.fit_range_model(b, events=event_times_ms(load_calendar()))
+    failed = []
+    for h in ("1h", "4h", "24h"):
+        for x in model["calibration"][h]["neither_bins"]["bins"]:
+            assert x["passed"] == (x["n_eff"] >= 30 and abs(x["diff_pp"]) <= 5), (h, x)
+            if not x["passed"]:
+                failed.append((h, x["bin"]))
+    assert failed == [("24h", [0.5, 0.7])]
+
+
+def test_neither_grid_is_the_calibration_grid():
+    from beta import rangecast as rc
+    assert rc.NEITHER_CAL_GRID_PCT == cj.NEITHER_GRID_PCT
+    from beta import levels
+    assert levels.DISTANCE_GRID_PCT == cj.TOUCH_GRID_PCT

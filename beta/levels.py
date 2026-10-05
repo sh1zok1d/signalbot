@@ -514,3 +514,71 @@ def stat_type_for(kind: str, side: int) -> Optional[str]:
     if kind == "POC_PD":
         return "POC_UP" if side > 0 else "POC_DOWN"
     return None
+
+
+# ---- arbitrary price levels («/check»: what followed touches of similar levels) --------------------
+DISTANCE_REACTIONS_VERSION = "BETA_DISTANCE_REACTIONS_V1"
+DISTANCE_GRID_PCT = (0.25, 0.5, 1.0, 2.0, 3.0, 5.0)              # = beta.claims.TOUCH_GRID_PCT (test-pinned)
+DISTANCE_WINDOW_BARS = 288                                       # a first touch within 24h
+_CHUNK = 4000
+
+
+def distance_reaction_stats(b: Bars, *, stride: int = 12) -> dict:
+    """For a price `d` % above (or below) an hourly close, on history: how often it was touched within
+    24h and, after its first touch, how often the price stayed beyond it 1h / 4h later with the median
+    move further and back. The same measurement as `level_reaction_stats`, for a level with no
+    meaning of its own: it is the «обычно» of an arbitrary level. Pure numpy."""
+    from .hist_series import forward_extremes
+    close_ms = b.times + BAR_MS
+    anchors = np.flatnonzero(((close_ms % (stride * BAR_MS)) == 0) & np.isfinite(b.close))
+    anchors = anchors[anchors + DISTANCE_WINDOW_BARS < b.n]
+    fwd = {h: forward_extremes(b, n) for h, n in OUTCOME_BARS.items()}
+    out = {"version": DISTANCE_REACTIONS_VERSION, "window_h": 24, "cells": []}
+    if anchors.size == 0:
+        return out
+    acc = {(d, s): {"n_anchors": 0, "touched": 0, "events": []} for d in DISTANCE_GRID_PCT for s in (1, -1)}
+    offs = np.arange(1, DISTANCE_WINDOW_BARS + 1)
+    for c0 in range(0, anchors.size, _CHUNK):
+        a = anchors[c0:c0 + _CHUNK]
+        rows = a[:, None] + offs[None, :]
+        hi, lo = b.high[rows], b.low[rows]
+        c = b.close[a]
+        for d in DISTANCE_GRID_PCT:
+            for side in (1, -1):
+                lvl = c * (1 + side * d / 100.0)
+                hit = (hi >= lvl[:, None]) if side > 0 else (lo <= lvl[:, None])
+                hit = np.nan_to_num(hit, nan=0).astype(bool)
+                any_hit = hit.any(axis=1)
+                rec = acc[(d, side)]
+                rec["n_anchors"] += int(a.size)
+                rec["touched"] += int(any_hit.sum())
+                k = np.argmax(hit, axis=1)
+                for ai in np.flatnonzero(any_hit):
+                    j = int(a[ai] + 1 + k[ai])
+                    o = _outcome(fwd, j, float(lvl[ai]), side)
+                    if o is not None:
+                        rec["events"].append((int(close_ms[a[ai]] // 86_400_000), o))
+    for (d, side), rec in acc.items():
+        ev = rec["events"]
+        cell = {"distance_pct": d, "side": side, "n_anchors": rec["n_anchors"], "touched": rec["touched"],
+                "touch_rate": rec["touched"] / rec["n_anchors"] if rec["n_anchors"] else None, "n": len(ev),
+                "days": len({day for day, _o in ev})}
+        for h in OUTCOME_BARS:
+            cell[h] = None if not ev else {
+                "hold_rate": float(np.mean([o[h]["hold"] for _d, o in ev])),
+                "further_median": float(np.median([o[h]["further"] for _d, o in ev])),
+                "back_median": float(np.median([o[h]["back"] for _d, o in ev]))}
+        out["cells"].append(cell)
+    return out
+
+
+def distance_reaction(stats: Optional[Mapping[str, Any]], distance_pct: float) -> Optional[dict]:
+    """The cell of the grid distance nearest to |distance_pct| (in log terms) on its side."""
+    if not stats or stats.get("version") != DISTANCE_REACTIONS_VERSION or not distance_pct:
+        return None
+    side = 1 if distance_pct > 0 else -1
+    d = abs(float(distance_pct))
+    cells = [c for c in stats.get("cells") or () if int(c["side"]) == side]
+    if not cells:
+        return None
+    return min(cells, key=lambda c: abs(math.log(float(c["distance_pct"]) / d)))

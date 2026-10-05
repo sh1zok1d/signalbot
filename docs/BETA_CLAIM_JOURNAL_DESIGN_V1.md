@@ -132,6 +132,7 @@ L3 wording for a class is permitted only after the class reaches the count its d
 |---|---|---|---|
 | `L3_LEVEL_TOUCH_{4H,24H}` | hourly, every level zone of the decision block | `side:edge` | `TOUCH_V1` |
 | `L3_DISTANCE_TOUCH_{1H,4H,24H}` | hourly, distances 0.25 / 0.5 / 1 / 2 / 3 / 5 % on each side | `side:distance` | `TOUCH_V1` |
+| `L3_NEITHER_{1H,4H,24H}` | hourly, pairs of distances 0.5 / 1 / 2 / 3 % above × below (the «ни один» chance of `/check`, `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §7) | `up:down` | `NEITHER_V1` |
 | `L2_STATE_ANALOG_{1H_1H,1H_4H,4H_4H,4H_24H}` | hourly, the live 1h / 4h label of the full hour | `window:label` | `ANALOG_V1` |
 | `L2_LEVEL_FIRST_TOUCH_HOLD_{1H,4H}` | every level-touch evaluation (`PUSH` or `SUPPRESSED`), history N ≥ 30 | the alert key | `LEVEL_HOLD_V1` |
 | `L2_DH3_P1_RANGE_4H` | hourly, quiet hours only, arm `STATE` / `COMPARATOR` | `P1` | `DH3_P1_RANGE_4H_V1` |

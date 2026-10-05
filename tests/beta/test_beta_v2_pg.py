@@ -268,7 +268,8 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         assert alerts == [{"kind": "level", "alert_key": f"level:PDH:{DAY.date().isoformat()}", "decision": "PUSH"}]
         level_msgs = [x for x in s.sent if "максимум вчера" in plain(x[1]) and "первое касание" in plain(x[1])]
         assert [x[0] for x in level_msgs] == [A]                  # B: levels off; C: push off
-        assert level_msgs[0][2] == [[("📊 BTC сейчас", "b:now")], [("Уровни", "L:levels"), ("Риск", "L:risk")]]
+        assert level_msgs[0][2][:2] == [[("📊 BTC сейчас", "b:now")], [("Уровни", "L:levels"), ("Риск", "L:risk")]]
+        assert all(d.startswith("k:") for row in level_msgs[0][2][2:] for _l, d in row)   # «🎯 Проверить» the next level
         # the morning briefing renders the decision block in the same cycle
         briefs = [x for x in s.sent if plain(x[1]).startswith("BTC за ночь")]
         assert len(briefs) == 3 and "Коридор (Binance" in plain(briefs[0][1])
@@ -317,9 +318,25 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
             acc = await conn.forecast_accuracy(since=DAY)
         assert acc == {"1h": {"OUTSIDE": 1, "N_EFF": 1}}
 
+        # ---- /check with the real block; «Следить» makes a personal alert in one tap ----------
+        out = await h.handle(msgs[A]("/check +1%", 201))
+        check = plain(out[-1].html)
+        assert check.startswith("BTC → ") and "1ч: " in check and "4ч: " in check
+        assert "24ч: числовую оценку не показываем" in check                  # NOW is inside the CPI 24h zone
+        assert out[-1].buttons[0][0][1].startswith("w:")
+        before = (await _rows(pool, "SELECT count(*) AS n FROM beta_price_alerts WHERE cancelled_at IS NULL"))[0]["n"]
+        cb = {"update_id": 202, "callback_query": {"id": "c202", "from": {"id": A},
+                                                    "message": {"chat": {"id": A}, "message_id": 1},
+                                                    "data": out[-1].buttons[0][0][1]}}
+        watched = await h.handle(cb)
+        assert plain(watched[-1].html).startswith("Сообщу, когда BTC дойдёт до ")
+        after = (await _rows(pool, "SELECT count(*) AS n FROM beta_price_alerts WHERE cancelled_at IS NULL"))[0]["n"]
+        assert after == before + 1
+
         # ---- /delete_me removes the participant's alerts ------------------------------------
-        await h.handle(msgs[B]("/delete_me", 201))
-        assert (await _rows(pool, "SELECT count(*) AS n FROM beta_price_alerts"))[0]["n"] == 0
+        await h.handle(msgs[B]("/delete_me", 203))
+        # B's alerts are gone; A's alert from «Следить» stays
+        assert (await _rows(pool, "SELECT count(*) AS n FROM beta_price_alerts"))[0]["n"] == 1
         targeted = await _rows(pool, "SELECT target_user_pk FROM beta_market_alerts WHERE kind='price'")
         assert targeted == [{"target_user_pk": None}]
         await pool.close()

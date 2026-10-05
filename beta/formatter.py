@@ -804,8 +804,16 @@ def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int
     if view_pk is not None and _has_research(view):
         row.append((t(lang, "btn_research"), f"o:{int(view_pk)}:research"))
     rows = [row] if row else []
-    if (view.get("decision") or {}).get("available"):
+    block = view.get("decision") or {}
+    if block.get("available"):
         rows.append([(t(lang, "btn_levels"), "L:levels"), (t(lang, "btn_risk"), "L:risk")])
+        if view.get("kind") == "brief":
+            # «🎯 Проверить» the nearest level above and below, filled in (PRE_BETA_SCOPE_DECISION_V1 §5)
+            from .check import check_button
+            lv = block.get("levels") or {}
+            near = [z for z in ((lv.get("above") or [None])[0], (lv.get("below") or [None])[0]) if z]
+            if near:
+                rows.append([check_button(float(z["edge"]), lang) for z in near])
     return rows or None
 
 

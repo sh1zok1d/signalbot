@@ -24,7 +24,7 @@ from beta.admin import collect_status, fingerprint, handle_admin, is_owner, pars
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
 from beta.formatter import PUSH_BTC_ACTION, assert_descriptive, format_history
-from beta.i18n import t
+from beta.i18n import fmt_price, t
 from beta.market_view import build_view, parse_catchup_hours, persist_view
 from common.logging_setup import setup_logging
 from notifications.telegram_client import TelegramSender, sanitize_telegram_error
@@ -233,6 +233,10 @@ class BetaBotHandler:
             from beta.research_link import format_research
             return await self._reply(conn, user, chat_id, lang, now, "cmd_research",
                                      [_msg(chat_id, part, lang=lang) for part in format_research(lang)])
+        if cmd == "check":
+            text, buttons = await self._check_cmd(conn, now, lang, args)
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_check",
+                                     [_msg(chat_id, text, buttons, lang=lang)])
         if cmd in ("levels", "risk", "alert", "events", "accuracy"):
             reply = await self._decision_cmd(conn, cmd, user, now, lang, args)
             return await self._reply(conn, user, chat_id, lang, now, f"cmd_{cmd}",
@@ -449,6 +453,21 @@ class BetaBotHandler:
             return text
         return await self._alert_cmd(conn, user, now, lang, args, block)
 
+    async def _check_cmd(self, conn, now: datetime, lang: str, args) -> tuple:
+        """/check (PRE_BETA_SCOPE_DECISION_V1 §5): one or two levels; «Следить» under the reply."""
+        from beta.check import check_buttons, format_check, parse_check_args
+        from beta.decision import build_decision, latest_stats
+        block = await build_decision(conn, self.cfg, now=now)
+        levels, err = parse_check_args(args, block.get("price") if block.get("available") else None)
+        if err == "al_no_price" and not block.get("available"):
+            from beta import decision_format as df
+            return df.unavailable_line(block, lang) or t(lang, "al_no_price"), None
+        if err:
+            price = block.get("price")
+            return t(lang, err, now=fmt_price(price, lang) if price else ""), None
+        stats = await latest_stats(conn, now=now)
+        return format_check(block, stats, levels, lang, now=now), check_buttons(levels, lang)
+
     async def _alert_cmd(self, conn, user, now: datetime, lang: str, args, block) -> str:
         from beta import decision_format as df
         from beta.decision import latest_stats
@@ -633,6 +652,21 @@ class BetaBotHandler:
         if data == OTHER_ASSETS:                            # U5 fake door: one activity row per tap
             return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_other_assets",
                                      [answer(""), _msg(chat_id, t(lang, "other_assets_reply"), lang=lang)])
+        if data[:2] in ("w:", "k:"):
+            from beta.check import parse_level_callback
+            level = parse_level_callback(data)
+            if level is None:
+                return [answer(t(lang, "not_available"))]
+            now = self.clock()
+            if data[0] == "k":                       # «🎯 Проверить» under a push or the briefing
+                text, buttons = await self._check_cmd(conn, now, lang, f"{level:.2f}")
+                return await self._reply(conn, user, chat_id, lang, now, "btn_check",
+                                         [answer(""), _msg(chat_id, text, buttons, lang=lang)])
+            from beta.decision import build_decision     # «🔔 Следить» under /check: a personal alert
+            block = await build_decision(conn, self.cfg, now=now)
+            reply = await self._alert_cmd(conn, user, now, lang, f"{level:.2f}", block)
+            return await self._reply(conn, user, chat_id, lang, now, "btn_watch",
+                                     [answer(""), _msg(chat_id, reply, lang=lang)])
         if data in ("L:levels", "L:risk"):
             cmd = data[2:]
             reply = await self._decision_cmd(conn, cmd, user, self.clock(), lang, "")

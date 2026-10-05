@@ -110,3 +110,22 @@ X is the model's estimate, printed as today (`decision_format.fmt_prob`). P and 
 The bins, effective N, tolerance, pass rule, wording and fallback are those of §2–§3. This adds 3 horizons × 7 bins = 21 cells, and no variant is tried after the result.
 
 **Live.** The claim journal writes `L3_NEITHER_{1H,4H,24H}` hourly on the same 16 pairs. The live line and the divergence rule of §3 apply unchanged.
+
+## 8. Implementation and first result of §7 (added after the addendum was committed in `b29bd04`)
+
+**Code.**
+- `beta/rangecast.py`:
+  - `_joint_table` / `joint_cdf` / `neither_probability`: the 21 × 21 table in every fitted horizon (`q_joint`). Shown values are kept coherent with the two single-level chances printed beside them.
+  - `neither_calibration`: `range_model.calibration.<h>.neither_bins`.
+- `beta/claims.py`:
+  - `L3_NEITHER_{1H,4H,24H}`, rule `NEITHER_V1`;
+  - live bins and divergence for the «ни один» kind;
+  - `touch_wording(kind="neither")`.
+- `beta/check.py`: `/check` uses the rule for every number it prints.
+
+**First result (local, not production).**
+- Data: Binance 2022–2024 archives in the repository; held-out year 2024.
+- 20 of 21 cells passed.
+- 24h, bin 50–70 % did not pass: predicted 59.0 %, realized 53.0 %, −6.0 pp, interval −10.1 … −1.9 pp, effective N 305. On these data that bin falls back to «исторически в X % случаев», as §3 requires.
+- `tests/beta/test_beta_claims.py::test_neither_chances_on_the_real_held_out_year` pins this.
+- The rule did not change after the result.

@@ -1679,7 +1679,8 @@ class BetaConn:
                       floor(extract(epoch FROM c.as_of) /
                             CASE right(c.claim_class, 2) WHEN '1H' THEN 3600 WHEN '4H' THEN 14400
                                  ELSE 86400 END)::bigint AS slot,
-                      count(*) AS n, sum(((o.realized->>'touched')::boolean)::int) AS hits,
+                      count(*) AS n,
+                      sum((COALESCE(o.realized->>'touched', o.realized->>'neither')::boolean)::int) AS hits,
                       sum((c.numbers->>'probability')::float8) AS psum
                FROM beta_claims c
                JOIN LATERAL (SELECT status, realized FROM beta_claim_outcomes x WHERE x.claim_pk = c.claim_pk
