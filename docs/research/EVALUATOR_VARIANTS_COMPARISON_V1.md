@@ -1,6 +1,6 @@
 # Evaluator variants — comparative note on DH3-P1, G01-A1 and R03-B1 (V1)
 
-**Status:** `NOTE FOR AN OWNER DECISION (2026-10-05) / NOTHING RUN / CHANGES NOTHING`
+**Status:** `OWNER DECISION RECORDED: O1 (2026-10-05) / NOTHING RUN / CHANGES NOTHING` (§9)
 **Source of truth:** git, `main` at `c2b1316`. Chat summaries are not used. Every number is either copied from the cited record or labelled as planning arithmetic on recorded numbers.
 **Governing rules:**
 - `EVIDENCE_AND_CLAIMS_DECISION_V1.md`: §3 method chosen by design, §4 ladder, §5 journal, §7 exclusions and infrastructure stop rule;
@@ -236,7 +236,7 @@ Together they cover the three situations in the audit's candidate list.
    - **What it would have been.** Had A1 and A2 passed, m = 2, and the same SE gives MDE ≈ 0.535 (> 0.5); with m = 3, ≈ 0.562.
    - **What it affects.** "The discovery surface alone would carry the bar" (`AUTOGEN_G01_FEASIBILITY.md`; audit §5.1, §6.A) holds only at the unadjusted alpha.
    - **Practical effect: none.** Under the new model feasibility numbers are information fields.
-   - **But the audit leans on it.** Its `YES` for G01-A1/A2 rests partly on that sentence. The case looks closer to R03-B1's stacked screen (`PARTLY`). Changing the audit's assessment is a separate change: the assessments YAML plus `python -m scripts.research.history_audit --check`.
+   - **But the audit leans on it.** Its `YES` for G01-A1/A2 rests partly on that sentence. The case looks closer to R03-B1's stacked screen (`PARTLY`). Recorded as a separate erratum, with the audit files unchanged: `RESEARCH_HISTORY_AUDIT_V1_ERRATUM_1.md` (§9).
 2. **The planning stress SE is not a reliable guide in either direction.**
    - In the six executed R03 cells, realized SE was 0.41–0.55 of the stress SE for one-window-per-day cells, and 1.55 for C1.
    - A design note should label stress numbers as stress.
@@ -264,3 +264,10 @@ Together they cover the three situations in the audit's candidate list.
 > 4. a posterior computed on a consumed surface changes wording only, never the evidence status.
 >
 > A prior pooled over the project's units at large, or across incommensurable endpoints, remains excluded (§7).
+
+## 9. Owner decision (2026-10-05)
+
+- **Decision: O1.** `EVIDENCE_AND_CLAIMS_DECISION_V1` stays as written. A posterior or partial pooling is used only as a per-unit method choice in a design note (§3). The Appendix A clarification is not adopted, and no general posterior evaluator is built.
+- **Audit erratum.** §7.1 is recorded as `RESEARCH_HISTORY_AUDIT_V1_ERRATUM_1.md`: G01-A1/A2 conservatism reads `PARTLY`, giving `YES` 5 and `PARTLY` 13. The audit files are not edited.
+- **Next step.** G01-A1/A2 as a product baseline evaluation. Its design note, `docs/TURN_OF_MONTH_BASELINE_UNIT_V1.md`, is committed before any outcome. It runs only after a separate owner go.
+- **Not started.** The observations in §7.2–§7.4 are left for their own changes: a design-note convention, a product wording fix and the journal class.
