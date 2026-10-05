@@ -718,8 +718,12 @@ def test_immature_baseline_omits_main_ratios_and_tabs_count_down():
     assert "n/a" not in en.split("24h:")[1].split("\n")[0]
     ru_1h, en_1h = format_1h_tab(CFG, immature, "ru"), format_1h_tab(CFG, immature, "en")
     ru_24, en_24 = format_24h_tab(CFG, immature, "ru"), format_24h_tab(CFG, immature, "en")
-    assert ru_1h.count("(сравнение с обычным — через ~16 дн.)") == 2
-    assert en_1h.count("(comparison with usual in ~16 days)") == 2
+    # 1h range/volume follow C1 (BETA_HORIZON_TOD_V3): missing same-type dates to 8, not 20 - days
+    from beta.formatter import _days_remaining
+    want = _days_remaining(immature["horizons"]["1h"], "range_width_pct_median", True)
+    assert want is not None and 1 < want < 16
+    assert ru_1h.count(f"(сравнение с обычным — через ~{want} дн.)") == 2
+    assert en_1h.count(f"(comparison with usual in ~{want} days)") == 2
     assert ru_24.count("(сравнение с медианой 30 дн. — через ~16 дн.)") == 2
     assert en_24.count("(30d comparison in ~16 days)") == 2
     assert "н/д от обычного" not in ru_1h and "n/a usual" not in en_1h
@@ -727,7 +731,10 @@ def test_immature_baseline_omits_main_ratios_and_tabs_count_down():
         assert_descriptive(text, "ru")
         assert_descriptive(text, "en")
 
+    # the 20-day countdown wording, on a payload stored under the pre-C1 horizon version (V2);
+    # the C1 1h countdown is covered in tests/beta/test_beta_c1_day_type.py
     almost = _baseline_view(19, 19, range_ratio=None, volume_ratio=None)
+    almost["horizons"] = dict(almost["horizons"], version="BETA_HORIZON_TOD_V2")
     assert "(сравнение с обычным — через ~1 дн.)" in format_1h_tab(CFG, almost, "ru")
     assert "(comparison with usual in ~1 day)" in format_1h_tab(CFG, almost, "en")
     assert "~1 days" not in format_1h_tab(CFG, almost, "en")
@@ -741,6 +748,7 @@ def test_immature_baseline_omits_main_ratios_and_tabs_count_down():
         range_ratio=None, volume_ratio=None,
         baseline_days={"range_width_pct_median": 4, "volume_notional_usd_sum": 19,
                        "price_move_pct_median": 4}), _day_block())
+    split["horizons"] = dict(split["horizons"], version="BETA_HORIZON_TOD_V2")
     split_en = format_1h_tab(CFG, split, "en")
     assert "(comparison with usual in ~16 days)" in split_en
     assert "(comparison with usual in ~1 day)" in split_en
