@@ -42,8 +42,8 @@ params AS (
            now() AS as_of,
            2 AS schema_version,
            '9e9d2c631a1abfdb710dc2147835b3a0ccd4620512d3a0d6828140c96de17210' AS rules_digest,
-           'BETA_CONTEXT_1H_V2' AS context_version,
-            '68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25' AS context_digest,
+           'BETA_CONTEXT_1H_V3' AS context_version,
+            '54bcfeff5da06a6d96d0303098275bd4ee881ad0611622b8304a0e16ccb0e035' AS context_digest,
            :'d7_enabled'::boolean AS d7_enabled,
            CASE
                 WHEN :'d7_enabled'::boolean

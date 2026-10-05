@@ -371,11 +371,19 @@ def test_rolling_1h_percentile_compares_against_rolling_1h_history():
     n = int(timedelta(days=30, minutes=55) / BUCKET)
     hist = _hist(n, t - n * BUCKET)
     cur = dict(hist[-1][1], **{metric_key(ex, "kline_high"): 110.0 for ex in EXS})
-    out = cx.context_1h(CFG, bucket_ts=t, current_metrics=cur, history=hist, identity=ident,
+    # V2 (pooled C0): every 5m step of the previous 30 days
+    v2 = CFG.with_overrides(context={**CFG.section("context"), "version": "BETA_CONTEXT_1H_V2"})
+    out = cx.context_1h(v2, bucket_ts=t, current_metrics=cur, history=hist, identity=ident,
                         code_version="t", tiers=tiers)
     p = out["percentiles"]["range_width_pct_median"]
     assert (p["tier"], p["rank"], p["sample_size"]) == ("mature", 1.0, 8640)
     assert cx.level_label(CFG, p["rank"], "mature") == "extreme"
+    assert out["percentiles"]["volume_notional_usd_sum"]["rank"] == 0.5
+    # V3 (C1): only the same UTC day type (t is a weekday: 22 weekday dates of samples)
+    out = cx.context_1h(CFG, bucket_ts=t, current_metrics=cur, history=hist, identity=ident,
+                        code_version="t", tiers=tiers)
+    p = out["percentiles"]["range_width_pct_median"]
+    assert (p["tier"], p["rank"], p["sample_size"], p["day_type"]) == ("mature", 1.0, 22 * 288, "WEEKDAY")
     assert out["percentiles"]["volume_notional_usd_sum"]["rank"] == 0.5
 
 

@@ -113,7 +113,7 @@ beta:
     version: STRICT_QUALIFICATION_V1
     live_hysteresis_enabled: false
   context:
-    version: BETA_CONTEXT_1H_V2             # V2: + 4h window, + taker-delta and OI-change ranks
+    version: BETA_CONTEXT_1H_V3             # V3 (C1): range/move/volume ranked against the same UTC day type; V2: + 4h, taker, OI
     rolling_buckets: 12                     # rolling 1h = last 12 closed 5m buckets
     rolling_buckets_4h: 48                  # rolling 4h = last 48 closed 5m buckets (same machinery)
     label_elevated: 0.80                    # percentile-rank labels (unsigned dims)

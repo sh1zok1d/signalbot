@@ -45,16 +45,20 @@ def test_beta_modules_do_not_import_scripts_research():
                     assert not alias.name.startswith("scripts.research"), path
 
 
-def test_context_identity_is_v2_and_v1_v0_stay_pinned():
+def test_context_identity_is_v3_and_v2_v1_v0_stay_pinned():
     from beta.config import BetaConfig
     from beta.context import KNOWN_CONTEXT_DIGESTS, context_digest, verify_versions
     from test_beta_config import PINNED_RULES_DIGEST
     cfg = BetaConfig.load()
     versions = verify_versions(cfg)
-    assert cfg.section("context")["version"] == "BETA_CONTEXT_1H_V2"
-    assert versions["context_version"] == "BETA_CONTEXT_1H_V2"
-    assert versions["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"]
-    assert context_digest(cfg) == "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25"
+    assert cfg.section("context")["version"] == "BETA_CONTEXT_1H_V3"
+    assert versions["context_version"] == "BETA_CONTEXT_1H_V3"
+    assert versions["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V3"]
+    assert context_digest(cfg) == "54bcfeff5da06a6d96d0303098275bd4ee881ad0611622b8304a0e16ccb0e035"
+    # V2 (the pooled C0 reference) keeps its pinned digest under its own label
+    v2 = cfg.with_overrides(context={**cfg.section("context"), "version": "BETA_CONTEXT_1H_V2"})
+    assert context_digest(v2) == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"] == (
+        "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25")
     assert KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"] == (
         "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576")
     assert KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V0"] == (
@@ -230,15 +234,16 @@ def test_d7_units_and_smoke_identity_are_wired():
     check = (REPO / "deploy" / "check_beta_units.sh").read_text(encoding="utf-8")
     assert "signalbot-beta-d7.timer" in install and "signalbot-beta-d7.timer" in check
     smoke = (REPO / "deploy" / "signalbot-beta-smoke.sql").read_text(encoding="utf-8")
-    # The smoke check pins the ACTIVE context identity (BETA_CONTEXT_1H_V2 since the
-    # Product-First deploy, PR #316): the configured version and its pinned digest.
+    # The smoke check pins the ACTIVE context identity (BETA_CONTEXT_1H_V3 since the C1
+    # same-day-type reference): the configured version and its pinned digest.
     from beta.context import verify_versions
     active = verify_versions(CFG)
     assert (active["context_version"], active["context_digest"]) == (
-        "BETA_CONTEXT_1H_V2", "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25")
+        "BETA_CONTEXT_1H_V3", "54bcfeff5da06a6d96d0303098275bd4ee881ad0611622b8304a0e16ccb0e035")
     assert active["context_version"] in smoke and active["context_digest"] in smoke
-    # the stale V1 identity (its digest) is no longer what the smoke pins
+    # the stale V1 and V2 identities (their digests) are no longer what the smoke pins
     assert "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576" not in smoke
+    assert "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25" not in smoke
     assert "context_gaps" in smoke and "d7_missing" in smoke
 
 
@@ -411,10 +416,10 @@ def test_v0_context_snapshot_is_ignored_and_a_current_chain_starts():
             rows = await conn.fetch(
                 """SELECT context_version, context_digest, prev_state_digest, state::text AS state
                    FROM beta_context_snapshots ORDER BY bucket_ts""")
-        assert [r["context_version"] for r in rows] == ["BETA_CONTEXT_1H_V0", "BETA_CONTEXT_1H_V2"]
+        assert [r["context_version"] for r in rows] == ["BETA_CONTEXT_1H_V0", "BETA_CONTEXT_1H_V3"]
         assert rows[0]["state"].find(marker) >= 0
         assert rows[1]["prev_state_digest"] is None
-        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"]
+        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V3"]
         assert marker not in rows[1]["state"]
         assert '"regime"' not in rows[1]["state"]
         await pool.close()
@@ -422,9 +427,13 @@ def test_v0_context_snapshot_is_ignored_and_a_current_chain_starts():
 
 
 @pytestmark_pg
-def test_v1_context_snapshot_hands_its_episode_memory_to_the_v2_chain():
-    """The declared predecessor (V1) is adopted: the first V2 snapshot continues its
-    chain and keeps its episode memory instead of restarting empty."""
+@pytest.mark.parametrize("pred, new", [("BETA_CONTEXT_1H_V1", "BETA_CONTEXT_1H_V2"),
+                                       ("BETA_CONTEXT_1H_V2", "BETA_CONTEXT_1H_V3")])   # the C1 deploy path
+def test_predecessor_context_snapshot_hands_its_episode_memory_to_the_new_chain(pred, new):
+    """The declared predecessor is adopted: the first snapshot under the new label continues
+    its chain and keeps its episode memory instead of restarting empty; its context readings
+    (ranks, labels) are not carried."""
+    CFG_ = CFG.with_overrides(context={**CFG.section("context"), "version": new})
     import json
     import random
     from beta.context import KNOWN_CONTEXT_DIGESTS, verify_versions
@@ -446,9 +455,9 @@ def test_v1_context_snapshot_hands_its_episode_memory_to_the_v2_chain():
                            metrics_fn=lambda b: history_metrics(rng))
         await seed_live_klines(pool, [b0 + i * BUCKET for i in range(300)])
         versions = verify_versions(CFG)
-        marker = "EV-V1-CARRIED"
-        state = {"context_version": "BETA_CONTEXT_1H_V1",
-                 "context_digest": KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"],
+        marker = "EV-PRED-CARRIED"
+        state = {"context_version": pred,
+                 "context_digest": KNOWN_CONTEXT_DIGESTS[pred], "context_4h": {"stale": "pred-reading"},
                  "episodization_version": versions["episodization_version"],
                  "episodization_digest": versions["episodization_digest"], "rules_digest": CFG.rules_digest,
                  "as_of_bucket": iso(b0 - BUCKET), "open": {}, "now": None, "context_1h": None,
@@ -460,22 +469,23 @@ def test_v1_context_snapshot_hands_its_episode_memory_to_the_v2_chain():
                 """INSERT INTO beta_context_snapshots (symbol, bucket_ts, episodization_version,
                        episodization_digest, context_version, context_digest, rules_digest,
                        prev_state_digest, state, state_digest)
-                   VALUES ('BTCUSDT',$1,$2,$3,'BETA_CONTEXT_1H_V1',$4,$5,$6,$7::jsonb,$8)""",
+                   VALUES ('BTCUSDT',$1,$2,$3,$9,$4,$5,$6,$7::jsonb,$8)""",
                 b0 - BUCKET, versions["episodization_version"], versions["episodization_digest"],
-                KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"], CFG.rules_digest, None,
-                json.dumps(state), "ab" * 32)
+                KNOWN_CONTEXT_DIGESTS[pred], CFG.rules_digest, None,
+                json.dumps(state), "ab" * 32, pred)
         clock = Clock(b0 + BUCKET + timedelta(seconds=30))
-        await run_detector_once(deps(pool, ScenarioReader(quiet), clock), CFG, ON)
+        await run_detector_once(deps(pool, ScenarioReader(quiet), clock), CFG_, ON)
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """SELECT context_version, context_digest, prev_state_digest, state::text AS state
                    FROM beta_context_snapshots ORDER BY bucket_ts""")
-        assert [r["context_version"] for r in rows] == ["BETA_CONTEXT_1H_V1", "BETA_CONTEXT_1H_V2"]
-        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"]
+        assert [r["context_version"] for r in rows] == [pred, new]
+        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS[new]
         assert rows[1]["prev_state_digest"] == "ab" * 32
         assert marker in rows[1]["state"]
         new_state = json.loads(rows[1]["state"])
-        assert new_state["context_version"] == "BETA_CONTEXT_1H_V2" and "context_4h" in new_state
+        assert new_state["context_version"] == new and "context_4h" in new_state
+        assert "pred-reading" not in rows[1]["state"]                      # no old reading carried
         await pool.close()
     run(body())
 
