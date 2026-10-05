@@ -258,27 +258,55 @@ def _baseline_day_count(block: Mapping[str, Any], metric: str) -> Optional[int]:
     return int(value)
 
 
-def _immature_baseline(block: Mapping[str, Any], metric: str) -> bool:
-    days = _baseline_day_count(block, metric)
-    return days is not None and days < _BASELINE_READY_DAYS
+def _day_type_tod(view: Mapping[str, Any], metric: str) -> bool:
+    """True when this 1h baseline metric follows the C1 same-day-type rule (BETA_HORIZON_TOD_V3):
+    its day count is same-type days and it is ready at _DAY_TYPE_MIN_DAYS, not 20. Payloads
+    stored under an older horizon version keep the old countdown."""
+    from .horizons import HORIZON_VERSION, _DAY_TYPE_TOD_METRICS
+    return (view.get("horizons") or {}).get("version") == HORIZON_VERSION and metric in _DAY_TYPE_TOD_METRICS
 
 
-def _days_remaining(block: Mapping[str, Any], metric: str) -> Optional[int]:
-    """Days until a 20-day baseline, at least 1. None once it is mature or unknown."""
+def _ready_days(day_type: bool) -> int:
+    from .horizons import _DAY_TYPE_MIN_DAYS
+    return _DAY_TYPE_MIN_DAYS if day_type else _BASELINE_READY_DAYS
+
+
+def _immature_baseline(block: Mapping[str, Any], metric: str, day_type: bool = False) -> bool:
     days = _baseline_day_count(block, metric)
-    if days is None or days >= _BASELINE_READY_DAYS:
+    return days is not None and days < _ready_days(day_type)
+
+
+def _days_remaining(block: Mapping[str, Any], metric: str, day_type: bool = False) -> Optional[int]:
+    """Calendar days until the baseline is ready, at least 1. None once it is mature or unknown.
+    C1 (day_type): the missing same-type dates are counted forward on the calendar from the UTC
+    date of the window start (a weekend window needs weekend dates, a weekday one weekdays)."""
+    days = _baseline_day_count(block, metric)
+    need = _ready_days(day_type)
+    if days is None or days >= need:
         return None
-    return max(1, _BASELINE_READY_DAYS - days)
+    if not day_type:
+        return max(1, need - days)
+    from .day_type import date_type, utc_date
+    start = block.get("window_start")
+    if not start:
+        return None
+    d0 = utc_date(_dt(start))
+    own, missing, n = date_type(d0), need - days, 0
+    while missing > 0:                         # each same-type date becomes a prior day the next day
+        if date_type(d0 + timedelta(days=n)) == own:
+            missing -= 1
+        n += 1
+    return max(1, n)
 
 
 def _main_ratio_token(block: Mapping[str, Any], *, value_key: str, ratio_key: str,
-                      days_key: str, lang: str) -> Optional[str]:
+                      days_key: str, lang: str, day_type: bool = False) -> Optional[str]:
     """Main-line ratio. An immature baseline omits the field. A missing value is omitted.
     A mature baseline with no ratio prints n/a."""
     ratio = block.get(ratio_key)
     if ratio is not None:
         return fmt_ratio(ratio, lang)
-    if block.get(value_key) is None or _immature_baseline(block, days_key):
+    if block.get(value_key) is None or _immature_baseline(block, days_key, day_type):
         return None
     return na(lang)
 
@@ -304,11 +332,13 @@ def _hour_line(view: Mapping[str, Any], lang: str) -> str:
     if block.get("price_move_pct") is not None:
         parts.append(fmt_signed_pct(block["price_move_pct"], lang, nd=1))
     vol = _main_ratio_token(block, value_key="volume_notional_usd", ratio_key="volume_ratio",
-                            days_key=_H1_VOLUME_DAYS, lang=lang)
+                            days_key=_H1_VOLUME_DAYS, lang=lang,
+                            day_type=_day_type_tod(view, _H1_VOLUME_DAYS))
     if vol is not None:
         parts.append(t(lang, "h1_vol", ratio=vol))
     rng = _main_ratio_token(block, value_key="range_width_pct", ratio_key="range_ratio",
-                            days_key=_H1_RANGE_DAYS, lang=lang)
+                            days_key=_H1_RANGE_DAYS, lang=lang,
+                            day_type=_day_type_tod(view, _H1_RANGE_DAYS))
     if rng is not None:
         parts.append(t(lang, "h1_range", ratio=rng))
     oi = block.get("oi_change_pct")
@@ -949,12 +979,12 @@ def format_context_details(cfg, episode: Mapping[str, Any], state: Mapping[str, 
 
 
 def _comparison_suffix(block: Mapping[str, Any], *, ratio, days_key: str, lang: str,
-                      horizon: str) -> str:
+                      horizon: str, day_type: bool = False) -> str:
     """Tab parenthetical. A present ratio names its baseline. An immature one counts down."""
     if ratio is not None:
         key = "h1_ratio" if horizon == "1h" else "h24_ratio"
         return t(lang, key, ratio=fmt_ratio(ratio, lang))
-    remaining = _days_remaining(block, days_key)
+    remaining = _days_remaining(block, days_key, day_type)
     if remaining is None:
         return t(lang, "ratio_unavailable")
     if lang == "en" and remaining == 1:
@@ -1051,13 +1081,13 @@ def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str 
                 range=na(lang) if rng is None else fmt_plain_pct(rng, lang),
                 ratio="" if rng is None else _comparison_suffix(
                     block, ratio=block.get("range_ratio"), days_key=_H1_RANGE_DAYS,
-                    lang=lang, horizon="1h")))
+                    lang=lang, horizon="1h", day_type=_day_type_tod(view, _H1_RANGE_DAYS))))
         vol = block.get("volume_notional_usd")
         if vol is not None:
             lines.append(t(lang, "h1_volume", vol=fmt_usd(vol, lang),
                            ratio=_comparison_suffix(
                                block, ratio=block.get("volume_ratio"), days_key=_H1_VOLUME_DAYS,
-                               lang=lang, horizon="1h")))
+                               lang=lang, horizon="1h", day_type=_day_type_tod(view, _H1_VOLUME_DAYS))))
     if block:
         oi_line = _horizon_oi_line(block, lang)
         if oi_line:

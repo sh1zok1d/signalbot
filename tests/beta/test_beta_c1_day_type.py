@@ -246,3 +246,47 @@ def test_v2_identity_still_pooled_and_v3_versioned():
     card = {"version": "BETA_ANALOGUES_V1", "windows": {"1h": {"compression": {"n": 50}}}}
     assert lookup(card, "1h", "compression") is None                 # C0 history never answers a C1 label
     assert lookup(dict(card, version="BETA_ANALOGUES_V2"), "1h", "compression")["n"] == 50
+
+
+def _h1_view(start: datetime, days: int, version: str = hz.HORIZON_VERSION, ratio=None):
+    end = start + timedelta(hours=1)
+    block = {"complete": True, "window_start": cx.iso(start), "window_end": cx.iso(end),
+             "price_move_pct": 0.1, "range_width_pct": 0.5, "volume_notional_usd": 1e8,
+             "range_ratio": ratio, "volume_ratio": ratio,
+             "baseline_days": {"range_width_pct_median": days, "volume_notional_usd_sum": days,
+                               "price_move_pct_median": 25}}
+    return {"horizons": {"version": version, "1h": block}}
+
+
+@pytest.mark.parametrize("start, days, want", [
+    (datetime(2026, 10, 10, 10, tzinfo=UTC), 5, 8),   # Sat: 3 weekend dates missing -> Sat, Sun, next Sat
+    (datetime(2026, 10, 12, 10, tzinfo=UTC), 5, 3),   # Mon: 3 weekdays missing -> Mon, Tue, Wed
+    (datetime(2026, 10, 16, 10, tzinfo=UTC), 6, 4),   # Fri: 2 weekdays missing -> Fri, (Sat, Sun), Mon
+    (datetime(2026, 10, 11, 23, tzinfo=UTC), 7, 1),   # Sun 23:00 window: 1 weekend date missing
+])
+def test_c1_countdown_counts_missing_same_type_dates_not_twenty(start, days, want):
+    from beta.formatter import _comparison_suffix, _days_remaining, _day_type_tod, format_1h_tab
+    view = _h1_view(start, days)
+    block = view["horizons"]["1h"]
+    for metric in ("range_width_pct_median", "volume_notional_usd_sum"):
+        assert _day_type_tod(view, metric)
+        assert _days_remaining(block, metric, True) == want
+    assert not _day_type_tod(view, "price_move_pct_median")                 # not evaluated: stays 20-day
+    ru = format_1h_tab(CFG, view, "ru")
+    assert f"через ~{want} дн." in ru and f"через ~{20 - days} дн." not in ru
+    en = _comparison_suffix(block, ratio=None, days_key="range_width_pct_median", lang="en",
+                            horizon="1h", day_type=True)
+    assert (f"~{want} days" in en) if want > 1 else ("1 day" in en or "day" in en)
+
+
+def test_c1_countdown_stops_at_eight_and_old_payloads_keep_their_rule():
+    from beta.formatter import _days_remaining, _hour_line, format_1h_tab
+    sat = datetime(2026, 10, 10, 10, tzinfo=UTC)
+    mature = _h1_view(sat, 8)                                    # 8 same-type days: ready, no countdown
+    assert _days_remaining(mature["horizons"]["1h"], "range_width_pct_median", True) is None
+    assert "через ~" not in format_1h_tab(CFG, mature, "ru")
+    assert "н/д" in _hour_line(mature, "ru")                    # ready baseline without a ratio prints n/a
+    old = _h1_view(sat, 5, version="BETA_HORIZON_TOD_V2")         # a stored V2 payload re-renders as before
+    assert "через ~15 дн." in format_1h_tab(CFG, old, "ru")
+    with_ratio = _h1_view(sat, 5, ratio=1.3)
+    assert "через ~" not in format_1h_tab(CFG, with_ratio, "ru")
