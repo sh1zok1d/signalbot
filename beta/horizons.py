@@ -16,10 +16,12 @@ from common.versioning import canonical_json
 from .oi_asof import venue_oi_change_pct
 from .state_tape import BUCKET, iso, metric_key
 
-HORIZON_VERSION = "BETA_HORIZON_TOD_V2"
+HORIZON_VERSION = "BETA_HORIZON_TOD_V3"
 # Pinned to the canonical definition below. A change of parameters needs a new label.
-# V1 (4b84b794…) had no 4h block; V2 adds it with the same time-of-day baseline rule.
-HORIZON_DIGEST = "f64700b721e6e015e54854218253aa24e7a579569cc61efe6e54061634a32073"
+# V1 (4b84b794…) had no 4h block; V2 (f64700b7…) adds it with the same time-of-day baseline rule;
+# V3 (C1, docs/BETA_C1_DAY_TYPE_BASELINE_V1.md) uses same-UTC-day-type days for the 1h range and
+# volume baselines only.
+HORIZON_DIGEST = "140dc966cbeceb9e5bc37dc3534e8baf6738a30c0af5407c3fcc4dd2f03f9369"
 
 _H1_BUCKETS = 12
 _H4_BUCKETS = 48
@@ -27,6 +29,8 @@ _H24_BUCKETS = 288
 _H24_PRICE_MIN = 282
 _METRICS = ("range_width_pct_median", "price_move_pct_median", "volume_notional_usd_sum")
 _PRIOR_DAYS = 30
+_DAY_TYPE_TOD_METRICS = ("range_width_pct_median", "volume_notional_usd_sum")
+_DAY_TYPE_MIN_DAYS = 8
 _TOLERANCE_MIN = 30
 _MATURE_DAYS = 20
 _H24_BASELINE = ("range_width_pct", "volume_notional_usd")
@@ -46,7 +50,16 @@ def horizon_definition() -> dict:
         "baseline_1h_tolerance_min": _TOLERANCE_MIN,
         "baseline_1h": "median of rolling-1h samples whose window end is within "
                        "±tolerance of the same UTC time of day, then the median of those daily values",
-        "baseline_4h": "the baseline_1h rule over rolling-4h samples (48 buckets)",
+        "baseline_1h_day_type": {
+            "metrics": list(_DAY_TYPE_TOD_METRICS),
+            "rule": "only prior days whose type (UTC date of W - d days - 1h) equals the evaluated "
+                    "window's type (UTC date of its start); Saturday/Sunday = WEEKEND",
+            "min_days": _DAY_TYPE_MIN_DAYS,
+            "fallback": "NONE (no median below min_days)",
+            "other_metrics": "price move keeps all days and baseline_mature_days; 4h and 24h unchanged",
+            "source": "WEEKDAY_WEEKEND_BASELINE_UNIT_V2 candidate C1 (evaluator 86b2c09)",
+        },
+        "baseline_4h": "the baseline_1h rule over rolling-4h samples (48 buckets), all days",
         "h4_window_requires_every_bucket": True,
         "baseline_24h": "one rolling-24h value per prior UTC day ending at the same "
                         "UTC time of day, then the median; mature at baseline_mature_days",
@@ -142,17 +155,22 @@ def _liq_side(cfg, buckets: Sequence[datetime], metrics_by_bucket: Mapping[datet
 
 
 def _baseline_1h(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_bucket: datetime) -> dict:
-    return _baseline_tod(cfg, metrics_by_bucket, end_bucket, _H1_BUCKETS)
+    return _baseline_tod(cfg, metrics_by_bucket, end_bucket, _H1_BUCKETS, day_type=True)
 
 
 def _baseline_tod(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_bucket: datetime,
-                  n: int) -> dict:
-    """Time-of-day baseline of an n-bucket rolling window (12 = 1h, 48 = 4h)."""
+                  n: int, *, day_type: bool = False) -> dict:
+    """Time-of-day baseline of an n-bucket rolling window (12 = 1h, 48 = 4h). With
+    `day_type` (C1, 1h only), the range and volume baselines use only prior days of the
+    evaluated window's UTC day type and need _DAY_TYPE_MIN_DAYS of them; no fallback."""
     from .context import rolling_window_values
+    from .day_type import tod_day_type, window_day_type
     window_end = data_through(end_bucket)
     target = window_end.hour * 60 + window_end.minute
     daily = {m: [] for m in _METRICS}
+    own_type = window_day_type(end_bucket, n) if day_type else None
     for d in range(1, _PRIOR_DAYS + 1):
+        same_type = (not day_type) or tod_day_type(window_end, d) == own_type
         day = (window_end - timedelta(days=d)).date()
         midnight = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
         samples = {m: [] for m in _METRICS}
@@ -165,14 +183,18 @@ def _baseline_tod(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_bucket
                 if sample.get(m) is not None:
                     samples[m].append(float(sample[m]))
         for m in _METRICS:
-            if samples[m]:
+            if samples[m] and (same_type or m not in _DAY_TYPE_TOD_METRICS):
                 daily[m].append(_median(samples[m]))
     medians = {}
     days = {}
     for m in _METRICS:
         days[m] = len(daily[m])
-        medians[m] = _median(daily[m]) if days[m] >= _MATURE_DAYS else None
-    return {"days": days, "median": medians}
+        need = _DAY_TYPE_MIN_DAYS if day_type and m in _DAY_TYPE_TOD_METRICS else _MATURE_DAYS
+        medians[m] = _median(daily[m]) if days[m] >= need else None
+    out = {"days": days, "median": medians}
+    if day_type:
+        out["day_type"] = own_type
+    return out
 
 
 def _ratio(current: Optional[float], baseline: Optional[float]) -> Optional[float]:

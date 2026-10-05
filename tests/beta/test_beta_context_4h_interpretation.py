@@ -115,12 +115,17 @@ def test_short_history_is_immature_not_missing():
 
 
 def test_1h_values_and_ranks_unchanged_by_the_4h_extension():
-    """The three V1 metrics come out of the shared machinery exactly as before."""
+    """The three V1 metrics come out of the shared machinery exactly as before (V3: the
+    same machinery over the same-day-type samples; the pooled V2 reference is kept for V2)."""
     hist = _hist(int(timedelta(days=30, minutes=55) / BUCKET), T - int(timedelta(days=30, minutes=55) / BUCKET) * BUCKET)
     cur = dict(hist[-1][1], **{metric_key(ex, "kline_high"): 110.0 for ex in EXS})
+    v2 = CFG.with_overrides(context={**CFG.section("context"), "version": "BETA_CONTEXT_1H_V2"})
+    pooled = cx.context_1h(v2, bucket_ts=T, current_metrics=cur, history=hist, identity=IDENT,
+                           code_version="t", tiers=TIERS, horizon="1h")["percentiles"]["range_width_pct_median"]
+    assert (pooled["tier"], pooled["rank"], pooled["sample_size"]) == ("mature", 1.0, 8640)
     out = _ctx("1h", hist=hist, cur=cur)
     p = out["percentiles"]["range_width_pct_median"]
-    assert (p["tier"], p["rank"], p["sample_size"]) == ("mature", 1.0, 8640)
+    assert (p["tier"], p["rank"], p["sample_size"]) == ("mature", 1.0, 22 * 288)
     assert out["percentiles"]["volume_notional_usd_sum"]["rank"] == 0.5
     assert out["taker_delta_notional_usd_sum"] is None          # this history has no taker values
     assert out["percentiles"]["taker_delta_notional_usd_sum"]["rank"] is None
@@ -313,35 +318,46 @@ class _Conn:
         self.inserted.append((state, kw))
 
 
-def _v1_state(states):
+CFG_V2 = CFG.with_overrides(context={**CFG.section("context"), "version": "BETA_CONTEXT_1H_V2"})
+
+
+def _pred_state(states, version):
     s = copy.deepcopy(states[-1])
-    s.pop("context_4h", None)
-    s.update(context_version="BETA_CONTEXT_1H_V1",
-             context_digest=cx.KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"])
+    if version == "BETA_CONTEXT_1H_V1":
+        s.pop("context_4h", None)
+    s.update(context_version=version, context_digest=cx.KNOWN_CONTEXT_DIGESTS[version])
     return s
 
 
-def test_new_context_label_keeps_open_episodes_instead_of_restarting_empty():
+def _v1_state(states):
+    return _pred_state(states, "BETA_CONTEXT_1H_V1")
+
+
+@pytest.mark.parametrize("cfg, pred, new", [
+    (CFG_V2, "BETA_CONTEXT_1H_V1", "BETA_CONTEXT_1H_V2"),
+    (CFG, "BETA_CONTEXT_1H_V2", "BETA_CONTEXT_1H_V3"),          # C1 deploy: V2 episode memory carried
+])
+def test_new_context_label_keeps_open_episodes_instead_of_restarting_empty(cfg, pred, new):
     from beta.detector import advance_context
     snaps = [snap(DOWN), snap(DOWN), snap(DOWN)]
     rows = tape(snaps)
-    states = cx.replay(CFG, {b: r for b, r in rows.items() if b < T0 + 2 * BUCKET},
+    states = cx.replay(cfg, {b: r for b, r in rows.items() if b < T0 + 2 * BUCKET},
                        start_bucket=T0, end_bucket=T0 + BUCKET)
     assert PRICE_OI_CONTRACTION_DOWN in states[-1]["open"]
-    old = {"bucket_ts": T0 + BUCKET, "state": _v1_state(states), "state_digest": "f" * 64}
-    conn = _Conn({cx.KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"]: old})
+    old = {"bucket_ts": T0 + BUCKET, "state": _pred_state(states, pred), "state_digest": "f" * 64}
+    conn = _Conn({cx.KNOWN_CONTEXT_DIGESTS[pred]: old})
     third = rows[T0 + 2 * BUCKET]
     third["snapshot"]["feature_code_version"] = "t"
     rec = SimpleNamespace(snapshot=third["snapshot"], snapshot_digest=third["snapshot_digest"])
     deps = SimpleNamespace(stage2_config=SimpleNamespace(
         resolve=lambda _s: {"percentiles": {"confidence_tiers": TIERS}}))
-    state = asyncio.run(advance_context(deps, CFG, conn, T0 + 2 * BUCKET, rec, 3))
+    state = asyncio.run(advance_context(deps, cfg, conn, T0 + 2 * BUCKET, rec, 3))
     assert PRICE_OI_CONTRACTION_DOWN in state["open"]                       # not restarted empty
-    assert state["context_version"] == "BETA_CONTEXT_1H_V2"
-    assert state["context_digest"] == cx.KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"]
+    assert state["context_version"] == new
+    assert state["context_digest"] == cx.KNOWN_CONTEXT_DIGESTS[new]
     assert conn.inserted[-1][1]["prev_state_digest"] == "f" * 64
     # the same as a projection that never changed version
-    reference = cx.replay(CFG, rows, start_bucket=T0, end_bucket=T0 + 2 * BUCKET)[-1]
+    reference = cx.replay(cfg, rows, start_bucket=T0, end_bucket=T0 + 2 * BUCKET)[-1]
     assert state["open"] == reference["open"]
 
 
@@ -359,11 +375,15 @@ def test_without_a_predecessor_snapshot_the_projection_starts_empty_as_before():
 
 def test_adoption_refuses_a_state_that_is_not_a_declared_predecessor():
     states, _ = (cx.replay(CFG, tape([snap(DOWN)]), start_bucket=T0, end_bucket=T0), None)
-    s = _v1_state(states)
+    s = _pred_state(states, "BETA_CONTEXT_1H_V2")
     adopted = cx.adopt_predecessor_state(CFG, s)
+    # V2 readings (pooled ranks and labels) are never carried into V3
     assert adopted["context_4h"] is None and adopted["context_1h"] is None
-    assert adopted["open"] == s["open"]
-    with pytest.raises(cx.ContextVersionError):
-        cx.adopt_predecessor_state(CFG, dict(s, context_version="BETA_CONTEXT_1H_V0"))
+    assert adopted["open"] == s["open"] and adopted["context_version"] == "BETA_CONTEXT_1H_V3"
+    for bad in ("BETA_CONTEXT_1H_V0", "BETA_CONTEXT_1H_V1"):        # only the declared V2 predecessor
+        with pytest.raises(cx.ContextVersionError):
+            cx.adopt_predecessor_state(CFG, dict(s, context_version=bad))
     with pytest.raises(cx.ContextVersionError):
         cx.adopt_predecessor_state(CFG, dict(s, episodization_digest="0" * 64))
+    # the V2 path (V1 -> V2) is unchanged
+    assert cx.adopt_predecessor_state(CFG_V2, _v1_state(states))["context_version"] == "BETA_CONTEXT_1H_V2"

@@ -43,9 +43,10 @@ def test_view_kinds_and_default_window():
     assert VIEW_KINDS == ("btc", "catchup", "brief") and CATCHUP_DEFAULT_HOURS == 8
 
 
-# ---- 4h horizon block (BETA_HORIZON_TOD_V2) ---------------------------------------------------
+# ---- 4h horizon block (BETA_HORIZON_TOD_V2, kept in V3) ------------------------------------------
 def test_horizon_v2_adds_a_4h_block_and_keeps_1h_and_24h():
-    assert HORIZON_VERSION == "BETA_HORIZON_TOD_V2" and verify_horizon_digest()
+    # V3 = V2 + the C1 same-day-type 1h range/volume baseline (tests/beta/test_beta_c1_day_type.py)
+    assert HORIZON_VERSION == "BETA_HORIZON_TOD_V3" and verify_horizon_digest()
     assert empty_horizons()["4h"] is None
     n = int(timedelta(days=31, hours=24) / BUCKET)
     hist = dict(_taker_hist(n, T0))
@@ -86,6 +87,9 @@ def test_market_block_window_and_stale_context_is_not_interpreted():
 
 
 # ---- recorded-tape dry run (pure) ----------------------------------------------------------------
+CFG_V2 = CFG.with_overrides(context={**CFG.section("context"), "version": "BETA_CONTEXT_1H_V2"})
+
+
 def _synthetic_tape(days, *, start=T0, seed=3, mixed_calm=False):
     import random
     rng = random.Random(seed)
@@ -113,13 +117,20 @@ def test_dry_run_counts_every_sample_and_reports_the_divergence_gate():
     metrics, oi_rows = _synthetic_tape(4)
     end = max(metrics)
     samples = sample_grid(end - timedelta(hours=6), end, 12)
-    rep = run_dry_run(CFG, sample_buckets=samples, metrics_by_bucket=metrics, oi_rows=oi_rows,
+    # The report mechanics are checked on the pooled V2 reference: under V3 (C1) a 4-day tape
+    # never has the 8 same-type dates, even with provisional span tiers (no fallback).
+    c1 = run_dry_run(CFG, sample_buckets=samples, metrics_by_bucket=metrics, oi_rows=oi_rows,
+                     liquidation_episodes=[], identity=IDENT, code_version="t",
+                     tiers={"none_below_days": 3, "low_below_days": 7, "building_below_days": 30},
+                     ignore_maturity=True)
+    assert set(c1["frequencies"]["1h"]) == {"insufficient"}
+    rep = run_dry_run(CFG_V2, sample_buckets=samples, metrics_by_bucket=metrics, oi_rows=oi_rows,
                       liquidation_episodes=[], identity=IDENT, code_version="t",
                       tiers={"none_below_days": 3, "low_below_days": 7, "building_below_days": 30})
     assert rep["status"] == "PRODUCTION_MATURITY_RULES" and rep["samples"] == len(samples)
     assert sum(v["n"] for v in rep["frequencies"]["1h"].values()) == len(samples)
     assert set(rep["frequencies"]["4h"]) == {"insufficient"}       # 4 days of history is not mature
-    prov = run_dry_run(CFG, sample_buckets=samples, metrics_by_bucket=metrics, oi_rows=oi_rows,
+    prov = run_dry_run(CFG_V2, sample_buckets=samples, metrics_by_bucket=metrics, oi_rows=oi_rows,
                        liquidation_episodes=[], identity=IDENT, code_version="t",
                        tiers={"none_below_days": 3, "low_below_days": 7, "building_below_days": 30},
                        ignore_maturity=True)
@@ -142,7 +153,7 @@ def test_dry_run_calm_mixed_venue_signs_are_counted_but_not_labelled():
     from test_beta_context_4h_interpretation import IDENT
     metrics, oi_rows = _synthetic_tape(4, mixed_calm=True)
     end = max(metrics)
-    rep = run_dry_run(CFG, sample_buckets=sample_grid(end - timedelta(hours=12), end, 12),
+    rep = run_dry_run(CFG_V2, sample_buckets=sample_grid(end - timedelta(hours=12), end, 12),
                       metrics_by_bucket=metrics, oi_rows=oi_rows, liquidation_episodes=[], identity=IDENT,
                       code_version="t", tiers={"none_below_days": 3, "low_below_days": 7,
                                                "building_below_days": 30}, ignore_maturity=True)

@@ -34,7 +34,12 @@ from .hist_series import BAR_MS, BARS_PER_DAY, Bars, forward_extremes, past_rang
 from .interpretation import interpret
 from .levels import holm
 
-ANALOGUES_VERSION = "BETA_ANALOGUES_V1"
+ANALOGUES_VERSION = "BETA_ANALOGUES_V2"
+# V2 (C1, docs/BETA_C1_DAY_TYPE_BASELINE_V1.md): history labels rank range, move and volume against
+# same-UTC-day-type samples, exactly like the live BETA_CONTEXT_1H_V3 projection.
+DAY_TYPE_METRICS = ("price_move_pct_median", "range_width_pct_median", "volume_notional_usd_sum")
+DAY_TYPE_MIN_DATES = 8
+_DAY_MS = 86_400_000
 WINDOWS = {"1h": 12, "4h": 48}
 OUTCOMES = {"1h": ("1h", "4h"), "4h": ("4h", "24h")}
 OUTCOME_BARS = {"1h": 12, "4h": 48, "24h": 288}
@@ -112,6 +117,54 @@ def trailing_ranks(values: np.ndarray, anchors: np.ndarray, *, window: int = RAN
     return out
 
 
+def window_start_day(b: Bars, n: int) -> tuple:
+    """(UTC epoch day of each bar's window start, weekend flag) for windows of n bars ending at each bar."""
+    day = (b.times - (n - 1) * BAR_MS) // _DAY_MS
+    return day, ((day + 3) % 7) >= 5                      # 1970-01-01 was a Thursday (weekday 3)
+
+
+def trailing_ranks_day_type(values: np.ndarray, anchors: np.ndarray, day: np.ndarray, weekend: np.ndarray,
+                            *, window: int = RANK_WINDOW, min_fraction: float = RANK_MIN_FRACTION,
+                            min_dates: int = DAY_TYPE_MIN_DATES) -> np.ndarray:
+    """C1: mid-rank of values[a] among the finite values[a−window .. a−1] of the SAME day type.
+    NaN unless the unfiltered window holds min_fraction × window finite values (the C0 rule) and
+    at least min_dates distinct same-type dates have a finite value. No fallback."""
+    out = np.full(anchors.size, np.nan)
+    if anchors.size == 0:
+        return out
+    is_anchor = np.zeros(values.size, dtype=bool)
+    is_anchor[anchors] = True
+    pos = {int(a): k for k, a in enumerate(anchors)}
+    lists = {False: [], True: []}
+    dates = {False: {}, True: {}}
+    total = 0
+    need = int(window * min_fraction)
+    for i in range(values.size):
+        t = bool(weekend[i])
+        if is_anchor[i] and total >= need and math.isfinite(values[i]) and len(dates[t]) >= min_dates:
+            lst, v = lists[t], values[i]
+            lo = bisect.bisect_left(lst, v)
+            hi = bisect.bisect_right(lst, v)
+            out[pos[i]] = (lo + 0.5 * (hi - lo)) / len(lst)
+        v = values[i]
+        if math.isfinite(v):
+            bisect.insort(lists[t], v)
+            dates[t][int(day[i])] = dates[t].get(int(day[i]), 0) + 1
+            total += 1
+        j = i - window
+        if j >= 0:
+            old = values[j]
+            if math.isfinite(old):
+                tj = bool(weekend[j])
+                del lists[tj][bisect.bisect_left(lists[tj], old)]
+                dj = int(day[j])
+                dates[tj][dj] -= 1
+                if not dates[tj][dj]:
+                    del dates[tj][dj]
+                total -= 1
+    return out
+
+
 def label_history(b: Bars, *, context: Mapping[str, Any], stride: int = ANCHOR_STRIDE) -> dict:
     """Anchors (hourly) with their 1h and 4h label keys, volatility tercile and outcomes."""
     close_ms = b.times + BAR_MS
@@ -120,7 +173,9 @@ def label_history(b: Bars, *, context: Mapping[str, Any], stride: int = ANCHOR_S
     labels: dict = {}
     for w, n in WINDOWS.items():
         vals = window_values(b, n)
-        ranks = {m: trailing_ranks(vals[m], anchors) for m in METRICS}
+        day, weekend = window_start_day(b, n)
+        ranks = {m: (trailing_ranks_day_type(vals[m], anchors, day, weekend) if m in DAY_TYPE_METRICS
+                     else trailing_ranks(vals[m], anchors)) for m in METRICS}
         keys = []
         for k, a in enumerate(anchors):
             pm = vals["price_move_pct_median"][a]
@@ -265,8 +320,9 @@ def analogue_stats(b: Bars, *, context: Mapping[str, Any], seed: int = SEED,
 
 
 def lookup(stats: Optional[Mapping[str, Any]], window: str, live_key: Optional[str]) -> Optional[dict]:
-    """The card for a live label key, or None (no stats, no such label in history)."""
-    if not stats or not live_key:
+    """The card for a live label key, or None (no stats, no such label in history, or stats
+    built under another label definition: a live C1 label is never matched to C0 history)."""
+    if not stats or not live_key or stats.get("version") != ANALOGUES_VERSION:
         return None
     key = LIVE_TO_HISTORY_KEY.get(live_key, live_key)
     rec = ((stats.get("windows") or {}).get(window) or {}).get(key)

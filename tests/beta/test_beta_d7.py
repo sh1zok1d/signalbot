@@ -45,16 +45,20 @@ def test_beta_modules_do_not_import_scripts_research():
                     assert not alias.name.startswith("scripts.research"), path
 
 
-def test_context_identity_is_v2_and_v1_v0_stay_pinned():
+def test_context_identity_is_v3_and_v2_v1_v0_stay_pinned():
     from beta.config import BetaConfig
     from beta.context import KNOWN_CONTEXT_DIGESTS, context_digest, verify_versions
     from test_beta_config import PINNED_RULES_DIGEST
     cfg = BetaConfig.load()
     versions = verify_versions(cfg)
-    assert cfg.section("context")["version"] == "BETA_CONTEXT_1H_V2"
-    assert versions["context_version"] == "BETA_CONTEXT_1H_V2"
-    assert versions["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"]
-    assert context_digest(cfg) == "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25"
+    assert cfg.section("context")["version"] == "BETA_CONTEXT_1H_V3"
+    assert versions["context_version"] == "BETA_CONTEXT_1H_V3"
+    assert versions["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V3"]
+    assert context_digest(cfg) == "54bcfeff5da06a6d96d0303098275bd4ee881ad0611622b8304a0e16ccb0e035"
+    # V2 (the pooled C0 reference) keeps its pinned digest under its own label
+    v2 = cfg.with_overrides(context={**cfg.section("context"), "version": "BETA_CONTEXT_1H_V2"})
+    assert context_digest(v2) == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"] == (
+        "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25")
     assert KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"] == (
         "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576")
     assert KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V0"] == (
@@ -230,15 +234,16 @@ def test_d7_units_and_smoke_identity_are_wired():
     check = (REPO / "deploy" / "check_beta_units.sh").read_text(encoding="utf-8")
     assert "signalbot-beta-d7.timer" in install and "signalbot-beta-d7.timer" in check
     smoke = (REPO / "deploy" / "signalbot-beta-smoke.sql").read_text(encoding="utf-8")
-    # The smoke check pins the ACTIVE context identity (BETA_CONTEXT_1H_V2 since the
-    # Product-First deploy, PR #316): the configured version and its pinned digest.
+    # The smoke check pins the ACTIVE context identity (BETA_CONTEXT_1H_V3 since the C1
+    # same-day-type reference): the configured version and its pinned digest.
     from beta.context import verify_versions
     active = verify_versions(CFG)
     assert (active["context_version"], active["context_digest"]) == (
-        "BETA_CONTEXT_1H_V2", "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25")
+        "BETA_CONTEXT_1H_V3", "54bcfeff5da06a6d96d0303098275bd4ee881ad0611622b8304a0e16ccb0e035")
     assert active["context_version"] in smoke and active["context_digest"] in smoke
-    # the stale V1 identity (its digest) is no longer what the smoke pins
+    # the stale V1 and V2 identities (their digests) are no longer what the smoke pins
     assert "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576" not in smoke
+    assert "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25" not in smoke
     assert "context_gaps" in smoke and "d7_missing" in smoke
 
 

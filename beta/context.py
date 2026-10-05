@@ -58,12 +58,30 @@ KNOWN_CONTEXT_DIGESTS = {
     "BETA_CONTEXT_1H_V0": "7f94fde838a33fb094c6683b8834a2f9accbf96f6fb6d3fcc356aab9f49dc701",
     "BETA_CONTEXT_1H_V1": "59e3df506f7a162f87b69d088fff3d59660dca034efeca48f7f3b4a87ded2576",
     "BETA_CONTEXT_1H_V2": "68ec9dbdb87ad4505d3b000dbc695ec7ff73b638edf9b7624d6acf98c8d63f25",
+    "BETA_CONTEXT_1H_V3": "54bcfeff5da06a6d96d0303098275bd4ee881ad0611622b8304a0e16ccb0e035",
 }
 # A new context version may adopt the episode memory (open episodes, last ended per
 # type) of its predecessor's latest snapshot. Episodes depend only on the
 # episodization version, so a context-only change must not drop them; without this
 # the first bucket under a new label restarts empty and /btc loses its open episodes.
-CONTEXT_PREDECESSORS = {"BETA_CONTEXT_1H_V2": ("BETA_CONTEXT_1H_V1",)}
+CONTEXT_PREDECESSORS = {"BETA_CONTEXT_1H_V2": ("BETA_CONTEXT_1H_V1",),
+                        "BETA_CONTEXT_1H_V3": ("BETA_CONTEXT_1H_V2",)}
+# C1 (BETA_CONTEXT_1H_V3, docs/BETA_C1_DAY_TYPE_BASELINE_V1.md): the three metrics evaluated by
+# WEEKDAY_WEEKEND_BASELINE_UNIT_V2 are ranked only against samples of the same UTC day type.
+DAY_TYPE_METRICS = ("range_width_pct_median", "price_move_pct_median", "volume_notional_usd_sum")
+DAY_TYPE_TIER = "day_type_building"
+DAY_TYPE_REFERENCE = {
+    "rule": "SAME_UTC_DAY_TYPE",
+    "day_type": "UTC calendar date of the window start; Saturday or Sunday = WEEKEND, else WEEKDAY",
+    "window": "samples at every 5m bucket in [t - 30d, t), filtered to the evaluated window's day type",
+    "metrics": list(DAY_TYPE_METRICS),
+    "min_same_type_dates": 8,
+    "maturity": "the C0 tier over the unfiltered samples must be mature, and >= min_same_type_dates "
+                "distinct same-type window-start dates must have a present sample",
+    "fallback": "NONE: otherwise the tier is day_type_building (not mature); never the pooled rank",
+    "other_metrics": "taker delta and OI change keep the pooled 30-day reference",
+    "source": "WEEKDAY_WEEKEND_BASELINE_UNIT_V2 candidate C1 (evaluator 86b2c09)",
+}
 
 ANCHOR_STRONGEST = "STRONGEST_OBSERVED_BUCKET"
 ANCHOR_TRIGGER = "TRIGGER_BUCKET"
@@ -96,6 +114,18 @@ def context_payload(cfg: BetaConfig) -> dict:
     c = cfg.section("context")
     if c["version"] in _LEGACY_CONTEXT_PAYLOADS:
         return _LEGACY_CONTEXT_PAYLOADS[c["version"]](cfg)
+    return {**_context_payload_v2(cfg), "reference": dict(DAY_TYPE_REFERENCE)}
+
+
+def uses_day_type_reference(cfg: BetaConfig) -> bool:
+    """True for BETA_CONTEXT_1H_V3 and later (C1); V0-V2 keep the pooled reference."""
+    return cfg.section("context")["version"] not in _LEGACY_CONTEXT_PAYLOADS
+
+
+def _context_payload_v2(cfg: BetaConfig) -> dict:
+    """The BETA_CONTEXT_1H_V2 definition (pooled 30-day reference), frozen so its pinned
+    digest stays verifiable; V3 extends it with the day-type reference."""
+    c = cfg.section("context")
     return {
         "version": c["version"], "rolling_buckets": c["rolling_buckets"],
         "rolling_buckets_4h": c["rolling_buckets_4h"], "horizons": list(CONTEXT_HORIZONS),
@@ -136,7 +166,8 @@ def _context_payload_v1(cfg: BetaConfig) -> dict:
     }
 
 
-_LEGACY_CONTEXT_PAYLOADS = {"BETA_CONTEXT_1H_V0": _context_payload_v1, "BETA_CONTEXT_1H_V1": _context_payload_v1}
+_LEGACY_CONTEXT_PAYLOADS = {"BETA_CONTEXT_1H_V0": _context_payload_v1, "BETA_CONTEXT_1H_V1": _context_payload_v1,
+                            "BETA_CONTEXT_1H_V2": _context_payload_v2}
 
 
 def episodization_digest(cfg: BetaConfig) -> str:
@@ -481,21 +512,41 @@ def context_1h(cfg: BetaConfig, *, bucket_ts: datetime, current_metrics: Mapping
         building_below_days=tiers["building_below_days"])
     out = {**cur, "horizon": horizon, "rolling_buckets": n,
            "oi_status": "OK" if oi_index is not None else OI_UNAVAILABLE, "percentiles": {}}
-    for m in CONTEXT_METRICS:
+    day_type = uses_day_type_reference(cfg)
+    if day_type:
+        from .day_type import MIN_SAME_TYPE_DATES, window_day_type, window_start_date
+        own_type = window_day_type(bucket_ts, n)
+        out["day_type"] = own_type
+        same_type = {b for b in series if window_day_type(b, n) == own_type}
+
+    def _snap(m, items):
         samples = [PercentileSample(
             scope="consensus", exchange="", symbol=cfg.symbol, market_type=cfg.market_type,
             metric=m, timeframe=horizon, bucket_ts=b, value=(v or {}).get(m),
             feature_schema_version=identity["feature_schema_version"],
-            calculation_version=identity["calculation_version"]) for b, v in series.items()]
-        snap = compute_percentile_snapshot(PercentileRequest(
+            calculation_version=identity["calculation_version"]) for b, v in items]
+        return compute_percentile_snapshot(PercentileRequest(
             scope="consensus", exchange="", symbol=cfg.symbol, market_type=cfg.market_type,
             metric=m, timeframe=horizon, percentile_window="30d", bucket_ts=bucket_ts,
             value=cur[m], samples=samples, confidence_tier_thresholds=thresholds,
             config_hash=identity["stage2_config_hash"], config_version=identity["stage2_config_version"],
             code_version=code_version, feature_schema_version=identity["feature_schema_version"],
             calculation_version=identity["calculation_version"]))
-        out["percentiles"][m] = {"rank": snap.percentile_rank, "tier": snap.confidence_tier,
-                                 "sample_size": snap.sample_size}
+
+    for m in CONTEXT_METRICS:
+        snap = _snap(m, series.items())
+        entry = {"rank": snap.percentile_rank, "tier": snap.confidence_tier, "sample_size": snap.sample_size}
+        if day_type and m in DAY_TYPE_METRICS:
+            items = [(b, v) for b, v in series.items() if b in same_type]
+            present = [b for b, v in items if (v or {}).get(m) is not None]
+            dates = len({window_start_date(b, n) for b in present})
+            own = _snap(m, items)
+            tier = snap.confidence_tier          # C0 maturity over the unfiltered samples
+            if tier == "mature" and dates < MIN_SAME_TYPE_DATES:
+                tier = DAY_TYPE_TIER             # no fallback to the pooled rank
+            entry = {"rank": own.percentile_rank, "tier": tier, "sample_size": own.sample_size,
+                     "reference": DAY_TYPE_REFERENCE["rule"], "day_type": own_type, "same_type_dates": dates}
+        out["percentiles"][m] = entry
     return out
 
 
