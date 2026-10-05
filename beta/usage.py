@@ -148,14 +148,15 @@ REACTION_WINDOW = timedelta(minutes=10)                  # BETA_MEASUREMENT_CONT
 # §2 pulls; /check stays a pull until the contract amendment fixes its class (scope decision §6.7)
 PULL_ACTIONS = ("cmd_btc", "cmd_catchup", "cmd_levels", "cmd_risk", "cmd_events", "cmd_accuracy",
                 "cmd_research", "cmd_history", "cmd_alert", "cmd_check")
-DELIVERIES = ("push_delivered", "alert_delivered", "brief_delivered")
+DELIVERIES = ("push_delivered", "alert_delivered", "brief_delivered", "weekly_delivered")
 # delivery type -> (activity action, its detail or None); `price` is the personal /alert
 DELIVERY_TYPES = (("hour", "push_delivered", None), ("level", "alert_delivered", "level"),
                   ("event", "alert_delivered", "event"), ("move", "alert_delivered", "move"),
-                  ("brief", "brief_delivered", None), ("price", "alert_delivered", "price"))
+                  ("brief", "brief_delivered", None), ("weekly", "weekly_delivered", None),
+                  ("price", "alert_delivered", "price"))
 # delivery type -> (settings action, detail prefix): `/push levels off` is `cmd_push` `levels:off`
 MUTES = {"hour": ("cmd_push", "hours:"), "level": ("cmd_push", "levels:"), "event": ("cmd_push", "events:"),
-         "move": ("cmd_push", "moves:"), "brief": ("cmd_brief", "")}
+         "move": ("cmd_push", "moves:"), "brief": ("cmd_brief", ""), "weekly": ("cmd_push", "weekly:")}
 
 
 def _kyiv_day(at: datetime):

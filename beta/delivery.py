@@ -138,6 +138,12 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             except Exception as exc:  # noqa: BLE001 - decision support never stops the outbox
                 report["market_error"] = type(exc).__name__
             report["briefs"] = await run_due_briefs(conn, cfg, sender=sender, clock=clock, push_on=push_on)
+            try:
+                from .weekly import run_due_weekly
+                report["weekly"] = await run_due_weekly(conn, cfg, sender=sender, clock=clock, push_on=push_on,
+                                                        owner_user_id=owner_user_id)
+            except Exception as exc:  # noqa: BLE001 - the weekly report never stops the outbox
+                report["weekly_error"] = type(exc).__name__
             # this run is itself the notifier heartbeat (recorded before evaluating alerts)
             await conn.record_health("notifier", now=clock(), success=True)
             # owner health alerts (operational; owner only; rate-limited per key)

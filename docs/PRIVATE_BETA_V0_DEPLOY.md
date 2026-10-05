@@ -232,6 +232,19 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
   - **Held-out bins.** The nightly build adds per-bin held-out reliability to `range_model.calibration.<h>.touch_bins`, and `/accuracy` shows it.
   - **Live bins.** The notifier refreshes the live bins from the journal once an hour (`beta_runtime_health` component `touch_live_cal`).
   - **Divergence.** A live bin that breaks the frozen rule falls back to «исторически в X % случаев» for the rest of the model version and raises `TOUCH_CALIBRATION_DIVERGED`.
+- The weekly report (backlog B4; `beta/weekly.py`, `decision.weekly_report`) runs inside the same notifier step.
+  - **When.** Sunday 19:00 Kyiv by default, never sent more than 120 minutes late. Mon–Fri hold the U1a withdrawal days, so it never meets a withheld briefing.
+  - **What it says.** How the bot's own estimates did over the 7 days:
+    - corridors issued and scored that week, with effective N, beside the designed share and the held-out year;
+    - width, and misses above and below;
+    - touch chances scored by the journal, «говорили → было» per bin at effective N ≥ 30;
+    - how many market messages went out.
+  - **Storage.** One payload per week in the append-only `beta_weekly_reports`, stored before any send.
+  - **Delivery.** Outbox rows of kind `weekly` go to participants with messages on and `push_weekly` on (`/push weekly off`). Each send leaves a `weekly_delivered` activity row.
+  - **Owner copy.** Once per report: the same text, the 7-day owner breakdown (below) and the journal's weekly counts.
+  - **Schema.** New table `beta_weekly_reports`, new columns `beta_notification_deliveries.weekly_pk` and `beta_users.push_weekly` (default true), new activity action `weekly_delivered`.
+  - **Measurement contract.** The delivery opens the prompted window like any other. Its class still needs the contract amendment (`PRE_BETA_SCOPE_DECISION_V1.md` §6.4, §6.7).
+  - **Turning it off:** `decision.weekly_report.enabled: false`.
 - `/admin_stats` and `--beta-usage-report` end with an owner breakdown (backlog H6; `beta/usage.py::owner_breakdown`), for the last 7 days and since the first external user.
   - **Words.** It uses the measurement contract's: every pull (`/check` included), the inclusive 10-minute window after any delivery, and known and unknown participants apart.
   - **What it counts.**

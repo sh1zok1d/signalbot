@@ -733,6 +733,46 @@ class BetaConn:
                ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
         return [dict(r) for r in rows]
 
+    # ---- weekly report rows in the same outbox (kind = 'weekly'; backlog B4) ----------
+    async def weekly_report_pk(self, week_end) -> Optional[int]:
+        return await self.conn.fetchval("SELECT weekly_pk FROM beta_weekly_reports WHERE week_end=$1", week_end)
+
+    async def insert_weekly_report(self, *, week_end, built_at: datetime, payload: Mapping[str, Any],
+                                   payload_digest: str) -> Optional[int]:
+        """None when the week already has its report (append-only, one per week)."""
+        return await self.conn.fetchval(
+            """INSERT INTO beta_weekly_reports (week_end, built_at, payload, payload_digest)
+               VALUES ($1,$2,$3::jsonb,$4) ON CONFLICT (week_end) DO NOTHING RETURNING weekly_pk""",
+            week_end, built_at, _j(payload), payload_digest)
+
+    async def materialize_weekly_deliveries(self, *, weekly_pk: int, decision_ts: datetime) -> int:
+        """One PENDING row per ACTIVE participant with messages on and the weekly type on."""
+        status = await self.conn.execute(
+            """INSERT INTO beta_notification_deliveries (kind, weekly_pk, user_pk, state, decision_ts)
+               SELECT 'weekly', $1, u.user_pk, 'PENDING', $2
+               FROM beta_users u WHERE u.status='ACTIVE' AND u.push_enabled AND u.push_weekly
+               ON CONFLICT (weekly_pk, user_pk) WHERE kind='weekly' DO NOTHING""",
+            weekly_pk, decision_ts)
+        return int(status.split()[-1])
+
+    async def fetch_pending_weekly_deliveries(self, limit: int) -> list:
+        rows = await self.conn.fetch(
+            """SELECT x.delivery_id, x.weekly_pk, x.user_pk, x.decision_ts, w.payload,
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.push_enabled, u.push_weekly
+               FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
+               JOIN beta_weekly_reports w ON w.weekly_pk = x.weekly_pk
+               WHERE x.state='PENDING' AND x.kind='weekly'
+               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
+        return [{**dict(r), "payload": _load(r["payload"])} for r in rows]
+
+    async def market_alert_counts(self, *, since: datetime, until: datetime) -> dict:
+        """Market alerts the policy let through (decision PUSH) by kind; personal alerts excluded."""
+        rows = await self.conn.fetch(
+            """SELECT kind, count(*) AS n FROM beta_market_alerts
+               WHERE decision='PUSH' AND kind <> 'price' AND decision_ts >= $1 AND decision_ts < $2
+               GROUP BY kind""", since, until)
+        return {r["kind"]: int(r["n"]) for r in rows}
+
     async def set_push_enabled(self, telegram_user_id: int, enabled: bool) -> bool:
         status = await self.conn.execute(
             "UPDATE beta_users SET push_enabled=$2, updated_at=now() WHERE telegram_user_id=$1",
@@ -800,7 +840,7 @@ class BetaConn:
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
                       invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact,
-                      push_levels, push_events, push_moves, push_hours
+                      push_levels, push_events, push_moves, push_hours, push_weekly
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
@@ -1849,7 +1889,7 @@ class BetaConn:
             price_alert_pk, at)
         return status == "UPDATE 1"
 
-    _PUSH_PREFS = ("push_enabled", "push_levels", "push_events", "push_moves", "push_hours")
+    _PUSH_PREFS = ("push_enabled", "push_levels", "push_events", "push_moves", "push_hours", "push_weekly")
 
     async def set_push_pref(self, telegram_user_id: int, field: str, enabled: bool) -> bool:
         if field not in self._PUSH_PREFS:

@@ -226,6 +226,25 @@ DECISION_CATALOG: dict = {
                         "That is more than 30% from the current price {now}. Pick a closer level."),
     "al_too_close": _pair("Это слишком близко к текущей цене {now}.", "That is too close to the current price {now}."),
     "al_no_price": _pair("Цена Binance сейчас недоступна, попробуйте позже.", "The Binance price is unavailable now; try later."),
+    # ---- weekly report (backlog B4) ----
+    "wk_title": _pair("<b>📅 Неделя бота: {d0}–{d1}</b>", "<b>📅 The bot's week: {d0}–{d1}</b>"),
+    "wk_intro": _pair("Как сработали наши оценки за 7 дней (N — непересекающиеся окна).",
+                      "How our estimates did over 7 days (N = non-overlapping windows)."),
+    "wk_cor_head": _pair("Коридоры — доля случаев, когда цена не вышла за коридор; расчётная — {share}:",
+                         "Corridors: the share of cases the price stayed inside; designed for {share}:"),
+    "wk_cor_line": _pair("• {h}: {p} (N={n}; на отложенном годе {hold}) · ширина ±{width}",
+                         "• {h}: {p} (N={n}; held-out year {hold}) · width ±{width}"),
+    "wk_cor_short": _pair("• {h}: мало данных (N={n})", "• {h}: too little data (N={n})"),
+    "wk_cor_none": _pair("• за неделю нет проверенных коридоров", "• no corridor matured this week"),
+    "wk_miss_line": _pair("   выше коридора {up} (медиана на {up_size}), ниже {dn} (медиана на {dn_size})",
+                          "   above {up} (median by {up_size}), below {dn} (median by {dn_size})"),
+    "wk_touch_head": _pair("Шанс дойти до уровня — говорили → было:", "Chance to reach a level — stated → happened:"),
+    "wk_touch_line": _pair("• {h}: {parts}", "• {h}: {parts}"),
+    "wk_touch_short": _pair("• {h}: мало данных (N={n})", "• {h}: too little data (N={n})"),
+    "wk_alerts": _pair("Сообщений о рынке за неделю: уровни {level}, события {event}, резкие движения {move}.",
+                       "Market messages this week: levels {level}, events {event}, sharp moves {move}."),
+    "wk_footer": _pair("Подробнее и за 30/90 дней: /accuracy · выключить итоги недели: /push weekly off",
+                       "More, and over 30/90 days: /accuracy · turn the weekly report off: /push weekly off"),
     # ---- /push ----
     "push_master_off_note": _pair("Сейчас не приходит ничего из списка ниже. Настройки категорий сохранены "
                                   "и снова заработают после /push on.",
@@ -233,14 +252,18 @@ DECISION_CATALOG: dict = {
                                   "again after /push on."),
     "push_status": _pair("Сообщения: {master}\n• уровни (первое касание вчерашних, недельных, месячных максимумов и минимумов): {levels}\n"
                          "• события (CPI, ФРС за 30 минут): {events}\n• резкие движения (за 15 минут): {moves}\n"
-                         "• необычный час: {hours}\nЛичные уровни (/alert) приходят всегда. "
+                         "• необычный час: {hours}\n• итоги недели (воскресенье вечером): {weekly}\n"
+                         "Личные уровни (/alert) приходят всегда. "
                          "Утренняя сводка — отдельно: /brief on|off.\n"
-                         "Включить или выключить: /push off · /push levels off · /push events on · /push moves off · /push hour off",
+                         "Включить или выключить: /push off · /push levels off · /push events on · /push moves off · "
+                         "/push hour off · /push weekly off",
                          "Messages: {master}\n• levels (first touch of daily, weekly, monthly highs and lows): {levels}\n"
                          "• events (CPI, Fed, 30 minutes ahead): {events}\n• sharp moves (within 15 minutes): {moves}\n"
-                         "• unusual hour: {hours}\nYour own alerts (/alert) always arrive. "
+                         "• unusual hour: {hours}\n• weekly report (Sunday evening): {weekly}\n"
+                         "Your own alerts (/alert) always arrive. "
                          "The morning briefing is separate: /brief on|off.\n"
-                         "Switch: /push off · /push levels off · /push events on · /push moves off · /push hour off"),
+                         "Switch: /push off · /push levels off · /push events on · /push moves off · /push hour off"
+                         " · /push weekly off"),
     "push_pref_ok": _pair("Готово. {status}", "Done. {status}"),
     "on_word": _pair("вкл", "on"),
     "off_word": _pair("выкл", "off"),

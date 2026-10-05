@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, Optional, Sequence
 
 from beta.access import PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
-from beta.admin import collect_status, fingerprint, handle_admin, is_owner, parse_command
+from beta.admin import collect_status, fingerprint, handle_admin, is_owner, owner_parts, parse_command
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
 from beta.formatter import PUSH_BTC_ACTION, assert_descriptive, format_history
@@ -185,7 +185,7 @@ class BetaBotHandler:
                 return [_msg(chat_id, t("ru", "unknown_cmd"), lang="ru")]
             # Telegram caps a message at 4096 characters; /admin_stats grows with the weeks
             out = [Outgoing(kind="message", chat_id=chat_id, html=f"<pre>{html.escape(part, quote=False)}</pre>")
-                   for part in _owner_parts(res["reply"] or "")]
+                   for part in owner_parts(res["reply"] or "")]
             if res["broadcast"]:
                 out += [_msg(c, res["broadcast"], lang="ru") for c in await conn.active_user_chats()]
             for item in res.get("direct") or []:
@@ -391,13 +391,15 @@ class BetaBotHandler:
     _PUSH_PREFS = {"levels": "push_levels", "level": "push_levels", "уровни": "push_levels",
                    "events": "push_events", "event": "push_events", "события": "push_events",
                    "moves": "push_moves", "move": "push_moves", "движения": "push_moves",
-                   "hour": "push_hours", "hours": "push_hours", "час": "push_hours"}
+                   "hour": "push_hours", "hours": "push_hours", "час": "push_hours",
+                   "weekly": "push_weekly", "week": "push_weekly", "неделя": "push_weekly", "итоги": "push_weekly"}
 
     def _push_status(self, user, lang: str) -> str:
         word = lambda v: t(lang, "on_word" if v else "off_word")  # noqa: E731
         text = t(lang, "push_status", master=word(user.get("push_enabled", True)),
                  levels=word(user.get("push_levels", True)), events=word(user.get("push_events", True)),
-                 moves=word(user.get("push_moves", True)), hours=word(user.get("push_hours", True)))
+                 moves=word(user.get("push_moves", True)), hours=word(user.get("push_hours", True)),
+                 weekly=word(user.get("push_weekly", True)))
         if not user.get("push_enabled", True):
             # the categories are kept as they are, not reset; say so right under the master line
             head, _, rest = text.partition("\n")
@@ -692,18 +694,6 @@ class BetaBotHandler:
             return await self._reply(conn, user, chat_id, lang, self.clock(), action,
                                      [answer(t(lang, "feedback_recorded"))])
         return [answer(t(lang, "not_available"))]
-
-
-def _owner_parts(text: str, limit: int = 3500) -> list:
-    """Owner text in whole lines, each part under `limit` characters once escaped."""
-    parts, cur = [], ""
-    for line in text.split("\n"):
-        if cur and len(html.escape(cur + "\n" + line, quote=False)) > limit:
-            parts.append(cur)
-            cur = line
-        else:
-            cur = line if not cur else cur + "\n" + line
-    return parts + [cur]
 
 
 def _parse_tab(data: str):

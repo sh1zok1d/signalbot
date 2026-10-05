@@ -502,7 +502,9 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     'tab_research',
     -- /check (PRE_BETA_SCOPE_DECISION_V1 §5): the command, «Проверить» from a push or the briefing,
     -- «Следить» (a personal alert in one tap)
-    'cmd_check', 'btn_check', 'btn_watch'));
+    'cmd_check', 'btn_check', 'btn_watch',
+    -- the weekly report (backlog B4), a delivery of its own class
+    'weekly_delivered'));
 
 -- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
 -- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.
@@ -615,18 +617,37 @@ ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS alert_pk BIGIN
     REFERENCES beta_market_alerts (alert_pk);
 ALTER TABLE beta_notification_deliveries ALTER COLUMN decision_id DROP NOT NULL;
 ALTER TABLE beta_notification_deliveries ALTER COLUMN episode_pk DROP NOT NULL;
+-- Weekly report (backlog B4; PRE_BETA_SCOPE_DECISION_V1 §6.4): one shared payload per week,
+-- stored before any send (kind = 'weekly' rows below). No user id.
+CREATE TABLE IF NOT EXISTS beta_weekly_reports (
+    weekly_pk       BIGSERIAL PRIMARY KEY,
+    week_end        DATE NOT NULL UNIQUE,                   -- the Kyiv date of the report slot
+    built_at        TIMESTAMPTZ NOT NULL,
+    payload         JSONB NOT NULL,
+    payload_digest  TEXT NOT NULL CHECK (payload_digest ~ '^[0-9a-f]{64}$')
+);
+DROP TRIGGER IF EXISTS trg_beta_weekly_reports_append_only ON beta_weekly_reports;
+CREATE TRIGGER trg_beta_weekly_reports_append_only BEFORE UPDATE OR DELETE ON beta_weekly_reports
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS weekly_pk BIGINT
+    REFERENCES beta_weekly_reports (weekly_pk);
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_weekly BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE beta_notification_deliveries DROP CONSTRAINT IF EXISTS ck_beta_delivery_kind_shape;
 ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_kind_shape CHECK (
     (kind = 'push' AND decision_id IS NOT NULL AND episode_pk IS NOT NULL
-        AND view_pk IS NULL AND brief_date IS NULL AND alert_pk IS NULL)
+        AND view_pk IS NULL AND brief_date IS NULL AND alert_pk IS NULL AND weekly_pk IS NULL)
     OR (kind = 'brief' AND decision_id IS NULL AND episode_pk IS NULL
-        AND view_pk IS NOT NULL AND brief_date IS NOT NULL AND alert_pk IS NULL)
+        AND view_pk IS NOT NULL AND brief_date IS NOT NULL AND alert_pk IS NULL AND weekly_pk IS NULL)
     OR (kind = 'alert' AND decision_id IS NULL AND episode_pk IS NULL
-        AND view_pk IS NULL AND brief_date IS NULL AND alert_pk IS NOT NULL));
+        AND view_pk IS NULL AND brief_date IS NULL AND alert_pk IS NOT NULL AND weekly_pk IS NULL)
+    OR (kind = 'weekly' AND decision_id IS NULL AND episode_pk IS NULL
+        AND view_pk IS NULL AND brief_date IS NULL AND alert_pk IS NULL AND weekly_pk IS NOT NULL));
 CREATE UNIQUE INDEX IF NOT EXISTS uq_beta_delivery_brief_identity
     ON beta_notification_deliveries (brief_date, user_pk) WHERE kind = 'brief';
 CREATE UNIQUE INDEX IF NOT EXISTS uq_beta_delivery_alert_identity
     ON beta_notification_deliveries (alert_pk, user_pk) WHERE kind = 'alert';
+CREATE UNIQUE INDEX IF NOT EXISTS uq_beta_delivery_weekly_identity
+    ON beta_notification_deliveries (weekly_pk, user_pk) WHERE kind = 'weekly';
 
 -- PRODUCT_FIRST_DECISION_V1 §3 rows 7-8 and 10 (additive; existing rows keep their meaning).
 -- The unusual-hour gate evaluated with each push decision, by value: what was known

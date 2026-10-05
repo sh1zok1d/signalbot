@@ -122,7 +122,11 @@ _REGIME_D7_KEYS = {"enabled"}
 # time and one cooldown across event types. Policy only; never the rules digest.
 _PUSH_POLICY_KEYS = {"quiet_hours_kyiv", "global_cooldown_min"}
 # PRODUCT_DECISION_V2: decision support. Presentation and market-alert policy only.
-_DECISION_KEYS = {"max_price_alerts", "forecast_tracking", "claim_journal", "market_alerts", "research_evidence"}
+_DECISION_KEYS = {"max_price_alerts", "forecast_tracking", "claim_journal", "market_alerts", "research_evidence",
+                  "weekly_report"}
+# Weekly report (backlog B4). Presentation and delivery only.
+_WEEKLY_REPORT_KEYS = {"enabled", "weekday_kyiv", "time_kyiv", "max_delay_min"}
+WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 _MARKET_ALERT_KEYS = {"enabled", "max_per_utc_day", "move_cooldown_min", "event_lead_min",
                       "touch_max_age_min"}
 # Research evidence (owner task 2026-10-04; docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md):
@@ -370,6 +374,13 @@ def _validate_decision(d: Mapping[str, Any]) -> None:
     _bool(m["enabled"], "decision.market_alerts.enabled")
     for key in ("max_per_utc_day", "move_cooldown_min", "event_lead_min", "touch_max_age_min"):
         _int(m[key], f"decision.market_alerts.{key}", minimum=1)
+    w = x["weekly_report"]
+    _exact_keys(w, _WEEKLY_REPORT_KEYS, "decision.weekly_report")
+    _bool(w["enabled"], "decision.weekly_report.enabled")
+    if w["weekday_kyiv"] not in WEEKDAYS:
+        raise BetaConfigError(f"decision.weekly_report.weekday_kyiv must be one of {', '.join(WEEKDAYS)}")
+    _hhmm(w["time_kyiv"], "decision.weekly_report.time_kyiv")
+    _int(w["max_delay_min"], "decision.weekly_report.max_delay_min", minimum=1)
     r = x["research_evidence"]
     _exact_keys(r, _RESEARCH_EVIDENCE_KEYS, "decision.research_evidence")
     for key in ("enabled", "feeds_enabled", "stress_hours_enabled"):

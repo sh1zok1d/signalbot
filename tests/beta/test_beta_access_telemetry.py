@@ -355,7 +355,9 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         # (they exposed internals) and record nothing new.
         # brief_withheld (U1a) needs a withdrawal day: test_beta_invite_journey_pg covers it.
         # tab_research needs a view with research evidence: test_research_evidence.py covers it.
-        assert set(actions) == set(ACTIVITY_ACTIONS) - {"btn_details", "brief_withheld", "tab_research"}
+        # weekly_delivered needs the Sunday slot: test_beta_weekly_pg covers it.
+        assert set(actions) == set(ACTIVITY_ACTIONS) - {"btn_details", "brief_withheld", "tab_research",
+                                                        "weekly_delivered"}
         cols = await _rows(pool, """SELECT column_name FROM information_schema.columns
                                     WHERE table_name='beta_user_activity'""")
         assert "telegram" not in " ".join(r["column_name"] for r in cols)
