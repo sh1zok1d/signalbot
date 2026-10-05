@@ -31,10 +31,10 @@ BETA_CODE_PATHS = ("beta", "runtime/beta_cli.py", "runtime/beta_bot.py", "storag
                    "storage/beta_v0_schema.sql", "config/beta_v0.yaml", "config/beta_calendar.yaml")
 BETA_COMMAND_FLAGS = ("beta_bootstrap", "beta_once", "beta_status", "beta_outcomes_once",
                       "beta_notify_once", "beta_health", "beta_usage_report",
-                      "beta_d7_once", "beta_d7_backfill", "beta_context_dry_run",
+                      "beta_d7_once", "beta_d7_backfill", "beta_context_dry_run", "beta_c1_replay",
                       "beta_history_sync", "beta_history_build", "beta_bootstrap_rewind",
                       "beta_feeds_once", "beta_stress_once")
-READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report", "beta_context_dry_run")
+READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report", "beta_context_dry_run", "beta_c1_replay")
 
 
 # A feed job refused to run: its schema, columns, checks or grants are missing, or it is connected
@@ -71,6 +71,8 @@ def add_beta_arguments(parser) -> None:
                    help="Beta V0.2: resumable D7 1m backfill (default 90 days) and hour states.")
     g.add_argument("--beta-context-dry-run", action="store_true",
                    help="Beta: READ-ONLY recorded-tape dry run of the 1h/4h interpretation labels.")
+    g.add_argument("--beta-c1-replay", action="store_true",
+                   help="Beta: READ-ONLY replay of recorded tape under C0 (context V2) and C1 (V3) side by side.")
     g.add_argument("--beta-history-sync", action="store_true",
                    help="Beta V2: fetch, verify and upsert the Binance Vision history (resumable).")
     g.add_argument("--beta-history-build", action="store_true",
@@ -117,8 +119,8 @@ def validate_beta_args(parser, args, *, other_command_selected: bool) -> None:
         parser.error("--days is only valid with --beta-d7-backfill")
     if getattr(args, "beta_d7_backfill", False) and args.days is not None and args.days < 1:
         parser.error("--days must be an int >= 1")
-    dry = getattr(args, "beta_context_dry_run", False)
-    if getattr(args, "dry_run_provisional", False) and not dry:
+    dry = getattr(args, "beta_context_dry_run", False) or getattr(args, "beta_c1_replay", False)
+    if getattr(args, "dry_run_provisional", False) and not getattr(args, "beta_context_dry_run", False):
         parser.error("--dry-run-provisional is only valid with --beta-context-dry-run")
     if dry and (args.dry_run_days < 1 or args.dry_run_days > 30 or args.dry_run_stride < 1):
         parser.error("--dry-run-days must be 1..30 and --dry-run-stride >= 1")
@@ -268,6 +270,15 @@ def _command_name(args) -> str:
 async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
                     resolve_feature_code_version, metadata_fetch_json, sender, env) -> dict:
     from beta.admin import collect_health, collect_status
+    if getattr(args, "beta_c1_replay", False):
+        from beta.c1_replay import run_c1_replay_from_db
+        store = db.beta_store()
+        async with store.connect() as conn:
+            if not await conn.schema_present():
+                return {"status": "NOT_INITIALIZED"}
+            return {"status": "OK", "c1_replay": await run_c1_replay_from_db(
+                conn, cfg, Stage2Config.load(), end=clock(), days=args.dry_run_days,
+                stride_buckets=args.dry_run_stride)}
     if getattr(args, "beta_context_dry_run", False):
         from beta.dry_run import run_dry_run_from_db
         store = db.beta_store()

@@ -12,7 +12,10 @@ from beta.config import BetaConfig
 from beta.state_tape import BUCKET, metric_key
 from scripts.product.weekday_weekend_baseline_v2 import evaluate as E
 
-CFG = BetaConfig.load()
+# C0 parity is checked against the pooled reference, which production keeps under the
+# BETA_CONTEXT_1H_V2 label (the active V3 label is C1, parity-tested in tests/beta/test_beta_c1_day_type.py).
+_LOADED = BetaConfig.load()
+CFG = _LOADED.with_overrides(context={**_LOADED.section("context"), "version": "BETA_CONTEXT_1H_V2"})
 IDENT = {"feature_schema_version": 1, "calculation_version": "a" * 16,
          "stage2_config_hash": "b" * 64, "stage2_config_version": "v"}
 TIERS = {"none_below_days": 3, "low_below_days": 7, "building_below_days": 30}

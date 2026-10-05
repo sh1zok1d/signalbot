@@ -416,10 +416,10 @@ def test_v0_context_snapshot_is_ignored_and_a_current_chain_starts():
             rows = await conn.fetch(
                 """SELECT context_version, context_digest, prev_state_digest, state::text AS state
                    FROM beta_context_snapshots ORDER BY bucket_ts""")
-        assert [r["context_version"] for r in rows] == ["BETA_CONTEXT_1H_V0", "BETA_CONTEXT_1H_V2"]
+        assert [r["context_version"] for r in rows] == ["BETA_CONTEXT_1H_V0", "BETA_CONTEXT_1H_V3"]
         assert rows[0]["state"].find(marker) >= 0
         assert rows[1]["prev_state_digest"] is None
-        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"]
+        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V3"]
         assert marker not in rows[1]["state"]
         assert '"regime"' not in rows[1]["state"]
         await pool.close()
@@ -427,9 +427,13 @@ def test_v0_context_snapshot_is_ignored_and_a_current_chain_starts():
 
 
 @pytestmark_pg
-def test_v1_context_snapshot_hands_its_episode_memory_to_the_v2_chain():
-    """The declared predecessor (V1) is adopted: the first V2 snapshot continues its
-    chain and keeps its episode memory instead of restarting empty."""
+@pytest.mark.parametrize("pred, new", [("BETA_CONTEXT_1H_V1", "BETA_CONTEXT_1H_V2"),
+                                       ("BETA_CONTEXT_1H_V2", "BETA_CONTEXT_1H_V3")])   # the C1 deploy path
+def test_predecessor_context_snapshot_hands_its_episode_memory_to_the_new_chain(pred, new):
+    """The declared predecessor is adopted: the first snapshot under the new label continues
+    its chain and keeps its episode memory instead of restarting empty; its context readings
+    (ranks, labels) are not carried."""
+    CFG_ = CFG.with_overrides(context={**CFG.section("context"), "version": new})
     import json
     import random
     from beta.context import KNOWN_CONTEXT_DIGESTS, verify_versions
@@ -451,9 +455,9 @@ def test_v1_context_snapshot_hands_its_episode_memory_to_the_v2_chain():
                            metrics_fn=lambda b: history_metrics(rng))
         await seed_live_klines(pool, [b0 + i * BUCKET for i in range(300)])
         versions = verify_versions(CFG)
-        marker = "EV-V1-CARRIED"
-        state = {"context_version": "BETA_CONTEXT_1H_V1",
-                 "context_digest": KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"],
+        marker = "EV-PRED-CARRIED"
+        state = {"context_version": pred,
+                 "context_digest": KNOWN_CONTEXT_DIGESTS[pred], "context_4h": {"stale": "pred-reading"},
                  "episodization_version": versions["episodization_version"],
                  "episodization_digest": versions["episodization_digest"], "rules_digest": CFG.rules_digest,
                  "as_of_bucket": iso(b0 - BUCKET), "open": {}, "now": None, "context_1h": None,
@@ -465,22 +469,23 @@ def test_v1_context_snapshot_hands_its_episode_memory_to_the_v2_chain():
                 """INSERT INTO beta_context_snapshots (symbol, bucket_ts, episodization_version,
                        episodization_digest, context_version, context_digest, rules_digest,
                        prev_state_digest, state, state_digest)
-                   VALUES ('BTCUSDT',$1,$2,$3,'BETA_CONTEXT_1H_V1',$4,$5,$6,$7::jsonb,$8)""",
+                   VALUES ('BTCUSDT',$1,$2,$3,$9,$4,$5,$6,$7::jsonb,$8)""",
                 b0 - BUCKET, versions["episodization_version"], versions["episodization_digest"],
-                KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V1"], CFG.rules_digest, None,
-                json.dumps(state), "ab" * 32)
+                KNOWN_CONTEXT_DIGESTS[pred], CFG.rules_digest, None,
+                json.dumps(state), "ab" * 32, pred)
         clock = Clock(b0 + BUCKET + timedelta(seconds=30))
-        await run_detector_once(deps(pool, ScenarioReader(quiet), clock), CFG, ON)
+        await run_detector_once(deps(pool, ScenarioReader(quiet), clock), CFG_, ON)
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """SELECT context_version, context_digest, prev_state_digest, state::text AS state
                    FROM beta_context_snapshots ORDER BY bucket_ts""")
-        assert [r["context_version"] for r in rows] == ["BETA_CONTEXT_1H_V1", "BETA_CONTEXT_1H_V2"]
-        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS["BETA_CONTEXT_1H_V2"]
+        assert [r["context_version"] for r in rows] == [pred, new]
+        assert rows[1]["context_digest"] == KNOWN_CONTEXT_DIGESTS[new]
         assert rows[1]["prev_state_digest"] == "ab" * 32
         assert marker in rows[1]["state"]
         new_state = json.loads(rows[1]["state"])
-        assert new_state["context_version"] == "BETA_CONTEXT_1H_V2" and "context_4h" in new_state
+        assert new_state["context_version"] == new and "context_4h" in new_state
+        assert "pred-reading" not in rows[1]["state"]                      # no old reading carried
         await pool.close()
     run(body())
 

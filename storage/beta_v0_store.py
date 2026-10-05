@@ -573,6 +573,14 @@ class BetaConn:
         return [{"episode_id": r["public_id"], "event_type": r["event_type"], "opened_bucket": iso(r["opened_bucket"]),
                  "last_bucket": iso(r["last_bucket"]), "triggered_at": iso(r["triggered_at"])} for r in rows]
 
+    async def fetch_push_decisions_range(self, *, start: datetime, end: datetime) -> list:
+        """Recorded push decisions with decision_ts in [start, end), oldest first. Read-only (C1 replay)."""
+        rows = await self.conn.fetch(
+            """SELECT decision_id, event_type, decision_ts, decision, suppression_reason, would_push
+               FROM beta_push_decisions WHERE decision_ts >= $1 AND decision_ts < $2
+               ORDER BY decision_ts, decision_id""", start, end)
+        return [dict(r) for r in rows]
+
     async def fetch_episode_by_pk(self, episode_pk: int):
         r = await self.conn.fetchrow(
             f"SELECT {_EPISODE_COLS} FROM beta_episodes WHERE episode_pk=$1", episode_pk)
