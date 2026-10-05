@@ -1594,13 +1594,23 @@ class BetaConn:
                WHERE forecast_pk=$1 AND outcome IS NULL""", forecast_pk, outcome, high, low, now)
 
     async def forecast_accuracy(self, *, since: datetime) -> dict:
+        """{horizon: {outcome: count, 'N_EFF': non-overlapping windows}}. Forecasts are issued
+        hourly, so 4h and 24h windows overlap; `N_EFF` counts the distinct UTC-aligned slots of
+        one horizon length that hold a scored (INSIDE / OUTSIDE) forecast."""
         rows = await self.conn.fetch(
-            """SELECT horizon, outcome, count(*) AS n, count(DISTINCT issued_at::date) AS days
+            """SELECT horizon, outcome, count(*) AS n
                FROM beta_forecasts WHERE issued_at >= $1 AND outcome IS NOT NULL
                GROUP BY horizon, outcome""", since)
         out: dict = {}
         for r in rows:
             out.setdefault(r["horizon"], {})[r["outcome"]] = int(r["n"])
+        eff = await self.conn.fetch(
+            """SELECT horizon, count(DISTINCT floor(extract(epoch FROM issued_at) /
+                         CASE horizon WHEN '1h' THEN 3600 WHEN '4h' THEN 14400 ELSE 86400 END)) AS n_eff
+               FROM beta_forecasts WHERE issued_at >= $1 AND outcome IN ('INSIDE', 'OUTSIDE')
+               GROUP BY horizon""", since)
+        for r in eff:
+            out.setdefault(r["horizon"], {})["N_EFF"] = int(r["n_eff"])
         return out
 
     # ---------------------------------------------------------------- market alerts

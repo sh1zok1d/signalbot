@@ -15,7 +15,10 @@ from .i18n import (assert_descriptive, fmt_clock, fmt_kyiv_hm, fmt_plain_pct, fm
 from .i18n_decision import EVENT_NAMES, LEVEL_NAMES, WEEKDAYS, cases_word
 
 _LANG_IX = {"ru": 0, "en": 1}
-ANALOG_MIN_N = 30
+# One threshold for every historical or tracked count on a user surface (PRE_BETA_SCOPE_DECISION_V1
+# block B): below it a share becomes «мало данных (N)». It equals the statistics' own minimum
+# (`analogues.MIN_N`, `levels.MIN_EVENTS`); a test keeps them equal.
+MIN_N_SHOWN = 30
 
 
 def _ix(lang: str) -> int:
@@ -267,7 +270,7 @@ def analog_line(card: Optional[Mapping[str, Any]], lang: str, *, since_year: Opt
     h = card["window"]
     cell = (card.get("outcomes") or {}).get(h) or {}
     n = int(cell.get("n") or 0)
-    if n < ANALOG_MIN_N or not cell.get("baseline"):
+    if n < MIN_N_SHOWN or not cell.get("baseline"):
         return t(lang, "dc_analog_short", n=_n(n, lang))
     v = cell.get("verdicts") or {}
     base = cell["baseline"]
@@ -341,14 +344,30 @@ def _hist_lines(hist: Optional[Mapping[str, Any]], lang: str, side: int) -> list
     r1, c1 = real.get("1h"), ctrl.get("1h")
     if not r1 or not c1 or not real.get("n"):
         return []
+    if real["n"] < MIN_N_SHOWN:
+        return [t(lang, "lv_hist_short", n=_n(real["n"], lang))]
     verdict = (hist.get("verdicts") or {}).get("1h", "insufficient")
     if verdict == "differs":
         vk = "lv_verdict_differs_more" if r1["hold_rate"] > c1["hold_rate"] else "lv_verdict_differs_less"
     else:
         vk = "lv_verdict_" + verdict
-    return [t(lang, "lv_hist", n=_n(real["n"], lang), side=t(lang, "lv_side_above" if side > 0 else "lv_side_below"),
-              hold=fmt_share(r1["hold_rate"], lang), ctrl=fmt_share(c1["hold_rate"], lang), verdict=t(lang, vk)),
-            t(lang, "lv_hist_move", further=_pct(r1["further_median"], lang), back=_pct(r1["back_median"], lang))]
+    lines = [t(lang, "lv_hist", n=_n(real["n"], lang), side=t(lang, "lv_side_above" if side > 0 else "lv_side_below"),
+               hold=fmt_share(r1["hold_rate"], lang), ctrl=fmt_share(c1["hold_rate"], lang), verdict=t(lang, vk))]
+    move = _move_args(r1, c1, lang)
+    if move:
+        lines.append(t(lang, "lv_hist_move", **move))
+    return lines
+
+
+def _move_args(r1: Mapping[str, Any], c1: Mapping[str, Any], lang: str) -> Optional[dict]:
+    """The touch cohort's 1h median move beside the random level's: the random level is the
+    «обычно» of a level reaction, never the cohort's own median. None without the control's
+    medians (no move line rather than a number without its comparison)."""
+    keys = ("further_median", "back_median")
+    if any(r1.get(k) is None or c1.get(k) is None for k in keys):
+        return None
+    return {"further": _pct(r1["further_median"], lang), "back": _pct(r1["back_median"], lang),
+            "c_further": _pct(c1["further_median"], lang), "c_back": _pct(c1["back_median"], lang)}
 
 
 def _zone_research(cond: Sequence[Mapping[str, Any]], lang: str) -> list:
@@ -496,7 +515,13 @@ def format_events(events: Sequence[Mapping[str, Any]], lang: str, *, funding_utc
 
 # ---- /accuracy ---------------------------------------------------------------------------
 def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mapping[str, int]], lang: str) -> str:
-    lines = [t(lang, "ac_title")]
+    """Held-out and live corridor coverage against its target. A live share is computed over every
+    scored hourly forecast, but its N is the number of non-overlapping horizon windows (`N_EFF`,
+    `BetaConn.forecast_accuracy`): hourly 24h forecasts overlap 24 times, so the raw count would
+    overstate the evidence. Below `MIN_N_SHOWN` independent windows the share is not shown."""
+    from .rangecast import COVERAGE
+    target = (model or {}).get("coverage") or COVERAGE
+    lines = [t(lang, "ac_title", share=fmt_share(target, lang))]
     cal = (model or {}).get("calibration") or {}
     if cal:
         parts, period = [], ""
@@ -514,8 +539,13 @@ def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mappi
     for h in ("1h", "4h", "24h"):
         rec = live.get(h) or {}
         n = int(rec.get("INSIDE", 0)) + int(rec.get("OUTSIDE", 0))
-        if n:
-            parts.append(t(lang, "ac_part_live", h=_hz(h, lang), p=fmt_share(rec.get("INSIDE", 0) / n, lang), n=n))
+        if not n:
+            continue
+        n_eff = int(rec.get("N_EFF", n))
+        if n_eff < MIN_N_SHOWN:
+            parts.append(t(lang, "ac_part_live_short", h=_hz(h, lang), n=n_eff))
+        else:
+            parts.append(t(lang, "ac_part_live", h=_hz(h, lang), p=fmt_share(rec.get("INSIDE", 0) / n, lang), n=n_eff))
     lines.append(t(lang, "ac_live", parts=", ".join(parts)) if parts else t(lang, "ac_live_none"))
     return assert_descriptive("\n".join(lines), lang)
 
@@ -545,15 +575,20 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         side = int(payload.get("side") or 1)
         if hist and hist.get("real") and (hist["real"].get("1h") and (hist.get("control") or {}).get("1h")):
             r1, c1 = hist["real"]["1h"], hist["control"]["1h"]
-            verdict = (hist.get("verdicts") or {}).get("1h", "insufficient")
-            vk = ("lv_verdict_differs_more" if r1["hold_rate"] > c1["hold_rate"] else "lv_verdict_differs_less") \
-                if verdict == "differs" else "lv_verdict_" + verdict
-            lines.append(t(lang, "pa_level_hist", n=_n(hist["real"]["n"], lang),
-                           side=t(lang, "lv_side_above" if side > 0 else "lv_side_below"),
-                           hold=fmt_share(r1["hold_rate"], lang), ctrl=fmt_share(c1["hold_rate"], lang),
-                           verdict=t(lang, vk)))
-            lines.append(t(lang, "pa_level_move", further=_pct(r1["further_median"], lang),
-                           back=_pct(r1["back_median"], lang)))
+            n_real = int(hist["real"].get("n") or 0)
+            if n_real < MIN_N_SHOWN:
+                lines.append(t(lang, "pa_level_hist_short", n=_n(n_real, lang)))
+            else:
+                verdict = (hist.get("verdicts") or {}).get("1h", "insufficient")
+                vk = ("lv_verdict_differs_more" if r1["hold_rate"] > c1["hold_rate"] else "lv_verdict_differs_less") \
+                    if verdict == "differs" else "lv_verdict_" + verdict
+                lines.append(t(lang, "pa_level_hist", n=_n(n_real, lang),
+                               side=t(lang, "lv_side_above" if side > 0 else "lv_side_below"),
+                               hold=fmt_share(r1["hold_rate"], lang), ctrl=fmt_share(c1["hold_rate"], lang),
+                               verdict=t(lang, vk)))
+                move = _move_args(r1, c1, lang)
+                if move:
+                    lines.append(t(lang, "pa_level_move", **move))
         nxt = payload.get("next")
         if nxt:
             p24 = (nxt.get("touch") or {}).get("24h")

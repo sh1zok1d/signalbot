@@ -91,6 +91,36 @@ def test_levels_card_has_history_beside_a_random_level():
     assert "after the first touch (812 cases): 1h later the price was above the level in 47%" in en
 
 
+def test_level_move_is_shown_beside_the_random_level_never_as_its_own_usual():
+    hist = {**HIST, "control": {"n": 4000, "1h": {"hold_rate": 0.43, "further_median": 0.3, "back_median": 0.25}}}
+    blk = block()
+    blk["levels"]["above"][0]["history"] = hist
+    text = plain(df.format_levels(blk, "ru", now=NOW))
+    assert "за 1ч медиана: дальше 0,50%, обратно 0,40% (у случайного уровня 0,30% и 0,25%)" in text
+    assert "обычно дальше" not in text
+    en = plain(df.format_levels(blk, "en", now=NOW))
+    assert "1h median: 0.50% further, 0.40% back (a random level: 0.30% and 0.25%)" in en
+
+
+def test_one_threshold_turns_a_small_level_history_into_a_phrase():
+    from beta import analogues, levels
+    assert df.MIN_N_SHOWN == analogues.MIN_N == levels.MIN_EVENTS
+    small = {**HIST, "verdicts": {"1h": "insufficient"},
+             "real": {**HIST["real"], "n": df.MIN_N_SHOWN - 1}}
+    blk = block()
+    blk["levels"]["above"][0]["history"] = small
+    text = plain(df.format_levels(blk, "ru", now=NOW))
+    assert "после первого касания: мало данных (29 случаев)" in text
+    assert "47%" not in text and "медиана" not in text
+    payload = {"at": NOW.isoformat(), "level_kind": "PDH", "level": 62950.0, "side": 1, "period": "day",
+               "price": 62970.0, "history": small, "next": None, "corridor_4h": None}
+    alert = plain(df.format_alert("level", payload, "ru"))
+    assert "После первого касания: мало данных (29 случаев)" in alert and "47%" not in alert
+    enough = {**HIST, "real": {**HIST["real"], "n": df.MIN_N_SHOWN}}
+    blk["levels"]["above"][0]["history"] = enough
+    assert "через 1ч цена выше уровня в 47%" in plain(df.format_levels(blk, "ru", now=NOW))
+
+
 def test_risk_card_and_argument_parsing():
     from beta import rangecast as rc
     model = {"horizons": {h: {"q_one": [0.01 * k for k in range(1, 100)] + [1.2, 1.5]} for h in ("1h", "4h", "24h")}}
@@ -137,10 +167,22 @@ def test_events_and_accuracy_cards():
     assert lines[4:] == ["CPI США (инфляция): вокруг публикации обычная калибровка коридора не применяется."]
     model = {"calibration": {"1h": {"coverage_realized": 0.793, "holdout_from_ms": 1727740800000,
                                     "holdout_to_ms": 1759276800000}}}
-    acc = plain(df.format_accuracy(model, {"4h": {"INSIDE": 82, "OUTSIDE": 18}}, "ru"))
+    acc = plain(df.format_accuracy(model, {"4h": {"INSIDE": 82, "OUTSIDE": 18, "N_EFF": 30}}, "ru"))
+    assert "расчётная — 80%" in acc
     assert "Проверка на отложенном годе (2024-10 – 2025-10): 1ч 79%" in acc
-    assert "Живые прогнозы за 30 дней: 4ч — 82% (из 100)" in acc
+    assert "Живые прогнозы за 30 дней (N — непересекающиеся окна): 4ч — 82% (N=30)" in acc
     assert "ещё не созрели" in plain(df.format_accuracy(None, {}, "ru"))
+
+
+def test_live_accuracy_counts_non_overlapping_windows_and_hides_small_ones():
+    # 720 hourly 24h forecasts in 30 days are 30 independent windows, not 720; 2 days are too few
+    live = {"1h": {"INSIDE": 560, "OUTSIDE": 160, "N_EFF": 720},
+            "24h": {"INSIDE": 40, "OUTSIDE": 8, "N_EFF": 2}}
+    ru = plain(df.format_accuracy(None, live, "ru"))
+    assert "1ч — 78% (N=720)" in ru and "24ч — мало данных (N=2)" in ru
+    assert "83%" not in ru and "из 48" not in ru
+    en = plain(df.format_accuracy({"coverage": 0.8}, live, "en"))
+    assert "designed for 80%" in en and "24h — too little data (N=2)" in en
 
 
 @pytest.mark.parametrize("lang", ["ru", "en"])
