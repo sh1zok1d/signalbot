@@ -1,0 +1,183 @@
+{
+  "AMENDMENT_V4_SHA256": "17977a552fcade7ba10611bcf9977c789434260196c7c0e825625ac365520255",
+  "ARTIFACT": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EXECUTION_BINDING_V1.json",
+  "AUTHORIZATION_MECHANISM": "engine.RUN_AUTHORIZATION (\u2026_RUN_AUTHORIZATION_V1.json) does not exist on disk, so engine.run_eval(official) is refused; the CAL driver re-points it at runtime to the CAL authorization artifact for the CAL call only",
+  "CAL_SURFACE": {
+    "CELLS": 258,
+    "MAX_SEED": 9004559003999,
+    "MIN_SEED": 9001000000000,
+    "PER_CELL": 4000,
+    "REPLICATES": 1032000,
+    "SEED_RANGES_SHA256": "320556497d1d5ed3c66f09666360c75a2e39b008395c9aadbaab8cc56046ed22"
+  },
+  "CANDIDATE_C_FITTING_RULE": {
+    "CALIBRATED_SIZES": {
+      "CLUSTERED": [
+        8,
+        15,
+        25,
+        40
+      ],
+      "PAIRED_UNITS": [
+        40,
+        60,
+        100,
+        160,
+        260,
+        400
+      ],
+      "RARE_EVENT": [
+        30,
+        50,
+        75,
+        100
+      ],
+      "TWO_SAMPLE": [
+        30,
+        60,
+        120,
+        250,
+        500
+      ]
+    },
+    "C_ENV": "suffix maximum over calibrated sizes",
+    "C_RAW": "order statistic of rank ceil(0.99 * M)",
+    "POOL": "all MUST cells of (class, calibrated n) on the CAL split",
+    "RATIO": "T / VA per replicate"
+  },
+  "CHECKPOINT_PATH": "data/compiler_v3_estimator_calibration_run_1/replicates.jsonl",
+  "CHECKPOINT_ROW_KEYS": {
+    "CAL": [
+      "P",
+      "C",
+      "S",
+      "VA",
+      "T",
+      "E"
+    ],
+    "EVAL": [
+      "P",
+      "C",
+      "S",
+      "VA",
+      "VB",
+      "T",
+      "E"
+    ]
+  },
+  "CHECKPOINT_SCHEMA": "SLIM_V4",
+  "COMMIT": "778d51d0885dd405c8d619c67f33d3d54988601f",
+  "COMMIT_SHORT": "778d51d",
+  "C_TABLE_OUTPUT": {
+    "COMMITTED_COPY": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_C_TABLE_V1.json",
+    "COPY_RULE": "byte-identical copy; digest recorded in the completion artifact",
+    "RUN_DIR": "data/compiler_v3_estimator_calibration_run_1",
+    "SEALED_PATH": "data/compiler_v3_estimator_calibration_run_1/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_C_TABLE_V1.json"
+  },
+  "DATE": "2026-10-05",
+  "ENVIRONMENT": {
+    "DTYPE": "float64 (numpy default); seeds are Python int",
+    "MACHINE": "x86_64",
+    "NUMPY": "2.1.3",
+    "PARALLELISM": "single process, single thread for this CAL execution",
+    "PLATFORM": "Linux-6.18.44-fc-v70-x86_64-with-glibc2.39",
+    "PYTHON": "3.11.15",
+    "RNG": "numpy.random.SeedSequence(seed).spawn(2) -> default_rng(child 0); child 1 reserved",
+    "SCIPY": "1.17.1",
+    "THREADS": {
+      "MKL_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1"
+    }
+  },
+  "EVAL_AUTHORIZED": false,
+  "EXECUTION_ERROR_SEMANTICS": {
+    "CAL_PHASE": "any error row, checkpoint integrity error, missing or duplicate seed -> CAL_PHASE_EXECUTION_ERROR; no partial C-table; no EVAL; no retry with another seed",
+    "REPLICATE": "non-finite truth or non-finite/non-positive required estimator -> row E set, never repaired",
+    "RESUME": "append-only checkpoint, same seeds, same binding header; completed replicates never re-executed"
+  },
+  "EXECUTOR": {
+    "EXECUTOR_DIGEST": "b1eb58231e570550cd59b3ada7fd72c6a941ff4b40e90b56b5da24a6d8c141f8",
+    "FILES": {
+      "aggregate.py": "4c0e47dc8c1d2e1bf443a1b01ee414af76eb5c7419233f249f508d35ae9ce813",
+      "amendment_v2.py": "4bbf8859ae353dca124b18f767c223f94a8dc1bdb3edb22a43fc2f8b34123ca4",
+      "amendment_v3.py": "8090ddafcdf984a93849bf784306d8b360f406f515d293a9cb2ca1dc63b8759a",
+      "amendment_v4.py": "098a3b9aaca141a7cef775bc5952c00d86db6d13f609a82ee29f19a93136b2fa",
+      "cells.py": "cd2d3b924707b4fa98430687ef938b3dc031d0d17d8cb5f7e2ff00baf6428c89",
+      "checkpoint.py": "96dbc9dba82d19fd31e6346b897cc13320ab895134dd12ede49582c243e5a01a",
+      "ctable.py": "c9b2aab8d7d77aa165b857e4c4e98f3ddcdc1e901111b204c8b9289bd12c2e0a",
+      "engine.py": "59f407832fa8f2aaa6c074edfcf91051230c5f94888c26f64fb1292f2269b37b",
+      "estimators.py": "3bb31c78cc4e20b2ae42514e0badc24b0b65a41861759a625a04de0fd8d61170",
+      "generators.py": "0aadbfecb68b0ab989dd209e3da30c8d451398d95f9dc6c840740427edda6f66"
+    }
+  },
+  "FROZEN_ARTIFACTS": {
+    "AMENDMENT_V1": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_FREEZE_AMENDMENT_V1.json",
+      "SHA256": "ee319868a199b4c98ac05f5ddbc022b4e3be09854867bd1447c8c52737b58e34"
+    },
+    "AMENDMENT_V2": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_FREEZE_AMENDMENT_V2.json",
+      "SHA256": "d8368f4252654d6c9f1155379efb87b83b0ffd82c15c6a32555c83577a367659"
+    },
+    "AMENDMENT_V3": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_FREEZE_AMENDMENT_V3.json",
+      "SHA256": "31b3d15c1d502ec89af25934a8852248cfc18e654eeed7e267ab9e91a4f9a192"
+    },
+    "AMENDMENT_V4": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_FREEZE_AMENDMENT_V4.json",
+      "SHA256": "17977a552fcade7ba10611bcf9977c789434260196c7c0e825625ac365520255"
+    },
+    "FREEZE_RECORD": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_FREEZE_RECORD_V1.json",
+      "SHA256": "656624c35f6d1e5cf94825988756438932ceeade980585d638db6570faa833a9"
+    },
+    "GRID": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_GRID_V1.json",
+      "SHA256": "440fe897d62a467e5b71c2168177d0002f4a3f64b414d8e4a0c68dc84b8e7db4"
+    },
+    "GRID_DENSE_SUPPORT": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_GRID_DENSE_SUPPORT_V1.json",
+      "SHA256": "5d85ec7fe8e4b42d7c2931abaa9690071e9bef8093081712aa75ec165ec86e49"
+    },
+    "GRID_PROBES": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_GRID_PROBES_V1.json",
+      "SHA256": "6c0b88bb8d49e05952c442e912d0fe542a465bfd1065c545289f84faac166403"
+    },
+    "PROTOCOL_V1": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EFFECTIVE_PROTOCOL_V1.md",
+      "SHA256": "b3cb784c054ad0915d6a3a74b0214f44440c382422d54ebc4fa12fc80cf97714"
+    },
+    "PROTOCOL_V2": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EFFECTIVE_PROTOCOL_V2.md",
+      "SHA256": "806b9394d83bb2cbba940a04451a59d2312296ec51fb403708033ea9f3021808"
+    },
+    "PROTOCOL_V3": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EFFECTIVE_PROTOCOL_V3.md",
+      "SHA256": "dc25cde892b478325ec5f281286305e40cf3bb8075c09c543bd76d1b7a0a3890"
+    },
+    "PROTOCOL_V4": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_EFFECTIVE_PROTOCOL_V4.md",
+      "SHA256": "0e251d1d7c702d9a2d0466736693a9b36831cfbbb249b433fbbaf33b07d2cb3f"
+    },
+    "SPEC": {
+      "PATH": "docs/research/COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_SPEC_V1.md",
+      "SHA256": "4524e0434336b21ebdf272c501a1ebc353fb0dee2215a924fc68293bf7436448"
+    }
+  },
+  "IMMUTABLE": true,
+  "PHASES": [
+    "CAL",
+    "EVAL"
+  ],
+  "PROTOCOL_V4_SHA256": "0e251d1d7c702d9a2d0466736693a9b36831cfbbb249b433fbbaf33b07d2cb3f",
+  "RUN_ID": "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_OFFICIAL_RUN_1",
+  "TARGET_VARIANCE_OBJECT": {
+    "CLUSTERED": "variance of the independent cluster-level mean (exact conditional finite-G, V4 D2)",
+    "ERA_STRATIFIED": "UNDEFINED",
+    "PAIRED_UNITS": "variance of the paired difference of one unit (long-run)",
+    "RARE_EVENT": "variance of the venue-averaged event statistic (long-run)",
+    "TWO_SAMPLE": "variance of one observation within an arm (long-run)"
+  },
+  "TWO_SAMPLE_ALLOCATION_DOMAIN": "EQUAL_ARMS_ONLY"
+}
