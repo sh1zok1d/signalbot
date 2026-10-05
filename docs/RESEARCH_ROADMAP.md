@@ -1,3 +1,12 @@
+> **Research transition — 2026-10-05:** the compiler V3 variance line is **closed** (`research/COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md`) and new research follows `research/EVIDENCE_AND_CLAIMS_DECISION_V1.md`. The compiler and generator-mapping `NEXT_UNIT` entries below are historical and route nothing.
+
+## Order from 2026-10-05
+
+1. `WEEKDAY_WEEKEND_BASELINE_UNIT_V2` (`docs/WEEKDAY_WEEKEND_BASELINE_UNIT_V2.md`): a product-evidence unit on 2020–2024, needing an owner go to run.
+2. `BETA_CLAIM_JOURNAL_V1_IMPL` (`docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md`): needs an owner go under `PRODUCT_DECISION_V2`.
+3. Product wording follow-ups from `EVIDENCE_AND_CLAIMS_DECISION_V1.md` §6: the quantitative L2 analogue line, the R03-C1 «значимости» → «практической величины» text, and the L3 status of touch chances. These are product tasks, not research.
+4. Further research only as product-question units under the decision. Each has a one-page design note and a time-box. Compiler, calibration and framework work are excluded.
+
 > **Product-first note — 2026-10-02:** `docs/PRODUCT_FIRST_DECISION_V1.md` is the canonical product decision. Research serves the product; no new research programs, one-shot confirmations or research-surface widening are started. The execution order below is the historical research order and does not route product work.
 
 ## GV0R02 compiler V1 mapping — 2026-10-01

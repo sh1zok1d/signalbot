@@ -8061,3 +8061,29 @@ The owner merged DH3 and declared it `CLOSED`. P3 live tracking is not started. 
 ```
 DH3_STATUS = CLOSED; LIVE_TRACKING_P3 = NOT_STARTED; DEPLOY = none; WINDOWS_CONSUMED = none by this record
 ```
+
+## 2026-10-05 — Compiler V3 variance line closed; evidence-and-claims model adopted
+
+**Owner decision.** The compiler V3 variance research line is closed (`docs/research/COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md`). The line covered the variance-floor validation (Official Run 1 → `VARIANCE_MODEL_REDESIGN_REQUIRED`), the redesign (`NEXT_VALIDATION_POSSIBLE = NO`) and the exposed-variance estimator calibration (Official Run 1 → `ESTIMATOR_CALIBRATION_FAIL_INFORMATION_INSUFFICIENT`).
+- Both official results stand as recorded. There is no Official Run 2, no repair and no recomputation.
+- **Reason:** at the project's N, guaranteeing in advance both near-absolute coverage safety and practical utility is a dead end. This is a negative methodological result, not evidence about market structure.
+- **Audit trail:** the full record was merged unchanged from `research/hypothesis-evaluation-contract-v2-draft` at `8909f50`.
+
+**New research model.** `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md` applies to new units and is not retroactive.
+- **Before the outcome:** a design note (estimand, method chosen by design, comparison, what changes our mind, variants tried).
+- **Result:** reported as evidence (estimate, uncertainty, information, stability, falsification, limitations, search exposure).
+- **Claims:** a separate claim decision on the L0–L4 ladder. L2 directional historical wording is quantitative. L3 needs live calibration.
+- **Journal:** a prospective claim journal (`docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md`, design only).
+- **Contracts:** contract V2 draft is not adopted and is superseded as the plan. Contract V1 keeps its force for units registered under it.
+
+**Shadow formatting exercise.** Not a test.
+- Expectations were committed first (`6b0b542`). Then DH1-L2, R03-C1 and D12 were written in the new result record from their own records only (`docs/research/EVIDENCE_FORMAT_SHADOW_REPORT_V1.md`).
+- Outcome: `FORMAT_DISTINGUISHES_THE_THREE_TYPES`. No status, verdict, ledger row, atlas unit or findings entry changed.
+
+**Next unit recorded, not executed.** `WEEKDAY_WEEKEND_BASELINE_UNIT_V2` (`docs/WEEKDAY_WEEKEND_BASELINE_UNIT_V2.md`), a `PRODUCT_EVIDENCE` unit. It supersedes revision 5 of the weekday/weekend design as the plan; that revision was merged unchanged from `product/weekday-weekend-baseline-calibration-design-v2`.
+
+```
+COMPILER_V3_VARIANCE_LINE = CLOSED; OFFICIAL_RUN_2 = never; RESULTS_CHANGED = none
+CONTRACT_V2_DRAFT = NOT_ADOPTED / SUPERSEDED_AS_PLAN; CONTRACT_V1 = in force for its units
+WINDOWS_CONSUMED = none by this record; MARKET_DATA_READ = none; OBJECTS_2025_2026_USED = none
+```

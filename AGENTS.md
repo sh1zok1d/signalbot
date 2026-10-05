@@ -91,6 +91,7 @@ For any new task, use this authority order:
 0. `docs/SIGNALBOT_MANDATE_V1.md` — owner-approved strategic mandate; project success criteria, anti-sycophancy rule, scientific/product/commercial principles. It does not override frozen experiment-specific scientific authorities;
 0a. `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` — canonical product decision (2026-10-03): decision support (corridor, levels, history, events, market alerts), the rules that stay, protected 2025/2026 opened for product use. Read it first for any product/beta task;
 0b. `docs/PRODUCT_FIRST_DECISION_V1.md` — product decision of 2026-10-02 (hypothesis, architecture constraint, DO-NOT-BUILD-YET, user-test design); superseded where V2 differs;
+0c. `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md` — research decision (2026-10-05): evidence vs claim decision, L0–L4 ladder, design note before outcome, claim journal; read it before any new research unit or any product line that states a historical or probabilistic number;
 1. `docs/CURRENT_RESEARCH_STATE.md` — compact current routing and exact next unit;
 2. `docs/PROJECT_STATUS.md` — current posture and freeze;
 3. `docs/RESEARCH_ROADMAP.md` — active execution order;
@@ -134,7 +135,18 @@ Allowed work is research-supporting work: MARKET hypothesis formulation and hone
 
 Research must try to falsify hypotheses rather than protect the existing implementation.
 
-New hypothesis cards are evaluated under `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1.md` (adopted 2026-10-01, not retroactive). It covers:
+**Since 2026-10-05, new research units follow `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md`.**
+- **Before the outcome:** a one-page design note with the estimand, the method chosen by design (no universal estimator), the comparison, what would change our mind, and the variants tried.
+- **Result:** reported as evidence: estimate, uncertainty, information, stability, falsification, limitations and search exposure. No verdict words.
+- **What may be said:** a separate claim decision on the L0–L4 ladder.
+  - L2 directional historical lines are quantitative: observed vs baseline, the difference, N and uncertainty.
+  - A historical frequency is never stated as a current probability. L3 needs live calibration through the claim journal.
+  - No uncalibrated weak/moderate/strong wording reaches users.
+- **The compiler V3 variance line is CLOSED** (`docs/research/COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md`). Do not start Run 2, a variance or estimator calibration, compiler V3 or a ledger schema V2 for it. Feasibility numbers are amount-of-information fields, not a gate.
+- **Contract V2 draft:** not adopted and superseded as the plan.
+- **Contract V1** below keeps its force for every unit registered under it.
+
+Hypothesis cards registered before 2026-10-05 are evaluated under `docs/research/HYPOTHESIS_EVALUATION_CONTRACT_V1.md` (adopted 2026-10-01, not retroactive). It covers:
 - twin preregistration;
 - the `CONTEXT_DESCRIPTIVE` and `INCREMENTAL` claim types;
 - the nuisance baseline;

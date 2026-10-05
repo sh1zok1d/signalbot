@@ -1,6 +1,7 @@
 # Weekday / weekend reference-distribution calibration — design V1, revision 5
 
 **Status:** `DESIGN_DRAFT / NOT_FROZEN / NOT_EXECUTED`
+**Superseded as the plan to run (2026-10-05):** `WEEKDAY_WEEKEND_BASELINE_UNIT_V2.md` under `research/EVIDENCE_AND_CLAIMS_DECISION_V1.md`. This revision is kept unchanged below as history; it was never frozen or executed.
 **Kind:** PRODUCT_FIRST calibration unit (product evidence, not a research claim)
 **Date:** 2026-10-03 (revision 5: Stage H semantics, tercile rule and owner contract decisions after the owner's acceptance of revision 4 `8c8a5bf` as the pre-freeze design; written against the repaired `main` at `a7d738f`)
 **Authority:** `PRODUCT_FIRST_DECISION_V1.md` §3 row 7, §3.1b, §6, §11. This design changes nothing in that decision and opens no amendment.

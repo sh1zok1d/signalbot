@@ -1,5 +1,7 @@
 # Hypothesis evaluation contract V2 — draft
 
+> **Not adopted; superseded as the plan (owner, 2026-10-05):** `EVIDENCE_AND_CLAIMS_DECISION_V1.md` carries this draft's tracks, evidence/decision separation, rare-event accumulation and exposure ledger, and drops its certification machinery (§4 bar-function compilation, §5 compiler V3 requirement, §7 tranche, §8.3a registries). Text below unchanged as history.
+
 **Status:** `DRAFT / NOT_ADOPTED / DESIGN_ONLY` (2026-10-04; owner decisions D1–D6 in §12a; red-team repairs R1–R7 applied per the owner decisions in §12b; variance-floor validation spec in `COMPILER_V3_VARIANCE_FLOOR_VALIDATION_SPEC_V1.md`)
 **Supersedes when adopted:** `HYPOTHESIS_EVALUATION_CONTRACT_V1.md` for cards registered after adoption. **Not retroactive:** every V1 preregistration, permit, result, verdict and ledger row keeps its force and its numbers. V1 stays the adopted contract until the owner records adoption of V2.
 **Motivation record:** the owner review of 2026-10-04 (this draft's §0) and the internal evidence in §0.2.

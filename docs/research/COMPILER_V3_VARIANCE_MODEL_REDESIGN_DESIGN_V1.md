@@ -1,5 +1,7 @@
 # `COMPILER_V3_VARIANCE_MODEL_REDESIGN` — design V1 (design only; outcome-aware; nothing executed)
 
+> **Closed (owner, 2026-10-05):** the compiler V3 variance line is closed (`COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md`). The Official Run 2 contract below will not be executed; the owner decisions it waits for are superseded by `EVIDENCE_AND_CLAIMS_DECISION_V1.md`. Text below unchanged.
+
 **Status:** `DESIGN_ONLY / NOT_FROZEN / NOT_EXECUTED / NOT_ADOPTED`. Written 2026-10-04 after `COMPILER_V3_VARIANCE_FLOOR_VALIDATION_OFFICIAL_RUN_1`.
 
 **Evidence class of this document:** this unit is explicitly **outcome-aware**. It reads the immutable Official Run 1 artifacts (`COMPILER_V3_VARIANCE_FLOOR_VALIDATION_RESULT_V1.json`, sha256 `a10efe4b…`, and `…_AGGREGATION_V1.json`, sha256 `fdd520d7…`) as **DESIGN / DEVELOPMENT evidence** for a replacement variance model. Nothing here is confirmatory, and Official Run 1 can never be cited as confirmation of anything designed here.
