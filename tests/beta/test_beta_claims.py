@@ -196,10 +196,39 @@ class _Conn:
         self.rows.append(row)
         return len(self.rows)
 
+    def transaction(self):
+        conn = self
+
+        class _Tx:                                   # rolls the group back like PostgreSQL would
+            async def __aenter__(self):
+                self.n = len(conn.rows)
+
+            async def __aexit__(self, exc_type, *_):
+                if exc_type is not None:
+                    del conn.rows[self.n:]
+                return False
+        return _Tx()
+
     def __getattr__(self, name):
         if "outcome" in name or name.startswith("fetch_due"):
             raise AssertionError(f"outcome read at write time: {name}")
         raise AttributeError(name)
+
+
+def test_an_interrupted_hour_leaves_no_partial_group_and_the_next_run_writes_it_whole():
+    class _Failing(_Conn):
+        async def insert_claim(self, row):
+            if len(self.rows) == 3:
+                raise ConnectionError("lost")
+            return await super().insert_claim(row)
+    blk, cap = _block(), {"stats": None, "bars": None, "model": MODEL}
+    broken = _Failing()
+    with pytest.raises(ConnectionError):
+        asyncio.run(cj.record_claims(broken, CFG, blk, now=SLOT + timedelta(seconds=40), capture=cap))
+    assert broken.rows == []                                   # nothing committed, so nothing is skipped
+    whole = _Conn()
+    rep = asyncio.run(cj.record_claims(whole, CFG, blk, now=SLOT + timedelta(minutes=1), capture=cap))
+    assert rep["written"] == rep["candidates"] > 3
 
 
 def test_the_hourly_writer_is_idempotent_reads_no_outcome_and_runs_only_early_in_the_hour():

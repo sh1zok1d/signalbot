@@ -384,8 +384,10 @@ async def record_claims(conn, cfg, block: Mapping[str, Any], *, now: datetime, c
         oi = await _oi_for(conn, cfg, b, now=now, capture=capture)
         rows += dh3_p1_claim(b, oi, now=now, slot=slot)
     rep["candidates"] = len(rows)
-    for r in rows:
-        rep["written"] += int(await conn.insert_claim(r) is not None)
+    # one transaction per hour: an interrupted write leaves no partial group for the next run to skip
+    async with conn.transaction():
+        for r in rows:
+            rep["written"] += int(await conn.insert_claim(r) is not None)
     return rep
 
 
