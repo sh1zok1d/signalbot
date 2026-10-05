@@ -418,5 +418,10 @@ def test_slim_checkpoint_schema_and_header(tmp_path):
 def test_frozen_digests_match_and_no_frozen_cell_touched():
     assert C.digests_match_amendment()
     assert len(C.cal_cells()) == 258 and len(C.eval_cells()) == 621 + 198 + 4716
-    assert not (C.DOCS / ctable.C_TABLE_NAME).exists()
+    # Official CAL ran once (2026-10-05): the only C-table in the tree is the sealed one recorded
+    # in the CAL completion record, byte for byte (the pre-run "absent" check no longer applies).
+    import hashlib
+    committed = C.DOCS / ctable.C_TABLE_NAME
+    completion = json.loads((C.DOCS / "COMPILER_V3_EXPOSED_VARIANCE_ESTIMATOR_CALIBRATION_CAL_COMPLETION_V1.json").read_text())
+    assert hashlib.sha256(committed.read_bytes()).hexdigest() == completion["C_TABLE"]["SHA256"]
     assert not engine.RUN_AUTHORIZATION.exists()
