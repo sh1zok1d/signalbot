@@ -65,6 +65,7 @@ async def build_view(conn, cfg: BetaConfig, *, now: datetime, kind: str = "btc",
     hours = window_hours if kind != "btc" else None
     tape = await _tape_and_oi(conn, cfg, view, window_hours=hours)
     view["horizons"] = _horizons(cfg, view, tape)
+    view["derivatives"] = await _derivatives(conn, view, tape, now=now)
     if d7_enabled:
         from .regime_d7 import regime_for_status
         view["regime"] = await regime_for_status(conn, now=now, product_status=view.get("product_status") or "")
@@ -131,6 +132,20 @@ def _horizons(cfg: BetaConfig, view: Mapping[str, Any], tape: Optional[Mapping[s
         return empty_horizons()
     return build_horizons(cfg, as_of_bucket=tape["as_of"], metrics_by_bucket=tape["metrics"],
                           oi_by_boundary=tape["oi"])
+
+
+async def _derivatives(conn, view: Mapping[str, Any], tape: Optional[Mapping[str, Any]], *,
+                       now: datetime) -> Optional[dict]:
+    """OI change, funding and long/short beside their «обычно» (backlog G2; beta/derivatives.py)."""
+    from .decision import latest_stats
+    from .derivatives import derivatives_block, funding_typical
+    from .horizons import data_through
+    if tape is None:
+        return None
+    stats = await latest_stats(conn, now=now)
+    return derivatives_block(horizons=view["horizons"], funding=funding_typical(tape["metrics"], tape["as_of"]),
+                             oi_stats=((stats or {}).get("derivatives") or {}).get("oi_24h"),
+                             long_short=await conn.long_short_summary(as_of=data_through(tape["as_of"])))
 
 
 UNUSUAL_HOURS_MAX = 3

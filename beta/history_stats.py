@@ -66,6 +66,8 @@ def build_stats_payload(b: Bars, *, cfg: BetaConfig, calendar: Mapping[str, Any]
     t = time.monotonic()
     ev = event_size_stats(b, calendar)
     timings["events_s"] = round(time.monotonic() - t, 2)
+    from .derivatives import oi_change_stats
+    derivatives = {"oi_24h": oi_change_stats(b)}
     present = b.present()
     first = int(np.flatnonzero(present)[0]) if present.any() else 0
     last = int(np.flatnonzero(present)[-1]) if present.any() else 0
@@ -76,7 +78,7 @@ def build_stats_payload(b: Bars, *, cfg: BetaConfig, calendar: Mapping[str, Any]
                      "oi_from_ms": int(b.t0 + oi_idx[0] * BAR_MS) if oi_idx.size else None,
                      "calendar_version": calendar.get("version")},
             "range_model": model, "levels": levels, "distance_reactions": distance, "analogues": analogues,
-            "events": ev,
+            "events": ev, "derivatives": derivatives,
             "timings": timings})
 
 

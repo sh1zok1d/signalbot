@@ -765,6 +765,28 @@ class BetaConn:
                ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
         return [{**dict(r), "payload": _load(r["payload"])} for r in rows]
 
+    async def long_short_summary(self, *, as_of: datetime) -> Optional[dict]:
+        """Binance's long/short account ratio from the research feed (backlog G2): the latest value at most
+        15 minutes before `as_of`, and the median of the means of the 30 prior 24h windows before the
+        current one (a window counts with at least 144 of its 288 values). None without a recent value."""
+        now_row = await self.conn.fetchrow(
+            """SELECT ts, ls_account_ratio FROM beta_feed_metrics_5m
+               WHERE ts <= $1::timestamptz AND ts > $1::timestamptz - interval '15 minutes'
+                 AND ls_account_ratio IS NOT NULL
+               ORDER BY ts DESC LIMIT 1""", as_of)
+        if now_row is None:
+            return None
+        days = await self.conn.fetch(
+            """SELECT avg(ls_account_ratio) AS m FROM beta_feed_metrics_5m
+               WHERE ts > $1::timestamptz - interval '31 days' AND ts <= $1::timestamptz - interval '1 day'
+                 AND ls_account_ratio IS NOT NULL
+               GROUP BY floor(extract(epoch FROM $1::timestamptz - ts) / 86400) HAVING count(*) >= 144""", as_of)
+        means = sorted(float(r["m"]) for r in days)
+        n = len(means)
+        med = None if n < 20 else (means[n // 2] if n % 2 else (means[n // 2 - 1] + means[n // 2]) / 2)
+        return {"ratio": float(now_row["ls_account_ratio"]), "at": now_row["ts"].isoformat(),
+                "typical": med, "n_days": n}
+
     async def market_alert_counts(self, *, since: datetime, until: datetime) -> dict:
         """Market alerts the policy let through (decision PUSH) by kind; personal alerts excluded."""
         rows = await self.conn.fetch(

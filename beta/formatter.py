@@ -778,15 +778,48 @@ def _line_24h(view: Mapping[str, Any], lang: str) -> str:
         parts.append(rng)
     else:
         parts.append(t(lang, "range_24h_na"))
+    der = view.get("derivatives") or {}
     oi = block.get("oi_change_pct")
-    parts.append(t(lang, "oi_24h", oi=na(lang) if oi is None else fmt_signed_pct(float(oi), lang, nd=1)))
+    oi_typ = der.get("oi_24h") or {}
+    parts.append(t(lang, "oi_24h", oi=na(lang) if oi is None else fmt_signed_pct(float(oi), lang, nd=1))
+                 + (t(lang, "oi_usual_part", typ=fmt_plain_pct(oi_typ["typical_abs_pct"], lang, nd=1),
+                      n=oi_typ["n_days"]) if oi is not None and oi_typ.get("typical_abs_pct") is not None else ""))
     avg = block.get("funding_rate_avg")
     if avg is None:
         parts.append(t(lang, "funding_avg_na"))
     else:
         payer = t(lang, "payer_longs") if avg > 0 else t(lang, "payer_shorts") if avg < 0 else ""
-        parts.append(t(lang, "funding_avg", f=fmt_funding(float(avg), lang)) + (f" ({payer})" if payer else ""))
+        f_typ = der.get("funding_24h") or {}
+        usual = (t(lang, "funding_usual_part", typ=fmt_funding(float(f_typ["typical"]), lang), n=f_typ["n_days"])
+                 if f_typ.get("typical") is not None else "")
+        note = "; ".join(x for x in (payer, usual) if x)
+        parts.append(t(lang, "funding_avg", f=fmt_funding(float(avg), lang)) + (f" ({note})" if note else ""))
     return t(lang, "now_line", h=t(lang, "hz_24h"), body=" · ".join(parts))
+
+
+def derivative_lines(view: Mapping[str, Any], lang: str, *, part: str) -> list:
+    """The «обычно» of OI change ('oi'), of the 24h funding mean ('funding') and the long/short account
+    ratio ('long_short') for the 24h tab (backlog G2). Nothing without the stored block."""
+    der = view.get("derivatives") or {}
+    if part == "oi":
+        x = der.get("oi_24h") or {}
+        if x.get("typical_abs_pct") is not None:
+            return [t(lang, "der_oi_usual", typ=fmt_plain_pct(x["typical_abs_pct"], lang, nd=1), n=x["n_days"])]
+        return [t(lang, "der_usual_short", n=x["n_days"])] if x.get("n_days") else []
+    if part == "funding":
+        x = der.get("funding_24h") or {}
+        if x.get("typical") is not None:
+            return [t(lang, "der_funding_usual", typ=fmt_funding(float(x["typical"]), lang), n=x["n_days"])]
+        return [t(lang, "der_usual_short", n=x["n_days"])] if x.get("n_days") else []
+    x = der.get("long_short")
+    if not x:
+        return []
+    ratio = f"{float(x['ratio']):.2f}"
+    ratio = ratio.replace(".", ",") if lang == "ru" else ratio
+    if x.get("typical") is None:
+        return [t(lang, "der_ls_short", ratio=ratio, n=x["n_days"])]
+    typ = f"{float(x['typical']):.2f}"
+    return [t(lang, "der_ls", ratio=ratio, typ=typ.replace(".", ",") if lang == "ru" else typ, n=x["n_days"])]
 
 
 def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int] = None):
@@ -1150,6 +1183,7 @@ def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str
         oi_line = _horizon_oi_line(block, lang)
         if oi_line:
             lines.append(oi_line)
+            lines.extend(derivative_lines(view, lang, part="oi"))
         lines.append(_taker_text(block.get("taker_delta_notional_usd_sum"), lang))
         liq_lines, lower = _liq_lines(_horizon_liq(block), lang)
         lines.extend(liq_lines)
@@ -1159,6 +1193,9 @@ def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str
             lang, "funding_24h",
             now=na(lang) if now is None else fmt_funding(now, lang),
             avg=na(lang) if avg is None else fmt_funding(avg, lang)))
+        if avg is not None:
+            lines.extend(derivative_lines(view, lang, part="funding"))
+        lines.extend(derivative_lines(view, lang, part="long_short"))
         lines.extend(_changes_lines(block, lang))
     lines.extend(_liq_footnotes(lower, lang))
     lines.append(t(lang, "terms_footer"))

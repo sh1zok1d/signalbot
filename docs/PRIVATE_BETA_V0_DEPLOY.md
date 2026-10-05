@@ -245,6 +245,11 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
   - **Schema.** New table `beta_weekly_reports`, new columns `beta_notification_deliveries.weekly_pk` and `beta_users.push_weekly` (default true), new activity action `weekly_delivered`.
   - **Measurement contract.** The delivery opens the prompted window like any other. Its class still needs the contract amendment (`PRE_BETA_SCOPE_DECISION_V1.md` §6.4, §6.7).
   - **Turning it off:** `decision.weekly_report.enabled: false`.
+- Derivatives beside their «обычно» (backlog G2; `beta/derivatives.py`). Every view stores a `derivatives` block; the `/btc` 24h line and the 24h tab show it.
+  - **OI change over 24h.** Beside it, the median absolute change of non-overlapping UTC days over the whole Binance OI history, with N days. The nightly build computes it (`payload->'derivatives'->'oi_24h'`). The comparator is Binance only and says so; the live number is the venue median.
+  - **Average funding over 24h.** Beside it, the median of the same 24h mean over the 30 prior days, from the same tape, with N days.
+  - **Long/short account ratio.** Binance's, from the research feed (`beta_feed_metrics_5m`), beside the median of the 30 prior days. It is shown only where that feed runs; on production it stays hidden until the feeds are deployed.
+  - **Small samples.** Below 20 days a comparator reads «обычно: мало данных (N)». A view stored before this change renders as before.
 - `/admin_stats` and `--beta-usage-report` end with an owner breakdown (backlog H6; `beta/usage.py::owner_breakdown`), for the last 7 days and since the first external user.
   - **Words.** It uses the measurement contract's: every pull (`/check` included), the inclusive 10-minute window after any delivery, and known and unknown participants apart.
   - **What it counts.**
