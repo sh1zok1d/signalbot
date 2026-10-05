@@ -1,0 +1,33 @@
+{
+  "ARTIFACT": "CLOSED_RESEARCH_LINES_V1",
+  "PURPOSE": "Operational tombstones read by scripts/research/closed_lines.py. A listed line's official entry points refuse by default, at the CLI and programmatically. Frozen code, bindings and results are not edited or invalidated; the guard sits in the package __init__.py, which no binding covers.",
+  "LINES": [
+    {
+      "LINE_ID": "COMPILER_V3_VARIANCE",
+      "STATUS": "CLOSED",
+      "CLOSED_ON": "2026-10-05",
+      "CLOSURE_RECORD": "docs/research/COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md",
+      "REOPEN_AUTHORIZATION_PATH": "docs/research/COMPILER_V3_VARIANCE_LINE_REOPEN_AUTHORIZATION_V1.json",
+      "REOPEN_AUTHORIZATION_FIELDS": "LINE_ID (= this line), OWNER_AUTHORIZED (true), ENTRYPOINTS (each guarded name it opens), OWNER_DECISION_RECORD (path of an existing owner decision record). Does not exist; creating it is a new owner decision.",
+      "PACKAGES": [
+        "scripts.research.compiler_v3_variance_floor",
+        "scripts.research.compiler_v3_estimator_calibration"
+      ],
+      "ENTRYPOINTS": [
+        {"MODULE": "scripts.research.compiler_v3_variance_floor.engine", "FUNCTION": "official_run", "REFUSAL_BASE": "OfficialRunNotAuthorized"},
+        {"MODULE": "scripts.research.compiler_v3_estimator_calibration.engine", "FUNCTION": "run_cal", "REFUSAL_BASE": "OfficialExecutionRefused", "ONLY_IF_ARG_TRUE": "official"},
+        {"MODULE": "scripts.research.compiler_v3_estimator_calibration.engine", "FUNCTION": "run_eval", "REFUSAL_BASE": "OfficialExecutionRefused", "ONLY_IF_ARG_TRUE": "official"},
+        {"MODULE": "scripts.research.compiler_v3_estimator_calibration.cal_official", "FUNCTION": "execute"},
+        {"MODULE": "scripts.research.compiler_v3_estimator_calibration.eval_official", "FUNCTION": "execute"},
+        {"MODULE": "scripts.research.compiler_v3_estimator_calibration.eval_resume", "FUNCTION": "execute"}
+      ],
+      "CLI": [
+        {"MODULE": "scripts.research.compiler_v3_variance_floor.engine", "REFUSED_ARGS": ["--official"]},
+        {"MODULE": "scripts.research.compiler_v3_estimator_calibration.run", "REFUSED_ARGS": ["--official"]},
+        {"MODULE": "scripts.research.compiler_v3_estimator_calibration.cal_official", "REFUSE_UNLESS_ALLOWED": true, "ALLOWED_ARGS": []},
+        {"MODULE": "scripts.research.compiler_v3_estimator_calibration.eval_official", "REFUSE_UNLESS_ALLOWED": true, "ALLOWED_ARGS": ["verify-binding", "verify-authorization"]},
+        {"MODULE": "scripts.research.compiler_v3_estimator_calibration.eval_resume", "REFUSE_UNLESS_ALLOWED": true, "ALLOWED_ARGS": ["verify-binding", "verify-authorization"]}
+      ]
+    }
+  ]
+}

@@ -63,3 +63,26 @@ The suite's `test_official_run_refuses_without_authorized_binding` was written b
 `engine.py` and `freeze.py` are digest-bound by the execution binding, so they are **not** edited.
 
 **Rule:** `--official` must never be invoked again for this line. Any future code change to the guard is a new binding, which this closure forbids, so the rule is procedural.
+
+## 6. Operational tombstone (owner, 2026-10-05; replaces the procedural-only rule of §5)
+
+The closed line is now hard-refused at the entry layer. Its frozen code and records are not edited:
+- **Registry:** `docs/research/CLOSED_RESEARCH_LINES_V1.json`.
+- **Guard:** `scripts/research/closed_lines.py`, installed from the two packages' `__init__.py`. No execution binding covers those two files.
+
+**Programmatic calls refuse before any original code runs:**
+- `compiler_v3_variance_floor.engine.official_run`;
+- `compiler_v3_estimator_calibration.engine.run_cal` / `run_eval` with `official=True`;
+- `cal_official.execute`, `eval_official.execute` and `eval_resume.execute`.
+
+The refusal exception subclasses each module's own refusal type.
+
+**CLI calls refuse before the module runs:**
+- `python -m …variance_floor.engine --official`;
+- `…estimator_calibration.run --official`;
+- every `cal_official` step;
+- every `eval_official` / `eval_resume` step except `verify-binding` / `verify-authorization`.
+
+**What stays verifiable:** the bound files keep their recorded digests (`verify_execution_binding`, `executor_digest`), and the historical artifacts stay valid. Tests are in `tests/research/test_closed_research_lines.py`. Each refusal test replaces the original behind the guard with a tripwire, so a broken guard fails the test instead of running anything.
+
+**Override:** only `docs/research/COMPILER_V3_VARIANCE_LINE_REOPEN_AUTHORIZATION_V1.json` lifts the refusal. It must carry `LINE_ID`, `OWNER_AUTHORIZED: true`, the entry points it opens and an existing owner decision record. It does not exist, and creating it is a new owner decision.

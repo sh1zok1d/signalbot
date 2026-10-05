@@ -38,5 +38,6 @@ def test_binding_and_authorization_immutable_once_present():
 
 def test_execute_refuses_without_single_thread_env(monkeypatch):
     monkeypatch.delenv("OMP_NUM_THREADS", raising=False)
+    # the closed-line guard refuses first; the frozen driver's own check is exercised on the original
     with pytest.raises(RuntimeError, match="OMP_NUM_THREADS"):
-        EO.execute()
+        EO.execute.__wrapped__()

@@ -18,8 +18,9 @@ def test_driver_has_no_eval_entry_point():
 
 def test_execute_refuses_without_single_thread_env(monkeypatch):
     monkeypatch.delenv("OMP_NUM_THREADS", raising=False)
+    # the closed-line guard refuses first; the frozen driver's own check is exercised on the original
     with pytest.raises(RuntimeError, match="OMP_NUM_THREADS"):
-        CO.execute()
+        CO.execute.__wrapped__()
 
 
 def test_step_artifacts_are_immutable():
