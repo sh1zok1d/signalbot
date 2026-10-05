@@ -85,6 +85,13 @@ def test_the_journal_writes_scores_links_and_reports_without_users():
         # the next hour's claims are a new slot
         assert (await _rows(pool, "SELECT count(*) AS n FROM beta_claims"))[0]["n"] > total
 
+        # the hourly refresh pooled the scored 1h touch claims into the live calibration
+        async with store.connect() as conn:
+            live = (await conn.fetch_health())[cj.TOUCH_LIVE_COMPONENT]["detail"]
+            cells = await conn.touch_claim_cells(since=DAY, classes=list(cj.touch_classes("1h")))
+        assert sum(int(c["n"]) for c in cells) == 2 * len(cj.TOUCH_GRID_PCT)
+        assert sum(b["n"] for b in live["horizons"]["1h"]["bins"]) == 2 * len(cj.TOUCH_GRID_PCT)
+        assert live["diverged"] == {"1h": [], "4h": [], "24h": []}
         async with store.connect() as conn:
             report = cj.claims_report(await conn.fetch_claim_cohort(since=DAY))
         dist = report["classes"]["L3_DISTANCE_TOUCH_1H"]

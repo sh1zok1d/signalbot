@@ -690,3 +690,110 @@ def claims_report(rows: Sequence[Mapping[str, Any]]) -> dict:
         else:
             out["classes"][cls] = {"n": len(rs)}
     return out
+
+
+# ---- live calibration of the touch chances (docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md §3) ------------
+TOUCH_LIVE_COMPONENT = "touch_live_cal"
+TOUCH_LIVE_DAYS = 120
+LIVE_TOLERANCE = 0.05
+
+
+def touch_classes(h: str) -> tuple:
+    return (f"L3_LEVEL_TOUCH_{h.upper()}", f"L3_DISTANCE_TOUCH_{h.upper()}")
+
+
+def live_touch_bins(cells: Sequence[Mapping[str, Any]], h: str, *, seed: int = BOOT_SEED, reps: int = BOOT_B) -> list:
+    """Per probability bin of horizon h, pooled over its level and distance classes: N, effective N
+    (distinct horizon slots), mean stated chance, realized share, the difference and a UTC-day-clustered
+    95 % interval of it."""
+    from .rangecast import TOUCH_CAL_BINS
+    mine = [c for c in cells if c["claim_class"] in touch_classes(h)]
+    out = []
+    rng = np.random.default_rng(seed)
+    for k, (lo, hi) in enumerate(zip(TOUCH_CAL_BINS[:-1], TOUCH_CAL_BINS[1:])):
+        cs = [c for c in mine if int(c["bin"]) == k]
+        n = sum(int(c["n"]) for c in cs)
+        if not n:
+            continue
+        hits, psum = sum(int(c["hits"]) for c in cs), sum(float(c["psum"]) for c in cs)
+        days: dict = {}
+        for c in cs:
+            d = days.setdefault(int(c["day"]), [0.0, 0.0])
+            d[0] += int(c["hits"]) - float(c["psum"])
+            d[1] += int(c["n"])
+        sums = np.array([v[0] for v in days.values()])
+        cnts = np.array([v[1] for v in days.values()])
+        interval = None
+        if len(days) >= 5:
+            W = rng.multinomial(len(days), np.full(len(days), 1.0 / len(days)), size=reps).astype(float)
+            with np.errstate(invalid="ignore", divide="ignore"):
+                bd = (W @ sums) / (W @ cnts)
+            bd = bd[np.isfinite(bd)]
+            if bd.size:
+                interval = [round(float(np.quantile(bd, 0.025)) * 100, 2), round(float(np.quantile(bd, 0.975)) * 100, 2)]
+        out.append({"bin": [lo, min(hi, 1.0)], "n": n, "n_eff": len({int(c["slot"]) for c in cs}),
+                    "predicted": round(psum / n, 4), "realized": round(hits / n, 4),
+                    "diff_pp": round((hits - psum) / n * 100, 2), "interval_pp": interval})
+    return out
+
+
+def diverged_bins(bins: Sequence[Mapping[str, Any]]) -> list:
+    """Live bins that broke the frozen rule: N_eff >= 30, |difference| > 5 pp and a day-clustered interval
+    that excludes 0."""
+    from .rangecast import TOUCH_CAL_MIN_NEFF
+    out = []
+    for x in bins:
+        iv = x.get("interval_pp")
+        if x["n_eff"] >= TOUCH_CAL_MIN_NEFF and abs(x["diff_pp"]) > LIVE_TOLERANCE * 100 and iv \
+                and (iv[0] > 0 or iv[1] < 0):
+            out.append(list(x["bin"]))
+    return out
+
+
+async def refresh_touch_calibration(conn, *, now: datetime) -> Optional[dict]:
+    """Once an hour: the live bins of every horizon from the scored journal, and the bins that diverged.
+    A divergence is sticky for the model specification (rangecast.RANGE_MODEL_VERSION)."""
+    from .rangecast import RANGE_MODEL_VERSION, TOUCH_CAL_VERSION
+    runtime = await conn.fetch_health()
+    prev = runtime.get(TOUCH_LIVE_COMPONENT) or {}
+    last = prev.get("last_success_at")
+    if last is not None and now - last < timedelta(minutes=55):
+        return None
+    cells = await conn.touch_claim_cells(since=now - timedelta(days=TOUCH_LIVE_DAYS),
+                                         classes=[c for h in HORIZON_MS for c in touch_classes(h)])
+    pd_ = prev.get("detail") or {}
+    keep = pd_.get("diverged") if pd_.get("model") == RANGE_MODEL_VERSION else None
+    detail = {"version": TOUCH_CAL_VERSION, "model": RANGE_MODEL_VERSION, "computed_at": _iso(now),
+              "days": TOUCH_LIVE_DAYS, "horizons": {}, "diverged": {}}
+    for h in HORIZON_MS:
+        bins = live_touch_bins(cells, h)
+        detail["horizons"][h] = {"bins": bins}
+        old = [list(b) for b in ((keep or {}).get(h) or [])]
+        detail["diverged"][h] = old + [b for b in diverged_bins(bins) if b not in old]
+    await conn.record_health(TOUCH_LIVE_COMPONENT, now=now, success=True, detail=detail)
+    return detail
+
+
+def touch_wording(holdout: Optional[Mapping[str, Any]], live: Optional[Mapping[str, Any]], h: str,
+                  p: Optional[float]) -> dict:
+    """Which wording a touch chance p of horizon h gets (design note §3):
+    - `B` with the held-out line ('holdout') while the live bin is under its N_eff;
+    - `B` with the live line ('live') once the live bin reaches it;
+    - `fallback` («исторически в X % случаев») when the held-out bin did not pass, or the live bin diverged.
+    `holdout` is the block's corridor holdout map, `live` the stored live detail."""
+    from .rangecast import TOUCH_CAL_MIN_NEFF, touch_bin
+    if p is None:
+        return {"mode": "none"}
+    b = touch_bin(float(p))
+    hb = next((x for x in ((((holdout or {}).get(h) or {}).get("touch_bins") or {}).get("bins") or ())
+               if list(x["bin"]) == b), None)
+    lv = (live or {})
+    diverged = [list(x) for x in ((lv.get("diverged") or {}).get(h) or ())]
+    if b in diverged or hb is None or not hb.get("passed"):
+        return {"mode": "fallback", "bin": b, "holdout": hb}
+    lb = next((x for x in (((lv.get("horizons") or {}).get(h) or {}).get("bins") or ()) if list(x["bin"]) == b), None)
+    if lb is not None and lb["n_eff"] >= TOUCH_CAL_MIN_NEFF:
+        return {"mode": "B", "source": "live", "bin": b, "predicted": lb["predicted"], "realized": lb["realized"],
+                "n_eff": lb["n_eff"]}
+    return {"mode": "B", "source": "holdout", "bin": b, "predicted": hb["predicted"], "realized": hb["realized"],
+            "n_eff": hb["n_eff"]}

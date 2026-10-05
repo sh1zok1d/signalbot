@@ -547,7 +547,27 @@ def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mappi
         else:
             parts.append(t(lang, "ac_part_live", h=_hz(h, lang), p=fmt_share(rec.get("INSIDE", 0) / n, lang), n=n_eff))
     lines.append(t(lang, "ac_live", parts=", ".join(parts)) if parts else t(lang, "ac_live_none"))
+    lines.extend(_touch_cal_lines(cal, lang))
     return assert_descriptive("\n".join(lines), lang)
+
+
+def _touch_cal_lines(cal: Mapping[str, Any], lang: str) -> list:
+    """The held-out reliability of the touch chances by bin (docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md):
+    «говорили P → было R (N)», a bin outside the frozen rule marked and explained once."""
+    rows, off = [], False
+    for h in ("1h", "4h", "24h"):
+        bins = (((cal.get(h) or {}).get("touch_bins")) or {}).get("bins") or []
+        parts = []
+        for x in bins:
+            key = "ac_touch_part" if x.get("passed") else "ac_touch_part_off"
+            off = off or not x.get("passed")
+            parts.append(t(lang, key, p=fmt_share(x["predicted"], lang), r=fmt_share(x["realized"], lang),
+                           n=int(x["n_eff"])))
+        if parts:
+            rows.append(t(lang, "ac_touch_line", h=_hz(h, lang), parts=" · ".join(parts)))
+    if not rows:
+        return []
+    return [t(lang, "ac_touch_head"), *rows] + ([t(lang, "ac_touch_note")] if off else [])
 
 
 # ---- pushes --------------------------------------------------------------------------------

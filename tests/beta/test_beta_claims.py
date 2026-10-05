@@ -1,5 +1,6 @@
 """Claim journal (docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md): writer, scorer, report, displays (pure)."""
 import asyncio
+import dataclasses
 import json
 import math
 from datetime import datetime, timedelta, timezone
@@ -316,3 +317,118 @@ def test_display_links_never_fail_the_caller():
             raise RuntimeError("db down")
     assert asyncio.run(cj.record_displays(Broken(), surface="levels", shown=[("L3_LEVEL_TOUCH_4H", "x")],
                                           now=SLOT)) == 0
+
+
+# ---- touch-chance calibration (docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md) ---------------------------
+def test_calibration_constants_are_the_journal_and_display_constants():
+    from beta import decision, rangecast as rc
+    assert rc.TOUCH_CAL_GRID_PCT == cj.TOUCH_GRID_PCT and rc.TOUCH_CAL_BINS == cj.PROB_BINS
+    assert rc.TOUCH_CAL_MIN_NEFF == df.MIN_N_SHOWN and rc.TOUCH_CAL_EVENT_POST_MS == decision.EVENT_ZONE_POST_MS
+    assert rc.TOUCH_CAL_TOLERANCE == 0.05
+    assert rc.touch_bin(0.34) == [0.3, 0.5] and rc.touch_bin(0.999) == [0.85, 1.0] and rc.touch_bin(0.0) == [0.0, 0.05]
+
+
+def test_event_zone_anchors_are_left_out_as_live():
+    from beta import rangecast as rc
+    r = int(SLOT.timestamp() * 1000)
+    hour = 3_600_000
+    anchors = np.array([r - 2 * hour, r - hour, r - 1, r + hour - 1, r + hour], dtype=np.int64)
+    assert rc.in_event_zone(anchors, {"CPI": [r]}, hour).tolist() == [False, True, True, True, False]
+    assert not rc.in_event_zone(anchors, {}, hour).any()
+
+
+def test_accuracy_shows_the_held_out_touch_bins_and_marks_the_ones_outside_the_rule():
+    bins = [{"bin": [0.3, 0.5], "n": 900, "n_eff": 365, "predicted": 0.401, "realized": 0.415, "passed": True},
+            {"bin": [0.85, 1.0], "n": 96, "n_eff": 29, "predicted": 0.874, "realized": 0.833, "passed": False}]
+    model = {"coverage": 0.8, "calibration": {"4h": {"coverage_realized": 0.79, "touch_bins": {"bins": bins}}}}
+    ru = df.format_accuracy(model, {}, "ru").replace("&lt;", "<")
+    assert "Шанс дойти</b>: говорили → было на отложенном годе" in ru
+    assert "4ч: 40% → 42% (N=365) · 87% → 83% (N=29)*" in ru and "* вне правила (±5 п.п. при N ≥ 30)" in ru
+    assert "Chance to reach" in df.format_accuracy(model, {}, "en")
+
+
+def test_touch_chances_are_calibrated_on_the_real_held_out_year():
+    """Binance 2022–2024 archives in the repository, held-out 2024: every bin meets the frozen rule."""
+    import sys
+    sys.path.insert(0, str(ROOT / "tests" / "beta"))
+    from v2_fakes import repo_vision_zips
+    from beta import history_data as hd, hist_series as hs, rangecast as rc
+    from beta.calendar_events import event_times_ms, load_calendar
+    b = hs.bars_from_rows(hd.rows_from_local_zips(repo_vision_zips([f"{y}-{m:02d}" for y in (2022, 2023, 2024)
+                                                                      for m in range(1, 13)])))
+    model = rc.fit_range_model(b, events=event_times_ms(load_calendar()))
+    for h in ("1h", "4h", "24h"):
+        tb = model["calibration"][h]["touch_bins"]
+        assert tb["version"] == rc.TOUCH_CAL_VERSION and len(tb["bins"]) == 7
+        for x in tb["bins"]:
+            assert x["passed"] and abs(x["diff_pp"]) <= 5 and x["n_eff"] >= 30, (h, x)
+
+
+def _cells(h, bin_k, days, n_per_day, hit_rate, p, slots_per_day=1):
+    out = []
+    for d in range(days):
+        for s in range(slots_per_day):
+            n = n_per_day // slots_per_day
+            out.append({"claim_class": f"L3_DISTANCE_TOUCH_{h.upper()}", "bin": bin_k, "day": 20000 + d,
+                        "slot": (20000 + d) * slots_per_day + s, "n": n, "hits": round(n * hit_rate), "psum": n * p})
+    return out
+
+
+def test_live_bins_pool_classes_count_slots_and_flag_only_clear_divergence():
+    cells = _cells("24h", 3, 40, 10, 0.40, 0.40) + _cells("24h", 5, 40, 10, 0.9, 0.775)
+    bins = cj.live_touch_bins(cells, "24h")
+    assert [b["bin"] for b in bins] == [[0.3, 0.5], [0.7, 0.85]]
+    assert bins[0]["n"] == 400 and bins[0]["n_eff"] == 40 and bins[0]["diff_pp"] == 0.0
+    assert bins[1]["diff_pp"] == 12.5 and bins[1]["interval_pp"][0] > 0
+    assert cj.diverged_bins(bins) == [[0.7, 0.85]]
+    few = cj.live_touch_bins(_cells("24h", 5, 20, 10, 0.9, 0.775), "24h")
+    assert few[0]["n_eff"] == 20 and cj.diverged_bins(few) == []            # N_eff < 30: not judged yet
+    assert cj.live_touch_bins(cells, "1h") == []
+
+
+def test_divergence_is_sticky_and_refreshed_hourly():
+    from beta.rangecast import RANGE_MODEL_VERSION
+
+    class C:
+        def __init__(self, cells):
+            self.cells, self.health = cells, {}
+
+        async def fetch_health(self):
+            return self.health
+
+        async def touch_claim_cells(self, *, since, classes):
+            return self.cells
+
+        async def record_health(self, component, *, now, success, detail=None, error_type=None):
+            self.health[component] = {"last_success_at": now, "detail": detail}
+    conn = C(_cells("4h", 5, 40, 10, 0.95, 0.775, slots_per_day=1))
+    d1 = asyncio.run(cj.refresh_touch_calibration(conn, now=SLOT))
+    assert d1["diverged"]["4h"] == [[0.7, 0.85]] and d1["model"] == RANGE_MODEL_VERSION
+    assert asyncio.run(cj.refresh_touch_calibration(conn, now=SLOT + timedelta(minutes=30))) is None
+    conn.cells = _cells("4h", 5, 40, 10, 0.78, 0.775)                   # the live rate came back
+    d2 = asyncio.run(cj.refresh_touch_calibration(conn, now=SLOT + timedelta(hours=1)))
+    assert d2["diverged"]["4h"] == [[0.7, 0.85]]                         # still fallen back for this model
+    from beta.health import health_alerts
+    from beta_fakes import ON
+    alerts = health_alerts(CFG, now=SLOT, heartbeat={"healthy": True}, detector_watermark=None, latest_live=None,
+                           runtime={"touch_live_cal": {"detail": d2}}, delivery_problems=0,
+                           switches=dataclasses.replace(ON, detection=False, outcome_tracking=False))
+    assert {"key": "TOUCH_CALIBRATION_DIVERGED", "detail": {"4h": [[0.7, 0.85]]}} in alerts
+
+
+def test_touch_wording_follows_the_frozen_rule():
+    hold = {"4h": {"touch_bins": {"bins": [
+        {"bin": [0.3, 0.5], "n_eff": 365, "predicted": 0.401, "realized": 0.415, "passed": True},
+        {"bin": [0.85, 1.0], "n_eff": 20, "predicted": 0.87, "realized": 0.83, "passed": False}]}}}
+    assert cj.touch_wording(hold, None, "4h", 0.34) == {"mode": "B", "source": "holdout", "bin": [0.3, 0.5],
+                                                        "predicted": 0.401, "realized": 0.415, "n_eff": 365}
+    assert cj.touch_wording(hold, None, "4h", 0.9)["mode"] == "fallback"            # held-out bin did not pass
+    assert cj.touch_wording(hold, None, "4h", 0.1)["mode"] == "fallback"            # bin never checked
+    live = {"horizons": {"4h": {"bins": [{"bin": [0.3, 0.5], "n_eff": 30, "predicted": 0.39, "realized": 0.37}]}},
+            "diverged": {"4h": []}}
+    w = cj.touch_wording(hold, live, "4h", 0.34)
+    assert w["source"] == "live" and w["n_eff"] == 30 and w["realized"] == 0.37
+    live["horizons"]["4h"]["bins"][0]["n_eff"] = 29
+    assert cj.touch_wording(hold, live, "4h", 0.34)["source"] == "holdout"
+    assert cj.touch_wording(hold, {"diverged": {"4h": [[0.3, 0.5]]}}, "4h", 0.34)["mode"] == "fallback"
+    assert cj.touch_wording(hold, None, "4h", None) == {"mode": "none"}

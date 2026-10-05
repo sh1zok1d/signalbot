@@ -360,6 +360,8 @@ async def _journal_hour(conn, cfg: BetaConfig, block: Mapping[str, Any], cap: Ma
     try:
         rep = await record_claims(conn, cfg, block, now=now, capture=cap)
         rep.update(await score_claims(conn, cap.get("bars"), cap.get("closed_1m") or [], now=now))
+        from .claims import refresh_touch_calibration
+        rep["touch_calibration_refreshed"] = await refresh_touch_calibration(conn, now=now) is not None
         return rep
     except Exception as exc:  # noqa: BLE001 - internal tracking never blocks the alert run
         logger.warning("claim journal failed: %s", type(exc).__name__)

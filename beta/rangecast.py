@@ -182,6 +182,88 @@ def coverage_of(model_h: Mapping[str, Any], b: Bars, idx: np.ndarray, *, logs, e
             "touch_reliability": rel}
 
 
+# ---- touch-chance calibration on the held-out year (docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md) --------
+TOUCH_CAL_VERSION = "TOUCH_CAL_V1"
+TOUCH_CAL_GRID_PCT = (0.25, 0.5, 1.0, 2.0, 3.0, 5.0)              # = beta.claims.TOUCH_GRID_PCT (test-pinned)
+TOUCH_CAL_BINS = (0.0, 0.05, 0.15, 0.3, 0.5, 0.7, 0.85, 1.0000001)  # = beta.claims.PROB_BINS (test-pinned)
+TOUCH_CAL_TOLERANCE = 0.05
+TOUCH_CAL_MIN_NEFF = 30                                         # = decision_format.MIN_N_SHOWN (test-pinned)
+TOUCH_CAL_EVENT_POST_MS = 60 * 60_000                           # = decision.EVENT_ZONE_POST_MS (test-pinned)
+TOUCH_CAL_BOOT = 1000
+TOUCH_CAL_SEED = 20261005
+
+
+def in_event_zone(anchor_close_ms: np.ndarray, events: Mapping[str, Sequence[int]], horizon_ms: int) -> np.ndarray:
+    """True where a CPI / FOMC release r has r − H <= anchor < r + 60 min (the live event zone)."""
+    ev = np.sort(np.asarray([t for k in EVENT_KINDS for t in events.get(k, ())], dtype=np.int64))
+    if ev.size == 0:
+        return np.zeros(anchor_close_ms.shape[0], dtype=bool)
+    a = np.searchsorted(ev, anchor_close_ms - TOUCH_CAL_EVENT_POST_MS, side="right")
+    z = np.searchsorted(ev, anchor_close_ms + horizon_ms, side="right")
+    return z > a
+
+
+def touch_calibration(model_h: Mapping[str, Any], b: Bars, idx: np.ndarray, *, logs, events, tg, weekend,
+                      seed: int = TOUCH_CAL_SEED, boot: int = TOUCH_CAL_BOOT) -> dict:
+    """Held-out reliability of the touch chance, binned by predicted probability: for every anchor
+    outside an event zone, every grid distance and both sides, the train model's chance against
+    whether the excursion reached it. Per bin: mean predicted, realized share, the difference,
+    raw and effective N (distinct horizon-length slots), a day-clustered 95 % interval of the
+    difference and the design note's pass verdict (N_eff >= 30 and |difference| <= 5 pp)."""
+    h_name = model_h["horizon"]
+    hms = HORIZON_MS[h_name]
+    close_ms = b.times[idx] + BAR_MS
+    keep = ~in_event_zone(close_ms, events, hms)
+    idx, close_ms = idx[keep], close_ms[keep]
+    out = {"version": TOUCH_CAL_VERSION, "tolerance_pp": TOUCH_CAL_TOLERANCE * 100, "min_n_eff": TOUCH_CAL_MIN_NEFF,
+           "grid_pct": list(TOUCH_CAL_GRID_PCT), "n_anchors": int(idx.size), "bins": []}
+    if idx.size == 0:
+        return out
+    X = design(b, idx, h_name, logs=logs, season=model_h["season"], events=events, weekend=weekend)
+    S = np.exp(X @ np.asarray(model_h["beta"]))
+    qs = np.asarray(model_h["q_one"], dtype=np.float64)
+    ps, ys, slots, days = [], [], [], []
+    for d in TOUCH_CAL_GRID_PCT:
+        p = 1.0 - np.interp(d / S, qs, P_GRID)             # = touch_probability, vectorized (clamped ends)
+        for side in ("up", "down"):
+            ps.append(p)
+            ys.append((tg[side][idx] >= d).astype(np.float64))
+            slots.append(close_ms // hms)
+            days.append(close_ms // 86_400_000)
+    p, y = np.concatenate(ps), np.concatenate(ys)
+    slot, day = np.concatenate(slots), np.concatenate(days)
+    rng = np.random.default_rng(seed)
+    for lo, hi in zip(TOUCH_CAL_BINS[:-1], TOUCH_CAL_BINS[1:]):
+        sel = (p >= lo) & (p < hi)
+        n = int(sel.sum())
+        if not n:
+            continue
+        pred, real = float(p[sel].mean()), float(y[sel].mean())
+        n_eff = int(np.unique(slot[sel]).size)
+        uniq, inv = np.unique(day[sel], return_inverse=True)
+        diff_sum = np.bincount(inv, weights=y[sel] - p[sel])
+        cnt = np.bincount(inv).astype(np.float64)
+        W = rng.multinomial(uniq.size, np.full(uniq.size, 1.0 / uniq.size), size=boot).astype(np.float64)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            bd = (W @ diff_sum) / (W @ cnt)
+        bd = bd[np.isfinite(bd)]
+        interval = [round(float(np.quantile(bd, 0.025)) * 100, 2), round(float(np.quantile(bd, 0.975)) * 100, 2)] \
+            if bd.size else None
+        out["bins"].append({"bin": [lo, min(hi, 1.0)], "n": n, "n_eff": n_eff, "predicted": round(pred, 4),
+                            "realized": round(real, 4), "diff_pp": round((real - pred) * 100, 2),
+                            "interval_pp": interval,
+                            "passed": bool(n_eff >= TOUCH_CAL_MIN_NEFF and abs(real - pred) <= TOUCH_CAL_TOLERANCE)})
+    return out
+
+
+def touch_bin(p: float) -> Optional[list]:
+    """The calibration bin [lo, hi] a predicted chance falls in."""
+    for lo, hi in zip(TOUCH_CAL_BINS[:-1], TOUCH_CAL_BINS[1:]):
+        if lo <= p < hi:
+            return [lo, min(hi, 1.0)]
+    return None
+
+
 def fit_range_model(b: Bars, *, events: Mapping[str, Sequence[int]], stride: int = ANCHOR_STRIDE,
                     holdout_days: int = HOLDOUT_DAYS) -> dict:
     """Fit every horizon; check corridor coverage on the held-out last `holdout_days`, then
@@ -201,6 +283,7 @@ def fit_range_model(b: Bars, *, events: Mapping[str, Sequence[int]], stride: int
         if train.size >= MIN_TRAIN_ANCHORS and test.size >= 200:
             m_train = _fit_one(b, train, h_name, logs=logs, events=events, tg=tg, weekend=weekend)
             cal = coverage_of(m_train, b, test, logs=logs, events=events, tg=tg, weekend=weekend)
+            cal["touch_bins"] = touch_calibration(m_train, b, test, logs=logs, events=events, tg=tg, weekend=weekend)
             cal["holdout_from_ms"] = int(b.times[test[0]] + BAR_MS)
             cal["holdout_to_ms"] = int(b.times[test[-1]] + BAR_MS)
             out["calibration"][h_name] = cal

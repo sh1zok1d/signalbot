@@ -152,6 +152,13 @@ DECISION_CATALOG: dict = {
     "ac_part": _pair("{h} {p}", "{h} {p}"),
     "ac_part_live": _pair("{h} — {p} (N={n})", "{h} — {p} (N={n})"),
     "ac_part_live_short": _pair("{h} — мало данных (N={n})", "{h} — too little data (N={n})"),
+    "ac_touch_head": _pair("<b>Шанс дойти</b>: говорили → было на отложенном годе (N — непересекающиеся окна)",
+                           "<b>Chance to reach</b>: said → happened on the held-out year (N = non-overlapping windows)"),
+    "ac_touch_line": _pair("{h}: {parts}", "{h}: {parts}"),
+    "ac_touch_part": _pair("{p} → {r} (N={n})", "{p} → {r} (N={n})"),
+    "ac_touch_part_off": _pair("{p} → {r} (N={n})*", "{p} → {r} (N={n})*"),
+    "ac_touch_note": _pair("* вне правила (±5 п.п. при N ≥ 30): такие шансы показываем как «исторически в X % случаев»",
+                           "* outside the rule (±5 pp with N ≥ 30): such chances are shown as “historically in X % of cases”"),
     # ---- /alert ----
     "al_set": _pair("Сообщу, когда BTC дойдёт до {price} ({dist} от {now}). За 24ч до такого расстояния цена доходила в {p}.",
                     "I will message you when BTC reaches {price} ({dist} from {now}). Within 24h the price reached such a distance in {p}."),

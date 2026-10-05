@@ -1668,6 +1668,26 @@ class BetaConn:
             n += 1
         return n
 
+    async def touch_claim_cells(self, *, since: datetime, classes: Sequence[str]) -> list:
+        """Scored L3 touch claims aggregated by (class, probability bin, UTC day, horizon slot):
+        count, touches and the sum of stated chances (the live calibration of the «B» wording)."""
+        rows = await self.conn.fetch(
+            """SELECT c.claim_class,
+                      width_bucket((c.numbers->>'probability')::float8,
+                                   ARRAY[0.05, 0.15, 0.3, 0.5, 0.7, 0.85]::float8[]) AS bin,
+                      floor(extract(epoch FROM c.as_of) / 86400)::bigint AS day,
+                      floor(extract(epoch FROM c.as_of) /
+                            CASE right(c.claim_class, 2) WHEN '1H' THEN 3600 WHEN '4H' THEN 14400
+                                 ELSE 86400 END)::bigint AS slot,
+                      count(*) AS n, sum(((o.realized->>'touched')::boolean)::int) AS hits,
+                      sum((c.numbers->>'probability')::float8) AS psum
+               FROM beta_claims c
+               JOIN LATERAL (SELECT status, realized FROM beta_claim_outcomes x WHERE x.claim_pk = c.claim_pk
+                             ORDER BY x.revision DESC LIMIT 1) o ON o.status = 'COMPLETE'
+               WHERE c.as_of >= $1 AND c.claim_class = ANY($2::text[])
+               GROUP BY 1, 2, 3, 4""", since, list(classes))
+        return [dict(r) for r in rows]
+
     async def market_alert_pk(self, alert_key: str) -> Optional[int]:
         return await self.conn.fetchval("SELECT alert_pk FROM beta_market_alerts WHERE alert_key=$1", alert_key)
 

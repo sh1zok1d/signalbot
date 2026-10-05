@@ -72,3 +72,24 @@ X is the model's estimate, printed as today (`decision_format.fmt_prob`). P and 
 - **The check is of the procedure, not of the exact numbers shown.** Live chances come from the final fit, which includes the held-out year.
 - **The held-out year is no longer untouched for this quantity.** It is part of the product statistics (`PRODUCT_DECISION_V2` §4).
 - **The live line needs months for 24h** (the claim journal design, §5). The history-first rule exists for that reason.
+
+## 6. Implementation and first result (added after the note was committed in `47ed3d8`)
+
+**Code.**
+- `beta/rangecast.py::touch_calibration`: the held-out bins in `range_model.calibration.<h>.touch_bins`, nightly.
+- `beta/claims.py`:
+  - `live_touch_bins`, `diverged_bins` and `refresh_touch_calibration`: the hourly live bins and the sticky divergence;
+  - `touch_wording`: the §3 rule as one function, for every surface.
+- `beta/health.py`: `TOUCH_CALIBRATION_DIVERGED`.
+- `/accuracy`: the held-out bins, «говорили P → было R (N)», with bins outside the rule marked.
+
+**First result (local, not production).**
+- Data: the Binance 2022–2024 archives kept in the repository (`tests/beta/v2_fakes.VISION_DIR`); held-out year 2024.
+- Every one of the 21 cells passed.
+  - The largest difference: 1h, bin 85–100 %, −4.1 pp at effective N 48.
+  - Every other bin: within ±1.8 pp.
+- `tests/beta/test_beta_claims.py::test_touch_chances_are_calibrated_on_the_real_held_out_year` pins this.
+
+**Not yet decided by this result.**
+- Production builds the bins nightly on 2020 → yesterday, and that verdict is the one the surfaces use.
+- The rule above did not change after the result.
