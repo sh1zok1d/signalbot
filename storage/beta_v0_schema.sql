@@ -1030,3 +1030,6 @@ ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS next_attempt_a
 -- from that run on, not at the first failure. Existing rows start from what is known.
 ALTER TABLE beta_runtime_health ADD COLUMN IF NOT EXISTS first_run_at TIMESTAMPTZ;
 UPDATE beta_runtime_health SET first_run_at = COALESCE(last_success_at, last_run_at) WHERE first_run_at IS NULL;
+-- review of #345: a chat with a row still inside Telegram's wait holds back all its rows (the fetchers)
+CREATE INDEX IF NOT EXISTS ix_beta_delivery_waiting ON beta_notification_deliveries (user_pk)
+    WHERE state = 'PENDING' AND next_attempt_at IS NOT NULL;

@@ -204,11 +204,13 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
     failed = sorted(f for f, c in definition.items() if isinstance(c, Mapping) and c.get("status") == "FAILED")
     if failed:
         alerts.append({"key": "FEEDS_DEFINITION_CHECK_FAILED", "detail": {"fields": failed}})
-    # a notifier step that failed while the outbox carried on (A3 review)
+    # a notifier step that failed while the outbox carried on (A3 review); one key per step, so one
+    # step's repeat window never hides the other's failure (review of #345)
     for comp, step in NOTIFY_STEPS:
         row = runtime.get(comp) or {}
         if row.get("last_run_at") and row.get("last_success_at") != row.get("last_run_at"):
-            alerts.append({"key": "NOTIFIER_STEP_FAILED", "detail": {"step": step, "error": row.get("last_error_type")}})
+            alerts.append({"key": f"NOTIFIER_STEP_FAILED_{step.upper()}",
+                           "detail": {"step": step, "error": row.get("last_error_type")}})
     # Touch-chance calibration (docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md §3): a live bin that diverged
     # from its stated chances. The owner is told; the bin's wording has already fallen back.
     live = ((runtime.get("touch_live_cal") or {}).get("detail")) or {}
@@ -235,5 +237,7 @@ def notifier_deadman_due(runtime: Mapping[str, Mapping[str, Any]], *, now: datet
     since = last if last is not None else watcher_started_at
     if (now - since).total_seconds() <= stall_s:
         return False
-    told = (runtime.get(f"owner_alert:{NOTIFIER_DEADMAN}") or {}).get("last_success_at")
+    # the last attempt that reached Telegram (sent, ambiguous or refused) starts the repeat window
+    row = runtime.get(f"owner_alert:{NOTIFIER_DEADMAN}") or {}
+    told = row.get("last_run_at") or row.get("last_success_at")
     return told is None or (now - told).total_seconds() >= repeat_s

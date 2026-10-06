@@ -275,6 +275,21 @@ def test_a_missing_schema_column_check_grant_or_role_fails_closed_and_writes_no_
         assert await _health(pool) == {"research_feeds": ("WRONG_DB_ROLE", None),
                                        "research_stress_hours": ("WRONG_DB_ROLE", None)}
         await pool.close()
+
+        # (e) review of #345: every health write sets first_run_at, so both jobs need that column
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        async with pool.acquire() as c:
+            await c.execute("ALTER TABLE beta_runtime_health DROP COLUMN first_run_at")
+        for job, name in ((run_feeds_job, "feeds"), (run_stress_job, "stress")):
+            async with store.connect() as c:
+                ready = await feed_schema_readiness(c, name)
+            assert ready["status"] == "SCHEMA_NOT_READY"
+            assert ready["missing"] == ["column:beta_runtime_health.first_run_at"]
+            rep = await job(store, now=NOW, fetch=_no_fetch, pause=pause)
+            assert rep["status"] == "SCHEMA_NOT_READY"
+        assert await _counts(pool) == {**{t: 0 for t in FEED_TABLES}, "beta_runtime_health": 0}
+        await pool.close()
     run(body())
 
 

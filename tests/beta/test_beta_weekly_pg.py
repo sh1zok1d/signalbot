@@ -179,3 +179,57 @@ def test_the_owner_copy_goes_through_the_pacer_and_resumes_without_repeating_a_p
         assert r["weekly"]["owner"] is None and len(weekly_parts()) == rec["parts"]
         await pool.close()
     run(body())
+
+
+@pytest.mark.parametrize("failure", ["ambiguous", "refused"])
+def test_an_ambiguous_or_refused_owner_part_is_never_sent_again(failure):
+    """Review of #345: the owner copy follows the outbox's rules. A part whose send is ambiguous (Telegram
+    may have delivered it) counts as sent and is never resent; a refused part ends the copy for the week."""
+    from beta.delivery import DeliveryAmbiguous, DeliveryRejected, run_notify_once
+
+    def weekly(html):
+        return "Неделя бота" in html or "weekly report" in html
+
+    class _OwnerFails(Sender):
+        def __init__(self):
+            super().__init__()
+            self.weekly_calls = 0
+
+        async def send(self, *, chat_id, html, buttons=None):
+            if chat_id == OWNER and weekly(html):
+                self.weekly_calls += 1
+                if self.weekly_calls == 2:
+                    raise (DeliveryAmbiguous("timeout") if failure == "ambiguous"
+                           else DeliveryRejected("Bad Request: message is too long"))
+            return await super().send(chat_id=chat_id, html=html, buttons=buttons)
+
+    async def body():
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        h = _handler(pool, OWNER, Clock(SLOT - timedelta(days=3)))
+        async with store.connect() as conn:
+            await conn.allowlist_add(A)
+        await _join(h, A, 10, "ru")
+        await _forecasts(pool)
+        sender = _OwnerFails()
+        r = await run_notify_once(store, CFG, ON_PUSH, sender=sender, clock=Clock(SLOT + timedelta(minutes=5)),
+                                  owner_user_id=OWNER)
+        assert r["weekly"]["owner"] == ("unknown" if failure == "ambiguous" else "rejected")
+        async with store.connect() as conn:
+            row = (await conn.fetch_health(["weekly_owner"]))["weekly_owner"]
+        rec = row["detail"]
+        assert rec["parts"] >= 2 and rec["done"] is True
+        if failure == "ambiguous":                  # counted as sent: the rest goes on in the same run
+            assert rec["parts_sent"] == rec["parts"] and rec["rejected"] is False
+            assert sender.weekly_calls == rec["parts"]
+        else:                                       # refused: the copy ends for this week
+            assert rec["parts_sent"] == 1 and rec["rejected"] is True and row["last_error_type"] == "rejected"
+            assert sender.weekly_calls == 2
+        calls = sender.weekly_calls
+        for minutes in (6, 7):                      # later runs in the window send no part again
+            r = await run_notify_once(store, CFG, ON_PUSH, sender=sender,
+                                      clock=Clock(SLOT + timedelta(minutes=minutes)), owner_user_id=OWNER)
+            assert r["weekly"]["owner"] is None
+        assert sender.weekly_calls == calls
+        await pool.close()
+    run(body())

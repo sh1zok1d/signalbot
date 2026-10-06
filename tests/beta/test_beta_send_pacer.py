@@ -8,8 +8,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from beta.config import NOTIFY_BUDGET_MAX_S, SEND_TIMEOUTS_S, BetaConfig, BetaConfigError
-from beta.delivery import (DEFERRED, FAILED, RACED, SENT, THROTTLED, UNKNOWN, DeliveryAmbiguous, DeliveryRejected,
-                           DeliveryThrottled, SendPacer, process_age_s, send_direct, send_one)
+from beta.delivery import (DEFERRED, FAILED, RACED, REJECTED, SENT, THROTTLED, UNKNOWN, DeliveryAmbiguous,
+                           DeliveryRejected, DeliveryThrottled, SendPacer, process_age_s, send_direct, send_one)
 
 T = datetime(2026, 10, 6, 12, 0, tzinfo=timezone.utc)
 
@@ -151,7 +151,11 @@ def test_the_owner_direct_send_follows_the_same_pacer():
     closed = SendPacer()
     closed.closed = "BUDGET"
     assert asyncio.run(send_direct(_Sender(), closed, chat_id=9, html="x")) == DEFERRED
-    assert asyncio.run(send_direct(_Sender(RuntimeError("x")), SendPacer(), chat_id=9, html="x")) == FAILED
+    # review of #345: an ambiguous outcome may have been delivered (never resent); a refusal is not retried
+    assert asyncio.run(send_direct(_Sender(DeliveryAmbiguous("TimedOut")), SendPacer(), chat_id=9, html="x")) == UNKNOWN
+    assert asyncio.run(send_direct(_Sender(RuntimeError("x")), SendPacer(), chat_id=9, html="x")) == UNKNOWN
+    assert asyncio.run(send_direct(_Sender(DeliveryRejected("Bad Request: chat not found")), SendPacer(),
+                                   chat_id=9, html="x")) == REJECTED
 
 
 def test_retry_after_is_a_retry_not_a_final_failure(monkeypatch):

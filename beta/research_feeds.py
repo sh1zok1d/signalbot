@@ -272,7 +272,9 @@ FEED_TABLE_COLUMNS = {
                         "fetched_at"),
     "beta_feed_stress_hours": ("hour_start", "perp_log_range", "status", "lead_score", "n_large_perp",
                                "n_perp_trades", "n_spot_trades", "computed_at"),
-    "beta_runtime_health": ("component", "last_run_at", "last_success_at", "last_error_type", "detail"),
+    # first_run_at: written by every record_health since the A3/A5 review (review of #345)
+    "beta_runtime_health": ("component", "last_run_at", "last_success_at", "last_error_type", "detail",
+                            "first_run_at"),
     "beta_hist_oi_5m": ("ts", "oi_base", "ls_account_ratio"),
 }
 FEED_TABLE_CHECKS = {"beta_feed_depth": ("ck_beta_feed_depth_cover",),
