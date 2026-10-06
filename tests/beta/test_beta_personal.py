@@ -1,5 +1,5 @@
 """The personal layer (PRE_BETA_SCOPE_DECISION_V1 §9 E; backlog C5, E1–E5): pure parts."""
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -32,3 +32,20 @@ def test_every_clock_follows_the_participant_zone_inside_a_rendering():
         assert fmt_clock(T, "ru") == "02:00 (UTC−4)" and zone_name("en", T) == "UTC−4"
     assert fmt_clock(T, "ru") == "09:00 (Киев)"                    # the scope ends with the rendering
     assert t("ru", "ev_title") == "<b>События</b> (время — Киев)"
+
+
+def test_the_briefing_slot_is_on_the_participants_clock():
+    from beta.delivery import brief_slot
+    assert brief_slot(T, "10:00") is None                                    # 09:00 Kyiv: before the slot
+    d, at = brief_slot(T + timedelta(minutes=1), "09:00")
+    assert (d.isoformat(), at) == ("2026-10-06", datetime(2026, 10, 6, 6, 0, tzinfo=UTC))
+    assert brief_slot(T, "07:00", "UTC-05:00") is None                       # 01:00 there
+    d, at = brief_slot(T, "07:00", "Asia/Tokyo")                              # 15:00 there
+    assert (d.isoformat(), at) == ("2026-10-06", datetime(2026, 10, 5, 22, 0, tzinfo=UTC))
+
+
+@pytest.mark.parametrize("raw, hhmm", [("7:30", "07:30"), ("07:30", "07:30"), ("0730", "07:30"), ("23.59", "23:59"),
+                                       ("24:00", None), ("7:60", None), ("on", None), ("", None)])
+def test_a_briefing_time_is_read_as_hh_mm(raw, hhmm):
+    from runtime.beta_bot import _parse_hhmm
+    assert _parse_hhmm(raw) == hhmm

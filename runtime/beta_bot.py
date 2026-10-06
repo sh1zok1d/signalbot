@@ -159,6 +159,15 @@ def _help_buttons(lang: str) -> list:
 OTHER_ASSETS = "x:assets"
 
 
+def _parse_hhmm(text: str) -> Optional[str]:
+    """«7:30», «07:30», «0730» → «07:30»; None for anything else (the briefing time, backlog E3)."""
+    import re
+    m = re.fullmatch(r"(\d{1,2})[:.]?(\d{2})", (text or "").strip())
+    if not m or int(m.group(1)) > 23 or int(m.group(2)) > 59:
+        return None
+    return f"{int(m.group(1)):02d}:{m.group(2)}"
+
+
 def _lang_of(user) -> str:
     return (user or {}).get("lang") or "ru"
 
@@ -293,14 +302,23 @@ class BetaBotHandler:
                                      [_msg(chat_id, reply, lang=lang)])
         if cmd == "brief":
             arg = (args or "").strip().lower()
+            hhmm = _parse_hhmm(arg)
+            when = hhmm or user.get("brief_time") or self.cfg.section("briefing")["time_kyiv"]
             if arg in ("on", "off"):
                 await conn.set_brief_enabled(uid, arg == "on")
-                reply = t(lang, "brief_on_ok" if arg == "on" else "brief_off_ok")
+                reply = t(lang, "brief_on_ok", time=when) if arg == "on" else t(lang, "brief_off_ok")
+                detail = arg
+            elif hhmm is not None:                       # the participant's own time (backlog E3)
+                await conn.set_brief_time(uid, hhmm)
+                reply = t(lang, "brief_time_ok", time=hhmm) + (
+                    "" if user.get("brief_enabled", True) else "\n" + t(lang, "brief_time_off_hint"))
+                detail = "time"
             else:
                 on = user.get("brief_enabled", True)
-                reply = t(lang, "brief_usage", state=t(lang, "brief_state_on" if on else "brief_state_off"))
+                reply = t(lang, "brief_usage", state=t(lang, "brief_state_on" if on else "brief_state_off"), time=when)
+                detail = "status"
             return await self._reply(conn, user, chat_id, lang, now, "cmd_brief", [_msg(chat_id, reply, lang=lang)],
-                                     detail=arg if arg in ("on", "off") else "status")
+                                     detail=detail)
         if cmd == "tz":
             reply, detail = await self._tz_cmd(conn, uid, user, lang, args, now)
             return await self._reply(conn, user, chat_id, lang, now, "cmd_tz", [_msg(chat_id, reply, lang=lang)],

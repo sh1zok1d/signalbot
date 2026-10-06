@@ -908,11 +908,9 @@ class BetaConn:
             telegram_user_id, known)
         return status == "UPDATE 1"
 
-    _PUSH_PREFS = ("push_hours", "push_levels", "push_events", "push_moves", "push_weekly")
-
     async def recipient_tzs(self, pref: str) -> list:
         """The time zones (None = Kyiv) of ACTIVE participants with pushes on and `pref` on (backlog C5)."""
-        if pref not in self._PUSH_PREFS:
+        if pref not in ("push_hours", "push_levels", "push_events", "push_moves", "push_weekly"):
             raise ValueError(f"unknown push preference {pref!r}")
         rows = await self.conn.fetch(
             f"SELECT DISTINCT tz FROM beta_users WHERE status='ACTIVE' AND push_enabled AND {pref}")
@@ -923,6 +921,31 @@ class BetaConn:
         status = await self.conn.execute(
             "UPDATE beta_users SET tz=$2, updated_at=now() WHERE telegram_user_id=$1", telegram_user_id, tz)
         return status == "UPDATE 1"
+
+    async def set_brief_time(self, telegram_user_id: int, hhmm: Optional[str]) -> bool:
+        """The participant's briefing time on their own clock (backlog E3); None = the default."""
+        status = await self.conn.execute(
+            "UPDATE beta_users SET brief_time=$2, updated_at=now() WHERE telegram_user_id=$1", telegram_user_id, hhmm)
+        return status == "UPDATE 1"
+
+    async def brief_candidates(self) -> list:
+        """ACTIVE participants with the briefing on: their zone, time and the date of their newest briefing row."""
+        rows = await self.conn.fetch(
+            """SELECT u.user_pk, u.tz, u.brief_time,
+                      (SELECT max(x.brief_date) FROM beta_notification_deliveries x
+                       WHERE x.kind='brief' AND x.user_pk=u.user_pk) AS last_brief_date
+               FROM beta_users u WHERE u.status='ACTIVE' AND u.brief_enabled ORDER BY u.user_pk""")
+        return [dict(r) for r in rows]
+
+    async def materialize_brief_delivery(self, *, user_pk: int, brief_date, view_pk: int,
+                                         decision_ts: datetime) -> int:
+        """One participant's PENDING briefing row for their local date (idempotent on (brief_date, user_pk))."""
+        status = await self.conn.execute(
+            """INSERT INTO beta_notification_deliveries (kind, brief_date, view_pk, user_pk, state, decision_ts)
+               VALUES ('brief', $1, $2, $3, 'PENDING', $4)
+               ON CONFLICT (brief_date, user_pk) WHERE kind='brief' DO NOTHING""",
+            brief_date, view_pk, user_pk, decision_ts)
+        return int(status.split()[-1])
 
     async def set_brief_enabled(self, telegram_user_id: int, enabled: bool) -> bool:
         status = await self.conn.execute(
@@ -1029,7 +1052,7 @@ class BetaConn:
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
                       invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact,
-                      push_levels, push_events, push_moves, push_hours, push_weekly, tz
+                      push_levels, push_events, push_moves, push_hours, push_weekly, tz, brief_time
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
