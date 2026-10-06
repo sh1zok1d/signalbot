@@ -3,6 +3,7 @@ skipped when unset). The Stage-2 feature/consensus/percentile math runs unchange
 through ScenarioReader fakes. No network, no exchange call, no Telegram."""
 import asyncio
 import random
+import re
 from datetime import datetime, timedelta
 
 import pytest
@@ -850,7 +851,8 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         assert payload.get("horizons", {}).get("version") == "BETA_HORIZON_TOD_V3"
         latest = (await _rows(pool, "SELECT state_digest FROM beta_context_snapshots ORDER BY bucket_ts DESC"))[0]
         assert v["context_state_digest"] == latest["state_digest"]
-        assert str(ALICE) not in json.dumps(payload)
+        # the id as a value, not three digits inside a hex digest («…7f901e0…») or a price
+        assert not re.search(rf"(?<![0-9a-fA-F.]){ALICE}(?![0-9a-fA-F.])", json.dumps(payload))
         view_pk = v["view_pk"]
         out = await h.handle(_cb(ALICE, f"o:{view_pk}:event", 6))
         vid = view_id8(v["payload_digest"])
