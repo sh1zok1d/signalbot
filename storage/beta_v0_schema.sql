@@ -460,7 +460,9 @@ ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK 
     -- A3: the ready outage notice
     'admin_outage',
     -- A4: the delivery latency report
-    'admin_latency'));
+    'admin_latency',
+    -- I2: the U3 offer to every enrolled participant, churned included
+    'admin_offer'));
 
 CREATE TABLE IF NOT EXISTS beta_waitlist (
     telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),
@@ -517,7 +519,9 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     -- the trader type: the question (/type or after joining) and the answer
     'cmd_type', 'type_set',
     -- feedback in the bot (backlog H1–H4): the idea prompt and the idea, a reason, the interview request
-    'cmd_idea', 'idea_sent', 'reason_set', 'cmd_interview', 'interview_booked'));
+    'cmd_idea', 'idea_sent', 'reason_set', 'cmd_interview', 'interview_booked',
+    -- onboarding (J1): the automatic /btc is not cmd_btc (U1b); J2 the reading guide; J4 plain text
+    'onboard_btc', 'cmd_guide', 'plain_text'));
 
 -- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
 -- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.
@@ -1169,3 +1173,9 @@ CREATE TABLE IF NOT EXISTS beta_reasons (
     at          TIMESTAMPTZ NOT NULL,
     CONSTRAINT uq_beta_reason UNIQUE (user_pk, topic, subject)
 );
+
+-- Onboarding and access (PRE_BETA_SCOPE_DECISION_V1 §9 I, J; backlog I1, J1).
+-- I1: free / paid flags in code, everything open during the beta (access.tiers_enforced: false).
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'paid'));
+-- J1: when the participant saw the onboarding (live /btc, a sample message, the /check offer)
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS onboarded_at TIMESTAMPTZ;
