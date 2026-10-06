@@ -8136,3 +8136,30 @@ VERDICTS_CHANGED = none; RESULTS_CHANGED = none; MARKET_DATA_READ = none; RERUNS
 WINDOWS_CONSUMED = none; OBJECTS_2025_2026_USED = none; E1 / V3 / B2-06 untouched
 PROPOSED (owner go needed, design note before outcome) = turn-of-month baseline (G01-A1/A2); D8-successor shock-recovery object
 ```
+
+## 2026-10-06 — Turn-of-month baseline unit V1 executed once; NO_CHANGE
+
+**Unit.** `TURN_OF_MONTH_BASELINE_UNIT_V1` (atlas `TOM-BASELINE-V1`), tracks `PRODUCT_EVIDENCE` (Part B, decides) and `STRUCTURE` (Part A, L1 at most). It succeeds G01-A1/A2, which stay closed as recorded.
+- **Owner go:** 2026-10-06. One official run strictly per the design note, `CORE_BTC_BINANCE_V0` 2020–2024, no 2025/2026 slice, no plan change after outcomes.
+- **Before the outcome:** design note `54421a0`; evaluator and tests committed and pushed before the run (`1067bcb`); raw output `c6d60d8`.
+- **Data:** the pinned R03 loader (digest `93659495…`, 60 zips SHA-verified); trade count from column 8 of the same zips, aligned on `open_ms`; single-venue proxy. Calendar: G01 day sets on [2020-01-31, 2025-01-01): 202 TOM / 826 MID days, 58 months with both sets.
+- **Part B (C1, deployed):** `NO_CHANGE`.
+  - 0 labels `BEYOND_TOLERANCE`.
+  - 1 `WITHIN_TOLERANCE`: the 1h band move ≤ 0.20.
+  - 12 `NOT_RESOLVED`.
+  - The activity labels fire less on TOM days: 1h flags D −1.5 to −1.8 pp (TOM within ±0.4 pp of nominal, MID +1.1 to +1.5 pp above); TOD −5.1 / −5.3 pp; 24h range −9.4 pp. No interval lies wholly past τ.
+  - C0 gives the same statuses.
+- **Part A:** TOM days were quieter than days 8–21 of the same month.
+  - Volume −0.24 SD (95 % −0.44 … −0.03).
+  - Trade count −0.32 SD (−0.52 … −0.12).
+  - Range −0.24 SD (−0.46 … −0.01).
+  - 58 months; the sign agrees in 4/5, 5/5 and 5/5 years.
+  - The note's rule permits an L1 line. It is not shown: a findings entry needs its own product go (registry `no_bot_context`).
+  - The sign is opposite to G01's declared expectation. No G01 verdict changes.
+- **Records:** `docs/TURN_OF_MONTH_BASELINE_UNIT_V1_RESULT.md` (+ `.json`); atlas event seq 7 (`UNIT_ADDED`).
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 already exposed; first turn-of-month contrast on it, recorded as exposure CALENDAR.month_boundary)
+OBJECTS_2025_2026_USED = none; BITMEX_READ = no; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched
+PRODUCT_CHANGE = none; CORRECTION_UNIT = not proposed (Part B NO_CHANGE); BOT_LINE = none (needs a product go)
+```

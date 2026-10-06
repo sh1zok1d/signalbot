@@ -39,6 +39,11 @@ no_bot_context:
     bot_context: NONE
     reason: "INFORMATIONALLY_WEAK (MDE 6.7 pp > 6 pp); no outcome computed, nothing to state"
     record: "docs/research/DH3_RESULT.md; docs/research/DH3_FEASIBILITY.md"
+  - program: TURN_OF_MONTH_BASELINE_UNIT_V1 (atlas TOM-BASELINE-V1)
+    status: EXECUTED_ONCE_NO_CHANGE
+    bot_context: NONE
+    reason: "product-evidence unit: Part B NO_CHANGE (no label beyond tolerance under C1); Part A (TOM days quieter: volume -0.24, trades -0.32, range -0.24 SD, 58 months) permits an L1 line by the design note's rule, but a findings entry needs its own product go (design note §6); no line until then"
+    record: "docs/TURN_OF_MONTH_BASELINE_UNIT_V1_RESULT.md; docs/TURN_OF_MONTH_BASELINE_UNIT_V1.md"
 findings:
   # ---- replicated on an independent venue ----------------------------------------------------
   - id: D7

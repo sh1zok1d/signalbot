@@ -1,11 +1,13 @@
-## Turn-of-month baseline unit V1 (G01-A1/A2 successor) — design note committed; NOT RUN; awaits owner go — 2026-10-05
+## Turn-of-month baseline unit V1 (G01-A1/A2 successor) — executed once; NO_CHANGE — 2026-10-06
 
-`DESIGN = docs/TURN_OF_MONTH_BASELINE_UNIT_V1.md (committed before any outcome) | TRACKS = PRODUCT_EVIDENCE (Part B, decides) + STRUCTURE (Part A, L1 at most)`
-`PART_B = label calibration on turn-of-month vs mid-month days of the same months (G01 day sets unchanged), D = r_TOM - r_MID, month-clustered 95 % interval; C1 (deployed 2026-10-05) primary, C0 (previous) reported; 13 labels with tolerances 2 / 4 pp`
-`PART_A = day-level z shift (log quote volume, log trade count, log range), mean over 58 months, t-interval, per-year | no bar, no prior (O1)`
-`DATA = CORE_BTC_BINANCE_V0 2020-2024 single-venue proxy | BitMEX 2017-2019, 2025/2026 product surface and live tape NOT used (2025/2026 slice = owner option at go)`
-`DECISION_RULE = PROPOSE_CORRECTION_UNIT if any label BEYOND_TOLERANCE (interval past tau and >= 4/5 years same sign), else NO_CHANGE with WITHIN_TOLERANCE / NOT_RESOLVED listed`
-`RUN = only after a separate owner go | PRODUCT_CHANGE = none | NEXT_UNIT = this unit, pending go`
+`UNIT = TURN_OF_MONTH_BASELINE_UNIT_V1 (atlas TOM-BASELINE-V1; owner go 2026-10-06; design 54421a0; evaluator 1067bcb; output c6d60d8) | TRACKS = PRODUCT_EVIDENCE (Part B, decides) + STRUCTURE (Part A)`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 single-venue proxy, G01 day sets on [2020-01-31, 2025-01-01): 202 TOM / 826 MID days, 58 months | BitMEX, 2025/2026 and live tape NOT used`
+`PART_B (C1) = NO_CHANGE: 0 BEYOND_TOLERANCE, 1 WITHIN_TOLERANCE (1h band move <= 0.20), 12 NOT_RESOLVED | activity labels fire less on TOM days (1h flags -1.5..-1.8 pp, TOD -5 pp, 24h range -9.4 pp), no interval wholly past tau | C0 same statuses`
+`PART_A = TOM days quieter: volume -0.24 SD (-0.44..-0.03), trade count -0.32 (-0.52..-0.12), range -0.24 (-0.46..-0.01); >= 4/5 years same sign -> L1 permitted by the note's rule; NOT shown (findings entry needs a product go)`
+`PROSPECTIVE_OPTION (NOT_RESOLVED labels; nothing built) = monthly TOM-day label rates from the live tape (read-only) or the claim journal`
+`PRODUCT_CHANGE = none | CORRECTION_UNIT = not proposed | G01 records unchanged | NEXT_UNIT = none started`
+
+Result: `docs/TURN_OF_MONTH_BASELINE_UNIT_V1_RESULT.md` (+ `.json`).
 
 ## Evaluator variants note — owner decision O1 recorded; nothing run — 2026-10-05
 
@@ -14,7 +16,7 @@
 `FINDING = the claim ceiling of each unit is set by its surface and exposure, not by the estimator; no variant lifts DH3-P1 above L2 or G01-A1 / R03-B1 above L1`
 `RECOMMENDATION = variant 1 is enough; no amendment (optional §3 clarification text, Appendix A) | DECISION = O1 (owner, 2026-10-05): no amendment, Appendix A not adopted, no general evaluator`
 `OBSERVATIONS = G01-A1/A2 unit MDE recorded at alpha 0.05 (HOLM_M 0), ~0.535 at m = 2 -> audit erratum 1 | stress SE vs realized SE 0.41-0.55 (C1 1.55) | «ниже порога значимости 15%» also on DH3-P1/O2/L3/S1 | no journal class for P1 (last three not repaired)`
-`NEXT_UNIT = turn-of-month baseline unit V1 (section above), pending owner go`
+`NEXT_UNIT (at the time) = turn-of-month baseline unit V1 — executed 2026-10-06, see the section above`
 
 ## Research history audit V1 — complete; no unit started — 2026-10-05
 
