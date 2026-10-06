@@ -49,6 +49,20 @@ HEAVY_TEST_TO_SOURCE = {
 }
 
 
+# The beta product suite runs on every PR (docs/PRE_BETA_BACKLOG_V1.md X6).
+# beta/, runtime/, config/ and deploy/ have no flat source -> test mapping, and
+# the beta also depends on shared analytics/ and storage/ modules, so no path
+# trigger would be complete. Its PostgreSQL tests need BETA_TEST_DSN, a
+# database of its own: tests/beta/beta_fakes.py::fresh_pool drops and
+# recreates its public schema (see .github/workflows/ci.yml). The user
+# simulator harness keeps its own suite outside this gate.
+BETA_SUITES = ("tests/beta",)
+
+
+def _in_beta_suite(path: str) -> bool:
+    return any(path.startswith(f"{suite}/") for suite in BETA_SUITES)
+
+
 def _git(*args: str) -> str:
     return subprocess.check_output(["git", "-C", str(REPO), *args], text=True).strip()
 
@@ -120,6 +134,8 @@ def _select_targets(always: list[str], changed: list[str]) -> list[str]:
 
     for item in always:
         add(item)
+    for suite in BETA_SUITES:
+        add(suite)
 
     # The nested Generator V0 package has multiple shared contracts; a source-only
     # change must not evade its focused suite through the flat filename mapper.
@@ -191,6 +207,8 @@ def _select_targets(always: list[str], changed: list[str]) -> list[str]:
         if not include_changed_tests:
             continue
         if not _is_test_file(path):
+            continue
+        if _in_beta_suite(path):
             continue
         if path in HEAVY_TEST_TO_SOURCE and path not in heavy_triggered:
             continue

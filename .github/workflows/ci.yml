@@ -62,6 +62,8 @@ jobs:
       # pre-H3-database-upgrade suite
       # (tests/storage/test_v2_episode_event_id_constraint_upgrade.py).
       V2_EPISODE_EVENT_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
+      # The beta PostgreSQL tests (tests/beta) skip without this. A separate database, created below (PRE_BETA_BACKLOG_V1 X6).
+      BETA_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_beta_test
       PR_GATE_BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@v4
@@ -99,6 +101,24 @@ jobs:
                   f"TimescaleDB {row['extversion']} available "
                   f"(PostgreSQL {pg_version})"
               )
+              await conn.close()
+
+          asyncio.run(main())
+          PY
+
+      - name: Create the beta test database
+        # BETA_TEST_DSN gets its own database: the beta fixtures drop and
+        # recreate the public schema, which would also remove the other
+        # suites' tables and the timescaledb extension in signalbot_test.
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
+          import asyncpg
+
+          async def main():
+              conn = await asyncpg.connect(os.environ["V2_EPISODE_EVENT_TEST_DSN"])
+              await conn.execute("CREATE DATABASE signalbot_beta_test")
               await conn.close()
 
           asyncio.run(main())

@@ -30,6 +30,7 @@ jobs:
       V2_VERSION_SWITCH_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
       V2_INSTRUMENT_HISTORY_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
       V2_EPISODE_EVENT_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
+      BETA_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_beta_test
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,6 +67,24 @@ jobs:
                   f"TimescaleDB {row['extversion']} available "
                   f"(PostgreSQL {pg_version})"
               )
+              await conn.close()
+
+          asyncio.run(main())
+          PY
+
+      - name: Create the beta test database
+        # BETA_TEST_DSN gets its own database: the beta fixtures drop and
+        # recreate the public schema, which would also remove the other
+        # suites' tables and the timescaledb extension in signalbot_test.
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
+          import asyncpg
+
+          async def main():
+              conn = await asyncpg.connect(os.environ["V2_EPISODE_EVENT_TEST_DSN"])
+              await conn.execute("CREATE DATABASE signalbot_beta_test")
               await conn.close()
 
           asyncio.run(main())
