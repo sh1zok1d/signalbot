@@ -49,12 +49,7 @@ def _pair(ru: str, en: str) -> dict:
 
 DECISION_CATALOG: dict = {
     # ---- shared blocks (briefing, /catchup, /btc) ----
-    "dc_corridor_head": _pair("<b>Коридор</b> (Binance; в 4 из 5 похожих случаев цена не выходила за него)",
-                              "<b>Corridor</b> (Binance; in 4 of 5 similar cases the price stayed inside)"),
-    "dc_corridor_line": _pair("{parts}", "{parts}"),
-    "dc_corridor_part": _pair("{h}: {low}–{high} (±{half})", "{h}: {low}–{high} (±{half})"),
     # event zone (BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1 §9): numbers are withheld on purpose
-    "dc_corridor_head_event": _pair("<b>Коридор</b> (Binance)", "<b>Corridor</b> (Binance)"),
     "ez_note": _pair("{hs}: числовую оценку не показываем — {events} (Киев). Вокруг публикации обычная калибровка "
                      "коридора не применяется.",
                      "{hs}: no numerical estimate — {events} (Kyiv). Around the release, the usual corridor "
@@ -64,15 +59,10 @@ DECISION_CATALOG: dict = {
                            "коридора не применяется.",
                            "No numerical corridor for this time: around the release, the usual corridor "
                            "calibration does not apply."),
-    "dc_levels_head_plain": _pair("<b>Уровни</b>", "<b>Levels</b>"),
-    "dc_level_line_nop": _pair("{arrow} {price} — {name} · {dist}", "{arrow} {price} — {name} · {dist}"),
-    "dc_levels_head": _pair("<b>Уровни</b> (шанс дойти за 24ч)", "<b>Levels</b> (chance to reach within 24h)"),
-    "dc_level_line": _pair("{arrow} {price} — {name} · {dist} · {p}", "{arrow} {price} — {name} · {dist} · {p}"),
     "dc_level_at": _pair("Цена у уровня {price} — {name}", "Price is at {price} — {name}"),
     "dc_level_now": _pair("— сейчас {price} —", "— now {price} —"),
-    "dc_today_head": _pair("<b>Сегодня</b>", "<b>Today</b>"),
     "dc_event_line": _pair("{when} — {name}", "{when} — {name}"),
-    "dc_no_events": _pair("Крупных событий в ближайшие 24ч нет.", "No major scheduled events in the next 24h."),
+    "dc_no_events": _pair("Крупных событий в ближайшие сутки нет.", "No major scheduled events within 24 hours."),
     # L2 in the quantitative format (EVIDENCE_AND_CLAIMS_DECISION_V1 §4): observed, baseline, the
     # difference and its interval; no verdict words
     "dc_analog_line": _pair("↳ после похожих ({n}): через {h} выше в {p_up} против {base_up} обычно ({diff} п.п.{ci}); "
@@ -105,7 +95,8 @@ DECISION_CATALOG: dict = {
     "dc_btc_level_fb": _pair("{arrow} {price} {name} ({dist}) · за {h} исторически в {p} случаев",
                              "{arrow} {price} {name} ({dist}) · within {h} historically in {p} of cases"),
     "dc_btc_cal": _pair("↳ шанс дойти; говорили → было: {parts}", "↳ chance to reach; said → was: {parts}"),
-    "dc_btc_events": _pair("События в ближайшие 24ч: {list}", "Events in the next 24h: {list}"),
+    "dc_brief_levels": _pair("Уровни: {parts}", "Levels: {parts}"),
+    "dc_btc_events": _pair("События в ближайшие сутки: {list}", "Events within 24 hours: {list}"),
     "btn_levels": _pair("Уровни", "Levels"),
     "btn_risk": _pair("Риск", "Risk"),
     # ---- /levels ----

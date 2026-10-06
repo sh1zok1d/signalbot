@@ -54,19 +54,12 @@ def plain(html):
     return re.sub(r"<[^>]+>", "", html).replace("&lt;", "<").replace("&gt;", ">")
 
 
-def test_brief_block_ladder_corridor_and_today():
-    lines = df.brief_lines({"decision": block()}, "ru")
-    text = plain("\n".join(lines))
-    assert "Коридор" in text and "4ч: 61 605–63 355 (±1,4%) · 24ч: 60 230–64 730 (±3,6%)\n" in text
-    ladder = text[text.index("Уровни"):text.index("Сегодня")].strip().splitlines()
-    assert ladder[1].startswith("↑ 64 000 — открытие недели, круглый уровень · +2,43% · 21%")
-    assert ladder[2].startswith("↑ 62 950 — максимум вчера · +0,75% · 60%")
-    assert ladder[3] == "— сейчас 62 480 —"
-    assert ladder[4].startswith("↓ 61 900 — минимум Азии") and "ликвидации лонгов $38 млн" in ladder[5]
-    today = text[text.index("Сегодня"):].strip().splitlines()
-    assert today[1] == "15:30 — CPI США (инфляция)"                # name and time only: no size, no share
-    assert today[2] == "CPI США (инфляция): вокруг публикации обычная калибровка коридора не применяется."
-    assert "×" not in "\n".join(today)
+def test_brief_block_corridor_levels_and_events():
+    """Backlog C2: the corridor and its record, the nearest level each side, the next 24h events."""
+    lines = df.brief_lines({"decision": block(as_of=NOW.isoformat())}, "ru")
+    assert lines == ["", "Коридор: 4ч 61 605–63 355 · 24ч 60 230–64 730",
+                     "Уровни: ↑ 62 950 максимум вчера (+0,75%) · ↓ 61 900 минимум Азии (−0,93%)",
+                     "События в ближайшие сутки: 15:30 CPI США (инфляция)"]   # name and time only: no size, no share
     for lang in ("ru", "en"):
         assert_descriptive("\n".join(df.brief_lines({"decision": block()}, lang)), lang)
 
@@ -98,7 +91,7 @@ def test_btc_lines():
         # no held-out bin passed for these chances: the «исторически» fallback, no calibration line
         "↑ 62 950 максимум вчера (+0,75%) · за 24ч исторически в 60% случаев",
         "↓ 61 900 минимум Азии (−0,93%) · за 24ч исторически в 55% случаев",
-        "События в ближайшие 24ч: 15:30 CPI США (инфляция)"]
+        "События в ближайшие сутки: 15:30 CPI США (инфляция)"]
     blk["corridor"] = {**blk["corridor"], "holdout": HOLDOUT}
     lines = df.btc_lines({"decision": blk}, "ru")
     assert lines[1] == "↳ внутри коридора бывало (расчёт — 80%): 1ч 79% · 4ч 81% · 24ч 80% на истории (365 дн.)"

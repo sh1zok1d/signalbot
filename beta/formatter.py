@@ -570,16 +570,22 @@ def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabl
         lines.append(_price_span_line(window, lang))
         lines.extend(_unusual_hours_lines(cfg, market, lang, push_enabled=push_enabled))
     lines.append("")
-    lines.append(f"<b>{t(lang, 'now_head')}</b>")
+    state = []
     for h in ("1h", "4h"):
         res = (market.get("interpretation") or {}).get(h)
         body = t(lang, "data_incomplete") if degraded or res is None else _state_body(
             cfg, res, (market.get("values") or {}).get(h) or {}, h, lang)
-        lines.append(t(lang, "now_line", h=t(lang, "hz_" + h), body=body))
-        if not degraded and res is not None:
-            line = _analog_line(view, res, h, lang)
-            if line:
-                lines.append(line)
+        extra = _analog_line(view, res, h, lang) if not degraded and res is not None else None
+        state.append((h, body, extra))
+    if state[0][1] == state[1][1] and not state[0][2] and not state[1][2]:
+        # the briefing in about 8 lines (backlog C2): the same state on both windows is one line
+        lines.append(t(lang, "now_both", head=t(lang, "now_head"), body=state[0][1]))
+    else:
+        lines.append(f"<b>{t(lang, 'now_head')}</b>")
+        for h, body, extra in state:
+            lines.append(t(lang, "now_line", h=t(lang, "hz_" + h), body=body))
+            if extra:
+                lines.append(extra)
     if view.get("product_status") == "DATA STALE":     # A2: a stale tape shows no old 24h figure either
         lines.append(t(lang, "now_line", h=t(lang, "hz_24h"), body=t(lang, "data_incomplete")))
     else:

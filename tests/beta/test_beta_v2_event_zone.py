@@ -131,9 +131,11 @@ def test_every_surface_withholds_the_zoned_horizons(lang, hs):
 def test_outside_every_zone_the_generic_corridor_is_unchanged(lang):
     b = block()
     b["event_zone"] = {}
+    b["corridor"]["holdout"] = {"4h": {"coverage_realized": 0.81, "n_days": 365},
+                                "24h": {"coverage_realized": 0.8, "n_days": 365}}
     brief = plain("\n".join(df.brief_lines({"decision": b}, lang)))
-    assert ("4 из 5" in brief) if lang == "ru" else ("4 of 5" in brief)
-    assert re.search(r"24(ч|h): 60[ ,]230–64[ ,]730", brief)
+    assert ("(расчёт — 80%)" in brief) if lang == "ru" else ("(designed for 80%)" in brief)   # the coverage claim
+    assert re.search(r"24(ч|h) 60[ ,]230–64[ ,]730", brief)
     assert ZONE_RU not in brief and ZONE_EN not in brief
     assert "Коридор: 1ч 62 043–62 917 · 4ч 61 605–63 355 · 24ч 60 230–64 730" in plain(
         "\n".join(df.btc_lines({"decision": b}, "ru")))
@@ -228,12 +230,13 @@ def test_events_card_is_a_plain_calendar(lang):
 def test_brief_today_shows_name_time_and_the_warning_only(lang):
     b = block()
     b["events"] = [{**EVENTS[0], "at": "2026-10-14T12:30:00+00:00"}, {**EVENTS[1], "at": "2026-10-14T18:00:00+00:00"}]
-    for lines in (df.today_lines(b, lang), df.brief_lines({"decision": b}, lang)):
-        text = plain("\n".join(lines))
-        today = text[text.index("Сегодня" if lang == "ru" else "Today"):].splitlines()
-        assert [x[:8] for x in today[1:3]] == ["15:30 — ", "21:00 — "]
-        assert today[3].endswith(WARN[lang]) and len(today) == 4        # no D11 «1,76 раза» line, no size
-        assert not EVENT_FORBIDDEN.search("\n".join(re.sub(r"^\d\d:\d\d", "", x) for x in today)), today
+    b["as_of"] = "2026-10-14T06:00:00+00:00"
+    b["event_zone"] = {"24h": b["events"]}                    # a release in the next 24h is in the 24h zone
+    text = plain("\n".join(df.brief_lines({"decision": b}, lang)))
+    events = next(x for x in text.splitlines() if x.startswith(("События", "Events")))
+    assert re.findall(r"\d\d:\d\d", events) == ["15:30", "21:00"]          # name and time only (C2)
+    assert not EVENT_FORBIDDEN.search(re.sub(r"\d\d:\d\d", "", events)), events   # no D11 «1,76 раза», no size
+    assert text.count("калибровка коридора" if lang == "ru" else "corridor calibration") == 1   # the warning once
 
 
 @pytest.mark.parametrize("lang", ["ru", "en"])
@@ -248,8 +251,8 @@ def test_event_reminder_shows_name_time_and_the_warning_only(lang, kind):
 def test_event_facing_catalog_entries_carry_no_size_share_or_probability():
     from beta import i18n
     from beta.i18n_decision import EVENT_NAMES
-    keys = [k for k in i18n._CATALOG if k.startswith(("ev_", "ez_", "pa_event", "dc_event", "dc_today",
-                                                       "dc_no_events", "dc_corridor_head_event"))]
+    keys = [k for k in i18n._CATALOG if k.startswith(("ev_", "ez_", "pa_event", "dc_event", "dc_btc_events",
+                                                       "dc_no_events"))]
     assert {"ev_title", "ev_release_note", "ez_note", "ez_event_note", "dc_event_line", "pa_event_title"} <= set(keys)
     for k in keys:
         for lang in ("ru", "en"):

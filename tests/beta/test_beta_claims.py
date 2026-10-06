@@ -365,7 +365,7 @@ def test_shown_keys_follow_what_each_surface_prints():
     brief = cj.shown_keys("brief", blk, market=market)
     assert ("L2_STATE_ANALOG_1H_1H", "1h:short_exit") in brief
     assert not [k for k in brief if k[0] == "L2_STATE_ANALOG_4H_4H"]                    # «мало данных»: not stated
-    assert ("L3_LEVEL_TOUCH_24H", "+1:62950.00") in brief
+    assert not [k for k in brief if k[0].startswith("L3_")]       # the briefing prints no chance since C2
     assert len(cj.shown_keys("levels", blk)) == 4 and len(cj.shown_keys("risk", blk)) == 3 * 4 * 2
     assert cj.shown_keys("levels", {"available": False}) == []
     # /btc prints the nearest level each side (backlog C1): 24h, or 4h inside the 24h zone

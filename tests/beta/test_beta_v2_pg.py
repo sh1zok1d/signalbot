@@ -254,7 +254,7 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         assert "Коридор и уровни сейчас не показываем: данные отстают." in catchup
         assert "Уровни\n" not in catchup and "— сейчас " not in catchup and "Коридор (Binance" not in catchup
         assert "в 4 из 5" not in catchup and "24ч: числовую оценку не показываем" in catchup
-        assert "15:30 — CPI США (инфляция)" in catchup                 # 2026-05-12 is a CPI day
+        assert "События в ближайшие сутки: 15:30 CPI США (инфляция)" in catchup   # 2026-05-12 is a CPI day
         views = await _rows(pool, "SELECT kind, payload->'decision'->>'available' AS ok FROM beta_btc_views ORDER BY view_pk")
         assert views[-2:] == [{"kind": "btc", "ok": "true"}, {"kind": "catchup", "ok": "true"}]
 
@@ -277,10 +277,8 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         briefs = [x for x in s.sent if plain(x[1]).startswith("BTC за ночь")]
         assert len(briefs) == 3 and "Коридор и уровни сейчас не показываем: данные отстают." in plain(briefs[0][1])
         assert "Коридор (Binance" not in plain(briefs[0][1])
-        today = plain(briefs[0][1]).split("Сегодня\n", 1)[1].splitlines()
-        assert today[:2] == ["15:30 — CPI США (инфляция)",
-                             "CPI США (инфляция): вокруг публикации обычная калибровка коридора не применяется."]
-        assert "×" not in plain(briefs[0][1].split("Сегодня", 1)[1])
+        assert "\nСобытия в ближайшие сутки: 15:30 CPI США (инфляция)\n" in plain(briefs[0][1])
+        assert "24ч: числовую оценку не показываем" in plain(briefs[0][1]) and "×" not in plain(briefs[0][1])
         r2 = await run_notify_once(store, brief_cfg, ON_PUSH, sender=s, clock=Clock(NOW + timedelta(minutes=1)))
         assert r2["market"]["pushed"] == 0 and r2["market"]["forecasts_recorded"] == 0
 

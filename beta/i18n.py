@@ -604,6 +604,7 @@ _CATALOG: dict[str, dict[str, str]] = {
                       "en": "No separate message: the bot had written shortly before."},
     "now_head": {"ru": "Сейчас", "en": "Now"},
     "now_line": {"ru": "{h}: {body}", "en": "{h}: {body}"},
+    "now_both": {"ru": "<b>{head}</b> · 1ч и 4ч: {body}", "en": "<b>{head}</b> · 1h and 4h: {body}"},
     "hz_1h": {"ru": "1ч", "en": "1h"},
     "hz_4h": {"ru": "4ч", "en": "4h"},
     "hz_24h": {"ru": "24ч", "en": "24h"},
