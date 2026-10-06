@@ -766,6 +766,19 @@ class BetaBotHandler:
             reply = await self._alert_cmd(conn, user, now, lang, f"{level:.2f}", block)
             return await self._reply(conn, user, chat_id, lang, now, "btn_watch",
                                      [answer(""), _msg(chat_id, reply, lang=lang)])
+        mute = _parse_mute(data)
+        if mute is not None:                   # «🔕 Не присылать такие» / «↩️ Вернуть» (backlog E2)
+            off, kind = mute
+            await conn.set_push_pref(uid, f"push_{kind}", not off)
+            cmd = "hour" if kind == "hours" else kind
+            name = t(lang, f"mute_name_{kind}")
+            if off:
+                out = [answer(""), _msg(chat_id, t(lang, "mute_ok", name=name, cmd=cmd),
+                                        [[(t(lang, "btn_unmute"), f"a:{kind}")]], lang=lang)]
+            else:
+                out = [answer(""), _msg(chat_id, t(lang, "unmute_ok", name=name), lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_mute" if off else "btn_unmute",
+                                     out, detail=kind)
         if data in ("L:levels", "L:risk"):
             cmd = data[2:]
             reply = await self._decision_cmd(conn, cmd, user, self.clock(), lang, "")
@@ -785,6 +798,11 @@ class BetaBotHandler:
             return await self._reply(conn, user, chat_id, lang, self.clock(), action,
                                      [answer(t(lang, "feedback_recorded"))])
         return [answer(t(lang, "not_available"))]
+
+
+def _parse_mute(data: str):
+    from beta.formatter import parse_mute
+    return parse_mute(data)
 
 
 def _parse_tab(data: str):

@@ -509,8 +509,8 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     'cmd_check', 'btn_check', 'btn_watch',
     -- the weekly report (backlog B4), a delivery of its own class
     'weekly_delivered',
-    -- the personal layer (PRE_BETA_SCOPE_DECISION_V1 §9 E): the time zone
-    'cmd_tz'));
+    -- the personal layer (PRE_BETA_SCOPE_DECISION_V1 §9 E): the time zone, the one-tap mute and its undo
+    'cmd_tz', 'btn_mute', 'btn_unmute'));
 
 -- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
 -- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.

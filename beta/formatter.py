@@ -1223,10 +1223,28 @@ def feedback_buttons(public_id: str, lang: str = "en") -> list:
     """Useful / Noise under the product push. No Details button: the episode details
     expose the detector name, internal id and rules version (PRODUCT_FIRST_DECISION_V1
     §3 row 9, BETA_COPY_CONTRACT_V1 §4). The id travels only in callback data. Above them
-    the «BTC сейчас» action (owner decision 2026-10-03): push → /btc in one tap."""
+    the «BTC сейчас» action (owner decision 2026-10-03): push → /btc in one tap. Below
+    them the one-tap mute of this type (backlog E2)."""
     return [push_action_row(lang),
             [(t(lang, "btn_useful"), f"u:{public_id}"),
-             (t(lang, "btn_noise"), f"n:{public_id}")]]
+             (t(lang, "btn_noise"), f"n:{public_id}")],
+            mute_row("hours", lang)]
+
+
+# One-tap mute per push type with undo (PRE_BETA_SCOPE_DECISION_V1 §6.6, backlog E2): the type's own
+# preference, as /push <type> off would set it. No automatic «больше не присылать такие?» prompt (F3).
+MUTE_TYPES = ("hours", "levels", "events", "moves", "weekly")
+
+
+def mute_row(kind: str, lang: str) -> list:
+    return [(t(lang, "btn_mute"), f"m:{kind}")]
+
+
+def parse_mute(data: str) -> Optional[tuple]:
+    """`m:<type>` mutes, `a:<type>` undoes; anything else None."""
+    if len(data) > 16 or data[:2] not in ("m:", "a:") or data[2:] not in MUTE_TYPES:
+        return None
+    return data[0] == "m", data[2:]
 
 
 PUSH_BTC_ACTION = "b:now"

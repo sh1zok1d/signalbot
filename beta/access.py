@@ -24,7 +24,7 @@ ACTIVITY_ACTIONS = (
     "btn_levels", "btn_risk", "cmd_research",
     "brief_withheld", "btn_other_assets", "btn_btc_now", "tab_research",
     "cmd_check", "btn_check", "btn_watch", "weekly_delivered",
-    "cmd_tz",
+    "cmd_tz", "btn_mute", "btn_unmute",
 )
 
 

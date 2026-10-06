@@ -374,6 +374,10 @@ def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
             target = min(ahead, key=lambda z: abs(float(z["edge"]) - close))["edge"]
     if target:
         rows.append([check_button(float(target), lang)])
+    mute = {"level": "levels", "event": "events", "move": "moves"}.get(kind)
+    if mute:                                    # a personal /alert is the participant's own: no mute
+        from .formatter import mute_row
+        rows.append(mute_row(mute, lang))
     return rows
 
 
