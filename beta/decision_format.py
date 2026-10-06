@@ -142,9 +142,24 @@ def unavailable_line(block: Optional[Mapping[str, Any]], lang: str) -> Optional[
         return None
     if block.get("available"):
         return None
-    reason = {"DATA_STALE": "dc_reason_stale", "ERROR": "dc_reason_error"}.get(block.get("reason"),
-                                                                               "dc_reason_no_stats")
+    reason = {"DATA_STALE": "dc_reason_stale", "STATS_STALE": "dc_reason_stats_stale",
+              "ERROR": "dc_reason_error"}.get(block.get("reason"), "dc_reason_no_stats")
     return t(lang, "dc_unavailable", reason=t(lang, reason))
+
+
+def data_clock(block: Mapping[str, Any]) -> Optional[datetime]:
+    """When the price of the block was observed (its newest closed Binance 1m bar), never the
+    request time (A1)."""
+    ts = block.get("price_ts")
+    return datetime.fromisoformat(ts) if ts else None
+
+
+def stats_line(block: Mapping[str, Any], lang: str) -> Optional[str]:
+    """«Статистика от …»: when the history statistics behind the numbers were built (A1)."""
+    built = (block.get("stats") or {}).get("built_at")
+    if not built:
+        return None
+    return t(lang, "dc_stats_built", when=_when(datetime.fromisoformat(built), lang, with_day=True))
 
 
 def zone_note(zones: Optional[Mapping[str, Any]], horizons: Sequence[str], lang: str) -> Optional[str]:
@@ -322,6 +337,15 @@ def brief_lines(view: Mapping[str, Any], lang: str) -> list:
     gone = unavailable_line(block, lang)
     if gone:
         return ["", gone]
+    if view.get("product_status") == "DATA STALE":
+        # A2: under a stale tape no corridor, level or state-matched research, whatever the block
+        # holds; the calendar and the event warning carry no market number and stay
+        out = ["", t(lang, "dc_unavailable", reason=t(lang, "dc_reason_data_late"))]
+        note = zone_note(block.get("event_zone"), ("4h", "24h"), lang)
+        if note:
+            out.append(note)
+        today = today_lines(block, lang)
+        return out + ([""] + today if today else [])
     out = []
     surface = "brief" if view.get("kind") == "brief" else "catchup"
     window = ((view.get("market") or {}).get("window") or {})
@@ -418,7 +442,7 @@ def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
     if gone:
         return assert_descriptive(gone, lang)
     lv = block.get("levels") or {}
-    lines = [t(lang, "lv_title", price=fmt_price(block["price"], lang), clock=fmt_clock(now, lang))]
+    lines = [t(lang, "lv_title", price=fmt_price(block["price"], lang), clock=fmt_clock(data_clock(block) or now, lang))]
     if lv.get("at"):
         lines.append(t(lang, "dc_level_at", price=zone_price(lv["at"], lang), name=_e(zone_names(lv["at"], lang))))
     lines.append("")
@@ -449,6 +473,9 @@ def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
     if note:
         lines.append(note)
     lines.append(t(lang, "lv_footer"))
+    sl = stats_line(block, lang)
+    if sl:
+        lines.append(sl)
     return assert_descriptive("\n".join(lines), lang)
 
 
@@ -480,7 +507,8 @@ def format_risk(block: Mapping[str, Any], model: Optional[Mapping[str, Any]], la
         return assert_descriptive(gone or t(lang, "dc_unavailable", reason=t(lang, "dc_reason_no_stats")), lang)
     hz = (block.get("corridor") or {}).get("horizons") or {}
     price = float(block["price"])
-    lines = [t(lang, "rk_title", price=fmt_price(price, lang))]
+    clock = data_clock(block)
+    lines = [t(lang, "rk_title", price=fmt_price(price, lang)) + (f" · {fmt_clock(clock, lang)}" if clock else "")]
 
     zones = block.get("event_zone") or {}
 
@@ -509,6 +537,9 @@ def format_risk(block: Mapping[str, Any], model: Optional[Mapping[str, Any]], la
                        h4=_pct(hz["4h"]["typical_move_pct"], lang), h24=_pct(hz["24h"]["typical_move_pct"], lang)))
     lines.append(t(lang, "rk_note"))
     lines.extend(evidence_lines(block, "risk", lang, topics=RISK_TOPICS))
+    sl = stats_line(block, lang)
+    if sl:
+        lines.append(sl)
     if stop_pct is None:
         lines.append(t(lang, "rk_usage"))
     return assert_descriptive("\n".join(lines), lang)
@@ -720,8 +751,14 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         names = [level_name({"kind": k}, lang) for k in [payload["level_kind"]] + list(payload.get("also_kinds") or ())]
         lines.append(t(lang, "pa_level_title", name=_e(" = ".join(names)),
                        level=fmt_price(payload["level"], lang)))
-        lines.append(t(lang, "pa_level_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
-                       period=t(lang, "pa_period_" + payload.get("period", "day"))))
+        pts = payload.get("price_ts")
+        if pts:
+            lines.append(t(lang, "pa_level_now_at", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
+                           price_clock=fmt_kyiv_hm(datetime.fromisoformat(pts)),
+                           period=t(lang, "pa_period_" + payload.get("period", "day"))))
+        else:                                       # a payload stored before A1
+            lines.append(t(lang, "pa_level_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
+                           period=t(lang, "pa_period_" + payload.get("period", "day"))))
         hist = payload.get("history")
         side = int(payload.get("side") or 1)
         if hist and hist.get("real") and (hist["real"].get("1h") and (hist.get("control") or {}).get("1h")):
@@ -757,8 +794,11 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         # always inside the release's 1h zone (30 minutes ahead): no corridor, no multiplier
         name = EVENT_NAMES.get(payload["event_kind"], (payload["event_kind"],) * 2)[_ix(lang)]
         lines.append(t(lang, "pa_event_title", mins=int(payload["minutes"]), name=_e(name)))
-        lines.append(t(lang, "pa_event_when", clock=fmt_clock(datetime.fromisoformat(payload["event_at"]), lang),
-                       price=fmt_price(payload["price"], lang)))
+        pts = payload.get("price_ts")
+        lines.append(t(lang, "pa_event_when_at" if pts else "pa_event_when",
+                       clock=fmt_clock(datetime.fromisoformat(payload["event_at"]), lang),
+                       price=fmt_price(payload["price"], lang),
+                       price_clock=fmt_kyiv_hm(datetime.fromisoformat(pts)) if pts else ""))
         lines.append(t(lang, "ez_event_note"))
     elif kind == "move":
         start = datetime.fromisoformat(payload["start"])
@@ -782,11 +822,14 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
             lines.append(t(lang, "pa_levels_near", parts=" · ".join(parts)))
     elif kind == "price":
         lines.append(t(lang, "pa_price_title", level=fmt_price(payload["level"], lang)))
+        pts = payload.get("price_ts")
+        pclock = fmt_kyiv_hm(datetime.fromisoformat(pts)) if pts else ""
         if payload.get("late"):
-            lines.append(t(lang, "pa_price_late", when=_when(at, lang, with_day=True),
-                           price=fmt_price(payload["price"], lang)))
+            lines.append(t(lang, "pa_price_late_at" if pts else "pa_price_late", when=_when(at, lang, with_day=True),
+                           price=fmt_price(payload["price"], lang), price_clock=pclock))
         else:
-            lines.append(t(lang, "pa_price_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang)))
+            lines.append(t(lang, "pa_price_now_at" if pts else "pa_price_now", clock=fmt_clock(at, lang),
+                           price=fmt_price(payload["price"], lang), price_clock=pclock))
         cl = None if zones.get("4h") else _corridor_line(payload.get("corridor_4h"), "pa_corridor", lang)
         if cl:
             lines.append(cl)

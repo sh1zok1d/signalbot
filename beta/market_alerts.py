@@ -136,6 +136,7 @@ def detect_level_touches(block: Mapping[str, Any], b: Bars, closed_1m, *, now: d
                     "payload": {"at": touched.isoformat(), "source_at": source_at.isoformat(),
                                 "level_kind": kind, "level": lv["price"],
                                 "side": side, "period": pname, "price": block["price"],
+                                "price_ts": block.get("price_ts"),
                                 "history": {**{k: rec[k] for k in ("real", "control", "verdicts")},
                                             "ci95": rec.get("ci95") or {}} if rec else None,
                                 "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
@@ -174,7 +175,8 @@ def detect_events(block: Mapping[str, Any], cal, *, now: datetime, lead: timedel
         out.append({"kind": "event", "key": f"event:{e['kind']}:{e['at'].isoformat()}",
                     "payload": {"at": now.isoformat(), "source_at": (e["at"] - lead).isoformat(),
                                 "event_kind": e["kind"], "event_at": e["at"].isoformat(),
-                                "minutes": mins, "price": block["price"], "stats": ev_stats.get(e["kind"]),
+                                "minutes": mins, "price": block["price"], "price_ts": block.get("price_ts"),
+                                "stats": ev_stats.get(e["kind"]),
                                 "event_zone": block.get("event_zone") or {}}})
     return out
 
@@ -232,7 +234,7 @@ def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any],
                     "target_user_pk": a["user_pk"],
                     "payload": {"at": at.isoformat(), "source_at": (touched + timedelta(minutes=hit[1])).isoformat(),
                                 "level": float(a["price"]), "late": late,
-                                "price": block["price"], "corridor_4h": corridor_4h,
+                                "price": block["price"], "price_ts": block.get("price_ts"), "corridor_4h": corridor_4h,
                                 "event_zone": block.get("event_zone") or {}}})
     return out
 

@@ -572,7 +572,10 @@ def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabl
             line = _analog_line(view, res, h, lang)
             if line:
                 lines.append(line)
-    lines.append(_line_24h(view, lang))
+    if view.get("product_status") == "DATA STALE":     # A2: a stale tape shows no old 24h figure either
+        lines.append(t(lang, "now_line", h=t(lang, "hz_24h"), body=t(lang, "data_incomplete")))
+    else:
+        lines.append(_line_24h(view, lang))
     from .decision_format import brief_lines
     lines.extend(brief_lines(view, lang))
     clock = _clock_of(view)

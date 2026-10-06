@@ -32,6 +32,10 @@ LIVE_EXCHANGE = "binance"
 LOOKBACK_DAYS = 70
 LIVE_TAIL_DAYS = 35
 STALE_AFTER = timedelta(minutes=10)
+# A2 (PRE_BETA_BACKLOG_V1): statistics older than this are «нет данных», never an old number. The
+# history build runs nightly and the owner is alerted after 50 h (health.HISTORY_BUILD_STALE_S);
+# users lose the forward-looking numbers only a day after that alert.
+STATS_MAX_AGE = timedelta(hours=72)
 STATS_RELOAD_S = 300
 # BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1 §9: around a scheduled CPI / FOMC release the
 # corridor's event term is not calibrated at the live cadence, so for horizon H no numerical
@@ -164,6 +168,10 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
         block["stats"] = {"stats_pk": stats.get("_stats_pk"), "built_at": stats.get("_built_at"),
                           "data_from_ms": (stats.get("data") or {}).get("from_ms"),
                           "data_to_ms": (stats.get("data") or {}).get("to_ms")}
+        built = stats.get("_built_at")
+        if built and now - datetime.fromisoformat(built) > STATS_MAX_AGE:
+            block["reason"] = "STATS_STALE"
+            return block
     b, price, price_ts = await load_live_bars(conn, cfg, now=now, capture=capture)
     if capture is not None:
         capture.update(bars=b, stats=stats, model=model)

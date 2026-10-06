@@ -86,6 +86,10 @@ DECISION_CATALOG: dict = {
                             "Corridor and levels are not shown now: {reason}."),
     "dc_reason_stale": _pair("данные Binance отстают", "Binance data is late"),
     "dc_reason_no_stats": _pair("история ещё не загружена", "history is not loaded yet"),
+    "dc_reason_stats_stale": _pair("статистика по истории не обновлялась больше 3 суток",
+                                   "the history statistics have not been updated for over 3 days"),
+    "dc_reason_data_late": _pair("данные отстают", "the data is late"),
+    "dc_stats_built": _pair("Статистика по истории собрана {when} (Киев).", "History statistics built {when} Kyiv."),
     "dc_reason_error": _pair("техническая ошибка", "a technical error"),
     "dc_btc_corridor": _pair("Коридор 4ч: {low}–{high} (±{half})", "4h corridor: {low}–{high} (±{half})"),
     "dc_btc_levels": _pair("Уровни: {parts}", "Levels: {parts}"),
@@ -278,6 +282,8 @@ DECISION_CATALOG: dict = {
     "off_word": _pair("выкл", "off"),
     # ---- market alert pushes ----
     "pa_level_title": _pair("<b>BTC · {name} {level}</b>", "<b>BTC · {name} {level}</b>"),
+    "pa_level_now_at": _pair("{clock} — первое касание за {period} · цена {price} (Binance, {price_clock})",
+                             "{clock} — first touch this {period} · price {price} (Binance, {price_clock})"),
     "pa_level_now": _pair("{clock} · цена {price} (Binance) — первое касание за {period}",
                           "{clock} · price {price} (Binance) — first touch this {period}"),
     "pa_period_day": _pair("день", "day"),
@@ -296,6 +302,7 @@ DECISION_CATALOG: dict = {
     "pa_corridor": _pair("Коридор 4ч: {low}–{high} (±{half})", "4h corridor: {low}–{high} (±{half})"),
     "pa_event_title": _pair("<b>BTC · через {mins} мин {name}</b>", "<b>BTC · {name} in {mins} min</b>"),
     "pa_event_when": _pair("{clock} · цена {price} (Binance)", "{clock} · price {price} (Binance)"),
+    "pa_event_when_at": _pair("{clock} · цена {price} (Binance, {price_clock})", "{clock} · price {price} (Binance, {price_clock})"),
     "pa_corridor_1h_plain": _pair("Коридор 1ч сейчас: {low}–{high} (±{half})", "1h corridor now: {low}–{high} (±{half})"),
     "pa_move_title": _pair("<b>BTC · резкое движение {pct} за 15 минут</b>", "<b>BTC · sharp move {pct} in 15 minutes</b>"),
     "pa_move_span": _pair("{span} · {open} → {close} (Binance)", "{span} · {open} → {close} (Binance)"),
@@ -304,8 +311,14 @@ DECISION_CATALOG: dict = {
     "pa_levels_near": _pair("Рядом: {parts}", "Nearby: {parts}"),
     "pa_price_title": _pair("<b>BTC дошёл до вашего уровня {level}</b>", "<b>BTC reached your level {level}</b>"),
     "pa_price_now": _pair("{clock} · цена {price} (Binance)", "{clock} · price {price} (Binance)"),
+    "pa_price_now_at": _pair("{clock} — уровень достигнут · цена {price} (Binance, {price_clock})",
+                             "{clock} — level reached · price {price} (Binance, {price_clock})"),
     "pa_price_late": _pair("Уровень был достигнут {when} (Киев), пока сообщения не отправлялись · сейчас {price} (Binance)",
                            "The level was reached on {when} (Kyiv) while messages were off · now {price} (Binance)"),
+    "pa_price_late_at": _pair("Уровень был достигнут {when} (Киев), пока сообщения не отправлялись · сейчас {price} "
+                              "(Binance, {price_clock})",
+                              "The level was reached on {when} (Kyiv) while messages were off · now {price} "
+                              "(Binance, {price_clock})"),
     "pa_price_footer": _pair("Ваши уровни: /alert", "Your alerts: /alert"),
     # ---- research ↔ bot (config/beta_research_findings.yaml) ----
     "rs_line": _pair("Проверено: {text} ({id})", "Tested: {text} ({id})"),
