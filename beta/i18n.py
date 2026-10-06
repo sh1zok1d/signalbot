@@ -308,8 +308,12 @@ _CATALOG: dict[str, dict[str, str]] = {
             "<b>Signalbot, закрытая бета — конфиденциальность</b>\n"
             "Signalbot наблюдает за BTC и показывает необычные состояния рынка и контекст.\n"
             "Торговых рекомендаций бот не даёт.\n\n"
+            "• Что бот показывает: коридор цены, уровни и шанс дойти до них, что бывало в похожих случаях, "
+            "события календаря и оповещения.\n"
             "• Мы храним ваш Telegram id и id чата, чтобы отправлять сообщения беты, "
             "а также голоса «полезно / шум» и статус доставки.\n"
+            "• Ваши настройки (язык, какие сообщения получать, утренняя сводка) хранятся, пока вы в бете; "
+            "/delete_me удаляет их.\n"
             "• Записи рынка и событий не содержат персональных данных.\n"
             "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
             "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
@@ -319,6 +323,9 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• /stop приостанавливает все сообщения. /delete_me удаляет ваши данные участника "
             "и исключает вас из беты.\n"
             "• После /stop данные удаляются автоматически через 30 дней.\n"
+            "• Журнал прогнозов бота (что он говорил и что было потом) и записи рынка не содержат "
+            "ваших данных.\n"
+            "• Вопросы о ваших данных — через /feedback, отвечает команда Signalbot.\n"
             "• Это не инвестиционный совет; бот не совершает сделки и не говорит, покупать или продавать. "
             "Исторические цифры описывают прошлое.\n\n"
             "Нажмите <b>Вступить</b>, чтобы принять условия и войти в бету."
@@ -327,8 +334,12 @@ _CATALOG: dict[str, dict[str, str]] = {
             "<b>Signalbot closed beta — privacy notice</b>\n"
             "Signalbot watches BTC and shows unusual market states and their context.\n"
             "The bot gives no trading advice.\n\n"
+            "• What the bot shows: the price corridor, levels and the chance to reach them, what happened in "
+            "similar cases, calendar events and alerts.\n"
             "• We store your Telegram user id and chat id to send you beta messages, plus your "
             "Useful/Noise votes and delivery status.\n"
+            "• Your settings (language, which messages to receive, the morning briefing) are kept while you are "
+            "in the beta; /delete_me deletes them.\n"
             "• Market/event records contain no personal data.\n"
             "• We record which commands and buttons you use, and when, and which invite link "
             "you came from, so we can improve the bot. These records are kept for 120 days. "
@@ -338,6 +349,9 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• /stop pauses all messages. /delete_me deletes your participant data and removes "
             "you from the beta.\n"
             "• After /stop, your data is deleted automatically after 30 days.\n"
+            "• The bot's forecast journal (what it said and what happened next) and the market records do not "
+            "contain your data.\n"
+            "• Questions about your data: /feedback; the Signalbot team answers.\n"
             "• Nothing here is investment advice; the bot never places trades and never says whether to "
             "buy or sell. Historical numbers describe the past.\n\n"
             "Press <b>Join</b> to accept and join the beta."
@@ -367,7 +381,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "or data incomplete). Buttons hold the measurements.\n"
             "/catchup — what happened over the last hours (8h by default; /catchup 1–24)\n"
             "/history — recent unusual events, with or without a message, with factual follow-up ranges\n"
-            "/brief on|off — morning summary at 08:00 Kyiv\n"
+            "/brief on|off — morning briefing at 08:00 Kyiv\n"
             "/push on|off — unusual-hour messages (no more than 2 a day)\n"
             "/terms — glossary\n"
             "/lang — message language\n"
@@ -499,7 +513,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "side_short": {"ru": "шортов", "en": "short"},
     "liq_count": {
         "ru": "Ликвидации {side} {votes}/{eligible} бирж",
-        "en": "{Side}-side liquidations {votes}/{eligible} venues",
+        "en": "{Side}-side liquidations {votes}/{eligible} exchanges",
     },
     "liq_not_evaluable": {
         "ru": "Ликвидации {side} нельзя оценить",
@@ -551,7 +565,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "fact_down_oi_na": {"ru": "снижение, OI н/д", "en": "decline, OI n/a"},
     "fact_up_oi_stable": {"ru": "рост при стабильном OI", "en": "rise with stable OI"},
     "fact_down_oi_stable": {"ru": "снижение при стабильном OI", "en": "decline with stable OI"},
-    "interp_venues_diverge": {"ru": "биржи расходятся", "en": "venues disagree"},
+    "interp_venues_diverge": {"ru": "биржи расходятся", "en": "exchanges disagree"},
     "interp_insufficient": {"ru": "мало истории", "en": "not enough history"},
     "interp_missing": {"ru": "н/д", "en": "n/a"},
     # /catchup, the morning briefing and the unusual-hour push (BETA_COPY_CONTRACT_V1).
@@ -582,7 +596,7 @@ _CATALOG: dict[str, dict[str, str]] = {
                       "en": "Range and volume — both in the top 5% of hourly windows over 30 days"},
     "venues_line": {"ru": "Биржи: {k} из {n} в одну сторону", "en": "Exchanges: {k} of {n} the same way"},
     "note_quiet": {"ru": "Ночью с {s} до {e} бот не пишет, поэтому это только в сводке.",
-                   "en": "The bot does not write between {s} and {e}, so this is only in the summary."},
+                   "en": "The bot does not write between {s} and {e}, so this is only in the briefing."},
     "note_cap": {"ru": "Сообщения об этом часе не было: за сутки уже было {n}.",
                  "en": "No message about this hour: there were already {n} today."},
     "note_cooldown": {"ru": "Отдельного сообщения не было: незадолго до этого бот уже писал.",
@@ -639,16 +653,16 @@ _CATALOG: dict[str, dict[str, str]] = {
     "payer_longs": {"ru": "платят лонги", "en": "longs pay"},
     "payer_shorts": {"ru": "платят шорты", "en": "shorts pay"},
     "data_at": {"ru": "Данные на {clock}", "en": "Data as of {clock}"},
-    "brief_off_hint": {"ru": "Отключить утреннюю сводку: /brief off", "en": "Turn the morning summary off: /brief off"},
+    "brief_off_hint": {"ru": "Отключить утреннюю сводку: /brief off", "en": "Turn the morning briefing off: /brief off"},
     "catchup_usage": {"ru": "Окно — от 1 до 24 часов. Например: /catchup 4",
                       "en": "The window is 1 to 24 hours. For example: /catchup 4"},
     "brief_usage": {"ru": "Утренняя сводка: {state}. /brief on — включить, /brief off — выключить.",
-                    "en": "Morning summary: {state}. /brief on to turn it on, /brief off to turn it off."},
+                    "en": "Morning briefing: {state}. /brief on to turn it on, /brief off to turn it off."},
     "brief_state_on": {"ru": "включена", "en": "on"},
     "brief_state_off": {"ru": "выключена", "en": "off"},
-    "brief_on_ok": {"ru": "Утренняя сводка включена: 08:00 (Киев).", "en": "Morning summary on: 08:00 Kyiv."},
+    "brief_on_ok": {"ru": "Утренняя сводка включена: 08:00 (Киев).", "en": "Morning briefing on: 08:00 Kyiv."},
     "brief_off_ok": {"ru": "Утренняя сводка выключена. Сообщения о необычном часе это не меняет.",
-                     "en": "Morning summary off. Unusual-hour messages are not affected."},
+                     "en": "Morning briefing off. Unusual-hour messages are not affected."},
     "push_usage": {"ru": "Сообщения о необычном часе: {state}. /push on — включить, /push off — выключить.",
                    "en": "Unusual-hour messages: {state}. /push on to turn them on, /push off to turn them off."},
     "push_state_on": {"ru": "включены", "en": "on"},
@@ -656,7 +670,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "push_on_ok": {"ru": "Сообщения о необычном часе включены: не больше 2 в день, ночью бот не пишет.",
                    "en": "Unusual-hour messages on: no more than 2 a day, none at night."},
     "push_off_ok": {"ru": "Сообщения о необычном часе выключены. Утреннюю сводку это не меняет.",
-                    "en": "Unusual-hour messages off. The morning summary is not affected."},
+                    "en": "Unusual-hour messages off. The morning briefing is not affected."},
     # push (BETA_COPY_CONTRACT_V1 §1.2)
     "push_hour_title": {"ru": "BTC · необычный час", "en": "BTC · unusual hour"},
     "price_line": {"ru": "Цена {pct} ({open} → {close})", "en": "Price {pct} ({open} → {close})"},
@@ -677,13 +691,13 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": ("Движение цены за 5м в нижних 5% последних 30 дней при снижении открытого "
                "интереса в его нижних 10%, не менее чем на 2 биржах."),
         "en": ("5m price move in the bottom 5% of the last 30 days while open "
-               "interest fell in its bottom 10%, on at least 2 venues."),
+               "interest fell in its bottom 10%, on at least 2 exchanges."),
     },
     "desc_up": {
         "ru": ("Движение цены за 5м в верхних 5% последних 30 дней при снижении открытого "
                "интереса в его нижних 10%, не менее чем на 2 биржах."),
         "en": ("5m price move in the top 5% of the last 30 days while open "
-               "interest fell in its bottom 10%, on at least 2 venues."),
+               "interest fell in its bottom 10%, on at least 2 exchanges."),
     },
     "desc_build": {
         "ru": ("Открытый интерес растёт (верхние 20% за 30 дней) при узком 5м диапазоне "
@@ -703,13 +717,13 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": ("Номинал ликвидаций лонгов в верхних 5% собственной 30-дневной истории "
                "не менее чем на 2 биржах с живой лентой в том же 5м бакете."),
         "en": ("Long-side liquidation notional in the top 5% of its own 30d history "
-               "on at least 2 venues with a live feed in the same 5m bucket."),
+               "on at least 2 exchanges with a live feed in the same 5m bucket."),
     },
     "desc_liq_short": {
         "ru": ("Номинал ликвидаций шортов в верхних 5% собственной 30-дневной истории "
                "не менее чем на 2 биржах с живой лентой в том же 5м бакете."),
         "en": ("Short-side liquidation notional in the top 5% of its own 30d history "
-               "on at least 2 venues with a live feed in the same 5m bucket."),
+               "on at least 2 exchanges with a live feed in the same 5m bucket."),
     },
     "state_early": {"ru": "ранняя", "en": "early"},
     "state_armed": {"ru": "отмечена", "en": "armed"},
@@ -734,7 +748,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     },
     "status_eval_none": {"ru": "Последняя оценка: ещё нет", "en": "Last evaluation: none yet"},
     "status_episode": {"ru": "• {name} — {state} (с {when})", "en": "• {name} — {state} (since {when})"},
-    "status_context": {"ru": "Контекст (5м, по биржам)", "en": "Context (5m, cross-venue)"},
+    "status_context": {"ru": "Контекст (5м, по биржам)", "en": "Context (5m, across exchanges)"},
     "status_price": {"ru": "движение цены: {v}", "en": "price move: {v}"},
     "status_oi": {"ru": "изменение OI: {v}", "en": "OI change: {v}"},
     "status_range": {"ru": "ширина диапазона: {v}", "en": "range width: {v}"},
@@ -835,7 +849,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "h1_incomplete_body": {"ru": "1ч: неполные данные", "en": "1h: incomplete"},
     "funding_now": {
         "ru": "Funding сейчас {rate} (медиана бирж)",
-        "en": "Funding now {rate} (venue median)",
+        "en": "Funding now {rate} (median across exchanges)",
     },
     "funding_24h": {
         "ru": "Funding сейчас {now} · среднее за 24 ч {avg}",
@@ -997,10 +1011,10 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Data incomplete — fresh data is insufficient; the absence of events cannot be confirmed.\n"
             "\n"
             "Events\n"
-            "Sharp rise / drop — over 5 min the price moved more than in 95% of 5-minute periods of the last 30 days, while OI fell noticeably, on at least 2 venues.\n"
+            "Sharp rise / drop — over 5 min the price moved more than in 95% of 5-minute periods of the last 30 days, while OI fell noticeably, on at least 2 exchanges.\n"
             "OI build-up in a narrow range — for 45 min in a row OI grows faster than usual while the price stays in a narrow range.\n"
             "Aggressive buying / selling — Delta in the top / bottom 5% of the last 30 days for two 5-minute periods in a row.\n"
-            "Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 venues at once.\n"
+            "Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 exchanges at once.\n"
             "\n"
             "Metrics\n"
             "OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed.\n"
@@ -1008,7 +1022,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Delta — difference between market buys and market sells in $. Negative — net selling.\n"
             "Volume — total traded value in $ on Binance, Bybit and OKX.\n"
             "Range — from the lowest to the highest price in the period, in % of the price.\n"
-            "Liquidations — positions force-closed by the exchange, shown per venue.\n"
+            "Liquidations — positions force-closed by the exchange, shown per exchange.\n"
             "≥ — lower bound: Binance does not publish every liquidation.\n"
             "$0* — zero from incomplete data: it does not mean there were no liquidations.\n"
             "n/a — no data or incomplete data. This is not zero.\n"

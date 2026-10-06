@@ -437,9 +437,10 @@ def _per_period(events: Sequence[Mapping], periods: Sequence[int], h: Optional[s
 
 
 def _boot_p(real: Sequence[Mapping], ctrl: Sequence[Mapping], h: Optional[str], rng,
-            b_reps: int = BOOTSTRAP_B) -> Optional[float]:
-    """Two-sided bootstrap p-value of rate(real) − rate(control) = 0, resampling periods
-    (multinomial period weights; vectorized)."""
+            b_reps: int = BOOTSTRAP_B) -> Optional[tuple]:
+    """(two-sided bootstrap p-value of rate(real) − rate(control) = 0, its 95% percentile interval),
+    resampling periods (multinomial period weights; vectorized). The interval comes from the same
+    draws, so adding it changed no p-value."""
     periods = sorted({e["period"] for e in real} | {e["period"] for e in ctrl})
     if len(periods) < MIN_PERIODS:
         return None
@@ -451,7 +452,8 @@ def _boot_p(real: Sequence[Mapping], ctrl: Sequence[Mapping], h: Optional[str], 
     d = d[np.isfinite(d)]
     if d.size < b_reps * 0.9:
         return None
-    return float(min(1.0, 2 * min(np.mean(d <= 0), np.mean(d >= 0))))
+    return (float(min(1.0, 2 * min(np.mean(d <= 0), np.mean(d >= 0)))),
+            (float(np.quantile(d, 0.025)), float(np.quantile(d, 0.975))))
 
 
 def holm(pvals: Mapping[Any, Optional[float]]) -> dict:
@@ -477,14 +479,16 @@ def level_reaction_stats(b: Bars, *, seed: int = SEED, bootstrap: int = BOOTSTRA
                             "materiality": MATERIAL_DIFF, "min_events": MIN_EVENTS,
                             "min_periods": MIN_PERIODS}}
     pvals: dict = {}
+    cis: dict = {}
     for typ, d in raw.items():
         real, ctrl = _summ(d["real"]), _summ(d["control"])
         out["types"][typ] = {"period": d["period"], "real": real, "control": ctrl, "verdicts": {}}
         if real["n"] < MIN_EVENTS or real["periods"] < MIN_PERIODS:
             continue
-        for h in OUTCOME_BARS:
-            pvals[(typ, h)] = _boot_p(d["real"], d["control"], h, rng, bootstrap)
-        pvals[(typ, "touch")] = _boot_p(d["real"], d["control"], None, rng, bootstrap)
+        for test in list(OUTCOME_BARS) + ["touch"]:
+            res = _boot_p(d["real"], d["control"], None if test == "touch" else test, rng, bootstrap)
+            pvals[(typ, test)] = None if res is None else res[0]
+            cis[(typ, test)] = None if res is None else res[1]
     adj = holm(pvals)
     out["family_size"] = len([p for p in pvals.values() if p is not None])
     for typ, rec in out["types"].items():
@@ -500,6 +504,8 @@ def level_reaction_stats(b: Bars, *, seed: int = SEED, bootstrap: int = BOOTSTRA
             rec["verdicts"][test] = "differs" if adj[(typ, test)] < ALPHA and abs(diff) >= MATERIAL_DIFF \
                 else "as_usual"
             rec.setdefault("p_holm", {})[test] = round(adj[(typ, test)], 5)
+            # the difference's 95% interval (unadjusted), for the quantitative L2 line
+            rec.setdefault("ci95", {})[test] = [round(cis[(typ, test)][0], 5), round(cis[(typ, test)][1], 5)]
     return out
 
 

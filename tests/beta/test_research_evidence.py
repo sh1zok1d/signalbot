@@ -328,7 +328,7 @@ def _m(fid, key, **kw):
 def test_wording_by_status(lang):
     from beta.research_render import line
     d2 = line(_m("D2", "D2_HIGH_RV_DAY", values={"rv_pct": 4.1, "p90_pct": 3.2}), lang)
-    assert ("Проверено на двух биржах" if lang == "ru" else "Tested on two venues") in d2 and d2.endswith("(D2).")
+    assert ("Проверено на двух биржах" if lang == "ru" else "Tested on two exchanges") in d2 and d2.endswith("(D2).")
     p3 = line(_m("DH3-P3", "P3_CROWD", arm="CROWD_LONG", values={"z": 1.6}), lang)
     assert ("Гипотеза" if lang == "ru" else "Hypothesis") in p3
     assert ("не подтверждено" if lang == "ru" else "not confirmed") in p3

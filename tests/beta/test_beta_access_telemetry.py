@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from beta.access import ACTIVITY_ACTIONS, rejected_hmac
+from beta.access import ACTIVITY_ACTIONS, PRIVACY_NOTICE_VERSION, rejected_hmac
 from beta.admin import fingerprint
 from beta.usage import format_usage_report
 from beta_fakes import CFG, ON, ON_PUSH, TEST_DSN, Clock, fresh_pool, run
@@ -63,7 +63,7 @@ def test_join_by_code_and_rejected_codes_offer_the_waitlist():
         await h.handle(_cb(alice, "pick:ru", 2))
         await h.handle(_cb(alice, "join:ru", 3))
         joined = await _rows(pool, "SELECT invite_code, privacy_notice_version, lang FROM beta_users")
-        assert joined == [{"invite_code": good, "privacy_notice_version": 4, "lang": "ru"}]
+        assert joined == [{"invite_code": good, "privacy_notice_version": PRIVACY_NOTICE_VERSION, "lang": "ru"}]
         assert (await _rows(pool, "SELECT used_count FROM beta_invites WHERE code=$1", good))[0]["used_count"] == 1
 
         async def rejected(uid, code, update_id):
@@ -422,7 +422,7 @@ def test_existing_user_sees_the_updated_privacy_notice_once():
         second = await h.handle(_msg(8675309, "/help", 2))
         assert len(second) == 1 and "конфиденциальность" not in second[0].html
         version = await _rows(pool, "SELECT privacy_notice_version FROM beta_users")
-        assert version == [{"privacy_notice_version": 4}]
+        assert version == [{"privacy_notice_version": PRIVACY_NOTICE_VERSION}]
         await pool.close()
     run(body())
 

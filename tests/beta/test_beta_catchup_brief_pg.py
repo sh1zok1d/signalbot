@@ -70,9 +70,9 @@ def test_brief_command_turns_the_morning_summary_on_and_off():
         pool = await _setup()
         h = await _joined(pool, B0)
         out = await h.handle(_msg(ALICE, "/brief", 5))
-        assert "Morning summary: on" in out[0].html
+        assert "Morning briefing: on" in out[0].html
         out = await h.handle(_msg(ALICE, "/brief off", 6))
-        assert "Morning summary off" in out[0].html and "Unusual-hour messages are not affected" in out[0].html
+        assert "Morning briefing off" in out[0].html and "Unusual-hour messages are not affected" in out[0].html
         assert (await _rows(pool, "SELECT brief_enabled FROM beta_users"))[0]["brief_enabled"] is False
         await h.handle(_msg(ALICE, "/brief on", 7))
         assert (await _rows(pool, "SELECT brief_enabled FROM beta_users"))[0]["brief_enabled"] is True
