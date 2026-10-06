@@ -461,6 +461,15 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 
 **Outage notice.** `/admin_outage start` sends the ready «у нас сбой» notice to every ACTIVE participant in their language; `/admin_outage end` sends «сбой устранён». `/admin_outage` alone shows both texts. Each send is audited (`admin_outage`, with the recipient count). Use it when an alert above means participants are seeing stale or missing data.
 
+**Delivery latency (backlog A4; `beta/latency.py`).** `/admin_latency [days]` (default 7, at most 90) reports, per class, how long delivered messages took from the moment their fact existed to delivery (`finished_at` of the SENT row). Each value is a nearest-rank P50, P95 and max with its N, plus detection (source → decision) and sending (decision → delivery) apart. Messages that expired undelivered are counted per class. The source time per class:
+- `level`, `price`: the close of the 1m or 5m bar that touched;
+- `move`: the close of the 5m bar that completed the move;
+- `push`: the close of the 5m bucket the detector decided on;
+- `event`: the moment the pre-alert became due (event time minus `event_lead_min`);
+- `brief`, `weekly`: the scheduled time.
+
+Alerts recorded before A4 carry no source time; they are counted as «no source» and are never guessed. The floor is about 40 seconds after a bar close, because the notifier runs each minute at :40. Every alert and detector push is rendered with a `latency` field: this message's own lag at render time, and the class P50/P95 with N over the last 7 days. The line itself is drawn by the template work (F1).
+
 A DB outage makes every beta command exit with status 2 and report `DB_UNAVAILABLE`. systemd records that as a failed unit.
 
 ## Privacy (personal data)

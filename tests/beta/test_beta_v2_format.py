@@ -245,6 +245,8 @@ def test_level_touch_alerts_once_on_the_first_touch_of_the_period():
     out = ma.detect_level_touches(blk, b, closed, now=now, max_age=timedelta(minutes=10), stats=None)
     assert [c["key"] for c in out] == ["level:PDH:2026-10-14"]
     assert out[0]["payload"]["at"] == (day0 + timedelta(hours=6, minutes=3)).isoformat()
+    # A4: latency is measured from the close of the 1m candle that touched
+    assert out[0]["payload"]["source_at"] == (day0 + timedelta(hours=6, minutes=4)).isoformat()
     # an older first touch (the bot was down) is not pushed
     late = now + timedelta(minutes=30)
     assert ma.detect_level_touches(blk, b, closed, now=late, max_age=timedelta(minutes=10), stats=None) == []
@@ -259,6 +261,7 @@ def test_event_reminder_window():
                       {"kind": "NFP", "at": NOW + timedelta(minutes=10)}]}
     out = ma.detect_events({"price": 1.0, "corridor": {}}, cal, now=NOW, lead=timedelta(minutes=30), stats=None)
     assert [(c["payload"]["event_kind"], c["payload"]["minutes"]) for c in out] == [("CPI", 20)]
+    assert out[0]["payload"]["source_at"] == (NOW - timedelta(minutes=10)).isoformat()   # due at CPI - 30 min
 
 
 def test_sharp_move_uses_the_closed_5m_grid_and_the_scale_known_before_the_move():
@@ -277,6 +280,7 @@ def test_sharp_move_uses_the_closed_5m_grid_and_the_scale_known_before_the_move(
     assert len(out) == 1 and out[0]["payload"]["move_pct"] == pytest.approx(-2.0)
     assert out[0]["payload"]["every_days"] == pytest.approx(1 / 0.33)
     assert out[0]["payload"]["start"] == (end - timedelta(minutes=15)).isoformat()
+    assert out[0]["payload"]["source_at"] == end.isoformat()                       # the 5m bar's close
     # the same statistic the threshold was calibrated on: no sliding 1m window between grid closes
     assert ma.detect_move(blk, b, [], now=end + timedelta(minutes=5), model=model) == []
     model["move"]["threshold"] = 2.5
@@ -292,6 +296,7 @@ def test_price_alert_triggers_only_after_creation():
     closed = [{"ts": day0 + timedelta(minutes=20), "open": 100.0, "high": 102.5, "low": 100.0, "close": 102.2}]
     out = ma.detect_price_alerts([alert], b, closed, block={"price": 102.2})
     assert out[0]["key"] == "price:7" and out[0]["target_user_pk"] == 3
+    assert out[0]["payload"]["source_at"] == (day0 + timedelta(minutes=21)).isoformat()  # the 1m bar's close
 
 
 def test_price_alert_watches_the_minutes_of_the_5m_bar_it_was_set_in():

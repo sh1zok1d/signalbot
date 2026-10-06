@@ -15,6 +15,7 @@ from typing import Any, Mapping, Optional, Protocol, Sequence
 from .admin import collect_health, fingerprint
 from .config import BetaConfig, BetaSwitches, effective_push_enabled
 from .formatter import format_owner_alert, format_push
+from .latency import class_summary, latency_field
 from .models import (BRIEF_WITHDRAWAL, D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED,
                      D_UNKNOWN, DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE)
 
@@ -81,6 +82,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             push_on = effective_push_enabled(switches, await conn.get_admin_push_enabled())
             episodes: dict = {}
             analogues, since_year = await _analogue_source(conn, now)
+            lat_summary = None
             for row in await conn.fetch_pending_deliveries(cfg["notifications"]["max_deliveries_per_run"]):
                 now = clock()
                 did = row["delivery_id"]
@@ -108,8 +110,11 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 if ep is None:
                     ep = episodes[row["episode_pk"]] = await conn.fetch_episode_by_pk(row["episode_pk"])
                 lang = row.get("user_lang") or "ru"
+                if lat_summary is None:
+                    lat_summary = await class_summary(conn, now)
                 text = format_push(ep, lang=lang, gate=row.get("gate"),
-                                   analog=_push_analogue(analogues, row.get("gate")), since_year=since_year)
+                                   analog=_push_analogue(analogues, row.get("gate")), since_year=since_year,
+                                   latency=latency_field("push", row["decision_ts"], now, lat_summary))
                 # (2) commit PENDING -> SENDING before the single API call
                 if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
                     continue

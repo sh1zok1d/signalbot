@@ -80,11 +80,18 @@ def _series_since(b: Bars, closed_1m, start: datetime, end: Optional[datetime] =
     return out
 
 
-def first_touch(series, level: float, side: int) -> Optional[datetime]:
-    for ts, hi, lo, _c, _m in series:
+def first_touch_bar(series, level: float, side: int) -> Optional[tuple]:
+    """(open time, minutes) of the first closed bar that touched `level`; its close is the
+    alert's source time (backlog A4: latency is measured from that candle close)."""
+    for ts, hi, lo, _c, m in series:
         if (side > 0 and hi >= level) or (side < 0 and lo <= level):
-            return ts
+            return ts, m
     return None
+
+
+def first_touch(series, level: float, side: int) -> Optional[datetime]:
+    hit = first_touch_bar(series, level, side)
+    return None if hit is None else hit[0]
 
 
 def _period_open(b: Bars, closed_1m, start: datetime) -> Optional[float]:
@@ -119,14 +126,16 @@ def detect_level_touches(block: Mapping[str, Any], b: Bars, closed_1m, *, now: d
         popen = _period_open(b, closed_1m, start)
         if popen is None or side * (lv["price"] - popen) <= 0:
             continue
-        touched = first_touch(_series_since(b, closed_1m, start), lv["price"], side)
-        if touched is None or now - touched > max_age:
+        hit = first_touch_bar(_series_since(b, closed_1m, start), lv["price"], side)
+        if hit is None or now - hit[0] > max_age:
             continue
+        touched, source_at = hit[0], hit[0] + timedelta(minutes=hit[1])
         nxt_list = (block.get("levels") or {}).get("above" if side > 0 else "below") or []
         nxt = next((z for z in nxt_list if side * (z["edge"] - lv["price"]) > lv["price"] * 0.001), None)
         rec = lstats.get(kind)
         out.append({"kind": "level", "key": f"level:{kind}:{start.date().isoformat()}",
-                    "payload": {"at": touched.isoformat(), "level_kind": kind, "level": lv["price"],
+                    "payload": {"at": touched.isoformat(), "source_at": source_at.isoformat(),
+                                "level_kind": kind, "level": lv["price"],
                                 "side": side, "period": pname, "price": block["price"],
                                 "history": {k: rec[k] for k in ("real", "control", "verdicts")} if rec else None,
                                 "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
@@ -163,7 +172,8 @@ def detect_events(block: Mapping[str, Any], cal, *, now: datetime, lead: timedel
             continue
         mins = max(1, int(round((e["at"] - now).total_seconds() / 60)))
         out.append({"kind": "event", "key": f"event:{e['kind']}:{e['at'].isoformat()}",
-                    "payload": {"at": now.isoformat(), "event_kind": e["kind"], "event_at": e["at"].isoformat(),
+                    "payload": {"at": now.isoformat(), "source_at": (e["at"] - lead).isoformat(),
+                                "event_kind": e["kind"], "event_at": e["at"].isoformat(),
                                 "minutes": mins, "price": block["price"], "stats": ev_stats.get(e["kind"]),
                                 "event_zone": block.get("event_zone") or {}}})
     return out
@@ -195,7 +205,8 @@ def detect_move(block: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime, 
     near = [z for z in ((lv.get("above") or [])[:1] + (lv.get("below") or [])[:1]) if z]
     eps = thr.get("episodes_per_day")
     return [{"kind": "move", "key": f"move:{b.end_ms // BAR_MS}",
-             "payload": {"at": from_ms(b.end_ms).isoformat(), "start": from_ms(b.t0 + (j + 1) * BAR_MS).isoformat(),
+             "payload": {"at": from_ms(b.end_ms).isoformat(), "source_at": from_ms(b.end_ms).isoformat(),
+                         "start": from_ms(b.t0 + (j + 1) * BAR_MS).isoformat(),
                          "open": o, "close": c, "move_pct": move, "ratio": ratio,
                          "every_days": (1.0 / eps) if eps else None,
                          "corridor_1h": ((block.get("corridor") or {}).get("horizons") or {}).get("1h"),
@@ -211,14 +222,16 @@ def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any],
     corridor_4h = ((block.get("corridor") or {}).get("horizons") or {}).get("4h")
     for a in active:
         side = +1 if a["direction"] == "above" else -1
-        touched = first_touch(_series_since(b, closed_1m, a["created_at"]), float(a["price"]), side)
-        if touched is None:
+        hit = first_touch_bar(_series_since(b, closed_1m, a["created_at"]), float(a["price"]), side)
+        if hit is None:
             continue
+        touched = hit[0]
         at = max(touched, a["created_at"])
         late = bool(now is not None and max_age is not None and now - at > max_age)
         out.append({"kind": "price", "key": f"price:{a['price_alert_pk']}", "price_alert_pk": a["price_alert_pk"],
                     "target_user_pk": a["user_pk"],
-                    "payload": {"at": at.isoformat(), "level": float(a["price"]), "late": late,
+                    "payload": {"at": at.isoformat(), "source_at": (touched + timedelta(minutes=hit[1])).isoformat(),
+                                "level": float(a["price"]), "late": late,
                                 "price": block["price"], "corridor_4h": corridor_4h,
                                 "event_zone": block.get("event_zone") or {}}})
     return out
@@ -394,6 +407,7 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
     from .decision import build_decision
     from .decision_format import format_alert
     from .delivery import DeliveryRejected
+    from .latency import alert_source_at, class_summary, latency_field
     d = cfg.section("decision")
     m = d["market_alerts"]
     rep = {"detected": 0, "pushed": 0, "suppressed": 0, "materialized": 0, "sent": 0, "failed": 0,
@@ -446,6 +460,7 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
         rep["materialized"] += await conn.materialize_alert_deliveries(
             alert_pk=a["alert_pk"], kind=a["kind"], decision_ts=a["decision_ts"],
             target_user_pk=a["target_user_pk"], expired=(now - a["decision_ts"] > ttl), now=now)
+    lat_summary = None
     for row in await conn.fetch_pending_alert_deliveries(cfg["notifications"]["max_deliveries_per_run"]):
         now = clock()
         did = row["delivery_id"]
@@ -469,7 +484,11 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             rep["failed"] += 1
             continue
         lang = row.get("user_lang") or "ru"
-        text = format_alert(row["kind"], row["payload"], lang)
+        if lat_summary is None:
+            lat_summary = await class_summary(conn, now)
+        # the measured delay field for the push's delay line (backlog A4; the line is drawn by F1)
+        lat = latency_field(row["kind"], alert_source_at(row["payload"]), now, lat_summary)
+        text = format_alert(row["kind"], {**row["payload"], "latency": lat}, lang)
         if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
             continue
         try:

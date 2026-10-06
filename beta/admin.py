@@ -22,7 +22,8 @@ from .health import health_alerts, ingestion_heartbeat, product_status
 ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "admin_pause_push",
                   "admin_resume_push", "admin_d7_on", "admin_d7_off", "admin_broadcast", "admin_outage",
                   "admin_health", "admin_invite_new", "admin_invites", "admin_invite_revoke",
-                  "admin_waitlist", "admin_waitlist_admit", "admin_stats", "admin_reply", "admin_known")
+                  "admin_waitlist", "admin_waitlist_admit", "admin_stats", "admin_reply", "admin_known",
+                  "admin_latency")
 UNAUTHORIZED_ACTOR = "unauthorized"
 
 
@@ -317,6 +318,17 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                       for c in chats]
             reply = f"outage {phase} notice sent to {len(direct)} active participants"
             detail = {"phase": phase, "recipients": len(direct)}
+    elif command == "admin_latency":
+        # A4: candle close (or schedule) -> delivery, P50/P95 by class
+        from .latency import format_report, summarize
+        raw = (args or "").strip()
+        if raw and not (raw.isdigit() and 1 <= int(raw) <= 90):
+            result, reply = "INVALID_ARGUMENT", "usage: /admin_latency [days 1..90, default 7]"
+        else:
+            days = int(raw or 7)
+            summary = summarize(await conn.delivery_latency_rows(since=now - timedelta(days=days)))
+            reply = format_report(summary, days=days)
+            detail = {"days": days, "n": {k: v["n"] for k, v in summary.items()}}
     elif command == "admin_stats":
         from .usage import build_usage_report, format_usage_report
         report = build_usage_report(await conn.usage_facts(), now=now, owner_user_id=owner_user_id)
