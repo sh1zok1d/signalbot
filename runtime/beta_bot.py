@@ -255,7 +255,13 @@ class BetaBotHandler:
                                     result="OK", detail=removed)
             return [_msg(chat_id, t(lang, "deleted"), lang=lang)]
         if user is None or user["status"] != "ACTIVE":
+            if cmd == "feedback" and user is not None:
+                # the privacy notice sends questions about one's data to /feedback: a paused participant
+                # still reaches the team (the same limits, store and owner copy)
+                return await self._feedback(conn, user, chat_id, lang, now, args)
             if user is not None or await self._allowed(conn, uid):
+                if cmd == "feedback":                  # invited, not joined: nothing but the invitation is stored
+                    return [_msg(chat_id, t(lang, "feedback_before_join"), lang=lang)]
                 return [_msg(chat_id, t(lang, "not_joined"), lang=lang)]
             return [_msg(chat_id, t("ru", "closed_beta"), lang="ru")]
         if cmd == "lang":

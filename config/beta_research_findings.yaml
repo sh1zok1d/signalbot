@@ -304,8 +304,8 @@ findings:
       limitations_en: "the effect is real but very small; six coins"
   - id: R03-C1
     status: WEAK
-    text_ru: "выходные часы спокойнее того же часа во вт–чт; разрыв рос каждый год с 2020 по 2024, но остался ниже порога практической величины проверки (0,5 SD)"
-    text_en: "weekend hours are calmer than the same hour on Tue–Thu; the gap grew every year from 2020 to 2024 but stayed below the test's materiality bar (0.5 SD)"
+    text_ru: "выходные часы спокойнее того же часа во вт–чт, разрыв рос с 2020 по 2024; ниже порога практической величины (0,5 SD); после поправки на волатильность прошлых 24 ч разрыв в основном уходит (−0,40 → −0,10 SD)"
+    text_en: "weekend hours are calmer than the same hour on Tue–Thu, a gap that grew from 2020 to 2024; below the materiality bar (0.5 SD); after adjusting for the prior 24h volatility most of the gap goes (−0.40 → −0.10 SD)"
     data: "Binance 2020–2024, 260 недель"
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
     contexts: [weekend]
@@ -324,8 +324,8 @@ findings:
       comparator_en: "the same hour on Tue–Thu"
       replication_ru: "независимой проверки нет"
       replication_en: "no independent check"
-      limitations_ru: "ниже порога практической величины проверки (0,5 SD)"
-      limitations_en: "below the test's materiality bar (0.5 SD)"
+      limitations_ru: "ниже порога практической величины проверки (0,5 SD); в основном общий режим волатильности: после поправки на волатильность прошлых 24 ч −0,10 SD вместо −0,40"
+      limitations_en: "below the test's materiality bar (0.5 SD); mostly the general volatility regime: after adjusting for the prior 24h volatility −0.10 SD instead of −0.40"
 
   # ---- popular beliefs that did not hold -------------------------------------------------------
   - id: H03

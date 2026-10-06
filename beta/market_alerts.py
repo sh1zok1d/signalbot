@@ -111,7 +111,7 @@ def _zone_brief(z: Optional[Mapping[str, Any]]) -> Optional[dict]:
 
 def detect_level_touches(block: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime, max_age: timedelta,
                          stats: Optional[Mapping[str, Any]]) -> list:
-    from .levels import PUSH_LEVELS
+    from .levels import PUSH_LEVELS, history_view
     out = []
     lstats = ((stats or {}).get("levels") or {}).get("types") or {}
     corridor_4h = ((block.get("corridor") or {}).get("horizons") or {}).get("4h")
@@ -137,8 +137,7 @@ def detect_level_touches(block: Mapping[str, Any], b: Bars, closed_1m, *, now: d
                                 "level_kind": kind, "level": lv["price"],
                                 "side": side, "period": pname, "price": block["price"],
                                 "price_ts": block.get("price_ts"),
-                                "history": {**{k: rec[k] for k in ("real", "control", "verdicts")},
-                                            "ci95": rec.get("ci95") or {}} if rec else None,
+                                "history": history_view(rec) if rec else None,
                                 "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
                                 "event_zone": block.get("event_zone") or {}}})
     return _one_per_price(out)

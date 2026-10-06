@@ -101,7 +101,7 @@ def _round(x, nd=6):
 
 
 def _zone_out(z: Mapping[str, Any], *, model, fc, levels_stats, price: float, side: int) -> dict:
-    from .levels import stat_type_for
+    from .levels import history_view, stat_type_for
     from .rangecast import touch_probability
     dist = abs(z["distance_pct"])
     touch = {}
@@ -114,8 +114,7 @@ def _zone_out(z: Mapping[str, Any], *, model, fc, levels_stats, price: float, si
         st = stat_type_for(m["kind"], side)
         rec = ((levels_stats or {}).get("types") or {}).get(st) if st else None
         if rec and rec.get("real", {}).get("n"):
-            hist = {"type": st, "kind": m["kind"], **{k: rec[k] for k in ("real", "control", "verdicts")},
-                    "ci95": rec.get("ci95") or {}}
+            hist = {"type": st, "kind": m["kind"], **history_view(rec)}
             break
     members = [{"kind": m["kind"], "price": _round(m["price"], 2),
                 **({"notional_usd": _round(m.get("notional_usd"), 0)} if m.get("notional_usd") else {}),

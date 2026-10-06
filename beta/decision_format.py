@@ -10,7 +10,7 @@ import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
-from .i18n import (MINUS, assert_descriptive, fmt_clock, fmt_kyiv_hm, fmt_plain_pct, fmt_price, fmt_signed_pct,
+from .i18n import (assert_descriptive, fmt_clock, fmt_kyiv_hm, fmt_plain_pct, fmt_price, fmt_signed_pct,
                    fmt_usd, kyiv, na, t)
 from .i18n_decision import EVENT_NAMES, LEVEL_NAMES, WEEKDAYS, cases_word
 
@@ -44,45 +44,70 @@ def fmt_share(p: Optional[float], lang: str) -> str:
     return na(lang) if p is None else f"{round(p * 100):d}%"
 
 
-def _x(v: Optional[float], lang: str) -> str:
+def _x(v: Optional[float], lang: str, nd: int = 1) -> str:
     if v is None:
         return na(lang)
-    s = f"{float(v):.1f}"
+    s = f"{float(v):.{nd}f}"
     return s.replace(".", ",") if lang == "ru" else s
 
 
 def fmt_pp(v: float, lang: str) -> str:
-    """A difference of two shares (fractions) in percentage points: signed, one decimal."""
-    x = round(float(v) * 100.0, 1)
-    sign = MINUS if x < 0 else "+" if x > 0 else ""
-    body = f"{abs(x):.1f}"
-    return sign + (body.replace(".", ",") if lang == "ru" else body)
+    """A difference of two shares (fractions) in percentage points: one decimal, signed by the unrounded
+    value, so an interval edge just below zero stays «−0,0» rather than an unsigned «0,0»."""
+    return fmt_signed_pct(float(v) * 100.0, lang, nd=1)[:-1]
+
+
+def _interval(ci: Any) -> Optional[tuple]:
+    """A stored [lo, hi] as two floats, or None."""
+    if not ci or len(ci) != 2 or ci[0] is None or ci[1] is None:
+        return None
+    return float(ci[0]), float(ci[1])
 
 
 def pp_ci(ci: Optional[Sequence[float]], lang: str) -> str:
     """'; 95% интервал −0,8…+3,1' for a stored [lo, hi] of a difference of shares, or ''."""
-    if not ci or len(ci) != 2 or ci[0] is None or ci[1] is None:
-        return ""
-    return t(lang, "dc_pp_ci", lo=fmt_pp(ci[0], lang), hi=fmt_pp(ci[1], lang))
+    iv = _interval(ci)
+    return "" if iv is None else t(lang, "dc_pp_ci", lo=fmt_pp(iv[0], lang), hi=fmt_pp(iv[1], lang))
+
+
+def share_pair(a: float, b: float, lang: str) -> tuple:
+    """Two shares printed side by side: whole percents, or one decimal for both when the whole percents
+    coincide (never «52% против 52%» beside a difference of +1,0 п.п.)."""
+    if round(a * 100) != round(b * 100):
+        return fmt_share(a, lang), fmt_share(b, lang)
+    return tuple(fmt_plain_pct(x * 100.0, lang, nd=1) for x in (a, b))
+
+
+def analog_shown(cell: Mapping[str, Any]) -> bool:
+    """Whether «после похожих» prints its numbers: enough cases, a baseline and the difference's 95%
+    interval. Without the interval (fewer days than the bootstrap needs, or statistics built before the
+    interval existed) the line says «мало данных»; the claim journal states the same."""
+    return int(cell.get("n") or 0) >= MIN_N_SHOWN and bool(cell.get("baseline")) \
+        and _interval((cell.get("ci95") or {}).get("direction")) is not None
+
+
+def level_hist_shown(hist: Optional[Mapping[str, Any]], h: str = "1h") -> bool:
+    """Whether a level's first-touch history prints its numbers at horizon `h`: enough touches, both
+    hold rates and the difference's 95% interval; otherwise «мало данных», as on /levels and /check."""
+    if not hist:
+        return False
+    real, ctrl = hist.get("real") or {}, hist.get("control") or {}
+    return int(real.get("n") or 0) >= MIN_N_SHOWN and (real.get(h) or {}).get("hold_rate") is not None \
+        and (ctrl.get(h) or {}).get("hold_rate") is not None \
+        and _interval((hist.get("ci95") or {}).get(h)) is not None
 
 
 def analog_range(cell: Mapping[str, Any], lang: str) -> tuple:
-    """(ratio, interval text) of the move against «обычно». With the bootstrapped estimand stored (the
-    mean log range of the cohort minus its baseline's), the ratio is exp of it and the interval is
-    exp of its 95% interval; an older payload falls back to the median ratio with no interval."""
+    """(ratio, interval text) of the move against «обычно». With the bootstrapped interval stored, the
+    ratio is exp of the mean log range of the cohort minus its baseline's and the interval is exp of its
+    95% interval. Without it (an older statistics row, which may carry the mean log range already) the
+    median ratio with no interval, so the estimand never changes silently."""
     base = cell.get("baseline") or {}
-    ci = (cell.get("ci95") or {}).get("range")
-    if cell.get("mean_log_range") is not None and base.get("mean_log_range") is not None:
+    ci = _interval((cell.get("ci95") or {}).get("range"))
+    if ci is not None and cell.get("mean_log_range") is not None and base.get("mean_log_range") is not None:
         ratio = math.exp(float(cell["mean_log_range"]) - float(base["mean_log_range"]))
-        rci = t(lang, "dc_ratio_ci", lo=_x2(math.exp(ci[0]), lang), hi=_x2(math.exp(ci[1]), lang)) \
-            if ci and len(ci) == 2 else ""
-        return ratio, rci
+        return ratio, t(lang, "dc_ratio_ci", lo=_x(math.exp(ci[0]), lang, 2), hi=_x(math.exp(ci[1]), lang, 2))
     return cell.get("range_ratio"), ""
-
-
-def _x2(v: float, lang: str) -> str:
-    s = f"{float(v):.2f}"
-    return s.replace(".", ",") if lang == "ru" else s
 
 
 def _pct(v: float, lang: str, nd: int = 2) -> str:
@@ -260,13 +285,15 @@ def analog_line(card: Optional[Mapping[str, Any]], lang: str, *, since_year: Opt
     h = card["window"]
     cell = (card.get("outcomes") or {}).get(h) or {}
     n = int(cell.get("n") or 0)
-    if n < MIN_N_SHOWN or not cell.get("baseline"):
+    if not analog_shown(cell):
         return t(lang, "dc_analog_short", n=_n(n, lang))
     base = cell["baseline"]
     ratio, rci = analog_range(cell, lang)
-    return t(lang, "dc_analog_line", n=_n(n, lang, since_year), h=_hz(h, lang), p_up=fmt_share(cell["p_up"], lang),
-             base_up=fmt_share(base["p_up"], lang), diff=fmt_pp(cell["p_up"] - base["p_up"], lang),
-             ci=pp_ci((cell.get("ci95") or {}).get("direction"), lang), ratio=_x(ratio, lang), rci=rci)
+    p_up, base_up = share_pair(cell["p_up"], base["p_up"], lang)
+    return t(lang, "dc_analog_line", n=_n(n, lang, since_year), h=_hz(h, lang), p_up=p_up, base_up=base_up,
+             diff=fmt_pp(cell["p_up"] - base["p_up"], lang),
+             ci=pp_ci((cell.get("ci95") or {}).get("direction"), lang), ratio=_x(ratio, lang, 2 if rci else 1),
+             rci=rci)
 
 
 def brief_levels_line(block: Mapping[str, Any], lang: str) -> list:
@@ -418,22 +445,29 @@ def typical_move(view: Mapping[str, Any], h: str) -> Optional[float]:
 
 
 # ---- /levels -----------------------------------------------------------------------------
-def _hist_lines(hist: Optional[Mapping[str, Any]], lang: str, side: int) -> list:
+_HIST_KEYS = {"levels": ("lv_hist", "lv_hist_short", "lv_hist_move"),
+              "alert": ("pa_level_hist", "pa_level_hist_short", "pa_level_move")}
+
+
+def _hist_lines(hist: Optional[Mapping[str, Any]], lang: str, side: int, style: str = "levels") -> list:
+    """A level's first-touch history: the 1h hold rate beside the random level's with the difference and
+    its interval, then the medians; «мало данных» without enough touches or without the interval."""
     if not hist or not hist.get("real"):
         return []
     real, ctrl = hist["real"], hist.get("control") or {}
     r1, c1 = real.get("1h"), ctrl.get("1h")
     if not r1 or not c1 or not real.get("n"):
         return []
-    if real["n"] < MIN_N_SHOWN:
-        return [t(lang, "lv_hist_short", n=_n(real["n"], lang))]
-    lines = [t(lang, "lv_hist", n=_n(real["n"], lang), side=t(lang, "lv_side_above" if side > 0 else "lv_side_below"),
-               hold=fmt_share(r1["hold_rate"], lang), ctrl=fmt_share(c1["hold_rate"], lang),
-               diff=fmt_pp(r1["hold_rate"] - c1["hold_rate"], lang),
+    line, short, move_key = _HIST_KEYS[style]
+    if not level_hist_shown(hist, "1h"):
+        return [t(lang, short, n=_n(real["n"], lang))]
+    hold, ctrl_share = share_pair(r1["hold_rate"], c1["hold_rate"], lang)
+    lines = [t(lang, line, n=_n(real["n"], lang), side=t(lang, "lv_side_above" if side > 0 else "lv_side_below"),
+               hold=hold, ctrl=ctrl_share, diff=fmt_pp(r1["hold_rate"] - c1["hold_rate"], lang),
                ci=pp_ci((hist.get("ci95") or {}).get("1h"), lang))]
     move = _move_args(r1, c1, lang)
     if move:
-        lines.append(t(lang, "lv_hist_move", **move))
+        lines.append(t(lang, move_key, **move))
     return lines
 
 
@@ -804,22 +838,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         else:                                       # a payload stored before A1
             lines.append(t(lang, "pa_level_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
                            period=t(lang, "pa_period_" + payload.get("period", "day"))))
-        hist = payload.get("history")
-        side = int(payload.get("side") or 1)
-        if hist and hist.get("real") and (hist["real"].get("1h") and (hist.get("control") or {}).get("1h")):
-            r1, c1 = hist["real"]["1h"], hist["control"]["1h"]
-            n_real = int(hist["real"].get("n") or 0)
-            if n_real < MIN_N_SHOWN:
-                lines.append(t(lang, "pa_level_hist_short", n=_n(n_real, lang)))
-            else:
-                lines.append(t(lang, "pa_level_hist", n=_n(n_real, lang),
-                               side=t(lang, "lv_side_above" if side > 0 else "lv_side_below"),
-                               hold=fmt_share(r1["hold_rate"], lang), ctrl=fmt_share(c1["hold_rate"], lang),
-                               diff=fmt_pp(r1["hold_rate"] - c1["hold_rate"], lang),
-                               ci=pp_ci((hist.get("ci95") or {}).get("1h"), lang)))
-                move = _move_args(r1, c1, lang)
-                if move:
-                    lines.append(t(lang, "pa_level_move", **move))
+        lines.extend(_hist_lines(payload.get("history"), lang, int(payload.get("side") or 1), "alert"))
         nxt = payload.get("next")
         if nxt:
             p24 = (nxt.get("touch") or {}).get("24h")

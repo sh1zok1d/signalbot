@@ -509,6 +509,12 @@ def level_reaction_stats(b: Bars, *, seed: int = SEED, bootstrap: int = BOOTSTRA
     return out
 
 
+def history_view(rec: Mapping[str, Any]) -> dict:
+    """The fields of a level type's statistics that a surface or an alert payload carries: both cohorts,
+    the verdicts and the differences' 95% intervals (one whitelist for /levels, /check and the alerts)."""
+    return {**{k: rec[k] for k in ("real", "control", "verdicts")}, "ci95": rec.get("ci95") or {}}
+
+
 def stat_type_for(kind: str, side: int) -> Optional[str]:
     """Map a live level kind (and the side it is approached from) to its statistics type."""
     if kind in ("PDH", "PWH", "PMH"):

@@ -36,7 +36,7 @@ def _zone(kinds, edge, dist, hist=None):
             "members": [{"kind": k, "price": edge} for k in kinds], "touch": {"4h": 0.3, "24h": 0.6}, "history": hist}
 
 
-HIST = {"verdicts": {"1h": "as_usual"}, "real": {"n": 812, "1h": {"hold_rate": 0.47, "further_median": 0.5, "back_median": 0.4}},
+HIST = {"verdicts": {"1h": "as_usual"}, "ci95": {"1h": [-0.012, 0.091]}, "real": {"n": 812, "1h": {"hold_rate": 0.47, "further_median": 0.5, "back_median": 0.4}},
         "control": {"n": 4000, "1h": {"hold_rate": 0.43, "further_median": 0.3, "back_median": 0.25}}}
 
 
@@ -159,8 +159,14 @@ def test_each_part_of_a_pair_names_its_own_check_and_n():
 def test_an_objective_level_shows_its_own_history_beside_a_random_level():
     text = plain(ck.format_check(block(), STATS, [62950.0], "ru", now=NOW))
     assert "62 950 — это максимум вчера:" in text
-    assert "после первого касания (812 случаев): через 1ч цена выше уровня в 47% — у случайного уровня 43%" in text
+    assert ("после первого касания (812 случаев): через 1ч цена выше уровня в 47% — у случайного уровня 43% "
+            "(+4,0 п.п.; 95% интервал −1,2…+9,1)") in text
     assert "таком расстоянии" not in text
+    # without the difference's interval: «мало данных», never a bare difference (review of #343, finding 2)
+    b = block()
+    b["levels"]["above"][0]["history"] = {k: v for k, v in HIST.items() if k != "ci95"}
+    bare = plain(ck.format_check(b, STATS, [62950.0], "ru", now=NOW))
+    assert "↳ после первого касания: мало данных (812 случаев)" in bare and "п.п." not in bare
 
 
 def test_event_zone_horizons_have_no_number():

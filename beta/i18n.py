@@ -393,6 +393,12 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "Данные участника беты удалены, и вы исключены из беты.",
         "en": "Your beta participant data was deleted and you were removed from the beta.",
     },
+    "feedback_before_join": {
+        "ru": "До вступления бот хранит о вас только приглашение (и запись в листе ожидания, если она есть); "
+              "/delete_me удаляет их. Написать команде можно после вступления: /start, затем /feedback ваш текст.",
+        "en": "Before you join, the bot keeps only your invitation (and a waitlist entry, if any); /delete_me "
+              "removes them. You can write to the team after joining: /start, then /feedback your text.",
+    },
     "not_joined": {
         "ru": "Сообщения на паузе, или вы ещё не вступили. Отправьте /start.",
         "en": "Messages are paused or you have not joined yet. Send /start.",
