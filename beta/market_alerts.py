@@ -243,6 +243,7 @@ def detect_price_approaches(active, *, block: Mapping[str, Any], now: datetime) 
     """«Мои уровни» (backlog E1): one message when the price first comes within the hour's typical move
     of a personal level that was set farther away than that; never after the touch. No typical move (the
     1h horizon inside its event zone, no statistics): no approach message, the touch still fires."""
+    from .decision_format import price_clock
     x = ((block.get("corridor") or {}).get("horizons") or {}).get("1h")
     if not block.get("available") or not x or block.get("price") is None:
         return []
@@ -259,7 +260,9 @@ def detect_price_approaches(active, *, block: Mapping[str, Any], now: datetime) 
             continue                                   # set already close, still far, or already through
         out.append({"kind": "approach", "key": f"approach:{a['price_alert_pk']}", "price_alert_pk": a["price_alert_pk"],
                     "target_user_pk": a["user_pk"],
-                    "payload": {"at": now.isoformat(), "source_at": block.get("price_ts") or now.isoformat(),
+                    # the latency source is the close of the price's 1m bar (price_ts is its open)
+                    "payload": {"at": now.isoformat(),
+                                "source_at": (price_clock(block.get("price_ts")) or now).isoformat(),
                                 "level": level, "price": price, "price_ts": block.get("price_ts"),
                                 "distance_pct": dist, "typical_1h_pct": typ}})
     return out

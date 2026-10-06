@@ -85,7 +85,7 @@ def test_the_approach_of_a_personal_level_fires_once_within_the_hours_typical_mo
     assert [c["key"] for c in out] == ["approach:7"] and out[0]["target_user_pk"] == 3
     assert round(out[0]["payload"]["distance_pct"], 3) == 0.464
     text = format_alert("approach", out[0]["payload"], "ru")
-    assert text.startswith("<b>BTC подходит к вашему уровню 65 000</b>\n09:00 (Киев) · цена 64 700 (Binance, 09:00)"
+    assert text.startswith("<b>BTC подходит к вашему уровню 65 000</b>\n09:00 (Киев) · цена 64 700 (Binance, 09:01)"
                            " · до уровня 0,46% — меньше обычного хода за 1ч (±0,60%)")
     assert detect_price_approaches([{**a, "approached_at": T}], block=blk, now=T) == []        # once
     assert detect_price_approaches([{**a, "created_price": 64800.0}], block=blk, now=T) == []  # set close already
