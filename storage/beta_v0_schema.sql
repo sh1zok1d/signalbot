@@ -801,6 +801,24 @@ CREATE TABLE IF NOT EXISTS beta_price_alerts (
 );
 CREATE INDEX IF NOT EXISTS ix_beta_price_alerts_active ON beta_price_alerts (user_pk)
     WHERE triggered_at IS NULL AND cancelled_at IS NULL;
+-- «Мои уровни» (backlog E1): one approach message before the touch, when the price first comes
+-- within the hour's typical move of the level.
+ALTER TABLE beta_price_alerts ADD COLUMN IF NOT EXISTS approached_at TIMESTAMPTZ;
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_market_alerts'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%''price''%' AND pg_get_constraintdef(oid) LIKE '%''move''%'
+      AND pg_get_constraintdef(oid) NOT LIKE '%approach%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_market_alerts DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_market_alerts ADD CONSTRAINT ck_beta_market_alert_kind CHECK (
+            kind IN ('level', 'event', 'move', 'price', 'approach'));
+    END IF;
+END $$;
 
 -- Per-type push preferences (all on by default; `push_enabled` stays the master switch for
 -- market pushes; a personal price alert is delivered whenever the participant is ACTIVE).

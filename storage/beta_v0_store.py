@@ -2041,7 +2041,7 @@ class BetaConn:
         participants get a SUPPRESSED row (as for the existing pushes). The alert is then marked
         dispatched, also when nobody qualified, so it never blocks later alerts."""
         pref = {"level": "push_levels", "event": "push_events", "move": "push_moves"}.get(kind)
-        if kind == "price":
+        if kind in ("price", "approach"):
             where = "u.user_pk = $4::bigint"
         elif pref is not None:
             where = f"$4::bigint IS NULL AND u.push_enabled AND u.{pref}"
@@ -2058,7 +2058,7 @@ class BetaConn:
                        $2
                 FROM beta_users u WHERE {where}
                 ON CONFLICT (alert_pk, user_pk) WHERE kind='alert' DO NOTHING""",
-            alert_pk, decision_ts, expired, target_user_pk if kind == "price" else None)
+            alert_pk, decision_ts, expired, target_user_pk if kind in ("price", "approach") else None)
         await self.conn.execute("UPDATE beta_market_alerts SET dispatched_at=$2 WHERE alert_pk=$1",
                                 alert_pk, now or decision_ts)
         return int(status.split()[-1])
@@ -2107,10 +2107,18 @@ class BetaConn:
 
     async def fetch_active_price_alerts(self) -> list:
         rows = await self.conn.fetch(
-            """SELECT p.price_alert_pk, p.user_pk, p.price, p.direction, p.created_at, p.created_price
+            """SELECT p.price_alert_pk, p.user_pk, p.price, p.direction, p.created_at, p.created_price,
+                      p.approached_at
                FROM beta_price_alerts p JOIN beta_users u USING (user_pk)
                WHERE p.triggered_at IS NULL AND p.cancelled_at IS NULL AND u.status='ACTIVE'""")
         return [dict(r) for r in rows]
+
+    async def mark_price_alert_approached(self, price_alert_pk: int, *, at: datetime) -> bool:
+        status = await self.conn.execute(
+            """UPDATE beta_price_alerts SET approached_at=$2
+               WHERE price_alert_pk=$1 AND approached_at IS NULL AND triggered_at IS NULL AND cancelled_at IS NULL""",
+            price_alert_pk, at)
+        return status == "UPDATE 1"
 
     async def mark_price_alert_triggered(self, price_alert_pk: int, *, at: datetime) -> bool:
         status = await self.conn.execute(
