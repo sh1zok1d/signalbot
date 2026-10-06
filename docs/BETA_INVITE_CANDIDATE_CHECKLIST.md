@@ -49,10 +49,11 @@ A step is DONE only when its pass condition holds on production for the exact ca
 
 **Telegram, with a second (non-owner) test account:**
 
-- **Join.** `/start <invite>` → language → privacy → Join.
-- **Commands.** `/btc` (tabs, Levels, Risk), `/catchup`, `/catchup 3`, `/levels`, `/risk`, `/risk 0.5`, `/events`, `/accuracy`, `/research`, `/alert <price ±2%>`, `/alert`, `/alert del 1`, `/push`, `/push off`, `/push on`, `/brief off`, `/brief on`, `/history`, `/help`, `/terms`.
-- **Wrong arguments.** `/catchup 99`, `/risk abc`, `/alert abc`, `/alert <price ×2>`, `/alert del 1` on an empty list, `/foo`.
-- **Leaving.** `/stop`, then `/btc`, then `/start`, then `/delete_me`.
+- **Join and onboarding (J1, E5).** `/start <invite>` → language → privacy (v7) → Join → the welcome ends with «Как вы торгуете?»; an answer (or «Пропустить») brings, once, the live `/btc`, an example message marked as an example and the `/check` offer. Pass: first value within 60 seconds of Join.
+- **Commands.** `/btc` (tabs, Levels, Risk, «🔬 Исследования»), `/catchup`, `/catchup 3`, `/levels`, `/risk`, `/risk 0.5`, `/check 65000`, `/check 64000 61000`, `/events`, `/accuracy`, `/research`, `/alert <price ±2%>`, `/alert`, `/alert del 1`, `/push`, `/push off`, `/push on`, `/brief off`, `/brief on`, `/brief 07:30`, `/tz +3`, `/tz kyiv`, `/type`, `/guide`, `/idea` then a plain message, a plain message on its own, `/interview` and a slot, `/history`, `/help`, `/terms`.
+- **Buttons under messages.** «🔕 Не присылать такие» and «↩️ Вернуть» under a push; «Полезно / Шум» under an alert, the briefing and the weekly report, and the reason question after «Шум»; «🎯 Проверить» and «🔔 Следить».
+- **Wrong arguments.** `/catchup 99`, `/risk abc`, `/alert abc`, `/alert <price ×2>`, `/alert del 1` on an empty list, `/check abc`, `/tz Mars/Base`, `/brief 25:00`, `/foo`.
+- **Leaving.** `/stop` (and its one question), then `/btc`, then `/start`, then `/delete_me`.
 
 Pass condition: every reply is human-readable. No reply shows an id (`EV-…`), a version, a digest, an English status code or a stack trace.
 
@@ -97,7 +98,7 @@ Walk push → `/btc` → «После похожих» / tabs → Levels → Ris
 
 ## 5. Measurement freeze
 
-`BETA_MEASUREMENT_CONTRACT_V1.md` is FREEZE_READY: the owner decisions of 2026-10-03 are recorded in its §9. The owner fills §0 with the merge commit hash.
+`BETA_MEASUREMENT_CONTRACT_V1.md` is FREEZE_READY: the owner decisions of 2026-10-03 are recorded in its §9, and Amendment 1 (2026-10-06, §10) adds the pre-beta scope (`PRE_BETA_SCOPE_DECISION_V1.md` §6.7). The owner reviews the amendment and freezes the contract on the final build commit by filling §0 with that hash; nothing in §0 is filled before that.
 
 When the first enrolled unknown participant joins:
 
@@ -118,7 +119,7 @@ WHERE u.telegram_user_id = <test id>
 ORDER BY a.activity_pk;
 ```
 
-Every action of the §2 smoke must be present in order, with `cmd_push` / `cmd_brief` details.
+Every action of the §2 smoke must be present in order, with `cmd_push` / `cmd_brief` details, and with the classes of the contract's Amendment 1: `cmd_check`, `btn_check`, `btn_watch`, `cmd_tz`, `cmd_type`, `type_set`, `btn_mute` / `btn_unmute` (detail = the type), `btn_useful` / `btn_noise` (detail = the message type, none for the unusual-hour push), `reason_set`, `cmd_guide`, `cmd_idea`, `idea_sent`, `plain_text`, `cmd_interview`, `interview_booked`, `onboard_btc` (never `cmd_btc`).
 
 ## 7. Onboarding and privacy
 
@@ -157,3 +158,30 @@ After this point, no feature lands unless it fixes something that breaks the tes
 | 4 | up to 10 unknown | Day 0 = first unknown join | acquisition window 12 days (§7 U4) |
 
 Mark every known contact with `/admin_known <id> on` within 24 hours of their join (contract §1.2).
+
+## 10. Pre-beta scope additions (2026-10-06, `PRE_BETA_SCOPE_DECISION_V1.md`)
+
+**Owner actions before Day 0 (not code; decision §9):**
+- restore CI (GitHub billing);
+- check `BETA_RESEARCH_EVIDENCE_ENABLED` in the production `.env` and record it;
+- run `--beta-context-dry-run` on the production tape and record the gate coverage;
+- fix the U3 price and the manual payment method in a commit: `access.u3_offer.price` / `.method` (`/admin_offer` refuses until then);
+- a second acquisition channel for U4;
+- approve the 5-question interview script;
+- review the interpretation labels (`PROVISIONAL_PENDING_DRY_RUN`);
+- 2–3 traders who have not seen the product for the onboarding check;
+- update or close PR #307.
+
+**Configuration on the candidate (pass = as written):**
+
+| Key | Value | Why |
+|---|---|---|
+| `decision.research_evidence.main_surfaces_enabled` | `false` | research only in its tab (decision §6.1) |
+| `access.tiers_enforced` | `false` | everything open during the beta (§6.5) |
+| `access.u3_offer` | price and method set | U3 on days 21–25 |
+| `briefing.withdrawal.day0_kyiv` | `null` until Day 0 | U1a inactive before Day 0 |
+| `PRIVACY_NOTICE_VERSION` | 7 | the participants see the current notice once |
+
+**Calendar.** Day 0 is not earlier than the C1 rank maturity (about the end of October) plus an owner soak that sees a real unusual-hour push (backlog §1).
+
+**Soak additions (§3).** At least once: an approach message before a personal level's touch; a push to a participant with another time zone, and one withheld in their night (QUIET_HOURS); a briefing at a participant's own time; the weekly report with its «Полезно / Шум» and «🔕»; a reply with `/admin_reply` to a paused participant.
