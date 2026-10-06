@@ -310,6 +310,39 @@ NEW VPS
 Recreate `/opt/signalbot/.env` and `/etc/signalbot/backup.env` on the new VPS
 before this — they are not part of the database backup (see §B/§M).
 
+### J.1 Private beta after a restore (backlog A6)
+
+The beta tables (`beta_*`) are in the same database, so the dump carries them. Three things are not in the dump:
+- the secrets in `.env`: `BETA_TELEGRAM_BOT_TOKEN`, `BETA_OWNER_TELEGRAM_USER_ID`, the `BETA_*` switches, `BETA_TELEMETRY_SALT`;
+- the research feed role `signalbot_beta_feeds`: it is cluster-level, so a new VPS has none;
+- every grant: `deploy/backup.sh` dumps with `--no-owner --no-privileges`.
+
+`BETA_TELEMETRY_SALT` must be the same value as before. Otherwise the stored rejected-start codes no longer match, though nothing else breaks.
+
+**Same VPS, `restore.sh --force-live`.**
+1. Stop the beta units first: `sudo systemctl stop signalbot-beta-bot.service` and the beta timers (`deploy/check_beta_units.sh` lists them).
+2. After the restore, the script re-applies the feed role's grants by itself (`[restore] research feed role signalbot_beta_feeds: grants re-applied in btcbot`). This happens when the role exists and the feed tables came back.
+3. Then run `sudo deploy/install_beta_feeds_role.sh` (no `--set-password`) to verify the feed login.
+
+**New VPS (total loss).** After the §J steps up to the restore:
+1. Recreate `/opt/signalbot/.env` with the beta values above.
+2. Start the bot (`sudo systemctl start signalbot-beta-bot.service`). It applies the current beta schema to the restored database at start, idempotently and additively. The read-only commands (`--beta-health`, `--beta-status`) do not apply it.
+3. `sudo deploy/install_beta_feeds_role.sh --set-password`. This creates the role, applies its grants, and writes `/opt/signalbot/.env.beta-feeds`.
+4. Install and start the beta units (`deploy/install_beta_units.sh`; see `docs/PRIVATE_BETA_V0_DEPLOY.md`).
+5. In Telegram, check `/admin_health` and `/admin_status`.
+6. If participants saw a gap, send `/admin_outage end`.
+
+Until the feed role has its grants, the feed jobs exit with `SCHEMA_NOT_READY` and never run with wider rights. The bot, the notifier and the detector use the core role and are not affected.
+
+**Check an off-site copy as well as the local one.** Download it to a scratch path and self-test it:
+
+```bash
+sudo RCLONE_CONFIG=/etc/signalbot/rclone.conf rclone copyto \
+    gdrive:signalbot-backups/daily/btcbot_<TS>.sql.gz /var/tmp/btcbot_<TS>.sql.gz
+sudo /opt/signalbot/deploy/restore.sh --self-test /var/tmp/btcbot_<TS>.sql.gz
+rm -f /var/tmp/btcbot_<TS>.sql.gz
+```
+
 ## K. Restore self-test (safe, no live-DB risk)
 
 ```bash
@@ -322,6 +355,14 @@ restores the latest local dump into a throwaway
 `SELECT count(*) FROM klines_1m`, reports `SELF_TEST_RESULT: PASS`/`FAIL`,
 and always drops the throwaway DB (even on failure, via a `trap`). It never
 accepts `--force-live` and never touches the live `POSTGRES_DB`.
+
+**Beta checks (backlog A6).** After the `klines_1m` count, the self-test also checks:
+- every `beta_*` table that the current `storage/beta_v0_schema.sql` defines is present in the restored copy (a missing one is named, and the result is `FAIL`);
+- the current beta schema applies to the copy in one transaction;
+- the row counts of `beta_users`, `beta_allowlist`, `beta_notification_deliveries`, `beta_user_activity`, `beta_market_alerts` and `beta_claims` (printed, not judged);
+- when the research feed role exists on the host, its grants apply to the copy.
+
+A dump older than the deployed code fails the table check too. The message says so: re-run the self-test after the next backup. The restore path itself (`--self-test`, a plain restore into a new database, and `--force-live` with its confirmation phrase and the feed-role re-grant) runs in `tests/beta/test_beta_restore_pg.py`. That test uses a real PostgreSQL, with `docker exec` replaced by the local `psql`; TimescaleDB calls are skipped there because the test cluster has no TimescaleDB.
 
 INFRA-D1 additionally wires this into `signalbot-backup-verify.service` +
 `.timer`, firing approximately monthly (`OnCalendar=*-*-01 04:00:00 UTC`,
@@ -337,6 +378,12 @@ PR — no VPS access was used (see the top of this document and INFRA-D1 §19).
 Treat §J as "this is how it should work," not "this has been drilled."
 Running an actual disaster-recovery drill on a throwaway VPS is a reasonable
 follow-up **outside** this PR.
+
+**Beta drill before Day 0 (owner, on the VPS; backlog A6).** This has not been done yet. Steps:
+1. `sudo /opt/signalbot/deploy/restore.sh --self-test` on the newest local dump, and again on one off-site copy (§J.1). Expect `SELF_TEST_RESULT: PASS`, with the beta lines and `grants re-applied`.
+2. Record the dump name, the date and both results in the deploy log.
+
+A full `--force-live` drill on a throwaway VPS stays the follow-up above.
 
 ## L. Retention policy
 
