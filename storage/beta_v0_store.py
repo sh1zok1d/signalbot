@@ -930,6 +930,18 @@ class BetaConn:
                WHERE state IN ('FAILED', 'DELIVERY_UNKNOWN') AND created_at >= $1 GROUP BY kind""", since)
         return {r["kind"]: int(r["n"]) for r in rows}
 
+    async def delivery_latency_rows(self, *, since: datetime) -> list:
+        """Delivered and expired-undelivered rows finished since `since`, with the alert kind and
+        the alert's source time (backlog A4; `beta.latency`). No user column."""
+        rows = await self.conn.fetch(
+            """SELECT d.kind, a.kind AS alert_kind, d.state, d.decision_ts, d.finished_at,
+                      a.payload->>'source_at' AS source_at
+               FROM beta_notification_deliveries d
+               LEFT JOIN beta_market_alerts a ON a.alert_pk = d.alert_pk
+               WHERE d.state IN ('SENT', 'EXPIRED_UNDELIVERED')
+                 AND COALESCE(d.finished_at, d.created_at) >= $1""", since)
+        return [dict(r) for r in rows]
+
     async def push_decision_counts(self, *, since: datetime) -> list:
         rows = await self.conn.fetch(
             "SELECT decision, suppression_reason, count(*) AS n FROM beta_push_decisions "
