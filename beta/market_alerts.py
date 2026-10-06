@@ -28,6 +28,7 @@ from typing import Any, Mapping, Optional
 
 from .config import BetaConfig
 from .hist_series import BAR_MS, Bars, from_ms, to_ms
+from .detector import in_quiet_hours
 from .models import D_EXPIRED, D_FAILED, D_PENDING, D_SUPPRESSED, DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE
 
 logger = logging.getLogger("beta.market_alerts")
@@ -238,9 +239,14 @@ def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any],
     return out
 
 
-def _in_quiet_hours(cfg: BetaConfig, ts: datetime) -> bool:
-    from .detector import in_quiet_hours
-    return in_quiet_hours(cfg, ts)
+_KIND_PREF = {"level": "push_levels", "event": "push_events", "move": "push_moves"}
+
+
+async def _quiet_for_all(conn, cfg: BetaConfig, kind: str, ts: datetime) -> bool:
+    """Quiet hours for an alert of this kind: every participant who could receive it is in their own
+    night (backlog C5); the others' deliveries are checked one by one at send time."""
+    from .detector import _recipient_tzs, quiet_for_all
+    return quiet_for_all(cfg, ts, await _recipient_tzs(conn, _KIND_PREF[kind]))
 
 
 async def _decide_and_record(conn, cfg: BetaConfig, cand: Mapping[str, Any], *, now: datetime, push_on: bool) -> str:
@@ -249,7 +255,7 @@ async def _decide_and_record(conn, cfg: BetaConfig, cand: Mapping[str, Any], *, 
     reason = None
     if not push_on:
         reason = "PUSH_DISABLED"
-    elif kind != "price" and kind in QUIET_KINDS and _in_quiet_hours(cfg, now):
+    elif kind != "price" and kind in QUIET_KINDS and await _quiet_for_all(conn, cfg, kind, now):
         reason = "QUIET_HOURS"
     elif kind in CAPPED_KINDS and await conn.count_market_pushes(utc_day=now.astimezone(timezone.utc).date(),
                                                                  kinds=CAPPED_KINDS) >= int(m["max_per_utc_day"]):
@@ -488,6 +494,11 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
                                            suppression_reason=USER_INACTIVE)
             continue
+        if row["kind"] in QUIET_KINDS and in_quiet_hours(cfg, row["decision_ts"], row.get("user_tz")):
+            # sent to the participants who are awake; this one's own night (backlog C5)
+            await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                           suppression_reason="QUIET_HOURS")
+            continue
         if sender is None:
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_FAILED, now=now,
                                            error_summary="sender unavailable (no bot token)")
@@ -501,9 +512,12 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             lat_summary = await class_summary(conn, now)
         # the measured delay field for the push's delay line (backlog A4; the line is drawn by F1)
         lat = latency_field(row["kind"], alert_source_at(row["payload"]), now, lat_summary)
-        text = format_alert(row["kind"], {**row["payload"], "latency": lat}, lang)
+        from .i18n import render_tz
+        with render_tz(row.get("user_tz")):            # the recipient's clock (C5)
+            text = format_alert(row["kind"], {**row["payload"], "latency": lat}, lang)
+            buttons = alert_buttons(row["kind"], row["payload"], lang)
         outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
-                                                buttons=alert_buttons(row["kind"], row["payload"], lang), clock=clock)
+                                                buttons=buttons, clock=clock)
         if outcome != SENT:
             count_outcome(rep, outcome)
             continue

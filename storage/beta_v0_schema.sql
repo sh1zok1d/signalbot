@@ -508,7 +508,9 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     -- «Следить» (a personal alert in one tap)
     'cmd_check', 'btn_check', 'btn_watch',
     -- the weekly report (backlog B4), a delivery of its own class
-    'weekly_delivered'));
+    'weekly_delivered',
+    -- the personal layer (PRE_BETA_SCOPE_DECISION_V1 §9 E): the time zone
+    'cmd_tz'));
 
 -- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
 -- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.
@@ -526,6 +528,25 @@ BEGIN
         ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
             suppression_reason IS NULL OR suppression_reason IN (
             'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL'));
+    END IF;
+END $$;
+
+-- Quiet hours in the participant's time zone (backlog C5): a push that some participants
+-- receive is SUPPRESSED / QUIET_HOURS for one whose own night it is. Widen once.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_notification_deliveries'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%BRIEF_WITHDRAWAL%'
+      AND pg_get_constraintdef(oid) NOT LIKE '%QUIET_HOURS%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_notification_deliveries DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+            'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL', 'QUIET_HOURS'));
     END IF;
 END $$;
 
@@ -786,6 +807,9 @@ CREATE INDEX IF NOT EXISTS ix_beta_price_alerts_active ON beta_price_alerts (use
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_levels BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_events BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_moves BOOLEAN NOT NULL DEFAULT TRUE;
+-- the participant's time zone (backlog C5): an IANA name or «UTC±HH:MM»; NULL = Europe/Kyiv.
+-- Every clock the bot prints and the participant's quiet hours follow it.
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS tz TEXT CHECK (tz IS NULL OR length(tz) BETWEEN 1 AND 64);
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_hours BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- The bootstrap watermark may be rewound by the operator (--beta-bootstrap-rewind) so the

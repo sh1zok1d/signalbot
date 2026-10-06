@@ -50,9 +50,9 @@ def _pair(ru: str, en: str) -> dict:
 DECISION_CATALOG: dict = {
     # ---- shared blocks (briefing, /catchup, /btc) ----
     # event zone (BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1 §9): numbers are withheld on purpose
-    "ez_note": _pair("{hs}: числовую оценку не показываем — {events} (Киев). Вокруг публикации обычная калибровка "
+    "ez_note": _pair("{hs}: числовую оценку не показываем — {events} {zone}. Вокруг публикации обычная калибровка "
                      "коридора не применяется.",
-                     "{hs}: no numerical estimate — {events} (Kyiv). Around the release, the usual corridor "
+                     "{hs}: no numerical estimate — {events} ({zone}). Around the release, the usual corridor "
                      "calibration does not apply."),
     "ez_event": _pair("{name}, {when}", "{name}, {when}"),
     "ez_event_note": _pair("Числовой коридор на это время не показываем: вокруг публикации обычная калибровка "
@@ -83,7 +83,7 @@ DECISION_CATALOG: dict = {
     "dc_reason_stats_stale": _pair("статистика по истории не обновлялась больше 3 суток",
                                    "the history statistics have not been updated for over 3 days"),
     "dc_reason_data_late": _pair("данные отстают", "the data is late"),
-    "dc_stats_built": _pair("Статистика по истории собрана {when} (Киев).", "History statistics built {when} Kyiv."),
+    "dc_stats_built": _pair("Статистика по истории собрана {when} {zone}.", "History statistics built {when} {zone}."),
     "dc_reason_error": _pair("техническая ошибка", "a technical error"),
     # /btc (backlog C1): three corridors, their record, the two nearest levels with the «B» chance, the next 24h
     "dc_btc_corridor": _pair("Коридор: {parts}", "Corridor: {parts}"),
@@ -145,9 +145,9 @@ DECISION_CATALOG: dict = {
     "rk_usage": _pair("Стоп в процентах или ценой: /risk 0.5 или /risk 61500",
                       "A stop in percent or as a price: /risk 0.5 or /risk 61500"),
     # ---- /events ----
-    "ev_title": _pair("<b>События</b> (время — Киев)", "<b>Events</b> (Kyiv time)"),
+    "ev_title": _pair("<b>События</b> (время — {zone_name})", "<b>Events</b> ({zone_name} time)"),
     "ev_none": _pair("В ближайшие 14 дней в календаре ничего нет.", "Nothing in the calendar for the next 14 days."),
-    "ev_funding": _pair("Funding Binance: {times} (Киев)", "Binance funding: {times} Kyiv"),
+    "ev_funding": _pair("Funding Binance: {times} {zone}", "Binance funding: {times} {zone}"),
     "ev_release_note": _pair("{names}: вокруг публикации обычная калибровка коридора не применяется.",
                              "{names}: around the release, the usual corridor calibration does not apply."),
     # ---- /accuracy ----
@@ -327,11 +327,11 @@ DECISION_CATALOG: dict = {
     "pa_price_now": _pair("{clock} · цена {price} (Binance)", "{clock} · price {price} (Binance)"),
     "pa_price_now_at": _pair("{clock} — уровень достигнут · цена {price} (Binance, {price_clock})",
                              "{clock} — level reached · price {price} (Binance, {price_clock})"),
-    "pa_price_late": _pair("Уровень был достигнут {when} (Киев), пока сообщения не отправлялись · сейчас {price} (Binance)",
-                           "The level was reached on {when} (Kyiv) while messages were off · now {price} (Binance)"),
-    "pa_price_late_at": _pair("Уровень был достигнут {when} (Киев), пока сообщения не отправлялись · сейчас {price} "
+    "pa_price_late": _pair("Уровень был достигнут {when} {zone}, пока сообщения не отправлялись · сейчас {price} (Binance)",
+                           "The level was reached on {when} ({zone}) while messages were off · now {price} (Binance)"),
+    "pa_price_late_at": _pair("Уровень был достигнут {when} {zone}, пока сообщения не отправлялись · сейчас {price} "
                               "(Binance, {price_clock})",
-                              "The level was reached on {when} (Kyiv) while messages were off · now {price} "
+                              "The level was reached on {when} ({zone}) while messages were off · now {price} "
                               "(Binance, {price_clock})"),
     "pa_price_footer": _pair("Ваши уровни: /alert", "Your alerts: /alert"),
     # ---- research ↔ bot (config/beta_research_findings.yaml) ----
@@ -512,7 +512,8 @@ DECISION_HELP = {
         "/events — события: CPI, ФРС, экспирации\n"
         "/accuracy — насколько точен коридор\n"
         "/research — что проверили исследования: что подтвердилось, что нет\n"
-        "/brief on|off — утренняя сводка в 08:00 (Киев)\n"
+        "/brief on|off — утренняя сводка в 08:00\n"
+        "/tz — часовой пояс (по умолчанию Киев): /tz +3 или /tz Europe/Warsaw\n"
         "/push — какие сообщения присылать\n"
         "/history — недавние необычные события\n"
         "/terms — термины · /lang — язык сообщений · /feedback — отзыв\n"
@@ -532,7 +533,8 @@ DECISION_HELP = {
         "/events — CPI, Fed, options expiries\n"
         "/accuracy — how accurate the corridor is\n"
         "/research — what the research tested: what held up, what did not\n"
-        "/brief on|off — morning briefing at 08:00 Kyiv\n"
+        "/brief on|off — morning briefing at 08:00\n"
+        "/tz — time zone (Kyiv by default): /tz +3 or /tz Europe/Warsaw\n"
         "/push — which messages to receive\n"
         "/history — recent unusual events\n"
         "/terms — terms · /lang — message language · /feedback — feedback\n"
