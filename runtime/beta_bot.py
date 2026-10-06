@@ -232,6 +232,8 @@ class BetaBotHandler:
             out = [Outgoing(kind="message", chat_id=chat_id, html=f"<pre>{html.escape(part, quote=False)}</pre>")
                    for part in owner_parts(res["reply"] or "")]
             mass = (res["mass"]["action"], res["mass"]["label"]) if res.get("mass") else None
+            if mass is not None:                # opens the count: an empty audience still gets 0 of 0
+                out.append(Outgoing(kind="mass_open", mass=mass))
             if res["broadcast"]:
                 out += [replace(_msg(c, res["broadcast"], lang="ru"), mass=mass)
                         for c in await conn.active_user_chats()]
@@ -762,23 +764,27 @@ async def deliver_outgoing(sender: BetaTelegramSender, out: Sequence[Outgoing], 
                            sleep=asyncio.sleep) -> dict:
     """Send the replies in order. Messages of an owner mass send are paced (MASS_INTERVAL_S), flood
     control is waited out once, and each is counted: {(action, label): {"recipients", "delivered",
-    "failed"}}."""
+    "failed", "unknown"}}; `unknown` is an ambiguous outcome (Telegram may have delivered it). A
+    `mass_open` marker opens the count, so an empty audience is reported as 0 of 0."""
     counts: dict = {}
     prev_mass = False
     for o in out:
         if o.mass is not None:
-            c = counts.setdefault(o.mass, {"recipients": 0, "delivered": 0, "failed": 0})
+            c = counts.setdefault(o.mass, {"recipients": 0, "delivered": 0, "failed": 0, "unknown": 0})
+            if o.kind == "mass_open":
+                continue
             c["recipients"] += 1
             if prev_mass:
                 await sleep(MASS_INTERVAL_S)
         prev_mass = o.mass is not None
-        ok = await _deliver_one(sender, o, sleep=sleep)
+        outcome = await _deliver_one(sender, o, sleep=sleep)
         if o.mass is not None:
-            counts[o.mass]["delivered" if ok else "failed"] += 1
+            counts[o.mass][outcome] += 1
     return counts
 
 
-async def _deliver_one(sender, o: Outgoing, *, sleep) -> bool:
+async def _deliver_one(sender, o: Outgoing, *, sleep) -> str:
+    """"delivered", "failed" (refused or still throttled: not delivered) or "unknown" (ambiguous)."""
     for attempt in (1, 2):
         try:
             if o.kind == "answer":
@@ -787,16 +793,19 @@ async def _deliver_one(sender, o: Outgoing, *, sleep) -> bool:
                 await sender.edit(chat_id=o.chat_id, message_id=o.message_id, html=o.html, buttons=o.buttons)
             else:
                 await sender.send(chat_id=o.chat_id, html=o.html, buttons=o.buttons)
-            return True
+            return "delivered"
         except DeliveryThrottled as exc:
             if attempt == 2 or o.mass is None:
                 logger.warning("beta bot reply throttled")
-                return False
+                return "failed"
             await sleep(min(float(exc.retry_after_s), MASS_RETRY_WAIT_S))
-        except Exception as exc:  # noqa: BLE001 - never log ids/tokens
-            logger.warning("beta bot reply failed: %s", type(exc).__name__)
-            return False
-    return False
+        except DeliveryRejected as exc:
+            logger.warning("beta bot reply refused: %s", type(exc).__name__)
+            return "failed"
+        except Exception as exc:  # noqa: BLE001 - never log ids/tokens; it may have arrived
+            logger.warning("beta bot reply ambiguous: %s", type(exc).__name__)
+            return "unknown"
+    return "failed"
 
 
 async def report_mass_send(store, sender, owner_user_id: Optional[int], counts: Mapping[tuple, Mapping[str, int]],
@@ -807,7 +816,8 @@ async def report_mass_send(store, sender, owner_user_id: Optional[int], counts: 
         return
     for (action, label), c in counts.items():
         text = f"{label}: delivered to {c['delivered']} of {c['recipients']}" + (
-            f", failed {c['failed']}" if c["failed"] else "")
+            f", failed {c['failed']}" if c["failed"] else "") + (
+            f", unknown {c['unknown']} (may have arrived)" if c.get("unknown") else "")
         await _deliver_one(sender, Outgoing(kind="message", chat_id=int(owner_user_id),
                                             html=f"<pre>{html.escape(text, quote=False)}</pre>"),
                            sleep=asyncio.sleep)
@@ -878,9 +888,17 @@ async def _notifier_deadman(conn, sender, cfg: BetaConfig, switches: BetaSwitche
     try:
         await sender.send(chat_id=int(owner_user_id), html=format_owner_alert(
             [{"key": NOTIFIER_DEADMAN, "detail": {"notifier_last_success": last.isoformat() if last else None}}]))
-    except Exception as exc:  # noqa: BLE001 - tried again on the next poll
-        logger.warning("dead-man owner alert failed: %s", type(exc).__name__)
+    except DeliveryThrottled:                   # not sent: tried again on the next poll
+        logger.warning("dead-man owner alert throttled")
         return False
+    except DeliveryRejected as exc:             # refused: not retried within the repeat window
+        logger.warning("dead-man owner alert refused: %s", type(exc).__name__)
+        await conn.record_health(f"owner_alert:{NOTIFIER_DEADMAN}", now=now, success=False, error_type="REJECTED")
+        return False
+    except Exception as exc:  # noqa: BLE001 - ambiguous: it may have arrived, never repeated within the window
+        logger.warning("dead-man owner alert ambiguous: %s", type(exc).__name__)
+        await conn.record_health(f"owner_alert:{NOTIFIER_DEADMAN}", now=now, success=True, error_type="UNKNOWN")
+        return True
     await conn.record_health(f"owner_alert:{NOTIFIER_DEADMAN}", now=now, success=True)
     return True
 

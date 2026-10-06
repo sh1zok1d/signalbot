@@ -186,3 +186,48 @@ def test_rows_that_must_wait_are_not_rendered(monkeypatch):
         assert await _states(pool) == {"PENDING": 20}
         await pool.close()
     run(body())
+
+
+def test_flood_control_holds_back_every_row_of_that_chat_until_its_wait_ends():
+    """Review of #345: Telegram's wait is the chat's, not one message's. While one row of a participant
+    waits after flood control, the next run sends none of that participant's rows; the others go."""
+    from beta.market_alerts import run_market_alerts
+
+    now = datetime(2026, 10, 6, 12, 0, 40, tzinfo=timezone.utc)
+
+    async def body():
+        pool = await fresh_pool()
+        await _twenty(pool)
+        async with BetaStore(pool).connect() as conn:
+            for key in ("event:first", "event:second"):
+                await conn.insert_market_alert(
+                    kind="event", alert_key=key, decision_ts=now, decision="PUSH", suppression_reason=None,
+                    payload={"at": now.isoformat(), "source_at": now.isoformat(), "event_kind": "CPI",
+                             "event_at": (now + timedelta(minutes=30)).isoformat(), "minutes": 30,
+                             "price": 60000.0, "stats": None, "corridor_1h": None})
+        s = LoadSender(throttle_at=1)                  # the first send (UIDS[0], first alert) hits flood control
+        async with BetaStore(pool).connect() as conn:
+            rep = await run_market_alerts(conn, CFG, sender=s, clock=Clock(now), push_on=True, pacer=_pacer()[0])
+        # UIDS[0]: first alert waits 3 s, the second is held back in the same run; UIDS[3] blocked twice
+        assert (rep["sent"], rep["failed"], rep["throttled"]) == (36, 2, 1)
+        assert UIDS[0] not in s.sent
+        async with pool.acquire() as c:
+            rows = await c.fetch("SELECT state, next_attempt_at FROM beta_notification_deliveries d "
+                                 "JOIN beta_users u USING (user_pk) WHERE u.telegram_user_id = $1 "
+                                 "ORDER BY delivery_id", UIDS[0])
+        assert [(r["state"], r["next_attempt_at"]) for r in rows] == [("PENDING", now + timedelta(seconds=3)),
+                                                                       ("PENDING", None)]
+        # two seconds later, with a fresh pacer (a new notifier run): neither row of that chat is sent
+        calls = s.calls
+        async with BetaStore(pool).connect() as conn:
+            rep = await run_market_alerts(conn, CFG, sender=s, clock=Clock(now + timedelta(seconds=2)), push_on=True,
+                                          pacer=_pacer()[0])
+        assert rep["sent"] == 0 and s.calls == calls and UIDS[0] not in s.sent
+        # after the wait both go, once each
+        async with BetaStore(pool).connect() as conn:
+            rep = await run_market_alerts(conn, CFG, sender=s, clock=Clock(now + timedelta(minutes=1)), push_on=True,
+                                          pacer=_pacer()[0])
+        assert rep["sent"] == 2 and s.sent.count(UIDS[0]) == 2
+        assert await _states(pool) == {"SENT": 38, "FAILED": 2}
+        await pool.close()
+    run(body())

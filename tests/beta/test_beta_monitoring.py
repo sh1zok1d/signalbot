@@ -75,11 +75,17 @@ def test_the_definition_check_alerts_on_failed_only_and_a_failed_build_at_once()
         {"fields": ["oi_base"]}
 
 
-def test_a_swallowed_notifier_step_reaches_the_owner():
-    """A3 review 3: market alerts or the weekly report failing while the outbox carried on."""
+def test_a_swallowed_notifier_step_reaches_the_owner_under_its_own_key():
+    """A3 review 3: market alerts or the weekly report failing while the outbox carried on; review of
+    #345: one key per step, so one step's repeat window never hides the other's failure."""
     k = _keys(runtime={"notify_market": _row(600, 0, error="KeyError"), "notify_weekly": _row(0)})
-    assert k["NOTIFIER_STEP_FAILED"] == {"step": "market", "error": "KeyError"}
-    assert "NOTIFIER_STEP_FAILED" not in _keys(runtime={"notify_market": _row(0), "notify_weekly": _row(0)})
+    assert k["NOTIFIER_STEP_FAILED_MARKET"] == {"step": "market", "error": "KeyError"}
+    both = _keys(runtime={"notify_market": _row(600, 0, error="KeyError"),
+                          "notify_weekly": _row(600, 0, error="ValueError")})
+    assert both["NOTIFIER_STEP_FAILED_WEEKLY"] == {"step": "weekly", "error": "ValueError"}
+    assert "NOTIFIER_STEP_FAILED_MARKET" in both
+    assert not {"NOTIFIER_STEP_FAILED_MARKET", "NOTIFIER_STEP_FAILED_WEEKLY"} & \
+        set(_keys(runtime={"notify_market": _row(0), "notify_weekly": _row(0)}))
 
 
 def test_the_failure_spike_counts_every_kind_and_keeps_blocked_participants_apart():
@@ -113,16 +119,34 @@ class _Conn:
         return {k: v for k, v in self.runtime.items() if components is None or k in components}
 
     async def record_health(self, component, *, now, success, detail=None, error_type=None):
-        self.runtime[component] = {"last_success_at": now if success else None}
+        prev = (self.runtime.get(component) or {}).get("last_success_at")
+        self.runtime[component] = {"last_success_at": now if success else prev, "last_run_at": now,
+                                   "last_error_type": error_type}
 
 
 class _Sender:
-    def __init__(self):
-        self.sent = []
+    def __init__(self, exc=None):
+        self.sent, self.exc = [], exc
 
     async def send(self, *, chat_id, html, buttons=None):
         self.sent.append((chat_id, html))
+        if self.exc is not None:
+            raise self.exc
         return 1
+
+
+def test_a_refused_or_ambiguous_dead_man_alert_is_not_repeated_within_the_window():
+    """Review of #345: as the outbox, an ambiguous send may have arrived and a refused one would be refused
+    again; neither is retried on every poll."""
+    from beta.delivery import DeliveryAmbiguous, DeliveryRejected
+    from runtime.beta_bot import _notifier_deadman
+    on = dataclasses.replace(ON, telegram=True)
+    started = NOW - timedelta(hours=1)
+    for exc in (DeliveryRejected("Forbidden: bot was blocked by the user"), DeliveryAmbiguous("TimedOut")):
+        conn, s = _Conn({"notifier": {"last_success_at": NOW - timedelta(minutes=30)}}), _Sender(exc)
+        asyncio.run(_notifier_deadman(conn, s, CFG, on, 777, started_at=started, now=NOW))
+        asyncio.run(_notifier_deadman(conn, s, CFG, on, 777, started_at=started, now=NOW + timedelta(minutes=5)))
+        assert len(s.sent) == 1, exc
 
 
 def test_the_bot_process_alerts_the_owner_once_per_repeat_reading_two_rows():

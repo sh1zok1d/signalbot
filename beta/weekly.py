@@ -218,13 +218,15 @@ OWNER_COPY = "weekly_owner"
 
 async def _send_owner(conn, sender, pacer, week_end, *, owner_user_id: int, now: datetime) -> Optional[str]:
     """The owner version, under the run's pacer (A5 review): its parts go one by one, and a run
-    that cannot send them all (pacer closed, flood control, a failed part) leaves the rest to the
-    next run within the report's sending window; the parts already sent are kept in the
-    `weekly_owner` health row, so none is sent twice. None when it was already sent."""
+    that cannot send them all (pacer closed, flood control) leaves the rest to the next run within
+    the report's sending window; the parts already sent are kept in the `weekly_owner` health row,
+    so none is sent twice. An ambiguous part (Telegram may have delivered it) counts as sent and is
+    never resent; a refused part ends the copy for this week (review of #345). None when it was
+    already sent or ended."""
     import html
     from .admin import owner_parts
     from .claims import claims_report
-    from .delivery import SENT, send_direct
+    from .delivery import REJECTED, SENT, UNKNOWN, send_direct
     from .usage import owner_breakdown
     rec = ((await conn.fetch_health([OWNER_COPY])).get(OWNER_COPY) or {}).get("detail") or {}
     done = int(rec.get("parts_sent") or 0) if rec.get("week_end") == week_end.isoformat() else 0
@@ -245,14 +247,18 @@ async def _send_owner(conn, sender, pacer, week_end, *, owner_user_id: int, now:
                                                                                   journal=journal))]
     except Exception as exc:  # noqa: BLE001 - the owner copy never blocks the participants' rows
         return f"error: {type(exc).__name__}"
-    result = "sent"
+    result, rejected = "sent", False
     for part in parts[done:]:
         res = await send_direct(sender, pacer, chat_id=owner, html=part)
-        if res != SENT:
-            result = res.lower()
-            break
-        done += 1
-    await conn.record_health(OWNER_COPY, now=now, success=done == len(parts),
-                             detail={"week_end": week_end.isoformat(), "parts_sent": done,
-                                     "parts": len(parts), "done": done == len(parts)})
+        if res in (SENT, UNKNOWN):
+            done += 1
+            if res == UNKNOWN:
+                result = "unknown"
+            continue
+        result, rejected = res.lower(), res == REJECTED
+        break
+    complete = done == len(parts)
+    await conn.record_health(OWNER_COPY, now=now, success=complete, error_type=None if complete else result,
+                             detail={"week_end": week_end.isoformat(), "parts_sent": done, "parts": len(parts),
+                                     "done": complete or rejected, "rejected": rejected})
     return result

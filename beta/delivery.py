@@ -53,6 +53,7 @@ class DeliveryThrottled(DeliveryRejected):
 
 # send_one outcomes
 SENT, FAILED, UNKNOWN, THROTTLED, DEFERRED, RACED = "SENT", "FAILED", "UNKNOWN", "THROTTLED", "DEFERRED", "RACED"
+REJECTED = "REJECTED"                        # send_direct: Telegram refused it (not delivered; do not retry soon)
 
 
 class SendPacer:
@@ -190,8 +191,10 @@ async def send_one(conn, sender, pacer: SendPacer, delivery_id: int, *, chat_id:
 
 async def send_direct(sender, pacer: SendPacer, *, chat_id: int, html: str) -> str:
     """A message outside the outbox (the owner's alert, the owner's weekly copy) under the same
-    pacer: DEFERRED when it is closed for that chat, THROTTLED after flood control, else SENT or
-    FAILED. Never raises."""
+    pacer and the outbox's rules (review of #345): DEFERRED when the pacer is closed for that chat
+    and THROTTLED after flood control (both: not sent, try later); REJECTED when Telegram refused it
+    (not sent; a retry would be refused again); UNKNOWN when the outcome is ambiguous (Telegram may
+    have delivered it: never sent again); else SENT. Never raises."""
     if not pacer.may_send(chat_id):
         return DEFERRED
     await pacer.pace(chat_id)
@@ -202,9 +205,12 @@ async def send_direct(sender, pacer: SendPacer, *, chat_id: int, html: str) -> s
     except DeliveryThrottled as exc:
         pacer.throttle(exc.retry_after_s, chat_id)
         return THROTTLED
-    except Exception as exc:  # noqa: BLE001 - reported by the caller
-        logging.getLogger("beta.delivery").warning("direct send failed: %s", type(exc).__name__)
-        return FAILED
+    except DeliveryRejected as exc:
+        logging.getLogger("beta.delivery").warning("direct send refused: %s", type(exc).__name__)
+        return REJECTED
+    except Exception as exc:  # noqa: BLE001 - ambiguous (timeout, network): as the outbox, never resent
+        logging.getLogger("beta.delivery").warning("direct send ambiguous: %s", type(exc).__name__)
+        return UNKNOWN
     return SENT
 
 
@@ -355,16 +361,19 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 runtime = await conn.fetch_health()
                 due = []
                 for a in h["alerts"]:
-                    last = (runtime.get(f"owner_alert:{a['key']}") or {}).get("last_success_at")
+                    # the last attempt that reached Telegram (sent, ambiguous or refused) starts the repeat window
+                    last = (runtime.get(f"owner_alert:{a['key']}") or {}).get("last_run_at")
                     if last is None or (clock() - last).total_seconds() >= cfg["health"]["owner_alert_repeat_s"]:
                         due.append(a)
                 if due:
                     res = await send_direct(sender, pacer, chat_id=owner_user_id, html=format_owner_alert(due))
-                    if res == SENT:
+                    if res in (SENT, UNKNOWN, REJECTED):    # never repeated within the window, even when ambiguous
                         for a in due:
-                            await conn.record_health(f"owner_alert:{a['key']}", now=clock(), success=True)
+                            await conn.record_health(f"owner_alert:{a['key']}", now=clock(), success=res != REJECTED,
+                                                     error_type=None if res == SENT else res)
+                    if res in (SENT, UNKNOWN):
                         report["owner_alerts"] = [a["key"] for a in due]
-                    else:
+                    if res != SENT:
                         report["owner_alert_error"] = res
             if stopped():
                 return stop_report()
@@ -389,7 +398,7 @@ async def _weekly(conn, cfg, sender, clock, push_on, owner_user_id, pacer):
 
 async def _step(conn, component: str, error_key: str, report: dict, clock, work) -> Optional[dict]:
     """A notifier step that never stops the outbox: its failure goes to the report and to the
-    step's own health row, so the owner hears of it (NOTIFIER_STEP_FAILED; A3 review)."""
+    step's own health row, so the owner hears of it (NOTIFIER_STEP_FAILED_<STEP>; A3 review)."""
     try:
         out = await work
     except Exception as exc:  # noqa: BLE001 - decision support and the weekly report never stop the outbox

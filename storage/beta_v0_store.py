@@ -693,14 +693,17 @@ class BetaConn:
         return int(status.split()[-1])
 
     async def fetch_pending_deliveries(self, limit: int, *, now: Optional[datetime] = None) -> list:
-        # `now`: rows waiting after flood control are skipped until their next_attempt_at
+        # `now`: while any row of a participant waits after flood control (next_attempt_at), every row of
+        # that chat waits: the limit is the chat's, not one message's (review of #345)
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.decision_id, x.episode_pk, x.user_pk, x.decision_ts,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang, d.gate
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                LEFT JOIN beta_push_decisions d ON d.decision_id = x.decision_id
                WHERE x.state='PENDING' AND x.kind='push'
-                 AND ($2::timestamptz IS NULL OR x.next_attempt_at IS NULL OR x.next_attempt_at <= $2)
+                 AND ($2::timestamptz IS NULL OR NOT EXISTS (
+                     SELECT 1 FROM beta_notification_deliveries wt WHERE wt.user_pk = x.user_pk
+                       AND wt.state = 'PENDING' AND wt.next_attempt_at > $2))
                ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit, now)
         return [{**dict(r), "gate": _load(r["gate"]) if r["gate"] is not None else None} for r in rows]
 
@@ -723,7 +726,8 @@ class BetaConn:
         return int(status.split()[-1])
 
     async def fetch_pending_brief_deliveries(self, limit: int, *, now: Optional[datetime] = None) -> list:
-        # `now`: rows waiting after flood control are skipped until their next_attempt_at
+        # `now`: while any row of a participant waits after flood control (next_attempt_at), every row of
+        # that chat waits: the limit is the chat's, not one message's (review of #345)
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.view_pk, x.brief_date, x.user_pk, x.decision_ts,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang, u.brief_enabled,
@@ -733,7 +737,9 @@ class BetaConn:
                                     AND y.brief_date < x.brief_date) AS first_brief
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                WHERE x.state='PENDING' AND x.kind='brief'
-                 AND ($2::timestamptz IS NULL OR x.next_attempt_at IS NULL OR x.next_attempt_at <= $2)
+                 AND ($2::timestamptz IS NULL OR NOT EXISTS (
+                     SELECT 1 FROM beta_notification_deliveries wt WHERE wt.user_pk = x.user_pk
+                       AND wt.state = 'PENDING' AND wt.next_attempt_at > $2))
                ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit, now)
         return [dict(r) for r in rows]
 
@@ -764,14 +770,17 @@ class BetaConn:
         return int(status.split()[-1])
 
     async def fetch_pending_weekly_deliveries(self, limit: int, *, now: Optional[datetime] = None) -> list:
-        # `now`: rows waiting after flood control are skipped until their next_attempt_at
+        # `now`: while any row of a participant waits after flood control (next_attempt_at), every row of
+        # that chat waits: the limit is the chat's, not one message's (review of #345)
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.weekly_pk, x.user_pk, x.decision_ts, w.payload,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang, u.push_enabled, u.push_weekly
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                JOIN beta_weekly_reports w ON w.weekly_pk = x.weekly_pk
                WHERE x.state='PENDING' AND x.kind='weekly'
-                 AND ($2::timestamptz IS NULL OR x.next_attempt_at IS NULL OR x.next_attempt_at <= $2)
+                 AND ($2::timestamptz IS NULL OR NOT EXISTS (
+                     SELECT 1 FROM beta_notification_deliveries wt WHERE wt.user_pk = x.user_pk
+                       AND wt.state = 'PENDING' AND wt.next_attempt_at > $2))
                ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit, now)
         return [{**dict(r), "payload": _load(r["payload"])} for r in rows]
 
@@ -2025,14 +2034,17 @@ class BetaConn:
         return int(status.split()[-1])
 
     async def fetch_pending_alert_deliveries(self, limit: int, *, now: Optional[datetime] = None) -> list:
-        # `now`: rows waiting after flood control are skipped until their next_attempt_at
+        # `now`: while any row of a participant waits after flood control (next_attempt_at), every row of
+        # that chat waits: the limit is the chat's, not one message's (review of #345)
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.alert_pk, x.user_pk, x.decision_ts, a.kind, a.payload,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                JOIN beta_market_alerts a ON a.alert_pk = x.alert_pk
                WHERE x.state='PENDING' AND x.kind='alert'
-                 AND ($2::timestamptz IS NULL OR x.next_attempt_at IS NULL OR x.next_attempt_at <= $2)
+                 AND ($2::timestamptz IS NULL OR NOT EXISTS (
+                     SELECT 1 FROM beta_notification_deliveries wt WHERE wt.user_pk = x.user_pk
+                       AND wt.state = 'PENDING' AND wt.next_attempt_at > $2))
                ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit, now)
         return [{**dict(r), "payload": _load(r["payload"])} for r in rows]
 

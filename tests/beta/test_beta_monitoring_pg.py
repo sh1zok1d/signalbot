@@ -75,7 +75,7 @@ def test_the_spike_counts_real_problems_and_the_outage_notice_reports_its_delive
         # the outage notice: paced, each ACTIVE participant in their language, then the real count (A3 review 4)
         out = await h.handle(_owner("/admin_outage start", 50))
         assert plain(out[0].html) == "outage start notice: sending to 2 active participants"
-        notices = {o.chat_id: plain(o.html) for o in out[1:]}
+        notices = {o.chat_id: plain(o.html) for o in out[1:] if o.kind == "message"}
         assert notices[A].startswith("⚠️ У нас сбой") and notices[B].startswith("⚠️ We have an outage")
         assert C not in notices
 
@@ -91,7 +91,8 @@ def test_the_spike_counts_real_problems_and_the_outage_notice_reports_its_delive
             waits.append(s)
         flaky = _Flaky()
         counts = await deliver_outgoing(flaky, out, sleep=sleep)
-        assert counts == {("admin_outage", "outage start notice"): {"recipients": 2, "delivered": 1, "failed": 1}}
+        assert counts == {("admin_outage", "outage start notice"): {"recipients": 2, "delivered": 1, "failed": 1,
+                                                                     "unknown": 0}}
         assert waits == [0.05]                                         # one pause between the two notices
         owner = Sender()
         await report_mass_send(store, owner, OWNER, counts, now=NOW)
@@ -113,7 +114,8 @@ def test_the_spike_counts_real_problems_and_the_outage_notice_reports_its_delive
                 return await super().send(chat_id=chat_id, html=html, buttons=buttons)
         waits.clear()
         counts = await deliver_outgoing(_Busy(), await h.handle(_owner("/admin_outage end", 51)), sleep=sleep)
-        assert counts[("admin_outage", "outage end notice")] == {"recipients": 2, "delivered": 2, "failed": 0}
+        assert counts[("admin_outage", "outage end notice")] == {"recipients": 2, "delivered": 2, "failed": 0,
+                                                                  "unknown": 0}
         assert 2.0 in waits
         usage = plain((await h.handle(_owner("/admin_outage", 52)))[0].html)
         assert usage.startswith("usage: /admin_outage start|end")
@@ -172,7 +174,101 @@ def test_refused_crashed_and_swallowed_jobs_reach_the_owner(monkeypatch):
         assert r["market_error"] == "KeyError" and r["owner_alert_error"] == "DEFERRED" and owner.sent == []
         r = await run_notify_once(store, CFG, ON_PUSH, sender=owner, clock=Clock(NOW + timedelta(minutes=1)),
                                   owner_user_id=OWNER)
-        assert "NOTIFIER_STEP_FAILED" in r["owner_alerts"]
-        assert any("NOTIFIER_STEP_FAILED" in plain(html) for chat, html, _ in owner.sent if chat == OWNER)
+        assert "NOTIFIER_STEP_FAILED_MARKET" in r["owner_alerts"]
+        assert any("NOTIFIER_STEP_FAILED_MARKET" in plain(html) for chat, html, _ in owner.sent if chat == OWNER)
+        await pool.close()
+    run(body())
+
+
+def test_an_ambiguous_mass_send_is_unknown_and_an_empty_audience_is_still_reported():
+    """Review of #345: a notice whose send is ambiguous (Telegram may have delivered it) is counted apart
+    as unknown, never as failed; with no ACTIVE participant the owner still gets "0 of 0" and the audit
+    its DELIVERED row."""
+    from beta.delivery import DeliveryAmbiguous
+    from runtime.beta_bot import deliver_outgoing, report_mass_send
+
+    async def sleep(s):
+        return None
+
+    async def body():
+        # nobody ACTIVE: the count is opened anyway
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        h = _handler(pool, OWNER, Clock(NOW))
+        out = await h.handle(_owner("/admin_outage start", 50))
+        assert plain(out[0].html) == "outage start notice: sending to 0 active participants"
+        counts = await deliver_outgoing(Sender(), out, sleep=sleep)
+        assert counts == {("admin_outage", "outage start notice"): {"recipients": 0, "delivered": 0, "failed": 0,
+                                                                     "unknown": 0}}
+        owner = Sender()
+        await report_mass_send(store, owner, OWNER, counts, now=NOW)
+        assert [plain(html) for _, html, _ in owner.sent] == ["outage start notice: delivered to 0 of 0"]
+        audit = await _rows(pool, "SELECT result FROM beta_admin_audit WHERE action = 'admin_outage' ORDER BY audit_id")
+        assert [a["result"] for a in audit] == ["OK", "DELIVERED"]
+        await pool.close()
+
+        # an ambiguous send: unknown, reported apart from failed
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        async with store.connect() as conn:
+            for uid in (A, B):
+                await conn.allowlist_add(uid)
+        h = _handler(pool, OWNER, Clock(NOW))
+        await _join(h, A, 10, "ru")
+        await _join(h, B, 20, "en")
+
+        class _Timeout(Sender):
+            async def send(self, *, chat_id, html, buttons=None):
+                if chat_id == B:
+                    raise DeliveryAmbiguous("timeout")
+                return await super().send(chat_id=chat_id, html=html, buttons=buttons)
+        counts = await deliver_outgoing(_Timeout(), await h.handle(_owner("/admin_outage start", 51)), sleep=sleep)
+        assert counts == {("admin_outage", "outage start notice"): {"recipients": 2, "delivered": 1, "failed": 0,
+                                                                     "unknown": 1}}
+        owner = Sender()
+        await report_mass_send(store, owner, OWNER, counts, now=NOW)
+        assert plain(owner.sent[0][1]) == "outage start notice: delivered to 1 of 2, unknown 1 (may have arrived)"
+        audit = await _rows(pool, """SELECT detail FROM beta_admin_audit WHERE action = 'admin_outage'
+                                     AND result = 'DELIVERED'""")
+        assert '"unknown": 1' in audit[0]["detail"] and '"failed": 0' in audit[0]["detail"]
+        await pool.close()
+    run(body())
+
+
+@pytest.mark.parametrize("failure", ["ambiguous", "refused"])
+def test_an_ambiguous_or_refused_owner_alert_is_not_repeated_within_its_window(failure):
+    """Review of #345: the owner's alert follows the outbox's rules. An ambiguous send (Telegram may have
+    delivered it) and a refused one are not repeated by the next run; the window then runs as usual."""
+    from beta.delivery import DeliveryAmbiguous, DeliveryRejected, run_notify_once
+
+    class _OwnerFails(Sender):
+        calls = 0
+
+        async def send(self, *, chat_id, html, buttons=None):
+            if chat_id == OWNER:
+                self.calls += 1
+                if self.calls == 1:
+                    raise (DeliveryAmbiguous("timeout") if failure == "ambiguous"
+                           else DeliveryRejected("Forbidden: bot was blocked by the user"))
+            return await super().send(chat_id=chat_id, html=html, buttons=buttons)
+
+    async def body():
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        owner = _OwnerFails()
+        r = await run_notify_once(store, CFG, ON_PUSH, sender=owner, clock=Clock(NOW), owner_user_id=OWNER)
+        res = "UNKNOWN" if failure == "ambiguous" else "REJECTED"
+        assert r["owner_alert_error"] == res and owner.calls == 1
+        assert bool(r["owner_alerts"]) is (failure == "ambiguous")      # an ambiguous alert may have arrived
+        async with store.connect() as conn:
+            rows = {k: v for k, v in (await conn.fetch_health()).items() if k.startswith("owner_alert:")}
+        assert rows and {v["last_error_type"] for v in rows.values()} == {res}
+        r = await run_notify_once(store, CFG, ON_PUSH, sender=owner, clock=Clock(NOW + timedelta(minutes=1)),
+                                  owner_user_id=OWNER)
+        assert owner.calls == 1 and r["owner_alerts"] == [] and "owner_alert_error" not in r
+        repeat = CFG["health"]["owner_alert_repeat_s"]
+        r = await run_notify_once(store, CFG, ON_PUSH, sender=owner,
+                                  clock=Clock(NOW + timedelta(seconds=repeat + 60)), owner_user_id=OWNER)
+        assert owner.calls == 2 and r["owner_alerts"]           # the window over: sent again, as for a sent alert
         await pool.close()
     run(body())

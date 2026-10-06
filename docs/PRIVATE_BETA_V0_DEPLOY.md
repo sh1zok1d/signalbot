@@ -441,7 +441,8 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 
 **Sending discipline (backlog A5 and its external review; `beta/delivery.py` `SendPacer` / `send_one`).** It applies to every outbox kind (push, alert, brief, weekly) and to the owner's own alert and weekly copy:
 - **Flood control.** Telegram's `RetryAfter` is not a final `FAILED`.
-  - The row goes back to `PENDING` with `error_summary = "RetryAfter Ns"` and `next_attempt_at` = now + N s. No run sends it before then, and it carries no `sending_at`.
+  - The row goes back to `PENDING` with `error_summary = "RetryAfter Ns"` and `next_attempt_at` = now + N s. It carries no `sending_at`.
+  - The wait is the chat's: no run sends that row, or any other `PENDING` row of the same participant, before then.
   - Only that chat waits for the rest of the run; three refusals in one run stop every chat, because the limit is then the bot's.
   - A row past its TTL expires as usual and is never sent late.
 - **Pacing.** At most one send per `notifications.send_interval_ms` (50 ms; Telegram allows about 30 messages a second per bot) and one per second to the same chat.
@@ -452,7 +453,11 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 - **SIGTERM.** On SIGTERM (systemd stopping the unit), the send in flight finishes and no other starts. The run then ends at its next step, without the success heartbeat and without the dead-man ping (status `STOPPED`).
 - **Nothing is lost.** In every stop case the rest stays `PENDING` for the next run instead of becoming `SENDING` → `DELIVERY_UNKNOWN`. A message that has to wait is not rendered.
 - **One failed recipient never blocks the others.** A rejected send (blocked bot, bad chat) is `FAILED` for that recipient only, and the loop continues.
-- **Owner messages.** The owner's alert waits while the pacer is closed; it is due again on the next run. The weekly owner copy goes part by part; the parts already sent are kept in the `weekly_owner` health row, so a later run in the report's window sends only the rest.
+- **Owner messages.** They follow the outbox's rules (review of #345):
+  - The owner's alert waits while the pacer is closed or after flood control; it is due again on the next run.
+  - An ambiguous send (Telegram may have delivered it) or a refused one starts the alert's repeat window as a sent one does: it is recorded in `owner_alert:<key>` with `UNKNOWN` / `REJECTED`, and it is never repeated within the window. The bot process's dead-man alert does the same.
+  - The weekly owner copy goes part by part; the parts already sent are kept in the `weekly_owner` health row, so a later run in the report's window sends only the rest.
+  - An ambiguous part counts as sent and is never resent. A refused part ends the copy for that week (`rejected` in the row).
 - **Run report.** The notifier's JSON report carries `throttled`, `deferred`, `send_stop` (`THROTTLED` / `BUDGET` / `STOPPING` / null), `retry_after_s` and `throttled_chats`.
 - **Load test.** `tests/beta/test_beta_send_load_pg.py` covers three cases:
   - a morning brief to 20 participants through flood control for one chat and one blocked participant;
@@ -481,7 +486,7 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 - `FEEDS_FAILING` (no successful research-feed run for 30 minutes, once the feeds have run, counted from the first run before any success; a run refused by the readiness check, `SCHEMA_NOT_READY` / `WRONG_DB_ROLE`, is recorded as a failed run when the role may write the health row)
 - `STRESS_HOURS_FAILING` (no successful stress-hour run for 3 hours, once it has run, counted as for the feeds)
 - `FEEDS_DEFINITION_CHECK_FAILED` (a field of the last feed-against-history definition check is `FAILED`; `PENDING`, not enough overlap yet, is not a failure)
-- `NOTIFIER_STEP_FAILED` (market alerts or the weekly report raised inside a notifier run that otherwise carried on; with the step and the error type)
+- `NOTIFIER_STEP_FAILED_MARKET`, `NOTIFIER_STEP_FAILED_WEEKLY` (market alerts or the weekly report raised inside a notifier run that otherwise carried on; with the error type; one key per step, so each has its own repeat window)
 - `NOTIFIER_DEADMAN` (sent by the **bot receiver**, not the notifier: the notifier has not succeeded for `health.notifier_stall_s`, so its own `NOTIFIER_NOT_RUNNING` could not be sent; repeated per `health.owner_alert_repeat_s`)
 
 **Dead-man outside the box.** No process on the VPS can report the VPS, its database or both timers being down.
@@ -493,7 +498,7 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 **Outage notice.**
 - `/admin_outage start` sends the ready «у нас сбой» notice to every ACTIVE participant in their language; `/admin_outage end` sends «сбой устранён». `/admin_outage` alone shows both texts.
 - **How it is sent.** The bot sends the notices paced (50 ms apart). Flood control is waited out once, for at most 10 s.
-- **What the owner sees.** The owner then gets `outage start notice: delivered to X of N` (with the failures), and the audit gets a second `admin_outage` row (`DELIVERED`) with those counts after the command's own row.
+- **What the owner sees.** The owner then gets `outage start notice: delivered to X of N`, with the failures and the ambiguous sends (`unknown U (may have arrived)`) apart. The audit gets a second `admin_outage` row (`DELIVERED`) with those counts after the command's own row. With no active participant, that is `delivered to 0 of 0`.
 - `/admin_broadcast` uses the same paced, counted path.
 - Use it when an alert above means participants are seeing stale or missing data.
 
