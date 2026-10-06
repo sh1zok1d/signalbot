@@ -328,7 +328,8 @@ def _m(fid, key, **kw):
 def test_wording_by_status(lang):
     from beta.research_render import line
     d2 = line(_m("D2", "D2_HIGH_RV_DAY", values={"rv_pct": 4.1, "p90_pct": 3.2}), lang)
-    assert ("Проверено на двух биржах" if lang == "ru" else "Tested on two exchanges") in d2 and d2.endswith("(D2).")
+    assert ("Проверено на двух биржах" if lang == "ru" else "Tested on two exchanges") in d2
+    assert d2.endswith(".") and "(D2)" not in d2                       # research ids only in Details (backlog C1)
     p3 = line(_m("DH3-P3", "P3_CROWD", arm="CROWD_LONG", values={"z": 1.6}), lang)
     assert ("Гипотеза" if lang == "ru" else "Hypothesis") in p3
     assert ("не подтверждено" if lang == "ru" else "not confirmed") in p3
@@ -466,8 +467,11 @@ def test_alert_evidence_never_changes_the_push_decision_or_identity():
     cfg = BetaConfig.load()
     now = datetime(2026, 10, 2, 9, tzinfo=UTC)
     payload = {"at": now.isoformat(), "level_kind": "PDH", "level": 64000.0, "side": 1}
-    block = {"as_of": now.isoformat(), "evidence": {"matches": []},
+    block = {"as_of": now.isoformat(), "evidence": {"matches": [], "main_surfaces": True},
              "levels": {"all": [{"kind": "PDH", "price": 64000.0}, {"kind": "ROUND", "price": 64000.0}]}}
+    off = {"kind": "level", "key": "level:PDH:2026-10-02", "payload": dict(payload)}
+    attach_evidence(off, {**block, "evidence": {"matches": []}}, {"bars": None})
+    assert "evidence" not in off["payload"]                # main surfaces off (decision §6.1): nothing attached
     out = []
     for with_evidence in (False, True):
         cand = {"kind": "level", "key": "level:PDH:2026-10-02", "payload": dict(payload)}
@@ -558,6 +562,23 @@ def test_the_presentation_env_switch_can_only_turn_presentation_off():
         env = {} if raw is None else {"BETA_RESEARCH_EVIDENCE_ENABLED": raw}
         assert research_presentation_enabled(on, env) is want, raw
         assert research_presentation_enabled(off, env) is False, raw     # the env never turns it on
+
+
+def test_research_is_off_on_the_main_surfaces_and_on_in_its_tab_by_default():
+    """PRE_BETA_SCOPE_DECISION_V1 §6.1 (backlog G4): one switch for the tab, one for the main surfaces."""
+    from beta.config import BetaConfig, research_main_surfaces_enabled, research_presentation_enabled
+    from beta.decision_format import evidence_lines
+    default = BetaConfig.load()
+    assert research_presentation_enabled(default, {}) is True and research_main_surfaces_enabled(default, {}) is False
+    main = _with_research(main_surfaces_enabled=True)
+    assert research_main_surfaces_enabled(main, {}) is True
+    assert research_main_surfaces_enabled(main, {"BETA_RESEARCH_EVIDENCE_ENABLED": "0"}) is False
+    assert research_main_surfaces_enabled(_with_research(enabled=False, main_surfaces_enabled=True), {}) is False
+    d2 = _m("D2", "D2_HIGH_RV_DAY", values={"rv_pct": 4.1, "p90_pct": 3.2})
+    blk = {"as_of": datetime.fromtimestamp(T0 / 1000, tz=UTC).isoformat(), "evidence": {"matches": [d2]}}
+    assert evidence_lines(blk, "btc", "ru") == []                              # a block built with main off
+    on = {**blk, "evidence": {"matches": [d2], "main_surfaces": True}}
+    assert len(evidence_lines(on, "btc", "ru")) == 1
 
 
 def test_collection_is_gated_only_by_its_own_flags_and_never_applies_the_schema(monkeypatch):

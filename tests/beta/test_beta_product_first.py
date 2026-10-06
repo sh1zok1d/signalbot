@@ -87,16 +87,19 @@ def _lines(text):
 
 def test_push_unusual_hour_inferred_label_matches_the_reference_message():
     g = hg.evaluate_hour(CFG, _ctx(price=0.02, oi=0.9, taker=0.1, rng=0.97, vol=0.96))
-    text = format_push(_episode(), lang="ru", gate=g)
-    assert text == ("<b>BTC · необычный час</b>\n13:05–14:05 (Киев)\n\n"
-                    "Похоже на снижение с новыми шортами\n"
-                    "Цена −1,90% (61 950 → 60 770): падение глубже, чем в 95% часовых окон за 30 дней\n"
-                    "OI +2,4% · Delta −$84 млн\n"
-                    "Диапазон и объём — оба в топ-5% часовых окон за 30 дней\n"
-                    "Биржи: 3 из 3 в одну сторону\n"
-                    # the research registry's line for this 1h label (PRODUCT_DECISION_V2 §2.4)
-                    "↳ Проверка показала: после импульса рост OI вместе с продолжением цены не давал более сильного "
-                    "продолжения в следующий час, чем такой же импульс без роста OI (MARKET-02)")
+    base = ("<b>BTC · необычный час</b>\n13:05–14:05 (Киев)\n\n"
+            "Похоже на снижение с новыми шортами\n"
+            "Цена −1,90% (61 950 → 60 770): падение глубже, чем в 95% часовых окон за 30 дней\n"
+            "OI +2,4% · Delta −$84 млн\n"
+            "Диапазон и объём — оба в топ-5% часовых окон за 30 дней\n"
+            "Биржи: 3 из 3 в одну сторону")
+    # research on the main surfaces is off by default (PRE_BETA_SCOPE_DECISION_V1 §6.1): no registry line
+    assert format_push(_episode(), lang="ru", gate=g) == base
+    text = format_push(_episode(), lang="ru", gate=g, research=True)
+    # switched on: the research registry's line for this 1h label (PRODUCT_DECISION_V2 §2.4), its id
+    # only in /research
+    assert text == base + ("\n↳ Проверка показала: после импульса рост OI вместе с продолжением цены не давал "
+                           "более сильного продолжения в следующий час, чем такой же импульс без роста OI")
     assert len(_lines(text)) <= 8
     assert_descriptive(text, "ru")
     assert_descriptive(format_push(_episode(), lang="en", gate=g), "en")

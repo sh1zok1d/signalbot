@@ -250,7 +250,7 @@ async def research_evidence_block(conn, cfg: BetaConfig, *, now: datetime, block
     """The research evidence of this block (beta/research_evidence.py). It reads the block and the
     bars it was built from and never changes them. Never raises: a failure is recorded on the
     block as an error type and the surfaces show no research line."""
-    from .config import research_presentation_enabled
+    from .config import research_main_surfaces_enabled, research_presentation_enabled
     if not research_presentation_enabled(cfg) or capture is None or capture.get("bars") is None:
         return None
     from .research_evidence import evaluate
@@ -266,6 +266,7 @@ async def research_evidence_block(conn, cfg: BetaConfig, *, now: datetime, block
         capture["evidence_inputs"] = inputs
         ev = evaluate(inputs)
         ev["zones"] = _zone_conditionals(capture["bars"], block, now=now)
+        ev["main_surfaces"] = research_main_surfaces_enabled(cfg)       # else the tab only (decision §6.1)
         return ev
     except Exception as exc:  # noqa: BLE001 - research context must never break a view or an alert
         logger.warning("research evidence failed: %s", type(exc).__name__)

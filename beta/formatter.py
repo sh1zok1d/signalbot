@@ -1269,7 +1269,8 @@ PUSH_MAX_LINES = 8
 
 def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang: str = "en",
                 gate: Optional[Mapping[str, Any]] = None, analog: Optional[Mapping[str, Any]] = None,
-                since_year: Optional[int] = None, latency: Optional[Mapping[str, Any]] = None) -> str:
+                since_year: Optional[int] = None, latency: Optional[Mapping[str, Any]] = None,
+                research: bool = False) -> str:
     """The unusual-hour push (BETA_COPY_CONTRACT_V1 §1.2): the 1h state around the
     TRIGGERED episode, never the detector name, never an id. At most 8 non-empty
     lines. `gate` is the push decision's stored hour gate; without it only the hour
@@ -1322,7 +1323,8 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
     if analog:
         from .decision_format import analog_line
         extras.append(analog_line(analog, lang, since_year=since_year))
-    extras.append(_research_line(gate.get("interpretation") or {}, "1h", lang))
+    if research:                                   # the registry line only while research is on the main surfaces
+        extras.append(_research_line(gate.get("interpretation") or {}, "1h", lang))
     for line in extras:
         if line and sum(1 for x in lines if x.strip()) < PUSH_MAX_LINES:
             lines.append(line)

@@ -333,7 +333,7 @@ def attach_evidence(cand: dict, block: Mapping[str, Any], cap: Mapping[str, Any]
     part in detection, the push decision or the alert identity."""
     from .research_evidence import for_level_touch, for_move
     ev = block.get("evidence")
-    if not ev or ev.get("error_type") or cand["kind"] not in ("level", "move"):
+    if not ev or ev.get("error_type") or not ev.get("main_surfaces") or cand["kind"] not in ("level", "move"):
         return
     try:
         if cand["kind"] == "level":

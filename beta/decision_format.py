@@ -281,12 +281,21 @@ def _block_now(block: Mapping[str, Any]) -> Optional[datetime]:
     return datetime.fromisoformat(at) if at else None
 
 
+def main_research(block: Mapping[str, Any]) -> bool:
+    """Whether the block's research evidence may reach a main surface (the «🔬 Исследования» tab reads it
+    either way). A block built before the split switch carries no flag and shows none."""
+    return bool((block.get("evidence") or {}).get("main_surfaces"))
+
+
 def evidence_lines(block: Mapping[str, Any], surface: str, lang: str, *, limit: int = MAIN_RESEARCH_LINES,
                    since: Optional[datetime] = None, topics: Optional[Sequence[str]] = None,
                    running: bool = True) -> list:
     """Research conclusions for a surface from the block's research evidence: the live state and
-    what the closed research found after it, by the evidence hierarchy (beta/research_evidence.py)."""
+    what the closed research found after it, by the evidence hierarchy (beta/research_evidence.py).
+    None unless the block was built with research on the main surfaces (decision §6.1)."""
     from .research_render import surface_lines
+    if not main_research(block):
+        return []
     now = _block_now(block)
     return surface_lines(block.get("evidence"), surface, lang, limit=limit, since=since, topics=topics,
                          now=now if running else None)
@@ -447,7 +456,7 @@ def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
         lines.append(t(lang, "dc_level_at", price=zone_price(lv["at"], lang), name=_e(zone_names(lv["at"], lang))))
     lines.append("")
     lines.append(t(lang, "lv_above"))
-    zc = ((block.get("evidence") or {}).get("zones") or {})
+    zc = ((block.get("evidence") or {}).get("zones") or {}) if main_research(block) else {}
 
     def cond(side: str, k: int) -> list:
         lst = zc.get(side) or []

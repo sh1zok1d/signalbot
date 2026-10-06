@@ -203,7 +203,9 @@ beta:
     # never detection, push gating, corridors or touch probabilities. The feeds are public read-only
     # market data (Binance futures data/depth/aggTrades, Binance spot market data, Deribit DVOL).
     research_evidence:
-      enabled: true
+      enabled: true                         # the «🔬 Исследования» tab and the evidence it reads
+      main_surfaces_enabled: false          # research lines on /btc, /catchup, the briefing, /levels, /risk,
+                                            # alerts and pushes (PRE_BETA_SCOPE_DECISION_V1 §6.1: off)
       feeds_enabled: true                   # --beta-feeds-once (every 5 min)
       stress_hours_enabled: true            # --beta-stress-once (hourly; aggTrades of stress hours only)
-      main_surface_max: 2                   # research conclusions on a main surface (/btc, /catchup, alerts)
+      main_surface_max: 2                   # research conclusions on a main surface while it is on
