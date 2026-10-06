@@ -608,7 +608,8 @@ def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mappi
     """Held-out and live corridor coverage against its target. A live share is computed over every
     scored hourly forecast, but its N is the number of non-overlapping horizon windows (`N_EFF`,
     `BetaConn.forecast_accuracy`): hourly 24h forecasts overlap 24 times, so the raw count would
-    overstate the evidence. Below `MIN_N_SHOWN` independent windows the share is not shown."""
+    overstate the evidence. Below `MIN_N_SHOWN` independent windows the share is not shown. With
+    `detail` (the windowed corridor accuracy) the `live` summary is not used."""
     from .rangecast import COVERAGE
     target = (model or {}).get("coverage") or COVERAGE
     lines = [t(lang, "ac_title", share=fmt_share(target, lang))]
@@ -626,20 +627,21 @@ def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mappi
                 period = f"{a} – {z}"
         days = max((int(c.get("n_days") or 0) for c in cal.values()), default=0)
         lines.append(t(lang, "ac_holdout", period=period, days=days, parts=", ".join(parts)))
-    parts = []
-    for h in ("1h", "4h", "24h"):
-        rec = live.get(h) or {}
-        n = int(rec.get("INSIDE", 0)) + int(rec.get("OUTSIDE", 0))
-        if not n:
-            continue
-        n_eff = int(rec.get("N_EFF", n))
-        if n_eff < MIN_N_SHOWN:
-            parts.append(t(lang, "ac_part_live_short", h=_hz(h, lang), n=n_eff))
-        else:
-            parts.append(t(lang, "ac_part_live", h=_hz(h, lang), p=fmt_share(rec.get("INSIDE", 0) / n, lang), n=n_eff))
     if detail is not None:
         lines.extend(_accuracy_detail_lines(detail, lang))
     else:
+        parts = []
+        for h in ("1h", "4h", "24h"):
+            rec = live.get(h) or {}
+            n = int(rec.get("INSIDE", 0)) + int(rec.get("OUTSIDE", 0))
+            if not n:
+                continue
+            n_eff = int(rec.get("N_EFF", n))
+            if n_eff < MIN_N_SHOWN:
+                parts.append(t(lang, "ac_part_live_short", h=_hz(h, lang), n=n_eff))
+            else:
+                parts.append(t(lang, "ac_part_live", h=_hz(h, lang), p=fmt_share(rec.get("INSIDE", 0) / n, lang),
+                               n=n_eff))
         lines.append(t(lang, "ac_live", parts=", ".join(parts)) if parts else t(lang, "ac_live_none"))
     lines.extend(_touch_cal_lines(cal, lang))
     lines.extend(_live_cal_lines(touch_live, lang))

@@ -112,3 +112,35 @@ def test_the_report_text_shows_the_breakdown_without_ids():
     assert "  trader type: not recorded" in text
     for raw in (owner, 900000000101, 900000000102, 900000000103):
         assert str(raw) not in text
+
+
+def test_the_bisect_breakdown_equals_a_plain_scan():
+    """Review #334 item 13: sorted lists and bisect instead of a scan per row; the counts are unchanged."""
+    import random
+
+    from beta.usage import DELIVERIES, PULL_ACTIONS, REACTION_WINDOW, _aware, _group_block, _type_of
+    rnd = random.Random(7)
+    actions = list(PULL_ACTIONS) + ["tab_1h", "btn_levels", "btn_useful", "cmd_push", "push_delivered",
+                                    "brief_delivered", "weekly_delivered", "alert_delivered"]
+    rows = []
+    for _ in range(600):
+        a = rnd.choice(actions)
+        rows.append({"user_pk": rnd.choice((U1, U2, U3)), "action": a,
+                     "detail": rnd.choice(("level", "event", "move", "price")) if a == "alert_delivered" else None,
+                     "at": START + timedelta(minutes=rnd.randrange(7 * 24 * 60))})
+    got = _group_block({U1, U2, U3}, rows, [], start=START, end=NOW)
+
+    def scan_follows(at, starts):
+        return any(timedelta(0) <= at - s <= REACTION_WINDOW for s in starts)
+    organic = post = 0
+    for r in rows:
+        if r["action"] in PULL_ACTIONS:
+            sent = [_aware(x["at"]) for x in rows if x["user_pk"] == r["user_pk"] and x["action"] in DELIVERIES]
+            post += scan_follows(_aware(r["at"]), sent)
+            organic += not scan_follows(_aware(r["at"]), sent)
+    assert got["pulls"] == {"organic": organic, "post_push": post}
+    for name, block in got["types"].items():
+        sent = [r for r in rows if _type_of(r) == name]
+        reacted = sum(any(x["user_pk"] == r["user_pk"] and x["action"].startswith(("tab_", "btn_"))
+                          and timedelta(0) <= x["at"] - r["at"] <= REACTION_WINDOW for x in rows) for r in sent)
+        assert (block["delivered"], block["reacted"]) == (len(sent), reacted), name
