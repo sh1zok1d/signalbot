@@ -57,7 +57,10 @@ async def _admin(sql):
 
 
 async def _source(drop=None):
-    await _admin([f'DROP DATABASE IF EXISTS "{d}"' for d in (SRC, LIVE, COPY)] + [f'CREATE DATABASE "{SRC}"'])
+    # template0: in CI (timescale image) template1 carries the timescaledb extension, whose catalog would
+    # enter the dump and need the pre/post-restore calls the shim skips; the beta tables need no TimescaleDB
+    await _admin([f'DROP DATABASE IF EXISTS "{d}"' for d in (SRC, LIVE, COPY)]
+                 + [f'CREATE DATABASE "{SRC}" TEMPLATE template0'])
     c = await asyncpg.connect(_dsn(SRC))
     try:
         await c.execute(STAGE1_MIN_SQL)

@@ -312,7 +312,16 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         scored = await _rows(pool, "SELECT horizon, outcome, realized_high AS high FROM beta_forecasts WHERE outcome IS NOT NULL")
         # the 06:01 minute (the personal alert's +2% spike) is inside the window issued at 06:00:40
         assert scored == [{"horizon": "1h", "outcome": "OUTSIDE", "high": target + 1.0}]
-        out = await h.handle(msgs[A]("/accuracy", 200))
+        from storage.beta_v0_store import BetaConn
+        read = BetaConn.forecast_accuracy
+
+        async def unused(self, *, since):                     # review #334 item 15: no dead 30-day read
+            raise AssertionError("/accuracy shows the windowed detail; the 30-day summary is not read")
+        BetaConn.forecast_accuracy = unused
+        try:
+            out = await h.handle(msgs[A]("/accuracy", 200))
+        finally:
+            BetaConn.forecast_accuracy = read
         assert "1ч: 7 дн. мало данных (N=1)" in plain(out[-1].html)   # one window: no share yet
         async with store.connect() as conn:
             acc = await conn.forecast_accuracy(since=DAY)
