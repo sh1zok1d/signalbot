@@ -71,3 +71,31 @@ def test_c013_bound_paths_select_its_suite():
                     'docs/research_data/SPRINT04_BINANCE_SPOT_USDT_DAILY_PANEL_V0/EXCLUSION_LISTS.json',
                     'scripts/research/discovery_sprint_04/d13_panel.py'):
         assert 'tests/research/test_gv0r01_c013_market_test.py' in _pr_gate()._select_targets([], [changed]), changed
+
+
+def test_beta_suites_run_on_every_pr():
+    gate = _pr_gate()
+    for suite in gate.BETA_SUITES:
+        assert (REPO / suite).is_dir(), suite
+        assert any((REPO / suite).glob("test_*.py")), suite
+    for changed in ([], ["docs/PRE_BETA_BACKLOG_V1.md"], ["beta/delivery.py"], ["runtime/beta_bot.py"],
+                    ["config/beta_v0.yaml"], ["analytics/percentile_engine/compute.py"]):
+        targets = gate._select_targets(gate._load_always(), changed)
+        assert set(gate.BETA_SUITES) <= set(targets), changed
+
+
+def test_changed_beta_test_file_is_not_selected_twice():
+    gate = _pr_gate()
+    targets = gate._select_targets([], ["tests/beta/test_beta_sender.py"])
+    assert "tests/beta/test_beta_sender.py" not in targets
+    assert targets.count("tests/beta") == 1
+
+
+def test_workflows_give_the_beta_suites_their_own_database():
+    for workflow in (".github/workflows/ci.yml", ".github/workflows/full-regression.yml"):
+        text = (REPO / workflow).read_text(encoding="utf-8")
+        assert "BETA_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_beta_test" in text, workflow
+        assert 'CREATE DATABASE signalbot_beta_test' in text, workflow
+        for line in text.splitlines():
+            if "BETA_TEST_DSN:" in line:
+                assert not line.rstrip().endswith("/signalbot_test"), (workflow, line)
