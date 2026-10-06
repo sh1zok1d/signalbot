@@ -250,6 +250,15 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
   - **Average funding over 24h.** Beside it, the median of the same 24h mean over the 30 prior days, from the same tape, with N days.
   - **Long/short account ratio.** Binance's, from the research feed (`beta_feed_metrics_5m`), beside the median of the 30 prior days. It is shown only where that feed runs; on production it stays hidden until the feeds are deployed.
   - **Small samples.** Below 20 days a comparator reads «обычно: мало данных (N)». A view stored before this change renders as before.
+- The owner-only signature index `/hypotheses` (`PRE_BETA_SCOPE_DECISION_V1.md` §7; backlog K; `beta/signatures.py`, `decision.signature_index`). It is research tooling with no participant surface.
+  - **What it signs.** The notifier step signs every closed 5m bucket from stored states: 1h/4h labels and range/volume bands, the unusual-hour gate, D7 as of the bucket's close, the liquidation votes, research evidence (the newest bucket only) and the C1 day type. A state it could not read is «?». It needs no new threshold. The index starts at the newest bucket, with no backfill, and catches up at most a day after downtime.
+  - **Tables.** `beta_signature_buckets` (an episode begins at a change or a gap), `beta_hypothesis_reviews` and `beta_hypothesis_pins`, all append-only, with no user id.
+  - **`/hypotheses`** (owner only; anyone else gets the unknown-command reply).
+    - It lists NEW signatures: ≥ 2 tail states, ≥ 3 episodes, ≥ 2 UTC days, with their frequency and N. It never shows what followed.
+    - `/hypotheses research <id> <text>` or `/hypotheses reject <id>` records the blind decision once. «В research» freezes the hypothesis text and the generating window.
+  - **`/pin [note]`** marks the newest signed bucket.
+  - **Export.** `python main.py --beta-hypotheses-export --beta-json` prints the reviews shaped as atlas `exposure:` entries. The atlas itself changes only through a reviewed commit (`python -m scripts.research.atlas.build_atlas`), never from the bot.
+  - **Turning it off:** `decision.signature_index: false`. The tables stay.
 - `/admin_stats` and `--beta-usage-report` end with an owner breakdown (backlog H6; `beta/usage.py::owner_breakdown`), for the last 7 days and since the first external user.
   - **Words.** It uses the measurement contract's: every pull (`/check` included), the inclusive 10-minute window after any delivery, and known and unknown participants apart.
   - **What it counts.**

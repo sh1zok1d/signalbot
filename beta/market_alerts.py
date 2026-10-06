@@ -434,6 +434,13 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             rep["forecasts_scored"] = (await score_forecasts(conn, b, closed, now=now))["scored"]
         if d["claim_journal"]:
             rep["claims"] = await _journal_hour(conn, cfg, block, cap, now=now)
+    if d["signature_index"]:
+        # owner-only research tooling (PRE_BETA_SCOPE_DECISION_V1 §7): reads stored states, never decides
+        try:
+            from .signatures import record_signatures
+            rep["signatures"] = await record_signatures(conn, cfg, now=now, evidence=block.get("evidence"))
+        except Exception as exc:  # noqa: BLE001 - the index never stops alerts or deliveries
+            rep["signatures_error"] = type(exc).__name__
     ttl = cfg.delivery_ttl
     for a in await conn.fetch_undispatched_market_alerts(cfg["notifications"]["max_deliveries_per_run"]):
         rep["materialized"] += await conn.materialize_alert_deliveries(

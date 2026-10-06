@@ -178,6 +178,8 @@ beta:
     forecast_tracking: true                 # record each hour's corridors and their outcome (/accuracy)
     claim_journal: true                     # journal every L2/L3 claim hourly and at alert evaluation, score it
                                             # (docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md); internal tracking only
+    signature_index: true                   # owner-only /hypotheses index (PRE_BETA_SCOPE_DECISION_V1 §7);
+                                            # signs every closed 5m bucket from stored states, no user surface
     # weekly report (backlog B4): how the bot's own estimates did over 7 days; a push type of its
     # own (/push weekly off). Sunday evening, outside the U1a withdrawal weekdays (Mon-Fri).
     weekly_report:
