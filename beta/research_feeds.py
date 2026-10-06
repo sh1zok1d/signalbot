@@ -321,13 +321,25 @@ async def feed_schema_readiness(conn, job: str, *, expected_role: Optional[str] 
             "missing": missing}
 
 
-async def _readiness(store, job: str, expected_role: Optional[str]) -> Optional[dict]:
-    """None when the job may run; otherwise the refusal report (logged, nothing written)."""
+# the health row a refused job leaves (A3 review: a refusal must reach the owner's alerts)
+JOB_HEALTH = {"feeds": "research_feeds", "stress": "research_stress_hours"}
+
+
+async def _readiness(store, job: str, expected_role: Optional[str], now: datetime) -> Optional[dict]:
+    """None when the job may run; otherwise the refusal report (logged; no feed data written). The
+    refusal is recorded as a failed run of the job's health row when the role may write it, so the
+    owner's FEEDS_FAILING / STRESS_HOURS_FAILING alert follows by the job's cadence."""
     async with store.connect() as conn:
         ready = await feed_schema_readiness(conn, job, expected_role=expected_role)
     if ready["ready"]:
         return None
     logger.error("%s job refused: %s (%s)", job, ready["status"], ", ".join(ready["missing"][:12]))
+    try:
+        async with store.connect() as conn:
+            await conn.record_health(JOB_HEALTH[job], now=now, success=False,
+                                     error_type=ready["status"])
+    except Exception as exc:  # noqa: BLE001 - without the grant the refusal stays in the unit's log
+        logger.warning("%s refusal not recorded: %s", job, type(exc).__name__)
     return {"status": ready["status"], "version": FEEDS_VERSION, "db_role": ready["db_role"],
             "missing": ready["missing"]}
 
@@ -421,7 +433,7 @@ async def run_feeds_job(store, *, now: datetime, fetch: Optional[FetchJson] = No
     `research_feeds` and the REST-vs-Vision definition check `research_feeds_definition`.
     Refuses to run (nothing written) unless `feed_schema_readiness` passes."""
     from storage.beta_v0_store import FEEDS_LOCK_KEY
-    refused = await _readiness(store, "feeds", expected_role)
+    refused = await _readiness(store, "feeds", expected_role, now)
     if refused is not None:
         return refused
     pause = pause or asyncio.sleep
@@ -490,7 +502,7 @@ async def run_stress_job(store, *, now: datetime, cut: Optional[float] = None, f
     Refuses to run (nothing written) unless `feed_schema_readiness` passes."""
     from storage.beta_v0_store import STRESS_LOCK_KEY
     from .research_evidence import load_cuts
-    refused = await _readiness(store, "stress", expected_role)
+    refused = await _readiness(store, "stress", expected_role, now)
     if refused is not None:
         return refused
     pause = pause or asyncio.sleep

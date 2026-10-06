@@ -1049,6 +1049,48 @@ units:
     revisit: 'Prospective surface 2027-01-01..2029-12-31 declared in the G01 planning record: one analysis at the
       earliest of 104 episodes or the end date, minimum 52 eligible post-launch weeks; a new search object with its
       own freeze. Binance 2025/2026 is not eligible.'
+  - id: TOM-BASELINE-V1
+    title: TURN_OF_MONTH_BASELINE_UNIT_V1
+    program: PRODUCT_EVIDENCE
+    row: CALENDAR.month_boundary
+    col: CANDLES
+    state: EXPOSED_ONLY
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '[2020-01-31, 2025-01-01) BINANCE_2020_2024 (calendar from the C0/C1 maturity date); single-venue proxy;
+      no BitMEX, no 2025/2026, no live tape'
+    units_n: 58 month units with both sets (59 with a MID-only 2022-10 in Part B); 202 TOM / 826 MID days; 4848 / 19824
+      1h windows; 1212 / 4956 4h windows
+    practical_bar: 'Part B tolerances 2 pp (1h flags) / 4 pp (bands, TOD, 24h) on D = r_TOM - r_MID with >= 4/5 years
+      same sign; Part A +/-0.15 SD (no product-relevant shift) or interval excluding 0 with >= 4/5 years (L1 permitted)'
+    mechanism: 'Product-baseline question (G01-A1/A2 successor, EVIDENCE_AND_CLAIMS_DECISION_V1): are the bot''s 30-day
+      activity and range references calibrated the same way on turn-of-month days as mid-month, and how large is the
+      day-level participation and range shift. No mechanism is tested.'
+    function: 'G01 TOM days (last day of m-1 unless last-Friday expiry, days 1-3 of m, minus fixed holiday windows) vs days
+      8-21 of m -> Part B: label rates (1h flags, 1h/4h bands, 1h TOD, 24h above usual) under C1 (deployed) and C0;
+      Part A: z(log quote volume, log trade count, log range), mean month difference'
+    verdict: 'EXECUTED ONCE (2026-10-06). Part B NO_CHANGE under C1: 0 labels BEYOND_TOLERANCE, 1 WITHIN_TOLERANCE (1h
+      band move <= 0.20), 12 NOT_RESOLVED; activity labels fire less on TOM days (1h flags D -1.5..-1.8 pp, 24h range
+      -9.4 pp). Part A: TOM days quieter, volume -0.24 SD (95 % -0.44..-0.03), trade count -0.32 (-0.52..-0.12), range
+      -0.24 (-0.46..-0.01), 58 months; L1 permitted by the note''s rule, not shown (needs a product go)'
+    why_closed: 'One retrospective run on an exposed surface under its design note; no label beyond tolerance, so no
+      correction unit is proposed. Product evidence, not a confirmation.'
+    reopen: 'BitMEX 2017-2019 as a later labelled check (unread for this contrast); prospective monthly TOM-day label
+      rates from the live tape (read-only) or the claim journal once it exists; any correction (e.g. a point-in-time
+      TOM factor) is a new unit with its own design note and owner go'
+    forbidden: 'no other day window (days 1-5, last two days, ...), label, construction, outcome or surface inside
+      this unit; no year subgroups chosen after the outcome; no reading as a G01-A1/A2 test or reversal (G01 stays
+      closed as recorded); no direction, edge or cause'
+    records:
+    - docs/TURN_OF_MONTH_BASELINE_UNIT_V1.md
+    - docs/TURN_OF_MONTH_BASELINE_UNIT_V1_RESULT.md
+    - docs/TURN_OF_MONTH_BASELINE_UNIT_V1_RESULT.json
+    - scripts/product/turn_of_month_baseline_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Design note 54421a0 (before outcome); evaluator 1067bcb (before the run); raw output c6d60d8. Part A sign is
+      opposite to G01-A1/A2''s declared POSITIVE expectation; the note fixed no direction. 2020 (Feb-Dec) is the one
+      year with the opposite sign on most labels. Track PRODUCT_EVIDENCE + STRUCTURE.'
   - id: G01-X1
     title: HK_ETF_FIXING_0800UTC
     program: AUTOGEN_G01

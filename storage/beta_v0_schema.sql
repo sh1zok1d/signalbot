@@ -1022,3 +1022,11 @@ CREATE TABLE IF NOT EXISTS beta_hypothesis_pins (
 DROP TRIGGER IF EXISTS trg_beta_hypothesis_pins_append_only ON beta_hypothesis_pins;
 CREATE TRIGGER trg_beta_hypothesis_pins_append_only BEFORE UPDATE OR DELETE ON beta_hypothesis_pins
     FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+-- External review of A3/A5 (2026-10-06).
+-- A5: a row Telegram's flood control sent back to PENDING waits until `next_attempt_at`.
+ALTER TABLE beta_notification_deliveries ADD COLUMN IF NOT EXISTS next_attempt_at TIMESTAMPTZ;
+-- A3: the first run of a component, so a job that never succeeded is judged by its own cadence
+-- from that run on, not at the first failure. Existing rows start from what is known.
+ALTER TABLE beta_runtime_health ADD COLUMN IF NOT EXISTS first_run_at TIMESTAMPTZ;
+UPDATE beta_runtime_health SET first_run_at = COALESCE(last_success_at, last_run_at) WHERE first_run_at IS NULL;

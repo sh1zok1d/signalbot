@@ -106,6 +106,9 @@ def add_beta_arguments(parser) -> None:
                         help="Days of journaled claims to report (--beta-claims-report only; default 30).")
     parser.add_argument("--beta-json", action="store_true",
                         help="Emit the beta report as one JSON object (all --beta-* commands).")
+    parser.add_argument("--beta-deadman-ping", action="store_true",
+                        help="With --beta-notify-once: ping BETA_DEADMAN_PING_URL after the run. Only the "
+                             "notifier unit passes it; tests and manual runs never ping the real check.")
 
 
 def is_beta_command(args) -> bool:
@@ -358,19 +361,27 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
         return await run_outcomes_once(db.beta_store(), cfg, switches, clock=clock, raw_revision=raw_revision)
 
     if args.beta_notify_once:
-        if not switches.enabled:
-            return {"status": "DISABLED"}
-        if not switches.telegram:          # no-Telegram shadow soak: nothing to do, no DB access
-            return {"status": "TELEGRAM_DISABLED"}
+        ping = bool(getattr(args, "beta_deadman_ping", False))
+        if not switches.enabled or not switches.telegram:
+            # disabled or the no-Telegram shadow soak: nothing to send, no DB access; the timer and
+            # the box are still alive, so the external dead-man check is still pinged
+            from beta.delivery import deadman_ping
+            out = {"status": "DISABLED" if not switches.enabled else "TELEGRAM_DISABLED"}
+            if ping:
+                out["deadman_ping"] = await deadman_ping()
+            return out
         await db.init_beta_v0_schema()
         secrets = BetaSecrets.from_env(env)
         if sender is None and secrets.bot_token:
             from runtime.beta_bot import BetaTelegramSender
             sender = BetaTelegramSender(secrets.bot_token)
-        from beta.delivery import run_notify_once
+        from beta.delivery import SendPacer, process_age_s, run_notify_once
         # A5: SIGTERM (systemd stopping the unit) lets the send in flight finish and starts no other,
-        # so the rest stays PENDING for the next run instead of SENDING -> DELIVERY_UNKNOWN
+        # so the rest stays PENDING for the next run instead of SENDING -> DELIVERY_UNKNOWN; the run
+        # then stops at its next step without the success heartbeat or the ping
         stop = asyncio.Event()
+        # the send budget counts from the process start, as the unit's timeout does (A5 review)
+        pacer = SendPacer.from_config(cfg, stop=stop, elapsed_s=process_age_s())
         loop = asyncio.get_running_loop()
         try:
             loop.add_signal_handler(signal.SIGTERM, stop.set)
@@ -378,7 +389,7 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
             pass
         try:
             return await run_notify_once(db.beta_store(), cfg, switches, sender=sender, clock=clock,
-                                         owner_user_id=secrets.owner_user_id, stop=stop)
+                                         owner_user_id=secrets.owner_user_id, stop=stop, pacer=pacer, ping=ping)
         finally:
             try:
                 loop.remove_signal_handler(signal.SIGTERM)

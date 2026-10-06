@@ -23,6 +23,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 ATLAS_JSON = ROOT / "docs/research/atlas/SIGNALBOT_RESEARCH_ATLAS_V1.json"
 ATLAS_UNITS = ROOT / "docs/research/atlas/ATLAS_UNITS_V1.yaml"
+ATLAS_EVENTS = ROOT / "docs/research/atlas/ATLAS_EVENTS_V1.jsonl"
 ASSESSMENTS = ROOT / "docs/research/audit/RESEARCH_HISTORY_AUDIT_V1_ASSESSMENTS.yaml"
 MEMORY = ROOT / "docs/research/MECHANISM_MEMORY_V0.json"
 MEMORY_DELTAS = ROOT / "docs/research/generator_v0_memory/deltas"
@@ -33,6 +34,10 @@ OUT_JSON = ROOT / "docs/research/RESEARCH_HISTORY_AUDIT_V1.json"
 OUT_TABLE = ROOT / "docs/research/RESEARCH_HISTORY_AUDIT_V1_TABLE.md"
 
 VERSION = "RESEARCH_HISTORY_AUDIT_V1"
+# The V1 census is the atlas as of its last event before the audit (seq 6, 2026-10-04). Units added by later
+# atlas events are post-audit: they are placed (never reported as unknown ids) but not assessed here, so the
+# merged audit record stays byte for byte as merged (RESEARCH_HISTORY_AUDIT_V1_ERRATUM_1.md §4).
+AUDIT_ATLAS_EVENT_SEQ = 6
 LEVELS = ("L0", "L1", "L2", "L3", "L4")
 CONS = ("YES", "PARTLY", "NO", "NA")
 
@@ -101,6 +106,16 @@ def _load():
     return units, aliases, yaml.safe_load(ASSESSMENTS.read_text())
 
 
+def post_audit_atlas_units() -> list[str]:
+    """Atlas unit ids added by events after AUDIT_ATLAS_EVENT_SEQ (outside the V1 census)."""
+    out = []
+    for line in ATLAS_EVENTS.read_text().splitlines():
+        e = json.loads(line)
+        if int(e["seq"]) > AUDIT_ATLAS_EVENT_SEQ:
+            out += list(e.get("affected_units", {}).get("added") or ())
+    return sorted(set(out))
+
+
 def _blocker(verdict: str):
     if "SURVIVOR" in verdict:
         return "SURVIVOR"
@@ -146,6 +161,8 @@ def _exposure(unit: dict, row: dict) -> str:
 
 def build(write_dates: bool = True) -> dict:
     units, aliases, A = _load()
+    post_audit = post_audit_atlas_units()
+    units = {k: v for k, v in units.items() if k not in post_audit}
     assessed, defaults = A["units"], A["generator_defaults"]
     problems: list[str] = []
 
@@ -196,7 +213,7 @@ def build(write_dates: bool = True) -> dict:
             r["date"] = (_first_added(r.get("records") or []) if write_dates else None) \
                 or FALLBACK_DATES.get(r.get("family") or "")
     census = {r["id"] for r in rows}
-    known = census | set(A["child_executions"]) | set(A["methodology_units"])
+    known = census | set(A["child_executions"]) | set(A["methodology_units"]) | set(post_audit)
 
     def resolve(x: str):
         x = LEDGER_ALIASES.get(x, x)

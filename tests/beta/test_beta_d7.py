@@ -253,7 +253,7 @@ def test_d7_health_alert_uses_available_at_age():
                      "notifier": {"last_success_at": NOW}}
     kw = dict(now=NOW, heartbeat={"healthy": True}, detector_watermark=NOW - timedelta(minutes=5),
               latest_live={"snapshot": {"materialized": True}}, runtime=fresh_runtime,
-              delivery_problems=0, switches=BetaSwitches(True, True, False, True))
+              delivery_problems=None, switches=BetaSwitches(True, True, False, True))
     on = CFG.with_overrides(regime_d7={"enabled": True})
     assert "D7_HOUR_STATE_STALE" in {a["key"] for a in health_alerts(on, d7_newest_available_at=None, **kw)}
     old = NOW - timedelta(minutes=70, seconds=1)

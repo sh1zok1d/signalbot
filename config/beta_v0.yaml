@@ -59,9 +59,10 @@ beta:
   notifications:
     max_deliveries_per_run: 100
     # A5: at most one send per 50 ms (Telegram allows about 30 messages a second per bot) and
-    # no send started after 35 s of a run (the unit is stopped at 50 s); the rest waits PENDING
+    # no send started after 20 s of the process (the unit is stopped at 50 s; one send can take
+    # 17 s and the run's tail 8 s: beta.config.NOTIFY_BUDGET_MAX_S); the rest waits PENDING
     send_interval_ms: 50
-    send_budget_s: 35
+    send_budget_s: 20
 
   privacy:
     stopped_user_retention_days: 30

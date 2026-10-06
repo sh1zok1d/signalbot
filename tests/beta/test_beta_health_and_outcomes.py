@@ -79,7 +79,7 @@ def test_ingestion_heartbeat_min_two_venues():
 def test_health_alerts_cover_components():
     sw = BetaSwitches(True, True, False, True)
     a = health_alerts(CFG, now=T, heartbeat={"healthy": False}, detector_watermark=None,
-                      latest_live={"snapshot": {"materialized": False}}, runtime={}, delivery_problems=5,
+                      latest_live={"snapshot": {"materialized": False}}, runtime={}, delivery_problems={"by_kind": {"push": 5}},
                       switches=sw, d7_newest_available_at=T)
     keys = {x["key"] for x in a}
     assert keys == {"INGESTION_STALE", "DETECTOR_NOT_ADVANCING", "MATERIALIZATION_FAILURE",
@@ -89,7 +89,7 @@ def test_health_alerts_cover_components():
 
 def test_no_telegram_mode_skips_only_telegram_liveness_alerts():
     kw = dict(now=T, heartbeat={"healthy": False}, detector_watermark=None,
-              latest_live={"snapshot": {"materialized": False}}, runtime={}, delivery_problems=5,
+              latest_live={"snapshot": {"materialized": False}}, runtime={}, delivery_problems={"by_kind": {"push": 5}},
               d7_newest_available_at=T)
     shadow = {x["key"] for x in health_alerts(CFG, switches=BetaSwitches(True, True, False, True, False), **kw)}
     assert shadow == {"INGESTION_STALE", "DETECTOR_NOT_ADVANCING", "MATERIALIZATION_FAILURE",
@@ -97,7 +97,7 @@ def test_no_telegram_mode_skips_only_telegram_liveness_alerts():
     # healthy components: shadow mode reports nothing, Telegram mode still flags a stalled bot
     fresh = {"outcomes": {"last_success_at": T}, "notifier": {"last_success_at": T}}
     ok = dict(now=T, heartbeat={"healthy": True}, detector_watermark=T - timedelta(minutes=5),
-              latest_live={"snapshot": {"materialized": True}}, runtime=fresh, delivery_problems=0,
+              latest_live={"snapshot": {"materialized": True}}, runtime=fresh, delivery_problems=None,
               d7_newest_available_at=T)
     assert health_alerts(CFG, switches=BetaSwitches(True, True, False, True, False), **ok) == []
     assert [x["key"] for x in health_alerts(CFG, switches=BetaSwitches(True, True, False, True), **ok)] \

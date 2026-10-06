@@ -203,7 +203,7 @@ def test_barrier_previous_boot_row_and_unfinished_recovery_block_until_overdue()
         runtime = await _health(pool)
         keys = {a["key"] for a in health_alerts(CFG, now=late, heartbeat={"healthy": True},
                                                 detector_watermark=None, latest_live=None, runtime=runtime,
-                                                delivery_problems=0, switches=ON)}
+                                                delivery_problems=None, switches=ON)}
         assert "STAGE1_RECOVERY_NOT_READY" in keys
         await pool.close()
     run(body())
@@ -465,7 +465,7 @@ def test_crash_or_failure_mid_repair_is_safe_and_resumes(monkeypatch):
         assert runtime[recovery.REPAIR_COMPONENT]["last_error_type"] == "REPAIR_FAILED"
         keys = {a["key"] for a in health_alerts(CFG, now=REPAIR_ONLY, heartbeat={"healthy": True},
                                                 detector_watermark=None, latest_live=None, runtime=runtime,
-                                                delivery_problems=0, switches=ON)}
+                                                delivery_problems=None, switches=ON)}
         assert "STARTUP_RECOVERY_REPAIR_INCOMPLETE" in keys
 
         monkeypatch.setattr(det, "_correction_check", real)

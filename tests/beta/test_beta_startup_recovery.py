@@ -86,7 +86,7 @@ def test_read_host_boot_time(tmp_path):
 
 def _alerts(runtime):
     return {a["key"] for a in health_alerts(CFG, now=T, heartbeat={"healthy": True}, detector_watermark=T,
-                                            latest_live=None, runtime=runtime, delivery_problems=0,
+                                            latest_live=None, runtime=runtime, delivery_problems=None,
                                             switches=ON)}
 
 

@@ -39,3 +39,11 @@ def test_official_verdicts_are_quoted_unchanged_from_the_atlas():
     for u in H.build(write_dates=False)["units"]:
         if u["id"] in atlas:
             assert u["official_verdict"] == atlas[u["id"]].get("verdict")
+
+
+def test_units_added_after_the_audit_are_placed_but_outside_the_v1_census():
+    post = H.post_audit_atlas_units()
+    assert "TOM-BASELINE-V1" in post
+    res = H.build(write_dates=False)
+    assert not set(post) & {u["id"] for u in res["units"]}
+    assert res["census_total"] == json.loads(H.OUT_JSON.read_text())["census_total"] == 188

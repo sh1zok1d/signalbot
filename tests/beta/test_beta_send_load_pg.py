@@ -77,23 +77,31 @@ def test_a_morning_brief_to_twenty_survives_flood_control_and_a_blocked_particip
         await _twenty(pool, brief=True)
         s = LoadSender(throttle_at=7)
         pacer, waits = _pacer()
-        r = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s,
-                                  clock=Clock(SLOT + timedelta(minutes=1)), pacer=pacer)
+        at = SLOT + timedelta(minutes=1)
+        r = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(at), pacer=pacer)
         b = r["briefs"]
-        # calls 1-6: five delivered and the blocked one FAILED; call 7 hit flood control
-        assert (b["scheduled"], b["sent"], b["failed"], b["throttled"], b["unknown"]) == (20, 5, 1, 1, 0)
-        assert (r["send_stop"], r["deferred"], r["retry_after_s"]) == ("THROTTLED", 13, 3.0)
-        assert waits == [0.05] * 6                                   # spaced: one wait before each later send
-        assert await _states(pool) == {"SENT": 5, "FAILED": 1, "PENDING": 14}
+        # call 4 is the blocked participant (FAILED); call 7 hit flood control: only that chat waits,
+        # the other 13 are sent in the same run (A5 review 7)
+        assert (b["scheduled"], b["sent"], b["failed"], b["throttled"], b["unknown"]) == (20, 18, 1, 1, 0)
+        assert (r["send_stop"], r["deferred"], r["retry_after_s"], r["throttled_chats"]) == (None, 0, 3.0, 1)
+        assert waits == [0.05] * 19                                  # spaced: one wait before each later send
+        assert await _states(pool) == {"SENT": 18, "FAILED": 1, "PENDING": 1}
         async with pool.acquire() as c:
-            row = await c.fetchrow("SELECT error_summary, sending_at, finished_at FROM beta_notification_deliveries "
-                                   "d JOIN beta_users u USING (user_pk) WHERE u.telegram_user_id = $1", UIDS[6])
-        assert row["error_summary"] == "RetryAfter 3s" and row["sending_at"] is not None and row["finished_at"] is None
+            row = await c.fetchrow("SELECT error_summary, sending_at, finished_at, next_attempt_at "
+                                   "FROM beta_notification_deliveries d JOIN beta_users u USING (user_pk) "
+                                   "WHERE u.telegram_user_id = $1", UIDS[6])
+        # A5 review 1 and 9: the wait is stored on the row, and a PENDING row carries no sending_at
+        assert row["error_summary"] == "RetryAfter 3s" and row["next_attempt_at"] == at + timedelta(seconds=3)
+        assert row["sending_at"] is None and row["finished_at"] is None
 
-        # the next run (one minute later) sends the rest; nobody gets a second copy
+        # two seconds later the chat is still inside Telegram's wait: nothing is sent to it
+        mid = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(at + timedelta(seconds=2)),
+                                    pacer=_pacer()[0])
+        assert mid["briefs"]["sent"] == 0 and s.calls == 20
+        # the next run after the wait sends it; nobody gets a second copy
         r2 = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s,
                                    clock=Clock(SLOT + timedelta(minutes=2)), pacer=_pacer()[0])
-        assert (r2["briefs"]["sent"], r2["briefs"]["scheduled"], r2["send_stop"]) == (14, 0, None)
+        assert (r2["briefs"]["sent"], r2["briefs"]["scheduled"], r2["send_stop"]) == (1, 0, None)
         assert await _states(pool) == {"SENT": 19, "FAILED": 1}
         assert sorted(s.sent) == sorted(u for u in UIDS if u != BLOCKED) and len(set(s.sent)) == 19
         async with pool.acquire() as c:
@@ -102,7 +110,8 @@ def test_a_morning_brief_to_twenty_survives_flood_control_and_a_blocked_particip
     run(body())
 
 
-def test_a_stopped_notifier_leaves_pending_rows_that_the_next_run_sends():
+def test_a_stopped_notifier_leaves_pending_rows_that_the_next_run_sends(monkeypatch):
+    from beta import delivery
     from test_beta_v2_pg import _rows
 
     now = datetime(2026, 10, 6, 12, 0, 40, tzinfo=timezone.utc)      # 15:00 Kyiv: no brief, no weekly due
@@ -119,17 +128,61 @@ def test_a_stopped_notifier_leaves_pending_rows_that_the_next_run_sends():
                          "stats": None, "corridor_1h": None})
         stop = asyncio.Event()
         s = LoadSender(stop=stop, stop_after=4)
-        # the committed pacing (50 ms between sends, 35 s budget) and the stop event the CLI sets on SIGTERM
-        r = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(now), stop=stop)
+        pinged = []
+
+        async def ping():
+            pinged.append(1)
+            return "OK"
+        monkeypatch.setattr(delivery, "deadman_ping", ping)
+        # the committed pacing and the stop event the CLI sets on SIGTERM
+        r = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(now), stop=stop, ping=True)
         assert r["market"]["sent"] == 4 and r["market"]["failed"] == 1      # UIDS[3] blocked among the first five
-        assert (r["send_stop"], r["deferred"]) == ("STOPPING", 15)
+        assert (r["status"], r["send_stop"], r["deferred"]) == ("STOPPED", "STOPPING", 15)
         assert await _states(pool) == {"SENT": 4, "FAILED": 1, "PENDING": 15}   # no SENDING, no DELIVERY_UNKNOWN
-        r2 = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(now + timedelta(minutes=1)))
-        assert r2["recovered_unknown"] == 0 and r2["market"]["sent"] == 15
+        # A5 review 3: a stopped run ends at its next step: no success heartbeat, no dead-man ping
+        assert "briefs" not in r and pinged == []
+        assert await _rows(pool, "SELECT component FROM beta_runtime_health WHERE component = 'notifier'") == []
+        r2 = await run_notify_once(BetaStore(pool), CFG, ON_PUSH, sender=s, clock=Clock(now + timedelta(minutes=1)),
+                                   ping=True)
+        assert r2["status"] == "OK" and r2["recovered_unknown"] == 0 and r2["market"]["sent"] == 15 and pinged == [1]
         assert await _states(pool) == {"SENT": 19, "FAILED": 1}
         assert len(set(s.sent)) == len(s.sent) == 19
         unknown = await _rows(pool, "SELECT count(*) AS n FROM beta_notification_deliveries "
                                     "WHERE state = 'DELIVERY_UNKNOWN'")
         assert unknown == [{"n": 0}]
+        await pool.close()
+    run(body())
+
+
+def test_rows_that_must_wait_are_not_rendered(monkeypatch):
+    """A5 review 8: with the pacer closed, no message is rendered; the rows stay PENDING untouched."""
+    from beta import decision_format
+    from beta.delivery import SendPacer
+    from beta.market_alerts import run_market_alerts
+
+    now = datetime(2026, 10, 6, 12, 0, 40, tzinfo=timezone.utc)
+    rendered = []
+    real = decision_format.format_alert
+
+    def spy(kind, payload, lang):
+        rendered.append(kind)
+        return real(kind, payload, lang)
+    monkeypatch.setattr(decision_format, "format_alert", spy)
+
+    async def body():
+        pool = await fresh_pool()
+        await _twenty(pool)
+        async with BetaStore(pool).connect() as conn:
+            await conn.insert_market_alert(
+                kind="event", alert_key="event:closed", decision_ts=now, decision="PUSH", suppression_reason=None,
+                payload={"at": now.isoformat(), "source_at": now.isoformat(), "event_kind": "CPI",
+                         "event_at": (now + timedelta(minutes=30)).isoformat(), "minutes": 30, "price": 60000.0,
+                         "stats": None, "corridor_1h": None})
+            closed = SendPacer()
+            closed.closed = "BUDGET"
+            rep = await run_market_alerts(conn, CFG, sender=LoadSender(), clock=Clock(now), push_on=True,
+                                          pacer=closed)
+        assert rep["sent"] == 0 and rendered == [] and closed.deferred == 20
+        assert await _states(pool) == {"PENDING": 20}
         await pool.close()
     run(body())

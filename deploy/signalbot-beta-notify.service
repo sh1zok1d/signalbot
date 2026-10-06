@@ -19,7 +19,7 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStartPre=/usr/bin/test -x /opt/signalbot/.venv/bin/python
 ExecStartPre=/usr/bin/test -r /opt/signalbot/.env
 ExecStartPre=/usr/bin/test -f /opt/signalbot/main.py
-ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/main.py --beta-notify-once --beta-json --log-level INFO
+ExecStart=/opt/signalbot/.venv/bin/python /opt/signalbot/main.py --beta-notify-once --beta-deadman-ping --beta-json --log-level INFO
 TimeoutStartSec=50
 StandardOutput=journal
 StandardError=journal
