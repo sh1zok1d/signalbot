@@ -335,6 +335,60 @@ def attach_evidence(cand: dict, block: Mapping[str, Any], cap: Mapping[str, Any]
     cand["payload"]["evidence"] = json_safe(found)
 
 
+def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
+    """«📊 BTC сейчас», Levels / Risk, and «🎯 Проверить» with the next level filled in (a level alert's
+    next level, a sharp move's nearest level; PRE_BETA_SCOPE_DECISION_V1 §5)."""
+    from .check import check_button
+    from .formatter import push_action_row
+    from .i18n import t
+    rows = [push_action_row(lang), [(t(lang, "btn_levels"), "L:levels"), (t(lang, "btn_risk"), "L:risk")]]
+    target = None
+    if kind == "level" and payload.get("next"):
+        target = payload["next"].get("edge")
+    elif kind == "move" and payload.get("near") and payload.get("close") is not None:
+        # the nearest level in the move's direction: above after a rise, below after a fall (none: no button)
+        up, close = float(payload.get("move_pct") or 0.0) >= 0, float(payload["close"])
+        ahead = [z for z in payload["near"] if z and z.get("edge") is not None and (float(z["edge"]) > close) == up]
+        if ahead:
+            target = min(ahead, key=lambda z: abs(float(z["edge"]) - close))["edge"]
+    if target:
+        rows.append([check_button(float(target), lang)])
+    return rows
+
+
+async def _journal_level_touch(conn, cand: Mapping[str, Any], decision: str, *, now: datetime) -> None:
+    """The level-touch claims of an evaluated candidate (PUSH or SUPPRESSED) and, for a push, the link
+    to the alert that shows them. The journal never changes the decision and never stops the run."""
+    from .claims import record_displays, record_level_hold, shown_keys
+    try:
+        await record_level_hold(conn, cand, now=now)
+        if decision == "PUSH":
+            alert_pk = await conn.market_alert_pk(cand["key"])
+            keys = shown_keys("alert", None, alert=cand)
+            # the hold line belongs to the touch (its slot is the touch time); the next level's
+            # chance to the hour's grid
+            await record_displays(conn, surface="alert", shown=[k for k in keys if k[0].startswith("L2_")], now=now,
+                                  slot=datetime.fromisoformat(cand["payload"]["at"]), alert_pk=alert_pk)
+            await record_displays(conn, surface="alert", shown=[k for k in keys if k[0].startswith("L3_")], now=now,
+                                  alert_pk=alert_pk)
+    except Exception as exc:  # noqa: BLE001 - internal tracking never blocks an alert
+        logger.warning("claim journal (level touch) failed: %s", type(exc).__name__)
+
+
+async def _journal_hour(conn, cfg: BetaConfig, block: Mapping[str, Any], cap: Mapping[str, Any], *,
+                        now: datetime) -> dict:
+    from .claims import record_claims, score_claims
+    try:
+        rep = await record_claims(conn, cfg, block, now=now, capture=cap)
+        rep.update(await score_claims(conn, cap.get("bars"), cap.get("closed_1m") or [], now=now))
+        from .claims import refresh_touch_calibration
+        rep["touch_calibration_refreshed"] = await refresh_touch_calibration(conn, now=now) is not None
+        return rep
+    except Exception as exc:  # noqa: BLE001 - internal tracking never blocks the alert run
+        logger.warning("claim journal failed: %s", type(exc).__name__)
+        return {"error": type(exc).__name__}
+
+
 async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bool) -> dict:
     """Detect, decide, materialize and send market alerts; record and score corridors."""
     from .decision import build_decision
@@ -373,9 +427,13 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
                 rep["pushed"] += 1
             elif res != "DUPLICATE":
                 rep["suppressed"] += 1
+            if d["claim_journal"] and c["kind"] == "level" and res != "DUPLICATE":
+                await _journal_level_touch(conn, c, res, now=now)
         if d["forecast_tracking"]:
             rep["forecasts_recorded"] = await record_forecasts(conn, block, now=now)
             rep["forecasts_scored"] = (await score_forecasts(conn, b, closed, now=now))["scored"]
+        if d["claim_journal"]:
+            rep["claims"] = await _journal_hour(conn, cfg, block, cap, now=now)
     ttl = cfg.delivery_ttl
     for a in await conn.fetch_undispatched_market_alerts(cfg["notifications"]["max_deliveries_per_run"]):
         rep["materialized"] += await conn.materialize_alert_deliveries(
@@ -408,12 +466,8 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
         if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
             continue
         try:
-            from .formatter import push_action_row
-            from .i18n import t
             message_id = await sender.send(chat_id=row["chat_id"], html=text,
-                                           buttons=[push_action_row(lang),
-                                                    [(t(lang, "btn_levels"), "L:levels"),
-                                                     (t(lang, "btn_risk"), "L:risk")]])
+                                           buttons=alert_buttons(row["kind"], row["payload"], lang))
         except DeliveryRejected as exc:
             await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_FAILED, now=clock(),
                                            error_summary=str(exc)[:300])

@@ -210,6 +210,54 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
 - Pausing pushes (`/admin_pause_push` or the kill switch) also stops market alerts already queued; they are recorded `SUPPRESSED / PUSH_DISABLED`.
 - A command that fails inside the bot is logged and skipped; it is never replayed.
 - The corridor of the current hour is recorded once in its first 10 minutes and scored when its horizon ends (`/accuracy`).
+- The claim journal (`docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md` §7, `decision.claim_journal: true`) runs inside the same notifier step.
+  - **Writing.** Each hour's touch chances, distance grid, «после похожих» labels and DH3-P1 cohort are written in the hour's first 10 minutes; level-touch claims are written at each evaluation.
+  - **Scoring.** Claims are scored when their horizon ends.
+  - **Schema and units.** It adds three append-only tables (the schema apply is idempotent) and no timer.
+  - **Report.** `python main.py --beta-claims-report --beta-json` prints the per-cohort report (read-only).
+  - **Turning it off:** `decision.claim_journal: false`. The tables stay; nothing user-facing depends on them.
+- `/check <price | %> [<second price>]` (`PRE_BETA_SCOPE_DECISION_V1.md` §5; `beta/check.py`).
+  - **What it shows.**
+    - The chance to reach each level within 1h / 4h / 24h, under the wording rule of the calibration note.
+    - For two levels, the chance that neither is touched. Which comes first is never shown.
+    - The typical move, the next 24h events and the next objective level beyond.
+    - What followed touches: the level's own history when it is an objective level, else the nightly `distance_reactions` statistic.
+  - **Input.** «64000», «64к», «64 000», «65,000», «-3 %», «+1.5%», one or two levels.
+  - **Buttons.**
+    - «🔔 Следить» sets a personal `/alert` in one tap (`btn_watch`).
+    - Level and sharp-move alerts carry «🎯 Проверить <next level>».
+    - The briefing carries «🎯 Проверить» for the nearest level above and below (`btn_check`).
+  - **Activity.** New activity actions: `cmd_check`, `btn_check`, `btn_watch` (schema check widened). They still need their classes in `BETA_MEASUREMENT_CONTRACT_V1.md` §2 before the freeze (`PRE_BETA_SCOPE_DECISION_V1.md` §6.7).
+- Touch-chance calibration (`docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md`):
+  - **Held-out bins.** The nightly build adds per-bin held-out reliability to `range_model.calibration.<h>.touch_bins`, and `/accuracy` shows it.
+  - **Live bins.** The notifier refreshes the live bins from the journal once an hour (`beta_runtime_health` component `touch_live_cal`).
+  - **Divergence.** A live bin that breaks the frozen rule falls back to «исторически в X % случаев» for the rest of the model version and raises `TOUCH_CALIBRATION_DIVERGED` (`NEITHER_CALIBRATION_DIVERGED` for «ни один»).
+- The weekly report (backlog B4; `beta/weekly.py`, `decision.weekly_report`) runs inside the same notifier step.
+  - **When.** Sunday 19:00 Kyiv by default, never sent more than 120 minutes late. Mon–Fri hold the U1a withdrawal days, so it never meets a withheld briefing.
+  - **What it says.** How the bot's own estimates did over the 7 days:
+    - corridors issued and scored that week, with effective N, beside the designed share and the held-out year;
+    - width, and misses above and below;
+    - touch chances scored by the journal, «говорили → было» per bin at effective N ≥ 30;
+    - how many market messages went out.
+  - **Storage.** One payload per week in the append-only `beta_weekly_reports`, stored before any send.
+  - **Delivery.** Outbox rows of kind `weekly` go to participants with messages on and `push_weekly` on (`/push weekly off`). Each send leaves a `weekly_delivered` activity row.
+  - **Owner copy.** Once per report: the same text, the 7-day owner breakdown (below) and the journal's weekly counts.
+  - **Schema.** New table `beta_weekly_reports`, new columns `beta_notification_deliveries.weekly_pk` and `beta_users.push_weekly` (default true), new activity action `weekly_delivered`.
+  - **Measurement contract.** The delivery opens the prompted window like any other. Its class still needs the contract amendment (`PRE_BETA_SCOPE_DECISION_V1.md` §6.4, §6.7).
+  - **Turning it off:** `decision.weekly_report.enabled: false`.
+- Derivatives beside their «обычно» (backlog G2; `beta/derivatives.py`). Every view stores a `derivatives` block; the `/btc` 24h line and the 24h tab show it.
+  - **OI change over 24h.** Beside it, the median absolute change of non-overlapping UTC days over the whole Binance OI history, with N days. The nightly build computes it (`payload->'derivatives'->'oi_24h'`). The comparator is Binance only and says so; the live number is the venue median.
+  - **Average funding over 24h.** Beside it, the median of the same 24h mean over the 30 prior days, from the same tape, with N days.
+  - **Long/short account ratio.** Binance's, from the research feed (`beta_feed_metrics_5m`), beside the median of the 30 prior days. It is shown only where that feed runs; on production it stays hidden until the feeds are deployed.
+  - **Small samples.** Below 20 days a comparator reads «обычно: мало данных (N)». A view stored before this change renders as before.
+- `/admin_stats` and `--beta-usage-report` end with an owner breakdown (backlog H6; `beta/usage.py::owner_breakdown`), for the last 7 days and since the first external user.
+  - **Words.** It uses the measurement contract's: every pull (`/check` included), the inclusive 10-minute window after any delivery, and known and unknown participants apart.
+  - **What it counts.**
+    - Organic versus post-push pulls and Kyiv days, and participants with organic pulls on ≥ 2 days.
+    - `/check` and repeat `/check` (≥ 2 Kyiv days), and taps on «🎯 Проверить» and «🔔 Следить».
+    - Per delivery type: sent, reacted within 10 minutes, «Полезно» / «Шум» votes (unusual-hour pushes only, until votes exist on every type), per-type mutes and the current mute state.
+  - **Trader type.** The split appears once onboarding records one.
+  - **Status.** It is an operational overview over current rows, never the U1–U5 read (`BETA_MEASUREMENT_CONTRACT_V1.md` §0). A long report arrives as several owner messages.
 
 **Rollback:** `sudo systemctl disable --now signalbot-beta-history.timer`, check out the previous commit and restart the bot. The tables are additive; the old code ignores them. Turning off only the pushes: `decision.market_alerts.enabled: false` (config), or per user `/push levels off` etc.
 
@@ -388,6 +436,9 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 - `D7_HOUR_STATE_STALE` (only while `regime_d7.enabled` is true, and only when the newest hour state's `available_at` is older than 70 minutes; independent of `/admin_d7_on`)
 - `STAGE1_RECOVERY_NOT_READY` (the detector has waited for Stage-1's startup recovery for at least `health.detector_stall_s`, or proceeded without it as `OVERDUE`; see "Startup recovery" below)
 - `STARTUP_RECOVERY_REPAIR_INCOMPLETE` (the post-recovery repair failed on a bucket or deferred buckets to the next run)
+- `HISTORY_STATS_STALE` (the nightly statistics build has not succeeded for 50 hours, once it has run at least once)
+- `TOUCH_CALIBRATION_DIVERGED` (a live touch-chance bin broke the frozen rule of `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §3; that bin's wording has already fallen back to «исторически в X % случаев»)
+- `NEITHER_CALIBRATION_DIVERGED` (the same for a live «ни один» bin of two levels, `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §7)
 
 A DB outage makes every beta command exit with status 2 and report `DB_UNAVAILABLE`. systemd records that as a failed unit.
 

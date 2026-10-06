@@ -109,8 +109,9 @@ DECISION_CATALOG: dict = {
                      "   after the first touch ({n}): 1h later the price was {side} the level in {hold} — a random level: {ctrl}, {verdict}"),
     "lv_side_above": _pair("выше", "above"),
     "lv_side_below": _pair("ниже", "below"),
-    "lv_hist_move": _pair("   обычно дальше {further}, обратно {back} за 1ч",
-                          "   typically {further} further, {back} back within 1h"),
+    "lv_hist_short": _pair("   после первого касания: мало данных ({n})", "   after the first touch: too little data ({n})"),
+    "lv_hist_move": _pair("   за 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
+                          "   1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
     "lv_verdict_as_usual": _pair("как обычно", "as usual"),
     "lv_verdict_differs_more": _pair("чаще обычного", "more often than usual"),
     "lv_verdict_differs_less": _pair("реже обычного", "less often than usual"),
@@ -141,14 +142,86 @@ DECISION_CATALOG: dict = {
     "ev_release_note": _pair("{names}: вокруг публикации обычная калибровка коридора не применяется.",
                              "{names}: around the release, the usual corridor calibration does not apply."),
     # ---- /accuracy ----
-    "ac_title": _pair("<b>Точность коридора</b> (доля случаев, когда цена не вышла за коридор; расчётная — 80%)",
-                      "<b>Corridor accuracy</b> (share of cases the price stayed inside; designed for 80%)"),
-    "ac_holdout": _pair("Проверка на отложенном годе ({period}): {parts}",
-                        "Check on a held-out year ({period}): {parts}"),
-    "ac_live": _pair("Живые прогнозы за 30 дней: {parts}", "Live forecasts, last 30 days: {parts}"),
+    "ac_title": _pair("<b>Точность коридора</b> (доля случаев, когда цена не вышла за коридор; расчётная — {share})",
+                      "<b>Corridor accuracy</b> (share of cases the price stayed inside; designed for {share})"),
+    "ac_holdout": _pair("Проверка на отложенном годе ({period}; {days} дн.): {parts}",
+                        "Check on a held-out year ({period}; {days} days): {parts}"),
+    "ac_live_head": _pair("Вживую (N — непересекающиеся окна):", "Live (N = non-overlapping windows):"),
+    "ac_h_line": _pair("{h}: {windows} · ширина ±{width}", "{h}: {windows} · width ±{width}"),
+    "ac_win": _pair("{d} дн. {p} (N={n})", "{d} days {p} (N={n})"),
+    "ac_win_short": _pair("{d} дн. мало данных (N={n})", "{d} days too little data (N={n})"),
+    "ac_miss_line": _pair("   за 30 дн. вне коридора: выше {up} (медиана на {up_size}), ниже {dn} (медиана на {dn_size})",
+                          "   last 30 days outside: above {up} (median by {up_size}), below {dn} (median by {dn_size})"),
+    "ac_regime_line": _pair("   за 90 дн.: в дни CPI/FOMC {ev} · при высокой волатильности {hv}",
+                            "   last 90 days: on CPI/FOMC days {ev} · in high volatility {hv}"),
+    "ac_reg": _pair("{p} (N={n})", "{p} (N={n})"),
+    "ac_reg_short": _pair("мало данных (N={n})", "too little data (N={n})"),
+    "ac_live": _pair("Живые прогнозы за 30 дней (N — непересекающиеся окна): {parts}",
+                     "Live forecasts, last 30 days (N = non-overlapping windows): {parts}"),
     "ac_live_none": _pair("Живые прогнозы ещё не созрели.", "No live forecast has matured yet."),
     "ac_part": _pair("{h} {p}", "{h} {p}"),
-    "ac_part_live": _pair("{h} — {p} (из {n})", "{h} — {p} (of {n})"),
+    "ac_part_live": _pair("{h} — {p} (N={n})", "{h} — {p} (N={n})"),
+    "ac_part_live_short": _pair("{h} — мало данных (N={n})", "{h} — too little data (N={n})"),
+    "ac_touch_head": _pair("<b>Шанс дойти</b>: говорили → было на отложенном годе (N — непересекающиеся окна)",
+                           "<b>Chance to reach</b>: said → happened on the held-out year (N = non-overlapping windows)"),
+    "ac_touch_line": _pair("{h}: {parts}", "{h}: {parts}"),
+    "ac_touch_part": _pair("{p} → {r} (N={n})", "{p} → {r} (N={n})"),
+    "ac_touch_part_off": _pair("{p} → {r} (N={n})*", "{p} → {r} (N={n})*"),
+    "ac_neither_head": _pair("<b>Ни один из двух уровней</b>: говорили → было на отложенном годе",
+                             "<b>Neither of two levels</b>: said → happened on the held-out year"),
+    "ac_live_touch_head": _pair("<b>Шанс дойти вживую</b> (журнал за последние {days} дн.): говорили → было",
+                                "<b>Chance to reach, live</b> (journal, last {days} days): said → happened"),
+    "ac_live_neither_head": _pair("<b>Ни один из двух уровней вживую</b>: говорили → было",
+                                  "<b>Neither of two levels, live</b>: said → happened"),
+    "ac_live_bins_short": _pair("{h}: мало данных (N={n})", "{h}: too little data (N={n})"),
+    "ac_touch_part_div": _pair("{p} → {r} (N={n})‼", "{p} → {r} (N={n})‼"),
+    "ac_live_div_note": _pair("‼ вживую разошлось с правилом (больше ±5 п.п., интервал без нуля): до новой версии модели "
+                              "такие шансы показываем как «исторически в X % случаев»",
+                              "‼ live result broke the rule (beyond ±5 pp, interval excluding zero): until the next model "
+                              "version such chances are shown as “historically in X % of cases”"),
+    "ac_touch_note": _pair("* вне правила (±5 п.п. при N ≥ 30): такие шансы показываем как «исторически в X % случаев»",
+                           "* outside the rule (±5 pp with N ≥ 30): such chances are shown as “historically in X % of cases”"),
+    # ---- /check (PRE_BETA_SCOPE_DECISION_V1 §5; docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md) ----
+    "ck_usage": _pair("Уровень ценой или в процентах: /check 64000 · /check 64к · /check -3% · два уровня: /check 64000 61000",
+                      "A level as a price or a percent: /check 64000 · /check 64k · /check -3% · two levels: /check 64000 61000"),
+    "ck_title_one": _pair("<b>BTC → {level}</b> ({dist}) · сейчас {price} · {clock}",
+                          "<b>BTC → {level}</b> ({dist}) · now {price} · {clock}"),
+    "ck_title_two": _pair("<b>BTC: {a} ({da}) и {b} ({db})</b> · сейчас {price} · {clock}",
+                          "<b>BTC: {a} ({da}) and {b} ({db})</b> · now {price} · {clock}"),
+    "ck_h_b_hold": _pair("{h}: шанс дойти ≈ {p} · на истории: говорили {P} → было {R} (N={n})",
+                         "{h}: chance to reach ≈ {p} · on history: said {P} → happened {R} (N={n})"),
+    "ck_h_b_live": _pair("{h}: шанс дойти ≈ {p} · вживую: говорили {P} → было {R} (N={n})",
+                         "{h}: chance to reach ≈ {p} · live: said {P} → happened {R} (N={n})"),
+    "ck_h_fallback": _pair("{h}: исторически цена доходила в {p} случаев (история {n} дн.; обычно ход за {h} ±{typ})",
+                           "{h}: historically the price got there in {p} of cases ({n} days of history; a usual {h} move is ±{typ})"),
+    "ck_arrow_up": _pair("↑", "↑"),
+    "ck_arrow_down": _pair("↓", "↓"),
+    "ck_neither": _pair("ни один", "neither"),
+    "ck_part_b": _pair("{label} ≈ {p}", "{label} ≈ {p}"),
+    "ck_part_fallback": _pair("{label} {p}*", "{label} {p}*"),
+    "ck_cal_part": _pair("{label} {P} → {R} ({src}, N={n})", "{label} {P} → {R} ({src}, N={n})"),
+    "ck_src_hold": _pair("на истории", "on history"),
+    "ck_src_live": _pair("вживую", "live"),
+    "ck_pair_line": _pair("{h}: {parts}", "{h}: {parts}"),
+    "ck_pair_cal": _pair("   говорили → было: {parts}", "   said → happened: {parts}"),
+    "ck_fallback_note": _pair("* исторически в стольких случаях (история {n} дн.); точность такой оценки не прошла "
+                              "проверку или ещё не набрала N",
+                              "* historically in that share of cases ({n} days of history); the accuracy of such an "
+                              "estimate failed its check or has too little N yet"),
+    "ck_events": _pair("События в ближайшие 24ч: {list}", "Events in the next 24h: {list}"),
+    "ck_is_level": _pair("{level} — это {names}:", "{level} is {names}:"),
+    "ck_beyond": _pair("За {level} дальше: {price} — {name} ({dist})", "Beyond {level}: {price} — {name} ({dist})"),
+    "ck_dist": _pair("{level}: после касания цены на таком расстоянии (≈{d}, {n}) через 1ч цена была за ней в {hold}; "
+                     "медиана за 1ч: дальше {further}, обратно {back}. Так обычно ведёт себя произвольная цена.",
+                     "{level}: after a touch of a price this far (≈{d}, {n}), 1h later the price was beyond it in {hold}; "
+                     "1h median: {further} further, {back} back. That is how an arbitrary price usually behaves."),
+    "ck_dist_short": _pair("{level}: после касания цены на таком расстоянии — мало данных ({n})",
+                           "{level}: after a touch of a price this far — too little data ({n})"),
+    "ck_footer_one": _pair("Binance.", "Binance."),
+    "ck_footer_two": _pair("Binance. Какой из двух уровней будет первым — не показываем.",
+                           "Binance. Which of the two levels comes first is not shown."),
+    "btn_watch": _pair("🔔 Следить: {price}", "🔔 Watch: {price}"),
+    "btn_check": _pair("🎯 Проверить {price}", "🎯 Check {price}"),
     # ---- /alert ----
     "al_set": _pair("Сообщу, когда BTC дойдёт до {price} ({dist} от {now}). За 24ч до такого расстояния цена доходила в {p}.",
                     "I will message you when BTC reaches {price} ({dist} from {now}). Within 24h the price reached such a distance in {p}."),
@@ -167,6 +240,25 @@ DECISION_CATALOG: dict = {
                         "That is more than 30% from the current price {now}. Pick a closer level."),
     "al_too_close": _pair("Это слишком близко к текущей цене {now}.", "That is too close to the current price {now}."),
     "al_no_price": _pair("Цена Binance сейчас недоступна, попробуйте позже.", "The Binance price is unavailable now; try later."),
+    # ---- weekly report (backlog B4) ----
+    "wk_title": _pair("<b>📅 Неделя бота: {d0}–{d1}</b>", "<b>📅 The bot's week: {d0}–{d1}</b>"),
+    "wk_intro": _pair("Как сработали наши оценки за 7 дней (N — непересекающиеся окна).",
+                      "How our estimates did over 7 days (N = non-overlapping windows)."),
+    "wk_cor_head": _pair("Коридоры — доля случаев, когда цена не вышла за коридор; расчётная — {share}:",
+                         "Corridors: the share of cases the price stayed inside; designed for {share}:"),
+    "wk_cor_line": _pair("• {h}: {p} (N={n}; на отложенном годе {hold}) · ширина ±{width}",
+                         "• {h}: {p} (N={n}; held-out year {hold}) · width ±{width}"),
+    "wk_cor_short": _pair("• {h}: мало данных (N={n})", "• {h}: too little data (N={n})"),
+    "wk_cor_none": _pair("• за неделю нет проверенных коридоров", "• no corridor matured this week"),
+    "wk_miss_line": _pair("   выше коридора {up} (медиана на {up_size}), ниже {dn} (медиана на {dn_size})",
+                          "   above {up} (median by {up_size}), below {dn} (median by {dn_size})"),
+    "wk_touch_head": _pair("Шанс дойти до уровня — говорили → было:", "Chance to reach a level — stated → happened:"),
+    "wk_touch_line": _pair("• {h}: {parts}", "• {h}: {parts}"),
+    "wk_touch_short": _pair("• {h}: мало данных (N={n})", "• {h}: too little data (N={n})"),
+    "wk_alerts": _pair("Сообщений о рынке за неделю: уровни {level}, события {event}, резкие движения {move}.",
+                       "Market messages this week: levels {level}, events {event}, sharp moves {move}."),
+    "wk_footer": _pair("Подробнее и за 30/90 дней: /accuracy · выключить итоги недели: /push weekly off",
+                       "More, and over 30/90 days: /accuracy · turn the weekly report off: /push weekly off"),
     # ---- /push ----
     "push_master_off_note": _pair("Сейчас не приходит ничего из списка ниже. Настройки категорий сохранены "
                                   "и снова заработают после /push on.",
@@ -174,14 +266,18 @@ DECISION_CATALOG: dict = {
                                   "again after /push on."),
     "push_status": _pair("Сообщения: {master}\n• уровни (первое касание вчерашних, недельных, месячных максимумов и минимумов): {levels}\n"
                          "• события (CPI, ФРС за 30 минут): {events}\n• резкие движения (за 15 минут): {moves}\n"
-                         "• необычный час: {hours}\nЛичные уровни (/alert) приходят всегда. "
+                         "• необычный час: {hours}\n• итоги недели (воскресенье вечером): {weekly}\n"
+                         "Личные уровни (/alert) приходят всегда. "
                          "Утренняя сводка — отдельно: /brief on|off.\n"
-                         "Включить или выключить: /push off · /push levels off · /push events on · /push moves off · /push hour off",
+                         "Включить или выключить: /push off · /push levels off · /push events on · /push moves off · "
+                         "/push hour off · /push weekly off",
                          "Messages: {master}\n• levels (first touch of daily, weekly, monthly highs and lows): {levels}\n"
                          "• events (CPI, Fed, 30 minutes ahead): {events}\n• sharp moves (within 15 minutes): {moves}\n"
-                         "• unusual hour: {hours}\nYour own alerts (/alert) always arrive. "
+                         "• unusual hour: {hours}\n• weekly report (Sunday evening): {weekly}\n"
+                         "Your own alerts (/alert) always arrive. "
                          "The morning briefing is separate: /brief on|off.\n"
-                         "Switch: /push off · /push levels off · /push events on · /push moves off · /push hour off"),
+                         "Switch: /push off · /push levels off · /push events on · /push moves off · /push hour off"
+                         " · /push weekly off"),
     "push_pref_ok": _pair("Готово. {status}", "Done. {status}"),
     "on_word": _pair("вкл", "on"),
     "off_word": _pair("выкл", "off"),
@@ -194,7 +290,9 @@ DECISION_CATALOG: dict = {
     "pa_period_month": _pair("месяц", "month"),
     "pa_level_hist": _pair("После первого касания ({n}): через 1ч цена {side} уровня в {hold} (у случайного уровня {ctrl}) — {verdict}",
                            "After the first touch ({n}): 1h later the price was {side} the level in {hold} (a random level: {ctrl}) — {verdict}"),
-    "pa_level_move": _pair("За 1ч обычно дальше {further}, обратно {back}", "Within 1h typically {further} further, {back} back"),
+    "pa_level_hist_short": _pair("После первого касания: мало данных ({n})", "After the first touch: too little data ({n})"),
+    "pa_level_move": _pair("За 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
+                           "1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
     "pa_next": _pair("Следующий уровень: {price} — {name} ({dist}), за 24ч доходили в {p}",
                      "Next level: {price} — {name} ({dist}), reached within 24h in {p}"),
     "pa_next_nop": _pair("Следующий уровень: {price} — {name} ({dist})", "Next level: {price} — {name} ({dist})"),
@@ -380,6 +478,7 @@ DECISION_HELP = {
         "/levels — уровни: расстояние, шанс дойти, что было при касании\n"
         "/risk 0.5 — как часто цена проходит такой стоп против позиции\n"
         "/alert 65000 — сообщить, когда цена дойдёт (/alert — список)\n"
+        "/check 64000 — шанс дойти за 1ч / 4ч / 24ч и что бывало у таких уровней (два уровня: /check 64000 61000)\n"
         "/events — события: CPI, ФРС, экспирации\n"
         "/accuracy — насколько точен коридор\n"
         "/research — что проверили исследования: что подтвердилось, что нет\n"
@@ -399,6 +498,7 @@ DECISION_HELP = {
         "/levels — levels: distance, chance to reach, what happened at the touch\n"
         "/risk 0.5 — how often the price moves this far against a position\n"
         "/alert 65000 — message me when the price gets there (/alert — list)\n"
+        "/check 64000 — chance to reach it within 1h / 4h / 24h and what such levels did (two: /check 64000 61000)\n"
         "/events — CPI, Fed, options expiries\n"
         "/accuracy — how accurate the corridor is\n"
         "/research — what the research tested: what held up, what did not\n"

@@ -346,13 +346,18 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         await h.handle(_cb(uid, "b:now", 39))                 # «📊 BTC сейчас» under a push
         await h.handle(_cb(uid, "x:assets", 40))              # U5 fake door
         await h.handle(_msg(uid, "/research", 41))
-        await h.handle(_msg(uid, "/stop", 42))
+        await h.handle(_msg(uid, "/check 70000", 42))         # /check (no price yet: the reply says why)
+        await h.handle(_cb(uid, "k:70000.00", 43))            # «🎯 Проверить» from a push or the briefing
+        await h.handle(_cb(uid, "w:70000.00", 44))            # «🔔 Следить»
+        await h.handle(_msg(uid, "/stop", 45))
         actions = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         # btn_details stays a valid historical action, but the episode Details are retired
         # (they exposed internals) and record nothing new.
         # brief_withheld (U1a) needs a withdrawal day: test_beta_invite_journey_pg covers it.
         # tab_research needs a view with research evidence: test_research_evidence.py covers it.
-        assert set(actions) == set(ACTIVITY_ACTIONS) - {"btn_details", "brief_withheld", "tab_research"}
+        # weekly_delivered needs the Sunday slot: test_beta_weekly_pg covers it.
+        assert set(actions) == set(ACTIVITY_ACTIONS) - {"btn_details", "brief_withheld", "tab_research",
+                                                        "weekly_delivered"}
         cols = await _rows(pool, """SELECT column_name FROM information_schema.columns
                                     WHERE table_name='beta_user_activity'""")
         assert "telegram" not in " ".join(r["column_name"] for r in cols)
@@ -492,7 +497,9 @@ def test_usage_report_fixture_weeks_and_unprompted_opens():
                 "INSERT INTO beta_rejected_start_counts (utc_day, attempt_count) VALUES ('2026-06-27', 4)")
         h = _handler(pool, when=now)
         out = await h.handle(_msg(owner, "/admin_stats", 1))
-        text = out[0].html.replace("<pre>", "").replace("</pre>", "")
+        # one report, in whole-line parts under Telegram's 4096-character cap
+        assert len(out) >= 2 and all(len(o.html) <= 4096 for o in out)
+        text = "\n".join(o.html.replace("<pre>", "").replace("</pre>", "") for o in out)
         assert "week 3 active: 2" in text
         assert "week 4 active: 2" in text
         assert "weeks 3-4 both active: 2" in text
@@ -530,6 +537,11 @@ def test_usage_report_fixture_weeks_and_unprompted_opens():
         assert usage["last_7_days"]["post_push_btc"] == 1
         assert usage["since_first_external"]["unprompted_btc"] == 15
         assert usage["since_first_external"]["post_push_btc"] == 2
+        # H6 breakdown from the same rows: every pull, the contract's inclusive 10-minute window
+        unknown = usage["since_first_external"]["owner_breakdown"]["unknown"]
+        assert unknown["pulls"] == {"organic": 15, "post_push": 2} and unknown["users"] == 4
+        assert unknown["types"]["hour"]["delivered"] == 2 and unknown["types"]["hour"]["reacted"] == 0
+        assert "owner breakdown (10-min window, all pulls; operational, not U1-U5)" in text
         assert format_usage_report(usage) == text
         import os
         os.makedirs("/opt/cursor/artifacts", exist_ok=True)

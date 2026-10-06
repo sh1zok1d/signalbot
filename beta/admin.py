@@ -26,6 +26,19 @@ ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "a
 UNAUTHORIZED_ACTOR = "unauthorized"
 
 
+def owner_parts(text: str, limit: int = 3500) -> list:
+    """Owner text in whole lines, each part under `limit` characters once HTML-escaped (Telegram caps
+    a message at 4096 characters; `/admin_stats` grows with the weeks)."""
+    parts, cur = [], ""
+    for line in text.split("\n"):
+        if cur and len(html.escape(cur + "\n" + line, quote=False)) > limit:
+            parts.append(cur)
+            cur = line
+        else:
+            cur = line if not cur else cur + "\n" + line
+    return parts + [cur]
+
+
 def fingerprint(telegram_user_id: Optional[int]) -> str:
     """Pseudonymous (not anonymous) stable id for audit/log lines."""
     if telegram_user_id is None:
