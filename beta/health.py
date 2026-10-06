@@ -113,12 +113,17 @@ STRESS_STALE_S = 3 * 3600                  # stress hours at HH:02: two missed h
 HISTORY_SYNC_STALE_S = 50 * 3600           # history sync daily: two missed nights
 
 
+# A3 review: the notifier steps whose failure is swallowed so the outbox keeps going
+NOTIFY_STEPS = (("notify_market", "market"), ("notify_weekly", "weekly"))
+
+
 def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any],
                   detector_watermark: Optional[datetime], latest_live: Optional[Mapping[str, Any]],
-                  runtime: Mapping[str, Mapping[str, Any]], delivery_problems: int,
-                  switches, d7_newest_available_at: Optional[datetime] = None,
-                  delivery_problems_by_kind: Optional[Mapping[str, int]] = None) -> list:
-    """Owner health alerts (keys are stable; no personal data)."""
+                  runtime: Mapping[str, Mapping[str, Any]], switches,
+                  delivery_problems: Optional[Mapping[str, Any]] = None,
+                  d7_newest_available_at: Optional[datetime] = None) -> list:
+    """Owner health alerts (keys are stable; no personal data). `delivery_problems` is
+    `BetaConn.delivery_problems`: {"by_kind", "by_reason", "blocked"}."""
     h = cfg.section("health")
     alerts = []
     if not heartbeat.get("healthy"):
@@ -128,6 +133,8 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
         from .decision import LIVE_EXCHANGE, STALE_AFTER
         ages = heartbeat.get("ages_s")
         age = (ages or {}).get(LIVE_EXCHANGE)
+        # the heartbeat ages from the bar's close, decision support from its open (`price_ts`): one clock
+        age = None if age is None else age + 60
         if ages is not None and LIVE_EXCHANGE in cfg.exchanges and (age is None or age > STALE_AFTER.total_seconds()):
             alerts.append({"key": "BINANCE_STALE", "detail": {"age_s": None if age is None else int(age)}})
 
@@ -165,11 +172,13 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
         alerts.append({"key": "BOT_RECEIVER_DOWN", "detail": {}})
     if telegram and _stalled("notifier", h["notifier_stall_s"]):
         alerts.append({"key": "NOTIFIER_NOT_RUNNING", "detail": {}})
-    if delivery_problems >= h["delivery_problem_threshold"]:
-        detail = {"count": delivery_problems}
-        if delivery_problems_by_kind:
-            detail["by_kind"] = dict(delivery_problems_by_kind)
-        alerts.append({"key": "DELIVERY_FAILURE_SPIKE", "detail": detail})
+    problems = delivery_problems or {}
+    count = sum((problems.get("by_kind") or {}).values())
+    if count >= h["delivery_problem_threshold"]:
+        alerts.append({"key": "DELIVERY_FAILURE_SPIKE",
+                       "detail": {"count": count, "by_kind": dict(problems.get("by_kind") or {}),
+                                  "by_reason": dict(problems.get("by_reason") or {}),
+                                  "blocked": int(problems.get("blocked") or 0)}})
     if cfg.section("regime_d7")["enabled"]:
         from .regime_d7 import HOUR_STATE_STALE_AFTER
         stale = d7_newest_available_at is None or (now - d7_newest_available_at) > HOUR_STATE_STALE_AFTER
@@ -181,15 +190,25 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
     build = runtime.get("history_build") or {}
     if build.get("last_run_at") and build.get("last_success_at") != build.get("last_run_at"):
         alerts.append({"key": "HISTORY_BUILD_FAILED", "detail": {"error": build.get("last_error_type")}})
-    # A3: the history sync, the research feeds and the stress hours, once each has run
+    # A3: the history sync, the research feeds and the stress hours, once each has run: by their own
+    # cadence from the last success, or from the first run while none has succeeded yet
     for comp, key, limit in (("history_sync", "HISTORY_SYNC_FAILING", HISTORY_SYNC_STALE_S),
                              ("research_feeds", "FEEDS_FAILING", FEEDS_STALE_S),
                              ("research_stress_hours", "STRESS_HOURS_FAILING", STRESS_STALE_S)):
-        if comp in runtime and _stalled(comp, limit):
-            alerts.append({"key": key, "detail": {"error": (runtime.get(comp) or {}).get("last_error_type")}})
-    definition = runtime.get("research_feeds_definition") or {}
-    if definition.get("last_run_at") and definition.get("last_success_at") != definition.get("last_run_at"):
-        alerts.append({"key": "FEEDS_DEFINITION_CHECK_FAILED", "detail": {}})
+        row = runtime.get(comp)
+        since = row and (row.get("last_success_at") or row.get("first_run_at") or row.get("last_run_at"))
+        if since and (now - since).total_seconds() > limit:
+            alerts.append({"key": key, "detail": {"error": row.get("last_error_type")}})
+    # the REST-vs-Vision check: PENDING (not enough overlap yet) is not a failure, FAILED is
+    definition = ((runtime.get("research_feeds_definition") or {}).get("detail")) or {}
+    failed = sorted(f for f, c in definition.items() if isinstance(c, Mapping) and c.get("status") == "FAILED")
+    if failed:
+        alerts.append({"key": "FEEDS_DEFINITION_CHECK_FAILED", "detail": {"fields": failed}})
+    # a notifier step that failed while the outbox carried on (A3 review)
+    for comp, step in NOTIFY_STEPS:
+        row = runtime.get(comp) or {}
+        if row.get("last_run_at") and row.get("last_success_at") != row.get("last_run_at"):
+            alerts.append({"key": "NOTIFIER_STEP_FAILED", "detail": {"step": step, "error": row.get("last_error_type")}})
     # Touch-chance calibration (docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md §3): a live bin that diverged
     # from its stated chances. The owner is told; the bin's wording has already fallen back.
     live = ((runtime.get("touch_live_cal") or {}).get("detail")) or {}

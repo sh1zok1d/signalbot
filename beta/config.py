@@ -62,6 +62,12 @@ _TOP_KEYS = frozenset({
 })
 # deploy/signalbot-beta-notify.service TimeoutStartSec: no send may start after the budget (A5)
 NOTIFY_UNIT_TIMEOUT_S = 50
+# The beta sender's Telegram timeouts (connect, write, read, pool; runtime.beta_bot.BetaTelegramSender):
+# one send takes at most their sum. The budget leaves that plus the run's tail (health, owner alert
+# rows, the dead-man ping of at most 5 s) before the unit's timeout (A5 review).
+SEND_TIMEOUTS_S = (5.0, 5.0, 5.0, 2.0)
+NOTIFY_TAIL_S = 8
+NOTIFY_BUDGET_MAX_S = int(NOTIFY_UNIT_TIMEOUT_S - sum(SEND_TIMEOUTS_S) - NOTIFY_TAIL_S)
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
     "bootstrap": {"lookback_days", "max_buckets_per_run"},
@@ -328,9 +334,10 @@ def _validate(d: Mapping[str, Any]) -> None:
         _exact_keys(d[section], keys, section)
         for k in keys:
             _int(d[section][k], f"{section}.{k}")
-    if d["notifications"]["send_budget_s"] > NOTIFY_UNIT_TIMEOUT_S - 10:
-        raise BetaConfigError(f"notifications.send_budget_s must leave 10 s before the notifier unit's "
-                              f"{NOTIFY_UNIT_TIMEOUT_S} s timeout")
+    if d["notifications"]["send_budget_s"] > NOTIFY_BUDGET_MAX_S:
+        raise BetaConfigError(f"notifications.send_budget_s must be <= {NOTIFY_BUDGET_MAX_S}: one send "
+                              f"({sum(SEND_TIMEOUTS_S):.0f} s) and the run's tail ({NOTIFY_TAIL_S} s) must fit "
+                              f"before the notifier unit's {NOTIFY_UNIT_TIMEOUT_S} s timeout")
     if d["bootstrap"]["lookback_days"] > 30:
         raise BetaConfigError("bootstrap.lookback_days must be <= 30 (maximum needed by rules)")
     if d["ingestion"]["min_healthy_venues"] > len(ex):

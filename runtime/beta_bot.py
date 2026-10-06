@@ -15,7 +15,7 @@ import html
 import logging
 import math
 import signal
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, Optional, Sequence
 
@@ -43,10 +43,28 @@ class Outgoing:
     buttons: Optional[Sequence[Sequence[tuple]]] = None
     callback_id: Optional[str] = None
     message_id: Optional[int] = None
+    mass: Optional[tuple] = None                # (audit action, label): one owner mass send, counted
+
+
+# Owner mass sends (/admin_broadcast, /admin_outage; A3 review): one paced path, and the owner is told
+# how many were delivered. Flood control is waited out once, at most MASS_RETRY_WAIT_S.
+MASS_INTERVAL_S = 0.05
+MASS_RETRY_WAIT_S = 10.0
 
 
 class BetaTelegramSender(TelegramSender):
-    """TelegramSender + inline buttons / callback answers / long polling."""
+    """TelegramSender + inline buttons / callback answers / long polling. Its timeouts are the beta's
+    own (`beta.config.SEND_TIMEOUTS_S`): one send must fit the notifier's tail reserve (A5 review)."""
+
+    def _ensure_bot(self):
+        if self._bot is None:
+            import telegram          # lazy
+            from telegram.request import HTTPXRequest
+            from beta.config import SEND_TIMEOUTS_S
+            connect, write, read, pool = SEND_TIMEOUTS_S
+            self._bot = telegram.Bot(token=self._token, request=HTTPXRequest(
+                connect_timeout=connect, write_timeout=write, read_timeout=read, pool_timeout=pool))
+        return self._bot
 
     async def send(self, *, chat_id: int, html: str, buttons=None) -> int:
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup   # lazy
@@ -208,11 +226,13 @@ class BetaBotHandler:
             # Telegram caps a message at 4096 characters; /admin_stats grows with the weeks
             out = [Outgoing(kind="message", chat_id=chat_id, html=f"<pre>{html.escape(part, quote=False)}</pre>")
                    for part in owner_parts(res["reply"] or "")]
+            mass = (res["mass"]["action"], res["mass"]["label"]) if res.get("mass") else None
             if res["broadcast"]:
-                out += [_msg(c, res["broadcast"], lang="ru") for c in await conn.active_user_chats()]
+                out += [replace(_msg(c, res["broadcast"], lang="ru"), mass=mass)
+                        for c in await conn.active_user_chats()]
             for item in res.get("direct") or []:
                 dest, text, *rest = item
-                out.append(_msg(int(dest), text, lang=rest[0] if rest else "ru"))
+                out.append(replace(_msg(int(dest), text, lang=rest[0] if rest else "ru"), mass=mass))
             return out
         user = await conn.get_user(uid)
         lang = _lang_of(user)
@@ -733,8 +753,28 @@ def _parse_tab(data: str):
     return parts[0], int(parts[1]), parts[2]
 
 
-async def deliver_outgoing(sender: BetaTelegramSender, out: Sequence[Outgoing]) -> None:
+async def deliver_outgoing(sender: BetaTelegramSender, out: Sequence[Outgoing], *,
+                           sleep=asyncio.sleep) -> dict:
+    """Send the replies in order. Messages of an owner mass send are paced (MASS_INTERVAL_S), flood
+    control is waited out once, and each is counted: {(action, label): {"recipients", "delivered",
+    "failed"}}."""
+    counts: dict = {}
+    prev_mass = False
     for o in out:
+        if o.mass is not None:
+            c = counts.setdefault(o.mass, {"recipients": 0, "delivered": 0, "failed": 0})
+            c["recipients"] += 1
+            if prev_mass:
+                await sleep(MASS_INTERVAL_S)
+        prev_mass = o.mass is not None
+        ok = await _deliver_one(sender, o, sleep=sleep)
+        if o.mass is not None:
+            counts[o.mass]["delivered" if ok else "failed"] += 1
+    return counts
+
+
+async def _deliver_one(sender, o: Outgoing, *, sleep) -> bool:
+    for attempt in (1, 2):
         try:
             if o.kind == "answer":
                 await sender.answer(o.callback_id, o.html)
@@ -742,8 +782,36 @@ async def deliver_outgoing(sender: BetaTelegramSender, out: Sequence[Outgoing]) 
                 await sender.edit(chat_id=o.chat_id, message_id=o.message_id, html=o.html, buttons=o.buttons)
             else:
                 await sender.send(chat_id=o.chat_id, html=o.html, buttons=o.buttons)
+            return True
+        except DeliveryThrottled as exc:
+            if attempt == 2 or o.mass is None:
+                logger.warning("beta bot reply throttled")
+                return False
+            await sleep(min(float(exc.retry_after_s), MASS_RETRY_WAIT_S))
         except Exception as exc:  # noqa: BLE001 - never log ids/tokens
             logger.warning("beta bot reply failed: %s", type(exc).__name__)
+            return False
+    return False
+
+
+async def report_mass_send(store, sender, owner_user_id: Optional[int], counts: Mapping[tuple, Mapping[str, int]],
+                           *, now: datetime) -> None:
+    """After an owner mass send: the owner is told how many were delivered, and the audit gets a
+    second row with that count (the command's own row was written before anything was sent)."""
+    if not counts or owner_user_id is None:
+        return
+    for (action, label), c in counts.items():
+        text = f"{label}: delivered to {c['delivered']} of {c['recipients']}" + (
+            f", failed {c['failed']}" if c["failed"] else "")
+        await _deliver_one(sender, Outgoing(kind="message", chat_id=int(owner_user_id),
+                                            html=f"<pre>{html.escape(text, quote=False)}</pre>"),
+                           sleep=asyncio.sleep)
+        try:
+            async with store.connect() as conn:
+                await conn.insert_audit(action=action, authorized=True, actor_fingerprint=fingerprint(owner_user_id),
+                                        target_fingerprint=None, result="DELIVERED", detail=dict(c))
+        except Exception as exc:  # noqa: BLE001 - the owner already has the count
+            logger.warning("mass send audit failed: %s", type(exc).__name__)
 
 
 async def run_bot_service(*, store, cfg: BetaConfig, switches: Callable[[], BetaSwitches],
@@ -780,7 +848,8 @@ async def run_bot_service(*, store, cfg: BetaConfig, switches: Callable[[], Beta
                     logger.warning("beta bot update failed: %s", type(exc).__name__)
                     await handler.skip(u)
                     continue
-                await deliver_outgoing(sender, out)
+                counts = await deliver_outgoing(sender, out)
+                await report_mass_send(store, sender, owner_user_id, counts, now=datetime.now(timezone.utc))
             async with store.connect() as conn:
                 await conn.record_health("bot", now=datetime.now(timezone.utc), success=ok,
                                          detail={"updates": len(updates)})
@@ -796,7 +865,7 @@ async def _notifier_deadman(conn, sender, cfg: BetaConfig, switches: BetaSwitche
         return False
     now = now or datetime.now(timezone.utc)
     h = cfg.section("health")
-    runtime = await conn.fetch_health()
+    runtime = await conn.fetch_health(["notifier", f"owner_alert:{NOTIFIER_DEADMAN}"])  # two rows per poll
     if not notifier_deadman_due(runtime, now=now, stall_s=int(h["notifier_stall_s"]),
                                 repeat_s=int(h["owner_alert_repeat_s"]), watcher_started_at=started_at):
         return False

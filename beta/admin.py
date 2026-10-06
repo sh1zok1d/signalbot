@@ -96,15 +96,15 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
     runtime = await conn.fetch_health()
     window = timedelta(seconds=cfg["health"]["delivery_problem_window_s"])
     counts = await conn.delivery_state_counts(since=now - window)          # push states (soak report)
-    # the spike counts every outbox kind (push, brief, alert, weekly): a failing send is a failing send (A3)
-    by_kind = await conn.delivery_problems_by_kind(since=now - window)
-    problems = sum(by_kind.values())
+    # the spike counts every outbox kind (push, brief, alert, weekly), expired and flood-control rows
+    # included; a participant who blocked the bot is counted apart, never as a failure (A3)
+    problems = await conn.delivery_problems(since=now - window)
     d7_at = None
     if cfg.section("regime_d7")["enabled"]:
         d7_at = await conn.newest_d7_available_at()
     alerts = health_alerts(cfg, now=now, heartbeat=st["heartbeat"], detector_watermark=wm,
                            latest_live=st["latest"], runtime=runtime, delivery_problems=problems,
-                           switches=switches, d7_newest_available_at=d7_at, delivery_problems_by_kind=by_kind)
+                           switches=switches, d7_newest_available_at=d7_at)
     admin_push = await conn.get_admin_push_enabled()
     admin_d7 = await conn.get_admin_d7_enabled()
     return {"product_status": st["status"]["status"], "status_reasons": st["status"]["reasons"],
@@ -112,7 +112,7 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
             "detector_watermark": wm, "heartbeat": st["heartbeat"],
             "runtime": {k: {"last_run_at": v["last_run_at"], "last_success_at": v["last_success_at"],
                             "last_error_type": v["last_error_type"]} for k, v in runtime.items()},
-            "delivery_counts_window": counts, "delivery_problems_by_kind": by_kind, "alerts": alerts,
+            "delivery_counts_window": counts, "delivery_problems": problems, "alerts": alerts,
             "switches": switches.as_dict(), "admin_push_enabled": admin_push,
             "effective_push_enabled": effective_push_enabled(switches, admin_push),
             "admin_d7_enabled": admin_d7,
@@ -149,9 +149,9 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
         await conn.insert_audit(action=command if command in ADMIN_COMMANDS else "admin_status",
                                 authorized=False, actor_fingerprint=UNAUTHORIZED_ACTOR,
                                 target_fingerprint=None, result="REFUSED")
-        return {"reply": None, "broadcast": None, "direct": None, "authorized": False}
+        return {"reply": None, "broadcast": None, "direct": None, "mass": None, "authorized": False}
     actor = fingerprint(actor_user_id)
-    target, result, detail, reply, broadcast, direct = None, "OK", {}, "", None, None
+    target, result, detail, reply, broadcast, direct, mass = None, "OK", {}, "", None, None, None
     cap = int(cfg["access"]["max_active_users"])
     if command == "admin_status":
         st = await collect_status(conn, cfg, now)
@@ -215,7 +215,8 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
             try:
                 import html as _html
                 broadcast = assert_descriptive(_html.escape(args, quote=False))
-                reply = "broadcast queued to active users"
+                mass = {"action": "admin_broadcast", "label": "broadcast"}
+                reply = "broadcast: sending to active users"
                 detail = {"length": len(args)}
             except ForbiddenWordingError:
                 result, reply = "REFUSED_WORDING", "refused: broadcast contains forbidden wording"
@@ -313,10 +314,13 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
             reply = ("usage: /admin_outage start|end\nstart (ru): " + t("ru", "outage_start")
                      + "\nend (ru): " + t("ru", "outage_end"))
         else:
-            chats = await conn.active_user_chats_with_lang()
+            chats = await conn.active_user_rows()
             direct = [(int(c["chat_id"]), t(c.get("lang") or "ru", f"outage_{phase}"), c.get("lang") or "ru")
                       for c in chats]
-            reply = f"outage {phase} notice sent to {len(direct)} active participants"
+            # the bot sends these paced after the commit and then reports how many were delivered
+            # (runtime.beta_bot.report_mass_send), with a second audit row carrying the real count
+            mass = {"action": "admin_outage", "label": f"outage {phase} notice", "phase": phase}
+            reply = f"outage {phase} notice: sending to {len(direct)} active participants"
             detail = {"phase": phase, "recipients": len(direct)}
     elif command == "admin_latency":
         # A4: candle close (or schedule) -> delivery, P50/P95 by class
@@ -340,4 +344,4 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
     await conn.insert_audit(action=command if command in ADMIN_COMMANDS else "admin_status",
                             authorized=True, actor_fingerprint=actor, target_fingerprint=target,
                             result=result, detail=detail)
-    return {"reply": reply, "broadcast": broadcast, "direct": direct, "authorized": True}
+    return {"reply": reply, "broadcast": broadcast, "direct": direct, "mass": mass, "authorized": True}

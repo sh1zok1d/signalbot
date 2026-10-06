@@ -22,7 +22,9 @@ def test_oneshot_services(name, flag):
     u = _unit(f"signalbot-beta-{name}.service")
     s = u["Service"]
     assert s["Type"] == "oneshot" and s["User"] == "signalbot"
-    assert s["ExecStart"].endswith(f"main.py {flag} --beta-json --log-level INFO")
+    # the notifier alone pings the external dead-man check (A3 review 6)
+    ping = " --beta-deadman-ping" if flag == "--beta-notify-once" else ""
+    assert s["ExecStart"].endswith(f"main.py {flag}{ping} --beta-json --log-level INFO")
     assert "--shadow" not in s["ExecStart"] and "--telegram" not in s["ExecStart"]
     assert int(s["TimeoutStartSec"]) <= 300 and "Restart" not in s
     for k, v in HARDENING.items():

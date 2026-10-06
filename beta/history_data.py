@@ -436,15 +436,31 @@ async def sync_history(store, *, now: datetime, fetch: Optional[Fetch] = None,
             async with store.connect() as conn:
                 bounds = await conn.hist_bounds()
                 await conn.record_health("history_sync", now=datetime.now(timezone.utc),
-                                         success=not report["errors"],
+                                         success=not report["errors"], error_type=_error_types(report["errors"]),
                                          detail={k: v for k, v in report.items() if isinstance(v, int)})
             report.update(bounds)
             if report["errors"]:
                 report["status"] = "PARTIAL"
             return report
+        except Exception as exc:
+            # the run itself failed before its health row (the ledger, the plan, the database): the
+            # owner's HISTORY_SYNC_FAILING alert must still see it (A3 review); then the unit fails
+            try:
+                async with store.connect() as conn:
+                    await conn.record_health("history_sync", now=datetime.now(timezone.utc), success=False,
+                                             error_type=type(exc).__name__)
+            except Exception:  # noqa: BLE001 - the original error is the one to raise
+                pass
+            raise
         finally:
             if session is not None:
                 await session.close()
+
+
+def _error_types(errors) -> Optional[str]:
+    """`key: ErrorType: message` entries -> the distinct error types, for the health row."""
+    kinds = sorted({e.split(": ", 2)[1] for e in errors if e.count(": ") >= 2})
+    return ",".join(kinds)[:200] or None if errors else None
 
 
 # ---- local archives (tests, offline calibration) -------------------------------------

@@ -489,13 +489,13 @@ def test_divergence_is_sticky_and_refreshed_hourly():
     from beta.health import health_alerts
     from beta_fakes import ON
     alerts = health_alerts(CFG, now=SLOT, heartbeat={"healthy": True}, detector_watermark=None, latest_live=None,
-                           runtime={"touch_live_cal": {"detail": d2}}, delivery_problems=0,
+                           runtime={"touch_live_cal": {"detail": d2}}, delivery_problems=None,
                            switches=dataclasses.replace(ON, detection=False, outcome_tracking=False))
     assert {"key": "TOUCH_CALIBRATION_DIVERGED", "detail": {"4h": [[0.7, 0.85]]}} in alerts
     assert not [a for a in alerts if a["key"] == "NEITHER_CALIBRATION_DIVERGED"]
     neither = {**d2, "diverged_neither": {"1h": [], "4h": [], "24h": [[0.5, 0.7]]}}
     alerts = health_alerts(CFG, now=SLOT, heartbeat={"healthy": True}, detector_watermark=None, latest_live=None,
-                           runtime={"touch_live_cal": {"detail": neither}}, delivery_problems=0,
+                           runtime={"touch_live_cal": {"detail": neither}}, delivery_problems=None,
                            switches=dataclasses.replace(ON, detection=False, outcome_tracking=False))
     assert {"key": "NEITHER_CALIBRATION_DIVERGED", "detail": {"24h": [[0.5, 0.7]]}} in alerts
 

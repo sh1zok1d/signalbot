@@ -461,7 +461,8 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             alert_pk=a["alert_pk"], kind=a["kind"], decision_ts=a["decision_ts"],
             target_user_pk=a["target_user_pk"], expired=(now - a["decision_ts"] > ttl), now=now)
     lat_summary = None
-    for row in await conn.fetch_pending_alert_deliveries(cfg["notifications"]["max_deliveries_per_run"]):
+    for row in await conn.fetch_pending_alert_deliveries(cfg["notifications"]["max_deliveries_per_run"],
+                                                         now=clock()):
         now = clock()
         did = row["delivery_id"]
         if now - row["decision_ts"] > ttl:
@@ -482,6 +483,9 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_FAILED, now=now,
                                            error_summary="sender unavailable (no bot token)")
             rep["failed"] += 1
+            continue
+        if not pacer.may_send(row["chat_id"]):          # nothing is rendered for a row that waits
+            pacer.deferred += 1
             continue
         lang = row.get("user_lang") or "ru"
         if lat_summary is None:

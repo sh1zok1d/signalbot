@@ -692,14 +692,16 @@ class BetaConn:
             decision_id, episode_pk, decision_ts, expired)
         return int(status.split()[-1])
 
-    async def fetch_pending_deliveries(self, limit: int) -> list:
+    async def fetch_pending_deliveries(self, limit: int, *, now: Optional[datetime] = None) -> list:
+        # `now`: rows waiting after flood control are skipped until their next_attempt_at
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.decision_id, x.episode_pk, x.user_pk, x.decision_ts,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang, d.gate
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                LEFT JOIN beta_push_decisions d ON d.decision_id = x.decision_id
                WHERE x.state='PENDING' AND x.kind='push'
-               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
+                 AND ($2::timestamptz IS NULL OR x.next_attempt_at IS NULL OR x.next_attempt_at <= $2)
+               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit, now)
         return [{**dict(r), "gate": _load(r["gate"]) if r["gate"] is not None else None} for r in rows]
 
     # ---- morning briefing rows in the same outbox (kind = 'brief') ----------
@@ -720,7 +722,8 @@ class BetaConn:
             brief_date, view_pk, decision_ts)
         return int(status.split()[-1])
 
-    async def fetch_pending_brief_deliveries(self, limit: int) -> list:
+    async def fetch_pending_brief_deliveries(self, limit: int, *, now: Optional[datetime] = None) -> list:
+        # `now`: rows waiting after flood control are skipped until their next_attempt_at
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.view_pk, x.brief_date, x.user_pk, x.decision_ts,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang, u.brief_enabled,
@@ -730,10 +733,15 @@ class BetaConn:
                                     AND y.brief_date < x.brief_date) AS first_brief
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                WHERE x.state='PENDING' AND x.kind='brief'
-               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
+                 AND ($2::timestamptz IS NULL OR x.next_attempt_at IS NULL OR x.next_attempt_at <= $2)
+               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit, now)
         return [dict(r) for r in rows]
 
     # ---- weekly report rows in the same outbox (kind = 'weekly'; backlog B4) ----------
+    async def weekly_report_payload(self, week_end) -> Optional[dict]:
+        raw = await self.conn.fetchval("SELECT payload FROM beta_weekly_reports WHERE week_end=$1", week_end)
+        return None if raw is None else _load(raw)
+
     async def weekly_report_pk(self, week_end) -> Optional[int]:
         return await self.conn.fetchval("SELECT weekly_pk FROM beta_weekly_reports WHERE week_end=$1", week_end)
 
@@ -755,14 +763,16 @@ class BetaConn:
             weekly_pk, decision_ts)
         return int(status.split()[-1])
 
-    async def fetch_pending_weekly_deliveries(self, limit: int) -> list:
+    async def fetch_pending_weekly_deliveries(self, limit: int, *, now: Optional[datetime] = None) -> list:
+        # `now`: rows waiting after flood control are skipped until their next_attempt_at
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.weekly_pk, x.user_pk, x.decision_ts, w.payload,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang, u.push_enabled, u.push_weekly
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                JOIN beta_weekly_reports w ON w.weekly_pk = x.weekly_pk
                WHERE x.state='PENDING' AND x.kind='weekly'
-               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
+                 AND ($2::timestamptz IS NULL OR x.next_attempt_at IS NULL OR x.next_attempt_at <= $2)
+               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit, now)
         return [{**dict(r), "payload": _load(r["payload"])} for r in rows]
 
     async def long_short_summary(self, *, as_of: datetime) -> Optional[dict]:
@@ -917,13 +927,14 @@ class BetaConn:
             delivery_id, from_state, to_state, suppression_reason, message_id, error_summary, now)
         return status == "UPDATE 1"
 
-    async def requeue_delivery(self, delivery_id: int, *, error_summary: str) -> bool:
+    async def requeue_delivery(self, delivery_id: int, *, error_summary: str, next_attempt_at: datetime) -> bool:
         """SENDING -> PENDING after Telegram's flood control (RetryAfter): the message was not
-        delivered, so the next run may send it, under the same TTL (backlog A5). `sending_at`
-        keeps the refused attempt; `error_summary` says why it waits."""
+        delivered, so a later run may send it, not before `next_attempt_at` and under the same TTL
+        (backlog A5). A PENDING row carries no `sending_at`; `error_summary` says why it waits."""
         status = await self.conn.execute(
-            """UPDATE beta_notification_deliveries SET state='PENDING', finished_at=NULL, error_summary=$2
-               WHERE delivery_id=$1 AND state='SENDING'""", delivery_id, error_summary)
+            """UPDATE beta_notification_deliveries SET state='PENDING', sending_at=NULL, finished_at=NULL,
+                   error_summary=$2, next_attempt_at=$3
+               WHERE delivery_id=$1 AND state='SENDING'""", delivery_id, error_summary, next_attempt_at)
         return status == "UPDATE 1"
 
     async def delivery_state_counts(self, *, since: Optional[datetime] = None) -> dict:
@@ -932,12 +943,33 @@ class BetaConn:
             "WHERE kind='push' AND ($1::timestamptz IS NULL OR created_at >= $1) GROUP BY state", since)
         return {r["state"]: int(r["n"]) for r in rows}
 
-    async def delivery_problems_by_kind(self, *, since: datetime) -> dict:
-        """FAILED and DELIVERY_UNKNOWN rows by outbox kind (every kind; the owner's failure spike)."""
+    async def delivery_problems(self, *, since: datetime) -> dict:
+        """The owner's failure spike (every outbox kind): {"by_kind", "by_reason", "blocked"}.
+        A problem is a FAILED row other than a participant who blocked the bot (`Forbidden:` is
+        their choice, counted apart as `blocked`), a DELIVERY_UNKNOWN row, a row that expired
+        undelivered, or a row waiting after Telegram's flood control."""
         rows = await self.conn.fetch(
-            """SELECT kind, count(*) AS n FROM beta_notification_deliveries
-               WHERE state IN ('FAILED', 'DELIVERY_UNKNOWN') AND created_at >= $1 GROUP BY kind""", since)
-        return {r["kind"]: int(r["n"]) for r in rows}
+            """SELECT kind,
+                      CASE WHEN state = 'FAILED' AND error_summary LIKE 'Forbidden:%' THEN 'blocked'
+                           WHEN state = 'FAILED' THEN 'failed'
+                           WHEN state = 'DELIVERY_UNKNOWN' THEN 'unknown'
+                           WHEN state = 'EXPIRED_UNDELIVERED' THEN 'expired'
+                           ELSE 'throttled' END AS reason,
+                      count(*) AS n
+               FROM beta_notification_deliveries
+               WHERE COALESCE(finished_at, created_at) >= $1
+                 AND (state IN ('FAILED', 'DELIVERY_UNKNOWN')
+                      OR (state = 'EXPIRED_UNDELIVERED' AND suppression_reason = 'DELIVERY_TOO_OLD')
+                      OR (state = 'PENDING' AND next_attempt_at IS NOT NULL))
+               GROUP BY 1, 2""", since)
+        out: dict = {"by_kind": {}, "by_reason": {}, "blocked": 0}
+        for r in rows:
+            if r["reason"] == "blocked":
+                out["blocked"] += int(r["n"])
+                continue
+            out["by_kind"][r["kind"]] = out["by_kind"].get(r["kind"], 0) + int(r["n"])
+            out["by_reason"][r["reason"]] = out["by_reason"].get(r["reason"], 0) + int(r["n"])
+        return out
 
     async def delivery_latency_rows(self, *, since: datetime) -> list:
         """Delivered and expired-undelivered rows finished since `since`, with the alert kind and
@@ -1328,11 +1360,6 @@ class BetaConn:
         rows = await self.conn.fetch("SELECT chat_id FROM beta_users WHERE status='ACTIVE' ORDER BY user_pk")
         return [r["chat_id"] for r in rows]
 
-    async def active_user_chats_with_lang(self) -> list:
-        rows = await self.conn.fetch(
-            "SELECT chat_id, lang FROM beta_users WHERE status='ACTIVE' ORDER BY user_pk")
-        return [dict(r) for r in rows]
-
     async def user_counts(self) -> dict:
         rows = await self.conn.fetch("SELECT status, count(*) AS n FROM beta_users GROUP BY status")
         return {r["status"]: int(r["n"]) for r in rows}
@@ -1395,18 +1422,22 @@ class BetaConn:
                             detail: Optional[Mapping] = None) -> None:
         await self.conn.execute(
             """INSERT INTO beta_runtime_health (component, last_run_at, last_success_at,
-                   last_error_type, detail)
-               VALUES ($1,$2::timestamptz,CASE WHEN $3::boolean THEN $2::timestamptz END,$4,$5::jsonb)
+                   last_error_type, detail, first_run_at)
+               VALUES ($1,$2::timestamptz,CASE WHEN $3::boolean THEN $2::timestamptz END,$4,$5::jsonb,
+                       $2::timestamptz)
                ON CONFLICT (component) DO UPDATE SET last_run_at=EXCLUDED.last_run_at,
+                   first_run_at=COALESCE(beta_runtime_health.first_run_at, EXCLUDED.first_run_at),
                    last_success_at=CASE WHEN $3::boolean THEN EXCLUDED.last_run_at
                                         ELSE beta_runtime_health.last_success_at END,
                    last_error_type=EXCLUDED.last_error_type, detail=EXCLUDED.detail""",
             component, now, success, error_type, _j(dict(detail or {})))
 
-    async def fetch_health(self) -> dict:
+    async def fetch_health(self, components: Optional[Sequence[str]] = None) -> dict:
+        """Every component's row, or only `components` (the bot's dead-man reads two rows each poll)."""
         rows = await self.conn.fetch(
-            "SELECT component, last_run_at, last_success_at, last_error_type, detail "
-            "FROM beta_runtime_health")
+            "SELECT component, last_run_at, last_success_at, last_error_type, detail, first_run_at "
+            "FROM beta_runtime_health WHERE $1::text[] IS NULL OR component = ANY($1::text[])",
+            None if components is None else list(components))
         return {r["component"]: {**dict(r), "detail": _load(r["detail"])} for r in rows}
 
     # ------------------------------------------------------------------ D7 display feed
@@ -1993,14 +2024,16 @@ class BetaConn:
                                 alert_pk, now or decision_ts)
         return int(status.split()[-1])
 
-    async def fetch_pending_alert_deliveries(self, limit: int) -> list:
+    async def fetch_pending_alert_deliveries(self, limit: int, *, now: Optional[datetime] = None) -> list:
+        # `now`: rows waiting after flood control are skipped until their next_attempt_at
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.alert_pk, x.user_pk, x.decision_ts, a.kind, a.payload,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                JOIN beta_market_alerts a ON a.alert_pk = x.alert_pk
                WHERE x.state='PENDING' AND x.kind='alert'
-               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
+                 AND ($2::timestamptz IS NULL OR x.next_attempt_at IS NULL OR x.next_attempt_at <= $2)
+               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit, now)
         return [{**dict(r), "payload": _load(r["payload"])} for r in rows]
 
     # ------------------------------------------------------------ personal price alerts
