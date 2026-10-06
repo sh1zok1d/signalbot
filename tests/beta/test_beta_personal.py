@@ -63,3 +63,32 @@ def test_every_push_type_carries_its_one_tap_mute():
     assert mute_row("weekly", "ru") == [("🔕 Не присылать такие", "m:weekly")]
     assert parse_mute("m:levels") == (True, "levels") and parse_mute("a:weekly") == (False, "weekly")
     assert parse_mute("m:price") is None and parse_mute("u:levels") is None and parse_mute("a:" + "x" * 30) is None
+
+
+def test_a_mute_button_counts_as_the_setting_it_makes_in_the_owner_report():
+    from beta.usage import as_setting
+    row = {"user_pk": 1, "action": "btn_mute", "detail": "levels", "at": T}
+    assert as_setting(row) == {**row, "action": "cmd_push", "detail": "levels:off", "button": True}
+    assert as_setting({**row, "action": "btn_unmute"})["detail"] == "levels:on"
+    assert as_setting({**row, "action": "btn_check"}) == {**row, "action": "btn_check"}
+
+
+def test_the_approach_of_a_personal_level_fires_once_within_the_hours_typical_move():
+    """Backlog E1: set farther than the typical 1h move, now within it, not yet through, not yet told."""
+    from beta.market_alerts import detect_price_approaches
+    from beta.decision_format import format_alert
+    blk = {"available": True, "price": 64700.0, "price_ts": T.isoformat(),
+           "corridor": {"horizons": {"1h": {"typical_move_pct": 0.6}}}}
+    a = {"price_alert_pk": 7, "user_pk": 3, "price": 65000.0, "direction": "above", "created_price": 63000.0,
+         "approached_at": None}
+    out = detect_price_approaches([a], block=blk, now=T)
+    assert [c["key"] for c in out] == ["approach:7"] and out[0]["target_user_pk"] == 3
+    assert round(out[0]["payload"]["distance_pct"], 3) == 0.464
+    text = format_alert("approach", out[0]["payload"], "ru")
+    assert text.startswith("<b>BTC подходит к вашему уровню 65 000</b>\n09:00 (Киев) · цена 64 700 (Binance, 09:00)"
+                           " · до уровня 0,46% — меньше обычного хода за 1ч (±0,60%)")
+    assert detect_price_approaches([{**a, "approached_at": T}], block=blk, now=T) == []        # once
+    assert detect_price_approaches([{**a, "created_price": 64800.0}], block=blk, now=T) == []  # set close already
+    assert detect_price_approaches([{**a, "price": 66000.0}], block=blk, now=T) == []           # still far
+    assert detect_price_approaches([a], block={**blk, "price": 65100.0}, now=T) == []           # already through
+    assert detect_price_approaches([a], block={**blk, "corridor": {"horizons": {}}}, now=T) == []   # no typical move

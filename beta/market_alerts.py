@@ -239,6 +239,32 @@ def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any],
     return out
 
 
+def detect_price_approaches(active, *, block: Mapping[str, Any], now: datetime) -> list:
+    """«Мои уровни» (backlog E1): one message when the price first comes within the hour's typical move
+    of a personal level that was set farther away than that; never after the touch. No typical move (the
+    1h horizon inside its event zone, no statistics): no approach message, the touch still fires."""
+    x = ((block.get("corridor") or {}).get("horizons") or {}).get("1h")
+    if not block.get("available") or not x or block.get("price") is None:
+        return []
+    typ, price = float(x["typical_move_pct"]), float(block["price"])
+    out = []
+    for a in active:
+        if a.get("approached_at") is not None:
+            continue
+        level = float(a["price"])
+        dist = abs(level / price - 1) * 100.0
+        set_from = abs(level / float(a["created_price"]) - 1) * 100.0
+        side = +1 if a["direction"] == "above" else -1
+        if set_from <= typ or dist > typ or side * (level - price) <= 0:
+            continue                                   # set already close, still far, or already through
+        out.append({"kind": "approach", "key": f"approach:{a['price_alert_pk']}", "price_alert_pk": a["price_alert_pk"],
+                    "target_user_pk": a["user_pk"],
+                    "payload": {"at": now.isoformat(), "source_at": block.get("price_ts") or now.isoformat(),
+                                "level": level, "price": price, "price_ts": block.get("price_ts"),
+                                "distance_pct": dist, "typical_1h_pct": typ}})
+    return out
+
+
 _KIND_PREF = {"level": "push_levels", "event": "push_events", "move": "push_moves"}
 
 
@@ -267,6 +293,8 @@ async def _decide_and_record(conn, cfg: BetaConfig, cand: Mapping[str, Any], *, 
                                             target_user_pk=cand.get("target_user_pk"))
         if kind == "price":
             await conn.mark_price_alert_triggered(cand["price_alert_pk"], at=now)
+        elif kind == "approach":
+            await conn.mark_price_alert_approached(cand["price_alert_pk"], at=now)
     if pk is None:
         return "DUPLICATE"
     return "PUSH" if reason is None else reason
@@ -368,6 +396,8 @@ def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
     target = None
     if kind == "level" and payload.get("next"):
         target = payload["next"].get("edge")
+    elif kind == "approach":                    # the chance to reach the participant's own level now
+        target = payload.get("level")
     elif kind == "move" and payload.get("near") and payload.get("close") is not None:
         # the nearest level in the move's direction: above after a rise, below after a fall (none: no button)
         up, close = float(payload.get("move_pct") or 0.0) >= 0, float(payload["close"])
@@ -447,8 +477,12 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             if available and (last_move is None or now - last_move >= timedelta(minutes=int(m["move_cooldown_min"]))):
                 cands += detect_move(block, b, closed, now=now, model=cap.get("model"))
             if push_on:
-                cands += detect_price_alerts(await conn.fetch_active_price_alerts(), b, closed, block=block, now=now,
-                                             max_age=timedelta(minutes=int(m["touch_max_age_min"])))
+                active = await conn.fetch_active_price_alerts()
+                touched = detect_price_alerts(active, b, closed, block=block, now=now,
+                                              max_age=timedelta(minutes=int(m["touch_max_age_min"])))
+                hit = {c["price_alert_pk"] for c in touched}       # a touch says it all: no approach after it
+                cands += touched + detect_price_approaches([a for a in active if a["price_alert_pk"] not in hit],
+                                                           block=block, now=now)
         known = await conn.market_alert_keys([c["key"] for c in cands]) if cands else set()
         for c in cands:
             if c["key"] in known:

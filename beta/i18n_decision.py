@@ -240,6 +240,10 @@ DECISION_CATALOG: dict = {
     "al_list_line": _pair("{k}. {price} ({dist})", "{k}. {price} ({dist})"),
     "al_list_none": _pair("Уровней нет. Добавить: /alert 65000", "No alerts. Add one: /alert 65000"),
     "al_list_footer": _pair("Удалить: /alert del 1 · все: /alert del all", "Delete: /alert del 1 · all: /alert del all"),
+    "al_approach_note": _pair("Когда до уровня останется меньше обычного хода за час, пришлю одно сообщение заранее, "
+                              "потом — о касании.",
+                              "When the level is closer than the usual 1h move, I send one message ahead, then one "
+                              "at the touch."),
     "al_deleted": _pair("Удалено: {n}.", "Deleted: {n}."),
     "al_limit": _pair("Уже {n} уровней — это максимум. Удалите лишний: /alert del 1",
                       "Already {n} alerts — the maximum. Delete one: /alert del 1"),
@@ -333,6 +337,11 @@ DECISION_CATALOG: dict = {
                               "(Binance, {price_clock})",
                               "The level was reached on {when} ({zone}) while messages were off · now {price} "
                               "(Binance, {price_clock})"),
+    "pa_approach_title": _pair("<b>BTC подходит к вашему уровню {level}</b>", "<b>BTC is nearing your level {level}</b>"),
+    "pa_approach_line": _pair("{clock} · цена {price} (Binance, {price_clock}) · до уровня {dist} — меньше обычного "
+                              "хода за 1ч (±{typ})",
+                              "{clock} · price {price} (Binance, {price_clock}) · {dist} to the level — less than the "
+                              "usual 1h move (±{typ})"),
     "pa_price_footer": _pair("Ваши уровни: /alert", "Your alerts: /alert"),
     # ---- research ↔ bot (config/beta_research_findings.yaml) ----
     # status-worded context lines: a discovery is never «Проверено», a weak effect is never a result

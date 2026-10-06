@@ -948,6 +948,13 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         if note:
             lines.append(note)
         lines.append(t(lang, "pa_price_footer"))
+    elif kind == "approach":                 # «мои уровни»: the price within the hour's typical move (E1)
+        lines.append(t(lang, "pa_approach_title", level=fmt_price(payload["level"], lang)))
+        pts = payload.get("price_ts")
+        lines.append(t(lang, "pa_approach_line", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
+                       price_clock=fmt_kyiv_hm(datetime.fromisoformat(pts)) if pts else fmt_kyiv_hm(at),
+                       dist=_pct(payload["distance_pct"], lang), typ=_pct(payload["typical_1h_pct"], lang)))
+        lines.append(t(lang, "pa_price_footer"))
     else:
         raise ValueError(f"unknown alert kind {kind!r}")
     # research evidence recorded with the alert (beta/research_evidence.py); no unit tested release moves

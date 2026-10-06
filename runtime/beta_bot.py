@@ -605,6 +605,7 @@ class BetaBotHandler:
                 dist = fmt_signed_pct((a["price"] / price - 1) * 100.0, lang) if price else "—"
                 lines.append(t(lang, "al_list_line", k=k, price=fmt_price(a["price"], lang), dist=dist))
             lines.append(t(lang, "al_list_footer"))
+            lines.append(t(lang, "al_approach_note"))
             return "\n".join(lines)
         raw = "".join(parts).replace(",", ".").replace("$", "")
         try:
@@ -634,12 +635,12 @@ class BetaBotHandler:
             from beta.rangecast import touch_probability
             p = touch_probability(model, "24h", hz["scale_pct"], abs(dist))
             return t(lang, "al_set", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
-                     now=fmt_price(price, lang), p=df.fmt_prob(p, lang))
+                     now=fmt_price(price, lang), p=df.fmt_prob(p, lang)) + "\n" + t(lang, "al_approach_note")
         reply = t(lang, "al_set_plain", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
                   now=fmt_price(price, lang))
         # no chance: say why (stale statistics), or that the 24h horizon is inside a release's zone
         note = df.unavailable_line(block, lang) or df.zone_note(block.get("event_zone"), ["24h"], lang)
-        return reply + "\n" + note if note else reply
+        return "\n".join(x for x in (reply, note, t(lang, "al_approach_note")) if x)
 
     async def _view(self, conn, now: datetime, *, kind: str, window_hours: Optional[int] = None) -> dict:
         return await build_view(conn, self.cfg, now=now, kind=kind, window_hours=window_hours,
