@@ -141,7 +141,7 @@ def test_tabs_open_only_views_the_participant_was_shown():
         assert [o.html for o in out if o.kind == "answer"] == ["Недоступно"] or len(out) == 1
         store.expose_view(v)
         out = await h.handle(callback_update(5, f"o:{v['view_pk']}:1h", 3))
-        assert any(o.kind == "message" and "ПОСЛЕДНИЙ ЧАС" in o.html for o in out)
+        assert any(o.kind == "message" and "BTC за последний час" in o.html for o in out)
     asyncio.run(go())
 
 

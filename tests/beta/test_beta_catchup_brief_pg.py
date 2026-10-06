@@ -42,7 +42,8 @@ def test_catchup_renders_the_shared_view_and_records_it():
         text = out[0].html
         assert text.startswith("<b>BTC, last 8h · ")
         assert "No unusual hours." in text                             # no qualified hour on a 3-bucket tape
-        assert "<b>Now</b>\n1h: " in text and "\n4h: " in text and "\n24h: " in text
+        assert ("<b>Now</b>\n1h: " in text and "\n4h: " in text) or "<b>Now</b> · 1h and 4h: " in text
+        assert "\n24h: " in text
         assert "Data as of 03:15 Kyiv" in text
         assert "trade" not in text.lower() and "next" not in text.lower()
         views = await _rows(pool, "SELECT kind, lang, payload->>'kind' AS pk FROM beta_btc_views ORDER BY view_pk")

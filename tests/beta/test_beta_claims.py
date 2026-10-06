@@ -72,7 +72,7 @@ def test_every_class_has_a_level_a_template_and_a_frozen_rule():
 def test_a_template_change_changes_the_digest(monkeypatch):
     from beta import i18n
     before = cj.template_digest("L3_LEVEL_TOUCH_4H")
-    monkeypatch.setitem(i18n._CATALOG, "lv_touch", {"ru": "иначе", "en": "other"})
+    monkeypatch.setitem(i18n._CATALOG, "lv_chance_b", {"ru": "иначе", "en": "other"})
     assert cj.template_digest("L3_LEVEL_TOUCH_4H") != before
 
 
@@ -365,9 +365,16 @@ def test_shown_keys_follow_what_each_surface_prints():
     brief = cj.shown_keys("brief", blk, market=market)
     assert ("L2_STATE_ANALOG_1H_1H", "1h:short_exit") in brief
     assert not [k for k in brief if k[0] == "L2_STATE_ANALOG_4H_4H"]                    # «мало данных»: not stated
-    assert ("L3_LEVEL_TOUCH_24H", "+1:62950.00") in brief
+    assert not [k for k in brief if k[0].startswith("L3_")]       # the briefing prints no chance since C2
     assert len(cj.shown_keys("levels", blk)) == 4 and len(cj.shown_keys("risk", blk)) == 3 * 4 * 2
     assert cj.shown_keys("levels", {"available": False}) == []
+    # /btc prints the nearest level each side (backlog C1): 24h, or 4h inside the 24h zone
+    assert cj.shown_keys("btc", blk) == [("L3_LEVEL_TOUCH_24H", "+1:62950.00"), ("L3_LEVEL_TOUCH_24H", "-1:61900.00")]
+    zoned = _block()
+    for side in ("above", "below"):
+        for z in zoned["levels"][side]:
+            z["touch"] = {"4h": z["touch"]["4h"]}
+    assert cj.shown_keys("btc", zoned) == [("L3_LEVEL_TOUCH_4H", "+1:62950.00"), ("L3_LEVEL_TOUCH_4H", "-1:61900.00")]
     cand = {"kind": "level", "key": "level:PDH:2026-10-14",
             "payload": {"side": 1, "next": _zone(["ROUND"], 64000.0, 2.4), "event_zone": {}}}
     assert cj.shown_keys("alert", None, alert=cand) == [("L2_LEVEL_FIRST_TOUCH_HOLD_1H", "level:PDH:2026-10-14"),

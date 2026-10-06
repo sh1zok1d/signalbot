@@ -318,6 +318,12 @@ def venue_name(ex: str) -> str:
     return _VENUE_NAMES.get(ex, ex)
 
 
+def _move_text(move: float, typical: Optional[float], lang: str) -> str:
+    """A price change, with the model's typical move of that horizon beside it when known (backlog C1)."""
+    text = fmt_signed_pct(move, lang, nd=1)
+    return text if typical is None else t(lang, "h_move_usual", move=text, typ=fmt_plain_pct(abs(typical), lang, nd=1))
+
+
 def _hour_line(view: Mapping[str, Any], lang: str) -> str:
     horizons = view.get("horizons")
     if horizons is None:
@@ -330,7 +336,8 @@ def _hour_line(view: Mapping[str, Any], lang: str) -> str:
         return t(lang, "h1_incomplete")
     parts = []
     if block.get("price_move_pct") is not None:
-        parts.append(fmt_signed_pct(block["price_move_pct"], lang, nd=1))
+        from .decision_format import typical_move
+        parts.append(_move_text(block["price_move_pct"], typical_move(view, "1h"), lang))
     vol = _main_ratio_token(block, value_key="volume_notional_usd", ratio_key="volume_ratio",
                             days_key=_H1_VOLUME_DAYS, lang=lang,
                             day_type=_day_type_tod(view, _H1_VOLUME_DAYS))
@@ -359,7 +366,8 @@ def _day_line(view: Mapping[str, Any], lang: str) -> Optional[str]:
         return t(lang, "h24_incomplete")
     parts = []
     if block.get("price_complete") and block.get("price_move_pct") is not None:
-        parts.append(fmt_signed_pct(block["price_move_pct"], lang, nd=1))
+        from .decision_format import typical_move
+        parts.append(_move_text(block["price_move_pct"], typical_move(view, "24h"), lang))
     if block.get("volume_complete"):
         ratio = _main_ratio_token(block, value_key="volume_notional_usd", ratio_key="volume_ratio",
                                   days_key=_H24_VOLUME_DAYS, lang=lang)
@@ -562,16 +570,22 @@ def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabl
         lines.append(_price_span_line(window, lang))
         lines.extend(_unusual_hours_lines(cfg, market, lang, push_enabled=push_enabled))
     lines.append("")
-    lines.append(f"<b>{t(lang, 'now_head')}</b>")
+    state = []
     for h in ("1h", "4h"):
         res = (market.get("interpretation") or {}).get(h)
         body = t(lang, "data_incomplete") if degraded or res is None else _state_body(
             cfg, res, (market.get("values") or {}).get(h) or {}, h, lang)
-        lines.append(t(lang, "now_line", h=t(lang, "hz_" + h), body=body))
-        if not degraded and res is not None:
-            line = _analog_line(view, res, h, lang)
-            if line:
-                lines.append(line)
+        extra = _analog_line(view, res, h, lang) if not degraded and res is not None else None
+        state.append((h, body, extra))
+    if state[0][1] == state[1][1] and not state[0][2] and not state[1][2]:
+        # the briefing in about 8 lines (backlog C2): the same state on both windows is one line
+        lines.append(t(lang, "now_both", head=t(lang, "now_head"), body=state[0][1]))
+    else:
+        lines.append(f"<b>{t(lang, 'now_head')}</b>")
+        for h, body, extra in state:
+            lines.append(t(lang, "now_line", h=t(lang, "hz_" + h), body=body))
+            if extra:
+                lines.append(extra)
     if view.get("product_status") == "DATA STALE":     # A2: a stale tape shows no old 24h figure either
         lines.append(t(lang, "now_line", h=t(lang, "hz_24h"), body=t(lang, "data_incomplete")))
     else:
@@ -973,7 +987,7 @@ def format_event_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: s
     ep = view.get("active_episode") or view.get("last_event")
     if ep is None:
         return _ok(t(lang, "measurements_missing"), lang)
-    lines = [f"<b>{_e(t(lang, 'event_head', name=plain_name(ep['event_type'], lang)))}</b>"]
+    lines = [t(lang, "event_head", name=_e(plain_name(ep["event_type"], lang)))]   # the title style of /levels (C3)
     if ep.get("terminal_at"):
         lines.append(t(lang, "event_ended_at", clock=fmt_clock(_dt(ep["terminal_at"]), lang)))
     else:
@@ -1111,7 +1125,7 @@ def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str 
         window = f"{fmt_kyiv_hm(_dt(block['window_start']))}–{fmt_kyiv_hm(_dt(block['window_end']))}"
     else:
         window = "—"
-    lines = [f"<b>{_e(t(lang, 'h1_head', window=window, zone=t(lang, 'zone')))}</b>"]
+    lines = [t(lang, "h1_head", window=_e(window), zone=t(lang, "zone"))]
     lower = (False, False)
     if not block or not block.get("complete"):
         lines.append(t(lang, "h1_incomplete_body"))
@@ -1155,7 +1169,7 @@ def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str
         hm = fmt_kyiv_hm(_dt(block["window_end"]))
     else:
         hm = "—"
-    lines = [f"<b>{_e(t(lang, 'h24_head', hm=hm, zone=t(lang, 'zone')))}</b>"]
+    lines = [t(lang, "h24_head", hm=_e(hm), zone=t(lang, "zone"))]
     lower = (False, False)
     if not block:
         lines.append(t(lang, "h24_incomplete"))
@@ -1269,7 +1283,8 @@ PUSH_MAX_LINES = 8
 
 def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang: str = "en",
                 gate: Optional[Mapping[str, Any]] = None, analog: Optional[Mapping[str, Any]] = None,
-                since_year: Optional[int] = None, latency: Optional[Mapping[str, Any]] = None) -> str:
+                since_year: Optional[int] = None, latency: Optional[Mapping[str, Any]] = None,
+                research: bool = False) -> str:
     """The unusual-hour push (BETA_COPY_CONTRACT_V1 §1.2): the 1h state around the
     TRIGGERED episode, never the detector name, never an id. At most 8 non-empty
     lines. `gate` is the push decision's stored hour gate; without it only the hour
@@ -1322,7 +1337,8 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
     if analog:
         from .decision_format import analog_line
         extras.append(analog_line(analog, lang, since_year=since_year))
-    extras.append(_research_line(gate.get("interpretation") or {}, "1h", lang))
+    if research:                                   # the registry line only while research is on the main surfaces
+        extras.append(_research_line(gate.get("interpretation") or {}, "1h", lang))
     for line in extras:
         if line and sum(1 for x in lines if x.strip()) < PUSH_MAX_LINES:
             lines.append(line)

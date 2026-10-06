@@ -63,11 +63,12 @@ def test_context_lines_pick_the_matching_unit(contexts, expected):
     if expected is None:
         assert line is None
     else:
-        status = next(f["status"] for f in rl.load_findings() if f["id"] == expected)
+        f = next(f for f in rl.load_findings() if f["id"] == expected)
         prefix = {"CONFIRMED": "Проверено: ", "NOT_CONFIRMED": "Проверка показала: ",
                   "WEAK": "Ниже порога практической величины: ",
-                  "DISCOVERY": "Гипотеза, не подтверждено: ", "SIDE_FINDING": "Побочный результат проверки: "}[status]
-        assert line.startswith(prefix) and line.endswith(f"({expected})")            # a discovery is never «Проверено»
+                  "DISCOVERY": "Гипотеза, не подтверждено: ", "SIDE_FINDING": "Побочный результат проверки: "}[f["status"]]
+        assert line == prefix + f["text_ru"]                       # a discovery is never «Проверено»
+        assert f"({expected})" not in line                         # research ids only in Details (backlog C1)
 
 
 def test_an_underpowered_unit_is_never_a_checked_line():
@@ -126,14 +127,17 @@ def test_a_level_alert_with_its_research_line_stays_within_eight_lines(lang):
     assert len(lines) <= df.ALERT_MAX_LINES and _telegram_html_ok(text)
     assert " = " in lines[0]                                   # one touch of a shared price: one message
     research = [x for x in lines if x.startswith("🔬")]
-    assert [x[-9:] for x in research] == ["(DH3-V2).", "(DH1-L2)."]      # WEAK first; two topics, at most two lines
+    from beta.research_render import line as rline
+    by_id = {m["finding_id"]: rline(m, lang) for m in payload["evidence"]}
+    assert research == [by_id["DH3-V2"], by_id["DH1-L2"]]     # WEAK first; two topics, at most two lines
+    assert "(DH3-V2)" not in text and "(DH1-L2)" not in text   # research ids only in Details (backlog C1)
     assert "(H02)" not in text                                 # no line for a state the touch does not show
     move_p = {"at": payload["at"], "start": payload["at"], "open": 64000.0, "close": 63000.0,
               "move_pct": -1.56, "ratio": 3.1, "every_days": 3.0, "corridor_1h": None, "near": []}
     assert "🔬" not in df.format_alert("move", move_p, lang)    # no recorded evidence, no research line
     h03 = _match_dict("H03", "H03_IMPULSE", payload["at"], values={"window_min": 15, "ret_pct": -1.2, "top_pct": 2.0})
     move = df.format_alert("move", {**move_p, "evidence": [h03]}, lang)
-    assert move.splitlines()[-1].endswith("(H03).")
+    assert move.splitlines()[-1] == rline(h03, lang) and "(H03)" not in move
 
 
 def _match_dict(fid, key, at_iso, *, values=None, arm=None):

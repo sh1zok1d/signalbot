@@ -54,19 +54,12 @@ def plain(html):
     return re.sub(r"<[^>]+>", "", html).replace("&lt;", "<").replace("&gt;", ">")
 
 
-def test_brief_block_ladder_corridor_and_today():
-    lines = df.brief_lines({"decision": block()}, "ru")
-    text = plain("\n".join(lines))
-    assert "Коридор" in text and "4ч: 61 605–63 355 (±1,4%) · 24ч: 60 230–64 730 (±3,6%)\n" in text
-    ladder = text[text.index("Уровни"):text.index("Сегодня")].strip().splitlines()
-    assert ladder[1].startswith("↑ 64 000 — открытие недели, круглый уровень · +2,43% · 21%")
-    assert ladder[2].startswith("↑ 62 950 — максимум вчера · +0,75% · 60%")
-    assert ladder[3] == "— сейчас 62 480 —"
-    assert ladder[4].startswith("↓ 61 900 — минимум Азии") and "ликвидации лонгов $38 млн" in ladder[5]
-    today = text[text.index("Сегодня"):].strip().splitlines()
-    assert today[1] == "15:30 — CPI США (инфляция)"                # name and time only: no size, no share
-    assert today[2] == "CPI США (инфляция): вокруг публикации обычная калибровка коридора не применяется."
-    assert "×" not in "\n".join(today)
+def test_brief_block_corridor_levels_and_events():
+    """Backlog C2: the corridor and its record, the nearest level each side, the next 24h events."""
+    lines = df.brief_lines({"decision": block(as_of=NOW.isoformat())}, "ru")
+    assert lines == ["", "Коридор: 4ч 61 605–63 355 · 24ч 60 230–64 730",
+                     "Уровни: ↑ 62 950 максимум вчера (+0,75%) · ↓ 61 900 минимум Азии (−0,93%)",
+                     "События в ближайшие сутки: 15:30 CPI США (инфляция)"]   # name and time only: no size, no share
     for lang in ("ru", "en"):
         assert_descriptive("\n".join(df.brief_lines({"decision": block()}, lang)), lang)
 
@@ -78,10 +71,83 @@ def test_unavailable_block_says_why_and_never_shows_numbers():
     assert df.btc_lines({"decision": {"available": False}}, "ru") == []
 
 
+def _bins(*cells):
+    return {"bins": [{"bin": list(b), "passed": ok, "predicted": p, "realized": r, "n_eff": n}
+                     for b, ok, p, r, n in cells]}
+
+
+HOLDOUT = {"1h": {"coverage_realized": 0.79, "n_days": 365},
+           "4h": {"coverage_realized": 0.81, "n_days": 365},
+           "24h": {"coverage_realized": 0.8, "n_days": 365,
+                   "touch_bins": _bins(((0.5, 0.7), True, 0.58, 0.6, 120), ((0.3, 0.5), True, 0.4, 0.42, 95))}}
+
+
 def test_btc_lines():
-    lines = df.btc_lines({"decision": block()}, "ru")
-    assert lines == ["Коридор 4ч: 61 605–63 355 (±1,4%)",
-                     "Уровни: ↑ 62 950 максимум вчера (+0,75%) · ↓ 61 900 минимум Азии (−0,93%)"]
+    """Backlog C1: three corridors with their record, the nearest level each side with the chance by the
+    frozen wording rule, the next 24h events (as_of 09:00 Kyiv, CPI on the same day at 15:30)."""
+    blk = block(as_of=NOW.isoformat())
+    assert df.btc_lines({"decision": blk}, "ru") == [
+        "Коридор: 1ч 62 043–62 917 · 4ч 61 605–63 355 · 24ч 60 230–64 730",
+        # no held-out bin passed for these chances: the «исторически» fallback, no calibration line
+        "↑ 62 950 максимум вчера (+0,75%) · за 24ч исторически в 60% случаев",
+        "↓ 61 900 минимум Азии (−0,93%) · за 24ч исторически в 55% случаев",
+        "События в ближайшие сутки: 15:30 CPI США (инфляция)"]
+    blk["corridor"] = {**blk["corridor"], "holdout": HOLDOUT}
+    lines = df.btc_lines({"decision": blk}, "ru")
+    assert lines[1] == "↳ внутри коридора бывало (расчёт — 80%): 1ч 79% · 4ч 81% · 24ч 80% на истории (365 дн.)"
+    assert lines[2:5] == ["↑ 62 950 максимум вчера (+0,75%) · за 24ч ≈ 60%",
+                          "↓ 61 900 минимум Азии (−0,93%) · за 24ч ≈ 55%",
+                          "↳ шанс дойти; говорили → было: ↑ 58% → 60% (на истории, N=120) · "
+                          "↓ 58% → 60% (на истории, N=120)"]
+    # the live record replaces the held-out share once its independent windows reach MIN_N_SHOWN
+    blk["corridor"]["live"] = {"1h": {"INSIDE": 560, "OUTSIDE": 160, "N_EFF": 700},
+                               "24h": {"INSIDE": 20, "OUTSIDE": 4, "N_EFF": 24}}
+    assert df.btc_lines({"decision": blk}, "en")[1] == (
+        "↳ inside the corridor (designed for 80%): 1h 78% live over 30 days (N=700) · 4h 81% · 24h 80% on history "
+        "(365 days)")
+    # inside the 24h zone: no 24h corridor or chance, no coverage claim; the 4h chance instead
+    z = block(as_of=NOW.isoformat(), event_zone={"24h": [{"kind": "CPI", "at": "2026-10-14T12:30:00+00:00"}]})
+    z["corridor"] = {**z["corridor"], "holdout": HOLDOUT,
+                     "horizons": {h: x for h, x in z["corridor"]["horizons"].items() if h != "24h"}}
+    for lv in ("above", "below"):
+        for x in z["levels"][lv]:
+            x["touch"] = {"4h": x["touch"]["4h"]}
+    text = "\n".join(df.btc_lines({"decision": z}, "ru"))
+    assert "24ч 60 230" not in text and "расчёт" not in text and "4 из 5" not in text
+    assert "24ч: числовую оценку не показываем — CPI США (инфляция)" in text
+    assert "↑ 62 950 максимум вчера (+0,75%) · за 4ч исторически в 30% случаев" in text
+    for lang in ("ru", "en"):
+        assert_descriptive("\n".join(df.btc_lines({"decision": blk}, lang)), lang)
+
+
+def test_btc_price_moves_carry_the_typical_move():
+    """Backlog C1: the 1h and 24h price change beside the model's typical move of that horizon."""
+    from beta.formatter import _day_line, _hour_line
+    view = {"horizons": {"1h": {"complete": True, "price_move_pct": 0.31},
+                         "24h": {"price_complete": True, "price_move_pct": -1.24}}, "decision": block()}
+    assert _hour_line(view, "ru") == "1ч: +0,3% (обычно ±0,2%)"
+    assert _day_line(view, "en") == "24h: −1.2% (usually ±1.4%)"
+    zoned = block()
+    zoned["corridor"]["horizons"].pop("1h")                   # inside its event zone: no typical move
+    assert _hour_line({**view, "decision": zoned}, "ru") == "1ч: +0,3%"
+    assert _hour_line({**view, "decision": {"available": False}}, "ru") == "1ч: +0,3%"
+
+
+def test_levels_is_one_ladder_in_the_btc_style():
+    """Backlog C3: above from far to near, the price, below; one line per level with its chances by the
+    frozen wording rule; the B checks once below the ladder; the corridor with its record."""
+    blk = block(as_of=NOW.isoformat())
+    blk["corridor"] = {**blk["corridor"], "holdout": HOLDOUT}
+    lines = [x for x in plain(df.format_levels(blk, "ru", now=NOW)).splitlines() if x.strip()]
+    arrows = [x[:8] for x in lines if x[:1] in "↑↓—"]
+    assert arrows == ["↑ 65 000", "↑ 64 000", "↑ 62 950", "— сейчас", "↓ 61 900", "↓ 61 200"]
+    assert "↑ 62 950 максимум вчера (+0,75%) · за 4ч исторически в 30% случаев · за 24ч ≈ 60%" in lines
+    assert "↳ шанс дойти; говорили → было: 24ч 58% → 60% (на истории, N=120)" in lines
+    assert "Коридор: 4ч 61 605–63 355 · 24ч 60 230–64 730" in lines
+    assert len(lines) <= 14                                              # it was up to 36
+    nothing = block(levels={"above": [], "below": [], "at": None, "all": []})
+    text = plain(df.format_levels(nothing, "en", now=NOW))
+    assert "↑ none nearby\n— now 62,480 —\n↓ none nearby" in text
 
 
 def test_levels_card_has_history_beside_a_random_level():
@@ -89,7 +155,8 @@ def test_levels_card_has_history_beside_a_random_level():
     assert ("после первого касания (812 случаев): через 1ч цена выше уровня в 47% — у случайного уровня 43% "
             "(+4,0 п.п.; 95% интервал −1,2…+9,1)") in text
     assert "как обычно" not in text and "чаще" not in text and "реже" not in text   # no verdict words (X1)
-    assert "дойти: за 4ч 30%, за 24ч 60%" in text and "День, неделя и месяц — по UTC" in text
+    assert "↑ 62 950 максимум вчера (+0,75%) · за 4ч исторически в 30% случаев · за 24ч исторически в 60% случаев\n" \
+        "↳ после первого касания" in text and "День, неделя и месяц — по UTC" in text
     en = plain(df.format_levels(block(), "en", now=NOW))
     assert ("after the first touch (812 cases): 1h later the price was above the level in 47% — a random level: 43% "
             "(+4.0 pp; 95% interval −1.2…+9.1)") in en

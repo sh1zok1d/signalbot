@@ -140,9 +140,12 @@ _MARKET_ALERT_KEYS = {"enabled", "max_per_utc_day", "move_cooldown_min", "event_
 # Research evidence (owner task 2026-10-04; docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md):
 # live matching of closed research units and the read-only public feeds it needs. Presentation
 # only: never detection, push gating, corridors or touch probabilities. `enabled` is the
-# presentation switch (with BETA_RESEARCH_EVIDENCE_ENABLED, research_presentation_enabled);
-# `feeds_enabled` / `stress_hours_enabled` alone gate collection (deploy plan PREREQ-2).
-_RESEARCH_EVIDENCE_KEYS = {"enabled", "feeds_enabled", "stress_hours_enabled", "main_surface_max"}
+# presentation switch of the «🔬 Исследования» tab (with BETA_RESEARCH_EVIDENCE_ENABLED,
+# research_presentation_enabled); `main_surfaces_enabled` adds the lines on the main surfaces
+# (research_main_surfaces_enabled; off by PRE_BETA_SCOPE_DECISION_V1 §6.1); `feeds_enabled` /
+# `stress_hours_enabled` alone gate collection (deploy plan PREREQ-2).
+_RESEARCH_EVIDENCE_KEYS = {"enabled", "main_surfaces_enabled", "feeds_enabled", "stress_hours_enabled",
+                           "main_surface_max"}
 
 # Rule-relevant fields that enter the rules digest (policy fields such as TTL /
 # cooldown / cap only enter the config digest).
@@ -396,7 +399,7 @@ def _validate_decision(d: Mapping[str, Any]) -> None:
     _int(w["max_delay_min"], "decision.weekly_report.max_delay_min", minimum=1)
     r = x["research_evidence"]
     _exact_keys(r, _RESEARCH_EVIDENCE_KEYS, "decision.research_evidence")
-    for key in ("enabled", "feeds_enabled", "stress_hours_enabled"):
+    for key in ("enabled", "main_surfaces_enabled", "feeds_enabled", "stress_hours_enabled"):
         _bool(r[key], f"decision.research_evidence.{key}")
     if _int(r["main_surface_max"], "decision.research_evidence.main_surface_max", minimum=1) > 2:
         raise BetaConfigError("decision.research_evidence.main_surface_max must be 1 or 2 (owner task 2026-10-04)")
@@ -610,6 +613,15 @@ def research_presentation_enabled(cfg: BetaConfig, env: Optional[Mapping[str, st
         return _env_flag(env, "BETA_RESEARCH_EVIDENCE_ENABLED", default=True)
     except BetaConfigError:
         return False
+
+
+def research_main_surfaces_enabled(cfg: BetaConfig, env: Optional[Mapping[str, str]] = None) -> bool:
+    """Research lines on the main surfaces (/btc, /catchup, the briefing, /levels, /risk, alerts and
+    pushes): the presentation switch AND `decision.research_evidence.main_surfaces_enabled`. Off, the
+    evidence is still collected, matched and shown in the «🔬 Исследования» tab and /research
+    (PRE_BETA_SCOPE_DECISION_V1 §6.1)."""
+    rcfg = cfg.section("decision").get("research_evidence") or {}
+    return bool(rcfg.get("main_surfaces_enabled")) and research_presentation_enabled(cfg, env)
 
 
 def effective_d7_enabled(cfg: BetaConfig, admin_d7_enabled: bool) -> bool:

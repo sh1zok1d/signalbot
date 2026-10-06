@@ -265,7 +265,8 @@ def test_move_alert_outside_the_1h_zone_keeps_the_generic_frequency(lang):
         h03 = _match(live_findings()["H03"], key="H03_IMPULSE", at_ms=at, sources={},
                      values={"window_min": 15, "ret_pct": -1.6, "top_pct": 1.0}).to_dict()
         text = plain(df.format_alert("move", {**move_payload(zones), "evidence": [h03]}, lang))
-        assert "(H03)" in text and "🔬" in text
+        from beta.research_render import line as rline
+        assert plain(rline(h03, lang)) in text and "🔬" in text and "(H03)" not in text
 
 
 # ---- end to end on PostgreSQL: a real move right after a CPI release ----------------------------
