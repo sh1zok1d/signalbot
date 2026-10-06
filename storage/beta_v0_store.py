@@ -1726,6 +1726,10 @@ class BetaConn:
                WHERE issue_slot = $1 AND claim_class = ANY($2::text[])""", issue_slot, list(classes))
         return [dict(r) for r in rows]
 
+    async def view_has_claim_displays(self, view_pk: int) -> bool:
+        return bool(await self.conn.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM beta_claim_displays WHERE view_pk=$1)", view_pk))
+
     async def insert_claim_displays(self, rows: Sequence[Mapping[str, Any]]) -> int:
         n = 0
         for r in rows:
@@ -1744,9 +1748,10 @@ class BetaConn:
                       width_bucket((c.numbers->>'probability')::float8,
                                    ARRAY[0.05, 0.15, 0.3, 0.5, 0.7, 0.85]::float8[]) AS bin,
                       floor(extract(epoch FROM c.as_of) / 86400)::bigint AS day,
+                      -- the class suffix is the horizon: _1H, _4H or _24H (a 2-character suffix would
+                      -- read _24H as 4H and split 24h claims into 4h slots)
                       floor(extract(epoch FROM c.as_of) /
-                            CASE right(c.claim_class, 2) WHEN '1H' THEN 3600 WHEN '4H' THEN 14400
-                                 ELSE 86400 END)::bigint AS slot,
+                            ((regexp_match(c.claim_class, '_(1|4|24)H$'))[1]::int * 3600))::bigint AS slot,
                       count(*) AS n,
                       sum((COALESCE(o.realized->>'touched', o.realized->>'neither')::boolean)::int) AS hits,
                       sum((c.numbers->>'probability')::float8) AS psum

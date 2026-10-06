@@ -250,7 +250,7 @@ def analog_claims(cfg, state: Optional[Mapping[str, Any]], stats: Optional[Mappi
     baseline cohort is every hour, as in history), and only SHOWN rows are a stated claim."""
     from .analogues import ANALOGUES_VERSION, OUTCOMES, lookup
     from .decision_format import MIN_N_SHOWN
-    from .interpretation import interpret, liquidation_episodes
+    from .interpretation import COMPRESSION, FACTUAL, INTERPRETED, interpret, liquidation_episodes
     from .research_states import index_closing_at
     from .state_tape import iso
     if not state or not stats or b is None:
@@ -275,7 +275,9 @@ def analog_claims(cfg, state: Optional[Mapping[str, Any]], stats: Optional[Mappi
             n = int(cell.get("n") or 0)
             if not n or base is None or cell.get("p_up") is None:
                 continue
-            shown = n >= MIN_N_SHOWN and h == w             # the line prints the window's own horizon
+            # stated only where a surface prints it: a state that says something (the formatter's kinds),
+            # at the window's own horizon, above the display minimum; NORMAL stays in the live baseline
+            shown = res.get("kind") in (INTERPRETED, FACTUAL, COMPRESSION) and n >= MIN_N_SHOWN and h == w
             numbers = {"observed": round(float(cell["p_up"]), 4), "baseline": round(float(base["p_up"]), 4),
                        "diff_pp": round((float(cell["p_up"]) - float(base["p_up"])) * 100.0, 2), "n": n,
                        "days": int(cell.get("days") or 0), "verdicts": dict(cell.get("verdicts") or {}),
@@ -380,7 +382,9 @@ async def record_claims(conn, cfg, block: Mapping[str, Any], *, now: datetime, c
         ctx = await conn.fetch_latest_context_state(symbol=cfg.symbol, episodization_digest=episodization_digest(cfg))
         if ctx is not None:
             rows += analog_claims(cfg, ctx["state"], stats, b, now=now, slot=slot, context_pk=ctx.get("context_pk"))
-    if first_run and not have & set(HOURLY_GROUPS["dh3_p1"]) and b is not None:
+    # retried on every run of the write window, like the analogues: the feeds and the notifier both start
+    # at :00:40, so the slot's OI can arrive after the first run (the claim's as-of stays the slot close)
+    if not have & set(HOURLY_GROUPS["dh3_p1"]) and b is not None:
         oi = await _oi_for(conn, cfg, b, now=now, capture=capture)
         rows += dh3_p1_claim(b, oi, now=now, slot=slot)
     rep["candidates"] = len(rows)

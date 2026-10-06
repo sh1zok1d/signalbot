@@ -83,3 +83,25 @@ def test_without_a_comparator_the_surfaces_say_so_or_stay_silent():
     assert derivative_lines(view, "ru", part="funding") == []
     assert derivative_lines(view, "ru", part="long_short") == []
     assert derivative_lines({"horizons": {}}, "ru", part="oi") == []           # a view stored before G2
+
+
+def test_a_failing_comparator_never_breaks_the_view():
+    """market_view._derivatives degrades to None, like the decision block (review of PR #334)."""
+    import asyncio
+    from beta import decision, market_view
+
+    class Conn:
+        async def long_short_summary(self, *, as_of):
+            raise ConnectionError("feeds table unreadable")
+
+    async def stats(conn, *, now):
+        return {"derivatives": {"oi_24h": {"median_abs_pct": 1.8, "n_days": 1500, "source": "binance"}}}
+    as_of = datetime(2026, 5, 12, 6, 0, tzinfo=UTC)
+    tape = {"as_of": as_of, "metrics": {}, "oi": {}}
+    view = {"horizons": {"24h": {"oi_change_pct": 1.0, "funding_rate_avg": 0.0001}}}
+    old = decision.latest_stats
+    decision.latest_stats = stats
+    try:
+        assert asyncio.run(market_view._derivatives(Conn(), view, tape, now=as_of)) is None
+    finally:
+        decision.latest_stats = old

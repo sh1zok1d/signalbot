@@ -119,8 +119,9 @@ def _stats(n=412, base=0.51):
 
 def test_analog_claims_mark_what_is_stated_and_keep_the_baseline_cohort(monkeypatch):
     from beta import interpretation
-    keys = {"1h": "short_exit", "4h": "squeeze"}
-    monkeypatch.setattr(interpretation, "interpret", lambda cfg, ctx, horizon, liquidation_episodes=(): {"key": keys[horizon]})
+    keys = {"1h": ("short_exit", interpretation.INTERPRETED), "4h": ("squeeze", interpretation.COMPRESSION)}
+    monkeypatch.setattr(interpretation, "interpret", lambda cfg, ctx, horizon, liquidation_episodes=():
+                        {"key": keys[horizon][0], "kind": keys[horizon][1]})
     b = _grid(SLOT - timedelta(days=40), [60000.0] * (40 * 288))
     state = {"context_version": "BETA_CONTEXT_1H_V3",
              "context_1h": {"window_end": iso(SLOT)}, "context_4h": {"window_end": iso(SLOT)}}
@@ -136,6 +137,11 @@ def test_analog_claims_mark_what_is_stated_and_keep_the_baseline_cohort(monkeypa
     assert by["L2_STATE_ANALOG_4H_24H"]["eligible_reason"] == cj.BASELINE_ONLY       # not the line's horizon
     stale = {**state, "context_1h": {"window_end": iso(SLOT - timedelta(minutes=5))}}
     assert {r["subject"]["window"] for r in cj.analog_claims(CFG, stale, _stats(), b, now=SLOT, slot=SLOT)} == {"4h"}
+    # a NORMAL hour has a card but no surface prints it: kept for the live baseline, never a stated claim
+    keys["1h"] = ("short_exit", interpretation.NORMAL)
+    normal = {r["claim_class"]: r for r in cj.analog_claims(CFG, state, _stats(), b, now=SLOT, slot=SLOT)}
+    assert normal["L2_STATE_ANALOG_1H_1H"]["eligible_reason"] == cj.BASELINE_ONLY
+    assert normal["L2_STATE_ANALOG_4H_4H"]["eligible_reason"] == cj.SHOWN
 
 
 def test_level_hold_claims_need_the_display_minimum():
@@ -310,6 +316,24 @@ def test_report_analog_reads_the_state_against_its_tercile_weighted_baseline():
     assert rep["claimed_diff_pp"] == 2.0 and rep["n_eff_days"] == 10
 
 
+def test_dh3_p1_is_retried_in_the_write_window_when_its_oi_arrives_late(monkeypatch):
+    """The touch group was written on the first run; the slot's OI arrived a minute later."""
+    b, oi = _p1_bars(0.05)
+    late = {"oi": None}
+
+    async def _oi(conn, cfg, bars, *, now, capture):
+        return late["oi"]
+    monkeypatch.setattr(cj, "_oi_for", _oi)
+    blk, cap = _block(), {"stats": None, "bars": b, "model": MODEL}
+    conn = _Conn(have=cj.HOURLY_GROUPS["touch"] + cj.HOURLY_GROUPS["analog"])
+    first = asyncio.run(cj.record_claims(conn, CFG, blk, now=SLOT + timedelta(seconds=40), capture=cap))
+    assert first["written"] == 0                                # no OI yet: nothing, and nothing frozen
+    late["oi"] = oi
+    second = asyncio.run(cj.record_claims(conn, CFG, blk, now=SLOT + timedelta(minutes=1, seconds=40), capture=cap))
+    assert second["written"] == 1 and conn.rows[0]["claim_class"] == "L2_DH3_P1_RANGE_4H"
+    assert conn.rows[0]["as_of"] == SLOT and conn.rows[0]["issue_slot"] == SLOT
+
+
 def test_report_p1_shift_against_the_record():
     rows = []
     for k in range(12):
@@ -374,6 +398,31 @@ def test_accuracy_shows_the_held_out_touch_bins_and_marks_the_ones_outside_the_r
     assert "Шанс дойти</b>: говорили → было на отложенном годе" in ru
     assert "4ч: 40% → 42% (N=365) · 87% → 83% (N=29)*" in ru and "* вне правила (±5 п.п. при N ≥ 30)" in ru
     assert "Chance to reach" in df.format_accuracy(model, {}, "en")
+
+
+def test_accuracy_shows_the_live_bins_and_keeps_a_diverged_one_visible_and_marked():
+    """design note §3: the live line in /accuracy from N_eff >= 30; a diverged bin stays visible there."""
+    live = {"days": 120, "computed_at": "2026-10-06T05:00:00Z",
+            "horizons": {"1h": {"bins": [
+                {"bin": [0.05, 0.15], "n": 400, "n_eff": 120, "predicted": 0.1, "realized": 0.08},
+                {"bin": [0.3, 0.5], "n": 90, "n_eff": 45, "predicted": 0.4, "realized": 0.52},
+                {"bin": [0.85, 1.0], "n": 20, "n_eff": 12, "predicted": 0.9, "realized": 1.0}]},
+                "4h": {"bins": [{"bin": [0.15, 0.3], "n": 40, "n_eff": 20, "predicted": 0.2, "realized": 0.3}]}},
+            "diverged": {"1h": [[0.3, 0.5]], "4h": [], "24h": []},
+            "neither": {"1h": {"bins": [{"bin": [0.5, 0.7], "n": 300, "n_eff": 80, "predicted": 0.6, "realized": 0.58}]}},
+            "diverged_neither": {}}
+    ru = df.format_accuracy({"coverage": 0.8}, {}, "ru", touch_live=live)
+    assert "Шанс дойти вживую</b> (журнал за последние 120 дн.)" in ru
+    assert "1ч: 10% → 8% (N=120) · 40% → 52% (N=45)‼" in ru and "90%" not in ru     # N_eff 12 not shown
+    assert "4ч: мало данных (N=20)" in ru
+    assert "Ни один из двух уровней вживую" in ru and "1ч: 60% → 58% (N=80)" in ru
+    assert "‼ вживую разошлось с правилом" in ru
+    quiet = {**live, "diverged": {}}
+    assert "‼" not in df.format_accuracy({"coverage": 0.8}, {}, "ru", touch_live=quiet)
+    assert "Chance to reach, live" in df.format_accuracy({"coverage": 0.8}, {}, "en", touch_live=live)
+    held = {"coverage": 0.8, "calibration": {"24h": {"neither_bins": {"bins": [
+        {"bin": [0.5, 0.7], "n": 900, "n_eff": 305, "predicted": 0.59, "realized": 0.53, "passed": False}]}}}}
+    assert "Ни один из двух уровней</b>: говорили → было на отложенном годе" in df.format_accuracy(held, {}, "ru")
 
 
 def test_touch_chances_are_calibrated_on_the_real_held_out_year():
@@ -443,6 +492,12 @@ def test_divergence_is_sticky_and_refreshed_hourly():
                            runtime={"touch_live_cal": {"detail": d2}}, delivery_problems=0,
                            switches=dataclasses.replace(ON, detection=False, outcome_tracking=False))
     assert {"key": "TOUCH_CALIBRATION_DIVERGED", "detail": {"4h": [[0.7, 0.85]]}} in alerts
+    assert not [a for a in alerts if a["key"] == "NEITHER_CALIBRATION_DIVERGED"]
+    neither = {**d2, "diverged_neither": {"1h": [], "4h": [], "24h": [[0.5, 0.7]]}}
+    alerts = health_alerts(CFG, now=SLOT, heartbeat={"healthy": True}, detector_watermark=None, latest_live=None,
+                           runtime={"touch_live_cal": {"detail": neither}}, delivery_problems=0,
+                           switches=dataclasses.replace(ON, detection=False, outcome_tracking=False))
+    assert {"key": "NEITHER_CALIBRATION_DIVERGED", "detail": {"24h": [[0.5, 0.7]]}} in alerts
 
 
 def test_touch_wording_follows_the_frozen_rule():
@@ -511,8 +566,9 @@ def test_joint_table_margins_and_neither_chance():
 
 
 def test_neither_chances_on_the_real_held_out_year():
-    """Binance 2022–2024, held-out 2024 (note §7): 20 of 21 cells pass; 24h, bin 50–70 % is outside the rule
-    (−6.0 pp) and therefore falls back to the historical wording."""
+    """Binance 2022–2024, held-out 2024 (note §7, scored on the shown, clipped value since §9): 20 of 21
+    cells pass; 24h, bin 50–70 % is outside the rule (−6.0 pp) and therefore falls back to the historical
+    wording."""
     import sys
     sys.path.insert(0, str(ROOT / "tests" / "beta"))
     from v2_fakes import repo_vision_zips
@@ -528,6 +584,27 @@ def test_neither_chances_on_the_real_held_out_year():
             if not x["passed"]:
                 failed.append((h, x["bin"]))
     assert failed == [("24h", [0.5, 0.7])]
+
+
+def test_the_held_out_neither_value_is_the_one_surfaces_show():
+    """note §9: the check scores neither_probability with its two printed chances, not the raw table."""
+    import sys
+    sys.path.insert(0, str(ROOT / "tests" / "beta"))
+    from v2_fakes import synthetic_rows
+    from beta import hist_series as hs, rangecast as rc
+    rows, _ois = synthetic_rows(datetime(2026, 1, 1, tzinfo=UTC), 131, seed=11)
+    model = rc.fit_range_model(hs.bars_from_rows(rows), events={}, holdout_days=30)
+    clipped = 0
+    for h in ("1h", "4h", "24h"):
+        m = model["horizons"][h]
+        for du in (0.1, 0.5, 1.0, 2.0, 3.0):
+            for dd in (0.1, 0.5, 1.0, 2.0, 3.0):
+                pu, pd_ = rc.touch_probability(model, h, 1.0, du), rc.touch_probability(model, h, 1.0, dd)
+                shown = rc.neither_probability(model, h, 1.0, du, dd, p_up=pu, p_down=pd_)
+                assert abs(float(rc.neither_shown(m["q_one"], m["q_joint"], [du], [dd])[0]) - shown) < 1e-12
+                raw = float(rc.joint_cdf(m["q_joint"], np.array([du]), np.array([dd]))[0])
+                clipped += abs(raw - shown) > 1e-9
+    assert clipped > 0                  # the clip binds somewhere, so the two values do differ
 
 
 def test_neither_grid_is_the_calibration_grid():

@@ -345,8 +345,12 @@ def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
     target = None
     if kind == "level" and payload.get("next"):
         target = payload["next"].get("edge")
-    elif kind == "move" and payload.get("near"):
-        target = (payload["near"][0] or {}).get("edge")
+    elif kind == "move" and payload.get("near") and payload.get("close") is not None:
+        # the nearest level in the move's direction: above after a rise, below after a fall (none: no button)
+        up, close = float(payload.get("move_pct") or 0.0) >= 0, float(payload["close"])
+        ahead = [z for z in payload["near"] if z and z.get("edge") is not None and (float(z["edge"]) > close) == up]
+        if ahead:
+            target = min(ahead, key=lambda z: abs(float(z["edge"]) - close))["edge"]
     if target:
         rows.append([check_button(float(target), lang)])
     return rows

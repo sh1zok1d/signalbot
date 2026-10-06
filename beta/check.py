@@ -30,17 +30,21 @@ _NUM = r"\d+(?:[.,]\d+)?"
 
 
 def _tokens(text: str) -> list:
-    s = (text or "").strip().lower().replace(" ", " ").replace("$", "").replace("к", "k")
+    s = (text or "").strip().lower().replace("\u00a0", " ").replace("$", "").replace("к", "k")
+    s = re.sub(r"[,;]\s+|;", " ", s).strip(",")              # «64000, 61000» / «64000; 61000»: two levels
+    s = re.sub(r"(\d),(\d{4,})", r"\1 \2", s)                  # «64000,61000»: a comma before 4+ digits splits
     s = re.sub(r"(\d)\s+%", r"\1%", s)                       # «-3 %»
     s = re.sub(r"([+-])\s+(\d)", r"\1\2", s)                  # «- 3%»
-    raw = s.split()
     out: list = []
-    for tok in raw:                                            # «64 000» → «64000»
-        if re.fullmatch(r"\d{3}", tok) and out and re.fullmatch(r"[+-]?\d{1,3}(?:\d{3})*", out[-1]) \
-                and not out[-1].endswith("%"):
+    grouped = False                                            # the last token can take another digit group
+    for tok in s.split():                                      # «64 000» → «64000», never «64000 100»
+        m = re.fullmatch(r"\d{3}([.,]\d{1,2})?", tok)             # «62 480,5»: the last group may carry decimals
+        if m and out and grouped:
             out[-1] += tok
-        else:
-            out.append(tok)
+            grouped = m.group(1) is None
+            continue
+        out.append(tok)
+        grouped = bool(re.fullmatch(r"[+-]?\d{1,3}", tok))
     return out
 
 
@@ -129,13 +133,20 @@ def _cal(w: Mapping[str, Any], lang: str, *, complement: bool = False) -> tuple:
     return fmt_share(pp, lang), fmt_share(rr, lang)
 
 
-def _single_line(h: str, p: float, w: Mapping[str, Any], lang: str) -> str:
-    from .decision_format import _hz
+def _history_days(model: Mapping[str, Any], h: str) -> int:
+    """The days of history the model's chance of horizon h is fitted on (the N of «исторически»)."""
+    return int((((model.get("horizons") or {}).get(h)) or {}).get("n_days") or 0)
+
+
+def _single_line(h: str, p: float, w: Mapping[str, Any], lang: str, *, model: Mapping[str, Any],
+                 hz: Mapping[str, Any]) -> str:
+    from .decision_format import _hz, _pct
     if w["mode"] == "B":
         P, R = _cal(w, lang)
         key = "ck_h_b_live" if w["source"] == "live" else "ck_h_b_hold"
         return t(lang, key, h=_hz(h, lang), p=_p(p, lang), P=P, R=R, n=int(w["n_eff"]))
-    return t(lang, "ck_h_fallback", h=_hz(h, lang), p=_p(p, lang))
+    return t(lang, "ck_h_fallback", h=_hz(h, lang), p=_p(p, lang), n=_history_days(model, h),
+             typ=_pct(hz[h]["typical_move_pct"], lang))
 
 
 def _context_lines(block: Mapping[str, Any], levels: Sequence[float], dist_stats, lang: str) -> list:
@@ -210,7 +221,7 @@ def format_check(block: Mapping[str, Any], stats: Optional[Mapping[str, Any]], l
                        price=fmt_price(price, lang), clock=clock))
         for h in HORIZONS:
             if h in probs[0]:
-                lines.append(_single_line(h, probs[0][h], _wording(block, h, probs[0][h]), lang))
+                lines.append(_single_line(h, probs[0][h], _wording(block, h, probs[0][h]), lang, model=model, hz=hz))
     else:
         order = sorted(range(2), key=lambda k: -dists[k])          # the higher level first
         a, b = order
@@ -218,7 +229,7 @@ def format_check(block: Mapping[str, Any], stats: Optional[Mapping[str, Any]], l
                        b=fmt_price(levels[b], lang), db=fmt_signed_pct(dists[b], lang),
                        price=fmt_price(price, lang), clock=clock))
         neither = _neither(model, hz, dists[a], dists[b], probs[a], probs[b])
-        fallback = False
+        fallback = []
         for h in HORIZONS:
             if h not in probs[a]:
                 continue
@@ -227,25 +238,23 @@ def format_check(block: Mapping[str, Any], stats: Optional[Mapping[str, Any]], l
             if h in neither:
                 pn, kind, near = neither[h]
                 vals.append((pn, kind, near, t(lang, "ck_neither")))
-            parts, cals, n_min = [], [], None
+            parts, cals = [], []
             for p, kind, near, label in vals:
                 w = _wording(block, h, near if near is not None else p, kind)
                 if w["mode"] == "B":
                     parts.append(t(lang, "ck_part_b", label=label, p=_p(p, lang)))
                     P, R = _cal(w, lang, complement=near is not None)
-                    cals.append(t(lang, "ck_cal_part", P=P, R=R))
-                    n_min = int(w["n_eff"]) if n_min is None else min(n_min, int(w["n_eff"]))
+                    # each part says where its own check comes from and its own N
+                    cals.append(t(lang, "ck_cal_part", label=label, P=P, R=R, n=int(w["n_eff"]),
+                                  src=t(lang, "ck_src_live" if w["source"] == "live" else "ck_src_hold")))
                 else:
-                    fallback = True
+                    fallback.append(h)
                     parts.append(t(lang, "ck_part_fallback", label=label, p=_p(p, lang)))
             lines.append(t(lang, "ck_pair_line", h=_hz(h, lang), parts=" · ".join(parts)))
             if cals:
-                live = any(_wording(block, h, (near if near is not None else p), kind).get("source") == "live"
-                           for p, kind, near, _l in vals)
-                lines.append(t(lang, "ck_pair_cal_live" if live else "ck_pair_cal_hold", parts=" · ".join(cals),
-                               n=n_min))
+                lines.append(t(lang, "ck_pair_cal", parts=" · ".join(cals)))
         if fallback:
-            lines.append(t(lang, "ck_fallback_note"))
+            lines.append(t(lang, "ck_fallback_note", n=min(_history_days(model, h) for h in fallback)))
     note = zone_note(block.get("event_zone"), [h for h in HORIZONS if h not in hz], lang)
     if note:
         lines.append(note)

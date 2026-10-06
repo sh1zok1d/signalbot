@@ -8,7 +8,7 @@ import pytest
 
 from beta_fakes import CFG, ON_PUSH, TEST_DSN, Clock, fresh_pool, run
 from storage.beta_v0_store import BetaStore
-from test_beta_v2_pg import DAY, NOW, Sender, _rows, _seed
+from test_beta_v2_pg import A, DAY, NOW, Sender, _handler, _join, _rows, _seed
 
 pytestmark = pytest.mark.skipif(not TEST_DSN, reason="BETA_TEST_DSN not set (local PostgreSQL)")
 
@@ -96,5 +96,82 @@ def test_the_journal_writes_scores_links_and_reports_without_users():
             report = cj.claims_report(await conn.fetch_claim_cohort(since=DAY))
         dist = report["classes"]["L3_DISTANCE_TOUCH_1H"]
         assert dist["scored"] == 2 * len(cj.TOUCH_GRID_PCT) and dist["n_eff"] == 1 and dist["shown"] == 2 * 4
+        await pool.close()
+    run(body())
+
+
+def test_live_cells_use_the_class_horizon_for_slots_24h_included():
+    """A 24h claim's slot is one UTC day: 72 hourly 24h claims over 3 days are 3 independent slots,
+    not 18 (a 2-character suffix read _24H as 4H)."""
+    from beta import claims as cj
+
+    async def body():
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        start = DAY.replace(hour=0, minute=0, second=0, microsecond=0)
+        async with store.connect() as conn:
+            for h, hours in (("24H", 72), ("4H", 24), ("1H", 6)):
+                ms = {"1H": 3_600_000, "4H": 14_400_000, "24H": 86_400_000}[h]
+                for i in range(hours):
+                    at = start + timedelta(hours=i, minutes=1)
+                    row = cj.claim_row(f"L3_DISTANCE_TOUCH_{h}", issued_at=at, issue_slot=at.replace(minute=0),
+                                       as_of=at, subject={"side": 1, "distance_pct": 1.0}, subject_key="up:1.0",
+                                       numbers={"probability": 0.2}, rule_version="t", eligible_reason="GRID",
+                                       horizon_ms=ms)
+                    pk = await conn.insert_claim(row)
+                    await conn.insert_claim_outcome(claim_pk=pk, eval_rule_digest=row["eval_rule_digest"],
+                                                    status="COMPLETE", realized={"touched": i % 5 == 0},
+                                                    computed_at=at + timedelta(milliseconds=ms),
+                                                    outcome_digest="0" * 64)
+            cells = await conn.touch_claim_cells(since=start, classes=[f"L3_DISTANCE_TOUCH_{h}"
+                                                                        for h in ("1H", "4H", "24H")])
+        slots = {}
+        for c in cells:
+            slots.setdefault(c["claim_class"], set()).add(int(c["slot"]))
+        assert {k: len(v) for k, v in slots.items()} == {"L3_DISTANCE_TOUCH_24H": 3, "L3_DISTANCE_TOUCH_4H": 6,
+                                                         "L3_DISTANCE_TOUCH_1H": 6}
+        assert [b["n_eff"] for b in cj.live_touch_bins(cells, "24h")] == [3]
+        assert [b["n"] for b in cj.live_touch_bins(cells, "24h")] == [72]
+        await pool.close()
+    run(body())
+
+
+@pytest.mark.parametrize("withdrawn", [True, False])
+def test_brief_claims_are_linked_only_after_a_participant_received_the_brief(monkeypatch, withdrawn):
+    """A brief withheld on a U1a withdrawal day shows nothing, so its claims get no display link; a
+    delivered brief links them once, to the hour the brief was built in."""
+    from beta import delivery
+    from beta.decision import reset_cache
+    from beta.history_stats import run_history_build
+    from beta.i18n import kyiv
+
+    async def body():
+        reset_cache()
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        await _seed(pool)
+        assert (await run_history_build(store, CFG, now=DAY + timedelta(hours=2)))["status"] == "OK"
+        async with store.connect() as conn:
+            await conn.allowlist_add(A)
+        await _join(_handler(pool, 900000000001, Clock(NOW - timedelta(hours=1))), A, 10)
+        if withdrawn:
+            monkeypatch.setattr(delivery, "brief_withdrawal_dates", lambda b: frozenset({kyiv(NOW).date()}))
+        # this synthetic morning is inside the CPI 24h zone, so the brief itself prints no claim: let it
+        # show two of the hour's 1h grid claims, to see when (and whether) they are linked
+        from beta import claims as cj
+        shown = {("L3_DISTANCE_TOUCH_1H", "+1:0.25"), ("L3_DISTANCE_TOUCH_1H", "-1:0.25")}
+        monkeypatch.setattr(cj, "shown_keys", lambda surface, *a, **k: shown if surface == "brief" else set())
+        r = await delivery.run_notify_once(store, CFG, ON_PUSH, sender=Sender(), clock=Clock(NOW))
+        b = r["briefs"]
+        links = await _rows(pool, """SELECT d.view_pk, d.shown_at, c.issue_slot FROM beta_claim_displays d
+                                     JOIN beta_claims c USING (claim_pk) WHERE d.surface = 'brief'""")
+        if withdrawn:
+            assert b["withheld"] == 1 and b["sent"] == 0 and links == []
+        else:
+            assert b["sent"] == 1 and len(links) == 2
+            assert {x["issue_slot"] for x in links} == {NOW.replace(minute=0, second=0, microsecond=0)}
+            # a second run sends nothing new and links nothing twice
+            await delivery.run_notify_once(store, CFG, ON_PUSH, sender=Sender(), clock=Clock(NOW + timedelta(minutes=1)))
+            assert len(await _rows(pool, "SELECT 1 FROM beta_claim_displays WHERE surface = 'brief'")) == len(links)
         await pool.close()
     run(body())

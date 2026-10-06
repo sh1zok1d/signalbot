@@ -6,17 +6,21 @@ One assembly path for `/btc`, `/catchup` and the morning briefing:
     → D7 line (when enabled) → [catchup / brief: window summary + 1h/4h interpretation]
     → decision support (corridor, levels, events, «после похожих»; PRODUCT_DECISION_V2)
 
-`/btc` gets exactly the payload it had before (same keys). `/catchup` and the
-briefing add a `market` block. Rendering lives in `beta.formatter`; nothing here
+`/btc` keeps the payload it had before, plus the decision and derivatives blocks
+(each left out or marked unavailable on a failure). `/catchup` and the briefing add a
+`market` block. Rendering lives in `beta.formatter`; nothing here
 writes text, and nothing here reads anything after the latest closed bucket.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional
 
 from .config import BetaConfig
 from .state_tape import BUCKET, iso
+
+logger = logging.getLogger("beta.market_view")
 
 VIEW_KINDS = ("btc", "catchup", "brief")
 CATCHUP_DEFAULT_HOURS = 8
@@ -136,16 +140,21 @@ def _horizons(cfg: BetaConfig, view: Mapping[str, Any], tape: Optional[Mapping[s
 
 async def _derivatives(conn, view: Mapping[str, Any], tape: Optional[Mapping[str, Any]], *,
                        now: datetime) -> Optional[dict]:
-    """OI change, funding and long/short beside their «обычно» (backlog G2; beta/derivatives.py)."""
+    """OI change, funding and long/short beside their «обычно» (backlog G2; beta/derivatives.py). Like the
+    decision block it never breaks a view: any failure leaves the block out and the 24h lines as before."""
     from .decision import latest_stats
     from .derivatives import derivatives_block, funding_typical
     from .horizons import data_through
     if tape is None:
         return None
-    stats = await latest_stats(conn, now=now)
-    return derivatives_block(horizons=view["horizons"], funding=funding_typical(tape["metrics"], tape["as_of"]),
-                             oi_stats=((stats or {}).get("derivatives") or {}).get("oi_24h"),
-                             long_short=await conn.long_short_summary(as_of=data_through(tape["as_of"])))
+    try:
+        stats = await latest_stats(conn, now=now)
+        return derivatives_block(horizons=view["horizons"], funding=funding_typical(tape["metrics"], tape["as_of"]),
+                                 oi_stats=((stats or {}).get("derivatives") or {}).get("oi_24h"),
+                                 long_short=await conn.long_short_summary(as_of=data_through(tape["as_of"])))
+    except Exception as exc:  # noqa: BLE001 - context lines must never break a view
+        logger.warning("derivatives block failed: %s", type(exc).__name__)
+        return None
 
 
 UNUSUAL_HOURS_MAX = 3

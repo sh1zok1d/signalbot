@@ -23,7 +23,7 @@ def _joint():
 
 
 MODEL = {"version": rc.RANGE_MODEL_VERSION, "coverage": 0.8,
-         "horizons": {h: {"q_one": Q, "q_joint": _joint()} for h in ("1h", "4h", "24h")}}
+         "horizons": {h: {"q_one": Q, "q_joint": _joint(), "n_days": 2100} for h in ("1h", "4h", "24h")}}
 
 
 def _bins(passed=True):
@@ -68,6 +68,9 @@ def plain(html):
     ("65,000", [65000.0]), ("$63500", [63500.0]), ("-3%", [round(PRICE * 0.97, 2)]), ("- 3 %", [round(PRICE * 0.97, 2)]),
     ("+1.5%", [round(PRICE * 1.015, 2)]), ("2,5%", [round(PRICE * 1.025, 2)]),
     ("64000 61000", [64000.0, 61000.0]), ("64 000 61 000", [64000.0, 61000.0]), ("64к -2%", [64000.0, round(PRICE * 0.98, 2)]),
+    # a comma or a semicolon between two levels (review of PR #334)
+    ("64000, 61000", [64000.0, 61000.0]), ("64 000, 61 000", [64000.0, 61000.0]), ("64000,61000", [64000.0, 61000.0]),
+    ("64000; 61000", [64000.0, 61000.0]), ("64000,", [64000.0]), ("63 000,5", [63000.5]),
 ])
 def test_any_input_format(arg, expected):
     assert ck.parse_check_args(arg, PRICE) == (expected, None)
@@ -76,9 +79,12 @@ def test_any_input_format(arg, expected):
 @pytest.mark.parametrize("arg,err", [
     ("", "ck_usage"), ("abc", "ck_usage"), ("64000 61000 60000", "ck_usage"), ("64000 64000", "ck_usage"),
     ("100000", "al_too_far"), ("62480", "al_too_close"), ("nan", "ck_usage"), ("-40%", "al_too_far"),
+    # digit groups join only after a 1-3 digit head: «64000 100» is two numbers, never 64000100
+    ("64000 100", "al_too_far"), ("64 0000", "al_too_far"),
 ])
 def test_bad_input_is_named(arg, err):
     assert ck.parse_check_args(arg, PRICE) == ([], err)
+    assert "64000100" not in ck._tokens(arg)
     assert ck.parse_check_args("64000", None) == ([], "al_no_price")
 
 
@@ -101,6 +107,10 @@ def test_a_bin_outside_the_rule_falls_back_to_the_historical_wording():
     text = plain(ck.format_check(block(passed=False), STATS, [64000.0], "ru", now=NOW))
     assert "шанс" not in text.split("\n", 1)[1].split("Обычный")[0]
     assert "4ч: исторически цена доходила в " in text and "случаев" in text
+    # the honesty rule: the historical number carries its N and a comparable «обычно»
+    assert "(история 2100 дн.; обычно ход за 4ч ±0,60%)" in text
+    two = plain(ck.format_check(block(passed=False), STATS, [61000.0, 64000.0], "ru", now=NOW))
+    assert "* исторически в стольких случаях (история 2100 дн.)" in two
 
 
 def test_live_line_replaces_the_held_out_one_once_mature():
@@ -123,11 +133,27 @@ def test_two_levels_show_each_chance_and_neither_never_who_first():
     assert f"↑ ≈ {round(up * 100)}%" in line4 and f"↓ ≈ {round(dn * 100)}%" in line4
     assert f"ни один ≈ {round(nei * 100)}%" in line4
     assert 1 - up - dn - 1e-9 <= nei <= 1 - max(up, dn) + 1e-9            # coherent with the two chances
-    assert "на истории говорили → было:" in text and text.endswith("Какой из двух уровней будет первым — не показываем.")
+    cal4 = text.splitlines()[text.splitlines().index(line4) + 1]
+    assert cal4.startswith("   говорили → было: ↑ ") and cal4.count("(на истории, N=400)") == 3
+    assert text.endswith("Какой из двух уровней будет первым — не показываем.")
     assert "64 000: после касания" in text and "61 000: после касания" in text
     same = plain(ck.format_check(block(), STATS, [63000.0, 64000.0], "ru", now=NOW))
     p_near = rc.touch_probability(MODEL, "4h", 1.2, (63000 / PRICE - 1) * 100)
     assert f"ни один ≈ {round((1 - p_near) * 100)}%" in same                 # the same side: not the nearer one
+
+
+def test_each_part_of_a_pair_names_its_own_check_and_n():
+    """One part checked live, the others on history: each says which, with its own N."""
+    up = rc.touch_probability(MODEL, "4h", 1.2, (64000 / PRICE - 1) * 100)
+    live = {"horizons": {"4h": {"bins": [{"bin": rc.touch_bin(up), "n_eff": 31, "predicted": 0.2, "realized": 0.25}]}},
+            "diverged": {}, "neither": {}, "diverged_neither": {}}
+    text = plain(ck.format_check(block(touch_live=live), STATS, [60500.0, 64000.0], "ru", now=NOW))  # three bins
+    lines = text.splitlines()
+    cal4 = lines[lines.index(next(x for x in lines if x.startswith("4ч: ↑"))) + 1]
+    parts = cal4.split(": ", 1)[1].split(" · ")
+    assert parts[0] == "↑ 20% → 25% (вживую, N=31)"
+    assert parts[1].startswith("↓ ") and parts[1].endswith("(на истории, N=400)")
+    assert parts[2].startswith("ни один ") and parts[2].endswith("(на истории, N=400)")
 
 
 def test_an_objective_level_shows_its_own_history_beside_a_random_level():
@@ -153,6 +179,14 @@ def test_buttons_carry_the_level():
     rows = alert_buttons("level", {"next": {"edge": 64000.0}}, "ru")
     assert rows[-1] == [("🎯 Проверить 64 000", "k:64000.00")]
     assert len(alert_buttons("event", {}, "ru")) == 2
+    # a sharp move offers the nearest level in its own direction, never the upper one by default
+    near = [{"edge": 63100.0}, {"edge": 61900.0}]
+    down = alert_buttons("move", {"near": near, "close": 62400.0, "move_pct": -1.4}, "ru")
+    assert down[-1] == [("🎯 Проверить 61 900", "k:61900.00")]
+    up = alert_buttons("move", {"near": near, "close": 62400.0, "move_pct": 1.4}, "ru")
+    assert up[-1] == [("🎯 Проверить 63 100", "k:63100.00")]
+    nothing_below = alert_buttons("move", {"near": [{"edge": 63100.0}], "close": 62400.0, "move_pct": -1.4}, "ru")
+    assert len(nothing_below) == 2
     from beta.formatter import btc_buttons
     brief = btc_buttons({"kind": "brief", "decision": block()}, "ru", 5)
     assert brief[-1] == [("🎯 Проверить 62 950", "k:62950.00"), ("🎯 Проверить 61 900", "k:61900.00")]

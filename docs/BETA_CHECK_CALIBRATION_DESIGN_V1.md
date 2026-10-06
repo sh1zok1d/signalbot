@@ -129,3 +129,17 @@ The bins, effective N, tolerance, pass rule, wording and fallback are those of �
 - 24h, bin 50–70 % did not pass: predicted 59.0 %, realized 53.0 %, −6.0 pp, interval −10.1 … −1.9 pp, effective N 305. On these data that bin falls back to «исторически в X % случаев», as §3 requires.
 - `tests/beta/test_beta_claims.py::test_neither_chances_on_the_real_held_out_year` pins this.
 - The rule did not change after the result.
+
+## 9. Correction: the «ни один» check scores the value shown (2026-10-06, review of PR #334)
+
+**What was wrong.** `neither_calibration` scored the raw joint-table value. Every surface shows that value kept coherent with the two single-level chances printed beside it: `neither_probability` clips it to [1 − p_up − p_down, 1 − max(p_up, p_down)] and bounds it like the other chances. The live journal (`L3_NEITHER_*`) already recorded the shown value, so the held-out and live checks measured different numbers.
+
+**Change.** The held-out check now scores the shown value: the same single chances (`q_one`), the same clip, the same bounds. Bins, tolerance, pass rule, grid and wording are unchanged.
+
+**Why this is not a result-driven change.** The correction comes from a code review: the check must be of the numbers shown (§5). It does not come from any bin's result, and the rule did not change.
+
+**Result after the correction.** Same data as §8 (Binance 2022–2024, held-out 2024):
+- 20 of 21 cells pass.
+- The same cell fails, with the same numbers: 24h, bin 50–70 %, predicted 59.0 %, realized 53.0 %, −6.0 pp, interval −10.1 … −1.9 pp, effective N 305.
+- On these data the clip rarely binds inside the bins.
+- `tests/beta/test_beta_claims.py::test_neither_chances_on_the_real_held_out_year` still pins this.

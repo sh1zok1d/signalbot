@@ -8,6 +8,7 @@ past the TTL become EXPIRED_UNDELIVERED; they stay visible in history.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Protocol, Sequence
 
@@ -245,10 +246,6 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
                                 d7_enabled=effective_d7_enabled(cfg, await conn.get_admin_d7_enabled()))
         view_pk = await persist_view(conn, view, now=now, text=format_catchup(cfg, view, "ru"), lang="ru",
                                      kind="brief")
-        if cfg.section("decision").get("claim_journal"):
-            from .claims import record_displays, shown_keys
-            await record_displays(conn, surface="brief", now=now, view_pk=view_pk,
-                                  shown=shown_keys("brief", view.get("decision"), market=view.get("market")))
         out["scheduled"] = await conn.materialize_brief_deliveries(brief_date=slot[0], view_pk=view_pk,
                                                                    decision_ts=slot[1])
     views: dict = {}
@@ -312,4 +309,24 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
         if row.get("user_pk") is not None:
             await conn.record_activity(user_pk=row["user_pk"], action="brief_delivered", lang=lang, at=sent_at)
         out["sent"] += 1
+        await _link_brief_claims(conn, cfg, row["view_pk"], payload, sent_at=sent_at)
     return out
+
+
+async def _link_brief_claims(conn, cfg: BetaConfig, view_pk: int, payload: Mapping[str, Any], *,
+                             sent_at: datetime) -> None:
+    """The brief's claims count as shown once a participant actually received it: after the first SENT
+    row of the view, never at scheduling (a withdrawal day or a paused bot shows nothing). Best-effort:
+    the journal never stops the remaining sends."""
+    if not cfg.section("decision").get("claim_journal") or not payload.get("requested_at"):
+        return
+    try:
+        if await conn.view_has_claim_displays(view_pk):
+            return
+        from .claims import record_displays, shown_keys
+        built = datetime.fromisoformat(payload["requested_at"]).astimezone(timezone.utc)
+        await record_displays(conn, surface="brief", now=sent_at, view_pk=view_pk,
+                              slot=built.replace(minute=0, second=0, microsecond=0),
+                              shown=shown_keys("brief", payload.get("decision"), market=payload.get("market")))
+    except Exception as exc:  # noqa: BLE001 - the journal never breaks a delivery run
+        logging.getLogger("beta.delivery").warning("brief display link failed: %s", type(exc).__name__)

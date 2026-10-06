@@ -439,7 +439,10 @@ class BetaBotHandler:
             rows = await conn.forecast_rows(since=now - timedelta(days=max(df.ACCURACY_WINDOWS_DAYS)))
             evs = event_times_ms(load_calendar())
             detail = df.corridor_accuracy(rows, now=now, events_ms=[x for k in EVENT_KINDS for x in evs.get(k, ())])
-            return df.format_accuracy((stats or {}).get("range_model"), live, lang, detail=detail)
+            from beta.claims import TOUCH_LIVE_COMPONENT
+            touch_live = ((await conn.fetch_health()).get(TOUCH_LIVE_COMPONENT) or {}).get("detail")
+            return df.format_accuracy((stats or {}).get("range_model"), live, lang, detail=detail,
+                                      touch_live=touch_live)
         regime = None
         if effective_d7_enabled(self.cfg, await conn.get_admin_d7_enabled()):
             from beta.regime_d7 import regime_for_status

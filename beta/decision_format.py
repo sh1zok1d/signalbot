@@ -584,7 +584,8 @@ def _accuracy_detail_lines(detail: Mapping[str, Any], lang: str) -> list:
                        hv=_share_part(rec["high_vol"], "ac_reg", lang)))
     return lines if len(lines) > 1 else [t(lang, "ac_live_none")]
 def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mapping[str, int]], lang: str,
-                    detail: Optional[Mapping[str, Any]] = None) -> str:
+                    detail: Optional[Mapping[str, Any]] = None,
+                    touch_live: Optional[Mapping[str, Any]] = None) -> str:
     """Held-out and live corridor coverage against its target. A live share is computed over every
     scored hourly forecast, but its N is the number of non-overlapping horizon windows (`N_EFF`,
     `BetaConn.forecast_accuracy`): hourly 24h forecasts overlap 24 times, so the raw count would
@@ -622,26 +623,61 @@ def format_accuracy(model: Optional[Mapping[str, Any]], live: Mapping[str, Mappi
     else:
         lines.append(t(lang, "ac_live", parts=", ".join(parts)) if parts else t(lang, "ac_live_none"))
     lines.extend(_touch_cal_lines(cal, lang))
+    lines.extend(_live_cal_lines(touch_live, lang))
     return assert_descriptive("\n".join(lines), lang)
 
 
 def _touch_cal_lines(cal: Mapping[str, Any], lang: str) -> list:
-    """The held-out reliability of the touch chances by bin (docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md):
-    «говорили P → было R (N)», a bin outside the frozen rule marked and explained once."""
-    rows, off = [], False
-    for h in ("1h", "4h", "24h"):
-        bins = (((cal.get(h) or {}).get("touch_bins")) or {}).get("bins") or []
-        parts = []
-        for x in bins:
-            key = "ac_touch_part" if x.get("passed") else "ac_touch_part_off"
-            off = off or not x.get("passed")
-            parts.append(t(lang, key, p=fmt_share(x["predicted"], lang), r=fmt_share(x["realized"], lang),
-                           n=int(x["n_eff"])))
-        if parts:
-            rows.append(t(lang, "ac_touch_line", h=_hz(h, lang), parts=" · ".join(parts)))
-    if not rows:
+    """The held-out reliability of the touch chances and of «ни один» by bin
+    (docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md §3, §7): «говорили P → было R (N)», a bin outside the frozen
+    rule marked and explained once."""
+    out, off = [], False
+    for key, head in (("touch_bins", "ac_touch_head"), ("neither_bins", "ac_neither_head")):
+        rows = []
+        for h in ("1h", "4h", "24h"):
+            bins = (((cal.get(h) or {}).get(key)) or {}).get("bins") or []
+            parts = []
+            for x in bins:
+                part = "ac_touch_part" if x.get("passed") else "ac_touch_part_off"
+                off = off or not x.get("passed")
+                parts.append(t(lang, part, p=fmt_share(x["predicted"], lang), r=fmt_share(x["realized"], lang),
+                               n=int(x["n_eff"])))
+            if parts:
+                rows.append(t(lang, "ac_touch_line", h=_hz(h, lang), parts=" · ".join(parts)))
+        if rows:
+            out += [t(lang, head), *rows]
+    return out + ([t(lang, "ac_touch_note")] if off else [])
+
+
+def _live_cal_lines(live: Optional[Mapping[str, Any]], lang: str) -> list:
+    """The journal's live bins (design note §3): shown at effective N >= MIN_N_SHOWN; a bin that diverged
+    stays visible here, marked, while every other surface has fallen back for it."""
+    if not live:
         return []
-    return [t(lang, "ac_touch_head"), *rows] + ([t(lang, "ac_touch_note")] if off else [])
+    days = int(live.get("days") or 0)
+    out, div = [], False
+    for kind, head, dkey in (("horizons", "ac_live_touch_head", "diverged"),
+                             ("neither", "ac_live_neither_head", "diverged_neither")):
+        rows = []
+        for h in ("1h", "4h", "24h"):
+            bins = ((live.get(kind) or {}).get(h) or {}).get("bins") or []
+            if not bins:
+                continue
+            bad = [list(x) for x in ((live.get(dkey) or {}).get(h) or ())]
+            shown = [x for x in bins if x["n_eff"] >= MIN_N_SHOWN]
+            if not shown:
+                rows.append(t(lang, "ac_live_bins_short", h=_hz(h, lang), n=max(int(x["n_eff"]) for x in bins)))
+                continue
+            parts = []
+            for x in shown:
+                off = list(x["bin"]) in bad
+                div = div or off
+                parts.append(t(lang, "ac_touch_part_div" if off else "ac_touch_part", p=fmt_share(x["predicted"], lang),
+                               r=fmt_share(x["realized"], lang), n=int(x["n_eff"])))
+            rows.append(t(lang, "ac_touch_line", h=_hz(h, lang), parts=" · ".join(parts)))
+        if rows:
+            out += [t(lang, head, days=days), *rows]
+    return out + ([t(lang, "ac_live_div_note")] if div else [])
 
 
 # ---- pushes --------------------------------------------------------------------------------

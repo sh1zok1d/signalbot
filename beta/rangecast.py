@@ -197,6 +197,18 @@ def neither_probability(model: Mapping[str, Any], h_name: str, scale_pct: float,
     return float(min(max(p, P_GRID[0] / 10), P_GRID[-1]))
 
 
+def neither_shown(q_one: Sequence[float], q_joint, xu, xd) -> np.ndarray:
+    """`neither_probability` with the single chances it is printed beside, vectorized over standardized
+    distances: the value every surface shows and the held-out check scores (note §9)."""
+    qs = np.asarray(q_one, dtype=np.float64)
+    xu, xd = np.asarray(xu, dtype=np.float64), np.asarray(xd, dtype=np.float64)
+    pu = 1.0 - np.interp(xu, qs, P_GRID)                       # = touch_probability (clamped ends)
+    pd_ = 1.0 - np.interp(xd, qs, P_GRID)
+    p = joint_cdf(q_joint, xu, xd)
+    p = np.minimum(np.maximum(p, 1.0 - pu - pd_), 1.0 - np.maximum(pu, pd_))
+    return np.clip(p, P_GRID[0] / 10, P_GRID[-1])
+
+
 def _valid_anchors(b: Bars, logs, tg, h: int, *, stride: int) -> np.ndarray:
     close_ms = b.times + BAR_MS
     on_grid = (close_ms % (stride * BAR_MS)) == 0
@@ -331,8 +343,9 @@ def _binned(p: np.ndarray, y: np.ndarray, slot: np.ndarray, day: np.ndarray, *, 
 
 def neither_calibration(model_h: Mapping[str, Any], b: Bars, idx: np.ndarray, *, logs, events, tg, weekend,
                         seed: int = TOUCH_CAL_SEED, boot: int = TOUCH_CAL_BOOT) -> dict:
-    """Held-out reliability of the «ни один» chance (calibration note §7): the train model's joint table
-    on the held-out anchors outside event zones, for every pair of the grid."""
+    """Held-out reliability of the «ни один» chance (calibration note §7, corrected in §9): the value the
+    surfaces show — the train model's joint table kept coherent with the two single-level chances
+    (`neither_probability`) — on the held-out anchors outside event zones, for every pair of the grid."""
     hms = HORIZON_MS[model_h["horizon"]]
     close_ms = b.times[idx] + BAR_MS
     keep = ~in_event_zone(close_ms, events, hms)
@@ -345,7 +358,7 @@ def neither_calibration(model_h: Mapping[str, Any], b: Bars, idx: np.ndarray, *,
     ps, ys = [], []
     for du in NEITHER_CAL_GRID_PCT:
         for dd in NEITHER_CAL_GRID_PCT:
-            ps.append(joint_cdf(model_h["q_joint"], du / S, dd / S))
+            ps.append(neither_shown(model_h["q_one"], model_h["q_joint"], du / S, dd / S))
             ys.append(((tg["up"][idx] < du) & (tg["down"][idx] < dd)).astype(np.float64))
     k = len(ps)
     out["bins"] = _binned(np.concatenate(ps), np.concatenate(ys), np.tile(close_ms // hms, k),

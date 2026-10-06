@@ -231,7 +231,7 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
 - Touch-chance calibration (`docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md`):
   - **Held-out bins.** The nightly build adds per-bin held-out reliability to `range_model.calibration.<h>.touch_bins`, and `/accuracy` shows it.
   - **Live bins.** The notifier refreshes the live bins from the journal once an hour (`beta_runtime_health` component `touch_live_cal`).
-  - **Divergence.** A live bin that breaks the frozen rule falls back to «исторически в X % случаев» for the rest of the model version and raises `TOUCH_CALIBRATION_DIVERGED`.
+  - **Divergence.** A live bin that breaks the frozen rule falls back to «исторически в X % случаев» for the rest of the model version and raises `TOUCH_CALIBRATION_DIVERGED` (`NEITHER_CALIBRATION_DIVERGED` for «ни один»).
 - The weekly report (backlog B4; `beta/weekly.py`, `decision.weekly_report`) runs inside the same notifier step.
   - **When.** Sunday 19:00 Kyiv by default, never sent more than 120 minutes late. Mon–Fri hold the U1a withdrawal days, so it never meets a withheld briefing.
   - **What it says.** How the bot's own estimates did over the 7 days:
@@ -438,6 +438,7 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 - `STARTUP_RECOVERY_REPAIR_INCOMPLETE` (the post-recovery repair failed on a bucket or deferred buckets to the next run)
 - `HISTORY_STATS_STALE` (the nightly statistics build has not succeeded for 50 hours, once it has run at least once)
 - `TOUCH_CALIBRATION_DIVERGED` (a live touch-chance bin broke the frozen rule of `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §3; that bin's wording has already fallen back to «исторически в X % случаев»)
+- `NEITHER_CALIBRATION_DIVERGED` (the same for a live «ни один» bin of two levels, `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §7)
 
 A DB outage makes every beta command exit with status 2 and report `DB_UNAVAILABLE`. systemd records that as a failed unit.
 
