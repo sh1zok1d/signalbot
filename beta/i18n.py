@@ -403,6 +403,33 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "Сегодня уже {n} отзывов. Новый можно отправить завтра.",
         "en": "Already {n} feedback messages today. Another one can be sent tomorrow.",
     },
+    # feedback in the bot (backlog H1–H4)
+    "btn_idea": {"ru": "💡 Идея / чего не хватает", "en": "💡 An idea / what is missing"},
+    "idea_prompt": {"ru": "Напишите одним сообщением: идея или чего не хватает. Это прочитает команда. Отменить: /cancel",
+                    "en": "Write it in one message: an idea or what is missing. The team reads it. Cancel: /cancel"},
+    "idea_thanks": {"ru": "Спасибо! Идея передана команде.", "en": "Thanks! Your idea was sent to the team."},
+    "cancel_ok": {"ru": "Хорошо, отменено.", "en": "Fine, cancelled."},
+    "noise_reason_q": {"ru": "Что не так? Один ответ:", "en": "What was wrong? One answer:"},
+    "reason_wrong": {"ru": "Неверно", "en": "Wrong"},
+    "reason_not_for_me": {"ru": "Не про меня", "en": "Not for me"},
+    "reason_too_often": {"ru": "Слишком часто", "en": "Too often"},
+    "reason_late": {"ru": "Поздно", "en": "Too late"},
+    "stop_reason_q": {"ru": "Если не сложно — почему пауза? Один ответ:", "en": "If you do not mind — why the pause? One answer:"},
+    "reason_not_needed": {"ru": "Не нужен", "en": "I do not need it"},
+    "reason_too_many": {"ru": "Слишком много сообщений", "en": "Too many messages"},
+    "reason_unclear": {"ru": "Непонятно, что он показывает", "en": "It is unclear what it shows"},
+    "reason_other": {"ru": "Другое", "en": "Something else"},
+    "reason_thanks": {"ru": "Спасибо, записал.", "en": "Thanks, noted."},
+    "btn_interview": {"ru": "📞 15 минут с командой", "en": "📞 15 minutes with the team"},
+    "interview_q": {"ru": "Можно поговорить 15 минут о боте — что полезно и чего не хватает. Выберите время "
+                          "(по вашему времени, {zone_name}):",
+                    "en": "A 15-minute talk about the bot — what helps and what is missing. Pick a time "
+                          "(your time, {zone_name}):"},
+    "interview_other": {"ru": "Другое время", "en": "Another time"},
+    "interview_ok": {"ru": "Записал: {slot}. Команда напишет здесь накануне. Передумали — напишите /feedback.",
+                     "en": "Booked: {slot}. The team writes here the day before. Changed your mind? Write /feedback."},
+    "interview_other_ok": {"ru": "Записал: удобно в другое время. Команда напишет здесь, чтобы договориться.",
+                           "en": "Noted: another time suits you. The team writes here to agree on one."},
     "feedback_thanks": {
         "ru": "Спасибо! Отзыв передан команде.",
         "en": "Thanks! Your feedback was sent to the team.",
@@ -435,7 +462,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
             "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
             "/delete_me удаляет их вместе с остальными вашими данными.\n"
-            "• Тексты отзывов (/feedback) хранятся 120 дней и удаляются командой /delete_me.\n"
+            "• Тексты отзывов, идей и запись на разговор (/feedback, /idea, /interview) хранятся 120 дней; "
+            "ответы «почему» после «Шум» и при паузе хранятся, пока вы в бете. /delete_me удаляет всё это.\n"
             "• Ваши уровни (/alert) хранятся, пока вы их не удалите; /delete_me удаляет их.\n"
             "• /stop приостанавливает все сообщения. /delete_me удаляет ваши данные участника "
             "и исключает вас из беты.\n"
@@ -461,7 +489,9 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• We record which commands and buttons you use, and when, and which invite link "
             "you came from, so we can improve the bot. These records are kept for 120 days. "
             "/delete_me deletes them with the rest of your data.\n"
-            "• Feedback texts are stored for 120 days and deleted by /delete_me.\n"
+            "• Feedback, idea and interview texts (/feedback, /idea, /interview) are stored for 120 days; your "
+            "answers to «why» after «Noise» and at a pause are kept while you are in the beta. /delete_me deletes "
+            "all of it.\n"
             "• Your price alerts (/alert) are kept until you delete them; /delete_me deletes them.\n"
             "• /stop pauses all messages. /delete_me deletes your participant data and removes "
             "you from the beta.\n"

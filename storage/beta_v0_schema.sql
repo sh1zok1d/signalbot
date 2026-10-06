@@ -515,7 +515,9 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     -- the personal layer (PRE_BETA_SCOPE_DECISION_V1 §9 E): the time zone, the one-tap mute and its undo
     'cmd_tz', 'set_mute', 'set_unmute',
     -- the trader type: the question (/type or after joining) and the answer
-    'cmd_type', 'type_set'));
+    'cmd_type', 'type_set',
+    -- feedback in the bot (backlog H1–H4): the idea prompt and the idea, a reason, the interview request
+    'cmd_idea', 'idea_sent', 'reason_set', 'cmd_interview', 'interview_booked'));
 
 -- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
 -- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.
@@ -1147,3 +1149,23 @@ BEGIN
             'QUIET_HOURS', 'DAILY_CAP', 'KIND_COOLDOWN', 'PUSH_DISABLED', 'DATA_STALE', 'DAILY_FUSE'));
     END IF;
 END $$;
+-- Feedback in the bot (PRE_BETA_SCOPE_DECISION_V1 §9 H; backlog H1–H4).
+-- H1 «💡 Идея / чего не хватает» and H4 the interview request are typed rows of the free-text
+-- feedback (the owner answers them with /admin_reply as before); the participant's next
+-- message is taken as the idea while `awaiting` is set and not past `awaiting_until`.
+ALTER TABLE beta_feedback_messages ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'feedback'
+    CHECK (kind IN ('feedback', 'idea', 'interview'));
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS awaiting TEXT CHECK (awaiting IS NULL OR awaiting IN ('idea'));
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS awaiting_until TIMESTAMPTZ;
+-- H2 one reason after «Шум» (topic 'noise': the message's kind and ref) and H3 one answer at
+-- /stop (topic 'stop'). One answer per participant and subject; a second tap replaces it.
+CREATE TABLE IF NOT EXISTS beta_reasons (
+    reason_pk   BIGSERIAL PRIMARY KEY,
+    user_pk     BIGINT NOT NULL REFERENCES beta_users (user_pk) ON DELETE CASCADE,
+    topic       TEXT NOT NULL CHECK (topic IN ('noise', 'stop')),
+    subject     TEXT NOT NULL CHECK (length(subject) BETWEEN 1 AND 64),
+    reason      TEXT NOT NULL CHECK (reason IN ('wrong', 'not_for_me', 'too_often', 'late',
+                                                 'not_needed', 'too_many', 'unclear', 'other')),
+    at          TIMESTAMPTZ NOT NULL,
+    CONSTRAINT uq_beta_reason UNIQUE (user_pk, topic, subject)
+);
