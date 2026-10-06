@@ -162,17 +162,19 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
     max_delay = timedelta(minutes=int(w["max_delay_min"]))
     now = clock()
     slot = weekly_slot(now, w["weekday_kyiv"], w["time_kyiv"])
-    if w["enabled"] and push_on and slot is not None and now - slot[1] <= max_delay \
-            and await conn.weekly_report_pk(slot[0]) is None:
-        payload = await build_weekly(conn, now=now)            # what is known now, nothing after it
-        pk = await conn.insert_weekly_report(week_end=slot[0], built_at=now, payload=payload,
-                                             payload_digest=sha256_json(payload))
-        if pk is not None:
-            out["built"] = True
-            out["scheduled"] = await conn.materialize_weekly_deliveries(weekly_pk=pk, decision_ts=slot[1])
-            if sender is not None and owner_user_id is not None:
-                out["owner"] = await _send_owner(conn, sender, payload, owner_user_id=int(owner_user_id), now=now)
-    for row in await conn.fetch_pending_weekly_deliveries(cfg["notifications"]["max_deliveries_per_run"]):
+    if w["enabled"] and push_on and slot is not None and now - slot[1] <= max_delay:
+        if await conn.weekly_report_pk(slot[0]) is None:
+            payload = await build_weekly(conn, now=now)            # what is known now, nothing after it
+            pk = await conn.insert_weekly_report(week_end=slot[0], built_at=now, payload=payload,
+                                                 payload_digest=sha256_json(payload))
+            if pk is not None:
+                out["built"] = True
+                out["scheduled"] = await conn.materialize_weekly_deliveries(weekly_pk=pk, decision_ts=slot[1])
+        if sender is not None and owner_user_id is not None:
+            out["owner"] = await _send_owner(conn, sender, pacer, slot[0], owner_user_id=int(owner_user_id),
+                                             now=now)
+    for row in await conn.fetch_pending_weekly_deliveries(cfg["notifications"]["max_deliveries_per_run"],
+                                                          now=clock()):
         now = clock()
         did = row["delivery_id"]
         if now - row["decision_ts"] > max_delay:
@@ -195,6 +197,9 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
                                            error_summary="sender unavailable (no bot token)")
             out["failed"] += 1
             continue
+        if not pacer.may_send(row["chat_id"]):          # nothing is rendered for a row that waits
+            pacer.deferred += 1
+            continue
         lang = row.get("user_lang") or "ru"
         text = format_weekly(row["payload"], lang)
         outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
@@ -208,14 +213,26 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
     return out
 
 
-async def _send_owner(conn, sender, payload: Mapping[str, Any], *, owner_user_id: int, now: datetime) -> str:
-    """The owner version, once per report (no resend: a failure is reported, not retried)."""
+OWNER_COPY = "weekly_owner"
+
+
+async def _send_owner(conn, sender, pacer, week_end, *, owner_user_id: int, now: datetime) -> Optional[str]:
+    """The owner version, under the run's pacer (A5 review): its parts go one by one, and a run
+    that cannot send them all (pacer closed, flood control, a failed part) leaves the rest to the
+    next run within the report's sending window; the parts already sent are kept in the
+    `weekly_owner` health row, so none is sent twice. None when it was already sent."""
     import html
     from .admin import owner_parts
     from .claims import claims_report
+    from .delivery import SENT, send_direct
     from .usage import owner_breakdown
-    start, end = datetime.fromisoformat(payload["from"]), datetime.fromisoformat(payload["to"])
+    rec = ((await conn.fetch_health([OWNER_COPY])).get(OWNER_COPY) or {}).get("detail") or {}
+    done = int(rec.get("parts_sent") or 0) if rec.get("week_end") == week_end.isoformat() else 0
+    if rec.get("week_end") == week_end.isoformat() and rec.get("done"):
+        return None
     try:
+        payload = await conn.weekly_report_payload(week_end)
+        start, end = datetime.fromisoformat(payload["from"]), datetime.fromisoformat(payload["to"])
         facts = await conn.usage_facts()
         owner = int(owner_user_id)
         users = [u for u in facts["users"] if int(u["telegram_user_id"]) != owner]
@@ -223,9 +240,19 @@ async def _send_owner(conn, sender, payload: Mapping[str, Any], *, owner_user_id
         breakdown = owner_breakdown(users, [r for r in facts["activity"] if r["user_pk"] in pks],
                                     [v for v in facts.get("votes", ()) if v["user_pk"] in pks], start=start, end=end)
         journal = claims_report(await conn.fetch_claim_cohort(since=start))
-        await sender.send(chat_id=owner, html=format_weekly(payload, "ru"))
-        for part in owner_parts(format_weekly_owner(payload, breakdown=breakdown, journal=journal)):
-            await sender.send(chat_id=owner, html=f"<pre>{html.escape(part, quote=False)}</pre>")
+        parts = [format_weekly(payload, "ru")] + [f"<pre>{html.escape(part, quote=False)}</pre>" for part in
+                                                  owner_parts(format_weekly_owner(payload, breakdown=breakdown,
+                                                                                  journal=journal))]
     except Exception as exc:  # noqa: BLE001 - the owner copy never blocks the participants' rows
         return f"error: {type(exc).__name__}"
-    return "sent"
+    result = "sent"
+    for part in parts[done:]:
+        res = await send_direct(sender, pacer, chat_id=owner, html=part)
+        if res != SENT:
+            result = res.lower()
+            break
+        done += 1
+    await conn.record_health(OWNER_COPY, now=now, success=done == len(parts),
+                             detail={"week_end": week_end.isoformat(), "parts_sent": done,
+                                     "parts": len(parts), "done": done == len(parts)})
+    return result

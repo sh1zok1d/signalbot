@@ -8,7 +8,7 @@ Authority: `docs/PRIVATE_BETA_V0_RESTART_DECISION.md`. The systemd artifacts are
 |---|---|---|
 | `signalbot-beta-detector.service` + `.timer` | every 5m at :25 s | `main.py --beta-once --beta-json` |
 | `signalbot-beta-outcomes.service` + `.timer` | every 5m at :50 s (offset 2m) | `main.py --beta-outcomes-once --beta-json` |
-| `signalbot-beta-notify.service` + `.timer` | every minute at :40 s | `main.py --beta-notify-once --beta-json` |
+| `signalbot-beta-notify.service` + `.timer` | every minute at :40 s | `main.py --beta-notify-once --beta-deadman-ping --beta-json` |
 | `signalbot-beta-bot.service` | long-running (Restart=on-failure) | `python -m runtime.beta_bot` |
 | `signalbot-beta-d7.service` + `.timer` | every hour at HH:01 UTC | `main.py --beta-d7-once --beta-json` |
 | `signalbot-beta-history.service` + `.timer` | daily 02:20 UTC | `main.py --beta-history-sync` then `--beta-history-build` (decision support V2, below) |
@@ -388,7 +388,7 @@ Each run appends one `CORRECTION_CHECK` revision, or reports `UNCHANGED`. Nothin
 | `BETA_OUTCOME_TRACKING_ENABLED` | Kill switch for the outcome tracker (restrict-only). |
 | `BETA_TELEGRAM_ENABLED` | `0` selects the no-Telegram shadow-soak mode (below). Default: Telegram is part of the deployment. |
 | `BETA_CODE_VERSION` | Optional explicit beta code version. The default is resolved from the path-scoped git history. |
-| `BETA_DEADMAN_PING_URL` | Optional https URL of an external check (for example healthchecks.io), pinged after every complete notifier run. When the pings stop, that service alerts the owner (see "Owner health alerts"). |
+| `BETA_DEADMAN_PING_URL` | Optional https URL of an external check (for example healthchecks.io), pinged by the notifier unit (`--beta-deadman-ping`) after every complete run. When the pings stop, that service alerts the owner (see "Owner health alerts"). |
 
 - **Switch precedence:**
   - `BETA_ENABLED`: explicit env value, else committed config.
@@ -439,15 +439,25 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 
 **Stop:** `/admin_pause_push` stops new deliveries at once, without a restart. Pending deliveries are suppressed with `PUSH_DISABLED`. For a hard stop, set `BETA_PUSH_ENABLED=0` and restart the bot and the notify timer.
 
-**Sending discipline (backlog A5; `beta/delivery.py` `SendPacer` / `send_one`).** It applies to every outbox kind (push, alert, brief, weekly):
-- **Flood control.** Telegram's `RetryAfter` is not a final `FAILED`. The row goes back to `PENDING` with `error_summary = "RetryAfter Ns"`, and the run sends nothing more. The next run (one minute later) sends it under the same TTL; a row past its TTL expires as usual and is never sent late.
-- **Pacing.** At most one send per `notifications.send_interval_ms` (50 ms; Telegram allows about 30 messages a second per bot).
-- **Run budget.** No send starts after `notifications.send_budget_s` (35 s) of the run. The unit's `TimeoutStartSec` is 50 s, and the config refuses a budget closer than 10 s to it.
-- **SIGTERM.** On SIGTERM (systemd stopping the unit), the send in flight finishes and no other starts.
-- **Nothing is lost.** In all three stop cases, the rest stays `PENDING` for the next run instead of becoming `SENDING` → `DELIVERY_UNKNOWN`.
+**Sending discipline (backlog A5 and its external review; `beta/delivery.py` `SendPacer` / `send_one`).** It applies to every outbox kind (push, alert, brief, weekly) and to the owner's own alert and weekly copy:
+- **Flood control.** Telegram's `RetryAfter` is not a final `FAILED`.
+  - The row goes back to `PENDING` with `error_summary = "RetryAfter Ns"` and `next_attempt_at` = now + N s. No run sends it before then, and it carries no `sending_at`.
+  - Only that chat waits for the rest of the run; three refusals in one run stop every chat, because the limit is then the bot's.
+  - A row past its TTL expires as usual and is never sent late.
+- **Pacing.** At most one send per `notifications.send_interval_ms` (50 ms; Telegram allows about 30 messages a second per bot) and one per second to the same chat.
+- **Run budget.**
+  - No send starts after `notifications.send_budget_s` (20 s), counted from the **process start** as the unit's timeout is.
+  - The beta sender's Telegram timeouts are 5 / 5 / 5 / 2 s (connect / write / read / pool), so one send takes at most 17 s.
+  - The config refuses a budget that does not leave that plus 8 s of tail (`beta.config.NOTIFY_BUDGET_MAX_S` = 25) before the unit's `TimeoutStartSec` of 50 s.
+- **SIGTERM.** On SIGTERM (systemd stopping the unit), the send in flight finishes and no other starts. The run then ends at its next step, without the success heartbeat and without the dead-man ping (status `STOPPED`).
+- **Nothing is lost.** In every stop case the rest stays `PENDING` for the next run instead of becoming `SENDING` → `DELIVERY_UNKNOWN`. A message that has to wait is not rendered.
 - **One failed recipient never blocks the others.** A rejected send (blocked bot, bad chat) is `FAILED` for that recipient only, and the loop continues.
-- **Run report.** The notifier's JSON report carries `throttled`, `deferred`, `send_stop` (`THROTTLED` / `BUDGET` / `STOPPING` / null) and `retry_after_s`.
-- **Load test.** `tests/beta/test_beta_send_load_pg.py` sends a morning brief to 20 participants through flood control and one blocked participant, and stops a run with the SIGTERM event.
+- **Owner messages.** The owner's alert waits while the pacer is closed; it is due again on the next run. The weekly owner copy goes part by part; the parts already sent are kept in the `weekly_owner` health row, so a later run in the report's window sends only the rest.
+- **Run report.** The notifier's JSON report carries `throttled`, `deferred`, `send_stop` (`THROTTLED` / `BUDGET` / `STOPPING` / null), `retry_after_s` and `throttled_chats`.
+- **Load test.** `tests/beta/test_beta_send_load_pg.py` covers three cases:
+  - a morning brief to 20 participants through flood control for one chat and one blocked participant;
+  - the waiting chat skipped until its time;
+  - a run stopped with the SIGTERM event.
 
 ## Owner health alerts
 
@@ -458,24 +468,34 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 - `OUTCOME_TRACKER_NOT_ADVANCING`
 - `BOT_RECEIVER_DOWN`
 - `NOTIFIER_NOT_RUNNING`
-- `DELIVERY_FAILURE_SPIKE` (FAILED or DELIVERY_UNKNOWN rows of every outbox kind in `health.delivery_problem_window_s`, with the count by kind)
+- `DELIVERY_FAILURE_SPIKE` (problem rows of every outbox kind in `health.delivery_problem_window_s`: FAILED, DELIVERY_UNKNOWN, expired undelivered, and waiting after flood control; with the count by kind and by reason. A participant who blocked the bot (`Forbidden:`) is their own choice: counted as `blocked`, never as a problem)
 - `D7_HOUR_STATE_STALE` (only while `regime_d7.enabled` is true, and only when the newest hour state's `available_at` is older than 70 minutes; independent of `/admin_d7_on`)
 - `STAGE1_RECOVERY_NOT_READY` (the detector has waited for Stage-1's startup recovery for at least `health.detector_stall_s`, or proceeded without it as `OVERDUE`; see "Startup recovery" below)
 - `STARTUP_RECOVERY_REPAIR_INCOMPLETE` (the post-recovery repair failed on a bucket or deferred buckets to the next run)
 - `HISTORY_STATS_STALE` (the nightly statistics build has not succeeded for 50 hours, once it has run at least once)
 - `TOUCH_CALIBRATION_DIVERGED` (a live touch-chance bin broke the frozen rule of `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §3; that bin's wording has already fallen back to «исторически в X % случаев»)
 - `NEITHER_CALIBRATION_DIVERGED` (the same for a live «ни один» bin of two levels, `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §7)
-- `BINANCE_STALE` (the newest Binance 1m bar is older than 10 minutes while the other venues keep the ingestion heartbeat healthy: decision support, which reads Binance alone, has gone stale)
+- `BINANCE_STALE` (the newest Binance 1m bar opened more than 10 minutes ago, the clock decision support uses, while the other venues keep the ingestion heartbeat healthy: decision support, which reads Binance alone, has gone stale)
 - `HISTORY_BUILD_FAILED` (the last nightly statistics build failed; the previous row stays in use)
-- `HISTORY_SYNC_FAILING` (no successful history sync for 50 hours, once it has run)
-- `FEEDS_FAILING` (no successful research-feed run for 30 minutes, once the feeds have run)
-- `STRESS_HOURS_FAILING` (no successful stress-hour run for 3 hours, once it has run)
-- `FEEDS_DEFINITION_CHECK_FAILED` (the last feed-against-history definition check failed)
+- `HISTORY_SYNC_FAILING` (no successful history sync for 50 hours, once it has run; before the first success, 50 hours from its first run; with the error types)
+- `FEEDS_FAILING` (no successful research-feed run for 30 minutes, once the feeds have run, counted from the first run before any success; a run refused by the readiness check, `SCHEMA_NOT_READY` / `WRONG_DB_ROLE`, is recorded as a failed run when the role may write the health row)
+- `STRESS_HOURS_FAILING` (no successful stress-hour run for 3 hours, once it has run, counted as for the feeds)
+- `FEEDS_DEFINITION_CHECK_FAILED` (a field of the last feed-against-history definition check is `FAILED`; `PENDING`, not enough overlap yet, is not a failure)
+- `NOTIFIER_STEP_FAILED` (market alerts or the weekly report raised inside a notifier run that otherwise carried on; with the step and the error type)
 - `NOTIFIER_DEADMAN` (sent by the **bot receiver**, not the notifier: the notifier has not succeeded for `health.notifier_stall_s`, so its own `NOTIFIER_NOT_RUNNING` could not be sent; repeated per `health.owner_alert_repeat_s`)
 
-**Dead-man outside the box.** No process on the VPS can report the VPS, its database or both timers being down. Set `BETA_DEADMAN_PING_URL` in `.env` to an external check (for example a healthchecks.io URL, https only). After every complete notifier run the notifier GETs it within 5 seconds. Configure that check to expect a ping every minute with a grace of about 10 minutes, and to alert the owner when the pings stop. Without the variable nothing is pinged. The URL is never logged.
+**Dead-man outside the box.** No process on the VPS can report the VPS, its database or both timers being down.
+- **Setup.** Set `BETA_DEADMAN_PING_URL` in `.env` to an external check (for example a healthchecks.io URL, https only). Configure that check to expect a ping every minute with a grace of about 10 minutes, and to alert the owner when the pings stop.
+- **When it pings.** Only the notifier unit pings: its `ExecStart` passes `--beta-deadman-ping`. Tests and manual runs with the production `.env` never ping. The unit pings after every complete run, and also while the beta is disabled or in the no-Telegram shadow soak (the box and the timer are alive).
+- **When it does not ping.** A run stopped by SIGTERM does not ping. Without the variable nothing is pinged.
+- **Bounds.** The whole ping, name resolution included, is bounded by 5 seconds. The URL is never logged.
 
-**Outage notice.** `/admin_outage start` sends the ready «у нас сбой» notice to every ACTIVE participant in their language; `/admin_outage end` sends «сбой устранён». `/admin_outage` alone shows both texts. Each send is audited (`admin_outage`, with the recipient count). Use it when an alert above means participants are seeing stale or missing data.
+**Outage notice.**
+- `/admin_outage start` sends the ready «у нас сбой» notice to every ACTIVE participant in their language; `/admin_outage end` sends «сбой устранён». `/admin_outage` alone shows both texts.
+- **How it is sent.** The bot sends the notices paced (50 ms apart). Flood control is waited out once, for at most 10 s.
+- **What the owner sees.** The owner then gets `outage start notice: delivered to X of N` (with the failures), and the audit gets a second `admin_outage` row (`DELIVERED`) with those counts after the command's own row.
+- `/admin_broadcast` uses the same paced, counted path.
+- Use it when an alert above means participants are seeing stale or missing data.
 
 **Delivery latency (backlog A4; `beta/latency.py`).** `/admin_latency [days]` (default 7, at most 90) reports, per class, how long delivered messages took from the moment their fact existed to delivery (`finished_at` of the SENT row). Each value is a nearest-rank P50, P95 and max with its N, plus detection (source → decision) and sending (decision → delivery) apart. Messages that expired undelivered are counted per class. The source time per class:
 - `level`, `price`: the close of the 1m or 5m bar that touched;

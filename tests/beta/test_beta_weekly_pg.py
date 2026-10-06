@@ -131,3 +131,51 @@ def test_paused_messages_build_nothing_and_late_rows_expire():
             assert r["sent"] == 0
         await pool.close()
     run(body())
+
+
+def test_the_owner_copy_goes_through_the_pacer_and_resumes_without_repeating_a_part():
+    """A5 review 4: the owner's weekly copy follows the run's pacer; flood control after its first part
+    leaves the rest to the next run, and no part is sent twice."""
+    from beta.delivery import DeliveryThrottled, run_notify_once
+
+    class _OwnerBusy(Sender):
+        def __init__(self):
+            super().__init__()
+            self.owner_calls = 0
+
+        async def send(self, *, chat_id, html, buttons=None):
+            if chat_id == OWNER:
+                self.owner_calls += 1
+                if self.owner_calls == 2:
+                    raise DeliveryThrottled(2)
+            return await super().send(chat_id=chat_id, html=html, buttons=buttons)
+
+    async def body():
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        h = _handler(pool, OWNER, Clock(SLOT - timedelta(days=3)))
+        async with store.connect() as conn:
+            await conn.allowlist_add(A)
+        await _join(h, A, 10, "ru")
+        await _forecasts(pool)
+        sender = _OwnerBusy()
+        r = await run_notify_once(store, CFG, ON_PUSH, sender=sender, clock=Clock(SLOT + timedelta(minutes=5)),
+                                  owner_user_id=OWNER)
+        assert r["weekly"]["owner"] == "throttled" and r["weekly"]["sent"] == 1     # A's copy is not held up
+        def weekly_parts():                       # the owner also gets health alerts; count the copy only
+            return [html for chat, html, _ in sender.sent
+                    if chat == OWNER and ("Неделя бота" in html or "weekly report" in html)]
+        assert len(weekly_parts()) == 1
+        async with store.connect() as conn:
+            rec = (await conn.fetch_health(["weekly_owner"]))["weekly_owner"]["detail"]
+        assert rec["parts_sent"] == 1 and rec["done"] is False and rec["parts"] >= 2
+        r = await run_notify_once(store, CFG, ON_PUSH, sender=sender, clock=Clock(SLOT + timedelta(minutes=6)),
+                                  owner_user_id=OWNER)
+        assert r["weekly"]["owner"] == "sent"
+        owner = weekly_parts()
+        assert len(owner) == rec["parts"] and len(set(owner)) == len(owner)          # every part once
+        r = await run_notify_once(store, CFG, ON_PUSH, sender=sender, clock=Clock(SLOT + timedelta(minutes=7)),
+                                  owner_user_id=OWNER)
+        assert r["weekly"]["owner"] is None and len(weekly_parts()) == rec["parts"]
+        await pool.close()
+    run(body())

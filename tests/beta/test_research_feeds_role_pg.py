@@ -82,6 +82,12 @@ def _no_fetch(url, params):
     raise AssertionError(f"a refused job must not fetch: {url}")
 
 
+async def _health(pool) -> dict:
+    async with pool.acquire() as c:
+        rows = await c.fetch("SELECT component, last_error_type, last_success_at FROM beta_runtime_health")
+    return {r["component"]: (r["last_error_type"], r["last_success_at"]) for r in rows}
+
+
 async def _counts(pool) -> dict:
     out = {}
     async with pool.acquire() as c:
@@ -206,7 +212,10 @@ def test_the_restricted_role_cannot_run_ddl_reach_other_tables_or_escalate():
 
 
 # ---- PREREQ-1: missing schema fails closed ----------------------------------------------------------------
-def test_a_missing_schema_column_check_grant_or_role_fails_closed_and_writes_nothing():
+def test_a_missing_schema_column_check_grant_or_role_fails_closed_and_writes_no_feed_data():
+    """Refused before any fetch: no feed row is written. Since the external review of A3 the refusal is
+    recorded as a failed run of the job's own health row (when the role may write it), so the owner's
+    FEEDS_FAILING / STRESS_HOURS_FAILING alert sees it."""
     from beta.research_feeds import feed_schema_readiness, run_feeds_job, run_stress_job
 
     async def body():
@@ -223,7 +232,7 @@ def test_a_missing_schema_column_check_grant_or_role_fails_closed_and_writes_not
         await pool.close()
 
         # (b) a dropped check and a dropped column: the feeds job is refused, the stress job (which uses
-        # neither) still runs; the refused job writes nothing
+        # neither) still runs; the refused job writes no feed data, only its failed health row
         pool = await fresh_pool()
         store = BetaStore(pool)
         async with pool.acquire() as c:
@@ -238,7 +247,8 @@ def test_a_missing_schema_column_check_grant_or_role_fails_closed_and_writes_not
         assert rs["ready"]
         rep = await run_feeds_job(store, now=NOW, fetch=_no_fetch, pause=pause)
         assert rep["status"] == "SCHEMA_NOT_READY"
-        assert await _counts(pool) == {**{t: 0 for t in FEED_TABLES}, "beta_runtime_health": 0}
+        assert await _counts(pool) == {**{t: 0 for t in FEED_TABLES}, "beta_runtime_health": 1}
+        assert await _health(pool) == {"research_feeds": ("SCHEMA_NOT_READY", None)}
         await pool.close()
 
         # (c) a missing grant on the restricted role: refused before any fetch or write
@@ -251,7 +261,8 @@ def test_a_missing_schema_column_check_grant_or_role_fails_closed_and_writes_not
             rep = await run_feeds_job(BetaStore(fpool), now=NOW, fetch=_no_fetch, pause=pause, expected_role=ROLE)
             assert rep["status"] == "SCHEMA_NOT_READY" and rep["missing"] == ["grant:INSERT:beta_feed_depth"], rep
             assert rep["db_role"] == ROLE
-            assert await _counts(pool) == {**{t: 0 for t in FEED_TABLES}, "beta_runtime_health": 0}
+            assert await _counts(pool) == {**{t: 0 for t in FEED_TABLES}, "beta_runtime_health": 1}
+            assert await _health(pool) == {"research_feeds": ("SCHEMA_NOT_READY", None)}
         finally:
             await fpool.close()
             await _lock_role(pool)
@@ -260,7 +271,9 @@ def test_a_missing_schema_column_check_grant_or_role_fails_closed_and_writes_not
         for job in (run_feeds_job, run_stress_job):
             rep = await job(BetaStore(pool), now=NOW, fetch=_no_fetch, pause=pause, expected_role=ROLE)
             assert rep["status"] == "WRONG_DB_ROLE" and rep["db_role"] != ROLE
-        assert await _counts(pool) == {**{t: 0 for t in FEED_TABLES}, "beta_runtime_health": 0}
+        assert await _counts(pool) == {**{t: 0 for t in FEED_TABLES}, "beta_runtime_health": 2}
+        assert await _health(pool) == {"research_feeds": ("WRONG_DB_ROLE", None),
+                                       "research_stress_hours": ("WRONG_DB_ROLE", None)}
         await pool.close()
     run(body())
 
