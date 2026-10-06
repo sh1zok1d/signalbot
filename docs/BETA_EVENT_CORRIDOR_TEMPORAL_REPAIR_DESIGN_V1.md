@@ -1,6 +1,6 @@
 # Event corridor — temporal repair design record V1
 
-**Status:** `DESIGN_ONLY for the event model (K1 not implemented, no retrain) / §9 corridor FALLBACK and §10 sharp-move FALLBACK IMPLEMENTED in the V2 branch / NOT_DEPLOYED`
+**Status:** `DESIGN_ONLY for the event model (K1 not implemented, no retrain) / §9 corridor FALLBACK and §10 sharp-move FALLBACK IMPLEMENTED and DEPLOYED with V2 (main `a16b876`, owner-reported 2026-10-03)` (status updated 2026-10-06; it read `NOT_DEPLOYED` when written)
 **Date:** 2026-10-03
 **Scope:** the scheduled-release conditioning (CPI, FOMC) of the decision-support range corridor (`beta/rangecast.py`, `PRODUCT_DECISION_V2_DECISION_SUPPORT.md` §2). It does not change the generic range model, thresholds, the research registry, user copy or deployment. Those are separate tasks.
 **Trigger:** red-team of branch `ccr-b5339153-71haxv` at `86dd802` (owner-relayed), plus the read-only checks in §4.
@@ -25,7 +25,7 @@ RAPID_MOVE_EVENT_RISK_CLASS     = C / EVENT_FLAG_DECISION_RELEVANT_UNCALIBRATED 
 SHARP_MOVE_EVENT_CONDITIONING   = DISABLED_PENDING_VALIDATION (§10, Option 1 implemented)
 ```
 
-**Current product safety state (V2 branch, not deployed).** These are fallbacks. None of them confirms any event semantics.
+**Current product safety state (deployed with V2).** These are fallbacks. None of them confirms any event semantics.
 1. The numerical corridor is suppressed around CPI/FOMC releases (§9).
 2. Event-specific touch probabilities and `/risk` figures are suppressed there (§9).
 3. Event multipliers are removed from every user-facing event surface (§9).
@@ -234,7 +234,7 @@ After any prospective outcome is seen, none of these numbers, parameters or rule
 
 ## 9. Fallback product behavior (pre-committed)
 
-This applies until an event semantics passes the pre-registered prospective check. **Implemented** in the V2 branch (owner authorisation of 2026-10-03), not deployed.
+This applies until an event semantics passes the pre-registered prospective check. **Implemented** in the V2 branch (owner authorisation of 2026-10-03) and deployed with V2.
 
 - **Event span.** For each horizon H, the span around a scheduled CPI or FOMC release r is `[r − H, r + 60 min)`. About 6% of hours a year for 24h, less for 1h and 4h.
 - **Inside the span, Signalbot:**

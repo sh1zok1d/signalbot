@@ -16,7 +16,20 @@ This page answers "where are we now?" in one screen. It restates facts recorded 
 
 **Signalbot has no validated trading edge.** No result in this repository establishes direction prediction, profitability, a trading edge, or information beyond current volatility.
 
-## 1a. Production state (recorded 2026-10-03, owner-reported deploy)
+## 1a. Production state (updated 2026-10-06; owner-reported deploy of 2026-10-05)
+
+| Item | State |
+|---|---|
+| Production commit | `c980fae` (merge of #329) |
+| Last deploy | C1 same-UTC-day-type reference, 2026-10-05 12:44 UTC; smoke 27 PASS / 0 WARN / 0 FAIL (owner-reported) |
+| Versions after that deploy | context `BETA_CONTEXT_1H_V3`, TOD `BETA_HORIZON_TOD_V3`, analogues `BETA_ANALOGUES_V2` |
+| In production | #319, #322, #326 (research evidence engine), #327 (its deploy plan, a document), #329 (C1) |
+| `BETA_RESEARCH_EVIDENCE_ENABLED` on the server | not recorded (owner action, `PRE_BETA_SCOPE_DECISION_V1.md` §9) |
+| `main` after `c980fae` | research and pre-beta documents (#330–#333), track A and track B pre-beta work (#334–#340 and later); **not deployed** — deploy is forbidden until the owner says otherwise (owner, 2026-10-06) |
+
+Sources: `BETA_C1_DAY_TYPE_BASELINE_V1.md` (status), `PRE_BETA_SCOPE_DECISION_V1.md` §10. The 2026-10-03 table below is kept as the record of the V2 deploy.
+
+### Earlier record: the V2 deploy (recorded 2026-10-03, owner-reported)
 
 V2 decision support is merged and deployed to production.
 

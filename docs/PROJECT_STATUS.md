@@ -35,7 +35,20 @@ A narrow descriptive private beta is authorized by `docs/PRIVATE_BETA_V0_RESTART
 - **Next step:** owner test and red-team of V2, then deploy to the owner-only beta (history sync, first build, V2 tape rewind, history timer), run the gate coverage diagnostic and the owner review of the interpretation dry run; external launch follows data maturity (§6 of `PRODUCT_FIRST_DECISION_V1.md`), then the 30-day user test of `PRODUCT_FIRST_DECISION_V1.md` §7 on the V2 surface.
 - **Research boundary:** beta events are not hypotheses, and beta outcomes are not confirmation.
 
-## Production state (recorded 2026-10-03, owner-reported deploy)
+## Production state (updated 2026-10-06; owner-reported deploy of 2026-10-05)
+
+| Item | State |
+|---|---|
+| Production commit | `c980fae` (merge of #329) |
+| Last deploy | C1 same-UTC-day-type reference, 2026-10-05 12:44 UTC; smoke 27 PASS / 0 WARN / 0 FAIL (owner-reported) |
+| Versions after that deploy | context `BETA_CONTEXT_1H_V3`, TOD `BETA_HORIZON_TOD_V3`, analogues `BETA_ANALOGUES_V2` |
+| In production | #319, #322, #326 (research evidence engine), #327 (its deploy plan, a document), #329 (C1) |
+| `BETA_RESEARCH_EVIDENCE_ENABLED` on the server | not recorded (owner action, `PRE_BETA_SCOPE_DECISION_V1.md` §9) |
+| `main` after `c980fae` | research and pre-beta documents (#330–#333), track A and track B pre-beta work (#334–#340 and later); **not deployed** — deploy is forbidden until the owner says otherwise (owner, 2026-10-06) |
+
+Sources: `BETA_C1_DAY_TYPE_BASELINE_V1.md` (status), `PRE_BETA_SCOPE_DECISION_V1.md` §10. The 2026-10-03 table below is kept as the record of the V2 deploy.
+
+### Earlier record: the V2 deploy (recorded 2026-10-03, owner-reported)
 
 V2 decision support is merged and deployed to production.
 
