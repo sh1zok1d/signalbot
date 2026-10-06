@@ -92,3 +92,80 @@ def test_the_approach_of_a_personal_level_fires_once_within_the_hours_typical_mo
     assert detect_price_approaches([{**a, "price": 66000.0}], block=blk, now=T) == []           # still far
     assert detect_price_approaches([a], block={**blk, "price": 65100.0}, now=T) == []           # already through
     assert detect_price_approaches([a], block={**blk, "corridor": {"horizons": {}}}, now=T) == []   # no typical move
+
+
+def _brief_rows(user, start, end, step=timedelta(minutes=1), max_delay=timedelta(minutes=30)):
+    """Every briefing row a notifier running every `step` would create for one participant."""
+    from beta.delivery import brief_due
+    u, rows, now = dict(user), [], start
+    while now < end:
+        due = brief_due(now, u, "08:00", max_delay)
+        if due is not None:
+            rows.append(due)
+            u["last_brief_date"] = due[0]
+        now += step
+    return rows
+
+
+def _utc(*a):
+    return datetime(*a, tzinfo=UTC)
+
+
+def test_the_briefing_is_neither_doubled_nor_lost_when_kyiv_goes_to_winter_time():
+    """Owner requirement for package 4: Kyiv leaves summer time on 2026-10-25 (04:00 EEST → 03:00 EET, at
+    01:00 UTC). Every participant gets one briefing per local date at their own slot; a slot inside the
+    repeated hour comes once, at its first occurrence."""
+    start, end = _utc(2026, 10, 23, 21, 0), _utc(2026, 10, 27, 0, 0)
+    days = ["2026-10-24", "2026-10-25", "2026-10-26"]
+    cases = [
+        ({"brief_time": None, "tz": None},                     # 08:00 Kyiv
+         [_utc(2026, 10, 24, 5, 0), _utc(2026, 10, 25, 6, 0), _utc(2026, 10, 26, 6, 0)]),
+        ({"brief_time": "03:30", "tz": None},                  # inside the repeated hour on the 25th
+         [_utc(2026, 10, 24, 0, 30), _utc(2026, 10, 25, 0, 30), _utc(2026, 10, 26, 1, 30)]),
+        ({"brief_time": "04:00", "tz": None},                  # the first minute after the switch
+         [_utc(2026, 10, 24, 1, 0), _utc(2026, 10, 25, 2, 0), _utc(2026, 10, 26, 2, 0)]),
+        ({"brief_time": "07:00", "tz": "UTC+05:30"},           # a fixed half-hour offset: never moves
+         [_utc(2026, 10, 24, 1, 30), _utc(2026, 10, 25, 1, 30), _utc(2026, 10, 26, 1, 30)]),
+        ({"brief_time": "08:00", "tz": "Europe/Warsaw"},       # switches the same night (03:00 CEST → 02:00 CET)
+         [_utc(2026, 10, 24, 6, 0), _utc(2026, 10, 25, 7, 0), _utc(2026, 10, 26, 7, 0)]),
+    ]
+    for user, slots in cases:
+        rows = _brief_rows(user, start, end)
+        assert [d.isoformat() for d, _ in rows] == days, user
+        assert [at for _, at in rows] == slots, user
+    # a notifier every 5 minutes, or one down through the whole repeated hour, gives the same rows
+    for user, slots in cases:
+        assert [at for _, at in _brief_rows(user, start, end, step=timedelta(minutes=5))] == slots, user
+    # a notifier down from 00:30 to 01:01 UTC: the 03:30 slot was 31 minutes ago, too late, and the second
+    # 03:30 on the clock (01:30 UTC) is never a slot of its own
+    late = _brief_rows({"brief_time": "03:30", "tz": None}, _utc(2026, 10, 25, 1, 1), _utc(2026, 10, 25, 3, 0))
+    assert late == []
+
+
+def test_quiet_hours_follow_the_participants_wall_clock_across_the_switch():
+    """23:00–07:00 on the wall clock: the night of 24→25.10 is nine UTC hours in Kyiv, the next one eight;
+    a +05:30 participant's night never moves."""
+    from beta.config import BetaConfig
+    from beta.detector import in_quiet_hours, quiet_for_all
+    cfg = BetaConfig.load()
+    assert tuple(cfg.quiet_hours_kyiv) == ("23:00", "07:00")
+
+    def quiet_minutes(tz, start, end):
+        n, now = 0, start
+        while now < end:
+            n += in_quiet_hours(cfg, now, tz)
+            now += timedelta(minutes=1)
+        return n
+    assert quiet_minutes(None, _utc(2026, 10, 24, 12, 0), _utc(2026, 10, 25, 12, 0)) == 9 * 60
+    assert quiet_minutes(None, _utc(2026, 10, 25, 12, 0), _utc(2026, 10, 26, 12, 0)) == 8 * 60
+    assert quiet_minutes("UTC+05:30", _utc(2026, 10, 24, 12, 0), _utc(2026, 10, 25, 12, 0)) == 8 * 60
+    edges = [(_utc(2026, 10, 24, 19, 59), False), (_utc(2026, 10, 24, 20, 0), True),    # 23:00 EEST
+             (_utc(2026, 10, 25, 0, 30), True), (_utc(2026, 10, 25, 1, 30), True),     # 03:30 twice
+             (_utc(2026, 10, 25, 4, 59), True), (_utc(2026, 10, 25, 5, 0), False),     # 07:00 EET
+             (_utc(2026, 10, 25, 20, 59), False), (_utc(2026, 10, 25, 21, 0), True)]   # 23:00 EET
+    assert [in_quiet_hours(cfg, ts) for ts, _ in edges] == [q for _, q in edges]
+    assert in_quiet_hours(cfg, _utc(2026, 10, 25, 17, 30), "UTC+05:30")                 # 23:00 there
+    assert not in_quiet_hours(cfg, _utc(2026, 10, 25, 1, 30), "UTC+05:30")             # 07:00 there
+    # a decision at 04:30 UTC on the 25th: night in Kyiv (06:30 EET), morning at +05:30 (10:00)
+    ts = _utc(2026, 10, 25, 4, 30)
+    assert quiet_for_all(cfg, ts, [None]) and not quiet_for_all(cfg, ts, [None, "UTC+05:30"])

@@ -490,20 +490,35 @@ def _push_analogue(analogues, gate) -> Optional[dict]:
 
 def brief_slot(now: datetime, time_kyiv: str, tz: Optional[str] = None):
     """(local date, UTC instant) of today's briefing slot on the participant's clock (Kyiv when `tz` is
-    None; backlog C5 / E3), or None before it."""
+    None; backlog C5 / E3), or None before it. Instants are compared, never wall clocks: on the night
+    the clock goes back a slot inside the repeated hour is its first occurrence, and a slot that does
+    not exist (the hour skipped in spring) comes at the same moment one hour later on the clock."""
     from datetime import time as dtime
     from .i18n import tz_of
     zone = tz_of(tz)
     local = now.astimezone(zone)
     hh, mm = int(time_kyiv[:2]), int(time_kyiv[3:])
-    slot = datetime.combine(local.date(), dtime(hh, mm), tzinfo=zone)
-    if local < slot:
+    slot = datetime.combine(local.date(), dtime(hh, mm), tzinfo=zone).astimezone(timezone.utc)
+    if now < slot:
         return None
     return local.date(), slot.astimezone(now.tzinfo)
 
 
+def brief_due(now: datetime, user: Mapping[str, Any], default_time: str, max_delay: timedelta):
+    """(local date, UTC slot) when this participant's briefing is due in a run at `now`, else None: their
+    slot on their clock has come, at most `max_delay` ago, and their local date has no briefing row yet
+    (`last_brief_date`). One row per local date, whatever the clock does in between."""
+    slot = brief_slot(now, user.get("brief_time") or default_time, user.get("tz"))
+    if slot is None or now - slot[1] > max_delay:
+        return None
+    if user.get("last_brief_date") is not None and user["last_brief_date"] >= slot[0]:
+        return None
+    return slot
+
+
 def brief_withdrawal_dates(briefing: Mapping[str, Any]) -> frozenset:
-    """The U1a withdrawal days (Kyiv dates), the same for every participant.
+    """The U1a withdrawal days: calendar dates, the same for every participant, each matched against the
+    participant's own briefing date (their local date, backlog C5 / E3), not against Kyiv's.
 
     Frozen before Day 0 (BETA_MEASUREMENT_CONTRACT_V1 §6): `count` weekdays drawn with
     `seed` from cohort days first..last (Day 0 = cohort day 0). Only `day0_kyiv` is filled
@@ -544,12 +559,9 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
     due = []
     if b["enabled"] and push_on:
         for u in await conn.brief_candidates():
-            slot = brief_slot(now, u.get("brief_time") or b["time_kyiv"], u.get("tz"))
-            if slot is None or now - slot[1] > max_delay:
-                continue
-            if u.get("last_brief_date") is not None and u["last_brief_date"] >= slot[0]:
-                continue                                    # this local day already has its row
-            due.append((u["user_pk"], slot))
+            slot = brief_due(now, u, b["time_kyiv"], max_delay)
+            if slot is not None:
+                due.append((u["user_pk"], slot))
     if due:
         view = await build_view(conn, cfg, now=now, kind="brief", window_hours=BRIEF_WINDOW_HOURS,
                                 maturity_days=maturity_days(cfg),
