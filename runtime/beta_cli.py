@@ -19,9 +19,11 @@ schema/revision/instrument bootstrap reuses the shadow CLI helpers unchanged.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import math
 import os
+import signal
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -33,9 +35,9 @@ BETA_COMMAND_FLAGS = ("beta_bootstrap", "beta_once", "beta_status", "beta_outcom
                       "beta_notify_once", "beta_health", "beta_usage_report",
                       "beta_d7_once", "beta_d7_backfill", "beta_context_dry_run", "beta_c1_replay",
                       "beta_history_sync", "beta_history_build", "beta_bootstrap_rewind",
-                      "beta_feeds_once", "beta_stress_once", "beta_claims_report")
+                      "beta_feeds_once", "beta_stress_once", "beta_claims_report", "beta_hypotheses_export")
 READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report", "beta_context_dry_run", "beta_c1_replay",
-                      "beta_claims_report")
+                      "beta_claims_report", "beta_hypotheses_export")
 
 
 # A feed job refused to run: its schema, columns, checks or grants are missing, or it is connected
@@ -86,6 +88,8 @@ def add_beta_arguments(parser) -> None:
                    help="Beta: check the last completed hours for DH3-S stress hours (public aggTrades).")
     g.add_argument("--beta-claims-report", action="store_true",
                    help="Beta: READ-ONLY claim journal report per cohort (docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md).")
+    g.add_argument("--beta-hypotheses-export", action="store_true",
+                   help="Beta: READ-ONLY export of the /hypotheses blind reviews (the bot-side exposure ledger).")
     parser.add_argument("--history-max-objects", type=int, default=None,
                         help="Bound one --beta-history-sync run to N archive objects (default: all).")
     parser.add_argument("--beta-bucket-ts", default=None,
@@ -303,6 +307,13 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
             since = clock() - timedelta(days=max(1, int(args.claims_days)))
             return {"status": "OK", "since": since.isoformat(),
                     "claims": claims_report(await conn.fetch_claim_cohort(since=since))}
+    if args.beta_hypotheses_export:
+        store = db.beta_store()
+        async with store.connect() as conn:
+            if not await conn.schema_present():
+                return {"status": "NOT_INITIALIZED"}
+            from beta.signatures import export_reviews
+            return {"status": "OK", "reviews": export_reviews(await conn.hypothesis_reviews())}
     if args.beta_status or args.beta_health or args.beta_usage_report:
         store = db.beta_store()
         async with store.connect() as conn:
@@ -357,8 +368,22 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
             from runtime.beta_bot import BetaTelegramSender
             sender = BetaTelegramSender(secrets.bot_token)
         from beta.delivery import run_notify_once
-        return await run_notify_once(db.beta_store(), cfg, switches, sender=sender, clock=clock,
-                                     owner_user_id=secrets.owner_user_id)
+        # A5: SIGTERM (systemd stopping the unit) lets the send in flight finish and starts no other,
+        # so the rest stays PENDING for the next run instead of SENDING -> DELIVERY_UNKNOWN
+        stop = asyncio.Event()
+        loop = asyncio.get_running_loop()
+        try:
+            loop.add_signal_handler(signal.SIGTERM, stop.set)
+        except (NotImplementedError, RuntimeError, ValueError):     # not the main thread / no signals
+            pass
+        try:
+            return await run_notify_once(db.beta_store(), cfg, switches, sender=sender, clock=clock,
+                                         owner_user_id=secrets.owner_user_id, stop=stop)
+        finally:
+            try:
+                loop.remove_signal_handler(signal.SIGTERM)
+            except (NotImplementedError, RuntimeError, ValueError):
+                pass
 
     if getattr(args, "beta_history_sync", False) or getattr(args, "beta_history_build", False) \
             or getattr(args, "beta_bootstrap_rewind", False):

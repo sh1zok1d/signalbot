@@ -5,16 +5,26 @@ PENDING -> SENDING and COMMIT, (3) exactly one Telegram call -> SENT / FAILED
 (explicit rejection) / DELIVERY_UNKNOWN (ambiguous). On startup any row still in
 SENDING (a crashed run) becomes DELIVERY_UNKNOWN and is NEVER resent. Old events
 past the TTL become EXPIRED_UNDELIVERED; they stay visible in history.
+
+Sending discipline (backlog A5, `SendPacer` / `send_one`): Telegram's flood control
+(RetryAfter) is not a final FAILED — the row goes back to PENDING and the run stops
+sending; sends are spaced by `notifications.send_interval_ms`; no send starts after
+`notifications.send_budget_s` of the run or after a stop request (SIGTERM), so a stopped
+notifier leaves PENDING rows for the next run instead of SENDING rows that would become
+DELIVERY_UNKNOWN. One failed recipient never blocks the others.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Protocol, Sequence
 
 from .admin import collect_health, fingerprint
 from .config import BetaConfig, BetaSwitches, effective_push_enabled
 from .formatter import format_owner_alert, format_push
+from .latency import class_summary, latency_field
 from .models import (BRIEF_WITHDRAWAL, D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED,
                      D_UNKNOWN, DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE)
 
@@ -32,6 +42,100 @@ class DeliveryAmbiguous(RuntimeError):
     """The send outcome is unknown (timeout / network) — never resend."""
 
 
+class DeliveryThrottled(DeliveryRejected):
+    """Telegram's flood control (RetryAfter): the message was not delivered and may be sent
+    again after `retry_after_s`. A caller without `send_one` records it as FAILED (never sent)."""
+
+    def __init__(self, retry_after_s: float, message: str = ""):
+        super().__init__(message or f"RetryAfter {retry_after_s:.0f}s")
+        self.retry_after_s = float(retry_after_s)
+
+
+# send_one outcomes
+SENT, FAILED, UNKNOWN, THROTTLED, DEFERRED, RACED = "SENT", "FAILED", "UNKNOWN", "THROTTLED", "DEFERRED", "RACED"
+
+
+class SendPacer:
+    """One notifier run's sending discipline (backlog A5). At most one send per `interval_s`
+    (Telegram allows about 30 messages a second per bot); no new send once `budget_s` of the
+    run has passed (systemd stops the unit at 50 s: a send cut off there could only become
+    DELIVERY_UNKNOWN), once `stop` is set (SIGTERM), or once Telegram answered RetryAfter.
+    A row it holds back stays PENDING for the next run, under the same TTL."""
+
+    def __init__(self, *, interval_s: float = 0.0, budget_s: Optional[float] = None,
+                 stop: Optional[asyncio.Event] = None, monotonic=time.monotonic, sleep=asyncio.sleep):
+        self.interval_s, self.budget_s, self.stop = float(interval_s), budget_s, stop
+        self._mono, self._sleep = monotonic, sleep
+        self._t0, self._last = monotonic(), None
+        self.closed: Optional[str] = None          # THROTTLED | STOPPING | BUDGET
+        self.retry_after_s: Optional[float] = None
+        self.deferred = 0
+
+    @classmethod
+    def from_config(cls, cfg: BetaConfig, *, stop: Optional[asyncio.Event] = None) -> "SendPacer":
+        n = cfg["notifications"]
+        return cls(interval_s=int(n["send_interval_ms"]) / 1000.0, budget_s=float(n["send_budget_s"]), stop=stop)
+
+    def is_open(self) -> bool:
+        if self.closed is None:
+            if self.stop is not None and self.stop.is_set():
+                self.closed = "STOPPING"
+            elif self.budget_s is not None and self._mono() - self._t0 >= self.budget_s:
+                self.closed = "BUDGET"
+        return self.closed is None
+
+    async def pace(self) -> None:
+        if self._last is not None and self.interval_s > 0:
+            wait = self.interval_s - (self._mono() - self._last)
+            if wait > 0:
+                await self._sleep(wait)
+        self._last = self._mono()
+
+    def throttle(self, retry_after_s: float) -> None:
+        self.closed, self.retry_after_s = "THROTTLED", retry_after_s
+
+    def report(self) -> dict:
+        return {"send_stop": self.closed, "deferred": self.deferred, "retry_after_s": self.retry_after_s}
+
+
+async def send_one(conn, sender, pacer: SendPacer, delivery_id: int, *, chat_id: int, html: str,
+                   buttons=None, clock) -> tuple:
+    """One outbox send: PENDING -> SENDING (committed) -> one API call -> SENT / FAILED /
+    DELIVERY_UNKNOWN; flood control puts the row back to PENDING and closes the pacer; a closed
+    pacer leaves the row untouched. Returns (outcome, message_id, sent_at)."""
+    if not pacer.is_open():
+        pacer.deferred += 1
+        return DEFERRED, None, None
+    await pacer.pace()
+    if not await conn.transition_delivery(delivery_id, from_state=D_PENDING, to_state=D_SENDING, now=clock()):
+        return RACED, None, None
+    try:
+        message_id = await sender.send(chat_id=chat_id, html=html, buttons=buttons)
+    except DeliveryThrottled as exc:
+        await conn.requeue_delivery(delivery_id, error_summary=str(exc)[:300])
+        pacer.throttle(exc.retry_after_s)
+        return THROTTLED, None, None
+    except DeliveryRejected as exc:
+        await conn.transition_delivery(delivery_id, from_state=D_SENDING, to_state=D_FAILED, now=clock(),
+                                       error_summary=str(exc)[:300])
+        return FAILED, None, None
+    except Exception as exc:  # noqa: BLE001 - ambiguous: never resend
+        await conn.transition_delivery(delivery_id, from_state=D_SENDING, to_state=D_UNKNOWN, now=clock(),
+                                       error_summary=type(exc).__name__)
+        return UNKNOWN, None, None
+    sent_at = clock()
+    await conn.transition_delivery(delivery_id, from_state=D_SENDING, to_state=D_SENT, now=sent_at,
+                                   message_id=int(message_id))
+    return SENT, int(message_id), sent_at
+
+
+def count_outcome(report: dict, outcome: str) -> None:
+    """The run report's counters for a non-SENT outcome (SENT is counted by the caller)."""
+    key = {FAILED: "failed", UNKNOWN: "unknown", THROTTLED: "throttled"}.get(outcome)
+    if key:
+        report[key] = report.get(key, 0) + 1
+
+
 class BetaSender(Protocol):
     async def send(self, *, chat_id: int, html: str,
                    buttons: Optional[Sequence[Sequence[tuple]]] = None) -> int: ...
@@ -43,11 +147,13 @@ def feedback_buttons(public_id: str, lang: str = "ru") -> list:
 
 
 async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sender: Optional[BetaSender],
-                          clock, owner_user_id: Optional[int] = None, logger=None) -> dict:
+                          clock, owner_user_id: Optional[int] = None, logger=None,
+                          stop: Optional[asyncio.Event] = None, pacer: Optional[SendPacer] = None) -> dict:
     from storage.beta_v0_store import NOTIFIER_LOCK_KEY
     report = {"recovered_unknown": 0, "materialized": 0, "sent": 0, "failed": 0, "unknown": 0,
-              "expired": 0, "suppressed": 0, "purged_users": 0, "purged_activity": 0,
+              "throttled": 0, "expired": 0, "suppressed": 0, "purged_users": 0, "purged_activity": 0,
               "purged_feedback_messages": 0, "purged_rejected_starts": 0, "owner_alerts": []}
+    pacer = pacer if pacer is not None else SendPacer.from_config(cfg, stop=stop)
     if not switches.enabled:
         return {"status": "DISABLED", "switches": switches.as_dict()}
     if not switches.telegram:
@@ -81,6 +187,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             push_on = effective_push_enabled(switches, await conn.get_admin_push_enabled())
             episodes: dict = {}
             analogues, since_year = await _analogue_source(conn, now)
+            lat_summary = None
             for row in await conn.fetch_pending_deliveries(cfg["notifications"]["max_deliveries_per_run"]):
                 now = clock()
                 did = row["delivery_id"]
@@ -108,41 +215,33 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 if ep is None:
                     ep = episodes[row["episode_pk"]] = await conn.fetch_episode_by_pk(row["episode_pk"])
                 lang = row.get("user_lang") or "ru"
+                if lat_summary is None:
+                    lat_summary = await class_summary(conn, now)
                 text = format_push(ep, lang=lang, gate=row.get("gate"),
-                                   analog=_push_analogue(analogues, row.get("gate")), since_year=since_year)
+                                   analog=_push_analogue(analogues, row.get("gate")), since_year=since_year,
+                                   latency=latency_field("push", row["decision_ts"], now, lat_summary))
                 # (2) commit PENDING -> SENDING before the single API call
-                if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
+                outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
+                                                        buttons=feedback_buttons(ep.public_id, lang), clock=clock)
+                if outcome != SENT:
+                    count_outcome(report, outcome)
                     continue
-                try:
-                    message_id = await sender.send(chat_id=row["chat_id"], html=text,
-                                                   buttons=feedback_buttons(ep.public_id, lang))
-                except DeliveryRejected as exc:
-                    await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_FAILED,
-                                                   now=clock(), error_summary=str(exc)[:300])
-                    report["failed"] += 1
-                    continue
-                except Exception as exc:  # noqa: BLE001 - ambiguous: never resend
-                    await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_UNKNOWN, now=clock(),
-                                                   error_summary=type(exc).__name__)
-                    report["unknown"] += 1
-                    continue
-                sent_at = clock()
-                await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_SENT, now=sent_at,
-                                               message_id=int(message_id))
                 if row.get("user_pk") is not None:
                     await conn.record_activity(user_pk=row["user_pk"], action="push_delivered",
                                                lang=lang, at=sent_at)
                 report["sent"] += 1
             try:
                 from .market_alerts import run_market_alerts
-                report["market"] = await run_market_alerts(conn, cfg, sender=sender, clock=clock, push_on=push_on)
+                report["market"] = await run_market_alerts(conn, cfg, sender=sender, clock=clock, push_on=push_on,
+                                                           pacer=pacer)
             except Exception as exc:  # noqa: BLE001 - decision support never stops the outbox
                 report["market_error"] = type(exc).__name__
-            report["briefs"] = await run_due_briefs(conn, cfg, sender=sender, clock=clock, push_on=push_on)
+            report["briefs"] = await run_due_briefs(conn, cfg, sender=sender, clock=clock, push_on=push_on,
+                                                    pacer=pacer)
             try:
                 from .weekly import run_due_weekly
                 report["weekly"] = await run_due_weekly(conn, cfg, sender=sender, clock=clock, push_on=push_on,
-                                                        owner_user_id=owner_user_id)
+                                                        owner_user_id=owner_user_id, pacer=pacer)
             except Exception as exc:  # noqa: BLE001 - the weekly report never stops the outbox
                 report["weekly_error"] = type(exc).__name__
             # this run is itself the notifier heartbeat (recorded before evaluating alerts)
@@ -164,9 +263,39 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                         report["owner_alerts"] = [a["key"] for a in due]
                     except Exception as exc:  # noqa: BLE001
                         report["owner_alert_error"] = type(exc).__name__
+            report.update(pacer.report())
             await conn.record_health("notifier", now=clock(), success=True,
                                      detail={k: v for k, v in report.items() if isinstance(v, int)})
+    report["deadman_ping"] = await deadman_ping()
     return {"status": "OK", **report}
+
+
+DEADMAN_PING_ENV = "BETA_DEADMAN_PING_URL"
+
+
+async def deadman_ping(url: Optional[str] = None, *, timeout_s: float = 5.0) -> str:
+    """A3: after every complete notifier run, ping an external check (for example a healthchecks.io
+    URL in `.env`). When the VPS, the database or this timer stops, the pings stop and the external
+    service alerts the owner, which nothing on the box can do. Optional; the URL is never logged."""
+    import os
+    url = url if url is not None else os.environ.get(DEADMAN_PING_ENV, "").strip()
+    if not url:
+        return "OFF"
+    if not url.startswith("https://"):
+        return "REFUSED_NOT_HTTPS"
+
+    def _get() -> int:
+        import urllib.request
+        with urllib.request.urlopen(url, timeout=timeout_s) as r:     # noqa: S310 - https only, owner-set
+            return int(r.status)
+    try:
+        import asyncio
+        status = await asyncio.to_thread(_get)
+    except Exception as exc:  # noqa: BLE001 - a failed ping is the external check's signal, not ours
+        import logging
+        logging.getLogger("beta.delivery").warning("dead-man ping failed: %s", type(exc).__name__)
+        return "FAILED"
+    return "OK" if 200 <= status < 300 else "FAILED"
 
 
 async def _analogue_source(conn, now: datetime) -> tuple:
@@ -221,7 +350,8 @@ def brief_withdrawal_dates(briefing: Mapping[str, Any]) -> frozenset:
     return frozenset(random.Random(int(w["seed"])).sample(weekdays, int(w["count"])))
 
 
-async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender], clock, push_on: bool) -> dict:
+async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender], clock, push_on: bool,
+                         pacer: Optional[SendPacer] = None) -> dict:
     """The morning briefing inside the existing notifier cycle and outbox.
 
     Once per Kyiv day after `briefing.time_kyiv`: build ONE shared view (kind
@@ -234,7 +364,9 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
     from .market_view import BRIEF_WINDOW_HOURS, build_view, maturity_days, persist_view
     from .config import effective_d7_enabled
     b = cfg.section("briefing")
-    out = {"scheduled": 0, "sent": 0, "failed": 0, "unknown": 0, "expired": 0, "suppressed": 0, "withheld": 0}
+    out = {"scheduled": 0, "sent": 0, "failed": 0, "unknown": 0, "throttled": 0, "expired": 0, "suppressed": 0,
+           "withheld": 0}
+    pacer = pacer if pacer is not None else SendPacer()
     max_delay = timedelta(minutes=int(b["max_delay_min"]))
     withdrawn = brief_withdrawal_dates(b)
     now = clock()
@@ -288,24 +420,11 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
         lang = row.get("user_lang") or "ru"
         text = format_catchup(cfg, payload, lang, push_enabled=bool(row.get("push_enabled", True)),
                               first_brief=bool(row.get("first_brief", False)))
-        if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
+        outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
+                                                buttons=btc_buttons(payload, lang, row["view_pk"]), clock=clock)
+        if outcome != SENT:
+            count_outcome(out, outcome)
             continue
-        try:
-            message_id = await sender.send(chat_id=row["chat_id"], html=text,
-                                           buttons=btc_buttons(payload, lang, row["view_pk"]))
-        except DeliveryRejected as exc:
-            await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_FAILED, now=clock(),
-                                           error_summary=str(exc)[:300])
-            out["failed"] += 1
-            continue
-        except Exception as exc:  # noqa: BLE001 - ambiguous: never resend
-            await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_UNKNOWN, now=clock(),
-                                           error_summary=type(exc).__name__)
-            out["unknown"] += 1
-            continue
-        sent_at = clock()
-        await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_SENT, now=sent_at,
-                                       message_id=int(message_id))
         if row.get("user_pk") is not None:
             await conn.record_activity(user_pk=row["user_pk"], action="brief_delivered", lang=lang, at=sent_at)
         out["sent"] += 1

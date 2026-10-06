@@ -1266,11 +1266,12 @@ PUSH_MAX_LINES = 8
 
 def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang: str = "en",
                 gate: Optional[Mapping[str, Any]] = None, analog: Optional[Mapping[str, Any]] = None,
-                since_year: Optional[int] = None) -> str:
+                since_year: Optional[int] = None, latency: Optional[Mapping[str, Any]] = None) -> str:
     """The unusual-hour push (BETA_COPY_CONTRACT_V1 §1.2): the 1h state around the
     TRIGGERED episode, never the detector name, never an id. At most 8 non-empty
     lines. `gate` is the push decision's stored hour gate; without it only the hour
-    and the time are known."""
+    and the time are known. `latency` is the measured delay field (`beta.latency.latency_field`,
+    backlog A4); its line is drawn by the template work of F1, not here."""
     gate = gate or {}
     values = gate.get("values") or {}
     when = episode.triggered_at

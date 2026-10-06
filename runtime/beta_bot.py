@@ -22,7 +22,7 @@ from typing import Any, Callable, Mapping, Optional, Sequence
 from beta.access import PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
 from beta.admin import collect_status, fingerprint, handle_admin, is_owner, owner_parts, parse_command
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
-from beta.delivery import DeliveryAmbiguous, DeliveryRejected
+from beta.delivery import DeliveryAmbiguous, DeliveryRejected, DeliveryThrottled
 from beta.formatter import PUSH_BTC_ACTION, assert_descriptive, format_history
 from beta.i18n import fmt_price, t
 from beta.market_view import build_view, parse_catchup_hours, persist_view
@@ -60,7 +60,10 @@ class BetaTelegramSender(TelegramSender):
         try:
             msg = await bot.send_message(chat_id=chat_id, text=html, parse_mode="HTML",
                                          reply_markup=markup)
-        except (BadRequest, Forbidden, RetryAfter, InvalidToken, ChatMigrated) as exc:
+        except RetryAfter as exc:
+            # flood control: not delivered and safe to send again later (A5), never a final FAILED
+            raise DeliveryThrottled(retry_after_seconds(exc)) from exc
+        except (BadRequest, Forbidden, InvalidToken, ChatMigrated) as exc:
             # Explicit API rejections (NB: BadRequest subclasses NetworkError in PTB,
             # so it must be matched first) — the message was NOT delivered.
             raise DeliveryRejected(sanitize_telegram_error(exc, token=self._token,
@@ -103,6 +106,17 @@ class BetaTelegramSender(TelegramSender):
         updates = await self._ensure_bot().get_updates(
             offset=offset, timeout=timeout, allowed_updates=["message", "callback_query"])
         return [u.to_dict() for u in updates]
+
+
+def retry_after_seconds(exc) -> float:
+    """RetryAfter.retry_after is an int in PTB 20/21 and a timedelta in later versions."""
+    ra = getattr(exc, "retry_after", None)
+    if hasattr(ra, "total_seconds"):
+        return float(ra.total_seconds())
+    try:
+        return float(ra)
+    except (TypeError, ValueError):
+        return 1.0
 
 
 def _msg(chat_id: int, text: str, buttons=None, lang: str = "ru") -> Outgoing:
@@ -177,6 +191,14 @@ class BetaBotHandler:
         uid, chat_id = int(m["from"]["id"]), int(m["chat"]["id"])
         cmd, args = parse_command(m.get("text"))
         now = self.clock()
+        if cmd in ("hypotheses", "pin"):
+            # owner-only signature index (PRE_BETA_SCOPE_DECISION_V1 §7): anyone else gets the unknown-command reply
+            if not is_owner(self.owner, uid):
+                return [_msg(chat_id, t("ru", "unknown_cmd"), lang="ru")]
+            from beta.signatures import handle_owner_command
+            reply = await handle_owner_command(conn, cmd, args, now=now)
+            return [Outgoing(kind="message", chat_id=chat_id, html=f"<pre>{html.escape(part, quote=False)}</pre>")
+                    for part in owner_parts(reply)]
         if cmd and cmd.startswith("admin_"):
             res = await handle_admin(conn, self.cfg, self.switches(), owner_user_id=self.owner,
                                      actor_user_id=uid, command=cmd, args=args, now=now,
@@ -736,6 +758,7 @@ async def run_bot_service(*, store, cfg: BetaConfig, switches: Callable[[], Beta
         logger.warning("beta bot username unavailable: %s", type(exc).__name__)
     handler = BetaBotHandler(store, cfg, switches=switches, owner_user_id=owner_user_id,
                              clock=lambda: datetime.now(timezone.utc), bot_username=username)
+    started_at = datetime.now(timezone.utc)
     async with store.advisory_lock(BOT_LOCK_KEY) as acquired:
         if not acquired:
             raise RuntimeError("another beta bot poller holds the lock")
@@ -761,6 +784,31 @@ async def run_bot_service(*, store, cfg: BetaConfig, switches: Callable[[], Beta
             async with store.connect() as conn:
                 await conn.record_health("bot", now=datetime.now(timezone.utc), success=ok,
                                          detail={"updates": len(updates)})
+                await _notifier_deadman(conn, sender, cfg, switches(), owner_user_id, started_at=started_at)
+
+
+async def _notifier_deadman(conn, sender, cfg: BetaConfig, switches: BetaSwitches, owner_user_id: Optional[int], *,
+                            started_at: datetime, now: Optional[datetime] = None) -> bool:
+    """The notifier's dead-man switch, run from this process (A3). True when the owner was alerted."""
+    from beta.formatter import format_owner_alert
+    from beta.health import NOTIFIER_DEADMAN, notifier_deadman_due
+    if owner_user_id is None or not (switches.enabled and getattr(switches, "telegram", True)):
+        return False
+    now = now or datetime.now(timezone.utc)
+    h = cfg.section("health")
+    runtime = await conn.fetch_health()
+    if not notifier_deadman_due(runtime, now=now, stall_s=int(h["notifier_stall_s"]),
+                                repeat_s=int(h["owner_alert_repeat_s"]), watcher_started_at=started_at):
+        return False
+    last = (runtime.get("notifier") or {}).get("last_success_at")
+    try:
+        await sender.send(chat_id=int(owner_user_id), html=format_owner_alert(
+            [{"key": NOTIFIER_DEADMAN, "detail": {"notifier_last_success": last.isoformat() if last else None}}]))
+    except Exception as exc:  # noqa: BLE001 - tried again on the next poll
+        logger.warning("dead-man owner alert failed: %s", type(exc).__name__)
+        return False
+    await conn.record_health(f"owner_alert:{NOTIFIER_DEADMAN}", now=now, success=True)
+    return True
 
 
 def main() -> None:   # systemd entry point: python -m runtime.beta_bot

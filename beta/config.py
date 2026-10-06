@@ -60,12 +60,14 @@ _TOP_KEYS = frozenset({
     "horizon_changes", "access", "telemetry", "feedback", "regime_d7", "briefing",
     "push_policy", "decision",
 })
+# deploy/signalbot-beta-notify.service TimeoutStartSec: no send may start after the budget (A5)
+NOTIFY_UNIT_TIMEOUT_S = 50
 _SECTION_KEYS = {
     "detector": {"max_catchup_buckets_per_run"},
     "bootstrap": {"lookback_days", "max_buckets_per_run"},
     "ingestion": {"heartbeat_max_age_s", "min_healthy_venues"},
     "outcomes": {"max_jobs_per_run", "incomplete_after_h", "recheck_window_h"},
-    "notifications": {"max_deliveries_per_run"},
+    "notifications": {"max_deliveries_per_run", "send_interval_ms", "send_budget_s"},
     "privacy": {"stopped_user_retention_days"},
     "health": {"detector_stall_s", "outcome_stall_s", "bot_stall_s", "notifier_stall_s",
                "delivery_problem_window_s", "delivery_problem_threshold",
@@ -123,7 +125,7 @@ _REGIME_D7_KEYS = {"enabled"}
 _PUSH_POLICY_KEYS = {"quiet_hours_kyiv", "global_cooldown_min"}
 # PRODUCT_DECISION_V2: decision support. Presentation and market-alert policy only.
 _DECISION_KEYS = {"max_price_alerts", "forecast_tracking", "claim_journal", "market_alerts", "research_evidence",
-                  "weekly_report"}
+                  "weekly_report", "signature_index"}
 # Weekly report (backlog B4). Presentation and delivery only.
 _WEEKLY_REPORT_KEYS = {"enabled", "weekday_kyiv", "time_kyiv", "max_delay_min"}
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -326,6 +328,9 @@ def _validate(d: Mapping[str, Any]) -> None:
         _exact_keys(d[section], keys, section)
         for k in keys:
             _int(d[section][k], f"{section}.{k}")
+    if d["notifications"]["send_budget_s"] > NOTIFY_UNIT_TIMEOUT_S - 10:
+        raise BetaConfigError(f"notifications.send_budget_s must leave 10 s before the notifier unit's "
+                              f"{NOTIFY_UNIT_TIMEOUT_S} s timeout")
     if d["bootstrap"]["lookback_days"] > 30:
         raise BetaConfigError("bootstrap.lookback_days must be <= 30 (maximum needed by rules)")
     if d["ingestion"]["min_healthy_venues"] > len(ex):
@@ -369,6 +374,7 @@ def _validate_decision(d: Mapping[str, Any]) -> None:
     _int(x["max_price_alerts"], "decision.max_price_alerts", minimum=1)
     _bool(x["forecast_tracking"], "decision.forecast_tracking")
     _bool(x["claim_journal"], "decision.claim_journal")
+    _bool(x["signature_index"], "decision.signature_index")
     m = x["market_alerts"]
     _exact_keys(m, _MARKET_ALERT_KEYS, "decision.market_alerts")
     _bool(m["enabled"], "decision.market_alerts.enabled")

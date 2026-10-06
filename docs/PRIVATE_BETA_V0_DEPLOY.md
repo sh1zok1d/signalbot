@@ -250,6 +250,15 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
   - **Average funding over 24h.** Beside it, the median of the same 24h mean over the 30 prior days, from the same tape, with N days.
   - **Long/short account ratio.** Binance's, from the research feed (`beta_feed_metrics_5m`), beside the median of the 30 prior days. It is shown only where that feed runs; on production it stays hidden until the feeds are deployed.
   - **Small samples.** Below 20 days a comparator reads «обычно: мало данных (N)». A view stored before this change renders as before.
+- The owner-only signature index `/hypotheses` (`PRE_BETA_SCOPE_DECISION_V1.md` §7; backlog K; `beta/signatures.py`, `decision.signature_index`). It is research tooling with no participant surface.
+  - **What it signs.** The notifier step signs every closed 5m bucket from stored states: 1h/4h labels and range/volume bands, the unusual-hour gate, D7 as of the bucket's close, the liquidation votes, research evidence (the newest bucket only) and the C1 day type. A state it could not read is «?». It needs no new threshold. The index starts at the newest bucket, with no backfill, and catches up at most a day after downtime.
+  - **Tables.** `beta_signature_buckets` (an episode begins at a change or a gap), `beta_hypothesis_reviews` and `beta_hypothesis_pins`, all append-only, with no user id.
+  - **`/hypotheses`** (owner only; anyone else gets the unknown-command reply).
+    - It lists NEW signatures: ≥ 2 tail states, ≥ 3 episodes, ≥ 2 UTC days, with their frequency and N. It never shows what followed.
+    - `/hypotheses research <id> <text>` or `/hypotheses reject <id>` records the blind decision once. «В research» freezes the hypothesis text and the generating window.
+  - **`/pin [note]`** marks the newest signed bucket.
+  - **Export.** `python main.py --beta-hypotheses-export --beta-json` prints the reviews shaped as atlas `exposure:` entries. The atlas itself changes only through a reviewed commit (`python -m scripts.research.atlas.build_atlas`), never from the bot.
+  - **Turning it off:** `decision.signature_index: false`. The tables stay.
 - `/admin_stats` and `--beta-usage-report` end with an owner breakdown (backlog H6; `beta/usage.py::owner_breakdown`), for the last 7 days and since the first external user.
   - **Words.** It uses the measurement contract's: every pull (`/check` included), the inclusive 10-minute window after any delivery, and known and unknown participants apart.
   - **What it counts.**
@@ -373,6 +382,7 @@ Each run appends one `CORRECTION_CHECK` revision, or reports `UNCHANGED`. Nothin
 | `BETA_OUTCOME_TRACKING_ENABLED` | Kill switch for the outcome tracker (restrict-only). |
 | `BETA_TELEGRAM_ENABLED` | `0` selects the no-Telegram shadow-soak mode (below). Default: Telegram is part of the deployment. |
 | `BETA_CODE_VERSION` | Optional explicit beta code version. The default is resolved from the path-scoped git history. |
+| `BETA_DEADMAN_PING_URL` | Optional https URL of an external check (for example healthchecks.io), pinged after every complete notifier run. When the pings stop, that service alerts the owner (see "Owner health alerts"). |
 
 - **Switch precedence:**
   - `BETA_ENABLED`: explicit env value, else committed config.
@@ -423,6 +433,16 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 
 **Stop:** `/admin_pause_push` stops new deliveries at once, without a restart. Pending deliveries are suppressed with `PUSH_DISABLED`. For a hard stop, set `BETA_PUSH_ENABLED=0` and restart the bot and the notify timer.
 
+**Sending discipline (backlog A5; `beta/delivery.py` `SendPacer` / `send_one`).** It applies to every outbox kind (push, alert, brief, weekly):
+- **Flood control.** Telegram's `RetryAfter` is not a final `FAILED`. The row goes back to `PENDING` with `error_summary = "RetryAfter Ns"`, and the run sends nothing more. The next run (one minute later) sends it under the same TTL; a row past its TTL expires as usual and is never sent late.
+- **Pacing.** At most one send per `notifications.send_interval_ms` (50 ms; Telegram allows about 30 messages a second per bot).
+- **Run budget.** No send starts after `notifications.send_budget_s` (35 s) of the run. The unit's `TimeoutStartSec` is 50 s, and the config refuses a budget closer than 10 s to it.
+- **SIGTERM.** On SIGTERM (systemd stopping the unit), the send in flight finishes and no other starts.
+- **Nothing is lost.** In all three stop cases, the rest stays `PENDING` for the next run instead of becoming `SENDING` → `DELIVERY_UNKNOWN`.
+- **One failed recipient never blocks the others.** A rejected send (blocked bot, bad chat) is `FAILED` for that recipient only, and the loop continues.
+- **Run report.** The notifier's JSON report carries `throttled`, `deferred`, `send_stop` (`THROTTLED` / `BUDGET` / `STOPPING` / null) and `retry_after_s`.
+- **Load test.** `tests/beta/test_beta_send_load_pg.py` sends a morning brief to 20 participants through flood control and one blocked participant, and stops a run with the SIGTERM event.
+
 ## Owner health alerts
 
 `--beta-notify-once` evaluates `--beta-health`. When a bot token and owner id are configured, it sends one owner alert per alert key, rate-limited by `health.owner_alert_repeat_s`. The alert keys are:
@@ -432,13 +452,33 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 - `OUTCOME_TRACKER_NOT_ADVANCING`
 - `BOT_RECEIVER_DOWN`
 - `NOTIFIER_NOT_RUNNING`
-- `DELIVERY_FAILURE_SPIKE`
+- `DELIVERY_FAILURE_SPIKE` (FAILED or DELIVERY_UNKNOWN rows of every outbox kind in `health.delivery_problem_window_s`, with the count by kind)
 - `D7_HOUR_STATE_STALE` (only while `regime_d7.enabled` is true, and only when the newest hour state's `available_at` is older than 70 minutes; independent of `/admin_d7_on`)
 - `STAGE1_RECOVERY_NOT_READY` (the detector has waited for Stage-1's startup recovery for at least `health.detector_stall_s`, or proceeded without it as `OVERDUE`; see "Startup recovery" below)
 - `STARTUP_RECOVERY_REPAIR_INCOMPLETE` (the post-recovery repair failed on a bucket or deferred buckets to the next run)
 - `HISTORY_STATS_STALE` (the nightly statistics build has not succeeded for 50 hours, once it has run at least once)
 - `TOUCH_CALIBRATION_DIVERGED` (a live touch-chance bin broke the frozen rule of `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §3; that bin's wording has already fallen back to «исторически в X % случаев»)
 - `NEITHER_CALIBRATION_DIVERGED` (the same for a live «ни один» bin of two levels, `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §7)
+- `BINANCE_STALE` (the newest Binance 1m bar is older than 10 minutes while the other venues keep the ingestion heartbeat healthy: decision support, which reads Binance alone, has gone stale)
+- `HISTORY_BUILD_FAILED` (the last nightly statistics build failed; the previous row stays in use)
+- `HISTORY_SYNC_FAILING` (no successful history sync for 50 hours, once it has run)
+- `FEEDS_FAILING` (no successful research-feed run for 30 minutes, once the feeds have run)
+- `STRESS_HOURS_FAILING` (no successful stress-hour run for 3 hours, once it has run)
+- `FEEDS_DEFINITION_CHECK_FAILED` (the last feed-against-history definition check failed)
+- `NOTIFIER_DEADMAN` (sent by the **bot receiver**, not the notifier: the notifier has not succeeded for `health.notifier_stall_s`, so its own `NOTIFIER_NOT_RUNNING` could not be sent; repeated per `health.owner_alert_repeat_s`)
+
+**Dead-man outside the box.** No process on the VPS can report the VPS, its database or both timers being down. Set `BETA_DEADMAN_PING_URL` in `.env` to an external check (for example a healthchecks.io URL, https only). After every complete notifier run the notifier GETs it within 5 seconds. Configure that check to expect a ping every minute with a grace of about 10 minutes, and to alert the owner when the pings stop. Without the variable nothing is pinged. The URL is never logged.
+
+**Outage notice.** `/admin_outage start` sends the ready «у нас сбой» notice to every ACTIVE participant in their language; `/admin_outage end` sends «сбой устранён». `/admin_outage` alone shows both texts. Each send is audited (`admin_outage`, with the recipient count). Use it when an alert above means participants are seeing stale or missing data.
+
+**Delivery latency (backlog A4; `beta/latency.py`).** `/admin_latency [days]` (default 7, at most 90) reports, per class, how long delivered messages took from the moment their fact existed to delivery (`finished_at` of the SENT row). Each value is a nearest-rank P50, P95 and max with its N, plus detection (source → decision) and sending (decision → delivery) apart. Messages that expired undelivered are counted per class. The source time per class:
+- `level`, `price`: the close of the 1m or 5m bar that touched;
+- `move`: the close of the 5m bar that completed the move;
+- `push`: the close of the 5m bucket the detector decided on;
+- `event`: the moment the pre-alert became due (event time minus `event_lead_min`);
+- `brief`, `weekly`: the scheduled time.
+
+Alerts recorded before A4 carry no source time; they are counted as «no source» and are never guessed. The floor is about 40 seconds after a bar close, because the notifier runs each minute at :40. Every alert and detector push is rendered with a `latency` field: this message's own lag at render time, and the class P50/P95 with N over the last 7 days. The line itself is drawn by the template work (F1).
 
 A DB outage makes every beta command exit with status 2 and report `DB_UNAVAILABLE`. systemd records that as a failed unit.
 

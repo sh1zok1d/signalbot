@@ -787,6 +787,97 @@ class BetaConn:
         return {"ratio": float(now_row["ls_account_ratio"]), "at": now_row["ts"].isoformat(),
                 "typical": med, "n_days": n}
 
+    # ---- owner-only signature index (/hypotheses; beta/signatures.py) ----------------------------
+    async def last_signature_bucket(self, *, version: str) -> Optional[dict]:
+        r = await self.conn.fetchrow(
+            """SELECT bucket_ts, signature_key, sig_id FROM beta_signature_buckets WHERE version=$1
+               ORDER BY bucket_ts DESC LIMIT 1""", version)
+        return None if r is None else dict(r)
+
+    async def context_buckets_after(self, *, symbol: str, episodization_digest: str, after: datetime,
+                                    limit: int) -> list:
+        """Closed buckets after `after`, oldest first: the newest context snapshot of each and its own
+        tape row's rule evaluations (the liquidation votes)."""
+        rows = await self.conn.fetch(
+            """SELECT DISTINCT ON (c.bucket_ts) c.context_pk, c.bucket_ts, c.state,
+                      t.snapshot->'rule_evaluations' AS rules
+               FROM beta_context_snapshots c LEFT JOIN beta_state_tape t ON t.tape_id = c.tape_id
+               WHERE c.symbol=$1 AND c.episodization_digest=$2 AND c.bucket_ts > $3
+               ORDER BY c.bucket_ts, c.recorded_at DESC, c.context_pk DESC LIMIT $4""",
+            symbol, episodization_digest, after, limit)
+        return [{**dict(r), "state": _load(r["state"]),
+                 "rules": _load(r["rules"]) if r["rules"] is not None else None} for r in rows]
+
+    async def d7_states_asof(self, hours: Sequence[datetime]) -> dict:
+        rows = await self.conn.fetch(
+            """SELECT hour_start, state, available_at FROM beta_d7_hour_states
+               WHERE hour_start = ANY($1::timestamptz[])""", list(hours))
+        return {r["hour_start"]: dict(r) for r in rows}
+
+    async def insert_signature_bucket(self, *, bucket_ts: datetime, version: str, key: str, sig_id: str,
+                                      components: Mapping[str, Any], tail_count: int, episode_start: bool,
+                                      context_pk: Optional[int], recorded_at: datetime) -> bool:
+        status = await self.conn.execute(
+            """INSERT INTO beta_signature_buckets (version, bucket_ts, signature_key, sig_id, components,
+                   tail_count, episode_start, context_pk, recorded_at)
+               VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9) ON CONFLICT (version, bucket_ts) DO NOTHING""",
+            version, bucket_ts, key, sig_id, _j(components), tail_count, episode_start, context_pk, recorded_at)
+        return status == "INSERT 0 1"
+
+    async def signature_summary(self, *, version: str) -> dict:
+        r = await self.conn.fetchrow(
+            """SELECT count(*) AS total, count(DISTINCT signature_key) AS signatures, min(bucket_ts) AS first_bucket
+               FROM beta_signature_buckets WHERE version=$1""", version)
+        return dict(r)
+
+    _SIG_STATS = """SELECT signature_key AS key, min(sig_id) AS sig_id, (array_agg(components))[1] AS components,
+                           max(tail_count) AS tail_count, count(*) AS n_buckets,
+                           count(*) FILTER (WHERE episode_start) AS n_episodes,
+                           count(DISTINCT (bucket_ts AT TIME ZONE 'UTC')::date) AS n_days,
+                           min(bucket_ts) AS first_bucket, max(bucket_ts) AS last_bucket
+                    FROM beta_signature_buckets WHERE version=$1 {where} GROUP BY signature_key"""
+
+    async def signature_stats_all(self, *, version: str) -> list:
+        rows = await self.conn.fetch(self._SIG_STATS.format(where=""), version)
+        return [{**dict(r), "components": _load(r["components"])} for r in rows]
+
+    async def signature_stats(self, *, version: str, sig_id: str) -> Optional[dict]:
+        r = await self.conn.fetchrow(self._SIG_STATS.format(where="AND sig_id=$2"), version, sig_id)
+        if r is None:
+            return None
+        total = int(await self.conn.fetchval("SELECT count(*) FROM beta_signature_buckets WHERE version=$1", version))
+        return {**dict(r), "components": _load(r["components"]), "total": total}
+
+    async def insert_hypothesis_review(self, *, version: str, key: str, sig_id: str, components: Mapping[str, Any],
+                                       decision: str, hypothesis: Optional[str], window_from: datetime,
+                                       window_to: datetime, seen: Mapping[str, Any], decided_at: datetime) -> Optional[int]:
+        """None when the signature already has its decision (the first one is frozen)."""
+        return await self.conn.fetchval(
+            """INSERT INTO beta_hypothesis_reviews (version, signature_key, sig_id, components, decision, hypothesis,
+                   window_from, window_to, seen, decided_at)
+               VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9::jsonb,$10)
+               ON CONFLICT (version, signature_key) DO NOTHING RETURNING review_pk""",
+            version, key, sig_id, _j(components), decision, hypothesis, window_from, window_to, _j(seen), decided_at)
+
+    async def hypothesis_reviews(self, *, version: Optional[str] = None) -> list:
+        rows = await self.conn.fetch(
+            """SELECT review_pk, version, signature_key AS key, sig_id, components, decision, hypothesis,
+                      window_from, window_to, seen, decided_at
+               FROM beta_hypothesis_reviews WHERE $1::text IS NULL OR version=$1 ORDER BY review_pk""", version)
+        return [{**dict(r), "components": _load(r["components"]), "seen": _load(r["seen"])} for r in rows]
+
+    async def insert_hypothesis_pin(self, *, bucket_ts: datetime, version: str, key: str, sig_id: str,
+                                    note: Optional[str], pinned_at: datetime) -> int:
+        return await self.conn.fetchval(
+            """INSERT INTO beta_hypothesis_pins (version, bucket_ts, signature_key, sig_id, note, pinned_at)
+               VALUES ($1,$2,$3,$4,$5,$6) RETURNING pin_pk""", version, bucket_ts, key, sig_id, note, pinned_at)
+
+    async def hypothesis_pins(self, *, version: str) -> list:
+        rows = await self.conn.fetch(
+            """SELECT bucket_ts, sig_id, note, pinned_at FROM beta_hypothesis_pins WHERE version=$1
+               ORDER BY pin_pk""", version)
+        return [dict(r) for r in rows]
+
     async def market_alert_counts(self, *, since: datetime, until: datetime) -> dict:
         """Market alerts the policy let through (decision PUSH) by kind; personal alerts excluded."""
         rows = await self.conn.fetch(
@@ -826,11 +917,39 @@ class BetaConn:
             delivery_id, from_state, to_state, suppression_reason, message_id, error_summary, now)
         return status == "UPDATE 1"
 
+    async def requeue_delivery(self, delivery_id: int, *, error_summary: str) -> bool:
+        """SENDING -> PENDING after Telegram's flood control (RetryAfter): the message was not
+        delivered, so the next run may send it, under the same TTL (backlog A5). `sending_at`
+        keeps the refused attempt; `error_summary` says why it waits."""
+        status = await self.conn.execute(
+            """UPDATE beta_notification_deliveries SET state='PENDING', finished_at=NULL, error_summary=$2
+               WHERE delivery_id=$1 AND state='SENDING'""", delivery_id, error_summary)
+        return status == "UPDATE 1"
+
     async def delivery_state_counts(self, *, since: Optional[datetime] = None) -> dict:
         rows = await self.conn.fetch(
             "SELECT state, count(*) AS n FROM beta_notification_deliveries "
             "WHERE kind='push' AND ($1::timestamptz IS NULL OR created_at >= $1) GROUP BY state", since)
         return {r["state"]: int(r["n"]) for r in rows}
+
+    async def delivery_problems_by_kind(self, *, since: datetime) -> dict:
+        """FAILED and DELIVERY_UNKNOWN rows by outbox kind (every kind; the owner's failure spike)."""
+        rows = await self.conn.fetch(
+            """SELECT kind, count(*) AS n FROM beta_notification_deliveries
+               WHERE state IN ('FAILED', 'DELIVERY_UNKNOWN') AND created_at >= $1 GROUP BY kind""", since)
+        return {r["kind"]: int(r["n"]) for r in rows}
+
+    async def delivery_latency_rows(self, *, since: datetime) -> list:
+        """Delivered and expired-undelivered rows finished since `since`, with the alert kind and
+        the alert's source time (backlog A4; `beta.latency`). No user column."""
+        rows = await self.conn.fetch(
+            """SELECT d.kind, a.kind AS alert_kind, d.state, d.decision_ts, d.finished_at,
+                      a.payload->>'source_at' AS source_at
+               FROM beta_notification_deliveries d
+               LEFT JOIN beta_market_alerts a ON a.alert_pk = d.alert_pk
+               WHERE d.state IN ('SENT', 'EXPIRED_UNDELIVERED')
+                 AND COALESCE(d.finished_at, d.created_at) >= $1""", since)
+        return [dict(r) for r in rows]
 
     async def push_decision_counts(self, *, since: datetime) -> list:
         rows = await self.conn.fetch(
@@ -1201,6 +1320,11 @@ class BetaConn:
     async def active_user_chats(self) -> list:
         rows = await self.conn.fetch("SELECT chat_id FROM beta_users WHERE status='ACTIVE' ORDER BY user_pk")
         return [r["chat_id"] for r in rows]
+
+    async def active_user_chats_with_lang(self) -> list:
+        rows = await self.conn.fetch(
+            "SELECT chat_id, lang FROM beta_users WHERE status='ACTIVE' ORDER BY user_pk")
+        return [dict(r) for r in rows]
 
     async def user_counts(self) -> dict:
         rows = await self.conn.fetch("SELECT status, count(*) AS n FROM beta_users GROUP BY status")

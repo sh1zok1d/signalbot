@@ -456,7 +456,11 @@ ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK 
     'admin_resume_push', 'admin_d7_on', 'admin_d7_off', 'admin_broadcast', 'admin_health',
     'admin_invite_new', 'admin_invites', 'admin_invite_revoke', 'admin_waitlist',
     'admin_waitlist_admit', 'admin_stats', 'admin_reply', 'admin_known', 'user_delete_me',
-    'retention_purge'));
+    'retention_purge',
+    -- A3: the ready outage notice
+    'admin_outage',
+    -- A4: the delivery latency report
+    'admin_latency'));
 
 CREATE TABLE IF NOT EXISTS beta_waitlist (
     telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),
@@ -960,4 +964,61 @@ CREATE TABLE IF NOT EXISTS beta_claim_displays (
 CREATE INDEX IF NOT EXISTS ix_beta_claim_displays_claim ON beta_claim_displays (claim_pk);
 DROP TRIGGER IF EXISTS trg_beta_claim_displays_append_only ON beta_claim_displays;
 CREATE TRIGGER trg_beta_claim_displays_append_only BEFORE UPDATE OR DELETE ON beta_claim_displays
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+-- Owner-only signature index `/hypotheses` (PRE_BETA_SCOPE_DECISION_V1 §7; beta/signatures.py).
+-- One row per closed 5m bucket: the tuple of existing states, append-only. An episode is a run of
+-- identical consecutive signatures; its first bucket carries episode_start. No user id anywhere.
+CREATE TABLE IF NOT EXISTS beta_signature_buckets (
+    version        TEXT NOT NULL,
+    bucket_ts      TIMESTAMPTZ NOT NULL
+        CHECK (date_part('second', bucket_ts) = 0 AND (date_part('minute', bucket_ts)::int % 5) = 0),
+    signature_key  TEXT NOT NULL,
+    sig_id         TEXT NOT NULL CHECK (sig_id ~ '^[0-9a-f]{8}$'),
+    components     JSONB NOT NULL,
+    tail_count     INTEGER NOT NULL CHECK (tail_count >= 0),
+    episode_start  BOOLEAN NOT NULL,
+    context_pk     BIGINT,
+    recorded_at    TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (version, bucket_ts)
+);
+CREATE INDEX IF NOT EXISTS ix_beta_signature_buckets_key ON beta_signature_buckets (version, signature_key);
+DROP TRIGGER IF EXISTS trg_beta_signature_buckets_append_only ON beta_signature_buckets;
+CREATE TRIGGER trg_beta_signature_buckets_append_only BEFORE UPDATE OR DELETE ON beta_signature_buckets
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+-- The owner's blind review: the decision, the hypothesis text and the generating window, frozen at
+-- the moment of the decision (the bot-side exposure ledger; --beta-hypotheses-export). One per signature.
+CREATE TABLE IF NOT EXISTS beta_hypothesis_reviews (
+    review_pk      BIGSERIAL PRIMARY KEY,
+    version        TEXT NOT NULL,
+    signature_key  TEXT NOT NULL,
+    sig_id         TEXT NOT NULL CHECK (sig_id ~ '^[0-9a-f]{8}$'),
+    components     JSONB NOT NULL,
+    decision       TEXT NOT NULL CHECK (decision IN ('RESEARCH', 'REJECT')),
+    hypothesis     TEXT,
+    window_from    TIMESTAMPTZ NOT NULL,
+    window_to      TIMESTAMPTZ NOT NULL,
+    seen           JSONB NOT NULL,
+    decided_at     TIMESTAMPTZ NOT NULL,
+    CONSTRAINT ck_beta_hypothesis_text CHECK (decision <> 'RESEARCH' OR length(hypothesis) >= 10),
+    CONSTRAINT ck_beta_hypothesis_window CHECK (window_from < window_to),
+    CONSTRAINT uq_beta_hypothesis_review UNIQUE (version, signature_key)
+);
+DROP TRIGGER IF EXISTS trg_beta_hypothesis_reviews_append_only ON beta_hypothesis_reviews;
+CREATE TRIGGER trg_beta_hypothesis_reviews_append_only BEFORE UPDATE OR DELETE ON beta_hypothesis_reviews
+    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+
+-- `/pin`: the owner marks the current state by hand.
+CREATE TABLE IF NOT EXISTS beta_hypothesis_pins (
+    pin_pk         BIGSERIAL PRIMARY KEY,
+    version        TEXT NOT NULL,
+    bucket_ts      TIMESTAMPTZ NOT NULL,
+    signature_key  TEXT NOT NULL,
+    sig_id         TEXT NOT NULL CHECK (sig_id ~ '^[0-9a-f]{8}$'),
+    note           TEXT CHECK (note IS NULL OR length(note) <= 200),
+    pinned_at      TIMESTAMPTZ NOT NULL
+);
+DROP TRIGGER IF EXISTS trg_beta_hypothesis_pins_append_only ON beta_hypothesis_pins;
+CREATE TRIGGER trg_beta_hypothesis_pins_append_only BEFORE UPDATE OR DELETE ON beta_hypothesis_pins
     FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
