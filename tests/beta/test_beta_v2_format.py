@@ -133,12 +133,30 @@ def test_btc_price_moves_carry_the_typical_move():
     assert _hour_line({**view, "decision": {"available": False}}, "ru") == "1ч: +0,3%"
 
 
+def test_levels_is_one_ladder_in_the_btc_style():
+    """Backlog C3: above from far to near, the price, below; one line per level with its chances by the
+    frozen wording rule; the B checks once below the ladder; the corridor with its record."""
+    blk = block(as_of=NOW.isoformat())
+    blk["corridor"] = {**blk["corridor"], "holdout": HOLDOUT}
+    lines = [x for x in plain(df.format_levels(blk, "ru", now=NOW)).splitlines() if x.strip()]
+    arrows = [x[:8] for x in lines if x[:1] in "↑↓—"]
+    assert arrows == ["↑ 65 000", "↑ 64 000", "↑ 62 950", "— сейчас", "↓ 61 900", "↓ 61 200"]
+    assert "↑ 62 950 максимум вчера (+0,75%) · за 4ч исторически в 30% случаев · за 24ч ≈ 60%" in lines
+    assert "↳ шанс дойти; говорили → было: 24ч 58% → 60% (на истории, N=120)" in lines
+    assert "Коридор: 4ч 61 605–63 355 · 24ч 60 230–64 730" in lines
+    assert len(lines) <= 14                                              # it was up to 36
+    nothing = block(levels={"above": [], "below": [], "at": None, "all": []})
+    text = plain(df.format_levels(nothing, "en", now=NOW))
+    assert "↑ none nearby\n— now 62,480 —\n↓ none nearby" in text
+
+
 def test_levels_card_has_history_beside_a_random_level():
     text = plain(df.format_levels(block(), "ru", now=NOW))
     assert ("после первого касания (812 случаев): через 1ч цена выше уровня в 47% — у случайного уровня 43% "
             "(+4,0 п.п.; 95% интервал −1,2…+9,1)") in text
     assert "как обычно" not in text and "чаще" not in text and "реже" not in text   # no verdict words (X1)
-    assert "дойти: за 4ч 30%, за 24ч 60%" in text and "День, неделя и месяц — по UTC" in text
+    assert "↑ 62 950 максимум вчера (+0,75%) · за 4ч исторически в 30% случаев · за 24ч исторически в 60% случаев\n" \
+        "↳ после первого касания" in text and "День, неделя и месяц — по UTC" in text
     en = plain(df.format_levels(block(), "en", now=NOW))
     assert ("after the first touch (812 cases): 1h later the price was above the level in 47% — a random level: 43% "
             "(+4.0 pp; 95% interval −1.2…+9.1)") in en

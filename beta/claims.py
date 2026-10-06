@@ -98,8 +98,8 @@ EVAL_RULES = {
 
 # class -> (level, template keys or registry id, evaluation rule id)
 CLASSES = {
-    "L3_LEVEL_TOUCH_4H": ("L3", ("lv_touch", "lv_touch_4h", "dc_btc_level_b", "dc_btc_level_fb"), "TOUCH_V1"),
-    "L3_LEVEL_TOUCH_24H": ("L3", ("lv_touch", "lv_touch_24h", "pa_next", "dc_btc_level_b", "dc_btc_level_fb"),
+    "L3_LEVEL_TOUCH_4H": ("L3", ("lv_chance_b", "lv_chance_fb", "dc_btc_level_b", "dc_btc_level_fb"), "TOUCH_V1"),
+    "L3_LEVEL_TOUCH_24H": ("L3", ("lv_chance_b", "lv_chance_fb", "pa_next", "dc_btc_level_b", "dc_btc_level_fb"),
                            "TOUCH_V1"),
     "L3_DISTANCE_TOUCH_1H": ("L3", ("rk_line", "rk_table_line"), "TOUCH_V1"),
     "L3_DISTANCE_TOUCH_4H": ("L3", ("rk_line", "rk_table_line"), "TOUCH_V1"),

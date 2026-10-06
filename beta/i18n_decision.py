@@ -102,23 +102,19 @@ DECISION_CATALOG: dict = {
     # ---- /levels ----
     "lv_title": _pair("<b>Уровни BTC</b> · Binance · цена {price} · {clock}",
                       "<b>BTC levels</b> · Binance · price {price} · {clock}"),
-    "lv_above": _pair("<b>Выше</b>", "<b>Above</b>"),
-    "lv_below": _pair("<b>Ниже</b>", "<b>Below</b>"),
-    "lv_none": _pair("— рядом нет", "— none nearby"),
-    "lv_zone": _pair("{price} — {names} ({dist})", "{price} — {names} ({dist})"),
-    "lv_touch": _pair("   дойти: за 4ч {p4}, за 24ч {p24}", "   reach: within 4h {p4}, within 24h {p24}"),
-    "lv_touch_4h": _pair("   дойти: за 4ч {p4}", "   reach: within 4h {p4}"),
-    "lv_touch_24h": _pair("   дойти: за 24ч {p24}", "   reach: within 24h {p24}"),
-    "lv_hist": _pair("   после первого касания ({n}): через 1ч цена {side} уровня в {hold} — у случайного уровня {ctrl} "
+    "lv_level": _pair("{arrow} {price} {names} ({dist}){chances}", "{arrow} {price} {names} ({dist}){chances}"),
+    "lv_chance_b": _pair("за {h} ≈ {p}", "within {h} ≈ {p}"),
+    "lv_chance_fb": _pair("за {h} исторически в {p} случаев", "within {h} historically in {p} of cases"),
+    "lv_none": _pair("{arrow} рядом нет", "{arrow} none nearby"),
+    "lv_hist": _pair("↳ после первого касания ({n}): через 1ч цена {side} уровня в {hold} — у случайного уровня {ctrl} "
                      "({diff} п.п.{ci})",
-                     "   after the first touch ({n}): 1h later the price was {side} the level in {hold} — a random level: {ctrl} "
+                     "↳ after the first touch ({n}): 1h later the price was {side} the level in {hold} — a random level: {ctrl} "
                      "({diff} pp{ci})"),
     "lv_side_above": _pair("выше", "above"),
     "lv_side_below": _pair("ниже", "below"),
-    "lv_hist_short": _pair("   после первого касания: мало данных ({n})", "   after the first touch: too little data ({n})"),
-    "lv_hist_move": _pair("   за 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
-                          "   1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
-    "lv_corridor": _pair("Коридор 24ч: {low}–{high}", "24h corridor: {low}–{high}"),
+    "lv_hist_short": _pair("↳ после первого касания: мало данных ({n})", "↳ after the first touch: too little data ({n})"),
+    "lv_hist_move": _pair("↳ за 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
+                          "↳ 1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
     "lv_footer": _pair("День, неделя и месяц — по UTC, как дневная свеча на бирже. История — Binance с 2020 года; "
                        "ликвидации — Binance и Bybit за 24 ч.",
                        "Day, week and month are UTC, like the exchange's daily candle. History: Binance since 2020; "

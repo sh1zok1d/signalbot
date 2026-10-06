@@ -457,56 +457,66 @@ def _zone_research(cond: Sequence[Mapping[str, Any]], lang: str) -> list:
         return []
 
 
-def _zone_block(z: Mapping[str, Any], lang: str, side: int, cond: Sequence[Mapping[str, Any]] = ()) -> list:
-    lines = [t(lang, "lv_zone", price=zone_price(z, lang), names=_e(zone_names(z, lang, limit=3)),
-               dist=fmt_signed_pct(z["distance_pct"], lang))]
+def _zone_block(block: Mapping[str, Any], z: Mapping[str, Any], lang: str, side: int,
+                cond: Sequence[Mapping[str, Any]] = (), cals: Optional[dict] = None) -> list:
+    """One level of the /levels ladder (backlog C3): the /btc level line with its 4h and 24h chances by the
+    frozen wording rule, then «↳» lines for what followed its first touch. The B checks go to `cals`."""
+    parts = []
     touch = z.get("touch") or {}
-    if "4h" in touch and "24h" in touch:
-        lines.append(t(lang, "lv_touch", p4=fmt_prob(touch["4h"], lang), p24=fmt_prob(touch["24h"], lang)))
-    elif "4h" in touch:
-        lines.append(t(lang, "lv_touch_4h", p4=fmt_prob(touch["4h"], lang)))
-    elif "24h" in touch:
-        lines.append(t(lang, "lv_touch_24h", p24=fmt_prob(touch["24h"], lang)))
+    for h in ("4h", "24h"):
+        if touch.get(h) is None:
+            continue
+        w = touch_wording(block, h, touch[h])
+        if w["mode"] == "B":
+            parts.append(t(lang, "lv_chance_b", h=_hz(h, lang), p=fmt_prob(touch[h], lang)))
+            if cals is not None:
+                cals.setdefault((h, tuple(w["bin"])), cal_part(_hz(h, lang), w, lang))
+        else:
+            parts.append(t(lang, "lv_chance_fb", h=_hz(h, lang), p=fmt_prob(touch[h], lang)))
+    lines = [t(lang, "lv_level", arrow="↑" if side > 0 else "↓", price=zone_price(z, lang),
+               names=_e(zone_names(z, lang, limit=3)), dist=fmt_signed_pct(z["distance_pct"], lang),
+               chances="".join(" · " + x for x in parts))]
     lines.extend(_hist_lines(z.get("history"), lang, side))
     lines.extend(_zone_research(cond, lang))
     return lines
 
 
 def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
+    """/levels as one ladder in the /btc style (backlog C3): above from far to near, the price, below;
+    each level with its chances and first-touch history; then the checks of the chances, the corridor
+    and its record, the statistics time and the UTC note."""
     gone = unavailable_line(block, lang)
     if gone:
         return assert_descriptive(gone, lang)
     lv = block.get("levels") or {}
-    lines = [t(lang, "lv_title", price=fmt_price(block["price"], lang), clock=fmt_clock(data_clock(block) or now, lang))]
-    if lv.get("at"):
-        lines.append(t(lang, "dc_level_at", price=zone_price(lv["at"], lang), name=_e(zone_names(lv["at"], lang))))
-    lines.append("")
-    lines.append(t(lang, "lv_above"))
+    lines = [t(lang, "lv_title", price=fmt_price(block["price"], lang), clock=fmt_clock(data_clock(block) or now, lang)),
+             ""]
     zc = ((block.get("evidence") or {}).get("zones") or {}) if main_research(block) else {}
 
     def cond(side: str, k: int) -> list:
         lst = zc.get(side) or []
         return list(lst[k]) if k < len(lst) else []
+    cals: dict = {}
     above = lv.get("above") or []
-    for k, z in enumerate(above):
-        lines.extend(_zone_block(z, lang, +1, cond("above", k)))
+    for k in reversed(range(len(above))):
+        lines.extend(_zone_block(block, above[k], lang, +1, cond("above", k), cals))
     if not above:
-        lines.append(t(lang, "lv_none"))
-    lines.append("")
-    lines.append(t(lang, "lv_below"))
+        lines.append(t(lang, "lv_none", arrow="↑"))
+    if lv.get("at"):
+        lines.append(t(lang, "dc_level_at", price=zone_price(lv["at"], lang), name=_e(zone_names(lv["at"], lang))))
+    else:
+        lines.append(t(lang, "dc_level_now", price=fmt_price(block["price"], lang)))
     below = lv.get("below") or []
     for k, z in enumerate(below):
-        lines.extend(_zone_block(z, lang, -1, cond("below", k)))
+        lines.extend(_zone_block(block, z, lang, -1, cond("below", k), cals))
     if not below:
-        lines.append(t(lang, "lv_none"))
-    x = ((block.get("corridor") or {}).get("horizons") or {}).get("24h")
-    note = zone_note(block.get("event_zone"), ["4h", "24h"], lang)
-    if x or note:
-        lines.append("")
-    if x:
-        lines.append(t(lang, "lv_corridor", low=fmt_price(x["lower"], lang), high=fmt_price(x["upper"], lang)))
-    if note:
-        lines.append(note)
+        lines.append(t(lang, "lv_none", arrow="↓"))
+    tail = []
+    if cals:
+        tail.append(t(lang, "dc_btc_cal", parts=" · ".join(cals[k] for k in sorted(cals))))
+    tail.extend(_btc_corridor(block, lang, ("4h", "24h")))
+    if tail:
+        lines += [""] + tail
     lines.append(t(lang, "lv_footer"))
     sl = stats_line(block, lang)
     if sl:

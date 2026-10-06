@@ -987,7 +987,7 @@ def format_event_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: s
     ep = view.get("active_episode") or view.get("last_event")
     if ep is None:
         return _ok(t(lang, "measurements_missing"), lang)
-    lines = [f"<b>{_e(t(lang, 'event_head', name=plain_name(ep['event_type'], lang)))}</b>"]
+    lines = [t(lang, "event_head", name=_e(plain_name(ep["event_type"], lang)))]   # the title style of /levels (C3)
     if ep.get("terminal_at"):
         lines.append(t(lang, "event_ended_at", clock=fmt_clock(_dt(ep["terminal_at"]), lang)))
     else:
@@ -1125,7 +1125,7 @@ def format_1h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str 
         window = f"{fmt_kyiv_hm(_dt(block['window_start']))}–{fmt_kyiv_hm(_dt(block['window_end']))}"
     else:
         window = "—"
-    lines = [f"<b>{_e(t(lang, 'h1_head', window=window, zone=t(lang, 'zone')))}</b>"]
+    lines = [t(lang, "h1_head", window=_e(window), zone=t(lang, "zone"))]
     lower = (False, False)
     if not block or not block.get("complete"):
         lines.append(t(lang, "h1_incomplete_body"))
@@ -1169,7 +1169,7 @@ def format_24h_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8: str
         hm = fmt_kyiv_hm(_dt(block["window_end"]))
     else:
         hm = "—"
-    lines = [f"<b>{_e(t(lang, 'h24_head', hm=hm, zone=t(lang, 'zone')))}</b>"]
+    lines = [t(lang, "h24_head", hm=_e(hm), zone=t(lang, "zone"))]
     lower = (False, False)
     if not block:
         lines.append(t(lang, "h24_incomplete"))

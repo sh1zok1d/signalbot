@@ -72,7 +72,7 @@ def test_every_class_has_a_level_a_template_and_a_frozen_rule():
 def test_a_template_change_changes_the_digest(monkeypatch):
     from beta import i18n
     before = cj.template_digest("L3_LEVEL_TOUCH_4H")
-    monkeypatch.setitem(i18n._CATALOG, "lv_touch", {"ru": "иначе", "en": "other"})
+    monkeypatch.setitem(i18n._CATALOG, "lv_chance_b", {"ru": "иначе", "en": "other"})
     assert cj.template_digest("L3_LEVEL_TOUCH_4H") != before
 
 

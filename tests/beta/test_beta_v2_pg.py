@@ -218,8 +218,8 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         # ---- commands --------------------------------------------------------------------
         out = await h.handle(msgs[A]("/levels", 100))
         text = plain(out[-1].html)
-        assert text.startswith("Уровни BTC · Binance · цена ") and "\nВыше\n" in text and "\nНиже\n" in text
-        assert "дойти: за 4ч" in text and "после первого касания" in text
+        assert text.startswith("Уровни BTC · Binance · цена ") and "\n↑ " in text and ("\n— сейчас " in text or "\nЦена у уровня " in text)  # one ladder (C3)
+        assert re.search(r"\n↓ .* · за 4ч (≈|исторически в) ", text) and "↳ после первого касания" in text
         # NOW is 06:00 UTC on a CPI day (12:30 UTC): inside the 24h event zone, outside the 1h/4h ones
         assert "за 24ч" not in text and "Коридор 24ч" not in text
         assert "24ч: числовую оценку не показываем — CPI США (инфляция), Вт 12.05 15:30 (Киев)" in text
