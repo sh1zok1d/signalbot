@@ -1,9 +1,28 @@
+## Turn-of-month baseline unit V1 (G01-A1/A2 successor) — design note committed; NOT RUN; awaits owner go — 2026-10-05
+
+`DESIGN = docs/TURN_OF_MONTH_BASELINE_UNIT_V1.md (committed before any outcome) | TRACKS = PRODUCT_EVIDENCE (Part B, decides) + STRUCTURE (Part A, L1 at most)`
+`PART_B = label calibration on turn-of-month vs mid-month days of the same months (G01 day sets unchanged), D = r_TOM - r_MID, month-clustered 95 % interval; C1 (deployed 2026-10-05) primary, C0 (previous) reported; 13 labels with tolerances 2 / 4 pp`
+`PART_A = day-level z shift (log quote volume, log trade count, log range), mean over 58 months, t-interval, per-year | no bar, no prior (O1)`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 single-venue proxy | BitMEX 2017-2019, 2025/2026 product surface and live tape NOT used (2025/2026 slice = owner option at go)`
+`DECISION_RULE = PROPOSE_CORRECTION_UNIT if any label BEYOND_TOLERANCE (interval past tau and >= 4/5 years same sign), else NO_CHANGE with WITHIN_TOLERANCE / NOT_RESOLVED listed`
+`RUN = only after a separate owner go | PRODUCT_CHANGE = none | NEXT_UNIT = this unit, pending go`
+
+## Evaluator variants note — owner decision O1 recorded; nothing run — 2026-10-05
+
+`RECORD = docs/research/EVALUATOR_VARIANTS_COMPARISON_V1.md | UNITS = DH3-P1, G01-A1, R03-B1 | OUTCOMES_COMPUTED = none | DATA_READ = none`
+`VARIANTS = (1) L0-L4, method per unit (in force) | (2) posterior only for suitable classes (= §3 per-unit method choice) | (3) general posterior evaluator (chat-only; conflicts with EVIDENCE_AND_CLAIMS §7; never built)`
+`FINDING = the claim ceiling of each unit is set by its surface and exposure, not by the estimator; no variant lifts DH3-P1 above L2 or G01-A1 / R03-B1 above L1`
+`RECOMMENDATION = variant 1 is enough; no amendment (optional §3 clarification text, Appendix A) | DECISION = O1 (owner, 2026-10-05): no amendment, Appendix A not adopted, no general evaluator`
+`OBSERVATIONS = G01-A1/A2 unit MDE recorded at alpha 0.05 (HOLM_M 0), ~0.535 at m = 2 -> audit erratum 1 | stress SE vs realized SE 0.41-0.55 (C1 1.55) | «ниже порога значимости 15%» also on DH3-P1/O2/L3/S1 | no journal class for P1 (last three not repaired)`
+`NEXT_UNIT = turn-of-month baseline unit V1 (section above), pending owner go`
+
 ## Research history audit V1 — complete; no unit started — 2026-10-05
 
 `RECORD = docs/research/RESEARCH_HISTORY_AUDIT_V1.md (+ .json, _TABLE.md; builder scripts/research/history_audit.py --check)`
 `CENSUS = 188 units (187 atlas + WEEKDAY_WEEKEND_BASELINE_UNIT_V2) | completeness proof: memory 79/79, attempts 65 (16 linked), test ledger 26/26, findings 40/40, ledger headings and file names all placed`
 `TESTED = 57 research units with an outcome: 28 REAL_NULL + 6 STRONG_NEGATIVE, 9 POSITIVE_ALIVE, 7 BLOCKED_PRACTICAL_BAR, 4 INSUFFICIENT_INFORMATION, ...`
 `KILLED_BY_OLD_CONSERVATISM = YES 7 (R03-C1, D3, DH3-P1, DH3-O2, DH3-L3, G01-A1, G01-A2) | PARTLY 11 | most deaths were real`
+`ERRATUM_1 (2026-10-05, docs/research/RESEARCH_HISTORY_AUDIT_V1_ERRATUM_1.md; audit files unchanged) = G01-A1/A2 unit MDE 0.486 was at alpha 0.05, not a Holm step (~0.535 at m = 2) -> conservatism PARTLY | read as YES 5 (R03-C1, D3, DH3-P1, DH3-O2, DH3-L3) / PARTLY 13`
 `VERDICTS_CHANGED = none | MARKET_DATA_READ = none | RERUNS = none | OBJECTS_2025_2026_USED = none`
 `PROPOSED_SECOND_CHANCES (each needs an owner go and a design note before any outcome) = turn-of-month baseline (G01-A1/A2); a new D8-successor shock-recovery object; low priority R03-B1/B3, H04 on a fresh surface`
 `NEXT_UNIT = none started`
