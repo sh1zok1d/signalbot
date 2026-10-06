@@ -931,6 +931,12 @@ class BetaConn:
             "UPDATE beta_users SET tz=$2, updated_at=now() WHERE telegram_user_id=$1", telegram_user_id, tz)
         return status == "UPDATE 1"
 
+    async def set_trader_type(self, telegram_user_id: int, kind: Optional[str]) -> bool:
+        """The participant's onboarding answer (backlog E5): scalp / intraday / swing / invest."""
+        status = await self.conn.execute(
+            "UPDATE beta_users SET trader_type=$2, updated_at=now() WHERE telegram_user_id=$1", telegram_user_id, kind)
+        return status == "UPDATE 1"
+
     async def set_brief_time(self, telegram_user_id: int, hhmm: Optional[str]) -> bool:
         """The participant's briefing time on their own clock (backlog E3); None = the default."""
         status = await self.conn.execute(
@@ -1061,7 +1067,7 @@ class BetaConn:
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
                       invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact,
-                      push_levels, push_events, push_moves, push_hours, push_weekly, tz, brief_time
+                      push_levels, push_events, push_moves, push_hours, push_weekly, tz, brief_time, trader_type
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
@@ -1352,10 +1358,9 @@ class BetaConn:
     async def usage_facts(self) -> dict:
         """Rows the usage report aggregates. The return value still has ids;
         only build_usage_report's result is shown to the owner."""
-        # trader_type: the onboarding answer once backlog E5 adds the column; NULL until then
+        # trader_type: the onboarding answer (backlog E5); NULL when not given
         users = await self.conn.fetch(
-            """SELECT user_pk, telegram_user_id, status, lang, joined_at, invite_code, known_contact,
-                      to_jsonb(u) ->> 'trader_type' AS trader_type
+            """SELECT user_pk, telegram_user_id, status, lang, joined_at, invite_code, known_contact, trader_type
                FROM beta_users u""")
         activity = await self.conn.fetch(
             "SELECT user_pk, action, detail, at FROM beta_user_activity")

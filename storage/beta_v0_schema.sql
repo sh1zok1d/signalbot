@@ -510,7 +510,9 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     -- the weekly report (backlog B4), a delivery of its own class
     'weekly_delivered',
     -- the personal layer (PRE_BETA_SCOPE_DECISION_V1 §9 E): the time zone, the one-tap mute and its undo
-    'cmd_tz', 'btn_mute', 'btn_unmute'));
+    'cmd_tz', 'btn_mute', 'btn_unmute',
+    -- the trader type: the question (/type or after joining) and the answer
+    'cmd_type', 'type_set'));
 
 -- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
 -- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.
@@ -829,6 +831,9 @@ ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_moves BOOLEAN NOT NULL DEFA
 -- Every clock the bot prints and the participant's quiet hours follow it.
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS tz TEXT CHECK (tz IS NULL OR length(tz) BETWEEN 1 AND 64);
 -- the participant's briefing time on their own clock (backlog E3); NULL = briefing.time_kyiv
+-- how the participant trades, one onboarding answer (backlog E5); the owner report is split by it
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS trader_type TEXT
+    CHECK (trader_type IS NULL OR trader_type IN ('scalp', 'intraday', 'swing', 'invest'));
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS brief_time TEXT
     CHECK (brief_time IS NULL OR brief_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$');
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_hours BOOLEAN NOT NULL DEFAULT TRUE;

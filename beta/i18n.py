@@ -413,8 +413,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "события календаря и оповещения.\n"
             "• Мы храним ваш Telegram id и id чата, чтобы отправлять сообщения беты, "
             "а также голоса «полезно / шум» и статус доставки.\n"
-            "• Ваши настройки (язык, какие сообщения получать, утренняя сводка) хранятся, пока вы в бете; "
-            "/delete_me удаляет их.\n"
+            "• Ваши настройки (язык, часовой пояс, какие сообщения получать, время утренней сводки) и стиль "
+            "торговли, если вы его укажете, хранятся, пока вы в бете; /delete_me удаляет их.\n"
             "• Записи рынка и событий не содержат персональных данных.\n"
             "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
             "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
@@ -439,8 +439,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "similar cases, calendar events and alerts.\n"
             "• We store your Telegram user id and chat id to send you beta messages, plus your "
             "Useful/Noise votes and delivery status.\n"
-            "• Your settings (language, which messages to receive, the morning briefing) are kept while you are "
-            "in the beta; /delete_me deletes them.\n"
+            "• Your settings (language, time zone, which messages to receive, the briefing time) and your trading "
+            "style, if you give it, are kept while you are in the beta; /delete_me deletes them.\n"
             "• Market/event records contain no personal data.\n"
             "• We record which commands and buttons you use, and when, and which invite link "
             "you came from, so we can improve the bot. These records are kept for 120 days. "
@@ -775,6 +775,16 @@ _CATALOG: dict[str, dict[str, str]] = {
     "brief_state_on": {"ru": "включена", "en": "on"},
     "brief_state_off": {"ru": "выключена", "en": "off"},
     "brief_on_ok": {"ru": "Утренняя сводка включена: {time} {zone}.", "en": "Morning briefing on: {time} {zone}."},
+    # one onboarding question (backlog E5): stored only; the owner report is split by it, the bot does not change
+    "type_question": {"ru": "Как вы торгуете? Один ответ, чтобы понять, кому бот полезен; сообщения от него не меняются.",
+                      "en": "How do you trade? One answer, so we learn who the bot helps; the messages do not change."},
+    "type_scalp": {"ru": "Скальпинг", "en": "Scalping"},
+    "type_intraday": {"ru": "Внутри дня", "en": "Intraday"},
+    "type_swing": {"ru": "Свинг (дни–недели)", "en": "Swing (days–weeks)"},
+    "type_invest": {"ru": "Инвестиции", "en": "Investing"},
+    "type_skip": {"ru": "Пропустить", "en": "Skip"},
+    "type_saved": {"ru": "Записал: {name}. Изменить: /type", "en": "Saved: {name}. Change it: /type"},
+    "type_skipped": {"ru": "Хорошо. Указать позже: /type", "en": "Fine. You can answer later: /type"},
     "tz_usage": {"ru": "Часовой пояс: {name}. Всё время в сообщениях — по нему, ночная тишина {quiet} — тоже.\n"
                        "Поменять: /tz +3, /tz -5, /tz Europe/Warsaw; вернуть Киев: /tz kyiv",
                  "en": "Time zone: {name}. Every time in the messages follows it, and so do the quiet hours {quiet}.\n"

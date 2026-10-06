@@ -327,6 +327,9 @@ class BetaBotHandler:
                 detail = "status"
             return await self._reply(conn, user, chat_id, lang, now, "cmd_brief", [_msg(chat_id, reply, lang=lang)],
                                      detail=detail)
+        if cmd == "type":                                # the trader type, asked again (backlog E5)
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_type",
+                                     [_msg(chat_id, t(lang, "type_question"), _type_buttons(lang), lang=lang)])
         if cmd == "tz":
             reply, detail = await self._tz_cmd(conn, uid, user, lang, args, now)
             return await self._reply(conn, user, chat_id, lang, now, "cmd_tz", [_msg(chat_id, reply, lang=lang)],
@@ -728,7 +731,9 @@ class BetaBotHandler:
             joined = await conn.get_user(uid)
             await self._note(conn, joined, "cmd_start", self.clock())
             welcome = await self._welcome(conn, lang)
-            return [answer(t(lang, "joined")), _msg(chat_id, welcome, lang=lang)]
+            # the welcome ends with the one onboarding question, its answers as buttons (backlog E5)
+            return [answer(t(lang, "joined")),
+                    _msg(chat_id, welcome + "\n\n" + t(lang, "type_question"), _type_buttons(lang), lang=lang)]
         user = await conn.get_user(uid)
         lang = _lang_of(user)
         use_render_tz((user or {}).get("tz"))
@@ -781,6 +786,13 @@ class BetaBotHandler:
             reply = await self._alert_cmd(conn, user, now, lang, f"{level:.2f}", block)
             return await self._reply(conn, user, chat_id, lang, now, "btn_watch",
                                      [answer(""), _msg(chat_id, reply, lang=lang)])
+        if data[:2] == "s:" and data[2:] in TRADER_TYPES + ("skip",):     # the answer (backlog E5)
+            if data[2:] == "skip":
+                return [answer(""), _msg(chat_id, t(lang, "type_skipped"), lang=lang)]
+            await conn.set_trader_type(uid, data[2:])
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "type_set",
+                                     [answer(""), _msg(chat_id, t(lang, "type_saved", name=t(lang, "type_" + data[2:])),
+                                                       lang=lang)], detail=data[2:])
         mute = _parse_mute(data)
         if mute is not None:                   # «🔕 Не присылать такие» / «↩️ Вернуть» (backlog E2)
             off, kind = mute
@@ -813,6 +825,15 @@ class BetaBotHandler:
             return await self._reply(conn, user, chat_id, lang, self.clock(), action,
                                      [answer(t(lang, "feedback_recorded"))])
         return [answer(t(lang, "not_available"))]
+
+
+TRADER_TYPES = ("scalp", "intraday", "swing", "invest")
+
+
+def _type_buttons(lang: str) -> list:
+    return [[(t(lang, "type_scalp"), "s:scalp"), (t(lang, "type_intraday"), "s:intraday")],
+            [(t(lang, "type_swing"), "s:swing"), (t(lang, "type_invest"), "s:invest")],
+            [(t(lang, "type_skip"), "s:skip")]]
 
 
 def _parse_mute(data: str):

@@ -109,7 +109,9 @@ def test_welcome_after_join_and_help_lists_feedback():
         await ru.handle(_cb(alice, "pick:ru", 2))
         joined = await ru.handle(_cb(alice, "join:ru", 3))
         assert joined[0].html == "Вы в бете."
-        assert joined[1].html == WELCOME_RU
+        assert joined[1].html == WELCOME_RU + "\n\n" + t("ru", "type_question")    # the trader type (E5)
+        assert [d for row in joined[1].buttons for _l, d in row] == ["s:scalp", "s:intraday", "s:swing", "s:invest",
+                                                                     "s:skip"]
         assert PUSH_RU not in joined[1].html
         help_ru = await ru.handle(_msg(alice, "/help", 4))
         assert "/feedback" in help_ru[-1].html
@@ -119,7 +121,7 @@ def test_welcome_after_join_and_help_lists_feedback():
         await en.handle(_msg(bob, f"/start {code}", 5))
         await en.handle(_cb(bob, "pick:en", 6))
         joined_en = await en.handle(_cb(bob, "join:en", 7))
-        assert joined_en[1].html == WELCOME_EN + "\n" + PUSH_EN
+        assert joined_en[1].html == WELCOME_EN + "\n" + PUSH_EN + "\n\n" + t("en", "type_question")
         await pool.close()
     run(body())
 

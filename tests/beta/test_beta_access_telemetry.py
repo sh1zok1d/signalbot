@@ -352,7 +352,9 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         await h.handle(_msg(uid, "/tz +3", 45))               # the time zone (C5)
         await h.handle(_cb(uid, "m:levels", 46))               # «🔕 Не присылать такие» under a push (E2)
         await h.handle(_cb(uid, "a:levels", 47))               # «↩️ Вернуть»
-        await h.handle(_msg(uid, "/stop", 48))
+        await h.handle(_msg(uid, "/type", 48))                 # how the participant trades (E5)
+        await h.handle(_cb(uid, "s:swing", 49))
+        await h.handle(_msg(uid, "/stop", 50))
         actions = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         # btn_details stays a valid historical action, but the episode Details are retired
         # (they exposed internals) and record nothing new.
@@ -361,6 +363,7 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         # weekly_delivered needs the Sunday slot: test_beta_weekly_pg covers it.
         assert set(actions) == set(ACTIVITY_ACTIONS) - {"btn_details", "brief_withheld", "tab_research",
                                                         "weekly_delivered"}
+        assert [r["trader_type"] for r in await _rows(pool, "SELECT trader_type FROM beta_users")] == ["swing"]   # E5
         cols = await _rows(pool, """SELECT column_name FROM information_schema.columns
                                     WHERE table_name='beta_user_activity'""")
         assert "telegram" not in " ".join(r["column_name"] for r in cols)
