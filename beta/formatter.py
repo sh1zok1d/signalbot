@@ -1246,6 +1246,23 @@ def feedback_buttons(public_id: str, lang: str = "en") -> list:
 MUTE_TYPES = ("hours", "levels", "events", "moves", "weekly")
 
 
+VOTE_KINDS = ("level", "event", "move", "price", "approach", "brief", "weekly")
+
+
+def vote_row(kind: str, ref: int, lang: str) -> list:
+    """«Полезно / Шум» under an alert, the briefing or the weekly report (backlog F6): v:<kind>:<ref>:<u|n>."""
+    return [(t(lang, "btn_useful"), f"v:{kind}:{int(ref)}:u"), (t(lang, "btn_noise"), f"v:{kind}:{int(ref)}:n")]
+
+
+def parse_vote(data: str) -> Optional[tuple]:
+    """(kind, ref, 'USEFUL' | 'NOISE') of a v:<kind>:<ref>:<u|n> button, or None."""
+    parts = data.split(":")
+    if len(data) > 64 or len(parts) != 4 or parts[0] != "v" or parts[1] not in VOTE_KINDS \
+            or not parts[2].isdigit() or int(parts[2]) <= 0 or parts[3] not in ("u", "n"):
+        return None
+    return parts[1], int(parts[2]), "USEFUL" if parts[3] == "u" else "NOISE"
+
+
 def mute_row(kind: str, lang: str) -> list:
     return [(t(lang, "btn_mute"), f"m:{kind}")]
 
@@ -1312,12 +1329,13 @@ PUSH_MAX_LINES = 8
 def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang: str = "en",
                 gate: Optional[Mapping[str, Any]] = None, analog: Optional[Mapping[str, Any]] = None,
                 since_year: Optional[int] = None, latency: Optional[Mapping[str, Any]] = None,
-                research: bool = False) -> str:
+                research: bool = False, levels: Optional[Mapping[str, Any]] = None) -> str:
     """The unusual-hour push (BETA_COPY_CONTRACT_V1 §1.2): the 1h state around the
     TRIGGERED episode, never the detector name, never an id. At most 8 non-empty
     lines. `gate` is the push decision's stored hour gate; without it only the hour
     and the time are known. `latency` is the measured delay field (`beta.latency.latency_field`,
-    backlog A4); its line is drawn by the template work of F1, not here."""
+    backlog A4), printed on the time line (F1). `levels` is the decision block's levels map: the
+    nearest level each side is an extra line after the history line (F1)."""
     gate = gate or {}
     values = gate.get("values") or {}
     when = episode.triggered_at
@@ -1325,6 +1343,8 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
         span = t(lang, "window_kyiv", start=fmt_kyiv_hm(_dt(gate["window_start"])), end=fmt_kyiv_hm(_dt(gate["window_end"])))
     else:
         span = t(lang, "window_kyiv", start=fmt_kyiv_hm(when - timedelta(hours=1)), end=fmt_kyiv_hm(when))
+    from .decision_format import delay_text
+    span += delay_text(latency, lang)
     state = _gate_state_text(gate, lang)
     lines = [f"<b>{_e(t(lang, 'push_hour_title'))}</b>", span, "", _e(state[:1].upper() + state[1:])]
     pct = values.get("price_move_pct")
@@ -1365,6 +1385,9 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
     if analog:
         from .decision_format import analog_line
         extras.append(analog_line(analog, lang, since_year=since_year))
+    if levels:                                     # template F1: fact → unusual → usually next → levels
+        from .decision_format import near_levels_line
+        extras.append(near_levels_line(levels, lang))
     if research:                                   # the registry line only while research is on the main surfaces
         extras.append(_research_line(gate.get("interpretation") or {}, "1h", lang))
     for line in extras:

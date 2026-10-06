@@ -1083,3 +1083,18 @@ UPDATE beta_runtime_health SET first_run_at = COALESCE(last_success_at, last_run
 -- review of #345: a chat with a row still inside Telegram's wait holds back all its rows (the fetchers)
 CREATE INDEX IF NOT EXISTS ix_beta_delivery_waiting ON beta_notification_deliveries (user_pk)
     WHERE state = 'PENDING' AND next_attempt_at IS NOT NULL;
+
+-- «Полезно / Шум» on every message type (PRE_BETA_SCOPE_DECISION_V1 §6.3, backlog F6): market and
+-- personal alerts (ref = alert_pk), the briefing (ref = its view_pk) and the weekly report (ref =
+-- weekly_pk). The unusual-hour push keeps beta_feedback (episodes). One vote per participant and
+-- message; a second tap changes it. /delete_me cascades.
+CREATE TABLE IF NOT EXISTS beta_message_votes (
+    vote_pk     BIGSERIAL PRIMARY KEY,
+    user_pk     BIGINT NOT NULL REFERENCES beta_users (user_pk) ON DELETE CASCADE,
+    kind        TEXT NOT NULL CHECK (kind IN ('level', 'event', 'move', 'price', 'approach', 'brief', 'weekly')),
+    ref         BIGINT NOT NULL CHECK (ref > 0),
+    vote        TEXT NOT NULL CHECK (vote IN ('USEFUL', 'NOISE')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_beta_message_vote UNIQUE (user_pk, kind, ref)
+);

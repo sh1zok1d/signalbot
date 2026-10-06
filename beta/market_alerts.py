@@ -389,7 +389,7 @@ def attach_evidence(cand: dict, block: Mapping[str, Any], cap: Mapping[str, Any]
     cand["payload"]["evidence_main"] = bool(ev.get("main_surfaces"))
 
 
-def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
+def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str, alert_pk: Optional[int] = None) -> list:
     """«📊 BTC сейчас», Levels / Risk, and «🎯 Проверить» with the next level filled in (a level alert's
     next level, a sharp move's nearest level; PRE_BETA_SCOPE_DECISION_V1 §5)."""
     from .check import check_button
@@ -409,9 +409,11 @@ def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
             target = min(ahead, key=lambda z: abs(float(z["edge"]) - close))["edge"]
     if target:
         rows.append([check_button(float(target), lang)])
+    from .formatter import mute_row, vote_row
+    if alert_pk is not None:                    # «Полезно / Шум» on every alert type (backlog F6)
+        rows.append(vote_row(kind, alert_pk, lang))
     mute = {"level": "levels", "event": "events", "move": "moves"}.get(kind)
     if mute:                                    # a personal /alert is the participant's own: no mute
-        from .formatter import mute_row
         rows.append(mute_row(mute, lang))
     return rows
 
@@ -556,7 +558,7 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
         from .i18n import render_tz
         with render_tz(row.get("user_tz")):            # the recipient's clock (C5)
             text = format_alert(row["kind"], {**row["payload"], "latency": lat}, lang)
-            buttons = alert_buttons(row["kind"], row["payload"], lang)
+            buttons = alert_buttons(row["kind"], row["payload"], lang, alert_pk=row["alert_pk"])
         outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
                                                 buttons=buttons, clock=clock)
         if outcome != SENT:
