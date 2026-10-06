@@ -73,18 +73,15 @@ DECISION_CATALOG: dict = {
     "dc_today_head": _pair("<b>Сегодня</b>", "<b>Today</b>"),
     "dc_event_line": _pair("{when} — {name}", "{when} — {name}"),
     "dc_no_events": _pair("Крупных событий в ближайшие 24ч нет.", "No major scheduled events in the next 24h."),
-    "dc_analog_line": _pair("↳ после похожих ({n}): через {h} выше в {p_up} (обычно {base_up}) — {dir_verdict}; "
-                            "ход ×{ratio} — {range_verdict}",
-                            "↳ after similar ({n}): {h} later higher in {p_up} (usually {base_up}) — {dir_verdict}; "
-                            "move ×{ratio} — {range_verdict}"),
+    # L2 in the quantitative format (EVIDENCE_AND_CLAIMS_DECISION_V1 §4): observed, baseline, the
+    # difference and its interval; no verdict words
+    "dc_analog_line": _pair("↳ после похожих ({n}): через {h} выше в {p_up} против {base_up} обычно ({diff} п.п.{ci}); "
+                            "ход ×{ratio} к обычному{rci}",
+                            "↳ after similar ({n}): {h} later higher in {p_up} vs {base_up} usually ({diff} pp{ci}); "
+                            "move ×{ratio} of usual{rci}"),
+    "dc_pp_ci": _pair("; 95% интервал {lo}…{hi}", "; 95% interval {lo}…{hi}"),
+    "dc_ratio_ci": _pair(" (95% интервал ×{lo}…×{hi})", " (95% interval ×{lo}…×{hi})"),
     "dc_analog_short": _pair("↳ после похожих: мало данных ({n})", "↳ after similar: too little data ({n})"),
-    "dc_dir_as_usual": _pair("как обычно", "as usual"),
-    "dc_dir_higher": _pair("чаще выше обычного", "higher more often than usual"),
-    "dc_dir_lower": _pair("чаще ниже обычного", "lower more often than usual"),
-    "dc_range_as_usual": _pair("как обычно", "as usual"),
-    "dc_range_bigger": _pair("больше обычного", "bigger than usual"),
-    "dc_range_smaller": _pair("меньше обычного", "smaller than usual"),
-    "dc_insufficient": _pair("мало данных", "too little data"),
     "dc_unavailable": _pair("Коридор и уровни сейчас не показываем: {reason}.",
                             "Corridor and levels are not shown now: {reason}."),
     "dc_reason_stale": _pair("данные Binance отстают", "Binance data is late"),
@@ -105,17 +102,15 @@ DECISION_CATALOG: dict = {
     "lv_touch": _pair("   дойти: за 4ч {p4}, за 24ч {p24}", "   reach: within 4h {p4}, within 24h {p24}"),
     "lv_touch_4h": _pair("   дойти: за 4ч {p4}", "   reach: within 4h {p4}"),
     "lv_touch_24h": _pair("   дойти: за 24ч {p24}", "   reach: within 24h {p24}"),
-    "lv_hist": _pair("   после первого касания ({n}): через 1ч цена {side} уровня в {hold} — у случайного уровня {ctrl}, {verdict}",
-                     "   after the first touch ({n}): 1h later the price was {side} the level in {hold} — a random level: {ctrl}, {verdict}"),
+    "lv_hist": _pair("   после первого касания ({n}): через 1ч цена {side} уровня в {hold} — у случайного уровня {ctrl} "
+                     "({diff} п.п.{ci})",
+                     "   after the first touch ({n}): 1h later the price was {side} the level in {hold} — a random level: {ctrl} "
+                     "({diff} pp{ci})"),
     "lv_side_above": _pair("выше", "above"),
     "lv_side_below": _pair("ниже", "below"),
     "lv_hist_short": _pair("   после первого касания: мало данных ({n})", "   after the first touch: too little data ({n})"),
     "lv_hist_move": _pair("   за 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
                           "   1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
-    "lv_verdict_as_usual": _pair("как обычно", "as usual"),
-    "lv_verdict_differs_more": _pair("чаще обычного", "more often than usual"),
-    "lv_verdict_differs_less": _pair("реже обычного", "less often than usual"),
-    "lv_verdict_insufficient": _pair("мало данных", "too little data"),
     "lv_corridor": _pair("Коридор 24ч: {low}–{high}", "24h corridor: {low}–{high}"),
     "lv_footer": _pair("День, неделя и месяц — по UTC, как дневная свеча на бирже. История — Binance с 2020 года; "
                        "ликвидации — Binance и Bybit за 24 ч.",
@@ -288,8 +283,10 @@ DECISION_CATALOG: dict = {
     "pa_period_day": _pair("день", "day"),
     "pa_period_week": _pair("неделю", "week"),
     "pa_period_month": _pair("месяц", "month"),
-    "pa_level_hist": _pair("После первого касания ({n}): через 1ч цена {side} уровня в {hold} (у случайного уровня {ctrl}) — {verdict}",
-                           "After the first touch ({n}): 1h later the price was {side} the level in {hold} (a random level: {ctrl}) — {verdict}"),
+    "pa_level_hist": _pair("После первого касания ({n}): через 1ч цена {side} уровня в {hold} — у случайного уровня {ctrl} "
+                           "({diff} п.п.{ci})",
+                           "After the first touch ({n}): 1h later the price was {side} the level in {hold} — a random level: {ctrl} "
+                           "({diff} pp{ci})"),
     "pa_level_hist_short": _pair("После первого касания: мало данных ({n})", "After the first touch: too little data ({n})"),
     "pa_level_move": _pair("За 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
                            "1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
@@ -314,17 +311,17 @@ DECISION_CATALOG: dict = {
     "rs_line": _pair("Проверено: {text} ({id})", "Tested: {text} ({id})"),
     # status-worded context lines: a discovery is never «Проверено», a weak effect is never a result
     "rs_line_confirmed": _pair("Проверено: {text} ({id})", "Tested: {text} ({id})"),
-    "rs_line_not_confirmed": _pair("Проверено: {text} ({id})", "Tested: {text} ({id})"),
+    "rs_line_not_confirmed": _pair("Проверка показала: {text} ({id})", "The test showed: {text} ({id})"),
     "rs_line_discovery": _pair("Гипотеза, не подтверждено: {text} ({id})", "Hypothesis, not confirmed: {text} ({id})"),
-    "rs_line_weak": _pair("Ниже порога значимости: {text} ({id})", "Below the materiality bar: {text} ({id})"),
+    "rs_line_weak": _pair("Ниже порога практической величины: {text} ({id})", "Below the materiality bar: {text} ({id})"),
     "rs_line_side_finding": _pair("Побочный результат проверки: {text} ({id})", "A side result of a test: {text} ({id})"),
     "rs_title": _pair("<b>Что проверили исследования</b> (история, не прогноз)",
                       "<b>What the research tested</b> (history, not a forecast)"),
     "rs_group_confirmed": _pair("<b>Подтвердилось</b> (и повторилось на другой бирже)",
-                                "<b>Held up</b> (and replicated on another venue)"),
+                                "<b>Held up</b> (and replicated on another exchange)"),
     "rs_group_discovery": _pair("<b>Найдено, но ещё не перепроверено</b> (один прогон по 2020–2024)",
                                 "<b>Found, not yet replicated</b> (one run on 2020–2024)"),
-    "rs_group_weak": _pair("<b>Есть, но слабее порога значимости</b>", "<b>Present, but below the materiality bar</b>"),
+    "rs_group_weak": _pair("<b>Есть, но слабее порога практической величины</b>", "<b>Present, but below the materiality bar</b>"),
     "rs_group_not_confirmed": _pair("<b>Не подтвердилось</b> (популярные представления, которые не выдержали проверку)",
                                     "<b>Did not hold</b> (popular beliefs that failed the test)"),
     "rs_group_side_finding": _pair("<b>Побочные находки</b> (проверяли другое — нашли это)",
@@ -341,10 +338,10 @@ DECISION_CATALOG: dict = {
     # ---- research evidence in the live analysis (beta/research_evidence.py) ----
     # one line = the live state + what the closed research found after it, worded by status
     "rev_line_confirmed": _pair("🔬 {state}. Проверено на двух биржах: {effect} ({id}).",
-                               "🔬 {state}. Tested on two venues: {effect} ({id})."),
+                               "🔬 {state}. Tested on two exchanges: {effect} ({id})."),
     "rev_line_discovery": _pair("🔬 {state}. Гипотеза (найдено на истории, не подтверждено): {effect} ({id}).",
                                "🔬 {state}. Hypothesis (found on history, not confirmed): {effect} ({id})."),
-    "rev_line_weak": _pair("🔬 {state}. В истории {effect} — эффект есть, но ниже нашего порога значимости ({id}).",
+    "rev_line_weak": _pair("🔬 {state}. В истории {effect} — эффект есть, но ниже нашего порога практической величины ({id}).",
                           "🔬 {state}. In history {effect} — the effect is there, but below our materiality bar ({id})."),
     "rev_line_not_confirmed": _pair("🔬 {state}. Историческая проверка эффекта не нашла: {effect} ({id}).",
                                    "🔬 {state}. The historical test found no effect: {effect} ({id})."),
@@ -354,7 +351,7 @@ DECISION_CATALOG: dict = {
                                  "🔬 If price gets here: {state}. {verdict}: {effect} ({id})."),
     "rev_verdict_confirmed": _pair("Проверено", "Tested"),
     "rev_verdict_discovery": _pair("Гипотеза, не подтверждено", "Hypothesis, not confirmed"),
-    "rev_verdict_weak": _pair("Ниже нашего порога значимости", "Below our materiality bar"),
+    "rev_verdict_weak": _pair("Ниже нашего порога практической величины", "Below our materiality bar"),
     "rev_verdict_not_confirmed": _pair("Проверка эффекта не нашла", "The test found no effect"),
     "rev_verdict_side_finding": _pair("Побочный результат", "Side result"),
     # live states (what the market shows now); {when}: Kyiv time of the research decision moment
@@ -523,11 +520,11 @@ DECISION_TERMS = {
         "Уровни — только те, что видит весь рынок: максимумы и минимумы вчера, прошлой недели и месяца, "
         "открытия дня, недели и месяца, сессии Азии, Европы и США, VWAP дня, объёмный центр вчера, круглые уровни, "
         "места крупных ликвидаций за 24ч. День, неделя и месяц — по UTC.\n"
-        "Случайный уровень — уровень на том же расстоянии от открытия периода, но без смысла. Если реальный уровень "
-        "ведёт себя как случайный, бот так и пишет: как обычно.\n"
+        "Случайный уровень — уровень на том же расстоянии от открытия периода, но без смысла. Рядом с реальным "
+        "уровнем бот пишет, как вёл себя случайный, и разницу в процентных пунктах (п.п.).\n"
         "После похожих — что было после таких же состояний 1ч / 4ч в истории Binance. Обычно — все часы с той же "
-        "волатильностью. «Отличается» — только если разница проходит проверку на случайность с поправкой на "
-        "число проверок.\n"
+        "волатильностью. Разница — в п.п.; 95% интервал — в каких пределах она, скорее всего, лежала в истории. "
+        "Если интервал захватывает ноль, история не отличает это состояние от обычного.\n"
         "Прошлое не гарантирует будущего. Бот не говорит, что делать со сделкой."
     ),
     "en": (
@@ -542,10 +539,11 @@ DECISION_TERMS = {
         "Levels — only what the whole market sees: yesterday's, last week's and last month's highs and lows, "
         "day, week and month opens, Asia, Europe and US sessions, the day VWAP, yesterday's volume POC, round numbers, "
         "places of large liquidations in 24h. Day, week and month are UTC.\n"
-        "Random level — a level at the same distance from the period open that means nothing. If a real level behaves "
-        "like a random one, the bot says so: as usual.\n"
+        "Random level — a level at the same distance from the period open that means nothing. Beside a real level the "
+        "bot shows how the random one behaved and the difference in percentage points (pp).\n"
         "After similar — what followed the same 1h / 4h states in Binance history. Usual — all hours with the same "
-        "volatility. 'Differs' only when the difference passes a randomness test corrected for the number of tests.\n"
+        "volatility. The difference is in pp; the 95% interval is the range it most likely had in history. "
+        "If the interval includes zero, history does not tell this state apart from usual.\n"
         "The past does not guarantee the future. The bot does not tell you what to do with a trade."
     ),
 }

@@ -350,7 +350,7 @@ def test_liquidation_renders_vote_count_not_a_sum_and_details_keep_the_venues():
            ("okx", "long_liquidation_notional"): (1e5, 0.40)}
     states, _ = run([snap(liq=liq)])
     out = format_btc(CFG, _view(states))
-    assert "Long-side liquidations 2/3 venues" in out and "TRIGGERED" not in out
+    assert "Long-side liquidations 2/3 exchanges" in out and "TRIGGERED" not in out
     assert "$6.1M" not in out
     _assert_compact(out)
     d = format_context_details(CFG, states[-1]["open"]["LIQUIDATION_STRESS_LONG"], states[-1])

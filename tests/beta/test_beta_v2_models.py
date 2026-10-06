@@ -300,6 +300,38 @@ def test_level_reaction_statistics_shape_and_controls():
         assert set(rec["verdicts"].values()) <= {"differs", "as_usual", "insufficient"}
 
 
+def _old_boot_p(real, ctrl, h, rng, b_reps):
+    """The level bootstrap before the interval was added (X1), kept verbatim as the reference."""
+    periods = sorted({e["period"] for e in real} | {e["period"] for e in ctrl})
+    if len(periods) < lv.MIN_PERIODS:
+        return None
+    rd, rn = lv._per_period(real, periods, h)
+    cd, cn = lv._per_period(ctrl, periods, h)
+    W = rng.multinomial(len(periods), np.full(len(periods), 1.0 / len(periods)), size=b_reps).astype(np.float64)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        d = (W @ rn) / (W @ rd) - (W @ cn) / (W @ cd)
+    d = d[np.isfinite(d)]
+    if d.size < b_reps * 0.9:
+        return None
+    return float(min(1.0, 2 * min(np.mean(d <= 0), np.mean(d >= 0))))
+
+
+def test_level_bootstrap_interval_leaves_every_p_value_unchanged():
+    raw = lv._real_and_control(_bars(days=120), seed=lv.SEED)
+    typ = next(k for k, d in raw.items() if len(d["real"]) > 30)
+    for h in (None, "1h", "4h"):
+        old = _old_boot_p(raw[typ]["real"], raw[typ]["control"], h, np.random.default_rng(7), 300)
+        new = lv._boot_p(raw[typ]["real"], raw[typ]["control"], h, np.random.default_rng(7), 300)
+        assert (old is None) == (new is None)
+        if new is not None:
+            p, (lo, hi) = new
+            assert p == old and lo <= hi
+    st = lv.level_reaction_stats(_bars(days=120), bootstrap=200)
+    for rec in st["types"].values():
+        for test, (lo, hi) in (rec.get("ci95") or {}).items():
+            assert test in rec["p_holm"] and lo <= hi
+
+
 def test_holm_and_side_specific_statistics():
     adj = lv.holm({"a": 0.01, "b": 0.04, "c": 0.03, "d": None})
     assert adj == {"a": 0.03, "c": 0.06, "b": 0.06}
@@ -349,10 +381,27 @@ def test_analogue_statistics_shape_baseline_and_lookup():
             assert set(cell["verdicts"]) == {"direction", "range"}
             if cell["n"]:
                 assert 0 <= cell["p_up"] <= 1 and cell["baseline"] is not None
+            for test, (lo, hi) in (cell.get("ci95") or {}).items():
+                assert test in cell["p_holm"] and lo <= hi           # X1: the interval beside each test
     if "long_exit" in st["windows"]["1h"]:
         card = lookup(st, "1h", "long_flush")
         assert card["key"] == "long_exit" and card["proxy_label"] is True
     assert lookup(st, "1h", None) is None and lookup(None, "1h", "normal") is None
+
+
+def test_analogue_bootstrap_interval_leaves_the_p_value_unchanged():
+    from beta import analogues as an
+    rng = np.random.default_rng(11)
+    days = rng.integers(0, 60, size=400)
+    x = rng.normal(0.1, 1.0, size=400)
+    uniq, inv = np.unique(days, return_inverse=True)
+    s, c = np.bincount(inv, weights=x), np.bincount(inv).astype(np.float64)
+    r_old = np.random.default_rng(5)
+    W = r_old.multinomial(uniq.size, np.full(uniq.size, 1.0 / uniq.size), size=300).astype(np.float64)
+    d = (W @ s) / (W @ c) - 0.0
+    p_old = float(min(1.0, 2 * min(np.mean(d <= 0), np.mean(d >= 0))))
+    p_new, (lo, hi) = an._boot(days, x, 0.0, np.random.default_rng(5), 300)
+    assert p_new == p_old and lo == float(np.quantile(d, 0.025)) and hi == float(np.quantile(d, 0.975))
 
 
 def test_label_history_uses_the_live_interpretation_rules():

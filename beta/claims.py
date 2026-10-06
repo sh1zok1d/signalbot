@@ -249,7 +249,7 @@ def analog_claims(cfg, state: Optional[Mapping[str, Any]], stats: Optional[Mappi
     history card is written: rows under the display minimum are kept as BASELINE_ONLY (the
     baseline cohort is every hour, as in history), and only SHOWN rows are a stated claim."""
     from .analogues import ANALOGUES_VERSION, OUTCOMES, lookup
-    from .decision_format import MIN_N_SHOWN
+    from .decision_format import MIN_N_SHOWN, analog_range, fmt_pp
     from .interpretation import COMPRESSION, FACTUAL, INTERPRETED, interpret, liquidation_episodes
     from .research_states import index_closing_at
     from .state_tape import iso
@@ -278,12 +278,19 @@ def analog_claims(cfg, state: Optional[Mapping[str, Any]], stats: Optional[Mappi
             # stated only where a surface prints it: a state that says something (the formatter's kinds),
             # at the window's own horizon, above the display minimum; NORMAL stays in the live baseline
             shown = res.get("kind") in (INTERPRETED, FACTUAL, COMPRESSION) and n >= MIN_N_SHOWN and h == w
+            ci = (cell.get("ci95") or {}).get("direction")
+            ratio, _ = analog_range(cell, "en")
             numbers = {"observed": round(float(cell["p_up"]), 4), "baseline": round(float(base["p_up"]), 4),
                        "diff_pp": round((float(cell["p_up"]) - float(base["p_up"])) * 100.0, 2), "n": n,
+                       "interval_pp": None if not ci else [round(float(x) * 100.0, 2) for x in ci],
                        "days": int(cell.get("days") or 0), "verdicts": dict(cell.get("verdicts") or {}),
                        "range_ratio": None if cell.get("range_ratio") is None else round(float(cell["range_ratio"]), 4),
+                       "range_ratio_shown": None if ratio is None else round(float(ratio), 4),
+                       "range_interval_log": (cell.get("ci95") or {}).get("range"),
                        "printed": {"observed": f"{round(cell['p_up'] * 100):d}%",
-                                   "baseline": f"{round(base['p_up'] * 100):d}%"}}
+                                   "baseline": f"{round(base['p_up'] * 100):d}%",
+                                   "diff_pp": fmt_pp(cell["p_up"] - base["p_up"], "en"),
+                                   "interval_pp": None if not ci else [fmt_pp(x, "en") for x in ci]}}
             subject = {"window": w, "key": card["key"], "live_key": res.get("key"), "horizon": h,
                        "tercile": tercile, "proxy_label": bool(card.get("proxy_label"))}
             out.append(claim_row(f"L2_STATE_ANALOG_{w.upper()}_{h.upper()}", issued_at=now, issue_slot=slot,
@@ -323,7 +330,7 @@ def dh3_p1_claim(b: Optional[Bars], oi: Optional[np.ndarray], *, now: datetime, 
 def level_hold_claims(cand: Mapping[str, Any], *, now: datetime) -> list:
     """L2 at a level-touch evaluation: the first-touch hold rate after 1h / 4h vs the random level,
     when its history reaches the display minimum (below it the bot says «мало данных»)."""
-    from .decision_format import MIN_N_SHOWN
+    from .decision_format import MIN_N_SHOWN, fmt_pp
     from .levels import LEVEL_STATS_VERSION
     p = cand.get("payload") or {}
     hist = p.get("history") or {}
@@ -338,11 +345,15 @@ def level_hold_claims(cand: Mapping[str, Any], *, now: datetime) -> list:
         r, c = real.get(h) or {}, ctrl.get(h) or {}
         if r.get("hold_rate") is None or c.get("hold_rate") is None:
             continue
+        ci = (hist.get("ci95") or {}).get(h)
         numbers = {"observed": round(float(r["hold_rate"]), 4), "baseline": round(float(c["hold_rate"]), 4),
                    "diff_pp": round((float(r["hold_rate"]) - float(c["hold_rate"])) * 100.0, 2), "n": n,
+                   "interval_pp": None if not ci else [round(float(x) * 100.0, 2) for x in ci],
                    "verdict": (hist.get("verdicts") or {}).get(h),
                    "printed": {"observed": f"{round(r['hold_rate'] * 100):d}%",
-                               "baseline": f"{round(c['hold_rate'] * 100):d}%"}}
+                               "baseline": f"{round(c['hold_rate'] * 100):d}%",
+                               "diff_pp": fmt_pp(r["hold_rate"] - c["hold_rate"], "en"),
+                               "interval_pp": None if not ci else [fmt_pp(x, "en") for x in ci]}}
         subject = {"level_kind": p.get("level_kind"), "level": p.get("level"), "side": int(p.get("side") or 1),
                    "period": p.get("period"), "touch_at": p["at"], "horizon": h}
         out.append(claim_row(f"L2_LEVEL_FIRST_TOUCH_HOLD_{h.upper()}", issued_at=now, issue_slot=at, as_of=as_of,

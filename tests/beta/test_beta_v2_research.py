@@ -64,7 +64,8 @@ def test_context_lines_pick_the_matching_unit(contexts, expected):
         assert line is None
     else:
         status = next(f["status"] for f in rl.load_findings() if f["id"] == expected)
-        prefix = {"CONFIRMED": "Проверено: ", "NOT_CONFIRMED": "Проверено: ", "WEAK": "Ниже порога значимости: ",
+        prefix = {"CONFIRMED": "Проверено: ", "NOT_CONFIRMED": "Проверка показала: ",
+                  "WEAK": "Ниже порога практической величины: ",
                   "DISCOVERY": "Гипотеза, не подтверждено: ", "SIDE_FINDING": "Побочный результат проверки: "}[status]
         assert line.startswith(prefix) and line.endswith(f"({expected})")            # a discovery is never «Проверено»
 
@@ -166,3 +167,33 @@ def test_a_closed_program_without_results_is_a_recorded_no_context_decision():
     assert not any(f["id"].startswith(("G01", "AUTOGEN")) for f in FINDINGS)
     for lang in ("ru", "en"):
         assert "G01" not in "\n".join(rl.format_research(lang))
+
+
+# PRE_BETA_BACKLOG_V1 X2 and finding 6: the materiality bar is never called significance, and a
+# null ("did not hold") is never introduced as «Проверено» / "Tested".
+_SIGNIFICANCE_BAR = re.compile(r"порог\w*\s+(?:\w+\s+)?значимост", re.I)
+
+
+def test_no_text_calls_the_materiality_bar_significance():
+    from beta.i18n_decision import DECISION_CATALOG
+    for key, pair in DECISION_CATALOG.items():
+        assert not _SIGNIFICANCE_BAR.search(pair["ru"]), key
+    for f in FINDINGS:
+        for field in ("text_ru", "data"):
+            assert not _SIGNIFICANCE_BAR.search(str(f.get(field, ""))), (f["id"], field)
+        for field, value in (f.get("live") or {}).items():
+            if field.endswith("_ru"):
+                assert not _SIGNIFICANCE_BAR.search(str(value)), (f["id"], field)
+
+
+@pytest.mark.parametrize("lang", ["ru", "en"])
+def test_only_a_confirmed_unit_is_introduced_as_tested(lang):
+    tested = "Проверено" if lang == "ru" else "Tested"
+    seen = set()
+    for f in FINDINGS:
+        line = rl.context_line(list(f["contexts"])[:1], lang, [f]) if f["contexts"] else None
+        if line is None:
+            continue
+        seen.add(f["status"])
+        assert line.startswith(tested) == (f["status"] == "CONFIRMED"), (f["id"], line)
+    assert {"CONFIRMED", "NOT_CONFIRMED"} <= seen

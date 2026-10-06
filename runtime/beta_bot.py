@@ -145,6 +145,11 @@ def _help(lang: str) -> str:
     return t(lang, "help") + "\n\n" + t(lang, "disclaimer")
 
 
+def _terms(lang: str) -> str:
+    # the disclaimer lives in /start and /terms (BETA_COPY_CONTRACT_V1 §4; PRE_BETA_BACKLOG_V1 J3)
+    return t(lang, "terms") + "\n\n" + t(lang, "disclaimer")
+
+
 def _help_buttons(lang: str) -> list:
     # «Другие монеты»: the U5 fake door (BETA_MEASUREMENT_CONTRACT_V1 §6). Only here, never
     # pushed or repeated elsewhere; nothing multi-asset exists behind it.
@@ -301,7 +306,7 @@ class BetaBotHandler:
                                      [_msg(chat_id, format_history(rows, outcomes, lang), lang=lang)])
         if cmd == "terms":
             return await self._reply(conn, user, chat_id, lang, now, "cmd_terms",
-                                     [_msg(chat_id, t(lang, "terms"), lang=lang)])
+                                     [_msg(chat_id, _terms(lang), lang=lang)])
         if cmd == "help":
             return await self._reply(conn, user, chat_id, lang, now, "cmd_help",
                                      [_msg(chat_id, _help(lang), _help_buttons(lang), lang=lang)])
@@ -683,7 +688,7 @@ class BetaBotHandler:
             if user is None or user["status"] != "ACTIVE":
                 return [answer(t(lang, "not_available"))]
             return await self._reply(conn, user, chat_id, lang, self.clock(), "cmd_terms",
-                                     [answer(""), _msg(chat_id, t(lang, "terms"), lang=lang)])
+                                     [answer(""), _msg(chat_id, _terms(lang), lang=lang)])
         tab = _parse_tab(data)
         if tab is not None:
             if user is None or user["status"] != "ACTIVE":

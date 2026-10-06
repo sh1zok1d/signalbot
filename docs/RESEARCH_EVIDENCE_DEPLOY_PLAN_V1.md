@@ -1,6 +1,7 @@
 # Research Evidence Integration — production deploy plan V1
 
 **Status:** PLAN ONLY (2026-10-04). Nothing here has been run on production. Owner go is required for every step that changes production.
+**Update (2026-10-06):** the engine (#326) and this plan (#327) are in production **code** since `c980fae` (owner-reported deploy of 2026-10-05). No step of this plan is recorded as run on the server, and the state of `BETA_RESEARCH_EVIDENCE_ENABLED` there is not recorded (owner action, `PRE_BETA_SCOPE_DECISION_V1.md` §9).
 
 | Item | Value |
 | --- | --- |

@@ -23,6 +23,7 @@ def _zone(kinds, low, high, dist, p4=0.3, p24=0.6, hist=None, **extra):
 
 
 HIST = {"type": "PDH", "kind": "PDH", "verdicts": {"1h": "as_usual", "4h": "as_usual", "touch": "as_usual"},
+        "ci95": {"1h": [-0.012, 0.091]},
         "real": {"n": 812, "1h": {"hold_rate": 0.47, "further_median": 0.5, "back_median": 0.4}},
         "control": {"n": 4000, "1h": {"hold_rate": 0.43, "further_median": 0.5, "back_median": 0.4}}}
 
@@ -85,10 +86,18 @@ def test_btc_lines():
 
 def test_levels_card_has_history_beside_a_random_level():
     text = plain(df.format_levels(block(), "ru", now=NOW))
-    assert "после первого касания (812 случаев): через 1ч цена выше уровня в 47% — у случайного уровня 43%, как обычно" in text
+    assert ("после первого касания (812 случаев): через 1ч цена выше уровня в 47% — у случайного уровня 43% "
+            "(+4,0 п.п.; 95% интервал −1,2…+9,1)") in text
+    assert "как обычно" not in text and "чаще" not in text and "реже" not in text   # no verdict words (X1)
     assert "дойти: за 4ч 30%, за 24ч 60%" in text and "День, неделя и месяц — по UTC" in text
     en = plain(df.format_levels(block(), "en", now=NOW))
-    assert "after the first touch (812 cases): 1h later the price was above the level in 47%" in en
+    assert ("after the first touch (812 cases): 1h later the price was above the level in 47% — a random level: 43% "
+            "(+4.0 pp; 95% interval −1.2…+9.1)") in en
+    # a payload built before the interval existed shows the difference without one
+    old = {k: v for k, v in HIST.items() if k != "ci95"}
+    blk = block()
+    blk["levels"]["above"][0]["history"] = old
+    assert "у случайного уровня 43% (+4,0 п.п.)" in plain(df.format_levels(blk, "ru", now=NOW))
 
 
 def test_level_move_is_shown_beside_the_random_level_never_as_its_own_usual():
@@ -138,17 +147,25 @@ def test_risk_card_and_argument_parsing():
     assert df.parse_risk_arg("59400", None) == ("bad", None)
 
 
-def test_analog_line_wording_follows_the_verdict():
-    base = {"p_up": 0.51}
+def test_analog_line_states_the_difference_and_its_interval_never_a_verdict():
+    import math
+    base = {"p_up": 0.51, "mean_log_range": 0.0}
     cell = {"n": 412, "days": 300, "p_up": 0.53, "baseline": base, "range_ratio": 1.3,
+            "mean_log_range": math.log(1.25), "ci95": {"direction": [-0.011, 0.052], "range": [math.log(1.1), math.log(1.4)]},
             "verdicts": {"direction": "as_usual", "range": "differs"}}
     card = {"window": "4h", "outcomes": {"4h": cell}}
     ru = df.analog_line(card, "ru", since_year=2020)
-    assert ru == ("↳ после похожих (412 случаев с 2020): через 4ч выше в 53% (обычно 51%) — как обычно; "
-                  "ход ×1,3 — больше обычного")
-    cell2 = {**cell, "p_up": 0.44, "range_ratio": 0.8, "verdicts": {"direction": "differs", "range": "differs"}}
-    assert "чаще ниже обычного" in df.analog_line({"window": "1h", "outcomes": {"1h": cell2}}, "ru")
-    assert "меньше обычного" in df.analog_line({"window": "1h", "outcomes": {"1h": cell2}}, "ru")
+    assert ru == ("↳ после похожих (412 случаев с 2020): через 4ч выше в 53% против 51% обычно "
+                  "(+2,0 п.п.; 95% интервал −1,1…+5,2); ход ×1,2 к обычному (95% интервал ×1,10…×1,40)")
+    en = df.analog_line(card, "en", since_year=2020)
+    assert en == ("↳ after similar (412 cases since 2020): 4h later higher in 53% vs 51% usually "
+                  "(+2.0 pp; 95% interval −1.1…+5.2); move ×1.2 of usual (95% interval ×1.10…×1.40)")
+    for text in (ru, en):
+        assert not any(w in text for w in ("как обычно", "чаще", "больше обычного", "as usual", "more often"))
+    # a payload built before the interval existed: the difference, the median ratio, no interval
+    old = {k: v for k, v in cell.items() if k not in ("ci95", "mean_log_range")}
+    assert df.analog_line({"window": "4h", "outcomes": {"4h": old}}, "ru") == (
+        "↳ после похожих (412 случаев): через 4ч выше в 53% против 51% обычно (+2,0 п.п.); ход ×1,3 к обычному")
     small = {"window": "1h", "outcomes": {"1h": {**cell, "n": 12}}}
     assert df.analog_line(small, "ru") == "↳ после похожих: мало данных (12 случаев)"
     assert df.analog_line(None, "ru") is None

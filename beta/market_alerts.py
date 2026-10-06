@@ -136,7 +136,8 @@ def detect_level_touches(block: Mapping[str, Any], b: Bars, closed_1m, *, now: d
                     "payload": {"at": touched.isoformat(), "source_at": source_at.isoformat(),
                                 "level_kind": kind, "level": lv["price"],
                                 "side": side, "period": pname, "price": block["price"],
-                                "history": {k: rec[k] for k in ("real", "control", "verdicts")} if rec else None,
+                                "history": {**{k: rec[k] for k in ("real", "control", "verdicts")},
+                                            "ci95": rec.get("ci95") or {}} if rec else None,
                                 "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
                                 "event_zone": block.get("event_zone") or {}}})
     return _one_per_price(out)

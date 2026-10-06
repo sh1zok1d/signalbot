@@ -233,8 +233,9 @@ def _baseline(hist: Mapping[str, Any], h: str, mix: np.ndarray, valid: np.ndarra
             "mean_log_range": float(np.sum(w * np.log(np.maximum(rng, 0.01))) / w.sum())}
 
 
-def _boot(days: np.ndarray, x: np.ndarray, base_value: float, rng, b_reps: int) -> Optional[float]:
-    """Two-sided p-value of mean(x) − base_value = 0 with day-clustered resampling."""
+def _boot(days: np.ndarray, x: np.ndarray, base_value: float, rng, b_reps: int) -> Optional[tuple]:
+    """(two-sided p-value of mean(x) − base_value = 0, its 95% percentile interval) with day-clustered
+    resampling. The interval comes from the same draws, so adding it changed no p-value."""
     uniq, inv = np.unique(days, return_inverse=True)
     if uniq.size < MIN_DAYS:
         return None
@@ -245,7 +246,8 @@ def _boot(days: np.ndarray, x: np.ndarray, base_value: float, rng, b_reps: int) 
     d = d[np.isfinite(d)]
     if d.size < b_reps * 0.9:
         return None
-    return float(min(1.0, 2 * min(np.mean(d <= 0), np.mean(d >= 0))))
+    return (float(min(1.0, 2 * min(np.mean(d <= 0), np.mean(d >= 0)))),
+            (float(np.quantile(d, 0.025)), float(np.quantile(d, 0.975))))
 
 
 def analogue_stats(b: Bars, *, context: Mapping[str, Any], seed: int = SEED,
@@ -292,11 +294,17 @@ def analogue_stats(b: Bars, *, context: Mapping[str, Any], seed: int = SEED,
                         cell["range_ratio"] = float(np.median(rngv) / base["median_range"]) \
                             if base["median_range"] > 0 else None
                     if n >= MIN_N and cell["days"] >= MIN_DAYS and base is not None:
-                        pvals[(w, key, h, "direction")] = _boot(days, (ret > 0).astype(np.float64),
-                                                                base["p_up"], rng, bootstrap)
-                        pvals[(w, key, h, "range")] = _boot(days, np.log(np.maximum(rngv, 0.01)),
-                                                            base["mean_log_range"], rng, bootstrap)
+                        ci: dict = {}
+                        for test, x, ref in (("direction", (ret > 0).astype(np.float64), base["p_up"]),
+                                             ("range", np.log(np.maximum(rngv, 0.01)), base["mean_log_range"])):
+                            res = _boot(days, x, ref, rng, bootstrap)
+                            pvals[(w, key, h, test)] = None if res is None else res[0]
+                            if res is not None:
+                                ci[test] = [round(res[1][0], 5), round(res[1][1], 5)]
                         cell["mean_log_range"] = float(np.mean(np.log(np.maximum(rngv, 0.01))))
+                        # 95% intervals (unadjusted) of p_up − baseline and of the mean log-range
+                        # difference, for the quantitative L2 line
+                        cell["ci95"] = ci
                 rec["outcomes"][h] = cell
                 cells[(w, key, h)] = cell
             out["windows"][w][key] = rec

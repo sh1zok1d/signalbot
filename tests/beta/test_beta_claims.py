@@ -130,7 +130,17 @@ def test_analog_claims_mark_what_is_stated_and_keep_the_baseline_cohort(monkeypa
     assert set(by) == {"L2_STATE_ANALOG_1H_1H", "L2_STATE_ANALOG_1H_4H", "L2_STATE_ANALOG_4H_4H", "L2_STATE_ANALOG_4H_24H"}
     one = by["L2_STATE_ANALOG_1H_1H"]
     assert one["eligible_reason"] == cj.SHOWN and one["numbers"]["diff_pp"] == 2.0
-    assert one["numbers"]["printed"] == {"observed": "53%", "baseline": "51%"}
+    assert one["numbers"]["printed"] == {"observed": "53%", "baseline": "51%", "diff_pp": "+2.0", "interval_pp": None}
+    assert one["numbers"]["interval_pp"] is None                     # a payload built before X1 has no interval
+    with_ci = _stats()
+    cell = with_ci["analogues"]["windows"]["1h"]["short_exit"]["outcomes"]["1h"]
+    cell["ci95"] = {"direction": [-0.011, 0.052]}
+    shown = {r["claim_class"]: r for r in cj.analog_claims(CFG, state, with_ci, b, now=SLOT, slot=SLOT)}
+    nums = shown["L2_STATE_ANALOG_1H_1H"]["numbers"]
+    assert nums["interval_pp"] == [-1.1, 5.2] and nums["printed"]["interval_pp"] == ["−1.1", "+5.2"]
+    from beta import decision_format as df
+    line = df.analog_line({"window": "1h", "outcomes": {"1h": cell}}, "en")
+    assert "(+2.0 pp; 95% interval −1.1…+5.2)" in line                  # what is logged is what is printed
     assert one["context_pk"] == 11 and one["stats_pk"] == 7 and one["stats_digest"] == "a" * 64
     assert one["rule_version"].endswith("BETA_CONTEXT_1H_V3")
     assert by["L2_STATE_ANALOG_1H_4H"]["eligible_reason"] == cj.BASELINE_ONLY        # n = 20 < 30
