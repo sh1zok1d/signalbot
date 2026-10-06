@@ -923,6 +923,13 @@ class BetaConn:
             "WHERE kind='push' AND ($1::timestamptz IS NULL OR created_at >= $1) GROUP BY state", since)
         return {r["state"]: int(r["n"]) for r in rows}
 
+    async def delivery_problems_by_kind(self, *, since: datetime) -> dict:
+        """FAILED and DELIVERY_UNKNOWN rows by outbox kind (every kind; the owner's failure spike)."""
+        rows = await self.conn.fetch(
+            """SELECT kind, count(*) AS n FROM beta_notification_deliveries
+               WHERE state IN ('FAILED', 'DELIVERY_UNKNOWN') AND created_at >= $1 GROUP BY kind""", since)
+        return {r["kind"]: int(r["n"]) for r in rows}
+
     async def push_decision_counts(self, *, since: datetime) -> list:
         rows = await self.conn.fetch(
             "SELECT decision, suppression_reason, count(*) AS n FROM beta_push_decisions "
@@ -1292,6 +1299,11 @@ class BetaConn:
     async def active_user_chats(self) -> list:
         rows = await self.conn.fetch("SELECT chat_id FROM beta_users WHERE status='ACTIVE' ORDER BY user_pk")
         return [r["chat_id"] for r in rows]
+
+    async def active_user_chats_with_lang(self) -> list:
+        rows = await self.conn.fetch(
+            "SELECT chat_id, lang FROM beta_users WHERE status='ACTIVE' ORDER BY user_pk")
+        return [dict(r) for r in rows]
 
     async def user_counts(self) -> dict:
         rows = await self.conn.fetch("SELECT status, count(*) AS n FROM beta_users GROUP BY status")

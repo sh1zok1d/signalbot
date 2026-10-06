@@ -166,7 +166,36 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                         report["owner_alert_error"] = type(exc).__name__
             await conn.record_health("notifier", now=clock(), success=True,
                                      detail={k: v for k, v in report.items() if isinstance(v, int)})
+    report["deadman_ping"] = await deadman_ping()
     return {"status": "OK", **report}
+
+
+DEADMAN_PING_ENV = "BETA_DEADMAN_PING_URL"
+
+
+async def deadman_ping(url: Optional[str] = None, *, timeout_s: float = 5.0) -> str:
+    """A3: after every complete notifier run, ping an external check (for example a healthchecks.io
+    URL in `.env`). When the VPS, the database or this timer stops, the pings stop and the external
+    service alerts the owner, which nothing on the box can do. Optional; the URL is never logged."""
+    import os
+    url = url if url is not None else os.environ.get(DEADMAN_PING_ENV, "").strip()
+    if not url:
+        return "OFF"
+    if not url.startswith("https://"):
+        return "REFUSED_NOT_HTTPS"
+
+    def _get() -> int:
+        import urllib.request
+        with urllib.request.urlopen(url, timeout=timeout_s) as r:     # noqa: S310 - https only, owner-set
+            return int(r.status)
+    try:
+        import asyncio
+        status = await asyncio.to_thread(_get)
+    except Exception as exc:  # noqa: BLE001 - a failed ping is the external check's signal, not ours
+        import logging
+        logging.getLogger("beta.delivery").warning("dead-man ping failed: %s", type(exc).__name__)
+        return "FAILED"
+    return "OK" if 200 <= status < 300 else "FAILED"
 
 
 async def _analogue_source(conn, now: datetime) -> tuple:

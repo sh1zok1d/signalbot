@@ -107,17 +107,29 @@ def product_status(cfg: BetaConfig, *, now: datetime, latest_live: Optional[Mapp
 
 
 HISTORY_BUILD_STALE_S = 50 * 3600          # the build runs daily; two missed nights alert
+# A3 (PRE_BETA_BACKLOG_V1): jobs that alert once they have run at least once, by their own cadence
+FEEDS_STALE_S = 30 * 60                    # research feeds every 5 min: six missed runs
+STRESS_STALE_S = 3 * 3600                  # stress hours at HH:02: two missed hours
+HISTORY_SYNC_STALE_S = 50 * 3600           # history sync daily: two missed nights
 
 
 def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any],
                   detector_watermark: Optional[datetime], latest_live: Optional[Mapping[str, Any]],
                   runtime: Mapping[str, Mapping[str, Any]], delivery_problems: int,
-                  switches, d7_newest_available_at: Optional[datetime] = None) -> list:
+                  switches, d7_newest_available_at: Optional[datetime] = None,
+                  delivery_problems_by_kind: Optional[Mapping[str, int]] = None) -> list:
     """Owner health alerts (keys are stable; no personal data)."""
     h = cfg.section("health")
     alerts = []
     if not heartbeat.get("healthy"):
         alerts.append({"key": "INGESTION_STALE", "detail": {"healthy_venues": heartbeat.get("healthy_venues")}})
+    else:
+        # decision support reads Binance alone; two other venues can keep the heartbeat healthy (A3)
+        from .decision import LIVE_EXCHANGE, STALE_AFTER
+        ages = heartbeat.get("ages_s")
+        age = (ages or {}).get(LIVE_EXCHANGE)
+        if ages is not None and LIVE_EXCHANGE in cfg.exchanges and (age is None or age > STALE_AFTER.total_seconds()):
+            alerts.append({"key": "BINANCE_STALE", "detail": {"age_s": None if age is None else int(age)}})
 
     def _stalled(component: str, limit_s: int) -> bool:
         row = runtime.get(component)
@@ -154,7 +166,10 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
     if telegram and _stalled("notifier", h["notifier_stall_s"]):
         alerts.append({"key": "NOTIFIER_NOT_RUNNING", "detail": {}})
     if delivery_problems >= h["delivery_problem_threshold"]:
-        alerts.append({"key": "DELIVERY_FAILURE_SPIKE", "detail": {"count": delivery_problems}})
+        detail = {"count": delivery_problems}
+        if delivery_problems_by_kind:
+            detail["by_kind"] = dict(delivery_problems_by_kind)
+        alerts.append({"key": "DELIVERY_FAILURE_SPIKE", "detail": detail})
     if cfg.section("regime_d7")["enabled"]:
         from .regime_d7 import HOUR_STATE_STALE_AFTER
         stale = d7_newest_available_at is None or (now - d7_newest_available_at) > HOUR_STATE_STALE_AFTER
@@ -163,6 +178,18 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
     # Decision support (PRODUCT_DECISION_V2): once the nightly build has run, it must keep running.
     if "history_build" in runtime and _stalled("history_build", HISTORY_BUILD_STALE_S):
         alerts.append({"key": "HISTORY_STATS_STALE", "detail": {}})
+    build = runtime.get("history_build") or {}
+    if build.get("last_run_at") and build.get("last_success_at") != build.get("last_run_at"):
+        alerts.append({"key": "HISTORY_BUILD_FAILED", "detail": {"error": build.get("last_error_type")}})
+    # A3: the history sync, the research feeds and the stress hours, once each has run
+    for comp, key, limit in (("history_sync", "HISTORY_SYNC_FAILING", HISTORY_SYNC_STALE_S),
+                             ("research_feeds", "FEEDS_FAILING", FEEDS_STALE_S),
+                             ("research_stress_hours", "STRESS_HOURS_FAILING", STRESS_STALE_S)):
+        if comp in runtime and _stalled(comp, limit):
+            alerts.append({"key": key, "detail": {"error": (runtime.get(comp) or {}).get("last_error_type")}})
+    definition = runtime.get("research_feeds_definition") or {}
+    if definition.get("last_run_at") and definition.get("last_success_at") != definition.get("last_run_at"):
+        alerts.append({"key": "FEEDS_DEFINITION_CHECK_FAILED", "detail": {}})
     # Touch-chance calibration (docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md §3): a live bin that diverged
     # from its stated chances. The owner is told; the bin's wording has already fallen back.
     live = ((runtime.get("touch_live_cal") or {}).get("detail")) or {}
@@ -174,3 +201,20 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
     if any(neither.values()):
         alerts.append({"key": "NEITHER_CALIBRATION_DIVERGED", "detail": {h: v for h, v in neither.items() if v}})
     return alerts
+
+
+NOTIFIER_DEADMAN = "NOTIFIER_DEADMAN"
+
+
+def notifier_deadman_due(runtime: Mapping[str, Mapping[str, Any]], *, now: datetime, stall_s: int, repeat_s: int,
+                         watcher_started_at: datetime) -> bool:
+    """A3 dead-man: the bot receiver, an independent process, checks the notifier's heartbeat (the
+    notifier's own NOTIFIER_NOT_RUNNING can never be sent while the notifier is down). Due when the
+    notifier has not succeeded for `stall_s` (or never, once the watcher has run that long) and the
+    owner was not told within `repeat_s`."""
+    last = (runtime.get("notifier") or {}).get("last_success_at")
+    since = last if last is not None else watcher_started_at
+    if (now - since).total_seconds() <= stall_s:
+        return False
+    told = (runtime.get(f"owner_alert:{NOTIFIER_DEADMAN}") or {}).get("last_success_at")
+    return told is None or (now - told).total_seconds() >= repeat_s

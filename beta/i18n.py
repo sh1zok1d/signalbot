@@ -290,6 +290,15 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "Спасибо! Отзыв передан команде.",
         "en": "Thanks! Your feedback was sent to the team.",
     },
+    # A3: the ready outage notice the owner sends with /admin_outage start|end
+    "outage_start": {"ru": "⚠️ У нас сбой: данные или сообщения бота могут задерживаться или не приходить. "
+                           "Цифры, показанные сейчас, могут быть устаревшими. Мы чиним и напишем, когда всё заработает.",
+                     "en": "⚠️ We have an outage: the bot's data or messages may be late or missing. "
+                           "Numbers shown now may be out of date. We are fixing it and will tell you when it works again."},
+    "outage_end": {"ru": "✅ Сбой устранён: бот снова получает данные и присылает сообщения. "
+                         "Если что-то выглядит странно, напишите /feedback.",
+                   "en": "✅ The outage is over: the bot has its data again and sends messages. "
+                         "If anything looks odd, write /feedback."},
     "team_reply": {
         "ru": "Ответ команды Signalbot:\n",
         "en": "Reply from the Signalbot team:\n",
