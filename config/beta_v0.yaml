@@ -139,6 +139,15 @@ beta:
   # Join cap. Not detection, not the rules digest. The owner is exempt.
   access:
     max_active_users: 20
+    # Monetization readiness (PRE_BETA_SCOPE_DECISION_V1 §6.5, backlog I1): free / paid flags exist in
+    # code and nothing is gated during the beta. No payment processing anywhere.
+    tiers_enforced: false
+    # U3 (PRODUCT_FIRST_DECISION_V1 §7, backlog I2): the offer /admin_offer sends on days 21–25 to every
+    # enrolled participant, churned included. The owner fixes the price and the manual method in a
+    # commit before Day 0; while either is empty the command refuses. No tariff page (post-beta).
+    u3_offer:
+      price: null                         # e.g. "$15 в месяц / $15 a month"
+      method: null                        # the manual transfer the owner accepts
   # Per-user activity retention (beta plus 90 days). Not the rules digest.
   # Rejected /start rows (hashes or a daily count) are purged separately.
   telemetry:

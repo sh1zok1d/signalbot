@@ -154,10 +154,22 @@ def _help_buttons(lang: str) -> list:
     # «Другие монеты»: the U5 fake door (BETA_MEASUREMENT_CONTRACT_V1 §6). Only here, never
     # pushed or repeated elsewhere; nothing multi-asset exists behind it.
     return [[(t(lang, "btn_terms"), "terms"), (t(lang, "btn_other_assets"), OTHER_ASSETS)],
-            [(t(lang, "btn_idea"), IDEA_BUTTON), (t(lang, "btn_interview"), INTERVIEW_BUTTON)]]   # H1, H4
+            [(t(lang, "btn_idea"), IDEA_BUTTON), (t(lang, "btn_interview"), INTERVIEW_BUTTON)],   # H1, H4
+            [(t(lang, "btn_guide"), GUIDE_BUTTON)]]                                              # J2
 
 
-IDEA_BUTTON, INTERVIEW_BUTTON = "x:idea", "x:interview"
+IDEA_BUTTON, INTERVIEW_BUTTON, GUIDE_BUTTON = "x:idea", "x:interview", "x:guide"
+
+
+def _sample_level_alert(lang: str) -> str:
+    """J1: an example of a level-touch message, round numbers, shown under «Это пример»."""
+    from beta.decision_format import format_alert
+    at = datetime(2026, 1, 5, 6, 41, tzinfo=timezone.utc)
+    payload = {"at": at.isoformat(), "level_kind": "PDH", "level": 100000.0, "side": 1, "period": "day",
+               "price": 100050.0, "price_ts": (at + timedelta(minutes=1)).isoformat(), "event_zone": {},
+               # no history line: an example never carries statistics that could be read as real ones
+               "history": None, "next": None, "corridor_4h": {"lower": 98600.0, "upper": 101400.0, "half_width_pct": 1.4}}
+    return format_alert("level", payload, lang)
 NOISE_REASONS = ("wrong", "not_for_me", "too_often", "late")          # H2, after «Шум»
 STOP_REASONS = ("not_needed", "too_many", "unclear", "other")          # H3, at /stop
 
@@ -319,10 +331,16 @@ class BetaBotHandler:
         if cmd is None and user.get("awaiting") == "idea" and user.get("awaiting_until") \
                 and user["awaiting_until"] > now:            # the message after «💡 Идея» (H1)
             return await self._store_text(conn, user, chat_id, lang, now, (m.get("text") or "").strip(), kind="idea")
+        if cmd is None and (m.get("text") or "").strip():     # plain text reaches the team (J4)
+            return await self._store_text(conn, user, chat_id, lang, now, m["text"].strip(), kind="feedback",
+                                          confirm=t(lang, "plain_to_team"), action="plain_text")
         if cmd == "idea":
             if (args or "").strip():
                 return await self._store_text(conn, user, chat_id, lang, now, args.strip(), kind="idea")
             return await self._idea_prompt(conn, user, chat_id, lang, now)
+        if cmd == "guide":                                   # «как читать бота» (J2)
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_guide",
+                                     [_msg(chat_id, t(lang, "guide"), lang=lang)])
         if cmd == "cancel":
             await conn.set_awaiting(uid, None, None)
             return [_msg(chat_id, t(lang, "cancel_ok"), lang=lang)]
@@ -356,7 +374,9 @@ class BetaBotHandler:
             return await self._reply(conn, user, chat_id, lang, now, "cmd_research",
                                      [_msg(chat_id, part, lang=lang) for part in format_research(lang)])
         if cmd == "check":
-            text, buttons = await self._check_cmd(conn, now, lang, args)
+            from beta.access import feature_open
+            text, buttons = await self._check_cmd(conn, now, lang, args,
+                                                  two_levels=feature_open(self.cfg, user, "check_two_levels"))
             return await self._reply(conn, user, chat_id, lang, now, "cmd_check",
                                      [_msg(chat_id, text, buttons, lang=lang)])
         if cmd in ("levels", "risk", "alert", "events", "accuracy"):
@@ -446,6 +466,23 @@ class BetaBotHandler:
             return [_msg(chat_id, t(lang, "feedback_usage"), lang=lang)]
         return await self._store_text(conn, user, chat_id, lang, now, text, kind="feedback")
 
+    async def _onboarding(self, conn, user, chat_id, lang, now) -> list:
+        """J1: after the trader-type answer, once: the live /btc (logged as onboard_btc, never cmd_btc: U1b
+        counts the participant's own pulls), an example message marked as such, and the /check offer with
+        the nearest levels one tap away."""
+        from beta.check import check_button
+        html_text, buttons = await self._btc(conn, now, lang)
+        await self._note(conn, user, "onboard_btc", now)
+        out = [_msg(chat_id, t(lang, "onboard_btc_head"), lang=lang), _msg(chat_id, html_text, buttons, lang=lang),
+               _msg(chat_id, t(lang, "onboard_sample_head"), lang=lang), _msg(chat_id, _sample_level_alert(lang), lang=lang)]
+        from beta.decision import build_decision
+        block = await build_decision(conn, self.cfg, now=now)
+        lv = (block.get("levels") or {}) if block.get("available") else {}
+        near = [z for z in ((lv.get("above") or [None])[0], (lv.get("below") or [None])[0]) if z]
+        rows = [[check_button(float(z["edge"]), lang) for z in near]] if near else None
+        out.append(_msg(chat_id, t(lang, "onboard_check"), rows, lang=lang))
+        return out
+
     async def _idea_prompt(self, conn, user, chat_id, lang, now) -> list:
         """«💡 Идея / чего не хватает» (H1): the next plain message within 10 minutes is the idea."""
         await conn.set_awaiting(int(user["telegram_user_id"]), "idea", now + timedelta(minutes=10))
@@ -453,7 +490,7 @@ class BetaBotHandler:
                                  [_msg(chat_id, t(lang, "idea_prompt"), lang=lang)])
 
     async def _store_text(self, conn, user, chat_id, lang, now, text: str, *, kind: str,
-                          confirm: Optional[str] = None) -> list:
+                          confirm: Optional[str] = None, action: Optional[str] = None) -> list:
         """/feedback, an idea (H1) or an interview request (H4): the same limits, store and owner copy."""
         limits = self.cfg.section("feedback")
         if kind == "idea":
@@ -468,8 +505,8 @@ class BetaBotHandler:
             return [_msg(chat_id, t(lang, "feedback_daily_limit", n=limits["max_per_utc_day"]), lang=lang)]
         await conn.insert_feedback_message(user_pk=int(user["user_pk"]), text=text, lang=lang,
                                            created_at=now, kind=kind)
-        await self._note(conn, user, {"feedback": "cmd_feedback", "idea": "idea_sent",
-                                      "interview": "interview_booked"}[kind], now)
+        await self._note(conn, user, action or {"feedback": "cmd_feedback", "idea": "idea_sent",
+                                                "interview": "interview_booked"}[kind], now)
         confirm = _msg(chat_id, confirm or t(lang, {"idea": "idea_thanks"}.get(kind, "feedback_thanks")), lang=lang)
         forward = self._owner_forward(user, lang, now, text, kind=kind)
         if forward is None:
@@ -645,7 +682,7 @@ class BetaBotHandler:
             return text
         return await self._alert_cmd(conn, user, now, lang, args, block)
 
-    async def _check_cmd(self, conn, now: datetime, lang: str, args) -> tuple:
+    async def _check_cmd(self, conn, now: datetime, lang: str, args, *, two_levels: bool = True) -> tuple:
         """/check (PRE_BETA_SCOPE_DECISION_V1 §5): one or two levels; «Следить» under the reply."""
         from beta.check import check_buttons, format_check, parse_check_args
         from beta.decision import build_decision, latest_stats
@@ -657,6 +694,8 @@ class BetaBotHandler:
         if err:
             price = block.get("price")
             return t(lang, err, now=fmt_price(price, lang) if price else ""), None
+        if len(levels) > 1 and not two_levels:            # I1: dormant while access.tiers_enforced is false
+            return t(lang, "tier_closed"), None
         stats = await latest_stats(conn, now=now)
         text = format_check(block, stats, levels, lang, now=now)
         if self.cfg.section("decision").get("claim_journal"):
@@ -864,6 +903,9 @@ class BetaBotHandler:
             html_text, buttons = await self._btc(conn, self.clock(), lang)
             return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_btc_now",
                                      [answer(""), _msg(chat_id, html_text, buttons, lang=lang)])
+        if data == GUIDE_BUTTON:                            # «📖 Как читать бота» (J2)
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "cmd_guide",
+                                     [answer(""), _msg(chat_id, t(lang, "guide"), lang=lang)])
         if data == IDEA_BUTTON:                             # «💡 Идея / чего не хватает» (H1)
             return [answer("")] + await self._idea_prompt(conn, user, chat_id, lang, self.clock())
         if data == INTERVIEW_BUTTON:                        # «📞 15 минут с командой» (H4)
@@ -903,12 +945,16 @@ class BetaBotHandler:
             return await self._reply(conn, user, chat_id, lang, now, "btn_watch",
                                      [answer(""), _msg(chat_id, reply, lang=lang)])
         if data[:2] == "s:" and data[2:] in TRADER_TYPES + ("skip",):     # the answer (backlog E5)
+            now = self.clock()
             if data[2:] == "skip":
-                return [answer(""), _msg(chat_id, t(lang, "type_skipped"), lang=lang)]
-            await conn.set_trader_type(uid, data[2:])
-            return await self._reply(conn, user, chat_id, lang, self.clock(), "type_set",
-                                     [answer(""), _msg(chat_id, t(lang, "type_saved", name=t(lang, "type_" + data[2:])),
-                                                       lang=lang)], detail=data[2:])
+                out = [answer(""), _msg(chat_id, t(lang, "type_skipped"), lang=lang)]
+            else:
+                await conn.set_trader_type(uid, data[2:])
+                await self._note(conn, user, "type_set", now, data[2:])
+                out = [answer(""), _msg(chat_id, t(lang, "type_saved", name=t(lang, "type_" + data[2:])), lang=lang)]
+            if user.get("onboarded_at") is None and await conn.set_onboarded(uid, now):
+                out += await self._onboarding(conn, user, chat_id, lang, now)        # J1, once
+            return await self._prepend_notice(conn, user, chat_id, lang, out)
         vote = _parse_vote(data)
         if vote is not None:                   # «Полезно / Шум» under an alert, the briefing or the weekly (F6)
             kind, ref, value = vote

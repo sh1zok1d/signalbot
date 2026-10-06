@@ -1150,7 +1150,7 @@ class BetaConn:
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
                       invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact,
                       push_levels, push_events, push_moves, push_hours, push_weekly, tz, brief_time, trader_type,
-                      awaiting, awaiting_until
+                      awaiting, awaiting_until, tier, onboarded_at
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
@@ -1437,6 +1437,19 @@ class BetaConn:
         status = await self.conn.execute(
             "DELETE FROM beta_feedback_messages WHERE created_at < $1", cutoff)
         return int(status.split()[-1])
+
+    async def enrolled_user_rows(self) -> list:
+        """ACTIVE and STOPPED participants (not deleted): /admin_reply and the U3 offer reach churned ones (J4, I2)."""
+        rows = await self.conn.fetch(
+            """SELECT user_pk, telegram_user_id, chat_id, lang, status
+               FROM beta_users WHERE status IN ('ACTIVE', 'STOPPED') ORDER BY user_pk""")
+        return [dict(r) for r in rows]
+
+    async def set_onboarded(self, telegram_user_id: int, at: datetime) -> bool:
+        status = await self.conn.execute(
+            "UPDATE beta_users SET onboarded_at=$2, updated_at=now() WHERE telegram_user_id=$1 AND onboarded_at IS NULL",
+            telegram_user_id, at)
+        return status == "UPDATE 1"
 
     async def active_user_rows(self) -> list:
         rows = await self.conn.fetch(
