@@ -204,8 +204,9 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
         from .i18n import render_tz
         with render_tz(row.get("user_tz")):
             text = format_weekly(row["payload"], lang)
+        from .formatter import mute_row
         outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
-                                                clock=clock)
+                                                buttons=[mute_row("weekly", lang)], clock=clock)
         if outcome != SENT:
             count_outcome(out, outcome)
             continue

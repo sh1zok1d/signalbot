@@ -49,3 +49,17 @@ def test_the_briefing_slot_is_on_the_participants_clock():
 def test_a_briefing_time_is_read_as_hh_mm(raw, hhmm):
     from runtime.beta_bot import _parse_hhmm
     assert _parse_hhmm(raw) == hhmm
+
+
+def test_every_push_type_carries_its_one_tap_mute():
+    """Backlog E2: under the unusual-hour push, the level / event / move alerts and the weekly report;
+    never under a personal /alert (the participant's own)."""
+    from beta.formatter import feedback_buttons, mute_row, parse_mute
+    from beta.market_alerts import alert_buttons
+    assert feedback_buttons("EV-1", "ru")[-1] == [("🔕 Не присылать такие", "m:hours")]
+    for kind, mute in (("level", "m:levels"), ("event", "m:events"), ("move", "m:moves")):
+        assert alert_buttons(kind, {}, "en")[-1] == [("🔕 Stop these", mute)]
+    assert all(d[:2] != "m:" for row in alert_buttons("price", {}, "ru") for _l, d in row)
+    assert mute_row("weekly", "ru") == [("🔕 Не присылать такие", "m:weekly")]
+    assert parse_mute("m:levels") == (True, "levels") and parse_mute("a:weekly") == (False, "weekly")
+    assert parse_mute("m:price") is None and parse_mute("u:levels") is None and parse_mute("a:" + "x" * 30) is None
