@@ -319,9 +319,12 @@ def venue_name(ex: str) -> str:
 
 
 def _move_text(move: float, typical: Optional[float], lang: str) -> str:
-    """A price change, with the model's typical move of that horizon beside it when known (backlog C1)."""
-    text = fmt_signed_pct(move, lang, nd=1)
-    return text if typical is None else t(lang, "h_move_usual", move=text, typ=fmt_plain_pct(abs(typical), lang, nd=1))
+    """A price change, with the model's typical move of that horizon beside it when known (backlog C1). The
+    typical move has one precision on every surface (two decimals, as /risk and /check print it), and the
+    change beside it the same, so the two compare."""
+    if typical is None:
+        return fmt_signed_pct(move, lang, nd=1)
+    return t(lang, "h_move_usual", move=fmt_signed_pct(move, lang, nd=2), typ=fmt_plain_pct(abs(typical), lang, nd=2))
 
 
 def _hour_line(view: Mapping[str, Any], lang: str) -> str:
@@ -563,7 +566,7 @@ def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabl
     else:                                       # no window: never «BTC за 8 ч · 8 ч»
         title = t(lang, "catchup_title_nospan", hours=hours)
     lines = [f"<b>{_e(title)}</b>"]
-    degraded = view.get("product_status") in ("DATA STALE", "DATA DEGRADED") or not market.get("complete")
+    degraded = view_degraded(view)
     if degraded:
         lines.append(t(lang, "insufficient"))
     else:
@@ -598,6 +601,12 @@ def format_catchup(cfg, view: Mapping[str, Any], lang: str = "en", *, push_enabl
     if brief and first_brief:
         lines.append(t(lang, "brief_off_hint"))
     return _ok("\n".join(lines), lang)
+
+
+def view_degraded(view: Mapping[str, Any]) -> bool:
+    """A catchup or briefing view whose body shows no market state (a stale or degraded tape, an incomplete
+    window): no «после похожих» line is printed, so the claim journal links none either."""
+    return view.get("product_status") in ("DATA STALE", "DATA DEGRADED") or not (view.get("market") or {}).get("complete")
 
 
 def _analog_line(view: Mapping[str, Any], res: Mapping[str, Any], h: str, lang: str) -> Optional[str]:
@@ -857,8 +866,9 @@ def btc_buttons(view: Mapping[str, Any], lang: str = "en", view_pk: Optional[int
     block = view.get("decision") or {}
     if block.get("available"):
         rows.append([(t(lang, "btn_levels"), "L:levels"), (t(lang, "btn_risk"), "L:risk")])
-        if view.get("kind") == "brief":
-            # «🎯 Проверить» the nearest level above and below, filled in (PRE_BETA_SCOPE_DECISION_V1 §5)
+        if view.get("kind") == "brief" and not fail:
+            # «🎯 Проверить» the nearest level above and below, filled in (PRE_BETA_SCOPE_DECISION_V1 §5);
+            # none under a stale tape, where the text shows no level either (A2)
             from .check import check_button
             lv = block.get("levels") or {}
             near = [z for z in ((lv.get("above") or [None])[0], (lv.get("below") or [None])[0]) if z]
@@ -895,7 +905,7 @@ def format_research_tab(cfg, view: Mapping[str, Any], lang: str = "en", view_id8
     block = view.get("decision") or {}
     at = block.get("as_of")
     now = _dt(at) if at else datetime.now(timezone.utc)
-    return _ok(details_text(block.get("evidence"), lang, now=now), lang)
+    return _ok(details_text(block.get("evidence"), lang, now=now, levels=block.get("levels")), lang)
 
 
 def _window_kyiv(first_bucket: str, last_bucket: Optional[str] = None) -> str:

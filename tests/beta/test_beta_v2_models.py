@@ -467,7 +467,8 @@ def test_decision_config_is_validated():
 
 
 def test_statistics_older_than_three_days_close_the_block_before_any_number():
-    """A2: the block is unavailable (STATS_STALE) and never reads bars or builds a corridor."""
+    """A2: the block is unavailable (STATS_STALE) and builds no corridor, level or analogue; the tape is
+    still read, so personal price alerts and the release alerts keep working (review of #346 + #348, 3)."""
     import asyncio
     from beta import decision as dec
 
@@ -495,7 +496,10 @@ def test_statistics_older_than_three_days_close_the_block_before_any_number():
     for age_h, stale in ((73, True), (71, False)):
         dec.reset_cache()
         conn = Conn(now - timedelta(hours=age_h))
-        block = asyncio.run(dec._build(conn, CFG, now=now, market=None))
+        cap: dict = {}
+        block = asyncio.run(dec._build(conn, CFG, now=now, market=None, capture=cap))
         assert (block["reason"] == "STATS_STALE") is stale and block["available"] is False
-        assert conn.bars_read is (not stale)            # fresh stats go on (here to DATA_STALE: no bars)
+        assert conn.bars_read                          # the tape is read either way (here no bars: no price)
+        assert not any(k in block for k in ("corridor", "levels", "analogues"))
+        assert (cap["stats"] is None and cap["model"] is None) is stale      # nothing downstream reads a stale row
     dec.reset_cache()

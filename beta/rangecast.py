@@ -486,6 +486,14 @@ def scale_at(model: Mapping[str, Any], b: Bars, i: int, h_name: str, *,
     return float(np.exp(X @ np.asarray(m["beta"]))[0])
 
 
+def typical_move_at(model: Mapping[str, Any], b: Bars, i: int, h_name: str, *,
+                    events: Mapping[str, Sequence[int]]) -> Optional[float]:
+    """The model's typical (median) move over horizon h for an anchor at the close of bar i."""
+    m = model["horizons"].get(h_name)
+    S = scale_at(model, b, i, h_name, events=events)
+    return None if m is None or S is None else quantile_at(m["q_one"], 0.5) * S
+
+
 def forecast(model: Mapping[str, Any], b: Bars, *, price: float, events: Mapping[str, Sequence[int]],
              coverage: float = COVERAGE) -> dict:
     """Corridor and typical move for every horizon, centred on `price`, anchored at the last

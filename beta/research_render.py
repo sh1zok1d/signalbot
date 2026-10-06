@@ -115,9 +115,48 @@ def _reason_text(reason: str, lang: str) -> str:
         return base
 
 
-def details_text(evidence: Optional[Mapping[str, Any]], lang: str, *, now: datetime, max_unavailable: int = 12) -> str:
+def _zone_lines(evidence: Mapping[str, Any], levels: Optional[Mapping[str, Any]], lang: str) -> list:
+    """What the research found about touches of the shown levels, if price gets there: per level its price
+    and names, then the strongest conditional finding (the line /levels prints with the main surfaces on)."""
+    from .decision_format import zone_names, zone_price
+    zones, lv, out = evidence.get("zones") or {}, levels or {}, []
+    for side, arrow in (("above", "↑"), ("below", "↓")):
+        for k, conds in enumerate(zones.get(side) or ()):
+            shown = lv.get(side) or []
+            if not conds or k >= len(shown):
+                continue
+            out.append(t(lang, "rev_tab_zone", arrow=arrow, price=zone_price(shown[k], lang),
+                         name=_e(zone_names(shown[k], lang, limit=2))))
+            out.append(line(conds[0], lang))
+    return out
+
+
+def _alert_lines(evidence: Mapping[str, Any], lang: str) -> list:
+    """The matches recorded with the last day's level and sharp-move alerts (the lines the alert prints
+    with the main surfaces on), newest first."""
+    from .decision_format import level_name
+    from .i18n import fmt_price, fmt_signed_pct
+    out = []
+    for a in evidence.get("alerts") or ():
+        lines = surface_lines({"matches": a.get("matches") or []}, "level_alert" if a["kind"] == "level" else "move_alert",
+                              lang, limit=2)
+        if not lines:
+            continue
+        clock = fmt_clock(datetime.fromisoformat(a["at"]), lang)
+        if a["kind"] == "level":
+            out.append(t(lang, "rev_tab_alert_level", clock=clock, price=fmt_price(a["level"], lang),
+                         name=_e(level_name({"kind": a.get("level_kind")}, lang))))
+        else:
+            out.append(t(lang, "rev_tab_alert_move", clock=clock, move=fmt_signed_pct(a.get("move_pct") or 0.0, lang)))
+        out.extend(lines)
+    return out
+
+
+def details_text(evidence: Optional[Mapping[str, Any]], lang: str, *, now: datetime, max_unavailable: int = 12,
+                 levels: Optional[Mapping[str, Any]] = None) -> str:
     """The research Details tab: every running match with its comparator, N, replication and
-    limits; vetoed ones marked; the live-relevant findings that cannot be checked now."""
+    limits; vetoed ones marked; what the research found about touches of the shown levels; the
+    matches of the last day's alerts; the live-relevant findings that cannot be checked now."""
     from .research_evidence import current, rank_key
     lines = [t(lang, "rev_tab_head", clock=fmt_clock(now, lang))]
     ms = sorted(current((evidence or {}).get("matches") or (), now=now), key=rank_key)
@@ -134,6 +173,10 @@ def details_text(evidence: Optional[Mapping[str, Any]], lang: str, *, now: datet
                        limitations=(m.get("limitations") or {}).get(lang, "")))
         if m.get("vetoed_by"):
             lines.append(t(lang, "rev_tab_vetoed", by=_e(m["vetoed_by"])))
+    for head, extra in (("rev_tab_zones_head", _zone_lines(evidence or {}, levels, lang)),
+                        ("rev_tab_alerts_head", _alert_lines(evidence or {}, lang))):
+        if extra:
+            lines += ["", t(lang, head)] + extra
     un = list((evidence or {}).get("unavailable") or ())
     if un:
         lines.append("")

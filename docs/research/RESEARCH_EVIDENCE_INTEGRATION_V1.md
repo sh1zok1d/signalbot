@@ -118,7 +118,7 @@ NOT_LIVE_USABLE         = 21 (8 registry + 13 outside it)
 - Collection and presentation are separate (deploy plan PREREQ-2):
   - `feeds_enabled` / `stress_hours_enabled` gate the collectors;
   - `enabled` AND the restrict-only env `BETA_RESEARCH_EVIDENCE_ENABLED` gate what the bot shows: the «🔬 Исследования» tab;
-  - `main_surfaces_enabled` (committed `false`, `PRE_BETA_SCOPE_DECISION_V1.md` §6.1, backlog G4) adds the lines on the main surfaces: `/btc`, `/catchup`, the briefing, `/levels`, `/risk`, the level and sharp-move alerts and the registry line of the unusual-hour push. Off, matching is unchanged and the tab still shows everything.
+  - `main_surfaces_enabled` (committed `false`, `PRE_BETA_SCOPE_DECISION_V1.md` §6.1, backlog G4) adds the lines on the main surfaces: `/btc`, `/catchup`, the briefing, `/levels`, `/risk`, the level and sharp-move alerts and the registry line of the unusual-hour push. Off, collection and matching are unchanged: the alerts still record their matches (`evidence`, with `evidence_main` false, so the alert does not print them), and the tab shows the running matches, what the research found about touches of the shown levels (`evidence.zones`) and the matches of the last day's level and sharp-move alerts (`evidence.alerts`).
 - Research ids appear only in the tab and in `/research`, never on a main-surface line (backlog C1).
 - The feed units run as the least-privilege role `signalbot_beta_feeds` and only verify the schema (`docs/RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md` §A).
 

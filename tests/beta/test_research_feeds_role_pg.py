@@ -445,6 +445,7 @@ def test_presentation_never_changes_a_push_decision_or_a_tracked_forecast(monkey
         for a in alerts:
             p = json.loads(a["payload"]) if isinstance(a["payload"], str) else dict(a["payload"])
             a["evidence"] = p.pop("evidence", None)
+            p.pop("evidence_main", None)          # whether the alert prints it: text context, like `evidence`
             a["payload"] = json.dumps(p, sort_keys=True, default=str)
         return rep, alerts, forecasts
 

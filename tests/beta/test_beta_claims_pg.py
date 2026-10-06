@@ -161,6 +161,10 @@ def test_brief_claims_are_linked_only_after_a_participant_received_the_brief(mon
         from beta import claims as cj
         shown = {("L3_DISTANCE_TOUCH_1H", "+1:0.25"), ("L3_DISTANCE_TOUCH_1H", "-1:0.25")}
         monkeypatch.setattr(cj, "shown_keys", lambda surface, *a, **k: shown if surface == "brief" else set())
+        # the synthetic tape has no venues, so the view is degraded and would link nothing (review of #346 + #348,
+        # test_beta_review_348): the timing of the links is tested as if it were not
+        from beta import formatter
+        monkeypatch.setattr(formatter, "view_degraded", lambda view: False)
         r = await delivery.run_notify_once(store, CFG, ON_PUSH, sender=Sender(), clock=Clock(NOW))
         b = r["briefs"]
         links = await _rows(pool, """SELECT d.view_pk, d.shown_at, c.issue_slot FROM beta_claim_displays d

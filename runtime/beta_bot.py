@@ -427,11 +427,12 @@ class BetaBotHandler:
 
     async def _catchup(self, conn, now: datetime, lang: str, hours: int, *, push_enabled: bool = True):
         """/catchup: the same view object with the window summary and 1h/4h labels."""
-        from beta.formatter import btc_buttons, format_catchup
+        from beta.formatter import btc_buttons, format_catchup, view_degraded
         view = await self._view(conn, now, kind="catchup", window_hours=hours)
         text = format_catchup(self.cfg, view, lang, push_enabled=push_enabled)
         view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="catchup")
-        await self._shown(conn, "catchup", view.get("decision"), now, view_pk=view_pk, market=view.get("market"))
+        if not view_degraded(view):                 # a degraded view prints no «после похожих»: nothing to link
+            await self._shown(conn, "catchup", view.get("decision"), now, view_pk=view_pk, market=view.get("market"))
         return text, btc_buttons(view, lang, view_pk)
 
     async def _shown(self, conn, surface: str, block, now: datetime, *, view_pk: Optional[int] = None,
@@ -510,6 +511,9 @@ class BetaBotHandler:
             await self._shown(conn, "levels", block, now)
             return text
         if cmd == "risk":
+            gone = df.unavailable_line(block, lang)
+            if gone:                              # why, never the usage text (an argument needs the price)
+                return gone
             mode, val = df.parse_risk_arg(args, block.get("price"))
             if mode == "bad":
                 return t(lang, "rk_usage")
@@ -572,7 +576,8 @@ class BetaBotHandler:
         if not math.isfinite(level):        # "nan" / "inf" parse as floats
             return t(lang, "al_usage")
         if not price:
-            return t(lang, "al_no_price")
+            # the reason of the block, as /check says it; «price unavailable» only when it is so
+            return df.unavailable_line(block, lang) or t(lang, "al_no_price")
         if level <= 0:
             return t(lang, "al_usage")
         dist = (level / price - 1) * 100.0
@@ -594,7 +599,8 @@ class BetaBotHandler:
                      now=fmt_price(price, lang), p=df.fmt_prob(p, lang))
         reply = t(lang, "al_set_plain", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
                   now=fmt_price(price, lang))
-        note = df.zone_note(block.get("event_zone"), ["24h"], lang)
+        # no chance: say why (stale statistics), or that the 24h horizon is inside a release's zone
+        note = df.unavailable_line(block, lang) or df.zone_note(block.get("event_zone"), ["24h"], lang)
         return reply + "\n" + note if note else reply
 
     async def _view(self, conn, now: datetime, *, kind: str, window_hours: Optional[int] = None) -> dict:

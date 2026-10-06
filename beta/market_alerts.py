@@ -329,10 +329,12 @@ async def _regime(conn, cfg: BetaConfig, *, now: datetime) -> Optional[dict]:
 def attach_evidence(cand: dict, block: Mapping[str, Any], cap: Mapping[str, Any]) -> None:
     """Record the research evidence that describes a level touch or a sharp move with the alert
     (beta/research_evidence.py). It is part of the rendered text's by-value input; it never takes
-    part in detection, the push decision or the alert identity."""
+    part in detection, the push decision or the alert identity. Matching runs whatever the main-surface
+    switch (decision §6.1: collection and matching unchanged): the alert prints it only with research on
+    the main surfaces (`evidence_main`), and the «🔬 Исследования» tab of later views lists it."""
     from .research_evidence import for_level_touch, for_move
     ev = block.get("evidence")
-    if not ev or ev.get("error_type") or not ev.get("main_surfaces") or cand["kind"] not in ("level", "move"):
+    if not ev or ev.get("error_type") or cand["kind"] not in ("level", "move"):
         return
     try:
         if cand["kind"] == "level":
@@ -347,6 +349,7 @@ def attach_evidence(cand: dict, block: Mapping[str, Any], cap: Mapping[str, Any]
         return
     from .history_stats import json_safe
     cand["payload"]["evidence"] = json_safe(found)
+    cand["payload"]["evidence_main"] = bool(ev.get("main_surfaces"))
 
 
 def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
@@ -418,16 +421,20 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
     cap: dict = {}
     block = await build_decision(conn, cfg, now=now, capture=cap, regime=await _regime(conn, cfg, now=now))
     b, closed = cap.get("bars"), cap.get("closed_1m") or []
-    if block.get("available") and b is not None:
+    available = bool(block.get("available"))
+    # a fresh tape, also when the history statistics are stale: personal price alerts and the release
+    # alerts need only the price and the calendar, and past forecasts and claims are still scored
+    if b is not None and block.get("price") is not None:
         cands = []
         if m["enabled"]:
-            cands += detect_level_touches(block, b, closed, now=now,
-                                          max_age=timedelta(minutes=int(m["touch_max_age_min"])),
-                                          stats=cap.get("stats"))
+            if available:
+                cands += detect_level_touches(block, b, closed, now=now,
+                                              max_age=timedelta(minutes=int(m["touch_max_age_min"])),
+                                              stats=cap.get("stats"))
             cands += detect_events(block, cap["calendar"], now=now,
                                    lead=timedelta(minutes=int(m["event_lead_min"])), stats=cap.get("stats"))
-            last_move = await conn.last_market_push_ts(kind="move")
-            if last_move is None or now - last_move >= timedelta(minutes=int(m["move_cooldown_min"])):
+            last_move = await conn.last_market_push_ts(kind="move") if available else None
+            if available and (last_move is None or now - last_move >= timedelta(minutes=int(m["move_cooldown_min"]))):
                 cands += detect_move(block, b, closed, now=now, model=cap.get("model"))
             if push_on:
                 cands += detect_price_alerts(await conn.fetch_active_price_alerts(), b, closed, block=block, now=now,

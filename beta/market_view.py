@@ -142,13 +142,13 @@ async def _derivatives(conn, view: Mapping[str, Any], tape: Optional[Mapping[str
                        now: datetime) -> Optional[dict]:
     """OI change, funding and long/short beside their «обычно» (backlog G2; beta/derivatives.py). Like the
     decision block it never breaks a view: any failure leaves the block out and the 24h lines as before."""
-    from .decision import latest_stats
+    from .decision import fresh_stats
     from .derivatives import derivatives_block, funding_typical
     from .horizons import data_through
     if tape is None:
         return None
     try:
-        stats = await latest_stats(conn, now=now)
+        stats = await fresh_stats(conn, now=now)            # the OI «обычно» never from stale statistics (A2)
         return derivatives_block(horizons=view["horizons"], funding=funding_typical(tape["metrics"], tape["as_of"]),
                                  oi_stats=((stats or {}).get("derivatives") or {}).get("oi_24h"),
                                  long_short=await conn.long_short_summary(as_of=data_through(tape["as_of"])))
