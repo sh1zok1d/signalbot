@@ -102,8 +102,8 @@ def test_brief_is_sent_once_per_day_through_the_outbox_and_never_touches_pushes(
         before = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(SLOT - timedelta(minutes=1)))
         assert before["briefs"]["scheduled"] == 0 and s.sent == []
         r = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(SLOT + timedelta(minutes=1)))
-        assert r["briefs"] == {"scheduled": 1, "sent": 1, "failed": 0, "unknown": 0, "expired": 0, "suppressed": 0,
-                               "withheld": 0}
+        assert r["briefs"] == {"scheduled": 1, "sent": 1, "failed": 0, "unknown": 0, "throttled": 0, "expired": 0,
+                               "suppressed": 0, "withheld": 0}
         assert len(s.sent) == 1 and s.sent[0][0] == 21 and s.sent[0][1].startswith("<b>BTC overnight · ")
         assert "/brief off" in s.sent[0][1]                                 # the first brief carries the hint
         again = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(SLOT + timedelta(minutes=30)))

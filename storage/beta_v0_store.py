@@ -917,6 +917,15 @@ class BetaConn:
             delivery_id, from_state, to_state, suppression_reason, message_id, error_summary, now)
         return status == "UPDATE 1"
 
+    async def requeue_delivery(self, delivery_id: int, *, error_summary: str) -> bool:
+        """SENDING -> PENDING after Telegram's flood control (RetryAfter): the message was not
+        delivered, so the next run may send it, under the same TTL (backlog A5). `sending_at`
+        keeps the refused attempt; `error_summary` says why it waits."""
+        status = await self.conn.execute(
+            """UPDATE beta_notification_deliveries SET state='PENDING', finished_at=NULL, error_summary=$2
+               WHERE delivery_id=$1 AND state='SENDING'""", delivery_id, error_summary)
+        return status == "UPDATE 1"
+
     async def delivery_state_counts(self, *, since: Optional[datetime] = None) -> dict:
         rows = await self.conn.fetch(
             "SELECT state, count(*) AS n FROM beta_notification_deliveries "

@@ -148,15 +148,17 @@ def format_weekly_owner(payload: Mapping[str, Any], *, breakdown: Optional[Mappi
 
 
 async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
-                         owner_user_id: Optional[int] = None) -> dict:
+                         owner_user_id: Optional[int] = None, pacer=None) -> dict:
     """The weekly report inside the notifier cycle and the outbox, as the briefing: at most one send
     attempt per row, expired after `max_delay_min`, suppressed while messages are off."""
-    from .delivery import DeliveryRejected
+    from .delivery import SENT, SendPacer, count_outcome, send_one
     from .state_tape import sha256_json
-    from .models import (D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED, D_UNKNOWN,
-                         DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE)
+    from .models import (D_EXPIRED, D_FAILED, D_PENDING, D_SUPPRESSED, DELIVERY_TOO_OLD, PUSH_DISABLED,
+                         USER_INACTIVE)
     w = cfg.section("decision")["weekly_report"]
-    out = {"built": False, "scheduled": 0, "sent": 0, "failed": 0, "unknown": 0, "expired": 0, "suppressed": 0}
+    out = {"built": False, "scheduled": 0, "sent": 0, "failed": 0, "unknown": 0, "throttled": 0, "expired": 0,
+           "suppressed": 0}
+    pacer = pacer if pacer is not None else SendPacer()
     max_delay = timedelta(minutes=int(w["max_delay_min"]))
     now = clock()
     slot = weekly_slot(now, w["weekday_kyiv"], w["time_kyiv"])
@@ -195,23 +197,11 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
             continue
         lang = row.get("user_lang") or "ru"
         text = format_weekly(row["payload"], lang)
-        if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
+        outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
+                                                clock=clock)
+        if outcome != SENT:
+            count_outcome(out, outcome)
             continue
-        try:
-            message_id = await sender.send(chat_id=row["chat_id"], html=text)
-        except DeliveryRejected as exc:
-            await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_FAILED, now=clock(),
-                                           error_summary=str(exc)[:300])
-            out["failed"] += 1
-            continue
-        except Exception as exc:  # noqa: BLE001 - ambiguous: never resend
-            await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_UNKNOWN, now=clock(),
-                                           error_summary=type(exc).__name__)
-            out["unknown"] += 1
-            continue
-        sent_at = clock()
-        await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_SENT, now=sent_at,
-                                       message_id=int(message_id))
         if row.get("user_pk") is not None:
             await conn.record_activity(user_pk=row["user_pk"], action="weekly_delivered", lang=lang, at=sent_at)
         out["sent"] += 1

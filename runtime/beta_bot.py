@@ -22,7 +22,7 @@ from typing import Any, Callable, Mapping, Optional, Sequence
 from beta.access import PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
 from beta.admin import collect_status, fingerprint, handle_admin, is_owner, owner_parts, parse_command
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
-from beta.delivery import DeliveryAmbiguous, DeliveryRejected
+from beta.delivery import DeliveryAmbiguous, DeliveryRejected, DeliveryThrottled
 from beta.formatter import PUSH_BTC_ACTION, assert_descriptive, format_history
 from beta.i18n import fmt_price, t
 from beta.market_view import build_view, parse_catchup_hours, persist_view
@@ -60,7 +60,10 @@ class BetaTelegramSender(TelegramSender):
         try:
             msg = await bot.send_message(chat_id=chat_id, text=html, parse_mode="HTML",
                                          reply_markup=markup)
-        except (BadRequest, Forbidden, RetryAfter, InvalidToken, ChatMigrated) as exc:
+        except RetryAfter as exc:
+            # flood control: not delivered and safe to send again later (A5), never a final FAILED
+            raise DeliveryThrottled(retry_after_seconds(exc)) from exc
+        except (BadRequest, Forbidden, InvalidToken, ChatMigrated) as exc:
             # Explicit API rejections (NB: BadRequest subclasses NetworkError in PTB,
             # so it must be matched first) — the message was NOT delivered.
             raise DeliveryRejected(sanitize_telegram_error(exc, token=self._token,
@@ -103,6 +106,17 @@ class BetaTelegramSender(TelegramSender):
         updates = await self._ensure_bot().get_updates(
             offset=offset, timeout=timeout, allowed_updates=["message", "callback_query"])
         return [u.to_dict() for u in updates]
+
+
+def retry_after_seconds(exc) -> float:
+    """RetryAfter.retry_after is an int in PTB 20/21 and a timedelta in later versions."""
+    ra = getattr(exc, "retry_after", None)
+    if hasattr(ra, "total_seconds"):
+        return float(ra.total_seconds())
+    try:
+        return float(ra)
+    except (TypeError, ValueError):
+        return 1.0
 
 
 def _msg(chat_id: int, text: str, buttons=None, lang: str = "ru") -> Outgoing:

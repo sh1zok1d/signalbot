@@ -19,9 +19,11 @@ schema/revision/instrument bootstrap reuses the shadow CLI helpers unchanged.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import math
 import os
+import signal
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -366,8 +368,22 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
             from runtime.beta_bot import BetaTelegramSender
             sender = BetaTelegramSender(secrets.bot_token)
         from beta.delivery import run_notify_once
-        return await run_notify_once(db.beta_store(), cfg, switches, sender=sender, clock=clock,
-                                     owner_user_id=secrets.owner_user_id)
+        # A5: SIGTERM (systemd stopping the unit) lets the send in flight finish and starts no other,
+        # so the rest stays PENDING for the next run instead of SENDING -> DELIVERY_UNKNOWN
+        stop = asyncio.Event()
+        loop = asyncio.get_running_loop()
+        try:
+            loop.add_signal_handler(signal.SIGTERM, stop.set)
+        except (NotImplementedError, RuntimeError, ValueError):     # not the main thread / no signals
+            pass
+        try:
+            return await run_notify_once(db.beta_store(), cfg, switches, sender=sender, clock=clock,
+                                         owner_user_id=secrets.owner_user_id, stop=stop)
+        finally:
+            try:
+                loop.remove_signal_handler(signal.SIGTERM)
+            except (NotImplementedError, RuntimeError, ValueError):
+                pass
 
     if getattr(args, "beta_history_sync", False) or getattr(args, "beta_history_build", False) \
             or getattr(args, "beta_bootstrap_rewind", False):

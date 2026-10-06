@@ -28,8 +28,7 @@ from typing import Any, Mapping, Optional
 
 from .config import BetaConfig
 from .hist_series import BAR_MS, Bars, from_ms, to_ms
-from .models import D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED, D_UNKNOWN, \
-    DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE
+from .models import D_EXPIRED, D_FAILED, D_PENDING, D_SUPPRESSED, DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE
 
 logger = logging.getLogger("beta.market_alerts")
 
@@ -402,16 +401,17 @@ async def _journal_hour(conn, cfg: BetaConfig, block: Mapping[str, Any], cap: Ma
         return {"error": type(exc).__name__}
 
 
-async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bool) -> dict:
+async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bool, pacer=None) -> dict:
     """Detect, decide, materialize and send market alerts; record and score corridors."""
     from .decision import build_decision
     from .decision_format import format_alert
-    from .delivery import DeliveryRejected
+    from .delivery import SENT, SendPacer, count_outcome, send_one
     from .latency import alert_source_at, class_summary, latency_field
     d = cfg.section("decision")
     m = d["market_alerts"]
     rep = {"detected": 0, "pushed": 0, "suppressed": 0, "materialized": 0, "sent": 0, "failed": 0,
-           "unknown": 0, "expired": 0, "forecasts_recorded": 0, "forecasts_scored": 0}
+           "unknown": 0, "throttled": 0, "expired": 0, "forecasts_recorded": 0, "forecasts_scored": 0}
+    pacer = pacer if pacer is not None else SendPacer()
     now = clock()
     cap: dict = {}
     block = await build_decision(conn, cfg, now=now, capture=cap, regime=await _regime(conn, cfg, now=now))
@@ -489,24 +489,11 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
         # the measured delay field for the push's delay line (backlog A4; the line is drawn by F1)
         lat = latency_field(row["kind"], alert_source_at(row["payload"]), now, lat_summary)
         text = format_alert(row["kind"], {**row["payload"], "latency": lat}, lang)
-        if not await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SENDING, now=now):
+        outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
+                                                buttons=alert_buttons(row["kind"], row["payload"], lang), clock=clock)
+        if outcome != SENT:
+            count_outcome(rep, outcome)
             continue
-        try:
-            message_id = await sender.send(chat_id=row["chat_id"], html=text,
-                                           buttons=alert_buttons(row["kind"], row["payload"], lang))
-        except DeliveryRejected as exc:
-            await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_FAILED, now=clock(),
-                                           error_summary=str(exc)[:300])
-            rep["failed"] += 1
-            continue
-        except Exception as exc:  # noqa: BLE001 - ambiguous: never resend
-            await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_UNKNOWN, now=clock(),
-                                           error_summary=type(exc).__name__)
-            rep["unknown"] += 1
-            continue
-        sent_at = clock()
-        await conn.transition_delivery(did, from_state=D_SENDING, to_state=D_SENT, now=sent_at,
-                                       message_id=int(message_id))
         if row.get("user_pk") is not None:
             # detail = the alert kind (level / event / move / price): the measurement contract
             # keeps market alerts and personal /alert deliveries apart

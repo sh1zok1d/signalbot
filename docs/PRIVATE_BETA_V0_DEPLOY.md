@@ -433,6 +433,16 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 
 **Stop:** `/admin_pause_push` stops new deliveries at once, without a restart. Pending deliveries are suppressed with `PUSH_DISABLED`. For a hard stop, set `BETA_PUSH_ENABLED=0` and restart the bot and the notify timer.
 
+**Sending discipline (backlog A5; `beta/delivery.py` `SendPacer` / `send_one`).** It applies to every outbox kind (push, alert, brief, weekly):
+- **Flood control.** Telegram's `RetryAfter` is not a final `FAILED`. The row goes back to `PENDING` with `error_summary = "RetryAfter Ns"`, and the run sends nothing more. The next run (one minute later) sends it under the same TTL; a row past its TTL expires as usual and is never sent late.
+- **Pacing.** At most one send per `notifications.send_interval_ms` (50 ms; Telegram allows about 30 messages a second per bot).
+- **Run budget.** No send starts after `notifications.send_budget_s` (35 s) of the run. The unit's `TimeoutStartSec` is 50 s, and the config refuses a budget closer than 10 s to it.
+- **SIGTERM.** On SIGTERM (systemd stopping the unit), the send in flight finishes and no other starts.
+- **Nothing is lost.** In all three stop cases, the rest stays `PENDING` for the next run instead of becoming `SENDING` → `DELIVERY_UNKNOWN`.
+- **One failed recipient never blocks the others.** A rejected send (blocked bot, bad chat) is `FAILED` for that recipient only, and the loop continues.
+- **Run report.** The notifier's JSON report carries `throttled`, `deferred`, `send_stop` (`THROTTLED` / `BUDGET` / `STOPPING` / null) and `retry_after_s`.
+- **Load test.** `tests/beta/test_beta_send_load_pg.py` sends a morning brief to 20 participants through flood control and one blocked participant, and stops a run with the SIGTERM event.
+
 ## Owner health alerts
 
 `--beta-notify-once` evaluates `--beta-health`. When a bot token and owner id are configured, it sends one owner alert per alert key, rate-limited by `health.owner_alert_repeat_s`. The alert keys are:
