@@ -415,6 +415,8 @@ class BetaBotHandler:
         view = await self._view(conn, now, kind="btc")
         text = format_btc(self.cfg, view, lang)
         view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="btc")
+        if view.get("product_status") not in ("DATA STALE", "DATA DEGRADED"):   # /btc prints the block only then
+            await self._shown(conn, "btc", view.get("decision"), now, view_pk=view_pk)
         return text, btc_buttons(view, lang, view_pk)
 
     async def _catchup(self, conn, now: datetime, lang: str, hours: int, *, push_enabled: bool = True):

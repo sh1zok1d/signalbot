@@ -87,16 +87,19 @@ def _lines(text):
 
 def test_push_unusual_hour_inferred_label_matches_the_reference_message():
     g = hg.evaluate_hour(CFG, _ctx(price=0.02, oi=0.9, taker=0.1, rng=0.97, vol=0.96))
-    text = format_push(_episode(), lang="ru", gate=g)
-    assert text == ("<b>BTC · необычный час</b>\n13:05–14:05 (Киев)\n\n"
-                    "Похоже на снижение с новыми шортами\n"
-                    "Цена −1,90% (61 950 → 60 770): падение глубже, чем в 95% часовых окон за 30 дней\n"
-                    "OI +2,4% · Delta −$84 млн\n"
-                    "Диапазон и объём — оба в топ-5% часовых окон за 30 дней\n"
-                    "Биржи: 3 из 3 в одну сторону\n"
-                    # the research registry's line for this 1h label (PRODUCT_DECISION_V2 §2.4)
-                    "↳ Проверка показала: после импульса рост OI вместе с продолжением цены не давал более сильного "
-                    "продолжения в следующий час, чем такой же импульс без роста OI (MARKET-02)")
+    base = ("<b>BTC · необычный час</b>\n13:05–14:05 (Киев)\n\n"
+            "Похоже на снижение с новыми шортами\n"
+            "Цена −1,90% (61 950 → 60 770): падение глубже, чем в 95% часовых окон за 30 дней\n"
+            "OI +2,4% · Delta −$84 млн\n"
+            "Диапазон и объём — оба в топ-5% часовых окон за 30 дней\n"
+            "Биржи: 3 из 3 в одну сторону")
+    # research on the main surfaces is off by default (PRE_BETA_SCOPE_DECISION_V1 §6.1): no registry line
+    assert format_push(_episode(), lang="ru", gate=g) == base
+    text = format_push(_episode(), lang="ru", gate=g, research=True)
+    # switched on: the research registry's line for this 1h label (PRODUCT_DECISION_V2 §2.4), its id
+    # only in /research
+    assert text == base + ("\n↳ Проверка показала: после импульса рост OI вместе с продолжением цены не давал "
+                           "более сильного продолжения в следующий час, чем такой же импульс без роста OI")
     assert len(_lines(text)) <= 8
     assert_descriptive(text, "ru")
     assert_descriptive(format_push(_episode(), lang="en", gate=g), "en")
@@ -159,12 +162,50 @@ def test_brief_calm_night_matches_the_reference_message():
     assert text == ("<b>BTC за ночь · 00:00–08:00 (Киев)</b>\n"
                     "Цена 61 420 → 61 880 (+0,75%), мин 61 210, макс 61 990\n"
                     "Необычных часов не было.\n\n"
-                    "<b>Сейчас</b>\n1ч: обычное состояние\n4ч: обычное состояние\n"
+                    "<b>Сейчас</b> · 1ч и 4ч: обычное состояние\n"            # one line when both agree (C2)
                     "24ч: 60 950–62 300, цена ближе к верхней границе · OI +1,2% за 24ч · средний Funding 0,008% (платят лонги)\n\n"
                     "Данные на 07:55 (Киев)\nОтключить утреннюю сводку: /brief off")
     assert_descriptive(text, "ru")
     assert "/brief off" not in format_catchup(CFG, _view(m, kind="brief"), "ru")          # only the first brief
     assert format_catchup(CFG, _view(m), "ru").startswith("<b>BTC за 8 ч · 00:00–08:00 (Киев)</b>")
+
+
+def test_the_briefing_with_the_decision_block_is_about_eight_lines():
+    """Backlog C2: a calm night with corridor, record, levels and events is 10 non-empty lines (it was
+    about 20); the levels carry no chance (🎯 opens /check), the CPI warning is not repeated."""
+    from test_beta_v2_format import block as decision_block
+    blk = decision_block(as_of="2026-10-14T05:00:00+00:00")
+    blk["corridor"]["holdout"] = {"4h": {"coverage_realized": 0.81, "n_days": 365},
+                                  "24h": {"coverage_realized": 0.8, "n_days": 365}}
+    m = _market(_interp("1h", price=0.5), _interp("4h", price=0.5))
+    for lang in ("ru", "en"):
+        text = format_catchup(CFG, {**_view(m, kind="brief"), "decision": blk}, lang)
+        assert len(_lines(text)) == 10, text
+        assert_descriptive(text, lang)
+    text = format_catchup(CFG, {**_view(m, kind="brief"), "decision": blk}, "ru")
+    assert text.split("\n\n")[2] == (
+        "Коридор: 4ч 61 605–63 355 · 24ч 60 230–64 730\n"
+        "↳ внутри коридора бывало (расчёт — 80%): 4ч 81% · 24ч 80% на истории (365 дн.)\n"
+        "Уровни: ↑ 62 950 максимум вчера (+0,75%) · ↓ 61 900 минимум Азии (−0,93%)\n"
+        "События в ближайшие сутки: 15:30 CPI США (инфляция)")
+    # different states keep a line each, with «после похожих» under the one that says something
+    split = format_catchup(CFG, _view(_market(_interp("1h", price=0.02, oi=0.9, taker=0.1), _interp("4h", price=0.5))),
+                           "ru")
+    assert "<b>Сейчас</b>\n1ч: " in split and "\n4ч: обычное состояние" in split
+
+
+def test_a_stale_tape_shows_no_corridor_or_levels_in_the_catchup_even_with_a_decision_block():
+    """A2: «нет данных», never a number, whatever the decision block holds."""
+    from test_beta_v2_format import block as decision_block
+    m = _market(_interp("1h", price=0.5), _interp("4h", price=0.5), complete=False)
+    view = {**_view(m, status="DATA STALE"), "decision": decision_block()}
+    text = format_catchup(CFG, view, "ru")
+    assert "Коридор и уровни сейчас не показываем: данные отстают." in text
+    assert "Коридор:" not in text and "Уровни" not in text and "62 950" not in text
+    assert "События в ближайшие сутки: Ср 14.10 15:30 CPI США" in text   # the calendar carries no market number
+    fresh = format_catchup(CFG, {**_view(_market(_interp("1h", price=0.5), _interp("4h", price=0.5))),
+                                 "decision": decision_block()}, "ru")
+    assert "Уровни" in fresh and "4ч 61 605–63 355" in fresh and "данные отстают" not in fresh
 
 
 def test_brief_with_a_night_hour_withheld_by_quiet_hours_and_push_off_sees_no_note():
@@ -225,7 +266,8 @@ def test_catchup_fails_closed_and_never_shows_internals():
     m = _market(_interp("1h"), _interp("4h"), complete=False)
     text = format_catchup(CFG, _view(m, status="DATA STALE"), "ru")
     assert "недостаточно" in text.lower() or "нельзя" in text.lower()
-    assert "1ч: данные неполные" in text and "4ч: данные неполные" in text and "похоже" not in text
+    assert "1ч и 4ч: данные неполные" in text and "похоже" not in text
+    assert "24ч: данные неполные" in text and "OI" not in text and "Funding" not in text
     g = hg.evaluate_hour(CFG, _ctx(price=0.02, oi=0.9, taker=0.1, rng=0.97, vol=0.96))
     hour = {"decision_ts": iso(T + BUCKET), "decision": "PUSH", "suppression_reason": None, "gate": g}
     text = format_catchup(CFG, _view(_market(_interp("1h", price=0.5), _interp("4h", price=0.5), unusual=[hour])), "ru")

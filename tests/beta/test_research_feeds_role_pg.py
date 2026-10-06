@@ -431,8 +431,12 @@ def test_presentation_never_changes_a_push_decision_or_a_tracked_forecast(monkey
         store = BetaStore(pool)
         await _seed(pool)
         await run_history_build(store, CFG, now=DAY + timedelta(hours=2))
+        # research on the main surfaces (off by default, decision §6.1) so that the alert carries it
+        dec = dict(CFG.section("decision"))
+        dec["research_evidence"] = {**dec["research_evidence"], "main_surfaces_enabled": True}
         async with store.connect() as conn:
-            rep = await MA.run_market_alerts(conn, CFG, sender=None, clock=Clock(NOW), push_on=True)
+            rep = await MA.run_market_alerts(conn, CFG.with_overrides(decision=dec), sender=None, clock=Clock(NOW),
+                                             push_on=True)
         alerts = await _rows(pool, "SELECT kind, alert_key, decision_ts, decision, suppression_reason, payload "
                                    "FROM beta_market_alerts ORDER BY alert_pk")
         forecasts = await _rows(pool, "SELECT horizon, issued_at, horizon_end, anchor_price, lower, upper, coverage, "

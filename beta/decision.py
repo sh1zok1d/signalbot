@@ -32,6 +32,10 @@ LIVE_EXCHANGE = "binance"
 LOOKBACK_DAYS = 70
 LIVE_TAIL_DAYS = 35
 STALE_AFTER = timedelta(minutes=10)
+# A2 (PRE_BETA_BACKLOG_V1): statistics older than this are «нет данных», never an old number. The
+# history build runs nightly and the owner is alerted after 50 h (health.HISTORY_BUILD_STALE_S);
+# users lose the forward-looking numbers only a day after that alert.
+STATS_MAX_AGE = timedelta(hours=72)
 STATS_RELOAD_S = 300
 # BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1 §9: around a scheduled CPI / FOMC release the
 # corridor's event term is not calibrated at the live cadence, so for horizon H no numerical
@@ -164,6 +168,10 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
         block["stats"] = {"stats_pk": stats.get("_stats_pk"), "built_at": stats.get("_built_at"),
                           "data_from_ms": (stats.get("data") or {}).get("from_ms"),
                           "data_to_ms": (stats.get("data") or {}).get("to_ms")}
+        built = stats.get("_built_at")
+        if built and now - datetime.fromisoformat(built) > STATS_MAX_AGE:
+            block["reason"] = "STATS_STALE"
+            return block
     b, price, price_ts = await load_live_bars(conn, cfg, now=now, capture=capture)
     if capture is not None:
         capture.update(bars=b, stats=stats, model=model)
@@ -192,6 +200,9 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
                                             "to_ms": c.get("holdout_to_ms"), "touch_bins": c.get("touch_bins"),
                                             "neither_bins": c.get("neither_bins")}
                                         for h, c in cal_rep.items()}
+        fa = getattr(conn, "forecast_accuracy", None)
+        if fa is not None:            # the live record over 30 days, N = independent windows (/btc, backlog C1)
+            block["corridor"]["live"] = await fa(since=now - timedelta(days=30))
     from .levels import LIQ_VENUES
     liq = await conn.fetch_liquidations(symbol=cfg.symbol, exchanges=[e for e in cfg.exchanges if e in LIQ_VENUES],
                                         start=now - timedelta(hours=24), end=now)
@@ -242,7 +253,7 @@ async def research_evidence_block(conn, cfg: BetaConfig, *, now: datetime, block
     """The research evidence of this block (beta/research_evidence.py). It reads the block and the
     bars it was built from and never changes them. Never raises: a failure is recorded on the
     block as an error type and the surfaces show no research line."""
-    from .config import research_presentation_enabled
+    from .config import research_main_surfaces_enabled, research_presentation_enabled
     if not research_presentation_enabled(cfg) or capture is None or capture.get("bars") is None:
         return None
     from .research_evidence import evaluate
@@ -258,6 +269,7 @@ async def research_evidence_block(conn, cfg: BetaConfig, *, now: datetime, block
         capture["evidence_inputs"] = inputs
         ev = evaluate(inputs)
         ev["zones"] = _zone_conditionals(capture["bars"], block, now=now)
+        ev["main_surfaces"] = research_main_surfaces_enabled(cfg)       # else the tab only (decision §6.1)
         return ev
     except Exception as exc:  # noqa: BLE001 - research context must never break a view or an alert
         logger.warning("research evidence failed: %s", type(exc).__name__)

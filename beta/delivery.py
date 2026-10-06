@@ -22,7 +22,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Protocol, Sequence
 
 from .admin import collect_health, fingerprint
-from .config import BetaConfig, BetaSwitches, effective_push_enabled
+from .config import BetaConfig, BetaSwitches, effective_push_enabled, research_main_surfaces_enabled
 from .formatter import format_owner_alert, format_push
 from .latency import class_summary, latency_field
 from .models import (BRIEF_WITHDRAWAL, D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED,
@@ -326,7 +326,8 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                     lat_summary = await class_summary(conn, now)
                 text = format_push(ep, lang=lang, gate=row.get("gate"),
                                    analog=_push_analogue(analogues, row.get("gate")), since_year=since_year,
-                                   latency=latency_field("push", row["decision_ts"], now, lat_summary))
+                                   latency=latency_field("push", row["decision_ts"], now, lat_summary),
+                                   research=research_main_surfaces_enabled(cfg))
                 # (2) commit PENDING -> SENDING before the single API call
                 outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"],
                                                         html=text, buttons=feedback_buttons(ep.public_id, lang),

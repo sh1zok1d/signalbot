@@ -218,8 +218,8 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         # ---- commands --------------------------------------------------------------------
         out = await h.handle(msgs[A]("/levels", 100))
         text = plain(out[-1].html)
-        assert text.startswith("Уровни BTC · Binance · цена ") and "\nВыше\n" in text and "\nНиже\n" in text
-        assert "дойти: за 4ч" in text and "после первого касания" in text
+        assert text.startswith("Уровни BTC · Binance · цена ") and "\n↑ " in text and ("\n— сейчас " in text or "\nЦена у уровня " in text)  # one ladder (C3)
+        assert re.search(r"\n↓ .* · за 4ч (≈|исторически в) ", text) and "↳ после первого касания" in text
         # NOW is 06:00 UTC on a CPI day (12:30 UTC): inside the 24h event zone, outside the 1h/4h ones
         assert "за 24ч" not in text and "Коридор 24ч" not in text
         assert "24ч: числовую оценку не показываем — CPI США (инфляция), Вт 12.05 15:30 (Киев)" in text
@@ -249,10 +249,12 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         assert out[-1].buttons[-1] == [("Уровни", "L:levels"), ("Риск", "L:risk")]
         out = await h.handle(msgs[A]("/catchup", 114))
         catchup = plain(out[-1].html)
-        assert "Уровни\n" in catchup and "шанс дойти" not in catchup
-        assert "— сейчас " in catchup or "Цена у уровня" in catchup
-        assert "в 4 из 5" not in catchup and "4ч: " in catchup and "24ч: числовую оценку не показываем" in catchup
-        assert "15:30 — CPI США (инфляция)" in catchup                 # 2026-05-12 is a CPI day
+        # no live tape is seeded here, so the window is DATA STALE: no corridor and no levels (A2);
+        # the calendar and the event warning carry no market number and stay
+        assert "Коридор и уровни сейчас не показываем: данные отстают." in catchup
+        assert "Уровни\n" not in catchup and "— сейчас " not in catchup and "Коридор (Binance" not in catchup
+        assert "в 4 из 5" not in catchup and "24ч: числовую оценку не показываем" in catchup
+        assert "События в ближайшие сутки: 15:30 CPI США (инфляция)" in catchup   # 2026-05-12 is a CPI day
         views = await _rows(pool, "SELECT kind, payload->'decision'->>'available' AS ok FROM beta_btc_views ORDER BY view_pk")
         assert views[-2:] == [{"kind": "btc", "ok": "true"}, {"kind": "catchup", "ok": "true"}]
 
@@ -270,13 +272,13 @@ def test_build_view_commands_alerts_forecasts_and_privacy():
         assert [x[0] for x in level_msgs] == [A]                  # B: levels off; C: push off
         assert level_msgs[0][2][:2] == [[("📊 BTC сейчас", "b:now")], [("Уровни", "L:levels"), ("Риск", "L:risk")]]
         assert all(d.startswith("k:") for row in level_msgs[0][2][2:] for _l, d in row)   # «🎯 Проверить» the next level
-        # the morning briefing renders the decision block in the same cycle
+        # the morning briefing renders the decision block in the same cycle (under the unseeded,
+        # stale tape: the A2 line instead of corridor and levels, the calendar from the block)
         briefs = [x for x in s.sent if plain(x[1]).startswith("BTC за ночь")]
-        assert len(briefs) == 3 and "Коридор (Binance" in plain(briefs[0][1])
-        today = plain(briefs[0][1]).split("Сегодня\n", 1)[1].splitlines()
-        assert today[:2] == ["15:30 — CPI США (инфляция)",
-                             "CPI США (инфляция): вокруг публикации обычная калибровка коридора не применяется."]
-        assert "×" not in plain(briefs[0][1].split("Сегодня", 1)[1])
+        assert len(briefs) == 3 and "Коридор и уровни сейчас не показываем: данные отстают." in plain(briefs[0][1])
+        assert "Коридор (Binance" not in plain(briefs[0][1])
+        assert "\nСобытия в ближайшие сутки: 15:30 CPI США (инфляция)\n" in plain(briefs[0][1])
+        assert "24ч: числовую оценку не показываем" in plain(briefs[0][1]) and "×" not in plain(briefs[0][1])
         r2 = await run_notify_once(store, brief_cfg, ON_PUSH, sender=s, clock=Clock(NOW + timedelta(minutes=1)))
         assert r2["market"]["pushed"] == 0 and r2["market"]["forecasts_recorded"] == 0
 

@@ -114,10 +114,12 @@ NOT_LIVE_USABLE         = 21 (8 registry + 13 outside it)
 - `main.py --beta-feeds-once`, every 5 min (`deploy/signalbot-beta-feeds.{service,timer}`).
 - `main.py --beta-stress-once`, hourly at HH:02 (`deploy/signalbot-beta-stress.{service,timer}`).
 - Health is recorded under `research_feeds`, `research_feeds_definition` and `research_stress_hours`.
-- Config: `decision.research_evidence.{enabled, feeds_enabled, stress_hours_enabled, main_surface_max ≤ 2}`.
+- Config: `decision.research_evidence.{enabled, main_surfaces_enabled, feeds_enabled, stress_hours_enabled, main_surface_max ≤ 2}`.
 - Collection and presentation are separate (deploy plan PREREQ-2):
   - `feeds_enabled` / `stress_hours_enabled` gate the collectors;
-  - `enabled` AND the restrict-only env `BETA_RESEARCH_EVIDENCE_ENABLED` gate what the bot shows.
+  - `enabled` AND the restrict-only env `BETA_RESEARCH_EVIDENCE_ENABLED` gate what the bot shows: the «🔬 Исследования» tab;
+  - `main_surfaces_enabled` (committed `false`, `PRE_BETA_SCOPE_DECISION_V1.md` §6.1, backlog G4) adds the lines on the main surfaces: `/btc`, `/catchup`, the briefing, `/levels`, `/risk`, the level and sharp-move alerts and the registry line of the unusual-hour push. Off, matching is unchanged and the tab still shows everything.
+- Research ids appear only in the tab and in `/research`, never on a main-surface line (backlog C1).
 - The feed units run as the least-privilege role `signalbot_beta_feeds` and only verify the schema (`docs/RESEARCH_EVIDENCE_DEPLOY_PLAN_V1.md` §A).
 
 **Definition check.**

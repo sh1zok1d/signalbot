@@ -464,3 +464,38 @@ def test_decision_config_is_validated():
         CFG.with_overrides(decision=bad)
     with pytest.raises(BetaConfigError):
         CFG.with_overrides(decision={**d, "extra": 1})
+
+
+def test_statistics_older_than_three_days_close_the_block_before_any_number():
+    """A2: the block is unavailable (STATS_STALE) and never reads bars or builds a corridor."""
+    import asyncio
+    from beta import decision as dec
+
+    class Conn:
+        def __init__(self, built):
+            self.built = built
+            self.bars_read = False
+
+        async def fetch_latest_hist_stats_meta(self):
+            return {"stats_pk": 1}
+
+        async def fetch_latest_hist_stats(self):
+            return {"stats_pk": 1, "payload": {"range_model": {}, "data": {}}, "built_at": self.built,
+                    "payload_digest": "d"}
+
+        async def fetch_hist_bars(self, **kw):
+            self.bars_read = True
+            return []
+
+        async def fetch_live_klines_1m(self, **kw):
+            self.bars_read = True
+            return []
+
+    now = datetime(2026, 10, 14, 6, 0, tzinfo=timezone.utc)
+    for age_h, stale in ((73, True), (71, False)):
+        dec.reset_cache()
+        conn = Conn(now - timedelta(hours=age_h))
+        block = asyncio.run(dec._build(conn, CFG, now=now, market=None))
+        assert (block["reason"] == "STATS_STALE") is stale and block["available"] is False
+        assert conn.bars_read is (not stale)            # fresh stats go on (here to DATA_STALE: no bars)
+    dec.reset_cache()

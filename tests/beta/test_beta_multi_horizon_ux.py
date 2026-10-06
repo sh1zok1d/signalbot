@@ -252,17 +252,17 @@ def test_event_and_1h_tabs_both_languages():
         assert ("Термины: /terms" if lang == "ru" else "Terms: /terms") in event
         assert ("Термины: /terms" if lang == "ru" else "Terms: /terms") in hour
         if lang == "ru":
-            assert "СОБЫТИЕ · резкое падение" in event
+            assert "Событие BTC</b> · резкое падение" in event
             assert "OI " in event and "Binance" in event and "binance" not in event
-            assert "ПОСЛЕДНИЙ ЧАС" in hour
+            assert "BTC за последний час" in hour
             assert "2,3× от обычного для этого часа" in hour
             assert "Funding сейчас 0,006%" in hour
             assert "Delta: −$84 млн (продавцы)" in hour
             assert "OI −0,6%: Binance −0,9% · Bybit −0,4% · OKX +0,1%" in hour
             assert "≥ — нижняя граница: Binance передаёт не все ликвидации." in event
         else:
-            assert "EVENT · sharp drop" in event
-            assert "LAST HOUR" in hour
+            assert "BTC event</b> · sharp drop" in event
+            assert "BTC, last hour" in hour
             assert "2.3× usual for this hour" in hour
             assert "Funding now 0.006%" in hour
             assert "Delta: −$84M (sellers)" in hour
@@ -605,7 +605,7 @@ def test_tab_edit_renders_persisted_view_not_live_state():
         # a later user language does not restyle the stored view
         conn.users[1]["lang"] = "en"
         again = await h.handle(_cb(1, "e:7:event", 3, message_id=42))
-        assert "СОБЫТИЕ" in again[1].html and "EVENT ·" not in again[1].html
+        assert "Событие BTC" in again[1].html and "BTC event" not in again[1].html
         day = await h.handle(_cb(1, "e:7:24h", 4, message_id=42))
         assert day[1].kind == "edit"
         assert day[1].html == format_24h_tab(CFG, view, "ru", view_id8(conn.views[7]["payload_digest"]))
@@ -790,14 +790,14 @@ def test_24h_tab_renders_changes_and_terms_footer():
     assert_descriptive(ru, "ru")
     assert_descriptive(en, "en")
     assert "1a2b3c4d" not in ru and "ref " not in ru
-    assert "ПОСЛЕДНИЕ 24 Ч" in ru and "Термины: /terms" in ru.split("\n")[-1]
+    assert "BTC за 24 ч" in ru and "Термины: /terms" in ru.split("\n")[-1]
     assert "диапазон шире: 2,8% против 1,9%" in ru
     assert "OI вырос, пока цена падала" in ru
     assert "Крупных изменений к предыдущим 24 ч нет" not in ru
     assert "Delta: +$210 млн (покупатели)" in ru
     assert "Funding сейчас 0,006% · среднее за 24 ч 0,009%" in ru
     assert "Высокий импакт" not in ru and "High impact" not in en
-    assert "LAST 24H" in en and "Terms: /terms" in en.split("\n")[-1]
+    assert "BTC, last 24h" in en and "Terms: /terms" in en.split("\n")[-1]
     assert "range wider: 2.8% vs 1.9%" in en
     assert "OI rose while price fell" in en
     assert "Delta: +$210M (buyers)" in en
