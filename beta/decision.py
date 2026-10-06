@@ -66,6 +66,19 @@ async def latest_stats(conn, *, now: datetime) -> Optional[dict]:
     return _cache["payload"]
 
 
+def stats_stale(stats: Optional[Mapping[str, Any]], now: datetime) -> bool:
+    """Whether a statistics row is older than STATS_MAX_AGE (A2). One rule for every reader: a stale row's
+    numbers (corridor, levels, «после похожих», the OI «обычно») are shown nowhere."""
+    built = (stats or {}).get("_built_at")
+    return bool(built) and now - datetime.fromisoformat(built) > STATS_MAX_AGE
+
+
+async def fresh_stats(conn, *, now: datetime) -> Optional[dict]:
+    """The newest statistics row, or None when there is none or it is stale (stats_stale)."""
+    stats = await latest_stats(conn, now=now)
+    return None if stats is None or stats_stale(stats, now) else stats
+
+
 def reset_cache() -> None:
     _cache.update(pk=None, payload=None, checked=None)
 
@@ -162,29 +175,39 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
     block: dict = {"version": DECISION_VERSION, "available": False, "reason": None, "venue": LIVE_EXCHANGE,
                    "as_of": now.isoformat()}
     stats = await latest_stats(conn, now=now)
-    model = (stats or {}).get("range_model")
+    stale = stats_stale(stats, now)
     if stats is not None:
         block["stats"] = {"stats_pk": stats.get("_stats_pk"), "built_at": stats.get("_built_at"),
                           "data_from_ms": (stats.get("data") or {}).get("from_ms"),
                           "data_to_ms": (stats.get("data") or {}).get("to_ms")}
-        built = stats.get("_built_at")
-        if built and now - datetime.fromisoformat(built) > STATS_MAX_AGE:
-            block["reason"] = "STATS_STALE"
-            return block
+    if stale:
+        stats = None                         # A2: nothing below may read a stale row
+    model = (stats or {}).get("range_model")
+    # the tape is read whatever the statistics: personal price alerts and the release alerts need only
+    # the price and the calendar, and a fresh price is never reported as unavailable
     b, price, price_ts = await load_live_bars(conn, cfg, now=now, capture=capture)
     if capture is not None:
         capture.update(bars=b, stats=stats, model=model)
-    if price is None or price_ts is None or now - price_ts > STALE_AFTER:
+    fresh = price is not None and price_ts is not None and now - price_ts <= STALE_AFTER
+    if stale:
+        block["reason"] = "STATS_STALE"
+    elif not fresh:
         block["reason"] = "DATA_STALE"
+    if not fresh:
         block["price_ts"] = price_ts.isoformat() if price_ts else None
         return block
     block["price"] = price
     block["price_ts"] = price_ts.isoformat()
     cal = load_calendar()
     events = event_times_ms(cal)
-    fc = forecast(model, b, price=price, events=events) if model else None
     zones = event_zones(to_ms(now), cal)
     block["event_zone"] = zones
+    if stale:
+        # unavailable for every number of the history; the price, its time and the calendar stay
+        if capture is not None:
+            capture.update(calendar=cal, events=events, forecast=None, event_zone=zones)
+        return block
+    fc = forecast(model, b, price=price, events=events) if model else None
     # horizons inside their event zone are dropped here, at the source: no corridor, no touch
     # probability, no /risk figure and no tracked forecast can be built from them downstream
     shown = {"horizons": {h: x for h, x in fc["horizons"].items() if h not in zones}} if fc is not None else None
@@ -192,13 +215,23 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
         capture.update(calendar=cal, events=events, forecast=shown, event_zone=zones)
     if fc is not None:
         block["corridor"] = {"coverage": fc["coverage"], "anchor_close_ms": fc["anchor_close_ms"],
-                             "horizons": shown["horizons"]}
+                             "horizons": shown["horizons"],
+                             # the days of history each horizon's chance is fitted on: the N of «исторически»
+                             "history_days": {h: int((((model.get("horizons") or {}).get(h)) or {}).get("n_days") or 0)
+                                              for h in shown["horizons"]}}
         cal_rep = model.get("calibration") or {}
         block["corridor"]["holdout"] = {h: {"coverage_realized": c.get("coverage_realized"),
                                             "n_days": c.get("n_days"), "from_ms": c.get("holdout_from_ms"),
                                             "to_ms": c.get("holdout_to_ms"), "touch_bins": c.get("touch_bins"),
                                             "neither_bins": c.get("neither_bins")}
                                         for h, c in cal_rep.items()}
+        # the «обычно» of the change over the window just ended: the typical move the model gave at the window's
+        # start, never the scale now, whose past windows already contain that change
+        from .rangecast import HORIZONS, typical_move_at
+        i = b.last_complete_index()
+        block["corridor"]["window_typical"] = {
+            h: v for h in ("1h", "24h") if h in shown["horizons"] and i is not None and i >= HORIZONS[h]
+            for v in [typical_move_at(model, b, i - HORIZONS[h], h, events=events)] if v is not None}
         fa = getattr(conn, "forecast_accuracy", None)
         if fa is not None:            # the live record over 30 days, N = independent windows (/btc, backlog C1)
             block["corridor"]["live"] = await fa(since=now - timedelta(days=30))
@@ -268,12 +301,37 @@ async def research_evidence_block(conn, cfg: BetaConfig, *, now: datetime, block
         capture["evidence_inputs"] = inputs
         ev = evaluate(inputs)
         ev["zones"] = _zone_conditionals(capture["bars"], block, now=now)
+        ev["alerts"] = await _recent_alert_evidence(conn, now=now)
         ev["main_surfaces"] = research_main_surfaces_enabled(cfg)       # else the tab only (decision §6.1)
         return ev
     except Exception as exc:  # noqa: BLE001 - research context must never break a view or an alert
         logger.warning("research evidence failed: %s", type(exc).__name__)
         return {"version": "BETA_RESEARCH_EVIDENCE_V1", "error_type": type(exc).__name__, "matches": [],
                 "unavailable": [], "not_live": []}
+
+
+RECENT_ALERTS_SHOWN = 5
+
+
+async def _recent_alert_evidence(conn, *, now: datetime) -> list:
+    """The research matches recorded with the level and sharp-move alerts of the last 24h, newest first
+    (at most RECENT_ALERTS_SHOWN), for the «🔬 Исследования» tab: with the main surfaces off they are
+    printed nowhere else (decision §6.1)."""
+    fetch = getattr(conn, "fetch_market_alerts", None)
+    if fetch is None:
+        return []
+    rows = await fetch(start=now - timedelta(hours=24), end=now, kinds=("level", "move"))
+    out = []
+    for r in reversed(rows):
+        p = r.get("payload") or {}
+        if not p.get("evidence"):
+            continue
+        out.append({"kind": r["kind"], "at": p.get("at") or r["decision_ts"].isoformat(),
+                    "level": p.get("level"), "level_kind": p.get("level_kind"), "move_pct": p.get("move_pct"),
+                    "matches": p["evidence"]})
+        if len(out) >= RECENT_ALERTS_SHOWN:
+            break
+    return out
 
 
 def _zone_conditionals(b, block: Mapping[str, Any], *, now: datetime) -> dict:

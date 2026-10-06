@@ -30,7 +30,7 @@ HIST = {"type": "PDH", "kind": "PDH", "verdicts": {"1h": "as_usual", "4h": "as_u
 
 def block(**over):
     b = {"available": True, "price": 62480.0, "stats": {"data_from_ms": int(datetime(2020, 1, 1, tzinfo=UTC).timestamp() * 1000)},
-         "corridor": {"coverage": 0.8, "horizons": {
+         "corridor": {"coverage": 0.8, "history_days": {"1h": 2100, "4h": 2100, "24h": 2050}, "horizons": {
              "1h": {"scale_pct": 0.6, "half_width_pct": 0.7, "lower": 62043.0, "upper": 62917.0,
                     "typical_move_pct": 0.25, "event_in_window": {"CPI": False, "FOMC": False}},
              "4h": {"scale_pct": 1.2, "half_width_pct": 1.4, "lower": 61605.0, "upper": 63355.0,
@@ -68,7 +68,12 @@ def test_unavailable_block_says_why_and_never_shows_numbers():
     for reason, word in (("DATA_STALE", "отстают"), ("NO_STATS", "не загружена"), ("ERROR", "ошибка")):
         lines = df.brief_lines({"decision": {"available": False, "reason": reason}}, "ru")
         assert lines[-1].startswith("Коридор и уровни сейчас не показываем") and word in lines[-1]
-    assert df.btc_lines({"decision": {"available": False}}, "ru") == []
+    # /btc says why too, never a silent gap (review of #346 + #348, finding 5)
+    for reason, word in (("STATS_STALE", "не обновлялась больше 3 суток"), ("DATA_STALE", "отстают"),
+                         ("NO_STATS", "не загружена"), ("ERROR", "ошибка")):
+        (line,) = df.btc_lines({"decision": {"available": False, "reason": reason}}, "ru")
+        assert line.startswith("Коридор и уровни сейчас не показываем") and word in line, reason
+    assert df.btc_lines({"decision": None}, "ru") == [] and df.btc_lines({}, "ru") == []
 
 
 def _bins(*cells):
@@ -91,21 +96,25 @@ def test_btc_lines():
         # no held-out bin passed for these chances: the «исторически» fallback, no calibration line
         "↑ 62 950 максимум вчера (+0,75%) · за 24ч исторически в 60% случаев",
         "↓ 61 900 минимум Азии (−0,93%) · за 24ч исторически в 55% случаев",
+        # once under «исторически» chances: the N of the history and that their accuracy did not pass (as /check)
+        "* исторически в стольких случаях (история 2050 дн.); точность такой оценки не прошла проверку или ещё "
+        "не набрала N",
         "События в ближайшие сутки: 15:30 CPI США (инфляция)"]
     blk["corridor"] = {**blk["corridor"], "holdout": HOLDOUT}
     lines = df.btc_lines({"decision": blk}, "ru")
     assert lines[1] == "↳ внутри коридора бывало (расчёт — 80%): 1ч 79% · 4ч 81% · 24ч 80% на истории (365 дн.)"
     assert lines[2:5] == ["↑ 62 950 максимум вчера (+0,75%) · за 24ч ≈ 60%",
                           "↓ 61 900 минимум Азии (−0,93%) · за 24ч ≈ 55%",
-                          "↳ шанс дойти; говорили → было: ↑ 58% → 60% (на истории, N=120) · "
-                          "↓ 58% → 60% (на истории, N=120)"]
+                          # one check per bin: both levels share it, it is not a per-level accuracy (6b)
+                          "↳ шанс дойти; говорили → было: 24ч 58% → 60% (на истории, N=120)"]
     # the live record replaces the held-out share once its independent windows reach MIN_N_SHOWN
     blk["corridor"]["live"] = {"1h": {"INSIDE": 560, "OUTSIDE": 160, "N_EFF": 700},
                                "24h": {"INSIDE": 20, "OUTSIDE": 4, "N_EFF": 24}}
     assert df.btc_lines({"decision": blk}, "en")[1] == (
         "↳ inside the corridor (designed for 80%): 1h 78% live over 30 days (N=700) · 4h 81% · 24h 80% on history "
         "(365 days)")
-    # inside the 24h zone: no 24h corridor or chance, no coverage claim; the 4h chance instead
+    # inside the 24h zone: no 24h corridor, chance or record; the 1h and 4h shown are outside their own spans,
+    # so their record keeps its designed share as the comparator (§9: outside a span the corridor is as usual)
     z = block(as_of=NOW.isoformat(), event_zone={"24h": [{"kind": "CPI", "at": "2026-10-14T12:30:00+00:00"}]})
     z["corridor"] = {**z["corridor"], "holdout": HOLDOUT,
                      "horizons": {h: x for h, x in z["corridor"]["horizons"].items() if h != "24h"}}
@@ -113,7 +122,8 @@ def test_btc_lines():
         for x in z["levels"][lv]:
             x["touch"] = {"4h": x["touch"]["4h"]}
     text = "\n".join(df.btc_lines({"decision": z}, "ru"))
-    assert "24ч 60 230" not in text and "расчёт" not in text and "4 из 5" not in text
+    assert "24ч 60 230" not in text and "4 из 5" not in text
+    assert "↳ внутри коридора бывало (расчёт — 80%): 1ч 79% · 4ч 81% на истории (365 дн.)" in text
     assert "24ч: числовую оценку не показываем — CPI США (инфляция)" in text
     assert "↑ 62 950 максимум вчера (+0,75%) · за 4ч исторически в 30% случаев" in text
     for lang in ("ru", "en"):
@@ -123,11 +133,18 @@ def test_btc_lines():
 def test_btc_price_moves_carry_the_typical_move():
     """Backlog C1: the 1h and 24h price change beside the model's typical move of that horizon."""
     from beta.formatter import _day_line, _hour_line
+    blk = block()
+    # the typical move the model gave at the window's start, not the current one (whose past windows already
+    # contain this change; review of #346 + #348): here 0.22 and 1.31 against 0.25 and 1.4 now
+    blk["corridor"]["window_typical"] = {"1h": 0.22, "24h": 1.31}
     view = {"horizons": {"1h": {"complete": True, "price_move_pct": 0.31},
-                         "24h": {"price_complete": True, "price_move_pct": -1.24}}, "decision": block()}
-    assert _hour_line(view, "ru") == "1ч: +0,3% (обычно ±0,2%)"
-    assert _day_line(view, "en") == "24h: −1.2% (usually ±1.4%)"
-    zoned = block()
+                         "24h": {"price_complete": True, "price_move_pct": -1.24}}, "decision": blk}
+    # one precision for the typical move on every surface (/risk and /check print two decimals) and the same
+    # for the change beside it (review of #346 + #348, 6c)
+    assert _hour_line(view, "ru") == "1ч: +0,31% (обычно ±0,22%)"
+    assert _day_line(view, "en") == "24h: −1.24% (usually ±1.31%)"
+    assert _hour_line({**view, "decision": block()}, "ru") == "1ч: +0,3%"     # a block without it: no «обычно»
+    zoned = blk
     zoned["corridor"]["horizons"].pop("1h")                   # inside its event zone: no typical move
     assert _hour_line({**view, "decision": zoned}, "ru") == "1ч: +0,3%"
     assert _hour_line({**view, "decision": {"available": False}}, "ru") == "1ч: +0,3%"
@@ -509,11 +526,12 @@ def test_levels_and_risk_show_the_price_time_and_the_statistics_build_never_the_
     blk = block(price_ts="2026-10-14T05:52:00+00:00",
                 stats={"data_from_ms": 1577836800000, "built_at": "2026-10-14T02:10:00+00:00"})
     lv = plain(df.format_levels(blk, "ru", now=NOW))
-    assert lv.splitlines()[0] == "Уровни BTC · Binance · цена 62 480 · 08:52 (Киев)"      # not 09:00, the request
+    # the close of the 1m bar that opened at 08:52 (price_ts is the open): not 09:00, the request
+    assert lv.splitlines()[0] == "Уровни BTC · Binance · цена 62 480 · 08:53 (Киев)"
     assert "Статистика по истории собрана Ср 14.10 05:10 (Киев)." in lv
     model = {"horizons": {h: {"q_one": [0.01 * k for k in range(1, 100)] + [1.2, 1.5]} for h in ("1h", "4h", "24h")}}
     risk = plain(df.format_risk(blk, model, "en", stop_pct=None))
-    assert risk.splitlines()[0] == "BTC risk · Binance · price 62,480 · 08:52 Kyiv"
+    assert risk.splitlines()[0] == "BTC risk · Binance · price 62,480 · 08:53 Kyiv"
     assert "History statistics built Wed 14.10 05:10 Kyiv." in risk
     old = plain(df.format_levels(block(), "ru", now=NOW))          # a block without price_ts: the request time
     assert old.splitlines()[0].endswith("· 09:00 (Киев)") and "Статистика по истории" not in old
@@ -523,16 +541,16 @@ def test_alerts_print_the_price_with_its_own_time():
     base = {"at": "2026-10-14T05:41:00+00:00", "level_kind": "PDH", "level": 62950.0, "side": 1, "period": "day",
             "price": 62880.0, "history": None, "next": None, "corridor_4h": None}
     text = plain(df.format_alert("level", {**base, "price_ts": "2026-10-14T05:49:00+00:00"}, "ru"))
-    assert "08:41 (Киев) — первое касание за день · цена 62 880 (Binance, 08:49)" in text
+    assert "08:41 (Киев) — первое касание за день · цена 62 880 (Binance, 08:50)" in text   # the bar's close
     assert "08:41 (Киев) · цена 62 880 (Binance) — первое касание за день" in plain(df.format_alert("level", base, "ru"))
     price = {"at": "2026-10-14T05:41:00+00:00", "level": 62950.0, "late": False, "price": 62880.0,
              "price_ts": "2026-10-14T05:49:00+00:00", "corridor_4h": None}
-    assert "level reached · price 62,880 (Binance, 08:49)" in plain(df.format_alert("price", price, "en"))
+    assert "level reached · price 62,880 (Binance, 08:50)" in plain(df.format_alert("price", price, "en"))
     late = plain(df.format_alert("price", {**price, "late": True}, "ru"))
-    assert "сейчас 62 880 (Binance, 08:49)" in late
+    assert "сейчас 62 880 (Binance, 08:50)" in late
     ev = {"at": "2026-10-14T12:00:00+00:00", "event_kind": "CPI", "event_at": "2026-10-14T12:30:00+00:00",
           "minutes": 30, "price": 62880.0, "price_ts": "2026-10-14T11:58:00+00:00"}
-    assert "цена 62 880 (Binance, 14:58)" in plain(df.format_alert("event", ev, "ru"))
+    assert "цена 62 880 (Binance, 14:59)" in plain(df.format_alert("event", ev, "ru"))
 
 
 def test_stale_statistics_say_why_instead_of_numbers():

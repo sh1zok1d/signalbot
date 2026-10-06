@@ -456,10 +456,11 @@ async def deadman_ping(url: Optional[str] = None, *, timeout_s: float = 5.0) -> 
 
 
 async def _analogue_source(conn, now: datetime) -> tuple:
-    """(analogue statistics, first year of the history) for the push's «после похожих» line."""
+    """(analogue statistics, first year of the history) for the push's «после похожих» line; none from
+    statistics older than STATS_MAX_AGE (A2, the rule of the decision block)."""
     try:
-        from .decision import latest_stats
-        stats = await latest_stats(conn, now=now)
+        from .decision import fresh_stats
+        stats = await fresh_stats(conn, now=now)
     except Exception:  # noqa: BLE001 - the line is optional; the push is not
         return None, None
     if not stats:
@@ -598,8 +599,9 @@ async def _link_brief_claims(conn, cfg: BetaConfig, view_pk: int, payload: Mappi
     """The brief's claims count as shown once a participant actually received it: after the first SENT
     row of the view, never at scheduling (a withdrawal day or a paused bot shows nothing). Best-effort:
     the journal never stops the remaining sends."""
-    if not cfg.section("decision").get("claim_journal") or not payload.get("requested_at"):
-        return
+    from .formatter import view_degraded
+    if not cfg.section("decision").get("claim_journal") or not payload.get("requested_at") or view_degraded(payload):
+        return                                       # a degraded briefing prints no «после похожих»: nothing shown
     try:
         if await conn.view_has_claim_displays(view_pk):
             return

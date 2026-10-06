@@ -471,7 +471,17 @@ def test_alert_evidence_never_changes_the_push_decision_or_identity():
              "levels": {"all": [{"kind": "PDH", "price": 64000.0}, {"kind": "ROUND", "price": 64000.0}]}}
     off = {"kind": "level", "key": "level:PDH:2026-10-02", "payload": dict(payload)}
     attach_evidence(off, {**block, "evidence": {"matches": []}}, {"bars": None})
-    assert "evidence" not in off["payload"]                # main surfaces off (decision §6.1): nothing attached
+    # main surfaces off (decision §6.1): matching is unchanged and recorded for the tab, the alert prints none
+    assert {m["finding_id"] for m in off["payload"]["evidence"]} == {"DH3-V2", "DH1-L2"}
+    assert off["payload"]["evidence_main"] is False
+    from beta.decision_format import format_alert
+    alert = {**payload, "period": "day", "price": 64010.0, "history": None, "next": None, "corridor_4h": None,
+             "event_zone": {}}
+    assert "🔬" not in format_alert("level", {**alert, **off["payload"]}, "ru")
+    shown = dict(payload)
+    on = {"kind": "level", "key": "level:PDH:2026-10-02", "payload": shown}
+    attach_evidence(on, block, {"bars": None})
+    assert on["payload"]["evidence_main"] is True and "🔬" in format_alert("level", {**alert, **shown}, "ru")
     out = []
     for with_evidence in (False, True):
         cand = {"kind": "level", "key": "level:PDH:2026-10-02", "payload": dict(payload)}

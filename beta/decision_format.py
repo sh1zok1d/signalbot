@@ -172,11 +172,16 @@ def unavailable_line(block: Optional[Mapping[str, Any]], lang: str) -> Optional[
     return t(lang, "dc_unavailable", reason=t(lang, reason))
 
 
+def price_clock(price_ts: Optional[str]) -> Optional[datetime]:
+    """When a price was observed: the close of its Binance 1m bar. `price_ts` is the bar's open (the
+    stored convention of decision support: the claim journal and the health check add the minute too)."""
+    return datetime.fromisoformat(price_ts) + timedelta(minutes=1) if price_ts else None
+
+
 def data_clock(block: Mapping[str, Any]) -> Optional[datetime]:
-    """When the price of the block was observed (its newest closed Binance 1m bar), never the
-    request time (A1)."""
-    ts = block.get("price_ts")
-    return datetime.fromisoformat(ts) if ts else None
+    """When the price of the block was observed (the close of its newest closed Binance 1m bar), never
+    the request time (A1)."""
+    return price_clock(block.get("price_ts"))
 
 
 def stats_line(block: Mapping[str, Any], lang: str) -> Optional[str]:
@@ -376,10 +381,24 @@ def _btc_corridor(block: Mapping[str, Any], lang: str, horizons: Sequence[str] =
             days = max(days, int(ho.get("n_days") or 0))
     parts = live + ([t(lang, "dc_btc_track_hold", parts=" · ".join(hold), days=days)] if hold else [])
     if parts:
-        if note:                  # an event context: no coverage claim (BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR §9)
-            out.append(t(lang, "dc_btc_track_zone", parts=" · ".join(parts)))
-        else:
-            out.append(t(lang, "dc_btc_track", share=fmt_share(c.get("coverage"), lang), parts=" · ".join(parts)))
+        # every horizon shown here is outside its own release span (a horizon inside it is dropped at the
+        # source, BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR §9), so its designed share is the comparator of its record
+        out.append(t(lang, "dc_btc_track", share=fmt_share(c.get("coverage"), lang), parts=" · ".join(parts)))
+    return out
+
+
+_H_ORDER = {"1h": 1, "4h": 4, "24h": 24}
+
+
+def _cal_line(block: Mapping[str, Any], cals: Mapping[tuple, str], fallback: set, lang: str) -> list:
+    """The checks of the «≈» chances, once per horizon and bin, by hours (never «24ч» before «4ч»), and one
+    note under «исторически» chances: the N of the history and that their accuracy did not pass (/check)."""
+    out = []
+    if cals:
+        out.append(t(lang, "dc_btc_cal", parts=" · ".join(cals[k] for k in sorted(cals, key=lambda k: (_H_ORDER[k[0]], k[1])))))
+    if fallback:
+        days = [((block.get("corridor") or {}).get("history_days") or {}).get(h) for h in fallback]
+        out.append(t(lang, "ck_fallback_note", n=min(days)) if all(days) else t(lang, "dc_fallback_note"))
     return out
 
 
@@ -387,7 +406,7 @@ def _btc_levels(block: Mapping[str, Any], lang: str) -> list:
     """The nearest level above and below with the chance to reach it within 24h (4h inside the 24h
     event zone), worded by the frozen rule: «≈ X%» with its check, or «исторически в X% случаев»."""
     lv = block.get("levels") or {}
-    lines, cals = [], []
+    lines, cals, fallback = [], {}, set()
     for z, arrow in (((lv.get("above") or [None])[0], "↑"), ((lv.get("below") or [None])[0], "↓")):
         if not z:
             continue
@@ -398,14 +417,14 @@ def _btc_levels(block: Mapping[str, Any], lang: str) -> list:
         w = touch_wording(block, h, touch[h]) if h else {"mode": "none"}
         if w["mode"] == "B":
             lines.append(t(lang, "dc_btc_level_b", h=_hz(h, lang), p=fmt_prob(touch[h], lang), **args))
-            cals.append(cal_part(arrow, w, lang))
+            # one check per bin: two levels in the same bin share it, it is not a per-level accuracy
+            cals.setdefault((h, tuple(w["bin"])), cal_part(_hz(h, lang), w, lang))
         elif w["mode"] == "fallback":
             lines.append(t(lang, "dc_btc_level_fb", h=_hz(h, lang), p=fmt_prob(touch[h], lang), **args))
+            fallback.add(h)
         else:
             lines.append(t(lang, "dc_btc_level", **args))
-    if cals:
-        lines.append(t(lang, "dc_btc_cal", parts=" · ".join(cals)))
-    return lines
+    return lines + _cal_line(block, cals, fallback, lang)
 
 
 def _btc_events(block: Mapping[str, Any], lang: str) -> list:
@@ -427,21 +446,27 @@ def _btc_events(block: Mapping[str, Any], lang: str) -> list:
 def btc_lines(view: Mapping[str, Any], lang: str) -> list:
     """/btc decision support (backlog C1): corridors with their record, the two nearest levels with
     their chance, the next 24h events, then research (main surfaces only, decision §6.1)."""
-    block = view.get("decision") or {}
-    if not block.get("available"):
+    block = view.get("decision")
+    if not block:
         return []
+    if not block.get("available"):
+        return [unavailable_line(block, lang)]          # A2: the screen says why, as /levels and /risk do
     out = _btc_corridor(block, lang) + _btc_levels(block, lang) + _btc_events(block, lang)
     out.extend(evidence_lines(block, "btc", lang))
     return out
 
 
 def typical_move(view: Mapping[str, Any], h: str) -> Optional[float]:
-    """The model's typical move of horizon h now (the «обычно» of a price change), None in its event zone."""
+    """The «обычно» of the price change over the window just ended: the model's typical move of horizon h as
+    it stood at the window's start (never the current scale, which already contains that change). None in
+    its event zone, or for a block built before this value existed."""
     block = view.get("decision") or {}
     if not block.get("available"):
         return None
-    x = ((block.get("corridor") or {}).get("horizons") or {}).get(h)
-    return x.get("typical_move_pct") if x else None
+    c = block.get("corridor") or {}
+    if h not in (c.get("horizons") or {}):
+        return None
+    return (c.get("window_typical") or {}).get(h)
 
 
 # ---- /levels -----------------------------------------------------------------------------
@@ -492,7 +517,8 @@ def _zone_research(cond: Sequence[Mapping[str, Any]], lang: str) -> list:
 
 
 def _zone_block(block: Mapping[str, Any], z: Mapping[str, Any], lang: str, side: int,
-                cond: Sequence[Mapping[str, Any]] = (), cals: Optional[dict] = None) -> list:
+                cond: Sequence[Mapping[str, Any]] = (), cals: Optional[dict] = None,
+                fallback: Optional[set] = None) -> list:
     """One level of the /levels ladder (backlog C3): the /btc level line with its 4h and 24h chances by the
     frozen wording rule, then «↳» lines for what followed its first touch. The B checks go to `cals`."""
     parts = []
@@ -507,6 +533,8 @@ def _zone_block(block: Mapping[str, Any], z: Mapping[str, Any], lang: str, side:
                 cals.setdefault((h, tuple(w["bin"])), cal_part(_hz(h, lang), w, lang))
         else:
             parts.append(t(lang, "lv_chance_fb", h=_hz(h, lang), p=fmt_prob(touch[h], lang)))
+            if fallback is not None:
+                fallback.add(h)
     lines = [t(lang, "lv_level", arrow="↑" if side > 0 else "↓", price=zone_price(z, lang),
                names=_e(zone_names(z, lang, limit=3)), dist=fmt_signed_pct(z["distance_pct"], lang),
                chances="".join(" · " + x for x in parts))]
@@ -531,9 +559,10 @@ def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
         lst = zc.get(side) or []
         return list(lst[k]) if k < len(lst) else []
     cals: dict = {}
+    fallback: set = set()
     above = lv.get("above") or []
     for k in reversed(range(len(above))):
-        lines.extend(_zone_block(block, above[k], lang, +1, cond("above", k), cals))
+        lines.extend(_zone_block(block, above[k], lang, +1, cond("above", k), cals, fallback))
     if not above:
         lines.append(t(lang, "lv_none", arrow="↑"))
     if lv.get("at"):
@@ -542,12 +571,10 @@ def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
         lines.append(t(lang, "dc_level_now", price=fmt_price(block["price"], lang)))
     below = lv.get("below") or []
     for k, z in enumerate(below):
-        lines.extend(_zone_block(block, z, lang, -1, cond("below", k), cals))
+        lines.extend(_zone_block(block, z, lang, -1, cond("below", k), cals, fallback))
     if not below:
         lines.append(t(lang, "lv_none", arrow="↓"))
-    tail = []
-    if cals:
-        tail.append(t(lang, "dc_btc_cal", parts=" · ".join(cals[k] for k in sorted(cals))))
+    tail = _cal_line(block, cals, fallback, lang)
     tail.extend(_btc_corridor(block, lang, ("4h", "24h")))
     if tail:
         lines += [""] + tail
@@ -833,7 +860,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         pts = payload.get("price_ts")
         if pts:
             lines.append(t(lang, "pa_level_now_at", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
-                           price_clock=fmt_kyiv_hm(datetime.fromisoformat(pts)),
+                           price_clock=fmt_kyiv_hm(price_clock(pts)),
                            period=t(lang, "pa_period_" + payload.get("period", "day"))))
         else:                                       # a payload stored before A1
             lines.append(t(lang, "pa_level_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
@@ -862,7 +889,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         lines.append(t(lang, "pa_event_when_at" if pts else "pa_event_when",
                        clock=fmt_clock(datetime.fromisoformat(payload["event_at"]), lang),
                        price=fmt_price(payload["price"], lang),
-                       price_clock=fmt_kyiv_hm(datetime.fromisoformat(pts)) if pts else ""))
+                       price_clock=fmt_kyiv_hm(price_clock(pts)) if pts else ""))
         lines.append(t(lang, "ez_event_note"))
     elif kind == "move":
         start = datetime.fromisoformat(payload["start"])
@@ -887,7 +914,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
     elif kind == "price":
         lines.append(t(lang, "pa_price_title", level=fmt_price(payload["level"], lang)))
         pts = payload.get("price_ts")
-        pclock = fmt_kyiv_hm(datetime.fromisoformat(pts)) if pts else ""
+        pclock = fmt_kyiv_hm(price_clock(pts)) if pts else ""
         if payload.get("late"):
             lines.append(t(lang, "pa_price_late_at" if pts else "pa_price_late", when=_when(at, lang, with_day=True),
                            price=fmt_price(payload["price"], lang), price_clock=pclock))
@@ -905,7 +932,9 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         raise ValueError(f"unknown alert kind {kind!r}")
     # research evidence recorded with the alert (beta/research_evidence.py); no unit tested release moves
     surface = {"level": "level_alert", "move": "move_alert"}.get(kind)
-    if surface and not (kind == "move" and zones.get("1h")):
+    # printed only with research on the main surfaces (decision §6.1); a payload from before the switch
+    # carried evidence only when they were on
+    if surface and payload.get("evidence_main", True) and not (kind == "move" and zones.get("1h")):
         from .research_render import surface_lines
         ev = {"matches": payload.get("evidence") or []}
         for x in surface_lines(ev, surface, lang, limit=MAIN_RESEARCH_LINES):
