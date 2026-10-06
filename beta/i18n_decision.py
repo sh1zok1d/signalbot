@@ -320,7 +320,6 @@ DECISION_CATALOG: dict = {
                               "(Binance, {price_clock})"),
     "pa_price_footer": _pair("Ваши уровни: /alert", "Your alerts: /alert"),
     # ---- research ↔ bot (config/beta_research_findings.yaml) ----
-    "rs_line": _pair("Проверено: {text}", "Tested: {text}"),
     # status-worded context lines: a discovery is never «Проверено», a weak effect is never a result
     "rs_line_confirmed": _pair("Проверено: {text}", "Tested: {text}"),
     "rs_line_not_confirmed": _pair("Проверка показала: {text}", "The test showed: {text}"),
@@ -535,8 +534,10 @@ DECISION_TERMS = {
         "Случайный уровень — уровень на том же расстоянии от открытия периода, но без смысла. Рядом с реальным "
         "уровнем бот пишет, как вёл себя случайный, и разницу в процентных пунктах (п.п.).\n"
         "После похожих — что было после таких же состояний 1ч / 4ч в истории Binance. Обычно — все часы с той же "
-        "волатильностью. Разница — в п.п.; 95% интервал — в каких пределах она, скорее всего, лежала в истории. "
-        "Если интервал захватывает ноль, история не отличает это состояние от обычного.\n"
+        "волатильностью. Разница — в п.п.; ход — во сколько раз больше или меньше обычного (обычный ход — ×1). "
+        "95% интервал — неопределённость этой исторической оценки: насколько она менялась бы на другой выборке "
+        "дней. Интервал считается для каждой строки отдельно, без поправки на то, что строк много, и не говорит, "
+        "что так будет сейчас.\n"
         "Прошлое не гарантирует будущего. Бот не говорит, что делать со сделкой."
     ),
     "en": (
@@ -554,8 +555,10 @@ DECISION_TERMS = {
         "Random level — a level at the same distance from the period open that means nothing. Beside a real level the "
         "bot shows how the random one behaved and the difference in percentage points (pp).\n"
         "After similar — what followed the same 1h / 4h states in Binance history. Usual — all hours with the same "
-        "volatility. The difference is in pp; the 95% interval is the range it most likely had in history. "
-        "If the interval includes zero, history does not tell this state apart from usual.\n"
+        "volatility. The difference is in pp; the move is how many times larger or smaller than usual (the usual "
+        "move is ×1). The 95% interval is the uncertainty of this historical estimate: how much it would vary on "
+        "another sample of days. Each line's interval is computed on its own, with no correction for there being "
+        "many lines, and it does not say that this will happen now.\n"
         "The past does not guarantee the future. The bot does not tell you what to do with a trade."
     ),
 }

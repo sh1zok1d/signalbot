@@ -286,3 +286,29 @@ def test_terms_carry_the_disclaimer_and_the_v5_notice_names_the_current_product(
         assert ("/delete_me" in notice and "/feedback" in notice and "120" in notice and "30" in notice)
         assert ("коридор" in notice and "настройки" in notice) if lang == "ru" else \
             ("corridor" in notice and "settings" in notice)
+
+
+def test_feedback_reaches_the_team_after_stop_and_says_what_is_kept_before_join():
+    """Review of #343, finding 6: the privacy notice sends questions about one's data to /feedback; it
+    answered «not joined» to everyone but ACTIVE participants."""
+    async def body():
+        pool = await fresh_pool()
+        h = _handler(pool)
+        uid, invited = 900000000311, 900000000312
+        async with BetaStore(pool).connect() as conn:
+            code = await conn.create_invite(label="fb-stop", max_uses=2, now=NOW)
+        await h.handle(_msg(uid, f"/start {code}", 1))
+        await h.handle(_cb(uid, "pick:ru", 2))
+        await h.handle(_cb(uid, "join:ru", 3))
+        await h.handle(_msg(uid, "/stop", 4))
+        sent = await h.handle(_msg(uid, "/feedback что вы храните обо мне?", 5))
+        assert sent[0].html == "Спасибо! Отзыв передан команде." and f"Feedback · {fingerprint(uid)}" in sent[1].html
+        assert (await _rows(pool, "SELECT text FROM beta_feedback_messages")) == [{"text": "что вы храните обо мне?"}]
+        assert (await _rows(pool, "SELECT status FROM beta_users"))[0]["status"] == "STOPPED"   # still paused
+        await h.handle(_msg(invited, f"/start {code}", 6))                                    # invited, not joined
+        before = await h.handle(_msg(invited, "/feedback вопрос", 7))
+        assert "только приглашение" in before[0].html and "/delete_me" in before[0].html
+        assert (await _rows(pool, "SELECT count(*) AS n FROM beta_feedback_messages"))[0]["n"] == 1
+        assert "Сообщения на паузе" in (await h.handle(_msg(uid, "/btc", 8)))[0].html          # other commands: as before
+        await pool.close()
+    run(body())

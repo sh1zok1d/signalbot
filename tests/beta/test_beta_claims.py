@@ -107,10 +107,11 @@ def test_no_claim_inside_an_event_zone_horizon():
     assert rows and not [r for r in rows if r["claim_class"].endswith("_24H")]
 
 
-def _stats(n=412, base=0.51):
+def _stats(n=412, base=0.51, ci=True):
     from beta.analogues import ANALOGUES_VERSION
     cell = {"n": n, "days": 300, "p_up": 0.53, "baseline": {"p_up": base}, "range_ratio": 1.3,
-            "verdicts": {"direction": "as_usual", "range": "differs"}}
+            "verdicts": {"direction": "as_usual", "range": "differs"},
+            **({"ci95": {"direction": [-0.011, 0.052]}} if ci else {})}
     return {"_stats_pk": 7, "_payload_digest": "a" * 64,
             "analogues": {"version": ANALOGUES_VERSION, "windows": {
                 "1h": {"short_exit": {"n_anchors": n, "outcomes": {"1h": cell, "4h": {**cell, "n": 20}}}},
@@ -130,17 +131,18 @@ def test_analog_claims_mark_what_is_stated_and_keep_the_baseline_cohort(monkeypa
     assert set(by) == {"L2_STATE_ANALOG_1H_1H", "L2_STATE_ANALOG_1H_4H", "L2_STATE_ANALOG_4H_4H", "L2_STATE_ANALOG_4H_24H"}
     one = by["L2_STATE_ANALOG_1H_1H"]
     assert one["eligible_reason"] == cj.SHOWN and one["numbers"]["diff_pp"] == 2.0
-    assert one["numbers"]["printed"] == {"observed": "53%", "baseline": "51%", "diff_pp": "+2.0", "interval_pp": None}
-    assert one["numbers"]["interval_pp"] is None                     # a payload built before X1 has no interval
-    with_ci = _stats()
-    cell = with_ci["analogues"]["windows"]["1h"]["short_exit"]["outcomes"]["1h"]
-    cell["ci95"] = {"direction": [-0.011, 0.052]}
-    shown = {r["claim_class"]: r for r in cj.analog_claims(CFG, state, with_ci, b, now=SLOT, slot=SLOT)}
-    nums = shown["L2_STATE_ANALOG_1H_1H"]["numbers"]
-    assert nums["interval_pp"] == [-1.1, 5.2] and nums["printed"]["interval_pp"] == ["−1.1", "+5.2"]
+    nums = one["numbers"]
+    assert nums["printed"] == {"observed": "53%", "baseline": "51%", "diff_pp": "+2.0", "interval_pp": ["−1.1", "+5.2"]}
+    assert nums["interval_pp"] == [-1.1, 5.2]
     from beta import decision_format as df
+    cell = _stats()["analogues"]["windows"]["1h"]["short_exit"]["outcomes"]["1h"]
     line = df.analog_line({"window": "1h", "outcomes": {"1h": cell}}, "en")
     assert "(+2.0 pp; 95% interval −1.1…+5.2)" in line                  # what is logged is what is printed
+    # without the interval (fewer days than the bootstrap needs, or a payload built before X1) the line says
+    # «мало данных», so the journal states nothing either (review of #343, finding 1)
+    bare = {r["claim_class"]: r for r in cj.analog_claims(CFG, state, _stats(ci=False), b, now=SLOT, slot=SLOT)}
+    assert bare["L2_STATE_ANALOG_1H_1H"]["eligible_reason"] == cj.BASELINE_ONLY
+    assert bare["L2_STATE_ANALOG_1H_1H"]["numbers"]["interval_pp"] is None
     assert one["context_pk"] == 11 and one["stats_pk"] == 7 and one["stats_digest"] == "a" * 64
     assert one["rule_version"].endswith("BETA_CONTEXT_1H_V3")
     assert by["L2_STATE_ANALOG_1H_4H"]["eligible_reason"] == cj.BASELINE_ONLY        # n = 20 < 30
@@ -156,7 +158,8 @@ def test_analog_claims_mark_what_is_stated_and_keep_the_baseline_cohort(monkeypa
 
 def test_level_hold_claims_need_the_display_minimum():
     hist = {"real": {"n": 812, "1h": {"hold_rate": 0.47}, "4h": {"hold_rate": 0.44}},
-            "control": {"n": 4000, "1h": {"hold_rate": 0.43}, "4h": {"hold_rate": 0.42}}, "verdicts": {"1h": "as_usual"}}
+            "control": {"n": 4000, "1h": {"hold_rate": 0.43}, "4h": {"hold_rate": 0.42}}, "verdicts": {"1h": "as_usual"},
+            "ci95": {"1h": [-0.012, 0.091], "4h": [-0.02, 0.06]}}
     at = datetime(2026, 10, 14, 9, 2, tzinfo=UTC)
     cand = {"kind": "level", "key": "level:PDH:2026-10-14",
             "payload": {"at": at.isoformat(), "level_kind": "PDH", "level": 62950.0, "side": 1, "period": "day",
@@ -167,6 +170,11 @@ def test_level_hold_claims_need_the_display_minimum():
     assert rows[0]["numbers"]["diff_pp"] == 4.0 and rows[0]["subject_key"] == "level:PDH:2026-10-14"
     small = {**cand, "payload": {**cand["payload"], "history": {**hist, "real": {**hist["real"], "n": 29}}}}
     assert cj.level_hold_claims(small, now=at) == []
+    # a horizon without its interval is printed as «мало данных», so it is not stated (review of #343, finding 2)
+    no_4h = {**cand, "payload": {**cand["payload"], "history": {**hist, "ci95": {"1h": [-0.012, 0.091]}}}}
+    assert [r["claim_class"] for r in cj.level_hold_claims(no_4h, now=at)] == ["L2_LEVEL_FIRST_TOUCH_HOLD_1H"]
+    bare = {**cand, "payload": {**cand["payload"], "history": {k: v for k, v in hist.items() if k != "ci95"}}}
+    assert cj.level_hold_claims(bare, now=at) == []
 
 
 def _p1_bars(oi_growth, wide=False):
@@ -359,12 +367,15 @@ def test_report_p1_shift_against_the_record():
 # ---- displays -----------------------------------------------------------------------------------------
 def test_shown_keys_follow_what_each_surface_prints():
     from beta.interpretation import INTERPRETED
-    blk = _block(analogues={"1h": {"key": "short_exit", "outcomes": {"1h": {"n": 412, "baseline": {"p_up": 0.5}}}},
+    one = {"n": 412, "baseline": {"p_up": 0.5}, "ci95": {"direction": [-0.01, 0.05]}}
+    blk = _block(analogues={"1h": {"key": "short_exit", "outcomes": {"1h": one}},
                             "4h": {"key": "squeeze", "outcomes": {"4h": {"n": 12, "baseline": {"p_up": 0.5}}}}})
     market = {"interpretation": {"1h": {"kind": INTERPRETED}, "4h": {"kind": INTERPRETED}}}
     brief = cj.shown_keys("brief", blk, market=market)
     assert ("L2_STATE_ANALOG_1H_1H", "1h:short_exit") in brief
     assert not [k for k in brief if k[0] == "L2_STATE_ANALOG_4H_4H"]                    # «мало данных»: not stated
+    no_ci = _block(analogues={"1h": {"key": "short_exit", "outcomes": {"1h": {k: v for k, v in one.items() if k != "ci95"}}}})
+    assert not [k for k in cj.shown_keys("brief", no_ci, market=market) if k[0].startswith("L2_")]
     assert not [k for k in brief if k[0].startswith("L3_")]       # the briefing prints no chance since C2
     assert len(cj.shown_keys("levels", blk)) == 4 and len(cj.shown_keys("risk", blk)) == 3 * 4 * 2
     assert cj.shown_keys("levels", {"available": False}) == []
@@ -375,10 +386,14 @@ def test_shown_keys_follow_what_each_surface_prints():
         for z in zoned["levels"][side]:
             z["touch"] = {"4h": z["touch"]["4h"]}
     assert cj.shown_keys("btc", zoned) == [("L3_LEVEL_TOUCH_4H", "+1:62950.00"), ("L3_LEVEL_TOUCH_4H", "-1:61900.00")]
+    hist = {"real": {"n": 812, "1h": {"hold_rate": 0.47}}, "control": {"n": 4000, "1h": {"hold_rate": 0.43}},
+            "ci95": {"1h": [-0.012, 0.091]}}
     cand = {"kind": "level", "key": "level:PDH:2026-10-14",
-            "payload": {"side": 1, "next": _zone(["ROUND"], 64000.0, 2.4), "event_zone": {}}}
+            "payload": {"side": 1, "next": _zone(["ROUND"], 64000.0, 2.4), "event_zone": {}, "history": hist}}
     assert cj.shown_keys("alert", None, alert=cand) == [("L2_LEVEL_FIRST_TOUCH_HOLD_1H", "level:PDH:2026-10-14"),
                                                          ("L3_LEVEL_TOUCH_24H", "+1:64000.00")]
+    bare = {**cand, "payload": {**cand["payload"], "history": {k: v for k, v in hist.items() if k != "ci95"}}}
+    assert cj.shown_keys("alert", None, alert=bare) == [("L3_LEVEL_TOUCH_24H", "+1:64000.00")]   # «мало данных»
 
 
 def test_display_links_never_fail_the_caller():

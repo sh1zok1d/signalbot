@@ -107,12 +107,13 @@ CLASSES = {
     "L3_NEITHER_1H": ("L3", ("ck_neither",), "NEITHER_V1"),
     "L3_NEITHER_4H": ("L3", ("ck_neither",), "NEITHER_V1"),
     "L3_NEITHER_24H": ("L3", ("ck_neither",), "NEITHER_V1"),
-    "L2_STATE_ANALOG_1H_1H": ("L2", ("dc_analog_line",), "ANALOG_V1"),
-    "L2_STATE_ANALOG_1H_4H": ("L2", ("dc_analog_line",), "ANALOG_V1"),
-    "L2_STATE_ANALOG_4H_4H": ("L2", ("dc_analog_line",), "ANALOG_V1"),
-    "L2_STATE_ANALOG_4H_24H": ("L2", ("dc_analog_line",), "ANALOG_V1"),
-    "L2_LEVEL_FIRST_TOUCH_HOLD_1H": ("L2", ("lv_hist", "pa_level_hist"), "LEVEL_HOLD_V1"),
-    "L2_LEVEL_FIRST_TOUCH_HOLD_4H": ("L2", ("lv_hist", "pa_level_hist"), "LEVEL_HOLD_V1"),
+    # the L2 lines print their difference with the interval templates: a change of either starts a cohort
+    "L2_STATE_ANALOG_1H_1H": ("L2", ("dc_analog_line", "dc_pp_ci", "dc_ratio_ci"), "ANALOG_V1"),
+    "L2_STATE_ANALOG_1H_4H": ("L2", ("dc_analog_line", "dc_pp_ci", "dc_ratio_ci"), "ANALOG_V1"),
+    "L2_STATE_ANALOG_4H_4H": ("L2", ("dc_analog_line", "dc_pp_ci", "dc_ratio_ci"), "ANALOG_V1"),
+    "L2_STATE_ANALOG_4H_24H": ("L2", ("dc_analog_line", "dc_pp_ci", "dc_ratio_ci"), "ANALOG_V1"),
+    "L2_LEVEL_FIRST_TOUCH_HOLD_1H": ("L2", ("lv_hist", "pa_level_hist", "dc_pp_ci"), "LEVEL_HOLD_V1"),
+    "L2_LEVEL_FIRST_TOUCH_HOLD_4H": ("L2", ("lv_hist", "pa_level_hist", "dc_pp_ci"), "LEVEL_HOLD_V1"),
     "L2_DH3_P1_RANGE_4H": ("L2", "registry:DH3-P1", "DH3_P1_RANGE_4H_V1"),
 }
 HOURLY_GROUPS = {
@@ -250,7 +251,7 @@ def analog_claims(cfg, state: Optional[Mapping[str, Any]], stats: Optional[Mappi
     history card is written: rows under the display minimum are kept as BASELINE_ONLY (the
     baseline cohort is every hour, as in history), and only SHOWN rows are a stated claim."""
     from .analogues import ANALOGUES_VERSION, OUTCOMES, lookup
-    from .decision_format import MIN_N_SHOWN, analog_range, fmt_pp
+    from .decision_format import analog_range, analog_shown, fmt_pp, share_pair
     from .interpretation import COMPRESSION, FACTUAL, INTERPRETED, interpret, liquidation_episodes
     from .research_states import index_closing_at
     from .state_tape import iso
@@ -277,8 +278,10 @@ def analog_claims(cfg, state: Optional[Mapping[str, Any]], stats: Optional[Mappi
             if not n or base is None or cell.get("p_up") is None:
                 continue
             # stated only where a surface prints it: a state that says something (the formatter's kinds),
-            # at the window's own horizon, above the display minimum; NORMAL stays in the live baseline
-            shown = res.get("kind") in (INTERPRETED, FACTUAL, COMPRESSION) and n >= MIN_N_SHOWN and h == w
+            # at the window's own horizon, with the numbers the line prints (enough cases and the interval);
+            # NORMAL stays in the live baseline
+            shown = res.get("kind") in (INTERPRETED, FACTUAL, COMPRESSION) and analog_shown(cell) and h == w
+            observed, baseline = share_pair(float(cell["p_up"]), float(base["p_up"]), "en")
             ci = (cell.get("ci95") or {}).get("direction")
             ratio, _ = analog_range(cell, "en")
             numbers = {"observed": round(float(cell["p_up"]), 4), "baseline": round(float(base["p_up"]), 4),
@@ -288,8 +291,7 @@ def analog_claims(cfg, state: Optional[Mapping[str, Any]], stats: Optional[Mappi
                        "range_ratio": None if cell.get("range_ratio") is None else round(float(cell["range_ratio"]), 4),
                        "range_ratio_shown": None if ratio is None else round(float(ratio), 4),
                        "range_interval_log": (cell.get("ci95") or {}).get("range"),
-                       "printed": {"observed": f"{round(cell['p_up'] * 100):d}%",
-                                   "baseline": f"{round(base['p_up'] * 100):d}%",
+                       "printed": {"observed": observed, "baseline": baseline,
                                    "diff_pp": fmt_pp(cell["p_up"] - base["p_up"], "en"),
                                    "interval_pp": None if not ci else [fmt_pp(x, "en") for x in ci]}}
             subject = {"window": w, "key": card["key"], "live_key": res.get("key"), "horizon": h,
@@ -330,8 +332,9 @@ def dh3_p1_claim(b: Optional[Bars], oi: Optional[np.ndarray], *, now: datetime, 
 
 def level_hold_claims(cand: Mapping[str, Any], *, now: datetime) -> list:
     """L2 at a level-touch evaluation: the first-touch hold rate after 1h / 4h vs the random level,
-    when its history reaches the display minimum (below it the bot says «мало данных»)."""
-    from .decision_format import MIN_N_SHOWN, fmt_pp
+    when its history is printed with numbers (enough touches and the difference's interval; otherwise
+    the bot says «мало данных»)."""
+    from .decision_format import MIN_N_SHOWN, fmt_pp, level_hist_shown, share_pair
     from .levels import LEVEL_STATS_VERSION
     p = cand.get("payload") or {}
     hist = p.get("history") or {}
@@ -344,15 +347,15 @@ def level_hold_claims(cand: Mapping[str, Any], *, now: datetime) -> list:
     out = []
     for h in ("1h", "4h"):
         r, c = real.get(h) or {}, ctrl.get(h) or {}
-        if r.get("hold_rate") is None or c.get("hold_rate") is None:
+        if not level_hist_shown(hist, h):
             continue
         ci = (hist.get("ci95") or {}).get(h)
+        observed, baseline = share_pair(float(r["hold_rate"]), float(c["hold_rate"]), "en")
         numbers = {"observed": round(float(r["hold_rate"]), 4), "baseline": round(float(c["hold_rate"]), 4),
                    "diff_pp": round((float(r["hold_rate"]) - float(c["hold_rate"])) * 100.0, 2), "n": n,
                    "interval_pp": None if not ci else [round(float(x) * 100.0, 2) for x in ci],
                    "verdict": (hist.get("verdicts") or {}).get(h),
-                   "printed": {"observed": f"{round(r['hold_rate'] * 100):d}%",
-                               "baseline": f"{round(c['hold_rate'] * 100):d}%",
+                   "printed": {"observed": observed, "baseline": baseline,
                                "diff_pp": fmt_pp(r["hold_rate"] - c["hold_rate"], "en"),
                                "interval_pp": None if not ci else [fmt_pp(x, "en") for x in ci]}}
         subject = {"level_kind": p.get("level_kind"), "level": p.get("level"), "side": int(p.get("side") or 1),
@@ -546,14 +549,13 @@ def shown_keys(surface: str, block: Optional[Mapping[str, Any]], *, market: Opti
                     out.append((f"L3_LEVEL_TOUCH_{h.upper()}", zkey(z, side)))
     elif surface in ("brief", "catchup"):
         # the briefing names the nearest levels without a chance since backlog C2: no L3 claim
-        from .decision_format import MIN_N_SHOWN
+        from .decision_format import analog_shown
         from .interpretation import COMPRESSION, FACTUAL, INTERPRETED
         for w in ("1h", "4h"):
             res = ((market or {}).get("interpretation") or {}).get(w) or {}
             card = (block.get("analogues") or {}).get(w)
             cell = ((card or {}).get("outcomes") or {}).get(w) or {}
-            if res.get("kind") in (INTERPRETED, FACTUAL, COMPRESSION) and int(cell.get("n") or 0) >= MIN_N_SHOWN \
-                    and cell.get("baseline"):
+            if res.get("kind") in (INTERPRETED, FACTUAL, COMPRESSION) and analog_shown(cell):
                 out.append((f"L2_STATE_ANALOG_{w.upper()}_{w.upper()}", f"{w}:{card['key']}"))
     elif surface == "risk":
         for h in ("1h", "4h", "24h"):
@@ -563,7 +565,9 @@ def shown_keys(surface: str, block: Optional[Mapping[str, Any]], *, market: Opti
     elif surface == "alert" and alert is not None:
         p = alert.get("payload") or {}
         if alert.get("kind") == "level":
-            out.append(("L2_LEVEL_FIRST_TOUCH_HOLD_1H", str(alert["key"])))
+            from .decision_format import level_hist_shown
+            if level_hist_shown(p.get("history"), "1h"):
+                out.append(("L2_LEVEL_FIRST_TOUCH_HOLD_1H", str(alert["key"])))
             nxt = p.get("next")
             if nxt and (nxt.get("touch") or {}).get("24h") is not None and not (p.get("event_zone") or {}).get("24h"):
                 out.append(("L3_LEVEL_TOUCH_24H", zkey(nxt, int(p.get("side") or 1))))
