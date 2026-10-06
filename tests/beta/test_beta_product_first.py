@@ -167,6 +167,20 @@ def test_brief_calm_night_matches_the_reference_message():
     assert format_catchup(CFG, _view(m), "ru").startswith("<b>BTC за 8 ч · 00:00–08:00 (Киев)</b>")
 
 
+def test_a_stale_tape_shows_no_corridor_or_levels_in_the_catchup_even_with_a_decision_block():
+    """A2: «нет данных», never a number, whatever the decision block holds."""
+    from test_beta_v2_format import block as decision_block
+    m = _market(_interp("1h", price=0.5), _interp("4h", price=0.5), complete=False)
+    view = {**_view(m, status="DATA STALE"), "decision": decision_block()}
+    text = format_catchup(CFG, view, "ru")
+    assert "Коридор и уровни сейчас не показываем: данные отстают." in text
+    assert "Коридор 4ч" not in text and "Уровни" not in text and "62 950" not in text
+    assert "Сегодня" in text and "CPI" in text                    # the calendar carries no market number
+    fresh = format_catchup(CFG, {**_view(_market(_interp("1h", price=0.5), _interp("4h", price=0.5))),
+                                 "decision": decision_block()}, "ru")
+    assert "Уровни" in fresh and "4ч: 61 605–63 355" in fresh and "данные отстают" not in fresh
+
+
 def test_brief_with_a_night_hour_withheld_by_quiet_hours_and_push_off_sees_no_note():
     g = hg.evaluate_hour(CFG, _ctx(price=0.02, oi=0.1, taker=0.1, rng=0.97, vol=0.96, move=-2.1, oi_pct=-3.4,
                                    delta=-120e6, start=datetime(2026, 10, 20, 0, 10, tzinfo=UTC)))
@@ -226,6 +240,7 @@ def test_catchup_fails_closed_and_never_shows_internals():
     text = format_catchup(CFG, _view(m, status="DATA STALE"), "ru")
     assert "недостаточно" in text.lower() or "нельзя" in text.lower()
     assert "1ч: данные неполные" in text and "4ч: данные неполные" in text and "похоже" not in text
+    assert "24ч: данные неполные" in text and "OI" not in text and "Funding" not in text
     g = hg.evaluate_hour(CFG, _ctx(price=0.02, oi=0.9, taker=0.1, rng=0.97, vol=0.96))
     hour = {"decision_ts": iso(T + BUCKET), "decision": "PUSH", "suppression_reason": None, "gate": g}
     text = format_catchup(CFG, _view(_market(_interp("1h", price=0.5), _interp("4h", price=0.5), unusual=[hour])), "ru")

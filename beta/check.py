@@ -205,14 +205,14 @@ def _distance_lines(cell: Optional[Mapping[str, Any]], head: str, lang: str) -> 
 
 def format_check(block: Mapping[str, Any], stats: Optional[Mapping[str, Any]], levels: Sequence[float], lang: str, *,
                  now: datetime) -> str:
-    from .decision_format import _hz, unavailable_line, zone_note
+    from .decision_format import _hz, data_clock, unavailable_line, zone_note
     gone = unavailable_line(block, lang)
     model = (stats or {}).get("range_model")
     if gone or model is None:
         return assert_descriptive(gone or t(lang, "dc_unavailable", reason=t(lang, "dc_reason_no_stats")), lang)
     hz = (block.get("corridor") or {}).get("horizons") or {}
     price = float(block["price"])
-    clock = fmt_clock(now, lang)
+    clock = fmt_clock(data_clock(block) or now, lang)          # the price's own time (A1)
     dists = [(lv / price - 1) * 100.0 for lv in levels]
     probs = [_chances(model, hz, d) for d in dists]
     lines = []

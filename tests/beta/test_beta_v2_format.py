@@ -434,3 +434,42 @@ def test_accuracy_breakdown_windows_width_misses_and_regimes():
     for lang in ("ru", "en"):
         assert_descriptive(df.format_accuracy({"coverage": 0.8}, {}, lang, detail={"4h": det}), lang)
     assert "Живые прогнозы ещё не созрели" in plain(df.format_accuracy(None, {}, "ru", detail={}))
+
+
+# ---- A1 / A2 (PRE_BETA_BACKLOG_V1): data time everywhere; stale is «нет данных» -------------
+def test_levels_and_risk_show_the_price_time_and_the_statistics_build_never_the_request_time():
+    blk = block(price_ts="2026-10-14T05:52:00+00:00",
+                stats={"data_from_ms": 1577836800000, "built_at": "2026-10-14T02:10:00+00:00"})
+    lv = plain(df.format_levels(blk, "ru", now=NOW))
+    assert lv.splitlines()[0] == "Уровни BTC · Binance · цена 62 480 · 08:52 (Киев)"      # not 09:00, the request
+    assert "Статистика по истории собрана Ср 14.10 05:10 (Киев)." in lv
+    model = {"horizons": {h: {"q_one": [0.01 * k for k in range(1, 100)] + [1.2, 1.5]} for h in ("1h", "4h", "24h")}}
+    risk = plain(df.format_risk(blk, model, "en", stop_pct=None))
+    assert risk.splitlines()[0] == "BTC risk · Binance · price 62,480 · 08:52 Kyiv"
+    assert "History statistics built Wed 14.10 05:10 Kyiv." in risk
+    old = plain(df.format_levels(block(), "ru", now=NOW))          # a block without price_ts: the request time
+    assert old.splitlines()[0].endswith("· 09:00 (Киев)") and "Статистика по истории" not in old
+
+
+def test_alerts_print_the_price_with_its_own_time():
+    base = {"at": "2026-10-14T05:41:00+00:00", "level_kind": "PDH", "level": 62950.0, "side": 1, "period": "day",
+            "price": 62880.0, "history": None, "next": None, "corridor_4h": None}
+    text = plain(df.format_alert("level", {**base, "price_ts": "2026-10-14T05:49:00+00:00"}, "ru"))
+    assert "08:41 (Киев) — первое касание за день · цена 62 880 (Binance, 08:49)" in text
+    assert "08:41 (Киев) · цена 62 880 (Binance) — первое касание за день" in plain(df.format_alert("level", base, "ru"))
+    price = {"at": "2026-10-14T05:41:00+00:00", "level": 62950.0, "late": False, "price": 62880.0,
+             "price_ts": "2026-10-14T05:49:00+00:00", "corridor_4h": None}
+    assert "level reached · price 62,880 (Binance, 08:49)" in plain(df.format_alert("price", price, "en"))
+    late = plain(df.format_alert("price", {**price, "late": True}, "ru"))
+    assert "сейчас 62 880 (Binance, 08:49)" in late
+    ev = {"at": "2026-10-14T12:00:00+00:00", "event_kind": "CPI", "event_at": "2026-10-14T12:30:00+00:00",
+          "minutes": 30, "price": 62880.0, "price_ts": "2026-10-14T11:58:00+00:00"}
+    assert "цена 62 880 (Binance, 14:58)" in plain(df.format_alert("event", ev, "ru"))
+
+
+def test_stale_statistics_say_why_instead_of_numbers():
+    gone = df.unavailable_line({"available": False, "reason": "STATS_STALE"}, "ru")
+    assert gone.startswith("Коридор и уровни сейчас не показываем") and "больше 3 суток" in gone
+    assert df.brief_lines({"decision": {"available": False, "reason": "STATS_STALE"}}, "en") == [
+        "", "Corridor and levels are not shown now: the history statistics have not been updated for over 3 days."]
+    assert df.format_levels({"available": False, "reason": "STATS_STALE"}, "ru", now=NOW).startswith("Коридор")
