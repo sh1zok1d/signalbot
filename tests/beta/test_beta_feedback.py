@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from beta.access import PRIVACY_NOTICE_VERSION
 from beta.admin import classify_fingerprint, fingerprint
 from beta.i18n import assert_descriptive, t
 from beta_fakes import CFG, ON, ON_PUSH, TEST_DSN, Clock, fresh_pool, run
@@ -258,6 +259,30 @@ def test_existing_user_on_privacy_v2_sees_the_feedback_notice_once():
         second = await h.handle(_msg(uid, "/help", 2))
         assert len(second) == 1 and "Тексты отзывов" not in second[0].html
         version = await _rows(pool, "SELECT privacy_notice_version FROM beta_users")
-        assert version == [{"privacy_notice_version": 4}]
+        assert version == [{"privacy_notice_version": PRIVACY_NOTICE_VERSION}]
         await pool.close()
     run(body())
+
+
+def test_terms_carry_the_disclaimer_and_the_v5_notice_names_the_current_product():
+    """PRE_BETA_BACKLOG_V1 J3: the disclaimer is in /terms; the notice describes what is stored now."""
+    async def body():
+        pool = await fresh_pool()
+        h = _handler(pool)
+        uid = 900000000502
+        async with pool.acquire() as c:
+            await c.execute(
+                """INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at,
+                       joined_at, lang, privacy_notice_version)
+                   VALUES ($1,$1,'ACTIVE',$2,$2,'ru',$3)""", uid, NOW, PRIVACY_NOTICE_VERSION)
+        out = await h.handle(_msg(uid, "/terms", 1))
+        assert len(out) == 1 and out[0].html.endswith(t("ru", "disclaimer"))
+        assert "не инвестиционный совет" in out[0].html
+        await pool.close()
+    run(body())
+    for lang in ("ru", "en"):
+        notice = t(lang, "privacy")
+        assert_descriptive(notice, lang)
+        assert ("/delete_me" in notice and "/feedback" in notice and "120" in notice and "30" in notice)
+        assert ("коридор" in notice and "настройки" in notice) if lang == "ru" else \
+            ("corridor" in notice and "settings" in notice)

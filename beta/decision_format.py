@@ -10,7 +10,7 @@ import math
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
-from .i18n import (assert_descriptive, fmt_clock, fmt_kyiv_hm, fmt_plain_pct, fmt_price, fmt_signed_pct,
+from .i18n import (MINUS, assert_descriptive, fmt_clock, fmt_kyiv_hm, fmt_plain_pct, fmt_price, fmt_signed_pct,
                    fmt_usd, kyiv, na, t)
 from .i18n_decision import EVENT_NAMES, LEVEL_NAMES, WEEKDAYS, cases_word
 
@@ -48,6 +48,40 @@ def _x(v: Optional[float], lang: str) -> str:
     if v is None:
         return na(lang)
     s = f"{float(v):.1f}"
+    return s.replace(".", ",") if lang == "ru" else s
+
+
+def fmt_pp(v: float, lang: str) -> str:
+    """A difference of two shares (fractions) in percentage points: signed, one decimal."""
+    x = round(float(v) * 100.0, 1)
+    sign = MINUS if x < 0 else "+" if x > 0 else ""
+    body = f"{abs(x):.1f}"
+    return sign + (body.replace(".", ",") if lang == "ru" else body)
+
+
+def pp_ci(ci: Optional[Sequence[float]], lang: str) -> str:
+    """'; 95% интервал −0,8…+3,1' for a stored [lo, hi] of a difference of shares, or ''."""
+    if not ci or len(ci) != 2 or ci[0] is None or ci[1] is None:
+        return ""
+    return t(lang, "dc_pp_ci", lo=fmt_pp(ci[0], lang), hi=fmt_pp(ci[1], lang))
+
+
+def analog_range(cell: Mapping[str, Any], lang: str) -> tuple:
+    """(ratio, interval text) of the move against «обычно». With the bootstrapped estimand stored (the
+    mean log range of the cohort minus its baseline's), the ratio is exp of it and the interval is
+    exp of its 95% interval; an older payload falls back to the median ratio with no interval."""
+    base = cell.get("baseline") or {}
+    ci = (cell.get("ci95") or {}).get("range")
+    if cell.get("mean_log_range") is not None and base.get("mean_log_range") is not None:
+        ratio = math.exp(float(cell["mean_log_range"]) - float(base["mean_log_range"]))
+        rci = t(lang, "dc_ratio_ci", lo=_x2(math.exp(ci[0]), lang), hi=_x2(math.exp(ci[1]), lang)) \
+            if ci and len(ci) == 2 else ""
+        return ratio, rci
+    return cell.get("range_ratio"), ""
+
+
+def _x2(v: float, lang: str) -> str:
+    s = f"{float(v):.2f}"
     return s.replace(".", ",") if lang == "ru" else s
 
 
@@ -272,23 +306,11 @@ def analog_line(card: Optional[Mapping[str, Any]], lang: str, *, since_year: Opt
     n = int(cell.get("n") or 0)
     if n < MIN_N_SHOWN or not cell.get("baseline"):
         return t(lang, "dc_analog_short", n=_n(n, lang))
-    v = cell.get("verdicts") or {}
     base = cell["baseline"]
-    if v.get("direction") == "differs":
-        dir_v = t(lang, "dc_dir_higher" if cell["p_up"] > base["p_up"] else "dc_dir_lower")
-    elif v.get("direction") == "as_usual":
-        dir_v = t(lang, "dc_dir_as_usual")
-    else:
-        dir_v = t(lang, "dc_insufficient")
-    ratio = cell.get("range_ratio")
-    if v.get("range") == "differs" and ratio is not None:
-        rng_v = t(lang, "dc_range_bigger" if ratio > 1 else "dc_range_smaller")
-    elif v.get("range") == "as_usual":
-        rng_v = t(lang, "dc_range_as_usual")
-    else:
-        rng_v = t(lang, "dc_insufficient")
+    ratio, rci = analog_range(cell, lang)
     return t(lang, "dc_analog_line", n=_n(n, lang, since_year), h=_hz(h, lang), p_up=fmt_share(cell["p_up"], lang),
-             base_up=fmt_share(base["p_up"], lang), dir_verdict=dir_v, ratio=_x(ratio, lang), range_verdict=rng_v)
+             base_up=fmt_share(base["p_up"], lang), diff=fmt_pp(cell["p_up"] - base["p_up"], lang),
+             ci=pp_ci((cell.get("ci95") or {}).get("direction"), lang), ratio=_x(ratio, lang), rci=rci)
 
 
 def brief_lines(view: Mapping[str, Any], lang: str) -> list:
@@ -346,13 +368,10 @@ def _hist_lines(hist: Optional[Mapping[str, Any]], lang: str, side: int) -> list
         return []
     if real["n"] < MIN_N_SHOWN:
         return [t(lang, "lv_hist_short", n=_n(real["n"], lang))]
-    verdict = (hist.get("verdicts") or {}).get("1h", "insufficient")
-    if verdict == "differs":
-        vk = "lv_verdict_differs_more" if r1["hold_rate"] > c1["hold_rate"] else "lv_verdict_differs_less"
-    else:
-        vk = "lv_verdict_" + verdict
     lines = [t(lang, "lv_hist", n=_n(real["n"], lang), side=t(lang, "lv_side_above" if side > 0 else "lv_side_below"),
-               hold=fmt_share(r1["hold_rate"], lang), ctrl=fmt_share(c1["hold_rate"], lang), verdict=t(lang, vk))]
+               hold=fmt_share(r1["hold_rate"], lang), ctrl=fmt_share(c1["hold_rate"], lang),
+               diff=fmt_pp(r1["hold_rate"] - c1["hold_rate"], lang),
+               ci=pp_ci((hist.get("ci95") or {}).get("1h"), lang))]
     move = _move_args(r1, c1, lang)
     if move:
         lines.append(t(lang, "lv_hist_move", **move))
@@ -711,13 +730,11 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
             if n_real < MIN_N_SHOWN:
                 lines.append(t(lang, "pa_level_hist_short", n=_n(n_real, lang)))
             else:
-                verdict = (hist.get("verdicts") or {}).get("1h", "insufficient")
-                vk = ("lv_verdict_differs_more" if r1["hold_rate"] > c1["hold_rate"] else "lv_verdict_differs_less") \
-                    if verdict == "differs" else "lv_verdict_" + verdict
                 lines.append(t(lang, "pa_level_hist", n=_n(n_real, lang),
                                side=t(lang, "lv_side_above" if side > 0 else "lv_side_below"),
                                hold=fmt_share(r1["hold_rate"], lang), ctrl=fmt_share(c1["hold_rate"], lang),
-                               verdict=t(lang, vk)))
+                               diff=fmt_pp(r1["hold_rate"] - c1["hold_rate"], lang),
+                               ci=pp_ci((hist.get("ci95") or {}).get("1h"), lang)))
                 move = _move_args(r1, c1, lang)
                 if move:
                     lines.append(t(lang, "pa_level_move", **move))

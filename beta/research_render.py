@@ -2,7 +2,7 @@
 
 A line is the live state plus what the closed research found after such states, worded by the
 finding's status: «Проверено» only for CONFIRMED, «Гипотеза … не подтверждено» for DISCOVERY,
-«ниже нашего порога значимости» for WEAK, «проверка эффекта не нашла» for NOT_CONFIRMED.
+«ниже нашего порога практической величины» for WEAK, «проверка эффекта не нашла» for NOT_CONFIRMED.
 Every text passes `assert_descriptive`.
 """
 from __future__ import annotations

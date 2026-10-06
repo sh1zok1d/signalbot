@@ -328,13 +328,13 @@ def _m(fid, key, **kw):
 def test_wording_by_status(lang):
     from beta.research_render import line
     d2 = line(_m("D2", "D2_HIGH_RV_DAY", values={"rv_pct": 4.1, "p90_pct": 3.2}), lang)
-    assert ("Проверено на двух биржах" if lang == "ru" else "Tested on two venues") in d2 and d2.endswith("(D2).")
+    assert ("Проверено на двух биржах" if lang == "ru" else "Tested on two exchanges") in d2 and d2.endswith("(D2).")
     p3 = line(_m("DH3-P3", "P3_CROWD", arm="CROWD_LONG", values={"z": 1.6}), lang)
     assert ("Гипотеза" if lang == "ru" else "Hypothesis") in p3
     assert ("не подтверждено" if lang == "ru" else "not confirmed") in p3
     assert "Проверено" not in p3 and "Tested" not in p3                     # a discovery is never «Проверено»
     p1 = line(_m("DH3-P1", "P1_LEVERAGE_LOADING", values={"doi4_pct": 0.9, "range4_pct": 0.5}), lang)
-    assert ("ниже нашего порога значимости" if lang == "ru" else "below our materiality bar") in p1
+    assert ("ниже нашего порога практической величины" if lang == "ru" else "below our materiality bar") in p1
     l2 = line(_m("DH3-L2", "L2_BOOK_SKEW", arm="BID_HEAVY", values={"bid_usd": 3e8, "ask_usd": 1e8}), lang)
     assert ("эффекта не нашла" if lang == "ru" else "found no effect") in l2
     assert not re.search(r"рост вероятен|вероятно рост|likely to rise|buy|купи", l2, re.I)

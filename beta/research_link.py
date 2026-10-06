@@ -135,7 +135,8 @@ def for_context(context: str, findings: Optional[Iterable[Mapping[str, Any]]] = 
 
 def context_line(contexts: Iterable[str], lang: str,
                  findings: Optional[Iterable[Mapping[str, Any]]] = None) -> Optional[str]:
-    """The single most relevant "Проверено: …" line for the first context that has one."""
+    """The single most relevant status-worded line («Проверено» only for CONFIRMED) for the first
+    context that has one."""
     for c in contexts:
         hits = for_context(c, findings)
         if hits:

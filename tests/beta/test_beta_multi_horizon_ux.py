@@ -657,10 +657,10 @@ History building — less than 30 days of data, nothing to compare with yet.
 Data incomplete — fresh data is insufficient; the absence of events cannot be confirmed.
 
 Events
-Sharp rise / drop — over 5 min the price moved more than in 95% of 5-minute periods of the last 30 days, while OI fell noticeably, on at least 2 venues.
+Sharp rise / drop — over 5 min the price moved more than in 95% of 5-minute periods of the last 30 days, while OI fell noticeably, on at least 2 exchanges.
 OI build-up in a narrow range — for 45 min in a row OI grows faster than usual while the price stays in a narrow range.
 Aggressive buying / selling — Delta in the top / bottom 5% of the last 30 days for two 5-minute periods in a row.
-Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 venues at once.
+Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 exchanges at once.
 
 Metrics
 OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed.
@@ -668,7 +668,7 @@ Funding — a periodic payment between longs and shorts on perpetual futures. Po
 Delta — difference between market buys and market sells in $. Negative — net selling.
 Volume — total traded value in $ on Binance, Bybit and OKX.
 Range — from the lowest to the highest price in the period, in % of the price.
-Liquidations — positions force-closed by the exchange, shown per venue.
+Liquidations — positions force-closed by the exchange, shown per exchange.
 ≥ — lower bound: Binance does not publish every liquidation.
 $0* — zero from incomplete data: it does not mean there were no liquidations.
 n/a — no data or incomplete data. This is not zero.

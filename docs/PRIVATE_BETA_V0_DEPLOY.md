@@ -129,7 +129,7 @@ A fresh deployment has a **warm-up period**. Readiness follows the accumulated *
 
 ## Product-first V1: /catchup, morning briefing, unusual-hour push (build-to-test)
 
-Authority: `docs/PRODUCT_FIRST_DECISION_V1.md` §3 and `docs/BETA_COPY_CONTRACT_V1.md`. One detector, one episodization, one context projection (`BETA_CONTEXT_1H_V2`), one shared view builder (`beta/market_view.py`), one outbox, one notifier. No new unit and no new timer.
+Authority: `docs/PRODUCT_FIRST_DECISION_V1.md` §3 and `docs/BETA_COPY_CONTRACT_V1.md`. One detector, one episodization, one context projection (`BETA_CONTEXT_1H_V2`; `BETA_CONTEXT_1H_V3` since the C1 deploy of 2026-10-05, see below), one shared view builder (`beta/market_view.py`), one outbox, one notifier. No new unit and no new timer.
 
 **What changes at deployment (all additive, applied by the usual schema init: `main.py --beta-once` and the other `--beta-*` commands run `storage/beta_v0_schema.sql` idempotently):**
 - `beta_push_decisions.gate JSONB` (the unusual-hour gate by value) and the suppression reasons `HOUR_NOT_UNUSUAL`, `QUIET_HOURS`, `GLOBAL_COOLDOWN` (the old unnamed check constraint is replaced by `ck_beta_push_suppression`);
@@ -138,10 +138,11 @@ Authority: `docs/PRODUCT_FIRST_DECISION_V1.md` §3 and `docs/BETA_COPY_CONTRACT_
 - `beta_user_activity.action` accepts `cmd_catchup`, `cmd_brief`, `cmd_push`, `brief_delivered`; `beta_admin_audit.action` accepts `admin_known`.
 - Rules digest unchanged (`BETA_EVENT_RULES_V1`); tape schema V2 unchanged; `BETA_OUTCOME_V1` unchanged.
 
-**Config (committed, `config/beta_v0.yaml`):** `max_new_pushes_per_utc_day: 2`; `push_policy.quiet_hours_kyiv: ["23:00", "07:00"]`; `push_policy.global_cooldown_min: 60`; `context.version: BETA_CONTEXT_1H_V2` with `rolling_buckets_4h: 48`; `briefing.enabled: false` (committed off; see below). None of these enters the rules digest.
+**Config (committed, `config/beta_v0.yaml`):** `max_new_pushes_per_utc_day: 2`; `push_policy.quiet_hours_kyiv: ["23:00", "07:00"]`; `push_policy.global_cooldown_min: 60`; `context.version: BETA_CONTEXT_1H_V3` (C1; `BETA_CONTEXT_1H_V2` before 2026-10-05) with `rolling_buckets_4h: 48`; `briefing.enabled: false` (committed off; see below). None of these enters the rules digest.
 
 **Behaviour after restart:**
 - **Context V2 warm-up.** The projection adopts the open-episode memory of `BETA_CONTEXT_1H_V1` and recomputes the 1h/4h readings (now with taker-delta and OI-change ranks) from V2 tape rows. Ranks are `mature` only with 30 days of V2 rows (written since 2026-10-01); until then `/catchup` prints «мало истории» and the gate answers `IMMATURE`.
+- **Context V3 (C1, deployed 2026-10-05 12:44 UTC, owner-reported smoke 27/0/0).** Range, move and volume are ranked against samples of the same UTC day type (weekday / weekend) inside the 30-day window, with ≥ 8 same-type dates and no fallback (`day_type_building` until then); the 1h TOD baseline uses the same rule (`BETA_HORIZON_TOD_V3`) and the analogue history is rebuilt as `BETA_ANALOGUES_V2`. V3 adopts the V2 episode memory only. Rollout, monitoring (`REVIEW_TRIGGER`) and rollback: `BETA_C1_DAY_TYPE_BASELINE_V1.md` §4; the live ranks mature about the end of October (`PRE_BETA_SCOPE_DECISION_V1.md` §4).
 - **Pushes.** Every `TRIGGERED` episode is still decided and recorded, but it is delivered only when the rolling 1h around it passes the gate (two of three ranked metrics extreme and 2 of 3 venues agreeing). Expect `HOUR_NOT_UNUSUAL` on most decisions, and `IMMATURE` in `gate->>'status'` until the ranks mature. Quiet hours 23:00–07:00 Kyiv, at most 2 a day, one per hour. The push text is the 1h state, never a detector name or an id.
 - **`/catchup`** works at once (facts; labels follow maturity). **`/push on|off`** and **`/brief on|off`** work at once.
 - **Morning briefing** needs `briefing.enabled: true` (committed, a separate PR) **and** effective push (hard switch + admin state). It is built once a day after 08:00 Kyiv inside the notifier run and sent through the outbox as `kind = 'brief'`; a brief not sent within `briefing.max_delay_min` expires and is never sent late.

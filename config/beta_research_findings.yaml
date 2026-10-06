@@ -177,7 +177,7 @@ findings:
   # ---- present, below the materiality bar ----------------------------------------------------
   - id: DH3-P1
     status: WEAK
-    text_ru: "рост открытого интереса за 4 ч в тихом рынке: следующие 4 ч в среднем на 13% шире обычного, ниже порога значимости 15%"
+    text_ru: "рост открытого интереса за 4 ч в тихом рынке: следующие 4 ч в среднем на 13% шире обычного, ниже порога практической величины 15%"
     text_en: "open interest building up over 4h in a quiet market: the next 4h were on average 13% wider than usual, below the 15% materiality bar"
     data: "Binance BTCUSDT 2020–2024, 12397 тихих часов"
     record: "docs/research/DH3_RESULT.md"
@@ -197,11 +197,11 @@ findings:
       comparator_en: "quiet hours without such an OI build-up (3581 vs 8816)"
       replication_ru: "независимой проверки нет"
       replication_en: "no independent check"
-      limitations_ru: "ниже нашего порога значимости 15%; величина менялась по годам; BTC, Binance"
+      limitations_ru: "ниже нашего порога практической величины 15%; величина менялась по годам; BTC, Binance"
       limitations_en: "below our 15% materiality bar; the size varied by year; BTC, Binance"
   - id: DH3-O2
     status: WEAK
-    text_ru: "резкий рост опционной волатильности DVOL за час: следующие 4 ч в среднем на 10% шире обычного, ниже порога значимости 15%"
+    text_ru: "резкий рост опционной волатильности DVOL за час: следующие 4 ч в среднем на 10% шире обычного, ниже порога практической величины 15%"
     text_en: "a sharp one-hour rise in options volatility (DVOL): the next 4h were on average 10% wider than usual, below the 15% materiality bar"
     data: "BTC и ETH 2021–2024, 65464 часа"
     record: "docs/research/DH3_RESULT.md"
@@ -221,7 +221,7 @@ findings:
       comparator_en: "the other hours (6548 vs 58916; BTC and ETH)"
       replication_ru: "независимой проверки нет"
       replication_en: "no independent check"
-      limitations_ru: "ниже нашего порога значимости 15%; у BTC отдельно +10,5%"
+      limitations_ru: "ниже нашего порога практической величины 15%; у BTC отдельно +10,5%"
       limitations_en: "below our 15% materiality bar; BTC alone +10.5%"
   - id: DH3-L3
     status: WEAK
@@ -245,7 +245,7 @@ findings:
       comparator_en: "sharp moves after which the book recovered (1369 vs 2732)"
       replication_ru: "независимой проверки нет"
       replication_en: "no independent check"
-      limitations_ru: "ниже нашего порога значимости 15%; 6 монет, 2023–2024"
+      limitations_ru: "ниже нашего порога практической величины 15%; 6 монет, 2023–2024"
       limitations_en: "below our 15% materiality bar; six coins, 2023–2024"
   - id: DH3-S1
     status: WEAK
@@ -271,7 +271,7 @@ findings:
       comparator_en: "stress hours with the other leader (967 spot vs 3332 perp)"
       replication_ru: "независимой проверки нет"
       replication_en: "no independent check"
-      limitations_ru: "ниже нашего порога значимости 15%; знак обратный исходной гипотезе"
+      limitations_ru: "ниже нашего порога практической величины 15%; знак обратный исходной гипотезе"
       limitations_en: "below our 15% materiality bar; the sign is opposite to the original hypothesis"
   - id: DH3-V2
     status: WEAK
@@ -299,8 +299,8 @@ findings:
       limitations_en: "the effect is real but very small; six coins"
   - id: R03-C1
     status: WEAK
-    text_ru: "выходные часы спокойнее того же часа во вт–чт; разрыв рос каждый год с 2020 по 2024, но остался ниже порога значимости проверки"
-    text_en: "weekend hours are calmer than the same hour on Tue–Thu; the gap grew every year from 2020 to 2024 but stayed below the test's materiality bar"
+    text_ru: "выходные часы спокойнее того же часа во вт–чт; разрыв рос каждый год с 2020 по 2024, но остался ниже порога практической величины проверки (0,5 SD)"
+    text_en: "weekend hours are calmer than the same hour on Tue–Thu; the gap grew every year from 2020 to 2024 but stayed below the test's materiality bar (0.5 SD)"
     data: "Binance 2020–2024, 260 недель"
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
     contexts: [weekend]
@@ -319,8 +319,8 @@ findings:
       comparator_en: "the same hour on Tue–Thu"
       replication_ru: "независимой проверки нет"
       replication_en: "no independent check"
-      limitations_ru: "ниже порога значимости проверки"
-      limitations_en: "below the test's materiality bar"
+      limitations_ru: "ниже порога практической величины проверки (0,5 SD)"
+      limitations_en: "below the test's materiality bar (0.5 SD)"
 
   # ---- popular beliefs that did not hold -------------------------------------------------------
   - id: H03
