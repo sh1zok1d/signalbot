@@ -123,7 +123,7 @@ _REGIME_D7_KEYS = {"enabled"}
 _PUSH_POLICY_KEYS = {"quiet_hours_kyiv", "global_cooldown_min"}
 # PRODUCT_DECISION_V2: decision support. Presentation and market-alert policy only.
 _DECISION_KEYS = {"max_price_alerts", "forecast_tracking", "claim_journal", "market_alerts", "research_evidence",
-                  "weekly_report"}
+                  "weekly_report", "signature_index"}
 # Weekly report (backlog B4). Presentation and delivery only.
 _WEEKLY_REPORT_KEYS = {"enabled", "weekday_kyiv", "time_kyiv", "max_delay_min"}
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
@@ -369,6 +369,7 @@ def _validate_decision(d: Mapping[str, Any]) -> None:
     _int(x["max_price_alerts"], "decision.max_price_alerts", minimum=1)
     _bool(x["forecast_tracking"], "decision.forecast_tracking")
     _bool(x["claim_journal"], "decision.claim_journal")
+    _bool(x["signature_index"], "decision.signature_index")
     m = x["market_alerts"]
     _exact_keys(m, _MARKET_ALERT_KEYS, "decision.market_alerts")
     _bool(m["enabled"], "decision.market_alerts.enabled")

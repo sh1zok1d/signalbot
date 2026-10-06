@@ -177,6 +177,14 @@ class BetaBotHandler:
         uid, chat_id = int(m["from"]["id"]), int(m["chat"]["id"])
         cmd, args = parse_command(m.get("text"))
         now = self.clock()
+        if cmd in ("hypotheses", "pin"):
+            # owner-only signature index (PRE_BETA_SCOPE_DECISION_V1 §7): anyone else gets the unknown-command reply
+            if not is_owner(self.owner, uid):
+                return [_msg(chat_id, t("ru", "unknown_cmd"), lang="ru")]
+            from beta.signatures import handle_owner_command
+            reply = await handle_owner_command(conn, cmd, args, now=now)
+            return [Outgoing(kind="message", chat_id=chat_id, html=f"<pre>{html.escape(part, quote=False)}</pre>")
+                    for part in owner_parts(reply)]
         if cmd and cmd.startswith("admin_"):
             res = await handle_admin(conn, self.cfg, self.switches(), owner_user_id=self.owner,
                                      actor_user_id=uid, command=cmd, args=args, now=now,
