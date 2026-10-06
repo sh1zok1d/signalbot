@@ -457,13 +457,13 @@ class BetaBotHandler:
             from beta.calendar_events import event_times_ms, load_calendar
             from beta.rangecast import EVENT_KINDS
             stats = await latest_stats(conn, now=now)
-            live = await conn.forecast_accuracy(since=now - timedelta(days=30))
+            # the windowed detail replaces the 30-day summary (`live` is read only without it)
             rows = await conn.forecast_rows(since=now - timedelta(days=max(df.ACCURACY_WINDOWS_DAYS)))
             evs = event_times_ms(load_calendar())
             detail = df.corridor_accuracy(rows, now=now, events_ms=[x for k in EVENT_KINDS for x in evs.get(k, ())])
             from beta.claims import TOUCH_LIVE_COMPONENT
             touch_live = ((await conn.fetch_health()).get(TOUCH_LIVE_COMPONENT) or {}).get("detail")
-            return df.format_accuracy((stats or {}).get("range_model"), live, lang, detail=detail,
+            return df.format_accuracy((stats or {}).get("range_model"), {}, lang, detail=detail,
                                       touch_live=touch_live)
         regime = None
         if effective_d7_enabled(self.cfg, await conn.get_admin_d7_enabled()):

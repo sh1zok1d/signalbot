@@ -287,29 +287,8 @@ def touch_calibration(model_h: Mapping[str, Any], b: Bars, idx: np.ndarray, *, l
             ys.append((tg[side][idx] >= d).astype(np.float64))
             slots.append(close_ms // hms)
             days.append(close_ms // 86_400_000)
-    p, y = np.concatenate(ps), np.concatenate(ys)
-    slot, day = np.concatenate(slots), np.concatenate(days)
-    rng = np.random.default_rng(seed)
-    for lo, hi in zip(TOUCH_CAL_BINS[:-1], TOUCH_CAL_BINS[1:]):
-        sel = (p >= lo) & (p < hi)
-        n = int(sel.sum())
-        if not n:
-            continue
-        pred, real = float(p[sel].mean()), float(y[sel].mean())
-        n_eff = int(np.unique(slot[sel]).size)
-        uniq, inv = np.unique(day[sel], return_inverse=True)
-        diff_sum = np.bincount(inv, weights=y[sel] - p[sel])
-        cnt = np.bincount(inv).astype(np.float64)
-        W = rng.multinomial(uniq.size, np.full(uniq.size, 1.0 / uniq.size), size=boot).astype(np.float64)
-        with np.errstate(invalid="ignore", divide="ignore"):
-            bd = (W @ diff_sum) / (W @ cnt)
-        bd = bd[np.isfinite(bd)]
-        interval = [round(float(np.quantile(bd, 0.025)) * 100, 2), round(float(np.quantile(bd, 0.975)) * 100, 2)] \
-            if bd.size else None
-        out["bins"].append({"bin": [lo, min(hi, 1.0)], "n": n, "n_eff": n_eff, "predicted": round(pred, 4),
-                            "realized": round(real, 4), "diff_pp": round((real - pred) * 100, 2),
-                            "interval_pp": interval,
-                            "passed": bool(n_eff >= TOUCH_CAL_MIN_NEFF and abs(real - pred) <= TOUCH_CAL_TOLERANCE)})
+    out["bins"] = _binned(np.concatenate(ps), np.concatenate(ys), np.concatenate(slots), np.concatenate(days),
+                          seed=seed, boot=boot)
     return out
 
 

@@ -180,8 +180,10 @@ def _type_of(row: dict) -> Optional[str]:
 
 
 def _follows(at: datetime, starts: Sequence[datetime]) -> bool:
+    """A start in [at - REACTION_WINDOW, at] in a sorted list (review #334 item 13: bisect, not a scan)."""
     at = _aware(at)
-    return any(timedelta(0) <= at - s <= REACTION_WINDOW for s in starts)
+    i = bisect_right(starts, at)
+    return i > 0 and at - starts[i - 1] <= REACTION_WINDOW
 
 
 def _muted(rows: Sequence[dict], action: str, prefix: str) -> Optional[bool]:
@@ -201,16 +203,19 @@ def _group_block(pks: set, activity: Sequence[dict], votes: Sequence[dict], *, s
     for row in mine:
         by_user.setdefault(row["user_pk"], []).append(row)
     inside = [r for r in mine if _aware(start) <= _aware(r["at"]) <= _aware(end)]
+    # per participant, sorted once: deliveries (prompts) and taps (reactions)
+    sent_at = {pk: sorted(_aware(r["at"]) for r in rows if r["action"] in DELIVERIES) for pk, rows in by_user.items()}
+    taps_at = {pk: sorted(_aware(r["at"]) for r in rows if r["action"].startswith(("tab_", "btn_")))
+               for pk, rows in by_user.items()}
     organic = post_push = 0
     organic_days: dict = {}
     pulled_days: dict = {}
     for row in inside:
         if row["action"] not in PULL_ACTIONS:
             continue
-        sent = [_aware(r["at"]) for r in by_user[row["user_pk"]] if r["action"] in DELIVERIES]
         day = _kyiv_day(row["at"])
         pulled_days.setdefault(row["user_pk"], set()).add(day)
-        if _follows(row["at"], sent):
+        if _follows(row["at"], sent_at[row["user_pk"]]):
             post_push += 1
         else:
             organic += 1
@@ -222,11 +227,7 @@ def _group_block(pks: set, activity: Sequence[dict], votes: Sequence[dict], *, s
     types = {}
     for name, _, _ in DELIVERY_TYPES:
         sent = [r for r in inside if _type_of(r) == name]
-        reacted = 0
-        for row in sent:
-            buttons = [_aware(r["at"]) for r in by_user[row["user_pk"]]
-                       if r["action"].startswith(("tab_", "btn_")) and _aware(r["at"]) >= _aware(row["at"])]
-            reacted += any(b - _aware(row["at"]) <= REACTION_WINDOW for b in buttons)
+        reacted = sum(_any_in(taps_at[r["user_pk"]], _aware(r["at"])) for r in sent)
         cast = [v for v in votes if v["user_pk"] in pks and v["kind"] == name
                 and _aware(start) <= _aware(v["at"]) <= _aware(end)]
         block = {"delivered": len(sent), "reacted": reacted,
