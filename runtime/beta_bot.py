@@ -744,6 +744,7 @@ async def run_bot_service(*, store, cfg: BetaConfig, switches: Callable[[], Beta
         logger.warning("beta bot username unavailable: %s", type(exc).__name__)
     handler = BetaBotHandler(store, cfg, switches=switches, owner_user_id=owner_user_id,
                              clock=lambda: datetime.now(timezone.utc), bot_username=username)
+    started_at = datetime.now(timezone.utc)
     async with store.advisory_lock(BOT_LOCK_KEY) as acquired:
         if not acquired:
             raise RuntimeError("another beta bot poller holds the lock")
@@ -769,6 +770,31 @@ async def run_bot_service(*, store, cfg: BetaConfig, switches: Callable[[], Beta
             async with store.connect() as conn:
                 await conn.record_health("bot", now=datetime.now(timezone.utc), success=ok,
                                          detail={"updates": len(updates)})
+                await _notifier_deadman(conn, sender, cfg, switches(), owner_user_id, started_at=started_at)
+
+
+async def _notifier_deadman(conn, sender, cfg: BetaConfig, switches: BetaSwitches, owner_user_id: Optional[int], *,
+                            started_at: datetime, now: Optional[datetime] = None) -> bool:
+    """The notifier's dead-man switch, run from this process (A3). True when the owner was alerted."""
+    from beta.formatter import format_owner_alert
+    from beta.health import NOTIFIER_DEADMAN, notifier_deadman_due
+    if owner_user_id is None or not (switches.enabled and getattr(switches, "telegram", True)):
+        return False
+    now = now or datetime.now(timezone.utc)
+    h = cfg.section("health")
+    runtime = await conn.fetch_health()
+    if not notifier_deadman_due(runtime, now=now, stall_s=int(h["notifier_stall_s"]),
+                                repeat_s=int(h["owner_alert_repeat_s"]), watcher_started_at=started_at):
+        return False
+    last = (runtime.get("notifier") or {}).get("last_success_at")
+    try:
+        await sender.send(chat_id=int(owner_user_id), html=format_owner_alert(
+            [{"key": NOTIFIER_DEADMAN, "detail": {"notifier_last_success": last.isoformat() if last else None}}]))
+    except Exception as exc:  # noqa: BLE001 - tried again on the next poll
+        logger.warning("dead-man owner alert failed: %s", type(exc).__name__)
+        return False
+    await conn.record_health(f"owner_alert:{NOTIFIER_DEADMAN}", now=now, success=True)
+    return True
 
 
 def main() -> None:   # systemd entry point: python -m runtime.beta_bot

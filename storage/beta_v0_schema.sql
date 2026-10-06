@@ -456,7 +456,9 @@ ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK 
     'admin_resume_push', 'admin_d7_on', 'admin_d7_off', 'admin_broadcast', 'admin_health',
     'admin_invite_new', 'admin_invites', 'admin_invite_revoke', 'admin_waitlist',
     'admin_waitlist_admit', 'admin_stats', 'admin_reply', 'admin_known', 'user_delete_me',
-    'retention_purge'));
+    'retention_purge',
+    -- A3: the ready outage notice
+    'admin_outage'));
 
 CREATE TABLE IF NOT EXISTS beta_waitlist (
     telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),

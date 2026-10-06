@@ -20,7 +20,7 @@ from .formatter import ForbiddenWordingError, assert_descriptive
 from .health import health_alerts, ingestion_heartbeat, product_status
 
 ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "admin_pause_push",
-                  "admin_resume_push", "admin_d7_on", "admin_d7_off", "admin_broadcast",
+                  "admin_resume_push", "admin_d7_on", "admin_d7_off", "admin_broadcast", "admin_outage",
                   "admin_health", "admin_invite_new", "admin_invites", "admin_invite_revoke",
                   "admin_waitlist", "admin_waitlist_admit", "admin_stats", "admin_reply", "admin_known")
 UNAUTHORIZED_ACTOR = "unauthorized"
@@ -94,14 +94,16 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
                                   timeframe=cfg.timeframe)
     runtime = await conn.fetch_health()
     window = timedelta(seconds=cfg["health"]["delivery_problem_window_s"])
-    counts = await conn.delivery_state_counts(since=now - window)
-    problems = counts.get("FAILED", 0) + counts.get("DELIVERY_UNKNOWN", 0)
+    counts = await conn.delivery_state_counts(since=now - window)          # push states (soak report)
+    # the spike counts every outbox kind (push, brief, alert, weekly): a failing send is a failing send (A3)
+    by_kind = await conn.delivery_problems_by_kind(since=now - window)
+    problems = sum(by_kind.values())
     d7_at = None
     if cfg.section("regime_d7")["enabled"]:
         d7_at = await conn.newest_d7_available_at()
     alerts = health_alerts(cfg, now=now, heartbeat=st["heartbeat"], detector_watermark=wm,
                            latest_live=st["latest"], runtime=runtime, delivery_problems=problems,
-                           switches=switches, d7_newest_available_at=d7_at)
+                           switches=switches, d7_newest_available_at=d7_at, delivery_problems_by_kind=by_kind)
     admin_push = await conn.get_admin_push_enabled()
     admin_d7 = await conn.get_admin_d7_enabled()
     return {"product_status": st["status"]["status"], "status_reasons": st["status"]["reasons"],
@@ -109,7 +111,7 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
             "detector_watermark": wm, "heartbeat": st["heartbeat"],
             "runtime": {k: {"last_run_at": v["last_run_at"], "last_success_at": v["last_success_at"],
                             "last_error_type": v["last_error_type"]} for k, v in runtime.items()},
-            "delivery_counts_window": counts, "alerts": alerts,
+            "delivery_counts_window": counts, "delivery_problems_by_kind": by_kind, "alerts": alerts,
             "switches": switches.as_dict(), "admin_push_enabled": admin_push,
             "effective_push_enabled": effective_push_enabled(switches, admin_push),
             "admin_d7_enabled": admin_d7,
@@ -301,6 +303,20 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                     shown = t(lang, "team_reply") + html.escape(body, quote=False)
                     direct = [(int(hits[0]["chat_id"]), shown, lang)]
                     reply = f"delivered to {fp}"
+    elif command == "admin_outage":
+        # A3: the ready «у нас сбой» notice, each participant in their own language
+        from .i18n import t
+        phase = (args or "").strip().lower()
+        if phase not in ("start", "end"):
+            result = "INVALID_ARGUMENT"
+            reply = ("usage: /admin_outage start|end\nstart (ru): " + t("ru", "outage_start")
+                     + "\nend (ru): " + t("ru", "outage_end"))
+        else:
+            chats = await conn.active_user_chats_with_lang()
+            direct = [(int(c["chat_id"]), t(c.get("lang") or "ru", f"outage_{phase}"), c.get("lang") or "ru")
+                      for c in chats]
+            reply = f"outage {phase} notice sent to {len(direct)} active participants"
+            detail = {"phase": phase, "recipients": len(direct)}
     elif command == "admin_stats":
         from .usage import build_usage_report, format_usage_report
         report = build_usage_report(await conn.usage_facts(), now=now, owner_user_id=owner_user_id)

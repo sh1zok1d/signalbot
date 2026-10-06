@@ -382,6 +382,7 @@ Each run appends one `CORRECTION_CHECK` revision, or reports `UNCHANGED`. Nothin
 | `BETA_OUTCOME_TRACKING_ENABLED` | Kill switch for the outcome tracker (restrict-only). |
 | `BETA_TELEGRAM_ENABLED` | `0` selects the no-Telegram shadow-soak mode (below). Default: Telegram is part of the deployment. |
 | `BETA_CODE_VERSION` | Optional explicit beta code version. The default is resolved from the path-scoped git history. |
+| `BETA_DEADMAN_PING_URL` | Optional https URL of an external check (for example healthchecks.io), pinged after every complete notifier run. When the pings stop, that service alerts the owner (see "Owner health alerts"). |
 
 - **Switch precedence:**
   - `BETA_ENABLED`: explicit env value, else committed config.
@@ -441,13 +442,24 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 - `OUTCOME_TRACKER_NOT_ADVANCING`
 - `BOT_RECEIVER_DOWN`
 - `NOTIFIER_NOT_RUNNING`
-- `DELIVERY_FAILURE_SPIKE`
+- `DELIVERY_FAILURE_SPIKE` (FAILED or DELIVERY_UNKNOWN rows of every outbox kind in `health.delivery_problem_window_s`, with the count by kind)
 - `D7_HOUR_STATE_STALE` (only while `regime_d7.enabled` is true, and only when the newest hour state's `available_at` is older than 70 minutes; independent of `/admin_d7_on`)
 - `STAGE1_RECOVERY_NOT_READY` (the detector has waited for Stage-1's startup recovery for at least `health.detector_stall_s`, or proceeded without it as `OVERDUE`; see "Startup recovery" below)
 - `STARTUP_RECOVERY_REPAIR_INCOMPLETE` (the post-recovery repair failed on a bucket or deferred buckets to the next run)
 - `HISTORY_STATS_STALE` (the nightly statistics build has not succeeded for 50 hours, once it has run at least once)
 - `TOUCH_CALIBRATION_DIVERGED` (a live touch-chance bin broke the frozen rule of `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §3; that bin's wording has already fallen back to «исторически в X % случаев»)
 - `NEITHER_CALIBRATION_DIVERGED` (the same for a live «ни один» bin of two levels, `BETA_CHECK_CALIBRATION_DESIGN_V1.md` §7)
+- `BINANCE_STALE` (the newest Binance 1m bar is older than 10 minutes while the other venues keep the ingestion heartbeat healthy: decision support, which reads Binance alone, has gone stale)
+- `HISTORY_BUILD_FAILED` (the last nightly statistics build failed; the previous row stays in use)
+- `HISTORY_SYNC_FAILING` (no successful history sync for 50 hours, once it has run)
+- `FEEDS_FAILING` (no successful research-feed run for 30 minutes, once the feeds have run)
+- `STRESS_HOURS_FAILING` (no successful stress-hour run for 3 hours, once it has run)
+- `FEEDS_DEFINITION_CHECK_FAILED` (the last feed-against-history definition check failed)
+- `NOTIFIER_DEADMAN` (sent by the **bot receiver**, not the notifier: the notifier has not succeeded for `health.notifier_stall_s`, so its own `NOTIFIER_NOT_RUNNING` could not be sent; repeated per `health.owner_alert_repeat_s`)
+
+**Dead-man outside the box.** No process on the VPS can report the VPS, its database or both timers being down. Set `BETA_DEADMAN_PING_URL` in `.env` to an external check (for example a healthchecks.io URL, https only). After every complete notifier run the notifier GETs it within 5 seconds. Configure that check to expect a ping every minute with a grace of about 10 minutes, and to alert the owner when the pings stop. Without the variable nothing is pinged. The URL is never logged.
+
+**Outage notice.** `/admin_outage start` sends the ready «у нас сбой» notice to every ACTIVE participant in their language; `/admin_outage end` sends «сбой устранён». `/admin_outage` alone shows both texts. Each send is audited (`admin_outage`, with the recipient count). Use it when an alert above means participants are seeing stale or missing data.
 
 A DB outage makes every beta command exit with status 2 and report `DB_UNAVAILABLE`. systemd records that as a failed unit.
 
