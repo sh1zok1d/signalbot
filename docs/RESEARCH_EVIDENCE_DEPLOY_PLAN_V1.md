@@ -112,7 +112,7 @@ Before the first `--set-password`, confirm that statements are not logged:
 docker exec btcbot_timescaledb psql -U "$SU" -d "$DB" -tAc 'SHOW log_statement'   # must be none
 ```
 
-**After every restore,** run `sudo deploy/install_beta_feeds_role.sh` again, without `--set-password`. `deploy/backup.sh` dumps with `--no-owner --no-privileges`, so grants are not restored; the role itself is cluster-level and survives. Until this is done, the feed jobs refuse to run with `SCHEMA_NOT_READY` (`grant:…`) and exit 3. They never run with wider rights.
+**After every restore,** run `sudo deploy/install_beta_feeds_role.sh` again, without `--set-password` (since backlog A6, `deploy/restore.sh --force-live` re-applies the grants itself when the role exists; the script run then verifies the login; on a new VPS the role does not exist yet, so run it with `--set-password`, `docs/DATA_DURABILITY_RUNBOOK.md` §J.1). `deploy/backup.sh` dumps with `--no-owner --no-privileges`, so grants are not restored; the role itself is cluster-level and survives. Until this is done, the feed jobs refuse to run with `SCHEMA_NOT_READY` (`grant:…`) and exit 3. They never run with wider rights.
 
 ### A.3 Feed environment file
 
