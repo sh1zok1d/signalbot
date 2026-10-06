@@ -135,7 +135,8 @@ def test_outside_every_zone_the_generic_corridor_is_unchanged(lang):
     assert ("4 из 5" in brief) if lang == "ru" else ("4 of 5" in brief)
     assert re.search(r"24(ч|h): 60[ ,]230–64[ ,]730", brief)
     assert ZONE_RU not in brief and ZONE_EN not in brief
-    assert "Коридор 4ч" in plain("\n".join(df.btc_lines({"decision": b}, "ru")))
+    assert "Коридор: 1ч 62 043–62 917 · 4ч 61 605–63 355 · 24ч 60 230–64 730" in plain(
+        "\n".join(df.btc_lines({"decision": b}, "ru")))
 
 
 # ---- alerts: even a payload that still carries a corridor shows none inside its zone -----------

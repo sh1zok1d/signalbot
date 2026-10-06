@@ -98,8 +98,9 @@ EVAL_RULES = {
 
 # class -> (level, template keys or registry id, evaluation rule id)
 CLASSES = {
-    "L3_LEVEL_TOUCH_4H": ("L3", ("lv_touch", "lv_touch_4h"), "TOUCH_V1"),
-    "L3_LEVEL_TOUCH_24H": ("L3", ("lv_touch", "lv_touch_24h", "dc_level_line", "pa_next"), "TOUCH_V1"),
+    "L3_LEVEL_TOUCH_4H": ("L3", ("lv_touch", "lv_touch_4h", "dc_btc_level_b", "dc_btc_level_fb"), "TOUCH_V1"),
+    "L3_LEVEL_TOUCH_24H": ("L3", ("lv_touch", "lv_touch_24h", "dc_level_line", "pa_next", "dc_btc_level_b",
+                                  "dc_btc_level_fb"), "TOUCH_V1"),
     "L3_DISTANCE_TOUCH_1H": ("L3", ("rk_line", "rk_table_line"), "TOUCH_V1"),
     "L3_DISTANCE_TOUCH_4H": ("L3", ("rk_line", "rk_table_line"), "TOUCH_V1"),
     "L3_DISTANCE_TOUCH_24H": ("L3", ("rk_line", "rk_table_line", "al_set"), "TOUCH_V1"),
@@ -531,7 +532,14 @@ def shown_keys(surface: str, block: Optional[Mapping[str, Any]], *, market: Opti
 
     def zkey(z, side):
         return f"{side:+d}:{float(z['edge']):.2f}"
-    if surface == "levels":
+    if surface == "btc":                      # the nearest level each side, 24h (4h inside the 24h zone)
+        for side_name, side in (("above", +1), ("below", -1)):
+            z = (lv.get(side_name) or [None])[0]
+            touch = (z or {}).get("touch") or {}
+            h = next((x for x in ("24h", "4h") if touch.get(x) is not None), None)
+            if h:
+                out.append((f"L3_LEVEL_TOUCH_{h.upper()}", zkey(z, side)))
+    elif surface == "levels":
         for z, side in zones:
             for h in ("4h", "24h"):
                 if (z.get("touch") or {}).get(h) is not None:

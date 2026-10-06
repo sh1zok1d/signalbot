@@ -318,6 +318,12 @@ def venue_name(ex: str) -> str:
     return _VENUE_NAMES.get(ex, ex)
 
 
+def _move_text(move: float, typical: Optional[float], lang: str) -> str:
+    """A price change, with the model's typical move of that horizon beside it when known (backlog C1)."""
+    text = fmt_signed_pct(move, lang, nd=1)
+    return text if typical is None else t(lang, "h_move_usual", move=text, typ=fmt_plain_pct(abs(typical), lang, nd=1))
+
+
 def _hour_line(view: Mapping[str, Any], lang: str) -> str:
     horizons = view.get("horizons")
     if horizons is None:
@@ -330,7 +336,8 @@ def _hour_line(view: Mapping[str, Any], lang: str) -> str:
         return t(lang, "h1_incomplete")
     parts = []
     if block.get("price_move_pct") is not None:
-        parts.append(fmt_signed_pct(block["price_move_pct"], lang, nd=1))
+        from .decision_format import typical_move
+        parts.append(_move_text(block["price_move_pct"], typical_move(view, "1h"), lang))
     vol = _main_ratio_token(block, value_key="volume_notional_usd", ratio_key="volume_ratio",
                             days_key=_H1_VOLUME_DAYS, lang=lang,
                             day_type=_day_type_tod(view, _H1_VOLUME_DAYS))
@@ -359,7 +366,8 @@ def _day_line(view: Mapping[str, Any], lang: str) -> Optional[str]:
         return t(lang, "h24_incomplete")
     parts = []
     if block.get("price_complete") and block.get("price_move_pct") is not None:
-        parts.append(fmt_signed_pct(block["price_move_pct"], lang, nd=1))
+        from .decision_format import typical_move
+        parts.append(_move_text(block["price_move_pct"], typical_move(view, "24h"), lang))
     if block.get("volume_complete"):
         ratio = _main_ratio_token(block, value_key="volume_notional_usd", ratio_key="volume_ratio",
                                   days_key=_H24_VOLUME_DAYS, lang=lang)

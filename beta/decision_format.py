@@ -367,28 +367,113 @@ def brief_lines(view: Mapping[str, Any], lang: str) -> list:
     return out
 
 
+def touch_wording(block: Mapping[str, Any], h: str, p: Optional[float], kind: str = "touch") -> dict:
+    """The frozen wording rule of a touch chance on every surface (BETA_CHECK_CALIBRATION_DESIGN_V1 §3):
+    mode B with its held-out or live «говорили → было», or the «исторически» fallback."""
+    from .claims import touch_wording as rule
+    return rule((block.get("corridor") or {}).get("holdout"), block.get("touch_live"), h, p, kind=kind)
+
+
+def cal_part(label: str, w: Mapping[str, Any], lang: str) -> str:
+    """«↑ 40% → 39% (на истории, N=120)»: one B-mode chance's own check."""
+    return t(lang, "ck_cal_part", label=label, P=fmt_share(w["predicted"], lang), R=fmt_share(w["realized"], lang),
+             n=int(w["n_eff"]), src=t(lang, "ck_src_live" if w["source"] == "live" else "ck_src_hold"))
+
+
+def _btc_corridor(block: Mapping[str, Any], lang: str) -> list:
+    """«Коридор: 1ч … · 4ч … · 24ч …» and its record: the share inside by horizon, live over 30 days
+    once its independent windows reach MIN_N_SHOWN (the /accuracy rule), else on the held-out year."""
+    c = block.get("corridor") or {}
+    hz = c.get("horizons") or {}
+    zones = block.get("event_zone") or {}
+    shown = [h for h in ("1h", "4h", "24h") if hz.get(h)]
+    out = []
+    if shown:
+        out.append(t(lang, "dc_btc_corridor", parts=" · ".join(
+            t(lang, "dc_btc_corridor_part", h=_hz(h, lang), low=fmt_price(hz[h]["lower"], lang),
+              high=fmt_price(hz[h]["upper"], lang)) for h in shown)))
+    note = zone_note(zones, ["1h", "4h", "24h"], lang)
+    if note:
+        out.append(note)
+    live, hold, days = [], [], 0
+    for h in shown:
+        rec = (c.get("live") or {}).get(h) or {}
+        n = int(rec.get("INSIDE", 0)) + int(rec.get("OUTSIDE", 0))
+        n_eff = int(rec.get("N_EFF", 0))
+        ho = (c.get("holdout") or {}).get(h) or {}
+        if n and n_eff >= MIN_N_SHOWN:
+            live.append(t(lang, "dc_btc_track_live", h=_hz(h, lang), p=fmt_share(rec.get("INSIDE", 0) / n, lang), n=n_eff))
+        elif ho.get("coverage_realized") is not None:
+            hold.append(t(lang, "dc_btc_track_part", h=_hz(h, lang), p=fmt_share(ho["coverage_realized"], lang)))
+            days = max(days, int(ho.get("n_days") or 0))
+    parts = live + ([t(lang, "dc_btc_track_hold", parts=" · ".join(hold), days=days)] if hold else [])
+    if parts:
+        if zones:                 # an event context: no coverage claim (BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR §9)
+            out.append(t(lang, "dc_btc_track_zone", parts=" · ".join(parts)))
+        else:
+            out.append(t(lang, "dc_btc_track", share=fmt_share(c.get("coverage"), lang), parts=" · ".join(parts)))
+    return out
+
+
+def _btc_levels(block: Mapping[str, Any], lang: str) -> list:
+    """The nearest level above and below with the chance to reach it within 24h (4h inside the 24h
+    event zone), worded by the frozen rule: «≈ X%» with its check, or «исторически в X% случаев»."""
+    lv = block.get("levels") or {}
+    lines, cals = [], []
+    for z, arrow in (((lv.get("above") or [None])[0], "↑"), ((lv.get("below") or [None])[0], "↓")):
+        if not z:
+            continue
+        args = dict(arrow=arrow, price=zone_price(z, lang), name=_e(zone_names(z, lang, limit=1)),
+                    dist=fmt_signed_pct(z["distance_pct"], lang))
+        touch = z.get("touch") or {}
+        h = next((x for x in ("24h", "4h") if touch.get(x) is not None), None)
+        w = touch_wording(block, h, touch[h]) if h else {"mode": "none"}
+        if w["mode"] == "B":
+            lines.append(t(lang, "dc_btc_level_b", h=_hz(h, lang), p=fmt_prob(touch[h], lang), **args))
+            cals.append(cal_part(arrow, w, lang))
+        elif w["mode"] == "fallback":
+            lines.append(t(lang, "dc_btc_level_fb", h=_hz(h, lang), p=fmt_prob(touch[h], lang), **args))
+        else:
+            lines.append(t(lang, "dc_btc_level", **args))
+    if cals:
+        lines.append(t(lang, "dc_btc_cal", parts=" · ".join(cals)))
+    return lines
+
+
+def _btc_events(block: Mapping[str, Any], lang: str) -> list:
+    evs = block.get("events")
+    if evs is None:
+        return []
+    if not evs:
+        return [t(lang, "dc_no_events")]
+    now = _block_now(block)
+    parts = []
+    for e in evs:
+        at = datetime.fromisoformat(e["at"])
+        same_day = now is not None and kyiv(at).date() == kyiv(now).date()
+        parts.append(f"{_when(at, lang, with_day=not same_day)} "
+                     f"{_e(EVENT_NAMES.get(e['kind'], (e['kind'], e['kind']))[_ix(lang)])}")
+    return [t(lang, "dc_btc_events", list=", ".join(parts))]
+
+
 def btc_lines(view: Mapping[str, Any], lang: str) -> list:
+    """/btc decision support (backlog C1): corridors with their record, the two nearest levels with
+    their chance, the next 24h events, then research (main surfaces only, decision §6.1)."""
     block = view.get("decision") or {}
     if not block.get("available"):
         return []
-    out = []
-    x = ((block.get("corridor") or {}).get("horizons") or {}).get("4h")
-    note = zone_note(block.get("event_zone"), ["4h"], lang)
-    if note:
-        out.append(note)
-    elif x:
-        out.append(t(lang, "dc_btc_corridor", low=fmt_price(x["lower"], lang), high=fmt_price(x["upper"], lang),
-                     half=_pct(x["half_width_pct"], lang, 1)))
-    lv = block.get("levels") or {}
-    parts = []
-    for z, arrow in (((lv.get("above") or [None])[0], "↑"), ((lv.get("below") or [None])[0], "↓")):
-        if z:
-            parts.append(t(lang, "dc_btc_level_part", arrow=arrow, price=zone_price(z, lang),
-                           name=_e(zone_names(z, lang, limit=1)), dist=fmt_signed_pct(z["distance_pct"], lang)))
-    if parts:
-        out.append(t(lang, "dc_btc_levels", parts=" · ".join(parts)))
+    out = _btc_corridor(block, lang) + _btc_levels(block, lang) + _btc_events(block, lang)
     out.extend(evidence_lines(block, "btc", lang))
     return out
+
+
+def typical_move(view: Mapping[str, Any], h: str) -> Optional[float]:
+    """The model's typical move of horizon h now (the «обычно» of a price change), None in its event zone."""
+    block = view.get("decision") or {}
+    if not block.get("available"):
+        return None
+    x = ((block.get("corridor") or {}).get("horizons") or {}).get(h)
+    return x.get("typical_move_pct") if x else None
 
 
 # ---- /levels -----------------------------------------------------------------------------
@@ -825,7 +910,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
             lines.append(note)
         near = payload.get("near") or []
         if near:
-            parts = [t(lang, "dc_btc_level_part", arrow="↑" if z["distance_pct"] > 0 else "↓",
+            parts = [t(lang, "dc_btc_level", arrow="↑" if z["distance_pct"] > 0 else "↓",
                        price=zone_price(z, lang), name=_e(zone_names(z, lang, limit=1)),
                        dist=fmt_signed_pct(z["distance_pct"], lang)) for z in near]
             lines.append(t(lang, "pa_levels_near", parts=" · ".join(parts)))

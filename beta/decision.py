@@ -200,6 +200,9 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
                                             "to_ms": c.get("holdout_to_ms"), "touch_bins": c.get("touch_bins"),
                                             "neither_bins": c.get("neither_bins")}
                                         for h, c in cal_rep.items()}
+        fa = getattr(conn, "forecast_accuracy", None)
+        if fa is not None:            # the live record over 30 days, N = independent windows (/btc, backlog C1)
+            block["corridor"]["live"] = await fa(since=now - timedelta(days=30))
     from .levels import LIQ_VENUES
     liq = await conn.fetch_liquidations(symbol=cfg.symbol, exchanges=[e for e in cfg.exchanges if e in LIQ_VENUES],
                                         start=now - timedelta(hours=24), end=now)

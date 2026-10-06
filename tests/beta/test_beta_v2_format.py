@@ -78,10 +78,66 @@ def test_unavailable_block_says_why_and_never_shows_numbers():
     assert df.btc_lines({"decision": {"available": False}}, "ru") == []
 
 
+def _bins(*cells):
+    return {"bins": [{"bin": list(b), "passed": ok, "predicted": p, "realized": r, "n_eff": n}
+                     for b, ok, p, r, n in cells]}
+
+
+HOLDOUT = {"1h": {"coverage_realized": 0.79, "n_days": 365},
+           "4h": {"coverage_realized": 0.81, "n_days": 365},
+           "24h": {"coverage_realized": 0.8, "n_days": 365,
+                   "touch_bins": _bins(((0.5, 0.7), True, 0.58, 0.6, 120), ((0.3, 0.5), True, 0.4, 0.42, 95))}}
+
+
 def test_btc_lines():
-    lines = df.btc_lines({"decision": block()}, "ru")
-    assert lines == ["Коридор 4ч: 61 605–63 355 (±1,4%)",
-                     "Уровни: ↑ 62 950 максимум вчера (+0,75%) · ↓ 61 900 минимум Азии (−0,93%)"]
+    """Backlog C1: three corridors with their record, the nearest level each side with the chance by the
+    frozen wording rule, the next 24h events (as_of 09:00 Kyiv, CPI on the same day at 15:30)."""
+    blk = block(as_of=NOW.isoformat())
+    assert df.btc_lines({"decision": blk}, "ru") == [
+        "Коридор: 1ч 62 043–62 917 · 4ч 61 605–63 355 · 24ч 60 230–64 730",
+        # no held-out bin passed for these chances: the «исторически» fallback, no calibration line
+        "↑ 62 950 максимум вчера (+0,75%) · за 24ч исторически в 60% случаев",
+        "↓ 61 900 минимум Азии (−0,93%) · за 24ч исторически в 55% случаев",
+        "События в ближайшие 24ч: 15:30 CPI США (инфляция)"]
+    blk["corridor"] = {**blk["corridor"], "holdout": HOLDOUT}
+    lines = df.btc_lines({"decision": blk}, "ru")
+    assert lines[1] == "↳ внутри коридора бывало (расчёт — 80%): 1ч 79% · 4ч 81% · 24ч 80% на истории (365 дн.)"
+    assert lines[2:5] == ["↑ 62 950 максимум вчера (+0,75%) · за 24ч ≈ 60%",
+                          "↓ 61 900 минимум Азии (−0,93%) · за 24ч ≈ 55%",
+                          "↳ шанс дойти; говорили → было: ↑ 58% → 60% (на истории, N=120) · "
+                          "↓ 58% → 60% (на истории, N=120)"]
+    # the live record replaces the held-out share once its independent windows reach MIN_N_SHOWN
+    blk["corridor"]["live"] = {"1h": {"INSIDE": 560, "OUTSIDE": 160, "N_EFF": 700},
+                               "24h": {"INSIDE": 20, "OUTSIDE": 4, "N_EFF": 24}}
+    assert df.btc_lines({"decision": blk}, "en")[1] == (
+        "↳ inside the corridor (designed for 80%): 1h 78% live over 30 days (N=700) · 4h 81% · 24h 80% on history "
+        "(365 days)")
+    # inside the 24h zone: no 24h corridor or chance, no coverage claim; the 4h chance instead
+    z = block(as_of=NOW.isoformat(), event_zone={"24h": [{"kind": "CPI", "at": "2026-10-14T12:30:00+00:00"}]})
+    z["corridor"] = {**z["corridor"], "holdout": HOLDOUT,
+                     "horizons": {h: x for h, x in z["corridor"]["horizons"].items() if h != "24h"}}
+    for lv in ("above", "below"):
+        for x in z["levels"][lv]:
+            x["touch"] = {"4h": x["touch"]["4h"]}
+    text = "\n".join(df.btc_lines({"decision": z}, "ru"))
+    assert "24ч 60 230" not in text and "расчёт" not in text and "4 из 5" not in text
+    assert "24ч: числовую оценку не показываем — CPI США (инфляция)" in text
+    assert "↑ 62 950 максимум вчера (+0,75%) · за 4ч исторически в 30% случаев" in text
+    for lang in ("ru", "en"):
+        assert_descriptive("\n".join(df.btc_lines({"decision": blk}, lang)), lang)
+
+
+def test_btc_price_moves_carry_the_typical_move():
+    """Backlog C1: the 1h and 24h price change beside the model's typical move of that horizon."""
+    from beta.formatter import _day_line, _hour_line
+    view = {"horizons": {"1h": {"complete": True, "price_move_pct": 0.31},
+                         "24h": {"price_complete": True, "price_move_pct": -1.24}}, "decision": block()}
+    assert _hour_line(view, "ru") == "1ч: +0,3% (обычно ±0,2%)"
+    assert _day_line(view, "en") == "24h: −1.2% (usually ±1.4%)"
+    zoned = block()
+    zoned["corridor"]["horizons"].pop("1h")                   # inside its event zone: no typical move
+    assert _hour_line({**view, "decision": zoned}, "ru") == "1ч: +0,3%"
+    assert _hour_line({**view, "decision": {"available": False}}, "ru") == "1ч: +0,3%"
 
 
 def test_levels_card_has_history_beside_a_random_level():

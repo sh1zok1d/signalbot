@@ -489,6 +489,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "part_vol": {"ru": "Объём {level}", "en": "Volume {level}"},
     "part_taker": {"ru": "Delta {arrow}", "en": "Delta {arrow}"},
     "h_oi": {"ru": "OI {pct}", "en": "OI {pct}"},
+    "h_move_usual": {"ru": "{move} (обычно ±{typ})", "en": "{move} (usually ±{typ})"},
     "h24_incomplete": {"ru": "24ч: неполные данные", "en": "24h: incomplete"},
     "h24_prefix": {"ru": "24ч: {body}", "en": "24h: {body}"},
     "h_vol_partial": {"ru": "объём (неполные)", "en": "vol (partial)"},

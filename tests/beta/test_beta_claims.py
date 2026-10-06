@@ -368,6 +368,13 @@ def test_shown_keys_follow_what_each_surface_prints():
     assert ("L3_LEVEL_TOUCH_24H", "+1:62950.00") in brief
     assert len(cj.shown_keys("levels", blk)) == 4 and len(cj.shown_keys("risk", blk)) == 3 * 4 * 2
     assert cj.shown_keys("levels", {"available": False}) == []
+    # /btc prints the nearest level each side (backlog C1): 24h, or 4h inside the 24h zone
+    assert cj.shown_keys("btc", blk) == [("L3_LEVEL_TOUCH_24H", "+1:62950.00"), ("L3_LEVEL_TOUCH_24H", "-1:61900.00")]
+    zoned = _block()
+    for side in ("above", "below"):
+        for z in zoned["levels"][side]:
+            z["touch"] = {"4h": z["touch"]["4h"]}
+    assert cj.shown_keys("btc", zoned) == [("L3_LEVEL_TOUCH_4H", "+1:62950.00"), ("L3_LEVEL_TOUCH_4H", "-1:61900.00")]
     cand = {"kind": "level", "key": "level:PDH:2026-10-14",
             "payload": {"side": 1, "next": _zone(["ROUND"], 64000.0, 2.4), "event_zone": {}}}
     assert cj.shown_keys("alert", None, alert=cand) == [("L2_LEVEL_FIRST_TOUCH_HOLD_1H", "level:PDH:2026-10-14"),
