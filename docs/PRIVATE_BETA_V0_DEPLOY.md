@@ -267,6 +267,11 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
     - Per delivery type: sent, reacted within 10 minutes, «Полезно» / «Шум» votes (unusual-hour pushes only, until votes exist on every type), per-type mutes and the current mute state.
   - **Trader type.** The split appears once onboarding records one.
   - **Status.** It is an operational overview over current rows, never the U1–U5 read (`BETA_MEASUREMENT_CONTRACT_V1.md` §0). A long report arrives as several owner messages.
+- **Implicit push metrics** (backlog F5; `beta/usage.py::push_metrics`). These come before the breakdown, for the last 7 days.
+  - **Per delivered message.** The newest 20 messages are listed, each identified from the outbox (`alert_pk`, `decision_id`, brief date or weekly report) with its type. For each: how many recipients were sent it, and how many within 10 minutes pressed a button, did anything recorded (a pull, a button or a setting), or switched that type off. A `/push off` counts as switching off every push type.
+  - **Per type.** The same counts, summed.
+  - **Time to disable.** Participants who switched a type off after receiving it, the median hours from their first one, and the median number they had received by then.
+  - **Window.** Since F5 the top lines (unprompted / post-push `/btc`) use the same 10-minute window after **any** delivery (push, alert, brief, weekly). Before F5 they used 30 minutes after pushes and alerts only.
 
 **Rollback:** `sudo systemctl disable --now signalbot-beta-history.timer`, check out the previous commit and restart the bot. The tables are additive; the old code ignores them. Turning off only the pushes: `decision.market_alerts.enabled: false` (config), or per user `/push levels off` etc.
 

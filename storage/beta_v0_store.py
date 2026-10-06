@@ -1291,7 +1291,14 @@ class BetaConn:
         counts = await self.conn.fetch(
             "SELECT utc_day, attempt_count FROM beta_rejected_start_counts")
         wait = int(await self.conn.fetchval("SELECT count(*) FROM beta_waitlist"))
+        # backlog F5: which message each delivery was (the activity row knows only the type)
+        deliveries = await self.conn.fetch(
+            """SELECT d.kind, a.kind AS alert_kind, d.decision_id, d.alert_pk, d.brief_date, d.weekly_pk,
+                      d.user_pk, d.finished_at AS at
+               FROM beta_notification_deliveries d LEFT JOIN beta_market_alerts a ON a.alert_pk = d.alert_pk
+               WHERE d.state = 'SENT' AND d.user_pk IS NOT NULL""")
         return {"users": [dict(r) for r in users],
+                "deliveries": [dict(r) for r in deliveries],
                 "activity": [dict(r) for r in activity],
                 "votes": [dict(r) for r in votes],
                 "invites": [dict(r) for r in invites],

@@ -2,7 +2,15 @@
 
 Weeks are counted from the first external user's join (the owner is excluded).
 Week 1 is the seven days that start at that join. A /btc open is unprompted
-when no push_delivered for the same user falls in the 30 minutes before it.
+when no delivery (push, alert, brief, weekly) to the same user falls in the
+10 minutes before it (`BETA_MEASUREMENT_CONTRACT_V1` §3; backlog F5, before
+it 30 minutes and pushes and alerts only).
+
+Implicit push metrics (backlog F5, `push_metrics`): per delivered message, how
+many recipients pressed a button, did anything at all, or muted that type
+within the same 10 minutes, and per type how long participants took to switch
+it off. Read from the outbox (which message) and the activity rows (what
+followed, with their `detail`).
 
 The owner breakdown (backlog H6) uses the measurement contract's words instead:
 the 10-minute window, every pull, delivery classes, known and unknown apart
@@ -12,13 +20,14 @@ classification deadline.
 """
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Sequence
 
 from beta.i18n import KYIV
 
 WEEK = timedelta(days=7)
-PROMPT_WINDOW = timedelta(minutes=30)
+PROMPT_WINDOW = timedelta(minutes=10)                     # BETA_MEASUREMENT_CONTRACT_V1 §3
 RETENTION_DAYS = (1, 7, 14, 28)
 
 
@@ -256,6 +265,98 @@ def owner_breakdown(users: Sequence[dict], activity: Sequence[dict], votes: Sequ
     return out
 
 
+# outbox kind -> delivery type of DELIVERY_TYPES (an alert's type is its own kind)
+_OUTBOX_TYPE = {"push": "hour", "brief": "brief", "weekly": "weekly"}
+_PUSH_TYPES = ("hour", "level", "event", "move")          # a global `/push off` mutes these too
+PUSH_LIST_MAX = 20
+
+
+def delivery_type(row: dict) -> Optional[str]:
+    return row.get("alert_kind") if row["kind"] == "alert" else _OUTBOX_TYPE.get(row["kind"])
+
+
+def _push_key(row: dict) -> str:
+    ref = {"push": "decision_id", "alert": "alert_pk", "brief": "brief_date", "weekly": "weekly_pk"}[row["kind"]]
+    return f"{row['kind']}:{row.get(ref)}"
+
+
+def _mute_rows(rows: Sequence[dict], kind: str) -> list:
+    """Times a participant switched `kind` off: its own setting, or `/push off` for a push type."""
+    out = []
+    action, prefix = MUTES.get(kind, (None, None))
+    for r in rows:
+        own = action is not None and r["action"] == action and r.get("detail") == f"{prefix}off"
+        everything = kind in _PUSH_TYPES and r["action"] == "cmd_push" and r.get("detail") == "off"
+        if own or everything:
+            out.append(_aware(r["at"]))
+    return sorted(out)
+
+
+def _any_in(times: Sequence[datetime], at: datetime) -> bool:
+    """A time in [at, at + REACTION_WINDOW] in a sorted list."""
+    i = bisect_left(times, at)
+    return i < len(times) and times[i] <= at + REACTION_WINDOW
+
+
+def push_metrics(activity: Sequence[dict], deliveries: Sequence[dict], *, start: datetime, end: datetime) -> dict:
+    """Implicit metrics per delivered message (backlog F5), the contract's 10-minute window:
+    `button` a tab or button, `action` any recorded action (pull, button, setting), `muted` that
+    type switched off, each by the same participant. `disable` per type: participants who switched
+    it off after receiving it, the median hours from their first one to the switch and the median
+    number they had received by then. The newest `PUSH_LIST_MAX` messages are listed."""
+    by_user: dict = {}
+    for r in activity:
+        if r["action"] not in DELIVERIES and r["action"] != "brief_withheld":
+            by_user.setdefault(r["user_pk"], []).append(r)
+    buttons = {pk: sorted(_aware(r["at"]) for r in rows if r["action"].startswith(("tab_", "btn_")))
+               for pk, rows in by_user.items()}
+    actions = {pk: sorted(_aware(r["at"]) for r in rows) for pk, rows in by_user.items()}
+    mutes = {}
+
+    def muted_at(pk, kind):
+        if (pk, kind) not in mutes:
+            mutes[(pk, kind)] = _mute_rows(by_user.get(pk, ()), kind)
+        return mutes[(pk, kind)]
+
+    pushes: dict = {}
+    firsts: dict = {}
+    for d in deliveries:
+        kind, at = delivery_type(d), _aware(d["at"])
+        if kind is None or d.get("user_pk") is None:
+            continue
+        pk = d["user_pk"]
+        firsts.setdefault((pk, kind), []).append(at)
+        if not (_aware(start) <= at <= _aware(end)):
+            continue
+        p = pushes.setdefault(_push_key(d), {"type": kind, "at": at, "delivered": 0, "button": 0, "action": 0,
+                                              "muted": 0})
+        p["at"] = min(p["at"], at)
+        p["delivered"] += 1
+        p["button"] += _any_in(buttons.get(pk, ()), at)
+        p["action"] += _any_in(actions.get(pk, ()), at)
+        p["muted"] += _any_in(muted_at(pk, kind), at)
+    types: dict = {}
+    for p in pushes.values():
+        t = types.setdefault(p["type"], {"messages": 0, "delivered": 0, "button": 0, "action": 0, "muted": 0})
+        t["messages"] += 1
+        for k in ("delivered", "button", "action", "muted"):
+            t[k] += p[k]
+    disable: dict = {}
+    for (pk, kind), times in firsts.items():
+        times.sort()
+        offs = [m for m in muted_at(pk, kind) if m >= times[0] and _aware(start) <= m <= _aware(end)]
+        if not offs:
+            continue
+        d = disable.setdefault(kind, {"hours": [], "received": []})
+        d["hours"].append((offs[0] - times[0]).total_seconds() / 3600.0)
+        d["received"].append(bisect_right(times, offs[0]))
+    listed = sorted(pushes.values(), key=lambda p: p["at"], reverse=True)[:PUSH_LIST_MAX]
+    return {"window_min": int(REACTION_WINDOW.total_seconds() // 60), "types": types,
+            "pushes": listed,
+            "disable": {k: {"n": len(v["hours"]), "median_h": _median(v["hours"]),
+                            "received_median": _median(v["received"])} for k, v in disable.items()}}
+
+
 def build_usage_report(facts: dict, *, now: datetime, owner_user_id: Optional[int]) -> dict:
     """Build the owner report. `facts` may contain Telegram ids; the result does not."""
     from beta.admin import fingerprint
@@ -266,8 +367,8 @@ def build_usage_report(facts: dict, *, now: datetime, owner_user_id: Optional[in
     activity = [dict(r) for r in facts["activity"] if r["user_pk"] in external_pks]
     pushes: dict = {}
     for row in activity:
-        # a market alert (PRODUCT_DECISION_V2) prompts an open exactly like a push
-        if row["action"] in ("push_delivered", "alert_delivered"):
+        # every delivery prompts an open: a push, a market or personal alert, the brief, the weekly report
+        if row["action"] in DELIVERIES:
             pushes.setdefault(row["user_pk"], []).append(_aware(row["at"]))
     origin = min((_aware(u["joined_at"]) for u in users), default=None)
     fp_of = {u["user_pk"]: fingerprint(int(u["telegram_user_id"])) for u in users}
@@ -329,6 +430,9 @@ def build_usage_report(facts: dict, *, now: datetime, owner_user_id: Optional[in
                             deletions=_deletions(last_start, now, inclusive_end=True)),
             "joins_by_invite": _invite_block(last_users, last_rows, facts["invites"]),
             "owner_breakdown": owner_breakdown(users, activity, votes, start=last_start, end=now),
+            "push_metrics": push_metrics(activity, [d for d in facts.get("deliveries", ())
+                                                    if d["user_pk"] in external_pks],
+                                         start=last_start, end=now),
         },
         "since_first_external": {
             "active_users": len(_active_pks(since_rows)),
@@ -409,6 +513,25 @@ def _breakdown(title: str, data: Optional[dict]) -> list:
     return lines
 
 
+def _push_metric_lines(m: Optional[dict]) -> list:
+    if m is None:
+        return []
+    w = m["window_min"]
+    lines = [f"pushes, last 7 days ({w}-min window: button / any action / muted that type)"]
+    if not m["pushes"]:
+        return lines + ["  none delivered"]
+    for kind, t in sorted(m["types"].items()):
+        lines.append(f"  {kind}: {t['messages']} messages, sent {t['delivered']} · button {t['button']}"
+                     f" · action {t['action']} · muted {t['muted']}")
+    for p in m["pushes"]:
+        lines.append(f"  {p['type']} {_aware(p['at']).strftime('%m-%d %H:%M')} UTC: sent {p['delivered']}"
+                     f" · button {p['button']} · action {p['action']} · muted {p['muted']}")
+    for kind, d in sorted(m["disable"].items()):
+        lines.append(f"  time to disable {kind}: N={d['n']} median {_num(round(d['median_h'], 1))} h after the first"
+                     f" (median {_num(d['received_median'])} received)")
+    return lines
+
+
 def format_usage_report(report: dict) -> str:
     """Plain text for /admin_stats. No Telegram ids."""
     last = report["last_7_days"]
@@ -467,6 +590,7 @@ def format_usage_report(report: dict) -> str:
             lines.append("  " + " ".join(parts))
     else:
         lines.append("  rejected: none")
+    lines += _push_metric_lines(report["last_7_days"].get("push_metrics"))
     lines.append("owner breakdown (10-min window, all pulls; operational, not U1-U5)")
     lines += _breakdown("last 7 days", report["last_7_days"].get("owner_breakdown"))
     lines += _breakdown("since first external user", report["since_first_external"].get("owner_breakdown"))
