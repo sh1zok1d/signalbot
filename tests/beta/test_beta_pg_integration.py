@@ -427,6 +427,40 @@ def test_delivery_sent_once_ttl_and_user_inactive(monkeypatch):
     run(body())
 
 
+def test_quiet_hours_follow_each_participants_time_zone():
+    """Backlog C5: a push some participants are awake for goes out; the one whose own night it is gets
+    SUPPRESSED / QUIET_HOURS, and the decision is QUIET_HOURS only when it is night for all of them."""
+    from datetime import timezone as tzmod
+    from beta.detector import in_quiet_hours, quiet_for_all
+
+    async def body():
+        from beta.delivery import run_notify_once
+        pool = await _setup()
+        await _triggered_push(pool)
+        decision_ts = B0 + 2 * BUCKET
+        cfg = CFG.with_overrides(push_policy={**CFG["push_policy"], "quiet_hours_kyiv": ["01:00", "03:00"]})
+        assert not in_quiet_hours(cfg, decision_ts)                       # Kyiv is awake at the decision (03:10)
+        off = (2 - decision_ts.astimezone(tzmod.utc).hour) % 24           # a zone where it is 02:10
+        off = off - 24 if off > 14 else off
+        night = f"UTC{'+' if off >= 0 else '-'}{abs(off):02d}:00"
+        assert in_quiet_hours(cfg, decision_ts, night)
+        assert not quiet_for_all(cfg, decision_ts, [None, night]) and quiet_for_all(cfg, decision_ts, [night])
+        async with pool.acquire() as c:
+            await c.execute("INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at, joined_at,"
+                            " stopped_at, lang, tz) VALUES (13, 13, 'ACTIVE', now(), now(), NULL, 'en', $1)", night)
+        s = FakeSender()
+        r = await run_notify_once(BetaStore(pool), cfg, ON_PUSH, sender=s, clock=Clock(decision_ts + timedelta(seconds=40)))
+        assert r["sent"] == 1 and [x[0] for x in s.sent] == [11]
+        states = await _rows(pool, "SELECT user_pk, state, suppression_reason FROM beta_notification_deliveries "
+                                   "ORDER BY delivery_id")
+        assert {(x["state"], x["suppression_reason"]) for x in states} == {
+            ("SENT", None), ("SUPPRESSED", "USER_INACTIVE"), ("SUPPRESSED", "QUIET_HOURS")}
+        async with BetaStore(pool).connect() as conn:                     # STOPPED participants are not asked
+            assert sorted(await conn.recipient_tzs("push_hours"), key=str) == [None, night]
+        await pool.close()
+    run(body())
+
+
 def test_delivery_ttl_expired_is_never_pushed_late():
     async def body():
         from beta.delivery import run_notify_once

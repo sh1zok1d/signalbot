@@ -92,9 +92,9 @@ async def build_weekly(conn, *, now: datetime) -> dict:
 def format_weekly(payload: Mapping[str, Any], lang: str) -> str:
     """The user text of one stored payload."""
     from .decision_format import MIN_N_SHOWN, _hz, _pct, fmt_share
-    from .i18n import na
-    d0 = datetime.fromisoformat(payload["from"]).astimezone(KYIV)
-    d1 = datetime.fromisoformat(payload["to"]).astimezone(KYIV)
+    from .i18n import local, na
+    d0 = local(datetime.fromisoformat(payload["from"]))           # the recipient's dates (C5)
+    d1 = local(datetime.fromisoformat(payload["to"]))
     lines = [t(lang, "wk_title", d0=d0.strftime("%d.%m"), d1=d1.strftime("%d.%m")), t(lang, "wk_intro"),
              t(lang, "wk_cor_head", share=fmt_share(payload.get("coverage"), lang))]
     cors = payload.get("corridors") or {}
@@ -201,7 +201,9 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
             pacer.deferred += 1
             continue
         lang = row.get("user_lang") or "ru"
-        text = format_weekly(row["payload"], lang)
+        from .i18n import render_tz
+        with render_tz(row.get("user_tz")):
+            text = format_weekly(row["payload"], lang)
         outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
                                                 clock=clock)
         if outcome != SENT:

@@ -24,9 +24,11 @@ from typing import Any, Mapping, Optional, Protocol, Sequence
 from .admin import collect_health, fingerprint
 from .config import BetaConfig, BetaSwitches, effective_push_enabled, research_main_surfaces_enabled
 from .formatter import format_owner_alert, format_push
+from .i18n import render_tz
 from .latency import class_summary, latency_field
+from .detector import in_quiet_hours
 from .models import (BRIEF_WITHDRAWAL, D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED,
-                     D_UNKNOWN, DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE)
+                     D_UNKNOWN, DELIVERY_TOO_OLD, PUSH_DISABLED, QUIET_HOURS, USER_INACTIVE)
 
 
 # A PUSH decision nobody could receive never gets a delivery row; the scan stops looking
@@ -304,6 +306,12 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                                                    suppression_reason=USER_INACTIVE)
                     report["suppressed"] += 1
                     continue
+                if in_quiet_hours(cfg, row["decision_ts"], row.get("user_tz")):
+                    # the decision went out because someone was awake; it is this participant's night (C5)
+                    await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                                   suppression_reason=QUIET_HOURS)
+                    report["suppressed"] += 1
+                    continue
                 if sender is None:
                     await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_FAILED, now=now,
                                                    error_summary="sender unavailable (no bot token)")
@@ -318,10 +326,11 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 lang = row.get("user_lang") or "ru"
                 if lat_summary is None:
                     lat_summary = await class_summary(conn, now)
-                text = format_push(ep, lang=lang, gate=row.get("gate"),
-                                   analog=_push_analogue(analogues, row.get("gate")), since_year=since_year,
-                                   latency=latency_field("push", row["decision_ts"], now, lat_summary),
-                                   research=research_main_surfaces_enabled(cfg))
+                with render_tz(row.get("user_tz")):          # the recipient's clock (C5)
+                    text = format_push(ep, lang=lang, gate=row.get("gate"),
+                                       analog=_push_analogue(analogues, row.get("gate")), since_year=since_year,
+                                       latency=latency_field("push", row["decision_ts"], now, lat_summary),
+                                       research=research_main_surfaces_enabled(cfg))
                 # (2) commit PENDING -> SENDING before the single API call
                 outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"],
                                                         html=text, buttons=feedback_buttons(ep.public_id, lang),
@@ -570,10 +579,12 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
         if payload is None:
             payload = views[row["view_pk"]] = (await conn.fetch_btc_view(row["view_pk"]))["payload"]
         lang = row.get("user_lang") or "ru"
-        text = format_catchup(cfg, payload, lang, push_enabled=bool(row.get("push_enabled", True)),
-                              first_brief=bool(row.get("first_brief", False)))
+        with render_tz(row.get("user_tz")):              # the recipient's clock (C5)
+            text = format_catchup(cfg, payload, lang, push_enabled=bool(row.get("push_enabled", True)),
+                                  first_brief=bool(row.get("first_brief", False)))
+            buttons = btc_buttons(payload, lang, row["view_pk"])
         outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
-                                                buttons=btc_buttons(payload, lang, row["view_pk"]), clock=clock)
+                                                buttons=buttons, clock=clock)
         if outcome != SENT:
             count_outcome(out, outcome)
             continue

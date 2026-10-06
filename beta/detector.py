@@ -180,11 +180,12 @@ def step_episode(cfg: BetaConfig, event_type: str, open_ep: Optional[Episode],
 
 
 # ---- push policy (pure) ------------------------------------------------------
-def in_quiet_hours(cfg: BetaConfig, decision_ts: datetime) -> bool:
-    """Kyiv wall-clock quiet window [start, end), wrapping midnight when start > end."""
-    from .i18n import KYIV
+def in_quiet_hours(cfg: BetaConfig, decision_ts: datetime, tz: Optional[str] = None) -> bool:
+    """The quiet window [start, end) on the participant's wall clock (Kyiv when `tz` is None; backlog C5),
+    wrapping midnight when start > end."""
+    from .i18n import tz_of
     start, end = cfg.quiet_hours_kyiv
-    local = decision_ts.astimezone(KYIV)
+    local = decision_ts.astimezone(tz_of(tz))
     now_m = local.hour * 60 + local.minute
     s = int(start[:2]) * 60 + int(start[3:])
     e = int(end[:2]) * 60 + int(end[3:])
@@ -193,11 +194,19 @@ def in_quiet_hours(cfg: BetaConfig, decision_ts: datetime) -> bool:
     return (s <= now_m < e) if s < e else (now_m >= s or now_m < e)
 
 
+def quiet_for_all(cfg: BetaConfig, ts: datetime, tzs: Optional[Sequence[Optional[str]]] = None) -> bool:
+    """Quiet hours hold for the decision only when they hold for every participant who could receive
+    it (each on their own clock, backlog C5); with nobody to ask, on the Kyiv clock. A participant
+    whose night it is while others are awake gets a QUIET_HOURS delivery instead (beta.delivery)."""
+    return all(in_quiet_hours(cfg, ts, tz) for tz in (list(tzs) if tzs else [None]))
+
+
 def push_policy(cfg: BetaConfig, *, decision_ts: datetime, evaluated_at: datetime,
                 snapshot: Mapping[str, Any], last_same_type_terminal: Optional[datetime],
                 last_same_type_would_push: Optional[datetime], would_push_today: int,
                 push_enabled: bool, hour: Optional[Mapping[str, Any]] = None,
-                last_any_would_push: Optional[datetime] = None) -> tuple:
+                last_any_would_push: Optional[datetime] = None,
+                quiet_tzs: Optional[Sequence[Optional[str]]] = None) -> tuple:
     """(would_push, decision, suppression_reason). Evaluated in a fixed order;
     `would_push` means every gate except PUSH_DISABLED passed (the daily cap
     counts would-push decisions so a push-disabled soak still measures it).
@@ -220,13 +229,19 @@ def push_policy(cfg: BetaConfig, *, decision_ts: datetime, evaluated_at: datetim
             return False, SUPPRESSED, SAME_EVENT_COOLDOWN
     if last_any_would_push is not None and decision_ts - last_any_would_push < cfg.global_cooldown:
         return False, SUPPRESSED, GLOBAL_COOLDOWN
-    if in_quiet_hours(cfg, decision_ts):
+    if quiet_for_all(cfg, decision_ts, quiet_tzs):
         return False, SUPPRESSED, QUIET_HOURS
     if would_push_today >= cfg["max_new_pushes_per_utc_day"]:
         return False, SUPPRESSED, DAILY_CAP
     if not push_enabled:
         return True, SUPPRESSED, PUSH_DISABLED
     return True, PUSH, None
+
+
+async def _recipient_tzs(conn, pref: str) -> list:
+    """The time zones of the participants who could receive a push of this preference (C5)."""
+    fn = getattr(conn, "recipient_tzs", None)
+    return list(await fn(pref)) if fn is not None else []
 
 
 # ---- runner ------------------------------------------------------------------
@@ -337,7 +352,8 @@ async def _apply_step(conn, cfg: BetaConfig, event_type: str, step: Step, ctx: B
                 event_type=event_type, exclude_pk=target_pk),
             would_push_today=await conn.count_would_push(ctx.decision_ts.date()),
             push_enabled=push_enabled, hour=gate,
-            last_any_would_push=await conn.latest_any_would_push(exclude_pk=target_pk))
+            last_any_would_push=await conn.latest_any_would_push(exclude_pk=target_pk),
+            quiet_tzs=await _recipient_tzs(conn, "push_hours"))
         await conn.insert_push_decision(
             episode_pk=target_pk, event_type=event_type, decision_ts=ctx.decision_ts,
             would_push=would, decision=decision, suppression_reason=reason,

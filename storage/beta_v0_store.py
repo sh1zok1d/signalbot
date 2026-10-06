@@ -696,7 +696,7 @@ class BetaConn:
         # `now`: rows waiting after flood control are skipped until their next_attempt_at
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.decision_id, x.episode_pk, x.user_pk, x.decision_ts,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang, d.gate
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.tz AS user_tz, d.gate
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                LEFT JOIN beta_push_decisions d ON d.decision_id = x.decision_id
                WHERE x.state='PENDING' AND x.kind='push'
@@ -726,7 +726,7 @@ class BetaConn:
         # `now`: rows waiting after flood control are skipped until their next_attempt_at
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.view_pk, x.brief_date, x.user_pk, x.decision_ts,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.brief_enabled,
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.tz AS user_tz, u.brief_enabled,
                       u.push_enabled,
                       NOT EXISTS (SELECT 1 FROM beta_notification_deliveries y
                                   WHERE y.kind='brief' AND y.user_pk=x.user_pk AND y.state='SENT'
@@ -767,7 +767,7 @@ class BetaConn:
         # `now`: rows waiting after flood control are skipped until their next_attempt_at
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.weekly_pk, x.user_pk, x.decision_ts, w.payload,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.push_enabled, u.push_weekly
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.tz AS user_tz, u.push_enabled, u.push_weekly
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                JOIN beta_weekly_reports w ON w.weekly_pk = x.weekly_pk
                WHERE x.state='PENDING' AND x.kind='weekly'
@@ -908,6 +908,22 @@ class BetaConn:
             telegram_user_id, known)
         return status == "UPDATE 1"
 
+    _PUSH_PREFS = ("push_hours", "push_levels", "push_events", "push_moves", "push_weekly")
+
+    async def recipient_tzs(self, pref: str) -> list:
+        """The time zones (None = Kyiv) of ACTIVE participants with pushes on and `pref` on (backlog C5)."""
+        if pref not in self._PUSH_PREFS:
+            raise ValueError(f"unknown push preference {pref!r}")
+        rows = await self.conn.fetch(
+            f"SELECT DISTINCT tz FROM beta_users WHERE status='ACTIVE' AND push_enabled AND {pref}")
+        return [r["tz"] for r in rows]
+
+    async def set_user_tz(self, telegram_user_id: int, tz: Optional[str]) -> bool:
+        """The participant's time zone (backlog C5); None = Kyiv. The caller validated it (i18n.parse_tz)."""
+        status = await self.conn.execute(
+            "UPDATE beta_users SET tz=$2, updated_at=now() WHERE telegram_user_id=$1", telegram_user_id, tz)
+        return status == "UPDATE 1"
+
     async def set_brief_enabled(self, telegram_user_id: int, enabled: bool) -> bool:
         status = await self.conn.execute(
             "UPDATE beta_users SET brief_enabled=$2, updated_at=now() WHERE telegram_user_id=$1",
@@ -1013,7 +1029,7 @@ class BetaConn:
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
                       invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact,
-                      push_levels, push_events, push_moves, push_hours, push_weekly
+                      push_levels, push_events, push_moves, push_hours, push_weekly, tz
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
@@ -2028,7 +2044,7 @@ class BetaConn:
         # `now`: rows waiting after flood control are skipped until their next_attempt_at
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.alert_pk, x.user_pk, x.decision_ts, a.kind, a.payload,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.tz AS user_tz
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                JOIN beta_market_alerts a ON a.alert_pk = x.alert_pk
                WHERE x.state='PENDING' AND x.kind='alert'

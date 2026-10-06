@@ -24,7 +24,7 @@ from beta.admin import collect_status, fingerprint, handle_admin, is_owner, owne
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected, DeliveryThrottled
 from beta.formatter import PUSH_BTC_ACTION, assert_descriptive, format_history
-from beta.i18n import fmt_price, t
+from beta.i18n import fmt_price, render_tz, t, use_render_tz
 from beta.market_view import build_view, parse_catchup_hours, persist_view
 from common.logging_setup import setup_logging
 from notifications.telegram_client import TelegramSender, sanitize_telegram_error
@@ -188,7 +188,8 @@ class BetaBotHandler:
                 last = await conn.get_last_update_id(BOT_NAME)
                 if last is not None and update_id <= last:
                     return []
-                out = await self._dispatch(conn, update)
+                with render_tz(None):         # the participant's zone is set once the user is known (C5)
+                    out = await self._dispatch(conn, update)
                 await conn.set_last_update_id(BOT_NAME, update_id)
         return out
 
@@ -241,6 +242,7 @@ class BetaBotHandler:
             return out
         user = await conn.get_user(uid)
         lang = _lang_of(user)
+        use_render_tz((user or {}).get("tz"))
         if cmd == "start":
             return await self._start(conn, uid, chat_id, args, user, lang, now)
         if cmd == "delete_me":
@@ -299,6 +301,10 @@ class BetaBotHandler:
                 reply = t(lang, "brief_usage", state=t(lang, "brief_state_on" if on else "brief_state_off"))
             return await self._reply(conn, user, chat_id, lang, now, "cmd_brief", [_msg(chat_id, reply, lang=lang)],
                                      detail=arg if arg in ("on", "off") else "status")
+        if cmd == "tz":
+            reply, detail = await self._tz_cmd(conn, uid, user, lang, args, now)
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_tz", [_msg(chat_id, reply, lang=lang)],
+                                     detail=detail)
         if cmd == "history":
             rows = await conn.fetch_episode_history(symbol=self.cfg.symbol, limit=HISTORY_LIMIT)
             outcomes = {r["episode_pk"]: await conn.fetch_outcomes(r["episode_pk"]) for r in rows}
@@ -442,6 +448,20 @@ class BetaBotHandler:
                    "moves": "push_moves", "move": "push_moves", "движения": "push_moves",
                    "hour": "push_hours", "hours": "push_hours", "час": "push_hours",
                    "weekly": "push_weekly", "week": "push_weekly", "неделя": "push_weekly", "итоги": "push_weekly"}
+
+    async def _tz_cmd(self, conn, uid: int, user, lang: str, args: Optional[str], now: datetime) -> tuple:
+        """/tz: show or set the participant's time zone (backlog C5). Returns (reply, activity detail)."""
+        from beta.i18n import fmt_clock, parse_tz, zone_name
+        arg = (args or "").strip()
+        if not arg:
+            q = self.cfg.quiet_hours_kyiv
+            return t(lang, "tz_usage", name=zone_name(lang), quiet=f"{q[0]}–{q[1]}"), "status"
+        tz = None if arg.lower() in ("kyiv", "kiev", "киев", "europe/kyiv") else parse_tz(arg)
+        if tz is None and arg.lower() not in ("kyiv", "kiev", "киев", "europe/kyiv"):
+            return t(lang, "tz_bad"), "bad"
+        await conn.set_user_tz(uid, tz)
+        use_render_tz(tz)
+        return t(lang, "tz_ok", name=zone_name(lang, now), clock=fmt_clock(now, lang)), "set"
 
     def _push_status(self, user, lang: str) -> str:
         word = lambda v: t(lang, "on_word" if v else "off_word")  # noqa: E731
@@ -678,6 +698,7 @@ class BetaBotHandler:
             return [answer(t(lang, "joined")), _msg(chat_id, welcome, lang=lang)]
         user = await conn.get_user(uid)
         lang = _lang_of(user)
+        use_render_tz((user or {}).get("tz"))
         if data.startswith("set:") and data[4:] in ("ru", "en"):
             if user is None or user["status"] != "ACTIVE":
                 return [answer(t(lang, "not_available"))]
