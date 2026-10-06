@@ -755,11 +755,16 @@ _CATALOG: dict[str, dict[str, str]] = {
     "brief_off_hint": {"ru": "Отключить утреннюю сводку: /brief off", "en": "Turn the morning briefing off: /brief off"},
     "catchup_usage": {"ru": "Окно — от 1 до 24 часов. Например: /catchup 4",
                       "en": "The window is 1 to 24 hours. For example: /catchup 4"},
-    "brief_usage": {"ru": "Утренняя сводка: {state}. /brief on — включить, /brief off — выключить.",
-                    "en": "Morning briefing: {state}. /brief on to turn it on, /brief off to turn it off."},
+    "brief_usage": {"ru": "Утренняя сводка: {state}, в {time} {zone}. /brief on — включить, /brief off — выключить, "
+                          "/brief 07:30 — другое время.",
+                    "en": "Morning briefing: {state}, at {time} {zone}. /brief on to turn it on, /brief off to turn it "
+                          "off, /brief 07:30 for another time."},
+    "brief_time_ok": {"ru": "Утренняя сводка — в {time} {zone}.", "en": "Morning briefing at {time} {zone}."},
+    "brief_time_off_hint": {"ru": "Сейчас она выключена: /brief on — включить.",
+                            "en": "It is off now: /brief on to turn it on."},
     "brief_state_on": {"ru": "включена", "en": "on"},
     "brief_state_off": {"ru": "выключена", "en": "off"},
-    "brief_on_ok": {"ru": "Утренняя сводка включена: 08:00 (Киев).", "en": "Morning briefing on: 08:00 Kyiv."},
+    "brief_on_ok": {"ru": "Утренняя сводка включена: {time} {zone}.", "en": "Morning briefing on: {time} {zone}."},
     "tz_usage": {"ru": "Часовой пояс: {name}. Всё время в сообщениях — по нему, ночная тишина {quiet} — тоже.\n"
                        "Поменять: /tz +3, /tz -5, /tz Europe/Warsaw; вернуть Киев: /tz kyiv",
                  "en": "Time zone: {name}. Every time in the messages follows it, and so do the quiet hours {quiet}.\n"

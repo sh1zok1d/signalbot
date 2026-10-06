@@ -810,6 +810,9 @@ ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_moves BOOLEAN NOT NULL DEFA
 -- the participant's time zone (backlog C5): an IANA name or «UTC±HH:MM»; NULL = Europe/Kyiv.
 -- Every clock the bot prints and the participant's quiet hours follow it.
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS tz TEXT CHECK (tz IS NULL OR length(tz) BETWEEN 1 AND 64);
+-- the participant's briefing time on their own clock (backlog E3); NULL = briefing.time_kyiv
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS brief_time TEXT
+    CHECK (brief_time IS NULL OR brief_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$');
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_hours BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- The bootstrap watermark may be rewound by the operator (--beta-bootstrap-rewind) so the

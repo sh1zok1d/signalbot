@@ -488,13 +488,15 @@ def _push_analogue(analogues, gate) -> Optional[dict]:
     return lookup(analogues, "1h", res.get("key"))
 
 
-def brief_slot(now: datetime, time_kyiv: str):
-    """(Kyiv date, UTC instant) of today's briefing slot, or None before it."""
+def brief_slot(now: datetime, time_kyiv: str, tz: Optional[str] = None):
+    """(local date, UTC instant) of today's briefing slot on the participant's clock (Kyiv when `tz` is
+    None; backlog C5 / E3), or None before it."""
     from datetime import time as dtime
-    from .i18n import KYIV
-    local = now.astimezone(KYIV)
+    from .i18n import tz_of
+    zone = tz_of(tz)
+    local = now.astimezone(zone)
     hh, mm = int(time_kyiv[:2]), int(time_kyiv[3:])
-    slot = datetime.combine(local.date(), dtime(hh, mm), tzinfo=KYIV)
+    slot = datetime.combine(local.date(), dtime(hh, mm), tzinfo=zone)
     if local < slot:
         return None
     return local.date(), slot.astimezone(now.tzinfo)
@@ -521,9 +523,11 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
                          pacer: Optional[SendPacer] = None) -> dict:
     """The morning briefing inside the existing notifier cycle and outbox.
 
-    Once per Kyiv day after `briefing.time_kyiv`: build ONE shared view (kind
-    'brief', the /catchup render path), persist it, and materialize one PENDING
-    outbox row per ACTIVE participant with the briefing on. Each row then follows
+    Each participant has a slot on their own clock: their `brief_time` (default
+    `briefing.time_kyiv`) in their time zone (backlog C5 / E3). In a run where some
+    participants' slots have come and they have no briefing row for their local date,
+    build ONE shared view (kind 'brief', the /catchup render path), persist it, and
+    materialize one PENDING outbox row per such participant. Each row then follows
     the outbox rules: at most one send attempt, never late (expired after
     `max_delay_min`), suppressed while pushes are switched off. Push rows, push
     decisions and push policy are not read or changed here."""
@@ -537,16 +541,24 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
     max_delay = timedelta(minutes=int(b["max_delay_min"]))
     withdrawn = brief_withdrawal_dates(b)
     now = clock()
-    slot = brief_slot(now, b["time_kyiv"])
-    if b["enabled"] and push_on and slot is not None and now - slot[1] <= max_delay \
-            and not await conn.brief_scheduled(slot[0]):
+    due = []
+    if b["enabled"] and push_on:
+        for u in await conn.brief_candidates():
+            slot = brief_slot(now, u.get("brief_time") or b["time_kyiv"], u.get("tz"))
+            if slot is None or now - slot[1] > max_delay:
+                continue
+            if u.get("last_brief_date") is not None and u["last_brief_date"] >= slot[0]:
+                continue                                    # this local day already has its row
+            due.append((u["user_pk"], slot))
+    if due:
         view = await build_view(conn, cfg, now=now, kind="brief", window_hours=BRIEF_WINDOW_HOURS,
                                 maturity_days=maturity_days(cfg),
                                 d7_enabled=effective_d7_enabled(cfg, await conn.get_admin_d7_enabled()))
         view_pk = await persist_view(conn, view, now=now, text=format_catchup(cfg, view, "ru"), lang="ru",
                                      kind="brief")
-        out["scheduled"] = await conn.materialize_brief_deliveries(brief_date=slot[0], view_pk=view_pk,
-                                                                   decision_ts=slot[1])
+        for user_pk, (brief_date, at) in due:
+            out["scheduled"] += await conn.materialize_brief_delivery(user_pk=user_pk, brief_date=brief_date,
+                                                                      view_pk=view_pk, decision_ts=at)
     views: dict = {}
     for row in await conn.fetch_pending_brief_deliveries(cfg["notifications"]["max_deliveries_per_run"],
                                                          now=clock()):
