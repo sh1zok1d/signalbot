@@ -56,12 +56,18 @@ def build_stats_payload(b: Bars, *, cfg: BetaConfig, calendar: Mapping[str, Any]
     levels = level_reaction_stats(b)
     timings["levels_s"] = round(time.monotonic() - t, 2)
     t = time.monotonic()
+    from .levels import distance_reaction_stats
+    distance = distance_reaction_stats(b)
+    timings["distance_reactions_s"] = round(time.monotonic() - t, 2)
+    t = time.monotonic()
     analogues = analogue_stats(b, context=cfg.section("context")) if np.isfinite(b.oi).any() else \
         {"version": None, "windows": {}, "reason": "NO_OI_HISTORY"}
     timings["analogues_s"] = round(time.monotonic() - t, 2)
     t = time.monotonic()
     ev = event_size_stats(b, calendar)
     timings["events_s"] = round(time.monotonic() - t, 2)
+    from .derivatives import oi_change_stats
+    derivatives = {"oi_24h": oi_change_stats(b)}
     present = b.present()
     first = int(np.flatnonzero(present)[0]) if present.any() else 0
     last = int(np.flatnonzero(present)[-1]) if present.any() else 0
@@ -71,7 +77,8 @@ def build_stats_payload(b: Bars, *, cfg: BetaConfig, calendar: Mapping[str, Any]
                      "bars": int(present.sum()), "missing_bars": int((~present[first:last + 1]).sum()),
                      "oi_from_ms": int(b.t0 + oi_idx[0] * BAR_MS) if oi_idx.size else None,
                      "calendar_version": calendar.get("version")},
-            "range_model": model, "levels": levels, "analogues": analogues, "events": ev,
+            "range_model": model, "levels": levels, "distance_reactions": distance, "analogues": analogues,
+            "events": ev, "derivatives": derivatives,
             "timings": timings})
 
 

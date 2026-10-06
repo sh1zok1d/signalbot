@@ -33,8 +33,9 @@ BETA_COMMAND_FLAGS = ("beta_bootstrap", "beta_once", "beta_status", "beta_outcom
                       "beta_notify_once", "beta_health", "beta_usage_report",
                       "beta_d7_once", "beta_d7_backfill", "beta_context_dry_run", "beta_c1_replay",
                       "beta_history_sync", "beta_history_build", "beta_bootstrap_rewind",
-                      "beta_feeds_once", "beta_stress_once")
-READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report", "beta_context_dry_run", "beta_c1_replay")
+                      "beta_feeds_once", "beta_stress_once", "beta_claims_report")
+READ_ONLY_COMMANDS = ("beta_status", "beta_health", "beta_usage_report", "beta_context_dry_run", "beta_c1_replay",
+                      "beta_claims_report")
 
 
 # A feed job refused to run: its schema, columns, checks or grants are missing, or it is connected
@@ -83,6 +84,8 @@ def add_beta_arguments(parser) -> None:
                    help="Beta: one pass of the research-evidence read-only public feeds.")
     g.add_argument("--beta-stress-once", action="store_true",
                    help="Beta: check the last completed hours for DH3-S stress hours (public aggTrades).")
+    g.add_argument("--beta-claims-report", action="store_true",
+                   help="Beta: READ-ONLY claim journal report per cohort (docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md).")
     parser.add_argument("--history-max-objects", type=int, default=None,
                         help="Bound one --beta-history-sync run to N archive objects (default: all).")
     parser.add_argument("--beta-bucket-ts", default=None,
@@ -95,6 +98,8 @@ def add_beta_arguments(parser) -> None:
                         help="Sample every N 5m buckets (--beta-context-dry-run only; 12 = hourly).")
     parser.add_argument("--dry-run-provisional", action="store_true",
                         help="Rank against existing history, ignoring the maturity tiers (PROVISIONAL).")
+    parser.add_argument("--claims-days", type=int, default=30,
+                        help="Days of journaled claims to report (--beta-claims-report only; default 30).")
     parser.add_argument("--beta-json", action="store_true",
                         help="Emit the beta report as one JSON object (all --beta-* commands).")
 
@@ -289,6 +294,15 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
                 conn, cfg, Stage2Config.load(), end=clock(), days=args.dry_run_days,
                 stride_buckets=args.dry_run_stride, ignore_maturity=args.dry_run_provisional)
             return {"status": "OK", "dry_run": report}
+    if args.beta_claims_report:
+        store = db.beta_store()
+        async with store.connect() as conn:
+            if not await conn.schema_present():
+                return {"status": "NOT_INITIALIZED"}
+            from beta.claims import claims_report
+            since = clock() - timedelta(days=max(1, int(args.claims_days)))
+            return {"status": "OK", "since": since.isoformat(),
+                    "claims": claims_report(await conn.fetch_claim_cohort(since=since))}
     if args.beta_status or args.beta_health or args.beta_usage_report:
         store = db.beta_store()
         async with store.connect() as conn:

@@ -176,6 +176,15 @@ beta:
   decision:
     max_price_alerts: 5                     # personal /alert levels per participant
     forecast_tracking: true                 # record each hour's corridors and their outcome (/accuracy)
+    claim_journal: true                     # journal every L2/L3 claim hourly and at alert evaluation, score it
+                                            # (docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md); internal tracking only
+    # weekly report (backlog B4): how the bot's own estimates did over 7 days; a push type of its
+    # own (/push weekly off). Sunday evening, outside the U1a withdrawal weekdays (Mon-Fri).
+    weekly_report:
+      enabled: true
+      weekday_kyiv: "sun"
+      time_kyiv: "19:00"
+      max_delay_min: 120                    # not sent within this: expired, never late
     market_alerts:
       enabled: true                         # also needs BETA_PUSH_ENABLED and no /admin_pause_push
       max_per_utc_day: 4                    # level touches and sharp moves together

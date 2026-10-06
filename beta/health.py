@@ -163,4 +163,14 @@ def health_alerts(cfg: BetaConfig, *, now: datetime, heartbeat: Mapping[str, Any
     # Decision support (PRODUCT_DECISION_V2): once the nightly build has run, it must keep running.
     if "history_build" in runtime and _stalled("history_build", HISTORY_BUILD_STALE_S):
         alerts.append({"key": "HISTORY_STATS_STALE", "detail": {}})
+    # Touch-chance calibration (docs/BETA_CHECK_CALIBRATION_DESIGN_V1.md §3): a live bin that diverged
+    # from its stated chances. The owner is told; the bin's wording has already fallen back.
+    live = ((runtime.get("touch_live_cal") or {}).get("detail")) or {}
+    diverged = live.get("diverged") or {}
+    if any(diverged.values()):
+        alerts.append({"key": "TOUCH_CALIBRATION_DIVERGED", "detail": {h: v for h, v in diverged.items() if v}})
+    # the «ни один» chance of two levels falls back under the same rule (design note §7)
+    neither = live.get("diverged_neither") or {}
+    if any(neither.values()):
+        alerts.append({"key": "NEITHER_CALIBRATION_DIVERGED", "detail": {h: v for h, v in neither.items() if v}})
     return alerts

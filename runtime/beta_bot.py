@@ -20,11 +20,11 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Mapping, Optional, Sequence
 
 from beta.access import PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
-from beta.admin import collect_status, fingerprint, handle_admin, is_owner, parse_command
+from beta.admin import collect_status, fingerprint, handle_admin, is_owner, owner_parts, parse_command
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected
 from beta.formatter import PUSH_BTC_ACTION, assert_descriptive, format_history
-from beta.i18n import t
+from beta.i18n import fmt_price, t
 from beta.market_view import build_view, parse_catchup_hours, persist_view
 from common.logging_setup import setup_logging
 from notifications.telegram_client import TelegramSender, sanitize_telegram_error
@@ -183,8 +183,9 @@ class BetaBotHandler:
                                      bot_username=self.bot_username)
             if not res["authorized"]:
                 return [_msg(chat_id, t("ru", "unknown_cmd"), lang="ru")]
-            out = [Outgoing(kind="message", chat_id=chat_id,
-                            html=f"<pre>{html.escape(res['reply'] or '', quote=False)}</pre>")]
+            # Telegram caps a message at 4096 characters; /admin_stats grows with the weeks
+            out = [Outgoing(kind="message", chat_id=chat_id, html=f"<pre>{html.escape(part, quote=False)}</pre>")
+                   for part in owner_parts(res["reply"] or "")]
             if res["broadcast"]:
                 out += [_msg(c, res["broadcast"], lang="ru") for c in await conn.active_user_chats()]
             for item in res.get("direct") or []:
@@ -233,6 +234,10 @@ class BetaBotHandler:
             from beta.research_link import format_research
             return await self._reply(conn, user, chat_id, lang, now, "cmd_research",
                                      [_msg(chat_id, part, lang=lang) for part in format_research(lang)])
+        if cmd == "check":
+            text, buttons = await self._check_cmd(conn, now, lang, args)
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_check",
+                                     [_msg(chat_id, text, buttons, lang=lang)])
         if cmd in ("levels", "risk", "alert", "events", "accuracy"):
             reply = await self._decision_cmd(conn, cmd, user, now, lang, args)
             return await self._reply(conn, user, chat_id, lang, now, f"cmd_{cmd}",
@@ -369,19 +374,32 @@ class BetaBotHandler:
         view = await self._view(conn, now, kind="catchup", window_hours=hours)
         text = format_catchup(self.cfg, view, lang, push_enabled=push_enabled)
         view_pk = await persist_view(conn, view, now=now, text=text, lang=lang, kind="catchup")
+        await self._shown(conn, "catchup", view.get("decision"), now, view_pk=view_pk, market=view.get("market"))
         return text, btc_buttons(view, lang, view_pk)
+
+    async def _shown(self, conn, surface: str, block, now: datetime, *, view_pk: Optional[int] = None,
+                     market=None) -> None:
+        """Link the journaled claims this reply printed (docs/BETA_CLAIM_JOURNAL_DESIGN_V1.md; no user id).
+        Best-effort in a savepoint: it never changes or fails the reply."""
+        if not self.cfg.section("decision").get("claim_journal"):
+            return
+        from beta.claims import record_displays, shown_keys
+        await record_displays(conn, surface=surface, now=now, view_pk=view_pk,
+                              shown=shown_keys(surface, block, market=market))
 
     # ---- decision support (PRODUCT_DECISION_V2) ------------------------------------------
     _PUSH_PREFS = {"levels": "push_levels", "level": "push_levels", "уровни": "push_levels",
                    "events": "push_events", "event": "push_events", "события": "push_events",
                    "moves": "push_moves", "move": "push_moves", "движения": "push_moves",
-                   "hour": "push_hours", "hours": "push_hours", "час": "push_hours"}
+                   "hour": "push_hours", "hours": "push_hours", "час": "push_hours",
+                   "weekly": "push_weekly", "week": "push_weekly", "неделя": "push_weekly", "итоги": "push_weekly"}
 
     def _push_status(self, user, lang: str) -> str:
         word = lambda v: t(lang, "on_word" if v else "off_word")  # noqa: E731
         text = t(lang, "push_status", master=word(user.get("push_enabled", True)),
                  levels=word(user.get("push_levels", True)), events=word(user.get("push_events", True)),
-                 moves=word(user.get("push_moves", True)), hours=word(user.get("push_hours", True)))
+                 moves=word(user.get("push_moves", True)), hours=word(user.get("push_hours", True)),
+                 weekly=word(user.get("push_weekly", True)))
         if not user.get("push_enabled", True):
             # the categories are kept as they are, not reset; say so right under the master line
             head, _, rest = text.partition("\n")
@@ -414,24 +432,52 @@ class BetaBotHandler:
             return df.format_events(evs, lang, funding_utc=(cal["recurring"].get("funding_utc") or ()))
         if cmd == "accuracy":
             from datetime import timedelta
+            from beta.calendar_events import event_times_ms, load_calendar
+            from beta.rangecast import EVENT_KINDS
             stats = await latest_stats(conn, now=now)
             live = await conn.forecast_accuracy(since=now - timedelta(days=30))
-            return df.format_accuracy((stats or {}).get("range_model"), live, lang)
+            rows = await conn.forecast_rows(since=now - timedelta(days=max(df.ACCURACY_WINDOWS_DAYS)))
+            evs = event_times_ms(load_calendar())
+            detail = df.corridor_accuracy(rows, now=now, events_ms=[x for k in EVENT_KINDS for x in evs.get(k, ())])
+            from beta.claims import TOUCH_LIVE_COMPONENT
+            touch_live = ((await conn.fetch_health()).get(TOUCH_LIVE_COMPONENT) or {}).get("detail")
+            return df.format_accuracy((stats or {}).get("range_model"), live, lang, detail=detail,
+                                      touch_live=touch_live)
         regime = None
         if effective_d7_enabled(self.cfg, await conn.get_admin_d7_enabled()):
             from beta.regime_d7 import regime_for_status
             regime = await regime_for_status(conn, now=now, product_status="")
         block = await build_decision(conn, self.cfg, now=now, regime=regime)
         if cmd == "levels":
-            return df.format_levels(block, lang, now=now)
+            text = df.format_levels(block, lang, now=now)
+            await self._shown(conn, "levels", block, now)
+            return text
         if cmd == "risk":
             mode, val = df.parse_risk_arg(args, block.get("price"))
             if mode == "bad":
                 return t(lang, "rk_usage")
             stats = await latest_stats(conn, now=now)
-            return df.format_risk(block, (stats or {}).get("range_model"), lang,
+            text = df.format_risk(block, (stats or {}).get("range_model"), lang,
                                   stop_pct=val if mode == "pct" else None)
+            if mode != "pct":                     # the table prints the journal's distance grid
+                await self._shown(conn, "risk", block, now)
+            return text
         return await self._alert_cmd(conn, user, now, lang, args, block)
+
+    async def _check_cmd(self, conn, now: datetime, lang: str, args) -> tuple:
+        """/check (PRE_BETA_SCOPE_DECISION_V1 §5): one or two levels; «Следить» under the reply."""
+        from beta.check import check_buttons, format_check, parse_check_args
+        from beta.decision import build_decision, latest_stats
+        block = await build_decision(conn, self.cfg, now=now)
+        levels, err = parse_check_args(args, block.get("price") if block.get("available") else None)
+        if err == "al_no_price" and not block.get("available"):
+            from beta import decision_format as df
+            return df.unavailable_line(block, lang) or t(lang, "al_no_price"), None
+        if err:
+            price = block.get("price")
+            return t(lang, err, now=fmt_price(price, lang) if price else ""), None
+        stats = await latest_stats(conn, now=now)
+        return format_check(block, stats, levels, lang, now=now), check_buttons(levels, lang)
 
     async def _alert_cmd(self, conn, user, now: datetime, lang: str, args, block) -> str:
         from beta import decision_format as df
@@ -617,6 +663,21 @@ class BetaBotHandler:
         if data == OTHER_ASSETS:                            # U5 fake door: one activity row per tap
             return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_other_assets",
                                      [answer(""), _msg(chat_id, t(lang, "other_assets_reply"), lang=lang)])
+        if data[:2] in ("w:", "k:"):
+            from beta.check import parse_level_callback
+            level = parse_level_callback(data)
+            if level is None:
+                return [answer(t(lang, "not_available"))]
+            now = self.clock()
+            if data[0] == "k":                       # «🎯 Проверить» under a push or the briefing
+                text, buttons = await self._check_cmd(conn, now, lang, f"{level:.2f}")
+                return await self._reply(conn, user, chat_id, lang, now, "btn_check",
+                                         [answer(""), _msg(chat_id, text, buttons, lang=lang)])
+            from beta.decision import build_decision     # «🔔 Следить» under /check: a personal alert
+            block = await build_decision(conn, self.cfg, now=now)
+            reply = await self._alert_cmd(conn, user, now, lang, f"{level:.2f}", block)
+            return await self._reply(conn, user, chat_id, lang, now, "btn_watch",
+                                     [answer(""), _msg(chat_id, reply, lang=lang)])
         if data in ("L:levels", "L:risk"):
             cmd = data[2:]
             reply = await self._decision_cmd(conn, cmd, user, self.clock(), lang, "")

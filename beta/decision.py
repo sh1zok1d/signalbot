@@ -57,7 +57,8 @@ async def latest_stats(conn, *, now: datetime) -> Optional[dict]:
         row = await conn.fetch_latest_hist_stats()
         _cache["pk"] = row["stats_pk"]
         _cache["payload"] = {**row["payload"], "_stats_pk": row["stats_pk"],
-                             "_built_at": row["built_at"].isoformat()}
+                             "_built_at": row["built_at"].isoformat(),
+                             "_payload_digest": row.get("payload_digest")}
     return _cache["payload"]
 
 
@@ -187,7 +188,9 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
         cal_rep = model.get("calibration") or {}
         block["corridor"]["holdout"] = {h: {"coverage_realized": c.get("coverage_realized"),
                                             "n_days": c.get("n_days"), "from_ms": c.get("holdout_from_ms"),
-                                            "to_ms": c.get("holdout_to_ms")} for h, c in cal_rep.items()}
+                                            "to_ms": c.get("holdout_to_ms"), "touch_bins": c.get("touch_bins"),
+                                            "neither_bins": c.get("neither_bins")}
+                                        for h, c in cal_rep.items()}
     from .levels import LIQ_VENUES
     liq = await conn.fetch_liquidations(symbol=cfg.symbol, exchanges=[e for e in cfg.exchanges if e in LIQ_VENUES],
                                         start=now - timedelta(hours=24), end=now)
@@ -215,6 +218,16 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
         card = lookup(ana, w, res.get("key"))
         if card is not None:
             block["analogues"][w] = card
+    # live calibration of the touch chances, refreshed hourly by the notifier (beta.claims)
+    fh = getattr(conn, "fetch_health", None)
+    if fh is not None:
+        from .claims import TOUCH_LIVE_COMPONENT
+        live = ((await fh()).get(TOUCH_LIVE_COMPONENT) or {}).get("detail")
+        if live:
+            block["touch_live"] = {"horizons": live.get("horizons") or {}, "diverged": live.get("diverged") or {},
+                                   "neither": live.get("neither") or {},
+                                   "diverged_neither": live.get("diverged_neither") or {},
+                                   "computed_at": live.get("computed_at")}
     from .i18n import kyiv
     block["weekend"] = kyiv(now).weekday() >= 5
     block["available"] = True

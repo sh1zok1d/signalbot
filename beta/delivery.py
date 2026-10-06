@@ -8,6 +8,7 @@ past the TTL become EXPIRED_UNDELIVERED; they stay visible in history.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Protocol, Sequence
 
@@ -138,6 +139,12 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             except Exception as exc:  # noqa: BLE001 - decision support never stops the outbox
                 report["market_error"] = type(exc).__name__
             report["briefs"] = await run_due_briefs(conn, cfg, sender=sender, clock=clock, push_on=push_on)
+            try:
+                from .weekly import run_due_weekly
+                report["weekly"] = await run_due_weekly(conn, cfg, sender=sender, clock=clock, push_on=push_on,
+                                                        owner_user_id=owner_user_id)
+            except Exception as exc:  # noqa: BLE001 - the weekly report never stops the outbox
+                report["weekly_error"] = type(exc).__name__
             # this run is itself the notifier heartbeat (recorded before evaluating alerts)
             await conn.record_health("notifier", now=clock(), success=True)
             # owner health alerts (operational; owner only; rate-limited per key)
@@ -302,4 +309,24 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
         if row.get("user_pk") is not None:
             await conn.record_activity(user_pk=row["user_pk"], action="brief_delivered", lang=lang, at=sent_at)
         out["sent"] += 1
+        await _link_brief_claims(conn, cfg, row["view_pk"], payload, sent_at=sent_at)
     return out
+
+
+async def _link_brief_claims(conn, cfg: BetaConfig, view_pk: int, payload: Mapping[str, Any], *,
+                             sent_at: datetime) -> None:
+    """The brief's claims count as shown once a participant actually received it: after the first SENT
+    row of the view, never at scheduling (a withdrawal day or a paused bot shows nothing). Best-effort:
+    the journal never stops the remaining sends."""
+    if not cfg.section("decision").get("claim_journal") or not payload.get("requested_at"):
+        return
+    try:
+        if await conn.view_has_claim_displays(view_pk):
+            return
+        from .claims import record_displays, shown_keys
+        built = datetime.fromisoformat(payload["requested_at"]).astimezone(timezone.utc)
+        await record_displays(conn, surface="brief", now=sent_at, view_pk=view_pk,
+                              slot=built.replace(minute=0, second=0, microsecond=0),
+                              shown=shown_keys("brief", payload.get("decision"), market=payload.get("market")))
+    except Exception as exc:  # noqa: BLE001 - the journal never breaks a delivery run
+        logging.getLogger("beta.delivery").warning("brief display link failed: %s", type(exc).__name__)

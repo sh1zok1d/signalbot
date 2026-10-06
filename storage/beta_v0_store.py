@@ -215,11 +215,11 @@ class BetaConn:
 
     async def fetch_latest_context_state(self, *, symbol: str, episodization_digest: str):
         r = await self.conn.fetchrow(
-            """SELECT bucket_ts, state, state_digest FROM beta_context_snapshots
+            """SELECT context_pk, bucket_ts, state, state_digest FROM beta_context_snapshots
                WHERE symbol=$1 AND episodization_digest=$2 ORDER BY bucket_ts DESC LIMIT 1""",
             symbol, episodization_digest)
         return None if r is None else {"bucket_ts": r["bucket_ts"], "state": _load(r["state"]),
-                                       "state_digest": r["state_digest"]}
+                                       "state_digest": r["state_digest"], "context_pk": r["context_pk"]}
 
     async def insert_btc_view(self, *, requested_at: datetime, as_of_bucket: Optional[datetime],
                               context_state_digest: Optional[str], episodization_version: Optional[str],
@@ -733,6 +733,68 @@ class BetaConn:
                ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
         return [dict(r) for r in rows]
 
+    # ---- weekly report rows in the same outbox (kind = 'weekly'; backlog B4) ----------
+    async def weekly_report_pk(self, week_end) -> Optional[int]:
+        return await self.conn.fetchval("SELECT weekly_pk FROM beta_weekly_reports WHERE week_end=$1", week_end)
+
+    async def insert_weekly_report(self, *, week_end, built_at: datetime, payload: Mapping[str, Any],
+                                   payload_digest: str) -> Optional[int]:
+        """None when the week already has its report (append-only, one per week)."""
+        return await self.conn.fetchval(
+            """INSERT INTO beta_weekly_reports (week_end, built_at, payload, payload_digest)
+               VALUES ($1,$2,$3::jsonb,$4) ON CONFLICT (week_end) DO NOTHING RETURNING weekly_pk""",
+            week_end, built_at, _j(payload), payload_digest)
+
+    async def materialize_weekly_deliveries(self, *, weekly_pk: int, decision_ts: datetime) -> int:
+        """One PENDING row per ACTIVE participant with messages on and the weekly type on."""
+        status = await self.conn.execute(
+            """INSERT INTO beta_notification_deliveries (kind, weekly_pk, user_pk, state, decision_ts)
+               SELECT 'weekly', $1, u.user_pk, 'PENDING', $2
+               FROM beta_users u WHERE u.status='ACTIVE' AND u.push_enabled AND u.push_weekly
+               ON CONFLICT (weekly_pk, user_pk) WHERE kind='weekly' DO NOTHING""",
+            weekly_pk, decision_ts)
+        return int(status.split()[-1])
+
+    async def fetch_pending_weekly_deliveries(self, limit: int) -> list:
+        rows = await self.conn.fetch(
+            """SELECT x.delivery_id, x.weekly_pk, x.user_pk, x.decision_ts, w.payload,
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.push_enabled, u.push_weekly
+               FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
+               JOIN beta_weekly_reports w ON w.weekly_pk = x.weekly_pk
+               WHERE x.state='PENDING' AND x.kind='weekly'
+               ORDER BY x.decision_ts, x.delivery_id LIMIT $1""", limit)
+        return [{**dict(r), "payload": _load(r["payload"])} for r in rows]
+
+    async def long_short_summary(self, *, as_of: datetime) -> Optional[dict]:
+        """Binance's long/short account ratio from the research feed (backlog G2): the latest value at most
+        15 minutes before `as_of`, and the median of the means of the 30 prior 24h windows before the
+        current one (a window counts with at least 144 of its 288 values). None without a recent value."""
+        now_row = await self.conn.fetchrow(
+            """SELECT ts, ls_account_ratio FROM beta_feed_metrics_5m
+               WHERE ts <= $1::timestamptz AND ts > $1::timestamptz - interval '15 minutes'
+                 AND ls_account_ratio IS NOT NULL
+               ORDER BY ts DESC LIMIT 1""", as_of)
+        if now_row is None:
+            return None
+        days = await self.conn.fetch(
+            """SELECT avg(ls_account_ratio) AS m FROM beta_feed_metrics_5m
+               WHERE ts > $1::timestamptz - interval '31 days' AND ts <= $1::timestamptz - interval '1 day'
+                 AND ls_account_ratio IS NOT NULL
+               GROUP BY floor(extract(epoch FROM $1::timestamptz - ts) / 86400) HAVING count(*) >= 144""", as_of)
+        means = sorted(float(r["m"]) for r in days)
+        n = len(means)
+        med = None if n < 20 else (means[n // 2] if n % 2 else (means[n // 2 - 1] + means[n // 2]) / 2)
+        return {"ratio": float(now_row["ls_account_ratio"]), "at": now_row["ts"].isoformat(),
+                "typical": med, "n_days": n}
+
+    async def market_alert_counts(self, *, since: datetime, until: datetime) -> dict:
+        """Market alerts the policy let through (decision PUSH) by kind; personal alerts excluded."""
+        rows = await self.conn.fetch(
+            """SELECT kind, count(*) AS n FROM beta_market_alerts
+               WHERE decision='PUSH' AND kind <> 'price' AND decision_ts >= $1 AND decision_ts < $2
+               GROUP BY kind""", since, until)
+        return {r["kind"]: int(r["n"]) for r in rows}
+
     async def set_push_enabled(self, telegram_user_id: int, enabled: bool) -> bool:
         status = await self.conn.execute(
             "UPDATE beta_users SET push_enabled=$2, updated_at=now() WHERE telegram_user_id=$1",
@@ -800,7 +862,7 @@ class BetaConn:
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
                       invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact,
-                      push_levels, push_events, push_moves, push_hours
+                      push_levels, push_events, push_moves, push_hours, push_weekly
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
@@ -1091,11 +1153,16 @@ class BetaConn:
     async def usage_facts(self) -> dict:
         """Rows the usage report aggregates. The return value still has ids;
         only build_usage_report's result is shown to the owner."""
+        # trader_type: the onboarding answer once backlog E5 adds the column; NULL until then
         users = await self.conn.fetch(
-            """SELECT user_pk, telegram_user_id, status, lang, joined_at, invite_code
-               FROM beta_users""")
+            """SELECT user_pk, telegram_user_id, status, lang, joined_at, invite_code, known_contact,
+                      to_jsonb(u) ->> 'trader_type' AS trader_type
+               FROM beta_users u""")
         activity = await self.conn.fetch(
-            "SELECT user_pk, action, at FROM beta_user_activity")
+            "SELECT user_pk, action, detail, at FROM beta_user_activity")
+        # votes exist on unusual-hour pushes only (episodes); other types join with backlog F6
+        votes = await self.conn.fetch(
+            "SELECT user_pk, 'hour' AS kind, vote, updated_at AS at FROM beta_feedback")
         invites = await self.conn.fetch("SELECT code, label FROM beta_invites")
         deletions = await self.conn.fetch(
             """SELECT recorded_at FROM beta_admin_audit
@@ -1107,6 +1174,7 @@ class BetaConn:
         wait = int(await self.conn.fetchval("SELECT count(*) FROM beta_waitlist"))
         return {"users": [dict(r) for r in users],
                 "activity": [dict(r) for r in activity],
+                "votes": [dict(r) for r in votes],
                 "invites": [dict(r) for r in invites],
                 "deletions": [r["recorded_at"] for r in deletions],
                 "rejected_hashes": [dict(r) for r in hashes],
@@ -1594,14 +1662,134 @@ class BetaConn:
                WHERE forecast_pk=$1 AND outcome IS NULL""", forecast_pk, outcome, high, low, now)
 
     async def forecast_accuracy(self, *, since: datetime) -> dict:
+        """{horizon: {outcome: count, 'N_EFF': non-overlapping windows}}. Forecasts are issued
+        hourly, so 4h and 24h windows overlap; `N_EFF` counts the distinct UTC-aligned slots of
+        one horizon length that hold a scored (INSIDE / OUTSIDE) forecast."""
         rows = await self.conn.fetch(
-            """SELECT horizon, outcome, count(*) AS n, count(DISTINCT issued_at::date) AS days
+            """SELECT horizon, outcome, count(*) AS n
                FROM beta_forecasts WHERE issued_at >= $1 AND outcome IS NOT NULL
                GROUP BY horizon, outcome""", since)
         out: dict = {}
         for r in rows:
             out.setdefault(r["horizon"], {})[r["outcome"]] = int(r["n"])
+        eff = await self.conn.fetch(
+            """SELECT horizon, count(DISTINCT floor(extract(epoch FROM issued_at) /
+                         CASE horizon WHEN '1h' THEN 3600 WHEN '4h' THEN 14400 ELSE 86400 END)) AS n_eff
+               FROM beta_forecasts WHERE issued_at >= $1 AND outcome IN ('INSIDE', 'OUTSIDE')
+               GROUP BY horizon""", since)
+        for r in eff:
+            out.setdefault(r["horizon"], {})["N_EFF"] = int(r["n_eff"])
         return out
+
+    # ------------------------------------------------------- claim journal (append-only)
+    async def insert_claim(self, row: Mapping[str, Any]) -> Optional[int]:
+        """One claim; None when (class, subject, slot) is already journaled (idempotent writer)."""
+        return await self.conn.fetchval(
+            """INSERT INTO beta_claims (claim_class, level, issued_at, issue_slot, as_of, context_pk, stats_pk,
+                   stats_digest, subject, subject_key, numbers, rule_version, template_id, template_digest,
+                   eval_rule_id, eval_rule, eval_rule_digest, horizon_end, eligible_reason, claim_digest)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11::jsonb,$12,$13,$14,$15,$16::jsonb,$17,$18,$19,$20)
+               ON CONFLICT (claim_class, subject_key, issue_slot) DO NOTHING RETURNING claim_pk""",
+            row["claim_class"], row["level"], row["issued_at"], row["issue_slot"], row["as_of"],
+            row.get("context_pk"), row.get("stats_pk"), row.get("stats_digest"), _j(row["subject"]),
+            row["subject_key"], _j(row["numbers"]), row["rule_version"], row["template_id"],
+            row["template_digest"], row["eval_rule_id"], _j(row["eval_rule"]), row["eval_rule_digest"],
+            row["horizon_end"], row["eligible_reason"], row["claim_digest"])
+
+    async def fetch_due_claims(self, *, now: datetime, limit: int = 500) -> list:
+        """Claims whose horizon has passed and that have no outcome yet, oldest first."""
+        rows = await self.conn.fetch(
+            """SELECT c.claim_pk, c.claim_class, c.as_of, c.issue_slot, c.horizon_end, c.subject, c.numbers,
+                      c.eval_rule, c.eval_rule_digest
+               FROM beta_claims c
+               WHERE c.horizon_end <= $1
+                 AND NOT EXISTS (SELECT 1 FROM beta_claim_outcomes o WHERE o.claim_pk = c.claim_pk)
+               ORDER BY c.horizon_end, c.claim_pk LIMIT $2""", now, limit)
+        return [{**dict(r), "subject": _load(r["subject"]), "numbers": _load(r["numbers"]),
+                 "eval_rule": _load(r["eval_rule"])} for r in rows]
+
+    async def insert_claim_outcome(self, *, claim_pk: int, eval_rule_digest: str, status: str,
+                                   realized: Mapping[str, Any], computed_at: datetime, outcome_digest: str,
+                                   revision: int = 1, supersedes_outcome_pk: Optional[int] = None,
+                                   correction_note: Optional[str] = None) -> Optional[int]:
+        return await self.conn.fetchval(
+            """INSERT INTO beta_claim_outcomes (claim_pk, eval_rule_digest, revision, supersedes_outcome_pk,
+                   status, realized, computed_at, outcome_digest, correction_note)
+               VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9)
+               ON CONFLICT (claim_pk, revision) DO NOTHING RETURNING outcome_pk""",
+            claim_pk, eval_rule_digest, revision, supersedes_outcome_pk, status, _j(realized), computed_at,
+            outcome_digest, correction_note)
+
+    async def fetch_slot_claims(self, *, issue_slot: datetime, classes: Sequence[str]) -> list:
+        rows = await self.conn.fetch(
+            """SELECT claim_pk, claim_class, subject_key FROM beta_claims
+               WHERE issue_slot = $1 AND claim_class = ANY($2::text[])""", issue_slot, list(classes))
+        return [dict(r) for r in rows]
+
+    async def view_has_claim_displays(self, view_pk: int) -> bool:
+        return bool(await self.conn.fetchval(
+            "SELECT EXISTS (SELECT 1 FROM beta_claim_displays WHERE view_pk=$1)", view_pk))
+
+    async def insert_claim_displays(self, rows: Sequence[Mapping[str, Any]]) -> int:
+        n = 0
+        for r in rows:
+            await self.conn.execute(
+                """INSERT INTO beta_claim_displays (claim_pk, surface, view_pk, alert_pk, shown_at)
+                   VALUES ($1,$2,$3,$4,$5)""",
+                r["claim_pk"], r["surface"], r.get("view_pk"), r.get("alert_pk"), r["shown_at"])
+            n += 1
+        return n
+
+    async def touch_claim_cells(self, *, since: datetime, classes: Sequence[str]) -> list:
+        """Scored L3 touch claims aggregated by (class, probability bin, UTC day, horizon slot):
+        count, touches and the sum of stated chances (the live calibration of the «B» wording)."""
+        rows = await self.conn.fetch(
+            """SELECT c.claim_class,
+                      width_bucket((c.numbers->>'probability')::float8,
+                                   ARRAY[0.05, 0.15, 0.3, 0.5, 0.7, 0.85]::float8[]) AS bin,
+                      floor(extract(epoch FROM c.as_of) / 86400)::bigint AS day,
+                      -- the class suffix is the horizon: _1H, _4H or _24H (a 2-character suffix would
+                      -- read _24H as 4H and split 24h claims into 4h slots)
+                      floor(extract(epoch FROM c.as_of) /
+                            ((regexp_match(c.claim_class, '_(1|4|24)H$'))[1]::int * 3600))::bigint AS slot,
+                      count(*) AS n,
+                      sum((COALESCE(o.realized->>'touched', o.realized->>'neither')::boolean)::int) AS hits,
+                      sum((c.numbers->>'probability')::float8) AS psum
+               FROM beta_claims c
+               JOIN LATERAL (SELECT status, realized FROM beta_claim_outcomes x WHERE x.claim_pk = c.claim_pk
+                             ORDER BY x.revision DESC LIMIT 1) o ON o.status = 'COMPLETE'
+               WHERE c.as_of >= $1 AND c.claim_class = ANY($2::text[])
+               GROUP BY 1, 2, 3, 4""", since, list(classes))
+        return [dict(r) for r in rows]
+
+    async def market_alert_pk(self, alert_key: str) -> Optional[int]:
+        return await self.conn.fetchval("SELECT alert_pk FROM beta_market_alerts WHERE alert_key=$1", alert_key)
+
+    async def fetch_claim_cohort(self, *, since: Optional[datetime] = None,
+                                 classes: Optional[Sequence[str]] = None) -> list:
+        """Claims with their newest outcome revision (if any) and whether any surface showed them."""
+        rows = await self.conn.fetch(
+            """SELECT c.claim_pk, c.claim_class, c.level, c.issue_slot, c.as_of, c.horizon_end, c.subject,
+                      c.subject_key, c.numbers, c.rule_version, c.template_digest, c.eval_rule_digest,
+                      c.eligible_reason, o.status, o.realized,
+                      EXISTS (SELECT 1 FROM beta_claim_displays d WHERE d.claim_pk = c.claim_pk) AS shown
+               FROM beta_claims c
+               LEFT JOIN LATERAL (SELECT status, realized FROM beta_claim_outcomes x
+                                  WHERE x.claim_pk = c.claim_pk ORDER BY x.revision DESC LIMIT 1) o ON TRUE
+               WHERE ($1::timestamptz IS NULL OR c.issue_slot >= $1)
+                 AND ($2::text[] IS NULL OR c.claim_class = ANY($2::text[]))
+               ORDER BY c.claim_class, c.issue_slot, c.claim_pk""",
+            since, list(classes) if classes is not None else None)
+        return [{**dict(r), "subject": _load(r["subject"]), "numbers": _load(r["numbers"]),
+                 "realized": _load(r["realized"]) if r["realized"] is not None else None} for r in rows]
+
+    async def forecast_rows(self, *, since: datetime) -> list:
+        """Scored corridor forecasts (INSIDE / OUTSIDE) since `since`, for the /accuracy breakdown."""
+        rows = await self.conn.fetch(
+            """SELECT horizon, issued_at, anchor_price, lower, upper, outcome, realized_high, realized_low
+               FROM beta_forecasts WHERE issued_at >= $1 AND outcome IN ('INSIDE', 'OUTSIDE')
+               ORDER BY issued_at""", since)
+        return [dict(r) for r in rows]
 
     # ---------------------------------------------------------------- market alerts
     async def insert_market_alert(self, *, kind: str, alert_key: str, decision_ts: datetime,
@@ -1728,7 +1916,7 @@ class BetaConn:
             price_alert_pk, at)
         return status == "UPDATE 1"
 
-    _PUSH_PREFS = ("push_enabled", "push_levels", "push_events", "push_moves", "push_hours")
+    _PUSH_PREFS = ("push_enabled", "push_levels", "push_events", "push_moves", "push_hours", "push_weekly")
 
     async def set_push_pref(self, telegram_user_id: int, field: str, enabled: bool) -> bool:
         if field not in self._PUSH_PREFS:
