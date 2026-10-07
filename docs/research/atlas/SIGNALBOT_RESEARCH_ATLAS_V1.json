@@ -752,7 +752,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
-    "CLOSED_ON_SURFACE": 5,
+    "CLOSED_ON_SURFACE": 6,
     "EXPOSED_ONLY": 1,
     "INFORMATIONALLY_WEAK": 1,
     "LIVE_SIGNAL": 2,
@@ -777,6 +777,7 @@
     "GV0R01-C017",
     "LEVEL-APPROACH-STATE-DISCOVERY-V1",
     "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1",
+    "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1",
     "LEVEL-POSITIONING-FLOW-DISCOVERY-V1",
     "LEVEL-REJECTION-MEMORY-V1",
     "LEVEL-STRUCTURE-DISCOVERY-V1",
@@ -10163,14 +10164,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 355
   },
-  "units": 194,
+  "units": 195,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 18,
+   "CLOSED_ON_SURFACE": 19,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 11,
    "FUTURE_NATURAL_ACCUMULATION": 3,
@@ -15572,7 +15573,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "707cc5f951aa1cf92dbafbb053fd7aba57cb3aa39f4617a67c225b745c15cfed",
+ "SOURCES_DIGEST": "edd1f136ab5b3e0b7101ddba575671959bc8dcaf8f1299915697e81a5301e0cf",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15754,6 +15755,14 @@
       "status": "CONSUMED"
      },
      {
+      "note": "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1 one-shot (outcome-blind joint state of OI, taker flow and approach-oriented price progress -> first-touch resolution), 2026-10-07; further exposure, not a confirmation and not a reopen of FLOW.absorption",
+      "period": "2020-09..2024-12",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
       "note": "TOM-BASELINE-V1 product-evidence run (turn-of-month vs mid-month label rates and day-level volume / trade count / range), 2026-10-06; first turn-of-month contrast computed on this surface",
       "period": "2020-2024",
       "rows": [
@@ -15918,6 +15927,14 @@
      },
      {
       "note": "LEVEL-POSITIONING-FLOW-DISCOVERY-V1 read sum_open_interest only, as a covariate of first-touch resolution type, not as an oi_buildup continuation; funding.jsonl never opened; B2-06 crowding remains unauthorized; research_authorized remains false",
+      "period": "2020-09..2024-12",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1 read sum_open_interest only, as one coordinate of an outcome-blind first-touch state; funding.jsonl never opened; B2-06 crowding remains unauthorized",
       "period": "2020-09..2024-12",
       "rows": [
        "PRICE_STRUCTURE.levels"
@@ -21678,6 +21695,38 @@
    "units_n": "548 analysis pairs after dropping 10 ambiguous pairs from 558 availability-matched pairs; 119 product weeks; ambiguous labels 4 real and 7 pseudo",
    "verdict": "EXECUTED ONCE (2026-10-07). Evidence label REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE. Δ_resolution = +8.0 pp (95% +4.4..+11.8), N=548, 119 weeks. Real resolution rate 91.1%, pseudo 83.0%. Discordant pairs 80 versus 36. All three epoch points are positive and each leave-one-epoch-out point stays positive. L2 replicated historical mechanism. Not L3. PRODUCT_INTEGRATION_CANDIDATE = YES. Product files were not changed.",
    "why_closed": "One confirmation run on the time-disjoint BitMEX surface. The surface is now consumed for this resolution contrast. No horizon, barrier, zone, rotation or level type was added after the outcome. No product integration was performed. No successor was started."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0"
+   ],
+   "forbidden": "rescoring this partition; naming a state absorption, buildup or a squeeze; a flow-by-price product or ratio; splitting a state after the outcome; funding, liquidations or the order book; stating a historical frequency as a current probability; product integration",
+   "function": "robust-scaled KMeans, K chosen from {3,4,5,6} on predictors only; selected K=3; state versus the other states in a linear probability model; nuisance is family, side, year, volatility tercile, UTC block and relative quote volume; pseudo rows are assigned to the frozen real centroids",
+   "id": "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1",
+   "mechanism": "MODE=DISCOVERY. Which outcome-blind joint configurations of open interest, aggressive flow and approach-oriented price progress, immediately before the first touch of a pre-known structural BTC level, differ in historical 4h resolution and in BREAK versus REJECT among resolved touches. Not a test of absorption, not a product of flow and return, and not a rescue of the univariate slopes in LEVEL-POSITIONING-FLOW-DISCOVERY-V1.",
+   "note": "MODE=DISCOVERY. Design note 59361e92 before any state-conditioned resolution rate. Dependencies #352 dfc9e0f0 through #358 e6e5f307. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to the univariate positioning-flow cell and to B2-05.",
+   "period": "2020-09-01T01:05Z..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars and the OI leg of B2_06; sum_open_interest only; funding never opened; no 2025/2026, no E1 holdout",
+   "practical_bar": "3 pp on the state-versus-rest probability difference is the predeclared successor scale. It is not a per-SD slope and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the 6 primary cells only.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_DESIGN.md",
+    "docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_PREFLIGHT.json",
+    "docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_RESULT.md",
+    "docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_RESULT.json",
+    "scripts/research/level_flow_response_state_discovery_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A new mechanism, or a predeclared confirmation on a time-disjoint surface, with its own design note and owner go. Not a retune of K, the scaler, the centroids, the 60m window, the FDR threshold or the 3 pp scale. Not 2025/2026.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1",
+   "units_n": "1688 predictor-complete first touches; RESOLVE_4H N=1679; BREAK_GIVEN_RESOLVED N=1513; state counts 186/1174/319 on the labeled map; 227 week clusters",
+   "verdict": "EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_JOINT_STATE_STRUCTURE. No primary cell passes the frozen conjunction. Nearest cells: STATE_1 to RESOLVE_4H +3.33 pp (95% -1.18..+7.53, q=0.354, N=1679, n_state=186) and STATE_3 to BREAK_GIVEN_RESOLVED +5.37 pp (95% -1.08..+11.93, q=0.354, N=1513, n_state=292). Both intervals include 0. Stacked real-minus-pseudo intervals that exclude 0 are not candidates because the real conjunction failed. L2 family statement. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "One discovery run. The joint partition was frozen before outcomes and does not separate resolution beyond the predeclared rule. Further exposure of PRICE_STRUCTURE.levels and of the OI half, not a confirmation and not a reopen of FLOW.absorption or FLOW.taker_imbalance. No product change. No split, ratio or confirmation was started."
   },
   {
    "col": "CANDLES",

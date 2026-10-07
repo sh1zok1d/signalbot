@@ -8285,3 +8285,23 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-07 — LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1 executed once; discovery; no incremental joint-state structure; not integrated
+
+**Unit.** `LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1` (atlas `LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. A selected state would have been discovery-only; none was selected. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #358 `e6e5f307cfa098db607544a556bae01a2310eb6a`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. Design note `59361e92bf2e2e49507ae59e4d34b41801ff6739` before any state-conditioned resolution rate. K, the scaler, the centroids, the window, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is a joint predictor configuration at a structural first touch. It is not H05 (taker imbalance to subsequent return) and not B2-05 (`ABS_IMB * FLOW_RET` on a generic 15m grid to a subsequent return). Open interest is required. Price progress is oriented by the approach side and is not multiplied by flow. Atlas row `PRICE_STRUCTURE.levels`.
+- **Partition, before outcomes.** Robust-z KMeans on 1688 predictor-complete first touches. K=3 selected (silhouette 0.270, median ARI 0.892). K=4 failed the ARI gate. K=6 failed the minimum size. K=5 was eligible and lost on silhouette. Training counts 190 / 1178 / 320. Pseudo rows were assigned to the frozen centroids (1074) and did not enter the fit.
+- **Primary.** Six state-versus-rest contrasts, q=0.10, scale 3 pp. None passes. STATE_1 → RESOLVE_4H is +3.33 pp (95% −1.18..+7.53, q=0.354, n_state=186): the point clears 3 pp and the epoch and leave-one-year-out signs agree, and the interval includes 0. STATE_3 → BREAK given resolved is +5.37 pp (95% −1.08..+11.93, q=0.354, n_state=292); the 2020Q4 point has the opposite sign. The bars were not loosened.
+- **Specificity.** Three stacked intervals exclude 0, including STATE_1 → BREAK −17.6 pp, where the pseudo-only coefficient is +14.8 pp. They are not candidates. The real-cohort conjunction failed.
+- **Routing.** `NO_INCREMENTAL_JOINT_STATE_STRUCTURE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. A historical frequency in this cohort. Not a current probability. Not an absorption story.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No product change.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-09-01..2024-12-31, joint pre-touch OI/taker/price-progress state into first-touch resolution (further exposure, not a confirmation)
+WINDOWS_CONSUMED = B2_06 OI leg only, sum_open_interest, same window, one coordinate of that state; funding.jsonl not opened; B2-06 crowding still unauthorized
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```

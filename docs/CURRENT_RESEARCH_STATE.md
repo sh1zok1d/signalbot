@@ -1,3 +1,20 @@
+## LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1 (atlas LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 59361e92 before any state-conditioned resolution rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected state would be DISCOVERY_ONLY and none was selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = not H05 and not B2-05 | population is the structural first touch | OI is required | no IMPACT_INTERACTION | price progress oriented by approach side | outcome is resolution type | states fit before labels`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | OI snapshot 5a9d036b, oi.jsonl c4744a93, sum_open_interest only | funding not opened | events [2020-09-01T01:05Z, 2025-01-01)`
+`PARTITION = robust-z KMeans | K grid 3/4/5/6 | selected K=3 | silhouette 0.270 | median ARI 0.892 | training N=1688 | STATE_1/2/3 = 190/1178/320 | pseudo assigned to frozen centroids, 1074 rows`
+`ESTIMAND = adjusted P(Y|state) - P(Y|other states) | O1 RESOLVE_4H | O2 BREAK_GIVEN_RESOLVED | 6 primary cells | BH q=0.10 | scale 3 pp | seed 20261015, 2000 draws | cluster = product week`
+`PRIMARY = no conjunction pass | STATE_1 -> RESOLVE +3.33 pp (95% -1.18..+7.53, q=0.354, n_state=186) | STATE_3 -> BREAK|RESOLVED +5.37 pp (95% -1.08..+11.93, q=0.354, n_state=292) | both intervals include 0`
+`SPECIFICITY NOT PROMOTED = stacked intervals excluding 0 on STATE_1 -> BREAK -17.6 pp, STATE_2 -> RESOLVE +7.0 pp, STATE_3 -> RESOLVE -7.2 pp | real conjunction failed, so none is LEVEL_STATE_CANDIDATE or GENERIC_MARKET_STATE_CANDIDATE`
+`ROUTING = NO_INCREMENTAL_JOINT_STATE_STRUCTURE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical association, not a current probability | centroid words are robust-z descriptions | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = confirmation; state split; ratio or product; funding; liquidations; order book; 2025/2026; a level score | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_POSITIONING_FLOW_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
 
 `UNIT = LEVEL_POSITIONING_FLOW_DISCOVERY_V1 (atlas LEVEL-POSITIONING-FLOW-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 2491bbe9 before any feature-conditioned outcome rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected cell would be DISCOVERY_ONLY and none was selected`
