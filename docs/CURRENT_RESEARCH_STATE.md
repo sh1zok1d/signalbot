@@ -1,3 +1,20 @@
+## LEVEL_STRUCTURE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_STRUCTURE_DISCOVERY_V1 (atlas LEVEL-STRUCTURE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 1ac77d2d before any feature-conditioned outcome rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected cell would be DISCOVERY_ONLY and none was selected`
+`DEPENDENCIES = #352 LEVEL_TOUCH_DEGRADATION_V1 dfc9e0f0 -> #353 LEVEL_REJECTION_MEMORY_V1 c3d39bff -> #354 methodology 8effe9ac -> #355 LEVEL_APPROACH_STATE_DISCOVERY_V1 aa85e5b4 -> this unit | source main 1a2e425 | parent results not rewritten`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 OHLC and source-period quote volume (events from 2020-02-01) | taker flow, OI, funding, liquidations, order book, 2025/2026, live tape, E1 holdout NOT used | PRICE_STRUCTURE.levels already consumed; this run is further exposure, not a confirmation`
+`COHORT = #352 feature-eligible structural touches, matched to a half-rotation pseudo touch of the same source episode | not the #355 approach-eligible subset | features known at level birth or at the open of the touch`
+`ESTIMAND = Δ = β_real − β_pseudo for BREAK_FIRST, REJECT_FIRST and NEITHER | stacked LPM | continuous features per +1 SD on the frozen real scale; confluence is the binary multi-minus-singleton contrast | nuisance = family, touch ordinal, side, volatility tercile, year, and age except when age is the feature`
+`RETAINED = age, confluence, zone_span, formation_range, formation_volume, close_off_extreme, extreme_timing, extreme_density | DROPPED BEFORE OUTCOMES = diversity (binary coding, rho = 1 with confluence) | SEARCH = 576 cells | FDR family = 24 primary increments, q = 0.10 | DAY cap from #355 NOT applied`
+`PRIMARY DIFFERENTIAL = age->NEITHER +4.2 pp (95% +2.4..+6.1, q=0.000) | β_real -1.3 pp (95% -2.6..+0.1) | β_pseudo -5.5 pp (95% -6.9..-4.1) | N_real=2640, N_pseudo=2634, 1227 clusters | real slope negative in 3 of 5 years`
+`WHY NONE IS A CANDIDATE = the successor rule requires the real-effect sign in at least 4 eligible years | the other 23 primary increments have q above 0.10 | confluence increments are about 0 pp with intervals about ±8 pp on 284 multi-member real touches`
+`ROUTING = STRUCTURE_PRESENT_BUT_UNSTABLE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | interactions estimated = 0 | approach-path sensitivity not run`
+`CLAIM = L2 quantitative historical increments in the matched structural-touch cohort | L3/L4 not permitted | wording is a cohort frequency and a real-minus-rotated increment, not a current probability and not "an old level is weaker" or "confluence is stronger"`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no`
+`SUCCESSORS NOT STARTED = confirmation; confluence rescue; formation thresholds; OI, taker, liquidations, funding, book; a level score; interactions | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_STRUCTURE_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_STRUCTURE_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_APPROACH_STATE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
 
 `UNIT = LEVEL_APPROACH_STATE_DISCOVERY_V1 (atlas LEVEL-APPROACH-STATE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 778e23dd before any approach-conditioned outcome rate; one-shot result 3cd68af0) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected cell would be DISCOVERY_ONLY and none was selected`

@@ -8221,3 +8221,23 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; C
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no
 ```
+
+## 2026-10-07 — LEVEL_STRUCTURE_DISCOVERY_V1 executed once; discovery; no successor; not integrated
+
+**Unit.** `LEVEL_STRUCTURE_DISCOVERY_V1` (atlas `LEVEL-STRUCTURE-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Family-statement claim L2. A cell selected by the successor rule would be `DISCOVERY_ONLY`; none was selected. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039`, #353 `c3d39bffda861b535605a98205d7578c0c84c782`, #354 methodology `8effe9acc3b88b925a79b33f04ac0ee9e6f93e26`, #355 `aa85e5b43c405ee225336ff385e3a3383fa59d09`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `1ac77d2d` before any feature-conditioned outcome rate. No feature, tolerance, horizon, interaction, pseudo construction or threshold was added after the rates were read.
+- **Data:** `CORE_BTC_BINANCE_V0` 5m bars, 2020-01-01 through 2024-12-31, events from 2020-02-01. OHLC and the anchor source period's quote volume. No taker-buy quote, no OI, no funding, no liquidations, no order book, no 2025/2026 slice, no live tape. The E1 holdout was not read. The 2020–2024 level row was already consumed; this run is additional exposure, not a confirmation.
+- **Cohort:** the #352 feature-eligible structural touches, restricted before outcomes to source episodes that also have a feature-complete half-rotation pseudo touch. Not the #355 approach-eligible subset. Analysis sample after the ambiguous drop: N real = 2640, N pseudo = 2634, 1227 clusters. Ambiguous bars dropped: 9 real, 12 pseudo.
+- **Family:** age, binary confluence, zone span, formation range, formation volume, close-off-extreme, extreme timing, extreme density. Diversity was dropped before outcomes (binary coding, ρ = 1 with confluence). Search exposure 576 cells. Benjamini–Hochberg at q = 0.10 on the 24 primary real-minus-pseudo increments only. The #355 70% DAY cap is not a clause.
+- **Primary differential:** age → NEITHER +4.2 pp (95% +2.4..+6.1, q=0.000). The real slope is −1.3 pp (95% −2.6..+0.1). The rotated-price slope is −5.5 pp (95% −6.9..−4.1). The real slope is negative in 3 of 5 years. The other 23 primary increments have q above 0.10. Confluence increments are about 0 pp with intervals of about ±8 pp (284 multi-member real touches).
+- **Why none is a successor:** the frozen rule requires the real-effect sign in at least 4 eligible years. Leave-one-year-out and leave-one-family-out keep the age → NEITHER increment positive; that is not sufficient. The approach-path sensitivity was not run, because it cannot name a candidate.
+- **Routing:** `STRUCTURE_PRESENT_BUT_UNSTABLE`. Atlas `CLOSED_ON_SURFACE`. `SUCCESSOR_CANDIDATE = NONE`. Interactions estimated: 0.
+- **Claim:** L2. The allowed sentence is the quantitative cohort increment in the result record. Not a current probability. Not “an old level is weaker” and not “confluence is stronger”.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change. Confirmation was not started.
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 PRICE_STRUCTURE.levels already consumed; this structure matrix is recorded as further exposure)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no
+```
