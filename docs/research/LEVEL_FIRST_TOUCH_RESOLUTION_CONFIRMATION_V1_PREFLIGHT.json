@@ -1,0 +1,121 @@
+{
+  "adjusted_columns": [
+    "family_week",
+    "support",
+    "vol_mid",
+    "vol_high",
+    "epoch_2018",
+    "epoch_2019"
+  ],
+  "adjusted_dropped_rank": [],
+  "adjusted_dropped_share": [
+    "family_month"
+  ],
+  "ambiguous_counts": "left_to_execution",
+  "blocked_reason": null,
+  "by_epoch": {
+    "2017H2": 101,
+    "2018": 253,
+    "2019": 204
+  },
+  "by_family": {
+    "DAY": 485,
+    "MONTH": 10,
+    "WEEK": 63
+  },
+  "by_real_side": {
+    "resistance": 271,
+    "support": 287
+  },
+  "controls_built": 1981,
+  "data_window": [
+    "2017-08-01",
+    "2020-01-01"
+  ],
+  "dataset": {
+    "canonical_sha256": "df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f",
+    "dataset_id": "DH1_BITMEX_XBTUSD_TRADES_5M_V0",
+    "days": "2017-08-01..2019-12-31",
+    "grid_end_exclusive": "2020-01-01",
+    "grid_start": "2017-08-01",
+    "n_bars": 254304,
+    "object_list_sha256": "649710ec605b4e16334c5281f830efe77c27a014e684d8f0b913be630f157100",
+    "objects_2025_2026": "none",
+    "rows": 254252
+  },
+  "event_window": [
+    "2017-09-01",
+    "2020-01-01"
+  ],
+  "exposure_status": "TIME_DISJOINT / OUTCOME_UNREAD_FOR_THIS_CLAIM / FEASIBILITY_EXPOSED",
+  "incomplete_4h_pseudo": 0,
+  "incomplete_4h_real": 0,
+  "matched_pairs": 558,
+  "missing_pseudo": 1090,
+  "missing_real": 1091,
+  "mode": "CONFIRMATION",
+  "outcomes_read": false,
+  "outside_epoch": 0,
+  "period_audit": {
+    "DAY": {
+      "first_bars": 288,
+      "first_frac": 1.0,
+      "first_full": true,
+      "full_periods": 882,
+      "periods": 883
+    },
+    "MONTH": {
+      "first_bars": 8928,
+      "first_frac": 0.9993279569892473,
+      "first_full": true,
+      "full_periods": 29,
+      "periods": 29
+    },
+    "WEEK": {
+      "first_bars": 1728,
+      "first_frac": 1.0,
+      "first_full": false,
+      "full_periods": 125,
+      "periods": 127
+    },
+    "finite_frac": 0.9997955203221341,
+    "longest_missing_run": 18,
+    "missing_bars": 52,
+    "n_bars": 254304
+  },
+  "proceed_to_outcomes": true,
+  "pseudo_first_touches": 944,
+  "pseudo_legitimate": 891,
+  "pseudo_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 891,
+    "NO_CONTROL": 0,
+    "NO_TOUCH": 1037,
+    "OUTSIDE_WINDOW": 53,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "real_first_touches": 920,
+  "real_legitimate": 890,
+  "real_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 890,
+    "NO_TOUCH": 1061,
+    "OUTSIDE_WINDOW": 30,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "run_floor": 30,
+  "sigma_tercile_edges": [
+    0.0015306816339365449,
+    0.002742945442702028
+  ],
+  "sigma_tercile_edges_hex": [
+    "0x1.91424e3bbedf1p-10",
+    "0x1.6785f9f1364e8p-9"
+  ],
+  "structural_episodes": 1981,
+  "unit": "LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1",
+  "weeks": 120,
+  "zone_half": 0.0015
+}
