@@ -1,0 +1,760 @@
+{
+  "claim_decision": {
+    "l3": "not permitted",
+    "l4": "not permitted",
+    "level": "L2",
+    "wording": {
+      "touch2": "\u0412 \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u043d\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043c\u044b\u0445 \u043a\u0430\u0441\u0430\u043d\u0438\u0439 \u0437\u0430\u0440\u0430\u043d\u0435\u0435 \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0445 \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u043d\u044b\u0445 \u0443\u0440\u043e\u0432\u043d\u0435\u0439 BTC (PDH/PDL, PWH/PWL, PMH/PML; Binance USD-M, 2020\u20132024) \u0441\u0440\u0435\u0434\u0438 \u0443\u0440\u043e\u0432\u043d\u0435\u0439, \u0434\u043e\u0448\u0435\u0434\u0448\u0438\u0445 \u0434\u043e \u044d\u0442\u043e\u0433\u043e \u0442\u0435\u0441\u0442\u0430, BREAK_FIRST \u0437\u0430 4\u0447 \u0431\u044b\u043b \u0432 37.6% \u043f\u0440\u043e\u0442\u0438\u0432 40.1% \u043f\u0440\u0438 \u043f\u0435\u0440\u0432\u043e\u043c \u043a\u0430\u0441\u0430\u043d\u0438\u0438 (-2.3 \u043f.\u043f. \u043f\u043e\u0441\u043b\u0435 \u0432\u044b\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u043d\u0438\u044f \u043f\u043e \u0442\u0438\u043f\u0443 \u0443\u0440\u043e\u0432\u043d\u044f, \u0441\u0442\u043e\u0440\u043e\u043d\u0435 \u043f\u043e\u0434\u0445\u043e\u0434\u0430 \u0438 \u0442\u0435\u0440\u0446\u0438\u043b\u044e \u0432\u043e\u043b\u0430\u0442\u0438\u043b\u044c\u043d\u043e\u0441\u0442\u0438; N\u2081=1905, N=1101; 95% \u0438\u043d\u0442\u0435\u0440\u0432\u0430\u043b -6.0..+1.5 \u043f.\u043f.). \u042d\u0442\u043e \u0447\u0430\u0441\u0442\u043e\u0442\u0430 \u0432 \u0442\u043e\u0439 \u043a\u043e\u0433\u043e\u0440\u0442\u0435, \u043d\u0435 \u0442\u0435\u043a\u0443\u0449\u0430\u044f \u0432\u0435\u0440\u043e\u044f\u0442\u043d\u043e\u0441\u0442\u044c \u043f\u0440\u043e\u0431\u043e\u044f.",
+      "touch3": "\u0412 \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u043d\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043c\u044b\u0445 \u043a\u0430\u0441\u0430\u043d\u0438\u0439 \u0437\u0430\u0440\u0430\u043d\u0435\u0435 \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0445 \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u043d\u044b\u0445 \u0443\u0440\u043e\u0432\u043d\u0435\u0439 BTC (PDH/PDL, PWH/PWL, PMH/PML; Binance USD-M, 2020\u20132024) \u0441\u0440\u0435\u0434\u0438 \u0443\u0440\u043e\u0432\u043d\u0435\u0439, \u0434\u043e\u0448\u0435\u0434\u0448\u0438\u0445 \u0434\u043e \u044d\u0442\u043e\u0433\u043e \u0442\u0435\u0441\u0442\u0430, BREAK_FIRST \u0437\u0430 4\u0447 \u0431\u044b\u043b \u0432 33.6% \u043f\u0440\u043e\u0442\u0438\u0432 40.1% \u043f\u0440\u0438 \u043f\u0435\u0440\u0432\u043e\u043c \u043a\u0430\u0441\u0430\u043d\u0438\u0438 (-6.6 \u043f.\u043f. \u043f\u043e\u0441\u043b\u0435 \u0432\u044b\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u043d\u0438\u044f \u043f\u043e \u0442\u0438\u043f\u0443 \u0443\u0440\u043e\u0432\u043d\u044f, \u0441\u0442\u043e\u0440\u043e\u043d\u0435 \u043f\u043e\u0434\u0445\u043e\u0434\u0430 \u0438 \u0442\u0435\u0440\u0446\u0438\u043b\u044e \u0432\u043e\u043b\u0430\u0442\u0438\u043b\u044c\u043d\u043e\u0441\u0442\u0438; N\u2081=1905, N=1185; 95% \u0438\u043d\u0442\u0435\u0440\u0432\u0430\u043b -10.7..-2.2 \u043f.\u043f.). \u042d\u0442\u043e \u0447\u0430\u0441\u0442\u043e\u0442\u0430 \u0432 \u0442\u043e\u0439 \u043a\u043e\u0433\u043e\u0440\u0442\u0435, \u043d\u0435 \u0442\u0435\u043a\u0443\u0449\u0430\u044f \u0432\u0435\u0440\u043e\u044f\u0442\u043d\u043e\u0441\u0442\u044c \u043f\u0440\u043e\u0431\u043e\u044f."
+    }
+  },
+  "control": {
+    "by_year": {
+      "2020": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.004108,
+          0.147444
+        ],
+        "ci95_touch3": [
+          -0.016899,
+          0.127394
+        ],
+        "delta_touch2": 0.070957,
+        "delta_touch3": 0.059899,
+        "n": {
+          "1": 404,
+          "2": 213,
+          "3+": 211
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 49
+      },
+      "2021": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          0.044146,
+          0.160021
+        ],
+        "ci95_touch3": [
+          -0.045592,
+          0.080755
+        ],
+        "delta_touch2": 0.103322,
+        "delta_touch3": 0.016145,
+        "n": {
+          "1": 556,
+          "2": 331,
+          "3+": 346
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 53
+      },
+      "2022": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.018284,
+          0.134011
+        ],
+        "ci95_touch3": [
+          0.023281,
+          0.163397
+        ],
+        "delta_touch2": 0.058989,
+        "delta_touch3": 0.090822,
+        "n": {
+          "1": 401,
+          "2": 223,
+          "3+": 243
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 53
+      },
+      "2023": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.090209,
+          0.12878
+        ],
+        "ci95_touch3": [
+          -0.060319,
+          0.158479
+        ],
+        "delta_touch2": 0.021645,
+        "delta_touch3": 0.057475,
+        "n": {
+          "1": 273,
+          "2": 143,
+          "3+": 97
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 50
+      },
+      "2024": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.045678,
+          0.13969
+        ],
+        "ci95_touch3": [
+          -0.08201,
+          0.103069
+        ],
+        "delta_touch2": 0.046207,
+        "delta_touch3": 0.014396,
+        "n": {
+          "1": 319,
+          "2": 177,
+          "3+": 157
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 53
+      }
+    },
+    "n_analysis": 4094,
+    "rates": {
+      "1": {
+        "n_ambiguous": 9,
+        "n_analysis": 1953,
+        "n_break": 576,
+        "n_neither": 422,
+        "n_reject": 955,
+        "p_break": 0.294931,
+        "p_neither": 0.216078,
+        "p_reject": 0.488991
+      },
+      "2": {
+        "n_ambiguous": 4,
+        "n_analysis": 1087,
+        "n_break": 395,
+        "n_neither": 171,
+        "n_reject": 521,
+        "p_break": 0.363385,
+        "p_neither": 0.157314,
+        "p_reject": 0.479301
+      },
+      "3+": {
+        "n_ambiguous": 1,
+        "n_analysis": 1054,
+        "n_break": 360,
+        "n_neither": 186,
+        "n_reject": 508,
+        "p_break": 0.341556,
+        "p_neither": 0.176471,
+        "p_reject": 0.481973
+      }
+    },
+    "standardized": {
+      "bootstrap_valid": 2000,
+      "ci95_touch2": [
+        0.038277,
+        0.107219
+      ],
+      "ci95_touch3": [
+        -0.000638,
+        0.097832
+      ],
+      "delta_touch2": 0.0733,
+      "delta_touch3": 0.046935,
+      "p_touch1_on_touch2_strata": 0.290735,
+      "p_touch1_on_touch3_strata": 0.292823,
+      "p_touch2_standardized": 0.364035,
+      "p_touch3_standardized": 0.339759,
+      "retained_touch1_share_touch2": 0.961598,
+      "retained_touch1_share_touch3": 0.977471,
+      "week_clusters": 256
+    }
+  },
+  "evidence_summary": "Among structural BTC levels that reached the touch, the 2020\u20132024 historical BREAK_FIRST frequency was 40.1% on touch 1 (N=1905), 37.6% on touch 2 (N=1101) and 33.6% on touch 3+ (N=1185); the touch-1-standardized differences were -2.3 pp (95% -6.0..+1.5 pp) and -6.6 pp (95% -10.7..-2.2 pp).",
+  "integration": {
+    "candidate": true,
+    "checks": {
+      "abs_d3_at_least_scale_and_ci_excludes_0": true,
+      "control_not_the_same_pattern": true,
+      "d2_same_sign_as_d3": true,
+      "touch3_family_share_within_cap": true,
+      "week_clusters": true,
+      "year_share_within_cap": true,
+      "year_signs": true,
+      "years_same_sign": 4,
+      "years_with_both_arms": 5
+    }
+  },
+  "limitations": "Touch 2 and touch 3+ exist only for levels that were retested, so the contrast is conditional on survival to that touch and is not a causal effect of the touch. Touches of the same level, and levels in the same week, are dependent; the interval resamples weeks and does not model a richer dependence. The same price path can host several structural levels; confluence merges those that share a zone, and the rest still share the week shock. A 5m bar that hits both barriers is dropped rather than ordered. The sample is one venue and one symbol, 2020\u20132024, on a surface already exposed for level research. The association can differ by family and by year. REJECT_FIRST stays near 50% across buckets while NEITHER rises from 9.6% to 17.1% as BREAK_FIRST falls, so the touch-3+ difference is fewer resolved breaks, not a higher rejection rate. 2023 crude \u03943 is about zero, and the support-side crude \u03943 is much smaller than the resistance-side one. The pseudo-level control moves the other way. A historical frequency in this cohort is not a current probability.",
+  "method_before_outcome": "65015c2b707b0f455ea61f790a3e5fb4d15bf7c4",
+  "near_zero_reading": false,
+  "preflight_feature_eligible": 4213,
+  "primary": {
+    "by_family": {
+      "DAY": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.045345,
+          0.03512
+        ],
+        "ci95_touch3": [
+          -0.084762,
+          0.001154
+        ],
+        "delta_touch2": -0.004052,
+        "delta_touch3": -0.045074,
+        "n": {
+          "1": 1629,
+          "2": 878,
+          "3+": 480
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 258
+      },
+      "MONTH": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.28434,
+          0.177887
+        ],
+        "ci95_touch3": [
+          -0.294731,
+          0.021922
+        ],
+        "delta_touch2": -0.055556,
+        "delta_touch3": -0.139024,
+        "n": {
+          "1": 40,
+          "2": 36,
+          "3+": 205
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 76
+      },
+      "WEEK": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.236983,
+          -0.065224
+        ],
+        "ci95_touch3": [
+          -0.234811,
+          -0.088843
+        ],
+        "delta_touch2": -0.1515,
+        "delta_touch3": -0.163051,
+        "n": {
+          "1": 236,
+          "2": 187,
+          "3+": 500
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 219
+      }
+    },
+    "by_side": {
+      "resistance": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.100833,
+          -0.002426
+        ],
+        "ci95_touch3": [
+          -0.153901,
+          -0.060688
+        ],
+        "delta_touch2": -0.05186,
+        "delta_touch3": -0.109104,
+        "n": {
+          "1": 1031,
+          "2": 550,
+          "3+": 574
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 258
+      },
+      "support": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.046711,
+          0.054537
+        ],
+        "ci95_touch3": [
+          -0.066909,
+          0.029736
+        ],
+        "delta_touch2": 0.005366,
+        "delta_touch3": -0.019146,
+        "n": {
+          "1": 874,
+          "2": 551,
+          "3+": 611
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 258
+      }
+    },
+    "by_year": {
+      "2020": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.094286,
+          0.06065
+        ],
+        "ci95_touch3": [
+          -0.123548,
+          -0.022634
+        ],
+        "delta_touch2": -0.016671,
+        "delta_touch3": -0.073214,
+        "n": {
+          "1": 331,
+          "2": 193,
+          "3+": 218
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 49
+      },
+      "2021": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.157017,
+          0.020243
+        ],
+        "ci95_touch3": [
+          -0.175627,
+          -0.040246
+        ],
+        "delta_touch2": -0.070694,
+        "delta_touch3": -0.108011,
+        "n": {
+          "1": 394,
+          "2": 232,
+          "3+": 257
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 53
+      },
+      "2022": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.140039,
+          0.033132
+        ],
+        "ci95_touch3": [
+          -0.139706,
+          -0.009458
+        ],
+        "delta_touch2": -0.052732,
+        "delta_touch3": -0.077116,
+        "n": {
+          "1": 395,
+          "2": 234,
+          "3+": 204
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 53
+      },
+      "2023": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.074318,
+          0.071766
+        ],
+        "ci95_touch3": [
+          -0.075623,
+          0.083008
+        ],
+        "delta_touch2": -0.000699,
+        "delta_touch3": 0.000513,
+        "n": {
+          "1": 390,
+          "2": 220,
+          "3+": 225
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 53
+      },
+      "2024": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.057008,
+          0.087312
+        ],
+        "ci95_touch3": [
+          -0.13064,
+          0.000726
+        ],
+        "delta_touch2": 0.017505,
+        "delta_touch3": -0.065003,
+        "n": {
+          "1": 395,
+          "2": 222,
+          "3+": 281
+        },
+        "p_touch1_on_touch2_strata": null,
+        "p_touch1_on_touch3_strata": null,
+        "p_touch2_standardized": null,
+        "p_touch3_standardized": null,
+        "retained_touch1_share_touch2": 1.0,
+        "retained_touch1_share_touch3": 1.0,
+        "week_clusters": 53
+      }
+    },
+    "counts": {
+      "1": {
+        "AMBIGUOUS": 14,
+        "BREAK": 764,
+        "NEITHER": 183,
+        "REJECT": 958,
+        "analysis": 1905,
+        "feature_eligible": 1919,
+        "geometric": 1952
+      },
+      "2": {
+        "AMBIGUOUS": 4,
+        "BREAK": 414,
+        "NEITHER": 131,
+        "REJECT": 556,
+        "analysis": 1101,
+        "feature_eligible": 1105,
+        "geometric": 1122
+      },
+      "3+": {
+        "AMBIGUOUS": 4,
+        "BREAK": 398,
+        "NEITHER": 203,
+        "REJECT": 584,
+        "analysis": 1185,
+        "feature_eligible": 1189,
+        "geometric": 1201
+      }
+    },
+    "crude": {
+      "bootstrap_valid": 2000,
+      "ci95_touch2": [
+        -0.060368,
+        0.010433
+      ],
+      "ci95_touch3": [
+        -0.093797,
+        -0.034645
+      ],
+      "delta_touch2": -0.025028,
+      "delta_touch3": -0.065185,
+      "p_touch1_on_touch2_strata": null,
+      "p_touch1_on_touch3_strata": null,
+      "p_touch2_standardized": null,
+      "p_touch3_standardized": null,
+      "retained_touch1_share_touch2": 1.0,
+      "retained_touch1_share_touch3": 1.0,
+      "week_clusters": 258
+    },
+    "meta": {
+      "max_family_share_touch3": 0.421941,
+      "max_year_share": 0.214269,
+      "weeks": 258
+    },
+    "n_analysis": 4191,
+    "rates": {
+      "1": {
+        "n_ambiguous": 14,
+        "n_analysis": 1905,
+        "n_break": 764,
+        "n_neither": 183,
+        "n_reject": 958,
+        "p_break": 0.40105,
+        "p_neither": 0.096063,
+        "p_reject": 0.502887
+      },
+      "2": {
+        "n_ambiguous": 4,
+        "n_analysis": 1101,
+        "n_break": 414,
+        "n_neither": 131,
+        "n_reject": 556,
+        "p_break": 0.376022,
+        "p_neither": 0.118983,
+        "p_reject": 0.504995
+      },
+      "3+": {
+        "n_ambiguous": 4,
+        "n_analysis": 1185,
+        "n_break": 398,
+        "n_neither": 203,
+        "n_reject": 584,
+        "p_break": 0.335865,
+        "p_neither": 0.171308,
+        "p_reject": 0.492827
+      }
+    },
+    "standardized": {
+      "bootstrap_valid": 2000,
+      "ci95_touch2": [
+        -0.05962,
+        0.014614
+      ],
+      "ci95_touch3": [
+        -0.106571,
+        -0.022102
+      ],
+      "delta_touch2": -0.023444,
+      "delta_touch3": -0.065632,
+      "p_touch1_on_touch2_strata": 0.398928,
+      "p_touch1_on_touch3_strata": 0.398928,
+      "p_touch2_standardized": 0.375484,
+      "p_touch3_standardized": 0.333295,
+      "retained_touch1_share_touch2": 0.979003,
+      "retained_touch1_share_touch3": 0.979003,
+      "week_clusters": 258
+    }
+  },
+  "primary_edges": [
+    0.0012364306616934476,
+    0.001790567553180052
+  ],
+  "product_integration_candidate": "YES",
+  "reading": "Closeout reading of the one-shot rates; no new contrast was computed. REJECT_FIRST stays near 50% (50.3% / 50.5% / 49.3%) while NEITHER rises from 9.6% to 17.1% as BREAK_FIRST falls. The touch-3+ difference is fewer resolved breaks among levels that were retested, not a higher rejection rate, and not the saying that a level weakens with each touch. 2023 crude \u03943 is about zero (+0.1 pp). Support-side crude \u03943 is -1.9 pp; resistance-side crude \u03943 is -10.9 pp. Week and month families show a larger crude \u03943 than the day family. The pseudo-level control moves the other way.",
+  "sensitivity": {
+    "barrier_fraction_1": {
+      "n_analysis": 4207,
+      "rates": {
+        "1": {
+          "n_ambiguous": 1,
+          "n_analysis": 1918,
+          "n_break": 540,
+          "n_neither": 932,
+          "n_reject": 446,
+          "p_break": 0.281543,
+          "p_neither": 0.485923,
+          "p_reject": 0.232534
+        },
+        "2": {
+          "n_ambiguous": 2,
+          "n_analysis": 1103,
+          "n_break": 266,
+          "n_neither": 568,
+          "n_reject": 269,
+          "p_break": 0.24116,
+          "p_neither": 0.514959,
+          "p_reject": 0.24388
+        },
+        "3+": {
+          "n_ambiguous": 3,
+          "n_analysis": 1186,
+          "n_break": 238,
+          "n_neither": 691,
+          "n_reject": 257,
+          "p_break": 0.200675,
+          "p_neither": 0.582631,
+          "p_reject": 0.216695
+        }
+      },
+      "standardized": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.073067,
+          -0.007801
+        ],
+        "ci95_touch3": [
+          -0.128773,
+          -0.047504
+        ],
+        "delta_touch2": -0.040451,
+        "delta_touch3": -0.088799,
+        "p_touch1_on_touch2_strata": 0.278103,
+        "p_touch1_on_touch3_strata": 0.278103,
+        "p_touch2_standardized": 0.237652,
+        "p_touch3_standardized": 0.189304,
+        "retained_touch1_share_touch2": 0.978624,
+        "retained_touch1_share_touch3": 0.978624,
+        "week_clusters": 258
+      }
+    },
+    "horizon_12": {
+      "n_analysis": 4191,
+      "rates": {
+        "1": {
+          "n_ambiguous": 14,
+          "n_analysis": 1905,
+          "n_break": 588,
+          "n_neither": 671,
+          "n_reject": 646,
+          "p_break": 0.308661,
+          "p_neither": 0.352231,
+          "p_reject": 0.339108
+        },
+        "2": {
+          "n_ambiguous": 4,
+          "n_analysis": 1101,
+          "n_break": 266,
+          "n_neither": 499,
+          "n_reject": 336,
+          "p_break": 0.241599,
+          "p_neither": 0.453224,
+          "p_reject": 0.305177
+        },
+        "3+": {
+          "n_ambiguous": 4,
+          "n_analysis": 1185,
+          "n_break": 232,
+          "n_neither": 637,
+          "n_reject": 316,
+          "p_break": 0.195781,
+          "p_neither": 0.537553,
+          "p_reject": 0.266667
+        }
+      },
+      "standardized": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.099917,
+          -0.033782
+        ],
+        "ci95_touch3": [
+          -0.157948,
+          -0.086076
+        ],
+        "delta_touch2": -0.067741,
+        "delta_touch3": -0.123126,
+        "p_touch1_on_touch2_strata": 0.305094,
+        "p_touch1_on_touch3_strata": 0.305094,
+        "p_touch2_standardized": 0.237352,
+        "p_touch3_standardized": 0.181968,
+        "retained_touch1_share_touch2": 0.979003,
+        "retained_touch1_share_touch3": 0.979003,
+        "week_clusters": 258
+      }
+    },
+    "zone_half_0.0003": {
+      "n_analysis": 4090,
+      "rates": {
+        "1": {
+          "n_ambiguous": 15,
+          "n_analysis": 1827,
+          "n_break": 909,
+          "n_neither": 86,
+          "n_reject": 832,
+          "p_break": 0.497537,
+          "p_neither": 0.047072,
+          "p_reject": 0.455391
+        },
+        "2": {
+          "n_ambiguous": 6,
+          "n_analysis": 1072,
+          "n_break": 491,
+          "n_neither": 87,
+          "n_reject": 494,
+          "p_break": 0.458022,
+          "p_neither": 0.081157,
+          "p_reject": 0.460821
+        },
+        "3+": {
+          "n_ambiguous": 6,
+          "n_analysis": 1191,
+          "n_break": 491,
+          "n_neither": 152,
+          "n_reject": 548,
+          "p_break": 0.412259,
+          "p_neither": 0.127624,
+          "p_reject": 0.460118
+        }
+      },
+      "standardized": {
+        "bootstrap_valid": 2000,
+        "ci95_touch2": [
+          -0.07811,
+          -0.003395
+        ],
+        "ci95_touch3": [
+          -0.121045,
+          -0.032815
+        ],
+        "delta_touch2": -0.040411,
+        "delta_touch3": -0.078257,
+        "p_touch1_on_touch2_strata": 0.497204,
+        "p_touch1_on_touch3_strata": 0.497204,
+        "p_touch2_standardized": 0.456793,
+        "p_touch3_standardized": 0.418947,
+        "retained_touch1_share_touch2": 0.978654,
+        "retained_touch1_share_touch3": 0.978654,
+        "week_clusters": 258
+      }
+    }
+  },
+  "surface": "CORE_BTC_BINANCE_V0",
+  "tracks": [
+    "STRUCTURE",
+    "PRODUCT_EVIDENCE"
+  ],
+  "unit": "LEVEL_TOUCH_DEGRADATION_V1",
+  "zone_sensitivity_edges": [
+    0.0012525362471446921,
+    0.001802081401349861
+  ]
+}
