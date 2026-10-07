@@ -1,3 +1,22 @@
+## LEVEL_LIQUIDITY_STATE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_LIQUIDITY_STATE_DISCOVERY_V1 (atlas LEVEL-LIQUIDITY-STATE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design f7430ca2 before any feature-conditioned resolution rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> #359 bcc0a9e8 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = not DH3-L1/L2/L3 and not SEED-0001 ±5% support | population is the structural first touch | orientation is ahead/behind the approach | outcome is resolution type | continuous ±1% local book state | pseudo price is not moved by the book`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | book DH3_BINANCE_UM_BOOKDEPTH_V0 object-list c53fc179d922f83b572703d52e80f847fb54531961ac776929f2e3e95feeddce | BTC 728 days, 3 missing | 2068585 snapshots | bands ±1..±5 | events [2023-01-01T02:00Z, 2025-01-01) | 2025/2026 NOT read`
+`OBSERVABLE = LOCAL_BOOK_STATE_AROUND_LEVEL_TOUCH | narrowest native band ±1% notional | staleness 90s | comparison T-60m | no price ladder | no wall score`
+`COHORT = touch_number = 1 | geometry-legitimate 790 | book-legal 767 | ambiguous 5 excluded from rates | BREAK 290 / REJECT 425 / NEITHER 70 / RESOLVE 91.1% on 785 labeled touches | 106 weeks | pairs 397, feature-complete pairs 369`
+`RETAINED = TOTAL_LOCAL_DEPTH, ORIENTED_DEPTH_IMBALANCE, AHEAD_DEPTH_CHANGE_60M, BEHIND_DEPTH_CHANGE_60M, TOTAL_DEPTH_CHANGE_60M | DROPPED = none | max |rho| 0.780`
+`ESTIMAND = adjusted change in historical probability per +1 SD | O1 RESOLVE_4H N=762 | O2 BREAK_GIVEN_RESOLVED N=695 | 10 primary cells | BH q=0.10 | scale 3 pp | seed 20261016, 2000 draws | cluster = product week`
+`PRIMARY = no conjunction pass | TOTAL_LOCAL_DEPTH -> RESOLVE -2.61 pp (95% -4.93..-0.50, q=0.203) | TOTAL_LOCAL_DEPTH -> BREAK +4.03 pp (95% -0.30..+8.05, q=0.203) | ORIENTED_DEPTH_IMBALANCE -> BREAK +3.93 pp (95% -0.42..+7.83, q=0.203, 2024H1 sign flip) | q and the interval or the 3 pp scale fail | bars not loosened`
+`SPECIFICITY NOT PROMOTED = no stacked interval excludes 0 | pseudo-only oriented imbalance -> RESOLVE +5.09 pp (95% +1.64..+8.65) is descriptive | real slope -0.06 pp | not a generic candidate`
+`ROUTING = NO_INCREMENTAL_LEVEL_LIQUIDITY_STRUCTURE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | three tertile U-shapes recorded as ideas and not fit`
+`CLAIM = L2 | historical association, not a current probability | positive imbalance means more visible depth ahead than behind | not "the level is strong" | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = combined book state; OI×book; taker×book; liquidation map; cross-venue; spot; 2025/2026; confirmation; a level-strength score | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_LIQUIDITY_STATE_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_LIQUIDITY_STATE_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
 
 `UNIT = LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1 (atlas LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 59361e92 before any state-conditioned resolution rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected state would be DISCOVERY_ONLY and none was selected`

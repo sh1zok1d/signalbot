@@ -8305,3 +8305,25 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-07 — LEVEL_LIQUIDITY_STATE_DISCOVERY_V1 executed once; discovery; no incremental level-liquidity structure; not integrated
+
+**Unit.** `LEVEL_LIQUIDITY_STATE_DISCOVERY_V1` (atlas `LEVEL-LIQUIDITY-STATE-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Any selected cell would have been discovery-only on an already exposed book surface; none was selected. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #359 `bcc0a9e8a5c2af221b23b72768d7b7ba1d6a4aa2`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. Design note `f7430ca27c664e3669d7adb633561ba381a598e3` before any feature-conditioned resolution rate. The band, the 90-second staleness, the 60-minute lag, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is the local book state around a structural first touch: approach-oriented ±1% notional, measured strictly before the touch, with a pseudo-price control, and with resolution rather than range or up-first as the endpoint. It is not DH3-L1 (all-hours thin-book quintile → range), not DH3-L2 (all-hours bid-heavy quintile → up first), not DH3-L3 (book recovery 30 minutes after a sharp move → range), and not the SEED-0001 ±5% binary support state. Reopen key `NEW_MECHANISM`. The surface stays discovery-only.
+- **Book.** `DH3_BINANCE_UM_BOOKDEPTH_V0`, object-list SHA256 `c53fc179d922f83b572703d52e80f847fb54531961ac776929f2e3e95feeddce`. BTCUSDT, 728 verified days, missing 2023-02-08, 2023-02-09 and 2024-04-18. 2,068,585 snapshots. Native bands −5..−1 and +1..+5. No band inside ±1%. No price ladder. Term: `LOCAL_BOOK_STATE_AROUND_LEVEL_TOUCH`. Staleness 90 seconds, from a ~30-second cadence. 767 of 790 geometry-legitimate first touches had both legal snapshots.
+- **Cohort.** Touch number 1 of PDH, PDL, PWH, PWL, PMH and PML, window `[2023-01-01T02:00:00Z, 2025-01-01)`. Geometry-legitimate 790. Ambiguous 5, excluded from rates. On 785 labeled touches: BREAK 290 (36.9%), REJECT 425 (54.1%), NEITHER 70 (8.9%), resolve rate 91.1%. Book-legal primary N: RESOLVE 762, BREAK given resolved 695. 106 weeks. All five features retained. Maximum absolute correlation before outcomes 0.780.
+- **Primary.** Ten adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. None passes. Nearest: total local depth → RESOLVE −2.61 pp (95% −4.93..−0.50, q=0.203), below 3 pp; total local depth → BREAK +4.03 pp (95% −0.30..+8.05, q=0.203), interval includes 0; oriented imbalance → BREAK +3.93 pp (95% −0.42..+7.83, q=0.203), interval includes 0 and 2024H1 flips sign. The bars were not loosened.
+- **Specificity.** No stacked real-minus-pseudo interval excludes 0. A pseudo-only oriented-imbalance → RESOLVE slope of +5.09 pp (95% +1.64..+8.65) is descriptive. The real slope is −0.06 pp, so it is not a generic candidate.
+- **Shape.** Three frozen tertile tables are U-shaped. Recorded as exploratory ideas. No threshold was fit.
+- **Routing.** `NO_INCREMENTAL_LEVEL_LIQUIDITY_STRUCTURE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. A historical association in this first-touch cohort. Not a current probability. Not a statement that a thick book holds or a thin book breaks.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2023-01-01..2024-12-31, local book state at structural first touches into resolution type (further exposure, not a confirmation)
+WINDOWS_CONSUMED = DH3_BINANCE_UM_BOOKDEPTH_V0 BTCUSDT 2023-01-01..2024-12-31, ±1% notional at those touches; surface already consumed by DH3-L; not a reopen of DH3-L1/L2/L3 or SEED-0001
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
