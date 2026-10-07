@@ -1,0 +1,789 @@
+{
+  "bands": {
+    "fast": {
+      "BREAK": 141,
+      "NEITHER": 36,
+      "REJECT": 181,
+      "n": 358,
+      "p_break": 0.39385474860335196,
+      "p_neither": 0.1005586592178771,
+      "p_reject": 0.505586592178771
+    },
+    "mid": {
+      "BREAK": 162,
+      "NEITHER": 54,
+      "REJECT": 192,
+      "n": 408,
+      "p_break": 0.39705882352941174,
+      "p_neither": 0.1323529411764706,
+      "p_reject": 0.47058823529411764
+    },
+    "slow": {
+      "BREAK": 151,
+      "NEITHER": 50,
+      "REJECT": 184,
+      "n": 385,
+      "p_break": 0.3922077922077922,
+      "p_neither": 0.12987012987012986,
+      "p_reject": 0.4779220779220779
+    }
+  },
+  "by_family": {
+    "DAY": 696,
+    "MONTH": 115,
+    "WEEK": 340
+  },
+  "by_next_bucket": {
+    "2": 553,
+    "3+": 598
+  },
+  "by_side": {
+    "resistance": 556,
+    "support": 595
+  },
+  "by_year": {
+    "2020": 213,
+    "2021": 230,
+    "2022": 216,
+    "2023": 238,
+    "2024": 254
+  },
+  "cells": {
+    "10_overshoot_break": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.020497,
+        0.042853
+      ],
+      "clusters": 283,
+      "coef": 0.011893,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 1151,
+      "spec": "full",
+      "which": "overshoot"
+    },
+    "1_primary_break": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.02864,
+        0.026428
+      ],
+      "clusters": 283,
+      "coef": -0.001399,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 1151,
+      "spec": "full",
+      "which": "speed"
+    },
+    "23_control_primary": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.019054,
+        0.043122
+      ],
+      "clusters": 245,
+      "coef": 0.011886,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 1055,
+      "spec": "full",
+      "which": "speed"
+    },
+    "2_reject": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.018983,
+        0.039328
+      ],
+      "clusters": 283,
+      "coef": 0.009757,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "REJECT",
+      "n": 1151,
+      "spec": "full",
+      "which": "speed"
+    },
+    "3_neither": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.027162,
+        0.010078
+      ],
+      "clusters": 283,
+      "coef": -0.008357,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "NEITHER",
+      "n": 1151,
+      "spec": "full",
+      "which": "speed"
+    },
+    "4_break_without_touch_ordinal": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.028554,
+        0.025193
+      ],
+      "clusters": 283,
+      "coef": -0.002337,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 1151,
+      "spec": "no_touch",
+      "which": "speed"
+    },
+    "5_break_without_gap": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.024244,
+        0.029987
+      ],
+      "clusters": 283,
+      "coef": 0.002279,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 1151,
+      "spec": "no_gap",
+      "which": "speed"
+    },
+    "6_bucket_break_fast_minus_slow": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.064779,
+        0.071726
+      ],
+      "clusters": 257,
+      "coef": 0.001647,
+      "n": 743,
+      "n_fast": 358,
+      "n_slow": 385
+    },
+    "7_bucket_reject_fast_minus_slow": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.050294,
+        0.101422
+      ],
+      "clusters": 257,
+      "coef": 0.027665,
+      "n": 743,
+      "n_fast": 358,
+      "n_slow": 385
+    },
+    "8_bucket_neither_fast_minus_slow": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.073062,
+        0.014776
+      ],
+      "clusters": 257,
+      "coef": -0.029311,
+      "n": 743,
+      "n_fast": 358,
+      "n_slow": 385
+    },
+    "9_linear_speed_break": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.021778,
+        0.033108
+      ],
+      "clusters": 283,
+      "coef": 0.005407,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 1151,
+      "spec": "full",
+      "which": "linear"
+    },
+    "bucket_2": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.058443,
+        0.022576
+      ],
+      "clusters": 251,
+      "coef": -0.018024,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 553,
+      "spec": "bucket",
+      "which": "speed"
+    },
+    "bucket_3plus": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.022557,
+        0.057626
+      ],
+      "clusters": 220,
+      "coef": 0.016481,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 598,
+      "spec": "bucket",
+      "which": "speed"
+    },
+    "control_year_2020": {
+      "bootstrap_valid": 1985,
+      "ci95": [
+        -0.011761,
+        0.10946
+      ],
+      "clusters": 47,
+      "coef": 0.048228,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z"
+      ],
+      "endpoint": "BREAK",
+      "n": 208,
+      "spec": "year",
+      "which": "speed"
+    },
+    "control_year_2021": {
+      "bootstrap_valid": 1973,
+      "ci95": [
+        -0.086063,
+        0.032283
+      ],
+      "clusters": 56,
+      "coef": -0.024819,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z"
+      ],
+      "endpoint": "BREAK",
+      "n": 331,
+      "spec": "year",
+      "which": "speed"
+    },
+    "control_year_2022": {
+      "bootstrap_valid": 1996,
+      "ci95": [
+        -0.059276,
+        0.08187
+      ],
+      "clusters": 53,
+      "coef": 0.013699,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z"
+      ],
+      "endpoint": "BREAK",
+      "n": 218,
+      "spec": "year",
+      "which": "speed"
+    },
+    "control_year_2023": {
+      "bootstrap_valid": 1897,
+      "ci95": [
+        0.050342,
+        0.277939
+      ],
+      "clusters": 41,
+      "coef": 0.155495,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z"
+      ],
+      "endpoint": "BREAK",
+      "n": 130,
+      "spec": "year",
+      "which": "speed"
+    },
+    "control_year_2024": {
+      "bootstrap_valid": 1972,
+      "ci95": [
+        -0.171634,
+        -0.004972
+      ],
+      "clusters": 48,
+      "coef": -0.090058,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z"
+      ],
+      "endpoint": "BREAK",
+      "n": 168,
+      "spec": "year",
+      "which": "speed"
+    },
+    "family_DAY": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.031791,
+        0.042702
+      ],
+      "clusters": 235,
+      "coef": 0.005564,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 696,
+      "spec": "family",
+      "which": "speed"
+    },
+    "family_MONTH": {
+      "bootstrap_valid": 1984,
+      "ci95": [
+        -0.088854,
+        0.079987
+      ],
+      "clusters": 32,
+      "coef": -0.013165,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 115,
+      "spec": "family",
+      "which": "speed"
+    },
+    "family_WEEK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.067076,
+        0.045433
+      ],
+      "clusters": 140,
+      "coef": -0.011237,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 340,
+      "spec": "family",
+      "which": "speed"
+    },
+    "side_resistance": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.066949,
+        0.014077
+      ],
+      "clusters": 232,
+      "coef": -0.024737,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 556,
+      "spec": "side",
+      "which": "speed"
+    },
+    "side_support": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.018252,
+        0.060733
+      ],
+      "clusters": 228,
+      "coef": 0.019956,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "vol_mid",
+        "vol_high",
+        "gap_z",
+        "y2021",
+        "y2022",
+        "y2023",
+        "y2024"
+      ],
+      "endpoint": "BREAK",
+      "n": 595,
+      "spec": "side",
+      "which": "speed"
+    },
+    "year_2020": {
+      "bootstrap_valid": 1998,
+      "ci95": [
+        -0.108994,
+        0.0285
+      ],
+      "clusters": 54,
+      "coef": -0.033526,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z"
+      ],
+      "endpoint": "BREAK",
+      "n": 213,
+      "spec": "year",
+      "which": "speed"
+    },
+    "year_2021": {
+      "bootstrap_valid": 1959,
+      "ci95": [
+        -0.104097,
+        0.042156
+      ],
+      "clusters": 58,
+      "coef": -0.032242,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z"
+      ],
+      "endpoint": "BREAK",
+      "n": 230,
+      "spec": "year",
+      "which": "speed"
+    },
+    "year_2022": {
+      "bootstrap_valid": 1983,
+      "ci95": [
+        -0.006961,
+        0.123612
+      ],
+      "clusters": 56,
+      "coef": 0.055498,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z"
+      ],
+      "endpoint": "BREAK",
+      "n": 216,
+      "spec": "year",
+      "which": "speed"
+    },
+    "year_2023": {
+      "bootstrap_valid": 1995,
+      "ci95": [
+        -0.031811,
+        0.057408
+      ],
+      "clusters": 57,
+      "coef": 0.012914,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z"
+      ],
+      "endpoint": "BREAK",
+      "n": 238,
+      "spec": "year",
+      "which": "speed"
+    },
+    "year_2024": {
+      "bootstrap_valid": 1998,
+      "ci95": [
+        -0.06547,
+        0.078121
+      ],
+      "clusters": 59,
+      "coef": 0.004004,
+      "columns": [
+        "intercept",
+        "speed_z",
+        "touch3",
+        "fam_week",
+        "fam_month",
+        "support",
+        "vol_mid",
+        "vol_high",
+        "gap_z"
+      ],
+      "endpoint": "BREAK",
+      "n": 254,
+      "spec": "year",
+      "which": "speed"
+    }
+  },
+  "claim_ceiling": "L2",
+  "claim_decision": {
+    "l3": "not permitted",
+    "l4": "not permitted",
+    "level": "L2",
+    "wording": "\u0412 \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u043d\u044b\u0445 \u0443\u0440\u043e\u0432\u043d\u0435\u0439 BTC, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u0440\u0430\u043d\u0435\u0435 \u0434\u0430\u043b\u0438 REJECT_FIRST \u0438 \u043f\u043e\u0437\u0436\u0435 \u0431\u044b\u043b\u0438 \u043f\u0440\u043e\u0442\u0435\u0441\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u044b \u0441\u043d\u043e\u0432\u0430 (PDH/PDL, PWH/PWL, PMH/PML; Binance USD-M, 2020\u20132024), \u0431\u043e\u043b\u0435\u0435 \u0431\u044b\u0441\u0442\u0440\u044b\u0439 \u043f\u0440\u0435\u0434\u044b\u0434\u0443\u0449\u0438\u0439 rejection \u043d\u0430 1 SD \u043f\u043e \u2212log(\u0447\u0438\u0441\u043b\u0430 5m \u0431\u0430\u0440\u043e\u0432 \u0434\u043e reject-\u0431\u0430\u0440\u044c\u0435\u0440\u0430) \u0431\u044b\u043b \u0441\u0432\u044f\u0437\u0430\u043d \u0441 \u043e\u0442\u043b\u0438\u0447\u0438\u0435\u043c \u0447\u0430\u0441\u0442\u043e\u0442\u044b BREAK_FIRST \u043d\u0430 \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u043c \u043d\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u043c \u043a\u0430\u0441\u0430\u043d\u0438\u0438 \u043d\u0430 -0.1 pp \u043f\u043e\u0441\u043b\u0435 \u0432\u044b\u0440\u0430\u0432\u043d\u0438\u0432\u0430\u043d\u0438\u044f \u043f\u043e \u043d\u043e\u043c\u0435\u0440\u0443 \u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0435\u0433\u043e \u043a\u0430\u0441\u0430\u043d\u0438\u044f, \u0442\u0438\u043f\u0443 \u0443\u0440\u043e\u0432\u043d\u044f, \u0441\u0442\u043e\u0440\u043e\u043d\u0435 \u043f\u043e\u0434\u0445\u043e\u0434\u0430, \u0442\u0435\u0440\u0446\u0438\u043b\u044e \u0432\u043e\u043b\u0430\u0442\u0438\u043b\u044c\u043d\u043e\u0441\u0442\u0438, \u0433\u043e\u0434\u0443 \u0438 \u043b\u043e\u0433\u0430\u0440\u0438\u0444\u043c\u0443 \u043e\u0436\u0438\u0434\u0430\u043d\u0438\u044f \u043f\u043e\u0441\u043b\u0435 rejection (N=1151; 95% \u0438\u043d\u0442\u0435\u0440\u0432\u0430\u043b -2.9..+2.6 pp). \u042d\u0442\u043e \u0447\u0430\u0441\u0442\u043e\u0442\u0430 \u0432 \u043a\u043e\u0433\u043e\u0440\u0442\u0435 \u0443\u0440\u043e\u0432\u043d\u0435\u0439 \u0441 \u043d\u0430\u0431\u043b\u044e\u0434\u0430\u0432\u0448\u0438\u043c\u0441\u044f rejection \u0438 \u043f\u043e\u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u043c \u0442\u0435\u0441\u0442\u043e\u043c, \u043d\u0435 \u0442\u0435\u043a\u0443\u0449\u0430\u044f \u0432\u0435\u0440\u043e\u044f\u0442\u043d\u043e\u0441\u0442\u044c \u043f\u0440\u043e\u0431\u043e\u044f \u0438 \u043d\u0435 \u043f\u0440\u0438\u0447\u0438\u043d\u043d\u043e\u0435 \u0443\u0441\u0438\u043b\u0435\u043d\u0438\u0435 \u0443\u0440\u043e\u0432\u043d\u044f."
+  },
+  "clusters": 283,
+  "control_drops": {
+    "ambiguous": 1,
+    "features": 1056,
+    "missing_next": 0
+  },
+  "control_n": 1055,
+  "dependency": {
+    "pr": 352,
+    "sha": "dfc9e0f04358de15606382472badeb5aee787039",
+    "unit": "LEVEL_TOUCH_DEGRADATION_V1"
+  },
+  "drops": {
+    "ambiguous": 4,
+    "features": 1155,
+    "missing_next": 0
+  },
+  "evidence_summary": "Among structural BTC levels whose previous independent touch was REJECT_FIRST and that were tested again, one SD faster prior rejection (frozen \u2212log bars to the reject barrier) lined up with a -0.1 pp difference in the next touch's 4h BREAK_FIRST frequency after adjustment for touch ordinal, family, side, volatility tercile, year and log wait (N=1151, 95% -2.9..+2.6 pp).",
+  "integration": {
+    "candidate": false,
+    "checks": {
+      "abs_coef_at_least_scale_and_ci_excludes_0": false,
+      "clusters": true,
+      "control_not_the_same_pattern": true,
+      "family_share_within_cap": true,
+      "year_share_within_cap": true,
+      "year_signs": false,
+      "years_eligible": 5,
+      "years_same_sign": 2
+    }
+  },
+  "limitations": "The cohort is conditional on two events: the previous independent touch was REJECT_FIRST, and the same zone was later touched again. The estimate is about levels with an observed rejection that were retested. It is not a causal effect of a strong rejection on every level. Touch number already predicts BREAK_FIRST in LEVEL_TOUCH_DEGRADATION_V1, so the primary coefficient is the one that still adjusts for the next touch's bucket. Several pairs can share a level; day and week pairs are clustered on the product week of the next touch, and month pairs on the episode. That does not model every shared path. A 5m bar that hits both barriers is dropped rather than ordered. The sample is one venue and one symbol, 2020\u20132024, on a surface already exposed for level research. A historical frequency in this cohort is not a current probability.",
+  "max_family_share": 0.604692,
+  "max_year_share": 0.220678,
+  "method_before_outcome": "c8a1d4d2ac91b769aa8091b006c320df4b352f5e",
+  "n_analysis_pairs": 1151,
+  "n_contrasts": 28,
+  "near_zero_reading": true,
+  "product_integration_candidate": "NO",
+  "surface": "CORE_BTC_BINANCE_V0",
+  "tracks": [
+    "STRUCTURE",
+    "PRODUCT_EVIDENCE"
+  ],
+  "unit": "LEVEL_REJECTION_MEMORY_V1"
+}
