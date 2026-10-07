@@ -142,6 +142,7 @@ Allowed work is research-supporting work: MARKET hypothesis formulation and hone
 Research must try to falsify hypotheses rather than protect the existing implementation.
 
 **Since 2026-10-05, new research units follow `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md`.**
+- **Since 2026-10-07, discovery units also follow `docs/research/DISCOVERY_FIRST_RESEARCH_DECISION_V1.md`.** Declare `MODE = DISCOVERY` or `MODE = CONFIRMATION`. Discovery freezes a bounded feature/outcome/search space before outcomes and reports the whole declared search; it does not need to pre-assert an effect sign. A relation selected from discovery outcomes is `DISCOVERY_ONLY` on that selection surface and must not be rescued or promoted by retuning the same data.
 - **Before the outcome:** a one-page design note with the estimand, the method chosen by design (no universal estimator), the comparison, what would change our mind, and the variants tried.
 - **Result:** reported as evidence: estimate, uncertainty, information, stability, falsification, limitations and search exposure. No verdict words.
 - **What may be said:** a separate claim decision on the L0–L4 ladder.
