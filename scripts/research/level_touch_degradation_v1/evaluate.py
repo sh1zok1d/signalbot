@@ -140,6 +140,12 @@ def _rates(counts: dict) -> dict:
     return out
 
 
+def _pct(x):
+    if x is None:
+        return "n/a"
+    return f"{x:.1%}"
+
+
 def _pp(x):
     if x is None:
         return "n/a"
@@ -167,8 +173,8 @@ def _sentence(rates, std) -> str:
     thin_txt = (" " + "; ".join(thin) + ".") if thin else ""
     return (
         f"Among structural BTC levels that reached the touch, the 2020–2024 historical "
-        f"BREAK_FIRST frequency was {p['1']['p_break']:.1%} on touch 1 (N={n1}), "
-        f"{p['2']['p_break']:.1%} on touch 2 (N={n2}) and {p['3+']['p_break']:.1%} on touch 3+ "
+        f"BREAK_FIRST frequency was {_pct(p['1']['p_break'])} on touch 1 (N={n1}), "
+        f"{_pct(p['2']['p_break'])} on touch 2 (N={n2}) and {_pct(p['3+']['p_break'])} on touch 3+ "
         f"(N={n3}); the touch-1-standardized differences were {_pp(d2)} "
         f"(95% {_interval(ci2)}) and {_pp(d3)} (95% {_interval(ci3)}).{thin_txt}"
     )
@@ -182,7 +188,7 @@ def _wording(rates, std) -> dict:
                            ("touch3", "3+", rates["3+"]["n_analysis"])):
         delta = std["delta_touch2" if key == "touch2" else "delta_touch3"]
         ci = std["ci95_touch2" if key == "touch2" else "ci95_touch3"]
-        if not claim.l2_line_allowed(n1, n, ci):
+        if delta is None or not claim.l2_line_allowed(n1, n, ci):
             out[key] = None
             continue
         lo, hi = ci
@@ -218,8 +224,8 @@ def _md(result: dict) -> str:
     for bucket in K.TOUCH_BUCKETS:
         r = rates[bucket]
         lines.append(
-            f"| {bucket} | {r['n_analysis']} | {r['p_break']:.1%} | {r['p_reject']:.1%} | "
-            f"{r['p_neither']:.1%} | {r['n_ambiguous']} |"
+            f"| {bucket} | {r['n_analysis']} | {_pct(r['p_break'])} | {_pct(r['p_reject'])} | "
+            f"{_pct(r['p_neither'])} | {r['n_ambiguous']} |"
         )
     lines += [
         "",
