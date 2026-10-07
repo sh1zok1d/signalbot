@@ -1,3 +1,16 @@
+## LEVEL_TOUCH_DEGRADATION_V1 — executed once; L2; not integrated — 2026-10-07
+
+`UNIT = LEVEL_TOUCH_DEGRADATION_V1 (atlas LEVEL-TOUCH-DEGRADATION-V1; family LEVEL_BEHAVIOR_V1; owner go in the task of 2026-10-07; design 65015c2 before any break rate; evaluator guard d79801f1 before the one-shot) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM_CEILING = L2`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 price only (events from 2020-02-01) | 2025/2026, live tape, funding, liquidations, OI, taker flow, order book, E1 holdout NOT used | surface already consumed for PRICE_STRUCTURE.levels (DH1-L2); this run is not a confirmation`
+`ESTIMAND = standardized difference in 4h BREAK_FIRST between independent touch 2 and touch 3+ versus touch 1, family x side x pre-touch sigma tercile | baseline = touch 1 in the same structural population | falsification = deterministic half-rotation pseudo-level`
+`PRIMARY = BREAK_FIRST 40.1% / 37.6% / 33.6% (N 1905 / 1101 / 1185) | standardized Δ2 -2.3 pp (95% -6.0..+1.5) | standardized Δ3 -6.6 pp (95% -10.7..-2.2) | REJECT_FIRST ~50% flat | NEITHER 9.6% -> 17.1% | 2023 crude Δ3 ~0 | support crude Δ3 -1.9 pp vs resistance -10.9 pp`
+`CONTROL = pseudo-level standardized Δ2 +7.3 pp (95% +3.8..+10.7), Δ3 +4.7 pp (95% -0.1..+9.8) | opposite sign, not the same pattern`
+`CLAIM = L2 quantitative historical frequency for both primary contrasts | L3/L4 not permitted | wording is cohort frequency, not a current probability and not "the level weakens"`
+`PRODUCT_INTEGRATION_CANDIDATE = YES under the predeclared conjunction | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no`
+`SUCCESSORS NOT STARTED = LEVEL_REJECTION_MEMORY_V1, LEVEL_APPROACH_STATE_V1, LEVEL_CONFLUENCE_V1 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_TOUCH_DEGRADATION_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_TOUCH_DEGRADATION_V1_DESIGN.md`.
+
 ## Turn-of-month baseline unit V1 (G01-A1/A2 successor) — executed once; NO_CHANGE — 2026-10-06
 
 `UNIT = TURN_OF_MONTH_BASELINE_UNIT_V1 (atlas TOM-BASELINE-V1; owner go 2026-10-06; design 54421a0; evaluator 1067bcb; output c6d60d8) | TRACKS = PRODUCT_EVIDENCE (Part B, decides) + STRUCTURE (Part A)`

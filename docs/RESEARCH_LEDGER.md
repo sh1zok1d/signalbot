@@ -8163,3 +8163,21 @@ WINDOWS_CONSUMED = none new (2020-2024 already exposed; first turn-of-month cont
 OBJECTS_2025_2026_USED = none; BITMEX_READ = no; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched
 PRODUCT_CHANGE = none; CORRECTION_UNIT = not proposed (Part B NO_CHANGE); BOT_LINE = none (needs a product go)
 ```
+
+## 2026-10-07 — LEVEL_TOUCH_DEGRADATION_V1 executed once; L2; not integrated
+
+**Unit.** `LEVEL_TOUCH_DEGRADATION_V1` (atlas `LEVEL-TOUCH-DEGRADATION-V1`), family `LEVEL_BEHAVIOR_V1`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim ceiling L2. It does not rescore DH1-L2 or DH3-V3.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `65015c2` before any break rate. Evaluator guard `d79801f1` before the run. No threshold, horizon, definition, baseline or grouping was added after the rates were read.
+- **Data:** `CORE_BTC_BINANCE_V0` 5m bars, 2020-01-01 through 2024-12-31, events from 2020-02-01. Price only. No 2025/2026 slice, no live tape, no funding, no liquidations, no OI, no order book. The E1 holdout was not read. The 2020–2024 level row was already consumed by DH1-L2; this run is additional exposure, not a confirmation.
+- **Estimand:** difference in historical 4h `BREAK_FIRST` between independent touch 2 and touch 3+ and touch 1, standardized on level family, approach side and pre-touch volatility tercile. Baseline is touch 1 in the same structural population. Falsification is a deterministic half-rotation pseudo-level.
+- **Primary:** crude `BREAK_FIRST` 40.1% / 37.6% / 33.6% (N 1905 / 1101 / 1185). Standardized Δ2 −2.3 pp (95% −6.0..+1.5). Standardized Δ3 −6.6 pp (95% −10.7..−2.2). `REJECT_FIRST` stays near 50%. `NEITHER` rises from 9.6% to 17.1%. Analysis N 4191, 258 week clusters.
+- **Stability:** crude Δ3 is negative in 2020, 2021, 2022 and 2024 (−7.3, −10.8, −7.7, −6.5 pp) and about zero in 2023 (+0.1 pp). Busiest year 21.4%. Busiest touch-3+ family (week) 42.2%. Support-side crude Δ3 −1.9 pp; resistance-side −10.9 pp.
+- **Falsification:** pseudo-level standardized Δ2 +7.3 pp (95% +3.8..+10.7), Δ3 +4.7 pp (95% −0.1..+9.8). Opposite sign. The control interval for Δ3 includes 0.
+- **Claim:** L2. The allowed sentences are the quantitative cohort frequencies in the result record. Not a current probability. Not “the level weakens”.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = YES` under the predeclared conjunction. No `/btc`, `/levels`, scoring, findings-registry or deploy change. Successors named and not run: `LEVEL_REJECTION_MEMORY_V1`, `LEVEL_APPROACH_STATE_V1`, `LEVEL_CONFLUENCE_V1`.
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 PRICE_STRUCTURE.levels already consumed by DH1-L2; this touch-ordinal contrast is recorded as further exposure)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```
