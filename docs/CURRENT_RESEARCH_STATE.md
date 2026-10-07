@@ -1,3 +1,20 @@
+## LEVEL_POSITIONING_FLOW_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_POSITIONING_FLOW_DISCOVERY_V1 (atlas LEVEL-POSITIONING-FLOW-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 2491bbe9 before any feature-conditioned outcome rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected cell would be DISCOVERY_ONLY and none was selected`
+`DEPENDENCIES = #352 LEVEL_TOUCH_DEGRADATION_V1 dfc9e0f0 -> #353 LEVEL_REJECTION_MEMORY_V1 c3d39bff -> #354 methodology 8effe9ac -> #355 LEVEL_APPROACH_STATE_DISCOVERY_V1 aa85e5b4 -> #356 LEVEL_STRUCTURE_DISCOVERY_V1 f8623d32 -> #357 LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1 c1cd4e01 -> this unit | source main 1a2e425 | parent results not rewritten`
+`DATA = CORE_BTC_BINANCE_V0 zip-list SHA256 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | OI git snapshot 5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33, oi.jsonl SHA256 c4744a9369844f453476589111c2436372e729e7afdbe5fb34b6e9938a905b94, 455273 rows, sum_open_interest only | funding not opened | events [2020-09-01T01:05Z, 2025-01-01) | 2025/2026 and E1 NOT used | further exposure, not a confirmation`
+`COHORT = touch_number = 1 of PDH/PDL/PWH/PWL/PMH/PML | geometry-legitimate 1708 | ambiguous 10 excluded from rates | BREAK 40.5% / REJECT 49.6% / NEITHER 9.8% / RESOLVE 90.2% on 1698 labeled touches | 227 weeks`
+`ESTIMAND = adjusted change in historical probability per +1 SD | O1 RESOLVE_4H | O2 BREAK_GIVEN_RESOLVED | LPM | nuisance = family, side, year, volatility tercile, prior 60m oriented displacement, relative quote volume, UTC time block | specificity = stacked β_real − β_pseudo | cluster = product week | seed 20261013, 2000 draws`
+`RETAINED = OI_CHANGE_60M, OI_RECENT_ACCELERATION, ORIENTED_TAKER_IMBALANCE_60M, TAKER_RECENT_SHIFT | DROPPED BEFORE OUTCOMES = none (max |rho| 0.267) | SEARCH = 8 primary cells, FDR q=0.10 | practical scale 3 pp | interactions = 0`
+`PRIMARY = no cell passes the conjunction | nearest: OI_RECENT_ACCELERATION -> BREAK_GIVEN_RESOLVED +2.90 pp (95% +0.43..+5.50), p=0.027, q=0.201, N=1513 | same sign in 5/5 epochs and all leave-one-year-out refits | fails q=0.10 and |effect| < 3 pp`
+`SPECIFICITY NOT PROMOTED = stacked intervals excluding 0 on oriented taker -> RESOLVE −4.35 pp, acceleration -> BREAK +4.21 pp, oriented taker -> BREAK +5.32 pp | the real-cohort conjunction failed, so none is LEVEL_INTERACTION_CANDIDATE or GENERIC_STATE_CANDIDATE`
+`ROUTING = NO_INCREMENTAL_POSITION_FLOW_STRUCTURE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | five tertile U-shapes recorded as ideas and not fit`
+`CLAIM = L2 | historical association in this cohort, not a current probability | OI up means more outstanding open interest | oriented flow means aggressive executed volume toward the level | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no`
+`SUCCESSORS NOT STARTED = OI×taker interaction; absorption; funding; liquidations; order book; confirmation; 2025/2026; a level score | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1 — executed once; L2; replicated historical resolution gap; not integrated — 2026-10-07
 
 `UNIT = LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1 (atlas LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1; family LEVEL_BEHAVIOR_V1; MODE = CONFIRMATION; design a4f3a0d6 before any BitMEX barrier rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 replicated historical mechanism`

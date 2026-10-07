@@ -752,7 +752,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
-    "CLOSED_ON_SURFACE": 4,
+    "CLOSED_ON_SURFACE": 5,
     "EXPOSED_ONLY": 1,
     "INFORMATIONALLY_WEAK": 1,
     "LIVE_SIGNAL": 2,
@@ -777,6 +777,7 @@
     "GV0R01-C017",
     "LEVEL-APPROACH-STATE-DISCOVERY-V1",
     "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1",
+    "LEVEL-POSITIONING-FLOW-DISCOVERY-V1",
     "LEVEL-REJECTION-MEMORY-V1",
     "LEVEL-STRUCTURE-DISCOVERY-V1",
     "LEVEL-TOUCH-DEGRADATION-V1",
@@ -10162,14 +10163,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 355
   },
-  "units": 193,
+  "units": 194,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 17,
+   "CLOSED_ON_SURFACE": 18,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 11,
    "FUTURE_NATURAL_ACCUMULATION": 3,
@@ -15571,7 +15572,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "a97fb09bebc5236ed1f1f1b2ce66056a973e9e267d27441fb129aab63b4dee5f",
+ "SOURCES_DIGEST": "707cc5f951aa1cf92dbafbb053fd7aba57cb3aa39f4617a67c225b745c15cfed",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15745,6 +15746,14 @@
       "status": "CONSUMED"
      },
      {
+      "note": "LEVEL-POSITIONING-FLOW-DISCOVERY-V1 one-shot (pre-touch taker quote imbalance and OI change -> first-touch RESOLVE_4H and BREAK_GIVEN_RESOLVED), 2026-10-07; quote volume and taker-buy quote on complete bars ending at or before T; further exposure of the same level row, not a confirmation",
+      "period": "2020-09..2024-12",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
       "note": "TOM-BASELINE-V1 product-evidence run (turn-of-month vs mid-month label rates and day-level volume / trade count / range), 2026-10-06; first turn-of-month contrast computed on this surface",
       "period": "2020-2024",
       "rows": [
@@ -15904,6 +15913,14 @@
       "period": "2020-09..2024-12",
       "rows": [
        "DERIVATIVES.oi_buildup"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-POSITIONING-FLOW-DISCOVERY-V1 read sum_open_interest only, as a covariate of first-touch resolution type, not as an oi_buildup continuation; funding.jsonl never opened; B2-06 crowding remains unauthorized; research_authorized remains false",
+      "period": "2020-09..2024-12",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
       ],
       "status": "CONSUMED"
      }
@@ -21661,6 +21678,38 @@
    "units_n": "548 analysis pairs after dropping 10 ambiguous pairs from 558 availability-matched pairs; 119 product weeks; ambiguous labels 4 real and 7 pseudo",
    "verdict": "EXECUTED ONCE (2026-10-07). Evidence label REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE. Δ_resolution = +8.0 pp (95% +4.4..+11.8), N=548, 119 weeks. Real resolution rate 91.1%, pseudo 83.0%. Discordant pairs 80 versus 36. All three epoch points are positive and each leave-one-epoch-out point stays positive. L2 replicated historical mechanism. Not L3. PRODUCT_INTEGRATION_CANDIDATE = YES. Product files were not changed.",
    "why_closed": "One confirmation run on the time-disjoint BitMEX surface. The surface is now consumed for this resolution contrast. No horizon, barrier, zone, rotation or level type was added after the outcome. No product integration was performed. No successor was started."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0"
+   ],
+   "forbidden": "rescoring this cell; calling an OI increase new longs or new shorts; stating a historical frequency as a current probability; reading oriented flow as participant identity; funding, liquidations, order book or a long/short ratio; an OI-by-taker interaction, absorption score or level-strength score; confirmation on this exposed surface; product integration",
+   "function": "first touch only of PDH/PDL/PWH/PWL/PMH/PML; T is the open of the touch bar; primary window [T-60m, T); features are 60m log OI change, 15m-versus-45m OI acceleration, oriented taker imbalance, and the 15m-minus-45m taker shift; linear probability model per +1 SD; nuisance is family, side, year, volatility tercile, prior 60m oriented displacement, relative quote volume and UTC time block; half-rotation pseudo touch supplies the specificity contrast; cluster is the product week",
+   "id": "LEVEL-POSITIONING-FLOW-DISCOVERY-V1",
+   "mechanism": "MODE=DISCOVERY. Which point-in-time open-interest and aggressive-flow states immediately before the first touch of a pre-known structural BTC level, if any, carry extra historical information about whether that touch resolves within 4h and, if it resolves, whether the resolution is BREAK or REJECT. A second question is whether any such association is specific to the structural price or also appears at the matched pseudo-price. Not a test that open interest rising means a break, and not a rescue of H05, MARKET-01/02, DH1-X2 or funding crowding.",
+   "note": "MODE=DISCOVERY. Design note 2491bbe9 before any feature-conditioned outcome rate. Dependencies #352 dfc9e0f0, #353 c3d39bff, #354 methodology 8effe9ac, #355 aa85e5b4, #356 f8623d32, #357 c1cd4e01. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. OI authority is the git snapshot 5a9d036b, oi.jsonl only. Reopen key NEW_MECHANISM relative to the first-touch resolution cell.",
+   "period": "2020-09-01T01:05Z..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars and the OI leg of B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0; sum_open_interest only; funding never opened; no 2025/2026, no live tape, no E1 holdout",
+   "practical_bar": "3 pp per +1 SD is the predeclared successor-screening scale inside the candidate conjunction. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the 8 primary real-cohort cells only.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_DESIGN.md",
+    "docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_PREFLIGHT.json",
+    "docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_RESULT.md",
+    "docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_RESULT.json",
+    "scripts/research/level_positioning_flow_discovery_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A new mechanism, or a predeclared confirmation on a time-disjoint surface, with its own design note and owner go. Not a retune of the 60m window, the feature formulas, the FDR threshold, the 3 pp scale, or an interaction fitted on this matrix. Not 2025/2026.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "LEVEL_POSITIONING_FLOW_DISCOVERY_V1",
+   "units_n": "1708 geometry-legitimate first touches; RESOLVE_4H primary N 1679 (OI) / 1698 (taker); BREAK_GIVEN_RESOLVED primary N 1513 / 1531; 227 week clusters; 10 ambiguous labels excluded from rates",
+   "verdict": "EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_POSITION_FLOW_STRUCTURE. No primary cell passes the frozen conjunction. Nearest cell: OI recent acceleration to BREAK_GIVEN_RESOLVED +2.90 pp per +1 SD (95% +0.43..+5.50), q=0.201, N=1513, same sign in all five epochs and all leave-one-year-out refits; it fails q=0.10 and the 3 pp scale. Stacked real-minus-pseudo intervals that exclude 0 are not candidates because the real-cohort conjunction failed. L2 family statement. A selected cell would have been DISCOVERY_ONLY; none was selected. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "One discovery run. Binance 2020-2024 PRICE_STRUCTURE.levels was already consumed; this run is further exposure of pre-touch OI and taker state into first-touch resolution type, not a confirmation. The OI half of the pinned B2-06 snapshot was read; funding was not. No product change. No interaction, absorption, funding or confirmation successor was started."
   },
   {
    "col": "CANDLES",

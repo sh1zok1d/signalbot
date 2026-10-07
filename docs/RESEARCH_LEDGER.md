@@ -8262,3 +8262,26 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; C
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 PRODUCT_INTEGRATION_CANDIDATE = YES; INTEGRATION_PERFORMED = no; SUCCESSOR_STARTED = no
 ```
+
+## 2026-10-07 — LEVEL_POSITIONING_FLOW_DISCOVERY_V1 executed once; discovery; no incremental position/flow structure; not integrated
+
+**Unit.** `LEVEL_POSITIONING_FLOW_DISCOVERY_V1` (atlas `LEVEL-POSITIONING-FLOW-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2, a family statement. A selected cell would have been discovery-only; none was selected. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039`, #353 `c3d39bffda861b535605a98205d7578c0c84c782`, #354 methodology `8effe9acc3b88b925a79b33f04ac0ee9e6f93e26`, #355 `aa85e5b43c405ee225336ff385e3a3383fa59d09`, #356 `f8623d3281424c165ebd7ee7fbcb0af994cc1e8d`, #357 `c1cd4e0102e700f7860d21a9af0d243c3bc367be`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `2491bbe9277faa24f0e5e3a295bbe6a01672ddf9` before any feature-conditioned outcome rate. No window, formula, FDR threshold, practical scale, outcome or interaction was added after the rates were read.
+- **Question.** #357 established that a first touch of a pre-known structural level resolves within 4h more often than a matched pseudo-price. This unit asks which point-in-time open-interest and aggressive-flow states, if any, distinguish “resolves or stalls” and “if resolved, BREAK or REJECT”, beyond the frozen price and context baseline, and whether that association is specific to the structural price.
+- **OI authority:** the seven outcome-blind conditions passed. Git snapshot `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`. `oi.jsonl` SHA256 `c4744a9369844f453476589111c2436372e729e7afdbe5fb34b6e9938a905b94`, 455273 native 5m rows, `available_at = period_start + 5m`. Only `sum_open_interest`. Funding was not opened. The B2-06 contract was not edited. `research_authorized` stays false. This is not B2-06 crowding science and not a rescue of H05, MARKET-01/02 or DH1-X2.
+- **Data:** `CORE_BTC_BINANCE_V0`, zip-list SHA256 `936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b`. Events `[2020-09-01T01:05:00Z, 2025-01-01T00:00:00Z)`. Observed first touch 2020-09-01T05:55:00Z, last 2024-12-31T12:30:00Z. No 2025/2026 object, no E1 holdout.
+- **Cohort:** touch number 1 of PDH, PDL, PWH, PWL, PMH and PML. Geometry-legitimate first touches 1708. Ambiguous labels 10, excluded from rates. On 1698 labeled touches: BREAK 688 (40.5%), REJECT 843 (49.6%), NEITHER 167 (9.8%), resolve rate 90.2%. 227 product weeks. Redundancy before outcomes: maximum absolute correlation 0.267; all four features retained.
+- **Primary:** eight adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. None passes the conjunction. Nearest cell: OI recent acceleration → BREAK given resolved, +2.90 pp (95% +0.43..+5.50), p=0.027, q=0.201, N=1513. Epoch points +0.34 / +2.66 / +4.48 / +4.97 / +2.85 pp, all positive. Leave-one-year-out points +3.43 / +3.48 / +2.66 / +2.17 / +2.95 pp, all positive. It fails q=0.10 and the 3 pp scale. The other seven primary intervals include 0 or the absolute estimate is below 3 pp, and their q-values are above 0.10.
+- **Specificity:** three stacked real-minus-pseudo intervals exclude 0 (oriented taker → resolve −4.35 pp; acceleration → break +4.21 pp; oriented taker → break +5.32 pp). They are not candidates. The real-cohort conjunction failed, so neither `LEVEL_INTERACTION_CANDIDATE` nor `GENERIC_STATE_CANDIDATE` is assigned.
+- **Shape:** five frozen tertile tables are U-shaped. Recorded as exploratory successor ideas. No threshold or interaction was fit.
+- **Routing:** `NO_INCREMENTAL_POSITION_FLOW_STRUCTURE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim:** L2. A historical association in this first-touch cohort. Not a current probability. An OI increase is more outstanding open interest. Oriented flow is aggressive executed volume toward the level. Not L3.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-09-01..2024-12-31, pre-touch taker quote imbalance into first-touch resolution type (further exposure, not a confirmation)
+WINDOWS_CONSUMED = B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0 OI leg only, sum_open_interest, same window, covariate of first-touch resolution; funding.jsonl not opened; B2-06 crowding still unauthorized
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
