@@ -1,3 +1,22 @@
+## LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1 — executed once; discovery; unstable; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1 (atlas LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design f3101015 before any late resolution rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> #359 bcc0a9e8 -> #360 181debc4 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = not H02, not B2-02, not V2 CONFIRMED_BREAKOUT | population is the structural first touch | decision time is T+15m | predictors are post-touch only | sample is still unresolved at D | outcome is the remainder of the original 4h | no acceptance flag`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | OI snapshot 5a9d036b, oi.jsonl c4744a93, sum_open_interest only | funding not opened | events [2020-09-01T00:05Z, 2025-01-01) | 2025/2026 NOT read`
+`CLOCK = T = open of touch bar j | D = T+15m | reaction bars j..j+2 | early passage j+1..j+2 | late passage j+3..j+48 | touch bar is not a resolution`
+`COHORT = touch_number = 1 | geometry-legitimate 1709 | early BREAK 260 / early REJECT 238 / early ambiguous 9 | unresolved 1202 | late BREAK 428 / REJECT 606 / NEITHER 167 / ambiguous 1 | 227 weeks`
+`RETAINED = END_POSITION_X, RELATIVE_ACTIVITY_15M, ORIENTED_TAKER_REACTION_15M, TAKER_CHANGE_VS_PRE, OI_REACTION_15M | DROPPED = none | max |rho| 0.828`
+`ESTIMAND = adjusted change in historical probability per +1 SD | O1 LATE_RESOLVE_BY_4H N=1201 | O2 LATE_BREAK_GIVEN_RESOLVED N=1034 | 10 primary cells | BH q=0.10 | scale 3 pp | seed 20261017, 2000 draws | cluster = product week`
+`PRIMARY = END_POSITION_X -> LATE_BREAK +20.31 pp (95% +17.20..+23.46, q=0.0000, N=1034) | years, LOYO and both sides keep the sign | conjunction fails only the family clause because omit_DAY returned no coefficient | not promoted | other nine cells fail q or the 3 pp scale or the interval | bars not loosened`
+`SPECIFICITY NOT PROMOTED = conjunction did not pass | pseudo and stacked intervals withheld because valid draws were below 90% | pseudo end-position -> late BREAK point +30.13 pp is descriptive | not a generic candidate`
+`ROUTING = STRUCTURE_PRESENT_BUT_UNSTABLE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | two tertile U-shapes recorded as ideas and not fit`
+`CLAIM = L2 | historical association, not a current probability | end position is not acceptance or a failed break | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = acceptance path; 30m window; OI×taker; liquidation; spot; cross-venue; 2025/2026; confirmation; ML | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_LIQUIDITY_STATE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
 
 `UNIT = LEVEL_LIQUIDITY_STATE_DISCOVERY_V1 (atlas LEVEL-LIQUIDITY-STATE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design f7430ca2 before any feature-conditioned resolution rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`

@@ -8327,3 +8327,25 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-07 — LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1 executed once; discovery; structure present but unstable; not integrated
+
+**Unit.** `LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1` (atlas `LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only on an already consumed level surface. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #360 `181debc4aa626637f2cd560103447d2d4adc96b1`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. Design note `f3101015f33b19d38b38c226891422c5863cc723` before any late resolution rate. The 15-minute window, the early exclusion, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is a state update 15 minutes after a #352 structural first touch, on events that have not yet reached either barrier, with the outcome equal to the remainder of the original 4h. It is not H02 (rolling-range wick → signed return), not B2-02, and not V2 `CONFIRMED_BREAKOUT`. No acceptance, reclaim, or failed-break flag was fit. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels`.
+- **Clock.** T is the open of touch bar j. D = T+15m. Reaction features use bars j, j+1 and j+2. Early passage uses j+1 and j+2 and does not treat the touch bar as a resolution. Late passage uses j+3 through j+48.
+- **Cohort.** Window `[2020-09-01T00:05:00Z, 2025-01-01)`. Geometry-legitimate first touches 1709. Early BREAK 260, early REJECT 238, early ambiguous 9, unresolved 1202, unavailable 0. On unresolved events: late BREAK 428, REJECT 606, NEITHER 167, ambiguous 1. Primary N: late resolve 1201, late break given resolved 1034. 227 weeks. All five features retained. Maximum absolute correlation before outcomes 0.828.
+- **Primary.** Ten adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. `END_POSITION_X` → late BREAK +20.31 pp (95% +17.20..+23.46, q=0.0000, N=1034). All five years and all five leave-one-year-out fits stay positive. Resistance +20.02 pp and support +21.06 pp. The conjunction fails only because leave-one-family-out omitting DAY returned no coefficient (complement N=122). DAY itself is +20.20 pp and WEEK is +19.45 pp. The other nine cells fail q, the 3 pp scale, or the interval. The bars were not loosened.
+- **Specificity.** Not promoted. Pseudo and stacked intervals were withheld: valid week-cluster draws were below the frozen 90 percent line. The pseudo end-position → late BREAK point is +30.13 pp (N=413) and is descriptive only.
+- **Shape.** Relative activity versus late resolve, and OI change versus late break, are U-shaped on frozen tertiles. Recorded as exploratory ideas. No threshold was fit.
+- **Routing.** `STRUCTURE_PRESENT_BUT_UNSTABLE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. A historical association in this unresolved first-touch cohort. Not a current probability. Not an acceptance rule and not a failed break.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-09-01..2024-12-31, 15m post-touch reaction into the remainder of the original 4h (further exposure, not a confirmation)
+WINDOWS_CONSUMED = B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0 sum_open_interest only, prints at T and at T+15m; funding.jsonl not opened; B2-06 crowding remains unauthorized
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```

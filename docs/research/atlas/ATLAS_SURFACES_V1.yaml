@@ -47,6 +47,7 @@ datasets:
       - {period: 2020-09..2024-12, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-POSITIONING-FLOW-DISCOVERY-V1 one-shot (pre-touch taker quote imbalance and OI change -> first-touch RESOLVE_4H and BREAK_GIVEN_RESOLVED), 2026-10-07; quote volume and taker-buy quote on complete bars ending at or before T; further exposure of the same level row, not a confirmation"}
       - {period: 2020-09..2024-12, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1 one-shot (outcome-blind joint state of OI, taker flow and approach-oriented price progress -> first-touch resolution), 2026-10-07; further exposure, not a confirmation and not a reopen of FLOW.absorption"}
       - {period: 2023-01-01T02:00Z..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-LIQUIDITY-STATE-DISCOVERY-V1 one-shot (local ±1% book state immediately before a structural first touch -> RESOLVE_4H and BREAK_GIVEN_RESOLVED), 2026-10-07; further exposure of the level row, discovery only, not a confirmation"}
+      - {period: 2020-09-01T00:05Z..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1 one-shot (15m post-touch price, activity and taker reaction on events still unresolved at T+15m -> remaining 4h barrier passage), 2026-10-07; further exposure, not a confirmation and not a reopen of PRICE_STRUCTURE.breakout"}
       - {period: 2020-2024, rows: [CALENDAR.month_boundary], status: EXPOSED, note: "TOM-BASELINE-V1 product-evidence run (turn-of-month vs mid-month label rates and day-level volume / trade count / range), 2026-10-06; first turn-of-month contrast computed on this surface"}
     records: [docs/research_data/CORE_BTC_BINANCE_V0]
   - id: BINANCE_UM_KLINES_5M_PRODUCT
@@ -112,6 +113,7 @@ datasets:
       - {period: 2020-09..2024-12, rows: [DERIVATIVES.oi_buildup], status: CONSUMED, note: "MARKET-01/02 used the OI half; B2-06 science never run; funding never used (publication latency unproven)"}
       - {period: 2020-09..2024-12, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-POSITIONING-FLOW-DISCOVERY-V1 read sum_open_interest only, as a covariate of first-touch resolution type, not as an oi_buildup continuation; funding.jsonl never opened; B2-06 crowding remains unauthorized; research_authorized remains false"}
       - {period: 2020-09..2024-12, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1 read sum_open_interest only, as one coordinate of an outcome-blind first-touch state; funding.jsonl never opened; B2-06 crowding remains unauthorized"}
+      - {period: 2020-09-01T00:05Z..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1 read sum_open_interest only, as the 15m change between the legal prints at T and at T+15m; funding.jsonl never opened; B2-06 crowding remains unauthorized"}
     records: [docs/research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0, docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md]
   - id: BINANCE_UM_OI_METRICS_PRODUCT
     col: POSITIONING
