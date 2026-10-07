@@ -3721,6 +3721,32 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'Successor of LEVEL-TOUCH-DEGRADATION-V1 / PR #352 / dfc9e0f0. Design note c8a1d4d2 before any next-touch rate. Tracks STRUCTURE + PRODUCT_EVIDENCE. Claim ceiling L2. The parent unit is not rewritten. Reopen key NEW_MECHANISM relative to the touch-ordinal cell.'
+  - id: LEVEL-APPROACH-STATE-DISCOVERY-V1
+    title: LEVEL_APPROACH_STATE_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '2020-02-01..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars from 2020-01-01; OHLC and quote volume; no taker flow, no OI, no 2025/2026, no live tape, no E1 holdout'
+    units_n: '1973 analysis touches (DAY 1439 / WEEK 420 / MONTH 114); 1210 episode clusters; 3 ambiguous same-bar events excluded; approach rows before that drop 1976'
+    practical_bar: '3 pp per 1 SD is the parent level-reaction reading scale inside the predeclared successor conjunction. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the 21 primary slopes only.'
+    mechanism: 'MODE=DISCOVERY. Which point-in-time characteristics of how price approaches an already-known structural BTC level carry incremental historical information about the subsequent 4h touch ending as BREAK_FIRST, REJECT_FIRST or NEITHER. Not a test of a prechosen trader story. Successor in the level family after LEVEL-TOUCH-DEGRADATION-V1 and LEVEL-REJECTION-MEMORY-V1, not a rescore of either.'
+    function: 'geometric approach inside 1.0x primary X, features known before the touch bar: velocity, path efficiency, directional persistence, acceleration, range state, relative quote volume, near-level dwell; pullback dropped before outcomes as the algebraic complement of efficiency; separate linear probability models per outcome adjusted for touch ordinal, family, side, volatility tercile, year and log approach length; episode-cluster bootstrap; tertiles descriptive; band 2.0x is the only sensitivity; half-rotation pseudo-level on the real scales is the falsification'
+    verdict: 'EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing STRUCTURE_PRESENT_BUT_UNSTABLE. Four primary cells have |b| >= 3 pp and an interval excluding 0: velocity->BREAK -3.9 pp (95% -7.3..-0.5, q=0.122); efficiency->NEITHER +4.4 pp (95% +2.2..+6.8, q=0.002); dwell->REJECT -3.0 pp (95% -5.3..-0.7, q=0.059); dwell->NEITHER +4.7 pp (95% +2.6..+6.7, q=0.000). N=1973, 1210 clusters. Each fails the conjunction: DAY is 72.9% of the sample, above the frozen 70% cap, and the pseudo-level coefficient is large (efficiency->NEITHER +3.9 pp, dwell->REJECT -4.2 pp, dwell->NEITHER +4.1 pp, velocity->BREAK +4.0 pp with the opposite sign). Dropping log duration flips velocity->BREAK to +1.2 pp and efficiency->NEITHER to -1.8 pp. Acceleration stays within about 1 pp. L2 family statement. A selected cell would have been DISCOVERY_ONLY; none was selected. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run on a surface already consumed for level research. Notable adjusted associations do not pass the successor rule frozen before outcomes. No product change. Confirmation was not started. The flow/OI successor was not started.'
+    reopen: 'A new mechanism, or a fresh or prospective surface, with its own design note and owner go. Not a retune of the 70% family cap, the band, the feature formulas, or an interaction fitted on this matrix. Named and not run: LEVEL_APPROACH_FLOW_INCREMENTAL_V1, which would have to ask whether OI, taker flow or liquidation state add information above this price-only approach state.'
+    forbidden: 'rescoring this cell; adding a feature, window, horizon, interaction or threshold after the outcome; a composite approach-strength score; confirmation on this exposed 2020-2024 surface or on 2025/2026; trade wording; stating a historical frequency as a current probability; reading a partial slope as "a fast approach breaks the level"; treating this as a rescore of LEVEL-TOUCH-DEGRADATION-V1, LEVEL-REJECTION-MEMORY-V1, DH1-L2 or DH3-V3; starting LEVEL_APPROACH_FLOW_INCREMENTAL_V1 from this result'
+    records:
+    - docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_approach_state_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note 778e23dd before any approach-conditioned outcome rate. One official run 3cd68af0. Dependencies #352 dfc9e0f0, #353 c3d39bff, #354 methodology 8effe9ac. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to the touch-ordinal cell and the rejection-speed cell.'
   - id: DH3-X9
     title: BOOK_IMBALANCE_5PCT_AT_SUPPORT
     program: DIRECTIONAL_AND_RANGE_DH3

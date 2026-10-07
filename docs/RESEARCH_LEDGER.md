@@ -8201,3 +8201,23 @@ WINDOWS_CONSUMED = none new (2020-2024 PRICE_STRUCTURE.levels already consumed; 
 OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 ```
+
+## 2026-10-07 — LEVEL_APPROACH_STATE_DISCOVERY_V1 executed once; discovery; no successor; not integrated
+
+**Unit.** `LEVEL_APPROACH_STATE_DISCOVERY_V1` (atlas `LEVEL-APPROACH-STATE-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Family-statement claim L2. A cell selected by the successor rule would be `DISCOVERY_ONLY`; none was selected. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039`, #353 `c3d39bffda861b535605a98205d7578c0c84c782`, #354 methodology `8effe9acc3b88b925a79b33f04ac0ee9e6f93e26`. It does not rescore those units, DH1-L2 or DH3-V3.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `778e23dd` before any approach-conditioned outcome rate. Result commit `3cd68af0`. No feature, window, horizon, interaction or threshold was added after the rates were read.
+- **Data:** `CORE_BTC_BINANCE_V0` 5m bars, 2020-01-01 through 2024-12-31, events from 2020-02-01. OHLC and quote volume. No taker-buy quote, no OI, no funding, no liquidations, no order book, no 2025/2026 slice, no live tape. The E1 holdout was not read. The 2020–2024 level row was already consumed; this run is additional exposure, not a confirmation.
+- **Cohort:** independent touches of ex-ante structural zones with an observed entry into the outer band `1.0 ×` primary X and at least four in-band bars ending at the bar before the touch. Features use only bars before the touch.
+- **Family:** velocity, efficiency, persistence, acceleration, range state, relative quote volume, dwell. Pullback was dropped before outcomes because it is exactly `(1 − efficiency) / 2` (ρ = −1). Search exposure 441 cells. Benjamini–Hochberg at q = 0.10 on the 21 primary slopes only.
+- **Primary:** N=1973, 1210 episode clusters, 3 ambiguous touches dropped. Four slopes have absolute value at least 3 pp and an interval that excludes 0. Velocity → BREAK_FIRST −3.9 pp (95% −7.3..−0.5, q=0.122). Efficiency → NEITHER +4.4 pp (95% +2.2..+6.8, q=0.002). Dwell → REJECT_FIRST −3.0 pp (95% −5.3..−0.7, q=0.059). Dwell → NEITHER +4.7 pp (95% +2.6..+6.7, q=0.000). Acceleration stays within about 1 pp on every outcome.
+- **Why none is a successor:** DAY is 72.9% of the analysis sample, above the frozen 70% cap. On the pseudo-level, those four coefficients are +4.0, +3.9, −4.2 and +4.1 pp; none satisfies the control clause. Year signs of the four structural slopes agree, and leave-one-year-out keeps the sign. Dropping log approach length flips velocity → BREAK_FIRST to +1.2 pp and efficiency → NEITHER to −1.8 pp. Touch ordinal does not account for the slopes.
+- **Routing:** `STRUCTURE_PRESENT_BUT_UNSTABLE`. Atlas `CLOSED_ON_SURFACE`. `SUCCESSOR_CANDIDATE = NONE`. Interactions estimated: 0.
+- **Claim:** L2. The allowed sentence is the quantitative cohort contrast in the result record. Not a current probability. Not “a fast approach breaks the level”. The cohort is structural touches that showed a full approach episode.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change. Confirmation was not started. `LEVEL_APPROACH_FLOW_INCREMENTAL_V1` was not started.
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 PRICE_STRUCTURE.levels already consumed; this approach-state matrix is recorded as further exposure)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no
+```

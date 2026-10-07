@@ -1,3 +1,20 @@
+## LEVEL_APPROACH_STATE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_APPROACH_STATE_DISCOVERY_V1 (atlas LEVEL-APPROACH-STATE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 778e23dd before any approach-conditioned outcome rate; one-shot result 3cd68af0) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected cell would be DISCOVERY_ONLY and none was selected`
+`DEPENDENCIES = #352 LEVEL_TOUCH_DEGRADATION_V1 dfc9e0f0 -> #353 LEVEL_REJECTION_MEMORY_V1 c3d39bff -> #354 methodology 8effe9ac -> this unit | source main 1a2e425 | parent results not rewritten`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 OHLC and quote volume (events from 2020-02-01) | taker flow, OI, funding, liquidations, order book, 2025/2026, live tape, E1 holdout NOT used | PRICE_STRUCTURE.levels already consumed; this run is further exposure, not a confirmation`
+`COHORT = independent touches of ex-ante structural zones with an observed entry into the outer band 1.0x primary X and at least four in-band bars ending before the touch | features use only bars before the touch`
+`ESTIMAND = adjusted change in the historical frequency of BREAK_FIRST, REJECT_FIRST and NEITHER per +1 SD of each retained approach feature | LPM with touch ordinal, family, side, volatility tercile, year and log approach length | baseline = the same approach cohort | falsification = half-rotation pseudo-level on the real scales`
+`RETAINED = velocity, efficiency, persistence, acceleration, range_state, rel_volume, dwell | DROPPED BEFORE OUTCOMES = pullback (algebraic complement of efficiency, rho = -1) | SEARCH = 441 cells | FDR family = 21 primary slopes, q = 0.10`
+`PRIMARY NOTABLE = velocity->BREAK -3.9 pp (95% -7.3..-0.5, q=0.122) | efficiency->NEITHER +4.4 pp (95% +2.2..+6.8, q=0.002) | dwell->REJECT -3.0 pp (95% -5.3..-0.7, q=0.059) | dwell->NEITHER +4.7 pp (95% +2.6..+6.7, q=0.000) | N=1973, 1210 clusters`
+`WHY NONE IS A CANDIDATE = DAY share 72.9% above the frozen 70% cap | pseudo-level coefficients on those four cells are +4.0 / +3.9 / -4.2 / +4.1 pp and none is below half the structural magnitude with an interval that saves the clause | dropping log duration flips velocity->BREAK to +1.2 pp and efficiency->NEITHER to -1.8 pp | acceleration stays within about 1 pp`
+`ROUTING = STRUCTURE_PRESENT_BUT_UNSTABLE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | interactions estimated = 0`
+`CLAIM = L2 quantitative historical associations in the approach cohort | L3/L4 not permitted | wording is a cohort frequency, not a current probability and not "a fast approach breaks the level"`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no`
+`SUCCESSORS NOT STARTED = confirmation of any approach feature; LEVEL_APPROACH_FLOW_INCREMENTAL_V1 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_REJECTION_MEMORY_V1 — executed once; L2; near zero; not integrated — 2026-10-07
 
 `UNIT = LEVEL_REJECTION_MEMORY_V1 (atlas LEVEL-REJECTION-MEMORY-V1; family LEVEL_BEHAVIOR_V1; successor of LEVEL_TOUCH_DEGRADATION_V1 / PR #352 / dfc9e0f0; design c8a1d4d2 before any next-touch rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM_CEILING = L2`
