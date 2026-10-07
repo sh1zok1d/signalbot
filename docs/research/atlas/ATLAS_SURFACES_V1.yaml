@@ -278,6 +278,7 @@ datasets:
     availability: PINNED
     exposure:
       - {period: 2017-2019, rows: [PRICE_STRUCTURE.levels, SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: EXPOSED, note: "DH1 replication-surface feasibility counted events and states only; no outcome read (nothing reached replication)"}
+      - {period: 2017-09-01..2019-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1 read RESOLVED_WITHIN_4H on matched real versus half-rotation pseudo first touches"}
     records: [docs/research_data/DH1_BITMEX_XBTUSD_TRADES_5M_V0, docs/research/DH1_FEASIBILITY.md]
   - id: DH2_BINANCE_UM_ALTS_5M_V0
     col: CROSS_ASSET

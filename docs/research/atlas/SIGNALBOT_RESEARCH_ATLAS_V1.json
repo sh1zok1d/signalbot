@@ -752,7 +752,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
-    "CLOSED_ON_SURFACE": 3,
+    "CLOSED_ON_SURFACE": 4,
     "EXPOSED_ONLY": 1,
     "INFORMATIONALLY_WEAK": 1,
     "LIVE_SIGNAL": 2,
@@ -776,6 +776,7 @@
     "DH3-V3",
     "GV0R01-C017",
     "LEVEL-APPROACH-STATE-DISCOVERY-V1",
+    "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1",
     "LEVEL-REJECTION-MEMORY-V1",
     "LEVEL-STRUCTURE-DISCOVERY-V1",
     "LEVEL-TOUCH-DEGRADATION-V1",
@@ -10161,14 +10162,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 355
   },
-  "units": 192,
+  "units": 193,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 16,
+   "CLOSED_ON_SURFACE": 17,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 11,
    "FUTURE_NATURAL_ACCUMULATION": 3,
@@ -15570,7 +15571,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "773a9498dfd85569a409ff1b011689676822d72ede22f90bbc4ede0de833506d",
+ "SOURCES_DIGEST": "a97fb09bebc5236ed1f1f1b2ce66056a973e9e267d27441fb129aab63b4dee5f",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16301,6 +16302,14 @@
        "SPOT_PERP.volume_share"
       ],
       "status": "EXPOSED"
+     },
+     {
+      "note": "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1 read RESOLVED_WITHIN_4H on matched real versus half-rotation pseudo first touches",
+      "period": "2017-09-01..2019-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
      }
     ],
     "id": "DH1_BITMEX_XBTUSD_TRADES_5M_V0",
@@ -21621,6 +21630,37 @@
    "units_n": "1973 analysis touches (DAY 1439 / WEEK 420 / MONTH 114); 1210 episode clusters; 3 ambiguous same-bar events excluded; approach rows before that drop 1976",
    "verdict": "EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing STRUCTURE_PRESENT_BUT_UNSTABLE. Four primary cells have |b| >= 3 pp and an interval excluding 0: velocity->BREAK -3.9 pp (95% -7.3..-0.5, q=0.122); efficiency->NEITHER +4.4 pp (95% +2.2..+6.8, q=0.002); dwell->REJECT -3.0 pp (95% -5.3..-0.7, q=0.059); dwell->NEITHER +4.7 pp (95% +2.6..+6.7, q=0.000). N=1973, 1210 clusters. Each fails the conjunction: DAY is 72.9% of the sample, above the frozen 70% cap, and the pseudo-level coefficient is large (efficiency->NEITHER +3.9 pp, dwell->REJECT -4.2 pp, dwell->NEITHER +4.1 pp, velocity->BREAK +4.0 pp with the opposite sign). Dropping log duration flips velocity->BREAK to +1.2 pp and efficiency->NEITHER to -1.8 pp. Acceleration stays within about 1 pp. L2 family statement. A selected cell would have been DISCOVERY_ONLY; none was selected. PRODUCT_INTEGRATION_CANDIDATE = NO.",
    "why_closed": "One discovery run on a surface already consumed for level research. Notable adjusted associations do not pass the successor rule frozen before outcomes. No product change. Confirmation was not started. The flow/OI successor was not started."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "DH1_BITMEX_XBTUSD_TRADES_5M_V0"
+   ],
+   "forbidden": "calling the level strong, saying it holds or will break, support-as-buy or resistance-as-sell wording, stating the historical frequency as a current probability, L3 or L4 from this run, a new resolution threshold, a fast-break split, adding volume or open interest after the outcome",
+   "function": "paired mean of Y_real minus Y_pseudo on touch_number = 1; Y is 1 for BREAK or REJECT and 0 for NEITHER; week-block bootstrap on the real touch week; #352 structural levels and half-rotation control",
+   "id": "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1",
+   "mechanism": "MODE=CONFIRMATION. Whether the first touch of a pre-known structural BTC level resolves into BREAK or REJECT within 4h more often than the matched first touch of a deterministic half-rotation pseudo-price. Resolution is not direction.",
+   "note": "MODE=CONFIRMATION. Design note a4f3a0d6 before any BitMEX barrier rate. Dependencies #352 dfc9e0f0, #353 c3d39bff, #354 methodology 8effe9ac, #355 aa85e5b4, #356 f8623d32. Tracks STRUCTURE + PRODUCT_EVIDENCE. Claim L2. Parent results are not rewritten. Surface status TIME_DISJOINT / OUTCOME_UNREAD_FOR_THIS_CLAIM / FEASIBILITY_EXPOSED before this run.",
+   "period": "2017-09-01..2019-12-31 on DH1_BITMEX_XBTUSD_TRADES_5M_V0 5m bars from 2017-08-01; OHLC from public trades; no 2020-2024 Binance reread, no 2025/2026, no live tape, no E1 holdout",
+   "practical_bar": "3 pp on the paired resolution difference is the predeclared reading scale. It is not a requirement to recover the Binance description of about 12 pp, and it is not the DH1 3 pp plus Brier bar.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_DESIGN.md",
+    "docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_PREFLIGHT.json",
+    "docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_RESULT.md",
+    "docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_RESULT.json",
+    "scripts/research/level_first_touch_resolution_confirmation_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A prospective calibration of this exact claim class, with its own design note and owner go. Not a retune of the horizon, barrier, zone or pseudo rotation. Not a reread of Binance 2020-2024. Not 2025/2026.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1",
+   "units_n": "548 analysis pairs after dropping 10 ambiguous pairs from 558 availability-matched pairs; 119 product weeks; ambiguous labels 4 real and 7 pseudo",
+   "verdict": "EXECUTED ONCE (2026-10-07). Evidence label REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE. Δ_resolution = +8.0 pp (95% +4.4..+11.8), N=548, 119 weeks. Real resolution rate 91.1%, pseudo 83.0%. Discordant pairs 80 versus 36. All three epoch points are positive and each leave-one-epoch-out point stays positive. L2 replicated historical mechanism. Not L3. PRODUCT_INTEGRATION_CANDIDATE = YES. Product files were not changed.",
+   "why_closed": "One confirmation run on the time-disjoint BitMEX surface. The surface is now consumed for this resolution contrast. No horizon, barrier, zone, rotation or level type was added after the outcome. No product integration was performed. No successor was started."
   },
   {
    "col": "CANDLES",

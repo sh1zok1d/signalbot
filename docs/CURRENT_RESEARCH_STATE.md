@@ -1,3 +1,20 @@
+## LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1 — executed once; L2; replicated historical resolution gap; not integrated — 2026-10-07
+
+`UNIT = LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1 (atlas LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1; family LEVEL_BEHAVIOR_V1; MODE = CONFIRMATION; design a4f3a0d6 before any BitMEX barrier rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 replicated historical mechanism`
+`DEPENDENCIES = #352 LEVEL_TOUCH_DEGRADATION_V1 dfc9e0f0 -> #353 LEVEL_REJECTION_MEMORY_V1 c3d39bff -> #354 methodology 8effe9ac -> #355 LEVEL_APPROACH_STATE_DISCOVERY_V1 aa85e5b4 -> #356 LEVEL_STRUCTURE_DISCOVERY_V1 f8623d32 -> this unit | source main 1a2e425 | parent results not rewritten`
+`DATA = DH1_BITMEX_XBTUSD_TRADES_5M_V0, events [2017-09-01, 2020-01-01), warm-up from 2017-08-01 | canonical SHA256 df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f | exposure before the run: TIME_DISJOINT / OUTCOME_UNREAD_FOR_THIS_CLAIM / FEASIBILITY_EXPOSED | Binance 2020-2024 not reread | 2025/2026, live tape, E1 holdout NOT used`
+`COHORT = touch_number = 1 of PDH/PDL/PWH/PWL/PMH/PML, matched to the #352 half-rotation pseudo first touch with a complete 4h window | availability-matched 558 | analysis 548 after 10 ambiguous pairs | 119 weeks`
+`ESTIMAND = Δ_resolution = P(RESOLVED_WITHIN_4H | real first touch) − P(RESOLVED_WITHIN_4H | matched pseudo first touch) | RESOLVED = BREAK or REJECT | NEITHER = unresolved | estimator = paired mean | cluster = product week of the real touch`
+`PRIMARY = +8.0 pp (95% +4.4..+11.8) | real 91.1% | pseudo 83.0% | discordant 80 vs 36 | adjusted coefficient +7.9 pp (95% +4.0..+11.7) | seed 20261012, 2000 draws`
+`STABILITY = epoch points +5.0 / +5.2 / +13.1 pp, all positive, N=100/250/198 | leave-one-epoch-out +8.7 / +10.4 / +5.1 pp, all positive | 2017H2 and 2018 intervals include 0 | DAY/WEEK/MONTH +8.5 / +5.1 / 0.0 pp (N=480/59/9)`
+`DECOMPOSITION = BREAK +10.0 pp (95% +4.6..+15.4) | REJECT −2.0 pp (95% −7.1..+3.0) | NEITHER −8.0 pp (95% −12.0..−4.1) | decomposition does not decide the confirmation`
+`EVIDENCE = REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE | all five predeclared clauses hold | this is not the word PASS`
+`CLAIM = L2 | a historical resolution contrast, not a current probability and not a direction | L3 needs prospective calibration of this claim class | L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = YES | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no | integration needs a separate owner go`
+`SUCCESSORS NOT STARTED = none | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_DESIGN.md`.
+
 ## LEVEL_STRUCTURE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
 
 `UNIT = LEVEL_STRUCTURE_DISCOVERY_V1 (atlas LEVEL-STRUCTURE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 1ac77d2d before any feature-conditioned outcome rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected cell would be DISCOVERY_ONLY and none was selected`

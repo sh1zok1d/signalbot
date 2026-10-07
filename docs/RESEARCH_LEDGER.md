@@ -8241,3 +8241,24 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; C
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no
 ```
+
+## 2026-10-07 — LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1 executed once; L2; replicated historical resolution gap; not integrated
+
+**Unit.** `LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1` (atlas `LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = CONFIRMATION`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2, a replicated historical mechanism. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039`, #353 `c3d39bffda861b535605a98205d7578c0c84c782`, #354 methodology `8effe9acc3b88b925a79b33f04ac0ee9e6f93e26`, #355 `aa85e5b43c405ee225336ff385e3a3383fa59d09`, #356 `f8623d3281424c165ebd7ee7fbcb0af994cc1e8d`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `a4f3a0d6` before any BitMEX barrier rate. No horizon, barrier, zone, rotation, level type or threshold was added after the rates were read.
+- **Question.** The post-hoc #352 description, which was not that unit's primary hypothesis, was that a real structural first touch resolves into BREAK or REJECT within 4h more often than the matched pseudo first touch (about +12 pp on Binance 2020–2024). That surface cannot confirm it. This unit asks the same contrast on time-disjoint BitMEX XBTUSD.
+- **Data:** `DH1_BITMEX_XBTUSD_TRADES_5M_V0`, canonical SHA256 `df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f`, grid 2017-08-01 through 2019-12-31, events from 2017-09-01. Before this run the atlas status was feasibility-exposed and the DH1 replication outcomes had not been read. This run consumes the surface for this resolution contrast. No 2025/2026 object, no live tape, no E1 holdout.
+- **Cohort:** touch number 1 of PDH, PDL, PWH, PWL, PMH and PML, paired with the unchanged #352 half-rotation control. Availability-matched pairs 558. Analysis pairs 548 after excluding 10 pairs with an ambiguous label (4 real, 7 pseudo). 119 product weeks. Epoch counts 100 / 250 / 198.
+- **Primary:** Δ_resolution = +8.0 pp (95% +4.4..+11.8). Real resolution rate 91.1%. Pseudo resolution rate 83.0%. Discordant pairs: real resolved and pseudo unresolved 80; the reverse 36; both resolved 419; both unresolved 13. The adjusted coefficient on the real-touch indicator is +7.9 pp (95% +4.0..+11.7).
+- **Stability:** epoch points +5.0, +5.2 and +13.1 pp, all positive. Leave-one-epoch-out points +8.7, +10.4 and +5.1 pp, all positive. The 2017H2 and 2018 intervals include 0. The predeclared sign rule uses the point estimates and holds. Family points: DAY +8.5 pp (N=480), WEEK +5.1 pp (N=59), MONTH 0.0 pp (N=9, both sides resolved on every pair). Side points: resistance +7.2 pp, support +8.8 pp.
+- **Decomposition:** BREAK +10.0 pp (95% +4.6..+15.4), REJECT −2.0 pp (95% −7.1..+3.0), NEITHER −8.0 pp (95% −12.0..−4.1). The resolution gap sits in BREAK versus NEITHER. REJECT does not decide the confirmation.
+- **Evidence label:** `REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE`. All five predeclared clauses hold. This is a description of the frozen rule, not the word PASS.
+- **Claim:** L2. The allowed sentence is that the first touch of a pre-known structural level historically resolved into one of the two barrier outcomes within 4 hours more often than the matched pseudo-price touch. Not a current probability. Not a direction. Not L3.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = YES` by the rule frozen before the outcome. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change. Integration was not performed.
+
+```
+WINDOWS_CONSUMED = DH1_BITMEX_XBTUSD_TRADES_5M_V0 PRICE_STRUCTURE.levels 2017-09-01..2019-12-31, for RESOLVED_WITHIN_4H real versus matched pseudo first touch (previously EXPOSED by DH1 feasibility counts only)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+PRODUCT_INTEGRATION_CANDIDATE = YES; INTEGRATION_PERFORMED = no; SUCCESSOR_STARTED = no
+```
