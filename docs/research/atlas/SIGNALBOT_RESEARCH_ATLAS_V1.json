@@ -756,7 +756,7 @@
     "EXPOSED_ONLY": 1,
     "INFORMATIONALLY_WEAK": 1,
     "LIVE_SIGNAL": 2,
-    "NO_STRUCTURE": 3
+    "NO_STRUCTURE": 4
    },
    "frontier_eligible": true,
    "mixed": true,
@@ -775,6 +775,7 @@
     "DH3-V2",
     "DH3-V3",
     "GV0R01-C017",
+    "LEVEL-REJECTION-MEMORY-V1",
     "LEVEL-TOUCH-DEGRADATION-V1",
     "PRODUCT-V2-LEVELS"
    ],
@@ -10158,7 +10159,7 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 355
   },
-  "units": 189,
+  "units": 190,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
@@ -10171,7 +10172,7 @@
    "FUTURE_NATURAL_ACCUMULATION": 3,
    "INFORMATIONALLY_WEAK": 25,
    "LIVE_SIGNAL": 7,
-   "NO_STRUCTURE": 31
+   "NO_STRUCTURE": 32
   }
  },
  "FORBIDDEN_MOVES": {
@@ -15567,7 +15568,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "56289e171a7e32cd159c30ffa038de5fc29eb8132ad09089b40e3a584239a526",
+ "SOURCES_DIGEST": "5647a3e40347dff420a0248224ac2cb6ce7d1ca66b540c3e0fe6b701ff120099",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15710,6 +15711,14 @@
      },
      {
       "note": "LEVEL-TOUCH-DEGRADATION-V1 one-shot (independent touch ordinal of ex-ante PDH/PDL/PWH/PWL/PMH/PML -> 4h BREAK_FIRST), 2026-10-07; outcomes read on a surface already consumed by DH1-L2; not a confirmation",
+      "period": "2020-2024",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-REJECTION-MEMORY-V1 one-shot (prior REJECT_FIRST speed -> next independent touch 4h BREAK_FIRST), 2026-10-07; further exposure of the same level row, not a confirmation of LEVEL-TOUCH-DEGRADATION-V1",
       "period": "2020-2024",
       "rows": [
        "PRICE_STRUCTURE.levels"
@@ -21563,6 +21572,37 @@
    "verdict": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "what_tested": "Generator V0 pipeline only: novelty ALLOW, feasibility PASS, red team REJECT; red team failed checks: CAUSALITY, CONFOUNDING_ADDRESSED. No market outcomes were tested.",
    "why_closed": "Exact duplicate, cosmetic relabel, and parameter/window/horizon neighbors that leave the METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING blocker unresolved."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0"
+   ],
+   "forbidden": "rescoring this cell; a new threshold, horizon, feature, bucket or baseline after the outcome; a composite level-strength score; confirmation on this exposed 2020-2024 surface or on 2025/2026; trade wording; stating a historical frequency as a current probability; reading a near-zero result as \"the level is strong\" or as a prompt to retune; treating this as a rescore of LEVEL-TOUCH-DEGRADATION-V1, DH1-L2 or DH3-V3",
+   "function": "speed_z = z(−log bars to REJECT_FIRST) -> Δ P(BREAK_FIRST within 48 5m bars) per +1 SD faster, linear probability model with next-touch ordinal, family, side, volatility tercile, year and log wait after the rejection bar; cluster bootstrap; tertiles are descriptive; a half-rotation pseudo-level with the same real scales is the falsification",
+   "id": "LEVEL-REJECTION-MEMORY-V1",
+   "mechanism": "Among ex-ante structural BTC levels whose previous independent touch was REJECT_FIRST and that were later retested, the speed of that rejection (bars to the frozen reject barrier) is tested as a predictor of the next independent touch. This is a successor of LEVEL-TOUCH-DEGRADATION-V1, not a rescore of it, and not a test that a strong rejection makes a level strong.",
+   "note": "Successor of LEVEL-TOUCH-DEGRADATION-V1 / PR #352 / dfc9e0f0. Design note c8a1d4d2 before any next-touch rate. Tracks STRUCTURE + PRODUCT_EVIDENCE. Claim ceiling L2. The parent unit is not rewritten. Reopen key NEW_MECHANISM relative to the touch-ordinal cell.",
+   "period": "2020-02-01..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars from 2020-01-01; price only; no 2025/2026, no live tape, no E1 holdout",
+   "practical_bar": "3 pp is the product materiality floor used only inside the predeclared integration conjunction, applied per 1 SD of the frozen rejection-speed scale. It is not a Holm switch and not the DH1 3 pp plus Brier bar.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_REJECTION_MEMORY_V1_DESIGN.md",
+    "docs/research/LEVEL_REJECTION_MEMORY_V1_PREFLIGHT.json",
+    "docs/research/LEVEL_REJECTION_MEMORY_V1_RESULT.md",
+    "docs/research/LEVEL_REJECTION_MEMORY_V1_RESULT.json",
+    "scripts/research/level_rejection_memory_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A new mechanism, or a fresh or prospective surface, with its own design note and owner go. Named and not run: LEVEL_APPROACH_STATE_V1, LEVEL_CONFLUENCE_V1. A vanished or near-zero coefficient after touch-number or elapsed-time adjustment is not a reason to hunt another threshold on this cell.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "NO_STRUCTURE",
+   "title": "LEVEL_REJECTION_MEMORY_V1",
+   "units_n": "1151 analysis pairs (next-touch buckets 553 / 598); 283 clusters; 4 ambiguous next touches excluded; feature pairs before that drop 1155",
+   "verdict": "EXECUTED ONCE (2026-10-07). Per +1 SD faster prior rejection, adjusted Δ P(BREAK_FIRST) -0.1 pp (95% -2.9..+2.6), N=1151, 283 clusters. The interval includes 0 and the absolute coefficient is below the 3 pp reading scale. REJECT_FIRST +1.0 pp and NEITHER -0.8 pp, both intervals include 0. Crude tertile BREAK shares are 39.2% / 39.7% / 39.4%. Dropping the touch-ordinal or the log-wait control leaves the coefficient near zero. Year signs flip. L2 wording permitted. Not a confirmation. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "One retrospective run on a surface already consumed for level research. The adjusted association is near zero. No product change. Successors were not started."
   },
   {
    "col": "CANDLES",

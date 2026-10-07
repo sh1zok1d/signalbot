@@ -41,6 +41,7 @@ datasets:
       - {period: 2020-2024, scope: ALL, status: EXPOSED, note: "Historically exposed program surface (H01-H05, B2, D1-D12, MARKET-01/02/05, R03, G01, GV0 cards). Discovery only, with time-disjoint replication."}
       - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "DH1-L2 one-shot discovery (confluent vs lone level -> 4h hold), 2026-10-04"}
       - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-TOUCH-DEGRADATION-V1 one-shot (independent touch ordinal of ex-ante PDH/PDL/PWH/PWL/PMH/PML -> 4h BREAK_FIRST), 2026-10-07; outcomes read on a surface already consumed by DH1-L2; not a confirmation"}
+      - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-REJECTION-MEMORY-V1 one-shot (prior REJECT_FIRST speed -> next independent touch 4h BREAK_FIRST), 2026-10-07; further exposure of the same level row, not a confirmation of LEVEL-TOUCH-DEGRADATION-V1"}
       - {period: 2020-2024, rows: [CALENDAR.month_boundary], status: EXPOSED, note: "TOM-BASELINE-V1 product-evidence run (turn-of-month vs mid-month label rates and day-level volume / trade count / range), 2026-10-06; first turn-of-month contrast computed on this surface"}
     records: [docs/research_data/CORE_BTC_BINANCE_V0]
   - id: BINANCE_UM_KLINES_5M_PRODUCT

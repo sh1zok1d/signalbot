@@ -1,3 +1,17 @@
+## LEVEL_REJECTION_MEMORY_V1 — executed once; L2; near zero; not integrated — 2026-10-07
+
+`UNIT = LEVEL_REJECTION_MEMORY_V1 (atlas LEVEL-REJECTION-MEMORY-V1; family LEVEL_BEHAVIOR_V1; successor of LEVEL_TOUCH_DEGRADATION_V1 / PR #352 / dfc9e0f0; design c8a1d4d2 before any next-touch rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM_CEILING = L2`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 price only (events from 2020-02-01) | 2025/2026, live tape, funding, liquidations, OI, taker flow, order book, E1 holdout NOT used | PRICE_STRUCTURE.levels already consumed; this run is further exposure, not a confirmation`
+`COHORT = consecutive independent touches of the same structural zone where the previous touch was REJECT_FIRST and a later touch exists | predictors known before the next touch`
+`ESTIMAND = Δ P(4h BREAK_FIRST) per +1 SD faster prior rejection | speed = z(−log bars to the frozen reject barrier) | LPM adjusted for next-touch ordinal, family, side, volatility tercile, year and log wait after the rejection | baseline = the same structural next-touch population | falsification = deterministic half-rotation pseudo-level on the real scales`
+`PRIMARY = -0.1 pp (95% -2.9..+2.6), N=1151, 283 clusters | interval includes 0 | |b| below the 3 pp reading scale | near-zero reading | REJECT_FIRST +1.0 pp | NEITHER -0.8 pp | tertile BREAK 39.2% / 39.7% / 39.4% | without touch ordinal -0.2 pp | without log-gap +0.2 pp | year signs flip`
+`CONTROL = pseudo-level primary +1.2 pp (95% -1.9..+4.3), N=1055, 245 clusters | control year cells are recorded and not mined into a new claim`
+`CLAIM = L2 quantitative historical association in the retested-rejection cohort | L3/L4 not permitted | wording is a cohort frequency, not a current probability and not "a strong rejection makes a strong level"`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no`
+`SUCCESSORS NOT STARTED = LEVEL_APPROACH_STATE_V1, LEVEL_CONFLUENCE_V1 | NEXT_UNIT = none started | parent LEVEL_TOUCH_DEGRADATION_V1 is not rewritten`
+
+Result: `docs/research/LEVEL_REJECTION_MEMORY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_REJECTION_MEMORY_V1_DESIGN.md`.
+
 ## LEVEL_TOUCH_DEGRADATION_V1 — executed once; L2; not integrated — 2026-10-07
 
 `UNIT = LEVEL_TOUCH_DEGRADATION_V1 (atlas LEVEL-TOUCH-DEGRADATION-V1; family LEVEL_BEHAVIOR_V1; owner go in the task of 2026-10-07; design 65015c2 before any break rate; evaluator guard d79801f1 before the one-shot) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM_CEILING = L2`

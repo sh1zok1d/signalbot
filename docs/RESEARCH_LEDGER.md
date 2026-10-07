@@ -8181,3 +8181,23 @@ WINDOWS_CONSUMED = none new (2020-2024 PRICE_STRUCTURE.levels already consumed b
 OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 ```
+
+## 2026-10-07 — LEVEL_REJECTION_MEMORY_V1 executed once; L2; near zero; not integrated
+
+**Unit.** `LEVEL_REJECTION_MEMORY_V1` (atlas `LEVEL-REJECTION-MEMORY-V1`), family `LEVEL_BEHAVIOR_V1`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim ceiling L2. Successor of `LEVEL_TOUCH_DEGRADATION_V1` / PR #352 / `dfc9e0f04358de15606382472badeb5aee787039`. It does not rescore that unit, DH1-L2 or DH3-V3.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `c8a1d4d2` before any next-touch rate. No threshold, horizon, feature, baseline or grouping was added after the rates were read.
+- **Data:** `CORE_BTC_BINANCE_V0` 5m bars, 2020-01-01 through 2024-12-31, events from 2020-02-01. Price only. No 2025/2026 slice, no live tape, no funding, no liquidations, no OI, no order book. The E1 holdout was not read. The 2020–2024 level row was already consumed; this run is additional exposure, not a confirmation.
+- **Cohort:** consecutive independent touches of the same structural zone where the previous touch was `REJECT_FIRST` and a later independent touch exists. Predictors are known before the next touch.
+- **Estimand:** change in historical 4h `BREAK_FIRST` per +1 SD faster prior rejection. Speed is the frozen z-score of −log(bars to the reject barrier). The linear probability model adjusts for next-touch ordinal, family, side, volatility tercile, year and log wait after the rejection bar. Baseline is the same structural next-touch population. Falsification is a deterministic half-rotation pseudo-level scored on the real scales.
+- **Primary:** −0.1 pp (95% −2.9..+2.6), N=1151, 283 clusters. The interval includes 0 and the absolute coefficient is below the 3 pp reading scale. `REJECT_FIRST` +1.0 pp (95% −1.9..+3.9). `NEITHER` −0.8 pp (95% −2.7..+1.0). Crude tertile `BREAK_FIRST` shares 39.2% / 39.7% / 39.4% (N 385 / 408 / 358).
+- **Adjustment checks:** without the touch-ordinal control −0.2 pp (95% −2.9..+2.5). Without the log-wait control +0.2 pp (95% −2.4..+3.0). Neither reveals a hidden association.
+- **Stability:** year coefficients −3.4 / −3.2 / +5.5 / +1.3 / +0.4 pp (2020–2024); signs flip; every year interval includes 0. Family DAY +0.6, WEEK −1.1, MONTH −1.3 pp. Resistance −2.5 pp, support +2.0 pp. Busiest year 22.1%. Busiest family 60.5%.
+- **Falsification:** pseudo-level primary +1.2 pp (95% −1.9..+4.3), N=1055, 245 clusters. Two control-year intervals exclude 0 (2023 +15.5 pp, 2024 −9.0 pp); those cells stay in the predeclared table and are not a new claim.
+- **Claim:** L2. The allowed sentence is the quantitative cohort frequency in the result record. Not a current probability. Not “a strong rejection makes a strong level”. The cohort is levels that rejected and were later retested.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = NO` under the predeclared conjunction. No `/btc`, `/levels`, scoring, findings-registry or deploy change. Successors named and not run: `LEVEL_APPROACH_STATE_V1`, `LEVEL_CONFLUENCE_V1`.
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 PRICE_STRUCTURE.levels already consumed; this rejection-memory contrast is recorded as further exposure)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```
