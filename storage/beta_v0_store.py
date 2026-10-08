@@ -1191,7 +1191,12 @@ class BetaConn:
         unknown participant who joined at or after the test opening adds one to
         `beta_deleted_cohort_counts` for their Kyiv join date, in the same transaction. Nothing
         else is kept per person: no row, no deletion time, no known flag. Known participants,
-        the owner and joins before the opening are in no metric and leave nothing."""
+        the owner and joins before the opening are in no metric and leave nothing.
+
+        Every audit row about them is de-identified in the same transaction (owner, 2026-10-08, #420; the only
+        exception to append-only, enforced by `beta_audit_guard`): target NULL, detail {}, the Kyiv date; their
+        actor fingerprint becomes the role. Nothing is deleted from the audit and no action changes."""
+        from beta.admin import fingerprint
         from beta.i18n import KYIV
         async with self.conn.transaction():
             row = await self.conn.fetchrow(
@@ -1211,8 +1216,13 @@ class BetaConn:
                                             telegram_user_id)
             wait = await self.conn.execute("DELETE FROM beta_waitlist WHERE telegram_user_id=$1",
                                            telegram_user_id)
+            # owner, 2026-10-08 (#420): the audit rows about them are de-identified in the same transaction
+            role = "owner" if owner_user_id is not None and int(owner_user_id) == int(telegram_user_id) \
+                else "participant"
+            audit = await self.conn.fetchval("SELECT beta_audit_deidentify($1::text[], $2)",
+                                             [fingerprint(telegram_user_id)], role)
         return {"users": int(users.split()[-1]), "allowlist": int(allow.split()[-1]),
-                "waitlist": int(wait.split()[-1]), "counted": bool(counted)}
+                "waitlist": int(wait.split()[-1]), "counted": bool(counted), "audit": int(audit)}
 
     async def insert_deletion_audit(self, *, action: str, actor_kind: str, now: datetime) -> None:
         """A deletion's audit row (contract §1.5): the action, the result and the kind of actor

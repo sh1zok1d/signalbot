@@ -329,9 +329,77 @@ CREATE TABLE IF NOT EXISTS beta_admin_audit (
     detail              JSONB NOT NULL DEFAULT '{}'::jsonb,
     recorded_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Append-only, with one narrow exception (owner, 2026-10-08, #420): inside the deletion of a participant, in its
+-- transaction, beta_audit_deidentify() de-identifies that participant's rows. Nothing else passes:
+-- - never a DELETE; action, authorized, result and audit_id never change;
+-- - only a row whose target or actor is one of the deleted participant's fingerprints, and only while none of
+--   those fingerprints belongs to anyone still in beta_users, beta_allowlist or beta_waitlist;
+-- - a row about them: target NULL, detail {}, the Kyiv date; their actor fingerprint becomes the role
+--   (participant / owner); a row they only acted in keeps everything else, so no other person's row is edited.
+CREATE OR REPLACE FUNCTION beta_audit_guard() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+    fps TEXT[] := string_to_array(NULLIF(current_setting('signalbot.audit_deidentify_fps', true), ''), ',');
+    actor_role TEXT := current_setting('signalbot.audit_deidentify_role', true);
+    about BOOLEAN;
+    by_them BOOLEAN;
+    allowed BOOLEAN;
+BEGIN
+    IF TG_OP = 'UPDATE' AND fps IS NOT NULL AND actor_role IN ('participant', 'owner')
+       AND NOT EXISTS (
+           SELECT 1 FROM (SELECT telegram_user_id AS id FROM beta_users
+                          UNION SELECT telegram_user_id FROM beta_allowlist
+                          UNION SELECT telegram_user_id FROM beta_waitlist) ids
+           WHERE 'u_' || left(encode(sha256(convert_to('signalbot-beta-v0:' || ids.id::text, 'UTF8')), 'hex'), 12)
+                 = ANY (fps)) THEN
+        about := COALESCE(OLD.target_fingerprint = ANY (fps), false);
+        by_them := OLD.actor_fingerprint = ANY (fps);
+        allowed := (about OR by_them)
+           AND NEW.audit_id = OLD.audit_id AND NEW.action = OLD.action
+           AND NEW.authorized = OLD.authorized AND NEW.result = OLD.result
+           AND NEW.actor_fingerprint = CASE WHEN by_them THEN actor_role ELSE OLD.actor_fingerprint END
+           AND NEW.target_fingerprint IS NOT DISTINCT FROM
+               CASE WHEN about THEN NULL ELSE OLD.target_fingerprint END
+           AND NEW.detail = CASE WHEN about THEN '{}'::jsonb ELSE OLD.detail END
+           AND NEW.recorded_at = CASE WHEN about
+               THEN date_trunc('day', OLD.recorded_at AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv'
+               ELSE OLD.recorded_at END;
+        IF allowed THEN
+            RETURN NEW;
+        END IF;
+    END IF;
+    RAISE EXCEPTION 'beta V0 table % is append-only (% rejected)', TG_TABLE_NAME, TG_OP
+        USING ERRCODE = 'insufficient_privilege';
+END;
+$$;
+
+-- Called only by the deletion path, in its transaction, after the participant's rows are deleted. `fps` are the
+-- deleted participant's fingerprints; `actor_role` replaces their actor fingerprint. Returns the rows changed.
+CREATE OR REPLACE FUNCTION beta_audit_deidentify(fps TEXT[], actor_role TEXT) RETURNS INTEGER
+LANGUAGE plpgsql AS $$
+DECLARE
+    changed INTEGER;
+BEGIN
+    PERFORM set_config('signalbot.audit_deidentify_fps', array_to_string(fps, ','), true);
+    PERFORM set_config('signalbot.audit_deidentify_role', actor_role, true);
+    UPDATE beta_admin_audit a
+    SET target_fingerprint = CASE WHEN a.target_fingerprint = ANY (fps) THEN NULL ELSE a.target_fingerprint END,
+        detail = CASE WHEN a.target_fingerprint = ANY (fps) THEN '{}'::jsonb ELSE a.detail END,
+        recorded_at = CASE WHEN a.target_fingerprint = ANY (fps)
+            THEN date_trunc('day', a.recorded_at AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv'
+            ELSE a.recorded_at END,
+        actor_fingerprint = CASE WHEN a.actor_fingerprint = ANY (fps) THEN actor_role ELSE a.actor_fingerprint END
+    WHERE a.target_fingerprint = ANY (fps) OR a.actor_fingerprint = ANY (fps);
+    GET DIAGNOSTICS changed = ROW_COUNT;
+    PERFORM set_config('signalbot.audit_deidentify_fps', '', true);
+    PERFORM set_config('signalbot.audit_deidentify_role', '', true);
+    RETURN changed;
+END;
+$$;
+
 DROP TRIGGER IF EXISTS trg_beta_audit_append_only ON beta_admin_audit;
 CREATE TRIGGER trg_beta_audit_append_only BEFORE UPDATE OR DELETE ON beta_admin_audit
-    FOR EACH ROW EXECUTE FUNCTION beta_v0_reject_mutation();
+    FOR EACH ROW EXECUTE FUNCTION beta_audit_guard();
 
 -- ---------------------------------------------------------------------------
 -- Temporal context (episodization V0): the deterministic projection of the tape.
