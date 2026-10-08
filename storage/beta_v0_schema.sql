@@ -462,7 +462,9 @@ ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK 
     -- A4: the delivery latency report
     'admin_latency',
     -- I2: the U3 offer to every enrolled participant, churned included
-    'admin_offer'));
+    'admin_offer',
+    -- the test opening: Day 0 is the Kyiv date of the first unknown join at or after it (owner, 2026-10-08)
+    'admin_test_open'));
 
 CREATE TABLE IF NOT EXISTS beta_waitlist (
     telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),

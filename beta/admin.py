@@ -23,7 +23,7 @@ ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "a
                   "admin_resume_push", "admin_d7_on", "admin_d7_off", "admin_broadcast", "admin_outage",
                   "admin_health", "admin_invite_new", "admin_invites", "admin_invite_revoke",
                   "admin_waitlist", "admin_waitlist_admit", "admin_stats", "admin_reply", "admin_known",
-                  "admin_latency", "admin_offer")
+                  "admin_latency", "admin_offer", "admin_test_open")
 UNAUTHORIZED_ACTOR = "unauthorized"
 
 
@@ -107,6 +107,7 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
                            switches=switches, d7_newest_available_at=d7_at)
     admin_push = await conn.get_admin_push_enabled()
     admin_d7 = await conn.get_admin_d7_enabled()
+    test_day0 = day0_consistency(cfg, await conn.test_open_at(), await conn.derived_day0_kyiv())
     return {"product_status": st["status"]["status"], "status_reasons": st["status"]["reasons"],
             "last_good_bucket": st["status"].get("last_good_bucket"),
             "detector_watermark": wm, "heartbeat": st["heartbeat"],
@@ -115,9 +116,26 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
             "delivery_counts_window": counts, "delivery_problems": problems, "alerts": alerts,
             "switches": switches.as_dict(), "admin_push_enabled": admin_push,
             "effective_push_enabled": effective_push_enabled(switches, admin_push),
-            "admin_d7_enabled": admin_d7,
+            "admin_d7_enabled": admin_d7, "test_day0": test_day0,
             "effective_d7_enabled": effective_d7_enabled(cfg, admin_d7),
             "open_episodes": [(e.public_id, e.event_type, e.state) for e in st["open_episodes"]]}
+
+
+def day0_consistency(cfg: BetaConfig, test_open_at: Optional[datetime], derived) -> dict:
+    """`briefing.withdrawal.day0_kyiv` against the audit (measurement contract §1.4, §6.1): the config value
+    must be the derived Day 0, never set before the test opens or before the first unknown join."""
+    configured = cfg["briefing"]["withdrawal"].get("day0_kyiv")
+    derived_s = derived.isoformat() if derived is not None else None
+    if test_open_at is None:
+        state = "MISMATCH_NOT_OPEN" if configured else "NOT_OPEN"
+    elif derived_s is None:
+        state = "MISMATCH_NO_DAY0" if configured else "WAITING_FIRST_UNKNOWN"
+    elif configured is None:
+        state = "SET_DAY0_KYIV"
+    else:
+        state = "OK" if configured == derived_s else "MISMATCH"
+    return {"state": state, "test_open_at": test_open_at.isoformat() if test_open_at else None,
+            "day0_kyiv": derived_s, "config_day0_kyiv": configured}
 
 
 def parse_invite_new(args: str):
@@ -163,7 +181,9 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                  f"d7 effective {effective_d7_enabled(cfg, await conn.get_admin_d7_enabled())}")
     elif command == "admin_health":
         h = await collect_health(conn, cfg, switches, now)
-        reply = f"alerts {[a['key'] for a in h['alerts']]}\nswitches {h['switches']}\nstatus {h['product_status']}"
+        reply = (f"alerts {[a['key'] for a in h['alerts']]}\nswitches {h['switches']}\nstatus {h['product_status']}"
+                 f"\ntest {h['test_day0']['state']}: opened {h['test_day0']['test_open_at']}, "
+                 f"Day 0 {h['test_day0']['day0_kyiv']}, config day0_kyiv {h['test_day0']['config_day0_kyiv']}")
     elif command == "admin_users":
         rows = await conn.list_users()
         reply = "\n".join(f"{r['telegram_user_id']} {r['status'] or 'INVITED'} joined {r['joined_at']}"
@@ -188,7 +208,8 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
             else:
                 removed = await conn.delete_participant(uid)
                 reply = f"removed ({removed})"
-                detail = removed
+                # the audit keeps only the de-identified cohort fields (contract §1.5): no fingerprint, no counts
+                target, detail = None, {"cohort": removed["cohort"]}
     elif command == "admin_pause_push":
         await conn.set_admin_push_enabled(False)
         reply = "push paused (durable admin state)."
@@ -348,6 +369,20 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                      "(participant_fingerprint, offered_at):\n" % len(direct)
                      + "\n".join(f"{fingerprint(int(r['telegram_user_id']))} {when}" for r in rows))
             detail = {"recipients": len(direct)}
+    elif command == "admin_test_open":
+        # Owner decision 2026-10-08 (measurement contract §1.4): the 30-day test opens at this instant, after the
+        # readiness announcement and the contract freeze. Day 0 is the Kyiv date of the first unknown participant
+        # who joins at or after it; an earlier join never starts the test. Written once; «force» re-opens.
+        opened = await conn.test_open_at()
+        if opened is not None and (args or "").strip().lower() != "force":
+            result = "REFUSED"
+            reply = (f"refused: the test was opened at {opened.isoformat()}; "
+                     "to move the opening: /admin_test_open force")
+        else:
+            detail = {"test_open_at": now.astimezone(timezone.utc).isoformat(),
+                      "previous": opened.isoformat() if opened is not None else None}
+            reply = (f"test opened at {detail['test_open_at']}; Day 0 = the Kyiv date of the first unknown join "
+                     "at or after it; then set briefing.withdrawal.day0_kyiv to that date (/admin_health checks it)")
     elif command == "admin_latency":
         # A4: candle close (or schedule) -> delivery, P50/P95 by class
         from .latency import format_report, summarize
