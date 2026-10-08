@@ -86,6 +86,10 @@ def _export(args) -> int:
 
 
 def main(argv=None) -> int:
+    from beta.pseudonym import install_key, key_installed
+    if not key_installed():                # synthetic participants only: a fixed simulation key, never the beta's
+        import hashlib
+        install_key(hashlib.sha256(b"SYNTHETIC_BETA_USER_V0 pseudonym key (no real participants)").digest())
     p = argparse.ArgumentParser(prog="python -m tools.beta_user_sim",
                                 description="SYNTHETIC_BETA_USER_V0 (offline, SYNTHETIC / DESCRIPTIVE_MONITORING)")
     sub = p.add_subparsers(dest="cmd", required=True)

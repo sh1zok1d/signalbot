@@ -247,6 +247,14 @@ async def run_beta_cli_command(args, stage1_config=None, secrets=None, *, db=Non
     from common.stage2_config import Stage2Config
     from common.versioning import resolve_feature_code_version
     cfg = BetaConfig.load()
+    from beta.pseudonym import FingerprintKeyError, install_key_from_env, key_installed
+    if not key_installed():                # participant pseudonyms (owner decision 2026-10-08): no key, no start
+        try:
+            install_key_from_env(env)
+        except FingerprintKeyError as exc:  # the message never carries the value
+            print(render({"command": _command_name(args), "status": "CONFIG_ERROR", "error": str(exc)},
+                         as_json=bool(getattr(args, "beta_json", False))))
+            raise SystemExit(2) from None
     switches = resolve_switches(cfg, env)
     clock = clock or (lambda: datetime.now(timezone.utc))
     own_db = db is None
@@ -374,9 +382,6 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
             return out
         await db.init_beta_v0_schema()
         secrets = BetaSecrets.from_env(env)
-        from beta.admin import FINGERPRINT_KEY_ENV, set_fingerprint_key
-        # keyed pseudonyms (owner, 2026-10-08): the notifier refuses to run without the key
-        set_fingerprint_key(secrets.fingerprint_key or os.environ.get(FINGERPRINT_KEY_ENV))
         if sender is None and secrets.bot_token:
             from runtime.beta_bot import BetaTelegramSender
             sender = BetaTelegramSender(secrets.bot_token)

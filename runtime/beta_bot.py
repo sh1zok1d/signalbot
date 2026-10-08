@@ -1242,10 +1242,10 @@ def main() -> None:   # systemd entry point: python -m runtime.beta_bot
     secrets = BetaSecrets.from_env()
     if not secrets.bot_token:
         raise SystemExit("BETA_TELEGRAM_BOT_TOKEN is not set")
-    from beta.admin import FingerprintKeyError, set_fingerprint_key
-    try:                                    # keyed pseudonyms (owner, 2026-10-08): no key, no start
-        set_fingerprint_key(secrets.fingerprint_key)
-    except FingerprintKeyError as exc:
+    from beta.pseudonym import FingerprintKeyError, install_key_from_env
+    try:                                   # participant pseudonyms (owner decision 2026-10-08)
+        install_key_from_env()
+    except FingerprintKeyError as exc:     # the message never carries the value
         raise SystemExit(str(exc)) from None
 
     async def _run():
