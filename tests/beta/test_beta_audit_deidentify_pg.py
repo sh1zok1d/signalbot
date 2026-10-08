@@ -3,6 +3,7 @@ deletion rows reduced to the #420 minimal form and moved into the counter where 
 (docs/BETA_AUDIT_DEIDENTIFY_V1.md). Runs the two deploy SQL files with psql, as the owner would."""
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 from datetime import datetime, timezone
@@ -107,5 +108,23 @@ def test_rows_with_keyed_fingerprints_are_left_alone_and_counted():
         _psql("-v", "keyed_since=2026-11-01T00:00:00Z", stdin_file=REDACT)
         rows = {r["target_fingerprint"] for r in await pool.fetch("SELECT target_fingerprint FROM beta_admin_audit")}
         assert rows == {"u_keyedperson1", None}
+        await pool.close()
+    run(body())
+
+
+def test_production_sessions_of_block_a_cannot_write():
+    """Block A runs every production psql with PGOPTIONS='-c default_transaction_read_only=on': a write fails, the
+    read-only count still runs."""
+    async def body():
+        pool = await fresh_pool()
+        env = {**os.environ, "PGOPTIONS": "-c default_transaction_read_only=on"}
+        write = subprocess.run(["psql", TEST_DSN, "-X", "-v", "ON_ERROR_STOP=1", "-c",
+                                "INSERT INTO beta_allowlist VALUES (900000000555, now())"],
+                               capture_output=True, text=True, env=env)
+        assert write.returncode != 0 and "read-only transaction" in write.stderr
+        with open(COUNT, encoding="utf-8") as fh:
+            subprocess.run(["psql", TEST_DSN, "-X", "-v", "ON_ERROR_STOP=1", "-v", f"owner_fp={OWNER_FP}"],
+                           stdin=fh, capture_output=True, text=True, check=True, env=env)
+        assert await pool.fetchval("SELECT count(*) FROM beta_allowlist WHERE telegram_user_id = 900000000555") == 0
         await pool.close()
     run(body())

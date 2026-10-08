@@ -1,6 +1,6 @@
 # Beta audit de-identification (OUT-8 v2) — prepared, not run
 
-**Status:** `PREPARED / NOT_RUN / OWNER_GO_REQUIRED` (v2, 2026-10-08). Nothing here has been run on production; the owner runs block B after a go.
+**Status:** `PREPARED / NOT_RUN / OWNER_GO_REQUIRED` (v2, 2026-10-08; block A hardened in v3: unique scratch name, marker-checked drop, read-only production sessions). Nothing here has been run on production; the owner runs block B after a go.
 
 **v2 supersedes v1** (#418's draft) and follows the owner's OUT-8 decisions of 2026-10-08:
 - Keep only what the measurements need; a counter replaces any per-row record (#420).
@@ -17,6 +17,7 @@
 
 - **Free text.** The audit holds none to strip: `/admin_reply` stores the fingerprint, not the reply body (`docs/PRIVATE_BETA_V0_DEPLOY.md`), and `/admin_broadcast` stores only the length. Participants' own texts live in `beta_feedback_messages`, which `/delete_me` already removes.
 - **Residual risk, stated.** In a small cohort, a deleted person's rows still show *that* an action happened on a given Kyiv date (for example «an `admin_known` on 2026-10-02»). The counter shows *that* someone who joined on a date left. Neither names anyone without outside knowledge, such as the owner's own memory or ledger. These are the minimum the measurements need.
+- **Not a guarantee.** Removing exact times and fingerprints lowers the risk of matching a row in a small cohort but does not by itself guarantee anonymity.
 
 ## 2. How rows about a deleted participant are found
 - **The rule.** Every row before #423 holds the old, unkeyed fingerprint `"u_" + sha256("signalbot-beta-v0:" + id)[:12]`.
@@ -69,14 +70,19 @@
   - `POSTGRES_DB` / `POSTGRES_USER` = `btcbot`;
   - `BETA_OWNER_TELEGRAM_USER_ID`.
 - The owner's old fingerprint is computed inline in python3, without importing the repo.
-- **Fetching the scripts.** `git fetch origin pull/422/head` updates refs only, never the working tree. `git archive` extracts the two scripts into `/tmp/deid`. There is no pull and no checkout in `/opt/signalbot`. The block prints the commit the scripts came from, because GitHub can lag a few seconds after a push.
+- **Fetching the scripts.** `git fetch origin pull/422/head` updates refs only, never the working tree. `git archive` extracts the two scripts into a fresh `mktemp -d /tmp/deid.XXXXXXXX` directory, removed on exit. There is no pull and no checkout in `/opt/signalbot`. The block prints the commit the scripts came from, because GitHub can lag a few seconds after a push.
 
 **Block A — now, read-only on production.**
-- The only database it writes is the scratch `deid_scratch` inside the same container, dropped at the end.
+- **Production is read-only twice.** Every production `psql` / `pg_dump` session runs with `PGOPTIONS='-c default_transaction_read_only=on'` (passed by `docker exec -e`), on top of `BEGIN READ ONLY` in the count file; a write under it fails (`tests/beta/test_beta_audit_deidentify_pg.py`).
+- **The only database it writes** is a scratch database inside the same container, named `deid_scratch_<UTC yyyymmddThhmmss>_<8 random hex>`.
+  - Never an existing database: if the name exists, the block stops before creating anything and drops nothing.
+  - Right after `createdb` it is marked (`COMMENT ON DATABASE … 'signalbot OUT-8 scratch <name>'`).
+  - The exit trap drops only the database this run created, and only if its marker still matches.
 - It copies only what the matching needs: the trigger function, the audit table, the counter if production has it, and the bare `telegram_user_id`s of users, allowlist and waitlist.
 
 ```bash
-# ---- Block A: now, read-only on production. Writes only a scratch database deid_scratch inside the same container.
+# ---- Block A: now, read-only on production. Writes only a scratch database created by this run inside the same
+# container, under a unique name, and drops only that database.
 set -euo pipefail
 cd /opt/signalbot
 # 1) settings, read from /opt/signalbot/.env in a subshell, defaults as in deploy/backup.sh and docker-compose.yml
@@ -87,36 +93,52 @@ eval "$( (set -a; . /opt/signalbot/.env; set +a
 # the owner's fingerprint as the existing (pre-#423, unkeyed) rows hold it
 OWNER_FP=$(python3 -c 'import hashlib,sys; print("u_" + hashlib.sha256(("signalbot-beta-v0:%d" % int(sys.argv[1])).encode()).hexdigest()[:12])' "$OWNER_ID")
 echo "container=$C db=$DB user=$U owner_fp(old)=$OWNER_FP"
-# 2) the two scripts from the PR head into /tmp/deid (fetch updates refs only; the working tree is untouched)
-rm -rf /tmp/deid && mkdir -p /tmp/deid
+# 2) the two scripts from the PR head into a fresh /tmp directory (fetch updates refs only; the working tree is untouched)
+WORK=$(mktemp -d /tmp/deid.XXXXXXXX)
 git -C /opt/signalbot fetch -q origin pull/422/head
 echo "scripts from commit $(git -C /opt/signalbot rev-parse FETCH_HEAD)"
 git -C /opt/signalbot archive FETCH_HEAD deploy/signalbot-beta-audit-deidentify.sql \
-    deploy/signalbot-beta-audit-deidentify-count.sql | tar -x -C /tmp/deid
-PSQL() { docker exec -i "$C" psql -X -U "$U" -v ON_ERROR_STOP=1 "$@"; }
+    deploy/signalbot-beta-audit-deidentify-count.sql | tar -x -C "$WORK"
+# production: every session read-only (PGOPTIONS), on top of BEGIN READ ONLY in the count file
+PROD() { docker exec -i -e PGOPTIONS='-c default_transaction_read_only=on' "$C" psql -X -U "$U" -v ON_ERROR_STOP=1 -d "$DB" "$@"; }
+PROD_DUMP() { docker exec -e PGOPTIONS='-c default_transaction_read_only=on' "$C" pg_dump -U "$U" -d "$DB" "$@"; }
+# the scratch database: a unique name, refused if it already exists, marked at creation, dropped only by this run
+SCRATCH="deid_scratch_$(date -u +%Y%m%dT%H%M%S)_$(python3 -c 'import secrets; print(secrets.token_hex(4))')"
+MARK="signalbot OUT-8 scratch $SCRATCH"
+SCR() { docker exec -i "$C" psql -X -U "$U" -v ON_ERROR_STOP=1 -d "$SCRATCH" "$@"; }
 # 3) the read-only count on production
-PSQL -d "$DB" -v owner_fp="$OWNER_FP" < /tmp/deid/deploy/signalbot-beta-audit-deidentify-count.sql
+PROD -v owner_fp="$OWNER_FP" < "$WORK/deploy/signalbot-beta-audit-deidentify-count.sql"
 # 4) scratch copy: the trigger function, the audit table, the #420 counter, and only the ids the matching needs
-trap 'docker exec "$C" dropdb -U "$U" --if-exists deid_scratch' EXIT
-docker exec "$C" dropdb -U "$U" --if-exists deid_scratch
-docker exec "$C" createdb -U "$U" deid_scratch
-PSQL -d "$DB" -At -c "SELECT pg_get_functiondef('beta_v0_reject_mutation'::regproc) || ';'" | PSQL -q -d deid_scratch
-docker exec "$C" pg_dump -U "$U" -d "$DB" -t beta_admin_audit --no-owner --no-privileges | PSQL -q -d deid_scratch
-PSQL -q -d deid_scratch -c "CREATE TABLE beta_users (telegram_user_id BIGINT);
-                            CREATE TABLE beta_allowlist (telegram_user_id BIGINT);
-                            CREATE TABLE beta_waitlist (telegram_user_id BIGINT);
-                            CREATE TABLE beta_deleted_cohort_counts (joined_kyiv_date DATE PRIMARY KEY,
-                                                                     n INTEGER NOT NULL CHECK (n > 0));"
+[ -z "$(PROD -At -c "SELECT 1 FROM pg_database WHERE datname = '$SCRATCH'")" ] \
+  || { echo "database $SCRATCH already exists; nothing created, nothing dropped"; exit 1; }
+CREATED=""
+cleanup() {
+  if [ -n "$CREATED" ] && [ "$(PROD -At \
+        -c "SELECT shobj_description(oid, 'pg_database') FROM pg_database WHERE datname = '$CREATED'")" = "$MARK" ]; then
+    docker exec "$C" dropdb -U "$U" "$CREATED" && echo "dropped $CREATED"
+  fi
+  rm -rf "$WORK"
+}
+trap cleanup EXIT
+docker exec "$C" createdb -U "$U" "$SCRATCH"
+CREATED="$SCRATCH"
+SCR -q -c "COMMENT ON DATABASE \"$SCRATCH\" IS '$MARK'"
+PROD -At -c "SELECT pg_get_functiondef(oid) || ';' FROM pg_proc WHERE proname IN ('beta_v0_reject_mutation', 'beta_audit_guard')" | SCR -q
+PROD_DUMP -t beta_admin_audit --no-owner --no-privileges | SCR -q
+SCR -q -c "CREATE TABLE beta_users (telegram_user_id BIGINT);
+           CREATE TABLE beta_allowlist (telegram_user_id BIGINT);
+           CREATE TABLE beta_waitlist (telegram_user_id BIGINT);
+           CREATE TABLE beta_deleted_cohort_counts (joined_kyiv_date DATE PRIMARY KEY, n INTEGER NOT NULL CHECK (n > 0));"
 for t in beta_users beta_allowlist beta_waitlist; do
-  PSQL -d "$DB" -c "\copy (SELECT telegram_user_id FROM $t) TO STDOUT" | PSQL -q -d deid_scratch -c "\copy $t FROM STDIN"
+  PROD -c "\copy (SELECT telegram_user_id FROM $t) TO STDOUT" | SCR -q -c "\copy $t FROM STDIN"
 done
-if [ "$(PSQL -d "$DB" -At -c "SELECT to_regclass('beta_deleted_cohort_counts') IS NOT NULL")" = "t" ]; then
-  PSQL -d "$DB" -c "\copy beta_deleted_cohort_counts TO STDOUT" | PSQL -q -d deid_scratch -c "\copy beta_deleted_cohort_counts FROM STDIN"
+if [ "$(PROD -At -c "SELECT to_regclass('beta_deleted_cohort_counts') IS NOT NULL")" = "t" ]; then
+  PROD -c "\copy beta_deleted_cohort_counts TO STDOUT" | SCR -q -c "\copy beta_deleted_cohort_counts FROM STDIN"
 fi
 # 5) the redaction on the scratch copy; before / after; then the count on the scratch copy
-PSQL -d deid_scratch < /tmp/deid/deploy/signalbot-beta-audit-deidentify.sql
-PSQL -d deid_scratch -v owner_fp="$OWNER_FP" < /tmp/deid/deploy/signalbot-beta-audit-deidentify-count.sql
-# 6) the scratch database is dropped on exit (trap)
+SCR < "$WORK/deploy/signalbot-beta-audit-deidentify.sql"
+SCR -v owner_fp="$OWNER_FP" < "$WORK/deploy/signalbot-beta-audit-deidentify-count.sql"
+# 6) on exit: only the database this run created (name and marker checked) is dropped
 ```
 
 **Block B — later, only after the owner's go.**
@@ -132,7 +154,11 @@ eval "$( (set -a; . /opt/signalbot/.env; set +a
                  "${POSTGRES_DB:-btcbot}" "${POSTGRES_USER:-btcbot}" "${BETA_OWNER_TELEGRAM_USER_ID:-}") )"
 [ -n "$OWNER_ID" ] || { echo "BETA_OWNER_TELEGRAM_USER_ID is empty in /opt/signalbot/.env"; exit 1; }
 OWNER_FP=$(python3 -c 'import hashlib,sys; print("u_" + hashlib.sha256(("signalbot-beta-v0:%d" % int(sys.argv[1])).encode()).hexdigest()[:12])' "$OWNER_ID")
-[ -f /tmp/deid/deploy/signalbot-beta-audit-deidentify.sql ] || { echo "run block A first (it fetches the scripts)"; exit 1; }
+WORK=$(mktemp -d /tmp/deid.XXXXXXXX); trap 'rm -rf "$WORK"' EXIT
+git -C /opt/signalbot fetch -q origin pull/422/head
+echo "scripts from commit $(git -C /opt/signalbot rev-parse FETCH_HEAD)"
+git -C /opt/signalbot archive FETCH_HEAD deploy/signalbot-beta-audit-deidentify.sql \
+    deploy/signalbot-beta-audit-deidentify-count.sql | tar -x -C "$WORK"
 PSQL() { docker exec -i "$C" psql -X -U "$U" -v ON_ERROR_STOP=1 "$@"; }
 [ "$(PSQL -d "$DB" -At -c "SELECT to_regclass('beta_deleted_cohort_counts') IS NOT NULL")" = "t" ] \
   || { echo "beta_deleted_cohort_counts is missing: deploy #420 first"; exit 1; }
@@ -140,9 +166,9 @@ PSQL() { docker exec -i "$C" psql -X -U "$U" -v ON_ERROR_STOP=1 "$@"; }
 sudo systemctl start signalbot-backup.service
 systemctl --no-pager --lines=5 status signalbot-backup.service || true
 # 2) the redaction on production
-PSQL -d "$DB" < /tmp/deid/deploy/signalbot-beta-audit-deidentify.sql
+PSQL -d "$DB" < "$WORK"/deploy/signalbot-beta-audit-deidentify.sql
 # 3) the count again: no deletion row with detail, no deleted_person row with a target
-PSQL -d "$DB" -v owner_fp="$OWNER_FP" < /tmp/deid/deploy/signalbot-beta-audit-deidentify-count.sql
+PSQL -d "$DB" -v owner_fp="$OWNER_FP" < "$WORK"/deploy/signalbot-beta-audit-deidentify-count.sql
 ```
 
 ## 6. Scratch-copy result (local, 2026-10-08)
