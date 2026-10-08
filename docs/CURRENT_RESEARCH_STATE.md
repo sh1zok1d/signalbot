@@ -1,3 +1,21 @@
+## LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1 — executed once; discovery; volatility-transition candidate; sequence 8/8 complete; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1 (atlas LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 54338b7f before any post-touch RV) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; LEVEL_VOLATILITY_TRANSITION_CANDIDATE`
+`DEPENDENCIES = #352 dfc9e0f0 -> #367 fcdf650c -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = paired change in 60m realized volatility across the structural first touch versus its matched pseudo | not H01 compression | not B2-01 forecast transition | not DH3-V2 4h range | not #365 resolution clock | not #367 zone volume`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | events [2020-02-01, 2025-01-01) | 2025/2026 NOT read | closes only | no volume, taker, OI, spot, other venue, or book`
+`CLOCK = T = open of touch bar j | touch bar excluded from both windows | PRE returns j-12..j-1 | POST returns j+1..j+12 | RV = sqrt(mean(r^2)) | transition = log(RV_POST/RV_PRE)`
+`COHORT = touch_number = 1 | real legitimate 1919 | pseudo legitimate 1962 | matched path-complete 1231 | usable 1231 | non-positive RV 0 | 254 weeks`
+`PRIMARY = DELTA_TRANSITION +0.1068 log units, about +11.27% on the post/pre multiplier (95% +0.0665..+0.1467, about +6.88%..+15.80%, p=1.05e-7, N=1231, 2000/2000, seed 20261024) | point clears log(1.10) | interval excludes 0 and includes sub-10% values`
+`BALANCE = paired log pre-RV difference +0.56% | not at the 10% scale | not used as an adjustment`
+`STABILITY = years +16.93 / +12.05 / +0.10 / +17.52 / +12.87 percent | 5/5 positive | 2022 is practically null and the sign rule was not rewritten | LOYO all positive | DAY +10.06%, WEEK +25.63% | MONTH N=22 is -11.47% and diagnostic only | resistance +14.34%, support +7.48%`
+`ROUTING = LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE = YES`
+`CLAIM = L2 | historically the post/pre RV multiplier differed by about 11% versus the matched pseudo touch | not a current expected RV | not a breakout | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | no VOLATILITY_EXPANSION badge | findings registry unchanged | /btc /levels /check /risk unchanged`
+`NEXT PHASE NOT STARTED = discovery synthesis, candidate selection, confirmation design | those need a separate owner go | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1 — executed once; discovery; no incremental zone-traded activity; no successor; not integrated — 2026-10-08
 
 `UNIT = LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1 (atlas LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design ee2abb0d before any late BREAK label) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`

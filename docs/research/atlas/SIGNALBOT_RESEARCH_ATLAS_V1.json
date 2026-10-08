@@ -752,7 +752,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
-    "CLOSED_ON_SURFACE": 11,
+    "CLOSED_ON_SURFACE": 12,
     "EXPOSED_ONLY": 1,
     "INFORMATIONALLY_WEAK": 1,
     "LIVE_SIGNAL": 2,
@@ -787,6 +787,7 @@
     "LEVEL-STRUCTURE-DISCOVERY-V1",
     "LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1",
     "LEVEL-TOUCH-DEGRADATION-V1",
+    "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1",
     "PRODUCT-V2-LEVELS"
    ],
    "value": {
@@ -10181,14 +10182,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 203,
+  "units": 204,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 27,
+   "CLOSED_ON_SURFACE": 28,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 11,
    "FUTURE_NATURAL_ACCUMULATION": 3,
@@ -15551,7 +15552,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "eadbf8a778b0688ca0f0d8681e05d1b1028d1960664f15f104c4f08df3524653",
+ "SOURCES_DIGEST": "c5d8dcfb7121cfde7b5aa985844dafbba6be8de769b1152c7690e9c3b26f8372",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15799,6 +15800,14 @@
      {
       "note": "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1 one-shot (unsigned executed notional inside the frozen structural zone during the first 15m, conditional on END_POSITION_X and the other-perp median move, among first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; structural OHLC is the level reference only; further exposure, not a confirmation and not a reopen of FLOW.taker_imbalance or FLOW.absorption",
       "period": "2020-04-01T00:05Z..2024-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1 one-shot (paired log ratio of 60m realized volatility after versus before a structural first touch, real versus half-rotation pseudo, touch bar excluded), 2026-10-08; price closes only; further exposure, not a confirmation and not a reopen of H01, B2-01, or DH3-V2",
+      "period": "2020-02-01..2024-12-31",
       "rows": [
        "PRICE_STRUCTURE.levels"
       ],
@@ -22140,6 +22149,37 @@
    "units_n": "4191 analysis touches (1905 / 1101 / 1185 in buckets 1 / 2 / 3+); 258 week clusters; ambiguous same-bar events excluded (14 / 4 / 4)",
    "verdict": "EXECUTED ONCE (2026-10-07). Standardized BREAK_FIRST vs touch 1: touch 2 -2.3 pp (95% -6.0..+1.5), touch 3+ -6.6 pp (95% -10.7..-2.2); crude rates 40.1% / 37.6% / 33.6% (N 1905 / 1101 / 1185). REJECT_FIRST stays near 50%; NEITHER rises 9.6% to 17.1%. 2023 crude touch-3+ difference is about 0. Pseudo-level standardized differences are positive (+7.3 / +4.7 pp). L2 wording permitted. Not a confirmation. The sign is fewer breaks among survivors, not \"the level weakens\".",
    "why_closed": "One retrospective run on a surface already consumed for level research, under the design note committed before any break rate. No product change. Successors were not started."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0"
+   ],
+   "forbidden": "rescoring this cell; treating the result as a current volatility probability or a breakout recommendation; a VOLATILITY_EXPANSION badge; choosing another horizon after this result; a compression subgroup; confirmation on this exposed surface; product integration",
+   "function": "first touch only of PDH/PDL/PWH/PWL/PMH/PML; T is the open of touch bar j; bar j is excluded from both windows; RV_PRE60 is sqrt(mean(r^2)) on returns j-12..j-1; RV_POST60 is the same on j+1..j+12; VOL_TRANSITION is log(RV_POST/RV_PRE); DELTA_TRANSITION is the paired mean of real minus pseudo; ISO-week bootstrap B=2000 seed 20261024",
+   "id": "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1",
+   "mechanism": "MODE=DISCOVERY. Does realized volatility change across a structural first touch, relative to that same touch pre-window, differently from the exact matched pseudo-price touch. Not a claim that the range after a level is large.",
+   "note": "MODE=DISCOVERY. Design note 54338b7f before any post-touch RV. Dependencies #352 dfc9e0f0 through #367 fcdf650c. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to H01, B2-01, DH3-V2, DH3-P1, and the V2 compression-breakout formulation. Row PRICE_STRUCTURE.levels, column CANDLES. Not VOLATILITY_STATE.compression, not VOLATILITY_STATE.regime_transition, and not VOLATILITY_STATE.range_forecast. Sequence 8 of 8 complete. No successor was started.",
+   "period": "2020-02-01T00:00Z..2024-12-31; Binance USD-M BTCUSDT 5m closes only; January 2020 is pre-touch warm-up already inside CORE; no volume, no 2025/2026, no E1 holdout",
+   "practical_bar": "10 percent multiplicative difference in the pre-to-post 60m RV ratio, abs(mean pair delta) >= log(1.10). The interval must exclude 0. It is not the DH1 3 pp bar and not the DH3 4h-range bar.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_DESIGN.md",
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_PREFLIGHT.json",
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_RESULT.md",
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_RESULT.json",
+    "scripts/research/level_volatility_transition_discovery_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the 60-minute windows, the touch-bar exclusion, the RV formula, the 10% scale, or a compression split of this sample. Not 2025/2026. Not an automatic Level Engine build from this discovery candidate.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1",
+   "units_n": "4076 structural episodes; 1919 real and 1962 pseudo legitimate first touches; 1231 usable matched pairs; 254 weeks; zero non-positive RV drops",
+   "verdict": "EXECUTED ONCE (2026-10-08). LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE = YES. SUCCESSOR_CANDIDATE = NONE. Routing LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT. Class LEVEL_VOLATILITY_TRANSITION_CANDIDATE. DELTA_TRANSITION +0.1068 log units, about +11.3% on the post/pre RV multiplier (95% +0.0665..+0.1467 log, about +6.9%..+15.8%, p=1.05e-7, N=1231, 2000/2000). Five of five years positive; 2022 is +0.10% and the sign rule was not rewritten. Leave-one-year-out stays positive. DAY and WEEK are positive. MONTH N=22 is diagnostic and opposite. Support is positive and under 10%. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "One discovery run. The level row was already consumed. This is the paired pre-to-post RV transition around the #352 first touch versus its half-rotation pseudo, with the touch bar excluded. It is not a reopen of H01 compression, B2-01 forecast transition, or DH3-V2 key-level 4h range. No product change. No other horizon, compression subgroup, 4h range, BitMEX replication, or confirmation was started. Direction 8 of 8 stops here."
   },
   {
    "col": "CANDLES",

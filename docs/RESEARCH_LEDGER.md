@@ -8488,3 +8488,25 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-08 — LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1 executed once; discovery; volatility-transition candidate; sequence 8/8 complete; not integrated
+
+**Unit.** `LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1` (atlas `LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #367 `fcdf650ccf58a96c54f4931c0cb5d16e7d143473`. It does not rescore those units. This is direction 8 of 8. `LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE = YES`.
+- **Owner go:** the task of 2026-10-08. Design note `54338b7faab9598152e2fa1270d2fb51a4beed18` before any post-touch RV. The windows, the touch-bar exclusion, the RV formula, the 10% scale, and the stability rules were not changed after the transitions were read.
+- **Novelty.** The object is the paired difference in `log(RV_POST60 / RV_PRE60)` between a structural first touch and its exact #352 pseudo touch. It is not H01 (no compression screen), not B2-01 (no forecast target), and not DH3-V2 (not a 4h high-low range and not a random level). Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `CANDLES`. Not placed on `VOLATILITY_STATE.compression`, `VOLATILITY_STATE.regime_transition`, or `VOLATILITY_STATE.range_forecast`.
+- **Data.** Price closes only. Binance USD-M BTCUSDT perpetual, `CORE_BTC_BINANCE_V0`. Window `[2020-02-01, 2025-01-01)`. No 2025/2026 object was requested. No volume, taker, open interest, spot, other venue, or book.
+- **Clock.** T is the open of touch bar j. Pre returns are assigned to j−12..j−1. Post returns are assigned to j+1..j+12. The touch-bar return is in neither window. `RV = sqrt(mean(r^2))`. No demean and no annualization.
+- **Cohort.** Real legitimate first touches 1919. Pseudo legitimate 1962. Matched path-complete pairs 1231. Usable pairs 1231. Non-positive RV drops 0. 254 weeks. Years 242/334/258/181/216.
+- **Pre-RV balance.** Paired mean of log(real pre / pseudo pre) is +0.56%. Below 10%. Not used as an adjustment. No rematch.
+- **Primary.** `DELTA_TRANSITION` +0.106803 log units, about +11.27% on the post/pre RV multiplier (95% +0.066548..+0.146661, about +6.88%..+15.80%, p=1.048e-7, N=1231, 2000/2000, seed 20261024). The point clears `log(1.10)`. The interval excludes 0 and includes multipliers below 10%. That inclusion was not a reason to change the frozen rule. Real mean transition +0.298, pseudo +0.192. Expansion fraction, descriptive only: real 0.695, pseudo 0.611, difference +0.084.
+- **Stability.** Years +16.93% / +12.05% / +0.10% / +17.52% / +12.87%. Five of five share the positive sign. 2022 is practically null; the frozen rule is a sign rule and was not rewritten. Leave-one-year-out stays positive, including omit-2020 at about +9.93%. DAY +10.06% (N=1071) and WEEK +25.63% (N=138). MONTH is −11.47% on N=22 and is diagnostic only. Resistance +14.34% (N=690). Support +7.48% (N=541), same sign and under 10%, so not a material contradiction.
+- **Routing.** `LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT`. Class `LEVEL_VOLATILITY_TRANSITION_CANDIDATE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. Historically, realized volatility changed more across a structural first touch than across its matched pseudo-price touch, with the post/pre RV multiplier differing by about 11%. Not a current expected volatility. Not a breakout recommendation. Not a statement that the level causes volatility.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No volatility-expansion badge, no confirmation state, no alert. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry, or deploy change. Discovery synthesis, candidate selection, and confirmation design were not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-02-01..2024-12-31, 5m closes only, paired 60m pre/post realized-volatility transition versus half-rotation pseudo (further exposure, not a confirmation)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; volume / taker / OI / spot / other venue / book / funding / liquidation not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO; LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE = YES
+```
