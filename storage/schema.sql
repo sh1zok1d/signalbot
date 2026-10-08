@@ -113,6 +113,10 @@ CREATE TABLE IF NOT EXISTS liquidations (
 );
 
 SELECT create_hypertable('liquidations', 'ts', if_not_exists => TRUE);
+-- Collector mapping revision (data_ingestion/base_client.py LIQUIDATION_MAPPING_VERSION).
+-- NULL = written before 2026-10: Bybit sides swapped, no OKX rows. 2 = fixed mapping
+-- (docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md R1, R2). Old rows keep their bytes.
+ALTER TABLE liquidations ADD COLUMN IF NOT EXISTS mapping_version SMALLINT;
 CREATE INDEX IF NOT EXISTS ix_liquidations_symbol_ts ON liquidations (symbol, ts DESC);
 
 -- ============================================================
