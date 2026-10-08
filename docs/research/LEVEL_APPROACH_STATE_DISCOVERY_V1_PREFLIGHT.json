@@ -1,0 +1,383 @@
+{
+  "approach_price_eligible_before_volume_filter": 1976,
+  "candidates_after_volume_audit": [
+    "velocity",
+    "efficiency",
+    "persistence",
+    "acceleration",
+    "range_state",
+    "rel_volume",
+    "dwell"
+  ],
+  "cells_per_feature_outcome": 21,
+  "control_counts": {
+    "by_bucket": {
+      "1": 593,
+      "2": 633,
+      "3+": 602
+    },
+    "by_family": {
+      "DAY": 1298,
+      "MONTH": 106,
+      "WEEK": 424
+    },
+    "by_side": {
+      "resistance": 946,
+      "support": 882
+    },
+    "by_year": {
+      "2020": 361,
+      "2021": 610,
+      "2022": 377,
+      "2023": 177,
+      "2024": 303
+    },
+    "clusters": 1149,
+    "n": 1828,
+    "weeks": 248
+  },
+  "correlations": {
+    "acceleration__acceleration": 1.0,
+    "acceleration__dwell": 0.07380851733087596,
+    "acceleration__log_steps": 0.24839026583865395,
+    "acceleration__n_steps": 0.2070625231041627,
+    "acceleration__pullback": 0.016135654020669635,
+    "acceleration__range_state": -0.32404033104907676,
+    "acceleration__rel_volume": -0.3511513156510607,
+    "dwell__dwell": 1.0,
+    "dwell__log_steps": 0.4285476038541377,
+    "dwell__n_steps": 0.4252838168481852,
+    "dwell__pullback": 0.13523688802445769,
+    "efficiency__acceleration": -0.01613565402063371,
+    "efficiency__dwell": -0.1352368880244802,
+    "efficiency__efficiency": 1.0,
+    "efficiency__log_steps": -0.7619013109347421,
+    "efficiency__n_steps": -0.6691270702090567,
+    "efficiency__persistence": 0.7518107256033756,
+    "efficiency__pullback": -1.0,
+    "efficiency__range_state": 0.29366954829345504,
+    "efficiency__rel_volume": 0.39754139932153276,
+    "log_steps__log_steps": 0.9999999999999998,
+    "log_steps__n_steps": 0.9275328132860828,
+    "log_steps__pullback": 0.7619013109347504,
+    "n_steps__n_steps": 1.0,
+    "persistence__acceleration": 0.006992273741683002,
+    "persistence__dwell": -0.09901481087316646,
+    "persistence__log_steps": -0.5573474036688582,
+    "persistence__n_steps": -0.46525268699355266,
+    "persistence__persistence": 1.0,
+    "persistence__pullback": -0.7518107256033678,
+    "persistence__range_state": 0.20472989202488545,
+    "persistence__rel_volume": 0.2646064957696579,
+    "pullback__n_steps": 0.6691270702090679,
+    "pullback__pullback": 1.0,
+    "range_state__dwell": -0.2850169645602764,
+    "range_state__log_steps": -0.5425691387186787,
+    "range_state__n_steps": -0.4896487496251728,
+    "range_state__pullback": -0.29366954829350633,
+    "range_state__range_state": 1.0,
+    "range_state__rel_volume": 0.7806684173055325,
+    "rel_volume__dwell": -0.28300088516642474,
+    "rel_volume__log_steps": -0.605195083068376,
+    "rel_volume__n_steps": -0.5391817910688319,
+    "rel_volume__pullback": -0.39754139932157684,
+    "rel_volume__rel_volume": 1.0,
+    "velocity__acceleration": -0.29386043993208116,
+    "velocity__dwell": -0.20490772911573613,
+    "velocity__efficiency": 0.7661398414336797,
+    "velocity__log_steps": -0.7873604442985113,
+    "velocity__n_steps": -0.6535184433842559,
+    "velocity__persistence": 0.5730465759557914,
+    "velocity__pullback": -0.7661398414336963,
+    "velocity__range_state": 0.5772042732521898,
+    "velocity__rel_volume": 0.6533755368312417,
+    "velocity__velocity": 1.0
+  },
+  "counts": {
+    "by_bucket": {
+      "1": 684,
+      "2": 640,
+      "3+": 652
+    },
+    "by_family": {
+      "DAY": 1441,
+      "MONTH": 114,
+      "WEEK": 421
+    },
+    "by_side": {
+      "resistance": 1073,
+      "support": 903
+    },
+    "by_year": {
+      "2020": 339,
+      "2021": 450,
+      "2022": 393,
+      "2023": 343,
+      "2024": 451
+    },
+    "clusters": 1211,
+    "n": 1976,
+    "weeks": 258
+  },
+  "distributions": {
+    "acceleration": {
+      "max": 1.9378314890354078,
+      "mean": -0.2869193502365458,
+      "min": -4.328632564557709,
+      "n": 1976,
+      "p25": -0.5221031940229328,
+      "p50": -0.17299454058553293,
+      "p75": 0.05293820331860369,
+      "sd": 0.6077187259234365
+    },
+    "dwell": {
+      "max": 27.0,
+      "mean": 2.318825910931174,
+      "min": 0.0,
+      "n": 1976,
+      "p25": 1.0,
+      "p50": 2.0,
+      "p75": 3.0,
+      "sd": 2.5745110455267324
+    },
+    "efficiency": {
+      "max": 1.0000000000013982,
+      "mean": 0.5735405723935438,
+      "min": 0.024946242461039513,
+      "n": 1976,
+      "p25": 0.3717968784192741,
+      "p50": 0.5481573847234451,
+      "p75": 0.7640714186650861,
+      "sd": 0.2488746585007119
+    },
+    "log_steps": {
+      "max": 4.23410650459726,
+      "mean": 2.2062415378447744,
+      "min": 1.3862943611198906,
+      "n": 1976,
+      "p25": 1.6094379124341003,
+      "p50": 2.0794415416798357,
+      "p75": 2.6390573296152584,
+      "sd": 0.6428099031358917
+    },
+    "persistence": {
+      "max": 1.0,
+      "mean": 0.6929164435449835,
+      "min": 0.25,
+      "n": 1976,
+      "p25": 0.5882352941176471,
+      "p50": 0.6666666666666666,
+      "p75": 0.7777777777777778,
+      "sd": 0.14406823784407646
+    },
+    "pullback": {
+      "max": 0.4875268787696077,
+      "mean": 0.21322971380323216,
+      "min": 0.0,
+      "n": 1976,
+      "p25": 0.11796429066755257,
+      "p50": 0.22592130763828844,
+      "p75": 0.31410156079029444,
+      "sd": 0.12443732925035138
+    },
+    "range_state": {
+      "max": 2.3065547747270743,
+      "mean": 0.11893911334517393,
+      "min": -1.4061891353193008,
+      "n": 1976,
+      "p25": -0.12034886930718897,
+      "p50": 0.09456094169785298,
+      "p75": 0.3464888026044746,
+      "sd": 0.3746811807534468
+    },
+    "rel_volume": {
+      "max": 2.3419235773621714,
+      "mean": -0.05135882334047151,
+      "min": -1.712504070742579,
+      "n": 1976,
+      "p25": -0.39978580658345914,
+      "p50": -0.08356296863218524,
+      "p75": 0.2855048556106954,
+      "sd": 0.5302812660327875
+    },
+    "velocity": {
+      "max": 2.0194237700872617,
+      "mean": 0.4701466463359717,
+      "min": 0.0174496162391586,
+      "n": 1976,
+      "p25": 0.24056738125511107,
+      "p50": 0.4020761267247961,
+      "p75": 0.6556053009877163,
+      "sd": 0.29519764508902424
+    }
+  },
+  "dropped": [
+    {
+      "feature": "pullback",
+      "reason": "algebraic complement of efficiency: pullback = (1 - efficiency) / 2",
+      "rho": -1.0,
+      "with": "efficiency"
+    }
+  ],
+  "fdr_family_size": 21,
+  "material_cells": 441,
+  "mode": "DISCOVERY",
+  "n_bars": 526176,
+  "note": "Counts and predictor moments only. No touch outcome was classified and no slope was fit. Quote volume is the Binance kline quote field on the same complete 5m bins as OHLC, read only before the touch bar. Taker-buy quote was not used.",
+  "outcome_blind": true,
+  "parent_feature_eligible": 4213,
+  "raw_features": [
+    "velocity",
+    "efficiency",
+    "pullback",
+    "persistence",
+    "acceleration",
+    "range_state",
+    "rel_volume",
+    "dwell"
+  ],
+  "retained": [
+    "velocity",
+    "efficiency",
+    "persistence",
+    "acceleration",
+    "range_state",
+    "rel_volume",
+    "dwell"
+  ],
+  "rho_cut": 0.9,
+  "scales": {
+    "acceleration": {
+      "mean": -0.2869193502365458,
+      "q33": -0.3689095800368096,
+      "q66": -0.023214167180738248,
+      "sd": 0.6077187259234365
+    },
+    "dwell": {
+      "mean": 2.318825910931174,
+      "q33": 1.0,
+      "q66": 2.0,
+      "sd": 2.5745110455267324
+    },
+    "efficiency": {
+      "mean": 0.5735405723935438,
+      "q33": 0.43073619813160036,
+      "q66": 0.6772800589353886,
+      "sd": 0.2488746585007119
+    },
+    "log_steps": {
+      "mean": 2.2062415378447744,
+      "q33": 1.791759469228055,
+      "q66": 2.4849066497880004,
+      "sd": 0.6428099031358917
+    },
+    "n": 1976,
+    "persistence": {
+      "mean": 0.6929164435449835,
+      "q33": 0.6153846153846154,
+      "q66": 0.75,
+      "sd": 0.14406823784407646
+    },
+    "range_state": {
+      "mean": 0.11893911334517393,
+      "q33": -0.04542897471446387,
+      "q66": 0.2551830234883589,
+      "sd": 0.3746811807534468
+    },
+    "rel_volume": {
+      "mean": -0.05135882334047151,
+      "q33": -0.28438096947466746,
+      "q66": 0.1325756419054015,
+      "sd": 0.5302812660327875
+    },
+    "velocity": {
+      "mean": 0.4701466463359717,
+      "q33": 0.2877059551831613,
+      "q66": 0.562607365657301,
+      "sd": 0.29519764508902424
+    }
+  },
+  "sensitivity_band_mult": 2.0,
+  "sensitivity_counts": {
+    "by_bucket": {
+      "1": 1022,
+      "2": 516,
+      "3+": 569
+    },
+    "by_family": {
+      "DAY": 1411,
+      "MONTH": 175,
+      "WEEK": 521
+    },
+    "by_side": {
+      "resistance": 1098,
+      "support": 1009
+    },
+    "by_year": {
+      "2020": 366,
+      "2021": 435,
+      "2022": 425,
+      "2023": 401,
+      "2024": 480
+    },
+    "clusters": 1352,
+    "n": 2107,
+    "weeks": 258
+  },
+  "sensitivity_scales": {
+    "acceleration": {
+      "mean": -0.16788132742882195,
+      "q33": -0.20283408583886844,
+      "q66": 0.020472789505765143,
+      "sd": 0.6779354867334306
+    },
+    "dwell": {
+      "mean": 1.1675367821547225,
+      "q33": 0.0,
+      "q66": 1.0,
+      "sd": 1.636360042547608
+    },
+    "efficiency": {
+      "mean": 0.4483933437725618,
+      "q33": 0.28709517175933996,
+      "q66": 0.5355919608339378,
+      "sd": 0.2518823809402901
+    },
+    "log_steps": {
+      "mean": 3.069703781926605,
+      "q33": 2.6390573296152584,
+      "q66": 3.5553480614894135,
+      "sd": 0.9108876125821624
+    },
+    "n": 2107,
+    "persistence": {
+      "mean": 0.6415904542874404,
+      "q33": 0.5714285714285714,
+      "q66": 0.6666666666666666,
+      "sd": 0.1233047336735841
+    },
+    "range_state": {
+      "mean": 0.29710998634273017,
+      "q33": 0.09698113315419411,
+      "q66": 0.46397884689017693,
+      "sd": 0.42442356344645255
+    },
+    "rel_volume": {
+      "mean": 0.26812221653457724,
+      "q33": -0.017660757868614846,
+      "q66": 0.5252100763867837,
+      "sd": 0.5961155291182776
+    },
+    "velocity": {
+      "mean": 0.49255712933976836,
+      "q33": 0.2126194242207173,
+      "q66": 0.5047365124776204,
+      "sd": 0.46583456961641223
+    }
+  },
+  "taker_not_used": true,
+  "unit": "LEVEL_APPROACH_STATE_DISCOVERY_V1",
+  "volume_field": "quote",
+  "volume_missing_rate": 0.0,
+  "volume_status": "available"
+}

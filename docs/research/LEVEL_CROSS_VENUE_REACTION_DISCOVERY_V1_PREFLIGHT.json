@@ -1,0 +1,258 @@
+{
+  "alignment_tolerance_ms": 0,
+  "early": {
+    "n": 1856,
+    "n_early_ambiguous": 13,
+    "n_early_break": 286,
+    "n_early_reject": 265,
+    "n_unavailable": 0,
+    "n_unresolved": 1292
+  },
+  "event_window": [
+    "2020-04-01T00:05:00+00:00",
+    "2025-01-01T00:00:00+00:00"
+  ],
+  "feature_complete_unresolved": 1235,
+  "first_touch_legitimate": 1856,
+  "history_ok": true,
+  "missing_among_unresolved": {
+    "RET_BYBIT": 57
+  },
+  "novelty_ok": true,
+  "outcomes_read": false,
+  "planning_resolve_fraction": 0.5,
+  "pre_outcome_gate_pass": true,
+  "pseudo_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1885,
+    "NO_CONTROL": 0,
+    "NO_SIGMA": 0,
+    "NO_TOUCH": 2086,
+    "OUTSIDE_WINDOW": 105,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "pseudo_unresolved_feature_complete_pairs": 624,
+  "real_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1856,
+    "NO_SIGMA": 0,
+    "NO_TOUCH": 2124,
+    "OUTSIDE_WINDOW": 96,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "redundancy": {
+    "dropped": [],
+    "retained": [
+      "OTHER_VENUE_MEDIAN_MOVE",
+      "CROSS_VENUE_CONFIRMATION_GAP",
+      "CROSS_VENUE_DISPERSION",
+      "DIRECTION_AGREEMENT"
+    ],
+    "rho": {
+      "CROSS_VENUE_CONFIRMATION_GAP__CROSS_VENUE_DISPERSION": 0.03275197040363973,
+      "CROSS_VENUE_CONFIRMATION_GAP__DIRECTION_AGREEMENT": 0.061238707858345086,
+      "CROSS_VENUE_DISPERSION__DIRECTION_AGREEMENT": 0.07024010123399621,
+      "OTHER_VENUE_MEDIAN_MOVE__CROSS_VENUE_CONFIRMATION_GAP": 0.05790713487657754,
+      "OTHER_VENUE_MEDIAN_MOVE__CROSS_VENUE_DISPERSION": 0.22295521989533118,
+      "OTHER_VENUE_MEDIAN_MOVE__DIRECTION_AGREEMENT": 0.6299456544826765
+    }
+  },
+  "reference_venue": "BINANCE_USD_M_BTCUSDT_PERP",
+  "resolved_after_d": null,
+  "return_distributions": {
+    "CROSS_VENUE_CONFIRMATION_GAP": {
+      "mean": -4.3893625358288836e-06,
+      "n": 1235,
+      "p05": -0.0003791444971964985,
+      "p25": -0.00012355609340153096,
+      "p50": -1.0017106318030954e-05,
+      "p75": 0.00011099889876123838,
+      "p95": 0.00040965662181146906,
+      "sd": 0.00025278878383185196
+    },
+    "CROSS_VENUE_DISPERSION": {
+      "mean": 0.0001375747235900889,
+      "n": 1235,
+      "p05": 2.38925344804533e-05,
+      "p25": 5.796281219064814e-05,
+      "p50": 0.00010406473174637194,
+      "p75": 0.0001740734203643703,
+      "p95": 0.00038489386411394167,
+      "sd": 0.00011587349162589105
+    },
+    "DIRECTION_AGREEMENT": {
+      "mean": 0.7530364372469636,
+      "n": 1235,
+      "p05": 0.0,
+      "p25": 0.6666666666666666,
+      "p50": 1.0,
+      "p75": 1.0,
+      "p95": 1.0,
+      "sd": 0.4264199923999705
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "mean": 0.0029363817430913806,
+      "n": 1235,
+      "p05": -0.0028613187642692246,
+      "p25": 5.540082614797832e-05,
+      "p50": 0.0021355107895077263,
+      "p75": 0.0054405026468635825,
+      "p95": 0.01129250902821727,
+      "sd": 0.004470743572464896
+    },
+    "RET_BINANCE": {
+      "mean": 0.0005772804241784001,
+      "n": 1235,
+      "p05": -0.008246743745678123,
+      "p25": -0.002112986110952871,
+      "p50": 0.0005165253797666357,
+      "p75": 0.003303111852615239,
+      "p95": 0.009295048747156611,
+      "sd": 0.005333447743444434
+    },
+    "RET_BYBIT": {
+      "mean": 0.0005980191653664573,
+      "n": 1235,
+      "p05": -0.008344124777242794,
+      "p25": -0.0021056206757325115,
+      "p50": 0.0005205329967038976,
+      "p75": 0.003280447796806091,
+      "p95": 0.00895270815617132,
+      "sd": 0.005315850655445544
+    },
+    "RET_OKX": {
+      "mean": 0.0005926492264171598,
+      "n": 1235,
+      "p05": -0.00826403226133388,
+      "p25": -0.0020853586147245515,
+      "p50": 0.0004955721805331096,
+      "p75": 0.0032851031386136164,
+      "p95": 0.009173229984782082,
+      "sd": 0.005320440730473506
+    }
+  },
+  "rough_mde_80": 0.06302463906060213,
+  "scale_hex": {
+    "CROSS_VENUE_CONFIRMATION_GAP": {
+      "mean": "-0x1.2690ac963030cp-18",
+      "sd": "0x1.091178f31c91cp-12"
+    },
+    "CROSS_VENUE_DISPERSION": {
+      "mean": "0x1.2083de08cfd8cp-13",
+      "sd": "0x1.e60236d931eccp-14"
+    },
+    "DIRECTION_AGREEMENT": {
+      "mean": "0x1.818dfded5818ep-1",
+      "sd": "0x1.b4a77146dfaf4p-2"
+    },
+    "END_POSITION_X": {
+      "mean": "-0x1.2885b7912e72bp-1",
+      "sd": "0x1.3b7502a838dabp-1"
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "mean": "0x1.80e09f1c3c7bdp-9",
+      "sd": "0x1.24fea16ebadf2p-8"
+    },
+    "disp": {
+      "mean": "0x1.c374c07e94bc0p-8",
+      "sd": "0x1.b264b4a63c653p-8"
+    }
+  },
+  "scales": {
+    "CROSS_VENUE_CONFIRMATION_GAP": {
+      "mean": -4.3893625358288836e-06,
+      "n": 1235,
+      "sd": 0.00025278878383185196
+    },
+    "CROSS_VENUE_DISPERSION": {
+      "mean": 0.0001375747235900889,
+      "n": 1235,
+      "sd": 0.00011587349162589105
+    },
+    "DIRECTION_AGREEMENT": {
+      "mean": 0.7530364372469636,
+      "n": 1235,
+      "sd": 0.4264199923999705
+    },
+    "END_POSITION_X": {
+      "mean": -0.579145180198997,
+      "n": 1235,
+      "sd": 0.6161270933484294
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "mean": 0.0029363817430913806,
+      "n": 1235,
+      "sd": 0.004470743572464896
+    },
+    "disp": {
+      "mean": 0.00688867282458977,
+      "n": 1235,
+      "sd": 0.006628316978309084
+    }
+  },
+  "slice_counts_unresolved_complete": {
+    "family": {
+      "DAY": 1100,
+      "MONTH": 13,
+      "WEEK": 122
+    },
+    "side": {
+      "resistance": 708,
+      "support": 527
+    },
+    "year": {
+      "2020": 174,
+      "2021": 270,
+      "2022": 297,
+      "2023": 225,
+      "2024": 269
+    }
+  },
+  "structural_episodes": 4076,
+  "tertile_cuts": {
+    "CROSS_VENUE_CONFIRMATION_GAP": {
+      "q33": -8.223186627929024e-05,
+      "q67": 6.546809750820419e-05
+    },
+    "CROSS_VENUE_DISPERSION": {
+      "q33": 7.304083547322576e-05,
+      "q67": 0.00014586247390008906
+    },
+    "DIRECTION_AGREEMENT": {
+      "q33": 1.0,
+      "q67": 1.0
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "q33": 0.0007480962276565733,
+      "q67": 0.0039731321426342186
+    }
+  },
+  "tertile_cuts_hex": {
+    "CROSS_VENUE_CONFIRMATION_GAP": {
+      "q33": "-0x1.58e7cb4975916p-14",
+      "q67": "0x1.1297d59d5a6a3p-14"
+    },
+    "CROSS_VENUE_DISPERSION": {
+      "q33": "0x1.325afff9f0327p-14",
+      "q67": "0x1.31e551c37f8f4p-13"
+    },
+    "DIRECTION_AGREEMENT": {
+      "q33": "0x1.0000000000000p+0",
+      "q67": "0x1.0000000000000p+0"
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "q33": "0x1.8837c6a807b57p-11",
+      "q67": "0x1.0462189d84535p-8"
+    }
+  },
+  "tier": "TIER_A",
+  "unit": "LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1",
+  "unresolved_nuisance_complete": 1235,
+  "venue_artifact": false,
+  "venues": [
+    "BYBIT_LINEAR_BTCUSDT_PERP",
+    "OKX_BTC_USDT_SWAP_PERP"
+  ]
+}

@@ -3669,6 +3669,487 @@ units:
     forbidden: treating this as an untested neighbour of the closed unit it names
     records:
     - docs/research/DH3_DESIGN.md
+  - id: LEVEL-TOUCH-DEGRADATION-V1
+    title: LEVEL_TOUCH_DEGRADATION_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: LIVE_SIGNAL
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '2020-02-01..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars from 2020-01-01; price only; no 2025/2026, no live tape, no E1 holdout'
+    units_n: '4191 analysis touches (1905 / 1101 / 1185 in buckets 1 / 2 / 3+); 258 week clusters; ambiguous same-bar events excluded (14 / 4 / 4)'
+    practical_bar: '3 pp is the product materiality floor used only inside the predeclared integration conjunction (with the interval, year signs, control, concentration and cluster count). It is not a Holm switch and not the DH1 3 pp plus Brier bar.'
+    mechanism: 'Among ex-ante structural BTC levels (previous day/week/month high and low), the historical frequency of a 4h barrier first-passage break differs by the ordinal of an independent touch. Later touches exist only for levels that were retested. This is not a rescore of DH1-L2 or DH3-V3.'
+    function: 'touch bucket 1 / 2 / 3+ -> P(BREAK_FIRST within 48 5m bars), direct standardization on family x approach side x pre-touch sigma tercile, week-cluster bootstrap; touch 1 in the same population is the baseline; a half-rotation pseudo-level is the falsification'
+    verdict: 'EXECUTED ONCE (2026-10-07). Standardized BREAK_FIRST vs touch 1: touch 2 -2.3 pp (95% -6.0..+1.5), touch 3+ -6.6 pp (95% -10.7..-2.2); crude rates 40.1% / 37.6% / 33.6% (N 1905 / 1101 / 1185). REJECT_FIRST stays near 50%; NEITHER rises 9.6% to 17.1%. 2023 crude touch-3+ difference is about 0. Pseudo-level standardized differences are positive (+7.3 / +4.7 pp). L2 wording permitted. Not a confirmation. The sign is fewer breaks among survivors, not "the level weakens".'
+    why_closed: 'One retrospective run on a surface already consumed for level research, under the design note committed before any break rate. No product change. Successors were not started.'
+    reopen: 'A new mechanism, or a fresh or prospective surface, with its own design note and owner go. Named and not run: LEVEL_REJECTION_MEMORY_V1, LEVEL_APPROACH_STATE_V1, LEVEL_CONFLUENCE_V1.'
+    forbidden: 'rescoring this cell; a new threshold, horizon, zone, bucket or baseline after the outcome; confirmation on this exposed 2020-2024 surface or on 2025/2026; trade wording; stating a historical frequency as a current probability; reading the result as "levels weaken"; treating it as a rescore of DH1-L2 or DH3-V3'
+    records:
+    - docs/research/LEVEL_TOUCH_DEGRADATION_V1_DESIGN.md
+    - docs/research/LEVEL_TOUCH_DEGRADATION_V1_PREFLIGHT.json
+    - docs/research/LEVEL_TOUCH_DEGRADATION_V1_RESULT.md
+    - docs/research/LEVEL_TOUCH_DEGRADATION_V1_RESULT.json
+    - scripts/research/level_touch_degradation_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Design note 65015c2 before any break rate; evaluator guard d79801f1 before the one-shot. Tracks STRUCTURE + PRODUCT_EVIDENCE. Claim ceiling L2. PRODUCT_INTEGRATION_CANDIDATE = YES is the predeclared flag, not an implementation go. Reopen key OWNER_DECISION + NEW_MECHANISM relative to DH1-L2 and DH3-V3.'
+  - id: LEVEL-REJECTION-MEMORY-V1
+    title: LEVEL_REJECTION_MEMORY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: NO_STRUCTURE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '2020-02-01..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars from 2020-01-01; price only; no 2025/2026, no live tape, no E1 holdout'
+    units_n: '1151 analysis pairs (next-touch buckets 553 / 598); 283 clusters; 4 ambiguous next touches excluded; feature pairs before that drop 1155'
+    practical_bar: '3 pp is the product materiality floor used only inside the predeclared integration conjunction, applied per 1 SD of the frozen rejection-speed scale. It is not a Holm switch and not the DH1 3 pp plus Brier bar.'
+    mechanism: 'Among ex-ante structural BTC levels whose previous independent touch was REJECT_FIRST and that were later retested, the speed of that rejection (bars to the frozen reject barrier) is tested as a predictor of the next independent touch. This is a successor of LEVEL-TOUCH-DEGRADATION-V1, not a rescore of it, and not a test that a strong rejection makes a level strong.'
+    function: 'speed_z = z(−log bars to REJECT_FIRST) -> Δ P(BREAK_FIRST within 48 5m bars) per +1 SD faster, linear probability model with next-touch ordinal, family, side, volatility tercile, year and log wait after the rejection bar; cluster bootstrap; tertiles are descriptive; a half-rotation pseudo-level with the same real scales is the falsification'
+    verdict: 'EXECUTED ONCE (2026-10-07). Per +1 SD faster prior rejection, adjusted Δ P(BREAK_FIRST) -0.1 pp (95% -2.9..+2.6), N=1151, 283 clusters. The interval includes 0 and the absolute coefficient is below the 3 pp reading scale. REJECT_FIRST +1.0 pp and NEITHER -0.8 pp, both intervals include 0. Crude tertile BREAK shares are 39.2% / 39.7% / 39.4%. Dropping the touch-ordinal or the log-wait control leaves the coefficient near zero. Year signs flip. L2 wording permitted. Not a confirmation. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One retrospective run on a surface already consumed for level research. The adjusted association is near zero. No product change. Successors were not started.'
+    reopen: 'A new mechanism, or a fresh or prospective surface, with its own design note and owner go. Named and not run: LEVEL_APPROACH_STATE_V1, LEVEL_CONFLUENCE_V1. A vanished or near-zero coefficient after touch-number or elapsed-time adjustment is not a reason to hunt another threshold on this cell.'
+    forbidden: 'rescoring this cell; a new threshold, horizon, feature, bucket or baseline after the outcome; a composite level-strength score; confirmation on this exposed 2020-2024 surface or on 2025/2026; trade wording; stating a historical frequency as a current probability; reading a near-zero result as "the level is strong" or as a prompt to retune; treating this as a rescore of LEVEL-TOUCH-DEGRADATION-V1, DH1-L2 or DH3-V3'
+    records:
+    - docs/research/LEVEL_REJECTION_MEMORY_V1_DESIGN.md
+    - docs/research/LEVEL_REJECTION_MEMORY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_REJECTION_MEMORY_V1_RESULT.md
+    - docs/research/LEVEL_REJECTION_MEMORY_V1_RESULT.json
+    - scripts/research/level_rejection_memory_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'Successor of LEVEL-TOUCH-DEGRADATION-V1 / PR #352 / dfc9e0f0. Design note c8a1d4d2 before any next-touch rate. Tracks STRUCTURE + PRODUCT_EVIDENCE. Claim ceiling L2. The parent unit is not rewritten. Reopen key NEW_MECHANISM relative to the touch-ordinal cell.'
+  - id: LEVEL-APPROACH-STATE-DISCOVERY-V1
+    title: LEVEL_APPROACH_STATE_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '2020-02-01..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars from 2020-01-01; OHLC and quote volume; no taker flow, no OI, no 2025/2026, no live tape, no E1 holdout'
+    units_n: '1973 analysis touches (DAY 1439 / WEEK 420 / MONTH 114); 1210 episode clusters; 3 ambiguous same-bar events excluded; approach rows before that drop 1976'
+    practical_bar: '3 pp per 1 SD is the parent level-reaction reading scale inside the predeclared successor conjunction. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the 21 primary slopes only.'
+    mechanism: 'MODE=DISCOVERY. Which point-in-time characteristics of how price approaches an already-known structural BTC level carry incremental historical information about the subsequent 4h touch ending as BREAK_FIRST, REJECT_FIRST or NEITHER. Not a test of a prechosen trader story. Successor in the level family after LEVEL-TOUCH-DEGRADATION-V1 and LEVEL-REJECTION-MEMORY-V1, not a rescore of either.'
+    function: 'geometric approach inside 1.0x primary X, features known before the touch bar: velocity, path efficiency, directional persistence, acceleration, range state, relative quote volume, near-level dwell; pullback dropped before outcomes as the algebraic complement of efficiency; separate linear probability models per outcome adjusted for touch ordinal, family, side, volatility tercile, year and log approach length; episode-cluster bootstrap; tertiles descriptive; band 2.0x is the only sensitivity; half-rotation pseudo-level on the real scales is the falsification'
+    verdict: 'EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing STRUCTURE_PRESENT_BUT_UNSTABLE. Four primary cells have |b| >= 3 pp and an interval excluding 0: velocity->BREAK -3.9 pp (95% -7.3..-0.5, q=0.122); efficiency->NEITHER +4.4 pp (95% +2.2..+6.8, q=0.002); dwell->REJECT -3.0 pp (95% -5.3..-0.7, q=0.059); dwell->NEITHER +4.7 pp (95% +2.6..+6.7, q=0.000). N=1973, 1210 clusters. Each fails the conjunction: DAY is 72.9% of the sample, above the frozen 70% cap, and the pseudo-level coefficient is large (efficiency->NEITHER +3.9 pp, dwell->REJECT -4.2 pp, dwell->NEITHER +4.1 pp, velocity->BREAK +4.0 pp with the opposite sign). Dropping log duration flips velocity->BREAK to +1.2 pp and efficiency->NEITHER to -1.8 pp. Acceleration stays within about 1 pp. L2 family statement. A selected cell would have been DISCOVERY_ONLY; none was selected. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run on a surface already consumed for level research. Notable adjusted associations do not pass the successor rule frozen before outcomes. No product change. Confirmation was not started. The flow/OI successor was not started.'
+    reopen: 'A new mechanism, or a fresh or prospective surface, with its own design note and owner go. Not a retune of the 70% family cap, the band, the feature formulas, or an interaction fitted on this matrix. Named and not run: LEVEL_APPROACH_FLOW_INCREMENTAL_V1, which would have to ask whether OI, taker flow or liquidation state add information above this price-only approach state.'
+    forbidden: 'rescoring this cell; adding a feature, window, horizon, interaction or threshold after the outcome; a composite approach-strength score; confirmation on this exposed 2020-2024 surface or on 2025/2026; trade wording; stating a historical frequency as a current probability; reading a partial slope as "a fast approach breaks the level"; treating this as a rescore of LEVEL-TOUCH-DEGRADATION-V1, LEVEL-REJECTION-MEMORY-V1, DH1-L2 or DH3-V3; starting LEVEL_APPROACH_FLOW_INCREMENTAL_V1 from this result'
+    records:
+    - docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_approach_state_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note 778e23dd before any approach-conditioned outcome rate. One official run 3cd68af0. Dependencies #352 dfc9e0f0, #353 c3d39bff, #354 methodology 8effe9ac. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to the touch-ordinal cell and the rejection-speed cell.'
+  - id: LEVEL-STRUCTURE-DISCOVERY-V1
+    title: LEVEL_STRUCTURE_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '2020-02-01..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars from 2020-01-01; OHLC and quote volume on the anchor source period; no taker flow, no OI, no 2025/2026, no live tape, no E1 holdout'
+    units_n: '2640 real analysis touches and 2634 pseudo touches; 1227 matched episode clusters; 9 ambiguous real bars and 12 ambiguous pseudo bars excluded; matched feature-complete rows before that drop 2649 / 2646'
+    practical_bar: '3 pp on the level-specific increment is the parent level-reaction reading scale inside the predeclared successor conjunction. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the 24 primary real-minus-pseudo increments only. The 70% DAY cap from LEVEL-APPROACH-STATE-DISCOVERY-V1 is not a clause.'
+    mechanism: 'MODE=DISCOVERY. Which point-in-time properties of an already-known structural BTC level carry level-specific historical information about the subsequent 4h touch ending as BREAK_FIRST, REJECT_FIRST or NEITHER. Level-specific means the association at the structural price differs from the same association at a rotated price that keeps the structural metadata. Not a test that confluence is stronger, that an old level is weaker, or that a large close-off is a stronger extreme.'
+    function: 'eight retained features known at level birth or at the open of the touch: age fraction, binary multi-member confluence, zone span in pre-touch X, formation range and quote-volume state, close-off-extreme, extreme timing and extreme density; diversity dropped before outcomes because the binary coding matched confluence at rho = 1; stacked linear probability model; cluster is the real episode; half-rotation supplies the price and the real ledger supplies the metadata'
+    verdict: 'EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing STRUCTURE_PRESENT_BUT_UNSTABLE. One primary increment clears 3 pp with an interval excluding 0 and q=0.000: age to NEITHER +4.2 pp (95% +2.4..+6.1). beta_real is -1.3 pp (95% -2.6..+0.1) and beta_pseudo is -5.5 pp (95% -6.9..-4.1). N_real=2640, N_pseudo=2634, 1227 clusters. The real slope is negative in 3 of 5 years, so the successor conjunction does not name the cell. The other 23 primary increments have q above 0.10. Confluence increments are about 0 pp with intervals about ±8 pp (284 multi-member real touches). L2 family statement. A selected cell would have been DISCOVERY_ONLY; none was selected. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run on a surface already consumed for level research. The one differential that clears the reading scale does not pass the successor rule frozen before outcomes. No product change. Confirmation was not started. No confluence rescue, formation threshold, flow field or level score was started.'
+    reopen: 'A new mechanism, or a fresh or prospective surface, with its own design note and owner go. Not a retune of the tolerance, the binary confluence cut, the formation window, the pseudo construction, or an interaction fitted on this matrix. Not a confirmation on this exposed 2020-2024 surface.'
+    forbidden: 'rescoring this cell; adding a feature, tolerance, horizon, interaction or threshold after the outcome; a composite level-strength score; confirmation on this exposed 2020-2024 surface or on 2025/2026; trade wording; stating a historical frequency as a current probability; reading the age increment as "an old level is weaker"; treating this as a rescore of LEVEL-TOUCH-DEGRADATION-V1, LEVEL-REJECTION-MEMORY-V1 or LEVEL-APPROACH-STATE-DISCOVERY-V1'
+    records:
+    - docs/research/LEVEL_STRUCTURE_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_STRUCTURE_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_STRUCTURE_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_STRUCTURE_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_structure_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note 1ac77d2d before any feature-conditioned outcome rate. Dependencies #352 dfc9e0f0, #353 c3d39bff, #354 methodology 8effe9ac, #355 aa85e5b4. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to the touch-ordinal cell, the rejection-speed cell and the approach-state cell.'
+  - id: LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1
+    title: LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - DH1_BITMEX_XBTUSD_TRADES_5M_V0
+    period: '2017-09-01..2019-12-31 on DH1_BITMEX_XBTUSD_TRADES_5M_V0 5m bars from 2017-08-01; OHLC from public trades; no 2020-2024 Binance reread, no 2025/2026, no live tape, no E1 holdout'
+    units_n: '548 analysis pairs after dropping 10 ambiguous pairs from 558 availability-matched pairs; 119 product weeks; ambiguous labels 4 real and 7 pseudo'
+    practical_bar: '3 pp on the paired resolution difference is the predeclared reading scale. It is not a requirement to recover the Binance description of about 12 pp, and it is not the DH1 3 pp plus Brier bar.'
+    mechanism: 'MODE=CONFIRMATION. Whether the first touch of a pre-known structural BTC level resolves into BREAK or REJECT within 4h more often than the matched first touch of a deterministic half-rotation pseudo-price. Resolution is not direction.'
+    function: 'paired mean of Y_real minus Y_pseudo on touch_number = 1; Y is 1 for BREAK or REJECT and 0 for NEITHER; week-block bootstrap on the real touch week; #352 structural levels and half-rotation control'
+    verdict: 'EXECUTED ONCE (2026-10-07). Evidence label REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE. Δ_resolution = +8.0 pp (95% +4.4..+11.8), N=548, 119 weeks. Real resolution rate 91.1%, pseudo 83.0%. Discordant pairs 80 versus 36. All three epoch points are positive and each leave-one-epoch-out point stays positive. L2 replicated historical mechanism. Not L3. PRODUCT_INTEGRATION_CANDIDATE = YES. Product files were not changed.'
+    why_closed: 'One confirmation run on the time-disjoint BitMEX surface. The surface is now consumed for this resolution contrast. No horizon, barrier, zone, rotation or level type was added after the outcome. No product integration was performed. No successor was started.'
+    reopen: 'A prospective calibration of this exact claim class, with its own design note and owner go. Not a retune of the horizon, barrier, zone or pseudo rotation. Not a reread of Binance 2020-2024. Not 2025/2026.'
+    forbidden: 'calling the level strong, saying it holds or will break, support-as-buy or resistance-as-sell wording, stating the historical frequency as a current probability, L3 or L4 from this run, a new resolution threshold, a fast-break split, adding volume or open interest after the outcome'
+    records:
+    - docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_DESIGN.md
+    - docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_PREFLIGHT.json
+    - docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_RESULT.md
+    - docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_RESULT.json
+    - scripts/research/level_first_touch_resolution_confirmation_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=CONFIRMATION. Design note a4f3a0d6 before any BitMEX barrier rate. Dependencies #352 dfc9e0f0, #353 c3d39bff, #354 methodology 8effe9ac, #355 aa85e5b4, #356 f8623d32. Tracks STRUCTURE + PRODUCT_EVIDENCE. Claim L2. Parent results are not rewritten. Surface status TIME_DISJOINT / OUTCOME_UNREAD_FOR_THIS_CLAIM / FEASIBILITY_EXPOSED before this run.'
+  - id: LEVEL-POSITIONING-FLOW-DISCOVERY-V1
+    title: LEVEL_POSITIONING_FLOW_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
+    period: '2020-09-01T01:05Z..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars and the OI leg of B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0; sum_open_interest only; funding never opened; no 2025/2026, no live tape, no E1 holdout'
+    units_n: '1708 geometry-legitimate first touches; RESOLVE_4H primary N 1679 (OI) / 1698 (taker); BREAK_GIVEN_RESOLVED primary N 1513 / 1531; 227 week clusters; 10 ambiguous labels excluded from rates'
+    practical_bar: '3 pp per +1 SD is the predeclared successor-screening scale inside the candidate conjunction. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the 8 primary real-cohort cells only.'
+    mechanism: 'MODE=DISCOVERY. Which point-in-time open-interest and aggressive-flow states immediately before the first touch of a pre-known structural BTC level, if any, carry extra historical information about whether that touch resolves within 4h and, if it resolves, whether the resolution is BREAK or REJECT. A second question is whether any such association is specific to the structural price or also appears at the matched pseudo-price. Not a test that open interest rising means a break, and not a rescue of H05, MARKET-01/02, DH1-X2 or funding crowding.'
+    function: 'first touch only of PDH/PDL/PWH/PWL/PMH/PML; T is the open of the touch bar; primary window [T-60m, T); features are 60m log OI change, 15m-versus-45m OI acceleration, oriented taker imbalance, and the 15m-minus-45m taker shift; linear probability model per +1 SD; nuisance is family, side, year, volatility tercile, prior 60m oriented displacement, relative quote volume and UTC time block; half-rotation pseudo touch supplies the specificity contrast; cluster is the product week'
+    verdict: 'EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_POSITION_FLOW_STRUCTURE. No primary cell passes the frozen conjunction. Nearest cell: OI recent acceleration to BREAK_GIVEN_RESOLVED +2.90 pp per +1 SD (95% +0.43..+5.50), q=0.201, N=1513, same sign in all five epochs and all leave-one-year-out refits; it fails q=0.10 and the 3 pp scale. Stacked real-minus-pseudo intervals that exclude 0 are not candidates because the real-cohort conjunction failed. L2 family statement. A selected cell would have been DISCOVERY_ONLY; none was selected. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. Binance 2020-2024 PRICE_STRUCTURE.levels was already consumed; this run is further exposure of pre-touch OI and taker state into first-touch resolution type, not a confirmation. The OI half of the pinned B2-06 snapshot was read; funding was not. No product change. No interaction, absorption, funding or confirmation successor was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a time-disjoint surface, with its own design note and owner go. Not a retune of the 60m window, the feature formulas, the FDR threshold, the 3 pp scale, or an interaction fitted on this matrix. Not 2025/2026.'
+    forbidden: 'rescoring this cell; calling an OI increase new longs or new shorts; stating a historical frequency as a current probability; reading oriented flow as participant identity; funding, liquidations, order book or a long/short ratio; an OI-by-taker interaction, absorption score or level-strength score; confirmation on this exposed surface; product integration'
+    records:
+    - docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_positioning_flow_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note 2491bbe9 before any feature-conditioned outcome rate. Dependencies #352 dfc9e0f0, #353 c3d39bff, #354 methodology 8effe9ac, #355 aa85e5b4, #356 f8623d32, #357 c1cd4e01. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. OI authority is the git snapshot 5a9d036b, oi.jsonl only. Reopen key NEW_MECHANISM relative to the first-touch resolution cell.'
+  - id: LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1
+    title: LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
+    period: '2020-09-01T01:05Z..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars and the OI leg of B2_06; sum_open_interest only; funding never opened; no 2025/2026, no E1 holdout'
+    units_n: '1688 predictor-complete first touches; RESOLVE_4H N=1679; BREAK_GIVEN_RESOLVED N=1513; state counts 186/1174/319 on the labeled map; 227 week clusters'
+    practical_bar: '3 pp on the state-versus-rest probability difference is the predeclared successor scale. It is not a per-SD slope and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the 6 primary cells only.'
+    mechanism: 'MODE=DISCOVERY. Which outcome-blind joint configurations of open interest, aggressive flow and approach-oriented price progress, immediately before the first touch of a pre-known structural BTC level, differ in historical 4h resolution and in BREAK versus REJECT among resolved touches. Not a test of absorption, not a product of flow and return, and not a rescue of the univariate slopes in LEVEL-POSITIONING-FLOW-DISCOVERY-V1.'
+    function: 'robust-scaled KMeans, K chosen from {3,4,5,6} on predictors only; selected K=3; state versus the other states in a linear probability model; nuisance is family, side, year, volatility tercile, UTC block and relative quote volume; pseudo rows are assigned to the frozen real centroids'
+    verdict: 'EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_JOINT_STATE_STRUCTURE. No primary cell passes the frozen conjunction. Nearest cells: STATE_1 to RESOLVE_4H +3.33 pp (95% -1.18..+7.53, q=0.354, N=1679, n_state=186) and STATE_3 to BREAK_GIVEN_RESOLVED +5.37 pp (95% -1.08..+11.93, q=0.354, N=1513, n_state=292). Both intervals include 0. Stacked real-minus-pseudo intervals that exclude 0 are not candidates because the real conjunction failed. L2 family statement. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The joint partition was frozen before outcomes and does not separate resolution beyond the predeclared rule. Further exposure of PRICE_STRUCTURE.levels and of the OI half, not a confirmation and not a reopen of FLOW.absorption or FLOW.taker_imbalance. No product change. No split, ratio or confirmation was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a time-disjoint surface, with its own design note and owner go. Not a retune of K, the scaler, the centroids, the 60m window, the FDR threshold or the 3 pp scale. Not 2025/2026.'
+    forbidden: 'rescoring this partition; naming a state absorption, buildup or a squeeze; a flow-by-price product or ratio; splitting a state after the outcome; funding, liquidations or the order book; stating a historical frequency as a current probability; product integration'
+    records:
+    - docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_flow_response_state_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note 59361e92 before any state-conditioned resolution rate. Dependencies #352 dfc9e0f0 through #358 e6e5f307. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to the univariate positioning-flow cell and to B2-05.'
+  - id: LEVEL-LIQUIDITY-STATE-DISCOVERY-V1
+    title: LEVEL_LIQUIDITY_STATE_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH3_BINANCE_UM_BOOKDEPTH_V0
+    period: '2023-01-01T02:00Z..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars and DH3_BINANCE_UM_BOOKDEPTH_V0 BTCUSDT bookDepth; ±1% notional only; no 2025/2026, no E1 holdout'
+    units_n: '790 geometry-legitimate first touches; 767 book-legal; RESOLVE_4H N=762; BREAK_GIVEN_RESOLVED N=695; 106 week clusters; 5 ambiguous labels excluded from rates'
+    practical_bar: '3 pp per +1 SD is the predeclared successor-screening scale inside the candidate conjunction. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the 10 primary real-cohort cells only.'
+    mechanism: 'MODE=DISCOVERY. Which point-in-time local order-book states immediately before the first touch of a pre-known structural BTC level, if any, differ in historical 4h resolution and in BREAK versus REJECT among resolved touches. The observable is cumulative notional within ±1% of mid, oriented toward and behind the approach. Not orders resting at the structural price, and not a reopen of DH3-L1/L2/L3 or of SEED-0001 ±5% support.'
+    function: 'first touch only of PDH/PDL/PWH/PWL/PMH/PML; T is the open of the touch bar; snapshot strictly before T and at or before T-60m, staleness 90s; features are total ±1% notional, oriented imbalance, and 60m log changes of ahead, behind and total depth; linear probability model per +1 SD; half-rotation pseudo touch supplies specificity only after a real conjunction'
+    verdict: 'EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_LEVEL_LIQUIDITY_STRUCTURE. No primary cell passes the frozen conjunction. Nearest cells: TOTAL_LOCAL_DEPTH to RESOLVE_4H -2.61 pp (95% -4.93..-0.50, q=0.203, N=762), TOTAL_LOCAL_DEPTH to BREAK_GIVEN_RESOLVED +4.03 pp (95% -0.30..+8.05, q=0.203, N=695), ORIENTED_DEPTH_IMBALANCE to BREAK_GIVEN_RESOLVED +3.93 pp (95% -0.42..+7.83, q=0.203, N=695). None clears q=0.10 together with the interval and the 3 pp scale. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. Binance 2023-2024 bookDepth was already consumed for microstructure. This run is further exposure of local book state at structural first touches, not a confirmation and not a rescore of DH3-L or SEED-0001. No product change. No combined state, interaction, or confirmation was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent book surface, with its own design note and owner go. Not a retune of the ±1% band, the 90s staleness, the 60m lag, the FDR threshold, or the 3 pp scale. Not 2025/2026. Not a quintile of the same book.'
+    forbidden: 'rescoring this cell; calling a thick book a strong level or a thin book a break; stating a historical frequency as a current probability; depth exactly at the level, a wall score, or a ±5% binary support state; OI-by-book or taker-by-book interactions; confirmation on this exposed surface; product integration'
+    records:
+    - docs/research/LEVEL_LIQUIDITY_STATE_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_LIQUIDITY_STATE_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_LIQUIDITY_STATE_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_LIQUIDITY_STATE_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_liquidity_state_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note f7430ca2 before any feature-conditioned resolution rate. Dependencies #352 dfc9e0f0 through #359 bcc0a9e8. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to DH3-L1/L2/L3 and to SEED-0001. State term LOCAL_BOOK_STATE_AROUND_LEVEL_TOUCH.'
+  - id: LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1
+    title: LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
+    period: '2020-09-01T00:05Z..2024-12-31 on CORE_BTC_BINANCE_V0 5m bars; sum_open_interest only; no funding, no order book, no 2025/2026, no E1 holdout'
+    units_n: '1709 geometry-legitimate first touches; 498 early-resolved before T+15m; 9 early ambiguous; 1202 unresolved at D; late labeled BREAK 428 / REJECT 606 / NEITHER 167 / ambiguous 1; 227 weeks'
+    practical_bar: '3 pp per +1 SD is the predeclared successor-screening scale inside the candidate conjunction. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the 10 primary real-cohort cells only.'
+    mechanism: 'MODE=DISCOVERY. After a structural first touch, which point-in-time reactions over the next 15 minutes, if any, carry historical information about barrier passage in the remainder of the original 4h. The predictive sample excludes events that already reached a barrier before the new decision time. Not a failed-breakout detector and not a confirmed-breakout qualification.'
+    function: 'first touch only of PDH/PDL/PWH/PWL/PMH/PML; T is the open of the touch bar; D = T+15m; reaction bars j..j+2; early passage on j+1 and j+2; late passage on j+3..j+48; features are continuous end position, relative quote activity, oriented taker imbalance, its change versus the prior hour, and log OI change; linear probability model per +1 SD; half-rotation pseudo touch supplies specificity only after a real conjunction'
+    verdict: 'EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing STRUCTURE_PRESENT_BUT_UNSTABLE. END_POSITION_X to LATE_BREAK_GIVEN_RESOLVED is +20.31 pp per +1 SD (95% +17.20..+23.46, q=0.0000, N=1034). Years, leave-one-year-out and both sides keep the sign. The frozen conjunction fails because leave-one-family-out omitting DAY did not return a coefficient. No named candidate. Activity, taker and OI cells do not pass. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The level row and the OI covariate were already consumed. This run is further exposure of a post-touch state update, not a confirmation and not a reopen of H02, B2-02 or V2 CONFIRMED_BREAKOUT. No product change. No acceptance-path unit, threshold, or confirmation was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the 15-minute window, the early exclusion, the family clause, the FDR threshold, or the 3 pp scale. Not an acceptance flag built from this end-position slope. Not 2025/2026.'
+    forbidden: 'rescoring this cell; turning end position into accepted, reclaimed, failed-break or confirmed-breakout; stating the historical slope as a current probability; a 30-minute window or an interaction fit on this same run; confirmation on this exposed surface; product integration'
+    records:
+    - docs/research/LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_post_touch_reaction_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note f3101015 before any late resolution rate. Dependencies #352 dfc9e0f0 through #360 181debc4. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to H02, B2-02 and V2 CONFIRMED_BREAKOUT. Row PRICE_STRUCTURE.levels, not PRICE_STRUCTURE.breakout.'
+  - id: LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1
+    title: LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '2020-02-01T00:00Z..2024-12-31 on CORE_BTC_BINANCE_V0 5m OHLC only; no volume, taker, open interest, funding, book, spot, or second venue; no 2025/2026; no E1 holdout'
+    units_n: '4076 structural episodes; 1919 geometry-legitimate first touches; 574 early-resolved before T+15m; 13 early ambiguous; 1332 unresolved at D; states NEVER_OUTSIDE 983 / REENTERED 115 / LATE_OR_RECROSS_OUTSIDE 80 / PERSISTENT_OUTSIDE 154; C1 resolved N=952 (101 vs 851); 258 weeks'
+    practical_bar: '3 pp absolute adjusted difference on the path-state indicator. It is not a per-SD slope, not a Holm switch, and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the primary contrasts that pass the arm and overlap gate. One contrast was estimated.'
+    mechanism: 'MODE=DISCOVERY. Given a comparable close location 15 minutes after an independently replicated structural first touch, does the path of closes around the structural zone add historical information about later BREAK versus REJECT. END_POSITION_X is a mandatory nuisance. Not a failed-breakout label and not a confirmed-breakout qualification.'
+    function: 'first touch only of PDH/PDL/PWH/PWL/PMH/PML; T is the open of the touch bar; D = T+15m; bits B0 B1 B2 are strict closes beyond the break-side zone edge on j, j+1, j+2; four frozen states; C1 compares REENTERED with NEVER_OUTSIDE inside B2=0; C2 compares PERSISTENT_OUTSIDE with LATE_OR_RECROSS_OUTSIDE inside B2=1; early passage on j+1 and j+2 is excluded; late BREAK versus REJECT uses j+3..j+48; linear probability model; half-rotation pseudo touch supplies specificity only after a real conjunction'
+    verdict: 'EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_PATH_MEMORY_BEYOND_ENDPOINT. C2 stopped before a coefficient because LATE_OR_RECROSS_OUTSIDE has 80 unresolved events. C1 REENTRY_MEMORY is +6.74 pp (95% -4.22..+17.62, q=0.2218, N=952, arms 101 and 851). The interval includes 0. Years, leave-one-year-out, DAY versus WEEK, and the two sides do not keep one sign. No named candidate. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The level row was already consumed. This run asks whether path history adds anything beyond the #361 endpoint association. It is not a confirmation and not a reopen of H02, B2-02, or V2 CONFIRMED_BREAKOUT. No product change. No 30-minute window, false-break refinement, or confirmation was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a lower arm minimum, not a dropped endpoint nuisance, not a retune of the four states, and not 2025/2026.'
+    forbidden: 'rescoring this cell; calling REENTERED a confirmed false break; calling PERSISTENT_OUTSIDE confirmed acceptance; stating the historical coefficient as a current probability; fitting C2 after lowering N; a 30-minute window or a wick rule on this same run; confirmation on this exposed surface; product integration'
+    records:
+    - docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_acceptance_path_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note bae1060c before any late BREAK rate. Dependencies #352 dfc9e0f0 through #361 44726ded. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to H02, B2-02, V2 CONFIRMED_BREAKOUT, and the #361 endpoint slope. Row PRICE_STRUCTURE.levels, not PRICE_STRUCTURE.breakout.'
+  - id: LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1
+    title: LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CROSS_VENUE
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - BYBIT_BTCUSDT_PUBLIC_HISTORY
+    - OKX_OFFICIAL_ARCHIVES
+    period: '2020-04-01T00:05Z..2024-12-31; Binance USD-M BTCUSDT perpetual is the structural reference; Bybit BTCUSDT linear perpetual and OKX BTC-USDT-SWAP 5m closes are reaction evidence only; no OKX spot, no mark or index price, no 2025/2026, no E1 holdout'
+    units_n: '4076 structural episodes; 1856 geometry-legitimate first touches; 551 early-resolved before T+15m; 13 early ambiguous; 1292 unresolved at D; 1235 feature-complete unresolved; primary resolved N=1060 (BREAK 439, REJECT 621); 238 weeks'
+    practical_bar: '3 pp per +1 SD after END_POSITION_X. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the four retained cross-venue features only.'
+    mechanism: 'MODE=DISCOVERY. Given where Binance already stands relative to a structural level 15 minutes after an independently replicated first touch, does the same-window price reaction of other linear perpetual venues add historical information about later BREAK versus REJECT. Not venue leadership, not arbitrage, and not spot confirmation.'
+    function: 'first touch only of PDH/PDL/PWH/PWL/PMH/PML on Binance; T is the open of the touch bar; D = T+15m; other venues do not define levels or move T; oriented 15m log returns; four frozen features (other-venue median move, signed confirmation gap, unoriented dispersion, direction agreement); early passage on j+1 and j+2 is excluded; late BREAK versus REJECT uses j+3..j+48; END_POSITION_X is in every model; linear probability model per +1 SD; half-rotation pseudo touch supplies specificity only after a real conjunction'
+    verdict: 'EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing LEVEL_CROSS_VENUE_STRUCTURE_PRESENT. Baseline END_POSITION_X is +20.30 pp per +1 SD (95% +17.41..+23.17, N=1060). OTHER_VENUE_MEDIAN_MOVE is +8.87 pp per +1 SD (95% +5.02..+12.67, q=0.0000, N=1060) after END_POSITION_X. The frozen conjunction passes. The stacked real-minus-pseudo delta is -4.24 pp (95% -7.96..-0.05, N=1223), so the frozen specificity rule names LEVEL_CROSS_VENUE_INTERACTION_CANDIDATE. The stacked real slope on that matched sample is about zero and does not reproduce the primary slope. Confirmation gap, dispersion and direction agreement do not pass. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The level row was already consumed. Bybit and OKX same-class perpetual closes were read for this reaction question only. This is not a confirmation, not a reopen of MARKET-06, and not a reopen of CROSS_VENUE_REGION.venue_disagreement. No product change. No spot, lead-lag, 30-minute, or confirmation unit was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the venue set, the 15-minute window, the dispersion formula, the FDR threshold, or the 3 pp scale. Not a leadership or spot-confirmation study built from this slope. Not 2025/2026.'
+    forbidden: 'rescoring this cell; calling the other-venue move causal confirmation or leadership; a two-thirds or unanimity threshold; substituting OKX spot; a lead-lag or 30-minute fit on this same run; confirmation on this exposed surface; product integration'
+    records:
+    - docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_cross_venue_reaction_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note f21be5a6 before any late BREAK rate. Dependencies #352 dfc9e0f0 through #362 b005eaac. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to MARKET-06 (Binance perp versus OKX spot, daily absolute dislocation, 24h adverse path). Row PRICE_STRUCTURE.levels, column CROSS_VENUE. Not CROSS_VENUE_REGION.venue_disagreement and not SPOT_PERP.basis_dislocation.'
+  - id: LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1
+    title: LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: SPOT
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    - BYBIT_BTCUSDT_PUBLIC_HISTORY
+    - OKX_OFFICIAL_ARCHIVES
+    period: '2020-04-01T00:05Z..2024-12-31; Binance USD-M BTCUSDT perpetual is the structural reference; Binance spot BTCUSDT 5m is the new reaction layer; Bybit and OKX linear perpetuals enter only as the frozen cross-perp control; no 2025/2026, no E1 holdout, no OKX spot'
+    units_n: '4076 structural episodes; 1856 geometry-legitimate first touches; 551 early-resolved before T+15m; 13 early ambiguous; 1292 unresolved at D; 1234 feature-complete unresolved; primary resolved N=1059 (BREAK 439, REJECT 620); 238 weeks'
+    practical_bar: '3 pp per +1 SD after END_POSITION_X and OTHER_VENUE_MEDIAN_MOVE. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the retained spot features only.'
+    mechanism: 'MODE=DISCOVERY. After a structural first touch, once Binance location and the other perpetual venues 15-minute move are in the model, does Binance spot add historical information about later BREAK versus REJECT. Not spot leadership, not sign confirmation, and not a confirmation of the prior cross-venue slope.'
+    function: 'first touch only of PDH/PDL/PWH/PWL/PMH/PML on Binance; T is the open of the touch bar; D = T+15m; three frozen spot features (oriented spot 15m log return, excess versus the median of three oriented perp returns, relative spot-versus-perp taker pressure); early passage on j+1 and j+2 is excluded; late BREAK versus REJECT uses j+3..j+48; END_POSITION_X and OTHER_VENUE_MEDIAN_MOVE are in every model; linear probability model per +1 SD; matched real and pseudo models are fit only after a full-sample candidate passes'
+    verdict: 'EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_SPOT_PERP_REACTION. Baseline END_POSITION_X is +13.36 pp per +1 SD (95% +9.38..+17.51, N=1059) with the cross-perp control at +9.08 pp (95% +5.17..+12.84). That control is not in the FDR family. SP1 +32.97 pp (95% -12.36..+76.94, q=0.228) is not separated from the cross-perp move (pre-outcome correlation 0.998). SP2 +2.29 pp (95% -0.30..+5.12, q=0.228). SP3 -1.29 pp (95% -4.04..+1.57, q=0.385). No feature passes. Matched specificity was not applied. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The level row and the spot kline surface were read for this post-touch question. This is not a confirmation of the cross-venue unit, not a reopen of SPOT_PERP.spot_confirmation, volume_share, lead_lag, stress_lead_lag, or basis_dislocation, and not a reopen of MARKET-06. No product change. No lead-lag, 30-minute, or confirmation unit was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the 15-minute window, the relative formulas, the FDR threshold, or the 3 pp scale. Not a sign-confirmation, spot-share, or lead-lag study built from this null. Not 2025/2026.'
+    forbidden: 'rescoring this cell; calling the raw SP1 tertiles an incremental spot effect; a binary spot-confirms flag; a spot-share threshold; a lead-lag fit on this same run; treating the baseline cross-perp coefficient as a confirmation; product integration'
+    records:
+    - docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_spot_perp_reaction_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note 98c750a4 before any late BREAK rate. Dependencies #352 dfc9e0f0 through #363 f2210017. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to SPOT_PERP.spot_confirmation, volume_share, lead_lag, stress_lead_lag, and basis_dislocation. Row PRICE_STRUCTURE.levels, column SPOT. The prior cross-venue feature is a nuisance, not a retested claim.'
+  - id: LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1
+    title: LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '2020-02-01..2024-12-31; Binance USD-M BTCUSDT perpetual price only; structural first touches of PDH/PDL/PWH/PWL/PMH/PML; no spot, no other venue, no book, no 2025/2026, no E1 holdout'
+    units_n: '4076 structural episodes; 1919 geometry-legitimate first touches; 1962 pseudo legitimate first touches; 1231 matched pairs with a complete 4h path; primary N=1231; 254 weeks; real censored 107; pseudo censored 207'
+    practical_bar: '15 minutes of restricted mean unresolved time over 240 minutes. It is not a probability bar and not the DH1 3 pp plus Brier bar.'
+    mechanism: 'MODE=DISCOVERY. Does a real structural first touch spend a different amount of unresolved time inside 4h than its matched pseudo-price touch. The object is the event clock, not the direction of the barrier.'
+    function: 'first touch only; T is the open of the touch bar; scan j+1..j+48; observed time is 5 times the future-bar offset; AMBIGUOUS counts as any-resolution; no hit is right-censored at 240 and is not an observed event time; RMUT is the Kaplan-Meier area from 0 to 240; delta is real minus pseudo; week bootstrap keeps the pair together'
+    verdict: 'EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing LEVEL_RESOLUTION_CLOCK_STRUCTURE_PRESENT. Real RMUT_240 is 64.24 min and pseudo is 89.39 min. Delta is -25.15 min (95% -31.42..-19.07, N=1231, 2000/2000). All five years are negative. 2022 is -7.75 min, under the 15-minute scale, and the frozen rule is a sign rule. DAY and WEEK and both sides keep the sign. LEVEL_RESOLUTION_CLOCK_CANDIDATE. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The level row was already consumed. This read is the resolution clock of the structural first touch, not a new threshold on the BREAK rate, not a rescoring of the BitMEX resolution probability, and not the round-number traversal card. No product timer was created. No successor was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the 4h horizon, the 5-minute bucket, the ambiguity rule, the RMUT restriction, or the 15-minute scale. Not a round-number or order-book traversal study built from this delta. Not 2025/2026.'
+    forbidden: 'rescoring this cell; calling the historical mean a current expected number of minutes; an ACTIVE or STALE cutoff taken from a checkpoint; a BREAK Kaplan-Meier that censors REJECT; product integration'
+    records:
+    - docs/research/LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_time_to_resolution_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note 56b162f0 before any barrier time. Dependencies #352 dfc9e0f0 through #364 7c297997. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to the touch-ordinal rate, the 4h resolution probability, the post-touch feature slope, and GV0R01-C024 round-number traversal. Row PRICE_STRUCTURE.levels, column CANDLES. Not PRICE_STRUCTURE.path_shape.'
+  - id: LEVEL-BREAK-REJECT-SEQUENCE-DISCOVERY-V1
+    title: LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '2020-02-01..2024-12-31; Binance USD-M BTCUSDT perpetual price only; structural first touches of PDH/PDL/PWH/PWL/PMH/PML; no spot, no other venue, no book, no 2025/2026, no E1 holdout'
+    units_n: '4076 structural episodes; 1919 geometry-legitimate first touches; 1962 pseudo legitimate first touches; 1231 matched pairs; labeled 1231; P1 real 579 pseudo 467; P2 real 539 pseudo 549; 254 weeks; unusable 0'
+    practical_bar: '5 percentage points on the conditional post-first reversal rate. It is not the DH1 3 pp plus Brier bar and not the 15-minute clock bar.'
+    mechanism: 'MODE=DISCOVERY. After the first one-sided #352 barrier of a structural first touch, is the opposite barrier reached inside the same 4h event more or less often than after the matched pseudo-price touch. The object is sequence semantics, not a predictor.'
+    function: 'first touch only; stage 1 is parent classify; stage 2 scans only bars after that first one-sided hit through j+48; same-bar both hits stay FIRST_AMBIGUOUS and are excluded from both primaries; a later bar that hits both counts as the opposite hit; six terminal classes; P1 is later REJECT given FIRST_BREAK; P2 is later BREAK given FIRST_REJECT; week bootstrap keeps the source episode together and rebuilds each conditional denominator'
+    verdict: 'EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_SEQUENTIAL_OUTCOME_STRUCTURE. P1 later-reject rate real 18.13% pseudo 14.99%, delta +3.15 pp (95% -1.23..+7.56, q=0.320, N=579/467, 2000/2000). P2 later-break rate real 20.22% pseudo 18.94%, delta +1.28 pp (95% -3.27..+5.95, q=0.578, N=539/549). Neither clears 5 pp or excludes 0. Classes NONE and NONE. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The level row was already consumed, and the first-event labels were already exposed. This read is the post-first opposite-barrier sequence, not a reopen of H02, not a V2 false-break rule, not a rescue of the #362 path null, and not a rescoring of the #365 clock. No product lifecycle state was created. No successor was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the 4h horizon, the barrier distance, the same-bar rule, the six classes, or the 5 pp scale. Not a close-back-inside or short-window false-break study built from this null. Not 2025/2026.'
+    forbidden: 'rescoring this cell; naming BREAK_THEN_REJECT a false break; naming BREAK_NO_LATER_REJECT an accepted break; stating either historical rate as a current probability; a 15m or 30m or 60m cutoff on this same run; confirmation on this exposed surface; product integration'
+    records:
+    - docs/research/LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_break_reject_sequence_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note fcfc3e43 before any post-first opposite-barrier scan. Dependencies #352 dfc9e0f0 through #365 3ad8431e. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to H02, B2-02, V2 CONFIRMED_BREAKOUT, the V2 false-break lifecycle, #362 path memory, and the #365 resolution clock. Row PRICE_STRUCTURE.levels, column CANDLES. Not PRICE_STRUCTURE.breakout and not PRICE_STRUCTURE.path_shape.'
+  - id: LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1
+    title: LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: PERP_FLOW
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - BINANCE_UM_TRADES_AGGTRADES_ARCHIVE
+    - BYBIT_BTCUSDT_PUBLIC_HISTORY
+    - OKX_OFFICIAL_ARCHIVES
+    period: '2020-04-01T00:05Z..2024-12-31; Binance USD-M BTCUSDT perpetual aggTrades inside the frozen structural zone; March 2020 is pre-touch lookback only; Bybit and OKX enter only as the frozen cross-perp control; no spot trades, no aggressor-side feature, no 2025/2026, no E1 holdout'
+    units_n: '4076 structural episodes; 1856 geometry-legitimate first touches; 1292 unresolved at D; 1215 retained-feature unresolved; primary resolved N=1044 (BREAK 432, REJECT 612); 238 weeks; raw touch match 1832/1856'
+    practical_bar: '3 pp per +1 SD after END_POSITION_X, OTHER_VENUE_MEDIAN_MOVE and TOUCH_OFFSET_SECONDS. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the retained zone-activity features only.'
+    mechanism: 'MODE=DISCOVERY. After a structural first touch, once Binance end position and the other perpetual venues 15-minute move are in the model, does unsigned executed notional inside the exact structural zone during the first 15 minutes add historical information about later BREAK versus REJECT. Not candle volume, not signed taker flow, and not displayed depth.'
+    function: 'first touch only of PDH/PDL/PWH/PWL/PMH/PML; traded zone is the frozen merged zone; T is the open of the touch bar; D = T+15m; ZA1 is log zone notional over the prior-hour 15m equivalent, missing when either notional is not positive; ZA2 is the zone share of reaction-window notional; ZA3 active seconds was dropped before outcomes because Spearman rho with ZA2 was 0.925; early passage on j+1 and j+2 is excluded; late BREAK versus REJECT uses j+3..j+48; touch offset is in every model; linear probability model per +1 SD; matched specificity only after a full-sample candidate'
+    verdict: 'EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_ZONE_TRADED_ACTIVITY. Baseline END_POSITION_X is +13.13 pp per +1 SD (95% +8.70..+17.39, N=1044) and OTHER_VENUE_MEDIAN_MOVE is +9.33 pp (95% +5.35..+13.35). Those controls are not in the FDR family and are not a confirmation of #363. ZA1 is -0.95 pp (95% -4.25..+2.27, q=0.557). ZA2 is -1.76 pp (95% -5.19..+1.48, q=0.557). Neither clears 3 pp or excludes 0. Classes NONE. Matched specificity was not applied. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The level row was already consumed. Binance USD-M aggTrades were read only as unsigned executions inside the frozen zone. This is not a confirmation, not a reopen of H05 or FLOW.taker_imbalance, not a reopen of B2-05 or FLOW.absorption, not a reinterpretation of the #360 displayed-depth null, and not a rescue of the #362 path null. No product change. No taker split, zone-width search, 30-minute window, or confirmation was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the zone, the 15-minute window, the 60-minute normalizer, the feature formulas, the FDR threshold, or the 3 pp scale. Not an absorption, acceptance, or large-trade study built from this null. Not 2025/2026.'
+    forbidden: 'rescoring this cell; calling the raw tertile gradient an incremental volume effect; a buy/sell imbalance or CVD on this same run; naming absorption, acceptance, or defense; a volume-confirmation badge; confirmation on this exposed surface; product integration'
+    records:
+    - docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_zone_traded_activity_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note ee2abb0d before any late BREAK label. Dependencies #352 dfc9e0f0 through #366 b411cff9. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to H05, B2-05, DH3-S, #360 displayed depth, #361 taker reaction, #362 path memory, #363 cross-venue, and #366 sequence. Row PRICE_STRUCTURE.levels, column PERP_FLOW. Not FLOW.taker_imbalance and not FLOW.absorption.'
+  - id: LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1
+    title: LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '2020-02-01T00:00Z..2024-12-31; Binance USD-M BTCUSDT 5m closes only; January 2020 is pre-touch warm-up already inside CORE; no volume, no 2025/2026, no E1 holdout'
+    units_n: '4076 structural episodes; 1919 real and 1962 pseudo legitimate first touches; 1231 usable matched pairs; 254 weeks; zero non-positive RV drops'
+    practical_bar: '10 percent multiplicative difference in the pre-to-post 60m RV ratio, abs(mean pair delta) >= log(1.10). The interval must exclude 0. It is not the DH1 3 pp bar and not the DH3 4h-range bar.'
+    mechanism: 'MODE=DISCOVERY. Does realized volatility change across a structural first touch, relative to that same touch pre-window, differently from the exact matched pseudo-price touch. Not a claim that the range after a level is large.'
+    function: 'first touch only of PDH/PDL/PWH/PWL/PMH/PML; T is the open of touch bar j; bar j is excluded from both windows; RV_PRE60 is sqrt(mean(r^2)) on returns j-12..j-1; RV_POST60 is the same on j+1..j+12; VOL_TRANSITION is log(RV_POST/RV_PRE); DELTA_TRANSITION is the paired mean of real minus pseudo; ISO-week bootstrap B=2000 seed 20261024'
+    verdict: 'EXECUTED ONCE (2026-10-08). LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE = YES. SUCCESSOR_CANDIDATE = NONE. Routing LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT. Class LEVEL_VOLATILITY_TRANSITION_CANDIDATE. DELTA_TRANSITION +0.1068 log units, about +11.3% on the post/pre RV multiplier (95% +0.0665..+0.1467 log, about +6.9%..+15.8%, p=1.05e-7, N=1231, 2000/2000). Five of five years positive; 2022 is +0.10% and the sign rule was not rewritten. Leave-one-year-out stays positive. DAY and WEEK are positive. MONTH N=22 is diagnostic and opposite. Support is positive and under 10%. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The level row was already consumed. This is the paired pre-to-post RV transition around the #352 first touch versus its half-rotation pseudo, with the touch bar excluded. It is not a reopen of H01 compression, B2-01 forecast transition, or DH3-V2 key-level 4h range. No product change. No other horizon, compression subgroup, 4h range, BitMEX replication, or confirmation was started. Direction 8 of 8 stops here.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the 60-minute windows, the touch-bar exclusion, the RV formula, the 10% scale, or a compression split of this sample. Not 2025/2026. Not an automatic Level Engine build from this discovery candidate.'
+    forbidden: 'rescoring this cell; treating the result as a current volatility probability or a breakout recommendation; a VOLATILITY_EXPANSION badge; choosing another horizon after this result; a compression subgroup; confirmation on this exposed surface; product integration'
+    records:
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_volatility_transition_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note 54338b7f before any post-touch RV. Dependencies #352 dfc9e0f0 through #367 fcdf650c. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to H01, B2-01, DH3-V2, DH3-P1, and the V2 compression-breakout formulation. Row PRICE_STRUCTURE.levels, column CANDLES. Not VOLATILITY_STATE.compression, not VOLATILITY_STATE.regime_transition, and not VOLATILITY_STATE.range_forecast. Sequence 8 of 8 complete. No successor was started.'
+  - id: LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1
+    title: LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - DH1_BITMEX_XBTUSD_TRADES_5M_V0
+    period: '2017-09-01..2019-12-31 on DH1_BITMEX_XBTUSD_TRADES_5M_V0 5m closes; August 2017 is warm-up only; no inverse-contract adjustment; no 2020-2024 Binance reread, no 2025/2026, no live tape, no E1 holdout'
+    units_n: '890 real and 891 pseudo legitimate first touches; 558 matched; 554 path-complete usable pairs; 120 ISO weeks; zero non-positive RV drops'
+    practical_bar: 'Inherited from #368: mean paired log transition at least log(1.10), 95% interval excludes 0, three eligible epochs share the positive sign, and every estimable leave-one-epoch-out estimate stays positive. Not lowered to 5% and not replaced by same-sign-is-enough.'
+    mechanism: 'MODE=CONFIRMATION. SURFACE_EVIDENCE_CLASS=TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION. Whether the exact frozen #368 structural first-touch 60m pre/post RV transition also appears on time-disjoint BitMEX 2017-2019. Not a pristine confirmation. The neighboring 4h high/low path was already read by #357.'
+    function: 'exact #357 first-touch constructor and half-rotation pseudo; touch_number = 1; no BREAK/REJECT/NEITHER conditioning; T is the open of touch bar j; bar j excluded; RV_PRE60 and RV_POST60 are sqrt(mean(r^2)) on the twelve pre and twelve post log-close returns; DELTA_TRANSITION is the paired mean; ISO-week bootstrap B=2000 seed 20261025'
+    verdict: 'EXECUTED ONCE (2026-10-08). Routing REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION. Evidence label REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE. DELTA_TRANSITION +0.096545 log units, about +10.14% (95% +0.02178..+0.16817, about +2.20%..+18.31%, p=0.0112, N=554, 120 weeks, 2000/2000). Point clears log(1.10). Interval excludes 0 and contains sub-10% values and the discovery point. Epochs +15.31% / +0.28% / +20.79%. 2018 is practically null and the sign rule was not rewritten. Leave-one-epoch-out stays positive. L2. Not L3. Not pristine. INDEPENDENCE_FROM_RESOLUTION_CLOCK = UNRESOLVED. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One replication run of the exact frozen #368 estimand. The BitMEX close path for this 60m transition is now consumed. The surface was already exposed by the #357 4h barrier scan, so the result is an exposed-surface historical replication. No window, formula, bar, sign, or subgroup was changed after the outcome. No prospective collection, no #363 run, and no product integration.'
+    reopen: 'A prospective replication of this same frozen claim, with its own design note and owner go. Not a retune of the 60-minute windows, the RV formula, the 10% bar, or a BREAK-only subgroup. Not a second read of this BitMEX close path. Not 2025/2026. Not a claim that the transition is independent of the resolution clock.'
+    forbidden: 'calling this pristine; stating the historical multiplier as a current probability or an expected current RV; a trading edge or a volatility-expansion badge; a new horizon after this result; stratifying by BREAK or REJECT; a clock or hazard analysis; pooling this sample with the Binance discovery sample; product integration'
+    records:
+    - docs/research/EXPOSURE_WEIGHTING_DECISION_V1.md
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_DESIGN.md
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_PREFLIGHT.json
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_RESULT.md
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_RESULT.json
+    - scripts/research/level_volatility_transition_bitmex_replication_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=CONFIRMATION. Design note 6d97157b before any post-touch RV. Parent discovery #368 design 54338b7f and result fb6598aa. Event constructor from #357. Tracks STRUCTURE + PRODUCT_EVIDENCE. Claim L2. Parent results are not rewritten. Surface class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION. Exact RV claim unread before this run. Neighboring 4h path already read. Prospective not started.'
+  - id: LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1
+    title: LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: FUTURE_NATURAL_ACCUMULATION
+    datasets:
+    - BINANCE_UM_LIVE_FORWARD
+    period: 'forward Binance USD-M BTCUSDT 5m closes from 2026-10-09T00:00:00Z; pre-start history is warm-up only; no 2020-2024 discovery reread; no outcome read in the setup'
+    units_n: 'none yet; stop is 600 matched path-complete pairs and 104 completed weeks'
+    practical_bar: 'Inherited log(1.10). Not lowered. Positive sign preselected.'
+    mechanism: 'MODE=CONFIRMATION. ACCRUAL=PROSPECTIVE_ONLY. Whether the exact frozen #368 60m pre/post RV transition appears on structural first touches whose episodes open only after the design freeze. Not a new feature.'
+    function: 'exact #352 constructor and half-rotation after cohort close; touch_number = 1; T is the open of bar j; bar j excluded; 12 pre and 12 post log-close returns; DELTA_TRANSITION is the paired mean; week-block bootstrap B=2000 seed 20261026'
+    verdict: 'NOT_EXECUTED. Protocol PROSPECTIVE_CONFIRMATION_STARTED. Accrual AWAITING_START. Design d30622de. Start 2026-10-09T00:00:00Z. exact_outcome_read = false. Evaluator refuses. No route and no effect.'
+    why_closed: 'Not closed. Registered so the frozen start and the stop are visible before any future bar is an eligible event.'
+    reopen: 'At the first checkpoint that meets 600 matched path-complete pairs and 104 completed weeks, freeze the pair map and run the one-shot evaluator once. A shortfall at 156 weeks closes information-limited without a transition read. Not a new window and not a lower N.'
+    forbidden: 'reading the transition before the stop; choosing a start before the design commit; admitting pre-start rows as events; lowering the 10% bar; a product badge or deploy from this setup; calling a future pass L3'
+    revisit: 'Checkpoints at 104, 130 and 156 completed weeks after 2026-10-09T00:00:00Z (2028-10-06, 2029-04-06, 2029-10-05). Nothing earlier.'
+    records:
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1_DESIGN.md
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_SURFACE_V1.json
+    - docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_ACCRUAL_V1.md
+    - scripts/research/level_volatility_transition_prospective_confirmation_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'DESIGN_FROZEN and AWAITING_START. Not COHORT_CLOSED. Not EXECUTED. Surface class PRISTINE_CONFIRMATION applies only to the exact claim generated after 2026-10-09T00:00:00Z. Parent discovery 54338b7f. Parent replication 6d97157b. No prospective effect is recorded.'
   - id: DH3-X9
     title: BOOK_IMBALANCE_5PCT_AT_SUPPORT
     program: DIRECTIONAL_AND_RANGE_DH3

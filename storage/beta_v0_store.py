@@ -1369,9 +1369,10 @@ class BetaConn:
                FROM beta_users u""")
         activity = await self.conn.fetch(
             "SELECT user_pk, action, detail, at FROM beta_user_activity")
-        # votes exist on unusual-hour pushes only (episodes); other types join with backlog F6
+        # votes: the unusual-hour push (episodes) and every other message type (backlog F6)
         votes = await self.conn.fetch(
-            "SELECT user_pk, 'hour' AS kind, vote, updated_at AS at FROM beta_feedback")
+            """SELECT user_pk, 'hour' AS kind, vote, updated_at AS at FROM beta_feedback
+               UNION ALL SELECT user_pk, kind, vote, updated_at AS at FROM beta_message_votes""")
         invites = await self.conn.fetch("SELECT code, label FROM beta_invites")
         deletions = await self.conn.fetch(
             """SELECT recorded_at FROM beta_admin_audit
@@ -1422,14 +1423,26 @@ class BetaConn:
         rows = await self.conn.fetch("SELECT status, count(*) AS n FROM beta_users GROUP BY status")
         return {r["status"]: int(r["n"]) for r in rows}
 
-    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str) -> None:
-        await self.conn.execute(
+    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str) -> bool:
+        """True when the vote is new or changed (a repeated tap changes nothing and is not an action)."""
+        return await self.conn.fetchval(
             """INSERT INTO beta_feedback (user_pk, episode_pk, vote) VALUES ($1,$2,$3)
-               ON CONFLICT (user_pk, episode_pk) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()""",
-            user_pk, episode_pk, vote)
+               ON CONFLICT (user_pk, episode_pk) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()
+               WHERE beta_feedback.vote IS DISTINCT FROM EXCLUDED.vote
+               RETURNING TRUE""", user_pk, episode_pk, vote) is not None
+
+    async def upsert_message_vote(self, *, user_pk: int, kind: str, ref: int, vote: str) -> bool:
+        """«Полезно / Шум» on an alert, the briefing or the weekly report (backlog F6). True when new or changed."""
+        return await self.conn.fetchval(
+            """INSERT INTO beta_message_votes (user_pk, kind, ref, vote) VALUES ($1,$2,$3,$4)
+               ON CONFLICT (user_pk, kind, ref) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()
+               WHERE beta_message_votes.vote IS DISTINCT FROM EXCLUDED.vote
+               RETURNING TRUE""", user_pk, kind, ref, vote) is not None
 
     async def feedback_counts(self) -> dict:
-        rows = await self.conn.fetch("SELECT vote, count(*) AS n FROM beta_feedback GROUP BY vote")
+        rows = await self.conn.fetch(
+            """SELECT vote, count(*) AS n FROM (SELECT vote FROM beta_feedback
+                                              UNION ALL SELECT vote FROM beta_message_votes) v GROUP BY vote""")
         return {r["vote"]: int(r["n"]) for r in rows}
 
     # ---------------------------------------------------- bot / admin / state

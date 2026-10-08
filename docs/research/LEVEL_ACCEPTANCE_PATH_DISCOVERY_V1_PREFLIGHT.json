@@ -1,0 +1,378 @@
+{
+  "blocked_reason": null,
+  "by_epoch_unresolved": {
+    "2020": 214,
+    "2021": 270,
+    "2022": 297,
+    "2023": 245,
+    "2024": 306
+  },
+  "by_family_unresolved": {
+    "DAY": 1186,
+    "MONTH": 14,
+    "WEEK": 132
+  },
+  "by_side_unresolved": {
+    "-1": 565,
+    "1": 767
+  },
+  "by_time_block_unresolved": {
+    "0": 662,
+    "1": 269,
+    "2": 269,
+    "3": 132
+  },
+  "by_vol_tercile_unresolved": {
+    "0": 491,
+    "1": 434,
+    "2": 407
+  },
+  "contrasts": {
+    "PERSISTENCE_MEMORY": {
+      "audit": {
+        "arm_n_pass": false,
+        "block_reasons": [
+          "ARM_N_BELOW_MINIMUM"
+        ],
+        "contrast": "PERSISTENCE_MEMORY",
+        "overlap_hi": 0.5377814816051583,
+        "overlap_lo": 0.06157076853655021,
+        "overlap_pass": true,
+        "overlap_width": 0.47621071306860807,
+        "reference": {
+          "max": 0.8106928706990543,
+          "mean": 0.22539264928900532,
+          "min": 0.007724504147168151,
+          "n": 80,
+          "p05": 0.034520861931014064,
+          "p10": 0.046046373896828634,
+          "p25": 0.08013255986128501,
+          "p50": 0.15474689386324472,
+          "p75": 0.349118164809442,
+          "p90": 0.5377814816051583,
+          "p95": 0.6072348388913571,
+          "sd": 0.18723421370032603
+        },
+        "reference_state": "LATE_OR_RECROSS_OUTSIDE",
+        "share_reference_in_treated_central": 0.925,
+        "share_treated_in_reference_central": 0.8051948051948052,
+        "standardized_difference": 0.5944594611901268,
+        "treated": {
+          "max": 0.8822416797985198,
+          "mean": 0.3492877120229134,
+          "min": 0.001841492256688694,
+          "n": 154,
+          "p05": 0.03514885947841279,
+          "p10": 0.06157076853655021,
+          "p25": 0.15874649457289,
+          "p50": 0.3312432341758723,
+          "p75": 0.5334842863287066,
+          "p90": 0.6464574364269641,
+          "p95": 0.7320895695150722,
+          "sd": 0.22763586568940927
+        },
+        "treated_state": "PERSISTENT_OUTSIDE"
+      },
+      "block_reasons": [
+        "ARM_N_BELOW_MINIMUM"
+      ],
+      "by_epoch": {
+        "2020": 33,
+        "2021": 79,
+        "2022": 44,
+        "2023": 22,
+        "2024": 56
+      },
+      "by_family": {
+        "DAY": 205,
+        "MONTH": 3,
+        "WEEK": 26
+      },
+      "by_side": {
+        "-1": 88,
+        "1": 146
+      },
+      "eligible": false,
+      "n_arm": 234,
+      "n_reference": 80,
+      "n_treated": 154,
+      "rough_80pct_mde": 0.2158397468327999,
+      "scale_usable": true,
+      "scales": {
+        "END_POSITION_X": {
+          "mean": 0.30693042561815853,
+          "n": 234,
+          "sd": 0.22257897616039568
+        },
+        "disp": {
+          "mean": 0.008031280924174392,
+          "n": 234,
+          "sd": 0.006703134521247093
+        },
+        "n": 234
+      }
+    },
+    "REENTRY_MEMORY": {
+      "audit": {
+        "arm_n_pass": true,
+        "block_reasons": [],
+        "contrast": "REENTRY_MEMORY",
+        "overlap_hi": -0.2523666842493545,
+        "overlap_lo": -0.7081971394952487,
+        "overlap_pass": true,
+        "overlap_width": 0.45583045524589416,
+        "reference": {
+          "max": -0.006990969923711674,
+          "mean": -0.8188095357138953,
+          "min": -3.5149703184298864,
+          "n": 983,
+          "p05": -1.6565911149496415,
+          "p10": -1.3804982706476117,
+          "p25": -1.0671713701788792,
+          "p50": -0.7742045511624349,
+          "p75": -0.4835054853218552,
+          "p90": -0.2523666842493545,
+          "p95": -0.17168408878627686,
+          "sd": 0.482287720065483
+        },
+        "reference_state": "NEVER_OUTSIDE",
+        "share_reference_in_treated_central": 0.5381485249237029,
+        "share_treated_in_reference_central": 0.6260869565217392,
+        "standardized_difference": 1.2721492694512724,
+        "treated": {
+          "max": -0.0006117898997182993,
+          "mean": -0.3218284550736473,
+          "min": -1.1531956709462716,
+          "n": 115,
+          "p05": -0.8212354663826098,
+          "p10": -0.7081971394952487,
+          "p25": -0.4556877498595713,
+          "p50": -0.25718761381330896,
+          "p75": -0.10824762496010491,
+          "p90": -0.02851157220214889,
+          "p95": -0.015903012854104295,
+          "sd": 0.26950512939946103
+        },
+        "treated_state": "REENTERED"
+      },
+      "block_reasons": [],
+      "by_epoch": {
+        "2020": 181,
+        "2021": 191,
+        "2022": 253,
+        "2023": 223,
+        "2024": 250
+      },
+      "by_family": {
+        "DAY": 981,
+        "MONTH": 11,
+        "WEEK": 106
+      },
+      "by_side": {
+        "-1": 477,
+        "1": 621
+      },
+      "eligible": true,
+      "n_arm": 1098,
+      "n_reference": 983,
+      "n_treated": 115,
+      "rough_80pct_mde": 0.1543491844500648,
+      "scale_usable": true,
+      "scales": {
+        "END_POSITION_X": {
+          "mean": -0.7667577831878221,
+          "n": 1098,
+          "sd": 0.48888276851657064
+        },
+        "disp": {
+          "mean": 0.006717988584557549,
+          "n": 1098,
+          "sd": 0.006849720451334359
+        },
+        "n": 1098
+      }
+    }
+  },
+  "controls_built": 4076,
+  "core": {
+    "bars": 526176,
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "t0": 1577836800000,
+    "zip_list_sha256": "936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b"
+  },
+  "decision": {
+    "D": "T + 15 minutes",
+    "T": "open of the touch bar",
+    "early_bars": "j+1, j+2",
+    "late_bars": "j+3 .. j+48",
+    "reaction_bars": "j, j+1, j+2",
+    "touch_bar_is_not_a_resolution": true
+  },
+  "early_census": {
+    "n": 1919,
+    "n_classified": 1919,
+    "n_early_ambiguous": 13,
+    "n_early_break": 296,
+    "n_early_reject": 278,
+    "n_early_resolved": 574,
+    "n_unavailable": 0,
+    "n_unresolved": 1332,
+    "p_early_ambiguous": 0.006774361646690985,
+    "p_early_break": 0.1542470036477332,
+    "p_early_reject": 0.14486711829077645,
+    "p_unresolved": 0.6941115164147994
+  },
+  "eligible_contrasts": [
+    "REENTRY_MEMORY"
+  ],
+  "event_window": {
+    "end_exclusive": "2025-01-01T00:00:00+00:00",
+    "start": "2020-02-01T00:00:00+00:00"
+  },
+  "exposure_status": "DISCOVERY_ONLY",
+  "geometry_pairs": 1231,
+  "information": {
+    "PERSISTENCE_MEMORY": {
+      "deff_assumed": 1.25,
+      "eligible": false,
+      "n_reference": 80,
+      "n_treated": 154,
+      "rough_80pct_mde": 0.2158397468327999
+    },
+    "REENTRY_MEMORY": {
+      "deff_assumed": 1.25,
+      "eligible": true,
+      "n_reference": 983,
+      "n_treated": 115,
+      "rough_80pct_mde": 0.1543491844500648
+    }
+  },
+  "mode": "DISCOVERY",
+  "n_early_ambiguous": 13,
+  "n_early_resolved": 574,
+  "n_unresolved": 1332,
+  "outcome_blind": true,
+  "overlap_pass": {
+    "PERSISTENCE_MEMORY": true,
+    "REENTRY_MEMORY": true
+  },
+  "price_only": true,
+  "proceed_to_outcomes": true,
+  "pseudo_legitimate": 1962,
+  "pseudo_sequence_counts": {
+    "000": 700,
+    "001": 81,
+    "010": 30,
+    "011": 51,
+    "100": 27,
+    "101": 12,
+    "110": 5,
+    "111": 36,
+    "UNAVAILABLE": 0
+  },
+  "pseudo_state_counts": {
+    "LATE_OR_RECROSS_OUTSIDE": 93,
+    "NEVER_OUTSIDE": 700,
+    "PERSISTENT_OUTSIDE": 87,
+    "REENTERED": 62,
+    "UNAVAILABLE": 0
+  },
+  "pseudo_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1962,
+    "NO_CONTROL": 0,
+    "NO_SIGMA": 0,
+    "NO_TOUCH": 2086,
+    "OUTSIDE_WINDOW": 28,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "pseudo_unresolved": 942,
+  "real_legitimate": 1919,
+  "real_nuisance_unresolved": 1332,
+  "real_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1919,
+    "NO_SIGMA": 0,
+    "NO_TOUCH": 2124,
+    "OUTSIDE_WINDOW": 33,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "real_weeks": 258,
+  "scale_hex": {
+    "PERSISTENCE_MEMORY": {
+      "END_POSITION_X": {
+        "mean": "0x1.3a4bf830b59bap-2",
+        "sd": "0x1.c7d77c7b16a84p-3"
+      },
+      "disp": {
+        "mean": "0x1.072b4475085c8p-7",
+        "sd": "0x1.b74bef8ca86b7p-8"
+      }
+    },
+    "REENTRY_MEMORY": {
+      "END_POSITION_X": {
+        "mean": "-0x1.889479e57d84ep-1",
+        "sd": "0x1.f49daf396d2b0p-2"
+      },
+      "disp": {
+        "mean": "0x1.b8452543fcca0p-8",
+        "sd": "0x1.c0e73d5341d7cp-8"
+      }
+    }
+  },
+  "search_exposure_if_run": {
+    "horizon_extensions": 0,
+    "lofo_cells": 0,
+    "loyo_cells": 5,
+    "outcomes_primary": 1,
+    "outcomes_secondary_descriptive": 1,
+    "primary_contrasts_estimated": 1,
+    "primary_contrasts_frozen": 2,
+    "pseudo_contrasts": 1,
+    "sequences_descriptive": 8,
+    "specificity_contrasts": 1,
+    "stability_slices": 10,
+    "states": 4,
+    "taxonomy_variants": 0
+  },
+  "sequence_counts": {
+    "000": 983,
+    "001": 69,
+    "010": 39,
+    "011": 81,
+    "100": 52,
+    "101": 11,
+    "110": 24,
+    "111": 73,
+    "UNAVAILABLE": 0
+  },
+  "sequence_counts_nuisance": {
+    "000": 983,
+    "001": 69,
+    "010": 39,
+    "011": 81,
+    "100": 52,
+    "101": 11,
+    "110": 24,
+    "111": 73,
+    "UNAVAILABLE": 0
+  },
+  "state_counts": {
+    "LATE_OR_RECROSS_OUTSIDE": 80,
+    "NEVER_OUTSIDE": 983,
+    "PERSISTENT_OUTSIDE": 154,
+    "REENTERED": 115,
+    "UNAVAILABLE": 0
+  },
+  "state_counts_nuisance": {
+    "LATE_OR_RECROSS_OUTSIDE": 80,
+    "NEVER_OUTSIDE": 983,
+    "PERSISTENT_OUTSIDE": 154,
+    "REENTERED": 115,
+    "UNAVAILABLE": 0
+  },
+  "structural_episodes": 4076,
+  "unresolved_weeks": 258
+}

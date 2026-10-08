@@ -1,0 +1,889 @@
+{
+  "AGGREGATES_FILE": "event_aggregates.json",
+  "AGGREGATES_SHA256": "af1eb088ac0fc7e860cbd211f654d3fd7cf8332588fa03c91b22131f37e34970",
+  "AGGRESSOR_SIDE_USED": false,
+  "ARCHIVE_ID": "BINANCE_UM_TRADES_AGGTRADES_ARCHIVE",
+  "DATASET_ID": "LEVEL_ZONE_TRADES_V0",
+  "DOUBLE_COUNTS_ACROSS_EVENTS": true,
+  "INSTRUMENT": "Binance USD-M BTCUSDT perpetual aggTrades",
+  "MONTHS": [
+    "2020-03",
+    "2020-04",
+    "2020-05",
+    "2020-06",
+    "2020-07",
+    "2020-08",
+    "2020-09",
+    "2020-10",
+    "2020-11",
+    "2020-12",
+    "2021-01",
+    "2021-02",
+    "2021-03",
+    "2021-04",
+    "2021-05",
+    "2021-06",
+    "2021-07",
+    "2021-08",
+    "2021-09",
+    "2021-10",
+    "2021-11",
+    "2021-12",
+    "2022-01",
+    "2022-02",
+    "2022-03",
+    "2022-04",
+    "2022-05",
+    "2022-06",
+    "2022-07",
+    "2022-08",
+    "2022-09",
+    "2022-10",
+    "2022-11",
+    "2022-12",
+    "2023-01",
+    "2023-02",
+    "2023-03",
+    "2023-04",
+    "2023-05",
+    "2023-06",
+    "2023-07",
+    "2023-08",
+    "2023-09",
+    "2023-10",
+    "2023-11",
+    "2023-12",
+    "2024-01",
+    "2024-02",
+    "2024-03",
+    "2024-04",
+    "2024-05",
+    "2024-06",
+    "2024-07",
+    "2024-08",
+    "2024-09",
+    "2024-10",
+    "2024-11",
+    "2024-12"
+  ],
+  "N_EVENTS": 3039,
+  "N_MULTI_EVENT_TRADES": 72322341,
+  "OBJECTS": [
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-03.zip",
+      "MONTH": "2020-03",
+      "NOTIONAL_AUDIT": {
+        "median_price": 8582.21,
+        "median_quantity": 0.171,
+        "median_quote_notional": 1466.0970399999999
+      },
+      "RAW_DELETED": true,
+      "ROWS": 20503682,
+      "SHA256": "67f9a6c1de9b3ac7aac9627ebfe626797103521fdf32b33b494d3e74cde0501d"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-04.zip",
+      "MONTH": "2020-04",
+      "NOTIONAL_AUDIT": {
+        "median_price": 6300.32,
+        "median_quantity": 0.126,
+        "median_quote_notional": 793.863
+      },
+      "RAW_DELETED": true,
+      "ROWS": 20000000,
+      "SHA256": "5e639fe3454b7488cc6ce0ceb46887ca9a02a7b50ab2c633774467d1583ad779"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-05.zip",
+      "MONTH": "2020-05",
+      "NOTIONAL_AUDIT": {
+        "median_price": 8702.46,
+        "median_quantity": 0.164,
+        "median_quote_notional": 1431.9274599999999
+      },
+      "RAW_DELETED": true,
+      "ROWS": 20000000,
+      "SHA256": "b30d82e565b5ab4d3a0fbe799771506711465a9b54f3a44a184c025b1276f9ec"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-06.zip",
+      "MONTH": "2020-06",
+      "NOTIONAL_AUDIT": {
+        "median_price": 9537.41,
+        "median_quantity": 0.1,
+        "median_quote_notional": 958.4570000000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 12490166,
+      "SHA256": "63970e3dfa969cb707d07145ef8729dc98d9d0cfa207bd83c9a1298ce7241450"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-07.zip",
+      "MONTH": "2020-07",
+      "NOTIONAL_AUDIT": {
+        "median_price": 9144.68,
+        "median_quantity": 0.11,
+        "median_quote_notional": 1003.079
+      },
+      "RAW_DELETED": true,
+      "ROWS": 10633649,
+      "SHA256": "f2c2bb4fd5c19d2d1876107c36fd95db6decc16ab11b1c5c5980e548f9a8370a"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-08.zip",
+      "MONTH": "2020-08",
+      "NOTIONAL_AUDIT": {
+        "median_price": 11349.26,
+        "median_quantity": 0.12,
+        "median_quote_notional": 1364.2595999999999
+      },
+      "RAW_DELETED": true,
+      "ROWS": 13655400,
+      "SHA256": "adf3a390a6976495f6a7e556d9698fd442ae76dfe80fc03fc65e683d04b6d039"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-09.zip",
+      "MONTH": "2020-09",
+      "NOTIONAL_AUDIT": {
+        "median_price": 11687.0,
+        "median_quantity": 0.12,
+        "median_quote_notional": 1402.311
+      },
+      "RAW_DELETED": true,
+      "ROWS": 12640277,
+      "SHA256": "9ec215595ce7e678829d6fdf893bb76ce53b8eb40a002c59ac95b100ea79b584"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-10.zip",
+      "MONTH": "2020-10",
+      "NOTIONAL_AUDIT": {
+        "median_price": 10813.51,
+        "median_quantity": 0.07,
+        "median_quote_notional": 756.8813000000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 14203490,
+      "SHA256": "8a6889342a3703b61436e95e2c8530c9d42a0c09afa1bc2bbead3308132128c9"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-11.zip",
+      "MONTH": "2020-11",
+      "NOTIONAL_AUDIT": {
+        "median_price": 13725.53,
+        "median_quantity": 0.082,
+        "median_quote_notional": 1128.67301
+      },
+      "RAW_DELETED": true,
+      "ROWS": 20000000,
+      "SHA256": "29ae7f18acbc10c3b93925b65ffc852a4991de9ba1508b2d2c95fd09272a46f2"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2020-12.zip",
+      "MONTH": "2020-12",
+      "NOTIONAL_AUDIT": {
+        "median_price": 19606.99,
+        "median_quantity": 0.097,
+        "median_quote_notional": 1901.38236
+      },
+      "RAW_DELETED": true,
+      "ROWS": 33935540,
+      "SHA256": "48d164fa72b2b7e34c86f4400444cfa07036ba105ff1bf22dce3ffef670d29fb"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-01.zip",
+      "MONTH": "2021-01",
+      "NOTIONAL_AUDIT": {
+        "median_price": 29196.434999999998,
+        "median_quantity": 0.055,
+        "median_quote_notional": 1610.8319900000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 68909911,
+      "SHA256": "27ba71d5da2bdf4933bc176a855e93797a8b94598cace9725de34b2dd4896844"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-02.zip",
+      "MONTH": "2021-02",
+      "NOTIONAL_AUDIT": {
+        "median_price": 32583.43,
+        "median_quantity": 0.05,
+        "median_quote_notional": 1626.98925
+      },
+      "RAW_DELETED": true,
+      "ROWS": 55186588,
+      "SHA256": "6f8fe48bc9b634ab364163b321a456b71286d7816957de7d9aa38a0721335cd1"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-03.zip",
+      "MONTH": "2021-03",
+      "NOTIONAL_AUDIT": {
+        "median_price": 46130.979999999996,
+        "median_quantity": 0.032,
+        "median_quote_notional": 1476.944
+      },
+      "RAW_DELETED": true,
+      "ROWS": 61406080,
+      "SHA256": "50af1fc70d949b4986f2accef9a356842fd5403d4aa24595e3bc3b78a6470b8a"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-04.zip",
+      "MONTH": "2021-04",
+      "NOTIONAL_AUDIT": {
+        "median_price": 59191.69,
+        "median_quantity": 0.034,
+        "median_quote_notional": 2019.2139300000003
+      },
+      "RAW_DELETED": true,
+      "ROWS": 48629337,
+      "SHA256": "58fb7066d32f37cdd7ff702f6c5731a297642662884aa4d85037a66a475677fa"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-05.zip",
+      "MONTH": "2021-05",
+      "NOTIONAL_AUDIT": {
+        "median_price": 57829.16,
+        "median_quantity": 0.048,
+        "median_quote_notional": 2763.81192
+      },
+      "RAW_DELETED": true,
+      "ROWS": 97970934,
+      "SHA256": "11d546ec4752291f425d3bdeac0df1af5a7f48a08a700ba33a571bcbe590330b"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-06.zip",
+      "MONTH": "2021-06",
+      "NOTIONAL_AUDIT": {
+        "median_price": 37577.25,
+        "median_quantity": 0.051,
+        "median_quote_notional": 1917.1573199999998
+      },
+      "RAW_DELETED": true,
+      "ROWS": 103393842,
+      "SHA256": "4dbaa7b1a10719e1f365fed37b1b182c1f6de85f96bf3a0b90ae839656fd4aec"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-07.zip",
+      "MONTH": "2021-07",
+      "NOTIONAL_AUDIT": {
+        "median_price": 34807.825,
+        "median_quantity": 0.05,
+        "median_quote_notional": 1738.2157500000003
+      },
+      "RAW_DELETED": true,
+      "ROWS": 68197247,
+      "SHA256": "e803c876d0861b2ff417e770c718692713b9f503cea800c7140833cbbcf03dd6"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-08.zip",
+      "MONTH": "2021-08",
+      "NOTIONAL_AUDIT": {
+        "median_price": 41495.68,
+        "median_quantity": 0.048,
+        "median_quote_notional": 1979.0448000000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 64395981,
+      "SHA256": "14d9ec6159be7762bae6cce54d80e966284db0c1832f89d305f6961204a025cd"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-09.zip",
+      "MONTH": "2021-09",
+      "NOTIONAL_AUDIT": {
+        "median_price": 46962.95,
+        "median_quantity": 0.047,
+        "median_quote_notional": 2211.78616
+      },
+      "RAW_DELETED": true,
+      "ROWS": 52275487,
+      "SHA256": "62b07cc69a0ef8e0b4f8ee758711990e972f34204a62bbc35a35a067c84d750b"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-10.zip",
+      "MONTH": "2021-10",
+      "NOTIONAL_AUDIT": {
+        "median_price": 43775.98,
+        "median_quantity": 0.046,
+        "median_quote_notional": 2012.07703
+      },
+      "RAW_DELETED": true,
+      "ROWS": 53166488,
+      "SHA256": "d8934b9d0d68a509b9ddf1c2708b148a6af2fb6ed0e4c87e4ea284c419a74a31"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-11.zip",
+      "MONTH": "2021-11",
+      "NOTIONAL_AUDIT": {
+        "median_price": 61501.46,
+        "median_quantity": 0.03,
+        "median_quote_notional": 1842.339
+      },
+      "RAW_DELETED": true,
+      "ROWS": 44368784,
+      "SHA256": "a577856c9233677adaf0e4738eaa833c795da880b7fbd5ea0b6db093c7e8d488"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2021-12.zip",
+      "MONTH": "2021-12",
+      "NOTIONAL_AUDIT": {
+        "median_price": 57375.97,
+        "median_quantity": 0.026,
+        "median_quote_notional": 1495.42185
+      },
+      "RAW_DELETED": true,
+      "ROWS": 53081870,
+      "SHA256": "0b12890c302188b203490087fefb517120dba6513a7dd4b6f227b1f50ddfa772"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-01.zip",
+      "MONTH": "2022-01",
+      "NOTIONAL_AUDIT": {
+        "median_price": 46675.380000000005,
+        "median_quantity": 0.04,
+        "median_quote_notional": 1863.0212000000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 58645303,
+      "SHA256": "873b626270ec6317ccf8d2ccdecce744f3ebe8ea289ede1495713b5dfda11ce0"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-02.zip",
+      "MONTH": "2022-02",
+      "NOTIONAL_AUDIT": {
+        "median_price": 38310.51,
+        "median_quantity": 0.038,
+        "median_quote_notional": 1451.27016
+      },
+      "RAW_DELETED": true,
+      "ROWS": 52823155,
+      "SHA256": "40b7bf2a16b847b35083827bd96689558fce736fc7238d7dd32d6c8709957a2b"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-03.zip",
+      "MONTH": "2022-03",
+      "NOTIONAL_AUDIT": {
+        "median_price": 43392.7,
+        "median_quantity": 0.038,
+        "median_quote_notional": 1649.6122999999998
+      },
+      "RAW_DELETED": true,
+      "ROWS": 47102107,
+      "SHA256": "2ab2e1c9acf2ff9808dcb0d5c739a5527fe071aba0dab54c6a66b9fb99f7249d"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-04.zip",
+      "MONTH": "2022-04",
+      "NOTIONAL_AUDIT": {
+        "median_price": 45384.9,
+        "median_quantity": 0.04,
+        "median_quote_notional": 1821.9140000000002
+      },
+      "RAW_DELETED": true,
+      "ROWS": 35748548,
+      "SHA256": "765ca594403f9bc6b00371457f3d5033561c5cad59c997bbe287ac219920f748"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": false,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-05.zip",
+      "MONTH": "2022-05",
+      "NOTIONAL_AUDIT": {
+        "median_price": 37659.3,
+        "median_quantity": 0.023,
+        "median_quote_notional": 866.85965
+      },
+      "RAW_DELETED": true,
+      "ROWS": 60764860,
+      "SHA256": "9faf406cb4a4c94a6b36735ee59bd4c8f63520706c14139bd7106ed2c5f23659"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-06.zip",
+      "MONTH": "2022-06",
+      "NOTIONAL_AUDIT": {
+        "median_price": 31862.1,
+        "median_quantity": 0.029,
+        "median_quote_notional": 920.1801500000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 74364398,
+      "SHA256": "0ebb64cfc49dc8f842af23d3f139c718f6a688775606033e489b6f861c9311de"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-07.zip",
+      "MONTH": "2022-07",
+      "NOTIONAL_AUDIT": {
+        "median_price": 19755.9,
+        "median_quantity": 0.055,
+        "median_quote_notional": 1091.3925
+      },
+      "RAW_DELETED": true,
+      "ROWS": 62336640,
+      "SHA256": "5facf3abcde715b0c625ee5c9837f148bf3c79d0b107122ef78812df3a5636fb"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-08.zip",
+      "MONTH": "2022-08",
+      "NOTIONAL_AUDIT": {
+        "median_price": 23363.3,
+        "median_quantity": 0.013,
+        "median_quote_notional": 303.44145
+      },
+      "RAW_DELETED": true,
+      "ROWS": 40556504,
+      "SHA256": "e9232addc9ebc351b327280e23d75785ee3639cc32ae9054293a6c0481d9fb89"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-09.zip",
+      "MONTH": "2022-09",
+      "NOTIONAL_AUDIT": {
+        "median_price": 20048.2,
+        "median_quantity": 0.048,
+        "median_quote_notional": 960.984
+      },
+      "RAW_DELETED": true,
+      "ROWS": 44223166,
+      "SHA256": "b39acd27634cdb861fce7196182110f585b6c17fae7baae116f0d72ecd5f891b"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-10.zip",
+      "MONTH": "2022-10",
+      "NOTIONAL_AUDIT": {
+        "median_price": 19396.1,
+        "median_quantity": 0.048,
+        "median_quote_notional": 931.296
+      },
+      "RAW_DELETED": true,
+      "ROWS": 27752738,
+      "SHA256": "94ce0bc37751a64ed4fd425aa7b021c1ee43ff52c4a531b6d524063685e03ffe"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-11.zip",
+      "MONTH": "2022-11",
+      "NOTIONAL_AUDIT": {
+        "median_price": 20491.3,
+        "median_quantity": 0.048,
+        "median_quote_notional": 982.8792000000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 33974166,
+      "SHA256": "0eb04067026d5d9493c1b5c14b45d1e0a04ed281d627f0ae480f6604665ccad8"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2022-12.zip",
+      "MONTH": "2022-12",
+      "NOTIONAL_AUDIT": {
+        "median_price": 17140.7,
+        "median_quantity": 0.067,
+        "median_quote_notional": 1148.8758000000003
+      },
+      "RAW_DELETED": true,
+      "ROWS": 16952163,
+      "SHA256": "dc966c85fe09ddce5b39f448c6760aa062917af27ecf2aa94b989e795d87a19d"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-01.zip",
+      "MONTH": "2023-01",
+      "NOTIONAL_AUDIT": {
+        "median_price": 16526.1,
+        "median_quantity": 0.035,
+        "median_quote_notional": 578.7547500000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 28360744,
+      "SHA256": "1d94d39b36b5e15bf1b6df323ef0764d9b7a5ec648a87d7b9388dc661c900c66"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-02.zip",
+      "MONTH": "2023-02",
+      "NOTIONAL_AUDIT": {
+        "median_price": 23086.5,
+        "median_quantity": 0.034,
+        "median_quote_notional": 784.6367000000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 32013508,
+      "SHA256": "c96a721238c9dca750ec5498501e3a5091d96f5f95f9b8878a9496e168e5a46d"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-03.zip",
+      "MONTH": "2023-03",
+      "NOTIONAL_AUDIT": {
+        "median_price": 23159.4,
+        "median_quantity": 0.039,
+        "median_quote_notional": 906.5199
+      },
+      "RAW_DELETED": true,
+      "ROWS": 57718929,
+      "SHA256": "b527a01289ba5c1804219a9eaf5cf684e8a401b7d66a79f8fcaa488d8ad990ac"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-04.zip",
+      "MONTH": "2023-04",
+      "NOTIONAL_AUDIT": {
+        "median_price": 28499.4,
+        "median_quantity": 0.041,
+        "median_quote_notional": 1171.10965
+      },
+      "RAW_DELETED": true,
+      "ROWS": 38499736,
+      "SHA256": "ccf03f522d5f84597dfb714c350ccf6224f7b640918aed4cdd6e08c31cad0de7"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-05.zip",
+      "MONTH": "2023-05",
+      "NOTIONAL_AUDIT": {
+        "median_price": 29236.0,
+        "median_quantity": 0.034,
+        "median_quote_notional": 995.2089000000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 36757013,
+      "SHA256": "9f887bd4472773cc534e915def658e92a2ee9a24aa42099246070475eabc354f"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-06.zip",
+      "MONTH": "2023-06",
+      "NOTIONAL_AUDIT": {
+        "median_price": 27126.1,
+        "median_quantity": 0.023,
+        "median_quote_notional": 621.8268499999999
+      },
+      "RAW_DELETED": true,
+      "ROWS": 39024962,
+      "SHA256": "36bbf14b48f8552c57ee79c6f3054bbc2aa58d90206a1ead2a0ec1b42b9954d8"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-07.zip",
+      "MONTH": "2023-07",
+      "NOTIONAL_AUDIT": {
+        "median_price": 30443.1,
+        "median_quantity": 0.017,
+        "median_quote_notional": 517.7248000000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 24963535,
+      "SHA256": "03607e1cb87a22462898b1dcfbd5b96de72e2eb5912124ae12aa4576d122b78a"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-08.zip",
+      "MONTH": "2023-08",
+      "NOTIONAL_AUDIT": {
+        "median_price": 29154.1,
+        "median_quantity": 0.04,
+        "median_quote_notional": 1157.054
+      },
+      "RAW_DELETED": true,
+      "ROWS": 24166578,
+      "SHA256": "de112685f8f6bf7d6341fdee2ea46075d8661926cbcff7c478466be3f6ac9b52"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-09.zip",
+      "MONTH": "2023-09",
+      "NOTIONAL_AUDIT": {
+        "median_price": 26027.2,
+        "median_quantity": 0.017,
+        "median_quote_notional": 441.9362500000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 22596398,
+      "SHA256": "15cd54b4be3d6f5975a6e6e237ecad37c524db9a39be276784b5881a2737e7cf"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-10.zip",
+      "MONTH": "2023-10",
+      "NOTIONAL_AUDIT": {
+        "median_price": 27030.7,
+        "median_quantity": 0.014,
+        "median_quote_notional": 377.468
+      },
+      "RAW_DELETED": true,
+      "ROWS": 38272235,
+      "SHA256": "df6851fd1f54ad31dae32b5c89203206379e1d8cf489136c5c1df085eeac9dac"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-11.zip",
+      "MONTH": "2023-11",
+      "NOTIONAL_AUDIT": {
+        "median_price": 34538.4,
+        "median_quantity": 0.015,
+        "median_quote_notional": 518.2394999999999
+      },
+      "RAW_DELETED": true,
+      "ROWS": 31204314,
+      "SHA256": "64d34dc8970219f232cc2e5655fef1a3af6064d17399e1b1624f82525d6ea518"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2023-12.zip",
+      "MONTH": "2023-12",
+      "NOTIONAL_AUDIT": {
+        "median_price": 37875.8,
+        "median_quantity": 0.029,
+        "median_quote_notional": 1090.81615
+      },
+      "RAW_DELETED": true,
+      "ROWS": 32959424,
+      "SHA256": "f56d85c15dc93b658f808c56688658d9f9aabe9797823b973830b3696642d03f"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-01.zip",
+      "MONTH": "2024-01",
+      "NOTIONAL_AUDIT": {
+        "median_price": 42527.7,
+        "median_quantity": 0.036,
+        "median_quote_notional": 1528.2504
+      },
+      "RAW_DELETED": true,
+      "ROWS": 40294620,
+      "SHA256": "d752f50932091dd209803187ca2354a9eadbfe8e4b9c481c3581a1bbb1bd8282"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-02.zip",
+      "MONTH": "2024-02",
+      "NOTIONAL_AUDIT": {
+        "median_price": 42257.9,
+        "median_quantity": 0.042,
+        "median_quote_notional": 1768.9917000000003
+      },
+      "RAW_DELETED": true,
+      "ROWS": 36317913,
+      "SHA256": "3c2426d3f2435ace18b0e9b3acf45144b1710dad08cb184487539d5d829ccef3"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-03.zip",
+      "MONTH": "2024-03",
+      "NOTIONAL_AUDIT": {
+        "median_price": 61497.5,
+        "median_quantity": 0.016,
+        "median_quote_notional": 983.3192
+      },
+      "RAW_DELETED": true,
+      "ROWS": 66512993,
+      "SHA256": "8ceb6fd06fc3bff87870e7adc362ca0e2f463f57a04599d2506e40320921401d"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-04.zip",
+      "MONTH": "2024-04",
+      "NOTIONAL_AUDIT": {
+        "median_price": 71093.9,
+        "median_quantity": 0.014,
+        "median_quote_notional": 995.6940000000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 52506247,
+      "SHA256": "d1e56775acae2b93b387df44f6074e94fb635dfdb65271537889e32e1556f05d"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-05.zip",
+      "MONTH": "2024-05",
+      "NOTIONAL_AUDIT": {
+        "median_price": 60283.8,
+        "median_quantity": 0.016,
+        "median_quote_notional": 958.8144
+      },
+      "RAW_DELETED": true,
+      "ROWS": 38945717,
+      "SHA256": "8fca38cac627bb1fb3a5c9982ce56351be6783ec136369a3e856ae49bb971a43"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-06.zip",
+      "MONTH": "2024-06",
+      "NOTIONAL_AUDIT": {
+        "median_price": 67694.2,
+        "median_quantity": 0.016,
+        "median_quote_notional": 1083.1896000000002
+      },
+      "RAW_DELETED": true,
+      "ROWS": 26121815,
+      "SHA256": "5ded996c5ee1985b4e3d7935f9be95c2e1f946a173fd87dbb0107c02fa68ca89"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-07.zip",
+      "MONTH": "2024-07",
+      "NOTIONAL_AUDIT": {
+        "median_price": 63267.8,
+        "median_quantity": 0.023,
+        "median_quote_notional": 1463.87295
+      },
+      "RAW_DELETED": true,
+      "ROWS": 37540956,
+      "SHA256": "d6a6528d6fb5a78ddcc0607469e9569f40ab497359b2e3ba876145a5463d68c5"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-08.zip",
+      "MONTH": "2024-08",
+      "NOTIONAL_AUDIT": {
+        "median_price": 64550.0,
+        "median_quantity": 0.021,
+        "median_quote_notional": 1356.6808500000002
+      },
+      "RAW_DELETED": true,
+      "ROWS": 47852373,
+      "SHA256": "91c95f779e58f8aea2735c838085dcaaaf0a9f3e162ebf9cd477b686666a93c8"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-09.zip",
+      "MONTH": "2024-09",
+      "NOTIONAL_AUDIT": {
+        "median_price": 58580.0,
+        "median_quantity": 0.016,
+        "median_quote_notional": 937.0016
+      },
+      "RAW_DELETED": true,
+      "ROWS": 35336026,
+      "SHA256": "3450edcaeb8a2c7f2f70f3136cc28753245311452369de0e990fad390a5a9113"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-10.zip",
+      "MONTH": "2024-10",
+      "NOTIONAL_AUDIT": {
+        "median_price": 63354.0,
+        "median_quantity": 0.01,
+        "median_quote_notional": 634.751
+      },
+      "RAW_DELETED": true,
+      "ROWS": 37629336,
+      "SHA256": "f8c76ee5d4467c85a592d7ef9433ee6f7f7c4b2af9c1b9b2538ae4795f60dad3"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-11.zip",
+      "MONTH": "2024-11",
+      "NOTIONAL_AUDIT": {
+        "median_price": 70144.4,
+        "median_quantity": 0.012,
+        "median_quote_notional": 843.7656000000001
+      },
+      "RAW_DELETED": true,
+      "ROWS": 57556232,
+      "SHA256": "28a34b83dc97c8519515d5a2982629906d748a98e7a9aa52796ad1d1380d9fe7"
+    },
+    {
+      "CHECKSUM_VERIFICATION": "VERIFIED",
+      "HEADER": true,
+      "KEY": "data/futures/um/monthly/aggTrades/BTCUSDT/BTCUSDT-aggTrades-2024-12.zip",
+      "MONTH": "2024-12",
+      "NOTIONAL_AUDIT": {
+        "median_price": 96386.7,
+        "median_quantity": 0.013,
+        "median_quote_notional": 1250.5285
+      },
+      "RAW_DELETED": true,
+      "ROWS": 54359176,
+      "SHA256": "4d17630b90c9497bfba4d18e94d5fb8a66d8ade41ecab1583824baffd6d8a513"
+    }
+  ],
+  "OBJECT_LIST_SHA256": "14cf41ddf67f11d8fb81eaa7644ff1d29fa75ffab401529fc2fe2a9701ea9022",
+  "QUANTITY_UNIT": "BTC base; quote notional = price * quantity USDT",
+  "RAW_RETAINED": false,
+  "SOURCE": "https://data.binance.vision/"
+}

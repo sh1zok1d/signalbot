@@ -1,0 +1,377 @@
+{
+  "aggressor_side_used": false,
+  "context_rho": {
+    "ZONE_NOTIONAL_INTENSITY_15M__END_POSITION_X": 0.3324930178885495,
+    "ZONE_NOTIONAL_INTENSITY_15M__OTHER_VENUE_MEDIAN_MOVE": 0.4129431393875848,
+    "ZONE_NOTIONAL_INTENSITY_15M__TOUCH_OFFSET_SECONDS": -0.03862397260229065,
+    "ZONE_NOTIONAL_INTENSITY_15M__disp": -0.23957593239869593,
+    "ZONE_NOTIONAL_SHARE_15M__END_POSITION_X": 0.2169016208335167,
+    "ZONE_NOTIONAL_SHARE_15M__OTHER_VENUE_MEDIAN_MOVE": 0.2019262478877666,
+    "ZONE_NOTIONAL_SHARE_15M__TOUCH_OFFSET_SECONDS": -0.1047385527470671,
+    "ZONE_NOTIONAL_SHARE_15M__disp": -0.16903460168480508
+  },
+  "distributions": {
+    "END_POSITION_X": {
+      "max": 0.8822416797985198,
+      "mean": -0.5813124617047378,
+      "min": -3.5149703184298864,
+      "n": 1215,
+      "p05": -1.5413775190304966,
+      "p25": -0.9720239856268449,
+      "p50": -0.5773007345864246,
+      "p75": -0.1787274175422635,
+      "p95": 0.4409564630397241,
+      "sd": 0.6181449090851755
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "max": 0.02583548038965417,
+      "mean": 0.0029280920137348013,
+      "min": -0.012527152510977675,
+      "n": 1215,
+      "p05": -0.0029161898342295093,
+      "p25": 5.540082614797832e-05,
+      "p50": 0.0021580831094011005,
+      "p75": 0.005349382143950943,
+      "p95": 0.01129250902821727,
+      "sd": 0.004458224900023232
+    },
+    "TOUCH_OFFSET_SECONDS": {
+      "max": 299.176,
+      "mean": 139.36556131687243,
+      "min": 0.001,
+      "n": 1215,
+      "p05": 5.454700000000002,
+      "p25": 60.867000000000004,
+      "p50": 135.215,
+      "p75": 222.8555,
+      "p95": 280.6271,
+      "sd": 90.33453515535632
+    },
+    "ZONE_NOTIONAL_INTENSITY_15M": {
+      "max": 3.0448624506041035,
+      "mean": -0.6101288845118225,
+      "min": -8.73229206576189,
+      "n": 1215,
+      "p05": -3.503271826839282,
+      "p25": -1.3270952291418459,
+      "p50": -0.3042745255828869,
+      "p75": 0.39684547852299357,
+      "p95": 1.265147810103679,
+      "sd": 1.4916133392295963
+    },
+    "ZONE_NOTIONAL_SHARE_15M": {
+      "max": 1.0,
+      "mean": 0.31023643402559564,
+      "min": 0.000160167898463943,
+      "n": 1215,
+      "p05": 0.02117541197746935,
+      "p25": 0.13060579304761033,
+      "p50": 0.27714001290061757,
+      "p75": 0.45306396452282294,
+      "p95": 0.7233589383988246,
+      "sd": 0.21910098915984305
+    }
+  },
+  "early": {
+    "n": 1856,
+    "n_early_ambiguous": 13,
+    "n_early_break": 286,
+    "n_early_reject": 265,
+    "n_unavailable": 0,
+    "n_unresolved": 1292
+  },
+  "event_window": [
+    "2020-04-01T00:05:00Z",
+    "2025-01-01T00:00:00Z"
+  ],
+  "expected_primary_n": 607.5,
+  "feature_complete_unresolved": 1215,
+  "first_touch_legitimate": 1856,
+  "identity_artifact": false,
+  "inventory": {
+    "aggregates_sha256": "af1eb088ac0fc7e860cbd211f654d3fd7cf8332588fa03c91b22131f37e34970",
+    "checksums_verified": true,
+    "double_counts_across_events": true,
+    "months": [
+      "2020-03",
+      "2020-04",
+      "2020-05",
+      "2020-06",
+      "2020-07",
+      "2020-08",
+      "2020-09",
+      "2020-10",
+      "2020-11",
+      "2020-12",
+      "2021-01",
+      "2021-02",
+      "2021-03",
+      "2021-04",
+      "2021-05",
+      "2021-06",
+      "2021-07",
+      "2021-08",
+      "2021-09",
+      "2021-10",
+      "2021-11",
+      "2021-12",
+      "2022-01",
+      "2022-02",
+      "2022-03",
+      "2022-04",
+      "2022-05",
+      "2022-06",
+      "2022-07",
+      "2022-08",
+      "2022-09",
+      "2022-10",
+      "2022-11",
+      "2022-12",
+      "2023-01",
+      "2023-02",
+      "2023-03",
+      "2023-04",
+      "2023-05",
+      "2023-06",
+      "2023-07",
+      "2023-08",
+      "2023-09",
+      "2023-10",
+      "2023-11",
+      "2023-12",
+      "2024-01",
+      "2024-02",
+      "2024-03",
+      "2024-04",
+      "2024-05",
+      "2024-06",
+      "2024-07",
+      "2024-08",
+      "2024-09",
+      "2024-10",
+      "2024-11",
+      "2024-12"
+    ],
+    "n_multi_event_trades": 72322341,
+    "n_objects": 58,
+    "n_verified": 58,
+    "no_protected_year": true,
+    "object_list_sha256": "14cf41ddf67f11d8fb81eaa7644ff1d29fa75ffab401529fc2fe2a9701ea9022",
+    "protected_months": [],
+    "source_identity_ok": true
+  },
+  "lookback_month": "2020-03",
+  "novelty_ok": true,
+  "outcomes_read": false,
+  "overlapping_reaction_windows": 67,
+  "per_feature_complete": {
+    "ZONE_NOTIONAL_INTENSITY_15M": 1215,
+    "ZONE_NOTIONAL_SHARE_15M": 1216
+  },
+  "planning_resolve_fraction": 0.5,
+  "pre_outcome_gate_pass": true,
+  "pseudo_identity_ok": true,
+  "pseudo_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1885,
+    "NO_CONTROL": 0,
+    "NO_SIGMA": 0,
+    "NO_TOUCH": 2086,
+    "OUTSIDE_WINDOW": 105,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "pseudo_touch_match_rate": 0.9830938292476754,
+  "pseudo_trade_audit": {
+    "ZONE_ACTIVE_SECONDS_15M": {
+      "missing_rate": 0.0,
+      "n_finite": 1183,
+      "zero_rate_among_finite": 0.0169061707523246
+    },
+    "ZONE_NOTIONAL_INTENSITY_15M": {
+      "missing_rate": 0.01690617075232459,
+      "n_finite": 1163,
+      "zero_rate_among_finite": 0.0
+    },
+    "ZONE_NOTIONAL_SHARE_15M": {
+      "missing_rate": 0.01690617075232459,
+      "n_finite": 1163,
+      "zero_rate_among_finite": 0.0
+    },
+    "baseline_ready_rate": 0.9433643279797126,
+    "coverage_rate": 1.0,
+    "n": 1183,
+    "pre60_positive_rate": 0.9873203719357565,
+    "touch_match_rate": 0.9830938292476754
+  },
+  "raw_touch_match_rate": 0.9870689655172413,
+  "real_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1856,
+    "NO_SIGMA": 0,
+    "NO_TOUCH": 2124,
+    "OUTSIDE_WINDOW": 96,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "real_trade_audit": {
+    "ZONE_ACTIVE_SECONDS_15M": {
+      "missing_rate": 0.0,
+      "n_finite": 1856,
+      "zero_rate_among_finite": 0.01293103448275862
+    },
+    "ZONE_NOTIONAL_INTENSITY_15M": {
+      "missing_rate": 0.014008620689655138,
+      "n_finite": 1830,
+      "zero_rate_among_finite": 0.0
+    },
+    "ZONE_NOTIONAL_SHARE_15M": {
+      "missing_rate": 0.012931034482758674,
+      "n_finite": 1832,
+      "zero_rate_among_finite": 0.0
+    },
+    "baseline_ready_rate": 0.9439655172413793,
+    "coverage_rate": 1.0,
+    "n": 1856,
+    "pre60_positive_rate": 0.9881465517241379,
+    "touch_match_rate": 0.9870689655172413
+  },
+  "redundancy": {
+    "dropped": [
+      {
+        "feature": "ZONE_ACTIVE_SECONDS_15M",
+        "redundant_with": "ZONE_NOTIONAL_SHARE_15M",
+        "rho": 0.9245199366615546
+      }
+    ],
+    "retained": [
+      "ZONE_NOTIONAL_INTENSITY_15M",
+      "ZONE_NOTIONAL_SHARE_15M"
+    ],
+    "rho": {
+      "ZONE_NOTIONAL_INTENSITY_15M__ZONE_ACTIVE_SECONDS_15M": 0.8303470536854068,
+      "ZONE_NOTIONAL_INTENSITY_15M__ZONE_NOTIONAL_SHARE_15M": 0.8382334208275551,
+      "ZONE_NOTIONAL_SHARE_15M__ZONE_ACTIVE_SECONDS_15M": 0.9245199366615546
+    }
+  },
+  "resolved_after_d": null,
+  "retained": [
+    "ZONE_NOTIONAL_INTENSITY_15M",
+    "ZONE_NOTIONAL_SHARE_15M"
+  ],
+  "rough_mde_80": 0.063541243104636,
+  "scale_hex": {
+    "END_POSITION_X": {
+      "mean": "-0x1.29a1c9778ee66p-1",
+      "sd": "0x1.3c7d7d516b60bp-1"
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "mean": "0x1.7fca76e099527p-9",
+      "sd": "0x1.242c9a24d0e7fp-8"
+    },
+    "TOUCH_OFFSET_SECONDS": {
+      "mean": "0x1.16bb2ada594cbp+7",
+      "sd": "0x1.695690623e788p+6"
+    },
+    "ZONE_NOTIONAL_INTENSITY_15M": {
+      "mean": "-0x1.3862d02aa57f8p-1",
+      "sd": "0x1.7dda5f2e44ba7p+0"
+    },
+    "ZONE_NOTIONAL_SHARE_15M": {
+      "mean": "0x1.3dae9ea8ab9e0p-2",
+      "sd": "0x1.c0b804f7b3c42p-3"
+    },
+    "disp": {
+      "mean": "0x1.c5224b5b93f56p-8",
+      "sd": "0x1.b47e4a3c4fe80p-8"
+    }
+  },
+  "scales": {
+    "END_POSITION_X": {
+      "mean": -0.5813124617047378,
+      "n": 1215,
+      "sd": 0.6181449090851755
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "mean": 0.0029280920137348013,
+      "n": 1215,
+      "sd": 0.004458224900023232
+    },
+    "TOUCH_OFFSET_SECONDS": {
+      "mean": 139.36556131687243,
+      "n": 1215,
+      "sd": 90.33453515535632
+    },
+    "ZONE_NOTIONAL_INTENSITY_15M": {
+      "mean": -0.6101288845118225,
+      "n": 1215,
+      "sd": 1.4916133392295963
+    },
+    "ZONE_NOTIONAL_SHARE_15M": {
+      "mean": 0.31023643402559564,
+      "n": 1215,
+      "sd": 0.21910098915984305
+    },
+    "disp": {
+      "mean": 0.006914275548822809,
+      "n": 1215,
+      "sd": 0.006660359500812896
+    },
+    "n": 1215
+  },
+  "slice_counts_unresolved_complete": {
+    "family": {
+      "DAY": 1081,
+      "MONTH": 13,
+      "WEEK": 121
+    },
+    "side": {
+      "resistance": 695,
+      "support": 520
+    },
+    "year": {
+      "2020": 165,
+      "2021": 270,
+      "2022": 286,
+      "2023": 225,
+      "2024": 269
+    }
+  },
+  "structural_episodes": 4076,
+  "tertile_cuts_hex": {
+    "ZONE_NOTIONAL_INTENSITY_15M": {
+      "q33": "-0x1.c75c55d2f9104p-1",
+      "q67": "0x1.5db7b75953e29p-3"
+    },
+    "ZONE_NOTIONAL_SHARE_15M": {
+      "q33": "0x1.6a6c2c9fc40efp-3",
+      "q67": "0x1.8c313de81b4cfp-2"
+    }
+  },
+  "touch_identity_pass": true,
+  "unit": "LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1",
+  "unresolved_baseline_ready": 1216,
+  "unresolved_nuisance": 1235,
+  "unresolved_trade_audit": {
+    "ZONE_ACTIVE_SECONDS_15M": {
+      "missing_rate": 0.0,
+      "n_finite": 1235,
+      "zero_rate_among_finite": 0.015384615384615385
+    },
+    "ZONE_NOTIONAL_INTENSITY_15M": {
+      "missing_rate": 0.01619433198380571,
+      "n_finite": 1215,
+      "zero_rate_among_finite": 0.0
+    },
+    "ZONE_NOTIONAL_SHARE_15M": {
+      "missing_rate": 0.01538461538461533,
+      "n_finite": 1216,
+      "zero_rate_among_finite": 0.0
+    },
+    "baseline_ready_rate": 0.9846153846153847,
+    "coverage_rate": 1.0,
+    "n": 1235,
+    "pre60_positive_rate": 0.9870445344129555,
+    "touch_match_rate": 0.9846153846153847
+  }
+}

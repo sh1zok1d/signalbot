@@ -1,0 +1,247 @@
+{
+  "adjusted_sensitivity": false,
+  "candidate_class": "LEVEL_VOLATILITY_TRANSITION_CANDIDATE",
+  "claim_ceiling": "L2",
+  "confirmation_started": false,
+  "design_sha": "54338b7faab9598152e2fa1270d2fb51a4beed18",
+  "expansion_fraction_difference": 0.0844841592201463,
+  "exposure_status": "DISCOVERY_ONLY",
+  "families": [
+    {
+      "delta": 0.0958645512859179,
+      "multiplicative_pct": 10.060997769124857,
+      "n": 1071,
+      "name": "DAY"
+    },
+    {
+      "delta": 0.22815102508341156,
+      "multiplicative_pct": 25.627504014886938,
+      "n": 138,
+      "name": "WEEK"
+    },
+    {
+      "delta": -0.12187114759466601,
+      "multiplicative_pct": -11.473757065266454,
+      "n": 22,
+      "name": "MONTH"
+    }
+  ],
+  "formulas": {
+    "delta_transition": "mean(PAIR_DELTA)",
+    "multiplicative": "100 * (exp(DELTA_TRANSITION) - 1) percent",
+    "pair_delta": "VOL_TRANSITION_REAL - VOL_TRANSITION_PSEUDO",
+    "return": "r_k = log(close_k / close_{k-1})",
+    "rv_post60": "sqrt(mean(r_k^2)) for k = j+1..j+12",
+    "rv_pre60": "sqrt(mean(r_k^2)) for k = j-12..j-1",
+    "touch_bar_excluded": true,
+    "vol_transition_60": "log(RV_POST60 / RV_PRE60)"
+  },
+  "level_engine_discovery_8_of_8_complete": true,
+  "loyo": [
+    {
+      "delta": 0.09466294847741456,
+      "multiplicative_pct": 9.92882758903142,
+      "n": 989,
+      "name": "omit_2020",
+      "omitted_year": 2020
+    },
+    {
+      "delta": 0.10421457854583177,
+      "multiplicative_pct": 10.983857691467502,
+      "n": 897,
+      "name": "omit_2021",
+      "omitted_year": 2021
+    },
+    {
+      "delta": 0.13485131765142458,
+      "multiplicative_pct": 14.436662458437644,
+      "n": 973,
+      "name": "omit_2022",
+      "omitted_year": 2022
+    },
+    {
+      "delta": 0.09738916630462621,
+      "multiplicative_pct": 10.228926400025573,
+      "n": 1050,
+      "name": "omit_2023",
+      "omitted_year": 2023
+    },
+    {
+      "delta": 0.103770791007012,
+      "multiplicative_pct": 10.934615365787327,
+      "n": 1015,
+      "name": "omit_2024",
+      "omitted_year": 2024
+    }
+  ],
+  "loyo_ran": true,
+  "matched_pairs": 1231,
+  "mode": "DISCOVERY",
+  "note": "One discovery run. No compression subgroup, no other horizon, no 4h range, no adjusted sensitivity, no product change, no confirmation, no successor.",
+  "novelty_ok": true,
+  "outcomes_read": true,
+  "path_complete_pairs": 1231,
+  "pre_outcome_gate": {
+    "eligible_years": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "n_pairs": 1231,
+    "n_weeks": 254,
+    "pass": true,
+    "years_eligible": 5
+  },
+  "pre_rv_balance": {
+    "imbalance_at_practical_scale": false,
+    "paired_log_diff_mean": 0.00562310725532301,
+    "paired_log_diff_multiplicative_pct": 0.5638946597782191,
+    "pseudo_mean": 0.002037110270133123,
+    "pseudo_median": 0.001681955328856182,
+    "real_mean": 0.0020818430051021204,
+    "real_median": 0.0016583651742509316
+  },
+  "primary": {
+    "bootstrap_draws": 2000,
+    "bootstrap_seed": 20261024,
+    "bootstrap_valid": 2000,
+    "ci95": [
+      0.06654774138993706,
+      0.14666104977841526
+    ],
+    "ci95_multiplicative_pct": [
+      6.881198942710975,
+      15.796140522994783
+    ],
+    "ci_excludes_zero": true,
+    "ci_withheld": false,
+    "delta_log": 0.10680309556591897,
+    "multiplicative_pct": 11.271513436334724,
+    "p": 1.0480000974689862e-07,
+    "practical_log": 0.09531017980432493,
+    "practical_pass": true,
+    "se": 0.020082572381346548
+  },
+  "product_integration_candidate": false,
+  "pseudo": {
+    "expansion_fraction": 0.6108854589764419,
+    "mean": 0.19157061840079948,
+    "median": 0.14814185178074374,
+    "n": 1231,
+    "p25": -0.17926425623168016,
+    "p75": 0.5187406479528662,
+    "rv_post_mean": 0.0025730523018641692,
+    "rv_post_median": 0.0020099595201089394,
+    "rv_pre_mean": 0.002037110270133123,
+    "rv_pre_median": 0.001681955328856182
+  },
+  "pseudo_legitimate": 1962,
+  "real": {
+    "expansion_fraction": 0.6953696181965882,
+    "mean": 0.2983737139667184,
+    "median": 0.24547276563960388,
+    "n": 1231,
+    "p25": -0.09170169686297164,
+    "p75": 0.643198137348666,
+    "rv_post_mean": 0.0029002385797310677,
+    "rv_post_median": 0.002216737073970724,
+    "rv_pre_mean": 0.0020818430051021204,
+    "rv_pre_median": 0.0016583651742509316
+  },
+  "real_legitimate": 1919,
+  "routing": "LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT",
+  "sides": [
+    {
+      "delta": 0.13400586035012252,
+      "multiplicative_pct": 14.33995203465317,
+      "n": 690,
+      "name": "resistance"
+    },
+    {
+      "delta": 0.07210825693172215,
+      "multiplicative_pct": 7.477168925149358,
+      "n": 541,
+      "name": "support"
+    }
+  ],
+  "stability": {
+    "failed": [],
+    "family": {
+      "contradiction": false,
+      "day_estimable": true,
+      "pass": true,
+      "week_estimable": true
+    },
+    "loyo": {
+      "n_checked": 5,
+      "pass": true
+    },
+    "side": {
+      "contradiction": false,
+      "pass": true
+    },
+    "years": {
+      "n_eligible": 5,
+      "n_matched": 5,
+      "n_opposite": 0,
+      "pass": true
+    }
+  },
+  "successor_candidate": "NONE",
+  "unit": "LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1",
+  "usable_gate": {
+    "eligible_years": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "n_pairs": 1231,
+    "n_weeks": 254,
+    "pass": true,
+    "years_eligible": 5
+  },
+  "usable_pairs": 1231,
+  "weeks": 254,
+  "years": [
+    {
+      "delta": 0.15641716775819517,
+      "multiplicative_pct": 16.931390141566773,
+      "n": 242,
+      "name": "2020"
+    },
+    {
+      "delta": 0.11375489127555431,
+      "multiplicative_pct": 12.047745242408613,
+      "n": 334,
+      "name": "2021"
+    },
+    {
+      "delta": 0.001024335530271837,
+      "multiplicative_pct": 0.10248603410900614,
+      "n": 258,
+      "name": "2022"
+    },
+    {
+      "delta": 0.16141428741319722,
+      "multiplicative_pct": 17.517172683282144,
+      "n": 181,
+      "name": "2023"
+    },
+    {
+      "delta": 0.12105211930337514,
+      "multiplicative_pct": 12.868373704448576,
+      "n": 216,
+      "name": "2024"
+    }
+  ],
+  "zero_rv": {
+    "pairs_dropped": 0,
+    "path_complete_pairs": 1231,
+    "pseudo_nonpositive_rv": 0,
+    "real_nonpositive_rv": 0
+  }
+}

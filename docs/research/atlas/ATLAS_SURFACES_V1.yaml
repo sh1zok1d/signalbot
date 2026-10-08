@@ -40,6 +40,21 @@ datasets:
     exposure:
       - {period: 2020-2024, scope: ALL, status: EXPOSED, note: "Historically exposed program surface (H01-H05, B2, D1-D12, MARKET-01/02/05, R03, G01, GV0 cards). Discovery only, with time-disjoint replication."}
       - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "DH1-L2 one-shot discovery (confluent vs lone level -> 4h hold), 2026-10-04"}
+      - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-TOUCH-DEGRADATION-V1 one-shot (independent touch ordinal of ex-ante PDH/PDL/PWH/PWL/PMH/PML -> 4h BREAK_FIRST), 2026-10-07; outcomes read on a surface already consumed by DH1-L2; not a confirmation"}
+      - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-REJECTION-MEMORY-V1 one-shot (prior REJECT_FIRST speed -> next independent touch 4h BREAK_FIRST), 2026-10-07; further exposure of the same level row, not a confirmation of LEVEL-TOUCH-DEGRADATION-V1"}
+      - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-APPROACH-STATE-DISCOVERY-V1 one-shot (price-only approach state -> 4h BREAK/REJECT/NEITHER), 2026-10-07; OHLC plus quote volume; further exposure of the same level row, not a confirmation of LEVEL-TOUCH-DEGRADATION-V1 or LEVEL-REJECTION-MEMORY-V1"}
+      - {period: 2020-2024, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-STRUCTURE-DISCOVERY-V1 one-shot (structural metadata -> 4h BREAK/REJECT/NEITHER, real minus rotated price), 2026-10-07; OHLC plus source-period quote volume; further exposure of the same level row, not a confirmation of LEVEL-TOUCH-DEGRADATION-V1, LEVEL-REJECTION-MEMORY-V1 or LEVEL-APPROACH-STATE-DISCOVERY-V1"}
+      - {period: 2020-09..2024-12, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-POSITIONING-FLOW-DISCOVERY-V1 one-shot (pre-touch taker quote imbalance and OI change -> first-touch RESOLVE_4H and BREAK_GIVEN_RESOLVED), 2026-10-07; quote volume and taker-buy quote on complete bars ending at or before T; further exposure of the same level row, not a confirmation"}
+      - {period: 2020-09..2024-12, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1 one-shot (outcome-blind joint state of OI, taker flow and approach-oriented price progress -> first-touch resolution), 2026-10-07; further exposure, not a confirmation and not a reopen of FLOW.absorption"}
+      - {period: 2023-01-01T02:00Z..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-LIQUIDITY-STATE-DISCOVERY-V1 one-shot (local ±1% book state immediately before a structural first touch -> RESOLVE_4H and BREAK_GIVEN_RESOLVED), 2026-10-07; further exposure of the level row, discovery only, not a confirmation"}
+      - {period: 2020-09-01T00:05Z..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1 one-shot (15m post-touch price, activity and taker reaction on events still unresolved at T+15m -> remaining 4h barrier passage), 2026-10-07; further exposure, not a confirmation and not a reopen of PRICE_STRUCTURE.breakout"}
+      - {period: 2020-02-01T00:00Z..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1 one-shot (15m close-path memory conditional on END_POSITION_X, among structural first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; price OHLC only; further exposure, not a confirmation and not a reopen of PRICE_STRUCTURE.breakout"}
+      - {period: 2020-04-01T00:05Z..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1 one-shot (other linear-perpetual 15m reaction conditional on END_POSITION_X, among structural first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; Binance OHLC is the structural reference only; further exposure, not a confirmation and not a reopen of MARKET-06 or CROSS_VENUE_REGION.venue_disagreement"}
+      - {period: 2020-04-01T00:05Z..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1 one-shot (Binance spot 15m reaction conditional on END_POSITION_X and the other-perp median move, among structural first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; Binance OHLC and taker-buy quote on the three reaction bars; further exposure, not a confirmation and not a reopen of SPOT_PERP.spot_confirmation"}
+      - {period: 2020-02-01..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1 one-shot (time from a structural first touch to the first BREAK, REJECT, or AMBIGUOUS barrier bar, real versus half-rotation pseudo, restricted mean unresolved time over 240m), 2026-10-08; price OHLC only; further exposure, not a confirmation of the BitMEX resolution rate and not a reopen of GV0R01-C024"}
+      - {period: 2020-02-01..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-BREAK-REJECT-SEQUENCE-DISCOVERY-V1 one-shot (after the first one-sided #352 barrier, whether the opposite barrier is reached inside the same 4h event, real versus half-rotation pseudo), 2026-10-08; price OHLC only; first-event labels were already exposed; further exposure, not a confirmation and not a reopen of H02 or PRICE_STRUCTURE.breakout"}
+      - {period: 2020-04-01T00:05Z..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1 one-shot (unsigned executed notional inside the frozen structural zone during the first 15m, conditional on END_POSITION_X and the other-perp median move, among first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; structural OHLC is the level reference only; further exposure, not a confirmation and not a reopen of FLOW.taker_imbalance or FLOW.absorption"}
+      - {period: 2020-02-01..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1 one-shot (paired log ratio of 60m realized volatility after versus before a structural first touch, real versus half-rotation pseudo, touch bar excluded), 2026-10-08; price closes only; further exposure, not a confirmation and not a reopen of H01, B2-01, or DH3-V2"}
       - {period: 2020-2024, rows: [CALENDAR.month_boundary], status: EXPOSED, note: "TOM-BASELINE-V1 product-evidence run (turn-of-month vs mid-month label rates and day-level volume / trade count / range), 2026-10-06; first turn-of-month contrast computed on this surface"}
     records: [docs/research_data/CORE_BTC_BINANCE_V0]
   - id: BINANCE_UM_KLINES_5M_PRODUCT
@@ -90,9 +105,11 @@ datasets:
     venue: Binance USD-M
     instrument: BTCUSDT perpetual
     data: raw trades / aggTrades (tick, aggressor side)
-    coverage: official archive from 2020 (not materialized)
+    coverage: official archive from 2020 (raw archive not materialized in git)
     availability: ACQUIRABLE
-    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+    exposure:
+      - {period: 2020-03..2024-12, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1 read Binance USD-M BTCUSDT aggTrades only for event-level unsigned quote notional inside frozen structural zones; March 2020 is pre-touch lookback; aggressor side not used; raw zips deleted after checksum verification; 58 months; no 2025/2026 object"}
+    records: [docs/HISTORICAL_DATA_STRATEGY.md, docs/research_data/LEVEL_ZONE_TRADES_V0]
   # ---- positioning ----------------------------------------------------------------------------------
   - id: B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0
     col: POSITIONING
@@ -103,6 +120,9 @@ datasets:
     availability: PINNED
     exposure:
       - {period: 2020-09..2024-12, rows: [DERIVATIVES.oi_buildup], status: CONSUMED, note: "MARKET-01/02 used the OI half; B2-06 science never run; funding never used (publication latency unproven)"}
+      - {period: 2020-09..2024-12, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-POSITIONING-FLOW-DISCOVERY-V1 read sum_open_interest only, as a covariate of first-touch resolution type, not as an oi_buildup continuation; funding.jsonl never opened; B2-06 crowding remains unauthorized; research_authorized remains false"}
+      - {period: 2020-09..2024-12, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1 read sum_open_interest only, as one coordinate of an outcome-blind first-touch state; funding.jsonl never opened; B2-06 crowding remains unauthorized"}
+      - {period: 2020-09-01T00:05Z..2024-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1 read sum_open_interest only, as the 15m change between the legal prints at T and at T+15m; funding.jsonl never opened; B2-06 crowding remains unauthorized"}
     records: [docs/research_data/B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0, docs/research/B2_06_LEVERAGE_CROWDING_DATA_EXPANSION.md]
   - id: BINANCE_UM_OI_METRICS_PRODUCT
     col: POSITIONING
@@ -213,7 +233,11 @@ datasets:
     data: tick trades (2021-09+), funding (2022-03+), L2 order book (2023-03+), OHLC
     coverage: see data
     availability: ACQUIRABLE
-    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+    exposure:
+      - {period: 2020-04-01T00:00Z..2024-12-31T23:55Z, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1: OKX BTC-USDT-SWAP linear perpetual 5m history-candles, confirm=1, 499968 bars, zero gaps; not OKX spot and not the MARKET-06 spot dataset; canonical SHA256 b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8"}
+      - {period: 2020-04-01T00:00Z..2024-12-31T23:55Z, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1: same pinned OKX BTC-USDT-SWAP series reused as the cross-perp control, not reminted and not OKX spot; not a confirmation of LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1"}
+      - {period: 2020-04-01T00:00Z..2024-12-31T23:55Z, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1: same pinned OKX BTC-USDT-SWAP series reused as the cross-perp control, not reminted and not OKX spot; not a confirmation of LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1"}
+    records: [docs/HISTORICAL_DATA_STRATEGY.md, docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0]
   - id: VENDOR_L2_ORDER_BOOK
     col: ORDER_BOOK
     venue: vendor (Tardis incremental L2)
@@ -263,6 +287,7 @@ datasets:
     availability: PINNED
     exposure:
       - {period: 2017-2024, rows: [SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: EXPOSED, note: "DH1 outcome-blind feasibility counted spot states at level touches and sharp moves (no outcome); B1 sign state degenerate (97.6 % agree)"}
+      - {period: 2020-04-01T00:00Z..2024-12-31T23:55Z, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1: Binance spot BTCUSDT 5m klines including taker-buy quote, months 2020-04..2024-12 only, 355 missing bars left missing; post-touch reaction on structural first touches; 2017-2019 months not read; not a reopen of SPOT_PERP.spot_confirmation, volume_share, or lead_lag"}
     records: [docs/research_data/DH1_BINANCE_SPOT_BTCUSDT_5M_V0, docs/research/DH1_FEASIBILITY.md]
   - id: DH1_BITMEX_XBTUSD_TRADES_5M_V0
     col: PERP_FLOW
@@ -274,6 +299,8 @@ datasets:
     availability: PINNED
     exposure:
       - {period: 2017-2019, rows: [PRICE_STRUCTURE.levels, SPOT_PERP.spot_confirmation, SPOT_PERP.volume_share], status: EXPOSED, note: "DH1 replication-surface feasibility counted events and states only; no outcome read (nothing reached replication)"}
+      - {period: 2017-09-01..2019-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1 read RESOLVED_WITHIN_4H on matched real versus half-rotation pseudo first touches"}
+      - {period: 2017-09-01..2019-12-31, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1 read the paired 60m close RV transition log(RV_POST/RV_PRE) on matched structural first touches; exact estimand unread before this run; neighboring 4h high/low path already consumed by LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1; TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION; not a reopen of RESOLVED_WITHIN_4H; not pristine"}
     records: [docs/research_data/DH1_BITMEX_XBTUSD_TRADES_5M_V0, docs/research/DH1_FEASIBILITY.md]
   - id: DH2_BINANCE_UM_ALTS_5M_V0
     col: CROSS_ASSET
@@ -317,6 +344,7 @@ datasets:
     availability: PINNED
     exposure:
       - {period: 2023-2024, rows: [MICROSTRUCTURE], status: CONSUMED, note: "DH3-L one-shot discovery (thin book, ±1 % imbalance, book recovery)"}
+      - {period: 2023-2024, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-LIQUIDITY-STATE-DISCOVERY-V1 read ±1% bid and ask notional at structural first touches; DISCOVERY_ONLY; not a reopen of DH3-L1/L2/L3 or of the SEED-0001 ±5% support state"}
     records: [docs/research_data/DH3_BINANCE_UM_BOOKDEPTH_V0, docs/research/DH3_RESULT.md]
   - id: DH3_DERIBIT_DVOL_1H_V0
     col: OPTIONS
@@ -359,7 +387,11 @@ datasets:
     data: public klines (1m+), funding history
     coverage: klines verified from 2020-04
     availability: ACQUIRABLE
-    records: [docs/HISTORICAL_DATA_STRATEGY.md]
+    exposure:
+      - {period: 2020-03-31T21:00Z..2024-12-31T20:55Z, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1: Bybit BTCUSDT linear perpetual public MT4 5m closes, label clock UTC+3 shifted to UTC, 476254 bars; 23714 bars missing in four public-file holes and left missing; no 2025/2026 object fetched; canonical SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c"}
+      - {period: 2020-03-31T21:00Z..2024-12-31T20:55Z, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1: same pinned Bybit linear series reused as the cross-perp control, not reminted; holes left missing; not a confirmation of LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1"}
+      - {period: 2020-03-31T21:00Z..2024-12-31T20:55Z, rows: [PRICE_STRUCTURE.levels], status: CONSUMED, note: "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1: same pinned Bybit linear series reused as the cross-perp control, not reminted; holes left missing; not a confirmation of LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1"}
+    records: [docs/HISTORICAL_DATA_STRATEGY.md, docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0]
   - id: STAGE1_LIVE_KLINES_3VENUE
     col: CROSS_VENUE
     also_cols: [CANDLES, PERP_FLOW]
