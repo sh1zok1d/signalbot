@@ -212,12 +212,46 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 | `offered_at` | when the price was offered ([T(20), T(25)), `PRODUCT_FIRST` days 21–25; once to each ACTIVE participant, inactive ones included; never after `/stop`, `/delete_me` or a bot block — a `Forbidden:` failure with no later SENT delivery; owner decision 2026-10-08, #416) |
 | `paid_at` | when a real transfer arrived; empty if none |
 | `amount`, `currency` | of that transfer |
-| `refunded_at` | a refund within 30 days cancels the payment |
+| `refunded_at` | a refund within 30 days cancels the payment, whoever initiated it |
+| `refund_reason` | `request` (the participant asked) or `our_side` (we cancelled the start or closed the service) |
 
 - **Never stored:** bank or card details, screenshots, the payer's real name, payment-reference text, unless operationally unavoidable.
 - **What counts as payment.** A willingness statement, a promise or a "would pay" is **not** a payment. Only a row with `paid_at` and no `refunded_at` within 30 days counts.
-- **What is paid for** (owner, 2026-10-08): one month of the same bot after the beta. **Start** (owner, 2026-10-08): the paid month starts at the **actual** end of the free test, extension included: T(30) without an extension, T(44) with one; the prepayment buys one full calendar month from that start. **Access:** the bot as it is (BTC, all current functions). The offer text says in advance that an extension is possible and moves the start (#416). No continuation means a full refund on the offered terms. The amount, currency and method come later; the offer is not sent before then (`/admin_offer` refuses while `access.u3_offer` is empty).
+- **What is paid for** (owner, 2026-10-08): one month of the same bot after the beta. **Start** (owner, 2026-10-08): the paid month starts at the **actual** end of the free test, extension included: T(30) without an extension, T(44) with one; the prepayment buys one full calendar month from that start. **Access:** the bot as it is (BTC, all current functions). The offer text says in advance that an extension is possible and moves the start (#416). The amount, currency and method come later; the offer is not sent before then (`/admin_offer` refuses while `access.u3_offer` is empty).
+- **Refund terms** (owner, 2026-10-08), stated in the offer text:
+  - the continuation does not start on the announced date → a full refund by default; the payment moves to a later start only with the participant's consent;
+  - access stops before the end of the first paid month → a full refund;
+  - a refund on request within 30 days of payment stays;
+  - a short technical outage is not a closure of the service.
+- **Paid access** (OUT-9, owner-approved 2026-10-08):
+  - **What.** The same BTC bot in Telegram. On request: `/btc`, `/levels`, `/risk`, `/check` (one or two levels), `/events`, `/accuracy`, `/history`, `/catchup`, `/research`, `/alert` personal price alerts. Scheduled: the morning briefing at the participant's own time and the Sunday weekly report. Notifications: unusual hour, level touch, event, sharp move. Also 👍/👎 votes, `/feedback`, ideas, and team replies to the participant's own messages.
+  - **Limits.** The same as in the beta (the table below). The shared fuse limits the number of events, not deliveries; delivery to each participant follows that participant's settings and personal limits. BTC only.
+  - **Duration.** One month from the actual end of the free test: T(30) or T(44).
+  - **Changes vs the beta.** No functional change. The test-only mechanics stop (the U1a withdrawal days, the offer). Forecast-layer updates continue as dated, announced changes.
+  - **Refund terms.** As above.
+  - **Not included.** Other coins or markets; signals, entries, targets or any buy/sell instruction; trading automation or exchange keys; a guarantee of accuracy; personal advice; a web app or API; a promise of new features; a response-time guarantee for support.
+  - **Still open.** The amount, currency and method.
+- **Daily limits** (OUT-10, owner-accepted 2026-10-08), in the beta and in paid access. Every limit is on the participant's own day.
+
+  | Message | Limit | Quiet hours |
+  |---|---|---|
+  | Unusual hour | 2 a day | yes |
+  | Level touch and sharp move | 4 a day, shared | yes |
+  | CPI / FOMC event notice | no daily cap | yes |
+  | Personal `/alert` touch / approach | no cap | **no: may arrive during quiet hours** |
+  | Morning briefing | one a day, at the participant's time | — |
+  | Weekly report | Sunday 19:00 local | — |
+  | Replies to the participant's own messages | not counted | — |
+
+  - **Fuses.** The safety fuses (4 push decisions and 8 level+move decisions per UTC day, `config/beta_v0.yaml`) count unique decisions. Each decision is delivered to every eligible participant, so participant growth never exhausts them.
 - **PASS** (owner, 2026-10-08): with P = unknown enrolled participants who paid and were not refunded within 30 days, and E = **every enrolled unknown participant, including those not offered** (§1.3), U3 PASS ⇔ P ≥ 3 AND P / E ≥ 25 %.
+- **Refunds** (owner amendment, 2026-10-08). The rule stays: **any** refund within 30 days of payment removes that payment from P, whoever initiated it. Reported separately, beside PASS:
+  1. initial voluntary payments: count and share of E;
+  2. refunds at the participant's request;
+  3. refunds because we cancelled the start or closed the service;
+  4. payments with no refund after 30 days: the main U3.
+
+  If we did not provide the continuation, the report states that sustained paid demand could not be tested, for a reason on our side. The initial payments stay as evidence of willingness to buy and never turn U3 into a PASS. The ledger records each refund's reason (`refund_reason`: `request` / `our_side`).
 - **The funnel, reported beside it:** enrolled → offer allowed (ACTIVE, not blocked) → delivered → paid → refunded.
 
 ## 8. Privacy
