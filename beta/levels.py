@@ -595,3 +595,191 @@ def distance_reaction(stats: Optional[Mapping[str, Any]], distance_pct: float) -
     if not cells:
         return None
     return min(cells, key=lambda c: abs(math.log(float(c["distance_pct"]) / d)))
+
+
+# ---- structural first touches (the forecast layer's event; FORECAST_LAYER_DECISION_V1 §3) -----------
+# One detector: this is the #352 constructor (scripts/research/level_touch_degradation_v1/events.py,
+# `level_instances` → `build_episodes` → touch 1 of `scan_episode`) on the product period rules above.
+# tests/beta/test_level_race_parity.py pins it to that constructor. Bars, levels and touches only:
+# no outcome is read here.
+STRUCTURAL_VERSION = "BETA_STRUCTURAL_TOUCH_V1"
+STRUCT_PRIORITY = {k: i for i, k in enumerate(("PMH", "PML", "PWH", "PWL", "PDH", "PDL"))}
+STRUCT_SIDE = {"PMH": 1, "PWH": 1, "PDH": 1, "PML": -1, "PWL": -1, "PDL": -1}
+STRUCT_FAMILY = {"D": "DAY", "W": "WEEK", "M": "MONTH"}
+STRUCT_ZONE_HALF = ZONE_TOL_PCT / 100.0          # #352 primary zone half-width and birth-merge tolerance
+RACE_SIGMA_BARS = 288                             # 24h of 5m log returns ending at the bar before the touch
+RACE_SIGMA_MIN_PRESENT = 0.9
+RACE_CORRIDOR_Z = 1.2816
+RACE_BARS = 48                                    # the original 4h window, bars j+1 .. j+48
+RACE_BARRIER_FRACTION = 0.5
+RACE_X_MIN, RACE_X_MAX = 1e-8, 0.5
+T15_OFFSET_BARS = 2                               # T15 = close of bar j+2
+# A level can be absorbed only by an episode active at its birth, and an episode lasts at most a calendar
+# month: an episode born less than this after the tape's first bar may have lost a host that started
+# before the tape. Its event is flagged WINDOW_TOO_SHORT, never silently kept (the live tape is 70 days).
+ABSORPTION_LOOKBACK_MS = 32 * 86_400_000
+
+
+def sigma_at(close: np.ndarray, j: int, *, window: int = RACE_SIGMA_BARS,
+             min_frac: float = RACE_SIGMA_MIN_PRESENT) -> float:
+    """The std (ddof 1) of the 5m log returns r[j-window .. j-1] (r[k] = log c[k]/c[k-1]): the scale
+    known at the close of bar j-1, NaN when fewer than `min_frac` of them are finite. Computed from
+    those bars alone, so it does not depend on where the caller's tape starts (#352 takes DH1's
+    running sums over its whole surface; the two agree to rounding)."""
+    if j - window < 0 or j > close.shape[0]:
+        return math.nan
+    seg = np.asarray(close[j - window - 1:j] if j > window else np.r_[np.nan, close[:j]], dtype=float)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        r = np.log(seg[1:] / seg[:-1])
+    r = r[np.isfinite(r)]
+    if r.size < min_frac * window or r.size < 2:
+        return math.nan
+    return float(np.std(r, ddof=1))
+
+
+def race_x(sigma: float) -> float:
+    """The barrier distance (fraction): half the 80 % corridor half-width of the 4h window."""
+    return RACE_BARRIER_FRACTION * RACE_CORRIDOR_Z * float(sigma) * math.sqrt(RACE_BARS)
+
+
+def structural_levels(b: Bars, *, require_active_complete: bool = False) -> list:
+    """Previous-period highs and lows, each active over the next period only. The source period
+    must be complete under `_full_period`. #352 also drops a level whose ACTIVE period ends
+    incomplete; that is known only after the period, so it is only flagged (`active_complete`,
+    False while the period is still running). `require_active_complete` drops such levels before the
+    episodes are built, as #352 does on a closed surface: the history parity test only."""
+    keys = period_keys(b)
+    out = []
+    for name, pref, exp in (("day", "D", BARS_PER_DAY), ("week", "W", 7 * BARS_PER_DAY), ("month", "M", None)):
+        periods = _period_table(b, keys[name])
+        for p in range(1, len(periods)):
+            prev, cur = periods[p - 1], periods[p]
+            if prev["key"] != cur["key"] - 1 or not _full_period(prev, exp):
+                continue
+            if require_active_complete and not _full_period(cur, exp):
+                continue
+            for kind, price in ((f"P{pref}H", prev["high"]), (f"P{pref}L", prev["low"])):
+                if not math.isfinite(price) or price <= 0 or not math.isfinite(cur["open"]):
+                    continue
+                out.append({"kind": kind, "family": STRUCT_FAMILY[pref], "struct_side": STRUCT_SIDE[kind],
+                            "price": float(price), "i0": int(cur["first"]), "i1": int(cur["last"]),
+                            "source_key": int(prev["key"]), "active_complete": _full_period(cur, exp)})
+    return out
+
+
+def _near_rel(a: float, c: float, tol: float) -> bool:
+    lo, hi = (a, c) if a < c else (c, a)
+    return lo > 0 and (hi - lo) / lo <= tol
+
+
+def structural_episodes(b: Bars, levels: Optional[Sequence[Mapping]] = None, *,
+                        zone_half: float = STRUCT_ZONE_HALF) -> list:
+    """One episode per confluence zone, fixed at birth: levels born together chain-merge within
+    `zone_half`; a level born later inside an active zone (or within `zone_half` of its anchor) is
+    absorbed and gets no touch of its own. The anchor is the most important member."""
+    levels = structural_levels(b) if levels is None else levels
+    born: dict = {}
+    for lv in levels:
+        born.setdefault(int(lv["i0"]), []).append(lv)
+    episodes: list = []
+    for i0 in sorted(born):
+        active = [ep for ep in episodes if ep["i0"] < i0 <= ep["i1"]]
+        free = []
+        for lv in born[i0]:
+            hosts = [ep for ep in active if ep["zone_low"] <= lv["price"] <= ep["zone_high"]
+                     or _near_rel(lv["price"], ep["anchor_price"], zone_half)]
+            if hosts:
+                host = min(hosts, key=lambda ep: (ep["priority"], abs(ep["anchor_price"] - lv["price"])))
+                host["absorbed_later"].append(lv["kind"])
+            else:
+                free.append(lv)
+        free.sort(key=lambda r: (r["price"], STRUCT_PRIORITY[r["kind"]], r["kind"]))
+        clusters: list = []
+        for lv in free:
+            if clusters and _near_rel(lv["price"], clusters[-1][-1]["price"], zone_half):
+                clusters[-1].append(lv)
+            else:
+                clusters.append([lv])
+        for cl in clusters:
+            anchor = min(cl, key=lambda r: (STRUCT_PRIORITY[r["kind"]], r["price"], r["kind"]))
+            zlo = min(r["price"] for r in cl) * (1.0 - zone_half)
+            zhi = max(r["price"] for r in cl) * (1.0 + zone_half)
+            if not (zlo > 0 and zhi > zlo):
+                continue
+            active_open_ms = int(b.t0 + anchor["i0"] * BAR_MS)
+            episodes.append({"event_id": f"{anchor['kind']}:{anchor['source_key']}:{active_open_ms}",
+                             "kind": anchor["kind"], "family": anchor["family"],
+                             "struct_side": anchor["struct_side"], "priority": STRUCT_PRIORITY[anchor["kind"]],
+                             "anchor_price": anchor["price"], "zone_low": float(zlo), "zone_high": float(zhi),
+                             "i0": anchor["i0"], "i1": anchor["i1"], "source_key": anchor["source_key"],
+                             "active_open_ms": active_open_ms, "member_kinds": [r["kind"] for r in cl],
+                             "active_complete": bool(anchor["active_complete"]), "absorbed_later": []})
+    return episodes
+
+
+def _hits(b: Bars, j: int, zlo: float, zhi: float) -> bool:
+    hi, lo = b.high[j], b.low[j]
+    return bool(np.isfinite(hi) and np.isfinite(lo) and hi >= zlo and lo <= zhi)
+
+
+def _approach_side(b: Bars, j: int, i0: int, zlo: float, zhi: float) -> int:
+    """+1 from below (the far barrier is above), -1 from above, 0 unknown; bars before j only."""
+    for k in range(j - 1, i0 - 1, -1):
+        if np.isfinite(b.high[k]) and np.isfinite(b.low[k]) and not _hits(b, k, zlo, zhi):
+            c = b.close[k]
+            if np.isfinite(c) and c < zlo:
+                return 1
+            if np.isfinite(c) and c > zhi:
+                return -1
+    if j > 0 and np.isfinite(b.close[j - 1]):
+        c = float(b.close[j - 1])
+        if c < zlo:
+            return 1
+        if c > zhi:
+            return -1
+        return 1 if c <= 0.5 * (zlo + zhi) else -1
+    if not np.isfinite(b.open[j]):
+        return 0
+    return 1 if float(b.open[j]) <= 0.5 * (zlo + zhi) else -1
+
+
+def structural_first_touches(b: Bars, *, zone_half: float = STRUCT_ZONE_HALF,
+                             sigma: Optional[np.ndarray] = None, require_active_complete: bool = False) -> list:
+    """Touch 1 of every structural episode in `b` (closed 5m bars only): the first bar of the
+    active period whose range meets the zone. Each carries its landmarks (T0 = close of the touch
+    bar, T15 = close of bar j+2), the approach side, the scale σ known before the touch, the barrier
+    distance X, the upper / lower barrier prices `p_up` / `p_dn` (the one source of the race geometry)
+    and the same two as BREAK / REJECT (BREAK beyond the zone in the approach
+    direction, REJECT back beyond its near edge; internal names, never user words), and `eligible` with the reason when not. Whether the
+    4h window later has enough bars is an outcome-time question and is not decided here.
+    `sigma` replaces the scale per bar and `require_active_complete` applies the #352 closed-surface
+    drop (tests only)."""
+    out = []
+    levels = structural_levels(b, require_active_complete=require_active_complete)
+    for ep in structural_episodes(b, levels, zone_half=zone_half):
+        i0, i1 = ep["i0"], min(ep["i1"], b.n - 1)
+        j = next((k for k in range(i0, i1 + 1) if _hits(b, k, ep["zone_low"], ep["zone_high"])), None)
+        if j is None:
+            continue
+        s = sigma_at(b.close, j) if sigma is None else float(sigma[j])
+        x = race_x(s) if math.isfinite(s) else math.nan
+        usable = bool(math.isfinite(x) and RACE_X_MIN < x < RACE_X_MAX)
+        side = _approach_side(b, j, i0, ep["zone_low"], ep["zone_high"])
+        brk, rej = (ep["zone_high"] * (1.0 + x), ep["zone_low"] * (1.0 - x)) if side > 0 else \
+            (ep["zone_low"] * (1.0 - x), ep["zone_high"] * (1.0 + x))
+        touch_ms = int(b.t0 + j * BAR_MS)
+        reason = None if usable and side in (1, -1) else ("SIGMA_UNUSABLE" if not usable else "SIDE_UNKNOWN")
+        if ep["active_open_ms"] - b.t0 < ABSORPTION_LOOKBACK_MS:
+            reason = "WINDOW_TOO_SHORT"
+        out.append({**{k: v for k, v in ep.items() if k not in ("i0", "i1", "priority")},
+                    "version": STRUCTURAL_VERSION, "zone_half": float(zone_half), "j": int(j),
+                    "touch_open_ms": touch_ms, "t0_ms": touch_ms + BAR_MS,
+                    "t15_ms": touch_ms + (1 + T15_OFFSET_BARS) * BAR_MS,
+                    "window_end_ms": touch_ms + (1 + RACE_BARS) * BAR_MS, "side": int(side),
+                    "sigma": s if math.isfinite(s) else None, "x": x if math.isfinite(x) else None,
+                    "break_barrier": float(brk) if usable and side else None,
+                    "reject_barrier": float(rej) if usable and side else None,
+                    "p_up": float(ep["zone_high"] * (1.0 + x)) if usable else None,
+                    "p_dn": float(ep["zone_low"] * (1.0 - x)) if usable else None,
+                    "eligible": reason is None, "ineligible_reason": reason})
+    return out
