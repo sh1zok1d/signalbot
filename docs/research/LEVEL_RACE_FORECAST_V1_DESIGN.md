@@ -40,6 +40,7 @@ Authority: FORECAST_LAYER_DECISION_V1 §6a (owner, 2026-10-08: «Б вариан
 The model-state templates of §9 follow the same time rule.
 
 **Amendment of template and display before Day 0 (2026-10-08, architect; does not touch any outcome or the table).**
+- Shown difference = shown percentages: `d = printed_h − printed_b`, where printed values are the integer percentages summing to 100 (largest remainder); the interval ends are `diff_ci95_pp` rounded to integers (architect, 2026-10-08).
 - `LR_HIST_V1` shows, per outcome, `d = h − b` and the 95 % interval of `h − b` from the table (`diff_pp`, `diff_ci95_pp`), each rounded to an integer pp, instead of «±k п.п.». `LR_PUSH_HIST_V1` is unchanged (N only). `k_pp` stays in the table.
 - T15 visibility: the T15 line is visible from T15 until `{END}` while the race is unresolved. It is hidden once the race is resolved under `LEVEL_RACE_4H_V1` (a barrier reached on a closed bar from `j+3`) or once the current price is already beyond `P_UP` or `P_DN`. A hidden line never comes back (`beta.level_race.t15_visible`).
 

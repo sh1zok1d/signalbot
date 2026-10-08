@@ -173,9 +173,13 @@ def hist_line(table: Mapping[str, Any], *, landmark: str, kind: str, price: floa
     m = (lambda d: {"up": d["BEYOND"], "dn": d["BACK"], "neither": d["NEITHER"]}) if geo["beyond_is_up"] else \
         (lambda d: {"up": d["BACK"], "dn": d["BEYOND"], "neither": d["NEITHER"]})
     lo_hi = {o: [int(round(v[0])), int(round(v[1]))] for o, v in c["diff_ci95_pp"].items()}
-    d_pp = {o: int(round(v)) for o, v in c["diff_pp"].items()}
+    hm, bm = m(h), m(b)
+    printed_h, printed_b = percents(hm), percents(bm)
+    # The shown difference equals the shown percentages (architect, 2026-10-08).
+    d_pp = {o: printed_h[o] - printed_b[o] for o in ("up", "dn", "neither")}
     out.update({"template": TEMPLATES["full"], "push_template": TEMPLATES["push"],
-                "h": m(h), "b": m(b), "k_pp": m(k), "d_pp": m(d_pp), "ci95_pp": m(lo_hi), "weeks": c["weeks"]})
+                "h": hm, "b": bm, "printed_h": printed_h, "printed_b": printed_b, "k_pp": m(k),
+                "d_pp": d_pp, "ci95_pp": m(lo_hi), "weeks": c["weeks"]})
     return out
 
 

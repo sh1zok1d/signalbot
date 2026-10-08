@@ -86,7 +86,7 @@ def test_hist_line_carries_difference_and_interval():
     g = L.event_geometry(99850.0, 100150.0, 0.002, 1)
     line = L.hist_line(t, landmark="T0", kind="PDH", price=100000.0, geo=g, sigma=0.002)
     c = t["cells"]["T0|DAY|H"]
-    assert line["d_pp"]["up"] == round(c["diff_pp"]["BEYOND"])
+    assert line["d_pp"]["up"] == line["printed_h"]["up"] - line["printed_b"]["up"]
     assert line["ci95_pp"]["up"] == [round(c["diff_ci95_pp"]["BEYOND"][0]), round(c["diff_ci95_pp"]["BEYOND"][1])]
 
 
@@ -97,3 +97,20 @@ def test_t15_visibility_rule():
     assert not L.t15_visible([100.5], [99.5], 101.2, g, now_ms=1, end_ms=10)      # price beyond P_UP
     assert not L.t15_visible([100.5], [99.5], 100.0, g, now_ms=10, end_ms=10)     # window over
     assert not L.t15_visible([100.5], [99.5], 100.0, g, now_ms=1, end_ms=10, was_hidden=True)
+
+
+def test_shown_difference_equals_shown_percentages_when_rounding_diverges():
+    cell = {"n": 100, "weeks": 90, "h": {"BEYOND": 0.354, "BACK": 0.300, "NEITHER": 0.346},
+            "b": {"BEYOND": 0.365, "BACK": 0.290, "NEITHER": 0.345},
+            "diff_pp": {"BEYOND": -1.1, "BACK": 1.0, "NEITHER": 0.1},
+            "diff_ci95_pp": {"BEYOND": [-6.4, 4.4], "BACK": [-3.6, 5.5], "NEITHER": [-4.0, 4.2]},
+            "k_pp": {"BEYOND": 6, "BACK": 5, "NEITHER": 5}}
+    table = {"version": "T", "table_sha256": "x", "cells": {"T0|DAY|H": cell},
+             "ladder": {"T0|DAY|H": {"level": "CELL", "source": "T0|DAY|H"}}}
+    g = L.event_geometry(99850.0, 100150.0, 0.002, 1)
+    line = L.hist_line(table, landmark="T0", kind="PDH", price=100000.0, geo=g, sigma=0.002)
+    # printed 35 vs 37 (b rounds up by largest remainder) -> shown difference -2, not round(-1.1) = -1
+    assert line["printed_h"]["up"] - line["printed_b"]["up"] == line["d_pp"]["up"]
+    assert line["d_pp"]["up"] != round(cell["diff_pp"]["BEYOND"])
+    assert line["ci95_pp"]["up"] == [-6, 4]
+    assert sum(line["printed_h"].values()) == sum(line["printed_b"].values()) == 100
