@@ -43,17 +43,19 @@
 2. Classify the rows (§2) and print the before table.
 3. Add the qualifying old deletion rows to the counter.
 4. `DISABLE TRIGGER trg_beta_audit_append_only`.
-5. Reduce the deletion rows; strip the rows about deleted people.
+5. Reduce the deletion rows; strip the rows about deleted people; reduce a deleted person's actor fingerprint to the role.
 6. `ENABLE TRIGGER`.
 7. Print the after table, the counter and the trigger state (`O` = enabled).
 8. `COMMIT`.
+
+**Which path, on a database with #420's guard.** Block B **disables only the named trigger** (`trg_beta_audit_append_only`, whose function is `beta_audit_guard` since #420) for the length of its one transaction. It does not call the guarded path (`beta_audit_deidentify`): that path needs a deleted participant's fingerprints passed in from the deletion procedure, while the old rows are matched by the set rule of §2, and its deletion rows need the #420 minimal form, which the guard does not allow. The guard is enabled again before `COMMIT`, and after it the table is append-only exactly as #420 left it (v5 check: a `DELETE` is refused by `beta_audit_guard`).
 
 **Why it is safe:**
 - Only the named append-only trigger is disabled, never `session_replication_role`, which would disable every trigger and foreign key.
 - The ACCESS EXCLUSIVE lock holds to the end of the transaction, so no other session touches the table while the trigger is off.
 - `ON_ERROR_STOP` plus the single transaction mean any error rolls everything back, the `DISABLE` included.
 - It needs the table owner: `POSTGRES_USER` in the docker setup.
-- It is idempotent: a second run gives `UPDATE 0` twice and `INSERT 0 0`.
+- It is idempotent: a second run gives `UPDATE 0` three times and `INSERT 0 0`.
 
 **Tests.** `tests/beta/test_beta_audit_deidentify_pg.py` runs both files with `psql` on PostgreSQL 16 against representative rows from main and #418. It checks:
 - the count changes nothing;
