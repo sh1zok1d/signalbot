@@ -127,8 +127,19 @@ class SandboxConn:
                                           "created_at": created_at})
         return len(self._s.feedback_messages)
 
-    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str) -> None:
+    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str) -> bool:
+        """True when new or changed, as the store (review of #375: None read as «nothing new»)."""
+        changed = self._s.votes.get((user_pk, episode_pk)) != vote
         self._s.votes[(user_pk, episode_pk)] = vote
+        return changed
+
+    async def received_message(self, *, user_pk: int, kind: str, ref: int) -> bool:
+        return True                     # the simulated participant taps only what was shown to them
+
+    async def upsert_message_vote(self, *, user_pk: int, kind: str, ref: int, vote: str) -> bool:
+        changed = self._s.votes.get((user_pk, kind, ref)) != vote
+        self._s.votes[(user_pk, kind, ref)] = vote
+        return changed
 
     # ---- persisted /btc views (only those already shown to Role A) ----------------------
     async def fetch_btc_view(self, view_pk: int):

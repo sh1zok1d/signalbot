@@ -259,6 +259,8 @@ def format_check(block: Mapping[str, Any], stats: Optional[Mapping[str, Any]], l
     if note:
         lines.append(note)
     lines.extend(_context_lines(block, levels, (stats or {}).get("distance_reactions"), lang))
+    from .decision_format import race_lines
+    lines.extend(race_lines(block, lang, "check", check_levels=levels))
     lines.append(t(lang, "ck_footer_one" if len(levels) == 1 else "ck_footer_two"))
     return assert_descriptive("\n".join(lines), lang)
 

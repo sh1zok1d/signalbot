@@ -16,12 +16,16 @@ from common.versioning import canonical_json
 from .oi_asof import venue_oi_change_pct
 from .state_tape import BUCKET, iso, metric_key
 
-HORIZON_VERSION = "BETA_HORIZON_TOD_V3"
+HORIZON_VERSION = "BETA_HORIZON_TOD_V5"
 # Pinned to the canonical definition below. A change of parameters needs a new label.
 # V1 (4b84b794…) had no 4h block; V2 (f64700b7…) adds it with the same time-of-day baseline rule;
 # V3 (C1, docs/BETA_C1_DAY_TYPE_BASELINE_V1.md) uses same-UTC-day-type days for the 1h range and
-# volume baselines only.
-HORIZON_DIGEST = "140dc966cbeceb9e5bc37dc3534e8baf6738a30c0af5407c3fcc4dd2f03f9369"
+# volume baselines only. V4 (D3, docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md R4): the OI change of every
+# horizon needs at least `min_venues` venues, as the 1h context does. V5 (D3 R6, R7): the 24h volume is
+# complete only when every bucket has every venue's kline; the change lines record which checks ran.
+HORIZON_DIGEST = "bce6c03ef55dd50dc54b8ff846bc4a427de120a3cc806782045e970296ea25fa"
+# the versions whose 1h range / volume baselines follow the C1 same-day-type rule
+DAY_TYPE_VERSIONS = ("BETA_HORIZON_TOD_V3", "BETA_HORIZON_TOD_V4", "BETA_HORIZON_TOD_V5")
 
 _H1_BUCKETS = 12
 _H4_BUCKETS = 48
@@ -46,6 +50,11 @@ def horizon_definition() -> dict:
         "h24_price_range_min_buckets": _H24_PRICE_MIN,
         "h24_price_range_requires_first_and_last": True,
         "h24_volume_ratio_requires_every_bucket": True,
+        "h24_volume_complete_requires_every_venue": "no bucket where some configured venues carry a 5m kline "
+                                                    "close and others none; otherwise the volume is partial "
+                                                    "and no 24h baseline day (a venue without any 1m bar did "
+                                                    "not contribute; one with 1-4 bars, or a bucket with no "
+                                                    "venue's OHLC, is not detected)",
         "baseline_prior_utc_days": _PRIOR_DAYS,
         "baseline_1h_tolerance_min": _TOLERANCE_MIN,
         "baseline_1h": "median of rolling-1h samples whose window end is within "
@@ -76,12 +85,15 @@ def horizon_definition() -> dict:
             "same_oi_unit_and_contract_value": True,
             "change": "(end - start) / start",
             "aggregate": "median of venue percents",
+            "min_venues": "config min_venues; fewer venues: no change (never one venue's figure)",
             "never_usd_sum": True,
         },
         "liquidations": "per venue, never summed across venues; a missing per-venue "
                         "value is not zero; missing buckets mark every venue as a lower "
                         "bound; Binance is always a lower bound",
         "changes_vs_previous_24h": "ordered presentation rules from horizon_changes; at most 3 lines",
+        "changes_checked": "the rules whose inputs were present on both windows; 'none' is said only "
+                           "over these",
     }
 
 
@@ -232,7 +244,7 @@ def _oi_for(cfg, start: datetime, end: datetime, oi_by_boundary: Optional[Mappin
     for ex in cfg.exchanges:
         by[ex] = venue_oi_change_pct(start_map.get(ex), end_map.get(ex))
     vals = [v for v in by.values() if v is not None]
-    return {"oi_change_pct": _median(vals) if vals else None, "oi_by_venue": by}
+    return {"oi_change_pct": _median(vals) if len(vals) >= max(1, int(cfg.min_venues)) else None, "oi_by_venue": by}
 
 
 def span_min_present(n: int) -> int:
@@ -265,13 +277,17 @@ def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_b
     price_window = present >= min_present and ends_ok
     vols = []
     volume_gap = False
+    venue_gap = False                      # a bucket summed from fewer than every venue (D3, R7)
     for row in rows:
         if row is None or row.get("c:volume_notional_usd_sum") is None:
             volume_gap = True
             continue
         vols.append(float(row["c:volume_notional_usd_sum"]))
+        k = sum(row.get(metric_key(ex, "kline_close")) is not None for ex in cfg.exchanges)
+        if 0 < k < len(cfg.exchanges):     # some venues there, others not; all-NULL OHLC says nothing of volume
+            venue_gap = True
     volume = float(math.fsum(vols)) if vols else None
-    volume_complete = (not volume_gap) and present == n and len(vols) == n
+    volume_complete = (not volume_gap) and (not venue_gap) and present == n and len(vols) == n
     ranges, moves, highs, lows, opens, closes = [], [], [], [], [], []
     if price_window:
         last = len(rows) - 1
@@ -309,6 +325,7 @@ def rolling_24h_values(cfg, metrics_by_bucket: Mapping[datetime, Mapping], end_b
         "price_complete": bool(price_window and enough),
         "volume_complete": bool(volume_complete),
         "volume_partial": bool(volume is not None and not volume_complete),
+        "volume_venue_gap": bool(venue_gap),
         "price_move_pct": _median(moves) if enough else None,
         "range_width_pct": _median(ranges) if enough else None,
         "high": _median(highs) if enough else None,
@@ -363,6 +380,22 @@ def select_changes(cfg, *, range_w, range_p, volume_w, volume_p, volume_w_comple
     return lines[:3]
 
 
+def changes_checked(*, range_w, range_p, volume_w, volume_p, volume_w_complete: bool, volume_p_complete: bool,
+                    price_w, oi_w, funding_now, funding_p) -> list:
+    """The `select_changes` rules whose inputs exist on both windows: «no large change» is said only over
+    these, and never when none could be computed (D3, R6)."""
+    out = []
+    if range_w is not None and range_p not in (None, 0):
+        out.append("range")
+    if volume_w_complete and volume_p_complete and volume_w is not None and volume_p not in (None, 0):
+        out.append("volume")
+    if oi_w is not None and price_w is not None:
+        out.append("oi_price")
+    if funding_now is not None and funding_p is not None:
+        out.append("funding")
+    return out
+
+
 def _empty_metric_baseline() -> dict:
     return {"days": {m: 0 for m in _METRICS}, "median": {m: None for m in _METRICS}}
 
@@ -393,8 +426,7 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
     prev_end = as_of_bucket - timedelta(hours=24)
     prev = rolling_24h_values(cfg, metrics_by_bucket, prev_end)
     prev_buckets = prev["buckets"]
-    changes = select_changes(
-        cfg,
+    change_inputs = dict(
         range_w=h24["range_width_pct"] if h24["price_complete"] else None,
         range_p=prev["range_width_pct"] if prev["price_complete"] else None,
         volume_w=h24["volume_notional_usd"],
@@ -406,6 +438,8 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
         funding_now=None if funding is None else float(funding),
         funding_p=_mean_present(prev_buckets, metrics_by_bucket, "c:funding_rate_median"),
     )
+    changes = select_changes(cfg, **change_inputs)
+    checked = changes_checked(**change_inputs)
     return {
         "version": HORIZON_VERSION,
         "digest": verify_horizon_digest(),
@@ -462,6 +496,7 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
                                     buckets_missing=h24["buckets_missing"]),
             },
             "changes": changes,
+            "changes_checked": checked,
         },
     }
 

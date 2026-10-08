@@ -215,3 +215,100 @@ def test_a_silent_okx_socket_gets_a_text_ping_and_pong_is_swallowed(monkeypatch)
     _loop_with(monkeypatch, [ws], c)
     _run(c.run_liquidations_forever())
     assert ws.sent[1:] == ["ping"] and [x.side for x in got] == ["short"]
+
+
+def test_the_okx_liquidation_channel_reports_alive_on_ack_push_and_pong_after_ack(monkeypatch):
+    """Architect, 2026-10-08: the collector's liveness marker. A pong before the ack proves only the
+    socket, not the channel; an error frame never marks it alive."""
+    got, cb = _collect()
+    alive = []
+
+    async def on_alive(ex, ts):
+        alive.append(ex)
+    cb.on_liquidation_feed_alive = on_alive
+    c = OKXClient("BTCUSDT", cb)
+    c._ct_val = 0.01
+    _run(c._liq_pong())                                              # before the ack: not alive
+    assert alive == []
+    _run(c._handle_liquidation_message({"event": "subscribe", "arg": {"channel": "liquidation-orders"}}))
+    _run(c._liq_pong())
+    _run(c._handle_liquidation_message(_okx_push([
+        {"posSide": "long", "side": "sell", "bkPx": "60000", "sz": "1", "ts": "1759900000000"}])))
+    assert alive == ["okx", "okx", "okx"]
+    with pytest.raises(okx_client.SubscribeRefused):
+        _run(c._handle_liquidation_message({"event": "error", "code": "60018", "msg": "x"}))
+    assert alive == ["okx", "okx", "okx"]
+
+
+class _BeatDB:
+    def __init__(self, fail_at=()):
+        self.written, self.pruned, self.calls, self.fail_at = [], [], 0, set(fail_at)
+
+    async def insert_liquidation_feed_heartbeat(self, ex, symbol, ts):
+        self.calls += 1
+        if self.calls in self.fail_at:
+            raise ConnectionError("db blip")
+        self.written.append(ts.timestamp())
+
+    async def prune_liquidation_feed_heartbeats(self, *, before):
+        self.pruned.append(before.timestamp())
+        return 0
+
+
+def _manager_callbacks(db):
+    from data_ingestion.manager import IngestionManager
+    mgr = IngestionManager.__new__(IngestionManager)
+    mgr.db, mgr.symbol, mgr.bar_builders = db, "BTCUSDT", {}
+    return mgr._make_callbacks("okx")
+
+
+def test_the_manager_writes_at_most_one_heartbeat_per_30_seconds_and_prunes_hourly():
+    """Review of #398: 30 s, so one lost row on a quiet socket (pong every 25 s) leaves ~100 s, inside
+    the beta's 150 s; rows older than 60 days are pruned at most once an hour."""
+    from data_ingestion.manager import HEARTBEAT_EVERY_S, HEARTBEAT_KEEP_DAYS
+    db = _BeatDB()
+    cb = _manager_callbacks(db)
+    for t in (100000.0, 100010.0, 100029.9, 100030.0, 100060.0, 103700.0):
+        _run(cb.on_liquidation_feed_alive("okx", t))
+    assert HEARTBEAT_EVERY_S == 30.0 and db.written == [100000.0, 100030.0, 100060.0, 103700.0]
+    assert db.pruned == [100000.0 - HEARTBEAT_KEEP_DAYS * 86400.0, 103700.0 - HEARTBEAT_KEEP_DAYS * 86400.0]
+
+
+def test_a_failed_heartbeat_insert_is_retried_on_the_next_signal():
+    """Review of #398: the throttle was set before the insert, so a DB blip silenced the marker for
+    a full window and made one or two NO_FEED buckets."""
+    db = _BeatDB(fail_at={1})
+    cb = _manager_callbacks(db)
+    with pytest.raises(ConnectionError):
+        _run(cb.on_liquidation_feed_alive("okx", 1000.0))
+    _run(cb.on_liquidation_feed_alive("okx", 1001.0))       # the next pong: written, not throttled
+    assert db.written == [1001.0]
+
+
+def test_a_failing_heartbeat_write_neither_escapes_the_push_nor_loses_its_liquidations(caplog):
+    """Architect, review of #398: the marker was awaited unguarded before the push's data, so one DB
+    blip on the heartbeat dropped that push's liquidations and tore the socket down."""
+    got, cb = _collect()
+    db = _BeatDB(fail_at={1})
+    cb.on_liquidation_feed_alive = _manager_callbacks(db).on_liquidation_feed_alive
+    c = OKXClient("BTCUSDT", cb)
+    c._ct_val = 0.01
+    c._liq_live = True
+    with caplog.at_level(logging.WARNING, logger=okx_client.logger.name):
+        _run(c._handle_liquidation_message(_okx_push([
+            {"posSide": "long", "side": "sell", "bkPx": "60000", "sz": "1", "ts": "1759900000000"}])))
+    assert [x.side for x in got] == ["long"] and db.written == []
+    assert "liveness marker not written" in caplog.text
+    _run(c._liq_pong())                                      # the next signal writes it (not throttled)
+    assert len(db.written) == 1
+
+
+def test_a_failing_heartbeat_prune_never_raises_into_the_socket_loop():
+    class _PruneFails(_BeatDB):
+        async def prune_liquidation_feed_heartbeats(self, *, before):
+            raise ConnectionError("db blip")
+    db = _PruneFails()
+    cb = _manager_callbacks(db)
+    _run(cb.on_liquidation_feed_alive("okx", 100000.0))      # no raise
+    _run(cb.on_liquidation_feed_alive("okx", 100030.0))
+    assert db.written == [100000.0, 100030.0]

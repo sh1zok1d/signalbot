@@ -27,16 +27,31 @@ def fresh_root_logging():
     pytest's handlers and every touched logger level afterwards. Used inside the
     test body: pytest attaches its capture handlers to root after fixture setup."""
     root = logging.getLogger()
-    saved_handlers, saved_level = root.handlers[:], root.level
-    saved_levels = {n: logging.getLogger(n).level for n in QUIETED}
+    saved_handlers, saved_level, saved_filters = root.handlers[:], root.level, root.filters[:]
+    loggers = {n: logging.getLogger(n) for n in QUIETED}
+    saved = {n: (lg.level, lg.disabled, lg.propagate, lg.filters[:], lg.handlers[:]) for n, lg in loggers.items()}
+    # Unconfigured, as under systemd: any earlier setup_logging() in the same pytest process (a CLI
+    # entry point under test) left httpx & co. at WARNING, which silenced the very line the control
+    # test needs to see. Reset them here, restore them after.
     root.handlers.clear()
+    root.filters.clear()
+    root.setLevel(logging.WARNING)
+    for lg in loggers.values():
+        lg.setLevel(logging.NOTSET)
+        lg.disabled, lg.propagate = False, True
+        lg.filters.clear()
+        lg.handlers.clear()
     try:
         yield root
     finally:
         root.handlers[:] = saved_handlers
+        root.filters[:] = saved_filters
         root.setLevel(saved_level)
-        for n, lvl in saved_levels.items():
-            logging.getLogger(n).setLevel(lvl)
+        for n, (lvl, disabled, propagate, filters, handlers) in saved.items():
+            lg = loggers[n]
+            lg.setLevel(lvl)
+            lg.disabled, lg.propagate = disabled, propagate
+            lg.filters[:], lg.handlers[:] = filters, handlers
 
 
 def _run_bot_main(monkeypatch):
@@ -119,3 +134,16 @@ def test_control_previous_basicconfig_leaked_the_token(capsys):
         _httpx_telegram_request()
         out = _emitted(capsys)
     assert "HTTP Request: POST" in out and FAKE_TOKEN in out
+
+
+def test_the_fixture_isolates_from_an_earlier_setup_logging(capsys):
+    """The control above must hold when another test in the same process already ran setup_logging(),
+    which leaves httpx & co. at WARNING (the order-dependent failure seen in the full tests/beta set)."""
+    quieted = {n: logging.getLogger(n).level for n in QUIETED}
+    for n in QUIETED:
+        logging.getLogger(n).setLevel(logging.WARNING)       # what setup_logging() leaves behind
+    try:
+        test_control_previous_basicconfig_leaked_the_token(capsys)
+    finally:
+        for n, lvl in quieted.items():
+            logging.getLogger(n).setLevel(lvl)

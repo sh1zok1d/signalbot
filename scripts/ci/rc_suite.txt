@@ -1,0 +1,19 @@
+# Release-candidate suite (docs/ORCHESTRATION_V1.md §4, §4a): once per deploy
+# step, on the exact SHA that will be deployed. Run in Actions:
+#   ci.yml, workflow_dispatch on main, inputs suite=rc, branch=<the SHA>.
+# Owned by ОПГ-1. One pytest target per line.
+tests/beta
+tests/deploy
+tests/data_ingestion
+tests/storage
+tests/common
+tests/runtime
+tests/notifications
+tests/analytics
+tests/audit
+tests/product
+tests/test_logging_setup.py
+tests/test_main_shadow_cli.py
+tests/test_main_startup_recovery.py
+tests/test_main_telegram_cli.py
+tests/test_telegram_isolation.py

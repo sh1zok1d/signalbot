@@ -90,7 +90,7 @@ def test_push_unusual_hour_inferred_label_matches_the_reference_message():
     base = ("<b>BTC · необычный час</b>\n13:05–14:05 (Киев)\n\n"
             "Похоже на снижение с новыми шортами\n"
             "Цена −1,90% (61 950 → 60 770): падение глубже, чем в 95% часовых окон за 30 дней\n"
-            "OI +2,4% · Delta −$84 млн\n"
+            "OI +2,4% (медиана бирж) · Delta −$84 млн\n"
             "Диапазон и объём — оба в топ-5% часовых окон за 30 дней\n"
             "Биржи: 3 из 3 в одну сторону")
     # research on the main surfaces is off by default (PRE_BETA_SCOPE_DECISION_V1 §6.1): no registry line
@@ -111,12 +111,12 @@ def test_push_factual_fallback_and_missing_delta_and_flush_lines():
     text = format_push(_episode(), lang="ru", gate=against)
     assert "Рост при снижении OI\n" in text
     assert "Цена +1,70% (60 300 → 61 330): рост сильнее, чем в 95% часовых окон за 30 дней" in text
-    assert "OI −1,8% · Delta −$22 млн — против направления цены, без интерпретации" in text
+    assert "OI −1,8% (медиана бирж) · Delta −$22 млн — против направления цены, без интерпретации" in text
     assert "Диапазон — в топ-5% часовых окон за 30 дней" in text and "оба" not in text
     nodelta = hg.evaluate_hour(CFG, _ctx(price=0.02, oi=0.1, taker=0.5, rng=0.97, vol=0.96, delta=None))
     nodelta["interpretation"]["inputs"]["taker"] = "MISSING"
     text = format_push(_episode(), lang="ru", gate=nodelta)
-    assert "Снижение при снижении OI\n" in text and "\nOI +2,4%\nDelta н/д — без неё не интерпретируем\n" in text
+    assert "Снижение при снижении OI\n" in text and "\nOI +2,4% (медиана бирж)\nDelta н/д — без неё не интерпретируем\n" in text
     ep = {"event_type": "LIQUIDATION_STRESS_SHORT", "triggered_at": iso(T + BUCKET), "opened_bucket": iso(T),
           "last_bucket": iso(T + 11 * BUCKET), "episode_id": "EV-2"}         # covers the decision bucket
     snap = {"rule_evaluations": {"LIQUIDATION_STRESS_SHORT": {"detail": {"voting": ["binance", "okx"],
@@ -167,11 +167,11 @@ def _interp(h, **kw):
 def test_brief_calm_night_matches_the_reference_message():
     m = _market(_interp("1h", price=0.5), _interp("4h", price=0.5))
     text = format_catchup(CFG, _view(m, kind="brief"), "ru", first_brief=True)
-    assert text == ("<b>BTC за ночь · 00:00–08:00 (Киев)</b>\n"
+    assert text == ("<b>Сводка BTC · 00:00–08:00 (Киев)</b>\n"
                     "Цена 61 420 → 61 880 (+0,75%), мин 61 210, макс 61 990\n"
                     "Необычных часов не было.\n\n"
                     "<b>Сейчас</b> · 1ч и 4ч: обычное состояние\n"            # one line when both agree (C2)
-                    "24ч: 60 950–62 300, цена ближе к верхней границе · OI +1,2% за 24ч · средний Funding 0,008% (платят лонги)\n\n"
+                    "24ч: 60 950–62 300, цена ближе к верхней границе · OI +1,2% за 24ч (медиана бирж) · средний Funding 0,008% (платят лонги)\n\n"
                     "Данные на 07:55 (Киев)\nОтключить утреннюю сводку: /brief off")
     assert_descriptive(text, "ru")
     assert "/brief off" not in format_catchup(CFG, _view(m, kind="brief"), "ru")          # only the first brief
@@ -226,10 +226,10 @@ def test_brief_with_a_night_hour_withheld_by_quiet_hours_and_push_off_sees_no_no
                 values={"4h": {"price_move_pct": -2.4, "oi_change_pct": -4.0, "taker_delta_notional_usd": -300e6}})
     text = format_catchup(CFG, _view(m, kind="brief"), "ru")
     assert ("Необычный час: 03:10–04:10 (Киев) — похоже на выход лонгов\n"
-            "Цена −2,1%, OI −3,4%, Delta −$120 млн\n"
+            "Цена −2,1%, OI −3,4% (медиана бирж), Delta −$120 млн\n"
             "Диапазон и объём — оба в топ-5% часовых окон за 30 дней\n"
             "Ночью с 23:00 до 07:00 бот не пишет, поэтому это только в сводке.") in text
-    assert "4ч: похоже на выход лонгов — цена −2,4%, OI −4,0%, Delta −$300 млн" in text
+    assert "4ч: похоже на выход лонгов — цена −2,4%, OI −4,0% (медиана бирж), Delta −$300 млн" in text
     assert len(_lines(text)) <= 15
     assert_descriptive(text, "ru")
     off = format_catchup(CFG, _view(m, kind="brief"), "ru", push_enabled=False)

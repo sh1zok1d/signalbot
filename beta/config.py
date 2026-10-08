@@ -55,10 +55,10 @@ _TOP_KEYS = frozenset({
     "market_type", "timeframe", "active_exchanges", "percentile_window",
     "min_venue_coverage", "max_state_age_s", "bucket_close_grace_s",
     "same_event_cooldown_min", "delivery_ttl_s", "max_new_pushes_per_utc_day",
-    "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
+    "push_decisions_fuse_per_utc_day", "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
     "horizon_changes", "access", "telemetry", "feedback", "regime_d7", "briefing",
-    "push_policy", "decision",
+    "push_policy", "decision", "level_race",
 })
 # deploy/signalbot-beta-notify.service TimeoutStartSec: no send may start after the budget (A5)
 NOTIFY_UNIT_TIMEOUT_S = 50
@@ -113,6 +113,7 @@ _HORIZON_CHANGES_KEYS = {"version", "range_wider_ratio", "range_narrower_ratio",
 
 # Join cap and activity retention. They never enter the rules digest.
 _ACCESS_KEYS = {"max_active_users"}
+_ACCESS_OPTIONAL = {"tiers_enforced", "u3_offer"}
 _TELEMETRY_KEYS = {"retention_days", "rejected_start_retention_days"}
 
 # /feedback limits. Presentation only. They never enter the rules digest.
@@ -135,8 +136,8 @@ _DECISION_KEYS = {"max_price_alerts", "forecast_tracking", "claim_journal", "mar
 # Weekly report (backlog B4). Presentation and delivery only.
 _WEEKLY_REPORT_KEYS = {"enabled", "weekday_kyiv", "time_kyiv", "max_delay_min"}
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
-_MARKET_ALERT_KEYS = {"enabled", "max_per_utc_day", "move_cooldown_min", "event_lead_min",
-                      "touch_max_age_min"}
+_MARKET_ALERT_KEYS = {"enabled", "max_per_utc_day", "decisions_fuse_per_utc_day", "move_cooldown_min",
+                      "event_lead_min", "touch_max_age_min"}
 # Research evidence (owner task 2026-10-04; docs/research/RESEARCH_EVIDENCE_INTEGRATION_V1.md):
 # live matching of closed research units and the read-only public feeds it needs. Presentation
 # only: never detection, push gating, corridors or touch probabilities. `enabled` is the
@@ -324,8 +325,10 @@ def _validate(d: Mapping[str, Any]) -> None:
     if d["min_venue_coverage"] > len(ex):
         raise BetaConfigError("min_venue_coverage exceeds active venue count")
     for key in ("max_state_age_s", "same_event_cooldown_min", "delivery_ttl_s",
-                "max_new_pushes_per_utc_day"):
+                "max_new_pushes_per_utc_day", "push_decisions_fuse_per_utc_day"):
         _int(d[key], key)
+    if d["push_decisions_fuse_per_utc_day"] < d["max_new_pushes_per_utc_day"]:
+        raise BetaConfigError("push_decisions_fuse_per_utc_day is a higher fuse than the per-recipient cap")
     _int(d["bucket_close_grace_s"], "bucket_close_grace_s", minimum=0)
     if d["bucket_close_grace_s"] >= 300:
         raise BetaConfigError("bucket_close_grace_s must be < 300")
@@ -376,6 +379,27 @@ def _validate(d: Mapping[str, Any]) -> None:
     _validate_briefing(d)
     _validate_push_policy(d)
     _validate_decision(d)
+    _validate_level_race(d)
+
+
+# Level race at structural first touches (FORECAST_LAYER_DECISION_V1 §6a; beta/level_race_live.py).
+_LEVEL_RACE_KEYS = {"journal_enabled", "display_enabled", "model_states_enabled", "push_trigger"}
+
+
+def _validate_level_race(d: Mapping[str, Any]) -> None:
+    x = d["level_race"]
+    _exact_keys(x, _LEVEL_RACE_KEYS, "level_race")
+    for key in ("journal_enabled", "display_enabled", "model_states_enabled"):
+        _bool(x[key], f"level_race.{key}")
+    if x["push_trigger"] not in ("legacy", "structural"):
+        raise BetaConfigError("level_race.push_trigger must be legacy or structural")
+    if x["push_trigger"] == "structural" and int(d["decision"]["market_alerts"]["touch_max_age_min"]) > 10:
+        # the T0 record is written within 10 min of the landmark (level_race_live.WRITE_WINDOW_MS): a later push
+        # could never carry its line
+        raise BetaConfigError("level_race.push_trigger structural needs decision.market_alerts.touch_max_age_min <= 10")
+    if x["display_enabled"] and not (x["journal_enabled"] and d["decision"]["claim_journal"]):
+        raise BetaConfigError("level_race.display_enabled needs level_race.journal_enabled and decision.claim_journal: "
+                              "every shown line must have its journal record")
 
 
 def _validate_decision(d: Mapping[str, Any]) -> None:
@@ -388,8 +412,11 @@ def _validate_decision(d: Mapping[str, Any]) -> None:
     m = x["market_alerts"]
     _exact_keys(m, _MARKET_ALERT_KEYS, "decision.market_alerts")
     _bool(m["enabled"], "decision.market_alerts.enabled")
-    for key in ("max_per_utc_day", "move_cooldown_min", "event_lead_min", "touch_max_age_min"):
+    for key in ("max_per_utc_day", "decisions_fuse_per_utc_day", "move_cooldown_min", "event_lead_min",
+                "touch_max_age_min"):
         _int(m[key], f"decision.market_alerts.{key}", minimum=1)
+    if m["decisions_fuse_per_utc_day"] < m["max_per_utc_day"]:
+        raise BetaConfigError("decision.market_alerts.decisions_fuse_per_utc_day is a higher fuse than the cap")
     w = x["weekly_report"]
     _exact_keys(w, _WEEKLY_REPORT_KEYS, "decision.weekly_report")
     _bool(w["enabled"], "decision.weekly_report.enabled")
@@ -504,8 +531,18 @@ def _validate_horizon_changes(d: Mapping[str, Any]) -> None:
 
 def _validate_access(d: Mapping[str, Any]) -> None:
     a = d["access"]
-    _exact_keys(a, _ACCESS_KEYS, "access")
+    extra = set(a) - _ACCESS_KEYS - _ACCESS_OPTIONAL
+    if extra or not _ACCESS_KEYS <= set(a):
+        raise BetaConfigError(f"access: unexpected or missing keys {sorted(extra or _ACCESS_KEYS - set(a))}")
     _int(a["max_active_users"], "access.max_active_users", minimum=1)
+    if "tiers_enforced" in a:
+        _bool(a["tiers_enforced"], "access.tiers_enforced")
+    offer = a.get("u3_offer")
+    if offer is not None:
+        _exact_keys(offer, {"price", "method"}, "access.u3_offer")
+        for k in ("price", "method"):
+            if offer[k] is not None and (not isinstance(offer[k], str) or not offer[k].strip()):
+                raise BetaConfigError(f"access.u3_offer.{k} must be null or a non-empty string")
 
 
 def _validate_telemetry(d: Mapping[str, Any]) -> None:

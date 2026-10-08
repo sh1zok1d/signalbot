@@ -195,8 +195,8 @@ def test_main_screen_full_body_both_languages(name, lang):
     if name == "calm":
         assert ("спокойно" if lang == "ru" else "calm") in body[0]
         assert "83 500" in body[0] if lang == "ru" else "83,500" in body[0]
-        assert ("1ч: −0,8% · объём 2,1× · диапазон 2,3× · OI −0,6%" if lang == "ru"
-                else "1h: −0.8% · vol 2.1× · range 2.3× · OI −0.6%") in plain
+        assert ("1ч: −0,8% · объём 2,1× · диапазон 2,3× · OI −0,6% (медиана бирж)" if lang == "ru"
+                else "1h: −0.8% · vol 2.1× · range 2.3× · OI −0.6% (median across exchanges)") in plain
         assert ("24ч: −1,9% · объём 1,3× · OI +2,1%" if lang == "ru"
                 else "24h: −1.9% · vol 1.3× · OI +2.1%") in plain
     if name == "unusual":
@@ -258,7 +258,7 @@ def test_event_and_1h_tabs_both_languages():
             assert "2,3× от обычного для этого часа" in hour
             assert "Funding сейчас 0,006%" in hour
             assert "Delta: −$84 млн (продавцы)" in hour
-            assert "OI −0,6%: Binance −0,9% · Bybit −0,4% · OKX +0,1%" in hour
+            assert "OI −0,6% (медиана бирж): Binance −0,9% · Bybit −0,4% · OKX +0,1%" in hour
             assert "≥ — нижняя граница: Binance и OKX передают не все ликвидации." in event
         else:
             assert "BTC event</b> · sharp drop" in event
@@ -266,7 +266,7 @@ def test_event_and_1h_tabs_both_languages():
             assert "2.3× usual for this hour" in hour
             assert "Funding now 0.006%" in hour
             assert "Delta: −$84M (sellers)" in hour
-            assert "OI −0.6%: Binance −0.9% · Bybit −0.4% · OKX +0.1%" in hour
+            assert "OI −0.6% (median across exchanges): Binance −0.9% · Bybit −0.4% · OKX +0.1%" in hour
             assert "≥ — lower bound: Binance and OKX do not report every liquidation." in hour
 
 
@@ -541,14 +541,18 @@ def test_start_and_lang_choice():
         joined = await h.handle(_cb(1, "join:ru", 4))
         assert conn.users[1]["lang"] == "ru" and "/lang" in joined[1].html
         again = await h.handle(_msg(1, "/start", 5))
-        assert "/btc" in again[0].html and again[0].buttons == [[("Термины", "terms"), ("Другие монеты", "x:assets")]]
+        assert "/btc" in again[0].html and again[0].buttons == [[("Термины", "terms"), ("Другие монеты", "x:assets")],
+                                                       [("💡 Идея / чего не хватает", "x:idea"), ("📞 15 минут с командой", "x:interview")],
+                                                       [("📖 Как читать бота", "x:guide")]]
         picker = await h.handle(_msg(1, "/lang", 6))
         assert picker[0].buttons == [[("Русский", "set:ru"), ("English", "set:en")]]
         saved = await h.handle(_cb(1, "set:en", 7))
         assert conn.users[1]["lang"] == "en" and "Language: English." in saved[1].html
         help_en = await h.handle(_msg(1, "/help", 8))
         assert "message language" in help_en[0].html
-        assert help_en[0].buttons == [[("Glossary", "terms"), ("Other coins", "x:assets")]]
+        assert help_en[0].buttons == [[("Glossary", "terms"), ("Other coins", "x:assets")],
+                                    [("💡 An idea / what is missing", "x:idea"), ("📞 15 minutes with the team", "x:interview")],
+                                    [("📖 How to read the bot", "x:guide")]]
         alice = await h.handle(_msg(2, "/start", 9))
         assert alice[0].buttons == [[("Русский", "pick:ru"), ("English", "pick:en")]]
         en = await h.handle(_cb(2, "pick:en", 10))
@@ -632,10 +636,10 @@ RU_TERMS = """ТЕРМИНЫ
 Ликвидации лонгов / шортов — ликвидации одной стороны в верхних 5% за 30 дней, минимум на 2 биржах одновременно.
 
 Показатели
-OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается.
+OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается. Изменение OI в боте — медиана изменений по биржам (минимум 2 биржи), а не изменение суммарного OI.
 Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот.
 Delta — разница между рыночными покупками и продажами в $. Минус — нетто продавали.
-Объём — сумма сделок в $ по Binance, Bybit и OKX.
+Объём — сумма сделок в $ по Binance, Bybit и OKX; если в какой-то пятиминутке нет данных одной из бирж, объём помечен как неполный.
 Диапазон — от минимума до максимума цены за период, в % от цены.
 Ликвидации — принудительное закрытие позиций биржей, по каждой бирже отдельно.
 ≥ — нижняя граница: Binance публикует не все ликвидации.
@@ -663,10 +667,10 @@ Aggressive buying / selling — Delta in the top / bottom 5% of the last 30 days
 Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 exchanges at once.
 
 Metrics
-OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed.
+OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed. The bot's OI change is the median of the exchanges' changes (at least 2 exchanges), not the change of total OI.
 Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse.
 Delta — difference between market buys and market sells in $. Negative — net selling.
-Volume — total traded value in $ on Binance, Bybit and OKX.
+Volume — total traded value in $ on Binance, Bybit and OKX; when a 5-minute bucket lacks one of them, the volume is marked partial.
 Range — from the lowest to the highest price in the period, in % of the price.
 Liquidations — positions force-closed by the exchange, shown per exchange.
 ≥ — lower bound: Binance does not publish every liquidation.
@@ -793,7 +797,7 @@ def test_24h_tab_renders_changes_and_terms_footer():
     assert "BTC за 24 ч" in ru and "Термины: /terms" in ru.split("\n")[-1]
     assert "диапазон шире: 2,8% против 1,9%" in ru
     assert "OI вырос, пока цена падала" in ru
-    assert "Крупных изменений к предыдущим 24 ч нет" not in ru
+    assert "крупных изменений нет" not in ru
     assert "Delta: +$210 млн (покупатели)" in ru
     assert "Funding сейчас 0,006% · среднее за 24 ч 0,009%" in ru
     assert "Высокий импакт" not in ru and "High impact" not in en
@@ -801,8 +805,12 @@ def test_24h_tab_renders_changes_and_terms_footer():
     assert "range wider: 2.8% vs 1.9%" in en
     assert "OI rose while price fell" in en
     assert "Delta: +$210M (buyers)" in en
-    none = format_24h_tab(CFG, _with_horizons(view, _hour_block(), _day_block(changes=[])), "en", "abcd")
-    assert "No large change vs previous 24h" in none
+    none = format_24h_tab(CFG, _with_horizons(view, _hour_block(), _day_block(
+        changes=[], changes_checked=["range", "volume", "oi_price", "funding"])), "en", "abcd")
+    assert ("No large change vs previous 24h in the checks: range, volume, OI together with price and "
+            "Funding sign change") in none
+    legacy = format_24h_tab(CFG, _with_horizons(view, _hour_block(), _day_block(changes=[])), "en", "abcd")
+    assert "No large change" not in legacy                  # a pre-V5 payload does not say which checks ran
 
 
 def _h24_rows(as_of, *, drop=()):

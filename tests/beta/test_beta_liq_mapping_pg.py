@@ -36,6 +36,16 @@ async def _pool(history_fn, liquidation_rows):
     return pool
 
 
+async def _heartbeats(pool, exchange, start, end, every_s=60):
+    """The collector's liveness rows for a channel alive over [start, end]."""
+    rows, t = [], start
+    while t <= end:
+        rows.append((exchange, "BTCUSDT", t))
+        t += timedelta(seconds=every_s)
+    async with pool.acquire() as c:
+        await c.executemany("INSERT INTO liquidation_feed_heartbeats (exchange, symbol, ts) VALUES ($1,$2,$3)", rows)
+
+
 def _liq(r):
     p = r["processed"][0]
     return p["evaluations"]["LIQUIDATION_STRESS_LONG"]
@@ -52,6 +62,7 @@ def test_okx_false_zero_history_never_lets_okx_vote():
 
     async def body():
         pool = await _pool(lambda m: m, rows)
+        await _heartbeats(pool, "okx", fixed, b0 + BUCKET)              # the OKX channel was alive
         scenario = ScenarioReader(lambda b: {"binance": {"liq_long": 5000.0}, "bybit": {"liq_long": 0.0},
                                              "okx": {"liq_long": 500.0}})
         r = await pgi._detect(pool, scenario, b0)
@@ -186,5 +197,79 @@ def test_before_the_collector_adds_the_column_the_beta_reads_every_row_as_old():
                                                  start=b0 - timedelta(days=1), end=b0)
         assert cut == {"bybit": {"first_new": None, "last_old": None}, "okx": {"first_new": None, "last_old": None}}
         assert [(r["side"], r["mapping_version"]) for r in rows] == [("long", None)]
+        await pool.close()
+    run(body())
+
+
+def test_okx_without_a_fresh_liveness_marker_is_not_measured_and_never_a_zero():
+    """Architect, 2026-10-08: a quiet OKX bucket is a measured 0 only while its liquidation channel is
+    alive. A refused or silent channel leaves no heartbeat: OKX reads «не измерен» (None), not 0, at
+    tape time and in history, and never joins the vote."""
+    import json
+    import test_beta_pg_integration as pgi
+    b0 = pgi.B0
+    fixed = b0 - timedelta(hours=1)
+    rows = [("bybit", b0 - timedelta(hours=2), "short", None), ("bybit", fixed, "long", 2), ("okx", fixed, "long", 2)]
+
+    async def body():
+        pool = await _pool(lambda m: m, rows)
+        # heartbeats stop 4 minutes before B0 + 5m: the bucket has a gap over 150 s
+        alive_from = fixed - timedelta(minutes=10)
+        await _heartbeats(pool, "okx", alive_from, b0 + timedelta(minutes=1))
+        scenario = ScenarioReader(lambda b: {"binance": {"liq_long": 5000.0}, "okx": {"liq_long": 0.0}})
+        await pgi._detect(pool, scenario, b0)
+        raw = (await pgi._rows(pool, "SELECT snapshot FROM beta_state_tape WHERE origin='LIVE'"))[0]["snapshot"]
+        snap = json.loads(raw) if isinstance(raw, str) else raw
+        assert snap["venues"]["okx"]["liq_mapping"] == "NO_FEED"
+        assert snap["metrics"]["x:okx:long_liquidation_notional"] is None          # not a measured 0
+        assert "okx" not in snap["rule_evaluations"]["LIQUIDATION_STRESS_LONG"]["detail"]["eligible"]
+        # history: an OKX 0.0 in a bucket without heartbeats reads None; one with heartbeats stays 0.0
+        async with BetaStore(pool).connect() as conn:
+            hist = dict(await conn.fetch_tape_history(
+                symbol="BTCUSDT", market_type="perp", timeframe="5m", calculation_version=pgi.CALC,
+                state_schema_versions=(1, 2), start=b0 - timedelta(days=30), end=b0))
+        covered = [b for b in hist if b - timedelta(seconds=90) >= alive_from and b + BUCKET <= b0 + timedelta(minutes=1)]
+        uncovered = [b for b in hist if b + BUCKET < alive_from]
+        assert covered and all(hist[b]["x:okx:long_liquidation_notional"] == 0.0 for b in covered)
+        assert uncovered and all(hist[b]["x:okx:long_liquidation_notional"] is None for b in uncovered)
+        await pool.close()
+    run(body())
+
+
+def test_without_the_heartbeat_table_okx_is_never_measured():
+    """Before the collector restart creates the table, nothing proves the OKX channel alive."""
+    import test_beta_pg_integration as pgi
+    b0 = pgi.B0
+
+    async def body():
+        pool = await fresh_pool()
+        async with pool.acquire() as c:
+            await c.execute("DROP TABLE liquidation_feed_heartbeats")
+        async with BetaStore(pool).connect() as conn:
+            assert await conn.fetch_liquidation_feed_heartbeats(symbol="BTCUSDT", start=b0, end=b0) == {}
+        await pool.close()
+    run(body())
+
+
+def test_the_heartbeat_read_uses_the_primary_key_and_ignores_other_venues():
+    """Review of #398: the read filtered symbol + ts only, a seq scan of a table that grows forever.
+    It now leads with exchange (the primary key's first column) and reads only OKX."""
+    import test_beta_pg_integration as pgi
+    b0 = pgi.B0
+
+    async def body():
+        pool = await fresh_pool()
+        async with pool.acquire() as c:
+            await c.executemany("INSERT INTO liquidation_feed_heartbeats VALUES ($1, 'BTCUSDT', $2)",
+                                [("okx", b0), ("bybit", b0)])
+            await c.execute("SET enable_seqscan = off")
+        async with BetaStore(pool).connect() as conn:
+            got = await conn.fetch_liquidation_feed_heartbeats(symbol="BTCUSDT", start=b0 - BUCKET, end=b0 + BUCKET)
+            plan = "\n".join(r[0] for r in await conn.conn.fetch(
+                """EXPLAIN SELECT exchange, ts FROM liquidation_feed_heartbeats
+                   WHERE exchange = ANY($4::text[]) AND symbol=$1 AND ts >= $2 AND ts <= $3 ORDER BY ts""",
+                "BTCUSDT", b0 - BUCKET, b0 + BUCKET, ["okx"]))
+        assert got == {"okx": [b0]}
+        assert "Index" in plan
         await pool.close()
     run(body())

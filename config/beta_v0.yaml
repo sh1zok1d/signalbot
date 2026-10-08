@@ -37,7 +37,8 @@ beta:
   bucket_close_grace_s: 20                  # wait after 5m close before evaluating
   same_event_cooldown_min: 20               # same-event PUSH cooldown after terminal
   delivery_ttl_s: 600                       # never push older than this
-  max_new_pushes_per_utc_day: 2             # global safety fuse (PRODUCT_FIRST_DECISION_V1 §3 row 8)
+  max_new_pushes_per_utc_day: 2             # per recipient, their own day (PRODUCT_FIRST §3 row 8; review of #373)
+  push_decisions_fuse_per_utc_day: 4        # all recipients together: safety fuse set by ОПГ-1; the architect may change it
   forward_horizons: [15m, 30m, 1h, 4h, 24h]
 
   detector:
@@ -138,6 +139,15 @@ beta:
   # Join cap. Not detection, not the rules digest. The owner is exempt.
   access:
     max_active_users: 20
+    # Monetization readiness (PRE_BETA_SCOPE_DECISION_V1 §6.5, backlog I1): free / paid flags exist in
+    # code and nothing is gated during the beta. No payment processing anywhere.
+    tiers_enforced: false
+    # U3 (PRODUCT_FIRST_DECISION_V1 §7, backlog I2): the offer /admin_offer sends on days 21–25 to every
+    # enrolled participant, churned included. The owner fixes the price and the manual method in a
+    # commit before Day 0; while either is empty the command refuses. No tariff page (post-beta).
+    u3_offer:
+      price: null                         # e.g. "$15 в месяц / $15 a month"
+      method: null                        # the manual transfer the owner accepts
   # Per-user activity retention (beta plus 90 days). Not the rules digest.
   # Rejected /start rows (hashes or a daily count) are purged separately.
   telemetry:
@@ -186,7 +196,8 @@ beta:
     signature_index: true                   # owner-only /hypotheses index (PRE_BETA_SCOPE_DECISION_V1 §7);
                                             # signs every closed 5m bucket from stored states, no user surface
     # weekly report (backlog B4): how the bot's own estimates did over 7 days; a push type of its
-    # own (/push weekly off). Sunday evening, outside the U1a withdrawal weekdays (Mon-Fri).
+    # own (/push weekly off). Sunday evening on each participant's own clock, so never on a U1a
+    # withdrawal weekday (Mon-Fri) on their clock (review of #379).
     weekly_report:
       enabled: true
       weekday_kyiv: "sun"
@@ -194,7 +205,8 @@ beta:
       max_delay_min: 120                    # not sent within this: expired, never late
     market_alerts:
       enabled: true                         # also needs BETA_PUSH_ENABLED and no /admin_pause_push
-      max_per_utc_day: 4                    # level touches and sharp moves together
+      max_per_utc_day: 4                    # level touches and sharp moves together, per recipient, their own day
+      decisions_fuse_per_utc_day: 8         # all recipients together: safety fuse set by ОПГ-1; the architect may change it
       move_cooldown_min: 120                # one sharp-move message per 2h
       event_lead_min: 30                    # CPI / FOMC reminder this long before the release
       touch_max_age_min: 10                 # a level touch older than this is not pushed (missed run)
@@ -209,3 +221,11 @@ beta:
       feeds_enabled: true                   # --beta-feeds-once (every 5 min)
       stress_hours_enabled: true            # --beta-stress-once (hourly; aggTrades of stress hours only)
       main_surface_max: 2                   # research conclusions on a main surface while it is on
+  # Level race at structural first touches (FORECAST_LAYER_DECISION_V1 §6a; beta/level_race_live.py).
+  # Day 0 is HIST: the 2020-2024 shares of the event's cell beside B0, prices only. Off until switched on.
+  level_race:
+    journal_enabled: false                  # L2_LEVEL_RACE_HIST_{T0,T15}_4H at every landmark, shown or not
+    display_enabled: false                  # the T15 HIST line in /levels and /check
+    model_states_enabled: false             # HIST -> model states: one dated switch; inert until a model is frozen
+    push_trigger: legacy                    # level-touch push: legacy (exact price) | structural (#352 zone entry
+                                            # at the 5m close, with the T0 race line instead of the hold history)

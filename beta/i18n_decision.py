@@ -94,6 +94,7 @@ DECISION_CATALOG: dict = {
     "dc_btc_track_hold": _pair("{parts} на истории ({days} дн.)", "{parts} on history ({days} days)"),
     "dc_btc_track_part": _pair("{h} {p}", "{h} {p}"),
     "dc_btc_level": _pair("{arrow} {price} {name} ({dist})", "{arrow} {price} {name} ({dist})"),
+    "dc_btc_level_at": _pair("цена у {price} {name}", "price at {price} {name}"),
     "dc_btc_level_b": _pair("{arrow} {price} {name} ({dist}) · за {h} ≈ {p}", "{arrow} {price} {name} ({dist}) · within {h} ≈ {p}"),
     "dc_btc_level_fb": _pair("{arrow} {price} {name} ({dist}) · за {h} исторически в {p} случаев",
                              "{arrow} {price} {name} ({dist}) · within {h} historically in {p} of cases"),
@@ -244,6 +245,9 @@ DECISION_CATALOG: dict = {
                               "потом — о касании.",
                               "When the level is closer than the usual 1h move, I send one message ahead, then one "
                               "at the touch."),
+    "al_approach_note_list": _pair("Для уровня дальше обычного хода за час пришлю одно сообщение заранее, потом — о касании.",
+                                   "For a level farther than the usual 1h move I send one message ahead, then one at "
+                                   "the touch."),
     "al_deleted": _pair("Удалено: {n}.", "Deleted: {n}."),
     "al_limit": _pair("Уже {n} уровней — это максимум. Удалите лишний: /alert del 1",
                       "Already {n} alerts — the maximum. Delete one: /alert del 1"),
@@ -300,6 +304,10 @@ DECISION_CATALOG: dict = {
                              "{clock} — first touch this {period} · price {price} (Binance, {price_clock})"),
     "pa_level_now": _pair("{clock} · цена {price} (Binance) — первое касание за {period}",
                           "{clock} · price {price} (Binance) — first touch this {period}"),
+    "pa_zone_now_at": _pair("{clock} — цена вошла в зону {name} {low}–{high}, первый раз за {period} · цена {price} "
+                            "(Binance, {price_clock})",
+                            "{clock} — the price entered the {name} zone {low}–{high}, the first time this {period} · "
+                            "price {price} (Binance, {price_clock})"),
     "pa_period_day": _pair("день", "day"),
     "pa_period_week": _pair("неделю", "week"),
     "pa_period_month": _pair("месяц", "month"),
@@ -314,18 +322,25 @@ DECISION_CATALOG: dict = {
                                 "After the first touch: no interval computed yet ({n})"),
     "pa_level_move": _pair("За 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
                            "1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
-    "pa_next": _pair("Следующий уровень: {price} — {name} ({dist}), за 24ч доходили в {p}",
-                     "Next level: {price} — {name} ({dist}), reached within 24h in {p}"),
+    # the touch chance by the /btc rule, only in mode B with its own check; otherwise no number (pa_next_nop)
+    "pa_next": _pair("Следующий уровень: {price} — {name} ({dist}) · за 24ч ≈ {p}; говорили → было: {cal}",
+                     "Next level: {price} — {name} ({dist}) · within 24h ≈ {p}; said → happened: {cal}"),
     "pa_next_nop": _pair("Следующий уровень: {price} — {name} ({dist})", "Next level: {price} — {name} ({dist})"),
-    "pa_corridor": _pair("Коридор 4ч: {low}–{high} (±{half})", "4h corridor: {low}–{high} (±{half})"),
+    # the 4h corridor is a forecast: with its record (the /btc rule) or, without one, only as «сейчас»
+    "pa_corridor": _pair("Коридор 4ч: {low}–{high} (±{half}) · внутри бывало {rec} (расчёт — {share})",
+                         "4h corridor: {low}–{high} (±{half}) · inside {rec} (designed for {share})"),
+    "pa_corridor_now": _pair("Коридор 4ч сейчас: {low}–{high} (±{half})", "4h corridor now: {low}–{high} (±{half})"),
+    "pa_track_live": _pair("{p} вживую за 30 дн. (N={n})", "{p} live over 30 days (N={n})"),
+    "pa_track_hold": _pair("{p} на истории ({days} дн.)", "{p} on history ({days} days)"),
     "pa_event_title": _pair("<b>BTC · через {mins} мин {name}</b>", "<b>BTC · {name} in {mins} min</b>"),
     "pa_event_when": _pair("{clock} · цена {price} (Binance)", "{clock} · price {price} (Binance)"),
     "pa_event_when_at": _pair("{clock} · цена {price} (Binance, {price_clock})", "{clock} · price {price} (Binance, {price_clock})"),
-    "pa_corridor_1h_plain": _pair("Дальше обычно в коридоре 1ч: {low}–{high} (±{half})",
-                                  "What usually follows, the 1h corridor: {low}–{high} (±{half})"),
+    # a model's corridor, never «обычно» (the word of a comparison base; review of #375)
+    "pa_corridor_1h_plain": _pair("Коридор 1ч сейчас: {low}–{high} (±{half})", "1h corridor now: {low}–{high} (±{half})"),
     # the delay of a push or an alert (backlog F1; the measured field of A4)
     "dl_line": _pair(" · задержка {lag}", " · delay {lag}"),
-    "dl_typical": _pair(" (обычно {p50})", " (usually {p50})"),
+    "dl_own": _pair("Задержка этого сообщения: {lag}", "This message's delay: {lag}"),
+    "dl_typical": _pair(" (обычно {p50}, N={n})", " (usually {p50}, N={n})"),
     "dl_s": _pair("{s} с", "{s} s"),
     "dl_m": _pair("{m} мин", "{m} min"),
     "dl_ms": _pair("{m} мин {s} с", "{m} min {s} s"),
@@ -512,13 +527,34 @@ DECISION_CATALOG: dict = {
     "btn_research": _pair("🔬 Исследования", "🔬 Research"),
     "n_cases": _pair("{n} {word}", "{n} {word}"),
     "since_year": _pair("с {year}", "since {year}"),
+    # level race, HIST (docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md §0; ids LR_HIST_V1, LR_PUSH_HIST_V1,
+    # LR_HIST_LOW_N_V1). Prices only, the three outcomes together; the Russian text is the frozen one.
+    "lr_head": _pair("↳ цена вошла в зону {names} в {when}, данные на {clock}",
+                     "↳ the price entered the {names} zone at {when}, data as of {clock}"),
+    "pa_zone_member": _pair("{kind} ({name})", "{kind} ({name})"),
+    "lr_hist_v1": _pair("Похожие касания в 2020–2024 (N = {n}): первой достигалась верхняя цена — {h_up} % "
+                        "(обычно {b_up} %; разница {d_up} п.п., 95 % интервал {lo_up}..{hi_up}), нижняя — {h_dn} % "
+                        "(обычно {b_dn} %; разница {d_dn} п.п., 95 % интервал {lo_dn}..{hi_dn}), ни одна за окно — "
+                        "{h_ne} % (обычно {b_ne} %; разница {d_ne} п.п., 95 % интервал {lo_ne}..{hi_ne}). "
+                        "Сейчас верхняя {P_UP}, нижняя {P_DN}, окно до {END}.",
+                        "Similar touches in 2020–2024 (N = {n}): the upper price was reached first in {h_up}% "
+                        "(usually {b_up}%; difference {d_up} pp, 95% interval {lo_up}..{hi_up}), the lower in {h_dn}% "
+                        "(usually {b_dn}%; difference {d_dn} pp, 95% interval {lo_dn}..{hi_dn}), neither within the "
+                        "window in {h_ne}% (usually {b_ne}%; difference {d_ne} pp, 95% interval {lo_ne}..{hi_ne}). "
+                        "Now: upper {P_UP}, lower {P_DN}, window until {END}."),
+    "lr_push_hist_v1": _pair("2020–2024, похожие касания (N = {n}): первой была — верхняя {P_UP} — {h_up} % · нижняя "
+                             "{P_DN} — {h_dn} % · ни одна — {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), до {END}",
+                             "2020–2024, similar touches (N = {n}): reached first — the upper {P_UP} — {h_up}% · the "
+                             "lower {P_DN} — {h_dn}% · neither — {h_ne}% (usually {b_up}/{b_dn}/{b_ne}%), until {END}"),
+    "lr_hist_low_n_v1": _pair("Похожих касаний в 2020–2024 мало (N = {n}).",
+                              "Few similar touches in 2020–2024 (N = {n})."),
 }
 
 DECISION_HELP = {
     "ru": (
         "<b>Signalbot, закрытая бета — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
         "Бот не говорит, покупать или продавать. Он показывает, насколько сейчас рискованно, где "
-        "уровни, которые видит весь рынок, что было в похожих ситуациях раньше и что сегодня "
+        "максимумы и минимумы прошлого дня, недели и месяца и другие уровни, что было в похожих ситуациях раньше и что сегодня "
         "в календаре. Рядом с каждой цифрой — сколько было случаев и как бывает обычно.\n\n"
         "/btc — состояние BTC сейчас\n"
         "/catchup — что было за последние часы (по умолчанию 8 ч; /catchup 1–24)\n"
@@ -532,6 +568,8 @@ DECISION_HELP = {
         "/brief on|off|07:30 — утренняя сводка (по умолчанию в 08:00)\n"
         "/tz — часовой пояс (по умолчанию Киев): /tz +3 или /tz Europe/Warsaw\n"
         "/type — как вы торгуете (для статистики беты)\n"
+        "/idea — идея или чего не хватает · /interview — 15 минут с командой\n"
+        "/guide — как читать бота\n"
         "/push — какие сообщения присылать\n"
         "/history — недавние необычные события\n"
         "/terms — термины · /lang — язык сообщений · /feedback — отзыв\n"
@@ -540,7 +578,7 @@ DECISION_HELP = {
     "en": (
         "<b>Signalbot closed beta — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
         "The bot never says whether to buy or sell. It shows how risky the market is now, where the "
-        "levels everyone watches are, what happened in similar situations before and what is in "
+        "previous day's, week's and month's highs and lows and other levels are, what happened in similar situations before and what is in "
         "today's calendar. Every number comes with how many cases there were and what is usual.\n\n"
         "/btc — BTC right now\n"
         "/catchup — the last hours (default 8h; /catchup 1–24)\n"
@@ -554,6 +592,8 @@ DECISION_HELP = {
         "/brief on|off|07:30 — morning briefing (08:00 by default)\n"
         "/tz — time zone (Kyiv by default): /tz +3 or /tz Europe/Warsaw\n"
         "/type — how you trade (for the beta's statistics)\n"
+        "/idea — an idea or what is missing · /interview — 15 minutes with the team\n"
+        "/guide — how to read the bot\n"
         "/push — which messages to receive\n"
         "/history — recent unusual events\n"
         "/terms — terms · /lang — message language · /feedback — feedback\n"
@@ -571,7 +611,7 @@ DECISION_TERMS = {
         "Точность проверяется на отложенном годе и на живых прогнозах (/accuracy).\n"
         "Шанс дойти — как часто цена проходила такое расстояние в одну сторону за это время в похожих условиях. "
         "Направление модель не предсказывает: для роста и падения шанс одинаковый.\n"
-        "Уровни — только те, что видит весь рынок: максимумы и минимумы вчера, прошлой недели и месяца, "
+        "Уровни: максимумы и минимумы вчера, прошлой недели и месяца, "
         "открытия дня, недели и месяца, сессии Азии, Европы и США, VWAP дня, объёмный центр вчера, круглые уровни, "
         "места крупных ликвидаций за 24ч. День, неделя и месяц — по UTC.\n"
         "Случайный уровень — уровень на том же расстоянии от открытия периода, но без смысла. Рядом с реальным "
@@ -582,6 +622,9 @@ DECISION_TERMS = {
         "95% интервал — неопределённость этой исторической оценки: насколько она менялась бы на другой выборке "
         "дней. Интервал считается для каждой строки отдельно, без поправки на то, что строк много, и не говорит, "
         "что так будет сейчас.\n"
+        "Строки «похожие касания» показывают, как часто в похожих ситуациях на BTCUSDT в 2020–2024 цена первой "
+        "доходила до верхней или нижней цены — рядом с тем, что даёт простая геометрия цены («обычно»). Это история, "
+        "а не текущая вероятность, и не рекомендация к сделке.\n"
         "Прошлое не гарантирует будущего. Бот не говорит, что делать со сделкой."
     ),
     "en": (
@@ -593,7 +636,7 @@ DECISION_TERMS = {
         "Accuracy is checked on a held-out year and on live forecasts (/accuracy).\n"
         "Chance to reach — how often the price moved that far in one direction within that time in similar conditions. "
         "The model does not forecast direction: the chance is the same up and down.\n"
-        "Levels — only what the whole market sees: yesterday's, last week's and last month's highs and lows, "
+        "Levels: yesterday's, last week's and last month's highs and lows, "
         "day, week and month opens, Asia, Europe and US sessions, the day VWAP, yesterday's volume POC, round numbers, "
         "places of large liquidations in 24h. Day, week and month are UTC.\n"
         "Random level — a level at the same distance from the period open that means nothing. Beside a real level the "
@@ -604,6 +647,9 @@ DECISION_TERMS = {
         "move is ×1). The 95% interval is the uncertainty of this historical estimate: how much it would vary on "
         "another sample of days. Each line's interval is computed on its own, with no correction for there being "
         "many lines, and it does not say that this will happen now.\n"
+        "The «similar touches» lines show how often, in similar situations on BTCUSDT in 2020–2024, the price "
+        "reached the upper or the lower price first — next to what simple price geometry gives («usually»). This is "
+        "history, not a current probability, and it does not say what to do with a trade.\n"
         "The past does not guarantee the future. The bot does not tell you what to do with a trade."
     ),
 }

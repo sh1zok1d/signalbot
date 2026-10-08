@@ -324,10 +324,15 @@ def brief_levels_line(block: Mapping[str, Any], lang: str) -> list:
 
 
 def near_levels_line(levels: Mapping[str, Any], lang: str) -> Optional[str]:
-    """«Рядом: ↑ 62 950 максимум вчера (+0,75%) · ↓ 61 900 минимум Азии (−0,93%)» from a levels map."""
+    """«Рядом: ↑ 62 950 максимум вчера (+0,75%) · ↓ 61 900 минимум Азии (−0,93%)» from a levels map; a level
+    the price stands at sits between them, as the briefing says it (review of #375)."""
     parts = [t(lang, "dc_btc_level", arrow=arrow, price=zone_price(z, lang), name=_e(zone_names(z, lang, limit=1)),
                dist=fmt_signed_pct(z["distance_pct"], lang))
              for z, arrow in (((levels.get("above") or [None])[0], "↑"), ((levels.get("below") or [None])[0], "↓")) if z]
+    if levels.get("at"):
+        at = levels["at"]
+        parts.insert(1 if (levels.get("above") or []) else 0,
+                     t(lang, "dc_btc_level_at", price=zone_price(at, lang), name=_e(zone_names(at, lang, limit=1))))
     return t(lang, "pa_levels_near", parts=" · ".join(parts)) if parts else None
 
 
@@ -368,6 +373,20 @@ def cal_part(label: str, w: Mapping[str, Any], lang: str) -> str:
              n=int(w["n_eff"]), src=t(lang, "ck_src_live" if w["source"] == "live" else "ck_src_hold"))
 
 
+def corridor_record(c: Mapping[str, Any], h: str) -> Optional[tuple]:
+    """A corridor horizon's record: ("live", share inside, N_eff) over 30 days once its independent windows
+    reach MIN_N_SHOWN (the /accuracy rule), else ("hold", share inside, days) on the held-out year, else None."""
+    rec = (c.get("live") or {}).get(h) or {}
+    n = int(rec.get("INSIDE", 0)) + int(rec.get("OUTSIDE", 0))
+    n_eff = int(rec.get("N_EFF", 0))
+    ho = (c.get("holdout") or {}).get(h) or {}
+    if n and n_eff >= MIN_N_SHOWN:
+        return ("live", rec.get("INSIDE", 0) / n, n_eff)
+    if ho.get("coverage_realized") is not None and int(ho.get("n_days") or 0) > 0:
+        return ("hold", ho["coverage_realized"], int(ho["n_days"]))
+    return None
+
+
 def _btc_corridor(block: Mapping[str, Any], lang: str, horizons: Sequence[str] = ("1h", "4h", "24h")) -> list:
     """«Коридор: 1ч … · 4ч … · 24ч …» and its record: the share inside by horizon, live over 30 days
     once its independent windows reach MIN_N_SHOWN (the /accuracy rule), else on the held-out year."""
@@ -385,15 +404,14 @@ def _btc_corridor(block: Mapping[str, Any], lang: str, horizons: Sequence[str] =
         out.append(note)
     live, hold, days = [], [], 0
     for h in shown:
-        rec = (c.get("live") or {}).get(h) or {}
-        n = int(rec.get("INSIDE", 0)) + int(rec.get("OUTSIDE", 0))
-        n_eff = int(rec.get("N_EFF", 0))
-        ho = (c.get("holdout") or {}).get(h) or {}
-        if n and n_eff >= MIN_N_SHOWN:
-            live.append(t(lang, "dc_btc_track_live", h=_hz(h, lang), p=fmt_share(rec.get("INSIDE", 0) / n, lang), n=n_eff))
-        elif ho.get("coverage_realized") is not None:
-            hold.append(t(lang, "dc_btc_track_part", h=_hz(h, lang), p=fmt_share(ho["coverage_realized"], lang)))
-            days = max(days, int(ho.get("n_days") or 0))
+        r = corridor_record(c, h)
+        if r is None:
+            continue
+        if r[0] == "live":
+            live.append(t(lang, "dc_btc_track_live", h=_hz(h, lang), p=fmt_share(r[1], lang), n=r[2]))
+        else:
+            hold.append(t(lang, "dc_btc_track_part", h=_hz(h, lang), p=fmt_share(r[1], lang)))
+            days = max(days, r[2])
     parts = live + ([t(lang, "dc_btc_track_hold", parts=" · ".join(hold), days=days)] if hold else [])
     if parts:
         # every horizon shown here is outside its own release span (a horizon inside it is dropped at the
@@ -571,6 +589,75 @@ def _zone_block(block: Mapping[str, Any], z: Mapping[str, Any], lang: str, side:
     return lines
 
 
+# ---- level race (HIST; beta/level_race_live.py) --------------------------------------------------
+def races_shown(block: Optional[Mapping[str, Any]], surface: str, *,
+                check_levels: Optional[Sequence[float]] = None) -> list:
+    """The level races a surface prints: every race of the block on /levels; on /check the race of the
+    zone a checked price lies in. The block carries races only while `level_race.display_enabled`."""
+    lr = (block or {}).get("level_race") or {}
+    if not (block or {}).get("available") or lr.get("state") != "HIST":
+        return []
+    races = list(lr.get("races") or ())
+    if surface == "check":
+        return [r for r in races if any(r["zone_low"] <= float(x) <= r["zone_high"] for x in check_levels or ())]
+    return races if surface == "levels" else []
+
+
+def zone_member_names(kinds: Sequence[str], lang: str) -> str:
+    """«PDH (максимум вчера), PWH (максимум прошлой недели)»: the type and its /levels name, anchor first; the
+    form that reads in «вошла в зону …» in both languages."""
+    return ", ".join(t(lang, "pa_zone_member", kind=k, name=level_name({"kind": k}, lang)) for k in kinds)
+
+
+def _spp(v: int) -> str:
+    """A signed whole number of pp: +3, −2, 0."""
+    v = int(v)
+    return "0" if v == 0 else (f"+{v}" if v > 0 else f"−{-v}")
+
+
+def race_lines(block: Mapping[str, Any], lang: str, surface: str, *,
+               check_levels: Optional[Sequence[float]] = None) -> list:
+    """One head (the zone entered, its time, the data time) and the frozen HIST line per race: the shown
+    shares (summing to 100), «обычно», the difference of the shown numbers and its 95 % interval from the
+    table; every clock on the recipient's time zone."""
+    out = []
+    now = _block_now(block)
+    clock = data_clock(block)
+    for r in races_shown(block, surface, check_levels=check_levels):
+        end = datetime.fromtimestamp(r["end_ms"] / 1000, tz=timezone.utc)
+        touch = datetime.fromtimestamp((r["touch_open_ms"] + 300_000) / 1000, tz=timezone.utc)
+        names = _e(zone_member_names(r["member_kinds"], lang))
+        touch_today = now is not None and local(touch).date() == local(now).date()
+        out.append(t(lang, "lr_head", names=names, when=_when(touch, lang, with_day=not touch_today),
+                     clock=fmt_clock(clock or now or touch, lang)))
+        if r["template"] == "LR_HIST_LOW_N_V1":
+            out.append(t(lang, "lr_hist_low_n_v1", n=int(r["n"])))
+            continue
+        h, b, d, ci = r["printed_h"], r["printed_b"], r["d_pp"], r["ci95_pp"]
+        same_day = now is not None and local(end).date() == local(now).date()
+        args = {}
+        for o, suf in (("up", "up"), ("dn", "dn"), ("neither", "ne")):
+            args.update({f"h_{suf}": h[o], f"b_{suf}": b[o], f"d_{suf}": _spp(d[o]), f"lo_{suf}": _spp(ci[o][0]),
+                         f"hi_{suf}": _spp(ci[o][1])})
+        out.append(t(lang, "lr_hist_v1", n=int(r["n"]), P_UP=fmt_price(r["p_up"], lang), P_DN=fmt_price(r["p_dn"], lang),
+                     END=_when(end, lang, with_day=not same_day), **args))
+    return out
+
+
+def push_race_line(race: Optional[Mapping[str, Any]], lang: str, *, now: datetime) -> list:
+    """The T0 line of the level-touch push (LR_PUSH_HIST_V1, N only; the full line is in /levels), or
+    the small-N line; nothing when the event has no T0 statement."""
+    if not race:
+        return []
+    if race["template"] == "LR_HIST_LOW_N_V1":
+        return [t(lang, "lr_hist_low_n_v1", n=int(race["n"]))]
+    end = datetime.fromtimestamp(race["end_ms"] / 1000, tz=timezone.utc)
+    h, b = race["printed_h"], race["printed_b"]
+    return [t(lang, "lr_push_hist_v1", n=int(race["n"]), P_UP=fmt_price(race["p_up"], lang),
+              P_DN=fmt_price(race["p_dn"], lang), h_up=h["up"], h_dn=h["dn"], h_ne=h["neither"], b_up=b["up"],
+              b_dn=b["dn"], b_ne=b["neither"], END=_when(end, lang, with_day=local(end).date() != local(now).date()))]
+
+
 def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
     """/levels as one ladder in the /btc style (backlog C3): above from far to near, the price, below;
     each level with its chances and first-touch history; then the checks of the chances, the corridor
@@ -602,6 +689,9 @@ def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
         lines.extend(_zone_block(block, z, lang, -1, cond("below", k), cals, fallback))
     if not below:
         lines.append(t(lang, "lv_none", arrow="↓"))
+    race = race_lines(block, lang, "levels")
+    if race:
+        lines += [""] + race
     tail = _cal_line(block, cals, fallback, lang)
     tail.extend(_btc_corridor(block, lang, ("4h", "24h")))
     if tail:
@@ -874,8 +964,24 @@ def _corridor_line(c: Optional[Mapping[str, Any]], key: str, lang: str) -> Optio
              half=_pct(c["half_width_pct"], lang, 1))
 
 
+def _corridor_4h_line(payload: Mapping[str, Any], lang: str) -> Optional[str]:
+    """The alert's 4h corridor with its record on the same line (the /btc rule, `corridor_record`); a payload
+    without a record (stored before it, or none computable) shows it only as «сейчас», never as a forecast."""
+    c = payload.get("corridor_4h")
+    if not c:
+        return None
+    tr = payload.get("corridor_4h_track") or {}
+    r = corridor_record(tr, "4h") if tr.get("coverage") is not None else None
+    if r is None:
+        return _corridor_line(c, "pa_corridor_now", lang)
+    rec = (t(lang, "pa_track_live", p=fmt_share(r[1], lang), n=r[2]) if r[0] == "live"
+           else t(lang, "pa_track_hold", p=fmt_share(r[1], lang), days=r[2]))
+    return t(lang, "pa_corridor", low=fmt_price(c["lower"], lang), high=fmt_price(c["upper"], lang),
+             half=_pct(c["half_width_pct"], lang, 1), rec=rec, share=fmt_share(tr["coverage"], lang))
+
+
 ALERT_MAX_LINES = 8
-DELAY_TYPICAL_MIN_N = 20         # below it the class's P50 is not printed beside the message's own delay
+DELAY_TYPICAL_MIN_N = 20         # distinct messages; below it the class's P50 is not printed beside the delay
 
 
 def _dur(seconds: int, lang: str) -> str:
@@ -887,15 +993,17 @@ def _dur(seconds: int, lang: str) -> str:
     return t(lang, "dl_hm", h=s // 3600, m=(s % 3600) // 60)
 
 
-def delay_text(latency: Optional[Mapping[str, Any]], lang: str) -> str:
+def delay_text(latency: Optional[Mapping[str, Any]], lang: str, key: str = "dl_line") -> str:
     """« · задержка 40 с (обычно 35 с)»: the message's own delay from its source (the candle close it was
-    decided on, the event's due time) beside the class's measured median once N reaches
-    DELAY_TYPICAL_MIN_N (backlog F1 with track A's A4 field). Empty without a field."""
+    decided on, the event's due time) beside the class's measured median and its N once N distinct messages
+    reach DELAY_TYPICAL_MIN_N (backlog F1 with track A's A4 field; review of #375: never N delivery rows, so
+    one message to 20 participants is N = 1). Empty without a field."""
     if not latency or latency.get("lag_s") is None:
         return ""
-    own = t(lang, "dl_line", lag=_dur(latency["lag_s"], lang))
-    if latency.get("p50_s") is not None and int(latency.get("n") or 0) >= DELAY_TYPICAL_MIN_N:
-        own += t(lang, "dl_typical", p50=_dur(latency["p50_s"], lang))
+    own = t(lang, key, lag=_dur(latency["lag_s"], lang))
+    n = int(latency.get("messages") or 0)
+    if latency.get("p50_s") is not None and n >= DELAY_TYPICAL_MIN_N:
+        own += t(lang, "dl_typical", p50=_dur(latency["p50_s"], lang), n=n)
     return own
 
 
@@ -908,24 +1016,39 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         lines.append(t(lang, "pa_level_title", name=_e(" = ".join(names)),
                        level=fmt_price(payload["level"], lang)))
         pts = payload.get("price_ts")
-        if pts:
+        if payload.get("trigger") == "structural":      # the #352 zone entry, decided at the 5m close
+            zone = zone_member_names([payload["level_kind"]] + list(payload.get("also_kinds") or ()), lang)
+            lines.append(t(lang, "pa_zone_now_at", name=_e(zone),
+                           clock=fmt_clock(datetime.fromisoformat(payload["source_at"]), lang),
+                           low=fmt_price(payload["zone_low"], lang), high=fmt_price(payload["zone_high"], lang),
+                           price=fmt_price(payload["price"], lang),
+                           price_clock=fmt_kyiv_hm(price_clock(pts)) if pts else na(lang),
+                           period=t(lang, "pa_period_" + payload.get("period", "day"))))
+        elif pts:
             lines.append(t(lang, "pa_level_now_at", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
                            price_clock=fmt_kyiv_hm(price_clock(pts)),
                            period=t(lang, "pa_period_" + payload.get("period", "day"))))
         else:                                       # a payload stored before A1
             lines.append(t(lang, "pa_level_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
                            period=t(lang, "pa_period_" + payload.get("period", "day"))))
-        lines.extend(_hist_lines(payload.get("history"), lang, int(payload.get("side") or 1), "alert"))
+        if payload.get("trigger") == "structural":
+            lines.extend(push_race_line(payload.get("race"), lang, now=datetime.fromisoformat(payload["source_at"])))
+        else:
+            lines.extend(_hist_lines(payload.get("history"), lang, int(payload.get("side") or 1), "alert"))
         nxt = payload.get("next")
         if nxt:
             p24 = (nxt.get("touch") or {}).get("24h")
-            if zones.get("24h") or p24 is None:
+            # the chance only in mode B with its check, recorded at detect time (market_alerts); the
+            # «исторически» fallback, a payload stored before the check, or no chance: the level without a number
+            w = nxt.get("touch_24h_wording") or {}
+            if zones.get("24h") or p24 is None or w.get("mode") != "B":
                 lines.append(t(lang, "pa_next_nop", price=zone_price(nxt, lang),
                                name=_e(zone_names(nxt, lang, limit=1)), dist=fmt_signed_pct(nxt["distance_pct"], lang)))
             else:
                 lines.append(t(lang, "pa_next", price=zone_price(nxt, lang), name=_e(zone_names(nxt, lang, limit=1)),
-                               dist=fmt_signed_pct(nxt["distance_pct"], lang), p=fmt_prob(p24, lang)))
-        cl = None if zones.get("4h") else _corridor_line(payload.get("corridor_4h"), "pa_corridor", lang)
+                               dist=fmt_signed_pct(nxt["distance_pct"], lang), p=fmt_prob(p24, lang),
+                               cal=cal_part("", w, lang).strip()))
+        cl = None if zones.get("4h") else _corridor_4h_line(payload, lang)
         if cl:
             lines.append(cl)
         note = zone_note(zones, ["4h", "24h"], lang)
@@ -971,7 +1094,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         else:
             lines.append(t(lang, "pa_price_now_at" if pts else "pa_price_now", clock=fmt_clock(at, lang),
                            price=fmt_price(payload["price"], lang), price_clock=pclock))
-        cl = None if zones.get("4h") else _corridor_line(payload.get("corridor_4h"), "pa_corridor", lang)
+        cl = None if zones.get("4h") else _corridor_4h_line(payload, lang)
         if cl:
             lines.append(cl)
         note = zone_note(zones, ["4h"], lang)
@@ -987,7 +1110,13 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         lines.append(t(lang, "pa_price_footer"))
     else:
         raise ValueError(f"unknown alert kind {kind!r}")
-    if len(lines) > 1:                           # the delay on the time line, never a line of its own (F1)
+    if kind == "event":
+        # its time line is the release's own time: the message's delay there would read as the release's
+        # (review of #375), so the warning names it on a line of its own
+        own = delay_text(payload.get("latency"), lang, key="dl_own")
+        if own:
+            lines.append(own)
+    elif len(lines) > 1:                         # the delay on the time line, never a line of its own (F1)
         lines[1] += delay_text(payload.get("latency"), lang)
     # research evidence recorded with the alert (beta/research_evidence.py); no unit tested release moves
     surface = {"level": "level_alert", "move": "move_alert"}.get(kind)

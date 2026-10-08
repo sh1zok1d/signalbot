@@ -23,12 +23,16 @@ MINUS = "−"
 # The bot and the notifier set it for the duration of one rendering (`render_tz`); every clock the
 # catalog formats then reads it. Nothing is stored in local time.
 _RENDER_TZ: ContextVar[tzinfo] = ContextVar("beta_render_tz", default=KYIV)
-_OFFSET_RE = re.compile(r"^(?:utc|gmt)?\s*([+-−])\s*(\d{1,2})(?::?(\d{2}))?$", re.I)
+# the sign is required: «[+\-−]» (a bare «[+-−]» is the range U+002B…U+2212, digits and letters included,
+# which read «10» as «UTC+00:00»); a bare number is refused with the hint to add a sign or name a city
+_OFFSET_RE = re.compile(r"^(?:utc|gmt)?\s*([+\-−])\s*(\d{1,2})(?::?(\d{2}))?$", re.I)
+# every spelling of Kyiv is the default zone (stored NULL), labelled «Киев», never an offset
+KYIV_ALIASES = frozenset({"kyiv", "kiev", "киев", "київ", "europe/kyiv", "europe/kiev"})
 
 
 def tz_of(name: Optional[str]) -> tzinfo:
     """The tzinfo of a stored `tz` value; Kyiv for NULL or anything unreadable (never an error)."""
-    if not name:
+    if not name or name.strip().lower() in KYIV_ALIASES:
         return KYIV
     m = _OFFSET_RE.match(name.strip())
     if m:
@@ -40,9 +44,15 @@ def tz_of(name: Optional[str]) -> tzinfo:
         return KYIV
 
 
+def is_fixed_offset(stored: Optional[str]) -> bool:
+    """A stored zone that is a fixed offset («UTC+03:00»): it never follows summer or winter time."""
+    return bool(stored) and _OFFSET_RE.match(stored.strip()) is not None
+
+
 def parse_tz(text: Optional[str]) -> Optional[str]:
     """The stored form of a /tz argument, or None: an IANA name («Europe/Warsaw», case as typed is
-    normalised by the zone database) or an offset «+3», «UTC-5», «+05:30» (stored «UTC+05:30»)."""
+    normalised by the zone database) or a signed offset «+3», «UTC-5», «+05:30» (stored «UTC+05:30»).
+    A bare number («10») is not an offset: None. Kyiv in any spelling is not stored here (see KYIV_ALIASES)."""
     s = (text or "").strip()
     m = _OFFSET_RE.match(s)
     if m:
@@ -82,10 +92,16 @@ def current_tz() -> tzinfo:
 
 
 def zone_name(lang: str, at: Optional[datetime] = None) -> str:
-    """«Киев» / «Kyiv» for Kyiv, else «UTC+3» / «UTC+05:30» at `at` (now when None)."""
+    """«Киев» / «Kyiv» for Kyiv; the city of any other named zone («Warsaw», «New York»), right on every
+    date whatever summer or winter time; «UTC+3» / «UTC+5:30» for a fixed offset (which never changes)."""
     tz = _RENDER_TZ.get()
-    if tz is KYIV:
+    if tz is KYIV or getattr(tz, "key", None) in ("Europe/Kyiv", "Europe/Kiev"):
         return "Киев" if normalize_lang(lang) == "ru" else "Kyiv"
+    key = getattr(tz, "key", None)
+    if key and not key.startswith(("Etc/", "UTC", "GMT")):
+        # a city in Latin letters on the Russian side too (the zone database's own name)
+        return key.rsplit("/", 1)[-1].replace("_", " ")
+    # a fixed offset, or Etc/GMT±N (POSIX: «Etc/GMT+5» is UTC−5; review of #379), printed as the offset
     off = (at or datetime.now(timezone.utc)).astimezone(tz).utcoffset() or timedelta(0)
     total = int(off.total_seconds() // 60)
     sign = "+" if total >= 0 else MINUS
@@ -347,8 +363,8 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": (
             "Добро пожаловать в Signalbot (закрытая бета).\n"
             "Бот следит за BTC-фьючерсами на Binance, Bybit и OKX. Он не говорит, покупать или "
-            "продавать, а показывает: насколько сейчас рискованно (коридор и /risk), где уровни, "
-            "которые видит весь рынок (/levels), что было в похожих ситуациях раньше и что сегодня "
+            "продавать, а показывает: насколько сейчас рискованно (коридор и /risk), где максимумы и "
+            "минимумы прошлого дня, недели и месяца и другие уровни (/levels), что было в похожих ситуациях раньше и что сегодня "
             "в календаре (/events).\n"
             "/btc — состояние рынка сейчас. /help — все команды.\n"
             "/terms — что значат термины.\n"
@@ -360,7 +376,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Welcome to Signalbot (closed beta).\n"
             "The bot watches BTC perpetual futures on Binance, Bybit and OKX. It never says whether "
             "to buy or sell; it shows how risky the market is now (corridor and /risk), where the "
-            "levels everyone watches are (/levels), what happened in similar situations before and "
+            "previous day's, week's and month's highs and lows and other levels are (/levels), what happened in similar situations before and "
             "what is in today's calendar (/events).\n"
             "/btc — the market right now. /help — all commands.\n"
             "/terms — what the terms mean.\n"
@@ -387,6 +403,103 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "Сегодня уже {n} отзывов. Новый можно отправить завтра.",
         "en": "Already {n} feedback messages today. Another one can be sent tomorrow.",
     },
+    # feedback in the bot (backlog H1–H4)
+    "btn_idea": {"ru": "💡 Идея / чего не хватает", "en": "💡 An idea / what is missing"},
+    "idea_prompt": {"ru": "Напишите одним сообщением: идея или чего не хватает. Это прочитает команда. Отменить: /cancel",
+                    "en": "Write it in one message: an idea or what is missing. The team reads it. Cancel: /cancel"},
+    "idea_thanks": {"ru": "Спасибо! Идея передана команде.", "en": "Thanks! Your idea was sent to the team."},
+    "cancel_ok": {"ru": "Хорошо, отменено.", "en": "Fine, cancelled."},
+    "noise_reason_q": {"ru": "Что не так? Один ответ:", "en": "What was wrong? One answer:"},
+    "reason_wrong": {"ru": "Неверно", "en": "Wrong"},
+    "reason_not_for_me": {"ru": "Не про меня", "en": "Not for me"},
+    "reason_too_often": {"ru": "Слишком часто", "en": "Too often"},
+    "reason_late": {"ru": "Поздно", "en": "Too late"},
+    "stop_reason_q": {"ru": "Если не сложно — почему пауза? Один ответ:", "en": "If you do not mind — why the pause? One answer:"},
+    "reason_not_needed": {"ru": "Не нужен", "en": "I do not need it"},
+    "reason_too_many": {"ru": "Слишком много сообщений", "en": "Too many messages"},
+    "reason_unclear": {"ru": "Непонятно, что он показывает", "en": "It is unclear what it shows"},
+    "reason_other": {"ru": "Другое", "en": "Something else"},
+    "reason_thanks": {"ru": "Спасибо, записал.", "en": "Thanks, noted."},
+    "btn_interview": {"ru": "📞 15 минут с командой", "en": "📞 15 minutes with the team"},
+    "interview_q": {"ru": "Можно поговорить 15 минут о боте — что полезно и чего не хватает. Выберите время "
+                          "(по вашему времени, {zone_name}):",
+                    "en": "A 15-minute talk about the bot — what helps and what is missing. Pick a time "
+                          "(your time, {zone_name}):"},
+    "interview_other": {"ru": "Другое время", "en": "Another time"},
+    "interview_ok": {"ru": "Записал: {slot}. Команда напишет здесь накануне. Передумали — напишите /feedback.",
+                     "en": "Booked: {slot}. The team writes here the day before. Changed your mind? Write /feedback."},
+    "interview_other_ok": {"ru": "Записал: удобно в другое время. Команда напишет здесь, чтобы договориться.",
+                           "en": "Noted: another time suits you. The team writes here to agree on one."},
+    # J4: a plain message (not a command) reaches the team as feedback; the answer comes here
+    # J1 onboarding: live /btc, a sample message, the /check offer (first value within a minute)
+    "onboard_btc_head": {"ru": "Вот BTC прямо сейчас:", "en": "Here is BTC right now:"},
+    "onboard_sample_head": {"ru": "Так выглядит сообщение о касании уровня. Это пример, не текущий рынок:",
+                            "en": "This is what a level-touch message looks like. An example, not the current market:"},
+    "onboard_check": {"ru": "Проверьте свой уровень: /check и цена, например /check 65000 — шанс дойти за 1ч / 4ч / 24ч "
+                            "и что бывало у таких уровней. Или кнопкой ниже. Как читать бота: /guide",
+                      "en": "Check a level of your own: /check and a price, e.g. /check 65000 — the chance to reach it "
+                            "within 1h / 4h / 24h and what such levels did. Or tap below. How to read the bot: /guide"},
+    "btn_guide": {"ru": "📖 Как читать бота", "en": "📖 How to read the bot"},
+    # J2 «как читать бота»: an annotated push and briefing
+    "guide": {
+        "ru": ("<b>Как читать бота</b>\n\n"
+               "<b>Сообщение о необычном часе</b>\n"
+               "«13:05–14:05 (Киев) · задержка 45 с» — окно часа и через сколько пришло сообщение.\n"
+               "«Похоже на …» — описание состояния, не причина и не совет.\n"
+               "«падение глубже, чем в 95% часовых окон за 30 дней» — насколько это необычно и с чем сравнивали.\n"
+               "«OI · Delta · Биржи: 3 из 3» — открытый интерес, перевес рыночных покупок или продаж, согласие бирж.\n"
+               "«Рядом: ↑ … · ↓ …» — ближайшие уровни.\n\n"
+               "<b>Сообщение об уровне</b>\n"
+               "«цена вошла в зону …» — цена впервые за день, неделю или месяц дошла до такого уровня.\n"
+               "«первой была — верхняя … · нижняя … · ни одна … (обычно …)» — как часто в похожих касаниях "
+               "2020–2024 (N — сколько их было) цена сначала доходила до верхней или нижней цены или ни до одной; "
+               "«обычно» — что дала бы случайная цена с той же волатильностью из той же точки, без учёта уровня. "
+               "Это частоты прошлого, не прогноз направления.\n\n"
+               "<b>Утренняя сводка</b>\n"
+               "«Сейчас · 1ч и 4ч» — состояние рынка за час и за 4 часа.\n"
+               "«Коридор: 4ч … · 24ч …» — где цена оставалась в 4 из 5 похожих случаев; строка ниже — как часто так "
+               "и было, на истории или вживую.\n"
+               "«Уровни» — максимумы и минимумы прошлого дня, недели и месяца, открытия периодов, круглые цены и другие уровни из /terms; «🎯 Проверить» — шанс до них дойти.\n"
+               "«События в ближайшие сутки» — CPI и ФРС: рядом с ними числовые оценки не показываем.\n\n"
+               "<b>Числа</b>\n"
+               "«≈ 41%» — шанс дойти; рядом — как такие оценки сбывались: «говорили 40% → было 39% (N=120)».\n"
+               "«исторически в 41% случаев» — так бывало раньше, без проверки как прогноз.\n"
+               "«+4,0 п.п.; 95% интервал …» — разница с обычным и её разброс; N — сколько было случаев.\n"
+               "Бот не говорит, покупать или продавать."),
+        "en": ("<b>How to read the bot</b>\n\n"
+               "<b>Unusual-hour message</b>\n"
+               "“13:05–14:05 Kyiv · delay 45 s” — the hour and how long the message took.\n"
+               "“Looks like …” — a description of the state, not a cause and not advice.\n"
+               "“a fall deeper than 95% of 1h windows over 30 days” — how unusual it is and what it was compared with.\n"
+               "“OI · Delta · Exchanges: 3 of 3” — open interest, the balance of market buys and sells, how many "
+               "exchanges agree.\n"
+               "“Nearby: ↑ … · ↓ …” — the nearest levels.\n\n"
+               "<b>Level message</b>\n"
+               "“the price entered the … zone” — the first time this day, week or month the price reached such a level.\n"
+               "“reached first — the upper … · the lower … · neither … (usually …)” — how often, in similar touches in "
+               "2020–2024 (N is how many), the price reached the upper or the lower price first, or neither; "
+               "“usually” — what a random price path with the same volatility from the same point would give, ignoring "
+               "the level. These are past frequencies, not a direction forecast.\n\n"
+               "<b>Morning briefing</b>\n"
+               "“Now · 1h and 4h” — the market state over the hour and over 4 hours.\n"
+               "“Corridor: 4h … · 24h …” — where the price stayed in 4 of 5 similar cases; the line below — how often "
+               "that held, on history or live.\n"
+               "“Levels” — the previous day's, week's and month's highs and lows, period opens, round prices and the other levels in /terms; “🎯 Check” — the chance to reach them.\n"
+               "“Events within 24 hours” — CPI and the Fed: no numerical estimates around them.\n\n"
+               "<b>Numbers</b>\n"
+               "“≈ 41%” — the chance to reach; beside it, how such estimates turned out: “said 40% → was 39% (N=120)”.\n"
+               "“historically in 41% of cases” — what happened before, not checked as a forecast.\n"
+               "“+4.0 pp; 95% interval …” — the difference from usual and its spread; N is the number of cases.\n"
+               "The bot never says whether to buy or sell."),
+    },
+    "tier_closed": {"ru": "Это сейчас недоступно.", "en": "This is not available now."},
+    "plain_to_team": {"ru": "Передал команде — ответ придёт сюда. Команды: /help",
+                      "en": "Passed to the team — the answer comes here. Commands: /help"},
+    # I2 / U3 (PRODUCT_FIRST_DECISION_V1 §7): the offer on days 21–25, to everyone enrolled, churned included
+    "u3_offer": {"ru": "Бета подходит к концу. Если бот был полезен, его можно продолжить: {price}. Оплата: {method}. "
+                       "Деньги можно вернуть в течение 30 дней. Вопросы и оплата — через /feedback или ответом сюда.",
+                 "en": "The beta is ending. If the bot was useful, you can keep it: {price}. Payment: {method}. "
+                       "You can get the money back within 30 days. Questions and payment: /feedback or a reply here."},
     "feedback_thanks": {
         "ru": "Спасибо! Отзыв передан команде.",
         "en": "Thanks! Your feedback was sent to the team.",
@@ -419,9 +532,12 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
             "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
             "/delete_me удаляет их вместе с остальными вашими данными.\n"
-            "• Тексты отзывов (/feedback) хранятся 120 дней и удаляются командой /delete_me.\n"
+            "• Тексты отзывов, идей, обычные сообщения боту и запись на разговор (/feedback, /idea, /interview) "
+            "хранятся 120 дней; "
+            "ответы «почему» после «Шум» и при паузе хранятся, пока вы в бете. /delete_me удаляет всё это.\n"
             "• Ваши уровни (/alert) хранятся, пока вы их не удалите; /delete_me удаляет их.\n"
-            "• /stop приостанавливает все сообщения. /delete_me удаляет ваши данные участника "
+            "• /stop приостанавливает все сообщения, кроме ответов команды на ваши сообщения и одного предложения "
+            "в конце беты. /delete_me удаляет ваши данные участника "
             "и исключает вас из беты.\n"
             "• После /stop данные удаляются автоматически через 30 дней.\n"
             "• Журнал прогнозов бота (что он говорил и что было потом) и записи рынка не содержат "
@@ -445,9 +561,13 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• We record which commands and buttons you use, and when, and which invite link "
             "you came from, so we can improve the bot. These records are kept for 120 days. "
             "/delete_me deletes them with the rest of your data.\n"
-            "• Feedback texts are stored for 120 days and deleted by /delete_me.\n"
+            "• Feedback and idea texts, plain messages to the bot and interview requests (/feedback, /idea, "
+            "/interview) are stored for 120 days; your "
+            "answers to «why» after «Noise» and at a pause are kept while you are in the beta. /delete_me deletes "
+            "all of it.\n"
             "• Your price alerts (/alert) are kept until you delete them; /delete_me deletes them.\n"
-            "• /stop pauses all messages. /delete_me deletes your participant data and removes "
+            "• /stop pauses all messages except the team's replies to your messages and one offer at the end of "
+            "the beta. /delete_me deletes your participant data and removes "
             "you from the beta.\n"
             "• After /stop, your data is deleted automatically after 30 days.\n"
             "• The bot's forecast journal (what it said and what happened next) and the market records do not "
@@ -505,9 +625,11 @@ _CATALOG: dict[str, dict[str, str]] = {
         "en": "Messages are paused or you have not joined yet. Send /start.",
     },
     "paused": {
-        "ru": ("Сообщения на паузе. Отправьте /start, чтобы продолжить. Данные удаляются "
+        "ru": ("Сообщения на паузе, кроме ответов команды на ваши сообщения и одного предложения в конце беты. "
+               "Отправьте /start, чтобы продолжить. Данные удаляются "
                "автоматически через 30 дней или сразу командой /delete_me."),
-        "en": ("Messages paused. Send /start to resume. Your data is deleted "
+        "en": ("Messages paused, except the team's replies to your messages and one offer at the end of the beta. "
+               "Send /start to resume. Your data is deleted "
                "automatically after 30 days, or now with /delete_me."),
     },
     "unknown_cmd": {"ru": "Неизвестная команда. /help", "en": "Unknown command. /help"},
@@ -595,7 +717,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "part_oi": {"ru": "OI {arrow}", "en": "OI {arrow}"},
     "part_vol": {"ru": "Объём {level}", "en": "Volume {level}"},
     "part_taker": {"ru": "Delta {arrow}", "en": "Delta {arrow}"},
-    "h_oi": {"ru": "OI {pct}", "en": "OI {pct}"},
+    "h_oi": {"ru": "OI {pct} (медиана бирж)", "en": "OI {pct} (median across exchanges)"},
     "h_move_usual": {"ru": "{move} (обычно ±{typ})", "en": "{move} (usually ±{typ})"},
     "h24_incomplete": {"ru": "24ч: неполные данные", "en": "24h: incomplete"},
     "h24_prefix": {"ru": "24ч: {body}", "en": "24h: {body}"},
@@ -679,7 +801,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     # /catchup, the morning briefing and the unusual-hour push (BETA_COPY_CONTRACT_V1).
     "catchup_title": {"ru": "BTC за {hours} ч · {span}", "en": "BTC, last {hours}h · {span}"},
     "catchup_title_nospan": {"ru": "BTC за {hours} ч", "en": "BTC, last {hours}h"},
-    "brief_title": {"ru": "BTC за ночь · {span}", "en": "BTC overnight · {span}"},
+    "brief_title": {"ru": "Сводка BTC · {span}", "en": "BTC briefing · {span}"},   # any briefing time, not only morning
     "span_hours": {"ru": "{hours} ч", "en": "{hours}h"},
     "window_kyiv": {"ru": "{start}–{end} {zone}", "en": "{start}–{end} {zone}"},
     "price_span": {"ru": "Цена {open} → {close} ({pct})", "en": "Price {open} → {close} ({pct})"},
@@ -707,6 +829,8 @@ _CATALOG: dict[str, dict[str, str]] = {
                    "en": "The bot does not write between {s} and {e}, so this is only in the briefing."},
     "note_cap": {"ru": "Сообщения об этом часе не было: за сутки уже было {n}.",
                  "en": "No message about this hour: there were already {n} today."},
+    "note_fuse": {"ru": "Сообщения об этом часе не было: бот за сутки уже отправил предельное число сообщений.",
+                  "en": "No message about this hour: the bot had already sent its daily maximum of messages."},
     "note_cooldown": {"ru": "Отдельного сообщения не было: незадолго до этого бот уже писал.",
                       "en": "No separate message: the bot had written shortly before."},
     "now_head": {"ru": "Сейчас", "en": "Now"},
@@ -744,14 +868,15 @@ _CATALOG: dict[str, dict[str, str]] = {
     "pos_mid": {"ru": "цена в середине", "en": "price in the middle"},
     "pos_highish": {"ru": "цена ближе к верхней границе", "en": "price closer to the high end"},
     "pos_high": {"ru": "цена у верхней границы", "en": "price at the high end"},
-    "oi_24h": {"ru": "OI {oi} за 24ч", "en": "OI {oi} over 24h"},
+    "oi_24h": {"ru": "OI {oi} за 24ч (медиана бирж{usual})", "en": "OI {oi} over 24h (median across exchanges{usual})"},
+    "oi_24h_na": {"ru": "OI за 24ч н/д", "en": "OI over 24h n/a"},
     "funding_avg": {"ru": "средний Funding {f}", "en": "average Funding {f}"},
     "funding_avg_na": {"ru": "средний Funding н/д", "en": "average Funding n/a"},
     # derivatives beside their «обычно» (backlog G2; beta/derivatives.py)
-    "oi_usual_part": {"ru": " (обычно ±{typ}, N={n})", "en": " (usually ±{typ}, N={n})"},
+    "oi_usual_part": {"ru": "; Binance {bn}, обычно ±{typ}, N={n} дн.", "en": "; Binance {bn}, usually ±{typ}, N={n} days"},
     "funding_usual_part": {"ru": "обычно {typ}, N={n}", "en": "usually {typ}, N={n}"},
-    "der_oi_usual": {"ru": "   обычно OI за сутки меняется на ±{typ} (медиана, Binance, N={n} дн.)",
-                     "en": "   OI usually moves ±{typ} a day (median, Binance, N={n} days)"},
+    "der_oi_usual": {"ru": "   Binance {bn} · обычно OI Binance за сутки меняется на ±{typ} (медиана, N={n} дн.)",
+                     "en": "   Binance {bn} · Binance OI usually moves ±{typ} a day (median, N={n} days)"},
     "der_funding_usual": {"ru": "   обычно среднее за 24 ч {typ} (медиана за {n} дн.)",
                           "en": "   usually a 24h average of {typ} (median of {n} days)"},
     "der_usual_short": {"ru": "   обычно: мало данных (N={n} дн.)", "en": "   usually: too little data (N={n} days)"},
@@ -786,12 +911,20 @@ _CATALOG: dict[str, dict[str, str]] = {
     "type_saved": {"ru": "Записал: {name}. Изменить: /type", "en": "Saved: {name}. Change it: /type"},
     "type_skipped": {"ru": "Хорошо. Указать позже: /type", "en": "Fine. You can answer later: /type"},
     "tz_usage": {"ru": "Часовой пояс: {name}. Всё время в сообщениях — по нему, ночная тишина {quiet} — тоже.\n"
-                       "Поменять: /tz +3, /tz -5, /tz Europe/Warsaw; вернуть Киев: /tz kyiv",
+                       "Поменять: /tz Europe/Warsaw, /tz America/New_York (город — с переходом на летнее время) "
+                       "или смещение со знаком: /tz +3; вернуть Киев: /tz kyiv",
                  "en": "Time zone: {name}. Every time in the messages follows it, and so do the quiet hours {quiet}.\n"
-                       "Change it: /tz +3, /tz -5, /tz Europe/Warsaw; back to Kyiv: /tz kyiv"},
+                       "Change it: /tz Europe/Warsaw, /tz America/New_York (a city follows summer time) or a signed "
+                       "offset: /tz +3; back to Kyiv: /tz kyiv"},
     "tz_ok": {"ru": "Часовой пояс: {name}. Сейчас у вас {clock}.", "en": "Time zone: {name}. Your time now: {clock}."},
-    "tz_bad": {"ru": "Не понял часовой пояс. Примеры: /tz +3, /tz -5, /tz Europe/Warsaw, /tz kyiv",
-               "en": "I could not read that time zone. Examples: /tz +3, /tz -5, /tz Europe/Warsaw, /tz kyiv"},
+    "tz_fixed_note": {"ru": "Это постоянное смещение: летнее и зимнее время оно не учитывает. Город (например, "
+                            "/tz Europe/Warsaw) переводит часы сам.",
+                      "en": "This is a fixed offset: it does not follow summer and winter time. A city (for example, "
+                            "/tz Europe/Warsaw) changes the clocks by itself."},
+    "tz_bad": {"ru": "Не понял часовой пояс. Город: /tz Europe/Warsaw; смещение — со знаком: /tz +3, /tz -5, /tz +10; "
+                     "Киев: /tz kyiv",
+               "en": "I could not read that time zone. A city: /tz Europe/Warsaw; an offset needs a sign: /tz +3, "
+                     "/tz -5, /tz +10; Kyiv: /tz kyiv"},
     "brief_off_ok": {"ru": "Утренняя сводка выключена. Сообщения о необычном часе это не меняет.",
                      "en": "Morning briefing off. Unusual-hour messages are not affected."},
     "push_usage": {"ru": "Сообщения о необычном часе: {state}. /push on — включить, /push off — выключить.",
@@ -813,6 +946,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "price_drop_95": {"ru": "падение глубже, чем в 95% часовых окон за 30 дней",
                       "en": "a drop deeper than in 95% of hourly windows over 30 days"},
     "oi_delta_line": {"ru": "OI {oi} · Delta {delta}", "en": "OI {oi} · Delta {delta}"},
+    "oi_med_value": {"ru": "{pct} (медиана бирж)", "en": "{pct} (median across exchanges)"},
     "oi_only_line": {"ru": "OI {oi}", "en": "OI {oi}"},
     "evt_buy": {"ru": "агрессивные покупки", "en": "aggressive buying"},
     "evt_sell": {"ru": "агрессивные продажи", "en": "aggressive selling"},
@@ -940,7 +1074,7 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "Цена {price} · диапазон {range} · объём {vol}{level}",
         "en": "Price {price} · range {range} · volume {vol}{level}",
     },
-    "anchor_oi": {"ru": "OI {med}: {venues}", "en": "OI {med}: {venues}"},
+    "anchor_oi": {"ru": "OI {med} (медиана бирж): {venues}", "en": "OI {med} (median across exchanges): {venues}"},
     "anchor_oi_na": {"ru": "OI: {venues}", "en": "OI: {venues}"},
     "taker_line": {"ru": "Delta: {signed} ({side})", "en": "Delta: {signed} ({side})"},
     "taker_flat": {"ru": "Delta: $0", "en": "Delta: $0"},
@@ -1001,10 +1135,19 @@ _CATALOG: dict[str, dict[str, str]] = {
     "h24_volume": {"ru": "Объём {vol}{ratio}", "en": "Volume {vol}{ratio}"},
     "h24_volume_partial": {"ru": "Объём {vol} (неполные)", "en": "Volume {vol} (partial)"},
     "changes_head": {"ru": "Изменения к предыдущим 24 ч:", "en": "Changes vs previous 24h:"},
+    # names the checks that ran (D3, R6); never printed when none could run
     "changes_none": {
-        "ru": "Крупных изменений к предыдущим 24 ч нет",
-        "en": "No large change vs previous 24h",
+        "ru": "К предыдущим 24 ч крупных изменений нет по проверкам: {checks}",
+        "en": "No large change vs previous 24h in the checks: {checks}",
     },
+    "changes_skipped": {"ru": " (не проверено: {checks} — нет данных)", "en": " (not checked: {checks} — no data)"},
+    "changes_na": {"ru": "Сравнить с предыдущими 24 ч нельзя: данных не хватает",
+                   "en": "No comparison with the previous 24h: not enough data"},
+    "changes_check_range": {"ru": "диапазон", "en": "range"},
+    "changes_check_volume": {"ru": "объём", "en": "volume"},
+    "changes_check_oi_price": {"ru": "OI вместе с ценой", "en": "OI together with price"},
+    "changes_check_funding": {"ru": "смена знака Funding", "en": "Funding sign change"},
+    "and_last": {"ru": " и ", "en": " and "},
     "changes_range_wider": {"ru": "диапазон шире: {a} против {b}", "en": "range wider: {a} vs {b}"},
     "changes_range_narrower": {"ru": "диапазон уже: {a} против {b}", "en": "range narrower: {a} vs {b}"},
     "changes_vol_higher": {"ru": "объём выше: {a} против {b}", "en": "volume higher: {a} vs {b}"},
@@ -1113,10 +1256,11 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Ликвидации лонгов / шортов — ликвидации одной стороны в верхних 5% за 30 дней, минимум на 2 биржах одновременно.\n"
             "\n"
             "Показатели\n"
-            "OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается.\n"
+            "OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается. "
+            "Изменение OI в боте — медиана изменений по биржам (минимум 2 биржи), а не изменение суммарного OI.\n"
             "Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот.\n"
             "Delta — разница между рыночными покупками и продажами в $. Минус — нетто продавали.\n"
-            "Объём — сумма сделок в $ по Binance, Bybit и OKX.\n"
+            "Объём — сумма сделок в $ по Binance, Bybit и OKX; если в какой-то пятиминутке нет данных одной из бирж, объём помечен как неполный.\n"
             "Диапазон — от минимума до максимума цены за период, в % от цены.\n"
             "Ликвидации — принудительное закрытие позиций биржей, по каждой бирже отдельно.\n"
             "≥ — нижняя граница: Binance публикует не все ликвидации.\n"
@@ -1148,10 +1292,11 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 exchanges at once.\n"
             "\n"
             "Metrics\n"
-            "OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed.\n"
+            "OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed. "
+            "The bot's OI change is the median of the exchanges' changes (at least 2 exchanges), not the change of total OI.\n"
             "Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse.\n"
             "Delta — difference between market buys and market sells in $. Negative — net selling.\n"
-            "Volume — total traded value in $ on Binance, Bybit and OKX.\n"
+            "Volume — total traded value in $ on Binance, Bybit and OKX; when a 5-minute bucket lacks one of them, the volume is marked partial.\n"
             "Range — from the lowest to the highest price in the period, in % of the price.\n"
             "Liquidations — positions force-closed by the exchange, shown per exchange.\n"
             "≥ — lower bound: Binance does not publish every liquidation.\n"
