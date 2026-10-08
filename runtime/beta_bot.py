@@ -793,6 +793,15 @@ class BetaBotHandler:
             return await self._reply(conn, user, chat_id, lang, self.clock(), "type_set",
                                      [answer(""), _msg(chat_id, t(lang, "type_saved", name=t(lang, "type_" + data[2:])),
                                                        lang=lang)], detail=data[2:])
+        vote = _parse_vote(data)
+        if vote is not None:                   # «Полезно / Шум» under an alert, the briefing or the weekly (F6)
+            kind, ref, value = vote
+            changed = await conn.upsert_message_vote(user_pk=user["user_pk"], kind=kind, ref=ref, vote=value)
+            out = [answer(t(lang, "feedback_recorded"))]
+            if not changed:                    # the same vote again: nothing new happened
+                return out
+            return await self._reply(conn, user, chat_id, lang, self.clock(),
+                                     "btn_useful" if value == "USEFUL" else "btn_noise", out, detail=kind)
         mute = _parse_mute(data)
         if mute is not None:                   # «🔕 Не присылать такие» / «↩️ Вернуть» (backlog E2)
             off, kind = mute
@@ -819,8 +828,10 @@ class BetaBotHandler:
         if ep is None:
             return [answer(t(lang, "unknown_episode"))]
         if data[0] in ("u", "n"):
-            await conn.upsert_feedback(user_pk=user["user_pk"], episode_pk=ep.episode_pk,
-                                       vote="USEFUL" if data[0] == "u" else "NOISE")
+            changed = await conn.upsert_feedback(user_pk=user["user_pk"], episode_pk=ep.episode_pk,
+                                                 vote="USEFUL" if data[0] == "u" else "NOISE")
+            if not changed:                    # a repeated tap is not a second vote (finding §4.5b)
+                return [answer(t(lang, "feedback_recorded"))]
             action = "btn_useful" if data[0] == "u" else "btn_noise"
             return await self._reply(conn, user, chat_id, lang, self.clock(), action,
                                      [answer(t(lang, "feedback_recorded"))])
@@ -834,6 +845,11 @@ def _type_buttons(lang: str) -> list:
     return [[(t(lang, "type_scalp"), "s:scalp"), (t(lang, "type_intraday"), "s:intraday")],
             [(t(lang, "type_swing"), "s:swing"), (t(lang, "type_invest"), "s:invest")],
             [(t(lang, "type_skip"), "s:skip")]]
+
+
+def _parse_vote(data: str):
+    from beta.formatter import parse_vote
+    return parse_vote(data)
 
 
 def _parse_mute(data: str):
