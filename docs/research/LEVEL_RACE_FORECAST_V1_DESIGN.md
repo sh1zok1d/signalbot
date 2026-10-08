@@ -134,12 +134,27 @@ A class that fails stays `HIST` (or `FALLBACK` if a fallback model is available)
 - Input drift (σ level, position distribution, event rate) is reported weekly and changes no state.
 - **Return:** at least 50 new resolved events since the fallback, with the champion's shadow published probabilities on them inside D2's band, D1 restarted at the fallback ≤ 10, and D3 not triggered.
 
-**`FALLBACK` model:** the generic race engine's B0 with its own calibration line (FORECAST_LAYER §5–§6), when that engine exists (another track; dependency Q4); until then raw B0 with its held-out tracked accuracy. The level offset is not claimed in this state.
+**`FALLBACK` model:** B0 at the event, recalibrated with the `GENERIC` class intercept and the shared slope of §8a (no level intercept), with the generic class's tracked accuracy as its calibration line. Before the generic calibrator has its first batch: raw B0 with its held-out tracked accuracy. The level offset is not claimed in this state.
 
 ## 8. Challenger C1
 
 - `C1` = the frozen champion's M1-family specification (M1 if the champion is B0) plus `OTHER_VENUE_MEDIAN_MOVE` exactly as #363 defines it (median of the Bybit BTCUSDT-linear and OKX BTC-USDT-SWAP oriented 15m log returns from the close of the last bar before T to the close of bar j+2; all three venues required; no fill), z-scored with training-fold moments, entering head B on T15 rows only (0 at T0: the move is not defined before D). One extra parameter, same λ as its base.
-- Frozen with the champion; logs in shadow from registration on live three-venue klines; promotion only by FORECAST_LAYER §7 (≥ 150 paired events, week-clustered interval of the log-loss gain excluding 0, calibration not worse). Its development numbers are descriptive. It replaces portfolio P3-2; #363's `LEVEL_SPECIFICITY = NOT_ESTABLISHED` is unchanged.
+- **Development fit only:** coefficients from 2020-04..2024 on `LEVEL_CROSS_VENUE_PERP_5M_V0`. Its development numbers are descriptive.
+- **No historical held-out.** There is no 2025/2026 three-venue history for this read; C1 is not part of §5. It is a live challenger only: frozen with the champion, logged in shadow from Day 0 on the VPS live 1m Bybit and OKX BTCUSDT klines (the two closes it needs are the 1m closes at the same instants as the 5m closes; coverage about 99.8 %; a missing close makes the C1 forecast missing, never filled, and the count is reported).
+- **Promotion** only by FORECAST_LAYER §7 (≥ 150 paired live events, week-clustered interval of the log-loss gain excluding 0, calibration not worse). It replaces portfolio P3-2; #363's `LEVEL_SPECIFICITY = NOT_ESTABLISHED` is unchanged.
+
+## 8a. Generic race stream (shadow only, frozen with the same SHA)
+
+Purpose: the dense calibration stream of FORECAST_LAYER §5 (pooling). Not displayed; `/check` for two user prices stays post-beta. It is frozen in the same commit as the level model, because pooling is valid only on a prospective record that existed from the freeze.
+
+- **Anchors:** the close of every 5m bar whose close is on a UTC hour, with `rolling_sigma` (288 5m log returns ending at the anchor bar, known at its close) usable and the next 48 bars available (`MIN_PRESENT = 0.9`).
+- **Price pairs:** from the anchor close `c`, `X_g = 0.5 × 1.2816 × σ × √48` (same formula as the level barriers). Four pairs per anchor, in X_g units (up, down): `(1,1)`, `(1,2)`, `(2,1)`, `(2,2)`; prices `c·exp(+u·X_g)` and `c·exp(−d·X_g)`. `(1,1)` is close to the level geometry; the others cover off-centre starts.
+- **Window and outcomes:** bars `anchor+1 … anchor+48` (4h), high/low. `UP_FIRST` / `DOWN_FIRST` / `NEITHER`; a bar reaching both is `AMBIGUOUS`, excluded and counted. Rule id `GENERIC_RACE_4H_V1`. Journal class `L3_GENERIC_RACE_4H` (shadow; F2 wires it).
+- **Models:** `GB0` = the B0 series of §2.1 at the pair geometry (0 parameters). `G1` = two heads (resolve; UP given resolved) offset by GB0, terms `{1, SIGMA_T}` per head = 4 parameters, ridge as §2.3. G1 replaces GB0 only if its pooled out-of-fold log-loss is lower than GB0's (tie < 0.002 nats → GB0). No level, landmark or family term.
+- **Development and held-out:** same folds, clusters, seed and metrics as §3 and §6, on the same surfaces and in the same single held-out read as §5 (anchors ≥ 2025-01-01T00:00Z, same E1 object gap and span exclusion).
+- **Dependence:** hourly 4h windows overlap (four consecutive anchors share bars) and the four pairs share one path. Clusters are product weeks; the report gives anchors, pairs, week clusters and the non-overlapping-window count (anchors / 4) as the effective-N reading. Expected about 40 independent 4h windows a week.
+- **Link with the level classes in calibration.** One calibrator per head with a shared slope and class intercepts: `logit p' = a_class + b · logit p`, classes `GENERIC`, `LEVEL_T0`, `LEVEL_T15`. The level intercepts carry a hierarchical prior centred on the generic intercept, `a_level ~ N(a_GENERIC, 0.5²)` [F3]. Head B is `UP | resolved` for the generic class and `BREAK | resolved` for the level classes; the slope is shared, the intercepts are not. The generic class also feeds the `FALLBACK` line of §7 (it resolves Q4 once it runs).
+- **Search exposure added:** 2 entries (GB0, G1), 1 fit per fold; 4 pairs.
 
 ## 9. Wording templates (ids frozen; prices only)
 
@@ -160,9 +175,9 @@ A class that fails stays `HIST` (or `FALLBACK` if a fallback model is available)
 
 ## 10. Records, exposure, ledger
 
-- **Journal:** classes `L3_LEVEL_RACE_T0_4H` and `L3_LEVEL_RACE_T15_4H` in `beta/claims.py` (shared file, F2's change), with the fields of FORECAST_LAYER §5 and evaluation rule id `LEVEL_RACE_4H_V1` (the #352 `classify` on `j+1 … j+48`, AMBIGUOUS excluded and counted).
+- **Journal:** classes `L3_LEVEL_RACE_T0_4H`, `L3_LEVEL_RACE_T15_4H` and the shadow class `L3_GENERIC_RACE_4H` (rule `GENERIC_RACE_4H_V1`) in `beta/claims.py` (shared file, F2's change), with the fields of FORECAST_LAYER §5 and evaluation rule id `LEVEL_RACE_4H_V1` (the #352 `classify` on `j+1 … j+48`, AMBIGUOUS excluded and counted).
 - **Exposure ledger and atlas** (AGENTS.md): when development closes, one unit `LEVEL-RACE-FORECAST-V1` is added to `ATLAS_UNITS_V1.yaml` (row `PRICE_STRUCTURE.levels`, cols `CANDLES` and `CROSS_VENUE` for C1) with `CORE_BTC_BINANCE_V0` 2020-02..2024-12 and `LEVEL_CROSS_VENUE_PERP_5M_V0` 2020-04..2024-12 entries `CONSUMED` (further exposure of the level row, model development, not a confirmation), rebuilt with `python -m scripts.research.atlas.build_atlas` and a hash-chained `--append-event`; `docs/RESEARCH_LEDGER.md` gets the row. The held-out read adds a `BINANCE_UM_KLINES_5M_PRODUCT` 2025-01-01..freeze-date entry (E1 gap excluded, class B disclosed) the same way.
-- **Search exposure:** 6 menu entries; 3 M1 variants × 4 λ = 12 development fits, plus B1, B0 (no fit) and C1 (1 fit); 2 landmarks; 3 outcomes (2 heads); 4 folds. All are reported.
+- **Search exposure:** 6 level menu entries; 3 M1 variants × 4 λ = 12 development fits, plus B1, B0 (no fit) and C1 (1 fit); the generic stream's GB0 and G1 (4 λ); 2 landmarks; 3 outcomes (2 heads); 4 folds. All are reported. The generic stream adds `VOLATILITY_STATE.range_forecast`-type exposure of `CORE_BTC_BINANCE_V0` (unconditional 4h barrier races), recorded in the same atlas unit.
 - **Prior knowledge disclosure:** the menu was chosen knowing the recorded #357, #361, #363, #365 aggregates on these same surfaces (FORECAST_LAYER §2). That is why development is `DISCOVERY` and the gate is the held-out read.
 
 ## 11. What would change our mind; limitations
@@ -173,11 +188,17 @@ A class that fails stays `HIST` (or `FALLBACK` if a fallback model is available)
 - **Held-out fails G1–G3:** the class ships in `HIST` / `FALLBACK` at Day 0.
 - **Limitations:** one venue for the event (Binance perp); about 7.5 events a week, so the T15 class carries roughly 450 held-out events; σ from the trailing 24h only; the B0 discretisation caveats of §2.1; held-out surface exposed (class B); two landmark rows per event are dependent (clustered, not modelled); the development folds' early training sets are small (2020 only for the first fold).
 
-## 12. Open questions for the mini-head
+## 12. Schedule and scope cuts
+
+Design note to the architect by about 2026-10-10; model freeze no later than about 2026-10-16; display and shadow in the final build about 2026-10-20. If development threatens the freeze date, the menu is cut in this order, and the cut is reported: M1A, then B1 (the comparator becomes B0 only), then C1's development diagnostics (C1 coefficients are still frozen). B0, the champion rule, the generic stream and the held-out protocol are not cut.
+
+Order of approval: mini-head review and red team → architect → architect's red team → commit. The same order for the model freeze and for the held-out go.
+
+## 13. Open questions for the mini-head
 
 - **Q1** B1 parameter count (§2.2): family × structural side (12 free frequencies per landmark) as written, or family only (6)?
 - **Q2** `SIDE` = structural side (PxH / PxL) as in FORECAST_LAYER §3, not the approach side. Confirm.
 - **Q3** The [F3] numbers in §7 (prior, G0–G3, live floor, D0–D3, return rule), to be settled with F3 before the held-out read.
-- **Q4** `FALLBACK` depends on the generic race engine (another track); until then raw B0 with its held-out accuracy.
+- **Q4** Closed by §8a: the generic stream is in this note; `FALLBACK` uses its calibration.
 - **Q5** Held-out bars from product 5m klines (live parity) rather than 1m → 5m (development parity), with the 2024 parity preflight of §5.
 - **Q6** Predictor module path `beta/level_race.py` (ОПГ-2 file), to agree with F2.

@@ -126,7 +126,8 @@
       "base": "champion M1-family spec (M1 if champion is B0)",
       "extra": "OTHER_VENUE_MEDIAN_MOVE (#363), head B, T15 rows only, z-scored on training moments",
       "params": "base + 1",
-      "champion_eligible": false
+      "champion_eligible": false,
+      "held_out": "none; live shadow only from Day 0 on VPS live 1m Bybit/OKX closes; missing close -> forecast missing"
     }
   },
   "offset_clip": [
@@ -290,7 +291,11 @@
     "m1_fits": 12,
     "landmarks": 2,
     "heads": 2,
-    "folds": 4
+    "folds": 4,
+    "generic": {
+      "entries": 2,
+      "pairs": 4
+    }
   },
   "forbidden_inputs": [
     "touch ordinal",
@@ -315,8 +320,77 @@
     "Q1",
     "Q2",
     "Q3",
-    "Q4",
     "Q5",
     "Q6"
-  ]
+  ],
+  "generic_race": {
+    "display": false,
+    "journal_class": "L3_GENERIC_RACE_4H",
+    "rule_id": "GENERIC_RACE_4H_V1",
+    "anchors": "close of every 5m bar closing on a UTC hour; rolling_sigma at the anchor",
+    "window_bars": 48,
+    "x_g": "0.5 * 1.2816 * sigma * sqrt(48)",
+    "pairs_x_units": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ]
+    ],
+    "outcomes": [
+      "UP_FIRST",
+      "DOWN_FIRST",
+      "NEITHER"
+    ],
+    "ambiguous": "excluded_and_counted",
+    "models": {
+      "GB0": {
+        "params": 0
+      },
+      "G1": {
+        "heads": {
+          "R": [
+            "1",
+            "SIGMA_T"
+          ],
+          "U": [
+            "1",
+            "SIGMA_T"
+          ]
+        },
+        "params": 4,
+        "replaces_GB0_if": "pooled OOF LL lower by >= 0.002 nats"
+      }
+    },
+    "dependence": "week clusters; report anchors, pairs, weeks, anchors/4 as effective N",
+    "calibration_link": "per head shared slope b; intercepts per class GENERIC, LEVEL_T0, LEVEL_T15; a_level ~ N(a_GENERIC, 0.5^2) [F3]"
+  },
+  "fallback_model": "B0 recalibrated with the GENERIC intercept and shared slope; before the first batch raw B0",
+  "schedule": {
+    "design_note_to_architect": "~2026-10-10",
+    "model_freeze_by": "~2026-10-16",
+    "final_build": "~2026-10-20",
+    "cut_order": [
+      "M1A",
+      "B1",
+      "C1 development diagnostics"
+    ],
+    "not_cut": [
+      "B0",
+      "champion rule",
+      "generic stream",
+      "held-out protocol"
+    ]
+  }
 }
