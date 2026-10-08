@@ -132,9 +132,13 @@ NO_FEED = "NO_FEED"
 
 
 def feed_alive(heartbeats: Iterable[datetime], bucket_ts: datetime) -> bool:
+    """`heartbeats` sorted ascending (the store reads them ORDER BY ts); only the bucket's window is
+    looked at (binary search), so a 31-day history read stays linear."""
+    from bisect import bisect_left, bisect_right
+    beats = heartbeats if isinstance(heartbeats, list) else sorted(heartbeats)
     start = bucket_ts - timedelta(seconds=LIVENESS_LEAD_S)
     end = bucket_ts + BUCKET
-    points = sorted(t for t in heartbeats if start <= t <= end)
+    points = beats[bisect_left(beats, start):bisect_right(beats, end)]
     if not points:
         return False
     edges = [start] + points + [end]
