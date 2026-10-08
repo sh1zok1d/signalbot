@@ -143,6 +143,8 @@ CREATE TABLE IF NOT EXISTS liquidations (id BIGSERIAL, exchange TEXT NOT NULL, s
     ts TIMESTAMPTZ NOT NULL, side TEXT NOT NULL, price DOUBLE PRECISION NOT NULL,
     qty DOUBLE PRECISION NOT NULL, notional DOUBLE PRECISION,
     is_snapshot_feed BOOLEAN NOT NULL DEFAULT FALSE, mapping_version SMALLINT, PRIMARY KEY (id, ts));
+CREATE TABLE IF NOT EXISTS liquidation_feed_heartbeats (exchange TEXT NOT NULL, symbol TEXT NOT NULL,
+    ts TIMESTAMPTZ NOT NULL, PRIMARY KEY (exchange, symbol, ts));
 CREATE TABLE IF NOT EXISTS connectivity_events (id BIGSERIAL PRIMARY KEY, exchange TEXT NOT NULL,
     event_type TEXT NOT NULL, ts TIMESTAMPTZ NOT NULL DEFAULT now(), detail JSONB);
 CREATE TABLE IF NOT EXISTS open_interest (

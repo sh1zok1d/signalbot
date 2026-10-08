@@ -69,3 +69,23 @@ def test_the_event_tab_prints_okx_only_where_it_could_vote_and_as_a_lower_bound(
     assert m["long"]["okx"]["missing"] is True                         # «н/д» while OKX cannot vote
     assert m["short"]["okx"] == {"amount": 3.0, "missing": False, "lower_bound": True}
     assert m["long"]["bybit"]["lower_bound"] is False
+
+
+def test_a_bucket_is_measured_only_while_the_heartbeats_cover_it():
+    from beta.liq_mapping import LIVENESS_MAX_GAP_S, apply_liveness, feed_alive
+    from datetime import timedelta as td
+    every_min = [T - td(seconds=90) + td(seconds=60 * i) for i in range(8)]       # T-90s .. T+5m30s
+    assert feed_alive(every_min, T)
+    assert not feed_alive([], T)
+    gap = [t for t in every_min if not (T + td(seconds=60) <= t <= T + td(seconds=200))]
+    assert not feed_alive(gap, T)                                       # one gap over 150 s
+    late = [t for t in every_min if t >= T + td(seconds=90)]                 # first one 180 s into the window
+    assert not feed_alive(late, T)                                      # nothing at the start
+    early = [t for t in every_min if t <= T + td(seconds=60)]
+    assert not feed_alive(early, T)                                     # silent at the end
+    assert LIVENESS_MAX_GAP_S == 150.0
+    m = {"x:okx:long_liquidation_notional": 0.0, "x:okx:short_liquidation_notional": 0.0,
+         "x:bybit:long_liquidation_notional": 0.0}
+    out = apply_liveness(m, T, {"okx": []})
+    assert out["x:okx:long_liquidation_notional"] is None and out["x:bybit:long_liquidation_notional"] == 0.0
+    assert apply_liveness(m, T, {"okx": every_min})["x:okx:long_liquidation_notional"] == 0.0

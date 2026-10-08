@@ -273,9 +273,15 @@ async def _materialize(deps: DetectorDeps, cfg: BetaConfig, conn, bucket_ts: dat
     from .liq_mapping import bucket_state
     fetch_cutover = getattr(conn, "fetch_liquidation_cutover", None)
     if fetch_cutover is not None:
+        from .liq_mapping import LIVENESS_EXCHANGES, LIVENESS_LEAD_S, NEW, NO_FEED, feed_alive
         cutover = await fetch_cutover(symbol=cfg.symbol)
+        beats = await conn.fetch_liquidation_feed_heartbeats(
+            symbol=cfg.symbol, start=bucket_ts - timedelta(seconds=LIVENESS_LEAD_S), end=bucket_ts + BUCKET)
         for ex in cfg.exchanges:
-            venues[ex] = {**venues[ex], "liq_mapping": bucket_state(cutover, ex, bucket_ts)}
+            state = bucket_state(cutover, ex, bucket_ts)
+            if state == NEW and ex in LIVENESS_EXCHANGES and not feed_alive(beats.get(ex) or (), bucket_ts):
+                state = NO_FEED                  # the channel was refused or silent: a zero is not measured
+            venues[ex] = {**venues[ex], "liq_mapping": state}
     availability = {ex: bool(v["declared_available"] and v["heartbeat_healthy"]) for ex, v in venues.items()}
     before = await deps.raw_revision()
     result, error = None, None
