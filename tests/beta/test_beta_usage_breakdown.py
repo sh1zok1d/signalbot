@@ -70,7 +70,9 @@ def test_noise_by_type_counts_reactions_votes_and_mutes():
     assert pick(types["hour"]) == {"delivered": 2, "reacted": 1, "useful": 1, "noise": 1, "mutes": 0, "muted_now": 0}
     # the personal alert arrived before the window; it has no mute (the participant asked for it)
     assert pick(types["price"]) == {"delivered": 0, "reacted": 0, "useful": 0, "noise": 0}
-    assert all(t["review"] == [] for t in types.values())          # F4: nothing near the review thresholds
+    # F4 is computed once, over all participants; the subgroups carry none
+    assert all("review" not in t for t in types.values())
+    assert all(t["review"] == [] for t in owner_breakdown(USERS, ROWS, VOTES, start=START, end=NOW)["all"]["types"].values())
     # turning the type back on clears the current state but keeps the mute in the window
     back = ROWS + [{"user_pk": U1, "action": "cmd_push", "detail": "levels:on", "at": _at(28, 12)}]
     level = owner_breakdown(USERS, back, VOTES, start=START, end=NOW)["unknown"]["types"]["level"]

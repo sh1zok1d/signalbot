@@ -14,17 +14,18 @@ def plain(html):
     return re.sub(r"<[^>]+>", "", html)
 
 
-def _lat(lag, p50=None, n=0, cls="level"):
+def _lat(lag, p50=None, n=0, cls="level", messages=None):
     return {"class": cls, "source": "candle_close", "source_at": (T - timedelta(seconds=lag)).isoformat(),
-            "lag_s": lag, "p50_s": p50, "p95_s": None, "n": n, "window_days": 7}
+            "lag_s": lag, "p50_s": p50, "p95_s": None, "n": n, "window_days": 7,
+            "messages": n if messages is None else messages}
 
 
 def test_the_delay_is_the_messages_own_with_the_class_median_once_measured():
     assert df.delay_text(None, "ru") == ""
     assert df.delay_text(_lat(40), "ru") == " · задержка 40 с"
     assert df.delay_text(_lat(40, p50=35, n=19), "ru") == " · задержка 40 с"            # N below 20: no median
-    assert df.delay_text(_lat(125, p50=35, n=20), "en") == " · delay 2 min 5 s (usually 35 s)"
-    assert df.delay_text(_lat(3720, p50=60, n=50), "ru") == " · задержка 1 ч 2 мин (обычно 1 мин)"
+    assert df.delay_text(_lat(125, p50=35, n=20), "en") == " · delay 2 min 5 s (usually 35 s, N=20)"
+    assert df.delay_text(_lat(3720, p50=60, n=50), "ru") == " · задержка 1 ч 2 мин (обычно 1 мин, N=50)"
 
 
 def test_every_alert_carries_its_delay_on_the_time_line_never_a_line_of_its_own():
@@ -33,13 +34,14 @@ def test_every_alert_carries_its_delay_on_the_time_line_never_a_line_of_its_own(
                "corridor_4h": None, "event_zone": {}}
     before = df.format_alert("level", payload, "ru").splitlines()
     after = df.format_alert("level", {**payload, "latency": _lat(40, p50=35, n=30)}, "ru").splitlines()
-    assert len(after) == len(before) and after[1] == before[1] + " · задержка 40 с (обычно 35 с)"
+    assert len(after) == len(before) and after[1] == before[1] + " · задержка 40 с (обычно 35 с, N=30)"
     move = {"at": T.isoformat(), "start": (T - timedelta(minutes=15)).isoformat(), "open": 63000.0, "close": 62000.0,
             "move_pct": -1.59, "ratio": 3.1, "every_days": 3.0,
             "corridor_1h": {"lower": 61700.0, "upper": 62300.0, "half_width_pct": 0.5}, "near": [], "event_zone": {}}
     text = plain(df.format_alert("move", {**move, "latency": _lat(70, cls="move")}, "ru"))
     assert "09:26–09:41 (Киев) · 63 000 → 62 000 (Binance) · задержка 1 мин 10 с" in text
-    assert "Дальше обычно в коридоре 1ч: 61 700–62 300 (±0,5%)" in text                 # «что обычно дальше» (F1)
+    # the model's corridor is never «обычно», the word of a comparison base (review of #375)
+    assert "Коридор 1ч сейчас: 61 700–62 300 (±0,5%)" in text and "обычно" not in text
 
 
 def test_the_unusual_hour_push_has_its_delay_and_the_nearest_levels():

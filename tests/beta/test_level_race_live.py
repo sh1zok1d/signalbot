@@ -78,7 +78,7 @@ def test_registry_holds_every_race_name_once():
 def test_flags_are_off_by_default_and_the_mode_stays_hist_without_a_model():
     cfg = BetaConfig.load()
     assert dict(cfg.raw["level_race"]) == {"journal_enabled": False, "display_enabled": False,
-                                           "model_states_enabled": False}
+                                           "model_states_enabled": False, "push_trigger": "legacy"}
     assert LR.mode(_cfg(model_states_enabled=True)) == "HIST"          # no frozen model yet: the switch is inert
     with pytest.raises(Exception):
         BetaConfig.load().with_overrides(level_race={"journal_enabled": True})
@@ -308,6 +308,25 @@ def test_journal_off_writes_nothing_and_reads_no_bars():
     assert asyncio.run(cj.record_level_race(NoWrites(), BetaConfig.load(), now=_ts(EVS[0]["t0_ms"]),
                                             capture=NoBars())) == {"race_written": 0}
 
+
+def test_coverage_counts_expected_against_written_and_shows_an_outage():
+    end = B.t0 + B.n * BAR_MS
+    since, until = end - 20 * 86_400_000, end
+    rows = []
+    for e in EVS:
+        for lm in ("T0", "T15"):
+            at = LR.landmark_ms(e, lm)
+            if since < at <= until - LR.WRITE_WINDOW_MS:
+                v = LR.landmark_view(B, e, lm, TABLE)
+                if v is not None:
+                    rows += cj.level_race_claims([v], now=_ts(at))
+    full = LR.coverage(B, rows, since_ms=since, until_ms=until, table=TABLE)
+    assert full["T0"]["expected"] > 5 and full["T0"]["missing"] == 0 and full["T0"]["unexpected"] == 0
+    assert full["T15"]["written"] == full["T15"]["expected"]
+    lost = rows[:3]                                       # a notifier outage: three records never written
+    part = LR.coverage(B, rows[3:], since_ms=since, until_ms=until, table=TABLE)
+    assert sum(part[lm]["missing"] for lm in ("T0", "T15")) == 3
+    assert {r["subject_key"] for r in lost} <= set(part["T0"]["missing_keys"] + part["T15"]["missing_keys"])
 
 def test_display_needs_the_journal():
     base = BetaConfig.load()

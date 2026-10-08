@@ -324,10 +324,15 @@ def brief_levels_line(block: Mapping[str, Any], lang: str) -> list:
 
 
 def near_levels_line(levels: Mapping[str, Any], lang: str) -> Optional[str]:
-    """«Рядом: ↑ 62 950 максимум вчера (+0,75%) · ↓ 61 900 минимум Азии (−0,93%)» from a levels map."""
+    """«Рядом: ↑ 62 950 максимум вчера (+0,75%) · ↓ 61 900 минимум Азии (−0,93%)» from a levels map; a level
+    the price stands at sits between them, as the briefing says it (review of #375)."""
     parts = [t(lang, "dc_btc_level", arrow=arrow, price=zone_price(z, lang), name=_e(zone_names(z, lang, limit=1)),
                dist=fmt_signed_pct(z["distance_pct"], lang))
              for z, arrow in (((levels.get("above") or [None])[0], "↑"), ((levels.get("below") or [None])[0], "↓")) if z]
+    if levels.get("at"):
+        at = levels["at"]
+        parts.insert(1 if (levels.get("above") or []) else 0,
+                     t(lang, "dc_btc_level_at", price=zone_price(at, lang), name=_e(zone_names(at, lang, limit=1))))
     return t(lang, "pa_levels_near", parts=" · ".join(parts)) if parts else None
 
 
@@ -637,6 +642,20 @@ def race_lines(block: Mapping[str, Any], lang: str, surface: str, *,
         out.append(t(lang, "lr_hist_v1", n=int(r["n"]), P_UP=fmt_price(r["p_up"], lang), P_DN=fmt_price(r["p_dn"], lang),
                      END=_when(end, lang, with_day=not same_day), **args))
     return out
+
+
+def push_race_line(race: Optional[Mapping[str, Any]], lang: str, *, now: datetime) -> list:
+    """The T0 line of the level-touch push (LR_PUSH_HIST_V1, N only; the full line is in /levels), or
+    the small-N line; nothing when the event has no T0 statement."""
+    if not race:
+        return []
+    if race["template"] == "LR_HIST_LOW_N_V1":
+        return [t(lang, "lr_hist_low_n_v1", n=int(race["n"]))]
+    end = datetime.fromtimestamp(race["end_ms"] / 1000, tz=timezone.utc)
+    h, b = race["printed_h"], race["printed_b"]
+    return [t(lang, "lr_push_hist_v1", n=int(race["n"]), P_UP=fmt_price(race["p_up"], lang),
+              P_DN=fmt_price(race["p_dn"], lang), h_up=h["up"], h_dn=h["dn"], h_ne=h["neither"], b_up=b["up"],
+              b_dn=b["dn"], b_ne=b["neither"], END=_when(end, lang, with_day=local(end).date() != local(now).date()))]
 
 
 def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
@@ -962,7 +981,7 @@ def _corridor_4h_line(payload: Mapping[str, Any], lang: str) -> Optional[str]:
 
 
 ALERT_MAX_LINES = 8
-DELAY_TYPICAL_MIN_N = 20         # below it the class's P50 is not printed beside the message's own delay
+DELAY_TYPICAL_MIN_N = 20         # distinct messages; below it the class's P50 is not printed beside the delay
 
 
 def _dur(seconds: int, lang: str) -> str:
@@ -974,15 +993,17 @@ def _dur(seconds: int, lang: str) -> str:
     return t(lang, "dl_hm", h=s // 3600, m=(s % 3600) // 60)
 
 
-def delay_text(latency: Optional[Mapping[str, Any]], lang: str) -> str:
+def delay_text(latency: Optional[Mapping[str, Any]], lang: str, key: str = "dl_line") -> str:
     """« · задержка 40 с (обычно 35 с)»: the message's own delay from its source (the candle close it was
-    decided on, the event's due time) beside the class's measured median once N reaches
-    DELAY_TYPICAL_MIN_N (backlog F1 with track A's A4 field). Empty without a field."""
+    decided on, the event's due time) beside the class's measured median and its N once N distinct messages
+    reach DELAY_TYPICAL_MIN_N (backlog F1 with track A's A4 field; review of #375: never N delivery rows, so
+    one message to 20 participants is N = 1). Empty without a field."""
     if not latency or latency.get("lag_s") is None:
         return ""
-    own = t(lang, "dl_line", lag=_dur(latency["lag_s"], lang))
-    if latency.get("p50_s") is not None and int(latency.get("n") or 0) >= DELAY_TYPICAL_MIN_N:
-        own += t(lang, "dl_typical", p50=_dur(latency["p50_s"], lang))
+    own = t(lang, key, lag=_dur(latency["lag_s"], lang))
+    n = int(latency.get("messages") or 0)
+    if latency.get("p50_s") is not None and n >= DELAY_TYPICAL_MIN_N:
+        own += t(lang, "dl_typical", p50=_dur(latency["p50_s"], lang), n=n)
     return own
 
 
@@ -995,14 +1016,25 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         lines.append(t(lang, "pa_level_title", name=_e(" = ".join(names)),
                        level=fmt_price(payload["level"], lang)))
         pts = payload.get("price_ts")
-        if pts:
+        if payload.get("trigger") == "structural":      # the #352 zone entry, decided at the 5m close
+            zone = zone_member_names([payload["level_kind"]] + list(payload.get("also_kinds") or ()), lang)
+            lines.append(t(lang, "pa_zone_now_at", name=_e(zone),
+                           clock=fmt_clock(datetime.fromisoformat(payload["source_at"]), lang),
+                           low=fmt_price(payload["zone_low"], lang), high=fmt_price(payload["zone_high"], lang),
+                           price=fmt_price(payload["price"], lang),
+                           price_clock=fmt_kyiv_hm(price_clock(pts)) if pts else na(lang),
+                           period=t(lang, "pa_period_" + payload.get("period", "day"))))
+        elif pts:
             lines.append(t(lang, "pa_level_now_at", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
                            price_clock=fmt_kyiv_hm(price_clock(pts)),
                            period=t(lang, "pa_period_" + payload.get("period", "day"))))
         else:                                       # a payload stored before A1
             lines.append(t(lang, "pa_level_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
                            period=t(lang, "pa_period_" + payload.get("period", "day"))))
-        lines.extend(_hist_lines(payload.get("history"), lang, int(payload.get("side") or 1), "alert"))
+        if payload.get("trigger") == "structural":
+            lines.extend(push_race_line(payload.get("race"), lang, now=datetime.fromisoformat(payload["source_at"])))
+        else:
+            lines.extend(_hist_lines(payload.get("history"), lang, int(payload.get("side") or 1), "alert"))
         nxt = payload.get("next")
         if nxt:
             p24 = (nxt.get("touch") or {}).get("24h")
@@ -1078,7 +1110,13 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         lines.append(t(lang, "pa_price_footer"))
     else:
         raise ValueError(f"unknown alert kind {kind!r}")
-    if len(lines) > 1:                           # the delay on the time line, never a line of its own (F1)
+    if kind == "event":
+        # its time line is the release's own time: the message's delay there would read as the release's
+        # (review of #375), so the warning names it on a line of its own
+        own = delay_text(payload.get("latency"), lang, key="dl_own")
+        if own:
+            lines.append(own)
+    elif len(lines) > 1:                         # the delay on the time line, never a line of its own (F1)
         lines[1] += delay_text(payload.get("latency"), lang)
     # research evidence recorded with the alert (beta/research_evidence.py); no unit tested release moves
     surface = {"level": "level_alert", "move": "move_alert"}.get(kind)

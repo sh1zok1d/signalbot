@@ -440,6 +440,20 @@ async def record_level_race(conn, cfg, *, now: datetime, capture: Mapping[str, A
     return rep
 
 
+async def level_race_coverage(conn, cfg, rows: Sequence[Mapping[str, Any]], *, since: datetime,
+                              now: datetime) -> Optional[dict]:
+    """«Expected against written» for the level race HIST records over (since, now], from the live tape
+    (read-only; `--beta-claims-report`). None while the journal flag is off; the tape covers the last
+    LOOKBACK_DAYS, so a longer report window counts only the part it covers (`tape_from_ms`)."""
+    from . import level_race_live as LR
+    if not LR.setting(cfg, "journal_enabled"):
+        return None
+    from .decision import load_live_bars
+    from .level_race import load_hist_table
+    b, _price, _ts = await load_live_bars(conn, cfg, now=now)
+    return LR.coverage(b, rows, since_ms=to_ms(since), until_ms=to_ms(now), table=load_hist_table())
+
+
 async def _oi_for(conn, cfg, b: Bars, *, now: datetime, capture: Mapping[str, Any]):
     """The Binance OI metrics aligned to the bars: the research inputs of this run when built, else
     the same read on its own (collection never depends on research presentation)."""
@@ -658,6 +672,11 @@ def shown_keys(surface: str, block: Optional[Mapping[str, Any]], *, market: Opti
         out += race_shown_keys(block, surface, check_levels=check_levels)
     if surface == "alert" and alert is not None:
         p = alert.get("payload") or {}
+        race = p.get("race")
+        if alert.get("kind") == "level" and race:          # the T0 race line of a structural push
+            from .level_race_live import subject_key
+            out.append((race["class"], subject_key(race),
+                        datetime.fromtimestamp(race["landmark_ms"] / 1000, tz=timezone.utc)))
         if alert.get("kind") == "level":
             from .decision_format import level_hist_shown
             if level_hist_shown(p.get("history"), "1h"):

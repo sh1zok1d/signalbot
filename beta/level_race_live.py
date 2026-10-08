@@ -28,7 +28,8 @@ MIN_PRESENT = 0.9                      # #352: share of finite window bars neede
 
 # ---- names (the measurement-contract registry; FORECAST_LAYER §8) ------------------------------
 SETTINGS = {"journal": "level_race.journal_enabled", "display": "level_race.display_enabled",
-            "model_states": "level_race.model_states_enabled"}
+            "model_states": "level_race.model_states_enabled", "push_trigger": "level_race.push_trigger"}
+PUSH_TRIGGERS = ("legacy", "structural")     # the level-touch push: exact price (legacy) or the #352 zone entry
 CLASSES = {
     "L2_LEVEL_RACE_HIST_T0_4H": {"landmark": "T0", "rule": "LEVEL_RACE_4H_V1", "display": ("alert", "levels", "check"),
                                  "templates": ("LR_PUSH_HIST_V1", "LR_HIST_V1", "LR_HIST_LOW_N_V1"), "from": "Day 0"},
@@ -55,6 +56,14 @@ def setting(cfg, name: str) -> bool:
     """`level_race.<name>`; an absent section or key is off."""
     raw = getattr(cfg, "raw", None) or {}
     return bool((raw.get("level_race") or {}).get(name, False))
+
+
+def push_trigger(cfg) -> str:
+    """The one switch between the two level-touch triggers (architect, P2 = A): `structural` makes the
+    push the #352 event; anything else keeps the legacy exact-price touch."""
+    raw = getattr(cfg, "raw", None) or {}
+    v = (raw.get("level_race") or {}).get("push_trigger", "legacy")
+    return v if v in PUSH_TRIGGERS else "legacy"
 
 
 def mode(cfg) -> str:
@@ -171,6 +180,15 @@ def display_block(b: Optional[Bars], now: datetime, table: Optional[Mapping[str,
     return {"state": "HIST", "races": races}
 
 
+def push_view(b: Optional[Bars], ev: Mapping[str, Any], table: Optional[Mapping[str, Any]]) -> Optional[dict]:
+    """The T0 line of the level-touch push, or None (no table, an ineligible event, or the touch close
+    outside the barrier pair: the record is still journaled, flagged)."""
+    if table is None or b is None or not ev.get("eligible"):
+        return None
+    v = landmark_view(b, ev, "T0", table)
+    return None if v is None or not v["display"] else _public(v)
+
+
 def _public(v: Mapping[str, Any]) -> dict:
     keep = ("class", "event_id", "landmark", "kind", "member_kinds", "cell", "ladder_level", "template", "n",
             "h", "b", "printed_h", "printed_b", "d_pp", "ci95_pp", "p_up", "p_dn", "end_ms", "landmark_ms",
@@ -213,6 +231,33 @@ def classify(b: Bars, *, touch_open_ms: int, landmark: str, p_up: float, p_dn: f
         y, first = "DN", fd
     return {"usable": True, "outcome": y, "coverage": round(cov, 4),
             "first_bar_open": None if first is None else from_ms(b.t0 + (a + first) * BAR_MS).isoformat()}
+
+
+# ---- coverage: expected against written (pure) -------------------------------------------------
+def coverage(b: Optional[Bars], rows: Sequence[Mapping[str, Any]], *, since_ms: int, until_ms: int,
+             table: Mapping[str, Any], max_listed: int = 20) -> dict:
+    """Per landmark: the statements the journal should hold for (since, until] — every eligible event of
+    the tape whose landmark closed in it (T15 only with a T15 statement) — against the HIST records
+    written. A notifier outage (records are written only within WRITE_WINDOW_MS) shows as `missing`
+    instead of silently thinning the live metrics. Records the tape cannot reproduce are `unexpected`."""
+    settled = int(until_ms) - WRITE_WINDOW_MS            # later landmarks may still be written: not counted
+    written = {(r["subject"]["landmark"], r["subject_key"]) for r in rows
+               if r.get("claim_class") in HIST_CLASS.values() and since_ms < to_ms(r["issue_slot"]) <= settled}
+    expected = set()
+    if b is not None:
+        for ev in events(b):
+            for lm in ("T0", "T15"):
+                at = landmark_ms(ev, lm)
+                if since_ms < at <= settled and at <= b.end_ms and landmark_view(b, ev, lm, table) is not None:
+                    expected.add((lm, f"{ev['event_id']}:{lm}"))
+    out = {"since_ms": int(since_ms), "settled_until_ms": settled, "tape_from_ms": None if b is None else int(b.t0)}
+    for lm in ("T0", "T15"):
+        exp = {k for l_, k in expected if l_ == lm}
+        got = {k for l_, k in written if l_ == lm}
+        miss, extra = sorted(exp - got), sorted(got - exp)
+        out[lm] = {"expected": len(exp), "written": len(got & exp), "missing": len(miss),
+                   "missing_keys": miss[:max_listed], "unexpected": len(extra), "unexpected_keys": extra[:max_listed]}
+    return out
 
 
 # ---- report (pure) -----------------------------------------------------------------------------

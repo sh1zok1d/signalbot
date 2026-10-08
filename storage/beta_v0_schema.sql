@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS beta_push_decisions (
     suppression_reason      TEXT CONSTRAINT ck_beta_push_suppression CHECK (
         suppression_reason IS NULL OR suppression_reason IN (
         'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED',
-        'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN')),
+        'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN', 'DAILY_FUSE')),
     push_enabled_effective  BOOLEAN NOT NULL,
     recorded_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_beta_push_reason CHECK ((decision = 'PUSH') = (suppression_reason IS NULL)),
@@ -494,6 +494,9 @@ BEGIN
         EXECUTE format('ALTER TABLE beta_user_activity DROP CONSTRAINT %I', cname);
     END IF;
 END $$;
+-- review of #373: a one-tap mute is a setting (a negative U2 signal), never a `btn_*` reaction
+UPDATE beta_user_activity SET action = 'set_mute' WHERE action = 'btn_mute';
+UPDATE beta_user_activity SET action = 'set_unmute' WHERE action = 'btn_unmute';
 ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CHECK (action IN (
     'cmd_start', 'cmd_btc', 'cmd_history', 'cmd_help', 'cmd_terms', 'cmd_lang', 'cmd_stop',
     'cmd_feedback', 'tab_event', 'tab_1h', 'tab_24h', 'btn_details', 'btn_useful', 'btn_noise',
@@ -510,9 +513,11 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     -- the weekly report (backlog B4), a delivery of its own class
     'weekly_delivered',
     -- the personal layer (PRE_BETA_SCOPE_DECISION_V1 §9 E): the time zone, the one-tap mute and its undo
-    'cmd_tz', 'btn_mute', 'btn_unmute',
+    'cmd_tz', 'set_mute', 'set_unmute',
     -- the trader type: the question (/type or after joining) and the answer
-    'cmd_type', 'type_set'));
+    'cmd_type', 'type_set',
+    -- feedback in the bot (backlog H1–H4): the idea prompt and the idea, a reason, the interview request
+    'cmd_idea', 'idea_sent', 'reason_set', 'cmd_interview', 'interview_booked'));
 
 -- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
 -- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.
@@ -549,6 +554,25 @@ BEGIN
         ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
             suppression_reason IS NULL OR suppression_reason IN (
             'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL', 'QUIET_HOURS'));
+    END IF;
+END $$;
+
+-- Each participant's own daily budget (review of #373): a push or market alert that some participants
+-- receive is SUPPRESSED / DAILY_CAP for one who already had their day's messages. Widen once.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_notification_deliveries'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%QUIET_HOURS%'
+      AND pg_get_constraintdef(oid) NOT LIKE '%DAILY_CAP%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_notification_deliveries DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+            'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL', 'QUIET_HOURS', 'DAILY_CAP'));
     END IF;
 END $$;
 
@@ -625,7 +649,7 @@ CREATE TABLE IF NOT EXISTS beta_market_alerts (
     utc_day            DATE NOT NULL,
     decision           TEXT NOT NULL CHECK (decision IN ('PUSH', 'SUPPRESSED')),
     suppression_reason TEXT CHECK (suppression_reason IS NULL OR suppression_reason IN (
-        'QUIET_HOURS', 'DAILY_CAP', 'KIND_COOLDOWN', 'PUSH_DISABLED', 'DATA_STALE')),
+        'QUIET_HOURS', 'DAILY_CAP', 'KIND_COOLDOWN', 'PUSH_DISABLED', 'DATA_STALE', 'DAILY_FUSE')),
     target_user_pk     BIGINT REFERENCES beta_users (user_pk) ON DELETE SET NULL,
     payload            JSONB NOT NULL,
     recorded_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -696,7 +720,7 @@ BEGIN
         ALTER TABLE beta_push_decisions ADD CONSTRAINT ck_beta_push_suppression CHECK (
             suppression_reason IS NULL OR suppression_reason IN (
             'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED',
-            'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN'));
+            'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN', 'DAILY_FUSE'));
     END IF;
 END $$;
 -- /push off is a recipient preference (§3.1b.4): no delivery row is created for the user.
@@ -1097,4 +1121,51 @@ CREATE TABLE IF NOT EXISTS beta_message_votes (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_beta_message_vote UNIQUE (user_pk, kind, ref)
+);
+
+-- The fuse over all participants has its own reason (review of #379): DAILY_CAP stays a participant's
+-- own daily budget. Widen the decision tables once.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname FROM pg_constraint
+    WHERE conrelid = 'beta_push_decisions'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%HOUR_NOT_UNUSUAL%' AND pg_get_constraintdef(oid) NOT LIKE '%DAILY_FUSE%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_push_decisions DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_push_decisions ADD CONSTRAINT ck_beta_push_suppression CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+            'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED',
+            'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN', 'DAILY_FUSE'));
+    END IF;
+    SELECT conname INTO cname FROM pg_constraint
+    WHERE conrelid = 'beta_market_alerts'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%KIND_COOLDOWN%' AND pg_get_constraintdef(oid) NOT LIKE '%DAILY_FUSE%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_market_alerts DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_market_alerts ADD CONSTRAINT ck_beta_market_alert_suppression CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+            'QUIET_HOURS', 'DAILY_CAP', 'KIND_COOLDOWN', 'PUSH_DISABLED', 'DATA_STALE', 'DAILY_FUSE'));
+    END IF;
+END $$;
+-- Feedback in the bot (PRE_BETA_SCOPE_DECISION_V1 §9 H; backlog H1–H4).
+-- H1 «💡 Идея / чего не хватает» and H4 the interview request are typed rows of the free-text
+-- feedback (the owner answers them with /admin_reply as before); the participant's next
+-- message is taken as the idea while `awaiting` is set and not past `awaiting_until`.
+ALTER TABLE beta_feedback_messages ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'feedback'
+    CHECK (kind IN ('feedback', 'idea', 'interview'));
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS awaiting TEXT CHECK (awaiting IS NULL OR awaiting IN ('idea'));
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS awaiting_until TIMESTAMPTZ;
+-- H2 one reason after «Шум» (topic 'noise': the message's kind and ref) and H3 one answer at
+-- /stop (topic 'stop'). One answer per participant and subject; a second tap replaces it.
+CREATE TABLE IF NOT EXISTS beta_reasons (
+    reason_pk   BIGSERIAL PRIMARY KEY,
+    user_pk     BIGINT NOT NULL REFERENCES beta_users (user_pk) ON DELETE CASCADE,
+    topic       TEXT NOT NULL CHECK (topic IN ('noise', 'stop')),
+    subject     TEXT NOT NULL CHECK (length(subject) BETWEEN 1 AND 64),
+    reason      TEXT NOT NULL CHECK (reason IN ('wrong', 'not_for_me', 'too_often', 'late',
+                                                 'not_needed', 'too_many', 'unclear', 'other')),
+    at          TIMESTAMPTZ NOT NULL,
+    CONSTRAINT uq_beta_reason UNIQUE (user_pk, topic, subject)
 );

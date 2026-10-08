@@ -94,6 +94,7 @@ DECISION_CATALOG: dict = {
     "dc_btc_track_hold": _pair("{parts} на истории ({days} дн.)", "{parts} on history ({days} days)"),
     "dc_btc_track_part": _pair("{h} {p}", "{h} {p}"),
     "dc_btc_level": _pair("{arrow} {price} {name} ({dist})", "{arrow} {price} {name} ({dist})"),
+    "dc_btc_level_at": _pair("цена у {price} {name}", "price at {price} {name}"),
     "dc_btc_level_b": _pair("{arrow} {price} {name} ({dist}) · за {h} ≈ {p}", "{arrow} {price} {name} ({dist}) · within {h} ≈ {p}"),
     "dc_btc_level_fb": _pair("{arrow} {price} {name} ({dist}) · за {h} исторически в {p} случаев",
                              "{arrow} {price} {name} ({dist}) · within {h} historically in {p} of cases"),
@@ -244,6 +245,9 @@ DECISION_CATALOG: dict = {
                               "потом — о касании.",
                               "When the level is closer than the usual 1h move, I send one message ahead, then one "
                               "at the touch."),
+    "al_approach_note_list": _pair("Для уровня дальше обычного хода за час пришлю одно сообщение заранее, потом — о касании.",
+                                   "For a level farther than the usual 1h move I send one message ahead, then one at "
+                                   "the touch."),
     "al_deleted": _pair("Удалено: {n}.", "Deleted: {n}."),
     "al_limit": _pair("Уже {n} уровней — это максимум. Удалите лишний: /alert del 1",
                       "Already {n} alerts — the maximum. Delete one: /alert del 1"),
@@ -300,6 +304,10 @@ DECISION_CATALOG: dict = {
                              "{clock} — first touch this {period} · price {price} (Binance, {price_clock})"),
     "pa_level_now": _pair("{clock} · цена {price} (Binance) — первое касание за {period}",
                           "{clock} · price {price} (Binance) — first touch this {period}"),
+    "pa_zone_now_at": _pair("{clock} — цена вошла в зону {name} {low}–{high}, первый раз за {period} · цена {price} "
+                            "(Binance, {price_clock})",
+                            "{clock} — the price entered the {name} zone {low}–{high}, the first time this {period} · "
+                            "price {price} (Binance, {price_clock})"),
     "pa_period_day": _pair("день", "day"),
     "pa_period_week": _pair("неделю", "week"),
     "pa_period_month": _pair("месяц", "month"),
@@ -327,11 +335,12 @@ DECISION_CATALOG: dict = {
     "pa_event_title": _pair("<b>BTC · через {mins} мин {name}</b>", "<b>BTC · {name} in {mins} min</b>"),
     "pa_event_when": _pair("{clock} · цена {price} (Binance)", "{clock} · price {price} (Binance)"),
     "pa_event_when_at": _pair("{clock} · цена {price} (Binance, {price_clock})", "{clock} · price {price} (Binance, {price_clock})"),
-    "pa_corridor_1h_plain": _pair("Дальше обычно в коридоре 1ч: {low}–{high} (±{half})",
-                                  "What usually follows, the 1h corridor: {low}–{high} (±{half})"),
+    # a model's corridor, never «обычно» (the word of a comparison base; review of #375)
+    "pa_corridor_1h_plain": _pair("Коридор 1ч сейчас: {low}–{high} (±{half})", "1h corridor now: {low}–{high} (±{half})"),
     # the delay of a push or an alert (backlog F1; the measured field of A4)
     "dl_line": _pair(" · задержка {lag}", " · delay {lag}"),
-    "dl_typical": _pair(" (обычно {p50})", " (usually {p50})"),
+    "dl_own": _pair("Задержка этого сообщения: {lag}", "This message's delay: {lag}"),
+    "dl_typical": _pair(" (обычно {p50}, N={n})", " (usually {p50}, N={n})"),
     "dl_s": _pair("{s} с", "{s} s"),
     "dl_m": _pair("{m} мин", "{m} min"),
     "dl_ms": _pair("{m} мин {s} с", "{m} min {s} s"),
@@ -559,6 +568,7 @@ DECISION_HELP = {
         "/brief on|off|07:30 — утренняя сводка (по умолчанию в 08:00)\n"
         "/tz — часовой пояс (по умолчанию Киев): /tz +3 или /tz Europe/Warsaw\n"
         "/type — как вы торгуете (для статистики беты)\n"
+        "/idea — идея или чего не хватает · /interview — 15 минут с командой\n"
         "/push — какие сообщения присылать\n"
         "/history — недавние необычные события\n"
         "/terms — термины · /lang — язык сообщений · /feedback — отзыв\n"
@@ -581,6 +591,7 @@ DECISION_HELP = {
         "/brief on|off|07:30 — morning briefing (08:00 by default)\n"
         "/tz — time zone (Kyiv by default): /tz +3 or /tz Europe/Warsaw\n"
         "/type — how you trade (for the beta's statistics)\n"
+        "/idea — an idea or what is missing · /interview — 15 minutes with the team\n"
         "/push — which messages to receive\n"
         "/history — recent unusual events\n"
         "/terms — terms · /lang — message language · /feedback — feedback\n"

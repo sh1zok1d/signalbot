@@ -550,12 +550,23 @@ class BetaConn:
         """Push decisions whose unusual-hour gate PASSED, decided in [start, end], oldest
         first. Delivery-side suppression is reported, never filtered (decision §3.1b.3)."""
         rows = await self.conn.fetch(
-            """SELECT d.decision_ts, d.decision, d.suppression_reason, d.gate, e.public_id, e.event_type
+            """SELECT d.decision_id, d.decision_ts, d.decision, d.suppression_reason, d.gate, e.public_id, e.event_type
                FROM beta_push_decisions d JOIN beta_episodes e USING (episode_pk)
                WHERE e.symbol=$1 AND d.decision_ts >= $2 AND d.decision_ts <= $3
                  AND d.gate IS NOT NULL AND (d.gate->>'qualified')::boolean
                ORDER BY d.decision_ts, d.decision_id""", symbol, start, end)
         return [{**dict(r), "gate": _load(r["gate"])} for r in rows]
+
+    async def own_push_reasons(self, user_pk: int, decision_ids: Sequence[int]) -> dict:
+        """{decision_id: this participant's own outcome}: None when it was sent to them, else their
+        delivery's suppression reason (review of #373: a note about an unsent hour is the reader's own)."""
+        if not decision_ids:
+            return {}
+        rows = await self.conn.fetch(
+            """SELECT decision_id, state, suppression_reason FROM beta_notification_deliveries
+               WHERE kind='push' AND user_pk=$1 AND decision_id = ANY($2::bigint[])""",
+            user_pk, [int(x) for x in decision_ids])
+        return {r["decision_id"]: (None if r["state"] == "SENT" else r["suppression_reason"]) for r in rows}
 
     async def flag_correction(self, *, snapshot_digests: Sequence[str], note: str) -> int:
         """Annotate (never rewrite) episodes decided from a later-corrected snapshot."""
@@ -761,7 +772,7 @@ class BetaConn:
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.view_pk, x.brief_date, x.user_pk, x.decision_ts,
                       u.chat_id, u.status AS user_status, u.lang AS user_lang, u.tz AS user_tz, u.brief_enabled,
-                      u.push_enabled,
+                      u.push_enabled, u.push_hours,
                       NOT EXISTS (SELECT 1 FROM beta_notification_deliveries y
                                   WHERE y.kind='brief' AND y.user_pk=x.user_pk AND y.state='SENT'
                                     AND y.brief_date < x.brief_date) AS first_brief
@@ -789,14 +800,17 @@ class BetaConn:
                VALUES ($1,$2,$3::jsonb,$4) ON CONFLICT (week_end) DO NOTHING RETURNING weekly_pk""",
             week_end, built_at, _j(payload), payload_digest)
 
-    async def materialize_weekly_deliveries(self, *, weekly_pk: int, decision_ts: datetime) -> int:
-        """One PENDING row per ACTIVE participant with messages on and the weekly type on."""
+    async def materialize_weekly_deliveries(self, *, weekly_pk: int, decision_ts: datetime,
+                                            tz: Optional[str] = None) -> int:
+        """One PENDING row per ACTIVE participant with messages on and the weekly type on, in zone `tz`
+        (None: Kyiv; review of #379: each zone at its own slot)."""
         status = await self.conn.execute(
             """INSERT INTO beta_notification_deliveries (kind, weekly_pk, user_pk, state, decision_ts)
                SELECT 'weekly', $1, u.user_pk, 'PENDING', $2
                FROM beta_users u WHERE u.status='ACTIVE' AND u.push_enabled AND u.push_weekly
+                 AND u.tz IS NOT DISTINCT FROM $3
                ON CONFLICT (weekly_pk, user_pk) WHERE kind='weekly' DO NOTHING""",
-            weekly_pk, decision_ts)
+            weekly_pk, decision_ts, tz)
         return int(status.split()[-1])
 
     async def fetch_pending_weekly_deliveries(self, limit: int, *, now: Optional[datetime] = None) -> list:
@@ -808,6 +822,8 @@ class BetaConn:
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                JOIN beta_weekly_reports w ON w.weekly_pk = x.weekly_pk
                WHERE x.state='PENDING' AND x.kind='weekly'
+                 -- a row before its recipient's own slot takes no place in the run's limit (review of #379)
+                 AND ($2::timestamptz IS NULL OR x.decision_ts <= $2)
                  AND ($2::timestamptz IS NULL OR NOT EXISTS (
                      SELECT 1 FROM beta_notification_deliveries wt WHERE wt.user_pk = x.user_pk
                        AND wt.state = 'PENDING' AND wt.next_attempt_at > $2))
@@ -955,6 +971,42 @@ class BetaConn:
             f"SELECT DISTINCT tz FROM beta_users WHERE status='ACTIVE' AND push_enabled AND {pref}")
         return [r["tz"] for r in rows]
 
+    async def recipient_loads(self, pref: str, *, since: datetime, outbox_kind: str,
+                              alert_kinds: Sequence[str] = ()) -> list:
+        """{tz, times} for every ACTIVE participant with pushes and `pref` on: their zone and the decision
+        times of their messages of this budget since `since` that are sent or still on the way (review of
+        #373: each participant's own daily budget). `alert_kinds` narrows the market alerts to a budget."""
+        if pref not in ("push_hours", "push_levels", "push_events", "push_moves", "push_weekly"):
+            raise ValueError(f"unknown push preference {pref!r}")
+        rows = await self.conn.fetch(
+            f"""SELECT u.user_pk, u.tz,
+                       array_remove(array_agg(x.decision_ts ORDER BY x.decision_ts), NULL) AS times
+                FROM beta_users u
+                LEFT JOIN beta_notification_deliveries x ON x.user_pk = u.user_pk AND x.kind = $2
+                     AND x.decision_ts >= $1 AND x.state IN ('PENDING', 'SENDING', 'SENT', 'DELIVERY_UNKNOWN')
+                     AND ($2 <> 'alert' OR EXISTS (SELECT 1 FROM beta_market_alerts a
+                            WHERE a.alert_pk = x.alert_pk AND a.kind = ANY($3::text[])))
+                WHERE u.status='ACTIVE' AND u.push_enabled AND u.{pref}
+                GROUP BY u.user_pk, u.tz""", since, outbox_kind, list(alert_kinds))
+        return [{"user_pk": r["user_pk"], "tz": r["tz"], "times": list(r["times"] or [])} for r in rows]
+
+    async def count_sent_on_own_day(self, *, user_pk: int, ts: datetime, tz: Optional[str], outbox_kind: str,
+                                    alert_kinds: Sequence[str] = (), before: Optional[datetime] = None) -> int:
+        """How many messages of this budget the participant was sent, or may have been (SENDING, an
+        ambiguous DELIVERY_UNKNOWN; review of #379), on their own calendar date of `ts` (their clock;
+        review of #373), decided before `before` when given."""
+        from beta.detector import own_day_bounds
+        start, end = own_day_bounds(ts, tz)
+        if before is not None:
+            end = min(end, before)
+        return int(await self.conn.fetchval(
+            """SELECT count(*) FROM beta_notification_deliveries x
+               WHERE x.user_pk = $1 AND x.kind = $2 AND x.state IN ('SENDING', 'SENT', 'DELIVERY_UNKNOWN')
+                 AND x.decision_ts >= $3 AND x.decision_ts < $4
+                 AND ($2 <> 'alert' OR EXISTS (SELECT 1 FROM beta_market_alerts a
+                        WHERE a.alert_pk = x.alert_pk AND a.kind = ANY($5::text[])))""",
+            user_pk, outbox_kind, start, end, list(alert_kinds)))
+
     async def set_user_tz(self, telegram_user_id: int, tz: Optional[str]) -> bool:
         """The participant's time zone (backlog C5); None = Kyiv. The caller validated it (i18n.parse_tz)."""
         status = await self.conn.execute(
@@ -1060,7 +1112,7 @@ class BetaConn:
         the alert's source time (backlog A4; `beta.latency`). No user column."""
         rows = await self.conn.fetch(
             """SELECT d.kind, a.kind AS alert_kind, d.state, d.decision_ts, d.finished_at,
-                      a.payload->>'source_at' AS source_at
+                      a.payload->>'source_at' AS source_at, d.decision_id, d.alert_pk, d.view_pk, d.weekly_pk
                FROM beta_notification_deliveries d
                LEFT JOIN beta_market_alerts a ON a.alert_pk = d.alert_pk
                WHERE d.state IN ('SENT', 'EXPIRED_UNDELIVERED')
@@ -1076,7 +1128,7 @@ class BetaConn:
     async def cap_activation_days(self, *, since: datetime) -> int:
         return int(await self.conn.fetchval(
             "SELECT count(DISTINCT utc_day) FROM beta_push_decisions WHERE decision_ts >= $1 "
-            "AND suppression_reason='DAILY_CAP'", since))
+            "AND suppression_reason IN ('DAILY_CAP', 'DAILY_FUSE')", since))
 
     # ----------------------------------------------------- participants (PII)
     async def allowlist_contains(self, telegram_user_id: int) -> bool:
@@ -1097,7 +1149,8 @@ class BetaConn:
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
                       invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact,
-                      push_levels, push_events, push_moves, push_hours, push_weekly, tz, brief_time, trader_type
+                      push_levels, push_events, push_moves, push_hours, push_weekly, tz, brief_time, trader_type,
+                      awaiting, awaiting_until
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
@@ -1360,11 +1413,25 @@ class BetaConn:
             user_pk, start, start + timedelta(days=1)))
 
     async def insert_feedback_message(self, *, user_pk: int, text: str, lang: str,
-                                      created_at: datetime) -> int:
+                                      created_at: datetime, kind: str = "feedback") -> int:
+        """Free text: /feedback, an idea (H1) or an interview request (H4)."""
         return int(await self.conn.fetchval(
-            """INSERT INTO beta_feedback_messages (user_pk, text, lang, created_at)
-               VALUES ($1,$2,$3,$4) RETURNING message_pk""",
-            user_pk, text, lang, created_at))
+            """INSERT INTO beta_feedback_messages (user_pk, text, lang, created_at, kind)
+               VALUES ($1,$2,$3,$4,$5) RETURNING message_pk""",
+            user_pk, text, lang, created_at, kind))
+
+    async def set_awaiting(self, telegram_user_id: int, what: Optional[str], until: Optional[datetime]) -> None:
+        """The next plain message is `what` (H1: 'idea') until `until`; None clears it."""
+        await self.conn.execute(
+            "UPDATE beta_users SET awaiting=$2, awaiting_until=$3, updated_at=now() WHERE telegram_user_id=$1",
+            telegram_user_id, what, until)
+
+    async def upsert_reason(self, *, user_pk: int, topic: str, subject: str, reason: str, at: datetime) -> None:
+        """H2 / H3: one answer per participant and subject; a second tap replaces it."""
+        await self.conn.execute(
+            """INSERT INTO beta_reasons (user_pk, topic, subject, reason, at) VALUES ($1,$2,$3,$4,$5)
+               ON CONFLICT (user_pk, topic, subject) DO UPDATE SET reason=EXCLUDED.reason, at=EXCLUDED.at""",
+            user_pk, topic, subject, reason, at)
 
     async def purge_feedback_messages_before(self, cutoff: datetime) -> int:
         status = await self.conn.execute(
@@ -1410,7 +1477,7 @@ class BetaConn:
         # backlog F5: which message each delivery was (the activity row knows only the type)
         deliveries = await self.conn.fetch(
             """SELECT d.kind, a.kind AS alert_kind, d.decision_id, d.alert_pk, d.brief_date, d.weekly_pk,
-                      d.user_pk, d.finished_at AS at
+                      d.decision_ts, d.user_pk, d.finished_at AS at
                FROM beta_notification_deliveries d LEFT JOIN beta_market_alerts a ON a.alert_pk = d.alert_pk
                WHERE d.state = 'SENT' AND d.user_pk IS NOT NULL""")
         return {"users": [dict(r) for r in users],
@@ -1463,6 +1530,23 @@ class BetaConn:
                ON CONFLICT (user_pk, kind, ref) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()
                WHERE beta_message_votes.vote IS DISTINCT FROM EXCLUDED.vote
                RETURNING TRUE""", user_pk, kind, ref, vote) is not None
+
+    async def received_message(self, *, user_pk: int, kind: str, ref: int) -> bool:
+        """Whether this participant was sent this message (review of #375: a vote counts only on a message
+        its voter received): an alert of this kind by its alert_pk, the briefing by its view, the weekly
+        report by its row. An ambiguous send (DELIVERY_UNKNOWN) counts: a tap on it shows it arrived."""
+        if kind == "brief":
+            where, ref_col = "d.kind='brief'", "d.view_pk"
+        elif kind == "weekly":
+            where, ref_col = "d.kind='weekly'", "d.weekly_pk"
+        else:
+            where, ref_col = "d.kind='alert' AND a.kind=$3", "d.alert_pk"
+        return bool(await self.conn.fetchval(
+            f"""SELECT EXISTS (SELECT 1 FROM beta_notification_deliveries d
+                               LEFT JOIN beta_market_alerts a ON a.alert_pk = d.alert_pk
+                               WHERE d.user_pk=$1 AND {ref_col}=$2 AND {where}
+                                 AND d.state IN ('SENT', 'DELIVERY_UNKNOWN'))""",
+            *((user_pk, ref, kind) if kind not in ("brief", "weekly") else (user_pk, ref))))
 
     async def feedback_counts(self) -> dict:
         rows = await self.conn.fetch(

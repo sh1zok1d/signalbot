@@ -53,7 +53,7 @@ def test_alerts_carry_their_latency_and_the_owner_reads_it_by_class(monkeypatch)
             await run_market_alerts(conn, CFG, sender=s, clock=Clock(NOW + timedelta(seconds=5)), push_on=True)
         assert len(s.sent) == 1
         assert seen[0] == {"class": "event", "source": "event_due", "source_at": (NOW - timedelta(seconds=60)).isoformat(),
-                           "lag_s": 65, "p50_s": None, "p95_s": None, "n": 0, "window_days": 7}
+                           "lag_s": 65, "p50_s": None, "p95_s": None, "n": 0, "messages": 0, "window_days": 7}
         # the next one is rendered beside the measured class value, with its N
         later = NOW + timedelta(minutes=10)
         async with store.connect() as conn:

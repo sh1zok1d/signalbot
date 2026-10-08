@@ -24,11 +24,11 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from .config import BetaConfig
 from .hist_series import BAR_MS, Bars, from_ms, to_ms
-from .detector import in_quiet_hours
+from .detector import in_quiet_hours, own_budget_spent
 from .models import D_EXPIRED, D_FAILED, D_PENDING, D_SUPPRESSED, DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE
 
 logger = logging.getLogger("beta.market_alerts")
@@ -165,6 +165,54 @@ def detect_level_touches(block: Mapping[str, Any], b: Bars, closed_1m, *, now: d
                                 "corridor_4h_track": _corridor_track(block, "4h") if corridor_4h else None,
                                 "event_zone": block.get("event_zone") or {}}})
     return _one_per_price(out)
+
+
+def detect_structural_touches(block: Mapping[str, Any], b: Bars, *, now: datetime, max_age: timedelta,
+                              table: Optional[Mapping[str, Any]]) -> list:
+    """The level-touch push as the forecast layer's event (FORECAST_LAYER_DECISION_V1 §3, architect's P2 = A):
+    the #352 structural first touch (the price entered the ±0.15 % zone of a previous day / week / month
+    high or low; confluent levels are one zone, a level born inside an active zone is absorbed), decided at
+    the touch bar's 5m close. It carries the T0 race line (LR_PUSH_HIST_V1) in place of the hold history."""
+    from .level_race_live import push_view
+    from .levels import structural_first_touches
+    now_ms = to_ms(now)
+    corridor_4h = ((block.get("corridor") or {}).get("horizons") or {}).get("4h")
+    out = []
+    for ev in structural_first_touches(b):
+        if not (ev["t0_ms"] <= now_ms and now_ms - ev["t0_ms"] <= max_age.total_seconds() * 1000):
+            continue
+        side = int(ev["side"]) if ev["side"] in (1, -1) else int(ev["struct_side"])
+        nxt_list = (block.get("levels") or {}).get("above" if side > 0 else "below") or []
+        edge = ev["zone_high"] if side > 0 else ev["zone_low"]
+        nxt = next((z for z in nxt_list if side * (z["edge"] - edge) > edge * 0.001), None)
+        out.append({"kind": "level", "key": f"level:{ev['event_id']}",
+                    "payload": {"at": from_ms(ev["touch_open_ms"]).isoformat(), "source_at": from_ms(ev["t0_ms"]).isoformat(),
+                                "trigger": "structural", "event_id": ev["event_id"], "level_kind": ev["kind"],
+                                "also_kinds": [k for k in ev["member_kinds"] if k != ev["kind"]],
+                                "level": ev["anchor_price"], "zone_low": ev["zone_low"], "zone_high": ev["zone_high"],
+                                "side": side, "period": _period(ev["kind"]), "price": block["price"],
+                                "price_ts": block.get("price_ts"), "history": None,
+                                # no race line inside the 4h CPI / FOMC event zone (cells not event-conditioned)
+                                "race": None if (block.get("event_zone") or {}).get("4h") else push_view(b, ev, table),
+                                "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
+                                "event_zone": block.get("event_zone") or {}}})
+    return out
+
+
+def level_touch_candidates(cfg: BetaConfig, block: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime,
+                           max_age: timedelta, stats: Optional[Mapping[str, Any]]) -> list:
+    """The one place the level-touch trigger is chosen (`level_race.push_trigger`)."""
+    from .level_race_live import push_trigger, setting
+    if push_trigger(cfg) != "structural":
+        return detect_level_touches(block, b, closed_1m, now=now, max_age=max_age, stats=stats)
+    table = None                       # one display flag for every surface: without it, no race line
+    if setting(cfg, "display_enabled"):
+        try:
+            from .level_race import load_hist_table
+            table = load_hist_table()
+        except Exception as exc:  # noqa: BLE001 - no verified table: the push goes out without a race line (OFF)
+            logger.warning("level race table unavailable: %s", type(exc).__name__)
+    return detect_structural_touches(block, b, now=now, max_age=max_age, table=table)
 
 
 _PUSH_RANK = {"M": 0, "W": 1, "D": 2}                     # month > week > day
@@ -308,11 +356,20 @@ async def _decide_and_record(conn, cfg: BetaConfig, cand: Mapping[str, Any], *, 
     reason = None
     if not push_on:
         reason = "PUSH_DISABLED"
-    elif kind != "price" and kind in QUIET_KINDS and await _quiet_for_all(conn, cfg, kind, now):
-        reason = "QUIET_HOURS"
-    elif kind in CAPPED_KINDS and await conn.count_market_pushes(utc_day=now.astimezone(timezone.utc).date(),
-                                                                 kinds=CAPPED_KINDS) >= int(m["max_per_utc_day"]):
-        reason = "DAILY_CAP"
+    elif kind in QUIET_KINDS:
+        # each recipient's own night and own daily budget (review of #373); the UTC-day count of all
+        # decisions is only a higher fuse
+        from .detector import _recipients, recipient_gate
+        recips = await _recipients(conn, _KIND_PREF[kind], now, outbox_kind="alert",
+                                   alert_kinds=CAPPED_KINDS if kind in CAPPED_KINDS else ())
+        if recips:
+            reason = recipient_gate(cfg, now, recips, int(m["max_per_utc_day"]) if kind in CAPPED_KINDS else None)
+        elif await _quiet_for_all(conn, cfg, kind, now):
+            reason = "QUIET_HOURS"
+        if reason is None and kind in CAPPED_KINDS:
+            fuse = int(m["decisions_fuse_per_utc_day"]) if recips else int(m["max_per_utc_day"])
+            if await conn.count_market_pushes(utc_day=now.astimezone(timezone.utc).date(), kinds=CAPPED_KINDS) >= fuse:
+                reason = "DAILY_FUSE" if recips else "DAILY_CAP"    # the fuse is never anyone's own budget
     async with conn.transaction():          # a price alert is recorded and consumed together
         pk = await conn.insert_market_alert(kind=kind, alert_key=cand["key"], decision_ts=now,
                                             decision="PUSH" if reason is None else "SUPPRESSED",
@@ -461,12 +518,40 @@ async def _journal_level_touch(conn, cand: Mapping[str, Any], decision: str, *, 
         logger.warning("claim journal (level touch) failed: %s", type(exc).__name__)
 
 
+async def _race_lines_journaled_only(conn, cands: list) -> None:
+    """Fail closed: a structural push carries its T0 race line only when the T0 journal record exists (the
+    journal write may have failed, or the landmark may lie outside its write window); otherwise the push goes
+    out without the line, as /levels does (decision._journaled_only)."""
+    fetch = getattr(conn, "fetch_slot_claims", None)
+    for c in cands:
+        race = (c.get("payload") or {}).get("race")
+        if c.get("kind") != "level" or not race:
+            continue
+        have = []
+        if fetch is not None:
+            try:
+                have = await fetch(issue_slot=from_ms(int(race["landmark_ms"])), classes=[race["class"]])
+            except Exception as exc:  # noqa: BLE001 - no proof of the record: no line
+                logger.warning("level race record check failed: %s", type(exc).__name__)
+        if not any(x["subject_key"] == f"{race['event_id']}:{race['landmark']}" for x in have):
+            c["payload"]["race"] = None
+            c["payload"]["race_not_journaled"] = True
+
+
+async def _journal_race(conn, cfg: BetaConfig, cap: Mapping[str, Any], *, now: datetime) -> dict:
+    from .claims import record_level_race
+    try:
+        return await record_level_race(conn, cfg, now=now, capture=cap)
+    except Exception as exc:  # noqa: BLE001 - internal tracking never blocks the alert run
+        logger.warning("level race journal failed: %s", type(exc).__name__)
+        return {"error": type(exc).__name__}
+
+
 async def _journal_hour(conn, cfg: BetaConfig, block: Mapping[str, Any], cap: Mapping[str, Any], *,
                         now: datetime) -> dict:
-    from .claims import record_claims, record_level_race, score_claims
+    from .claims import record_claims, score_claims
     try:
         rep = await record_claims(conn, cfg, block, now=now, capture=cap)
-        rep.update(await record_level_race(conn, cfg, now=now, capture=cap))
         rep.update(await score_claims(conn, cap.get("bars"), cap.get("closed_1m") or [], now=now))
         from .claims import refresh_touch_calibration
         rep["touch_calibration_refreshed"] = await refresh_touch_calibration(conn, now=now) is not None
@@ -498,9 +583,9 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
         cands = []
         if m["enabled"]:
             if available:
-                cands += detect_level_touches(block, b, closed, now=now,
-                                              max_age=timedelta(minutes=int(m["touch_max_age_min"])),
-                                              stats=cap.get("stats"))
+                cands += level_touch_candidates(cfg, block, b, closed, now=now,
+                                                max_age=timedelta(minutes=int(m["touch_max_age_min"])),
+                                                stats=cap.get("stats"))
             cands += detect_events(block, cap["calendar"], now=now,
                                    lead=timedelta(minutes=int(m["event_lead_min"])), stats=cap.get("stats"))
             last_move = await conn.last_market_push_ts(kind="move") if available else None
@@ -513,6 +598,10 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
                 hit = {c["price_alert_pk"] for c in touched}       # a touch says it all: no approach after it
                 cands += touched + detect_price_approaches([a for a in active if a["price_alert_pk"] not in hit],
                                                            block=block, now=now)
+        if d["claim_journal"]:
+            # the race landmarks first: a structural push links its T0 line to that record below
+            rep["level_race"] = await _journal_race(conn, cfg, cap, now=now)
+        await _race_lines_journaled_only(conn, cands)
         known = await conn.market_alert_keys([c["key"] for c in cands]) if cands else set()
         for c in cands:
             if c["key"] in known:
@@ -566,6 +655,12 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             # sent to the participants who are awake; this one's own night (backlog C5)
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
                                            suppression_reason="QUIET_HOURS")
+            continue
+        if row["kind"] in CAPPED_KINDS and await own_budget_spent(conn, row, cap=int(m["max_per_utc_day"]),
+                                                                   outbox_kind="alert", alert_kinds=CAPPED_KINDS):
+            # this participant already had their day's level and move alerts (their own date, review of #373)
+            await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                           suppression_reason="DAILY_CAP")
             continue
         if sender is None:
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_FAILED, now=now,
