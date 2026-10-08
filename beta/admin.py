@@ -89,7 +89,8 @@ async def collect_status(conn, cfg: BetaConfig, now: datetime) -> dict:
     return {"status": status, "open_episodes": open_eps, "latest": latest, "heartbeat": hb}
 
 
-async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: datetime) -> dict:
+async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: datetime,
+                         owner_user_id: Optional[int] = None) -> dict:
     st = await collect_status(conn, cfg, now)
     wm = await conn.get_watermark("detector", symbol=cfg.symbol, market_type=cfg.market_type,
                                   timeframe=cfg.timeframe)
@@ -107,7 +108,9 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
                            switches=switches, d7_newest_available_at=d7_at)
     admin_push = await conn.get_admin_push_enabled()
     admin_d7 = await conn.get_admin_d7_enabled()
-    test_day0 = day0_consistency(cfg, await conn.test_open_at(), await conn.derived_day0_kyiv())
+    derived = await conn.derived_day0(owner_user_id)
+    test_day0 = day0_consistency(cfg, await conn.test_open_at(), derived["day0_kyiv"],
+                                 provisional_until=derived["provisional_until"], now=now)
     return {"product_status": st["status"]["status"], "status_reasons": st["status"]["reasons"],
             "last_good_bucket": st["status"].get("last_good_bucket"),
             "detector_watermark": wm, "heartbeat": st["heartbeat"],
@@ -121,7 +124,8 @@ async def collect_health(conn, cfg: BetaConfig, switches: BetaSwitches, now: dat
             "open_episodes": [(e.public_id, e.event_type, e.state) for e in st["open_episodes"]]}
 
 
-def day0_consistency(cfg: BetaConfig, test_open_at: Optional[datetime], derived) -> dict:
+def day0_consistency(cfg: BetaConfig, test_open_at: Optional[datetime], derived, *,
+                     provisional_until: Optional[datetime] = None, now: Optional[datetime] = None) -> dict:
     """`briefing.withdrawal.day0_kyiv` against the audit (measurement contract §1.4, §6.1): the config value
     must be the derived Day 0, never set before the test opens or before the first unknown join."""
     configured = cfg["briefing"]["withdrawal"].get("day0_kyiv")
@@ -134,8 +138,10 @@ def day0_consistency(cfg: BetaConfig, test_open_at: Optional[datetime], derived)
         state = "SET_DAY0_KYIV"
     else:
         state = "OK" if configured == derived_s else "MISMATCH"
+    provisional = provisional_until is not None and (now is None or now < provisional_until)
     return {"state": state, "test_open_at": test_open_at.isoformat() if test_open_at else None,
-            "day0_kyiv": derived_s, "config_day0_kyiv": configured}
+            "day0_kyiv": derived_s, "config_day0_kyiv": configured,
+            "provisional_until": provisional_until.isoformat() if provisional else None}
 
 
 def parse_invite_new(args: str):
@@ -180,10 +186,13 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                  f"push effective {effective_push_enabled(switches, await conn.get_admin_push_enabled())}\n"
                  f"d7 effective {effective_d7_enabled(cfg, await conn.get_admin_d7_enabled())}")
     elif command == "admin_health":
-        h = await collect_health(conn, cfg, switches, now)
+        h = await collect_health(conn, cfg, switches, now, owner_user_id)
+        pending = h["test_day0"]["provisional_until"]
         reply = (f"alerts {[a['key'] for a in h['alerts']]}\nswitches {h['switches']}\nstatus {h['product_status']}"
                  f"\ntest {h['test_day0']['state']}: opened {h['test_day0']['test_open_at']}, "
-                 f"Day 0 {h['test_day0']['day0_kyiv']}, config day0_kyiv {h['test_day0']['config_day0_kyiv']}")
+                 f"Day 0 {h['test_day0']['day0_kyiv']}"
+                 + (f" (provisional until {pending}: the first joiner may still be marked known)" if pending else "")
+                 + f", config day0_kyiv {h['test_day0']['config_day0_kyiv']}")
     elif command == "admin_users":
         rows = await conn.list_users()
         reply = "\n".join(f"{r['telegram_user_id']} {r['status'] or 'INVITED'} joined {r['joined_at']}"
@@ -374,10 +383,18 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
         # readiness announcement and the contract freeze. Day 0 is the Kyiv date of the first unknown participant
         # who joins at or after it; an earlier join never starts the test. Written once; «force» re-opens.
         opened = await conn.test_open_at()
-        if opened is not None and (args or "").strip().lower() != "force":
+        started = opened is not None and (await conn.derived_day0_kyiv(owner_user_id) is not None
+                                          or cfg["briefing"]["withdrawal"].get("day0_kyiv"))
+        if started:
+            # an unknown participant has joined since the opening (or Day 0 is configured): moving the opening
+            # now would shift Day 0, the enrolled set and the deleted participants' cohort flags
+            result = "REFUSED"
+            reply = (f"refused: the test has started (opened at {opened.isoformat()}, an unknown participant "
+                     "has joined since); the opening can no longer move")
+        elif opened is not None and (args or "").strip().lower() != "force":
             result = "REFUSED"
             reply = (f"refused: the test was opened at {opened.isoformat()}; "
-                     "to move the opening: /admin_test_open force")
+                     "to move the opening before the first unknown join: /admin_test_open force")
         else:
             detail = {"test_open_at": now.astimezone(timezone.utc).isoformat(),
                       "previous": opened.isoformat() if opened is not None else None}

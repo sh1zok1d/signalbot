@@ -1598,19 +1598,26 @@ class BetaConn:
                ORDER BY audit_id DESC LIMIT 1""")
         return datetime.fromisoformat(v) if v else None
 
-    async def derived_day0_kyiv(self, owner_user_id: Optional[int] = None):
+    async def derived_day0_kyiv(self, owner_user_id: Optional[int]):
         """Day 0 (contract §1.4, owner 2026-10-08): the Kyiv date of the first unknown participant who joined at
         or after the test opening, live rows and the de-identified cohort records of deleted ones together.
         None before the opening or before that join; a join before the opening never counts."""
+        return (await self.derived_day0(owner_user_id))["day0_kyiv"]
+
+    async def derived_day0(self, owner_user_id: Optional[int]) -> dict:
+        """{"day0_kyiv", "provisional_until"}: Day 0 stays provisional until the first unknown joiner's 24-hour
+        known-classification window closes (contract §1.2); a participant marked known in it moves Day 0 to the
+        next unknown join. A deleted first joiner can no longer be reclassified, so their date is final."""
         from beta.i18n import KYIV
         opened = await self.test_open_at()
         if opened is None:
-            return None
+            return {"day0_kyiv": None, "provisional_until": None}
         first = await self.conn.fetchval(
             """SELECT min(joined_at) FROM beta_users
                WHERE joined_at >= $1 AND NOT known_contact AND telegram_user_id IS DISTINCT FROM $2""",
             opened, owner_user_id)
         days = [first.astimezone(KYIV).date()] if first is not None else []
+        live_day = days[0] if days else None
         gone = await self.conn.fetchval(
             """SELECT min(detail->'cohort'->>'joined_kyiv_date') FROM beta_admin_audit
                WHERE action IN ('user_delete_me', 'retention_purge', 'admin_remove') AND detail ? 'cohort'
@@ -1619,7 +1626,11 @@ class BetaConn:
                  AND NOT (detail->'cohort'->>'known_contact')::boolean""")
         if gone:
             days.append(date.fromisoformat(gone))
-        return min(days) if days else None
+        if not days:
+            return {"day0_kyiv": None, "provisional_until": None}
+        day0 = min(days)
+        provisional = first + timedelta(hours=24) if live_day == day0 else None
+        return {"day0_kyiv": day0, "provisional_until": provisional}
 
     async def u3_offer_sent(self) -> bool:
         """I2: whether /admin_offer send already went out (U3 is one offer)."""

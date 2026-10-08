@@ -377,7 +377,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             # owner health alerts (operational; owner only; rate-limited per key), under the same pacer:
             # not sent once it is closed (they are due again on the next run)
             if sender is not None and owner_user_id is not None:
-                h = await collect_health(conn, cfg, switches, clock())
+                h = await collect_health(conn, cfg, switches, clock(), owner_user_id)
                 runtime = await conn.fetch_health()
                 due = []
                 for a in h["alerts"]:
