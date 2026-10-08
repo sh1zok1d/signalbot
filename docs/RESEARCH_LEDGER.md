@@ -8370,3 +8370,27 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-08 — LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1 executed once; discovery; one level-interaction candidate; not integrated
+
+**Unit.** `LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1` (atlas `LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #362 `b005eaac895d3a4c644d16101d2e5eb7d2ff8d5f`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `f21be5a6cd022e3c8aacceccf8d13c61106e3b83` before any late BREAK rate. The venue set, the −3h Bybit label offset, the 15-minute window, the four features, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is the 15-minute price reaction of other linear perpetuals around a Binance structural first touch, with `END_POSITION_X` held in every model. It is not MARKET-06 (Binance USD-M versus OKX BTC-USDT spot, daily absolute dislocation, 24h adverse-path MAE, `MARKET_06_NO_EVIDENCE`). It is not `CROSS_VENUE_REGION.venue_disagreement`, not DH3-X6, and not the V2 `price_direction_agreement` gate. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `CROSS_VENUE`.
+- **Data.** Tier A, frozen before outcomes. Binance USD-M BTCUSDT perpetual is the only structural venue. Bybit BTCUSDT linear perpetual public MT4 5m closes, canonical SHA256 `f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c`, label clock UTC+3. OKX BTC-USDT-SWAP `history-candles` confirm=1, canonical SHA256 `b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8`. OKX spot was not used. No 2025/2026 object was requested.
+- **Clock.** T is the open of Binance touch bar j. D = T+15m. Each venue return is the log close at D over the close of the bar opening at T−5m. Alignment tolerance is 0. A missing bar drops the event. Early passage uses j+1 and j+2. Late passage uses j+3 through j+48.
+- **Cohort.** Window `[2020-04-01T00:05:00Z, 2025-01-01)`. Geometry-legitimate first touches 1856. Early BREAK 286, early REJECT 265, early ambiguous 13, unresolved 1292. Feature-complete unresolved 1235; the only missingness is Bybit, 57 events. Late labels: BREAK 439, REJECT 621, NEITHER 174, ambiguous 1. Primary N=1060. Pseudo primary N=612. 238 weeks. All four features retained. Maximum absolute correlation before outcomes 0.630.
+- **Baseline.** `END_POSITION_X` +20.30 pp per +1 SD (95% +17.41..+23.17, N=1060, 2000 valid draws).
+- **Primary.** Four adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. `OTHER_VENUE_MEDIAN_MOVE` +8.87 pp (95% +5.02..+12.67, q=1.70e-5, N=1060). Same-model end position +13.43 pp. Five eligible years; four match the full-sample sign, including a negative 2020 point whose interval includes 0. Leave-one-year-out stays positive. DAY +8.63 pp and WEEK +5.60 pp. Resistance +5.10 pp; support point +13.63 pp with the interval withheld. The confirmation gap, dispersion and direction agreement fail the statistical gate. Direction-agreement tertiles collapse because the mass sits at 1. No two-thirds threshold was fit.
+- **Specificity.** Applied to CV1 because the real conjunction passed and the matched pseudo N is 612. Pseudo-only slope −1.61 pp (95% −6.17..+2.85). Stacked delta −4.24 pp (95% −7.96..−0.05, N=1223). The frozen rule names `LEVEL_CROSS_VENUE_INTERACTION_CANDIDATE`. The stacked real slope on that matched sample is about zero and does not reproduce the primary +8.87 pp. The classification was not refit.
+- **Routing.** `LEVEL_CROSS_VENUE_STRUCTURE_PRESENT`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. A historical adjusted association in this unresolved first-touch cohort. Not a current probability. Not a statement that another venue led or caused the barrier.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change. Direction #4 was not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-04-01..2024-12-31, Binance structural reference for the 15m cross-venue reaction (further exposure, not a confirmation)
+WINDOWS_CONSUMED = BYBIT_BTCUSDT_PUBLIC_HISTORY BTCUSDT linear perpetual 5m closes 2020-03-31T21:00Z..2024-12-31T20:55Z, four public-file holes left missing
+WINDOWS_CONSUMED = OKX_OFFICIAL_ARCHIVES BTC-USDT-SWAP 5m history-candles 2020-04-01..2024-12-31, confirm=1; MARKET-06 OKX spot dataset not read
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; OI / funding / book / taker not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```

@@ -909,7 +909,9 @@
   },
   {
    "col": "CROSS_VENUE",
-   "counts": {},
+   "counts": {
+    "CLOSED_ON_SURFACE": 1
+   },
    "frontier_eligible": true,
    "mixed": false,
    "native": false,
@@ -917,16 +919,18 @@
    "revisit": [],
    "row": "PRICE_STRUCTURE.levels",
    "row_name": "Reaction at levels (prior highs/lows, round numbers)",
-   "state": "OPEN_FRONTIER",
-   "units": [],
+   "state": "CLOSED_ON_SURFACE",
+   "units": [
+    "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1"
+   ],
    "value": {
     "confirmation_path": 1,
     "data_readiness": 3,
-    "novelty": 2,
+    "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
     "saturation": 3,
-    "total": 6
+    "total": 4
    }
   },
   {
@@ -10158,23 +10162,23 @@
    "BLOCKED_DATA": 4,
    "BLOCKED_METHOD": 21,
    "CANDIDATE_UNTESTED": 3,
-   "CLOSED_ON_SURFACE": 10,
+   "CLOSED_ON_SURFACE": 11,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 5,
    "FUTURE_NATURAL_ACCUMULATION": 2,
    "INFORMATIONALLY_WEAK": 8,
    "LIVE_SIGNAL": 6,
    "NO_STRUCTURE": 21,
-   "OPEN_FRONTIER": 355
+   "OPEN_FRONTIER": 354
   },
-  "units": 198,
+  "units": 199,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 22,
+   "CLOSED_ON_SURFACE": 23,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 11,
    "FUTURE_NATURAL_ACCUMULATION": 3,
@@ -13250,19 +13254,6 @@
    }
   },
   {
-   "col": "CROSS_VENUE",
-   "row": "PRICE_STRUCTURE.levels",
-   "value": {
-    "confirmation_path": 1,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 3,
-    "total": 6
-   }
-  },
-  {
    "col": "ORDER_BOOK",
    "row": "PRICE_STRUCTURE.levels",
    "value": {
@@ -15576,7 +15567,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "7004e0fe55adc98bea89e4cde6f8844ac88913f9b088068228574aa155a6bafa",
+ "SOURCES_DIGEST": "0dbed6ebc4e4ef7facf1ec442fbece17301ddd51b8bae5196f172650a82395a9",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15784,6 +15775,14 @@
      {
       "note": "LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1 one-shot (15m close-path memory conditional on END_POSITION_X, among structural first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; price OHLC only; further exposure, not a confirmation and not a reopen of PRICE_STRUCTURE.breakout",
       "period": "2020-02-01T00:00Z..2024-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1 one-shot (other linear-perpetual 15m reaction conditional on END_POSITION_X, among structural first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; Binance OHLC is the structural reference only; further exposure, not a confirmation and not a reopen of MARKET-06 or CROSS_VENUE_REGION.venue_disagreement",
+      "period": "2020-04-01T00:05Z..2024-12-31",
       "rows": [
        "PRICE_STRUCTURE.levels"
       ],
@@ -16235,10 +16234,21 @@
     "col": "CROSS_VENUE",
     "coverage": "see data",
     "data": "tick trades (2021-09+), funding (2022-03+), L2 order book (2023-03+), OHLC",
+    "exposure": [
+     {
+      "note": "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1: OKX BTC-USDT-SWAP linear perpetual 5m history-candles, confirm=1, 499968 bars, zero gaps; not OKX spot and not the MARKET-06 spot dataset; canonical SHA256 b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8",
+      "period": "2020-04-01T00:00Z..2024-12-31T23:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     }
+    ],
     "id": "OKX_OFFICIAL_ARCHIVES",
     "instrument": "BTC spot and perpetual swap",
     "records": [
-     "docs/HISTORICAL_DATA_STRATEGY.md"
+     "docs/HISTORICAL_DATA_STRATEGY.md",
+     "docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0"
     ],
     "venue": "OKX"
    },
@@ -16602,10 +16612,21 @@
     "col": "CROSS_VENUE",
     "coverage": "klines verified from 2020-04",
     "data": "public klines (1m+), funding history",
+    "exposure": [
+     {
+      "note": "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1: Bybit BTCUSDT linear perpetual public MT4 5m closes, label clock UTC+3 shifted to UTC, 476254 bars; 23714 bars missing in four public-file holes and left missing; no 2025/2026 object fetched; canonical SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c",
+      "period": "2020-03-31T21:00Z..2024-12-31T20:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     }
+    ],
     "id": "BYBIT_BTCUSDT_PUBLIC_HISTORY",
     "instrument": "BTCUSDT linear perpetual",
     "records": [
-     "docs/HISTORICAL_DATA_STRATEGY.md"
+     "docs/HISTORICAL_DATA_STRATEGY.md",
+     "docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0"
     ],
     "venue": "Bybit"
    },
@@ -22018,6 +22039,39 @@
    "title": "Objective levels: first-touch reactions vs random levels at the same distance",
    "units_n": "Periods (period-clustered bootstrap); MIN_EVENTS = 30, MIN_PERIODS = 15.",
    "verdict": "product evidence (computed nightly; no committed result numbers found)"
+  },
+  {
+   "col": "CROSS_VENUE",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "BYBIT_BTCUSDT_PUBLIC_HISTORY",
+    "OKX_OFFICIAL_ARCHIVES"
+   ],
+   "forbidden": "rescoring this cell; calling the other-venue move causal confirmation or leadership; a two-thirds or unanimity threshold; substituting OKX spot; a lead-lag or 30-minute fit on this same run; confirmation on this exposed surface; product integration",
+   "function": "first touch only of PDH/PDL/PWH/PWL/PMH/PML on Binance; T is the open of the touch bar; D = T+15m; other venues do not define levels or move T; oriented 15m log returns; four frozen features (other-venue median move, signed confirmation gap, unoriented dispersion, direction agreement); early passage on j+1 and j+2 is excluded; late BREAK versus REJECT uses j+3..j+48; END_POSITION_X is in every model; linear probability model per +1 SD; half-rotation pseudo touch supplies specificity only after a real conjunction",
+   "id": "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1",
+   "mechanism": "MODE=DISCOVERY. Given where Binance already stands relative to a structural level 15 minutes after an independently replicated first touch, does the same-window price reaction of other linear perpetual venues add historical information about later BREAK versus REJECT. Not venue leadership, not arbitrage, and not spot confirmation.",
+   "note": "MODE=DISCOVERY. Design note f21be5a6 before any late BREAK rate. Dependencies #352 dfc9e0f0 through #362 b005eaac. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to MARKET-06 (Binance perp versus OKX spot, daily absolute dislocation, 24h adverse path). Row PRICE_STRUCTURE.levels, column CROSS_VENUE. Not CROSS_VENUE_REGION.venue_disagreement and not SPOT_PERP.basis_dislocation.",
+   "period": "2020-04-01T00:05Z..2024-12-31; Binance USD-M BTCUSDT perpetual is the structural reference; Bybit BTCUSDT linear perpetual and OKX BTC-USDT-SWAP 5m closes are reaction evidence only; no OKX spot, no mark or index price, no 2025/2026, no E1 holdout",
+   "practical_bar": "3 pp per +1 SD after END_POSITION_X. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the four retained cross-venue features only.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_DESIGN.md",
+    "docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_PREFLIGHT.json",
+    "docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_RESULT.md",
+    "docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_RESULT.json",
+    "scripts/research/level_cross_venue_reaction_discovery_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the venue set, the 15-minute window, the dispersion formula, the FDR threshold, or the 3 pp scale. Not a leadership or spot-confirmation study built from this slope. Not 2025/2026.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1",
+   "units_n": "4076 structural episodes; 1856 geometry-legitimate first touches; 551 early-resolved before T+15m; 13 early ambiguous; 1292 unresolved at D; 1235 feature-complete unresolved; primary resolved N=1060 (BREAK 439, REJECT 621); 238 weeks",
+   "verdict": "EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing LEVEL_CROSS_VENUE_STRUCTURE_PRESENT. Baseline END_POSITION_X is +20.30 pp per +1 SD (95% +17.41..+23.17, N=1060). OTHER_VENUE_MEDIAN_MOVE is +8.87 pp per +1 SD (95% +5.02..+12.67, q=0.0000, N=1060) after END_POSITION_X. The frozen conjunction passes. The stacked real-minus-pseudo delta is -4.24 pp (95% -7.96..-0.05, N=1223), so the frozen specificity rule names LEVEL_CROSS_VENUE_INTERACTION_CANDIDATE. The stacked real slope on that matched sample is about zero and does not reproduce the primary slope. Confirmation gap, dispersion and direction agreement do not pass. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "One discovery run. The level row was already consumed. Bybit and OKX same-class perpetual closes were read for this reaction question only. This is not a confirmation, not a reopen of MARKET-06, and not a reopen of CROSS_VENUE_REGION.venue_disagreement. No product change. No spot, lead-lag, 30-minute, or confirmation unit was started."
   },
   {
    "blocker": null,

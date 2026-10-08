@@ -1,3 +1,22 @@
+## LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1 — executed once; discovery; one level-interaction candidate; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1 (atlas LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design f21be5a6 before any late BREAK rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; CV1 selected as a historical interaction candidate`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> #359 bcc0a9e8 -> #360 181debc4 -> #361 44726ded -> #362 b005eaac -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = same-class perpetual reaction after a structural first touch | not MARKET-06 (Binance perp versus OKX spot, daily absolute dislocation, 24h adverse path) | not CROSS_VENUE_REGION.venue_disagreement | not lead-lag | END_POSITION_X is in every model`
+`DATA = TIER A | Binance CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | Bybit linear canonical f7ef739f | OKX BTC-USDT-SWAP canonical b435fdec | events [2020-04-01T00:05Z, 2025-01-01) | 2025/2026 NOT read | OKX spot NOT used`
+`CLOCK = T = open of Binance touch bar j | D = T+15m | return from the close at T-5m to the close at D | early passage j+1..j+2 excluded | late passage j+3..j+48 | alignment tolerance 0`
+`COHORT = touch_number = 1 | geometry-legitimate 1856 | early resolved 551 | early ambiguous 13 | unresolved 1292 | feature-complete unresolved 1235 | primary N=1060 (BREAK 439, REJECT 621) | pseudo primary N=612 | 238 weeks`
+`BASELINE = END_POSITION_X +20.30 pp per +1 SD (95% +17.41..+23.17, N=1060, 2000/2000 draws)`
+`CV1 = OTHER_VENUE_MEDIAN_MOVE +8.87 pp per +1 SD (95% +5.02..+12.67, q=1.70e-5, N=1060, 2000/2000) | conjunction passed | 2020 point negative with an interval through 0; frozen 4/5 year rule passed | LOYO all positive | DAY and WEEK same sign | both side points positive | support interval withheld`
+`CV2 / CV3 / CV4 = +0.67 / -1.57 / +1.32 pp | intervals include 0 | class NONE`
+`SPECIFICITY = stacked delta on CV1 -4.24 pp (95% -7.96..-0.05, N=1223, 1965/2000) | frozen rule names LEVEL_CROSS_VENUE_INTERACTION_CANDIDATE | stacked real slope about 0 does not reproduce the primary +8.87 pp | pseudo-only -1.61 pp, interval includes 0 | not refit`
+`ROUTING = LEVEL_CROSS_VENUE_STRUCTURE_PRESENT | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical adjusted association, not a current probability | not venue leadership and not causal confirmation | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = spot versus perp; lead-lag; time-to-resolution; liquidation map; 30m reaction; confirmation; prospective tracking; 2025/2026 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1 — executed once; discovery; no incremental path memory; no successor; not integrated — 2026-10-08
 
 `UNIT = LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1 (atlas LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design bae1060c before any late BREAK rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
