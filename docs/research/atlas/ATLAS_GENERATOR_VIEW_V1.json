@@ -522,7 +522,7 @@
     {
      "function": "OPENING_RANGE_OBJECT_V1",
      "id": "OPENING-RANGE-OBJECT-V1",
-     "mechanism": "MODE=DISCOVERY. Whether the high and low of the first UTC hour, frozen at 01:00 before any later interaction, organize the next 4h differently from a same-clock band built by a weekday half-rotation of another day's log offsets. The noon hour is a veto for the word opening. Not a session extreme and not a participation clock."
+     "mechanism": "MODE=DISCOVERY. Object name FROZEN_HOUR_RANGE. Primary cell UTC_00. OPENING is a hypothesis label, not a finding. UTC_08 and UTC_16 are funding-cadence diagnostics; UTC_12 is off-cadence. Same frozen hour constructor and weekday log-offset rotation. Not a session extreme and not a participation clock."
     },
     {
      "function": "Objective levels: first-touch reactions vs random levels at the same distance",
@@ -7750,7 +7750,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "c8e838edb4945385a8c508d03e121bb4cbf7b378e9268f5d4775e2ac11d8d586",
+ "SOURCES_DIGEST": "e2178b3cf422ffbc1ce830bd7663bb92570ea0c772070b9c1a30b50ab911105b",
  "SURFACES": [
   {
    "also_cols": [

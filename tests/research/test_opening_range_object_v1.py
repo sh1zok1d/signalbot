@@ -239,6 +239,20 @@ def test_official_census_did_not_read_the_outcome():
     assert payload["cells"]["UTC_00"]["paired_iso_weeks"] == 262
 
 
+def test_amendment_audit_did_not_read_the_outcome():
+    path = Path(__file__).resolve().parents[2] / "docs" / "research" / "OPENING_RANGE_OBJECT_V1_AMENDMENT_A1_CENSUS.json"
+    payload = json.loads(path.read_text())
+    census.assert_support_only(payload)
+    assert payload["outcome_read"] is False
+    assert payload["y_known"] is False
+    assert payload["original_design_commit"] == "3be350eb0f71011928b1c99cc92f37059d631252"
+    assert payload["amendment_commit"] == "fb57fc8df8960e336b6dd779a339ec390b74e76b"
+    assert payload["timing_handling"] == "PUBLISH_AUDIT_NO_CORRECTION"
+    assert payload["primary_timing_imbalance_material"] is False
+    paired = {name: payload["cells"][name]["support"]["paired_outcome_eligible"] for name in K.CLOCK_CELLS}
+    assert paired == {"UTC_00": 1719, "UTC_08": 1716, "UTC_12": 1704, "UTC_16": 1698}
+
+
 def test_half_width_matches_the_conservative_bound():
     n = 614
     expected = K.Z_95 * math.sqrt(K.PLANNING_VARIANCE / n)

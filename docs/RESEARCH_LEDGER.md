@@ -8601,3 +8601,21 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 OUTCOME_READ = no; INFORMATION = ADEQUATE_FOR_LATER_OUTCOME; LATER_OUTCOME_RUN = not started
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 ```
+
+## 2026-10-08 — OPENING_RANGE_OBJECT_V1 amendment A1; still no outcome
+
+**Unit.** `OPENING_RANGE_OBJECT_V1`. Amendment A1. The original design commit `3be350eb0f71011928b1c99cc92f37059d631252` (SHA256 `7e46d9f5081a4b1c6e3246ff7e2172e96a0c14eba900eefd84731147630250c8`) is not rewritten. Amendment commit `fb57fc8df8960e336b6dd779a339ec390b74e76b`. Amendment file SHA256 `230b8818f154ad3b26450e25baab0fe368360c723c6ccabc86005cab6903803a`.
+- **Why.** 00:00 UTC is a Binance funding timestamp (`MARKET_03_FUNDING_SNAPSHOT`: cadence 00:00 / 08:00 / 16:00 UTC). A real touch and a pseudo touch can fall hours apart. One resolution definition cannot be read as the absence of every structure.
+- **Known at the amendment.** `outcome_read = false`. No Y, no barrier-after-touch, no excursion, no volatility. The original census had already counted formation and first-interaction existence for `UTC_00` (1719 paired days, 262 weeks) and `UTC_12` (1704, 262).
+- **Object name.** `FROZEN_HOUR_RANGE`. Primary cell `UTC_00`. `OPENING` is a hypothesis label, not a route.
+- **Clock cells.** `UTC_08` `[08:00, 09:00)` and `UTC_16` `[16:00, 17:00)` use the same constructor. `UTC_12` stays the off-cadence diagnostic. Not four candidates. Floor 614 / 100 weeks not lowered.
+- **A1 census, support and touch time only.** Paired days / weeks: `UTC_00` 1719/262, `UTC_08` 1716/262, `UTC_12` 1704/262, `UTC_16` 1698/262. All four `INFORMATION_ADEQUATE_FOR_LATER_OUTCOME`. Primary elapsed median 15 min real and 10 min pseudo. Paired Δ median 0 min, mean −42.4 min. |Δ| percentiles 5 / 30 / 110 min. Share |Δ|≥240 min = 15.3%. Same clock hour 60.3%. Material rule (share ≥25% or median |Δ|≥120 min) did not fire. Handling `PUBLISH_AUDIT_NO_CORRECTION`. No rematch.
+- **Map.** Foundation resolution, unchanged. Direction (extension first). Outside occupancy. Outward excursion / W. Resolution clock and the #368 volatility transition are excluded. Routes are frozen. Evaluator `REFUSING_OUTCOME_BEFORE_OWNER_GO`.
+- **Product.** No change. Forecast layer and the accruing #368 prospective confirmation are unchanged.
+
+```
+WINDOWS_EXPOSED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-01-01..2024-12-31, amendment A1 support and touch-time audit for UTC_00, UTC_08, UTC_12, UTC_16 (further exposure; resolution estimand not read; not CONSUMED for this estimand)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+OUTCOME_READ = no; TIMING_HANDLING = PUBLISH_AUDIT_NO_CORRECTION; LATER_OUTCOME_RUN = not started
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```

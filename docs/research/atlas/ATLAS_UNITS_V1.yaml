@@ -4199,19 +4199,22 @@ units:
     datasets:
     - CORE_BTC_BINANCE_V0
     period: '2020-01-01..2024-12-31 Binance USD-M BTCUSDT 1m aggregated to complete 5m bins; support census only; no 2025/2026 object; no E1 holdout'
-    units_n: 'primary paired outcome-eligible 1719 days, 262 ISO weeks; noon veto paired 1704 days, 262 ISO weeks; resolution not computed'
-    practical_bar: 'Reading scale 3 pp on a later paired resolution difference. Information floor 614 paired days and 100 ISO weeks, from an 8 pp planning benchmark under variance 0.5. The 8 pp figure is not an expected effect. Conservative half-width at the census N is about 3.34 pp.'
-    mechanism: 'MODE=DISCOVERY. Whether the high and low of the first UTC hour, frozen at 01:00 before any later interaction, organize the next 4h differently from a same-clock band built by a weekday half-rotation of another day''s log offsets. The noon hour is a veto for the word opening. Not a session extreme and not a participation clock.'
-    function: '12 complete 5m bars; wick first touch after the hour; ambiguous same-bar dual touches excluded; 4h window must finish inside the 23h life; pseudo bounds are the partner offsets on today''s decision close; census counts support and does not score Y'
-    verdict: 'NOT_EXECUTED. Support census only (2026-10-08). Design 3be350eb. Primary 1719 paired days, 262 weeks. Noon veto 1704 paired days, 262 weeks. Both cells INFORMATION_ADEQUATE_FOR_LATER_OUTCOME. outcome_read = false. No resolution rate and no route.'
-    why_closed: 'Not closed. Registered so the object, the veto, the control, and the support size are visible before any resolution label.'
-    reopen: 'A separate owner go may compute the frozen paired resolution difference once, on this surface, because both cells meet 614 pairs and 100 weeks. Not a new hour, duration, barrier fraction, or horizon. Not 2025/2026. Not adoption of the noon cell as the object. Not a product change.'
-    forbidden: 'reading Y inside the support census; choosing 15/30/45/90/120 minutes after the fact; a US, Europe, or Asia session anchor; treating the noon cell as a winner; conditioning on Level Engine break or reject labels; stating a current probability or a trade'
+    units_n: 'amendment A1 paired days/weeks UTC_00 1719/262, UTC_08 1716/262, UTC_12 1704/262, UTC_16 1698/262; resolution not computed'
+    practical_bar: 'Foundation and rate rows 3 pp. Direct contrast |δ00−δhour| 3 pp. Outward excursion 0.25 W. Information floor 614 paired days and 100 ISO weeks, not lowered. Touch-time material rule: share |Δ|≥240 min at least 0.25, or median |Δ| at least 120 min.'
+    mechanism: 'MODE=DISCOVERY. Object name FROZEN_HOUR_RANGE. Primary cell UTC_00. OPENING is a hypothesis label, not a finding. UTC_08 and UTC_16 are funding-cadence diagnostics; UTC_12 is off-cadence. Same frozen hour constructor and weekday log-offset rotation. Not a session extreme and not a participation clock.'
+    function: '12 complete 5m bars; wick first touch; 23h life; direct week-block contrasts of the foundation estimand; map is foundation resolution, extension-first direction, outside occupancy, outward excursion/W. Census counts support and touch time. It does not score Y.'
+    verdict: 'NOT_EXECUTED. Amendment A1 support and touch-time audit only (2026-10-08). Original design 3be350eb. Amendment fb57fc8d. Four cells information-adequate. Primary |Δ| median 30 min, far share 15.3%, handling PUBLISH_AUDIT_NO_CORRECTION. outcome_read = false. No route has been applied.'
+    why_closed: 'Not closed. The amendment is visible before any resolution label. A null of the foundation question would not close observables outside the map.'
+    reopen: 'A separate owner go may run the one outcome read described in amendment A1. Not a new hour, duration, barrier fraction, or horizon. Not 2025/2026. Not adoption of UTC_08, UTC_12, or UTC_16. Not a product change. Not a resolution-clock or volatility-transition row inside this unit.'
+    forbidden: 'reading Y before that go; calling 00:00 an opening mechanism; choosing a winner hour after the fact; rematching on touch time; a US, Europe, or Asia session anchor; stating a current probability or a trade; claiming funding causality from the clock overlap'
     records:
     - docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md
+    - docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md
+    - docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1_CENSUS.json
     - docs/research/OPENING_RANGE_OBJECT_V1_FEASIBILITY.json
     - docs/research/OPENING_RANGE_OBJECT_V1_FEASIBILITY.md
     - scripts/research/opening_range_object_v1/census.py
+    - scripts/research/opening_range_object_v1/evaluate.py
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
-    note: 'DESIGN_FROZEN. Support census recorded. Not EXECUTED. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Exact resolution claim unread. Neighboring 4h paths on this row were already read by DH3-V1 and the Level Engine. Reopen key NEW_MECHANISM. Claim ceiling L2.'
+    note: 'Original design 3be350eb kept. Amendment A1 fb57fc8d. Not EXECUTED. outcome_read false. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Exact resolution claim unread. Reopen key NEW_MECHANISM. Claim ceiling L2.'
