@@ -24,6 +24,25 @@ Template:
 
 Handed to the owner by the architect on 2026-10-08 before §4a; no retroactive record. Order: beta first (checkout, `install_beta_units.sh`, restart `signalbot-beta-bot`), then `sudo systemctl restart signalbot.service`; checks: OKX subscribe in the journal, after 2–4 h `mapping_version = 2` rows for okx and bybit and the mark-price side check. Includes #373 and #375 before their review fixes (acceptable only while every participant is on Kyiv time). Not part of the 7-day count.
 
+**Deployed** by the owner on 2026-10-08 (report 2026-10-09 00:28 Kyiv):
+- `b004669` on a clean tree, after a local backup `btcbot_20261008T145511Z.sql.gz` (159 MB);
+- units installed, bot restarted, `--beta-health` OK with `alerts=[]`;
+- collector restarted 2026-10-08 14:59:21Z; startup recovery READY; OKX acknowledged the liquidation-orders subscription on the public WS.
+
+Side check at 21:28Z, rows after the restart only (all `mapping_version = 2`, no missing mark price):
+
+| Venue | Rows | Long below mark | Short above mark |
+|---|---|---|---|
+| Binance (control) | 811 | 516/561 (92.0 %) | 208/250 (83.2 %) |
+| Bybit | 2178 | 2028/2028 | 150/150 |
+| OKX | 623 | 386/430 (89.8 %) | 175/193 (90.7 %) |
+
+Bybit sides are now correct (inverted before D1), and OKX rows exist (none before D1). OKX's shares are in the range of the Binance control.
+
+**Open checks, not covered by these queries:**
+1. The OKX volume scale (`ctVal`): notional per row against an independent reference.
+2. How the product treats the old rows (pre-D1 Bybit and the empty OKX history) through D2's read-time correction on the screens.
+
 ## 2. Misses — defects found after merge
 
 | PR | What was missed | Found by | Check that should have caught it |
