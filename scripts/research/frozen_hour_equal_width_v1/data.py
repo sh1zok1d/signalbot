@@ -61,28 +61,40 @@ def select_objects(inventory: dict) -> list[dict]:
     return chosen
 
 
-def place_on_grid(open_ms, high, low, close) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
-    """Dense 5m grid on [2017-09-01, 2020-01-01). Absent bars stay NaN. Nothing is filled."""
+def place_on_grid(open_ms, high, low, close) -> tuple[np.ndarray, np.ndarray, np.ndarray, int, int]:
+    """Dense 5m grid on [2017-09-01, 2020-01-01).
+
+    An open time that is not an exact 5m boundary is not a bar of this grid.
+    It is counted and left unplaced. It is not moved onto a neighboring bucket.
+    Absent grid bars stay NaN. Nothing is filled.
+    """
     n = K.CALENDAR_DAYS * K.BARS_PER_DAY
     out_high = np.full(n, np.nan, dtype=np.float64)
     out_low = np.full(n, np.nan, dtype=np.float64)
     out_close = np.full(n, np.nan, dtype=np.float64)
     stamps = np.asarray(open_ms, dtype=np.int64)
+    highs = np.asarray(high, dtype=np.float64)
+    lows = np.asarray(low, dtype=np.float64)
+    closes = np.asarray(close, dtype=np.float64)
     if stamps.size == 0:
         raise RuntimeError("spot panel is empty")
     if np.any(stamps < K.EVENT_START_MS) or np.any(stamps >= K.SURFACE_END_MS):
         raise RuntimeError("spot bar falls outside [2017-09-01, 2020-01-01)")
-    if np.any(stamps % K.BAR_MS != 0):
-        raise RuntimeError("spot bar leaves the 5m grid")
+    aligned = stamps % K.BAR_MS == 0
+    excluded = int(np.count_nonzero(~aligned))
+    stamps = stamps[aligned]
+    highs = highs[aligned]
+    lows = lows[aligned]
+    closes = closes[aligned]
     index = ((stamps - K.EVENT_START_MS) // K.BAR_MS).astype(np.int64)
     if np.any(index < 0) or np.any(index >= n):
         raise RuntimeError("spot bar index outside the frozen grid")
     if np.unique(index).size != int(index.size):
         raise RuntimeError("duplicate spot open time")
-    out_high[index] = np.asarray(high, dtype=np.float64)
-    out_low[index] = np.asarray(low, dtype=np.float64)
-    out_close[index] = np.asarray(close, dtype=np.float64)
-    return out_high, out_low, out_close, int(index.size)
+    out_high[index] = highs
+    out_low[index] = lows
+    out_close[index] = closes
+    return out_high, out_low, out_close, int(index.size), excluded
 
 
 class Panel:
@@ -127,8 +139,15 @@ def load_panel() -> tuple[Panel, dict]:
             raise RuntimeError(f"spot {month}: row count drifted")
         if int(raw[0, 0]) < K.EVENT_START_MS or int(raw[-1, 0]) >= K.SURFACE_END_MS:
             raise RuntimeError(f"spot {month}: zip leaves [2017-09-01, 2020-01-01)")
+        stamps = np.rint(raw[:, 0]).astype(np.int64)
+        off_grid = int(np.count_nonzero(stamps % K.BAR_MS != 0))
         parts.append(raw)
-        month_sha.append({"month": month, "sha256": obj["SHA256"], "rows": int(obj["ROWS"])})
+        month_sha.append({
+            "month": month,
+            "sha256": obj["SHA256"],
+            "rows": int(obj["ROWS"]),
+            "off_grid_rows": off_grid,
+        })
     raw = np.concatenate(parts, axis=0)
     raw = raw[np.argsort(raw[:, 0], kind="mergesort")]
     open_ms = np.rint(raw[:, 0]).astype(np.int64)
@@ -136,7 +155,9 @@ def load_panel() -> tuple[Panel, dict]:
         raise RuntimeError("first spot bar is not 2017-09-01T00:00Z")
     if int(open_ms[-1]) >= K.SURFACE_END_MS:
         raise RuntimeError("last spot bar is not inside 2019")
-    high, low, close, present = place_on_grid(open_ms, raw[:, 2], raw[:, 3], raw[:, 4])
+    high, low, close, present, excluded = place_on_grid(open_ms, raw[:, 2], raw[:, 3], raw[:, 4])
+    if excluded != sum(item["off_grid_rows"] for item in month_sha):
+        raise RuntimeError("off-grid row count does not match the months")
     panel = Panel(
         K.EVENT_START_MS,
         high,
@@ -157,5 +178,8 @@ def load_panel() -> tuple[Panel, dict]:
         "grid_bars": panel.n,
         "first_open_ms": int(open_ms[0]),
         "last_open_ms": int(open_ms[-1]),
+        "off_grid_rows_not_placed": excluded,
+        "off_grid_rule": "an open time not divisible by 300000 ms is not a bar of this grid and is not moved onto a bucket",
+        "months_sha256": panel.month_sha256,
     }
     return panel, provenance

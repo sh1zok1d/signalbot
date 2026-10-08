@@ -43,6 +43,15 @@ def test_month_selector_stays_inside_the_frozen_window():
             data.refuse_month(month)
     with pytest.raises(RuntimeError):
         data.place_on_grid([K.SURFACE_END_MS], [1.0], [1.0], [1.0])
+    start = K.EVENT_START_MS
+    high, low, close, present, excluded = data.place_on_grid(
+        [start, start + K.BAR_MS + 194789, start + 2 * K.BAR_MS],
+        [1.0, 2.0, 3.0],
+        [1.0, 2.0, 3.0],
+        [1.0, 2.0, 3.0],
+    )
+    assert excluded == 1 and present == 2
+    assert high[0] == 1.0 and high[2] == 3.0 and np.isnan(high[1])
     with pytest.raises(RuntimeError):
         data.place_on_grid([K.EVENT_START_MS - K.BAR_MS], [1.0], [1.0], [1.0])
 

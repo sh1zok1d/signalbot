@@ -584,6 +584,10 @@ def render_markdown(payload: dict) -> str:
     lines.append(
         f"Panel: {prov['present_bars']} present bars, {prov['missing_bars']} missing, grid {prov['grid_bars']}."
     )
+    lines.append(
+        f"Off-grid opens left unplaced: {prov.get('off_grid_rows_not_placed', 0)}. "
+        "An open time that is not divisible by 300000 ms is not moved onto a bucket."
+    )
     lines.append("")
     for name, role in ((K.PRIMARY_CELL, "primary"), (K.DIAGNOSTIC_CELL, "diagnostic, not adoptable")):
         cell = payload["cells"][name]
