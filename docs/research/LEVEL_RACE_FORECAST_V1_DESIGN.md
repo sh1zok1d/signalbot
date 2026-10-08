@@ -34,7 +34,7 @@ Authority: FORECAST_LAYER_DECISION_V1 §6a (owner, 2026-10-08: «Б вариан
 | Id | Surface | Text |
 |---|---|---|
 | `LR_HIST_V1` | `/levels`, `/check` (T15; T0 where those surfaces show a fresh touch) | «Похожие касания в 2020–2024 (N = {n}): первой достигалась верхняя цена — {h_up} % (обычно {b_up} %; разница {d_up} п.п., 95 % интервал {lo_up}..{hi_up}), нижняя — {h_dn} % (обычно {b_dn} %; разница {d_dn} п.п., 95 % интервал {lo_dn}..{hi_dn}), ни одна за окно — {h_ne} % (обычно {b_ne} %; разница {d_ne} п.п., 95 % интервал {lo_ne}..{hi_ne}). Сейчас верхняя {P_UP}, нижняя {P_DN}, окно до {END}.» |
-| `LR_PUSH_HIST_V1` | one line in the existing T0 level-touch push | «2020–2024, похожие касания (N = {n}): первой верхняя {P_UP} {h_up} % · нижняя {P_DN} {h_dn} % · ни одна {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), до {END}» |
+| `LR_PUSH_HIST_V1` | one line in the existing T0 level-touch push | «2020–2024, похожие касания (N = {n}): первой была — верхняя {P_UP} — {h_up} % · нижняя {P_DN} — {h_dn} % · ни одна — {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), до {END}» |
 | `LR_HIST_LOW_N_V1` | both | «Похожих касаний в 2020–2024 мало (N = {n}).» |
 
 The model-state templates of §9 follow the same time rule.
@@ -43,6 +43,11 @@ The model-state templates of §9 follow the same time rule.
 - Shown difference = shown percentages: `d = printed_h − printed_b`, where printed values are the integer percentages summing to 100 (largest remainder); the interval ends are `diff_ci95_pp` rounded to integers (architect, 2026-10-08).
 - `LR_HIST_V1` shows, per outcome, `d = h − b` and the 95 % interval of `h − b` from the table (`diff_pp`, `diff_ci95_pp`), each rounded to an integer pp, instead of «±k п.п.». `LR_PUSH_HIST_V1` is unchanged (N only). `k_pp` stays in the table.
 - T15 visibility: the T15 line is visible from T15 until `{END}` while the race is unresolved. It is hidden once the race is resolved under `LEVEL_RACE_4H_V1` (a barrier reached on a closed bar from `j+3`) or once the current price is already beyond `P_UP` or `P_DN`. A hidden line never comes back (`beta.level_race.t15_visible`).
+
+**Amendment of the push template before Day 0 (2026-10-08, architect; does not touch any outcome or the table).**
+- `LR_PUSH_HIST_V1` wording as in the table above («первой была — верхняя {P_UP} — …»).
+- A push line without the interval is allowed only with a button or link that opens the full `LR_HIST_V1` line with the interval (`/levels`) in one tap.
+- The push header names the level by type and human name, e.g. «PDH (вчерашний максимум)» (product text, F2).
 
 **Journal (from Day 0, shown or not).** Classes `L2_LEVEL_RACE_HIST_T0_4H` and `L2_LEVEL_RACE_HIST_T15_4H` (names fixed by the mini-head), evaluation rule `LEVEL_RACE_4H_V1` (the #352 `classify` on the original window; AMBIGUOUS excluded and counted). One record per eligible event per landmark, written at the landmark close before the outcome: issue time, landmark, event id (`episode_id` + `j`), `P_UP`, `P_DN`, orientation, `{END}`, cell key and ladder level, the table's `h_*`, `b_*` and `n` as shown, this event's own B0 (three values), table SHA256 and code commit, template id, outcome `UNKNOWN`. Displays are linked separately, as for the other claims. Scoring (prospective, per class and per cell): «говорили h → было» — the shown cell shares against the observed outcomes of the live events in that cell (per outcome: mean shown h vs observed share, N), plus log-loss and Brier against the event's own B0, CITL per outcome and the 5-bin reliability; reported weekly and before/after every dated change; not shown in HIST text. Full field list in §10.
 
