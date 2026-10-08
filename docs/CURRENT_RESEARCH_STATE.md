@@ -1,4 +1,4 @@
-## OPENING_RANGE_OBJECT_V1 — amendment A1 frozen; outcome still not read — 2026-10-08
+## OPENING_RANGE_OBJECT_V1 — amendment A2 freezes multiplicity; outcome still not read — 2026-10-08
 
 `UNIT = OPENING_RANGE_OBJECT_V1 (atlas OPENING-RANGE-OBJECT-V1; family OPENING_RANGE_V1; MODE = DISCOVERY)`
 `SEPARATE LINE = does not replace the forecast-layer NEXT_UNIT and does not continue Level Engine`
@@ -8,11 +8,12 @@
 `CLOCK CELLS = UTC_00 primary; UTC_08 and UTC_16 funding-cadence diagnostics; UTC_12 off-cadence diagnostic | not four candidates | floor 614 pairs and 100 weeks not lowered`
 `SUPPORT = paired days / weeks: UTC_00 1719/262, UTC_08 1716/262, UTC_12 1704/262, UTC_16 1698/262 | all INFORMATION_ADEQUATE_FOR_LATER_OUTCOME`
 `TOUCH TIME = UTC_00 median |Δ| 30 min, share |Δ|≥240 min 15.3%, mean signed Δ −42.4 min | material rule did not fire | handling PUBLISH_AUDIT_NO_CORRECTION | no rematch`
-`MAP = foundation resolution; direction extension-first; outside occupancy; outward excursion/W | resolution clock and volatility transition excluded | routes frozen | evaluator REFUSING_OUTCOME_BEFORE_OWNER_GO`
+`MAP = foundation resolution; direction extension-first; outside occupancy; outward excursion/W | resolution clock and volatility transition excluded | evaluator REFUSING_OUTCOME_BEFORE_OWNER_GO`
+`AMENDMENT A2 = file sha256 64ae661cd2dd8815085817d1cc7c8062cb822328a74b3caf3e5f9c80c0aa7d40 | interpretation only | outcome_read = false | y_known = false | families FOUNDATION_CELL_EFFECTS and CLOCK_SPECIFICITY use STUDENTIZED_MAX_T | NONFOUNDATION_MAP uses HOLM | route NONFOUNDATION_MAP_CANDIDATE_ON_UTC_00 | direction role BARRIER_FAMILY_DECOMPOSITION`
 `NOT READ = Y, extension rate, reentry rate, excursion, traverse, realized volatility, real-minus-pseudo effect | outcome_read = false`
-`NEXT = a separate owner go for that one outcome read | PRODUCT_CHANGE = none`
+`NEXT = a separate owner go for the one outcome read in A1, reported under the A2 family rules | PRODUCT_CHANGE = none`
 
-Original design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. Amendment: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md`. Audit: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1_CENSUS.md`.
+Original design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. Amendment A1: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md`. Amendment A2: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A2.md`. Audit: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1_CENSUS.md`.
 
 ## Forecast layer and Level Engine routing — owner decision — 2026-10-08
 

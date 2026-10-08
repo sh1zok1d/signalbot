@@ -13,7 +13,7 @@ import pytest
 import numpy as np
 
 from beta.hist_series import BAR_MS, BARS_PER_DAY, empty_bars
-from scripts.research.opening_range_object_v1 import census, constants as K, evaluate, routing, specificity, touch_time
+from scripts.research.opening_range_object_v1 import census, constants as K, evaluate, multiplicity, routing, specificity, touch_time
 
 PKG = Path(__file__).resolve().parents[2] / "scripts" / "research" / "opening_range_object_v1"
 DESIGN = Path(__file__).resolve().parents[2] / "docs" / "research" / "OPENING_RANGE_OBJECT_V1_DESIGN.md"
@@ -261,7 +261,20 @@ def test_half_width_matches_the_conservative_bound():
 
 
 def _est(point, lo, hi):
-    return {"point": point, "lo": lo, "hi": hi}
+    return {
+        "point": point,
+        "marginal_lo": lo,
+        "marginal_hi": hi,
+        "sim_lo": lo,
+        "sim_hi": hi,
+    }
+
+
+def _failed_map():
+    return {
+        name: {"point": 0.0, "marginal_lo": -0.1, "marginal_hi": 0.1, "holm_p": 1.0}
+        for name in K.NONFOUNDATION_ORDER
+    }
 
 
 def _clock(point=0.0, lo=-0.01, hi=0.01):
@@ -301,23 +314,23 @@ def test_amendment_keeps_opening_as_a_label():
 
 def test_routes_use_the_direct_contrast():
     adequate = _info(True)
-    none_ortho = {}
+    failed_map = _failed_map()
     separated = _contrasts(0.06, 0.02, 0.10)
     similar = _contrasts(0.005, -0.01, 0.02)
     foundation = _clock(0.06, 0.02, 0.10)
-    day_boundary = routing.decide(adequate, foundation, separated, none_ortho)
+    day_boundary = routing.decide(adequate, foundation, separated, failed_map)
     assert day_boundary["route"] == "UTC_DAY_BOUNDARY_RANGE_CANDIDATE"
     assert day_boundary["opening_wording_allowed"] is False
     assert day_boundary["hour_adopted"] is None
 
     generic_f = _clock(0.05, 0.02, 0.08)
-    generic = routing.decide(adequate, generic_f, similar, none_ortho)
+    generic = routing.decide(adequate, generic_f, similar, failed_map)
     assert generic["route"] == "GENERIC_FROZEN_HOUR_RANGE_STRUCTURE"
 
     funding_f = _clock(0.05, 0.02, 0.08)
     funding_f["UTC_12"] = _est(0.0, -0.02, 0.02)
     funding_c = similar | {"UTC_12": _est(0.05, 0.02, 0.08)}
-    funding = routing.decide(adequate, funding_f, funding_c, none_ortho)
+    funding = routing.decide(adequate, funding_f, funding_c, failed_map)
     assert funding["route"] == "FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE"
 
     # Other cells fail, and the contrasts also fail: not day-boundary.
@@ -325,32 +338,142 @@ def test_routes_use_the_direct_contrast():
         "UTC_08": _est(0.0, -0.02, 0.02),
         "UTC_12": _est(0.0, -0.02, 0.02),
         "UTC_16": _est(0.0, -0.02, 0.02),
-    }, similar, none_ortho)
+    }, similar, failed_map)
     assert weak["route"] == "INCONCLUSIVE"
 
-    null = routing.decide(adequate, _clock(0.0, -0.02, 0.02), similar, none_ortho)
+    null = routing.decide(adequate, _clock(0.0, -0.02, 0.02), similar, failed_map)
     assert null["route"] == "NO_DETECTABLE_FROZEN_HOUR_RANGE_STRUCTURE"
-    assert "does not" not in null["route"]
+    assert null["nonfoundation_candidates"] == []
 
     mixed = _clock(0.0, -0.02, 0.02)
     mixed["UTC_08"] = _est(0.06, 0.02, 0.10)
-    assert routing.decide(adequate, mixed, similar, none_ortho)["route"] == "INCONCLUSIVE"
+    assert routing.decide(adequate, mixed, similar, failed_map)["route"] == "INCONCLUSIVE"
 
-    ortho = routing.decide(adequate, _clock(0.0, -0.02, 0.02), similar, {
-        "OUTWARD_EXCURSION": {"point": 0.4, "lo": 0.1, "hi": 0.7, "scale": 0.25},
-    })
-    assert ortho["route"] == "ORTHOGONAL_CANDIDATE_ON_UTC_00"
-    assert ortho["orthogonal_candidates"] == ["OUTWARD_EXCURSION"]
+    map_rows = _failed_map()
+    map_rows["OUTWARD_EXCURSION"] = {
+        "point": 0.4,
+        "marginal_lo": 0.1,
+        "marginal_hi": 0.7,
+        "holm_p": 0.01,
+    }
+    found = routing.decide(adequate, _clock(0.0, -0.02, 0.02), similar, map_rows)
+    assert found["route"] == "NONFOUNDATION_MAP_CANDIDATE_ON_UTC_00"
+    assert found["nonfoundation_candidates"] == [
+        {"row": "OUTWARD_EXCURSION", "role": "INDEPENDENT_OBSERVABLE"},
+    ]
+
+    # A marginal interval that excludes 0 is not a candidate when Holm does not clear.
+    marginal_only = _failed_map()
+    marginal_only["DIRECTION_EXTENSION_FIRST"] = {
+        "point": 0.05,
+        "marginal_lo": 0.02,
+        "marginal_hi": 0.08,
+        "holm_p": 0.20,
+    }
+    assert routing.decide(adequate, _clock(0.0, -0.02, 0.02), similar, marginal_only)["route"] == (
+        "NO_DETECTABLE_FROZEN_HOUR_RANGE_STRUCTURE"
+    )
+
+    both = _failed_map()
+    both["DIRECTION_EXTENSION_FIRST"] = {"point": 0.04, "marginal_lo": 0.02, "marginal_hi": 0.06, "holm_p": 0.01}
+    both["OUTWARD_EXCURSION"] = {"point": 0.90, "marginal_lo": 0.4, "marginal_hi": 1.2, "holm_p": 0.01}
+    listed = routing.decide(adequate, _clock(0.0, -0.02, 0.02), similar, both)
+    assert [item["row"] for item in listed["nonfoundation_candidates"]] == [
+        "DIRECTION_EXTENSION_FIRST",
+        "OUTWARD_EXCURSION",
+    ]
+    assert listed["nonfoundation_candidates"][0]["role"] == "BARRIER_FAMILY_DECOMPOSITION"
 
     limited = _info(False)
-    assert routing.decide(limited, foundation, separated, none_ortho)["route"] == "INFORMATION_LIMITED"
+    assert routing.decide(limited, foundation, separated, failed_map)["route"] == "INFORMATION_LIMITED"
     partial = _info(True)
     partial["UTC_08"] = "INFORMATION_LIMITED_STOP_BEFORE_OUTCOME"
-    assert routing.decide(partial, foundation, separated, none_ortho)["route"] == "CLOCK_SPECIFICITY_INFORMATION_LIMITED"
+    assert routing.decide(partial, foundation, separated, failed_map)["route"] == "CLOCK_SPECIFICITY_INFORMATION_LIMITED"
 
     negative = _clock(-0.06, -0.10, -0.02)
     neg_c = _contrasts(-0.06, -0.10, -0.02)
-    assert routing.decide(adequate, negative, neg_c, none_ortho)["route"] == "UTC_DAY_BOUNDARY_RANGE_CANDIDATE"
+    assert routing.decide(adequate, negative, neg_c, failed_map)["route"] == "UTC_DAY_BOUNDARY_RANGE_CANDIDATE"
+
+    # Simultaneous interval includes 0. The marginal interval does not. Route follows simultaneous.
+    crowded = _clock(0.0, -0.02, 0.02)
+    crowded["UTC_00"] = {
+        "point": 0.06,
+        "marginal_lo": 0.02,
+        "marginal_hi": 0.10,
+        "sim_lo": -0.01,
+        "sim_hi": 0.13,
+    }
+    assert routing.decide(adequate, crowded, similar, failed_map)["route"] == "NO_DETECTABLE_FROZEN_HOUR_RANGE_STRUCTURE"
+
+
+def test_max_t_is_wider_than_three_marginal_intervals():
+    # UTC_08 marginal percentile stays positive. Six joint draws of UTC_12 are far
+    # enough that the family critical value covers the UTC_08 point.
+    point = {"UTC_08": 0.04, "UTC_12": 0.0, "UTC_16": 0.0}
+    draws = []
+    for i in range(100):
+        draws.append({
+            "UTC_08": 0.05 if i < 50 else 0.03,
+            "UTC_12": 1.0 if i < 6 else 0.0,
+            "UTC_16": 0.0,
+        })
+    marginal_lo, marginal_hi = multiplicity.marginal_percentile([draw["UTC_08"] for draw in draws])
+    simultaneous = multiplicity.simultaneous_max_t(point, draws)
+    assert marginal_lo > 0.0
+    assert marginal_hi > marginal_lo
+    assert simultaneous["UTC_08"]["sim_lo"] < 0.0 < simultaneous["UTC_08"]["sim_hi"]
+    assert simultaneous["UTC_08"]["critical"] > 1.96
+    foundation = {
+        cell: {"point": 0.0, "sim_lo": -0.02, "sim_hi": 0.02}
+        for cell in K.CLOCK_CELLS
+    }
+    contrasts = {
+        cell: {
+            "point": point[cell],
+            "marginal_lo": marginal_lo if cell == "UTC_08" else -0.05,
+            "marginal_hi": marginal_hi if cell == "UTC_08" else 0.05,
+            "sim_lo": simultaneous[cell]["sim_lo"],
+            "sim_hi": simultaneous[cell]["sim_hi"],
+        }
+        for cell in ("UTC_08", "UTC_12", "UTC_16")
+    }
+    route = routing.decide(_info(True), foundation, contrasts, _failed_map())
+    assert route["route"] == "NO_DETECTABLE_FROZEN_HOUR_RANGE_STRUCTURE"
+
+
+def test_holm_keeps_a_marginal_p_inside_the_map_family():
+    adjusted = multiplicity.holm_adjusted({
+        "DIRECTION_EXTENSION_FIRST": 0.02,
+        "OUTSIDE_OCCUPANCY": 0.04,
+        "OUTWARD_EXCURSION": 0.50,
+    })
+    assert adjusted["DIRECTION_EXTENSION_FIRST"] == pytest.approx(0.06)
+    assert adjusted["OUTSIDE_OCCUPANCY"] > 0.05
+    assert adjusted["OUTWARD_EXCURSION"] > adjusted["OUTSIDE_OCCUPANCY"]
+    assert multiplicity.bootstrap_p_value(0.0, [0.1, -0.2, 0.3]) == 1.0
+    # Replicates centered on the estimate put 0 far into the tail only when the
+    # estimate itself is large relative to that spread. A zero estimate does not.
+
+
+def test_amendment_a2_is_interpretation_only():
+    text = (Path(__file__).resolve().parents[2] / "docs" / "research" / "OPENING_RANGE_OBJECT_V1_AMENDMENT_A2.md").read_text()
+    for phrase in (
+        "3be350eb0f71011928b1c99cc92f37059d631252",
+        "fb57fc8df8960e336b6dd779a339ec390b74e76b",
+        "outcome_read = false",
+        "y_known = false",
+        "FOUNDATION_CELL_EFFECTS",
+        "CLOCK_SPECIFICITY",
+        "NONFOUNDATION_MAP",
+        "STUDENTIZED_MAX_T",
+        "HOLM",
+        "NONFOUNDATION_MAP_CANDIDATE_ON_UTC_00",
+        "BARRIER_FAMILY_DECOMPOSITION",
+        "REFUSING_OUTCOME_BEFORE_OWNER_GO",
+    ):
+        assert phrase in text
+    assert "load_discovery" not in _source("multiplicity.py")
+    assert "EXTENSION_FRACTION" not in _source("multiplicity.py")
 
 
 def test_joint_draw_uses_one_week_multiplicity():

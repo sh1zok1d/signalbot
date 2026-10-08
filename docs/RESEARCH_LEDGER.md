@@ -8619,3 +8619,19 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 OUTCOME_READ = no; TIMING_HANDLING = PUBLISH_AUDIT_NO_CORRECTION; LATER_OUTCOME_RUN = not started
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 ```
+
+## 2026-10-08 — OPENING_RANGE_OBJECT_V1 amendment A2; multiplicity only; still no outcome
+
+**Unit.** `OPENING_RANGE_OBJECT_V1`. Amendment A2. File SHA256 `64ae661cd2dd8815085817d1cc7c8062cb822328a74b3caf3e5f9c80c0aa7d40`. Original design `3be350eb0f71011928b1c99cc92f37059d631252` and amendment A1 `fb57fc8df8960e336b6dd779a339ec390b74e76b` are not rewritten.
+- **Known at A2.** `outcome_read = false`. `y_known = false`. No Y, no barrier-after-touch, no excursion, no volatility.
+- **Unchanged.** Object `FROZEN_HOUR_RANGE`, cells `UTC_00` / `UTC_08` / `UTC_12` / `UTC_16`, 60m formation, pseudo, touch, touch-time handling `PUBLISH_AUDIT_NO_CORRECTION`, 4h horizon, `0.5 W`, practical scales, support counts, map rows.
+- **Families.** `FOUNDATION_CELL_EFFECTS`: four foundation means, studentized max-T from the A1 joint week bootstrap. `CLOCK_SPECIFICITY`: the three contrasts `δ00−δ08`, `δ00−δ12`, `δ00−δ16`, their own max-T critical value, not three marginal 95% intervals. `NONFOUNDATION_MAP`: Holm on direction, outside occupancy, and outward excursion. Direction is `BARRIER_FAMILY_DECOMPOSITION`. Occupancy and excursion are `INDEPENDENT_OBSERVABLE`.
+- **Route.** `ORTHOGONAL_CANDIDATE_ON_UTC_00` is renamed `NONFOUNDATION_MAP_CANDIDATE_ON_UTC_00`. Clearing rows are listed in declaration order and not ranked. A marginal interval does not set a candidate.
+- **Product.** No change. Evaluator still `REFUSING_OUTCOME_BEFORE_OWNER_GO`.
+
+```
+WINDOWS_EXPOSED = none added; A1 support census unchanged; resolution estimand still not read
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+OUTCOME_READ = no; Y_KNOWN = false; LATER_OUTCOME_RUN = not started
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```

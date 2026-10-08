@@ -15595,7 +15595,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "e2178b3cf422ffbc1ce830bd7663bb92570ea0c772070b9c1a30b50ab911105b",
+ "SOURCES_DIGEST": "374dd977ecda817df9f243e496800b5e5f1d715d1bf16b9a10f502c1111e4dff",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -22353,33 +22353,35 @@
    "datasets": [
     "CORE_BTC_BINANCE_V0"
    ],
-   "forbidden": "reading Y before that go; calling 00:00 an opening mechanism; choosing a winner hour after the fact; rematching on touch time; a US, Europe, or Asia session anchor; stating a current probability or a trade; claiming funding causality from the clock overlap",
-   "function": "12 complete 5m bars; wick first touch; 23h life; direct week-block contrasts of the foundation estimand; map is foundation resolution, extension-first direction, outside occupancy, outward excursion/W. Census counts support and touch time. It does not score Y.",
+   "forbidden": "reading Y before that go; treating a marginal interval as a candidate; calling 00:00 an opening mechanism; choosing a winner hour or a winner map row after the fact; rematching on touch time; a US, Europe, or Asia session anchor; stating a current probability or a trade; claiming funding causality from the clock overlap",
+   "function": "12 complete 5m bars; wick first touch; 23h life; direct week-block contrasts of the foundation estimand; map is foundation resolution, extension-first direction, outside occupancy, outward excursion/W. A2: cell effects and clock contrasts use studentized max-T; the three non-foundation rows use Holm. Census counts support and touch time. It does not score Y.",
    "id": "OPENING-RANGE-OBJECT-V1",
    "mechanism": "MODE=DISCOVERY. Object name FROZEN_HOUR_RANGE. Primary cell UTC_00. OPENING is a hypothesis label, not a finding. UTC_08 and UTC_16 are funding-cadence diagnostics; UTC_12 is off-cadence. Same frozen hour constructor and weekday log-offset rotation. Not a session extreme and not a participation clock.",
-   "note": "Original design 3be350eb kept. Amendment A1 fb57fc8d. Not EXECUTED. outcome_read false. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Exact resolution claim unread. Reopen key NEW_MECHANISM. Claim ceiling L2.",
+   "note": "Original design 3be350eb kept. Amendment A1 fb57fc8d kept. Amendment A2 is multiplicity and route interpretation only. Not EXECUTED. outcome_read false. y_known false. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Exact resolution claim unread. Reopen key NEW_MECHANISM. Claim ceiling L2.",
    "period": "2020-01-01..2024-12-31 Binance USD-M BTCUSDT 1m aggregated to complete 5m bins; support census only; no 2025/2026 object; no E1 holdout",
    "practical_bar": "Foundation and rate rows 3 pp. Direct contrast |δ00−δhour| 3 pp. Outward excursion 0.25 W. Information floor 614 paired days and 100 ISO weeks, not lowered. Touch-time material rule: share |Δ|≥240 min at least 0.25, or median |Δ| at least 120 min.",
    "program": "OPENING_RANGE_V1",
    "records": [
     "docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md",
     "docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md",
+    "docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A2.md",
     "docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1_CENSUS.json",
     "docs/research/OPENING_RANGE_OBJECT_V1_FEASIBILITY.json",
     "docs/research/OPENING_RANGE_OBJECT_V1_FEASIBILITY.md",
     "scripts/research/opening_range_object_v1/census.py",
+    "scripts/research/opening_range_object_v1/multiplicity.py",
     "scripts/research/opening_range_object_v1/evaluate.py",
     "docs/RESEARCH_LEDGER.md",
     "docs/CURRENT_RESEARCH_STATE.md"
    ],
-   "reopen": "A separate owner go may run the one outcome read described in amendment A1. Not a new hour, duration, barrier fraction, or horizon. Not 2025/2026. Not adoption of UTC_08, UTC_12, or UTC_16. Not a product change. Not a resolution-clock or volatility-transition row inside this unit.",
+   "reopen": "A separate owner go may run the one outcome read described in amendment A1 and interpret it with the A2 family rules. Not a new hour, duration, barrier fraction, horizon, or endpoint. Not 2025/2026. Not adoption of UTC_08, UTC_12, or UTC_16. Not a product change.",
    "row": "PRICE_STRUCTURE.levels",
    "source": "ATLAS_UNITS_V1",
    "state": "CANDIDATE_UNTESTED",
    "title": "OPENING_RANGE_OBJECT_V1",
    "units_n": "amendment A1 paired days/weeks UTC_00 1719/262, UTC_08 1716/262, UTC_12 1704/262, UTC_16 1698/262; resolution not computed",
-   "verdict": "NOT_EXECUTED. Amendment A1 support and touch-time audit only (2026-10-08). Original design 3be350eb. Amendment fb57fc8d. Four cells information-adequate. Primary |Δ| median 30 min, far share 15.3%, handling PUBLISH_AUDIT_NO_CORRECTION. outcome_read = false. No route has been applied.",
-   "why_closed": "Not closed. The amendment is visible before any resolution label. A null of the foundation question would not close observables outside the map."
+   "verdict": "NOT_EXECUTED. Amendment A2 is interpretation only (2026-10-08), written before any resolution label. Original design 3be350eb. Amendment A1 fb57fc8d. Four cells information-adequate. Touch-time handling PUBLISH_AUDIT_NO_CORRECTION. outcome_read = false. y_known = false. No route has been applied to market outcomes.",
+   "why_closed": "Not closed. A1 and A2 are visible before any resolution label. A null of the foundation question would not close observables outside the map."
   },
   {
    "col": "CANDLES",
