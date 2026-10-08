@@ -170,7 +170,7 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 
 | Field | Meaning |
 |---|---|
-| `participant_fingerprint` | the salted fingerprint the owner tools print (never a Telegram id) |
+| `participant_fingerprint` | the keyed pseudonym the owner tools print (HMAC with `BETA_FINGERPRINT_KEY`; never a Telegram id) |
 | `known_contact` | the §1.2 classification |
 | `offered_at` | when the price was offered (days 21–25, to every enrolled participant, churned included) |
 | `paid_at` | when a real transfer arrived; empty if none |
@@ -184,7 +184,7 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 
 - **Disclosed rows only.** Every number above comes from rows the privacy notice discloses: commands and buttons with their time, the invite link, delivery status, votes and feedback text.
 - **Nothing else is read.** No message content or Telegram profile data is read.
-- **Fingerprints only.** Reports use salted fingerprints.
+- **Pseudonyms only.** Reports use keyed fingerprints: `"u_" + HMAC-SHA-256(key, telegram id)[:12]` with the `.env` secret `BETA_FINGERPRINT_KEY` (owner, 2026-10-08). They are pseudonyms, not anonymous data: whoever holds the key and a Telegram id can recompute one. Fingerprints printed before the key was introduced do not match the keyed ones.
 - **Cohort records** after deletion hold no identity.
 
 ## 9. Owner decisions (2026-10-03)

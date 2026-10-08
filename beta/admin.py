@@ -10,7 +10,9 @@ and can never exceed `regime_d7.enabled`.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import html
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Sequence
 
@@ -40,11 +42,33 @@ def owner_parts(text: str, limit: int = 3500) -> list:
     return parts + [cur]
 
 
+FINGERPRINT_KEY_ENV = "BETA_FINGERPRINT_KEY"
+FINGERPRINT_KEY_MIN_LEN = 32
+_fingerprint_key: Optional[bytes] = None
+
+
+class FingerprintKeyError(RuntimeError):
+    """The keyed fingerprint has no key: a process that would print or store one must not start."""
+
+
+def set_fingerprint_key(key: Optional[str]) -> None:
+    """Called once at start with the `.env` secret (never printed or logged)."""
+    global _fingerprint_key
+    key = (key or "").strip()
+    if len(key) < FINGERPRINT_KEY_MIN_LEN:
+        raise FingerprintKeyError(f"{FINGERPRINT_KEY_ENV} must be set (at least {FINGERPRINT_KEY_MIN_LEN} characters)")
+    _fingerprint_key = key.encode()
+
+
 def fingerprint(telegram_user_id: Optional[int]) -> str:
-    """Pseudonymous (not anonymous) stable id for audit/log lines."""
+    """A keyed pseudonym (not anonymous) for audit and owner lines (owner, 2026-10-08):
+    "u_" + HMAC-SHA-256(key, str(telegram id))[:12 hex]. Without the key it cannot be recomputed from a
+    Telegram id. With no key configured it refuses rather than fall back to an unkeyed hash."""
     if telegram_user_id is None:
         return "none"
-    return "u_" + hashlib.sha256(f"signalbot-beta-v0:{int(telegram_user_id)}".encode()).hexdigest()[:12]
+    if _fingerprint_key is None:
+        set_fingerprint_key(os.environ.get(FINGERPRINT_KEY_ENV))
+    return "u_" + hmac.new(_fingerprint_key, str(int(telegram_user_id)).encode(), hashlib.sha256).hexdigest()[:12]
 
 
 def is_owner(owner_user_id: Optional[int], telegram_user_id: Optional[int]) -> bool:

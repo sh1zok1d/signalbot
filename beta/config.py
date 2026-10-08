@@ -675,6 +675,7 @@ def effective_d7_enabled(cfg: BetaConfig, admin_d7_enabled: bool) -> bool:
 class BetaSecrets:
     bot_token: Optional[str]
     owner_user_id: Optional[int]
+    fingerprint_key: Optional[str] = None
 
     @classmethod
     def from_env(cls, env: Optional[Mapping[str, str]] = None) -> "BetaSecrets":
@@ -686,8 +687,10 @@ class BetaSecrets:
             if not owner_raw.isdigit():
                 raise BetaConfigError("BETA_OWNER_TELEGRAM_USER_ID must be a positive integer")
             owner = int(owner_raw)
-        return cls(bot_token=token, owner_user_id=owner)
+        fp_key = (env.get("BETA_FINGERPRINT_KEY") or "").strip() or None
+        return cls(bot_token=token, owner_user_id=owner, fingerprint_key=fp_key)
 
     def __repr__(self) -> str:  # never leak secrets through repr/logging
         return (f"BetaSecrets(bot_token={'set' if self.bot_token else 'unset'}, "
-                f"owner_user_id={'set' if self.owner_user_id else 'unset'})")
+                f"owner_user_id={'set' if self.owner_user_id else 'unset'}, "
+                f"fingerprint_key={'set' if self.fingerprint_key else 'unset'})")

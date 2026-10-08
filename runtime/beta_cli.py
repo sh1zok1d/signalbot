@@ -374,6 +374,9 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
             return out
         await db.init_beta_v0_schema()
         secrets = BetaSecrets.from_env(env)
+        from beta.admin import FINGERPRINT_KEY_ENV, set_fingerprint_key
+        # keyed pseudonyms (owner, 2026-10-08): the notifier refuses to run without the key
+        set_fingerprint_key(secrets.fingerprint_key or os.environ.get(FINGERPRINT_KEY_ENV))
         if sender is None and secrets.bot_token:
             from runtime.beta_bot import BetaTelegramSender
             sender = BetaTelegramSender(secrets.bot_token)

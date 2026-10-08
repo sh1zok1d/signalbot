@@ -1205,6 +1205,11 @@ def main() -> None:   # systemd entry point: python -m runtime.beta_bot
     secrets = BetaSecrets.from_env()
     if not secrets.bot_token:
         raise SystemExit("BETA_TELEGRAM_BOT_TOKEN is not set")
+    from beta.admin import FingerprintKeyError, set_fingerprint_key
+    try:                                    # keyed pseudonyms (owner, 2026-10-08): no key, no start
+        set_fingerprint_key(secrets.fingerprint_key)
+    except FingerprintKeyError as exc:
+        raise SystemExit(str(exc)) from None
 
     async def _run():
         from storage.db import Database
