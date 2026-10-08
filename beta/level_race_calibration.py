@@ -719,8 +719,9 @@ def next_state(prev: StateRecord, setup: Setup, *, health: Health, mon: Optional
         return initial_state(setup, now_ms=now_ms)
     if generic_alarm:
         if prev.state in ("L3_HISTORY_BACKED", "L3_LIVE", "FALLBACK"):
-            return replace(prev, state=GEN_ALARM_TARGET, since_ms=now_ms,
-                           epoch_start=mon.n_live if mon is not None else prev.epoch_start,
+            if mon is None:
+                raise ValueError("a generic alarm exit needs the class monitors (n_live) to start the new epoch")
+            return replace(prev, state=GEN_ALARM_TARGET, since_ms=now_ms, epoch_start=mon.n_live,
                            drift_exits=prev.drift_exits + 1, reason="generic_drift")
         return prev
     if mon is None:

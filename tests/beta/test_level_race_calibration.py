@@ -378,3 +378,12 @@ def test_changepoint_mixture_null_false_alarm():
         rows = _recs(1200, rng, cls="GENERIC", per_week=40)
         hits += float(L.changepoint_paths(rows, "p_pub").max()) > L.GEN_THRESHOLD
     assert hits / 60 <= 0.15                      # Ville: ≤ 3 × 1/30 = 0.1; 60 reps carry ±0.04 noise
+
+
+def test_generic_alarm_exit_needs_the_class_monitors():
+    a = L.Setup(mode="MODEL", case="A", holdout_passed=True, fallback_g2_holdout=True)
+    st = L.initial_state(a, now_ms=0)
+    with pytest.raises(ValueError):
+        L.next_state(st, a, health=L.Health(), generic_alarm=True, now_ms=1)
+    h = L.next_state(st, a, health=L.Health(), mon=_mon(230), generic_alarm=True, now_ms=1)
+    assert h.epoch_start == 230                         # records before the alarm never count for the return
