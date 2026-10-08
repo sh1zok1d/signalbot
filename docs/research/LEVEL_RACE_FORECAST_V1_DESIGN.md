@@ -2,11 +2,41 @@
 
 **MODE = DISCOVERY** (model development on the discovery surface), followed by **one held-out read** of the frozen predictor.
 **Program:** `FORECAST_LAYER_DECISION_V1` (the one bounded research exception of PRE_BETA_SCOPE §2.3). Family `LEVEL_BEHAVIOR_V1`. Tracks `PRODUCT_EVIDENCE` (may the product show these probabilities) and `STRUCTURE` (does the structural level move the race off geometry).
-**Status:** `DESIGN_COMMITTED / NO_OUTCOME_READ`. Written by ОПГ-2 track F1 on 2026-10-08. No 2020–2024 outcome and no 2025/2026 object was read for it.
+**Status:** `DESIGN_V3 / NO_OUTCOME_READ`. §0 (HIST) is the Day-0 part and is reviewed and frozen first. Written by ОПГ-2 track F1 on 2026-10-08. No 2020–2024 outcome and no 2025/2026 object was read for it.
 **Machine-readable freeze:** `docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.json`. Where the two differ, the JSON wins for numbers and this note wins for meaning.
 **Contract:** `docs/FORECAST_LAYER_DECISION_V1.md` §2–§7. Evidence rules: `EVIDENCE_AND_CLAIMS_DECISION_V1`, `DISCOVERY_FIRST_RESEARCH_DECISION_V1`, `EXPOSURE_WEIGHTING_DECISION_V1`.
 
 Numbers marked **[F3]** are planning values. Their final form is agreed with track F3 through the ОПГ-2 mini-head and committed in an amendment of this note **before the model freeze** (and so before the held-out read and before any display). Everything else is frozen by this commit.
+
+## 0. HIST — the Day-0 history line (frozen first)
+
+Authority: FORECAST_LAYER_DECISION_V1 §6a (owner, 2026-10-08: «Б вариант, сразу по истории»; architect commits `9f6808e`, `4a264f6`). Day 0 ships the layer in `HIST`. This section is frozen before any race outcome of 2020–2024 is read; the HIST table is computed only after the freeze of this note.
+
+**Surface.** `CORE_BTC_BINANCE_V0`, events 2020-02-01 … 2024-12-31 (4h window inside 2024), the same constructor, barriers, landmarks and outcome rule as §1 (T0: τ = 48, bars `j+1 … j+48`; T15: τ = 46, bars `j+3 … j+48`, events not resolved on `j+1`, `j+2`). Every line says «2020–2024». No 2025/2026 race outcome is read for HIST; the held-out check of §5 keeps its value.
+
+**Orientation (internal key only).** For each event, `beyond` = the barrier price on the far side of the level in the approach direction (`P_UP` when the approach is from below, `P_DN` when from above), `back` = the other. Outcomes are counted as `BEYOND_FIRST` / `BACK_FIRST` / `NEITHER` (= #352 BREAK / REJECT / NEITHER). AMBIGUOUS is excluded and counted. The word never appears in a text; the frequencies are mapped back to «выше» / «ниже» of the current event.
+
+**Cells (fixed state set).**
+- T0: family (DAY, WEEK, MONTH) × structural side (PxH, PxL) = 6 cells. No position band (at T0 the start is inside the zone and B0 is nearly symmetric).
+- T15: family × structural side × position band = 18 cells. Position band from the share of the log distance already covered towards `beyond`: `f = (ln close[j+2] − ln back) / (ln beyond − ln back)`, which lies in (0, 1) for every T15 event. Bands: `F1: f < 0.40`, `F2: 0.40 ≤ f < 0.60`, `F3: f ≥ 0.60`. (For the driftless walk `f` is the eventual probability of reaching `beyond` first, so the bands are geometric, not outcome-chosen.)
+
+**Small-N ladder (deterministic).** Threshold `N_MIN = 30` scored events. At T15, a cell with N < 30 is replaced by family × band (both structural sides pooled); if that is still < 30, `LR_HIST_LOW_N_V1`. At T0, a cell with N < 30 gives `LR_HIST_LOW_N_V1`. The level used (`CELL` / `POOLED_SIDE` / `LOW_N`) is stored with the table and in every journal record.
+
+**Per cell:** `n`; observed shares `h_beyond`, `h_back`, `h_neither`; «обычно» = the mean B0 over the same events, `b_beyond`, `b_back`, `b_neither` (B0 of §2.1 at the event's own position, σ and τ); week clusters. The frozen table (cell key, ladder level, the six shares, n, weeks, table SHA256, the code commit) is a committed JSON artifact, `docs/research/LEVEL_RACE_HIST_TABLE_V1.json`, read by the product. It is L2 historical evidence (EVIDENCE_AND_CLAIMS §4), past tense, not a current probability.
+
+**Templates.** Prices only, three outcomes together, explicit window end `{END}` = close time of bar `j+48`, HH:MM UTC. `h_up`/`h_dn` and `b_up`/`b_dn` are `beyond`/`back` mapped to the current event's upper and lower price. Integers summing to 100 (largest remainder); `данные на {HH:MM} UTC`; disclaimer once in `/terms`.
+
+| Id | Surface | Text |
+|---|---|---|
+| `LR_HIST_V1` | `/levels`, `/check` (T15; T0 where those surfaces show a fresh touch) | «Похожие касания в 2020–2024 (N = {n}): первой была цена выше — {h_up} % (обычно {b_up} %), цена ниже — {h_dn} % (обычно {b_dn} %), ни одна за окно — {h_ne} % (обычно {b_ne} %). Сейчас это {P_UP} и {P_DN}, окно до {END} UTC.» |
+| `LR_PUSH_HIST_V1` | one line in the existing T0 level-touch push | «2020–2024, похожие касания (N = {n}): первой выше {h_up} % · ниже {h_dn} % · ни одна {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %) — сейчас {P_UP} / {P_DN}, до {END} UTC» |
+| `LR_HIST_LOW_N_V1` | both | «Похожих касаний в 2020–2024 мало (N = {n}).» |
+
+**Journal (from Day 0, shown or not).** Classes `L2_LEVEL_RACE_HIST_T0_4H` and `L2_LEVEL_RACE_HIST_T15_4H` (names fixed by the mini-head), evaluation rule `LEVEL_RACE_4H_V1` (the #352 `classify` on the original window; AMBIGUOUS excluded and counted). One record per eligible event per landmark, written at the landmark close before the outcome: issue time, landmark, event id (`episode_id` + `j`), `P_UP`, `P_DN`, orientation, `{END}`, cell key and ladder level, the table's `h_*`, `b_*` and `n` as shown, this event's own B0 (three values), table SHA256 and code commit, template id, outcome `UNKNOWN`. Displays are linked separately, as for the other claims. Scoring (prospective, per class): the cohort shares as a forecast against the outcome — log-loss and Brier against the event's own B0, CITL per outcome and the 5-bin reliability — reported weekly; these numbers are not shown in HIST text.
+
+**Switch to the model states.** One predeclared setting, `level_race.model_states_enabled` (default `false`), read by the product (name proposed for F2/ОПГ-1). `false` → HIST templates only. `true` → the state machine of §7 (the model state templates of §9; HIST stays the state when §7 says HIST). No text is edited for the switch. The date is the owner's (FORECAST_LAYER §6a: announced in advance, a dated event in the measurement contract, metrics reported before and after).
+
+**Search exposure (HIST).** 6 + 18 cells, one pooling step, one threshold. Nothing else is computed on the outcomes for HIST.
 
 ## 1. Question and estimand
 
@@ -145,6 +175,7 @@ A class that fails stays `HIST` (or `FALLBACK` if a fallback model is available)
 - `C1` = the frozen champion's M1-family specification (M1 if the champion is B0) plus `OTHER_VENUE_MEDIAN_MOVE` exactly as #363 defines it (median of the Bybit BTCUSDT-linear and OKX BTC-USDT-SWAP oriented 15m log returns from the close of the last bar before T to the close of bar j+2; all three venues required; no fill), z-scored with training-fold moments (the frozen model: moments of the 2020-04..2024 T15 rows; the #363 canonical files are committed under `docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0/` and readable from the cloud clone, N2), entering head B on T15 rows only (0 at T0: the move is not defined before D). One extra parameter, same λ as its base.
 - **Development fit only:** coefficients and z-score moments from 2020-04..2024 on `LEVEL_CROSS_VENUE_PERP_5M_V0` (Bybit SHA256 `f7ef739f…`, OKX `b435fdec…`, the #363 canonical files). Its development numbers are descriptive. The four known Bybit gaps (2023-12 … 2024-03) make those rows missing, as in #363.
 - **No historical held-out.** There is no 2025/2026 three-venue history for this read; C1 is not part of §5. It is a live challenger only: frozen with the champion, logged in shadow from Day 0 on the VPS live 1m Bybit and OKX BTCUSDT klines (the two closes it needs are the 1m closes at the same instants as the 5m closes; coverage about 99.8 %; a missing close makes the C1 forecast missing, never filled, and the count is reported).
+- **Bar construction differs (limitation).** Development used the exchanges' own 5m klines (#363); the live bars of all three venues are built from trades by `LiveBarBuilder`. The two closes C1 needs are last-trade prices at bar boundaries in both cases, but boundary handling, late trades and missing-trade bars can differ. The difference is reported with C1's shadow record, and C1's development coefficients are not claimed to transfer exactly.
 - **Promotion** only by FORECAST_LAYER §7 (≥ 150 paired live events, week-clustered interval of the log-loss gain excluding 0, calibration not worse). It replaces portfolio P3-2; #363's `LEVEL_SPECIFICITY = NOT_ESTABLISHED` is unchanged.
 
 ## 8a. Generic race stream (shadow only, frozen with the same SHA)
@@ -157,19 +188,17 @@ Purpose: the dense calibration stream of FORECAST_LAYER §5 (pooling). Not displ
 - **Models:** `GB0` = the B0 series of §2.1 at the pair geometry (0 parameters). `G1` = two heads (resolve; UP given resolved) offset by GB0, terms `{1, SIGMA_T}` per head = 4 parameters, ridge as §2.3. G1 replaces GB0 only if its pooled out-of-fold log-loss is lower than GB0's (tie < 0.002 nats → GB0). No level, landmark or family term.
 - **Development and held-out:** same folds, clusters, seed and metrics as §3 and §6, on the same surfaces and in the same single held-out read as §5 (anchors ≥ 2025-01-01T00:00Z, same E1 object gap and span exclusion).
 - **Dependence:** hourly 4h windows overlap (four consecutive anchors share bars) and the four pairs share one path. Clusters are product weeks; the report gives anchors, pairs, week clusters and the non-overlapping-window count (anchors / 4) as the effective-N reading. Expected about 40 independent 4h windows a week.
-- **Link with the level classes in calibration.** One calibrator per head with a shared slope and class intercepts: `logit p' = a_class + b · logit p`, classes `GENERIC`, `LEVEL_T0`, `LEVEL_T15`. The level intercepts carry a hierarchical prior centred on the generic intercept, `a_level ~ N(a_GENERIC, 0.5²)` [F3]. Head B is `UP | resolved` for the generic class and `BREAK | resolved` for the level classes; the slope is shared, the intercepts are not. The generic class also feeds the `FALLBACK` line of §7 (it resolves Q4 once it runs).
+- **Link with the level classes in calibration.** One calibrator per head with a shared slope and class intercepts: `logit p' = a_class + b · logit p`, classes `GENERIC`, `LEVEL_T0`, `LEVEL_T15`. The level intercepts carry a hierarchical prior centred on the generic intercept, `a_level ~ N(a_GENERIC, 0.5²)` [F3]. Head B is `UP | resolved` for the generic class and `BREAK | resolved` for the level classes; the slope is shared, the intercepts are not. **The shared slope is an assumption** (mini-head, 2026-10-08); it is tested only on the held-out read and in live data, and a rejected assumption is a new calibrator version, not a retune. The generic class also feeds the `FALLBACK` line of §7 (it resolves Q4 once it runs).
 - **Search exposure added:** 2 entries (GB0, G1), 1 fit per fold; 4 pairs.
 
 ## 9. Wording templates (ids frozen; prices only)
 
 `{P_UP}` is the upper barrier price, `{P_DN}` the lower, always in that order (never ordered by BREAK/REJECT). `{END}` is the close time of bar `j+48` as `HH:MM` UTC (the end of the original 4h window; about 4h after T0, about 3h50m after T15). The three outcomes are always shown together. Percentages are integers summing to 100 (largest remainder). Every line carries `данные на {HH:MM} UTC`; the disclaimer lives once in `/terms`. Never «пробой», «отбой», BREAK, REJECT, buy/sell, long/short, entry or target.
 
-**Full lines** (`/levels`, `/check` at T15):
+Model-state templates (used only when `level_race.model_states_enabled = true`). **Full lines** (`/levels`, `/check` at T15):
 
 | Id | State | Text |
 |---|---|---|
-| `LR_HIST_V1` | `HIST` | «В истории похожих касаний (N = {n}): первой до конца окна достигалась {P_UP} — {h_up} % (обычно {b_up} %), {P_DN} — {h_dn} % (обычно {b_dn} %), ни одна — {h_ne} % (обычно {b_ne} %). Окно сейчас до {END} UTC.» |
-| `LR_HIST_LOW_N_V1` | `HIST`, n < 30 | «В истории похожих касаний мало данных (N = {n}).» |
 | `LR_L3H_V1` | `L3_HISTORY_BACKED` | «≈ {p_up} % раньше {P_UP}, чем {P_DN} · ≈ {p_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} UTC ≈ {p_ne} % · обычно {b_up} / {b_dn} / {b_ne} % · на истории: говорили {r_p} % → было {r_y} %, N = {r_n} · live: копится (N = {m})» |
 | `LR_L3L_V1` | `L3_LIVE` | as `LR_L3H_V1`, the last segment «live: говорили {l_p} % → было {l_y} %, N = {l_n}» |
 | `LR_FB_V1` | `FALLBACK` | «≈ {q_up} % раньше {P_UP}, чем {P_DN} · ≈ {q_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} UTC ≈ {q_ne} % · общая модель цены, без учёта уровня · точность: говорили {f_p} % → было {f_y} %, N = {f_n}» |
@@ -179,20 +208,19 @@ Purpose: the dense calibration stream of FORECAST_LAYER §5 (pooling). Not displ
 
 | Id | State | Text |
 |---|---|---|
-| `LR_PUSH_HIST_V1` | `HIST` | «Раньше в похожих (N = {n}): первой {P_UP} {h_up} % · {P_DN} {h_dn} % · ни одна {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), окно до {END} UTC» |
-| `LR_PUSH_HIST_LOW_N_V1` | `HIST`, n < 30 | «Похожих касаний мало (N = {n})» |
 | `LR_PUSH_L3H_V1` | `L3_HISTORY_BACKED` | «Первой до {END} UTC: {P_UP} ≈{p_up} % · {P_DN} ≈{p_dn} % · ни одна ≈{p_ne} % (обычно {b_up}/{b_dn}/{b_ne} %; на истории {r_p}→{r_y} %, N = {r_n})» |
 | `LR_PUSH_L3L_V1` | `L3_LIVE` | as `LR_PUSH_L3H_V1` with «live {l_p}→{l_y} %, N = {l_n}» |
 | `LR_PUSH_FB_V1` | `FALLBACK` | «Первой до {END} UTC (без учёта уровня): {P_UP} ≈{q_up} % · {P_DN} ≈{q_dn} % · ни одна ≈{q_ne} % (точность {f_p}→{f_y} %, N = {f_n})» |
 | `LR_PUSH_OFF_V1` | `OFF` | «шансы: нет данных» |
 
-- **HIST cohort (L2, past tense).** Internal key = landmark × orientation, where orientation names which of the two prices lies beyond the level in the approach direction (the price beyond = `P_UP` when the approach is from below, `P_DN` when from above). Within a key, bins of `B0_beyond` (B0 probability that the price beyond is reached first). History read: 2020–2024 before the held-out read; 2020–2024 plus held-out after it. Bin edges are the quintiles of `B0_beyond` on that history (outcome-blind). If the inter-quintile spread `q80 − q20` of a key is below 0.05, that key uses one bin; this is expected at T0, where the start sits inside the zone and the barriers are symmetric about it, and is then recorded as one T0 bin. `h_*` = observed frequencies, `b_*` = mean B0 over the cohort, `n` = cohort size, all mapped back to `P_UP` / `P_DN` for the text. Orientation is a key only and never appears as a word. The bin set is fixed here and shown whatever it says.
+- **HIST:** templates, cells and journal are in §0. The `HIST` state of §7 uses them unchanged.
 - **«говорили X → было Y»:** the stacked 5-bin reliability table of the class (held-out for «на истории», the journal for «live»). The bin shown is the bin of the largest displayed probability; ties go to `P_UP`, then `P_DN`, then «ни одна» (deterministic). The line shows the mean forecast, the observed frequency and the number of forecasts in that bin (`r_n` / `l_n` / `f_n`).
 - `b_*` in L3 lines = B0 at this event (the «обычно» of FORECAST_LAYER §2).
 
 ## 10. Records, exposure, ledger
 
 - **Journal:** classes `L3_LEVEL_RACE_T0_4H`, `L3_LEVEL_RACE_T15_4H` and the shadow class `L3_GENERIC_RACE_4H` (rule `GENERIC_RACE_4H_V1`) in `beta/claims.py` (shared file, F2's change), with the fields of FORECAST_LAYER §5 and evaluation rule id `LEVEL_RACE_4H_V1` (the #352 `classify` on `j+1 … j+48`, AMBIGUOUS excluded and counted).
+- **HIST read:** the §0 table is the first outcome read of this unit on `CORE_BTC_BINANCE_V0` (2020-02..2024-12, level row, further exposure, not a confirmation); it is recorded in `docs/RESEARCH_LEDGER.md` and in the atlas unit below in the same change as the table.
 - **Exposure ledger and atlas** (AGENTS.md): when development closes, one unit `LEVEL-RACE-FORECAST-V1` is added to `ATLAS_UNITS_V1.yaml` (row `PRICE_STRUCTURE.levels`, cols `CANDLES` and `CROSS_VENUE` for C1) with `CORE_BTC_BINANCE_V0` 2020-02..2024-12 and `LEVEL_CROSS_VENUE_PERP_5M_V0` 2020-04..2024-12 entries `CONSUMED` (further exposure of the level row, model development, not a confirmation), rebuilt with `python -m scripts.research.atlas.build_atlas` and a hash-chained `--append-event`; `docs/RESEARCH_LEDGER.md` gets the row. The held-out read adds a `BINANCE_UM_KLINES_5M_PRODUCT` 2025-01-01..freeze-date entry (E1 gap excluded, class B disclosed) the same way.
 - **Search exposure:** 6 level menu entries; 3 M1 variants × 4 λ = 12 development fits, plus B1, B0 (no fit) and C1 (1 fit); the generic stream's GB0 and G1 (4 λ); 2 landmarks; 3 outcomes (2 heads); 4 folds. All are reported. The generic stream adds `VOLATILITY_STATE.range_forecast`-type exposure of `CORE_BTC_BINANCE_V0` (unconditional 4h barrier races), recorded in the same atlas unit.
 - **Prior knowledge disclosure:** the menu was chosen knowing the recorded #357, #361, #363, #365 aggregates on these same surfaces (FORECAST_LAYER §2). That is why development is `DISCOVERY` and the gate is the held-out read.

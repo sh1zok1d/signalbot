@@ -7,7 +7,7 @@
     "PRODUCT_EVIDENCE",
     "STRUCTURE"
   ],
-  "status": "DESIGN_COMMITTED / NO_OUTCOME_READ",
+  "status": "DESIGN_V3 / NO_OUTCOME_READ",
   "design_note": "docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md",
   "event": {
     "constructor": "scripts/research/level_touch_degradation_v1 (level_instances, build_episodes, scan_all)",
@@ -128,7 +128,8 @@
       "params": "base + 1",
       "champion_eligible": false,
       "held_out": "none; live shadow only from Day 0 on VPS live 1m Bybit/OKX closes; missing close -> forecast missing",
-      "moments": "training-fold; frozen: 2020-04..2024 T15 rows; files committed in docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0"
+      "moments": "training-fold; frozen: 2020-04..2024 T15 rows; files committed in docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0",
+      "limitation": "dev on exchange 5m klines; live bars from trades (LiveBarBuilder)"
     }
   },
   "offset_clip": [
@@ -279,25 +280,15 @@
     "return": "50 new resolved since fallback; D2 band, restarted D1 <= 10, D3 not triggered"
   },
   "templates": [
-    "LR_HIST_V1",
-    "LR_HIST_LOW_N_V1",
     "LR_L3H_V1",
     "LR_L3L_V1",
     "LR_FB_V1",
     "LR_OFF_V1",
-    "LR_PUSH_HIST_V1",
-    "LR_PUSH_HIST_LOW_N_V1",
     "LR_PUSH_L3H_V1",
     "LR_PUSH_L3L_V1",
     "LR_PUSH_FB_V1",
     "LR_PUSH_OFF_V1"
   ],
-  "hist_cohort": {
-    "key": "landmark x orientation (which price lies beyond the level in the approach direction); internal only",
-    "bins": "quintiles of B0_beyond on the readable history (outcome-blind); one bin if q80-q20 < 0.05",
-    "min_n": 30,
-    "display": "mapped back to P_UP/P_DN"
-  },
   "journal_classes": [
     "L3_LEVEL_RACE_T0_4H",
     "L3_LEVEL_RACE_T15_4H"
@@ -384,7 +375,8 @@
       }
     },
     "dependence": "week clusters; report anchors, pairs, weeks, anchors/4 as effective N",
-    "calibration_link": "per head shared slope b; intercepts per class GENERIC, LEVEL_T0, LEVEL_T15; a_level ~ N(a_GENERIC, 0.5^2) [F3]"
+    "calibration_link": "per head shared slope b; intercepts per class GENERIC, LEVEL_T0, LEVEL_T15; a_level ~ N(a_GENERIC, 0.5^2) [F3]",
+    "shared_slope": "assumption; tested on held-out and live only"
   },
   "fallback_model": "B0 with GENERIC intercept and shared slope; before first generic batch raw B0",
   "schedule": {
@@ -413,5 +405,83 @@
     "Q4": "generic stream §8a",
     "Q5": "product 5m + 2024 parity",
     "Q6": "beta/level_race.py"
+  },
+  "hist": {
+    "authority": "FORECAST_LAYER_DECISION_V1 §6a",
+    "surface": "CORE_BTC_BINANCE_V0 2020-02-01..2024-12-31",
+    "label": "2020–2024",
+    "cells": {
+      "T0": "family x STRUCT_SIDE (6)",
+      "T15": "family x STRUCT_SIDE x band (18)"
+    },
+    "band": {
+      "f": "(ln close[j+2] - ln back) / (ln beyond - ln back)",
+      "edges": [
+        0.4,
+        0.6
+      ],
+      "names": [
+        "F1",
+        "F2",
+        "F3"
+      ]
+    },
+    "n_min": 30,
+    "ladder": {
+      "T15": [
+        "CELL",
+        "POOLED_SIDE (family x band)",
+        "LOW_N"
+      ],
+      "T0": [
+        "CELL",
+        "LOW_N"
+      ]
+    },
+    "per_cell": [
+      "n",
+      "h_beyond",
+      "h_back",
+      "h_neither",
+      "b_beyond",
+      "b_back",
+      "b_neither",
+      "weeks"
+    ],
+    "table_artifact": "docs/research/LEVEL_RACE_HIST_TABLE_V1.json",
+    "templates": [
+      "LR_HIST_V1",
+      "LR_PUSH_HIST_V1",
+      "LR_HIST_LOW_N_V1"
+    ],
+    "journal_classes": [
+      "L2_LEVEL_RACE_HIST_T0_4H",
+      "L2_LEVEL_RACE_HIST_T15_4H"
+    ],
+    "rule_id": "LEVEL_RACE_4H_V1",
+    "journal_fields": [
+      "issued_at",
+      "landmark",
+      "event_id",
+      "p_up",
+      "p_dn",
+      "orientation",
+      "window_end",
+      "cell_key",
+      "ladder_level",
+      "h_shown",
+      "b_shown",
+      "n",
+      "b0_event",
+      "table_sha256",
+      "code_commit",
+      "template_id",
+      "outcome=UNKNOWN"
+    ],
+    "switch": {
+      "setting": "level_race.model_states_enabled",
+      "default": false
+    },
+    "no_2025_2026": true
   }
 }
