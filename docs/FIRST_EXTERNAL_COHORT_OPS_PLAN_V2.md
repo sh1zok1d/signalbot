@@ -19,7 +19,7 @@
 - **The test.** The 30-day user test of `PRODUCT_FIRST_DECISION_V1` §7, read on day 30 by unknown-to-founder participants only, evidence precedence money > behaviour > words.
 - **The product under test** is the decision-support bot of `PRODUCT_DECISION_V2`: the corridor, levels with the chance to reach them, «что было после похожих», the event calendar, the morning briefing, the unusual-hour push and the market alerts. No direct trade calls, no hype; every historical number carries N and «обычно»; every forecast carries its tracked accuracy.
 - **Who counts.** The owner is excluded from every metric. Known contacts (`beta_users.known_contact`) are reported separately and never count toward PASS (contract §1.2).
-- **The join path** is the existing one: invite link `t.me/<bot>?start=<code>`, language, privacy notice v7, **Вступить**, the trader-type question, the onboarding (live `/btc`, an example message, the `/check` offer).
+- **The join path** is the existing one: invite link `t.me/<bot>?start=<code>`, language, privacy notice v8, **Вступить**, the trader-type question, the onboarding (live `/btc`, an example message, the `/check` offer).
 - **The cap** stays `access.max_active_users: 20`; the owner is exempt.
 
 ## 1. Preconditions before the first invitation
@@ -151,7 +151,7 @@ Stages 2–3 are known contacts and never count toward PASS. A fix found in stag
 ## 7. Onboarding
 
 The bot carries it; the founder sends nothing.
-1. Open the link, pick the language, read the privacy notice v7, press **Вступить**.
+1. Open the link, pick the language, read the privacy notice v8, press **Вступить**.
 2. Answer or skip the trader-type question.
 3. The bot then sends, once: «Вот BTC прямо сейчас» with the live `/btc`, an example message marked «Это пример, не текущий рынок», and the `/check` offer with the nearest levels one tap away.
 4. `/guide` («📖 Как читать бота») explains the messages and the numbers on demand.
@@ -178,17 +178,17 @@ The owner removed the interviews on 2026-10-08. What participants write on their
 - **`/delete_me`** ends contact. Never look them up elsewhere. An enrolled participant stays in the denominator through the cohort record (contract §1.5).
 - **A blocked bot** is `(unreachable)`; no other channel is tried.
 - `/brief off`, `/push off` or per-type mutes alone are not a departure; U1a and U2 already count them.
-- Paused participants still get the U3 offer and the team's replies to their own messages, as the privacy notice v7 and the pause reply say.
+- Paused participants get only the team's replies to their own messages, as privacy notice v8 and the pause reply say; they never get the U3 offer (§10).
 
 ## 10. The payment offer (U3)
 
 - **What counts.** A real transfer only; a promise or a "would pay" is not a payment. A refund within 30 days cancels it (contract §7).
 - **Price and method** are the ones in the pre-invitation commit (`access.u3_offer`); the link is in the private ledger.
-- **Sending.** `/admin_offer` shows a preview; `/admin_offer send` sends the offer once to every enrolled participant, churned included, on day 21. A second `send` is refused (#405); `send again` is reserved for a failed send and is logged as such.
+- **Sending.** `/admin_offer` shows a preview; `/admin_offer send` sends the offer once to each ACTIVE participant, inactive ones included, on day 21; never after `/stop`, `/delete_me` or a bot block (a `Forbidden:` failure with no later SENT delivery). The owner's reply counts the skipped stopped, blocked and deleted participants (#416). A second `send` is refused (#405); `send again` is reserved for a failed send and is logged as such.
 - **The owner's output** is the fingerprints and the time, copied into the U3 ledger (`participant_fingerprint`, `known_contact`, `offered_at`, `paid_at`, `amount`, `currency`, `refunded_at`), kept outside git.
 - **Late joiners.** A participant who joins after day 12 is not enrolled (contract §1.3): whatever they receive or pay is reported and never enters U3.
 - **No reminder** on days 22–25. A transfer on day 26 or later does not count. Questions about payment come back through `/feedback` or a reply and are answered factually.
-- **The 25 % rule** has every enrolled unknown participant in its denominator, including those who stopped or deleted; the numerator is unknown participants with a transfer in the window not refunded within 30 days.
+- **The 25 % rule** (denominator pending the owner's choice, OUT-3) has every enrolled unknown participant in its denominator, including those who stopped or deleted; the numerator is unknown participants with a transfer in the window not refunded within 30 days.
 
 ## 11. Founder silence and purity violations
 
