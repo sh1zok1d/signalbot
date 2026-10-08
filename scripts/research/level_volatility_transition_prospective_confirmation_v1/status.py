@@ -83,9 +83,38 @@ def build_status(now: dt.datetime, manifest: dict, *, panel_bound: bool = False,
     return _clean(payload)
 
 
-def main() -> None:
+def bound_status(now: dt.datetime, manifest: dict, rows: list[dict]) -> dict:
+    """Status from the live collection (outcome-blind; see forward_panel)."""
+    from . import forward_panel
+
+    bound = forward_panel.bind(rows, start_ms=int(manifest["prospective_start_ms"]), now=now)
+    payload = build_status(now, manifest, panel_bound=True, matched_pairs=None,
+                           gaps=bound["gaps"], **bound["counts"])
+    payload["forward_panel"] = bound["panel"]
+    return _clean(payload)
+
+
+def main(argv: list[str] | None = None) -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--live-db", action="store_true",
+                        help="bind the forward panel to the Stage-1 klines_1m collection "
+                             "(read-only; DSN from POSTGRES_* / POSTGRES_DSN, see common.config)")
+    args = parser.parse_args(argv)
     manifest = load_manifest(MANIFEST)
-    payload = build_status(dt.datetime.now(UTC), manifest, panel_bound=False)
+    now = dt.datetime.now(UTC)
+    if args.live_db:
+        import asyncio
+
+        from common.config import _build_postgres_dsn
+
+        from . import forward_panel
+
+        rows = asyncio.run(forward_panel.fetch_rows(_build_postgres_dsn(), now=now))
+        payload = bound_status(now, manifest, rows)
+    else:
+        payload = build_status(now, manifest, panel_bound=False)
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
