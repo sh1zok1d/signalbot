@@ -462,7 +462,9 @@ ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK 
     -- A4: the delivery latency report
     'admin_latency',
     -- I2: the U3 offer to every enrolled participant, churned included
-    'admin_offer'));
+    'admin_offer',
+    -- the owner's sticker reply to a participant's message (owner decision 2026-10-08)
+    'admin_sticker'));
 
 CREATE TABLE IF NOT EXISTS beta_waitlist (
     telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),
@@ -1179,3 +1181,15 @@ CREATE TABLE IF NOT EXISTS beta_reasons (
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'paid'));
 -- J1: when the participant saw the onboarding (live /btc, a sample message, the /check offer)
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS onboarded_at TIMESTAMPTZ;
+
+-- Owner sticker replies (owner decision 2026-10-08): the owner replies with a sticker to the bot's copy of
+-- a participant's message (feedback, idea, interview request, plain text) and the bot sends it to that
+-- participant. The copy's message_id in the owner chat, as Telegram returned it at send time, maps to the
+-- participant; /delete_me cascades; purged with the feedback messages (telemetry.retention_days).
+CREATE TABLE IF NOT EXISTS beta_owner_forwards (
+    owner_message_id  BIGINT PRIMARY KEY,
+    user_pk           BIGINT NOT NULL REFERENCES beta_users (user_pk) ON DELETE CASCADE,
+    kind              TEXT NOT NULL CHECK (kind IN ('feedback', 'idea', 'interview', 'plain_text')),
+    created_at        TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_beta_owner_forwards_created ON beta_owner_forwards (created_at);
