@@ -84,3 +84,42 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# ---- prequential publication with the live calibrator (one calibrator; mini-head 2026-10-08) -------
+_OUT = {"BEYOND": "BREAK", "BACK": "REJECT", "NEITHER": "NEITHER"}
+
+
+def calibration_records(level_rows: list, p_raw_level, generic_rows: list, p_raw_generic) -> list:
+    """Records for beta.level_race_calibration.fit_calibrator. Level rows carry the raw of the
+    published case: case A the champion (M1) raw, case B the fallback raw (G1@event). Generic rows
+    carry G1 raw on the generic geometry (UP = BREAK slot). Each row needs issued_ms / resolved_ms."""
+    recs = []
+    for r, p in zip(level_rows, p_raw_level):
+        recs.append({"cal_class": "LEVEL_T0" if r["landmark"] == "T0" else "LEVEL_T15", "p_raw": list(map(float, p)),
+                     "outcome": _OUT.get(r["outcome"]), "issued_ms": int(r["issued_ms"]),
+                     "resolved_ms": int(r["resolved_ms"]), "week": int(r["week"])})
+    for r, p in zip(generic_rows, p_raw_generic):
+        recs.append({"cal_class": "GENERIC", "p_raw": list(map(float, p)), "outcome": _OUT.get(r["outcome"]),
+                     "issued_ms": int(r["issued_ms"]), "resolved_ms": int(r["resolved_ms"]), "week": int(r["week"])})
+    return recs
+
+
+def prequential_published(records: list, start_ms: int, end_ms: int, *, use_level_class: bool):
+    """Published three outcomes for every level record: the calibrator in force at its issue time is
+    fitted (from the identity prior) only on records resolved before the last batch cutoff at or
+    before that time, with F3's live batching and generic row weight. Case B / fallback: GENERIC."""
+    from beta import level_race_calibration as LRC   # the live calibrator (F3); imported, not copied
+    priors = {h: LRC.identity_prior() for h in LRC.HEADS}
+    cutoffs = [int(start_ms)] + LRC.batch_cutoffs(int(start_ms), int(end_ms))
+    cache: dict = {}
+    out = []
+    for r in records:
+        if r["cal_class"] == "GENERIC":
+            continue
+        c = max(x for x in cutoffs if x <= int(r["issued_ms"]))
+        if c not in cache:
+            cache[c] = LRC.fit_calibrator(records, priors, cutoff_ms=c)
+        cls = r["cal_class"] if use_level_class else "GENERIC"
+        out.append((r, LRC.apply_calibrator(cache[c], r["p_raw"], cls), cache[c].version))
+    return out

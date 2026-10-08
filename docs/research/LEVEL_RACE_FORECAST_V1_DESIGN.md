@@ -269,6 +269,8 @@ Added after the development record (`LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md`) and
 - In case B (level offset not published), the published model is the fallback model (G1@event with GENERIC calibration): this is the "calibrated B0" of FORECAST_LAYER §6/§6b (Q5, architect 2026-10-08).
 - Development (descriptive, same OOF rows, `LEVEL_RACE_FORECAST_V1_FALLBACK_DIAGNOSTIC.json`): raw M1 vs raw `G1@event` +0.069 nats (95 % +0.049..+0.091), T0 +0.083 (+0.062..+0.103), T15 +0.051 (+0.029..+0.073).
 
+**One calibrator; raw of the level rows (freeze candidate, mini-head 2026-10-08).** The held-out prequential pass uses the live calibrator `beta.level_race_calibration` (track F3) unchanged: hierarchical class intercepts, shared slope, `GENERIC_ROW_WEIGHT = 1/16`, F3's batch cutoffs. F1's `calibrate.py` is not in the held-out path. The level calibration rows carry the raw of the published case: **case A → the champion (M1) raw; case B → the fallback raw (`G1@event`)**. The generic rows carry G1 raw on the generic geometry. The prior sd of `a_level − a_GENERIC` is F3's (proposed 1.0, informed by the development intercept shift of §11b R2, disclosed).
+
 **«Обычно» in the model states.** In `L3_HISTORY_BACKED` and `L3_LIVE`, `b_up` / `b_dn` / `b_ne` are **raw `G1@event`**, not B0. B0 stays in every journal record as a second baseline, and every metric is reported against both. `HIST` V1 keeps its frozen «обычно» (cell mean of B0). In `FALLBACK` the published number is itself the generic model, so `LR_FB_V1` / `LR_PUSH_FB_V1` show no separate «обычно» segment; the line marks the numbers as «обычно» explicitly: «… · это «обычно»: общая модель цены, без учёта уровня · точность …».
 
 **Consequences checked across this note.**
