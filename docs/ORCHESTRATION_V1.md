@@ -102,5 +102,7 @@ Decisions live in documents on main, not in chat. A decision given in a session 
 | ОПГ-1 track B | `session_013RP6YCG63Jdzff8dcz4GqV` | `claude/signalbot-evaluator-comparison-jyvj1h` |
 | ОПГ-1 research (idle) | `session_01Ark63JX6mZenzMdR4tZotQ` | `ccr-acce4a3e-eyc9rh` |
 | ОПГ-2 mini-head | `session_01E8Cb7vqxs52Lu2tLBxkicT` | its own (started from `ccr-174417bb-r3l40b`) |
-| ОПГ-2 tracks | created by ОПГ-2 | their own |
+| ОПГ-2 F1 «Модель» | `session_013u4aiHu3PPakqyWC7yezcf` | `claude/opg2-f1-level-race-model` |
+| ОПГ-2 F2 «Живой контур» + #368 operations | `session_01BEq76aMeSBEcfRX9WGbsSW` | `claude/opg2-f2-level-race-live` |
+| ОПГ-2 F3 «Калибровка и мониторинг» | `session_01UxyP3Q5J8a97sVRWj3L6EV` | `claude/opg2-f3-level-race-calibration` |
 | Level Engine chain (Cursor) | stopped 2026-10-08; chain owned by ОПГ-2 | `cursor/level-*-08d8` (merged by PR #376) |
