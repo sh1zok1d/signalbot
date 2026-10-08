@@ -233,6 +233,33 @@ def classify(b: Bars, *, touch_open_ms: int, landmark: str, p_up: float, p_dn: f
             "first_bar_open": None if first is None else from_ms(b.t0 + (a + first) * BAR_MS).isoformat()}
 
 
+# ---- coverage: expected against written (pure) -------------------------------------------------
+def coverage(b: Optional[Bars], rows: Sequence[Mapping[str, Any]], *, since_ms: int, until_ms: int,
+             table: Mapping[str, Any], max_listed: int = 20) -> dict:
+    """Per landmark: the statements the journal should hold for (since, until] — every eligible event of
+    the tape whose landmark closed in it (T15 only with a T15 statement) — against the HIST records
+    written. A notifier outage (records are written only within WRITE_WINDOW_MS) shows as `missing`
+    instead of silently thinning the live metrics. Records the tape cannot reproduce are `unexpected`."""
+    settled = int(until_ms) - WRITE_WINDOW_MS            # later landmarks may still be written: not counted
+    written = {(r["subject"]["landmark"], r["subject_key"]) for r in rows
+               if r.get("claim_class") in HIST_CLASS.values() and since_ms < to_ms(r["issue_slot"]) <= settled}
+    expected = set()
+    if b is not None:
+        for ev in events(b):
+            for lm in ("T0", "T15"):
+                at = landmark_ms(ev, lm)
+                if since_ms < at <= settled and at <= b.end_ms and landmark_view(b, ev, lm, table) is not None:
+                    expected.add((lm, f"{ev['event_id']}:{lm}"))
+    out = {"since_ms": int(since_ms), "settled_until_ms": settled, "tape_from_ms": None if b is None else int(b.t0)}
+    for lm in ("T0", "T15"):
+        exp = {k for l_, k in expected if l_ == lm}
+        got = {k for l_, k in written if l_ == lm}
+        miss, extra = sorted(exp - got), sorted(got - exp)
+        out[lm] = {"expected": len(exp), "written": len(got & exp), "missing": len(miss),
+                   "missing_keys": miss[:max_listed], "unexpected": len(extra), "unexpected_keys": extra[:max_listed]}
+    return out
+
+
 # ---- report (pure) -----------------------------------------------------------------------------
 def _ll(p: Mapping[str, float], y: str) -> float:
     return -math.log(max(float(p[{"UP": "up", "DN": "dn", "NEITHER": "neither"}[y]]), 1e-12))

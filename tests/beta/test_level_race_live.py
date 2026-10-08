@@ -307,3 +307,23 @@ def test_journal_off_writes_nothing_and_reads_no_bars():
             raise AssertionError(f"journal touched with the flag off: {name}")
     assert asyncio.run(cj.record_level_race(NoWrites(), BetaConfig.load(), now=_ts(EVS[0]["t0_ms"]),
                                             capture=NoBars())) == {"race_written": 0}
+
+
+def test_coverage_counts_expected_against_written_and_shows_an_outage():
+    end = B.t0 + B.n * BAR_MS
+    since, until = end - 20 * 86_400_000, end
+    rows = []
+    for e in EVS:
+        for lm in ("T0", "T15"):
+            at = LR.landmark_ms(e, lm)
+            if since < at <= until - LR.WRITE_WINDOW_MS:
+                v = LR.landmark_view(B, e, lm, TABLE)
+                if v is not None:
+                    rows += cj.level_race_claims([v], now=_ts(at))
+    full = LR.coverage(B, rows, since_ms=since, until_ms=until, table=TABLE)
+    assert full["T0"]["expected"] > 5 and full["T0"]["missing"] == 0 and full["T0"]["unexpected"] == 0
+    assert full["T15"]["written"] == full["T15"]["expected"]
+    lost = rows[:3]                                       # a notifier outage: three records never written
+    part = LR.coverage(B, rows[3:], since_ms=since, until_ms=until, table=TABLE)
+    assert sum(part[lm]["missing"] for lm in ("T0", "T15")) == 3
+    assert {r["subject_key"] for r in lost} <= set(part["T0"]["missing_keys"] + part["T15"]["missing_keys"])

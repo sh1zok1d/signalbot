@@ -88,6 +88,12 @@ def test_journal_and_display_through_the_notifier_and_levels():
         assert [(r["claim_class"], r["issue_slot"]) for r in rows] == [("L2_LEVEL_RACE_HIST_T0_4H", t0),
                                                                        ("L2_LEVEL_RACE_HIST_T15_4H", t15)]
         assert rows[0]["ev"] == rows[1]["ev"] and rows[0]["ev"].startswith("PDH:")
+        from beta import claims as cj2
+        async with store.connect() as conn:
+            cohort = await conn.fetch_claim_cohort(since=DAY)
+            cov = await cj2.level_race_coverage(conn, cfg, cohort, since=DAY, now=t15 + timedelta(minutes=30))
+        assert cov["T0"]["expected"] == cov["T0"]["written"] >= 1 and cov["T0"]["missing"] == 0
+        assert cov["T15"]["expected"] == cov["T15"]["written"] == 1
         h2 = BetaBotHandler(store, cfg, switches=lambda: ON_PUSH, owner_user_id=A,
                             clock=Clock(t15 + timedelta(minutes=2)))
         out = await h2.handle(msg("/levels", 200))
