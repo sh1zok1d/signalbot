@@ -7,7 +7,7 @@
     "PRODUCT_EVIDENCE",
     "STRUCTURE"
   ],
-  "status": "DESIGN_V3 / NO_OUTCOME_READ",
+  "status": "DESIGN_FROZEN / NO_OUTCOME_READ_AT_FREEZE",
   "design_note": "docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md",
   "event": {
     "constructor": "scripts/research/level_touch_degradation_v1 (level_instances, build_episodes, scan_all)",
@@ -247,7 +247,8 @@
     "claim_if": "champion != B0 and held-out raw paired LL gain vs raw B0 95% interval > 0, per landmark",
     "case_A": "published = champion with level-class calibrator",
     "case_B": "published = B0 with GENERIC intercept + shared slope (no level intercept); D3 absent; D1/D2 -> HIST",
-    "fallback_model": "B0 with GENERIC intercept and shared slope only"
+    "fallback_model": "B0 with GENERIC intercept and shared slope only",
+    "level_intercepts": "estimated in shadow and reported, never published in case B"
   },
   "gates_f3_planning": {
     "L3_HISTORY_BACKED": {
@@ -472,13 +473,26 @@
     ],
     "switch": {
       "setting": "level_race.model_states_enabled",
-      "default": false
+      "default": false,
+      "name_agreed": true
     },
     "no_2025_2026": true,
     "key": "landmark x family x STRUCT_SIDE (+ band at T15); orientation == STRUCT_SIDE on all 1919 dev events (F2)",
     "no_recompute": "V1 table never recomputed after held-out or live; new table = V2",
     "templates_note": "shares for barriers at the same distances; today's prices named separately; years in both lines",
-    "scoring": "per cell: shown h vs observed share per outcome with N; LL/Brier vs event B0; CITL; 5-bin"
+    "scoring": "per cell: shown h vs observed share per outcome with N; LL/Brier vs event B0; CITL; 5-bin",
+    "uncertainty": {
+      "stat": "h - b per cell and outcome",
+      "method": "week-cluster bootstrap",
+      "draws": 2000,
+      "seed": 20261008,
+      "ci": 0.95,
+      "k": "half-width in pp, ceil"
+    },
+    "time_display": "user time zone via product formatter; no UTC in templates",
+    "push_full_line": "push carries N only; full LR_HIST_V1 with intervals one tap away (/levels)",
+    "t15_display_rule": "no T15 line if barrier hit or AMBIGUOUS on j+1/j+2",
+    "ambiguous": "excluded and counted at both landmarks"
   },
   "beta_changes": "FORECAST_LAYER §6a: announced in advance, dated event in measurement contract, metrics before/after; §6-§7 rules frozen"
 }

@@ -2,7 +2,7 @@
 
 **MODE = DISCOVERY** (model development on the discovery surface), followed by **one held-out read** of the frozen predictor.
 **Program:** `FORECAST_LAYER_DECISION_V1` (the one bounded research exception of PRE_BETA_SCOPE §2.3). Family `LEVEL_BEHAVIOR_V1`. Tracks `PRODUCT_EVIDENCE` (may the product show these probabilities) and `STRUCTURE` (does the structural level move the race off geometry).
-**Status:** `DESIGN_V3 / NO_OUTCOME_READ`. §0 (HIST) is the Day-0 part and is reviewed and frozen first. Written by ОПГ-2 track F1 on 2026-10-08. No 2020–2024 outcome and no 2025/2026 object was read for it.
+**Status:** `DESIGN_FROZEN (2026-10-08, architect ok via the ОПГ-2 mini-head) / NO_OUTCOME_READ AT FREEZE`. §0 (HIST) is the Day-0 part and is reviewed and frozen first. Written by ОПГ-2 track F1 on 2026-10-08. No 2020–2024 outcome and no 2025/2026 object was read for it.
 **Machine-readable freeze:** `docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.json`. Where the two differ, the JSON wins for numbers and this note wins for meaning.
 **Contract:** `docs/FORECAST_LAYER_DECISION_V1.md` §2–§7. Evidence rules: `EVIDENCE_AND_CLAIMS_DECISION_V1`, `DISCOVERY_FIRST_RESEARCH_DECISION_V1`, `EXPOSURE_WEIGHTING_DECISION_V1`.
 
@@ -13,6 +13,8 @@ Numbers marked **[F3]** are planning values. Their final form is agreed with tra
 Authority: FORECAST_LAYER_DECISION_V1 §6a (owner, 2026-10-08: «Б вариант, сразу по истории»; architect commits `9f6808e`, `4a264f6`). Day 0 ships the layer in `HIST`. This section is frozen before any race outcome of 2020–2024 is read; the HIST table is computed only after the freeze of this note.
 
 **Surface.** Only `CORE_BTC_BINANCE_V0`, events 2020-02-01 … 2024-12-31 (4h window inside 2024), the same constructor, barriers, landmarks and outcome rule as §1 (T0: τ = 48, bars `j+1 … j+48`; T15: τ = 46, bars `j+3 … j+48`, events not resolved on `j+1`, `j+2`). Every line says «2020–2024». No 2025/2026 race outcome is read for HIST; the held-out check of §5 keeps its value. Table V1 is never recomputed after the held-out read or with live data; a new table is a new version (`LEVEL_RACE_HIST_TABLE_V2`) with its own design change and dated event.
+
+**T15 eligibility and AMBIGUOUS (display rule).** If an event has reached either barrier on `j+1` or `j+2`, or both on one of those bars (AMBIGUOUS), it has no T15 line at all: this is a display rule, not an empty cell (a unit test pins it). At both landmarks an AMBIGUOUS outcome on the scored window is excluded from the shares and counted in the table.
 
 **Orientation (internal key only).** For each event, `beyond` = the barrier price on the far side of the level in the approach direction (`P_UP` when the approach is from below, `P_DN` when from above), `back` = the other. Outcomes are counted as `BEYOND_FIRST` / `BACK_FIRST` / `NEITHER` (= #352 BREAK / REJECT / NEITHER). AMBIGUOUS is excluded and counted. The word never appears in a text; the frequencies are mapped back to «выше» / «ниже» of the current event.
 
@@ -25,13 +27,17 @@ Authority: FORECAST_LAYER_DECISION_V1 §6a (owner, 2026-10-08: «Б вариан
 
 **Per cell:** `n`; observed shares `h_beyond`, `h_back`, `h_neither`; «обычно» = the mean B0 over the same events, `b_beyond`, `b_back`, `b_neither` (B0 of §2.1 at the event's own position, σ and τ); week clusters. The frozen table (cell key, ladder level, the six shares, n, weeks, table SHA256, the code commit) is a committed JSON artifact, `docs/research/LEVEL_RACE_HIST_TABLE_V1.json`, read by the product. It is L2 historical evidence (EVIDENCE_AND_CLAIMS §4), past tense, not a current probability.
 
-**Templates.** Prices only, three outcomes together, explicit window end `{END}` = close time of bar `j+48`, HH:MM UTC. `h_up`/`h_dn` and `b_up`/`b_dn` are `beyond`/`back` mapped to the current event's upper and lower barrier. The historical events had other prices: the text says the shares are for the barriers **at the same distances** and names today's prices separately (H4). Years in both lines. Integers summing to 100 (largest remainder); `данные на {HH:MM} UTC`; disclaimer once in `/terms`.
+**Uncertainty (L2, EVIDENCE_AND_CLAIMS §4).** Per cell and outcome, the 95 % interval of the difference `h − b` (observed share minus mean B0), week-cluster bootstrap over the cell's events, B = 2000 draws, seed `20261008`, percentile interval; `k` = half its width in pp, rounded up to an integer. Stored in the table beside the shares.
+
+**Templates.** Prices only, three outcomes together. `{END}` is the close time of bar `j+48` and «данные на …» is the data time; both are rendered **in the user's time zone by the product's shared time formatter** (PRE_BETA C, package 4), so no «UTC» appears in the templates. `h_up`/`h_dn` and `b_up`/`b_dn` are `beyond`/`back` mapped to the current event's upper and lower barrier. The text says which price was reached first («первой достигалась верхняя цена») and puts today's prices next to the shares; the history used barriers at the same distances (H4). Years in both lines. The push line carries N only; F2 makes the full `LR_HIST_V1` line (with the intervals) open in one tap from the push (`/levels`). Integers summing to 100 (largest remainder); «данные на {время}» in the user's time zone; disclaimer once in `/terms`.
 
 | Id | Surface | Text |
 |---|---|---|
-| `LR_HIST_V1` | `/levels`, `/check` (T15; T0 where those surfaces show a fresh touch) | «2020–2024, похожие касания (N = {n}), цены на тех же расстояниях: первой доходила верхняя — {h_up} % (обычно {b_up} %), нижняя — {h_dn} % (обычно {b_dn} %), ни одна за окно — {h_ne} % (обычно {b_ne} %). Сейчас верхняя {P_UP}, нижняя {P_DN}, окно до {END} UTC.» |
-| `LR_PUSH_HIST_V1` | one line in the existing T0 level-touch push | «2020–2024, похожие касания (N = {n}), те же расстояния: первой верхняя {h_up} % · нижняя {h_dn} % · ни одна {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %) — сейчас {P_UP} / {P_DN}, до {END} UTC» |
+| `LR_HIST_V1` | `/levels`, `/check` (T15; T0 where those surfaces show a fresh touch) | «Похожие касания в 2020–2024 (N = {n}): первой достигалась верхняя цена — {h_up} % (обычно {b_up} %, ±{k_up} п.п.), нижняя — {h_dn} % (обычно {b_dn} %, ±{k_dn} п.п.), ни одна за окно — {h_ne} % (обычно {b_ne} %, ±{k_ne} п.п.). Сейчас верхняя {P_UP}, нижняя {P_DN}, окно до {END}.» |
+| `LR_PUSH_HIST_V1` | one line in the existing T0 level-touch push | «2020–2024, похожие касания (N = {n}): первой верхняя {P_UP} {h_up} % · нижняя {P_DN} {h_dn} % · ни одна {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), до {END}» |
 | `LR_HIST_LOW_N_V1` | both | «Похожих касаний в 2020–2024 мало (N = {n}).» |
+
+The model-state templates of §9 follow the same time rule.
 
 **Journal (from Day 0, shown or not).** Classes `L2_LEVEL_RACE_HIST_T0_4H` and `L2_LEVEL_RACE_HIST_T15_4H` (names fixed by the mini-head), evaluation rule `LEVEL_RACE_4H_V1` (the #352 `classify` on the original window; AMBIGUOUS excluded and counted). One record per eligible event per landmark, written at the landmark close before the outcome: issue time, landmark, event id (`episode_id` + `j`), `P_UP`, `P_DN`, orientation, `{END}`, cell key and ladder level, the table's `h_*`, `b_*` and `n` as shown, this event's own B0 (three values), table SHA256 and code commit, template id, outcome `UNKNOWN`. Displays are linked separately, as for the other claims. Scoring (prospective, per class and per cell): «говорили h → было» — the shown cell shares against the observed outcomes of the live events in that cell (per outcome: mean shown h vs observed share, N), plus log-loss and Brier against the event's own B0, CITL per outcome and the 5-bin reliability; reported weekly and before/after every dated change; not shown in HIST text. Full field list in §10.
 
@@ -148,7 +154,7 @@ ECE is reported descriptively and never used in a rule. Every number carries N, 
 
 **Level effect rule.** The level offset is claimed only if the champion is not B0 **and** on the held-out read the raw champion's paired log-loss gain over raw B0 has a week-clustered 95 % interval above 0 for that landmark. Per landmark this fixes one of two cases (FORECAST_LAYER §6):
 - **Case A — level claimed:** published = champion calibrated with the level-class calibrator (§8a link).
-- **Case B — level not claimed:** published = B0 calibrated with the **`GENERIC`** intercept and the shared slope (H6). No level intercept is used, so no level offset reaches the number through calibration.
+- **Case B — level not claimed:** published = B0 calibrated with the **`GENERIC`** intercept and the shared slope (H6). No level intercept is used, so no level offset reaches the number through calibration. The level-class intercepts are still estimated in shadow and reported (they are needed for a later move to case A as a new version) but never published.
 The **fallback model** is B0 with the `GENERIC` intercept and the shared slope (no level term, no level intercept); in case B it equals the published model.
 
 **Held-out tolerance → `L3_HISTORY_BACKED`** (per landmark class, all of) [F3]:
@@ -194,24 +200,24 @@ Purpose: the dense calibration stream of FORECAST_LAYER §5 (pooling). Not displ
 
 ## 9. Wording templates (ids frozen; prices only)
 
-`{P_UP}` is the upper barrier price, `{P_DN}` the lower, always in that order (never ordered by BREAK/REJECT). `{END}` is the close time of bar `j+48` as `HH:MM` UTC (the end of the original 4h window; about 4h after T0, about 3h50m after T15). The three outcomes are always shown together. Percentages are integers summing to 100 (largest remainder). Every line carries `данные на {HH:MM} UTC`; the disclaimer lives once in `/terms`. Never «пробой», «отбой», BREAK, REJECT, buy/sell, long/short, entry or target.
+`{P_UP}` is the upper barrier price, `{P_DN}` the lower, always in that order (never ordered by BREAK/REJECT). `{END}` is the close time of bar `j+48` in the user's time zone (product formatter) (the end of the original 4h window; about 4h after T0, about 3h50m after T15). The three outcomes are always shown together. Percentages are integers summing to 100 (largest remainder). Every line carries «данные на {время}» in the user's time zone; the disclaimer lives once in `/terms`. Never «пробой», «отбой», BREAK, REJECT, buy/sell, long/short, entry or target.
 
 Model-state templates (used only when `level_race.model_states_enabled = true`). **Full lines** (`/levels`, `/check` at T15):
 
 | Id | State | Text |
 |---|---|---|
-| `LR_L3H_V1` | `L3_HISTORY_BACKED` | «≈ {p_up} % раньше {P_UP}, чем {P_DN} · ≈ {p_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} UTC ≈ {p_ne} % · обычно {b_up} / {b_dn} / {b_ne} % · на истории: говорили {r_p} % → было {r_y} %, N = {r_n} · live: копится (N = {m})» |
+| `LR_L3H_V1` | `L3_HISTORY_BACKED` | «≈ {p_up} % раньше {P_UP}, чем {P_DN} · ≈ {p_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} ≈ {p_ne} % · обычно {b_up} / {b_dn} / {b_ne} % · на истории: говорили {r_p} % → было {r_y} %, N = {r_n} · live: копится (N = {m})» |
 | `LR_L3L_V1` | `L3_LIVE` | as `LR_L3H_V1`, the last segment «live: говорили {l_p} % → было {l_y} %, N = {l_n}» |
-| `LR_FB_V1` | `FALLBACK` | «≈ {q_up} % раньше {P_UP}, чем {P_DN} · ≈ {q_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} UTC ≈ {q_ne} % · общая модель цены, без учёта уровня · точность: говорили {f_p} % → было {f_y} %, N = {f_n}» |
+| `LR_FB_V1` | `FALLBACK` | «≈ {q_up} % раньше {P_UP}, чем {P_DN} · ≈ {q_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} ≈ {q_ne} % · общая модель цены, без учёта уровня · точность: говорили {f_p} % → было {f_y} %, N = {f_n}» |
 | `LR_OFF_V1` | `OFF` | «нет данных» |
 
 **Compact lines** (one line in the existing T0 level-touch push; FORECAST_LAYER §6, no new push type). Same mandatory parts: three outcomes, «обычно», accuracy with N (or the history N in `HIST`).
 
 | Id | State | Text |
 |---|---|---|
-| `LR_PUSH_L3H_V1` | `L3_HISTORY_BACKED` | «Первой до {END} UTC: {P_UP} ≈{p_up} % · {P_DN} ≈{p_dn} % · ни одна ≈{p_ne} % (обычно {b_up}/{b_dn}/{b_ne} %; на истории {r_p}→{r_y} %, N = {r_n})» |
+| `LR_PUSH_L3H_V1` | `L3_HISTORY_BACKED` | «Первой до {END}: {P_UP} ≈{p_up} % · {P_DN} ≈{p_dn} % · ни одна ≈{p_ne} % (обычно {b_up}/{b_dn}/{b_ne} %; на истории {r_p}→{r_y} %, N = {r_n})» |
 | `LR_PUSH_L3L_V1` | `L3_LIVE` | as `LR_PUSH_L3H_V1` with «live {l_p}→{l_y} %, N = {l_n}» |
-| `LR_PUSH_FB_V1` | `FALLBACK` | «Первой до {END} UTC (без учёта уровня): {P_UP} ≈{q_up} % · {P_DN} ≈{q_dn} % · ни одна ≈{q_ne} % (точность {f_p}→{f_y} %, N = {f_n})» |
+| `LR_PUSH_FB_V1` | `FALLBACK` | «Первой до {END} (без учёта уровня): {P_UP} ≈{q_up} % · {P_DN} ≈{q_dn} % · ни одна ≈{q_ne} % (точность {f_p}→{f_y} %, N = {f_n})» |
 | `LR_PUSH_OFF_V1` | `OFF` | «шансы: нет данных» |
 
 - **HIST:** templates, cells and journal are in §0. The `HIST` state of §7 uses them unchanged.
