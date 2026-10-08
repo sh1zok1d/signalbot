@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 WINDOW = timedelta(days=7)
 CANDLE, EVENT_DUE, SCHEDULE = "candle_close", "event_due", "schedule"
-SOURCE = {"level": CANDLE, "price": CANDLE, "move": CANDLE, "push": CANDLE,
+SOURCE = {"level": CANDLE, "price": CANDLE, "approach": CANDLE, "move": CANDLE, "push": CANDLE,
           "event": EVENT_DUE, "brief": SCHEDULE, "weekly": SCHEDULE}
 CLASSES = tuple(SOURCE)
 

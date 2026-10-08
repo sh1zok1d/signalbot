@@ -162,10 +162,20 @@ DELIVERIES = ("push_delivered", "alert_delivered", "brief_delivered", "weekly_de
 DELIVERY_TYPES = (("hour", "push_delivered", None), ("level", "alert_delivered", "level"),
                   ("event", "alert_delivered", "event"), ("move", "alert_delivered", "move"),
                   ("brief", "brief_delivered", None), ("weekly", "weekly_delivered", None),
-                  ("price", "alert_delivered", "price"))
+                  ("price", "alert_delivered", "price"), ("approach", "alert_delivered", "approach"))
 # delivery type -> (settings action, detail prefix): `/push levels off` is `cmd_push` `levels:off`
 MUTES = {"hour": ("cmd_push", "hours:"), "level": ("cmd_push", "levels:"), "event": ("cmd_push", "events:"),
          "move": ("cmd_push", "moves:"), "brief": ("cmd_brief", ""), "weekly": ("cmd_push", "weekly:")}
+
+
+def as_setting(row: dict) -> dict:
+    """«🔕 Не присылать такие» / «↩️ Вернуть» under a push (backlog E2) read as the `/push <type> off|on`
+    they set, so every mute count and the time to disable see both ways of muting."""
+    if row.get("action") in ("btn_mute", "btn_unmute") and row.get("detail") in ("hours", "levels", "events",
+                                                                                 "moves", "weekly"):
+        return {**row, "action": "cmd_push", "button": True,       # still a tap for the F5 button metric
+                "detail": f"{row['detail']}:{'off' if row['action'] == 'btn_mute' else 'on'}"}
+    return row
 
 
 def _kyiv_day(at: datetime):
@@ -309,7 +319,7 @@ def push_metrics(activity: Sequence[dict], deliveries: Sequence[dict], *, start:
     for r in activity:
         if r["action"] not in DELIVERIES and r["action"] != "brief_withheld":
             by_user.setdefault(r["user_pk"], []).append(r)
-    buttons = {pk: sorted(_aware(r["at"]) for r in rows if r["action"].startswith(("tab_", "btn_")))
+    buttons = {pk: sorted(_aware(r["at"]) for r in rows if r["action"].startswith(("tab_", "btn_")) or r.get("button"))
                for pk, rows in by_user.items()}
     actions = {pk: sorted(_aware(r["at"]) for r in rows) for pk, rows in by_user.items()}
     mutes = {}
@@ -365,7 +375,7 @@ def build_usage_report(facts: dict, *, now: datetime, owner_user_id: Optional[in
     owner = None if owner_user_id is None else int(owner_user_id)
     users = [dict(u) for u in facts["users"] if owner is None or int(u["telegram_user_id"]) != owner]
     external_pks = {u["user_pk"] for u in users}
-    activity = [dict(r) for r in facts["activity"] if r["user_pk"] in external_pks]
+    activity = [as_setting(dict(r)) for r in facts["activity"] if r["user_pk"] in external_pks]
     pushes: dict = {}
     for row in activity:
         # every delivery prompts an open: a push, a market or personal alert, the brief, the weekly report

@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from .i18n import (assert_descriptive, fmt_clock, fmt_kyiv_hm, fmt_plain_pct, fmt_price, fmt_signed_pct,
-                   fmt_usd, kyiv, na, t)
+                   fmt_usd, kyiv, local, na, t)
 from .i18n_decision import EVENT_NAMES, LEVEL_NAMES, WEEKDAYS, cases_word
 
 _LANG_IX = {"ru": 0, "en": 1}
@@ -218,11 +218,11 @@ def zone_note(zones: Optional[Mapping[str, Any]], horizons: Sequence[str], lang:
 
 
 def _when(at: datetime, lang: str, *, with_day: bool) -> str:
-    local = kyiv(at)
-    hm = local.strftime("%H:%M")
+    loc = local(at)                                       # the recipient's clock (C5)
+    hm = loc.strftime("%H:%M")
     if not with_day:
         return hm
-    return f"{WEEKDAYS[lang if lang in WEEKDAYS else 'ru'][local.weekday()]} {local.strftime('%d.%m')} {hm}"
+    return f"{WEEKDAYS[lang if lang in WEEKDAYS else 'ru'][loc.weekday()]} {loc.strftime('%d.%m')} {hm}"
 
 
 def event_lines(events: Sequence[Mapping[str, Any]], lang: str, *, with_day: bool = False) -> list:
@@ -444,7 +444,7 @@ def _btc_events(block: Mapping[str, Any], lang: str) -> list:
     parts = []
     for e in evs:
         at = datetime.fromisoformat(e["at"])
-        same_day = now is not None and kyiv(at).date() == kyiv(now).date()
+        same_day = now is not None and local(at).date() == local(now).date()
         parts.append(f"{_when(at, lang, with_day=not same_day)} "
                      f"{_e(EVENT_NAMES.get(e['kind'], (e['kind'], e['kind']))[_ix(lang)])}")
     return [t(lang, "dc_btc_events", list=", ".join(parts))]
@@ -947,6 +947,13 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         note = zone_note(zones, ["4h"], lang)
         if note:
             lines.append(note)
+        lines.append(t(lang, "pa_price_footer"))
+    elif kind == "approach":                 # «мои уровни»: the price within the hour's typical move (E1)
+        lines.append(t(lang, "pa_approach_title", level=fmt_price(payload["level"], lang)))
+        pts = payload.get("price_ts")
+        lines.append(t(lang, "pa_approach_line", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
+                       price_clock=fmt_kyiv_hm(price_clock(pts)) if pts else fmt_kyiv_hm(at),
+                       dist=_pct(payload["distance_pct"], lang), typ=_pct(payload["typical_1h_pct"], lang)))
         lines.append(t(lang, "pa_price_footer"))
     else:
         raise ValueError(f"unknown alert kind {kind!r}")

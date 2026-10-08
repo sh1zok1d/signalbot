@@ -120,6 +120,7 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
         await click(A, "pick:ru")
         joined = await click(A, "join:ru")
         welcome = plain(joined[-1].html)
+        assert "\n\nКак вы торгуете?" in welcome and joined[-1].buttons[-1] == [("Пропустить", "s:skip")]   # E5
         # /start explains what it is, what it does not promise, and how to leave
         assert "не говорит, покупать или продавать" in welcome and "/help" in welcome
         privacy = next(t for w, t, _ in seen if w == A and "конфиденциальность" in t)

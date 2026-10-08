@@ -24,9 +24,11 @@ from typing import Any, Mapping, Optional, Protocol, Sequence
 from .admin import collect_health, fingerprint
 from .config import BetaConfig, BetaSwitches, effective_push_enabled, research_main_surfaces_enabled
 from .formatter import format_owner_alert, format_push
+from .i18n import render_tz
 from .latency import class_summary, latency_field
+from .detector import in_quiet_hours
 from .models import (BRIEF_WITHDRAWAL, D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED,
-                     D_UNKNOWN, DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE)
+                     D_UNKNOWN, DELIVERY_TOO_OLD, PUSH_DISABLED, QUIET_HOURS, USER_INACTIVE)
 
 
 # A PUSH decision nobody could receive never gets a delivery row; the scan stops looking
@@ -310,6 +312,12 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                                                    suppression_reason=USER_INACTIVE)
                     report["suppressed"] += 1
                     continue
+                if in_quiet_hours(cfg, row["decision_ts"], row.get("user_tz")):
+                    # the decision went out because someone was awake; it is this participant's night (C5)
+                    await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                                   suppression_reason=QUIET_HOURS)
+                    report["suppressed"] += 1
+                    continue
                 if sender is None:
                     await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_FAILED, now=now,
                                                    error_summary="sender unavailable (no bot token)")
@@ -324,10 +332,11 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
                 lang = row.get("user_lang") or "ru"
                 if lat_summary is None:
                     lat_summary = await class_summary(conn, now)
-                text = format_push(ep, lang=lang, gate=row.get("gate"),
-                                   analog=_push_analogue(analogues, row.get("gate")), since_year=since_year,
-                                   latency=latency_field("push", row["decision_ts"], now, lat_summary),
-                                   research=research_main_surfaces_enabled(cfg))
+                with render_tz(row.get("user_tz")):          # the recipient's clock (C5)
+                    text = format_push(ep, lang=lang, gate=row.get("gate"),
+                                       analog=_push_analogue(analogues, row.get("gate")), since_year=since_year,
+                                       latency=latency_field("push", row["decision_ts"], now, lat_summary),
+                                       research=research_main_surfaces_enabled(cfg))
                 # (2) commit PENDING -> SENDING before the single API call
                 outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"],
                                                         html=text, buttons=feedback_buttons(ep.public_id, lang),
@@ -479,20 +488,37 @@ def _push_analogue(analogues, gate) -> Optional[dict]:
     return lookup(analogues, "1h", res.get("key"))
 
 
-def brief_slot(now: datetime, time_kyiv: str):
-    """(Kyiv date, UTC instant) of today's briefing slot, or None before it."""
+def brief_slot(now: datetime, time_kyiv: str, tz: Optional[str] = None):
+    """(local date, UTC instant) of today's briefing slot on the participant's clock (Kyiv when `tz` is
+    None; backlog C5 / E3), or None before it. Instants are compared, never wall clocks: on the night
+    the clock goes back a slot inside the repeated hour is its first occurrence, and a slot that does
+    not exist (the hour skipped in spring) comes at the same moment one hour later on the clock."""
     from datetime import time as dtime
-    from .i18n import KYIV
-    local = now.astimezone(KYIV)
+    from .i18n import tz_of
+    zone = tz_of(tz)
+    local = now.astimezone(zone)
     hh, mm = int(time_kyiv[:2]), int(time_kyiv[3:])
-    slot = datetime.combine(local.date(), dtime(hh, mm), tzinfo=KYIV)
-    if local < slot:
+    slot = datetime.combine(local.date(), dtime(hh, mm), tzinfo=zone).astimezone(timezone.utc)
+    if now < slot:
         return None
     return local.date(), slot.astimezone(now.tzinfo)
 
 
+def brief_due(now: datetime, user: Mapping[str, Any], default_time: str, max_delay: timedelta):
+    """(local date, UTC slot) when this participant's briefing is due in a run at `now`, else None: their
+    slot on their clock has come, at most `max_delay` ago, and their local date has no briefing row yet
+    (`last_brief_date`). One row per local date, whatever the clock does in between."""
+    slot = brief_slot(now, user.get("brief_time") or default_time, user.get("tz"))
+    if slot is None or now - slot[1] > max_delay:
+        return None
+    if user.get("last_brief_date") is not None and user["last_brief_date"] >= slot[0]:
+        return None
+    return slot
+
+
 def brief_withdrawal_dates(briefing: Mapping[str, Any]) -> frozenset:
-    """The U1a withdrawal days (Kyiv dates), the same for every participant.
+    """The U1a withdrawal days: calendar dates, the same for every participant, each matched against the
+    participant's own briefing date (their local date, backlog C5 / E3), not against Kyiv's.
 
     Frozen before Day 0 (BETA_MEASUREMENT_CONTRACT_V1 §6): `count` weekdays drawn with
     `seed` from cohort days first..last (Day 0 = cohort day 0). Only `day0_kyiv` is filled
@@ -512,9 +538,11 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
                          pacer: Optional[SendPacer] = None) -> dict:
     """The morning briefing inside the existing notifier cycle and outbox.
 
-    Once per Kyiv day after `briefing.time_kyiv`: build ONE shared view (kind
-    'brief', the /catchup render path), persist it, and materialize one PENDING
-    outbox row per ACTIVE participant with the briefing on. Each row then follows
+    Each participant has a slot on their own clock: their `brief_time` (default
+    `briefing.time_kyiv`) in their time zone (backlog C5 / E3). In a run where some
+    participants' slots have come and they have no briefing row for their local date,
+    build ONE shared view (kind 'brief', the /catchup render path), persist it, and
+    materialize one PENDING outbox row per such participant. Each row then follows
     the outbox rules: at most one send attempt, never late (expired after
     `max_delay_min`), suppressed while pushes are switched off. Push rows, push
     decisions and push policy are not read or changed here."""
@@ -528,16 +556,21 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
     max_delay = timedelta(minutes=int(b["max_delay_min"]))
     withdrawn = brief_withdrawal_dates(b)
     now = clock()
-    slot = brief_slot(now, b["time_kyiv"])
-    if b["enabled"] and push_on and slot is not None and now - slot[1] <= max_delay \
-            and not await conn.brief_scheduled(slot[0]):
+    due = []
+    if b["enabled"] and push_on:
+        for u in await conn.brief_candidates():
+            slot = brief_due(now, u, b["time_kyiv"], max_delay)
+            if slot is not None:
+                due.append((u["user_pk"], slot))
+    if due:
         view = await build_view(conn, cfg, now=now, kind="brief", window_hours=BRIEF_WINDOW_HOURS,
                                 maturity_days=maturity_days(cfg),
                                 d7_enabled=effective_d7_enabled(cfg, await conn.get_admin_d7_enabled()))
         view_pk = await persist_view(conn, view, now=now, text=format_catchup(cfg, view, "ru"), lang="ru",
                                      kind="brief")
-        out["scheduled"] = await conn.materialize_brief_deliveries(brief_date=slot[0], view_pk=view_pk,
-                                                                   decision_ts=slot[1])
+        for user_pk, (brief_date, at) in due:
+            out["scheduled"] += await conn.materialize_brief_delivery(user_pk=user_pk, brief_date=brief_date,
+                                                                      view_pk=view_pk, decision_ts=at)
     views: dict = {}
     for row in await conn.fetch_pending_brief_deliveries(cfg["notifications"]["max_deliveries_per_run"],
                                                          now=clock()):
@@ -580,10 +613,12 @@ async def run_due_briefs(conn, cfg: BetaConfig, *, sender: Optional[BetaSender],
         if payload is None:
             payload = views[row["view_pk"]] = (await conn.fetch_btc_view(row["view_pk"]))["payload"]
         lang = row.get("user_lang") or "ru"
-        text = format_catchup(cfg, payload, lang, push_enabled=bool(row.get("push_enabled", True)),
-                              first_brief=bool(row.get("first_brief", False)))
+        with render_tz(row.get("user_tz")):              # the recipient's clock (C5)
+            text = format_catchup(cfg, payload, lang, push_enabled=bool(row.get("push_enabled", True)),
+                                  first_brief=bool(row.get("first_brief", False)))
+            buttons = btc_buttons(payload, lang, row["view_pk"])
         outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
-                                                buttons=btc_buttons(payload, lang, row["view_pk"]), clock=clock)
+                                                buttons=buttons, clock=clock)
         if outcome != SENT:
             count_outcome(out, outcome)
             continue
