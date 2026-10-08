@@ -1,3 +1,21 @@
+## LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1 — executed once; discovery; no incremental path memory; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1 (atlas LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design bae1060c before any late BREAK rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> #359 bcc0a9e8 -> #360 181debc4 -> #361 44726ded -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = path memory inside a fixed endpoint side | not H02, not B2-02, not V2 CONFIRMED_BREAKOUT, not a rescore of the #361 endpoint slope | END_POSITION_X is a nuisance`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | price OHLC only | events [2020-02-01, 2025-01-01) | 2025/2026 NOT read`
+`CLOCK = T = open of touch bar j | D = T+15m | bits on closes j, j+1, j+2 | early passage j+1..j+2 excluded | late passage j+3..j+48`
+`COHORT = touch_number = 1 | geometry-legitimate 1919 | early resolved 574 | early ambiguous 13 | unresolved 1332 | NEVER_OUTSIDE 983 / REENTERED 115 / LATE_OR_RECROSS_OUTSIDE 80 / PERSISTENT_OUTSIDE 154 | 258 weeks`
+`C1 = REENTRY_MEMORY estimated | overlap passed | standardized endpoint difference +1.27 | adjusted +6.74 pp (95% -4.22..+17.62, q=0.2218, N=952, arms 101 and 851, 253 weeks, 2000/2000 draws) | interval includes 0 | years, LOYO, DAY vs WEEK, and the two sides do not share one sign`
+`C2 = PERSISTENCE_MEMORY not estimated | LATE_OR_RECROSS_OUTSIDE unresolved N=80 < 100 | overlap would have passed | no coefficient`
+`SPECIFICITY NOT APPLIED = real conjunction failed | pseudo C1 +9.52 pp (95% -9.68..+28.77, N=300, treated 26) | interval includes 0 | not a generic candidate`
+`ROUTING = NO_INCREMENTAL_PATH_MEMORY_BEYOND_ENDPOINT | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical adjusted difference, not a current probability | not false-break confirmed and not acceptance confirmed | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = 30m window; wick rule; false-break refinement; time-to-resolution; spot; cross-venue; 2025/2026; confirmation | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1 — executed once; discovery; unstable; no successor; not integrated — 2026-10-07
 
 `UNIT = LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1 (atlas LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design f3101015 before any late resolution rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`

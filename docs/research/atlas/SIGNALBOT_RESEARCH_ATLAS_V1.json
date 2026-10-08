@@ -752,7 +752,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
-    "CLOSED_ON_SURFACE": 8,
+    "CLOSED_ON_SURFACE": 9,
     "EXPOSED_ONLY": 1,
     "INFORMATIONALLY_WEAK": 1,
     "LIVE_SIGNAL": 2,
@@ -775,6 +775,7 @@
     "DH3-V2",
     "DH3-V3",
     "GV0R01-C017",
+    "LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1",
     "LEVEL-APPROACH-STATE-DISCOVERY-V1",
     "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1",
     "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1",
@@ -10166,14 +10167,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 355
   },
-  "units": 197,
+  "units": 198,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 21,
+   "CLOSED_ON_SURFACE": 22,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 11,
    "FUTURE_NATURAL_ACCUMULATION": 3,
@@ -15575,7 +15576,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "0aa69554081127ec64e584671635eaccaae7b0be697de298ac73bed7ffaaf03a",
+ "SOURCES_DIGEST": "7004e0fe55adc98bea89e4cde6f8844ac88913f9b088068228574aa155a6bafa",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15775,6 +15776,14 @@
      {
       "note": "LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1 one-shot (15m post-touch price, activity and taker reaction on events still unresolved at T+15m -> remaining 4h barrier passage), 2026-10-07; further exposure, not a confirmation and not a reopen of PRICE_STRUCTURE.breakout",
       "period": "2020-09-01T00:05Z..2024-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1 one-shot (15m close-path memory conditional on END_POSITION_X, among structural first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; price OHLC only; further exposure, not a confirmation and not a reopen of PRICE_STRUCTURE.breakout",
+      "period": "2020-02-01T00:00Z..2024-12-31",
       "rows": [
        "PRICE_STRUCTURE.levels"
       ],
@@ -21667,6 +21676,37 @@
    "verdict": "PIPELINE_BLOCKED_METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING_NO_SCIENTIFIC_STATUS",
    "what_tested": "Generator V0 pipeline only: novelty ALLOW, feasibility PASS, red team REJECT; red team failed checks: CAUSALITY, CONFOUNDING_ADDRESSED. No market outcomes were tested.",
    "why_closed": "Exact duplicate, cosmetic relabel, and parameter/window/horizon neighbors that leave the METHOD_CAUSAL_IDENTIFICATION_AND_CONFOUNDING blocker unresolved."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0"
+   ],
+   "forbidden": "rescoring this cell; calling REENTERED a confirmed false break; calling PERSISTENT_OUTSIDE confirmed acceptance; stating the historical coefficient as a current probability; fitting C2 after lowering N; a 30-minute window or a wick rule on this same run; confirmation on this exposed surface; product integration",
+   "function": "first touch only of PDH/PDL/PWH/PWL/PMH/PML; T is the open of the touch bar; D = T+15m; bits B0 B1 B2 are strict closes beyond the break-side zone edge on j, j+1, j+2; four frozen states; C1 compares REENTERED with NEVER_OUTSIDE inside B2=0; C2 compares PERSISTENT_OUTSIDE with LATE_OR_RECROSS_OUTSIDE inside B2=1; early passage on j+1 and j+2 is excluded; late BREAK versus REJECT uses j+3..j+48; linear probability model; half-rotation pseudo touch supplies specificity only after a real conjunction",
+   "id": "LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1",
+   "mechanism": "MODE=DISCOVERY. Given a comparable close location 15 minutes after an independently replicated structural first touch, does the path of closes around the structural zone add historical information about later BREAK versus REJECT. END_POSITION_X is a mandatory nuisance. Not a failed-breakout label and not a confirmed-breakout qualification.",
+   "note": "MODE=DISCOVERY. Design note bae1060c before any late BREAK rate. Dependencies #352 dfc9e0f0 through #361 44726ded. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to H02, B2-02, V2 CONFIRMED_BREAKOUT, and the #361 endpoint slope. Row PRICE_STRUCTURE.levels, not PRICE_STRUCTURE.breakout.",
+   "period": "2020-02-01T00:00Z..2024-12-31 on CORE_BTC_BINANCE_V0 5m OHLC only; no volume, taker, open interest, funding, book, spot, or second venue; no 2025/2026; no E1 holdout",
+   "practical_bar": "3 pp absolute adjusted difference on the path-state indicator. It is not a per-SD slope, not a Holm switch, and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the primary contrasts that pass the arm and overlap gate. One contrast was estimated.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_DESIGN.md",
+    "docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_PREFLIGHT.json",
+    "docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_RESULT.md",
+    "docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_RESULT.json",
+    "scripts/research/level_acceptance_path_discovery_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a lower arm minimum, not a dropped endpoint nuisance, not a retune of the four states, and not 2025/2026.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1",
+   "units_n": "4076 structural episodes; 1919 geometry-legitimate first touches; 574 early-resolved before T+15m; 13 early ambiguous; 1332 unresolved at D; states NEVER_OUTSIDE 983 / REENTERED 115 / LATE_OR_RECROSS_OUTSIDE 80 / PERSISTENT_OUTSIDE 154; C1 resolved N=952 (101 vs 851); 258 weeks",
+   "verdict": "EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_PATH_MEMORY_BEYOND_ENDPOINT. C2 stopped before a coefficient because LATE_OR_RECROSS_OUTSIDE has 80 unresolved events. C1 REENTRY_MEMORY is +6.74 pp (95% -4.22..+17.62, q=0.2218, N=952, arms 101 and 851). The interval includes 0. Years, leave-one-year-out, DAY versus WEEK, and the two sides do not keep one sign. No named candidate. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "One discovery run. The level row was already consumed. This run asks whether path history adds anything beyond the #361 endpoint association. It is not a confirmation and not a reopen of H02, B2-02, or V2 CONFIRMED_BREAKOUT. No product change. No 30-minute window, false-break refinement, or confirmation was started."
   },
   {
    "col": "CANDLES",

@@ -8349,3 +8349,24 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-08 — LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1 executed once; discovery; no incremental path memory; not integrated
+
+**Unit.** `LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1` (atlas `LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only on an already consumed level surface. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #361 `44726ded55c75fefecc6848ab8b76971ead83721`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `bae1060c390e049f652c57792b8c18fc1c41058e` before any late BREAK rate. The states, the overlap rule, the arm minimum, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is path memory within the first 15 minutes after a structural first touch, inside one endpoint side, with `END_POSITION_X` held as a nuisance. It is not H02, not B2-02, not V2 `CONFIRMED_BREAKOUT`, and not a rescore of the #361 endpoint slope. `REENTERED` is not labelled a false break. `PERSISTENT_OUTSIDE` is not labelled acceptance. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels`.
+- **Clock.** T is the open of touch bar j. D = T+15m. Bits use the closes of j, j+1 and j+2 against the break-side zone edge. Early passage uses j+1 and j+2. Late passage uses j+3 through j+48.
+- **Cohort.** Window `[2020-02-01T00:00:00Z, 2025-01-01)`. Price OHLC only. Geometry-legitimate first touches 1919. Early BREAK 296, early REJECT 278, early ambiguous 13, unresolved 1332. States: never outside 983, reentered 115, late or recross 80, persistent 154. 258 weeks.
+- **Gate.** C1 overlap passed (standardized endpoint difference +1.27; 62.6% and 53.8% of each arm inside the other central band). C2 was not estimated: the late-or-recross arm has 80 unresolved events. Its overlap would have passed. The taxonomy was not changed.
+- **Primary.** One adjusted contrast, Benjamini–Hochberg q=0.10, practical scale 3 pp. `REENTRY_MEMORY` +6.74 pp (95% −4.22..+17.62, q=0.2218, N=952, arms 101 and 851, 2000 valid draws). The interval includes 0. Eligible years do not share one sign. Leave-one-year-out omitting 2022 changes sign. DAY is +8.99 pp and WEEK is −12.72 pp, both estimable and opposite. Resistance is −3.46 pp and support is +18.59 pp, both estimable and opposite. No candidate.
+- **Specificity.** Not applied. The pseudo reentry slope is +9.52 pp (95% −9.68..+28.77, N=300, treated arm 26). The interval includes 0. It does not rescue the real null.
+- **Routing.** `NO_INCREMENTAL_PATH_MEMORY_BEYOND_ENDPOINT`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. A historical adjusted difference in this unresolved first-touch cohort. Not a current probability. Not a false break and not acceptance.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-02-01..2024-12-31, 15m close-path memory conditional on END_POSITION_X into the remainder of the original 4h (further exposure, not a confirmation)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; OI / funding / book / taker not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
