@@ -181,7 +181,8 @@ Mark every known contact with `/admin_known <id> on` within 24 hours of their jo
 | `access.u3_offer` | price and method set | U3 on days 21–25 |
 | `briefing.withdrawal.day0_kyiv` | `null` until Day 0 | U1a inactive before Day 0 |
 | `PRIVACY_NOTICE_VERSION` | 7 | the participants see the current notice once |
+| `level_race.push_trigger` | `structural`, switched at 00:00 UTC in the step-3 deploy, before the 7-day start | a later switch restarts the observation week; `legacy` at Day 0 is a recorded limitation (contract §12.1) |
 
 **Calendar.** Day 0 is not earlier than the C1 rank maturity (about the end of October) plus an owner soak that sees a real unusual-hour push (backlog §1).
 
-**Soak additions (§3).** At least once: an approach message before a personal level's touch; a push to a participant with another time zone, and one withheld in their night (QUIET_HOURS); a briefing at a participant's own time; the weekly report with its «Полезно / Шум» and «🔕»; a reply with `/admin_reply` to a paused participant.
+**Soak additions (§3).** At least once: an approach message before a personal level's touch; a push to a participant with another time zone, and one withheld in their night (QUIET_HOURS); a briefing at a participant's own time; the weekly report with its «Полезно / Шум» and «🔕»; a reply with `/admin_reply` to a paused participant, and that participant's plain reply reaching the owner.

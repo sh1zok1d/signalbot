@@ -64,6 +64,9 @@ A row in `beta_users` with a non-null `joined_at`, meaning the person accepted t
 - **`cmd_push` / `cmd_brief` details.** They carry `detail` = `on`, `off`, `<kind>:on|off` or `status`; `cmd_brief` also `time` (a new briefing time, not a disable).
 - **`set_mute` / `set_unmute` details.** The one-tap «🔕 Не присылать такие» / «↩️ Вернуть» under a message. The detail is the type: `hours`, `levels`, `events`, `moves`, `weekly`. They set the same preference as `/push <type> off|on`. They are settings, never button reactions; rows recorded before #379 as `btn_mute` / `btn_unmute` are renamed by the schema.
 - **`btn_useful` / `btn_noise` details.** None for the unusual-hour push; the message type (`level`, `event`, `move`, `price`, `approach`, `brief`, `weekly`) for every other one. A repeated tap of the same vote records nothing. A changed vote records a second row, so votes are never counted from these activity rows (§3, useful share).
+- **Feedback actions (backlog H1–H4, J4).** `cmd_idea`, `idea_sent`, `reason_set`, `cmd_interview`, `interview_booked` and `plain_text` are feedback, never a reaction: not a `tab_*` / `btn_*`, so neither the U2 reaction queries nor the owner's usage breakdown count them.
+  - `reason_set` carries `detail` = `<topic>:<reason>`. With topic `noise` it follows a «Шум» vote; that vote (`btn_noise`, a row of the vote tables) is the signal, and the reason is not a second one. With topic `stop` it comes from a participant who has just paused, so it is not a sign of use.
+  - `plain_text` is also recorded for a paused participant: since #405 their plain reply (for example to the U3 offer) reaches the team. It is not a return to the bot, and only `/start` makes them active again.
 - **What is not recorded.** Wrong-argument replies to `/catchup` and unknown commands are not recorded and count as nothing. A plain message is recorded as `plain_text` (feedback, not usage).
 
 ## 3. Notification classes and reactions
@@ -252,6 +255,9 @@ Written before any number of the test exists, from the owner's decisions of 2026
 | Weekly report | Sunday 19:00 on each participant's clock, never on a Mon–Fri withdrawal date (§6.1). | Review of #379 (ОПГ-1) |
 | Forecast layer | Registered surfaces, journal classes and the level-push trigger change (§12.1). | `FORECAST_LAYER_DECISION_V1` §6, §6a, §8 |
 | Dated events | Changes during the test that split the metrics before and after their date (§12.2). | `FORECAST_LAYER_DECISION_V1` §6a; the architect for D2 |
+| Push trigger | `level_race.push_trigger` `legacy → structural` only at 00:00 UTC in the step-3 deploy, before the 7-day start; after the start it restarts the week; the legacy fallback is a limitation (§12.1). | ОПГ-1, 2026-10-08; #393 |
+| Claim cohorts | A `template_digest` change starts a new claim cohort (#403, `L3_LEVEL_TOUCH_24H`); #402's corridor record is text only (§12.3). | ОПГ-1, 2026-10-08 |
+| Feedback actions | `cmd_idea`, `idea_sent`, `reason_set`, `cmd_interview`, `interview_booked`, `plain_text` are feedback, never reactions; `reason_set` with topic `stop` and `plain_text` may come from a paused participant (§2). | #404, #405 |
 
 Unchanged: every threshold of `PRODUCT_FIRST_DECISION_V1.md` §7, the 10-minute window, the enrolled denominator, Kyiv cohort days and Kyiv active days for U1b, the U3 ledger outside git, the U5 fake door.
 
@@ -268,9 +274,10 @@ Unchanged: every threshold of `PRODUCT_FIRST_DECISION_V1.md` §7, the 10-minute 
 - **When the line is hidden.** The race line is not shown inside a CPI / FOMC event zone. It is shown only once its claim row exists in the journal (the architect's decision, 2026-10-08), so every shown line has its record.
 
 **The level-push trigger.**
-- **What changes.** Behind the forecast layer's flag, the PDH / PDL / PWH / PWL / PMH / PML touch push moves to the #352 event (entry into the ±0.15 % zone on a closed 5m bar). Its text says «вошла в зону PDH …», not «коснулась».
+- **What changes.** Behind `level_race.push_trigger` (#393, `legacy` by default), the PDH / PDL / PWH / PWL / PMH / PML touch push moves from `legacy` (the exact price) to `structural`: the #352 event, entry into the ±0.15 % zone on a closed 5m bar. Its text says «вошла в зону PDH …», not «коснулась», and the T0 race line replaces the hold history.
+- **When it is switched.** `legacy → structural` is switched only at **00:00 UTC**, in the step-3 deploy, **before** the 7-day observation starts. It is a push-gating change, so switching it after the start restarts the observation week (`ORCHESTRATION_V1.md` §4a). During the test it is not switched at all without an owner decision recorded as a dated event (below).
 - **What stays.** It is the same push type. It stays in the class EVENT_MOVE_LEVEL_PUSH with `alert_delivered` detail `level`, under the same per-recipient limits, quiet hours and per-type mute. There is **no new push type**.
-- **Fallback.** If that change misses the build cut-off, Day 0 runs the old trigger without the T0 line, and `HIST` is shown only in `/levels` and `/check`.
+- **Fallback (a limitation).** If the switch misses step 3, Day 0 runs `legacy` without the T0 line, and `HIST` is shown only in `/levels` and `/check`. The test then measures the exact-price push, and its U2 numbers say nothing about the structural trigger.
 - **Moving the trigger later.** Moving or switching on the new trigger during the test changes the push rule (`PRODUCT_FIRST_DECISION_V1` §7). The forecast-layer exception of §6a does not cover it, so it needs an owner decision recorded as a dated event (§12.2).
 - **Before the test.** Turning on a Day-0 flag after the observation week has started restarts that week (`ORCHESTRATION_V1.md` §4a).
 
@@ -300,3 +307,14 @@ Nothing else in the product changes during the test (`PRODUCT_FIRST_DECISION_V1`
 | D2: the liquidation fix (OKX / Bybit mapping, `mapping_version`) reaches production | *filled in after the deploy* | every metric in which `LIQUIDATION_STRESS`, the «вынос лонгов / шортов» lines or the liquidation votes take part |
 
 A row is never removed or back-dated, and a date is never moved after a number of the test that depends on it is known.
+
+### 12.3 Claim cohorts and text changes
+
+- **Cohort boundary.** A journal row carries the `template_digest` of its class: a sha256 over the RU / EN texts its numbers are printed with (`beta/claims.py`). Any change to one of those texts starts a **new claim cohort** of that class. Accuracy lines and the claim journal's reports count each cohort on its own; rows of the two cohorts are never pooled.
+- **#403.** It changes the `pa_next` template, which is part of `L3_LEVEL_TOUCH_24H`. Its deploy is therefore a cohort boundary for that class: the first row with the new digest opens the new cohort. If it ships before Day 0, the boundary falls before the test, and it is recorded here with its date when deployed.
+- **A text change that is not a cohort boundary.** #402's 4h-corridor record in the level and price alerts (`pa_corridor`, `pa_corridor_now`, `pa_track_live`, `pa_track_hold`) is in no claim class's template, so no digest changes. It is a text change: it does not restart the observation week (`ORCHESTRATION_V1.md` §4a) and resets no count.
+- **Every later template change** is checked the same way before it ships: does a key of a claim class change (cohort boundary, recorded here with its date) or not (text only)?
+
+| Template change | Classes | Date (UTC) |
+|---|---|---|
+| #403 `pa_next` | `L3_LEVEL_TOUCH_24H` | *filled in at the deploy* |
