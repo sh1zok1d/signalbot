@@ -100,14 +100,11 @@ def gen(w: World, c: str, weeks: int, week0: int, rng, *, live: bool, u):
 def publish(recs, prior, cuts):
     """Walk forward: each record gets the calibrator of the last cutoff ≤ its issue time."""
     order = sorted(recs, key=lambda r: r["t_ms"])
-    cal, ci, cals = L.prior_calibrator(prior), -1, []
+    p0 = L.prior_calibrator(prior)
+    versions = [L.fit_calibrator(order, prior, cutoff_ms=c) for c in cuts]
     for r in order:
-        while ci + 1 < len(cuts) and cuts[ci + 1] <= r["t_ms"]:
-            ci += 1
-            cal = L.fit_calibrator(order, prior, cutoff_ms=cuts[ci])
-            cals.append((cuts[ci], cal))
-        r["_cal"] = cal
-    return order, cals
+        r["_cal"] = L.calibrator_at(r["t_ms"], versions, p0)
+    return order, [(v.cutoff_ms, v) for v in versions]
 
 
 def stamp(recs, case):

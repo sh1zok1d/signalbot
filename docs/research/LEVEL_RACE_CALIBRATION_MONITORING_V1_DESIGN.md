@@ -33,6 +33,8 @@
 8. **HIST_ONLY mode** gives only HIST or OFF, whatever the monitors say (`test_mode_hist_only_is_hist_or_off`).
 9. **OFF at once** on any D0 fault, and back to the previous state when healthy.
 10. **FALLBACK is never shown for a class whose fallback model fails G2:** on the held-out read, and on the last 150 live records once there are that many.
+11. **Case B never enters an L3 state** (rule, not only a simulation result). Its only model state is FALLBACK, entered while the fallback passes G2, otherwise HIST. The L3 templates would otherwise print a number next to itself as «обычно» (§6b). Tested in `test_case_b_never_enters_l3`.
+12. **One rule for "which calibrator applies at t":** `calibrator_at(t_ms, versions)` returns the version with the latest cutoff ≤ t. The held-out pass (F1) and the live loop (F2) both call it. A test checks that t at a cutoff and t one ms before select different versions.
 
 All numbers: 200 replications per scenario, §10.
 
@@ -55,6 +57,8 @@ Scored on the **prequential published** probabilities of the held-out read: week
 | G1 | upper end of the week-clustered 95 % interval of LL_published − LL_B0 | ≤ **+0.02 nats** | was +0.01 |
 | G2 | per outcome: \|CITL\| ≤ 5 pp and its 95 % interval inside ±10 pp (iid floor on the SE) | 5 / 10 pp | iid floor added |
 | G3 | per head: the slope's 95 % interval overlaps [0.8, 1.25] | — | — |
+
+**G1 is a non-inferiority gate:** the published model may be up to 0.02 nats worse than raw B0 and still pass. Superiority over B0 (and over G1@event) comes only from F1 §11b's case-A rule, applied to raw outputs.
 
 **Why G1 is +0.02.**
 - The prequential calibrator costs about 0.007 nats on a calibrated champion (early batches learn from few events).
@@ -121,7 +125,7 @@ All run at batch cutoffs on the resolved live records of the class (published or
 
 ### 5.1 D1 threshold 30
 
-The three outcome e-processes share the 0.1 Ville budget (3 × 1/30). In the τ = 0.25 calm world, D1 at E > 30 fires on 4 % (T15 5 %) of L3 starts by 52 weeks at T0. At F1's E > 10 it fires on 14 %.
+The three outcome e-processes share the 0.1 Ville budget (3 × 1/30). The bound assumes each forecast is calibrated given the past known at its issue time. Two touches of one class less than 4h apart have overlapping windows, and the earlier outcome is not yet known at the later issue, so the bound is then approximate. The τ = 0.25 simulation does not model such overlaps; they are rare (about one a day across both classes). In the τ = 0.25 calm world, D1 at E > 30 fires on 4 % (T15 5 %) of L3 starts by 52 weeks at T0. At F1's E > 10 it fires on 14 %.
 
 **D1 on a frozen reference map (p_ref) was tested twice and rejected** as a state rule:
 - p_ref is the raw model under the end-of-held-out calibrator, held fixed.
@@ -189,18 +193,19 @@ At about 5 T15 events a week, the 450 look comes at about week 90, and the 600 l
 | any | `OFF` | a D0 fault, at once (any call) |
 | `OFF` | previous | all health checks pass |
 | any (HIST_ONLY) | `HIST` | the mode is HIST_ONLY (FORECAST_LAYER §6a), whatever the monitors say |
-| switch to MODEL | `L3_HISTORY_BACKED` | held-out gate passed |
-| switch to MODEL | `FALLBACK` | gate not passed, case A, the fallback passes G2 on the held-out |
+| switch to MODEL | `L3_HISTORY_BACKED` | case A and the held-out gate passed |
+| switch to MODEL | `FALLBACK` | otherwise, if the fallback passes G2 on the held-out (case B: always this or HIST) |
 | switch to MODEL | `HIST` | otherwise; terminal for the version |
 | `L3_HISTORY_BACKED` | `L3_LIVE` | ≥ 150 resolved live and G2 + G3 on the live record |
 | `L3_*` | `FALLBACK` | D1 / D2 / D3, case A, the fallback passes G2 (held-out, and the last 150 live once there are 150) |
 | `L3_*` | `HIST` | D1 / D2 / D3 otherwise (always in case B) |
 | `FALLBACK` | `HIST` | D1 / D2 on the fallback model, or it stops passing G2 |
-| `FALLBACK` / drift-`HIST` | `L3_*` | the return rule of §5.3 (not after the second exit) |
+| `FALLBACK` / drift-`HIST` | `L3_*` | case A: the return rule of §5.3 (not after the second exit) |
+| drift-`HIST` | `FALLBACK` | case B: the return rule of §5.3 on the fallback model, which must still pass G2 |
 
 ### 7.3 Case B ⇒ HIST in practice
 
-This is a consequence of §6b, accepted by the architect on 2026-10-08; it is not a new rule.
+The rule (mini-head review, 2026-10-08): case B never enters an L3 state; its only model state is FALLBACK. The consequence below was accepted by the architect on 2026-10-08 as following from §6b.
 - In case B the published model is the fallback model: G1@event with the GENERIC intercept and slope. It carries no level offset.
 - On the dev numbers it misses the level offset by R +0.92 and B +0.33, and on synthetic level events it passes G2 in 0 % of replications.
 - So a class in case B fails the held-out gate and stays in HIST.
@@ -222,8 +227,8 @@ This is a consequence of §6b, accepted by the architect on 2026-10-08; it is no
 `display_contract(state_record, setup, calibrator_version)` → `{mode, case, state, since_ms, reason, template, push_template, probabilities, calibrator_version, accuracy_line}`.
 - `template` / `push_template` are F1 §9 ids: `LR_L3H_V1` / `LR_PUSH_L3H_V1`, `LR_L3L_V1` / `LR_PUSH_L3L_V1`, `LR_FB_V1` / `LR_PUSH_FB_V1`, `LR_OFF_V1` / `LR_PUSH_OFF_V1`; `HIST` keeps F1 §0.
 - `probabilities`:
-  - `CHAMPION`: case A in an L3 state, calibrated with its class intercept;
-  - `FALLBACK`: case B in an L3 state, or the FALLBACK state; G1@event with the GENERIC intercept;
+  - `CHAMPION`: an L3 state (case A only), calibrated with its class intercept;
+  - `FALLBACK`: the FALLBACK state (either case); G1@event with the GENERIC intercept;
   - `None` otherwise.
 - `accuracy_line`: `holdout` / `live` / `generic` / none.
 

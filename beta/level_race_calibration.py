@@ -298,6 +298,17 @@ def live_prior(holdout_cal: Calibrator, holdout_records: Sequence[Mapping[str, A
     return out
 
 
+def calibrator_at(t_ms: int, versions: Sequence[Calibrator], prior: Optional[Calibrator] = None) -> Optional[Calibrator]:
+    """The calibrator that applies to a forecast issued at t_ms: the version with the latest cutoff
+    ≤ t_ms (a cutoff-c version is fitted on outcomes resolved before c, so it is usable from c on);
+    `prior` (or None) before the first cutoff. The held-out pass and live both call this."""
+    best = prior
+    for v in versions:
+        if v.cutoff_ms <= int(t_ms) and (best is None or best is prior or v.cutoff_ms > best.cutoff_ms):
+            best = v
+    return best
+
+
 def batch_cutoffs(start_ms: int, end_ms: int) -> list:
     """Cutoffs after start: weekly for WEEKLY_BATCHES weeks, then every LATER_BATCH_WEEKS weeks."""
     wk = 7 * 86_400_000
@@ -567,17 +578,19 @@ class StateRecord:
 def initial_state(setup: Setup, *, now_ms: int) -> StateRecord:
     if setup.mode != "MODEL":
         return StateRecord("HIST", int(now_ms), reason="mode_hist_only", model_version=setup.model_version)
-    if setup.holdout_passed:
+    if setup.case == "A" and setup.holdout_passed:
         return StateRecord("L3_HISTORY_BACKED", int(now_ms), reason="holdout_passed", model_version=setup.model_version)
-    if setup.case == "A" and setup.fallback_g2_holdout:
-        return StateRecord("FALLBACK", int(now_ms), reason="holdout_not_passed", model_version=setup.model_version)
+    if setup.fallback_g2_holdout:
+        return StateRecord("FALLBACK", int(now_ms), reason="holdout_passed" if setup.case == "B" else "holdout_not_passed",
+                           model_version=setup.model_version)
     return StateRecord("HIST", int(now_ms), reason="holdout_not_passed", model_version=setup.model_version)
 
 
 def fallback_available(setup: Setup, mon_fb: Optional[Monitors]) -> bool:
-    """FALLBACK is published for a class only in case A and only while the fallback model passes G2 on
-    it: on the held-out read, and on the last ROLL_N live records once there are that many."""
-    if setup.case != "A" or not setup.fallback_g2_holdout:
+    """FALLBACK is published for a class only while the fallback model passes G2 on it: on the held-out
+    read, and on the last ROLL_N live records once there are that many. In case B it is the only model
+    state: case B never enters an L3 state (its number would be its own «обычно», §6b)."""
+    if not setup.fallback_g2_holdout:
         return False
     recent = mon_fb.fallback_g2_recent if mon_fb is not None else None
     return True if recent is None else bool(recent)
@@ -613,12 +626,20 @@ def next_state(prev: StateRecord, setup: Setup, *, health: Health, mon: Optional
         if prev.state == "L3_HISTORY_BACKED" and mon.n_live >= LIVE_FLOOR and mon.live_gates["G2"] and mon.live_gates["G3"]:
             return replace(prev, state="L3_LIVE", since_ms=now_ms, reason="live_floor_reached")
         return prev
+    if setup.case == "B":
+        mon_fb = mon_fb if mon_fb is not None else mon
     if prev.state == "FALLBACK" and mon_fb is not None:
         fb_why = [w for w in drift_reasons(mon_fb) if w != "D3"]
         if fb_why or not fallback_available(setup, mon_fb):
-            return replace(prev, state="HIST", since_ms=now_ms,
+            return replace(prev, state="HIST", since_ms=now_ms, epoch_start=mon_fb.n_live,
+                           drift_exits=prev.drift_exits + (setup.case == "B"),
                            reason="fallback_drift:" + ",".join(fb_why or ["G2"]))
     returnable = prev.state in ("FALLBACK", "HIST") and prev.reason.startswith(("drift", "fallback_drift"))
+    if returnable and setup.case == "B":
+        if prev.state == "HIST" and prev.drift_exits < MAX_DRIFT_EXITS and mon_fb is not None \
+                and recovered(mon_fb) and fallback_available(setup, mon_fb):
+            return replace(prev, state="FALLBACK", since_ms=now_ms, epoch_start=mon_fb.n_live, reason="recovered")
+        return prev
     if returnable and setup.holdout_passed and prev.drift_exits < MAX_DRIFT_EXITS and recovered(mon):
         live = mon.n_live >= LIVE_FLOOR and mon.live_gates["G2"] and mon.live_gates["G3"]
         return replace(prev, state="L3_LIVE" if live else "L3_HISTORY_BACKED", since_ms=now_ms,
@@ -695,7 +716,7 @@ def display_contract(st: StateRecord, setup: Setup, *, calibrator_version: Optio
     which accuracy line. HIST keeps F1 §0 templates and table."""
     probs = None
     if st.state in ("L3_HISTORY_BACKED", "L3_LIVE"):
-        probs = "CHAMPION" if setup.case == "A" else "FALLBACK"
+        probs = "CHAMPION"                                  # L3 states exist only in case A
     elif st.state == "FALLBACK":
         probs = "FALLBACK"
     full, push = TEMPLATES[st.state]

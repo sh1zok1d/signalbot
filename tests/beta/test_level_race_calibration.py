@@ -158,7 +158,7 @@ def test_state_machine_case_a_with_fallback():
 
 
 def test_state_machine_no_fallback_goes_to_hist_and_second_exit_is_final():
-    s = L.Setup(mode="MODEL", case="B", holdout_passed=True, fallback_g2_holdout=True)
+    s = L.Setup(mode="MODEL", case="A", holdout_passed=True, fallback_g2_holdout=False)
     st = L.initial_state(s, now_ms=0)
     h = L.next_state(st, s, health=L.Health(), mon=_mon(120, d2=(14.0, 3.0, 25.0)), now_ms=1)
     assert h.state == "HIST" and h.reason.startswith("drift:D2")
@@ -169,8 +169,36 @@ def test_state_machine_no_fallback_goes_to_hist_and_second_exit_is_final():
     assert L.next_state(h2, s, health=L.Health(), mon=_mon(400, n_epoch=200, d1=0.1), now_ms=4).state == "HIST"
 
 
-def test_failed_holdout_is_terminal_and_offers_fallback_only_in_case_a():
-    assert L.initial_state(L.Setup(mode="MODEL", case="B", holdout_passed=False, fallback_g2_holdout=True),
+def test_case_b_never_enters_l3():
+    s = L.Setup(mode="MODEL", case="B", holdout_passed=True, fallback_g2_holdout=True)
+    st = L.initial_state(s, now_ms=0)
+    assert st.state == "FALLBACK"
+    for k in range(1, 6):
+        st = L.next_state(st, s, health=L.Health(), mon=_mon(100 * k + 160, n_epoch=200, d1=0.2), now_ms=k)
+        assert not st.state.startswith("L3")
+    h = L.next_state(st, s, health=L.Health(), mon=_mon(900, d1=40.0), now_ms=9)
+    assert h.state == "HIST" and h.drift_exits == 1
+    back = L.next_state(h, s, health=L.Health(), mon=_mon(960, n_epoch=60, d1=0.4), now_ms=10)
+    assert back.state == "FALLBACK"
+    assert L.display_contract(back, s, calibrator_version="v")["probabilities"] == "FALLBACK"
+    assert L.initial_state(L.Setup(mode="MODEL", case="B", holdout_passed=True, fallback_g2_holdout=False),
+                           now_ms=0).state == "HIST"
+
+
+def test_calibrator_at_selects_latest_cutoff_not_after_t():
+    pri = {h: L.identity_prior() for h in L.HEADS}
+    rng = np.random.default_rng(14)
+    recs = _recs(300, rng)
+    vs = [L.fit_calibrator(recs, pri, cutoff_ms=c) for c in (WEEK, 2 * WEEK, 3 * WEEK)]
+    p0 = L.prior_calibrator(pri)
+    assert L.calibrator_at(2 * WEEK, vs, p0).version == vs[1].version
+    assert L.calibrator_at(2 * WEEK - 1, vs, p0).version == vs[0].version
+    assert L.calibrator_at(WEEK - 1, vs, p0) is p0
+    assert L.calibrator_at(10 * WEEK, list(reversed(vs)), p0).version == vs[2].version
+
+
+def test_failed_holdout_is_terminal_and_offers_fallback_only_if_it_passes_g2():
+    assert L.initial_state(L.Setup(mode="MODEL", case="A", holdout_passed=False, fallback_g2_holdout=False),
                            now_ms=0).state == "HIST"
     s = L.Setup(mode="MODEL", case="A", holdout_passed=False, fallback_g2_holdout=True)
     st = L.initial_state(s, now_ms=0)
@@ -222,9 +250,9 @@ def test_input_drift():
 
 
 def test_display_contract():
-    s = L.Setup(mode="MODEL", case="B", holdout_passed=True)
+    s = L.Setup(mode="MODEL", case="A", holdout_passed=True)
     d = L.display_contract(L.initial_state(s, now_ms=0), s, calibrator_version="v")
-    assert d["state"] == "L3_HISTORY_BACKED" and d["probabilities"] == "FALLBACK" and d["template"] == "LR_L3H_V1"
+    assert d["state"] == "L3_HISTORY_BACKED" and d["probabilities"] == "CHAMPION" and d["template"] == "LR_L3H_V1"
     off = L.next_state(L.initial_state(s, now_ms=0), s, health=L.Health(parity_ok=False), now_ms=1)
     d = L.display_contract(off, s, calibrator_version="v")
     assert d["probabilities"] is None and d["template"] == "LR_OFF_V1" and d["calibrator_version"] is None
