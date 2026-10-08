@@ -4190,3 +4190,28 @@ units:
     forbidden: treating this as an untested neighbour of the closed unit it names
     records:
     - docs/research/DH3_DESIGN.md
+  - id: OPENING-RANGE-OBJECT-V1
+    title: OPENING_RANGE_OBJECT_V1
+    program: OPENING_RANGE_V1
+    row: PRICE_STRUCTURE.levels
+    col: CANDLES
+    state: CANDIDATE_UNTESTED
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    period: '2020-01-01..2024-12-31 Binance USD-M BTCUSDT 1m aggregated to complete 5m bins; support census only; no 2025/2026 object; no E1 holdout'
+    units_n: 'primary paired outcome-eligible 1719 days, 262 ISO weeks; noon veto paired 1704 days, 262 ISO weeks; resolution not computed'
+    practical_bar: 'Reading scale 3 pp on a later paired resolution difference. Information floor 614 paired days and 100 ISO weeks, from an 8 pp planning benchmark under variance 0.5. The 8 pp figure is not an expected effect. Conservative half-width at the census N is about 3.34 pp.'
+    mechanism: 'MODE=DISCOVERY. Whether the high and low of the first UTC hour, frozen at 01:00 before any later interaction, organize the next 4h differently from a same-clock band built by a weekday half-rotation of another day''s log offsets. The noon hour is a veto for the word opening. Not a session extreme and not a participation clock.'
+    function: '12 complete 5m bars; wick first touch after the hour; ambiguous same-bar dual touches excluded; 4h window must finish inside the 23h life; pseudo bounds are the partner offsets on today''s decision close; census counts support and does not score Y'
+    verdict: 'NOT_EXECUTED. Support census only (2026-10-08). Design 3be350eb. Primary 1719 paired days, 262 weeks. Noon veto 1704 paired days, 262 weeks. Both cells INFORMATION_ADEQUATE_FOR_LATER_OUTCOME. outcome_read = false. No resolution rate and no route.'
+    why_closed: 'Not closed. Registered so the object, the veto, the control, and the support size are visible before any resolution label.'
+    reopen: 'A separate owner go may compute the frozen paired resolution difference once, on this surface, because both cells meet 614 pairs and 100 weeks. Not a new hour, duration, barrier fraction, or horizon. Not 2025/2026. Not adoption of the noon cell as the object. Not a product change.'
+    forbidden: 'reading Y inside the support census; choosing 15/30/45/90/120 minutes after the fact; a US, Europe, or Asia session anchor; treating the noon cell as a winner; conditioning on Level Engine break or reject labels; stating a current probability or a trade'
+    records:
+    - docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md
+    - docs/research/OPENING_RANGE_OBJECT_V1_FEASIBILITY.json
+    - docs/research/OPENING_RANGE_OBJECT_V1_FEASIBILITY.md
+    - scripts/research/opening_range_object_v1/census.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'DESIGN_FROZEN. Support census recorded. Not EXECUTED. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Exact resolution claim unread. Neighboring 4h paths on this row were already read by DH3-V1 and the Level Engine. Reopen key NEW_MECHANISM. Claim ceiling L2.'

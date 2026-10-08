@@ -1,3 +1,18 @@
+## OPENING_RANGE_OBJECT_V1 — design frozen; support census only; outcome not read — 2026-10-08
+
+`UNIT = OPENING_RANGE_OBJECT_V1 (atlas OPENING-RANGE-OBJECT-V1; family OPENING_RANGE_V1; MODE = DISCOVERY)`
+`SEPARATE LINE = does not replace the forecast-layer NEXT_UNIT and does not continue Level Engine`
+`DESIGN = 3be350eb0f71011928b1c99cc92f37059d631252 | sha256 7e46d9f5081a4b1c6e3246ff7e2172e96a0c14eba900eefd84731147630250c8 | before any resolution label`
+`OBJECT = first UTC hour [00:00, 01:00), 12 complete 5m bars, bounds frozen at 01:00 | lifespan until the next 00:00 | first wick interaction only | noon [12:00, 13:00) is a veto, not a second candidate`
+`CONTROL = weekday half-rotation of log offsets onto the same 01:00 close | clock, weekday, and the future path held fixed | today's width not matched`
+`DATA = CORE_BTC_BINANCE_V0 [2020-01-01, 2025-01-01) | class DISCOVERY_ON_EXPOSED_SURFACE | EXACT_CLAIM_PREVIOUSLY_READ = false | NEIGHBORING_PATH_PREVIOUSLY_READ = true | not a reopen of DH3-V1 | 2025/2026 not read | E1 not read`
+`SUPPORT = primary paired outcome-eligible 1719 days, 262 ISO weeks | noon veto 1704 days, 262 weeks | information INFORMATION_ADEQUATE_FOR_LATER_OUTCOME on both cells | conservative half-width about 3.34 pp`
+`NOT READ = resolution, extension, reentry, excursion, time outside, realized volatility, real-minus-pseudo effect | outcome_read = false`
+`CLAIM_CEILING = L2 | practical reading scale 3 pp | power benchmark 8 pp is not an expected effect | NEXT_UNIT for this line = none until a separate outcome go`
+`PRODUCT_CHANGE = none`
+
+Design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. Census: `docs/research/OPENING_RANGE_OBJECT_V1_FEASIBILITY.md`.
+
 ## Forecast layer and Level Engine routing — owner decision — 2026-10-08
 
 `DECISION = docs/FORECAST_LAYER_DECISION_V1.md | chain of command docs/ORCHESTRATION_V1.md`

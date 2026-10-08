@@ -8583,3 +8583,21 @@ OBJECTS_2025_2026_USED = none; E1 / V3 untouched; COMPILER_V3 = not run
 HIST_TABLE_V1 = computed once; MODEL = not started; HELD_OUT_READ = no
 PRODUCT_CHANGE = none (table artifact only); FINDINGS_REGISTRY = unchanged
 ```
+
+## 2026-10-08 — OPENING_RANGE_OBJECT_V1 design frozen; support census only; resolution not read
+
+**Unit.** `OPENING_RANGE_OBJECT_V1` (atlas `OPENING-RANGE-OBJECT-V1`), family `OPENING_RANGE_V1`, `MODE = DISCOVERY`. Claim ceiling L2. A new line. It does not rescore DH3-V1, the participation-clock row, or any Level Engine unit.
+- **Design.** Commit `3be350eb0f71011928b1c99cc92f37059d631252`, file SHA256 `7e46d9f5081a4b1c6e3246ff7e2172e96a0c14eba900eefd84731147630250c8`, before any post-interaction resolution label. Source main `03ad8ef3a3434b4426154aab2af6b651c9807de8`.
+- **Object.** First UTC hour, 12 complete 5m bars, bounds frozen at 01:00, first wick interaction only, lifespan until the next 00:00. The noon hour is a predeclared veto, not a second candidate. No duration grid.
+- **Control.** Weekday half-rotation of log offsets placed on the same decision close. Time of day, weekday, and the future path are shared. Today's width is not matched.
+- **Exposure.** `CORE_BTC_BINANCE_V0` dates `[2020-01-01, 2025-01-01)`. Class `DISCOVERY_ON_EXPOSED_SURFACE`. `EXACT_CLAIM_PREVIOUSLY_READ = false`. `NEIGHBORING_PATH_PREVIOUSLY_READ = true`. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `CANDLES`. Not placed on `CALENDAR.sessions`. No 2025/2026 object. No E1 holdout.
+- **Support, not an outcome.** Primary: 1827 calendar days, 1821 usable geometries, 1817 first interactions (1 ambiguous, 472 immediate), 1815 one-sided outcome-eligible, 1719 paired, 262 ISO weeks. Noon veto: 1704 paired, 262 ISO weeks, one lifespan truncated by the panel end. Information status `INFORMATION_ADEQUATE_FOR_LATER_OUTCOME` on both cells (floor 614 pairs and 100 weeks). Conservative half-width about 3.34 pp on the primary cell. `outcome_read = false`. A second census invocation returns `REFUSING_RERUN`.
+- **Not computed.** Resolution, extension versus reentry, excursion, time outside, realized volatility, and any real-minus-pseudo effect. The interaction counts are the size of a later estimand.
+- **Product.** No `/btc`, `/levels`, `/check`, `/risk`, Telegram, scoring, findings-registry, or deploy change. The forecast-layer next unit is unchanged. The accruing volatility-transition prospective confirmation is unchanged.
+
+```
+WINDOWS_EXPOSED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-01-01..2024-12-31, formation geometry and first-interaction existence only (further exposure of an already consumed row; resolution estimand not read; not CONSUMED for this estimand; not a confirmation; not a reopen of DH3-V1)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+OUTCOME_READ = no; INFORMATION = ADEQUATE_FOR_LATER_OUTCOME; LATER_OUTCOME_RUN = not started
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import datetime as dt
+import json
 import math
 from pathlib import Path
 
@@ -212,6 +213,18 @@ def test_rotation_is_deterministic_and_skips_a_copy():
     assert cell["paired_outcome_eligible"] == 0
     again = census.summarize(bars, design_sha256="synthetic")
     assert again == summary
+
+
+def test_official_census_did_not_read_the_outcome():
+    path = Path(__file__).resolve().parents[2] / "docs" / "research" / "OPENING_RANGE_OBJECT_V1_FEASIBILITY.json"
+    payload = json.loads(path.read_text())
+    census.assert_support_only(payload)
+    assert payload["design_commit"] == "3be350eb0f71011928b1c99cc92f37059d631252"
+    assert payload["information_primary"] == "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME"
+    assert payload["information_veto"] == "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME"
+    assert payload["cells"]["UTC_00"]["paired_outcome_eligible"] == 1719
+    assert payload["cells"]["UTC_12"]["paired_outcome_eligible"] == 1704
+    assert payload["cells"]["UTC_00"]["paired_iso_weeks"] == 262
 
 
 def test_half_width_matches_the_conservative_bound():

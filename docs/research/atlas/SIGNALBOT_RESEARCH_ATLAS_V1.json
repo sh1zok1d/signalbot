@@ -752,6 +752,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
+    "CANDIDATE_UNTESTED": 1,
     "CLOSED_ON_SURFACE": 13,
     "EXPOSED_ONLY": 2,
     "FUTURE_NATURAL_ACCUMULATION": 1,
@@ -794,6 +795,7 @@
     "LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1",
     "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1",
     "LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1",
+    "OPENING-RANGE-OBJECT-V1",
     "PRODUCT-V2-LEVELS"
    ],
    "value": {
@@ -10188,12 +10190,12 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 207,
+  "units": 208,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
-   "CANDIDATE_UNTESTED": 14,
+   "CANDIDATE_UNTESTED": 15,
    "CLOSED_BEFORE_START": 1,
    "CLOSED_ON_SURFACE": 29,
    "CONFIRMED": 1,
@@ -15578,6 +15580,7 @@
     "LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1",
     "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1",
     "LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1",
+    "OPENING-RANGE-OBJECT-V1",
     "PRODUCT-V2-LEVELS"
    ]
   },
@@ -15592,7 +15595,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "7e607e98057862c8946b61059ba5e480382c81a9c77eb0b808d84556c49ad14e",
+ "SOURCES_DIGEST": "c8e838edb4945385a8c508d03e121bb4cbf7b378e9268f5d4775e2ac11d8d586",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15860,6 +15863,14 @@
        "PRICE_STRUCTURE.levels"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "OPENING-RANGE-OBJECT-V1 support census only (first UTC hour and noon veto: formation geometry and first wick-interaction existence versus a weekday log-offset rotation), 2026-10-08; resolution, extension, reentry, and realized volatility not read; further exposure of the level row, not a confirmation and not a reopen of DH3-V1 or CALENDAR.sessions",
+      "period": "2020-01-01..2024-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "EXPOSED"
      },
      {
       "note": "TOM-BASELINE-V1 product-evidence run (turn-of-month vs mid-month label rates and day-level volume / trade count / range), 2026-10-06; first turn-of-month contrast computed on this surface",
@@ -22328,6 +22339,36 @@
    "units_n": "none yet; stop is 600 matched path-complete pairs and 104 completed weeks",
    "verdict": "NOT_EXECUTED. Protocol PROSPECTIVE_CONFIRMATION_STARTED. Accrual AWAITING_START. Design d30622de. Start 2026-10-09T00:00:00Z. exact_outcome_read = false. Evaluator refuses. No route and no effect.",
    "why_closed": "Not closed. Registered so the frozen start and the stop are visible before any future bar is an eligible event."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0"
+   ],
+   "forbidden": "reading Y inside the support census; choosing 15/30/45/90/120 minutes after the fact; a US, Europe, or Asia session anchor; treating the noon cell as a winner; conditioning on Level Engine break or reject labels; stating a current probability or a trade",
+   "function": "12 complete 5m bars; wick first touch after the hour; ambiguous same-bar dual touches excluded; 4h window must finish inside the 23h life; pseudo bounds are the partner offsets on today's decision close; census counts support and does not score Y",
+   "id": "OPENING-RANGE-OBJECT-V1",
+   "mechanism": "MODE=DISCOVERY. Whether the high and low of the first UTC hour, frozen at 01:00 before any later interaction, organize the next 4h differently from a same-clock band built by a weekday half-rotation of another day's log offsets. The noon hour is a veto for the word opening. Not a session extreme and not a participation clock.",
+   "note": "DESIGN_FROZEN. Support census recorded. Not EXECUTED. Surface class DISCOVERY_ON_EXPOSED_SURFACE. Exact resolution claim unread. Neighboring 4h paths on this row were already read by DH3-V1 and the Level Engine. Reopen key NEW_MECHANISM. Claim ceiling L2.",
+   "period": "2020-01-01..2024-12-31 Binance USD-M BTCUSDT 1m aggregated to complete 5m bins; support census only; no 2025/2026 object; no E1 holdout",
+   "practical_bar": "Reading scale 3 pp on a later paired resolution difference. Information floor 614 paired days and 100 ISO weeks, from an 8 pp planning benchmark under variance 0.5. The 8 pp figure is not an expected effect. Conservative half-width at the census N is about 3.34 pp.",
+   "program": "OPENING_RANGE_V1",
+   "records": [
+    "docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md",
+    "docs/research/OPENING_RANGE_OBJECT_V1_FEASIBILITY.json",
+    "docs/research/OPENING_RANGE_OBJECT_V1_FEASIBILITY.md",
+    "scripts/research/opening_range_object_v1/census.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A separate owner go may compute the frozen paired resolution difference once, on this surface, because both cells meet 614 pairs and 100 weeks. Not a new hour, duration, barrier fraction, or horizon. Not 2025/2026. Not adoption of the noon cell as the object. Not a product change.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CANDIDATE_UNTESTED",
+   "title": "OPENING_RANGE_OBJECT_V1",
+   "units_n": "primary paired outcome-eligible 1719 days, 262 ISO weeks; noon veto paired 1704 days, 262 ISO weeks; resolution not computed",
+   "verdict": "NOT_EXECUTED. Support census only (2026-10-08). Design 3be350eb. Primary 1719 paired days, 262 weeks. Noon veto 1704 paired days, 262 weeks. Both cells INFORMATION_ADEQUATE_FOR_LATER_OUTCOME. outcome_read = false. No resolution rate and no route.",
+   "why_closed": "Not closed. Registered so the object, the veto, the control, and the support size are visible before any resolution label."
   },
   {
    "col": "CANDLES",

@@ -397,7 +397,7 @@
    "frontier_value": 5,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 25,
+   "prior_signature_count": 26,
    "prior_signatures": [
     {
      "function": "CONFLUENT_LEVEL_HOLD_4H",
@@ -518,6 +518,11 @@
      "function": "LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1",
      "id": "LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1",
      "mechanism": "MODE=CONFIRMATION. ACCRUAL=PROSPECTIVE_ONLY. Whether the exact frozen #368 60m pre/post RV transition appears on structural first touches whose episodes open only after the design freeze. Not a new feature."
+    },
+    {
+     "function": "OPENING_RANGE_OBJECT_V1",
+     "id": "OPENING-RANGE-OBJECT-V1",
+     "mechanism": "MODE=DISCOVERY. Whether the high and low of the first UTC hour, frozen at 01:00 before any later interaction, organize the next 4h differently from a same-clock band built by a weekday half-rotation of another day's log offsets. The noon hour is a veto for the word opening. Not a session extreme and not a participation clock."
     },
     {
      "function": "Objective levels: first-touch reactions vs random levels at the same distance",
@@ -7745,7 +7750,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "7e607e98057862c8946b61059ba5e480382c81a9c77eb0b808d84556c49ad14e",
+ "SOURCES_DIGEST": "c8e838edb4945385a8c508d03e121bb4cbf7b378e9268f5d4775e2ac11d8d586",
  "SURFACES": [
   {
    "also_cols": [
