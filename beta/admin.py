@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import html
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Sequence
 
 from .access import invite_link
@@ -23,7 +23,7 @@ ADMIN_COMMANDS = ("admin_status", "admin_users", "admin_add", "admin_remove", "a
                   "admin_resume_push", "admin_d7_on", "admin_d7_off", "admin_broadcast", "admin_outage",
                   "admin_health", "admin_invite_new", "admin_invites", "admin_invite_revoke",
                   "admin_waitlist", "admin_waitlist_admit", "admin_stats", "admin_reply", "admin_known",
-                  "admin_latency")
+                  "admin_latency", "admin_offer")
 UNAUTHORIZED_ACTOR = "unauthorized"
 
 
@@ -290,7 +290,8 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
         else:
             fp, body = parsed
             target = fp
-            status, hits = classify_fingerprint(await conn.active_user_rows(), fp)
+            # paused participants are answered too (J4): they are enrolled until deleted
+            status, hits = classify_fingerprint(await conn.enrolled_user_rows(), fp)
             if status != "OK":
                 result = status
                 reply = "unknown fingerprint" if status == "UNKNOWN" else "ambiguous fingerprint"
@@ -322,6 +323,31 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
             mass = {"action": "admin_outage", "label": f"outage {phase} notice", "phase": phase}
             reply = f"outage {phase} notice: sending to {len(direct)} active participants"
             detail = {"phase": phase, "recipients": len(direct)}
+    elif command == "admin_offer":
+        # I2 / U3 (PRODUCT_FIRST_DECISION_V1 §7): the price to everyone enrolled, churned included, days 21–25.
+        # The owner keeps the payment ledger outside git; the fingerprints and the time go to the owner only.
+        from .i18n import t
+        offer = cfg.section("access").get("u3_offer") or {}
+        if not (offer.get("price") and offer.get("method")):
+            result = "REFUSED"
+            reply = "refused: access.u3_offer.price and .method are fixed in a commit before Day 0"
+        elif (args or "").strip().lower() not in ("send", "send again"):
+            reply = ("preview (ru):\n" + t("ru", "u3_offer", price=offer["price"], method=offer["method"])
+                     + "\n\nsend it to every enrolled participant: /admin_offer send")
+        elif (args or "").strip().lower() == "send" and await conn.u3_offer_sent():
+            # U3 is one offer: a second «send» is refused; the owner types «send again» on purpose
+            result = "REFUSED"
+            reply = "refused: the U3 offer was already sent; to send it again: /admin_offer send again"
+        else:
+            rows = await conn.enrolled_user_rows()
+            direct = [(int(r["chat_id"]), t(r.get("lang") or "ru", "u3_offer", price=offer["price"],
+                                            method=offer["method"]), r.get("lang") or "ru") for r in rows]
+            mass = {"action": "admin_offer", "label": "U3 offer"}
+            when = now.astimezone(timezone.utc).isoformat()
+            reply = ("U3 offer: sending to %d enrolled participants (churned included)\nfor the ledger "
+                     "(participant_fingerprint, offered_at):\n" % len(direct)
+                     + "\n".join(f"{fingerprint(int(r['telegram_user_id']))} {when}" for r in rows))
+            detail = {"recipients": len(direct)}
     elif command == "admin_latency":
         # A4: candle close (or schedule) -> delivery, P50/P95 by class
         from .latency import format_report, summarize
