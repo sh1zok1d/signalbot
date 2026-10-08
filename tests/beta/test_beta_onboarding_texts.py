@@ -63,3 +63,16 @@ def test_the_sample_alert_carries_no_corridor():
     for lang in ("ru", "en"):
         text = _sample_level_alert(lang)
         assert "оридор" not in text and "orridor" not in text and "98 600" not in text
+
+
+def test_the_offer_says_what_is_paid_for_and_that_an_extension_moves_the_start():
+    """Owner, 2026-10-08: the paid month starts at the actual end of the free test, extension included; no
+    continuation means a full refund; no performance claim."""
+    ru = " ".join(t("ru", "u3_offer", price="P", method="M").split())
+    en = " ".join(t("en", "u3_offer", price="P", method="M").split())
+    assert "месяц того же бота, начиная с окончания бесплатного теста" in ru and "начало сдвинется" in ru
+    assert "Если продолжения не будет — вернём всю сумму" in ru
+    assert "one month of the same bot, starting when the free test ends" in en and "the start moves" in en
+    assert "we refund the full amount" in en
+    for text in (ru, en):
+        assert not any(w in text.lower() for w in ("прибыл", "заработ", "profit", "earn", "точн", "accura"))

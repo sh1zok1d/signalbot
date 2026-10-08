@@ -486,10 +486,15 @@ _CATALOG: dict[str, dict[str, str]] = {
     "plain_to_team": {"ru": "Передал команде — ответ придёт сюда. Команды: /help",
                       "en": "Passed to the team — the answer comes here. Commands: /help"},
     # I2 / U3 (PRODUCT_FIRST_DECISION_V1 §7): the offer on days 21–25, to everyone enrolled, churned included
-    "u3_offer": {"ru": "Бета подходит к концу. Если бот был полезен, его можно продолжить: {price}. Оплата: {method}. "
-                       "Деньги можно вернуть в течение 30 дней. Вопросы и оплата — через /feedback или ответом сюда.",
-                 "en": "The beta is ending. If the bot was useful, you can keep it: {price}. Payment: {method}. "
-                       "You can get the money back within 30 days. Questions and payment: /feedback or a reply here."},
+    # U3 (owner, 2026-10-08): one month of the same bot from the actual end of the free test, extension included
+    "u3_offer": {"ru": "Бета подходит к концу. Если бот был полезен, можно оплатить платное продолжение: месяц того же "
+                       "бота, начиная с окончания бесплатного теста (если тест продлят, начало сдвинется). {price}. "
+                       "Оплата: {method}. Если продолжения не будет — вернём всю сумму. Деньги можно вернуть и в "
+                       "течение 30 дней после оплаты. Вопросы и оплата — через /feedback или ответом сюда.",
+                 "en": "The beta is ending. If the bot was useful, you can pay for a continuation: one month of the same "
+                       "bot, starting when the free test ends (if the test is extended, the start moves). {price}. "
+                       "Payment: {method}. If there is no continuation, we refund the full amount. You can also get the "
+                       "money back within 30 days of paying. Questions and payment: /feedback or a reply here."},
     "feedback_thanks": {
         "ru": "Спасибо! Отзыв передан команде.",
         "en": "Thanks! Your feedback was sent to the team.",
