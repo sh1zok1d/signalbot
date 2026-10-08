@@ -62,3 +62,19 @@ def test_a_partial_volume_day_is_no_baseline_day():
     k = 288 * (days + 1) - 1 - 288                                     # a bucket inside yesterday's window
     r2 = rows(288 * (days + 1), gaps={k - 10: (EXS[0],)})
     assert _baseline_24h(CFG, r2, AS_OF)["days"]["volume_notional_usd"] == clean - 1
+
+
+def test_a_missing_oi_is_not_computed_never_no_change():
+    """One venue gives no OI headline since V4 (#410): the OI check is then «не проверено», not «нет»."""
+    one_venue = {**ALL, "oi_w": None}
+    assert "oi_price" not in changes_checked(**one_venue)
+    line = _changes_lines({"changes": [], "changes_checked": changes_checked(**one_venue)}, "ru")[0]
+    assert line.endswith("(не проверено: OI вместе с ценой — нет данных)")
+
+
+@pytest.mark.parametrize("lang,want", [("ru", "−0,6% (медиана бирж)"), ("en", "−0.6% (median across exchanges)")])
+def test_push_oi_figures_are_labelled_as_the_median(lang, want):
+    from beta.formatter import _facts_line, _oi_med
+    assert _oi_med(-0.6, lang) == want
+    assert _oi_med(None, lang) in ("н/д", "n/a")
+    assert want in _facts_line({"price_move_pct": 1.0, "oi_change_pct": -0.6, "taker_delta_notional_usd": 1e6}, lang)

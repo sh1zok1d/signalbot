@@ -714,7 +714,12 @@ def _withheld_note(cfg, reason: Optional[str], lang: str) -> Optional[str]:
 
 def _facts_line(values: Mapping[str, Any], lang: str) -> str:
     return t(lang, "hour_facts", pct=_pct_or_na(values.get("price_move_pct"), lang, nd=1),
-             oi=_pct_or_na(values.get("oi_change_pct"), lang, nd=1), delta=_usd_or_na(values.get("taker_delta_notional_usd"), lang))
+             oi=_oi_med(values.get("oi_change_pct"), lang), delta=_usd_or_na(values.get("taker_delta_notional_usd"), lang))
+
+
+def _oi_med(v, lang: str) -> str:
+    """A push's OI figure: the 1h context's median of the venue changes, labelled as one (D3, R4)."""
+    return na(lang) if v is None else t(lang, "oi_med_value", pct=fmt_signed_pct(float(v), lang, nd=1))
 
 
 def _pct_or_na(v, lang: str, nd: int = 2) -> str:
@@ -770,7 +775,7 @@ def _state_body(cfg, res: Mapping[str, Any], values: Mapping[str, Any], h: str, 
     kind, key = res.get("kind"), res.get("key") or "missing"
     label = interpretation_text(res, lang)
     pct = _pct_or_na(values.get("price_move_pct"), lang, nd=1)
-    oi = _pct_or_na(values.get("oi_change_pct"), lang, nd=1)
+    oi = _oi_med(values.get("oi_change_pct"), lang)
     delta = _usd_or_na(values.get("taker_delta_notional_usd"), lang)
     if kind == NORMAL:
         return label
@@ -1420,7 +1425,7 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
         lines.append(price)
     res = gate.get("interpretation") or {}
     oi, delta = values.get("oi_change_pct"), values.get("taker_delta_notional_usd")
-    oi_txt = na(lang) if oi is None else fmt_signed_pct(float(oi), lang, nd=1)
+    oi_txt = _oi_med(oi, lang)
     if delta is None:
         lines.append(t(lang, "oi_only_line", oi=oi_txt))
         lines.append(t(lang, "beside_delta_na_bare"))

@@ -870,6 +870,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "price_drop_95": {"ru": "падение глубже, чем в 95% часовых окон за 30 дней",
                       "en": "a drop deeper than in 95% of hourly windows over 30 days"},
     "oi_delta_line": {"ru": "OI {oi} · Delta {delta}", "en": "OI {oi} · Delta {delta}"},
+    "oi_med_value": {"ru": "{pct} (медиана бирж)", "en": "{pct} (median across exchanges)"},
     "oi_only_line": {"ru": "OI {oi}", "en": "OI {oi}"},
     "evt_buy": {"ru": "агрессивные покупки", "en": "aggressive buying"},
     "evt_sell": {"ru": "агрессивные продажи", "en": "aggressive selling"},
