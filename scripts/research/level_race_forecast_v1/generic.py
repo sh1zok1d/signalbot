@@ -63,8 +63,9 @@ def first_passage(high, low, i: int, up_px: float, dn_px: float) -> str:
     return "DOWN"
 
 
-def generic_rows(bars: Bars, *, with_outcome: bool) -> list[dict]:
-    idx, sig = anchors(bars)
+def generic_rows(bars: Bars, *, with_outcome: bool, start_ms: int = K352.EVENT_START_MS,
+                 end_ms: int = K352.SURFACE_END_MS) -> list[dict]:
+    idx, sig = anchors(bars, start_ms=start_ms, end_ms=end_ms)
     rows = []
     for i in idx:
         c = float(bars.close[i])

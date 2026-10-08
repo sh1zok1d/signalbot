@@ -563,5 +563,19 @@
       0.68,
       0.9
     ]
+  },
+  "freeze_candidate": {
+    "calibration_design": "docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md",
+    "calibrator": "beta/level_race_calibration.py (#408)",
+    "slope": "hierarchical, b_LEVEL - b_GENERIC ~ N(0, 0.25^2)",
+    "s_level_by_case": {
+      "A": 0.5,
+      "B": 1.0
+    },
+    "case_B_rule": "HIST or FALLBACK, never L3; sim: fallback passes G2 on level events in 0% of replications",
+    "model_artifact": "docs/research/LEVEL_RACE_MODEL_V1.json",
+    "model_file_sha256": "454109c8b2532906d54045b3f8fe3362afb0fb684cab18053ada1265d5480d3a",
+    "evaluator": "scripts/research/level_race_forecast_v1/heldout.py run(freeze_date, 'GO:'+sha[:12])",
+    "resolved_ms": "close of bar j+48 (conservative)"
   }
 }

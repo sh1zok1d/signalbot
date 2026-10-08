@@ -110,3 +110,19 @@ def test_table_file_digest_covers_provenance(tmp_path):
 def test_cell_key_format():
     assert L.cell_key("T0", "PDH") == "T0|DAY|H"
     assert L.cell_key("T15", "PWL", 0.5) == "T15|WEEK|L|F2"
+
+
+def test_model_file_digest_and_raw_forecasts(tmp_path):
+    m = L.load_model()
+    assert m["champion"] == "M1" and m["version"] == "LEVEL_RACE_MODEL_V1"
+    g = L.event_geometry(99850.0, 100150.0, 0.0015, 1)
+    out = L.raw_forecasts(m, landmark="T0", kind="PDH", price=100000.0, geo=g, sigma=0.0015)
+    for k in ("b0", "m1", "g1", "c1"):
+        assert abs(sum(out["break_order"][k]) - 1) < 1e-9
+        assert out["display"][k]["up"] == out["break_order"][k][0]      # approach from below: beyond = up
+    t15 = L.raw_forecasts(m, landmark="T15", kind="PDH", price=100000.0, geo=g, sigma=0.0015)
+    assert "c1" not in t15["break_order"]                                # no cross-venue move -> no C1
+    bad = tmp_path / "m.json"
+    bad.write_bytes(L.MODEL_PATH.read_bytes().replace(b"M1", b"M2", 1))
+    with pytest.raises(RuntimeError):
+        L.load_model(bad)

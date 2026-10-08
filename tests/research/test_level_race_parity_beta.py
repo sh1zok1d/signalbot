@@ -111,3 +111,33 @@ def test_c1_input_matches_the_research_ovmm():
         assert got["OVMM"] == pytest.approx(want, abs=1e-15)
         n += 1
     assert n > 10
+
+
+def test_frozen_model_parity_with_the_research_predictor():
+    from scripts.research.level_race_forecast_v1.model import TwoHead
+    m = L.load_model()
+    rng = np.random.default_rng(11)
+    kinds = ("PDH", "PDL", "PWH", "PWL", "PMH", "PML")
+    for name in ("M1", "G1", "C1"):
+        spec = m[name]
+        th = TwoHead(spec["spec_r"], spec["spec_b"], spec["beta_r"], spec["beta_b"],
+                     tuple(spec["sigma_tercile_edges"]), spec["lambda_per_event"])
+        for _ in range(40):
+            bb, bk = rng.uniform(0.1, 0.5), rng.uniform(0.1, 0.5)
+            b0 = (bb, bk, max(1 - bb - bk, 0.01))
+            s = sum(b0)
+            b0 = tuple(v / s for v in b0)
+            lm = "T15" if rng.uniform() < 0.5 else "T0"
+            kind = kinds[rng.integers(6)]
+            sigma = float(rng.uniform(0.0008, 0.0025))
+            ov = float(rng.normal(0.003, 0.004))
+            row = {"landmark": lm, "family": K352.FAMILY_OF[kind], "struct_side": K352.STRUCT_SIDE[kind],
+                   "sigma": sigma, "b0_beyond": b0[0], "b0_back": b0[1], "b0_neither": b0[2]}
+            extra = None
+            if name == "C1":
+                mu, sd = spec["c1_moments"]
+                extra = {"OVMM": [((ov - mu) / sd) if lm == "T15" else 0.0]}
+            ref = th.predict([row], extra)[0]
+            got = L.two_head(spec, b0, landmark=lm, kind=None if name == "G1" else kind, sigma=sigma,
+                             ovmm=ov if name == "C1" else None)
+            assert np.allclose(got, ref, atol=1e-10), (name, got, ref)

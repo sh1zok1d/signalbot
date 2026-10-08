@@ -222,21 +222,94 @@ def test_heldout_event_span_and_window():
     assert not HO.event_in_window(ms(2026, 10, 15, 21, 0), date(2026, 10, 16))
     with pytest.raises(RuntimeError):
         HO.require_go("go")
+    with pytest.raises(RuntimeError):
+        HO.require_go(None)
 
 
-def test_calibrator_identity_and_prequential_uses_only_the_past():
-    from scripts.research.level_race_forecast_v1 import calibrate as C
-    rng = np.random.default_rng(4)
-    n = 3000
-    p = rng.uniform(0.05, 0.95, n)
-    y = (rng.uniform(size=n) < p).astype(float)
-    cal = C.HeadCalibrator().fit(["LEVEL_T0"] * n, p, y)
-    assert cal.theta[3] == pytest.approx(1.0, abs=0.15) and abs(cal.theta[1]) < 0.15
-    P = np.column_stack([p * 0.5, p * 0.5, 1 - p])
-    yy = np.where(y > 0, 0, 2)
-    wk = np.repeat(np.arange(30), 100)
-    pub = C.prequential(wk, wk, ["LEVEL_T0"] * n, P, yy, C.Prior(), use_level_intercepts=True)
-    assert np.allclose(pub.sum(axis=1), 1.0)
-    # week 0 has no past: identity prior (a = 0, b = 1) up to the floor
-    assert np.allclose(pub[wk == 0][:, 2], np.maximum(P[wk == 0][:, 2], 0.001) /
-                       np.maximum(P[wk == 0], 0.001).sum(axis=1), atol=1e-6)
+def _synthetic_heldout(seed=7, n=900):
+    rng = np.random.default_rng(seed)
+    W = 7 * 86_400_000
+    t0 = 1735689600000
+    lv, gn = [], []
+    for i in range(n):
+        iss = t0 + int(rng.integers(0, 60 * W))
+        p_true = np.array([0.45, 0.42, 0.13])
+        y = ("BREAK", "REJECT", "NEITHER")[rng.choice(3, p=p_true)]
+        lv.append({"cal_class": "LEVEL_T0" if i % 2 else "LEVEL_T15", "outcome": y, "week": iss // W,
+                   "issued_ms": iss, "resolved_ms": iss + 4 * 3_600_000,
+                   "p_m1": p_true.tolist(), "p_g1": [0.33, 0.33, 0.34], "p_b0": [0.36, 0.40, 0.24]})
+    for i in range(2 * n):
+        iss = t0 + int(rng.integers(0, 60 * W))
+        y = ("BREAK", "REJECT", "NEITHER")[rng.choice(3, p=[0.32, 0.32, 0.36])]
+        gn.append({"outcome": y, "week": iss // W, "issued_ms": iss, "resolved_ms": iss + 4 * 3_600_000,
+                   "p_g1": [0.33, 0.33, 0.34]})
+    return lv, gn, t0, t0 + 60 * W
+
+
+def test_heldout_pipeline_on_the_live_calibrator_without_leakage():
+    from beta import level_race_calibration as LRC
+    from scripts.research.level_race_forecast_v1 import heldout as HO
+    lv, gn, a, z = _synthetic_heldout()
+    cases = HO.decide_cases(lv)
+    assert cases == {"T0": "A", "T15": "A"}          # the true model beats both baselines here
+    out = HO.prequential(lv, gn, a, z, cases)
+    recs = out["records"]
+    assert len(recs) == len(lv) and all(abs(sum(r["p_pub"]) - 1) < 1e-9 for r in recs)
+    cutoffs = LRC.batch_cutoffs(a, z)
+    for r in recs[:50]:                               # version in force = latest cutoff <= issue time
+        c = max([x for x in cutoffs if x <= r["issued_ms"]], default=None)
+        if c is None:
+            assert r["calibrator_version"].startswith(LRC.LR_CAL_VERSION)
+    rep = HO.gate_report(recs, cases)
+    assert set(rep) == {"T0", "T15"} and rep["T0"]["case"] == "A"
+    assert rep["T0"]["state_at_switch"] in ("L3_HISTORY_BACKED", "FALLBACK", "HIST")
+
+
+def test_case_b_never_reaches_an_l3_state():
+    from scripts.research.level_race_forecast_v1 import heldout as HO
+    lv, gn, a, z = _synthetic_heldout()
+    for r in lv:
+        r["p_m1"] = r["p_g1"]                         # champion no better than G1@event -> case B
+    cases = HO.decide_cases(lv)
+    assert cases == {"T0": "B", "T15": "B"}
+    rep = HO.gate_report(HO.prequential(lv, gn, a, z, cases)["records"], cases)
+    assert all(v["state_at_switch"] in ("FALLBACK", "HIST") for v in rep.values())
+
+
+def test_no_second_calibrator_in_the_research_package():
+    import importlib.util
+    assert importlib.util.find_spec("scripts.research.level_race_forecast_v1.calibrate") is None
+
+
+def test_heldout_evaluator_on_synthetic_bars():
+    """Synthetic random-walk bars dated 2024-12..2025-03 (no market data): the evaluator builds
+    events, raws, outcomes, the case decision and the gate report end to end."""
+    from datetime import date
+    from beta import level_race as L
+    from beta.hist_series import bars_from_rows
+    from scripts.research.level_race_forecast_v1 import heldout as HO
+    rng = np.random.default_rng(3)
+    w, a, z = HO._window_ms(date(2025, 3, 1))
+    n = (z - w) // 300_000
+    c = 100_000 * np.exp(np.cumsum(rng.normal(0, 0.0015, n)))
+    rows = []
+    for i in range(n):
+        o = c[i - 1] if i else c[0]
+        hi = max(o, c[i]) * (1 + abs(rng.normal(0, 0.0005)))
+        lo = min(o, c[i]) * (1 - abs(rng.normal(0, 0.0005)))
+        rows.append({"open_time_ms": w + i * 300_000, "open": o, "high": hi, "low": lo, "close": c[i],
+                     "volume": 1.0, "quote_volume": 1.0, "taker_buy_quote": 0.5})
+    bars = bars_from_rows(rows, start_ms=w, end_ms=z)
+    res = HO.evaluate_bars(bars, date(2025, 3, 1), L.load_model())
+    assert res["n_level"] > 20 and res["n_generic"] > 1000
+    assert set(res["cases"]) == {"T0", "T15"}
+    assert set(res["gates"]) == {"T0", "T15"}
+
+
+def test_heldout_run_refuses_without_go():
+    from datetime import date
+    from scripts.research.level_race_forecast_v1 import heldout as HO
+    with pytest.raises(RuntimeError):
+        HO.run(date(2026, 10, 16), None)
+    with pytest.raises(RuntimeError):
+        HO.run(date(2026, 10, 16), "GO:000000000000")

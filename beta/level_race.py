@@ -212,3 +212,90 @@ def percents(fracs: Mapping[str, float]) -> dict:
     for i in order[:rest]:
         base[i] += 1
     return dict(zip(keys, base))
+
+
+# ---- model states: frozen raw predictors (LEVEL_RACE_MODEL_V1; used only when
+#      level_race.model_states_enabled = true; calibration lives in beta.level_race_calibration) ----
+MODEL_PATH = Path(__file__).resolve().parents[1] / "docs/research/LEVEL_RACE_MODEL_V1.json"
+MODEL_FILE_SHA256 = "454109c8b2532906d54045b3f8fe3362afb0fb684cab18053ada1265d5480d3a"
+OFFSET_CLIP = 1e-4
+
+
+def load_model(path: Path = MODEL_PATH) -> dict:
+    raw = Path(path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != MODEL_FILE_SHA256:
+        raise RuntimeError("level race model file digest mismatch")
+    return json.loads(raw.decode("utf-8"))
+
+
+def _lg(p: float) -> float:
+    p = min(max(float(p), OFFSET_CLIP), 1 - OFFSET_CLIP)
+    return math.log(p / (1 - p))
+
+
+def _sig(z: float) -> float:
+    return 1.0 / (1.0 + math.exp(-z))
+
+
+def _term(term: str, *, landmark: str, kind: Optional[str], sigma: float, edges, ovmm_z: Optional[float]) -> float:
+    if term == "1":
+        return 1.0
+    if term == "T15":
+        return 1.0 if landmark == "T15" else 0.0
+    if term == "FAM_WM":
+        return 0.0 if FAMILY_OF[kind] == "DAY" else 1.0
+    if term == "WEEK":
+        return 1.0 if FAMILY_OF[kind] == "WEEK" else 0.0
+    if term == "MONTH":
+        return 1.0 if FAMILY_OF[kind] == "MONTH" else 0.0
+    if term == "SIDE":
+        return float(STRUCT_SIDE[kind])
+    if term == "SIGMA_T":
+        return -1.0 if sigma < edges[0] else (0.0 if sigma < edges[1] else 1.0)
+    if term == "OVMM":
+        return float(ovmm_z) if landmark == "T15" else 0.0
+    raise KeyError(term)
+
+
+def _floor3(p: Sequence[float]) -> tuple:
+    q = [max(float(v), PROB_FLOOR) for v in p]
+    t = sum(q)
+    return (q[0] / t, q[1] / t, q[2] / t)
+
+
+def two_head(spec: Mapping[str, Any], b0_beyond_back_neither: Sequence[float], *, landmark: str,
+             kind: Optional[str], sigma: float, ovmm: Optional[float] = None) -> tuple:
+    """Raw (beyond, back, neither) of a frozen two-head model offset by B0 (design §2.3)."""
+    bb, bk, bn = (float(v) for v in b0_beyond_back_neither)
+    res = bb + bk
+    edges = spec["sigma_tercile_edges"]
+    oz = None
+    if "OVMM" in spec["spec_b"]:
+        if landmark == "T15" and ovmm is None:
+            raise ValueError("C1 needs the cross-venue move at T15")
+        mu, sd = spec["c1_moments"]
+        oz = None if ovmm is None else (float(ovmm) - mu) / sd
+    xr = sum(b * _term(t, landmark=landmark, kind=kind, sigma=sigma, edges=edges, ovmm_z=oz)
+             for t, b in zip(spec["spec_r"], spec["beta_r"]))
+    xb = sum(b * _term(t, landmark=landmark, kind=kind, sigma=sigma, edges=edges, ovmm_z=oz)
+             for t, b in zip(spec["spec_b"], spec["beta_b"]))
+    pr = _sig(_lg(res) + xr)
+    pb = _sig(_lg(bb / res) + xb)
+    return _floor3((pr * pb, pr * (1 - pb), 1 - pr))
+
+
+def raw_forecasts(model: Mapping[str, Any], *, landmark: str, kind: str, price: float, geo: Mapping[str, Any],
+                  sigma: float, ovmm: Optional[float] = None) -> dict:
+    """Raw three-outcome vectors at one landmark, in (up, dn, neither) order for display and in
+    (beyond, back, neither) = (BREAK, REJECT, NEITHER) order for the calibrator and journal:
+    B0, the champion M1, G1@event (the fallback raw, «обычно» of the model states) and C1 (shadow)."""
+    up, dn, ne = b0_race(price, geo["p_up"], geo["p_dn"], sigma, TAU[landmark])
+    b0 = (up, dn, ne) if geo["beyond_is_up"] else (dn, up, ne)
+    out = {"b0": _floor3(b0),
+           "m1": two_head(model["M1"], b0, landmark=landmark, kind=kind, sigma=sigma),
+           "g1": two_head(model["G1"], b0, landmark=landmark, kind=None, sigma=sigma)}
+    if landmark == "T0" or ovmm is not None:
+        out["c1"] = two_head(model["C1"], b0, landmark=landmark, kind=kind, sigma=sigma, ovmm=ovmm)
+    to_ud = (lambda p: {"up": p[0], "dn": p[1], "neither": p[2]}) if geo["beyond_is_up"] else \
+            (lambda p: {"up": p[1], "dn": p[0], "neither": p[2]})
+    return {"break_order": out, "display": {k: to_ud(v) for k, v in out.items()}}
