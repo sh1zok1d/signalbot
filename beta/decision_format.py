@@ -368,6 +368,20 @@ def cal_part(label: str, w: Mapping[str, Any], lang: str) -> str:
              n=int(w["n_eff"]), src=t(lang, "ck_src_live" if w["source"] == "live" else "ck_src_hold"))
 
 
+def corridor_record(c: Mapping[str, Any], h: str) -> Optional[tuple]:
+    """A corridor horizon's record: ("live", share inside, N_eff) over 30 days once its independent windows
+    reach MIN_N_SHOWN (the /accuracy rule), else ("hold", share inside, days) on the held-out year, else None."""
+    rec = (c.get("live") or {}).get(h) or {}
+    n = int(rec.get("INSIDE", 0)) + int(rec.get("OUTSIDE", 0))
+    n_eff = int(rec.get("N_EFF", 0))
+    ho = (c.get("holdout") or {}).get(h) or {}
+    if n and n_eff >= MIN_N_SHOWN:
+        return ("live", rec.get("INSIDE", 0) / n, n_eff)
+    if ho.get("coverage_realized") is not None:
+        return ("hold", ho["coverage_realized"], int(ho.get("n_days") or 0))
+    return None
+
+
 def _btc_corridor(block: Mapping[str, Any], lang: str, horizons: Sequence[str] = ("1h", "4h", "24h")) -> list:
     """«Коридор: 1ч … · 4ч … · 24ч …» and its record: the share inside by horizon, live over 30 days
     once its independent windows reach MIN_N_SHOWN (the /accuracy rule), else on the held-out year."""
@@ -385,15 +399,14 @@ def _btc_corridor(block: Mapping[str, Any], lang: str, horizons: Sequence[str] =
         out.append(note)
     live, hold, days = [], [], 0
     for h in shown:
-        rec = (c.get("live") or {}).get(h) or {}
-        n = int(rec.get("INSIDE", 0)) + int(rec.get("OUTSIDE", 0))
-        n_eff = int(rec.get("N_EFF", 0))
-        ho = (c.get("holdout") or {}).get(h) or {}
-        if n and n_eff >= MIN_N_SHOWN:
-            live.append(t(lang, "dc_btc_track_live", h=_hz(h, lang), p=fmt_share(rec.get("INSIDE", 0) / n, lang), n=n_eff))
-        elif ho.get("coverage_realized") is not None:
-            hold.append(t(lang, "dc_btc_track_part", h=_hz(h, lang), p=fmt_share(ho["coverage_realized"], lang)))
-            days = max(days, int(ho.get("n_days") or 0))
+        r = corridor_record(c, h)
+        if r is None:
+            continue
+        if r[0] == "live":
+            live.append(t(lang, "dc_btc_track_live", h=_hz(h, lang), p=fmt_share(r[1], lang), n=r[2]))
+        else:
+            hold.append(t(lang, "dc_btc_track_part", h=_hz(h, lang), p=fmt_share(r[1], lang)))
+            days = max(days, r[2])
     parts = live + ([t(lang, "dc_btc_track_hold", parts=" · ".join(hold), days=days)] if hold else [])
     if parts:
         # every horizon shown here is outside its own release span (a horizon inside it is dropped at the
@@ -932,6 +945,22 @@ def _corridor_line(c: Optional[Mapping[str, Any]], key: str, lang: str) -> Optio
              half=_pct(c["half_width_pct"], lang, 1))
 
 
+def _corridor_4h_line(payload: Mapping[str, Any], lang: str) -> Optional[str]:
+    """The alert's 4h corridor with its record on the same line (the /btc rule, `corridor_record`); a payload
+    without a record (stored before it, or none computable) shows it only as «сейчас», never as a forecast."""
+    c = payload.get("corridor_4h")
+    if not c:
+        return None
+    tr = payload.get("corridor_4h_track") or {}
+    r = corridor_record(tr, "4h") if tr.get("coverage") is not None else None
+    if r is None:
+        return _corridor_line(c, "pa_corridor_now", lang)
+    rec = (t(lang, "pa_track_live", p=fmt_share(r[1], lang), n=r[2]) if r[0] == "live"
+           else t(lang, "pa_track_hold", p=fmt_share(r[1], lang), days=r[2]))
+    return t(lang, "pa_corridor", low=fmt_price(c["lower"], lang), high=fmt_price(c["upper"], lang),
+             half=_pct(c["half_width_pct"], lang, 1), rec=rec, share=fmt_share(tr["coverage"], lang))
+
+
 ALERT_MAX_LINES = 8
 DELAY_TYPICAL_MIN_N = 20         # below it the class's P50 is not printed beside the message's own delay
 
@@ -983,7 +1012,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
             else:
                 lines.append(t(lang, "pa_next", price=zone_price(nxt, lang), name=_e(zone_names(nxt, lang, limit=1)),
                                dist=fmt_signed_pct(nxt["distance_pct"], lang), p=fmt_prob(p24, lang)))
-        cl = None if zones.get("4h") else _corridor_line(payload.get("corridor_4h"), "pa_corridor", lang)
+        cl = None if zones.get("4h") else _corridor_4h_line(payload, lang)
         if cl:
             lines.append(cl)
         note = zone_note(zones, ["4h", "24h"], lang)
@@ -1029,7 +1058,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         else:
             lines.append(t(lang, "pa_price_now_at" if pts else "pa_price_now", clock=fmt_clock(at, lang),
                            price=fmt_price(payload["price"], lang), price_clock=pclock))
-        cl = None if zones.get("4h") else _corridor_line(payload.get("corridor_4h"), "pa_corridor", lang)
+        cl = None if zones.get("4h") else _corridor_4h_line(payload, lang)
         if cl:
             lines.append(cl)
         note = zone_note(zones, ["4h"], lang)

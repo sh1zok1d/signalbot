@@ -317,7 +317,12 @@ DECISION_CATALOG: dict = {
     "pa_next": _pair("Следующий уровень: {price} — {name} ({dist}), за 24ч доходили в {p}",
                      "Next level: {price} — {name} ({dist}), reached within 24h in {p}"),
     "pa_next_nop": _pair("Следующий уровень: {price} — {name} ({dist})", "Next level: {price} — {name} ({dist})"),
-    "pa_corridor": _pair("Коридор 4ч: {low}–{high} (±{half})", "4h corridor: {low}–{high} (±{half})"),
+    # the 4h corridor is a forecast: with its record (the /btc rule) or, without one, only as «сейчас»
+    "pa_corridor": _pair("Коридор 4ч: {low}–{high} (±{half}) · внутри бывало {rec} (расчёт — {share})",
+                         "4h corridor: {low}–{high} (±{half}) · inside {rec} (designed for {share})"),
+    "pa_corridor_now": _pair("Коридор 4ч сейчас: {low}–{high} (±{half})", "4h corridor now: {low}–{high} (±{half})"),
+    "pa_track_live": _pair("{p} вживую за 30 дн. (N={n})", "{p} live over 30 days (N={n})"),
+    "pa_track_hold": _pair("{p} на истории ({days} дн.)", "{p} on history ({days} days)"),
     "pa_event_title": _pair("<b>BTC · через {mins} мин {name}</b>", "<b>BTC · {name} in {mins} min</b>"),
     "pa_event_when": _pair("{clock} · цена {price} (Binance)", "{clock} · price {price} (Binance)"),
     "pa_event_when_at": _pair("{clock} · цена {price} (Binance, {price_clock})", "{clock} · price {price} (Binance, {price_clock})"),
