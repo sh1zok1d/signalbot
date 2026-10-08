@@ -48,6 +48,7 @@ class World:
     level_effect: float = 1.0         # 0: no level effect in truth (M1's offset wrong)
     chal_beta: float = 0.0            # C1 covariate effect on head B, T15 only
     s_level: float = 1.0
+    s_slope_level: float = -1.0       # < 0: the module default (PRIOR_S_SLOPE_LEVEL); 0: one shared slope
     level_raw_fb: bool = False        # level rows feed the calibrator G1@event raw (F1 R2 diagnostic) instead of M1
 
 
@@ -123,7 +124,7 @@ def rep(args):
     w, seed, mode = args
     rng = np.random.default_rng(seed)
     u = rng.normal(0, w.tau, HOLDOUT_WEEKS + LIVE_WEEKS)
-    prior0 = {h: L.identity_prior(w.s_level) for h in L.HEADS}
+    prior0 = {h: L.identity_prior(w.s_level, None if w.s_slope_level < 0 else w.s_slope_level) for h in L.HEADS}
     ho = [r for c in L.CAL_CLASSES for r in gen(w, c, HOLDOUT_WEEKS, 0, rng, live=False, u=u)]
     ho_end = HOLDOUT_WEEKS * WEEK_MS
     ho, _ = publish(ho, prior0, L.batch_cutoffs(0, ho_end))
@@ -209,6 +210,8 @@ def scenarios():
     out = [("null", base, "live"), ("null_tau0", replace(base, tau=0.0), "live"),
            ("r3_level_only", replace(base, level_slope_b=0.78), "live"),
            ("r3_shared", replace(base, level_slope_b=0.78, generic_slope_b=0.78), "live"),
+           ("r3_level_only_tied", replace(base, level_slope_b=0.78, s_slope_level=0.0), "live"),
+           ("r3_shared_tied", replace(base, level_slope_b=0.78, generic_slope_b=0.78, s_slope_level=0.0), "live"),
            ("no_level_effect", replace(base, level_effect=0.0), "live")]
     for d in (0.3, 0.45, 0.6):
         out.append((f"drift_b+{d}", replace(base, drift_b=d), "live"))
@@ -230,8 +233,8 @@ def _mean(xs):
 
 def summarize(w, mode, rs):
     s = {"world": dict(w.__dict__), "mode": mode, "reps": len(rs),
-         "ho_b": [_mean([r["ho_b"][k] for r in rs]) for k in range(4)],
-         "ho_r": [_mean([r["ho_r"][k] for r in rs]) for k in range(4)], "classes": {}}
+         "ho_b": [_mean([r["ho_b"][k] for r in rs]) for k in range(len(rs[0]["ho_b"]))],
+         "ho_r": [_mean([r["ho_r"][k] for r in rs]) for k in range(len(rs[0]["ho_r"]))], "classes": {}}
     if mode == "challenger":
         looks = [r.get("challenger") or [] for r in rs]
         s["promoted_any"] = _mean([any(x["promoted"] for x in lk) for lk in looks])
@@ -239,7 +242,7 @@ def summarize(w, mode, rs):
         s["looks_reached"] = [_mean([len(lk) > i for lk in looks]) for i in range(4)]
         return s
     if mode == "live":
-        s["live_b"] = [_mean([r["live_b"][k] for r in rs if r.get("live_b")]) for k in range(4)]
+        s["live_b"] = [_mean([r["live_b"][k] for r in rs if r.get("live_b")]) for k in range(len(rs[0]["ho_b"]))]
     for c in LEVELS:
         cs = [r["classes"][c] for r in rs]
         d = {"case_A": _mean([x["case"] == "A" for x in cs]), "gate_pass": _mean([x["gate"] for x in cs]),

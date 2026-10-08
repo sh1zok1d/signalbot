@@ -36,7 +36,10 @@ Z95 = 1.959964
 # ---- calibrator [F3] ----------------------------------------------------------------------------
 PRIOR_M_A, PRIOR_S_A = 0.0, 0.5         # a_GENERIC ~ N(0, 0.5²)
 PRIOR_M_B, PRIOR_S_B = 1.0, 0.25        # b ~ N(1, 0.25²)
-PRIOR_S_LEVEL = 1.0                     # a_LEVEL − a_GENERIC ~ N(0, 1.0²)   (dev-informed, design §3.2)
+PRIOR_S_LEVEL = 1.0                     # a_LEVEL − a_GENERIC ~ N(0, s²) default (dev-informed, design §3.2)
+PRIOR_S_LEVEL_BY_CASE = {"A": 0.5, "B": 1.0}   # level rows feed M1 raw (A) or G1@event raw (B)
+PRIOR_S_SLOPE_LEVEL = 0.25              # b_LEVEL − b_GENERIC ~ N(0, 0.25²); 0 = one shared slope (design §3.3)
+SHARED_SLOPE_TIE = 1e-4                 # the SD used for "0" (a numerically tied slope)
 N_EQUIV_PRIOR = 150                     # live prior: the held-out posterior worth 150 events per class
 GENERIC_ROW_WEIGHT = 1 / 16             # 4 overlapping hourly anchors × 4 pairs share one 4h path
 WEEKLY_BATCHES = 12
@@ -133,25 +136,45 @@ def outcome_arrays(records: Sequence[Mapping[str, Any]], key: str) -> dict:
 
 
 # ---- hierarchical calibrator (design §3) ------------------------------------------------------------
-def identity_prior(s_level: Optional[float] = None) -> dict:
-    """Gaussian prior on θ = (a_GENERIC, a_LEVEL_T0, a_LEVEL_T15, b): a_G ~ N(m_a, s_a²),
-    b ~ N(m_b, s_b²), a_level − a_G ~ N(0, s_level²) independently per level class."""
+def prior_for_cases(case_t0: str, case_t15: str, s_slope_level: Optional[float] = None) -> dict:
+    """The held-out identity prior per head once the §11b case of each landmark is known (it is decided
+    on raw outputs, before the prequential pass): s_level from PRIOR_S_LEVEL_BY_CASE per class."""
+    s = (PRIOR_S_LEVEL_BY_CASE[case_t0], PRIOR_S_LEVEL_BY_CASE[case_t15])
+    return {h: identity_prior(s, s_slope_level) for h in HEADS}
+
+
+N_PARAMS = 5                            # θ = (a_GENERIC, a_LEVEL_T0, a_LEVEL_T15, b_GENERIC, b_LEVEL)
+
+
+def identity_prior(s_level=None, s_slope_level: Optional[float] = None) -> dict:
+    """Gaussian prior on θ = (a_G, a_T0, a_T15, b_G, b_L): a_G ~ N(m_a, s_a²), b_G ~ N(m_b, s_b²),
+    a_level − a_G ~ N(0, s_level²) independently per level class (`s_level` a number or a pair
+    (s_T0, s_T15)), b_L − b_G ~ N(0, s_slope_level²) (both level classes share b_L; 0 ties it to b_G)."""
     s_level = PRIOR_S_LEVEL if s_level is None else s_level
-    va, vl = PRIOR_S_A ** 2, s_level ** 2
-    cov = np.array([[va, va, va, 0.0], [va, va + vl, va, 0.0], [va, va, va + vl, 0.0],
-                    [0.0, 0.0, 0.0, PRIOR_S_B ** 2]])
-    return {"mean": [PRIOR_M_A, PRIOR_M_A, PRIOR_M_A, PRIOR_M_B], "cov": cov.tolist()}
+    s0, s15 = (s_level, s_level) if np.isscalar(s_level) else tuple(s_level)
+    s_sl = PRIOR_S_SLOPE_LEVEL if s_slope_level is None else s_slope_level
+    va, vb, vs = PRIOR_S_A ** 2, PRIOR_S_B ** 2, max(s_sl, SHARED_SLOPE_TIE) ** 2
+    cov = np.zeros((N_PARAMS, N_PARAMS))
+    cov[:3, :3] = va
+    cov[1, 1] += s0 ** 2
+    cov[2, 2] += s15 ** 2
+    cov[3:, 3:] = vb
+    cov[4, 4] += vs
+    return {"mean": [PRIOR_M_A, PRIOR_M_A, PRIOR_M_A, PRIOR_M_B, PRIOR_M_B], "cov": cov.tolist()}
 
 
 def _design(lg, cls_idx) -> np.ndarray:
-    X = np.zeros((len(lg), 4))
-    X[np.arange(len(lg)), np.asarray(cls_idx, dtype=int)] = 1.0
-    X[:, 3] = lg
+    cls_idx = np.asarray(cls_idx, dtype=int)
+    X = np.zeros((len(lg), N_PARAMS))
+    X[np.arange(len(lg)), cls_idx] = 1.0
+    X[:, 3] = np.where(cls_idx == 0, lg, 0.0)
+    X[:, 4] = np.where(cls_idx == 0, 0.0, lg)
     return X
 
 
 def fit_head(raw_p, y, cls, prior: Mapping[str, Any], *, weights=None, iters: int = 100) -> dict:
-    """MAP of logit p' = a_class + b·logit p under the Gaussian prior; Laplace covariance; weighted rows."""
+    """MAP of logit p' = a_class + b_(GENERIC or LEVEL)·logit p under the Gaussian prior; Laplace covariance;
+    weighted rows."""
     raw_p, y = np.asarray(raw_p, dtype=float), np.asarray(y, dtype=float)
     idx = np.array([CAL_CLASSES.index(c) for c in cls], dtype=int)
     w = np.ones(len(y)) if weights is None else np.asarray(weights, dtype=float)
@@ -230,7 +253,8 @@ def fit_calibrator(records: Sequence[Mapping[str, Any]], priors: Mapping[str, Ma
 
 def _head_map(head: Mapping[str, Any], cal_class: str, raw_p) -> np.ndarray:
     th = head["mean"]
-    return expit(th[CAL_CLASSES.index(cal_class)] + th[3] * logit(raw_p))
+    k = CAL_CLASSES.index(cal_class)
+    return expit(th[k] + th[3 if k == 0 else 4] * logit(raw_p))
 
 
 def apply_calibrator(cal: Optional[Calibrator], p3_raw, cal_class: str) -> np.ndarray:
@@ -269,7 +293,7 @@ def live_prior(holdout_cal: Calibrator, holdout_records: Sequence[Mapping[str, A
     for h in HEADS:
         th = holdout_cal.heads[h]["mean"]
         info = class_information(holdout_records, h, th)
-        P = sum((n_equiv * I for I in info.values()), np.zeros((4, 4))) + 1e-3 * floor
+        P = sum((n_equiv * I for I in info.values()), np.zeros((N_PARAMS, N_PARAMS))) + 1e-3 * floor
         out[h] = {"mean": list(th), "cov": np.linalg.inv(P).tolist()}
     return out
 

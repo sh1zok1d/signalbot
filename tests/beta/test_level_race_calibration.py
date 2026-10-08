@@ -34,8 +34,8 @@ def test_heads_roundtrip_and_targets():
 def test_identity_prior_structure():
     pr = L.identity_prior(1.0)
     cov = np.array(pr["cov"])
-    assert pr["mean"] == [0.0, 0.0, 0.0, 1.0]
-    d = np.array([[-1, 1, 0, 0], [-1, 0, 1, 0]], dtype=float)     # a_level − a_G
+    assert pr["mean"] == [0.0, 0.0, 0.0, 1.0, 1.0]
+    d = np.array([[-1, 1, 0, 0, 0], [-1, 0, 1, 0, 0]], dtype=float)     # a_level − a_G
     assert np.allclose(d @ cov @ d.T, np.eye(2) * 1.0)
     assert np.isclose(cov[0, 0], 0.25) and np.isclose(cov[3, 3], 0.0625)
     assert np.allclose(d @ cov[:, 0], 0.0)
@@ -80,7 +80,7 @@ def test_slope_moves_toward_truth_with_holdout_size():
     rng = np.random.default_rng(5)
     recs = _recs(520, rng, sd_b=1.0, slope_b=0.78)
     cal = L.fit_calibrator(recs, {h: L.identity_prior() for h in L.HEADS}, cutoff_ms=10 ** 15)
-    assert cal.heads["B"]["mean"][3] < 0.95
+    assert cal.heads["B"]["mean"][4] < 0.95
 
 
 def test_live_prior_keeps_mean_and_is_wider_than_the_holdout_posterior():
@@ -237,3 +237,24 @@ def test_d1_margin_variant_tolerates_small_offsets_but_not_large():
     assert L.d1_paths(small, "p_pub", margin=m)[-1].max() < L.d1_paths(small, "p_pub")[-1].max()
     big = _recs(800, rng, shift_r=-1.0)
     assert L.d1_triggered({"e": dict(zip(L.OUTCOMES, L.d1_paths(big, "p_pub", margin=m)[-1]))})
+
+
+def test_shared_slope_ties_and_hierarchical_slope_frees_the_level_slope():
+    rng = np.random.default_rng(13)
+    gen = _recs(4000, rng, cls="GENERIC", per_week=40, sd_b=1.0)
+    lvl = _recs(500, rng, cls="LEVEL_T0", sd_b=1.0, slope_b=0.7)
+    shared = L.fit_calibrator(gen + lvl, {h: L.identity_prior(1.0, 0.0) for h in L.HEADS}, cutoff_ms=10 ** 15)
+    hier = L.fit_calibrator(gen + lvl, {h: L.identity_prior(1.0, 0.25) for h in L.HEADS}, cutoff_ms=10 ** 15)
+    bs, bh = shared.heads["B"]["mean"], hier.heads["B"]["mean"]
+    assert abs(bs[3] - bs[4]) < 1e-3                   # tied
+    assert bh[4] < bh[3] - 0.1                         # the level slope moves toward 0.7
+    pr = np.array(L.identity_prior(1.0, 0.25)["cov"])
+    assert np.isclose(pr[4, 4] - 2 * pr[3, 4] + pr[3, 3], 0.0625)
+
+
+def test_prior_for_cases_uses_case_s_level():
+    pr = L.prior_for_cases("A", "B")
+    cov = np.array(pr["R"]["cov"])
+    d0, d15 = np.array([-1, 1, 0, 0, 0.0]), np.array([-1, 0, 1, 0, 0.0])
+    assert np.isclose(d0 @ cov @ d0, L.PRIOR_S_LEVEL_BY_CASE["A"] ** 2)
+    assert np.isclose(d15 @ cov @ d15, L.PRIOR_S_LEVEL_BY_CASE["B"] ** 2)

@@ -1,216 +1,350 @@
-# Level race — calibration, gates and monitoring (design V1, part of the F1 design note)
+# Level race — calibration, gates, monitors and states (design V1, the [F3] part of F1's note)
 
-**Status:** `PROPOSAL_FOR_MINI_HEAD / SYNTHETIC_ONLY / BEFORE_ANY_OUTCOME` (ОПГ-2 track F3, 2026-10-08).
-No market bar, no level event and no real outcome was read for this note. Every number below is a design choice checked on synthetic worlds (§10). The mini-head reconciles it with F1's design note and freezes both before the held-out read.
+**Status:** `PROPOSAL_FOR_MINI_HEAD / SYNTHETIC_ONLY / BEFORE_ANY_OUTCOME` (ОПГ-2 track F3, 2026-10-08). For freezing with `LEVEL_RACE_FORECAST_V1_DESIGN.md` before the held-out read.
+
+**What this study used:**
+- No market bar, no level event and no real outcome was read.
+- Every number below is a design choice checked on synthetic worlds (§10).
+- **Dev-informed inputs, disclosed:** the synthetic worlds and two choices (s_level, the slope prior) use F1's descriptive development numbers, relayed by the mini-head:
+  - the level − generic intercepts, R +0.92 and B +0.33;
+  - the M1 head-B slope, 0.78;
+  - the M1 gains, +0.028 nats against B0 and +0.069 against G1@event.
 
 **Authority:**
-- `docs/FORECAST_LAYER_DECISION_V1.md` §4–§7 (object, held-out stage, live record, calibration, states, drift, challengers);
-- `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md` §4–§5 (L3 needs a live count fixed in the design note; claim journal);
-- `docs/PRE_BETA_SCOPE_DECISION_V1.md` §4 (history first, live joins by a rule frozen before Day 0) and §11.
+- `LEVEL_RACE_FORECAST_V1_DESIGN.md` §7, §8a, §11b (F1): the objects, the gate names G0–G3 and D0–D3, and the cases A / B;
+- `FORECAST_LAYER_DECISION_V1.md` §5–§7, §6a, §6b;
+- `EVIDENCE_AND_CLAIMS_DECISION_V1.md` §4–§5.
 
-**Code:** `beta/level_race_calibration.py` (pure, no database; constants in its header are the numbers below), `scripts/research/level_race_calibration_sim.py` (the synthetic study), `scripts/research/level_race_weekly_report.py` (§8). Results: `LEVEL_RACE_CALIBRATION_MONITORING_V1_SIM.json`.
+**Code:**
+- `beta/level_race_calibration.py`: pure, no database; the constants in its header are the numbers below. It is the only calibrator: the held-out prequential pass and live both import it (mini-head, 2026-10-08).
+- `scripts/research/level_race_calibration_sim.py`: the study.
+- `scripts/research/level_race_weekly_report.py`: the weekly report.
+- Results: `LEVEL_RACE_CALIBRATION_MONITORING_V1_SIM.json` (200 replications per scenario).
 
-## 0. Proposed numbers at a glance
+## 0. Claims this note guarantees (red-team list)
 
-| Item | Proposal | Planning value in FORECAST_LAYER |
-|---|---|---|
-| Outcome representation | two heads: RESOLVE (a barrier within 4h) and BREAK \| resolve | "two heads or multinomial" |
-| Held-out gate (per class, each head) | walk-forward published \|intercept\| ≤ 5 pp; fitted recalibration curve within 7.5 pp of the diagonal (10–90 % range); raw \|intercept\| ≤ 10 pp; ≥ 20 weeks | "frozen tolerance" |
-| M1 or B0 published | M1 only if its held-out log-loss gain over B0 has a week-clustered one-sided 95 % lower bound > 0 | "if M1 does not beat B0" |
-| Calibrator | 2-parameter Bayesian logistic per head, Laplace; prior = held-out fit worth **150** events | 100–200 |
-| Batches | weekly for 12 weeks, then every 4 weeks; versioned; outcomes resolved before the cutoff only | weekly, then monthly |
-| L3_LIVE floor | **150** resolved live events of the class | 150 |
-| L3_LIVE tolerance | live \|intercept\| ≤ 7.5 pp and fitted curve within 10 pp, each head; no drift alarm | — |
-| e-process | change-point mixture of intercept-shift likelihood ratios on the published probabilities; FALLBACK at **E ≥ 10** | e > 10 |
-| Rolling intercept | last 100 resolved: 99 % week-clustered interval wholly outside **±5 pp** | "interval outside ±10 pp" |
-| Rolling paired log loss vs B0 | last 100 resolved, ≥ 8 weeks: 99 % interval of (B0 − published) wholly below 0 | ~100 events |
-| Large correction | calibrator's mean \|p′ − p\| > 10 pp on the held-out design → drift | "a drift signal, not a fix" |
-| Return from FALLBACK | ≥ **50** new resolved, epoch e-value < 1, epoch \|intercept\| ≤ 10 pp, not worse than B0; the 2nd FALLBACK of a version is final | ≥ 50 |
-| Challenger promotion | looks at 150 / 300 / 450 / 600 paired; 95 % week-clustered gain interval > 0 and live-tolerance calibration; retired after 600; ≤ 2 at once | ≥ 150, interval excludes 0 |
-| Input drift, data health | input drift is reported, never a state change; any health fault → OFF at once | — |
+1. **No look-ahead in calibration.** The calibrator used at time t is fitted only on outcomes resolved strictly before its batch cutoff ≤ t (`fit_calibrator(…, cutoff_ms)`; test `test_calibrator_uses_only_outcomes_resolved_before_cutoff` flips every later outcome and gets the same version).
+2. **Versioned and deterministic.** Each calibrator version is a digest of its class set, cutoff, prior and parameters; the same inputs give the same version.
+3. **No real outcome was read** for any number here; all are synthetic (§10).
+4. **Calm-world false exits.** With the proposed numbers, a class that starts in an L3 state leaves it falsely (to FALLBACK or HIST) in ≤ 6 % by 52 weeks and ≤ 10 % by 104 weeks at T0 (T15 6 % / 11 %), under weekly regime clustering τ = 0.25 (§10.1).
+5. **D1 alone** (E > 30 per outcome, on published probabilities): ≤ 10 % lifetime false alarm per epoch under conditional calibration (Ville, three outcomes × 1/30); ≈ 4 % (T15 5 %) by 52 weeks in the τ = 0.25 world.
+6. **Slope correction (R3).** With the hierarchical slope, a level head-B slope of 0.78 is learned from the held-out stage. The end-of-held-out level slope averages 0.80 (truth 0.78). With a tied slope and a generic slope of 1, the published level slope stays at about 0.70 (T0) / 0.76 (T15) (§3.3).
+7. **Case B ⇒ HIST in practice.** On the dev numbers, the GENERIC-intercept fallback passes G2 on level events in 0 % of replications, so a class in case B never leaves HIST (§7.3).
+8. **HIST_ONLY mode** gives only HIST or OFF, whatever the monitors say (`test_mode_hist_only_is_hist_or_off`).
+9. **OFF at once** on any D0 fault, and back to the previous state when healthy.
+10. **FALLBACK is never shown for a class whose fallback model fails G2:** on the held-out read, and on the last 150 live records once there are that many.
+
+All numbers: 200 replications per scenario, §10.
 
 ## 1. Object and heads
 
-The three outcomes BREAK first / REJECT first / NEITHER within the original 4h window are carried as two binary heads:
+As F1 §2.3: head R = P(a barrier within 4h) = 1 − P(NEITHER); head B = P(BREAK | resolved) (UP | resolved on the generic stream). P(BREAK) = R·B, P(REJECT) = R·(1 − B), P(NEITHER) = 1 − R. Gates and drift run per outcome (one against the rest) where F1 says so (G2, D1, D2) and per head where F1 says so (G3, the calibrator).
 
-- **RESOLVE**: P(a barrier is reached) = 1 − P(NEITHER), on every event;
-- **BREAK_GIVEN_RESOLVE**: P(BREAK | resolved), on resolved events only.
+**What feeds the level rows of the calibrator** (mini-head, 2026-10-08):
+- case A: the M1 raw output;
+- case B: the fallback raw output (G1@event);
+- the generic rows: the G1 raw output on the generic stream.
 
-P(BREAK) = P(resolve)·P(BREAK | resolve), P(REJECT) = P(resolve)·(1 − P(BREAK | resolve)), P(NEITHER) = 1 − P(resolve). The decomposition is exact, so it works whichever form F1 fits (multinomial M1 or two heads): the calibrator and the monitors read the heads derived from the three published probabilities.
+## 2. Held-out gates (`L3_HISTORY_BACKED`)
 
-**Why heads and not three one-against-rest maps:** three independent maps do not sum to 1, and the 14 % NEITHER share (FORECAST_LAYER §2) makes one-against-rest NEITHER the least informed map of all. The heads also separate the two questions the product asks: «дойдёт ли за 4ч» and «какая первой».
+Scored on the **prequential published** probabilities of the held-out read: weekly then 4-weekly batches, each from the identity prior, each fitted only on held-out outcomes resolved before its cutoff (F1 §5).
 
-**For F1 to confirm:** the two classes are the landmarks `L3_LEVEL_RACE_T0_4H` and `L3_LEVEL_RACE_T15_4H`; each has its own calibrator, monitors and state. The same machinery runs on the generic race stream (FORECAST_LAYER §5 pooling) as a separate class; this note does not fix its numbers.
-
-## 2. Held-out gate (`L3_HISTORY_BACKED`)
-
-**What is checked.** The held-out check scores what users would see, not the raw model alone:
-- the held-out events are walked forward in time with the calibrator of §3, starting from the identity map worth 150 events; each event's published probabilities come from the calibrator fitted on held-out outcomes resolved before its batch cutoff;
-- the «на истории: говорили X → было X′, N = …» line is computed from these walk-forward published probabilities, so it is out of sample at every event;
-- the final held-out fit becomes the live prior (§3).
-
-**Pass rule, per class, for each head:**
-1. walk-forward published calibration intercept (mean y − p) |·| ≤ **5 pp**;
-2. the logistic recalibration curve fitted to the walk-forward published probabilities stays within **7.5 pp** of the diagonal at the 10/25/50/75/90 % quantiles of the published probabilities;
-3. the **raw** model's |intercept| ≤ **10 pp** (a larger correction is a drift signal, not a calibration: FORECAST_LAYER §5);
-4. at least **20 weeks** with events.
-
-The slope itself is reported, not gated: the RESOLVE head has little spread (the barriers are a fixed number of σ away), so its slope is poorly identified (synthetic SD ≈ 0.3 at 650 events) while its probabilities hardly move. The curve criterion gates what a user would see.
-
-**M1 or B0.** M1 is published only if its held-out log-loss gain over B0 has a one-sided 95 % week-clustered lower bound above 0 (`BEATS_B0_Z = 1.645`). Otherwise the calibrated B0 is published, and the wording carries no level effect (FORECAST_LAYER §6). The gate of 1–4 then applies to the published model.
-
-**Synthetic operating characteristics** (300 replications each; T0 ≈ 650, T15 ≈ 420 held-out events; τ = week effect, §10):
-
-| World (miscalibration of the raw model on BREAK \| resolve) | T0 pass | T15 pass |
-|---|---|---|
-| calibrated | 100 % | 96–99 % |
-| intercept +0.2 logit (≈ +5 pp) | 93–94 % | 89–93 % |
-| intercept +0.4 logit (≈ +10 pp) | 58 % | 57–63 % |
-| intercept +0.6 logit (≈ +15 pp) | 9 % | 14 % |
-| slope 0.7 (over-confident) | 97–99 % | 82–84 % |
-| slope 1.4 (under-confident) | 88 % | 68–71 % |
-
-The walk-forward calibrator absorbs a 5 pp error, as intended; a 10 pp error fails about half the time; 15 pp almost always.
-
-**Power of «M1 beats B0»** (share of replications publishing M1):
-
-| True structural offset over B0 (logit; FORECAST_LAYER §2 records ≈ 0.35) | z = 1.96 | **z = 1.645** | z = 1.28 |
+| Gate | Rule | Value | Change from F1 planning |
 |---|---|---|---|
-| 0 (no level effect) | 0 % | ≤ 0.3 % | ≤ 0.7 % |
-| 0.2 | 1–2 % | 2–6 % | 3–10 % |
-| 0.35 | T0 18–25 %, T15 10 % | **T0 32–39 %, T15 18–19 %** | T0 49–53 %, T15 29 % |
-| 0.5 | T0 64–71 %, T15 33–38 % | T0 76–80 %, T15 48–49 % | T0 87–89 %, T15 62–64 % |
+| G0 | scored held-out events per class | ≥ 200 | — |
+| G1 | upper end of the week-clustered 95 % interval of LL_published − LL_B0 | ≤ **+0.02 nats** | was +0.01 |
+| G2 | per outcome: \|CITL\| ≤ 5 pp and its 95 % interval inside ±10 pp (iid floor on the SE) | 5 / 10 pp | iid floor added |
+| G3 | per head: the slope's 95 % interval overlaps [0.8, 1.25] | — | — |
 
-**Read this before Day 0.** At the recorded offset, the most likely Day-0 outcome is the calibrated B0 published with no level effect claimed, because about 650 / 420 held-out events cannot separate a +9 pp offset from zero with confidence. This is the honest consequence of the event rate, not a defect of the rule. A lower z buys power at a small false-claim cost (table); the choice is the mini-head's and F1's.
+**Why G1 is +0.02.**
+- The prequential calibrator costs about 0.007 nats on a calibrated champion (early batches learn from few events).
+- At ≈ 630 / 420 events, the week-clustered interval of the log-loss gap is about ±0.015.
+- At +0.01, a calibrated champion that truly beats B0 failed G1 in about 45 % of synthetic replications.
+- At +0.02 the champion's own G0–G3 pass rate is 90 % at T0 and 67 % (s_level = 1.0; 96 % / 84 % at s_level = 0.5, §10.7) at T15 (§10.4).
 
-## 3. Bayesian calibrator
+**iid floor.** Every week-clustered interval in this note uses a standard error no smaller than the independent-events one. With 13–20 weekly clusters the cluster-robust estimate alone was sometimes far too small; in the first synthetic pass that alone produced 25 % false FALLBACKs.
 
-- **Map, per head:** p′ = expit(c + a + b·(logit p − c)), with c the mean raw logit of the held-out design (fixed per head and version). (a, b) = (0, 1) is the identity; a is the shift at the design centre. Centring makes a and b nearly independent.
-- **Prior:** Gaussian at the held-out fit; its precision is reset to **150 events** of the held-out design (150 × the mean per-event Fisher information at the prior mean). The information uses raw probabilities only, never an outcome.
-- **Fit:** MAP by Newton with a Laplace covariance, refit from the prior on every live outcome resolved strictly before the cutoff. Deterministic.
-- **Batches:** cutoffs every week for the first 12 weeks after the freeze, then every 4 weeks. A forecast issued at t uses the calibrator of the last cutoff ≤ t. Each calibrator has a version `LEVEL_RACE_CAL_V1:<digest>` over its class, cutoff, prior and parameters; the journal stores it with the forecast.
-- **No isotonic or other non-parametric map** below 300 events (`ISOTONIC_MIN_EVENTS`); V1 has none at all.
-- **Large correction:** when the calibrator's mean |p′ − p| over the held-out design exceeds 10 pp on either head, that is a drift signal (§5), not a fix. The map is still recorded.
+## 3. Calibrator
+
+### 3.1 Form
+
+Per head, logit p′ = a_class + b_(GENERIC or LEVEL)·logit p. θ = (a_GENERIC, a_LEVEL_T0, a_LEVEL_T15, b_GENERIC, b_LEVEL). MAP with a Laplace covariance, Newton, deterministic. Published probabilities are rebuilt from the two calibrated heads. The fallback model and case B use the `GENERIC` intercept and the generic slope (F1 §7, §11b).
+
+### 3.2 Prior (held-out prequential start)
+
+- a_G ~ N(0, 0.5²);
+- b_G ~ N(1, 0.25²);
+- **a_level − a_G ~ N(0, s_level²)**, independently per level class.
+
+**s_level by case** (`PRIOR_S_LEVEL_BY_CASE`, `prior_for_cases`): **0.5 in case A, 1.0 in case B.** The case is known before the prequential pass, because F1 §11b decides it on raw outputs.
+
+**Why by case** (dev-informed, disclosed). This revises the single s_level = 1.0 I sent earlier.
+- **Case B (G1@event raw on level rows).** The development level − generic gap is R +0.92 (T0 +1.07, T15 +0.74) and B +0.33. At s = 0.5 this is about two prior SD on head R, and the end-of-held-out level intercepts shrink to +0.86 / +0.56 against the true +1.07 / +0.74. At s = 1.0 they reach +1.01 / +0.67 (§10.7). Case B is never published (§7.3), but its level intercepts are estimated in shadow for a later version, so they should not be pulled toward generic.
+- **Case A (M1 raw on level rows).** The level intercept is a small correction to a model that already carries the level offset; M1's dev CITL is within ±2 pp. A tighter prior then helps the small classes: the champion's held-out G0–G3 pass rate is 96 % / 84 % (T0 / T15) at s = 0.5, against 90 % / 62 % at 1.0 and 85 % / 56 % at 1.5 (§10.7).
+
+### 3.3 Slope: hierarchical, not fully shared
+
+**b_L − b_G ~ N(0, 0.25²) (`PRIOR_S_SLOPE_LEVEL = 0.25`)**: one level slope shared by both level classes, tied loosely to the generic slope.
+
+The reason is R3, from the first synthetic grid with a fully shared slope:
+- when the level head-B slope is 0.78 and the generic slope is 1, the generic rows (≈ 40 independent windows a week, against 12.5 level events) hold the shared slope near 1;
+- the published held-out level slope then stays at 0.70 (T0) and 0.75 (T15), so the level over-confidence is not corrected;
+- with the hierarchical slope it is (§10.6).
+
+When the slope really is shared, the hierarchical prior costs little: §10.6, r3_shared vs r3_shared_tied. `PRIOR_S_SLOPE_LEVEL = 0` restores the fully shared slope as one setting.
+
+### 3.4 Live prior and batches
+
+- **Live prior:** the held-out posterior mean. Its precision is reset to 150 events of each class's held-out design (150 × the mean per-event Fisher information of that class at the held-out mean), plus 0.1 % of the identity prior's precision. FORECAST_LAYER §5 sets the range at 100–200.
+- **Batches:** every week for 12 weeks after a stage starts, then every 4 weeks.
+- **No isotonic map** below 300 events; V1 has none.
+
+### 3.5 Generic rows and dependence
+
+The generic stream has 4 hourly anchors per independent 4h window and 4 price pairs per anchor. Each generic row therefore enters the likelihood with weight **1/16** (`GENERIC_ROW_WEIGHT`), so the generic class counts its information in independent windows, about 40 a week. F1 §8a states the same non-overlapping reading for its report. The synthetic study simulates independent generic windows at weight 1, which is equivalent.
 
 ## 4. Live floor (`L3_LIVE`)
 
-- **Floor:** 150 resolved live events of the class (RESOLVE head count; the BREAK \| resolve head then has about 130).
-- **Tolerance:** on all live events of the version, each head: |intercept| ≤ 7.5 pp and the fitted curve within 10 pp of the diagonal; and no drift reason (§5) at that batch.
-- **Why 7.5 pp and not 5:** at 150 events the intercept's standard error is about 4 pp; 5 pp would refuse a calibrated model about one time in five. The live line printed beside the number shows the actual «говорили → было» and N, so the user sees the residual.
-- **Synthetic:** a calibrated model reaches L3_LIVE in 100 % of replications, median live week 24 (T0) and 32 (T15). Day 0 to the live line is therefore about 6–8 months.
+At least **150** resolved live forecasts in the class, and G2 and G3 on the whole live record of the version (F1 §7). In the calm world, L3_LIVE is reached at about week 33 (T0) and 46 (T15) after the switch to MODEL.
 
 ## 5. Drift monitors
 
-All are evaluated at each batch cutoff on the resolved live records of the class, in issue order, published or not.
+All run at batch cutoffs on the resolved live records of the class (published or not), each from the start of the current epoch where stated. An epoch starts at the switch to MODEL and at every exit from or return to an L3 state.
 
-### 5.1 Anytime-valid e-process on the calibration intercept
+| Monitor | Rule | Value | Change from F1 planning |
+|---|---|---|---|
+| D0 | data fault, stale bars (> 10 min at issue), parity break → `OFF` at once | — | — |
+| D1 | per outcome, betting e-process Π(1 + λ(y − p)), λ ∈ {±0.25, ±0.5}, mean over λ, from the epoch start; trigger when any outcome's E > threshold | **E > 30** | was 10 |
+| D2 | per outcome over the last **150** resolved: \|CITL\| > 10 pp and its **99.7 %** interval (iid floor) excludes 0 | 150 / 3.0 | was 100 / 95 % |
+| D3 | case A: LL_published − LL_fallback over the last 150 with a 99.7 % interval above 0, ≥ 8 weeks | 150 / 3.0 | was 100 / 95 % |
+| Input drift | median σ, mean B0 BREAK probability, events per week of the last 8 weeks against the held-out 8-week blocks' 2.5–97.5 % range | reported, no state change | — |
 
-- **Increment:** for each event, the likelihood ratio of an alternative that shifts the published logit by δ_A on RESOLVE and by δ_B on BREAK \| resolve (head B only when resolved), against the published probabilities. Grid δ ∈ {−0.6, −0.3, 0, 0.3, 0.6} per head, (0, 0) excluded, equal weights.
-- **Change points:** a new start every 25 events, start j weighted 1/((j + 1)(j + 2)); starts not yet reached count as 1. E is a test martingale under conditional calibration, so P(sup E ≥ 10) ≤ 0.1 over the whole life of an epoch (Ville), while a drift that begins late is not buried under the evidence of the early calm period.
-- **FALLBACK at E ≥ 10.** E restarts at each FALLBACK entry and each return (a new epoch, a new ≤ 0.1 budget).
-- **Tested and rejected:** running E on the raw model under the frozen held-out map (`E_KEY = "p_ref"`). It detects drifts faster (≈ 76 % vs 64 % within 52 weeks for a 15 pp shift), but it also detects the held-out fit's own estimation error: 34 % false FALLBACK over two calm years against 9 % on the published probabilities (T0, τ = 0.25, 200 replications). Rejected.
+### 5.1 D1 threshold 30
 
-### 5.2 Rolling intercept
+The three outcome e-processes share the 0.1 Ville budget (3 × 1/30). In the τ = 0.25 calm world, D1 at E > 30 fires on 4 % (T15 5 %) of L3 starts by 52 weeks at T0. At F1's E > 10 it fires on 14 %.
 
-Over the last 100 resolved events, each head: FALLBACK when the 99 % week-clustered interval of the intercept lies wholly outside ±5 pp. The standard error never goes below the independent-events one (with 13–20 weekly clusters the cluster-robust estimate alone was too small and gave 25 % false FALLBACK in the first synthetic pass).
+**D1 on a frozen reference map (p_ref) was tested twice and rejected** as a state rule:
+- p_ref is the raw model under the end-of-held-out calibrator, held fixed.
+- First design: false FALLBACK 34 % against 9 % over 104 calm weeks.
+- In this design (§10.2): 31 % against 4 % (T15 5 %) for p_pub by 52 weeks.
+- The cause: p_ref carries the held-out fit's own estimation error as a persistent bias, and an e-process eventually detects any persistent bias.
 
-### 5.3 Rolling paired log loss against B0
+The variant whose null allows that error (`d1_paths(…, margin=…)`, margin = half the 95 % interval of the held-out CITL per outcome) brings p_ref down to 7 %, but it detects real drift more slowly (§10.2). It stays a reported diagnostic in the weekly report, not a state rule (mini-head, 2026-10-08).
 
-Over the last 100 resolved events with at least 8 weeks: FALLBACK when the 99 % week-clustered interval of (log loss B0 − log loss published) lies wholly below 0, i.e. the published forecast is worse than «обычно».
+### 5.2 D2 and D3 window and interval
 
-### 5.4 Input drift (reported, never a state change)
+- At F1's 100 events and 95 %, with 3 outcomes and about 35 looks, D2 alone sent 55 % of calm L3 starts to an exit by 52 weeks (τ = 0.25).
+- At 150 events and 99.7 % (iid floor) it is 4 %.
+- D3 uses the same window and interval. It never fired in the calm world, because the champion beats G1@event by a wide margin there.
 
-Per batch, over the last 8 weeks against the held-out period: the median PIT σ, the distribution of the B0 BREAK probability (the position), and the event rate per week. A value outside the 2.5–97.5 % range of the held-out 8-week blocks is flagged in the weekly report and to the mini-head. It does not change the state: a regime the model has not seen is a reason to look, and the calibration monitors decide whether the forecast became wrong.
+### 5.3 Return
 
-### 5.5 Data health (OFF at once)
+From FALLBACK, or from a HIST entered by drift, back to L3, all of:
+- ≥ **50** resolved records since the exit;
+- every outcome's epoch e-value **< 1** (F1 planning: ≤ 10, which almost any calm epoch satisfies, so it gave no hysteresis);
+- every outcome's epoch |CITL| ≤ 10 pp;
+- no drift reason at that batch;
+- the version's held-out gate passed.
 
-`OFF` on any of: stale price data, a parity break between the live detector and the #352 constructor, a journal write failure, or σ-window coverage below the frozen minimum. The state returns to where it was when every check is healthy again. The checks themselves belong to the live pipeline (F2 / ОПГ-1); this module takes their booleans.
+The target is L3_LIVE if §4 holds on the whole live record, else L3_HISTORY_BACKED.
+
+### 5.4 Second exit is final
+
+The second drift exit of a model version is final for it. "Final" means the class stays in HIST (or FALLBACK while that is available and passes G2) until a new model version enters. A new version enters as a challenger with its own record (FORECAST_LAYER §7). In the calm world, a second exit within 104 weeks happens in 0 % (T0) and 0 % (T15) of replications.
+
+### 5.5 Limitation: drift power at 5–7.5 events a week
+
+No monitor catches a 7 pp drift within a year at these event rates. An 11–15 pp drift takes months (§10.3). The batched calibrator meanwhile partly absorbs a drift, so the published probabilities stay closer to the truth than the raw model. The mitigation is the generic stream, about 40 independent windows a week (FORECAST_LAYER §5 pooling):
+- the generic intercept and slope track a market-wide drift within weeks;
+- the level classes only have to show that their offset has not moved.
+
+The weekly report puts the drift statistics in front of the mini-head long before a monitor fires.
 
 ## 6. Challengers
 
-- Logged in shadow from registration, paired on the same events, each with its own walk-forward calibrator from the same prior.
-- **Looks only at 150, 300, 450 and 600 paired resolved events** (not at every batch: repeated looks inflate false promotions). At a look: promoted when the 95 % week-clustered interval of the log-loss gain over the published champion lies above 0 and the challenger's live calibration meets §4. Retired unpromoted after the 600 look.
-- At most two at once, each in the exposure ledger. A promoted challenger's shadow record is its live record. A retrain is a new version and enters as a challenger.
-- **Synthetic (C1-like covariate, coefficient estimated with SD 0.1):** see §10 table.
+Promotion is looked at only when the challenger has 150, 300, 450 and 600 paired resolved live events. At a look it is promoted when the week-clustered 95 % interval of its log-loss gain over the published champion lies above 0 and it passes G2 and G3 on the paired record. It is retired at 600. At most two run at once.
 
-## 7. State machine
+**C1 has no historical held-out** (F1 §8):
+- its record starts at Day 0 in shadow;
+- its calibrator starts from the champion's live prior.
 
-`next_state(prev, health, monitors, now)` is a pure function; the record carries the state, its start, the epoch start index, the FALLBACK count and the model version (`LEVEL_RACE_STATE_V1`).
+At about 5 T15 events a week, the 450 look comes at about week 90, and the 600 look is not reached within two years. The synthetic power is in §10.8.
+
+## 7. States
+
+### 7.1 Inputs
+
+`Setup` is fixed per class and model version after the held-out read, plus the mode setting:
+- `mode` (HIST_ONLY / MODEL);
+- `case` (A / B, by F1 §11b's publication rule);
+- `holdout_passed` (G0–G3 of the published model);
+- `fallback_g2_holdout` (the fallback model passes G2 on this class's held-out events).
+
+`next_state(prev, setup, health, mon, mon_fb, now)` is pure. `mon` monitors the published model of the case; `mon_fb` monitors the fallback model on the class (case A only).
+
+### 7.2 Transitions
 
 | From | To | Rule |
 |---|---|---|
-| — | `L3_HISTORY_BACKED` / `HIST` | held-out gate passed / not passed (§2) |
-| any | `OFF` | any health fault, at once (any call) |
+| any | `OFF` | a D0 fault, at once (any call) |
 | `OFF` | previous | all health checks pass |
-| `HIST` | — | terminal for the version: a failed held-out check is not rescued by live data; a new version enters as a challenger |
-| `L3_HISTORY_BACKED` | `L3_LIVE` | live N ≥ 150 and §4 tolerance |
-| `L3_*` | `FALLBACK` | any drift reason of §5.1–§5.3 or a large correction (§3); a new epoch starts |
-| `FALLBACK` | `L3_LIVE` or `L3_HISTORY_BACKED` | ≥ 50 resolved since entry, epoch E < 1, each head's epoch \|intercept\| ≤ 10 pp, not worse than B0, no drift reason; `L3_LIVE` if §4 holds on the whole live record, else `L3_HISTORY_BACKED`; a new epoch starts |
-| `FALLBACK` (2nd of the version) | — | final for the version |
+| any (HIST_ONLY) | `HIST` | the mode is HIST_ONLY (FORECAST_LAYER §6a), whatever the monitors say |
+| switch to MODEL | `L3_HISTORY_BACKED` | held-out gate passed |
+| switch to MODEL | `FALLBACK` | gate not passed, case A, the fallback passes G2 on the held-out |
+| switch to MODEL | `HIST` | otherwise; terminal for the version |
+| `L3_HISTORY_BACKED` | `L3_LIVE` | ≥ 150 resolved live and G2 + G3 on the live record |
+| `L3_*` | `FALLBACK` | D1 / D2 / D3, case A, the fallback passes G2 (held-out, and the last 150 live once there are 150) |
+| `L3_*` | `HIST` | D1 / D2 / D3 otherwise (always in case B) |
+| `FALLBACK` | `HIST` | D1 / D2 on the fallback model, or it stops passing G2 |
+| `FALLBACK` / drift-`HIST` | `L3_*` | the return rule of §5.3 (not after the second exit) |
 
-Model rules are evaluated at batch cutoffs only; health at every call. Hysteresis comes from the entry/exit asymmetry (E ≥ 10 to leave, E < 1 to return), the 50-event dwell and the two-FALLBACK cap.
+### 7.3 Case B ⇒ HIST in practice
+
+This is a consequence of §6b, accepted by the architect on 2026-10-08; it is not a new rule.
+- In case B the published model is the fallback model: G1@event with the GENERIC intercept and slope. It carries no level offset.
+- On the dev numbers it misses the level offset by R +0.92 and B +0.33, and on synthetic level events it passes G2 in 0 % of replications.
+- So a class in case B fails the held-out gate and stays in HIST.
+- Case A happens in 52 % (T0) and 46 % (T15) of synthetic replications in the base world, and in 70 % / 63 % at the dev-observed gains (§10.5).
+- The model states will therefore show at a landmark only where the champion beats both B0 and G1@event on the held-out read.
 
 ## 8. Weekly report
 
-`scripts/research/level_race_weekly_report.py` reads the journal export (JSON lines) and reports per class, raw and published separately, in the order of FORECAST_LAYER §5: log-loss skill against B0 and B1 with the week-clustered paired interval; intercept (pp) and slope with intervals per head, plus the curve gap; the 5-bin reliability table per outcome; three-category Brier and, per outcome, reliability / resolution / uncertainty; sharpness (share outside 40–60 %); AUC per outcome; ECE (descriptive); each challenger paired against the published champion with its look verdict.
+`scripts/research/level_race_weekly_report.py` (journal export in JSON lines). Per class, raw and published separately, in the order of F1 §6:
+- log-loss skill and week-clustered paired gain against B0, G1@event (`p_g1`), the fallback model (`p_fb`) and B1;
+- intercept (pp) and slope per head;
+- 5-bin reliability, Brier with its decomposition, sharpness, AUC and ECE (descriptive) per outcome;
+- challengers paired against the champion, with their look verdicts.
 
-## 9. Interface for F2 (display)
+`--cut <ISO time>` splits every class at dated layer events (FORECAST_LAYER §6a) and reports each segment separately. `split_by_events` gives the monitors the same cut.
 
-`display_contract(state_record, published_model, calibrator_version, holdout_line, live_line)` returns, per class:
+## 9. Interface for F2
 
-```
-state, since_ms, reason, template            # lr_hist_l2 / lr_b_holdout / lr_b_live / lr_fallback_b0 / lr_off
-probabilities                                # "M1" | "B0" | "B0_GENERIC" (FALLBACK) | None (HIST, OFF)
-level_effect_claimed                         # True only when M1 is printed
-calibrator_version                           # stored with the journal row
-accuracy_line                                # "holdout" | "live" | None
-holdout_line, live_line                      # {predicted, realized, n} blocks, only in the L3 states
-```
+`display_contract(state_record, setup, calibrator_version)` → `{mode, case, state, since_ms, reason, template, push_template, probabilities, calibrator_version, accuracy_line}`.
+- `template` / `push_template` are F1 §9 ids: `LR_L3H_V1` / `LR_PUSH_L3H_V1`, `LR_L3L_V1` / `LR_PUSH_L3L_V1`, `LR_FB_V1` / `LR_PUSH_FB_V1`, `LR_OFF_V1` / `LR_PUSH_OFF_V1`; `HIST` keeps F1 §0.
+- `probabilities`:
+  - `CHAMPION`: case A in an L3 state, calibrated with its class intercept;
+  - `FALLBACK`: case B in an L3 state, or the FALLBACK state; G1@event with the GENERIC intercept;
+  - `None` otherwise.
+- `accuracy_line`: `holdout` / `live` / `generic` / none.
 
-F2 owns the template texts and prices; this module never emits a word. To agree through the mini-head: the template ids, and where F2 reads the stored state (proposal: one runtime-health component per class, as `touch_live_cal` in `beta/claims.py`, written by the batch job).
+F2 owns texts and prices. The stored state is proposed as one runtime-health component per class, written by the batch job (as `touch_live_cal` in `beta/claims.py`). That wiring is ОПГ-1's file and is not touched here.
 
-## 10. The synthetic study
+## 10. Synthetic study
 
-**Worlds** (from the planning numbers of FORECAST_LAYER §2 and §4 only):
-- T0: 7.5 events / week, P(resolve) ≈ 0.90 (per-event logit SD 0.4), B0 BREAK \| resolve ≈ 0.43 (logit SD 0.5);
-- T15: 5 events / week, P(resolve) ≈ 0.86, B0 BREAK \| resolve ≈ 0.37 (logit SD 1.0: the position spread of #361);
-- truth = B0 + structural offset 0.35 logit on BREAK \| resolve; M1 knows the offset up to an estimation error (SD 0.1);
-- a weekly random effect τ ∈ {0, 0.25} logit on both heads, unknown to every model (regime clustering);
-- 84 held-out weeks, then 104 live weeks; drifts start at live week 26.
+**Worlds:**
+- **Event rates:** generic 40 independent 4h windows a week; T0 7.5 and T15 5 level events a week.
+- **Weeks:** 84 held-out weeks, then 104 live weeks.
+- **Weekly regime:** a random effect τ ∈ {0, 0.25} logit on every class and head, unknown to every model.
+- **Truth at a level:** G1@event plus the dev level offsets (R +1.07 / +0.74, B +0.33 / +0.32).
+- **M1:** knows the offsets up to an estimation error (SD 0.1 logit).
+- **Raw B0:** misses part of the offset. The base world gives smaller M1-vs-B0 gains than dev; `ho_dev_gains` matches dev (§10.5).
+- **Drifts:** from live week 26, on the level truth only.
+- **Priors in the grid:** the hierarchical slope (s = 0.25) and s_level = 1.0 for both level classes in every scenario except `ho_s_level*` and the `*_tied` ones. The by-case s_level of §3.2 came after this grid; its case-A effect is the `ho_s_level0.5` row of §10.7.
 
-**Calm world: false transitions per class.**
+### 10.1 Calm world, false exits from L3 (share of replications that started in L3)
 
-| | T0 τ=0 | T0 τ=0.25 | T15 τ=0 | T15 τ=0.25 |
-|---|---|---|---|---|
-| any FALLBACK within 52 live weeks | 3 % | 5 % | 4 % | 3 % |
-| any FALLBACK within 104 live weeks | 5 % | 6 % | 4 % | 4 % |
-| two or more FALLBACKs | 0 % | 0 % | 0 % | 1 % |
-| e-process ever ≥ 10 / ≥ 20 / ≥ 50 (104 w, no restarts) | 4 / 1 / 0 % | 8 / 5 / 1 % | 4 / 1 / 0 % | 3 / 2 / 1 % |
+| Rule set | world | T0 52 w | T0 104 w | T15 52 w | T15 104 w | 2nd exit T0 / T15 | D1 / D2 by 52 w (T0) |
+|---|---|---|---|---|---|---|---|
+| proposed | τ = 0.25 | 6 % | 10 % | 6 % | 11 % | 0 % / 0 % | 4 % / 4 % |
+| proposed | τ = 0 | 4 % | 5 % | 2 % | 10 % | 0 % / 0 % | 3 % / 2 % |
+| F1 planning (D1 E>10, D2 100/95 %, G1 0.01, return E≤10) | τ = 0.25 | 56 % | 78 % | 42 % | 70 % | 14 % / 6 % | 14 % / 55 % |
+| F1 planning (D1 E>10, D2 100/95 %, G1 0.01, return E≤10) | τ = 0 | 44 % | 75 % | 42 % | 55 % | 16 % / 4 % | 9 % / 43 % |
+| proposed, tied slope (first grid) | τ = 0.25 | 7 % | 10 % | 6 % | 12 % | 0 % / 0 % | 5 % / 4 % |
+| proposed, tied slope (first grid) | τ = 0 | 4 % | 5 % | 2 % | 10 % | 0 % / 0 % | 4 % / 2 % |
 
-**Drift detection** (share in FALLBACK within 26 / 52 weeks of onset, τ = 0.25):
+### 10.2 D1 on the frozen reference map (calm world τ = 0.25, share of L3 replications with a trigger by 52 w)
 
-| True shift from live week 26 | T0 | T15 |
+| Rule | T0 | T15 |
 |---|---|---|
-| BREAK \| resolve +0.3 logit (≈ +7 pp) | 8 / 16 % | 3 / 11 % |
-| BREAK \| resolve −0.3 | 8 / 18 % | 6 / 12 % |
-| BREAK \| resolve +0.45 (≈ +11 pp) | 16 / 40 % | 7 / 21 % |
-| BREAK \| resolve −0.45 | 29 / 51 % | 15 / 34 % |
-| BREAK \| resolve +0.6 (≈ +15 pp) | 31 / 64 % | 15 / 41 % |
-| BREAK \| resolve −0.6 | 45 / 77 % | 26 / 60 % |
-| RESOLVE −0.6 (more NEITHER) | 14 / 32 % | 14 / 36 % |
+| D1 on p_pub (E > 30) | 4 % | 5 % |
+| D1 on p_ref (E > 30) | 31 % | 19 % |
+| D1 on p_ref with the held-out margin (E > 30) | 7 % | 0 % |
+| D1 on p_pub (E > 10, planning) | 14 % | 10 % |
+| D1 on p_ref (E > 10, planning) | 45 % | 40 % |
+| D1 on p_ref with the held-out margin (E > 10, planning) | 9 % | 2 % |
 
-**What this says.** At 5–7.5 events a week, no monitor can catch a 7 pp drift within a year, and a 15 pp drift takes a median of 5–8 months. Meanwhile the batched calibrator partly absorbs the drift (published probabilities stay closer to the truth than the raw model). Faster detection would need either more events (pooling with the generic race stream, FORECAST_LAYER §5) or a lower bar that would put a calm model into FALLBACK several times a year. This note keeps false FALLBACK near 5 % per class over two years and accepts slow detection; the weekly report shows the drift numbers to the mini-head long before a monitor fires.
+Detection after onset within 26 w (D1 variants, τ = 0.25):
 
-**Challenger promotion** (share promoted at any look; covariate z ~ N(0, 1) with true effect β on BREAK \| resolve): filled from the final run, see the JSON (`chal_beta*`).
+| Drift | D1 p_pub T0 | D1 p_ref T0 | D1 p_ref+margin T0 | D1 p_pub T15 | D1 p_ref+margin T15 |
+|---|---|---|---|---|---|
+| drift_b+0.45 | 3 % | 13 % | 3 % | 0 % | 0 % |
+| drift_b-0.45 | 8 % | 28 % | 7 % | 8 % | 3 % |
+| drift_b+0.6 | 12 % | 28 % | 7 % | 4 % | 3 % |
+| drift_b-0.6 | 24 % | 42 % | 21 % | 17 % | 4 % |
+| drift_r-0.6 | 11 % | 30 % | 9 % | 21 % | 10 % |
 
-## 11. What would change our mind (before the freeze)
+### 10.3 Drift detection (exit from L3 within 26 / 52 weeks of onset at live week 26; τ = 0.25)
 
-- F1 fits a model whose RESOLVE head has more spread than assumed: the slope then becomes identified and could be gated directly.
-- F1's held-out event counts are much lower than 650 / 420: the gate and power tables are recomputed on the new counts before the freeze.
-- The mini-head prefers more power for «M1 beats B0» (z = 1.28) or for drift (E ≥ 10 without the 99 % rolling rules): the tables show the price of each.
+| True shift | T0 | T15 |
+|---|---|---|
+| head B +0.3 logit (≈ +7 pp) | 14 % / 22 % | 1 % / 8 % |
+| head B −0.3 | 14 % / 27 % | 16 % / 25 % |
+| head B +0.45 (≈ +11 pp) | 18 % / 34 % | 5 % / 19 % |
+| head B −0.45 | 29 % / 57 % | 16 % / 31 % |
+| head B +0.6 (≈ +15 pp) | 37 % / 70 % | 21 % / 44 % |
+| head B −0.6 | 51 % / 74 % | 29 % / 57 % |
+| head R −0.6 (more NEITHER) | 20 % / 46 % | 24 % / 57 % |
+| head R +0.6 | 6 % / 10 % | 4 % / 12 % |
 
-## 12. Limitations
+### 10.4 Held-out stage
 
-- Synthetic worlds only; real regime clustering may be stronger than τ = 0.25.
-- Overlapping 4h windows: the e-process assumes each forecast is calibrated given earlier resolved outcomes. Events of one class rarely overlap (≈ 1 a day); where they do, validity is approximate.
-- The structural offset of 0.35 logit is the planning value from recorded results; the real held-out offset is unknown here by design.
+| World | case A T0 / T15 | gate of the published model T0 / T15 | champion's own G0–G3 T0 / T15 | fallback G2 T0 / T15 |
+|---|---|---|---|---|
+| calibrated M1, τ = 0.25 | 52 % / 46 % | 50 % / 42 % | 90 % / 67 % | 0 % / 0 % |
+| calibrated M1, τ = 0 | 58 % / 46 % | 57 % / 43 % | 96 % / 70 % | 0 % / 0 % |
+| no level effect in truth | 0 % / 0 % | 96 % / 88 % | 94 % / 48 % | 97 % / 90 % |
+| M1 head B +0.2 logit | 22 % / 22 % | 22 % / 19 % | 87 % / 56 % | 0 % / 0 % |
+| M1 head B +0.4 | 10 % / 7 % | 10 % / 7 % | 92 % / 63 % | 0 % / 0 % |
+| M1 head B +0.6 | 0 % / 3 % | 0 % / 3 % | 91 % / 81 % | 0 % / 0 % |
+| level head B slope 0.78, generic 1 | 50 % / 46 % | 47 % / 38 % | 90 % / 72 % | 0 % / 0 % |
+| head B slope 0.78 everywhere | 52 % / 45 % | 50 % / 42 % | 90 % / 77 % | 0 % / 0 % |
+
+### 10.5 Power of the §11b publication rule at the dev-observed gains (raw, held-out, per landmark)
+
+| World | gain vs B0 T0 / T15 (nats) | beats B0 | gain vs G1@event | beats G1@event | case A |
+|---|---|---|---|---|---|
+| ho_dev_gains | 0.027 / 0.030 | 70 % / 64 % | 0.080 / 0.045 | 98 % / 82 % | 70 % / 63 % |
+| ho_dev_gains_tau0 | 0.026 / 0.031 | 74 % / 70 % | 0.081 / 0.047 | 100 % / 84 % | 74 % / 70 % |
+| null | 0.014 / 0.016 | 52 % / 46 % | 0.078 / 0.045 | 100 % / 84 % | 52 % / 46 % |
+
+### 10.6 Slope (R3): held-out fit of head B and the published held-out slope
+
+| World | slope prior | fitted b_G / b_L (end of held-out) | published held-out slope T0 / T15 | champion G3 T0 / T15 |
+|---|---|---|---|---|
+| level 0.78, generic 1 | hierarchical s = 0.25 | 0.98 / 0.80 | 0.76 / 0.83 | 96 % / 99 % |
+| level 0.78, generic 1 | tied | 0.95 / 0.95 | 0.70 / 0.76 | 88 % / 94 % |
+| 0.78 everywhere | hierarchical s = 0.25 | 0.77 / 0.77 | 0.81 / 0.88 | 98 % / 98 % |
+| 0.78 everywhere | tied | 0.77 / 0.77 | 0.82 / 0.89 | 98 % / 98 % |
+| 1 everywhere | hierarchical s = 0.25 | 0.98 / 0.99 | 0.85 / 0.94 | 99 % / 99 % |
+
+### 10.7 s_level (end-of-held-out level intercepts on head R; truth +1.07 / +0.74 when level rows feed G1@event raw)
+
+| s_level | level rows = M1 raw: a_T0 − a_G / a_T15 − a_G | champion gate T0 / T15 | level rows = G1@event raw: a_T0 − a_G / a_T15 − a_G |
+|---|---|---|---|
+| 0.5 | +0.01 / +0.03 | 96 % / 84 % | +0.86 / +0.56 |
+| 1.0 | +0.00 / +0.02 | 90 % / 62 % | +1.01 / +0.67 |
+| 1.5 | -0.03 / -0.01 | 85 % / 56 % | +1.04 / +0.72 |
+
+### 10.8 Challenger promotion (C1-like covariate on head B at T15; looks at 150 / 300 / 450 paired; 600 not reached in 104 w)
+
+| True effect β | promoted at any look | by look 150 / 300 / 450 |
+|---|---|---|
+| 0.0 | 2 % | 0 % / 0 % / 1 % |
+| 0.2 | 20 % | 2 % / 16 % / 18 % |
+| 0.35 | 32 % | 6 % / 22 % / 29 % |
+
+### 10.9 Live floor
+
+| World | reached L3_LIVE (of all reps) T0 / T15 | mean week T0 / T15 |
+|---|---|---|
+| null | 50 % / 40 % | 33 / 46 |
+| null_tau0 | 57 % / 43 % | 31 / 45 |
+
+
+## 11. Limitations
+
+- Synthetic worlds only. Real regime clustering may be stronger than τ = 0.25.
+- T0 and T15 events are simulated independently; in reality T15 is a subset of T0, which correlates their monitors.
+- Overlapping 4h windows within a class are rare (about one a day); the e-process assumes each forecast is calibrated given the outcomes resolved before it.
+- Detection of 7–11 pp drifts is slow (§5.5).
+- The slope and s_level choices are dev-informed (disclosed above). The shared-slope assumption of F1 §8a is replaced by a hierarchical slope; `PRIOR_S_SLOPE_LEVEL = 0` restores it.
