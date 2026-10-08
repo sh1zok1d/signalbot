@@ -196,3 +196,47 @@ def test_metrics_basic_shapes():
     assert out["ll_gain_vs_SELF"] == 0.0 and out["n"] == 300
     assert abs(out["heads"]["R"]["recal_b"] - 1) < 0.6
     assert MT.auc(np.array([0.1, 0.9]), np.array([0, 1])) == 1.0
+
+
+def test_heldout_plan_never_touches_the_e1_gap():
+    from datetime import date
+    from scripts.research.level_race_forecast_v1 import heldout as HO
+    planned, rejected = HO.plan(date(2026, 10, 16))
+    HO.assert_plan_legal(planned)
+    assert all(o.kind.startswith("klines") for o in planned)
+    assert any("2026-08.zip" in o.key for o in rejected)
+    assert not any("2026-08-25" in o.key for o in planned) and any("2026-08-26" in o.key for o in planned)
+    assert planned[0].key.endswith("2024-12.zip")
+
+
+def test_heldout_event_span_and_window():
+    from datetime import date, datetime, timezone
+    from scripts.research.level_race_forecast_v1 import heldout as HO
+    ms = lambda *a: int(datetime(*a, tzinfo=timezone.utc).timestamp() * 1000)
+    assert HO.event_span_ok(ms(2026, 8, 14, 0, 0))
+    assert not HO.event_span_ok(ms(2026, 8, 15, 22, 0))     # 4h window reaches 08-16
+    assert not HO.event_span_ok(ms(2026, 8, 26, 12, 0))     # sigma window reaches back into 08-25
+    assert HO.event_span_ok(ms(2026, 8, 27, 1, 0))
+    assert HO.event_in_window(ms(2025, 1, 1, 0, 0), date(2026, 10, 16))
+    assert not HO.event_in_window(ms(2024, 12, 31, 23, 55), date(2026, 10, 16))
+    assert not HO.event_in_window(ms(2026, 10, 15, 21, 0), date(2026, 10, 16))
+    with pytest.raises(RuntimeError):
+        HO.require_go("go")
+
+
+def test_calibrator_identity_and_prequential_uses_only_the_past():
+    from scripts.research.level_race_forecast_v1 import calibrate as C
+    rng = np.random.default_rng(4)
+    n = 3000
+    p = rng.uniform(0.05, 0.95, n)
+    y = (rng.uniform(size=n) < p).astype(float)
+    cal = C.HeadCalibrator().fit(["LEVEL_T0"] * n, p, y)
+    assert cal.theta[3] == pytest.approx(1.0, abs=0.15) and abs(cal.theta[1]) < 0.15
+    P = np.column_stack([p * 0.5, p * 0.5, 1 - p])
+    yy = np.where(y > 0, 0, 2)
+    wk = np.repeat(np.arange(30), 100)
+    pub = C.prequential(wk, wk, ["LEVEL_T0"] * n, P, yy, C.Prior(), use_level_intercepts=True)
+    assert np.allclose(pub.sum(axis=1), 1.0)
+    # week 0 has no past: identity prior (a = 0, b = 1) up to the floor
+    assert np.allclose(pub[wk == 0][:, 2], np.maximum(P[wk == 0][:, 2], 0.001) /
+                       np.maximum(P[wk == 0], 0.001).sum(axis=1), atol=1e-6)
