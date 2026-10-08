@@ -180,7 +180,7 @@ Mark every known contact with `/admin_known <id> on` within 24 hours of their jo
 | `access.tiers_enforced` | `false` | everything open during the beta (§6.5) |
 | `access.u3_offer` | price and method set | U3 on days 21–25 |
 | `briefing.withdrawal.day0_kyiv` | `null` until Day 0 | U1a inactive before Day 0 |
-| `PRIVACY_NOTICE_VERSION` | 7 | the participants see the current notice once |
+| `PRIVACY_NOTICE_VERSION` | 8 | the participants see the current notice once |
 | `level_race.push_trigger` | `structural`, switched at 00:00 UTC in the step-3 deploy, before the 7-day start | a later switch restarts the observation week; `legacy` at Day 0 is a recorded limitation (contract §12.1) |
 
 **Calendar.** Day 0 is not earlier than the C1 rank maturity (about the end of October) plus an owner soak that sees a real unusual-hour push (backlog §1).
