@@ -101,36 +101,20 @@ U4 is fixed: 2 channels, 12 calendar days [T(0), T(12)), at most 6 hours of foun
 - **Work budget.** Start/stop blocks in the ledger, Kyiv time, to the minute. At 6 hours stop: no third venue, no extension, no repost by others. Joins that arrive later from the posts already made still count. A join that needed a private conversation is known.
 - **At T(12)**, below 8 unknown joins: stop inviting, revoke both codes, record "Stop: distribution".
 
-**Invitation text — the architect's corrected draft, pending the owner's approval** (verbatim; one substitution: the link; no signature, no price, no urgency, no «напишите мне»).
-
-RU:
+**Invitation text — the owner's own text, pending the owner's final wording** (two fixes are with the owner: the historical-frequency phrase and «участникам беты»). Verbatim; the only placeholder is `<ссылка>`; no signature, no price, no urgency.
 
 ```text
-Закрытая бета Telegram-бота по BTC (фьючерсы Binance, Bybit, OKX).
+Приглашаю в закрытую бесплатную бету Telegram-бота по BTC — на данных фьючерсов Binance, Bybit и OKX.
 
-Бот показывает: в каком коридоре цена, по оценке, пробудет ближайшие 1, 4 и 24 часа, где ближайшие уровни и как часто цена до них доходила, какие события в календаре. Коротко пишет, когда час или уровень выбиваются из обычного. Рядом с каждой цифрой — сколько было случаев и как бывает обычно; рядом с оценкой — как такие оценки сбывались.
+Бот помогает быстро посмотреть состояние рынка: оценочные ценовые коридоры на 1, 4 и 24 часа, ближайшие уровни, историческую частоту их достижения и календарь событий. Присылает короткие уведомления о заметных изменениях.
 
-Бот не даёт сделок и не говорит, покупать или продавать.
+Исторические наблюдения и прогнозные оценки обозначены отдельно. Оценки могут ошибаться; бот не даёт команд покупать или продавать.
 
-Подойдёт, если вы торгуете BTC и следите за рынком в течение дня.
+Ищу тех, кто следит за BTC в течение дня и готов попробовать бота в обычной работе. Отзывы и вопросы можно отправлять прямо в нём, без созвонов.
 
-Вход по ссылке, около двух минут: <INVITE_URL>
-Остановить сообщения — /stop, удалить данные — /delete_me.
-```
+Бета бесплатна до конца теста. Ближе к завершению предложим платное продолжение — по желанию.
 
-EN:
-
-```text
-A closed beta of a Telegram bot for BTC (Binance, Bybit and OKX futures).
-
-The bot shows the range the price is estimated to stay in over the next 1, 4 and 24 hours, the nearest levels and how often the price reached them, and the events on the calendar. It sends a short note when an hour or a level stands out from the usual. Beside every number: how many cases there were and what is usual; beside every estimate: how such estimates turned out.
-
-The bot gives no trades and never says buy or sell.
-
-It suits you if you trade BTC and watch the market during the day.
-
-Join by the link, about two minutes: <INVITE_URL>
-Stop messages: /stop. Delete your data: /delete_me.
+Вход: <ссылка> Остановить сообщения — /stop, удалить данные — /delete_me.
 ```
 
 **The only public follow-up**, once per thread, to "does it say where the price goes / give trades":
