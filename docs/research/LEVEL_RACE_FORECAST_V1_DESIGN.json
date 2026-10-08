@@ -1,0 +1,322 @@
+{
+  "unit": "LEVEL_RACE_FORECAST_V1",
+  "mode": "DISCOVERY_THEN_ONE_HELD_OUT_READ",
+  "program": "FORECAST_LAYER_DECISION_V1",
+  "family": "LEVEL_BEHAVIOR_V1",
+  "tracks": [
+    "PRODUCT_EVIDENCE",
+    "STRUCTURE"
+  ],
+  "status": "DESIGN_COMMITTED / NO_OUTCOME_READ",
+  "design_note": "docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md",
+  "event": {
+    "constructor": "scripts/research/level_touch_degradation_v1 (level_instances, build_episodes, scan_all)",
+    "kinds": [
+      "PDH",
+      "PDL",
+      "PWH",
+      "PWL",
+      "PMH",
+      "PML"
+    ],
+    "zone_half": 0.0015,
+    "touch_number": 1,
+    "eligibility": "feature_eligible"
+  },
+  "barriers": {
+    "x": "0.5 * 1.2816 * sigma * sqrt(48)",
+    "sigma": "sigma_before_touch (288 5m log returns ending at bar j-1, ddof=1)",
+    "p_up": "zone_high * (1 + x)",
+    "p_dn": "zone_low * (1 - x)"
+  },
+  "outcome": {
+    "rule_id": "LEVEL_RACE_4H_V1",
+    "classify": "level_touch_degradation_v1.outcomes.classify",
+    "bars": "j+1..j+48",
+    "classes": [
+      "BREAK",
+      "REJECT",
+      "NEITHER"
+    ],
+    "ambiguous": "excluded_and_counted"
+  },
+  "landmarks": {
+    "T0": {
+      "position": "close[j]",
+      "tau_bars": 48,
+      "population": "all eligible first touches"
+    },
+    "T15": {
+      "position": "close[j+2]",
+      "tau_bars": 45,
+      "population": "no barrier hit on j+1, j+2"
+    }
+  },
+  "prob_floor": 0.001,
+  "b0": {
+    "form": "driftless BM in log price, two absorbing barriers, sine series",
+    "terms_until": 1e-15,
+    "max_terms": 20000,
+    "out_of_corridor": "1 - 2*eps on the crossed side",
+    "test_seed": 20261008,
+    "drift": 0.0,
+    "discretisation": "continuous monitoring (5m high/low are true intrabar extremes); no Broadie-Glasserman shift"
+  },
+  "menu": {
+    "B0": {
+      "params": 0
+    },
+    "B1": {
+      "cells": "family x STRUCT_SIDE per landmark",
+      "smoothing": "Dirichlet(1,1,1)",
+      "open_question": "Q1"
+    },
+    "M1": {
+      "heads": {
+        "R": [
+          "1",
+          "T15",
+          "FAM_WM",
+          "SIDE",
+          "SIGMA_T"
+        ],
+        "B": [
+          "1",
+          "T15",
+          "FAM_WM",
+          "SIDE",
+          "SIGMA_T"
+        ]
+      },
+      "params": 10
+    },
+    "M1A": {
+      "heads": {
+        "R": [
+          "1",
+          "T15",
+          "WEEK",
+          "MONTH",
+          "SIDE"
+        ],
+        "B": [
+          "1",
+          "T15",
+          "WEEK",
+          "MONTH",
+          "SIDE"
+        ]
+      },
+      "params": 10
+    },
+    "M1B": {
+      "heads": {
+        "R": [
+          "1",
+          "T15"
+        ],
+        "B": [
+          "1",
+          "T15"
+        ]
+      },
+      "params": 4
+    },
+    "C1": {
+      "base": "champion M1-family spec (M1 if champion is B0)",
+      "extra": "OTHER_VENUE_MEDIAN_MOVE (#363), head B, T15 rows only, z-scored on training moments",
+      "params": "base + 1",
+      "champion_eligible": false
+    }
+  },
+  "offset_clip": [
+    0.0001,
+    0.9999
+  ],
+  "ridge": {
+    "objective": "-loglik + (lambda/2)*||beta||^2, intercepts unpenalised",
+    "lambda_grid": [
+      0.5,
+      2,
+      8,
+      32
+    ],
+    "tie_nats": 0.0005,
+    "tie_to": "larger lambda"
+  },
+  "cv": {
+    "surface": "CORE_BTC_BINANCE_V0 1m->5m (DH1 loader)",
+    "events": "2020-02-01..2024-12-31",
+    "c1_extra_surface": "LEVEL_CROSS_VENUE_PERP_5M_V0 from 2020-04-01T00:05Z",
+    "folds": [
+      [
+        [
+          2020
+        ],
+        2021
+      ],
+      [
+        [
+          2020,
+          2021
+        ],
+        2022
+      ],
+      [
+        [
+          2020,
+          2021,
+          2022
+        ],
+        2023
+      ],
+      [
+        [
+          2020,
+          2021,
+          2022,
+          2023
+        ],
+        2024
+      ]
+    ],
+    "cluster": "product week",
+    "bootstrap_draws": 2000,
+    "seed": 20261008,
+    "ci": 0.95
+  },
+  "champion_rule": {
+    "score": "pooled OOF mean log-loss (both landmarks)",
+    "must_beat": "B0 point estimate",
+    "tie_nats": 0.002,
+    "tie_order": [
+      "M1B",
+      "M1",
+      "M1A"
+    ],
+    "else": "champion = B0"
+  },
+  "held_out": {
+    "source": "data.binance.vision USD-M BTCUSDT 5m klines via beta.history_data.plan_objects",
+    "events": "touch open >= 2025-01-01T00:00Z, 4h window closed before the freeze date (UTC midnight, exclusive)",
+    "e1_holdout": [
+      "2026-08-16T00:00:00Z",
+      "2026-08-25T17:20:00Z"
+    ],
+    "object_gap": [
+      "2026-08-16T00:00:00Z",
+      "2026-08-26T00:00:00Z"
+    ],
+    "event_exclusion": "span (j-289 .. j+48) intersects the object gap; constructor drops incomplete source/active periods",
+    "reads": 1,
+    "requires": "freeze commit + explicit mini-head go",
+    "exposure_class": "TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION-like (class B), not pristine",
+    "parity_preflight": "2024 events from product 5m vs CORE 1m->5m, outcome-blind",
+    "published": "prequential weekly calibrator, fitted only on events resolved before the week"
+  },
+  "metrics_order": [
+    "logloss_skill_vs_B0_B1",
+    "calibration_citl_intercept_slope_5bin",
+    "brier_murphy",
+    "sharpness_pB_outside_40_60",
+    "auc_diagnostic"
+  ],
+  "ece": "descriptive only",
+  "calibrator": {
+    "form": "per head (R, B) logit p' = a + b logit p, Gaussian prior, MAP",
+    "batch": "weekly",
+    "heldout_prior": {
+      "a": [
+        0,
+        0.5
+      ],
+      "b": [
+        1,
+        0.25
+      ]
+    },
+    "live_prior_equiv_events": 150,
+    "nonparametric_min_events": 300,
+    "f3": true
+  },
+  "level_effect_rule": "champion != B0 and held-out raw paired LL gain vs raw B0 95% interval > 0, per landmark; else publish calibrated B0",
+  "gates_f3_planning": {
+    "L3_HISTORY_BACKED": {
+      "G0_min_events": 200,
+      "G1_ll_pub_minus_b0_upper_max_nats": 0.01,
+      "G2_citl_point_max_pp": 5,
+      "G2_citl_interval_within_pp": 10,
+      "G3_slope_interval_overlaps": [
+        0.8,
+        1.25
+      ]
+    },
+    "L3_LIVE": {
+      "min_resolved": 150,
+      "plus": "G2 and G3 on live published"
+    },
+    "OFF": "data fault, last closed bar older than 10 min at issue, parity break",
+    "FALLBACK": {
+      "D1_eprocess_lambdas": [
+        -0.5,
+        -0.25,
+        0.25,
+        0.5
+      ],
+      "D1_threshold": 10,
+      "D2": "last 100: CITL point outside +-10 pp and 95% interval excludes 0",
+      "D3": "last 100: LL_pub - LL_B0 95% interval above 0"
+    },
+    "return": "50 new resolved since fallback; D2 band, restarted D1 <= 10, D3 not triggered"
+  },
+  "templates": [
+    "LR_HIST_V1",
+    "LR_HIST_LOW_N_V1",
+    "LR_L3H_V1",
+    "LR_L3L_V1",
+    "LR_FB_V1",
+    "LR_OFF_V1"
+  ],
+  "hist_cohort": {
+    "bins": "5 equal-width bins of B0_up",
+    "min_n": 30
+  },
+  "journal_classes": [
+    "L3_LEVEL_RACE_T0_4H",
+    "L3_LEVEL_RACE_T15_4H"
+  ],
+  "search_exposure": {
+    "menu": 6,
+    "m1_fits": 12,
+    "landmarks": 2,
+    "heads": 2,
+    "folds": 4
+  },
+  "forbidden_inputs": [
+    "touch ordinal",
+    "rejection speed",
+    "approach geometry",
+    "static level properties",
+    "OI",
+    "taker",
+    "joint OI/taker/price state",
+    "book +-1%",
+    "path memory",
+    "spot",
+    "sequence taxonomy",
+    "zone notional",
+    "#365 clock",
+    "#368 RV transition",
+    "END_POSITION_X as a separate feature",
+    "pseudo map",
+    "#361/#363 coefficients"
+  ],
+  "open_questions": [
+    "Q1",
+    "Q2",
+    "Q3",
+    "Q4",
+    "Q5",
+    "Q6"
+  ]
+}
