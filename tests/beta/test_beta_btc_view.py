@@ -354,7 +354,8 @@ def test_liquidation_renders_vote_count_not_a_sum_and_details_keep_the_venues():
     assert "$6.1M" not in out
     _assert_compact(out)
     d = format_context_details(CFG, states[-1]["open"]["LIQUIDATION_STRESS_LONG"], states[-1])
-    assert "Binance ≥$5M" in d and "Bybit $1M" in d and "OKX $100K" in d
+    # OKX's feed "doesn't represent the total" either: a lower bound like Binance (data reliability D2)
+    assert "Binance ≥$5M" in d and "Bybit $1M" in d and "OKX ≥$100K" in d
     assert "top-5%" not in d and "≥ — lower bound:" in d
 
 

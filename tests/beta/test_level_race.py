@@ -114,3 +114,22 @@ def test_shown_difference_equals_shown_percentages_when_rounding_diverges():
     assert line["d_pp"]["up"] != round(cell["diff_pp"]["BEYOND"])
     assert line["ci95_pp"]["up"] == [-6, 4]
     assert sum(line["printed_h"].values()) == sum(line["printed_b"].values()) == 100
+
+
+def test_table_file_digest_covers_provenance(tmp_path):
+    import json
+    raw = L.HIST_TABLE_PATH.read_bytes()
+    t = json.loads(raw)
+    t["provenance"]["design_sha"] = "deadbeef"
+    t["provenance"]["years"] = [2020, 2021, 2022, 2023, 2024, 2025]
+    bad = tmp_path / "t.json"
+    bad.write_text(json.dumps(t, ensure_ascii=False, indent=1) + "\n")
+    with pytest.raises(RuntimeError):
+        L.load_hist_table(bad)
+    same = tmp_path / "same.json"
+    same.write_bytes(raw)
+    assert L.load_hist_table(same)["table_sha256"] == L.HIST_TABLE_SHA256
+    flipped = tmp_path / "flip.json"
+    flipped.write_bytes(raw.replace(b"2020", b"2021", 1))
+    with pytest.raises(RuntimeError):
+        L.load_hist_table(flipped)
