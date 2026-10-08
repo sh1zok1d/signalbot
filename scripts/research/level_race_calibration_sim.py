@@ -132,7 +132,8 @@ def rep(args):
     case, setup, res = {}, {}, {"classes": {}}
     for c in LEVELS:
         rc = [r for r in ho if r["cal_class"] == c]
-        a = L.beats(rc, "p_raw", "p_b0") and L.beats(rc, "p_raw", "p_fb_raw")
+        bb0, bfb = L.beats(rc, "p_raw", "p_b0"), L.beats(rc, "p_raw", "p_fb_raw")
+        a = bb0 and bfb
         case[c] = "A" if a else "B"
         for r in rc:
             r["p_pub"] = r["p_champ"] if a else r["p_fb"]
@@ -140,7 +141,12 @@ def rep(args):
         fb_g2 = L.g2_only(rc, "p_fb")
         setup[c] = L.Setup(mode="MODEL", case=case[c], holdout_passed=g["passed"], fallback_g2_holdout=fb_g2)
         res["classes"][c] = {
-            "case": case[c], "gate": g["passed"], "G1": g["G1"]["pass"], "G2": g["G2"]["pass"], "G3": g["G3"]["pass"],
+            "case": case[c], "beats_b0": bb0, "beats_g1": bfb,
+            "gain_b0": L.paired_log_loss(rc, "p_raw", "p_b0")["est"],
+            "gain_g1": L.paired_log_loss(rc, "p_raw", "p_fb_raw")["est"],
+            "margin": {o: (gc["G2"]["outcomes"][o]["hi"] - gc["G2"]["outcomes"][o]["lo"]) / 200
+                       if gc["G2"]["outcomes"][o]["lo"] is not None else 0.0 for o in L.OUTCOMES},
+            "gate": g["passed"], "G1": g["G1"]["pass"], "G2": g["G2"]["pass"], "G3": g["G3"]["pass"],
             "champ_gate": gc["passed"], "champ_G2": gc["G2"]["pass"], "champ_G3": gc["G3"]["pass"],
             "champ_slope_B": gc["G3"]["heads"]["B"]["est"], "fb_g2": fb_g2, "n_ho": len(rc),
             "citl_champ": {o: gc["G2"]["outcomes"][o]["est"] for o in L.OUTCOMES}}
@@ -157,6 +163,9 @@ def rep(args):
                 for r in chal}
     live, cals = publish(live, lp, cuts)
     stamp(live, case)
+    for r in live:
+        if r["cal_class"] != "GENERIC":
+            r["p_ref"] = L.apply_calibrator(ho_final, r["p_raw"], r["cal_class"]).tolist()
     if mode == "challenger":
         t15 = [r for r in live if r["cal_class"] == "LEVEL_T15"]
         for r in t15:
@@ -181,6 +190,12 @@ def rep(args):
             m0 = m if ep == 0 else L.monitors(done, key="p_pub", epoch_start=0, fallback_key=fbk)
             for why in L.drift_reasons(m0):
                 first.setdefault(why.split(":")[0], int(wk))
+            if "D1ref" not in first and L.d1_triggered(L.d1_value(done, "p_ref")):
+                first["D1ref"] = int(wk)
+            if "D1reftol" not in first:
+                pth = L.d1_paths(done, "p_ref", margin=res["classes"][c]["margin"])
+                if L.d1_triggered({"e": dict(zip(L.OUTCOMES, pth[-1]))}):
+                    first["D1reftol"] = int(wk)
             new = L.next_state(st, setup[c], health=L.Health(), mon=m, mon_fb=mf, now_ms=cut)
             if new.state != st.state:
                 trans.append((int(wk), new.state, new.reason))
@@ -200,6 +215,8 @@ def scenarios():
         out.append((f"drift_b-{d}", replace(base, drift_b=-d), "live"))
     out += [("drift_r-0.6", replace(base, drift_r=-0.6), "live"), ("drift_r+0.6", replace(base, drift_r=0.6), "live")]
     out += [(f"ho_shift_b{sh}", replace(base, shift_b=sh), "holdout") for sh in (0.2, 0.4, 0.6)]
+    out += [("ho_dev_gains", replace(base, b0_gap_r=0.6, b0_gap_b=0.25), "holdout"),
+            ("ho_dev_gains_tau0", replace(base, b0_gap_r=0.6, b0_gap_b=0.25, tau=0.0), "holdout")]
     out += [(f"ho_s_level{s}", replace(base, s_level=s), "holdout") for s in (0.5, 1.0, 1.5)]
     out += [(f"ho_fbraw_s_level{s}", replace(base, s_level=s, level_raw_fb=True), "holdout") for s in (0.5, 1.0, 1.5)]
     out += [(f"chal_beta{b}", replace(base, chal_beta=b), "challenger") for b in (0.0, 0.2, 0.35)]
@@ -226,6 +243,8 @@ def summarize(w, mode, rs):
     for c in LEVELS:
         cs = [r["classes"][c] for r in rs]
         d = {"case_A": _mean([x["case"] == "A" for x in cs]), "gate_pass": _mean([x["gate"] for x in cs]),
+             "beats_b0": _mean([x["beats_b0"] for x in cs]), "beats_g1": _mean([x["beats_g1"] for x in cs]),
+             "gain_b0": _mean([x["gain_b0"] for x in cs]), "gain_g1": _mean([x["gain_g1"] for x in cs]),
              "G1": _mean([x["G1"] for x in cs]), "G2": _mean([x["G2"] for x in cs]), "G3": _mean([x["G3"] for x in cs]),
              "champ_gate": _mean([x["champ_gate"] for x in cs]), "champ_G2": _mean([x["champ_G2"] for x in cs]),
              "champ_G3": _mean([x["champ_G3"] for x in cs]), "champ_slope_B": _mean([x["champ_slope_B"] for x in cs]),
@@ -251,9 +270,12 @@ def summarize(w, mode, rs):
                      l3_live=_mean([any(t[1] == "L3_LIVE" for t in x["transitions"]) for x in cs]),
                      l3_live_week=_mean([next((t[0] for t in x["transitions"] if t[1] == "L3_LIVE"), None) for x in cs]),
                      first_any={m: _mean([m in x["first"] for x in cs]) for m in ("D1", "D2", "D3")},
-                     first_any_l3={m: _mean([m in x["first"] for x, s0 in zip(cs, l3) if s0]) for m in ("D1", "D2", "D3")},
+                     first_any_l3={m: _mean([m in x["first"] for x, s0 in zip(cs, l3) if s0])
+                                   for m in ("D1", "D2", "D3", "D1ref", "D1reftol")},
                      first_l3_by_52w={m: _mean([x["first"].get(m, 999) <= 52 for x, s0 in zip(cs, l3) if s0])
-                                      for m in ("D1", "D2", "D3")},
+                                      for m in ("D1", "D2", "D3", "D1ref", "D1reftol")},
+                     first_l3_after_drift_26w={m: _mean([dw <= x["first"].get(m, 999) < dw + 26 for x, s0 in zip(cs, l3) if s0])
+                                               for m in ("D1", "D2", "D3", "D1ref", "D1reftol")},
                      first_before_drift={m: _mean([x["first"].get(m, 999) < dw for x in cs]) for m in ("D1", "D2", "D3")},
                      n_live=_mean([x["n_live"] for x in cs]))
         s["classes"][c] = d

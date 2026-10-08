@@ -407,15 +407,24 @@ def beats(records: Sequence[Mapping[str, Any]], model: str, base: str) -> bool:
 
 
 # ---- D1: betting e-process (design §5.1) ------------------------------------------------------------
-def d1_paths(records: Sequence[Mapping[str, Any]], key: str) -> np.ndarray:
+def d1_paths(records: Sequence[Mapping[str, Any]], key: str, margin: Optional[Mapping[str, float]] = None) -> np.ndarray:
     """Per outcome (columns BREAK, REJECT, NEITHER) the path of E_t = mean over λ ∈ D1_LAMBDAS of
-    Π (1 + λ (y_i − p_i)), from the first record given (the epoch start)."""
+    Π (1 + λ (y_i − p_i)), from the first record given (the epoch start).
+
+    With `margin` (per outcome, probability units) the null is |E[y − p]| ≤ m instead of 0: the λ > 0
+    bets use y − p − m and the λ < 0 bets y − p + m, which keeps every factor's mean ≤ 1 under that
+    null. This is the variant for a frozen reference map (p_ref) whose own held-out estimation error
+    is m (design §5.1)."""
     if not records:
         return np.ones((0, 3))
     p3 = _clip(np.array([r[key] for r in records], dtype=float))
     y3 = np.array([[1.0 if r["outcome"] == o else 0.0 for o in OUTCOMES] for r in records])
     lam = np.array(D1_LAMBDAS)[None, None, :]
-    logs = np.cumsum(np.log1p(lam * (y3 - p3)[:, :, None]), axis=0)
+    z = (y3 - p3)[:, :, None]
+    if margin:
+        m = np.array([float(margin.get(o, 0.0)) for o in OUTCOMES])[None, :, None]
+        z = z - np.sign(lam) * m
+    logs = np.cumsum(np.log1p(lam * z), axis=0)
     return np.mean(np.exp(logs), axis=2)
 
 

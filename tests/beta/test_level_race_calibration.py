@@ -228,3 +228,12 @@ def test_display_contract():
     off = L.next_state(L.initial_state(s, now_ms=0), s, health=L.Health(parity_ok=False), now_ms=1)
     d = L.display_contract(off, s, calibrator_version="v")
     assert d["probabilities"] is None and d["template"] == "LR_OFF_V1" and d["calibrator_version"] is None
+
+
+def test_d1_margin_variant_tolerates_small_offsets_but_not_large():
+    rng = np.random.default_rng(12)
+    small = _recs(800, rng, shift_r=-0.15)                 # ≈ 3 pp miscalibration
+    m = {o: 0.04 for o in L.OUTCOMES}
+    assert L.d1_paths(small, "p_pub", margin=m)[-1].max() < L.d1_paths(small, "p_pub")[-1].max()
+    big = _recs(800, rng, shift_r=-1.0)
+    assert L.d1_triggered({"e": dict(zip(L.OUTCOMES, L.d1_paths(big, "p_pub", margin=m)[-1]))})
