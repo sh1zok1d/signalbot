@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Fast PR gate for a PR branch → main.
 
-FAST PR GATE (this file) runs in `.github/workflows/ci.yml`, started by hand
-on a PR branch (docs/ORCHESTRATION_V1.md §4). FULL REGRESSION is
-`python -m pytest -q` via `.github/workflows/full-regression.yml`
+FAST PR GATE (this file) runs in `.github/workflows/ci.yml` on every push to a
+PR that is ready for review, and by hand (docs/ORCHESTRATION_V1.md §4): the
+broad product suites run here, not in the agents' sessions. FULL REGRESSION
+is `python -m pytest -q` via `.github/workflows/full-regression.yml`
 (workflow_dispatch only).
 
 Does not mint RESULT, consume reservations, or rerun MARKET-01.
@@ -56,8 +57,21 @@ HEAVY_TEST_TO_SOURCE = {
 # trigger would be complete. Its PostgreSQL tests need BETA_TEST_DSN, a
 # database of its own: tests/beta/beta_fakes.py::fresh_pool drops and
 # recreates its public schema (see .github/workflows/ci.yml). The user
-# simulator harness keeps its own suite outside this gate.
-BETA_SUITES = ("tests/beta",)
+# simulator harness keeps its own suite outside this gate. tests/deploy joins
+# it: the merge rule asks for both on every product PR (ORCHESTRATION_V1 §4).
+BETA_SUITES = ("tests/beta", "tests/deploy")
+
+# Whole product suites by source area. Since 2026-10-08 the broad runs are
+# done here, in Actions, not in the agents' sessions (owner: «надо сделать
+# так, чтобы основную работу делал экшнс»; ORCHESTRATION_V1 §4). The CI
+# service has TimescaleDB, so the storage suites run instead of skipping.
+AREA_SUITES = {
+    "data_ingestion/": ("tests/data_ingestion",),
+    "storage/": ("tests/storage",),
+    "runtime/": ("tests/runtime",),
+    "notifications/": ("tests/notifications",),
+    "common/": ("tests/common",),
+}
 
 
 def _in_beta_suite(path: str) -> bool:
@@ -137,6 +151,10 @@ def _select_targets(always: list[str], changed: list[str]) -> list[str]:
         add(item)
     for suite in BETA_SUITES:
         add(suite)
+    for prefix, suites in AREA_SUITES.items():
+        if any(path.startswith(prefix) for path in changed):
+            for suite in suites:
+                add(suite)
 
     # The nested Generator V0 package has multiple shared contracts; a source-only
     # change must not evade its focused suite through the flat filename mapper.

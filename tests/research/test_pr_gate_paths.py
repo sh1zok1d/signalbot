@@ -99,3 +99,13 @@ def test_workflows_give_the_beta_suites_their_own_database():
         for line in text.splitlines():
             if "BETA_TEST_DSN:" in line:
                 assert not line.rstrip().endswith("/signalbot_test"), (workflow, line)
+
+
+def test_area_suites_follow_the_changed_source_area():
+    gate = _pr_gate()
+    for prefix, suites in gate.AREA_SUITES.items():
+        for suite in suites:
+            assert any((REPO / suite).glob("test_*.py")), suite
+        targets = gate._select_targets([], [f"{prefix}example.py"])
+        assert set(suites) <= set(targets), prefix
+    assert "tests/storage" not in gate._select_targets([], ["beta/delivery.py"])
