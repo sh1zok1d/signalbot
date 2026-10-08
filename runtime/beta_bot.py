@@ -16,7 +16,7 @@ import logging
 import math
 import signal
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Mapping, Optional, Sequence
 
 from beta.access import MUTE_ACTIONS, PRIVACY_NOTICE_VERSION, start_code, telemetry_salt
@@ -153,7 +153,48 @@ def _terms(lang: str) -> str:
 def _help_buttons(lang: str) -> list:
     # «Другие монеты»: the U5 fake door (BETA_MEASUREMENT_CONTRACT_V1 §6). Only here, never
     # pushed or repeated elsewhere; nothing multi-asset exists behind it.
-    return [[(t(lang, "btn_terms"), "terms"), (t(lang, "btn_other_assets"), OTHER_ASSETS)]]
+    return [[(t(lang, "btn_terms"), "terms"), (t(lang, "btn_other_assets"), OTHER_ASSETS)],
+            [(t(lang, "btn_idea"), IDEA_BUTTON), (t(lang, "btn_interview"), INTERVIEW_BUTTON)]]   # H1, H4
+
+
+IDEA_BUTTON, INTERVIEW_BUTTON = "x:idea", "x:interview"
+NOISE_REASONS = ("wrong", "not_for_me", "too_often", "late")          # H2, after «Шум»
+STOP_REASONS = ("not_needed", "too_many", "unclear", "other")          # H3, at /stop
+
+
+def _reason_buttons(topic: str, subject: str, lang: str) -> list:
+    """q:<n|s>:<subject>:<reason>; one answer, a second tap replaces it."""
+    codes = NOISE_REASONS if topic == "n" else STOP_REASONS
+    return [[(t(lang, "reason_" + c), f"q:{topic}:{subject}:{c}")] for c in codes]
+
+
+def _parse_reason(data: str):
+    parts = data.split(":")
+    if len(data) > 64 or len(parts) != 4 or parts[0] != "q" or parts[1] not in ("n", "s"):
+        return None
+    codes = NOISE_REASONS if parts[1] == "n" else STOP_REASONS
+    if parts[3] not in codes or not parts[2] or len(parts[2]) > 48:
+        return None
+    return ("noise" if parts[1] == "n" else "stop"), parts[2], parts[3]
+
+
+def _interview_slots(now: datetime) -> list:
+    """The next two weekdays on the participant's clock, 12:00 and 18:00 of the first, 12:00 of the second."""
+    from datetime import time as dtime
+    from beta.i18n import current_tz
+    tz = current_tz()
+    day, days = now.astimezone(tz).date(), []
+    while len(days) < 2:
+        day = day + timedelta(days=1)
+        if day.weekday() < 5:
+            days.append(day)
+    return [datetime.combine(d, dtime(h, 0), tzinfo=tz) for d, h in ((days[0], 12), (days[0], 18), (days[1], 12))]
+
+
+def _interview_buttons(now: datetime, lang: str) -> list:
+    from beta.decision_format import _when
+    rows = [[(_when(s, lang, with_day=True), f"i:{int(s.timestamp() // 60)}")] for s in _interview_slots(now)]
+    return rows + [[(t(lang, "interview_other"), "i:other")]]
 
 
 OTHER_ASSETS = "x:assets"
@@ -275,6 +316,19 @@ class BetaBotHandler:
                     return [_msg(chat_id, t(lang, "feedback_before_join"), lang=lang)]
                 return [_msg(chat_id, t(lang, "not_joined"), lang=lang)]
             return [_msg(chat_id, t("ru", "closed_beta"), lang="ru")]
+        if cmd is None and user.get("awaiting") == "idea" and user.get("awaiting_until") \
+                and user["awaiting_until"] > now:            # the message after «💡 Идея» (H1)
+            return await self._store_text(conn, user, chat_id, lang, now, (m.get("text") or "").strip(), kind="idea")
+        if cmd == "idea":
+            if (args or "").strip():
+                return await self._store_text(conn, user, chat_id, lang, now, args.strip(), kind="idea")
+            return await self._idea_prompt(conn, user, chat_id, lang, now)
+        if cmd == "cancel":
+            await conn.set_awaiting(uid, None, None)
+            return [_msg(chat_id, t(lang, "cancel_ok"), lang=lang)]
+        if cmd == "interview":
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_interview",
+                                     [_msg(chat_id, t(lang, "interview_q"), _interview_buttons(now, lang), lang=lang)])
         if cmd == "lang":
             return await self._reply(conn, user, chat_id, lang, now, "cmd_lang",
                                      [_msg(chat_id, t(lang, "choose_lang"), _lang_buttons("set"), lang=lang)])
@@ -351,7 +405,9 @@ class BetaBotHandler:
         if cmd == "stop":
             await conn.stop_user(telegram_user_id=uid, now=now)
             return await self._reply(conn, user, chat_id, lang, now, "cmd_stop",
-                                     [_msg(chat_id, t(lang, "paused"), lang=lang)])
+                                     [_msg(chat_id, t(lang, "paused"), lang=lang),         # one question (H3)
+                                      _msg(chat_id, t(lang, "stop_reason_q"), _reason_buttons("s", "-", lang),
+                                           lang=lang)])
         return [_msg(chat_id, t(lang, "unknown_cmd"), lang=lang)]
 
     async def _start(self, conn, uid, chat_id, args, user, lang, now) -> list:
@@ -386,7 +442,22 @@ class BetaBotHandler:
 
     async def _feedback(self, conn, user, chat_id, lang, now, args) -> list:
         text = (args or "").strip()
+        if not text:
+            return [_msg(chat_id, t(lang, "feedback_usage"), lang=lang)]
+        return await self._store_text(conn, user, chat_id, lang, now, text, kind="feedback")
+
+    async def _idea_prompt(self, conn, user, chat_id, lang, now) -> list:
+        """«💡 Идея / чего не хватает» (H1): the next plain message within 10 minutes is the idea."""
+        await conn.set_awaiting(int(user["telegram_user_id"]), "idea", now + timedelta(minutes=10))
+        return await self._reply(conn, user, chat_id, lang, now, "cmd_idea",
+                                 [_msg(chat_id, t(lang, "idea_prompt"), lang=lang)])
+
+    async def _store_text(self, conn, user, chat_id, lang, now, text: str, *, kind: str,
+                          confirm: Optional[str] = None) -> list:
+        """/feedback, an idea (H1) or an interview request (H4): the same limits, store and owner copy."""
         limits = self.cfg.section("feedback")
+        if kind == "idea":
+            await conn.set_awaiting(int(user["telegram_user_id"]), None, None)
         if not text:
             return [_msg(chat_id, t(lang, "feedback_usage"), lang=lang)]
         if len(text) > int(limits["max_chars"]):
@@ -396,24 +467,27 @@ class BetaBotHandler:
         if sent >= int(limits["max_per_utc_day"]):
             return [_msg(chat_id, t(lang, "feedback_daily_limit", n=limits["max_per_utc_day"]), lang=lang)]
         await conn.insert_feedback_message(user_pk=int(user["user_pk"]), text=text, lang=lang,
-                                           created_at=now)
-        await self._note(conn, user, "cmd_feedback", now)
-        confirm = _msg(chat_id, t(lang, "feedback_thanks"), lang=lang)
-        forward = self._owner_forward(user, lang, now, text)
+                                           created_at=now, kind=kind)
+        await self._note(conn, user, {"feedback": "cmd_feedback", "idea": "idea_sent",
+                                      "interview": "interview_booked"}[kind], now)
+        confirm = _msg(chat_id, confirm or t(lang, {"idea": "idea_thanks"}.get(kind, "feedback_thanks")), lang=lang)
+        forward = self._owner_forward(user, lang, now, text, kind=kind)
         if forward is None:
             logger.warning("beta feedback forward skipped: owner unavailable")
             return [confirm]
         return [confirm, forward]
 
-    def _owner_forward(self, user, lang: str, now: datetime, text: str):
-        """Owner copy of user text. Not passed through assert_descriptive."""
+    def _owner_forward(self, user, lang: str, now: datetime, text: str, *, kind: str = "feedback"):
+        """Owner copy of user text. Not passed through assert_descriptive. The owner's clock is Kyiv."""
         if self.owner is None:
             return None
         from beta.admin import fingerprint
         from beta.i18n import fmt_kyiv_date_hm
         fp = fingerprint(int(user["telegram_user_id"]))
-        when = fmt_kyiv_date_hm(now, "en")
-        body = (f"Feedback · {fp} · {lang} · {when}\n"
+        with render_tz(None):
+            when = fmt_kyiv_date_hm(now, "en")
+        head = {"feedback": "Feedback", "idea": "Idea", "interview": "Interview request"}[kind]
+        body = (f"{head} · {fp} · {lang} · {when}\n"
                 f"{html.escape(text, quote=False)}\n"
                 f"Reply: /admin_reply {fp} &lt;text&gt;")
         return Outgoing(kind="message", chat_id=int(self.owner), html=body)
@@ -772,6 +846,13 @@ class BetaBotHandler:
             opened = await self._open_tab(conn, cq, chat_id, answer, kind=tab[0], view_pk=tab[1],
                                           tab=tab[2], user=user)
             return await self._prepend_notice(conn, user, chat_id, lang, opened)
+        reason = _parse_reason(data)
+        if reason is not None and user is not None and (user["status"] == "ACTIVE" or reason[0] == "stop"):
+            # H2 after «Шум», H3 at /stop (a paused participant may still answer it)
+            topic, subject, code = reason
+            await conn.upsert_reason(user_pk=user["user_pk"], topic=topic, subject=subject, reason=code, at=self.clock())
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "reason_set",
+                                     [answer(t(lang, "reason_thanks"))], detail=f"{topic}:{code}")
         if user is None or user["status"] != "ACTIVE" or len(data) < 3 or data[1] != ":":
             return [answer(t(lang, "not_available"))]
         if data == "r:latest":
@@ -783,6 +864,26 @@ class BetaBotHandler:
             html_text, buttons = await self._btc(conn, self.clock(), lang)
             return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_btc_now",
                                      [answer(""), _msg(chat_id, html_text, buttons, lang=lang)])
+        if data == IDEA_BUTTON:                             # «💡 Идея / чего не хватает» (H1)
+            return [answer("")] + await self._idea_prompt(conn, user, chat_id, lang, self.clock())
+        if data == INTERVIEW_BUTTON:                        # «📞 15 минут с командой» (H4)
+            now = self.clock()
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_interview",
+                                     [answer(""), _msg(chat_id, t(lang, "interview_q"), _interview_buttons(now, lang),
+                                                       lang=lang)])
+        if data[:2] == "i:" and (data == "i:other" or data[2:].isdigit()):     # the chosen slot (H4)
+            now = self.clock()
+            if data == "i:other":
+                text, reply = "slot: another time", t(lang, "interview_other_ok")
+            else:
+                slot = datetime.fromtimestamp(int(data[2:]) * 60, tz=timezone.utc)
+                from beta.decision_format import _when
+                from beta.i18n import fmt_clock
+                shown = f"{_when(slot, lang, with_day=True)} {t(lang, 'zone')}"
+                text, reply = f"slot: {slot.isoformat()} ({fmt_clock(slot, 'en')} participant time)", \
+                    t(lang, "interview_ok", slot=shown)
+            return [answer("")] + await self._store_text(conn, user, chat_id, lang, now, text, kind="interview",
+                                                         confirm=reply)
         if data == OTHER_ASSETS:                            # U5 fake door: one activity row per tap
             return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_other_assets",
                                      [answer(""), _msg(chat_id, t(lang, "other_assets_reply"), lang=lang)])
@@ -817,6 +918,9 @@ class BetaBotHandler:
             out = [answer(t(lang, "feedback_recorded"))]
             if not changed:                    # the same vote again: nothing new happened
                 return out
+            if value == "NOISE":               # one reason after «Шум» (H2)
+                out.append(_msg(chat_id, t(lang, "noise_reason_q"), _reason_buttons("n", f"{kind}-{ref}", lang),
+                                lang=lang))
             return await self._reply(conn, user, chat_id, lang, self.clock(),
                                      "btn_useful" if value == "USEFUL" else "btn_noise", out, detail=kind)
         mute = _parse_mute(data)
@@ -850,8 +954,11 @@ class BetaBotHandler:
             if not changed:                    # a repeated tap is not a second vote (finding §4.5b)
                 return [answer(t(lang, "feedback_recorded"))]
             action = "btn_useful" if data[0] == "u" else "btn_noise"
-            return await self._reply(conn, user, chat_id, lang, self.clock(), action,
-                                     [answer(t(lang, "feedback_recorded"))])
+            out = [answer(t(lang, "feedback_recorded"))]
+            if data[0] == "n":                 # one reason after «Шум» (H2)
+                out.append(_msg(chat_id, t(lang, "noise_reason_q"), _reason_buttons("n", f"hour-{data[2:]}", lang),
+                                lang=lang))
+            return await self._reply(conn, user, chat_id, lang, self.clock(), action, out)
         return [answer(t(lang, "not_available"))]
 
 

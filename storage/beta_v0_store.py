@@ -1149,7 +1149,8 @@ class BetaConn:
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
                       invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact,
-                      push_levels, push_events, push_moves, push_hours, push_weekly, tz, brief_time, trader_type
+                      push_levels, push_events, push_moves, push_hours, push_weekly, tz, brief_time, trader_type,
+                      awaiting, awaiting_until
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
@@ -1412,11 +1413,25 @@ class BetaConn:
             user_pk, start, start + timedelta(days=1)))
 
     async def insert_feedback_message(self, *, user_pk: int, text: str, lang: str,
-                                      created_at: datetime) -> int:
+                                      created_at: datetime, kind: str = "feedback") -> int:
+        """Free text: /feedback, an idea (H1) or an interview request (H4)."""
         return int(await self.conn.fetchval(
-            """INSERT INTO beta_feedback_messages (user_pk, text, lang, created_at)
-               VALUES ($1,$2,$3,$4) RETURNING message_pk""",
-            user_pk, text, lang, created_at))
+            """INSERT INTO beta_feedback_messages (user_pk, text, lang, created_at, kind)
+               VALUES ($1,$2,$3,$4,$5) RETURNING message_pk""",
+            user_pk, text, lang, created_at, kind))
+
+    async def set_awaiting(self, telegram_user_id: int, what: Optional[str], until: Optional[datetime]) -> None:
+        """The next plain message is `what` (H1: 'idea') until `until`; None clears it."""
+        await self.conn.execute(
+            "UPDATE beta_users SET awaiting=$2, awaiting_until=$3, updated_at=now() WHERE telegram_user_id=$1",
+            telegram_user_id, what, until)
+
+    async def upsert_reason(self, *, user_pk: int, topic: str, subject: str, reason: str, at: datetime) -> None:
+        """H2 / H3: one answer per participant and subject; a second tap replaces it."""
+        await self.conn.execute(
+            """INSERT INTO beta_reasons (user_pk, topic, subject, reason, at) VALUES ($1,$2,$3,$4,$5)
+               ON CONFLICT (user_pk, topic, subject) DO UPDATE SET reason=EXCLUDED.reason, at=EXCLUDED.at""",
+            user_pk, topic, subject, reason, at)
 
     async def purge_feedback_messages_before(self, cutoff: datetime) -> int:
         status = await self.conn.execute(
