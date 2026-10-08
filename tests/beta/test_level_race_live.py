@@ -465,3 +465,139 @@ def test_venue_closes_never_fetch_a_minute_inside_the_e1_window():
     inside = [m for m in LR.c1_minutes(views) if e1_start <= m < e1_end]
     assert inside and not {m for m, _ in asked} & set(inside)
     assert {m for m, _ in asked} == {m for m in LR.c1_minutes(views) if not (e1_start <= m < e1_end)}
+
+
+# ---- L3 shadow journal (PR-5, LEVEL_RACE_LIVE_JOURNAL_V1) --------------------------------------
+class _Provider:
+    def __init__(self):
+        self.seen = []
+
+    def predict(self, inputs):
+        self.seen.append(dict(inputs))
+        return {"up": 0.4, "dn": 0.35, "neither": 0.25}, {"up": 0.41, "dn": 0.34, "neither": 0.25}
+
+    def calibrator_version(self, t_ms):
+        return "LEVEL_RACE_CAL_V1:test"
+
+    def contract(self, landmark, now_ms):
+        return {"version": "LEVEL_RACE_STATE_V1", "mode": "HIST_ONLY", "case": "B", "state": "HIST", "since_ms": 0,
+                "reason": "mode_hist_only", "template": "HIST", "push_template": "HIST", "probabilities": None}
+
+
+class _JournalConn:
+    def __init__(self, b, venue_rows=()):
+        self.rows, self.keys, self.venue_rows, self.fetches = [], set(), list(venue_rows), 0
+
+    async def insert_claim(self, r):
+        k = (r["claim_class"], r["subject_key"], r["issue_slot"])
+        if k in self.keys:
+            return None
+        self.keys.add(k)
+        self.rows.append(r)
+        return len(self.rows)
+
+    async def fetch_live_klines_1m(self, *, exchange, symbol, start, end):
+        self.fetches += 1
+        return [r for r in self.venue_rows if start <= r["ts"] < end]
+
+
+def _l3_run(b, v, conn, now_ms, provider=None):
+    return asyncio.run(cj.record_level_race_l3(conn, BetaConfig.load(), [v], now=_ts(now_ms),
+                                               capture={"bars": b}, provider=provider or _Provider()))
+
+
+def test_l3_classes_are_journal_classes_and_stay_out_of_the_hourly_touch_group():
+    for lm, cls in LR.L3_CLASS.items():
+        assert cj.CLASSES[cls][0] == "L3" and cj.CLASSES[cls][2] == "LEVEL_RACE_4H_V1"
+        assert cls not in cj.HOURLY_GROUPS["touch"]
+        assert re.fullmatch(r"[0-9a-f]{64}", cj.template_digest(cls))
+    assert "L3_LEVEL_TOUCH_4H" in cj.HOURLY_GROUPS["touch"]
+
+
+def test_l3_templates_never_say_break_reject_or_a_trade_call():
+    from beta.i18n import _CATALOG
+    for key in [LR.TEMPLATE_KEYS[t] for c in LR.L3_CLASS.values() for t in LR.CLASSES[c]["templates"]]:
+        for lang in ("ru", "en"):
+            assert not FORBIDDEN.search(_CATALOG[key][lang]), (key, lang)
+            assert_descriptive(_CATALOG[key][lang])
+
+
+def test_c1_block_keeps_every_close_as_read_and_lists_all_missing_venues():
+    e, v = _t15_event()
+    b = _cut(B, LR.landmark_ms(e, "T15"))
+    base, dec = LR.c1_instants(v["touch_open_ms"])
+    blk = LR.c1_block(b, v, {"bybit": LR.closes_at(_venue_rows(b, (base,)))}, read_ms=123)
+    assert blk["value"] is None and blk["missing"] == ["bybit", "okx"] and blk["read_ms"] == 123
+    assert blk["closes"]["bybit"][0] is not None and blk["closes"]["bybit"][1] is None
+    assert blk["closes"]["okx"] == [None, None] and None not in blk["closes"]["binance"]
+    assert blk["instants_ms"] == [base, dec]
+
+
+def test_t15_record_waits_for_c1_up_to_three_minutes_then_is_written_missing():
+    e, v = _t15_event()
+    lm = v["landmark_ms"]
+    b = _cut(B, lm)
+    conn = _JournalConn(b)
+    rep = _l3_run(b, v, conn, lm + 40_000)
+    assert rep["l3_deferred"] == 1 and rep["l3_written"] == 0 and not conn.rows
+    rep = _l3_run(b, v, conn, lm + LR.C1_WAIT_MS + 40_000)
+    assert rep["l3_written"] == 1 and rep["c1_missing"] == {"bybit": 1, "okx": 1}
+    r = conn.rows[0]
+    assert r["claim_class"] == "L3_LEVEL_RACE_T15_4H" and r["numbers"]["inputs"]["OVMM"] is None
+    assert r["numbers"]["c1"]["missing"] == ["bybit", "okx"] and r["numbers"]["c1"]["read_at"]
+
+
+def test_t15_record_with_complete_c1_is_written_at_once_and_never_rewritten():
+    e, v = _t15_event()
+    lm = v["landmark_ms"]
+    b = _cut(B, lm)
+    rows = _venue_rows(b, LR.c1_instants(v["touch_open_ms"]))
+    conn = _JournalConn(b, venue_rows=rows)
+    prov = _Provider()
+    assert _l3_run(b, v, conn, lm + 40_000, prov)["l3_written"] == 1
+    r = conn.rows[0]
+    assert r["numbers"]["c1"]["missing"] == [] and r["numbers"]["inputs"]["OVMM"] == prov.seen[0]["OVMM"]
+    assert r["subject"]["calibrator_version"] == "LEVEL_RACE_CAL_V1:test" and r["subject"]["state"] == "HIST"
+    assert r["subject"]["model_version"] == LR.MODEL_VERSION and r["numbers"]["published"]["up"] == 0.41
+    assert r["issue_slot"] == _ts(lm) and r["horizon_end"] == _ts(v["end_ms"])
+    conn.venue_rows = [{**x, "close": x["close"] * 1.01} for x in rows]     # a later gap-fill rewrites klines_1m
+    assert _l3_run(b, v, conn, lm + 120_000)["l3_written"] == 0 and len(conn.rows) == 1
+
+
+def test_t0_record_does_not_wait_and_reads_no_other_venue():
+    e, v = _t15_event()
+    b = _cut(B, LR.landmark_ms(e, "T0"))
+    v0 = LR.landmark_view(b, e, "T0", TABLE)
+    conn = _JournalConn(b)
+    rep = _l3_run(b, v0, conn, v0["landmark_ms"] + 40_000)
+    assert rep["l3_written"] == 1 and conn.fetches == 0 and conn.rows[0]["numbers"]["inputs"]["OVMM"] == 0.0
+
+
+def test_no_l3_record_before_the_freeze(monkeypatch):
+    e, v = _t15_event()
+    b = _cut(B, v["landmark_ms"])
+    assert LR.MODEL_VERSION is None and LR.PROVIDER is None
+    conn = _JournalConn(b)
+    cfg = _cfg(journal_enabled=True, model_states_enabled=True)
+    rep = asyncio.run(cj.record_level_race(conn, cfg, now=_ts(v["landmark_ms"] + 40_000), capture={"bars": b}))
+    assert "l3_written" not in rep and all(r["claim_class"].startswith("L2_") for r in conn.rows)
+
+
+def test_report_counts_c1_missing_per_venue_on_t15_records():
+    e, v = _t15_event()
+    lm = v["landmark_ms"]
+    b = _cut(B, lm)
+    conn = _JournalConn(b)
+    _l3_run(b, v, conn, lm + LR.C1_WAIT_MS + 40_000)
+    rep = LR.report(conn.rows)
+    c1 = rep["cells"]["MODEL:L3_LEVEL_RACE_T15_4H"]["c1"]
+    assert c1 == {"records": 1, "complete": 0, "missing_by_venue": {"binance": 0, "bybit": 1, "okx": 1}}
+
+
+def test_calibrator_version_comes_from_f3_calibrator_at():
+    cal = pytest.importorskip("beta.level_race_calibration")
+    prior = cal.prior_calibrator(cal.prior_for_cases("B", "B"))
+    later = cal.make_calibrator(1_000, {h: dict(prior.heads[h]) for h in cal.HEADS}, prior.priors)
+    assert LR.calibrator_version_at(500, [later], prior) == prior.version
+    assert LR.calibrator_version_at(1_000, [later], prior) == later.version
+    assert LR.calibrator_version_at(500, [later]) is None
