@@ -1,6 +1,6 @@
-# Beta audit de-identification (OUT-8 v2) — prepared, not run
+# Beta audit de-identification (OUT-8 v4) — prepared, not run
 
-**Status:** `PREPARED / NOT_RUN / OWNER_GO_REQUIRED` (v2, 2026-10-08; block A hardened in v3: unique scratch name, marker-checked drop, read-only production sessions). Nothing here has been run on production; the owner runs block B after a go.
+**Status:** `PREPARED / NOT_RUN / OWNER_GO_REQUIRED` (v2, 2026-10-08; block A hardened in v3: unique scratch name, marker-checked drop, read-only production sessions; v4: the actor side, each block in its own shell). Nothing here has been run on production; the owner runs block B after a go.
 
 **v2 supersedes v1** (#418's draft) and follows the owner's OUT-8 decisions of 2026-10-08:
 - Keep only what the measurements need; a counter replaces any per-row record (#420).
@@ -13,7 +13,8 @@
 |---|---|---|
 | Deletion (`user_delete_me`, `retention_purge`, `admin_remove`) | `admin_remove` / `retention_purge` held the person's fingerprint; all three held per-person row counts and a cohort record (`joined_kyiv_date`, `known_contact`, since #418 `joined_after_test_open`); the exact time | The #420 minimal form: action, `result`, the kind of actor (`participant` / `system` / `owner`), the Kyiv date. `target_fingerprint` NULL, `detail` `{}`. A row that was unknown **and** joined after the test opening adds one to `beta_deleted_cohort_counts` for its join date. **Rows written before any `/admin_test_open` never qualify**, so before the test none move. |
 | About a deleted person (`admin_known`, `admin_reply`, `admin_add`, `admin_waitlist_admit`, any other action with a target) | Their fingerprint, nested detail (`known_contact`, `result`), the exact time | Action, actor, `result`, the Kyiv date. `target_fingerprint` NULL, `detail` `{}`. **The fact that the action happened stays.** |
-| About someone still present, the actor's own row, rows without a target | — | Untouched |
+| A deleted person as the **actor** (any row but a deletion, whatever the target: none, themselves, someone else) | Their fingerprint as `actor_fingerprint` | `actor_fingerprint` = `participant`. A row they only acted in keeps everything else; when target = actor = them, both go (the row above). Counted separately (`actor_deleted`). |
+| About someone still present, a live person's or the owner's own row, rows without a target by a live actor | — | Untouched |
 
 - **Free text.** The audit holds none to strip: `/admin_reply` stores the fingerprint, not the reply body (`docs/PRIVATE_BETA_V0_DEPLOY.md`), and `/admin_broadcast` stores only the length. Participants' own texts live in `beta_feedback_messages`, which `/delete_me` already removes.
 - **Residual risk, stated.** In a small cohort, a deleted person's rows still show *that* an action happened on a given Kyiv date (for example «an `admin_known` on 2026-10-02»). The counter shows *that* someone who joined on a date left. Neither names anyone without outside knowledge, such as the owner's own memory or ledger. These are the minimum the measurements need.
@@ -22,7 +23,8 @@
 ## 2. How rows about a deleted participant are found
 - **The rule.** Every row before #423 holds the old, unkeyed fingerprint `"u_" + sha256("signalbot-beta-v0:" + id)[:12]`.
   - The script computes that fingerprint, in SQL, for every id still present in `beta_users`, `beta_allowlist` and `beta_waitlist`.
-  - A row whose target is none of these, and is not the actor's own, is a row about someone who was deleted.
+  - A row whose target is none of these, and is not a live person's or the owner's own, is a row about someone who was deleted.
+  - **The actor side.** An actor that is a person's fingerprint (`u_` + 12 hex), none of these and not the owner's (`-v owner_fp`, required) is a deleted person acting; it becomes `participant`.
 - **`/delete_me` rows** have no target and are matched by action, not by person. The deleted person's *other* rows are found by the rule above.
 - **What cannot be matched safely is counted, never guessed.** Rows recorded after #423 hold **keyed** fingerprints, which SQL cannot recompute without the key.
   - Pass `-v keyed_since=<the #423 deploy instant>`: those rows are left untouched and reported as `keyed_unmatched`.
@@ -31,7 +33,7 @@
 
 ## 3. Read-only count
 `deploy/signalbot-beta-audit-deidentify-count.sql` runs inside `BEGIN TRANSACTION READ ONLY … ROLLBACK`.
-- **Per kind and action.** The kinds are `deletion`, `deleted_person`, `keyed_unmatched`, `live` and `actor_own`. For each it gives the rows, the rows with a target, the rows whose target is the owner, the rows whose actor is the owner, the rows with detail, and the first and last time.
+- **Per kind, actor side and action.** The kinds are `deletion`, `deleted_person`, `keyed_unmatched`, `live` and `actor_own` (only a live person's or the owner's own row); `actor_deleted` marks the rows whose actor is a deleted person, and those rows are listed whatever their kind. For each it gives the rows, the rows with a target, the rows whose target is the owner, the rows whose actor is the owner, the rows with detail, and the first and last time.
 - **The counter.** It also gives the number of old deletion rows that would move into the counter.
 - **No assumption about test accounts.** The owner columns show which rows are the owner's own.
 
@@ -65,6 +67,8 @@
 ## 5. Owner command blocks (VPS, as the user that runs `deploy/backup.sh`)
 
 **What the owner types:** nothing but pasting the block.
+- **Each block runs in its own shell.** It is wrapped as `bash -c "$(cat <<'BLOCK_A' … BLOCK_A
+)"` (quoted delimiter: nothing is expanded at paste time). `set -euo pipefail` and the exit trap live inside that child shell, so an error ends the block, not the owner's SSH session, and the trap runs when the block ends. The script text is an argument, not stdin, so no `docker exec -i` inside can swallow the rest of it.
 - Everything comes from `/opt/signalbot/.env`, read in a subshell, with the defaults of `deploy/backup.sh` and `docker-compose.yml`:
   - container `btcbot_timescaledb`;
   - `POSTGRES_DB` / `POSTGRES_USER` = `btcbot`;
@@ -81,6 +85,7 @@
 - It copies only what the matching needs: the trigger function, the audit table, the counter if production has it, and the bare `telegram_user_id`s of users, allowlist and waitlist.
 
 ```bash
+bash -c "$(cat <<'BLOCK_A'
 # ---- Block A: now, read-only on production. Writes only a scratch database created by this run inside the same
 # container, under a unique name, and drops only that database.
 set -euo pipefail
@@ -136,9 +141,11 @@ if [ "$(PROD -At -c "SELECT to_regclass('beta_deleted_cohort_counts') IS NOT NUL
   PROD -c "\copy beta_deleted_cohort_counts TO STDOUT" | SCR -q -c "\copy beta_deleted_cohort_counts FROM STDIN"
 fi
 # 5) the redaction on the scratch copy; before / after; then the count on the scratch copy
-SCR < "$WORK/deploy/signalbot-beta-audit-deidentify.sql"
+SCR -v owner_fp="$OWNER_FP" < "$WORK/deploy/signalbot-beta-audit-deidentify.sql"
 SCR -v owner_fp="$OWNER_FP" < "$WORK/deploy/signalbot-beta-audit-deidentify-count.sql"
 # 6) on exit: only the database this run created (name and marker checked) is dropped
+BLOCK_A
+)"
 ```
 
 **Block B — later, only after the owner's go.**
@@ -146,6 +153,7 @@ SCR -v owner_fp="$OWNER_FP" < "$WORK/deploy/signalbot-beta-audit-deidentify-coun
 - It writes production, right after a fresh backup.
 
 ```bash
+bash -c "$(cat <<'BLOCK_B'
 # ---- Block B: later, only after the owner's go, after #420 is deployed and before #423 (keyed fingerprints).
 set -euo pipefail
 cd /opt/signalbot
@@ -166,9 +174,11 @@ PSQL() { docker exec -i "$C" psql -X -U "$U" -v ON_ERROR_STOP=1 "$@"; }
 sudo systemctl start signalbot-backup.service
 systemctl --no-pager --lines=5 status signalbot-backup.service || true
 # 2) the redaction on production
-PSQL -d "$DB" < "$WORK"/deploy/signalbot-beta-audit-deidentify.sql
+PSQL -d "$DB" -v owner_fp="$OWNER_FP" < "$WORK"/deploy/signalbot-beta-audit-deidentify.sql
 # 3) the count again: no deletion row with detail, no deleted_person row with a target
 PSQL -d "$DB" -v owner_fp="$OWNER_FP" < "$WORK"/deploy/signalbot-beta-audit-deidentify-count.sql
+BLOCK_B
+)"
 ```
 
 ## 6. Scratch-copy result (local, 2026-10-08)
