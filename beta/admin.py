@@ -215,10 +215,11 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                 else:
                     result, reply = "CAP", "cap reached; not added"
             else:
-                removed = await conn.delete_participant(uid)
+                removed = await conn.delete_participant(uid, owner_user_id)
                 reply = f"removed ({removed})"
-                # the audit keeps only the de-identified cohort fields (contract §1.5): no fingerprint, no counts
-                target, detail = None, {"cohort": removed["cohort"]}
+                # the minimal deletion record (contract §1.5): the owner's own row below is skipped
+                await conn.insert_deletion_audit(action="admin_remove", actor_kind="owner", now=now)
+                return {"reply": reply, "broadcast": None, "direct": None, "mass": None, "authorized": True}
     elif command == "admin_pause_push":
         await conn.set_admin_push_enabled(False)
         reply = "push paused (durable admin state)."
@@ -387,7 +388,7 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
                                           or cfg["briefing"]["withdrawal"].get("day0_kyiv"))
         if started:
             # an unknown participant has joined since the opening (or Day 0 is configured): moving the opening
-            # now would shift Day 0, the enrolled set and the deleted participants' cohort flags
+            # now would shift Day 0, the enrolled set and the deleted participants' counters
             result = "REFUSED"
             reply = (f"refused: the test has started (opened at {opened.isoformat()}, an unknown participant "
                      "has joined since); the opening can no longer move")

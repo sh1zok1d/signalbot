@@ -278,11 +278,8 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             cutoff = now - timedelta(days=cfg["privacy"]["stopped_user_retention_days"])
             for uid in await conn.stopped_users_before(cutoff):
                 async with conn.transaction():
-                    removed = await conn.delete_participant(uid)
-                    # only the de-identified cohort fields (contract §1.5): no fingerprint, no counts
-                    await conn.insert_audit(action="retention_purge", authorized=True,
-                                            actor_fingerprint="system", target_fingerprint=None,
-                                            result="OK", detail={"cohort": removed["cohort"]})
+                    await conn.delete_participant(uid, owner_user_id)
+                    await conn.insert_deletion_audit(action="retention_purge", actor_kind="system", now=now)
                 report["purged_users"] += 1
             activity_cutoff = now - timedelta(days=cfg["telemetry"]["retention_days"])
             report["purged_activity"] = await conn.purge_activity_before(activity_cutoff)

@@ -466,6 +466,14 @@ ALTER TABLE beta_admin_audit ADD CONSTRAINT beta_admin_audit_action_check CHECK 
     -- the test opening: Day 0 is the Kyiv date of the first unknown join at or after it (owner, 2026-10-08)
     'admin_test_open'));
 
+-- The minimal deletion record (owner, 2026-10-08; BETA_MEASUREMENT_CONTRACT_V1 §1.5): how many unknown
+-- participants who joined at or after the test opening were deleted, per Kyiv join date. The enrolled
+-- denominator (U3's E, U4, U2's "deleted = disabled") and Day 0 need nothing more; no per-person row.
+CREATE TABLE IF NOT EXISTS beta_deleted_cohort_counts (
+    joined_kyiv_date  DATE PRIMARY KEY,
+    n                 INTEGER NOT NULL CHECK (n > 0)
+);
+
 CREATE TABLE IF NOT EXISTS beta_waitlist (
     telegram_user_id  BIGINT PRIMARY KEY CHECK (telegram_user_id > 0),
     requested_at      TIMESTAMPTZ NOT NULL

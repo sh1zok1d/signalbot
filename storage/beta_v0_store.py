@@ -1181,37 +1181,48 @@ class BetaConn:
             "WHERE telegram_user_id=$1 AND status='ACTIVE'", telegram_user_id, now)
         return status == "UPDATE 1"
 
-    async def delete_participant(self, telegram_user_id: int) -> dict:
+    async def delete_participant(self, telegram_user_id: int, owner_user_id: Optional[int] = None) -> dict:
         """Delete the participant's personal beta records: user row (feedback and
         activity cascade; delivery rows keep only an anonymous NULL user_pk), the
         allowlist entry, and the waitlist row. Market/event records contain no
         identity and remain.
 
-        `cohort` keeps the participant countable without identity
-        (BETA_MEASUREMENT_CONTRACT_V1 §1.3, §1.5): the Kyiv join date, the known-contact
-        flag and whether the join came at or after the test opening (`admin_test_open`),
-        so the frozen enrollment rule can still count them. Nothing else per person."""
+        The minimal deletion record (owner, 2026-10-08; BETA_MEASUREMENT_CONTRACT_V1 §1.5): an
+        unknown participant who joined at or after the test opening adds one to
+        `beta_deleted_cohort_counts` for their Kyiv join date, in the same transaction. Nothing
+        else is kept per person: no row, no deletion time, no known flag. Known participants,
+        the owner and joins before the opening are in no metric and leave nothing."""
         from beta.i18n import KYIV
-        row = await self.conn.fetchrow(
-            "SELECT joined_at, known_contact FROM beta_users WHERE telegram_user_id=$1", telegram_user_id)
-        cohort = None
-        if row is not None and row["joined_at"] is not None:
+        async with self.conn.transaction():
+            row = await self.conn.fetchrow(
+                "SELECT joined_at, known_contact FROM beta_users WHERE telegram_user_id=$1", telegram_user_id)
             opened = await self.test_open_at()
-            cohort = {"joined_kyiv_date": row["joined_at"].astimezone(KYIV).date().isoformat(),
-                      "known_contact": bool(row["known_contact"]),
-                      "joined_after_test_open": opened is not None and row["joined_at"] >= opened}
-        activity = int(await self.conn.fetchval(
-            """SELECT count(*) FROM beta_user_activity a
-               JOIN beta_users u USING (user_pk) WHERE u.telegram_user_id=$1""",
-            telegram_user_id))
-        users = await self.conn.execute("DELETE FROM beta_users WHERE telegram_user_id=$1",
-                                        telegram_user_id)
-        allow = await self.conn.execute("DELETE FROM beta_allowlist WHERE telegram_user_id=$1",
-                                        telegram_user_id)
-        wait = await self.conn.execute("DELETE FROM beta_waitlist WHERE telegram_user_id=$1",
-                                       telegram_user_id)
+            counted = (row is not None and row["joined_at"] is not None and not row["known_contact"]
+                       and opened is not None and row["joined_at"] >= opened
+                       and (owner_user_id is None or int(owner_user_id) != int(telegram_user_id)))
+            if counted:
+                await self.conn.execute(
+                    """INSERT INTO beta_deleted_cohort_counts (joined_kyiv_date, n) VALUES ($1, 1)
+                       ON CONFLICT (joined_kyiv_date) DO UPDATE SET n = beta_deleted_cohort_counts.n + 1""",
+                    row["joined_at"].astimezone(KYIV).date())
+            users = await self.conn.execute("DELETE FROM beta_users WHERE telegram_user_id=$1",
+                                            telegram_user_id)
+            allow = await self.conn.execute("DELETE FROM beta_allowlist WHERE telegram_user_id=$1",
+                                            telegram_user_id)
+            wait = await self.conn.execute("DELETE FROM beta_waitlist WHERE telegram_user_id=$1",
+                                           telegram_user_id)
         return {"users": int(users.split()[-1]), "allowlist": int(allow.split()[-1]),
-                "waitlist": int(wait.split()[-1]), "activity": activity, "cohort": cohort}
+                "waitlist": int(wait.split()[-1]), "counted": bool(counted)}
+
+    async def insert_deletion_audit(self, *, action: str, actor_kind: str, now: datetime) -> None:
+        """A deletion's audit row (contract §1.5): the action, the result and the kind of actor
+        (participant / system / owner) at the Kyiv date only; no fingerprint, no detail."""
+        from beta.i18n import KYIV
+        day = now.astimezone(KYIV).replace(hour=0, minute=0, second=0, microsecond=0)
+        await self.conn.execute(
+            """INSERT INTO beta_admin_audit (action, authorized, actor_fingerprint, target_fingerprint,
+                   result, detail, recorded_at) VALUES ($1, true, $2, NULL, 'OK', '{}'::jsonb, $3)""",
+            action, actor_kind, day)
 
     async def mark_privacy_notice_seen(self, telegram_user_id: int, version: int) -> None:
         await self.conn.execute(
@@ -1600,7 +1611,7 @@ class BetaConn:
 
     async def derived_day0_kyiv(self, owner_user_id: Optional[int]):
         """Day 0 (contract §1.4, owner 2026-10-08): the Kyiv date of the first unknown participant who joined at
-        or after the test opening, live rows and the de-identified cohort records of deleted ones together.
+        or after the test opening, live rows and the deleted participants' counters together.
         None before the opening or before that join; a join before the opening never counts."""
         return (await self.derived_day0(owner_user_id))["day0_kyiv"]
 
@@ -1618,14 +1629,9 @@ class BetaConn:
             opened, owner_user_id)
         days = [first.astimezone(KYIV).date()] if first is not None else []
         live_day = days[0] if days else None
-        gone = await self.conn.fetchval(
-            """SELECT min(detail->'cohort'->>'joined_kyiv_date') FROM beta_admin_audit
-               WHERE action IN ('user_delete_me', 'retention_purge', 'admin_remove') AND detail ? 'cohort'
-                 AND detail->>'cohort' <> 'null'
-                 AND (detail->'cohort'->>'joined_after_test_open')::boolean
-                 AND NOT (detail->'cohort'->>'known_contact')::boolean""")
+        gone = await self.conn.fetchval("SELECT min(joined_kyiv_date) FROM beta_deleted_cohort_counts")
         if gone:
-            days.append(date.fromisoformat(gone))
+            days.append(gone)
         if not days:
             return {"day0_kyiv": None, "provisional_until": None}
         day0 = min(days)
