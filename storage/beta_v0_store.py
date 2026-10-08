@@ -1188,15 +1188,18 @@ class BetaConn:
         identity and remain.
 
         `cohort` keeps the participant countable without identity
-        (BETA_MEASUREMENT_CONTRACT_V1 §1.3): the Kyiv join date and the known-contact
-        flag only, so the frozen enrollment rule can still count them."""
+        (BETA_MEASUREMENT_CONTRACT_V1 §1.3, §1.5): the Kyiv join date, the known-contact
+        flag and whether the join came at or after the test opening (`admin_test_open`),
+        so the frozen enrollment rule can still count them. Nothing else per person."""
         from beta.i18n import KYIV
         row = await self.conn.fetchrow(
             "SELECT joined_at, known_contact FROM beta_users WHERE telegram_user_id=$1", telegram_user_id)
         cohort = None
         if row is not None and row["joined_at"] is not None:
+            opened = await self.test_open_at()
             cohort = {"joined_kyiv_date": row["joined_at"].astimezone(KYIV).date().isoformat(),
-                      "known_contact": bool(row["known_contact"])}
+                      "known_contact": bool(row["known_contact"]),
+                      "joined_after_test_open": opened is not None and row["joined_at"] >= opened}
         activity = int(await self.conn.fetchval(
             """SELECT count(*) FROM beta_user_activity a
                JOIN beta_users u USING (user_pk) WHERE u.telegram_user_id=$1""",
@@ -1607,6 +1610,48 @@ class BetaConn:
             """INSERT INTO beta_admin_audit (action, authorized, actor_fingerprint, target_fingerprint,
                    result, detail) VALUES ($1,$2,$3,$4,$5,$6::jsonb)""",
             action, authorized, actor_fingerprint, target_fingerprint, result, _j(dict(detail or {})))
+
+    async def test_open_at(self) -> Optional[datetime]:
+        """The test opening (`/admin_test_open`; the latest one if the owner forced a re-open), or None."""
+        v = await self.conn.fetchval(
+            """SELECT detail->>'test_open_at' FROM beta_admin_audit
+               WHERE action='admin_test_open' AND authorized AND result='OK' AND detail ? 'test_open_at'
+               ORDER BY audit_id DESC LIMIT 1""")
+        return datetime.fromisoformat(v) if v else None
+
+    async def derived_day0_kyiv(self, owner_user_id: Optional[int]):
+        """Day 0 (contract §1.4, owner 2026-10-08): the Kyiv date of the first unknown participant who joined at
+        or after the test opening, live rows and the de-identified cohort records of deleted ones together.
+        None before the opening or before that join; a join before the opening never counts."""
+        return (await self.derived_day0(owner_user_id))["day0_kyiv"]
+
+    async def derived_day0(self, owner_user_id: Optional[int]) -> dict:
+        """{"day0_kyiv", "provisional_until"}: Day 0 stays provisional until the first unknown joiner's 24-hour
+        known-classification window closes (contract §1.2); a participant marked known in it moves Day 0 to the
+        next unknown join. A deleted first joiner can no longer be reclassified, so their date is final."""
+        from beta.i18n import KYIV
+        opened = await self.test_open_at()
+        if opened is None:
+            return {"day0_kyiv": None, "provisional_until": None}
+        first = await self.conn.fetchval(
+            """SELECT min(joined_at) FROM beta_users
+               WHERE joined_at >= $1 AND NOT known_contact AND telegram_user_id IS DISTINCT FROM $2""",
+            opened, owner_user_id)
+        days = [first.astimezone(KYIV).date()] if first is not None else []
+        live_day = days[0] if days else None
+        gone = await self.conn.fetchval(
+            """SELECT min(detail->'cohort'->>'joined_kyiv_date') FROM beta_admin_audit
+               WHERE action IN ('user_delete_me', 'retention_purge', 'admin_remove') AND detail ? 'cohort'
+                 AND detail->>'cohort' <> 'null'
+                 AND (detail->'cohort'->>'joined_after_test_open')::boolean
+                 AND NOT (detail->'cohort'->>'known_contact')::boolean""")
+        if gone:
+            days.append(date.fromisoformat(gone))
+        if not days:
+            return {"day0_kyiv": None, "provisional_until": None}
+        day0 = min(days)
+        provisional = first + timedelta(hours=24) if live_day == day0 else None
+        return {"day0_kyiv": day0, "provisional_until": provisional}
 
     async def u3_offer_recipients(self) -> dict:
         """I2 / U3 (owner, 2026-10-08): the offer goes to ACTIVE participants only, inactive ones included;

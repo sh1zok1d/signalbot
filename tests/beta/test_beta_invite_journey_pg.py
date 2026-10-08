@@ -279,7 +279,8 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
                                   "WHERE action='user_delete_me'")
         # the participant stays countable for the frozen denominator, without identity
         assert [(a["action"], json.loads(a["cohort"])) for a in audit] == [
-            ("user_delete_me", {"joined_kyiv_date": "2026-05-12", "known_contact": False})]
+            ("user_delete_me", {"joined_kyiv_date": "2026-05-12", "known_contact": False,
+                                "joined_after_test_open": False})]
         assert "telegram" not in str(audit) and str(A) not in str(audit)
         async with pool.acquire() as c:                       # the contract's denominator part 2 sees it
             cohort = [dict(r) for r in await c.fetch(statements[-1])]

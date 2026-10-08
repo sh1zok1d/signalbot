@@ -21,7 +21,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Protocol, Sequence
 
-from .admin import collect_health, fingerprint
+from .admin import collect_health
 from .config import BetaConfig, BetaSwitches, effective_push_enabled, research_main_surfaces_enabled
 from .formatter import format_owner_alert, format_push
 from .i18n import render_tz
@@ -280,9 +280,10 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             for uid in await conn.stopped_users_before(cutoff):
                 async with conn.transaction():
                     removed = await conn.delete_participant(uid)
+                    # only the de-identified cohort fields (contract §1.5): no fingerprint, no counts
                     await conn.insert_audit(action="retention_purge", authorized=True,
-                                            actor_fingerprint="system", target_fingerprint=fingerprint(uid),
-                                            result="OK", detail=removed)
+                                            actor_fingerprint="system", target_fingerprint=None,
+                                            result="OK", detail={"cohort": removed["cohort"]})
                 report["purged_users"] += 1
             activity_cutoff = now - timedelta(days=cfg["telemetry"]["retention_days"])
             report["purged_activity"] = await conn.purge_activity_before(activity_cutoff)
@@ -378,7 +379,7 @@ async def run_notify_once(store, cfg: BetaConfig, switches: BetaSwitches, *, sen
             # owner health alerts (operational; owner only; rate-limited per key), under the same pacer:
             # not sent once it is closed (they are due again on the next run)
             if sender is not None and owner_user_id is not None:
-                h = await collect_health(conn, cfg, switches, clock())
+                h = await collect_health(conn, cfg, switches, clock(), owner_user_id)
                 runtime = await conn.fetch_health()
                 due = []
                 for a in h["alerts"]:

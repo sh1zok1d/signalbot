@@ -319,9 +319,9 @@ class BetaBotHandler:
             if user is None and not await conn.allowlist_contains(uid) and not on_waitlist:
                 return [_msg(chat_id, t("ru", "closed_beta"), lang="ru")]
             removed = await conn.delete_participant(uid)
-            await conn.insert_audit(action="user_delete_me", authorized=True,
+            await conn.insert_audit(action="user_delete_me", authorized=True,      # cohort fields only (§1.5)
                                     actor_fingerprint="participant", target_fingerprint=None,
-                                    result="OK", detail=removed)
+                                    result="OK", detail={"cohort": removed["cohort"]})
             return [_msg(chat_id, t(lang, "deleted"), lang=lang)]
         if user is None or user["status"] != "ACTIVE":
             if cmd == "feedback" and user is not None:
