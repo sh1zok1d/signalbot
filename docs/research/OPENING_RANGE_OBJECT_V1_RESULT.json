@@ -1,0 +1,421 @@
+{
+  "amendment_a1_commit": "fb57fc8df8960e336b6dd779a339ec390b74e76b",
+  "amendment_a1_sha256": "230b8818f154ad3b26450e25baab0fe368360c723c6ccabc86005cab6903803a",
+  "amendment_a2_commit": "e4963fe8e8e7b6ba5ce677ec2fb16d9d3ba6b5c0",
+  "amendment_a2_sha256": "64ae661cd2dd8815085817d1cc7c8062cb822328a74b3caf3e5f9c80c0aa7d40",
+  "atlas_state": "CLOSED_ON_SURFACE",
+  "claim": "L2_HISTORICAL_DIFFERENCE_ON_DISCOVERY_SURFACE",
+  "claim_ceiling": "L2",
+  "code_digest": "f4774f348672864b3e6c9ffca97acca42bdc4a1744104a76142186cf4ea7c5d1",
+  "contrast_procedure": {
+    "a2_family_name": "CLOCK_SPECIFICITY",
+    "family_is_separate_from_cell_effects": true,
+    "procedure": "SINGLE_STEP_STANDARDIZED_MAX_STAT",
+    "standardization": "one bootstrap SD per statistic; not replicate-specific bootstrap-t"
+  },
+  "contrasts": {
+    "UTC_08": {
+      "bootstrap_sd": 0.013731783797115699,
+      "marginal_hi": 0.0559079400827946,
+      "marginal_lo": 0.003869017296288381,
+      "max_stat_critical": 2.2817403987717597,
+      "passes_family_rule": false,
+      "point": 0.02897175541154598,
+      "practical_scale": 0.03,
+      "simultaneous_hi": 0.060304121248624346,
+      "simultaneous_lo": -0.002360610425532386
+    },
+    "UTC_12": {
+      "bootstrap_sd": 0.014781830739804401,
+      "marginal_hi": 0.07600795760012065,
+      "marginal_lo": 0.018441341958192754,
+      "max_stat_critical": 2.2817403987717597,
+      "passes_family_rule": true,
+      "point": 0.045526796614474514,
+      "practical_scale": 0.03,
+      "simultaneous_hi": 0.07925509698129246,
+      "simultaneous_lo": 0.011798496247656567
+    },
+    "UTC_16": {
+      "bootstrap_sd": 0.014513239362233676,
+      "marginal_hi": 0.04918754695369318,
+      "marginal_lo": -0.007513200593846407,
+      "max_stat_critical": 2.2817403987717597,
+      "passes_family_rule": false,
+      "point": 0.020028696115129793,
+      "practical_scale": 0.03,
+      "simultaneous_hi": 0.05314414068498286,
+      "simultaneous_lo": -0.013086748454723275
+    }
+  },
+  "event_start": "2020-01-01",
+  "foundation": {
+    "UTC_00": {
+      "bootstrap_sd": 0.01528388825658984,
+      "both_barriers_on_first_hit_pseudo": 16,
+      "both_barriers_on_first_hit_real": 2,
+      "information_status": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+      "iso_weeks": 262,
+      "marginal_hi": 0.12573608971459116,
+      "marginal_lo": 0.06554117178177524,
+      "max_stat_critical": 2.4340549318549085,
+      "n_pairs": 1719,
+      "paired_delta": 0.09482257126236183,
+      "passes_family_rule": true,
+      "practical_scale": 0.03,
+      "pseudo_resolution_rate": 0.8231529959278651,
+      "real_resolution_rate": 0.9179755671902269,
+      "simultaneous_hi": 0.13202439485123366,
+      "simultaneous_lo": 0.057620747673490014
+    },
+    "UTC_08": {
+      "bootstrap_sd": 0.010430777743930818,
+      "both_barriers_on_first_hit_pseudo": 26,
+      "both_barriers_on_first_hit_real": 8,
+      "information_status": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+      "iso_weeks": 262,
+      "marginal_hi": 0.0878438485255816,
+      "marginal_lo": 0.04624887959468655,
+      "max_stat_critical": 2.4340549318549085,
+      "n_pairs": 1716,
+      "paired_delta": 0.06585081585081586,
+      "passes_family_rule": true,
+      "practical_scale": 0.03,
+      "pseudo_resolution_rate": 0.9055944055944056,
+      "real_resolution_rate": 0.9714452214452215,
+      "simultaneous_hi": 0.09123990186151308,
+      "simultaneous_lo": 0.04046172984011863
+    },
+    "UTC_12": {
+      "bootstrap_sd": 0.009905943670908371,
+      "both_barriers_on_first_hit_pseudo": 32,
+      "both_barriers_on_first_hit_real": 11,
+      "information_status": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+      "iso_weeks": 262,
+      "marginal_hi": 0.070042993029698,
+      "marginal_lo": 0.03110009260688378,
+      "max_stat_critical": 2.4340549318549085,
+      "n_pairs": 1704,
+      "paired_delta": 0.04929577464788732,
+      "passes_family_rule": true,
+      "practical_scale": 0.03,
+      "pseudo_resolution_rate": 0.9166666666666666,
+      "real_resolution_rate": 0.965962441314554,
+      "simultaneous_hi": 0.07340738569473876,
+      "simultaneous_lo": 0.025184163601035883
+    },
+    "UTC_16": {
+      "bootstrap_sd": 0.012046527569302842,
+      "both_barriers_on_first_hit_pseudo": 19,
+      "both_barriers_on_first_hit_real": 7,
+      "information_status": "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME",
+      "iso_weeks": 262,
+      "marginal_hi": 0.09899941002161612,
+      "marginal_lo": 0.052166526498908954,
+      "max_stat_critical": 2.4340549318549085,
+      "n_pairs": 1698,
+      "paired_delta": 0.07479387514723204,
+      "passes_family_rule": true,
+      "practical_scale": 0.03,
+      "pseudo_resolution_rate": 0.8639575971731449,
+      "real_resolution_rate": 0.9387514723203769,
+      "simultaneous_hi": 0.10411578498901974,
+      "simultaneous_lo": 0.04547196530544434
+    }
+  },
+  "foundation_bootstrap": {
+    "a2_family_name": "FOUNDATION_CELL_EFFECTS",
+    "clock_inference_used": true,
+    "draws": 2000,
+    "invalid_draws": 0,
+    "procedure": "SINGLE_STEP_STANDARDIZED_MAX_STAT",
+    "seed": 20261027,
+    "standardization": "one bootstrap SD per statistic; not replicate-specific bootstrap-t",
+    "valid_draws": 2000,
+    "valid_fraction": 1.0
+  },
+  "hour_adopted": null,
+  "nonfoundation_candidates": [
+    {
+      "role": "BARRIER_FAMILY_DECOMPOSITION",
+      "row": "DIRECTION_EXTENSION_FIRST"
+    },
+    {
+      "role": "INDEPENDENT_OBSERVABLE",
+      "row": "OUTWARD_EXCURSION"
+    }
+  ],
+  "nonfoundation_map": {
+    "DIRECTION_EXTENSION_FIRST": {
+      "bootstrap_p": 0.0004997501249375312,
+      "holm_p": 0.0014992503748125937,
+      "marginal_hi": 0.10239069732149628,
+      "marginal_lo": 0.039396310780653185,
+      "n_pairs": 1719,
+      "paired_effect": 0.07038976148923792,
+      "passes_family_rule": true,
+      "practical_scale": 0.03,
+      "pseudo": 0.43571844095404305,
+      "real": 0.506108202443281,
+      "role": "BARRIER_FAMILY_DECOMPOSITION",
+      "seed": 20261028,
+      "valid_fraction": 1.0
+    },
+    "OUTSIDE_OCCUPANCY": {
+      "bootstrap_p": 0.42528735632183906,
+      "holm_p": 0.42528735632183906,
+      "marginal_hi": 0.013180367140179347,
+      "marginal_lo": -0.029099395642027282,
+      "n_pairs": 1719,
+      "paired_effect": -0.008641167345355827,
+      "passes_family_rule": false,
+      "practical_scale": 0.03,
+      "pseudo": 0.4804392088423502,
+      "real": 0.4717980414969944,
+      "role": "INDEPENDENT_OBSERVABLE",
+      "seed": 20261029,
+      "valid_fraction": 1.0
+    },
+    "OUTWARD_EXCURSION": {
+      "bootstrap_p": 0.0009995002498750624,
+      "holm_p": 0.001999000499750125,
+      "marginal_hi": -0.11468206289664873,
+      "marginal_lo": -0.4394672355581854,
+      "n_pairs": 1719,
+      "paired_effect": -0.2644361637659211,
+      "passes_family_rule": true,
+      "practical_scale": 0.25,
+      "pseudo": 1.3309779506106267,
+      "real": 1.0665417868447058,
+      "role": "INDEPENDENT_OBSERVABLE",
+      "seed": 20261030,
+      "valid_fraction": 1.0
+    }
+  },
+  "object_name": "FROZEN_HOUR_RANGE",
+  "opening_wording_allowed": false,
+  "original_design_commit": "3be350eb0f71011928b1c99cc92f37059d631252",
+  "original_design_sha256": "7e46d9f5081a4b1c6e3246ff7e2172e96a0c14eba900eefd84731147630250c8",
+  "outcome_read": true,
+  "outcome_read_at": "2026-10-08T20:41:03Z",
+  "panel_bars": 526176,
+  "panel_t0_ms": 1577836800000,
+  "pre_outcome_evaluator_commit": "fb434d3c467ebde6d00b93c3551d3a965f789eb5",
+  "route": "FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE",
+  "route_sentence": "UTC_00, UTC_08, and UTC_16 cleared and the funding-hour contrasts did not separate them. This is a shared clock, not a funding-causality claim.",
+  "seeds": {
+    "direction": 20261028,
+    "draws": 2000,
+    "joint": 20261027,
+    "outside_occupancy": 20261029,
+    "outward_excursion": 20261030
+  },
+  "stability": {
+    "UTC_00": {
+      "calendar_year": {
+        "2020": {
+          "eligible": true,
+          "n_pairs": 352,
+          "paired_effect": -0.019886363636363636,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2021": {
+          "eligible": true,
+          "n_pairs": 319,
+          "paired_effect": -0.05642633228840126,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2022": {
+          "eligible": true,
+          "n_pairs": 355,
+          "paired_effect": 0.030985915492957747,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2023": {
+          "eligible": true,
+          "n_pairs": 337,
+          "paired_effect": 0.3353115727002967,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2024": {
+          "eligible": true,
+          "n_pairs": 356,
+          "paired_effect": 0.1797752808988764,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        }
+      },
+      "real_side": {
+        "high": {
+          "eligible": true,
+          "n_pairs": 825,
+          "paired_effect": 0.10545454545454545,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "low": {
+          "eligible": true,
+          "n_pairs": 894,
+          "paired_effect": 0.08501118568232663,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        }
+      }
+    },
+    "UTC_08": {
+      "calendar_year": {
+        "2020": {
+          "eligible": true,
+          "n_pairs": 345,
+          "paired_effect": 0.020289855072463767,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2021": {
+          "eligible": true,
+          "n_pairs": 317,
+          "paired_effect": -0.012618296529968454,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2022": {
+          "eligible": true,
+          "n_pairs": 355,
+          "paired_effect": 0.008450704225352112,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2023": {
+          "eligible": true,
+          "n_pairs": 340,
+          "paired_effect": 0.22647058823529412,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2024": {
+          "eligible": true,
+          "n_pairs": 359,
+          "paired_effect": 0.08356545961002786,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        }
+      },
+      "real_side": {
+        "high": {
+          "eligible": true,
+          "n_pairs": 840,
+          "paired_effect": 0.07142857142857142,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "low": {
+          "eligible": true,
+          "n_pairs": 876,
+          "paired_effect": 0.06050228310502283,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        }
+      }
+    },
+    "UTC_12": {
+      "calendar_year": {
+        "2020": {
+          "eligible": true,
+          "n_pairs": 348,
+          "paired_effect": 0.0028735632183908046,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2021": {
+          "eligible": true,
+          "n_pairs": 322,
+          "paired_effect": -0.015527950310559006,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2022": {
+          "eligible": true,
+          "n_pairs": 351,
+          "paired_effect": 0.03418803418803419,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2023": {
+          "eligible": true,
+          "n_pairs": 327,
+          "paired_effect": 0.1834862385321101,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2024": {
+          "eligible": true,
+          "n_pairs": 356,
+          "paired_effect": 0.0449438202247191,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        }
+      },
+      "real_side": {
+        "high": {
+          "eligible": true,
+          "n_pairs": 832,
+          "paired_effect": 0.05048076923076923,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "low": {
+          "eligible": true,
+          "n_pairs": 872,
+          "paired_effect": 0.0481651376146789,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        }
+      }
+    },
+    "UTC_16": {
+      "calendar_year": {
+        "2020": {
+          "eligible": true,
+          "n_pairs": 345,
+          "paired_effect": -0.014492753623188406,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2021": {
+          "eligible": true,
+          "n_pairs": 321,
+          "paired_effect": -0.012461059190031152,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2022": {
+          "eligible": true,
+          "n_pairs": 348,
+          "paired_effect": 0.04597701149425287,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2023": {
+          "eligible": true,
+          "n_pairs": 326,
+          "paired_effect": 0.2147239263803681,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "2024": {
+          "eligible": true,
+          "n_pairs": 358,
+          "paired_effect": 0.13966480446927373,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        }
+      },
+      "real_side": {
+        "high": {
+          "eligible": true,
+          "n_pairs": 854,
+          "paired_effect": 0.05035128805620609,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        },
+        "low": {
+          "eligible": true,
+          "n_pairs": 844,
+          "paired_effect": 0.0995260663507109,
+          "role": "DESCRIPTIVE_NOT_A_SEARCH"
+        }
+      }
+    }
+  },
+  "surface": "CORE_BTC_BINANCE_V0",
+  "surface_end_exclusive": "2025-01-01",
+  "touch_time": {
+    "handling": "PUBLISH_AUDIT_NO_CORRECTION",
+    "nearby_sensitivity": false,
+    "primary_abs_delta_p50": 30.0,
+    "primary_far_240m_share": 0.15299592786503782,
+    "primary_timing_imbalance_material": false,
+    "rematch": false,
+    "source": "docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1_CENSUS.json",
+    "stratified": false
+  },
+  "unit": "OPENING_RANGE_OBJECT_V1",
+  "y_known": true
+}

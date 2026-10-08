@@ -8635,3 +8635,21 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 OUTCOME_READ = no; Y_KNOWN = false; LATER_OUTCOME_RUN = not started
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 ```
+
+## 2026-10-08 — OPENING_RANGE_OBJECT_V1 one historical outcome read
+
+**Unit.** `OPENING_RANGE_OBJECT_V1`. One read. Evaluator commit `fb434d3c467ebde6d00b93c3551d3a965f789eb5`, code digest `f4774f348672864b3e6c9ffca97acca42bdc4a1744104a76142186cf4ea7c5d1`, written before the read. Read at `2026-10-08T20:41:03Z`. Surface `CORE_BTC_BINANCE_V0` `[2020-01-01, 2025-01-01)`.
+- **Route.** `FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE`. `opening_wording_allowed = false`. No hour adopted. Not a funding-causality claim.
+- **Foundation paired delta.** UTC_00 +9.48 pp (real 91.8%, pseudo 82.3%, N 1719, 262 weeks). UTC_08 +6.59 pp (N 1716). UTC_12 +4.93 pp (N 1704). UTC_16 +7.48 pp (N 1698). All four clear the simultaneous cell-effect rule.
+- **Contrasts.** δ00−δ08 +2.90 pp, simultaneous interval includes 0. δ00−δ16 +2.00 pp, does not clear. δ00−δ12 +4.55 pp, clears. Specificity uses the simultaneous contrasts, not the separate cell tests.
+- **Map, UTC_00 only.** Direction extension-first +7.04 pp, bootstrap p 0.00050, Holm p 0.00150, clears, role barrier decomposition. Outside occupancy −0.86 pp, Holm p 0.425, does not clear. Outward excursion −0.264 W, bootstrap p 0.00100, Holm p 0.00200, clears. Listed, not ranked.
+- **Stability, descriptive.** UTC_00 year deltas: 2020 −2.0 pp, 2021 −5.6 pp, 2022 +3.1 pp, 2023 +33.5 pp, 2024 +18.0 pp. Sides high +10.5 pp and low +8.5 pp. A year is not a winner.
+- **Touch time.** `PUBLISH_AUDIT_NO_CORRECTION`. No rematch, no stratification, no nearby sensitivity.
+- **Claim.** L2 historical difference on a discovery surface. Not a current probability. Not confirmed. A second official run returns `REFUSING_RERUN`. No successor started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-01-01..2024-12-31, frozen FROZEN_HOUR_RANGE map (foundation resolution, three clock contrasts, UTC_00 direction, outside occupancy, outward excursion)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+OUTCOME_READ = yes, once, 2026-10-08T20:41:03Z; RERUN = REFUSING_RERUN
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```
