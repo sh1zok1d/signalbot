@@ -420,16 +420,6 @@ _CATALOG: dict[str, dict[str, str]] = {
     "reason_unclear": {"ru": "Непонятно, что он показывает", "en": "It is unclear what it shows"},
     "reason_other": {"ru": "Другое", "en": "Something else"},
     "reason_thanks": {"ru": "Спасибо, записал.", "en": "Thanks, noted."},
-    "btn_interview": {"ru": "📞 15 минут с командой", "en": "📞 15 minutes with the team"},
-    "interview_q": {"ru": "Можно поговорить 15 минут о боте — что полезно и чего не хватает. Выберите время "
-                          "(по вашему времени, {zone_name}):",
-                    "en": "A 15-minute talk about the bot — what helps and what is missing. Pick a time "
-                          "(your time, {zone_name}):"},
-    "interview_other": {"ru": "Другое время", "en": "Another time"},
-    "interview_ok": {"ru": "Записал: {slot}. Команда напишет здесь накануне. Передумали — напишите /feedback.",
-                     "en": "Booked: {slot}. The team writes here the day before. Changed your mind? Write /feedback."},
-    "interview_other_ok": {"ru": "Записал: удобно в другое время. Команда напишет здесь, чтобы договориться.",
-                           "en": "Noted: another time suits you. The team writes here to agree on one."},
     # J4: a plain message (not a command) reaches the team as feedback; the answer comes here
     # J1 onboarding: live /btc, a sample message, the /check offer (first value within a minute)
     "onboard_btc_head": {"ru": "Вот BTC прямо сейчас:", "en": "Here is BTC right now:"},
@@ -496,10 +486,15 @@ _CATALOG: dict[str, dict[str, str]] = {
     "plain_to_team": {"ru": "Передал команде — ответ придёт сюда. Команды: /help",
                       "en": "Passed to the team — the answer comes here. Commands: /help"},
     # I2 / U3 (PRODUCT_FIRST_DECISION_V1 §7): the offer on days 21–25, to everyone enrolled, churned included
-    "u3_offer": {"ru": "Бета подходит к концу. Если бот был полезен, его можно продолжить: {price}. Оплата: {method}. "
-                       "Деньги можно вернуть в течение 30 дней. Вопросы и оплата — через /feedback или ответом сюда.",
-                 "en": "The beta is ending. If the bot was useful, you can keep it: {price}. Payment: {method}. "
-                       "You can get the money back within 30 days. Questions and payment: /feedback or a reply here."},
+    # U3 (owner, 2026-10-08): one month of the same bot from the actual end of the free test, extension included
+    "u3_offer": {"ru": "Бета подходит к концу. Если бот был полезен, можно оплатить платное продолжение: месяц того же "
+                       "бота, начиная с окончания бесплатного теста (если тест продлят, начало сдвинется). {price}. "
+                       "Оплата: {method}. Если продолжения не будет — вернём всю сумму. Деньги можно вернуть и в "
+                       "течение 30 дней после оплаты. Вопросы и оплата — через /feedback или ответом сюда.",
+                 "en": "The beta is ending. If the bot was useful, you can pay for a continuation: one month of the same "
+                       "bot, starting when the free test ends (if the test is extended, the start moves). {price}. "
+                       "Payment: {method}. If there is no continuation, we refund the full amount. You can also get the "
+                       "money back within 30 days of paying. Questions and payment: /feedback or a reply here."},
     "feedback_thanks": {
         "ru": "Спасибо! Отзыв передан команде.",
         "en": "Thanks! Your feedback was sent to the team.",
@@ -532,12 +527,11 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
             "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
             "/delete_me удаляет их вместе с остальными вашими данными.\n"
-            "• Тексты отзывов, идей, обычные сообщения боту и запись на разговор (/feedback, /idea, /interview) "
-            "хранятся 120 дней; "
+            "• Тексты отзывов, идей и обычные сообщения боту (/feedback, /idea) хранятся 120 дней; "
             "ответы «почему» после «Шум» и при паузе хранятся, пока вы в бете. /delete_me удаляет всё это.\n"
             "• Ваши уровни (/alert) хранятся, пока вы их не удалите; /delete_me удаляет их.\n"
-            "• /stop приостанавливает все сообщения, кроме ответов команды на ваши сообщения и одного предложения "
-            "в конце беты. /delete_me удаляет ваши данные участника "
+            "• /stop приостанавливает все сообщения, кроме ответов команды на ваши сообщения. "
+            "/delete_me удаляет ваши данные участника "
             "и исключает вас из беты.\n"
             "• После /stop данные удаляются автоматически через 30 дней.\n"
             "• Журнал прогнозов бота (что он говорил и что было потом) и записи рынка не содержат "
@@ -561,13 +555,13 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• We record which commands and buttons you use, and when, and which invite link "
             "you came from, so we can improve the bot. These records are kept for 120 days. "
             "/delete_me deletes them with the rest of your data.\n"
-            "• Feedback and idea texts, plain messages to the bot and interview requests (/feedback, /idea, "
-            "/interview) are stored for 120 days; your "
+            "• Feedback and idea texts and plain messages to the bot (/feedback, /idea) are stored for 120 days; "
+            "your "
             "answers to «why» after «Noise» and at a pause are kept while you are in the beta. /delete_me deletes "
             "all of it.\n"
             "• Your price alerts (/alert) are kept until you delete them; /delete_me deletes them.\n"
-            "• /stop pauses all messages except the team's replies to your messages and one offer at the end of "
-            "the beta. /delete_me deletes your participant data and removes "
+            "• /stop pauses all messages except the team's replies to your messages. "
+            "/delete_me deletes your participant data and removes "
             "you from the beta.\n"
             "• After /stop, your data is deleted automatically after 30 days.\n"
             "• The bot's forecast journal (what it said and what happened next) and the market records do not "
@@ -625,10 +619,10 @@ _CATALOG: dict[str, dict[str, str]] = {
         "en": "Messages are paused or you have not joined yet. Send /start.",
     },
     "paused": {
-        "ru": ("Сообщения на паузе, кроме ответов команды на ваши сообщения и одного предложения в конце беты. "
+        "ru": ("Сообщения на паузе, кроме ответов команды на ваши сообщения. "
                "Отправьте /start, чтобы продолжить. Данные удаляются "
                "автоматически через 30 дней или сразу командой /delete_me."),
-        "en": ("Messages paused, except the team's replies to your messages and one offer at the end of the beta. "
+        "en": ("Messages paused, except the team's replies to your messages. "
                "Send /start to resume. Your data is deleted "
                "automatically after 30 days, or now with /delete_me."),
     },
@@ -717,7 +711,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "part_oi": {"ru": "OI {arrow}", "en": "OI {arrow}"},
     "part_vol": {"ru": "Объём {level}", "en": "Volume {level}"},
     "part_taker": {"ru": "Delta {arrow}", "en": "Delta {arrow}"},
-    "h_oi": {"ru": "OI {pct}", "en": "OI {pct}"},
+    "h_oi": {"ru": "OI {pct} (медиана бирж)", "en": "OI {pct} (median across exchanges)"},
     "h_move_usual": {"ru": "{move} (обычно ±{typ})", "en": "{move} (usually ±{typ})"},
     "h24_incomplete": {"ru": "24ч: неполные данные", "en": "24h: incomplete"},
     "h24_prefix": {"ru": "24ч: {body}", "en": "24h: {body}"},
@@ -868,14 +862,15 @@ _CATALOG: dict[str, dict[str, str]] = {
     "pos_mid": {"ru": "цена в середине", "en": "price in the middle"},
     "pos_highish": {"ru": "цена ближе к верхней границе", "en": "price closer to the high end"},
     "pos_high": {"ru": "цена у верхней границы", "en": "price at the high end"},
-    "oi_24h": {"ru": "OI {oi} за 24ч", "en": "OI {oi} over 24h"},
+    "oi_24h": {"ru": "OI {oi} за 24ч (медиана бирж{usual})", "en": "OI {oi} over 24h (median across exchanges{usual})"},
+    "oi_24h_na": {"ru": "OI за 24ч н/д", "en": "OI over 24h n/a"},
     "funding_avg": {"ru": "средний Funding {f}", "en": "average Funding {f}"},
     "funding_avg_na": {"ru": "средний Funding н/д", "en": "average Funding n/a"},
     # derivatives beside their «обычно» (backlog G2; beta/derivatives.py)
-    "oi_usual_part": {"ru": " (обычно ±{typ}, N={n})", "en": " (usually ±{typ}, N={n})"},
+    "oi_usual_part": {"ru": "; Binance {bn}, обычно ±{typ}, N={n} дн.", "en": "; Binance {bn}, usually ±{typ}, N={n} days"},
     "funding_usual_part": {"ru": "обычно {typ}, N={n}", "en": "usually {typ}, N={n}"},
-    "der_oi_usual": {"ru": "   обычно OI за сутки меняется на ±{typ} (медиана, Binance, N={n} дн.)",
-                     "en": "   OI usually moves ±{typ} a day (median, Binance, N={n} days)"},
+    "der_oi_usual": {"ru": "   Binance {bn} · обычно OI Binance за сутки меняется на ±{typ} (медиана, N={n} дн.)",
+                     "en": "   Binance {bn} · Binance OI usually moves ±{typ} a day (median, N={n} days)"},
     "der_funding_usual": {"ru": "   обычно среднее за 24 ч {typ} (медиана за {n} дн.)",
                           "en": "   usually a 24h average of {typ} (median of {n} days)"},
     "der_usual_short": {"ru": "   обычно: мало данных (N={n} дн.)", "en": "   usually: too little data (N={n} days)"},
@@ -945,6 +940,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "price_drop_95": {"ru": "падение глубже, чем в 95% часовых окон за 30 дней",
                       "en": "a drop deeper than in 95% of hourly windows over 30 days"},
     "oi_delta_line": {"ru": "OI {oi} · Delta {delta}", "en": "OI {oi} · Delta {delta}"},
+    "oi_med_value": {"ru": "{pct} (медиана бирж)", "en": "{pct} (median across exchanges)"},
     "oi_only_line": {"ru": "OI {oi}", "en": "OI {oi}"},
     "evt_buy": {"ru": "агрессивные покупки", "en": "aggressive buying"},
     "evt_sell": {"ru": "агрессивные продажи", "en": "aggressive selling"},
@@ -1072,7 +1068,7 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": "Цена {price} · диапазон {range} · объём {vol}{level}",
         "en": "Price {price} · range {range} · volume {vol}{level}",
     },
-    "anchor_oi": {"ru": "OI {med}: {venues}", "en": "OI {med}: {venues}"},
+    "anchor_oi": {"ru": "OI {med} (медиана бирж): {venues}", "en": "OI {med} (median across exchanges): {venues}"},
     "anchor_oi_na": {"ru": "OI: {venues}", "en": "OI: {venues}"},
     "taker_line": {"ru": "Delta: {signed} ({side})", "en": "Delta: {signed} ({side})"},
     "taker_flat": {"ru": "Delta: $0", "en": "Delta: $0"},
@@ -1133,10 +1129,19 @@ _CATALOG: dict[str, dict[str, str]] = {
     "h24_volume": {"ru": "Объём {vol}{ratio}", "en": "Volume {vol}{ratio}"},
     "h24_volume_partial": {"ru": "Объём {vol} (неполные)", "en": "Volume {vol} (partial)"},
     "changes_head": {"ru": "Изменения к предыдущим 24 ч:", "en": "Changes vs previous 24h:"},
+    # names the checks that ran (D3, R6); never printed when none could run
     "changes_none": {
-        "ru": "Крупных изменений к предыдущим 24 ч нет",
-        "en": "No large change vs previous 24h",
+        "ru": "К предыдущим 24 ч крупных изменений нет по проверкам: {checks}",
+        "en": "No large change vs previous 24h in the checks: {checks}",
     },
+    "changes_skipped": {"ru": " (не проверено: {checks} — нет данных)", "en": " (not checked: {checks} — no data)"},
+    "changes_na": {"ru": "Сравнить с предыдущими 24 ч нельзя: данных не хватает",
+                   "en": "No comparison with the previous 24h: not enough data"},
+    "changes_check_range": {"ru": "диапазон", "en": "range"},
+    "changes_check_volume": {"ru": "объём", "en": "volume"},
+    "changes_check_oi_price": {"ru": "OI вместе с ценой", "en": "OI together with price"},
+    "changes_check_funding": {"ru": "смена знака Funding", "en": "Funding sign change"},
+    "and_last": {"ru": " и ", "en": " and "},
     "changes_range_wider": {"ru": "диапазон шире: {a} против {b}", "en": "range wider: {a} vs {b}"},
     "changes_range_narrower": {"ru": "диапазон уже: {a} против {b}", "en": "range narrower: {a} vs {b}"},
     "changes_vol_higher": {"ru": "объём выше: {a} против {b}", "en": "volume higher: {a} vs {b}"},
@@ -1245,10 +1250,11 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Ликвидации лонгов / шортов — ликвидации одной стороны в верхних 5% за 30 дней, минимум на 2 биржах одновременно.\n"
             "\n"
             "Показатели\n"
-            "OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается.\n"
+            "OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается. "
+            "Изменение OI в боте — медиана изменений по биржам (минимум 2 биржи), а не изменение суммарного OI.\n"
             "Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот.\n"
             "Delta — разница между рыночными покупками и продажами в $. Минус — нетто продавали.\n"
-            "Объём — сумма сделок в $ по Binance, Bybit и OKX.\n"
+            "Объём — сумма сделок в $ по Binance, Bybit и OKX; если в какой-то пятиминутке нет данных одной из бирж, объём помечен как неполный.\n"
             "Диапазон — от минимума до максимума цены за период, в % от цены.\n"
             "Ликвидации — принудительное закрытие позиций биржей, по каждой бирже отдельно.\n"
             "≥ — нижняя граница: Binance публикует не все ликвидации.\n"
@@ -1280,10 +1286,11 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Long / short liquidations — one side's liquidations in the top 5% of the last 30 days, on at least 2 exchanges at once.\n"
             "\n"
             "Metrics\n"
-            "OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed.\n"
+            "OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed. "
+            "The bot's OI change is the median of the exchanges' changes (at least 2 exchanges), not the change of total OI.\n"
             "Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse.\n"
             "Delta — difference between market buys and market sells in $. Negative — net selling.\n"
-            "Volume — total traded value in $ on Binance, Bybit and OKX.\n"
+            "Volume — total traded value in $ on Binance, Bybit and OKX; when a 5-minute bucket lacks one of them, the volume is marked partial.\n"
             "Range — from the lowest to the highest price in the period, in % of the price.\n"
             "Liquidations — positions force-closed by the exchange, shown per exchange.\n"
             "≥ — lower bound: Binance does not publish every liquidation.\n"

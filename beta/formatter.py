@@ -263,8 +263,8 @@ def _day_type_tod(view: Mapping[str, Any], metric: str) -> bool:
     """True when this 1h baseline metric follows the C1 same-day-type rule (BETA_HORIZON_TOD_V3):
     its day count is same-type days and it is ready at _DAY_TYPE_MIN_DAYS, not 20. Payloads
     stored under an older horizon version keep the old countdown."""
-    from .horizons import HORIZON_VERSION, _DAY_TYPE_TOD_METRICS
-    return (view.get("horizons") or {}).get("version") == HORIZON_VERSION and metric in _DAY_TYPE_TOD_METRICS
+    from .horizons import DAY_TYPE_VERSIONS, _DAY_TYPE_TOD_METRICS
+    return (view.get("horizons") or {}).get("version") in DAY_TYPE_VERSIONS and metric in _DAY_TYPE_TOD_METRICS
 
 
 def _ready_days(day_type: bool) -> int:
@@ -352,7 +352,7 @@ def _hour_line(view: Mapping[str, Any], lang: str) -> str:
                             day_type=_day_type_tod(view, _H1_RANGE_DAYS))
     if rng is not None:
         parts.append(t(lang, "h1_range", ratio=rng))
-    oi = block.get("oi_change_pct")
+    oi = horizon_oi(block)
     if oi is not None:
         parts.append(t(lang, "h_oi", pct=fmt_signed_pct(oi, lang, nd=1)))
     if not parts:
@@ -379,7 +379,7 @@ def _day_line(view: Mapping[str, Any], lang: str) -> Optional[str]:
             parts.append(t(lang, "h1_vol", ratio=ratio))
     elif block.get("volume_partial"):
         parts.append(t(lang, "h_vol_partial"))
-    oi = block.get("oi_change_pct")
+    oi = horizon_oi(block)
     if oi is not None:
         parts.append(t(lang, "h_oi", pct=fmt_signed_pct(oi, lang, nd=1)))
     if not parts:
@@ -714,7 +714,12 @@ def _withheld_note(cfg, reason: Optional[str], lang: str) -> Optional[str]:
 
 def _facts_line(values: Mapping[str, Any], lang: str) -> str:
     return t(lang, "hour_facts", pct=_pct_or_na(values.get("price_move_pct"), lang, nd=1),
-             oi=_pct_or_na(values.get("oi_change_pct"), lang, nd=1), delta=_usd_or_na(values.get("taker_delta_notional_usd"), lang))
+             oi=_oi_med(values.get("oi_change_pct"), lang), delta=_usd_or_na(values.get("taker_delta_notional_usd"), lang))
+
+
+def _oi_med(v, lang: str) -> str:
+    """A push's OI figure: the 1h context's median of the venue changes, labelled as one (D3, R4)."""
+    return na(lang) if v is None else t(lang, "oi_med_value", pct=fmt_signed_pct(float(v), lang, nd=1))
 
 
 def _pct_or_na(v, lang: str, nd: int = 2) -> str:
@@ -770,7 +775,7 @@ def _state_body(cfg, res: Mapping[str, Any], values: Mapping[str, Any], h: str, 
     kind, key = res.get("kind"), res.get("key") or "missing"
     label = interpretation_text(res, lang)
     pct = _pct_or_na(values.get("price_move_pct"), lang, nd=1)
-    oi = _pct_or_na(values.get("oi_change_pct"), lang, nd=1)
+    oi = _oi_med(values.get("oi_change_pct"), lang)
     delta = _usd_or_na(values.get("taker_delta_notional_usd"), lang)
     if kind == NORMAL:
         return label
@@ -817,11 +822,16 @@ def _line_24h(view: Mapping[str, Any], lang: str) -> str:
     else:
         parts.append(t(lang, "range_24h_na"))
     der = view.get("derivatives") or {}
-    oi = block.get("oi_change_pct")
+    oi = horizon_oi(block)
+    # «обычно» is Binance's daily |change| since 2020: it stands beside Binance's own 24h change, never
+    # beside the cross-venue median (D3, R5)
+    bn = (block.get("oi_by_venue") or {}).get("binance")
     oi_typ = der.get("oi_24h") or {}
-    parts.append(t(lang, "oi_24h", oi=na(lang) if oi is None else fmt_signed_pct(float(oi), lang, nd=1))
-                 + (t(lang, "oi_usual_part", typ=fmt_plain_pct(oi_typ["typical_abs_pct"], lang, nd=1),
-                      n=oi_typ["n_days"]) if oi is not None and oi_typ.get("typical_abs_pct") is not None else ""))
+    usual = (t(lang, "oi_usual_part", bn=fmt_signed_pct(float(bn), lang, nd=1),
+               typ=fmt_plain_pct(oi_typ["typical_abs_pct"], lang, nd=1), n=oi_typ["n_days"])
+             if oi is not None and bn is not None and oi_typ.get("typical_abs_pct") is not None else "")
+    parts.append(t(lang, "oi_24h_na") if oi is None
+                 else t(lang, "oi_24h", oi=fmt_signed_pct(float(oi), lang, nd=1), usual=usual))
     avg = block.get("funding_rate_avg")
     if avg is None:
         parts.append(t(lang, "funding_avg_na"))
@@ -840,9 +850,14 @@ def derivative_lines(view: Mapping[str, Any], lang: str, *, part: str) -> list:
     ratio ('long_short') for the 24h tab (backlog G2). Nothing without the stored block."""
     der = view.get("derivatives") or {}
     if part == "oi":
+        # like with like (D3, R5): Binance's own 24h change beside Binance's daily |change| since 2020
+        bn = ((((view.get("horizons") or {}).get("24h")) or {}).get("oi_by_venue") or {}).get("binance")
         x = der.get("oi_24h") or {}
+        if bn is None:
+            return []
         if x.get("typical_abs_pct") is not None:
-            return [t(lang, "der_oi_usual", typ=fmt_plain_pct(x["typical_abs_pct"], lang, nd=1), n=x["n_days"])]
+            return [t(lang, "der_oi_usual", bn=fmt_signed_pct(float(bn), lang, nd=1),
+                      typ=fmt_plain_pct(x["typical_abs_pct"], lang, nd=1), n=x["n_days"])]
         return [t(lang, "der_usual_short", n=x["n_days"])] if x.get("n_days") else []
     if part == "funding":
         x = der.get("funding_24h") or {}
@@ -1086,12 +1101,25 @@ def _horizon_liq(block: Mapping[str, Any]) -> dict:
     return by_side
 
 
+OI_MIN_VENUES = 2                # the 1h context's rule (min_venue_coverage); a stored pre-V4 block may hold one
+
+
+def horizon_oi(block: Optional[Mapping[str, Any]]) -> Optional[float]:
+    """A horizon's OI headline: the median of the venue changes, only from at least OI_MIN_VENUES venues
+    (a payload stored before BETA_HORIZON_TOD_V4 could carry one venue's figure as the headline)."""
+    block = block or {}
+    raw = block.get("oi_by_venue")
+    if raw is not None and sum(v is not None for v in raw.values()) < OI_MIN_VENUES:
+        return None
+    return block.get("oi_change_pct")
+
+
 def _horizon_oi_line(block: Mapping[str, Any], lang: str) -> Optional[str]:
     raw = block.get("oi_by_venue") or {}
     if not raw and block.get("oi_change_pct") is None:
         return None
     return _venue_oi({"oi_change_pct_by_venue": raw,
-                      "oi_change_pct": {"value": block.get("oi_change_pct")}}, lang, nd=1)
+                      "oi_change_pct": {"value": horizon_oi(block)}}, lang, nd=1)
 
 
 def _change_sentence(item: Mapping[str, Any], lang: str) -> str:
@@ -1118,14 +1146,32 @@ def _change_sentence(item: Mapping[str, Any], lang: str) -> str:
     return ""
 
 
+_CHANGE_RULES = ("range", "volume", "oi_price", "funding")
+
+
 def _changes_lines(block: Mapping[str, Any], lang: str) -> list:
-    lines = [t(lang, "changes_head")]
+    """The change lines vs the previous 24h. «Нет крупных изменений» names the checks that ran and is never
+    said when none could run, nor from a payload that does not record them (stored before V5) (D3, R6)."""
     items = [s for s in (_change_sentence(item, lang) for item in (block.get("changes") or [])) if s]
-    if not items:
-        lines.append(t(lang, "changes_none"))
-    else:
-        lines.extend("· " + s for s in items)
-    return lines
+    if items:
+        return [t(lang, "changes_head")] + ["· " + s for s in items]
+    checked = block.get("changes_checked")
+    if checked is None:
+        return []
+    if not checked:
+        return [t(lang, "changes_na")]
+    names = [t(lang, "changes_check_" + r) for r in _CHANGE_RULES if r in checked]
+    line = t(lang, "changes_none", checks=_join_and(names, lang))
+    skipped = [t(lang, "changes_check_" + r) for r in _CHANGE_RULES if r not in checked]
+    if skipped:
+        line += t(lang, "changes_skipped", checks=_join_and(skipped, lang))
+    return [line]
+
+
+def _join_and(items: Sequence[str], lang: str) -> str:
+    if len(items) <= 1:
+        return "".join(items)
+    return ", ".join(items[:-1]) + t(lang, "and_last") + items[-1]
 
 
 def _d7_main_line(view: Mapping[str, Any], lang: str) -> Optional[str]:
@@ -1379,7 +1425,7 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
         lines.append(price)
     res = gate.get("interpretation") or {}
     oi, delta = values.get("oi_change_pct"), values.get("taker_delta_notional_usd")
-    oi_txt = na(lang) if oi is None else fmt_signed_pct(float(oi), lang, nd=1)
+    oi_txt = _oi_med(oi, lang)
     if delta is None:
         lines.append(t(lang, "oi_only_line", oi=oi_txt))
         lines.append(t(lang, "beside_delta_na_bare"))
