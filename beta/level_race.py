@@ -70,6 +70,9 @@ def geometry(zone_low: float, zone_high: float, sigma: float, approach_side: int
     return {"x": x, "p_up": zone_high * (1.0 + x), "p_dn": zone_low * (1.0 - x), "beyond_is_up": approach_side > 0}
 
 
+event_geometry = geometry
+
+
 def window_end_ms(touch_open_ms: int) -> int:
     """Close time of bar j+48 (render in the user's time zone with the product formatter)."""
     return int(touch_open_ms) + (WINDOW_BARS + 1) * BAR_MS
@@ -157,7 +160,10 @@ def hist_line(table: Mapping[str, Any], *, landmark: str, kind: str, price: floa
            "table_sha256": table["table_sha256"], "cell": key, "ladder_level": lad["level"],
            "source_cell": lad["source"], "p_up": geo["p_up"], "p_dn": geo["p_dn"],
            "beyond_is_up": geo["beyond_is_up"], "event_b0": {"up": up, "dn": dn, "neither": ne},
-           "outside_corridor": not (geo["p_dn"] < price < geo["p_up"])}
+           "out_of_corridor": not (geo["p_dn"] < price < geo["p_up"])}
+    # Display rule (architect, 2026-10-08): at T0 a close already outside (P_DN, P_UP) gives no
+    # line; the L2 journal record is still written with this flag.
+    out["display"] = not (landmark == "T0" and out["out_of_corridor"])
     c = table["cells"][lad["source"]]
     out["n"] = c["n"]
     if lad["level"] == "LOW_N":

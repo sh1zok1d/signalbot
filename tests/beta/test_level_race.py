@@ -68,3 +68,14 @@ def test_t15_eligibility_and_window_end():
 def test_percents_sum_to_100():
     assert sum(L.percents({"up": 0.333, "dn": 0.333, "neither": 0.334}).values()) == 100
     assert L.percents({"up": 0.4, "dn": 0.467, "neither": 0.133}) == {"up": 40, "dn": 47, "neither": 13}
+
+
+def test_t0_out_of_corridor_is_not_displayed_but_flagged():
+    t = L.load_hist_table()
+    g = L.event_geometry(99850.0, 100150.0, 0.002, 1)
+    above = g["p_up"] * 1.001
+    line = L.hist_line(t, landmark="T0", kind="PDH", price=above, geo=g, sigma=0.002)
+    assert line["out_of_corridor"] is True and line["display"] is False
+    assert line["class"] == "L2_LEVEL_RACE_HIST_T0_4H"
+    inside = L.hist_line(t, landmark="T0", kind="PDH", price=100000.0, geo=g, sigma=0.002)
+    assert inside["out_of_corridor"] is False and inside["display"] is True

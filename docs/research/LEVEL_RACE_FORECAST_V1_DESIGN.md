@@ -43,6 +43,12 @@ The model-state templates of §9 follow the same time rule.
 
 **Switch to the model states.** One predeclared setting, `level_race.model_states_enabled` (default `false`), read by the product (name proposed for F2/ОПГ-1). `false` → HIST templates only. `true` → the state machine of §7 (the model state templates of §9; HIST stays the state when §7 says HIST). No text is edited for the switch. The date is the owner's (FORECAST_LAYER §6a: announced in advance, a dated event in the measurement contract, metrics reported before and after).
 
+**Disclosures after the freeze (2026-10-08, architect-accepted; table V1 bytes unchanged; also in `docs/research/LEVEL_RACE_HIST_TABLE_V1_DISCLOSURE.json`).**
+- *Bands.* T15 bands were changed by F1 from the f-bands of `0ba50cd` (f = share of the log path to the price beyond the level, 0.40 / 0.60, approved by the architect) to `B0_beyond` 0.35 / 0.55 in `80fbed4`, after that approval and before the freeze and before any outcome read. Recorded reason: the mini-head's review asked for `B0_beyond` terciles; F1 fixed a priori numbers instead of data terciles because the T15 filter reads part of the T0 outcome. Not chosen from outcome data. The reversal to f-bands arrived after the table was computed; the architect accepted V1 with 0.35 / 0.55, no V2.
+- *T0 out of corridor.* T0 shares include the events whose touch-bar close is already outside (`P_DN`, `P_UP`): 114 of 1905 scored (about 6 %; WEEK L 19.4 %). The cell's B0 «обычно» includes them too, so share versus «обычно» is comparable, but the share for an event inside the corridor is slightly biased toward them. Recomputation without them is only a separate, pre-announced V2 after the beta.
+- *Display rule (architect).* At T0, if the touch-bar close is outside (`P_DN`, `P_UP`), there is no T0 line; the L2 journal record is still written with `out_of_corridor = true` (`beta.level_race.hist_line` → `display = false`).
+- *Process.* Any change after an architect ok goes back through the mini-head to the architect; a freeze is committed only after the architect answers on the final SHA.
+
 **Search exposure (HIST).** 6 + 18 cells, one pooling step, one threshold. Nothing else is computed on the outcomes for HIST.
 
 ## 1. Question and estimand
