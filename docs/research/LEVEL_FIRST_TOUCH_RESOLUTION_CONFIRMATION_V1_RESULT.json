@@ -1,0 +1,212 @@
+{
+  "adjusted": {
+    "ci_high": 0.11739434480295015,
+    "ci_low": 0.03997665945992293,
+    "columns": [
+      "family_week",
+      "support",
+      "vol_mid",
+      "vol_high",
+      "epoch_2018",
+      "epoch_2019"
+    ],
+    "estimate": 0.07905033422317777,
+    "status": "ok",
+    "valid_frac": 1.0
+  },
+  "bootstrap": {
+    "cluster": "real_touch_product_week",
+    "draws": 2000,
+    "seed": 20261012
+  },
+  "claim_level": "L2",
+  "claim_status": "issued",
+  "current_probability": false,
+  "dataset": {
+    "canonical_sha256": "df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f",
+    "dataset_id": "DH1_BITMEX_XBTUSD_TRADES_5M_V0",
+    "days": "2017-08-01..2019-12-31",
+    "grid_end_exclusive": "2020-01-01",
+    "grid_start": "2017-08-01",
+    "n_bars": 254304,
+    "object_list_sha256": "649710ec605b4e16334c5281f830efe77c27a014e684d8f0b913be630f157100",
+    "objects_2025_2026": "none",
+    "rows": 254252
+  },
+  "decomposition": {
+    "BREAK": {
+      "ci_high": 0.15385356454720614,
+      "ci_low": 0.046153846153846156,
+      "estimate": 0.10036496350364964,
+      "n": 548,
+      "p_pseudo": 0.45255474452554745,
+      "p_real": 0.5529197080291971
+    },
+    "NEITHER": {
+      "ci_high": -0.041292218094118524,
+      "ci_low": -0.12008242999096658,
+      "estimate": -0.08029197080291971,
+      "n": 548,
+      "p_pseudo": 0.16970802919708028,
+      "p_real": 0.08941605839416059
+    },
+    "REJECT": {
+      "ci_high": 0.030411619064461933,
+      "ci_low": -0.07052760633697618,
+      "estimate": -0.020072992700729927,
+      "n": 548,
+      "p_pseudo": 0.3777372262773723,
+      "p_real": 0.35766423357664234
+    }
+  },
+  "design_sha": "a4f3a0d6e5aeb8e07c5998babb0fe26c77621dd5",
+  "discordant": {
+    "both_neither": 13,
+    "both_resolved": 419,
+    "pseudo_only": 36,
+    "real_only": 80
+  },
+  "epochs": [
+    {
+      "ci_high": 0.1573059717020391,
+      "ci_low": -0.039603960396039604,
+      "estimate": 0.05,
+      "n": 100,
+      "name": "2017H2",
+      "p_pseudo": 0.81,
+      "p_real": 0.86
+    },
+    {
+      "ci_high": 0.10656142681267411,
+      "ci_low": -0.004405773654048576,
+      "estimate": 0.052,
+      "n": 250,
+      "name": "2018",
+      "p_pseudo": 0.856,
+      "p_real": 0.908
+    },
+    {
+      "ci_high": 0.18834243192305192,
+      "ci_low": 0.07142857142857142,
+      "estimate": 0.13131313131313133,
+      "n": 198,
+      "name": "2019",
+      "p_pseudo": 0.8080808080808081,
+      "p_real": 0.9393939393939394
+    }
+  ],
+  "event_window": [
+    "2017-09-01",
+    "2020-01-01"
+  ],
+  "evidence_label": "REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE",
+  "exposure_status": "TIME_DISJOINT / OUTCOME_UNREAD_FOR_THIS_CLAIM / FEASIBILITY_EXPOSED",
+  "families": [
+    {
+      "ci_high": 0.12924044217450315,
+      "ci_low": 0.04320489844683393,
+      "estimate": 0.08541666666666667,
+      "n": 480,
+      "name": "DAY",
+      "p_pseudo": 0.8208333333333333,
+      "p_real": 0.90625
+    },
+    {
+      "ci_high": 0.1694915254237288,
+      "ci_low": -0.05084745762711865,
+      "estimate": 0.05084745762711865,
+      "n": 59,
+      "name": "WEEK",
+      "p_pseudo": 0.8813559322033898,
+      "p_real": 0.9322033898305084
+    },
+    {
+      "ci_high": 0.0,
+      "ci_low": 0.0,
+      "estimate": 0.0,
+      "n": 9,
+      "name": "MONTH",
+      "p_pseudo": 1.0,
+      "p_real": 1.0
+    }
+  ],
+  "leave_one_epoch_out": [
+    {
+      "ci_high": 0.12821350762527228,
+      "ci_low": 0.04597387441650354,
+      "estimate": 0.08705357142857142,
+      "n": 448,
+      "name": "omit_2017H2",
+      "p_pseudo": 0.8348214285714286,
+      "p_real": 0.921875
+    },
+    {
+      "ci_high": 0.15750978473581212,
+      "ci_low": 0.05119018597199972,
+      "estimate": 0.1040268456375839,
+      "n": 298,
+      "name": "omit_2018",
+      "p_pseudo": 0.8087248322147651,
+      "p_real": 0.912751677852349
+    },
+    {
+      "ci_high": 0.10198300283286119,
+      "ci_low": 0.0,
+      "estimate": 0.05142857142857143,
+      "n": 350,
+      "name": "omit_2019",
+      "p_pseudo": 0.8428571428571429,
+      "p_real": 0.8942857142857142
+    }
+  ],
+  "mode": "CONFIRMATION",
+  "n_ambiguous_pseudo": 7,
+  "n_ambiguous_real": 4,
+  "n_analysis": 548,
+  "n_excluded_ambiguous": 10,
+  "n_excluded_unclassified": 0,
+  "n_matched_available": 558,
+  "preflight_matched_pairs": 558,
+  "primary": {
+    "ci_high": 0.11785748234655079,
+    "ci_low": 0.04427285812055061,
+    "estimate": 0.08029197080291971,
+    "n": 548,
+    "p_pseudo": 0.8302919708029197,
+    "p_real": 0.9105839416058394
+  },
+  "product_integration_candidate": "YES",
+  "replicated_historical_mechanism": true,
+  "search_cells": 16,
+  "sides": [
+    {
+      "ci_high": 0.13669135004496402,
+      "ci_low": 0.0037033620336203365,
+      "estimate": 0.07196969696969698,
+      "n": 264,
+      "name": "resistance",
+      "p_pseudo": 0.7803030303030303,
+      "p_real": 0.8522727272727273
+    },
+    {
+      "ci_high": 0.12542402409496248,
+      "ci_low": 0.050714911000875405,
+      "estimate": 0.0880281690140845,
+      "n": 284,
+      "name": "support",
+      "p_pseudo": 0.8767605633802817,
+      "p_real": 0.9647887323943662
+    }
+  ],
+  "supporting_clauses": {
+    "at_least_3pp": true,
+    "eligible_epochs": 3,
+    "epoch_sign": true,
+    "interval_excludes_zero": true,
+    "loeo_sign": true,
+    "positive": true,
+    "positive_epochs": 3
+  },
+  "unit": "LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1",
+  "weeks": 119
+}

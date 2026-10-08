@@ -8163,3 +8163,408 @@ WINDOWS_CONSUMED = none new (2020-2024 already exposed; first turn-of-month cont
 OBJECTS_2025_2026_USED = none; BITMEX_READ = no; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched
 PRODUCT_CHANGE = none; CORRECTION_UNIT = not proposed (Part B NO_CHANGE); BOT_LINE = none (needs a product go)
 ```
+
+## 2026-10-07 — LEVEL_TOUCH_DEGRADATION_V1 executed once; L2; not integrated
+
+**Unit.** `LEVEL_TOUCH_DEGRADATION_V1` (atlas `LEVEL-TOUCH-DEGRADATION-V1`), family `LEVEL_BEHAVIOR_V1`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim ceiling L2. It does not rescore DH1-L2 or DH3-V3.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `65015c2` before any break rate. Evaluator guard `d79801f1` before the run. No threshold, horizon, definition, baseline or grouping was added after the rates were read.
+- **Data:** `CORE_BTC_BINANCE_V0` 5m bars, 2020-01-01 through 2024-12-31, events from 2020-02-01. Price only. No 2025/2026 slice, no live tape, no funding, no liquidations, no OI, no order book. The E1 holdout was not read. The 2020–2024 level row was already consumed by DH1-L2; this run is additional exposure, not a confirmation.
+- **Estimand:** difference in historical 4h `BREAK_FIRST` between independent touch 2 and touch 3+ and touch 1, standardized on level family, approach side and pre-touch volatility tercile. Baseline is touch 1 in the same structural population. Falsification is a deterministic half-rotation pseudo-level.
+- **Primary:** crude `BREAK_FIRST` 40.1% / 37.6% / 33.6% (N 1905 / 1101 / 1185). Standardized Δ2 −2.3 pp (95% −6.0..+1.5). Standardized Δ3 −6.6 pp (95% −10.7..−2.2). `REJECT_FIRST` stays near 50%. `NEITHER` rises from 9.6% to 17.1%. Analysis N 4191, 258 week clusters.
+- **Stability:** crude Δ3 is negative in 2020, 2021, 2022 and 2024 (−7.3, −10.8, −7.7, −6.5 pp) and about zero in 2023 (+0.1 pp). Busiest year 21.4%. Busiest touch-3+ family (week) 42.2%. Support-side crude Δ3 −1.9 pp; resistance-side −10.9 pp.
+- **Falsification:** pseudo-level standardized Δ2 +7.3 pp (95% +3.8..+10.7), Δ3 +4.7 pp (95% −0.1..+9.8). Opposite sign. The control interval for Δ3 includes 0.
+- **Claim:** L2. The allowed sentences are the quantitative cohort frequencies in the result record. Not a current probability. Not “the level weakens”.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = YES` under the predeclared conjunction. No `/btc`, `/levels`, scoring, findings-registry or deploy change. Successors named and not run: `LEVEL_REJECTION_MEMORY_V1`, `LEVEL_APPROACH_STATE_V1`, `LEVEL_CONFLUENCE_V1`.
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 PRICE_STRUCTURE.levels already consumed by DH1-L2; this touch-ordinal contrast is recorded as further exposure)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```
+
+## 2026-10-07 — LEVEL_REJECTION_MEMORY_V1 executed once; L2; near zero; not integrated
+
+**Unit.** `LEVEL_REJECTION_MEMORY_V1` (atlas `LEVEL-REJECTION-MEMORY-V1`), family `LEVEL_BEHAVIOR_V1`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim ceiling L2. Successor of `LEVEL_TOUCH_DEGRADATION_V1` / PR #352 / `dfc9e0f04358de15606382472badeb5aee787039`. It does not rescore that unit, DH1-L2 or DH3-V3.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `c8a1d4d2` before any next-touch rate. No threshold, horizon, feature, baseline or grouping was added after the rates were read.
+- **Data:** `CORE_BTC_BINANCE_V0` 5m bars, 2020-01-01 through 2024-12-31, events from 2020-02-01. Price only. No 2025/2026 slice, no live tape, no funding, no liquidations, no OI, no order book. The E1 holdout was not read. The 2020–2024 level row was already consumed; this run is additional exposure, not a confirmation.
+- **Cohort:** consecutive independent touches of the same structural zone where the previous touch was `REJECT_FIRST` and a later independent touch exists. Predictors are known before the next touch.
+- **Estimand:** change in historical 4h `BREAK_FIRST` per +1 SD faster prior rejection. Speed is the frozen z-score of −log(bars to the reject barrier). The linear probability model adjusts for next-touch ordinal, family, side, volatility tercile, year and log wait after the rejection bar. Baseline is the same structural next-touch population. Falsification is a deterministic half-rotation pseudo-level scored on the real scales.
+- **Primary:** −0.1 pp (95% −2.9..+2.6), N=1151, 283 clusters. The interval includes 0 and the absolute coefficient is below the 3 pp reading scale. `REJECT_FIRST` +1.0 pp (95% −1.9..+3.9). `NEITHER` −0.8 pp (95% −2.7..+1.0). Crude tertile `BREAK_FIRST` shares 39.2% / 39.7% / 39.4% (N 385 / 408 / 358).
+- **Adjustment checks:** without the touch-ordinal control −0.2 pp (95% −2.9..+2.5). Without the log-wait control +0.2 pp (95% −2.4..+3.0). Neither reveals a hidden association.
+- **Stability:** year coefficients −3.4 / −3.2 / +5.5 / +1.3 / +0.4 pp (2020–2024); signs flip; every year interval includes 0. Family DAY +0.6, WEEK −1.1, MONTH −1.3 pp. Resistance −2.5 pp, support +2.0 pp. Busiest year 22.1%. Busiest family 60.5%.
+- **Falsification:** pseudo-level primary +1.2 pp (95% −1.9..+4.3), N=1055, 245 clusters. Two control-year intervals exclude 0 (2023 +15.5 pp, 2024 −9.0 pp); those cells stay in the predeclared table and are not a new claim.
+- **Claim:** L2. The allowed sentence is the quantitative cohort frequency in the result record. Not a current probability. Not “a strong rejection makes a strong level”. The cohort is levels that rejected and were later retested.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = NO` under the predeclared conjunction. No `/btc`, `/levels`, scoring, findings-registry or deploy change. Successors named and not run: `LEVEL_APPROACH_STATE_V1`, `LEVEL_CONFLUENCE_V1`.
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 PRICE_STRUCTURE.levels already consumed; this rejection-memory contrast is recorded as further exposure)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+```
+
+## 2026-10-07 — LEVEL_APPROACH_STATE_DISCOVERY_V1 executed once; discovery; no successor; not integrated
+
+**Unit.** `LEVEL_APPROACH_STATE_DISCOVERY_V1` (atlas `LEVEL-APPROACH-STATE-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Family-statement claim L2. A cell selected by the successor rule would be `DISCOVERY_ONLY`; none was selected. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039`, #353 `c3d39bffda861b535605a98205d7578c0c84c782`, #354 methodology `8effe9acc3b88b925a79b33f04ac0ee9e6f93e26`. It does not rescore those units, DH1-L2 or DH3-V3.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `778e23dd` before any approach-conditioned outcome rate. Result commit `3cd68af0`. No feature, window, horizon, interaction or threshold was added after the rates were read.
+- **Data:** `CORE_BTC_BINANCE_V0` 5m bars, 2020-01-01 through 2024-12-31, events from 2020-02-01. OHLC and quote volume. No taker-buy quote, no OI, no funding, no liquidations, no order book, no 2025/2026 slice, no live tape. The E1 holdout was not read. The 2020–2024 level row was already consumed; this run is additional exposure, not a confirmation.
+- **Cohort:** independent touches of ex-ante structural zones with an observed entry into the outer band `1.0 ×` primary X and at least four in-band bars ending at the bar before the touch. Features use only bars before the touch.
+- **Family:** velocity, efficiency, persistence, acceleration, range state, relative quote volume, dwell. Pullback was dropped before outcomes because it is exactly `(1 − efficiency) / 2` (ρ = −1). Search exposure 441 cells. Benjamini–Hochberg at q = 0.10 on the 21 primary slopes only.
+- **Primary:** N=1973, 1210 episode clusters, 3 ambiguous touches dropped. Four slopes have absolute value at least 3 pp and an interval that excludes 0. Velocity → BREAK_FIRST −3.9 pp (95% −7.3..−0.5, q=0.122). Efficiency → NEITHER +4.4 pp (95% +2.2..+6.8, q=0.002). Dwell → REJECT_FIRST −3.0 pp (95% −5.3..−0.7, q=0.059). Dwell → NEITHER +4.7 pp (95% +2.6..+6.7, q=0.000). Acceleration stays within about 1 pp on every outcome.
+- **Why none is a successor:** DAY is 72.9% of the analysis sample, above the frozen 70% cap. On the pseudo-level, those four coefficients are +4.0, +3.9, −4.2 and +4.1 pp; none satisfies the control clause. Year signs of the four structural slopes agree, and leave-one-year-out keeps the sign. Dropping log approach length flips velocity → BREAK_FIRST to +1.2 pp and efficiency → NEITHER to −1.8 pp. Touch ordinal does not account for the slopes.
+- **Routing:** `STRUCTURE_PRESENT_BUT_UNSTABLE`. Atlas `CLOSED_ON_SURFACE`. `SUCCESSOR_CANDIDATE = NONE`. Interactions estimated: 0.
+- **Claim:** L2. The allowed sentence is the quantitative cohort contrast in the result record. Not a current probability. Not “a fast approach breaks the level”. The cohort is structural touches that showed a full approach episode.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change. Confirmation was not started. `LEVEL_APPROACH_FLOW_INCREMENTAL_V1` was not started.
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 PRICE_STRUCTURE.levels already consumed; this approach-state matrix is recorded as further exposure)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no
+```
+
+## 2026-10-07 — LEVEL_STRUCTURE_DISCOVERY_V1 executed once; discovery; no successor; not integrated
+
+**Unit.** `LEVEL_STRUCTURE_DISCOVERY_V1` (atlas `LEVEL-STRUCTURE-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Family-statement claim L2. A cell selected by the successor rule would be `DISCOVERY_ONLY`; none was selected. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039`, #353 `c3d39bffda861b535605a98205d7578c0c84c782`, #354 methodology `8effe9acc3b88b925a79b33f04ac0ee9e6f93e26`, #355 `aa85e5b43c405ee225336ff385e3a3383fa59d09`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `1ac77d2d` before any feature-conditioned outcome rate. No feature, tolerance, horizon, interaction, pseudo construction or threshold was added after the rates were read.
+- **Data:** `CORE_BTC_BINANCE_V0` 5m bars, 2020-01-01 through 2024-12-31, events from 2020-02-01. OHLC and the anchor source period's quote volume. No taker-buy quote, no OI, no funding, no liquidations, no order book, no 2025/2026 slice, no live tape. The E1 holdout was not read. The 2020–2024 level row was already consumed; this run is additional exposure, not a confirmation.
+- **Cohort:** the #352 feature-eligible structural touches, restricted before outcomes to source episodes that also have a feature-complete half-rotation pseudo touch. Not the #355 approach-eligible subset. Analysis sample after the ambiguous drop: N real = 2640, N pseudo = 2634, 1227 clusters. Ambiguous bars dropped: 9 real, 12 pseudo.
+- **Family:** age, binary confluence, zone span, formation range, formation volume, close-off-extreme, extreme timing, extreme density. Diversity was dropped before outcomes (binary coding, ρ = 1 with confluence). Search exposure 576 cells. Benjamini–Hochberg at q = 0.10 on the 24 primary real-minus-pseudo increments only. The #355 70% DAY cap is not a clause.
+- **Primary differential:** age → NEITHER +4.2 pp (95% +2.4..+6.1, q=0.000). The real slope is −1.3 pp (95% −2.6..+0.1). The rotated-price slope is −5.5 pp (95% −6.9..−4.1). The real slope is negative in 3 of 5 years. The other 23 primary increments have q above 0.10. Confluence increments are about 0 pp with intervals of about ±8 pp (284 multi-member real touches).
+- **Why none is a successor:** the frozen rule requires the real-effect sign in at least 4 eligible years. Leave-one-year-out and leave-one-family-out keep the age → NEITHER increment positive; that is not sufficient. The approach-path sensitivity was not run, because it cannot name a candidate.
+- **Routing:** `STRUCTURE_PRESENT_BUT_UNSTABLE`. Atlas `CLOSED_ON_SURFACE`. `SUCCESSOR_CANDIDATE = NONE`. Interactions estimated: 0.
+- **Claim:** L2. The allowed sentence is the quantitative cohort increment in the result record. Not a current probability. Not “an old level is weaker” and not “confluence is stronger”.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change. Confirmation was not started.
+
+```
+WINDOWS_CONSUMED = none new (2020-2024 PRICE_STRUCTURE.levels already consumed; this structure matrix is recorded as further exposure)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no
+```
+
+## 2026-10-07 — LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1 executed once; L2; replicated historical resolution gap; not integrated
+
+**Unit.** `LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1` (atlas `LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = CONFIRMATION`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2, a replicated historical mechanism. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039`, #353 `c3d39bffda861b535605a98205d7578c0c84c782`, #354 methodology `8effe9acc3b88b925a79b33f04ac0ee9e6f93e26`, #355 `aa85e5b43c405ee225336ff385e3a3383fa59d09`, #356 `f8623d3281424c165ebd7ee7fbcb0af994cc1e8d`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `a4f3a0d6` before any BitMEX barrier rate. No horizon, barrier, zone, rotation, level type or threshold was added after the rates were read.
+- **Question.** The post-hoc #352 description, which was not that unit's primary hypothesis, was that a real structural first touch resolves into BREAK or REJECT within 4h more often than the matched pseudo first touch (about +12 pp on Binance 2020–2024). That surface cannot confirm it. This unit asks the same contrast on time-disjoint BitMEX XBTUSD.
+- **Data:** `DH1_BITMEX_XBTUSD_TRADES_5M_V0`, canonical SHA256 `df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f`, grid 2017-08-01 through 2019-12-31, events from 2017-09-01. Before this run the atlas status was feasibility-exposed and the DH1 replication outcomes had not been read. This run consumes the surface for this resolution contrast. No 2025/2026 object, no live tape, no E1 holdout.
+- **Cohort:** touch number 1 of PDH, PDL, PWH, PWL, PMH and PML, paired with the unchanged #352 half-rotation control. Availability-matched pairs 558. Analysis pairs 548 after excluding 10 pairs with an ambiguous label (4 real, 7 pseudo). 119 product weeks. Epoch counts 100 / 250 / 198.
+- **Primary:** Δ_resolution = +8.0 pp (95% +4.4..+11.8). Real resolution rate 91.1%. Pseudo resolution rate 83.0%. Discordant pairs: real resolved and pseudo unresolved 80; the reverse 36; both resolved 419; both unresolved 13. The adjusted coefficient on the real-touch indicator is +7.9 pp (95% +4.0..+11.7).
+- **Stability:** epoch points +5.0, +5.2 and +13.1 pp, all positive. Leave-one-epoch-out points +8.7, +10.4 and +5.1 pp, all positive. The 2017H2 and 2018 intervals include 0. The predeclared sign rule uses the point estimates and holds. Family points: DAY +8.5 pp (N=480), WEEK +5.1 pp (N=59), MONTH 0.0 pp (N=9, both sides resolved on every pair). Side points: resistance +7.2 pp, support +8.8 pp.
+- **Decomposition:** BREAK +10.0 pp (95% +4.6..+15.4), REJECT −2.0 pp (95% −7.1..+3.0), NEITHER −8.0 pp (95% −12.0..−4.1). The resolution gap sits in BREAK versus NEITHER. REJECT does not decide the confirmation.
+- **Evidence label:** `REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE`. All five predeclared clauses hold. This is a description of the frozen rule, not the word PASS.
+- **Claim:** L2. The allowed sentence is that the first touch of a pre-known structural level historically resolved into one of the two barrier outcomes within 4 hours more often than the matched pseudo-price touch. Not a current probability. Not a direction. Not L3.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = YES` by the rule frozen before the outcome. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change. Integration was not performed.
+
+```
+WINDOWS_CONSUMED = DH1_BITMEX_XBTUSD_TRADES_5M_V0 PRICE_STRUCTURE.levels 2017-09-01..2019-12-31, for RESOLVED_WITHIN_4H real versus matched pseudo first touch (previously EXPOSED by DH1 feasibility counts only)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 / B2-06 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+PRODUCT_INTEGRATION_CANDIDATE = YES; INTEGRATION_PERFORMED = no; SUCCESSOR_STARTED = no
+```
+
+## 2026-10-07 — LEVEL_POSITIONING_FLOW_DISCOVERY_V1 executed once; discovery; no incremental position/flow structure; not integrated
+
+**Unit.** `LEVEL_POSITIONING_FLOW_DISCOVERY_V1` (atlas `LEVEL-POSITIONING-FLOW-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2, a family statement. A selected cell would have been discovery-only; none was selected. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039`, #353 `c3d39bffda861b535605a98205d7578c0c84c782`, #354 methodology `8effe9acc3b88b925a79b33f04ac0ee9e6f93e26`, #355 `aa85e5b43c405ee225336ff385e3a3383fa59d09`, #356 `f8623d3281424c165ebd7ee7fbcb0af994cc1e8d`, #357 `c1cd4e0102e700f7860d21a9af0d243c3bc367be`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. One official run. Design note `2491bbe9277faa24f0e5e3a295bbe6a01672ddf9` before any feature-conditioned outcome rate. No window, formula, FDR threshold, practical scale, outcome or interaction was added after the rates were read.
+- **Question.** #357 established that a first touch of a pre-known structural level resolves within 4h more often than a matched pseudo-price. This unit asks which point-in-time open-interest and aggressive-flow states, if any, distinguish “resolves or stalls” and “if resolved, BREAK or REJECT”, beyond the frozen price and context baseline, and whether that association is specific to the structural price.
+- **OI authority:** the seven outcome-blind conditions passed. Git snapshot `5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33`. `oi.jsonl` SHA256 `c4744a9369844f453476589111c2436372e729e7afdbe5fb34b6e9938a905b94`, 455273 native 5m rows, `available_at = period_start + 5m`. Only `sum_open_interest`. Funding was not opened. The B2-06 contract was not edited. `research_authorized` stays false. This is not B2-06 crowding science and not a rescue of H05, MARKET-01/02 or DH1-X2.
+- **Data:** `CORE_BTC_BINANCE_V0`, zip-list SHA256 `936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b`. Events `[2020-09-01T01:05:00Z, 2025-01-01T00:00:00Z)`. Observed first touch 2020-09-01T05:55:00Z, last 2024-12-31T12:30:00Z. No 2025/2026 object, no E1 holdout.
+- **Cohort:** touch number 1 of PDH, PDL, PWH, PWL, PMH and PML. Geometry-legitimate first touches 1708. Ambiguous labels 10, excluded from rates. On 1698 labeled touches: BREAK 688 (40.5%), REJECT 843 (49.6%), NEITHER 167 (9.8%), resolve rate 90.2%. 227 product weeks. Redundancy before outcomes: maximum absolute correlation 0.267; all four features retained.
+- **Primary:** eight adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. None passes the conjunction. Nearest cell: OI recent acceleration → BREAK given resolved, +2.90 pp (95% +0.43..+5.50), p=0.027, q=0.201, N=1513. Epoch points +0.34 / +2.66 / +4.48 / +4.97 / +2.85 pp, all positive. Leave-one-year-out points +3.43 / +3.48 / +2.66 / +2.17 / +2.95 pp, all positive. It fails q=0.10 and the 3 pp scale. The other seven primary intervals include 0 or the absolute estimate is below 3 pp, and their q-values are above 0.10.
+- **Specificity:** three stacked real-minus-pseudo intervals exclude 0 (oriented taker → resolve −4.35 pp; acceleration → break +4.21 pp; oriented taker → break +5.32 pp). They are not candidates. The real-cohort conjunction failed, so neither `LEVEL_INTERACTION_CANDIDATE` nor `GENERIC_STATE_CANDIDATE` is assigned.
+- **Shape:** five frozen tertile tables are U-shaped. Recorded as exploratory successor ideas. No threshold or interaction was fit.
+- **Routing:** `NO_INCREMENTAL_POSITION_FLOW_STRUCTURE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim:** L2. A historical association in this first-touch cohort. Not a current probability. An OI increase is more outstanding open interest. Oriented flow is aggressive executed volume toward the level. Not L3.
+- **Product:** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-09-01..2024-12-31, pre-touch taker quote imbalance into first-touch resolution type (further exposure, not a confirmation)
+WINDOWS_CONSUMED = B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0 OI leg only, sum_open_interest, same window, covariate of first-touch resolution; funding.jsonl not opened; B2-06 crowding still unauthorized
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-07 — LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1 executed once; discovery; no incremental joint-state structure; not integrated
+
+**Unit.** `LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1` (atlas `LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. A selected state would have been discovery-only; none was selected. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #358 `e6e5f307cfa098db607544a556bae01a2310eb6a`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. Design note `59361e92bf2e2e49507ae59e4d34b41801ff6739` before any state-conditioned resolution rate. K, the scaler, the centroids, the window, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is a joint predictor configuration at a structural first touch. It is not H05 (taker imbalance to subsequent return) and not B2-05 (`ABS_IMB * FLOW_RET` on a generic 15m grid to a subsequent return). Open interest is required. Price progress is oriented by the approach side and is not multiplied by flow. Atlas row `PRICE_STRUCTURE.levels`.
+- **Partition, before outcomes.** Robust-z KMeans on 1688 predictor-complete first touches. K=3 selected (silhouette 0.270, median ARI 0.892). K=4 failed the ARI gate. K=6 failed the minimum size. K=5 was eligible and lost on silhouette. Training counts 190 / 1178 / 320. Pseudo rows were assigned to the frozen centroids (1074) and did not enter the fit.
+- **Primary.** Six state-versus-rest contrasts, q=0.10, scale 3 pp. None passes. STATE_1 → RESOLVE_4H is +3.33 pp (95% −1.18..+7.53, q=0.354, n_state=186): the point clears 3 pp and the epoch and leave-one-year-out signs agree, and the interval includes 0. STATE_3 → BREAK given resolved is +5.37 pp (95% −1.08..+11.93, q=0.354, n_state=292); the 2020Q4 point has the opposite sign. The bars were not loosened.
+- **Specificity.** Three stacked intervals exclude 0, including STATE_1 → BREAK −17.6 pp, where the pseudo-only coefficient is +14.8 pp. They are not candidates. The real-cohort conjunction failed.
+- **Routing.** `NO_INCREMENTAL_JOINT_STATE_STRUCTURE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. A historical frequency in this cohort. Not a current probability. Not an absorption story.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No product change.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-09-01..2024-12-31, joint pre-touch OI/taker/price-progress state into first-touch resolution (further exposure, not a confirmation)
+WINDOWS_CONSUMED = B2_06 OI leg only, sum_open_interest, same window, one coordinate of that state; funding.jsonl not opened; B2-06 crowding still unauthorized
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-07 — LEVEL_LIQUIDITY_STATE_DISCOVERY_V1 executed once; discovery; no incremental level-liquidity structure; not integrated
+
+**Unit.** `LEVEL_LIQUIDITY_STATE_DISCOVERY_V1` (atlas `LEVEL-LIQUIDITY-STATE-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Any selected cell would have been discovery-only on an already exposed book surface; none was selected. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #359 `bcc0a9e8a5c2af221b23b72768d7b7ba1d6a4aa2`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. Design note `f7430ca27c664e3669d7adb633561ba381a598e3` before any feature-conditioned resolution rate. The band, the 90-second staleness, the 60-minute lag, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is the local book state around a structural first touch: approach-oriented ±1% notional, measured strictly before the touch, with a pseudo-price control, and with resolution rather than range or up-first as the endpoint. It is not DH3-L1 (all-hours thin-book quintile → range), not DH3-L2 (all-hours bid-heavy quintile → up first), not DH3-L3 (book recovery 30 minutes after a sharp move → range), and not the SEED-0001 ±5% binary support state. Reopen key `NEW_MECHANISM`. The surface stays discovery-only.
+- **Book.** `DH3_BINANCE_UM_BOOKDEPTH_V0`, object-list SHA256 `c53fc179d922f83b572703d52e80f847fb54531961ac776929f2e3e95feeddce`. BTCUSDT, 728 verified days, missing 2023-02-08, 2023-02-09 and 2024-04-18. 2,068,585 snapshots. Native bands −5..−1 and +1..+5. No band inside ±1%. No price ladder. Term: `LOCAL_BOOK_STATE_AROUND_LEVEL_TOUCH`. Staleness 90 seconds, from a ~30-second cadence. 767 of 790 geometry-legitimate first touches had both legal snapshots.
+- **Cohort.** Touch number 1 of PDH, PDL, PWH, PWL, PMH and PML, window `[2023-01-01T02:00:00Z, 2025-01-01)`. Geometry-legitimate 790. Ambiguous 5, excluded from rates. On 785 labeled touches: BREAK 290 (36.9%), REJECT 425 (54.1%), NEITHER 70 (8.9%), resolve rate 91.1%. Book-legal primary N: RESOLVE 762, BREAK given resolved 695. 106 weeks. All five features retained. Maximum absolute correlation before outcomes 0.780.
+- **Primary.** Ten adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. None passes. Nearest: total local depth → RESOLVE −2.61 pp (95% −4.93..−0.50, q=0.203), below 3 pp; total local depth → BREAK +4.03 pp (95% −0.30..+8.05, q=0.203), interval includes 0; oriented imbalance → BREAK +3.93 pp (95% −0.42..+7.83, q=0.203), interval includes 0 and 2024H1 flips sign. The bars were not loosened.
+- **Specificity.** No stacked real-minus-pseudo interval excludes 0. A pseudo-only oriented-imbalance → RESOLVE slope of +5.09 pp (95% +1.64..+8.65) is descriptive. The real slope is −0.06 pp, so it is not a generic candidate.
+- **Shape.** Three frozen tertile tables are U-shaped. Recorded as exploratory ideas. No threshold was fit.
+- **Routing.** `NO_INCREMENTAL_LEVEL_LIQUIDITY_STRUCTURE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. A historical association in this first-touch cohort. Not a current probability. Not a statement that a thick book holds or a thin book breaks.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2023-01-01..2024-12-31, local book state at structural first touches into resolution type (further exposure, not a confirmation)
+WINDOWS_CONSUMED = DH3_BINANCE_UM_BOOKDEPTH_V0 BTCUSDT 2023-01-01..2024-12-31, ±1% notional at those touches; surface already consumed by DH3-L; not a reopen of DH3-L1/L2/L3 or SEED-0001
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-07 — LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1 executed once; discovery; structure present but unstable; not integrated
+
+**Unit.** `LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1` (atlas `LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only on an already consumed level surface. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #360 `181debc4aa626637f2cd560103447d2d4adc96b1`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-07. Design note `f3101015f33b19d38b38c226891422c5863cc723` before any late resolution rate. The 15-minute window, the early exclusion, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is a state update 15 minutes after a #352 structural first touch, on events that have not yet reached either barrier, with the outcome equal to the remainder of the original 4h. It is not H02 (rolling-range wick → signed return), not B2-02, and not V2 `CONFIRMED_BREAKOUT`. No acceptance, reclaim, or failed-break flag was fit. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels`.
+- **Clock.** T is the open of touch bar j. D = T+15m. Reaction features use bars j, j+1 and j+2. Early passage uses j+1 and j+2 and does not treat the touch bar as a resolution. Late passage uses j+3 through j+48.
+- **Cohort.** Window `[2020-09-01T00:05:00Z, 2025-01-01)`. Geometry-legitimate first touches 1709. Early BREAK 260, early REJECT 238, early ambiguous 9, unresolved 1202, unavailable 0. On unresolved events: late BREAK 428, REJECT 606, NEITHER 167, ambiguous 1. Primary N: late resolve 1201, late break given resolved 1034. 227 weeks. All five features retained. Maximum absolute correlation before outcomes 0.828.
+- **Primary.** Ten adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. `END_POSITION_X` → late BREAK +20.31 pp (95% +17.20..+23.46, q=0.0000, N=1034). All five years and all five leave-one-year-out fits stay positive. Resistance +20.02 pp and support +21.06 pp. The conjunction fails only because leave-one-family-out omitting DAY returned no coefficient (complement N=122). DAY itself is +20.20 pp and WEEK is +19.45 pp. The other nine cells fail q, the 3 pp scale, or the interval. The bars were not loosened.
+- **Specificity.** Not promoted. Pseudo and stacked intervals were withheld: valid week-cluster draws were below the frozen 90 percent line. The pseudo end-position → late BREAK point is +30.13 pp (N=413) and is descriptive only.
+- **Shape.** Relative activity versus late resolve, and OI change versus late break, are U-shaped on frozen tertiles. Recorded as exploratory ideas. No threshold was fit.
+- **Routing.** `STRUCTURE_PRESENT_BUT_UNSTABLE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. A historical association in this unresolved first-touch cohort. Not a current probability. Not an acceptance rule and not a failed break.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-09-01..2024-12-31, 15m post-touch reaction into the remainder of the original 4h (further exposure, not a confirmation)
+WINDOWS_CONSUMED = B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0 sum_open_interest only, prints at T and at T+15m; funding.jsonl not opened; B2-06 crowding remains unauthorized
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-08 — LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1 executed once; discovery; no incremental path memory; not integrated
+
+**Unit.** `LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1` (atlas `LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only on an already consumed level surface. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #361 `44726ded55c75fefecc6848ab8b76971ead83721`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `bae1060c390e049f652c57792b8c18fc1c41058e` before any late BREAK rate. The states, the overlap rule, the arm minimum, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is path memory within the first 15 minutes after a structural first touch, inside one endpoint side, with `END_POSITION_X` held as a nuisance. It is not H02, not B2-02, not V2 `CONFIRMED_BREAKOUT`, and not a rescore of the #361 endpoint slope. `REENTERED` is not labelled a false break. `PERSISTENT_OUTSIDE` is not labelled acceptance. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels`.
+- **Clock.** T is the open of touch bar j. D = T+15m. Bits use the closes of j, j+1 and j+2 against the break-side zone edge. Early passage uses j+1 and j+2. Late passage uses j+3 through j+48.
+- **Cohort.** Window `[2020-02-01T00:00:00Z, 2025-01-01)`. Price OHLC only. Geometry-legitimate first touches 1919. Early BREAK 296, early REJECT 278, early ambiguous 13, unresolved 1332. States: never outside 983, reentered 115, late or recross 80, persistent 154. 258 weeks.
+- **Gate.** C1 overlap passed (standardized endpoint difference +1.27; 62.6% and 53.8% of each arm inside the other central band). C2 was not estimated: the late-or-recross arm has 80 unresolved events. Its overlap would have passed. The taxonomy was not changed.
+- **Primary.** One adjusted contrast, Benjamini–Hochberg q=0.10, practical scale 3 pp. `REENTRY_MEMORY` +6.74 pp (95% −4.22..+17.62, q=0.2218, N=952, arms 101 and 851, 2000 valid draws). The interval includes 0. Eligible years do not share one sign. Leave-one-year-out omitting 2022 changes sign. DAY is +8.99 pp and WEEK is −12.72 pp, both estimable and opposite. Resistance is −3.46 pp and support is +18.59 pp, both estimable and opposite. No candidate.
+- **Specificity.** Not applied. The pseudo reentry slope is +9.52 pp (95% −9.68..+28.77, N=300, treated arm 26). The interval includes 0. It does not rescue the real null.
+- **Routing.** `NO_INCREMENTAL_PATH_MEMORY_BEYOND_ENDPOINT`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. A historical adjusted difference in this unresolved first-touch cohort. Not a current probability. Not a false break and not acceptance.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-02-01..2024-12-31, 15m close-path memory conditional on END_POSITION_X into the remainder of the original 4h (further exposure, not a confirmation)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; OI / funding / book / taker not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-08 — LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1 executed once; discovery; one level-interaction candidate; not integrated
+
+**Unit.** `LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1` (atlas `LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #362 `b005eaac895d3a4c644d16101d2e5eb7d2ff8d5f`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `f21be5a6cd022e3c8aacceccf8d13c61106e3b83` before any late BREAK rate. The venue set, the −3h Bybit label offset, the 15-minute window, the four features, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is the 15-minute price reaction of other linear perpetuals around a Binance structural first touch, with `END_POSITION_X` held in every model. It is not MARKET-06 (Binance USD-M versus OKX BTC-USDT spot, daily absolute dislocation, 24h adverse-path MAE, `MARKET_06_NO_EVIDENCE`). It is not `CROSS_VENUE_REGION.venue_disagreement`, not DH3-X6, and not the V2 `price_direction_agreement` gate. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `CROSS_VENUE`.
+- **Data.** Tier A, frozen before outcomes. Binance USD-M BTCUSDT perpetual is the only structural venue. Bybit BTCUSDT linear perpetual public MT4 5m closes, canonical SHA256 `f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c`, label clock UTC+3. OKX BTC-USDT-SWAP `history-candles` confirm=1, canonical SHA256 `b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8`. OKX spot was not used. No 2025/2026 object was requested.
+- **Clock.** T is the open of Binance touch bar j. D = T+15m. Each venue return is the log close at D over the close of the bar opening at T−5m. Alignment tolerance is 0. A missing bar drops the event. Early passage uses j+1 and j+2. Late passage uses j+3 through j+48.
+- **Cohort.** Window `[2020-04-01T00:05:00Z, 2025-01-01)`. Geometry-legitimate first touches 1856. Early BREAK 286, early REJECT 265, early ambiguous 13, unresolved 1292. Feature-complete unresolved 1235; the only missingness is Bybit, 57 events. Late labels: BREAK 439, REJECT 621, NEITHER 174, ambiguous 1. Primary N=1060. Pseudo primary N=612. 238 weeks. All four features retained. Maximum absolute correlation before outcomes 0.630.
+- **Baseline.** `END_POSITION_X` +20.30 pp per +1 SD (95% +17.41..+23.17, N=1060, 2000 valid draws).
+- **Primary.** Four adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. `OTHER_VENUE_MEDIAN_MOVE` +8.87 pp (95% +5.02..+12.67, q=1.70e-5, N=1060). Same-model end position +13.43 pp. Five eligible years; four match the full-sample sign, including a negative 2020 point whose interval includes 0. Leave-one-year-out stays positive. DAY +8.63 pp and WEEK +5.60 pp. Resistance +5.10 pp; support point +13.63 pp with the interval withheld. The confirmation gap, dispersion and direction agreement fail the statistical gate. Direction-agreement tertiles collapse because the mass sits at 1. No two-thirds threshold was fit.
+- **Specificity.** Applied to CV1 because the real conjunction passed and the matched pseudo N is 612. Pseudo-only slope −1.61 pp (95% −6.17..+2.85). Stacked delta −4.24 pp (95% −7.96..−0.05, N=1223). The frozen rule names `LEVEL_CROSS_VENUE_INTERACTION_CANDIDATE`. The stacked real slope on that matched sample is about zero and does not reproduce the primary +8.87 pp. The classification was not refit.
+- **Routing.** `LEVEL_CROSS_VENUE_STRUCTURE_PRESENT`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. A historical adjusted association in this unresolved first-touch cohort. Not a current probability. Not a statement that another venue led or caused the barrier.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change. Direction #4 was not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-04-01..2024-12-31, Binance structural reference for the 15m cross-venue reaction (further exposure, not a confirmation)
+WINDOWS_CONSUMED = BYBIT_BTCUSDT_PUBLIC_HISTORY BTCUSDT linear perpetual 5m closes 2020-03-31T21:00Z..2024-12-31T20:55Z, four public-file holes left missing
+WINDOWS_CONSUMED = OKX_OFFICIAL_ARCHIVES BTC-USDT-SWAP 5m history-candles 2020-04-01..2024-12-31, confirm=1; MARKET-06 OKX spot dataset not read
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; OI / funding / book / taker not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-08 — LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1 executed once; discovery; no incremental spot reaction; not integrated
+
+**Unit.** `LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1` (atlas `LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #363 `f22100177e2f89a43c6271929aba0d63f7b4552f`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `98c750a4cf8df7d2b7b1262506129372bb2dc785` before any late BREAK rate. The spot source, the window, the three features, the relative formulas, the baseline, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is the 15-minute Binance spot reaction after a structural first touch, with `END_POSITION_X` and `OTHER_VENUE_MEDIAN_MOVE` held in every model. It is not DH1-L1 / DH2-L1 pre-touch hour flow, not DH1-B1 sign confirmation, not DH1-B2 / DH2-B2 spot share, not D9 or DH3 lead/lag, and not MARKET-06. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `SPOT`. The cross-perp coefficient is a control, not a confirmation of #363.
+- **Data.** Binance USD-M BTCUSDT perpetual is the structural venue. Spot is `DH1_BINANCE_SPOT_BTCUSDT_5M_V0`, months 2020-04..2024-12, taker-buy quote present, 355 of 499968 bars missing and left missing. Bybit and OKX are the pinned #363 perpetuals, not reminted. No 2025/2026 object was requested. No OKX spot.
+- **Clock.** T is the open of Binance touch bar j. D = T+15m. Returns use the close at D over the close of the bar opening at T−5m. Alignment tolerance is 0. Early passage uses j+1 and j+2. Late passage uses j+3 through j+48.
+- **Cohort.** Window `[2020-04-01T00:05:00Z, 2025-01-01)`. Geometry-legitimate first touches 1856. Early BREAK 286, early REJECT 265, early ambiguous 13, unresolved 1292. Feature-complete unresolved 1234. SP3 legal rate 1.0. All three features retained. Maximum absolute correlation among them 0.082. SP1 correlation with the cross-perp control 0.998, recorded before outcomes and not used as a drop. Late labels: BREAK 439, REJECT 620, NEITHER 174, ambiguous 1. Primary N=1059. 238 weeks.
+- **Baseline.** `END_POSITION_X` +13.36 pp per +1 SD (95% +9.38..+17.51, N=1059, 2000 valid draws). `OTHER_VENUE_MEDIAN_MOVE` +9.08 pp (95% +5.17..+12.84). The control is not in the FDR family.
+- **Primary.** Three adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. SP1 +32.97 pp (95% −12.36..+76.94, q=0.228). SP2 +2.29 pp (95% −0.30..+5.12, q=0.228). SP3 −1.29 pp (95% −4.04..+1.57, q=0.385). No interval excludes 0. No feature clears the statistical gate. SP1 year signs are three of five. SP1 DAY and WEEK have opposite signs. SP3 resistance and support points have opposite signs. None of those slices is a candidate. Raw SP1 tertiles repeat the cross-perp gradient and are not an incremental spot effect.
+- **Specificity.** Not applied. No full-sample candidate. No matched delta was estimated.
+- **Routing.** `NO_INCREMENTAL_SPOT_PERP_REACTION`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. No incremental historical association for the spot layer in this unresolved first-touch cohort, beyond Binance end position and the other perpetual venues' 15-minute move. Not a current probability. Not a statement that spot led or that the move is only a leveraged-complex fact in a causal sense.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change. Lead/lag, time-to-resolution, a volatility transition, confirmation, a 30-minute window, a liquidation map and prospective tracking were not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-04-01..2024-12-31, Binance structural reference and reaction-bar taker quote for the spot-versus-perp question (further exposure, not a confirmation)
+WINDOWS_CONSUMED = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 Binance spot BTCUSDT 5m 2020-04..2024-12, taker-buy quote included, 355 missing bars left missing; 2017-2019 not read
+WINDOWS_CONSUMED = BYBIT_BTCUSDT_PUBLIC_HISTORY BTCUSDT linear perpetual 5m closes reused as the cross-perp control; not reminted
+WINDOWS_CONSUMED = OKX_OFFICIAL_ARCHIVES BTC-USDT-SWAP 5m history-candles reused as the cross-perp control; MARKET-06 OKX spot dataset not read
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; funding / book / liquidation / OI not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-08 — LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1 executed once; discovery; resolution clock faster than pseudo; not integrated
+
+**Unit.** `LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1` (atlas `LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #364 `7c297997da263e286524fd939e4a536dfa42002c`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `56b162f07e69f3e8a4b6784e18dc497ea5a7d042` before any barrier time. The horizon, the time origin, the ambiguity rule, the RMUT restriction, the checkpoint grid, and the 15-minute scale were not changed after the times were read.
+- **Novelty.** The object is the time from a structural first touch until the frozen BREAK or REJECT barrier, compared with the matched pseudo-price touch. It is not the #352 touch-ordinal rate, not the #357 4h resolution probability, and not `GV0R01-C024` (round numbers, order-book depth, ±0.2% exit, 6h cap). Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `CANDLES`.
+- **Data.** Price only. Binance USD-M BTCUSDT perpetual, `CORE_BTC_BINANCE_V0`. Window `[2020-02-01, 2025-01-01)`. No 2025/2026 object was requested. No spot, other venue, book, taker, or open interest.
+- **Clock.** T is the open of touch bar j. Bar j is not a resolution. A hit on bar j+k has time `5 * k` minutes. AMBIGUOUS counts for any-resolution. No hit by j+48 is right-censored at 240 minutes and is not stored as an observed event time.
+- **Cohort.** Real legitimate first touches 1919. Pseudo legitimate 1962. Matched pairs 1231. Unusable clocks 0. Real censored 107. Pseudo censored 207. 254 weeks.
+- **Primary.** Real RMUT_240 64.24 minutes. Pseudo 89.39 minutes. Delta −25.15 minutes (95% −31.42..−19.07, 2000 valid draws). The interval excludes 0 and the absolute difference clears 15 minutes.
+- **Stability.** Years −40.39 / −29.84 / −7.75 / −22.65 / −23.70. Five of five share the negative sign. The 2022 point is under 15 minutes; the frozen rule is a sign rule and was not rewritten. Leave-one-year-out stays negative. DAY −24.91 and WEEK −28.91. Resistance −22.88 and support −28.05. MONTH N=22 is descriptive.
+- **Descriptive curve.** Real resolved-by rates at 15/30/60/120/240 minutes: 0.401 / 0.529 / 0.673 / 0.807 / 0.913. Pseudo: 0.299 / 0.410 / 0.548 / 0.696 / 0.832. The conditional hazard is higher for real in every predeclared interval. No cutoff was selected. BREAK and REJECT quartiles are conditional on kind and are not a directional candidate.
+- **Routing.** `LEVEL_RESOLUTION_CLOCK_STRUCTURE_PRESENT`. Class `LEVEL_RESOLUTION_CLOCK_CANDIDATE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. First touches of these structural levels historically spent less time unresolved, inside the same 4h horizon, than the deterministic pseudo-price touches. Not a current expected number of minutes. Not a statement that the level expires after N minutes.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No ACTIVE, STALE, countdown, or push change. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry, or deploy change. False-break semantics, acceptance, a 30-minute threshold, current hazard calibration, and a product timer were not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-02-01..2024-12-31, price OHLC only, structural first-touch resolution clock versus half-rotation pseudo (further exposure, not a confirmation)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; spot / other venue / book / taker / OI / funding / liquidation not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-08 — LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1 executed once; discovery; no incremental sequence structure; not integrated
+
+**Unit.** `LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1` (atlas `LEVEL-BREAK-REJECT-SEQUENCE-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #365 `3ad8431ee62cc48c86eeaeface9b50884babfbbe`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `fcfc3e438e4cbea4213e8284a4cb851234e030f0` before any post-first opposite-barrier scan. The six classes, the 4h horizon, the parent first-event rule, the 5 pp scale, and the FDR were not changed after the sequences were read.
+- **Exposure.** `FIRST_EVENT_TYPE_ALREADY_EXPOSED = true`. Parent BREAK / REJECT / NEITHER / AMBIGUOUS counts were already known. `POST_FIRST_OPPOSITE_BARRIER_SEQUENCE_NOT_YET_READ = true` at the design commit. The sequence was then read once.
+- **Novelty.** The object is whether the opposite frozen barrier is reached after the first one-sided hit, inside the original 4h event, relative to the matched pseudo touch. It is not H02, not the V2 false-break lifecycle, not the #362 path predictor, and not the #365 resolution clock. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `CANDLES`.
+- **Data.** Price OHLC only. Binance USD-M BTCUSDT perpetual, `CORE_BTC_BINANCE_V0`. Window `[2020-02-01, 2025-01-01)`. No 2025/2026 object was requested. No volume, taker, open interest, spot, other venue, or book.
+- **Cohort.** Real legitimate first touches 1919. Pseudo legitimate 1962. Matched pairs 1231. Unusable windows 0. Real first events: BREAK 579, REJECT 539, AMBIGUOUS 6, NEITHER 107. Pseudo: BREAK 467, REJECT 549, AMBIGUOUS 8, NEITHER 207. 254 weeks. Both denominator gates pass.
+- **P1.** Later REJECT given FIRST_BREAK: real 18.13% (105/579), pseudo 14.99% (70/467), delta +3.15 pp (95% −1.23..+7.56, p=0.160, q=0.320, 2000/2000). Under 5 pp. Interval includes 0. Class `NONE`. Years +2.04 / +4.81 / +8.26 / +7.39 / −7.64. Four of five share the sign. 2024 is opposite and above 5 pp; the frozen rule was not rewritten. Leave-one-year-out stays positive.
+- **P2.** Later BREAK given FIRST_REJECT: real 20.22% (109/539), pseudo 18.94% (104/549), delta +1.28 pp (95% −3.27..+5.95, p=0.578, q=0.578). Under 5 pp. Interval includes 0. Class `NONE`. Years +9.27 / +2.69 / −4.40 / −0.45 / −2.25. The year rule fails, and omitting 2020 flips the leave-one-year-out sign. The contrast is not statistical, so this is not an unstable structure.
+- **Descriptive.** Two-sided traversal 17.87% real versus 14.78% pseudo (+3.09 pp). One-sided resolution 73.44% versus 68.40% (+5.04 pp of all pairs). That unconditional share is not a primary. Conditional on the first event, the one-sided gaps are the negatives of P1 and P2. Reversal-delay medians: real break-then-reject 70 min (N=105), real reject-then-break 90 min (N=109). No delay cutoff was tested.
+- **Routing.** `NO_INCREMENTAL_SEQUENTIAL_OUTCOME_STRUCTURE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. The historical conditional reversal rates do not differ from the matched pseudo touch by the frozen 5 pp bar. Not a current false-break probability. Not an acceptance probability.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `FALSE_BREAK`, `ACCEPTED_BREAK`, `CONFIRMED_REJECT`, or whipsaw alert. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry, or deploy change. Volume-at-level, acceptance thresholds, a close-based false-break rule, cross-venue composition, and prospective confirmation were not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-02-01..2024-12-31, price OHLC only, post-first opposite-barrier sequence versus half-rotation pseudo (further exposure, not a confirmation)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; volume / taker / OI / spot / other venue / book / funding / liquidation not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-08 — LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1 executed once; discovery; no incremental zone-traded activity; not integrated
+
+**Unit.** `LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1` (atlas `LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #366 `b411cff97309fbb12450b0f095f96fea6e84c3d3`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `ee2abb0dd3c4c6b0b9d2e2e1a0b48ba1ebfa6e19` before any late BREAK label. The zone, the 15-minute window, the 60-minute normalizer, ZA1–ZA3, the redundancy rule, the baseline, q and the 3 pp scale were not changed after the labels were read.
+- **Novelty.** The object is unsigned Binance USD-M quote notional inside the exact structural zone during `[T, D)`, incremental to `END_POSITION_X` and `OTHER_VENUE_MEDIAN_MOVE`, with touch offset as a nuisance. It is not H05 signed imbalance, not B2-05 absorption, not DH3-S large prints, not #360 displayed depth, not the #361 taker coordinate, not the #362 close path, and not the #366 barrier sequence. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `PERP_FLOW`. The cross-perp coefficient is a control, not a confirmation of #363.
+- **Data.** Official USD-M BTCUSDT aggTrades, 58 months `2020-03` through `2024-12`, each checksum-verified. March 2020 is lookback only. Aggregate digest `af1eb088ac0fc7e860cbd211f654d3fd7cf8332588fa03c91b22131f37e34970`. Raw zips deleted. Quantity is base BTC; quote notional is price times quantity. Aggressor side was not used. Bybit and OKX are the pinned #363 perpetuals, not reminted. No 2025/2026 object was requested. No spot trades.
+- **Clock.** T is the open of touch bar j. D = T+15m. `TAU_TOUCH` is diagnostic only. Real touch match 1832/1856 = 0.987. Pseudo 1163/1183 = 0.983. Early passage uses j+1 and j+2. Late passage uses j+3 through j+48.
+- **Cohort.** Window `[2020-04-01T00:05:00Z, 2025-01-01)`. Geometry-legitimate first touches 1856. Unresolved with nuisance 1235. Common retained support 1215. ZA3 dropped before outcomes (Spearman 0.925 with ZA2). Late labels on that support: BREAK 432, REJECT 612, NEITHER 170, ambiguous 1. Primary N=1044. 238 weeks.
+- **Baseline.** `END_POSITION_X` +13.13 pp per +1 SD (95% +8.70..+17.39, N=1044, 2000 valid draws). `OTHER_VENUE_MEDIAN_MOVE` +9.33 pp (95% +5.35..+13.35). Touch offset −0.09 pp (95% −3.34..+2.97). The controls are not in the FDR family.
+- **Primary.** Two adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. ZA1 −0.95 pp (95% −4.25..+2.27, q=0.557). ZA2 −1.76 pp (95% −5.19..+1.48, q=0.557). Neither clears 3 pp or excludes 0. Years are four of five on the pooled negative sign; 2023 is opposite (ZA1 +3.19 pp, ZA2 +4.84 pp). The frozen five-year rule still passes and was not rewritten. Leave-one-year-out stays negative. DAY and WEEK are both negative. Resistance and support are both negative. Raw ZA1 tertile late-BREAK rates are 31.67% / 42.24% / 50.89%. That unadjusted gradient is not the estimand and was not promoted.
+- **Specificity.** Not applied. No full-sample candidate. No matched delta was estimated.
+- **Routing.** `NO_INCREMENTAL_ZONE_TRADED_ACTIVITY`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. No incremental historical association for unsigned executed activity inside the structural zone, beyond Binance end position, the other perpetual venues' 15-minute move, and the touch offset. Not a current probability. Not absorption, defense, or a statement that volume confirms a break.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No volume-confirmation badge, absorption state, acceptance state, or level-strength score. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry, or deploy change. A taker split, another zone width, a 30-minute or 60-minute window, a large-trade threshold, BitMEX replication, and prospective confirmation were not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-04-01T00:05Z..2024-12-31, structural reference for unsigned zone executions after a first touch (further exposure, not a confirmation)
+WINDOWS_CONSUMED = BINANCE_UM_TRADES_AGGTRADES_ARCHIVE USD-M BTCUSDT aggTrades 2020-03..2024-12, event-level unsigned quote notional only; aggressor side unused; raw zips not retained
+WINDOWS_CONSUMED = BYBIT_BTCUSDT_PUBLIC_HISTORY BTCUSDT linear perpetual 5m closes reused as the cross-perp control; not reminted
+WINDOWS_CONSUMED = OKX_OFFICIAL_ARCHIVES BTC-USDT-SWAP 5m history-candles reused as the cross-perp control; MARKET-06 OKX spot dataset not read
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; spot aggTrades / book / funding / liquidation / OI not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-08 — LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1 executed once; discovery; volatility-transition candidate; sequence 8/8 complete; not integrated
+
+**Unit.** `LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1` (atlas `LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #367 `fcdf650ccf58a96c54f4931c0cb5d16e7d143473`. It does not rescore those units. This is direction 8 of 8. `LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE = YES`.
+- **Owner go:** the task of 2026-10-08. Design note `54338b7faab9598152e2fa1270d2fb51a4beed18` before any post-touch RV. The windows, the touch-bar exclusion, the RV formula, the 10% scale, and the stability rules were not changed after the transitions were read.
+- **Novelty.** The object is the paired difference in `log(RV_POST60 / RV_PRE60)` between a structural first touch and its exact #352 pseudo touch. It is not H01 (no compression screen), not B2-01 (no forecast target), and not DH3-V2 (not a 4h high-low range and not a random level). Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `CANDLES`. Not placed on `VOLATILITY_STATE.compression`, `VOLATILITY_STATE.regime_transition`, or `VOLATILITY_STATE.range_forecast`.
+- **Data.** Price closes only. Binance USD-M BTCUSDT perpetual, `CORE_BTC_BINANCE_V0`. Window `[2020-02-01, 2025-01-01)`. No 2025/2026 object was requested. No volume, taker, open interest, spot, other venue, or book.
+- **Clock.** T is the open of touch bar j. Pre returns are assigned to j−12..j−1. Post returns are assigned to j+1..j+12. The touch-bar return is in neither window. `RV = sqrt(mean(r^2))`. No demean and no annualization.
+- **Cohort.** Real legitimate first touches 1919. Pseudo legitimate 1962. Matched path-complete pairs 1231. Usable pairs 1231. Non-positive RV drops 0. 254 weeks. Years 242/334/258/181/216.
+- **Pre-RV balance.** Paired mean of log(real pre / pseudo pre) is +0.56%. Below 10%. Not used as an adjustment. No rematch.
+- **Primary.** `DELTA_TRANSITION` +0.106803 log units, about +11.27% on the post/pre RV multiplier (95% +0.066548..+0.146661, about +6.88%..+15.80%, p=1.048e-7, N=1231, 2000/2000, seed 20261024). The point clears `log(1.10)`. The interval excludes 0 and includes multipliers below 10%. That inclusion was not a reason to change the frozen rule. Real mean transition +0.298, pseudo +0.192. Expansion fraction, descriptive only: real 0.695, pseudo 0.611, difference +0.084.
+- **Stability.** Years +16.93% / +12.05% / +0.10% / +17.52% / +12.87%. Five of five share the positive sign. 2022 is practically null; the frozen rule is a sign rule and was not rewritten. Leave-one-year-out stays positive, including omit-2020 at about +9.93%. DAY +10.06% (N=1071) and WEEK +25.63% (N=138). MONTH is −11.47% on N=22 and is diagnostic only. Resistance +14.34% (N=690). Support +7.48% (N=541), same sign and under 10%, so not a material contradiction.
+- **Routing.** `LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT`. Class `LEVEL_VOLATILITY_TRANSITION_CANDIDATE`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. Historically, realized volatility changed more across a structural first touch than across its matched pseudo-price touch, with the post/pre RV multiplier differing by about 11%. Not a current expected volatility. Not a breakout recommendation. Not a statement that the level causes volatility.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No volatility-expansion badge, no confirmation state, no alert. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry, or deploy change. Discovery synthesis, candidate selection, and confirmation design were not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-02-01..2024-12-31, 5m closes only, paired 60m pre/post realized-volatility transition versus half-rotation pseudo (further exposure, not a confirmation)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; volume / taker / OI / spot / other venue / book / funding / liquidation not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO; LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE = YES
+```
+
+## 2026-10-08 — LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1 recorded; no new market window; confirmation not started
+
+**Record.** `LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1`. Mode `SYNTHESIS / NO_NEW_MARKET_OUTCOMES`. Not an outcome unit and not an atlas cell. Parent HEAD `fb6598aa62fc9b47cec2e9095959aa98182f0407`. Source main `1a2e425303fb29e1044ca57452b8ad9b6f0a831b`.
+- **Scope.** Evidence map of #352, #353, #355, #356, #357, #358, #359, #360, #361, #362, #363, #364, #365, #366, #367, and #368. #354 is the governing discovery-first decision and is not market evidence. Frozen routes and result files were not edited. L0–L4 was not redefined.
+- **Foundation.** #357 stays `FOUNDATION_CONFIRMED` (`REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE`). It was not rerun.
+- **Selection.** No P1 historical confirmation. Prospective sketches only: #368 paired RV transition, then #363 primary cross-venue coefficient. #365 is `DO_NOT_CONFIRM`. #361 is `DO_NOT_CONFIRM_AS_LEVEL_SPECIFIC`. Null neighborhoods are closed and not authorized.
+- **Data.** No new window. No 2025/2026 object. No BitMEX outcome column. No live tape. No product change. Findings registry unchanged.
+
+```
+WINDOWS_CONSUMED = none
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+CONFIRMATION_STARTED = no; ATLAS_UPDATED = no; LEVEL_ENGINE_DISCOVERY_SYNTHESIS_RECORDED = YES
+```
+
+## 2026-10-08 — LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1 executed once; exposed-surface replication supports the frozen claim; not pristine; not integrated
+
+**Unit.** `LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1` (atlas `LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = CONFIRMATION`, surface class `TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION`. Claim ceiling L2. It does not rescore #368 or #357.
+- **Owner go.** The task of 2026-10-08, after `EXPOSURE_WEIGHTING_DECISION_V1` (`OWNER_DECISION_RECORDED`). Prior use of a surface is not by itself a ban. Exposure sets wording. Outcome-driven redesign is forbidden. The decision does not rewrite past results and does not change L0–L4.
+- **Design.** `6d97157be44f02ad09344a00df58b715e5c8aa13`, committed before any post-touch RV. The #368 formula, the touch-bar exclusion, the 12-return windows, the 10% bar `log(1.10) = 0.09531017980432493`, the positive sign, the week-block bootstrap (B=2000, seed 20261025), the epoch sign rule, and the leave-one-epoch-out sign rule were not changed after the transitions were read. Discovery design remains `54338b7faab9598152e2fa1270d2fb51a4beed18`.
+- **Why this surface.** Discovery was Binance USD-M BTCUSDT 2020–2024. This run is BitMEX XBTUSD inverse perpetual 2017–2019. Venue, contract, era, and microstructure differ. The exact 60m close RV transition had not been computed here. #357 had read `RESOLVED_WITHIN_4H` and scanned high/low on `j+1..j+48`. `EXACT_CLAIM_PREVIOUSLY_READ = false`. `NEIGHBORING_POST_TOUCH_PATH_PREVIOUSLY_READ = true`. `SURFACE_PRISTINE = false`.
+- **Data.** `DH1_BITMEX_XBTUSD_TRADES_5M_V0`, canonical SHA256 `df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f`. Event window `[2017-09-01T00:00:00Z, 2020-01-01T00:00:00Z)`. August 2017 is warm-up only. No new BitMEX download. No 2020–2024 Binance reread. No 2025/2026 object. No E1 holdout. RV uses log closes only. No inverse-contract adjustment, volume, funding, taker side, trade count, or spread.
+- **Events.** Exact #357 structural first-touch constructor, first touch only, half-rotation pseudo, matched pairing. Inclusion is not conditioned on BREAK, REJECT, or NEITHER. The #357 outcome label does not enter the primary frame. No first-hit time, RMUT, or hazard.
+- **Information gate.** Before outcomes: 1981 structural episodes, 890 real legitimate first touches, 891 pseudo legitimate, 558 matched, 554 path-complete, 120 ISO weeks, epochs 100 / 250 / 204. Planning SE scaled from the published #368 bootstrap SE, 95% half-width about 0.057, below `log(1.10)`. Gate `REPLICATION_INFORMATION_ADEQUATE`. The Binance N=800 rule was not copied.
+- **Primary.** Usable pairs 554. Non-positive RV drops 0. `DELTA_TRANSITION` +0.09654494866839887 log units, about +10.136% (95% +0.02178047720554232..+0.1681728175697164, about +2.202%..+18.314%, Wald p=0.011207, SE 0.038067, 2000/2000). The point clears `log(1.10)`. The interval excludes 0. It contains the bar and the discovery point +0.106803. That inclusion was not a reason to tighten the frozen rule.
+- **Balance and expansion.** Paired mean log(real pre / pseudo pre) is about −2.05%. Not used as an adjustment. Descriptive expansion fraction: real 0.702, pseudo 0.632, difference +0.070. Descriptive only.
+- **Stability.** Epochs +15.31% / +0.28% / +20.79%. All three eligible epochs are positive. 2018 is practically null; the sign rule was not rewritten. Leave-one-epoch-out stays positive: omit 2017H2 about +9.03%, omit 2018 about +18.96%, omit 2019 about +4.36%. DAY +11.16% (N=483). WEEK +4.86% (N=62), same sign and below the bar. MONTH −5.84% on N=9, diagnostic only. Resistance +13.14% (N=269). Support +7.37% (N=285), same sign and below the bar. No family winner and no side winner.
+- **Comparison.** Binance discovery point about +11.272% and BitMEX about +10.136% are reported side by side. They were not pooled.
+- **Routing.** `REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION`. Evidence label `REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE`. Post-synthesis status of the #368 object: `TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE`. The #368 frozen route `LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT` is unchanged.
+- **Claim.** L2. The frozen structural first-touch volatility-transition relation discovered on Binance 2020–2024 also appeared on time-disjoint BitMEX 2017–2019 under the unchanged 60m definition. The BitMEX surface had previously been used for a neighboring 4h barrier-path outcome, so this is an exposed-surface historical replication rather than a pristine confirmation. Not L3. Not a current probability. Not an expected current RV. Not a trading edge. `INDEPENDENCE_FROM_RESOLUTION_CLOCK = UNRESOLVED`.
+- **Product.** No `/btc`, `/levels`, `/check`, `/risk`, Telegram, scoring, findings-registry, or deploy change. No volatility badge. Prospective #368, #363, #365, a new RV window, a combined model, and a meta-analysis were not started. Prospective collection remains the next stronger layer and is not redundant with this pass.
+
+```
+WINDOWS_CONSUMED = DH1_BITMEX_XBTUSD_TRADES_5M_V0 PRICE_STRUCTURE.levels 2017-09-01..2019-12-31, 5m closes only, paired 60m pre/post realized-volatility transition versus half-rotation pseudo (further exposure; exact estimand unread before this run; neighboring 4h high/low path already consumed by #357; not pristine; not a reopen of RESOLVED_WITHIN_4H)
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; volume / taker / OI / spot / other venue / book / funding / liquidation not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+CONFIRMATION of this exact claim EXECUTED ONCE; PROSPECTIVE_STARTED = no; CROSS_VENUE_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```
+
+## 2026-10-08 — LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 design frozen; accrual started; no outcome
+
+**Unit.** `LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1` (atlas `LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = CONFIRMATION`, `ACCRUAL = PROSPECTIVE_ONLY`. Surface class for the exact claim after the frozen start: `PRISTINE_CONFIRMATION`. Claim ceiling L2. It does not rescore #368 or the BitMEX replication.
+- **Design.** `d30622de19f90efe3ee12b56fc5e2d017ef38c57`, committer time `2026-10-08T11:30:26Z`, before any prospective transition. The formula, the touch-bar exclusion, the 12-return windows, the bar `log(1.10)`, the positive sign, and the week-block bootstrap (`B=2000`, seed `20261026`) are the #368 objects.
+- **Start.** `PROSPECTIVE_START_UTC = 2026-10-09T00:00:00Z`, the first UTC midnight strictly after the design commit. Resolved from git metadata. Manifest digest `0f1b26921ff73bf68403af34bef2467b4ea77cac509420ac434a543b2dc47e2c`. No market bar was used to choose it.
+- **Eligibility.** An episode is prospective only when its active period opens at or after the start. Pre-start bars are warm-up for prior levels and the 24h sigma. They are not events. The pseudo map is written only after the cohort closes.
+- **Stop.** Both 600 matched path-complete pairs and 104 completed weeks, checked only at 104, 130, and 156 weeks (`2028-10-06`, `2029-04-06`, `2029-10-05`). A shortfall at 156 weeks closes as information-limited and does not read the transition.
+- **Status.** `PROSPECTIVE_CONFIRMATION_STARTED`. Accrual clock `AWAITING_START`. Completed weeks 0. `exact_outcome_read = false`. Evaluator: `REFUSING_PREMATURE_PROSPECTIVE_EVALUATION`. Cohort close: `REFUSING_PREMATURE_COHORT_CLOSE`.
+- **Data.** Forward Binance USD-M BTCUSDT 5m closes from complete 1m bins after the start. `CORE_BTC_BINANCE_V0` is not the sample. No new database table. The product claim journal is not reused. No recovery interval has been logged.
+- **Product.** No `/btc`, `/levels`, `/check`, `/risk`, Telegram, scoring, findings-registry, or deploy change. `#363`, `#365`, a joint model, and a meta-analysis were not started. There is no prospective effect to report.
+
+```
+WINDOWS_CONSUMED = none
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PROSPECTIVE_CONFIRMATION_STARTED = yes; ACCRUAL = AWAITING_START; EXACT_OUTCOME_READ = no
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+CROSS_VENUE_STARTED = no; COHORT_CLOSED = no; PAIR_MAP_FROZEN = no
+```

@@ -1,0 +1,317 @@
+{
+  "alignment_tolerance_ms": 0,
+  "context_rho": {
+    "RELATIVE_SPOT_TAKER_PRESSURE_15M__END_POSITION_X": -0.003991441978247204,
+    "RELATIVE_SPOT_TAKER_PRESSURE_15M__OTHER_VENUE_MEDIAN_MOVE": -0.03014707087805616,
+    "SPOT_EXCESS_VS_PERP_COMPLEX__END_POSITION_X": -0.07169335121869141,
+    "SPOT_EXCESS_VS_PERP_COMPLEX__OTHER_VENUE_MEDIAN_MOVE": -0.13585218473685173,
+    "SPOT_ORIENTED_MOVE_15M__END_POSITION_X": 0.690368133356472,
+    "SPOT_ORIENTED_MOVE_15M__OTHER_VENUE_MEDIAN_MOVE": 0.9981534564252108
+  },
+  "early": {
+    "n": 1856,
+    "n_early_ambiguous": 13,
+    "n_early_break": 286,
+    "n_early_reject": 265,
+    "n_unavailable": 0,
+    "n_unresolved": 1292
+  },
+  "event_window": [
+    "2020-04-01T00:05:00+00:00",
+    "2025-01-01T00:00:00+00:00"
+  ],
+  "expected_primary_n": 617.0,
+  "feature_complete_unresolved": 1234,
+  "first_touch_legitimate": 1856,
+  "history_ok": true,
+  "identity_artifact": false,
+  "novelty_ok": true,
+  "other_venues": [
+    "BYBIT_LINEAR_BTCUSDT_PERP",
+    "OKX_BTC_USDT_SWAP_PERP"
+  ],
+  "outcomes_read": false,
+  "planning_resolve_fraction": 0.5,
+  "pre_drops": [],
+  "pre_outcome_gate_pass": true,
+  "pseudo_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1885,
+    "NO_CONTROL": 0,
+    "NO_SIGMA": 0,
+    "NO_TOUCH": 2086,
+    "OUTSIDE_WINDOW": 105,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "pseudo_unresolved_feature_complete_pairs": 623,
+  "real_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1856,
+    "NO_SIGMA": 0,
+    "NO_TOUCH": 2124,
+    "OUTSIDE_WINDOW": 96,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "redundancy": {
+    "dropped": [],
+    "retained": [
+      "SPOT_ORIENTED_MOVE_15M",
+      "SPOT_EXCESS_VS_PERP_COMPLEX",
+      "RELATIVE_SPOT_TAKER_PRESSURE_15M"
+    ],
+    "rho": {
+      "SPOT_EXCESS_VS_PERP_COMPLEX__RELATIVE_SPOT_TAKER_PRESSURE_15M": -0.0659268438952776,
+      "SPOT_ORIENTED_MOVE_15M__RELATIVE_SPOT_TAKER_PRESSURE_15M": -0.03396819682403793,
+      "SPOT_ORIENTED_MOVE_15M__SPOT_EXCESS_VS_PERP_COMPLEX": -0.08234320355451567
+    }
+  },
+  "reference_venue": "BINANCE_USD_M_BTCUSDT_PERP",
+  "resolved_after_d": null,
+  "retained": [
+    "SPOT_ORIENTED_MOVE_15M",
+    "SPOT_EXCESS_VS_PERP_COMPLEX",
+    "RELATIVE_SPOT_TAKER_PRESSURE_15M"
+  ],
+  "return_distributions": {
+    "END_POSITION_X": {
+      "mean": -0.5800180501685275,
+      "n": 1234,
+      "p05": -1.540455411929086,
+      "p25": -0.9702007499541426,
+      "p50": -0.5779262407159409,
+      "p75": -0.1807902777452933,
+      "p95": 0.4417130846130453,
+      "sd": 0.6156129253994993
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "mean": 0.0029259943461130674,
+      "n": 1234,
+      "p05": -0.0028633667813787182,
+      "p25": 5.501320554588039e-05,
+      "p50": 0.002123237642001364,
+      "p75": 0.005415823743810985,
+      "p95": 0.01119885958752246,
+      "sd": 0.004457632937528157
+    },
+    "RELATIVE_SPOT_TAKER_PRESSURE_15M": {
+      "mean": 0.021033663617981556,
+      "n": 1234,
+      "p05": -0.15327890763718438,
+      "p25": -0.05093562638047014,
+      "p50": 0.018102515388219605,
+      "p75": 0.09230333196487239,
+      "p95": 0.20535937887670716,
+      "sd": 0.1170580650613913
+    },
+    "RET_BINANCE": {
+      "mean": 0.0005901121480644956,
+      "n": 1234,
+      "p05": -0.00821719929666661,
+      "p25": -0.002100171939402896,
+      "p50": 0.0005225537061664448,
+      "p75": 0.0033050752152237895,
+      "p95": 0.009299881419773554,
+      "sd": 0.005316518578826376
+    },
+    "RET_SPOT": {
+      "mean": 0.0005930770588428175,
+      "n": 1234,
+      "p05": -0.008113459300544412,
+      "p25": -0.0021173819594925134,
+      "p50": 0.0005026779808510611,
+      "p75": 0.0033410574028197035,
+      "p95": 0.009099845159365091,
+      "sd": 0.005277275160751702
+    },
+    "SPOT_EXCESS_VS_PERP_COMPLEX": {
+      "mean": -1.8614744776578326e-05,
+      "n": 1234,
+      "p05": -0.0003649607103562785,
+      "p25": -0.00012017187812955721,
+      "p50": -1.3261450821223865e-05,
+      "p75": 9.680322570732413e-05,
+      "p95": 0.00028016271079296006,
+      "sd": 0.00022377971821577986
+    },
+    "SPOT_ORIENTED_MOVE_15M": {
+      "mean": 0.00290183124127479,
+      "n": 1234,
+      "p05": -0.003016202658774342,
+      "p25": 4.053903350698957e-05,
+      "p50": 0.002141159121025852,
+      "p75": 0.005338357939834066,
+      "p95": 0.011129377377868541,
+      "sd": 0.0044475553922547345
+    }
+  },
+  "rough_mde_80": 0.0630501706148439,
+  "scale_hex": {
+    "END_POSITION_X": {
+      "mean": "-0x1.28f820392084cp-1",
+      "sd": "0x1.3b319e0b2be5cp-1"
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "mean": "0x1.7f84140cb75fap-9",
+      "sd": "0x1.2422abaf2b642p-8"
+    },
+    "RELATIVE_SPOT_TAKER_PRESSURE_15M": {
+      "mean": "0x1.589d9456acc86p-6",
+      "sd": "0x1.df784712bf592p-4"
+    },
+    "SPOT_EXCESS_VS_PERP_COMPLEX": {
+      "mean": "-0x1.384db85476521p-16",
+      "sd": "0x1.d54cd247a3525p-13"
+    },
+    "SPOT_ORIENTED_MOVE_15M": {
+      "mean": "0x1.7c594c8f4026bp-9",
+      "sd": "0x1.237998f4f6410p-8"
+    },
+    "disp": {
+      "mean": "0x1.c37b0327efb0cp-8",
+      "sd": "0x1.b29189a1fcfeep-8"
+    }
+  },
+  "scales": {
+    "END_POSITION_X": {
+      "mean": -0.5800180501685275,
+      "n": 1234,
+      "sd": 0.6156129253994993
+    },
+    "OTHER_VENUE_MEDIAN_MOVE": {
+      "mean": 0.0029259943461130674,
+      "n": 1234,
+      "sd": 0.004457632937528157
+    },
+    "RELATIVE_SPOT_TAKER_PRESSURE_15M": {
+      "mean": 0.021033663617981556,
+      "n": 1234,
+      "sd": 0.1170580650613913
+    },
+    "SPOT_EXCESS_VS_PERP_COMPLEX": {
+      "mean": -1.8614744776578326e-05,
+      "n": 1234,
+      "sd": 0.00022377971821577986
+    },
+    "SPOT_ORIENTED_MOVE_15M": {
+      "mean": 0.00290183124127479,
+      "n": 1234,
+      "sd": 0.0044475553922547345
+    },
+    "disp": {
+      "mean": 0.006889045973308649,
+      "n": 1234,
+      "sd": 0.00663098917174308
+    },
+    "n": 1234
+  },
+  "slice_counts_unresolved_complete": {
+    "family": {
+      "DAY": 1099,
+      "MONTH": 13,
+      "WEEK": 122
+    },
+    "side": {
+      "resistance": 708,
+      "support": 526
+    },
+    "year": {
+      "2020": 174,
+      "2021": 269,
+      "2022": 297,
+      "2023": 225,
+      "2024": 269
+    }
+  },
+  "sp3_legal_rate": 1.0,
+  "spot": {
+    "dataset_id": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+    "expected_bars": 499968,
+    "first_open_ms": 1585699200000,
+    "instrument": "Binance spot BTCUSDT",
+    "interval": "5m",
+    "last_open_ms": 1735689300000,
+    "missing_bars": 355,
+    "missing_fraction": 0.0007100454429083461,
+    "months": [
+      "2020-04",
+      "2020-05",
+      "2020-06",
+      "2020-07",
+      "2020-08",
+      "2020-09",
+      "2020-10",
+      "2020-11",
+      "2020-12",
+      "2021-01",
+      "2021-02",
+      "2021-03",
+      "2021-04",
+      "2021-05",
+      "2021-06",
+      "2021-07",
+      "2021-08",
+      "2021-09",
+      "2021-10",
+      "2021-11",
+      "2021-12",
+      "2022-01",
+      "2022-02",
+      "2022-03",
+      "2022-04",
+      "2022-05",
+      "2022-06",
+      "2022-07",
+      "2022-08",
+      "2022-09",
+      "2022-10",
+      "2022-11",
+      "2022-12",
+      "2023-01",
+      "2023-02",
+      "2023-03",
+      "2023-04",
+      "2023-05",
+      "2023-06",
+      "2023-07",
+      "2023-08",
+      "2023-09",
+      "2023-10",
+      "2023-11",
+      "2023-12",
+      "2024-01",
+      "2024-02",
+      "2024-03",
+      "2024-04",
+      "2024-05",
+      "2024-06",
+      "2024-07",
+      "2024-08",
+      "2024-09",
+      "2024-10",
+      "2024-11",
+      "2024-12"
+    ],
+    "n_bars": 499613,
+    "object_list_sha256": "5a27ea4883284c995bbb091067867b45927b67e3d4b244ed11c3b97e5887cb37",
+    "taker_field": "taker_buy_quote_volume"
+  },
+  "structural_episodes": 4076,
+  "tertile_cuts_hex": {
+    "RELATIVE_SPOT_TAKER_PRESSURE_15M": {
+      "q33": "-0x1.a8e9c11c7ff3cp-6",
+      "q67": "0x1.008a0f917c54cp-4"
+    },
+    "SPOT_EXCESS_VS_PERP_COMPLEX": {
+      "q33": "-0x1.4319a5298fe30p-14",
+      "q67": "0x1.c959b5fc80e40p-15"
+    },
+    "SPOT_ORIENTED_MOVE_15M": {
+      "q33": "0x1.7d7ed2e35266ep-11",
+      "q67": "0x1.00ceb850a32c8p-8"
+    }
+  },
+  "unit": "LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1",
+  "unresolved_baseline": 1235
+}

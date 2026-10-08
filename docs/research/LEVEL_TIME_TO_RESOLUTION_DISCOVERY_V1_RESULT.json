@@ -1,0 +1,382 @@
+{
+  "candidate": true,
+  "candidate_class": "LEVEL_RESOLUTION_CLOCK_CANDIDATE",
+  "claim_ceiling": "L2",
+  "data_artifact": false,
+  "dependencies": {
+    "confirm": "c1cd4e0102e700f7860d21a9af0d243c3bc367be",
+    "cross_venue": "f22100177e2f89a43c6271929aba0d63f7b4552f",
+    "reaction": "44726ded55c75fefecc6848ab8b76971ead83721",
+    "spot": "7c297997da263e286524fd939e4a536dfa42002c",
+    "touch": "dfc9e0f04358de15606382472badeb5aee787039"
+  },
+  "design_sha": "56b162f07e69f3e8a4b6784e18dc497ea5a7d042",
+  "exposure_status": "DISCOVERY_ONLY",
+  "families": [
+    {
+      "delta": -24.911297852474306,
+      "n": 1071,
+      "name": "DAY",
+      "pseudo": 92.86181139122313,
+      "real": 67.95051353874882
+    },
+    {
+      "delta": -28.91304347826084,
+      "n": 138,
+      "name": "WEEK",
+      "pseudo": 69.89130434782606,
+      "real": 40.978260869565226
+    },
+    {
+      "delta": -13.18181818181819,
+      "n": 22,
+      "name": "MONTH",
+      "pseudo": 42.727272727272734,
+      "real": 29.545454545454543
+    }
+  ],
+  "family": "LEVEL_BEHAVIOR_V1",
+  "family_rule": {
+    "pass": true,
+    "strong_opposite": false
+  },
+  "loyo": [
+    {
+      "delta": -21.42062689585441,
+      "n": 989,
+      "name": "omit_2020",
+      "pseudo": 88.14964610717897,
+      "real": 66.72901921132456
+    },
+    {
+      "delta": -23.40579710144926,
+      "n": 897,
+      "name": "omit_2021",
+      "pseudo": 86.58305462653288,
+      "real": 63.177257525083625
+    },
+    {
+      "delta": -29.763617677286717,
+      "n": 973,
+      "name": "omit_2022",
+      "pseudo": 89.97430626927026,
+      "real": 60.21068859198354
+    },
+    {
+      "delta": -25.580952380952354,
+      "n": 1050,
+      "name": "omit_2023",
+      "pseudo": 91.77619047619045,
+      "real": 66.1952380952381
+    },
+    {
+      "delta": -25.458128078817722,
+      "n": 1015,
+      "name": "omit_2024",
+      "pseudo": 90.05418719211819,
+      "real": 64.59605911330047
+    }
+  ],
+  "loyo_rule": {
+    "n_checked": 5,
+    "pass": true
+  },
+  "mode": "DISCOVERY",
+  "n_matched_geometric": 1231,
+  "n_primary": 1231,
+  "n_unusable_clock": 0,
+  "note": "Discovery only. A historical difference in unresolved time is not a current expected number of minutes and not a statement that a level expires.",
+  "novelty_ok": true,
+  "outcomes_read": true,
+  "primary": {
+    "bootstrap_valid": 2000,
+    "delta": -25.150284321689682,
+    "delta_ci95": [
+      -31.418293422051594,
+      -19.06898935792038
+    ],
+    "n": 1231,
+    "pseudo": 89.39073923639317,
+    "pseudo_ci95": [
+      84.47627017440443,
+      94.38542040052985
+    ],
+    "real": 64.24045491470349,
+    "real_ci95": [
+      59.64543812499756,
+      68.81416207762707
+    ],
+    "weeks": 254
+  },
+  "product_integration_candidate": false,
+  "pseudo": {
+    "break_times": {
+      "n": 467,
+      "q25": 15.0,
+      "q50": 40.0,
+      "q75": 102.5
+    },
+    "checkpoints": {
+      "120": {
+        "resolved_by": 0.6961819658813972,
+        "unresolved": 0.3038180341186028
+      },
+      "15": {
+        "resolved_by": 0.2989439480097481,
+        "unresolved": 0.7010560519902519
+      },
+      "240": {
+        "resolved_by": 0.8318440292445165,
+        "unresolved": 0.16815597075548347
+      },
+      "30": {
+        "resolved_by": 0.41023558082859457,
+        "unresolved": 0.5897644191714054
+      },
+      "60": {
+        "resolved_by": 0.5475223395613322,
+        "unresolved": 0.45247766043866783
+      }
+    },
+    "hazards": [
+      {
+        "at_risk": 1231,
+        "left": 0,
+        "rate": 0.29894394800974816,
+        "resolved": 368,
+        "right": 15
+      },
+      {
+        "at_risk": 863,
+        "left": 15,
+        "rate": 0.15874855156431056,
+        "resolved": 137,
+        "right": 30
+      },
+      {
+        "at_risk": 726,
+        "left": 30,
+        "rate": 0.2327823691460055,
+        "resolved": 169,
+        "right": 60
+      },
+      {
+        "at_risk": 557,
+        "left": 60,
+        "rate": 0.32854578096947934,
+        "resolved": 183,
+        "right": 120
+      },
+      {
+        "at_risk": 374,
+        "left": 120,
+        "rate": 0.446524064171123,
+        "resolved": 167,
+        "right": 240
+      }
+    ],
+    "incidence": {
+      "BREAK": {
+        "120": 0.3038180341186028,
+        "15": 0.12022745735174656,
+        "240": 0.37936636880584906,
+        "30": 0.17303005686433795,
+        "60": 0.23314378554021126
+      },
+      "REJECT": {
+        "120": 0.3858651502843216,
+        "15": 0.17221770917952883,
+        "240": 0.44597887896019495,
+        "30": 0.23070674248578393,
+        "60": 0.30787977254264826
+      },
+      "n_ambiguous": 8,
+      "n_break": 467,
+      "n_censored": 207,
+      "n_reject": 549
+    },
+    "km_q25": 15.0,
+    "km_q50": 50.0,
+    "km_q75": 160.0,
+    "n": 1231,
+    "n_censored": 207,
+    "n_resolved": 1024,
+    "reject_times": {
+      "n": 549,
+      "q25": 10.0,
+      "q50": 30.0,
+      "q75": 80.0
+    },
+    "rmut": 89.39073923639317
+  },
+  "real": {
+    "break_times": {
+      "n": 579,
+      "q25": 5.0,
+      "q50": 20.0,
+      "q75": 50.0
+    },
+    "checkpoints": {
+      "120": {
+        "resolved_by": 0.8066612510154346,
+        "unresolved": 0.19333874898456538
+      },
+      "15": {
+        "resolved_by": 0.4012997562956946,
+        "unresolved": 0.5987002437043054
+      },
+      "240": {
+        "resolved_by": 0.9130787977254264,
+        "unresolved": 0.08692120227457353
+      },
+      "30": {
+        "resolved_by": 0.5288383428107231,
+        "unresolved": 0.471161657189277
+      },
+      "60": {
+        "resolved_by": 0.6734362307067425,
+        "unresolved": 0.32656376929325753
+      }
+    },
+    "hazards": [
+      {
+        "at_risk": 1231,
+        "left": 0,
+        "rate": 0.40129975629569453,
+        "resolved": 494,
+        "right": 15
+      },
+      {
+        "at_risk": 737,
+        "left": 15,
+        "rate": 0.2130257801899593,
+        "resolved": 157,
+        "right": 30
+      },
+      {
+        "at_risk": 580,
+        "left": 30,
+        "rate": 0.30689655172413793,
+        "resolved": 178,
+        "right": 60
+      },
+      {
+        "at_risk": 402,
+        "left": 60,
+        "rate": 0.4079601990049751,
+        "resolved": 164,
+        "right": 120
+      },
+      {
+        "at_risk": 238,
+        "left": 120,
+        "rate": 0.5504201680672269,
+        "resolved": 131,
+        "right": 240
+      }
+    ],
+    "incidence": {
+      "BREAK": {
+        "120": 0.4248578391551584,
+        "15": 0.22745735174654752,
+        "240": 0.4703493095044677,
+        "30": 0.2965069049553209,
+        "60": 0.3679935012185215
+      },
+      "REJECT": {
+        "120": 0.3769293257514216,
+        "15": 0.16896831844029242,
+        "240": 0.4378554021121039,
+        "30": 0.2274573517465475,
+        "60": 0.30056864337936634
+      },
+      "n_ambiguous": 6,
+      "n_break": 579,
+      "n_censored": 107,
+      "n_reject": 539
+    },
+    "km_q25": 10.0,
+    "km_q50": 30.0,
+    "km_q75": 95.0,
+    "n": 1231,
+    "n_censored": 107,
+    "n_resolved": 1124,
+    "reject_times": {
+      "n": 539,
+      "q25": 10.0,
+      "q50": 30.0,
+      "q75": 82.5
+    },
+    "rmut": 64.24045491470349
+  },
+  "routing": "LEVEL_RESOLUTION_CLOCK_STRUCTURE_PRESENT",
+  "side_rule": {
+    "pass": true,
+    "strong_opposite": false
+  },
+  "sides": [
+    {
+      "delta": -22.876811594202863,
+      "n": 690,
+      "name": "resistance",
+      "pseudo": 98.00724637681157,
+      "real": 75.1304347826087
+    },
+    {
+      "delta": -28.049907578558262,
+      "n": 541,
+      "name": "support",
+      "pseudo": 78.40110905730135,
+      "real": 50.35120147874309
+    }
+  ],
+  "source_main": "1a2e425303fb29e1044ca57452b8ad9b6f0a831b",
+  "successor_candidate": "NONE",
+  "tracks": [
+    "STRUCTURE",
+    "PRODUCT_EVIDENCE"
+  ],
+  "unit": "LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1",
+  "year_rule": {
+    "n_eligible": 5,
+    "n_matched": 5,
+    "pass": true
+  },
+  "years": [
+    {
+      "delta": -40.39256198347111,
+      "n": 242,
+      "name": "2020",
+      "pseudo": 94.46280991735541,
+      "real": 54.0702479338843
+    },
+    {
+      "delta": -29.83532934131732,
+      "n": 334,
+      "name": "2021",
+      "pseudo": 96.93113772455087,
+      "real": 67.09580838323355
+    },
+    {
+      "delta": -7.751937984496109,
+      "n": 258,
+      "name": "2022",
+      "pseudo": 87.18992248062014,
+      "real": 79.43798449612403
+    },
+    {
+      "delta": -22.65193370165747,
+      "n": 181,
+      "name": "2023",
+      "pseudo": 75.55248618784532,
+      "real": 52.90055248618785
+    },
+    {
+      "delta": -23.70370370370371,
+      "n": 216,
+      "name": "2024",
+      "pseudo": 86.27314814814817,
+      "real": 62.56944444444446
+    }
+  ]
+}

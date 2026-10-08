@@ -1,0 +1,143 @@
+{
+  "bars": 526176,
+  "control": {
+    "by_family": {
+      "DAY": 645,
+      "MONTH": 94,
+      "WEEK": 317
+    },
+    "by_next_bucket": {
+      "2": 543,
+      "3+": 513
+    },
+    "by_side": {
+      "resistance": 496,
+      "support": 560
+    },
+    "by_year": {
+      "2020": 209,
+      "2021": 331,
+      "2022": 218,
+      "2023": 130,
+      "2024": 168
+    },
+    "clusters": 245,
+    "feature_pairs": 1056,
+    "rejected_feature_eligible_touches": 1984
+  },
+  "dependency": "dfc9e0f04358de15606382472badeb5aee787039",
+  "method_computable": true,
+  "notes": [
+    "Scales are moments of real feature pairs. The next touch's outcome is not an input.",
+    "Ambiguous next touches are still inside these counts; execution drops them and does not refit scales.",
+    "Planning MDE is an unadjusted lower bound at rate 0.5, not a gate."
+  ],
+  "parent_sigma_edges": [
+    0.0012364306616934476,
+    0.001790567553180052
+  ],
+  "real": {
+    "bars_to_reject": {
+      "max": 48.0,
+      "min": 1.0,
+      "n": 1155,
+      "p10": 1.0,
+      "p25": 3.0,
+      "p50": 7.0,
+      "p75": 18.0,
+      "p90": 29.0
+    },
+    "by_family": {
+      "DAY": 697,
+      "MONTH": 116,
+      "WEEK": 342
+    },
+    "by_next_bucket": {
+      "2": 554,
+      "3+": 601
+    },
+    "by_side": {
+      "resistance": 557,
+      "support": 598
+    },
+    "by_vol_tercile": {
+      "0": 391,
+      "1": 374,
+      "2": 390
+    },
+    "by_year": {
+      "2020": 215,
+      "2021": 230,
+      "2022": 217,
+      "2023": 238,
+      "2024": 255
+    },
+    "clusters": 283,
+    "corr_speed_log_gap": -0.11341711907814489,
+    "events_per_cluster": 4.081272084805653,
+    "feature_eligible_touches": 4213,
+    "feature_pairs": 1155,
+    "gap_bars": {
+      "max": 4334.0,
+      "min": 1.0,
+      "n": 1155,
+      "p10": 15.400000000000006,
+      "p25": 31.0,
+      "p50": 63.0,
+      "p75": 127.5,
+      "p90": 248.20000000000027
+    },
+    "ineligible_successor": 0,
+    "log_gap": {
+      "max": 8.374246182096304,
+      "min": 0.0,
+      "n": 1155,
+      "p10": 2.7338656095572387,
+      "p25": 3.4339872044851463,
+      "p50": 4.143134726391533,
+      "p75": 4.8481086751891045,
+      "p90": 5.514227072530017
+    },
+    "max_family_share": 0.6034632034632035,
+    "max_year_share": 0.22077922077922077,
+    "nonpositive_gap": 0,
+    "overshoot": {
+      "max": 10.203166376661118,
+      "min": 4.7747600143006365e-05,
+      "n": 1155,
+      "p10": 0.01913243284867508,
+      "p25": 0.057550448224177944,
+      "p50": 0.15084299196014037,
+      "p75": 0.31208370770295624,
+      "p90": 0.6268664677248409
+    },
+    "planning_mde_cluster": 0.08326847747676056,
+    "planning_mde_deff_1_25": 0.04608269357079154,
+    "rejected_feature_eligible_touches": 2098,
+    "scales": {
+      "gap_mean": 4.153516833738838,
+      "gap_sd": 1.1328104152673912,
+      "linear_mean": -11.804329004329004,
+      "linear_sd": 11.618010289111615,
+      "n_pairs_scaled": 1155,
+      "overshoot_mean": 0.29554976155408336,
+      "overshoot_sd": 0.5847751847246527,
+      "speed_mean": -1.8891217112748635,
+      "speed_q33": -2.6390573296152584,
+      "speed_q66": -1.3862943611198906,
+      "speed_sd": 1.1796568434418442
+    },
+    "speed_raw": {
+      "max": -0.0,
+      "min": -3.871201010907891,
+      "n": 1155,
+      "p10": -3.367295829986474,
+      "p25": -2.8903717578961645,
+      "p50": -1.9459101490553132,
+      "p75": -1.0986122886681098,
+      "p90": -0.0
+    }
+  },
+  "unit": "LEVEL_REJECTION_MEMORY_V1",
+  "zone_half": 0.0015
+}

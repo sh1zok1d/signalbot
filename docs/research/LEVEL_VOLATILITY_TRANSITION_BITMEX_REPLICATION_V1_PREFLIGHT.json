@@ -1,0 +1,68 @@
+{
+  "alternative_horizons": [],
+  "canonical_sha256": "df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f",
+  "dataset_id": "DH1_BITMEX_XBTUSD_TRADES_5M_V0",
+  "event_end_exclusive": "2020-01-01T00:00:00Z",
+  "event_start": "2017-09-01T00:00:00Z",
+  "exact_claim_previously_read": false,
+  "matched_pairs": 558,
+  "mode": "CONFIRMATION",
+  "neighboring_post_touch_path_previously_read": true,
+  "outcomes_transition_read": false,
+  "path_complete_pairs": 554,
+  "planning": {
+    "adequate": true,
+    "gate": "REPLICATION_INFORMATION_ADEQUATE",
+    "n_pairs": 554,
+    "n_weeks": 120,
+    "planning_ci_half_width": 0.05726663274980409,
+    "planning_mde80": 0.08185684402401694,
+    "planning_se": 0.02921766977030821,
+    "practical_log": 0.09531017980432493,
+    "scale": "published #368 week-bootstrap SE, scaled by sqrt(discovery weeks / target weeks)"
+  },
+  "pre_outcome_gate": "REPLICATION_INFORMATION_ADEQUATE",
+  "pre_outcome_gate_pass": true,
+  "pseudo_legitimate": 891,
+  "pseudo_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 891,
+    "NO_CONTROL": 0,
+    "NO_TOUCH": 1037,
+    "OUTSIDE_WINDOW": 53,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "real_legitimate": 890,
+  "real_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 890,
+    "NO_TOUCH": 1061,
+    "OUTSIDE_WINDOW": 30,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "replication_allowed": true,
+  "resolution_labels_used": false,
+  "slices_path": {
+    "epoch": {
+      "2017H2": 100,
+      "2018": 250,
+      "2019": 204
+    },
+    "family": {
+      "DAY": 483,
+      "MONTH": 9,
+      "WEEK": 62
+    },
+    "side": {
+      "resistance": 269,
+      "support": 285
+    },
+    "weeks": 120
+  },
+  "structural_episodes": 1981,
+  "surface_evidence_class": "TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION",
+  "surface_pristine": false,
+  "unit": "LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1"
+}

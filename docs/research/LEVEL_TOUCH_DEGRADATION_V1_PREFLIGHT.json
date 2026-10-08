@@ -1,0 +1,292 @@
+{
+  "bars": 526176,
+  "close_present_frac": 1.0,
+  "control": {
+    "before_event_window": 62,
+    "by_bucket": {
+      "1": 1962,
+      "2": 1091,
+      "3+": 1055
+    },
+    "by_bucket_family": {
+      "1|DAY": 1729,
+      "1|MONTH": 34,
+      "1|WEEK": 199,
+      "2|DAY": 897,
+      "2|MONTH": 25,
+      "2|WEEK": 169,
+      "3+|DAY": 414,
+      "3+|MONTH": 168,
+      "3+|WEEK": 473
+    },
+    "by_bucket_year": {
+      "1|2020": 407,
+      "1|2021": 558,
+      "1|2022": 402,
+      "1|2023": 276,
+      "1|2024": 319,
+      "2|2020": 215,
+      "2|2021": 332,
+      "2|2022": 224,
+      "2|2023": 143,
+      "2|2024": 177,
+      "3+|2020": 211,
+      "3+|2021": 347,
+      "3+|2022": 243,
+      "3+|2023": 97,
+      "3+|2024": 157
+    },
+    "by_family": {
+      "DAY": 3040,
+      "MONTH": 227,
+      "WEEK": 841
+    },
+    "by_side": {
+      "resistance": 2087,
+      "support": 2021
+    },
+    "by_year": {
+      "2020": 833,
+      "2021": 1237,
+      "2022": 869,
+      "2023": 516,
+      "2024": 653
+    },
+    "chain_stops": 0,
+    "deff_upper": 16.046875,
+    "feature_eligible_n": 4108,
+    "geometric": {
+      "1": 1990,
+      "2": 1109,
+      "3+": 1071
+    },
+    "geometric_n": 4170,
+    "max_family_share": 0.7400194741966893,
+    "max_family_share_touch3": 0.4483412322274882,
+    "max_year_share": 0.3011197663096397,
+    "planning_mde_deff_1_25": {
+      "touch2_vs_1": 0.05914668020171749,
+      "touch3_vs_1": 0.05979168215871731
+    },
+    "planning_mde_deff_upper": {
+      "touch2_vs_1": 0.21191934441297808,
+      "touch3_vs_1": 0.21423035141127994
+    },
+    "side_unknown": 0,
+    "sigma_tercile_edges": [
+      0.0014830827204517386,
+      0.0022202328396775488
+    ],
+    "week_clusters": 256,
+    "window_incomplete_48": 0
+  },
+  "control_episodes": 4076,
+  "data_start": "2020-01-01",
+  "episode_build": {
+    "absorbed_at_birth": 77,
+    "absorbed_later": 135,
+    "episodes": 4076
+  },
+  "episodes": {
+    "by_family": {
+      "DAY": 3478,
+      "MONTH": 94,
+      "WEEK": 504
+    },
+    "n": 4076,
+    "n_members_hist": {
+      "1": 3999,
+      "2": 77
+    },
+    "with_later_absorption": 113
+  },
+  "event_start": "2020-02-01",
+  "instance_drops": {
+    "gap": 0,
+    "incomplete_active": 2,
+    "incomplete_source": 2
+  },
+  "instances_by_kind": {
+    "PDH": 1826,
+    "PDL": 1826,
+    "PMH": 59,
+    "PML": 59,
+    "PWH": 259,
+    "PWL": 259
+  },
+  "instances_emitted": 4288,
+  "method_computable": true,
+  "notes": [
+    "Counts are feature-eligible touches (known level, usable pre-touch sigma, complete 4h window, event window). They are not break rates.",
+    "Planning MDE uses a rate of 0.5 and is an amount of information, not a gate.",
+    "Ambiguous same-bar outcomes are not known here and will be excluded only at execution."
+  ],
+  "phase": "OUTCOME_BLIND_PREFLIGHT",
+  "primary_zone_half": 0.0015,
+  "real": {
+    "before_event_window": 62,
+    "by_bucket": {
+      "1": 1919,
+      "2": 1105,
+      "3+": 1189
+    },
+    "by_bucket_family": {
+      "1|DAY": 1636,
+      "1|MONTH": 41,
+      "1|WEEK": 242,
+      "2|DAY": 880,
+      "2|MONTH": 36,
+      "2|WEEK": 189,
+      "3+|DAY": 481,
+      "3+|MONTH": 207,
+      "3+|WEEK": 501
+    },
+    "by_bucket_year": {
+      "1|2020": 335,
+      "1|2021": 396,
+      "1|2022": 398,
+      "1|2023": 391,
+      "1|2024": 399,
+      "2|2020": 193,
+      "2|2021": 233,
+      "2|2022": 235,
+      "2|2023": 220,
+      "2|2024": 224,
+      "3+|2020": 221,
+      "3+|2021": 257,
+      "3+|2022": 205,
+      "3+|2023": 225,
+      "3+|2024": 281
+    },
+    "by_family": {
+      "DAY": 2997,
+      "MONTH": 284,
+      "WEEK": 932
+    },
+    "by_side": {
+      "resistance": 2161,
+      "support": 2052
+    },
+    "by_year": {
+      "2020": 749,
+      "2021": 886,
+      "2022": 838,
+      "2023": 836,
+      "2024": 904
+    },
+    "chain_stops": 0,
+    "deff_upper": 16.329457364341085,
+    "feature_eligible_n": 4213,
+    "geometric": {
+      "1": 1952,
+      "2": 1122,
+      "3+": 1201
+    },
+    "geometric_n": 4275,
+    "max_family_share": 0.7113695703774032,
+    "max_family_share_touch3": 0.4213624894869638,
+    "max_year_share": 0.21457393781153572,
+    "planning_mde_deff_1_25": {
+      "touch2_vs_1": 0.05914269564075397,
+      "touch3_vs_1": 0.057801743511312835
+    },
+    "planning_mde_deff_upper": {
+      "touch2_vs_1": 0.21376272900106846,
+      "touch3_vs_1": 0.20891605125762777
+    },
+    "side_unknown": 0,
+    "sigma_tercile_edges": [
+      0.0012364306616934476,
+      0.001790567553180052
+    ],
+    "week_clusters": 258,
+    "window_incomplete_48": 0
+  },
+  "sensitivity_zone_half": 0.0003,
+  "sensitivity_zone_real": {
+    "before_event_window": 62,
+    "by_bucket": {
+      "1": 1842,
+      "2": 1078,
+      "3+": 1197
+    },
+    "by_bucket_family": {
+      "1|DAY": 1563,
+      "1|MONTH": 40,
+      "1|WEEK": 239,
+      "2|DAY": 851,
+      "2|MONTH": 35,
+      "2|WEEK": 192,
+      "3+|DAY": 494,
+      "3+|MONTH": 205,
+      "3+|WEEK": 498
+    },
+    "by_bucket_year": {
+      "1|2020": 324,
+      "1|2021": 397,
+      "1|2022": 385,
+      "1|2023": 358,
+      "1|2024": 378,
+      "2|2020": 185,
+      "2|2021": 226,
+      "2|2022": 227,
+      "2|2023": 218,
+      "2|2024": 222,
+      "3+|2020": 215,
+      "3+|2021": 277,
+      "3+|2022": 199,
+      "3+|2023": 245,
+      "3+|2024": 261
+    },
+    "by_family": {
+      "DAY": 2908,
+      "MONTH": 280,
+      "WEEK": 929
+    },
+    "by_side": {
+      "resistance": 2090,
+      "support": 2027
+    },
+    "by_year": {
+      "2020": 724,
+      "2021": 900,
+      "2022": 811,
+      "2023": 821,
+      "2024": 861
+    },
+    "chain_stops": 0,
+    "deff_upper": 15.957364341085272,
+    "feature_eligible_n": 4117,
+    "geometric": {
+      "1": 1873,
+      "2": 1098,
+      "3+": 1208
+    },
+    "geometric_n": 4179,
+    "max_family_share": 0.7063395676463444,
+    "max_family_share_touch3": 0.41604010025062654,
+    "max_year_share": 0.21860578090842847,
+    "planning_mde_deff_1_25": {
+      "touch2_vs_1": 0.06005733827896133,
+      "touch3_vs_1": 0.05814365250007747
+    },
+    "planning_mde_deff_upper": {
+      "touch2_vs_1": 0.21458119251706212,
+      "touch3_vs_1": 0.2077437103990827
+    },
+    "side_unknown": 0,
+    "sigma_tercile_edges": [
+      0.0012525362471446921,
+      0.001802081401349861
+    ],
+    "week_clusters": 258,
+    "window_incomplete_48": 0
+  },
+  "surface": "CORE_BTC_BINANCE_V0",
+  "surface_end_exclusive": "2025-01-01",
+  "tracks": [
+    "STRUCTURE",
+    "PRODUCT_EVIDENCE"
+  ],
+  "unit": "LEVEL_TOUCH_DEGRADATION_V1"
+}
