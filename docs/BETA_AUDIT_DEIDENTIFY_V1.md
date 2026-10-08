@@ -38,14 +38,10 @@ Who can single it out:
 
 The audit row's own instant next to `joined_kyiv_date` is the strongest combination: it gives the exact days in and out.
 
-**Options for the owner (the prepared script does neither by default):**
-- **(a)** Accept these as the permitted de-identified aggregate. They are needed to keep a deleted enrolled participant in the denominator.
-- **(b)** Additionally coarsen `recorded_at` of these rows to the Kyiv date (one extra `SET` in the same transaction). This keeps the date of deletion and drops the time.
-
-**Outside this redaction, other personal traces remain:**
-- `admin_known`, `admin_reply` and `admin_add` audit rows keep the `target_fingerprint` of a participant who later deleted themselves. That fingerprint is recomputable from a Telegram id.
-- Telling which fingerprints belong to deleted people needs the live users' fingerprints, computed with `beta.admin.fingerprint`.
-- This is **not** in the prepared script. It needs the owner's decision (OUT-8b).
+**The owner's options, built as switches (§3).** Until the owner answers, each switch defaults to the most protective setting.
+- **Coarsen the time (`coarsen`, default on).** `recorded_at` of the deletion rows is cut to the Kyiv date, so only the date of deletion is kept. Off means the rows are accepted as they are, as the permitted de-identified aggregate.
+- **The other audit rows (`other_actions`, default on).** `admin_known`, `admin_reply` and `admin_add` rows still carry the `target_fingerprint` of a participant who later deleted themselves, and that fingerprint is recomputable from a Telegram id. With this switch on, those fingerprints are removed when they belong to nobody still present.
+- **Salting the fingerprint.** This is a separate code PR, not this script.
 
 ## 2. Read-only count (VPS)
 
