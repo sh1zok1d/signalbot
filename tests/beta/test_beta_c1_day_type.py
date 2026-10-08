@@ -240,7 +240,7 @@ def test_analogue_history_ranks_match_the_frozen_evaluator(year):
 def test_v2_identity_still_pooled_and_v3_versioned():
     assert cx.verify_versions(CFG)["context_version"] == "BETA_CONTEXT_1H_V3"
     assert cx.CONTEXT_PREDECESSORS["BETA_CONTEXT_1H_V3"] == ("BETA_CONTEXT_1H_V2",)
-    assert hz.HORIZON_VERSION == "BETA_HORIZON_TOD_V3" and hz.verify_horizon_digest()
+    assert hz.HORIZON_VERSION == "BETA_HORIZON_TOD_V4" and hz.verify_horizon_digest()
     from beta.analogues import ANALOGUES_VERSION, lookup
     assert ANALOGUES_VERSION == "BETA_ANALOGUES_V2"
     card = {"version": "BETA_ANALOGUES_V1", "windows": {"1h": {"compression": {"n": 50}}}}
