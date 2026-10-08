@@ -142,3 +142,49 @@ def test_before_the_collector_restarts_old_bybit_buckets_are_swapped_and_okx_is_
         assert snap["venues"]["bybit"]["liq_mapping"] == "OLD" and snap["venues"]["okx"]["liq_mapping"] == "UNPROVEN"
         await pool.close()
     run(body())
+
+
+def test_reapplying_the_beta_schema_never_waits_on_the_collectors_liquidations_table():
+    """Review of #378 (HIGH): the beta applies its schema every few minutes. It must take no lock on the
+    collector's `liquidations` hypertable, or a reader there (the nightly pg_dump) would stall the
+    collector's inserts behind it."""
+    import asyncpg
+    from storage.beta_v0_store import BETA_SCHEMA_PATH, apply_beta_schema
+    assert "liquidations" not in BETA_SCHEMA_PATH.read_text()
+
+    async def body():
+        pool = await fresh_pool()
+        holder = await asyncpg.connect(TEST_DSN)
+        other = await asyncpg.connect(TEST_DSN)
+        try:
+            await holder.execute("BEGIN; LOCK TABLE liquidations IN ROW EXCLUSIVE MODE")   # a writer mid-insert
+            await other.execute("SET lock_timeout = '500ms'")
+            await apply_beta_schema(other)                 # would time out behind ALTER / CREATE INDEX
+        finally:
+            await holder.execute("ROLLBACK")
+            await holder.close()
+            await other.close()
+            await pool.close()
+    run(body())
+
+
+def test_before_the_collector_adds_the_column_the_beta_reads_every_row_as_old():
+    """The deploy restarts the collector first; if the beta runs before it, `mapping_version` does not
+    exist yet: every Bybit row is old (swapped) and OKX is not measured, without an error."""
+    import test_beta_pg_integration as pgi
+    b0 = pgi.B0
+
+    async def body():
+        pool = await fresh_pool(collector_fixed=False)
+        async with pool.acquire() as c:
+            await c.execute("ALTER TABLE liquidations DROP COLUMN mapping_version")
+            await c.execute("""INSERT INTO liquidations (exchange, symbol, ts, side, price, qty, notional)
+                               VALUES ('bybit', 'BTCUSDT', $1, 'short', 60000, 0.01, 600)""", b0 - timedelta(hours=1))
+        async with BetaStore(pool).connect() as conn:
+            cut = await conn.fetch_liquidation_cutover(symbol="BTCUSDT")
+            rows = await conn.fetch_liquidations(symbol="BTCUSDT", exchanges=["bybit"],
+                                                 start=b0 - timedelta(days=1), end=b0)
+        assert cut == {"bybit": {"first_new": None, "last_old": None}, "okx": {"first_new": None, "last_old": None}}
+        assert [(r["side"], r["mapping_version"]) for r in rows] == [("long", None)]
+        await pool.close()
+    run(body())

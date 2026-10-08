@@ -1861,12 +1861,20 @@ class BetaConn:
         """Raw rows, read honestly (beta.liq_mapping.correct_raw_rows): an old-mapping Bybit row
         with its side swapped; an old OKX row dropped. Raw bytes are never rewritten."""
         from beta.liq_mapping import correct_raw_rows
+        version = "mapping_version" if await self._has_mapping_version() else "NULL::smallint AS mapping_version"
         rows = await self.conn.fetch(
-            """SELECT exchange, ts, side, price, qty, notional, is_snapshot_feed, mapping_version
-               FROM liquidations
-               WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts >= $3 AND ts < $4""",
+            f"""SELECT exchange, ts, side, price, qty, notional, is_snapshot_feed, {version}
+                FROM liquidations
+                WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts >= $3 AND ts < $4""",
             symbol, list(exchanges), start, end)
         return correct_raw_rows(dict(r) for r in rows)
+
+    async def _has_mapping_version(self) -> bool:
+        """`liquidations.mapping_version` exists once the fixed collector applied storage/schema.sql
+        (the beta never adds it: it must not lock the collector's table)."""
+        return bool(await self.conn.fetchval(
+            """SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('liquidations')
+                              AND attname = 'mapping_version' AND NOT attisdropped)"""))
 
     async def fetch_liquidation_cutover(self, *, symbol: str) -> dict:
         """{venue: {"first_new", "last_old"}} for Bybit and OKX: the first row written by the fixed
@@ -1876,9 +1884,7 @@ class BetaConn:
         if cache is not None and symbol in cache:
             return cache[symbol]
         out: dict = {}
-        has_column = await self.conn.fetchval(
-            """SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('liquidations')
-                              AND attname = 'mapping_version' AND NOT attisdropped)""")
+        has_column = await self._has_mapping_version()
         for ex in ("bybit", "okx"):
             first_new = last_old = None
             if has_column:

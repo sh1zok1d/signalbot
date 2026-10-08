@@ -735,9 +735,11 @@ def _liq_votes_line(gate: Mapping[str, Any], lang: str) -> Optional[str]:
     liq = gate.get("liquidation")
     if not liq or not liq.get("voting"):
         return None            # no votes of the confirming episode at this bucket: no evidence line
-    n = len(gate.get("values", {}).get("ranks", {})) and 3
-    return t(lang, "liq_votes_line", side=t(lang, "side_" + liq["side"]), k=len(liq.get("voting") or ()),
-             n=max(n, len(liq.get("eligible") or ()), 1))
+    # n = the venues eligible for this side, never a fixed 3: OKX is out until it has 30 days of real
+    # history (data reliability D2; review of #378)
+    voting = liq.get("voting") or ()
+    return t(lang, "liq_votes_line", side=t(lang, "side_" + liq["side"]), k=len(voting),
+             n=max(len(liq.get("eligible") or ()), len(voting), 1))
 
 
 def _unsigned_line(gate: Mapping[str, Any], lang: str) -> Optional[str]:
