@@ -1364,6 +1364,13 @@ class Database:
                 "INSERT INTO liquidation_feed_heartbeats (exchange, symbol, ts) VALUES ($1,$2,$3) "
                 "ON CONFLICT DO NOTHING", exchange, symbol, ts)
 
+    async def prune_liquidation_feed_heartbeats(self, *, before: datetime) -> int:
+        """Drop heartbeats older than `before` (the beta reads at most 32 days back)."""
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            status = await conn.execute("DELETE FROM liquidation_feed_heartbeats WHERE ts < $1", before)
+        return int(status.split()[-1])
+
     async def log_connectivity_event(self, exchange: str, event_type: str, detail: dict) -> None:
         assert self.pool is not None
         async with self.pool.acquire() as conn:

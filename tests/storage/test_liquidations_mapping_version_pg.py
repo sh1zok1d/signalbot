@@ -95,6 +95,12 @@ def test_the_liquidation_feed_heartbeat_table_takes_the_collectors_rows_once():
             await db.insert_liquidation_feed_heartbeat("okx", "BTCUSDT", at)          # a repeat is a no-op
             async with db.pool.acquire() as c:
                 assert await c.fetchval("SELECT count(*) FROM liquidation_feed_heartbeats") == 1
+            # pruning drops only rows older than the cut
+            from datetime import timedelta
+            await db.insert_liquidation_feed_heartbeat("okx", "BTCUSDT", at - timedelta(days=61))
+            assert await db.prune_liquidation_feed_heartbeats(before=at - timedelta(days=60)) == 1
+            async with db.pool.acquire() as c:
+                assert await c.fetchval("SELECT count(*) FROM liquidation_feed_heartbeats") == 1
         finally:
             await db.close()
             await admin.execute(f'DROP SCHEMA "{schema}" CASCADE')

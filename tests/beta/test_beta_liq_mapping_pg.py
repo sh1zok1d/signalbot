@@ -249,3 +249,27 @@ def test_without_the_heartbeat_table_okx_is_never_measured():
             assert await conn.fetch_liquidation_feed_heartbeats(symbol="BTCUSDT", start=b0, end=b0) == {}
         await pool.close()
     run(body())
+
+
+def test_the_heartbeat_read_uses_the_primary_key_and_ignores_other_venues():
+    """Review of #398: the read filtered symbol + ts only, a seq scan of a table that grows forever.
+    It now leads with exchange (the primary key's first column) and reads only OKX."""
+    import test_beta_pg_integration as pgi
+    b0 = pgi.B0
+
+    async def body():
+        pool = await fresh_pool()
+        async with pool.acquire() as c:
+            await c.executemany("INSERT INTO liquidation_feed_heartbeats VALUES ($1, 'BTCUSDT', $2)",
+                                [("okx", b0), ("bybit", b0)])
+            await c.execute("SET enable_seqscan = off")
+        async with BetaStore(pool).connect() as conn:
+            got = await conn.fetch_liquidation_feed_heartbeats(symbol="BTCUSDT", start=b0 - BUCKET, end=b0 + BUCKET)
+            plan = "\n".join(r[0] for r in await conn.conn.fetch(
+                """EXPLAIN SELECT exchange, ts FROM liquidation_feed_heartbeats
+                   WHERE exchange = ANY($4::text[]) AND symbol=$1 AND ts >= $2 AND ts <= $3 ORDER BY ts""",
+                "BTCUSDT", b0 - BUCKET, b0 + BUCKET, ["okx"]))
+        assert got == {"okx": [b0]}
+        assert "Index" in plan
+        await pool.close()
+    run(body())

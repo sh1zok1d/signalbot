@@ -240,16 +240,46 @@ def test_the_okx_liquidation_channel_reports_alive_on_ack_push_and_pong_after_ac
     assert alive == ["okx", "okx", "okx"]
 
 
-def test_the_manager_writes_at_most_one_heartbeat_a_minute():
-    from data_ingestion.manager import HEARTBEAT_EVERY_S, IngestionManager
-    written = []
+class _BeatDB:
+    def __init__(self, fail_at=()):
+        self.written, self.pruned, self.calls, self.fail_at = [], [], 0, set(fail_at)
 
-    class _DB:
-        async def insert_liquidation_feed_heartbeat(self, ex, symbol, ts):
-            written.append((ex, symbol, ts.timestamp()))
+    async def insert_liquidation_feed_heartbeat(self, ex, symbol, ts):
+        self.calls += 1
+        if self.calls in self.fail_at:
+            raise ConnectionError("db blip")
+        self.written.append(ts.timestamp())
+
+    async def prune_liquidation_feed_heartbeats(self, *, before):
+        self.pruned.append(before.timestamp())
+        return 0
+
+
+def _manager_callbacks(db):
+    from data_ingestion.manager import IngestionManager
     mgr = IngestionManager.__new__(IngestionManager)
-    mgr.db, mgr.symbol, mgr.bar_builders = _DB(), "BTCUSDT", {}
-    cb = mgr._make_callbacks("okx")
-    for t in (1000.0, 1010.0, 1059.9, 1060.0, 1130.0):
+    mgr.db, mgr.symbol, mgr.bar_builders = db, "BTCUSDT", {}
+    return mgr._make_callbacks("okx")
+
+
+def test_the_manager_writes_at_most_one_heartbeat_per_30_seconds_and_prunes_hourly():
+    """Review of #398: 30 s, so one lost row on a quiet socket (pong every 25 s) leaves ~100 s, inside
+    the beta's 150 s; rows older than 60 days are pruned at most once an hour."""
+    from data_ingestion.manager import HEARTBEAT_EVERY_S, HEARTBEAT_KEEP_DAYS
+    db = _BeatDB()
+    cb = _manager_callbacks(db)
+    for t in (100000.0, 100010.0, 100029.9, 100030.0, 100060.0, 103700.0):
         _run(cb.on_liquidation_feed_alive("okx", t))
-    assert HEARTBEAT_EVERY_S == 60.0 and [w[2] for w in written] == [1000.0, 1060.0, 1130.0]
+    assert HEARTBEAT_EVERY_S == 30.0 and db.written == [100000.0, 100030.0, 100060.0, 103700.0]
+    assert db.pruned == [100000.0 - HEARTBEAT_KEEP_DAYS * 86400.0, 103700.0 - HEARTBEAT_KEEP_DAYS * 86400.0]
+
+
+def test_a_failed_heartbeat_insert_is_retried_on_the_next_signal():
+    """Review of #398: the throttle was set before the insert, so a DB blip silenced the marker for
+    a full window and made one or two NO_FEED buckets."""
+    db = _BeatDB(fail_at={1})
+    cb = _manager_callbacks(db)
+    with pytest.raises(ConnectionError):
+        _run(cb.on_liquidation_feed_alive("okx", 1000.0))
+    _run(cb.on_liquidation_feed_alive("okx", 1001.0))       # the next pong: written, not throttled
+    assert db.written == [1001.0]

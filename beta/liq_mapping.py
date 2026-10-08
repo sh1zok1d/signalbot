@@ -119,11 +119,12 @@ def mark_okx_lower_bound(horizons: Mapping[str, Any]) -> dict:
 
 
 # ---- liveness of a separate liquidation channel (OKX) -------------------------------------------
-# The collector writes at most one heartbeat a minute while OKX's liquidation channel is acknowledged
-# and answers its 25 s text ping or pushes (data_ingestion/okx_client.py, manager.HEARTBEAT_EVERY_S).
-# A live channel therefore leaves gaps of about 60–85 s. A bucket is measured only when the
-# heartbeats cover it from LIVENESS_LEAD_S before its start to its end with no gap over
-# LIVENESS_MAX_GAP_S (150 s): one missed write is tolerated, a refused or dead channel is not. The
+# The collector writes at most one heartbeat every 30 s while OKX's liquidation channel is
+# acknowledged and answers its 25 s text ping or pushes (data_ingestion/okx_client.py,
+# manager.HEARTBEAT_EVERY_S). On a quiet socket a row lands every 2nd pong, a gap of ~50 s + 2 RTT;
+# one lost row leaves ~100 s. A bucket is measured only when the heartbeats cover it from
+# LIVENESS_LEAD_S before its start to its end with no gap over LIVENESS_MAX_GAP_S (150 s): one
+# missed write is tolerated, a refused or dead channel is not. The
 # window ends at the bucket's end, which the tape run (after close + grace) has already seen.
 LIVENESS_EXCHANGES = ("okx",)
 LIVENESS_LEAD_S = 90.0

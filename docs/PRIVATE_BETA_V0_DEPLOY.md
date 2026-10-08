@@ -440,7 +440,12 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 
 **Stop:** `/admin_pause_push` stops new deliveries at once, without a restart. Pending deliveries are suppressed with `PUSH_DISABLED`. For a hard stop, set `BETA_PUSH_ENABLED=0` and restart the bot and the notify timer.
 
-**OKX liquidations need a live channel (data reliability, architect 2026-10-08).** The collector writes one row a minute into `liquidation_feed_heartbeats` while OKX's liquidation channel is acknowledged and answering or pushing. A 5m bucket without heartbeats covering it (no gap over 150 s, from 90 s before its start to its end) reads OKX liquidations «не измерен», never 0, on every surface and in the percentile history. Before the collector creates the table, OKX liquidations are never measured. Check: `SELECT max(ts) FROM liquidation_feed_heartbeats WHERE exchange='okx';` should be under two minutes old.
+**OKX liquidations need a live channel (data reliability, architect 2026-10-08).**
+- **Mechanism.** The collector writes a row into `liquidation_feed_heartbeats` at most every 30 s while OKX's liquidation channel is acknowledged and answering or pushing. Rows older than 60 days are pruned hourly.
+- **Rule.** A 5m bucket without heartbeats covering it reads OKX liquidations «не измерен», never 0, on every surface and in the percentile history. Covering means no gap over 150 s, from 90 s before the bucket's start to its end.
+- **At the deploy.** The collector restart creates the table. With the usual order (beta first, then `sudo systemctl restart signalbot.service`), OKX shows «н/д» from the beta restart until the collector restart.
+- **OKX history starts again.** No heartbeat exists before the deploy, so every earlier OKX 0.0 reads as not measured, including the zeros between the D1 and D2 deploys. OKX needs 30 days of measured history again: it stays «н/д» and does not vote for about 30 days after this deploy.
+- **Check.** `SELECT now() - max(ts) FROM liquidation_feed_heartbeats WHERE exchange='okx';` should be under a minute.
 
 **Sending discipline (backlog A5 and its external review; `beta/delivery.py` `SendPacer` / `send_one`).** It applies to every outbox kind (push, alert, brief, weekly) and to the owner's own alert and weekly copy:
 - **Flood control.** Telegram's `RetryAfter` is not a final `FAILED`.

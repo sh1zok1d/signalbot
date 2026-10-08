@@ -27,7 +27,12 @@ from .base_client import ClientCallbacks, ExchangeClient, Trade, OpenInterest, F
 from .bar_builder import LiveBarBuilder, Bar1m
 
 # One liquidation-feed heartbeat row per venue at most this often (beta/liq_mapping.py reads the gaps).
-HEARTBEAT_EVERY_S = 60.0
+# The quiet-socket signal is a pong every 25 s + RTT, so a write lands every 2nd pong (~50 s + 2 RTT)
+# and one lost row leaves a gap of ~100 s, inside the beta's 150 s.
+HEARTBEAT_EVERY_S = 30.0
+# Heartbeats older than this are pruned (the beta reads at most 32 days), at most once an hour.
+HEARTBEAT_KEEP_DAYS = 60
+HEARTBEAT_PRUNE_EVERY_S = 3600.0
 from .binance_client import BinanceClient
 from .bybit_client import BybitClient
 from .okx_client import OKXClient
@@ -101,13 +106,18 @@ class IngestionManager:
                         l.exchange, l.symbol, l.side, l.qty, l.price)
 
         last_alive: Dict[str, float] = {}
+        last_prune = {"ts": 0.0}
 
         async def on_liquidation_feed_alive(ex: str, ts: float) -> None:
             # at most one row per HEARTBEAT_EVERY_S: the beta reads gaps, not every pong
             if ts - last_alive.get(ex, 0.0) < HEARTBEAT_EVERY_S:
                 return
-            last_alive[ex] = ts
             await self.db.insert_liquidation_feed_heartbeat(ex, self.symbol, _to_ts(ts))
+            last_alive[ex] = ts                 # only after the row is in: a failed insert retries next signal
+            if ts - last_prune["ts"] >= HEARTBEAT_PRUNE_EVERY_S:
+                last_prune["ts"] = ts
+                await self.db.prune_liquidation_feed_heartbeats(
+                    before=_to_ts(ts - HEARTBEAT_KEEP_DAYS * 86400.0))
 
         return ClientCallbacks(
             on_trade=on_trade, on_oi=on_oi, on_funding=on_funding,

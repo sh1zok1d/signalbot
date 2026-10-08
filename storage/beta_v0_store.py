@@ -180,11 +180,19 @@ class BetaConn:
     async def fetch_liquidation_feed_heartbeats(self, *, symbol: str, start: datetime, end: datetime) -> dict:
         """{venue: [ts]} of the collector's liquidation-channel heartbeats in [start, end]; {} before the
         collector created the table (then no venue with a separate channel is measured)."""
-        if not await self.conn.fetchval("SELECT to_regclass('liquidation_feed_heartbeats') IS NOT NULL"):
+        from beta.liq_mapping import LIVENESS_EXCHANGES
+        has_table = getattr(self, "_has_heartbeats", None)
+        if has_table is None:                              # one catalog probe per connection
+            has_table = bool(await self.conn.fetchval(
+                "SELECT to_regclass('liquidation_feed_heartbeats') IS NOT NULL"))
+            self._has_heartbeats = has_table
+        if not has_table:
             return {}
+        # exchange first: the primary key (exchange, symbol, ts) serves the range read
         rows = await self.conn.fetch(
             """SELECT exchange, ts FROM liquidation_feed_heartbeats
-               WHERE symbol=$1 AND ts >= $2 AND ts <= $3 ORDER BY ts""", symbol, start, end)
+               WHERE exchange = ANY($4::text[]) AND symbol=$1 AND ts >= $2 AND ts <= $3 ORDER BY ts""",
+            symbol, start, end, list(LIVENESS_EXCHANGES))
         out: dict = {}
         for r in rows:
             out.setdefault(r["exchange"], []).append(r["ts"])
