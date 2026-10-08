@@ -320,3 +320,14 @@ def test_plan_digest_is_deterministic():
     from scripts.research.level_race_forecast_v1 import heldout as HO
     assert HO.plan_digest(date(2026, 10, 9)) == HO.plan_digest(date(2026, 10, 9))
     assert HO.plan_digest(date(2026, 10, 9)) != HO.plan_digest(date(2026, 10, 10))
+
+
+def test_run_refuses_any_date_but_the_frozen_one():
+    from datetime import date, timedelta
+    from beta import level_race as L
+    from scripts.research.level_race_forecast_v1 import heldout as HO
+    go = f"GO:{L.MODEL_FILE_SHA256[:12]}"
+    with pytest.raises(RuntimeError, match="freeze date"):
+        HO.run(HO.FREEZE_DATE + timedelta(days=1), go)
+    with pytest.raises(RuntimeError, match="freeze date"):
+        HO.run(date(2026, 10, 16), go)

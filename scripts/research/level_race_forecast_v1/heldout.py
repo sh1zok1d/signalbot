@@ -27,6 +27,11 @@ def _ms(d: datetime) -> int:
 
 GAP_MS = (_ms(OBJECT_GAP[0]), _ms(OBJECT_GAP[1]))
 
+# The freeze date (design §5): UTC midnight of the freeze commit's date, exclusive end of the held-out
+# window. Intended 2026-10-09; the freeze commit sets the literal date of its own UTC day here, and
+# run() refuses any other date.
+FREEZE_DATE = date(2026, 10, 9)
+
 
 def plan(freeze_date: date) -> tuple[list, list]:
     """5m kline objects from the product planner (E1-overlapping objects replaced or rejected),
@@ -248,6 +253,8 @@ def run(freeze_date: date, go_token: Optional[str]) -> dict:
     from pathlib import Path
     from beta import level_race as L
     from beta.hist_series import bars_from_rows
+    if freeze_date != FREEZE_DATE:
+        raise RuntimeError(f"held-out read refused: freeze date {freeze_date} is not the frozen {FREEZE_DATE}")
     require_go(go_token)
     out = Path(__file__).resolve().parents[3] / "docs/research/LEVEL_RACE_FORECAST_V1_HELDOUT.json"
     if out.exists():

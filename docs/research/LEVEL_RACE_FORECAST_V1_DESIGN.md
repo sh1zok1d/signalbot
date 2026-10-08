@@ -292,25 +292,45 @@ Added after the development record (`LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md`) and
 
 **Numbers by reference.** Every [F3] number of §7 and §8a is replaced by the frozen values of `docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md` and the constants in the header of `beta/level_race_calibration.py` (merged in #408): the prior of the calibrator, G0–G3 (G1 is now a non-inferiority margin of +0.02 nats against raw B0), the live floor, D0–D3, the generic-stream alarm, the return rule and the challenger rule. Where a number in §7 or §8a differs, F3's design wins. The held-out pass and live call the same module (`prior_for_cases`, `fit_calibrator`, `calibrator_at`, `apply_calibrator`, `gates`, `beats`; `scripts/research/level_race_forecast_v1/heldout.py`), and F1's own calibrator is removed.
 
-**Final gate and monitor table (frozen values; source `beta/level_race_calibration.py` header, F3 design §2, §5).**
+**Final gate and monitor table (every frozen number, its constant and its source).** Calibration constants: `beta/level_race_calibration.py` header (F3 design `LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md` §2–§5); held-out constants: `scripts/research/level_race_forecast_v1/heldout.py`; model: `docs/research/LEVEL_RACE_MODEL_V1.json`.
 
-| Rule | Value |
-|---|---|
-| G0 scored held-out events per class | ≥ 200 |
-| G1 upper end of the week-clustered 95 % interval of `LL_published − LL_B0` | ≤ +0.02 nats (non-inferiority) |
-| G2 per outcome \|CITL\| and its 95 % interval (iid floor on the SE) | ≤ 5 pp; inside ±10 pp |
-| G3 per head, 95 % interval of the recalibration slope | overlaps [0.8, 1.25] |
-| Case A (publication of the champion) | raw champion beats raw B0 **and** raw `G1@event`, 95 % interval of the gain > 0, per landmark |
-| Level-offset claim | same as case A; never in user text |
-| `L3_LIVE` live floor | ≥ 150 resolved per class, and G2 + G3 on the live record |
-| D0 data fault / stale bars / parity break | > 10 min stale at issue → `OFF` at once |
-| D1 per-outcome betting e-process, λ ∈ {±0.25, ±0.5} | E > 30 |
-| D2 last 150 resolved, per outcome | \|CITL\| > 10 pp and 99.7 % interval excludes 0 |
-| D3 (case A) last 150, `LL_published − LL_fallback` | 99.7 % interval above 0, ≥ 8 weeks |
-| Return | ≥ 50 new resolved, epoch e-value < 1; the second drift exit of a version is final |
-| FALLBACK | only while the fallback passes G2 on the class; else `HIST`; generic-stream alarm → `HIST` |
-| Calibrator priors | a_G ~ N(0, 0.5²); b_G ~ N(1, 0.25²); a_level − a_G ~ N(0, s²), s = 0.5 (A) / 1.0 (B); b_L − b_G ~ N(0, 0.25²); live prior = held-out posterior worth 150 events per class; generic row weight 1/16; batches weekly × 12, then every 4 weeks |
-| Challengers | ≥ 150 paired, looks every 150, at most 600; interval of the gain excludes 0; calibration not worse; ≤ 2 at once |
+| Rule | Value | Constant | Source |
+|---|---|---|---|
+| G0 scored held-out events per class | ≥ 200 | `G0_MIN_EVENTS` | `beta/level_race_calibration.py` |
+| G1 upper 95 % end of `LL_published − LL_B0` (non-inferiority) | ≤ 0.02 nats | `G1_MAX_LL_EXCESS` | `beta/level_race_calibration.py` |
+| G2 per outcome \|CITL\| | ≤ 5 pp | `G2_CITL_PP` | `beta/level_race_calibration.py` |
+| G2 per outcome 95 % interval of CITL (iid floor) | inside ±10 pp | `G2_CI_PP` | `beta/level_race_calibration.py` |
+| G3 per head, slope 95 % interval overlaps | [0.8, 1.25] | `G3_SLOPE_BAND` | `beta/level_race_calibration.py` |
+| Interval z (95 %) | 1.959964 | `Z95` | `beta/level_race_calibration.py` |
+| Case A / level-offset claim: raw champion beats raw B0 and raw `G1@event` | 95 % interval of the gain > 0 | `beats()` | `beta/level_race_calibration.py`; `scripts/research/level_race_forecast_v1/heldout.py` `decide_cases` |
+| Live floor for `L3_LIVE` | 150 resolved per class | `LIVE_FLOOR` | `beta/level_race_calibration.py` |
+| D0 stale bars at issue | > 10 min → `OFF` | `D0_STALE_MINUTES` | `beta/level_race_calibration.py` |
+| D1 betting e-process λ | ±0.25, ±0.5 | `D1_LAMBDAS` | `beta/level_race_calibration.py` |
+| D1 threshold per outcome | E > 30 | `D1_OUTCOME_THRESHOLD` | `beta/level_race_calibration.py` |
+| D2 / D3 window | last 150 resolved | `ROLL_N` | `beta/level_race_calibration.py` |
+| D2 per outcome \|CITL\| | > 10 pp | `D2_PP` | `beta/level_race_calibration.py` |
+| D2 interval z | 3.0 (99.7 %) | `D2_Z` | `beta/level_race_calibration.py` |
+| D3 (case A) `LL_published − LL_fallback` interval z | 3.0, interval > 0 | `D3_Z` | `beta/level_race_calibration.py` |
+| D3 minimum weeks | 8 | `D3_MIN_WEEKS` | `beta/level_race_calibration.py` |
+| Return: new resolved events | ≥ 50 | `RETURN_MIN_EVENTS` | `beta/level_race_calibration.py` |
+| Return: epoch e-value | < 1 | `RETURN_E_MAX` | `beta/level_race_calibration.py` |
+| Drift exits per version (second is final) | 2 | `MAX_DRIFT_EXITS` | `beta/level_race_calibration.py` |
+| Generic-stream alarm threshold / block / return | 30 / 40 windows / 50 | `GEN_THRESHOLD`, `GEN_BLOCK`, `GEN_RETURN_MIN` | `beta/level_race_calibration.py` |
+| Generic alarm target / level drift target | `HIST` / `FALLBACK` while it passes G2, else `HIST` | `GEN_ALARM_TARGET`, `LEVEL_DRIFT_TARGET` | `beta/level_race_calibration.py` |
+| Prior a_GENERIC | N(0, 0.5²) | `PRIOR_M_A`, `PRIOR_S_A` | `beta/level_race_calibration.py` |
+| Prior b_GENERIC | N(1, 0.25²) | `PRIOR_M_B`, `PRIOR_S_B` | `beta/level_race_calibration.py` |
+| Prior a_level − a_GENERIC | sd 0.5 (case A) / 1.0 (case B) | `PRIOR_S_LEVEL_BY_CASE` | `beta/level_race_calibration.py` |
+| Prior b_LEVEL − b_GENERIC (hierarchical slope) | sd 0.25 | `PRIOR_S_SLOPE_LEVEL` | `beta/level_race_calibration.py` |
+| Live prior worth | 150 events per class | `N_EQUIV_PRIOR` | `beta/level_race_calibration.py` |
+| Generic row weight | 1/16 | `GENERIC_ROW_WEIGHT` | `beta/level_race_calibration.py` |
+| Batches | weekly × 12, then every 4 weeks | `WEEKLY_BATCHES`, `LATER_BATCH_WEEKS` | `beta/level_race_calibration.py` |
+| Non-parametric calibrator | none below 300 events | `ISOTONIC_MIN_EVENTS` | `beta/level_race_calibration.py` |
+| Challengers: minimum paired / look every / maximum / concurrent | 150 / 150 / 600 / 2 | `CHALLENGER_MIN_PAIRED`, `CHALLENGER_LOOK_EVERY`, `CHALLENGER_MAX_PAIRED`, `CHALLENGER_MAX_CONCURRENT` | `beta/level_race_calibration.py` |
+| Held-out start / warm-up | 2025-01-01 / 2024-12-01 | `HELDOUT_START`, `WARMUP_START` | `scripts/research/level_race_forecast_v1/heldout.py` |
+| Freeze date (exclusive end) | 2026-10-09 (set to the freeze commit's UTC date) | `FREEZE_DATE` | `scripts/research/level_race_forecast_v1/heldout.py` |
+| E1 object gap | [2026-08-16, 2026-08-26) | `OBJECT_GAP` | `scripts/research/level_race_forecast_v1/heldout.py` |
+| Probability floor / offset clip | 0.001 / 1e-4 | `PROB_FLOOR`, `OFFSET_CLIP` | `beta/level_race.py` |
+| Model file | sha256 `454109c8…0d3a` | `MODEL_FILE_SHA256` | `beta/level_race.py` |
 
 **Slope: hierarchical, not shared.** The shared-slope assumption of §8a is replaced by F3's hierarchical slope: `b_LEVEL − b_GENERIC ~ N(0, 0.25²)`, both level classes sharing `b_LEVEL`. Reason (F3 §3.3): with a shared slope, the generic rows hold the slope near 1, and the development head-B over-confidence of M1 (0.78, §11b R3) would stay uncorrected. `PRIOR_S_SLOPE_LEVEL = 0` restores the shared slope as one setting.
 
