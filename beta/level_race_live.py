@@ -200,6 +200,115 @@ def subject_key(v: Mapping[str, Any]) -> str:
     return f"{v['event_id']}:{v['landmark']}"
 
 
+# ---- model inputs at the landmarks (design §2.3, §8) ------------------------------------------
+# The predictor's row for one event at one landmark, in the research row's keys
+# (scripts/research/level_race_forecast_v1/events.landmark_rows) so the frozen model reads live and
+# development rows the same way. Geometry, σ and B0 come only from the landmark view (beta.levels →
+# beta.level_race); nothing is recomputed here. Pure; the model itself arrives with the freeze.
+C1_TERM = "OVMM"                       # = research constants.C1_TERM
+C1_VENUES = ("bybit", "okx")           # live klines_1m exchanges (canonical symbol), #363 Bybit / OKX perps
+C1_EXCHANGE = "binance"
+MINUTE_MS = 60_000
+
+
+def model_row(v: Mapping[str, Any]) -> dict:
+    """Inputs of the M1 family at the view's landmark: the terms (T15, family, structural side, σ) and
+    the event's own B0 in beyond/back/neither orientation (the heads' offsets)."""
+    from .level_race import TAU
+    b0 = v["event_b0"]
+    beyond, back = (b0["up"], b0["dn"]) if v["beyond_is_up"] else (b0["dn"], b0["up"])
+    return {"event_id": v["event_id"], "landmark": v["landmark"], "family": v["family"],
+            "struct_side": int(v["struct_side"]), "side": int(v["side"]), "position": float(v["position"]),
+            "p_up": float(v["p_up"]), "p_dn": float(v["p_dn"]), "beyond_is_up": bool(v["beyond_is_up"]),
+            "sigma": float(v["sigma"]), "tau": TAU[v["landmark"]], "b0_beyond": float(beyond),
+            "b0_back": float(back), "b0_neither": float(b0["neither"])}
+
+
+def c1_instants(touch_open_ms: int) -> tuple[int, int]:
+    """The two close instants of `OTHER_VENUE_MEDIAN_MOVE` (#363): the close of the last bar before the
+    touch bar (= touch open) and the close of bar j+2 (= the T15 landmark)."""
+    return int(touch_open_ms), int(touch_open_ms) + (1 + LANDMARK_BARS["T15"]) * BAR_MS
+
+
+def closes_at(rows_1m: Sequence[Mapping[str, Any]]) -> dict:
+    """{close instant ms: close} from klines_1m rows (`ts` = minute open): the 1m close at a 5m boundary
+    is the 5m close there. Non-finite or non-positive closes are left out (missing, never filled)."""
+    out = {}
+    for r in rows_1m or ():
+        c = r.get("close")
+        if c is None:
+            continue
+        c = float(c)
+        if math.isfinite(c) and c > 0:
+            out[to_ms(r["ts"]) + MINUTE_MS] = c
+    return out
+
+
+def _oriented(base: Optional[float], dec: Optional[float], side: int) -> Optional[float]:
+    if base is None or dec is None or side not in (1, -1):
+        return None
+    base, dec = float(base), float(dec)
+    if not (math.isfinite(base) and math.isfinite(dec) and base > 0 and dec > 0):
+        return None
+    r = math.log(dec / base)
+    return float(side) * r if math.isfinite(r) else None
+
+
+def c1_input(b: Bars, v: Mapping[str, Any], venue_closes: Mapping[str, Mapping[int, float]]) -> dict:
+    """`OTHER_VENUE_MEDIAN_MOVE` for the C1 challenger, exactly as #363: the median (= mean of two) of
+    the Bybit and OKX 15m log moves from close(j-1) to close(j+2), oriented by the approach side; all
+    three venues required (the Binance closes from the 5m tape), no fill. 0 at T0 (not defined before
+    the decision bar; design §8). Returns the value or None with the reason, for the missing count."""
+    if v["landmark"] == "T0":
+        return {C1_TERM: 0.0, "c1_missing": None}
+    j = _bar(b, v["touch_open_ms"])
+    if j is None or j < 1 or j + LANDMARK_BARS["T15"] >= b.n:
+        return {C1_TERM: None, "c1_missing": "binance"}
+    side = int(v["side"])
+    if _oriented(b.close[j - 1], b.close[j + LANDMARK_BARS["T15"]], side) is None:
+        return {C1_TERM: None, "c1_missing": "binance"}
+    base_ms, dec_ms = c1_instants(v["touch_open_ms"])
+    moves = []
+    for ven in C1_VENUES:
+        closes = venue_closes.get(ven) or {}
+        m = _oriented(closes.get(base_ms), closes.get(dec_ms), side)
+        if m is None:
+            return {C1_TERM: None, "c1_missing": ven}
+        moves.append(m)
+    return {C1_TERM: 0.5 * (moves[0] + moves[1]), "c1_missing": None}
+
+
+def c1_minutes(views: Sequence[Mapping[str, Any]]) -> list:
+    """The klines_1m minute opens (ms) the T15 views need from each other venue (two per event)."""
+    out = set()
+    for v in views:
+        if v["landmark"] == "T15":
+            for at in c1_instants(v["touch_open_ms"]):
+                out.add(at - MINUTE_MS)
+    return sorted(out)
+
+
+async def load_venue_closes(conn, symbol: str, views: Sequence[Mapping[str, Any]]) -> dict:
+    """{venue: {close instant ms: close}} for the C1 instants of `views`, read-only from the Stage-1
+    klines_1m of Bybit and OKX (the same canonical symbol as Binance). One query per venue and
+    minute; nothing in the E1 protected window is read."""
+    from .history_data import protected_overlap
+    out: dict = {ven: {} for ven in C1_VENUES}
+    for m in c1_minutes(views):
+        if protected_overlap(m, m + MINUTE_MS) is not None:
+            continue
+        for ven in C1_VENUES:
+            rows = await conn.fetch_live_klines_1m(exchange=ven, symbol=symbol, start=from_ms(m),
+                                                   end=from_ms(m + MINUTE_MS))
+            out[ven].update(closes_at(rows))
+    return out
+
+
+def model_inputs(b: Bars, v: Mapping[str, Any], venue_closes: Mapping[str, Mapping[int, float]]) -> dict:
+    """The model row plus C1's extra input: what the predictor and the L3 journal read at a landmark."""
+    return {**model_row(v), **c1_input(b, v, venue_closes)}
+
+
 # ---- outcome (rule LEVEL_RACE_4H_V1) ----------------------------------------------------------
 def classify(b: Bars, *, touch_open_ms: int, landmark: str, p_up: float, p_dn: float) -> Optional[dict]:
     """The #352 `classify` on the original window from the landmark: bars j+1+L .. j+48 (L = 0 at T0,
