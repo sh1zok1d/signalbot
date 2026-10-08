@@ -177,15 +177,16 @@ def detect_structural_touches(block: Mapping[str, Any], b: Bars, *, now: datetim
 def level_touch_candidates(cfg: BetaConfig, block: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime,
                            max_age: timedelta, stats: Optional[Mapping[str, Any]]) -> list:
     """The one place the level-touch trigger is chosen (`level_race.push_trigger`)."""
-    from .level_race_live import push_trigger
+    from .level_race_live import push_trigger, setting
     if push_trigger(cfg) != "structural":
         return detect_level_touches(block, b, closed_1m, now=now, max_age=max_age, stats=stats)
-    try:
-        from .level_race import load_hist_table
-        table = load_hist_table()
-    except Exception as exc:  # noqa: BLE001 - no verified table: the push goes out without a race line (OFF)
-        logger.warning("level race table unavailable: %s", type(exc).__name__)
-        table = None
+    table = None                       # one display flag for every surface: without it, no race line
+    if setting(cfg, "display_enabled"):
+        try:
+            from .level_race import load_hist_table
+            table = load_hist_table()
+        except Exception as exc:  # noqa: BLE001 - no verified table: the push goes out without a race line (OFF)
+            logger.warning("level race table unavailable: %s", type(exc).__name__)
     return detect_structural_touches(block, b, now=now, max_age=max_age, table=table)
 
 

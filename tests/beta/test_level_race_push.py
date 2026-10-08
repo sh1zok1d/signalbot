@@ -44,7 +44,7 @@ def test_one_switch_legacy_by_default():
 
 def test_structural_candidate_at_the_5m_close_within_max_age():
     e = _event_with_line()
-    cfg = _cfg(push_trigger="structural")
+    cfg = _cfg(push_trigger="structural", display_enabled=True)
 
     def cands(cut_ms, now_ms):
         b = _cut(B, cut_ms)
@@ -76,7 +76,7 @@ def test_t0_has_no_line_when_the_touch_close_is_outside_the_barrier_pair():
 
 def test_push_text_says_zone_entry_with_the_race_line_and_no_hold_history():
     e = _event_with_line()
-    cfg = _cfg(push_trigger="structural")
+    cfg = _cfg(push_trigger="structural", display_enabled=True)
     b, now = _cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 30_000)
     c = next(x for x in MA.level_touch_candidates(cfg, _block(b, now), b, [], now=now, max_age=MAX_AGE, stats=None)
              if x["key"] == f"level:{e['event_id']}")
@@ -84,10 +84,15 @@ def test_push_text_says_zone_entry_with_the_race_line_and_no_hold_history():
         text = format_alert("level", c["payload"], lang)
         assert_descriptive(text, lang)
         assert not FORBIDDEN.search(re.sub(r"<[^>]+>", " ", text))
-        assert ("вошла в зону" if lang == "ru" else "entered the zone") in text
+        assert ("вошла в зону" if lang == "ru" else "entered the") in text
+        assert f"{e['kind']} (" in text                                   # the level named by type and name
         assert ("После первого касания" if lang == "ru" else "After the first touch") not in text
         if c["payload"]["race"]["template"] == "LR_HIST_V1":
-            assert "2020–2024" in text and ("ни одна" if lang == "ru" else "neither") in text
+            assert "2020–2024" in text and ("ни одна —" if lang == "ru" else "neither —") in text
+            assert ("первой была —" if lang == "ru" else "reached first —") in text
+        # the full line with the interval is one tap away: /levels
+        rows = MA.alert_buttons("level", c["payload"], lang)
+        assert any(d == "L:levels" for row in rows for _l, d in row)
     keys = cj.shown_keys("alert", None, alert={"kind": "level", "key": c["key"], "payload": c["payload"]})
     assert ("L2_LEVEL_RACE_HIST_T0_4H", f"{e['event_id']}:T0", _ts(e["t0_ms"])) in keys
     assert not [k for k in keys if k[0].startswith("L2_LEVEL_FIRST_TOUCH")]
@@ -98,3 +103,14 @@ def test_levels_show_the_t0_line_until_t15_then_the_t15_line():
     blk_t0 = LR.display_block(_cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 60_000), TABLE, price=float(B.close[e["j"]]))
     mine = [r for r in blk_t0["races"] if r["event_id"] == e["event_id"]]
     assert [r["landmark"] for r in mine] == ["T0"] and mine[0]["class"] == "L2_LEVEL_RACE_HIST_T0_4H"
+
+
+def test_without_the_display_flag_the_structural_push_has_no_race_and_no_hold_line():
+    e = _event_with_line()
+    cfg = _cfg(push_trigger="structural")                                  # display_enabled stays false
+    b, now = _cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 30_000)
+    c = next(x for x in MA.level_touch_candidates(cfg, _block(b, now), b, [], now=now, max_age=MAX_AGE, stats=None)
+             if x["key"] == f"level:{e['event_id']}")
+    assert c["payload"]["race"] is None and c["payload"]["history"] is None
+    text = format_alert("level", c["payload"], "ru")
+    assert "2020–2024" not in text and "После первого касания" not in text and "вошла в зону" in text

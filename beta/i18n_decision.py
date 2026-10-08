@@ -300,10 +300,11 @@ DECISION_CATALOG: dict = {
                              "{clock} — first touch this {period} · price {price} (Binance, {price_clock})"),
     "pa_level_now": _pair("{clock} · цена {price} (Binance) — первое касание за {period}",
                           "{clock} · price {price} (Binance) — first touch this {period}"),
-    "pa_zone_now_at": _pair("{clock} — цена вошла в зону {low}–{high}, первый раз за {period} · цена {price} "
+    "pa_zone_now_at": _pair("{clock} — цена вошла в зону {name} {low}–{high}, первый раз за {period} · цена {price} "
                             "(Binance, {price_clock})",
-                            "{clock} — the price entered the zone {low}–{high}, the first time this {period} · price "
-                            "{price} (Binance, {price_clock})"),
+                            "{clock} — the price entered the {name} zone {low}–{high}, the first time this {period} · "
+                            "price {price} (Binance, {price_clock})"),
+    "pa_zone_member": _pair("{kind} ({name})", "{kind} ({name})"),
     "pa_period_day": _pair("день", "day"),
     "pa_period_week": _pair("неделю", "week"),
     "pa_period_month": _pair("месяц", "month"),
@@ -530,10 +531,10 @@ DECISION_CATALOG: dict = {
                         "(usually {b_dn}%; difference {d_dn} pp, 95% interval {lo_dn}..{hi_dn}), neither within the "
                         "window in {h_ne}% (usually {b_ne}%; difference {d_ne} pp, 95% interval {lo_ne}..{hi_ne}). "
                         "Now: upper {P_UP}, lower {P_DN}, window until {END}."),
-    "lr_push_hist_v1": _pair("2020–2024, похожие касания (N = {n}): первой верхняя {P_UP} {h_up} % · нижняя {P_DN} "
-                             "{h_dn} % · ни одна {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), до {END}",
-                             "2020–2024, similar touches (N = {n}): first the upper {P_UP} {h_up}% · the lower {P_DN} "
-                             "{h_dn}% · neither {h_ne}% (usually {b_up}/{b_dn}/{b_ne}%), until {END}"),
+    "lr_push_hist_v1": _pair("2020–2024, похожие касания (N = {n}): первой была — верхняя {P_UP} — {h_up} % · нижняя "
+                             "{P_DN} — {h_dn} % · ни одна — {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), до {END}",
+                             "2020–2024, similar touches (N = {n}): reached first — the upper {P_UP} — {h_up}% · the "
+                             "lower {P_DN} — {h_dn}% · neither — {h_ne}% (usually {b_up}/{b_dn}/{b_ne}%), until {END}"),
     "lr_hist_low_n_v1": _pair("Похожих касаний в 2020–2024 мало (N = {n}).",
                               "Few similar touches in 2020–2024 (N = {n})."),
 }

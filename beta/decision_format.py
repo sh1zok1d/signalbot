@@ -622,13 +622,12 @@ def race_lines(block: Mapping[str, Any], lang: str, surface: str, *,
 def push_race_line(race: Optional[Mapping[str, Any]], lang: str, *, now: datetime) -> list:
     """The T0 line of the level-touch push (LR_PUSH_HIST_V1, N only; the full line is in /levels), or
     the small-N line; nothing when the event has no T0 statement."""
-    from .level_race import percents
     if not race:
         return []
     if race["template"] == "LR_HIST_LOW_N_V1":
         return [t(lang, "lr_hist_low_n_v1", n=int(race["n"]))]
     end = datetime.fromtimestamp(race["end_ms"] / 1000, tz=timezone.utc)
-    h, b = percents(race["h"]), percents(race["b"])
+    h, b = race["printed_h"], race["printed_b"]
     return [t(lang, "lr_push_hist_v1", n=int(race["n"]), P_UP=fmt_price(race["p_up"], lang),
               P_DN=fmt_price(race["p_dn"], lang), h_up=h["up"], h_dn=h["dn"], h_ne=h["neither"], b_up=b["up"],
               b_dn=b["dn"], b_ne=b["neither"], END=_when(end, lang, with_day=local(end).date() != local(now).date()))]
@@ -975,7 +974,10 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
                        level=fmt_price(payload["level"], lang)))
         pts = payload.get("price_ts")
         if payload.get("trigger") == "structural":      # the #352 zone entry, decided at the 5m close
-            lines.append(t(lang, "pa_zone_now_at", clock=fmt_clock(datetime.fromisoformat(payload["source_at"]), lang),
+            zone = ", ".join(t(lang, "pa_zone_member", kind=k, name=level_name({"kind": k}, lang))
+                             for k in [payload["level_kind"]] + list(payload.get("also_kinds") or ()))
+            lines.append(t(lang, "pa_zone_now_at", name=_e(zone),
+                           clock=fmt_clock(datetime.fromisoformat(payload["source_at"]), lang),
                            low=fmt_price(payload["zone_low"], lang), high=fmt_price(payload["zone_high"], lang),
                            price=fmt_price(payload["price"], lang),
                            price_clock=fmt_kyiv_hm(price_clock(pts)) if pts else na(lang),
