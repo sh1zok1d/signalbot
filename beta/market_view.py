@@ -129,7 +129,10 @@ async def _tape_and_oi(conn, cfg: BetaConfig, view: Mapping[str, Any], *,
     oi = await conn.fetch_open_interest_asof(symbol=cfg.symbol, exchanges=cfg.exchanges, boundaries=bounds)
     # each venue's newest live funding with its time: the age bound of «Funding сейчас» (D3, R3)
     ff = getattr(conn, "fetch_funding_latest", None)
-    funding = None if ff is None else await ff(symbol=cfg.symbol, exchanges=cfg.exchanges, at=data_through(as_of))
+    from .horizons import FUNDING_MAX_AGE
+    through = data_through(as_of)
+    funding = None if ff is None else await ff(symbol=cfg.symbol, exchanges=cfg.exchanges, at=through,
+                                               since=through - FUNDING_MAX_AGE)
     from .liq_mapping import okx_liq_shown, without_okx_liq
     metrics = {b: m for b, m in hist}
     if not okx_liq_shown((latest.get("snapshot") or {}).get("percentiles")):

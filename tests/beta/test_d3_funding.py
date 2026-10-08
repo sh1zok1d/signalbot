@@ -106,12 +106,14 @@ def test_store_reads_each_venues_newest_live_row_before_the_boundary():
                 """INSERT INTO funding_rate (exchange, symbol, ts, funding_rate, source) VALUES ($1,$2,$3,$4,$5)""",
                 rows_)
         async with BetaStore(pool).connect() as conn:
-            got = await conn.fetch_funding_latest(symbol="BTCUSDT", exchanges=EXS, at=t)
+            got = await conn.fetch_funding_latest(symbol="BTCUSDT", exchanges=EXS, at=t, since=t - FUNDING_MAX_AGE)
+            wide = await conn.fetch_funding_latest(symbol="BTCUSDT", exchanges=EXS, at=t, since=t - timedelta(hours=1))
         assert got["binance"]["funding_rate"] == 0.0002 and got["binance"]["ts"] == t - timedelta(minutes=1)
-        assert got["bybit"]["funding_rate"] == 0.0003
+        assert got["bybit"] is None                                     # 30 minutes old: below the lower bound
+        assert wide["bybit"]["funding_rate"] == 0.0003                  # read when inside the window
         assert got["okx"] is None
         f = funding_now(CFG, got, t)
-        assert f["venues"] == 1 and f["rate"] is None                  # bybit is 30 minutes old
+        assert f["venues"] == 1 and f["rate"] is None
         await pool.close()
     run(body())
 
@@ -123,3 +125,24 @@ def test_with_one_fresh_venue_now_is_na_and_the_stale_ones_are_named(lang, want)
                          funding_latest=latest(binance=(1, 0.0001), bybit=(30, 0.0003), okx=(40, 0.0002)))
     view = {"horizons": hzs, "now": {"reference_price": 100.0}}
     assert want in plain(format_24h_tab(CFG, view, lang))         # the venue note never sits beside the 24h mean
+
+
+def test_the_store_read_carries_a_lower_time_bound_and_the_view_passes_it():
+    """ОПГ-1 review of #413: without `ts >= since` the hypertable cannot exclude chunks and every view build
+    scans the whole funding history. The view passes at − FUNDING_MAX_AGE: nothing that could be shown is lost."""
+    import asyncio
+    from storage.beta_v0_store import BetaConn
+    seen = {}
+
+    class Raw:
+        async def fetch(self, sql, *args):
+            seen["sql"], seen["args"] = sql, args
+            return []
+    out = asyncio.run(BetaConn(Raw()).fetch_funding_latest(symbol="BTCUSDT", exchanges=EXS, at=END,
+                                                           since=END - FUNDING_MAX_AGE))
+    assert out == {ex: None for ex in EXS}
+    assert "ts < $3 AND ts >= $4" in seen["sql"] and seen["args"][2:] == (END, END - FUNDING_MAX_AGE)
+    import inspect
+    from beta import market_view
+    src = inspect.getsource(market_view._tape_and_oi)
+    assert "since=through - FUNDING_MAX_AGE" in src
