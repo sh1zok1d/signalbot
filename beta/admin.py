@@ -9,7 +9,6 @@ and can never exceed `regime_d7.enabled`.
 """
 from __future__ import annotations
 
-import hashlib
 import html
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Sequence
@@ -41,10 +40,12 @@ def owner_parts(text: str, limit: int = 3500) -> list:
 
 
 def fingerprint(telegram_user_id: Optional[int]) -> str:
-    """Pseudonymous (not anonymous) stable id for audit/log lines."""
+    """Pseudonymous (not anonymous) stable id for audit/log lines: the keyed HMAC of beta.pseudonym, the one
+    function every caller uses. Refuses (FingerprintKeyError) when BETA_FINGERPRINT_KEY was not loaded."""
     if telegram_user_id is None:
         return "none"
-    return "u_" + hashlib.sha256(f"signalbot-beta-v0:{int(telegram_user_id)}".encode()).hexdigest()[:12]
+    from .pseudonym import pseudonym
+    return pseudonym(int(telegram_user_id))
 
 
 def is_owner(owner_user_id: Optional[int], telegram_user_id: Optional[int]) -> bool:
