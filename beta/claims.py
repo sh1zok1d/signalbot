@@ -383,7 +383,7 @@ def level_race_claims(views: Sequence[Mapping[str, Any]], *, now: datetime, mode
     """L2 at the landmarks of a structural first touch: the HIST shares of the event's cell as the
     surfaces print them, with the event's own B0, its barrier prices and window, the table digest
     and the mode (FORECAST_LAYER §6a: metrics before and after the switch are kept apart)."""
-    from .level_race import LEVEL_RACE_VERSION, percents
+    from .level_race import LEVEL_RACE_VERSION
     from .level_race_live import LIVE_VERSION, subject_key
     from .levels import STRUCTURAL_VERSION
     out = []
@@ -398,14 +398,15 @@ def level_race_claims(views: Sequence[Mapping[str, Any]], *, now: datetime, mode
                    "position": v["position"], "p_up": v["p_up"], "p_dn": v["p_dn"], "end": _iso(end),
                    "cell": v["cell"], "ladder_level": v["ladder_level"], "source_cell": v["source_cell"],
                    "template": v["template"], "push_template": v.get("push_template"),
-                   "out_of_corridor": bool(v["outside_corridor"]), "table_version": v["table_version"],
+                   "out_of_corridor": bool(v["out_of_corridor"]), "table_version": v["table_version"],
                    "table_sha256": v["table_sha256"], "mode": mode}
         numbers = {"n": int(v["n"]), "event_b0": {k: round(float(x), 6) for k, x in v["event_b0"].items()}}
         if v.get("h"):
             numbers.update(h={k: round(float(x), 6) for k, x in v["h"].items()},
                            b={k: round(float(x), 6) for k, x in v["b"].items()}, k_pp=dict(v["k_pp"]),
-                           weeks=int(v["weeks"]), printed={"h": percents(v["h"]), "b": percents(v["b"])})
-        reason = f"LANDMARK_{v['landmark']}" + ("_OUT_OF_CORRIDOR" if v["outside_corridor"] else "")
+                           weeks=int(v["weeks"]), d_pp=dict(v["d_pp"]), ci95_pp=dict(v["ci95_pp"]),
+                           printed={"h": dict(v["printed_h"]), "b": dict(v["printed_b"])})
+        reason = f"LANDMARK_{v['landmark']}" + ("_OUT_OF_CORRIDOR" if v["out_of_corridor"] else "")
         out.append(claim_row(v["class"], issued_at=now, issue_slot=at, as_of=at, subject=subject,
                              subject_key=subject_key(v), numbers=numbers,
                              rule_version=f"{LEVEL_RACE_VERSION}+{LIVE_VERSION}+{STRUCTURAL_VERSION}+mode:{mode}",

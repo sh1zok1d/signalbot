@@ -1,6 +1,7 @@
 """Level race, live side (beta/level_race_live.py): the HIST journal at T0 / T15, the outcome rule
 LEVEL_RACE_4H_V1 against the #352 `classify`, the /levels and /check lines, the flags and the display
-links. A parity module (it imports the #352 outcome rule from scripts.research). Synthetic bars only."""
+links. The parity of the outcome rule with #352 is in tests/research/test_level_race_outcome_parity.py
+(tests/beta never imports scripts.research). Synthetic bars only."""
 import asyncio
 import math
 import re
@@ -14,6 +15,7 @@ from beta import level_race_live as LR
 from beta.config import BetaConfig
 from beta.hist_series import BAR_MS, BARS_PER_DAY, Bars
 from beta.level_race import load_hist_table
+from beta.i18n import assert_descriptive
 from beta.levels import structural_first_touches
 
 T0_2021 = 1609459200000
@@ -22,7 +24,7 @@ TABLE = load_hist_table()
 FORBIDDEN = re.compile(r"пробо|отбо|BREAK|REJECT|BEYOND|BACK\b|покуп|прода|лонг|шорт|long|short", re.IGNORECASE)
 
 
-def _bars(days=40, seed=7, vol=0.0025):
+def _bars(days=80, seed=7, vol=0.0025):
     rng = np.random.default_rng(seed)
     n = days * BARS_PER_DAY
     c = 30000.0 * np.exp(np.cumsum(rng.normal(0, vol, n)))
@@ -126,22 +128,6 @@ def test_claim_rows_carry_the_shown_numbers_b0_prices_and_mode():
     assert "mode:HIST" in r["rule_version"]
 
 
-def test_outcome_rule_equals_the_352_classify():
-    from scripts.research.level_touch_degradation_v1.outcomes import classify as r352
-    names = {}
-    checked = 0
-    for e in EVS:
-        y = r352(B.high, B.low, e["j"], e["side"], e["zone_low"], e["zone_high"], e["x"], 48)
-        mine = LR.classify(B, touch_open_ms=e["touch_open_ms"], landmark="T0", p_up=e["zone_high"] * (1 + e["x"]),
-                           p_dn=e["zone_low"] * (1 - e["x"]))
-        up_is_break = e["side"] > 0
-        want = {"BREAK": "UP" if up_is_break else "DN", "REJECT": "DN" if up_is_break else "UP"}.get(y, y)
-        assert mine["usable"] and mine["outcome"] == want, (e["event_id"], y, mine)
-        names[want] = names.get(want, 0) + 1
-        checked += 1
-    assert checked > 15 and len(names) >= 2
-
-
 def test_t15_window_starts_at_j_plus_3():
     e, v = _t15_event()
     b = _bars()
@@ -208,8 +194,18 @@ def test_t15_line_is_shown_until_the_race_is_decided_and_never_says_break_or_rej
     ru = race_lines(blk, "ru", "levels")[1]
     if v["template"] == "LR_HIST_V1":
         assert "верхняя" in ru and "нижняя" in ru and "ни одна" in ru and "обычно" in ru and "2020–2024" in ru
-    # before T15: nothing; after a barrier is reached: nothing; after the window: nothing
-    assert _block(_cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 60_000), price)["level_race"]["races"] == []
+        assert ru.count("разница") == 3 and ru.count("95 % интервал") == 3 and "±" not in ru
+        r0 = blk["level_race"]["races"][0]
+        d = r0["printed_h"]["up"] - r0["printed_b"]["up"]          # the shown difference = the shown numbers
+        assert f"разница {'0' if d == 0 else (f'+{d}' if d > 0 else f'−{-d}')} п.п." in ru
+        assert assert_descriptive(ru, "ru") and "↳ цена вошла в зону" in race_lines(blk, "ru", "levels")[0]
+    # before T0: nothing; between T0 and T15 the T0 statement (the push's full line) unless the touch close
+    # lies outside the barrier pair; after a barrier is reached: nothing; after the window: nothing
+    assert not [r for r in _block(_cut(B, e["t0_ms"] - BAR_MS), _ts(e["t0_ms"] - 1), price)["level_race"]["races"]
+                if r["event_id"] == e["event_id"]]
+    early = [r for r in _block(_cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 60_000), float(B.close[e["j"]]))["level_race"]["races"]
+             if r["event_id"] == e["event_id"]]
+    assert all(r["landmark"] == "T0" for r in early)
     assert _block(b, _ts(at), v["p_up"] * 1.001)["level_race"]["races"] == []
     end = e["window_end_ms"]
     assert not [r for r in _block(_cut(B, end), _ts(end + 60_000), price)["level_race"]["races"]
@@ -275,3 +271,37 @@ def test_decision_block_is_off_when_the_table_does_not_verify(monkeypatch):
     assert out["state"] == "OFF" and out["races"] == [] and out["error_type"] == "RuntimeError"
     monkeypatch.undo()
     assert decision._level_race(b, _ts(e["t15_ms"] + 60_000), float(b.close[-1]))["state"] == "HIST"
+
+
+def test_a_hidden_line_never_comes_back():
+    """A barrier reached on a closed bar after T15 hides the line for good, even after the price returns
+    inside; a barrier inside the current 5m bar (closed 1m bars only) hides it too."""
+    e, v = _t15_event()
+    j = e["j"]
+    b = _bars()
+    b.high[j + 4] = v["p_up"] * 1.0005                     # reached on a closed bar after T15 ...
+    later = _cut(b, e["t15_ms"] + 5 * BAR_MS)
+    back_inside = (v["p_up"] + v["p_dn"]) / 2               # ... then back inside the pair
+    for k in range(1, 4):                                   # on every later request, not only the first
+        at = _ts(e["t15_ms"] + (4 + k) * BAR_MS + 60_000)
+        shown = LR.display_block(_cut(b, e["t15_ms"] + (4 + k) * BAR_MS), at, TABLE, price=back_inside)
+        assert all(r["event_id"] != e["event_id"] for r in shown["races"])
+    tape = _cut(B, e["t15_ms"])
+    one_min = [{"ts": _ts(e["t15_ms"]), "high": v["p_up"] * 1.0005, "low": v["p_dn"] * 1.0005, "close": back_inside}]
+    shown = LR.display_block(tape, _ts(e["t15_ms"] + 90_000), TABLE, price=back_inside, closed_1m=one_min)
+    assert all(r["event_id"] != e["event_id"] for r in shown["races"])
+
+
+def test_journal_off_writes_nothing_and_reads_no_bars():
+    class NoBars(dict):
+        def get(self, key, default=None):
+            raise AssertionError(f"bars read with the journal off: {key}")
+
+        def __getitem__(self, key):
+            raise AssertionError(f"bars read with the journal off: {key}")
+
+    class NoWrites:
+        def __getattr__(self, name):
+            raise AssertionError(f"journal touched with the flag off: {name}")
+    assert asyncio.run(cj.record_level_race(NoWrites(), BetaConfig.load(), now=_ts(EVS[0]["t0_ms"]),
+                                            capture=NoBars())) == {"race_written": 0}

@@ -30,8 +30,8 @@ MIN_PRESENT = 0.9                      # #352: share of finite window bars neede
 SETTINGS = {"journal": "level_race.journal_enabled", "display": "level_race.display_enabled",
             "model_states": "level_race.model_states_enabled"}
 CLASSES = {
-    "L2_LEVEL_RACE_HIST_T0_4H": {"landmark": "T0", "rule": "LEVEL_RACE_4H_V1", "display": ("alert",),
-                                 "templates": ("LR_PUSH_HIST_V1", "LR_HIST_LOW_N_V1"), "from": "Day 0"},
+    "L2_LEVEL_RACE_HIST_T0_4H": {"landmark": "T0", "rule": "LEVEL_RACE_4H_V1", "display": ("alert", "levels", "check"),
+                                 "templates": ("LR_PUSH_HIST_V1", "LR_HIST_V1", "LR_HIST_LOW_N_V1"), "from": "Day 0"},
     "L2_LEVEL_RACE_HIST_T15_4H": {"landmark": "T15", "rule": "LEVEL_RACE_4H_V1", "display": ("levels", "check"),
                                   "templates": ("LR_HIST_V1", "LR_HIST_LOW_N_V1"), "from": "Day 0"},
     # model states and the shadow streams: journaled from the model freeze (not written yet)
@@ -73,10 +73,10 @@ def landmark_ms(ev: Mapping[str, Any], landmark: str) -> int:
 
 
 def _geo(ev: Mapping[str, Any]) -> Optional[dict]:
-    from .level_race import geometry
-    if not ev.get("eligible") or ev.get("sigma") is None:
+    """The race geometry of the event itself (beta.levels is its one source: σ, X, P_UP, P_DN)."""
+    if not ev.get("eligible") or ev.get("p_up") is None or ev.get("p_dn") is None:
         return None
-    return geometry(float(ev["zone_low"]), float(ev["zone_high"]), float(ev["sigma"]), int(ev["side"]))
+    return {"x": float(ev["x"]), "p_up": float(ev["p_up"]), "p_dn": float(ev["p_dn"]), "beyond_is_up": int(ev["side"]) > 0}
 
 
 def landmark_view(b: Bars, ev: Mapping[str, Any], landmark: str, table: Mapping[str, Any]) -> Optional[dict]:
@@ -126,28 +126,46 @@ def due_landmarks(b: Optional[Bars], now: datetime, table: Mapping[str, Any]) ->
     return out
 
 
-def _resolved_since(b: Bars, v: Mapping[str, Any], price: Optional[float]) -> bool:
-    """A barrier was already reached after the landmark (closed bars, then the last price)."""
+def _after(b: Bars, closed_1m, v: Mapping[str, Any]) -> tuple:
+    """Highs and lows of every closed bar after the landmark: the 5m tape and every closed 1m bar after
+    the landmark (a barrier reached inside the current 5m bar, or inside a 5m bar the tape lacks for a
+    missing minute, already hides the line)."""
     j = _bar(b, v["touch_open_ms"])
-    for k in range(j + LANDMARK_BARS[v["landmark"]] + 1, b.n):
-        if (math.isfinite(b.high[k]) and b.high[k] >= v["p_up"]) or (math.isfinite(b.low[k]) and b.low[k] <= v["p_dn"]):
-            return True
-    return price is not None and not (v["p_dn"] < float(price) < v["p_up"])
+    a = j + LANDMARK_BARS[v["landmark"]] + 1
+    highs, lows = list(b.high[a:]), list(b.low[a:])
+    for r in closed_1m or ():
+        if to_ms(r["ts"]) >= v["landmark_ms"]:
+            highs.append(float(r["high"]))
+            lows.append(float(r["low"]))
+    return [h for h in highs if math.isfinite(h)], [x for x in lows if math.isfinite(x)]
 
 
 def display_block(b: Optional[Bars], now: datetime, table: Optional[Mapping[str, Any]], *,
-                  price: Optional[float] = None) -> dict:
-    """What /levels and /check show: the T15 statement of every event whose window is still open and
-    whose race is not decided yet. `available` False (state OFF) when the table did not load."""
+                  price: Optional[float] = None, closed_1m=()) -> dict:
+    """What /levels and /check show for every event whose window is open and whose race is not decided:
+    the T0 statement until T15 (the push's full line, one tap away; none when the touch close lies
+    outside the barrier pair), then the T15 statement. Visibility is `beta.level_race.t15_visible`
+    (architect, 2026-10-08): hidden once a barrier is reached on a closed bar after the landmark or the
+    price is beyond P_UP / P_DN, and never back — the bars that hid it stay in the tape, so the same
+    inputs give the same answer on every later request. State OFF when the table did not load."""
+    from .level_race import t15_visible
     if table is None:
         return {"state": "OFF", "races": []}
     now_ms = to_ms(now)
     races = []
     for ev in events(b):
-        if not (landmark_ms(ev, "T15") <= now_ms < int(ev["window_end_ms"])):
+        if not (landmark_ms(ev, "T0") <= now_ms < int(ev["window_end_ms"])):
             continue
-        v = landmark_view(b, ev, "T15", table)
-        if v is None or _resolved_since(b, v, price):
+        v = landmark_view(b, ev, "T15", table) if now_ms >= landmark_ms(ev, "T15") else None
+        if v is None and now_ms >= landmark_ms(ev, "T15"):
+            continue                                    # no T15 statement: the race moved on j+1 / j+2
+        if v is None:
+            v = landmark_view(b, ev, "T0", table)
+            if v is None or not v["display"]:
+                continue
+        highs, lows = _after(b, closed_1m, v)
+        geo = {"p_up": v["p_up"], "p_dn": v["p_dn"]}
+        if price is None or not t15_visible(highs, lows, price, geo, now_ms=now_ms, end_ms=v["end_ms"]):
             continue
         races.append(_public(v))
     return {"state": "HIST", "races": races}
@@ -155,7 +173,8 @@ def display_block(b: Optional[Bars], now: datetime, table: Optional[Mapping[str,
 
 def _public(v: Mapping[str, Any]) -> dict:
     keep = ("class", "event_id", "landmark", "kind", "member_kinds", "cell", "ladder_level", "template", "n",
-            "h", "b", "k_pp", "p_up", "p_dn", "end_ms", "landmark_ms", "touch_open_ms", "zone_low", "zone_high")
+            "h", "b", "printed_h", "printed_b", "d_pp", "ci95_pp", "p_up", "p_dn", "end_ms", "landmark_ms",
+            "touch_open_ms", "zone_low", "zone_high")
     return {k: v[k] for k in keep if k in v}
 
 
