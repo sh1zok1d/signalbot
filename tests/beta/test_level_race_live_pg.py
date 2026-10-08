@@ -191,3 +191,40 @@ def test_structural_push_is_delivered_with_its_race_line_and_linked():
         assert links == [{"claim_class": "L2_LEVEL_RACE_HIST_T0_4H", "surface": "alert"}]
         await pool.close()
     run(body())
+
+
+def test_structural_push_without_its_t0_record_has_no_race_line(monkeypatch):
+    """Fail closed: the journal write throws, the notifier run goes on, and the push goes out without the race
+    line (no line is ever shown without its record)."""
+    from beta import claims as cjm
+    from beta.decision import reset_cache
+    from beta.delivery import run_notify_once
+    from beta.history_stats import run_history_build
+    from beta_fakes import ON_PUSH, Clock
+    from runtime.beta_bot import BetaBotHandler
+    from test_beta_v2_pg import A, DAY, NOW, Sender, _join, _rows, _seed, plain
+
+    async def boom(*_a, **_k):
+        raise RuntimeError("journal down")
+
+    async def body():
+        reset_cache()
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        seed = await _seed(pool)
+        async with pool.acquire() as c:
+            await c.execute("UPDATE klines_1m SET close = $1, high = GREATEST(high, $1) WHERE ts = $2",
+                            seed["pdh"] * 0.9995, DAY + timedelta(minutes=359))
+        cfg = _cfg(journal_enabled=True, display_enabled=True, push_trigger="structural")
+        assert (await run_history_build(store, cfg, now=DAY + timedelta(hours=2)))["status"] == "OK"
+        h = BetaBotHandler(store, cfg, switches=lambda: ON_PUSH, owner_user_id=A, clock=Clock(NOW - timedelta(hours=1)))
+        await _join(h, A, 100)
+        monkeypatch.setattr(cjm, "record_level_race", boom)
+        s = Sender()
+        r = await run_notify_once(store, cfg, ON_PUSH, sender=s, clock=Clock(NOW))
+        assert r["market"]["level_race"] == {"error": "RuntimeError"}
+        msgs = [plain(x[1]) for x in s.sent if x[0] == A and "вошла в зону" in plain(x[1])]
+        assert len(msgs) == 1 and "2020–2024" not in msgs[0]
+        assert await _rows(pool, "SELECT 1 FROM beta_claims WHERE claim_class LIKE 'L2_LEVEL_RACE%'") == []
+        await pool.close()
+    run(body())

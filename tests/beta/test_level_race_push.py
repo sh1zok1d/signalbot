@@ -124,3 +124,40 @@ def test_no_race_line_in_the_push_inside_the_4h_event_zone():
     c = next(x for x in MA.level_touch_candidates(cfg, blk, b, [], now=now, max_age=MAX_AGE, stats=None)
              if x["key"] == f"level:{e['event_id']}")
     assert c["payload"]["race"] is None and "2020–2024" not in format_alert("level", c["payload"], "ru")
+
+
+def test_push_race_line_only_with_its_journal_record():
+    import asyncio
+    e = _event_with_line()
+    cfg = _cfg(push_trigger="structural", journal_enabled=True, display_enabled=True)
+    b, now = _cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 30_000)
+
+    def cand():
+        return next(x for x in MA.level_touch_candidates(cfg, _block(b, now), b, [], now=now, max_age=MAX_AGE,
+                                                         stats=None) if x["key"] == f"level:{e['event_id']}")
+
+    class Conn:
+        def __init__(self, keys=(), boom=False):
+            self.keys, self.boom = set(keys), boom
+
+        async def fetch_slot_claims(self, *, issue_slot, classes):
+            if self.boom:
+                raise RuntimeError("db down")
+            return [{"claim_class": c, "subject_key": k} for c, k in self.keys if c in classes]
+    for conn in (Conn(), Conn(boom=True)):                       # no record, or no proof of one: no line
+        c = cand()
+        asyncio.run(MA._race_lines_journaled_only(conn, [c]))
+        assert c["payload"]["race"] is None and c["payload"]["race_not_journaled"] is True
+        assert "2020–2024" not in format_alert("level", c["payload"], "ru")
+    c = cand()
+    asyncio.run(MA._race_lines_journaled_only(Conn({("L2_LEVEL_RACE_HIST_T0_4H", f"{e['event_id']}:T0")}), [c]))
+    assert c["payload"]["race"] is not None
+
+
+def test_structural_push_needs_max_age_within_the_write_window():
+    base = BetaConfig.load()
+    dec = dict(base.raw["decision"])
+    dec["market_alerts"] = {**dict(dec["market_alerts"]), "touch_max_age_min": 15}
+    with pytest.raises(Exception, match="touch_max_age_min"):
+        base.with_overrides(decision=dec, level_race={**dict(base.raw["level_race"]), "push_trigger": "structural"})
+    base.with_overrides(decision=dec)                              # legacy keeps any max age

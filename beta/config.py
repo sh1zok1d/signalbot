@@ -390,6 +390,10 @@ def _validate_level_race(d: Mapping[str, Any]) -> None:
         _bool(x[key], f"level_race.{key}")
     if x["push_trigger"] not in ("legacy", "structural"):
         raise BetaConfigError("level_race.push_trigger must be legacy or structural")
+    if x["push_trigger"] == "structural" and int(d["decision"]["market_alerts"]["touch_max_age_min"]) > 10:
+        # the T0 record is written within 10 min of the landmark (level_race_live.WRITE_WINDOW_MS): a later push
+        # could never carry its line
+        raise BetaConfigError("level_race.push_trigger structural needs decision.market_alerts.touch_max_age_min <= 10")
     if x["display_enabled"] and not (x["journal_enabled"] and d["decision"]["claim_journal"]):
         raise BetaConfigError("level_race.display_enabled needs level_race.journal_enabled and decision.claim_journal: "
                               "every shown line must have its journal record")

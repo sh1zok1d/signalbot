@@ -485,6 +485,26 @@ async def _journal_level_touch(conn, cand: Mapping[str, Any], decision: str, *, 
         logger.warning("claim journal (level touch) failed: %s", type(exc).__name__)
 
 
+async def _race_lines_journaled_only(conn, cands: list) -> None:
+    """Fail closed: a structural push carries its T0 race line only when the T0 journal record exists (the
+    journal write may have failed, or the landmark may lie outside its write window); otherwise the push goes
+    out without the line, as /levels does (decision._journaled_only)."""
+    fetch = getattr(conn, "fetch_slot_claims", None)
+    for c in cands:
+        race = (c.get("payload") or {}).get("race")
+        if c.get("kind") != "level" or not race:
+            continue
+        have = []
+        if fetch is not None:
+            try:
+                have = await fetch(issue_slot=from_ms(int(race["landmark_ms"])), classes=[race["class"]])
+            except Exception as exc:  # noqa: BLE001 - no proof of the record: no line
+                logger.warning("level race record check failed: %s", type(exc).__name__)
+        if not any(x["subject_key"] == f"{race['event_id']}:{race['landmark']}" for x in have):
+            c["payload"]["race"] = None
+            c["payload"]["race_not_journaled"] = True
+
+
 async def _journal_race(conn, cfg: BetaConfig, cap: Mapping[str, Any], *, now: datetime) -> dict:
     from .claims import record_level_race
     try:
@@ -548,6 +568,7 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
         if d["claim_journal"]:
             # the race landmarks first: a structural push links its T0 line to that record below
             rep["level_race"] = await _journal_race(conn, cfg, cap, now=now)
+        await _race_lines_journaled_only(conn, cands)
         known = await conn.market_alert_keys([c["key"] for c in cands]) if cands else set()
         for c in cands:
             if c["key"] in known:
