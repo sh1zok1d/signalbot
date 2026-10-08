@@ -304,6 +304,10 @@ DECISION_CATALOG: dict = {
                              "{clock} — first touch this {period} · price {price} (Binance, {price_clock})"),
     "pa_level_now": _pair("{clock} · цена {price} (Binance) — первое касание за {period}",
                           "{clock} · price {price} (Binance) — first touch this {period}"),
+    "pa_zone_now_at": _pair("{clock} — цена вошла в зону {name} {low}–{high}, первый раз за {period} · цена {price} "
+                            "(Binance, {price_clock})",
+                            "{clock} — the price entered the {name} zone {low}–{high}, the first time this {period} · "
+                            "price {price} (Binance, {price_clock})"),
     "pa_period_day": _pair("день", "day"),
     "pa_period_week": _pair("неделю", "week"),
     "pa_period_month": _pair("месяц", "month"),

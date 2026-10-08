@@ -218,3 +218,5 @@ beta:
     journal_enabled: false                  # L2_LEVEL_RACE_HIST_{T0,T15}_4H at every landmark, shown or not
     display_enabled: false                  # the T15 HIST line in /levels and /check
     model_states_enabled: false             # HIST -> model states: one dated switch; inert until a model is frozen
+    push_trigger: legacy                    # level-touch push: legacy (exact price) | structural (#352 zone entry
+                                            # at the 5m close, with the T0 race line instead of the hold history)

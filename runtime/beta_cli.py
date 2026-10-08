@@ -306,10 +306,12 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
         async with store.connect() as conn:
             if not await conn.schema_present():
                 return {"status": "NOT_INITIALIZED"}
-            from beta.claims import claims_report
-            since = clock() - timedelta(days=max(1, int(args.claims_days)))
-            return {"status": "OK", "since": since.isoformat(),
-                    "claims": claims_report(await conn.fetch_claim_cohort(since=since))}
+            from beta.claims import claims_report, level_race_coverage
+            now = clock()
+            since = now - timedelta(days=max(1, int(args.claims_days)))
+            rows = await conn.fetch_claim_cohort(since=since)
+            return {"status": "OK", "since": since.isoformat(), "claims": claims_report(rows),
+                    "level_race_coverage": await level_race_coverage(conn, cfg, rows, since=since, now=now)}
     if args.beta_hypotheses_export:
         store = db.beta_store()
         async with store.connect() as conn:
