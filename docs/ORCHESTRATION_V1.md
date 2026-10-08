@@ -86,6 +86,6 @@ Decisions live in documents on main, not in chat. A decision given in a session 
 | ОПГ-1 track A | `session_01YF4xzq3ofq7NKS8daimahf` | `claude/signalbot-prebeta-backlog-c1yqg0` |
 | ОПГ-1 track B | `session_013RP6YCG63Jdzff8dcz4GqV` | `claude/signalbot-evaluator-comparison-jyvj1h` |
 | ОПГ-1 research (idle) | `session_01Ark63JX6mZenzMdR4tZotQ` | `ccr-acce4a3e-eyc9rh` |
-| ОПГ-2 mini-head | created 2026-10-08 (id added on creation) | its own |
+| ОПГ-2 mini-head | `session_01E8Cb7vqxs52Lu2tLBxkicT` | its own (started from `ccr-174417bb-r3l40b`) |
 | ОПГ-2 tracks | created by ОПГ-2 | their own |
 | Level Engine chain (Cursor) | stopped 2026-10-08; chain owned by ОПГ-2 | `cursor/level-*-08d8` (merged by PR #376) |
