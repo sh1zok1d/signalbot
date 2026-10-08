@@ -77,8 +77,15 @@ def test_brief_command_turns_the_morning_summary_on_and_off():
         assert (await _rows(pool, "SELECT brief_enabled FROM beta_users"))[0]["brief_enabled"] is False
         await h.handle(_msg(ALICE, "/brief on", 7))
         assert (await _rows(pool, "SELECT brief_enabled FROM beta_users"))[0]["brief_enabled"] is True
+        out = await h.handle(_msg(ALICE, "/brief 7:30", 8))                 # the participant's own time (E3)
+        assert out[0].html == "Morning briefing at 07:30 Kyiv."
+        assert (await _rows(pool, "SELECT brief_time FROM beta_users"))[0]["brief_time"] == "07:30"
+        out = await h.handle(_msg(ALICE, "/brief", 9))
+        assert "Morning briefing: on, at 07:30 Kyiv." in out[0].html
+        out = await h.handle(_msg(ALICE, "/brief 25:00", 10))               # not a time: the usage
+        assert "Morning briefing: on" in out[0].html
         acts = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity")]
-        assert acts.count("cmd_brief") == 3
+        assert acts.count("cmd_brief") == 6
         await pool.close()
     run(body())
 
@@ -121,6 +128,35 @@ def test_brief_is_sent_once_per_day_through_the_outbox_and_never_touches_pushes(
         assert views == [{"kind": "brief"}]
         acts = await _rows(pool, "SELECT action FROM beta_user_activity")
         assert acts == [{"action": "brief_delivered"}]
+        await pool.close()
+    run(body())
+
+
+def test_each_participant_gets_the_briefing_at_their_own_time_and_zone():
+    """Backlog E3 / C5: a slot per participant (their time on their clock), one row per local date."""
+    async def body():
+        from beta.delivery import run_notify_once
+        pool = await _setup()
+        await _detect(pool, ScenarioReader(quiet), B0)
+        async with pool.acquire() as c:
+            await c.execute(
+                "INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at, joined_at,"
+                " stopped_at, lang, brief_enabled, brief_time, tz) VALUES"
+                " (31, 31, 'ACTIVE', now(), now(), NULL, 'en', TRUE, NULL, NULL),"            # 08:00 Kyiv = 05:00 UTC
+                " (32, 32, 'ACTIVE', now(), now(), NULL, 'en', TRUE, '06:30', NULL),"         # 03:30 UTC
+                " (33, 33, 'ACTIVE', now(), now(), NULL, 'en', TRUE, NULL, 'UTC+00:00')")     # 08:00 UTC
+        s = FakeSender()
+        sent = []
+        for at, who in ((B0 + timedelta(hours=3, minutes=31), [32]), (SLOT + timedelta(minutes=1), [31]),
+                        (B0 + timedelta(hours=8, minutes=1), [33]), (B0 + timedelta(hours=9), [])):
+            r = await run_notify_once(BetaStore(pool), BRIEF_ON, ON_PUSH, sender=s, clock=Clock(at))
+            assert r["briefs"]["scheduled"] == len(who) and [x[0] for x in s.sent[len(sent):]] == who, at
+            sent = list(s.sent)
+        assert "Data as of 00:05 UTC+0" in s.sent[2][1] and "Kyiv" not in s.sent[2][1]   # their zone (C5)
+        assert "Data as of 03:05 Kyiv" in s.sent[0][1]
+        rows = await _rows(pool, "SELECT brief_date::text AS d, count(*) AS n FROM beta_notification_deliveries "
+                                 "WHERE kind='brief' GROUP BY 1")
+        assert rows == [{"d": "2026-04-10", "n": 3}]
         await pool.close()
     run(body())
 
@@ -209,5 +245,54 @@ def test_u1a_withdrawal_day_withholds_the_brief_for_everyone_and_records_it():
         if (next_day.date()) not in brief_withdrawal_dates(withdrawn.section("briefing")):
             r2 = await run_notify_once(BetaStore(pool), withdrawn, ON_PUSH, sender=s, clock=Clock(next_day))
             assert r2["briefs"]["sent"] == 1 and r2["briefs"]["withheld"] == 0
+        await pool.close()
+    run(body())
+
+
+def test_u1a_withdrawal_days_are_the_participants_local_dates():
+    """Owner requirement for package 4: a withdrawal day is matched against each participant's own briefing
+    date (their local date), not Kyiv's. The frozen rule here withdraws 2026-04-10 (a Friday); the 11th is a
+    Saturday and never a withdrawal day."""
+    from beta.delivery import brief_withdrawal_dates, run_notify_once
+    day = SLOT.date()
+    shape = {"seed": 20261003, "count": 3, "first_cohort_day": 14, "last_cohort_day": 27}
+    day0 = next(day - timedelta(days=n) for n in range(14, 28)
+                if day in brief_withdrawal_dates({"withdrawal": {**shape, "day0_kyiv": (day - timedelta(days=n)).isoformat()}}))
+    rule = {**shape, "day0_kyiv": day0.isoformat()}
+    dates = brief_withdrawal_dates({"withdrawal": rule})
+    assert day in dates and day + timedelta(days=1) not in dates
+    withdrawn = BRIEF_ON.with_overrides(briefing={**dict(BRIEF_ON.section("briefing")), "withdrawal": rule})
+
+    async def body():
+        pool = await _setup()
+        await _detect(pool, ScenarioReader(quiet), B0)
+        async with pool.acquire() as c:
+            await c.execute(
+                "INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at, joined_at,"
+                " stopped_at, lang, brief_enabled, brief_time, tz) VALUES"
+                " (41, 41, 'ACTIVE', now(), now(), NULL, 'en', TRUE, NULL, NULL),"              # 08:00 Kyiv
+                " (42, 42, 'ACTIVE', now(), now(), NULL, 'en', TRUE, '22:00', 'UTC-05:00'),"    # 03:00 UTC next day
+                " (43, 43, 'ACTIVE', now(), now(), NULL, 'en', TRUE, '01:00', 'UTC+05:30')")    # 19:30 UTC day before
+        s = FakeSender()
+        # 05:01 UTC on the 10th: 08:01 in Kyiv, the 10th there: withheld
+        r = await run_notify_once(BetaStore(pool), withdrawn, ON_PUSH, sender=s, clock=Clock(SLOT + timedelta(minutes=1)))
+        assert (r["briefs"]["scheduled"], r["briefs"]["withheld"]) == (1, 1)
+        # 19:31 UTC on the 10th: still the 10th in Kyiv, already 01:01 on the 11th at +05:30: sent
+        r = await run_notify_once(BetaStore(pool), withdrawn, ON_PUSH, sender=s,
+                                  clock=Clock(B0 + timedelta(hours=19, minutes=31)))
+        assert (r["briefs"]["scheduled"], r["briefs"]["sent"], r["briefs"]["withheld"]) == (1, 1, 0)
+        # 03:01 UTC on the 11th: the 11th in Kyiv, still 22:01 on the 10th at −05:00: withheld
+        r = await run_notify_once(BetaStore(pool), withdrawn, ON_PUSH, sender=s,
+                                  clock=Clock(B0 + timedelta(days=1, hours=3, minutes=1)))
+        assert (r["briefs"]["scheduled"], r["briefs"]["withheld"]) == (1, 1)
+        rows = await _rows(pool, "SELECT u.telegram_user_id AS uid, d.brief_date::text AS d, d.state, "
+                                 "d.suppression_reason AS why FROM beta_notification_deliveries d "
+                                 "JOIN beta_users u USING (user_pk) WHERE d.kind='brief' ORDER BY 1")
+        assert rows == [{"uid": 41, "d": "2026-04-10", "state": "SUPPRESSED", "why": "BRIEF_WITHDRAWAL"},
+                        {"uid": 42, "d": "2026-04-10", "state": "SUPPRESSED", "why": "BRIEF_WITHDRAWAL"},
+                        {"uid": 43, "d": "2026-04-11", "state": "SENT", "why": None}]
+        acts = await _rows(pool, "SELECT u.telegram_user_id AS uid, a.detail FROM beta_user_activity a "
+                                 "JOIN beta_users u USING (user_pk) WHERE a.action='brief_withheld' ORDER BY 1")
+        assert acts == [{"uid": 41, "detail": "2026-04-10"}, {"uid": 42, "detail": "2026-04-10"}]
         await pool.close()
     run(body())

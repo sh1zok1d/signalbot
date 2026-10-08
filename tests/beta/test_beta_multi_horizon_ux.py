@@ -643,7 +643,7 @@ $0* — ноль по неполным данным: это не значит, �
 н/д — данных нет или они неполные. Это не ноль.
 × от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней. Сравнение появляется, когда накоплено 20 дней истории.
 ↑ ↓ — только направление, не сила.
-Время — киевское.
+Время — по вашему часовому поясу (по умолчанию Киев; /tz).
 High impact — за прошлый календарный час цена прошла много относительно объёма торгов. Исторически следующий час был таким же примерно в 1 из 5 случаев (обычно 1 из 10). Направление цены это не показывает."""
 
 EN_TERMS = """TERMS
@@ -674,7 +674,7 @@ $0* — zero from incomplete data: it does not mean there were no liquidations.
 n/a — no data or incomplete data. This is not zero.
 × usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median. The comparison appears once 20 days of history are collected.
 ↑ ↓ — direction only, not strength.
-Time — Kyiv time.
+Time — your time zone (Kyiv by default; /tz).
 High impact — in the last clock hour the price moved a lot relative to traded volume. Historically the following hour was like this about 1 in 5 times (usually 1 in 10). It says nothing about price direction."""
 
 
