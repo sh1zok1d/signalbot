@@ -613,6 +613,10 @@ RACE_BARS = 48                                    # the original 4h window, bars
 RACE_BARRIER_FRACTION = 0.5
 RACE_X_MIN, RACE_X_MAX = 1e-8, 0.5
 T15_OFFSET_BARS = 2                               # T15 = close of bar j+2
+# A level can be absorbed only by an episode active at its birth, and an episode lasts at most a calendar
+# month: an episode born less than this after the tape's first bar may have lost a host that started
+# before the tape. Its event is flagged WINDOW_TOO_SHORT, never silently kept (the live tape is 70 days).
+ABSORPTION_LOOKBACK_MS = 32 * 86_400_000
 
 
 def sigma_at(close: np.ndarray, j: int, *, window: int = RACE_SIGMA_BARS,
@@ -637,11 +641,12 @@ def race_x(sigma: float) -> float:
     return RACE_BARRIER_FRACTION * RACE_CORRIDOR_Z * float(sigma) * math.sqrt(RACE_BARS)
 
 
-def structural_levels(b: Bars) -> list:
+def structural_levels(b: Bars, *, require_active_complete: bool = False) -> list:
     """Previous-period highs and lows, each active over the next period only. The source period
     must be complete under `_full_period`. #352 also drops a level whose ACTIVE period ends
     incomplete; that is known only after the period, so it is only flagged (`active_complete`,
-    False while the period is still running) and the history parity test applies it."""
+    False while the period is still running). `require_active_complete` drops such levels before the
+    episodes are built, as #352 does on a closed surface: the history parity test only."""
     keys = period_keys(b)
     out = []
     for name, pref, exp in (("day", "D", BARS_PER_DAY), ("week", "W", 7 * BARS_PER_DAY), ("month", "M", None)):
@@ -649,6 +654,8 @@ def structural_levels(b: Bars) -> list:
         for p in range(1, len(periods)):
             prev, cur = periods[p - 1], periods[p]
             if prev["key"] != cur["key"] - 1 or not _full_period(prev, exp):
+                continue
+            if require_active_complete and not _full_period(cur, exp):
                 continue
             for kind, price in ((f"P{pref}H", prev["high"]), (f"P{pref}L", prev["low"])):
                 if not math.isfinite(price) or price <= 0 or not math.isfinite(cur["open"]):
@@ -736,16 +743,19 @@ def _approach_side(b: Bars, j: int, i0: int, zlo: float, zhi: float) -> int:
 
 
 def structural_first_touches(b: Bars, *, zone_half: float = STRUCT_ZONE_HALF,
-                             sigma: Optional[np.ndarray] = None) -> list:
+                             sigma: Optional[np.ndarray] = None, require_active_complete: bool = False) -> list:
     """Touch 1 of every structural episode in `b` (closed 5m bars only): the first bar of the
     active period whose range meets the zone. Each carries its landmarks (T0 = close of the touch
     bar, T15 = close of bar j+2), the approach side, the scale σ known before the touch, the barrier
-    distance X and the two barrier prices (BREAK beyond the zone in the approach
+    distance X, the upper / lower barrier prices `p_up` / `p_dn` (the one source of the race geometry)
+    and the same two as BREAK / REJECT (BREAK beyond the zone in the approach
     direction, REJECT back beyond its near edge; internal names, never user words), and `eligible` with the reason when not. Whether the
     4h window later has enough bars is an outcome-time question and is not decided here.
-    `sigma` replaces the scale per bar (tests only)."""
+    `sigma` replaces the scale per bar and `require_active_complete` applies the #352 closed-surface
+    drop (tests only)."""
     out = []
-    for ep in structural_episodes(b, zone_half=zone_half):
+    levels = structural_levels(b, require_active_complete=require_active_complete)
+    for ep in structural_episodes(b, levels, zone_half=zone_half):
         i0, i1 = ep["i0"], min(ep["i1"], b.n - 1)
         j = next((k for k in range(i0, i1 + 1) if _hits(b, k, ep["zone_low"], ep["zone_high"])), None)
         if j is None:
@@ -758,6 +768,8 @@ def structural_first_touches(b: Bars, *, zone_half: float = STRUCT_ZONE_HALF,
             (ep["zone_low"] * (1.0 - x), ep["zone_high"] * (1.0 + x))
         touch_ms = int(b.t0 + j * BAR_MS)
         reason = None if usable and side in (1, -1) else ("SIGMA_UNUSABLE" if not usable else "SIDE_UNKNOWN")
+        if ep["active_open_ms"] - b.t0 < ABSORPTION_LOOKBACK_MS:
+            reason = "WINDOW_TOO_SHORT"
         out.append({**{k: v for k, v in ep.items() if k not in ("i0", "i1", "priority")},
                     "version": STRUCTURAL_VERSION, "zone_half": float(zone_half), "j": int(j),
                     "touch_open_ms": touch_ms, "t0_ms": touch_ms + BAR_MS,
@@ -766,5 +778,7 @@ def structural_first_touches(b: Bars, *, zone_half: float = STRUCT_ZONE_HALF,
                     "sigma": s if math.isfinite(s) else None, "x": x if math.isfinite(x) else None,
                     "break_barrier": float(brk) if usable and side else None,
                     "reject_barrier": float(rej) if usable and side else None,
+                    "p_up": float(ep["zone_high"] * (1.0 + x)) if usable else None,
+                    "p_dn": float(ep["zone_low"] * (1.0 - x)) if usable else None,
                     "eligible": reason is None, "ineligible_reason": reason})
     return out

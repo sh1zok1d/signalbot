@@ -16,7 +16,8 @@ FORECAST_OBJECT    = first passage inside the original 4h window of a structural
 EVENTS             = #352 constructor: PDH PDL PWH PWL PMH PML, zone half-width 0.15 %, touch 1
 BARRIERS           = #352: X = 0.5 × 1.2816 × σ × √48 beyond the zone edge (σ = 288 bars before the touch)
 LANDMARKS          = T0 (touch-bar close) and T15 (close of bar j+2); one claim class each, one forecast per event
-«ОБЫЧНО»           = B0: driftless first-passage geometry at the same position, PIT σ and time left
+«ОБЫЧНО»           = HIST: B0, driftless first-passage geometry at the same position, PIT σ and time left;
+                     model states: G1, the generic race model at the event's geometry (amended 2026-10-08, §6b)
 PREDICTOR          = frozen and versioned; no online learning
 CALIBRATOR         = two-parameter Bayesian logistic recalibration per outcome head, batched, versioned
 HELD-OUT HISTORY   = Binance BTCUSDT 2025-01-01 → the freeze date, minus the E1-RUN-001 holdout; read once
@@ -165,6 +166,14 @@ ECE is descriptive only. Uncertainty is clustered by week. Raw and published pro
 
   The switch itself is one predeclared setting. The state rules of §6–§7 stay frozen. Other product areas keep §7 as written.
 
+
+## 6b. «Обычно» in the model states and the level-offset claim (architect, 2026-10-08, before the model freeze)
+
+The development record (`research/LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md`) shows that the largest M1 term is the volatility term, which the generic race model G1 also carries. M1 beating B0 is therefore not by itself a level effect.
+
+- **«Обычно» in `L3_HISTORY_BACKED`, `L3_LIVE` and `FALLBACK`:** G1 applied to the event's geometry, meaning any price at the same distances, with the same σ and time left. B0 stays in the journal as a second baseline. `HIST` V1 keeps its frozen «обычно», the cell mean of B0.
+- **The level-offset claim** (internal and in any wording) also needs M1 to beat G1 on the event geometry, with an interval above 0 on the held-out check. This bar was added after development and before the held-out read, and it raises the bar.
+- **`FALLBACK`** is published for a class only if the fallback model passes the calibration gate on that class; otherwise the class shows `HIST`.
 
 ## 7. Drift, fallback and challengers
 

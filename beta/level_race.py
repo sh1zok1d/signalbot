@@ -70,6 +70,9 @@ def geometry(zone_low: float, zone_high: float, sigma: float, approach_side: int
     return {"x": x, "p_up": zone_high * (1.0 + x), "p_dn": zone_low * (1.0 - x), "beyond_is_up": approach_side > 0}
 
 
+event_geometry = geometry
+
+
 def window_end_ms(touch_open_ms: int) -> int:
     """Close time of bar j+48 (render in the user's time zone with the product formatter)."""
     return int(touch_open_ms) + (WINDOW_BARS + 1) * BAR_MS
@@ -157,7 +160,10 @@ def hist_line(table: Mapping[str, Any], *, landmark: str, kind: str, price: floa
            "table_sha256": table["table_sha256"], "cell": key, "ladder_level": lad["level"],
            "source_cell": lad["source"], "p_up": geo["p_up"], "p_dn": geo["p_dn"],
            "beyond_is_up": geo["beyond_is_up"], "event_b0": {"up": up, "dn": dn, "neither": ne},
-           "outside_corridor": not (geo["p_dn"] < price < geo["p_up"])}
+           "out_of_corridor": not (geo["p_dn"] < price < geo["p_up"])}
+    # Display rule (architect, 2026-10-08): at T0 a close already outside (P_DN, P_UP) gives no
+    # line; the L2 journal record is still written with this flag.
+    out["display"] = not (landmark == "T0" and out["out_of_corridor"])
     c = table["cells"][lad["source"]]
     out["n"] = c["n"]
     if lad["level"] == "LOW_N":
@@ -166,9 +172,28 @@ def hist_line(table: Mapping[str, Any], *, landmark: str, kind: str, price: floa
     h, b, k = c["h"], c["b"], c["k_pp"]
     m = (lambda d: {"up": d["BEYOND"], "dn": d["BACK"], "neither": d["NEITHER"]}) if geo["beyond_is_up"] else \
         (lambda d: {"up": d["BACK"], "dn": d["BEYOND"], "neither": d["NEITHER"]})
+    lo_hi = {o: [int(round(v[0])), int(round(v[1]))] for o, v in c["diff_ci95_pp"].items()}
+    hm, bm = m(h), m(b)
+    printed_h, printed_b = percents(hm), percents(bm)
+    # The shown difference equals the shown percentages (architect, 2026-10-08).
+    d_pp = {o: printed_h[o] - printed_b[o] for o in ("up", "dn", "neither")}
     out.update({"template": TEMPLATES["full"], "push_template": TEMPLATES["push"],
-                "h": m(h), "b": m(b), "k_pp": m(k), "weeks": c["weeks"]})
+                "h": hm, "b": bm, "printed_h": printed_h, "printed_b": printed_b, "k_pp": m(k),
+                "d_pp": d_pp, "ci95_pp": m(lo_hi), "weeks": c["weeks"]})
     return out
+
+
+def t15_visible(highs_closed: Sequence[float], lows_closed: Sequence[float], price_now: float,
+                geo: Mapping[str, Any], *, now_ms: int, end_ms: int, was_hidden: bool = False) -> bool:
+    """T15 line visibility (architect, 2026-10-08): visible until `end_ms` while the race is
+    unresolved. `highs_closed` / `lows_closed` are the closed bars from j+3 up to now. Hidden once a
+    barrier is reached on a closed bar or the current price is beyond P_UP / P_DN; never returns."""
+    if was_hidden or now_ms >= end_ms:
+        return False
+    for h, lo_ in zip(highs_closed, lows_closed):
+        if float(h) >= geo["p_up"] or float(lo_) <= geo["p_dn"]:
+            return False
+    return geo["p_dn"] < float(price_now) < geo["p_up"]
 
 
 def percents(fracs: Mapping[str, float]) -> dict:

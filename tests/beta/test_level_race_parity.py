@@ -65,7 +65,7 @@ def _research(b: Bars, *, end_ms=None, sigma=None) -> dict:
 
 
 def _product(b: Bars, sigma=None) -> dict:
-    return {e["event_id"]: e for e in LV.structural_first_touches(b, sigma=sigma) if e["active_complete"]}
+    return {e["event_id"]: e for e in LV.structural_first_touches(b, sigma=sigma, require_active_complete=True)}
 
 
 FLOAT_FIELDS = ("sigma", "x", "break_barrier", "reject_barrier")
@@ -84,7 +84,14 @@ def _assert_same(r: dict, p: dict) -> None:
     for k in r:
         for f in FIELDS:
             assert _same(p[k][f], r[k][f], f), (k, f, p[k][f], r[k][f])
+        if p[k]["ineligible_reason"] == "WINDOW_TOO_SHORT":     # the tape's first month: flagged, not kept
+            assert p[k]["active_open_ms"] - p[k]["touch_open_ms"] <= 0 and not p[k]["eligible"]
+            continue
         assert p[k]["eligible"] == r[k]["eligible"], k
+        if p[k]["x"] is not None and p[k]["eligible"]:
+            assert p[k]["p_up"] == p[k]["zone_high"] * (1 + p[k]["x"])
+            assert p[k]["p_dn"] == p[k]["zone_low"] * (1 - p[k]["x"])
+            assert {p[k]["p_up"], p[k]["p_dn"]} == {p[k]["break_barrier"], p[k]["reject_barrier"]}
 
 
 def test_constants_are_the_352_design():
@@ -116,10 +123,10 @@ def test_first_touches_equal_research_on_synthetic_bars(seed):
 
 
 def test_unusable_sigma_makes_the_touch_ineligible_like_research():
-    # the same scale array for both, unusable over days 20-29 (a hole in the 24h returns)
-    b = _bars(days=40, seed=3)
+    # the same scale array for both, unusable over days 34-43 (a hole in the 24h returns)
+    b = _bars(days=50, seed=3)
     sig = np.array([LV.sigma_at(b.close, j) for j in range(b.n)])
-    sig[20 * BARS_PER_DAY:30 * BARS_PER_DAY] = np.nan
+    sig[34 * BARS_PER_DAY:44 * BARS_PER_DAY] = np.nan
     r, p = _research(b, sigma=sig), _product(b, sigma=sig)
     _assert_same(r, p)
     assert any(not e["eligible"] and e["ineligible_reason"] == "SIGMA_UNUSABLE" for e in p.values())
@@ -183,6 +190,7 @@ def test_live_window_of_70_days_gives_the_same_event():
         a, z = (start - b.t0) // BAR_MS, (e["t0_ms"] - b.t0) // BAR_MS
         seen = {x["event_id"]: x for x in LV.structural_first_touches(b.slice(a, z))}
         assert all(seen[eid][f] == e[f] for f in FIELDS), eid      # bit-identical: the digest is stable
+        assert seen[eid]["ineligible_reason"] != "WINDOW_TOO_SHORT" and seen[eid]["eligible"] == e["eligible"]
         checked += 1
     assert checked > 10
 
@@ -197,7 +205,7 @@ def _cached_panel():
 def test_history_2020_2024_equals_352():
     """Whole discovery surface: the same 1952 touch-1 events (1919 from 2020-02-01), every field equal.
     The one product-only event is a level whose active period ended incomplete (#352 drops it; a live
-    caller cannot know that before the period ends)."""
+    caller cannot know that before the period ends); with that drop applied the two are the same."""
     from scripts.research.dh1.data import to_bars
     from scripts.research.level_touch_degradation_v1.data import assert_panel_legal
     panel = dict(np.load(_cached_panel()))
@@ -205,8 +213,19 @@ def test_history_2020_2024_equals_352():
     b = to_bars(panel, K.DATA_START_MS, K.SURFACE_END_MS)
     r = _research(b, end_ms=K.SURFACE_END_MS)
     p_all = {e["event_id"]: e for e in LV.structural_first_touches(b)}
-    p = {k: e for k, e in p_all.items() if e["active_complete"]}
+    p = _product(b)
     assert len(r) == 1952
     assert sum(1 for x in r.values() if x["touch_open_ms"] >= K.EVENT_START_MS) == 1919
-    assert len(p_all) - len(p) == 1
+    assert set(p_all) - set(p) == {k for k, e in p_all.items() if not e["active_complete"]} and len(p_all) - len(p) == 1
     _assert_same(r, p)
+    flagged = [e for e in p.values() if e["ineligible_reason"] == "WINDOW_TOO_SHORT"]
+    # only episodes born in the tape's first 32 days (2020-01-01 .. 2020-02-01), never a later one
+    assert flagged and all(e["active_open_ms"] - b.t0 < LV.ABSORPTION_LOOKBACK_MS for e in flagged)
+
+
+def test_an_episode_born_in_the_tapes_first_month_is_flagged_not_kept():
+    b = _bars(days=80, seed=7)
+    evs = LV.structural_first_touches(b)
+    short = [e for e in evs if e["ineligible_reason"] == "WINDOW_TOO_SHORT"]
+    assert short and all(e["active_open_ms"] - b.t0 < LV.ABSORPTION_LOOKBACK_MS and not e["eligible"] for e in short)
+    assert all(e["active_open_ms"] - b.t0 >= LV.ABSORPTION_LOOKBACK_MS for e in evs if e not in short)
