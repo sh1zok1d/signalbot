@@ -16,16 +16,22 @@ from common.versioning import canonical_json
 from .oi_asof import venue_oi_change_pct
 from .state_tape import BUCKET, iso, metric_key
 
-HORIZON_VERSION = "BETA_HORIZON_TOD_V5"
+HORIZON_VERSION = "BETA_HORIZON_TOD_V6"
 # Pinned to the canonical definition below. A change of parameters needs a new label.
 # V1 (4b84b794…) had no 4h block; V2 (f64700b7…) adds it with the same time-of-day baseline rule;
 # V3 (C1, docs/BETA_C1_DAY_TYPE_BASELINE_V1.md) uses same-UTC-day-type days for the 1h range and
 # volume baselines only. V4 (D3, docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md R4): the OI change of every
 # horizon needs at least `min_venues` venues, as the 1h context does. V5 (D3 R6, R7): the 24h volume is
-# complete only when every bucket has every venue's kline; the change lines record which checks ran.
-HORIZON_DIGEST = "bce6c03ef55dd50dc54b8ff846bc4a427de120a3cc806782045e970296ea25fa"
+# complete only when every bucket has every venue's kline; the change lines record which checks ran. V6 (D3 R3):
+# «Funding сейчас» from each venue's newest live row no older than FUNDING_MAX_AGE, median of >= min_venues;
+# the 24h mean needs the price rule's bucket coverage; the sign change needs both rates of a printable size.
+HORIZON_DIGEST = "9222de8688979e48f264ed141f1608c0446194a85d2230e1e0511acd4e168411"
 # the versions whose 1h range / volume baselines follow the C1 same-day-type rule
-DAY_TYPE_VERSIONS = ("BETA_HORIZON_TOD_V3", "BETA_HORIZON_TOD_V4", "BETA_HORIZON_TOD_V5")
+DAY_TYPE_VERSIONS = ("BETA_HORIZON_TOD_V3", "BETA_HORIZON_TOD_V4", "BETA_HORIZON_TOD_V5", "BETA_HORIZON_TOD_V6")
+# a venue's live funding is polled about every minute; one older than this is stale and leaves the median
+FUNDING_MAX_AGE = timedelta(minutes=15)
+# the sign-change rule needs both rates at least this large (0,001 % per 8 h prints; 0,000 % does not)
+FUNDING_SIGN_MIN = 0.00001
 
 _H1_BUCKETS = 12
 _H4_BUCKETS = 48
@@ -77,8 +83,13 @@ def horizon_definition() -> dict:
         "range": "median over venues of (max high - min low) / first open",
         "volume": "sum of the 5m cross-venue volume sums",
         "taker": "sum of 5m taker_delta_notional_usd_sum; a missing bucket is not a partial sum",
-        "funding_now": "funding_rate_median at the view bucket",
-        "funding_24h_avg": "mean of funding_rate_median over present 24h buckets",
+        "funding_now": {"source": "each venue's newest live funding_rate row before data-through",
+                        "max_age_min": int(FUNDING_MAX_AGE.total_seconds() // 60),
+                        "aggregate": "median of the fresh venues; fewer than min_venues: none",
+                        "unit": "rate per 8h settlement (all three venues settle every 8h, VPS 2026-10-08)"},
+        "funding_24h_avg": "mean of funding_rate_median over the 24h buckets; needs h24_price_range_min_buckets "
+                           "present (the historical tape median carries no age bound)",
+        "funding_sign_change_min_abs_rate": FUNDING_SIGN_MIN,
         "oi": {
             "source": "stage-1 open_interest as-of, not compounded tape oi_change_pct",
             "tolerance_min": 2,
@@ -225,16 +236,24 @@ def _sum_metric(buckets, metrics_by_bucket, key: str) -> Optional[float]:
     return total
 
 
-def _mean_present(buckets, metrics_by_bucket, key: str) -> Optional[float]:
-    vals = []
-    for b in buckets:
-        row = metrics_by_bucket.get(b)
-        if row is None or row.get(key) is None:
-            continue
-        vals.append(float(row[key]))
-    if not vals:
-        return None
-    return float(sum(vals) / len(vals))
+def funding_now(cfg, latest: Optional[Mapping], end: datetime) -> dict:
+    """«Funding сейчас»: the median of the venues whose newest live rate is at most FUNDING_MAX_AGE old at
+    `end`, from at least min_venues venues; a stale venue leaves the median (D3, R3). No rows: none."""
+    by = {}
+    for ex in cfg.exchanges:
+        row = (latest or {}).get(ex)
+        fresh = row is not None and row.get("funding_rate") is not None and end - row["ts"] <= FUNDING_MAX_AGE
+        by[ex] = float(row["funding_rate"]) if fresh else None
+    vals = [v for v in by.values() if v is not None]
+    ok = len(vals) >= max(1, int(cfg.min_venues))
+    return {"rate": _median(vals) if ok else None, "by_venue": by, "venues": len(vals)}
+
+
+def _funding_mean(buckets, metrics_by_bucket, min_present: int) -> Optional[float]:
+    """The mean of the tape funding median over a window, only with `min_present` buckets present."""
+    vals = [float(r["c:funding_rate_median"]) for b in buckets
+            for r in [metrics_by_bucket.get(b)] if r is not None and r.get("c:funding_rate_median") is not None]
+    return float(sum(vals) / len(vals)) if len(vals) >= min_present else None
 
 
 def _oi_for(cfg, start: datetime, end: datetime, oi_by_boundary: Optional[Mapping]) -> dict:
@@ -374,7 +393,7 @@ def select_changes(cfg, *, range_w, range_p, volume_w, volume_p, volume_w_comple
             and float(oi_w) != 0 and float(price_w) != 0):
         lines.append({"rule": "oi_price", "oi_up": float(oi_w) > 0, "price_up": float(price_w) > 0})
     if (funding_now is not None and funding_p is not None
-            and float(funding_now) != 0 and float(funding_p) != 0
+            and abs(float(funding_now)) >= FUNDING_SIGN_MIN and abs(float(funding_p)) >= FUNDING_SIGN_MIN
             and (float(funding_now) > 0) != (float(funding_p) > 0)):
         lines.append({"rule": "funding", "positive": float(funding_now) > 0})
     return lines[:3]
@@ -401,7 +420,7 @@ def _empty_metric_baseline() -> dict:
 
 
 def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[datetime, Mapping],
-                   oi_by_boundary: Optional[Mapping] = None) -> dict:
+                   oi_by_boundary: Optional[Mapping] = None, funding_latest: Optional[Mapping] = None) -> dict:
     """Language-neutral 1h and 24h blocks. ``as_of_bucket`` is the last closed 5m open time."""
     from .context import rolling_1h_values
     as_of_bucket = _utc(as_of_bucket)
@@ -414,8 +433,8 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
     price = None if not h1_complete else cur.get("price_move_pct_median")
     rng = None if not h1_complete else cur.get("range_width_pct_median")
     vol = None if not h1_complete else cur.get("volume_notional_usd_sum")
-    end_row = metrics_by_bucket.get(as_of_bucket) or {}
-    funding = end_row.get("c:funding_rate_median")
+    fnow = funding_now(cfg, funding_latest, end)
+    funding = fnow["rate"]
     oi_1h = _oi_for(cfg, end - timedelta(hours=1), end, oi_by_boundary)
     h4 = _window_block(cfg, metrics_by_bucket, as_of_bucket, _H4_BUCKETS,
                        _oi_for(cfg, end - timedelta(hours=4), end, oi_by_boundary))
@@ -436,7 +455,7 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
         price_w=h24["price_move_pct"] if h24["price_complete"] else None,
         oi_w=oi_24["oi_change_pct"],
         funding_now=None if funding is None else float(funding),
-        funding_p=_mean_present(prev_buckets, metrics_by_bucket, "c:funding_rate_median"),
+        funding_p=_funding_mean(prev_buckets, metrics_by_bucket, _H24_PRICE_MIN),
     )
     changes = select_changes(cfg, **change_inputs)
     checked = changes_checked(**change_inputs)
@@ -457,6 +476,9 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
             "taker_delta_notional_usd_sum": _sum_metric(h1_buckets, metrics_by_bucket,
                                                        "c:taker_delta_notional_usd_sum"),
             "funding_rate": None if funding is None else float(funding),
+            "funding_venues": fnow["venues"],
+            "funding_venues_of": len(cfg.exchanges),
+            "funding_by_venue": fnow["by_venue"],
             "oi_change_pct": oi_1h["oi_change_pct"],
             "oi_by_venue": oi_1h["oi_by_venue"],
             "liquidations": {
@@ -487,7 +509,10 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
             "taker_delta_notional_usd_sum": _sum_metric(h24_buckets, metrics_by_bucket,
                                                        "c:taker_delta_notional_usd_sum"),
             "funding_rate": None if funding is None else float(funding),
-            "funding_rate_avg": _mean_present(h24_buckets, metrics_by_bucket, "c:funding_rate_median"),
+            "funding_venues": fnow["venues"],
+            "funding_venues_of": len(cfg.exchanges),
+            "funding_by_venue": fnow["by_venue"],
+            "funding_rate_avg": _funding_mean(h24_buckets, metrics_by_bucket, _H24_PRICE_MIN),
             "oi_change_pct": oi_24["oi_change_pct"],
             "oi_by_venue": oi_24["oi_by_venue"],
             "liquidations": {
