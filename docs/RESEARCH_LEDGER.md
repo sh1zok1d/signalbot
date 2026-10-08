@@ -8717,3 +8717,21 @@ OUTCOME_READ = yes; ROUTE = NO_WIDTH_HELD_RESOLUTION_DIFFERENCE
 OBJECTS_2025_2026_USED = none; E1 = not touched; LIVE_TAPE_READ = no
 PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
 ```
+
+## 2026-10-08 — FROZEN_HOUR_EQUAL_WIDTH_SAME_SURFACE_DIAGNOSIS_V1
+
+**Mode.** `POST_OUTCOME_MECHANISM_DIAGNOSIS`. `EVIDENCE_UPGRADE = NONE`. `CONFIRMATION = false`. `ORIGINAL_RESULT_UNCHANGED = true`. `PRODUCT_CHANGE = none`. Not a new route.
+- **Identity.** Read `2026-10-08T22:18:51Z`. Code commit `62ffe5e1b090f02165d8a79693432c1bd185d65c`. The published partner is kept. `solve_equal_width` scales that partner only. Exploratory seeds `20261105` and `20261106`, B = 2000, class `EXPLORATORY_POST_OUTCOME`.
+- **Surface.** Already consumed `CORE_BTC_BINANCE_V0` `[2020-01-01, 2025-01-01)`. No new protected surface. No 2025/2026, E1, BitMEX, prospective, or product tape.
+- **Reproduction.** Published UTC_00 N 1719, delta +9.48 pp, and UTC_12 N 1704, delta +4.93 pp, match the official result. One UTC_00 pair drops for an incomplete equal-width window. Common support N 1718.
+- **UTC_00 common support.** Real 91.85%, original pseudo 82.31%, equal-width pseudo 92.43%. Original delta +9.55 pp, equal-width delta −0.58 pp, attenuation +10.13 pp. Exploratory equal-width interval about [−2.00, +0.76] pp.
+- **Years.** 2023 +33.53 pp to +0.30 pp. 2024 +17.98 pp to −0.56 pp. Width-ratio medians: 2021 0.39, 2023 2.07, 2024 1.66. Equal-width solver error about 1e-13.
+- **UTC_12.** Context only. Common-support delta −0.94 pp. Not adopted.
+- **Not started.** No new match, hour, volatility bin, 2023 dummy, prospective panel, forecast, or product line.
+
+```
+WINDOWS_CONSUMED = none new; FURTHER_DESCRIPTIVE_READ of already consumed CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-01-01..2024-12-31
+EVIDENCE_UPGRADE = NONE; CONFIRMATION = false; ORIGINAL_ROUTE_UNCHANGED = yes
+OBJECTS_2025_2026_USED = none; E1 = not touched; LIVE_TAPE_READ = no
+PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
+```
