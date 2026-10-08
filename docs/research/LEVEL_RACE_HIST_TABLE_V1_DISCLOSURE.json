@@ -1,0 +1,53 @@
+{
+ "table": "LEVEL_RACE_HIST_TABLE_V1.json",
+ "table_file_sha256": "e8a3224be08c40fc10c57280aca2b2dedc64b9f9adbbf591fb34f5dd030e20a4",
+ "table_sha256": "4f57c80065ba17482ea7cae8aa8ac732a9f3897fa58a93bb86d26ddb9224805b",
+ "what": "T0 scored events whose touch-bar close is outside (P_DN, P_UP); shares unchanged",
+ "t0_cells": {
+  "T0|DAY|H": {
+   "n": 865,
+   "outside": 30,
+   "outside_above_p_up": 15,
+   "outside_below_p_dn": 15,
+   "outside_share": 0.03468208092485549
+  },
+  "T0|DAY|L": {
+   "n": 764,
+   "outside": 44,
+   "outside_above_p_up": 22,
+   "outside_below_p_dn": 22,
+   "outside_share": 0.05759162303664921
+  },
+  "T0|MONTH|H": {
+   "n": 28,
+   "outside": 5,
+   "outside_above_p_up": 4,
+   "outside_below_p_dn": 1,
+   "outside_share": 0.17857142857142858
+  },
+  "T0|MONTH|L": {
+   "n": 12,
+   "outside": 4,
+   "outside_above_p_up": 2,
+   "outside_below_p_dn": 2,
+   "outside_share": 0.3333333333333333
+  },
+  "T0|WEEK|H": {
+   "n": 138,
+   "outside": 12,
+   "outside_above_p_up": 5,
+   "outside_below_p_dn": 7,
+   "outside_share": 0.08695652173913043
+  },
+  "T0|WEEK|L": {
+   "n": 98,
+   "outside": 19,
+   "outside_above_p_up": 7,
+   "outside_below_p_dn": 12,
+   "outside_share": 0.19387755102040816
+  }
+ },
+ "total_outside_scored": 114,
+ "bands_disclosure": "T15 bands were changed by F1 from the f-bands of 0ba50cd (f = share of log path to the price beyond the level, 0.40/0.60, approved by the architect) to B0_beyond 0.35/0.55 in 80fbed4, after that approval and before the freeze (997ba98) and before any outcome read. Reason as recorded: the mini-head's review H2 asked for B0_beyond terciles; F1 fixed a priori numbers instead of data terciles because the T15 filter reads part of the T0 outcome. The choice was not made from outcome data. The mini-head's reversal to f-bands arrived after the table was computed; the architect accepted V1 with 0.35/0.55 (no V2).",
+ "t0_out_of_corridor_disclosure": "T0 shares include the events whose touch-bar close is already outside (P_DN, P_UP): 114 of 1905 scored (~6 %), WEEK L 19.4 %. The B0 «обычно» of each cell includes them too, so share-versus-usual is comparable, but the share for an event inside the corridor is slightly biased toward them. Recomputing without them is only a separate, pre-announced V2 after the beta. Display rule: no T0 line for such an event; the L2 journal record is kept with out_of_corridor = true."
+}
