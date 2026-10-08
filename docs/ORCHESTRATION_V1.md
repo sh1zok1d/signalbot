@@ -141,6 +141,14 @@ Both mini-heads run the same model, so two reviews of the same thing share many 
 - **On a risky PR** the mini-head may run one independent reproduction of the test or check that the main claim rests on (owner, 2026-10-08, «да»).
 - **Release-candidate suite**, once per deploy step, not per PR (owner, 2026-10-08, «да»): `tests/beta`, `tests/deploy`, `tests/data_ingestion`, the storage and Stage-2 tests on PostgreSQL, and the repo guard tests (including the research/product import boundary). It runs on the exact SHA that will be deployed (§4a).
 
+**GitHub Actions** (owner, 2026-10-08: «Переведи проверки вручную… Чтобы минуты не сжигались»):
+- Nothing starts on its own: neither workflow has a push or pull_request trigger.
+- **Fast PR gate (`ci.yml`).** Only the architect runs it: once, on the final head of a risky PR (next paragraph), before the merge (`workflow_dispatch`, ref = the PR branch).
+  - It tests the branch merged with main on PostgreSQL with TimescaleDB.
+  - A red gate is a finding, never a reason to re-run.
+- **Every other PR** merges on the merge rule above, without Actions.
+- **Full regression (`full-regression.yml`)** runs only when the owner asks.
+
 For schema, push, collectors, the measurement contract, any forecast display and every research freeze or one-shot read, the mini-head sends its report to the architect before merge and waits for the answer. Nothing is deployed without the owner.
 
 ## 4a. Release candidate and the observation week
