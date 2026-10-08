@@ -585,11 +585,17 @@ def races_shown(block: Optional[Mapping[str, Any]], surface: str, *,
     return races if surface == "levels" else []
 
 
+def _spp(v: int) -> str:
+    """A signed whole number of pp: +3, −2, 0."""
+    v = int(v)
+    return "0" if v == 0 else (f"+{v}" if v > 0 else f"−{-v}")
+
+
 def race_lines(block: Mapping[str, Any], lang: str, surface: str, *,
                check_levels: Optional[Sequence[float]] = None) -> list:
-    """One head (the level, the touch time, the data time) and the frozen HIST line per race; the
-    shares sum to 100 (largest remainder); every clock on the recipient's time zone."""
-    from .level_race import percents
+    """One head (the zone entered, its time, the data time) and the frozen HIST line per race: the shown
+    shares (summing to 100), «обычно», the difference of the shown numbers and its 95 % interval from the
+    table; every clock on the recipient's time zone."""
     out = []
     now = _block_now(block)
     clock = data_clock(block)
@@ -602,12 +608,14 @@ def race_lines(block: Mapping[str, Any], lang: str, surface: str, *,
         if r["template"] == "LR_HIST_LOW_N_V1":
             out.append(t(lang, "lr_hist_low_n_v1", n=int(r["n"])))
             continue
-        h, b = percents(r["h"]), percents(r["b"])
+        h, b, d, ci = r["printed_h"], r["printed_b"], r["d_pp"], r["ci95_pp"]
         same_day = now is not None and local(end).date() == local(now).date()
-        out.append(t(lang, "lr_hist_v1", n=int(r["n"]), h_up=h["up"], h_dn=h["dn"], h_ne=h["neither"],
-                     b_up=b["up"], b_dn=b["dn"], b_ne=b["neither"], k_up=r["k_pp"]["up"], k_dn=r["k_pp"]["dn"],
-                     k_ne=r["k_pp"]["neither"], P_UP=fmt_price(r["p_up"], lang), P_DN=fmt_price(r["p_dn"], lang),
-                     END=_when(end, lang, with_day=not same_day)))
+        args = {}
+        for o, suf in (("up", "up"), ("dn", "dn"), ("neither", "ne")):
+            args.update({f"h_{suf}": h[o], f"b_{suf}": b[o], f"d_{suf}": _spp(d[o]), f"lo_{suf}": _spp(ci[o][0]),
+                         f"hi_{suf}": _spp(ci[o][1])})
+        out.append(t(lang, "lr_hist_v1", n=int(r["n"]), P_UP=fmt_price(r["p_up"], lang), P_DN=fmt_price(r["p_dn"], lang),
+                     END=_when(end, lang, with_day=not same_day), **args))
     return out
 
 

@@ -753,7 +753,7 @@
    "counts": {
     "BLOCKED_METHOD": 2,
     "CLOSED_ON_SURFACE": 13,
-    "EXPOSED_ONLY": 1,
+    "EXPOSED_ONLY": 2,
     "FUTURE_NATURAL_ACCUMULATION": 1,
     "INFORMATIONALLY_WEAK": 1,
     "LIVE_SIGNAL": 2,
@@ -786,6 +786,7 @@
     "LEVEL-LIQUIDITY-STATE-DISCOVERY-V1",
     "LEVEL-POSITIONING-FLOW-DISCOVERY-V1",
     "LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1",
+    "LEVEL-RACE-FORECAST-V1",
     "LEVEL-REJECTION-MEMORY-V1",
     "LEVEL-STRUCTURE-DISCOVERY-V1",
     "LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1",
@@ -10187,7 +10188,7 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 206,
+  "units": 207,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
@@ -10196,7 +10197,7 @@
    "CLOSED_BEFORE_START": 1,
    "CLOSED_ON_SURFACE": 29,
    "CONFIRMED": 1,
-   "EXPOSED_ONLY": 11,
+   "EXPOSED_ONLY": 12,
    "FUTURE_NATURAL_ACCUMULATION": 4,
    "INFORMATIONALLY_WEAK": 25,
    "LIVE_SIGNAL": 7,
@@ -15569,6 +15570,7 @@
     "LEVEL-LIQUIDITY-STATE-DISCOVERY-V1",
     "LEVEL-POSITIONING-FLOW-DISCOVERY-V1",
     "LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1",
+    "LEVEL-RACE-FORECAST-V1",
     "LEVEL-REJECTION-MEMORY-V1",
     "LEVEL-STRUCTURE-DISCOVERY-V1",
     "LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1",
@@ -15590,7 +15592,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "56f0260ee9a679f761fe2a5a305d96d008a0c8b90d7a590f13f70b035d980be2",
+ "SOURCES_DIGEST": "7e607e98057862c8946b61059ba5e480382c81a9c77eb0b808d84556c49ad14e",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15845,6 +15847,14 @@
      },
      {
       "note": "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1 one-shot (paired log ratio of 60m realized volatility after versus before a structural first touch, real versus half-rotation pseudo, touch bar excluded), 2026-10-08; price closes only; further exposure, not a confirmation and not a reopen of H01, B2-01, or DH3-V2",
+      "period": "2020-02-01..2024-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-RACE-FORECAST-V1 HIST table V1 (three-outcome 4h race shares of #352 first touches at T0 and T15 by family x structural side x B0 band, against B0 geometry), 2026-10-08; price OHLC only; further exposure of the level row for the Day-0 history line, not a confirmation",
       "period": "2020-02-01..2024-12-31",
       "rows": [
        "PRICE_STRUCTURE.levels"
@@ -22071,6 +22081,35 @@
    "units_n": "1709 geometry-legitimate first touches; 498 early-resolved before T+15m; 9 early ambiguous; 1202 unresolved at D; late labeled BREAK 428 / REJECT 606 / NEITHER 167 / ambiguous 1; 227 weeks",
    "verdict": "EXECUTED ONCE (2026-10-07). SUCCESSOR_CANDIDATE = NONE. Routing STRUCTURE_PRESENT_BUT_UNSTABLE. END_POSITION_X to LATE_BREAK_GIVEN_RESOLVED is +20.31 pp per +1 SD (95% +17.20..+23.46, q=0.0000, N=1034). Years, leave-one-year-out and both sides keep the sign. The frozen conjunction fails because leave-one-family-out omitting DAY did not return a coefficient. No named candidate. Activity, taker and OI cells do not pass. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
    "why_closed": "One discovery run. The level row and the OI covariate were already consumed. This run is further exposure of a post-touch state update, not a confirmation and not a reopen of H02, B2-02 or V2 CONFIRMED_BREAKOUT. No product change. No acceptance-path unit, threshold, or confirmation was started."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0"
+   ],
+   "forbidden": "recomputing table V1 on other years; stating the shares as a current probability; BREAK/REJECT words in user text; changing band edges or N_MIN after this read; reading 2025/2026 race outcomes before the frozen held-out read",
+   "function": "#352 constructor unchanged (PDH/PDL/PWH/PWL/PMH/PML, zone half 0.15%, touch 1, X = 0.5*1.2816*sigma*sqrt(48)); T0 = close j, tau 48; T15 = close j+2, tau 46, only events with no barrier on j+1/j+2; cells family x structural side (x B0_beyond band 0.35/0.55 at T15); N_MIN 30, T15 side pooling then LOW_N; AMBIGUOUS excluded and counted",
+   "id": "LEVEL-RACE-FORECAST-V1",
+   "mechanism": "MODE=DISCOVERY then one held-out read (FORECAST_LAYER_DECISION_V1). Three-outcome race (barrier beyond the level first / back barrier first / neither) inside the original 4h window of a structural first touch, at T0 and T15, against driftless first-passage geometry B0. This entry records the HIST table read only.",
+   "note": "Design frozen 997ba98615135b263684ad10f9c044335910a346 before any outcome. Code 748dae25. Claim ceiling L2 (HIST). Journal classes L2_LEVEL_RACE_HIST_T0_4H / L2_LEVEL_RACE_HIST_T15_4H, rule LEVEL_RACE_4H_V1. Surface class for the later held-out: TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION-like.",
+   "period": "2020-02-01..2024-12-31 (4h window inside 2024); Binance USD-M BTCUSDT 1m -> complete 5m bins; HIST table only so far; no 2025/2026 object, no E1 holdout, no other venue",
+   "practical_bar": "none; L2 product history line (FORECAST_LAYER_DECISION_V1 §6a). Every share carries N, the mean B0 «обычно» and a week-cluster 95% interval of share minus B0 (B=2000, seed 20261008).",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md",
+    "docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.json",
+    "docs/research/LEVEL_RACE_HIST_TABLE_V1.json",
+    "scripts/research/level_race_forecast_v1/build_hist.py",
+    "docs/RESEARCH_LEDGER.md"
+   ],
+   "reopen": "Model development under the frozen design 997ba986 on this same surface (DISCOVERY), then one held-out read of 2025-01-01..freeze date with the E1 exclusion, on an explicit go. Not a retuned cell set, band edge or N_MIN for table V1; a new table is V2.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "EXPOSED_ONLY",
+   "title": "LEVEL_RACE_FORECAST_V1",
+   "units_n": "1919 eligible #352 first touches (T0 rows 1919); early j+1/j+2 census NEITHER 1332, BREAK 296, REJECT 278, AMBIGUOUS 13; T15 rows 1332; 6 T0 cells and 18 T15 cells (+9 side-pooled)",
+   "verdict": "HIST TABLE V1 COMPUTED ONCE (2026-10-08), table sha256 4f57c80065ba17482ea7cae8aa8ac732a9f3897fa58a93bb86d26ddb9224805b. Descriptive L2 shares with B0 baseline per fixed cell; no selection, no model, no claim of a level effect. Model development, freeze and the held-out read are not started.",
+   "why_closed": "Not closed. The race outcomes of the level row were read on the already consumed discovery surface for the Day-0 history line; further exposure, not a confirmation."
   },
   {
    "col": "CANDLES",

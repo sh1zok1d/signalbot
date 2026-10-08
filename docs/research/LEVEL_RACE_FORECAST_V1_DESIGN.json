@@ -1,0 +1,498 @@
+{
+  "unit": "LEVEL_RACE_FORECAST_V1",
+  "mode": "DISCOVERY_THEN_ONE_HELD_OUT_READ",
+  "program": "FORECAST_LAYER_DECISION_V1",
+  "family": "LEVEL_BEHAVIOR_V1",
+  "tracks": [
+    "PRODUCT_EVIDENCE",
+    "STRUCTURE"
+  ],
+  "status": "DESIGN_FROZEN / NO_OUTCOME_READ_AT_FREEZE",
+  "design_note": "docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md",
+  "event": {
+    "constructor": "scripts/research/level_touch_degradation_v1 (level_instances, build_episodes, scan_all)",
+    "kinds": [
+      "PDH",
+      "PDL",
+      "PWH",
+      "PWL",
+      "PMH",
+      "PML"
+    ],
+    "zone_half": 0.0015,
+    "touch_number": 1,
+    "eligibility": "feature_eligible"
+  },
+  "barriers": {
+    "x": "0.5 * 1.2816 * sigma * sqrt(48)",
+    "sigma": "sigma_before_touch (288 5m log returns ending at bar j-1, ddof=1)",
+    "p_up": "zone_high * (1 + x)",
+    "p_dn": "zone_low * (1 - x)"
+  },
+  "outcome": {
+    "rule_id": "LEVEL_RACE_4H_V1",
+    "classify": "level_touch_degradation_v1.outcomes.classify",
+    "bars": "j+1..j+48",
+    "classes": [
+      "BREAK",
+      "REJECT",
+      "NEITHER"
+    ],
+    "ambiguous": "excluded_and_counted"
+  },
+  "landmarks": {
+    "T0": {
+      "position": "close[j]",
+      "tau_bars": 48,
+      "population": "all eligible first touches"
+    },
+    "T15": {
+      "position": "close[j+2]",
+      "tau_bars": 46,
+      "population": "no barrier hit on j+1, j+2",
+      "window": "j+3..j+48"
+    }
+  },
+  "prob_floor": 0.001,
+  "b0": {
+    "form": "driftless BM in log price, two absorbing barriers, sine series",
+    "terms_until": 1e-15,
+    "max_terms": 20000,
+    "out_of_corridor": "1 - 2*eps on the crossed side",
+    "test_seed": 20261008,
+    "drift": 0.0,
+    "discretisation": "continuous monitoring (5m high/low are true intrabar extremes); no Broadie-Glasserman shift"
+  },
+  "menu": {
+    "B0": {
+      "params": 0
+    },
+    "B1": {
+      "cells": "family x STRUCT_SIDE per landmark (6 cells; '<=6' counts cells)",
+      "smoothing": "Dirichlet(1,1,1)"
+    },
+    "M1": {
+      "heads": {
+        "R": [
+          "1",
+          "T15",
+          "FAM_WM",
+          "SIDE",
+          "SIGMA_T"
+        ],
+        "B": [
+          "1",
+          "T15",
+          "FAM_WM",
+          "SIDE",
+          "SIGMA_T"
+        ]
+      },
+      "params": 10
+    },
+    "M1A": {
+      "heads": {
+        "R": [
+          "1",
+          "T15",
+          "WEEK",
+          "MONTH",
+          "SIDE"
+        ],
+        "B": [
+          "1",
+          "T15",
+          "WEEK",
+          "MONTH",
+          "SIDE"
+        ]
+      },
+      "params": 10
+    },
+    "M1B": {
+      "heads": {
+        "R": [
+          "1",
+          "T15"
+        ],
+        "B": [
+          "1",
+          "T15"
+        ]
+      },
+      "params": 4
+    },
+    "C1": {
+      "base": "champion M1-family spec (M1 if champion is B0)",
+      "extra": "OTHER_VENUE_MEDIAN_MOVE (#363), head B, T15 rows only, z-scored on training moments",
+      "params": "base + 1",
+      "champion_eligible": false,
+      "held_out": "none; live shadow only from Day 0 on VPS live 1m Bybit/OKX closes; missing close -> forecast missing",
+      "moments": "training-fold; frozen: 2020-04..2024 T15 rows; files committed in docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0",
+      "limitation": "dev on exchange 5m klines; live bars from trades (LiveBarBuilder)"
+    }
+  },
+  "offset_clip": [
+    0.0001,
+    0.9999
+  ],
+  "ridge": {
+    "objective": "-loglik/n + (lambda/2)*||beta||^2, n = training rows of the head, intercepts unpenalised",
+    "lambda_grid_per_event": [
+      0.0005,
+      0.002,
+      0.008,
+      0.032
+    ],
+    "tie_nats": 0.0005,
+    "tie_to": "larger lambda",
+    "report": "effective lambda*n per fold"
+  },
+  "cv": {
+    "surface": "CORE_BTC_BINANCE_V0 1m->5m (DH1 loader)",
+    "events": "2020-02-01..2024-12-31",
+    "c1_extra_surface": "LEVEL_CROSS_VENUE_PERP_5M_V0 from 2020-04-01T00:05Z",
+    "folds": [
+      [
+        [
+          2020
+        ],
+        2021
+      ],
+      [
+        [
+          2020,
+          2021
+        ],
+        2022
+      ],
+      [
+        [
+          2020,
+          2021,
+          2022
+        ],
+        2023
+      ],
+      [
+        [
+          2020,
+          2021,
+          2022,
+          2023
+        ],
+        2024
+      ]
+    ],
+    "cluster": "product week",
+    "bootstrap_draws": 2000,
+    "seed": 20261008,
+    "ci": 0.95
+  },
+  "champion_rule": {
+    "score": "pooled OOF mean log-loss (both landmarks)",
+    "must_beat": "B0 point estimate",
+    "tie_nats": 0.002,
+    "tie_order": [
+      "M1B",
+      "M1",
+      "M1A"
+    ],
+    "else": "champion = B0"
+  },
+  "held_out": {
+    "source": "data.binance.vision USD-M BTCUSDT 5m klines via beta.history_data.plan_objects",
+    "events": "touch open >= 2025-01-01T00:00Z, 4h window closed before the freeze date (UTC midnight, exclusive)",
+    "e1_holdout": [
+      "2026-08-16T00:00:00Z",
+      "2026-08-25T17:20:00Z"
+    ],
+    "object_gap": [
+      "2026-08-16T00:00:00Z",
+      "2026-08-26T00:00:00Z"
+    ],
+    "event_exclusion": "span (j-289 .. j+48) intersects the object gap; constructor drops incomplete source/active periods",
+    "reads": 1,
+    "requires": "freeze commit + explicit mini-head go",
+    "exposure_class": "TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION-like (class B), not pristine",
+    "parity_preflight": "2024 events from product 5m vs CORE 1m->5m, outcome-blind",
+    "published": "prequential weekly calibrator, fitted only on events resolved before the week"
+  },
+  "metrics_order": [
+    "logloss_skill_vs_B0_B1",
+    "calibration_citl_intercept_slope_5bin",
+    "brier_murphy",
+    "sharpness_pB_outside_40_60",
+    "auc_diagnostic"
+  ],
+  "ece": "descriptive only",
+  "calibrator": {
+    "form": "per head (R, B) logit p' = a + b logit p, Gaussian prior, MAP",
+    "batch": "weekly",
+    "heldout_prior": {
+      "a": [
+        0,
+        0.5
+      ],
+      "b": [
+        1,
+        0.25
+      ]
+    },
+    "live_prior_equiv_events": 150,
+    "nonparametric_min_events": 300,
+    "f3": true
+  },
+  "level_effect_rule": {
+    "claim_if": "champion != B0 and held-out raw paired LL gain vs raw B0 95% interval > 0, per landmark",
+    "case_A": "published = champion with level-class calibrator",
+    "case_B": "published = B0 with GENERIC intercept + shared slope (no level intercept); D3 absent; D1/D2 -> HIST",
+    "fallback_model": "B0 with GENERIC intercept and shared slope only",
+    "level_intercepts": "estimated in shadow and reported, never published in case B"
+  },
+  "gates_f3_planning": {
+    "L3_HISTORY_BACKED": {
+      "G0_min_events": 200,
+      "G1_ll_pub_minus_b0_upper_max_nats": 0.01,
+      "G2_citl_point_max_pp": 5,
+      "G2_citl_interval_within_pp": 10,
+      "G3_slope_interval_overlaps": [
+        0.8,
+        1.25
+      ]
+    },
+    "L3_LIVE": {
+      "min_resolved": 150,
+      "plus": "G2 and G3 on live published"
+    },
+    "OFF": "data fault, last closed bar older than 10 min at issue, parity break",
+    "FALLBACK": {
+      "D1_eprocess_lambdas": [
+        -0.5,
+        -0.25,
+        0.25,
+        0.5
+      ],
+      "D1_threshold": 10,
+      "D2": "last 100: CITL point outside +-10 pp and 95% interval excludes 0",
+      "D3": "case A only: last 100 paired LL_pub - LL_fallback 95% interval above 0",
+      "in_fallback": "D1/D2 on the fallback model; trigger -> HIST"
+    },
+    "return": "50 new resolved since fallback; D2 band, restarted D1 <= 10, D3 not triggered"
+  },
+  "templates": [
+    "LR_L3H_V1",
+    "LR_L3L_V1",
+    "LR_FB_V1",
+    "LR_OFF_V1",
+    "LR_PUSH_L3H_V1",
+    "LR_PUSH_L3L_V1",
+    "LR_PUSH_FB_V1",
+    "LR_PUSH_OFF_V1"
+  ],
+  "journal_classes": [
+    "L3_LEVEL_RACE_T0_4H",
+    "L3_LEVEL_RACE_T15_4H"
+  ],
+  "search_exposure": {
+    "menu": 6,
+    "m1_fits": 12,
+    "landmarks": 2,
+    "heads": 2,
+    "folds": 4,
+    "generic": {
+      "entries": 2,
+      "pairs": 4
+    }
+  },
+  "forbidden_inputs": [
+    "touch ordinal",
+    "rejection speed",
+    "approach geometry",
+    "static level properties",
+    "OI",
+    "taker",
+    "joint OI/taker/price state",
+    "book +-1%",
+    "path memory",
+    "spot",
+    "sequence taxonomy",
+    "zone notional",
+    "#365 clock",
+    "#368 RV transition",
+    "END_POSITION_X as a separate feature",
+    "pseudo map",
+    "#361/#363 coefficients"
+  ],
+  "open_questions": [],
+  "generic_race": {
+    "display": false,
+    "journal_class": "L3_GENERIC_RACE_4H",
+    "rule_id": "GENERIC_RACE_4H_V1",
+    "anchors": "close of every 5m bar closing on a UTC hour; rolling_sigma at the anchor",
+    "window_bars": 48,
+    "x_g": "0.5 * 1.2816 * sigma * sqrt(48)",
+    "pairs_x_units": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ]
+    ],
+    "outcomes": [
+      "UP_FIRST",
+      "DOWN_FIRST",
+      "NEITHER"
+    ],
+    "ambiguous": "excluded_and_counted",
+    "models": {
+      "GB0": {
+        "params": 0
+      },
+      "G1": {
+        "heads": {
+          "R": [
+            "1",
+            "SIGMA_T"
+          ],
+          "U": [
+            "1",
+            "SIGMA_T"
+          ]
+        },
+        "params": 4,
+        "replaces_GB0_if": "pooled OOF LL lower by >= 0.002 nats"
+      }
+    },
+    "dependence": "week clusters; report anchors, pairs, weeks, anchors/4 as effective N",
+    "calibration_link": "per head shared slope b; intercepts per class GENERIC, LEVEL_T0, LEVEL_T15; a_level ~ N(a_GENERIC, 0.5^2) [F3]",
+    "shared_slope": "assumption; tested on held-out and live only"
+  },
+  "fallback_model": "B0 with GENERIC intercept and shared slope; before first generic batch raw B0",
+  "schedule": {
+    "hist_build": "2026-10-10/11",
+    "model_freeze_target": "~2026-10-16 (target, not cut-off)",
+    "model_states": "dated upgrade during the beta"
+  },
+  "window_end_display": "close time of bar j+48, HH:MM UTC",
+  "reliability_line": "stacked 5-bin table; bin of the largest displayed probability; ties P_UP, P_DN, neither; show bin N",
+  "f3_numbers_due": "amendment before the model freeze",
+  "answers": {
+    "Q1": "6 cells",
+    "Q2": "structural side",
+    "Q3": "F3 amendment before model freeze",
+    "Q4": "generic stream §8a",
+    "Q5": "product 5m + 2024 parity",
+    "Q6": "beta/level_race.py"
+  },
+  "hist": {
+    "authority": "FORECAST_LAYER_DECISION_V1 §6a",
+    "surface": "CORE_BTC_BINANCE_V0 2020-02-01..2024-12-31",
+    "label": "2020–2024",
+    "cells": {
+      "T0": "family x STRUCT_SIDE (6)",
+      "T15": "family x STRUCT_SIDE x band (18)"
+    },
+    "band": {
+      "variable": "B0_beyond at close[j+2], tau=46",
+      "edges": [
+        0.35,
+        0.55
+      ],
+      "names": [
+        "F1",
+        "F2",
+        "F3"
+      ],
+      "edges_source": "a priori numbers; not data terciles (T15 filter reads part of T0 outcome)"
+    },
+    "n_min": 30,
+    "ladder": {
+      "T15": [
+        "CELL",
+        "POOLED_SIDE (family x band)",
+        "LOW_N"
+      ],
+      "T0": [
+        "CELL",
+        "LOW_N"
+      ]
+    },
+    "per_cell": [
+      "n",
+      "h_beyond",
+      "h_back",
+      "h_neither",
+      "b_beyond",
+      "b_back",
+      "b_neither",
+      "weeks"
+    ],
+    "table_artifact": "docs/research/LEVEL_RACE_HIST_TABLE_V1.json",
+    "templates": [
+      "LR_HIST_V1",
+      "LR_PUSH_HIST_V1",
+      "LR_HIST_LOW_N_V1"
+    ],
+    "journal_classes": [
+      "L2_LEVEL_RACE_HIST_T0_4H",
+      "L2_LEVEL_RACE_HIST_T15_4H"
+    ],
+    "rule_id": "LEVEL_RACE_4H_V1",
+    "journal_fields": [
+      "issued_at",
+      "landmark",
+      "event_id",
+      "p_up",
+      "p_dn",
+      "orientation",
+      "window_end",
+      "cell_key",
+      "ladder_level",
+      "h_shown",
+      "b_shown",
+      "n",
+      "b0_event",
+      "table_sha256",
+      "code_commit",
+      "template_id",
+      "outcome=UNKNOWN",
+      "table_version",
+      "shown"
+    ],
+    "switch": {
+      "setting": "level_race.model_states_enabled",
+      "default": false,
+      "name_agreed": true
+    },
+    "no_2025_2026": true,
+    "key": "landmark x family x STRUCT_SIDE (+ band at T15); orientation == STRUCT_SIDE on all 1919 dev events (F2)",
+    "no_recompute": "V1 table never recomputed after held-out or live; new table = V2",
+    "templates_note": "shares for barriers at the same distances; today's prices named separately; years in both lines",
+    "scoring": "per cell: shown h vs observed share per outcome with N; LL/Brier vs event B0; CITL; 5-bin",
+    "uncertainty": {
+      "stat": "h - b per cell and outcome",
+      "method": "week-cluster bootstrap",
+      "draws": 2000,
+      "seed": 20261008,
+      "ci": 0.95,
+      "k": "half-width in pp, ceil"
+    },
+    "time_display": "user time zone via product formatter; no UTC in templates",
+    "push_full_line": "push carries N only; full LR_HIST_V1 with intervals one tap away (/levels)",
+    "t15_display_rule": "no T15 line if barrier hit or AMBIGUOUS on j+1/j+2",
+    "ambiguous": "excluded and counted at both landmarks"
+  },
+  "beta_changes": "FORECAST_LAYER §6a: announced in advance, dated event in measurement contract, metrics before/after; §6-§7 rules frozen"
+}
