@@ -611,6 +611,21 @@ def race_lines(block: Mapping[str, Any], lang: str, surface: str, *,
     return out
 
 
+def push_race_line(race: Optional[Mapping[str, Any]], lang: str, *, now: datetime) -> list:
+    """The T0 line of the level-touch push (LR_PUSH_HIST_V1, N only; the full line is in /levels), or
+    the small-N line; nothing when the event has no T0 statement."""
+    from .level_race import percents
+    if not race:
+        return []
+    if race["template"] == "LR_HIST_LOW_N_V1":
+        return [t(lang, "lr_hist_low_n_v1", n=int(race["n"]))]
+    end = datetime.fromtimestamp(race["end_ms"] / 1000, tz=timezone.utc)
+    h, b = percents(race["h"]), percents(race["b"])
+    return [t(lang, "lr_push_hist_v1", n=int(race["n"]), P_UP=fmt_price(race["p_up"], lang),
+              P_DN=fmt_price(race["p_dn"], lang), h_up=h["up"], h_dn=h["dn"], h_ne=h["neither"], b_up=b["up"],
+              b_dn=b["dn"], b_ne=b["neither"], END=_when(end, lang, with_day=local(end).date() != local(now).date()))]
+
+
 def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
     """/levels as one ladder in the /btc style (backlog C3): above from far to near, the price, below;
     each level with its chances and first-touch history; then the checks of the chances, the corridor
@@ -951,14 +966,23 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         lines.append(t(lang, "pa_level_title", name=_e(" = ".join(names)),
                        level=fmt_price(payload["level"], lang)))
         pts = payload.get("price_ts")
-        if pts:
+        if payload.get("trigger") == "structural":      # the #352 zone entry, decided at the 5m close
+            lines.append(t(lang, "pa_zone_now_at", clock=fmt_clock(datetime.fromisoformat(payload["source_at"]), lang),
+                           low=fmt_price(payload["zone_low"], lang), high=fmt_price(payload["zone_high"], lang),
+                           price=fmt_price(payload["price"], lang),
+                           price_clock=fmt_kyiv_hm(price_clock(pts)) if pts else na(lang),
+                           period=t(lang, "pa_period_" + payload.get("period", "day"))))
+        elif pts:
             lines.append(t(lang, "pa_level_now_at", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
                            price_clock=fmt_kyiv_hm(price_clock(pts)),
                            period=t(lang, "pa_period_" + payload.get("period", "day"))))
         else:                                       # a payload stored before A1
             lines.append(t(lang, "pa_level_now", clock=fmt_clock(at, lang), price=fmt_price(payload["price"], lang),
                            period=t(lang, "pa_period_" + payload.get("period", "day"))))
-        lines.extend(_hist_lines(payload.get("history"), lang, int(payload.get("side") or 1), "alert"))
+        if payload.get("trigger") == "structural":
+            lines.extend(push_race_line(payload.get("race"), lang, now=datetime.fromisoformat(payload["source_at"])))
+        else:
+            lines.extend(_hist_lines(payload.get("history"), lang, int(payload.get("side") or 1), "alert"))
         nxt = payload.get("next")
         if nxt:
             p24 = (nxt.get("touch") or {}).get("24h")

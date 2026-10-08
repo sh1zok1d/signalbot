@@ -650,6 +650,11 @@ def shown_keys(surface: str, block: Optional[Mapping[str, Any]], *, market: Opti
         out += race_shown_keys(block, surface, check_levels=check_levels)
     if surface == "alert" and alert is not None:
         p = alert.get("payload") or {}
+        race = p.get("race")
+        if alert.get("kind") == "level" and race:          # the T0 race line of a structural push
+            from .level_race_live import subject_key
+            out.append((race["class"], subject_key(race),
+                        datetime.fromtimestamp(race["landmark_ms"] / 1000, tz=timezone.utc)))
         if alert.get("kind") == "level":
             from .decision_format import level_hist_shown
             if level_hist_shown(p.get("history"), "1h"):

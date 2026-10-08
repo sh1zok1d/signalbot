@@ -28,10 +28,11 @@ MIN_PRESENT = 0.9                      # #352: share of finite window bars neede
 
 # ---- names (the measurement-contract registry; FORECAST_LAYER §8) ------------------------------
 SETTINGS = {"journal": "level_race.journal_enabled", "display": "level_race.display_enabled",
-            "model_states": "level_race.model_states_enabled"}
+            "model_states": "level_race.model_states_enabled", "push_trigger": "level_race.push_trigger"}
+PUSH_TRIGGERS = ("legacy", "structural")     # the level-touch push: exact price (legacy) or the #352 zone entry
 CLASSES = {
-    "L2_LEVEL_RACE_HIST_T0_4H": {"landmark": "T0", "rule": "LEVEL_RACE_4H_V1", "display": ("alert",),
-                                 "templates": ("LR_PUSH_HIST_V1", "LR_HIST_LOW_N_V1"), "from": "Day 0"},
+    "L2_LEVEL_RACE_HIST_T0_4H": {"landmark": "T0", "rule": "LEVEL_RACE_4H_V1", "display": ("alert", "levels", "check"),
+                                 "templates": ("LR_PUSH_HIST_V1", "LR_HIST_V1", "LR_HIST_LOW_N_V1"), "from": "Day 0"},
     "L2_LEVEL_RACE_HIST_T15_4H": {"landmark": "T15", "rule": "LEVEL_RACE_4H_V1", "display": ("levels", "check"),
                                   "templates": ("LR_HIST_V1", "LR_HIST_LOW_N_V1"), "from": "Day 0"},
     # model states and the shadow streams: journaled from the model freeze (not written yet)
@@ -55,6 +56,14 @@ def setting(cfg, name: str) -> bool:
     """`level_race.<name>`; an absent section or key is off."""
     raw = getattr(cfg, "raw", None) or {}
     return bool((raw.get("level_race") or {}).get(name, False))
+
+
+def push_trigger(cfg) -> str:
+    """The one switch between the two level-touch triggers (architect, P2 = A): `structural` makes the
+    push the #352 event with its T0 race line; anything else keeps the legacy exact-price touch."""
+    raw = getattr(cfg, "raw", None) or {}
+    v = (raw.get("level_race") or {}).get("push_trigger", "legacy")
+    return v if v in PUSH_TRIGGERS else "legacy"
 
 
 def mode(cfg) -> str:
@@ -137,20 +146,31 @@ def _resolved_since(b: Bars, v: Mapping[str, Any], price: Optional[float]) -> bo
 
 def display_block(b: Optional[Bars], now: datetime, table: Optional[Mapping[str, Any]], *,
                   price: Optional[float] = None) -> dict:
-    """What /levels and /check show: the T15 statement of every event whose window is still open and
-    whose race is not decided yet. `available` False (state OFF) when the table did not load."""
+    """What /levels and /check show for every event whose window is still open and whose race is not
+    decided yet: the T0 statement until T15 (the push's full line, one tap away; none when the touch
+    close lies outside the barrier pair), then the T15 statement. State OFF when the table did not load."""
     if table is None:
         return {"state": "OFF", "races": []}
     now_ms = to_ms(now)
     races = []
     for ev in events(b):
-        if not (landmark_ms(ev, "T15") <= now_ms < int(ev["window_end_ms"])):
+        if not (landmark_ms(ev, "T0") <= now_ms < int(ev["window_end_ms"])):
             continue
-        v = landmark_view(b, ev, "T15", table)
-        if v is None or _resolved_since(b, v, price):
+        lm = "T15" if now_ms >= landmark_ms(ev, "T15") else "T0"
+        v = landmark_view(b, ev, lm, table)
+        if v is None or v["outside_corridor"] or _resolved_since(b, v, price):
             continue
         races.append(_public(v))
     return {"state": "HIST", "races": races}
+
+
+def push_view(b: Optional[Bars], ev: Mapping[str, Any], table: Optional[Mapping[str, Any]]) -> Optional[dict]:
+    """The T0 line of the level-touch push, or None (no table, an ineligible event, or the touch close
+    outside the barrier pair: the record is still journaled, flagged)."""
+    if table is None or b is None or not ev.get("eligible"):
+        return None
+    v = landmark_view(b, ev, "T0", table)
+    return None if v is None or v["outside_corridor"] else _public(v)
 
 
 def _public(v: Mapping[str, Any]) -> dict:

@@ -380,14 +380,16 @@ def _validate(d: Mapping[str, Any]) -> None:
 
 
 # Level race at structural first touches (FORECAST_LAYER_DECISION_V1 §6a; beta/level_race_live.py).
-_LEVEL_RACE_KEYS = {"journal_enabled", "display_enabled", "model_states_enabled"}
+_LEVEL_RACE_KEYS = {"journal_enabled", "display_enabled", "model_states_enabled", "push_trigger"}
 
 
 def _validate_level_race(d: Mapping[str, Any]) -> None:
     x = d["level_race"]
     _exact_keys(x, _LEVEL_RACE_KEYS, "level_race")
-    for key in sorted(_LEVEL_RACE_KEYS):
+    for key in ("journal_enabled", "display_enabled", "model_states_enabled"):
         _bool(x[key], f"level_race.{key}")
+    if x["push_trigger"] not in ("legacy", "structural"):
+        raise BetaConfigError("level_race.push_trigger must be legacy or structural")
 
 
 def _validate_decision(d: Mapping[str, Any]) -> None:

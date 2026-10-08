@@ -51,3 +51,81 @@ def test_hist_journal_round_trip_on_postgres():
                 await c.execute("UPDATE beta_claims SET subject_key = 'x' WHERE claim_pk = $1", pk)
         await pool.close()
     run(body())
+
+
+def test_structural_push_and_its_t0_record_through_the_notifier():
+    """The whole notifier run with `push_trigger: structural` and the journal on: yesterday's high is entered
+    once, the alert is the #352 event decided at the 5m close, its T0 record is written before it, and the
+    legacy exact-price alert does not appear."""
+    from beta.decision import reset_cache
+    from beta.delivery import run_notify_once
+    from beta.history_stats import run_history_build
+    from beta_fakes import ON_PUSH, Clock
+    from test_beta_v2_pg import DAY, NOW, Sender, _rows, _seed
+
+    async def body():
+        reset_cache()
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        await _seed(pool)
+        cfg = _cfg(journal_enabled=True, display_enabled=True, push_trigger="structural")
+        assert (await run_history_build(store, cfg, now=DAY + timedelta(hours=2)))["status"] == "OK"
+        async with store.connect() as conn:
+            await conn.set_admin_push_enabled(False)
+        r = await run_notify_once(store, cfg, ON_PUSH, sender=Sender(), clock=Clock(NOW))
+        assert r["market"]["level_race"]["race_written"] >= 1, r["market"]
+        alerts = await _rows(pool, "SELECT alert_key, decision, payload FROM beta_market_alerts WHERE kind = 'level'")
+        assert len(alerts) == 1 and alerts[0]["alert_key"].startswith("level:PDH:")
+        assert alerts[0]["decision"] == "SUPPRESSED"
+        import json
+        p = json.loads(alerts[0]["payload"]) if isinstance(alerts[0]["payload"], str) else alerts[0]["payload"]
+        assert p["trigger"] == "structural" and p["source_at"] == (DAY + timedelta(hours=6)).isoformat()
+        t0 = await _rows(pool, "SELECT subject_key, issue_slot, eligible_reason FROM beta_claims "
+                               "WHERE claim_class = 'L2_LEVEL_RACE_HIST_T0_4H'")
+        assert [x["subject_key"] for x in t0] == [p["event_id"] + ":T0"]
+        assert t0[0]["issue_slot"] == DAY + timedelta(hours=6)
+        # the touch bar closed at yesterday's close, far below the zone: journaled and flagged, no line
+        assert t0[0]["eligible_reason"] == "LANDMARK_T0_OUT_OF_CORRIDOR" and p["race"] is None
+        # the next minute: no second alert, no second record
+        r2 = await run_notify_once(store, cfg, ON_PUSH, sender=Sender(), clock=Clock(NOW + timedelta(minutes=1)))
+        assert r2["market"]["level_race"]["race_written"] == 0
+        assert len(await _rows(pool, "SELECT 1 FROM beta_market_alerts WHERE kind = 'level'")) == 1
+        await pool.close()
+    run(body())
+
+
+def test_structural_push_is_delivered_with_its_race_line_and_linked():
+    from beta.decision import reset_cache
+    from beta.delivery import run_notify_once
+    from beta.history_stats import run_history_build
+    from beta_fakes import ON_PUSH, Clock
+    from test_beta_v2_pg import A, DAY, NOW, Sender, _join, _rows, _seed, plain
+    from runtime.beta_bot import BetaBotHandler
+
+    async def body():
+        reset_cache()
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        seed = await _seed(pool)
+        # the touch bar (06:55-06:59 UTC minutes 355-359) closes inside the zone, so it has a T0 line
+        async with pool.acquire() as c:
+            await c.execute("UPDATE klines_1m SET close = $1, high = GREATEST(high, $1) WHERE ts = $2",
+                            seed["pdh"] * 0.9995, DAY + timedelta(minutes=359))
+        cfg = _cfg(journal_enabled=True, display_enabled=True, push_trigger="structural")
+        assert (await run_history_build(store, cfg, now=DAY + timedelta(hours=2)))["status"] == "OK"
+        h = BetaBotHandler(store, cfg, switches=lambda: ON_PUSH, owner_user_id=A, clock=Clock(NOW - timedelta(hours=1)))
+        await _join(h, A, 100)
+        s = Sender()
+        r = await run_notify_once(store, cfg, ON_PUSH, sender=s, clock=Clock(NOW))
+        lvl = await _rows(pool, "SELECT decision FROM beta_market_alerts WHERE kind = 'level'")
+        assert lvl == [{"decision": "PUSH"}], (lvl, r["market"])       # (the jump into the zone is also a sharp move)
+        msgs = [plain(x[1]) for x in s.sent if x[0] == A and "вошла в зону" in plain(x[1])]
+        assert len(msgs) == 1
+        text = msgs[0]
+        assert "первое касание" not in text and "После первого касания" not in text
+        assert "2020–2024" in text
+        links = await _rows(pool, "SELECT c.claim_class, d.surface FROM beta_claim_displays d "
+                                  "JOIN beta_claims c USING (claim_pk) WHERE c.claim_class LIKE 'L2_LEVEL_RACE%'")
+        assert links == [{"claim_class": "L2_LEVEL_RACE_HIST_T0_4H", "surface": "alert"}]
+        await pool.close()
+    run(body())

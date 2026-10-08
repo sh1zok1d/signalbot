@@ -76,7 +76,7 @@ def test_registry_holds_every_race_name_once():
 def test_flags_are_off_by_default_and_the_mode_stays_hist_without_a_model():
     cfg = BetaConfig.load()
     assert dict(cfg.raw["level_race"]) == {"journal_enabled": False, "display_enabled": False,
-                                           "model_states_enabled": False}
+                                           "model_states_enabled": False, "push_trigger": "legacy"}
     assert LR.mode(_cfg(model_states_enabled=True)) == "HIST"          # no frozen model yet: the switch is inert
     with pytest.raises(Exception):
         BetaConfig.load().with_overrides(level_race={"journal_enabled": True})
@@ -208,8 +208,13 @@ def test_t15_line_is_shown_until_the_race_is_decided_and_never_says_break_or_rej
     ru = race_lines(blk, "ru", "levels")[1]
     if v["template"] == "LR_HIST_V1":
         assert "верхняя" in ru and "нижняя" in ru and "ни одна" in ru and "обычно" in ru and "2020–2024" in ru
-    # before T15: nothing; after a barrier is reached: nothing; after the window: nothing
-    assert _block(_cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 60_000), price)["level_race"]["races"] == []
+    # before T0: nothing; between T0 and T15 the T0 statement (the push's full line), unless the touch close
+    # lies outside the barrier pair; after a barrier is reached: nothing; after the window: nothing
+    assert not [r for r in _block(_cut(B, e["t0_ms"] - BAR_MS), _ts(e["t0_ms"] - 1), price)["level_race"]["races"]
+                if r["event_id"] == e["event_id"]]
+    early = [r for r in _block(_cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 60_000), float(B.close[e["j"]]))["level_race"]["races"]
+             if r["event_id"] == e["event_id"]]
+    assert all(r["landmark"] == "T0" for r in early)
     assert _block(b, _ts(at), v["p_up"] * 1.001)["level_race"]["races"] == []
     end = e["window_end_ms"]
     assert not [r for r in _block(_cut(B, end), _ts(end + 60_000), price)["level_race"]["races"]
