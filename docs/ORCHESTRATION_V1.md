@@ -50,7 +50,7 @@ Session ids are in §6, which the architect keeps current.
 - **Path:** track → its mini-head → architect → owner. Mini-heads do not write to the owner. Their owner-level questions go to the architect, who batches them.
 - **Production incidents go through the architect, at once** (owner, 2026-10-08: «аварию пересылай и от опг 1 потому что я мониторю только твой чат»).
   - **What counts:** the collector or a beta unit has stopped; data is being corrupted; pushes go out uncontrolled.
-  - **How:** the mini-head that sees it writes to the architect at once, first line «АВАРИЯ»: what is happening, since when, and the stop or rollback step for the owner. The same text stays as its own last message.
+  - **How:** the mini-head that sees it writes to the architect at once, first line «АВАРИЯ»: what is happening, since when, and the stop or rollback step for the owner.
   - **Forwarding:** the architect forwards it to the owner immediately, in its own chat — the only chat the owner watches.
 - **Polling:** the architect checks both mini-heads on its own schedule and answers by session message. Mini-heads keep their own track checks.
 - **Usage limits** (owner, 2026-10-08, «Если упретесь в лимит. То после его сброса автоматически продолжайте»):
@@ -58,6 +58,7 @@ Session ids are in §6, which the architect keeps current.
   - the scheduled checks wake the mini-heads and the architect;
   - at each check a mini-head that finds a track stopped by a limit tells it to continue from where it stopped;
   - the architect does the same for a stopped mini-head.
+- **Quiet session chats** (owner, 2026-10-08: «почти ничего или ничего не выводить мне в чат… Я все равно смотрю только твой чат»): the owner reads only the architect's chat. Every other session ends its turns with at most one short line or nothing, and writes no summaries for the owner. Work, reports and questions go between sessions by message as before.
 - **Language** (owner, 2026-10-08): agents talk to each other in English — messages, reports, PR descriptions and briefs. Everything addressed to the owner (decisions, questions, deploy blocks, incidents) is in Russian. Product texts for users keep their own RU/EN rules.
 - **What a mini-head reports:** after each merged PR, each blocker and each owner-level question, a short report in its own session — what changed, the PR, the checks run, what it needs.
 
