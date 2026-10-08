@@ -41,7 +41,7 @@ A row in `beta_users` with a non-null `joined_at`, meaning the person accepted t
 ### 1.4 Days
 - **Kyiv days.** Cohort days and the active days of U1b are Kyiv days, for every participant.
 - **The participant's own days.** Each participant's briefing comes at their own briefing time on their own clock (`brief_time`, default 08:00; `tz`, default Kyiv). The U1a withdrawal days are matched against the participant's **local briefing date**, not Kyiv's (owner decision 2026-10-08; §6.1).
-- **Test opening and Day 0** (owner, 2026-10-08). The owner opens the test with `/admin_test_open` after the readiness announcement and the contract freeze; it writes one `admin_test_open` audit row with its instant. **Day 0** is the Kyiv date of the first **unknown** participant whose join is at or after that instant (`store.derived_day0_kyiv`, live rows and the cohort records of deleted participants). An earlier, accidental join never starts the test retroactively. **Day 0 is provisional** until the first unknown joiner's 24-hour known-classification window (§1.2) closes: a participant marked known within it moves Day 0 to the next unknown join; `/admin_health` shows «provisional until …». Once an unknown participant has joined, the opening can no longer move (`/admin_test_open force` is refused).
+- **Test opening and Day 0** (owner, 2026-10-08). The owner opens the test with `/admin_test_open` after the readiness announcement and the contract freeze; it writes one `admin_test_open` audit row with its instant. **Day 0** is the Kyiv date of the first **unknown** participant whose join is at or after that instant (`store.derived_day0_kyiv`, live rows and `beta_deleted_cohort_counts`). An earlier, accidental join never starts the test retroactively. **Day 0 is provisional** until the first unknown joiner's 24-hour known-classification window (§1.2) closes: a participant marked known within it moves Day 0 to the next unknown join; `/admin_health` shows «provisional until …». Once an unknown participant has joined, the opening can no longer move (`/admin_test_open force` is refused).
 - **Notation: T(n), zero-based, half-open.** T(n) = 00:00 Europe/Kyiv on the Kyiv date of Day 0 + *n* calendar days. Calendar days: a day may be 23 or 25 hours at a clock change; never "168 hours". Cohort day *n* is [T(n), T(n+1)). `PRODUCT_FIRST_DECISION_V1` §7 counts from 1: its day *n* = cohort day *n*−1.
 - **Calendar windows** (owner, 2026-10-08). Every window is a calendar window on the Kyiv date; [T(0), T(7)) is 169 hours when it crosses the autumn clock change, and that is simply the calendar window. A participant who joins at 14:30 on day 0 has a shorter actual participation; wherever a metric depends on exposure, the per-participant exposure is reported separately beside it.
 
@@ -59,8 +59,9 @@ A row in `beta_users` with a non-null `joined_at`, meaning the person accepted t
 
 ### 1.5 `/delete_me` and retention purges
 - **What is deleted.** The participant's personal telemetry is deleted as the privacy notice promises: the user row, activity and feedback text. Delivery rows keep only an anonymous `NULL` user.
-- **What is kept** (owner, 2026-10-08: only a permitted de-identified aggregate, never a personal record). The deletion's `beta_admin_audit` row (`user_delete_me`, `retention_purge`, `admin_remove`) keeps only `detail.cohort`: `{joined_kyiv_date, known_contact, joined_after_test_open}`. No Telegram id, no fingerprint (`target_fingerprint` is NULL on all three), no per-person row counts (#418).
-- **Denominator.** It is computed from live rows **plus** these cohort records (§4).
+- **What is kept** (owner, 2026-10-08: only a permitted de-identified aggregate, never a personal record; #420). An unknown participant who joined at or after the test opening adds one to `beta_deleted_cohort_counts` for their Kyiv join date, in the same transaction as the deletion. Known participants, the owner and joins before the opening leave nothing. The deletion's `beta_admin_audit` row (`user_delete_me`, `retention_purge`, `admin_remove`) keeps only the action, the result and the kind of actor (`participant` / `system` / `owner`) at the Kyiv date: no fingerprint, `detail` `{}`.
+- **The participant's earlier audit rows** (owner, 2026-10-08, the one exception to append-only, enforced by the trigger function `beta_audit_guard`): in the same transaction, every audit row about them or by them loses the detail and the exact time (the Kyiv date stays); their target becomes NULL and their actor fingerprint the role (owner, 2026-10-09: a row they only acted in takes the same shape; a live target on it stays). No audit row is deleted, no action or result changes, and no row that is neither about nor by them is edited.
+- **Denominator.** It is computed from live rows **plus** this counter (§4).
 - **Effect on the metrics.** A deleted enrolled participant counts as disabled for U2 and as not paying for U3, unless the payment ledger (§7) shows a payment made before the deletion.
 
 ## 2. Activity vocabulary (from `beta_user_activity`)
@@ -157,13 +158,8 @@ WHERE action IN ('set_mute', 'set_unmute') GROUP BY 1, 2;
 SELECT DISTINCT user_pk FROM beta_notification_deliveries
 WHERE state = 'FAILED' AND error_summary LIKE 'Forbidden:%';
 
--- deleted or purged participants' cohort records (denominator, part 2, no identity)
-SELECT detail->'cohort'->>'joined_kyiv_date' AS joined_kyiv_date,
-       (detail->'cohort'->>'known_contact')::boolean AS known_contact, count(*) AS n
-FROM beta_admin_audit
-WHERE action IN ('user_delete_me','retention_purge','admin_remove') AND detail ? 'cohort'
-  AND detail->>'cohort' <> 'null' AND recorded_at >= :day0
-GROUP BY 1, 2;
+-- deleted or purged enrolled participants (denominator, part 2, no identity): unknown, joined at or after the opening
+SELECT joined_kyiv_date, n FROM beta_deleted_cohort_counts ORDER BY 1;
 ```
 
 `tests/beta/test_beta_invite_journey_pg.py` executes every query above against the real schema on each test run.
@@ -177,7 +173,7 @@ GROUP BY 1, 2;
 - **Delivery failures.** Blocked and network failures are distinguishable and never resent.
 - **U1a.** The brief is withheld on a withdrawal day, with outbox state `SUPPRESSED` / `BRIEF_WITHDRAWAL` and a `brief_withheld` activity row.
 - **U5.** The fake door records one `btn_other_assets` row per tap.
-- **`/delete_me`.** It removes personal telemetry and keeps the cohort record.
+- **`/delete_me`.** It removes personal telemetry, adds to the deleted-cohort counter where §1.5 says so, and de-identifies the participant's audit rows.
 
 ## 6. Test instruments
 
@@ -216,12 +212,46 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 | `offered_at` | when the price was offered ([T(20), T(25)), `PRODUCT_FIRST` days 21–25; once to each ACTIVE participant, inactive ones included; never after `/stop`, `/delete_me` or a bot block — a `Forbidden:` failure with no later SENT delivery; owner decision 2026-10-08, #416) |
 | `paid_at` | when a real transfer arrived; empty if none |
 | `amount`, `currency` | of that transfer |
-| `refunded_at` | a refund within 30 days cancels the payment |
+| `refunded_at` | a refund within 30 days cancels the payment, whoever initiated it |
+| `refund_reason` | `request` (the participant asked) or `our_side` (we cancelled the start or closed the service) |
 
 - **Never stored:** bank or card details, screenshots, the payer's real name, payment-reference text, unless operationally unavoidable.
 - **What counts as payment.** A willingness statement, a promise or a "would pay" is **not** a payment. Only a row with `paid_at` and no `refunded_at` within 30 days counts.
-- **What is paid for** (owner, 2026-10-08): one month of the same bot after the beta. **Start** (owner, 2026-10-08): the paid month starts at the **actual** end of the free test, extension included: T(30) without an extension, T(44) with one; the prepayment buys one full calendar month from that start. **Access:** the bot as it is (BTC, all current functions). The offer text says in advance that an extension is possible and moves the start (#416). No continuation means a full refund on the offered terms. The amount, currency and method come later; the offer is not sent before then (`/admin_offer` refuses while `access.u3_offer` is empty).
+- **What is paid for** (owner, 2026-10-08): one month of the same bot after the beta. **Start** (owner, 2026-10-08): the paid month starts at the **actual** end of the free test, extension included: T(30) without an extension, T(44) with one; the prepayment buys one full calendar month from that start. **Access:** the bot as it is (BTC, all current functions). The offer text says in advance that an extension is possible and moves the start (#416). The amount, currency and method come later; the offer is not sent before then (`/admin_offer` refuses while `access.u3_offer` is empty).
+- **Refund terms** (owner, 2026-10-08), stated in the offer text:
+  - the continuation does not start on the announced date → a full refund by default; the payment moves to a later start only with the participant's consent;
+  - access stops before the end of the first paid month → a full refund;
+  - a refund on request within 30 days of payment stays;
+  - a short technical outage is not a closure of the service.
+- **Paid access** (OUT-9, owner-approved 2026-10-08):
+  - **What.** The same BTC bot in Telegram. On request: `/btc`, `/levels`, `/risk`, `/check` (one or two levels), `/events`, `/accuracy`, `/history`, `/catchup`, `/research`, `/alert` personal price alerts. Scheduled: the morning briefing at the participant's own time and the Sunday weekly report. Notifications: unusual hour, level touch, event, sharp move. Also 👍/👎 votes, `/feedback`, ideas, and team replies to the participant's own messages.
+  - **Limits.** The same as in the beta (the table below). The shared fuse limits the number of events, not deliveries; delivery to each participant follows that participant's settings and personal limits. BTC only.
+  - **Duration.** One month from the actual end of the free test: T(30) or T(44).
+  - **Changes vs the beta.** No functional change. The test-only mechanics stop (the U1a withdrawal days, the offer). Forecast-layer updates continue as dated, announced changes.
+  - **Refund terms.** As above.
+  - **Not included.** Other coins or markets; signals, entries, targets or any buy/sell instruction; trading automation or exchange keys; a guarantee of accuracy; personal advice; a web app or API; a promise of new features; a response-time guarantee for support.
+  - **Still open.** The amount, currency and method.
+- **Daily limits** (OUT-10, owner-accepted 2026-10-08), in the beta and in paid access. Every limit is on the participant's own day.
+
+  | Message | Limit | Quiet hours |
+  |---|---|---|
+  | Unusual hour | 2 a day | yes |
+  | Level touch and sharp move | 4 a day, shared | yes |
+  | CPI / FOMC event notice | no daily cap | yes |
+  | Personal `/alert` touch / approach | no cap | **no: may arrive during quiet hours** |
+  | Morning briefing | one a day, at the participant's time | — |
+  | Weekly report | Sunday 19:00 local | — |
+  | Replies to the participant's own messages | not counted | — |
+
+  - **Fuses.** The safety fuses (4 push decisions and 8 level+move decisions per UTC day, `config/beta_v0.yaml`) count unique decisions. Each decision is delivered to every eligible participant, so participant growth never exhausts them.
 - **PASS** (owner, 2026-10-08): with P = unknown enrolled participants who paid and were not refunded within 30 days, and E = **every enrolled unknown participant, including those not offered** (§1.3), U3 PASS ⇔ P ≥ 3 AND P / E ≥ 25 %.
+- **Refunds** (owner amendment, 2026-10-08). The rule stays: **any** refund within 30 days of payment removes that payment from P, whoever initiated it. Reported separately, beside PASS:
+  1. initial voluntary payments: count and share of E;
+  2. refunds at the participant's request;
+  3. refunds because we cancelled the start or closed the service;
+  4. payments with no refund after 30 days: the main U3.
+
+  If we did not provide the continuation, the report states that sustained paid demand could not be tested, for a reason on our side. The initial payments stay as evidence of willingness to buy and never turn U3 into a PASS. The ledger records each refund's reason (`refund_reason`: `request` / `our_side`).
 - **The funnel, reported beside it:** enrolled → offer allowed (ACTIVE, not blocked) → delivered → paid → refunded.
 
 ## 8. Privacy
@@ -237,7 +267,7 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 2. **Known-classification deadline:** within 24 h of enrollment.
 3. **Reaction window:** 10 minutes.
 4. **Notification classes:** BRIEF and EVENT_MOVE_LEVEL_PUSH stay separate; a combined response exists only as a derived metric.
-5. **`/delete_me`:** the enrolled participant stays in the denominator through the cohort record only (§1.5).
+5. **`/delete_me`:** the enrolled participant stays in the denominator through the cohort record only (§1.5; since #420 the per-join-date counter).
 6. **U1a:** implement before the freeze. Schedule frozen before Day 0, observable in telemetry, no post-Day-0 adjustment (§6.1).
 7. **U5:** a minimal fake door before Day 0 (§6.2).
 8. **U3:** a ledger outside git with the §7 fields; only a real transfer counts.

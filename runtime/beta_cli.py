@@ -339,7 +339,7 @@ async def _dispatch(args, db, cfg, switches: BetaSwitches, clock, Stage2Config,
                 usage = build_usage_report(await conn.usage_facts(), now=now, owner_user_id=owner)
                 return {"status": "OK", "usage": usage}
             if args.beta_health:
-                h = await collect_health(conn, cfg, switches, now)
+                h = await collect_health(conn, cfg, switches, now, BetaSecrets.from_env(env).owner_user_id)
                 return {"status": "OK" if not h["alerts"] else "ALERTS", "health": h}
             st = await collect_status(conn, cfg, now)
             return {"status": "OK", "product_status": st["status"],

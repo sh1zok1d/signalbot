@@ -66,13 +66,17 @@ def test_the_sample_alert_carries_no_corridor():
 
 
 def test_the_offer_says_what_is_paid_for_and_that_an_extension_moves_the_start():
-    """Owner, 2026-10-08: the paid month starts at the actual end of the free test, extension included; no
-    continuation means a full refund; no performance claim."""
+    """Owner, 2026-10-08: the paid month starts at the actual end of the free test, extension included; the refund
+    terms of contract §7; no performance claim."""
     ru = " ".join(t("ru", "u3_offer", price="P", method="M").split())
     en = " ".join(t("en", "u3_offer", price="P", method="M").split())
     assert "месяц того же бота, начиная с окончания бесплатного теста" in ru and "начало сдвинется" in ru
-    assert "Если продолжения не будет — вернём всю сумму" in ru
+    assert "Вернём всю сумму, если продолжение не начнётся в объявленный день" in ru
+    assert "только с вашего согласия" in ru and "доступ прекратится до конца первого оплаченного месяца" in ru
+    assert "по запросу в течение 30 дней после оплаты" in ru and "Короткий технический сбой — не закрытие сервиса" in ru
     assert "one month of the same bot, starting when the free test ends" in en and "the start moves" in en
-    assert "we refund the full amount" in en
+    assert "We refund the full amount if the continuation does not start on the announced date" in en
+    assert "only with your consent" in en and "access stops before the end of the first paid month" in en
+    assert "on request within 30 days of paying" in en and "A short technical outage is not a closure" in en
     for text in (ru, en):
         assert not any(w in text.lower() for w in ("прибыл", "заработ", "profit", "earn", "точн", "accura"))
