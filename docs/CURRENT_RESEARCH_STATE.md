@@ -12,6 +12,16 @@
 
 Original design: `docs/research/OPENING_RANGE_OBJECT_V1_DESIGN.md`. A1: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md`. A2: `docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A2.md`. Result: `docs/research/OPENING_RANGE_OBJECT_V1_RESULT.md`.
 
+## OPENING_RANGE_OBJECT_V1 — post-outcome diagnosis — 2026-10-08
+
+`MODE = POST_OUTCOME_DIAGNOSIS | EVIDENCE_UPGRADE = NONE | ORIGINAL_RESULT_UNCHANGED = true | CONFIRMATION = false`
+`ROUTE UNCHANGED = FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE | claim ceiling L2 | not a confirmation`
+`DESCRIPTION = pooled delta is a pseudo-rate collapse | 2023H2 is the sharp half | weekday half-rotation lag about 910 days swaps 2021 width with 2023 width | similar-width bin about -1.3 pp on UTC_00`
+`MAP SIGNS = extension-first gap is the late, pseudo-wider block | smaller pooled excursion is the early, real-wider tail | outside occupancy cancels across those blocks`
+`NOT STARTED = width-held successor | fresh surface | new hour | product | forecast | atlas unit not rewritten`
+
+Diagnosis: `docs/research/FROZEN_HOUR_RANGE_POST_OUTCOME_DIAGNOSIS_V1.md`.
+
 ## OPENING_RANGE_OBJECT_V1 — superseded snapshot: amendment A2, before the outcome read — 2026-10-08
 
 `UNIT = OPENING_RANGE_OBJECT_V1 (atlas OPENING-RANGE-OBJECT-V1; family OPENING_RANGE_V1; MODE = DISCOVERY)`

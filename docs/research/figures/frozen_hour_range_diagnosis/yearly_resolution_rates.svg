@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="560" viewBox="0 0 980 560">
+<rect width="100%" height="100%" fill="#fbfaf6"/>
+<text x="58" y="24" font-family="sans-serif" font-size="16" fill="#1c1917">FROZEN_HOUR_RANGE resolution rate by year — descriptive, not a test</text>
+<text x="58.0" y="56.0" font-family="sans-serif" font-size="13" fill="#1c1917">UTC_00</text>
+<rect x="58.0" y="64.0" width="436.0" height="184.0" fill="#fff" stroke="#d6d3d1"/>
+<line x1="58.0" y1="248.0" x2="494.0" y2="248.0" stroke="#e7e5e4"/>
+<text x="52.0" y="251.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.45</text>
+<line x1="58.0" y1="156.0" x2="494.0" y2="156.0" stroke="#e7e5e4"/>
+<text x="52.0" y="159.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.725</text>
+<line x1="58.0" y1="64.0" x2="494.0" y2="64.0" stroke="#e7e5e4"/>
+<text x="52.0" y="67.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">1</text>
+<polyline fill="none" stroke="#1f4e79" stroke-width="2" points="101.6,99.2 188.8,89.2 276.0,97.0 363.2,87.8 450.4,83.7"/>
+<polyline fill="none" stroke="#b85c38" stroke-width="2" points="101.6,92.5 188.8,70.3 276.0,107.3 363.2,200.0 450.4,143.9"/>
+<text x="101.6" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2020</text>
+<text x="188.8" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2021</text>
+<text x="276.0" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2022</text>
+<text x="363.2" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2023</text>
+<text x="450.4" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2024</text>
+<text x="58.0" y="270.0" font-family="sans-serif" font-size="10" fill="#57534e">real  pseudo · resolution rate</text>
+<text x="520.0" y="56.0" font-family="sans-serif" font-size="13" fill="#1c1917">UTC_08</text>
+<rect x="520.0" y="64.0" width="436.0" height="184.0" fill="#fff" stroke="#d6d3d1"/>
+<line x1="520.0" y1="248.0" x2="956.0" y2="248.0" stroke="#e7e5e4"/>
+<text x="514.0" y="251.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.45</text>
+<line x1="520.0" y1="156.0" x2="956.0" y2="156.0" stroke="#e7e5e4"/>
+<text x="514.0" y="159.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.725</text>
+<line x1="520.0" y1="64.0" x2="956.0" y2="64.0" stroke="#e7e5e4"/>
+<text x="514.0" y="67.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">1</text>
+<polyline fill="none" stroke="#1f4e79" stroke-width="2" points="563.6,72.7 650.8,73.5 738.0,74.4 825.2,73.8 912.4,73.3"/>
+<polyline fill="none" stroke="#b85c38" stroke-width="2" points="563.6,79.5 650.8,69.3 738.0,77.2 825.2,149.6 912.4,101.3"/>
+<text x="563.6" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2020</text>
+<text x="650.8" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2021</text>
+<text x="738.0" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2022</text>
+<text x="825.2" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2023</text>
+<text x="912.4" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2024</text>
+<text x="520.0" y="270.0" font-family="sans-serif" font-size="10" fill="#57534e">real  pseudo · resolution rate</text>
+<text x="58.0" y="306.0" font-family="sans-serif" font-size="13" fill="#1c1917">UTC_12</text>
+<rect x="58.0" y="314.0" width="436.0" height="184.0" fill="#fff" stroke="#d6d3d1"/>
+<line x1="58.0" y1="498.0" x2="494.0" y2="498.0" stroke="#e7e5e4"/>
+<text x="52.0" y="501.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.45</text>
+<line x1="58.0" y1="406.0" x2="494.0" y2="406.0" stroke="#e7e5e4"/>
+<text x="52.0" y="409.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.725</text>
+<line x1="58.0" y1="314.0" x2="494.0" y2="314.0" stroke="#e7e5e4"/>
+<text x="52.0" y="317.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">1</text>
+<polyline fill="none" stroke="#1f4e79" stroke-width="2" points="101.6,330.3 188.8,327.5 276.0,326.4 363.2,323.2 450.4,319.6"/>
+<polyline fill="none" stroke="#b85c38" stroke-width="2" points="101.6,331.3 188.8,322.3 276.0,337.8 363.2,384.6 450.4,334.7"/>
+<text x="101.6" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2020</text>
+<text x="188.8" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2021</text>
+<text x="276.0" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2022</text>
+<text x="363.2" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2023</text>
+<text x="450.4" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2024</text>
+<text x="58.0" y="520.0" font-family="sans-serif" font-size="10" fill="#57534e">real  pseudo · resolution rate</text>
+<text x="520.0" y="306.0" font-family="sans-serif" font-size="13" fill="#1c1917">UTC_16</text>
+<rect x="520.0" y="314.0" width="436.0" height="184.0" fill="#fff" stroke="#d6d3d1"/>
+<line x1="520.0" y1="498.0" x2="956.0" y2="498.0" stroke="#e7e5e4"/>
+<text x="514.0" y="501.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.45</text>
+<line x1="520.0" y1="406.0" x2="956.0" y2="406.0" stroke="#e7e5e4"/>
+<text x="514.0" y="409.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.725</text>
+<line x1="520.0" y1="314.0" x2="956.0" y2="314.0" stroke="#e7e5e4"/>
+<text x="514.0" y="317.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">1</text>
+<polyline fill="none" stroke="#1f4e79" stroke-width="2" points="563.6,350.8 650.8,325.5 738.0,335.1 825.2,334.5 912.4,326.1"/>
+<polyline fill="none" stroke="#b85c38" stroke-width="2" points="563.6,346.0 650.8,321.3 738.0,350.5 825.2,406.4 912.4,372.9"/>
+<text x="563.6" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2020</text>
+<text x="650.8" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2021</text>
+<text x="738.0" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2022</text>
+<text x="825.2" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2023</text>
+<text x="912.4" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">2024</text>
+<text x="520.0" y="520.0" font-family="sans-serif" font-size="10" fill="#57534e">real  pseudo · resolution rate</text>
+</svg>

@@ -8653,3 +8653,17 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 OUTCOME_READ = yes, once, 2026-10-08T20:41:03Z; RERUN = REFUSING_RERUN
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 ```
+
+## 2026-10-08 — FROZEN_HOUR_RANGE post-outcome diagnosis; no new window; no evidence upgrade
+
+**Unit.** `OPENING_RANGE_OBJECT_V1`. `MODE = POST_OUTCOME_DIAGNOSIS`. The official result, route, design, A1, and A2 are not rewritten. Official result SHA256 `9d21dafa4272bc0dab16329187edd65a7acf50adad071b80c8d63f2ea3c57fae`.
+- **Reread.** The already consumed `CORE_BTC_BINANCE_V0` `[2020-01-01, 2025-01-01)` pairs only. Diagnosis script `scripts/research/frozen_hour_range_post_outcome_diagnosis_v1.py`, outside the evaluator package, so the pre-outcome code digest is unchanged. Parity with every published foundation delta and year delta was required before the note was written.
+- **Description.** The pooled foundation delta is a fall in the pseudo resolution rate, not a rise in the real rate. The sharp half is 2023H2. The frozen weekday half-rotation partners an object day with a same weekday about 910 days away, so 2023H2 receives 2021 width and 2021 receives 2023 width. In the predeclared similar-width bin the UTC_00 resolution difference is about −1.3 pp. The extension-first and excursion signs are mixtures of those two width directions, not a path that extends and then stops short.
+- **Not done.** No confirmation, no adjusted claim, no new hour, no successor, no product change, no atlas rewrite.
+
+```
+WINDOWS_CONSUMED = none new; DIAGNOSTIC_REREAD of the already consumed FROZEN_HOUR_RANGE surface
+EVIDENCE_UPGRADE = NONE; CONFIRMATION = false; ORIGINAL_RESULT_UNCHANGED = true
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched
+PRODUCT_CHANGE = none; SUCCESSOR_STARTED = no
+```

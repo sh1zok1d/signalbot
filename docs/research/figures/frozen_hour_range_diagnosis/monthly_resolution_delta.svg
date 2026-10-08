@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="560" viewBox="0 0 980 560">
+<rect width="100%" height="100%" fill="#fbfaf6"/>
+<text x="58" y="24" font-family="sans-serif" font-size="16" fill="#1c1917">Monthly paired resolution delta — descriptive smoothness, not a breakpoint</text>
+<text x="58.0" y="56.0" font-family="sans-serif" font-size="13" fill="#1c1917">UTC_00</text>
+<rect x="58.0" y="64.0" width="436.0" height="184.0" fill="#fff" stroke="#d6d3d1"/>
+<line x1="58.0" y1="248.0" x2="494.0" y2="248.0" stroke="#e7e5e4"/>
+<text x="52.0" y="251.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">-0.5</text>
+<line x1="58.0" y1="156.0" x2="494.0" y2="156.0" stroke="#e7e5e4"/>
+<text x="52.0" y="159.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.15</text>
+<line x1="58.0" y1="64.0" x2="494.0" y2="64.0" stroke="#e7e5e4"/>
+<text x="52.0" y="67.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.8</text>
+<polyline fill="none" stroke="#1f4e79" stroke-width="2" points="61.6,168.1 68.9,162.6 76.2,196.8 83.4,208.7 90.7,196.1 98.0,172.4 105.2,167.1 112.5,186.4 119.8,167.5 127.0,159.0 134.3,187.3 141.6,191.4 148.8,177.2 156.1,185.6 163.4,198.2 170.6,177.2 177.9,188.1 185.2,196.8 192.4,177.2 199.7,186.7 207.0,172.4 214.2,191.4 221.5,191.9 228.8,177.2 236.0,177.2 243.3,166.7 250.6,200.1 257.8,196.8 265.1,177.2 272.4,182.1 279.6,168.1 286.9,172.7 294.2,143.1 301.4,144.2 308.7,177.2 316.0,167.8 323.2,167.5 330.5,146.9 337.8,163.5 345.0,172.2 352.3,154.4 359.6,148.9 366.8,71.1 374.1,92.3 381.4,75.3 388.6,122.4 395.9,93.4 403.2,121.6 410.4,130.1 417.7,136.8 425.0,167.8 432.2,177.2 439.5,145.3 446.8,126.3 454.0,163.5 461.3,163.5 468.6,152.8 475.8,140.7 483.1,144.2 490.4,167.8"/>
+<text x="61.6" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">20-01</text>
+<text x="105.2" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">20-07</text>
+<text x="148.8" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">21-01</text>
+<text x="192.4" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">21-07</text>
+<text x="236.0" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">22-01</text>
+<text x="279.6" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">22-07</text>
+<text x="323.2" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">23-01</text>
+<text x="366.8" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">23-07</text>
+<text x="410.4" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">24-01</text>
+<text x="454.0" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">24-07</text>
+<text x="58.0" y="270.0" font-family="sans-serif" font-size="10" fill="#57534e">paired delta · real minus pseudo</text>
+<text x="520.0" y="56.0" font-family="sans-serif" font-size="13" fill="#1c1917">UTC_08</text>
+<rect x="520.0" y="64.0" width="436.0" height="184.0" fill="#fff" stroke="#d6d3d1"/>
+<line x1="520.0" y1="248.0" x2="956.0" y2="248.0" stroke="#e7e5e4"/>
+<text x="514.0" y="251.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">-0.5</text>
+<line x1="520.0" y1="156.0" x2="956.0" y2="156.0" stroke="#e7e5e4"/>
+<text x="514.0" y="159.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.15</text>
+<line x1="520.0" y1="64.0" x2="956.0" y2="64.0" stroke="#e7e5e4"/>
+<text x="514.0" y="67.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.8</text>
+<polyline fill="none" stroke="#1f4e79" stroke-width="2" points="523.6,177.2 530.9,172.4 538.2,177.2 545.4,177.2 552.7,186.7 560.0,172.0 567.2,167.5 574.5,167.8 581.8,162.6 589.0,172.7 596.3,183.1 603.6,177.2 610.8,177.2 618.1,177.2 625.4,177.2 632.6,182.9 639.9,177.2 647.2,177.2 654.4,186.7 661.7,172.4 669.0,181.9 676.2,172.4 683.5,187.0 690.8,177.2 698.0,186.7 705.3,182.5 712.6,187.0 719.8,177.2 727.1,177.2 734.4,172.2 741.6,181.8 748.9,181.8 756.2,160.9 763.4,177.2 770.7,167.8 778.0,159.0 785.2,172.7 792.5,177.2 799.8,167.8 807.0,186.7 814.3,147.9 821.6,125.3 828.8,111.9 836.1,124.2 843.4,119.6 850.6,131.6 857.9,128.2 865.2,138.2 872.4,154.4 879.7,152.8 887.0,163.5 894.2,177.2 901.5,159.0 908.8,161.5 916.0,177.2 923.3,154.4 930.6,177.2 937.8,181.9 945.1,167.5 952.4,158.4"/>
+<text x="523.6" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">20-01</text>
+<text x="567.2" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">20-07</text>
+<text x="610.8" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">21-01</text>
+<text x="654.4" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">21-07</text>
+<text x="698.0" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">22-01</text>
+<text x="741.6" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">22-07</text>
+<text x="785.2" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">23-01</text>
+<text x="828.8" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">23-07</text>
+<text x="872.4" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">24-01</text>
+<text x="916.0" y="262.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">24-07</text>
+<text x="520.0" y="270.0" font-family="sans-serif" font-size="10" fill="#57534e">paired delta · real minus pseudo</text>
+<text x="58.0" y="306.0" font-family="sans-serif" font-size="13" fill="#1c1917">UTC_12</text>
+<rect x="58.0" y="314.0" width="436.0" height="184.0" fill="#fff" stroke="#d6d3d1"/>
+<line x1="58.0" y1="498.0" x2="494.0" y2="498.0" stroke="#e7e5e4"/>
+<text x="52.0" y="501.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">-0.5</text>
+<line x1="58.0" y1="406.0" x2="494.0" y2="406.0" stroke="#e7e5e4"/>
+<text x="52.0" y="409.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.15</text>
+<line x1="58.0" y1="314.0" x2="494.0" y2="314.0" stroke="#e7e5e4"/>
+<text x="52.0" y="317.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.8</text>
+<polyline fill="none" stroke="#1f4e79" stroke-width="2" points="61.6,413.1 68.9,412.6 76.2,437.7 83.4,437.0 90.7,437.0 98.0,446.8 105.2,417.1 112.5,422.5 119.8,412.6 127.0,427.2 134.3,432.1 141.6,427.2 148.8,427.2 156.1,443.9 163.4,427.2 170.6,427.2 177.9,427.2 185.2,437.7 192.4,417.8 199.7,431.8 207.0,432.3 214.2,422.7 221.5,432.1 228.8,432.3 236.0,427.2 243.3,432.5 250.6,431.9 257.8,427.2 265.1,427.2 272.4,432.1 279.6,431.8 286.9,427.2 294.2,394.6 301.4,417.5 308.7,408.4 316.0,407.7 323.2,413.1 330.5,416.7 337.8,422.5 345.0,417.5 352.3,399.8 359.6,427.2 366.8,339.6 374.1,384.8 381.4,388.6 388.6,395.3 395.9,385.3 403.2,397.9 410.4,417.5 417.7,416.7 425.0,427.2 432.2,417.8 439.5,427.2 446.8,402.8 454.0,432.1 461.3,427.2 468.6,422.5 475.8,422.7 483.1,422.4 490.4,413.5"/>
+<text x="61.6" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">20-01</text>
+<text x="105.2" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">20-07</text>
+<text x="148.8" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">21-01</text>
+<text x="192.4" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">21-07</text>
+<text x="236.0" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">22-01</text>
+<text x="279.6" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">22-07</text>
+<text x="323.2" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">23-01</text>
+<text x="366.8" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">23-07</text>
+<text x="410.4" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">24-01</text>
+<text x="454.0" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">24-07</text>
+<text x="58.0" y="520.0" font-family="sans-serif" font-size="10" fill="#57534e">paired delta · real minus pseudo</text>
+<text x="520.0" y="306.0" font-family="sans-serif" font-size="13" fill="#1c1917">UTC_16</text>
+<rect x="520.0" y="314.0" width="436.0" height="184.0" fill="#fff" stroke="#d6d3d1"/>
+<line x1="520.0" y1="498.0" x2="956.0" y2="498.0" stroke="#e7e5e4"/>
+<text x="514.0" y="501.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">-0.5</text>
+<line x1="520.0" y1="406.0" x2="956.0" y2="406.0" stroke="#e7e5e4"/>
+<text x="514.0" y="409.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.15</text>
+<line x1="520.0" y1="314.0" x2="956.0" y2="314.0" stroke="#e7e5e4"/>
+<text x="514.0" y="317.0" text-anchor="end" font-family="sans-serif" font-size="10" fill="#57534e">0.8</text>
+<polyline fill="none" stroke="#1f4e79" stroke-width="2" points="523.6,398.9 530.9,437.0 538.2,441.9 545.4,432.1 552.7,431.9 560.0,416.3 567.2,437.7 574.5,437.0 581.8,405.5 589.0,445.5 596.3,441.9 603.6,422.5 610.8,440.7 618.1,434.3 625.4,427.2 632.6,427.2 639.9,444.9 647.2,427.2 654.4,422.5 661.7,422.5 669.0,417.5 676.2,436.4 683.5,422.4 690.8,431.9 698.0,432.1 705.3,422.2 712.6,431.8 719.8,441.9 727.1,422.5 734.4,427.2 741.6,422.5 748.9,427.2 756.2,410.2 763.4,407.7 770.7,407.0 778.0,391.8 785.2,432.1 792.5,417.1 799.8,432.1 807.0,431.9 814.3,391.8 821.6,417.5 828.8,334.9 836.1,350.6 843.4,378.0 850.6,398.9 857.9,356.5 865.2,388.2 872.4,409.0 879.7,407.0 887.0,413.5 894.2,413.1 901.5,396.9 908.8,373.5 916.0,398.9 923.3,413.5 930.6,417.8 937.8,404.4 945.1,437.3 952.4,404.4"/>
+<text x="523.6" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">20-01</text>
+<text x="567.2" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">20-07</text>
+<text x="610.8" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">21-01</text>
+<text x="654.4" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">21-07</text>
+<text x="698.0" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">22-01</text>
+<text x="741.6" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">22-07</text>
+<text x="785.2" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">23-01</text>
+<text x="828.8" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">23-07</text>
+<text x="872.4" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">24-01</text>
+<text x="916.0" y="512.0" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#57534e">24-07</text>
+<text x="520.0" y="520.0" font-family="sans-serif" font-size="10" fill="#57534e">paired delta · real minus pseudo</text>
+</svg>
