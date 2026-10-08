@@ -194,7 +194,12 @@ def _empty_counts() -> dict:
     }
 
 
-def _cell(high, low, close, t0: int, offset: int) -> dict:
+def _touch_hour(t0: int, index: int) -> int:
+    ms = t0 + index * K.BAR_MS
+    return dt.datetime.fromtimestamp(ms / 1000.0, tz=UTC).hour
+
+
+def _cell(high, low, close, t0: int, offset: int, clocks: list | None = None) -> dict:
     counts = _empty_counts()
     n = int(high.shape[0])
     geoms = []
@@ -303,6 +308,17 @@ def _cell(high, low, close, t0: int, offset: int) -> dict:
                 counts["pseudo_one_sided_outcome_eligible"] += 1
             if rec["real_eligible"] and pseudo_eligible:
                 counts["paired_outcome_eligible"] += 1
+                if clocks is not None:
+                    rj = rec["touch"][0]
+                    pj = ptouch[0]
+                    clocks.append({
+                        "elapsed_real_min": (rj - rec["active_start"]) * 5,
+                        "elapsed_pseudo_min": (pj - rec["active_start"]) * 5,
+                        "real_hour": _touch_hour(t0, rj),
+                        "pseudo_hour": _touch_hour(t0, pj),
+                        "iso_year": rec["iso_year"],
+                        "iso_week": rec["iso_week"],
+                    })
                 year_key = str(rec["year"])
                 if year_key in counts["paired_by_year"]:
                     counts["paired_by_year"][year_key] += 1

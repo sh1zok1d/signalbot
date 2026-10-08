@@ -8,10 +8,12 @@ import json
 import math
 from pathlib import Path
 
+import pytest
+
 import numpy as np
 
 from beta.hist_series import BAR_MS, BARS_PER_DAY, empty_bars
-from scripts.research.opening_range_object_v1 import census, constants as K
+from scripts.research.opening_range_object_v1 import census, constants as K, evaluate, routing, specificity, touch_time
 
 PKG = Path(__file__).resolve().parents[2] / "scripts" / "research" / "opening_range_object_v1"
 DESIGN = Path(__file__).resolve().parents[2] / "docs" / "research" / "OPENING_RANGE_OBJECT_V1_DESIGN.md"
@@ -69,8 +71,15 @@ def _paint_monday(bars, day_index: int, *, or_high: float, or_low: float, p0: fl
 def test_freeze_constants():
     assert K.MODE == "DISCOVERY"
     assert K.FORMATION_BARS == 12
-    assert K.ANCHORS == {"UTC_00": 0, "UTC_12": 144}
+    assert K.ANCHORS == {"UTC_00": 0, "UTC_08": 96, "UTC_12": 144, "UTC_16": 192}
     assert K.PRIMARY_CELL == "UTC_00" and K.VETO_CELL == "UTC_12"
+    assert K.OBJECT_NAME == "FROZEN_HOUR_RANGE"
+    assert K.AMENDMENT == "A1"
+    assert K.timing_handling(False, 10, 10) == "PUBLISH_AUDIT_NO_CORRECTION"
+    assert K.timing_handling(True, 614, 100) == "PUBLISH_AUDIT_PLUS_NEARBY_SENSITIVITY"
+    assert K.timing_handling(True, 100, 100) == "PUBLISH_AUDIT_NEARBY_SENSITIVITY_INFORMATION_LIMITED"
+    assert K.timing_imbalance_material(0.25, 0) is True
+    assert K.timing_imbalance_material(0.0, 119) is False
     assert K.EXTENSION_FRACTION == 0.5
     assert K.PRACTICAL_SCALE == 0.03
     assert K.FOUNDATION_BENCHMARK == 0.08
@@ -112,7 +121,10 @@ def test_census_module_has_no_outcome_estimator():
     modules = _imports("census.py")
     assert all("outcome" not in name and "rv" not in name.split(".")[-1] for name in modules)
     assert not (PKG / "outcomes.py").exists()
-    assert not (PKG / "evaluate.py").exists()
+    evaluate = _source("evaluate.py")
+    assert "REFUSING_OUTCOME_BEFORE_OWNER_GO" in evaluate
+    assert "EXTENSION_FRACTION" not in evaluate
+    assert "REFUSING_OUTCOME_BEFORE_OWNER_GO" in _source("specificity.py")
 
 
 def test_support_counts_ignore_post_touch_path():
@@ -232,3 +244,144 @@ def test_half_width_matches_the_conservative_bound():
     expected = K.Z_95 * math.sqrt(K.PLANNING_VARIANCE / n)
     assert K.planning_half_width(n) == expected
     assert np.isfinite(K.planning_half_width(n))
+
+
+def _est(point, lo, hi):
+    return {"point": point, "lo": lo, "hi": hi}
+
+
+def _clock(point=0.0, lo=-0.01, hi=0.01):
+    return {cell: _est(point, lo, hi) for cell in K.CLOCK_CELLS}
+
+
+def _info(ok=True):
+    status = "INFORMATION_ADEQUATE_FOR_LATER_OUTCOME" if ok else "INFORMATION_LIMITED_STOP_BEFORE_OUTCOME"
+    return {cell: status for cell in K.CLOCK_CELLS}
+
+
+def _contrasts(point, lo, hi):
+    return {cell: _est(point, lo, hi) for cell in ("UTC_08", "UTC_12", "UTC_16")}
+
+
+def test_amendment_keeps_opening_as_a_label():
+    text = (Path(__file__).resolve().parents[2] / "docs" / "research" / "OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md").read_text()
+    for phrase in (
+        "3be350eb0f71011928b1c99cc92f37059d631252",
+        "outcome_read",
+        "FROZEN_HOUR_RANGE",
+        "UTC_08",
+        "UTC_16",
+        "00:00 / 08:00 / 16:00",
+        "UTC_DAY_BOUNDARY_RANGE_CANDIDATE",
+        "FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE",
+        "GENERIC_FROZEN_HOUR_RANGE_STRUCTURE",
+        "NO_DETECTABLE_FROZEN_HOUR_RANGE_STRUCTURE",
+        "OUTSIDE_OCCUPANCY",
+        "OUTWARD_EXCURSION",
+        "PUBLISH_AUDIT_NO_CORRECTION",
+        "REFUSING_OUTCOME_BEFORE_OWNER_GO",
+    ):
+        assert phrase in text
+    assert "does not close an observable outside this map" in text
+
+
+def test_routes_use_the_direct_contrast():
+    adequate = _info(True)
+    none_ortho = {}
+    separated = _contrasts(0.06, 0.02, 0.10)
+    similar = _contrasts(0.005, -0.01, 0.02)
+    foundation = _clock(0.06, 0.02, 0.10)
+    day_boundary = routing.decide(adequate, foundation, separated, none_ortho)
+    assert day_boundary["route"] == "UTC_DAY_BOUNDARY_RANGE_CANDIDATE"
+    assert day_boundary["opening_wording_allowed"] is False
+    assert day_boundary["hour_adopted"] is None
+
+    generic_f = _clock(0.05, 0.02, 0.08)
+    generic = routing.decide(adequate, generic_f, similar, none_ortho)
+    assert generic["route"] == "GENERIC_FROZEN_HOUR_RANGE_STRUCTURE"
+
+    funding_f = _clock(0.05, 0.02, 0.08)
+    funding_f["UTC_12"] = _est(0.0, -0.02, 0.02)
+    funding_c = similar | {"UTC_12": _est(0.05, 0.02, 0.08)}
+    funding = routing.decide(adequate, funding_f, funding_c, none_ortho)
+    assert funding["route"] == "FUNDING_ANCHOR_OR_PERIODIC_RANGE_STRUCTURE"
+
+    # Other cells fail, and the contrasts also fail: not day-boundary.
+    weak = routing.decide(adequate, _clock(0.06, 0.02, 0.10) | {
+        "UTC_08": _est(0.0, -0.02, 0.02),
+        "UTC_12": _est(0.0, -0.02, 0.02),
+        "UTC_16": _est(0.0, -0.02, 0.02),
+    }, similar, none_ortho)
+    assert weak["route"] == "INCONCLUSIVE"
+
+    null = routing.decide(adequate, _clock(0.0, -0.02, 0.02), similar, none_ortho)
+    assert null["route"] == "NO_DETECTABLE_FROZEN_HOUR_RANGE_STRUCTURE"
+    assert "does not" not in null["route"]
+
+    mixed = _clock(0.0, -0.02, 0.02)
+    mixed["UTC_08"] = _est(0.06, 0.02, 0.10)
+    assert routing.decide(adequate, mixed, similar, none_ortho)["route"] == "INCONCLUSIVE"
+
+    ortho = routing.decide(adequate, _clock(0.0, -0.02, 0.02), similar, {
+        "OUTWARD_EXCURSION": {"point": 0.4, "lo": 0.1, "hi": 0.7, "scale": 0.25},
+    })
+    assert ortho["route"] == "ORTHOGONAL_CANDIDATE_ON_UTC_00"
+    assert ortho["orthogonal_candidates"] == ["OUTWARD_EXCURSION"]
+
+    limited = _info(False)
+    assert routing.decide(limited, foundation, separated, none_ortho)["route"] == "INFORMATION_LIMITED"
+    partial = _info(True)
+    partial["UTC_08"] = "INFORMATION_LIMITED_STOP_BEFORE_OUTCOME"
+    assert routing.decide(partial, foundation, separated, none_ortho)["route"] == "CLOCK_SPECIFICITY_INFORMATION_LIMITED"
+
+    negative = _clock(-0.06, -0.10, -0.02)
+    neg_c = _contrasts(-0.06, -0.10, -0.02)
+    assert routing.decide(adequate, negative, neg_c, none_ortho)["route"] == "UTC_DAY_BOUNDARY_RANGE_CANDIDATE"
+
+
+def test_joint_draw_uses_one_week_multiplicity():
+    sums = {
+        "UTC_00": {"w0": (2.0, 2), "w1": (0.0, 2)},
+        "UTC_08": {"w0": (0.0, 2), "w1": (2.0, 2)},
+        "UTC_12": {"w0": (1.0, 2), "w1": (1.0, 2)},
+        "UTC_16": {"w0": (4.0, 2), "w1": (0.0, 2)},
+    }
+    got = specificity.one_draw(sums, {"w0": 2, "w1": 0})
+    assert got["means"]["UTC_00"] == 1.0
+    assert got["means"]["UTC_08"] == 0.0
+    assert got["contrasts"]["UTC_08"] == 1.0
+    assert got["contrasts"]["UTC_16"] == 1.0 - 2.0
+    assert specificity.one_draw(sums, {"w0": 0, "w1": 0}) is None
+
+
+def test_evaluator_refuses_before_an_owner_go():
+    with pytest.raises(SystemExit) as exc:
+        evaluate.main()
+    assert str(exc.value) == "REFUSING_OUTCOME_BEFORE_OWNER_GO"
+    with pytest.raises(SystemExit) as exc2:
+        specificity.main()
+    assert str(exc2.value) == "REFUSING_OUTCOME_BEFORE_OWNER_GO"
+
+
+def test_touch_time_audit_ignores_the_post_touch_path():
+    bars, _ = _monday_panel()
+    shapes = {0: (110.0, 90.0), 7: (120.0, 80.0), 14: (115.0, 85.0)}
+    for day, (hi, lo) in shapes.items():
+        _paint_monday(bars, day, or_high=hi, or_low=lo, p0=100.0)
+    other = empty_bars(bars.t0, bars.n)
+    for name in ("open", "high", "low", "close"):
+        getattr(other, name)[:] = getattr(bars, name)
+    spike = K.FORMATION_BARS + 2
+    other.high[spike:spike + 40] = 10_000.0
+    other.low[spike:spike + 40] = 0.5
+    left = touch_time.audit(bars, amendment_commit="synthetic")
+    right = touch_time.audit(other, amendment_commit="synthetic")
+    assert left == right
+    assert left["outcome_read"] is False
+    assert left["y_known"] is False
+    primary = left["cells"]["UTC_00"]["touch_time"]
+    assert primary["paired_n"] == 3
+    assert primary["far_240m_n"] == 0
+    assert primary["timing_imbalance_material"] is False
+    assert left["timing_handling"] == "PUBLISH_AUDIT_NO_CORRECTION"
+    census.assert_support_only(left)

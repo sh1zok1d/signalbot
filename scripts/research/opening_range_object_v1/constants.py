@@ -1,8 +1,8 @@
 """Frozen design constants for OPENING_RANGE_OBJECT_V1.
 
-Chosen before any post-interaction resolution label. The support census may count
-formations and first-interaction existence. It must not apply the extension
-fraction or score a barrier.
+The original freeze is commit 3be350eb. Amendment A1 adds clock cells, the
+touch-time rule, and the observable map. It does not retune the foundation
+estimand and it does not authorize an outcome read.
 """
 
 from __future__ import annotations
@@ -31,17 +31,40 @@ BARS_PER_DAY = 288
 ACTIVE_LIFE_BARS = BARS_PER_DAY - FORMATION_BARS  # 23h, dies when the next object of the same cell starts
 HORIZON_BARS = 48  # 4h after the touch bar; availability only in the census
 
-# Primary anchor is the UTC day. The noon cell is a veto, not a second candidate.
+# Original design had UTC_00 and UTC_12 only. Amendment A1 adds the funding-cadence
+# hours. Offsets are exact hour starts on the 5m grid. Not a 24-hour search.
 ANCHORS = {
     "UTC_00": 0,
+    "UTC_08": 96,
     "UTC_12": 144,
+    "UTC_16": 192,
 }
 PRIMARY_CELL = "UTC_00"
-VETO_CELL = "UTC_12"
+VETO_CELL = "UTC_12"  # off the 00/08/16 funding cadence; not a second candidate
+FUNDING_CYCLE_CELLS = ("UTC_00", "UTC_08", "UTC_16")
+CLOCK_CELLS = ("UTC_00", "UTC_08", "UTC_12", "UTC_16")
+ORIGINAL_DESIGN_COMMIT = "3be350eb0f71011928b1c99cc92f37059d631252"
+ORIGINAL_DESIGN_SHA256 = "7e46d9f5081a4b1c6e3246ff7e2172e96a0c14eba900eefd84731147630250c8"
+AMENDMENT = "A1"
+# Working name. OPENING remains a hypothesis label, not a route and not a finding.
+OBJECT_NAME = "FROZEN_HOUR_RANGE"
 
 # Later outcome, not applied by the census.
 EXTENSION_FRACTION = 0.5
 PRACTICAL_SCALE = 0.03
+SPECIFICITY_SCALE = 0.03  # |δ_00 − δ_hour|, same rate scale, not a searched bar
+EXCURSION_SCALE = 0.25  # mean paired max outward excursion, in units of width W
+# Touch-time audit. Cuts are the first hour and the 4h outcome horizon.
+TIMING_NEARBY_MIN = 60
+TIMING_FAR_MIN = 240
+TIMING_FAR_SHARE = 0.25
+TIMING_MEDIAN_ABS_MIN = 120
+ELAPSED_BIN_EDGES_MIN = (60, 240, 720)
+# One stream order for a later outcome run. Not used by the census.
+BOOT_SEED_JOINT = 20261027
+BOOT_SEED_DIRECTION = 20261028
+BOOT_SEED_OUTSIDE = 20261029
+BOOT_SEED_EXCURSION = 20261030
 # Planning benchmark only: the level-foundation resolution gap was about 8pp.
 # It is not an expected opening-range effect and not a target to hit.
 FOUNDATION_BENCHMARK = 0.08
@@ -77,12 +100,32 @@ def information_status(n_pairs: int, n_weeks: int) -> str:
     return "INFORMATION_LIMITED_STOP_BEFORE_OUTCOME"
 
 
+def timing_imbalance_material(share_abs_ge_far: float, median_abs_min: float) -> bool:
+    """Predeclared on the primary paired sample. Not a subgroup search."""
+    return share_abs_ge_far >= TIMING_FAR_SHARE or median_abs_min >= TIMING_MEDIAN_ABS_MIN
+
+
+def timing_handling(material: bool, nearby_pairs: int, nearby_weeks: int) -> str:
+    """One handling, chosen by the audit rule. No rematch on touch time."""
+    if not material:
+        return "PUBLISH_AUDIT_NO_CORRECTION"
+    if nearby_pairs >= MIN_PAIRED and nearby_weeks >= MIN_ISO_WEEKS:
+        return "PUBLISH_AUDIT_PLUS_NEARBY_SENSITIVITY"
+    return "PUBLISH_AUDIT_NEARBY_SENSITIVITY_INFORMATION_LIMITED"
+
+
 MIN_PAIRED = min_paired_for_benchmark()
 
 assert MODE == "DISCOVERY"
 assert FORMATION_BARS == 12
-assert set(ANCHORS) == {"UTC_00", "UTC_12"}
-assert ANCHORS["UTC_00"] == 0 and ANCHORS["UTC_12"] == 144
+assert set(ANCHORS) == {"UTC_00", "UTC_08", "UTC_12", "UTC_16"}
+assert ANCHORS["UTC_00"] == 0 and ANCHORS["UTC_08"] == 96
+assert ANCHORS["UTC_12"] == 144 and ANCHORS["UTC_16"] == 192
+assert SPECIFICITY_SCALE == 0.03 and EXCURSION_SCALE == 0.25
+assert TIMING_FAR_MIN == 240 and TIMING_FAR_SHARE == 0.25 and TIMING_MEDIAN_ABS_MIN == 120
+assert TIMING_NEARBY_MIN == 60
+assert OBJECT_NAME == "FROZEN_HOUR_RANGE"
+assert AMENDMENT == "A1"
 assert ACTIVE_LIFE_BARS == 276
 assert HORIZON_BARS == 48
 assert EXTENSION_FRACTION == 0.5

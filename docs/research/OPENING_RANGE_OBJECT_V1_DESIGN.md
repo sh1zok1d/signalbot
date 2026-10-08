@@ -1,5 +1,7 @@
 # OPENING_RANGE_OBJECT_V1 — design note
 
+**Amendment pointer.** The sections below are the original pre-outcome freeze, commit `3be350eb`, file SHA256 `7e46d9f5081a4b1c6e3246ff7e2172e96a0c14eba900eefd84731147630250c8`. They are not rewritten. Amendment A1 (`docs/research/OPENING_RANGE_OBJECT_V1_AMENDMENT_A1.md`) is the authority for clock cells, naming, touch-time handling, the observable map, and routes. At the time A1 was written, `outcome_read` was still false and no resolution label was known.
+
 **Status.** Design, committed before any post-interaction resolution label. The support census counts formations and first-interaction existence only. It does not score extension, reentry, excursion, time outside, or realized volatility.
 
 **Unit.** `OPENING_RANGE_OBJECT_V1`. Family `OPENING_RANGE_V1`. This is a new line. It is not a Level Engine unit and it does not add a level kind.
