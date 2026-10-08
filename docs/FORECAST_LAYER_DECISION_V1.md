@@ -157,7 +157,13 @@ ECE is descriptive only. Uncertainty is clustered by week. Raw and published pro
 - **Day 0 does not wait for the model.** The layer ships in `HIST`: the race frequencies of a fixed, predeclared state set (family, structural side, landmark, position band at T15), each with N and the B0 geometric «обычно», in the past tense of L2. It sits on the same surfaces (T0 line in the level push, T15 in `/levels` and `/check`).
 - **The history line is computed on 2020–2024 only** (`CORE_BTC_BINANCE_V0`) and labelled with those years. 2025/2026 stays unread for race outcomes, so the one-shot held-out check of §4 keeps its value.
 - **Every eligible `HIST` statement is logged** in the claim journal from Day 0, shown or not, as an L2 class (EVIDENCE_AND_CLAIMS §5).
-- **The model states** (`L3_HISTORY_BACKED`, `L3_LIVE`, `FALLBACK`) follow after the freeze and the held-out check. How they reach a running beta is the owner's call, because `PRODUCT_FIRST_DECISION_V1` §7 allows only clarity, timing, translation and bug fixes after Day 0. Either the switch waits until the 30-day test ends, or the owner allows one predeclared upgrade on a fixed date, with the measurement contract splitting the metrics at that date.
+- **The model states** (`L3_HISTORY_BACKED`, `L3_LIVE`, `FALLBACK`) follow after the freeze and the held-out check. They reach the running beta as a predeclared upgrade on a fixed date (owner, 2026-10-08: «вариант 2 выбираю. Можно корректировать во время беты»).
+- **Changes during the beta.** This is an exception to `PRODUCT_FIRST_DECISION_V1` §7 for the forecast layer only. The upgrade to the model states, and later corrections of the layer, may ship during the 30-day test under three conditions:
+  - each change is announced in advance with its date and content;
+  - each change is recorded as a dated event in the measurement contract;
+  - every metric is reported separately before and after that date.
+
+  The switch itself is one predeclared setting. The state rules of §6–§7 stay frozen. Other product areas keep §7 as written.
 
 
 ## 7. Drift, fallback and challengers
