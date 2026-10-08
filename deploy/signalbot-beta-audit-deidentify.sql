@@ -1,7 +1,7 @@
 -- OUT-8 v2 (owner, 2026-10-08), step 2: de-identify every audit row about a participant who was deleted, and
 -- reduce the old deletion rows to the minimal form of #420. Run it on a SCRATCH copy first (block A of
 -- docs/BETA_AUDIT_DEIDENTIFY_V1.md); on production only after the owner's go (block B), after #420 is deployed
--- (beta_deleted_cohort_counts exists) and BEFORE the keyed fingerprints of #421 are switched on.
+-- (beta_deleted_cohort_counts exists) and BEFORE the keyed fingerprints of #423 are switched on.
 -- Usage: psql -X -v ON_ERROR_STOP=1 [-v keyed_since=<timestamptz>] < deploy/signalbot-beta-audit-deidentify.sql
 --
 -- 1. Deletion rows (user_delete_me, retention_purge, admin_remove) -> the minimal form: actor kind
@@ -12,8 +12,8 @@
 --    still in beta_users, beta_allowlist or beta_waitlist (computed with the old, unkeyed formula the rows hold)
 --    and is not the actor's own -> target NULL, detail {} (no nested ids, counts or attributes), the Kyiv date.
 --    The fact that the action happened stays. The audit never stored reply bodies (admin_reply keeps none).
--- keyed_since: rows recorded at or after it carry #421's keyed fingerprints, which SQL cannot recompute; they are
--- left untouched and counted. Leave it unset when #421 is not deployed yet.
+-- keyed_since: rows recorded at or after it carry #423's keyed fingerprints, which SQL cannot recompute; they are
+-- left untouched and counted. Leave it unset when #423 is not deployed yet.
 -- The table is append-only (trigger trg_beta_audit_append_only). The trigger is disabled only inside this
 -- transaction: ALTER TABLE holds an ACCESS EXCLUSIVE lock to the end, so no other session can touch the table
 -- while it is off, and any error rolls everything back, the DISABLE included. It needs the table owner.
