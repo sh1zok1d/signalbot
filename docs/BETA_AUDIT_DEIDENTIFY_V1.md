@@ -76,7 +76,7 @@
   - `POSTGRES_DB` / `POSTGRES_USER` = `btcbot`;
   - `BETA_OWNER_TELEGRAM_USER_ID`.
 - The owner's old fingerprint is computed inline in python3, without importing the repo.
-- **Fetching the scripts.** `git fetch origin pull/422/head` updates refs only, never the working tree. `git archive` extracts the two scripts into a fresh `mktemp -d /tmp/deid.XXXXXXXX` directory, removed on exit. There is no pull and no checkout in `/opt/signalbot`. The block prints the commit the scripts came from, because GitHub can lag a few seconds after a push.
+- **Fetching the scripts.** The scripts are pinned to the merge of #422 on main, `db381de9` (`db381de9e1f3e9fad1a69126392f02f12f61362b`). `git fetch origin main` updates refs only, never the working tree. `git archive db381de9` extracts the two scripts into a fresh `mktemp -d /tmp/deid.XXXXXXXX` directory, removed on exit. There is no pull and no checkout in `/opt/signalbot`. The block stops if that commit is missing after the fetch, and prints it.
 
 **Block A — now, read-only on production.**
 - **Production is read-only twice.** Every production `psql` / `pg_dump` session runs with `PGOPTIONS='-c default_transaction_read_only=on'` (passed by `docker exec -e`), on top of `BEGIN READ ONLY` in the count file; a write under it fails (`tests/beta/test_beta_audit_deidentify_pg.py`).
@@ -101,11 +101,14 @@ eval "$( (set -a; . /opt/signalbot/.env; set +a
 # the owner's fingerprint as the existing (pre-#423, unkeyed) rows hold it
 OWNER_FP=$(python3 -c 'import hashlib,sys; print("u_" + hashlib.sha256(("signalbot-beta-v0:%d" % int(sys.argv[1])).encode()).hexdigest()[:12])' "$OWNER_ID")
 echo "container=$C db=$DB user=$U owner_fp(old)=$OWNER_FP"
-# 2) the two scripts from the PR head into a fresh /tmp directory (fetch updates refs only; the working tree is untouched)
+# 2) the two scripts, pinned to the merged #422, into a fresh /tmp directory (fetch updates refs only; the working tree is untouched)
 WORK=$(mktemp -d /tmp/deid.XXXXXXXX)
-git -C /opt/signalbot fetch -q origin pull/422/head
-echo "scripts from commit $(git -C /opt/signalbot rev-parse FETCH_HEAD)"
-git -C /opt/signalbot archive FETCH_HEAD deploy/signalbot-beta-audit-deidentify.sql \
+SCRIPTS=db381de9e1f3e9fad1a69126392f02f12f61362b   # the merge of #422 on main
+git -C /opt/signalbot fetch -q origin main
+git -C /opt/signalbot rev-parse -q --verify "$SCRIPTS^{commit}" >/dev/null \
+  || { echo "commit $SCRIPTS is not in /opt/signalbot after the fetch"; exit 1; }
+echo "scripts from commit $SCRIPTS"
+git -C /opt/signalbot archive "$SCRIPTS" deploy/signalbot-beta-audit-deidentify.sql \
     deploy/signalbot-beta-audit-deidentify-count.sql | tar -x -C "$WORK"
 # production: every session read-only (PGOPTIONS), on top of BEGIN READ ONLY in the count file
 PROD() { docker exec -i -e PGOPTIONS='-c default_transaction_read_only=on' "$C" psql -X -U "$U" -v ON_ERROR_STOP=1 -d "$DB" "$@"; }
@@ -167,9 +170,12 @@ eval "$( (set -a; . /opt/signalbot/.env; set +a
 [ -n "$OWNER_ID" ] || { echo "BETA_OWNER_TELEGRAM_USER_ID is empty in /opt/signalbot/.env"; exit 1; }
 OWNER_FP=$(python3 -c 'import hashlib,sys; print("u_" + hashlib.sha256(("signalbot-beta-v0:%d" % int(sys.argv[1])).encode()).hexdigest()[:12])' "$OWNER_ID")
 WORK=$(mktemp -d /tmp/deid.XXXXXXXX); trap 'rm -rf "$WORK"' EXIT
-git -C /opt/signalbot fetch -q origin pull/422/head
-echo "scripts from commit $(git -C /opt/signalbot rev-parse FETCH_HEAD)"
-git -C /opt/signalbot archive FETCH_HEAD deploy/signalbot-beta-audit-deidentify.sql \
+SCRIPTS=db381de9e1f3e9fad1a69126392f02f12f61362b   # the merge of #422 on main
+git -C /opt/signalbot fetch -q origin main
+git -C /opt/signalbot rev-parse -q --verify "$SCRIPTS^{commit}" >/dev/null \
+  || { echo "commit $SCRIPTS is not in /opt/signalbot after the fetch"; exit 1; }
+echo "scripts from commit $SCRIPTS"
+git -C /opt/signalbot archive "$SCRIPTS" deploy/signalbot-beta-audit-deidentify.sql \
     deploy/signalbot-beta-audit-deidentify-count.sql | tar -x -C "$WORK"
 PSQL() { docker exec -i "$C" psql -X -U "$U" -v ON_ERROR_STOP=1 "$@"; }
 [ "$(PSQL -d "$DB" -At -c "SELECT to_regclass('beta_deleted_cohort_counts') IS NOT NULL")" = "t" ] \
