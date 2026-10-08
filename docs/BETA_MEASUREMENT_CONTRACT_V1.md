@@ -43,6 +43,7 @@ A row in `beta_users` with a non-null `joined_at`, meaning the person accepted t
 - **The participant's own days.** Each participant's briefing comes at their own briefing time on their own clock (`brief_time`, default 08:00; `tz`, default Kyiv). The U1a withdrawal days are matched against the participant's **local briefing date**, not Kyiv's (owner decision 2026-10-08; §6.1).
 - **Test opening and Day 0** (owner, 2026-10-08). The owner opens the test with `/admin_test_open` after the readiness announcement and the contract freeze; it writes one `admin_test_open` audit row with its instant. **Day 0** is the Kyiv date of the first **unknown** participant whose join is at or after that instant (`store.derived_day0_kyiv`, live rows and the cohort records of deleted participants). An earlier, accidental join never starts the test retroactively. **Day 0 is provisional** until the first unknown joiner's 24-hour known-classification window (§1.2) closes: a participant marked known within it moves Day 0 to the next unknown join; `/admin_health` shows «provisional until …». Once an unknown participant has joined, the opening can no longer move (`/admin_test_open force` is refused).
 - **Notation: T(n), zero-based, half-open.** T(n) = 00:00 Europe/Kyiv on the Kyiv date of Day 0 + *n* calendar days. Calendar days: a day may be 23 or 25 hours at a clock change; never "168 hours". Cohort day *n* is [T(n), T(n+1)). `PRODUCT_FIRST_DECISION_V1` §7 counts from 1: its day *n* = cohort day *n*−1.
+- **Calendar windows** (owner, 2026-10-08). Every window is a calendar window on the Kyiv date; [T(0), T(7)) is 169 hours when it crosses the autumn clock change, and that is simply the calendar window. A participant who joins at 14:30 on day 0 has a shorter actual participation; wherever a metric depends on exposure, the per-participant exposure is reported separately beside it.
 
 | Period | Interval |
 |---|---|
@@ -219,8 +220,7 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 
 - **Never stored:** bank or card details, screenshots, the payer's real name, payment-reference text, unless operationally unavoidable.
 - **What counts as payment.** A willingness statement, a promise or a "would pay" is **not** a payment. Only a row with `paid_at` and no `refunded_at` within 30 days counts.
-- **What is paid for** (owner, 2026-10-08): one month of the same bot after the beta. Before the offer is sent, this contract and the cohort plan state the paid month's start date and exactly what access includes. **Proposal, pending the owner's confirmation:** [T(30), T(60)), the bot as it is (BTC, all current functions). No continuation means a full refund on the offered terms. The amount, currency and method come later; the offer is not sent before then (`/admin_offer` refuses while `access.u3_offer` is empty).
-- **The extension overlap (owner to decide).** If the rule-6 extension [T(30), T(44)) runs, the paid month overlaps it: the owner decides whether payers' month starts at T(30) or at the extension's end.
+- **What is paid for** (owner, 2026-10-08): one month of the same bot after the beta. **Start** (owner, 2026-10-08): the paid month starts at the **actual** end of the free test, extension included: T(30) without an extension, T(44) with one; the prepayment buys one full calendar month from that start. **Access:** the bot as it is (BTC, all current functions). The offer text says in advance that an extension is possible and moves the start (#416). No continuation means a full refund on the offered terms. The amount, currency and method come later; the offer is not sent before then (`/admin_offer` refuses while `access.u3_offer` is empty).
 - **PASS** (owner, 2026-10-08): with P = unknown enrolled participants who paid and were not refunded within 30 days, and E = **every enrolled unknown participant, including those not offered** (§1.3), U3 PASS ⇔ P ≥ 3 AND P / E ≥ 25 %.
 - **The funnel, reported beside it:** enrolled → offer allowed (ACTIVE, not blocked) → delivered → paid → refunded.
 
@@ -382,7 +382,7 @@ Relayed by the chief architect through ОПГ-1. Written into §1, §6.2 and §7
 - **Frozen before Day 0.** The category list and this instruction are frozen with the contract; a change after Day 0 is a dated amendment before the affected count is read.
 
 ### 13.4 Payment and U3 (OUT-2, OUT-3)
-In §7: the paid month and its start, the full refund, the amount later, the extension overlap for the owner, U3 PASS with E = every enrolled unknown participant, the funnel.
+In §7: the paid month from the actual end of the free test (T(30), or T(44) with the extension), the full refund, the amount later, U3 PASS with E = every enrolled unknown participant, the funnel.
 
 ### 13.5 Days and Day 0 (OUT-4, OUT-5)
 In §1.3–§1.4: T(n), the half-open intervals, the calendar-day note, the mapping from `PRODUCT_FIRST` days, the test opening and Day 0 after it (#418).
