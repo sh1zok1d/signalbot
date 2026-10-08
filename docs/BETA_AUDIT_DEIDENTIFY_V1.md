@@ -1,6 +1,6 @@
-# Beta audit de-identification (OUT-8 v4) — prepared, not run
+# Beta audit de-identification (OUT-8 v5) — prepared, not run
 
-**Status:** `PREPARED / NOT_RUN / OWNER_GO_REQUIRED` (v2, 2026-10-08; block A hardened in v3: unique scratch name, marker-checked drop, read-only production sessions; v4: the actor side, each block in its own shell). Nothing here has been run on production; the owner runs block B after a go.
+**Status:** `PREPARED / NOT_RUN / OWNER_GO_REQUIRED` (v2, 2026-10-08; block A hardened in v3: unique scratch name, marker-checked drop, read-only production sessions; v4: the actor side, each block in its own shell; v5: a deleted actor's row takes the full shape, re-verified on the post-#420 schema). Nothing here has been run on production; the owner runs block B after a go.
 
 **v2 supersedes v1** (#418's draft) and follows the owner's OUT-8 decisions of 2026-10-08:
 - Keep only what the measurements need; a counter replaces any per-row record (#420).
@@ -185,6 +185,7 @@ BLOCK_B
 
 ## 6. Scratch-copy result (local, 2026-10-08)
 See the PR description: blocks A and B were run verbatim against a `postgres:16` container named `btcbot_timescaledb`, with the beta schema of #420 and representative rows.
+- **v5, on the post-#420 schema** (trigger function `beta_audit_guard`): both blocks were pasted into an interactive shell. Block A left production byte-identical (md5 of the audit table) and dropped its scratch database. Block B (backup unit stubbed) applied the redaction with the guard enabled again afterwards. A second block B changed nothing (`INSERT 0 0`, `UPDATE 0` ×3), and a `DELETE` was still refused.
 
 ## 7. When the old traces leave the backups
 Let R be the redaction day. Backups run daily (`signalbot-backup.timer`). Every dump taken before R still holds the old rows.
