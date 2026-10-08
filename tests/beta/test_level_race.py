@@ -1,6 +1,6 @@
 """beta.level_race (HIST line): frozen table, lookup and display rules.
 
-Parity with the research twin lives in tests/research/test_level_race_parity_beta.py
+Parity with the research twin lives in tests/research/test_level_race_parity.py
 (tests/beta must not import the research package).
 """
 
