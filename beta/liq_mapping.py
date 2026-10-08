@@ -49,7 +49,7 @@ def correct_venue(values: Mapping[str, Optional[float]], state: str) -> dict:
     """{field: value} of one venue and bucket, read under `state`."""
     if state == OLD:
         return {SIDE_FIELDS[0]: values.get(SIDE_FIELDS[1]), SIDE_FIELDS[1]: values.get(SIDE_FIELDS[0])}
-    if state in (MIXED, UNPROVEN):
+    if state in (MIXED, UNPROVEN, "NO_FEED"):
         return {f: None for f in SIDE_FIELDS}
     return {f: values.get(f) for f in SIDE_FIELDS}
 
@@ -115,4 +115,39 @@ def mark_okx_lower_bound(horizons: Mapping[str, Any]) -> dict:
         okx = {side: ({**cell, "lower_bound": True} if cell and not cell.get("missing") else cell)
                for side, cell in (venues.get("okx") or {}).items()}
         out[name] = {**block, "liquidations": {**block["liquidations"], "venues": {**venues, "okx": okx}}}
+    return out
+
+
+# ---- liveness of a separate liquidation channel (OKX) -------------------------------------------
+# The collector writes at most one heartbeat a minute while OKX's liquidation channel is acknowledged
+# and answers its 25 s text ping or pushes (data_ingestion/okx_client.py, manager.HEARTBEAT_EVERY_S).
+# A live channel therefore leaves gaps of about 60–85 s. A bucket is measured only when the
+# heartbeats cover it from LIVENESS_LEAD_S before its start to its end with no gap over
+# LIVENESS_MAX_GAP_S (150 s): one missed write is tolerated, a refused or dead channel is not. The
+# window ends at the bucket's end, which the tape run (after close + grace) has already seen.
+LIVENESS_EXCHANGES = ("okx",)
+LIVENESS_LEAD_S = 90.0
+LIVENESS_MAX_GAP_S = 150.0
+NO_FEED = "NO_FEED"
+
+
+def feed_alive(heartbeats: Iterable[datetime], bucket_ts: datetime) -> bool:
+    start = bucket_ts - timedelta(seconds=LIVENESS_LEAD_S)
+    end = bucket_ts + BUCKET
+    points = sorted(t for t in heartbeats if start <= t <= end)
+    if not points:
+        return False
+    edges = [start] + points + [end]
+    return all((b - a).total_seconds() <= LIVENESS_MAX_GAP_S for a, b in zip(edges, edges[1:]))
+
+
+def apply_liveness(metrics: Mapping[str, Any], bucket_ts: datetime,
+                   heartbeats: Mapping[str, Iterable[datetime]]) -> dict:
+    """OKX's liquidation keys read None for a bucket its channel did not cover (idempotent)."""
+    out = dict(metrics)
+    for ex in LIVENESS_EXCHANGES:
+        if not feed_alive(heartbeats.get(ex) or (), bucket_ts):
+            for f in SIDE_FIELDS:
+                if f"x:{ex}:{f}" in out:
+                    out[f"x:{ex}:{f}"] = None
     return out

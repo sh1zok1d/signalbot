@@ -88,6 +88,10 @@ class ClientCallbacks:
     on_funding: Callable[[Funding], Awaitable[None]]
     on_mark_price: Callable[[MarkPrice], Awaitable[None]]
     on_liquidation: Callable[[Liquidation], Awaitable[None]]
+    # A liquidation channel with its own socket (OKX) reports that it is alive: acknowledged, and
+    # answering pings or pushing (exchange, epoch s). The beta measures a venue's liquidations only
+    # while this marker is fresh; a silent zero is never a measurement.
+    on_liquidation_feed_alive: Optional[Callable[[str, float], Awaitable[None]]] = None
 
 
 @dataclass

@@ -440,6 +440,8 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 
 **Stop:** `/admin_pause_push` stops new deliveries at once, without a restart. Pending deliveries are suppressed with `PUSH_DISABLED`. For a hard stop, set `BETA_PUSH_ENABLED=0` and restart the bot and the notify timer.
 
+**OKX liquidations need a live channel (data reliability, architect 2026-10-08).** The collector writes one row a minute into `liquidation_feed_heartbeats` while OKX's liquidation channel is acknowledged and answering or pushing. A 5m bucket without heartbeats covering it (no gap over 150 s, from 90 s before its start to its end) reads OKX liquidations «не измерен», never 0, on every surface and in the percentile history. Before the collector creates the table, OKX liquidations are never measured. Check: `SELECT max(ts) FROM liquidation_feed_heartbeats WHERE exchange='okx';` should be under two minutes old.
+
 **Sending discipline (backlog A5 and its external review; `beta/delivery.py` `SendPacer` / `send_one`).** It applies to every outbox kind (push, alert, brief, weekly) and to the owner's own alert and weekly copy:
 - **Flood control.** Telegram's `RetryAfter` is not a final `FAILED`.
   - The row goes back to `PENDING` with `error_summary = "RetryAfter Ns"` and `next_attempt_at` = now + N s. It carries no `sending_at`.

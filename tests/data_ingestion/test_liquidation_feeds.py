@@ -215,3 +215,41 @@ def test_a_silent_okx_socket_gets_a_text_ping_and_pong_is_swallowed(monkeypatch)
     _loop_with(monkeypatch, [ws], c)
     _run(c.run_liquidations_forever())
     assert ws.sent[1:] == ["ping"] and [x.side for x in got] == ["short"]
+
+
+def test_the_okx_liquidation_channel_reports_alive_on_ack_push_and_pong_after_ack(monkeypatch):
+    """Architect, 2026-10-08: the collector's liveness marker. A pong before the ack proves only the
+    socket, not the channel; an error frame never marks it alive."""
+    got, cb = _collect()
+    alive = []
+
+    async def on_alive(ex, ts):
+        alive.append(ex)
+    cb.on_liquidation_feed_alive = on_alive
+    c = OKXClient("BTCUSDT", cb)
+    c._ct_val = 0.01
+    _run(c._liq_pong())                                              # before the ack: not alive
+    assert alive == []
+    _run(c._handle_liquidation_message({"event": "subscribe", "arg": {"channel": "liquidation-orders"}}))
+    _run(c._liq_pong())
+    _run(c._handle_liquidation_message(_okx_push([
+        {"posSide": "long", "side": "sell", "bkPx": "60000", "sz": "1", "ts": "1759900000000"}])))
+    assert alive == ["okx", "okx", "okx"]
+    with pytest.raises(okx_client.SubscribeRefused):
+        _run(c._handle_liquidation_message({"event": "error", "code": "60018", "msg": "x"}))
+    assert alive == ["okx", "okx", "okx"]
+
+
+def test_the_manager_writes_at_most_one_heartbeat_a_minute():
+    from data_ingestion.manager import HEARTBEAT_EVERY_S, IngestionManager
+    written = []
+
+    class _DB:
+        async def insert_liquidation_feed_heartbeat(self, ex, symbol, ts):
+            written.append((ex, symbol, ts.timestamp()))
+    mgr = IngestionManager.__new__(IngestionManager)
+    mgr.db, mgr.symbol, mgr.bar_builders = _DB(), "BTCUSDT", {}
+    cb = mgr._make_callbacks("okx")
+    for t in (1000.0, 1010.0, 1059.9, 1060.0, 1130.0):
+        _run(cb.on_liquidation_feed_alive("okx", t))
+    assert HEARTBEAT_EVERY_S == 60.0 and [w[2] for w in written] == [1000.0, 1060.0, 1130.0]

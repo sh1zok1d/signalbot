@@ -1355,6 +1355,15 @@ class Database:
             )
         return len(rows)
 
+    async def insert_liquidation_feed_heartbeat(self, exchange: str, symbol: str, ts: datetime) -> None:
+        """The liquidation channel of `exchange` was alive at `ts` (acknowledged, answering or pushing).
+        Append-only; the beta treats a bucket with no fresh heartbeat as not measured."""
+        assert self.pool is not None
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                "INSERT INTO liquidation_feed_heartbeats (exchange, symbol, ts) VALUES ($1,$2,$3) "
+                "ON CONFLICT DO NOTHING", exchange, symbol, ts)
+
     async def log_connectivity_event(self, exchange: str, event_type: str, detail: dict) -> None:
         assert self.pool is not None
         async with self.pool.acquire() as conn:

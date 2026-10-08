@@ -166,12 +166,29 @@ class BetaConn:
                ORDER BY bucket_ts, tape_id DESC""",
             symbol, market_type, timeframe, calculation_version, list(state_schema_versions), start, end,
             before_tape_id)
-        # liquidation keys of rows written before the collector fix, read honestly (D2)
-        from beta.liq_mapping import correct_metrics
+        # liquidation keys of rows written before the collector fix, read honestly (D2); OKX only
+        # where its liquidation channel was alive (liveness marker)
+        from beta.liq_mapping import LIVENESS_LEAD_S, apply_liveness, correct_metrics
         cutover = await self.fetch_liquidation_cutover(symbol=symbol)
         exchanges = ("binance", "bybit", "okx")
-        return [(r["bucket_ts"], correct_metrics(_load(r["metrics"]), r["bucket_ts"], cutover, exchanges))
+        beats = await self.fetch_liquidation_feed_heartbeats(
+            symbol=symbol, start=start - timedelta(seconds=LIVENESS_LEAD_S), end=end)
+        return [(r["bucket_ts"], apply_liveness(correct_metrics(_load(r["metrics"]), r["bucket_ts"], cutover,
+                                                                exchanges), r["bucket_ts"], beats))
                 for r in rows]
+
+    async def fetch_liquidation_feed_heartbeats(self, *, symbol: str, start: datetime, end: datetime) -> dict:
+        """{venue: [ts]} of the collector's liquidation-channel heartbeats in [start, end]; {} before the
+        collector created the table (then no venue with a separate channel is measured)."""
+        if not await self.conn.fetchval("SELECT to_regclass('liquidation_feed_heartbeats') IS NOT NULL"):
+            return {}
+        rows = await self.conn.fetch(
+            """SELECT exchange, ts FROM liquidation_feed_heartbeats
+               WHERE symbol=$1 AND ts >= $2 AND ts <= $3 ORDER BY ts""", symbol, start, end)
+        out: dict = {}
+        for r in rows:
+            out.setdefault(r["exchange"], []).append(r["ts"])
+        return out
 
     async def fetch_live_tape_range(self, *, symbol: str, start: datetime, end: datetime,
                                     rules_digest: str) -> dict:

@@ -75,3 +75,28 @@ def test_old_rows_keep_null_and_new_collector_rows_carry_the_fixed_mapping():
             await admin.execute(f'DROP SCHEMA "{schema}" CASCADE')
             await admin.close()
     asyncio.run(body())
+
+
+def test_the_liquidation_feed_heartbeat_table_takes_the_collectors_rows_once():
+    """storage/schema.sql's heartbeat table (OKX liquidation-channel liveness) and Database's writer."""
+    ddl = re.search(r"CREATE TABLE IF NOT EXISTS liquidation_feed_heartbeats \(.*?\n\);", SCHEMA_SQL, re.S).group(0)
+
+    async def body():
+        schema = "liqbeat_" + uuid.uuid4().hex[:12]
+        admin = await asyncpg.connect(DSN)
+        await admin.execute(f'CREATE SCHEMA "{schema}"')
+        db = Database(_scoped(DSN, schema))
+        await db.connect()
+        try:
+            async with db.pool.acquire() as c:
+                await c.execute(ddl)
+            at = datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc)
+            await db.insert_liquidation_feed_heartbeat("okx", "BTCUSDT", at)
+            await db.insert_liquidation_feed_heartbeat("okx", "BTCUSDT", at)          # a repeat is a no-op
+            async with db.pool.acquire() as c:
+                assert await c.fetchval("SELECT count(*) FROM liquidation_feed_heartbeats") == 1
+        finally:
+            await db.close()
+            await admin.execute(f'DROP SCHEMA "{schema}" CASCADE')
+            await admin.close()
+    asyncio.run(body())

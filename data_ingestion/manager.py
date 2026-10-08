@@ -25,6 +25,9 @@ from storage.redis_client import RedisState
 
 from .base_client import ClientCallbacks, ExchangeClient, Trade, OpenInterest, Funding, MarkPrice, Liquidation
 from .bar_builder import LiveBarBuilder, Bar1m
+
+# One liquidation-feed heartbeat row per venue at most this often (beta/liq_mapping.py reads the gaps).
+HEARTBEAT_EVERY_S = 60.0
 from .binance_client import BinanceClient
 from .bybit_client import BybitClient
 from .okx_client import OKXClient
@@ -97,9 +100,19 @@ class IngestionManager:
             logger.info("[%s] LIQUIDATION %s side=%s qty=%.4f price=%.2f",
                         l.exchange, l.symbol, l.side, l.qty, l.price)
 
+        last_alive: Dict[str, float] = {}
+
+        async def on_liquidation_feed_alive(ex: str, ts: float) -> None:
+            # at most one row per HEARTBEAT_EVERY_S: the beta reads gaps, not every pong
+            if ts - last_alive.get(ex, 0.0) < HEARTBEAT_EVERY_S:
+                return
+            last_alive[ex] = ts
+            await self.db.insert_liquidation_feed_heartbeat(ex, self.symbol, _to_ts(ts))
+
         return ClientCallbacks(
             on_trade=on_trade, on_oi=on_oi, on_funding=on_funding,
             on_mark_price=on_mark_price, on_liquidation=on_liquidation,
+            on_liquidation_feed_alive=on_liquidation_feed_alive,
         )
 
     async def _on_bar_closed(self, bar: Bar1m) -> None:

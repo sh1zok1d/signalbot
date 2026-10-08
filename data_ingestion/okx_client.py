@@ -68,9 +68,9 @@ def _log_control_frame(msg: dict, feed: str) -> bool:
     return True
 
 
-async def _frames(ws, stop: asyncio.Event):
+async def _frames(ws, stop: asyncio.Event, on_pong=None):
     """The text frames of `ws`, sending OKX's text "ping" after TEXT_PING_AFTER_S of silence;
-    "pong" answers are swallowed."""
+    "pong" answers are swallowed (and reported to `on_pong`)."""
     while not stop.is_set():
         try:
             raw = await asyncio.wait_for(ws.recv(), timeout=TEXT_PING_AFTER_S)
@@ -78,6 +78,8 @@ async def _frames(ws, stop: asyncio.Event):
             await ws.send("ping")
             continue
         if raw == "pong":
+            if on_pong is not None:
+                await on_pong()
             continue
         yield raw
 
@@ -168,7 +170,7 @@ class OKXClient(ExchangeClient):
                     logger.info("[okx] public WS connected, subscribing liquidation-orders (ctVal=%s)",
                                 self._ct_val)
                     self._liq_live = False
-                    async for raw in _frames(ws, self._stop):
+                    async for raw in _frames(ws, self._stop, on_pong=self._liq_pong):
                         await self._handle_liquidation_message(json.loads(raw))
                         if self._liq_live:
                             backoff = 1.0    # reset only once OKX acknowledged the subscription
@@ -181,14 +183,26 @@ class OKXClient(ExchangeClient):
             await asyncio.sleep(backoff)
             backoff = min(backoff * 2, 60)
 
+    async def _feed_alive(self) -> None:
+        """The liveness marker of the liquidation channel (collector side of data reliability D2)."""
+        cb = getattr(self.callbacks, "on_liquidation_feed_alive", None)
+        if cb is not None:
+            await cb(self.name, time.time())
+
+    async def _liq_pong(self) -> None:
+        if self._liq_live:                    # a pong proves the socket; the ack proved the channel
+            await self._feed_alive()
+
     async def _handle_liquidation_message(self, msg: dict) -> None:
         if _log_control_frame(msg, "liquidation-orders"):
             if msg.get("event") == "subscribe":
                 self._liq_live = True
+                await self._feed_alive()
             return
         if msg.get("arg", {}).get("channel") != "liquidation-orders":
             return
         self._liq_live = True
+        await self._feed_alive()
         if self._ct_val is None:            # never stored without a usable multiplier (fail-closed)
             return
         for group in msg.get("data", []):
