@@ -24,13 +24,16 @@ The frozen design (`LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1_DESI
 
 ## Checks on the VPS (owner, read-only)
 
-From `/opt/signalbot` after the merge is pulled (the DSN comes from `/opt/signalbot/.env` through `common.config`):
+Pulling main into `/opt/signalbot` would be a deploy: the timer units run the new code on their next start. Run the check from a separate extract instead; `git fetch` only moves remote refs:
 
 ```bash
-cd /opt/signalbot && .venv/bin/python -m scripts.research.level_volatility_transition_prospective_confirmation_v1.status --live-db
+cd /opt/signalbot && git fetch origin main
+rm -rf /tmp/sb368 && mkdir -p /tmp/sb368 && git archive origin/main | tar -x -C /tmp/sb368
+cd /tmp/sb368 && set -a && . /opt/signalbot/.env && set +a && \
+  /opt/signalbot/.venv/bin/python -m scripts.research.level_volatility_transition_prospective_confirmation_v1.status --live-db
 ```
 
-If `.env` is readable only by the service user, prefix the command with `sudo -u signalbot`.
+If `/opt/signalbot/.env` is readable only by the service user, run the last two lines as that user (`sudo -u signalbot bash -c '…'`).
 
 Expected before the start: `status = AWAITING_START`, `panel_bound = true`, `forward_panel.last_minute_age_s` under about 120, `rows_read` near 1 440 per day since 2026-09-01. After the start: `post_start_coverage.missing_minutes` near 0 and `incomplete_5m_bins` near 0.
 
@@ -38,4 +41,4 @@ Run it once now, once after 2026-10-09T00:10Z, then weekly. A gap after the star
 
 ## Operational note
 
-The collector restart for the data-reliability fix D1 (`sudo systemctl restart signalbot.service`) makes a short hole in `klines_1m`. Before `2026-10-09T00:00:00Z` that hole falls in warm-up and costs at most a few 5m bins of sigma history. After the start it is a post-start gap and needs a logged recovery.
+Any collector restart (`sudo systemctl restart signalbot.service`) makes a short hole in `klines_1m`. Before `2026-10-09T00:00:00Z` such a hole falls in warm-up and costs at most a few 5m bins of sigma history. After the start it is a post-start gap and needs a logged recovery. The data-reliability fix D1 is deployed only together with D2 (an OKX percentile history of zeros would otherwise make every OKX liquidation vote), so its restart will most likely fall after the start and be recovered this way.
