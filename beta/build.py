@@ -22,7 +22,6 @@ from typing import Mapping, Optional
 UNKNOWN = "unknown"
 BUILD_SHA_FILE = "BUILD_SHA"
 _SHA = re.compile(r"^[0-9a-f]{7,40}(-dirty)?$")
-_cached: Optional[str] = None
 
 
 def _repo_root() -> Path:
@@ -61,9 +60,11 @@ def resolve_build_sha(*, env: Optional[Mapping[str, str]] = None, repo_root: Opt
     return from_file or UNKNOWN
 
 
+# Resolved once, when the module is imported, i.e. when the process loads its code: a long-lived
+# process (the bot) must report the code it runs, not a HEAD pulled onto the disk later.
+_PROCESS_BUILD_SHA = resolve_build_sha()
+
+
 def build_sha() -> str:
-    """The running process's build SHA, resolved once (the code a process runs never changes)."""
-    global _cached
-    if _cached is None:
-        _cached = resolve_build_sha()
-    return _cached
+    """The running process's build SHA (resolved at import; see above)."""
+    return _PROCESS_BUILD_SHA

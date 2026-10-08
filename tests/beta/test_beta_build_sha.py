@@ -60,3 +60,19 @@ def test_the_units_installer_records_the_build_sha_and_never_leaves_a_stale_one(
 def test_this_checkout_reports_its_own_head():
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     assert resolve_build_sha(env={}, repo_root=ROOT).split("-")[0] == head
+
+
+def test_a_long_lived_process_keeps_the_sha_it_started_with(monkeypatch):
+    """The SHA is fixed when the code is loaded: what changes on the disk or in the environment later
+    (a pull, a new .env) does not change what a running process reports; it still runs the old code."""
+    import importlib
+    import beta.build as build
+    monkeypatch.setenv("BETA_BUILD_SHA", "d" * 40)
+    reloaded = importlib.reload(build)
+    try:
+        assert reloaded.build_sha() == "d" * 40
+        monkeypatch.setenv("BETA_BUILD_SHA", "e" * 40)
+        assert reloaded.build_sha() == "d" * 40          # unchanged until the process restarts
+    finally:
+        monkeypatch.undo()
+        importlib.reload(build)
