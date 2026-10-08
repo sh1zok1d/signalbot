@@ -220,7 +220,12 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 
 - **Never stored:** bank or card details, screenshots, the payer's real name, payment-reference text, unless operationally unavoidable.
 - **What counts as payment.** A willingness statement, a promise or a "would pay" is **not** a payment. Only a row with `paid_at` and no `refunded_at` within 30 days counts.
-- **What is paid for** (owner, 2026-10-08): one month of the same bot after the beta. **Start** (owner, 2026-10-08): the paid month starts at the **actual** end of the free test, extension included: T(30) without an extension, T(44) with one; the prepayment buys one full calendar month from that start. **Access:** the bot as it is (BTC, all current functions). The offer text says in advance that an extension is possible and moves the start (#416). No continuation means a full refund on the offered terms. The amount, currency and method come later; the offer is not sent before then (`/admin_offer` refuses while `access.u3_offer` is empty).
+- **What is paid for** (owner, 2026-10-08): one month of the same bot after the beta. **Start** (owner, 2026-10-08): the paid month starts at the **actual** end of the free test, extension included: T(30) without an extension, T(44) with one; the prepayment buys one full calendar month from that start. **Access:** the bot as it is (BTC, all current functions). The offer text says in advance that an extension is possible and moves the start (#416). The amount, currency and method come later; the offer is not sent before then (`/admin_offer` refuses while `access.u3_offer` is empty).
+- **Refund terms** (owner, 2026-10-08), stated in the offer text:
+  - the continuation does not start on the announced date → a full refund by default; the payment moves to a later start only with the participant's consent;
+  - access stops before the end of the first paid month → a full refund;
+  - a refund on request within 30 days of payment stays;
+  - a short technical outage is not a closure of the service.
 - **PASS** (owner, 2026-10-08): with P = unknown enrolled participants who paid and were not refunded within 30 days, and E = **every enrolled unknown participant, including those not offered** (§1.3), U3 PASS ⇔ P ≥ 3 AND P / E ≥ 25 %.
 - **The funnel, reported beside it:** enrolled → offer allowed (ACTIVE, not blocked) → delivered → paid → refunded.
 
