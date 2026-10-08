@@ -48,19 +48,16 @@ Session ids are in §6, which the architect keeps current.
 ## 3. Escalation and reports
 
 - **Path:** track → its mini-head → architect → owner. Mini-heads do not write to the owner. Their owner-level questions go to the architect, who batches them.
-- **Production incidents go to the owner and the architect at once** (owner, 2026-10-08, «да»):
-  - the collector or a beta unit has stopped;
-  - data is being corrupted;
-  - pushes go out uncontrolled.
-
-  The mini-head that sees it writes to both immediately: what is happening, since when, and the stop or rollback step for the owner. No waiting for the architect.
+- **Production incidents go through the architect, at once** (owner, 2026-10-08: «аварию пересылай и от опг 1 потому что я мониторю только твой чат»).
+  - **What counts:** the collector or a beta unit has stopped; data is being corrupted; pushes go out uncontrolled.
+  - **How:** the mini-head that sees it writes to the architect at once, first line «АВАРИЯ»: what is happening, since when, and the stop or rollback step for the owner. The same text stays as its own last message.
+  - **Forwarding:** the architect forwards it to the owner immediately, in its own chat — the only chat the owner watches.
 - **Polling:** the architect checks both mini-heads on its own schedule and answers by session message. Mini-heads keep their own track checks.
 - **Usage limits** (owner, 2026-10-08, «Если упретесь в лимит. То после его сброса автоматически продолжайте»):
   - a session that stops on a usage limit resumes after the reset without asking the owner;
   - the scheduled checks wake the mini-heads and the architect;
   - at each check a mini-head that finds a track stopped by a limit tells it to continue from where it stopped;
   - the architect does the same for a stopped mini-head.
-- **Incident channel for sessions without a direct line to the owner:** first line «АВАРИЯ», sent to the architect, who forwards it to the owner at once. The same text is left as the session's own last message.
 - **What a mini-head reports:** after each merged PR, each blocker and each owner-level question, a short report in its own session — what changed, the PR, the checks run, what it needs.
 
 ## 3a. Who checks whom
@@ -75,7 +72,7 @@ Owner, 2026-10-08: «Перепроверять и редтимить работ
   - an ordinary change: the author and its mini-head;
   - a risky change (§4): plus the architect;
   - a change across the boundary of the two ОПГ: both mini-heads, plus one named owner of the outcome.
-- **Escape log.** Each mini-head keeps a short log of defects found after merge (a red main, a finding on a merged PR): the PR, what escaped and which check should have caught it. It shows what the review misses. Files: `docs/ops/OPG1_ESCAPED_DEFECTS.md` and `docs/ops/OPG2_ESCAPED_DEFECTS.md`.
+- **Escape log.** Each mini-head keeps a short log of defects found after merge (a red main, a finding on a merged PR): the PR, what escaped and which check should have caught it. It shows what the review misses. Files: ОПГ-1 in `docs/BETA_RELEASE_LOG_V1.md` beside its release-candidate records, ОПГ-2 in `docs/ops/OPG2_ESCAPED_DEFECTS.md`.
 - **What a report carries:** what changed and why; the PR; the tests the track ran and their results; what the mini-head checked and found; what it did not check; open risks.
 
 ## 3b. Red-team without duplicated work (owner, 2026-10-08)
