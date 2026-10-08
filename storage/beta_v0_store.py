@@ -1103,7 +1103,7 @@ class BetaConn:
     async def cap_activation_days(self, *, since: datetime) -> int:
         return int(await self.conn.fetchval(
             "SELECT count(DISTINCT utc_day) FROM beta_push_decisions WHERE decision_ts >= $1 "
-            "AND suppression_reason='DAILY_CAP'", since))
+            "AND suppression_reason IN ('DAILY_CAP', 'DAILY_FUSE')", since))
 
     # ----------------------------------------------------- participants (PII)
     async def allowlist_contains(self, telegram_user_id: int) -> bool:
@@ -1494,7 +1494,7 @@ class BetaConn:
     async def received_message(self, *, user_pk: int, kind: str, ref: int) -> bool:
         """Whether this participant was sent this message (review of #375: a vote counts only on a message
         its voter received): an alert of this kind by its alert_pk, the briefing by its view, the weekly
-        report by its row."""
+        report by its row. An ambiguous send (DELIVERY_UNKNOWN) counts: a tap on it shows it arrived."""
         if kind == "brief":
             where, ref_col = "d.kind='brief'", "d.view_pk"
         elif kind == "weekly":
@@ -1504,7 +1504,8 @@ class BetaConn:
         return bool(await self.conn.fetchval(
             f"""SELECT EXISTS (SELECT 1 FROM beta_notification_deliveries d
                                LEFT JOIN beta_market_alerts a ON a.alert_pk = d.alert_pk
-                               WHERE d.user_pk=$1 AND {ref_col}=$2 AND d.state='SENT' AND {where})""",
+                               WHERE d.user_pk=$1 AND {ref_col}=$2 AND {where}
+                                 AND d.state IN ('SENT', 'DELIVERY_UNKNOWN'))""",
             *((user_pk, ref, kind) if kind not in ("brief", "weekly") else (user_pk, ref))))
 
     async def feedback_counts(self) -> dict:

@@ -192,9 +192,12 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
                                                  payload_digest=sha256_json(payload))
             out["built"] = pk is not None
         if pk is not None:
-            # one row per recipient at their own slot; a later run adds those who joined or moved zone since
+            # one row per recipient once their own slot has come; a later run adds those who joined or moved
+            # zone since (a zone whose slot is still ahead gets no row yet, so a move east never lands
+            # on a Monday; review of #379)
             for tz, ts in week[1].items():
-                out["scheduled"] += await conn.materialize_weekly_deliveries(weekly_pk=pk, decision_ts=ts, tz=tz)
+                if ts <= now:
+                    out["scheduled"] += await conn.materialize_weekly_deliveries(weekly_pk=pk, decision_ts=ts, tz=tz)
         if sender is not None and owner_user_id is not None:
             out["owner"] = await _send_owner(conn, sender, pacer, week[0], owner_user_id=int(owner_user_id),
                                              now=now)
@@ -207,7 +210,10 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
         due = quiet_end(cfg, row["decision_ts"], row.get("user_tz")) or row["decision_ts"]
         if now < due:
             continue
-        if now - due > max_delay:
+        from .i18n import tz_of
+        # never outside the configured weekday on the recipient's clock now (a zone changed since the row
+        # was made, or a slot inside the night): expired, never a Monday-Friday U1a date (review of #379)
+        if now - due > max_delay or now.astimezone(tz_of(row.get("user_tz"))).weekday() != WEEKDAYS.index(w["weekday_kyiv"]):
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_EXPIRED, now=now,
                                            suppression_reason=DELIVERY_TOO_OLD)
             out["expired"] += 1

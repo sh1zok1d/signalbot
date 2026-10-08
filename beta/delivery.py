@@ -28,7 +28,7 @@ from .i18n import render_tz
 from .latency import class_summary, latency_field
 from .detector import in_quiet_hours, own_budget_spent
 from .models import (BRIEF_WITHDRAWAL, D_EXPIRED, D_FAILED, D_PENDING, D_SENDING, D_SENT, D_SUPPRESSED,
-                     D_UNKNOWN, DAILY_CAP, DELIVERY_TOO_OLD, PUSH_DISABLED, QUIET_HOURS, USER_INACTIVE)
+                     D_UNKNOWN, DAILY_CAP, DAILY_FUSE, DELIVERY_TOO_OLD, PUSH_DISABLED, QUIET_HOURS, USER_INACTIVE)
 
 
 # A PUSH decision nobody could receive never gets a delivery row; the scan stops looking
@@ -540,18 +540,16 @@ def brief_due(now: datetime, user: Mapping[str, Any], default_time: str, max_del
     return None
 
 
-FUSE = "DECISIONS_FUSE"         # a reader's own note only: the bot's limit for all participants together
-
-
 async def own_push_reasons(conn, user_pk: Optional[int], view: Mapping[str, Any], *,
                            cfg: Optional[BetaConfig] = None, tz: Optional[str] = None) -> Optional[dict]:
     """The reader's own outcome for each unusual hour of the view (review of #373), or None when unknown
     (no participant, or a store without the query): the note then follows the decision.
 
     Their delivery row says it when there is one. A suppressed decision has none (review of #379): then
-    the reader's own night at the decision time is QUIET_HOURS whatever the decision said; a DAILY_CAP
-    while they were awake and under their own daily budget was the fuse over all participants (FUSE),
-    never «уже было 2»; anything else is the decision's reason."""
+    the reader's own night at the decision time is QUIET_HOURS whatever the decision said; DAILY_FUSE
+    (the fuse over all participants) stays; a DAILY_CAP is theirs only when their own budget was spent
+    then, else nothing is said (it was other recipients' budget, or they joined or switched the type on
+    later); a QUIET_HOURS while they were awake says nothing; any other reason is the decision's."""
     fn = getattr(conn, "own_push_reasons", None)
     if fn is None or user_pk is None:
         return None
@@ -562,14 +560,14 @@ async def own_push_reasons(conn, user_pk: Optional[int], view: Mapping[str, Any]
     count = getattr(conn, "count_sent_on_own_day", None)
     for h in hours:
         reason = h.get("suppression_reason")
-        if h["decision_id"] in got or reason not in (QUIET_HOURS, DAILY_CAP) or not h.get("decision_ts"):
+        if h["decision_id"] in got or reason not in (QUIET_HOURS, DAILY_CAP, DAILY_FUSE) or not h.get("decision_ts"):
             continue
         ts = datetime.fromisoformat(h["decision_ts"]) if isinstance(h["decision_ts"], str) else h["decision_ts"]
         if in_quiet_hours(cfg, ts, tz):
             got[h["decision_id"]] = QUIET_HOURS
-        elif reason == DAILY_CAP and count is not None:
-            n = await count(user_pk=int(user_pk), ts=ts, tz=tz, outbox_kind="push", before=ts)
-            got[h["decision_id"]] = DAILY_CAP if n >= int(cfg["max_new_pushes_per_utc_day"]) else FUSE
+        elif reason == DAILY_CAP:
+            n = None if count is None else await count(user_pk=int(user_pk), ts=ts, tz=tz, outbox_kind="push", before=ts)
+            got[h["decision_id"]] = DAILY_CAP if n is not None and n >= int(cfg["max_new_pushes_per_utc_day"]) else None
         elif reason == QUIET_HOURS:
             got[h["decision_id"]] = None          # awake then (a zone changed since): nothing to say
     return got

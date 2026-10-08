@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS beta_push_decisions (
     suppression_reason      TEXT CONSTRAINT ck_beta_push_suppression CHECK (
         suppression_reason IS NULL OR suppression_reason IN (
         'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED',
-        'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN')),
+        'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN', 'DAILY_FUSE')),
     push_enabled_effective  BOOLEAN NOT NULL,
     recorded_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT ck_beta_push_reason CHECK ((decision = 'PUSH') = (suppression_reason IS NULL)),
@@ -647,7 +647,7 @@ CREATE TABLE IF NOT EXISTS beta_market_alerts (
     utc_day            DATE NOT NULL,
     decision           TEXT NOT NULL CHECK (decision IN ('PUSH', 'SUPPRESSED')),
     suppression_reason TEXT CHECK (suppression_reason IS NULL OR suppression_reason IN (
-        'QUIET_HOURS', 'DAILY_CAP', 'KIND_COOLDOWN', 'PUSH_DISABLED', 'DATA_STALE')),
+        'QUIET_HOURS', 'DAILY_CAP', 'KIND_COOLDOWN', 'PUSH_DISABLED', 'DATA_STALE', 'DAILY_FUSE')),
     target_user_pk     BIGINT REFERENCES beta_users (user_pk) ON DELETE SET NULL,
     payload            JSONB NOT NULL,
     recorded_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -718,7 +718,7 @@ BEGIN
         ALTER TABLE beta_push_decisions ADD CONSTRAINT ck_beta_push_suppression CHECK (
             suppression_reason IS NULL OR suppression_reason IN (
             'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED',
-            'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN'));
+            'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN', 'DAILY_FUSE'));
     END IF;
 END $$;
 -- /push off is a recipient preference (§3.1b.4): no delivery row is created for the user.
@@ -1120,3 +1120,30 @@ CREATE TABLE IF NOT EXISTS beta_message_votes (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_beta_message_vote UNIQUE (user_pk, kind, ref)
 );
+
+-- The fuse over all participants has its own reason (review of #379): DAILY_CAP stays a participant's
+-- own daily budget. Widen the decision tables once.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname FROM pg_constraint
+    WHERE conrelid = 'beta_push_decisions'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%HOUR_NOT_UNUSUAL%' AND pg_get_constraintdef(oid) NOT LIKE '%DAILY_FUSE%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_push_decisions DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_push_decisions ADD CONSTRAINT ck_beta_push_suppression CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+            'DAILY_CAP', 'SAME_EVENT_COOLDOWN', 'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'DATA_DEGRADED',
+            'HOUR_NOT_UNUSUAL', 'QUIET_HOURS', 'GLOBAL_COOLDOWN', 'DAILY_FUSE'));
+    END IF;
+    SELECT conname INTO cname FROM pg_constraint
+    WHERE conrelid = 'beta_market_alerts'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%KIND_COOLDOWN%' AND pg_get_constraintdef(oid) NOT LIKE '%DAILY_FUSE%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_market_alerts DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_market_alerts ADD CONSTRAINT ck_beta_market_alert_suppression CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+            'QUIET_HOURS', 'DAILY_CAP', 'KIND_COOLDOWN', 'PUSH_DISABLED', 'DATA_STALE', 'DAILY_FUSE'));
+    END IF;
+END $$;

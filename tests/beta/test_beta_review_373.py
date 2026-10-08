@@ -49,7 +49,7 @@ def test_1_one_participant_elsewhere_never_spends_the_kyiv_participants_day(monk
     late = day + timedelta(hours=3, minutes=30)                    # 20:30 on the 13th in LA, 06:30 Kyiv
     assert _decide(late, [k, la], would)[1:] == ("SUPPRESSED", "DAILY_CAP")
     # the count of all decisions of the UTC day is only a higher fuse
-    assert _decide(hours[2], [k, la], CFG["push_decisions_fuse_per_utc_day"])[1:] == ("SUPPRESSED", "DAILY_CAP")
+    assert _decide(hours[2], [k, la], CFG["push_decisions_fuse_per_utc_day"])[1:] == ("SUPPRESSED", "DAILY_FUSE")
     assert _decide(hours[2], [k, la], CFG["max_new_pushes_per_utc_day"])[1:] == ("PUSH", None)
 
 
@@ -154,7 +154,7 @@ def test_1_the_fuse_stops_a_fifth_decision_of_the_utc_day_even_for_a_fresh_recip
     from beta.detector import own_day_count
     assert own_day_count(people["tokyo"]["times"], day + timedelta(hours=23), "Asia/Tokyo") == 0
     late = day + timedelta(hours=23)
-    assert _decide(late, list(people.values()), would)[1:] == ("SUPPRESSED", "DAILY_CAP")      # the fuse
+    assert _decide(late, list(people.values()), would)[1:] == ("SUPPRESSED", "DAILY_FUSE")     # the fuse
     assert _decide(late, list(people.values()), would - 1)[1:] == ("PUSH", None)               # not the budget
 
 
@@ -205,11 +205,18 @@ def test_1_379_a_kyiv_reader_asleep_never_reads_already_two_after_another_zones_
         t("ru", "note_quiet", s=s, e=e)]
 
 
-def test_1_379_an_awake_reader_under_their_budget_reads_the_fuse_and_one_at_it_their_cap():
-    ts = datetime(2026, 10, 15, 9, 0, tzinfo=UTC)                   # 12:00 Kyiv
+def test_1_379_the_fuse_note_only_for_the_fuse_and_the_cap_note_only_for_ones_own_cap():
+    """The mini-head's script (B1): two Kyiv recipients at their 2 → DAILY_CAP with 2 decisions (< the fuse
+    of 4); a third Kyiv reader without a delivery row (joined later) and 0 sent reads nothing, never the
+    fuse. The fuse note is for DAILY_FUSE only; «уже было 2» only for a reader whose own day was spent."""
     from beta.i18n import t
-    assert _reader_note("DAILY_CAP", ts, None, sent=0) == [t("ru", "note_fuse")]
+    ts = datetime(2026, 10, 15, 9, 0, tzinfo=UTC)                   # 12:00 Kyiv
+    two = [ts - timedelta(hours=3), ts - timedelta(hours=2)]
+    assert _decide(ts, [{"tz": None, "times": two}, {"tz": None, "times": two}], 2)[1:] == ("SUPPRESSED", "DAILY_CAP")
+    assert _reader_note("DAILY_CAP", ts, None, sent=0) == []
     assert _reader_note("DAILY_CAP", ts, None, sent=2) == [t("ru", "note_cap", n=2)]
+    assert _reader_note("DAILY_FUSE", ts, None, sent=0) == [t("ru", "note_fuse")]
+    assert _reader_note("DAILY_FUSE", datetime(2026, 10, 15, 1, 0, tzinfo=UTC), None, sent=0)[0].startswith("Ночью")
 
 
 def test_3_379_the_weekly_slot_is_sunday_evening_on_every_clock():

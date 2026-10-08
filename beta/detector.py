@@ -24,7 +24,7 @@ from .config import (BetaConfig, BetaSwitches, EVENT_TYPES, LIQUIDATION_STRESS_L
                      LIQUIDATION_STRESS_SHORT, POSITION_BUILDUP_COMPRESSION,
                      PRICE_OI_CONTRACTION_DOWN, PRICE_OI_CONTRACTION_UP,
                      TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL, effective_push_enabled)
-from .models import (ARMED, CORE_FAMILIES, DAILY_CAP, DATA_DEGRADED_REASON, DELIVERY_TOO_OLD,
+from .models import (ARMED, CORE_FAMILIES, DAILY_CAP, DAILY_FUSE, DATA_DEGRADED_REASON, DELIVERY_TOO_OLD,
                      EARLY, ENDED, EXPIRED, Episode, GLOBAL_COOLDOWN, HOUR_NOT_UNUSUAL,
                      NOT_EVALUABLE, ORIGIN_BOOTSTRAP, QUIET_HOURS,
                      ORIGIN_CORRECTION_CHECK, ORIGIN_LIVE, PUSH, PUSH_DISABLED, QUALIFIES,
@@ -294,7 +294,7 @@ def push_policy(cfg: BetaConfig, *, decision_ts: datetime, evaluated_at: datetim
         if reason is not None:
             return False, SUPPRESSED, reason
         if would_push_today >= cfg["push_decisions_fuse_per_utc_day"]:
-            return False, SUPPRESSED, DAILY_CAP
+            return False, SUPPRESSED, DAILY_FUSE
     else:
         if quiet_for_all(cfg, decision_ts, None):
             return False, SUPPRESSED, QUIET_HOURS

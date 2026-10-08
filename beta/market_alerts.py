@@ -297,7 +297,7 @@ async def _decide_and_record(conn, cfg: BetaConfig, cand: Mapping[str, Any], *, 
         if reason is None and kind in CAPPED_KINDS:
             fuse = int(m["decisions_fuse_per_utc_day"]) if recips else int(m["max_per_utc_day"])
             if await conn.count_market_pushes(utc_day=now.astimezone(timezone.utc).date(), kinds=CAPPED_KINDS) >= fuse:
-                reason = "DAILY_CAP"
+                reason = "DAILY_FUSE" if recips else "DAILY_CAP"    # the fuse is never anyone's own budget
     async with conn.transaction():          # a price alert is recorded and consumed together
         pk = await conn.insert_market_alert(kind=kind, alert_key=cand["key"], decision_ts=now,
                                             decision="PUSH" if reason is None else "SUPPRESSED",

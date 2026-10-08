@@ -312,7 +312,7 @@ def owner_breakdown(users: Sequence[dict], activity: Sequence[dict], votes: Sequ
 
 # outbox kind -> delivery type of DELIVERY_TYPES (an alert's type is its own kind)
 _OUTBOX_TYPE = {"push": "hour", "brief": "brief", "weekly": "weekly"}
-_PUSH_TYPES = ("hour", "level", "event", "move")          # a global `/push off` mutes these too
+_PUSH_TYPES = ("hour", "level", "event", "move", "weekly")   # a global `/push off` mutes these too
 PUSH_LIST_MAX = 20
 
 

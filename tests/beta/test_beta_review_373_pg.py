@@ -111,3 +111,47 @@ def test_3_the_weekly_report_comes_on_each_recipients_own_sunday_evening():
             assert local.weekday() == 6 and local.hour == 19, (chat, local)
         await pool.close()
     run(body())
+
+
+def test_3_379_a_move_east_before_ones_slot_or_a_slot_in_the_night_never_sends_on_a_monday():
+    """Review of #379: an LA participant who moves to Auckland on Sunday evening (Kyiv), after Auckland's
+    slot, gets nothing that week rather than a Monday report; a slot configured inside the night
+    (23:30) is never held into Monday."""
+    from beta.weekly import run_due_weekly
+    from test_beta_weekly_pg import SLOT, _forecasts
+
+    async def scenario(cfg, moves):
+        pool = await fresh_pool()
+        async with pool.acquire() as c:
+            await c.execute(
+                "INSERT INTO beta_users (telegram_user_id, chat_id, status, privacy_accepted_at, joined_at, stopped_at,"
+                " lang, tz) VALUES (61, 61, 'ACTIVE', now(), now(), NULL, 'en', NULL),"
+                " (64, 64, 'ACTIVE', now(), now(), NULL, 'en', 'America/Los_Angeles')")
+        await _forecasts(pool)
+        sent = []
+        clock = {}
+
+        class Sender:
+            async def send(self, *, chat_id, html, buttons=None):
+                sent.append((chat_id, clock["now"]))
+                return len(sent)
+        async with BetaStore(pool).connect() as conn:
+            at = SLOT - timedelta(hours=1)
+            while at <= SLOT + timedelta(hours=16):
+                clock["now"] = at
+                if at in moves:
+                    await conn.conn.execute("UPDATE beta_users SET tz=$2 WHERE telegram_user_id=$1", *moves[at])
+                await run_due_weekly(conn, cfg, sender=Sender(), clock=Clock(at), push_on=True)
+                at += timedelta(minutes=5)
+        await pool.close()
+        return sent
+
+    async def body():
+        move = {SLOT + timedelta(hours=4): (64, "Pacific/Auckland")}      # Sunday 23:00 Kyiv, Monday 08:00 Auckland
+        sent = await scenario(CFG, move)
+        assert [c for c, _ in sent] == [61]
+        night = CFG.with_overrides(decision={**CFG.raw["decision"],
+                                             "weekly_report": {**CFG.raw["decision"]["weekly_report"], "time_kyiv": "23:30"}})
+        sent = await scenario(night, {})
+        assert sent == []                         # both slots fall in their night: held, then expired on Monday
+    run(body())

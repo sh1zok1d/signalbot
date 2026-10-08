@@ -73,7 +73,8 @@ def message_key(row: Mapping[str, Any]):
 def summarize(rows: Iterable[Mapping[str, Any]]) -> dict:
     """{class: {n, messages, p50_s, p95_s, max_s, detect_p50_s, detect_p95_s, send_p50_s, send_p95_s,
     expired, no_source}} over SENT rows (latency) and EXPIRED_UNDELIVERED rows (counted). `n` counts
-    delivery rows, `messages` the distinct messages among them."""
+    delivery rows, `messages` the distinct messages among them. The percentiles are over delivery rows
+    (each participant's own delay); only the threshold and the printed N count messages (review of #375)."""
     acc: dict = {}
     for r in rows:
         cls = row_class(r)

@@ -234,7 +234,7 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
   - **Live bins.** The notifier refreshes the live bins from the journal once an hour (`beta_runtime_health` component `touch_live_cal`).
   - **Divergence.** A live bin that breaks the frozen rule falls back to «исторически в X % случаев» for the rest of the model version and raises `TOUCH_CALIBRATION_DIVERGED` (`NEITHER_CALIBRATION_DIVERGED` for «ни один»).
 - The weekly report (backlog B4; `beta/weekly.py`, `decision.weekly_report`) runs inside the same notifier step.
-  - **When.** Sunday 19:00 Kyiv by default, never sent more than 120 minutes late. Mon–Fri hold the U1a withdrawal days, so it never meets a withheld briefing.
+  - **When.** Sunday 19:00 on each participant's own clock by default (review of #379), never sent more than 120 minutes after their slot and never outside their Sunday. The report is built once, at the earliest slot of that Sunday, and the owner's copy goes then. Mon–Fri hold the U1a withdrawal days, so it never meets a withheld briefing.
   - **What it says.** How the bot's own estimates did over the 7 days:
     - corridors issued and scored that week, with effective N, beside the designed share and the held-out year;
     - width, and misses above and below;
