@@ -101,7 +101,9 @@ U4 is fixed: 2 channels, 12 calendar days [T(0), T(12)), at most 6 hours of foun
 - **Work budget.** Start/stop blocks in the ledger, Kyiv time, to the minute. At 6 hours stop: no third venue, no extension, no repost by others. Joins that arrive later from the posts already made still count. A join that needed a private conversation is known.
 - **At T(12)**, below 8 unknown joins: stop inviting, revoke both codes, record "Stop: distribution".
 
-**Invitation text — the owner's own text, pending the owner's final wording** (two fixes are with the owner: the historical-frequency phrase and «участникам беты»). Verbatim; the only placeholder is `<ссылка>`; no signature, no price, no urgency.
+**Invitation text — owner-approved RU, 2026-10-08.** Verbatim, never edited here; the only placeholder is `<ссылка>`. The EN version comes only after the RU approval.
+
+**Open note to the owner (OUT-7 item 1):** «историческую частоту их достижения» describes history, while the bot's touch chances in mode B are estimated chances with their tracked record; the owner decides whether the wording stays.
 
 ```text
 Приглашаю в закрытую бесплатную бету Telegram-бота по BTC — на данных фьючерсов Binance, Bybit и OKX.
