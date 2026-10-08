@@ -139,3 +139,30 @@ def test_bitmex_clock_is_not_called_independent():
     vol = payload["bitmex_audit"]["candidates"]["LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1"]
     assert vol["scheduled_as_confirmation"] is False
     assert vol["exact_rv_computed"] is False
+    assert vol["later_exact_rv_computed"] is True
+    assert vol["later_pristine"] is False
+    assert vol["later_surface_class"] == "TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION"
+
+
+def test_bitmex_replication_status_does_not_rewrite_the_discovery_class():
+    payload = _load()
+    row = next(
+        item for item in payload["evidence_map"]
+        if item["unit"] == "LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1"
+    )
+    assert row["final_synthesis_class"] == "DISCOVERY_CANDIDATE_STRONG"
+    assert row["post_synthesis_status"] == "TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE"
+    assert row["frozen_route"].startswith("LEVEL_VOLATILITY_TRANSITION_CANDIDATE")
+    later = payload["later_replication"]
+    assert later["unit"] == "LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1"
+    assert later["surface_evidence_class"] == "TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION"
+    assert later["routing"] == "REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION"
+    assert later["pristine"] is False
+    assert later["claim_ceiling"] == "L2"
+    assert later["prospective_started"] is False
+    assert later["cross_venue_started"] is False
+    assert later["product_change"] is False
+    assert later["pooled_with_discovery"] is False
+    obj = next(item for item in payload["objects"] if item["id"] == "EVENT_VOLATILITY_TRANSITION")
+    assert obj["status"] == "TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE"
+    assert "PRISTINE_CONFIRMATION" not in json.dumps(payload)

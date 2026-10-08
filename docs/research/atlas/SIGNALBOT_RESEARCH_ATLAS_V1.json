@@ -752,7 +752,7 @@
    "col": "CANDLES",
    "counts": {
     "BLOCKED_METHOD": 2,
-    "CLOSED_ON_SURFACE": 12,
+    "CLOSED_ON_SURFACE": 13,
     "EXPOSED_ONLY": 1,
     "INFORMATIONALLY_WEAK": 1,
     "LIVE_SIGNAL": 2,
@@ -787,6 +787,7 @@
     "LEVEL-STRUCTURE-DISCOVERY-V1",
     "LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1",
     "LEVEL-TOUCH-DEGRADATION-V1",
+    "LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1",
     "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1",
     "PRODUCT-V2-LEVELS"
    ],
@@ -10182,14 +10183,14 @@
    "NO_STRUCTURE": 21,
    "OPEN_FRONTIER": 352
   },
-  "units": 204,
+  "units": 205,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 28,
+   "CLOSED_ON_SURFACE": 29,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 11,
    "FUTURE_NATURAL_ACCUMULATION": 3,
@@ -15552,7 +15553,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "c5d8dcfb7121cfde7b5aa985844dafbba6be8de769b1152c7690e9c3b26f8372",
+ "SOURCES_DIGEST": "63b8cee7ffe2d8d71880ad6e7e0e82f14047fd7d7abffd6810ae05f902da3d28",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -16444,6 +16445,14 @@
      },
      {
       "note": "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1 read RESOLVED_WITHIN_4H on matched real versus half-rotation pseudo first touches",
+      "period": "2017-09-01..2019-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1 read the paired 60m close RV transition log(RV_POST/RV_PRE) on matched structural first touches; exact estimand unread before this run; neighboring 4h high/low path already consumed by LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1; TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION; not a reopen of RESOLVED_WITHIN_4H; not pristine",
       "period": "2017-09-01..2019-12-31",
       "rows": [
        "PRICE_STRUCTURE.levels"
@@ -22149,6 +22158,38 @@
    "units_n": "4191 analysis touches (1905 / 1101 / 1185 in buckets 1 / 2 / 3+); 258 week clusters; ambiguous same-bar events excluded (14 / 4 / 4)",
    "verdict": "EXECUTED ONCE (2026-10-07). Standardized BREAK_FIRST vs touch 1: touch 2 -2.3 pp (95% -6.0..+1.5), touch 3+ -6.6 pp (95% -10.7..-2.2); crude rates 40.1% / 37.6% / 33.6% (N 1905 / 1101 / 1185). REJECT_FIRST stays near 50%; NEITHER rises 9.6% to 17.1%. 2023 crude touch-3+ difference is about 0. Pseudo-level standardized differences are positive (+7.3 / +4.7 pp). L2 wording permitted. Not a confirmation. The sign is fewer breaks among survivors, not \"the level weakens\".",
    "why_closed": "One retrospective run on a surface already consumed for level research, under the design note committed before any break rate. No product change. Successors were not started."
+  },
+  {
+   "col": "CANDLES",
+   "datasets": [
+    "DH1_BITMEX_XBTUSD_TRADES_5M_V0"
+   ],
+   "forbidden": "calling this pristine; stating the historical multiplier as a current probability or an expected current RV; a trading edge or a volatility-expansion badge; a new horizon after this result; stratifying by BREAK or REJECT; a clock or hazard analysis; pooling this sample with the Binance discovery sample; product integration",
+   "function": "exact #357 first-touch constructor and half-rotation pseudo; touch_number = 1; no BREAK/REJECT/NEITHER conditioning; T is the open of touch bar j; bar j excluded; RV_PRE60 and RV_POST60 are sqrt(mean(r^2)) on the twelve pre and twelve post log-close returns; DELTA_TRANSITION is the paired mean; ISO-week bootstrap B=2000 seed 20261025",
+   "id": "LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1",
+   "mechanism": "MODE=CONFIRMATION. SURFACE_EVIDENCE_CLASS=TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION. Whether the exact frozen #368 structural first-touch 60m pre/post RV transition also appears on time-disjoint BitMEX 2017-2019. Not a pristine confirmation. The neighboring 4h high/low path was already read by #357.",
+   "note": "MODE=CONFIRMATION. Design note 6d97157b before any post-touch RV. Parent discovery #368 design 54338b7f and result fb6598aa. Event constructor from #357. Tracks STRUCTURE + PRODUCT_EVIDENCE. Claim L2. Parent results are not rewritten. Surface class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION. Exact RV claim unread before this run. Neighboring 4h path already read. Prospective not started.",
+   "period": "2017-09-01..2019-12-31 on DH1_BITMEX_XBTUSD_TRADES_5M_V0 5m closes; August 2017 is warm-up only; no inverse-contract adjustment; no 2020-2024 Binance reread, no 2025/2026, no live tape, no E1 holdout",
+   "practical_bar": "Inherited from #368: mean paired log transition at least log(1.10), 95% interval excludes 0, three eligible epochs share the positive sign, and every estimable leave-one-epoch-out estimate stays positive. Not lowered to 5% and not replaced by same-sign-is-enough.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/EXPOSURE_WEIGHTING_DECISION_V1.md",
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_DESIGN.md",
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_PREFLIGHT.json",
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_RESULT.md",
+    "docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_RESULT.json",
+    "scripts/research/level_volatility_transition_bitmex_replication_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A prospective replication of this same frozen claim, with its own design note and owner go. Not a retune of the 60-minute windows, the RV formula, the 10% bar, or a BREAK-only subgroup. Not a second read of this BitMEX close path. Not 2025/2026. Not a claim that the transition is independent of the resolution clock.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1",
+   "units_n": "890 real and 891 pseudo legitimate first touches; 558 matched; 554 path-complete usable pairs; 120 ISO weeks; zero non-positive RV drops",
+   "verdict": "EXECUTED ONCE (2026-10-08). Routing REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION. Evidence label REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE. DELTA_TRANSITION +0.096545 log units, about +10.14% (95% +0.02178..+0.16817, about +2.20%..+18.31%, p=0.0112, N=554, 120 weeks, 2000/2000). Point clears log(1.10). Interval excludes 0 and contains sub-10% values and the discovery point. Epochs +15.31% / +0.28% / +20.79%. 2018 is practically null and the sign rule was not rewritten. Leave-one-epoch-out stays positive. L2. Not L3. Not pristine. INDEPENDENCE_FROM_RESOLUTION_CLOCK = UNRESOLVED. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "One replication run of the exact frozen #368 estimand. The BitMEX close path for this 60m transition is now consumed. The surface was already exposed by the #357 4h barrier scan, so the result is an exposed-surface historical replication. No window, formula, bar, sign, or subgroup was changed after the outcome. No prospective collection, no #363 run, and no product integration."
   },
   {
    "col": "CANDLES",

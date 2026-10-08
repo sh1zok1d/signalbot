@@ -34,6 +34,32 @@
   ],
   "claim_ladder_redefined": false,
   "claim_ceiling_policy": "L2 for every historical line. No L3. No L4. No verbal confidence scale.",
+  "later_replication": {
+    "document_note": "This synthesis document did not compute the BitMEX outcome. confirmation_executed stays false for that reason. The replication unit below was executed afterward under EXPOSURE_WEIGHTING_DECISION_V1.",
+    "unit": "LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1",
+    "design_sha": "6d97157be44f02ad09344a00df58b715e5c8aa13",
+    "surface": "DH1_BITMEX_XBTUSD_TRADES_5M_V0",
+    "surface_evidence_class": "TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION",
+    "pristine": false,
+    "exact_claim_previously_read": false,
+    "neighboring_post_touch_path_previously_read": true,
+    "routing": "REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION",
+    "evidence_label": "REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE",
+    "post_synthesis_status": "TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE",
+    "discovery_class_preserved": "DISCOVERY_CANDIDATE_STRONG",
+    "frozen_discovery_route_preserved": "LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT",
+    "delta_log": 0.09654494866839887,
+    "multiplicative_pct": 10.135908465551168,
+    "ci95": [0.02178047720554232, 0.1681728175697164],
+    "n": 554,
+    "weeks": 120,
+    "claim_ceiling": "L2",
+    "independence_from_resolution_clock": "UNRESOLVED",
+    "prospective_started": false,
+    "cross_venue_started": false,
+    "product_change": false,
+    "pooled_with_discovery": false
+  },
   "evidence_map": [
     {
       "unit": "LEVEL_TOUCH_DEGRADATION_V1",
@@ -392,6 +418,9 @@
       "product_integration_status": "NOT_INTEGRATED; PRODUCT_INTEGRATION_CANDIDATE=NO",
       "major_limitation": "the post window overlaps the first hour of the resolution clock, where #365 already records a large resolved-by gap; independence is unresolved",
       "final_synthesis_class": "DISCOVERY_CANDIDATE_STRONG",
+      "post_synthesis_status": "TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE",
+      "replication_unit": "LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1",
+      "replication_route": "REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION",
       "independence_from_365": "INDEPENDENCE_UNRESOLVED",
       "pair_status_versus_365": "likely overlapping",
       "design": "54338b7faab9598152e2fa1270d2fb51a4beed18"
@@ -410,8 +439,10 @@
     },
     {
       "id": "EVENT_VOLATILITY_TRANSITION",
-      "evidence": ["LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1"],
-      "status": "DISCOVERY_ONLY_OVERLAP_UNRESOLVED"
+      "evidence": ["LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1", "LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1"],
+      "discovery_class_preserved": "DISCOVERY_CANDIDATE_STRONG",
+      "status": "TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE",
+      "independence_from_resolution_clock": "UNRESOLVED"
     },
     {
       "id": "POST_TOUCH_PRICE_PROGRESS",
@@ -457,7 +488,13 @@
         "post_60m_high_low_inside_4h_scan": true,
         "closes_indexed_by_classify": false,
         "status": "BITMEX_VOL_EXACT_ESTIMAND_UNREAD_NEIGHBOR_PATH_EXPOSED",
-        "scheduled_as_confirmation": false
+        "scheduled_as_confirmation": false,
+        "audit_time": "synthesis, before the later replication",
+        "later_replication_unit": "LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1",
+        "later_exact_rv_computed": true,
+        "later_surface_class": "TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION",
+        "later_route": "REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION",
+        "later_pristine": false
       },
       "LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1": {
         "exact_15m_close_endpoint_read": false,
@@ -483,7 +520,15 @@
         "unit": "LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1",
         "claim": "paired mean of log(RV_POST60/RV_PRE60), real minus matched pseudo, practical bar log(1.10)",
         "historical_independent_surface": false,
-        "prospective_collection_required": true
+        "prospective_collection_required": true,
+        "later_exposed_surface_replication": {
+          "unit": "LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1",
+          "routing": "REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION",
+          "surface_class": "TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION",
+          "pristine": false,
+          "prospective_started": false,
+          "prospective_remains_next_stronger_layer": true
+        }
       },
       {
         "priority": "P3_PROSPECTIVE_ONLY",

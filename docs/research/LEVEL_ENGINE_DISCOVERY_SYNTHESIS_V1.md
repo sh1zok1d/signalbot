@@ -8,11 +8,15 @@ Parent HEAD: `fb6598aa62fc9b47cec2e9095959aa98182f0407` (`LEVEL_VOLATILITY_TRANS
 
 Machine-readable rows: `docs/research/LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1.json`.
 
+## Later amendment (2026-10-08)
+
+`LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1` was executed after this synthesis, under `docs/research/EXPOSURE_WEIGHTING_DECISION_V1.md`. This synthesis document did not compute that outcome. The discovery-time class of #368 stays `DISCOVERY_CANDIDATE_STRONG`. The frozen route stays `LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT`. The post-synthesis status of that object is `TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE`. The replication route is `REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION`. Evidence label `REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE`. Surface class `TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION`. Not pristine. Claim ceiling L2. Clock independence stays `UNRESOLVED`. Prospective collection was not started. #363 was not started. Product files were not changed.
+
 ## Authority
 
 - `docs/research/EVIDENCE_AND_CLAIMS_DECISION_V1.md` — L0–L4 unchanged. Every historical line here stays L2. L3 needs live calibration. No verbal confidence scale.
 - `docs/research/DISCOVERY_FIRST_RESEARCH_DECISION_V1.md` — #354. Governing decision only. It has no evidence-map row.
-- Research Atlas — not updated. A synthesis is not an outcome cell. `GOVERNANCE_RECORD` cannot be appended without a source-digest change, and a new unit would invent a cell.
+- Research Atlas — not updated by this synthesis. A synthesis is not an outcome cell. The later replication unit is an atlas cell of its own. The synthesis payload keeps `atlas.updated = false`.
 - `docs/CURRENT_RESEARCH_STATE.md` — discovery sequence 1–8 is complete. This document closes the research phase by selection, not by a new measurement.
 
 ## Evidence map
@@ -36,9 +40,11 @@ One row per finding. The JSON file is the field store. The class is a synthesis 
 | #365 `LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1` | resolution clock | RMUT 64.24 vs 89.39 min, Δ −25.15 min | `DISCOVERY_CANDIDATE_STRONG` |
 | #366 `LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1` | post-first opposite barrier | +3.15 pp and +1.28 pp, both CIs through 0 | `NULL_NO_INCREMENTAL_INFORMATION` |
 | #367 `LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1` | unsigned zone notional | −0.95 pp and −1.76 pp, both CIs through 0 | `NULL_NO_INCREMENTAL_INFORMATION` |
-| #368 `LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1` | 60m pre→post RV transition | +11.27% paired multiplier (95% about +6.88..+15.80%) | `DISCOVERY_CANDIDATE_STRONG` |
+| #368 `LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1` | 60m pre→post RV transition | +11.27% paired multiplier (95% about +6.88..+15.80%) | `DISCOVERY_CANDIDATE_STRONG` at synthesis time |
 
 Full fields for each row (input, decision time, comparator, uncertainty, practical bar, stability, pseudo control, increment, mode, ceiling, product status, limitation) are in the JSON `evidence_map` array. Product status for every row in this synthesis is `NOT_INTEGRATED`. Sealed `PRODUCT_INTEGRATION_CANDIDATE = YES` flags on #352 and #357 stay in those records and are not promoted here.
+
+Post-synthesis status of #368, recorded after the BitMEX replication and not a rewrite of the discovery class: `TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE`. The discovery-time class in the table stays `DISCOVERY_CANDIDATE_STRONG`. The frozen #368 result file is unchanged.
 
 ## Foundation
 
@@ -93,6 +99,8 @@ What the records do not contain is a split of the −25.15 minutes into the part
 The post window is the 60 minutes after the touch bar. #365 records that by 60 minutes the real arm is already resolved more often (67.3% vs 54.8%). A barrier hit is a move of the frozen size X, which enters squared returns. The pre window is not in the clock. No stored correlation joins the two estimands. No joint regression was run.
 
 Conclusion: likely overlapping, `INDEPENDENCE_UNRESOLVED`. The +11.27% figure is not treated as proof of a separate mechanism, and it is not discarded as a mathematical identity with RMUT.
+
+Later replication, same frozen definition, not pooled with the discovery sample: on BitMEX 2017–2019 the paired log transition is +0.096545, about +10.14% (95% +0.02178..+0.16817, about +2.20%..+18.31%, N=554, 120 weeks). Route `REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION`. The 2018 epoch is +0.28% and stays inside the predeclared sign rule. The neighboring 4h path had already been read, so the replication is not pristine. Independence from the clock is still `UNRESOLVED`.
 
 ## Endpoint
 
@@ -167,11 +175,11 @@ Surface `DH1_BITMEX_XBTUSD_TRADES_5M_V0`, 2017-08-01..2019-12-31. #357 consumed 
 |---|---|---|---|---|
 | #357 resolution rate | read | — | 4h high/low read | consumed confirmation |
 | #365 clock | minute not persisted | BREAK/REJECT/NEITHER from the same first-passage scan | 4h high/low read; first-hit index computed and discarded | `BITMEX_CLOCK_NOT_INDEPENDENT_ENOUGH` |
-| #368 RV transition | 60m close RV not computed | post-touch high/low of the first 12 bars sit inside the 48-bar scan | pre window was not in the barrier scan; closes were not the scanned field | `BITMEX_VOL_EXACT_ESTIMAND_UNREAD_NEIGHBOR_PATH_EXPOSED` |
+| #368 RV transition | unread at synthesis time; later read once by the replication unit | post-touch high/low of the first 12 bars sit inside the 48-bar scan | pre window was not in the barrier scan; closes were not the scanned field | synthesis audit `BITMEX_VOL_EXACT_ESTIMAND_UNREAD_NEIGHBOR_PATH_EXPOSED`; later class `TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION` |
 | #361 15m close endpoint | not the #357 estimand | 4h high/low includes that region | path exposed | exact endpoint unread; still not a level-specific confirmation |
 | #363 Bybit + OKX reaction | cannot be hosted | BitMEX is one venue | — | no 2017–2019 three-perp inventory |
 
-#368 is not scheduled on BitMEX. The exact estimand is unread, and the neighbor path is exposed. That is not a pristine surface. A later owner could still accept a declared neighbor-exposed reuse. This synthesis does not.
+At synthesis time #368 was not scheduled on BitMEX. The exact estimand was unread, and the neighbor path was exposed. That is not a pristine surface. A later owner decision, `EXPOSURE_WEIGHTING_DECISION_V1`, accepted that declared neighbor-exposed reuse. The replication was then executed once. It supports the unchanged claim and does not become a pristine confirmation.
 
 ## Other surfaces
 
@@ -195,12 +203,12 @@ No historical surface remains that is both the same instrument and outcome-unrea
 Zero to four targets. Selected: two prospective targets. Details, sketches, and the stop tree are in `docs/research/LEVEL_ENGINE_CONFIRMATION_PORTFOLIO_V1.md`.
 
 1. `P0` — #357. Already confirmed. Not rerun.
-2. `P3` first — #368 exact paired RV claim. Prospective collection required. A pass replicates the multiplier. It does not prove independence from the resolution clock.
+2. `P3` first — #368 exact paired RV claim. The historical exposed-surface replication has since passed. Prospective collection remains the next stronger layer and was not started. A prospective pass would still not prove independence from the resolution clock.
 3. `P3` second — #363 exact primary cross-venue coefficient after end position. Prospective collection required. A pass does not establish level specificity.
 
 Not selected: #365 (`DO_NOT_CONFIRM`), #361 (`DO_NOT_CONFIRM_AS_LEVEL_SPECIFIC`), the #363 specificity class (`HOLD_METHOD_REPAIR`), and every null.
 
-Order: do not rerun the foundation; collect the volatility transition first because it is the remaining structural measurement; collect the cross-venue coefficient second because it answers a different question and does not depend on the volatility result. If the foundation record were ever withdrawn, both prospective targets stop. If the volatility confirmation fails, the engine does not gain a second structural-dynamics field, and the cross-venue question remains open. The clock is not in the run tree.
+Order at synthesis time: do not rerun the foundation; the volatility transition is the remaining structural measurement; the cross-venue coefficient is second because it answers a different question and does not depend on the volatility result. The exposed-surface replication of the volatility claim has since been executed. Prospective collection of that claim, and any collection of the cross-venue coefficient, are still unstarted. If the foundation record were ever withdrawn, both prospective targets stop. The clock is not in the run tree.
 
 ## Minimum plausible Level Engine if those confirmations pass
 
@@ -209,7 +217,7 @@ Conceptual fields only. No wording, no probability, no code.
 | Field | Source | Now | Graduation |
 |---|---|---|---|
 | Structural event | #357 | L2 replicated historical resolution difference | a separate product go; not L3 until prospective calibration of this claim class |
-| Volatility transition | #368 | L2 discovery only; independence from the clock unresolved | the prospective paired claim passes its inherited bar; the field remains a transition measurement, not a proven separate mechanism |
+| Volatility transition | #368 plus the BitMEX replication | L2 discovery, then L2 exposed-surface replication; independence from the clock unresolved | prospective paired claim still unstarted; a pass would remain a transition measurement, not a proven separate mechanism |
 | Other-perp 15m move | #363 primary coefficient | L2 discovery; specificity not established | the same primary coefficient replicates prospectively; not the stacked specificity class |
 
 The clock and the endpoint are not fields.
@@ -225,12 +233,12 @@ Historical findings are not themselves a durable moat.
 
 ## Claim ceilings
 
-Every row is L2. #357 is a replicated L2 historical mechanism, not L3 and not L4. Discovery candidates stay discovery-only until a confirmation this document does not run. No uncalibrated weak, moderate, or strong wording is added.
+Every row is L2. #357 is a replicated L2 historical mechanism, not L3 and not L4. The volatility transition now also has an L2 exposed-surface replication. That replication is not L3 and not L4. Other discovery candidates stay discovery-only. No uncalibrated weak, moderate, or strong wording is added.
 
 ## Limitations
 
-The overlap judgments use recorded definitions and recorded tables. They are not a new joint model. `INDEPENDENCE_UNRESOLVED` means the records are not enough to separate the objects, not a guess that they are the same. #355 and #356 keep their frozen unstable routes; the synthesis class says they did not earn a layer. The #363 frozen specificity name is kept and is not treated as proof of level specificity. BitMEX neighbor exposure is classified conservatively. No confirmation surface was opened.
+The overlap judgments use recorded definitions and recorded tables. They are not a new joint model. `INDEPENDENCE_UNRESOLVED` means the records are not enough to separate the objects, not a guess that they are the same. #355 and #356 keep their frozen unstable routes; the synthesis class says they did not earn a layer. The #363 frozen specificity name is kept and is not treated as proof of level specificity. BitMEX neighbor exposure is classified conservatively. This synthesis opened no confirmation surface. The later replication opened the BitMEX close path for the frozen 60m RV claim only.
 
 ## Stop
 
-`LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE` remains YES. Synthesis selection is recorded. Confirmation is not started. The next action is an owner go, or no go.
+`LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE` remains YES. Synthesis selection is recorded. The BitMEX replication of #368 has been executed once and supports the frozen claim on an exposed surface. Prospective collection is not started. #363 is not started. The next action is an owner decision on prospective collection, or no go.

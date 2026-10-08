@@ -2,7 +2,7 @@
 
 Parent synthesis: `docs/research/LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1.md`.
 
-This portfolio does not freeze a preregistration, does not assign a design SHA, and does not execute a confirmation. No market outcome is read.
+This portfolio does not freeze a preregistration and does not assign a design SHA. The synthesis selection below did not itself read a market outcome. A later owner go executed one exposed-surface replication of the P3-1 claim. That run is recorded here and is not a rewrite of the selection.
 
 Selection rule: a target enters only when the exact discovery claim can be restated unchanged, it was selected before any new confirmation outcome, the recorded effect is practically meaningful, uncertainty on the discovery record is acceptable, it is not obviously redundant with #357, a surface can be described honestly, the confirmation does not repair a threshold from outcomes, the estimator can be frozen later, and the run would add information rather than reread the same surface.
 
@@ -23,14 +23,15 @@ There is no P1 and no P2. No same-instrument historical surface is both outcome-
 - **Why it matters.** It is the only remaining structural measurement that passed its discovery conjunction and is not already the 4h resolution label.
 - **Beyond #357.** A volatility-ratio contrast. #357 did not estimate RV. Independence from the resolution clock is `INDEPENDENCE_UNRESOLVED`, so a pass still does not prove a second mechanism.
 - **Required surface.** A prospective Binance USD-M BTCUSDT 5m close panel, declared before outcomes, that does not reuse 2020–2024 discovery rows, 2025/2026 product-open history, or the E1 holdout.
-- **Available historical surfaces.** None recommended. BitMEX status: `BITMEX_VOL_EXACT_ESTIMAND_UNREAD_NEIGHBOR_PATH_EXPOSED`. Not scheduled. Spot 2017–2019 is a different instrument.
+- **Available historical surfaces at synthesis time.** None recommended as pristine. BitMEX status then: `BITMEX_VOL_EXACT_ESTIMAND_UNREAD_NEIGHBOR_PATH_EXPOSED`. Spot 2017–2019 is a different instrument.
 - **Exposure.** Prospective-only. Discovery N=1231 and 254 weeks are not a forecast of the future sample.
 - **Expected N / clusters.** Not estimated. The collection rule sets them before outcomes.
-- **Feasibility.** The definition is already frozen in the #368 design. Collection is not started.
+- **Feasibility.** The definition is already frozen in the #368 design. Prospective collection is not started.
 - **Major risk.** The post-60m window overlaps the hour in which #365 already shows a large resolution gap. A replicated multiplier can still be the same resolution process.
 - **Would confirm.** The paired multiplier difference replicates under the frozen definition and the inherited bar `log(1.10)`.
 - **Would not confirm.** Independence from RMUT or from the 4h resolution rate. A current expected volatility. A breakout. L3.
-- **Next action.** Owner go for a prospective design, or stop.
+- **Later execution (2026-10-08).** `LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1`, design `6d97157be44f02ad09344a00df58b715e5c8aa13`. Surface class `TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION`. Not pristine. Route `REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION`. Evidence label `REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE`. Paired delta +0.096545 log, about +10.14% (95% +0.02178..+0.16817, about +2.20%..+18.31%, N=554, 120 weeks). The inherited bar `log(1.10)` is cleared by the point estimate. The interval excludes 0 and also contains values below that bar. Epoch signs agree; 2018 is +0.28%. Leave-one-epoch-out stays positive. Ceiling L2. Clock independence `UNRESOLVED`. The two samples were not pooled.
+- **Next action.** Prospective collection is the next stronger layer. It is not redundant with the BitMEX pass, and it was not started. Owner go for a prospective design, or stop. Do not launch it as a rescue, and do not start #363 from this result.
 
 ### Sketch (not a preregistration)
 
@@ -40,7 +41,7 @@ There is no P1 and no P2. No same-instrument historical surface is both outcome-
 - **Practical bar.** Inherited: absolute paired delta at least `log(1.10)`, interval excludes 0, and the frozen sign-stability rules of #368.
 - **Falsifier.** The paired delta misses that bar, the interval includes 0, or the frozen sign rules fail, on the predeclared prospective surface.
 - **Prospective collection.** Required.
-- **Key exposure issue.** Do not backfill the prospective window with product-open 2025/2026 rows or with BitMEX bars whose 4h high/low path #357 already scanned.
+- **Key exposure issue.** Do not backfill the prospective window with product-open 2025/2026 rows. The BitMEX 2017–2019 close path is now consumed for this exact RV claim. It is not a second replication surface.
 
 ## P3-2 — cross-venue primary coefficient
 
@@ -83,7 +84,7 @@ There is no P1 and no P2. No same-instrument historical surface is both outcome-
 ## Order
 
 1. Leave #357 as the confirmed foundation. Do not rerun it.
-2. If the owner wants one structural confirmation, write the prospective #368 design first.
+2. The exact #368 claim has one exposed-surface historical replication, and it supports. If the owner wants the next stronger layer, write the prospective #368 design. Do not treat the BitMEX pass as a substitute for that layer, and do not start the prospective run from the replication task.
 3. The prospective #363 primary-coefficient design is second. It may be written in the same owner go. It is not blocked by the volatility result, and it is not promoted ahead of it.
 4. Do not schedule #365, #361, or the #363 specificity class.
 
@@ -94,6 +95,11 @@ There is no P1 and no P2. No same-instrument historical surface is both outcome-
    If that record is withdrawn later:
       stop P3-1 and stop P3-2
    If it stands:
+      P3-1 historical exposed-surface replication (executed once, 2026-10-08)
+         REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION
+         class TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION
+         not pristine; ceiling L2; clock independence unresolved
+         prospective node below remains unstarted
       P3-1 prospective volatility transition
          PASS:
             record a replicated transition measurement

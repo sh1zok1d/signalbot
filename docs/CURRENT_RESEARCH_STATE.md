@@ -1,4 +1,25 @@
-## LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1 — synthesis only; no new market outcome; confirmation not started — 2026-10-08
+## LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1 — executed once; exposed-surface replication supports the frozen claim; not pristine; prospective not started — 2026-10-08
+
+`UNIT = LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1 (atlas LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1; family LEVEL_BEHAVIOR_V1; MODE = CONFIRMATION; SURFACE_EVIDENCE_CLASS = TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION; design 6d97157b before any post-touch RV)`
+`GOVERNANCE = EXPOSURE_WEIGHTING_DECISION_V1 | exposure is evidentiary weight, not a ban | subordinate to EVIDENCE_AND_CLAIMS, DISCOVERY_FIRST, protected data, and the frozen #368 design | L0–L4 unchanged | no L5`
+`CLAIM = exact #368 paired mean of log(RV_POST60/RV_PRE60) | discovery design 54338b7f | practical bar log(1.10) | expected sign positive | formula not adapted for the inverse contract`
+`DATA = DH1_BITMEX_XBTUSD_TRADES_5M_V0 | SHA256 df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f | events [2017-09-01, 2020-01-01) | August 2017 warm-up only | no new download | no 2020–2024 Binance reread | no 2025/2026 | no E1 holdout`
+`EXPOSURE = EXACT_CLAIM_PREVIOUSLY_READ = false | NEIGHBORING_POST_TOUCH_PATH_PREVIOUSLY_READ = true (#357 RESOLVED_WITHIN_4H, high/low j+1..j+48) | SURFACE_PRISTINE = false | REPLICATION_ALLOWED = true`
+`EVENTS = #357 first-touch constructor | touch_number = 1 | half-rotation pseudo | no BREAK/REJECT/NEITHER conditioning | no first-hit time`
+`COHORT = real legitimate 890 | pseudo legitimate 891 | matched 558 | path-complete and usable 554 | non-positive RV 0 | 120 ISO weeks | epochs 100/250/204`
+`INFORMATION = planning gate REPLICATION_INFORMATION_ADEQUATE before outcomes | planning half-width below log(1.10) | N=800 was not copied`
+`PRIMARY = DELTA_TRANSITION +0.096545 log, about +10.136% (95% +0.021780..+0.168173, about +2.202%..+18.314%, p=0.011207, N=554, 2000/2000, seed 20261025) | point clears log(1.10) | interval excludes 0 and contains the bar and the discovery point 0.106803`
+`BALANCE = paired log pre-RV difference about -2.05% | not an adjustment`
+`STABILITY = 2017H2 +15.31%, 2018 +0.28%, 2019 +20.79% | three eligible epochs share the positive sign | 2018 is practically null and the sign rule was not rewritten | LOEO all positive (omit 2017H2 +9.03%, omit 2019 +4.36%, both below the bar; sign-only rule) | DAY +11.16%, WEEK +4.86% | MONTH N=9 diagnostic and opposite | resistance +13.14%, support +7.37%`
+`ROUTING = REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION | evidence label REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE | synthesis post-status TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE | #368 frozen route LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT unchanged`
+`COMPARISON = Binance discovery +11.272% versus BitMEX +10.136% | NOT POOLED`
+`CLAIM_CEILING = L2 | not L3 | not a current probability | not a trading edge | INDEPENDENCE_FROM_RESOLUTION_CLOCK = UNRESOLVED`
+`PRODUCT_CHANGE = none | no volatility badge | findings registry unchanged | /btc /levels /check /risk unchanged`
+`NOT STARTED = prospective #368 | #363 | #365 | new RV windows | combined model | meta-analysis | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_DESIGN.md`. Exposure decision: `docs/research/EXPOSURE_WEIGHTING_DECISION_V1.md`.
+
+## LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1 — synthesis only; no new market outcome inside the synthesis; later BitMEX replication recorded separately — 2026-10-08
 
 `UNIT = LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1 | MODE = SYNTHESIS / NO_NEW_MARKET_OUTCOMES | not an atlas outcome cell | parent HEAD fb6598aa (#368)`
 `SCOPE = #352 #353 #355 #356 #357 #358 #359 #360 #361 #362 #363 #364 #365 #366 #367 #368 | #354 is the governing discovery-first decision, not a market row`
