@@ -292,6 +292,26 @@ Added after the development record (`LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md`) and
 
 **Numbers by reference.** Every [F3] number of §7 and §8a is replaced by the frozen values of `docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md` and the constants in the header of `beta/level_race_calibration.py` (merged in #408): the prior of the calibrator, G0–G3 (G1 is now a non-inferiority margin of +0.02 nats against raw B0), the live floor, D0–D3, the generic-stream alarm, the return rule and the challenger rule. Where a number in §7 or §8a differs, F3's design wins. The held-out pass and live call the same module (`prior_for_cases`, `fit_calibrator`, `calibrator_at`, `apply_calibrator`, `gates`, `beats`; `scripts/research/level_race_forecast_v1/heldout.py`), and F1's own calibrator is removed.
 
+**Final gate and monitor table (frozen values; source `beta/level_race_calibration.py` header, F3 design §2, §5).**
+
+| Rule | Value |
+|---|---|
+| G0 scored held-out events per class | ≥ 200 |
+| G1 upper end of the week-clustered 95 % interval of `LL_published − LL_B0` | ≤ +0.02 nats (non-inferiority) |
+| G2 per outcome \|CITL\| and its 95 % interval (iid floor on the SE) | ≤ 5 pp; inside ±10 pp |
+| G3 per head, 95 % interval of the recalibration slope | overlaps [0.8, 1.25] |
+| Case A (publication of the champion) | raw champion beats raw B0 **and** raw `G1@event`, 95 % interval of the gain > 0, per landmark |
+| Level-offset claim | same as case A; never in user text |
+| `L3_LIVE` live floor | ≥ 150 resolved per class, and G2 + G3 on the live record |
+| D0 data fault / stale bars / parity break | > 10 min stale at issue → `OFF` at once |
+| D1 per-outcome betting e-process, λ ∈ {±0.25, ±0.5} | E > 30 |
+| D2 last 150 resolved, per outcome | \|CITL\| > 10 pp and 99.7 % interval excludes 0 |
+| D3 (case A) last 150, `LL_published − LL_fallback` | 99.7 % interval above 0, ≥ 8 weeks |
+| Return | ≥ 50 new resolved, epoch e-value < 1; the second drift exit of a version is final |
+| FALLBACK | only while the fallback passes G2 on the class; else `HIST`; generic-stream alarm → `HIST` |
+| Calibrator priors | a_G ~ N(0, 0.5²); b_G ~ N(1, 0.25²); a_level − a_G ~ N(0, s²), s = 0.5 (A) / 1.0 (B); b_L − b_G ~ N(0, 0.25²); live prior = held-out posterior worth 150 events per class; generic row weight 1/16; batches weekly × 12, then every 4 weeks |
+| Challengers | ≥ 150 paired, looks every 150, at most 600; interval of the gain excludes 0; calibration not worse; ≤ 2 at once |
+
 **Slope: hierarchical, not shared.** The shared-slope assumption of §8a is replaced by F3's hierarchical slope: `b_LEVEL − b_GENERIC ~ N(0, 0.25²)`, both level classes sharing `b_LEVEL`. Reason (F3 §3.3): with a shared slope, the generic rows hold the slope near 1, and the development head-B over-confidence of M1 (0.78, §11b R3) would stay uncorrected. `PRIOR_S_SLOPE_LEVEL = 0` restores the shared slope as one setting.
 
 **Level intercept prior by case.** `a_level − a_GENERIC ~ N(0, s²)` with s = 0.5 in case A (the level rows feed the M1 raw) and s = 1.0 in case B (they feed the `G1@event` raw). The case is decided on raw outputs before the prequential pass.

@@ -37,6 +37,14 @@ def plan(freeze_date: date) -> tuple[list, list]:
     return planned, rejected
 
 
+def plan_digest(freeze_date: date) -> str:
+    """sha256 of the newline-joined planned object URLs (sorted), then 'REFUSED' and the refused ones."""
+    import hashlib
+    planned, rejected = plan(freeze_date)
+    text = "\n".join(sorted(o.url for o in planned)) + "\nREFUSED\n" + "\n".join(sorted(o.url for o in rejected))
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
 def assert_plan_legal(planned: list) -> None:
     for o in planned:
         a, z = o.period_ms
@@ -82,6 +90,7 @@ def main() -> None:
     for o in rejected:
         print("REFUSED", o.url, HD.object_protected(o))
     print(f"planned {len(planned)} objects, refused {len(rejected)}; none intersects [2026-08-16, 2026-08-26)")
+    print("plan sha256", plan_digest(fd))
 
 
 if __name__ == "__main__":

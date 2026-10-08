@@ -313,3 +313,10 @@ def test_heldout_run_refuses_without_go():
         HO.run(date(2026, 10, 16), None)
     with pytest.raises(RuntimeError):
         HO.run(date(2026, 10, 16), "GO:000000000000")
+
+
+def test_plan_digest_is_deterministic():
+    from datetime import date
+    from scripts.research.level_race_forecast_v1 import heldout as HO
+    assert HO.plan_digest(date(2026, 10, 9)) == HO.plan_digest(date(2026, 10, 9))
+    assert HO.plan_digest(date(2026, 10, 9)) != HO.plan_digest(date(2026, 10, 10))
