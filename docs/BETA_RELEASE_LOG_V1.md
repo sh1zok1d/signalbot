@@ -56,7 +56,7 @@ Bybit sides are now correct (inverted before D1), and OKX rows exist (none befor
 | Known limitations | Before 3b, the fingerprints are still the unkeyed legacy form. OKX volume scale (`ctVal`) not yet checked against a reference. |
 | Rollback | Checkout `b004669`, reinstall units, restart beta then collector. The schema changes are additive; the old code ignores the new tables and columns. The audit guard stays (it only refuses mutations). |
 | Kind of change for the 7-day count | Pre-start: schema, collector and journal changes, no Day-0 flag. The count has not started. |
-| ОПГ-2: forecast layer | *pending ОПГ-2's line (through the architect)* |
+| ОПГ-2: forecast layer | Signed off by ОПГ-2 (2026-10-08 22:49Z). 3a ships the level race HIST layer (#381 table V1 file plus digest #385, one detector #383, L2 journal and HIST display #387/#388, the structural trigger #393) and the inert calibration/state module and C1 inputs (#408, #409). Every `level_race` flag is off at 3a. For 3b: no new schema (the existing claim journal is used); the HIST table V1 file must be in the deployed tree (a digest mismatch loads OFF, never a wrong number); 3b turns on only `journal_enabled`, `display_enabled` and `push_trigger = structural`, while `model_states_enabled` stays false; the #419 model freeze is not needed for 3b. Model states arrive later as the predeclared dated upgrade (FORECAST_LAYER §6a). Standing disclosure, from the model states on: «a level-specific drift of about ±10 pp is detected in about a year, not weeks; inside the beta the accuracy line next to the number is the guard». |
 
 **Between 3a and 3b:** OUT-8 block B (`docs/BETA_AUDIT_DEIDENTIFY_V1.md`, merged with #422) only after the owner's go: it needs the 3a schema and must run before 3b.
 
