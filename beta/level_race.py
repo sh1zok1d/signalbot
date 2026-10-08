@@ -172,9 +172,24 @@ def hist_line(table: Mapping[str, Any], *, landmark: str, kind: str, price: floa
     h, b, k = c["h"], c["b"], c["k_pp"]
     m = (lambda d: {"up": d["BEYOND"], "dn": d["BACK"], "neither": d["NEITHER"]}) if geo["beyond_is_up"] else \
         (lambda d: {"up": d["BACK"], "dn": d["BEYOND"], "neither": d["NEITHER"]})
+    lo_hi = {o: [int(round(v[0])), int(round(v[1]))] for o, v in c["diff_ci95_pp"].items()}
+    d_pp = {o: int(round(v)) for o, v in c["diff_pp"].items()}
     out.update({"template": TEMPLATES["full"], "push_template": TEMPLATES["push"],
-                "h": m(h), "b": m(b), "k_pp": m(k), "weeks": c["weeks"]})
+                "h": m(h), "b": m(b), "k_pp": m(k), "d_pp": m(d_pp), "ci95_pp": m(lo_hi), "weeks": c["weeks"]})
     return out
+
+
+def t15_visible(highs_closed: Sequence[float], lows_closed: Sequence[float], price_now: float,
+                geo: Mapping[str, Any], *, now_ms: int, end_ms: int, was_hidden: bool = False) -> bool:
+    """T15 line visibility (architect, 2026-10-08): visible until `end_ms` while the race is
+    unresolved. `highs_closed` / `lows_closed` are the closed bars from j+3 up to now. Hidden once a
+    barrier is reached on a closed bar or the current price is beyond P_UP / P_DN; never returns."""
+    if was_hidden or now_ms >= end_ms:
+        return False
+    for h, lo_ in zip(highs_closed, lows_closed):
+        if float(h) >= geo["p_up"] or float(lo_) <= geo["p_dn"]:
+            return False
+    return geo["p_dn"] < float(price_now) < geo["p_up"]
 
 
 def percents(fracs: Mapping[str, float]) -> dict:

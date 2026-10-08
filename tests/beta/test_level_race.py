@@ -79,3 +79,21 @@ def test_t0_out_of_corridor_is_not_displayed_but_flagged():
     assert line["class"] == "L2_LEVEL_RACE_HIST_T0_4H"
     inside = L.hist_line(t, landmark="T0", kind="PDH", price=100000.0, geo=g, sigma=0.002)
     assert inside["out_of_corridor"] is False and inside["display"] is True
+
+
+def test_hist_line_carries_difference_and_interval():
+    t = L.load_hist_table()
+    g = L.event_geometry(99850.0, 100150.0, 0.002, 1)
+    line = L.hist_line(t, landmark="T0", kind="PDH", price=100000.0, geo=g, sigma=0.002)
+    c = t["cells"]["T0|DAY|H"]
+    assert line["d_pp"]["up"] == round(c["diff_pp"]["BEYOND"])
+    assert line["ci95_pp"]["up"] == [round(c["diff_ci95_pp"]["BEYOND"][0]), round(c["diff_ci95_pp"]["BEYOND"][1])]
+
+
+def test_t15_visibility_rule():
+    g = {"p_up": 101.0, "p_dn": 99.0}
+    assert L.t15_visible([100.5], [99.5], 100.0, g, now_ms=1, end_ms=10)
+    assert not L.t15_visible([101.0], [99.5], 100.0, g, now_ms=1, end_ms=10)      # resolved
+    assert not L.t15_visible([100.5], [99.5], 101.2, g, now_ms=1, end_ms=10)      # price beyond P_UP
+    assert not L.t15_visible([100.5], [99.5], 100.0, g, now_ms=10, end_ms=10)     # window over
+    assert not L.t15_visible([100.5], [99.5], 100.0, g, now_ms=1, end_ms=10, was_hidden=True)
