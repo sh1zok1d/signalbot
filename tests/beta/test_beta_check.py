@@ -166,7 +166,7 @@ def test_an_objective_level_shows_its_own_history_beside_a_random_level():
     b = block()
     b["levels"]["above"][0]["history"] = {k: v for k, v in HIST.items() if k != "ci95"}
     bare = plain(ck.format_check(b, STATS, [62950.0], "ru", now=NOW))
-    assert "↳ после первого касания: мало данных (812 случаев)" in bare and "п.п." not in bare
+    assert "↳ после первого касания: интервал ещё не посчитан (812 случаев)" in bare and "п.п." not in bare
 
 
 def test_event_zone_horizons_have_no_number():

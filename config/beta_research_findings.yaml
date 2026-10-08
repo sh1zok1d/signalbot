@@ -182,8 +182,8 @@ findings:
   # ---- present, below the materiality bar ----------------------------------------------------
   - id: DH3-P1
     status: WEAK
-    text_ru: "рост открытого интереса за 4 ч в тихом рынке: следующие 4 ч в среднем на 13% шире обычного, ниже порога практической величины 15%"
-    text_en: "open interest building up over 4h in a quiet market: the next 4h were on average 13% wider than usual, below the 15% materiality bar"
+    text_ru: "рост открытого интереса за 4 ч в тихом рынке: следующие 4 ч в среднем на 13% шире обычного (порог — 15%)"
+    text_en: "open interest building up over 4h in a quiet market: the next 4h were on average 13% wider than usual (bar: 15%)"
     data: "Binance BTCUSDT 2020–2024, 12397 тихих часов"
     record: "docs/research/DH3_RESULT.md"
     contexts: []
@@ -206,8 +206,8 @@ findings:
       limitations_en: "below our 15% materiality bar; the size varied by year; BTC, Binance"
   - id: DH3-O2
     status: WEAK
-    text_ru: "резкий рост опционной волатильности DVOL за час: следующие 4 ч в среднем на 10% шире обычного, ниже порога практической величины 15%"
-    text_en: "a sharp one-hour rise in options volatility (DVOL): the next 4h were on average 10% wider than usual, below the 15% materiality bar"
+    text_ru: "резкий рост опционной волатильности DVOL за час: следующие 4 ч в среднем на 10% шире обычного (порог — 15%)"
+    text_en: "a sharp one-hour rise in options volatility (DVOL): the next 4h were on average 10% wider than usual (bar: 15%)"
     data: "BTC и ETH 2021–2024, 65464 часа"
     record: "docs/research/DH3_RESULT.md"
     contexts: []
@@ -230,8 +230,8 @@ findings:
       limitations_en: "below our 15% materiality bar; BTC alone +10.5%"
   - id: DH3-L3
     status: WEAK
-    text_ru: "если стакан в пределах ±1% не восстановился через 30 мин после резкого движения, следующие 4 ч были в среднем на 6–7% шире, ниже порога 15%"
-    text_en: "if the ±1% order book had not recovered 30 min after a sharp move, the next 4h were on average 6–7% wider, below the 15% bar"
+    text_ru: "если стакан в пределах ±1% не восстановился через 30 мин после резкого движения, следующие 4 ч были в среднем на 6–7% шире (порог — 15%)"
+    text_en: "if the ±1% order book had not recovered 30 min after a sharp move, the next 4h were on average 6–7% wider (bar: 15%)"
     data: "Binance 2023–2024, 6 монет, 4101 резкое движение"
     record: "docs/research/DH3_RESULT.md"
     contexts: []
@@ -254,8 +254,8 @@ findings:
       limitations_en: "below our 15% materiality bar; six coins, 2023–2024"
   - id: DH3-S1
     status: WEAK
-    text_ru: "стресс-час, в котором цену вёл спот, а не перп, сопровождался чуть меньшим размахом следующих 4 ч (−6%), ниже порога 15%"
-    text_en: "a stress hour led by spot rather than the perp was followed by a slightly smaller next-4h range (−6%), below the 15% bar"
+    text_ru: "стресс-час, в котором цену вёл спот, а не перп, сопровождался чуть меньшим размахом следующих 4 ч (−6%; порог — 15%)"
+    text_en: "a stress hour led by spot rather than the perp was followed by a slightly smaller next-4h range (−6%; bar: 15%)"
     data: "Binance BTCUSDT 2020–2024, 4299 стресс-часов, сделки по секундам"
     record: "docs/research/DH3_RESULT.md"
     contexts: []
@@ -304,8 +304,8 @@ findings:
       limitations_en: "the effect is real but very small; six coins"
   - id: R03-C1
     status: WEAK
-    text_ru: "выходные часы спокойнее того же часа во вт–чт, разрыв рос с 2020 по 2024; ниже порога практической величины (0,5 SD); после поправки на волатильность прошлых 24 ч разрыв в основном уходит (−0,40 → −0,10 SD)"
-    text_en: "weekend hours are calmer than the same hour on Tue–Thu, a gap that grew from 2020 to 2024; below the materiality bar (0.5 SD); after adjusting for the prior 24h volatility most of the gap goes (−0.40 → −0.10 SD)"
+    text_ru: "выходные часы спокойнее того же часа во вт–чт, разрыв рос с 2020 по 2024 (порог — 0,5 SD); после поправки на волатильность прошлых 24 ч разрыв в основном уходит (−0,40 → −0,10 SD)"
+    text_en: "weekend hours are calmer than the same hour on Tue–Thu, a gap that grew from 2020 to 2024 (bar: 0.5 SD); after adjusting for the prior 24h volatility most of the gap goes (−0.40 → −0.10 SD)"
     data: "Binance 2020–2024, 260 недель"
     record: "docs/research/OWNER_CARDS_R03_RESULT.md"
     contexts: [weekend]
