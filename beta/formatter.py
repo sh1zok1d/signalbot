@@ -7,6 +7,7 @@ push policy are unchanged; this module only renders.
 from __future__ import annotations
 
 import html
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
@@ -1265,7 +1266,7 @@ def parse_vote(data: str) -> Optional[tuple]:
     """(kind, ref, 'USEFUL' | 'NOISE') of a v:<kind>:<ref>:<u|n> button, or None."""
     parts = data.split(":")
     if len(data) > 64 or len(parts) != 4 or parts[0] != "v" or parts[1] not in VOTE_KINDS \
-            or not parts[2].isdigit() or int(parts[2]) <= 0 or parts[3] not in ("u", "n"):
+            or not re.fullmatch(r"[0-9]{1,18}", parts[2]) or int(parts[2]) <= 0 or parts[3] not in ("u", "n"):
         return None
     return parts[1], int(parts[2]), "USEFUL" if parts[3] == "u" else "NOISE"
 

@@ -94,6 +94,7 @@ DECISION_CATALOG: dict = {
     "dc_btc_track_hold": _pair("{parts} на истории ({days} дн.)", "{parts} on history ({days} days)"),
     "dc_btc_track_part": _pair("{h} {p}", "{h} {p}"),
     "dc_btc_level": _pair("{arrow} {price} {name} ({dist})", "{arrow} {price} {name} ({dist})"),
+    "dc_btc_level_at": _pair("цена у {price} {name}", "price at {price} {name}"),
     "dc_btc_level_b": _pair("{arrow} {price} {name} ({dist}) · за {h} ≈ {p}", "{arrow} {price} {name} ({dist}) · within {h} ≈ {p}"),
     "dc_btc_level_fb": _pair("{arrow} {price} {name} ({dist}) · за {h} исторически в {p} случаев",
                              "{arrow} {price} {name} ({dist}) · within {h} historically in {p} of cases"),
@@ -324,11 +325,12 @@ DECISION_CATALOG: dict = {
     "pa_event_title": _pair("<b>BTC · через {mins} мин {name}</b>", "<b>BTC · {name} in {mins} min</b>"),
     "pa_event_when": _pair("{clock} · цена {price} (Binance)", "{clock} · price {price} (Binance)"),
     "pa_event_when_at": _pair("{clock} · цена {price} (Binance, {price_clock})", "{clock} · price {price} (Binance, {price_clock})"),
-    "pa_corridor_1h_plain": _pair("Дальше обычно в коридоре 1ч: {low}–{high} (±{half})",
-                                  "What usually follows, the 1h corridor: {low}–{high} (±{half})"),
+    # a model's corridor, never «обычно» (the word of a comparison base; review of #375)
+    "pa_corridor_1h_plain": _pair("Коридор 1ч сейчас: {low}–{high} (±{half})", "1h corridor now: {low}–{high} (±{half})"),
     # the delay of a push or an alert (backlog F1; the measured field of A4)
     "dl_line": _pair(" · задержка {lag}", " · delay {lag}"),
-    "dl_typical": _pair(" (обычно {p50})", " (usually {p50})"),
+    "dl_own": _pair("Задержка этого сообщения: {lag}", "This message's delay: {lag}"),
+    "dl_typical": _pair(" (обычно {p50}, N={n})", " (usually {p50}, N={n})"),
     "dl_s": _pair("{s} с", "{s} s"),
     "dl_m": _pair("{m} мин", "{m} min"),
     "dl_ms": _pair("{m} мин {s} с", "{m} min {s} s"),

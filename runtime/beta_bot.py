@@ -806,6 +806,8 @@ class BetaBotHandler:
         vote = _parse_vote(data)
         if vote is not None:                   # «Полезно / Шум» under an alert, the briefing or the weekly (F6)
             kind, ref, value = vote
+            if not await conn.received_message(user_pk=user["user_pk"], kind=kind, ref=ref):
+                return [answer(t(lang, "not_available"))]      # only a message sent to this participant (#375)
             changed = await conn.upsert_message_vote(user_pk=user["user_pk"], kind=kind, ref=ref, vote=value)
             out = [answer(t(lang, "feedback_recorded"))]
             if not changed:                    # the same vote again: nothing new happened

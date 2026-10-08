@@ -1077,7 +1077,7 @@ class BetaConn:
         the alert's source time (backlog A4; `beta.latency`). No user column."""
         rows = await self.conn.fetch(
             """SELECT d.kind, a.kind AS alert_kind, d.state, d.decision_ts, d.finished_at,
-                      a.payload->>'source_at' AS source_at
+                      a.payload->>'source_at' AS source_at, d.decision_id, d.alert_pk, d.view_pk, d.weekly_pk
                FROM beta_notification_deliveries d
                LEFT JOIN beta_market_alerts a ON a.alert_pk = d.alert_pk
                WHERE d.state IN ('SENT', 'EXPIRED_UNDELIVERED')
@@ -1480,6 +1480,22 @@ class BetaConn:
                ON CONFLICT (user_pk, kind, ref) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()
                WHERE beta_message_votes.vote IS DISTINCT FROM EXCLUDED.vote
                RETURNING TRUE""", user_pk, kind, ref, vote) is not None
+
+    async def received_message(self, *, user_pk: int, kind: str, ref: int) -> bool:
+        """Whether this participant was sent this message (review of #375: a vote counts only on a message
+        its voter received): an alert of this kind by its alert_pk, the briefing by its view, the weekly
+        report by its row."""
+        if kind == "brief":
+            where, ref_col = "d.kind='brief'", "d.view_pk"
+        elif kind == "weekly":
+            where, ref_col = "d.kind='weekly'", "d.weekly_pk"
+        else:
+            where, ref_col = "d.kind='alert' AND a.kind=$3", "d.alert_pk"
+        return bool(await self.conn.fetchval(
+            f"""SELECT EXISTS (SELECT 1 FROM beta_notification_deliveries d
+                               LEFT JOIN beta_market_alerts a ON a.alert_pk = d.alert_pk
+                               WHERE d.user_pk=$1 AND {ref_col}=$2 AND d.state='SENT' AND {where})""",
+            *((user_pk, ref, kind) if kind not in ("brief", "weekly") else (user_pk, ref))))
 
     async def feedback_counts(self) -> dict:
         rows = await self.conn.fetch(

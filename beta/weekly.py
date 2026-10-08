@@ -238,7 +238,7 @@ async def _send_owner(conn, sender, pacer, week_end, *, owner_user_id: int, now:
     from .admin import owner_parts
     from .claims import claims_report
     from .delivery import REJECTED, SENT, UNKNOWN, send_direct
-    from .usage import owner_breakdown
+    from .usage import as_setting, owner_breakdown
     rec = ((await conn.fetch_health([OWNER_COPY])).get(OWNER_COPY) or {}).get("detail") or {}
     done = int(rec.get("parts_sent") or 0) if rec.get("week_end") == week_end.isoformat() else 0
     if rec.get("week_end") == week_end.isoformat() and rec.get("done"):
@@ -250,7 +250,8 @@ async def _send_owner(conn, sender, pacer, week_end, *, owner_user_id: int, now:
         owner = int(owner_user_id)
         users = [u for u in facts["users"] if int(u["telegram_user_id"]) != owner]
         pks = {u["user_pk"] for u in users}
-        breakdown = owner_breakdown(users, [r for r in facts["activity"] if r["user_pk"] in pks],
+        # a one-tap mute counts as the setting it is, as on /admin_stats (review of #375)
+        breakdown = owner_breakdown(users, [as_setting(dict(r)) for r in facts["activity"] if r["user_pk"] in pks],
                                     [v for v in facts.get("votes", ()) if v["user_pk"] in pks], start=start, end=end)
         journal = claims_report(await conn.fetch_claim_cohort(since=start))
         parts = [format_weekly(payload, "ru")] + [f"<pre>{html.escape(part, quote=False)}</pre>" for part in

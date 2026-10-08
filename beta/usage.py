@@ -208,8 +208,10 @@ def _muted(rows: Sequence[dict], action: str, prefix: str) -> Optional[bool]:
 
 
 def _group_block(pks: set, activity: Sequence[dict], votes: Sequence[dict], *, start: datetime,
-                 end: datetime) -> dict:
-    """One group of participants in [start, end]; deliveries before `start` still prompt."""
+                 end: datetime, flag: bool = False) -> dict:
+    """One group of participants in [start, end]; deliveries before `start` still prompt. `flag`: the
+    owner review flag (F4) is computed here; it is only ever the group of all participants (review of
+    #375: the owner's rule is about everyone, never about a subgroup)."""
     mine = [r for r in activity if r["user_pk"] in pks]
     by_user: dict = {}
     for row in mine:
@@ -251,9 +253,13 @@ def _group_block(pks: set, activity: Sequence[dict], votes: Sequence[dict], *, s
             action, prefix = MUTES[name]
             block["mutes"] = sum(1 for r in inside if r["action"] == action and r.get("detail") == f"{prefix}off")
             block["muted_now"] = sum(1 for pk in pks if _muted(by_user.get(pk, ()), action, prefix))
-            block["muters"] = len({r["user_pk"] for r in inside if r["action"] == action
-                                   and r.get("detail") == f"{prefix}off"})
-        block["review"] = review_flag(block, recipients=len({r["user_pk"] for r in sent}))
+            # those who switched this type off among those who received it; a global `/push off` switches
+            # off every push type (review of #375)
+            offs = {f"{prefix}off"} | ({"off"} if action == "cmd_push" and name in _PUSH_TYPES else set())
+            block["muters"] = len({r["user_pk"] for r in inside if r["action"] == action and r.get("detail") in offs}
+                                  & {r["user_pk"] for r in sent})
+        if flag:
+            block["review"] = review_flag(block, recipients=len({r["user_pk"] for r in sent}))
         types[name] = block
     return {"users": len(pks),
             "pulls": {"organic": organic, "post_push": post_push},
@@ -294,7 +300,8 @@ def owner_breakdown(users: Sequence[dict], activity: Sequence[dict], votes: Sequ
     unknown apart, and by trader type once onboarding records one (backlog E5)."""
     known = {u["user_pk"] for u in users if u.get("known_contact")}
     unknown = {u["user_pk"] for u in users} - known
-    out = {"unknown": _group_block(unknown, activity, votes, start=start, end=end),
+    out = {"all": _group_block(known | unknown, activity, votes, start=start, end=end, flag=True),
+           "unknown": _group_block(unknown, activity, votes, start=start, end=end),
            "known": _group_block(known, activity, votes, start=start, end=end), "trader_types": None}
     if any(u.get("trader_type") for u in users):
         kinds = sorted({u.get("trader_type") or "none" for u in users})
@@ -537,8 +544,6 @@ def _breakdown_lines(name: str, block: dict) -> list:
         if "mutes" in row:
             parts.append(f"muted {row['mutes']} (now {row['muted_now']})")
         lines.append(f"    {kind}: " + ", ".join(parts))
-        if row.get("review"):                   # F4: observe-only, the owner decides
-            lines.append(f"      ⚑ review {kind}: " + "; ".join(row["review"]))
     return lines
 
 
@@ -546,6 +551,9 @@ def _breakdown(title: str, data: Optional[dict]) -> list:
     if data is None:
         return []
     lines = [title]
+    for kind, row in (data.get("all") or {}).get("types", {}).items():
+        if row.get("review"):                   # F4 over all participants, once: observe-only, the owner decides
+            lines.append(f"  ⚑ review {kind}: " + "; ".join(row["review"]))
     for name in ("unknown", "known"):
         lines += _breakdown_lines(name, data[name])
     if data["trader_types"] is None:
