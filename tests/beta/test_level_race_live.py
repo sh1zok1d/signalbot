@@ -47,9 +47,12 @@ def _events(b):
     return [e for e in structural_first_touches(b) if e["eligible"] and e["j"] + 60 < b.n and e["j"] > 300]
 
 
+OFF = {"journal_enabled": False, "display_enabled": False, "model_states_enabled": False, "push_trigger": "legacy"}
+
+
 def _cfg(**lr):
-    base = BetaConfig.load()
-    return base.with_overrides(level_race={**dict(base.raw["level_race"]), **lr})
+    """The flags from all-off (the pre-Day-0 values), whatever the shipped config says."""
+    return BetaConfig.load().with_overrides(level_race={**OFF, **lr})
 
 
 B = _bars()
@@ -75,10 +78,17 @@ def test_registry_holds_every_race_name_once():
         assert re.fullmatch(r"[0-9a-f]{64}", cj.template_digest(cls))
 
 
-def test_flags_are_off_by_default_and_the_mode_stays_hist_without_a_model():
+def test_day0_flags_validate_and_the_mode_stays_hist_without_a_model():
+    """The shipped Day-0 values (3b): journal and display on, the structural trigger, model states off. They pass
+    the validator (claim journal on, touch_max_age_min <= 10) and the frozen HIST table they read verifies."""
     cfg = BetaConfig.load()
-    assert dict(cfg.raw["level_race"]) == {"journal_enabled": False, "display_enabled": False,
-                                           "model_states_enabled": False, "push_trigger": "legacy"}
+    assert dict(cfg.raw["level_race"]) == {"journal_enabled": True, "display_enabled": True,
+                                           "model_states_enabled": False, "push_trigger": "structural"}
+    assert cfg.raw["decision"]["claim_journal"] is True
+    assert int(cfg.raw["decision"]["market_alerts"]["touch_max_age_min"]) <= 10
+    assert LR.mode(cfg) == "HIST"
+    from beta.level_race import HIST_TABLE_SHA256, load_hist_table
+    assert load_hist_table()["table_sha256"] == HIST_TABLE_SHA256
     assert LR.mode(_cfg(model_states_enabled=True)) == "HIST"          # no frozen model yet: the switch is inert
     with pytest.raises(Exception):
         BetaConfig.load().with_overrides(level_race={"journal_enabled": True})
@@ -246,7 +256,7 @@ def test_writer_follows_its_flag_is_idempotent_and_links_displays_on_the_claims_
     cap = {"bars": _cut(B, e["t15_ms"])}
     now = _ts(e["t15_ms"] + 60_000)
     conn = _Conn()
-    assert asyncio.run(cj.record_level_race(conn, BetaConfig.load(), now=now, capture=cap)) == {"race_written": 0}
+    assert asyncio.run(cj.record_level_race(conn, _cfg(), now=now, capture=cap)) == {"race_written": 0}
     on = _cfg(journal_enabled=True)
     rep = asyncio.run(cj.record_level_race(conn, on, now=now, capture=cap))
     assert rep["race_written"] >= 1 and any(r["subject_key"] == f"{e['event_id']}:T15" for r in conn.rows)
@@ -305,7 +315,7 @@ def test_journal_off_writes_nothing_and_reads_no_bars():
     class NoWrites:
         def __getattr__(self, name):
             raise AssertionError(f"journal touched with the flag off: {name}")
-    assert asyncio.run(cj.record_level_race(NoWrites(), BetaConfig.load(), now=_ts(EVS[0]["t0_ms"]),
+    assert asyncio.run(cj.record_level_race(NoWrites(), _cfg(), now=_ts(EVS[0]["t0_ms"]),
                                             capture=NoBars())) == {"race_written": 0}
 
 
