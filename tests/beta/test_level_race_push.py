@@ -30,14 +30,14 @@ def _event_with_line():
     raise AssertionError("no event with a T0 line")
 
 
-def test_one_switch_legacy_by_default():
-    assert LR.push_trigger(BetaConfig.load()) == "legacy"
-    assert LR.push_trigger(_cfg(push_trigger="structural")) == "structural"
+def test_one_switch_structural_on_day0_legacy_still_selectable():
+    assert LR.push_trigger(BetaConfig.load()) == "structural"              # the Day-0 value (3b)
+    assert LR.push_trigger(_cfg(push_trigger="legacy")) == "legacy"
     with pytest.raises(Exception):
         _cfg(push_trigger="zone")
     e = EVS[0]
     b, now = _cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 60_000)
-    legacy = MA.level_touch_candidates(BetaConfig.load(), _block(b, now), b, [], now=now, max_age=MAX_AGE, stats=None)
+    legacy = MA.level_touch_candidates(_cfg(push_trigger="legacy"), _block(b, now), b, [], now=now, max_age=MAX_AGE, stats=None)
     assert legacy == MA.detect_level_touches(_block(b, now), b, [], now=now, max_age=MAX_AGE, stats=None)
     assert all("trigger" not in c["payload"] for c in legacy)
 
@@ -160,7 +160,7 @@ def test_structural_push_needs_max_age_within_the_write_window():
     dec["market_alerts"] = {**dict(dec["market_alerts"]), "touch_max_age_min": 15}
     with pytest.raises(Exception, match="touch_max_age_min"):
         base.with_overrides(decision=dec, level_race={**dict(base.raw["level_race"]), "push_trigger": "structural"})
-    base.with_overrides(decision=dec)                              # legacy keeps any max age
+    base.with_overrides(decision=dec, level_race={**dict(base.raw["level_race"]), "push_trigger": "legacy"})  # legacy: any
 
 
 def test_structural_push_shows_the_next_levels_chance_only_in_mode_b():

@@ -7,11 +7,13 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
-from beta_fakes import CFG, ON_PUSH, TEST_DSN, Clock, fresh_pool, run
+from beta_fakes import CFG as _SHIPPED, ON_PUSH, TEST_DSN, Clock, fresh_pool, run
 from beta import history_data as hd
 from storage.beta_v0_store import BetaStore
 from v2_fakes import checksum_text, kline_zip, metrics_zip, one_minute_rows, synthetic_rows
 
+# these tests pin the legacy level-touch key (level:PDH:<date>); Day 0 ships the structural trigger (3b)
+CFG = _SHIPPED.with_overrides(level_race={**dict(_SHIPPED["level_race"]), "push_trigger": "legacy"})
 pytestmark = pytest.mark.skipif(not TEST_DSN, reason="BETA_TEST_DSN not set (local PostgreSQL)")
 
 UTC = timezone.utc
