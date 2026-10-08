@@ -1,17 +1,25 @@
 name: CI
 
 # FAST PR GATE, run by hand (owner, 2026-10-08: Actions minutes). Nothing
-# starts it automatically. Run it on a PR branch (workflow_dispatch, ref =
-# the branch): it tests the branch merged with main, as a pull_request run
-# would. Who runs it and when: docs/ORCHESTRATION_V1.md §4.
+# starts it automatically. Start it on main with input `branch` = the PR
+# branch (a PR branch may still carry an older copy of this file): it tests
+# that branch merged with main, as a pull_request run would. Who runs it and
+# when: docs/ORCHESTRATION_V1.md §4.
 # FULL REGRESSION = .github/workflows/full-regression.yml
 #   (workflow_dispatch only): python -m pytest -q
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: "PR branch to gate (empty: the ref the run is started on)"
+        required: false
+        default: ""
+
+run-name: "PR gate: ${{ inputs.branch || github.ref_name }}"
 
 # A newer run on the same branch cancels the older one in progress.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ inputs.branch || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -78,6 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.branch || github.ref }}
           # B2-06 verify-only reads provenance blobs from ancestor
           # 78d5bdf without checking that commit out as HEAD.
           # Freeze tests also locate historical git objects by ancestry.

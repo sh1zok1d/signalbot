@@ -143,7 +143,7 @@ Both mini-heads run the same model, so two reviews of the same thing share many 
 
 **GitHub Actions** (owner, 2026-10-08: «Переведи проверки вручную… Чтобы минуты не сжигались»):
 - Nothing starts on its own: neither workflow has a push or pull_request trigger.
-- **Fast PR gate (`ci.yml`).** Only the architect runs it: once, on the final head of a risky PR (next paragraph), before the merge (`workflow_dispatch`, ref = the PR branch).
+- **Fast PR gate (`ci.yml`).** Only the architect runs it: once, on the final head of a risky PR (next paragraph), before the merge (`workflow_dispatch` on main, input `branch` = the PR branch).
   - It tests the branch merged with main on PostgreSQL with TimescaleDB.
   - A red gate is a finding, never a reason to re-run.
 - **Every other PR** merges on the merge rule above, without Actions.
