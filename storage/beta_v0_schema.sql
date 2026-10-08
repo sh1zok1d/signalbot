@@ -334,8 +334,8 @@ CREATE TABLE IF NOT EXISTS beta_admin_audit (
 -- - never a DELETE; action, authorized, result and audit_id never change;
 -- - only a row whose target or actor is one of the deleted participant's fingerprints, and only while none of
 --   those fingerprints belongs to anyone still in beta_users, beta_allowlist or beta_waitlist;
--- - a row about them: target NULL, detail {}, the Kyiv date; their actor fingerprint becomes the role
---   (participant / owner); a row they only acted in keeps everything else, so no other person's row is edited.
+-- - every row about them or by them: detail {}, the Kyiv date; their target becomes NULL and their actor
+--   fingerprint the role (participant / owner); a live target on a row they only acted in stays (owner, 2026-10-09).
 CREATE OR REPLACE FUNCTION beta_audit_guard() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -360,10 +360,9 @@ BEGIN
            AND NEW.actor_fingerprint = CASE WHEN by_them THEN actor_role ELSE OLD.actor_fingerprint END
            AND NEW.target_fingerprint IS NOT DISTINCT FROM
                CASE WHEN about THEN NULL ELSE OLD.target_fingerprint END
-           AND NEW.detail = CASE WHEN about THEN '{}'::jsonb ELSE OLD.detail END
-           AND NEW.recorded_at = CASE WHEN about
-               THEN date_trunc('day', OLD.recorded_at AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv'
-               ELSE OLD.recorded_at END;
+           AND NEW.detail = '{}'::jsonb
+           AND NEW.recorded_at
+               = date_trunc('day', OLD.recorded_at AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv';
         IF allowed THEN
             RETURN NEW;
         END IF;
@@ -384,10 +383,8 @@ BEGIN
     PERFORM set_config('signalbot.audit_deidentify_role', actor_role, true);
     UPDATE beta_admin_audit a
     SET target_fingerprint = CASE WHEN a.target_fingerprint = ANY (fps) THEN NULL ELSE a.target_fingerprint END,
-        detail = CASE WHEN a.target_fingerprint = ANY (fps) THEN '{}'::jsonb ELSE a.detail END,
-        recorded_at = CASE WHEN a.target_fingerprint = ANY (fps)
-            THEN date_trunc('day', a.recorded_at AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv'
-            ELSE a.recorded_at END,
+        detail = '{}'::jsonb,
+        recorded_at = date_trunc('day', a.recorded_at AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv',
         actor_fingerprint = CASE WHEN a.actor_fingerprint = ANY (fps) THEN actor_role ELSE a.actor_fingerprint END
     WHERE a.target_fingerprint = ANY (fps) OR a.actor_fingerprint = ANY (fps);
     GET DIAGNOSTICS changed = ROW_COUNT;
