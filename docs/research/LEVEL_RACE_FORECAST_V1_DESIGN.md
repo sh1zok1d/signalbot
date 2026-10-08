@@ -247,6 +247,34 @@ Model-state templates (used only when `level_race.model_states_enabled = true`).
 - **Held-out fails G1–G3:** the class ships in `HIST` / `FALLBACK` at Day 0.
 - **Limitations:** one venue for the event (Binance perp); about 7.5 events a week, so the T15 class carries roughly 450 held-out events; σ from the trailing 24h only; the B0 discretisation caveats of §2.1; held-out surface exposed (class B); two landmark rows per event are dependent (clustered, not modelled); the development folds' early training sets are small (2020 only for the first fold).
 
+## 11b. Amendment after development, before the model freeze and the held-out read (2026-10-08; raises the bar)
+
+Added after the development record (`LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md`) and the mini-head red team R1–R3, approved by the architect; FORECAST_LAYER_DECISION_V1 §6b. Nothing here was chosen from held-out data; the development numbers below are disclosed as the reason.
+
+**Definitions.** `G1@event` = the frozen generic G1 applied to the level event's geometry: B0 offset at the event's position, `P_UP` / `P_DN`, σ and time left, plus the G1 intercepts and its `SIGMA_T` term (G1's own tercile edges); head U of G1 is used as the "beyond | resolved" head. **Fallback model** = `G1@event` passed through the calibrator with the `GENERIC` intercept and the shared slope only. This replaces "B0 with the GENERIC intercept" in §7.
+
+**R1 — level offset.**
+- The publication rule of §7 is unchanged: the champion is published (case A) only if its held-out log-loss gain over raw B0 has an interval above 0.
+- The level-offset claim (internal L2/L3 claim, and any wording) additionally needs the raw champion to beat raw `G1@event` on the held-out read, week-clustered 95 % interval above 0, per landmark. User texts never claim a level effect in any case.
+- In case B (level offset not published), the published model is the fallback model (G1@event with GENERIC calibration): this is the "calibrated B0" of FORECAST_LAYER §6, calibrated by the generic stream.
+- Development (descriptive, same OOF rows, `LEVEL_RACE_FORECAST_V1_FALLBACK_DIAGNOSTIC.json`): raw M1 vs raw `G1@event` +0.069 nats (95 % +0.049..+0.091), T0 +0.083 (+0.062..+0.103), T15 +0.051 (+0.029..+0.073).
+
+**«Обычно» in the model states.** In `L3_HISTORY_BACKED` and `L3_LIVE`, `b_up` / `b_dn` / `b_ne` are **raw `G1@event`**, not B0. B0 stays in every journal record as a second baseline, and every metric is reported against both. `HIST` V1 keeps its frozen «обычно» (cell mean of B0). In `FALLBACK` the published number is itself the generic model, so `LR_FB_V1` / `LR_PUSH_FB_V1` show no separate «обычно» segment; the line marks the numbers as «обычно» explicitly: «… · это «обычно»: общая модель цены, без учёта уровня · точность …».
+
+**Consequences checked across this note.**
+- §7 D3 (case A): `LL_published − LL_fallback`, fallback as defined here. Case B: published = fallback, D3 absent, D1/D2 on the published probabilities → `HIST`.
+- §7 `FALLBACK`: published for a class only if the fallback model passes G2 on that class (held-out first, then live on the last 100 resolved); otherwise the drift path goes to `HIST`.
+- §9 templates: `b_*` in `LR_L3H_V1`, `LR_L3L_V1`, `LR_PUSH_L3H_V1`, `LR_PUSH_L3L_V1` are `G1@event`; the FALLBACK templates as above.
+- §8a: the generic stream's role is unchanged; G1 is the frozen generic model (development choice).
+
+**R2 — fallback calibration on level events (development, descriptive, pooled OOF, N = 2691).**
+- CITL of the raw `G1@event` on level rows: BEYOND +9.7 pp (+7.6..+12.0), BACK +2.8 (+0.6..+5.2), NEITHER −12.6 (−14.3..−10.9). T0: NEITHER −13.7; T15: NEITHER −10.9. G1 learns more NEITHER at generic anchors, while structural first touches resolve more.
+- Recalibration slope: head R 0.54 (0.36..0.75), head B 0.77 (0.68..0.88).
+- Level-minus-generic intercept (logit, slope fixed at 1): head R +0.92 (+0.77..+1.11) [T0 +1.07, T15 +0.74], head B +0.33 (+0.20..+0.46) [T0 +0.33, T15 +0.32]. This informs the [F3] prior sd of `a_level − a_GENERIC`; 0.5 would put the development shift about two prior SD out on head R. F3 sets it with this disclosure.
+- On these numbers the fallback model would fail G2 on the level classes by a wide margin; a level class in drift would then show `HIST`.
+
+**R3 — head B over-confidence.** Out-of-fold M1 head B recalibration slope 0.78 (0.68..0.90) excludes 1: the BEYOND-vs-BACK split is over-confident. The calibrator is expected to correct it. G3 (slope interval overlapping [0.8, 1.25]) is near its edge for the raw model; G3 is applied to the published probabilities.
+
 ## 11a. Changes during the beta (FORECAST_LAYER §6a)
 
 The switch to the model states (`level_race.model_states_enabled`) ships during the beta as one announced upgrade on a fixed date set by the architect after the held-out read. Any later correction of this layer (a new table version, a new model or calibrator version, a template change) may ship during the 30-day test only if it is announced in advance with its date and content, recorded as a dated event in the measurement contract, and every metric of this note is reported separately before and after that date. The state rules of §6–§7 and the templates of this note stay frozen; a changed rule is a new version of this note.

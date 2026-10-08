@@ -494,5 +494,74 @@
     "t15_display_rule": "no T15 line if barrier hit or AMBIGUOUS on j+1/j+2",
     "ambiguous": "excluded and counted at both landmarks"
   },
-  "beta_changes": "FORECAST_LAYER §6a: announced in advance, dated event in measurement contract, metrics before/after; §6-§7 rules frozen"
+  "beta_changes": "FORECAST_LAYER §6a: announced in advance, dated event in measurement contract, metrics before/after; §6-§7 rules frozen",
+  "amendment_after_development": {
+    "date": "2026-10-08",
+    "authority": "FORECAST_LAYER_DECISION_V1 §6b; mini-head R1-R3; architect",
+    "g1_at_event": "frozen G1 on the level event geometry (B0 offset, P_UP/P_DN, sigma, tau) + G1 intercepts + SIGMA_T (G1 edges); G1 head U as beyond|resolved",
+    "fallback_model": "G1@event with GENERIC intercept and shared slope",
+    "publication_rule": "unchanged: champion vs raw B0 held-out interval > 0 -> case A",
+    "level_offset_claim": "also raw champion vs raw G1@event held-out interval > 0, per landmark; never in user text",
+    "case_B_published": "fallback model",
+    "usual_model_states": "raw G1@event; B0 kept in journal as second baseline; metrics vs both",
+    "usual_hist": "unchanged (cell mean B0)",
+    "fallback_templates": "no separate «обычно» segment; numbers labelled as «обычно» (общая модель цены)",
+    "fallback_gate": "published only if fallback passes G2 on the class; else HIST",
+    "dev_diagnostic": "docs/research/LEVEL_RACE_FORECAST_V1_FALLBACK_DIAGNOSTIC.json",
+    "dev_m1_vs_g1_at_event_nats": {
+      "ALL": [
+        0.0693,
+        0.0486,
+        0.0905
+      ],
+      "T0": [
+        0.0825,
+        0.0624,
+        0.1028
+      ],
+      "T15": [
+        0.0507,
+        0.0286,
+        0.0728
+      ]
+    },
+    "dev_fallback_citl_pp": {
+      "BEYOND": [
+        9.7,
+        7.6,
+        12.0
+      ],
+      "BACK": [
+        2.8,
+        0.6,
+        5.2
+      ],
+      "NEITHER": [
+        -12.6,
+        -14.3,
+        -10.9
+      ]
+    },
+    "dev_intercept_shift_logit": {
+      "R": [
+        0.92,
+        0.768,
+        1.107
+      ],
+      "B": [
+        0.327,
+        0.201,
+        0.456
+      ],
+      "R_T0": 1.072,
+      "R_T15": 0.74,
+      "B_T0": 0.331,
+      "B_T15": 0.321
+    },
+    "r3_head_b_slope": [
+      0.78,
+      0.68,
+      0.9
+    ]
+  }
 }
