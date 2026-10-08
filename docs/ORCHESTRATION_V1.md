@@ -172,17 +172,25 @@ For schema, push, collectors, the measurement contract, any forecast display and
 
 Decisions live in documents on main, not in chat. A decision given in a session message is written into the relevant document by the PR that implements it.
 
-## 6. Roster (2026-10-08)
+## 6. Roster (2026-10-08, after the first rotations)
 
 | Role | Session | Branch |
 |---|---|---|
 | Chief architect | `session_01S1vti7rmNRd8dtmUzFb4ZX` | `ccr-174417bb-r3l40b` |
 | ОПГ-1 mini-head | `session_014wizUBVjNnikh3GfHFzwgg` | `ccr-dcda6cae-6px42w` |
-| ОПГ-1 track A | `session_01YF4xzq3ofq7NKS8daimahf` | `claude/signalbot-prebeta-backlog-c1yqg0` |
-| ОПГ-1 track B | `session_013RP6YCG63Jdzff8dcz4GqV` | `claude/signalbot-evaluator-comparison-jyvj1h` |
+| ОПГ-1 track A (v2; v1 `session_01YF4xzq3ofq7NKS8daimahf` archived) | `session_01Gt7iBQBhPjfuWzkmpcG9uy` | one per PR, `claude/trackA-*` |
+| ОПГ-1 track B (v2; v1 `session_013RP6YCG63Jdzff8dcz4GqV` archived) | `session_01ScbW5enMwqAZVpo9E7E37k` | one per package, `claude/trackb-pkg*` |
 | ОПГ-1 research (idle) | `session_01Ark63JX6mZenzMdR4tZotQ` | `ccr-acce4a3e-eyc9rh` |
-| ОПГ-2 mini-head | `session_01E8Cb7vqxs52Lu2tLBxkicT` | its own (started from `ccr-174417bb-r3l40b`) |
+| ОПГ-2 mini-head (v2; v1 `session_01E8Cb7vqxs52Lu2tLBxkicT` archived) | `session_01HKncEvNcoSUte5Nnntg2Xa` | its own (started from main) |
 | ОПГ-2 F1 «Модель» | `session_013u4aiHu3PPakqyWC7yezcf` | `claude/opg2-f1-level-race-model` |
-| ОПГ-2 F2 «Живой контур» + #368 operations | `session_01BEq76aMeSBEcfRX9WGbsSW` | `claude/opg2-f2-level-race-live` |
+| ОПГ-2 F2 «Живой контур» + #368 operations (v2; v1 `session_01BEq76aMeSBEcfRX9WGbsSW` archived) | `session_01FQSwtkWrkhDfidMwjjmNPH` | `claude/opg2-f2-live-v2` |
 | ОПГ-2 F3 «Калибровка и мониторинг» | `session_01UxyP3Q5J8a97sVRWj3L6EV` | `claude/opg2-f3-level-race-calibration` |
 | Level Engine chain (Cursor) | stopped 2026-10-08; chain owned by ОПГ-2 | `cursor/level-*-08d8` (merged by PR #376) |
+
+**Scheduled checks.** Each fires into its owner's session. A rotation moves it: a check's prompt can only be edited from its own session, so the supervisor pauses the old check and a new one is created (by the supervisor or the successor).
+
+| Check | Trigger | Schedule (UTC) |
+|---|---|---|
+| Architect: ОПГ-1 and ОПГ-2 | `trig_019aQDoJEjnLoaGL8d4LeyPX` | every 3 h at :43 |
+| ОПГ-1: tracks A and B | `trig_01AXtRdSesb21X1n6fTC9TwA` (replaces the paused `trig_01QgtwTEebeA7jSkc7pmTzfY`) | hourly at :28 |
+| ОПГ-2: F1, F2, F3 | created by ОПГ-2 v2 (replaces the paused `trig_014ex4Uhuc44G9QbNZPgSDG3`) | hourly at :55 |

@@ -89,7 +89,7 @@ def no_numbers_for(text, h, lang):
     """No corridor or probability figure for horizon h on any surface."""
     hz = {"ru": {"1h": "1ч", "4h": "4ч", "24h": "24ч"}, "en": {"1h": "1h", "4h": "4h", "24h": "24h"}}[lang][h]
     pats = [rf"(^|\s){hz}: {NUM}",                                 # corridor part / table cell
-            rf"Коридор {hz}:" if lang == "ru" else rf"{hz} corridor:",
+            rf"Коридор {hz}( сейчас)?:" if lang == "ru" else rf"{hz} corridor( now)?:",
             rf"за {hz} {NUM}" if lang == "ru" else rf"within {hz} {NUM}",
             rf"за {hz} — в" if lang == "ru" else rf"within {hz} — {NUM}",
             rf"(^|·\s){hz} {NUM}"]                                  # /risk table cell

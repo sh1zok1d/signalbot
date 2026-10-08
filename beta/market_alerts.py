@@ -104,6 +104,16 @@ def _period_open(b: Bars, closed_1m, start: datetime) -> Optional[float]:
     return None
 
 
+def _corridor_track(block: Mapping[str, Any], h: str) -> Optional[dict]:
+    """What an alert needs to print horizon h's corridor record at send time: the designed share, the live
+    30-day record and the held-out record of that horizon (decision_format.corridor_record)."""
+    c = block.get("corridor") or {}
+    if c.get("coverage") is None:
+        return None
+    return {"coverage": c["coverage"], "live": {h: (c.get("live") or {}).get(h)},
+            "holdout": {h: {k: ((c.get("holdout") or {}).get(h) or {}).get(k) for k in ("coverage_realized", "n_days")}}}
+
+
 def _zone_brief(z: Optional[Mapping[str, Any]]) -> Optional[dict]:
     if not z:
         return None
@@ -140,6 +150,7 @@ def detect_level_touches(block: Mapping[str, Any], b: Bars, closed_1m, *, now: d
                                 "price_ts": block.get("price_ts"),
                                 "history": history_view(rec) if rec else None,
                                 "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
+                                "corridor_4h_track": _corridor_track(block, "4h") if corridor_4h else None,
                                 "event_zone": block.get("event_zone") or {}}})
     return _one_per_price(out)
 
@@ -283,6 +294,7 @@ def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any],
                     "payload": {"at": at.isoformat(), "source_at": (touched + timedelta(minutes=hit[1])).isoformat(),
                                 "level": float(a["price"]), "late": late,
                                 "price": block["price"], "price_ts": block.get("price_ts"), "corridor_4h": corridor_4h,
+                                "corridor_4h_track": _corridor_track(block, "4h") if corridor_4h else None,
                                 "event_zone": block.get("event_zone") or {}}})
     return out
 
