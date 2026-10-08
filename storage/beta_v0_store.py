@@ -1587,6 +1587,12 @@ class BetaConn:
                    result, detail) VALUES ($1,$2,$3,$4,$5,$6::jsonb)""",
             action, authorized, actor_fingerprint, target_fingerprint, result, _j(dict(detail or {})))
 
+    async def u3_offer_sent(self) -> bool:
+        """I2: whether /admin_offer send already went out (U3 is one offer)."""
+        return bool(await self.conn.fetchval(
+            """SELECT EXISTS (SELECT 1 FROM beta_admin_audit WHERE action='admin_offer' AND authorized
+                   AND result='OK' AND detail ? 'recipients')"""))
+
     async def get_admin_push_enabled(self) -> bool:
         v = await self.conn.fetchval(
             "SELECT bool_value FROM beta_runtime_state WHERE state_key='admin_push_enabled'")

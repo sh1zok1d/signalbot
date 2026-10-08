@@ -167,8 +167,8 @@ def _sample_level_alert(lang: str) -> str:
     at = datetime(2026, 1, 5, 6, 41, tzinfo=timezone.utc)
     payload = {"at": at.isoformat(), "level_kind": "PDH", "level": 100000.0, "side": 1, "period": "day",
                "price": 100050.0, "price_ts": (at + timedelta(minutes=1)).isoformat(), "event_zone": {},
-               # no history line: an example never carries statistics that could be read as real ones
-               "history": None, "next": None, "corridor_4h": {"lower": 98600.0, "upper": 101400.0, "half_width_pct": 1.4}}
+               # no history line and no corridor: an example never carries numbers that could be read as real ones
+               "history": None, "next": None}
     return format_alert("level", payload, lang)
 NOISE_REASONS = ("wrong", "not_for_me", "too_often", "late")          # H2, after «Шум»
 STOP_REASONS = ("not_needed", "too_many", "unclear", "other")          # H3, at /stop
@@ -323,6 +323,11 @@ class BetaBotHandler:
                 # the privacy notice sends questions about one's data to /feedback: a paused participant
                 # still reaches the team (the same limits, store and owner copy)
                 return await self._feedback(conn, user, chat_id, lang, now, args)
+            if cmd is None and user is not None and (m.get("text") or "").strip():
+                # J4 for a paused participant too: /admin_reply and the U3 offer reach them, and the offer
+                # asks for «ответом сюда», so their plain reply reaches the team (the same limits and store)
+                return await self._store_text(conn, user, chat_id, lang, now, m["text"].strip(), kind="feedback",
+                                              confirm=t(lang, "plain_to_team"), action="plain_text")
             if user is not None or await self._allowed(conn, uid):
                 if cmd == "feedback":                  # invited, not joined: nothing but the invitation is stored
                     return [_msg(chat_id, t(lang, "feedback_before_join"), lang=lang)]

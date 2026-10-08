@@ -73,6 +73,36 @@ def test_paused_participants_can_be_answered_and_the_u3_offer_reaches_the_churne
         to = sorted(o.chat_id for o in sent if o.chat_id in (a, b))
         assert to == [a, b] and all("$15 в месяц" in o.html for o in sent if o.chat_id in (a, b))
         assert fingerprint(a) in sent[0].html and fingerprint(b) in sent[0].html      # the ledger lines, owner only
+        twice = await h2.handle(_msg(OWNER, "/admin_offer send", 25))                # U3 is one offer
+        assert len(twice) == 1 and "already sent" in twice[0].html
+        again = await h2.handle(_msg(OWNER, "/admin_offer send again", 26))          # only on purpose
+        assert sorted(o.chat_id for o in again if o.chat_id in (a, b)) == [a, b]
+        await pool.close()
+    run(body())
+
+
+def test_a_paused_participants_plain_reply_reaches_the_team():
+    """J4 for STOPPED: the U3 offer asks for «ответом сюда», so a churned participant's plain text is stored
+    (plain_text, the same limits) and forwarded to the owner instead of «not joined»."""
+    async def body():
+        from runtime.beta_bot import BetaBotHandler
+        from beta.admin import fingerprint
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        uid = 900000000321
+        h = BetaBotHandler(store, CFG, switches=lambda: ON, owner_user_id=OWNER, clock=Clock(NOW))
+        await _join(h, store, uid)
+        await h.handle(_msg(uid, "/stop", 5))
+        out = await h.handle(_msg(uid, "how do I pay?", 6))
+        mine = [plain(o.html) for o in out if o.chat_id == uid]
+        assert mine == ["Передал команде — ответ придёт сюда. Команды: /help"]
+        owner = [o.html for o in out if o.chat_id == OWNER]
+        assert len(owner) == 1 and fingerprint(uid) in owner[0] and "how do I pay?" in owner[0]
+        rows = await pool.fetch("SELECT kind, text FROM beta_feedback_messages")
+        assert [dict(r) for r in rows] == [{"kind": "feedback", "text": "how do I pay?"}]
+        acts = [r["action"] for r in await pool.fetch("SELECT action FROM beta_user_activity ORDER BY activity_pk")]
+        assert acts[-1] == "plain_text"
+        assert "/start" in (await h.handle(_msg(uid, "/btc", 7)))[0].html            # commands: as before
         await pool.close()
     run(body())
 

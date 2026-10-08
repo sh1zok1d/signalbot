@@ -331,9 +331,13 @@ async def handle_admin(conn, cfg: BetaConfig, switches: BetaSwitches, *, owner_u
         if not (offer.get("price") and offer.get("method")):
             result = "REFUSED"
             reply = "refused: access.u3_offer.price and .method are fixed in a commit before Day 0"
-        elif (args or "").strip().lower() != "send":
+        elif (args or "").strip().lower() not in ("send", "send again"):
             reply = ("preview (ru):\n" + t("ru", "u3_offer", price=offer["price"], method=offer["method"])
                      + "\n\nsend it to every enrolled participant: /admin_offer send")
+        elif (args or "").strip().lower() == "send" and await conn.u3_offer_sent():
+            # U3 is one offer: a second «send» is refused; the owner types «send again» on purpose
+            result = "REFUSED"
+            reply = "refused: the U3 offer was already sent; to send it again: /admin_offer send again"
         else:
             rows = await conn.enrolled_user_rows()
             direct = [(int(r["chat_id"]), t(r.get("lang") or "ru", "u3_offer", price=offer["price"],
