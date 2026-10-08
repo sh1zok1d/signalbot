@@ -38,9 +38,10 @@ DAY_MS = 86_400_000
 LEVEL_ORDER = ("PMH", "PML", "PWH", "PWL", "PDH", "PDL", "MO", "WO", "DO", "LIQ_LONG", "LIQ_SHORT",
                "POC_PD", "US_H", "US_L", "EU_H", "EU_L", "ASIA_H", "ASIA_L", "VWAP_D", "ROUND")
 PUSH_LEVELS = ("PDH", "PDL", "PWH", "PWL", "PMH", "PML")
-# Venues whose stored liquidation notional is price x base-asset size. The OKX feed reports
-# `sz` in contracts (ctVal 0.01 BTC) and the collector stores price x contracts, so summing it
-# would inflate a cluster about 100 times; it stays out of the clusters.
+# Venues in the clusters. OKX stays out: until the collector fix (2026-10, data reliability D1) it
+# stored no row at all, and its feed "doesn't represent the total number of liquidations" (OKX
+# docs), so its clusters would be partial. Rows are now in BTC (sz x ctVal); old-mapping Bybit
+# rows are read with their side swapped (storage fetch_liquidations, beta.liq_mapping).
 LIQ_VENUES = ("binance", "bybit")
 SESSIONS = {"ASIA": (0, 0, 8, 0), "EU": (8, 0, 13, 30), "US": (13, 30, 20, 0)}   # UTC h, m → h, m
 ZONE_TOL_PCT = 0.15

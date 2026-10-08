@@ -1,4 +1,8 @@
-"""beta.level_race (HIST line): parity with the research twin and the frozen table."""
+"""beta.level_race (HIST line): frozen table, lookup and display rules.
+
+Parity with the research twin lives in tests/research/test_level_race_parity_beta.py
+(tests/beta must not import the research package).
+"""
 
 from __future__ import annotations
 
@@ -6,32 +10,6 @@ import numpy as np
 import pytest
 
 from beta import level_race as L
-from scripts.research.dh1.events import rolling_sigma
-from scripts.research.level_race_forecast_v1 import b0 as RB0
-from scripts.research.level_race_forecast_v1 import constants as RK
-from scripts.research.level_race_forecast_v1 import hist as RH
-from scripts.research.level_touch_degradation_v1 import constants as K352
-
-
-def test_constants_match_research():
-    assert L.TAU == RK.TAU and L.BAND_EDGES == RK.BAND_EDGES and L.ZONE_HALF == RK.ZONE_HALF
-    assert L.PROB_FLOOR == RK.PROB_FLOOR and L.WINDOW_BARS == K352.HOLD_BARS_PRIMARY
-    assert L.barrier_x(0.002) == pytest.approx(K352.x_from_sigma(0.002))
-    assert L.FAMILY_OF == K352.FAMILY_OF and L.STRUCT_SIDE == K352.STRUCT_SIDE
-
-
-@pytest.mark.parametrize("pos,tau", [(100.0, 48), (100.4, 46), (99.1, 46), (103.0, 48), (97.0, 48)])
-def test_b0_parity(pos, tau):
-    assert L.b0_race(pos, 102.0, 98.0, 0.003, tau) == pytest.approx(RB0.race(pos, 102.0, 98.0, 0.003, tau), abs=1e-12)
-
-
-def test_sigma_parity_with_352():
-    rng = np.random.default_rng(5)
-    close = 100 * np.exp(np.cumsum(rng.normal(0, 0.002, 700)))
-    close[350] = np.nan
-    ref = rolling_sigma(close, window=288, min_frac=0.9)
-    for j in (289, 400, 600):
-        assert L.sigma_before(close, j) == pytest.approx(ref[j - 1], rel=1e-9)
 
 
 def test_table_digest_and_lookup():
@@ -47,12 +25,6 @@ def test_table_digest_and_lookup():
     assert line2["h"]["dn"] == c["h"]["BEYOND"]
     low = L.hist_line(t, landmark="T0", kind="PMH", price=100000.0, geo=g, sigma=0.002)
     assert low["template"] == "LR_HIST_LOW_N_V1" and "h" not in low
-
-
-def test_cell_key_parity_with_research():
-    row = {"landmark": "T15", "family": "WEEK", "struct_side": -1, "b0_beyond": 0.5}
-    assert L.cell_key("T15", "PWL", 0.5) == RH.cell_key(row)
-    assert L.cell_key("T0", "PDH") == "T0|DAY|H"
 
 
 def test_t15_eligibility_and_window_end():
@@ -114,3 +86,27 @@ def test_shown_difference_equals_shown_percentages_when_rounding_diverges():
     assert line["d_pp"]["up"] != round(cell["diff_pp"]["BEYOND"])
     assert line["ci95_pp"]["up"] == [-6, 4]
     assert sum(line["printed_h"].values()) == sum(line["printed_b"].values()) == 100
+
+
+def test_table_file_digest_covers_provenance(tmp_path):
+    import json
+    raw = L.HIST_TABLE_PATH.read_bytes()
+    t = json.loads(raw)
+    t["provenance"]["design_sha"] = "deadbeef"
+    t["provenance"]["years"] = [2020, 2021, 2022, 2023, 2024, 2025]
+    bad = tmp_path / "t.json"
+    bad.write_text(json.dumps(t, ensure_ascii=False, indent=1) + "\n")
+    with pytest.raises(RuntimeError):
+        L.load_hist_table(bad)
+    same = tmp_path / "same.json"
+    same.write_bytes(raw)
+    assert L.load_hist_table(same)["table_sha256"] == L.HIST_TABLE_SHA256
+    flipped = tmp_path / "flip.json"
+    flipped.write_bytes(raw.replace(b"2020", b"2021", 1))
+    with pytest.raises(RuntimeError):
+        L.load_hist_table(flipped)
+
+
+def test_cell_key_format():
+    assert L.cell_key("T0", "PDH") == "T0|DAY|H"
+    assert L.cell_key("T15", "PWL", 0.5) == "T15|WEEK|L|F2"

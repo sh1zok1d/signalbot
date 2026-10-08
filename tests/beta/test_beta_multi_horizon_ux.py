@@ -259,7 +259,7 @@ def test_event_and_1h_tabs_both_languages():
             assert "Funding сейчас 0,006%" in hour
             assert "Delta: −$84 млн (продавцы)" in hour
             assert "OI −0,6%: Binance −0,9% · Bybit −0,4% · OKX +0,1%" in hour
-            assert "≥ — нижняя граница: Binance передаёт не все ликвидации." in event
+            assert "≥ — нижняя граница: Binance и OKX передают не все ликвидации." in event
         else:
             assert "BTC event</b> · sharp drop" in event
             assert "BTC, last hour" in hour
@@ -267,7 +267,7 @@ def test_event_and_1h_tabs_both_languages():
             assert "Funding now 0.006%" in hour
             assert "Delta: −$84M (sellers)" in hour
             assert "OI −0.6%: Binance −0.9% · Bybit −0.4% · OKX +0.1%" in hour
-            assert "≥ — lower bound: Binance does not report every liquidation." in hour
+            assert "≥ — lower bound: Binance and OKX do not report every liquidation." in hour
 
 
 def test_number_formats():

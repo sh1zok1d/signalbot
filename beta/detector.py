@@ -269,6 +269,13 @@ async def _materialize(deps: DetectorDeps, cfg: BetaConfig, conn, bucket_ts: dat
         bucket_end=bucket_ts + BUCKET)
     declared = await deps.declared_liquidation_available(cfg.exchanges)
     venues = venue_states(cfg, rows, declared, bucket_ts)
+    # how each venue's raw liquidation rows of this bucket were written (data reliability D2)
+    from .liq_mapping import bucket_state
+    fetch_cutover = getattr(conn, "fetch_liquidation_cutover", None)
+    if fetch_cutover is not None:
+        cutover = await fetch_cutover(symbol=cfg.symbol)
+        for ex in cfg.exchanges:
+            venues[ex] = {**venues[ex], "liq_mapping": bucket_state(cutover, ex, bucket_ts)}
     availability = {ex: bool(v["declared_available"] and v["heartbeat_healthy"]) for ex, v in venues.items()}
     before = await deps.raw_revision()
     result, error = None, None
