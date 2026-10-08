@@ -1141,14 +1141,32 @@ def _change_sentence(item: Mapping[str, Any], lang: str) -> str:
     return ""
 
 
+_CHANGE_RULES = ("range", "volume", "oi_price", "funding")
+
+
 def _changes_lines(block: Mapping[str, Any], lang: str) -> list:
-    lines = [t(lang, "changes_head")]
+    """The change lines vs the previous 24h. «Нет крупных изменений» names the checks that ran and is never
+    said when none could run, nor from a payload that does not record them (stored before V5) (D3, R6)."""
     items = [s for s in (_change_sentence(item, lang) for item in (block.get("changes") or [])) if s]
-    if not items:
-        lines.append(t(lang, "changes_none"))
-    else:
-        lines.extend("· " + s for s in items)
-    return lines
+    if items:
+        return [t(lang, "changes_head")] + ["· " + s for s in items]
+    checked = block.get("changes_checked")
+    if checked is None:
+        return []
+    if not checked:
+        return [t(lang, "changes_na")]
+    names = [t(lang, "changes_check_" + r) for r in _CHANGE_RULES if r in checked]
+    line = t(lang, "changes_none", checks=_join_and(names, lang))
+    skipped = [t(lang, "changes_check_" + r) for r in _CHANGE_RULES if r not in checked]
+    if skipped:
+        line += t(lang, "changes_skipped", checks=_join_and(skipped, lang))
+    return [line]
+
+
+def _join_and(items: Sequence[str], lang: str) -> str:
+    if len(items) <= 1:
+        return "".join(items)
+    return ", ".join(items[:-1]) + t(lang, "and_last") + items[-1]
 
 
 def _d7_main_line(view: Mapping[str, Any], lang: str) -> Optional[str]:

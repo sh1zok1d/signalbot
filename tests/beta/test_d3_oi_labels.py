@@ -69,8 +69,8 @@ def test_without_binance_no_usual_beside_the_median():
 
 def test_v3_payloads_keep_the_day_type_rule_after_the_v4_bump():
     from beta.formatter import _day_type_tod
-    for v in ("BETA_HORIZON_TOD_V3", "BETA_HORIZON_TOD_V4"):
+    for v in ("BETA_HORIZON_TOD_V3", "BETA_HORIZON_TOD_V4", "BETA_HORIZON_TOD_V5"):
         assert _day_type_tod({"horizons": {"version": v}}, "volume_notional_usd_sum")
     assert not _day_type_tod({"horizons": {"version": "BETA_HORIZON_TOD_V2"}}, "volume_notional_usd_sum")
-    assert hz.HORIZON_VERSION == "BETA_HORIZON_TOD_V4" and hz.verify_horizon_digest()
+    assert hz.HORIZON_VERSION in hz.DAY_TYPE_VERSIONS and hz.verify_horizon_digest()
     assert hz.horizon_definition()["oi"]["min_venues"]

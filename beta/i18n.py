@@ -1058,10 +1058,19 @@ _CATALOG: dict[str, dict[str, str]] = {
     "h24_volume": {"ru": "Объём {vol}{ratio}", "en": "Volume {vol}{ratio}"},
     "h24_volume_partial": {"ru": "Объём {vol} (неполные)", "en": "Volume {vol} (partial)"},
     "changes_head": {"ru": "Изменения к предыдущим 24 ч:", "en": "Changes vs previous 24h:"},
+    # names the checks that ran (D3, R6); never printed when none could run
     "changes_none": {
-        "ru": "Крупных изменений к предыдущим 24 ч нет",
-        "en": "No large change vs previous 24h",
+        "ru": "К предыдущим 24 ч крупных изменений нет по проверкам: {checks}",
+        "en": "No large change vs previous 24h in the checks: {checks}",
     },
+    "changes_skipped": {"ru": " (не проверено: {checks} — нет данных)", "en": " (not checked: {checks} — no data)"},
+    "changes_na": {"ru": "Сравнить с предыдущими 24 ч нельзя: данных не хватает",
+                   "en": "No comparison with the previous 24h: not enough data"},
+    "changes_check_range": {"ru": "диапазон", "en": "range"},
+    "changes_check_volume": {"ru": "объём", "en": "volume"},
+    "changes_check_oi_price": {"ru": "OI вместе с ценой", "en": "OI together with price"},
+    "changes_check_funding": {"ru": "смена знака Funding", "en": "Funding sign change"},
+    "and_last": {"ru": " и ", "en": " and "},
     "changes_range_wider": {"ru": "диапазон шире: {a} против {b}", "en": "range wider: {a} vs {b}"},
     "changes_range_narrower": {"ru": "диапазон уже: {a} против {b}", "en": "range narrower: {a} vs {b}"},
     "changes_vol_higher": {"ru": "объём выше: {a} против {b}", "en": "volume higher: {a} vs {b}"},
@@ -1174,7 +1183,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Изменение OI в боте — медиана изменений по биржам (минимум 2 биржи), а не изменение суммарного OI.\n"
             "Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот.\n"
             "Delta — разница между рыночными покупками и продажами в $. Минус — нетто продавали.\n"
-            "Объём — сумма сделок в $ по Binance, Bybit и OKX.\n"
+            "Объём — сумма сделок в $ по Binance, Bybit и OKX; если в какой-то пятиминутке нет данных одной из бирж, объём помечен как неполный.\n"
             "Диапазон — от минимума до максимума цены за период, в % от цены.\n"
             "Ликвидации — принудительное закрытие позиций биржей, по каждой бирже отдельно.\n"
             "≥ — нижняя граница: Binance публикует не все ликвидации.\n"
@@ -1210,7 +1219,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "The bot's OI change is the median of the exchanges' changes (at least 2 exchanges), not the change of total OI.\n"
             "Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse.\n"
             "Delta — difference between market buys and market sells in $. Negative — net selling.\n"
-            "Volume — total traded value in $ on Binance, Bybit and OKX.\n"
+            "Volume — total traded value in $ on Binance, Bybit and OKX; when a 5-minute bucket lacks one of them, the volume is marked partial.\n"
             "Range — from the lowest to the highest price in the period, in % of the price.\n"
             "Liquidations — positions force-closed by the exchange, shown per exchange.\n"
             "≥ — lower bound: Binance does not publish every liquidation.\n"
