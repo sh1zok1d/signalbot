@@ -1,74 +1,77 @@
-"""Level race calibration, monitors and display state (ОПГ-2 track F3; pure, no database).
+"""Level race calibration, gates, monitors and display state (ОПГ-2 track F3; pure, no database).
 
-Implements `docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md` for the forecast layer of
-`docs/FORECAST_LAYER_DECISION_V1.md` §5–§7:
+Implements the [F3] parts of `docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md` §7, §8a, §11b (F1) with the
+numbers of `docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md`:
 
-- the three race outcomes are carried as two binary heads: RESOLVE (a barrier is reached within 4h)
-  and BREAK_GIVEN_RESOLVE (the BREAK barrier is the first one, among resolved events);
-- each head gets a two-parameter Bayesian logistic recalibration p' = expit(a + b·logit p), fitted by
-  Laplace approximation on outcomes resolved before the batch cutoff only, with a Gaussian prior worth
-  `N_EQUIV_PRIOR` events;
-- the drift monitors (an anytime-valid change-point mixture e-process on the published probabilities,
-  the rolling intercept, the rolling paired log loss against B0, the size of the required correction);
-- the display state machine HIST / L3_HISTORY_BACKED / L3_LIVE / FALLBACK / OFF.
+- the three race outcomes as two heads: R (a barrier within 4h; 1 − P(NEITHER)) and B (BREAK | resolved;
+  UP | resolved on the generic stream);
+- per head a Bayesian logistic recalibration logit p' = a_class + b·logit p with class intercepts
+  GENERIC / LEVEL_T0 / LEVEL_T15 and a shared slope, MAP + Laplace, refit on outcomes resolved strictly
+  before each batch cutoff (weekly, then every 4 weeks), versioned;
+- the held-out gates G0–G3, the live floor, the drift monitors D0–D3 and the return rule;
+- the display state machine HIST / L3_HISTORY_BACKED / L3_LIVE / FALLBACK / OFF with the mode switch
+  HIST_ONLY / MODEL (FORECAST_LAYER §6a) and the FALLBACK-only-if-it-passes-G2 rule (§11b).
 
-Every number here is a design constant fixed before any real outcome is read; the simulation that
-chose them runs on synthetic data only (`scripts/research/level_race_calibration_sim.py`).
+Every number here is a design constant fixed before any real outcome is read; the study that chose
+them runs on synthetic data only (`scripts/research/level_race_calibration_sim.py`).
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import math
-from dataclasses import asdict, dataclass, field, replace
+from dataclasses import asdict, dataclass, replace
 from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
 
 LR_CAL_VERSION = "LEVEL_RACE_CAL_V1"
 LR_STATE_VERSION = "LEVEL_RACE_STATE_V1"
-OUTCOMES = ("BREAK", "REJECT", "NEITHER")
-HEADS = ("RESOLVE", "BREAK_GIVEN_RESOLVE")
+OUTCOMES = ("BREAK", "REJECT", "NEITHER")       # generic stream: UP_FIRST, DOWN_FIRST, NEITHER in this order
+HEADS = ("R", "B")
+CAL_CLASSES = ("GENERIC", "LEVEL_T0", "LEVEL_T15")
 P_CLIP = 1e-4
-
-# ---- calibrator (design §3) ---------------------------------------------------------------------
-N_EQUIV_PRIOR = 150             # the held-out fit enters the live calibrator worth 150 events
-BASE_PRIOR_EQUIV = 150          # the held-out walk-forward starts from the identity map worth 150 events
-WEEKLY_BATCHES = 12             # weekly cutoffs for the first 12 weeks, then every 4 weeks
-LATER_BATCH_WEEKS = 4
-ISOTONIC_MIN_EVENTS = 300       # no non-parametric calibrator below this; V1 has none at all
-LARGE_SHIFT_PP = 10.0           # a required correction beyond this is a drift signal, not a fix
-
-# ---- held-out gate (design §2) ------------------------------------------------------------------
-HOLDOUT_CITL_PP = 5.0           # |intercept| of the walk-forward published probabilities, each head
-HOLDOUT_CURVE_PP = 7.5         # max |fitted recalibration curve − identity| over the 10–90 % range, each head
-HOLDOUT_RAW_CITL_PP = 10.0      # raw model: a larger miscalibration is a drift signal, not a calibration
-HOLDOUT_MIN_WEEKS = 20
-
-# ---- live (design §4) ---------------------------------------------------------------------------
-LIVE_FLOOR = 150                # resolved live events per class for L3_LIVE
-LIVE_CITL_PP = 7.5              # |intercept| of the live published probabilities, each head
-LIVE_CURVE_PP = 10.0
-
-# ---- drift (design §5) --------------------------------------------------------------------------
-E_THRESHOLD = 10.0
-E_DELTAS = (-0.6, -0.3, 0.0, 0.3, 0.6)   # logit intercept shifts per head; (0, 0) excluded
-E_KEY = "p_pub"                 # the e-process tests the published probabilities ("p_ref" tested: see design §5.1)
-E_BLOCK = 25                    # change points every 25 events, weight 1 / ((j + 1)(j + 2))
-ROLL_N = 100                    # rolling window of the intercept and paired log-loss monitors
-ROLL_CITL_BAND_PP = 5.0         # rolling intercept whose week-clustered ROLL_Z interval lies wholly outside ±5 pp
-ROLL_LL_MIN_WEEKS = 8
-ROLL_Z = 2.576                  # the rolling monitors use 99 % week-clustered intervals (looked at every batch)
-RETURN_MIN_EVENTS = 50
-RETURN_CITL_PP = 10.0
-MAX_FALLBACKS = 2               # the second FALLBACK of a model version is final for that version
-
-# ---- challengers (design §6) --------------------------------------------------------------------
-CHALLENGER_MIN_PAIRED = 150
-CHALLENGER_LOOK_EVERY = 150     # promotion is looked at only at 150, 300, 450, 600 paired events
-CHALLENGER_MAX_PAIRED = 600     # retired unpromoted after the fourth look
-CHALLENGER_MAX_CONCURRENT = 2
 Z95 = 1.959964
+
+# ---- calibrator [F3] ----------------------------------------------------------------------------
+PRIOR_M_A, PRIOR_S_A = 0.0, 0.5         # a_GENERIC ~ N(0, 0.5²)
+PRIOR_M_B, PRIOR_S_B = 1.0, 0.25        # b ~ N(1, 0.25²)
+PRIOR_S_LEVEL = 1.0                     # a_LEVEL − a_GENERIC ~ N(0, 1.0²)   (dev-informed, design §3.2)
+N_EQUIV_PRIOR = 150                     # live prior: the held-out posterior worth 150 events per class
+GENERIC_ROW_WEIGHT = 1 / 16             # 4 overlapping hourly anchors × 4 pairs share one 4h path
+WEEKLY_BATCHES = 12
+LATER_BATCH_WEEKS = 4
+ISOTONIC_MIN_EVENTS = 300               # no non-parametric map below this; V1 has none
+
+# ---- gates [F3] ---------------------------------------------------------------------------------
+G0_MIN_EVENTS = 200
+G1_MAX_LL_EXCESS = 0.01                 # nats: upper 95 % end of LL_published − LL_B0
+G2_CITL_PP = 5.0                        # per outcome |CITL| ≤ 5 pp …
+G2_CI_PP = 10.0                         # … and its 95 % interval inside ±10 pp
+G3_SLOPE_BAND = (0.8, 1.25)             # per head, the slope's 95 % interval overlaps this band
+LIVE_FLOOR = 150
+
+# ---- drift [F3] ---------------------------------------------------------------------------------
+D0_STALE_MINUTES = 10
+D1_LAMBDAS = (-0.5, -0.25, 0.25, 0.5)
+D1_OUTCOME_THRESHOLD = 30.0             # per outcome; three outcomes share the ≤ 0.1 Ville budget (design §5.1)
+ROLL_N = 100
+D2_PP = 10.0
+D2_Z = 2.576                            # 99 % interval, iid floor (design §5.2)
+D3_Z = 2.576
+D3_MIN_WEEKS = 8
+RETURN_MIN_EVENTS = 50
+RETURN_E_MAX = 1.0                      # epoch e-value below 1 to return (F1 draft: ≤ 10; design §5.4)
+MAX_DRIFT_EXITS = 2                     # the second drift exit of a version is final for it
+
+# ---- challengers [F3] ---------------------------------------------------------------------------
+CHALLENGER_MIN_PAIRED = 150
+CHALLENGER_LOOK_EVERY = 150
+CHALLENGER_MAX_PAIRED = 600
+CHALLENGER_MAX_CONCURRENT = 2
+
+MODES = ("HIST_ONLY", "MODEL")
+STATES = ("HIST", "L3_HISTORY_BACKED", "L3_LIVE", "FALLBACK", "OFF")
 
 
 # ---- probabilities --------------------------------------------------------------------------------
@@ -82,17 +85,15 @@ def logit(p):
 
 
 def expit(x):
-    return 1.0 / (1.0 + np.exp(-np.asarray(x, dtype=float)))
+    return 1.0 / (1.0 + np.exp(-np.clip(np.asarray(x, dtype=float), -50, 50)))
 
 
 def heads_from_probs(p3) -> tuple:
-    """(P(BREAK), P(REJECT), P(NEITHER)) → (P(resolve), P(BREAK | resolve)), arrays allowed."""
+    """(P(BREAK), P(REJECT), P(NEITHER)) → (P(resolve), P(BREAK | resolve))."""
     p3 = np.asarray(p3, dtype=float)
-    pb, pr, pn = p3[..., 0], p3[..., 1], p3[..., 2]
-    res = pb + pr
-    with np.errstate(invalid="ignore", divide="ignore"):
-        cond = np.where(res > 0, pb / np.where(res > 0, res, 1.0), 0.5)
-    return _clip(1.0 - pn), _clip(cond)
+    res = p3[..., 0] + p3[..., 1]
+    cond = np.where(res > 0, p3[..., 0] / np.where(res > 0, res, 1.0), 0.5)
+    return _clip(1.0 - p3[..., 2]), _clip(cond)
 
 
 def probs_from_heads(p_res, p_cond) -> np.ndarray:
@@ -101,7 +102,7 @@ def probs_from_heads(p_res, p_cond) -> np.ndarray:
 
 
 def head_targets(outcome: str) -> tuple:
-    """(y_resolve, y_break_given_resolve or None)."""
+    """(y_R, y_B or None)."""
     if outcome not in OUTCOMES:
         raise ValueError(f"unknown outcome {outcome!r}")
     if outcome == "NEITHER":
@@ -110,79 +111,73 @@ def head_targets(outcome: str) -> tuple:
 
 
 def head_arrays(records: Sequence[Mapping[str, Any]], key: str) -> dict:
-    """Per head: (probabilities, targets, week ids) of the resolved records, probabilities from `key`."""
+    """Per head: (probabilities, targets, week ids) under `key`; head B on resolved records only."""
+    if not records:
+        e = (np.zeros(0), np.zeros(0), np.zeros(0, int))
+        return {"R": e, "B": e}
     p3 = np.array([r[key] for r in records], dtype=float).reshape(-1, 3)
-    pa, pc = heads_from_probs(p3) if len(records) else (np.zeros(0), np.zeros(0))
-    ya = np.array([head_targets(r["outcome"])[0] for r in records], dtype=float)
+    pa, pc = heads_from_probs(p3)
+    ya = np.array([0.0 if r["outcome"] == "NEITHER" else 1.0 for r in records])
+    yb = np.array([1.0 if r["outcome"] == "BREAK" else 0.0 for r in records])
     wk = np.array([int(r["week"]) for r in records], dtype=int)
     res = ya == 1
-    yb = np.array([1.0 if r["outcome"] == "BREAK" else 0.0 for r in records], dtype=float)
-    return {"RESOLVE": (pa, ya, wk), "BREAK_GIVEN_RESOLVE": (pc[res], yb[res], wk[res])}
+    return {"R": (pa, ya, wk), "B": (pc[res], yb[res], wk[res])}
 
 
-# ---- logistic fits ---------------------------------------------------------------------------------
-def _design(lg):
-    return np.column_stack([np.ones_like(lg), lg])
+def outcome_arrays(records: Sequence[Mapping[str, Any]], key: str) -> dict:
+    """Per outcome (one against the rest): (probabilities, targets, week ids)."""
+    p3 = np.array([r[key] for r in records], dtype=float).reshape(-1, 3)
+    wk = np.array([int(r["week"]) for r in records], dtype=int)
+    return {o: (p3[:, k], np.array([1.0 if r["outcome"] == o else 0.0 for r in records]), wk)
+            for k, o in enumerate(OUTCOMES)}
 
 
-def _center(prior: Mapping[str, Any]) -> float:
-    return float(prior.get("center", 0.0))
+# ---- hierarchical calibrator (design §3) ------------------------------------------------------------
+def identity_prior(s_level: Optional[float] = None) -> dict:
+    """Gaussian prior on θ = (a_GENERIC, a_LEVEL_T0, a_LEVEL_T15, b): a_G ~ N(m_a, s_a²),
+    b ~ N(m_b, s_b²), a_level − a_G ~ N(0, s_level²) independently per level class."""
+    s_level = PRIOR_S_LEVEL if s_level is None else s_level
+    va, vl = PRIOR_S_A ** 2, s_level ** 2
+    cov = np.array([[va, va, va, 0.0], [va, va + vl, va, 0.0], [va, va, va + vl, 0.0],
+                    [0.0, 0.0, 0.0, PRIOR_S_B ** 2]])
+    return {"mean": [PRIOR_M_A, PRIOR_M_A, PRIOR_M_A, PRIOR_M_B], "cov": cov.tolist()}
 
 
-def unit_information(raw_logits) -> np.ndarray:
-    """Mean per-event Fisher information of (a, b) at the identity map on a design of raw logits.
-    It uses the raw probabilities only, never an outcome."""
-    lg = np.asarray(raw_logits, dtype=float)
-    if lg.size == 0:
-        return np.eye(2) * 0.25
-    X = _design(lg)
-    w = expit(lg) * (1 - expit(lg))
-    return (X * w[:, None]).T @ X / lg.size
+def _design(lg, cls_idx) -> np.ndarray:
+    X = np.zeros((len(lg), 4))
+    X[np.arange(len(lg)), np.asarray(cls_idx, dtype=int)] = 1.0
+    X[:, 3] = lg
+    return X
 
 
-def prior_worth(mean, raw_logits, n_equiv: float, *, center: Optional[float] = None) -> dict:
-    """A Gaussian prior on (a, b) at `mean` whose precision equals n_equiv events of the design.
-    The map is p' = expit(c + a + b·(logit p − c)) with c the design's mean raw logit (fixed per head),
-    so (0, 1) is the identity and a is the shift at the design centre."""
-    mean = np.asarray(mean, dtype=float)
-    lg = np.asarray(raw_logits, dtype=float)
-    c = float(lg.mean()) if center is None and lg.size else float(center or 0.0)
-    X = _design(lg - c) if lg.size else np.array([[1.0, 0.0]])
-    q = expit(c + X @ mean)
-    w = q * (1 - q)
-    info = (X * w[:, None]).T @ X / max(len(X), 1) + np.eye(2) * 1e-6
-    cov = np.linalg.inv(info * n_equiv)
-    return {"mean": mean.tolist(), "cov": cov.tolist(), "center": c}
-
-
-def fit_logistic(raw_logits, y, prior: Mapping[str, Any], *, iters: int = 50) -> dict:
-    """MAP of p' = expit(c + a + b·(raw_logit − c)) under a Gaussian prior; Laplace covariance."""
-    lg, y = np.asarray(raw_logits, dtype=float), np.asarray(y, dtype=float)
+def fit_head(raw_p, y, cls, prior: Mapping[str, Any], *, weights=None, iters: int = 100) -> dict:
+    """MAP of logit p' = a_class + b·logit p under the Gaussian prior; Laplace covariance; weighted rows."""
+    raw_p, y = np.asarray(raw_p, dtype=float), np.asarray(y, dtype=float)
+    idx = np.array([CAL_CLASSES.index(c) for c in cls], dtype=int)
+    w = np.ones(len(y)) if weights is None else np.asarray(weights, dtype=float)
     m0 = np.asarray(prior["mean"], dtype=float)
     P0 = np.linalg.inv(np.asarray(prior["cov"], dtype=float))
-    c = _center(prior)
-    X = _design(lg - c)
+    X = _design(logit(raw_p), idx)
     th = m0.copy()
     for _ in range(iters):
-        q = expit(c + X @ th)
-        g = X.T @ (y - q) - P0 @ (th - m0)
-        H = (X * (q * (1 - q))[:, None]).T @ X + P0
-        step = np.linalg.lstsq(H, g, rcond=None)[0]
+        q = expit(X @ th)
+        g = X.T @ (w * (y - q)) - P0 @ (th - m0)
+        H = (X * (w * q * (1 - q))[:, None]).T @ X + P0
+        step = np.linalg.solve(H, g)
         th = th + step
         if float(np.max(np.abs(step))) < 1e-10:
             break
-    q = expit(c + X @ th)
-    H = (X * (q * (1 - q))[:, None]).T @ X + P0
-    return {"mean": th.tolist(), "cov": np.linalg.pinv(H).tolist(), "n": int(lg.size), "center": c}
+    q = expit(X @ th)
+    H = (X * (w * q * (1 - q))[:, None]).T @ X + P0
+    n = {c: int(np.sum(idx == k)) for k, c in enumerate(CAL_CLASSES)}
+    return {"mean": th.tolist(), "cov": np.linalg.inv(H).tolist(), "n": n}
 
 
-# ---- the calibrator --------------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Calibrator:
-    claim_class: str
     cutoff_ms: int
-    heads: Mapping[str, Mapping[str, Any]]     # head -> {"mean": [a, b], "cov": 2x2, "n": live events}
-    priors: Mapping[str, Mapping[str, Any]]    # head -> prior {"mean", "cov"}
+    heads: Mapping[str, Mapping[str, Any]]      # head -> {"mean": θ, "cov": 4×4, "n": per class}
+    priors: Mapping[str, Mapping[str, Any]]     # head -> prior
     version: str = ""
 
     def to_dict(self) -> dict:
@@ -193,72 +188,90 @@ def _digest(obj) -> str:
     return hashlib.sha256(json.dumps(obj, sort_keys=True, default=float).encode()).hexdigest()
 
 
-def make_calibrator(claim_class: str, cutoff_ms: int, heads: Mapping, priors: Mapping) -> Calibrator:
-    body = {"v": LR_CAL_VERSION, "class": claim_class, "cutoff_ms": int(cutoff_ms),
+def make_calibrator(cutoff_ms: int, heads: Mapping, priors: Mapping) -> Calibrator:
+    body = {"v": LR_CAL_VERSION, "cutoff_ms": int(cutoff_ms),
             "heads": {h: {"mean": [round(x, 12) for x in heads[h]["mean"]], "n": heads[h]["n"]} for h in HEADS},
-            "priors": {h: {"mean": [round(x, 12) for x in priors[h]["mean"]]} for h in HEADS}}
-    return Calibrator(claim_class, int(cutoff_ms), heads, priors, f"{LR_CAL_VERSION}:{_digest(body)[:16]}")
+            "priors": {h: {"mean": [round(x, 12) for x in priors[h]["mean"]],
+                           "cov": [[round(x, 12) for x in r] for r in priors[h]["cov"]]} for h in HEADS}}
+    return Calibrator(int(cutoff_ms), heads, priors, f"{LR_CAL_VERSION}:{_digest(body)[:16]}")
 
 
-def identity_priors(raw_logits_by_head: Mapping[str, Sequence[float]], n_equiv: float = BASE_PRIOR_EQUIV) -> dict:
-    return {h: prior_worth([0.0, 1.0], raw_logits_by_head.get(h, ()), n_equiv) for h in HEADS}
+def prior_calibrator(priors: Mapping[str, Mapping[str, Any]], cutoff_ms: int = 0) -> Calibrator:
+    return make_calibrator(cutoff_ms, {h: {"mean": list(priors[h]["mean"]), "cov": priors[h]["cov"],
+                                           "n": {c: 0 for c in CAL_CLASSES}} for h in HEADS}, priors)
 
 
-def fit_calibrator(claim_class: str, records: Sequence[Mapping[str, Any]], priors: Mapping[str, Mapping[str, Any]],
-                   *, cutoff_ms: int) -> Calibrator:
-    """Refit every head from its prior on the records whose outcome resolved strictly before the cutoff.
-    A record needs `p_raw` (BREAK, REJECT, NEITHER), `outcome`, `week` and `resolved_ms`."""
+def _row_weight(r: Mapping[str, Any]) -> float:
+    return float(r.get("weight", GENERIC_ROW_WEIGHT if r["cal_class"] == "GENERIC" else 1.0))
+
+
+def fit_calibrator(records: Sequence[Mapping[str, Any]], priors: Mapping[str, Mapping[str, Any]], *,
+                   cutoff_ms: int) -> Calibrator:
+    """Refit both heads from their priors on the records resolved strictly before `cutoff_ms`. A record
+    carries `cal_class` (GENERIC / LEVEL_T0 / LEVEL_T15), `p_raw` (three outcomes), `outcome`,
+    `resolved_ms` and optionally `weight` (default GENERIC_ROW_WEIGHT for GENERIC rows, else 1)."""
     done = [r for r in records if r.get("outcome") in OUTCOMES and int(r["resolved_ms"]) < int(cutoff_ms)]
-    arrs = head_arrays(done, "p_raw")
-    heads = {}
-    for h in HEADS:
-        p, y, _ = arrs[h]
-        heads[h] = fit_logistic(logit(p), y, priors[h]) if len(p) else \
-            {"mean": list(priors[h]["mean"]), "cov": [list(r) for r in priors[h]["cov"]], "n": 0,
-             "center": _center(priors[h])}
-    return make_calibrator(claim_class, cutoff_ms, heads, priors)
+    if not done:
+        return prior_calibrator(priors, cutoff_ms)
+    p3 = np.array([r["p_raw"] for r in done], dtype=float)
+    pa, pc = heads_from_probs(p3)
+    ya = np.array([0.0 if r["outcome"] == "NEITHER" else 1.0 for r in done])
+    yb = np.array([1.0 if r["outcome"] == "BREAK" else 0.0 for r in done])
+    cls = [r["cal_class"] for r in done]
+    w = np.array([_row_weight(r) for r in done])
+    res = ya == 1
+    heads = {"R": fit_head(pa, ya, cls, priors["R"], weights=w)}
+    if res.any():
+        heads["B"] = fit_head(pc[res], yb[res], [c for c, k in zip(cls, res) if k], priors["B"], weights=w[res])
+    else:
+        heads["B"] = {"mean": list(priors["B"]["mean"]), "cov": priors["B"]["cov"], "n": {c: 0 for c in CAL_CLASSES}}
+    return make_calibrator(cutoff_ms, heads, priors)
 
 
-def live_priors(holdout_cal: Calibrator, raw_logits_by_head: Mapping[str, Sequence[float]],
-                n_equiv: float = N_EQUIV_PRIOR) -> dict:
-    """The held-out fit as the live prior (same centre), its precision reset to n_equiv events of the
-    held-out design."""
-    return {h: prior_worth(holdout_cal.heads[h]["mean"], raw_logits_by_head.get(h, ()), n_equiv,
-                           center=holdout_cal.heads[h].get("center", 0.0)) for h in HEADS}
+def _head_map(head: Mapping[str, Any], cal_class: str, raw_p) -> np.ndarray:
+    th = head["mean"]
+    return expit(th[CAL_CLASSES.index(cal_class)] + th[3] * logit(raw_p))
 
 
-def _map(head: Mapping[str, Any], lg):
-    a, b = head["mean"]
-    c = float(head.get("center", 0.0))
-    return expit(c + a + b * (np.asarray(lg, dtype=float) - c))
-
-
-def apply_calibrator(cal: Optional[Calibrator], p3_raw) -> np.ndarray:
-    """Published (BREAK, REJECT, NEITHER) from raw; None is the identity."""
+def apply_calibrator(cal: Optional[Calibrator], p3_raw, cal_class: str) -> np.ndarray:
+    """Published three outcomes from raw ones with the intercept of `cal_class` (case B and the
+    fallback model pass "GENERIC"); None is the identity."""
     p3_raw = np.asarray(p3_raw, dtype=float)
-    if cal is None:
-        return probs_from_heads(*heads_from_probs(p3_raw))
     pa, pc = heads_from_probs(p3_raw)
-    return probs_from_heads(_map(cal.heads["RESOLVE"], logit(pa)), _map(cal.heads["BREAK_GIVEN_RESOLVE"], logit(pc)))
+    if cal is None:
+        return probs_from_heads(pa, pc)
+    return probs_from_heads(_head_map(cal.heads["R"], cal_class, pa), _head_map(cal.heads["B"], cal_class, pc))
 
 
-def correction(cal: Calibrator, head: str, raw_logits) -> dict:
-    """The size of the map on a design: mean |p' − p| in pp, and the slope b (reported, not gated: the
-    slope of a head with little spread is poorly identified)."""
-    lg = np.asarray(raw_logits, dtype=float)
-    hd = cal.heads[head]
-    if not lg.size:
-        lg = np.array([float(hd.get("center", 0.0))])
-    shift = float(np.mean(np.abs(_map(hd, lg) - expit(lg)))) * 100
-    return {"shift_pp": round(shift, 3), "slope": round(float(hd["mean"][1]), 4)}
+def class_information(records: Sequence[Mapping[str, Any]], head: str, theta) -> dict:
+    """Mean per-event Fisher information of θ for each class's rows at θ (raw probabilities only)."""
+    out = {}
+    th = np.asarray(theta, dtype=float)
+    for c in CAL_CLASSES:
+        rows = [r for r in records if r["cal_class"] == c and (head == "R" or r["outcome"] in ("BREAK", "REJECT"))]
+        if not rows:
+            continue
+        pa, pc = heads_from_probs(np.array([r["p_raw"] for r in rows], dtype=float))
+        p = pa if head == "R" else pc
+        X = _design(logit(p), [CAL_CLASSES.index(c)] * len(p))
+        q = expit(X @ th)
+        out[c] = (X * (q * (1 - q))[:, None]).T @ X / len(p)
+    return out
 
 
-def large_correction(cal: Calibrator, raw_logits_by_head: Mapping[str, Sequence[float]]) -> bool:
+def live_prior(holdout_cal: Calibrator, holdout_records: Sequence[Mapping[str, Any]],
+               n_equiv: float = N_EQUIV_PRIOR) -> dict:
+    """The held-out posterior as the live prior: its mean, and a precision of n_equiv events of each
+    class's held-out design (FORECAST_LAYER §5: 100–200), plus 0.1 % of the identity prior's precision
+    so that a parameter no class informs stays proper. Outcomes enter only through the mean."""
+    out = {}
+    floor = np.linalg.inv(np.asarray(identity_prior()["cov"]))
     for h in HEADS:
-        c = correction(cal, h, raw_logits_by_head.get(h, ()))
-        if c["shift_pp"] > LARGE_SHIFT_PP:
-            return True
-    return False
+        th = holdout_cal.heads[h]["mean"]
+        info = class_information(holdout_records, h, th)
+        P = sum((n_equiv * I for I in info.values()), np.zeros((4, 4))) + 1e-3 * floor
+        out[h] = {"mean": list(th), "cov": np.linalg.inv(P).tolist()}
+    return out
 
 
 def batch_cutoffs(start_ms: int, end_ms: int) -> list:
@@ -273,11 +286,10 @@ def batch_cutoffs(start_ms: int, end_ms: int) -> list:
         out.append(t)
 
 
-# ---- statistics ----------------------------------------------------------------------------------
+# ---- statistics ------------------------------------------------------------------------------------
 def clustered_mean(z, clusters, *, zq: float = Z95, iid_var=None) -> dict:
-    """Mean of z with a cluster-robust normal interval (95 % by default; None below 5 clusters). The
-    standard error never goes below the independent-events one (the sample variance, or `iid_var`
-    per event when given): with few clusters the cluster-robust estimate can be far too small."""
+    """Mean of z with a cluster-robust normal interval (None below 5 clusters). The standard error
+    never goes below the independent-events one (the sample variance, or `iid_var` per row)."""
     z, g = np.asarray(z, dtype=float), np.asarray(clusters)
     n = z.size
     if n == 0:
@@ -289,44 +301,48 @@ def clustered_mean(z, clusters, *, zq: float = Z95, iid_var=None) -> dict:
     if G >= 5:
         s = np.bincount(inv, weights=z - m, minlength=G)
         se = math.sqrt(float(np.sum(s ** 2)) * G / (G - 1)) / n
-        v1 = float(np.mean(iid_var)) if iid_var is not None else float(z.var(ddof=1)) if n > 1 else 0.0
+        v1 = float(np.mean(iid_var)) if iid_var is not None else (float(z.var(ddof=1)) if n > 1 else 0.0)
         se = max(se, math.sqrt(v1 / n))
         out.update(lo=m - zq * se, hi=m + zq * se)
     return out
 
 
 def citl(p, y, weeks, *, zq: float = Z95) -> dict:
-    """Calibration in the large, in pp: mean(y − p) with a week-clustered interval."""
+    """Calibration in the large in pp: mean(y − p) with a week-clustered interval (iid floor)."""
     p = np.asarray(p, float)
     r = clustered_mean(np.asarray(y, float) - p, weeks, zq=zq, iid_var=p * (1 - p) if p.size else None)
-    return {k: (None if v is None else (v * 100 if k in ("est", "lo", "hi") else v)) for k, v in r.items()}
+    return {k: (v * 100 if k in ("est", "lo", "hi") and v is not None else v) for k, v in r.items()}
 
 
 def cal_slope(p, y, weeks) -> dict:
-    """Calibration slope: logistic y ~ c + a + b·(logit p − c), with a week-clustered sandwich interval of b,
-    and the largest gap (pp) between the fitted curve and the identity at the 10/25/50/75/90 % quantiles."""
+    """Recalibration logit P(y) = a + b·logit p (F1 §6), with a week-clustered sandwich interval of b."""
     p, y, g = np.asarray(p, float), np.asarray(y, float), np.asarray(weeks)
+    out = {"est": None, "lo": None, "hi": None, "n": int(p.size), "a": None}
     if p.size < 10 or np.unique(y).size < 2:
-        return {"est": None, "lo": None, "hi": None, "n": int(p.size), "intercept": None, "curve_dev_pp": None}
-    c = float(logit(p).mean())
-    fit = fit_logistic(logit(p), y, {"mean": [0.0, 1.0], "cov": [[1e4, 0.0], [0.0, 1e4]], "center": c})
-    th = np.asarray(fit["mean"])
-    X = _design(logit(p) - c)
-    q = expit(c + X @ th)
+        return out
+    X = np.column_stack([np.ones(p.size), logit(p)])
+    th = np.array([0.0, 1.0])
+    for _ in range(100):
+        q = expit(X @ th)
+        H = (X * (q * (1 - q))[:, None]).T @ X + np.eye(2) * 1e-6
+        step = np.linalg.lstsq(H, X.T @ (y - q), rcond=None)[0]
+        th = th + step
+        if float(np.max(np.abs(step))) < 1e-10 or not np.all(np.isfinite(th)):
+            break
+    if not np.all(np.isfinite(th)):
+        return out
+    q = expit(X @ th)
     H = (X * (q * (1 - q))[:, None]).T @ X
     keys, inv = np.unique(g, return_inverse=True)
     S = np.zeros((keys.size, 2))
     np.add.at(S, inv, X * (y - q)[:, None])
     G = keys.size
-    qs = np.quantile(logit(p), (0.1, 0.25, 0.5, 0.75, 0.9))
-    dev = float(np.max(np.abs(expit(c + th[0] + th[1] * (qs - c)) - expit(qs)))) * 100
-    out = {"est": float(th[1]), "lo": None, "hi": None, "n": int(p.size), "intercept": float(th[0]),
-           "curve_dev_pp": dev}
+    out.update(est=float(th[1]), a=float(th[0]))
     if G >= 5:
         Hi = np.linalg.pinv(H)
         V = Hi @ (S.T @ S) @ Hi * G / (G - 1)
         se = math.sqrt(max(float(V[1, 1]), float(Hi[1, 1]), 0.0))
-        if math.isfinite(se) and math.isfinite(float(th[1])):
+        if math.isfinite(se):
             out.update(lo=float(th[1]) - Z95 * se, hi=float(th[1]) + Z95 * se)
     return out
 
@@ -338,7 +354,7 @@ def log_loss3(p3, outcomes) -> np.ndarray:
 
 
 def paired_log_loss(records: Sequence[Mapping[str, Any]], a: str, b: str, *, zq: float = Z95) -> dict:
-    """Mean log loss of b minus a (positive: a better), week-clustered interval."""
+    """Mean of LL(b) − LL(a) (positive: a better), week-clustered interval."""
     if not records:
         return clustered_mean([], [])
     o = [r["outcome"] for r in records]
@@ -346,69 +362,268 @@ def paired_log_loss(records: Sequence[Mapping[str, Any]], a: str, b: str, *, zq:
     return clustered_mean(d, [int(r["week"]) for r in records], zq=zq)
 
 
-# ---- e-process (design §5.1) --------------------------------------------------------------------
-def _grid() -> list:
-    return [(da, db) for da in E_DELTAS for db in E_DELTAS if (da, db) != (0.0, 0.0)]
+# ---- held-out gates G0–G3 (design §2) ----------------------------------------------------------------
+def _g2_pass(c: Mapping[str, Any]) -> bool:
+    return c["lo"] is not None and abs(c["est"]) <= G2_CITL_PP and c["lo"] >= -G2_CI_PP and c["hi"] <= G2_CI_PP
 
 
-def e_increments_arrays(pa, pc, ya, yb) -> np.ndarray:
-    """Per event and per grid alternative: the log likelihood ratio of the intercept-shifted alternative
-    against the published head probabilities (head B counts only when the event resolved, ya = 1)."""
-    grid = np.array(_grid())
-    pa, pc = _clip(pa), _clip(pc)
-    ya, yb = np.asarray(ya, dtype=float)[:, None], np.asarray(yb, dtype=float)[:, None]
-    la, lc = logit(pa)[:, None], logit(pc)[:, None]
-
-    def llr(lp, y, d):
-        q = _clip(expit(lp + d))
-        p = _clip(expit(lp))
-        return y * (np.log(q) - np.log(p)) + (1 - y) * (np.log1p(-q) - np.log1p(-p))
-
-    return llr(la, ya, grid[None, :, 0]) + ya * llr(lc, yb, grid[None, :, 1])
-
-
-def e_increments(records: Sequence[Mapping[str, Any]], key: str = "p_pub") -> np.ndarray:
-    """e_increments_arrays on records (in order) with probabilities under `key`."""
+def gates(records: Sequence[Mapping[str, Any]], key: str = "p_pub", *, b0_key: str = "p_b0") -> dict:
+    """G0–G3 of one class on `key` (the prequential published probabilities on the held-out read, or a
+    live window). G1 compares with raw B0; G2 per outcome; G3 per head."""
+    out = {"n": len(records), "G0": {"n": len(records), "pass": len(records) >= G0_MIN_EVENTS}}
     if not records:
-        return np.zeros((0, len(_grid())))
-    pa, pc = heads_from_probs(np.array([r[key] for r in records], dtype=float))
-    ya = np.array([head_targets(r["outcome"])[0] for r in records], dtype=float)
-    yb = np.array([1.0 if r["outcome"] == "BREAK" else 0.0 for r in records], dtype=float)
-    return e_increments_arrays(pa, pc, ya, yb)
+        out.update(G1={"pass": False}, G2={"pass": False}, G3={"pass": False}, passed=False)
+        return out
+    gain = paired_log_loss(records, key, b0_key)            # LL(B0) − LL(key)
+    excess_hi = None if gain["lo"] is None else -gain["lo"]
+    out["G1"] = {"ll_excess_est": None if gain["est"] is None else -gain["est"], "ll_excess_hi": excess_hi,
+                 "pass": excess_hi is not None and excess_hi <= G1_MAX_LL_EXCESS}
+    oa, g2 = outcome_arrays(records, key), {}
+    for o in OUTCOMES:
+        c = citl(*oa[o])
+        g2[o] = {**c, "pass": _g2_pass(c)}
+    out["G2"] = {"outcomes": g2, "pass": all(v["pass"] for v in g2.values())}
+    ha, g3 = head_arrays(records, key), {}
+    for h in HEADS:
+        s = cal_slope(*ha[h])
+        g3[h] = {**s, "pass": s["lo"] is not None and s["hi"] >= G3_SLOPE_BAND[0] and s["lo"] <= G3_SLOPE_BAND[1]}
+    out["G3"] = {"heads": g3, "pass": all(v["pass"] for v in g3.values())}
+    out["passed"] = bool(out["G0"]["pass"] and out["G1"]["pass"] and out["G2"]["pass"] and out["G3"]["pass"])
+    return out
 
 
-def e_path(inc: np.ndarray) -> np.ndarray:
-    """E_t after each record: Σ_j π_j M_j(t) with change points s_j = j·E_BLOCK, π_j = 1/((j+1)(j+2)),
-    M_j the mean over the grid of the likelihood ratios from s_j; blocks not yet started count as 1.
-    Under conditional calibration E is a test martingale, so P(sup E ≥ 10) ≤ 0.1 (Ville)."""
-    T = inc.shape[0]
-    if T == 0:
-        return np.zeros(0)
-    S = np.vstack([np.zeros((1, inc.shape[1])), np.cumsum(inc, axis=0)])        # S[t] after t records
-    J = (T - 1) // E_BLOCK + 1
-    out = np.zeros(T)
-    for j in range(J):
-        s = j * E_BLOCK
-        pi = 1.0 / ((j + 1) * (j + 2))
-        seg = S[s + 1:] - S[s]
-        m = np.max(seg, axis=1, keepdims=True)
-        mj = np.exp(m[:, 0]) * np.mean(np.exp(seg - m), axis=1)
-        out[s:] += pi * mj
-    jt = np.arange(T) // E_BLOCK + 1                                             # blocks started by record t
-    return out + 1.0 / (jt + 1)                                                  # Σ_{j≥jt} π_j, not yet started
+def g2_only(records: Sequence[Mapping[str, Any]], key: str) -> bool:
+    if not records:
+        return False
+    oa = outcome_arrays(records, key)
+    return all(_g2_pass(citl(*oa[o])) for o in OUTCOMES)
 
 
-def e_value(records: Sequence[Mapping[str, Any]], key: str = "p_pub") -> float:
-    path = e_path(e_increments(records, key))
-    return float(path[-1]) if path.size else 1.0
+def beats(records: Sequence[Mapping[str, Any]], model: str, base: str) -> bool:
+    """§11b publication rule: the raw model's log-loss gain over a raw base has a week-clustered 95 %
+    interval above 0."""
+    d = paired_log_loss(records, model, base)
+    return d["lo"] is not None and d["lo"] > 0
 
 
-# ---- input drift (design §5.4; reported, never a state change) ---------------------------------
+# ---- D1: betting e-process (design §5.1) ------------------------------------------------------------
+def d1_paths(records: Sequence[Mapping[str, Any]], key: str) -> np.ndarray:
+    """Per outcome (columns BREAK, REJECT, NEITHER) the path of E_t = mean over λ ∈ D1_LAMBDAS of
+    Π (1 + λ (y_i − p_i)), from the first record given (the epoch start)."""
+    if not records:
+        return np.ones((0, 3))
+    p3 = _clip(np.array([r[key] for r in records], dtype=float))
+    y3 = np.array([[1.0 if r["outcome"] == o else 0.0 for o in OUTCOMES] for r in records])
+    lam = np.array(D1_LAMBDAS)[None, None, :]
+    logs = np.cumsum(np.log1p(lam * (y3 - p3)[:, :, None]), axis=0)
+    return np.mean(np.exp(logs), axis=2)
+
+
+def d1_value(records: Sequence[Mapping[str, Any]], key: str) -> dict:
+    path = d1_paths(records, key)
+    if not path.size:
+        return {"e": {o: 1.0 for o in OUTCOMES}, "e_max": {o: 1.0 for o in OUTCOMES}}
+    return {"e": {o: float(path[-1, k]) for k, o in enumerate(OUTCOMES)},
+            "e_max": {o: float(path[:, k].max()) for k, o in enumerate(OUTCOMES)}}
+
+
+def d1_triggered(d1: Mapping[str, Any]) -> bool:
+    return any(v > D1_OUTCOME_THRESHOLD for v in d1["e"].values())
+
+
+# ---- monitors ------------------------------------------------------------------------------------
+@dataclass(frozen=True)
+class Monitors:
+    key: str                              # the probabilities monitored
+    n_live: int                           # resolved live records of the class (this version)
+    n_epoch: int                          # resolved records since the epoch began
+    d1: Mapping[str, Any]                 # epoch e-values per outcome
+    d2: Mapping[str, Any]                 # per outcome CITL over the last ROLL_N (D2_Z interval)
+    d3: Optional[Mapping[str, Any]]       # LL(key) − LL(fallback) over the last ROLL_N; None without fallback
+    epoch_citl: Mapping[str, Any]         # per outcome CITL since the epoch began
+    live_gates: Mapping[str, Any]         # G2 / G3 on the whole live record (for L3_LIVE)
+    fallback_g2_recent: Optional[bool]    # the fallback passes G2 on the last ROLL_N (None: fewer records)
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def monitors(live: Sequence[Mapping[str, Any]], *, key: str = "p_pub", epoch_start: int = 0,
+             fallback_key: Optional[str] = "p_fb") -> Monitors:
+    """Statistics of the resolved live records of one class in issue order (published or not)."""
+    ep, roll = list(live[epoch_start:]), list(live[-ROLL_N:])
+    has_fb = bool(fallback_key and roll and fallback_key in roll[0])
+    d3 = None
+    if has_fb and fallback_key != key:
+        g = paired_log_loss(roll, key, fallback_key, zq=D3_Z)          # LL(fb) − LL(key)
+        d3 = {"est": None if g["est"] is None else -g["est"], "lo": None if g["hi"] is None else -g["hi"],
+              "hi": None if g["lo"] is None else -g["lo"], "n": g["n"], "clusters": g["clusters"]}
+    ro, eo = outcome_arrays(roll, key), outcome_arrays(ep, key)
+    lg = gates(live, key) if live else {"G2": {"pass": False}, "G3": {"pass": False}}
+    return Monitors(key=key, n_live=len(live), n_epoch=len(ep), d1=d1_value(ep, key),
+                    d2={o: citl(*ro[o], zq=D2_Z) for o in OUTCOMES}, d3=d3,
+                    epoch_citl={o: citl(*eo[o]) for o in OUTCOMES},
+                    live_gates={"G2": lg["G2"]["pass"], "G3": lg["G3"]["pass"]},
+                    fallback_g2_recent=(g2_only(roll, fallback_key) if has_fb and len(roll) >= ROLL_N else None))
+
+
+def drift_reasons(m: Monitors) -> list:
+    out = []
+    if d1_triggered(m.d1):
+        out.append("D1")
+    for o, c in m.d2.items():
+        if c["n"] >= ROLL_N // 2 and c["est"] is not None and abs(c["est"]) > D2_PP and c["lo"] is not None \
+                and (c["lo"] > 0 or c["hi"] < 0):
+            out.append(f"D2:{o}")
+    if m.d3 is not None and m.d3.get("clusters", 0) >= D3_MIN_WEEKS and m.d3.get("lo") is not None and m.d3["lo"] > 0:
+        out.append("D3")
+    return out
+
+
+def recovered(m: Monitors) -> bool:
+    """Return rule: ≥ RETURN_MIN_EVENTS resolved since the epoch, every outcome's epoch |CITL| ≤ D2_PP,
+    every epoch e-value below RETURN_E_MAX and no drift reason."""
+    if m.n_epoch < RETURN_MIN_EVENTS or any(v >= RETURN_E_MAX for v in m.d1["e"].values()):
+        return False
+    if any(c["est"] is None or abs(c["est"]) > D2_PP for c in m.epoch_citl.values()):
+        return False
+    return not drift_reasons(m)
+
+
+# ---- state machine (design §7) -------------------------------------------------------------------
+@dataclass(frozen=True)
+class Health:
+    data_fresh: bool = True            # D0: last closed bar at issue ≤ D0_STALE_MINUTES old
+    parity_ok: bool = True             # D0: live detector = research constructor
+    journal_ok: bool = True
+    coverage_ok: bool = True
+
+    def ok(self) -> bool:
+        return self.data_fresh and self.parity_ok and self.journal_ok and self.coverage_ok
+
+    def faults(self) -> tuple:
+        return tuple(k for k, v in asdict(self).items() if not v)
+
+
+@dataclass(frozen=True)
+class Setup:
+    """Fixed per model version and class after the held-out read (and the mode setting)."""
+    mode: str = "HIST_ONLY"            # HIST_ONLY / MODEL (FORECAST_LAYER §6a; one setting)
+    case: str = "B"                    # A: champion published (§11b); B: the fallback model published
+    holdout_passed: bool = False       # G0–G3 of the published model on the held-out read
+    fallback_g2_holdout: bool = False  # the fallback model passes G2 on this class on the held-out read
+    model_version: str = ""
+
+
+@dataclass(frozen=True)
+class StateRecord:
+    state: str
+    since_ms: int
+    epoch_start: int = 0               # index of the first resolved live record of the current epoch
+    drift_exits: int = 0
+    before_off: Optional[str] = None
+    off_reason: Optional[str] = None   # the D0 fault while OFF; `reason` keeps the reason of the state before
+    reason: str = "start"
+    model_version: str = ""
+    version: str = LR_STATE_VERSION
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def initial_state(setup: Setup, *, now_ms: int) -> StateRecord:
+    if setup.mode != "MODEL":
+        return StateRecord("HIST", int(now_ms), reason="mode_hist_only", model_version=setup.model_version)
+    if setup.holdout_passed:
+        return StateRecord("L3_HISTORY_BACKED", int(now_ms), reason="holdout_passed", model_version=setup.model_version)
+    if setup.case == "A" and setup.fallback_g2_holdout:
+        return StateRecord("FALLBACK", int(now_ms), reason="holdout_not_passed", model_version=setup.model_version)
+    return StateRecord("HIST", int(now_ms), reason="holdout_not_passed", model_version=setup.model_version)
+
+
+def fallback_available(setup: Setup, mon_fb: Optional[Monitors]) -> bool:
+    """FALLBACK is published for a class only in case A and only while the fallback model passes G2 on
+    it: on the held-out read, and on the last ROLL_N live records once there are that many."""
+    if setup.case != "A" or not setup.fallback_g2_holdout:
+        return False
+    recent = mon_fb.fallback_g2_recent if mon_fb is not None else None
+    return True if recent is None else bool(recent)
+
+
+def next_state(prev: StateRecord, setup: Setup, *, health: Health, mon: Optional[Monitors] = None,
+               mon_fb: Optional[Monitors] = None, now_ms: int) -> StateRecord:
+    """One deterministic step. D0 health at every call (OFF at once); the model rules when `mon` is
+    given (at batch cutoffs). `mon` monitors the published model of the case (champion in A, fallback
+    model in B), with its epoch from `prev.epoch_start`; `mon_fb` monitors the fallback model on the
+    class (case A) from the same epoch."""
+    if not health.ok():
+        if prev.state == "OFF":
+            return prev
+        return replace(prev, state="OFF", since_ms=now_ms, before_off=prev.state,
+                       off_reason="D0:" + ",".join(health.faults()))
+    if setup.mode != "MODEL":
+        if prev.state == "HIST" and prev.reason == "mode_hist_only":
+            return prev
+        return StateRecord("HIST", now_ms, reason="mode_hist_only", model_version=setup.model_version)
+    if prev.state == "OFF":
+        return replace(prev, state=prev.before_off or "HIST", since_ms=now_ms, before_off=None, off_reason=None)
+    if prev.reason == "mode_hist_only":
+        return initial_state(setup, now_ms=now_ms)
+    if mon is None:
+        return prev
+    if prev.state in ("L3_HISTORY_BACKED", "L3_LIVE"):
+        why = drift_reasons(mon)
+        if why:
+            to = "FALLBACK" if fallback_available(setup, mon_fb) else "HIST"
+            return replace(prev, state=to, since_ms=now_ms, epoch_start=mon.n_live, drift_exits=prev.drift_exits + 1,
+                           reason="drift:" + ",".join(why))
+        if prev.state == "L3_HISTORY_BACKED" and mon.n_live >= LIVE_FLOOR and mon.live_gates["G2"] and mon.live_gates["G3"]:
+            return replace(prev, state="L3_LIVE", since_ms=now_ms, reason="live_floor_reached")
+        return prev
+    if prev.state == "FALLBACK" and mon_fb is not None:
+        fb_why = [w for w in drift_reasons(mon_fb) if w != "D3"]
+        if fb_why or not fallback_available(setup, mon_fb):
+            return replace(prev, state="HIST", since_ms=now_ms,
+                           reason="fallback_drift:" + ",".join(fb_why or ["G2"]))
+    returnable = prev.state in ("FALLBACK", "HIST") and prev.reason.startswith(("drift", "fallback_drift"))
+    if returnable and setup.holdout_passed and prev.drift_exits < MAX_DRIFT_EXITS and recovered(mon):
+        live = mon.n_live >= LIVE_FLOOR and mon.live_gates["G2"] and mon.live_gates["G3"]
+        return replace(prev, state="L3_LIVE" if live else "L3_HISTORY_BACKED", since_ms=now_ms,
+                       epoch_start=mon.n_live, reason="recovered")
+    return prev
+
+
+# ---- challengers (design §6) ---------------------------------------------------------------------
+def challenger_look(paired: Sequence[Mapping[str, Any]]) -> Optional[dict]:
+    """At 150, 300, 450, 600 paired resolved live events: promoted when the week-clustered 95 % interval
+    of the log-loss gain of `p_chal` over the published champion `p_pub` lies above 0 and the
+    challenger passes G2 and G3 on the paired record. None between looks."""
+    n = len(paired)
+    if n < CHALLENGER_MIN_PAIRED or n % CHALLENGER_LOOK_EVERY or n > CHALLENGER_MAX_PAIRED:
+        return None
+    gain = paired_log_loss(paired, "p_chal", "p_pub")
+    g = gates(paired, "p_chal")
+    cal_ok = bool(g["G2"]["pass"] and g["G3"]["pass"])
+    promoted = gain["lo"] is not None and gain["lo"] > 0 and cal_ok
+    return {"n": n, "gain": gain, "calibration_ok": cal_ok, "promoted": bool(promoted),
+            "retired": bool(not promoted and n >= CHALLENGER_MAX_PAIRED)}
+
+
+# ---- epochs cut by dated layer events (FORECAST_LAYER §6a) ----------------------------------------
+def split_by_events(records: Sequence[Mapping[str, Any]], event_ms: Sequence[int]) -> list:
+    """Records split at each dated layer event: [(start_ms, end_ms, records), …]; the monitors and the
+    report never mix records across a cut."""
+    cuts = sorted(int(x) for x in event_ms)
+    bounds = [-(1 << 62)] + cuts + [1 << 62]
+    return [(lo, hi, [r for r in records if lo <= int(r["t_ms"]) < hi]) for lo, hi in zip(bounds[:-1], bounds[1:])]
+
+
+# ---- input drift (reported, never a state change) ------------------------------------------------
 INPUT_BLOCK_WEEKS = 8
 INPUT_RANGE = (0.025, 0.975)
 
 
-def _block_stats(rows: Sequence[Mapping[str, Any]], weeks: Sequence[int]) -> dict:
+def _block_stats(rows, weeks) -> dict:
     wk = set(int(w) for w in weeks)
     sel = [r for r in rows if int(r["week"]) in wk]
     return {"median_sigma": float(np.median([r["sigma"] for r in sel])) if sel else None,
@@ -416,11 +631,9 @@ def _block_stats(rows: Sequence[Mapping[str, Any]], weeks: Sequence[int]) -> dic
             "rate": len(sel) / max(len(wk), 1)}
 
 
-def input_drift(reference: Sequence[Mapping[str, Any]], recent: Sequence[Mapping[str, Any]], *,
-                ref_weeks: Sequence[int], recent_weeks: Sequence[int]) -> list:
-    """Warnings for the last INPUT_BLOCK_WEEKS weeks against the held-out 8-week blocks: median PIT σ,
-    mean B0 BREAK probability (position) and events per week outside the blocks' 2.5–97.5 % range.
-    Rows carry `week`, `sigma` and `p_b0`; every issued event counts, resolved or not."""
+def input_drift(reference, recent, *, ref_weeks, recent_weeks) -> list:
+    """Warnings for the recent block against the held-out 8-week blocks' 2.5–97.5 % range: median PIT σ,
+    mean B0 BREAK probability (position) and events per week."""
     rw = sorted(set(int(w) for w in ref_weeks))
     blocks = [rw[i:i + INPUT_BLOCK_WEEKS] for i in range(0, len(rw) - INPUT_BLOCK_WEEKS + 1, INPUT_BLOCK_WEEKS)]
     if len(blocks) < 5:
@@ -438,217 +651,22 @@ def input_drift(reference: Sequence[Mapping[str, Any]], recent: Sequence[Mapping
     return out
 
 
-# ---- monitor snapshot ------------------------------------------------------------------------------
-@dataclass(frozen=True)
-class Monitors:
-    n_live: int                       # resolved live records of the class (whole version)
-    n_epoch: int                      # resolved records since the current epoch began
-    e_value: float                    # e-process of the current epoch
-    e_max: float
-    roll_citl: Mapping[str, Any]      # head -> citl over the last ROLL_N records
-    live_citl: Mapping[str, Any]      # head -> citl over all live records
-    live_slope: Mapping[str, Any]     # head -> slope over all live records
-    epoch_citl: Mapping[str, Any]     # head -> citl since the epoch began
-    roll_ll_vs_b0: Mapping[str, Any]  # paired log loss, B0 minus published, last ROLL_N
-    epoch_ll_vs_b0: Mapping[str, Any]
-    large_correction: bool
-    input_warnings: tuple = ()
-
-    def to_dict(self) -> dict:
-        return asdict(self)
+# ---- display contract for F2 (design §9) -------------------------------------------------------------
+TEMPLATES = {"L3_HISTORY_BACKED": ("LR_L3H_V1", "LR_PUSH_L3H_V1"), "L3_LIVE": ("LR_L3L_V1", "LR_PUSH_L3L_V1"),
+             "FALLBACK": ("LR_FB_V1", "LR_PUSH_FB_V1"), "OFF": ("LR_OFF_V1", "LR_PUSH_OFF_V1"), "HIST": ("HIST", "HIST")}
 
 
-def monitors(live: Sequence[Mapping[str, Any]], *, epoch_start: int = 0, cal: Optional[Calibrator] = None,
-             raw_logits_by_head: Optional[Mapping[str, Sequence[float]]] = None,
-             input_warnings: Sequence[str] = ()) -> Monitors:
-    """Monitor statistics from the resolved live records of one class, in issue order. Records carry
-    p_pub (published, shown or not), p_ref (raw under the frozen held-out calibrator; the e-process
-    uses it so that the batched calibrator cannot absorb a drift before it is detected; p_pub when
-    absent), p_b0, outcome and week. `epoch_start` indexes the record where
-    the current epoch began (the version start or the last state change into or out of FALLBACK)."""
-    ep = list(live[epoch_start:])
-    key = E_KEY if ep and E_KEY in ep[0] else "p_pub"
-    path = e_path(e_increments(ep, key))
-    roll = list(live[-ROLL_N:])
-    ha, hr, he = head_arrays(live, "p_pub"), head_arrays(roll, "p_pub"), head_arrays(ep, "p_pub")
-    return Monitors(
-        n_live=len(live), n_epoch=len(ep),
-        e_value=float(path[-1]) if path.size else 1.0, e_max=float(path.max()) if path.size else 1.0,
-        roll_citl={h: citl(*hr[h], zq=ROLL_Z) for h in HEADS}, live_citl={h: citl(*ha[h]) for h in HEADS},
-        live_slope={h: cal_slope(*ha[h]) for h in HEADS}, epoch_citl={h: citl(*he[h]) for h in HEADS},
-        roll_ll_vs_b0=paired_log_loss(roll, "p_pub", "p_b0", zq=ROLL_Z), epoch_ll_vs_b0=paired_log_loss(ep, "p_pub", "p_b0"),
-        large_correction=bool(cal is not None and large_correction(cal, raw_logits_by_head or {})),
-        input_warnings=tuple(input_warnings))
-
-
-# ---- held-out gate (design §2) -------------------------------------------------------------------
-def holdout_gate(records: Sequence[Mapping[str, Any]]) -> dict:
-    """The one-shot held-out check of one class. Records carry p_raw, p_pub (walk-forward published:
-    the calibrator at each record fitted only on held-out outcomes resolved before it), p_b0, outcome
-    and week. Passed when, for each head, the walk-forward published |intercept| ≤ 5 pp and its fitted
-    recalibration curve stays within 7.5 pp of the identity, the raw |intercept| ≤ 10 pp, and at least
-    20 weeks are present."""
-    pub, raw = head_arrays(records, "p_pub"), head_arrays(records, "p_raw")
-    heads, ok = {}, len({int(r["week"]) for r in records}) >= HOLDOUT_MIN_WEEKS
-    for h in HEADS:
-        c, s, cr = citl(*pub[h]), cal_slope(*pub[h]), citl(*raw[h])
-        hp = (c["est"] is not None and abs(c["est"]) <= HOLDOUT_CITL_PP and s["curve_dev_pp"] is not None
-              and s["curve_dev_pp"] <= HOLDOUT_CURVE_PP and abs(cr["est"]) <= HOLDOUT_RAW_CITL_PP)
-        heads[h] = {"citl": c, "slope": s, "raw_citl": cr, "passed": bool(hp)}
-        ok = ok and hp
-    return {"passed": bool(ok), "n": len(records), "weeks": len({int(r["week"]) for r in records}),
-            "heads": heads, "ll_vs_b0": paired_log_loss(records, "p_pub", "p_b0")}
-
-
-BEATS_B0_Z = 1.644854           # M1 is published when gain − BEATS_B0_Z·SE > 0 (one-sided 95 %)
-
-
-def beats_b0(gate_m1: Mapping[str, Any]) -> bool:
-    """M1 is published only when the week-clustered lower bound of its log-loss gain over B0 is above 0;
-    otherwise the calibrated B0 is published and no level effect is claimed (FORECAST_LAYER §6)."""
-    ll = gate_m1.get("ll_vs_b0") or {}
-    if ll.get("lo") is None:
-        return False
-    se = (ll["est"] - ll["lo"]) / Z95
-    return ll["est"] - BEATS_B0_Z * se > 0
-
-
-# ---- state machine (design §7) -------------------------------------------------------------------
-STATES = ("HIST", "L3_HISTORY_BACKED", "L3_LIVE", "FALLBACK", "OFF")
-
-
-@dataclass(frozen=True)
-class Health:
-    data_fresh: bool = True
-    parity_ok: bool = True
-    journal_ok: bool = True
-    coverage_ok: bool = True
-
-    def ok(self) -> bool:
-        return self.data_fresh and self.parity_ok and self.journal_ok and self.coverage_ok
-
-    def faults(self) -> tuple:
-        return tuple(k for k, v in asdict(self).items() if not v)
-
-
-@dataclass(frozen=True)
-class StateRecord:
-    state: str
-    since_ms: int
-    epoch_start: int = 0              # index of the first resolved live record of the current epoch
-    fallbacks: int = 0
-    before_off: Optional[str] = None
-    reason: str = "start"
-    model_version: str = ""
-    version: str = LR_STATE_VERSION
-
-    def to_dict(self) -> dict:
-        return asdict(self)
-
-
-def initial_state(*, holdout_passed: bool, model_version: str, now_ms: int) -> StateRecord:
-    return StateRecord("L3_HISTORY_BACKED" if holdout_passed else "HIST", int(now_ms),
-                       reason="holdout_passed" if holdout_passed else "holdout_not_passed",
-                       model_version=model_version)
-
-
-def drift_reasons(m: Monitors) -> list:
-    out = []
-    if m.e_value >= E_THRESHOLD:
-        out.append("e_process")
-    for h in HEADS:
-        c = m.roll_citl[h]
-        if c["n"] >= ROLL_N // 2 and c["lo"] is not None and (c["lo"] > ROLL_CITL_BAND_PP or c["hi"] < -ROLL_CITL_BAND_PP):
-            out.append(f"rolling_intercept:{h}")
-    ll = m.roll_ll_vs_b0
-    if ll.get("clusters", 0) >= ROLL_LL_MIN_WEEKS and ll.get("hi") is not None and ll["hi"] < 0:
-        out.append("worse_than_b0")
-    if m.large_correction:
-        out.append("large_correction")
-    return out
-
-
-def live_ok(m: Monitors) -> bool:
-    for h in HEADS:
-        c, s = m.live_citl[h], m.live_slope[h]
-        if c["est"] is None or abs(c["est"]) > LIVE_CITL_PP:
-            return False
-        if s["curve_dev_pp"] is None or s["curve_dev_pp"] > LIVE_CURVE_PP:
-            return False
-    return True
-
-
-def recovered(m: Monitors) -> bool:
-    if m.n_epoch < RETURN_MIN_EVENTS or m.e_value >= 1.0:
-        return False
-    for h in HEADS:
-        c = m.epoch_citl[h]
-        if c["est"] is None or abs(c["est"]) > RETURN_CITL_PP:
-            return False
-    ll = m.epoch_ll_vs_b0
-    return not (ll.get("hi") is not None and ll["hi"] < 0)
-
-
-def next_state(prev: StateRecord, *, health: Health, mon: Optional[Monitors], now_ms: int) -> StateRecord:
-    """One deterministic step. Health is checked at every call (OFF at once); the model rules are
-    evaluated when `mon` is given (at each batch cutoff). `mon.epoch_start` follows `prev.epoch_start`."""
-    if not health.ok():
-        if prev.state == "OFF":
-            return prev
-        return replace(prev, state="OFF", since_ms=now_ms, before_off=prev.state,
-                       reason="health:" + ",".join(health.faults()))
-    if prev.state == "OFF":
-        return replace(prev, state=prev.before_off or "HIST", since_ms=now_ms, before_off=None, reason="health_ok")
-    if mon is None or prev.state == "HIST":
-        return prev
-    if prev.state in ("L3_HISTORY_BACKED", "L3_LIVE"):
-        why = drift_reasons(mon)
-        if why:
-            return replace(prev, state="FALLBACK", since_ms=now_ms, epoch_start=mon.n_live,
-                           fallbacks=prev.fallbacks + 1, reason="drift:" + ",".join(why))
-        if prev.state == "L3_HISTORY_BACKED" and mon.n_live >= LIVE_FLOOR and live_ok(mon):
-            return replace(prev, state="L3_LIVE", since_ms=now_ms, reason="live_floor_reached")
-        return prev
-    if prev.state == "FALLBACK":
-        if prev.fallbacks >= MAX_FALLBACKS or not recovered(mon) or drift_reasons(mon):
-            return prev
-        to = "L3_LIVE" if mon.n_live >= LIVE_FLOOR and live_ok(mon) else "L3_HISTORY_BACKED"
-        return replace(prev, state=to, since_ms=now_ms, epoch_start=mon.n_live, reason="recovered")
-    return prev
-
-
-# ---- challengers (design §6) -------------------------------------------------------------------
-def challenger_look(paired: Sequence[Mapping[str, Any]]) -> Optional[dict]:
-    """At a look (150, 300, 450, 600 paired resolved events) the promotion verdict for a challenger whose
-    records carry p_pub (champion, published) and p_chal (challenger, its own walk-forward calibration).
-    Promoted when the week-clustered 95 % interval of the log-loss gain is above 0 and the challenger's
-    calibration is within the live tolerance. None between looks."""
-    n = len(paired)
-    if n < CHALLENGER_MIN_PAIRED or n % CHALLENGER_LOOK_EVERY or n > CHALLENGER_MAX_PAIRED:
-        return None
-    gain = paired_log_loss(paired, "p_chal", "p_pub")
-    ch = head_arrays(paired, "p_chal")
-    cal_ok = all(citl(*ch[h])["est"] is not None and abs(citl(*ch[h])["est"]) <= LIVE_CITL_PP for h in HEADS)
-    promoted = gain.get("lo") is not None and gain["lo"] > 0 and cal_ok
-    return {"n": n, "gain": gain, "calibration_ok": cal_ok, "promoted": bool(promoted),
-            "retired": bool(not promoted and n >= CHALLENGER_MAX_PAIRED)}
-
-
-# ---- the display contract for F2 (design §9) -----------------------------------------------------
-WORDING = {"HIST": "lr_hist_l2", "L3_HISTORY_BACKED": "lr_b_holdout", "L3_LIVE": "lr_b_live",
-           "FALLBACK": "lr_fallback_b0", "OFF": "lr_off"}
-
-
-def display_contract(st: StateRecord, *, published_model: str, calibrator_version: Optional[str],
-                     holdout_line: Optional[Mapping[str, Any]], live_line: Optional[Mapping[str, Any]]) -> dict:
-    """What the display layer (F2) reads for one class: the state, the template id, which probabilities
-    to print and which accuracy line. `published_model` is "M1" or "B0" (the held-out choice);
-    FALLBACK always prints the B0 / generic-race probabilities, OFF prints no number."""
-    probs = {"HIST": None, "OFF": None, "FALLBACK": "B0_GENERIC"}.get(st.state, published_model)
-    return {"version": LR_STATE_VERSION, "state": st.state, "since_ms": st.since_ms, "reason": st.reason,
-            "template": WORDING[st.state], "probabilities": probs,
-            "level_effect_claimed": bool(probs == "M1"),
-            "calibrator_version": calibrator_version if probs in ("M1", "B0") else None,
-            "accuracy_line": {"L3_HISTORY_BACKED": "holdout", "L3_LIVE": "live"}.get(st.state),
-            "holdout_line": holdout_line if st.state in ("L3_HISTORY_BACKED", "L3_LIVE") else None,
-            "live_line": live_line if st.state in ("L3_HISTORY_BACKED", "L3_LIVE") else None}
+def display_contract(st: StateRecord, setup: Setup, *, calibrator_version: Optional[str]) -> dict:
+    """What F2 reads per class: state, template ids (full, push), which probabilities to print
+    ("CHAMPION" with its class intercept, "FALLBACK" = G1@event with the GENERIC intercept, None) and
+    which accuracy line. HIST keeps F1 §0 templates and table."""
+    probs = None
+    if st.state in ("L3_HISTORY_BACKED", "L3_LIVE"):
+        probs = "CHAMPION" if setup.case == "A" else "FALLBACK"
+    elif st.state == "FALLBACK":
+        probs = "FALLBACK"
+    full, push = TEMPLATES[st.state]
+    return {"version": LR_STATE_VERSION, "mode": setup.mode, "case": setup.case, "state": st.state,
+            "since_ms": st.since_ms, "reason": st.reason, "template": full, "push_template": push,
+            "probabilities": probs, "calibrator_version": calibrator_version if probs else None,
+            "accuracy_line": {"L3_HISTORY_BACKED": "holdout", "L3_LIVE": "live", "FALLBACK": "generic"}.get(st.state)}

@@ -3,19 +3,23 @@ docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md §8).
 
 Input: JSON lines, one resolved forecast each (the claim journal export; synthetic in tests):
     {"claim_class": "L3_LEVEL_RACE_T15_4H", "t_ms": ..., "week": ..., "outcome": "BREAK|REJECT|NEITHER",
-     "p_raw": [b, r, n], "p_pub": [b, r, n], "p_b0": [b, r, n], "p_b1": [b, r, n] (optional),
+     "p_raw": [b, r, n], "p_pub": [b, r, n], "p_b0": [b, r, n],
+     "p_g1": [b, r, n] (raw G1@event, the «обычно» of the model states), "p_fb": [b, r, n] (fallback model),
+     "p_b1": [b, r, n] (optional),
      "challengers": {"C1": [b, r, n], ...} (optional, the challenger's own published probabilities)}
 Records whose outcome is not one of the three are skipped (UNKNOWN, NO_DATA).
 
 Metrics per class, in the order of §5, for raw and published probabilities separately:
-1. log-loss skill against B0 (and B1), with week-clustered intervals of the paired difference;
+1. log-loss skill against B0, G1@event, the fallback model (and B1), week-clustered paired intervals;
 2. calibration intercept (pp) and slope per head with intervals, and a 5-bin reliability table per outcome;
 3. Brier score (three categories) and, per outcome, its reliability / resolution / uncertainty parts;
 4. sharpness: share of forecasts outside 40–60 % per outcome;
 5. AUC per outcome (one against the rest), a diagnostic;
-plus ECE (5 bins, descriptive) and the paired challenger comparisons.
+plus ECE (5 bins, descriptive) and the paired challenger comparisons. `--cut` dates (dated layer
+events, FORECAST_LAYER §6a) split every class into segments that are reported separately.
 
     python -m scripts.research.level_race_weekly_report journal.jsonl --out report.json [--md report.md]
+        [--cut 2026-11-02T00:00Z ...]
 """
 from __future__ import annotations
 
@@ -88,8 +92,8 @@ def block(recs: Sequence[Mapping[str, Any]], key: str) -> dict:
     y3 = np.array([[1.0 if x == k else 0.0 for k in L.OUTCOMES] for x in o])
     ll = L.log_loss3(p3, o)
     out: dict = {"log_loss": _r(ll.mean(), 5)}
-    for ref in ("p_b0", "p_b1"):
-        if all(ref in r for r in recs):
+    for ref in ("p_b0", "p_g1", "p_fb", "p_b1"):
+        if ref != key and all(ref in r for r in recs):
             lr = L.log_loss3(np.array([r[ref] for r in recs]), o)
             d = L.paired_log_loss(recs, key, ref)
             out[f"skill_vs_{ref[2:].upper()}"] = {"skill": _r(1 - ll.mean() / lr.mean()), "ll_gain": _ci(d)}
@@ -97,7 +101,7 @@ def block(recs: Sequence[Mapping[str, Any]], key: str) -> dict:
     out["heads"] = {}
     for h in L.HEADS:
         c, s = L.citl(*heads[h]), L.cal_slope(*heads[h])
-        out["heads"][h] = {"intercept_pp": _ci(c, 2), "slope": _ci(s, 3), "curve_dev_pp": _r(s.get("curve_dev_pp"), 2)}
+        out["heads"][h] = {"intercept_pp": _ci(c, 2), "slope": _ci(s, 3), "recal_intercept": _r(s.get("a"), 3)}
     out["brier3"] = _r(float(np.mean(np.sum((p3 - y3) ** 2, axis=1))), 5)
     out["outcomes"] = {}
     for k, name in enumerate(L.OUTCOMES):
@@ -125,22 +129,35 @@ def class_report(recs: Sequence[Mapping[str, Any]]) -> dict:
     return rep
 
 
-def report(rows: Sequence[Mapping[str, Any]]) -> dict:
+def report(rows: Sequence[Mapping[str, Any]], cuts_ms: Sequence[int] = ()) -> dict:
     by = defaultdict(list)
     for r in rows:
         if r.get("outcome") in L.OUTCOMES:
             by[r["claim_class"]].append(r)
-    return {"version": "LEVEL_RACE_WEEKLY_REPORT_V1", "calibration_version": L.LR_CAL_VERSION,
-            "skipped_unresolved": sum(1 for r in rows if r.get("outcome") not in L.OUTCOMES),
-            "classes": {c: class_report(v) for c, v in sorted(by.items())}}
+    out = {"version": "LEVEL_RACE_WEEKLY_REPORT_V1", "calibration_version": L.LR_CAL_VERSION,
+           "skipped_unresolved": sum(1 for r in rows if r.get("outcome") not in L.OUTCOMES),
+           "cuts_ms": sorted(int(x) for x in cuts_ms), "classes": {}}
+    for c, v in sorted(by.items()):
+        if not cuts_ms:
+            out["classes"][c] = class_report(v)
+            continue
+        out["classes"][c] = {"segments": [{"start_ms": lo, "end_ms": hi, **class_report(seg)}
+                                          for lo, hi, seg in L.split_by_events(v, cuts_ms) if seg]}
+    return out
 
 
 def markdown(rep: Mapping[str, Any]) -> str:
     lines = ["# Level race — weekly report", ""]
+    items = []
     for c, cr in rep["classes"].items():
+        if "segments" in cr:
+            items += [(f"{c} · segment from {s['start_ms']}", s) for s in cr["segments"]]
+        else:
+            items.append((c, cr))
+    for c, cr in items:
         lines += [f"## {c}", "", f"N = {cr['n']}, weeks = {cr['weeks']}, shares {cr['outcome_shares']}", ""]
         lines += ["| | raw | published |", "|---|---|---|"]
-        for k in ("skill_vs_B0", "skill_vs_B1"):
+        for k in ("skill_vs_B0", "skill_vs_G1", "skill_vs_FB", "skill_vs_B1"):
             if k in cr["published"]:
                 f = lambda b: f"{b[k]['skill']} (gain {b[k]['ll_gain']['est']} [{b[k]['ll_gain']['lo']}, {b[k]['ll_gain']['hi']}])"
                 lines.append(f"| log-loss skill {k[-2:]} | {f(cr['raw'])} | {f(cr['published'])} |")
@@ -165,10 +182,13 @@ def main():
     ap.add_argument("journal")
     ap.add_argument("--out", required=True)
     ap.add_argument("--md", default="")
+    ap.add_argument("--cut", action="append", default=[], help="ISO time of a dated layer event")
     a = ap.parse_args()
+    from datetime import datetime
+    cuts = [int(datetime.fromisoformat(x.replace("Z", "+00:00")).timestamp() * 1000) for x in a.cut]
     with open(a.journal) as f:
         rows = [json.loads(x) for x in f if x.strip()]
-    rep = report(rows)
+    rep = report(rows, cuts)
     with open(a.out, "w") as f:
         json.dump(rep, f, indent=1, sort_keys=True)
         f.write("\n")

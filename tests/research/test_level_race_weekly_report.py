@@ -48,6 +48,9 @@ def test_report_structure_and_skill(tmp_path):
     assert set(cr["published"]["heads"]) == set(L.HEADS)
     assert set(cr["published"]["outcomes"]) == set(L.OUTCOMES)
     assert cr["challengers"]["C1"]["ll_gain_over_champion"]["est"] == 0.0
+    seg = R.report(rows, [200 * 10 ** 7])["classes"]["L3_LEVEL_RACE_T15_4H"]["segments"]
+    assert [x["n"] for x in seg] == [200, 200]
+    assert "segment" in R.markdown(R.report(rows, [200 * 10 ** 7]))
     path = tmp_path / "j.jsonl"
     path.write_text("\n".join(json.dumps(r) for r in rows))
     assert "L3_LEVEL_RACE_T15_4H" in R.markdown(rep)

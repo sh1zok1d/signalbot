@@ -1,11 +1,12 @@
-"""Synthetic operating characteristics of the level race gates, monitors and state machine.
+"""Synthetic operating characteristics of the level race calibrator, gates, monitors and states.
 
-Design note: docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md. Synthetic data only: no
-market bar and no real outcome is read. The worlds use the planning numbers recorded in
-docs/FORECAST_LAYER_DECISION_V1.md §2 and §4 (event rates, outcome shares, the B0 spread at T+15m, the
-structural BREAK offset) and nothing else.
+Design note: docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md. Synthetic data only: no market
+bar and no real outcome is read. The worlds use planning numbers from docs/FORECAST_LAYER_DECISION_V1.md
+§2/§4 and the descriptive development numbers F1 recorded and the mini-head relayed
+(LEVEL_RACE_FORECAST_V1_DESIGN.md §11b: level − generic intercepts R +0.92 / B +0.33, head B slope 0.78);
+those are disclosed as dev-informed in the design note.
 
-    python -m scripts.research.level_race_calibration_sim --reps 400 --out docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_SIM.json
+    python -m scripts.research.level_race_calibration_sim --reps 200 --out docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_SIM.json
 """
 from __future__ import annotations
 
@@ -22,233 +23,238 @@ from beta import level_race_calibration as L
 WEEK_MS = 7 * 86_400_000
 HOUR4_MS = 4 * 3_600_000
 SEED = 20261008
-HOLDOUT_WEEKS = 84          # 2025-01-01 → about 2026-08, minus the E1 holdout window
+HOLDOUT_WEEKS = 84
 LIVE_WEEKS = 104
+LEVELS = ("LEVEL_T0", "LEVEL_T15")
 
 
 @dataclass(frozen=True)
 class World:
-    name: str
-    rate: float              # events per week
-    mu_a: float              # logit P(resolve)
-    sd_a: float              # spread of the per-event logit P(resolve) known to the model
-    mu_b: float              # logit P(BREAK | resolve) of B0 (geometry)
-    sd_b: float
-    offset: float = 0.35     # structural BREAK offset over B0 (≈ +9 pp, FORECAST_LAYER §2), known to M1
-    tau: float = 0.0         # week random effect (logit), unknown to every model
-    m1_noise: float = 0.10   # error of M1's offset estimate (sd, logit)
-    # raw-model miscalibration on the held-out and live periods (head B / head A)
-    raw_shift_b: float = 0.0
-    raw_shift_a: float = 0.0
-    raw_slope_b: float = 1.0
-    # live drift: true shift from live week drift_week on
-    drift_b: float = 0.0
-    drift_a: float = 0.0
+    tau: float = 0.25                 # weekly random effect (logit) on every class and head, unknown to models
+    gen_rate: float = 40.0            # independent generic 4h windows per week
+    t0_rate: float = 7.5
+    t15_rate: float = 5.0
+    off_r: tuple = (1.07, 0.74)       # level − generic intercept, head R (T0, T15): F1 dev
+    off_b: tuple = (0.33, 0.32)       # head B
+    b0_gap_r: float = 0.45            # raw B0 misses part of the level offset (dev: B0 CITL +5.7 / −4.1 pp)
+    b0_gap_b: float = 0.20
+    level_slope_b: float = 1.0        # truth slope of head B on the level classes vs M1 (R3: 0.78)
+    generic_slope_b: float = 1.0      # truth slope of head B on the generic stream vs G1
+    m1_noise: float = 0.10            # M1 estimation error of its level terms (logit SD)
+    shift_b: float = 0.0              # held-out + live miscalibration of M1 head B (logit)
+    drift_b: float = 0.0              # live drift of the level truth, head B, from live week drift_week
+    drift_r: float = 0.0
     drift_week: int = 26
-    challenger_beta: float = 0.0   # effect of a challenger covariate z ~ N(0, 1) on head B (logit)
+    level_effect: float = 1.0         # 0: no level effect in truth (M1's offset wrong)
+    chal_beta: float = 0.0            # C1 covariate effect on head B, T15 only
+    s_level: float = 1.0
+    level_raw_fb: bool = False        # level rows feed the calibrator G1@event raw (F1 R2 diagnostic) instead of M1
 
 
-T0 = World("T0", rate=7.5, mu_a=L.logit(0.90).item(), sd_a=0.4, mu_b=L.logit(0.43).item(), sd_b=0.5)
-T15 = World("T15", rate=5.0, mu_a=L.logit(0.86).item(), sd_a=0.4, mu_b=L.logit(0.37).item(), sd_b=1.0)
+def _cls_params(w: World, c: str):
+    if c == "GENERIC":
+        return dict(rate=w.gen_rate, mu_r=L.logit(0.75).item(), sd_r=0.6, mu_b=0.0, sd_b=1.0, off_r=0.0, off_b=0.0)
+    k = LEVELS.index(c)
+    return dict(rate=(w.t0_rate, w.t15_rate)[k], mu_r=L.logit(0.75).item(), sd_r=0.5, mu_b=-0.3,
+                sd_b=(0.5, 1.0)[k], off_r=w.off_r[k] * w.level_effect, off_b=w.off_b[k] * w.level_effect)
 
 
-def gen(w: World, weeks: int, rng, *, live: bool):
-    n_wk = rng.poisson(w.rate, size=weeks)
+def gen(w: World, c: str, weeks: int, week0: int, rng, *, live: bool, u):
+    p = _cls_params(w, c)
+    n_wk = rng.poisson(p["rate"], size=weeks)
     week = np.repeat(np.arange(weeks), n_wk)
     n = week.size
-    t_ms = np.sort(week * WEEK_MS + (rng.random(n) * WEEK_MS).astype(np.int64))
-    ua, ub = rng.normal(0, w.tau, weeks), rng.normal(0, w.tau, weeks)
-    za, zb, zc = rng.normal(size=n), rng.normal(size=n), rng.normal(size=n)
-    la_model = w.mu_a + w.sd_a * za
-    lb_b0 = w.mu_b + w.sd_b * zb
-    lb_true_mean = lb_b0 + w.offset
-    drift_on = (week >= w.drift_week) if live else np.zeros(n, bool)
-    la_true = la_model + ua[week] + w.drift_a * drift_on
-    lb_true = lb_true_mean + ub[week] + w.drift_b * drift_on + w.challenger_beta * zc
-    ya = (rng.random(n) < L.expit(la_true)).astype(float)
-    yb = (rng.random(n) < L.expit(lb_true)).astype(float)
-    m1_off = w.offset + rng.normal(0, w.m1_noise)
-    lb_m1 = w.raw_shift_b + w.raw_slope_b * (lb_b0 + m1_off - w.mu_b) + w.mu_b
-    la_m1 = la_model + w.raw_shift_a
-    beta_hat = w.challenger_beta + rng.normal(0, w.m1_noise)   # the challenger's coefficient is estimated
-    lb_chal = lb_m1 + beta_hat * zc
-    out = {"week": week, "t_ms": t_ms, "ya": ya, "yb": yb, "zc": zc,
-           "m1": L.probs_from_heads(L.expit(la_m1), L.expit(lb_m1)),
-           "b0": L.probs_from_heads(L.expit(la_model), L.expit(lb_b0)),
-           "chal": L.probs_from_heads(L.expit(la_m1), L.expit(lb_chal))}
-    out["outcome"] = np.where(ya == 0, "NEITHER", np.where(yb == 1, "BREAK", "REJECT"))
-    return out
+    t_ms = np.sort(week * WEEK_MS + (rng.random(n) * WEEK_MS).astype(np.int64)) + week0 * WEEK_MS
+    zr, zb, zc = rng.normal(size=n), rng.normal(size=n), rng.normal(size=n)
+    lvl = c != "GENERIC"
+    k = LEVELS.index(c) if lvl else 0
+    g1_r = p["mu_r"] + p["sd_r"] * zr                    # generic model (G1, or G1@event at a level)
+    g1_b = p["mu_b"] + p["sd_b"] * zb
+    m1_r = g1_r + (w.off_r[k] + rng.normal(0, w.m1_noise) if lvl else 0.0)
+    m1_b = g1_b + (w.off_b[k] + rng.normal(0, w.m1_noise) + w.shift_b if lvl else 0.0)
+    slope = w.level_slope_b if lvl else w.generic_slope_b
+    tr_r = g1_r + p["off_r"]
+    tr_b_mean = g1_b + p["off_b"]
+    centre = p["mu_b"] + p["off_b"]
+    tr_b = centre + slope * (tr_b_mean - centre)
+    on = (week >= w.drift_week) if (live and lvl) else np.zeros(n, bool)
+    tr_r = tr_r + u[week + week0] + w.drift_r * on
+    tr_b = tr_b + u[week + week0] + w.drift_b * on
+    if c == "LEVEL_T15":
+        tr_b = tr_b + w.chal_beta * zc
+    ya = rng.random(n) < L.expit(tr_r)
+    yb = rng.random(n) < L.expit(tr_b)
+    outcome = np.where(~ya, "NEITHER", np.where(yb, "BREAK", "REJECT"))
+    m1 = L.probs_from_heads(L.expit(m1_r), L.expit(m1_b))
+    fb = L.probs_from_heads(L.expit(g1_r), L.expit(g1_b))
+    b0 = L.probs_from_heads(L.expit(m1_r - w.b0_gap_r * lvl), L.expit(m1_b - w.b0_gap_b * lvl))
+    beta_hat = w.chal_beta + rng.normal(0, w.m1_noise)
+    chal = L.probs_from_heads(L.expit(m1_r), L.expit(m1_b + beta_hat * zc)) if c == "LEVEL_T15" else m1
+    return [{"cal_class": c, "t_ms": int(t_ms[i]), "resolved_ms": int(t_ms[i] + HOUR4_MS),
+             "week": int(week[i] + week0), "outcome": str(outcome[i]), "weight": 1.0,
+             "p_raw": (m1[i] if lvl and not w.level_raw_fb else fb[i]).tolist(), "p_fb_raw": fb[i].tolist(),
+             "p_b0": b0[i].tolist(), "p_chal_raw": chal[i].tolist()} for i in range(n)]
 
 
-def records(d, *, t0_ms: int = 0, week0: int = 0):
-    return [{"t_ms": int(t0_ms + d["t_ms"][i]), "resolved_ms": int(t0_ms + d["t_ms"][i] + HOUR4_MS),
-             "week": int(week0 + d["week"][i]), "outcome": str(d["outcome"][i]),
-             "p_raw": d["m1"][i].tolist(), "p_b0": d["b0"][i].tolist(), "p_chal_raw": d["chal"][i].tolist()}
-            for i in range(d["week"].size)]
-
-
-def walk_forward(recs, priors, *, start_ms: int, end_ms: int, raw_key="p_raw", pub_key="p_pub"):
-    """Publish each record with the calibrator of the last cutoff before it (the prior before the first
-    cutoff); returns the calibrator fitted on every record (the held-out fit)."""
-    cuts = L.batch_cutoffs(start_ms, end_ms)
-    cal = L.make_calibrator("SIM", start_ms, {h: {**priors[h], "n": 0} for h in L.HEADS}, priors)
-    ci = -1
-    for r in recs:
+def publish(recs, prior, cuts):
+    """Walk forward: each record gets the calibrator of the last cutoff ≤ its issue time."""
+    order = sorted(recs, key=lambda r: r["t_ms"])
+    cal, ci, cals = L.prior_calibrator(prior), -1, []
+    for r in order:
         while ci + 1 < len(cuts) and cuts[ci + 1] <= r["t_ms"]:
             ci += 1
-            cal = _fit_key(recs, priors, cuts[ci], raw_key)
-        r[pub_key] = L.apply_calibrator(cal, r[raw_key]).tolist()
-    return _fit_key(recs, priors, end_ms + 1, raw_key)
+            cal = L.fit_calibrator(order, prior, cutoff_ms=cuts[ci])
+            cals.append((cuts[ci], cal))
+        r["_cal"] = cal
+    return order, cals
 
 
-def _fit_key(recs, priors, cutoff, key):
-    tmp = recs if key == "p_raw" else [{**r, "p_raw": r[key]} for r in recs]
-    return L.fit_calibrator("SIM", tmp, priors, cutoff_ms=cutoff)
+def stamp(recs, case):
+    for r in recs:
+        cal = r.pop("_cal")
+        if r["cal_class"] == "GENERIC":
+            continue
+        r["p_champ"] = L.apply_calibrator(cal, r["p_raw"], r["cal_class"]).tolist()
+        r["p_fb"] = L.apply_calibrator(cal, r["p_fb_raw"], "GENERIC").tolist()
+        r["p_pub"] = r["p_champ"] if case[r["cal_class"]] == "A" else r["p_fb"]
 
 
-def raw_logits_by_head(recs, key="p_raw"):
-    arr = L.head_arrays(recs, key)
-    return {h: L.logit(arr[h][0]) for h in L.HEADS}
-
-
-# ---- one replication -------------------------------------------------------------------------------
 def rep(args):
     w, seed, mode = args
     rng = np.random.default_rng(seed)
-    ho = records(gen(w, HOLDOUT_WEEKS, rng, live=False))
+    u = rng.normal(0, w.tau, HOLDOUT_WEEKS + LIVE_WEEKS)
+    prior0 = {h: L.identity_prior(w.s_level) for h in L.HEADS}
+    ho = [r for c in L.CAL_CLASSES for r in gen(w, c, HOLDOUT_WEEKS, 0, rng, live=False, u=u)]
     ho_end = HOLDOUT_WEEKS * WEEK_MS
-    design = raw_logits_by_head(ho)
-    base = L.identity_priors(design)
-    ho_cal = walk_forward(ho, base, start_ms=0, end_ms=ho_end)
-    gate = L.holdout_gate(ho)
-    res = {"gate": gate["passed"], "beats_b0": L.beats_b0(gate),
-           "ho_ll_gain": gate["ll_vs_b0"]["est"],
-           "ho_citl": {h: gate["heads"][h]["citl"]["est"] for h in L.HEADS},
-           "ho_slope": {h: gate["heads"][h]["slope"]["est"] for h in L.HEADS},
-           "ho_curve": {h: gate["heads"][h]["slope"]["curve_dev_pp"] for h in L.HEADS},
-           "ho_head_pass": {h: gate["heads"][h]["passed"] for h in L.HEADS},
-           "ho_raw_citl": {h: gate["heads"][h]["raw_citl"]["est"] for h in L.HEADS}}
+    ho, _ = publish(ho, prior0, L.batch_cutoffs(0, ho_end))
+    ho_final = L.fit_calibrator(ho, prior0, cutoff_ms=ho_end + 1)
+    stamp(ho, {c: "A" for c in LEVELS})
+    case, setup, res = {}, {}, {"classes": {}}
+    for c in LEVELS:
+        rc = [r for r in ho if r["cal_class"] == c]
+        a = L.beats(rc, "p_raw", "p_b0") and L.beats(rc, "p_raw", "p_fb_raw")
+        case[c] = "A" if a else "B"
+        for r in rc:
+            r["p_pub"] = r["p_champ"] if a else r["p_fb"]
+        g, gc = L.gates(rc, "p_pub"), L.gates(rc, "p_champ")
+        fb_g2 = L.g2_only(rc, "p_fb")
+        setup[c] = L.Setup(mode="MODEL", case=case[c], holdout_passed=g["passed"], fallback_g2_holdout=fb_g2)
+        res["classes"][c] = {
+            "case": case[c], "gate": g["passed"], "G1": g["G1"]["pass"], "G2": g["G2"]["pass"], "G3": g["G3"]["pass"],
+            "champ_gate": gc["passed"], "champ_G2": gc["G2"]["pass"], "champ_G3": gc["G3"]["pass"],
+            "champ_slope_B": gc["G3"]["heads"]["B"]["est"], "fb_g2": fb_g2, "n_ho": len(rc),
+            "citl_champ": {o: gc["G2"]["outcomes"][o]["est"] for o in L.OUTCOMES}}
+    res["ho_b"], res["ho_r"] = ho_final.heads["B"]["mean"], ho_final.heads["R"]["mean"]
     if mode == "holdout":
         return res
-    # live
-    lp = L.live_priors(ho_cal, design)
-    t0 = ho_end
-    live = records(gen(w, LIVE_WEEKS, rng, live=True), t0_ms=t0, week0=HOLDOUT_WEEKS)
-    cuts = L.batch_cutoffs(t0, t0 + LIVE_WEEKS * WEEK_MS)
-    # publish every live record with the calibrator of its last cutoff (shadow: published or not)
-    cal, ci, cals = L.make_calibrator("SIM", t0, {h: {**lp[h], "n": 0} for h in L.HEADS}, lp), -1, {}
-    for r in live:
-        while ci + 1 < len(cuts) and cuts[ci + 1] <= r["t_ms"]:
-            ci += 1
-            cal = L.fit_calibrator("SIM", [x for x in live if x["resolved_ms"] < cuts[ci]], lp, cutoff_ms=cuts[ci])
-            cals[ci] = cal
-        r["p_pub"] = L.apply_calibrator(cal, r["p_raw"]).tolist()
-        if L.E_KEY == "p_ref":
-            r["p_ref"] = L.apply_calibrator(ho_cal, r["p_raw"]).tolist()
-    st = L.initial_state(holdout_passed=True, model_version="SIM", now_ms=t0)  # the gate is studied separately
-    trans, first = [], {}
-    e_thr = {10: None, 20: None, 50: None}
-    for k, c in enumerate(cuts):
-        done = [x for x in live if x["resolved_ms"] < c]
-        if not done:
-            continue
-        calk = cals.get(k)
-        mon = L.monitors(done, epoch_start=st.epoch_start, cal=calk, raw_logits_by_head=design)
-        wk = (c - t0) // WEEK_MS
-        # single-monitor first triggers from the version start (no state interplay)
-        m0 = mon if st.epoch_start == 0 else L.monitors(done, epoch_start=0, cal=calk, raw_logits_by_head=design)
-        for name in L.drift_reasons(m0):
-            first.setdefault(name.split(":")[0], int(wk))
-        for thr in e_thr:
-            if e_thr[thr] is None and m0.e_max >= thr:
-                e_thr[thr] = int(wk)
-        new = L.next_state(st, health=L.Health(), mon=mon, now_ms=c)
-        if new.state != st.state:
-            trans.append((int(wk), new.state, new.reason, len(done)))
-        st = new
-    res.update(transitions=trans, first_trigger=first, e_first=e_thr, final_state=st.state, n_live=len(live))
-    if w.challenger_beta or mode == "challenger":
-        _ = walk_forward(live, lp, start_ms=t0, end_ms=t0 + LIVE_WEEKS * WEEK_MS, raw_key="p_chal_raw",
-                         pub_key="p_chal")
-        looks = [L.challenger_look(live[:n]) for n in range(150, 601, 150) if n <= len(live)]
-        res["challenger"] = [None if x is None else {"n": x["n"], "promoted": x["promoted"],
-                                                     "gain": x["gain"]["est"]} for x in looks]
+    lp = L.live_prior(ho_final, ho)
+    live = [r for c in L.CAL_CLASSES for r in gen(w, c, LIVE_WEEKS, HOLDOUT_WEEKS, rng, live=True, u=u)]
+    cuts = L.batch_cutoffs(ho_end, ho_end + LIVE_WEEKS * WEEK_MS)
+    if mode == "challenger":
+        chal = [{**r, "p_raw": r["p_chal_raw"]} for r in live]
+        chal, _ = publish(chal, lp, cuts)
+        cmap = {(r["cal_class"], r["t_ms"]): L.apply_calibrator(r.pop("_cal"), r["p_raw"], r["cal_class"]).tolist()
+                for r in chal}
+    live, cals = publish(live, lp, cuts)
+    stamp(live, case)
+    if mode == "challenger":
+        t15 = [r for r in live if r["cal_class"] == "LEVEL_T15"]
+        for r in t15:
+            r["p_chal"], r["p_pub"] = cmap[("LEVEL_T15", r["t_ms"])], r["p_champ"]
+        looks = [L.challenger_look(t15[:n]) for n in (150, 300, 450, 600) if n <= len(t15)]
+        res["challenger"] = [{"n": x["n"], "promoted": x["promoted"], "gain": x["gain"]["est"]} for x in looks if x]
+        return res
+    res["live_b"] = cals[-1][1].heads["B"]["mean"] if cals else None
+    for c in LEVELS:
+        lv = [r for r in live if r["cal_class"] == c]
+        st = L.initial_state(setup[c], now_ms=ho_end)
+        trans, first = [(0, st.state, st.reason)], {}
+        fbk = "p_fb" if case[c] == "A" else None
+        for cut in cuts:
+            done = [r for r in lv if r["resolved_ms"] < cut]
+            if not done:
+                continue
+            wk = (cut - ho_end) // WEEK_MS
+            ep = min(st.epoch_start, len(done))
+            m = L.monitors(done, key="p_pub", epoch_start=ep, fallback_key=fbk)
+            mf = L.monitors(done, key="p_fb", epoch_start=ep, fallback_key=None) if fbk else None
+            m0 = m if ep == 0 else L.monitors(done, key="p_pub", epoch_start=0, fallback_key=fbk)
+            for why in L.drift_reasons(m0):
+                first.setdefault(why.split(":")[0], int(wk))
+            new = L.next_state(st, setup[c], health=L.Health(), mon=m, mon_fb=mf, now_ms=cut)
+            if new.state != st.state:
+                trans.append((int(wk), new.state, new.reason))
+            st = new
+        res["classes"][c].update(transitions=trans, first=first, final=st.state, n_live=len(lv))
     return res
 
 
-# ---- scenarios ---------------------------------------------------------------------------------------
 def scenarios():
-    out = []
-    for base in (T0, T15):
-        for tau in (0.0, 0.25):
-            b = replace(base, tau=tau)
-            tag = f"{base.name}_tau{tau}"
-            out.append((f"null_{tag}", b, "live"))
-            for d in (0.3, 0.45, 0.6):
-                out.append((f"drift_b{d}_{tag}", replace(b, drift_b=d), "live"))
-                out.append((f"drift_b-{d}_{tag}", replace(b, drift_b=-d), "live"))
-            out.append((f"drift_a0.6_{tag}", replace(b, drift_a=0.6), "live"))
-            out.append((f"drift_a-0.6_{tag}", replace(b, drift_a=-0.6), "live"))
-            for sh in (0.2, 0.4, 0.6):
-                out.append((f"ho_shift_b{sh}_{tag}", replace(b, raw_shift_b=sh), "holdout"))
-            for sl in (0.7, 1.4):
-                out.append((f"ho_slope_b{sl}_{tag}", replace(b, raw_slope_b=sl), "holdout"))
-            for off in (0.0, 0.2, 0.35, 0.5):
-                out.append((f"ho_offset{off}_{tag}", replace(b, offset=off), "holdout"))
-            for beta in (0.0, 0.15, 0.3):
-                out.append((f"chal_beta{beta}_{tag}", replace(b, challenger_beta=beta), "challenger"))
+    base = World()
+    out = [("null", base, "live"), ("null_tau0", replace(base, tau=0.0), "live"),
+           ("r3_level_only", replace(base, level_slope_b=0.78), "live"),
+           ("r3_shared", replace(base, level_slope_b=0.78, generic_slope_b=0.78), "live"),
+           ("no_level_effect", replace(base, level_effect=0.0), "live")]
+    for d in (0.3, 0.45, 0.6):
+        out.append((f"drift_b+{d}", replace(base, drift_b=d), "live"))
+        out.append((f"drift_b-{d}", replace(base, drift_b=-d), "live"))
+    out += [("drift_r-0.6", replace(base, drift_r=-0.6), "live"), ("drift_r+0.6", replace(base, drift_r=0.6), "live")]
+    out += [(f"ho_shift_b{sh}", replace(base, shift_b=sh), "holdout") for sh in (0.2, 0.4, 0.6)]
+    out += [(f"ho_s_level{s}", replace(base, s_level=s), "holdout") for s in (0.5, 1.0, 1.5)]
+    out += [(f"ho_fbraw_s_level{s}", replace(base, s_level=s, level_raw_fb=True), "holdout") for s in (0.5, 1.0, 1.5)]
+    out += [(f"chal_beta{b}", replace(base, chal_beta=b), "challenger") for b in (0.0, 0.2, 0.35)]
     return out
 
 
-def summarize(name, w, mode, rs):
-    n = len(rs)
-    s = {"world": {k: (round(v, 4) if isinstance(v, float) else v) for k, v in w.__dict__.items()},
-         "mode": mode, "reps": n,
-         "gate_pass": np.mean([r["gate"] for r in rs]),
-         "beats_b0": np.mean([r["beats_b0"] for r in rs]),
-         "ho_ll_gain_mean": float(np.mean([r["ho_ll_gain"] for r in rs]))}
-    for h in L.HEADS:
-        s[f"ho_citl_sd_{h}"] = float(np.std([r["ho_citl"][h] for r in rs]))
-        s[f"ho_curve_p90_{h}"] = float(np.nanquantile([np.nan if r["ho_curve"][h] is None else r["ho_curve"][h]
-                                                        for r in rs], 0.9))
-        s[f"ho_head_pass_{h}"] = float(np.mean([r["ho_head_pass"][h] for r in rs]))
-        s[f"ho_slope_sd_{h}"] = float(np.nanstd([np.nan if r["ho_slope"][h] is None else r["ho_slope"][h] for r in rs]))
-    if mode in ("live", "challenger"):
-        def frac(pred):
-            return float(np.mean([pred(r) for r in rs]))
-        dw = w.drift_week
-        fb = [next((t for t in r["transitions"] if t[1] == "FALLBACK"), None) for r in rs]
-        live_at = [next((t[0] for t in r["transitions"] if t[1] == "L3_LIVE"), None) for r in rs]
-        s.update(
-            fallback_any=frac(lambda r: any(t[1] == "FALLBACK" for t in r["transitions"])),
-            fallback_by_52w=float(np.mean([f is not None and f[0] <= 52 for f in fb])),
-            fallback_before_drift=float(np.mean([f is not None and f[0] < dw for f in fb])),
-            fallback_within_26w_of_drift=float(np.mean([f is not None and dw <= f[0] < dw + 26 for f in fb])),
-            fallback_within_52w_of_drift=float(np.mean([f is not None and dw <= f[0] < dw + 52 for f in fb])),
-            median_weeks_to_fallback_after_drift=(None if not [f for f in fb if f and f[0] >= dw] else
-                                                  float(np.median([f[0] - dw for f in fb if f and f[0] >= dw]))),
-            l3_live_reached=float(np.mean([x is not None for x in live_at])),
-            l3_live_median_week=(None if not [x for x in live_at if x is not None] else
-                                 float(np.median([x for x in live_at if x is not None]))),
-            returns=frac(lambda r: any(t[2] == "recovered" for t in r["transitions"])),
-            flaps_2plus=frac(lambda r: sum(t[1] == "FALLBACK" for t in r["transitions"]) >= 2),
-            final_fallback=frac(lambda r: r["final_state"] == "FALLBACK"),
-            first_trigger_any_104w={k: float(np.mean([k in r["first_trigger"] for r in rs]))
-                                    for k in ("e_process", "rolling_intercept", "worse_than_b0", "large_correction")},
-            first_trigger_before_drift={k: float(np.mean([r["first_trigger"].get(k, 999) < dw for r in rs]))
-                                        for k in ("e_process", "rolling_intercept", "worse_than_b0", "large_correction")},
-            e_first_any={str(k): float(np.mean([r["e_first"][k] is not None for r in rs])) for k in (10, 20, 50)},
-            e_first_before_drift={str(k): float(np.mean([(r["e_first"][k] or 999) < dw for r in rs]))
-                                  for k in (10, 20, 50)},
-            n_live_mean=float(np.mean([r["n_live"] for r in rs])))
+def _mean(xs):
+    xs = [x for x in xs if x is not None]
+    return float(np.mean(xs)) if xs else None
+
+
+def summarize(w, mode, rs):
+    s = {"world": dict(w.__dict__), "mode": mode, "reps": len(rs),
+         "ho_b": [_mean([r["ho_b"][k] for r in rs]) for k in range(4)],
+         "ho_r": [_mean([r["ho_r"][k] for r in rs]) for k in range(4)], "classes": {}}
     if mode == "challenger":
         looks = [r.get("challenger") or [] for r in rs]
-        s["challenger_promoted_any"] = float(np.mean([any(x and x["promoted"] for x in lk) for lk in looks]))
-        s["challenger_promoted_by_look"] = [float(np.mean([len(lk) > i and lk[i] is not None and lk[i]["promoted"]
-                                                          for lk in looks])) for i in range(4)]
-        s["challenger_gain_mean_at_600"] = float(np.nanmean([lk[3]["gain"] if len(lk) > 3 and lk[3] else np.nan
-                                                             for lk in looks]))
-    return {k: (round(v, 4) if isinstance(v, float) else v) for k, v in s.items()}
+        s["promoted_any"] = _mean([any(x["promoted"] for x in lk) for lk in looks])
+        s["promoted_by_look"] = [_mean([len(lk) > i and lk[i]["promoted"] for lk in looks]) for i in range(4)]
+        s["looks_reached"] = [_mean([len(lk) > i for lk in looks]) for i in range(4)]
+        return s
+    if mode == "live":
+        s["live_b"] = [_mean([r["live_b"][k] for r in rs if r.get("live_b")]) for k in range(4)]
+    for c in LEVELS:
+        cs = [r["classes"][c] for r in rs]
+        d = {"case_A": _mean([x["case"] == "A" for x in cs]), "gate_pass": _mean([x["gate"] for x in cs]),
+             "G1": _mean([x["G1"] for x in cs]), "G2": _mean([x["G2"] for x in cs]), "G3": _mean([x["G3"] for x in cs]),
+             "champ_gate": _mean([x["champ_gate"] for x in cs]), "champ_G2": _mean([x["champ_G2"] for x in cs]),
+             "champ_G3": _mean([x["champ_G3"] for x in cs]), "champ_slope_B": _mean([x["champ_slope_B"] for x in cs]),
+             "fb_g2": _mean([x["fb_g2"] for x in cs]), "n_ho": _mean([x["n_ho"] for x in cs]),
+             "citl_champ": {o: _mean([x["citl_champ"][o] for x in cs]) for o in L.OUTCOMES}}
+        if mode == "live":
+            dw = w.drift_week
+
+            def first_exit(x):
+                return next((t for t in x["transitions"][1:] if t[2].startswith(("drift", "fallback_drift"))), None)
+            ex = [first_exit(x) for x in cs]
+            l3 = [x["transitions"][0][1].startswith("L3") for x in cs]
+            k = max(sum(l3), 1)
+
+            def share(pred):
+                return sum(1 for e, s0 in zip(ex, l3) if s0 and e and pred(e[0])) / k
+            d.update(start_l3=_mean(l3), exit_by_52w=share(lambda t: t <= 52), exit_by_104w=share(lambda t: True),
+                     exit_before_drift=share(lambda t: t < dw), exit_within_26w=share(lambda t: dw <= t < dw + 26),
+                     exit_within_52w=share(lambda t: dw <= t < dw + 52),
+                     exit_to={z: _mean([bool(e and e[1] == z) for e in ex]) for z in ("FALLBACK", "HIST")},
+                     returned=_mean([any(t[2] == "recovered" for t in x["transitions"]) for x in cs]),
+                     two_exits=_mean([sum(t[2].startswith("drift") for t in x["transitions"]) >= 2 for x in cs]),
+                     l3_live=_mean([any(t[1] == "L3_LIVE" for t in x["transitions"]) for x in cs]),
+                     l3_live_week=_mean([next((t[0] for t in x["transitions"] if t[1] == "L3_LIVE"), None) for x in cs]),
+                     first_any={m: _mean([m in x["first"] for x in cs]) for m in ("D1", "D2", "D3")},
+                     first_before_drift={m: _mean([x["first"].get(m, 999) < dw for x in cs]) for m in ("D1", "D2", "D3")},
+                     n_live=_mean([x["n_live"] for x in cs]))
+        s["classes"][c] = d
+    return s
 
 
 def _apply(overrides):
@@ -261,26 +267,26 @@ def _apply(overrides):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--reps", type=int, default=400)
-    ap.add_argument("--only", default="")
+    ap.add_argument("--reps", type=int, default=200)
+    ap.add_argument("--only", default="", help="comma-separated substrings of scenario names")
     ap.add_argument("--out", default="")
     ap.add_argument("--procs", type=int, default=4)
     ap.add_argument("--set", action="append", default=[], help="NAME=VALUE: override a module constant")
     a = ap.parse_args()
-    overrides = {k: (v if not v.replace(".", "", 1).lstrip("-").isdigit() else float(v))
+    overrides = {k: (float(v) if v.replace(".", "", 1).lstrip("-").isdigit() else v)
                  for k, v in (x.split("=", 1) for x in a.set)}
+    _apply(overrides)
     out = {"design": "docs/research/LEVEL_RACE_CALIBRATION_MONITORING_V1_DESIGN.md", "seed": SEED,
            "synthetic_only": True, "holdout_weeks": HOLDOUT_WEEKS, "live_weeks": LIVE_WEEKS,
-           "calibration_version": L.LR_CAL_VERSION, "state_version": L.LR_STATE_VERSION, "scenarios": {}}
-    _apply(overrides)
-    out["overrides"] = overrides
+           "calibration_version": L.LR_CAL_VERSION, "state_version": L.LR_STATE_VERSION,
+           "overrides": overrides, "scenarios": {}}
     with Pool(a.procs, initializer=_apply, initargs=(overrides,)) as pool:
         for k, (name, w, mode) in enumerate(scenarios()):
-            if a.only and a.only not in name:
+            if a.only and not any(x and x in name for x in a.only.split(",")):
                 continue
             t = time.time()
             rs = pool.map(rep, [(w, SEED + 100_000 * k + i, mode) for i in range(a.reps)])
-            out["scenarios"][name] = summarize(name, w, mode, rs)
+            out["scenarios"][name] = summarize(w, mode, rs)
             print(name, round(time.time() - t, 1), json.dumps({kk: v for kk, v in out["scenarios"][name].items()
                                                               if kk != "world"}), flush=True)
             if a.out:
