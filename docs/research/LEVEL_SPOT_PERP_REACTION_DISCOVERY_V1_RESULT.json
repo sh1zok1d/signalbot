@@ -1,0 +1,776 @@
+{
+  "baseline": {
+    "bootstrap_valid": 2000,
+    "brier": 0.19870654184907038,
+    "ci95": [
+      0.05173245668934973,
+      0.12838734896763337
+    ],
+    "clusters": 238,
+    "coef": 0.09084988448924189,
+    "columns": [
+      "intercept",
+      "endpos_z",
+      "cv1_z",
+      "disp_z",
+      "fam_week",
+      "fam_month",
+      "support",
+      "vol_mid",
+      "vol_high",
+      "ep_2021",
+      "ep_2022",
+      "ep_2023",
+      "ep_2024",
+      "tb1",
+      "tb2",
+      "tb3"
+    ],
+    "cv1_ci95": [
+      0.05173245668934973,
+      0.12838734896763337
+    ],
+    "cv1_coef": 0.09084988448924189,
+    "endpos_ci95": [
+      0.09383036341691794,
+      0.17513759912790464
+    ],
+    "endpos_coef": 0.13362300821903866,
+    "feature": null,
+    "includes_cv1": true,
+    "includes_end_position": true,
+    "n": 1059,
+    "p": 2.103061876489334e-06,
+    "q": null,
+    "se": 0.019153469707144086
+  },
+  "candidate_class": "NONE",
+  "claim_ceiling": "L2",
+  "dependencies": {
+    "approach": "aa85e5b43c405ee225336ff385e3a3383fa59d09",
+    "confirm": "c1cd4e0102e700f7860d21a9af0d243c3bc367be",
+    "cross_venue": "f22100177e2f89a43c6271929aba0d63f7b4552f",
+    "joint": "bcc0a9e8a5c2af221b23b72768d7b7ba1d6a4aa2",
+    "liquidity": "181debc4aa626637f2cd560103447d2d4adc96b1",
+    "memory": "c3d39bffda861b535605a98205d7578c0c84c782",
+    "method": "8effe9acc3b88b925a79b33f04ac0ee9e6f93e26",
+    "path": "b005eaac895d3a4c644d16101d2e5eb7d2ff8d5f",
+    "position": "e6e5f307cfa098db607544a556bae01a2310eb6a",
+    "reaction": "44726ded55c75fefecc6848ab8b76971ead83721",
+    "structure": "f8623d3281424c165ebd7ee7fbcb0af994cc1e8d",
+    "touch": "dfc9e0f04358de15606382472badeb5aee787039"
+  },
+  "design_sha": "98c750a4cf8df7d2b7b1262506129372bb2dc785",
+  "exposure_status": "DISCOVERY_ONLY",
+  "family": "LEVEL_BEHAVIOR_V1",
+  "features": [
+    {
+      "brier_delta": 0.0004948336970222456,
+      "cell": {
+        "bootstrap_valid": 2000,
+        "brier": 0.19821170815204814,
+        "ci95": [
+          -0.12355258815258861,
+          0.7694288934468481
+        ],
+        "clusters": 238,
+        "coef": 0.3296752882209237,
+        "columns": [
+          "intercept",
+          "endpos_z",
+          "cv1_z",
+          "feature_z",
+          "disp_z",
+          "fam_week",
+          "fam_month",
+          "support",
+          "vol_mid",
+          "vol_high",
+          "ep_2021",
+          "ep_2022",
+          "ep_2023",
+          "ep_2024",
+          "tb1",
+          "tb2",
+          "tb3"
+        ],
+        "cv1_ci95": [
+          -0.6690893416172663,
+          0.2138994595208433
+        ],
+        "cv1_coef": -0.2365617406375843,
+        "endpos_ci95": [
+          0.08774964510068213,
+          0.1717631517665139
+        ],
+        "endpos_coef": 0.1306660839246005,
+        "feature": "SPOT_ORIENTED_MOVE_15M",
+        "includes_cv1": true,
+        "includes_end_position": true,
+        "n": 1059,
+        "p": 0.15174915255491153,
+        "q": 0.2276237288323673,
+        "se": 0.22999846028661444
+      },
+      "epochs": [
+        {
+          "ci95": [
+            0.18823459539308207,
+            2.017542053976946
+          ],
+          "coef": 1.1123309405247812,
+          "n": 154,
+          "name": "2020"
+        },
+        {
+          "ci95": [
+            -0.5500773618835768,
+            0.8795769448211078
+          ],
+          "coef": 0.152032714512086,
+          "n": 229,
+          "name": "2021"
+        },
+        {
+          "ci95": [
+            -1.2277914049063168,
+            0.9631419703951852
+          ],
+          "coef": -0.226288399871438,
+          "n": 248,
+          "name": "2022"
+        },
+        {
+          "ci95": null,
+          "coef": 0.41960156793606346,
+          "n": 194,
+          "name": "2023"
+        },
+        {
+          "ci95": [
+            -2.6220577770227598,
+            1.5564715097296624
+          ],
+          "coef": -0.27195748801627656,
+          "n": 234,
+          "name": "2024"
+        }
+      ],
+      "families": [
+        {
+          "ci95": [
+            -0.14923362252467692,
+            0.884674942977236
+          ],
+          "coef": 0.3423850934375795,
+          "n": 932,
+          "name": "DAY"
+        },
+        {
+          "ci95": [
+            -1.4908310752163514,
+            1.1454686802953216
+          ],
+          "coef": -0.04379549252575482,
+          "n": 115,
+          "name": "WEEK"
+        },
+        {
+          "ci95": null,
+          "coef": null,
+          "n": 12,
+          "name": "MONTH"
+        }
+      ],
+      "loyo": [
+        {
+          "ci95": [
+            -0.3836672565548715,
+            0.6544983716760837
+          ],
+          "coef": 0.1366608454940993,
+          "n": 905,
+          "name": "omit_2020"
+        },
+        {
+          "ci95": [
+            -0.1825057683274775,
+            1.0222108676167048
+          ],
+          "coef": 0.4145289057295901,
+          "n": 830,
+          "name": "omit_2021"
+        },
+        {
+          "ci95": [
+            -0.05281053860866465,
+            0.906649695437181
+          ],
+          "coef": 0.4161818725972237,
+          "n": 811,
+          "name": "omit_2022"
+        },
+        {
+          "ci95": [
+            -0.16508682272430591,
+            0.798829219435795
+          ],
+          "coef": 0.30093221557915945,
+          "n": 865,
+          "name": "omit_2023"
+        },
+        {
+          "ci95": [
+            -0.06718266095966349,
+            0.8576046538724491
+          ],
+          "coef": 0.3722837340222434,
+          "n": 825,
+          "name": "omit_2024"
+        }
+      ],
+      "matched": {
+        "beta_pseudo": null,
+        "beta_real": null,
+        "delta": null,
+        "delta_ci95": null,
+        "n_pairs": 0,
+        "status": "NOT_APPLIED"
+      },
+      "shape": [
+        {
+          "bin": "T1",
+          "late_break_rate": 0.23835616438356164,
+          "n": 365
+        },
+        {
+          "bin": "T2",
+          "late_break_rate": 0.36656891495601174,
+          "n": 341
+        },
+        {
+          "bin": "T3",
+          "late_break_rate": 0.6430594900849859,
+          "n": 353
+        }
+      ],
+      "sides": [
+        {
+          "ci95": [
+            -0.11711729708435316,
+            0.9764839456212583
+          ],
+          "coef": 0.43128573329424025,
+          "n": 593,
+          "name": "resistance"
+        },
+        {
+          "ci95": null,
+          "coef": 0.14905651789558585,
+          "n": 466,
+          "name": "support"
+        }
+      ],
+      "summary": {
+        "candidate_class": "NONE",
+        "ci95": [
+          -0.12355258815258861,
+          0.7694288934468481
+        ],
+        "coef": 0.3296752882209237,
+        "conjunction_pass": false,
+        "failed": [
+          "statistical",
+          "years",
+          "family"
+        ],
+        "feature": "SPOT_ORIENTED_MOVE_15M",
+        "includes_cv1": true,
+        "includes_end_position": true,
+        "n": 1059,
+        "q": 0.2276237288323673,
+        "specificity_status": "NOT_APPLIED",
+        "statistical": false
+      }
+    },
+    {
+      "brier_delta": 0.000694921758839756,
+      "cell": {
+        "bootstrap_valid": 2000,
+        "brier": 0.19801162009023063,
+        "ci95": [
+          -0.0029626025028974736,
+          0.051164861786370926
+        ],
+        "clusters": 238,
+        "coef": 0.022913607190512653,
+        "columns": [
+          "intercept",
+          "endpos_z",
+          "cv1_z",
+          "feature_z",
+          "disp_z",
+          "fam_week",
+          "fam_month",
+          "support",
+          "vol_mid",
+          "vol_high",
+          "ep_2021",
+          "ep_2022",
+          "ep_2023",
+          "ep_2024",
+          "tb1",
+          "tb2",
+          "tb3"
+        ],
+        "cv1_ci95": [
+          0.05925859715166956,
+          0.13317372631949792
+        ],
+        "cv1_coef": 0.0952786023169603,
+        "endpos_ci95": [
+          0.09008959195827429,
+          0.17355802999489417
+        ],
+        "endpos_coef": 0.13133211074574289,
+        "feature": "SPOT_EXCESS_VS_PERP_COMPLEX",
+        "includes_cv1": true,
+        "includes_end_position": true,
+        "n": 1059,
+        "p": 0.09759027806034132,
+        "q": 0.2276237288323673,
+        "se": 0.013831291227347269
+      },
+      "epochs": [
+        {
+          "ci95": [
+            0.019801129971916413,
+            0.14542690608027184
+          ],
+          "coef": 0.07543602664393648,
+          "n": 154,
+          "name": "2020"
+        },
+        {
+          "ci95": [
+            -0.03216403754725759,
+            0.051180791247870054
+          ],
+          "coef": 0.00904510581582634,
+          "n": 229,
+          "name": "2021"
+        },
+        {
+          "ci95": [
+            -0.06506776132830781,
+            0.051557257119119196
+          ],
+          "coef": -0.006790023977996871,
+          "n": 248,
+          "name": "2022"
+        },
+        {
+          "ci95": null,
+          "coef": 0.04293418371862265,
+          "n": 194,
+          "name": "2023"
+        },
+        {
+          "ci95": [
+            -0.12030338228166515,
+            0.09081090043856875
+          ],
+          "coef": -0.008995814709242381,
+          "n": 234,
+          "name": "2024"
+        }
+      ],
+      "families": [
+        {
+          "ci95": [
+            -0.008858520169567573,
+            0.054028893919042975
+          ],
+          "coef": 0.02228595791804627,
+          "n": 932,
+          "name": "DAY"
+        },
+        {
+          "ci95": [
+            -0.05055598350275313,
+            0.10585405312336363
+          ],
+          "coef": 0.02912626523377234,
+          "n": 115,
+          "name": "WEEK"
+        },
+        {
+          "ci95": null,
+          "coef": null,
+          "n": 12,
+          "name": "MONTH"
+        }
+      ],
+      "loyo": [
+        {
+          "ci95": [
+            -0.018083941745212714,
+            0.040485145512878865
+          ],
+          "coef": 0.011344144209336398,
+          "n": 905,
+          "name": "omit_2020"
+        },
+        {
+          "ci95": [
+            -0.0038027259188335733,
+            0.06922263585585471
+          ],
+          "coef": 0.031818316202942794,
+          "n": 830,
+          "name": "omit_2021"
+        },
+        {
+          "ci95": [
+            -0.0033923322105258906,
+            0.05897759746886093
+          ],
+          "coef": 0.02765107370576457,
+          "n": 811,
+          "name": "omit_2022"
+        },
+        {
+          "ci95": [
+            -0.008889549404915464,
+            0.047843360143952365
+          ],
+          "coef": 0.01990122323912151,
+          "n": 865,
+          "name": "omit_2023"
+        },
+        {
+          "ci95": [
+            -0.0018375053997253905,
+            0.05455054519273068
+          ],
+          "coef": 0.025347424469746197,
+          "n": 825,
+          "name": "omit_2024"
+        }
+      ],
+      "matched": {
+        "beta_pseudo": null,
+        "beta_real": null,
+        "delta": null,
+        "delta_ci95": null,
+        "n_pairs": 0,
+        "status": "NOT_APPLIED"
+      },
+      "shape": [
+        {
+          "bin": "T1",
+          "late_break_rate": 0.43137254901960786,
+          "n": 357
+        },
+        {
+          "bin": "T2",
+          "late_break_rate": 0.4011299435028249,
+          "n": 354
+        },
+        {
+          "bin": "T3",
+          "late_break_rate": 0.4109195402298851,
+          "n": 348
+        }
+      ],
+      "sides": [
+        {
+          "ci95": [
+            -0.008813348210386098,
+            0.060996313489918526
+          ],
+          "coef": 0.024868188792071668,
+          "n": 593,
+          "name": "resistance"
+        },
+        {
+          "ci95": null,
+          "coef": 0.017999866846792115,
+          "n": 466,
+          "name": "support"
+        }
+      ],
+      "summary": {
+        "candidate_class": "NONE",
+        "ci95": [
+          -0.0029626025028974736,
+          0.051164861786370926
+        ],
+        "coef": 0.022913607190512653,
+        "conjunction_pass": false,
+        "failed": [
+          "statistical",
+          "years"
+        ],
+        "feature": "SPOT_EXCESS_VS_PERP_COMPLEX",
+        "includes_cv1": true,
+        "includes_end_position": true,
+        "n": 1059,
+        "q": 0.2276237288323673,
+        "specificity_status": "NOT_APPLIED",
+        "statistical": false
+      }
+    },
+    {
+      "brier_delta": 0.0001722777529658548,
+      "cell": {
+        "bootstrap_valid": 2000,
+        "brier": 0.19853426409610453,
+        "ci95": [
+          -0.0404059500016464,
+          0.01565312363848812
+        ],
+        "clusters": 238,
+        "coef": -0.012851965895173336,
+        "columns": [
+          "intercept",
+          "endpos_z",
+          "cv1_z",
+          "feature_z",
+          "disp_z",
+          "fam_week",
+          "fam_month",
+          "support",
+          "vol_mid",
+          "vol_high",
+          "ep_2021",
+          "ep_2022",
+          "ep_2023",
+          "ep_2024",
+          "tb1",
+          "tb2",
+          "tb3"
+        ],
+        "cv1_ci95": [
+          0.05312830403735779,
+          0.12751493339799105
+        ],
+        "cv1_coef": 0.09102802298567461,
+        "endpos_ci95": [
+          0.09216757839889698,
+          0.17412652113724728
+        ],
+        "endpos_coef": 0.13278798298764072,
+        "feature": "RELATIVE_SPOT_TAKER_PRESSURE_15M",
+        "includes_cv1": true,
+        "includes_end_position": true,
+        "n": 1059,
+        "p": 0.38473054307986976,
+        "q": 0.38473054307986976,
+        "se": 0.014785746789585962
+      },
+      "epochs": [
+        {
+          "ci95": [
+            -0.053563735680875184,
+            0.08315864129241393
+          ],
+          "coef": 0.012244245306112952,
+          "n": 154,
+          "name": "2020"
+        },
+        {
+          "ci95": [
+            -0.0664012436556869,
+            0.05555542068647144
+          ],
+          "coef": 0.002886542690424822,
+          "n": 229,
+          "name": "2021"
+        },
+        {
+          "ci95": [
+            -0.09255565305562376,
+            0.04515077419933256
+          ],
+          "coef": -0.022354987130188533,
+          "n": 248,
+          "name": "2022"
+        },
+        {
+          "ci95": null,
+          "coef": -0.011513837162976064,
+          "n": 194,
+          "name": "2023"
+        },
+        {
+          "ci95": [
+            -0.07456903006250475,
+            0.05563059493575499
+          ],
+          "coef": -0.006226523347766091,
+          "n": 234,
+          "name": "2024"
+        }
+      ],
+      "families": [
+        {
+          "ci95": [
+            -0.039824470481984266,
+            0.018125040727391274
+          ],
+          "coef": -0.01127817650582909,
+          "n": 932,
+          "name": "DAY"
+        },
+        {
+          "ci95": [
+            -0.12869475402746217,
+            0.09787957714041229
+          ],
+          "coef": -0.005959737780253701,
+          "n": 115,
+          "name": "WEEK"
+        },
+        {
+          "ci95": null,
+          "coef": null,
+          "n": 12,
+          "name": "MONTH"
+        }
+      ],
+      "loyo": [
+        {
+          "ci95": [
+            -0.04981065735150463,
+            0.015565759939443905
+          ],
+          "coef": -0.017973484512706746,
+          "n": 905,
+          "name": "omit_2020"
+        },
+        {
+          "ci95": [
+            -0.04559555203030206,
+            0.01949520722210249
+          ],
+          "coef": -0.014444183034204219,
+          "n": 830,
+          "name": "omit_2021"
+        },
+        {
+          "ci95": [
+            -0.041723857326686827,
+            0.024020340297331293
+          ],
+          "coef": -0.008762504170793564,
+          "n": 811,
+          "name": "omit_2022"
+        },
+        {
+          "ci95": [
+            -0.04292618958633727,
+            0.0226815105969121
+          ],
+          "coef": -0.010307869454560373,
+          "n": 865,
+          "name": "omit_2023"
+        },
+        {
+          "ci95": [
+            -0.04365306126571098,
+            0.02296088247085153
+          ],
+          "coef": -0.010333537969202763,
+          "n": 825,
+          "name": "omit_2024"
+        }
+      ],
+      "matched": {
+        "beta_pseudo": null,
+        "beta_real": null,
+        "delta": null,
+        "delta_ci95": null,
+        "n_pairs": 0,
+        "status": "NOT_APPLIED"
+      },
+      "shape": [
+        {
+          "bin": "T1",
+          "late_break_rate": 0.4298245614035088,
+          "n": 342
+        },
+        {
+          "bin": "T2",
+          "late_break_rate": 0.40896358543417366,
+          "n": 357
+        },
+        {
+          "bin": "T3",
+          "late_break_rate": 0.40555555555555556,
+          "n": 360
+        }
+      ],
+      "sides": [
+        {
+          "ci95": [
+            -0.0352332550453475,
+            0.03845118347374748
+          ],
+          "coef": 0.0017806590752091358,
+          "n": 593,
+          "name": "resistance"
+        },
+        {
+          "ci95": null,
+          "coef": -0.03708415848398117,
+          "n": 466,
+          "name": "support"
+        }
+      ],
+      "summary": {
+        "candidate_class": "NONE",
+        "ci95": [
+          -0.0404059500016464,
+          0.01565312363848812
+        ],
+        "coef": -0.012851965895173336,
+        "conjunction_pass": false,
+        "failed": [
+          "statistical",
+          "years",
+          "side"
+        ],
+        "feature": "RELATIVE_SPOT_TAKER_PRESSURE_15M",
+        "includes_cv1": true,
+        "includes_end_position": true,
+        "n": 1059,
+        "q": 0.38473054307986976,
+        "specificity_status": "NOT_APPLIED",
+        "statistical": false
+      }
+    }
+  ],
+  "history_ok": true,
+  "late": {
+    "AMBIGUOUS": 1,
+    "BREAK": 439,
+    "NEITHER": 174,
+    "REJECT": 620,
+    "n_resolved": 1059,
+    "n_unresolved": 1234
+  },
+  "mode": "DISCOVERY",
+  "note": "Discovery only. CV1 is a baseline control, not a confirmation of the prior cross-venue unit. A historical association is not a current probability.",
+  "novelty_ok": true,
+  "outcomes_read": true,
+  "primary_n": 1059,
+  "product_integration_candidate": false,
+  "routing": "NO_INCREMENTAL_SPOT_PERP_REACTION",
+  "source_main": "1a2e425303fb29e1044ca57452b8ad9b6f0a831b",
+  "tracks": [
+    "STRUCTURE",
+    "PRODUCT_EVIDENCE"
+  ],
+  "unit": "LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1"
+}

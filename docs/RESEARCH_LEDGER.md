@@ -8394,3 +8394,28 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-08 — LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1 executed once; discovery; no incremental spot reaction; not integrated
+
+**Unit.** `LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1` (atlas `LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #363 `f22100177e2f89a43c6271929aba0d63f7b4552f`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `98c750a4cf8df7d2b7b1262506129372bb2dc785` before any late BREAK rate. The spot source, the window, the three features, the relative formulas, the baseline, q and the 3 pp scale were not changed after the rates were read.
+- **Novelty.** The object is the 15-minute Binance spot reaction after a structural first touch, with `END_POSITION_X` and `OTHER_VENUE_MEDIAN_MOVE` held in every model. It is not DH1-L1 / DH2-L1 pre-touch hour flow, not DH1-B1 sign confirmation, not DH1-B2 / DH2-B2 spot share, not D9 or DH3 lead/lag, and not MARKET-06. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `SPOT`. The cross-perp coefficient is a control, not a confirmation of #363.
+- **Data.** Binance USD-M BTCUSDT perpetual is the structural venue. Spot is `DH1_BINANCE_SPOT_BTCUSDT_5M_V0`, months 2020-04..2024-12, taker-buy quote present, 355 of 499968 bars missing and left missing. Bybit and OKX are the pinned #363 perpetuals, not reminted. No 2025/2026 object was requested. No OKX spot.
+- **Clock.** T is the open of Binance touch bar j. D = T+15m. Returns use the close at D over the close of the bar opening at T−5m. Alignment tolerance is 0. Early passage uses j+1 and j+2. Late passage uses j+3 through j+48.
+- **Cohort.** Window `[2020-04-01T00:05:00Z, 2025-01-01)`. Geometry-legitimate first touches 1856. Early BREAK 286, early REJECT 265, early ambiguous 13, unresolved 1292. Feature-complete unresolved 1234. SP3 legal rate 1.0. All three features retained. Maximum absolute correlation among them 0.082. SP1 correlation with the cross-perp control 0.998, recorded before outcomes and not used as a drop. Late labels: BREAK 439, REJECT 620, NEITHER 174, ambiguous 1. Primary N=1059. 238 weeks.
+- **Baseline.** `END_POSITION_X` +13.36 pp per +1 SD (95% +9.38..+17.51, N=1059, 2000 valid draws). `OTHER_VENUE_MEDIAN_MOVE` +9.08 pp (95% +5.17..+12.84). The control is not in the FDR family.
+- **Primary.** Three adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. SP1 +32.97 pp (95% −12.36..+76.94, q=0.228). SP2 +2.29 pp (95% −0.30..+5.12, q=0.228). SP3 −1.29 pp (95% −4.04..+1.57, q=0.385). No interval excludes 0. No feature clears the statistical gate. SP1 year signs are three of five. SP1 DAY and WEEK have opposite signs. SP3 resistance and support points have opposite signs. None of those slices is a candidate. Raw SP1 tertiles repeat the cross-perp gradient and are not an incremental spot effect.
+- **Specificity.** Not applied. No full-sample candidate. No matched delta was estimated.
+- **Routing.** `NO_INCREMENTAL_SPOT_PERP_REACTION`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. No incremental historical association for the spot layer in this unresolved first-touch cohort, beyond Binance end position and the other perpetual venues' 15-minute move. Not a current probability. Not a statement that spot led or that the move is only a leveraged-complex fact in a causal sense.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry or deploy change. Lead/lag, time-to-resolution, a volatility transition, confirmation, a 30-minute window, a liquidation map and prospective tracking were not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-04-01..2024-12-31, Binance structural reference and reaction-bar taker quote for the spot-versus-perp question (further exposure, not a confirmation)
+WINDOWS_CONSUMED = DH1_BINANCE_SPOT_BTCUSDT_5M_V0 Binance spot BTCUSDT 5m 2020-04..2024-12, taker-buy quote included, 355 missing bars left missing; 2017-2019 not read
+WINDOWS_CONSUMED = BYBIT_BTCUSDT_PUBLIC_HISTORY BTCUSDT linear perpetual 5m closes reused as the cross-perp control; not reminted
+WINDOWS_CONSUMED = OKX_OFFICIAL_ARCHIVES BTC-USDT-SWAP 5m history-candles reused as the cross-perp control; MARKET-06 OKX spot dataset not read
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; funding / book / liquidation / OI not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```

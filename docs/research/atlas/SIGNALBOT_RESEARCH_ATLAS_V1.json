@@ -887,7 +887,9 @@
   },
   {
    "col": "SPOT",
-   "counts": {},
+   "counts": {
+    "CLOSED_ON_SURFACE": 1
+   },
    "frontier_eligible": true,
    "mixed": false,
    "native": false,
@@ -895,16 +897,18 @@
    "revisit": [],
    "row": "PRICE_STRUCTURE.levels",
    "row_name": "Reaction at levels (prior highs/lows, round numbers)",
-   "state": "OPEN_FRONTIER",
-   "units": [],
+   "state": "CLOSED_ON_SURFACE",
+   "units": [
+    "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1"
+   ],
    "value": {
     "confirmation_path": 2,
     "data_readiness": 3,
-    "novelty": 2,
+    "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
     "saturation": 3,
-    "total": 7
+    "total": 5
    }
   },
   {
@@ -10162,23 +10166,23 @@
    "BLOCKED_DATA": 4,
    "BLOCKED_METHOD": 21,
    "CANDIDATE_UNTESTED": 3,
-   "CLOSED_ON_SURFACE": 11,
+   "CLOSED_ON_SURFACE": 12,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 5,
    "FUTURE_NATURAL_ACCUMULATION": 2,
    "INFORMATIONALLY_WEAK": 8,
    "LIVE_SIGNAL": 6,
    "NO_STRUCTURE": 21,
-   "OPEN_FRONTIER": 354
+   "OPEN_FRONTIER": 353
   },
-  "units": 199,
+  "units": 200,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 23,
+   "CLOSED_ON_SURFACE": 24,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 11,
    "FUTURE_NATURAL_ACCUMULATION": 3,
@@ -12501,19 +12505,6 @@
   },
   {
    "col": "PERP_FLOW",
-   "row": "PRICE_STRUCTURE.levels",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 3,
-    "total": 7
-   }
-  },
-  {
-   "col": "SPOT",
    "row": "PRICE_STRUCTURE.levels",
    "value": {
     "confirmation_path": 2,
@@ -15567,7 +15558,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "0dbed6ebc4e4ef7facf1ec442fbece17301ddd51b8bae5196f172650a82395a9",
+ "SOURCES_DIGEST": "ce9b4309f99f48ae111cbbfee95009a9bb11df9c16101a6ba17c830fd2a4e28b",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15782,6 +15773,14 @@
      },
      {
       "note": "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1 one-shot (other linear-perpetual 15m reaction conditional on END_POSITION_X, among structural first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; Binance OHLC is the structural reference only; further exposure, not a confirmation and not a reopen of MARKET-06 or CROSS_VENUE_REGION.venue_disagreement",
+      "period": "2020-04-01T00:05Z..2024-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1 one-shot (Binance spot 15m reaction conditional on END_POSITION_X and the other-perp median move, among structural first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; Binance OHLC and taker-buy quote on the three reaction bars; further exposure, not a confirmation and not a reopen of SPOT_PERP.spot_confirmation",
       "period": "2020-04-01T00:05Z..2024-12-31",
       "rows": [
        "PRICE_STRUCTURE.levels"
@@ -16242,6 +16241,14 @@
        "PRICE_STRUCTURE.levels"
       ],
       "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1: same pinned OKX BTC-USDT-SWAP series reused as the cross-perp control, not reminted and not OKX spot; not a confirmation of LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1",
+      "period": "2020-04-01T00:00Z..2024-12-31T23:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
      }
     ],
     "id": "OKX_OFFICIAL_ARCHIVES",
@@ -16353,6 +16360,14 @@
        "SPOT_PERP.volume_share"
       ],
       "status": "EXPOSED"
+     },
+     {
+      "note": "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1: Binance spot BTCUSDT 5m klines including taker-buy quote, months 2020-04..2024-12 only, 355 missing bars left missing; post-touch reaction on structural first touches; 2017-2019 months not read; not a reopen of SPOT_PERP.spot_confirmation, volume_share, or lead_lag",
+      "period": "2020-04-01T00:00Z..2024-12-31T23:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
      }
     ],
     "id": "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
@@ -16615,6 +16630,14 @@
     "exposure": [
      {
       "note": "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1: Bybit BTCUSDT linear perpetual public MT4 5m closes, label clock UTC+3 shifted to UTC, 476254 bars; 23714 bars missing in four public-file holes and left missing; no 2025/2026 object fetched; canonical SHA256 f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c",
+      "period": "2020-03-31T21:00Z..2024-12-31T20:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1: same pinned Bybit linear series reused as the cross-perp control, not reminted; holes left missing; not a confirmation of LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1",
       "period": "2020-03-31T21:00Z..2024-12-31T20:55Z",
       "rows": [
        "PRICE_STRUCTURE.levels"
@@ -22072,6 +22095,40 @@
    "units_n": "4076 structural episodes; 1856 geometry-legitimate first touches; 551 early-resolved before T+15m; 13 early ambiguous; 1292 unresolved at D; 1235 feature-complete unresolved; primary resolved N=1060 (BREAK 439, REJECT 621); 238 weeks",
    "verdict": "EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing LEVEL_CROSS_VENUE_STRUCTURE_PRESENT. Baseline END_POSITION_X is +20.30 pp per +1 SD (95% +17.41..+23.17, N=1060). OTHER_VENUE_MEDIAN_MOVE is +8.87 pp per +1 SD (95% +5.02..+12.67, q=0.0000, N=1060) after END_POSITION_X. The frozen conjunction passes. The stacked real-minus-pseudo delta is -4.24 pp (95% -7.96..-0.05, N=1223), so the frozen specificity rule names LEVEL_CROSS_VENUE_INTERACTION_CANDIDATE. The stacked real slope on that matched sample is about zero and does not reproduce the primary slope. Confirmation gap, dispersion and direction agreement do not pass. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
    "why_closed": "One discovery run. The level row was already consumed. Bybit and OKX same-class perpetual closes were read for this reaction question only. This is not a confirmation, not a reopen of MARKET-06, and not a reopen of CROSS_VENUE_REGION.venue_disagreement. No product change. No spot, lead-lag, 30-minute, or confirmation unit was started."
+  },
+  {
+   "col": "SPOT",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "DH1_BINANCE_SPOT_BTCUSDT_5M_V0",
+    "BYBIT_BTCUSDT_PUBLIC_HISTORY",
+    "OKX_OFFICIAL_ARCHIVES"
+   ],
+   "forbidden": "rescoring this cell; calling the raw SP1 tertiles an incremental spot effect; a binary spot-confirms flag; a spot-share threshold; a lead-lag fit on this same run; treating the baseline cross-perp coefficient as a confirmation; product integration",
+   "function": "first touch only of PDH/PDL/PWH/PWL/PMH/PML on Binance; T is the open of the touch bar; D = T+15m; three frozen spot features (oriented spot 15m log return, excess versus the median of three oriented perp returns, relative spot-versus-perp taker pressure); early passage on j+1 and j+2 is excluded; late BREAK versus REJECT uses j+3..j+48; END_POSITION_X and OTHER_VENUE_MEDIAN_MOVE are in every model; linear probability model per +1 SD; matched real and pseudo models are fit only after a full-sample candidate passes",
+   "id": "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1",
+   "mechanism": "MODE=DISCOVERY. After a structural first touch, once Binance location and the other perpetual venues 15-minute move are in the model, does Binance spot add historical information about later BREAK versus REJECT. Not spot leadership, not sign confirmation, and not a confirmation of the prior cross-venue slope.",
+   "note": "MODE=DISCOVERY. Design note 98c750a4 before any late BREAK rate. Dependencies #352 dfc9e0f0 through #363 f2210017. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to SPOT_PERP.spot_confirmation, volume_share, lead_lag, stress_lead_lag, and basis_dislocation. Row PRICE_STRUCTURE.levels, column SPOT. The prior cross-venue feature is a nuisance, not a retested claim.",
+   "period": "2020-04-01T00:05Z..2024-12-31; Binance USD-M BTCUSDT perpetual is the structural reference; Binance spot BTCUSDT 5m is the new reaction layer; Bybit and OKX linear perpetuals enter only as the frozen cross-perp control; no 2025/2026, no E1 holdout, no OKX spot",
+   "practical_bar": "3 pp per +1 SD after END_POSITION_X and OTHER_VENUE_MEDIAN_MOVE. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the retained spot features only.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_DESIGN.md",
+    "docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_PREFLIGHT.json",
+    "docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_RESULT.md",
+    "docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_RESULT.json",
+    "scripts/research/level_spot_perp_reaction_discovery_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the 15-minute window, the relative formulas, the FDR threshold, or the 3 pp scale. Not a sign-confirmation, spot-share, or lead-lag study built from this null. Not 2025/2026.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1",
+   "units_n": "4076 structural episodes; 1856 geometry-legitimate first touches; 551 early-resolved before T+15m; 13 early ambiguous; 1292 unresolved at D; 1234 feature-complete unresolved; primary resolved N=1059 (BREAK 439, REJECT 620); 238 weeks",
+   "verdict": "EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_SPOT_PERP_REACTION. Baseline END_POSITION_X is +13.36 pp per +1 SD (95% +9.38..+17.51, N=1059) with the cross-perp control at +9.08 pp (95% +5.17..+12.84). That control is not in the FDR family. SP1 +32.97 pp (95% -12.36..+76.94, q=0.228) is not separated from the cross-perp move (pre-outcome correlation 0.998). SP2 +2.29 pp (95% -0.30..+5.12, q=0.228). SP3 -1.29 pp (95% -4.04..+1.57, q=0.385). No feature passes. Matched specificity was not applied. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "One discovery run. The level row and the spot kline surface were read for this post-touch question. This is not a confirmation of the cross-venue unit, not a reopen of SPOT_PERP.spot_confirmation, volume_share, lead_lag, stress_lead_lag, or basis_dislocation, and not a reopen of MARKET-06. No product change. No lead-lag, 30-minute, or confirmation unit was started."
   },
   {
    "blocker": null,

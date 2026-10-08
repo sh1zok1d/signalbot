@@ -1,3 +1,23 @@
+## LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1 — executed once; discovery; no incremental spot reaction; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1 (atlas LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 98c750a4 before any late BREAK rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> #359 bcc0a9e8 -> #360 181debc4 -> #361 44726ded -> #362 b005eaac -> #363 f2210017 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = post-touch 15m spot reaction after END_POSITION_X and OTHER_VENUE_MEDIAN_MOVE | not DH1-L1/DH2-L1 pre-touch hour flow | not sign confirmation | not spot share | not lead/lag | not MARKET-06 | CV1 is a nuisance, not a confirmation of #363`
+`DATA = Binance CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | spot DH1_BINANCE_SPOT_BTCUSDT_5M_V0 2020-04..2024-12, missing fraction 0.000710 | Bybit f7ef739f and OKX b435fdec reused, not reminted | events [2020-04-01T00:05Z, 2025-01-01) | 2025/2026 NOT read`
+`CLOCK = T = open of Binance touch bar j | D = T+15m | return from the close at T-5m to the close at D | early passage j+1..j+2 excluded | late passage j+3..j+48 | alignment tolerance 0`
+`COHORT = touch_number = 1 | geometry-legitimate 1856 | early resolved 551 | early ambiguous 13 | unresolved 1292 | feature-complete unresolved 1234 | primary N=1059 (BREAK 439, REJECT 620) | 238 weeks | SP3 legal rate 1.0 | all three features retained`
+`BASELINE = END_POSITION_X +13.36 pp per +1 SD (95% +9.38..+17.51, N=1059, 2000/2000) | OTHER_VENUE_MEDIAN_MOVE +9.08 pp (95% +5.17..+12.84) as a control, not in FDR`
+`SP1 = SPOT_ORIENTED_MOVE_15M +32.97 pp (95% -12.36..+76.94, q=0.228, N=1059) | pre-outcome correlation with CV1 0.998 | same-model CV1 -23.66 pp, interval through 0 | class NONE`
+`SP2 = SPOT_EXCESS_VS_PERP_COMPLEX +2.29 pp (95% -0.30..+5.12, q=0.228) | under 3 pp | class NONE`
+`SP3 = RELATIVE_SPOT_TAKER_PRESSURE_15M -1.29 pp (95% -4.04..+1.57, q=0.385) | class NONE`
+`SPECIFICITY = NOT_APPLIED | no full-sample candidate | no matched delta`
+`ROUTING = NO_INCREMENTAL_SPOT_PERP_REACTION | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical adjusted association was not found for the spot layer | not a current probability | not spot leadership | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = lead/lag; time-to-resolution; volatility transition; confirmation; 30m reaction; liquidation map; prospective tracking; 2025/2026 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1 — executed once; discovery; one level-interaction candidate; no successor; not integrated — 2026-10-08
 
 `UNIT = LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1 (atlas LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design f21be5a6 before any late BREAK rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; CV1 selected as a historical interaction candidate`

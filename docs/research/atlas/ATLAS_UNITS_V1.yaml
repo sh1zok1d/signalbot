@@ -3961,6 +3961,35 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'MODE=DISCOVERY. Design note f21be5a6 before any late BREAK rate. Dependencies #352 dfc9e0f0 through #362 b005eaac. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to MARKET-06 (Binance perp versus OKX spot, daily absolute dislocation, 24h adverse path). Row PRICE_STRUCTURE.levels, column CROSS_VENUE. Not CROSS_VENUE_REGION.venue_disagreement and not SPOT_PERP.basis_dislocation.'
+  - id: LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1
+    title: LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: SPOT
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - DH1_BINANCE_SPOT_BTCUSDT_5M_V0
+    - BYBIT_BTCUSDT_PUBLIC_HISTORY
+    - OKX_OFFICIAL_ARCHIVES
+    period: '2020-04-01T00:05Z..2024-12-31; Binance USD-M BTCUSDT perpetual is the structural reference; Binance spot BTCUSDT 5m is the new reaction layer; Bybit and OKX linear perpetuals enter only as the frozen cross-perp control; no 2025/2026, no E1 holdout, no OKX spot'
+    units_n: '4076 structural episodes; 1856 geometry-legitimate first touches; 551 early-resolved before T+15m; 13 early ambiguous; 1292 unresolved at D; 1234 feature-complete unresolved; primary resolved N=1059 (BREAK 439, REJECT 620); 238 weeks'
+    practical_bar: '3 pp per +1 SD after END_POSITION_X and OTHER_VENUE_MEDIAN_MOVE. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the retained spot features only.'
+    mechanism: 'MODE=DISCOVERY. After a structural first touch, once Binance location and the other perpetual venues 15-minute move are in the model, does Binance spot add historical information about later BREAK versus REJECT. Not spot leadership, not sign confirmation, and not a confirmation of the prior cross-venue slope.'
+    function: 'first touch only of PDH/PDL/PWH/PWL/PMH/PML on Binance; T is the open of the touch bar; D = T+15m; three frozen spot features (oriented spot 15m log return, excess versus the median of three oriented perp returns, relative spot-versus-perp taker pressure); early passage on j+1 and j+2 is excluded; late BREAK versus REJECT uses j+3..j+48; END_POSITION_X and OTHER_VENUE_MEDIAN_MOVE are in every model; linear probability model per +1 SD; matched real and pseudo models are fit only after a full-sample candidate passes'
+    verdict: 'EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_SPOT_PERP_REACTION. Baseline END_POSITION_X is +13.36 pp per +1 SD (95% +9.38..+17.51, N=1059) with the cross-perp control at +9.08 pp (95% +5.17..+12.84). That control is not in the FDR family. SP1 +32.97 pp (95% -12.36..+76.94, q=0.228) is not separated from the cross-perp move (pre-outcome correlation 0.998). SP2 +2.29 pp (95% -0.30..+5.12, q=0.228). SP3 -1.29 pp (95% -4.04..+1.57, q=0.385). No feature passes. Matched specificity was not applied. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The level row and the spot kline surface were read for this post-touch question. This is not a confirmation of the cross-venue unit, not a reopen of SPOT_PERP.spot_confirmation, volume_share, lead_lag, stress_lead_lag, or basis_dislocation, and not a reopen of MARKET-06. No product change. No lead-lag, 30-minute, or confirmation unit was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the 15-minute window, the relative formulas, the FDR threshold, or the 3 pp scale. Not a sign-confirmation, spot-share, or lead-lag study built from this null. Not 2025/2026.'
+    forbidden: 'rescoring this cell; calling the raw SP1 tertiles an incremental spot effect; a binary spot-confirms flag; a spot-share threshold; a lead-lag fit on this same run; treating the baseline cross-perp coefficient as a confirmation; product integration'
+    records:
+    - docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_spot_perp_reaction_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note 98c750a4 before any late BREAK rate. Dependencies #352 dfc9e0f0 through #363 f2210017. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to SPOT_PERP.spot_confirmation, volume_share, lead_lag, stress_lead_lag, and basis_dislocation. Row PRICE_STRUCTURE.levels, column SPOT. The prior cross-venue feature is a nuisance, not a retested claim.'
   - id: DH3-X9
     title: BOOK_IMBALANCE_5PCT_AT_SUPPORT
     program: DIRECTIONAL_AND_RANGE_DH3
