@@ -166,7 +166,12 @@ class BetaConn:
                ORDER BY bucket_ts, tape_id DESC""",
             symbol, market_type, timeframe, calculation_version, list(state_schema_versions), start, end,
             before_tape_id)
-        return [(r["bucket_ts"], _load(r["metrics"])) for r in rows]
+        # liquidation keys of rows written before the collector fix, read honestly (D2)
+        from beta.liq_mapping import correct_metrics
+        cutover = await self.fetch_liquidation_cutover(symbol=symbol)
+        exchanges = ("binance", "bybit", "okx")
+        return [(r["bucket_ts"], correct_metrics(_load(r["metrics"]), r["bucket_ts"], cutover, exchanges))
+                for r in rows]
 
     async def fetch_live_tape_range(self, *, symbol: str, start: datetime, end: datetime,
                                     rules_digest: str) -> dict:
@@ -1364,9 +1369,10 @@ class BetaConn:
                FROM beta_users u""")
         activity = await self.conn.fetch(
             "SELECT user_pk, action, detail, at FROM beta_user_activity")
-        # votes exist on unusual-hour pushes only (episodes); other types join with backlog F6
+        # votes: the unusual-hour push (episodes) and every other message type (backlog F6)
         votes = await self.conn.fetch(
-            "SELECT user_pk, 'hour' AS kind, vote, updated_at AS at FROM beta_feedback")
+            """SELECT user_pk, 'hour' AS kind, vote, updated_at AS at FROM beta_feedback
+               UNION ALL SELECT user_pk, kind, vote, updated_at AS at FROM beta_message_votes""")
         invites = await self.conn.fetch("SELECT code, label FROM beta_invites")
         deletions = await self.conn.fetch(
             """SELECT recorded_at FROM beta_admin_audit
@@ -1417,14 +1423,26 @@ class BetaConn:
         rows = await self.conn.fetch("SELECT status, count(*) AS n FROM beta_users GROUP BY status")
         return {r["status"]: int(r["n"]) for r in rows}
 
-    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str) -> None:
-        await self.conn.execute(
+    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str) -> bool:
+        """True when the vote is new or changed (a repeated tap changes nothing and is not an action)."""
+        return await self.conn.fetchval(
             """INSERT INTO beta_feedback (user_pk, episode_pk, vote) VALUES ($1,$2,$3)
-               ON CONFLICT (user_pk, episode_pk) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()""",
-            user_pk, episode_pk, vote)
+               ON CONFLICT (user_pk, episode_pk) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()
+               WHERE beta_feedback.vote IS DISTINCT FROM EXCLUDED.vote
+               RETURNING TRUE""", user_pk, episode_pk, vote) is not None
+
+    async def upsert_message_vote(self, *, user_pk: int, kind: str, ref: int, vote: str) -> bool:
+        """«Полезно / Шум» on an alert, the briefing or the weekly report (backlog F6). True when new or changed."""
+        return await self.conn.fetchval(
+            """INSERT INTO beta_message_votes (user_pk, kind, ref, vote) VALUES ($1,$2,$3,$4)
+               ON CONFLICT (user_pk, kind, ref) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()
+               WHERE beta_message_votes.vote IS DISTINCT FROM EXCLUDED.vote
+               RETURNING TRUE""", user_pk, kind, ref, vote) is not None
 
     async def feedback_counts(self) -> dict:
-        rows = await self.conn.fetch("SELECT vote, count(*) AS n FROM beta_feedback GROUP BY vote")
+        rows = await self.conn.fetch(
+            """SELECT vote, count(*) AS n FROM (SELECT vote FROM beta_feedback
+                                              UNION ALL SELECT vote FROM beta_message_votes) v GROUP BY vote""")
         return {r["vote"]: int(r["n"]) for r in rows}
 
     # ---------------------------------------------------- bot / admin / state
@@ -1840,11 +1858,45 @@ class BetaConn:
 
     async def fetch_liquidations(self, *, symbol: str, exchanges: Sequence[str], start: datetime,
                                  end: datetime) -> list:
+        """Raw rows, read honestly (beta.liq_mapping.correct_raw_rows): an old-mapping Bybit row
+        with its side swapped; an old OKX row dropped. Raw bytes are never rewritten."""
+        from beta.liq_mapping import correct_raw_rows
+        version = "mapping_version" if await self._has_mapping_version() else "NULL::smallint AS mapping_version"
         rows = await self.conn.fetch(
-            """SELECT exchange, ts, side, price, qty, notional, is_snapshot_feed FROM liquidations
-               WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts >= $3 AND ts < $4""",
+            f"""SELECT exchange, ts, side, price, qty, notional, is_snapshot_feed, {version}
+                FROM liquidations
+                WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts >= $3 AND ts < $4""",
             symbol, list(exchanges), start, end)
-        return [dict(r) for r in rows]
+        return correct_raw_rows(dict(r) for r in rows)
+
+    async def _has_mapping_version(self) -> bool:
+        """`liquidations.mapping_version` exists once the fixed collector applied storage/schema.sql
+        (the beta never adds it: it must not lock the collector's table)."""
+        return bool(await self.conn.fetchval(
+            """SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('liquidations')
+                              AND attname = 'mapping_version' AND NOT attisdropped)"""))
+
+    async def fetch_liquidation_cutover(self, *, symbol: str) -> dict:
+        """{venue: {"first_new", "last_old"}} for Bybit and OKX: the first row written by the fixed
+        collector and the last one written before it (docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md D2).
+        Immutable once both exist; memoized on this connection."""
+        cache = getattr(self, "_liq_cutover", None)
+        if cache is not None and symbol in cache:
+            return cache[symbol]
+        out: dict = {}
+        has_column = await self._has_mapping_version()
+        for ex in ("bybit", "okx"):
+            first_new = last_old = None
+            if has_column:
+                first_new = await self.conn.fetchval(
+                    """SELECT min(ts) FROM liquidations
+                       WHERE exchange=$1 AND symbol=$2 AND mapping_version IS NOT NULL""", ex, symbol)
+                last_old = await self.conn.fetchval(
+                    """SELECT max(ts) FROM liquidations
+                       WHERE exchange=$1 AND symbol=$2 AND mapping_version IS NULL""", ex, symbol)
+            out[ex] = {"first_new": first_new, "last_old": last_old}
+        self._liq_cutover = {**(cache or {}), symbol: out}
+        return out
 
     # ------------------------------------------------------------- forecast tracking
     async def insert_forecast(self, *, horizon: str, issued_at: datetime, horizon_end: datetime,

@@ -45,18 +45,41 @@ WS_LIQUIDATION_URL = WS_PUBLIC_URL
 REST_BASE = "https://www.okx.com"
 
 
+# OKX closes a connection that receives nothing for 30 s; it wants a text "ping" (answered "pong"),
+# not only the protocol ping the websockets library sends.
+TEXT_PING_AFTER_S = 25.0
+
+
+class SubscribeRefused(RuntimeError):
+    """OKX answered a subscribe with an error frame: the connection is closed and retried with backoff."""
+
+
 def _log_control_frame(msg: dict, feed: str) -> bool:
     """OKX answers a subscribe with {"event": "subscribe"} or {"event": "error", "code", "msg"}.
     Log both (an error was silently dropped before, docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md R1);
-    True when the frame was a control frame."""
+    True when the frame was a control frame. An error raises SubscribeRefused after logging."""
     event = msg.get("event")
     if event is None:
         return False
     if event == "error":
         logger.error("[okx] %s subscribe refused: code=%s msg=%s", feed, msg.get("code"), msg.get("msg"))
-    else:
-        logger.info("[okx] %s %s: %s", feed, event, msg.get("arg"))
+        raise SubscribeRefused(f"{feed}: code={msg.get('code')}")
+    logger.info("[okx] %s %s: %s", feed, event, msg.get("arg"))
     return True
+
+
+async def _frames(ws, stop: asyncio.Event):
+    """The text frames of `ws`, sending OKX's text "ping" after TEXT_PING_AFTER_S of silence;
+    "pong" answers are swallowed."""
+    while not stop.is_set():
+        try:
+            raw = await asyncio.wait_for(ws.recv(), timeout=TEXT_PING_AFTER_S)
+        except asyncio.TimeoutError:
+            await ws.send("ping")
+            continue
+        if raw == "pong":
+            continue
+        yield raw
 
 
 def liquidation_side(detail: dict) -> Optional[str]:
@@ -84,6 +107,7 @@ class OKXClient(ExchangeClient):
         # the OKX-native instrument id is used only for API/WS requests.
         self._inst_id = to_exchange_symbol("okx", symbol, "perp")
         self._ct_val: Optional[float] = None    # BTC per contract, from the instruments endpoint
+        self._liq_live = False                  # the current liquidation socket was acknowledged
 
     async def _run_once(self) -> None:
         async with websockets.connect(WS_PUBLIC_URL, ping_interval=20, ping_timeout=20) as ws:
@@ -93,13 +117,9 @@ class OKXClient(ExchangeClient):
             }))
             logger.info("[okx] public WS connected, subscribed trades")
             self.touch()
-            async for raw in ws:
+            async for raw in _frames(ws, self._stop):
                 self.touch()
-                if raw == "pong":
-                    continue
                 await self._handle_public_message(json.loads(raw))
-                if self._stop.is_set():
-                    break
 
     async def _handle_public_message(self, msg: dict) -> None:
         if _log_control_frame(msg, "trades"):
@@ -147,13 +167,11 @@ class OKXClient(ExchangeClient):
                     }))
                     logger.info("[okx] public WS connected, subscribing liquidation-orders (ctVal=%s)",
                                 self._ct_val)
-                    backoff = 1.0
-                    async for raw in ws:
-                        if raw == "pong":
-                            continue
+                    self._liq_live = False
+                    async for raw in _frames(ws, self._stop):
                         await self._handle_liquidation_message(json.loads(raw))
-                        if self._stop.is_set():
-                            break
+                        if self._liq_live:
+                            backoff = 1.0    # reset only once OKX acknowledged the subscription
             except asyncio.CancelledError:
                 raise
             except Exception as exc:  # noqa: BLE001
@@ -165,9 +183,12 @@ class OKXClient(ExchangeClient):
 
     async def _handle_liquidation_message(self, msg: dict) -> None:
         if _log_control_frame(msg, "liquidation-orders"):
+            if msg.get("event") == "subscribe":
+                self._liq_live = True
             return
         if msg.get("arg", {}).get("channel") != "liquidation-orders":
             return
+        self._liq_live = True
         if self._ct_val is None:            # never stored without a usable multiplier (fail-closed)
             return
         for group in msg.get("data", []):

@@ -16,12 +16,13 @@ FORECAST_OBJECT    = first passage inside the original 4h window of a structural
 EVENTS             = #352 constructor: PDH PDL PWH PWL PMH PML, zone half-width 0.15 %, touch 1
 BARRIERS           = #352: X = 0.5 × 1.2816 × σ × √48 beyond the zone edge (σ = 288 bars before the touch)
 LANDMARKS          = T0 (touch-bar close) and T15 (close of bar j+2); one claim class each, one forecast per event
-«ОБЫЧНО»           = B0: driftless first-passage geometry at the same position, PIT σ and time left
+«ОБЫЧНО»           = HIST: B0, driftless first-passage geometry at the same position, PIT σ and time left;
+                     model states: G1, the generic race model at the event's geometry (amended 2026-10-08, §6b)
 PREDICTOR          = frozen and versioned; no online learning
 CALIBRATOR         = two-parameter Bayesian logistic recalibration per outcome head, batched, versioned
 HELD-OUT HISTORY   = Binance BTCUSDT 2025-01-01 → the freeze date, minus the E1-RUN-001 holdout; read once
 LIVE RECORD        = beta claim journal (beta/claims.py), classes L3_LEVEL_RACE_T0_4H and L3_LEVEL_RACE_T15_4H
-DISPLAY            = in the beta from Day 0, under the states and gates of §6
+DISPLAY            = in the beta from Day 0 in HIST (history line); the model states follow later (§6a)
 #363 PROSPECTIVE   = replaced by challenger C1 in a paired prospective comparison (§7)
 #368 PROSPECTIVE   = long science track; never a gate for this layer or for the beta
 ```
@@ -31,6 +32,8 @@ DISPLAY            = in the beta from Day 0, under the states and gates of §6
 **Display in the beta:**
 - «Показывать хочу сразу в бете и это надо изменить в документах. Решение владельца.»
 - To the question "shadow now and display after the beta, or display before Day 0 too?": «Пока до дня 0». Read with the line above: display in the beta from Day 0.
+
+**Day 0 (later the same day):** asked to choose between (a) Day 0 waits for the frozen model and (b) Day 0 earlier with a history line at the start and the full display later: «Б вариант, сразу по истории». See §6a.
 
 **The Level Engine chain:**
 - «Пр в мейн делай.» The Level Engine chain goes to main (PR #376).
@@ -148,7 +151,29 @@ ECE is descriptive only. Uncertainty is clustered by week. Raw and published pro
 - **T15:** `/levels` and `/check` (the race of the level's two barriers).
 - **Two user prices in `/check`:** the generic race line is allowed under the same engine and gates if it costs Day 0 nothing. That is the architect's call; otherwise it waits until after the beta.
 
-**Day-0 gate.** A frozen model, the held-out check run once, and live shadow logging running. If the held-out tolerance is not met by Day 0, the layer ships in `HIST` / `FALLBACK` and Day 0 is not delayed for it.
+**Day-0 gate.** A frozen model, the held-out check run once, and live shadow logging running. If the held-out tolerance is not met by Day 0, the layer ships in `HIST` / `FALLBACK` and Day 0 is not delayed for it. *(Superseded by §6a.)*
+
+## 6a. Day 0 with the history line (owner, 2026-10-08: «Б вариант, сразу по истории»)
+
+- **Day 0 does not wait for the model.** The layer ships in `HIST`: the race frequencies of a fixed, predeclared state set (family, structural side, landmark, position band at T15), each with N and the B0 geometric «обычно», in the past tense of L2. It sits on the same surfaces (T0 line in the level push, T15 in `/levels` and `/check`).
+- **The history line is computed on 2020–2024 only** (`CORE_BTC_BINANCE_V0`) and labelled with those years. 2025/2026 stays unread for race outcomes, so the one-shot held-out check of §4 keeps its value.
+- **Every eligible `HIST` statement is logged** in the claim journal from Day 0, shown or not, as an L2 class (EVIDENCE_AND_CLAIMS §5).
+- **The model states** (`L3_HISTORY_BACKED`, `L3_LIVE`, `FALLBACK`) follow after the freeze and the held-out check. They reach the running beta as a predeclared upgrade on a fixed date (owner, 2026-10-08: «вариант 2 выбираю. Можно корректировать во время беты»).
+- **Changes during the beta.** This is an exception to `PRODUCT_FIRST_DECISION_V1` §7 for the forecast layer only. The upgrade to the model states, and later corrections of the layer, may ship during the 30-day test under three conditions:
+  - each change is announced in advance with its date and content;
+  - each change is recorded as a dated event in the measurement contract;
+  - every metric is reported separately before and after that date.
+
+  The switch itself is one predeclared setting. The state rules of §6–§7 stay frozen. Other product areas keep §7 as written.
+
+
+## 6b. «Обычно» in the model states and the level-offset claim (architect, 2026-10-08, before the model freeze)
+
+The development record (`research/LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md`) shows that the largest M1 term is the volatility term, which the generic race model G1 also carries. M1 beating B0 is therefore not by itself a level effect.
+
+- **«Обычно» in `L3_HISTORY_BACKED`, `L3_LIVE` and `FALLBACK`:** G1 applied to the event's geometry, meaning any price at the same distances, with the same σ and time left. B0 stays in the journal as a second baseline. `HIST` V1 keeps its frozen «обычно», the cell mean of B0.
+- **The level-offset claim** (internal and in any wording) also needs M1 to beat G1 on the event geometry, with an interval above 0 on the held-out check. This bar was added after development and before the held-out read, and it raises the bar.
+- **`FALLBACK`** is published for a class only if the fallback model passes the calibration gate on that class; otherwise the class shows `HIST`.
 
 ## 7. Drift, fallback and challengers
 

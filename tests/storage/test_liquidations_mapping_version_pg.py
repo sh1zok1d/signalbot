@@ -61,11 +61,15 @@ def test_old_rows_keep_null_and_new_collector_rows_carry_the_fixed_mapping():
             cb: ClientCallbacks = mgr._make_callbacks("bybit")
             await cb.on_liquidation(Liquidation(exchange="bybit", symbol="BTCUSDT", ts=at.timestamp() + 60,
                                                 side="long", price=59000.0, qty=0.5, notional=29500.0))
-            await db.insert_liquidations([("okx", "BTCUSDT", at, "long", 1.0, 1.0, 1.0, False)])  # 8 fields
+            # a writer that forgets the revision is refused: NULL would mislabel a new row as old
+            for bad in (("okx", "BTCUSDT", at, "long", 1.0, 1.0, 1.0, False),
+                        ("okx", "BTCUSDT", at, "long", 1.0, 1.0, 1.0, False, None)):
+                with pytest.raises(ValueError):
+                    await db.insert_liquidations([bad])
             async with db.pool.acquire() as c:
                 rows = [tuple(r) for r in await c.fetch(
                     "SELECT exchange, side, mapping_version FROM liquidations ORDER BY id")]
-            assert rows == [("bybit", "short", None), ("bybit", "long", 2), ("okx", "long", None)]
+            assert rows == [("bybit", "short", None), ("bybit", "long", 2)]
         finally:
             await db.close()
             await admin.execute(f'DROP SCHEMA "{schema}" CASCADE')

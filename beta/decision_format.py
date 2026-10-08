@@ -323,6 +323,14 @@ def brief_levels_line(block: Mapping[str, Any], lang: str) -> list:
     return out
 
 
+def near_levels_line(levels: Mapping[str, Any], lang: str) -> Optional[str]:
+    """«Рядом: ↑ 62 950 максимум вчера (+0,75%) · ↓ 61 900 минимум Азии (−0,93%)» from a levels map."""
+    parts = [t(lang, "dc_btc_level", arrow=arrow, price=zone_price(z, lang), name=_e(zone_names(z, lang, limit=1)),
+               dist=fmt_signed_pct(z["distance_pct"], lang))
+             for z, arrow in (((levels.get("above") or [None])[0], "↑"), ((levels.get("below") or [None])[0], "↓")) if z]
+    return t(lang, "pa_levels_near", parts=" · ".join(parts)) if parts else None
+
+
 def brief_lines(view: Mapping[str, Any], lang: str) -> list:
     """The decision block of the briefing and /catchup (after «Сейчас»), in about four lines (backlog C2):
     the 4h / 24h corridor and its record, the nearest levels, the next 24h events, then research
@@ -867,6 +875,28 @@ def _corridor_line(c: Optional[Mapping[str, Any]], key: str, lang: str) -> Optio
 
 
 ALERT_MAX_LINES = 8
+DELAY_TYPICAL_MIN_N = 20         # below it the class's P50 is not printed beside the message's own delay
+
+
+def _dur(seconds: int, lang: str) -> str:
+    s = max(0, int(seconds))
+    if s < 60:
+        return t(lang, "dl_s", s=s)
+    if s < 3600:
+        return t(lang, "dl_ms", m=s // 60, s=s % 60) if s % 60 else t(lang, "dl_m", m=s // 60)
+    return t(lang, "dl_hm", h=s // 3600, m=(s % 3600) // 60)
+
+
+def delay_text(latency: Optional[Mapping[str, Any]], lang: str) -> str:
+    """« · задержка 40 с (обычно 35 с)»: the message's own delay from its source (the candle close it was
+    decided on, the event's due time) beside the class's measured median once N reaches
+    DELAY_TYPICAL_MIN_N (backlog F1 with track A's A4 field). Empty without a field."""
+    if not latency or latency.get("lag_s") is None:
+        return ""
+    own = t(lang, "dl_line", lag=_dur(latency["lag_s"], lang))
+    if latency.get("p50_s") is not None and int(latency.get("n") or 0) >= DELAY_TYPICAL_MIN_N:
+        own += t(lang, "dl_typical", p50=_dur(latency["p50_s"], lang))
+    return own
 
 
 def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
@@ -957,6 +987,8 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         lines.append(t(lang, "pa_price_footer"))
     else:
         raise ValueError(f"unknown alert kind {kind!r}")
+    if len(lines) > 1:                           # the delay on the time line, never a line of its own (F1)
+        lines[1] += delay_text(payload.get("latency"), lang)
     # research evidence recorded with the alert (beta/research_evidence.py); no unit tested release moves
     surface = {"level": "level_alert", "move": "move_alert"}.get(kind)
     # printed only with research on the main surfaces (decision §6.1); a payload from before the switch
