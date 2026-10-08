@@ -31,8 +31,8 @@ All of these hold before any invitation (the ladder's stage 2, §6). Missing any
    - the second acquisition channel for U4 chosen and named in the private ledger (§5);
    - 2–3 traders who have not seen the product have run the onboarding check (they are known contacts and never enter the cohort);
    - CI restored, `BETA_RESEARCH_EVIDENCE_ENABLED` recorded, the gate-coverage dry-run recorded, the interpretation labels reviewed.
-   - `BETA_FINGERPRINT_KEY` in `/opt/signalbot/.env` before the deploy that carries #423 (keyed fingerprints), with a copy off the server (password manager), never in a dump; deploy order: the key → restart the beta → restart the collector;
-   - OUT-8: the owner's go for block B of `docs/BETA_AUDIT_DEIDENTIFY_V1.md` (the old audit rows), run after #420 is deployed and before #423 is;
+   - `BETA_FINGERPRINT_KEY` in `/opt/signalbot/.env` before the deploy that carries #421 (keyed fingerprints), with a copy off the server (password manager), never in a dump; deploy order: the key → restart the beta → restart the collector;
+   - OUT-8: the owner's go for block B of `docs/BETA_AUDIT_DEIDENTIFY_V1.md` (the old audit rows), run after #420 is deployed and before #421 is;
    - **pending owner decision:** the in-transaction de-identification of a deleted participant's earlier admin rows (an append-only exception; options A / B / C with the architect);
    - **pending:** the exact composition of the paid access (OUT-9), fixed before the U3 offer is sent.
 2. **The step-3 deploy** (`PRE_BETA_SCOPE_DECISION_V1` §9 step 3): ОПГ-1's release-candidate record (`ORCHESTRATION_V1` §4a: commit, migrations and restart order, flags, the RC suite result, known limits, rollback), ОПГ-2's forecast-layer sign-off, the architect's red-team, the owner's deploy. In that deploy:
