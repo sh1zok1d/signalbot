@@ -3,14 +3,27 @@ name: Full regression
 # FULL REGRESSION = available for integration/checkpoint validation.
 # Not required for ordinary PR iteration. PRs to main use the fast gate
 # in ci.yml (`python scripts/ci/pr_gate.py`).
+#
+# Minutes: a run takes 30-150 min. A merge that changes only Markdown does
+# not start one (its PR runs the fast gate). A burst of merges
+# runs at most twice: the run in progress finishes, and only the newest
+# waiting push replaces the older waiting ones.
 on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths-ignore:
+      - "**.md"
+
+concurrency:
+  group: full-regression-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Longest finished run so far: about 150 min; hung runs used to burn 6 h.
+    timeout-minutes: 180
     services:
       postgres:
         image: timescale/timescaledb:2.17.2-pg16@sha256:4e459e217f00cbb09920c34d245501e63427e6767a495de57ce76823ff280f12
@@ -40,6 +53,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt

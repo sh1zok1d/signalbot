@@ -7,9 +7,18 @@ on:
   pull_request:
     branches: [main]
 
+# Minutes: a new push to a PR cancels that PR's run still in progress; only
+# the latest head is gated.
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    # The gate takes about 6 min (p90 13 min); a hung run is stopped instead of
+    # billing GitHub's 6 h default.
+    timeout-minutes: 60
     # V2-H2d (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1b): a real
     # PostgreSQL service, health-checked before any test step runs, so
     # tests/storage/test_klines_no_downgrade.py's real ON CONFLICT
@@ -77,6 +86,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
