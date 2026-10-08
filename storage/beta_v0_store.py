@@ -1683,10 +1683,8 @@ class BetaConn:
                                                   AND COALESCE(s.finished_at, s.created_at)
                                                       > COALESCE(f.finished_at, f.created_at))) AS blocked
                FROM beta_users u WHERE u.status IN ('ACTIVE', 'STOPPED') ORDER BY u.user_pk""")
-        deleted = await self.conn.fetchval(
-            """SELECT count(*) FROM beta_admin_audit
-               WHERE action IN ('user_delete_me', 'retention_purge', 'admin_remove') AND detail ? 'cohort'
-                 AND detail->>'cohort' <> 'null'""")
+        # the enrolled who were deleted: the #420 counter (unknown, joined at or after the test opening)
+        deleted = await self.conn.fetchval("SELECT COALESCE(sum(n), 0) FROM beta_deleted_cohort_counts")
         out = {"recipients": [], "stopped": 0, "blocked": 0, "deleted": int(deleted or 0)}
         for r in rows:
             if r["status"] != "ACTIVE":

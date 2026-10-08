@@ -285,7 +285,7 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
             ("user_delete_me", "participant", None, "{}")]
         assert audit[0]["recorded_at"].astimezone(KYIV).time().isoformat() == "00:00:00"
         assert await _rows(pool, "SELECT * FROM beta_deleted_cohort_counts") == []
-        async with pool.acquire() as c:                       # the old cohort query finds no per-person record
+        async with pool.acquire() as c:                       # the contract's counter query: nothing kept
             cohort = [dict(r) for r in await c.fetch(statements[-1])]
         assert cohort == []
         await pool.close()
