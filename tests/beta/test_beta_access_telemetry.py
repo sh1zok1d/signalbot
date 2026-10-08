@@ -360,8 +360,8 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         await h.handle(_cb(uid, "x:idea", 53))                  # «💡 Идея» (H1) …
         await h.handle(_msg(uid, "a chart of funding", 54))     # … and the next plain message is the idea
         await h.handle(_cb(uid, "q:n:hour-EV-AABBCCDDEE:late", 55))   # a reason after «Шум» (H2)
-        await h.handle(_msg(uid, "/interview", 56))              # H4
-        await h.handle(_cb(uid, "i:other", 57))
+        await h.handle(_msg(uid, "/interview", 56))              # removed 2026-10-08: an unknown command
+        await h.handle(_cb(uid, "i:other", 57))                  # and a dead button: nothing recorded
         await h.handle(_msg(uid, "/guide", 58))                  # «как читать бота» (J2)
         await h.handle(_msg(uid, "where is ETH?", 59))           # plain text reaches the team (J4)
         await h.handle(_msg(uid, "/stop", 60))
@@ -373,15 +373,16 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         # tab_research needs a view with research evidence: test_research_evidence.py covers it.
         # weekly_delivered needs the Sunday slot: test_beta_weekly_pg covers it.
         assert set(actions) == set(ACTIVITY_ACTIONS) - {"btn_details", "brief_withheld", "tab_research",
-                                                        "weekly_delivered"}
+                                                        "weekly_delivered",
+                                                        "cmd_interview", "interview_booked"}   # unused since 2026-10-08
         assert [r["trader_type"] for r in await _rows(pool, "SELECT trader_type FROM beta_users")] == ["swing"]   # E5
         assert actions.count("btn_noise") == 1 and actions.count("btn_useful") == 2       # one row per vote cast
         votes = await _rows(pool, "SELECT kind, ref, vote FROM beta_message_votes")
         assert votes == [{"kind": "brief", "ref": brief_pk, "vote": "USEFUL"}]
         texts = await _rows(pool, "SELECT kind, text FROM beta_feedback_messages ORDER BY message_pk")
-        assert texts[-3:] == [{"kind": "idea", "text": "a chart of funding"},
-                              {"kind": "interview", "text": "slot: another time"},
+        assert texts[-2:] == [{"kind": "idea", "text": "a chart of funding"},
                               {"kind": "feedback", "text": "where is ETH?"}]
+        assert "interview" not in {r["kind"] for r in texts}
         assert actions.count("onboard_btc") == 1                    # the trader-type answer opened J1 once
         reasons = await _rows(pool, "SELECT topic, subject, reason FROM beta_reasons ORDER BY reason_pk")
         assert reasons == [{"topic": "noise", "subject": "hour-EV-AABBCCDDEE", "reason": "late"},

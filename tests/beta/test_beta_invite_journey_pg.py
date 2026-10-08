@@ -254,10 +254,13 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
             for stmt in statements:
                 results.append([dict(r) for r in await c.fetch(stmt)])
         a_pk = (await _rows(pool, "SELECT user_pk FROM beta_users WHERE telegram_user_id=$1", A))[0]["user_pk"]
-        enrolled, pulls, reactions, blocked, _deletions = results
+        enrolled, pulls, reactions, votes, other_votes, mutes, blocked, _deletions = results
         assert {r["user_pk"] for r in enrolled} >= {a_pk}
         assert any(r["user_pk"] == a_pk for r in pulls)
         assert any(r["user_pk"] == a_pk and r["reacted"] for r in reactions)
+        assert all(r["vote"] in ("USEFUL", "NOISE") for r in votes)          # Amendment 2: votes on pushes (U2)
+        assert all(r["kind"] in ("brief", "weekly", "price", "approach") for r in other_votes)   # reported, not U2
+        assert all(r["push_type"] in ("hours", "levels", "events", "moves", "weekly") for r in mutes)
         assert [r["user_pk"] for r in blocked] == [a_pk]
 
         # ---- nothing internal reached a participant -----------------------------------------
@@ -282,7 +285,7 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
             ("user_delete_me", "participant", None, "{}")]
         assert audit[0]["recorded_at"].astimezone(KYIV).time().isoformat() == "00:00:00"
         assert await _rows(pool, "SELECT * FROM beta_deleted_cohort_counts") == []
-        async with pool.acquire() as c:                       # the old cohort query finds no per-person record
+        async with pool.acquire() as c:                       # the contract's counter query: nothing kept
             cohort = [dict(r) for r in await c.fetch(statements[-1])]
         assert cohort == []
         await pool.close()

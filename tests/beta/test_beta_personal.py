@@ -173,16 +173,11 @@ def test_quiet_hours_follow_the_participants_wall_clock_across_the_switch():
     assert quiet_for_all(cfg, ts, [None]) and not quiet_for_all(cfg, ts, [None, "UTC+05:30"])
 
 
-def test_reasons_and_interview_slots():
-    """Backlog H2 / H3 answers and the H4 slots on the participant's clock (two weekdays ahead)."""
-    from runtime.beta_bot import _interview_slots, _parse_reason, _reason_buttons
+def test_reasons():
+    """Backlog H2 / H3 answers (H4, the interviews, removed by the owner on 2026-10-08)."""
+    from runtime.beta_bot import _parse_reason, _reason_buttons
     assert _parse_reason("q:n:level-12:late") == ("noise", "level-12", "late")
     assert _parse_reason("q:s:-:too_many") == ("stop", "-", "too_many")
     for bad in ("q:n:level-12:too_many", "q:s:-:late", "q:x:-:other", "q:n::late", "q:n:a:b:late"):
         assert _parse_reason(bad) is None, bad
     assert [d for row in _reason_buttons("s", "-", "ru") for _l, d in row][0] == "q:s:-:not_needed"
-    fri = datetime(2026, 10, 9, 10, 0, tzinfo=UTC)                       # Friday 13:00 Kyiv
-    with render_tz("UTC+00:00"):
-        slots = _interview_slots(fri)
-    assert [s.isoformat() for s in slots] == ["2026-10-12T12:00:00+00:00", "2026-10-12T18:00:00+00:00",
-                                              "2026-10-13T12:00:00+00:00"]           # Monday, Monday, Tuesday
