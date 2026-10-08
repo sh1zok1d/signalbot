@@ -33,7 +33,7 @@ Session ids are in §6, which the architect keeps current.
 
 **The architect decides without the owner:**
 - priorities, order and scope cuts inside the owner's recorded decisions;
-- red-teaming the mini-heads' reports (§3a), merges under the owner's merge rule of 2026-10-06, conflicts and shared-file order;
+- red-teaming the mini-heads' reports (§3a), merges under the owner's merge rule of 2026-10-06 (the architect merges PRs itself: owner, 2026-10-08, «можешь мержить сам. Даю право»), conflicts and shared-file order;
 - the design notes, gates and tolerances of this program's units, before any outcome;
 - wording inside the honesty rules (PRODUCT_DECISION_V2 §3, EVIDENCE_AND_CLAIMS);
 - creating and stopping agent sessions and their scheduled checks.
