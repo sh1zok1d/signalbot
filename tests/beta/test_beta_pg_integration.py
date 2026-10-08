@@ -882,7 +882,8 @@ def test_bot_btc_shows_last_event_after_detector_termination_and_records_view():
         from beta.formatter import format_1h_tab, format_btc, format_event_tab, view_id8
         assert format_btc(CFG, payload, "en") == v["rendered_html"]          # the stored payload re-renders exactly
         assert v["episodization_version"] == "STRICT_QUALIFICATION_V1"
-        assert payload.get("horizons", {}).get("version") == "BETA_HORIZON_TOD_V3"
+        from beta.horizons import HORIZON_VERSION
+        assert payload.get("horizons", {}).get("version") == HORIZON_VERSION
         latest = (await _rows(pool, "SELECT state_digest FROM beta_context_snapshots ORDER BY bucket_ts DESC"))[0]
         assert v["context_state_digest"] == latest["state_digest"]
         # the id as a value, not three digits inside a hex digest («…7f901e0…») or a price
