@@ -16,7 +16,7 @@
 
 ## 0. What is already decided
 
-- **The test.** The 30-day user test of `PRODUCT_FIRST_DECISION_V1` §7, read on day 30 by unknown-to-founder participants only, evidence precedence money > behaviour > words. Interviews never flip a FAIL.
+- **The test.** The 30-day user test of `PRODUCT_FIRST_DECISION_V1` §7, read on day 30 by unknown-to-founder participants only, evidence precedence money > behaviour > words.
 - **The product under test** is the decision-support bot of `PRODUCT_DECISION_V2`: the corridor, levels with the chance to reach them, «что было после похожих», the event calendar, the morning briefing, the unusual-hour push and the market alerts. No direct trade calls, no hype; every historical number carries N and «обычно»; every forecast carries its tracked accuracy.
 - **Who counts.** The owner is excluded from every metric. Known contacts (`beta_users.known_contact`) are reported separately and never count toward PASS (contract §1.2).
 - **The join path** is the existing one: invite link `t.me/<bot>?start=<code>`, language, privacy notice v7, **Вступить**, the trader-type question, the onboarding (live `/btc`, an example message, the `/check` offer).
@@ -29,7 +29,6 @@ All of these hold before any invitation (the ladder's stage 2, §6). Missing any
 1. **Owner-only items done** (`PRE_BETA_SCOPE_DECISION_V1` §9; each recorded where it says):
    - the U3 price and the manual payment method fixed in a commit: `access.u3_offer.price` / `.method` (`/admin_offer` refuses until then); the payment link itself stays in the private ledger, never in git;
    - the second acquisition channel for U4 chosen and named in the private ledger (§5);
-   - the 5-question interview script approved (§8; the draft there is not approved until the owner says so);
    - 2–3 traders who have not seen the product have run the onboarding check (they are known contacts and never enter the cohort);
    - CI restored, `BETA_RESEARCH_EVIDENCE_ENABLED` recorded, the gate-coverage dry-run recorded, the interpretation labels reviewed.
 2. **The step-3 deploy** (`PRE_BETA_SCOPE_DECISION_V1` §9 step 3): ОПГ-1's release-candidate record (`ORCHESTRATION_V1` §4a: commit, migrations and restart order, flags, the RC suite result, known limits, rollback), ОПГ-2's forecast-layer sign-off, the architect's red-team, the owner's deploy. In that deploy:
@@ -51,12 +50,12 @@ Kyiv days, for every participant (contract §1.4).
 |---|---|
 | Day 0 | The Kyiv day of the first enrolled unknown participant's join (contract §1.4). The owner records it in contract §0 and sets `briefing.withdrawal.day0_kyiv` once, with a deploy (checklist §5). That config change is the only post-freeze value and activates U1a. |
 | Enrollment | Unknown participants who join on cohort days 0–12 are enrolled; later joins are reported, not enrolled (contract §1.3). U4 is read at the end of day 12. |
-| Calibration | The first 7 days (`PRODUCT_FIRST` §7): clarity, timing, translation and bug fixes from the first interview. Information types, the push rule and label meanings stay as built. Every change goes in the change log. |
+| Calibration | The first 7 days (`PRODUCT_FIRST` §7): clarity, timing, translation and bug fixes. Information types, the push rule and label meanings stay as built. Every change goes in the change log. |
 | Freeze | From day 8 00:00 Kyiv (`PRODUCT_FIRST` §7) the product, the value proposition and the criteria are frozen. Only the dated events of contract §12.2, announced in advance, may ship after that. |
 | Measurement | Days 8–30; U1b and retention use days 18–30. |
 | U1a | Automatic (contract §6.1): `seed 20261003`, 3 Mon–Fri dates from cohort days 14–27, the same dates for everyone, each participant's briefing withheld when their **local briefing date** is one of them. Nobody toggles anything by hand. |
 | Weekly report | Sunday 19:00 on each participant's clock; never on a withdrawal date. |
-| Interviews | Mornings of days 7, 14, 21, 28, after that week's metric seal (§8). |
+| Metric seal | Weekly, after each Sunday (§8). |
 | U3 offer | Days 21–25, `/admin_offer send` once (§10). |
 | Reading | After day 30 closes (§12). |
 
@@ -67,7 +66,7 @@ A Kyiv day with delivery failure for more than 30 % of enrolled participants is 
 ## 3. Profile of a suitable participant
 
 A recruitment filter applied by where the invitation goes and by its text, never after join:
-- reads Russian or English (the bot is RU / EN; interviews are in the participant's language);
+- reads Russian or English (the bot is RU / EN);
 - trades BTC perpetuals (Binance, Bybit or OKX are the bot's venues);
 - holds from tens of minutes to days and looks at BTC during the day;
 - does not need an order book or a signal service from this bot.
@@ -77,9 +76,9 @@ Someone who joins through a cohort code and turns out to be a poor fit stays in 
 ## 4. Known and unknown-to-founder
 
 - **Field and command.** `beta_users.known_contact`, set with `/admin_known <telegram_user_id> on|off` **within 24 hours of the join** (contract §1.2). A participant not marked known by then is unknown. Later changes are audited and never move anyone into or out of a metric.
-- **Known** when any of these holds: the founder had a conversation with them before the invite, invited them personally, showed them the bot, a screenshot or a description of its behaviour (including the 2026-09-30 scalper interview), or they joined through a code other than the two cohort codes. Uncertain is known.
+- **Known** when any of these holds: the founder had a conversation with them before the invite, invited them personally, showed them the bot, a screenshot or a description of its behaviour (including the 2026-09-30 scalper conversation), or they joined through a code other than the two cohort codes. Uncertain is known.
 - **Unknown** only when none holds and the join redeemed a cohort code.
-- **Classify before reading** that participant's activity, votes or messages. Never reclassify after behaviour, an interview, a complaint or a payment.
+- **Classify before reading** that participant's activity, votes or messages. Never reclassify after behaviour, a complaint or a payment.
 - **Stages 2–3 of the ladder** (§6) are known contacts by construction.
 - **Never** fill the cohort with acquaintances; never admit from the waitlist. A waitlist request gets one reply and no link:
 
@@ -142,37 +141,18 @@ The bot carries it; the founder sends nothing.
 
 No founder voice note, feature list, «зайдите в /btc» or request to vote. A private tour before or after join is a purity violation (§11). The automatic `/btc` is `onboard_btc`, never a pull (contract §2).
 
-## 8. Interviews, verbatim storage, metric seal
+## 8. Verbatim storage and metric seal
 
-**When.** Mornings of cohort days 7, 14, 21 and 28, to every participant who joined before that midnight and has not used `/delete_me`. Order on those mornings: seal the metrics, then send the script; on day 21 the U3 offer goes at least four hours later (§10). Only the day-7 interview may lead to a calibration change, deployed before day 8 00:00.
+The owner removed the interviews on 2026-10-08. What participants write on their own is the only text input.
 
-**The 15-minute call.** A participant who prefers a call books it in the bot («📞 15 минут с командой», `/interview`): three slots on their clock or «Другое время». The owner confirms with `/admin_reply` (an owner-only reply) and asks the same five questions, typed as said.
-
-**The script — draft carried from #307, `PENDING_OWNER_APPROVAL`** (`PRE_BETA_SCOPE_DECISION_V1` §9). One message, these five questions, this order, every week; no examples, no other coins, no scanner, no payment question:
-
-```text
-Короткий разговор раз в неделю. Пять вопросов, без правильных ответов. Можно ответить здесь текстом. Если неудобно — напишите «не сейчас», и я не напомню до следующей недели.
-
-1. За последние 7 дней вы открывали бота? Если да — когда и что хотели узнать.
-2. Что в нём оказалось полезным, если что-то было?
-3. Что мешало пользоваться тем, что уже есть?
-4. Было ли сообщение от бота, после которого вы зашли? Что вы сделали после него?
-5. Чего вы ждали от такого бота и не нашли?
-```
-
-One follow-up is allowed, only: «Повторите, пожалуйста, своими словами — я не хочу додумывать.» Question 5 is the unprompted input for U5 and for Pivot; multi-asset demand counts only when the participant's own words name a market other than BTC.
-
-**Metric seal.** Before each interview send, export the week's activity the contract names (contract §4 queries) to a file outside git, timestamped in Kyiv time, never edited after. The founder reads a participant's rows only after that participant's verbatim for the week is stored.
+**Metric seal.** Once a week, after each Sunday (Kyiv), export the week's activity the contract names (contract §4 queries) to a file outside git, timestamped in Kyiv time, never edited after.
 
 **Verbatim rules.**
-- Interview answers, `/feedback`, ideas, plain messages and the «почему» answers after «Шум» and at `/stop` are verbatim. The bot already stores the texts (`beta_feedback_messages`, `beta_reasons`); copy them unchanged into the ledger with their source.
-- Numbered answers: one row per question. One block of text: one row, `question: unsplit`; only the coder may split it.
-- Silence, «не сейчас» and an empty reply are stored as `(молчание)`, `не сейчас`, `(пустой ответ)`.
-- No translation before storage. No Telegram ids, usernames or payment links in git. Local ids (`C01`, …) are the only identifiers the coder sees.
+- `/feedback`, ideas, plain messages and the «почему» answers after «Шум» and at `/stop` are verbatim. The bot already stores the texts (`beta_feedback_messages`, `beta_reasons`); copy them unchanged into the ledger with their source.
+- Silence and an empty reply are stored as `(молчание)` and `(пустой ответ)`, never turned into a meaning.
+- No translation before storage. No Telegram ids, usernames or payment links in git; local ids (`C01`, …) only.
 
-**Coding.** An external coder with no role in Signalbot, named in the ledger before the first post, gets only `local_id`, `week`, `question`, `verbatim`. The coder groups question-5 answers by a short quote, marks `named_other_market`, and the founder never merges or splits the groups. Pivot uses a group only with at least five unknown participants.
-
-**U5 fake door.** «Другие монеты» under `/help` (contract §6.2): a tap answers that only BTC is available and records `btn_other_assets`. It is never pushed and never mentioned in the invitation, the script, pushes or the welcome. U5 counts unknown participants with taps on ≥ 2 distinct Kyiv days or who name another market unprompted in the final interview.
+**U5 fake door.** «Другие монеты» under `/help` (contract §6.2): a tap answers that only BTC is available and records `btn_other_assets`. It is never pushed and never mentioned in the invitation, pushes or the welcome. U5 counts unknown participants with taps on ≥ 2 distinct Kyiv days; the rest of U5's method waits for the owner's decision.
 
 ## 9. Participants who left
 
@@ -180,14 +160,14 @@ One follow-up is allowed, only: «Повторите, пожалуйста, св
 - **A paused participant's plain message** reaches the owner (J4). The owner may answer it factually with `/admin_reply`, once, with no return offer and no request to open the bot.
 - **`/delete_me`** ends contact. Never look them up elsewhere. An enrolled participant stays in the denominator through the cohort record (contract §1.5).
 - **A blocked bot** is `(unreachable)`; no other channel is tried.
-- `/brief off`, `/push off` or per-type mutes alone are not a departure; U1a and U2 already count them, and the interviews continue.
+- `/brief off`, `/push off` or per-type mutes alone are not a departure; U1a and U2 already count them.
 - Paused participants still get the U3 offer and the team's replies to their own messages, as the privacy notice v7 and the pause reply say.
 
 ## 10. The payment offer (U3)
 
 - **What counts.** A real transfer only; a promise or a "would pay" is not a payment. A refund within 30 days cancels it (contract §7).
 - **Price and method** are the ones in the pre-invitation commit (`access.u3_offer`); the link is in the private ledger.
-- **Sending.** `/admin_offer` shows a preview; `/admin_offer send` sends the offer once to every enrolled participant, churned included, on day 21 at least four hours after the interview. A second `send` is refused (#405); `send again` is reserved for a failed send and is logged as such.
+- **Sending.** `/admin_offer` shows a preview; `/admin_offer send` sends the offer once to every enrolled participant, churned included, on day 21. A second `send` is refused (#405); `send again` is reserved for a failed send and is logged as such.
 - **The owner's output** is the fingerprints and the time, copied into the U3 ledger (`participant_fingerprint`, `known_contact`, `offered_at`, `paid_at`, `amount`, `currency`, `refunded_at`), kept outside git.
 - **Late joiners.** A participant who joins after day 12 is not enrolled (contract §1.3): whatever they receive or pay is reported and never enters U3.
 - **No reminder** on days 22–25. A transfer on day 26 or later does not count. Questions about payment come back through `/feedback` or a reply and are answered factually.
@@ -198,11 +178,10 @@ One follow-up is allowed, only: «Повторите, пожалуйста, св
 **Allowed founder messages,** only in the form fixed above:
 1. the public posts and the single public follow-up (§5);
 2. the one waitlist sentence (§4);
-3. the weekly script, one «своими словами» follow-up, and the confirmation of a booked call;
-4. the U3 offer (`/admin_offer`);
-5. `/admin_reply` to a participant's own message (`/feedback`, an idea, a plain message, an interview request), answering only what was asked, factually, with no prompt to open the bot, stored verbatim;
-6. on a withdrawal morning, only if asked where the briefing is: «Сегодня утренней сводки не было.»;
-7. the ready outage notices (`/admin_outage start|end`) and factual answers about privacy or `/delete_me`.
+3. the U3 offer (`/admin_offer`), the single separate exception (`PRODUCT_FIRST_DECISION_V1` §7, owner amendment 2026-10-08);
+4. `/admin_reply` to a participant's own message (`/feedback`, an idea, a plain message), also while they are paused: a factual answer to what was asked, stickers included, stored verbatim. Never writing first, never a reminder, never persuading them to return;
+5. on a withdrawal morning, only if asked where the briefing is: «Сегодня утренней сводки не было.»;
+6. the ready outage notices (`/admin_outage start|end`) and factual answers about privacy or `/delete_me`.
 
 **User-level violations** (the participant stays in the denominator if unknown, leaves every PASS numerator; the class label is not changed): any founder message outside the list, including «посмотри бота», «зайди в /btc», «сегодня интересный рынок», «как тебе бот»; telling anyone a briefing was withheld or pointing them to `/catchup` on a withdrawal day; a private tour or a screenshot; contacting a `/delete_me` participant.
 
@@ -212,11 +191,11 @@ One follow-up is allowed, only: «Повторите, пожалуйста, св
 - a third channel, a personal code, recruiting through others, extending the window, acquisition past 6 hours;
 - changing any U1a–U5 threshold, the U3 price, or `briefing.withdrawal` (seed, count, range) after Day 0;
 - offering payment only to active participants, or a payment reminder;
-- naming another market, a scanner or a direction in an interview, the invitation or a reply;
+- naming another market, a scanner or a direction in the invitation or a reply;
 - after day 8: adding or removing an information type, changing the push rule or a label's meaning, or switching `level_race.push_trigger`, unless it is an owner-decided dated event of contract §12.2 announced in advance;
 - tuning labels or push gates on future prices;
 - counting the owner, a push-driven open as a pull, or a promise as a payment;
-- the founder, or anyone who has seen the metrics, coding the interviews; a paraphrase stored instead of the verbatim;
+- a paraphrase stored instead of the verbatim;
 - inviting before §1 holds.
 
 ## 12. Day-30 reading
@@ -230,7 +209,7 @@ After day 30 closes, compute U1a, U1b, U2, U3, U4 and U5 on unknown participants
 
 If none of rules 1–5 fires, the single 14-day extension of rule 6 runs with no product change. There is no third round.
 
-**Private ledger, minimum columns** (one file outside git, no Telegram ids): `local_id`, `class` (`unknown` / `known` / `owner`), `invite_label`, `joined_at` (Kyiv), `class_reason` (one sentence, at join), `acquisition_log` (blocks and summed hours), `venues` (written before the first post), `coder` (named before the first post), `u3` (price, method, link; the §10 ledger), `change_log` (date, what, why, and whether it restarts the observation week; empty after day 8 except dated events), `verbatim`, `violations`, `coder_groups` (unedited).
+**Private ledger, minimum columns** (one file outside git, no Telegram ids): `local_id`, `class` (`unknown` / `known` / `owner`), `invite_label`, `joined_at` (Kyiv), `class_reason` (one sentence, at join), `acquisition_log` (blocks and summed hours), `venues` (written before the first post), `u3` (price, method, link; the §10 ledger), `change_log` (date, what, why, and whether it restarts the observation week; empty after day 8 except dated events), `verbatim`, `violations`.
 
 ## 13. What was dropped from #307, and why
 
@@ -247,7 +226,7 @@ If none of rules 1–5 fires, the single 14-day extension of rule 6 runs with no
 | The U5 control labelled «Другие рынки» | Replaced | Built as «Другие монеты» with its reply (contract §6.2). |
 | The founder's churn message the morning after `/stop` | Dropped | The bot asks the `/stop` question itself (H3); a second founder message would be an extra prompt. |
 | `/admin_reply` limited to outages and privacy | Widened | J4 and the privacy notice promise that the team answers a participant's own message; the answer is factual and stored (§11 item 5). |
-| The interview as a founder message only | Kept, plus the in-bot booking | H4 «📞 15 минут с командой» books the call; the script still needs the owner's approval. |
+| Weekly interviews: the 5-question script, the «своими словами» follow-up, the external coder and the question-5 groups | Dropped | The owner removed the interviews on 2026-10-08 (#416). |
 | Invitation text describing the V1 briefing | Replaced | A draft for the decision-support product, for the owner's approval (§5). |
 | Channel 2 fixed as one news-channel comment thread or forum | Replaced | The owner chooses the second channel (`PRE_BETA_SCOPE_DECISION_V1` §9); the constraints are kept. |
 | No release candidate, observation week, push-trigger switch or claim cohorts | Added | `ORCHESTRATION_V1` §4a and contract Amendment 2 / §12 (§1.2–§1.3, §11, §12). |
