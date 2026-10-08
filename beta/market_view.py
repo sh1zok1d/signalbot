@@ -127,15 +127,20 @@ async def _tape_and_oi(conn, cfg: BetaConfig, view: Mapping[str, Any], *,
         if start not in bounds:
             bounds.append(start)
     oi = await conn.fetch_open_interest_asof(symbol=cfg.symbol, exchanges=cfg.exchanges, boundaries=bounds)
-    return {"as_of": as_of, "metrics": {b: m for b, m in hist}, "oi": oi}
+    from .liq_mapping import okx_liq_shown, without_okx_liq
+    metrics = {b: m for b, m in hist}
+    if not okx_liq_shown((latest.get("snapshot") or {}).get("percentiles")):
+        metrics = {b: without_okx_liq(m) for b, m in metrics.items()}
+    return {"as_of": as_of, "metrics": metrics, "oi": oi}
 
 
 def _horizons(cfg: BetaConfig, view: Mapping[str, Any], tape: Optional[Mapping[str, Any]]) -> dict:
     from .horizons import build_horizons, empty_horizons
     if tape is None:
         return empty_horizons()
-    return build_horizons(cfg, as_of_bucket=tape["as_of"], metrics_by_bucket=tape["metrics"],
-                          oi_by_boundary=tape["oi"])
+    from .liq_mapping import mark_okx_lower_bound
+    return mark_okx_lower_bound(build_horizons(cfg, as_of_bucket=tape["as_of"], metrics_by_bucket=tape["metrics"],
+                                               oi_by_boundary=tape["oi"]))
 
 
 async def _derivatives(conn, view: Mapping[str, Any], tape: Optional[Mapping[str, Any]], *,

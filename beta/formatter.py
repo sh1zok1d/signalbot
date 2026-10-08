@@ -745,9 +745,11 @@ def _liq_votes_line(gate: Mapping[str, Any], lang: str) -> Optional[str]:
     liq = gate.get("liquidation")
     if not liq or not liq.get("voting"):
         return None            # no votes of the confirming episode at this bucket: no evidence line
-    n = len(gate.get("values", {}).get("ranks", {})) and 3
-    return t(lang, "liq_votes_line", side=t(lang, "side_" + liq["side"]), k=len(liq.get("voting") or ()),
-             n=max(n, len(liq.get("eligible") or ()), 1))
+    # n = the venues eligible for this side, never a fixed 3: OKX is out until it has 30 days of real
+    # history (data reliability D2; review of #378)
+    voting = liq.get("voting") or ()
+    return t(lang, "liq_votes_line", side=t(lang, "side_" + liq["side"]), k=len(voting),
+             n=max(len(liq.get("eligible") or ()), len(voting), 1))
 
 
 def _unsigned_line(gate: Mapping[str, Any], lang: str) -> Optional[str]:
@@ -973,17 +975,22 @@ def _fmt_liq_body(per_venue: Mapping[str, Mapping[str, Any]], lang: str) -> tupl
 
 
 def _anchor_liq_map(anchor_view: Mapping[str, Any]) -> dict:
-    """One bucket: Binance is always a lower bound; None is missing, never zero."""
+    """One bucket: Binance and OKX are lower bounds (OKX: "doesn't represent the total"); None is
+    missing, never zero. OKX is shown only where it could vote, i.e. with 30 days of real history
+    (data reliability D2); before that it is «н/д»."""
     out = {}
     liq = anchor_view.get("liquidations") or {}
     for side in ("long", "short"):
         per = (liq.get(side) or {}).get("per_venue") or {}
+        eligible = set((liq.get(side) or {}).get("eligible") or ())
         out[side] = {}
         for ex, amount in per.items():
+            if ex == "okx" and ex not in eligible:
+                amount = None
             if amount is None:
                 out[side][ex] = {"amount": None, "missing": True, "lower_bound": False}
             else:
-                out[side][ex] = {"amount": float(amount), "missing": False, "lower_bound": ex == "binance"}
+                out[side][ex] = {"amount": float(amount), "missing": False, "lower_bound": ex in ("binance", "okx")}
     return out
 
 

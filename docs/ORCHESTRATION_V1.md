@@ -33,7 +33,7 @@ Session ids are in §6, which the architect keeps current.
 
 **The architect decides without the owner:**
 - priorities, order and scope cuts inside the owner's recorded decisions;
-- red-teaming the mini-heads' reports (§3a), merges under the owner's merge rule of 2026-10-06, conflicts and shared-file order;
+- red-teaming the mini-heads' reports (§3a), merges under the owner's merge rule of 2026-10-06 (the architect merges PRs itself: owner, 2026-10-08, «можешь мержить сам. Даю право»), conflicts and shared-file order;
 - the design notes, gates and tolerances of this program's units, before any outcome;
 - wording inside the honesty rules (PRODUCT_DECISION_V2 §3, EVIDENCE_AND_CLAIMS);
 - creating and stopping agent sessions and their scheduled checks.
@@ -60,6 +60,26 @@ Owner, 2026-10-08: «Перепроверять и редтимить работ
 - **The architect checks the mini-heads.** It red-teams each mini-head report: whether the claims hold, whether the evidence cited supports them, what was not checked, conflicts with the other branch and with the owner's decisions. It does not redo the mini-head's diff review.
 - **When a report does not hold up**, the architect asks the mini-head for the missing evidence. Only then does it read the code itself.
 - **What a report carries:** what changed and why; the PR; the tests the track ran and their results; what the mini-head checked and found; what it did not check; open risks.
+
+## 3b. Red-team without duplicated work (owner, 2026-10-08)
+
+Both mini-heads run the same model, so two reviews of the same thing share their blind spots. Owner: «надо ред-тим как-то по другому сделать между опг 1 и 2. чтобы они не делали ту же работу дважды».
+
+**Split by lens.** On a PR that both mini-heads review, each reviews only its own charter and does not re-check the other's.
+- **ОПГ-2 — science and honesty:**
+  - point-in-time inputs and no lookahead;
+  - protected data, 2025/26 and the E1 window;
+  - parity with the frozen model, table and design note;
+  - claims no stronger than the evidence, L2/L3 wording;
+  - the claim journal.
+- **ОПГ-1 — product and operations:**
+  - push gating, limits, quiet hours, per-type mute and dedup;
+  - schema and locks, deploy order and rollback;
+  - load and latency;
+  - user-facing texts, RU/EN equality, time zones;
+  - measurement-contract effects.
+
+**Break it, do not bless it.** A review report lists the PR's claims the reviewer tried to break. Each comes with a failing test or a concrete scenario, or with "not broken" and how it was tried. «Looks fine» without attempts is not a review.
 
 ## 4. Files and merges
 
