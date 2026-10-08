@@ -102,7 +102,7 @@ U4 is fixed: 2 channels, 12 calendar days [T(0), T(12)), at most 6 hours of foun
 - **Work budget.** Start/stop blocks in the ledger, Kyiv time, to the minute. At 6 hours stop: no third venue, no extension, no repost by others. Joins that arrive later from the posts already made still count. A join that needed a private conversation is known.
 - **At T(12)**, below 8 unknown joins: stop inviting, revoke both codes, record "Stop: distribution".
 
-**Invitation text — owner-approved RU, 2026-10-08; re-checked against the build at the RC (OUT-7).** Verbatim, never edited here; the only placeholder is `<ссылка>`. **EN: pending owner.**
+**Invitation text — owner-approved RU, 2026-10-08; re-checked against the build at the RC (OUT-7).** Verbatim, never edited here; the only placeholder is `<ссылка>`.
 
 ```text
 Приглашаю в закрытую бесплатную бету Telegram-бота по BTC — на данных фьючерсов Binance, Bybit и OKX.
@@ -116,6 +116,22 @@ U4 is fixed: 2 channels, 12 calendar days [T(0), T(12)), at most 6 hours of foun
 Бета бесплатна до конца теста. Ближе к завершению предложим участникам беты платное продолжение — по желанию.
 
 Вход: <ссылка> Остановить сообщения — /stop, удалить данные — /delete_me.
+```
+
+**Invitation text — owner-approved EN, 2026-10-08; re-checked against the build at the RC (OUT-7).** Verbatim; the only placeholder is `<link>`.
+
+```text
+You're invited to a closed, free beta of a Telegram bot for BTC, built on Binance, Bybit and OKX futures data.
+
+The bot helps you check the state of the market quickly: estimated price ranges for the next 1, 4 and 24 hours, the nearest levels and the estimated chance of reaching them, and an event calendar; where there is enough data, the results of checking such estimates (for now on historical data; checking on new data is only starting). It sends short notifications about notable changes.
+
+Historical observations and forecast estimates are marked separately. Estimates can be wrong; the bot never tells you to buy or sell.
+
+I'm looking for people who follow BTC during the day and are willing to try the bot in their normal work. You can send feedback and questions right in the bot, no calls needed.
+
+The beta is free until the end of the test. Near the end, beta participants will be offered a paid continuation, entirely optional.
+
+Join: <link> Stop messages: /stop. Delete your data: /delete_me.
 ```
 
 **The only public follow-up**, once per thread, to "does it say where the price goes / give trades":
