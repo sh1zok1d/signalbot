@@ -420,16 +420,6 @@ _CATALOG: dict[str, dict[str, str]] = {
     "reason_unclear": {"ru": "Непонятно, что он показывает", "en": "It is unclear what it shows"},
     "reason_other": {"ru": "Другое", "en": "Something else"},
     "reason_thanks": {"ru": "Спасибо, записал.", "en": "Thanks, noted."},
-    "btn_interview": {"ru": "📞 15 минут с командой", "en": "📞 15 minutes with the team"},
-    "interview_q": {"ru": "Можно поговорить 15 минут о боте — что полезно и чего не хватает. Выберите время "
-                          "(по вашему времени, {zone_name}):",
-                    "en": "A 15-minute talk about the bot — what helps and what is missing. Pick a time "
-                          "(your time, {zone_name}):"},
-    "interview_other": {"ru": "Другое время", "en": "Another time"},
-    "interview_ok": {"ru": "Записал: {slot}. Команда напишет здесь накануне. Передумали — напишите /feedback.",
-                     "en": "Booked: {slot}. The team writes here the day before. Changed your mind? Write /feedback."},
-    "interview_other_ok": {"ru": "Записал: удобно в другое время. Команда напишет здесь, чтобы договориться.",
-                           "en": "Noted: another time suits you. The team writes here to agree on one."},
     # J4: a plain message (not a command) reaches the team as feedback; the answer comes here
     # J1 onboarding: live /btc, a sample message, the /check offer (first value within a minute)
     "onboard_btc_head": {"ru": "Вот BTC прямо сейчас:", "en": "Here is BTC right now:"},
@@ -532,12 +522,11 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
             "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
             "/delete_me удаляет их вместе с остальными вашими данными.\n"
-            "• Тексты отзывов, идей, обычные сообщения боту и запись на разговор (/feedback, /idea, /interview) "
-            "хранятся 120 дней; "
+            "• Тексты отзывов, идей и обычные сообщения боту (/feedback, /idea) хранятся 120 дней; "
             "ответы «почему» после «Шум» и при паузе хранятся, пока вы в бете. /delete_me удаляет всё это.\n"
             "• Ваши уровни (/alert) хранятся, пока вы их не удалите; /delete_me удаляет их.\n"
-            "• /stop приостанавливает все сообщения, кроме ответов команды на ваши сообщения и одного предложения "
-            "в конце беты. /delete_me удаляет ваши данные участника "
+            "• /stop приостанавливает все сообщения, кроме ответов команды на ваши сообщения. "
+            "/delete_me удаляет ваши данные участника "
             "и исключает вас из беты.\n"
             "• После /stop данные удаляются автоматически через 30 дней.\n"
             "• Журнал прогнозов бота (что он говорил и что было потом) и записи рынка не содержат "
@@ -561,13 +550,13 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• We record which commands and buttons you use, and when, and which invite link "
             "you came from, so we can improve the bot. These records are kept for 120 days. "
             "/delete_me deletes them with the rest of your data.\n"
-            "• Feedback and idea texts, plain messages to the bot and interview requests (/feedback, /idea, "
-            "/interview) are stored for 120 days; your "
+            "• Feedback and idea texts and plain messages to the bot (/feedback, /idea) are stored for 120 days; "
+            "your "
             "answers to «why» after «Noise» and at a pause are kept while you are in the beta. /delete_me deletes "
             "all of it.\n"
             "• Your price alerts (/alert) are kept until you delete them; /delete_me deletes them.\n"
-            "• /stop pauses all messages except the team's replies to your messages and one offer at the end of "
-            "the beta. /delete_me deletes your participant data and removes "
+            "• /stop pauses all messages except the team's replies to your messages. "
+            "/delete_me deletes your participant data and removes "
             "you from the beta.\n"
             "• After /stop, your data is deleted automatically after 30 days.\n"
             "• The bot's forecast journal (what it said and what happened next) and the market records do not "
@@ -625,10 +614,10 @@ _CATALOG: dict[str, dict[str, str]] = {
         "en": "Messages are paused or you have not joined yet. Send /start.",
     },
     "paused": {
-        "ru": ("Сообщения на паузе, кроме ответов команды на ваши сообщения и одного предложения в конце беты. "
+        "ru": ("Сообщения на паузе, кроме ответов команды на ваши сообщения. "
                "Отправьте /start, чтобы продолжить. Данные удаляются "
                "автоматически через 30 дней или сразу командой /delete_me."),
-        "en": ("Messages paused, except the team's replies to your messages and one offer at the end of the beta. "
+        "en": ("Messages paused, except the team's replies to your messages. "
                "Send /start to resume. Your data is deleted "
                "automatically after 30 days, or now with /delete_me."),
     },

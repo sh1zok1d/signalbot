@@ -3,11 +3,32 @@ from beta.i18n import t
 
 
 def test_stop_discloses_what_still_reaches_a_paused_participant():
-    """/admin_reply and the U3 offer reach STOPPED participants: the privacy notice and the pause reply say so."""
-    for lang, phrase in (("ru", "кроме ответов команды на ваши сообщения и одного предложения"),
-                         ("en", "except the team's replies to your messages and one offer at the end")):
+    """/admin_reply reaches STOPPED participants and nothing else does (owner, 2026-10-08): privacy v8 and
+    the pause reply say so, and no longer promise an offer after /stop."""
+    for lang, phrase in (("ru", "кроме ответов команды на ваши сообщения."),
+                         ("en", "except the team's replies to your messages.")):
         for key in ("privacy", "paused"):
-            assert phrase in " ".join(t(lang, key).split()), (lang, key)
+            text = " ".join(t(lang, key).split())
+            assert phrase in text and "предложени" not in text and "offer" not in text, (lang, key)
+
+
+def test_no_interview_surface_is_reachable():
+    """The owner removed the interviews on 2026-10-08: no command, button, copy or help line is left, and no
+    code path writes the kept-for-history values (kind 'interview', cmd_interview, interview_booked)."""
+    import pathlib
+    import re
+    from beta import i18n, i18n_decision
+    from runtime.beta_bot import _help_buttons
+    assert not any("interview" in k for k in i18n._CATALOG)
+    for lang in ("ru", "en"):
+        assert all("interview" not in d for row in _help_buttons(lang) for _l, d in row)
+        assert "/interview" not in i18n_decision.DECISION_HELP[lang] and "/interview" not in t(lang, "privacy")
+        assert "накануне" not in " ".join(str(v.get(lang, "")) for v in i18n._CATALOG.values() if isinstance(v, dict))
+    root = pathlib.Path(__file__).resolve().parents[2]
+    for src in ("runtime/beta_bot.py", "beta/admin.py", "beta/delivery.py", "storage/beta_v0_store.py"):
+        code = (root / src).read_text(encoding="utf-8")
+        assert not re.search(r"[\"']cmd_interview[\"']|[\"']interview_booked[\"']|kind=[\"']interview[\"']", code), src
+    assert "x:interview" not in (root / "runtime/beta_bot.py").read_text(encoding="utf-8")
 
 
 def test_privacy_names_plain_messages():

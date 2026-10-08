@@ -519,6 +519,7 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     -- the trader type: the question (/type or after joining) and the answer
     'cmd_type', 'type_set',
     -- feedback in the bot (backlog H1–H4): the idea prompt and the idea, a reason, the interview request
+    -- (cmd_interview / interview_booked: unused since 2026-10-08, interviews removed by the owner; kept for old rows)
     'cmd_idea', 'idea_sent', 'reason_set', 'cmd_interview', 'interview_booked',
     -- onboarding (J1): the automatic /btc is not cmd_btc (U1b); J2 the reading guide; J4 plain text
     'onboard_btc', 'cmd_guide', 'plain_text'));
@@ -1155,6 +1156,7 @@ BEGIN
 END $$;
 -- Feedback in the bot (PRE_BETA_SCOPE_DECISION_V1 §9 H; backlog H1–H4).
 -- H1 «💡 Идея / чего не хватает» and H4 the interview request are typed rows of the free-text
+-- ('interview' is unused since 2026-10-08: the owner removed the interviews; kept for old rows)
 -- feedback (the owner answers them with /admin_reply as before); the participant's next
 -- message is taken as the idea while `awaiting` is set and not past `awaiting_until`.
 ALTER TABLE beta_feedback_messages ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'feedback'

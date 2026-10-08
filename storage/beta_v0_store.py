@@ -1414,7 +1414,7 @@ class BetaConn:
 
     async def insert_feedback_message(self, *, user_pk: int, text: str, lang: str,
                                       created_at: datetime, kind: str = "feedback") -> int:
-        """Free text: /feedback, an idea (H1) or an interview request (H4)."""
+        """Free text: /feedback, an idea (H1) or a plain message (J4); `interview` is unused since 2026-10-08."""
         return int(await self.conn.fetchval(
             """INSERT INTO beta_feedback_messages (user_pk, text, lang, created_at, kind)
                VALUES ($1,$2,$3,$4,$5) RETURNING message_pk""",
@@ -1439,7 +1439,7 @@ class BetaConn:
         return int(status.split()[-1])
 
     async def enrolled_user_rows(self) -> list:
-        """ACTIVE and STOPPED participants (not deleted): /admin_reply and the U3 offer reach churned ones (J4, I2)."""
+        """ACTIVE and STOPPED participants (not deleted): /admin_reply reaches paused ones too (J4)."""
         rows = await self.conn.fetch(
             """SELECT user_pk, telegram_user_id, chat_id, lang, status
                FROM beta_users WHERE status IN ('ACTIVE', 'STOPPED') ORDER BY user_pk""")
@@ -1586,6 +1586,34 @@ class BetaConn:
             """INSERT INTO beta_admin_audit (action, authorized, actor_fingerprint, target_fingerprint,
                    result, detail) VALUES ($1,$2,$3,$4,$5,$6::jsonb)""",
             action, authorized, actor_fingerprint, target_fingerprint, result, _j(dict(detail or {})))
+
+    async def u3_offer_recipients(self) -> dict:
+        """I2 / U3 (owner, 2026-10-08): the offer goes to ACTIVE participants only, inactive ones included;
+        STOPPED, deleted and bot-blocked participants are skipped and counted for the owner. Blocked is the
+        contract's §4 marker (a `Forbidden:` failure) with no later sent delivery to that participant."""
+        rows = await self.conn.fetch(
+            """SELECT u.user_pk, u.telegram_user_id, u.chat_id, u.lang, u.status,
+                      EXISTS (SELECT 1 FROM beta_notification_deliveries f
+                              WHERE f.user_pk = u.user_pk AND f.state = 'FAILED'
+                                AND f.error_summary LIKE 'Forbidden:%'
+                                AND NOT EXISTS (SELECT 1 FROM beta_notification_deliveries s
+                                                WHERE s.user_pk = u.user_pk AND s.state = 'SENT'
+                                                  AND COALESCE(s.finished_at, s.created_at)
+                                                      > COALESCE(f.finished_at, f.created_at))) AS blocked
+               FROM beta_users u WHERE u.status IN ('ACTIVE', 'STOPPED') ORDER BY u.user_pk""")
+        deleted = await self.conn.fetchval(
+            """SELECT count(*) FROM beta_admin_audit
+               WHERE action IN ('user_delete_me', 'retention_purge', 'admin_remove') AND detail ? 'cohort'
+                 AND detail->>'cohort' <> 'null'""")
+        out = {"recipients": [], "stopped": 0, "blocked": 0, "deleted": int(deleted or 0)}
+        for r in rows:
+            if r["status"] != "ACTIVE":
+                out["stopped"] += 1
+            elif r["blocked"]:
+                out["blocked"] += 1
+            else:
+                out["recipients"].append(dict(r))
+        return out
 
     async def u3_offer_sent(self) -> bool:
         """I2: whether /admin_offer send already went out (U3 is one offer)."""
