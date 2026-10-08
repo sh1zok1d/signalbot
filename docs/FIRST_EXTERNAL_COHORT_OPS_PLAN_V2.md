@@ -64,6 +64,7 @@ Owner decisions of 2026-10-08 (contract §1.4, §13). Calendar days on the Europ
 | U3 offer | In [T(20), T(25)), `/admin_offer send` once (§10) |
 | Reading | At T(30) (§12) |
 | The one extension (rule 6) | [T(30), T(44)), no product change |
+| Calendar windows | Every window is a calendar window on the Kyiv date (a window across the clock change may be 169 hours). A participant joining late on day 0 has a shorter actual participation; where a metric depends on exposure, per-participant exposure is reported separately. |
 
 A Kyiv day with delivery failure for more than 30 % of enrolled participants is excluded for everyone. A withheld briefing (SUPPRESSED / `BRIEF_WITHDRAWAL`) is not a delivery failure.
 
@@ -101,20 +102,18 @@ U4 is fixed: 2 channels, 12 calendar days [T(0), T(12)), at most 6 hours of foun
 - **Work budget.** Start/stop blocks in the ledger, Kyiv time, to the minute. At 6 hours stop: no third venue, no extension, no repost by others. Joins that arrive later from the posts already made still count. A join that needed a private conversation is known.
 - **At T(12)**, below 8 unknown joins: stop inviting, revoke both codes, record "Stop: distribution".
 
-**Invitation text — owner-approved RU, 2026-10-08.** Verbatim, never edited here; the only placeholder is `<ссылка>`. The EN version comes only after the RU approval.
-
-**Open note to the owner (OUT-7 item 1):** «историческую частоту их достижения» describes history, while the bot's touch chances in mode B are estimated chances with their tracked record; the owner decides whether the wording stays.
+**Invitation text — final RU, owner 2026-10-08; re-checked against the build at the RC; EN after.** Verbatim, never edited here; the only placeholder is `<ссылка>`.
 
 ```text
 Приглашаю в закрытую бесплатную бету Telegram-бота по BTC — на данных фьючерсов Binance, Bybit и OKX.
 
-Бот помогает быстро посмотреть состояние рынка: оценочные ценовые коридоры на 1, 4 и 24 часа, ближайшие уровни, историческую частоту их достижения и календарь событий. Присылает короткие уведомления о заметных изменениях.
+Бот помогает быстро посмотреть состояние рынка: оценочные ценовые коридоры на 1, 4 и 24 часа, ближайшие уровни и оценку шанса дойти до них, календарь событий; где данных достаточно — результаты проверки таких оценок (пока — на исторических данных, проверка на новых данных только начинается). Присылает короткие уведомления о заметных изменениях.
 
 Исторические наблюдения и прогнозные оценки обозначены отдельно. Оценки могут ошибаться; бот не даёт команд покупать или продавать.
 
 Ищу тех, кто следит за BTC в течение дня и готов попробовать бота в обычной работе. Отзывы и вопросы можно отправлять прямо в нём, без созвонов.
 
-Бета бесплатна до конца теста. Ближе к завершению предложим платное продолжение — по желанию.
+Бета бесплатна до конца теста. Ближе к завершению предложим участникам беты платное продолжение — по желанию.
 
 Вход: <ссылка> Остановить сообщения — /stop, удалить данные — /delete_me.
 ```
@@ -182,8 +181,7 @@ The owner removed the interviews on 2026-10-08. What participants write on their
 - **The owner's output** is the fingerprints and the time, copied into the U3 ledger (`participant_fingerprint`, `known_contact`, `offered_at`, `paid_at`, `amount`, `currency`, `refunded_at`), kept outside git.
 - **Late joiners.** A participant who joins at or after T(12) is not enrolled (contract §1.3): whatever they receive or pay is reported and never enters U3.
 - **No reminder.** A transfer at or after T(25) does not count. Questions about payment come back through `/feedback` or a reply and are answered factually.
-- **What is paid for** (owner, 2026-10-08): one month of the same bot after the beta. **Proposal, pending the owner:** [T(30), T(60)), the bot as it is (BTC, all current functions). It is stated here and in contract §7 before the offer goes out. No continuation means a full refund on the offered terms. The amount, currency and method come later; until then `/admin_offer` refuses.
-- **Flag for the owner:** if the extension [T(30), T(44)) runs, the paid month overlaps it. The owner decides whether payers' month starts at T(30) or at the extension's end.
+- **What is paid for** (owner, 2026-10-08): one month of the same bot (BTC, all current functions), starting at the **actual** end of the free test: T(30) without an extension, T(44) with one. The offer text says in advance that an extension is possible and moves the start (#416). No continuation means a full refund on the offered terms. The amount, currency and method come later; until then `/admin_offer` refuses.
 - **U3 PASS** (owner, 2026-10-08): P ≥ 3 AND P / E ≥ 25 %, where E is **every enrolled unknown participant, including those not offered** (stopped, blocked, deleted), and P the unknown participants who paid in the window and were not refunded within 30 days.
 - **The funnel** is reported beside it: enrolled → offer allowed → delivered → paid → refunded.
 
