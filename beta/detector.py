@@ -24,7 +24,7 @@ from .config import (BetaConfig, BetaSwitches, EVENT_TYPES, LIQUIDATION_STRESS_L
                      LIQUIDATION_STRESS_SHORT, POSITION_BUILDUP_COMPRESSION,
                      PRICE_OI_CONTRACTION_DOWN, PRICE_OI_CONTRACTION_UP,
                      TAKER_FLOW_EXTREME_BUY, TAKER_FLOW_EXTREME_SELL, effective_push_enabled)
-from .models import (ARMED, CORE_FAMILIES, DAILY_CAP, DATA_DEGRADED_REASON, DELIVERY_TOO_OLD,
+from .models import (ARMED, CORE_FAMILIES, DAILY_CAP, DAILY_FUSE, DATA_DEGRADED_REASON, DELIVERY_TOO_OLD,
                      EARLY, ENDED, EXPIRED, Episode, GLOBAL_COOLDOWN, HOUR_NOT_UNUSUAL,
                      NOT_EVALUABLE, ORIGIN_BOOTSTRAP, QUIET_HOURS,
                      ORIGIN_CORRECTION_CHECK, ORIGIN_LIVE, PUSH, PUSH_DISABLED, QUALIFIES,
@@ -194,6 +194,61 @@ def in_quiet_hours(cfg: BetaConfig, decision_ts: datetime, tz: Optional[str] = N
     return (s <= now_m < e) if s < e else (now_m >= s or now_m < e)
 
 
+def quiet_end(cfg: BetaConfig, ts: datetime, tz: Optional[str] = None) -> Optional[datetime]:
+    """When the participant's quiet window that holds `ts` ends (their wall clock), or None outside it.
+    A message held through the night goes out then (the weekly report, review of #373)."""
+    from datetime import time as dtime
+    from .i18n import tz_of
+    if not in_quiet_hours(cfg, ts, tz):
+        return None
+    zone = tz_of(tz)
+    local = ts.astimezone(zone)
+    hh, mm = (int(x) for x in cfg.quiet_hours_kyiv[1].split(":"))
+    end = datetime.combine(local.date(), dtime(hh, mm), tzinfo=zone)
+    if end.astimezone(timezone.utc) <= ts:
+        end = datetime.combine(local.date() + timedelta(days=1), dtime(hh, mm), tzinfo=zone)
+    return end.astimezone(ts.tzinfo)
+
+
+def own_day_count(times: Sequence[datetime], ts: datetime, tz: Optional[str] = None) -> int:
+    """How many of `times` fall on the participant's own calendar date of `ts` (their clock, backlog C5)."""
+    from .i18n import tz_of
+    zone = tz_of(tz)
+    day = ts.astimezone(zone).date()
+    return sum(1 for x in times if x.astimezone(zone).date() == day)
+
+
+def own_day_bounds(ts: datetime, tz: Optional[str] = None) -> tuple:
+    """[start, end) in UTC of the participant's own calendar date of `ts`, the same days as
+    `own_day_count`. A midnight the clock skips (spring forward at 00:00, e.g. Santiago) starts the day at
+    its first real instant; a midnight it repeats is its one occurrence after the repeated hour."""
+    from datetime import time as dtime
+    from .i18n import tz_of
+    zone = tz_of(tz)
+    day = ts.astimezone(zone).date()
+    return tuple(datetime.combine(d, dtime(0), tzinfo=zone).astimezone(timezone.utc)
+                 for d in (day, day + timedelta(days=1)))
+
+
+def recipient_gate(cfg: BetaConfig, ts: datetime, recipients: Sequence[Mapping[str, Any]],
+                   cap: Optional[int]) -> Optional[str]:
+    """The decision-level reason a message to these recipients is not sent, or None (review of #373).
+    Each recipient has their own night and their own daily budget: QUIET_HOURS when it is night for every
+    one; DAILY_CAP when every one awake already had `cap` such messages on their own date. One recipient
+    awake and under their budget sends it; the others are suppressed one by one at delivery.
+
+    A new market alert kind (e.g. the #352 zone-entry trigger) gets the same per-recipient rules only when
+    it is wired in all of: `store.recipient_loads` (its `alert_kinds` budget), `market_alerts._KIND_PREF`
+    (its push preference), `QUIET_KINDS` / `CAPPED_KINDS`, `materialize_alert_deliveries`, and
+    `own_budget_spent` at delivery (the same `alert_kinds`)."""
+    awake = [r for r in recipients if not in_quiet_hours(cfg, ts, r.get("tz"))]
+    if not awake:
+        return QUIET_HOURS
+    if cap is not None and all(own_day_count(r.get("times") or (), ts, r.get("tz")) >= cap for r in awake):
+        return DAILY_CAP
+    return None
+
+
 def quiet_for_all(cfg: BetaConfig, ts: datetime, tzs: Optional[Sequence[Optional[str]]] = None) -> bool:
     """Quiet hours hold for the decision only when they hold for every participant who could receive
     it (each on their own clock, backlog C5); with nobody to ask, on the Kyiv clock. A participant
@@ -206,7 +261,7 @@ def push_policy(cfg: BetaConfig, *, decision_ts: datetime, evaluated_at: datetim
                 last_same_type_would_push: Optional[datetime], would_push_today: int,
                 push_enabled: bool, hour: Optional[Mapping[str, Any]] = None,
                 last_any_would_push: Optional[datetime] = None,
-                quiet_tzs: Optional[Sequence[Optional[str]]] = None) -> tuple:
+                recipients: Optional[Sequence[Mapping[str, Any]]] = None) -> tuple:
     """(would_push, decision, suppression_reason). Evaluated in a fixed order;
     `would_push` means every gate except PUSH_DISABLED passed (the daily cap
     counts would-push decisions so a push-disabled soak still measures it).
@@ -214,7 +269,12 @@ def push_policy(cfg: BetaConfig, *, decision_ts: datetime, evaluated_at: datetim
     `hour` is the product-level unusual-hour gate (`beta.hour_gate.evaluate_hour`) of
     the rolling 1h around this decision; an absent or unqualified hour never pushes
     (`HOUR_NOT_UNUSUAL`). Every reason after it implies the hour qualified
-    (PRODUCT_FIRST_DECISION_V1 §3.1b.3)."""
+    (PRODUCT_FIRST_DECISION_V1 §3.1b.3).
+
+    `recipients` ({tz, times: their push times of the last two days}) put the quiet hours and the daily
+    budget on each participant's own clock (review of #373): nobody's day is spent by another zone. The
+    count of all would-push decisions of the UTC day is only a higher fuse. Without recipients (nobody
+    to ask) the Kyiv clock and the plain daily count decide, as before."""
     from .hour_gate import is_qualified
     fams = snapshot.get("families") or {}
     if not snapshot.get("evaluation_fresh") or not all((fams.get(f) or {}).get("usable")
@@ -229,10 +289,17 @@ def push_policy(cfg: BetaConfig, *, decision_ts: datetime, evaluated_at: datetim
             return False, SUPPRESSED, SAME_EVENT_COOLDOWN
     if last_any_would_push is not None and decision_ts - last_any_would_push < cfg.global_cooldown:
         return False, SUPPRESSED, GLOBAL_COOLDOWN
-    if quiet_for_all(cfg, decision_ts, quiet_tzs):
-        return False, SUPPRESSED, QUIET_HOURS
-    if would_push_today >= cfg["max_new_pushes_per_utc_day"]:
-        return False, SUPPRESSED, DAILY_CAP
+    if recipients:
+        reason = recipient_gate(cfg, decision_ts, recipients, int(cfg["max_new_pushes_per_utc_day"]))
+        if reason is not None:
+            return False, SUPPRESSED, reason
+        if would_push_today >= cfg["push_decisions_fuse_per_utc_day"]:
+            return False, SUPPRESSED, DAILY_FUSE
+    else:
+        if quiet_for_all(cfg, decision_ts, None):
+            return False, SUPPRESSED, QUIET_HOURS
+        if would_push_today >= cfg["max_new_pushes_per_utc_day"]:
+            return False, SUPPRESSED, DAILY_CAP
     if not push_enabled:
         return True, SUPPRESSED, PUSH_DISABLED
     return True, PUSH, None
@@ -242,6 +309,28 @@ async def _recipient_tzs(conn, pref: str) -> list:
     """The time zones of the participants who could receive a push of this preference (C5)."""
     fn = getattr(conn, "recipient_tzs", None)
     return list(await fn(pref)) if fn is not None else []
+
+
+async def _recipients(conn, pref: str, ts: datetime, *, outbox_kind: str = "push",
+                      alert_kinds: Sequence[str] = ()) -> list:
+    """{tz, times}: each participant who could receive it, with their sent or pending messages of this
+    budget over the last two days (enough for any zone's own date). Empty without the store method."""
+    fn = getattr(conn, "recipient_loads", None)
+    if fn is None:
+        return []
+    return list(await fn(pref, since=ts - timedelta(hours=48), outbox_kind=outbox_kind, alert_kinds=list(alert_kinds)))
+
+
+async def own_budget_spent(conn, row: Mapping[str, Any], *, cap: int, outbox_kind: str,
+                            alert_kinds: Sequence[str] = ()) -> bool:
+    """Whether the recipient of this delivery already had `cap` sent messages of this budget on their own
+    date of its decision (review of #373). The one per-recipient budget check at delivery for every push
+    and capped alert kind, beside `recipient_gate` at decision. Without the store method: never."""
+    fn = getattr(conn, "count_sent_on_own_day", None)
+    if fn is None or row.get("user_pk") is None:
+        return False
+    return await fn(user_pk=row["user_pk"], ts=row["decision_ts"], tz=row.get("user_tz"), outbox_kind=outbox_kind,
+                    alert_kinds=list(alert_kinds)) >= cap
 
 
 # ---- runner ------------------------------------------------------------------
@@ -366,7 +455,7 @@ async def _apply_step(conn, cfg: BetaConfig, event_type: str, step: Step, ctx: B
             would_push_today=await conn.count_would_push(ctx.decision_ts.date()),
             push_enabled=push_enabled, hour=gate,
             last_any_would_push=await conn.latest_any_would_push(exclude_pk=target_pk),
-            quiet_tzs=await _recipient_tzs(conn, "push_hours"))
+            recipients=await _recipients(conn, "push_hours", ctx.decision_ts))
         await conn.insert_push_decision(
             episode_pk=target_pk, event_type=event_type, decision_ts=ctx.decision_ts,
             would_push=would, decision=decision, suppression_reason=reason,

@@ -24,11 +24,11 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from .config import BetaConfig
 from .hist_series import BAR_MS, Bars, from_ms, to_ms
-from .detector import in_quiet_hours
+from .detector import in_quiet_hours, own_budget_spent
 from .models import D_EXPIRED, D_FAILED, D_PENDING, D_SUPPRESSED, DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE
 
 logger = logging.getLogger("beta.market_alerts")
@@ -284,11 +284,20 @@ async def _decide_and_record(conn, cfg: BetaConfig, cand: Mapping[str, Any], *, 
     reason = None
     if not push_on:
         reason = "PUSH_DISABLED"
-    elif kind != "price" and kind in QUIET_KINDS and await _quiet_for_all(conn, cfg, kind, now):
-        reason = "QUIET_HOURS"
-    elif kind in CAPPED_KINDS and await conn.count_market_pushes(utc_day=now.astimezone(timezone.utc).date(),
-                                                                 kinds=CAPPED_KINDS) >= int(m["max_per_utc_day"]):
-        reason = "DAILY_CAP"
+    elif kind in QUIET_KINDS:
+        # each recipient's own night and own daily budget (review of #373); the UTC-day count of all
+        # decisions is only a higher fuse
+        from .detector import _recipients, recipient_gate
+        recips = await _recipients(conn, _KIND_PREF[kind], now, outbox_kind="alert",
+                                   alert_kinds=CAPPED_KINDS if kind in CAPPED_KINDS else ())
+        if recips:
+            reason = recipient_gate(cfg, now, recips, int(m["max_per_utc_day"]) if kind in CAPPED_KINDS else None)
+        elif await _quiet_for_all(conn, cfg, kind, now):
+            reason = "QUIET_HOURS"
+        if reason is None and kind in CAPPED_KINDS:
+            fuse = int(m["decisions_fuse_per_utc_day"]) if recips else int(m["max_per_utc_day"])
+            if await conn.count_market_pushes(utc_day=now.astimezone(timezone.utc).date(), kinds=CAPPED_KINDS) >= fuse:
+                reason = "DAILY_FUSE" if recips else "DAILY_CAP"    # the fuse is never anyone's own budget
     async with conn.transaction():          # a price alert is recorded and consumed together
         pk = await conn.insert_market_alert(kind=kind, alert_key=cand["key"], decision_ts=now,
                                             decision="PUSH" if reason is None else "SUPPRESSED",
@@ -542,6 +551,12 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             # sent to the participants who are awake; this one's own night (backlog C5)
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
                                            suppression_reason="QUIET_HOURS")
+            continue
+        if row["kind"] in CAPPED_KINDS and await own_budget_spent(conn, row, cap=int(m["max_per_utc_day"]),
+                                                                   outbox_kind="alert", alert_kinds=CAPPED_KINDS):
+            # this participant already had their day's level and move alerts (their own date, review of #373)
+            await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                           suppression_reason="DAILY_CAP")
             continue
         if sender is None:
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_FAILED, now=now,

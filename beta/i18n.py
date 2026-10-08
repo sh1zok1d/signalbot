@@ -23,12 +23,16 @@ MINUS = "−"
 # The bot and the notifier set it for the duration of one rendering (`render_tz`); every clock the
 # catalog formats then reads it. Nothing is stored in local time.
 _RENDER_TZ: ContextVar[tzinfo] = ContextVar("beta_render_tz", default=KYIV)
-_OFFSET_RE = re.compile(r"^(?:utc|gmt)?\s*([+-−])\s*(\d{1,2})(?::?(\d{2}))?$", re.I)
+# the sign is required: «[+\-−]» (a bare «[+-−]» is the range U+002B…U+2212, digits and letters included,
+# which read «10» as «UTC+00:00»); a bare number is refused with the hint to add a sign or name a city
+_OFFSET_RE = re.compile(r"^(?:utc|gmt)?\s*([+\-−])\s*(\d{1,2})(?::?(\d{2}))?$", re.I)
+# every spelling of Kyiv is the default zone (stored NULL), labelled «Киев», never an offset
+KYIV_ALIASES = frozenset({"kyiv", "kiev", "киев", "київ", "europe/kyiv", "europe/kiev"})
 
 
 def tz_of(name: Optional[str]) -> tzinfo:
     """The tzinfo of a stored `tz` value; Kyiv for NULL or anything unreadable (never an error)."""
-    if not name:
+    if not name or name.strip().lower() in KYIV_ALIASES:
         return KYIV
     m = _OFFSET_RE.match(name.strip())
     if m:
@@ -40,9 +44,15 @@ def tz_of(name: Optional[str]) -> tzinfo:
         return KYIV
 
 
+def is_fixed_offset(stored: Optional[str]) -> bool:
+    """A stored zone that is a fixed offset («UTC+03:00»): it never follows summer or winter time."""
+    return bool(stored) and _OFFSET_RE.match(stored.strip()) is not None
+
+
 def parse_tz(text: Optional[str]) -> Optional[str]:
     """The stored form of a /tz argument, or None: an IANA name («Europe/Warsaw», case as typed is
-    normalised by the zone database) or an offset «+3», «UTC-5», «+05:30» (stored «UTC+05:30»)."""
+    normalised by the zone database) or a signed offset «+3», «UTC-5», «+05:30» (stored «UTC+05:30»).
+    A bare number («10») is not an offset: None. Kyiv in any spelling is not stored here (see KYIV_ALIASES)."""
     s = (text or "").strip()
     m = _OFFSET_RE.match(s)
     if m:
@@ -82,10 +92,16 @@ def current_tz() -> tzinfo:
 
 
 def zone_name(lang: str, at: Optional[datetime] = None) -> str:
-    """«Киев» / «Kyiv» for Kyiv, else «UTC+3» / «UTC+05:30» at `at` (now when None)."""
+    """«Киев» / «Kyiv» for Kyiv; the city of any other named zone («Warsaw», «New York»), right on every
+    date whatever summer or winter time; «UTC+3» / «UTC+5:30» for a fixed offset (which never changes)."""
     tz = _RENDER_TZ.get()
-    if tz is KYIV:
+    if tz is KYIV or getattr(tz, "key", None) in ("Europe/Kyiv", "Europe/Kiev"):
         return "Киев" if normalize_lang(lang) == "ru" else "Kyiv"
+    key = getattr(tz, "key", None)
+    if key and not key.startswith(("Etc/", "UTC", "GMT")):
+        # a city in Latin letters on the Russian side too (the zone database's own name)
+        return key.rsplit("/", 1)[-1].replace("_", " ")
+    # a fixed offset, or Etc/GMT±N (POSIX: «Etc/GMT+5» is UTC−5; review of #379), printed as the offset
     off = (at or datetime.now(timezone.utc)).astimezone(tz).utcoffset() or timedelta(0)
     total = int(off.total_seconds() // 60)
     sign = "+" if total >= 0 else MINUS
@@ -679,7 +695,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     # /catchup, the morning briefing and the unusual-hour push (BETA_COPY_CONTRACT_V1).
     "catchup_title": {"ru": "BTC за {hours} ч · {span}", "en": "BTC, last {hours}h · {span}"},
     "catchup_title_nospan": {"ru": "BTC за {hours} ч", "en": "BTC, last {hours}h"},
-    "brief_title": {"ru": "BTC за ночь · {span}", "en": "BTC overnight · {span}"},
+    "brief_title": {"ru": "Сводка BTC · {span}", "en": "BTC briefing · {span}"},   # any briefing time, not only morning
     "span_hours": {"ru": "{hours} ч", "en": "{hours}h"},
     "window_kyiv": {"ru": "{start}–{end} {zone}", "en": "{start}–{end} {zone}"},
     "price_span": {"ru": "Цена {open} → {close} ({pct})", "en": "Price {open} → {close} ({pct})"},
@@ -707,6 +723,8 @@ _CATALOG: dict[str, dict[str, str]] = {
                    "en": "The bot does not write between {s} and {e}, so this is only in the briefing."},
     "note_cap": {"ru": "Сообщения об этом часе не было: за сутки уже было {n}.",
                  "en": "No message about this hour: there were already {n} today."},
+    "note_fuse": {"ru": "Сообщения об этом часе не было: бот за сутки уже отправил предельное число сообщений.",
+                  "en": "No message about this hour: the bot had already sent its daily maximum of messages."},
     "note_cooldown": {"ru": "Отдельного сообщения не было: незадолго до этого бот уже писал.",
                       "en": "No separate message: the bot had written shortly before."},
     "now_head": {"ru": "Сейчас", "en": "Now"},
@@ -786,12 +804,20 @@ _CATALOG: dict[str, dict[str, str]] = {
     "type_saved": {"ru": "Записал: {name}. Изменить: /type", "en": "Saved: {name}. Change it: /type"},
     "type_skipped": {"ru": "Хорошо. Указать позже: /type", "en": "Fine. You can answer later: /type"},
     "tz_usage": {"ru": "Часовой пояс: {name}. Всё время в сообщениях — по нему, ночная тишина {quiet} — тоже.\n"
-                       "Поменять: /tz +3, /tz -5, /tz Europe/Warsaw; вернуть Киев: /tz kyiv",
+                       "Поменять: /tz Europe/Warsaw, /tz America/New_York (город — с переходом на летнее время) "
+                       "или смещение со знаком: /tz +3; вернуть Киев: /tz kyiv",
                  "en": "Time zone: {name}. Every time in the messages follows it, and so do the quiet hours {quiet}.\n"
-                       "Change it: /tz +3, /tz -5, /tz Europe/Warsaw; back to Kyiv: /tz kyiv"},
+                       "Change it: /tz Europe/Warsaw, /tz America/New_York (a city follows summer time) or a signed "
+                       "offset: /tz +3; back to Kyiv: /tz kyiv"},
     "tz_ok": {"ru": "Часовой пояс: {name}. Сейчас у вас {clock}.", "en": "Time zone: {name}. Your time now: {clock}."},
-    "tz_bad": {"ru": "Не понял часовой пояс. Примеры: /tz +3, /tz -5, /tz Europe/Warsaw, /tz kyiv",
-               "en": "I could not read that time zone. Examples: /tz +3, /tz -5, /tz Europe/Warsaw, /tz kyiv"},
+    "tz_fixed_note": {"ru": "Это постоянное смещение: летнее и зимнее время оно не учитывает. Город (например, "
+                            "/tz Europe/Warsaw) переводит часы сам.",
+                      "en": "This is a fixed offset: it does not follow summer and winter time. A city (for example, "
+                            "/tz Europe/Warsaw) changes the clocks by itself."},
+    "tz_bad": {"ru": "Не понял часовой пояс. Город: /tz Europe/Warsaw; смещение — со знаком: /tz +3, /tz -5, /tz +10; "
+                     "Киев: /tz kyiv",
+               "en": "I could not read that time zone. A city: /tz Europe/Warsaw; an offset needs a sign: /tz +3, "
+                     "/tz -5, /tz +10; Kyiv: /tz kyiv"},
     "brief_off_ok": {"ru": "Утренняя сводка выключена. Сообщения о необычном часе это не меняет.",
                      "en": "Morning briefing off. Unusual-hour messages are not affected."},
     "push_usage": {"ru": "Сообщения о необычном часе: {state}. /push on — включить, /push off — выключить.",

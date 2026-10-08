@@ -37,7 +37,8 @@ beta:
   bucket_close_grace_s: 20                  # wait after 5m close before evaluating
   same_event_cooldown_min: 20               # same-event PUSH cooldown after terminal
   delivery_ttl_s: 600                       # never push older than this
-  max_new_pushes_per_utc_day: 2             # global safety fuse (PRODUCT_FIRST_DECISION_V1 §3 row 8)
+  max_new_pushes_per_utc_day: 2             # per recipient, their own day (PRODUCT_FIRST §3 row 8; review of #373)
+  push_decisions_fuse_per_utc_day: 4        # all recipients together: safety fuse set by ОПГ-1; the architect may change it
   forward_horizons: [15m, 30m, 1h, 4h, 24h]
 
   detector:
@@ -186,7 +187,8 @@ beta:
     signature_index: true                   # owner-only /hypotheses index (PRE_BETA_SCOPE_DECISION_V1 §7);
                                             # signs every closed 5m bucket from stored states, no user surface
     # weekly report (backlog B4): how the bot's own estimates did over 7 days; a push type of its
-    # own (/push weekly off). Sunday evening, outside the U1a withdrawal weekdays (Mon-Fri).
+    # own (/push weekly off). Sunday evening on each participant's own clock, so never on a U1a
+    # withdrawal weekday (Mon-Fri) on their clock (review of #379).
     weekly_report:
       enabled: true
       weekday_kyiv: "sun"
@@ -194,7 +196,8 @@ beta:
       max_delay_min: 120                    # not sent within this: expired, never late
     market_alerts:
       enabled: true                         # also needs BETA_PUSH_ENABLED and no /admin_pause_push
-      max_per_utc_day: 4                    # level touches and sharp moves together
+      max_per_utc_day: 4                    # level touches and sharp moves together, per recipient, their own day
+      decisions_fuse_per_utc_day: 8         # all recipients together: safety fuse set by ОПГ-1; the architect may change it
       move_cooldown_min: 120                # one sharp-move message per 2h
       event_lead_min: 30                    # CPI / FOMC reminder this long before the release
       touch_max_age_min: 10                 # a level touch older than this is not pushed (missed run)

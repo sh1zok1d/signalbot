@@ -29,7 +29,8 @@ def test_every_clock_follows_the_participant_zone_inside_a_rendering():
         assert t("ru", "dc_stats_built", when="Вт 06.10 11:30") == "Статистика по истории собрана Вт 06.10 11:30 (UTC+5:30)."
         assert t("en", "ev_title") == "<b>Events</b> (UTC+5:30 time)"
     with render_tz("America/New_York"):
-        assert fmt_clock(T, "ru") == "02:00 (UTC−4)" and zone_name("en", T) == "UTC−4"
+        # a named zone is labelled by its city, right on every date (review of #373, 5)
+        assert fmt_clock(T, "ru") == "02:00 (New York)" and zone_name("en", T) == "New York"
     assert fmt_clock(T, "ru") == "09:00 (Киев)"                    # the scope ends with the rendering
     assert t("ru", "ev_title") == "<b>События</b> (время — Киев)"
 
@@ -67,9 +68,10 @@ def test_every_push_type_carries_its_one_tap_mute():
 
 def test_a_mute_button_counts_as_the_setting_it_makes_in_the_owner_report():
     from beta.usage import as_setting
-    row = {"user_pk": 1, "action": "btn_mute", "detail": "levels", "at": T}
-    assert as_setting(row) == {**row, "action": "cmd_push", "detail": "levels:off", "button": True}
-    assert as_setting({**row, "action": "btn_unmute"})["detail"] == "levels:on"
+    row = {"user_pk": 1, "action": "set_mute", "detail": "levels", "at": T}
+    # a setting, never a button tap: a mute is a negative signal, not engagement (review of #373, 4)
+    assert as_setting(row) == {**row, "action": "cmd_push", "detail": "levels:off"}
+    assert as_setting({**row, "action": "set_unmute"})["detail"] == "levels:on"
     assert as_setting({**row, "action": "btn_check"}) == {**row, "action": "btn_check"}
 
 
