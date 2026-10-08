@@ -377,8 +377,8 @@ def corridor_record(c: Mapping[str, Any], h: str) -> Optional[tuple]:
     ho = (c.get("holdout") or {}).get(h) or {}
     if n and n_eff >= MIN_N_SHOWN:
         return ("live", rec.get("INSIDE", 0) / n, n_eff)
-    if ho.get("coverage_realized") is not None:
-        return ("hold", ho["coverage_realized"], int(ho.get("n_days") or 0))
+    if ho.get("coverage_realized") is not None and int(ho.get("n_days") or 0) > 0:
+        return ("hold", ho["coverage_realized"], int(ho["n_days"]))
     return None
 
 
@@ -1006,12 +1006,16 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
         nxt = payload.get("next")
         if nxt:
             p24 = (nxt.get("touch") or {}).get("24h")
-            if zones.get("24h") or p24 is None:
+            # the chance only in mode B with its check, recorded at detect time (market_alerts); the
+            # «исторически» fallback, a payload stored before the check, or no chance: the level without a number
+            w = nxt.get("touch_24h_wording") or {}
+            if zones.get("24h") or p24 is None or w.get("mode") != "B":
                 lines.append(t(lang, "pa_next_nop", price=zone_price(nxt, lang),
                                name=_e(zone_names(nxt, lang, limit=1)), dist=fmt_signed_pct(nxt["distance_pct"], lang)))
             else:
                 lines.append(t(lang, "pa_next", price=zone_price(nxt, lang), name=_e(zone_names(nxt, lang, limit=1)),
-                               dist=fmt_signed_pct(nxt["distance_pct"], lang), p=fmt_prob(p24, lang)))
+                               dist=fmt_signed_pct(nxt["distance_pct"], lang), p=fmt_prob(p24, lang),
+                               cal=cal_part("", w, lang).strip()))
         cl = None if zones.get("4h") else _corridor_4h_line(payload, lang)
         if cl:
             lines.append(cl)
