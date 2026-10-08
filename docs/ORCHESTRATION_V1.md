@@ -55,6 +55,12 @@ Session ids are in §6, which the architect keeps current.
 
   The mini-head that sees it writes to both immediately: what is happening, since when, and the stop or rollback step for the owner. No waiting for the architect.
 - **Polling:** the architect checks both mini-heads on its own schedule and answers by session message. Mini-heads keep their own track checks.
+- **Usage limits** (owner, 2026-10-08, «Если упретесь в лимит. То после его сброса автоматически продолжайте»):
+  - a session that stops on a usage limit resumes after the reset without asking the owner;
+  - the scheduled checks wake the mini-heads and the architect;
+  - at each check a mini-head that finds a track stopped by a limit tells it to continue from where it stopped;
+  - the architect does the same for a stopped mini-head.
+- **Incident channel for sessions without a direct line to the owner:** first line «АВАРИЯ», sent to the architect, who forwards it to the owner at once. The same text is left as the session's own last message.
 - **What a mini-head reports:** after each merged PR, each blocker and each owner-level question, a short report in its own session — what changed, the PR, the checks run, what it needs.
 
 ## 3a. Who checks whom
@@ -69,7 +75,7 @@ Owner, 2026-10-08: «Перепроверять и редтимить работ
   - an ordinary change: the author and its mini-head;
   - a risky change (§4): plus the architect;
   - a change across the boundary of the two ОПГ: both mini-heads, plus one named owner of the outcome.
-- **Escape log.** Each mini-head keeps a short log of defects found after merge (a red main, a finding on a merged PR): the PR, what escaped and which check should have caught it. It shows what the review misses.
+- **Escape log.** Each mini-head keeps a short log of defects found after merge (a red main, a finding on a merged PR): the PR, what escaped and which check should have caught it. It shows what the review misses. Files: `docs/ops/OPG1_ESCAPED_DEFECTS.md` and `docs/ops/OPG2_ESCAPED_DEFECTS.md`.
 - **What a report carries:** what changed and why; the PR; the tests the track ran and their results; what the mini-head checked and found; what it did not check; open risks.
 
 ## 3b. Red-team without duplicated work (owner, 2026-10-08)
