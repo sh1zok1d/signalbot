@@ -157,7 +157,18 @@ CREATE TABLE IF NOT EXISTS backfill_runs (
 """
 
 
-async def fresh_pool():
+# A row the FIXED collector wrote (liquidations.mapping_version = 2) for Bybit and OKX, long before
+# any test window: the default test world runs after the collector fix, where Bybit sides are read
+# as stored and OKX liquidations are measured (docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md D2).
+# `fresh_pool(collector_fixed=False)` is the world before the fix.
+FIXED_COLLECTOR_ROWS_SQL = """
+INSERT INTO liquidations (exchange, symbol, ts, side, price, qty, notional, is_snapshot_feed, mapping_version)
+VALUES ('bybit', 'BTCUSDT', '2020-01-01T00:00:00Z', 'long', 1, 0, 0, FALSE, 2),
+       ('okx', 'BTCUSDT', '2020-01-01T00:00:00Z', 'long', 1, 0, 0, FALSE, 2)
+"""
+
+
+async def fresh_pool(*, collector_fixed: bool = True):
     import asyncpg
     from storage.beta_v0_store import apply_beta_schema
     admin = await asyncpg.connect(TEST_DSN)
@@ -169,6 +180,8 @@ async def fresh_pool():
     async with pool.acquire() as c:
         await c.execute(STAGE1_MIN_SQL)
         await apply_beta_schema(c)
+        if collector_fixed:
+            await c.execute(FIXED_COLLECTOR_ROWS_SQL)
     return pool
 
 

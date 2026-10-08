@@ -1083,3 +1083,17 @@ UPDATE beta_runtime_health SET first_run_at = COALESCE(last_success_at, last_run
 -- review of #345: a chat with a row still inside Telegram's wait holds back all its rows (the fetchers)
 CREATE INDEX IF NOT EXISTS ix_beta_delivery_waiting ON beta_notification_deliveries (user_pk)
     WHERE state = 'PENDING' AND next_attempt_at IS NOT NULL;
+-- Data reliability D2 (docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md R1, R2): the beta reads which
+-- liquidation rows were written before the collector fix. storage/schema.sql adds the column when
+-- the collector restarts; adding it here too lets the beta run first. The two partial indexes
+-- keep the cutover lookups (first fixed row, last old row per venue) off a full scan.
+DO $$
+BEGIN
+    IF to_regclass('liquidations') IS NOT NULL THEN
+        ALTER TABLE liquidations ADD COLUMN IF NOT EXISTS mapping_version SMALLINT;
+        CREATE INDEX IF NOT EXISTS ix_liquidations_mapped ON liquidations (exchange, symbol, ts)
+            WHERE mapping_version IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS ix_liquidations_unmapped ON liquidations (exchange, symbol, ts)
+            WHERE mapping_version IS NULL;
+    END IF;
+END $$;

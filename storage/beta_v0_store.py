@@ -166,7 +166,12 @@ class BetaConn:
                ORDER BY bucket_ts, tape_id DESC""",
             symbol, market_type, timeframe, calculation_version, list(state_schema_versions), start, end,
             before_tape_id)
-        return [(r["bucket_ts"], _load(r["metrics"])) for r in rows]
+        # liquidation keys of rows written before the collector fix, read honestly (D2)
+        from beta.liq_mapping import correct_metrics
+        cutover = await self.fetch_liquidation_cutover(symbol=symbol)
+        exchanges = ("binance", "bybit", "okx")
+        return [(r["bucket_ts"], correct_metrics(_load(r["metrics"]), r["bucket_ts"], cutover, exchanges))
+                for r in rows]
 
     async def fetch_live_tape_range(self, *, symbol: str, start: datetime, end: datetime,
                                     rules_digest: str) -> dict:
@@ -1840,11 +1845,39 @@ class BetaConn:
 
     async def fetch_liquidations(self, *, symbol: str, exchanges: Sequence[str], start: datetime,
                                  end: datetime) -> list:
+        """Raw rows, read honestly (beta.liq_mapping.correct_raw_rows): an old-mapping Bybit row
+        with its side swapped; an old OKX row dropped. Raw bytes are never rewritten."""
+        from beta.liq_mapping import correct_raw_rows
         rows = await self.conn.fetch(
-            """SELECT exchange, ts, side, price, qty, notional, is_snapshot_feed FROM liquidations
+            """SELECT exchange, ts, side, price, qty, notional, is_snapshot_feed, mapping_version
+               FROM liquidations
                WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts >= $3 AND ts < $4""",
             symbol, list(exchanges), start, end)
-        return [dict(r) for r in rows]
+        return correct_raw_rows(dict(r) for r in rows)
+
+    async def fetch_liquidation_cutover(self, *, symbol: str) -> dict:
+        """{venue: {"first_new", "last_old"}} for Bybit and OKX: the first row written by the fixed
+        collector and the last one written before it (docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md D2).
+        Immutable once both exist; memoized on this connection."""
+        cache = getattr(self, "_liq_cutover", None)
+        if cache is not None and symbol in cache:
+            return cache[symbol]
+        out: dict = {}
+        has_column = await self.conn.fetchval(
+            """SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('liquidations')
+                              AND attname = 'mapping_version' AND NOT attisdropped)""")
+        for ex in ("bybit", "okx"):
+            first_new = last_old = None
+            if has_column:
+                first_new = await self.conn.fetchval(
+                    """SELECT min(ts) FROM liquidations
+                       WHERE exchange=$1 AND symbol=$2 AND mapping_version IS NOT NULL""", ex, symbol)
+                last_old = await self.conn.fetchval(
+                    """SELECT max(ts) FROM liquidations
+                       WHERE exchange=$1 AND symbol=$2 AND mapping_version IS NULL""", ex, symbol)
+            out[ex] = {"first_new": first_new, "last_old": last_old}
+        self._liq_cutover = {**(cache or {}), symbol: out}
+        return out
 
     # ------------------------------------------------------------- forecast tracking
     async def insert_forecast(self, *, horizon: str, issued_at: datetime, horizon_end: datetime,

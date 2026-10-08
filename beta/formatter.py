@@ -963,17 +963,22 @@ def _fmt_liq_body(per_venue: Mapping[str, Mapping[str, Any]], lang: str) -> tupl
 
 
 def _anchor_liq_map(anchor_view: Mapping[str, Any]) -> dict:
-    """One bucket: Binance is always a lower bound; None is missing, never zero."""
+    """One bucket: Binance and OKX are lower bounds (OKX: "doesn't represent the total"); None is
+    missing, never zero. OKX is shown only where it could vote, i.e. with 30 days of real history
+    (data reliability D2); before that it is «н/д»."""
     out = {}
     liq = anchor_view.get("liquidations") or {}
     for side in ("long", "short"):
         per = (liq.get(side) or {}).get("per_venue") or {}
+        eligible = set((liq.get(side) or {}).get("eligible") or ())
         out[side] = {}
         for ex, amount in per.items():
+            if ex == "okx" and ex not in eligible:
+                amount = None
             if amount is None:
                 out[side][ex] = {"amount": None, "missing": True, "lower_bound": False}
             else:
-                out[side][ex] = {"amount": float(amount), "missing": False, "lower_bound": ex == "binance"}
+                out[side][ex] = {"amount": float(amount), "missing": False, "lower_bound": ex in ("binance", "okx")}
     return out
 
 
