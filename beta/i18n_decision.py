@@ -548,6 +548,39 @@ DECISION_CATALOG: dict = {
                              "lower {P_DN} — {h_dn}% · neither — {h_ne}% (usually {b_up}/{b_dn}/{b_ne}%), until {END}"),
     "lr_hist_low_n_v1": _pair("Похожих касаний в 2020–2024 мало (N = {n}).",
                               "Few similar touches in 2020–2024 (N = {n})."),
+    # level race, model states (design §9; ids LR_L3H_V1 … LR_PUSH_OFF_V1). Journaled from the model freeze
+    # (their digest is part of every L3 record); shown only with `level_race.model_states_enabled`.
+    "lr_l3h_v1": _pair("≈ {p_up} % раньше {P_UP}, чем {P_DN} · ≈ {p_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} "
+                       "≈ {p_ne} % · обычно {b_up} / {b_dn} / {b_ne} % · на истории: говорили {r_p} % → было {r_y} %, "
+                       "N = {r_n} · live: копится (N = {m})",
+                       "≈ {p_up}% {P_UP} before {P_DN} · ≈ {p_dn}% {P_DN} before {P_UP} · neither until {END} "
+                       "≈ {p_ne}% · usually {b_up} / {b_dn} / {b_ne}% · on history: said {r_p}% → was {r_y}%, "
+                       "N = {r_n} · live: accumulating (N = {m})"),
+    "lr_l3l_v1": _pair("≈ {p_up} % раньше {P_UP}, чем {P_DN} · ≈ {p_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} "
+                       "≈ {p_ne} % · обычно {b_up} / {b_dn} / {b_ne} % · live: говорили {l_p} % → было {l_y} %, "
+                       "N = {l_n}",
+                       "≈ {p_up}% {P_UP} before {P_DN} · ≈ {p_dn}% {P_DN} before {P_UP} · neither until {END} "
+                       "≈ {p_ne}% · usually {b_up} / {b_dn} / {b_ne}% · live: said {l_p}% → was {l_y}%, N = {l_n}"),
+    "lr_fb_v1": _pair("≈ {q_up} % раньше {P_UP}, чем {P_DN} · ≈ {q_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} "
+                      "≈ {q_ne} % · общая модель цены, без учёта уровня · точность: говорили {f_p} % → было {f_y} %, "
+                      "N = {f_n}",
+                      "≈ {q_up}% {P_UP} before {P_DN} · ≈ {q_dn}% {P_DN} before {P_UP} · neither until {END} "
+                      "≈ {q_ne}% · general price model, the level not taken into account · accuracy: said {f_p}% → "
+                      "was {f_y}%, N = {f_n}"),
+    "lr_off_v1": _pair("нет данных", "no data"),
+    "lr_push_l3h_v1": _pair("Первой до {END}: {P_UP} ≈{p_up} % · {P_DN} ≈{p_dn} % · ни одна ≈{p_ne} % "
+                            "(обычно {b_up}/{b_dn}/{b_ne} %; на истории {r_p}→{r_y} %, N = {r_n})",
+                            "First until {END}: {P_UP} ≈{p_up}% · {P_DN} ≈{p_dn}% · neither ≈{p_ne}% "
+                            "(usually {b_up}/{b_dn}/{b_ne}%; on history {r_p}→{r_y}%, N = {r_n})"),
+    "lr_push_l3l_v1": _pair("Первой до {END}: {P_UP} ≈{p_up} % · {P_DN} ≈{p_dn} % · ни одна ≈{p_ne} % "
+                            "(обычно {b_up}/{b_dn}/{b_ne} %; live {l_p}→{l_y} %, N = {l_n})",
+                            "First until {END}: {P_UP} ≈{p_up}% · {P_DN} ≈{p_dn}% · neither ≈{p_ne}% "
+                            "(usually {b_up}/{b_dn}/{b_ne}%; live {l_p}→{l_y}%, N = {l_n})"),
+    "lr_push_fb_v1": _pair("Первой до {END} (без учёта уровня): {P_UP} ≈{q_up} % · {P_DN} ≈{q_dn} % · ни одна ≈{q_ne} % "
+                           "(точность {f_p}→{f_y} %, N = {f_n})",
+                           "First until {END} (the level not taken into account): {P_UP} ≈{q_up}% · {P_DN} ≈{q_dn}% · "
+                           "neither ≈{q_ne}% (accuracy {f_p}→{f_y}%, N = {f_n})"),
+    "lr_push_off_v1": _pair("шансы: нет данных", "chances: no data"),
 }
 
 DECISION_HELP = {
