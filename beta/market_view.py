@@ -127,11 +127,14 @@ async def _tape_and_oi(conn, cfg: BetaConfig, view: Mapping[str, Any], *,
         if start not in bounds:
             bounds.append(start)
     oi = await conn.fetch_open_interest_asof(symbol=cfg.symbol, exchanges=cfg.exchanges, boundaries=bounds)
+    # each venue's newest live funding with its time: the age bound of «Funding сейчас» (D3, R3)
+    ff = getattr(conn, "fetch_funding_latest", None)
+    funding = None if ff is None else await ff(symbol=cfg.symbol, exchanges=cfg.exchanges, at=data_through(as_of))
     from .liq_mapping import okx_liq_shown, without_okx_liq
     metrics = {b: m for b, m in hist}
     if not okx_liq_shown((latest.get("snapshot") or {}).get("percentiles")):
         metrics = {b: without_okx_liq(m) for b, m in metrics.items()}
-    return {"as_of": as_of, "metrics": metrics, "oi": oi}
+    return {"as_of": as_of, "metrics": metrics, "oi": oi, "funding": funding}
 
 
 def _horizons(cfg: BetaConfig, view: Mapping[str, Any], tape: Optional[Mapping[str, Any]]) -> dict:
@@ -140,7 +143,7 @@ def _horizons(cfg: BetaConfig, view: Mapping[str, Any], tape: Optional[Mapping[s
         return empty_horizons()
     from .liq_mapping import mark_okx_lower_bound
     return mark_okx_lower_bound(build_horizons(cfg, as_of_bucket=tape["as_of"], metrics_by_bucket=tape["metrics"],
-                                               oi_by_boundary=tape["oi"]))
+                                               oi_by_boundary=tape["oi"], funding_latest=tape.get("funding")))
 
 
 async def _derivatives(conn, view: Mapping[str, Any], tape: Optional[Mapping[str, Any]], *,

@@ -794,7 +794,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "pos_high": {"ru": "цена у верхней границы", "en": "price at the high end"},
     "oi_24h": {"ru": "OI {oi} за 24ч (медиана бирж{usual})", "en": "OI {oi} over 24h (median across exchanges{usual})"},
     "oi_24h_na": {"ru": "OI за 24ч н/д", "en": "OI over 24h n/a"},
-    "funding_avg": {"ru": "средний Funding {f}", "en": "average Funding {f}"},
+    "funding_avg": {"ru": "средний Funding {f} за 8 ч", "en": "average Funding {f} per 8h"},
     "funding_avg_na": {"ru": "средний Funding н/д", "en": "average Funding n/a"},
     # derivatives beside their «обычно» (backlog G2; beta/derivatives.py)
     "oi_usual_part": {"ru": "; Binance {bn}, обычно ±{typ}, N={n} дн.", "en": "; Binance {bn}, usually ±{typ}, N={n} days"},
@@ -1035,14 +1035,17 @@ _CATALOG: dict[str, dict[str, str]] = {
         "en": " (comparison unavailable)",
     },
     "h1_incomplete_body": {"ru": "1ч: неполные данные", "en": "1h: incomplete"},
+    # rates per 8h settlement (all three venues settle every 8h; D3, R3)
     "funding_now": {
-        "ru": "Funding сейчас {rate} (медиана бирж)",
-        "en": "Funding now {rate} (median across exchanges)",
+        "ru": "Funding сейчас {rate} за 8 ч ({med})",
+        "en": "Funding now {rate} per 8h ({med})",
     },
     "funding_24h": {
-        "ru": "Funding сейчас {now} · среднее за 24 ч {avg}",
-        "en": "Funding now {now} · 24h average {avg}",
+        "ru": "Funding сейчас {now} · среднее за 24 ч {avg} (ставки за 8 ч, {med})",
+        "en": "Funding now {now} · 24h average {avg} (rates per 8h, {med})",
     },
+    "funding_med_all": {"ru": "медиана бирж", "en": "median across exchanges"},
+    "funding_med_k": {"ru": "медиана {k} из {n} бирж", "en": "median of {k} of {n} exchanges"},
     "h24_head": {"ru": "<b>BTC за 24 ч</b> · до {hm} {zone}", "en": "<b>BTC, last 24h</b> · through {hm} {zone}"},
     "h24_price": {"ru": "Цена {price} · макс {high} · мин {low}", "en": "Price {price} · high {high} · low {low}"},
     "h24_range": {"ru": "Диапазон {range}{ratio}", "en": "Range {range}{ratio}"},
@@ -1181,7 +1184,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Показатели\n"
             "OI (open interest) — общее число открытых фьючерсных контрактов. Растёт, когда открывается больше, чем закрывается. "
             "Изменение OI в боте — медиана изменений по биржам (минимум 2 биржи), а не изменение суммарного OI.\n"
-            "Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот.\n"
+            "Funding — регулярный платёж между лонгами и шортами на бессрочных фьючерсах. Плюс — лонги платят шортам, минус — наоборот. "
+            "Ставка указана за 8 ч (одна выплата); биржа, чья ставка старше 15 мин, в медиану не входит.\n"
             "Delta — разница между рыночными покупками и продажами в $. Минус — нетто продавали.\n"
             "Объём — сумма сделок в $ по Binance, Bybit и OKX; если в какой-то пятиминутке нет данных одной из бирж, объём помечен как неполный.\n"
             "Диапазон — от минимума до максимума цены за период, в % от цены.\n"
@@ -1217,7 +1221,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Metrics\n"
             "OI (open interest) — total number of open futures contracts. It rises when more contracts are opened than closed. "
             "The bot's OI change is the median of the exchanges' changes (at least 2 exchanges), not the change of total OI.\n"
-            "Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse.\n"
+            "Funding — a periodic payment between longs and shorts on perpetual futures. Positive — longs pay shorts; negative — the reverse. "
+            "The rate is per 8h (one settlement); an exchange whose rate is older than 15 min is left out of the median.\n"
             "Delta — difference between market buys and market sells in $. Negative — net selling.\n"
             "Volume — total traded value in $ on Binance, Bybit and OKX; when a 5-minute bucket lacks one of them, the volume is marked partial.\n"
             "Range — from the lowest to the highest price in the period, in % of the price.\n"

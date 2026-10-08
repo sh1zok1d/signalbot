@@ -271,6 +271,22 @@ class BetaConn:
                FROM beta_btc_views WHERE view_pk=$1""", view_pk)
         return None if r is None else {**dict(r), "payload": _load(r["payload"])}
 
+    async def fetch_funding_latest(self, *, symbol: str, exchanges: Sequence[str], at: datetime) -> dict:
+        """Per venue, the newest LIVE ``funding_rate`` row strictly before ``at`` (no look-ahead), with its ts;
+        ``None`` for a venue with no row. Backfilled settled rates are not «сейчас». The age bound is
+        applied by the caller (beta.horizons, D3 R3)."""
+        rows = await self.conn.fetch(
+            """SELECT DISTINCT ON (exchange) exchange, ts, funding_rate
+               FROM funding_rate
+               WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts < $3 AND source = 'live'
+               ORDER BY exchange, ts DESC""",
+            symbol, list(exchanges), at)
+        out = {ex: None for ex in exchanges}
+        for r in rows:
+            out[r["exchange"]] = {"ts": r["ts"], "funding_rate": None if r["funding_rate"] is None
+                                  else float(r["funding_rate"])}
+        return out
+
     async def fetch_open_interest_asof(self, *, symbol: str, exchanges: Sequence[str],
                                        boundaries: Sequence[datetime]) -> dict:
         """Last ``open_interest`` row at or before each boundary, at most 2 minutes old.

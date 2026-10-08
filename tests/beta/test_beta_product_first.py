@@ -171,7 +171,7 @@ def test_brief_calm_night_matches_the_reference_message():
                     "Цена 61 420 → 61 880 (+0,75%), мин 61 210, макс 61 990\n"
                     "Необычных часов не было.\n\n"
                     "<b>Сейчас</b> · 1ч и 4ч: обычное состояние\n"            # one line when both agree (C2)
-                    "24ч: 60 950–62 300, цена ближе к верхней границе · OI +1,2% за 24ч (медиана бирж) · средний Funding 0,008% (платят лонги)\n\n"
+                    "24ч: 60 950–62 300, цена ближе к верхней границе · OI +1,2% за 24ч (медиана бирж) · средний Funding 0,008% за 8 ч (платят лонги)\n\n"
                     "Данные на 07:55 (Киев)\nОтключить утреннюю сводку: /brief off")
     assert_descriptive(text, "ru")
     assert "/brief off" not in format_catchup(CFG, _view(m, kind="brief"), "ru")          # only the first brief

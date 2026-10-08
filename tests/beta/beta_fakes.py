@@ -151,6 +151,10 @@ CREATE TABLE IF NOT EXISTS open_interest (
     exchange TEXT NOT NULL, symbol TEXT NOT NULL, ts TIMESTAMPTZ NOT NULL,
     oi_raw DOUBLE PRECISION, oi_unit TEXT, contract_value DOUBLE PRECISION,
     PRIMARY KEY (exchange, symbol, ts));
+CREATE TABLE IF NOT EXISTS funding_rate (
+    exchange TEXT NOT NULL, symbol TEXT NOT NULL, ts TIMESTAMPTZ NOT NULL,
+    funding_rate DOUBLE PRECISION NOT NULL, next_funding_time TIMESTAMPTZ,
+    source TEXT NOT NULL DEFAULT 'backfill', PRIMARY KEY (exchange, symbol, ts));
 CREATE TABLE IF NOT EXISTS backfill_runs (
     id BIGSERIAL PRIMARY KEY, exchange TEXT NOT NULL, symbol TEXT NOT NULL, source TEXT NOT NULL,
     window_start TIMESTAMPTZ NOT NULL, window_end TIMESTAMPTZ NOT NULL,
