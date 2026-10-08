@@ -246,7 +246,7 @@
   "level_effect_rule": {
     "claim_if": "champion != B0 and held-out raw paired LL gain vs raw B0 95% interval > 0, per landmark",
     "case_A": "published = champion with level-class calibrator",
-    "case_B": "published = B0 with level-class calibrator",
+    "case_B": "published = B0 with GENERIC intercept + shared slope (no level intercept); D3 absent; D1/D2 -> HIST",
     "fallback_model": "B0 with GENERIC intercept and shared slope only"
   },
   "gates_f3_planning": {
@@ -274,7 +274,7 @@
       ],
       "D1_threshold": 10,
       "D2": "last 100: CITL point outside +-10 pp and 95% interval excludes 0",
-      "D3": "last 100: paired LL_pub - LL_fallback_model 95% interval above 0; raw B0 reported only",
+      "D3": "case A only: last 100 paired LL_pub - LL_fallback 95% interval above 0",
       "in_fallback": "D1/D2 on the fallback model; trigger -> HIST"
     },
     "return": "50 new resolved since fallback; D2 band, restarted D1 <= 10, D3 not triggered"
@@ -380,20 +380,9 @@
   },
   "fallback_model": "B0 with GENERIC intercept and shared slope; before first generic batch raw B0",
   "schedule": {
-    "design_note_to_architect": "~2026-10-10",
-    "model_freeze_by": "~2026-10-16",
-    "final_build": "~2026-10-20",
-    "cut_order": [
-      "M1A",
-      "B1",
-      "C1 development diagnostics"
-    ],
-    "not_cut": [
-      "B0",
-      "champion rule",
-      "generic stream",
-      "held-out protocol"
-    ]
+    "hist_build": "2026-10-10/11",
+    "model_freeze_target": "~2026-10-16 (target, not cut-off)",
+    "model_states": "dated upgrade during the beta"
   },
   "window_end_display": "close time of bar j+48, HH:MM UTC",
   "reliability_line": "stacked 5-bin table; bin of the largest displayed probability; ties P_UP, P_DN, neither; show bin N",
@@ -415,16 +404,17 @@
       "T15": "family x STRUCT_SIDE x band (18)"
     },
     "band": {
-      "f": "(ln close[j+2] - ln back) / (ln beyond - ln back)",
+      "variable": "B0_beyond at close[j+2], tau=46",
       "edges": [
-        0.4,
-        0.6
+        0.35,
+        0.55
       ],
       "names": [
         "F1",
         "F2",
         "F3"
-      ]
+      ],
+      "edges_source": "a priori numbers; not data terciles (T15 filter reads part of T0 outcome)"
     },
     "n_min": 30,
     "ladder": {
@@ -476,12 +466,19 @@
       "table_sha256",
       "code_commit",
       "template_id",
-      "outcome=UNKNOWN"
+      "outcome=UNKNOWN",
+      "table_version",
+      "shown"
     ],
     "switch": {
       "setting": "level_race.model_states_enabled",
       "default": false
     },
-    "no_2025_2026": true
-  }
+    "no_2025_2026": true,
+    "key": "landmark x family x STRUCT_SIDE (+ band at T15); orientation == STRUCT_SIDE on all 1919 dev events (F2)",
+    "no_recompute": "V1 table never recomputed after held-out or live; new table = V2",
+    "templates_note": "shares for barriers at the same distances; today's prices named separately; years in both lines",
+    "scoring": "per cell: shown h vs observed share per outcome with N; LL/Brier vs event B0; CITL; 5-bin"
+  },
+  "beta_changes": "FORECAST_LAYER §6a: announced in advance, dated event in measurement contract, metrics before/after; §6-§7 rules frozen"
 }
