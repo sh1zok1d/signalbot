@@ -21,6 +21,17 @@ def test_the_guide_names_the_levels_and_the_race_line_without_attribution():
         assert "весь рынок" not in g and "whole market" not in g
     assert "максимумы и минимумы прошлого дня, недели и месяца" in t("ru", "guide")
     assert "the previous day's, week's and month's highs and lows" in t("en", "guide")
+    # «обычно» is B0 (FORECAST_LAYER_DECISION_V1 §1/§3): a driftless path from the same point, no level effect
+    assert "случайная цена с той же волатильностью из той же точки, без учёта уровня" in " ".join(t("ru", "guide").split())
+    assert "a random price path with the same volatility from the same point" in " ".join(t("en", "guide").split())
+    assert "без касания" not in t("ru", "guide") and "without a touch" not in t("en", "guide")
+
+
+def test_no_text_says_the_whole_market_watches_the_levels():
+    from beta.i18n_decision import DECISION_HELP
+    for lang in ("ru", "en"):
+        for text in (t(lang, "welcome"), DECISION_HELP[lang]):
+            assert "весь рынок" not in text and "everyone watches" not in text and "whole market" not in text
     assert "первой была" in t("ru", "guide") and "не прогноз направления" in t("ru", "guide")
     assert "reached first" in t("en", "guide") and "not a direction forecast" in t("en", "guide")
 
