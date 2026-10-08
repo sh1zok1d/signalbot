@@ -1,6 +1,6 @@
 -- OUT-8, step 1 (READ-ONLY): the deletion audit rows written before #418 that still carry per-person data.
--- Usage: psql "$DSN" -v owner_fp='u_xxxxxxxxxxxx' -f deploy/signalbot-beta-audit-deidentify-count.sql
--- owner_fp: the owner's fingerprint (python -c "from beta.admin import fingerprint; print(fingerprint(<owner id>))").
+-- Usage: psql -X -v owner_fp=<the owner's fingerprint> < deploy/signalbot-beta-audit-deidentify-count.sql
+-- (docs/BETA_AUDIT_DEIDENTIFY_V1.md §4 computes owner_fp and runs it through docker exec).
 BEGIN TRANSACTION READ ONLY;
 
 SELECT action,
@@ -9,8 +9,7 @@ SELECT action,
        count(*) FILTER (WHERE target_fingerprint = :'owner_fp')       AS target_is_owner,
        count(*) FILTER (WHERE actor_fingerprint = :'owner_fp')        AS actor_is_owner,
        count(*) FILTER (WHERE detail - 'cohort' <> '{}'::jsonb)       AS with_extra_detail_keys,
-       count(*) FILTER (WHERE detail->'cohort' IS NULL
-                          OR detail->>'cohort' = 'null')               AS without_cohort,
+       count(*) FILTER (WHERE jsonb_typeof(detail->'cohort') IS DISTINCT FROM 'object') AS without_cohort,
        min(recorded_at)                                               AS first_at,
        max(recorded_at)                                               AS last_at
 FROM beta_admin_audit
