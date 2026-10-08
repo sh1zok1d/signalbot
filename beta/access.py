@@ -15,7 +15,7 @@ from typing import Mapping, Optional
 
 INVITE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
 INVITE_CODE_RE = re.compile(r"^[A-Za-z0-9_-]{12}$")
-PRIVACY_NOTICE_VERSION = 6
+PRIVACY_NOTICE_VERSION = 7
 ACTIVITY_ACTIONS = (
     "cmd_start", "cmd_btc", "cmd_history", "cmd_help", "cmd_terms", "cmd_lang", "cmd_stop",
     "cmd_feedback", "tab_event", "tab_1h", "tab_24h", "btn_details", "btn_useful", "btn_noise",
@@ -24,8 +24,13 @@ ACTIVITY_ACTIONS = (
     "btn_levels", "btn_risk", "cmd_research",
     "brief_withheld", "btn_other_assets", "btn_btc_now", "tab_research",
     "cmd_check", "btn_check", "btn_watch", "weekly_delivered",
-    "cmd_tz", "btn_mute", "btn_unmute", "cmd_type", "type_set",
+    "cmd_tz", "set_mute", "set_unmute", "cmd_type", "type_set",
+    "cmd_idea", "idea_sent", "reason_set", "cmd_interview", "interview_booked",
 )
+
+
+# the one-tap mute and its undo under a push (backlog E2): settings, never reactions (review of #373, #375)
+MUTE_ACTIONS = ("set_mute", "set_unmute")
 
 
 def generate_invite_code() -> str:

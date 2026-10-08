@@ -48,7 +48,7 @@ def test_the_push_field_carries_its_own_lag_and_the_class_percentiles_with_n():
     s = lt.summarize([_row("alert", alert_kind="move", src_s=0, decision_s=40, done_s=41)])
     f = lt.latency_field("move", T, T + timedelta(seconds=52), s)
     assert f == {"class": "move", "source": "candle_close", "source_at": T.isoformat(), "lag_s": 52,
-                 "p50_s": 41.0, "p95_s": 41.0, "n": 1, "window_days": 7}
+                 "p50_s": 41.0, "p95_s": 41.0, "n": 1, "messages": 1, "window_days": 7}
     assert lt.latency_field("event", T, T, {})["n"] == 0 and lt.latency_field("event", T, T, {})["p95_s"] is None
     assert lt.latency_field("level", None, T, s) is None                           # never guessed
     assert lt.alert_source_at({"source_at": T.isoformat()}) == T and lt.alert_source_at({}) is None

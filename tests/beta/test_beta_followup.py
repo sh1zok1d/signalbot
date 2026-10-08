@@ -123,7 +123,7 @@ def test_state_schema_and_presentation_only_changes_keep_comparability():
                                      calculation_version=CALC).digest == digest(CFG, et)
     ctx = dict(CFG["context"]); ctx["last_event_retention_min"] = 240
     for changed in (CFG.with_overrides(context=ctx), CFG.with_overrides(same_event_cooldown_min=90),
-                    CFG.with_overrides(delivery_ttl_s=900), CFG.with_overrides(max_new_pushes_per_utc_day=9),
+                    CFG.with_overrides(delivery_ttl_s=900), CFG.with_overrides(max_new_pushes_per_utc_day=9, push_decisions_fuse_per_utc_day=18),
                     CFG.with_overrides(forward_horizons=["1h", "4h"]), CFG.with_overrides(enabled=True),
                     CFG.with_overrides(bucket_close_grace_s=30)):
         assert changed.config_digest != CFG.config_digest

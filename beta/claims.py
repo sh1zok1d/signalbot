@@ -10,7 +10,9 @@ users:
     (the `/risk` table and every arbitrary level of `/check` are read off this curve);
   - `L2_STATE_ANALOG_{W}_{H}`: «после похожих» for the live 1h / 4h label at the full hour;
   - `L2_DH3_P1_RANGE_4H`: the DH3-P1 cohort (quiet hours, OI built up over 4h or not);
-- **at every level-touch evaluation** (`PUSH` or `SUPPRESSED`): `L2_LEVEL_FIRST_TOUCH_HOLD_{1H,4H}`.
+- **at every level-touch evaluation** (`PUSH` or `SUPPRESSED`): `L2_LEVEL_FIRST_TOUCH_HOLD_{1H,4H}`;
+- **at the landmarks of a structural first touch** (T0 / T15 close, every run, shown or not):
+  `L2_LEVEL_RACE_HIST_{T0,T15}_4H` (beta/level_race_live.py; FORECAST_LAYER_DECISION_V1 §6a).
 
 Whether a surface showed a claim is a separate link (`record_displays`). The scorer reads the rule
 from the claim row; the database refuses an outcome under another rule. Nothing here reads an
@@ -85,6 +87,14 @@ EVAL_RULES = {
         "cohort_metric": "live hold rate against the claimed observed and random-level rates; "
                          "UTC-day-clustered interval",
     },
+    "LEVEL_RACE_4H_V1": {
+        "outcome": "the first of the two barrier prices reached in the original 4h window of a #352 structural "
+                   "first touch: bars j+1 .. j+48 at T0, j+3 .. j+48 at T15 (5m highs / lows); UP, DN or NEITHER; "
+                   "AMBIGUOUS when one bar reaches both first (excluded and counted)",
+        "complete": ">= 90% of the window's 5m bars present (#352 MIN_PRESENT)",
+        "cohort_metric": "per class and cell: mean shown share vs observed share per outcome, log loss and Brier "
+                         "of the shown shares and of the event's own B0 (docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md §0)",
+    },
     "DH3_P1_RANGE_4H_V1": {
         "outcome": "RANGE_4H = log((max high - min low over the 48 5m bars after T) / close at T) "
                    "(docs/research/DH3_DESIGN.md)",
@@ -115,6 +125,9 @@ CLASSES = {
     "L2_LEVEL_FIRST_TOUCH_HOLD_1H": ("L2", ("lv_hist", "pa_level_hist", "dc_pp_ci"), "LEVEL_HOLD_V1"),
     "L2_LEVEL_FIRST_TOUCH_HOLD_4H": ("L2", ("lv_hist", "pa_level_hist", "dc_pp_ci"), "LEVEL_HOLD_V1"),
     "L2_DH3_P1_RANGE_4H": ("L2", "registry:DH3-P1", "DH3_P1_RANGE_4H_V1"),
+    # level race, HIST (beta/level_race_live.py holds the names of every race class)
+    "L2_LEVEL_RACE_HIST_T0_4H": ("L2", ("lr_push_hist_v1", "lr_hist_v1", "lr_hist_low_n_v1"), "LEVEL_RACE_4H_V1"),
+    "L2_LEVEL_RACE_HIST_T15_4H": ("L2", ("lr_hist_v1", "lr_hist_low_n_v1"), "LEVEL_RACE_4H_V1"),
 }
 HOURLY_GROUPS = {
     "touch": tuple(c for c in CLASSES if c.startswith("L3_")),
@@ -366,6 +379,81 @@ def level_hold_claims(cand: Mapping[str, Any], *, now: datetime) -> list:
     return out
 
 
+def level_race_claims(views: Sequence[Mapping[str, Any]], *, now: datetime, mode: str = "HIST",
+                      calendar: Optional[Mapping[str, Any]] = None) -> list:
+    """L2 at the landmarks of a structural first touch: the HIST shares of the event's cell as the
+    surfaces print them, with the event's own B0, its barrier prices and window, the table digest
+    and the mode (FORECAST_LAYER §6a: metrics before and after the switch are kept apart)."""
+    from .build import build_sha
+    from .level_race import LEVEL_RACE_VERSION
+    from .level_race_live import LIVE_VERSION, subject_key
+    from .levels import STRUCTURAL_VERSION
+    out = []
+    for v in views:
+        at = datetime.fromtimestamp(v["landmark_ms"] / 1000, tz=timezone.utc)
+        end = datetime.fromtimestamp(v["end_ms"] / 1000, tz=timezone.utc)
+        subject = {"event_id": v["event_id"], "landmark": v["landmark"], "kind": v["kind"],
+                   "member_kinds": v["member_kinds"], "family": v["family"], "struct_side": v["struct_side"],
+                   "orientation": v["side"], "beyond_is_up": bool(v["beyond_is_up"]),
+                   "touch_open": _iso(datetime.fromtimestamp(v["touch_open_ms"] / 1000, tz=timezone.utc)),
+                   "zone_low": v["zone_low"], "zone_high": v["zone_high"], "sigma": v["sigma"], "x": v["x"],
+                   "position": v["position"], "p_up": v["p_up"], "p_dn": v["p_dn"], "end": _iso(end),
+                   "cell": v["cell"], "ladder_level": v["ladder_level"], "source_cell": v["source_cell"],
+                   "template": v["template"], "push_template": v.get("push_template"),
+                   "out_of_corridor": bool(v["out_of_corridor"]), "table_version": v["table_version"],
+                   "table_sha256": v["table_sha256"], "mode": mode, "build_sha": build_sha(),
+                   "versions": {"level_race": LEVEL_RACE_VERSION, "live": LIVE_VERSION, "event": STRUCTURAL_VERSION}}
+        numbers = {"n": int(v["n"]), "event_b0": {k: round(float(x), 6) for k, x in v["event_b0"].items()}}
+        if v.get("h"):
+            numbers.update(h={k: round(float(x), 6) for k, x in v["h"].items()},
+                           b={k: round(float(x), 6) for k, x in v["b"].items()}, k_pp=dict(v["k_pp"]),
+                           weeks=int(v["weeks"]), d_pp=dict(v["d_pp"]), ci95_pp=dict(v["ci95_pp"]),
+                           printed={"h": dict(v["printed_h"]), "b": dict(v["printed_b"])})
+        if calendar is not None:                  # the 4h window holds a CPI / FOMC release: never shown, still written
+            from .decision import event_zones
+            subject["event_zone"] = bool(event_zones(int(v["landmark_ms"]), calendar).get("4h"))
+        reason = f"LANDMARK_{v['landmark']}" + ("_OUT_OF_CORRIDOR" if v["out_of_corridor"] else "")
+        out.append(claim_row(v["class"], issued_at=now, issue_slot=at, as_of=at, subject=subject,
+                             subject_key=subject_key(v), numbers=numbers,
+                             rule_version=f"{LEVEL_RACE_VERSION}+{LIVE_VERSION}+{STRUCTURAL_VERSION}+mode:{mode}",
+                             eligible_reason=reason, horizon_ms=int(v["end_ms"] - v["landmark_ms"])))
+    return out
+
+
+async def record_level_race(conn, cfg, *, now: datetime, capture: Mapping[str, Any]) -> dict:
+    """Every eligible event at its T0 / T15 close, shown or not, before the outcome
+    (`level_race.journal_enabled`). Idempotent per (class, event, landmark)."""
+    from . import level_race_live as LR
+    rep = {"race_written": 0}
+    if not LR.setting(cfg, "journal_enabled"):
+        return rep
+    from .level_race import load_hist_table
+    try:
+        table = load_hist_table()
+    except Exception as exc:  # noqa: BLE001 - a table that does not verify is state OFF: nothing written
+        rep["race_table_error"] = type(exc).__name__
+        return rep
+    rows = level_race_claims(LR.due_landmarks(capture.get("bars"), now, table), now=now, mode=LR.mode(cfg),
+                             calendar=capture.get("calendar"))
+    for r in rows:
+        rep["race_written"] += int(await conn.insert_claim(r) is not None)
+    return rep
+
+
+async def level_race_coverage(conn, cfg, rows: Sequence[Mapping[str, Any]], *, since: datetime,
+                              now: datetime) -> Optional[dict]:
+    """«Expected against written» for the level race HIST records over (since, now], from the live tape
+    (read-only; `--beta-claims-report`). None while the journal flag is off; the tape covers the last
+    LOOKBACK_DAYS, so a longer report window counts only the part it covers (`tape_from_ms`)."""
+    from . import level_race_live as LR
+    if not LR.setting(cfg, "journal_enabled"):
+        return None
+    from .decision import load_live_bars
+    from .level_race import load_hist_table
+    b, _price, _ts = await load_live_bars(conn, cfg, now=now)
+    return LR.coverage(b, rows, since_ms=to_ms(since), until_ms=to_ms(now), table=load_hist_table())
+
+
 async def _oi_for(conn, cfg, b: Bars, *, now: datetime, capture: Mapping[str, Any]):
     """The Binance OI metrics aligned to the bars: the research inputs of this run when built, else
     the same read on its own (collection never depends on research presentation)."""
@@ -456,6 +544,13 @@ def evaluate(claim: Mapping[str, Any], b: Bars, closed_1m, *, now: datetime,
     rule = claim["eval_rule"]["id"]
     start, end = claim["as_of"], claim["horizon_end"]
     s = claim["subject"]
+    if rule == "LEVEL_RACE_4H_V1":
+        from .level_race_live import classify
+        r = classify(b, touch_open_ms=to_ms(datetime.fromisoformat(s["touch_open"])), landmark=s["landmark"],
+                     p_up=float(s["p_up"]), p_dn=float(s["p_dn"]))
+        if r is not None and r["usable"]:
+            return "COMPLETE", r
+        return ("NO_DATA", r or {"usable": False, "coverage": 0.0}) if now - end > NO_DATA_AFTER else None
     w = _window(b, closed_1m, start, end, index)
     late = now - end > NO_DATA_AFTER
     if rule == "TOUCH_V1":
@@ -523,9 +618,20 @@ async def score_claims(conn, b: Optional[Bars], closed_1m, *, now: datetime, lim
 
 
 # ---- displays --------------------------------------------------------------------------------------
+def race_shown_keys(block: Optional[Mapping[str, Any]], surface: str, *,
+                    check_levels: Optional[Sequence[float]] = None) -> list:
+    """(class, subject_key, issue slot) of the level race lines a surface printed: /levels prints every race
+    of the block, /check the race of the zone a checked price lies in (`decision_format.race_lines`)."""
+    from .decision_format import races_shown
+    from .level_race_live import subject_key
+    return [(r["class"], subject_key(r), datetime.fromtimestamp(r["landmark_ms"] / 1000, tz=timezone.utc))
+            for r in races_shown(block, surface, check_levels=check_levels)]
+
+
 def shown_keys(surface: str, block: Optional[Mapping[str, Any]], *, market: Optional[Mapping[str, Any]] = None,
-               alert: Optional[Mapping[str, Any]] = None) -> list:
-    """(class, subject_key) pairs a surface printed from this block (what `decision_format` renders)."""
+               alert: Optional[Mapping[str, Any]] = None, check_levels: Optional[Sequence[float]] = None) -> list:
+    """(class, subject_key) pairs a surface printed from this block (what `decision_format` renders); a
+    level race line carries its own issue slot as a third element."""
     out: list = []
     block = block or {}
     if surface != "alert" and not block.get("available"):
@@ -562,8 +668,15 @@ def shown_keys(surface: str, block: Optional[Mapping[str, Any]], *, market: Opti
             if h in ((block.get("corridor") or {}).get("horizons") or {}):
                 for d in (0.25, 0.5, 1.0, 2.0):
                     out += [(f"L3_DISTANCE_TOUCH_{h.upper()}", f"{s:+d}:{d}") for s in (+1, -1)]
-    elif surface == "alert" and alert is not None:
+    if surface in ("levels", "check"):
+        out += race_shown_keys(block, surface, check_levels=check_levels)
+    if surface == "alert" and alert is not None:
         p = alert.get("payload") or {}
+        race = p.get("race")
+        if alert.get("kind") == "level" and race:          # the T0 race line of a structural push
+            from .level_race_live import subject_key
+            out.append((race["class"], subject_key(race),
+                        datetime.fromtimestamp(race["landmark_ms"] / 1000, tz=timezone.utc)))
         if alert.get("kind") == "level":
             from .decision_format import level_hist_shown
             if level_hist_shown(p.get("history"), "1h"):
@@ -578,16 +691,20 @@ async def record_displays(conn, *, surface: str, shown: Iterable[tuple], now: da
                           view_pk: Optional[int] = None, alert_pk: Optional[int] = None) -> int:
     """Link the shown claims of the hour (or of `slot`) to the surface. Best-effort, in a savepoint:
     a failure never touches the caller's reply or alert."""
-    want = set(shown)
-    if not want:
+    hour = slot or now.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    by_slot: dict = {}
+    for k in shown:                            # (class, key) on the hour's grid, or (class, key, own slot)
+        by_slot.setdefault(k[2] if len(k) > 2 else hour, set()).add((k[0], k[1]))
+    if not by_slot:
         return 0
-    slot = slot or now.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
     try:
         tx = getattr(conn, "transaction", None)
         async def _do():
-            have = await conn.fetch_slot_claims(issue_slot=slot, classes=sorted({c for c, _k in want}))
-            rows = [{"claim_pk": r["claim_pk"], "surface": surface, "view_pk": view_pk, "alert_pk": alert_pk,
-                     "shown_at": now} for r in have if (r["claim_class"], r["subject_key"]) in want]
+            rows = []
+            for sl, want in sorted(by_slot.items()):
+                have = await conn.fetch_slot_claims(issue_slot=sl, classes=sorted({c for c, _k in want}))
+                rows += [{"claim_pk": r["claim_pk"], "surface": surface, "view_pk": view_pk, "alert_pk": alert_pk,
+                          "shown_at": now} for r in have if (r["claim_class"], r["subject_key"]) in want]
             return await conn.insert_claim_displays(rows) if rows else 0
         if tx is None:
             return await _do()
@@ -751,6 +868,9 @@ def claims_report(rows: Sequence[Mapping[str, Any]]) -> dict:
             out["classes"][cls] = _hold_report(rs)
         elif rule == "DH3_P1_RANGE_4H_V1":
             out["classes"][cls] = _p1_report(rs)
+        elif rule == "LEVEL_RACE_4H_V1":
+            from .level_race_live import report
+            out["classes"][cls] = report(rs)
         else:
             out["classes"][cls] = {"n": len(rs)}
     return out

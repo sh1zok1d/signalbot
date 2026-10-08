@@ -124,6 +124,17 @@ CREATE INDEX IF NOT EXISTS ix_liquidations_mapped ON liquidations (exchange, sym
     WHERE mapping_version IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_liquidations_unmapped ON liquidations (exchange, symbol, ts)
     WHERE mapping_version IS NULL;
+
+-- Liveness of a liquidation channel with its own socket (OKX liquidation-orders): one row per
+-- venue at most every 30 s while it is acknowledged and answering or pushing. A quiet OKX bucket
+-- is a measured 0 only when these rows cover it (beta/liq_mapping.py); a refused or silent channel
+-- leaves no rows, and the beta reads «не измерен», never 0.
+CREATE TABLE IF NOT EXISTS liquidation_feed_heartbeats (
+    exchange TEXT NOT NULL,
+    symbol   TEXT NOT NULL,
+    ts       TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (exchange, symbol, ts)
+);
 CREATE INDEX IF NOT EXISTS ix_liquidations_symbol_ts ON liquidations (symbol, ts DESC);
 
 -- ============================================================

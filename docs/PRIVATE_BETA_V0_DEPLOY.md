@@ -138,7 +138,7 @@ Authority: `docs/PRODUCT_FIRST_DECISION_V1.md` §3 and `docs/BETA_COPY_CONTRACT_
 - `beta_user_activity.action` accepts `cmd_catchup`, `cmd_brief`, `cmd_push`, `brief_delivered`; `beta_admin_audit.action` accepts `admin_known`.
 - Rules digest unchanged (`BETA_EVENT_RULES_V1`); tape schema V2 unchanged; `BETA_OUTCOME_V1` unchanged.
 
-**Config (committed, `config/beta_v0.yaml`):** `max_new_pushes_per_utc_day: 2`; `push_policy.quiet_hours_kyiv: ["23:00", "07:00"]`; `push_policy.global_cooldown_min: 60`; `context.version: BETA_CONTEXT_1H_V3` (C1; `BETA_CONTEXT_1H_V2` before 2026-10-05) with `rolling_buckets_4h: 48`; `briefing.enabled: false` (committed off; see below). None of these enters the rules digest.
+**Config (committed, `config/beta_v0.yaml`):** `max_new_pushes_per_utc_day: 2` (per recipient, on their own calendar date; review of #373) and `push_decisions_fuse_per_utc_day: 4` (all recipients together, a safety fuse set by ОПГ-1); `push_policy.quiet_hours_kyiv: ["23:00", "07:00"]` (on each participant's clock); `push_policy.global_cooldown_min: 60`; `context.version: BETA_CONTEXT_1H_V3` (C1; `BETA_CONTEXT_1H_V2` before 2026-10-05) with `rolling_buckets_4h: 48`; `briefing.enabled: false` (committed off; see below). None of these enters the rules digest.
 
 **Behaviour after restart:**
 - **Context V2 warm-up.** The projection adopts the open-episode memory of `BETA_CONTEXT_1H_V1` and recomputes the 1h/4h readings (now with taker-delta and OI-change ranks) from V2 tape rows. Ranks are `mature` only with 30 days of V2 rows (written since 2026-10-01); until then `/catchup` prints «мало истории» and the gate answers `IMMATURE`.
@@ -175,7 +175,7 @@ Authority: `docs/PRODUCT_DECISION_V2_DECISION_SUPPORT.md` (owner decision 2026-1
 
 New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_hist_stats`, `beta_forecasts`, `beta_market_alerts`, `beta_price_alerts`. New columns: `beta_users.push_levels / push_events / push_moves / push_hours` (default true), `beta_notification_deliveries.alert_pk`. New activity actions: `cmd_levels`, `cmd_risk`, `cmd_alert`, `cmd_events`, `cmd_accuracy`, `alert_delivered`, `btn_levels`, `btn_risk`. Privacy notice version 4 (personal `/alert` levels; `/delete_me` deletes them). New owner alert `HISTORY_STATS_STALE` (no successful build for 50h once builds have started).
 
-**Config (committed):** a `decision:` section (`max_price_alerts: 5`, `forecast_tracking: true`, `market_alerts: {enabled: true, max_per_utc_day: 4, move_cooldown_min: 120, event_lead_min: 30, touch_max_age_min: 10}`); `briefing.enabled: true`. Market alerts also need effective push (`BETA_PUSH_ENABLED` and no `/admin_pause_push`) and respect quiet hours (23:00–07:00 Kyiv) except personal `/alert`.
+**Config (committed):** a `decision:` section (`max_price_alerts: 5`, `forecast_tracking: true`, `market_alerts: {enabled: true, max_per_utc_day: 4, decisions_fuse_per_utc_day: 8, move_cooldown_min: 120, event_lead_min: 30, touch_max_age_min: 10}`; `max_per_utc_day` is per recipient on their own date, the fuse counts all decisions of the UTC day); `briefing.enabled: true`. Market alerts also need effective push (`BETA_PUSH_ENABLED` and no `/admin_pause_push`) and respect each recipient's quiet hours (23:00–07:00 on their clock) except personal `/alert`.
 
 **Protected window:** the E1-RUN-001 final holdout `[2026-08-16T00:00Z, 2026-08-25T17:20Z)` is never requested: every archive object whose period overlaps it is rejected before any request (the August 2026 monthly klines; the daily klines and metrics of 2026-08-16 … 2026-08-25, the 25th whole). August is read from its other daily objects, and the grid keeps 2026-08-16 00:00 → 2026-08-26 00:00 as a gap. The sync report lists them as `protected_rejected_keys` (21 objects).
 
@@ -234,7 +234,7 @@ New tables: `beta_hist_bars_5m`, `beta_hist_oi_5m`, `beta_hist_objects`, `beta_h
   - **Live bins.** The notifier refreshes the live bins from the journal once an hour (`beta_runtime_health` component `touch_live_cal`).
   - **Divergence.** A live bin that breaks the frozen rule falls back to «исторически в X % случаев» for the rest of the model version and raises `TOUCH_CALIBRATION_DIVERGED` (`NEITHER_CALIBRATION_DIVERGED` for «ни один»).
 - The weekly report (backlog B4; `beta/weekly.py`, `decision.weekly_report`) runs inside the same notifier step.
-  - **When.** Sunday 19:00 Kyiv by default, never sent more than 120 minutes late. Mon–Fri hold the U1a withdrawal days, so it never meets a withheld briefing.
+  - **When.** Sunday 19:00 on each participant's own clock by default (review of #379), never sent more than 120 minutes after their slot and never outside their Sunday. The report is built once, at the earliest slot of that Sunday, and the owner's copy goes then. Mon–Fri hold the U1a withdrawal days, so it never meets a withheld briefing.
   - **What it says.** How the bot's own estimates did over the 7 days:
     - corridors issued and scored that week, with effective N, beside the designed share and the held-out year;
     - width, and misses above and below;
@@ -429,7 +429,7 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 
 **Recipients:** every `ACTIVE` beta user. While only the owner has joined, this is the owner-only live push of the rollout. Do not hand out invite codes until the owner has seen real pushes.
 
-**Limits:** at most `max_new_pushes_per_utc_day` = 2 new pushes per UTC day (3 in V0.2), `same_event_cooldown_min` = 20, `push_policy.global_cooldown_min` = 60 across event types, quiet hours 23:00–07:00 Kyiv, nothing older than `delivery_ttl_s` = 600 s, and only hours that pass the unusual-hour gate (see the Product-first V1 section). D7 and readiness changes never push.
+**Limits:** at most `max_new_pushes_per_utc_day` = 2 new pushes per participant on their own calendar date (3 per UTC day in V0.2; per recipient since the review of #373), with `push_decisions_fuse_per_utc_day` = 4 decisions of the UTC day for everyone together as a safety fuse, `same_event_cooldown_min` = 20, `push_policy.global_cooldown_min` = 60 across event types, quiet hours 23:00–07:00 on each participant's clock, nothing older than `delivery_ttl_s` = 600 s, and only hours that pass the unusual-hour gate (see the Product-first V1 section). D7 and readiness changes never push.
 
 **Enable:**
 1. From the owner account, send `/admin_pause_push` before touching `.env`. A missing admin row counts as resumed, so without this step push starts at the first restart.
@@ -439,6 +439,13 @@ The committed config now has `beta.push_enabled: true`. This is the hard allow o
 5. Send `/admin_resume_push`. The reply must say effective push is on.
 
 **Stop:** `/admin_pause_push` stops new deliveries at once, without a restart. Pending deliveries are suppressed with `PUSH_DISABLED`. For a hard stop, set `BETA_PUSH_ENABLED=0` and restart the bot and the notify timer.
+
+**OKX liquidations need a live channel (data reliability, architect 2026-10-08).**
+- **Mechanism.** The collector writes a row into `liquidation_feed_heartbeats` at most every 30 s while OKX's liquidation channel is acknowledged and answering or pushing. Rows older than 60 days are pruned hourly.
+- **Rule.** A 5m bucket without heartbeats covering it reads OKX liquidations «не измерен», never 0, on every surface and in the percentile history. Covering means no gap over 150 s, from 90 s before the bucket's start to its end.
+- **At the deploy.** The collector restart creates the table. With the usual order (beta first, then `sudo systemctl restart signalbot.service`), OKX shows «н/д» from the beta restart until the collector restart.
+- **OKX history starts again.** No heartbeat exists before the deploy, so every earlier OKX 0.0 reads as not measured, including the zeros between the D1 and D2 deploys. OKX needs 30 days of measured history again: it stays «н/д» and does not vote for about 30 days after this deploy.
+- **Check.** `SELECT now() - max(ts) FROM liquidation_feed_heartbeats WHERE exchange='okx';` should be under a minute.
 
 **Sending discipline (backlog A5 and its external review; `beta/delivery.py` `SendPacer` / `send_one`).** It applies to every outbox kind (push, alert, brief, weekly) and to the owner's own alert and weekly copy:
 - **Flood control.** Telegram's `RetryAfter` is not a final `FAILED`.

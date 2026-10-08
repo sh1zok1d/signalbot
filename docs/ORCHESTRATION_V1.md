@@ -129,17 +129,26 @@ Both mini-heads run the same model, so two reviews of the same thing share many 
 
 **Merge rule** (owner, 2026-10-06), as applied:
 - `compileall` and `git diff --check` clean;
-- focused tests, plus `tests/beta` and `tests/deploy` on PostgreSQL for product code; the touched research tests for research code;
+- the agent's focused tests, and a green gate run in Actions on the final head (below); for research code the touched research tests;
 - no open review threads; the branch fresh against main;
 - a merge commit. Never squash a branch whose SHAs are cited by frozen records.
 
-**Tests (owner, 2026-10-08: «полный прогон тестов делать не нужно. И перепроверять тесты уже проверенные в агентах тоже»):**
-- No full `pytest` run, by anyone.
-- The agent that writes a change runs its focused tests and reports them in the PR.
-- The mini-head reads that report and reviews the diff (§3a). As a rule it does not re-run tests the agent already ran.
-- The mini-head runs a test when the report lacks one that the change needs.
-- **On a risky PR** the mini-head may run one independent reproduction of the test or check that the main claim rests on (owner, 2026-10-08, «да»).
-- **Release-candidate suite**, once per deploy step, not per PR (owner, 2026-10-08, «да»): `tests/beta`, `tests/deploy`, `tests/data_ingestion`, the storage and Stage-2 tests on PostgreSQL, and the repo guard tests (including the research/product import boundary). It runs on the exact SHA that will be deployed (§4a).
+**Tests: Actions does the broad runs** (owner, 2026-10-08: «полный прогон тестов делать не нужно. И перепроверять тесты уже проверенные в агентах тоже»; «надо сделать так, чтобы основную работу делал экшнс»):
+- **No full `pytest` run, by anyone.** The full regression (`full-regression.yml`) runs only when the owner asks.
+- **In the session, the agent runs only the focused tests of what it changed:** the test files it wrote or touched and those of the module it edited. It never runs `tests/beta`, `tests/deploy`, `tests/storage` or another whole suite locally.
+- **Open the PR as a draft while iterating.** Mark it ready for review when the focused tests pass.
+  - From then on every push runs the **gate** in Actions (`ci.yml`): the branch merged with main, on PostgreSQL with TimescaleDB. It runs `tests/beta`, `tests/deploy`, the suites of the changed areas (`data_ingestion/`, `storage/`, `runtime/`, `notifications/`, `common/`), the always-list and the mapped tests (`scripts/ci/pr_gate.py`).
+  - A Markdown-only PR runs nothing.
+  - A newer push cancels the run in progress.
+- **Reading the result costs few tokens:**
+  - Subscribe to the PR's activity where the session can; otherwise read the PR's check run once, after about 10 minutes (a background wait). Never poll in a loop.
+  - On red, read only the failing test ids from the end of the job log, fix, push.
+  - The PR and the report cite the run and its result. Logs are never pasted.
+- **The mini-head reviews the diff and the gate result** (§3a). It does not re-run tests locally; it adds a focused test to the PR when one is missing.
+- **Release-candidate suite**, once per deploy step, on the exact SHA that will be deployed (§4a).
+  - ОПГ-1 starts it: `ci.yml`, `workflow_dispatch` on main, `suite=rc`, `branch=<SHA>`.
+  - The list is `scripts/ci/rc_suite.txt` (ОПГ-1 owns it). The run prints its SHA and the reasons for every skip.
+- **A red run is a finding, never a reason to re-run** (except a job that died before any test ran).
 
 For schema, push, collectors, the measurement contract, any forecast display and every research freeze or one-shot read, the mini-head sends its report to the architect before merge and waits for the answer. Nothing is deployed without the owner.
 
@@ -163,17 +172,25 @@ For schema, push, collectors, the measurement contract, any forecast display and
 
 Decisions live in documents on main, not in chat. A decision given in a session message is written into the relevant document by the PR that implements it.
 
-## 6. Roster (2026-10-08)
+## 6. Roster (2026-10-08, after the first rotations)
 
 | Role | Session | Branch |
 |---|---|---|
 | Chief architect | `session_01S1vti7rmNRd8dtmUzFb4ZX` | `ccr-174417bb-r3l40b` |
 | ОПГ-1 mini-head | `session_014wizUBVjNnikh3GfHFzwgg` | `ccr-dcda6cae-6px42w` |
-| ОПГ-1 track A | `session_01YF4xzq3ofq7NKS8daimahf` | `claude/signalbot-prebeta-backlog-c1yqg0` |
-| ОПГ-1 track B | `session_013RP6YCG63Jdzff8dcz4GqV` | `claude/signalbot-evaluator-comparison-jyvj1h` |
+| ОПГ-1 track A (v2; v1 `session_01YF4xzq3ofq7NKS8daimahf` archived) | `session_01Gt7iBQBhPjfuWzkmpcG9uy` | one per PR, `claude/trackA-*` |
+| ОПГ-1 track B (v2; v1 `session_013RP6YCG63Jdzff8dcz4GqV` archived) | `session_01ScbW5enMwqAZVpo9E7E37k` | one per package, `claude/trackb-pkg*` |
 | ОПГ-1 research (idle) | `session_01Ark63JX6mZenzMdR4tZotQ` | `ccr-acce4a3e-eyc9rh` |
-| ОПГ-2 mini-head | `session_01E8Cb7vqxs52Lu2tLBxkicT` | its own (started from `ccr-174417bb-r3l40b`) |
+| ОПГ-2 mini-head (v2; v1 `session_01E8Cb7vqxs52Lu2tLBxkicT` archived) | `session_01HKncEvNcoSUte5Nnntg2Xa` | its own (started from main) |
 | ОПГ-2 F1 «Модель» | `session_013u4aiHu3PPakqyWC7yezcf` | `claude/opg2-f1-level-race-model` |
-| ОПГ-2 F2 «Живой контур» + #368 operations | `session_01BEq76aMeSBEcfRX9WGbsSW` | `claude/opg2-f2-level-race-live` |
+| ОПГ-2 F2 «Живой контур» + #368 operations (v2; v1 `session_01BEq76aMeSBEcfRX9WGbsSW` archived) | `session_01FQSwtkWrkhDfidMwjjmNPH` | `claude/opg2-f2-live-v2` |
 | ОПГ-2 F3 «Калибровка и мониторинг» | `session_01UxyP3Q5J8a97sVRWj3L6EV` | `claude/opg2-f3-level-race-calibration` |
 | Level Engine chain (Cursor) | stopped 2026-10-08; chain owned by ОПГ-2 | `cursor/level-*-08d8` (merged by PR #376) |
+
+**Scheduled checks.** Each fires into its owner's session. A rotation moves it: a check's prompt can only be edited from its own session, so the supervisor pauses the old check and a new one is created (by the supervisor or the successor).
+
+| Check | Trigger | Schedule (UTC) |
+|---|---|---|
+| Architect: ОПГ-1 and ОПГ-2 | `trig_019aQDoJEjnLoaGL8d4LeyPX` | every 3 h at :43 |
+| ОПГ-1: tracks A and B | `trig_01AXtRdSesb21X1n6fTC9TwA` (replaces the paused `trig_01QgtwTEebeA7jSkc7pmTzfY`) | hourly at :28 |
+| ОПГ-2: F1, F2, F3 | created by ОПГ-2 v2 (replaces the paused `trig_014ex4Uhuc44G9QbNZPgSDG3`) | hourly at :55 |

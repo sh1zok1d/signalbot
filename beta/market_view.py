@@ -181,7 +181,7 @@ def unusual_hours(qualified, *, start: datetime, end: datetime) -> list:
             continue
         if last is not None and ts - last < _UNUSUAL_MERGE:
             continue
-        out.append({"decision_ts": iso(ts), "decision": row.get("decision"),
+        out.append({"decision_ts": iso(ts), "decision": row.get("decision"), "decision_id": row.get("decision_id"),
                     "suppression_reason": row.get("suppression_reason"), "gate": gate})
         last = ts
     return out[:UNUSUAL_HOURS_MAX]

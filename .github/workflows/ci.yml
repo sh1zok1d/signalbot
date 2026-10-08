@@ -1,15 +1,49 @@
 name: CI
 
-# FAST PR GATE = required for ordinary PR iteration against main.
+# FAST PR GATE. The broad test runs happen here, not in the agents' sessions
+# (owner, 2026-10-08: «надо сделать так, чтобы основную работу делал
+# экшнс»; docs/ORCHESTRATION_V1.md §4):
+# - every push to a PR that is ready for review (not a draft) runs the gate,
+#   except a PR that changes only Markdown;
+# - a newer push cancels the PR's run still in progress;
+# - by hand (workflow_dispatch, started on main): suite=gate for a branch
+#   (merged with main first, as a pull_request run is), or suite=rc, the
+#   release-candidate suite (scripts/ci/rc_suite.txt) on an exact SHA.
 # FULL REGRESSION = .github/workflows/full-regression.yml
-#   (workflow_dispatch and push to main): python -m pytest -q
+#   (workflow_dispatch only): python -m pytest -q
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - "**.md"
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch or SHA to test (empty: the ref the run is started on)"
+        required: false
+        default: ""
+      suite:
+        description: "gate = fast PR gate (branch merged with main); rc = release-candidate suite on the exact ref"
+        required: false
+        default: gate
+        type: choice
+        options: [gate, rc]
+
+run-name: "${{ github.event_name == 'pull_request' && format('PR gate: #{0} {1}', github.event.pull_request.number, github.event.pull_request.title) || format('{0}: {1}', inputs.suite, inputs.branch || github.ref_name) }}"
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || inputs.branch || github.ref }}-${{ inputs.suite || 'gate' }}
+  cancel-in-progress: true
 
 jobs:
   test:
+    # A draft PR is still being iterated on: no run until it is ready for review.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    # The gate takes about 6 min (p90 13 min); a hung run is stopped instead of
+    # billing GitHub's 6 h default.
+    timeout-minutes: 60
     # V2-H2d (docs/V2_CORRECTNESS_ACCEPTANCE_CONTRACT.md §2.1b): a real
     # PostgreSQL service, health-checked before any test step runs, so
     # tests/storage/test_klines_no_downgrade.py's real ON CONFLICT
@@ -64,19 +98,28 @@ jobs:
       V2_EPISODE_EVENT_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_test
       # The beta PostgreSQL tests (tests/beta) skip without this. A separate database, created below (PRE_BETA_BACKLOG_V1 X6).
       BETA_TEST_DSN: postgresql://postgres:postgres@localhost:5432/signalbot_beta_test
-      PR_GATE_BASE: ${{ github.event.pull_request.base.sha }}
+      PR_GATE_BASE: ${{ github.event.pull_request.base.sha || 'origin/main' }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && (inputs.branch || github.ref) || '' }}
           # B2-06 verify-only reads provenance blobs from ancestor
           # 78d5bdf without checking that commit out as HEAD.
           # Freeze tests also locate historical git objects by ancestry.
           fetch-depth: 0
 
+      - name: Merge main into the checkout (what a pull_request run tests)
+        if: github.event_name == 'workflow_dispatch' && inputs.suite != 'rc'
+        run: git -c user.name=ci -c user.email=ci@localhost merge --no-edit origin/main
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
@@ -125,4 +168,12 @@ jobs:
           PY
 
       - name: Fast PR gate
+        if: github.event_name == 'pull_request' || inputs.suite != 'rc'
         run: python scripts/ci/pr_gate.py
+
+      - name: Release-candidate suite (scripts/ci/rc_suite.txt)
+        if: github.event_name == 'workflow_dispatch' && inputs.suite == 'rc'
+        run: |
+          echo "RC SHA: $(git rev-parse HEAD)"
+          python -m compileall -q .
+          python -m pytest -q -rfEs $(grep -v '^#' scripts/ci/rc_suite.txt | grep -v '^$')

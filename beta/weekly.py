@@ -13,8 +13,11 @@ messages went out.
   prompted window of U1b); its class is a contract amendment (decision §6.7).
 - **Owner version.** The same text plus the operational breakdown of `/admin_stats`
   (backlog H6) and the journal's weekly counts, sent to the owner once per report.
-- **Schedule.** `decision.weekly_report`: Sunday evening Kyiv by default, outside the U1a
-  withdrawal weekdays (Mon–Fri), so it never meets a withheld briefing.
+- **Schedule.** `decision.weekly_report`: Sunday 19:00 by default on each participant's own clock
+  (as the briefing slot; review of #379), so always on their Sunday, outside the U1a withdrawal
+  weekdays (Mon–Fri) on their clock. The report is built once, when the earliest recipient's slot
+  of that Sunday comes; each delivery row carries its recipient's own slot and expires
+  `max_delay_min` after it.
 """
 from __future__ import annotations
 
@@ -40,6 +43,24 @@ def weekly_slot(now: datetime, weekday: str, time_kyiv: str):
     if local < slot:
         return None
     return local.date(), slot.astimezone(timezone.utc)
+
+
+def weekly_slots(now: datetime, weekday: str, time_local: str, tzs: Sequence[Optional[str]],
+                 max_delay: timedelta):
+    """(the week's date, {tz: UTC instant of its slot}) while some recipient's slot of that date has come
+    and the last one is at most `max_delay` behind, else None. The date is the configured weekday, the
+    same calendar date for everyone; the slot is `time_local` on each zone's own clock (None: Kyiv)."""
+    from .i18n import tz_of
+    zones = list(dict.fromkeys([None] + list(tzs)))
+    hh, mm = int(time_local[:2]), int(time_local[3:])
+    for days in (1, 0, -1):                       # the weekday's date in some zone near `now`
+        day = (now.astimezone(timezone.utc) + timedelta(days=days)).date()
+        if day.weekday() != WEEKDAYS.index(weekday):
+            continue
+        slots = {z: datetime.combine(day, dtime(hh, mm), tzinfo=tz_of(z)).astimezone(timezone.utc) for z in zones}
+        if min(slots.values()) <= now <= max(slots.values()) + max_delay:
+            return day, slots
+    return None
 
 
 def week_corridors(rows: Sequence[Mapping[str, Any]], *, start: datetime, end: datetime) -> dict:
@@ -161,23 +182,38 @@ async def run_due_weekly(conn, cfg: BetaConfig, *, sender, clock, push_on: bool,
     pacer = pacer if pacer is not None else SendPacer()
     max_delay = timedelta(minutes=int(w["max_delay_min"]))
     now = clock()
-    slot = weekly_slot(now, w["weekday_kyiv"], w["time_kyiv"])
-    if w["enabled"] and push_on and slot is not None and now - slot[1] <= max_delay:
-        if await conn.weekly_report_pk(slot[0]) is None:
+    from .detector import _recipient_tzs
+    week = weekly_slots(now, w["weekday_kyiv"], w["time_kyiv"], await _recipient_tzs(conn, "push_weekly"), max_delay)
+    if w["enabled"] and push_on and week is not None:
+        pk = await conn.weekly_report_pk(week[0])
+        if pk is None:
             payload = await build_weekly(conn, now=now)            # what is known now, nothing after it
-            pk = await conn.insert_weekly_report(week_end=slot[0], built_at=now, payload=payload,
+            pk = await conn.insert_weekly_report(week_end=week[0], built_at=now, payload=payload,
                                                  payload_digest=sha256_json(payload))
-            if pk is not None:
-                out["built"] = True
-                out["scheduled"] = await conn.materialize_weekly_deliveries(weekly_pk=pk, decision_ts=slot[1])
+            out["built"] = pk is not None
+        if pk is not None:
+            # one row per recipient once their own slot has come; a later run adds those who joined or moved
+            # zone since (a zone whose slot is still ahead gets no row yet, so a move east never lands
+            # on a Monday; review of #379)
+            for tz, ts in week[1].items():
+                if ts <= now:
+                    out["scheduled"] += await conn.materialize_weekly_deliveries(weekly_pk=pk, decision_ts=ts, tz=tz)
         if sender is not None and owner_user_id is not None:
-            out["owner"] = await _send_owner(conn, sender, pacer, slot[0], owner_user_id=int(owner_user_id),
+            out["owner"] = await _send_owner(conn, sender, pacer, week[0], owner_user_id=int(owner_user_id),
                                              now=now)
     for row in await conn.fetch_pending_weekly_deliveries(cfg["notifications"]["max_deliveries_per_run"],
                                                           now=clock()):
         now = clock()
         did = row["delivery_id"]
-        if now - row["decision_ts"] > max_delay:
+        from .detector import quiet_end
+        # the row's own slot on the recipient's clock; a slot configured inside their night waits for its end
+        due = quiet_end(cfg, row["decision_ts"], row.get("user_tz")) or row["decision_ts"]
+        if now < due:
+            continue
+        from .i18n import tz_of
+        # never outside the configured weekday on the recipient's clock now (a zone changed since the row
+        # was made, or a slot inside the night): expired, never a Monday-Friday U1a date (review of #379)
+        if now - due > max_delay or now.astimezone(tz_of(row.get("user_tz"))).weekday() != WEEKDAYS.index(w["weekday_kyiv"]):
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_EXPIRED, now=now,
                                            suppression_reason=DELIVERY_TOO_OLD)
             out["expired"] += 1
@@ -231,7 +267,7 @@ async def _send_owner(conn, sender, pacer, week_end, *, owner_user_id: int, now:
     from .admin import owner_parts
     from .claims import claims_report
     from .delivery import REJECTED, SENT, UNKNOWN, send_direct
-    from .usage import owner_breakdown
+    from .usage import as_setting, owner_breakdown
     rec = ((await conn.fetch_health([OWNER_COPY])).get(OWNER_COPY) or {}).get("detail") or {}
     done = int(rec.get("parts_sent") or 0) if rec.get("week_end") == week_end.isoformat() else 0
     if rec.get("week_end") == week_end.isoformat() and rec.get("done"):
@@ -243,7 +279,8 @@ async def _send_owner(conn, sender, pacer, week_end, *, owner_user_id: int, now:
         owner = int(owner_user_id)
         users = [u for u in facts["users"] if int(u["telegram_user_id"]) != owner]
         pks = {u["user_pk"] for u in users}
-        breakdown = owner_breakdown(users, [r for r in facts["activity"] if r["user_pk"] in pks],
+        # a one-tap mute counts as the setting it is, as on /admin_stats (review of #375)
+        breakdown = owner_breakdown(users, [as_setting(dict(r)) for r in facts["activity"] if r["user_pk"] in pks],
                                     [v for v in facts.get("votes", ()) if v["user_pk"] in pks], start=start, end=end)
         journal = claims_report(await conn.fetch_claim_cohort(since=start))
         parts = [format_weekly(payload, "ru")] + [f"<pre>{html.escape(part, quote=False)}</pre>" for part in
