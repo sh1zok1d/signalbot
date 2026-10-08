@@ -48,8 +48,9 @@
     },
     "T15": {
       "position": "close[j+2]",
-      "tau_bars": 45,
-      "population": "no barrier hit on j+1, j+2"
+      "tau_bars": 46,
+      "population": "no barrier hit on j+1, j+2",
+      "window": "j+3..j+48"
     }
   },
   "prob_floor": 0.001,
@@ -67,9 +68,8 @@
       "params": 0
     },
     "B1": {
-      "cells": "family x STRUCT_SIDE per landmark",
-      "smoothing": "Dirichlet(1,1,1)",
-      "open_question": "Q1"
+      "cells": "family x STRUCT_SIDE per landmark (6 cells; '<=6' counts cells)",
+      "smoothing": "Dirichlet(1,1,1)"
     },
     "M1": {
       "heads": {
@@ -127,7 +127,8 @@
       "extra": "OTHER_VENUE_MEDIAN_MOVE (#363), head B, T15 rows only, z-scored on training moments",
       "params": "base + 1",
       "champion_eligible": false,
-      "held_out": "none; live shadow only from Day 0 on VPS live 1m Bybit/OKX closes; missing close -> forecast missing"
+      "held_out": "none; live shadow only from Day 0 on VPS live 1m Bybit/OKX closes; missing close -> forecast missing",
+      "moments": "training-fold; frozen: 2020-04..2024 T15 rows; files committed in docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0"
     }
   },
   "offset_clip": [
@@ -135,15 +136,16 @@
     0.9999
   ],
   "ridge": {
-    "objective": "-loglik + (lambda/2)*||beta||^2, intercepts unpenalised",
-    "lambda_grid": [
-      0.5,
-      2,
-      8,
-      32
+    "objective": "-loglik/n + (lambda/2)*||beta||^2, n = training rows of the head, intercepts unpenalised",
+    "lambda_grid_per_event": [
+      0.0005,
+      0.002,
+      0.008,
+      0.032
     ],
     "tie_nats": 0.0005,
-    "tie_to": "larger lambda"
+    "tie_to": "larger lambda",
+    "report": "effective lambda*n per fold"
   },
   "cv": {
     "surface": "CORE_BTC_BINANCE_V0 1m->5m (DH1 loader)",
@@ -240,7 +242,12 @@
     "nonparametric_min_events": 300,
     "f3": true
   },
-  "level_effect_rule": "champion != B0 and held-out raw paired LL gain vs raw B0 95% interval > 0, per landmark; else publish calibrated B0",
+  "level_effect_rule": {
+    "claim_if": "champion != B0 and held-out raw paired LL gain vs raw B0 95% interval > 0, per landmark",
+    "case_A": "published = champion with level-class calibrator",
+    "case_B": "published = B0 with level-class calibrator",
+    "fallback_model": "B0 with GENERIC intercept and shared slope only"
+  },
   "gates_f3_planning": {
     "L3_HISTORY_BACKED": {
       "G0_min_events": 200,
@@ -266,7 +273,8 @@
       ],
       "D1_threshold": 10,
       "D2": "last 100: CITL point outside +-10 pp and 95% interval excludes 0",
-      "D3": "last 100: LL_pub - LL_B0 95% interval above 0"
+      "D3": "last 100: paired LL_pub - LL_fallback_model 95% interval above 0; raw B0 reported only",
+      "in_fallback": "D1/D2 on the fallback model; trigger -> HIST"
     },
     "return": "50 new resolved since fallback; D2 band, restarted D1 <= 10, D3 not triggered"
   },
@@ -276,11 +284,19 @@
     "LR_L3H_V1",
     "LR_L3L_V1",
     "LR_FB_V1",
-    "LR_OFF_V1"
+    "LR_OFF_V1",
+    "LR_PUSH_HIST_V1",
+    "LR_PUSH_HIST_LOW_N_V1",
+    "LR_PUSH_L3H_V1",
+    "LR_PUSH_L3L_V1",
+    "LR_PUSH_FB_V1",
+    "LR_PUSH_OFF_V1"
   ],
   "hist_cohort": {
-    "bins": "5 equal-width bins of B0_up",
-    "min_n": 30
+    "key": "landmark x orientation (which price lies beyond the level in the approach direction); internal only",
+    "bins": "quintiles of B0_beyond on the readable history (outcome-blind); one bin if q80-q20 < 0.05",
+    "min_n": 30,
+    "display": "mapped back to P_UP/P_DN"
   },
   "journal_classes": [
     "L3_LEVEL_RACE_T0_4H",
@@ -316,13 +332,7 @@
     "pseudo map",
     "#361/#363 coefficients"
   ],
-  "open_questions": [
-    "Q1",
-    "Q2",
-    "Q3",
-    "Q5",
-    "Q6"
-  ],
+  "open_questions": [],
   "generic_race": {
     "display": false,
     "journal_class": "L3_GENERIC_RACE_4H",
@@ -376,7 +386,7 @@
     "dependence": "week clusters; report anchors, pairs, weeks, anchors/4 as effective N",
     "calibration_link": "per head shared slope b; intercepts per class GENERIC, LEVEL_T0, LEVEL_T15; a_level ~ N(a_GENERIC, 0.5^2) [F3]"
   },
-  "fallback_model": "B0 recalibrated with the GENERIC intercept and shared slope; before the first batch raw B0",
+  "fallback_model": "B0 with GENERIC intercept and shared slope; before first generic batch raw B0",
   "schedule": {
     "design_note_to_architect": "~2026-10-10",
     "model_freeze_by": "~2026-10-16",
@@ -392,5 +402,16 @@
       "generic stream",
       "held-out protocol"
     ]
+  },
+  "window_end_display": "close time of bar j+48, HH:MM UTC",
+  "reliability_line": "stacked 5-bin table; bin of the largest displayed probability; ties P_UP, P_DN, neither; show bin N",
+  "f3_numbers_due": "amendment before the model freeze",
+  "answers": {
+    "Q1": "6 cells",
+    "Q2": "structural side",
+    "Q3": "F3 amendment before model freeze",
+    "Q4": "generic stream §8a",
+    "Q5": "product 5m + 2024 parity",
+    "Q6": "beta/level_race.py"
   }
 }

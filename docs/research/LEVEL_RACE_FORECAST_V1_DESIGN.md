@@ -6,7 +6,7 @@
 **Machine-readable freeze:** `docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.json`. Where the two differ, the JSON wins for numbers and this note wins for meaning.
 **Contract:** `docs/FORECAST_LAYER_DECISION_V1.md` §2–§7. Evidence rules: `EVIDENCE_AND_CLAIMS_DECISION_V1`, `DISCOVERY_FIRST_RESEARCH_DECISION_V1`, `EXPOSURE_WEIGHTING_DECISION_V1`.
 
-Numbers marked **[F3]** are planning values. Their final form is agreed with track F3 through the ОПГ-2 mini-head and committed in an amendment of this note **before** the held-out read and before any display. Everything else is frozen by this commit.
+Numbers marked **[F3]** are planning values. Their final form is agreed with track F3 through the ОПГ-2 mini-head and committed in an amendment of this note **before the model freeze** (and so before the held-out read and before any display). Everything else is frozen by this commit.
 
 ## 1. Question and estimand
 
@@ -17,7 +17,7 @@ At a structural first touch, what are the probabilities of the three race outcom
 - **Outcome:** #352 `classify` on the original window, bars `j+1 … j+48` (high/low). Three outcomes `BREAK` / `REJECT` / `NEITHER`. `AMBIGUOUS` (both barriers on one bar) is excluded from fitting and scoring and counted (§9).
 - **Landmarks:** one forecast per event per landmark; each landmark is its own claim class.
   - **T0:** issued at the close of bar `j` (the touch bar). Position = `close[j]`. Time left τ = 48 bars. Population: every eligible first touch.
-  - **T15:** issued at the close of bar `j+2`. Position = `close[j+2]`. τ = 45 bars. Population: events with no barrier hit on `j+1`, `j+2` (the #361 `UNRESOLVED_AT_D` rule); early-resolved and early-ambiguous events are counted and get no T15 forecast.
+  - **T15:** issued at the close of bar `j+2`. Position = `close[j+2]`. τ = 46 bars (the remaining window is `j+3 … j+48`, as in #361). Population: events with no barrier hit on `j+1`, `j+2` (the #361 `UNRESOLVED_AT_D` rule); early-resolved and early-ambiguous events are counted and get no T15 forecast.
 - **Estimand of the development stage:** out-of-fold log-loss of each menu model against B0 and B1, per landmark, plus the calibration quantities of §6.
 
 ## 2. Model menu (6 entries, frozen)
@@ -48,11 +48,11 @@ P_neither = Σ_{n odd} [4 / (nπ)] · sin(nπ z/w) · exp(−n² π² s / 2)   (
 - Closed-form sine series (method of the two absorbing barriers). Terms are summed until `exp(−n²π²s/2) < 1e-15` (cap 20 000 terms). No simulation is used in production; tests check the series against a fixed-seed simulation (seed `20261008`) and against the method-of-images sum for small `s`.
 - **Out-of-corridor start.** If `z ≤ 0` (position at or below `P_DN`) or `z ≥ w`, B0 puts `1 − 2ε` on that side. This can happen only at T0 (a T15 event by definition did not reach a barrier on `j+1`, `j+2`). The count is reported.
 - **Discretisation.** The outcome is read on 5m highs and lows of the trade-price path, which are the true extremes inside each bar. Monitoring is therefore effectively continuous and the continuous-path formula is the model of record; no discrete-monitoring (Broadie–Glasserman) shift is applied. Remaining mismatches are **not corrected inside B0** and are listed so the reader knows where they go: σ is a 5m close-to-close estimate (fat tails, intrabar jumps, volatility clustering); trade-print extremes include bid/ask bounce; a same-bar double hit is `AMBIGUOUS` while the continuous path has an order; up to 10 % of window bars may be missing (`MIN_PRESENT = 0.9`), which shortens monitoring; drift in log price is set to 0 (the martingale drift −σ²/2 per bar is about 10⁻⁴ of the barrier span over 4h). Systematic effects of all of these land in the M1 intercepts and in the calibrator, by design.
-- The time origin is the landmark close; bars before it are not in the window. τ counts whole 5m bars to the close of `j+48`.
+- The time origin is the landmark close; bars before it are not in the window. τ counts whole 5m bars from the landmark close to the close of `j+48`: 48 at T0, 46 at T15. A unit test pins both values against the #352 window `j+1 … j+48`. The window end shown to users is the close time of bar `j+48` (§9).
 
 ### 2.2 B1 — climatology
 
-Per landmark, the three-outcome frequency in each of the 6 cells family (DAY, WEEK, MONTH) × structural side (`STRUCT_SIDE`: +1 for PxH, −1 for PxL), from the training folds only, with add-one (Dirichlet 1,1,1) smoothing. B1 ignores position and σ; at T15 it is expected to be far behind B0 and is kept as the base-rate comparator §5 asks for. **Question Q1 (§12):** six cells with three outcomes are 12 free frequencies per landmark; if "≤ 6 parameters" is meant literally, the fallback is family only (3 cells, 6 free frequencies).
+Per landmark, the three-outcome frequency in each of the 6 cells family (DAY, WEEK, MONTH) × structural side (`STRUCT_SIDE`: +1 for PxH, −1 for PxL), from the training folds only, with add-one (Dirichlet 1,1,1) smoothing. B1 ignores position and σ; at T15 it is expected to be far behind B0 and is kept as the base-rate comparator §5 asks for. **Interpretation (mini-head, Q1):** the "≤ 6" of FORECAST_LAYER §3 counts cells; the six cells carry 12 free frequencies per landmark.
 
 ### 2.3 M1 family — two heads, offset by B0, ridge
 
@@ -73,7 +73,7 @@ Factorisation (exact; not a conditioning on the future): `P(BREAK) = p_R · p_B`
 | `SIGMA_T` | σ tercile −1 / 0 / +1; edges from training-fold T0 events | R, B | — | — |
 | **count** | | **10** | **10** | **4** |
 
-- **Ridge:** minimise `−loglik + (λ/2)·‖β‖²` over the non-intercept coefficients of each head (intercepts unpenalised). λ grid `{0.5, 2, 8, 32}` (absolute, on the summed negative log-likelihood). λ is chosen per variant by the pooled out-of-fold log-loss of §3; ties (< 0.0005 nats) go to the larger λ. The frozen model is refit on all of 2020–2024 at the chosen λ.
+- **Ridge:** minimise `−loglik/n + (λ/2)·‖β‖²` over the non-intercept coefficients of each head (intercepts unpenalised), `n` = training rows of that head in the fold, so the shrinkage per event is the same in every fold (N1). λ grid `{0.0005, 0.002, 0.008, 0.032}` per event (the absolute penalty at n = 1000 is 0.5 … 32). The report also gives the effective shrinkage `λ·n` per fold. λ is chosen per variant by the pooled out-of-fold log-loss of §3; ties (< 0.0005 nats) go to the larger λ. The frozen model is refit on all of 2020–2024 at the chosen λ.
 - Binary and ordinal codes are used as given (no standardisation). σ tercile edges are fold-local (training rows only) and, for the frozen model, the 2020–2024 T0 terciles.
 - **Not in any model** (FORECAST_LAYER §3): touch ordinal, rejection speed, approach geometry, static level properties, OI, taker, joint OI/taker/price state, ±1 % book, path memory, spot, the sequence taxonomy, zone notional, the #365 clock, the #368 RV transition, `END_POSITION_X` as a separate feature (position enters only through B0), the pseudo map. The #361 and #363 coefficients are not reused.
 
@@ -86,9 +86,9 @@ Factorisation (exact; not a conditioning on the future): `P(BREAK) = p_R · p_B`
 
 ## 4. Champion rule and freeze
 
-1. For each of M1, M1A, M1B: pooled (both landmarks) out-of-fold mean log-loss at its chosen λ.
+1. For each of M1, M1A, M1B (and G1, §8a): pooled (both landmarks) out-of-fold mean log-loss at its chosen λ.
 2. **Champion** = the variant with the lowest pooled out-of-fold log-loss **if** its point estimate is below B0's; a difference under 0.002 nats goes to the variant with fewer parameters (M1B, then M1, then M1A). If no variant is below B0, **champion = B0** and no level model is frozen.
-3. The champion and C1 are refit on all 2020–2024 at their λ and frozen in one commit; that SHA is `MODEL_VERSION`. The frozen module is the predictor the product imports (proposed `beta/level_race.py`, an ОПГ-2 file under ORCHESTRATION_V1 §4; to be agreed with F2).
+3. The champion and C1 are refit on all 2020–2024 at their λ and frozen in one commit; that SHA is `MODEL_VERSION`. The frozen module is the predictor the product imports (`beta/level_race.py`, an ОПГ-2 file under ORCHESTRATION_V1 §4; F2 imports it).
 4. Development results are internal L2 evidence (`DISCOVERY_ONLY` for the selected variant). They are not shown to users and are not the gate.
 
 ## 5. Held-out check (one read)
@@ -115,7 +115,10 @@ ECE is reported descriptively and never used in a rule. Every number carries N, 
 
 **Calibrator.** Per head (R and B), two-parameter Bayesian logistic recalibration `logit p' = a + b·logit p`, Gaussian prior, MAP plug-in, weekly batches, versioned. Identity prior for the held-out prequential pass: `a ~ N(0, 0.5²)`, `b ~ N(1, 0.25²)` [F3]. Live prior: the held-out posterior with its covariance inflated to an equivalent of 150 events [F3] (FORECAST_LAYER §5: 100–200). Published probabilities are rebuilt from the two calibrated heads. No isotonic or other non-parametric calibrator below 300 events.
 
-**Level effect rule.** The level offset is claimed (published model = calibrated champion) only if the champion is not B0 **and** on the held-out read the raw champion's paired log-loss gain over raw B0 has a week-clustered 95 % interval above 0 for that landmark. Otherwise the calibrated **B0** is what is published for that landmark and no level effect is claimed (FORECAST_LAYER §6).
+**Level effect rule.** The level offset is claimed only if the champion is not B0 **and** on the held-out read the raw champion's paired log-loss gain over raw B0 has a week-clustered 95 % interval above 0 for that landmark. Per landmark this fixes one of two cases (FORECAST_LAYER §6):
+- **Case A — level claimed:** published = champion calibrated with the level-class calibrator (§8a link).
+- **Case B — level not claimed:** published = B0 calibrated with the level-class calibrator. The class intercept is calibration of this class, not a claimed effect; no text claims a level effect in either case.
+In both cases the **fallback model** is B0 calibrated with the `GENERIC` intercept and the shared slope only (no level term, no level intercept).
 
 **Held-out tolerance → `L3_HISTORY_BACKED`** (per landmark class, all of) [F3]:
 - G0: at least 200 scored held-out events.
@@ -130,16 +133,17 @@ A class that fails stays `HIST` (or `FALLBACK` if a fallback model is available)
 - D0 → `OFF` at once: a data fault, stale bars at issue (last closed bar older than 10 minutes), or a parity break of the live detector against the research constructor.
 - D1: per outcome, a mixture betting e-process on `y − p` of the published probabilities, `E_t = mean over λ ∈ {−0.5, −0.25, +0.25, +0.5} of Π (1 + λ (y_i − p_i))`, started at entry into the state; `E_t > 10` → `FALLBACK`.
 - D2: over the last 100 resolved events, the CITL point estimate of some outcome outside ±10 pp **and** its 95 % interval excluding 0 → `FALLBACK`.
-- D3: over the last 100 resolved events, `LL_published − LL_B0` with a 95 % interval above 0 → `FALLBACK`.
+- D3: over the last 100 resolved events, the paired `LL_published − LL_fallback` (fallback model as defined above, scored on the same level events) with a 95 % interval above 0 → `FALLBACK`. In case A it asks whether the level model is worse than generic-calibrated geometry; in case B whether the level-class calibration is worse than the generic one. Raw B0 log-loss is reported beside it and changes no state.
+- In `FALLBACK`, D1 and D2 keep running on the fallback model's probabilities on level events; if they trigger there, the class goes to `HIST`.
 - Input drift (σ level, position distribution, event rate) is reported weekly and changes no state.
 - **Return:** at least 50 new resolved events since the fallback, with the champion's shadow published probabilities on them inside D2's band, D1 restarted at the fallback ≤ 10, and D3 not triggered.
 
-**`FALLBACK` model:** B0 at the event, recalibrated with the `GENERIC` class intercept and the shared slope of §8a (no level intercept), with the generic class's tracked accuracy as its calibration line. Before the generic calibrator has its first batch: raw B0 with its held-out tracked accuracy. The level offset is not claimed in this state.
+**`FALLBACK` model:** the fallback model above (B0 with the `GENERIC` intercept and shared slope of §8a), with the generic class's tracked accuracy as its calibration line. Before the generic calibrator has its first batch: raw B0 with its held-out tracked accuracy. The level offset is not claimed in this state.
 
 ## 8. Challenger C1
 
-- `C1` = the frozen champion's M1-family specification (M1 if the champion is B0) plus `OTHER_VENUE_MEDIAN_MOVE` exactly as #363 defines it (median of the Bybit BTCUSDT-linear and OKX BTC-USDT-SWAP oriented 15m log returns from the close of the last bar before T to the close of bar j+2; all three venues required; no fill), z-scored with training-fold moments, entering head B on T15 rows only (0 at T0: the move is not defined before D). One extra parameter, same λ as its base.
-- **Development fit only:** coefficients from 2020-04..2024 on `LEVEL_CROSS_VENUE_PERP_5M_V0`. Its development numbers are descriptive.
+- `C1` = the frozen champion's M1-family specification (M1 if the champion is B0) plus `OTHER_VENUE_MEDIAN_MOVE` exactly as #363 defines it (median of the Bybit BTCUSDT-linear and OKX BTC-USDT-SWAP oriented 15m log returns from the close of the last bar before T to the close of bar j+2; all three venues required; no fill), z-scored with training-fold moments (the frozen model: moments of the 2020-04..2024 T15 rows; the #363 canonical files are committed under `docs/research_data/LEVEL_CROSS_VENUE_PERP_5M_V0/` and readable from the cloud clone, N2), entering head B on T15 rows only (0 at T0: the move is not defined before D). One extra parameter, same λ as its base.
+- **Development fit only:** coefficients and z-score moments from 2020-04..2024 on `LEVEL_CROSS_VENUE_PERP_5M_V0` (Bybit SHA256 `f7ef739f…`, OKX `b435fdec…`, the #363 canonical files). Its development numbers are descriptive. The four known Bybit gaps (2023-12 … 2024-03) make those rows missing, as in #363.
 - **No historical held-out.** There is no 2025/2026 three-venue history for this read; C1 is not part of §5. It is a live challenger only: frozen with the champion, logged in shadow from Day 0 on the VPS live 1m Bybit and OKX BTCUSDT klines (the two closes it needs are the 1m closes at the same instants as the 5m closes; coverage about 99.8 %; a missing close makes the C1 forecast missing, never filled, and the count is reported).
 - **Promotion** only by FORECAST_LAYER §7 (≥ 150 paired live events, week-clustered interval of the log-loss gain excluding 0, calibration not worse). It replaces portfolio P3-2; #363's `LEVEL_SPECIFICITY = NOT_ESTABLISHED` is unchanged.
 
@@ -158,19 +162,32 @@ Purpose: the dense calibration stream of FORECAST_LAYER §5 (pooling). Not displ
 
 ## 9. Wording templates (ids frozen; prices only)
 
-`{P_UP}` is the upper barrier price, `{P_DN}` the lower, always in that order (never ordered by BREAK/REJECT). The three outcomes are always shown together. Percentages are integers summing to 100 (largest remainder). Every line carries `данные на {HH:MM} UTC`; the disclaimer lives once in `/terms`. Never «пробой», «отбой», BREAK, REJECT, buy/sell, long/short, entry or target.
+`{P_UP}` is the upper barrier price, `{P_DN}` the lower, always in that order (never ordered by BREAK/REJECT). `{END}` is the close time of bar `j+48` as `HH:MM` UTC (the end of the original 4h window; about 4h after T0, about 3h50m after T15). The three outcomes are always shown together. Percentages are integers summing to 100 (largest remainder). Every line carries `данные на {HH:MM} UTC`; the disclaimer lives once in `/terms`. Never «пробой», «отбой», BREAK, REJECT, buy/sell, long/short, entry or target.
+
+**Full lines** (`/levels`, `/check` at T15):
 
 | Id | State | Text |
 |---|---|---|
-| `LR_HIST_V1` | `HIST` | «В истории похожих касаний (N = {n}): раньше дошла до {P_UP} — {h_up} % (обычно {b_up} %), до {P_DN} — {h_dn} % (обычно {b_dn} %), ни до одной за 4ч — {h_ne} % (обычно {b_ne} %).» |
+| `LR_HIST_V1` | `HIST` | «В истории похожих касаний (N = {n}): первой до конца окна достигалась {P_UP} — {h_up} % (обычно {b_up} %), {P_DN} — {h_dn} % (обычно {b_dn} %), ни одна — {h_ne} % (обычно {b_ne} %). Окно сейчас до {END} UTC.» |
 | `LR_HIST_LOW_N_V1` | `HIST`, n < 30 | «В истории похожих касаний мало данных (N = {n}).» |
-| `LR_L3H_V1` | `L3_HISTORY_BACKED` | «≈ {p_up} % раньше {P_UP}, чем {P_DN} · ≈ {p_dn} % раньше {P_DN}, чем {P_UP} · ни одной за 4ч ≈ {p_ne} % · обычно {b_up} / {b_dn} / {b_ne} % · на истории: говорили {r_p} % → было {r_y} %, N = {r_n} · live: копится (N = {m})» |
+| `LR_L3H_V1` | `L3_HISTORY_BACKED` | «≈ {p_up} % раньше {P_UP}, чем {P_DN} · ≈ {p_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} UTC ≈ {p_ne} % · обычно {b_up} / {b_dn} / {b_ne} % · на истории: говорили {r_p} % → было {r_y} %, N = {r_n} · live: копится (N = {m})» |
 | `LR_L3L_V1` | `L3_LIVE` | as `LR_L3H_V1`, the last segment «live: говорили {l_p} % → было {l_y} %, N = {l_n}» |
-| `LR_FB_V1` | `FALLBACK` | «≈ {q_up} % раньше {P_UP}, чем {P_DN} · ≈ {q_dn} % раньше {P_DN}, чем {P_UP} · ни одной за 4ч ≈ {q_ne} % · общая модель цены, без учёта уровня · точность: говорили {f_p} % → было {f_y} %, N = {f_n}» |
+| `LR_FB_V1` | `FALLBACK` | «≈ {q_up} % раньше {P_UP}, чем {P_DN} · ≈ {q_dn} % раньше {P_DN}, чем {P_UP} · ни одной до {END} UTC ≈ {q_ne} % · общая модель цены, без учёта уровня · точность: говорили {f_p} % → было {f_y} %, N = {f_n}» |
 | `LR_OFF_V1` | `OFF` | «нет данных» |
 
-- **HIST cohort (L2, past tense):** events of the same landmark in the history the state may read (2020–2024 before the held-out read; 2020–2024 plus held-out after it), in the same B0 bin (5 equal-width bins of `B0_up`). `h_*` = observed frequencies, `b_*` = mean B0 over the same cohort, `n` = cohort size. The bin set is fixed here and shown whatever it says.
-- **«говорили X → было Y»:** the stacked 5-bin reliability table of the class (held-out for «на истории», the journal for «live»); the line shows the bin of the largest displayed probability: mean forecast, observed frequency, number of forecasts in that bin.
+**Compact lines** (one line in the existing T0 level-touch push; FORECAST_LAYER §6, no new push type). Same mandatory parts: three outcomes, «обычно», accuracy with N (or the history N in `HIST`).
+
+| Id | State | Text |
+|---|---|---|
+| `LR_PUSH_HIST_V1` | `HIST` | «Раньше в похожих (N = {n}): первой {P_UP} {h_up} % · {P_DN} {h_dn} % · ни одна {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), окно до {END} UTC» |
+| `LR_PUSH_HIST_LOW_N_V1` | `HIST`, n < 30 | «Похожих касаний мало (N = {n})» |
+| `LR_PUSH_L3H_V1` | `L3_HISTORY_BACKED` | «Первой до {END} UTC: {P_UP} ≈{p_up} % · {P_DN} ≈{p_dn} % · ни одна ≈{p_ne} % (обычно {b_up}/{b_dn}/{b_ne} %; на истории {r_p}→{r_y} %, N = {r_n})» |
+| `LR_PUSH_L3L_V1` | `L3_LIVE` | as `LR_PUSH_L3H_V1` with «live {l_p}→{l_y} %, N = {l_n}» |
+| `LR_PUSH_FB_V1` | `FALLBACK` | «Первой до {END} UTC (без учёта уровня): {P_UP} ≈{q_up} % · {P_DN} ≈{q_dn} % · ни одна ≈{q_ne} % (точность {f_p}→{f_y} %, N = {f_n})» |
+| `LR_PUSH_OFF_V1` | `OFF` | «шансы: нет данных» |
+
+- **HIST cohort (L2, past tense).** Internal key = landmark × orientation, where orientation names which of the two prices lies beyond the level in the approach direction (the price beyond = `P_UP` when the approach is from below, `P_DN` when from above). Within a key, bins of `B0_beyond` (B0 probability that the price beyond is reached first). History read: 2020–2024 before the held-out read; 2020–2024 plus held-out after it. Bin edges are the quintiles of `B0_beyond` on that history (outcome-blind). If the inter-quintile spread `q80 − q20` of a key is below 0.05, that key uses one bin; this is expected at T0, where the start sits inside the zone and the barriers are symmetric about it, and is then recorded as one T0 bin. `h_*` = observed frequencies, `b_*` = mean B0 over the cohort, `n` = cohort size, all mapped back to `P_UP` / `P_DN` for the text. Orientation is a key only and never appears as a word. The bin set is fixed here and shown whatever it says.
+- **«говорили X → было Y»:** the stacked 5-bin reliability table of the class (held-out for «на истории», the journal for «live»). The bin shown is the bin of the largest displayed probability; ties go to `P_UP`, then `P_DN`, then «ни одна» (deterministic). The line shows the mean forecast, the observed frequency and the number of forecasts in that bin (`r_n` / `l_n` / `f_n`).
 - `b_*` in L3 lines = B0 at this event (the «обычно» of FORECAST_LAYER §2).
 
 ## 10. Records, exposure, ledger
@@ -194,11 +211,11 @@ Design note to the architect by about 2026-10-10; model freeze no later than abo
 
 Order of approval: mini-head review and red team → architect → architect's red team → commit. The same order for the model freeze and for the held-out go.
 
-## 13. Open questions for the mini-head
+## 13. Questions (all answered by the mini-head on 2026-10-08)
 
-- **Q1** B1 parameter count (§2.2): family × structural side (12 free frequencies per landmark) as written, or family only (6)?
-- **Q2** `SIDE` = structural side (PxH / PxL) as in FORECAST_LAYER §3, not the approach side. Confirm.
-- **Q3** The [F3] numbers in §7 (prior, G0–G3, live floor, D0–D3, return rule), to be settled with F3 before the held-out read.
+- **Q1** Answered: six cells, «≤ 6» counts cells (§2.2).
+- **Q2** Answered: `SIDE` = structural side (PxH / PxL).
+- **Q3** Answered: the [F3] numbers (§7, §8a prior) are settled by the mini-head with F3 and committed as an amendment of this note before the model freeze.
 - **Q4** Closed by §8a: the generic stream is in this note; `FALLBACK` uses its calibration.
-- **Q5** Held-out bars from product 5m klines (live parity) rather than 1m → 5m (development parity), with the 2024 parity preflight of §5.
-- **Q6** Predictor module path `beta/level_race.py` (ОПГ-2 file), to agree with F2.
+- **Q5** Answered: held-out on product 5m klines with the 2024 parity preflight (§5).
+- **Q6** Answered: predictor module `beta/level_race.py` (ОПГ-2 file); F2 imports it.
