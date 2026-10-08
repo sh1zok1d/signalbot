@@ -68,7 +68,7 @@
 
 **What the owner types:** nothing but pasting the block.
 - **Each block runs in its own shell.** It is wrapped as `bash -c "$(cat <<'BLOCK_A' … BLOCK_A
-)"` (quoted delimiter: nothing is expanded at paste time). `set -euo pipefail` and the exit trap live inside that child shell, so an error ends the block, not the owner's SSH session, and the trap runs when the block ends. The script text is an argument, not stdin, so no `docker exec -i` inside can swallow the rest of it.
+)"` (quoted delimiter: nothing is expanded at paste time). `set -euo pipefail` and the exit trap live inside that child shell, so an error ends the block, not the owner's SSH session, and the trap runs when the block ends. The script text is an argument, not stdin, and the block's stdin is `/dev/null`, so no `docker exec -i` inside reads the terminal or swallows lines pasted after the block.
 - Everything comes from `/opt/signalbot/.env`, read in a subshell, with the defaults of `deploy/backup.sh` and `docker-compose.yml`:
   - container `btcbot_timescaledb`;
   - `POSTGRES_DB` / `POSTGRES_USER` = `btcbot`;
@@ -89,6 +89,7 @@ bash -c "$(cat <<'BLOCK_A'
 # ---- Block A: now, read-only on production. Writes only a scratch database created by this run inside the same
 # container, under a unique name, and drops only that database.
 set -euo pipefail
+exec </dev/null   # nothing inside reads the terminal or what is pasted after the block
 cd /opt/signalbot
 # 1) settings, read from /opt/signalbot/.env in a subshell, defaults as in deploy/backup.sh and docker-compose.yml
 eval "$( (set -a; . /opt/signalbot/.env; set +a
@@ -156,6 +157,7 @@ BLOCK_A
 bash -c "$(cat <<'BLOCK_B'
 # ---- Block B: later, only after the owner's go, after #420 is deployed and before #423 (keyed fingerprints).
 set -euo pipefail
+exec </dev/null   # nothing inside reads the terminal or what is pasted after the block
 cd /opt/signalbot
 eval "$( (set -a; . /opt/signalbot/.env; set +a
           printf 'C=%q\nDB=%q\nU=%q\nOWNER_ID=%q\n' "${BTCBOT_PG_CONTAINER:-btcbot_timescaledb}" \
