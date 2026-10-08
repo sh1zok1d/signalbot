@@ -165,3 +165,58 @@ def test_deletion_de_identifies_both_the_keyed_and_the_legacy_rows():
         assert [rows[i]["target_fingerprint"] for i in theirs] == [fingerprint(LIVE), legacy_pseudonym(LIVE)]
         await pool.close()
     run(body())
+
+
+@pytest.mark.parametrize("path", ["user_delete_me", "admin_remove", "retention_purge"])
+def test_every_deletion_path_succeeds_and_de_identifies_with_allowlist_and_waitlist_rows(path):
+    """ОПГ-1 review of #423: the keyed check never counts the person being deleted as live. A participant who is
+    also on the allowlist and the waitlist deletes by each path: the deletion succeeds, all three rows are gone and
+    their audit rows in both forms are de-identified."""
+    async def body():
+        from runtime.beta_bot import BetaBotHandler
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        h = BetaBotHandler(store, CFG, switches=lambda: ON, owner_user_id=OWNER, clock=Clock(NOW))
+        await _join(h, store, GONE, 10)
+        await pool.execute("INSERT INTO beta_allowlist VALUES ($1, now()) ON CONFLICT DO NOTHING", GONE)
+        await pool.execute("INSERT INTO beta_waitlist (telegram_user_id, requested_at) VALUES ($1, now()) "
+                           "ON CONFLICT DO NOTHING", GONE)
+        rows = [await _audit(pool, "admin_known", fingerprint(OWNER), fingerprint(GONE), {"known_contact": True}),
+                await _audit(pool, "admin_known", fingerprint(OWNER), legacy_pseudonym(GONE), {"known_contact": True})]
+        if path == "user_delete_me":
+            await h.handle(_msg(GONE, "/delete_me", 30))
+        elif path == "admin_remove":
+            await h.handle(_msg(OWNER, f"/admin_remove {GONE}", 31))
+        else:                                       # the notifier's retention step (beta/delivery.py)
+            async with store.connect() as conn:
+                async with conn.transaction():
+                    await conn.delete_participant(GONE, OWNER)
+                    await conn.insert_deletion_audit(action="retention_purge", actor_kind="system", now=NOW)
+        for t in ("beta_users", "beta_allowlist", "beta_waitlist"):
+            assert await pool.fetchval(f"SELECT count(*) FROM {t} WHERE telegram_user_id=$1", GONE) == 0, t
+        got = await pool.fetch("SELECT target_fingerprint, detail FROM beta_admin_audit WHERE audit_id = ANY($1)", rows)
+        assert [(r["target_fingerprint"], json.loads(r["detail"])) for r in got] == [(None, {}), (None, {})]
+        await pool.close()
+    run(body())
+
+
+def test_the_deleted_id_itself_is_never_counted_as_live():
+    """The Python check never counts the person being deleted as live (keyed form). The SQL guard still refuses the
+    legacy form while any of their rows remains, so the real guarantee is that every path deletes all three rows
+    first (the test above)."""
+    async def body():
+        pool = await fresh_pool()
+        await pool.execute("INSERT INTO beta_allowlist VALUES ($1, now())", GONE)       # still there
+        i = await _audit(pool, "admin_known", "u_owner", fingerprint(GONE), {"known_contact": True})
+        async with BetaStore(pool).connect() as conn:
+            async with conn.transaction():
+                n = await conn.deidentify_audit([fingerprint(GONE)], "participant", deleted_id=GONE)
+        assert n == 1
+        assert await pool.fetchval("SELECT target_fingerprint FROM beta_admin_audit WHERE audit_id=$1", i) is None
+        from storage.beta_v0_store import AuditDeidentifyRefused
+        async with BetaStore(pool).connect() as conn:          # without deleted_id the same call is refused
+            with pytest.raises(AuditDeidentifyRefused):
+                async with conn.transaction():
+                    await conn.deidentify_audit([fingerprint(GONE)], "participant")
+        await pool.close()
+    run(body())
