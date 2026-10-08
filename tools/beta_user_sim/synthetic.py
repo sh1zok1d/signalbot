@@ -147,7 +147,9 @@ def _horizons(cfg: BetaConfig, through: datetime, i: int) -> dict:
                "baseline_median": {"range_width_pct_median": h1["range"] / 1.1, "price_move_pct_median": 0.0,
                                    "volume_notional_usd_sum": 1.2e9},
                "range_ratio": 1.1, "volume_ratio": vol_ratio, "taker_delta_notional_usd_sum": 2.0e7,
-               "funding_rate": 0.00006, "oi_change_pct": 0.4 if i % 2 else -0.3,
+               "funding_rate": 0.00006, "funding_venues": len(cfg.exchanges), "funding_venues_of": len(cfg.exchanges),
+               "funding_by_venue": {ex: 0.00006 for ex in cfg.exchanges},
+               "oi_change_pct": 0.4 if i % 2 else -0.3,
                "oi_by_venue": {ex: 0.4 if i % 2 else -0.3 for ex in cfg.exchanges},
                "liquidations": {"buckets_missing": False, "venues": nolq}},
         "24h": {"price_complete": True, "volume_complete": True, "volume_partial": False,
@@ -159,9 +161,12 @@ def _horizons(cfg: BetaConfig, through: datetime, i: int) -> dict:
                 "baseline_median": {"range_width_pct": h24["range"], "price_move_pct": 0.0,
                                     "volume_notional_usd": 2.9e10},
                 "range_ratio": 1.0, "volume_ratio": 0.9, "taker_delta_notional_usd_sum": -4.0e7,
-                "funding_rate": 0.00006, "funding_rate_avg": 0.00005, "oi_change_pct": 1.2,
+                "volume_venue_gap": False, "funding_rate": 0.00006, "funding_venues": len(cfg.exchanges),
+                "funding_venues_of": len(cfg.exchanges), "funding_by_venue": {ex: 0.00006 for ex in cfg.exchanges},
+                "funding_rate_avg": 0.00005, "oi_change_pct": 1.2,
                 "oi_by_venue": {ex: 1.2 for ex in cfg.exchanges},
-                "liquidations": {"buckets_missing": False, "venues": nolq}, "changes": []},
+                "liquidations": {"buckets_missing": False, "venues": nolq}, "changes": [],
+                "changes_checked": ["range", "volume", "oi_price", "funding"]},
     }
 
 

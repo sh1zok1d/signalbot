@@ -478,6 +478,7 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
             "funding_rate": None if funding is None else float(funding),
             "funding_venues": fnow["venues"],
             "funding_venues_of": len(cfg.exchanges),
+            "funding_by_venue": fnow["by_venue"],
             "oi_change_pct": oi_1h["oi_change_pct"],
             "oi_by_venue": oi_1h["oi_by_venue"],
             "liquidations": {
@@ -510,6 +511,7 @@ def build_horizons(cfg, *, as_of_bucket: datetime, metrics_by_bucket: Mapping[da
             "funding_rate": None if funding is None else float(funding),
             "funding_venues": fnow["venues"],
             "funding_venues_of": len(cfg.exchanges),
+            "funding_by_venue": fnow["by_venue"],
             "funding_rate_avg": _funding_mean(h24_buckets, metrics_by_bucket, _H24_PRICE_MIN),
             "oi_change_pct": oi_24["oi_change_pct"],
             "oi_by_venue": oi_24["oi_by_venue"],

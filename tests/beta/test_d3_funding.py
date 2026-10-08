@@ -65,10 +65,10 @@ def test_the_sign_change_needs_rates_of_a_printable_size():
 
 
 @pytest.mark.parametrize("lang,now24,now1", [
-    ("ru", "Funding сейчас 0,020% · среднее за 24 ч 0,010% (ставки за 8 ч, медиана 2 из 3 бирж)",
-     "Funding сейчас 0,020% за 8 ч (медиана 2 из 3 бирж)"),
-    ("en", "Funding now 0.020% · 24h average 0.010% (rates per 8h, median of 2 of 3 exchanges)",
-     "Funding now 0.020% per 8h (median of 2 of 3 exchanges)"),
+    ("ru", "Funding сейчас 0,020% · среднее за 24 ч 0,010% (ставки за 8 ч, медиана 2 из 3 бирж; нет свежей ставки: OKX)",
+     "Funding сейчас 0,020% за 8 ч (медиана 2 из 3 бирж; нет свежей ставки: OKX)"),
+    ("en", "Funding now 0.020% · 24h average 0.010% (rates per 8h, median of 2 of 3 exchanges; no fresh rate: OKX)",
+     "Funding now 0.020% per 8h (median of 2 of 3 exchanges; no fresh rate: OKX)"),
 ])
 def test_rates_say_per_8h_and_how_many_venues(lang, now24, now1):
     hzs = build_horizons(CFG, as_of_bucket=AS_OF, metrics_by_bucket=rows(288),

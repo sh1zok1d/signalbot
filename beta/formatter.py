@@ -1115,9 +1115,13 @@ def horizon_oi(block: Optional[Mapping[str, Any]]) -> Optional[float]:
 
 
 def _funding_med(block: Mapping[str, Any], lang: str) -> str:
-    """«медиана бирж», or «медиана 2 из 3 бирж» when a venue's rate was stale or missing (D3, R3)."""
+    """«медиана бирж», or «медиана 2 из 3 бирж; нет свежей ставки: OKX» when a venue's rate was stale or
+    missing: the venue left out is named, never silently replaced (D3, R3)."""
     k, n = block.get("funding_venues"), block.get("funding_venues_of")
-    return t(lang, "funding_med_k", k=k, n=n) if k is not None and n and k < n else t(lang, "funding_med_all")
+    if k is None or not n or k >= n:
+        return t(lang, "funding_med_all")
+    out = [venue_name(ex) for ex, v in (block.get("funding_by_venue") or {}).items() if v is None]
+    return t(lang, "funding_med_k", k=k, n=n) + (t(lang, "funding_stale", venues=", ".join(out)) if out else "")
 
 
 def _horizon_oi_line(block: Mapping[str, Any], lang: str) -> Optional[str]:

@@ -1047,6 +1047,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     },
     "funding_med_all": {"ru": "медиана бирж", "en": "median across exchanges"},
     "funding_med_k": {"ru": "медиана {k} из {n} бирж", "en": "median of {k} of {n} exchanges"},
+    "funding_stale": {"ru": "; нет свежей ставки: {venues}", "en": "; no fresh rate: {venues}"},
     "h24_head": {"ru": "<b>BTC за 24 ч</b> · до {hm} {zone}", "en": "<b>BTC, last 24h</b> · through {hm} {zone}"},
     "h24_price": {"ru": "Цена {price} · макс {high} · мин {low}", "en": "Price {price} · high {high} · low {low}"},
     "h24_range": {"ru": "Диапазон {range}{ratio}", "en": "Range {range}{ratio}"},
