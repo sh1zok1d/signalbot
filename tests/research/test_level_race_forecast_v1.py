@@ -148,3 +148,51 @@ def test_ladder_pools_sides_then_low_n_and_counts_ambiguous():
     assert lo <= c["diff_pp"]["BEYOND"] <= hi and c["k_pp"]["BEYOND"] >= 0
     assert H.build_table(rows, provenance={})["table_sha256"] == t["table_sha256"]
     assert H.lookup(t, _row("T15", "MONTH", 1, 0.2, None, 0)) is None
+
+
+def test_two_head_recovers_offsets_on_synthetic_rows():
+    from scripts.research.level_race_forecast_v1 import model as M
+    rng = np.random.default_rng(1)
+    rows = []
+    for i in range(6000):
+        b = rng.uniform(0.2, 0.5)
+        n_ = rng.uniform(0.05, 0.2)
+        p0 = np.array([b, 1 - b - n_, n_])
+        # truth: resolve logit +0.5 over B0, BEYOND|resolve logit +0.4 over B0
+        pr = M.sigmoid(M.logit(np.array([1 - n_]))[0] + 0.5)
+        pb = M.sigmoid(M.logit(np.array([b / (1 - n_)]))[0] + 0.4)
+        u = rng.uniform()
+        y = "NEITHER" if u > pr else ("BEYOND" if rng.uniform() < pb else "BACK")
+        rows.append({"landmark": "T0", "family": "DAY", "struct_side": 1, "sigma": 0.002,
+                     "b0_beyond": p0[0], "b0_back": p0[1], "b0_neither": p0[2], "outcome": y})
+    m = M.fit_two_head(rows, ("1",), ("1",), 0.0005, edges=(0.001, 0.003))
+    assert m.beta_r[0] == pytest.approx(0.5, abs=0.12)
+    assert m.beta_b[0] == pytest.approx(0.4, abs=0.12)
+    P = m.predict(rows)
+    assert np.allclose(P.sum(axis=1), 1.0)
+
+
+def test_weighted_logit_equals_repeated_rows():
+    from scripts.research.level_race_forecast_v1 import model as M
+    rng = np.random.default_rng(2)
+    X = np.column_stack([np.ones(200), rng.normal(size=200)])
+    y = (rng.uniform(size=200) < 0.4).astype(float)
+    w = rng.integers(0, 3, size=200).astype(float)
+    pen = np.array([False, True])
+    a = M.fit_logit(X, np.zeros(200), y, 0.01, pen, w=w)
+    keep = w > 0
+    b = M.fit_logit(np.repeat(X[keep], w[keep].astype(int), axis=0), np.zeros(int(w.sum())),
+                    np.repeat(y[keep], w[keep].astype(int)), 0.01, pen)
+    assert np.allclose(a, b, atol=1e-6)
+
+
+def test_metrics_basic_shapes():
+    from scripts.research.level_race_forecast_v1 import metrics as MT
+    rng = np.random.default_rng(3)
+    P = rng.dirichlet([2, 2, 1], size=300)
+    y = np.array([rng.choice(3, p=p) for p in P])
+    wk = np.repeat(np.arange(60), 5)
+    out = MT.evaluate(P, y, wk, {"SELF": P}, MT.WeekBoot(wk, draws=50), slope_ci=True)
+    assert out["ll_gain_vs_SELF"] == 0.0 and out["n"] == 300
+    assert abs(out["heads"]["R"]["recal_b"] - 1) < 0.6
+    assert MT.auc(np.array([0.1, 0.9]), np.array([0, 1])) == 1.0
