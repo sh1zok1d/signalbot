@@ -16,12 +16,15 @@ from common.versioning import canonical_json
 from .oi_asof import venue_oi_change_pct
 from .state_tape import BUCKET, iso, metric_key
 
-HORIZON_VERSION = "BETA_HORIZON_TOD_V3"
+HORIZON_VERSION = "BETA_HORIZON_TOD_V4"
 # Pinned to the canonical definition below. A change of parameters needs a new label.
 # V1 (4b84b794…) had no 4h block; V2 (f64700b7…) adds it with the same time-of-day baseline rule;
 # V3 (C1, docs/BETA_C1_DAY_TYPE_BASELINE_V1.md) uses same-UTC-day-type days for the 1h range and
-# volume baselines only.
-HORIZON_DIGEST = "140dc966cbeceb9e5bc37dc3534e8baf6738a30c0af5407c3fcc4dd2f03f9369"
+# volume baselines only. V4 (D3, docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md R4): the OI change of every
+# horizon needs at least `min_venues` venues, as the 1h context does.
+HORIZON_DIGEST = "3e20e2562794f302cbe7bb131a72b86c8c746e24b5b8017d886d4c007ae55084"
+# the versions whose 1h range / volume baselines follow the C1 same-day-type rule
+DAY_TYPE_VERSIONS = ("BETA_HORIZON_TOD_V3", "BETA_HORIZON_TOD_V4")
 
 _H1_BUCKETS = 12
 _H4_BUCKETS = 48
@@ -76,6 +79,7 @@ def horizon_definition() -> dict:
             "same_oi_unit_and_contract_value": True,
             "change": "(end - start) / start",
             "aggregate": "median of venue percents",
+            "min_venues": "config min_venues; fewer venues: no change (never one venue's figure)",
             "never_usd_sum": True,
         },
         "liquidations": "per venue, never summed across venues; a missing per-venue "
@@ -232,7 +236,7 @@ def _oi_for(cfg, start: datetime, end: datetime, oi_by_boundary: Optional[Mappin
     for ex in cfg.exchanges:
         by[ex] = venue_oi_change_pct(start_map.get(ex), end_map.get(ex))
     vals = [v for v in by.values() if v is not None]
-    return {"oi_change_pct": _median(vals) if vals else None, "oi_by_venue": by}
+    return {"oi_change_pct": _median(vals) if len(vals) >= max(1, int(cfg.min_venues)) else None, "oi_by_venue": by}
 
 
 def span_min_present(n: int) -> int:

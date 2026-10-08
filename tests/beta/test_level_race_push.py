@@ -161,3 +161,32 @@ def test_structural_push_needs_max_age_within_the_write_window():
     with pytest.raises(Exception, match="touch_max_age_min"):
         base.with_overrides(decision=dec, level_race={**dict(base.raw["level_race"]), "push_trigger": "structural"})
     base.with_overrides(decision=dec)                              # legacy keeps any max age
+
+
+def test_structural_push_shows_the_next_levels_chance_only_in_mode_b():
+    """The structural push carries the next level's 24h wording (#403): a number with its check only in mode B."""
+    from beta.rangecast import touch_bin
+    e = _event_with_line()
+    cfg = _cfg(push_trigger="structural", journal_enabled=True, display_enabled=True)
+    b, now = _cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 30_000)
+    side = int(e["side"]) if e["side"] in (1, -1) else int(e["struct_side"])
+    edge = e["zone_high"] if side > 0 else e["zone_low"]
+    nz = {"low": edge * (1 + side * 0.01), "high": edge * (1 + side * 0.01), "edge": edge * (1 + side * 0.01),
+          "distance_pct": side * 1.0, "kinds": ["ROUND"], "members": [{"kind": "ROUND", "price": edge}],
+          "touch": {"24h": 0.42}}
+    bins = {"bins": [{"bin": touch_bin(0.42), "passed": True, "predicted": 0.41, "realized": 0.39, "n_eff": 120}]}
+
+    def text(passed):
+        bins["bins"][0]["passed"] = passed
+        blk = {**_block(b, now), "levels": {"above" if side > 0 else "below": [nz], "at": None, "all": [],
+                                            "below" if side > 0 else "above": []},
+               "corridor": {"coverage": 0.8, "horizons": {}, "holdout": {"24h": {"touch_bins": bins}}}}
+        c = next(x for x in MA.level_touch_candidates(cfg, blk, b, [], now=now, max_age=MAX_AGE, stats=None)
+                 if x["key"] == f"level:{e['event_id']}")
+        return format_alert("level", c["payload"], "ru"), c
+    on, c = text(True)
+    assert "за 24ч ≈ 42%; говорили → было: 41% → 39% (на истории, N=120)" in on
+    assert ("L3_LEVEL_TOUCH_24H", f"{side:+d}:{nz['edge']:.2f}") in cj.shown_keys("alert", None, alert=c)
+    off, c = text(False)
+    assert "42%" not in off and "Следующий уровень:" in off
+    assert not [k for k in cj.shown_keys("alert", None, alert=c) if k[0] == "L3_LEVEL_TOUCH_24H"]

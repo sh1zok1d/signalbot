@@ -362,8 +362,10 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         await h.handle(_cb(uid, "q:n:hour-EV-AABBCCDDEE:late", 55))   # a reason after «Шум» (H2)
         await h.handle(_msg(uid, "/interview", 56))              # H4
         await h.handle(_cb(uid, "i:other", 57))
-        await h.handle(_msg(uid, "/stop", 58))
-        await h.handle(_cb(uid, "q:s:-:too_many", 59))           # the pause question, answered while paused (H3)
+        await h.handle(_msg(uid, "/guide", 58))                  # «как читать бота» (J2)
+        await h.handle(_msg(uid, "where is ETH?", 59))           # plain text reaches the team (J4)
+        await h.handle(_msg(uid, "/stop", 60))
+        await h.handle(_cb(uid, "q:s:-:too_many", 61))           # the pause question, answered while paused (H3)
         actions = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         # btn_details stays a valid historical action, but the episode Details are retired
         # (they exposed internals) and record nothing new.
@@ -377,8 +379,10 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         votes = await _rows(pool, "SELECT kind, ref, vote FROM beta_message_votes")
         assert votes == [{"kind": "brief", "ref": brief_pk, "vote": "USEFUL"}]
         texts = await _rows(pool, "SELECT kind, text FROM beta_feedback_messages ORDER BY message_pk")
-        assert texts[-2:] == [{"kind": "idea", "text": "a chart of funding"},
-                              {"kind": "interview", "text": "slot: another time"}]
+        assert texts[-3:] == [{"kind": "idea", "text": "a chart of funding"},
+                              {"kind": "interview", "text": "slot: another time"},
+                              {"kind": "feedback", "text": "where is ETH?"}]
+        assert actions.count("onboard_btc") == 1                    # the trader-type answer opened J1 once
         reasons = await _rows(pool, "SELECT topic, subject, reason FROM beta_reasons ORDER BY reason_pk")
         assert reasons == [{"topic": "noise", "subject": "hour-EV-AABBCCDDEE", "reason": "late"},
                            {"topic": "stop", "subject": "-", "reason": "too_many"}]

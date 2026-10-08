@@ -384,3 +384,84 @@ def test_head_names_the_level_and_dates_an_earlier_day():
     assert f"зону {e['kind']} (" in ru and f"the {e['kind']} (" in en and " zone at " in en
     late = {**blk, "as_of": _ts(e["t15_ms"] + 3 * 3_600_000 + 86_400_000).isoformat()}
     assert re.search(r"в [А-Яа-я]{2} \d\d\.\d\d \d\d:\d\d", race_lines(late, "ru", "levels")[0])
+
+
+# ---- model inputs and C1 (PR-4) ---------------------------------------------------------------
+def _venue_rows(b, ms_list, drift=0.0):
+    """klines_1m rows of another venue whose 1m close at each instant is the Binance 5m close there."""
+    rows = []
+    for at in ms_list:
+        k = (at - b.t0) // BAR_MS - 1
+        rows.append({"ts": _ts(at - 60_000), "close": float(b.close[k]) * (1 + drift)})
+    return rows
+
+
+def test_model_row_carries_the_terms_and_the_event_b0_in_beyond_back_order():
+    e, v = _t15_event()
+    r = LR.model_row(v)
+    assert r["landmark"] == "T15" and r["tau"] == 46 and r["family"] == v["family"]
+    beyond = v["event_b0"]["up"] if v["beyond_is_up"] else v["event_b0"]["dn"]
+    assert r["b0_beyond"] == beyond and r["b0_neither"] == v["event_b0"]["neither"]
+    assert r["sigma"] == v["sigma"] and r["position"] == v["position"]
+
+
+def test_c1_is_the_oriented_mean_of_bybit_and_okx_and_zero_at_t0():
+    e, v = _t15_event()
+    b = _cut(B, LR.landmark_ms(e, "T15"))
+    base, dec = LR.c1_instants(v["touch_open_ms"])
+    assert dec == v["landmark_ms"] and base == v["touch_open_ms"]
+    vc = {"bybit": LR.closes_at(_venue_rows(b, (base, dec))), "okx": LR.closes_at(_venue_rows(b, (base, dec), 0.0))}
+    j = (v["touch_open_ms"] - b.t0) // BAR_MS
+    want = v["side"] * math.log(b.close[j + 2] / b.close[j - 1])
+    got = LR.c1_input(b, v, vc)
+    assert got["c1_missing"] is None and got["OVMM"] == pytest.approx(want, abs=1e-12)
+    v0 = LR.landmark_view(_cut(B, LR.landmark_ms(e, "T0")), e, "T0", TABLE)
+    assert LR.c1_input(b, v0, {}) == {"OVMM": 0.0, "c1_missing": None}
+
+
+def test_c1_is_missing_never_filled_when_a_venue_close_is_absent():
+    e, v = _t15_event()
+    b = _cut(B, LR.landmark_ms(e, "T15"))
+    base, dec = LR.c1_instants(v["touch_open_ms"])
+    vc = {"bybit": LR.closes_at(_venue_rows(b, (base, dec))), "okx": LR.closes_at(_venue_rows(b, (base,)))}
+    assert LR.c1_input(b, v, vc) == {"OVMM": None, "c1_missing": "okx"}
+    assert LR.c1_input(b, v, {"okx": vc["bybit"]})["c1_missing"] == "bybit"
+    assert LR.c1_minutes([v]) == [base - 60_000, dec - 60_000]
+
+
+def test_venue_closes_are_read_per_minute_from_bybit_and_okx():
+    e, v = _t15_event()
+    b = _cut(B, LR.landmark_ms(e, "T15"))
+    asked = []
+
+    class Conn:
+        async def fetch_live_klines_1m(self, *, exchange, symbol, start, end):
+            asked.append((exchange, symbol, start, end))
+            ms = int(start.timestamp() * 1000)
+            return [r for r in _venue_rows(b, LR.c1_instants(v["touch_open_ms"])) if int(r["ts"].timestamp() * 1000) == ms]
+
+    vc = asyncio.run(LR.load_venue_closes(Conn(), "BTCUSDT", [v]))
+    assert sorted({a[0] for a in asked}) == ["bybit", "okx"] and all(a[1] == "BTCUSDT" for a in asked)
+    assert all((a[3] - a[2]) == timedelta(minutes=1) for a in asked)
+    assert LR.model_inputs(b, v, vc)["c1_missing"] is None
+
+
+def test_venue_closes_never_fetch_a_minute_inside_the_e1_window():
+    e1_start = int(datetime(2026, 8, 16, tzinfo=UTC).timestamp() * 1000)
+    e1_end = int(datetime(2026, 8, 25, 17, 20, tzinfo=UTC).timestamp() * 1000)
+    # T15 events whose instants fall inside, at both edges and just outside the window
+    touches = [e1_start, e1_start - 15 * 60_000, e1_start + 3 * 86_400_000, e1_end - 15 * 60_000, e1_end - 5 * 60_000,
+               e1_end, e1_start - 5 * 60_000]
+    views = [{"landmark": "T15", "touch_open_ms": t} for t in touches]
+    asked = []
+
+    class Conn:
+        async def fetch_live_klines_1m(self, *, exchange, symbol, start, end):
+            asked.append((int(start.timestamp() * 1000), int(end.timestamp() * 1000)))
+            return []
+
+    asyncio.run(LR.load_venue_closes(Conn(), "BTCUSDT", views))
+    assert asked and all(z <= e1_start or a >= e1_end for a, z in asked)
+    inside = [m for m in LR.c1_minutes(views) if e1_start <= m < e1_end]
+    assert inside and not {m for m, _ in asked} & set(inside)
+    assert {m for m, _ in asked} == {m for m in LR.c1_minutes(views) if not (e1_start <= m < e1_end)}
