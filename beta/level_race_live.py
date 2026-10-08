@@ -41,6 +41,8 @@ CLASSES = {
                             "from": "model freeze"},
     "L3_LEVEL_RACE_T15_4H": {"landmark": "T15", "rule": "LEVEL_RACE_4H_V1", "display": ("levels", "check"),
                              "templates": ("LR_L3H_V1", "LR_L3L_V1", "LR_FB_V1", "LR_OFF_V1"), "from": "model freeze"},
+    "L3_LEVEL_RACE_C1_T15_4H": {"landmark": "T15", "rule": "LEVEL_RACE_4H_V1", "display": (), "templates": (),
+                                "from": "model freeze"},  # the C1 challenger's shadow record (LEVEL_RACE_LIVE_JOURNAL_V1)
     "L3_GENERIC_RACE_4H": {"landmark": None, "rule": "GENERIC_RACE_4H_V1", "display": (), "templates": (),
                            "from": "model freeze"},      # journal only, never shown
 }
@@ -51,6 +53,7 @@ TEMPLATE_KEYS = {"LR_HIST_V1": "lr_hist_v1", "LR_PUSH_HIST_V1": "lr_push_hist_v1
                  "LR_PUSH_OFF_V1": "lr_push_off_v1"}
 HIST_CLASS = {"T0": "L2_LEVEL_RACE_HIST_T0_4H", "T15": "L2_LEVEL_RACE_HIST_T15_4H"}
 L3_CLASS = {"T0": "L3_LEVEL_RACE_T0_4H", "T15": "L3_LEVEL_RACE_T15_4H"}
+C1_CLASS = "L3_LEVEL_RACE_C1_T15_4H"
 LANDMARK_BARS = {"T0": 0, "T15": 2}     # landmark = close of bar j + this
 OUTCOMES = ("UP", "DN", "NEITHER")
 MODEL_VERSION: Optional[str] = None    # the freeze commit of F1's predictor; None until it exists
@@ -296,14 +299,14 @@ def c1_input(b: Bars, v: Mapping[str, Any], venue_closes: Mapping[str, Mapping[i
 # C1 ingestion wait (frozen before any data; docs/research/LEVEL_RACE_LIVE_JOURNAL_V1.md §3). The two
 # closes sit at fixed instants at or before the T15 landmark, so waiting reads nothing later than the
 # landmark: it only lets the Bybit / OKX minute ending at the landmark reach klines_1m (Stage-1 writes
-# a minute when the next minute's first trade arrives). A T15 L3 record is written at the first run
-# with every C1 close present, or at the first run at or after C1_WAIT_MS with C1 missing; the
-# champion's numbers do not depend on when it is written.
+# a minute when the next minute's first trade arrives). The C1 shadow record is written at the first
+# run with every C1 close present, or at the first run at or after C1_WAIT_MS with C1 missing. The
+# champion's record never waits.
 C1_WAIT_MS = 3 * MINUTE_MS
 
 
 def c1_due(blk: Mapping[str, Any], *, landmark_ms: int, now_ms: int) -> bool:
-    """Whether the T15 record may be written now under the wait rule."""
+    """Whether the C1 shadow record may be written now under the wait rule."""
     return not blk.get("missing") or int(now_ms) >= int(landmark_ms) + C1_WAIT_MS
 
 

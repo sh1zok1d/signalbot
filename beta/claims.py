@@ -132,8 +132,9 @@ CLASSES = {
     "L3_LEVEL_RACE_T0_4H": ("L3", ("lr_push_l3h_v1", "lr_push_l3l_v1", "lr_push_fb_v1", "lr_push_off_v1"),
                             "LEVEL_RACE_4H_V1"),
     "L3_LEVEL_RACE_T15_4H": ("L3", ("lr_l3h_v1", "lr_l3l_v1", "lr_fb_v1", "lr_off_v1"), "LEVEL_RACE_4H_V1"),
+    "L3_LEVEL_RACE_C1_T15_4H": ("L3", (), "LEVEL_RACE_4H_V1"),        # the C1 challenger, shadow: never shown
 }
-_RACE_CLASSES = ("L3_LEVEL_RACE_T0_4H", "L3_LEVEL_RACE_T15_4H")
+_RACE_CLASSES = ("L3_LEVEL_RACE_T0_4H", "L3_LEVEL_RACE_T15_4H", "L3_LEVEL_RACE_C1_T15_4H")
 HOURLY_GROUPS = {
     "touch": tuple(c for c in CLASSES if c.startswith("L3_") and c not in _RACE_CLASSES),
     "analog": tuple(c for c in CLASSES if c.startswith("L2_STATE_ANALOG_")),
@@ -425,83 +426,129 @@ def level_race_claims(views: Sequence[Mapping[str, Any]], *, now: datetime, mode
     return out
 
 
-def level_race_l3_claims(items: Sequence[Mapping[str, Any]], *, now: datetime) -> list:
-    """L3 at the landmarks (LEVEL_RACE_LIVE_JOURNAL_V1 §2): per event × landmark, shown or not, before the
-    outcome — the model inputs as read, the C1 block as read (value, the six closes, their instants,
-    the read instant, the missing venues), the frozen model version, the calibrator version that
-    applies at the landmark (`level_race_calibration.calibrator_at`), raw and published probabilities,
-    the state and its template ids (`display_contract`). Each item: {view, inputs, c1, model_version,
-    calibrator_version, raw, published, contract}; probabilities are {up, dn, neither}."""
+def _race_subject(v: Mapping[str, Any]) -> dict:
+    """The event part of every level race L3 / shadow subject."""
     from .build import build_sha
     from .level_race import LEVEL_RACE_VERSION
-    from .level_race_live import L3_CLASS, LIVE_VERSION, subject_key
+    from .level_race_live import LIVE_VERSION
     from .levels import STRUCTURAL_VERSION
+    return {"event_id": v["event_id"], "landmark": v["landmark"], "kind": v["kind"],
+            "member_kinds": v["member_kinds"], "family": v["family"], "struct_side": v["struct_side"],
+            "orientation": v["side"], "beyond_is_up": bool(v["beyond_is_up"]),
+            "touch_open": _iso(datetime.fromtimestamp(v["touch_open_ms"] / 1000, tz=timezone.utc)),
+            "zone_low": v["zone_low"], "zone_high": v["zone_high"], "p_up": v["p_up"], "p_dn": v["p_dn"],
+            "end": _iso(datetime.fromtimestamp(v["end_ms"] / 1000, tz=timezone.utc)),
+            "out_of_corridor": bool(v["out_of_corridor"]), "mode": "MODEL", "build_sha": build_sha(),
+            "versions": {"level_race": LEVEL_RACE_VERSION, "live": LIVE_VERSION, "event": STRUCTURAL_VERSION}}
 
-    def _p3(p):
-        return None if p is None else {k: round(float(p[k]), 6) for k in ("up", "dn", "neither")}
 
+def _p3(p):
+    return None if p is None else {k: round(float(p[k]), 6) for k in ("up", "dn", "neither")}
+
+
+def _race_row(cls: str, v: Mapping[str, Any], *, now: datetime, subject: dict, numbers: dict,
+              model_version: str) -> dict:
+    from .level_race import LEVEL_RACE_VERSION
+    from .level_race_live import LIVE_VERSION, subject_key
+    from .levels import STRUCTURAL_VERSION
+    at = datetime.fromtimestamp(v["landmark_ms"] / 1000, tz=timezone.utc)
+    reason = f"LANDMARK_{v['landmark']}" + ("_OUT_OF_CORRIDOR" if v["out_of_corridor"] else "")
+    return claim_row(cls, issued_at=now, issue_slot=at, as_of=at, subject=subject, subject_key=subject_key(v),
+                     numbers=numbers, rule_version=f"{LEVEL_RACE_VERSION}+{LIVE_VERSION}+{STRUCTURAL_VERSION}+model:"
+                                                   f"{model_version}",
+                     eligible_reason=reason, horizon_ms=int(v["end_ms"] - v["landmark_ms"]))
+
+
+def level_race_l3_claims(items: Sequence[Mapping[str, Any]], *, now: datetime) -> list:
+    """The champion's L3 record at a landmark (LEVEL_RACE_LIVE_JOURNAL_V1 §2): per event × landmark, shown
+    or not, at the first run after the landmark — the model inputs as read, the frozen model version,
+    the calibrator version that applies at the landmark (`level_race_calibration.calibrator_at`), raw
+    and published probabilities, the state and its template ids (`display_contract`). It never waits
+    for, reads or carries C1 (its shadow record is `level_race_c1_claims`). Each item: {view, inputs,
+    model_version, calibrator_version, raw, published, contract}; probabilities are {up, dn, neither}."""
+    from .level_race_live import L3_CLASS
     out = []
     for it in items:
         v, ct = it["view"], it["contract"]
-        at = datetime.fromtimestamp(v["landmark_ms"] / 1000, tz=timezone.utc)
-        subject = {"event_id": v["event_id"], "landmark": v["landmark"], "kind": v["kind"],
-                   "member_kinds": v["member_kinds"], "family": v["family"], "struct_side": v["struct_side"],
-                   "orientation": v["side"], "beyond_is_up": bool(v["beyond_is_up"]),
-                   "touch_open": _iso(datetime.fromtimestamp(v["touch_open_ms"] / 1000, tz=timezone.utc)),
-                   "zone_low": v["zone_low"], "zone_high": v["zone_high"], "p_up": v["p_up"], "p_dn": v["p_dn"],
-                   "end": _iso(datetime.fromtimestamp(v["end_ms"] / 1000, tz=timezone.utc)),
-                   "out_of_corridor": bool(v["out_of_corridor"]), "mode": "MODEL", "build_sha": build_sha(),
-                   "model_version": it["model_version"], "calibrator_version": it.get("calibrator_version"),
-                   "state": ct["state"], "case": ct.get("case"), "state_since_ms": ct.get("since_ms"),
-                   "state_reason": ct.get("reason"), "template": ct.get("template"),
-                   "push_template": ct.get("push_template"), "probabilities": ct.get("probabilities"),
-                   "state_version": ct.get("version"),
-                   "versions": {"level_race": LEVEL_RACE_VERSION, "live": LIVE_VERSION, "event": STRUCTURAL_VERSION}}
-        c1 = dict(it["c1"])
-        numbers = {"inputs": dict(it["inputs"]),
-                   "event_b0": {k: round(float(x), 6) for k, x in v["event_b0"].items()},
+        subject = {**_race_subject(v), "model_version": it["model_version"],
+                   "calibrator_version": it.get("calibrator_version"), "state": ct["state"], "case": ct.get("case"),
+                   "state_since_ms": ct.get("since_ms"), "state_reason": ct.get("reason"),
+                   "template": ct.get("template"), "push_template": ct.get("push_template"),
+                   "probabilities": ct.get("probabilities"), "state_version": ct.get("version")}
+        numbers = {"inputs": dict(it["inputs"]), "event_b0": {k: round(float(x), 6) for k, x in v["event_b0"].items()},
+                   "raw": _p3(it.get("raw")), "published": _p3(it.get("published"))}
+        out.append(_race_row(L3_CLASS[v["landmark"]], v, now=now, subject=subject, numbers=numbers,
+                             model_version=it["model_version"]))
+    return out
+
+
+def level_race_c1_claims(items: Sequence[Mapping[str, Any]], *, now: datetime) -> list:
+    """The C1 challenger's shadow record at T15 (journal only, never shown): the C1 block as read (value,
+    the six closes, their instants, the read instant, the missing venues) and C1's raw and published
+    probabilities when the block is complete (none when a venue is missing: never filled). Same
+    subject key and slot as the champion's record, which it pairs with. Each item: {view, c1, inputs,
+    model_version, calibrator_version, raw, published}."""
+    from .level_race_live import C1_CLASS
+    out = []
+    for it in items:
+        v, c1 = it["view"], dict(it["c1"])
+        subject = {**_race_subject(v), "model_version": it["model_version"],
+                   "calibrator_version": it.get("calibrator_version"), "challenger": "C1"}
+        numbers = {"inputs": dict(it["inputs"]), "event_b0": {k: round(float(x), 6) for k, x in v["event_b0"].items()},
                    "raw": _p3(it.get("raw")), "published": _p3(it.get("published")),
                    "c1": {**c1, "read_at": None if c1.get("read_ms") is None else
                           _iso(datetime.fromtimestamp(c1["read_ms"] / 1000, tz=timezone.utc))}}
-        reason = f"LANDMARK_{v['landmark']}" + ("_OUT_OF_CORRIDOR" if v["out_of_corridor"] else "")
-        out.append(claim_row(L3_CLASS[v["landmark"]], issued_at=now, issue_slot=at, as_of=at, subject=subject,
-                             subject_key=subject_key(v), numbers=numbers,
-                             rule_version=f"{LEVEL_RACE_VERSION}+{LIVE_VERSION}+{STRUCTURAL_VERSION}+model:"
-                                          f"{it['model_version']}",
-                             eligible_reason=reason, horizon_ms=int(v["end_ms"] - v["landmark_ms"])))
+        out.append(_race_row(C1_CLASS, v, now=now, subject=subject, numbers=numbers, model_version=it["model_version"]))
     return out
 
 
 async def record_level_race_l3(conn, cfg, views: Sequence[Mapping[str, Any]], *, now: datetime,
                                capture: Mapping[str, Any], provider) -> dict:
     """The L3 records of the due landmarks, from the model freeze on (shown or not; the state, HIST included,
-    is on the record). `provider` is the frozen model side (F1's
-    predictor, F3's calibrator versions and state): `predict(inputs) -> (raw, published)`,
-    `calibrator_version(landmark_ms)` (via `calibrator_at`) and `contract(landmark, now_ms)`
-    (`display_contract`). T15 records wait for the C1 closes under `C1_WAIT_MS`; a record already
-    written is never rewritten (first write wins on (class, subject, slot))."""
+    is on the record). `provider` is the frozen model side (F1's predictor, F3's calibrator versions and
+    state): `predict(inputs) -> (raw, published)` for the champion, `predict_c1(inputs) -> (raw,
+    published)` for the challenger, `calibrator_version(landmark_ms)` (via `calibrator_at`) and
+    `contract(landmark, now_ms)` (`display_contract`).
+
+    The champion's record is written at the first run after the landmark and never depends on C1. The C1
+    shadow record (T15 only) is written at the first run with every C1 close present, or at the first
+    run at or after `C1_WAIT_MS` with C1 missing. A record already written is never rewritten (first
+    write wins on (class, subject, slot))."""
     from . import level_race_live as LR
-    rep = {"l3_written": 0, "l3_deferred": 0, "c1_missing": {}}
+    rep = {"l3_written": 0, "c1_written": 0, "c1_deferred": 0, "c1_missing": {}}
     if provider is None or not views:
         return rep
     b, now_ms = capture.get("bars"), to_ms(now)
-    t15 = [v for v in views if v["landmark"] == "T15"]
-    closes = await LR.load_venue_closes(conn, cfg.symbol, t15) if t15 else {}
-    items = []
+    champ = []
     for v in views:
+        inputs = LR.model_row(v)
+        raw, published = provider.predict(inputs)
+        champ.append({"view": v, "inputs": inputs, "model_version": LR.MODEL_VERSION,
+                      "calibrator_version": provider.calibrator_version(int(v["landmark_ms"])),
+                      "raw": raw, "published": published, "contract": provider.contract(v["landmark"], now_ms)})
+    for r in level_race_l3_claims(champ, now=now):
+        rep["l3_written"] += int(await conn.insert_claim(r) is not None)
+    t15 = [v for v in views if v["landmark"] == "T15"]
+    try:                                         # the challenger never blocks the champion's record
+        closes = await LR.load_venue_closes(conn, cfg.symbol, t15) if t15 else {}
+    except Exception as exc:  # noqa: BLE001
+        rep["c1_error"] = type(exc).__name__
+        return rep
+    shadow = []
+    for v in t15:
         c1 = LR.c1_block(b, v, closes, read_ms=now_ms)
-        if v["landmark"] == "T15" and not LR.c1_due(c1, landmark_ms=v["landmark_ms"], now_ms=now_ms):
-            rep["l3_deferred"] += 1
+        if not LR.c1_due(c1, landmark_ms=v["landmark_ms"], now_ms=now_ms):
+            rep["c1_deferred"] += 1
             continue
         for ven in c1["missing"]:
             rep["c1_missing"][ven] = rep["c1_missing"].get(ven, 0) + 1
         inputs = {**LR.model_row(v), LR.C1_TERM: c1["value"]}
-        raw, published = provider.predict(inputs)
-        items.append({"view": v, "inputs": inputs, "c1": c1, "model_version": LR.MODEL_VERSION,
-                      "calibrator_version": provider.calibrator_version(int(v["landmark_ms"])),
-                      "raw": raw, "published": published, "contract": provider.contract(v["landmark"], now_ms)})
-    for r in level_race_l3_claims(items, now=now):
-        rep["l3_written"] += int(await conn.insert_claim(r) is not None)
+        raw, published = provider.predict_c1(inputs) if c1["value"] is not None else (None, None)
+        shadow.append({"view": v, "c1": c1, "inputs": inputs, "model_version": LR.MODEL_VERSION,
+                       "calibrator_version": provider.calibrator_version(int(v["landmark_ms"])),
+                       "raw": raw, "published": published})
+    for r in level_race_c1_claims(shadow, now=now):
+        rep["c1_written"] += int(await conn.insert_claim(r) is not None)
     return rep
 
 

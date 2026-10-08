@@ -66,8 +66,8 @@ def _t15_event(b=B):
 
 def test_registry_holds_every_race_name_once():
     assert set(LR.CLASSES) == {"L2_LEVEL_RACE_HIST_T0_4H", "L2_LEVEL_RACE_HIST_T15_4H", "L3_LEVEL_RACE_T0_4H",
-                               "L3_LEVEL_RACE_T15_4H", "L3_GENERIC_RACE_4H"}
-    assert LR.CLASSES["L3_GENERIC_RACE_4H"]["display"] == ()              # journal only, never shown
+                               "L3_LEVEL_RACE_T15_4H", "L3_LEVEL_RACE_C1_T15_4H", "L3_GENERIC_RACE_4H"}
+    assert LR.CLASSES["L3_GENERIC_RACE_4H"]["display"] == () and LR.CLASSES[LR.C1_CLASS]["display"] == ()              # journal only, never shown
     assert LR.SETTINGS["model_states"] == "level_race.model_states_enabled"
     for cls in LR.HIST_CLASS.values():                                   # the journal knows the HIST classes
         assert cj.CLASSES[cls][2] == "LEVEL_RACE_4H_V1" and cls in LR.CLASSES
@@ -470,11 +470,15 @@ def test_venue_closes_never_fetch_a_minute_inside_the_e1_window():
 # ---- L3 shadow journal (PR-5, LEVEL_RACE_LIVE_JOURNAL_V1) --------------------------------------
 class _Provider:
     def __init__(self):
-        self.seen = []
+        self.seen, self.seen_c1 = [], []
 
     def predict(self, inputs):
         self.seen.append(dict(inputs))
         return {"up": 0.4, "dn": 0.35, "neither": 0.25}, {"up": 0.41, "dn": 0.34, "neither": 0.25}
+
+    def predict_c1(self, inputs):
+        self.seen_c1.append(dict(inputs))
+        return {"up": 0.45, "dn": 0.3, "neither": 0.25}, {"up": 0.44, "dn": 0.31, "neither": 0.25}
 
     def calibrator_version(self, t_ms):
         return "LEVEL_RACE_CAL_V1:test"
@@ -485,8 +489,9 @@ class _Provider:
 
 
 class _JournalConn:
-    def __init__(self, b, venue_rows=()):
+    def __init__(self, b, venue_rows=(), venue_error=False):
         self.rows, self.keys, self.venue_rows, self.fetches = [], set(), list(venue_rows), 0
+        self.venue_error = venue_error
 
     async def insert_claim(self, r):
         k = (r["claim_class"], r["subject_key"], r["issue_slot"])
@@ -498,6 +503,8 @@ class _JournalConn:
 
     async def fetch_live_klines_1m(self, *, exchange, symbol, start, end):
         self.fetches += 1
+        if self.venue_error:
+            raise ConnectionError("venue read failed")
         return [r for r in self.venue_rows if start <= r["ts"] < end]
 
 
@@ -506,8 +513,12 @@ def _l3_run(b, v, conn, now_ms, provider=None):
                                                capture={"bars": b}, provider=provider or _Provider()))
 
 
+def _rows(conn, cls):
+    return [r for r in conn.rows if r["claim_class"] == cls]
+
+
 def test_l3_classes_are_journal_classes_and_stay_out_of_the_hourly_touch_group():
-    for lm, cls in LR.L3_CLASS.items():
+    for cls in list(LR.L3_CLASS.values()) + [LR.C1_CLASS]:
         assert cj.CLASSES[cls][0] == "L3" and cj.CLASSES[cls][2] == "LEVEL_RACE_4H_V1"
         assert cls not in cj.HOURLY_GROUPS["touch"]
         assert re.fullmatch(r"[0-9a-f]{64}", cj.template_digest(cls))
@@ -533,44 +544,65 @@ def test_c1_block_keeps_every_close_as_read_and_lists_all_missing_venues():
     assert blk["instants_ms"] == [base, dec]
 
 
-def test_t15_record_waits_for_c1_up_to_three_minutes_then_is_written_missing():
+def test_a_missing_venue_never_delays_or_changes_the_champion_record():
+    e, v = _t15_event()
+    lm = v["landmark_ms"]
+    b = _cut(B, lm)
+    full = _venue_rows(b, LR.c1_instants(v["touch_open_ms"]))
+    champs = []
+    for conn in (_JournalConn(b), _JournalConn(b, venue_rows=full), _JournalConn(b, venue_error=True)):
+        prov = _Provider()
+        rep = _l3_run(b, v, conn, lm + 40_000, prov)
+        assert rep["l3_written"] == 1 and "OVMM" not in prov.seen[0]
+        r = _rows(conn, "L3_LEVEL_RACE_T15_4H")[0]
+        assert "c1" not in r["numbers"] and r["issue_slot"] == _ts(lm)
+        champs.append((r["numbers"], r["subject_key"], r["issue_slot"]))
+    assert champs[0] == champs[1] == champs[2]
+
+
+def test_c1_shadow_waits_up_to_three_minutes_then_is_written_missing_without_a_forecast():
     e, v = _t15_event()
     lm = v["landmark_ms"]
     b = _cut(B, lm)
     conn = _JournalConn(b)
-    rep = _l3_run(b, v, conn, lm + 40_000)
-    assert rep["l3_deferred"] == 1 and rep["l3_written"] == 0 and not conn.rows
-    rep = _l3_run(b, v, conn, lm + LR.C1_WAIT_MS + 40_000)
-    assert rep["l3_written"] == 1 and rep["c1_missing"] == {"bybit": 1, "okx": 1}
-    r = conn.rows[0]
-    assert r["claim_class"] == "L3_LEVEL_RACE_T15_4H" and r["numbers"]["inputs"]["OVMM"] is None
+    prov = _Provider()
+    rep = _l3_run(b, v, conn, lm + 40_000, prov)
+    assert rep["c1_deferred"] == 1 and rep["c1_written"] == 0 and not _rows(conn, LR.C1_CLASS)
+    rep = _l3_run(b, v, conn, lm + LR.C1_WAIT_MS + 40_000, prov)
+    assert rep["c1_written"] == 1 and rep["c1_missing"] == {"bybit": 1, "okx": 1} and not prov.seen_c1
+    r = _rows(conn, LR.C1_CLASS)[0]
+    assert r["numbers"]["inputs"]["OVMM"] is None and r["numbers"]["raw"] is None and r["numbers"]["published"] is None
     assert r["numbers"]["c1"]["missing"] == ["bybit", "okx"] and r["numbers"]["c1"]["read_at"]
+    assert r["subject_key"] == _rows(conn, "L3_LEVEL_RACE_T15_4H")[0]["subject_key"]      # pairs with the champion
 
 
-def test_t15_record_with_complete_c1_is_written_at_once_and_never_rewritten():
+def test_c1_shadow_with_complete_closes_is_written_at_once_and_never_rewritten():
     e, v = _t15_event()
     lm = v["landmark_ms"]
     b = _cut(B, lm)
     rows = _venue_rows(b, LR.c1_instants(v["touch_open_ms"]))
     conn = _JournalConn(b, venue_rows=rows)
     prov = _Provider()
-    assert _l3_run(b, v, conn, lm + 40_000, prov)["l3_written"] == 1
-    r = conn.rows[0]
-    assert r["numbers"]["c1"]["missing"] == [] and r["numbers"]["inputs"]["OVMM"] == prov.seen[0]["OVMM"]
-    assert r["subject"]["calibrator_version"] == "LEVEL_RACE_CAL_V1:test" and r["subject"]["state"] == "HIST"
-    assert r["subject"]["model_version"] == LR.MODEL_VERSION and r["numbers"]["published"]["up"] == 0.41
-    assert r["issue_slot"] == _ts(lm) and r["horizon_end"] == _ts(v["end_ms"])
+    assert _l3_run(b, v, conn, lm + 40_000, prov)["c1_written"] == 1
+    r = _rows(conn, LR.C1_CLASS)[0]
+    assert r["numbers"]["c1"]["missing"] == [] and r["numbers"]["inputs"]["OVMM"] == prov.seen_c1[0]["OVMM"]
+    assert r["numbers"]["published"]["up"] == 0.44 and r["subject"]["model_version"] == LR.MODEL_VERSION
+    champ = _rows(conn, "L3_LEVEL_RACE_T15_4H")[0]
+    assert champ["subject"]["calibrator_version"] == "LEVEL_RACE_CAL_V1:test" and champ["subject"]["state"] == "HIST"
+    assert champ["numbers"]["published"]["up"] == 0.41 and champ["horizon_end"] == _ts(v["end_ms"])
     conn.venue_rows = [{**x, "close": x["close"] * 1.01} for x in rows]     # a later gap-fill rewrites klines_1m
-    assert _l3_run(b, v, conn, lm + 120_000)["l3_written"] == 0 and len(conn.rows) == 1
+    rep = _l3_run(b, v, conn, lm + 120_000)
+    assert rep["c1_written"] == 0 and rep["l3_written"] == 0 and len(conn.rows) == 2
 
 
-def test_t0_record_does_not_wait_and_reads_no_other_venue():
+def test_t0_writes_only_the_champion_and_reads_no_other_venue():
     e, v = _t15_event()
     b = _cut(B, LR.landmark_ms(e, "T0"))
     v0 = LR.landmark_view(b, e, "T0", TABLE)
     conn = _JournalConn(b)
     rep = _l3_run(b, v0, conn, v0["landmark_ms"] + 40_000)
-    assert rep["l3_written"] == 1 and conn.fetches == 0 and conn.rows[0]["numbers"]["inputs"]["OVMM"] == 0.0
+    assert rep["l3_written"] == 1 and rep["c1_written"] == 0 and conn.fetches == 0
+    assert [r["claim_class"] for r in conn.rows] == ["L3_LEVEL_RACE_T0_4H"]
 
 
 def test_no_l3_record_before_the_freeze(monkeypatch):
@@ -583,15 +615,16 @@ def test_no_l3_record_before_the_freeze(monkeypatch):
     assert "l3_written" not in rep and all(r["claim_class"].startswith("L2_") for r in conn.rows)
 
 
-def test_report_counts_c1_missing_per_venue_on_t15_records():
+def test_report_counts_c1_missing_per_venue_on_the_shadow_records():
     e, v = _t15_event()
     lm = v["landmark_ms"]
     b = _cut(B, lm)
     conn = _JournalConn(b)
     _l3_run(b, v, conn, lm + LR.C1_WAIT_MS + 40_000)
     rep = LR.report(conn.rows)
-    c1 = rep["cells"]["MODEL:L3_LEVEL_RACE_T15_4H"]["c1"]
+    c1 = rep["cells"][f"MODEL:{LR.C1_CLASS}"]["c1"]
     assert c1 == {"records": 1, "complete": 0, "missing_by_venue": {"binance": 0, "bybit": 1, "okx": 1}}
+    assert "c1" not in rep["cells"]["MODEL:L3_LEVEL_RACE_T15_4H"]
 
 
 def test_calibrator_version_comes_from_f3_calibrator_at():
