@@ -58,6 +58,7 @@ Session ids are in §6, which the architect keeps current.
   - the scheduled checks wake the mini-heads and the architect;
   - at each check a mini-head that finds a track stopped by a limit tells it to continue from where it stopped;
   - the architect does the same for a stopped mini-head.
+- **Language** (owner, 2026-10-08): agents talk to each other in English — messages, reports, PR descriptions and briefs. Everything addressed to the owner (decisions, questions, deploy blocks, incidents) is in Russian. Product texts for users keep their own RU/EN rules.
 - **What a mini-head reports:** after each merged PR, each blocker and each owner-level question, a short report in its own session — what changed, the PR, the checks run, what it needs.
 
 ## 3a. Who checks whom
