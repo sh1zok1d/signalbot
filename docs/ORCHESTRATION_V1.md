@@ -62,6 +62,21 @@ Session ids are in §6, which the architect keeps current.
 - **Language** (owner, 2026-10-08): agents talk to each other in English — messages, reports, PR descriptions and briefs. Everything addressed to the owner (decisions, questions, deploy blocks, incidents) is in Russian. Product texts for users keep their own RU/EN rules.
 - **What a mini-head reports:** after each merged PR, each blocker and each owner-level question, a short report in its own session — what changed, the PR, the checks run, what it needs.
 
+## 3c. Session rotation (owner, 2026-10-08)
+
+Long sessions re-read their whole context on every turn, so cost grows with age while quality does not. Owner: «окей, все делай».
+
+- **One session per work package.** When a session closes a package (a PR merged, a deploy step recorded), it writes a handoff of at most one page as a message to its supervisor:
+  - what is done, with commit and PR numbers;
+  - what is open and the next step;
+  - risks;
+  - which documents hold the decisions.
+- **The supervisor starts the next session** from main, with the brief, the handoff and pointers to the governing documents. It then archives the old session.
+  - Mini-heads rotate their tracks.
+  - The architect rotates the mini-heads, moves their scheduled checks to the new session and updates the roster.
+- **When to rotate.** Rotate at package boundaries, never in the middle of a review or an open risky PR. Rough trigger: context above ~300k tokens.
+- **What carries over.** Decisions live in the repository, not in a chat, so nothing needed is lost. Anything only in a chat is written into the handoff or a document first.
+
 ## 3a. Who checks whom
 
 Owner, 2026-10-08: «Перепроверять и редтимить работу агента должны мини главы. Их отчеты должен уже редтимить ты».
