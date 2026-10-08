@@ -216,7 +216,8 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 | `offered_at` | when the price was offered ([T(20), T(25)), `PRODUCT_FIRST` days 21–25; once to each ACTIVE participant, inactive ones included; never after `/stop`, `/delete_me` or a bot block — a `Forbidden:` failure with no later SENT delivery; owner decision 2026-10-08, #416) |
 | `paid_at` | when a real transfer arrived; empty if none |
 | `amount`, `currency` | of that transfer |
-| `refunded_at` | a refund within 30 days cancels the payment |
+| `refunded_at` | a refund within 30 days cancels the payment, whoever initiated it |
+| `refund_reason` | `request` (the participant asked) or `our_side` (we cancelled the start or closed the service) |
 
 - **Never stored:** bank or card details, screenshots, the payer's real name, payment-reference text, unless operationally unavoidable.
 - **What counts as payment.** A willingness statement, a promise or a "would pay" is **not** a payment. Only a row with `paid_at` and no `refunded_at` within 30 days counts.
@@ -248,6 +249,13 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 
   - **Fuses.** The safety fuses (4 push decisions and 8 level+move decisions per UTC day, `config/beta_v0.yaml`) count unique decisions. Each decision is delivered to every eligible participant, so participant growth never exhausts them.
 - **PASS** (owner, 2026-10-08): with P = unknown enrolled participants who paid and were not refunded within 30 days, and E = **every enrolled unknown participant, including those not offered** (§1.3), U3 PASS ⇔ P ≥ 3 AND P / E ≥ 25 %.
+- **Refunds** (owner amendment, 2026-10-08). The rule stays: **any** refund within 30 days of payment removes that payment from P, whoever initiated it. Reported separately, beside PASS:
+  1. initial voluntary payments: count and share of E;
+  2. refunds at the participant's request;
+  3. refunds because we cancelled the start or closed the service;
+  4. payments with no refund after 30 days: the main U3.
+
+  If we did not provide the continuation, the report states that sustained paid demand could not be tested, for a reason on our side. The initial payments stay as evidence of willingness to buy and never turn U3 into a PASS. The ledger records each refund's reason (`refund_reason`: `request` / `our_side`).
 - **The funnel, reported beside it:** enrolled → offer allowed (ACTIVE, not blocked) → delivered → paid → refunded.
 
 ## 8. Privacy

@@ -195,10 +195,11 @@ The owner removed the interviews on 2026-10-08. What participants write on their
 
 ## 10. The payment offer (U3)
 
-- **What counts.** A real transfer only; a promise or a "would pay" is not a payment. A refund within 30 days cancels it (contract §7).
+- **What counts.** A real transfer only; a promise or a "would pay" is not a payment. Any refund within 30 days cancels it, whoever initiated it (owner amendment 2026-10-08, contract §7). The ledger records the refund reason (`request` / `our_side`).
+- **Reported separately** (owner, 2026-10-08): initial payments (count and share of E), refunds on request, refunds because we cancelled the start or closed the service, and payments unrefunded after 30 days (the main U3). If we did not provide the continuation, the report says sustained paid demand could not be tested for a reason on our side; the initial payments never turn U3 into a PASS.
 - **Price and method** are the ones in the pre-invitation commit (`access.u3_offer`); the link is in the private ledger.
 - **Sending.** `/admin_offer` shows a preview; `/admin_offer send` sends the offer once to each ACTIVE participant, inactive ones included, in [T(20), T(25)); never after `/stop`, `/delete_me` or a bot block (a `Forbidden:` failure with no later SENT delivery). The owner's reply counts the skipped stopped, blocked and deleted participants (#416). A second `send` is refused (#405); `send again` is reserved for a failed send and is logged as such.
-- **The owner's output** is the fingerprints and the time, copied into the U3 ledger (`participant_fingerprint`, `known_contact`, `offered_at`, `paid_at`, `amount`, `currency`, `refunded_at`), kept outside git.
+- **The owner's output** is the fingerprints and the time, copied into the U3 ledger (`participant_fingerprint`, `known_contact`, `offered_at`, `paid_at`, `amount`, `currency`, `refunded_at`, `refund_reason`), kept outside git.
 - **Late joiners.** A participant who joins at or after T(12) is not enrolled (contract §1.3): whatever they receive or pay is reported and never enters U3.
 - **No reminder.** A transfer at or after T(25) does not count. Questions about payment come back through `/feedback` or a reply and are answered factually.
 - **What is paid for** (owner, 2026-10-08): one month of the same bot (BTC, all current functions), starting at the **actual** end of the free test: T(30) without an extension, T(44) with one. The offer text says in advance that an extension is possible and moves the start (#416). Refund terms (owner, 2026-10-08): `docs/BETA_MEASUREMENT_CONTRACT_V1.md` §7, stated in the offer text. The amount, currency and method come later; until then `/admin_offer` refuses.
