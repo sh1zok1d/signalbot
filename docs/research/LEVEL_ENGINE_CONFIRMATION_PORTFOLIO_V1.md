@@ -71,6 +71,10 @@ There is no P1 and no P2. No same-instrument historical surface is both outcome-
 - **Prospective collection.** Required.
 - **Key exposure issue.** The discovery Bybit and OKX files, and the live product tape, are not an untouched confirmation panel.
 
+### Later owner decision (2026-10-08)
+
+P3-2 is replaced. Owner, asked whether to replace the separate prospective confirmation of the #363 primary coefficient by a challenger in the live level forecast: «Да». The cross-venue term enters `docs/FORECAST_LAYER_DECISION_V1.md` as challenger C1 and is judged by paired prospective log-loss gain against the champion on the same events (§7 there). No P3-2 design is frozen. The frozen #363 record, its class and `LEVEL_SPECIFICITY = NOT_ESTABLISHED` are unchanged.
+
 ## Rejected
 
 | Unit | Class | Why it is not a target |

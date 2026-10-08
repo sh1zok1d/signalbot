@@ -10,6 +10,7 @@ DAY_0                     = not declared; follows build, measurement re-freeze, 
 HISTORY_FIRST_RULE        = held-out history with a label now; live tracking joins automatically (§4)
 CHECK_WORDING             = "B": «шанс ≈ X%» + held-out accuracy + live accuracy when mature (§5)
 TWO_LEVEL_CHECK           = touch chance of each level + chance of neither; "which first" post-beta (§5)
+                            (amended 2026-10-08: the race at structural levels is in scope — FORECAST_LAYER_DECISION_V1, §11)
 RESEARCH_METHOD           = O1: EVIDENCE_AND_CLAIMS unchanged (§6.8)
 MEASUREMENT_CONTRACT      = not frozen; amended and frozen on the final build commit (§6.7)
 ```
@@ -55,7 +56,7 @@ Text clean-up found by the audits is part of C: research IDs off the main screen
 | ETH as a second asset (G) | `PRODUCT_DECISION_V2` §3 multi-asset ban; it would also contaminate U5, which measures demand for other coins. |
 | Historical CPI/FOMC move sizes (G) | Event zones in V2 show no calibrated sizes; D11 stays in `/research`. |
 | Fake doors with a price and a tariff page with prices (H, I) | Distort U3, which is a real transfer offered on days 21–25. |
-| «Кто первый» for two levels (D) | A directional first-passage line: DH1/DH2 earned no probability line for the bot (AGENTS.md), and on BTC history the upward drift would make the line read as a call. |
+| «Кто первый» for two levels (D) — **amended 2026-10-08 (§11): moved into scope at structural levels; two user prices allowed under the same gates as an architect's call** | A directional first-passage line: DH1/DH2 earned no probability line for the bot (AGENTS.md), and on BTC history the upward drift would make the line read as a call. The amendment answers this with the driftless geometric «обычно», calibration gates and a fallback (`FORECAST_LAYER_DECISION_V1.md` §6–§7). |
 | The automatic «больше не присылать такие?» prompt after 2 of 3 👎 (F) | Unhappy users would stop receiving pushes and inflate the U2 Useful share. |
 
 ### 2.3 Never (unchanged)
@@ -149,3 +150,14 @@ Built now, in parallel with the product work. Research-supporting tooling, not a
 
 - `main` = `c2b1316`. Production = `c980fae`: C1 deployed by the owner on 2026-10-05 12:44 UTC, smoke 27 PASS / 0 WARN / 0 FAIL, context `BETA_CONTEXT_1H_V3`, analogues `BETA_ANALOGUES_V2` (owner-reported). `c980fae..c2b1316` touches research documents only, so production equals `main` for the product; #319, #322, #326, #327 and #329 are in production. Records that still name `a16b876` as production are stale.
 - The compiler V3 variance line is closed (`research/COMPILER_V3_VARIANCE_LINE_CLOSURE_V1.md`); `research/hypothesis-evaluation-contract-v2-draft` is merged through #328.
+
+## 11. Amendment of 2026-10-08 — the forecast layer (owner decision)
+
+Owner: «Показывать хочу сразу в бете и это надо изменить в документах. Решение владельца.» Recorded in full in `FORECAST_LAYER_DECISION_V1.md`.
+
+- **§2.2 «Кто первый».** The race of the two barriers of a structural first touch (BREAK first / REJECT first / neither within 4h) is in the pre-beta scope and shown from Day 0 under `FORECAST_LAYER_DECISION_V1.md` §6. The race of two user prices in `/check` uses the same engine and gates; it is built before Day 0 only if it costs Day 0 nothing (architect's call), otherwise it stays post-beta. The two-level touch chances and «ни один» of §5 are unchanged.
+- **§2.3 "new research programs to produce a feature".** One bounded exception: the forecast program of that file (model development on 2020–2024, a one-shot held-out check on 2025-01-01 → freeze without the E1 holdout, live calibration). It opens no other program.
+- **§4 history first** applies to the layer as written.
+- **§6.7 measurement contract.** Before its freeze it registers the T0 line in the level push, the T15 surfaces and the journal classes `L3_LEVEL_RACE_T0_4H` / `L3_LEVEL_RACE_T15_4H`. No new push type.
+- **§9 path to Day 0.** The layer's Day-0 gate is a frozen model, the held-out check run once and live logging running. A missed held-out tolerance ships the layer in `HIST` / `FALLBACK` and does not delay Day 0.
+- **Chain of command:** `ORCHESTRATION_V1.md`.

@@ -1,3 +1,12 @@
+## Forecast layer and Level Engine routing — owner decision — 2026-10-08
+
+`DECISION = docs/FORECAST_LAYER_DECISION_V1.md | chain of command docs/ORCHESTRATION_V1.md`
+`PROGRAM = level race forecast (BREAK first / REJECT first / neither, 4h; T0 and T15) | owner ОПГ-2 | display in the beta from Day 0 under §6 gates`
+`DEVELOPMENT = CORE_BTC_BINANCE_V0 2020–2024 | HELD_OUT = Binance BTCUSDT 2025-01-01 → freeze, E1 holdout excluded, read once after the freeze | LIVE = claim journal classes L3_LEVEL_RACE_T0_4H / _T15_4H`
+`P3-2 (#363 prospective coefficient) = REPLACED by challenger C1 (paired prospective log-loss) | #363 record unchanged`
+`#368 PROSPECTIVE = accruing from 2026-10-09T00:00Z | forward panel bound (LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_PANEL_BINDING_V1) | never a gate`
+`NEXT_UNIT = the forecast model design note (before any held-out read)`
+
 ## LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 — design frozen; accruing; no outcome — 2026-10-08
 
 `UNIT = LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 (atlas LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1; family LEVEL_BEHAVIOR_V1; MODE = CONFIRMATION; ACCRUAL = PROSPECTIVE_ONLY; SURFACE_EVIDENCE_CLASS = PRISTINE_CONFIRMATION for the exact claim after the frozen start)`
