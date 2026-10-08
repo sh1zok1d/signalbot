@@ -322,8 +322,9 @@ DECISION_CATALOG: dict = {
                                 "After the first touch: no interval computed yet ({n})"),
     "pa_level_move": _pair("За 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
                            "1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
-    "pa_next": _pair("Следующий уровень: {price} — {name} ({dist}), за 24ч доходили в {p}",
-                     "Next level: {price} — {name} ({dist}), reached within 24h in {p}"),
+    # the touch chance by the /btc rule, only in mode B with its own check; otherwise no number (pa_next_nop)
+    "pa_next": _pair("Следующий уровень: {price} — {name} ({dist}) · за 24ч ≈ {p}; говорили → было: {cal}",
+                     "Next level: {price} — {name} ({dist}) · within 24h ≈ {p}; said → happened: {cal}"),
     "pa_next_nop": _pair("Следующий уровень: {price} — {name} ({dist})", "Next level: {price} — {name} ({dist})"),
     # the 4h corridor is a forecast: with its record (the /btc rule) or, without one, only as «сейчас»
     "pa_corridor": _pair("Коридор 4ч: {low}–{high} (±{half}) · внутри бывало {rec} (расчёт — {share})",
