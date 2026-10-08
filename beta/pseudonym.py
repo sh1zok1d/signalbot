@@ -69,6 +69,12 @@ def clear_key() -> None:
     _KEY = None
 
 
+def legacy_pseudonym(telegram_user_id: int) -> str:
+    """The unkeyed form printed before the switch: audit rows written then still hold it, so the deletion path
+    de-identifies both forms (#420). Never used for a new row."""
+    return "u_" + hashlib.sha256(f"signalbot-beta-v0:{int(telegram_user_id)}".encode()).hexdigest()[:12]
+
+
 def pseudonym(telegram_user_id: int) -> str:
     if _KEY is None:
         raise FingerprintKeyError(f"{KEY_ENV} was not loaded at start; fingerprints are refused")

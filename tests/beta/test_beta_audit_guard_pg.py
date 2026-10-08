@@ -9,6 +9,7 @@ import asyncpg
 import pytest
 
 from beta.admin import fingerprint
+from beta.pseudonym import legacy_pseudonym
 from beta.i18n import KYIV
 from beta_fakes import CFG, ON, TEST_DSN, Clock, fresh_pool, run
 from storage.beta_v0_store import BetaStore
@@ -86,6 +87,7 @@ def test_everything_else_stays_append_only():
         gone, live = fingerprint(GONE), fingerprint(LIVE)
         i = await _audit(pool, "admin_known", "u_owner", gone, {"known_contact": True})
         j = await _audit(pool, "admin_known", "u_owner", live, {"known_contact": True})
+        await _audit(pool, "admin_known", "u_owner", legacy_pseudonym(LIVE), {"known_contact": True})  # pre-#423 row
         day = "date_trunc('day', recorded_at AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv'"
         ok = f"target_fingerprint=NULL, detail='{{}}', recorded_at={day}"
         refused = [
@@ -103,13 +105,63 @@ def test_everything_else_stays_append_only():
             f"SELECT set_config('signalbot.audit_deidentify_fps', '{gone}', true), "
             f"set_config('signalbot.audit_deidentify_role', 'participant', true); "
             f"UPDATE beta_admin_audit SET {ok} WHERE audit_id={j}",                           # someone else's row
-            f"SELECT beta_audit_deidentify(ARRAY['{live}'], 'participant')",                  # someone still present
+            # someone still present: SQL can check only the legacy form (no key in SQL); the keyed form is refused
+            # in Python by the store before the call (test_a_live_keyed_fingerprint_is_refused_before_the_update)
+            f"SELECT beta_audit_deidentify(ARRAY['{legacy_pseudonym(LIVE)}'], 'participant')",
         ]
         for sql in refused:
             async with pool.acquire() as c:
                 with pytest.raises(asyncpg.InsufficientPrivilegeError):
                     async with c.transaction():
                         await c.execute(sql)
-        assert await pool.fetchval("SELECT count(*) FROM beta_admin_audit WHERE target_fingerprint IS NOT NULL") == 2
+        assert await pool.fetchval("SELECT count(*) FROM beta_admin_audit WHERE target_fingerprint IS NOT NULL") == 3
+        await pool.close()
+    run(body())
+
+
+def test_a_live_keyed_fingerprint_is_refused_before_the_update():
+    """#423: the store checks, with the key, that no fingerprint passed belongs to anyone still present (keyed or
+    legacy) and raises before beta_audit_deidentify runs; nothing changes."""
+    from storage.beta_v0_store import AuditDeidentifyRefused
+
+    async def body():
+        pool = await fresh_pool()
+        await pool.execute("INSERT INTO beta_allowlist VALUES ($1, now())", LIVE)
+        j = await _audit(pool, "admin_known", "u_owner", fingerprint(LIVE), {"known_contact": True})
+        k = await _audit(pool, "admin_known", "u_owner", legacy_pseudonym(LIVE), {"known_contact": True})
+        for fps in ([fingerprint(LIVE)], [legacy_pseudonym(LIVE)], [fingerprint(GONE), fingerprint(LIVE)]):
+            async with BetaStore(pool).connect() as conn:
+                with pytest.raises(AuditDeidentifyRefused):
+                    async with conn.transaction():
+                        await conn.deidentify_audit(fps, "participant")
+        rows = await pool.fetch("SELECT audit_id, target_fingerprint, detail FROM beta_admin_audit ORDER BY audit_id")
+        assert [(r["audit_id"], r["target_fingerprint"]) for r in rows] == [(j, fingerprint(LIVE)),
+                                                                            (k, legacy_pseudonym(LIVE))]
+        await pool.close()
+    run(body())
+
+
+def test_deletion_de_identifies_both_the_keyed_and_the_legacy_rows():
+    """Rows written before the keyed switch hold the legacy fingerprint, rows after it the keyed one: deleting the
+    participant de-identifies both; a live person's rows in either form stay."""
+    async def body():
+        from runtime.beta_bot import BetaBotHandler
+        pool = await fresh_pool()
+        store = BetaStore(pool)
+        h = BetaBotHandler(store, CFG, switches=lambda: ON, owner_user_id=OWNER, clock=Clock(NOW))
+        await _join(h, store, GONE, 10)
+        await _join(h, store, LIVE, 20)
+        keyed, legacy = fingerprint(GONE), legacy_pseudonym(GONE)
+        assert keyed != legacy
+        mine = [await _audit(pool, "admin_known", "u_owner", keyed, {"known_contact": True}),
+                await _audit(pool, "admin_known", "u_owner", legacy, {"known_contact": True})]
+        theirs = [await _audit(pool, "admin_known", "u_owner", fingerprint(LIVE), {"known_contact": True}),
+                  await _audit(pool, "admin_known", "u_owner", legacy_pseudonym(LIVE), {"known_contact": True})]
+        async with store.connect() as conn:
+            out = await conn.delete_participant(GONE, owner_user_id=OWNER)
+        assert out["audit"] == 2
+        rows = {r["audit_id"]: r for r in await pool.fetch("SELECT * FROM beta_admin_audit")}
+        assert all(rows[i]["target_fingerprint"] is None and json.loads(rows[i]["detail"]) == {} for i in mine)
+        assert [rows[i]["target_fingerprint"] for i in theirs] == [fingerprint(LIVE), legacy_pseudonym(LIVE)]
         await pool.close()
     run(body())

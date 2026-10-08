@@ -85,6 +85,11 @@ async def apply_beta_schema(conn) -> None:
         await conn.execute(sql)
 
 
+
+class AuditDeidentifyRefused(RuntimeError):
+    """A de-identification was asked for a fingerprint of someone still present; nothing was changed."""
+
+
 class BetaStore:
     """Pool-level entry point. `async with store.connect() as c:` yields a BetaConn."""
 
@@ -1219,10 +1224,28 @@ class BetaConn:
             # owner, 2026-10-08 (#420): the audit rows about them are de-identified in the same transaction
             role = "owner" if owner_user_id is not None and int(owner_user_id) == int(telegram_user_id) \
                 else "participant"
-            audit = await self.conn.fetchval("SELECT beta_audit_deidentify($1::text[], $2)",
-                                             [fingerprint(telegram_user_id)], role)
+            # both forms: rows written before the keyed switch hold the legacy one (#423)
+            from beta.pseudonym import legacy_pseudonym
+            audit = await self.deidentify_audit([fingerprint(telegram_user_id), legacy_pseudonym(telegram_user_id)],
+                                                role)
         return {"users": int(users.split()[-1]), "allowlist": int(allow.split()[-1]),
                 "waitlist": int(wait.split()[-1]), "counted": bool(counted), "audit": int(audit)}
+
+    async def deidentify_audit(self, fps, role: str) -> int:
+        """`beta_audit_deidentify(fps, role)` after a check in Python, with the key: none of `fps` may be the keyed
+        or the legacy fingerprint of anyone still in beta_users, beta_allowlist or beta_waitlist. The SQL guard
+        can check only the legacy form (SQL has no key), so this is the defense for the keyed one (#423).
+        A refusal raises before any UPDATE and rolls back the caller's transaction."""
+        from beta.admin import fingerprint
+        from beta.pseudonym import legacy_pseudonym
+        fps = [str(f) for f in fps]
+        live = await self.conn.fetch("""SELECT telegram_user_id AS id FROM beta_users
+                                        UNION SELECT telegram_user_id FROM beta_allowlist
+                                        UNION SELECT telegram_user_id FROM beta_waitlist""")
+        taken = {f(int(r["id"])) for r in live for f in (fingerprint, legacy_pseudonym)}
+        if taken.intersection(fps):
+            raise AuditDeidentifyRefused("a fingerprint passed for de-identification belongs to someone still present")
+        return int(await self.conn.fetchval("SELECT beta_audit_deidentify($1::text[], $2)", fps, role))
 
     async def insert_deletion_audit(self, *, action: str, actor_kind: str, now: datetime) -> None:
         """A deletion's audit row (contract §1.5): the action, the result and the kind of actor
