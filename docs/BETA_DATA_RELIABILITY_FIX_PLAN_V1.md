@@ -1,12 +1,28 @@
 # Beta data reliability — fix plan V1 (DRAFT)
 
-Status: **DRAFT, not scheduled.** Written 2026-10-06 from a code verification of an external review of one bot summary (the 24h tab / `/catchup` / briefing lines). The owner reviews it on 2026-10-08; nothing here is authorised to build until then. It changes no decision and no frozen record.
+Status: **DRAFT, not scheduled.** Written 2026-10-06 from a code verification of an external review of one bot summary (the 24h tab / `/catchup` / briefing lines); updated 2026-10-08 with the owner's read-only VPS checks (§0). Nothing here is authorised to build until the owner says so. It changes no decision and no frozen record.
 
 Scope of the verification: code on `origin/main` 1a2e425, compared with production `c980fae`. The collector, Stage-2 and tape code involved is identical on both; the only difference is `beta/derivatives.py` (the «обычно» comparators), which exists from `d0652d1` on. A summary that showed «обычно ±2,2%» therefore came from `d0652d1` or later. No VPS data was read: the items marked **confirm on VPS** rest on code, documents and small live probes.
 
+## 0. VPS checks (owner, 2026-10-08 ~09:45–09:56 UTC, read-only)
+
+| Check | Result | Effect on this plan |
+|---|---|---|
+| Code on disk | `1a2e425`, clean tree | — |
+| `signalbot-beta-bot.service` | running since 2026-10-06 14:07:31 UTC (after the deploy) | the beta runs `1a2e425` |
+| `signalbot.service` (Stage-1 collector) | running since 2026-10-04 01:30:23 UTC, before the last deploys | its loaded code is unknown, but `data_ingestion/` is identical from `c980fae` to `1a2e425`, so the collector behaves as audited. A collector fix needs a restart of this unit |
+| OKX liquidations | **0 rows** in `liquidations`; the journal shows WebSocket drops and reconnects, no explicit subscribe refusal in the lines shown | R1 confirmed as "nothing stored". Consistent with the swallowed error frame (`okx_client.py:113-114`) followed by OKX closing an unsubscribed socket; the cause is still to be proven in the fix. **No inflated OKX sums exist to correct** |
+| Bybit sides vs mark (7 days) | recorded `long`: 2835/2837 **above** mark; recorded `short`: 3799/3800 **below** mark | **R2 confirmed** (a liquidated long has its bankruptcy price below mark) |
+| Binance control | `long` 2616/2813 below mark; `short` 2061/2473 above; mark found for every row of both venues | the method works; Binance sides are right |
+| Funding freshness | newest rows 8–13 s old on all three venues | — |
+| Funding gaps (30 days) | none over 1 h; maxima Binance 21:29, Bybit 21:35, OKX 21:35 (min:s) | the maxima coincide with the 2026-10-02 power-cycle outage. R3 freshness risk real but not observed: MEDIUM → LOW-MEDIUM |
+| Funding settlements, 1–7 Oct | Binance, Bybit: 3 distinct `next_funding_time` per day; OKX: 4 on 2–3 Oct from one transition row, steps of 8 h | R3 interval: all 8 h, latent. OKX stores `nextFundingTime` = the settlement **after** the current one (`fundingTime`), seen as 16:00 shortly after 00:00; nothing reads the column today, but any interval check must use OKX `fundingTime` |
+| Live 1m bars BTCUSDT (7 days) | each venue 10 058 / 10 080 (99.78 %); 22 minutes missing on 2 Oct on all three, other days complete | R7: no venue lags; the joint gap is the 2026-10-02 outage. Whether the missing minutes coincide exactly was not checked. R7 stays LOW |
+| Backups | local restore self-test 2026-10-06: `SELF_TEST_RESULT: PASS`; the off-site (Google Drive) copy check skipped by owner decision | — |
+
 ## 1. Findings, by severity
 
-### R1. OKX liquidations are not measured; the bot prints a measured «OKX $0» — HIGH
+### R1. OKX liquidations are not measured; the bot prints a measured «OKX $0» — HIGH, 0 rows confirmed on the VPS (§0)
 - **Collector.** `data_ingestion/okx_client.py:36,89-93` subscribes `liquidation-orders` on `wss://ws.okx.com:8443/ws/v5/business`. A live probe on 2026-10-06 got `60018 … channel:liquidation-orders … doesn't exist` there, while `/ws/v5/public` accepts the same subscribe (current OKX docs list the channel under `/public`). The error frame is dropped (`okx_client.py:113-114`). Earlier evidence: 0 OKX rows in the 2026-07-16 soak (`docs/STAGE1_ACCEPTANCE.md:136-141`); "no OKX liquidation rows" in `docs/E1_DATA_INVENTORY_2026-08-25.md:15`.
 - **Formula.** Even when rows arrive, `okx_client.py:121-127` stores `notional = bkPx × sz` with `sz` in contracts (ctVal 0.01 BTC): about 100× too large. `beta/levels.py:41-43` already knows this and keeps OKX out of the level clusters. ctVal is applied to OKX bar volume/taker only (`analytics/feature_engine/units.py`), never to liquidations.
 - **Flag clash.** The collector writes `is_snapshot_feed=True`; OKX's capability is `aggregated` (`common/capabilities.py:68`), so a real OKX row raises in `input_adapter.py:483-490` and drops the whole OKX feature vector for that bucket (price, OI, volume, liquidations).
@@ -14,11 +30,11 @@ Scope of the verification: code on `origin/main` 1a2e425, compared with producti
 - **Votes.** OKX sits in the denominator of «k из 3 бирж» (`formatter.py:199-204, 224-228, 734-740`) but with an all-zero history its rank is 0.5 forever, so it can never vote: liquidation stress in effect needs Binance and Bybit together. `readiness.py` reports OKX liquidations READY.
 - **History.** False OKX 0.0 values are persisted append-only in `beta_state_tape` (metrics and 30-day percentiles), `beta_context_snapshots` and `beta_btc_views` (payload and rendered HTML). Liquidations are live-only, so there is nothing to backfill.
 
-### R2. Bybit liquidation sides are probably swapped — HIGH, confirm on VPS
+### R2. Bybit liquidation sides are swapped — HIGH, confirmed on the VPS (§0)
 - `data_ingestion/bybit_client.py:70-78` maps `S == "Buy"` to `short`. Bybit's v5 `allLiquidation` docs say a Buy update means a **long** was liquidated. A live probe of 17 events matched the docs 17/17 (bankruptcy price below mark for Buy, above for Sell). Small sample.
 - Affects the Bybit long/short cells, the per-side liquidation votes and «вынос» labels, and the LIQ_LONG / LIQ_SHORT level clusters (built from Binance + Bybit).
 
-### R3. Funding has no freshness bound and no interval — MEDIUM
+### R3. Funding has no freshness bound and no interval — LOW-MEDIUM (no gap over 1 h and all venues 8 h on the VPS, §0)
 - **Freshness.** `storage/stage2_readers.py:46-53` takes the latest row before the bucket end with no lower bound (pinned by `tests/storage/test_stage2_feature_readers.py:171-172`). A venue whose funding poll stops keeps its last rate in the cross-venue median indefinitely, with no user-visible sign. Funding is not a core family, so the status never degrades. OI, by contrast, has a 2-minute bound.
 - **Interval.** No venue's funding interval is stored (`base_client.py:47-53`, `schema.sql:68-76`); rates are medianed as directly comparable (`docs/STAGE2_SPEC.md:385-387`). Latent today: BTCUSDT settles every 8h on all three venues.
 - **Coverage.** «среднее за 24 ч» is the mean over whatever 5m buckets exist; one bucket of 288 is enough (`horizons.py:216-225`). «Funding стал положительным/отрицательным» has no coverage rule and no size threshold; it fires on a rate that prints as «-0,000%» (`horizons.py:359-362, 407`).
@@ -75,7 +91,17 @@ One line each; each needs its own design check before code. Collector changes ar
 7. **R7** — mark volume partial when any bucket has fewer than three venues; build the 30-day median from full-venue days.
 8. **R8** — if coverage is ever shown, show it per venue.
 
-## 4. Confirm on the VPS (read-only)
+## 3a. Proposed work packages (for the owner's go)
+
+Each package: its own PR, the usual merge rule, a test per fix that fails before it, no deploy without the owner.
+
+- **D1 — collectors (R1, R2).** OKX: subscribe on `/ws/v5/public`, log the subscribe acknowledgement and any error frame, multiply `sz` by ctVal, make `is_snapshot_feed` agree with the `aggregated` capability. Bybit: map `S=Buy` → `long`, `Sell` → `short` after re-reading the raw message (`p` is the bankruptcy price). Record the cutover time. Deploy needs `sudo systemctl restart signalbot.service`.
+- **D2 — derived history and display (R1, R2).** Until OKX has real history: print OKX liquidations «н/д», keep OKX out of the «k из n» denominator and out of readiness READY. Keep pre-cutover OKX zeros and pre-cutover Bybit rows out of the 30-day per-venue per-side percentile history (or read Bybit pre-cutover rows with sides swapped in a derived view; the raw table keeps its bytes). Name the affected surfaces: per-side votes and «вынос» labels, LIQ_LONG / LIQ_SHORT clusters (24 h window, heal a day after cutover), signature-index states recorded since K.
+- **D3 — honest labels (R3–R7).** Funding: beta-side age bound per venue, coverage rule for the 24 h mean and for «стал положительным/отрицательным» plus a size threshold, «за 8 ч» in the text. OI: «медиана бирж» and ≥ 2 venues on 24 h. «обычно»: like-for-like comparator and «Binance» on every surface. «Крупных изменений нет»: name the checks, never print it when not computable. Volume: partial when a bucket has fewer than three venues.
+
+D1 and D2 do not overlap track B's files except `beta/formatter.py` / `beta/i18n.py` for the OKX «н/д» text; D3 touches the same surfaces as track B's packages, so it merges after them or with merge commits.
+
+## 4. Confirm on the VPS (read-only) — done 2026-10-08, see §0
 
 ```bash
 git -C /opt/signalbot rev-parse --short HEAD
