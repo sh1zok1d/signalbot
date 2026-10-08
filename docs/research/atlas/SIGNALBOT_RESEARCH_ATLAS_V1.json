@@ -801,7 +801,9 @@
   },
   {
    "col": "PERP_FLOW",
-   "counts": {},
+   "counts": {
+    "CLOSED_ON_SURFACE": 1
+   },
    "frontier_eligible": true,
    "mixed": false,
    "native": false,
@@ -809,16 +811,18 @@
    "revisit": [],
    "row": "PRICE_STRUCTURE.levels",
    "row_name": "Reaction at levels (prior highs/lows, round numbers)",
-   "state": "OPEN_FRONTIER",
-   "units": [],
+   "state": "CLOSED_ON_SURFACE",
+   "units": [
+    "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1"
+   ],
    "value": {
     "confirmation_path": 2,
     "data_readiness": 3,
-    "novelty": 2,
+    "novelty": 0,
     "owner_priority": 0,
     "product_relevance": 3,
     "saturation": 3,
-    "total": 7
+    "total": 5
    }
   },
   {
@@ -10168,23 +10172,23 @@
    "BLOCKED_DATA": 4,
    "BLOCKED_METHOD": 21,
    "CANDIDATE_UNTESTED": 3,
-   "CLOSED_ON_SURFACE": 12,
+   "CLOSED_ON_SURFACE": 13,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 5,
    "FUTURE_NATURAL_ACCUMULATION": 2,
    "INFORMATIONALLY_WEAK": 8,
    "LIVE_SIGNAL": 6,
    "NO_STRUCTURE": 21,
-   "OPEN_FRONTIER": 353
+   "OPEN_FRONTIER": 352
   },
-  "units": 202,
+  "units": 203,
   "units_by_state": {
    "BLOCKED_DATA": 20,
    "BLOCKED_GOVERNANCE": 1,
    "BLOCKED_METHOD": 61,
    "CANDIDATE_UNTESTED": 14,
    "CLOSED_BEFORE_START": 1,
-   "CLOSED_ON_SURFACE": 26,
+   "CLOSED_ON_SURFACE": 27,
    "CONFIRMED": 1,
    "EXPOSED_ONLY": 11,
    "FUTURE_NATURAL_ACCUMULATION": 3,
@@ -12502,19 +12506,6 @@
     "owner_priority": 0,
     "product_relevance": 3,
     "saturation": 2,
-    "total": 7
-   }
-  },
-  {
-   "col": "PERP_FLOW",
-   "row": "PRICE_STRUCTURE.levels",
-   "value": {
-    "confirmation_path": 2,
-    "data_readiness": 3,
-    "novelty": 2,
-    "owner_priority": 0,
-    "product_relevance": 3,
-    "saturation": 3,
     "total": 7
    }
   },
@@ -15560,7 +15551,7 @@
    ]
   }
  ],
- "SOURCES_DIGEST": "d335ec3a68bd8e667e69545bc739953b0bdf06c0f0a8174d054e33184c26e6ff",
+ "SOURCES_DIGEST": "eadbf8a778b0688ca0f0d8681e05d1b1028d1960664f15f104c4f08df3524653",
  "STATES": {
   "BLOCKED_DATA": {
    "meaning": "No permitted data exists for the test (missing, unpinned, not legally timestamped, not collected).",
@@ -15806,6 +15797,14 @@
       "status": "CONSUMED"
      },
      {
+      "note": "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1 one-shot (unsigned executed notional inside the frozen structural zone during the first 15m, conditional on END_POSITION_X and the other-perp median move, among first touches still unresolved at T+15m -> remaining 4h BREAK vs REJECT), 2026-10-08; structural OHLC is the level reference only; further exposure, not a confirmation and not a reopen of FLOW.taker_imbalance or FLOW.absorption",
+      "period": "2020-04-01T00:05Z..2024-12-31",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
       "note": "TOM-BASELINE-V1 product-evidence run (turn-of-month vs mid-month label rates and day-level volume / trade count / range), 2026-10-06; first turn-of-month contrast computed on this surface",
       "period": "2020-2024",
       "rows": [
@@ -15945,12 +15944,23 @@
     ],
     "availability": "ACQUIRABLE",
     "col": "PERP_FLOW",
-    "coverage": "official archive from 2020 (not materialized)",
+    "coverage": "official archive from 2020 (raw archive not materialized in git)",
     "data": "raw trades / aggTrades (tick, aggressor side)",
+    "exposure": [
+     {
+      "note": "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1 read Binance USD-M BTCUSDT aggTrades only for event-level unsigned quote notional inside frozen structural zones; March 2020 is pre-touch lookback; aggressor side not used; raw zips deleted after checksum verification; 58 months; no 2025/2026 object",
+      "period": "2020-03..2024-12",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     }
+    ],
     "id": "BINANCE_UM_TRADES_AGGTRADES_ARCHIVE",
     "instrument": "BTCUSDT perpetual",
     "records": [
-     "docs/HISTORICAL_DATA_STRATEGY.md"
+     "docs/HISTORICAL_DATA_STRATEGY.md",
+     "docs/research_data/LEVEL_ZONE_TRADES_V0"
     ],
     "venue": "Binance USD-M"
    },
@@ -16262,6 +16272,14 @@
      },
      {
       "note": "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1: same pinned OKX BTC-USDT-SWAP series reused as the cross-perp control, not reminted and not OKX spot; not a confirmation of LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1",
+      "period": "2020-04-01T00:00Z..2024-12-31T23:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1: same pinned OKX BTC-USDT-SWAP series reused as the cross-perp control, not reminted and not OKX spot; not a confirmation of LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1",
       "period": "2020-04-01T00:00Z..2024-12-31T23:55Z",
       "rows": [
        "PRICE_STRUCTURE.levels"
@@ -16656,6 +16674,14 @@
      },
      {
       "note": "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1: same pinned Bybit linear series reused as the cross-perp control, not reminted; holes left missing; not a confirmation of LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1",
+      "period": "2020-03-31T21:00Z..2024-12-31T20:55Z",
+      "rows": [
+       "PRICE_STRUCTURE.levels"
+      ],
+      "status": "CONSUMED"
+     },
+     {
+      "note": "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1: same pinned Bybit linear series reused as the cross-perp control, not reminted; holes left missing; not a confirmation of LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1",
       "period": "2020-03-31T21:00Z..2024-12-31T20:55Z",
       "rows": [
        "PRICE_STRUCTURE.levels"
@@ -22175,6 +22201,40 @@
    "units_n": "4076 structural episodes; 1856 geometry-legitimate first touches; 551 early-resolved before T+15m; 13 early ambiguous; 1292 unresolved at D; 1235 feature-complete unresolved; primary resolved N=1060 (BREAK 439, REJECT 621); 238 weeks",
    "verdict": "EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing LEVEL_CROSS_VENUE_STRUCTURE_PRESENT. Baseline END_POSITION_X is +20.30 pp per +1 SD (95% +17.41..+23.17, N=1060). OTHER_VENUE_MEDIAN_MOVE is +8.87 pp per +1 SD (95% +5.02..+12.67, q=0.0000, N=1060) after END_POSITION_X. The frozen conjunction passes. The stacked real-minus-pseudo delta is -4.24 pp (95% -7.96..-0.05, N=1223), so the frozen specificity rule names LEVEL_CROSS_VENUE_INTERACTION_CANDIDATE. The stacked real slope on that matched sample is about zero and does not reproduce the primary slope. Confirmation gap, dispersion and direction agreement do not pass. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
    "why_closed": "One discovery run. The level row was already consumed. Bybit and OKX same-class perpetual closes were read for this reaction question only. This is not a confirmation, not a reopen of MARKET-06, and not a reopen of CROSS_VENUE_REGION.venue_disagreement. No product change. No spot, lead-lag, 30-minute, or confirmation unit was started."
+  },
+  {
+   "col": "PERP_FLOW",
+   "datasets": [
+    "CORE_BTC_BINANCE_V0",
+    "BINANCE_UM_TRADES_AGGTRADES_ARCHIVE",
+    "BYBIT_BTCUSDT_PUBLIC_HISTORY",
+    "OKX_OFFICIAL_ARCHIVES"
+   ],
+   "forbidden": "rescoring this cell; calling the raw tertile gradient an incremental volume effect; a buy/sell imbalance or CVD on this same run; naming absorption, acceptance, or defense; a volume-confirmation badge; confirmation on this exposed surface; product integration",
+   "function": "first touch only of PDH/PDL/PWH/PWL/PMH/PML; traded zone is the frozen merged zone; T is the open of the touch bar; D = T+15m; ZA1 is log zone notional over the prior-hour 15m equivalent, missing when either notional is not positive; ZA2 is the zone share of reaction-window notional; ZA3 active seconds was dropped before outcomes because Spearman rho with ZA2 was 0.925; early passage on j+1 and j+2 is excluded; late BREAK versus REJECT uses j+3..j+48; touch offset is in every model; linear probability model per +1 SD; matched specificity only after a full-sample candidate",
+   "id": "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1",
+   "mechanism": "MODE=DISCOVERY. After a structural first touch, once Binance end position and the other perpetual venues 15-minute move are in the model, does unsigned executed notional inside the exact structural zone during the first 15 minutes add historical information about later BREAK versus REJECT. Not candle volume, not signed taker flow, and not displayed depth.",
+   "note": "MODE=DISCOVERY. Design note ee2abb0d before any late BREAK label. Dependencies #352 dfc9e0f0 through #366 b411cff9. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to H05, B2-05, DH3-S, #360 displayed depth, #361 taker reaction, #362 path memory, #363 cross-venue, and #366 sequence. Row PRICE_STRUCTURE.levels, column PERP_FLOW. Not FLOW.taker_imbalance and not FLOW.absorption.",
+   "period": "2020-04-01T00:05Z..2024-12-31; Binance USD-M BTCUSDT perpetual aggTrades inside the frozen structural zone; March 2020 is pre-touch lookback only; Bybit and OKX enter only as the frozen cross-perp control; no spot trades, no aggressor-side feature, no 2025/2026, no E1 holdout",
+   "practical_bar": "3 pp per +1 SD after END_POSITION_X, OTHER_VENUE_MEDIAN_MOVE and TOUCH_OFFSET_SECONDS. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the retained zone-activity features only.",
+   "program": "LEVEL_BEHAVIOR_V1",
+   "records": [
+    "docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_DESIGN.md",
+    "docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_PREFLIGHT.json",
+    "docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_RESULT.md",
+    "docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_RESULT.json",
+    "scripts/research/level_zone_traded_activity_discovery_v1/evaluate.py",
+    "docs/RESEARCH_LEDGER.md",
+    "docs/CURRENT_RESEARCH_STATE.md"
+   ],
+   "reopen": "A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the zone, the 15-minute window, the 60-minute normalizer, the feature formulas, the FDR threshold, or the 3 pp scale. Not an absorption, acceptance, or large-trade study built from this null. Not 2025/2026.",
+   "row": "PRICE_STRUCTURE.levels",
+   "source": "ATLAS_UNITS_V1",
+   "state": "CLOSED_ON_SURFACE",
+   "title": "LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1",
+   "units_n": "4076 structural episodes; 1856 geometry-legitimate first touches; 1292 unresolved at D; 1215 retained-feature unresolved; primary resolved N=1044 (BREAK 432, REJECT 612); 238 weeks; raw touch match 1832/1856",
+   "verdict": "EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_ZONE_TRADED_ACTIVITY. Baseline END_POSITION_X is +13.13 pp per +1 SD (95% +8.70..+17.39, N=1044) and OTHER_VENUE_MEDIAN_MOVE is +9.33 pp (95% +5.35..+13.35). Those controls are not in the FDR family and are not a confirmation of #363. ZA1 is -0.95 pp (95% -4.25..+2.27, q=0.557). ZA2 is -1.76 pp (95% -5.19..+1.48, q=0.557). Neither clears 3 pp or excludes 0. Classes NONE. Matched specificity was not applied. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.",
+   "why_closed": "One discovery run. The level row was already consumed. Binance USD-M aggTrades were read only as unsigned executions inside the frozen zone. This is not a confirmation, not a reopen of H05 or FLOW.taker_imbalance, not a reopen of B2-05 or FLOW.absorption, not a reinterpretation of the #360 displayed-depth null, and not a rescue of the #362 path null. No product change. No taker split, zone-width search, 30-minute window, or confirmation was started."
   },
   {
    "col": "SPOT",

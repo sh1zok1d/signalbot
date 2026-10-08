@@ -4042,6 +4042,35 @@ units:
     - docs/RESEARCH_LEDGER.md
     - docs/CURRENT_RESEARCH_STATE.md
     note: 'MODE=DISCOVERY. Design note fcfc3e43 before any post-first opposite-barrier scan. Dependencies #352 dfc9e0f0 through #365 3ad8431e. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to H02, B2-02, V2 CONFIRMED_BREAKOUT, the V2 false-break lifecycle, #362 path memory, and the #365 resolution clock. Row PRICE_STRUCTURE.levels, column CANDLES. Not PRICE_STRUCTURE.breakout and not PRICE_STRUCTURE.path_shape.'
+  - id: LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1
+    title: LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1
+    program: LEVEL_BEHAVIOR_V1
+    row: PRICE_STRUCTURE.levels
+    col: PERP_FLOW
+    state: CLOSED_ON_SURFACE
+    datasets:
+    - CORE_BTC_BINANCE_V0
+    - BINANCE_UM_TRADES_AGGTRADES_ARCHIVE
+    - BYBIT_BTCUSDT_PUBLIC_HISTORY
+    - OKX_OFFICIAL_ARCHIVES
+    period: '2020-04-01T00:05Z..2024-12-31; Binance USD-M BTCUSDT perpetual aggTrades inside the frozen structural zone; March 2020 is pre-touch lookback only; Bybit and OKX enter only as the frozen cross-perp control; no spot trades, no aggressor-side feature, no 2025/2026, no E1 holdout'
+    units_n: '4076 structural episodes; 1856 geometry-legitimate first touches; 1292 unresolved at D; 1215 retained-feature unresolved; primary resolved N=1044 (BREAK 432, REJECT 612); 238 weeks; raw touch match 1832/1856'
+    practical_bar: '3 pp per +1 SD after END_POSITION_X, OTHER_VENUE_MEDIAN_MOVE and TOUCH_OFFSET_SECONDS. It is not a Holm switch and not the DH1 3 pp plus Brier bar. FDR q=0.10 screens the retained zone-activity features only.'
+    mechanism: 'MODE=DISCOVERY. After a structural first touch, once Binance end position and the other perpetual venues 15-minute move are in the model, does unsigned executed notional inside the exact structural zone during the first 15 minutes add historical information about later BREAK versus REJECT. Not candle volume, not signed taker flow, and not displayed depth.'
+    function: 'first touch only of PDH/PDL/PWH/PWL/PMH/PML; traded zone is the frozen merged zone; T is the open of the touch bar; D = T+15m; ZA1 is log zone notional over the prior-hour 15m equivalent, missing when either notional is not positive; ZA2 is the zone share of reaction-window notional; ZA3 active seconds was dropped before outcomes because Spearman rho with ZA2 was 0.925; early passage on j+1 and j+2 is excluded; late BREAK versus REJECT uses j+3..j+48; touch offset is in every model; linear probability model per +1 SD; matched specificity only after a full-sample candidate'
+    verdict: 'EXECUTED ONCE (2026-10-08). SUCCESSOR_CANDIDATE = NONE. Routing NO_INCREMENTAL_ZONE_TRADED_ACTIVITY. Baseline END_POSITION_X is +13.13 pp per +1 SD (95% +8.70..+17.39, N=1044) and OTHER_VENUE_MEDIAN_MOVE is +9.33 pp (95% +5.35..+13.35). Those controls are not in the FDR family and are not a confirmation of #363. ZA1 is -0.95 pp (95% -4.25..+2.27, q=0.557). ZA2 is -1.76 pp (95% -5.19..+1.48, q=0.557). Neither clears 3 pp or excludes 0. Classes NONE. Matched specificity was not applied. L2 family statement. DISCOVERY_ONLY. PRODUCT_INTEGRATION_CANDIDATE = NO.'
+    why_closed: 'One discovery run. The level row was already consumed. Binance USD-M aggTrades were read only as unsigned executions inside the frozen zone. This is not a confirmation, not a reopen of H05 or FLOW.taker_imbalance, not a reopen of B2-05 or FLOW.absorption, not a reinterpretation of the #360 displayed-depth null, and not a rescue of the #362 path null. No product change. No taker split, zone-width search, 30-minute window, or confirmation was started.'
+    reopen: 'A new mechanism, or a predeclared confirmation on a prospective or legitimately independent surface, with its own design note and owner go. Not a retune of the zone, the 15-minute window, the 60-minute normalizer, the feature formulas, the FDR threshold, or the 3 pp scale. Not an absorption, acceptance, or large-trade study built from this null. Not 2025/2026.'
+    forbidden: 'rescoring this cell; calling the raw tertile gradient an incremental volume effect; a buy/sell imbalance or CVD on this same run; naming absorption, acceptance, or defense; a volume-confirmation badge; confirmation on this exposed surface; product integration'
+    records:
+    - docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_DESIGN.md
+    - docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_PREFLIGHT.json
+    - docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_RESULT.md
+    - docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_RESULT.json
+    - scripts/research/level_zone_traded_activity_discovery_v1/evaluate.py
+    - docs/RESEARCH_LEDGER.md
+    - docs/CURRENT_RESEARCH_STATE.md
+    note: 'MODE=DISCOVERY. Design note ee2abb0d before any late BREAK label. Dependencies #352 dfc9e0f0 through #366 b411cff9. Tracks STRUCTURE + PRODUCT_EVIDENCE. Family statement L2. Parent units are not rewritten. Reopen key NEW_MECHANISM relative to H05, B2-05, DH3-S, #360 displayed depth, #361 taker reaction, #362 path memory, #363 cross-venue, and #366 sequence. Row PRICE_STRUCTURE.levels, column PERP_FLOW. Not FLOW.taker_imbalance and not FLOW.absorption.'
   - id: DH3-X9
     title: BOOK_IMBALANCE_5PCT_AT_SUPPORT
     program: DIRECTIONAL_AND_RANGE_DH3

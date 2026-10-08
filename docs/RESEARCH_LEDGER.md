@@ -8463,3 +8463,28 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
 ```
+
+## 2026-10-08 — LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1 executed once; discovery; no incremental zone-traded activity; not integrated
+
+**Unit.** `LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1` (atlas `LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1`), family `LEVEL_BEHAVIOR_V1`, `MODE = DISCOVERY`, tracks `STRUCTURE` and `PRODUCT_EVIDENCE`. Claim L2. Discovery only. Dependencies: #352 `dfc9e0f04358de15606382472badeb5aee787039` through #366 `b411cff97309fbb12450b0f095f96fea6e84c3d3`. It does not rescore those units.
+- **Owner go:** the task of 2026-10-08. Design note `ee2abb0dd3c4c6b0b9d2e2e1a0b48ba1ebfa6e19` before any late BREAK label. The zone, the 15-minute window, the 60-minute normalizer, ZA1–ZA3, the redundancy rule, the baseline, q and the 3 pp scale were not changed after the labels were read.
+- **Novelty.** The object is unsigned Binance USD-M quote notional inside the exact structural zone during `[T, D)`, incremental to `END_POSITION_X` and `OTHER_VENUE_MEDIAN_MOVE`, with touch offset as a nuisance. It is not H05 signed imbalance, not B2-05 absorption, not DH3-S large prints, not #360 displayed depth, not the #361 taker coordinate, not the #362 close path, and not the #366 barrier sequence. Reopen key `NEW_MECHANISM` on `PRICE_STRUCTURE.levels` × `PERP_FLOW`. The cross-perp coefficient is a control, not a confirmation of #363.
+- **Data.** Official USD-M BTCUSDT aggTrades, 58 months `2020-03` through `2024-12`, each checksum-verified. March 2020 is lookback only. Aggregate digest `af1eb088ac0fc7e860cbd211f654d3fd7cf8332588fa03c91b22131f37e34970`. Raw zips deleted. Quantity is base BTC; quote notional is price times quantity. Aggressor side was not used. Bybit and OKX are the pinned #363 perpetuals, not reminted. No 2025/2026 object was requested. No spot trades.
+- **Clock.** T is the open of touch bar j. D = T+15m. `TAU_TOUCH` is diagnostic only. Real touch match 1832/1856 = 0.987. Pseudo 1163/1183 = 0.983. Early passage uses j+1 and j+2. Late passage uses j+3 through j+48.
+- **Cohort.** Window `[2020-04-01T00:05:00Z, 2025-01-01)`. Geometry-legitimate first touches 1856. Unresolved with nuisance 1235. Common retained support 1215. ZA3 dropped before outcomes (Spearman 0.925 with ZA2). Late labels on that support: BREAK 432, REJECT 612, NEITHER 170, ambiguous 1. Primary N=1044. 238 weeks.
+- **Baseline.** `END_POSITION_X` +13.13 pp per +1 SD (95% +8.70..+17.39, N=1044, 2000 valid draws). `OTHER_VENUE_MEDIAN_MOVE` +9.33 pp (95% +5.35..+13.35). Touch offset −0.09 pp (95% −3.34..+2.97). The controls are not in the FDR family.
+- **Primary.** Two adjusted slopes, Benjamini–Hochberg q=0.10, practical scale 3 pp per +1 SD. ZA1 −0.95 pp (95% −4.25..+2.27, q=0.557). ZA2 −1.76 pp (95% −5.19..+1.48, q=0.557). Neither clears 3 pp or excludes 0. Years are four of five on the pooled negative sign; 2023 is opposite (ZA1 +3.19 pp, ZA2 +4.84 pp). The frozen five-year rule still passes and was not rewritten. Leave-one-year-out stays negative. DAY and WEEK are both negative. Resistance and support are both negative. Raw ZA1 tertile late-BREAK rates are 31.67% / 42.24% / 50.89%. That unadjusted gradient is not the estimand and was not promoted.
+- **Specificity.** Not applied. No full-sample candidate. No matched delta was estimated.
+- **Routing.** `NO_INCREMENTAL_ZONE_TRADED_ACTIVITY`. `SUCCESSOR_CANDIDATE = NONE`.
+- **Claim.** L2. No incremental historical association for unsigned executed activity inside the structural zone, beyond Binance end position, the other perpetual venues' 15-minute move, and the touch offset. Not a current probability. Not absorption, defense, or a statement that volume confirms a break.
+- **Product.** `PRODUCT_INTEGRATION_CANDIDATE = NO`. No volume-confirmation badge, absorption state, acceptance state, or level-strength score. No `/btc`, `/levels`, `/check`, `/risk`, scoring, findings-registry, or deploy change. A taker split, another zone width, a 30-minute or 60-minute window, a large-trade threshold, BitMEX replication, and prospective confirmation were not started.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 PRICE_STRUCTURE.levels 2020-04-01T00:05Z..2024-12-31, structural reference for unsigned zone executions after a first touch (further exposure, not a confirmation)
+WINDOWS_CONSUMED = BINANCE_UM_TRADES_AGGTRADES_ARCHIVE USD-M BTCUSDT aggTrades 2020-03..2024-12, event-level unsigned quote notional only; aggressor side unused; raw zips not retained
+WINDOWS_CONSUMED = BYBIT_BTCUSDT_PUBLIC_HISTORY BTCUSDT linear perpetual 5m closes reused as the cross-perp control; not reminted
+WINDOWS_CONSUMED = OKX_OFFICIAL_ARCHIVES BTC-USDT-SWAP 5m history-candles reused as the cross-perp control; MARKET-06 OKX spot dataset not read
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run; spot aggTrades / book / funding / liquidation / OI not opened
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO
+```

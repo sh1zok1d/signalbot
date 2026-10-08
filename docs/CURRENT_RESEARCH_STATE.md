@@ -1,3 +1,21 @@
+## LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1 — executed once; discovery; no incremental zone-traded activity; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1 (atlas LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design ee2abb0d before any late BREAK label) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #366 b411cff9 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = unsigned executed notional inside the frozen structural zone during the first 15m | not H05 signed imbalance | not B2-05 absorption | not DH3-S large prints | not #360 displayed depth | not #361 taker reaction | not #362 path memory | not #366 sequence`
+`DATA = Binance USD-M BTCUSDT aggTrades 2020-03..2024-12, 58 checksum-verified months, aggregate af1eb088 | events [2020-04-01T00:05Z, 2025-01-01) | March 2020 is lookback only | 2025/2026 NOT read | aggressor side unused | Bybit/OKX reused as the cross-perp control`
+`CLOCK = T = open of touch bar j | D = T+15m | TAU is diagnostic only | raw touch match 1832/1856 = 0.987 | late window j+3..j+48`
+`COHORT = touch_number = 1 | legitimate 1856 | unresolved nuisance 1235 | retained support 1215 | ZA3 dropped before outcomes (rho 0.925 with ZA2) | primary N=1044 (BREAK 432, REJECT 612) | 238 weeks`
+`BASELINE = END_POSITION_X +13.13 pp per +1 SD (95% +8.70..+17.39) | OTHER_VENUE_MEDIAN_MOVE +9.33 pp (95% +5.35..+13.35) | touch offset -0.09 pp | controls are not a confirmation of #363`
+`PRIMARY = ZA1 -0.95 pp (95% -4.25..+2.27, q=0.557) | ZA2 -1.76 pp (95% -5.19..+1.48, q=0.557) | both under 3 pp | intervals include 0 | classes NONE | specificity not applied`
+`STABILITY = years 4/5 negative; 2023 opposite (ZA1 +3.19 pp, ZA2 +4.84 pp) and the five-year sign rule still passes | LOYO negative | DAY and WEEK negative | resistance and support negative | raw ZA1 tertiles 31.67/42.24/50.89% are not the adjusted estimand`
+`ROUTING = NO_INCREMENTAL_ZONE_TRADED_ACTIVITY | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | no incremental historical association beyond end position, cross-perp movement, and touch offset | not absorption | not a current probability | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | no volume-confirmation badge | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = taker split; other zone widths; 30m/60m volume; large-trade threshold; BitMEX replication; prospective confirmation; 2025/2026 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_DESIGN.md`.
+
 ## LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1 — executed once; discovery; no incremental sequence structure; no successor; not integrated — 2026-10-08
 
 `UNIT = LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1 (atlas LEVEL-BREAK-REJECT-SEQUENCE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design fcfc3e43 before any post-first opposite-barrier scan) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`

@@ -1,0 +1,518 @@
+{
+  "baseline": {
+    "bootstrap_valid": 2000,
+    "brier": 0.19835055749230412,
+    "ci95": [
+      0.086954445786808,
+      0.1738629486924127
+    ],
+    "clusters": 238,
+    "coef": 0.13133881949835993,
+    "columns": [
+      "intercept",
+      "endpos_z",
+      "cv1_z",
+      "offset_z",
+      "disp_z",
+      "fam_week",
+      "fam_month",
+      "support",
+      "vol_mid",
+      "vol_high",
+      "ep_2021",
+      "ep_2022",
+      "ep_2023",
+      "ep_2024",
+      "tb1",
+      "tb2",
+      "tb3"
+    ],
+    "cv1_ci95": [
+      0.05347355742623715,
+      0.13347521699220627
+    ],
+    "cv1_coef": 0.09329615363836839,
+    "endpos_ci95": [
+      0.086954445786808,
+      0.1738629486924127
+    ],
+    "endpos_coef": 0.13133881949835993,
+    "feature": null,
+    "includes_cv1": true,
+    "includes_end_position": true,
+    "includes_offset": true,
+    "n": 1044,
+    "offset_ci95": [
+      -0.03342982602032647,
+      0.029679945180321736
+    ],
+    "offset_coef": -0.0009342841648168506,
+    "p": 3.894340546828488e-09,
+    "se": 0.022303837332918776
+  },
+  "claim_ceiling": "L2",
+  "dependencies": {
+    "cross_venue": "f22100177e2f89a43c6271929aba0d63f7b4552f",
+    "reaction": "44726ded55c75fefecc6848ab8b76971ead83721",
+    "sequence": "b411cff97309fbb12450b0f095f96fea6e84c3d3",
+    "source_main": "1a2e425303fb29e1044ca57452b8ad9b6f0a831b",
+    "touch": "dfc9e0f04358de15606382472badeb5aee787039"
+  },
+  "design_sha": "ee2abb0dd3c4c6b0b9d2e2e1a0b48ba1ebfa6e19",
+  "exposure_status": "DISCOVERY_ONLY",
+  "family": "LEVEL_BEHAVIOR_V1",
+  "features": [
+    {
+      "cell": {
+        "bootstrap_valid": 2000,
+        "brier": 0.19821718694246762,
+        "ci95": [
+          -0.04250372511425551,
+          0.022723904247316004
+        ],
+        "clusters": 238,
+        "coef": -0.009512993834945695,
+        "columns": [
+          "intercept",
+          "endpos_z",
+          "cv1_z",
+          "offset_z",
+          "feature_z",
+          "disp_z",
+          "fam_week",
+          "fam_month",
+          "support",
+          "vol_mid",
+          "vol_high",
+          "ep_2021",
+          "ep_2022",
+          "ep_2023",
+          "ep_2024",
+          "tb1",
+          "tb2",
+          "tb3"
+        ],
+        "cv1_ci95": [
+          0.05504970521711979,
+          0.1362140122665209
+        ],
+        "cv1_coef": 0.09503742984201423,
+        "endpos_ci95": [
+          0.0917946134831555,
+          0.1785035619529197
+        ],
+        "endpos_coef": 0.1346390467345481,
+        "feature": "ZONE_NOTIONAL_INTENSITY_15M",
+        "includes_cv1": true,
+        "includes_end_position": true,
+        "includes_offset": true,
+        "n": 1044,
+        "offset_ci95": [
+          -0.03489993877529578,
+          0.029420639835943636
+        ],
+        "offset_coef": -0.001955596653799224,
+        "p": 0.5574142307437627,
+        "q": 0.5574142307437627,
+        "se": 0.016214780361635723
+      },
+      "decision": {
+        "failed": [
+          "statistical"
+        ],
+        "family": {
+          "contradiction": false,
+          "day_estimable": true,
+          "pass": true,
+          "week_estimable": true
+        },
+        "loyo": {
+          "n_checked": 5,
+          "pass": true
+        },
+        "pass": false,
+        "side": {
+          "contradiction": false,
+          "pass": true
+        },
+        "statistical": false,
+        "years": {
+          "n_eligible": 5,
+          "n_matched": 4,
+          "n_opposite": 1,
+          "pass": true
+        }
+      },
+      "epochs": [
+        {
+          "coef": -0.026503603486348438,
+          "n": 147,
+          "name": "2020"
+        },
+        {
+          "coef": -0.02874325474217117,
+          "n": 230,
+          "name": "2021"
+        },
+        {
+          "coef": -0.021105186223606562,
+          "n": 239,
+          "name": "2022"
+        },
+        {
+          "coef": 0.03192477687281394,
+          "n": 194,
+          "name": "2023"
+        },
+        {
+          "coef": -0.01393281698899064,
+          "n": 234,
+          "name": "2024"
+        }
+      ],
+      "families": [
+        {
+          "coef": -0.006211862104360469,
+          "n": 918,
+          "name": "DAY"
+        },
+        {
+          "coef": -0.030295841952311674,
+          "n": 114,
+          "name": "WEEK"
+        },
+        {
+          "coef": null,
+          "n": 12,
+          "name": "MONTH"
+        }
+      ],
+      "loyo": [
+        {
+          "coef": -0.005983348830063097,
+          "n": 897,
+          "name": "omit_2020"
+        },
+        {
+          "coef": -0.00630540715563964,
+          "n": 814,
+          "name": "omit_2021"
+        },
+        {
+          "coef": -0.005583420411001256,
+          "n": 805,
+          "name": "omit_2022"
+        },
+        {
+          "coef": -0.023238264059795954,
+          "n": 850,
+          "name": "omit_2023"
+        },
+        {
+          "coef": -0.008245328376810551,
+          "n": 810,
+          "name": "omit_2024"
+        }
+      ],
+      "matched": {
+        "beta_pseudo": null,
+        "beta_real": null,
+        "columns": [],
+        "delta": null,
+        "delta_ci95": null,
+        "n_pairs": 0,
+        "status": "NOT_APPLIED"
+      },
+      "shape": [
+        {
+          "bin": "T1",
+          "late_break_rate": 0.31666666666666665,
+          "n": 360
+        },
+        {
+          "bin": "T2",
+          "late_break_rate": 0.4224137931034483,
+          "n": 348
+        },
+        {
+          "bin": "T3",
+          "late_break_rate": 0.5089285714285714,
+          "n": 336
+        }
+      ],
+      "sides": [
+        {
+          "coef": -0.012575545949487028,
+          "n": 584,
+          "name": "resistance"
+        },
+        {
+          "coef": -0.006638902549423492,
+          "n": 460,
+          "name": "support"
+        }
+      ],
+      "summary": {
+        "candidate_class": "NONE",
+        "ci95": [
+          -0.04250372511425551,
+          0.022723904247316004
+        ],
+        "coef": -0.009512993834945695,
+        "conjunction_pass": false,
+        "failed": [
+          "statistical"
+        ],
+        "feature": "ZONE_NOTIONAL_INTENSITY_15M",
+        "includes_cv1": true,
+        "includes_end_position": true,
+        "includes_offset": true,
+        "n": 1044,
+        "p": 0.5574142307437627,
+        "q": 0.5574142307437627,
+        "specificity_status": "NOT_APPLIED",
+        "statistical": false
+      }
+    },
+    {
+      "cell": {
+        "bootstrap_valid": 2000,
+        "brier": 0.19798275238500745,
+        "ci95": [
+          -0.05191972204156914,
+          0.014811687636142334
+        ],
+        "clusters": 238,
+        "coef": -0.017606373398037188,
+        "columns": [
+          "intercept",
+          "endpos_z",
+          "cv1_z",
+          "offset_z",
+          "feature_z",
+          "disp_z",
+          "fam_week",
+          "fam_month",
+          "support",
+          "vol_mid",
+          "vol_high",
+          "ep_2021",
+          "ep_2022",
+          "ep_2023",
+          "ep_2024",
+          "tb1",
+          "tb2",
+          "tb3"
+        ],
+        "cv1_ci95": [
+          0.0494648612086228,
+          0.1310006843517573
+        ],
+        "cv1_coef": 0.0919729234047332,
+        "endpos_ci95": [
+          0.09444675493083028,
+          0.18320295646690157
+        ],
+        "endpos_coef": 0.13786047283734382,
+        "feature": "ZONE_NOTIONAL_SHARE_15M",
+        "includes_cv1": true,
+        "includes_end_position": true,
+        "includes_offset": true,
+        "n": 1044,
+        "offset_ci95": [
+          -0.033667042299051805,
+          0.02976051900226133
+        ],
+        "offset_coef": -0.0024251185567546185,
+        "p": 0.3089306812815351,
+        "q": 0.5574142307437627,
+        "se": 0.01730409933579043
+      },
+      "decision": {
+        "failed": [
+          "statistical"
+        ],
+        "family": {
+          "contradiction": false,
+          "day_estimable": true,
+          "pass": true,
+          "week_estimable": true
+        },
+        "loyo": {
+          "n_checked": 5,
+          "pass": true
+        },
+        "pass": false,
+        "side": {
+          "contradiction": false,
+          "pass": true
+        },
+        "statistical": false,
+        "years": {
+          "n_eligible": 5,
+          "n_matched": 4,
+          "n_opposite": 1,
+          "pass": true
+        }
+      },
+      "epochs": [
+        {
+          "coef": -0.06331698502138045,
+          "n": 147,
+          "name": "2020"
+        },
+        {
+          "coef": -0.03557336722475881,
+          "n": 230,
+          "name": "2021"
+        },
+        {
+          "coef": -0.05856695011596089,
+          "n": 239,
+          "name": "2022"
+        },
+        {
+          "coef": 0.04838985860348164,
+          "n": 194,
+          "name": "2023"
+        },
+        {
+          "coef": -0.02695999473603182,
+          "n": 234,
+          "name": "2024"
+        }
+      ],
+      "families": [
+        {
+          "coef": -0.009197660984695932,
+          "n": 918,
+          "name": "DAY"
+        },
+        {
+          "coef": -0.09859827705433964,
+          "n": 114,
+          "name": "WEEK"
+        },
+        {
+          "coef": null,
+          "n": 12,
+          "name": "MONTH"
+        }
+      ],
+      "loyo": [
+        {
+          "coef": -0.01255494330666826,
+          "n": 897,
+          "name": "omit_2020"
+        },
+        {
+          "coef": -0.013905949235737439,
+          "n": 814,
+          "name": "omit_2021"
+        },
+        {
+          "coef": -0.008240945806931438,
+          "n": 805,
+          "name": "omit_2022"
+        },
+        {
+          "coef": -0.04284208164148352,
+          "n": 850,
+          "name": "omit_2023"
+        },
+        {
+          "coef": -0.014351654201012018,
+          "n": 810,
+          "name": "omit_2024"
+        }
+      ],
+      "matched": {
+        "beta_pseudo": null,
+        "beta_real": null,
+        "columns": [],
+        "delta": null,
+        "delta_ci95": null,
+        "n_pairs": 0,
+        "status": "NOT_APPLIED"
+      },
+      "shape": [
+        {
+          "bin": "T1",
+          "late_break_rate": 0.37047353760445684,
+          "n": 359
+        },
+        {
+          "bin": "T2",
+          "late_break_rate": 0.4134078212290503,
+          "n": 358
+        },
+        {
+          "bin": "T3",
+          "late_break_rate": 0.4617737003058104,
+          "n": 327
+        }
+      ],
+      "sides": [
+        {
+          "coef": -0.024827955220640102,
+          "n": 584,
+          "name": "resistance"
+        },
+        {
+          "coef": -0.0034924647970828917,
+          "n": 460,
+          "name": "support"
+        }
+      ],
+      "summary": {
+        "candidate_class": "NONE",
+        "ci95": [
+          -0.05191972204156914,
+          0.014811687636142334
+        ],
+        "coef": -0.017606373398037188,
+        "conjunction_pass": false,
+        "failed": [
+          "statistical"
+        ],
+        "feature": "ZONE_NOTIONAL_SHARE_15M",
+        "includes_cv1": true,
+        "includes_end_position": true,
+        "includes_offset": true,
+        "n": 1044,
+        "p": 0.3089306812815351,
+        "q": 0.5574142307437627,
+        "specificity_status": "NOT_APPLIED",
+        "statistical": false
+      }
+    }
+  ],
+  "late_counts_unresolved_complete": {
+    "AMBIGUOUS": 1,
+    "BREAK": 432,
+    "NEITHER": 170,
+    "REJECT": 612
+  },
+  "mode": "DISCOVERY",
+  "n_resolved": 1044,
+  "n_unresolved_complete": 1215,
+  "novelty_ok": true,
+  "outcomes_read": true,
+  "overall_candidate_class": "NONE",
+  "pre_outcome_gate_pass": true,
+  "product_integration_candidate": false,
+  "pseudo_identity_ok": true,
+  "raw_touch_match_rate": 0.9870689655172413,
+  "retained": [
+    "ZONE_NOTIONAL_INTENSITY_15M",
+    "ZONE_NOTIONAL_SHARE_15M"
+  ],
+  "routing": "NO_INCREMENTAL_ZONE_TRADED_ACTIVITY",
+  "successor_candidate": "NONE",
+  "touch_identity_pass": true,
+  "tracks": [
+    "STRUCTURE",
+    "PRODUCT_EVIDENCE"
+  ],
+  "unit": "LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1"
+}
