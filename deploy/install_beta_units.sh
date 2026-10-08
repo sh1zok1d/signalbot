@@ -18,6 +18,22 @@ UNITS=(signalbot-beta-detector.service signalbot-beta-detector.timer
 for u in "${UNITS[@]}"; do
   install -m 0644 "${SRC_DIR}/${u}" "/etc/systemd/system/${u}"
 done
+# The build's git SHA for processes that cannot run git (beta/build.py). Written at every deploy;
+# the script runs as root on a checkout owned by the service user, so git is told this directory is
+# safe (otherwise it refuses with "dubious ownership" and the file would always be removed);
+# when git cannot say, the file is removed rather than left stale, and the runtime says "unknown".
+REPO_DIR="$(cd "${SRC_DIR}/.." && pwd)"
+if sha="$(git -c safe.directory="${REPO_DIR}" -C "${REPO_DIR}" rev-parse HEAD 2>/dev/null)"; then
+  if [ -n "$(git -c safe.directory="${REPO_DIR}" -C "${REPO_DIR}" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+    sha="${sha}-dirty"
+  fi
+  printf '%s\n' "${sha}" > "${REPO_DIR}/BUILD_SHA"
+  chmod 0644 "${REPO_DIR}/BUILD_SHA"
+  echo "Build SHA recorded: ${sha}"
+else
+  rm -f "${REPO_DIR}/BUILD_SHA"
+  echo "Build SHA unknown (git unavailable); BUILD_SHA removed."
+fi
 systemctl daemon-reload
 for u in "${UNITS[@]}"; do
   systemd-analyze verify "/etc/systemd/system/${u}" || true

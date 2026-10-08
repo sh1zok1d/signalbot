@@ -388,6 +388,7 @@ Each run appends one `CORRECTION_CHECK` revision, or reports `UNCHANGED`. Nothin
 | `BETA_OUTCOME_TRACKING_ENABLED` | Kill switch for the outcome tracker (restrict-only). |
 | `BETA_TELEGRAM_ENABLED` | `0` selects the no-Telegram shadow-soak mode (below). Default: Telegram is part of the deployment. |
 | `BETA_CODE_VERSION` | Optional explicit beta code version. The default is resolved from the path-scoped git history. |
+| `BETA_BUILD_SHA` | Optional explicit git SHA of the build. Every beta process reports the build it runs (`beta.build.build_sha()`, written into ОПГ-2's forecast records): this value, else the checkout's `git rev-parse HEAD` (`-dirty` when a tracked file differs), else the `BUILD_SHA` file that `deploy/install_beta_units.sh` writes at every deploy, else `unknown`. Not `BETA_CODE_VERSION`, which is the tape's path-scoped code identity. |
 | `BETA_DEADMAN_PING_URL` | Optional https URL of an external check (for example healthchecks.io), pinged by the notifier unit (`--beta-deadman-ping`) after every complete run. When the pings stop, that service alerts the owner (see "Owner health alerts"). |
 
 - **Switch precedence:**
