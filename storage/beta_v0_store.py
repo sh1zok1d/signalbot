@@ -166,7 +166,12 @@ class BetaConn:
                ORDER BY bucket_ts, tape_id DESC""",
             symbol, market_type, timeframe, calculation_version, list(state_schema_versions), start, end,
             before_tape_id)
-        return [(r["bucket_ts"], _load(r["metrics"])) for r in rows]
+        # liquidation keys of rows written before the collector fix, read honestly (D2)
+        from beta.liq_mapping import correct_metrics
+        cutover = await self.fetch_liquidation_cutover(symbol=symbol)
+        exchanges = ("binance", "bybit", "okx")
+        return [(r["bucket_ts"], correct_metrics(_load(r["metrics"]), r["bucket_ts"], cutover, exchanges))
+                for r in rows]
 
     async def fetch_live_tape_range(self, *, symbol: str, start: datetime, end: datetime,
                                     rules_digest: str) -> dict:
@@ -697,7 +702,7 @@ class BetaConn:
         # that chat waits: the limit is the chat's, not one message's (review of #345)
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.decision_id, x.episode_pk, x.user_pk, x.decision_ts,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang, d.gate
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.tz AS user_tz, d.gate
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                LEFT JOIN beta_push_decisions d ON d.decision_id = x.decision_id
                WHERE x.state='PENDING' AND x.kind='push'
@@ -730,7 +735,7 @@ class BetaConn:
         # that chat waits: the limit is the chat's, not one message's (review of #345)
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.view_pk, x.brief_date, x.user_pk, x.decision_ts,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.brief_enabled,
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.tz AS user_tz, u.brief_enabled,
                       u.push_enabled,
                       NOT EXISTS (SELECT 1 FROM beta_notification_deliveries y
                                   WHERE y.kind='brief' AND y.user_pk=x.user_pk AND y.state='SENT'
@@ -774,7 +779,7 @@ class BetaConn:
         # that chat waits: the limit is the chat's, not one message's (review of #345)
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.weekly_pk, x.user_pk, x.decision_ts, w.payload,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.push_enabled, u.push_weekly
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.tz AS user_tz, u.push_enabled, u.push_weekly
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                JOIN beta_weekly_reports w ON w.weekly_pk = x.weekly_pk
                WHERE x.state='PENDING' AND x.kind='weekly'
@@ -917,6 +922,51 @@ class BetaConn:
             telegram_user_id, known)
         return status == "UPDATE 1"
 
+    async def recipient_tzs(self, pref: str) -> list:
+        """The time zones (None = Kyiv) of ACTIVE participants with pushes on and `pref` on (backlog C5)."""
+        if pref not in ("push_hours", "push_levels", "push_events", "push_moves", "push_weekly"):
+            raise ValueError(f"unknown push preference {pref!r}")
+        rows = await self.conn.fetch(
+            f"SELECT DISTINCT tz FROM beta_users WHERE status='ACTIVE' AND push_enabled AND {pref}")
+        return [r["tz"] for r in rows]
+
+    async def set_user_tz(self, telegram_user_id: int, tz: Optional[str]) -> bool:
+        """The participant's time zone (backlog C5); None = Kyiv. The caller validated it (i18n.parse_tz)."""
+        status = await self.conn.execute(
+            "UPDATE beta_users SET tz=$2, updated_at=now() WHERE telegram_user_id=$1", telegram_user_id, tz)
+        return status == "UPDATE 1"
+
+    async def set_trader_type(self, telegram_user_id: int, kind: Optional[str]) -> bool:
+        """The participant's onboarding answer (backlog E5): scalp / intraday / swing / invest."""
+        status = await self.conn.execute(
+            "UPDATE beta_users SET trader_type=$2, updated_at=now() WHERE telegram_user_id=$1", telegram_user_id, kind)
+        return status == "UPDATE 1"
+
+    async def set_brief_time(self, telegram_user_id: int, hhmm: Optional[str]) -> bool:
+        """The participant's briefing time on their own clock (backlog E3); None = the default."""
+        status = await self.conn.execute(
+            "UPDATE beta_users SET brief_time=$2, updated_at=now() WHERE telegram_user_id=$1", telegram_user_id, hhmm)
+        return status == "UPDATE 1"
+
+    async def brief_candidates(self) -> list:
+        """ACTIVE participants with the briefing on: their zone, time and the date of their newest briefing row."""
+        rows = await self.conn.fetch(
+            """SELECT u.user_pk, u.tz, u.brief_time,
+                      (SELECT max(x.brief_date) FROM beta_notification_deliveries x
+                       WHERE x.kind='brief' AND x.user_pk=u.user_pk) AS last_brief_date
+               FROM beta_users u WHERE u.status='ACTIVE' AND u.brief_enabled ORDER BY u.user_pk""")
+        return [dict(r) for r in rows]
+
+    async def materialize_brief_delivery(self, *, user_pk: int, brief_date, view_pk: int,
+                                         decision_ts: datetime) -> int:
+        """One participant's PENDING briefing row for their local date (idempotent on (brief_date, user_pk))."""
+        status = await self.conn.execute(
+            """INSERT INTO beta_notification_deliveries (kind, brief_date, view_pk, user_pk, state, decision_ts)
+               VALUES ('brief', $1, $2, $3, 'PENDING', $4)
+               ON CONFLICT (brief_date, user_pk) WHERE kind='brief' DO NOTHING""",
+            brief_date, view_pk, user_pk, decision_ts)
+        return int(status.split()[-1])
+
     async def set_brief_enabled(self, telegram_user_id: int, enabled: bool) -> bool:
         status = await self.conn.execute(
             "UPDATE beta_users SET brief_enabled=$2, updated_at=now() WHERE telegram_user_id=$1",
@@ -1022,7 +1072,7 @@ class BetaConn:
         r = await self.conn.fetchrow(
             """SELECT user_pk, telegram_user_id, chat_id, status, joined_at, stopped_at, lang,
                       invite_code, privacy_notice_version, brief_enabled, push_enabled, known_contact,
-                      push_levels, push_events, push_moves, push_hours, push_weekly
+                      push_levels, push_events, push_moves, push_hours, push_weekly, tz, brief_time, trader_type
                FROM beta_users WHERE telegram_user_id=$1""", telegram_user_id)
         return None if r is None else dict(r)
 
@@ -1313,16 +1363,16 @@ class BetaConn:
     async def usage_facts(self) -> dict:
         """Rows the usage report aggregates. The return value still has ids;
         only build_usage_report's result is shown to the owner."""
-        # trader_type: the onboarding answer once backlog E5 adds the column; NULL until then
+        # trader_type: the onboarding answer (backlog E5); NULL when not given
         users = await self.conn.fetch(
-            """SELECT user_pk, telegram_user_id, status, lang, joined_at, invite_code, known_contact,
-                      to_jsonb(u) ->> 'trader_type' AS trader_type
+            """SELECT user_pk, telegram_user_id, status, lang, joined_at, invite_code, known_contact, trader_type
                FROM beta_users u""")
         activity = await self.conn.fetch(
             "SELECT user_pk, action, detail, at FROM beta_user_activity")
-        # votes exist on unusual-hour pushes only (episodes); other types join with backlog F6
+        # votes: the unusual-hour push (episodes) and every other message type (backlog F6)
         votes = await self.conn.fetch(
-            "SELECT user_pk, 'hour' AS kind, vote, updated_at AS at FROM beta_feedback")
+            """SELECT user_pk, 'hour' AS kind, vote, updated_at AS at FROM beta_feedback
+               UNION ALL SELECT user_pk, kind, vote, updated_at AS at FROM beta_message_votes""")
         invites = await self.conn.fetch("SELECT code, label FROM beta_invites")
         deletions = await self.conn.fetch(
             """SELECT recorded_at FROM beta_admin_audit
@@ -1373,14 +1423,26 @@ class BetaConn:
         rows = await self.conn.fetch("SELECT status, count(*) AS n FROM beta_users GROUP BY status")
         return {r["status"]: int(r["n"]) for r in rows}
 
-    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str) -> None:
-        await self.conn.execute(
+    async def upsert_feedback(self, *, user_pk: int, episode_pk: int, vote: str) -> bool:
+        """True when the vote is new or changed (a repeated tap changes nothing and is not an action)."""
+        return await self.conn.fetchval(
             """INSERT INTO beta_feedback (user_pk, episode_pk, vote) VALUES ($1,$2,$3)
-               ON CONFLICT (user_pk, episode_pk) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()""",
-            user_pk, episode_pk, vote)
+               ON CONFLICT (user_pk, episode_pk) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()
+               WHERE beta_feedback.vote IS DISTINCT FROM EXCLUDED.vote
+               RETURNING TRUE""", user_pk, episode_pk, vote) is not None
+
+    async def upsert_message_vote(self, *, user_pk: int, kind: str, ref: int, vote: str) -> bool:
+        """«Полезно / Шум» on an alert, the briefing or the weekly report (backlog F6). True when new or changed."""
+        return await self.conn.fetchval(
+            """INSERT INTO beta_message_votes (user_pk, kind, ref, vote) VALUES ($1,$2,$3,$4)
+               ON CONFLICT (user_pk, kind, ref) DO UPDATE SET vote=EXCLUDED.vote, updated_at=now()
+               WHERE beta_message_votes.vote IS DISTINCT FROM EXCLUDED.vote
+               RETURNING TRUE""", user_pk, kind, ref, vote) is not None
 
     async def feedback_counts(self) -> dict:
-        rows = await self.conn.fetch("SELECT vote, count(*) AS n FROM beta_feedback GROUP BY vote")
+        rows = await self.conn.fetch(
+            """SELECT vote, count(*) AS n FROM (SELECT vote FROM beta_feedback
+                                              UNION ALL SELECT vote FROM beta_message_votes) v GROUP BY vote""")
         return {r["vote"]: int(r["n"]) for r in rows}
 
     # ---------------------------------------------------- bot / admin / state
@@ -1796,11 +1858,45 @@ class BetaConn:
 
     async def fetch_liquidations(self, *, symbol: str, exchanges: Sequence[str], start: datetime,
                                  end: datetime) -> list:
+        """Raw rows, read honestly (beta.liq_mapping.correct_raw_rows): an old-mapping Bybit row
+        with its side swapped; an old OKX row dropped. Raw bytes are never rewritten."""
+        from beta.liq_mapping import correct_raw_rows
+        version = "mapping_version" if await self._has_mapping_version() else "NULL::smallint AS mapping_version"
         rows = await self.conn.fetch(
-            """SELECT exchange, ts, side, price, qty, notional, is_snapshot_feed FROM liquidations
-               WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts >= $3 AND ts < $4""",
+            f"""SELECT exchange, ts, side, price, qty, notional, is_snapshot_feed, {version}
+                FROM liquidations
+                WHERE symbol=$1 AND exchange = ANY($2::text[]) AND ts >= $3 AND ts < $4""",
             symbol, list(exchanges), start, end)
-        return [dict(r) for r in rows]
+        return correct_raw_rows(dict(r) for r in rows)
+
+    async def _has_mapping_version(self) -> bool:
+        """`liquidations.mapping_version` exists once the fixed collector applied storage/schema.sql
+        (the beta never adds it: it must not lock the collector's table)."""
+        return bool(await self.conn.fetchval(
+            """SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = to_regclass('liquidations')
+                              AND attname = 'mapping_version' AND NOT attisdropped)"""))
+
+    async def fetch_liquidation_cutover(self, *, symbol: str) -> dict:
+        """{venue: {"first_new", "last_old"}} for Bybit and OKX: the first row written by the fixed
+        collector and the last one written before it (docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md D2).
+        Immutable once both exist; memoized on this connection."""
+        cache = getattr(self, "_liq_cutover", None)
+        if cache is not None and symbol in cache:
+            return cache[symbol]
+        out: dict = {}
+        has_column = await self._has_mapping_version()
+        for ex in ("bybit", "okx"):
+            first_new = last_old = None
+            if has_column:
+                first_new = await self.conn.fetchval(
+                    """SELECT min(ts) FROM liquidations
+                       WHERE exchange=$1 AND symbol=$2 AND mapping_version IS NOT NULL""", ex, symbol)
+                last_old = await self.conn.fetchval(
+                    """SELECT max(ts) FROM liquidations
+                       WHERE exchange=$1 AND symbol=$2 AND mapping_version IS NULL""", ex, symbol)
+            out[ex] = {"first_new": first_new, "last_old": last_old}
+        self._liq_cutover = {**(cache or {}), symbol: out}
+        return out
 
     # ------------------------------------------------------------- forecast tracking
     async def insert_forecast(self, *, horizon: str, issued_at: datetime, horizon_end: datetime,
@@ -2011,7 +2107,7 @@ class BetaConn:
         participants get a SUPPRESSED row (as for the existing pushes). The alert is then marked
         dispatched, also when nobody qualified, so it never blocks later alerts."""
         pref = {"level": "push_levels", "event": "push_events", "move": "push_moves"}.get(kind)
-        if kind == "price":
+        if kind in ("price", "approach"):
             where = "u.user_pk = $4::bigint"
         elif pref is not None:
             where = f"$4::bigint IS NULL AND u.push_enabled AND u.{pref}"
@@ -2028,7 +2124,7 @@ class BetaConn:
                        $2
                 FROM beta_users u WHERE {where}
                 ON CONFLICT (alert_pk, user_pk) WHERE kind='alert' DO NOTHING""",
-            alert_pk, decision_ts, expired, target_user_pk if kind == "price" else None)
+            alert_pk, decision_ts, expired, target_user_pk if kind in ("price", "approach") else None)
         await self.conn.execute("UPDATE beta_market_alerts SET dispatched_at=$2 WHERE alert_pk=$1",
                                 alert_pk, now or decision_ts)
         return int(status.split()[-1])
@@ -2038,7 +2134,7 @@ class BetaConn:
         # that chat waits: the limit is the chat's, not one message's (review of #345)
         rows = await self.conn.fetch(
             """SELECT x.delivery_id, x.alert_pk, x.user_pk, x.decision_ts, a.kind, a.payload,
-                      u.chat_id, u.status AS user_status, u.lang AS user_lang
+                      u.chat_id, u.status AS user_status, u.lang AS user_lang, u.tz AS user_tz
                FROM beta_notification_deliveries x JOIN beta_users u USING (user_pk)
                JOIN beta_market_alerts a ON a.alert_pk = x.alert_pk
                WHERE x.state='PENDING' AND x.kind='alert'
@@ -2080,10 +2176,18 @@ class BetaConn:
 
     async def fetch_active_price_alerts(self) -> list:
         rows = await self.conn.fetch(
-            """SELECT p.price_alert_pk, p.user_pk, p.price, p.direction, p.created_at, p.created_price
+            """SELECT p.price_alert_pk, p.user_pk, p.price, p.direction, p.created_at, p.created_price,
+                      p.approached_at
                FROM beta_price_alerts p JOIN beta_users u USING (user_pk)
                WHERE p.triggered_at IS NULL AND p.cancelled_at IS NULL AND u.status='ACTIVE'""")
         return [dict(r) for r in rows]
+
+    async def mark_price_alert_approached(self, price_alert_pk: int, *, at: datetime) -> bool:
+        status = await self.conn.execute(
+            """UPDATE beta_price_alerts SET approached_at=$2
+               WHERE price_alert_pk=$1 AND approached_at IS NULL AND triggered_at IS NULL AND cancelled_at IS NULL""",
+            price_alert_pk, at)
+        return status == "UPDATE 1"
 
     async def mark_price_alert_triggered(self, price_alert_pk: int, *, at: datetime) -> bool:
         status = await self.conn.execute(

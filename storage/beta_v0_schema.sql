@@ -508,7 +508,11 @@ ALTER TABLE beta_user_activity ADD CONSTRAINT beta_user_activity_action_check CH
     -- «Следить» (a personal alert in one tap)
     'cmd_check', 'btn_check', 'btn_watch',
     -- the weekly report (backlog B4), a delivery of its own class
-    'weekly_delivered'));
+    'weekly_delivered',
+    -- the personal layer (PRE_BETA_SCOPE_DECISION_V1 §9 E): the time zone, the one-tap mute and its undo
+    'cmd_tz', 'btn_mute', 'btn_unmute',
+    -- the trader type: the question (/type or after joining) and the answer
+    'cmd_type', 'type_set'));
 
 -- U1a (BETA_MEASUREMENT_CONTRACT_V1 §6): a briefing withheld on a withdrawal day is a
 -- SUPPRESSED outbox row with its own reason. Widen the original unnamed column check once.
@@ -526,6 +530,25 @@ BEGIN
         ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
             suppression_reason IS NULL OR suppression_reason IN (
             'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL'));
+    END IF;
+END $$;
+
+-- Quiet hours in the participant's time zone (backlog C5): a push that some participants
+-- receive is SUPPRESSED / QUIET_HOURS for one whose own night it is. Widen once.
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_notification_deliveries'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%BRIEF_WITHDRAWAL%'
+      AND pg_get_constraintdef(oid) NOT LIKE '%QUIET_HOURS%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_notification_deliveries DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_notification_deliveries ADD CONSTRAINT ck_beta_delivery_suppression_reason CHECK (
+            suppression_reason IS NULL OR suppression_reason IN (
+            'PUSH_DISABLED', 'DELIVERY_TOO_OLD', 'USER_INACTIVE', 'BRIEF_WITHDRAWAL', 'QUIET_HOURS'));
     END IF;
 END $$;
 
@@ -780,12 +803,39 @@ CREATE TABLE IF NOT EXISTS beta_price_alerts (
 );
 CREATE INDEX IF NOT EXISTS ix_beta_price_alerts_active ON beta_price_alerts (user_pk)
     WHERE triggered_at IS NULL AND cancelled_at IS NULL;
+-- «Мои уровни» (backlog E1): one approach message before the touch, when the price first comes
+-- within the hour's typical move of the level.
+ALTER TABLE beta_price_alerts ADD COLUMN IF NOT EXISTS approached_at TIMESTAMPTZ;
+DO $$
+DECLARE
+    cname text;
+BEGIN
+    SELECT conname INTO cname
+    FROM pg_constraint
+    WHERE conrelid = 'beta_market_alerts'::regclass AND contype = 'c'
+      AND pg_get_constraintdef(oid) LIKE '%''price''%' AND pg_get_constraintdef(oid) LIKE '%''move''%'
+      AND pg_get_constraintdef(oid) NOT LIKE '%approach%';
+    IF cname IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE beta_market_alerts DROP CONSTRAINT %I', cname);
+        ALTER TABLE beta_market_alerts ADD CONSTRAINT ck_beta_market_alert_kind CHECK (
+            kind IN ('level', 'event', 'move', 'price', 'approach'));
+    END IF;
+END $$;
 
 -- Per-type push preferences (all on by default; `push_enabled` stays the master switch for
 -- market pushes; a personal price alert is delivered whenever the participant is ACTIVE).
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_levels BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_events BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_moves BOOLEAN NOT NULL DEFAULT TRUE;
+-- the participant's time zone (backlog C5): an IANA name or «UTC±HH:MM»; NULL = Europe/Kyiv.
+-- Every clock the bot prints and the participant's quiet hours follow it.
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS tz TEXT CHECK (tz IS NULL OR length(tz) BETWEEN 1 AND 64);
+-- the participant's briefing time on their own clock (backlog E3); NULL = briefing.time_kyiv
+-- how the participant trades, one onboarding answer (backlog E5); the owner report is split by it
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS trader_type TEXT
+    CHECK (trader_type IS NULL OR trader_type IN ('scalp', 'intraday', 'swing', 'invest'));
+ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS brief_time TEXT
+    CHECK (brief_time IS NULL OR brief_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$');
 ALTER TABLE beta_users ADD COLUMN IF NOT EXISTS push_hours BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- The bootstrap watermark may be rewound by the operator (--beta-bootstrap-rewind) so the
@@ -1033,3 +1083,18 @@ UPDATE beta_runtime_health SET first_run_at = COALESCE(last_success_at, last_run
 -- review of #345: a chat with a row still inside Telegram's wait holds back all its rows (the fetchers)
 CREATE INDEX IF NOT EXISTS ix_beta_delivery_waiting ON beta_notification_deliveries (user_pk)
     WHERE state = 'PENDING' AND next_attempt_at IS NOT NULL;
+
+-- «Полезно / Шум» on every message type (PRE_BETA_SCOPE_DECISION_V1 §6.3, backlog F6): market and
+-- personal alerts (ref = alert_pk), the briefing (ref = its view_pk) and the weekly report (ref =
+-- weekly_pk). The unusual-hour push keeps beta_feedback (episodes). One vote per participant and
+-- message; a second tap changes it. /delete_me cascades.
+CREATE TABLE IF NOT EXISTS beta_message_votes (
+    vote_pk     BIGSERIAL PRIMARY KEY,
+    user_pk     BIGINT NOT NULL REFERENCES beta_users (user_pk) ON DELETE CASCADE,
+    kind        TEXT NOT NULL CHECK (kind IN ('level', 'event', 'move', 'price', 'approach', 'brief', 'weekly')),
+    ref         BIGINT NOT NULL CHECK (ref > 0),
+    vote        TEXT NOT NULL CHECK (vote IN ('USEFUL', 'NOISE')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_beta_message_vote UNIQUE (user_pk, kind, ref)
+);

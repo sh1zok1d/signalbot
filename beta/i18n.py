@@ -2,17 +2,95 @@
 
 The formatter takes `lang` and does not build user text outside this module.
 Number and clock formatting live here too: storage stays UTC; only rendering
-converts to Europe/Kyiv.
+converts, to the recipient's time zone (Europe/Kyiv unless the participant set one with
+/tz; backlog C5). Scheduling logic that is defined in Kyiv time uses `kyiv()` / `KYIV`.
 """
 from __future__ import annotations
 
 import re
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from contextlib import contextmanager
+from contextvars import ContextVar
+from datetime import datetime, timedelta, timezone, tzinfo
+from typing import Optional
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 LANGS = ("ru", "en")
 KYIV = ZoneInfo("Europe/Kyiv")
 MINUS = "−"
+
+# ---- the recipient's time zone (backlog C5) ---------------------------------------------------
+# A participant's `tz` is an IANA name («Europe/Warsaw») or a fixed offset «UTC+03:00»; NULL is Kyiv.
+# The bot and the notifier set it for the duration of one rendering (`render_tz`); every clock the
+# catalog formats then reads it. Nothing is stored in local time.
+_RENDER_TZ: ContextVar[tzinfo] = ContextVar("beta_render_tz", default=KYIV)
+_OFFSET_RE = re.compile(r"^(?:utc|gmt)?\s*([+-−])\s*(\d{1,2})(?::?(\d{2}))?$", re.I)
+
+
+def tz_of(name: Optional[str]) -> tzinfo:
+    """The tzinfo of a stored `tz` value; Kyiv for NULL or anything unreadable (never an error)."""
+    if not name:
+        return KYIV
+    m = _OFFSET_RE.match(name.strip())
+    if m:
+        sign = -1 if m.group(1) in "-−" else 1
+        return timezone(sign * timedelta(hours=int(m.group(2)), minutes=int(m.group(3) or 0)))
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError):
+        return KYIV
+
+
+def parse_tz(text: Optional[str]) -> Optional[str]:
+    """The stored form of a /tz argument, or None: an IANA name («Europe/Warsaw», case as typed is
+    normalised by the zone database) or an offset «+3», «UTC-5», «+05:30» (stored «UTC+05:30»)."""
+    s = (text or "").strip()
+    m = _OFFSET_RE.match(s)
+    if m:
+        h, mm = int(m.group(2)), int(m.group(3) or 0)
+        if h > 14 or mm >= 60 or (h == 14 and mm):
+            return None
+        sign = "-" if m.group(1) in "-−" else "+"
+        return f"UTC{sign}{h:02d}:{mm:02d}"
+    if not s or "/" not in s or len(s) > 64:
+        return None
+    try:
+        ZoneInfo(s)
+        return s
+    except (ZoneInfoNotFoundError, ValueError):
+        pass
+    from zoneinfo import available_timezones
+    return next((z for z in sorted(available_timezones()) if z.lower() == s.lower()), None)
+
+
+@contextmanager
+def render_tz(name: Optional[str]):
+    """Render everything inside in the participant's time zone."""
+    token = _RENDER_TZ.set(tz_of(name))
+    try:
+        yield
+    finally:
+        _RENDER_TZ.reset(token)
+
+
+def use_render_tz(name: Optional[str]) -> None:
+    """Set the rendering zone for the rest of the current task step (the bot's update handling resets it)."""
+    _RENDER_TZ.set(tz_of(name))
+
+
+def current_tz() -> tzinfo:
+    return _RENDER_TZ.get()
+
+
+def zone_name(lang: str, at: Optional[datetime] = None) -> str:
+    """«Киев» / «Kyiv» for Kyiv, else «UTC+3» / «UTC+05:30» at `at` (now when None)."""
+    tz = _RENDER_TZ.get()
+    if tz is KYIV:
+        return "Киев" if normalize_lang(lang) == "ru" else "Kyiv"
+    off = (at or datetime.now(timezone.utc)).astimezone(tz).utcoffset() or timedelta(0)
+    total = int(off.total_seconds() // 60)
+    sign = "+" if total >= 0 else MINUS
+    h, m = divmod(abs(total), 60)
+    return f"UTC{sign}{h}" + (f":{m:02d}" if m else "")
 
 # PRODUCT_DECISION_V2 §3 (owner, 2026-10-03): forecasts, probabilities and historical
 # statistics are allowed; direct trade calls and hype are not. The English list applies to
@@ -97,26 +175,39 @@ def assert_descriptive(text: str, lang: str = "en") -> str:
 
 def t(lang: str, key: str, **kw) -> str:
     lang = normalize_lang(lang)
+    if key == "zone":                       # «(Киев)» / «Kyiv», or the participant's zone (C5)
+        name = zone_name(lang)
+        return f"({name})" if lang == "ru" else name
     template = _CATALOG[key][lang]
+    if "{zone" in template:                 # every clock label follows the participant's zone
+        kw.setdefault("zone", t(lang, "zone"))
+        kw.setdefault("zone_name", zone_name(lang))
     return template.format(**kw) if kw else template
 
 
 def kyiv(dt: datetime) -> datetime:
+    """Kyiv wall clock, for logic defined in Kyiv time (quiet hours of a participant without a zone,
+    the weekend flag, the owner's report); user-facing clocks use `local`."""
     return dt.astimezone(KYIV)
 
 
+def local(dt: datetime) -> datetime:
+    """The recipient's wall clock (backlog C5)."""
+    return dt.astimezone(_RENDER_TZ.get())
+
+
 def fmt_kyiv_hm(dt: datetime) -> str:
-    return kyiv(dt).strftime("%H:%M")
+    """HH:MM on the recipient's clock (the name stays from the Kyiv-only days)."""
+    return local(dt).strftime("%H:%M")
 
 
 def fmt_kyiv_date_hm(dt: datetime, lang: str) -> str:
-    local = kyiv(dt)
-    zone = t(lang, "zone")
-    return f"{local.strftime('%Y-%m-%d %H:%M')} {zone}"
+    loc = local(dt)
+    return f"{loc.strftime('%Y-%m-%d %H:%M')} {t(lang, 'zone')}"
 
 
 def fmt_clock(dt: datetime, lang: str) -> str:
-    """HH:MM plus the Kyiv label. The label differs by language; the clock does not."""
+    """HH:MM plus the zone label («(Киев)» / «Kyiv», or «(UTC+3)»). The label differs by language."""
     return f"{fmt_kyiv_hm(dt)} {t(lang, 'zone')}"
 
 
@@ -188,7 +279,7 @@ def na(lang: str) -> str:
 
 
 _CATALOG: dict[str, dict[str, str]] = {
-    "zone": {"ru": "(Киев)", "en": "Kyiv"},
+    "zone": {"ru": "(Киев)", "en": "Kyiv"},              # t() renders the participant's zone (C5)
     "na": {"ru": "н/д", "en": "n/a"},
     "usd_b": {"ru": "млрд", "en": "B"},
     "usd_m": {"ru": "млн", "en": "M"},
@@ -239,6 +330,16 @@ _CATALOG: dict[str, dict[str, str]] = {
                            "en": "Only BTC is available for now. Your interest in other coins is noted."},
     "btn_details": {"ru": "Подробнее", "en": "Details"},
     "btn_useful": {"ru": "Полезно", "en": "Useful"},
+    "btn_mute": {"ru": "🔕 Не присылать такие", "en": "🔕 Stop these"},
+    "btn_unmute": {"ru": "↩️ Вернуть", "en": "↩️ Undo"},
+    "mute_ok": {"ru": "Больше не присылаю: {name}. Вернуть — кнопкой ниже или /push {cmd} on.",
+                "en": "I will not send these any more: {name}. Undo with the button below or /push {cmd} on."},
+    "unmute_ok": {"ru": "Снова присылаю: {name}.", "en": "Sending these again: {name}."},
+    "mute_name_hours": {"ru": "сообщения о необычном часе", "en": "unusual-hour messages"},
+    "mute_name_levels": {"ru": "касания уровней", "en": "level touches"},
+    "mute_name_events": {"ru": "напоминания о CPI и ФРС", "en": "CPI and Fed reminders"},
+    "mute_name_moves": {"ru": "резкие движения", "en": "sharp moves"},
+    "mute_name_weekly": {"ru": "итоги недели", "en": "the weekly report"},
     "btn_noise": {"ru": "Шум", "en": "Noise"},
     "lang_saved": {"ru": "Язык: русский.", "en": "Language: English."},
     "joined": {"ru": "Вы в бете.", "en": "Joined"},
@@ -312,8 +413,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "события календаря и оповещения.\n"
             "• Мы храним ваш Telegram id и id чата, чтобы отправлять сообщения беты, "
             "а также голоса «полезно / шум» и статус доставки.\n"
-            "• Ваши настройки (язык, какие сообщения получать, утренняя сводка) хранятся, пока вы в бете; "
-            "/delete_me удаляет их.\n"
+            "• Ваши настройки (язык, часовой пояс, какие сообщения получать, время утренней сводки) и стиль "
+            "торговли, если вы его укажете, хранятся, пока вы в бете; /delete_me удаляет их.\n"
             "• Записи рынка и событий не содержат персональных данных.\n"
             "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
             "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
@@ -338,8 +439,8 @@ _CATALOG: dict[str, dict[str, str]] = {
             "similar cases, calendar events and alerts.\n"
             "• We store your Telegram user id and chat id to send you beta messages, plus your "
             "Useful/Noise votes and delivery status.\n"
-            "• Your settings (language, which messages to receive, the morning briefing) are kept while you are "
-            "in the beta; /delete_me deletes them.\n"
+            "• Your settings (language, time zone, which messages to receive, the briefing time) and your trading "
+            "style, if you give it, are kept while you are in the beta; /delete_me deletes them.\n"
             "• Market/event records contain no personal data.\n"
             "• We record which commands and buttons you use, and when, and which invite link "
             "you came from, so we can improve the bot. These records are kept for 120 days. "
@@ -580,7 +681,7 @@ _CATALOG: dict[str, dict[str, str]] = {
     "catchup_title_nospan": {"ru": "BTC за {hours} ч", "en": "BTC, last {hours}h"},
     "brief_title": {"ru": "BTC за ночь · {span}", "en": "BTC overnight · {span}"},
     "span_hours": {"ru": "{hours} ч", "en": "{hours}h"},
-    "window_kyiv": {"ru": "{start}–{end} (Киев)", "en": "{start}–{end} Kyiv"},
+    "window_kyiv": {"ru": "{start}–{end} {zone}", "en": "{start}–{end} {zone}"},
     "price_span": {"ru": "Цена {open} → {close} ({pct})", "en": "Price {open} → {close} ({pct})"},
     "price_span_minmax": {"ru": ", мин {low}, макс {high}", "en": ", low {low}, high {high}"},
     "price_span_incomplete": {"ru": "Цена: данные неполные", "en": "Price: incomplete data"},
@@ -664,11 +765,33 @@ _CATALOG: dict[str, dict[str, str]] = {
     "brief_off_hint": {"ru": "Отключить утреннюю сводку: /brief off", "en": "Turn the morning briefing off: /brief off"},
     "catchup_usage": {"ru": "Окно — от 1 до 24 часов. Например: /catchup 4",
                       "en": "The window is 1 to 24 hours. For example: /catchup 4"},
-    "brief_usage": {"ru": "Утренняя сводка: {state}. /brief on — включить, /brief off — выключить.",
-                    "en": "Morning briefing: {state}. /brief on to turn it on, /brief off to turn it off."},
+    "brief_usage": {"ru": "Утренняя сводка: {state}, в {time} {zone}. /brief on — включить, /brief off — выключить, "
+                          "/brief 07:30 — другое время.",
+                    "en": "Morning briefing: {state}, at {time} {zone}. /brief on to turn it on, /brief off to turn it "
+                          "off, /brief 07:30 for another time."},
+    "brief_time_ok": {"ru": "Утренняя сводка — в {time} {zone}.", "en": "Morning briefing at {time} {zone}."},
+    "brief_time_off_hint": {"ru": "Сейчас она выключена: /brief on — включить.",
+                            "en": "It is off now: /brief on to turn it on."},
     "brief_state_on": {"ru": "включена", "en": "on"},
     "brief_state_off": {"ru": "выключена", "en": "off"},
-    "brief_on_ok": {"ru": "Утренняя сводка включена: 08:00 (Киев).", "en": "Morning briefing on: 08:00 Kyiv."},
+    "brief_on_ok": {"ru": "Утренняя сводка включена: {time} {zone}.", "en": "Morning briefing on: {time} {zone}."},
+    # one onboarding question (backlog E5): stored only; the owner report is split by it, the bot does not change
+    "type_question": {"ru": "Как вы торгуете? Один ответ, чтобы понять, кому бот полезен; сообщения от него не меняются.",
+                      "en": "How do you trade? One answer, so we learn who the bot helps; the messages do not change."},
+    "type_scalp": {"ru": "Скальпинг", "en": "Scalping"},
+    "type_intraday": {"ru": "Внутри дня", "en": "Intraday"},
+    "type_swing": {"ru": "Свинг (дни–недели)", "en": "Swing (days–weeks)"},
+    "type_invest": {"ru": "Инвестиции", "en": "Investing"},
+    "type_skip": {"ru": "Пропустить", "en": "Skip"},
+    "type_saved": {"ru": "Записал: {name}. Изменить: /type", "en": "Saved: {name}. Change it: /type"},
+    "type_skipped": {"ru": "Хорошо. Указать позже: /type", "en": "Fine. You can answer later: /type"},
+    "tz_usage": {"ru": "Часовой пояс: {name}. Всё время в сообщениях — по нему, ночная тишина {quiet} — тоже.\n"
+                       "Поменять: /tz +3, /tz -5, /tz Europe/Warsaw; вернуть Киев: /tz kyiv",
+                 "en": "Time zone: {name}. Every time in the messages follows it, and so do the quiet hours {quiet}.\n"
+                       "Change it: /tz +3, /tz -5, /tz Europe/Warsaw; back to Kyiv: /tz kyiv"},
+    "tz_ok": {"ru": "Часовой пояс: {name}. Сейчас у вас {clock}.", "en": "Time zone: {name}. Your time now: {clock}."},
+    "tz_bad": {"ru": "Не понял часовой пояс. Примеры: /tz +3, /tz -5, /tz Europe/Warsaw, /tz kyiv",
+               "en": "I could not read that time zone. Examples: /tz +3, /tz -5, /tz Europe/Warsaw, /tz kyiv"},
     "brief_off_ok": {"ru": "Утренняя сводка выключена. Сообщения о необычном часе это не меняет.",
                      "en": "Morning briefing off. Unusual-hour messages are not affected."},
     "push_usage": {"ru": "Сообщения о необычном часе: {state}. /push on — включить, /push off — выключить.",
@@ -828,8 +951,8 @@ _CATALOG: dict[str, dict[str, str]] = {
     "liq_long_name": {"ru": "лонгов", "en": "Long"},
     "liq_short_name": {"ru": "шортов", "en": "Short"},
     "liq_footnote": {
-        "ru": "≥ — нижняя граница: Binance передаёт не все ликвидации.",
-        "en": "≥ — lower bound: Binance does not report every liquidation.",
+        "ru": "≥ — нижняя граница: Binance и OKX передают не все ликвидации.",
+        "en": "≥ — lower bound: Binance and OKX do not report every liquidation.",
     },
     "liq_zero_footnote": {
         "ru": "* — $0 по неполным данным: это не значит, что ликвидаций не было.",
@@ -956,8 +1079,8 @@ _CATALOG: dict[str, dict[str, str]] = {
         "en": "High impact last hour",
     },
     "d7_h1_1": {
-        "ru": "High impact {start}–{end} (Киев): цена прошла много относительно объёма торгов.",
-        "en": "High impact {start}–{end} Kyiv: price moved a lot relative to traded volume.",
+        "ru": "High impact {start}–{end} {zone}: цена прошла много относительно объёма торгов.",
+        "en": "High impact {start}–{end} {zone}: price moved a lot relative to traded volume.",
     },
     "d7_h1_2": {
         "ru": "Исторически следующий час был таким же примерно в 1 из 5 случаев (обычно в 1 из 10).",
@@ -1002,7 +1125,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "× от обычного — во сколько раз больше обычного: для 1ч — в это же время суток за 30 дней, для 24ч — медиана за 30 дней. "
             "Сравнение появляется, когда накоплено 20 дней истории.\n"
             "↑ ↓ — только направление, не сила.\n"
-            "Время — киевское.\n"
+            "Время — по вашему часовому поясу (по умолчанию Киев; /tz).\n"
             "High impact — за прошлый календарный час цена прошла много относительно объёма торгов. "
             "Исторически следующий час был таким же примерно в 1 из 5 случаев (обычно 1 из 10). "
             "Направление цены это не показывает."
@@ -1037,7 +1160,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "× usual — how many times larger than usual: for 1h, the same time of day over 30 days; for 24h, the 30-day median. "
             "The comparison appears once 20 days of history are collected.\n"
             "↑ ↓ — direction only, not strength.\n"
-            "Time — Kyiv time.\n"
+            "Time — your time zone (Kyiv by default; /tz).\n"
             "High impact — in the last clock hour the price moved a lot relative to traded volume. "
             "Historically the following hour was like this about 1 in 5 times (usually 1 in 10). "
             "It says nothing about price direction."

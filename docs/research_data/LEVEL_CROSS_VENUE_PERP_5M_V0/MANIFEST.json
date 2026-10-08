@@ -1,0 +1,759 @@
+{
+  "dataset_id": "LEVEL_CROSS_VENUE_PERP_5M_V0",
+  "outcomes_read": false,
+  "protected_2025_2026_requested": false,
+  "tier_candidate": "TIER_A",
+  "trade_close_audits": [
+    {
+      "bars_compared": 288,
+      "close_exact": 284,
+      "close_match_rate": 0.9861111111111112,
+      "day": "2020-04-01",
+      "max_abs_close_diff": 4.0,
+      "shift_hours": -3,
+      "trade_sha256": "595c3e9ce1b5cfe6b8c76883c1e8aa2f63a00e35f3d923ff2d4c5f4d871d6516"
+    },
+    {
+      "bars_compared": 288,
+      "close_exact": 279,
+      "close_match_rate": 0.96875,
+      "day": "2020-07-15",
+      "max_abs_close_diff": 2.0,
+      "shift_hours": -3,
+      "trade_sha256": "17c769158e859a93f866d16dc66d9916ca1b7d3f45cbf2ac4a642ac5347df4ff"
+    }
+  ],
+  "trade_identity_2020_04_01": {
+    "bars_compared": 288,
+    "bars_exact_ohlc_match": 0,
+    "day": "2020-04-01",
+    "exact_match_rate": 0.0,
+    "mismatch_examples": [
+      {
+        "kline": [
+          6463.0,
+          6468.0,
+          6462.5,
+          6462.5
+        ],
+        "open_ms": 1585699200000,
+        "trade": [
+          6408.0,
+          6417.0,
+          6407.5,
+          6413.5
+        ]
+      },
+      {
+        "kline": [
+          6462.5,
+          6474.5,
+          6462.0,
+          6472.5
+        ],
+        "open_ms": 1585699500000,
+        "trade": [
+          6414.5,
+          6416.5,
+          6410.0,
+          6410.5
+        ]
+      },
+      {
+        "kline": [
+          6472.5,
+          6474.5,
+          6472.0,
+          6473.5
+        ],
+        "open_ms": 1585699800000,
+        "trade": [
+          6412.5,
+          6413.5,
+          6345.5,
+          6351.5
+        ]
+      },
+      {
+        "kline": [
+          6473.5,
+          6473.5,
+          6467.5,
+          6467.5
+        ],
+        "open_ms": 1585700100000,
+        "trade": [
+          6365.0,
+          6365.0,
+          6275.0,
+          6296.0
+        ]
+      },
+      {
+        "kline": [
+          6467.5,
+          6467.5,
+          6459.5,
+          6463.5
+        ],
+        "open_ms": 1585700400000,
+        "trade": [
+          6295.0,
+          6314.0,
+          6277.0,
+          6277.0
+        ]
+      }
+    ],
+    "note": "Public trade tape sorted by exchange timestamp. OHLC uses the first, max, min and last trade inside each 5m bin. The trade file is not retained.",
+    "source": "https://public.bybit.com/trading/BTCUSDT/BTCUSDT2020-04-01.csv.gz",
+    "source_sha256": "595c3e9ce1b5cfe6b8c76883c1e8aa2f63a00e35f3d923ff2d4c5f4d871d6516",
+    "trades": 18457
+  },
+  "venues": {
+    "bybit": {
+      "canonical_sha256": "f7ef739f7d359056cbbf78a77993995f54e3303e50775b5aadf36b4ba68f507c",
+      "census": {
+        "first_open": "2020-03-31T21:00:00+00:00",
+        "first_open_ms": 1585688400000,
+        "last_open": "2024-12-31T20:55:00+00:00",
+        "last_open_ms": 1735678500000,
+        "longest_missing_run_bars": 8528,
+        "missing_bars": 23714,
+        "missing_runs": 4,
+        "missing_runs_head": [
+          {
+            "bars": 7728,
+            "from_open_ms": 1701738000000,
+            "to_open_ms_exclusive": 1704056400000
+          },
+          {
+            "bars": 8528,
+            "from_open_ms": 1704176400000,
+            "to_open_ms_exclusive": 1706734800000
+          },
+          {
+            "bars": 730,
+            "from_open_ms": 1709021400000,
+            "to_open_ms_exclusive": 1709240400000
+          },
+          {
+            "bars": 6728,
+            "from_open_ms": 1709900400000,
+            "to_open_ms_exclusive": 1711918800000
+          }
+        ],
+        "n": 476254
+      },
+      "clock_offset_hours": -3,
+      "contract_type": "linear perpetual",
+      "files": [
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2020-04-01_2020-04-30.csv.gz",
+          "pinned_bytes": 121379,
+          "pinned_sha256": "84cbf45dc926c50591b84288504349d1bb7ee8c99541384d6505093e45132401",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 125359,
+          "source_sha256": "8eeb67a1e9cab14dda9d2d3381df460ace27cfb266249de1daf472f00378521f"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2020-05-01_2020-05-31.csv.gz",
+          "pinned_bytes": 129777,
+          "pinned_sha256": "59b5af17d5e3b0d98e824ad2ca29572846d3eeb5aa10a509f48f1138927bf508",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 133614,
+          "source_sha256": "71c6194a9e38af1637f9bfd938d8d39f60e349d83fd2b3ac8a46f3e995ceba07"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2020-06-01_2020-06-30.csv.gz",
+          "pinned_bytes": 116731,
+          "pinned_sha256": "75363e90ea3df10412c7da44eb476d9c9830d0a4286ede00c7594caf8a497715",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 120840,
+          "source_sha256": "bf37ca64893d16dea6c4a5079eaa6296b43d2d1d0e872c56c13283cc1fdd34bd"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2020-07-01_2020-07-31.csv.gz",
+          "pinned_bytes": 115064,
+          "pinned_sha256": "bab1bc52118f535039566d63cb7b006d0437677007bdddb5e02b826bd1c3bd98",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 119238,
+          "source_sha256": "b587a231e2a978993c6c675d22fea22c83e6b17130aea5c7677575f010c00b66"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2020-08-01_2020-08-31.csv.gz",
+          "pinned_bytes": 124308,
+          "pinned_sha256": "12b99e86e4faa7daff37cada5cd7e66d4b08d0b0c877bd9710cb4234af77817a",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 128023,
+          "source_sha256": "2ca813e542acff3ef89d88fbf77cc30536f0cc899a40375ce2160c01facb1d0c"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2020-09-01_2020-09-30.csv.gz",
+          "pinned_bytes": 117215,
+          "pinned_sha256": "5fbd48178f4936fc2d49b3c09044fad02495cf49ebeb0cd6b617d5c41e9d278f",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 121169,
+          "source_sha256": "08f01120e2d2265a1f272fe7b950cf2d1a36a034afbaa50ad522daaceea983a1"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2020-10-01_2020-10-31.csv.gz",
+          "pinned_bytes": 117866,
+          "pinned_sha256": "9463ce25937239c18e1460dffdfe4ef6cdac9f9c32b8031f94567b35a376c340",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 121782,
+          "source_sha256": "a98f0c1aa799ec4226522f8e2ab5fbdac256287f1c4697bf99daba685ba9504f"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2020-11-01_2020-11-30.csv.gz",
+          "pinned_bytes": 132929,
+          "pinned_sha256": "1b7c1183a92994a9e780ebf6f714f051f933cf39d32372209bca2d2472bc0658",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 136014,
+          "source_sha256": "25982d79a653c8037d7fba72f4805d7772b88dabc78eb726484b6b76d9c0b758"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2020-12-01_2020-12-31.csv.gz",
+          "pinned_bytes": 139374,
+          "pinned_sha256": "f67ad72860c8eed2e384ceb6584428ea7274c4228be074b4389cfdb7dcdf6cf4",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 142558,
+          "source_sha256": "60ebba6200acefe27c7ea7cfe67144a86ba9d84e2b0a493c38aa20b9396ea5c6"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-01-01_2021-01-31.csv.gz",
+          "pinned_bytes": 151816,
+          "pinned_sha256": "8deba206a35b22af53b9f4108b1aebcdbddd339d5db41dbc9c6c3f40451e80ee",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 154104,
+          "source_sha256": "0a2c591c2d6392cba36ccfb82650229dae7f10b973d30dc52f278017aa0c540b"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-02-01_2021-02-28.csv.gz",
+          "pinned_bytes": 136439,
+          "pinned_sha256": "0fe6b1341f09e397e7595ff0c4edad0909b48f356989b449336b2a686b9e714d",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8065,
+          "source_bytes": 138717,
+          "source_sha256": "50ae155ee23b5d1b7f842e852e8c24b919d54671470cc755ee7f86d9b2c0b4a1"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-03-01_2021-03-31.csv.gz",
+          "pinned_bytes": 148743,
+          "pinned_sha256": "36250796cd299f52094f94ac70d9f3ac200ec7b228c2412f2a3666e522df4621",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 151589,
+          "source_sha256": "7f1d8895d0e53dd802ba72e9f1870f202af356237c21a85af5d5aa4aee412990"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-04-01_2021-04-30.csv.gz",
+          "pinned_bytes": 139095,
+          "pinned_sha256": "6b6b30d91d8479c85335a21da8a09a01ebc695fdf7c8bb021d9e2395380240a9",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 142248,
+          "source_sha256": "71913e81642c0f854246451e32c3fddb8e53a8f8fc25460fd14eca07790720ad"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-05-01_2021-05-31.csv.gz",
+          "pinned_bytes": 151404,
+          "pinned_sha256": "0393bf52868220539fd2b297fbc88d2296ebb93c34fe7fc8811c89d772287c1c",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 153941,
+          "source_sha256": "f55eaff903ee592fe397dd27bf21ec9c4768cd7589e2e7025ff4ef11b033a577"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-06-01_2021-06-30.csv.gz",
+          "pinned_bytes": 146386,
+          "pinned_sha256": "1e46b72fcaefa55efb8c4d16bcb35b831f02b0af1195d2927090ed63af381339",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 149172,
+          "source_sha256": "a1df8b6abace958a8cc978708707393f24b9fd599847ceaf9de065bfdfea8eba"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-07-01_2021-07-31.csv.gz",
+          "pinned_bytes": 145093,
+          "pinned_sha256": "bee507947391ed684f15c19e0cd12f410ff434554ce02aecb4531acf6e2f4842",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 148436,
+          "source_sha256": "ee95ed0f313e27eb87eda4af30be1ac8b9720801308971ee8e3c0309fe4cb804"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-08-01_2021-08-31.csv.gz",
+          "pinned_bytes": 147664,
+          "pinned_sha256": "46b406e1472bbef63c009b1e6fff9b11c22e6989d5038506aac99e116a7f6a63",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 150862,
+          "source_sha256": "b3d7233f01676faf040e977cb992bb6dae163932d5dc30463628adfc7948b846"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-09-01_2021-09-30.csv.gz",
+          "pinned_bytes": 141907,
+          "pinned_sha256": "3f11999c0f98f5a96b573b6c37457aca5021010ca8f92179cf3d6b9d0ef33cbe",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 144925,
+          "source_sha256": "810dfa73dd43a5ea18a3bfeeea26100518f460035ba2a5ca4f5c97491bd817bd"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-10-01_2021-10-31.csv.gz",
+          "pinned_bytes": 147043,
+          "pinned_sha256": "2fcea1a863f9981612f8e92c1489fd03b018c84892b031a8828bbeef137d1d72",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 150309,
+          "source_sha256": "7cae9b95c8c6c75c8c96680009bc76837ac40b2024a53ecebbeba04ccdc853d2"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-11-01_2021-11-30.csv.gz",
+          "pinned_bytes": 141541,
+          "pinned_sha256": "b37eb801b0f267e468443c7bc8ba18dd8e1e9d607f55cc4b590c35711e0ab31f",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 144371,
+          "source_sha256": "62494450a047ca7b277bd435acfd093d83849ea0c0e459db579a4d71fca86b20"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2021-12-01_2021-12-31.csv.gz",
+          "pinned_bytes": 147699,
+          "pinned_sha256": "787716d13a9a1e883c2a3c8a8674aa6dd142faa6aa228eb19f6aefe3bd4f182f",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 150996,
+          "source_sha256": "033d654cc5c6773bddbe1eb2c8e17e9fad2be816f760ee2175f66abe2170e410"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-01-01_2022-01-31.csv.gz",
+          "pinned_bytes": 146564,
+          "pinned_sha256": "5ac967bad720a93921f5db5eec406c67b811e2c09be85eb5246e1247b0f27b8f",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 149690,
+          "source_sha256": "3dbbc9effb0e1e4fc82c05a5238aa5862e29fe39dd6c0332835f27bd45a7bd8b"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-02-01_2022-02-28.csv.gz",
+          "pinned_bytes": 133076,
+          "pinned_sha256": "a3e96e0340ce44c46709c98554ee11fb76492cca692e543e4e63b02acb09931f",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8065,
+          "source_bytes": 136012,
+          "source_sha256": "9374b7023a7a9d0949ff07af9cfc9e6f39f979431ffe966c5adb6bbb13dcfdf0"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-03-01_2022-03-31.csv.gz",
+          "pinned_bytes": 147627,
+          "pinned_sha256": "416364da03dd9591a77057cb3f68d4fcac9de829f939fb3c514392020f5024a2",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 150871,
+          "source_sha256": "6788ea2cac580798f8cd2a80ec9afa7b1b371c8c9b0ed04b0c1b0e2a001c3747"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-04-01_2022-04-30.csv.gz",
+          "pinned_bytes": 142314,
+          "pinned_sha256": "f4e14fe6198967e3f19497b6b387a500717dc8e57d65034f10252a726351ce4a",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 145449,
+          "source_sha256": "86cb27e7a690083689ce44a22c8489cc43ab52e55275932627ddbeb593372b57"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-05-01_2022-05-31.csv.gz",
+          "pinned_bytes": 150598,
+          "pinned_sha256": "0762dfb2c21d606494c675cc50cbcc00045ac001a37a7653d1f513b7a488353f",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 153717,
+          "source_sha256": "ff0171eada949cbb81f1efb00cceb94223c8b13e49099b16cba173dba842bee3"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-06-01_2022-06-30.csv.gz",
+          "pinned_bytes": 146861,
+          "pinned_sha256": "640f9995887ab09f93466b88a110e98bd9605ad0895a618592903b227fa4509f",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 149692,
+          "source_sha256": "55f650c6b0272adda810f748c2faaa5d88f6dffe556ea12a3fd4f6fdc8d20e78"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-07-01_2022-07-31.csv.gz",
+          "pinned_bytes": 150040,
+          "pinned_sha256": "835facec832bef30e4e442021782cf42179edac57aeaf8cb96cbd220fa03670b",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 153207,
+          "source_sha256": "4953f58b7cac525c6af6859a1033bb53f04fe3592e88ba4287672eb68e84e0de"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-08-01_2022-08-31.csv.gz",
+          "pinned_bytes": 146062,
+          "pinned_sha256": "6aa61db2a023b895b24fe4105c055f59623c45a6cb185e80fa10b47e2395748b",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 149442,
+          "source_sha256": "c2f2a037b271f2682bde59f47d9726859f7103e79a0c239d4b776bef8c9dff04"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-09-01_2022-09-30.csv.gz",
+          "pinned_bytes": 141558,
+          "pinned_sha256": "42a4bb683bbf1a811f76590a7168f614d4256f36fcddbf23375a60e39fce2bdd",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 144803,
+          "source_sha256": "e312f627d599e8a5e02e43f1365ca2238da2f4cdd968bce3cd388b408600eb77"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-10-01_2022-10-31.csv.gz",
+          "pinned_bytes": 139238,
+          "pinned_sha256": "053fd82f56132ab7cc369dc52fbabc2d323c80380c4173dbdde7924ad5d3625a",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 142695,
+          "source_sha256": "53f25f561b612cba44b5115a9ecb326553faf96823cfbcf72778f2a94d8f9cd4"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-11-01_2022-11-30.csv.gz",
+          "pinned_bytes": 137240,
+          "pinned_sha256": "cefbd0122e5a7a4fedf4f07bd45bfdb9205902702b643ec7fc5c77ca36c4d204",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 140462,
+          "source_sha256": "1eaff4e47f75e820e9bcd613b0218546daa4296b253a19d67a9548dbaf542ab6"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2022-12-01_2022-12-31.csv.gz",
+          "pinned_bytes": 128131,
+          "pinned_sha256": "192d9d5e3c3435b6f910b6be3b135134e5d978b64a720b266404f7fe1147c7a9",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 131929,
+          "source_sha256": "e6f4c9d6b2bda06616f231f119c5a56a2fff27c00e0f6a8ecde62cd5a12a09a0"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-01-01_2023-01-31.csv.gz",
+          "pinned_bytes": 138136,
+          "pinned_sha256": "b757d7b1f2111a65998d5c6e16a235810866a9c4b0a800bfcfe678ab20288793",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 141479,
+          "source_sha256": "25323db1502330a12c09fd8c53614250b39f7100fe6e9f87acba7c3b5e121b4a"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-02-01_2023-02-28.csv.gz",
+          "pinned_bytes": 136887,
+          "pinned_sha256": "7102f8dffab53cdbdb78a1a774c4b9b75ad1925dd00bb2fa8a6672cf7cfb4466",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8065,
+          "source_bytes": 139951,
+          "source_sha256": "6e72cc9404eb9b570e786c2f16f4d4269f72c00a1313358b337e12702499cef9"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-03-01_2023-03-31.csv.gz",
+          "pinned_bytes": 159070,
+          "pinned_sha256": "9c88343aa72f771f2e070c4ebb4bdc14df690a5ef3f8b08511c2f0577286a848",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 162307,
+          "source_sha256": "464f4f8f9e62df86c8dbbdf06943cccdf61e58eee859c2abeb35fbd311017128"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-04-01_2023-04-30.csv.gz",
+          "pinned_bytes": 150193,
+          "pinned_sha256": "e8e930d81dd244879df0f3eb7c3e0fdf20f57a708c4eab7812356a1df696d80a",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 153647,
+          "source_sha256": "16dc279e430c9bdd4086eb6a0d90eeb7e13a24ace891a9174f0fd00647dbcb7f"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-05-01_2023-05-31.csv.gz",
+          "pinned_bytes": 153575,
+          "pinned_sha256": "490f956ca5b8a71ebe2d4b0746a4c88090480c12808abd93199b45d764dc5fac",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 157105,
+          "source_sha256": "c971a0d39aa874b6c19aae354165aeeee30ce8bab82d8fa0e27c986e781184b9"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-06-01_2023-06-30.csv.gz",
+          "pinned_bytes": 149298,
+          "pinned_sha256": "cee6808a5bdd124c46fa0f14ae3421e529bc018d748fc5b771baa5e8b7a4de14",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 152724,
+          "source_sha256": "64ebde8483e21400f4014b7fe77e5291beabdcba3f76d7deb8de14beea2dea9d"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-07-01_2023-07-31.csv.gz",
+          "pinned_bytes": 146904,
+          "pinned_sha256": "fa579730fa7a19cad5e605c8f09558edfc4d63445058bdcad3e2040e9007e716",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 151113,
+          "source_sha256": "1f6687023d609c44dc943cd556373270e9109ce3fd8555a4312c8adb7d781c73"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-08-01_2023-08-31.csv.gz",
+          "pinned_bytes": 144859,
+          "pinned_sha256": "986b7cdf00e0f3b6c109bf7ba56954963a59c9abb88557e2c7676e10e2ff6567",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 148585,
+          "source_sha256": "950ea9d4f0db031ffe1e5b44faea3a73b082a6322b651900059b3f6384954492"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-09-01_2023-09-30.csv.gz",
+          "pinned_bytes": 142579,
+          "pinned_sha256": "b537d79dd065f114ebc275e89b613b46919074c7498112a363efc888e48bde39",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 146447,
+          "source_sha256": "31118a053b2d6210715d309f34c5382e80d352745435a608e18850a3c1a93069"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-10-01_2023-10-31.csv.gz",
+          "pinned_bytes": 153954,
+          "pinned_sha256": "04885c1d80f4fe1af73bf1cbf62597d555373b34edc805036980b658b1f0629d",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 157325,
+          "source_sha256": "18f232724a937832954e020692da70a5a6541871a3f412f9aa10688e62f3750d"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-11-01_2023-11-30.csv.gz",
+          "pinned_bytes": 153956,
+          "pinned_sha256": "7c09bfebe80a46daa221ba5e79c25cde7d59506e9099b9bce369bc92042b1e24",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 156872,
+          "source_sha256": "b135a532c4c5d3631ae04c4e56e02ab47d3758c3c49049b7e0b2cd14052ded8f"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2023-12-01_2023-12-31.csv.gz",
+          "pinned_bytes": 21580,
+          "pinned_sha256": "c5358c86c945145606e0c9d3822f1c8e49a38995b2f6ea68812bb7ebcfb44776",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 1200,
+          "source_bytes": 21914,
+          "source_sha256": "d6fa09d547b9948508010acd13e896f10eb385d52480a6e67b36d35c2e309d6c"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-01-01_2024-01-31.csv.gz",
+          "pinned_bytes": 7374,
+          "pinned_sha256": "d63ea41dc8a0937a845449cf61b896a5eba75792e4a8c532a0feb6d3922970c9",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 400,
+          "source_bytes": 7473,
+          "source_sha256": "ac19f6c83816f03ea7519f3d9ade5ccaa065f6a87b1d2324d86f83057b6bd662"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-02-01_2024-02-29.csv.gz",
+          "pinned_bytes": 137282,
+          "pinned_sha256": "c7e1464e3375e8738b89b60ece1a9b7371d8310101b5329e7db28ccb3f5d85a1",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 7622,
+          "source_bytes": 139883,
+          "source_sha256": "570fa9f99cf3a238d04c9aebfd7b660e0b3eb371fe28952b0bb59d630d20c0f8"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-03-01_2024-03-31.csv.gz",
+          "pinned_bytes": 41784,
+          "pinned_sha256": "0e954404e88c15df57b4a79f63663ea9023510791e89fb7ecfde7a511de7a886",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 2200,
+          "source_bytes": 42083,
+          "source_sha256": "a19fca12fcbc56cf2bbbac71cf22c9d9b7c182865049488c96836e52286e7d4d"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-04-01_2024-04-30.csv.gz",
+          "pinned_bytes": 153269,
+          "pinned_sha256": "2967cac0ef3071fb85ae3fb97737301338223271d8089ff3d6e43c0de9b02ce9",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 151522,
+          "source_sha256": "ae14b54eaaff4fd0011521b03511ac5efce2aadb476a62b11ea328110f1231f8"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-05-01_2024-05-31.csv.gz",
+          "pinned_bytes": 155208,
+          "pinned_sha256": "4f67a99fa61386a013ff167a02326ee2514ab3cc75bb646a4ddff25603479d33",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 153911,
+          "source_sha256": "b93d10156900805f9756f4b820005f136bb4ced31aa6f5765436d7f5fbf24e76"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-06-01_2024-06-30.csv.gz",
+          "pinned_bytes": 145785,
+          "pinned_sha256": "176017fc5f28c90583c15ae1af6692e739c5dc96d09875effe82108aa6d27718",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 144804,
+          "source_sha256": "3547a6d6256fce13661607c8527306f311af948a56ff7f84e9a7a1a7f14f95d5"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-07-01_2024-07-31.csv.gz",
+          "pinned_bytes": 157033,
+          "pinned_sha256": "28c4a51089fca0ad7c076d69f30dfba28d4d8f90180628eb56204719a9c23e58",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 155330,
+          "source_sha256": "1daae5cb6453059eb832da0a8ae0381faed31796ce7b512cda04b899c96ec0f4"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-08-01_2024-08-31.csv.gz",
+          "pinned_bytes": 157802,
+          "pinned_sha256": "08fae50e11ab305677386f4741eac3ef05917e1cd7eb4a6a2a35a5927809ddb1",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 156040,
+          "source_sha256": "63e61d3ccdd0a964f6eba6b610563d195893e7516082c6288a6538cf76c88e38"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-09-01_2024-09-30.csv.gz",
+          "pinned_bytes": 150013,
+          "pinned_sha256": "b56b25db2e8de940a4df66df819a236752c732edf53a068fa09c1c43009f40fe",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 148500,
+          "source_sha256": "c20f66fc7580faadeb5ca6e942660bcbc58f32c7b4e059ec4b6712deac49fe13"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-10-01_2024-10-31.csv.gz",
+          "pinned_bytes": 154838,
+          "pinned_sha256": "17e75b00ba0ab1c7ac8dbae142316a7fac315cfbb9378f8f7908d42b727d5ac1",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8929,
+          "source_bytes": 153441,
+          "source_sha256": "7c564fa41ad59531792e2746ec76c1923a2be5ecf69be43cd022a4dfe52d1668"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-11-01_2024-11-30.csv.gz",
+          "pinned_bytes": 155258,
+          "pinned_sha256": "b91dc30ead6aaefb9bf51f39bc69523d6948f91f97b16caeae4b3b7cb7ca3b03",
+          "rows_dropped_at_or_after_2025": 0,
+          "rows_kept": 8641,
+          "source_bytes": 153350,
+          "source_sha256": "16204643c440796a09f90a090cea22a87b1c3b6d3a88881ec5e5b5722a3af93d"
+        },
+        {
+          "http": 200,
+          "name": "BTCUSDT_5_2024-12-01_2024-12-31.csv.gz",
+          "pinned_bytes": 161464,
+          "pinned_sha256": "8c72e490924224a4425213c902a2f06ffb946ceb96aa16f74b6d20f6b5e6f222",
+          "rows_dropped_at_or_after_2025": 1,
+          "rows_kept": 8928,
+          "source_bytes": 159533,
+          "source_sha256": "163e67053157d0d1094b9e33f6c8035b51de23e530f63244b4a43ffc076fb8f6"
+        }
+      ],
+      "instrument": "BTCUSDT",
+      "kind": "OHLC",
+      "native_grain": "5m",
+      "price": "public kline OHLC; identity versus the public trade tape is recorded separately",
+      "quote_margin": "USDT",
+      "rows_dropped_at_or_after_2025": 1,
+      "source": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT",
+      "timestamp": "MT4 label minus 3 hours. The label is a fixed UTC+3 clock, not European DST. Canonical open_ms is the UTC open.",
+      "window": "[2020-04-01T00:00:00Z, 2025-01-01T00:00:00Z)"
+    },
+    "okx": {
+      "canonical_sha256": "b435fdec219df96e88e2ae4b65c04e16217af16f327aae36dca148d9203172a8",
+      "census": {
+        "first_open": "2020-04-01T00:00:00+00:00",
+        "first_open_ms": 1585699200000,
+        "last_open": "2024-12-31T23:55:00+00:00",
+        "last_open_ms": 1735689300000,
+        "longest_missing_run_bars": 0,
+        "missing_bars": 0,
+        "missing_runs": 0,
+        "missing_runs_head": [],
+        "n": 499968
+      },
+      "clock_offset_hours": 0,
+      "contract_type": "linear perpetual swap",
+      "ct_val": "0.01 BTC",
+      "instrument": "BTC-USDT-SWAP",
+      "kind": "OHLC history-candles, confirm=1 only",
+      "native_grain": "5m",
+      "price": "instrument last-price candle, not mark-price-candles and not index",
+      "quote_margin": "USDT",
+      "settle_ccy": "USDT",
+      "source": "https://www.okx.com/api/v5/market/history-candles",
+      "timestamp": "candle open time in milliseconds, UTC",
+      "window": "[2020-04-01T00:00:00Z, 2025-01-01T00:00:00Z)"
+    }
+  }
+}

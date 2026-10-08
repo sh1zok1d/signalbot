@@ -61,6 +61,13 @@ class MarkPrice:
     mark_price: float
 
 
+# Revision of the venue -> (side, qty) mapping a liquidation row was written under, stored in
+# `liquidations.mapping_version`. NULL = before 2026-10 (Bybit sides swapped, OKX never stored);
+# 2 = the fixed mapping (docs/BETA_DATA_RELIABILITY_FIX_PLAN_V1.md R1, R2). Raw rows are never
+# rewritten: a reader tells the two apart by this column.
+LIQUIDATION_MAPPING_VERSION = 2
+
+
 @dataclass
 class Liquidation:
     exchange: str
@@ -71,6 +78,7 @@ class Liquidation:
     qty: float
     notional: Optional[float] = None
     is_snapshot_feed: bool = False
+    mapping_version: int = LIQUIDATION_MAPPING_VERSION
 
 
 @dataclass

@@ -1,0 +1,6594 @@
+{
+  "atlas_state": "CLOSED_ON_SURFACE",
+  "bucket_rates": {
+    "acceleration__BREAK": {
+      "high": {
+        "hits": 235,
+        "n": 659,
+        "p": 0.3566009104704097
+      },
+      "low": {
+        "hits": 260,
+        "n": 657,
+        "p": 0.395738203957382
+      },
+      "mid": {
+        "hits": 232,
+        "n": 657,
+        "p": 0.3531202435312024
+      }
+    },
+    "acceleration__NEITHER": {
+      "high": {
+        "hits": 102,
+        "n": 659,
+        "p": 0.15477996965098634
+      },
+      "low": {
+        "hits": 94,
+        "n": 657,
+        "p": 0.1430745814307458
+      },
+      "mid": {
+        "hits": 137,
+        "n": 657,
+        "p": 0.2085235920852359
+      }
+    },
+    "acceleration__REJECT": {
+      "high": {
+        "hits": 322,
+        "n": 659,
+        "p": 0.48861911987860396
+      },
+      "low": {
+        "hits": 303,
+        "n": 657,
+        "p": 0.4611872146118721
+      },
+      "mid": {
+        "hits": 288,
+        "n": 657,
+        "p": 0.4383561643835616
+      }
+    },
+    "dwell__BREAK": {
+      "high": {
+        "hits": 220,
+        "n": 646,
+        "p": 0.34055727554179566
+      },
+      "low": {
+        "hits": 376,
+        "n": 949,
+        "p": 0.39620653319283455
+      },
+      "mid": {
+        "hits": 131,
+        "n": 378,
+        "p": 0.34656084656084657
+      }
+    },
+    "dwell__NEITHER": {
+      "high": {
+        "hits": 145,
+        "n": 646,
+        "p": 0.22445820433436534
+      },
+      "low": {
+        "hits": 112,
+        "n": 949,
+        "p": 0.11801896733403583
+      },
+      "mid": {
+        "hits": 76,
+        "n": 378,
+        "p": 0.20105820105820105
+      }
+    },
+    "dwell__REJECT": {
+      "high": {
+        "hits": 281,
+        "n": 646,
+        "p": 0.43498452012383904
+      },
+      "low": {
+        "hits": 461,
+        "n": 949,
+        "p": 0.4857744994731296
+      },
+      "mid": {
+        "hits": 171,
+        "n": 378,
+        "p": 0.4523809523809524
+      }
+    },
+    "efficiency__BREAK": {
+      "high": {
+        "hits": 254,
+        "n": 658,
+        "p": 0.3860182370820669
+      },
+      "low": {
+        "hits": 237,
+        "n": 658,
+        "p": 0.3601823708206687
+      },
+      "mid": {
+        "hits": 236,
+        "n": 657,
+        "p": 0.3592085235920852
+      }
+    },
+    "efficiency__NEITHER": {
+      "high": {
+        "hits": 105,
+        "n": 658,
+        "p": 0.1595744680851064
+      },
+      "low": {
+        "hits": 131,
+        "n": 658,
+        "p": 0.19908814589665655
+      },
+      "mid": {
+        "hits": 97,
+        "n": 657,
+        "p": 0.1476407914764079
+      }
+    },
+    "efficiency__REJECT": {
+      "high": {
+        "hits": 299,
+        "n": 658,
+        "p": 0.45440729483282677
+      },
+      "low": {
+        "hits": 290,
+        "n": 658,
+        "p": 0.44072948328267475
+      },
+      "mid": {
+        "hits": 324,
+        "n": 657,
+        "p": 0.4931506849315068
+      }
+    },
+    "persistence__BREAK": {
+      "high": {
+        "hits": 195,
+        "n": 514,
+        "p": 0.37937743190661477
+      },
+      "low": {
+        "hits": 242,
+        "n": 670,
+        "p": 0.3611940298507463
+      },
+      "mid": {
+        "hits": 290,
+        "n": 789,
+        "p": 0.36755386565272496
+      }
+    },
+    "persistence__NEITHER": {
+      "high": {
+        "hits": 76,
+        "n": 514,
+        "p": 0.14785992217898833
+      },
+      "low": {
+        "hits": 125,
+        "n": 670,
+        "p": 0.1865671641791045
+      },
+      "mid": {
+        "hits": 132,
+        "n": 789,
+        "p": 0.16730038022813687
+      }
+    },
+    "persistence__REJECT": {
+      "high": {
+        "hits": 243,
+        "n": 514,
+        "p": 0.4727626459143969
+      },
+      "low": {
+        "hits": 303,
+        "n": 670,
+        "p": 0.45223880597014926
+      },
+      "mid": {
+        "hits": 367,
+        "n": 789,
+        "p": 0.46514575411913817
+      }
+    },
+    "range_state__BREAK": {
+      "high": {
+        "hits": 264,
+        "n": 658,
+        "p": 0.4012158054711246
+      },
+      "low": {
+        "hits": 215,
+        "n": 657,
+        "p": 0.3272450532724505
+      },
+      "mid": {
+        "hits": 248,
+        "n": 658,
+        "p": 0.3768996960486322
+      }
+    },
+    "range_state__NEITHER": {
+      "high": {
+        "hits": 87,
+        "n": 658,
+        "p": 0.13221884498480244
+      },
+      "low": {
+        "hits": 152,
+        "n": 657,
+        "p": 0.2313546423135464
+      },
+      "mid": {
+        "hits": 94,
+        "n": 658,
+        "p": 0.14285714285714285
+      }
+    },
+    "range_state__REJECT": {
+      "high": {
+        "hits": 307,
+        "n": 658,
+        "p": 0.46656534954407297
+      },
+      "low": {
+        "hits": 290,
+        "n": 657,
+        "p": 0.441400304414003
+      },
+      "mid": {
+        "hits": 316,
+        "n": 658,
+        "p": 0.48024316109422494
+      }
+    },
+    "rel_volume__BREAK": {
+      "high": {
+        "hits": 276,
+        "n": 658,
+        "p": 0.4194528875379939
+      },
+      "low": {
+        "hits": 214,
+        "n": 658,
+        "p": 0.3252279635258359
+      },
+      "mid": {
+        "hits": 237,
+        "n": 657,
+        "p": 0.3607305936073059
+      }
+    },
+    "rel_volume__NEITHER": {
+      "high": {
+        "hits": 76,
+        "n": 658,
+        "p": 0.11550151975683891
+      },
+      "low": {
+        "hits": 161,
+        "n": 658,
+        "p": 0.24468085106382978
+      },
+      "mid": {
+        "hits": 96,
+        "n": 657,
+        "p": 0.1461187214611872
+      }
+    },
+    "rel_volume__REJECT": {
+      "high": {
+        "hits": 306,
+        "n": 658,
+        "p": 0.46504559270516715
+      },
+      "low": {
+        "hits": 283,
+        "n": 658,
+        "p": 0.43009118541033436
+      },
+      "mid": {
+        "hits": 324,
+        "n": 657,
+        "p": 0.4931506849315068
+      }
+    },
+    "velocity__BREAK": {
+      "high": {
+        "hits": 259,
+        "n": 658,
+        "p": 0.39361702127659576
+      },
+      "low": {
+        "hits": 218,
+        "n": 658,
+        "p": 0.331306990881459
+      },
+      "mid": {
+        "hits": 250,
+        "n": 657,
+        "p": 0.380517503805175
+      }
+    },
+    "velocity__NEITHER": {
+      "high": {
+        "hits": 93,
+        "n": 658,
+        "p": 0.1413373860182371
+      },
+      "low": {
+        "hits": 147,
+        "n": 658,
+        "p": 0.22340425531914893
+      },
+      "mid": {
+        "hits": 93,
+        "n": 657,
+        "p": 0.1415525114155251
+      }
+    },
+    "velocity__REJECT": {
+      "high": {
+        "hits": 306,
+        "n": 658,
+        "p": 0.46504559270516715
+      },
+      "low": {
+        "hits": 293,
+        "n": 658,
+        "p": 0.4452887537993921
+      },
+      "mid": {
+        "hits": 314,
+        "n": 657,
+        "p": 0.4779299847792998
+      }
+    }
+  },
+  "cells": {
+    "control__acceleration__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.030537648651260317,
+        0.014083247879384203
+      ],
+      "clusters": 1149,
+      "coef": -0.007919101830685164,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1828,
+      "p": 0.4926170366452362,
+      "se": 0.011541316926647864,
+      "spec": "full"
+    },
+    "control__acceleration__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.01056819307853673,
+        0.02673300038845051
+      ],
+      "clusters": 1149,
+      "coef": 0.008374235461485288,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1828,
+      "p": 0.3865368041628557,
+      "se": 0.009670967643730677,
+      "spec": "full"
+    },
+    "control__acceleration__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.0256196306902045,
+        0.025179245480473834
+      ],
+      "clusters": 1149,
+      "coef": -0.0004551336308000857,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1828,
+      "p": 0.9714944333980198,
+      "se": 0.012736699206618384,
+      "spec": "full"
+    },
+    "control__dwell__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.016772994378540643,
+        0.02217132861782095
+      ],
+      "clusters": 1149,
+      "coef": 0.0015065857221677748,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1828,
+      "p": 0.8794279979806018,
+      "se": 0.009931718121938791,
+      "spec": "full"
+    },
+    "control__dwell__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.022554753318289773,
+        0.05891157224463379
+      ],
+      "clusters": 1149,
+      "coef": 0.040914740242355245,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1828,
+      "p": 1.6961969961174726e-05,
+      "se": 0.009511662521310428,
+      "spec": "full"
+    },
+    "control__dwell__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.06598959416919016,
+        -0.023125526604665235
+      ],
+      "clusters": 1149,
+      "coef": -0.04242132596452318,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1828,
+      "p": 0.00010413562407736848,
+      "se": 0.010931223591682398,
+      "spec": "full"
+    },
+    "control__efficiency__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.03535558793853045,
+        0.032862320057405366
+      ],
+      "clusters": 1149,
+      "coef": -0.0012597938071511883,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1828,
+      "p": 0.9411531671035158,
+      "se": 0.017065622453408886,
+      "spec": "full"
+    },
+    "control__efficiency__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.009747513424295933,
+        0.06757502073318664
+      ],
+      "clusters": 1149,
+      "coef": 0.039336409489244314,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1828,
+      "p": 0.008108956656703619,
+      "se": 0.014857949878226162,
+      "spec": "full"
+    },
+    "control__efficiency__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.07479554312619202,
+        -0.0041453470963053645
+      ],
+      "clusters": 1149,
+      "coef": -0.03807661568209372,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1828,
+      "p": 0.033008877644241263,
+      "se": 0.017859782798601696,
+      "spec": "full"
+    },
+    "control__persistence__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.02429275166336763,
+        0.027124445377046943
+      ],
+      "clusters": 1149,
+      "coef": 0.0016016370734513175,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1828,
+      "p": 0.9033947480884978,
+      "se": 0.013195874310355151,
+      "spec": "full"
+    },
+    "control__persistence__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.010014708550265834,
+        0.035623692573531554
+      ],
+      "clusters": 1149,
+      "coef": 0.012371038899811615,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1828,
+      "p": 0.29349518708130745,
+      "se": 0.011776502265682892,
+      "spec": "full"
+    },
+    "control__persistence__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04045074570944425,
+        0.012580001396464788
+      ],
+      "clusters": 1149,
+      "coef": -0.013972675973263222,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1828,
+      "p": 0.30949096560081013,
+      "se": 0.01374869973222286,
+      "spec": "full"
+    },
+    "control__range_state__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.018192868259529316,
+        0.0726993496322903
+      ],
+      "clusters": 1149,
+      "coef": 0.044192924126257555,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1828,
+      "p": 0.0013568047127378105,
+      "se": 0.013794400323986525,
+      "spec": "full"
+    },
+    "control__range_state__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.07540961324917644,
+        -0.024138245248531903
+      ],
+      "clusters": 1149,
+      "coef": -0.04978569956299199,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1828,
+      "p": 0.00012583826783102263,
+      "se": 0.012983743284344805,
+      "spec": "full"
+    },
+    "control__range_state__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.02379414324271612,
+        0.03451046396629709
+      ],
+      "clusters": 1149,
+      "coef": 0.005592775436734555,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1828,
+      "p": 0.7112955941318704,
+      "se": 0.015110846240566689,
+      "spec": "full"
+    },
+    "control__rel_volume__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.029828047208975483,
+        0.08459400507089325
+      ],
+      "clusters": 1149,
+      "coef": 0.05686746391617661,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1828,
+      "p": 5.19608398421082e-05,
+      "se": 0.014053051499871436,
+      "spec": "full"
+    },
+    "control__rel_volume__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.06811533879579665,
+        -0.021467192897655064
+      ],
+      "clusters": 1149,
+      "coef": -0.044891570181846696,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1828,
+      "p": 0.00012188518202902989,
+      "se": 0.0116835056799122,
+      "spec": "full"
+    },
+    "control__rel_volume__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04250123129783226,
+        0.018635228518099796
+      ],
+      "clusters": 1149,
+      "coef": -0.011975893734330247,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1828,
+      "p": 0.43974527956460674,
+      "se": 0.015500298611210205,
+      "spec": "full"
+    },
+    "control__velocity__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.004350002557701114,
+        0.07831579688933095
+      ],
+      "clusters": 1149,
+      "coef": 0.03967989577044853,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1828,
+      "p": 0.034097366596143104,
+      "se": 0.018726486315750367,
+      "spec": "full"
+    },
+    "control__velocity__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.029817899208438012,
+        0.022946930125348507
+      ],
+      "clusters": 1149,
+      "coef": -0.004133590944713661,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1828,
+      "p": 0.762443092213351,
+      "se": 0.013674973922550118,
+      "spec": "full"
+    },
+    "control__velocity__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.07569891479285279,
+        0.0013867608499917507
+      ],
+      "clusters": 1149,
+      "coef": -0.03554630482573525,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1828,
+      "p": 0.0686610251056011,
+      "se": 0.019524030703218506,
+      "spec": "full"
+    },
+    "family__DAY__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.006863365380270332,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.00366948889833546,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": 0.01053285427860575,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.010766450994881577,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": 0.03041800177566962,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.019651550780787893,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.019941011023107805,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": 0.04237830482146497,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.02243729379835696,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.018782084985830297,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": 0.010389802549775985,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": 0.008392282436054537,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": 0.009991873682027117,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.01276459055532704,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": 0.002772716873299781,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": 0.023647462045705246,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.019894251975209616,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.003753210070495526,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": -0.04046088779158876,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": 0.03412724878914513,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__DAY__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1006,
+      "coef": 0.00633363900244353,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1439,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.027937946607944825,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": -0.01773189193999676,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": -0.010206054667947967,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.004316912066651302,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.09026839949731552,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": -0.0945853115639668,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": -0.06459367741056185,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.06094951359705451,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.0036441638135073784,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": -0.13424014113275357,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.05521732569285506,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.07902281543989845,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": -0.0023784986587072066,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": -0.05671063924346542,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.05908913790217252,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.01566867069484662,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": -0.02983419123893051,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.014165520544084015,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": -0.03743585780077169,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": 0.1131726037004841,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__MONTH__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 32,
+      "coef": -0.0757367458997123,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 114,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.0020801696353960064,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.0022325067628688883,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": 0.004312676398264839,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.03374001681367417,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": 0.0687601088641193,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.0350200920504451,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.04763898421933027,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": 0.04254489192756931,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": 0.005094092291760846,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.011687842372524099,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": 0.023870811382989035,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.012182969010464742,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.0015736463277583046,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.028608820702291683,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": 0.030182467030050383,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.012106439405430436,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.043323009606792744,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": 0.05542944901222336,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.04477693418983114,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": -0.0047945467163132,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "family__WEEK__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 172,
+      "coef": 0.04957148090614456,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 420,
+      "p": null,
+      "se": null,
+      "spec": "family"
+    },
+    "loyo__2020__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": -0.004617912386022785,
+      "drop_year": 2020,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.0019908086584780604,
+      "drop_year": 2020,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.0026271037275446656,
+      "drop_year": 2020,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": -0.01682166663503687,
+      "drop_year": 2020,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.04952681045155424,
+      "drop_year": 2020,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": -0.03270514381651757,
+      "drop_year": 2020,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": -0.022828235225847107,
+      "drop_year": 2020,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.0472600078674842,
+      "drop_year": 2020,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": -0.024431772641637543,
+      "drop_year": 2020,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": -0.01905105080458308,
+      "drop_year": 2020,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.02215242815134999,
+      "drop_year": 2020,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": -0.003101377346766916,
+      "drop_year": 2020,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.007565952373962764,
+      "drop_year": 2020,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": -0.02407129131626122,
+      "drop_year": 2020,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.01650533894229885,
+      "drop_year": 2020,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.017999275980659632,
+      "drop_year": 2020,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": -0.030157812847563525,
+      "drop_year": 2020,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.012158536866903616,
+      "drop_year": 2020,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": -0.03790169759404731,
+      "drop_year": 2020,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.026638687785162332,
+      "drop_year": 2020,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2020__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 1002,
+      "coef": 0.011263009808884908,
+      "drop_year": 2020,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1635,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.0011710470175428228,
+      "drop_year": 2021,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": -0.004896493158145346,
+      "drop_year": 2021,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.003725446140602589,
+      "drop_year": 2021,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": -0.024207824020947323,
+      "drop_year": 2021,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.0510581940505251,
+      "drop_year": 2021,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": -0.026850370029577676,
+      "drop_year": 2021,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": -0.02465302370580802,
+      "drop_year": 2021,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.047810346508825985,
+      "drop_year": 2021,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": -0.02315732280301803,
+      "drop_year": 2021,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": -0.020240467195907767,
+      "drop_year": 2021,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.015775483639135682,
+      "drop_year": 2021,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.004464983556772176,
+      "drop_year": 2021,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.007728371740394528,
+      "drop_year": 2021,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": -0.02393087452458987,
+      "drop_year": 2021,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.01620250278419502,
+      "drop_year": 2021,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.016360249646177077,
+      "drop_year": 2021,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": -0.03516725273472569,
+      "drop_year": 2021,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.018807003088548806,
+      "drop_year": 2021,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": -0.0448412346879909,
+      "drop_year": 2021,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.027255637964672924,
+      "drop_year": 2021,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2021__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 942,
+      "coef": 0.017585596723318875,
+      "drop_year": 2021,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": -0.010132542575862935,
+      "drop_year": 2022,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": -0.007751278911414014,
+      "drop_year": 2022,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.017883821487277168,
+      "drop_year": 2022,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": -0.016446421331696222,
+      "drop_year": 2022,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.04299523462867601,
+      "drop_year": 2022,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": -0.026548813296979647,
+      "drop_year": 2022,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": -0.036983024027118845,
+      "drop_year": 2022,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.0393284761510608,
+      "drop_year": 2022,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": -0.002345452123942035,
+      "drop_year": 2022,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": -0.02634029290462324,
+      "drop_year": 2022,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.014629065554832676,
+      "drop_year": 2022,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.011711227349790711,
+      "drop_year": 2022,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.012992975113645368,
+      "drop_year": 2022,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": -0.015282341242985095,
+      "drop_year": 2022,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.002289366129339561,
+      "drop_year": 2022,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.023947450253597347,
+      "drop_year": 2022,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": -0.024759583571775032,
+      "drop_year": 2022,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.0008121333181774354,
+      "drop_year": 2022,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": -0.04109339988815848,
+      "drop_year": 2022,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.0273735494838011,
+      "drop_year": 2022,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2022__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 960,
+      "coef": 0.013719850404357282,
+      "drop_year": 2022,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1581,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.003528558756431939,
+      "drop_year": 2023,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": 0.0038548130158895175,
+      "drop_year": 2023,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.00032625425945755245,
+      "drop_year": 2023,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.014222457130234355,
+      "drop_year": 2023,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": 0.04340458228506389,
+      "drop_year": 2023,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.02918212515482979,
+      "drop_year": 2023,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.02132218835261049,
+      "drop_year": 2023,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": 0.043673821106533554,
+      "drop_year": 2023,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.022351632753922924,
+      "drop_year": 2023,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.019090334690300075,
+      "drop_year": 2023,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": 0.012726572240613198,
+      "drop_year": 2023,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": 0.006363762449686986,
+      "drop_year": 2023,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": 0.0027161418156644024,
+      "drop_year": 2023,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.02088901460091762,
+      "drop_year": 2023,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": 0.018172872785252987,
+      "drop_year": 2023,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": 0.013119851024667367,
+      "drop_year": 2023,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.02476712929288918,
+      "drop_year": 2023,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": 0.011647278268221959,
+      "drop_year": 2023,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.03347704737551091,
+      "drop_year": 2023,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": 0.03365791613566485,
+      "drop_year": 2023,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2023__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 992,
+      "coef": -0.0001808687601541556,
+      "drop_year": 2023,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1630,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": -0.00017187127836859606,
+      "drop_year": 2024,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": -0.008018496479355881,
+      "drop_year": 2024,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.008190367757724434,
+      "drop_year": 2024,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": -0.012605847307425137,
+      "drop_year": 2024,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.046981164330914135,
+      "drop_year": 2024,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": -0.034375317023488984,
+      "drop_year": 2024,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": -0.0322725818864167,
+      "drop_year": 2024,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.04076053531549196,
+      "drop_year": 2024,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": -0.008487953429075332,
+      "drop_year": 2024,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": -0.02649502100424901,
+      "drop_year": 2024,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.009714391706200969,
+      "drop_year": 2024,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.016780629298047994,
+      "drop_year": 2024,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.007545190535342229,
+      "drop_year": 2024,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": -0.011013888209699577,
+      "drop_year": 2024,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.003468697674357415,
+      "drop_year": 2024,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.014951028846491528,
+      "drop_year": 2024,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": -0.02093535751292929,
+      "drop_year": 2024,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.005984328666437609,
+      "drop_year": 2024,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": -0.0380171652962988,
+      "drop_year": 2024,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.020892140002455237,
+      "drop_year": 2024,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "loyo__2024__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 944,
+      "coef": 0.017125025293843486,
+      "drop_year": 2024,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1523,
+      "p": null,
+      "se": null,
+      "spec": "loyo"
+    },
+    "no_duration__acceleration__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.034500173748637446,
+        0.008863160885632401
+      ],
+      "clusters": 1210,
+      "coef": -0.011692123194672721,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1973,
+      "p": 0.29455222203751397,
+      "se": 0.011154610256059343,
+      "spec": "no_duration"
+    },
+    "no_duration__acceleration__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.007796781864855504,
+        0.02535857051235045
+      ],
+      "clusters": 1210,
+      "coef": 0.009260402275462265,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1973,
+      "p": 0.28624321330934677,
+      "se": 0.008683804419338258,
+      "spec": "no_duration"
+    },
+    "no_duration__acceleration__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.01972022692287768,
+        0.02371853840293876
+      ],
+      "clusters": 1210,
+      "coef": 0.0024317209192103797,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1973,
+      "p": 0.8271433471606755,
+      "se": 0.01113594717060522,
+      "spec": "no_duration"
+    },
+    "no_duration__dwell__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04646052729646874,
+        -0.008409742124823186
+      ],
+      "clusters": 1210,
+      "coef": -0.02788787667945159,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1973,
+      "p": 0.003992540320405308,
+      "se": 0.009687493397037674,
+      "spec": "no_duration"
+    },
+    "no_duration__dwell__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.03916536227339715,
+        0.07840923226138119
+      ],
+      "clusters": 1210,
+      "coef": 0.058469701356155084,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1973,
+      "p": 2.597178420160173e-09,
+      "se": 0.009818222392163307,
+      "spec": "no_duration"
+    },
+    "no_duration__dwell__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.05014705048847384,
+        -0.01032106485297255
+      ],
+      "clusters": 1210,
+      "coef": -0.0305818246767033,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1973,
+      "p": 0.002837495503240116,
+      "se": 0.010245801183298974,
+      "spec": "no_duration"
+    },
+    "no_duration__efficiency__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.00626352836310364,
+        0.034714699590879125
+      ],
+      "clusters": 1210,
+      "coef": 0.014178016834963426,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1973,
+      "p": 0.1787144539357574,
+      "se": 0.010543441783328389,
+      "spec": "no_duration"
+    },
+    "no_duration__efficiency__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.033810519765727916,
+        -0.0015237234096706236
+      ],
+      "clusters": 1210,
+      "coef": -0.017698629728321487,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1973,
+      "p": 0.030232620868332075,
+      "se": 0.00816723143273476,
+      "spec": "no_duration"
+    },
+    "no_duration__efficiency__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.017935573090340974,
+        0.024332643565882103
+      ],
+      "clusters": 1210,
+      "coef": 0.0035206128933578506,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1973,
+      "p": 0.7429821851231639,
+      "se": 0.010736628963694041,
+      "spec": "no_duration"
+    },
+    "no_duration__persistence__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.01808611727552406,
+        0.025133983183338145
+      ],
+      "clusters": 1210,
+      "coef": 0.0033410062887167524,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1973,
+      "p": 0.7572852095100608,
+      "se": 0.01081064775177456,
+      "spec": "no_duration"
+    },
+    "no_duration__persistence__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.03169795916880335,
+        0.001069253451130986
+      ],
+      "clusters": 1210,
+      "coef": -0.01577939727762307,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1973,
+      "p": 0.05662723825647397,
+      "se": 0.008278033378865398,
+      "spec": "no_duration"
+    },
+    "no_duration__persistence__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.009659019053221264,
+        0.03421277177786713
+      ],
+      "clusters": 1210,
+      "coef": 0.012438390988906426,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1973,
+      "p": 0.2643589582314683,
+      "se": 0.01114403771129993,
+      "spec": "no_duration"
+    },
+    "no_duration__range_state__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.0037850431497984684,
+        0.04476596485930874
+      ],
+      "clusters": 1210,
+      "coef": 0.023635684153934557,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1973,
+      "p": 0.02642733057035116,
+      "se": 0.010647309494210755,
+      "spec": "no_duration"
+    },
+    "no_duration__range_state__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.05829225307438518,
+        -0.02163757276126401
+      ],
+      "clusters": 1210,
+      "coef": -0.039285908059360775,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1973,
+      "p": 2.5558295116694928e-05,
+      "se": 0.009331985706529995,
+      "spec": "no_duration"
+    },
+    "no_duration__range_state__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.005384254780226146,
+        0.03631546587875749
+      ],
+      "clusters": 1210,
+      "coef": 0.015650223905426263,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1973,
+      "p": 0.1535363011852456,
+      "se": 0.01096605832422917,
+      "spec": "no_duration"
+    },
+    "no_duration__rel_volume__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.010656797521882727,
+        0.05263325734576028
+      ],
+      "clusters": 1210,
+      "coef": 0.03129023069157678,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1973,
+      "p": 0.003594318099460044,
+      "se": 0.010746263531097583,
+      "spec": "no_duration"
+    },
+    "no_duration__rel_volume__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.06325405020817594,
+        -0.02911968146625737
+      ],
+      "clusters": 1210,
+      "coef": -0.04607672026176698,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1973,
+      "p": 1.2668284716405276e-07,
+      "se": 0.008720737071694394,
+      "spec": "no_duration"
+    },
+    "no_duration__rel_volume__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.006665802071424324,
+        0.035494656176657216
+      ],
+      "clusters": 1210,
+      "coef": 0.014786489570190093,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1973,
+      "p": 0.17876529190638127,
+      "se": 0.010997217610350298,
+      "spec": "no_duration"
+    },
+    "no_duration__velocity__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.009033319761110332,
+        0.032041474352854
+      ],
+      "clusters": 1210,
+      "coef": 0.011813754475187357,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1973,
+      "p": 0.26025895987063186,
+      "se": 0.010493846144926098,
+      "spec": "no_duration"
+    },
+    "no_duration__velocity__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04290084317131775,
+        -0.010217070762232872
+      ],
+      "clusters": 1210,
+      "coef": -0.02695950789074325,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1973,
+      "p": 0.0013814060725016218,
+      "se": 0.008428775621327026,
+      "spec": "no_duration"
+    },
+    "no_duration__velocity__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.006362334283210239,
+        0.035877224553586703
+      ],
+      "clusters": 1210,
+      "coef": 0.015145753415555727,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1973,
+      "p": 0.16532395205214467,
+      "se": 0.010916751656501297,
+      "spec": "no_duration"
+    },
+    "no_touch__acceleration__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.0271174065874228,
+        0.017396196663924283
+      ],
+      "clusters": 1210,
+      "coef": -0.004370699711011089,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1973,
+      "p": 0.7024605610595762,
+      "se": 0.011441589831503616,
+      "spec": "no_touch"
+    },
+    "no_touch__acceleration__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.01930913312721553,
+        0.016023278075821486
+      ],
+      "clusters": 1210,
+      "coef": -0.00172362176255611,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1973,
+      "p": 0.8485694885098745,
+      "se": 0.009026845603469176,
+      "spec": "no_touch"
+    },
+    "no_touch__acceleration__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.016869927698553708,
+        0.029069989092228053
+      ],
+      "clusters": 1210,
+      "coef": 0.0060943214735672165,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1973,
+      "p": 0.5955460163550842,
+      "se": 0.011481034701657714,
+      "spec": "no_touch"
+    },
+    "no_touch__dwell__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.03893390208492497,
+        0.0023967299042753757
+      ],
+      "clusters": 1210,
+      "coef": -0.018860176059620756,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1973,
+      "p": 0.07105854591009218,
+      "se": 0.010448254053582962,
+      "spec": "no_touch"
+    },
+    "no_touch__dwell__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.026215251875753038,
+        0.06879253848739088
+      ],
+      "clusters": 1210,
+      "coef": 0.04811366054545821,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1973,
+      "p": 7.654168213453847e-06,
+      "se": 0.010752531190373463,
+      "spec": "no_touch"
+    },
+    "no_touch__dwell__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.051522090948277685,
+        -0.006576738888113356
+      ],
+      "clusters": 1210,
+      "coef": -0.029253484485837013,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1973,
+      "p": 0.011102086809126697,
+      "se": 0.01151952786965276,
+      "spec": "no_touch"
+    },
+    "no_touch__efficiency__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.06420843424092347,
+        0.0018583449823505373
+      ],
+      "clusters": 1210,
+      "coef": -0.03085404324225659,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1973,
+      "p": 0.07268285639510827,
+      "se": 0.017190634313871002,
+      "spec": "no_touch"
+    },
+    "no_touch__efficiency__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.024616456795341902,
+        0.07054234766095424
+      ],
+      "clusters": 1210,
+      "coef": 0.047080879923461695,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1973,
+      "p": 5.268853319623621e-05,
+      "se": 0.011643972258543403,
+      "spec": "no_touch"
+    },
+    "no_touch__efficiency__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04991521073498718,
+        0.016609829896393327
+      ],
+      "clusters": 1210,
+      "coef": -0.01622683668120505,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1973,
+      "p": 0.3315512302626073,
+      "se": 0.016711571305167216,
+      "spec": "no_touch"
+    },
+    "no_touch__persistence__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.0481605505475218,
+        0.0034221883911909907
+      ],
+      "clusters": 1210,
+      "coef": -0.023114410252196994,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1973,
+      "p": 0.08300800391283814,
+      "se": 0.013334005094742205,
+      "spec": "no_touch"
+    },
+    "no_touch__persistence__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.0033930367476737422,
+        0.034854825235049326
+      ],
+      "clusters": 1210,
+      "coef": 0.015920628153556618,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1973,
+      "p": 0.10145738624383302,
+      "se": 0.009720568447842198,
+      "spec": "no_touch"
+    },
+    "no_touch__persistence__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.020356399807093695,
+        0.03382106518218236
+      ],
+      "clusters": 1210,
+      "coef": 0.007193782098640394,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1973,
+      "p": 0.5981316794889072,
+      "se": 0.013648131571303911,
+      "spec": "no_touch"
+    },
+    "no_touch__range_state__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.01579193221282897,
+        0.03433431628539094
+      ],
+      "clusters": 1210,
+      "coef": 0.009255589589395773,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1973,
+      "p": 0.4625570420855478,
+      "se": 0.012598761087583451,
+      "spec": "no_touch"
+    },
+    "no_touch__range_state__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04252358723228889,
+        -2.3135398695759626e-05
+      ],
+      "clusters": 1210,
+      "coef": -0.020933467200387364,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1973,
+      "p": 0.05751734223954011,
+      "se": 0.01102133485733288,
+      "spec": "no_touch"
+    },
+    "no_touch__range_state__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.01446254336177681,
+        0.03693082188902555
+      ],
+      "clusters": 1210,
+      "coef": 0.011677877610991871,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1973,
+      "p": 0.3750325100233733,
+      "se": 0.013164310325215658,
+      "spec": "no_touch"
+    },
+    "no_touch__rel_volume__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.004641371819782916,
+        0.04823785478775338
+      ],
+      "clusters": 1210,
+      "coef": 0.0219403270457182,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1973,
+      "p": 0.10381457887238044,
+      "se": 0.013488166114218783,
+      "spec": "no_touch"
+    },
+    "no_touch__rel_volume__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.05277780449170932,
+        -0.01127730364859283
+      ],
+      "clusters": 1210,
+      "coef": -0.0316091762340137,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1973,
+      "p": 0.003090127118680276,
+      "se": 0.010683730805810357,
+      "spec": "no_touch"
+    },
+    "no_touch__rel_volume__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.018126913362824074,
+        0.03596021884939491
+      ],
+      "clusters": 1210,
+      "coef": 0.009668849188295532,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1973,
+      "p": 0.4904009145947407,
+      "se": 0.014019503361754747,
+      "spec": "no_touch"
+    },
+    "no_touch__velocity__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.07405872778489901,
+        -0.006444691865722547
+      ],
+      "clusters": 1210,
+      "coef": -0.03967767501449994,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1973,
+      "p": 0.0252861733578765,
+      "se": 0.017736982467585656,
+      "spec": "no_touch"
+    },
+    "no_touch__velocity__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.0017717290202494116,
+        0.05392913289282451
+      ],
+      "clusters": 1210,
+      "coef": 0.027946791811468513,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1973,
+      "p": 0.0424838570688763,
+      "se": 0.013775381336160174,
+      "spec": "no_touch"
+    },
+    "no_touch__velocity__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.02258909421959538,
+        0.046253215000388516
+      ],
+      "clusters": 1210,
+      "coef": 0.011730883203031471,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1973,
+      "p": 0.5110976402109031,
+      "se": 0.01785170636410247,
+      "spec": "no_touch"
+    },
+    "primary__acceleration__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.026301699810172604,
+        0.018151106207980237
+      ],
+      "clusters": 1210,
+      "coef": -0.0035178734578531004,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1973,
+      "p": 0.758033776751013,
+      "q": 0.763877060118122,
+      "se": 0.011419301196529986,
+      "spec": "full"
+    },
+    "primary__acceleration__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.020641623736589364,
+        0.014717872265071931
+      ],
+      "clusters": 1210,
+      "coef": -0.002728050961788367,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1973,
+      "p": 0.763877060118122,
+      "q": 0.763877060118122,
+      "se": 0.009081592730792112,
+      "spec": "full"
+    },
+    "primary__acceleration__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.016862289059231077,
+        0.02896711200896701
+      ],
+      "clusters": 1210,
+      "coef": 0.006245924419641363,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1973,
+      "p": 0.5868705955395729,
+      "q": 0.6676058739398405,
+      "se": 0.01149465297906543,
+      "spec": "full"
+    },
+    "primary__dwell__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.03677944768644305,
+        0.005011857817197142
+      ],
+      "clusters": 1210,
+      "coef": -0.01677754534428911,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1973,
+      "p": 0.11390431179754461,
+      "q": 0.22463608295662588,
+      "se": 0.01061275442825172,
+      "spec": "full"
+    },
+    "primary__dwell__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.02575659727725639,
+        0.0674661846208855
+      ],
+      "clusters": 1210,
+      "coef": 0.04679686701294988,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1973,
+      "p": 1.1496651522342224e-05,
+      "q": 0.0002414296819691867,
+      "se": 0.010667360289156741,
+      "spec": "full"
+    },
+    "primary__dwell__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.05257840590981038,
+        -0.006750576101153933
+      ],
+      "clusters": 1210,
+      "coef": -0.030019321668660406,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1973,
+      "p": 0.009378443972896623,
+      "q": 0.05899678316063266,
+      "se": 0.011555040937203147,
+      "spec": "full"
+    },
+    "primary__efficiency__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.061003614365929666,
+        0.005268314101480866
+      ],
+      "clusters": 1210,
+      "coef": -0.027297358989487604,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1973,
+      "p": 0.11415709589932314,
+      "q": 0.22463608295662588,
+      "se": 0.01727920774560965,
+      "spec": "full"
+    },
+    "primary__efficiency__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.021511334201073196,
+        0.06772585848483238
+      ],
+      "clusters": 1210,
+      "coef": 0.04388159794232208,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1973,
+      "p": 0.0001482762213748512,
+      "q": 0.0015569003244359377,
+      "se": 0.01156623761963023,
+      "spec": "full"
+    },
+    "primary__efficiency__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.0503805329308263,
+        0.016906702267016432
+      ],
+      "clusters": 1210,
+      "coef": -0.016584238952834812,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1973,
+      "p": 0.3262313935953769,
+      "q": 0.526989174269455,
+      "se": 0.016892819755435832,
+      "spec": "full"
+    },
+    "primary__persistence__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.047202446600491575,
+        0.004820136117486375
+      ],
+      "clusters": 1210,
+      "coef": -0.02221505394053657,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1973,
+      "p": 0.09540549252704877,
+      "q": 0.22463608295662588,
+      "se": 0.013321987869231625,
+      "spec": "full"
+    },
+    "primary__persistence__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.003892917759337886,
+        0.0338019227053348
+      ],
+      "clusters": 1210,
+      "coef": 0.015136612742164345,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1973,
+      "p": 0.11766651964394689,
+      "q": 0.22463608295662588,
+      "se": 0.00967416066126569,
+      "spec": "full"
+    },
+    "primary__persistence__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.020545191858150954,
+        0.03370040031326393
+      ],
+      "clusters": 1210,
+      "coef": 0.007078441198372122,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1973,
+      "p": 0.6040243621360462,
+      "q": 0.6676058739398405,
+      "se": 0.01364855550889879,
+      "spec": "full"
+    },
+    "primary__range_state__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.017401238065389246,
+        0.03294447155985335
+      ],
+      "clusters": 1210,
+      "coef": 0.007626674517591518,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1973,
+      "p": 0.5482050536515798,
+      "q": 0.6676058739398405,
+      "se": 0.012701556082430543,
+      "spec": "full"
+    },
+    "primary__range_state__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04116203729662472,
+        0.0020487217694402237
+      ],
+      "clusters": 1210,
+      "coef": -0.019227952224831535,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1973,
+      "p": 0.08172459814761678,
+      "q": 0.22463608295662588,
+      "se": 0.011045684403897736,
+      "spec": "full"
+    },
+    "primary__range_state__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.014283045964887657,
+        0.03666869767198752
+      ],
+      "clusters": 1210,
+      "coef": 0.011601277707240027,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1973,
+      "p": 0.37953709880229686,
+      "q": 0.5693056482034453,
+      "se": 0.013202030112761604,
+      "spec": "full"
+    },
+    "primary__rel_volume__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.009450065699493785,
+        0.043645120494976375
+      ],
+      "clusters": 1210,
+      "coef": 0.017194820340888595,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1973,
+      "p": 0.20549062804921822,
+      "q": 0.3596085990861319,
+      "se": 0.013581333739359339,
+      "spec": "full"
+    },
+    "primary__rel_volume__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04877135488500811,
+        -0.006794951690143134
+      ],
+      "clusters": 1210,
+      "coef": -0.027375155919904928,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1973,
+      "p": 0.011237482506787173,
+      "q": 0.05899678316063266,
+      "se": 0.010797915737939305,
+      "spec": "full"
+    },
+    "primary__rel_volume__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.017782952745624716,
+        0.03732862297500373
+      ],
+      "clusters": 1210,
+      "coef": 0.010180335579016136,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1973,
+      "p": 0.47016986680189293,
+      "q": 0.6582378135226501,
+      "se": 0.014096230397575689,
+      "spec": "full"
+    },
+    "primary__velocity__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.07272817573981966,
+        -0.005350862617485068
+      ],
+      "clusters": 1210,
+      "coef": -0.03883202576590916,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1973,
+      "p": 0.02901744809608281,
+      "q": 0.12187328200354779,
+      "se": 0.01778634435339825,
+      "spec": "full"
+    },
+    "primary__velocity__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.0012660641660150384,
+        0.05310906460183023
+      ],
+      "clusters": 1210,
+      "coef": 0.02711289070495637,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1973,
+      "p": 0.04751736961197731,
+      "q": 0.1663107936419206,
+      "se": 0.013681912316389098,
+      "spec": "full"
+    },
+    "primary__velocity__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.02309016069643456,
+        0.046207721913302365
+      ],
+      "clusters": 1210,
+      "coef": 0.01171913506095288,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1973,
+      "p": 0.5119836333367384,
+      "q": 0.6676058739398405,
+      "se": 0.017871288335666265,
+      "spec": "full"
+    },
+    "sensitivity__acceleration__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.01585140111668946,
+        0.02571351301687604
+      ],
+      "clusters": 1350,
+      "coef": 0.004909301810322023,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 2102,
+      "p": 0.6502038098888268,
+      "se": 0.010825861908227487,
+      "spec": "full"
+    },
+    "sensitivity__acceleration__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.02001036094949769,
+        0.006346960404137469
+      ],
+      "clusters": 1350,
+      "coef": -0.006426961108097557,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 2102,
+      "p": 0.33871503096024325,
+      "se": 0.006717792739427358,
+      "spec": "full"
+    },
+    "sensitivity__acceleration__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.0199996257055426,
+        0.023021724308679523
+      ],
+      "clusters": 1350,
+      "coef": 0.001517659297775538,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 2102,
+      "p": 0.8911138171484795,
+      "se": 0.011086304567734656,
+      "spec": "full"
+    },
+    "sensitivity__dwell__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04303032025940907,
+        0.0013508699645100148
+      ],
+      "clusters": 1350,
+      "coef": -0.019898337586913437,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 2102,
+      "p": 0.07527886742506101,
+      "se": 0.011186624682627872,
+      "spec": "full"
+    },
+    "sensitivity__dwell__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.015575494645276867,
+        0.05288093003923638
+      ],
+      "clusters": 1350,
+      "coef": 0.034161736258116845,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 2102,
+      "p": 0.0002607796908102831,
+      "se": 0.009355703074373459,
+      "spec": "full"
+    },
+    "sensitivity__dwell__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.03458890655515966,
+        0.007761884510875265
+      ],
+      "clusters": 1350,
+      "coef": -0.014263398671203374,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 2102,
+      "p": 0.1887494216963222,
+      "se": 0.010852569960542657,
+      "spec": "full"
+    },
+    "sensitivity__efficiency__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.06742139828064965,
+        0.026117385864349862
+      ],
+      "clusters": 1350,
+      "coef": -0.021288890957760688,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 2102,
+      "p": 0.36464231918312084,
+      "se": 0.02348329410521705,
+      "spec": "full"
+    },
+    "sensitivity__efficiency__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.006191425891185478,
+        0.061584410792249585
+      ],
+      "clusters": 1350,
+      "coef": 0.0336359976888234,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 2102,
+      "p": 0.017306798400570575,
+      "se": 0.014132033983128045,
+      "spec": "full"
+    },
+    "sensitivity__efficiency__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.06135917890739702,
+        0.03442664385158209
+      ],
+      "clusters": 1350,
+      "coef": -0.012347106731063144,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 2102,
+      "p": 0.6092221894435624,
+      "se": 0.024153936029295515,
+      "spec": "full"
+    },
+    "sensitivity__persistence__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.037696574732934106,
+        0.019807801511579234
+      ],
+      "clusters": 1350,
+      "coef": -0.009548540528848778,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 2102,
+      "p": 0.5138655922553703,
+      "se": 0.014626371311770345,
+      "spec": "full"
+    },
+    "sensitivity__persistence__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.012485274609413002,
+        0.020150769672611722
+      ],
+      "clusters": 1350,
+      "coef": 0.004055101254153433,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 2102,
+      "p": 0.6271541854783825,
+      "se": 0.008348360524663583,
+      "spec": "full"
+    },
+    "sensitivity__persistence__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.02417895313279834,
+        0.036024005849419206
+      ],
+      "clusters": 1350,
+      "coef": 0.005493439274695568,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 2102,
+      "p": 0.71681050475092,
+      "se": 0.015144925133868179,
+      "spec": "full"
+    },
+    "sensitivity__range_state__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.0020302797804676014,
+        0.055389364415587866
+      ],
+      "clusters": 1350,
+      "coef": 0.029450032002984572,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 2102,
+      "p": 0.02571531192607549,
+      "se": 0.01320342522237189,
+      "spec": "full"
+    },
+    "sensitivity__range_state__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.03553920669766116,
+        0.001110117977056435
+      ],
+      "clusters": 1350,
+      "coef": -0.016736299415365963,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 2102,
+      "p": 0.07131474162464405,
+      "se": 0.009280064364408905,
+      "spec": "full"
+    },
+    "sensitivity__range_state__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.03931721064175471,
+        0.01459108814278294
+      ],
+      "clusters": 1350,
+      "coef": -0.012713732587618251,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 2102,
+      "p": 0.3574764835840367,
+      "se": 0.013816507501425889,
+      "spec": "full"
+    },
+    "sensitivity__rel_volume__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.005923158361144223,
+        0.054910404051772575
+      ],
+      "clusters": 1350,
+      "coef": 0.030721210041919023,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 2102,
+      "p": 0.01432180388452192,
+      "se": 0.012543933493324137,
+      "spec": "full"
+    },
+    "sensitivity__rel_volume__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04153581507514891,
+        -0.006680753924769234
+      ],
+      "clusters": 1350,
+      "coef": -0.02405634031464199,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 2102,
+      "p": 0.006461773967541383,
+      "se": 0.008833267027129301,
+      "spec": "full"
+    },
+    "sensitivity__rel_volume__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.03285943751204592,
+        0.020739025365754588
+      ],
+      "clusters": 1350,
+      "coef": -0.006664869727276472,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 2102,
+      "p": 0.6288538895563495,
+      "se": 0.013789177228715508,
+      "spec": "full"
+    },
+    "sensitivity__velocity__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.04419244724232604,
+        0.03053003385177419
+      ],
+      "clusters": 1350,
+      "coef": -0.005625607171660357,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 2102,
+      "p": 0.7666182961746819,
+      "se": 0.018954126004811493,
+      "spec": "full"
+    },
+    "sensitivity__velocity__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.016538562836074897,
+        0.024001198422282065
+      ],
+      "clusters": 1350,
+      "coef": 0.0028246252853889216,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 2102,
+      "p": 0.7816279660789759,
+      "se": 0.010189914200389505,
+      "spec": "full"
+    },
+    "sensitivity__velocity__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.03432770783137079,
+        0.04149580323251958
+      ],
+      "clusters": 1350,
+      "coef": 0.002800981886271585,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 2102,
+      "p": 0.8869704763437068,
+      "se": 0.019705981099617242,
+      "spec": "full"
+    },
+    "side__resistance__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.012494049425157569,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.002197866375047028,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": -0.014691915800204859,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": -0.005740000703502002,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.05916374004383025,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": -0.05342373934032837,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": -0.02262475820732461,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.053446630452923305,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": -0.03082187224559899,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": -0.02080101199640423,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.015050113256363504,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.005750898740040762,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.020517331950017897,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": -0.019679818392486392,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": -0.0008375135575313681,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.0342514141685966,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": -0.03458382062393038,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.0003324064553338578,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": -0.029661652548533438,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.023130605631011256,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__resistance__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 794,
+      "coef": 0.006531046917521797,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1071,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": -0.028918005684626838,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": -0.008082983914748335,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.03700098959937513,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": -0.026469751446014628,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.018316580820799636,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.008153170625215034,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": -0.03477300780917161,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.033129958646556656,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.0016430491626154842,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": -0.024511574457655533,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.016074819184176165,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.008436755273479257,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": -0.008300091001445069,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": -0.016936196069081734,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.025236287070526636,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": -0.00793301681767531,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": -0.01825048308591983,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.026183499903595267,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": -0.05184599538091894,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.029330718681714288,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "side__support__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 656,
+      "coef": 0.02251527669920425,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 902,
+      "p": null,
+      "se": null,
+      "spec": "side"
+    },
+    "tertile__acceleration__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.08956060792558367,
+        0.011403028379611995
+      ],
+      "clusters": 923,
+      "coef": -0.039137293486972355,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 1316,
+      "n_high": 659,
+      "n_low": 657,
+      "se": 0.025677061304157315,
+      "spec": "tertile"
+    },
+    "tertile__acceleration__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.02504985962544513,
+        0.050776846501763395
+      ],
+      "clusters": 923,
+      "coef": 0.011705388220240505,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 1316,
+      "n_high": 659,
+      "n_low": 657,
+      "se": 0.019421836960695823,
+      "spec": "tertile"
+    },
+    "tertile__acceleration__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.0234098634484821,
+        0.08122868750797722
+      ],
+      "clusters": 923,
+      "coef": 0.027431905266731636,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 1316,
+      "n_high": 659,
+      "n_low": 657,
+      "se": 0.026418842160350463,
+      "spec": "tertile"
+    },
+    "tertile__dwell__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.10263470412129393,
+        -0.009785956616753487
+      ],
+      "clusters": 1048,
+      "coef": -0.05564925765103863,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 1595,
+      "n_high": 646,
+      "n_low": 949,
+      "se": 0.02432541374332868,
+      "spec": "tertile"
+    },
+    "tertile__dwell__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.07117729412065205,
+        0.14555903630302552
+      ],
+      "clusters": 1048,
+      "coef": 0.10643923700032987,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 1595,
+      "n_high": 646,
+      "n_low": 949,
+      "se": 0.01891841191703053,
+      "spec": "tertile"
+    },
+    "tertile__dwell__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.09812734433053664,
+        -0.001309918020663947
+      ],
+      "clusters": 1048,
+      "coef": -0.0507899793492903,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 1595,
+      "n_high": 646,
+      "n_low": 949,
+      "se": 0.024879925348313833,
+      "spec": "tertile"
+    },
+    "tertile__efficiency__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.024092649118458678,
+        0.0792509396892133
+      ],
+      "clusters": 926,
+      "coef": 0.025835866261398215,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 1316,
+      "n_high": 658,
+      "n_low": 658,
+      "se": 0.0260767999122119,
+      "spec": "tertile"
+    },
+    "tertile__efficiency__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.08089704765906541,
+        0.0013481675019286936
+      ],
+      "clusters": 926,
+      "coef": -0.03951367781155015,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 1316,
+      "n_high": 658,
+      "n_low": 658,
+      "se": 0.021270620042838587,
+      "spec": "tertile"
+    },
+    "tertile__efficiency__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.038353548149068925,
+        0.06596137884652568
+      ],
+      "clusters": 926,
+      "coef": 0.013677811550151967,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 1316,
+      "n_high": 658,
+      "n_low": 658,
+      "se": 0.026716758465171325,
+      "spec": "tertile"
+    },
+    "tertile__persistence__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.034975596195194206,
+        0.07487911359128349
+      ],
+      "clusters": 856,
+      "coef": 0.018183402055868474,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 1184,
+      "n_high": 514,
+      "n_low": 670,
+      "se": 0.028229430051750597,
+      "spec": "tertile"
+    },
+    "tertile__persistence__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.08068420445438895,
+        0.002301263747624596
+      ],
+      "clusters": 856,
+      "coef": -0.038707242000116035,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 1184,
+      "n_high": 514,
+      "n_low": 670,
+      "se": 0.021512665005544107,
+      "spec": "tertile"
+    },
+    "tertile__persistence__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.0384438120404202,
+        0.07721168795419155
+      ],
+      "clusters": 856,
+      "coef": 0.020523839944247356,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 1184,
+      "n_high": 514,
+      "n_low": 670,
+      "se": 0.02975612717470162,
+      "spec": "tertile"
+    },
+    "tertile__range_state__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.023933576386963425,
+        0.12272405683192054
+      ],
+      "clusters": 925,
+      "coef": 0.0739707521986738,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 1315,
+      "n_high": 658,
+      "n_low": 657,
+      "se": 0.02575935937875928,
+      "spec": "tertile"
+    },
+    "tertile__range_state__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.14034832858870275,
+        -0.05840791532381563
+      ],
+      "clusters": 925,
+      "coef": -0.09913579732874396,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 1315,
+      "n_high": 658,
+      "n_low": 657,
+      "se": 0.020921892199401347,
+      "spec": "tertile"
+    },
+    "tertile__range_state__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.0263333638564028,
+        0.07852527315366595
+      ],
+      "clusters": 925,
+      "coef": 0.025165045130069997,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 1315,
+      "n_high": 658,
+      "n_low": 657,
+      "se": 0.026108688601757652,
+      "spec": "tertile"
+    },
+    "tertile__rel_volume__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.04414013993720547,
+        0.14425395865307863
+      ],
+      "clusters": 926,
+      "coef": 0.09422492401215783,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 1316,
+      "n_high": 658,
+      "n_low": 658,
+      "se": 0.026277313391858924,
+      "spec": "tertile"
+    },
+    "tertile__rel_volume__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.16739502994529565,
+        -0.08803001737043963
+      ],
+      "clusters": 926,
+      "coef": -0.12917933130699097,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 1316,
+      "n_high": 658,
+      "n_low": 658,
+      "se": 0.020569087026838757,
+      "spec": "tertile"
+    },
+    "tertile__rel_volume__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.017136637335824635,
+        0.08668304010877913
+      ],
+      "clusters": 926,
+      "coef": 0.034954407294832915,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 1316,
+      "n_high": 658,
+      "n_low": 658,
+      "se": 0.02679201062671623,
+      "spec": "tertile"
+    },
+    "tertile__velocity__BREAK": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        0.011409332266215292,
+        0.11207484780094824
+      ],
+      "clusters": 918,
+      "coef": 0.0623100303951368,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 1316,
+      "n_high": 658,
+      "n_low": 658,
+      "se": 0.026063756847756664,
+      "spec": "tertile"
+    },
+    "tertile__velocity__NEITHER": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.12335024057833381,
+        -0.041849605209506625
+      ],
+      "clusters": 918,
+      "coef": -0.08206686930091181,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 1316,
+      "n_high": 658,
+      "n_low": 658,
+      "se": 0.020952311312339423,
+      "spec": "tertile"
+    },
+    "tertile__velocity__REJECT": {
+      "bootstrap_valid": 2000,
+      "ci95": [
+        -0.03278653140077475,
+        0.07506966189564686
+      ],
+      "clusters": 918,
+      "coef": 0.01975683890577477,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 1316,
+      "n_high": 658,
+      "n_low": 658,
+      "se": 0.027395948754202367,
+      "spec": "tertile"
+    },
+    "year__2020__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.006710313005153706,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": -0.02829845534190445,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.02158814233675084,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": -0.016092280009265887,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.025049931091923335,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": -0.008957651082657454,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": -0.05103857714735821,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.022577131953268006,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.02846144519409039,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": -0.03440408573668821,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": -0.025210279494082777,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.05961436523077106,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.01972413399252687,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.010759624304277626,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": -0.030483758296804723,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.0161979616061233,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": -0.011626392973807714,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": -0.004571568632315861,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": -0.0487521179455368,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.029825839458010997,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2020__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 208,
+      "coef": 0.01892627848752583,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 338,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": -0.01735379216042357,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.002865882159759553,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.01448791000066399,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.0007391943405253287,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.033823955891049334,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": -0.03456315023157468,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": -0.04358125342561689,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.025403987905632752,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.018177265519984553,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": -0.03344710975686446,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.011456167312995397,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.021990942443869163,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.009252947460115568,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": -0.0006037039041391634,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": -0.00864924355597635,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.02361142799401439,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.004086858739108856,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": -0.027698286733123398,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": -0.01855845053449745,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": 0.026802457952486203,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2021__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 268,
+      "coef": -0.00824400741798921,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": 0.021916234489632203,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": 0.018938124453767396,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.04085435894339959,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.013052639232202956,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": 0.06491356396409949,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.05186092473189652,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": 0.0004365758675592621,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": 0.06590926775050798,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.06634584361806731,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.005038621874047203,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": 0.02169096013560467,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.01665233826155737,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.012348258183844316,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.02821941096559922,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": 0.04056766914944363,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.0049730331160706825,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.030880156825808476,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": 0.03585318994187909,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": -0.03335418782774838,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": 0.03296626194149485,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2022__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 250,
+      "coef": 0.00038792588625315844,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 392,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.006842902449236382,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.03673087398696595,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": 0.0435737764362023,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.029929066026278733,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": 0.06217477660504117,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.03224571057876234,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.05586055100588247,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": 0.04580748090312285,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": 0.01005307010275941,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.03393611268457107,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": 0.02440880027636251,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": 0.009527312408208286,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": 0.023457371360878596,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.013561047601842374,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.009896323759036506,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": 0.033888518347632804,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.03723275765234099,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": 0.0033442393047081313,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.06829407108381094,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": -0.0019902419672275656,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2023__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 218,
+      "coef": 0.07028431305103866,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 343,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__acceleration__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.016353125794332624,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "acceleration",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__acceleration__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": 0.01113081661510687,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "acceleration",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__acceleration__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": 0.005222309179225615,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "acceleration",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__dwell__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.02966939295351235,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "dwell",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__dwell__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": 0.04432879105472065,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "dwell",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__dwell__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.014659398101208518,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "dwell",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__efficiency__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.011943124673709617,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "efficiency",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__efficiency__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": 0.05090236594928661,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "efficiency",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__efficiency__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.0389592412755773,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "efficiency",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__persistence__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.006980507177412451,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "persistence",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__persistence__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": 0.03185246622349637,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "persistence",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__persistence__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.024871959046083872,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "persistence",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__range_state__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": 0.00726087021611904,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "range_state",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__range_state__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.043505191583057226,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "range_state",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__range_state__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": 0.03624432136693809,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "range_state",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__rel_volume__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": 0.02150941454668826,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "rel_volume",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__rel_volume__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.043226439102855015,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "rel_volume",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__rel_volume__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": 0.021717024556166552,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "rel_volume",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__velocity__BREAK": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.04663982461542378,
+      "drop_year": null,
+      "endpoint": "BREAK",
+      "feature": "velocity",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__velocity__NEITHER": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": 0.05180382373882522,
+      "drop_year": null,
+      "endpoint": "NEITHER",
+      "feature": "velocity",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    },
+    "year__2024__velocity__REJECT": {
+      "bootstrap_valid": 0,
+      "ci95": null,
+      "clusters": 266,
+      "coef": -0.005163999123400834,
+      "drop_year": null,
+      "endpoint": "REJECT",
+      "feature": "velocity",
+      "n": 450,
+      "p": null,
+      "se": null,
+      "spec": "year"
+    }
+  },
+  "claim_level": "L2",
+  "clusters": 1210,
+  "control_drops": {
+    "ambiguous": 0,
+    "approach_rows": 1828,
+    "missing_outcome": 0
+  },
+  "control_n": 1828,
+  "dependency": {
+    "memory": {
+      "pr": 353,
+      "sha": "c3d39bffda861b535605a98205d7578c0c84c782",
+      "unit": "LEVEL_REJECTION_MEMORY_V1"
+    },
+    "method": {
+      "pr": 354,
+      "sha": "8effe9acc3b88b925a79b33f04ac0ee9e6f93e26"
+    },
+    "touch": {
+      "pr": 352,
+      "sha": "dfc9e0f04358de15606382472badeb5aee787039",
+      "unit": "LEVEL_TOUCH_DEGRADATION_V1"
+    }
+  },
+  "dropped": [
+    {
+      "feature": "pullback",
+      "reason": "algebraic complement of efficiency: pullback = (1 - efficiency) / 2",
+      "rho": -1.0,
+      "with": "efficiency"
+    }
+  ],
+  "drops": {
+    "ambiguous": 3,
+    "approach_rows": 1976,
+    "missing_outcome": 0
+  },
+  "exploratory_successor_ideas": [],
+  "family_n": {
+    "DAY": 1439,
+    "MONTH": 114,
+    "WEEK": 420
+  },
+  "family_share_max": 0.7293461733400912,
+  "fdr_family_size": 21,
+  "fdr_q": 0.1,
+  "interactions_estimated": 0,
+  "material_cells": 441,
+  "method_before_outcome": "778e23dd4ea257bc7f42698b95843fecd554fb29",
+  "mode": "DISCOVERY",
+  "n_analysis": 1973,
+  "practical_scale": 0.03,
+  "product_integration_candidate": "NO",
+  "retained": [
+    "velocity",
+    "efficiency",
+    "persistence",
+    "acceleration",
+    "range_state",
+    "rel_volume",
+    "dwell"
+  ],
+  "routing_status": "STRUCTURE_PRESENT_BUT_UNSTABLE",
+  "sensitivity_drops": {
+    "ambiguous": 5,
+    "approach_rows": 2107,
+    "missing_outcome": 0
+  },
+  "sensitivity_n": 2102,
+  "shapes": {
+    "acceleration__BREAK": "u_shape",
+    "acceleration__NEITHER": "near_zero",
+    "acceleration__REJECT": "near_zero",
+    "dwell__BREAK": "monotonic",
+    "dwell__NEITHER": "monotonic",
+    "dwell__REJECT": "monotonic",
+    "efficiency__BREAK": "near_zero",
+    "efficiency__NEITHER": "u_shape",
+    "efficiency__REJECT": "near_zero",
+    "persistence__BREAK": "near_zero",
+    "persistence__NEITHER": "monotonic",
+    "persistence__REJECT": "near_zero",
+    "range_state__BREAK": "monotonic",
+    "range_state__NEITHER": "monotonic",
+    "range_state__REJECT": "near_zero",
+    "rel_volume__BREAK": "monotonic",
+    "rel_volume__NEITHER": "monotonic",
+    "rel_volume__REJECT": "u_shape",
+    "velocity__BREAK": "monotonic",
+    "velocity__NEITHER": "monotonic",
+    "velocity__REJECT": "near_zero"
+  },
+  "successor_candidates": [],
+  "tracks": [
+    "STRUCTURE",
+    "PRODUCT_EVIDENCE"
+  ],
+  "unit": "LEVEL_APPROACH_STATE_DISCOVERY_V1"
+}

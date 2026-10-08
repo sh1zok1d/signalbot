@@ -127,6 +127,21 @@ Claims of one class are scored together by the same rule against their baseline,
 | Touch chances «дойти: за 4ч 34 %», `/risk` | L3 wording | live calibration not yet logged per claim; until it is, either show the tracked accuracy beside the number or phrase it as a historical frequency. Owner choice; not changed here |
 | «Проверено» / «Гипотеза» lines | L1 / L2 by content | status words are provenance, not confidence; keep |
 
+## 6a. Discovery-first routing (owner decision 2026-10-07)
+
+For new product-serving discovery work, also follow `DISCOVERY_FIRST_RESEARCH_DECISION_V1.md`.
+
+It adds two explicit modes without replacing this evidence/claim system:
+
+- `MODE = DISCOVERY` — freeze a bounded observable/search space before outcomes, report the whole declared search, and let the data determine which relations, if any, deserve a narrower successor hypothesis;
+- `MODE = CONFIRMATION` — freeze a relation selected before this unit and test it separately without rescue.
+
+A discovery unit does not need to predict the sign of an effect in advance. It does need to freeze the data surface, outcome family, feature family, transformations, horizons, nuisance/baseline structure, falsification, search exposure and candidate-selection rule before outcomes.
+
+A relation selected because it looked best in discovery is `DISCOVERY_ONLY` on that selection surface. It does not become a current probability or actionable edge, and normally needs a separate frozen successor confirmation before product-facing directional use.
+
+The L0-L4 ladder, prospective calibration requirements, protected-data rules and every frozen experiment remain unchanged.
+
 ## 7. Not changed by this decision
 
 - **Code and verdicts:** no product code, wording, schema or config; no research verdict, ledger row, atlas unit or findings entry. The wording gaps of §6 are a separate product task.

@@ -1,0 +1,43 @@
+{
+  "accrual": "PROSPECTIVE_ONLY",
+  "bar_semantics": "complete UTC 5m bins aggregated from Binance USD-M BTCUSDT 1m klines by scripts.research.dh1.data.aggregate_1m_to_5m; five minutes present; no fill; RV uses close only",
+  "bootstrap_draws": 2000,
+  "bootstrap_seed": 20261026,
+  "checkpoint_weeks": [
+    104,
+    130,
+    156
+  ],
+  "claim_ceiling": "L2",
+  "code_version": "d30622de19f90efe3ee12b56fc5e2d017ef38c57",
+  "cohort_closed": false,
+  "dataset_id": "BINANCE_UM_LIVE_FORWARD",
+  "design_commit_time": "2026-10-08T11:30:26Z",
+  "design_sha": "d30622de19f90efe3ee12b56fc5e2d017ef38c57",
+  "eligible_level_kinds": [
+    "PMH",
+    "PML",
+    "PWH",
+    "PWL",
+    "PDH",
+    "PDL"
+  ],
+  "event_start_rule": "episode_active_start >= PROSPECTIVE_START_UTC",
+  "exact_outcome_read": false,
+  "forward_panel_path": null,
+  "instrument": "BTCUSDT perpetual",
+  "manifest_digest": "0f1b26921ff73bf68403af34bef2467b4ea77cac509420ac434a543b2dc47e2c",
+  "max_accrual_weeks": 156,
+  "min_completed_iso_weeks": 104,
+  "min_matched_path_complete_pairs": 600,
+  "mode": "CONFIRMATION",
+  "pair_map_frozen": false,
+  "practical_bar_log": 0.09531017980432493,
+  "practical_multiple": 1.1,
+  "prospective_start_ms": 1791504000000,
+  "prospective_start_utc": "2026-10-09T00:00:00Z",
+  "surface_evidence_class": "PRISTINE_CONFIRMATION",
+  "unit": "LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1",
+  "venue": "Binance USD-M",
+  "warmup_policy": "WARMUP_ONLY"
+}

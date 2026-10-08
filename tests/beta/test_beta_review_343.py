@@ -28,20 +28,28 @@ def _card(cell, h="4h"):
 def test_1_after_similar_without_an_interval_says_too_little_data():
     # n ≥ 30 on fewer days than the bootstrap needs: the statistics store no interval
     few_days = {k: v for k, v in CELL.items() if k not in ("ci95", "mean_log_range")} | {"days": 9}
-    assert df.analog_line(_card(few_days), "ru") == "↳ после похожих: мало данных (412 случаев)"
-    assert df.analog_line(_card(few_days), "en") == "↳ after similar: too little data (412 cases)"
+    # the reason, never «мало данных» beside a large N (follow-up review of #350)
+    assert df.analog_line(_card(few_days), "ru") == "↳ после похожих: мало разных дней (412 случаев за 9 дн.)"
+    assert df.analog_line(_card(few_days), "en") == "↳ after similar: too few distinct days (412 cases over 9 days)"
+    old = {k: v for k, v in CELL.items() if k != "ci95"}                 # statistics built before the interval
+    assert df.analog_line(_card(old), "ru") == "↳ после похожих: интервал ещё не посчитан (412 случаев)"
+    assert df.analog_line(_card({**CELL, "n": 12}), "ru") == "↳ после похожих: мало данных (12 случаев)"
     assert not df.analog_shown(few_days) and df.analog_shown(CELL)
     assert "п.п." in df.analog_line(_card(CELL), "ru")
 
 
 def test_2_level_history_without_an_interval_says_too_little_data_on_levels_check_and_the_alert():
     bare = {k: v for k, v in HIST.items() if k != "ci95"}
-    assert df._hist_lines(bare, "ru", 1) == ["↳ после первого касания: мало данных (812 случаев)"]
+    assert df._hist_lines(bare, "ru", 1) == ["↳ после первого касания: интервал ещё не посчитан (812 случаев)"]
+    few = {**bare, "real": {**bare["real"], "periods": 9}}
+    assert df._hist_lines(few, "ru", 1) == ["↳ после первого касания: мало разных периодов (812 случаев, периодов: 9)"]
     payload = {"at": T.isoformat(), "level_kind": "PDH", "level": 62950.0, "side": 1, "period": "day",
                "price": 62960.0, "price_ts": T.isoformat(), "history": bare, "next": None, "corridor_4h": None,
                "event_zone": {}}
     text = plain(df.format_alert("level", payload, "ru"))
-    assert "После первого касания: мало данных (812 случаев)" in text and "п.п." not in text
+    assert "После первого касания: интервал ещё не посчитан (812 случаев)" in text and "п.п." not in text
+    few_alert = plain(df.format_alert("level", {**payload, "history": few}, "en"))
+    assert "After the first touch: too few distinct periods (812 cases, 9 periods)" in few_alert
     with_ci = plain(df.format_alert("level", {**payload, "history": HIST}, "ru"))
     assert ("После первого касания (812 случаев): через 1ч цена выше уровня в 47% — у случайного уровня 43% "
             "(+4,0 п.п.; 95% интервал −1,2…+9,1)") in with_ci
@@ -56,6 +64,13 @@ def test_3_the_glossary_describes_the_interval_without_a_decision_rule():
         assert "×1" in text                                            # the usual point of the move ratio
     assert "неопределённость этой исторической оценки" in DECISION_TERMS["ru"]
     assert "uncertainty of this historical estimate" in DECISION_TERMS["en"]
+    # no correction for multiplicity, said in words (follow-up review of #350)
+    assert "без поправки на то, что строк много" in DECISION_TERMS["ru"]
+    assert "no correction for there being many lines" in DECISION_TERMS["en"]
+    # the level history's interval is bootstrapped over the level's periods, said where the random level is
+    ru = DECISION_TERMS["ru"].split("Случайный уровень")[1].split("\n")[0]
+    en = DECISION_TERMS["en"].split("Random level")[1].split("\n")[0]
+    assert "считается по периодам уровня" in ru and "computed over the level's periods" in en
 
 
 def test_4_the_move_ratio_follows_the_interval_not_the_mean_log_range():
@@ -114,3 +129,28 @@ def test_8_the_l2_cohorts_include_the_interval_templates():
 def test_9_the_dead_research_line_key_is_gone():
     from beta.i18n import _CATALOG
     assert "rs_line" not in _CATALOG and "rs_line_confirmed" in _CATALOG
+
+
+def test_follow_up_shares_split_whenever_their_difference_disagrees_with_the_printed_one():
+    """Follow-up review of #350: whole percents only when their difference is the rounded difference."""
+    assert df.share_pair(0.5249, 0.5251, "ru") == ("52,5%", "52,5%")        # was «52% против 53%» beside −0,0
+    assert df.share_pair(0.5249, 0.5350, "ru") == ("52,5%", "53,5%")        # was «52% против 54%» beside −1,0
+    assert df.share_pair(0.5249, 0.5151, "en") == ("52.5%", "51.5%")
+    assert df.share_pair(0.53, 0.51, "ru") == ("53%", "51%") and df.share_pair(0.534, 0.512, "ru") == ("53%", "51%")
+    mirror = {**CELL, "p_up": 0.5249, "baseline": {**BASE, "p_up": 0.5350}}
+    assert "выше в 52,5% против 53,5% обычно (−1,0 п.п." in df.analog_line(_card(mirror), "ru")
+
+
+def test_follow_up_the_bootstrap_minimums_equal_the_statistics():
+    from beta import analogues, levels
+    assert df.MIN_DAYS_SHOWN == analogues.MIN_DAYS and df.MIN_PERIODS_SHOWN == levels.MIN_PERIODS
+
+
+def test_follow_up_a_weak_finding_never_repeats_its_status_in_its_text():
+    """«Ниже порога практической величины: …, ниже порога 15%»: the status heading or prefix says it once."""
+    from beta.research_link import load_findings
+    for f in load_findings():
+        if f["status"] == "WEAK":
+            assert "ниже порога" not in f["text_ru"] and "below the" not in f["text_en"], f["id"]
+            if f["id"] in ("DH3-P1", "DH3-O2", "DH3-L3", "DH3-S1", "R03-C1"):             # the bar's number stays
+                assert "порог —" in f["text_ru"] and "bar:" in f["text_en"], f["id"]

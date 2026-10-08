@@ -28,6 +28,7 @@ from typing import Any, Mapping, Optional
 
 from .config import BetaConfig
 from .hist_series import BAR_MS, Bars, from_ms, to_ms
+from .detector import in_quiet_hours
 from .models import D_EXPIRED, D_FAILED, D_PENDING, D_SUPPRESSED, DELIVERY_TOO_OLD, PUSH_DISABLED, USER_INACTIVE
 
 logger = logging.getLogger("beta.market_alerts")
@@ -238,9 +239,43 @@ def detect_price_alerts(active, b: Bars, closed_1m, *, block: Mapping[str, Any],
     return out
 
 
-def _in_quiet_hours(cfg: BetaConfig, ts: datetime) -> bool:
-    from .detector import in_quiet_hours
-    return in_quiet_hours(cfg, ts)
+def detect_price_approaches(active, *, block: Mapping[str, Any], now: datetime) -> list:
+    """«Мои уровни» (backlog E1): one message when the price first comes within the hour's typical move
+    of a personal level that was set farther away than that; never after the touch. No typical move (the
+    1h horizon inside its event zone, no statistics): no approach message, the touch still fires."""
+    from .decision_format import price_clock
+    x = ((block.get("corridor") or {}).get("horizons") or {}).get("1h")
+    if not block.get("available") or not x or block.get("price") is None:
+        return []
+    typ, price = float(x["typical_move_pct"]), float(block["price"])
+    out = []
+    for a in active:
+        if a.get("approached_at") is not None:
+            continue
+        level = float(a["price"])
+        dist = abs(level / price - 1) * 100.0
+        set_from = abs(level / float(a["created_price"]) - 1) * 100.0
+        side = +1 if a["direction"] == "above" else -1
+        if set_from <= typ or dist > typ or side * (level - price) <= 0:
+            continue                                   # set already close, still far, or already through
+        out.append({"kind": "approach", "key": f"approach:{a['price_alert_pk']}", "price_alert_pk": a["price_alert_pk"],
+                    "target_user_pk": a["user_pk"],
+                    # the latency source is the close of the price's 1m bar (price_ts is its open)
+                    "payload": {"at": now.isoformat(),
+                                "source_at": (price_clock(block.get("price_ts")) or now).isoformat(),
+                                "level": level, "price": price, "price_ts": block.get("price_ts"),
+                                "distance_pct": dist, "typical_1h_pct": typ}})
+    return out
+
+
+_KIND_PREF = {"level": "push_levels", "event": "push_events", "move": "push_moves"}
+
+
+async def _quiet_for_all(conn, cfg: BetaConfig, kind: str, ts: datetime) -> bool:
+    """Quiet hours for an alert of this kind: every participant who could receive it is in their own
+    night (backlog C5); the others' deliveries are checked one by one at send time."""
+    from .detector import _recipient_tzs, quiet_for_all
+    return quiet_for_all(cfg, ts, await _recipient_tzs(conn, _KIND_PREF[kind]))
 
 
 async def _decide_and_record(conn, cfg: BetaConfig, cand: Mapping[str, Any], *, now: datetime, push_on: bool) -> str:
@@ -249,7 +284,7 @@ async def _decide_and_record(conn, cfg: BetaConfig, cand: Mapping[str, Any], *, 
     reason = None
     if not push_on:
         reason = "PUSH_DISABLED"
-    elif kind != "price" and kind in QUIET_KINDS and _in_quiet_hours(cfg, now):
+    elif kind != "price" and kind in QUIET_KINDS and await _quiet_for_all(conn, cfg, kind, now):
         reason = "QUIET_HOURS"
     elif kind in CAPPED_KINDS and await conn.count_market_pushes(utc_day=now.astimezone(timezone.utc).date(),
                                                                  kinds=CAPPED_KINDS) >= int(m["max_per_utc_day"]):
@@ -261,6 +296,8 @@ async def _decide_and_record(conn, cfg: BetaConfig, cand: Mapping[str, Any], *, 
                                             target_user_pk=cand.get("target_user_pk"))
         if kind == "price":
             await conn.mark_price_alert_triggered(cand["price_alert_pk"], at=now)
+        elif kind == "approach":
+            await conn.mark_price_alert_approached(cand["price_alert_pk"], at=now)
     if pk is None:
         return "DUPLICATE"
     return "PUSH" if reason is None else reason
@@ -352,7 +389,7 @@ def attach_evidence(cand: dict, block: Mapping[str, Any], cap: Mapping[str, Any]
     cand["payload"]["evidence_main"] = bool(ev.get("main_surfaces"))
 
 
-def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
+def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str, alert_pk: Optional[int] = None) -> list:
     """«📊 BTC сейчас», Levels / Risk, and «🎯 Проверить» with the next level filled in (a level alert's
     next level, a sharp move's nearest level; PRE_BETA_SCOPE_DECISION_V1 §5)."""
     from .check import check_button
@@ -362,6 +399,8 @@ def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
     target = None
     if kind == "level" and payload.get("next"):
         target = payload["next"].get("edge")
+    elif kind == "approach":                    # the chance to reach the participant's own level now
+        target = payload.get("level")
     elif kind == "move" and payload.get("near") and payload.get("close") is not None:
         # the nearest level in the move's direction: above after a rise, below after a fall (none: no button)
         up, close = float(payload.get("move_pct") or 0.0) >= 0, float(payload["close"])
@@ -370,6 +409,12 @@ def alert_buttons(kind: str, payload: Mapping[str, Any], lang: str) -> list:
             target = min(ahead, key=lambda z: abs(float(z["edge"]) - close))["edge"]
     if target:
         rows.append([check_button(float(target), lang)])
+    from .formatter import mute_row, vote_row
+    if alert_pk is not None:                    # «Полезно / Шум» on every alert type (backlog F6)
+        rows.append(vote_row(kind, alert_pk, lang))
+    mute = {"level": "levels", "event": "events", "move": "moves"}.get(kind)
+    if mute:                                    # a personal /alert is the participant's own: no mute
+        rows.append(mute_row(mute, lang))
     return rows
 
 
@@ -437,8 +482,12 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             if available and (last_move is None or now - last_move >= timedelta(minutes=int(m["move_cooldown_min"]))):
                 cands += detect_move(block, b, closed, now=now, model=cap.get("model"))
             if push_on:
-                cands += detect_price_alerts(await conn.fetch_active_price_alerts(), b, closed, block=block, now=now,
-                                             max_age=timedelta(minutes=int(m["touch_max_age_min"])))
+                active = await conn.fetch_active_price_alerts()
+                touched = detect_price_alerts(active, b, closed, block=block, now=now,
+                                              max_age=timedelta(minutes=int(m["touch_max_age_min"])))
+                hit = {c["price_alert_pk"] for c in touched}       # a touch says it all: no approach after it
+                cands += touched + detect_price_approaches([a for a in active if a["price_alert_pk"] not in hit],
+                                                           block=block, now=now)
         known = await conn.market_alert_keys([c["key"] for c in cands]) if cands else set()
         for c in cands:
             if c["key"] in known:
@@ -488,6 +537,11 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
                                            suppression_reason=USER_INACTIVE)
             continue
+        if row["kind"] in QUIET_KINDS and in_quiet_hours(cfg, row["decision_ts"], row.get("user_tz")):
+            # sent to the participants who are awake; this one's own night (backlog C5)
+            await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_SUPPRESSED, now=now,
+                                           suppression_reason="QUIET_HOURS")
+            continue
         if sender is None:
             await conn.transition_delivery(did, from_state=D_PENDING, to_state=D_FAILED, now=now,
                                            error_summary="sender unavailable (no bot token)")
@@ -501,9 +555,12 @@ async def run_market_alerts(conn, cfg: BetaConfig, *, sender, clock, push_on: bo
             lat_summary = await class_summary(conn, now)
         # the measured delay field for the push's delay line (backlog A4; the line is drawn by F1)
         lat = latency_field(row["kind"], alert_source_at(row["payload"]), now, lat_summary)
-        text = format_alert(row["kind"], {**row["payload"], "latency": lat}, lang)
+        from .i18n import render_tz
+        with render_tz(row.get("user_tz")):            # the recipient's clock (C5)
+            text = format_alert(row["kind"], {**row["payload"], "latency": lat}, lang)
+            buttons = alert_buttons(row["kind"], row["payload"], lang, alert_pk=row["alert_pk"])
         outcome, _mid, sent_at = await send_one(conn, sender, pacer, did, chat_id=row["chat_id"], html=text,
-                                                buttons=alert_buttons(row["kind"], row["payload"], lang), clock=clock)
+                                                buttons=buttons, clock=clock)
         if outcome != SENT:
             count_outcome(rep, outcome)
             continue

@@ -509,3 +509,20 @@ At the project's sample sizes, near-absolute coverage safety and practical utili
 **What stayed.** Design before outcome, no rescue, the exposure and search ledger, sealed holdouts, preregistration where it is really needed, and every sealed verdict.
 
 **What was learned.** A research process can overfit to its own safety. The strict system showed its own limit, and the fix was a claim ladder, not a different statistics school.
+
+## 25. Forecasts in the beta; a chain of command (2026-10-08)
+
+**Why the change.** The Level Engine discovery (#352–#368) ended with one confirmed object, the structural first touch (#357), plus a replicated volatility transition (#368) and a cross-venue candidate (#363). L2 sentences about the past do not give a trader what they need at a touched level: a calibrated chance of what happens next. The project also had more agents than one owner could steer by hand.
+
+**What was decided.**
+
+`docs/FORECAST_LAYER_DECISION_V1.md`:
+- level race probabilities (BREAK barrier first / REJECT barrier first / neither within the 4h window) are shown in the beta from Day 0;
+- the model is a frozen predictor measured against driftless first-passage geometry, which is also the «обычно»;
+- the evidence is a one-shot held-out check on 2025/2026 history, then live calibration in the claim journal;
+- fallback and challenger rules are frozen before display;
+- #363's separate prospective confirmation became a challenger in the live forecast.
+
+`docs/ORCHESTRATION_V1.md`: the owner directs a chief architect, who directs two mini-heads — ОПГ-1 for the pre-beta product, ОПГ-2 for the forecast layer — each with its own tracks.
+
+**What was learned.** The review behind the decision found that most of the T+15m information at a level is geometry: a 15-minute end position predicts the race about as a random walk would, on real and pseudo levels alike. A forecast is honest only if it shows that geometry as «обычно» and claims for the level only what it adds.

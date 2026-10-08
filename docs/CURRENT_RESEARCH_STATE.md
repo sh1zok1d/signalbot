@@ -1,3 +1,341 @@
+## Forecast layer and Level Engine routing — owner decision — 2026-10-08
+
+`DECISION = docs/FORECAST_LAYER_DECISION_V1.md | chain of command docs/ORCHESTRATION_V1.md`
+`PROGRAM = level race forecast (BREAK first / REJECT first / neither, 4h; T0 and T15) | owner ОПГ-2 | display in the beta from Day 0 under §6 gates`
+`DEVELOPMENT = CORE_BTC_BINANCE_V0 2020–2024 | HELD_OUT = Binance BTCUSDT 2025-01-01 → freeze, E1 holdout excluded, read once after the freeze | LIVE = claim journal classes L3_LEVEL_RACE_T0_4H / _T15_4H`
+`P3-2 (#363 prospective coefficient) = REPLACED by challenger C1 (paired prospective log-loss) | #363 record unchanged`
+`#368 PROSPECTIVE = accruing from 2026-10-09T00:00Z | forward panel bound (LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_PANEL_BINDING_V1) | never a gate`
+`NEXT_UNIT = the forecast model design note (before any held-out read)`
+
+## LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 — design frozen; accruing; no outcome — 2026-10-08
+
+`UNIT = LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1 (atlas LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1; family LEVEL_BEHAVIOR_V1; MODE = CONFIRMATION; ACCRUAL = PROSPECTIVE_ONLY; SURFACE_EVIDENCE_CLASS = PRISTINE_CONFIRMATION for the exact claim after the frozen start)`
+`DESIGN = d30622de19f90efe3ee12b56fc5e2d017ef38c57 | commit 2026-10-08T11:30:26Z | PROSPECTIVE_START_UTC = 2026-10-09T00:00:00Z | manifest digest 0f1b26921ff73bf68403af34bef2467b4ea77cac509420ac434a543b2dc47e2c`
+`CLAIM = exact #368 paired mean of log(RV_POST60/RV_PRE60) | discovery design 54338b7f | BitMEX replication design 6d97157b | practical bar log(1.10) | seed 20261026 | B = 2000 | formula not retuned`
+`STOP = 600 matched path-complete pairs AND 104 completed weeks | checkpoints 104 / 130 / 156 weeks | ends 2028-10-06, 2029-04-06, 2029-10-05 | shortfall at 156 weeks closes information-limited without a transition read`
+`STATUS = PROSPECTIVE_CONFIRMATION_STARTED | accrual AWAITING_START | completed weeks 0 | exact_outcome_read = false | pair map not frozen | evaluator REFUSING_PREMATURE_PROSPECTIVE_EVALUATION`
+`DATA = Binance USD-M BTCUSDT 5m closes aggregated from complete 1m bins after the start | pre-start bars are WARMUP_ONLY | CORE 2020-2024 is not the sample | no new database table | claim journal not reused`
+`CLAIM_CEILING = L2 even on a future pass | PRODUCT_INTEGRATION_CANDIDATE would be a later owner decision | PRODUCT_CHANGE = none | #363 not started | clock independence UNRESOLVED`
+`NEXT_UNIT = none | do not evaluate before the frozen stop`
+
+Design: `docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1_DESIGN.md`. Manifest: `docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_SURFACE_V1.json`. Accrual: `docs/research/LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_ACCRUAL_V1.md`.
+
+## LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1 — executed once; exposed-surface replication supports the frozen claim; not pristine; prospective protocol frozen afterward — 2026-10-08
+
+`UNIT = LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1 (atlas LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1; family LEVEL_BEHAVIOR_V1; MODE = CONFIRMATION; SURFACE_EVIDENCE_CLASS = TIME_DISJOINT_EXPOSED_SURFACE_REPLICATION; design 6d97157b before any post-touch RV)`
+`GOVERNANCE = EXPOSURE_WEIGHTING_DECISION_V1 | exposure is evidentiary weight, not a ban | subordinate to EVIDENCE_AND_CLAIMS, DISCOVERY_FIRST, protected data, and the frozen #368 design | L0–L4 unchanged | no L5`
+`CLAIM = exact #368 paired mean of log(RV_POST60/RV_PRE60) | discovery design 54338b7f | practical bar log(1.10) | expected sign positive | formula not adapted for the inverse contract`
+`DATA = DH1_BITMEX_XBTUSD_TRADES_5M_V0 | SHA256 df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f | events [2017-09-01, 2020-01-01) | August 2017 warm-up only | no new download | no 2020–2024 Binance reread | no 2025/2026 | no E1 holdout`
+`EXPOSURE = EXACT_CLAIM_PREVIOUSLY_READ = false | NEIGHBORING_POST_TOUCH_PATH_PREVIOUSLY_READ = true (#357 RESOLVED_WITHIN_4H, high/low j+1..j+48) | SURFACE_PRISTINE = false | REPLICATION_ALLOWED = true`
+`EVENTS = #357 first-touch constructor | touch_number = 1 | half-rotation pseudo | no BREAK/REJECT/NEITHER conditioning | no first-hit time`
+`COHORT = real legitimate 890 | pseudo legitimate 891 | matched 558 | path-complete and usable 554 | non-positive RV 0 | 120 ISO weeks | epochs 100/250/204`
+`INFORMATION = planning gate REPLICATION_INFORMATION_ADEQUATE before outcomes | planning half-width below log(1.10) | N=800 was not copied`
+`PRIMARY = DELTA_TRANSITION +0.096545 log, about +10.136% (95% +0.021780..+0.168173, about +2.202%..+18.314%, p=0.011207, N=554, 2000/2000, seed 20261025) | point clears log(1.10) | interval excludes 0 and contains the bar and the discovery point 0.106803`
+`BALANCE = paired log pre-RV difference about -2.05% | not an adjustment`
+`STABILITY = 2017H2 +15.31%, 2018 +0.28%, 2019 +20.79% | three eligible epochs share the positive sign | 2018 is practically null and the sign rule was not rewritten | LOEO all positive (omit 2017H2 +9.03%, omit 2019 +4.36%, both below the bar; sign-only rule) | DAY +11.16%, WEEK +4.86% | MONTH N=9 diagnostic and opposite | resistance +13.14%, support +7.37%`
+`ROUTING = REPLICATION_SUPPORTS_LEVEL_VOLATILITY_TRANSITION | evidence label REPLICATED_ON_TIME_DISJOINT_EXPOSED_SURFACE | synthesis post-status TIME_DISJOINT_REPLICATED_EXPOSED_SURFACE | #368 frozen route LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT unchanged`
+`COMPARISON = Binance discovery +11.272% versus BitMEX +10.136% | NOT POOLED`
+`CLAIM_CEILING = L2 | not L3 | not a current probability | not a trading edge | INDEPENDENCE_FROM_RESOLUTION_CLOCK = UNRESOLVED`
+`PRODUCT_CHANGE = none | no volatility badge | findings registry unchanged | /btc /levels /check /risk unchanged`
+`NOT STARTED = prospective #368 | #363 | #365 | new RV windows | combined model | meta-analysis | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_VOLATILITY_TRANSITION_BITMEX_REPLICATION_V1_DESIGN.md`. Exposure decision: `docs/research/EXPOSURE_WEIGHTING_DECISION_V1.md`.
+
+## LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1 — synthesis only; no new market outcome inside the synthesis; later BitMEX replication recorded separately — 2026-10-08
+
+`UNIT = LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1 | MODE = SYNTHESIS / NO_NEW_MARKET_OUTCOMES | not an atlas outcome cell | parent HEAD fb6598aa (#368)`
+`SCOPE = #352 #353 #355 #356 #357 #358 #359 #360 #361 #362 #363 #364 #365 #366 #367 #368 | #354 is the governing discovery-first decision, not a market row`
+`FOUNDATION = #357 FOUNDATION_CONFIRMED | L2 REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE | 91.1% vs 83.0%, Δ +8.0 pp (95% +4.4..+11.8), N=548 | not rerun`
+`CANDIDATES = #365 DISCOVERY_CANDIDATE_STRONG, overlap with #357 INDEPENDENCE_UNRESOLVED, portfolio DO_NOT_CONFIRM, BitMEX BITMEX_CLOCK_NOT_INDEPENDENT_ENOUGH | #368 DISCOVERY_CANDIDATE_STRONG, overlap with #365 INDEPENDENCE_UNRESOLVED, P3 prospective only, BitMEX exact RV unread and neighbor 4h path exposed | #363 DISCOVERY_CANDIDATE_METHOD_LIMITED, frozen class preserved, LEVEL_SPECIFICITY = NOT_ESTABLISHED, P3 is the primary coefficient only`
+`GENERIC = #361 END_POSITION_X GENERIC_MARKET_STRUCTURE_NOT_LEVEL_SPECIFIC | frozen NONE unchanged | DO_NOT_CONFIRM_AS_LEVEL_SPECIFIC`
+`NULLS = #352 ordinal, #353, #355, #356, #358, #359, #360, #362, #364, #366, #367 | class NULL_NO_INCREMENTAL_INFORMATION | neighborhoods closed, not authorized`
+`PORTFOLIO = P0 #357 already confirmed | P1 none | P2 none | P3-1 #368 | P3-2 #363 primary coefficient | confirmation executed = no`
+`ATLAS = not updated | a synthesis event would require a source-digest change or a fake outcome cell`
+`WINDOWS_CONSUMED = none | 2025/2026 not read | product unchanged | findings registry unchanged | L0–L4 unchanged`
+`STOP = no confirmation without a new owner go`
+
+Records: `docs/research/LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1.md` (+ `.json`), `docs/research/LEVEL_ENGINE_CONFIRMATION_PORTFOLIO_V1.md`, `docs/research/LEVEL_ENGINE_CLOSED_NEIGHBORHOODS_V1.md`.
+
+## LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1 — executed once; discovery; volatility-transition candidate; sequence 8/8 complete; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1 (atlas LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 54338b7f before any post-touch RV) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; LEVEL_VOLATILITY_TRANSITION_CANDIDATE`
+`DEPENDENCIES = #352 dfc9e0f0 -> #367 fcdf650c -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = paired change in 60m realized volatility across the structural first touch versus its matched pseudo | not H01 compression | not B2-01 forecast transition | not DH3-V2 4h range | not #365 resolution clock | not #367 zone volume`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | events [2020-02-01, 2025-01-01) | 2025/2026 NOT read | closes only | no volume, taker, OI, spot, other venue, or book`
+`CLOCK = T = open of touch bar j | touch bar excluded from both windows | PRE returns j-12..j-1 | POST returns j+1..j+12 | RV = sqrt(mean(r^2)) | transition = log(RV_POST/RV_PRE)`
+`COHORT = touch_number = 1 | real legitimate 1919 | pseudo legitimate 1962 | matched path-complete 1231 | usable 1231 | non-positive RV 0 | 254 weeks`
+`PRIMARY = DELTA_TRANSITION +0.1068 log units, about +11.27% on the post/pre multiplier (95% +0.0665..+0.1467, about +6.88%..+15.80%, p=1.05e-7, N=1231, 2000/2000, seed 20261024) | point clears log(1.10) | interval excludes 0 and includes sub-10% values`
+`BALANCE = paired log pre-RV difference +0.56% | not at the 10% scale | not used as an adjustment`
+`STABILITY = years +16.93 / +12.05 / +0.10 / +17.52 / +12.87 percent | 5/5 positive | 2022 is practically null and the sign rule was not rewritten | LOYO all positive | DAY +10.06%, WEEK +25.63% | MONTH N=22 is -11.47% and diagnostic only | resistance +14.34%, support +7.48%`
+`ROUTING = LEVEL_VOLATILITY_TRANSITION_STRUCTURE_PRESENT | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE = YES`
+`CLAIM = L2 | historically the post/pre RV multiplier differed by about 11% versus the matched pseudo touch | not a current expected RV | not a breakout | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | no VOLATILITY_EXPANSION badge | findings registry unchanged | /btc /levels /check /risk unchanged`
+`NEXT PHASE NOT STARTED = discovery synthesis, candidate selection, confirmation design | those need a separate owner go | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1 — executed once; discovery; no incremental zone-traded activity; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1 (atlas LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design ee2abb0d before any late BREAK label) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #366 b411cff9 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = unsigned executed notional inside the frozen structural zone during the first 15m | not H05 signed imbalance | not B2-05 absorption | not DH3-S large prints | not #360 displayed depth | not #361 taker reaction | not #362 path memory | not #366 sequence`
+`DATA = Binance USD-M BTCUSDT aggTrades 2020-03..2024-12, 58 checksum-verified months, aggregate af1eb088 | events [2020-04-01T00:05Z, 2025-01-01) | March 2020 is lookback only | 2025/2026 NOT read | aggressor side unused | Bybit/OKX reused as the cross-perp control`
+`CLOCK = T = open of touch bar j | D = T+15m | TAU is diagnostic only | raw touch match 1832/1856 = 0.987 | late window j+3..j+48`
+`COHORT = touch_number = 1 | legitimate 1856 | unresolved nuisance 1235 | retained support 1215 | ZA3 dropped before outcomes (rho 0.925 with ZA2) | primary N=1044 (BREAK 432, REJECT 612) | 238 weeks`
+`BASELINE = END_POSITION_X +13.13 pp per +1 SD (95% +8.70..+17.39) | OTHER_VENUE_MEDIAN_MOVE +9.33 pp (95% +5.35..+13.35) | touch offset -0.09 pp | controls are not a confirmation of #363`
+`PRIMARY = ZA1 -0.95 pp (95% -4.25..+2.27, q=0.557) | ZA2 -1.76 pp (95% -5.19..+1.48, q=0.557) | both under 3 pp | intervals include 0 | classes NONE | specificity not applied`
+`STABILITY = years 4/5 negative; 2023 opposite (ZA1 +3.19 pp, ZA2 +4.84 pp) and the five-year sign rule still passes | LOYO negative | DAY and WEEK negative | resistance and support negative | raw ZA1 tertiles 31.67/42.24/50.89% are not the adjusted estimand`
+`ROUTING = NO_INCREMENTAL_ZONE_TRADED_ACTIVITY | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | no incremental historical association beyond end position, cross-perp movement, and touch offset | not absorption | not a current probability | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | no volume-confirmation badge | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = taker split; other zone widths; 30m/60m volume; large-trade threshold; BitMEX replication; prospective confirmation; 2025/2026 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1 — executed once; discovery; no incremental sequence structure; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1 (atlas LEVEL-BREAK-REJECT-SEQUENCE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design fcfc3e43 before any post-first opposite-barrier scan) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #362 b005eaac -> #365 3ad8431e -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = sequence of the frozen BREAK and REJECT barriers after the first one-sided hit | not H02 close-back-inside mean reversion | not V2 false-break | not #362 path memory | not the #365 resolution clock | price only`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | events [2020-02-01, 2025-01-01) | 2025/2026 NOT read | no volume, taker, OI, spot, other venue, or book`
+`EXPOSURE = FIRST_EVENT_TYPE_ALREADY_EXPOSED = true | POST_FIRST_OPPOSITE_BARRIER_SEQUENCE was unread until design fcfc3e43 | then read once`
+`CLOCK = T = open of touch bar j | scan j+1..j+48 | opposite scan starts at k+1 | same-bar both hits stay FIRST_AMBIGUOUS | no scan past T+4h`
+`COHORT = touch_number = 1 | real legitimate 1919 | pseudo legitimate 1962 | matched N=1231 | unusable 0 | 254 weeks | real BREAK 579 REJECT 539 | pseudo BREAK 467 REJECT 549`
+`P1 = later REJECT given FIRST_BREAK | real 18.13% pseudo 14.99% | delta +3.15 pp (95% -1.23..+7.56, q=0.320, N=579/467, 2000/2000) | under 5 pp | class NONE`
+`P2 = later BREAK given FIRST_REJECT | real 20.22% pseudo 18.94% | delta +1.28 pp (95% -3.27..+5.95, q=0.578, N=539/549) | under 5 pp | class NONE`
+`STABILITY = P1 years 4/5 positive, 2024 -7.64 pp, LOYO keeps the sign | P2 years 2/5 and omit-2020 flips | neither contrast is statistical, so the route is not unstable`
+`DESCRIPTIVE = two-sided traversal real 17.87% pseudo 14.78% (+3.09 pp) | one-sided resolution real 73.44% pseudo 68.40% (+5.04 pp of all pairs, not a primary; the conditional complements are -3.15 and -1.28 pp)`
+`ROUTING = NO_INCREMENTAL_SEQUENTIAL_OUTCOME_STRUCTURE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical conditional rates | not a current false-break probability | not an acceptance probability | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | no FALSE_BREAK / ACCEPTED_BREAK / CONFIRMED_REJECT | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = volume-at-level; acceptance thresholds; close-based false-break; cross-venue composition; prospective confirmation; 2025/2026 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1 — executed once; discovery; resolution clock faster than pseudo; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1 (atlas LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 56b162f0 before any barrier time) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; LEVEL_RESOLUTION_CLOCK_CANDIDATE`
+`DEPENDENCIES = #352 dfc9e0f0 -> #357 c1cd4e01 -> #361 44726ded -> #363 f2210017 -> #364 7c297997 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = time until the frozen BREAK or REJECT barrier after a structural first touch | not #352 touch-ordinal rate | not #357 4h resolution probability | not GV0R01-C024 round-number depth traversal | price only`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | events [2020-02-01, 2025-01-01) | 2025/2026 NOT read | no spot, no other venue, no book`
+`CLOCK = T = open of touch bar j | scan j+1..j+48 | time = 5*k minutes | AMBIGUOUS resolves the any-resolution clock | no hit is censored at 240 and is not an observed event time`
+`COHORT = touch_number = 1 | real legitimate 1919 | pseudo legitimate 1962 | matched N=1231 | censored real 107, pseudo 207 | 254 weeks | unusable clocks 0`
+`PRIMARY = RMUT_240 real 64.24 min, pseudo 89.39 min | delta -25.15 min (95% -31.42..-19.07, 2000/2000) | absolute difference above 15 min`
+`STABILITY = years -40.39 / -29.84 / -7.75 / -22.65 / -23.70 | 5/5 negative | 2022 under 15 min, sign rule still passes | LOYO all negative | DAY -24.91, WEEK -28.91 | resistance -22.88, support -28.05`
+`ROUTING = LEVEL_RESOLUTION_CLOCK_STRUCTURE_PRESENT | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical restricted mean unresolved time | not a current expected number of minutes | not a level-expiry cutoff | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | no ACTIVE/STALE/timer | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = false-break semantics; acceptance; 30m threshold; current hazard calibration; product timer; 2025/2026 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1 — executed once; discovery; no incremental spot reaction; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1 (atlas LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 98c750a4 before any late BREAK rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> #359 bcc0a9e8 -> #360 181debc4 -> #361 44726ded -> #362 b005eaac -> #363 f2210017 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = post-touch 15m spot reaction after END_POSITION_X and OTHER_VENUE_MEDIAN_MOVE | not DH1-L1/DH2-L1 pre-touch hour flow | not sign confirmation | not spot share | not lead/lag | not MARKET-06 | CV1 is a nuisance, not a confirmation of #363`
+`DATA = Binance CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | spot DH1_BINANCE_SPOT_BTCUSDT_5M_V0 2020-04..2024-12, missing fraction 0.000710 | Bybit f7ef739f and OKX b435fdec reused, not reminted | events [2020-04-01T00:05Z, 2025-01-01) | 2025/2026 NOT read`
+`CLOCK = T = open of Binance touch bar j | D = T+15m | return from the close at T-5m to the close at D | early passage j+1..j+2 excluded | late passage j+3..j+48 | alignment tolerance 0`
+`COHORT = touch_number = 1 | geometry-legitimate 1856 | early resolved 551 | early ambiguous 13 | unresolved 1292 | feature-complete unresolved 1234 | primary N=1059 (BREAK 439, REJECT 620) | 238 weeks | SP3 legal rate 1.0 | all three features retained`
+`BASELINE = END_POSITION_X +13.36 pp per +1 SD (95% +9.38..+17.51, N=1059, 2000/2000) | OTHER_VENUE_MEDIAN_MOVE +9.08 pp (95% +5.17..+12.84) as a control, not in FDR`
+`SP1 = SPOT_ORIENTED_MOVE_15M +32.97 pp (95% -12.36..+76.94, q=0.228, N=1059) | pre-outcome correlation with CV1 0.998 | same-model CV1 -23.66 pp, interval through 0 | class NONE`
+`SP2 = SPOT_EXCESS_VS_PERP_COMPLEX +2.29 pp (95% -0.30..+5.12, q=0.228) | under 3 pp | class NONE`
+`SP3 = RELATIVE_SPOT_TAKER_PRESSURE_15M -1.29 pp (95% -4.04..+1.57, q=0.385) | class NONE`
+`SPECIFICITY = NOT_APPLIED | no full-sample candidate | no matched delta`
+`ROUTING = NO_INCREMENTAL_SPOT_PERP_REACTION | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical adjusted association was not found for the spot layer | not a current probability | not spot leadership | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = lead/lag; time-to-resolution; volatility transition; confirmation; 30m reaction; liquidation map; prospective tracking; 2025/2026 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1 — executed once; discovery; one level-interaction candidate; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1 (atlas LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design f21be5a6 before any late BREAK rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; CV1 selected as a historical interaction candidate`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> #359 bcc0a9e8 -> #360 181debc4 -> #361 44726ded -> #362 b005eaac -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = same-class perpetual reaction after a structural first touch | not MARKET-06 (Binance perp versus OKX spot, daily absolute dislocation, 24h adverse path) | not CROSS_VENUE_REGION.venue_disagreement | not lead-lag | END_POSITION_X is in every model`
+`DATA = TIER A | Binance CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | Bybit linear canonical f7ef739f | OKX BTC-USDT-SWAP canonical b435fdec | events [2020-04-01T00:05Z, 2025-01-01) | 2025/2026 NOT read | OKX spot NOT used`
+`CLOCK = T = open of Binance touch bar j | D = T+15m | return from the close at T-5m to the close at D | early passage j+1..j+2 excluded | late passage j+3..j+48 | alignment tolerance 0`
+`COHORT = touch_number = 1 | geometry-legitimate 1856 | early resolved 551 | early ambiguous 13 | unresolved 1292 | feature-complete unresolved 1235 | primary N=1060 (BREAK 439, REJECT 621) | pseudo primary N=612 | 238 weeks`
+`BASELINE = END_POSITION_X +20.30 pp per +1 SD (95% +17.41..+23.17, N=1060, 2000/2000 draws)`
+`CV1 = OTHER_VENUE_MEDIAN_MOVE +8.87 pp per +1 SD (95% +5.02..+12.67, q=1.70e-5, N=1060, 2000/2000) | conjunction passed | 2020 point negative with an interval through 0; frozen 4/5 year rule passed | LOYO all positive | DAY and WEEK same sign | both side points positive | support interval withheld`
+`CV2 / CV3 / CV4 = +0.67 / -1.57 / +1.32 pp | intervals include 0 | class NONE`
+`SPECIFICITY = stacked delta on CV1 -4.24 pp (95% -7.96..-0.05, N=1223, 1965/2000) | frozen rule names LEVEL_CROSS_VENUE_INTERACTION_CANDIDATE | stacked real slope about 0 does not reproduce the primary +8.87 pp | pseudo-only -1.61 pp, interval includes 0 | not refit`
+`ROUTING = LEVEL_CROSS_VENUE_STRUCTURE_PRESENT | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical adjusted association, not a current probability | not venue leadership and not causal confirmation | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = spot versus perp; lead-lag; time-to-resolution; liquidation map; 30m reaction; confirmation; prospective tracking; 2025/2026 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1 — executed once; discovery; no incremental path memory; no successor; not integrated — 2026-10-08
+
+`UNIT = LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1 (atlas LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design bae1060c before any late BREAK rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> #359 bcc0a9e8 -> #360 181debc4 -> #361 44726ded -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = path memory inside a fixed endpoint side | not H02, not B2-02, not V2 CONFIRMED_BREAKOUT, not a rescore of the #361 endpoint slope | END_POSITION_X is a nuisance`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | price OHLC only | events [2020-02-01, 2025-01-01) | 2025/2026 NOT read`
+`CLOCK = T = open of touch bar j | D = T+15m | bits on closes j, j+1, j+2 | early passage j+1..j+2 excluded | late passage j+3..j+48`
+`COHORT = touch_number = 1 | geometry-legitimate 1919 | early resolved 574 | early ambiguous 13 | unresolved 1332 | NEVER_OUTSIDE 983 / REENTERED 115 / LATE_OR_RECROSS_OUTSIDE 80 / PERSISTENT_OUTSIDE 154 | 258 weeks`
+`C1 = REENTRY_MEMORY estimated | overlap passed | standardized endpoint difference +1.27 | adjusted +6.74 pp (95% -4.22..+17.62, q=0.2218, N=952, arms 101 and 851, 253 weeks, 2000/2000 draws) | interval includes 0 | years, LOYO, DAY vs WEEK, and the two sides do not share one sign`
+`C2 = PERSISTENCE_MEMORY not estimated | LATE_OR_RECROSS_OUTSIDE unresolved N=80 < 100 | overlap would have passed | no coefficient`
+`SPECIFICITY NOT APPLIED = real conjunction failed | pseudo C1 +9.52 pp (95% -9.68..+28.77, N=300, treated 26) | interval includes 0 | not a generic candidate`
+`ROUTING = NO_INCREMENTAL_PATH_MEMORY_BEYOND_ENDPOINT | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical adjusted difference, not a current probability | not false-break confirmed and not acceptance confirmed | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = 30m window; wick rule; false-break refinement; time-to-resolution; spot; cross-venue; 2025/2026; confirmation | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1 — executed once; discovery; unstable; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1 (atlas LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design f3101015 before any late resolution rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> #359 bcc0a9e8 -> #360 181debc4 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = not H02, not B2-02, not V2 CONFIRMED_BREAKOUT | population is the structural first touch | decision time is T+15m | predictors are post-touch only | sample is still unresolved at D | outcome is the remainder of the original 4h | no acceptance flag`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | OI snapshot 5a9d036b, oi.jsonl c4744a93, sum_open_interest only | funding not opened | events [2020-09-01T00:05Z, 2025-01-01) | 2025/2026 NOT read`
+`CLOCK = T = open of touch bar j | D = T+15m | reaction bars j..j+2 | early passage j+1..j+2 | late passage j+3..j+48 | touch bar is not a resolution`
+`COHORT = touch_number = 1 | geometry-legitimate 1709 | early BREAK 260 / early REJECT 238 / early ambiguous 9 | unresolved 1202 | late BREAK 428 / REJECT 606 / NEITHER 167 / ambiguous 1 | 227 weeks`
+`RETAINED = END_POSITION_X, RELATIVE_ACTIVITY_15M, ORIENTED_TAKER_REACTION_15M, TAKER_CHANGE_VS_PRE, OI_REACTION_15M | DROPPED = none | max |rho| 0.828`
+`ESTIMAND = adjusted change in historical probability per +1 SD | O1 LATE_RESOLVE_BY_4H N=1201 | O2 LATE_BREAK_GIVEN_RESOLVED N=1034 | 10 primary cells | BH q=0.10 | scale 3 pp | seed 20261017, 2000 draws | cluster = product week`
+`PRIMARY = END_POSITION_X -> LATE_BREAK +20.31 pp (95% +17.20..+23.46, q=0.0000, N=1034) | years, LOYO and both sides keep the sign | conjunction fails only the family clause because omit_DAY returned no coefficient | not promoted | other nine cells fail q or the 3 pp scale or the interval | bars not loosened`
+`SPECIFICITY NOT PROMOTED = conjunction did not pass | pseudo and stacked intervals withheld because valid draws were below 90% | pseudo end-position -> late BREAK point +30.13 pp is descriptive | not a generic candidate`
+`ROUTING = STRUCTURE_PRESENT_BUT_UNSTABLE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | two tertile U-shapes recorded as ideas and not fit`
+`CLAIM = L2 | historical association, not a current probability | end position is not acceptance or a failed break | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = acceptance path; 30m window; OI×taker; liquidation; spot; cross-venue; 2025/2026; confirmation; ML | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_LIQUIDITY_STATE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_LIQUIDITY_STATE_DISCOVERY_V1 (atlas LEVEL-LIQUIDITY-STATE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design f7430ca2 before any feature-conditioned resolution rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; none selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> #359 bcc0a9e8 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = not DH3-L1/L2/L3 and not SEED-0001 ±5% support | population is the structural first touch | orientation is ahead/behind the approach | outcome is resolution type | continuous ±1% local book state | pseudo price is not moved by the book`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | book DH3_BINANCE_UM_BOOKDEPTH_V0 object-list c53fc179d922f83b572703d52e80f847fb54531961ac776929f2e3e95feeddce | BTC 728 days, 3 missing | 2068585 snapshots | bands ±1..±5 | events [2023-01-01T02:00Z, 2025-01-01) | 2025/2026 NOT read`
+`OBSERVABLE = LOCAL_BOOK_STATE_AROUND_LEVEL_TOUCH | narrowest native band ±1% notional | staleness 90s | comparison T-60m | no price ladder | no wall score`
+`COHORT = touch_number = 1 | geometry-legitimate 790 | book-legal 767 | ambiguous 5 excluded from rates | BREAK 290 / REJECT 425 / NEITHER 70 / RESOLVE 91.1% on 785 labeled touches | 106 weeks | pairs 397, feature-complete pairs 369`
+`RETAINED = TOTAL_LOCAL_DEPTH, ORIENTED_DEPTH_IMBALANCE, AHEAD_DEPTH_CHANGE_60M, BEHIND_DEPTH_CHANGE_60M, TOTAL_DEPTH_CHANGE_60M | DROPPED = none | max |rho| 0.780`
+`ESTIMAND = adjusted change in historical probability per +1 SD | O1 RESOLVE_4H N=762 | O2 BREAK_GIVEN_RESOLVED N=695 | 10 primary cells | BH q=0.10 | scale 3 pp | seed 20261016, 2000 draws | cluster = product week`
+`PRIMARY = no conjunction pass | TOTAL_LOCAL_DEPTH -> RESOLVE -2.61 pp (95% -4.93..-0.50, q=0.203) | TOTAL_LOCAL_DEPTH -> BREAK +4.03 pp (95% -0.30..+8.05, q=0.203) | ORIENTED_DEPTH_IMBALANCE -> BREAK +3.93 pp (95% -0.42..+7.83, q=0.203, 2024H1 sign flip) | q and the interval or the 3 pp scale fail | bars not loosened`
+`SPECIFICITY NOT PROMOTED = no stacked interval excludes 0 | pseudo-only oriented imbalance -> RESOLVE +5.09 pp (95% +1.64..+8.65) is descriptive | real slope -0.06 pp | not a generic candidate`
+`ROUTING = NO_INCREMENTAL_LEVEL_LIQUIDITY_STRUCTURE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | three tertile U-shapes recorded as ideas and not fit`
+`CLAIM = L2 | historical association, not a current probability | positive imbalance means more visible depth ahead than behind | not "the level is strong" | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = combined book state; OI×book; taker×book; liquidation map; cross-venue; spot; 2025/2026; confirmation; a level-strength score | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_LIQUIDITY_STATE_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_LIQUIDITY_STATE_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1 (atlas LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 59361e92 before any state-conditioned resolution rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected state would be DISCOVERY_ONLY and none was selected`
+`DEPENDENCIES = #352 dfc9e0f0 -> #353 c3d39bff -> #354 8effe9ac -> #355 aa85e5b4 -> #356 f8623d32 -> #357 c1cd4e01 -> #358 e6e5f307 -> this unit | source main 1a2e425 | parent results not rewritten`
+`NOVELTY = not H05 and not B2-05 | population is the structural first touch | OI is required | no IMPACT_INTERACTION | price progress oriented by approach side | outcome is resolution type | states fit before labels`
+`DATA = CORE zip-list 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | OI snapshot 5a9d036b, oi.jsonl c4744a93, sum_open_interest only | funding not opened | events [2020-09-01T01:05Z, 2025-01-01)`
+`PARTITION = robust-z KMeans | K grid 3/4/5/6 | selected K=3 | silhouette 0.270 | median ARI 0.892 | training N=1688 | STATE_1/2/3 = 190/1178/320 | pseudo assigned to frozen centroids, 1074 rows`
+`ESTIMAND = adjusted P(Y|state) - P(Y|other states) | O1 RESOLVE_4H | O2 BREAK_GIVEN_RESOLVED | 6 primary cells | BH q=0.10 | scale 3 pp | seed 20261015, 2000 draws | cluster = product week`
+`PRIMARY = no conjunction pass | STATE_1 -> RESOLVE +3.33 pp (95% -1.18..+7.53, q=0.354, n_state=186) | STATE_3 -> BREAK|RESOLVED +5.37 pp (95% -1.08..+11.93, q=0.354, n_state=292) | both intervals include 0`
+`SPECIFICITY NOT PROMOTED = stacked intervals excluding 0 on STATE_1 -> BREAK -17.6 pp, STATE_2 -> RESOLVE +7.0 pp, STATE_3 -> RESOLVE -7.2 pp | real conjunction failed, so none is LEVEL_STATE_CANDIDATE or GENERIC_MARKET_STATE_CANDIDATE`
+`ROUTING = NO_INCREMENTAL_JOINT_STATE_STRUCTURE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE`
+`CLAIM = L2 | historical association, not a current probability | centroid words are robust-z descriptions | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged`
+`SUCCESSORS NOT STARTED = confirmation; state split; ratio or product; funding; liquidations; order book; 2025/2026; a level score | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_POSITIONING_FLOW_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_POSITIONING_FLOW_DISCOVERY_V1 (atlas LEVEL-POSITIONING-FLOW-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 2491bbe9 before any feature-conditioned outcome rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected cell would be DISCOVERY_ONLY and none was selected`
+`DEPENDENCIES = #352 LEVEL_TOUCH_DEGRADATION_V1 dfc9e0f0 -> #353 LEVEL_REJECTION_MEMORY_V1 c3d39bff -> #354 methodology 8effe9ac -> #355 LEVEL_APPROACH_STATE_DISCOVERY_V1 aa85e5b4 -> #356 LEVEL_STRUCTURE_DISCOVERY_V1 f8623d32 -> #357 LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1 c1cd4e01 -> this unit | source main 1a2e425 | parent results not rewritten`
+`DATA = CORE_BTC_BINANCE_V0 zip-list SHA256 936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b | OI git snapshot 5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33, oi.jsonl SHA256 c4744a9369844f453476589111c2436372e729e7afdbe5fb34b6e9938a905b94, 455273 rows, sum_open_interest only | funding not opened | events [2020-09-01T01:05Z, 2025-01-01) | 2025/2026 and E1 NOT used | further exposure, not a confirmation`
+`COHORT = touch_number = 1 of PDH/PDL/PWH/PWL/PMH/PML | geometry-legitimate 1708 | ambiguous 10 excluded from rates | BREAK 40.5% / REJECT 49.6% / NEITHER 9.8% / RESOLVE 90.2% on 1698 labeled touches | 227 weeks`
+`ESTIMAND = adjusted change in historical probability per +1 SD | O1 RESOLVE_4H | O2 BREAK_GIVEN_RESOLVED | LPM | nuisance = family, side, year, volatility tercile, prior 60m oriented displacement, relative quote volume, UTC time block | specificity = stacked β_real − β_pseudo | cluster = product week | seed 20261013, 2000 draws`
+`RETAINED = OI_CHANGE_60M, OI_RECENT_ACCELERATION, ORIENTED_TAKER_IMBALANCE_60M, TAKER_RECENT_SHIFT | DROPPED BEFORE OUTCOMES = none (max |rho| 0.267) | SEARCH = 8 primary cells, FDR q=0.10 | practical scale 3 pp | interactions = 0`
+`PRIMARY = no cell passes the conjunction | nearest: OI_RECENT_ACCELERATION -> BREAK_GIVEN_RESOLVED +2.90 pp (95% +0.43..+5.50), p=0.027, q=0.201, N=1513 | same sign in 5/5 epochs and all leave-one-year-out refits | fails q=0.10 and |effect| < 3 pp`
+`SPECIFICITY NOT PROMOTED = stacked intervals excluding 0 on oriented taker -> RESOLVE −4.35 pp, acceleration -> BREAK +4.21 pp, oriented taker -> BREAK +5.32 pp | the real-cohort conjunction failed, so none is LEVEL_INTERACTION_CANDIDATE or GENERIC_STATE_CANDIDATE`
+`ROUTING = NO_INCREMENTAL_POSITION_FLOW_STRUCTURE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | five tertile U-shapes recorded as ideas and not fit`
+`CLAIM = L2 | historical association in this cohort, not a current probability | OI up means more outstanding open interest | oriented flow means aggressive executed volume toward the level | L3/L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no`
+`SUCCESSORS NOT STARTED = OI×taker interaction; absorption; funding; liquidations; order book; confirmation; 2025/2026; a level score | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_POSITIONING_FLOW_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1 — executed once; L2; replicated historical resolution gap; not integrated — 2026-10-07
+
+`UNIT = LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1 (atlas LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1; family LEVEL_BEHAVIOR_V1; MODE = CONFIRMATION; design a4f3a0d6 before any BitMEX barrier rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 replicated historical mechanism`
+`DEPENDENCIES = #352 LEVEL_TOUCH_DEGRADATION_V1 dfc9e0f0 -> #353 LEVEL_REJECTION_MEMORY_V1 c3d39bff -> #354 methodology 8effe9ac -> #355 LEVEL_APPROACH_STATE_DISCOVERY_V1 aa85e5b4 -> #356 LEVEL_STRUCTURE_DISCOVERY_V1 f8623d32 -> this unit | source main 1a2e425 | parent results not rewritten`
+`DATA = DH1_BITMEX_XBTUSD_TRADES_5M_V0, events [2017-09-01, 2020-01-01), warm-up from 2017-08-01 | canonical SHA256 df3c32922e95bdca80fcf0fa695ec2c8f29455cf8c1ab930277e92c994b4995f | exposure before the run: TIME_DISJOINT / OUTCOME_UNREAD_FOR_THIS_CLAIM / FEASIBILITY_EXPOSED | Binance 2020-2024 not reread | 2025/2026, live tape, E1 holdout NOT used`
+`COHORT = touch_number = 1 of PDH/PDL/PWH/PWL/PMH/PML, matched to the #352 half-rotation pseudo first touch with a complete 4h window | availability-matched 558 | analysis 548 after 10 ambiguous pairs | 119 weeks`
+`ESTIMAND = Δ_resolution = P(RESOLVED_WITHIN_4H | real first touch) − P(RESOLVED_WITHIN_4H | matched pseudo first touch) | RESOLVED = BREAK or REJECT | NEITHER = unresolved | estimator = paired mean | cluster = product week of the real touch`
+`PRIMARY = +8.0 pp (95% +4.4..+11.8) | real 91.1% | pseudo 83.0% | discordant 80 vs 36 | adjusted coefficient +7.9 pp (95% +4.0..+11.7) | seed 20261012, 2000 draws`
+`STABILITY = epoch points +5.0 / +5.2 / +13.1 pp, all positive, N=100/250/198 | leave-one-epoch-out +8.7 / +10.4 / +5.1 pp, all positive | 2017H2 and 2018 intervals include 0 | DAY/WEEK/MONTH +8.5 / +5.1 / 0.0 pp (N=480/59/9)`
+`DECOMPOSITION = BREAK +10.0 pp (95% +4.6..+15.4) | REJECT −2.0 pp (95% −7.1..+3.0) | NEITHER −8.0 pp (95% −12.0..−4.1) | decomposition does not decide the confirmation`
+`EVIDENCE = REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE | all five predeclared clauses hold | this is not the word PASS`
+`CLAIM = L2 | a historical resolution contrast, not a current probability and not a direction | L3 needs prospective calibration of this claim class | L4 not permitted`
+`PRODUCT_INTEGRATION_CANDIDATE = YES | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no | integration needs a separate owner go`
+`SUCCESSORS NOT STARTED = none | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1_DESIGN.md`.
+
+## LEVEL_STRUCTURE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_STRUCTURE_DISCOVERY_V1 (atlas LEVEL-STRUCTURE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 1ac77d2d before any feature-conditioned outcome rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected cell would be DISCOVERY_ONLY and none was selected`
+`DEPENDENCIES = #352 LEVEL_TOUCH_DEGRADATION_V1 dfc9e0f0 -> #353 LEVEL_REJECTION_MEMORY_V1 c3d39bff -> #354 methodology 8effe9ac -> #355 LEVEL_APPROACH_STATE_DISCOVERY_V1 aa85e5b4 -> this unit | source main 1a2e425 | parent results not rewritten`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 OHLC and source-period quote volume (events from 2020-02-01) | taker flow, OI, funding, liquidations, order book, 2025/2026, live tape, E1 holdout NOT used | PRICE_STRUCTURE.levels already consumed; this run is further exposure, not a confirmation`
+`COHORT = #352 feature-eligible structural touches, matched to a half-rotation pseudo touch of the same source episode | not the #355 approach-eligible subset | features known at level birth or at the open of the touch`
+`ESTIMAND = Δ = β_real − β_pseudo for BREAK_FIRST, REJECT_FIRST and NEITHER | stacked LPM | continuous features per +1 SD on the frozen real scale; confluence is the binary multi-minus-singleton contrast | nuisance = family, touch ordinal, side, volatility tercile, year, and age except when age is the feature`
+`RETAINED = age, confluence, zone_span, formation_range, formation_volume, close_off_extreme, extreme_timing, extreme_density | DROPPED BEFORE OUTCOMES = diversity (binary coding, rho = 1 with confluence) | SEARCH = 576 cells | FDR family = 24 primary increments, q = 0.10 | DAY cap from #355 NOT applied`
+`PRIMARY DIFFERENTIAL = age->NEITHER +4.2 pp (95% +2.4..+6.1, q=0.000) | β_real -1.3 pp (95% -2.6..+0.1) | β_pseudo -5.5 pp (95% -6.9..-4.1) | N_real=2640, N_pseudo=2634, 1227 clusters | real slope negative in 3 of 5 years`
+`WHY NONE IS A CANDIDATE = the successor rule requires the real-effect sign in at least 4 eligible years | the other 23 primary increments have q above 0.10 | confluence increments are about 0 pp with intervals about ±8 pp on 284 multi-member real touches`
+`ROUTING = STRUCTURE_PRESENT_BUT_UNSTABLE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | interactions estimated = 0 | approach-path sensitivity not run`
+`CLAIM = L2 quantitative historical increments in the matched structural-touch cohort | L3/L4 not permitted | wording is a cohort frequency and a real-minus-rotated increment, not a current probability and not "an old level is weaker" or "confluence is stronger"`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no`
+`SUCCESSORS NOT STARTED = confirmation; confluence rescue; formation thresholds; OI, taker, liquidations, funding, book; a level score; interactions | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_STRUCTURE_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_STRUCTURE_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_APPROACH_STATE_DISCOVERY_V1 — executed once; discovery; no successor; not integrated — 2026-10-07
+
+`UNIT = LEVEL_APPROACH_STATE_DISCOVERY_V1 (atlas LEVEL-APPROACH-STATE-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 778e23dd before any approach-conditioned outcome rate; one-shot result 3cd68af0) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; a selected cell would be DISCOVERY_ONLY and none was selected`
+`DEPENDENCIES = #352 LEVEL_TOUCH_DEGRADATION_V1 dfc9e0f0 -> #353 LEVEL_REJECTION_MEMORY_V1 c3d39bff -> #354 methodology 8effe9ac -> this unit | source main 1a2e425 | parent results not rewritten`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 OHLC and quote volume (events from 2020-02-01) | taker flow, OI, funding, liquidations, order book, 2025/2026, live tape, E1 holdout NOT used | PRICE_STRUCTURE.levels already consumed; this run is further exposure, not a confirmation`
+`COHORT = independent touches of ex-ante structural zones with an observed entry into the outer band 1.0x primary X and at least four in-band bars ending before the touch | features use only bars before the touch`
+`ESTIMAND = adjusted change in the historical frequency of BREAK_FIRST, REJECT_FIRST and NEITHER per +1 SD of each retained approach feature | LPM with touch ordinal, family, side, volatility tercile, year and log approach length | baseline = the same approach cohort | falsification = half-rotation pseudo-level on the real scales`
+`RETAINED = velocity, efficiency, persistence, acceleration, range_state, rel_volume, dwell | DROPPED BEFORE OUTCOMES = pullback (algebraic complement of efficiency, rho = -1) | SEARCH = 441 cells | FDR family = 21 primary slopes, q = 0.10`
+`PRIMARY NOTABLE = velocity->BREAK -3.9 pp (95% -7.3..-0.5, q=0.122) | efficiency->NEITHER +4.4 pp (95% +2.2..+6.8, q=0.002) | dwell->REJECT -3.0 pp (95% -5.3..-0.7, q=0.059) | dwell->NEITHER +4.7 pp (95% +2.6..+6.7, q=0.000) | N=1973, 1210 clusters`
+`WHY NONE IS A CANDIDATE = DAY share 72.9% above the frozen 70% cap | pseudo-level coefficients on those four cells are +4.0 / +3.9 / -4.2 / +4.1 pp and none is below half the structural magnitude with an interval that saves the clause | dropping log duration flips velocity->BREAK to +1.2 pp and efficiency->NEITHER to -1.8 pp | acceleration stays within about 1 pp`
+`ROUTING = STRUCTURE_PRESENT_BUT_UNSTABLE | ATLAS = CLOSED_ON_SURFACE | SUCCESSOR_CANDIDATE = NONE | interactions estimated = 0`
+`CLAIM = L2 quantitative historical associations in the approach cohort | L3/L4 not permitted | wording is a cohort frequency, not a current probability and not "a fast approach breaks the level"`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no`
+`SUCCESSORS NOT STARTED = confirmation of any approach feature; LEVEL_APPROACH_FLOW_INCREMENTAL_V1 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_APPROACH_STATE_DISCOVERY_V1_DESIGN.md`.
+
+## LEVEL_REJECTION_MEMORY_V1 — executed once; L2; near zero; not integrated — 2026-10-07
+
+`UNIT = LEVEL_REJECTION_MEMORY_V1 (atlas LEVEL-REJECTION-MEMORY-V1; family LEVEL_BEHAVIOR_V1; successor of LEVEL_TOUCH_DEGRADATION_V1 / PR #352 / dfc9e0f0; design c8a1d4d2 before any next-touch rate) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM_CEILING = L2`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 price only (events from 2020-02-01) | 2025/2026, live tape, funding, liquidations, OI, taker flow, order book, E1 holdout NOT used | PRICE_STRUCTURE.levels already consumed; this run is further exposure, not a confirmation`
+`COHORT = consecutive independent touches of the same structural zone where the previous touch was REJECT_FIRST and a later touch exists | predictors known before the next touch`
+`ESTIMAND = Δ P(4h BREAK_FIRST) per +1 SD faster prior rejection | speed = z(−log bars to the frozen reject barrier) | LPM adjusted for next-touch ordinal, family, side, volatility tercile, year and log wait after the rejection | baseline = the same structural next-touch population | falsification = deterministic half-rotation pseudo-level on the real scales`
+`PRIMARY = -0.1 pp (95% -2.9..+2.6), N=1151, 283 clusters | interval includes 0 | |b| below the 3 pp reading scale | near-zero reading | REJECT_FIRST +1.0 pp | NEITHER -0.8 pp | tertile BREAK 39.2% / 39.7% / 39.4% | without touch ordinal -0.2 pp | without log-gap +0.2 pp | year signs flip`
+`CONTROL = pseudo-level primary +1.2 pp (95% -1.9..+4.3), N=1055, 245 clusters | control year cells are recorded and not mined into a new claim`
+`CLAIM = L2 quantitative historical association in the retested-rejection cohort | L3/L4 not permitted | wording is a cohort frequency, not a current probability and not "a strong rejection makes a strong level"`
+`PRODUCT_INTEGRATION_CANDIDATE = NO | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no`
+`SUCCESSORS NOT STARTED = LEVEL_APPROACH_STATE_V1, LEVEL_CONFLUENCE_V1 | NEXT_UNIT = none started | parent LEVEL_TOUCH_DEGRADATION_V1 is not rewritten`
+
+Result: `docs/research/LEVEL_REJECTION_MEMORY_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_REJECTION_MEMORY_V1_DESIGN.md`.
+
+## LEVEL_TOUCH_DEGRADATION_V1 — executed once; L2; not integrated — 2026-10-07
+
+`UNIT = LEVEL_TOUCH_DEGRADATION_V1 (atlas LEVEL-TOUCH-DEGRADATION-V1; family LEVEL_BEHAVIOR_V1; owner go in the task of 2026-10-07; design 65015c2 before any break rate; evaluator guard d79801f1 before the one-shot) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM_CEILING = L2`
+`DATA = CORE_BTC_BINANCE_V0 2020-2024 price only (events from 2020-02-01) | 2025/2026, live tape, funding, liquidations, OI, taker flow, order book, E1 holdout NOT used | surface already consumed for PRICE_STRUCTURE.levels (DH1-L2); this run is not a confirmation`
+`ESTIMAND = standardized difference in 4h BREAK_FIRST between independent touch 2 and touch 3+ versus touch 1, family x side x pre-touch sigma tercile | baseline = touch 1 in the same structural population | falsification = deterministic half-rotation pseudo-level`
+`PRIMARY = BREAK_FIRST 40.1% / 37.6% / 33.6% (N 1905 / 1101 / 1185) | standardized Δ2 -2.3 pp (95% -6.0..+1.5) | standardized Δ3 -6.6 pp (95% -10.7..-2.2) | REJECT_FIRST ~50% flat | NEITHER 9.6% -> 17.1% | 2023 crude Δ3 ~0 | support crude Δ3 -1.9 pp vs resistance -10.9 pp`
+`CONTROL = pseudo-level standardized Δ2 +7.3 pp (95% +3.8..+10.7), Δ3 +4.7 pp (95% -0.1..+9.8) | opposite sign, not the same pattern`
+`CLAIM = L2 quantitative historical frequency for both primary contrasts | L3/L4 not permitted | wording is cohort frequency, not a current probability and not "the level weakens"`
+`PRODUCT_INTEGRATION_CANDIDATE = YES under the predeclared conjunction | PRODUCT_CHANGE = none | findings registry unchanged | /btc /levels /check /risk unchanged | deploy = no`
+`SUCCESSORS NOT STARTED = LEVEL_REJECTION_MEMORY_V1, LEVEL_APPROACH_STATE_V1, LEVEL_CONFLUENCE_V1 | NEXT_UNIT = none started`
+
+Result: `docs/research/LEVEL_TOUCH_DEGRADATION_V1_RESULT.md` (+ `.json`). Design: `docs/research/LEVEL_TOUCH_DEGRADATION_V1_DESIGN.md`.
+
 ## Turn-of-month baseline unit V1 (G01-A1/A2 successor) — executed once; NO_CHANGE — 2026-10-06
 
 `UNIT = TURN_OF_MONTH_BASELINE_UNIT_V1 (atlas TOM-BASELINE-V1; owner go 2026-10-06; design 54421a0; evaluator 1067bcb; output c6d60d8) | TRACKS = PRODUCT_EVIDENCE (Part B, decides) + STRUCTURE (Part A)`

@@ -397,7 +397,7 @@
    "frontier_value": 5,
    "generator_state": "PRIOR_WORK",
    "native": true,
-   "prior_signature_count": 9,
+   "prior_signature_count": 25,
    "prior_signatures": [
     {
      "function": "CONFLUENT_LEVEL_HOLD_4H",
@@ -440,6 +440,86 @@
      "mechanism": "Response after first touches of untouched round-number price levels, compared with placebo grids"
     },
     {
+     "function": "LEVEL_ACCEPTANCE_PATH_DISCOVERY_V1",
+     "id": "LEVEL-ACCEPTANCE-PATH-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. Given a comparable close location 15 minutes after an independently (omitted) structural first touch, does the path of closes around the structural zone add historical information about later BREAK versus REJECT. END_POSITION_X is a mandatory nuisance. Not a failed-breakout label and not a (omitted) qualification."
+    },
+    {
+     "function": "LEVEL_APPROACH_STATE_DISCOVERY_V1",
+     "id": "LEVEL-APPROACH-STATE-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. Which point-in-time characteristics of how price approaches an already-known structural BTC level carry incremental historical information about the subsequent 4h touch ending as BREAK_FIRST, REJECT_FIRST or NEITHER. Not a test of a prechosen trader story. Successor in the level family after LEVEL-TOUCH-DEGRADATION-V1 and LEVEL-REJECTION-MEMORY-V1, not a rescore of either."
+    },
+    {
+     "function": "LEVEL_BREAK_REJECT_SEQUENCE_DISCOVERY_V1",
+     "id": "LEVEL-BREAK-REJECT-SEQUENCE-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. After the first one-sided #352 barrier of a structural first touch, is the opposite barrier reached inside the same 4h event more or less often than after the matched pseudo-price touch. The object is sequence semantics, not a predictor."
+    },
+    {
+     "function": "LEVEL_FIRST_TOUCH_RESOLUTION_CONFIRMATION_V1",
+     "id": "LEVEL-FIRST-TOUCH-RESOLUTION-CONFIRMATION-V1",
+     "mechanism": "MODE=CONFIRMATION. Whether the first touch of a pre-known structural BTC level resolves into BREAK or REJECT within 4h more often than the matched first touch of a deterministic half-rotation pseudo-price. Resolution is not direction."
+    },
+    {
+     "function": "LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1",
+     "id": "LEVEL-FLOW-RESPONSE-STATE-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. Which outcome-blind joint configurations of open interest, aggressive flow and approach-oriented price progress, immediately before the first touch of a pre-known structural BTC level, differ in historical 4h resolution and in BREAK versus REJECT among resolved touches. Not a test of absorption, not a product of flow and return, and not a rescue of the univariate slopes in LEVEL-POSITIONING-FLOW-DISCOVERY-V1."
+    },
+    {
+     "function": "LEVEL_LIQUIDITY_STATE_DISCOVERY_V1",
+     "id": "LEVEL-LIQUIDITY-STATE-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. Which point-in-time local order-book states immediately before the first touch of a pre-known structural BTC level, if any, differ in historical 4h resolution and in BREAK versus REJECT among resolved touches. The observable is cumulative notional within ±1% of mid, oriented toward and behind the approach. Not orders resting at the structural price, and not a reopen of DH3-L1/L2/L3 or of SEED-0001 ±5% support."
+    },
+    {
+     "function": "LEVEL_POSITIONING_FLOW_DISCOVERY_V1",
+     "id": "LEVEL-POSITIONING-FLOW-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. Which point-in-time open-interest and aggressive-flow states immediately before the first touch of a pre-known structural BTC level, if any, carry extra historical information about whether that touch resolves within 4h and, if it resolves, whether the resolution is BREAK or REJECT. A second question is whether any such association is specific to the structural price or also appears at the matched pseudo-price. Not a test that open interest rising means a break, and not a rescue of H05, MARKET-01/02, DH1-X2 or funding crowding."
+    },
+    {
+     "function": "LEVEL_POST_TOUCH_REACTION_DISCOVERY_V1",
+     "id": "LEVEL-POST-TOUCH-REACTION-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. After a structural first touch, which point-in-time reactions over the next 15 minutes, if any, carry historical information about barrier passage in the remainder of the original 4h. The predictive sample excludes events that already reached a barrier before the new decision time. Not a failed-breakout detector and not a (omitted) qualification."
+    },
+    {
+     "function": "LEVEL_RACE_FORECAST_V1",
+     "id": "LEVEL-RACE-FORECAST-V1",
+     "mechanism": "MODE=DISCOVERY then one held-out read (FORECAST_LAYER_DECISION_V1). Three-outcome race (barrier beyond the level first / back barrier first / neither) inside the original 4h window of a structural first touch, at T0 and T15, against driftless first-passage geometry B0. This entry records the HIST table read only."
+    },
+    {
+     "function": "LEVEL_REJECTION_MEMORY_V1",
+     "id": "LEVEL-REJECTION-MEMORY-V1",
+     "mechanism": "Among ex-ante structural BTC levels whose previous independent touch was REJECT_FIRST and that were later retested, the speed of that rejection (bars to the frozen reject barrier) is tested as a predictor of the next independent touch. This is a successor of LEVEL-TOUCH-DEGRADATION-V1, not a rescore of it, and not a test that a strong rejection makes a level strong."
+    },
+    {
+     "function": "LEVEL_STRUCTURE_DISCOVERY_V1",
+     "id": "LEVEL-STRUCTURE-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. Which point-in-time properties of an already-known structural BTC level carry level-specific historical information about the subsequent 4h touch ending as BREAK_FIRST, REJECT_FIRST or NEITHER. Level-specific means the association at the structural price differs from the same association at a rotated price that keeps the structural metadata. Not a test that confluence is stronger, that an old level is weaker, or that a large close-off is a stronger extreme."
+    },
+    {
+     "function": "LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1",
+     "id": "LEVEL-TIME-TO-RESOLUTION-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. Does a real structural first touch spend a different amount of (omitted) time inside 4h than its matched pseudo-price touch. The object is the event clock, not the direction of the barrier."
+    },
+    {
+     "function": "LEVEL_TOUCH_DEGRADATION_V1",
+     "id": "LEVEL-TOUCH-DEGRADATION-V1",
+     "mechanism": "Among ex-ante structural BTC levels (previous day/week/month high and low), the historical frequency of a 4h barrier first-passage break differs by the ordinal of an independent touch. Later touches exist only for levels that were retested. This is not a rescore of DH1-L2 or DH3-V3."
+    },
+    {
+     "function": "(omitted)",
+     "id": "LEVEL-VOLATILITY-TRANSITION-BITMEX-REPLICATION-V1",
+     "mechanism": "MODE=CONFIRMATION. SURFACE_EVIDENCE_CLASS=(omitted) Whether the exact frozen #368 structural first-touch 60m pre/post RV transition also appears on time-disjoint BitMEX (omitted) Not a pristine confirmation. The neighboring 4h high/low path was already read by #357."
+    },
+    {
+     "function": "LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1",
+     "id": "LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. Does realized volatility change across a structural first touch, relative to that same touch pre-window, differently from the exact matched pseudo-price touch. Not a claim that the range after a level is large."
+    },
+    {
+     "function": "LEVEL_VOLATILITY_TRANSITION_PROSPECTIVE_CONFIRMATION_V1",
+     "id": "LEVEL-VOLATILITY-TRANSITION-PROSPECTIVE-CONFIRMATION-V1",
+     "mechanism": "MODE=CONFIRMATION. ACCRUAL=PROSPECTIVE_ONLY. Whether the exact frozen #368 60m pre/post RV transition appears on structural first touches whose episodes open only after the design freeze. Not a new feature."
+    },
+    {
      "function": "Objective levels: first-touch reactions vs random levels at the same distance",
      "id": "PRODUCT-V2-LEVELS",
      "mechanism": "Market-wide visible levels (PDH/PDL, PWH/PWL, PMH/PML, round numbers, previous-day POC) may change what happens after the first touch relative to a random level."
@@ -450,10 +530,17 @@
   {
    "col": "PERP_FLOW",
    "data_readiness": 3,
-   "frontier_value": 7,
-   "generator_state": "OPEN",
+   "frontier_value": 5,
+   "generator_state": "PRIOR_WORK",
    "native": false,
-   "prior_signature_count": 0,
+   "prior_signature_count": 1,
+   "prior_signatures": [
+    {
+     "function": "LEVEL_ZONE_TRADED_ACTIVITY_DISCOVERY_V1",
+     "id": "LEVEL-ZONE-TRADED-ACTIVITY-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. After a structural first touch, once Binance end position and the other perpetual venues 15-minute move are in the model, does unsigned (omitted) notional inside the exact structural zone during the first 15 minutes add historical information about later BREAK versus REJECT. Not candle volume, not signed taker flow, and not displayed depth."
+    }
+   ],
    "row": "PRICE_STRUCTURE.levels"
   },
   {
@@ -486,19 +573,33 @@
   {
    "col": "SPOT",
    "data_readiness": 3,
-   "frontier_value": 7,
-   "generator_state": "OPEN",
+   "frontier_value": 5,
+   "generator_state": "PRIOR_WORK",
    "native": false,
-   "prior_signature_count": 0,
+   "prior_signature_count": 1,
+   "prior_signatures": [
+    {
+     "function": "LEVEL_SPOT_PERP_REACTION_DISCOVERY_V1",
+     "id": "LEVEL-SPOT-PERP-REACTION-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. After a structural first touch, once Binance location and the other perpetual venues 15-minute move are in the model, does Binance spot add historical information about later BREAK versus REJECT. Not spot leadership, not sign confirmation, and not a confirmation of the prior cross-venue slope."
+    }
+   ],
    "row": "PRICE_STRUCTURE.levels"
   },
   {
    "col": "CROSS_VENUE",
    "data_readiness": 3,
-   "frontier_value": 6,
-   "generator_state": "OPEN",
+   "frontier_value": 4,
+   "generator_state": "PRIOR_WORK",
    "native": false,
-   "prior_signature_count": 0,
+   "prior_signature_count": 1,
+   "prior_signatures": [
+    {
+     "function": "LEVEL_CROSS_VENUE_REACTION_DISCOVERY_V1",
+     "id": "LEVEL-CROSS-VENUE-REACTION-DISCOVERY-V1",
+     "mechanism": "MODE=DISCOVERY. Given where Binance already stands relative to a structural level 15 minutes after an independently (omitted) first touch, does the same-window price reaction of other linear perpetual venues add historical information about later BREAK versus REJECT. Not venue leadership, not arbitrage, and not spot confirmation."
+    }
+   ],
    "row": "PRICE_STRUCTURE.levels"
   },
   {
@@ -5970,16 +6071,6 @@
    "row": "DERIVATIVES.oi_buildup"
   },
   {
-   "col": "PERP_FLOW",
-   "frontier_value": 7,
-   "row": "PRICE_STRUCTURE.levels"
-  },
-  {
-   "col": "SPOT",
-   "frontier_value": 7,
-   "row": "PRICE_STRUCTURE.levels"
-  },
-  {
    "col": "LIQUIDATIONS",
    "frontier_value": 7,
    "row": "FLOW.absorption"
@@ -6256,11 +6347,6 @@
   },
   {
    "col": "CROSS_ASSET",
-   "frontier_value": 6,
-   "row": "PRICE_STRUCTURE.levels"
-  },
-  {
-   "col": "CROSS_VENUE",
    "frontier_value": 6,
    "row": "PRICE_STRUCTURE.levels"
   },
@@ -7659,7 +7745,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "e5b9cb9de8e4ef23bc394731500d703ed68391ec9e2b74214271d0bbe1111df7",
+ "SOURCES_DIGEST": "7e607e98057862c8946b61059ba5e480382c81a9c77eb0b808d84556c49ad14e",
  "SURFACES": [
   {
    "also_cols": [
@@ -7718,7 +7804,7 @@
    "also_cols": [],
    "availability": "ACQUIRABLE",
    "col": "PERP_FLOW",
-   "coverage": "official archive from 2020 (not materialized)",
+   "coverage": "official archive from 2020 (raw archive not materialized in git)",
    "id": "BINANCE_UM_TRADES_AGGTRADES_ARCHIVE",
    "unavailable_periods": [
     {

@@ -24,7 +24,7 @@ from beta.admin import collect_status, fingerprint, handle_admin, is_owner, owne
 from beta.config import BetaConfig, BetaSwitches, effective_d7_enabled
 from beta.delivery import DeliveryAmbiguous, DeliveryRejected, DeliveryThrottled
 from beta.formatter import PUSH_BTC_ACTION, assert_descriptive, format_history
-from beta.i18n import fmt_price, t
+from beta.i18n import fmt_price, render_tz, t, use_render_tz
 from beta.market_view import build_view, parse_catchup_hours, persist_view
 from common.logging_setup import setup_logging
 from notifications.telegram_client import TelegramSender, sanitize_telegram_error
@@ -159,6 +159,15 @@ def _help_buttons(lang: str) -> list:
 OTHER_ASSETS = "x:assets"
 
 
+def _parse_hhmm(text: str) -> Optional[str]:
+    """«7:30», «07:30», «0730» → «07:30»; None for anything else (the briefing time, backlog E3)."""
+    import re
+    m = re.fullmatch(r"(\d{1,2})[:.]?(\d{2})", (text or "").strip())
+    if not m or int(m.group(1)) > 23 or int(m.group(2)) > 59:
+        return None
+    return f"{int(m.group(1)):02d}:{m.group(2)}"
+
+
 def _lang_of(user) -> str:
     return (user or {}).get("lang") or "ru"
 
@@ -188,7 +197,8 @@ class BetaBotHandler:
                 last = await conn.get_last_update_id(BOT_NAME)
                 if last is not None and update_id <= last:
                     return []
-                out = await self._dispatch(conn, update)
+                with render_tz(None):         # the participant's zone is set once the user is known (C5)
+                    out = await self._dispatch(conn, update)
                 await conn.set_last_update_id(BOT_NAME, update_id)
         return out
 
@@ -243,6 +253,7 @@ class BetaBotHandler:
             return out
         user = await conn.get_user(uid)
         lang = _lang_of(user)
+        use_render_tz((user or {}).get("tz"))
         if cmd == "start":
             return await self._start(conn, uid, chat_id, args, user, lang, now)
         if cmd == "delete_me":
@@ -299,14 +310,30 @@ class BetaBotHandler:
                                      [_msg(chat_id, reply, lang=lang)])
         if cmd == "brief":
             arg = (args or "").strip().lower()
+            hhmm = _parse_hhmm(arg)
+            when = hhmm or user.get("brief_time") or self.cfg.section("briefing")["time_kyiv"]
             if arg in ("on", "off"):
                 await conn.set_brief_enabled(uid, arg == "on")
-                reply = t(lang, "brief_on_ok" if arg == "on" else "brief_off_ok")
+                reply = t(lang, "brief_on_ok", time=when) if arg == "on" else t(lang, "brief_off_ok")
+                detail = arg
+            elif hhmm is not None:                       # the participant's own time (backlog E3)
+                await conn.set_brief_time(uid, hhmm)
+                reply = t(lang, "brief_time_ok", time=hhmm) + (
+                    "" if user.get("brief_enabled", True) else "\n" + t(lang, "brief_time_off_hint"))
+                detail = "time"
             else:
                 on = user.get("brief_enabled", True)
-                reply = t(lang, "brief_usage", state=t(lang, "brief_state_on" if on else "brief_state_off"))
+                reply = t(lang, "brief_usage", state=t(lang, "brief_state_on" if on else "brief_state_off"), time=when)
+                detail = "status"
             return await self._reply(conn, user, chat_id, lang, now, "cmd_brief", [_msg(chat_id, reply, lang=lang)],
-                                     detail=arg if arg in ("on", "off") else "status")
+                                     detail=detail)
+        if cmd == "type":                                # the trader type, asked again (backlog E5)
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_type",
+                                     [_msg(chat_id, t(lang, "type_question"), _type_buttons(lang), lang=lang)])
+        if cmd == "tz":
+            reply, detail = await self._tz_cmd(conn, uid, user, lang, args, now)
+            return await self._reply(conn, user, chat_id, lang, now, "cmd_tz", [_msg(chat_id, reply, lang=lang)],
+                                     detail=detail)
         if cmd == "history":
             rows = await conn.fetch_episode_history(symbol=self.cfg.symbol, limit=HISTORY_LIMIT)
             outcomes = {r["episode_pk"]: await conn.fetch_outcomes(r["episode_pk"]) for r in rows}
@@ -452,6 +479,20 @@ class BetaBotHandler:
                    "hour": "push_hours", "hours": "push_hours", "час": "push_hours",
                    "weekly": "push_weekly", "week": "push_weekly", "неделя": "push_weekly", "итоги": "push_weekly"}
 
+    async def _tz_cmd(self, conn, uid: int, user, lang: str, args: Optional[str], now: datetime) -> tuple:
+        """/tz: show or set the participant's time zone (backlog C5). Returns (reply, activity detail)."""
+        from beta.i18n import fmt_clock, parse_tz, zone_name
+        arg = (args or "").strip()
+        if not arg:
+            q = self.cfg.quiet_hours_kyiv
+            return t(lang, "tz_usage", name=zone_name(lang), quiet=f"{q[0]}–{q[1]}"), "status"
+        tz = None if arg.lower() in ("kyiv", "kiev", "киев", "europe/kyiv") else parse_tz(arg)
+        if tz is None and arg.lower() not in ("kyiv", "kiev", "киев", "europe/kyiv"):
+            return t(lang, "tz_bad"), "bad"
+        await conn.set_user_tz(uid, tz)
+        use_render_tz(tz)
+        return t(lang, "tz_ok", name=zone_name(lang, now), clock=fmt_clock(now, lang)), "set"
+
     def _push_status(self, user, lang: str) -> str:
         word = lambda v: t(lang, "on_word" if v else "off_word")  # noqa: E731
         text = t(lang, "push_status", master=word(user.get("push_enabled", True)),
@@ -567,6 +608,7 @@ class BetaBotHandler:
                 dist = fmt_signed_pct((a["price"] / price - 1) * 100.0, lang) if price else "—"
                 lines.append(t(lang, "al_list_line", k=k, price=fmt_price(a["price"], lang), dist=dist))
             lines.append(t(lang, "al_list_footer"))
+            lines.append(t(lang, "al_approach_note"))
             return "\n".join(lines)
         raw = "".join(parts).replace(",", ".").replace("$", "")
         try:
@@ -596,12 +638,12 @@ class BetaBotHandler:
             from beta.rangecast import touch_probability
             p = touch_probability(model, "24h", hz["scale_pct"], abs(dist))
             return t(lang, "al_set", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
-                     now=fmt_price(price, lang), p=df.fmt_prob(p, lang))
+                     now=fmt_price(price, lang), p=df.fmt_prob(p, lang)) + "\n" + t(lang, "al_approach_note")
         reply = t(lang, "al_set_plain", price=fmt_price(level, lang), dist=fmt_signed_pct(dist, lang),
                   now=fmt_price(price, lang))
         # no chance: say why (stale statistics), or that the 24h horizon is inside a release's zone
         note = df.unavailable_line(block, lang) or df.zone_note(block.get("event_zone"), ["24h"], lang)
-        return reply + "\n" + note if note else reply
+        return "\n".join(x for x in (reply, note, t(lang, "al_approach_note")) if x)
 
     async def _view(self, conn, now: datetime, *, kind: str, window_hours: Optional[int] = None) -> dict:
         return await build_view(conn, self.cfg, now=now, kind=kind, window_hours=window_hours,
@@ -689,9 +731,12 @@ class BetaBotHandler:
             joined = await conn.get_user(uid)
             await self._note(conn, joined, "cmd_start", self.clock())
             welcome = await self._welcome(conn, lang)
-            return [answer(t(lang, "joined")), _msg(chat_id, welcome, lang=lang)]
+            # the welcome ends with the one onboarding question, its answers as buttons (backlog E5)
+            return [answer(t(lang, "joined")),
+                    _msg(chat_id, welcome + "\n\n" + t(lang, "type_question"), _type_buttons(lang), lang=lang)]
         user = await conn.get_user(uid)
         lang = _lang_of(user)
+        use_render_tz((user or {}).get("tz"))
         if data.startswith("set:") and data[4:] in ("ru", "en"):
             if user is None or user["status"] != "ACTIVE":
                 return [answer(t(lang, "not_available"))]
@@ -741,6 +786,35 @@ class BetaBotHandler:
             reply = await self._alert_cmd(conn, user, now, lang, f"{level:.2f}", block)
             return await self._reply(conn, user, chat_id, lang, now, "btn_watch",
                                      [answer(""), _msg(chat_id, reply, lang=lang)])
+        if data[:2] == "s:" and data[2:] in TRADER_TYPES + ("skip",):     # the answer (backlog E5)
+            if data[2:] == "skip":
+                return [answer(""), _msg(chat_id, t(lang, "type_skipped"), lang=lang)]
+            await conn.set_trader_type(uid, data[2:])
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "type_set",
+                                     [answer(""), _msg(chat_id, t(lang, "type_saved", name=t(lang, "type_" + data[2:])),
+                                                       lang=lang)], detail=data[2:])
+        vote = _parse_vote(data)
+        if vote is not None:                   # «Полезно / Шум» under an alert, the briefing or the weekly (F6)
+            kind, ref, value = vote
+            changed = await conn.upsert_message_vote(user_pk=user["user_pk"], kind=kind, ref=ref, vote=value)
+            out = [answer(t(lang, "feedback_recorded"))]
+            if not changed:                    # the same vote again: nothing new happened
+                return out
+            return await self._reply(conn, user, chat_id, lang, self.clock(),
+                                     "btn_useful" if value == "USEFUL" else "btn_noise", out, detail=kind)
+        mute = _parse_mute(data)
+        if mute is not None:                   # «🔕 Не присылать такие» / «↩️ Вернуть» (backlog E2)
+            off, kind = mute
+            await conn.set_push_pref(uid, f"push_{kind}", not off)
+            cmd = "hour" if kind == "hours" else kind
+            name = t(lang, f"mute_name_{kind}")
+            if off:
+                out = [answer(""), _msg(chat_id, t(lang, "mute_ok", name=name, cmd=cmd),
+                                        [[(t(lang, "btn_unmute"), f"a:{kind}")]], lang=lang)]
+            else:
+                out = [answer(""), _msg(chat_id, t(lang, "unmute_ok", name=name), lang=lang)]
+            return await self._reply(conn, user, chat_id, lang, self.clock(), "btn_mute" if off else "btn_unmute",
+                                     out, detail=kind)
         if data in ("L:levels", "L:risk"):
             cmd = data[2:]
             reply = await self._decision_cmd(conn, cmd, user, self.clock(), lang, "")
@@ -754,12 +828,33 @@ class BetaBotHandler:
         if ep is None:
             return [answer(t(lang, "unknown_episode"))]
         if data[0] in ("u", "n"):
-            await conn.upsert_feedback(user_pk=user["user_pk"], episode_pk=ep.episode_pk,
-                                       vote="USEFUL" if data[0] == "u" else "NOISE")
+            changed = await conn.upsert_feedback(user_pk=user["user_pk"], episode_pk=ep.episode_pk,
+                                                 vote="USEFUL" if data[0] == "u" else "NOISE")
+            if not changed:                    # a repeated tap is not a second vote (finding §4.5b)
+                return [answer(t(lang, "feedback_recorded"))]
             action = "btn_useful" if data[0] == "u" else "btn_noise"
             return await self._reply(conn, user, chat_id, lang, self.clock(), action,
                                      [answer(t(lang, "feedback_recorded"))])
         return [answer(t(lang, "not_available"))]
+
+
+TRADER_TYPES = ("scalp", "intraday", "swing", "invest")
+
+
+def _type_buttons(lang: str) -> list:
+    return [[(t(lang, "type_scalp"), "s:scalp"), (t(lang, "type_intraday"), "s:intraday")],
+            [(t(lang, "type_swing"), "s:swing"), (t(lang, "type_invest"), "s:invest")],
+            [(t(lang, "type_skip"), "s:skip")]]
+
+
+def _parse_vote(data: str):
+    from beta.formatter import parse_vote
+    return parse_vote(data)
+
+
+def _parse_mute(data: str):
+    from beta.formatter import parse_mute
+    return parse_mute(data)
 
 
 def _parse_tab(data: str):

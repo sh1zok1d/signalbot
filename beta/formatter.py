@@ -735,9 +735,11 @@ def _liq_votes_line(gate: Mapping[str, Any], lang: str) -> Optional[str]:
     liq = gate.get("liquidation")
     if not liq or not liq.get("voting"):
         return None            # no votes of the confirming episode at this bucket: no evidence line
-    n = len(gate.get("values", {}).get("ranks", {})) and 3
-    return t(lang, "liq_votes_line", side=t(lang, "side_" + liq["side"]), k=len(liq.get("voting") or ()),
-             n=max(n, len(liq.get("eligible") or ()), 1))
+    # n = the venues eligible for this side, never a fixed 3: OKX is out until it has 30 days of real
+    # history (data reliability D2; review of #378)
+    voting = liq.get("voting") or ()
+    return t(lang, "liq_votes_line", side=t(lang, "side_" + liq["side"]), k=len(voting),
+             n=max(len(liq.get("eligible") or ()), len(voting), 1))
 
 
 def _unsigned_line(gate: Mapping[str, Any], lang: str) -> Optional[str]:
@@ -963,17 +965,22 @@ def _fmt_liq_body(per_venue: Mapping[str, Mapping[str, Any]], lang: str) -> tupl
 
 
 def _anchor_liq_map(anchor_view: Mapping[str, Any]) -> dict:
-    """One bucket: Binance is always a lower bound; None is missing, never zero."""
+    """One bucket: Binance and OKX are lower bounds (OKX: "doesn't represent the total"); None is
+    missing, never zero. OKX is shown only where it could vote, i.e. with 30 days of real history
+    (data reliability D2); before that it is «н/д»."""
     out = {}
     liq = anchor_view.get("liquidations") or {}
     for side in ("long", "short"):
         per = (liq.get(side) or {}).get("per_venue") or {}
+        eligible = set((liq.get(side) or {}).get("eligible") or ())
         out[side] = {}
         for ex, amount in per.items():
+            if ex == "okx" and ex not in eligible:
+                amount = None
             if amount is None:
                 out[side][ex] = {"amount": None, "missing": True, "lower_bound": False}
             else:
-                out[side][ex] = {"amount": float(amount), "missing": False, "lower_bound": ex == "binance"}
+                out[side][ex] = {"amount": float(amount), "missing": False, "lower_bound": ex in ("binance", "okx")}
     return out
 
 
@@ -1233,10 +1240,45 @@ def feedback_buttons(public_id: str, lang: str = "en") -> list:
     """Useful / Noise under the product push. No Details button: the episode details
     expose the detector name, internal id and rules version (PRODUCT_FIRST_DECISION_V1
     §3 row 9, BETA_COPY_CONTRACT_V1 §4). The id travels only in callback data. Above them
-    the «BTC сейчас» action (owner decision 2026-10-03): push → /btc in one tap."""
+    the «BTC сейчас» action (owner decision 2026-10-03): push → /btc in one tap. Below
+    them the one-tap mute of this type (backlog E2)."""
     return [push_action_row(lang),
             [(t(lang, "btn_useful"), f"u:{public_id}"),
-             (t(lang, "btn_noise"), f"n:{public_id}")]]
+             (t(lang, "btn_noise"), f"n:{public_id}")],
+            mute_row("hours", lang)]
+
+
+# One-tap mute per push type with undo (PRE_BETA_SCOPE_DECISION_V1 §6.6, backlog E2): the type's own
+# preference, as /push <type> off would set it. No automatic «больше не присылать такие?» prompt (F3).
+MUTE_TYPES = ("hours", "levels", "events", "moves", "weekly")
+
+
+VOTE_KINDS = ("level", "event", "move", "price", "approach", "brief", "weekly")
+
+
+def vote_row(kind: str, ref: int, lang: str) -> list:
+    """«Полезно / Шум» under an alert, the briefing or the weekly report (backlog F6): v:<kind>:<ref>:<u|n>."""
+    return [(t(lang, "btn_useful"), f"v:{kind}:{int(ref)}:u"), (t(lang, "btn_noise"), f"v:{kind}:{int(ref)}:n")]
+
+
+def parse_vote(data: str) -> Optional[tuple]:
+    """(kind, ref, 'USEFUL' | 'NOISE') of a v:<kind>:<ref>:<u|n> button, or None."""
+    parts = data.split(":")
+    if len(data) > 64 or len(parts) != 4 or parts[0] != "v" or parts[1] not in VOTE_KINDS \
+            or not parts[2].isdigit() or int(parts[2]) <= 0 or parts[3] not in ("u", "n"):
+        return None
+    return parts[1], int(parts[2]), "USEFUL" if parts[3] == "u" else "NOISE"
+
+
+def mute_row(kind: str, lang: str) -> list:
+    return [(t(lang, "btn_mute"), f"m:{kind}")]
+
+
+def parse_mute(data: str) -> Optional[tuple]:
+    """`m:<type>` mutes, `a:<type>` undoes; anything else None."""
+    if len(data) > 16 or data[:2] not in ("m:", "a:") or data[2:] not in MUTE_TYPES:
+        return None
+    return data[0] == "m", data[2:]
 
 
 PUSH_BTC_ACTION = "b:now"
@@ -1294,12 +1336,13 @@ PUSH_MAX_LINES = 8
 def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang: str = "en",
                 gate: Optional[Mapping[str, Any]] = None, analog: Optional[Mapping[str, Any]] = None,
                 since_year: Optional[int] = None, latency: Optional[Mapping[str, Any]] = None,
-                research: bool = False) -> str:
+                research: bool = False, levels: Optional[Mapping[str, Any]] = None) -> str:
     """The unusual-hour push (BETA_COPY_CONTRACT_V1 §1.2): the 1h state around the
     TRIGGERED episode, never the detector name, never an id. At most 8 non-empty
     lines. `gate` is the push decision's stored hour gate; without it only the hour
     and the time are known. `latency` is the measured delay field (`beta.latency.latency_field`,
-    backlog A4); its line is drawn by the template work of F1, not here."""
+    backlog A4), printed on the time line (F1). `levels` is the decision block's levels map: the
+    nearest level each side is an extra line after the history line (F1)."""
     gate = gate or {}
     values = gate.get("values") or {}
     when = episode.triggered_at
@@ -1307,6 +1350,8 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
         span = t(lang, "window_kyiv", start=fmt_kyiv_hm(_dt(gate["window_start"])), end=fmt_kyiv_hm(_dt(gate["window_end"])))
     else:
         span = t(lang, "window_kyiv", start=fmt_kyiv_hm(when - timedelta(hours=1)), end=fmt_kyiv_hm(when))
+    from .decision_format import delay_text
+    span += delay_text(latency, lang)
     state = _gate_state_text(gate, lang)
     lines = [f"<b>{_e(t(lang, 'push_hour_title'))}</b>", span, "", _e(state[:1].upper() + state[1:])]
     pct = values.get("price_move_pct")
@@ -1347,6 +1392,9 @@ def format_push(episode: Any, snapshot: Optional[Mapping[str, Any]] = None, lang
     if analog:
         from .decision_format import analog_line
         extras.append(analog_line(analog, lang, since_year=since_year))
+    if levels:                                     # template F1: fact → unusual → usually next → levels
+        from .decision_format import near_levels_line
+        extras.append(near_levels_line(levels, lang))
     if research:                                   # the registry line only while research is on the main surfaces
         extras.append(_research_line(gate.get("interpretation") or {}, "1h", lang))
     for line in extras:

@@ -50,9 +50,9 @@ def _pair(ru: str, en: str) -> dict:
 DECISION_CATALOG: dict = {
     # ---- shared blocks (briefing, /catchup, /btc) ----
     # event zone (BETA_EVENT_CORRIDOR_TEMPORAL_REPAIR_DESIGN_V1 §9): numbers are withheld on purpose
-    "ez_note": _pair("{hs}: числовую оценку не показываем — {events} (Киев). Вокруг публикации обычная калибровка "
+    "ez_note": _pair("{hs}: числовую оценку не показываем — {events} {zone}. Вокруг публикации обычная калибровка "
                      "коридора не применяется.",
-                     "{hs}: no numerical estimate — {events} (Kyiv). Around the release, the usual corridor "
+                     "{hs}: no numerical estimate — {events} ({zone}). Around the release, the usual corridor "
                      "calibration does not apply."),
     "ez_event": _pair("{name}, {when}", "{name}, {when}"),
     "ez_event_note": _pair("Числовой коридор на это время не показываем: вокруг публикации обычная калибровка "
@@ -72,6 +72,10 @@ DECISION_CATALOG: dict = {
     "dc_pp_ci": _pair("; 95% интервал {lo}…{hi}", "; 95% interval {lo}…{hi}"),
     "dc_ratio_ci": _pair(" (95% интервал ×{lo}…×{hi})", " (95% interval ×{lo}…×{hi})"),
     "dc_analog_short": _pair("↳ после похожих: мало данных ({n})", "↳ after similar: too little data ({n})"),
+    "dc_analog_fewdays": _pair("↳ после похожих: мало разных дней ({n} за {d} дн.)",
+                               "↳ after similar: too few distinct days ({n} over {d} days)"),
+    "dc_analog_noci": _pair("↳ после похожих: интервал ещё не посчитан ({n})",
+                            "↳ after similar: no interval computed yet ({n})"),
     "dc_unavailable": _pair("Коридор и уровни сейчас не показываем: {reason}.",
                             "Corridor and levels are not shown now: {reason}."),
     "dc_reason_stale": _pair("данные Binance отстают", "Binance data is late"),
@@ -79,7 +83,7 @@ DECISION_CATALOG: dict = {
     "dc_reason_stats_stale": _pair("статистика по истории не обновлялась больше 3 суток",
                                    "the history statistics have not been updated for over 3 days"),
     "dc_reason_data_late": _pair("данные отстают", "the data is late"),
-    "dc_stats_built": _pair("Статистика по истории собрана {when} (Киев).", "History statistics built {when} Kyiv."),
+    "dc_stats_built": _pair("Статистика по истории собрана {when} {zone}.", "History statistics built {when} {zone}."),
     "dc_reason_error": _pair("техническая ошибка", "a technical error"),
     # /btc (backlog C1): three corridors, their record, the two nearest levels with the «B» chance, the next 24h
     "dc_btc_corridor": _pair("Коридор: {parts}", "Corridor: {parts}"),
@@ -116,6 +120,10 @@ DECISION_CATALOG: dict = {
     "lv_side_above": _pair("выше", "above"),
     "lv_side_below": _pair("ниже", "below"),
     "lv_hist_short": _pair("↳ после первого касания: мало данных ({n})", "↳ after the first touch: too little data ({n})"),
+    "lv_hist_fewperiods": _pair("↳ после первого касания: мало разных периодов ({n}, периодов: {d})",
+                                "↳ after the first touch: too few distinct periods ({n}, {d} periods)"),
+    "lv_hist_noci": _pair("↳ после первого касания: интервал ещё не посчитан ({n})",
+                          "↳ after the first touch: no interval computed yet ({n})"),
     "lv_hist_move": _pair("↳ за 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
                           "↳ 1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
     "lv_footer": _pair("День, неделя и месяц — по UTC, как дневная свеча на бирже. История — Binance с 2020 года; "
@@ -137,9 +145,9 @@ DECISION_CATALOG: dict = {
     "rk_usage": _pair("Стоп в процентах или ценой: /risk 0.5 или /risk 61500",
                       "A stop in percent or as a price: /risk 0.5 or /risk 61500"),
     # ---- /events ----
-    "ev_title": _pair("<b>События</b> (время — Киев)", "<b>Events</b> (Kyiv time)"),
+    "ev_title": _pair("<b>События</b> (время — {zone_name})", "<b>Events</b> ({zone_name} time)"),
     "ev_none": _pair("В ближайшие 14 дней в календаре ничего нет.", "Nothing in the calendar for the next 14 days."),
-    "ev_funding": _pair("Funding Binance: {times} (Киев)", "Binance funding: {times} Kyiv"),
+    "ev_funding": _pair("Funding Binance: {times} {zone}", "Binance funding: {times} {zone}"),
     "ev_release_note": _pair("{names}: вокруг публикации обычная калибровка коридора не применяется.",
                              "{names}: around the release, the usual corridor calibration does not apply."),
     # ---- /accuracy ----
@@ -232,6 +240,10 @@ DECISION_CATALOG: dict = {
     "al_list_line": _pair("{k}. {price} ({dist})", "{k}. {price} ({dist})"),
     "al_list_none": _pair("Уровней нет. Добавить: /alert 65000", "No alerts. Add one: /alert 65000"),
     "al_list_footer": _pair("Удалить: /alert del 1 · все: /alert del all", "Delete: /alert del 1 · all: /alert del all"),
+    "al_approach_note": _pair("Когда до уровня останется меньше обычного хода за час, пришлю одно сообщение заранее, "
+                              "потом — о касании.",
+                              "When the level is closer than the usual 1h move, I send one message ahead, then one "
+                              "at the touch."),
     "al_deleted": _pair("Удалено: {n}.", "Deleted: {n}."),
     "al_limit": _pair("Уже {n} уровней — это максимум. Удалите лишний: /alert del 1",
                       "Already {n} alerts — the maximum. Delete one: /alert del 1"),
@@ -296,6 +308,10 @@ DECISION_CATALOG: dict = {
                            "After the first touch ({n}): 1h later the price was {side} the level in {hold} — a random level: {ctrl} "
                            "({diff} pp{ci})"),
     "pa_level_hist_short": _pair("После первого касания: мало данных ({n})", "After the first touch: too little data ({n})"),
+    "pa_level_hist_fewperiods": _pair("После первого касания: мало разных периодов ({n}, периодов: {d})",
+                                      "After the first touch: too few distinct periods ({n}, {d} periods)"),
+    "pa_level_hist_noci": _pair("После первого касания: интервал ещё не посчитан ({n})",
+                                "After the first touch: no interval computed yet ({n})"),
     "pa_level_move": _pair("За 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
                            "1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
     "pa_next": _pair("Следующий уровень: {price} — {name} ({dist}), за 24ч доходили в {p}",
@@ -305,7 +321,15 @@ DECISION_CATALOG: dict = {
     "pa_event_title": _pair("<b>BTC · через {mins} мин {name}</b>", "<b>BTC · {name} in {mins} min</b>"),
     "pa_event_when": _pair("{clock} · цена {price} (Binance)", "{clock} · price {price} (Binance)"),
     "pa_event_when_at": _pair("{clock} · цена {price} (Binance, {price_clock})", "{clock} · price {price} (Binance, {price_clock})"),
-    "pa_corridor_1h_plain": _pair("Коридор 1ч сейчас: {low}–{high} (±{half})", "1h corridor now: {low}–{high} (±{half})"),
+    "pa_corridor_1h_plain": _pair("Дальше обычно в коридоре 1ч: {low}–{high} (±{half})",
+                                  "What usually follows, the 1h corridor: {low}–{high} (±{half})"),
+    # the delay of a push or an alert (backlog F1; the measured field of A4)
+    "dl_line": _pair(" · задержка {lag}", " · delay {lag}"),
+    "dl_typical": _pair(" (обычно {p50})", " (usually {p50})"),
+    "dl_s": _pair("{s} с", "{s} s"),
+    "dl_m": _pair("{m} мин", "{m} min"),
+    "dl_ms": _pair("{m} мин {s} с", "{m} min {s} s"),
+    "dl_hm": _pair("{h} ч {m} мин", "{h} h {m} min"),
     "pa_move_title": _pair("<b>BTC · резкое движение {pct} за 15 минут</b>", "<b>BTC · sharp move {pct} in 15 minutes</b>"),
     "pa_move_span": _pair("{span} · {open} → {close} (Binance)", "{span} · {open} → {close} (Binance)"),
     "pa_move_rare": _pair("Такой ход за 15 минут бывает примерно раз в {days} дн.",
@@ -315,12 +339,17 @@ DECISION_CATALOG: dict = {
     "pa_price_now": _pair("{clock} · цена {price} (Binance)", "{clock} · price {price} (Binance)"),
     "pa_price_now_at": _pair("{clock} — уровень достигнут · цена {price} (Binance, {price_clock})",
                              "{clock} — level reached · price {price} (Binance, {price_clock})"),
-    "pa_price_late": _pair("Уровень был достигнут {when} (Киев), пока сообщения не отправлялись · сейчас {price} (Binance)",
-                           "The level was reached on {when} (Kyiv) while messages were off · now {price} (Binance)"),
-    "pa_price_late_at": _pair("Уровень был достигнут {when} (Киев), пока сообщения не отправлялись · сейчас {price} "
+    "pa_price_late": _pair("Уровень был достигнут {when} {zone}, пока сообщения не отправлялись · сейчас {price} (Binance)",
+                           "The level was reached on {when} ({zone}) while messages were off · now {price} (Binance)"),
+    "pa_price_late_at": _pair("Уровень был достигнут {when} {zone}, пока сообщения не отправлялись · сейчас {price} "
                               "(Binance, {price_clock})",
-                              "The level was reached on {when} (Kyiv) while messages were off · now {price} "
+                              "The level was reached on {when} ({zone}) while messages were off · now {price} "
                               "(Binance, {price_clock})"),
+    "pa_approach_title": _pair("<b>BTC подходит к вашему уровню {level}</b>", "<b>BTC is nearing your level {level}</b>"),
+    "pa_approach_line": _pair("{clock} · цена {price} (Binance, {price_clock}) · до уровня {dist} — меньше обычного "
+                              "хода за 1ч (±{typ})",
+                              "{clock} · price {price} (Binance, {price_clock}) · {dist} to the level — less than the "
+                              "usual 1h move (±{typ})"),
     "pa_price_footer": _pair("Ваши уровни: /alert", "Your alerts: /alert"),
     # ---- research ↔ bot (config/beta_research_findings.yaml) ----
     # status-worded context lines: a discovery is never «Проверено», a weak effect is never a result
@@ -500,7 +529,9 @@ DECISION_HELP = {
         "/events — события: CPI, ФРС, экспирации\n"
         "/accuracy — насколько точен коридор\n"
         "/research — что проверили исследования: что подтвердилось, что нет\n"
-        "/brief on|off — утренняя сводка в 08:00 (Киев)\n"
+        "/brief on|off|07:30 — утренняя сводка (по умолчанию в 08:00)\n"
+        "/tz — часовой пояс (по умолчанию Киев): /tz +3 или /tz Europe/Warsaw\n"
+        "/type — как вы торгуете (для статистики беты)\n"
         "/push — какие сообщения присылать\n"
         "/history — недавние необычные события\n"
         "/terms — термины · /lang — язык сообщений · /feedback — отзыв\n"
@@ -520,7 +551,9 @@ DECISION_HELP = {
         "/events — CPI, Fed, options expiries\n"
         "/accuracy — how accurate the corridor is\n"
         "/research — what the research tested: what held up, what did not\n"
-        "/brief on|off — morning briefing at 08:00 Kyiv\n"
+        "/brief on|off|07:30 — morning briefing (08:00 by default)\n"
+        "/tz — time zone (Kyiv by default): /tz +3 or /tz Europe/Warsaw\n"
+        "/type — how you trade (for the beta's statistics)\n"
         "/push — which messages to receive\n"
         "/history — recent unusual events\n"
         "/terms — terms · /lang — message language · /feedback — feedback\n"
@@ -542,7 +575,8 @@ DECISION_TERMS = {
         "открытия дня, недели и месяца, сессии Азии, Европы и США, VWAP дня, объёмный центр вчера, круглые уровни, "
         "места крупных ликвидаций за 24ч. День, неделя и месяц — по UTC.\n"
         "Случайный уровень — уровень на том же расстоянии от открытия периода, но без смысла. Рядом с реальным "
-        "уровнем бот пишет, как вёл себя случайный, и разницу в процентных пунктах (п.п.).\n"
+        "уровнем бот пишет, как вёл себя случайный, и разницу в процентных пунктах (п.п.); её 95% интервал "
+        "считается по периодам уровня (дням, неделям или месяцам), а не по дням.\n"
         "После похожих — что было после таких же состояний 1ч / 4ч в истории Binance. Обычно — все часы с той же "
         "волатильностью. Разница — в п.п.; ход — во сколько раз больше или меньше обычного (обычный ход — ×1). "
         "95% интервал — неопределённость этой исторической оценки: насколько она менялась бы на другой выборке "
@@ -563,7 +597,8 @@ DECISION_TERMS = {
         "day, week and month opens, Asia, Europe and US sessions, the day VWAP, yesterday's volume POC, round numbers, "
         "places of large liquidations in 24h. Day, week and month are UTC.\n"
         "Random level — a level at the same distance from the period open that means nothing. Beside a real level the "
-        "bot shows how the random one behaved and the difference in percentage points (pp).\n"
+        "bot shows how the random one behaved and the difference in percentage points (pp); its 95% interval is "
+        "computed over the level's periods (days, weeks or months), not over days.\n"
         "After similar — what followed the same 1h / 4h states in Binance history. Usual — all hours with the same "
         "volatility. The difference is in pp; the move is how many times larger or smaller than usual (the usual "
         "move is ×1). The 95% interval is the uncertainty of this historical estimate: how much it would vary on "

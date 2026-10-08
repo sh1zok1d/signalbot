@@ -162,10 +162,20 @@ DELIVERIES = ("push_delivered", "alert_delivered", "brief_delivered", "weekly_de
 DELIVERY_TYPES = (("hour", "push_delivered", None), ("level", "alert_delivered", "level"),
                   ("event", "alert_delivered", "event"), ("move", "alert_delivered", "move"),
                   ("brief", "brief_delivered", None), ("weekly", "weekly_delivered", None),
-                  ("price", "alert_delivered", "price"))
+                  ("price", "alert_delivered", "price"), ("approach", "alert_delivered", "approach"))
 # delivery type -> (settings action, detail prefix): `/push levels off` is `cmd_push` `levels:off`
 MUTES = {"hour": ("cmd_push", "hours:"), "level": ("cmd_push", "levels:"), "event": ("cmd_push", "events:"),
          "move": ("cmd_push", "moves:"), "brief": ("cmd_brief", ""), "weekly": ("cmd_push", "weekly:")}
+
+
+def as_setting(row: dict) -> dict:
+    """«🔕 Не присылать такие» / «↩️ Вернуть» under a push (backlog E2) read as the `/push <type> off|on`
+    they set, so every mute count and the time to disable see both ways of muting."""
+    if row.get("action") in ("btn_mute", "btn_unmute") and row.get("detail") in ("hours", "levels", "events",
+                                                                                 "moves", "weekly"):
+        return {**row, "action": "cmd_push", "button": True,       # still a tap for the F5 button metric
+                "detail": f"{row['detail']}:{'off' if row['action'] == 'btn_mute' else 'on'}"}
+    return row
 
 
 def _kyiv_day(at: datetime):
@@ -205,7 +215,7 @@ def _group_block(pks: set, activity: Sequence[dict], votes: Sequence[dict], *, s
     inside = [r for r in mine if _aware(start) <= _aware(r["at"]) <= _aware(end)]
     # per participant, sorted once: deliveries (prompts) and taps (reactions)
     sent_at = {pk: sorted(_aware(r["at"]) for r in rows if r["action"] in DELIVERIES) for pk, rows in by_user.items()}
-    taps_at = {pk: sorted(_aware(r["at"]) for r in rows if r["action"].startswith(("tab_", "btn_")))
+    taps_at = {pk: sorted(_aware(r["at"]) for r in rows if r["action"].startswith(("tab_", "btn_")) or r.get("button"))
                for pk, rows in by_user.items()}
     organic = post_push = 0
     organic_days: dict = {}
@@ -232,11 +242,15 @@ def _group_block(pks: set, activity: Sequence[dict], votes: Sequence[dict], *, s
                 and _aware(start) <= _aware(v["at"]) <= _aware(end)]
         block = {"delivered": len(sent), "reacted": reacted,
                  "useful": sum(1 for v in cast if v["vote"] == "USEFUL"),
-                 "noise": sum(1 for v in cast if v["vote"] == "NOISE")}
+                 "noise": sum(1 for v in cast if v["vote"] == "NOISE"),
+                 "voters": len({v["user_pk"] for v in cast})}
         if name in MUTES:
             action, prefix = MUTES[name]
             block["mutes"] = sum(1 for r in inside if r["action"] == action and r.get("detail") == f"{prefix}off")
             block["muted_now"] = sum(1 for pk in pks if _muted(by_user.get(pk, ()), action, prefix))
+            block["muters"] = len({r["user_pk"] for r in inside if r["action"] == action
+                                   and r.get("detail") == f"{prefix}off"})
+        block["review"] = review_flag(block, recipients=len({r["user_pk"] for r in sent}))
         types[name] = block
     return {"users": len(pks),
             "pulls": {"organic": organic, "post_push": post_push},
@@ -249,6 +263,26 @@ def _group_block(pks: set, activity: Sequence[dict], votes: Sequence[dict], *, s
                       "btn_watch": sum(1 for r in inside if r["action"] == "btn_watch")},
             "types": types,
             "push_off_now": sum(1 for pk in pks if _muted(by_user.get(pk, ()), "cmd_push", ""))}
+
+
+# The owner review flag (PRE_BETA_SCOPE_DECISION_V1 §6.6, backlog F4): observe-only during the test, a
+# human decides; disabling a type mid-test would change the push rule (PRODUCT_FIRST_DECISION_V1 §7).
+REVIEW_MIN_VOTES, REVIEW_MIN_VOTERS, REVIEW_NOISE_SHARE = 30, 8, 0.5
+REVIEW_DISABLE_MIN_USERS, REVIEW_DISABLE_SHARE = 3, 0.25
+
+
+def review_flag(block: dict, *, recipients: int) -> list:
+    """The reasons a type needs the owner's look: ≥ 30 votes from ≥ 8 people with noise above 50 %, or mass
+    disables (≥ 3 people and ≥ 25 % of those who received it switched it off in the window)."""
+    out = []
+    votes = block["useful"] + block["noise"]
+    if votes >= REVIEW_MIN_VOTES and block.get("voters", 0) >= REVIEW_MIN_VOTERS \
+            and block["noise"] / votes > REVIEW_NOISE_SHARE:
+        out.append(f"noise {block['noise']}/{votes} from {block['voters']} people")
+    muters = block.get("muters", 0)
+    if recipients and muters >= REVIEW_DISABLE_MIN_USERS and muters / recipients >= REVIEW_DISABLE_SHARE:
+        out.append(f"disabled by {muters} of {recipients} who received it")
+    return out
 
 
 def owner_breakdown(users: Sequence[dict], activity: Sequence[dict], votes: Sequence[dict], *,
@@ -309,7 +343,7 @@ def push_metrics(activity: Sequence[dict], deliveries: Sequence[dict], *, start:
     for r in activity:
         if r["action"] not in DELIVERIES and r["action"] != "brief_withheld":
             by_user.setdefault(r["user_pk"], []).append(r)
-    buttons = {pk: sorted(_aware(r["at"]) for r in rows if r["action"].startswith(("tab_", "btn_")))
+    buttons = {pk: sorted(_aware(r["at"]) for r in rows if r["action"].startswith(("tab_", "btn_")) or r.get("button"))
                for pk, rows in by_user.items()}
     actions = {pk: sorted(_aware(r["at"]) for r in rows) for pk, rows in by_user.items()}
     mutes = {}
@@ -365,7 +399,7 @@ def build_usage_report(facts: dict, *, now: datetime, owner_user_id: Optional[in
     owner = None if owner_user_id is None else int(owner_user_id)
     users = [dict(u) for u in facts["users"] if owner is None or int(u["telegram_user_id"]) != owner]
     external_pks = {u["user_pk"] for u in users}
-    activity = [dict(r) for r in facts["activity"] if r["user_pk"] in external_pks]
+    activity = [as_setting(dict(r)) for r in facts["activity"] if r["user_pk"] in external_pks]
     pushes: dict = {}
     for row in activity:
         # every delivery prompts an open: a push, a market or personal alert, the brief, the weekly report
@@ -497,6 +531,8 @@ def _breakdown_lines(name: str, block: dict) -> list:
         if "mutes" in row:
             parts.append(f"muted {row['mutes']} (now {row['muted_now']})")
         lines.append(f"    {kind}: " + ", ".join(parts))
+        if row.get("review"):                   # F4: observe-only, the owner decides
+            lines.append(f"      ⚑ review {kind}: " + "; ".join(row["review"]))
     return lines
 
 

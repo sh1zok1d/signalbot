@@ -349,7 +349,15 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         await h.handle(_msg(uid, "/check 70000", 42))         # /check (no price yet: the reply says why)
         await h.handle(_cb(uid, "k:70000.00", 43))            # «🎯 Проверить» from a push or the briefing
         await h.handle(_cb(uid, "w:70000.00", 44))            # «🔔 Следить»
-        await h.handle(_msg(uid, "/stop", 45))
+        await h.handle(_msg(uid, "/tz +3", 45))               # the time zone (C5)
+        await h.handle(_cb(uid, "m:levels", 46))               # «🔕 Не присылать такие» under a push (E2)
+        await h.handle(_cb(uid, "a:levels", 47))               # «↩️ Вернуть»
+        await h.handle(_msg(uid, "/type", 48))                 # how the participant trades (E5)
+        await h.handle(_cb(uid, "s:swing", 49))
+        await h.handle(_cb(uid, "n:EV-AABBCCDDEE", 50))        # the same vote again: no second row (§4.5b)
+        await h.handle(_cb(uid, f"v:brief:{brief_pk}:u", 51))  # «Полезно» under the briefing (F6)
+        await h.handle(_cb(uid, f"v:brief:{brief_pk}:u", 52))  # again: nothing new
+        await h.handle(_msg(uid, "/stop", 53))
         actions = [r["action"] for r in await _rows(pool, "SELECT action FROM beta_user_activity ORDER BY activity_pk")]
         # btn_details stays a valid historical action, but the episode Details are retired
         # (they exposed internals) and record nothing new.
@@ -358,6 +366,10 @@ def test_each_action_is_recorded_and_telemetry_failure_does_not_break_the_reply(
         # weekly_delivered needs the Sunday slot: test_beta_weekly_pg covers it.
         assert set(actions) == set(ACTIVITY_ACTIONS) - {"btn_details", "brief_withheld", "tab_research",
                                                         "weekly_delivered"}
+        assert [r["trader_type"] for r in await _rows(pool, "SELECT trader_type FROM beta_users")] == ["swing"]   # E5
+        assert actions.count("btn_noise") == 1 and actions.count("btn_useful") == 2       # one row per vote cast
+        votes = await _rows(pool, "SELECT kind, ref, vote FROM beta_message_votes")
+        assert votes == [{"kind": "brief", "ref": brief_pk, "vote": "USEFUL"}]
         cols = await _rows(pool, """SELECT column_name FROM information_schema.columns
                                     WHERE table_name='beta_user_activity'""")
         assert "telegram" not in " ".join(r["column_name"] for r in cols)

@@ -1,0 +1,369 @@
+{
+  "activity": {
+    "mean": 1.4242216933351703,
+    "n": 1688,
+    "sd": 0.9559973249877352
+  },
+  "activity_hex": {
+    "mean": "0x1.6c99cafb20d82p+0",
+    "sd": "0x1.e9787b3bc5886p-1"
+  },
+  "blocked_reason": null,
+  "centroid_hex": [
+    [
+      "-0x1.1ed0a5019bce8p+1",
+      "-0x1.69105c28bfa43p+0",
+      "0x1.0e24993b88ea8p-1",
+      "-0x1.031c2f99df2aep-2",
+      "0x1.1195542bf634bp+1"
+    ],
+    [
+      "-0x1.288e15c3aea39p-5",
+      "-0x1.3a7eeb5840f6bp-4",
+      "-0x1.034d6af5212edp-3",
+      "0x1.3532310082a22p-3",
+      "-0x1.dabbb329ecacep-3"
+    ],
+    [
+      "0x1.d251a1b72a5aep+0",
+      "0x1.66cd7617385c6p+0",
+      "0x1.20465fa8ac2aep-2",
+      "-0x1.460b9d302e78cp-2",
+      "0x1.78b19923b58b2p+0"
+    ]
+  ],
+  "centroids": [
+    [
+      -2.240742326531848,
+      -1.4104058837398419,
+      0.5276229748892165,
+      -0.25303720833452814,
+      2.1373696531922284
+    ],
+    [
+      -0.03620056391578825,
+      -0.07678119594134862,
+      -0.12661250649048075,
+      0.15097463877494116,
+      -0.2318033215684267
+    ],
+    [
+      1.8215581009084008,
+      1.4015725905122607,
+      0.28151845423694055,
+      -0.31840367895676347,
+      1.4714599334888985
+    ]
+  ],
+  "clipped_counts": [
+    27,
+    40,
+    0,
+    1,
+    35
+  ],
+  "core": {
+    "bars": 526176,
+    "dataset_id": "CORE_BTC_BINANCE_V0",
+    "end_ms": 1735689600000,
+    "t0": 1577836800000,
+    "zip_list_sha256": "936594956e8bfea33eec09a7e61dbbc8051bb4c0d4d083abdbcb6091c62aa90b"
+  },
+  "correlations": [
+    [
+      1.0,
+      0.26718375438444,
+      -0.02780890752300656,
+      -0.0041943453093097535,
+      -0.14716060647156196
+    ],
+    [
+      0.26718375438444,
+      1.0,
+      -0.021188192501320237,
+      -0.06575541293873119,
+      0.031554684977462104
+    ],
+    [
+      -0.027808907523006555,
+      -0.021188192501320237,
+      1.0,
+      0.009438879549029996,
+      0.2385729295628731
+    ],
+    [
+      -0.0041943453093097535,
+      -0.06575541293873119,
+      0.009438879549029996,
+      0.9999999999999998,
+      -0.1371223651383384
+    ],
+    [
+      -0.14716060647156196,
+      0.031554684977462104,
+      0.23857292956287307,
+      -0.1371223651383384,
+      1.0
+    ]
+  ],
+  "counts": {
+    "epoch": {
+      "2020Q4": 124,
+      "2021": 384,
+      "2022": 397,
+      "2023": 390,
+      "2024": 393
+    },
+    "family": {
+      "DAY": 1442,
+      "MONTH": 34,
+      "WEEK": 212
+    },
+    "side": {
+      "-1": 781,
+      "1": 907
+    }
+  },
+  "descriptions": [
+    "above-average OI contraction; OI change decelerating; aggressive flow toward the level; near-average flow shift; above-average price progress toward the level",
+    "near-average OI change; near-average OI acceleration; near-average aggressive flow; near-average flow shift; near-average price progress",
+    "above-average OI expansion; OI change accelerating; near-average aggressive flow; near-average flow shift; above-average price progress toward the level"
+  ],
+  "diagnostics": [
+    {
+      "counts": [
+        190,
+        1178,
+        320
+      ],
+      "inertia": 10684.120058474386,
+      "init": 4,
+      "k": 3,
+      "median_ari": 0.8916007955760614,
+      "median_jaccard": [
+        0.8441547927461139,
+        0.9561837832267552,
+        0.8799624945138251
+      ],
+      "min_n": 190,
+      "min_share": 0.11255924170616113,
+      "passes_size": true,
+      "shares": [
+        0.11255924170616113,
+        0.6978672985781991,
+        0.1895734597156398
+      ],
+      "silhouette": 0.2702544991913292
+    },
+    {
+      "counts": [
+        147,
+        486,
+        815,
+        240
+      ],
+      "inertia": 9523.265193452902,
+      "init": 5,
+      "k": 4,
+      "median_ari": 0.41596478300420775,
+      "median_jaccard": [
+        0.7167163437655242,
+        0.44265718723327585,
+        0.6493042684283021,
+        0.7626818253426456
+      ],
+      "min_n": 147,
+      "min_share": 0.08708530805687204,
+      "passes_size": true,
+      "shares": [
+        0.08708530805687204,
+        0.28791469194312796,
+        0.4828199052132701,
+        0.14218009478672985
+      ],
+      "silhouette": 0.1797465617320771
+    },
+    {
+      "counts": [
+        122,
+        135,
+        534,
+        675,
+        222
+      ],
+      "inertia": 8486.431230752474,
+      "init": 12,
+      "k": 5,
+      "median_ari": 0.7751013510680156,
+      "median_jaccard": [
+        0.7671911421911422,
+        0.7692167161452386,
+        0.8742922944055274,
+        0.8313619966815099,
+        0.803939393939394
+      ],
+      "min_n": 122,
+      "min_share": 0.07227488151658767,
+      "passes_size": true,
+      "shares": [
+        0.07227488151658767,
+        0.07997630331753554,
+        0.31635071090047395,
+        0.39988151658767773,
+        0.13151658767772512
+      ],
+      "silhouette": 0.17144081986898774
+    },
+    {
+      "counts": [
+        111,
+        98,
+        581,
+        522,
+        222,
+        154
+      ],
+      "inertia": 7720.438073413565,
+      "init": 7,
+      "k": 6,
+      "median_ari": 0.7501266950527968,
+      "median_jaccard": [
+        0.8321190755973364,
+        0.7725619834710744,
+        0.8105918902648779,
+        0.8251055446101885,
+        0.7531512605042017,
+        0.8330017683465959
+      ],
+      "min_n": 98,
+      "min_share": 0.058056872037914695,
+      "passes_size": false,
+      "shares": [
+        0.06575829383886256,
+        0.058056872037914695,
+        0.34419431279620855,
+        0.30924170616113744,
+        0.13151658767772512,
+        0.09123222748815166
+      ],
+      "silhouette": 0.18346546824622387
+    }
+  ],
+  "event_window": {
+    "end_exclusive": "2025-01-01T00:00:00+00:00",
+    "start": "2020-09-01T01:05:00+00:00"
+  },
+  "feature_names": [
+    "OI_CHANGE_60M",
+    "OI_RECENT_ACCELERATION",
+    "ORIENTED_TAKER_IMBALANCE_60M",
+    "TAKER_RECENT_SHIFT",
+    "ORIENTED_PRICE_PROGRESS_60M"
+  ],
+  "first_open_ms": 1598939700000,
+  "geometry_pairs": 1082,
+  "kmeans": {
+    "ari_min": 0.75,
+    "max_iter": 50,
+    "n_init": 16,
+    "seed": 20261014,
+    "stability_draws": 40
+  },
+  "last_open_ms": 1735648200000,
+  "median_jaccard": [
+    0.8441547927461139,
+    0.9561837832267552,
+    0.8799624945138251
+  ],
+  "mode": "DISCOVERY",
+  "nuisance_complete": 1688,
+  "oi": {
+    "b2_06_evaluator_enabled": false,
+    "dataset_id": "B2_06_BINANCE_UM_BTCUSDT_OI_FUNDING_V0",
+    "first_available_at_ms": 1598918700000,
+    "first_period_start_ms": 1598918400000,
+    "funding_jsonl_opened": false,
+    "git_snapshot_id": "5a9d036b23721d75b519b8478b81e333791227376d25cbeea5f0666c90730a33",
+    "last_available_at_ms": 1735689600000,
+    "last_period_start_ms": 1735689300000,
+    "n_rows": 455273,
+    "nonpositive_rows": 448,
+    "oi_jsonl_sha256": "c4744a9369844f453476589111c2436372e729e7afdbe5fb34b6e9938a905b94",
+    "research_authorized": false,
+    "runtime_snapshot_id": "dc7435fe4a5f7c8239edf076954a9072b3b9497a62f3e549c1614abf34a70e18"
+  },
+  "outcome_blind": true,
+  "predictor_complete": 1688,
+  "proceed_to_outcomes": true,
+  "pseudo_assigned": 1074,
+  "pseudo_legitimate": 1699,
+  "pseudo_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1699,
+    "NO_CONTROL": 0,
+    "NO_SIGMA": 0,
+    "NO_TOUCH": 2086,
+    "OUTSIDE_WINDOW": 291,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "real_legitimate": 1708,
+  "real_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1708,
+    "NO_SIGMA": 0,
+    "NO_TOUCH": 2124,
+    "OUTSIDE_WINDOW": 244,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "scaler": {
+    "iqr": [
+      0.008795439675531636,
+      0.0002965771483191495,
+      0.08472701743530485,
+      0.18855171931137985,
+      0.007019602601124523
+    ],
+    "median": [
+      0.0020868662257442234,
+      3.580546274503826e-05,
+      0.07362699773930878,
+      0.06070963659772181,
+      0.005437476965416574
+    ],
+    "n": 1688
+  },
+  "scaler_hex": {
+    "iqr": [
+      "0x1.20357ee1531fap-7",
+      "0x1.36fbd271c0b9ep-12",
+      "0x1.5b0ab78f8e5c7p-4",
+      "0x1.8227676060265p-3",
+      "0x1.cc09639a4d95ep-8"
+    ],
+    "median": [
+      "0x1.11879c61a3384p-9",
+      "0x1.2c5ba550230f5p-15",
+      "0x1.2d9380b649b76p-4",
+      "0x1.f15555f7a8045p-5",
+      "0x1.6459b9bd3d5bdp-8"
+    ]
+  },
+  "selected_ari_hex": "0x1.c87fe6442c6c8p-1",
+  "selected_k": 3,
+  "selected_silhouette_hex": "0x1.14bd986e7e959p-2",
+  "state_counts": [
+    190,
+    1178,
+    320
+  ],
+  "state_names": [
+    "STATE_1",
+    "STATE_2",
+    "STATE_3"
+  ],
+  "structural_episodes": 4076,
+  "training_digest": "c59db814c27c0b5d649a60d41699e9464368b0dc46ca1a272b43891652ee31dc",
+  "unit": "LEVEL_FLOW_RESPONSE_STATE_DISCOVERY_V1"
+}
