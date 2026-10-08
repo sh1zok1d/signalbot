@@ -1,0 +1,51 @@
+{
+ "table": "LEVEL_RACE_HIST_TABLE_V1.json",
+ "table_file_sha256": "e8a3224be08c40fc10c57280aca2b2dedc64b9f9adbbf591fb34f5dd030e20a4",
+ "table_sha256": "4f57c80065ba17482ea7cae8aa8ac732a9f3897fa58a93bb86d26ddb9224805b",
+ "what": "T0 scored events whose touch-bar close is outside (P_DN, P_UP); shares unchanged",
+ "t0_cells": {
+  "T0|DAY|H": {
+   "n": 865,
+   "outside": 30,
+   "outside_above_p_up": 15,
+   "outside_below_p_dn": 15,
+   "outside_share": 0.03468208092485549
+  },
+  "T0|DAY|L": {
+   "n": 764,
+   "outside": 44,
+   "outside_above_p_up": 22,
+   "outside_below_p_dn": 22,
+   "outside_share": 0.05759162303664921
+  },
+  "T0|MONTH|H": {
+   "n": 28,
+   "outside": 5,
+   "outside_above_p_up": 4,
+   "outside_below_p_dn": 1,
+   "outside_share": 0.17857142857142858
+  },
+  "T0|MONTH|L": {
+   "n": 12,
+   "outside": 4,
+   "outside_above_p_up": 2,
+   "outside_below_p_dn": 2,
+   "outside_share": 0.3333333333333333
+  },
+  "T0|WEEK|H": {
+   "n": 138,
+   "outside": 12,
+   "outside_above_p_up": 5,
+   "outside_below_p_dn": 7,
+   "outside_share": 0.08695652173913043
+  },
+  "T0|WEEK|L": {
+   "n": 98,
+   "outside": 19,
+   "outside_above_p_up": 7,
+   "outside_below_p_dn": 12,
+   "outside_share": 0.19387755102040816
+  }
+ },
+ "total_outside_scored": 114
+}
