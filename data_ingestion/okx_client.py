@@ -186,8 +186,14 @@ class OKXClient(ExchangeClient):
     async def _feed_alive(self) -> None:
         """The liveness marker of the liquidation channel (collector side of data reliability D2)."""
         cb = getattr(self.callbacks, "on_liquidation_feed_alive", None)
-        if cb is not None:
+        if cb is None:
+            return
+        try:
             await cb(self.name, time.time())
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - a marker write never tears down the socket
+            logger.warning("[okx] liquidation liveness marker not written: %s", exc)
 
     async def _liq_pong(self) -> None:
         if self._liq_live:                    # a pong proves the socket; the ack proved the channel
@@ -202,9 +208,11 @@ class OKXClient(ExchangeClient):
         if msg.get("arg", {}).get("channel") != "liquidation-orders":
             return
         self._liq_live = True
-        await self._feed_alive()
-        if self._ct_val is None:            # never stored without a usable multiplier (fail-closed)
-            return
+        if self._ct_val is not None:        # never stored without a usable multiplier (fail-closed)
+            await self._store_liquidations(msg)
+        await self._feed_alive()            # after the push's data: a marker blip never drops it
+
+    async def _store_liquidations(self, msg: dict) -> None:
         for group in msg.get("data", []):
             if group.get("instId") != self._inst_id:
                 continue

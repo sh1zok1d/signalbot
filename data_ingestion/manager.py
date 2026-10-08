@@ -116,8 +116,11 @@ class IngestionManager:
             last_alive[ex] = ts                 # only after the row is in: a failed insert retries next signal
             if ts - last_prune["ts"] >= HEARTBEAT_PRUNE_EVERY_S:
                 last_prune["ts"] = ts
-                await self.db.prune_liquidation_feed_heartbeats(
-                    before=_to_ts(ts - HEARTBEAT_KEEP_DAYS * 86400.0))
+                try:                            # housekeeping: never raises into the socket loop
+                    await self.db.prune_liquidation_feed_heartbeats(
+                        before=_to_ts(ts - HEARTBEAT_KEEP_DAYS * 86400.0))
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("[%s] liquidation heartbeat prune failed: %s", ex, exc)
 
         return ClientCallbacks(
             on_trade=on_trade, on_oi=on_oi, on_funding=on_funding,

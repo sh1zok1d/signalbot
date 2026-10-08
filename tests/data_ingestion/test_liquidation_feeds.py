@@ -283,3 +283,32 @@ def test_a_failed_heartbeat_insert_is_retried_on_the_next_signal():
         _run(cb.on_liquidation_feed_alive("okx", 1000.0))
     _run(cb.on_liquidation_feed_alive("okx", 1001.0))       # the next pong: written, not throttled
     assert db.written == [1001.0]
+
+
+def test_a_failing_heartbeat_write_neither_escapes_the_push_nor_loses_its_liquidations(caplog):
+    """Architect, review of #398: the marker was awaited unguarded before the push's data, so one DB
+    blip on the heartbeat dropped that push's liquidations and tore the socket down."""
+    got, cb = _collect()
+    db = _BeatDB(fail_at={1})
+    cb.on_liquidation_feed_alive = _manager_callbacks(db).on_liquidation_feed_alive
+    c = OKXClient("BTCUSDT", cb)
+    c._ct_val = 0.01
+    c._liq_live = True
+    with caplog.at_level(logging.WARNING, logger=okx_client.logger.name):
+        _run(c._handle_liquidation_message(_okx_push([
+            {"posSide": "long", "side": "sell", "bkPx": "60000", "sz": "1", "ts": "1759900000000"}])))
+    assert [x.side for x in got] == ["long"] and db.written == []
+    assert "liveness marker not written" in caplog.text
+    _run(c._liq_pong())                                      # the next signal writes it (not throttled)
+    assert len(db.written) == 1
+
+
+def test_a_failing_heartbeat_prune_never_raises_into_the_socket_loop():
+    class _PruneFails(_BeatDB):
+        async def prune_liquidation_feed_heartbeats(self, *, before):
+            raise ConnectionError("db blip")
+    db = _PruneFails()
+    cb = _manager_callbacks(db)
+    _run(cb.on_liquidation_feed_alive("okx", 100000.0))      # no raise
+    _run(cb.on_liquidation_feed_alive("okx", 100030.0))
+    assert db.written == [100000.0, 100030.0]
