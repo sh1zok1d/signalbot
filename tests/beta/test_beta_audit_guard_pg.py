@@ -1,6 +1,7 @@
 """The one exception to the append-only audit (owner, 2026-10-08, #420): deleting a participant de-identifies the
 audit rows about them in the same transaction. No audit row is deleted, no action changes, no other person's row
-is edited, and an actor fingerprint that identifies them becomes the role. Anything else stays rejected."""
+is edited, and an actor fingerprint that identifies them becomes the role; every row about or by them keeps
+only the Kyiv date and detail {} (owner, 2026-10-09). Anything else stays rejected."""
 import json
 from datetime import timedelta
 
@@ -51,10 +52,10 @@ def test_deleting_a_participant_de_identifies_only_their_audit_rows():
             assert (a["action"], a["authorized"], a["result"], a["actor_fingerprint"]) == (
                 b["action"], b["authorized"], b["result"], owner)
             assert (a["target_fingerprint"], json.loads(a["detail"]), a["recorded_at"]) == (None, {}, day)
-        a = after[by_them]
-        assert a["actor_fingerprint"] == "participant"
-        assert {k: v for k, v in a.items() if k != "actor_fingerprint"} == {
-            k: v for k, v in before[by_them].items() if k != "actor_fingerprint"}
+        a, b = after[by_them], before[by_them]                                   # owner, 2026-10-09: same shape,
+        assert (a["actor_fingerprint"], a["target_fingerprint"], json.loads(a["detail"]), a["recorded_at"]) == (
+            "participant", live, {}, day)                                         # the live target stays
+        assert (a["action"], a["authorized"], a["result"]) == (b["action"], b["authorized"], b["result"])
         for i in others:
             assert after[i] == before[i]
         assert not [r for r in after.values() if gone in (r["actor_fingerprint"], r["target_fingerprint"])]
@@ -72,7 +73,8 @@ def test_the_owner_deleting_themself_becomes_the_owner_role():
             r = await conn.delete_participant(OWNER, OWNER)
         assert r["audit"] == 1
         row = await pool.fetchrow("SELECT * FROM beta_admin_audit WHERE audit_id=$1", i)
-        assert (row["actor_fingerprint"], json.loads(row["detail"]), row["recorded_at"]) == ("owner", {"waitlist": 2}, T)
+        day = T.astimezone(KYIV).replace(hour=0, minute=0, second=0, microsecond=0)
+        assert (row["actor_fingerprint"], json.loads(row["detail"]), row["recorded_at"]) == ("owner", {}, day)
         await pool.close()
     run(body())
 
