@@ -65,64 +65,127 @@ The file runs inside `BEGIN TRANSACTION READ ONLY … ROLLBACK`. For each deleti
 
 It then prints the number of rows the redaction would change. It assumes nothing about test accounts: the owner-target column shows which rows are the owner's own.
 
-## 3. The redaction and how it gets past append-only
+## 3. The redaction, its switches, and how it gets past append-only
 
 `deploy/signalbot-beta-audit-deidentify.sql`, in one transaction:
 1. `LOCK TABLE beta_admin_audit IN ACCESS EXCLUSIVE MODE`.
 2. Print the before counts.
-3. `ALTER TABLE … DISABLE TRIGGER trg_beta_audit_append_only`.
-4. `UPDATE` the three deletion actions only:
-   - set `target_fingerprint = NULL`;
-   - set `detail = {"cohort": …}` with `joined_after_test_open = false`. Every pre-#418 deletion predates any `/admin_test_open`, so false is the true value.
+3. `DISABLE TRIGGER trg_beta_audit_append_only`.
+4. Run the updates below.
 5. `ENABLE TRIGGER`.
 6. Print the after counts and the trigger state (`O` = enabled).
 7. `COMMIT`.
 
+- **Always, on the deletion rows** (`user_delete_me`, `retention_purge`, `admin_remove`):
+  - `target_fingerprint = NULL`;
+  - `detail = {"cohort": …}` with `joined_after_test_open = false`. Every pre-#418 deletion predates any `/admin_test_open`, so false is the true value.
+- **The owner's three pending decisions.** Until the owner answers, the defaults are the most protective:
+
+| Switch (`psql -v`) | Default | Effect |
+|---|---|---|
+| `coarsen` | `on` | `recorded_at` of the deletion rows is cut to 00:00 of its Kyiv date, so the exact deletion time is gone. |
+| `other_actions` | `on` | `admin_known` / `admin_reply` / `admin_add` rows lose their `target_fingerprint` when it belongs to nobody still in `beta_users`, `beta_allowlist` or `beta_waitlist`. Matching uses the same formula as `beta.admin.fingerprint`, computed in SQL. The owner's own fingerprint is never touched. |
+| salted fingerprints | — | **Not this script:** a separate code PR. |
+
 **Why disabling the trigger this way is safe:**
 - Only the named append-only trigger is disabled, never `session_replication_role`, which would switch off every trigger and foreign key.
 - `ALTER TABLE` holds an ACCESS EXCLUSIVE lock to the end of the transaction, so no other session can read or write the table while the trigger is off.
-- `ON_ERROR_STOP` plus the single transaction mean any error rolls everything back, the `DISABLE` included. The trigger is never left off.
-- It needs the table owner: the role the schema was applied with, not the bot's runtime role.
-- It is idempotent: a second run updates 0 rows.
+- `ON_ERROR_STOP` plus the single transaction mean any error rolls everything back, the `DISABLE` included.
+- It needs the table owner. In the docker setup that is `POSTGRES_USER`, which created the schema.
+- It is idempotent: every update reports `UPDATE 0` on a second run.
 
-**Tested locally.** `tests/beta/test_beta_audit_deidentify_pg.py` runs both files with `psql` on PostgreSQL 16, on the real schema with representative pre-#418 rows:
-- `user_delete_me` with counts;
-- `retention_purge` with a fingerprint;
-- `admin_remove` of the owner's own account and of an invited non-joiner;
-- an unrelated `admin_stats` row.
+**Tested.**
+- `tests/beta/test_beta_audit_deidentify_pg.py` runs both files with `psql` on PostgreSQL 16 against representative pre-#418 rows. It covers:
+  - the count changes nothing;
+  - only the intended rows change;
+  - the cohort fields are exactly three;
+  - coarsening to the Kyiv date;
+  - only the deleted person's `admin_known` fingerprint goes;
+  - append-only again afterwards;
+  - both switches off;
+  - idempotence.
+- Blocks A and B below were run verbatim on 2026-10-08:
+  - against a `postgres:16` container named `btcbot_timescaledb` (`POSTGRES_USER` / `POSTGRES_DB` = `btcbot`);
+  - with the beta schema and representative rows;
+  - with `/opt/signalbot` as a clone with its own `.env`;
+  - with the scripts fetched from `pull/418/head`.
 
-It checks:
-- the count changes nothing;
-- only the three actions change, with `recorded_at` and the actor unchanged;
-- the cohort fields are exactly the three;
-- the table is append-only again afterwards;
-- a second run is a no-op.
+  Results:
+  - Block A left every production row unchanged, redacted the scratch copy (count afterwards: 0 to redact), dropped `deid_scratch`, and left the working tree and `HEAD` of `/opt/signalbot` untouched.
+  - Block B, with `systemctl` stubbed, redacted production and its count afterwards was 0.
 
-## 4. Owner command block (VPS; scratch copy first)
+## 4. Owner command blocks (VPS, as the user that runs `deploy/backup.sh`)
+
+**What the owner types:** nothing but pasting the block.
+- Everything comes from `/opt/signalbot/.env`, read in a subshell, with the same defaults as `deploy/backup.sh` and `docker-compose.yml`:
+  - container `btcbot_timescaledb`;
+  - `POSTGRES_DB` / `POSTGRES_USER` = `btcbot`;
+  - `BETA_OWNER_TELEGRAM_USER_ID`.
+- The owner's fingerprint is computed inline with the bot's formula, without importing the repo.
+- The scripts are not on `main` yet. `git fetch origin pull/418/head` only updates refs, never the working tree. `git archive FETCH_HEAD` extracts the two files into `/tmp/deid`. There is no pull and no checkout in `/opt/signalbot`.
+- The block prints the commit the scripts came from. Check it against the PR head; GitHub can lag a few seconds after a push.
+
+**Block A — now, read-only on production.** The only database it writes is the scratch `deid_scratch` inside the same container, dropped at the end.
 
 ```bash
-# 0) read-only count on production (§2)
-psql "$DSN" -X -v owner_fp="$OWNER_FP" -f deploy/signalbot-beta-audit-deidentify-count.sql
-
-# 1) scratch copy: the function, the table and its rows, nothing else
-createdb -h <host> -U <owner role> audit_scratch
-psql "$DSN" -X -At -c "SELECT pg_get_functiondef('beta_v0_reject_mutation'::regproc) || ';'" \
-  | psql -h <host> -U <owner role> -d audit_scratch -X -v ON_ERROR_STOP=1
-pg_dump "$DSN" -t beta_admin_audit --no-owner --no-privileges \
-  | psql -h <host> -U <owner role> -d audit_scratch -X -v ON_ERROR_STOP=1
-
-# 2) redaction on the scratch copy; read the before / after tables it prints
-psql -h <host> -U <owner role> -d audit_scratch -X -f deploy/signalbot-beta-audit-deidentify.sql
-psql -h <host> -U <owner role> -d audit_scratch -X -v owner_fp="$OWNER_FP" \
-  -f deploy/signalbot-beta-audit-deidentify-count.sql          # rows_to_redact must now be 0
-
-# 3) only after the owner's go: production, as the table owner, right after a fresh backup
-deploy/backup.sh
-psql "$DSN" -X -f deploy/signalbot-beta-audit-deidentify.sql
-dropdb -h <host> -U <owner role> audit_scratch
+# ---- Block A: now, read-only on production. Writes only a scratch database deid_scratch inside the same container.
+set -euo pipefail
+cd /opt/signalbot
+# 1) settings, read from /opt/signalbot/.env in a subshell, defaults as in deploy/backup.sh and docker-compose.yml
+eval "$( (set -a; . /opt/signalbot/.env; set +a
+          printf 'C=%q\nDB=%q\nU=%q\nOWNER_ID=%q\n' "${BTCBOT_PG_CONTAINER:-btcbot_timescaledb}" \
+                 "${POSTGRES_DB:-btcbot}" "${POSTGRES_USER:-btcbot}" "${BETA_OWNER_TELEGRAM_USER_ID:-}") )"
+[ -n "$OWNER_ID" ] || { echo "BETA_OWNER_TELEGRAM_USER_ID is empty in /opt/signalbot/.env"; exit 1; }
+OWNER_FP=$(python3 -c 'import hashlib,sys; print("u_" + hashlib.sha256(("signalbot-beta-v0:%d" % int(sys.argv[1])).encode()).hexdigest()[:12])' "$OWNER_ID")
+echo "container=$C db=$DB user=$U owner_fp=$OWNER_FP"
+# 2) the two scripts from the #418 head into /tmp/deid (fetch updates refs only; the working tree is untouched)
+rm -rf /tmp/deid && mkdir -p /tmp/deid
+git -C /opt/signalbot fetch -q origin pull/418/head
+echo "scripts from commit $(git -C /opt/signalbot rev-parse FETCH_HEAD)"
+git -C /opt/signalbot archive FETCH_HEAD deploy/signalbot-beta-audit-deidentify.sql \
+    deploy/signalbot-beta-audit-deidentify-count.sql | tar -x -C /tmp/deid
+PSQL() { docker exec -i "$C" psql -X -U "$U" -v ON_ERROR_STOP=1 "$@"; }
+# 3) the read-only count on production
+PSQL -d "$DB" -v owner_fp="$OWNER_FP" < /tmp/deid/deploy/signalbot-beta-audit-deidentify-count.sql
+# 4) scratch copy: the trigger function, the audit table with its rows, and only the ids the redaction compares
+trap 'docker exec "$C" dropdb -U "$U" --if-exists deid_scratch' EXIT
+docker exec "$C" dropdb -U "$U" --if-exists deid_scratch
+docker exec "$C" createdb -U "$U" deid_scratch
+PSQL -d "$DB" -At -c "SELECT pg_get_functiondef('beta_v0_reject_mutation'::regproc) || ';'" | PSQL -q -d deid_scratch
+docker exec "$C" pg_dump -U "$U" -d "$DB" -t beta_admin_audit --no-owner --no-privileges | PSQL -q -d deid_scratch
+PSQL -q -d deid_scratch -c "CREATE TABLE beta_users (telegram_user_id BIGINT);
+                            CREATE TABLE beta_allowlist (telegram_user_id BIGINT);
+                            CREATE TABLE beta_waitlist (telegram_user_id BIGINT);"
+for t in beta_users beta_allowlist beta_waitlist; do
+  PSQL -d "$DB" -c "\copy (SELECT telegram_user_id FROM $t) TO STDOUT" | PSQL -q -d deid_scratch -c "\copy $t FROM STDIN"
+done
+# 5) the redaction on the scratch copy (default switches: coarsen=on, other_actions=on); before / after
+PSQL -d deid_scratch < /tmp/deid/deploy/signalbot-beta-audit-deidentify.sql
+PSQL -d deid_scratch -v owner_fp="$OWNER_FP" < /tmp/deid/deploy/signalbot-beta-audit-deidentify-count.sql
+# 6) the scratch database is dropped on exit (trap)
 ```
 
-(Inside the docker setup, prefix the commands with `docker exec -i <container>` as `deploy/backup.sh` does.)
+**Block B — later, only after the owner's go.** It writes production. It needs Block A's `/tmp/deid`. Set `-v coarsen=` and `-v other_actions=` to the owner's answers; both stay `on` until he answers.
+
+```bash
+# ---- Block B: later, only after the owner's go. Writes beta_admin_audit on production.
+set -euo pipefail
+cd /opt/signalbot
+eval "$( (set -a; . /opt/signalbot/.env; set +a
+          printf 'C=%q\nDB=%q\nU=%q\nOWNER_ID=%q\n' "${BTCBOT_PG_CONTAINER:-btcbot_timescaledb}" \
+                 "${POSTGRES_DB:-btcbot}" "${POSTGRES_USER:-btcbot}" "${BETA_OWNER_TELEGRAM_USER_ID:-}") )"
+[ -n "$OWNER_ID" ] || { echo "BETA_OWNER_TELEGRAM_USER_ID is empty in /opt/signalbot/.env"; exit 1; }
+OWNER_FP=$(python3 -c 'import hashlib,sys; print("u_" + hashlib.sha256(("signalbot-beta-v0:%d" % int(sys.argv[1])).encode()).hexdigest()[:12])' "$OWNER_ID")
+[ -f /tmp/deid/deploy/signalbot-beta-audit-deidentify.sql ] || { echo "run block A first (it fetches the scripts)"; exit 1; }
+PSQL() { docker exec -i "$C" psql -X -U "$U" -v ON_ERROR_STOP=1 "$@"; }
+# 1) a fresh backup first (the same unit the timer runs: local dump, then off-site if configured)
+sudo systemctl start signalbot-backup.service
+systemctl --no-pager --lines=5 status signalbot-backup.service || true
+# 2) the redaction on production; the switches follow the owner's answers (both on unless he says otherwise)
+PSQL -d "$DB" -v coarsen=on -v other_actions=on < /tmp/deid/deploy/signalbot-beta-audit-deidentify.sql
+# 3) the count again: rows_to_redact and other_rows_to_redact must be 0
+PSQL -d "$DB" -v owner_fp="$OWNER_FP" < /tmp/deid/deploy/signalbot-beta-audit-deidentify-count.sql
+```
 
 ## 5. When the old traces leave the backups
 
