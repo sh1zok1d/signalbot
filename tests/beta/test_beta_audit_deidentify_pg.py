@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 LIVE_ID, GONE_ID, OWNER_ID = 900000000777, 900000000666, 900000000900
 
 
-def _old_fp(uid):                       # the unkeyed formula every pre-#423 row holds
+def _old_fp(uid):                       # the unkeyed formula every pre-#421 row holds
     return "u_" + hashlib.sha256(f"signalbot-beta-v0:{uid}".encode()).hexdigest()[:12]
 
 

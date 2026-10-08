@@ -4,7 +4,7 @@
 
 **v2 supersedes v1** (#418's draft) and follows the owner's OUT-8 decisions of 2026-10-08:
 - Keep only what the measurements need; a counter replaces any per-row record (#420).
-- Pseudonyms are keyed (#423).
+- Pseudonyms are keyed (#421).
 - Every audit row about a participant who was deleted is de-identified: target, nested detail, any free text, and the exact time.
 
 ## 1. What remains, per row type
@@ -19,13 +19,13 @@
 - **Residual risk, stated.** In a small cohort, a deleted person's rows still show *that* an action happened on a given Kyiv date (for example «an `admin_known` on 2026-10-02»). The counter shows *that* someone who joined on a date left. Neither names anyone without outside knowledge, such as the owner's own memory or ledger. These are the minimum the measurements need.
 
 ## 2. How rows about a deleted participant are found
-- **The rule.** Every row before #423 holds the old, unkeyed fingerprint `"u_" + sha256("signalbot-beta-v0:" + id)[:12]`.
+- **The rule.** Every row before #421 holds the old, unkeyed fingerprint `"u_" + sha256("signalbot-beta-v0:" + id)[:12]`.
   - The script computes that fingerprint, in SQL, for every id still present in `beta_users`, `beta_allowlist` and `beta_waitlist`.
   - A row whose target is none of these, and is not the actor's own, is a row about someone who was deleted.
 - **`/delete_me` rows** have no target and are matched by action, not by person. The deleted person's *other* rows are found by the rule above.
-- **What cannot be matched safely is counted, never guessed.** Rows recorded after #423 hold **keyed** fingerprints, which SQL cannot recompute without the key.
-  - Pass `-v keyed_since=<the #423 deploy instant>`: those rows are left untouched and reported as `keyed_unmatched`.
-  - **The intended order is to run block B after #420 and before #423**; then there are none.
+- **What cannot be matched safely is counted, never guessed.** Rows recorded after #421 hold **keyed** fingerprints, which SQL cannot recompute without the key.
+  - Pass `-v keyed_since=<the #421 deploy instant>`: those rows are left untouched and reported as `keyed_unmatched`.
+  - **The intended order is to run block B after #420 and before #421**; then there are none.
 - **A target the owner typed for nobody** (an `/admin_reply` to an unknown fingerprint) also matches the rule. Removing it loses nothing.
 
 ## 3. Read-only count
@@ -84,7 +84,7 @@ eval "$( (set -a; . /opt/signalbot/.env; set +a
           printf 'C=%q\nDB=%q\nU=%q\nOWNER_ID=%q\n' "${BTCBOT_PG_CONTAINER:-btcbot_timescaledb}" \
                  "${POSTGRES_DB:-btcbot}" "${POSTGRES_USER:-btcbot}" "${BETA_OWNER_TELEGRAM_USER_ID:-}") )"
 [ -n "$OWNER_ID" ] || { echo "BETA_OWNER_TELEGRAM_USER_ID is empty in /opt/signalbot/.env"; exit 1; }
-# the owner's fingerprint as the existing (pre-#423, unkeyed) rows hold it
+# the owner's fingerprint as the existing (pre-#421, unkeyed) rows hold it
 OWNER_FP=$(python3 -c 'import hashlib,sys; print("u_" + hashlib.sha256(("signalbot-beta-v0:%d" % int(sys.argv[1])).encode()).hexdigest()[:12])' "$OWNER_ID")
 echo "container=$C db=$DB user=$U owner_fp(old)=$OWNER_FP"
 # 2) the two scripts from the PR head into /tmp/deid (fetch updates refs only; the working tree is untouched)
@@ -120,11 +120,11 @@ PSQL -d deid_scratch -v owner_fp="$OWNER_FP" < /tmp/deid/deploy/signalbot-beta-a
 ```
 
 **Block B — later, only after the owner's go.**
-- Run it after #420 is deployed (the counter exists; the block checks) and before #423 switches the fingerprints to keyed.
+- Run it after #420 is deployed (the counter exists; the block checks) and before #421 switches the fingerprints to keyed.
 - It writes production, right after a fresh backup.
 
 ```bash
-# ---- Block B: later, only after the owner's go, after #420 is deployed and before #423 (keyed fingerprints).
+# ---- Block B: later, only after the owner's go, after #420 is deployed and before #421 (keyed fingerprints).
 set -euo pipefail
 cd /opt/signalbot
 eval "$( (set -a; . /opt/signalbot/.env; set +a
