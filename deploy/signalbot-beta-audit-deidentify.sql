@@ -11,7 +11,8 @@
 --    (rows written before any /admin_test_open never qualify).
 -- 2. Rows about a deleted participant: every other audit row with a target fingerprint that belongs to nobody
 --    still in beta_users, beta_allowlist or beta_waitlist (computed with the old, unkeyed formula the rows hold)
---    and is not the actor's own -> target NULL, detail {} (no nested ids, counts or attributes), the Kyiv date.
+--    and is not a live person's or the owner's own row -> target NULL, detail {} (no nested ids, counts or
+--    attributes), the Kyiv date.
 --    The fact that the action happened stays. The audit never stored reply bodies (admin_reply keeps none).
 -- 3. The actor side: an actor fingerprint that is a person's (u_ + 12 hex), belongs to nobody still present and is
 --    not the owner's -> 'participant', whatever the target. A row they only acted in keeps everything else; when
