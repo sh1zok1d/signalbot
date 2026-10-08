@@ -1,0 +1,55 @@
+{
+  "event_window": [
+    "2020-02-01T00:00:00+00:00",
+    "2025-01-01T00:00:00+00:00"
+  ],
+  "history_ok": true,
+  "incomplete_4h_pseudo": 0,
+  "incomplete_4h_real": 0,
+  "matched_pairs": 1231,
+  "novelty_ok": true,
+  "outcomes_read": false,
+  "pre_outcome_gate_pass": true,
+  "pseudo_legitimate": 1962,
+  "pseudo_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1962,
+    "NO_CONTROL": 0,
+    "NO_TOUCH": 2086,
+    "OUTSIDE_WINDOW": 28,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "real_legitimate": 1919,
+  "real_status": {
+    "INCOMPLETE_4H": 0,
+    "LEGITIMATE": 1919,
+    "NO_TOUCH": 2124,
+    "OUTSIDE_WINDOW": 33,
+    "UNKNOWN_SIDE": 0,
+    "UNUSABLE_X": 0
+  },
+  "resolution_times_read": false,
+  "slices": {
+    "family": {
+      "DAY": 1071,
+      "MONTH": 22,
+      "WEEK": 138
+    },
+    "other_year": 0,
+    "side": {
+      "resistance": 690,
+      "support": 541
+    },
+    "weeks": 254,
+    "year": {
+      "2020": 242,
+      "2021": 334,
+      "2022": 258,
+      "2023": 181,
+      "2024": 216
+    }
+  },
+  "structural_episodes": 4076,
+  "unit": "LEVEL_TIME_TO_RESOLUTION_DISCOVERY_V1"
+}
