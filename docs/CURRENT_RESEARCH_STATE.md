@@ -1,3 +1,18 @@
+## LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1 — synthesis only; no new market outcome; confirmation not started — 2026-10-08
+
+`UNIT = LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1 | MODE = SYNTHESIS / NO_NEW_MARKET_OUTCOMES | not an atlas outcome cell | parent HEAD fb6598aa (#368)`
+`SCOPE = #352 #353 #355 #356 #357 #358 #359 #360 #361 #362 #363 #364 #365 #366 #367 #368 | #354 is the governing discovery-first decision, not a market row`
+`FOUNDATION = #357 FOUNDATION_CONFIRMED | L2 REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE | 91.1% vs 83.0%, Δ +8.0 pp (95% +4.4..+11.8), N=548 | not rerun`
+`CANDIDATES = #365 DISCOVERY_CANDIDATE_STRONG, overlap with #357 INDEPENDENCE_UNRESOLVED, portfolio DO_NOT_CONFIRM, BitMEX BITMEX_CLOCK_NOT_INDEPENDENT_ENOUGH | #368 DISCOVERY_CANDIDATE_STRONG, overlap with #365 INDEPENDENCE_UNRESOLVED, P3 prospective only, BitMEX exact RV unread and neighbor 4h path exposed | #363 DISCOVERY_CANDIDATE_METHOD_LIMITED, frozen class preserved, LEVEL_SPECIFICITY = NOT_ESTABLISHED, P3 is the primary coefficient only`
+`GENERIC = #361 END_POSITION_X GENERIC_MARKET_STRUCTURE_NOT_LEVEL_SPECIFIC | frozen NONE unchanged | DO_NOT_CONFIRM_AS_LEVEL_SPECIFIC`
+`NULLS = #352 ordinal, #353, #355, #356, #358, #359, #360, #362, #364, #366, #367 | class NULL_NO_INCREMENTAL_INFORMATION | neighborhoods closed, not authorized`
+`PORTFOLIO = P0 #357 already confirmed | P1 none | P2 none | P3-1 #368 | P3-2 #363 primary coefficient | confirmation executed = no`
+`ATLAS = not updated | a synthesis event would require a source-digest change or a fake outcome cell`
+`WINDOWS_CONSUMED = none | 2025/2026 not read | product unchanged | findings registry unchanged | L0–L4 unchanged`
+`STOP = no confirmation without a new owner go`
+
+Records: `docs/research/LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1.md` (+ `.json`), `docs/research/LEVEL_ENGINE_CONFIRMATION_PORTFOLIO_V1.md`, `docs/research/LEVEL_ENGINE_CLOSED_NEIGHBORHOODS_V1.md`.
+
 ## LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1 — executed once; discovery; volatility-transition candidate; sequence 8/8 complete; no successor; not integrated — 2026-10-08
 
 `UNIT = LEVEL_VOLATILITY_TRANSITION_DISCOVERY_V1 (atlas LEVEL-VOLATILITY-TRANSITION-DISCOVERY-V1; family LEVEL_BEHAVIOR_V1; MODE = DISCOVERY; design 54338b7f before any post-touch RV) | TRACKS = STRUCTURE + PRODUCT_EVIDENCE | CLAIM = L2 family statement; DISCOVERY_ONLY; LEVEL_VOLATILITY_TRANSITION_CANDIDATE`

@@ -8510,3 +8510,18 @@ OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_
 PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
 SUCCESSOR_CANDIDATE = NONE; CONFIRMATION_STARTED = no; PRODUCT_INTEGRATION_CANDIDATE = NO; LEVEL_ENGINE_DISCOVERY_8_OF_8_COMPLETE = YES
 ```
+
+## 2026-10-08 — LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1 recorded; no new market window; confirmation not started
+
+**Record.** `LEVEL_ENGINE_DISCOVERY_SYNTHESIS_V1`. Mode `SYNTHESIS / NO_NEW_MARKET_OUTCOMES`. Not an outcome unit and not an atlas cell. Parent HEAD `fb6598aa62fc9b47cec2e9095959aa98182f0407`. Source main `1a2e425303fb29e1044ca57452b8ad9b6f0a831b`.
+- **Scope.** Evidence map of #352, #353, #355, #356, #357, #358, #359, #360, #361, #362, #363, #364, #365, #366, #367, and #368. #354 is the governing discovery-first decision and is not market evidence. Frozen routes and result files were not edited. L0–L4 was not redefined.
+- **Foundation.** #357 stays `FOUNDATION_CONFIRMED` (`REPLICATED_POSITIVE_RESOLUTION_DIFFERENCE`). It was not rerun.
+- **Selection.** No P1 historical confirmation. Prospective sketches only: #368 paired RV transition, then #363 primary cross-venue coefficient. #365 is `DO_NOT_CONFIRM`. #361 is `DO_NOT_CONFIRM_AS_LEVEL_SPECIFIC`. Null neighborhoods are closed and not authorized.
+- **Data.** No new window. No 2025/2026 object. No BitMEX outcome column. No live tape. No product change. Findings registry unchanged.
+
+```
+WINDOWS_CONSUMED = none
+OBJECTS_2025_2026_USED = none; LIVE_TAPE_READ = no; E1 / V3 untouched; COMPILER_V3 = not run
+PRODUCT_CHANGE = none; BOT_LINE = none; FINDINGS_REGISTRY = unchanged
+CONFIRMATION_STARTED = no; ATLAS_UPDATED = no; LEVEL_ENGINE_DISCOVERY_SYNTHESIS_RECORDED = YES
+```
