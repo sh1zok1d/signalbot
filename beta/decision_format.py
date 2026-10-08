@@ -585,6 +585,12 @@ def races_shown(block: Optional[Mapping[str, Any]], surface: str, *,
     return races if surface == "levels" else []
 
 
+def zone_member_names(kinds: Sequence[str], lang: str) -> str:
+    """«PDH (максимум вчера), PWH (максимум прошлой недели)»: the type and its /levels name, anchor first; the
+    form that reads in «вошла в зону …» in both languages."""
+    return ", ".join(t(lang, "pa_zone_member", kind=k, name=level_name({"kind": k}, lang)) for k in kinds)
+
+
 def _spp(v: int) -> str:
     """A signed whole number of pp: +3, −2, 0."""
     v = int(v)
@@ -602,8 +608,9 @@ def race_lines(block: Mapping[str, Any], lang: str, surface: str, *,
     for r in races_shown(block, surface, check_levels=check_levels):
         end = datetime.fromtimestamp(r["end_ms"] / 1000, tz=timezone.utc)
         touch = datetime.fromtimestamp((r["touch_open_ms"] + 300_000) / 1000, tz=timezone.utc)
-        names = _e(zone_names({"members": [{"kind": k} for k in r["member_kinds"]]}, lang, limit=2))
-        out.append(t(lang, "lr_head", names=names, when=_when(touch, lang, with_day=False),
+        names = _e(zone_member_names(r["member_kinds"], lang))
+        touch_today = now is not None and local(touch).date() == local(now).date()
+        out.append(t(lang, "lr_head", names=names, when=_when(touch, lang, with_day=not touch_today),
                      clock=fmt_clock(clock or now or touch, lang)))
         if r["template"] == "LR_HIST_LOW_N_V1":
             out.append(t(lang, "lr_hist_low_n_v1", n=int(r["n"])))
@@ -974,8 +981,7 @@ def format_alert(kind: str, payload: Mapping[str, Any], lang: str) -> str:
                        level=fmt_price(payload["level"], lang)))
         pts = payload.get("price_ts")
         if payload.get("trigger") == "structural":      # the #352 zone entry, decided at the 5m close
-            zone = ", ".join(t(lang, "pa_zone_member", kind=k, name=level_name({"kind": k}, lang))
-                             for k in [payload["level_kind"]] + list(payload.get("also_kinds") or ()))
+            zone = zone_member_names([payload["level_kind"]] + list(payload.get("also_kinds") or ()), lang)
             lines.append(t(lang, "pa_zone_now_at", name=_e(zone),
                            clock=fmt_clock(datetime.fromisoformat(payload["source_at"]), lang),
                            low=fmt_price(payload["zone_low"], lang), high=fmt_price(payload["zone_high"], lang),

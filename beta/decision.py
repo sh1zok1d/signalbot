@@ -254,7 +254,7 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
     }
     from .level_race_live import setting as race_setting
     if race_setting(cfg, "display_enabled"):
-        block["level_race"] = _level_race(b, now, price, closed_1m=tape.get("closed_1m") or ())
+        block["level_race"] = await race_display(conn, b, now, price, zones=zones, closed_1m=tape.get("closed_1m") or ())
     ev_stats = ((stats or {}).get("events") or {}).get("kinds") or {}
     block["events"] = [{"kind": e["kind"], "at": e["at"].isoformat(), "stats": ev_stats.get(e["kind"])}
                        for e in upcoming(cal, now=now, hours=EVENTS_AHEAD_H) if e["kind"] in SHOWN_EVENT_KINDS]
@@ -296,6 +296,31 @@ def _level_race(b, now: datetime, price: float, *, closed_1m=()) -> dict:
     except Exception as exc:  # noqa: BLE001 - the race never breaks a view
         logger.warning("level race block failed: %s", type(exc).__name__)
         return {"state": "OFF", "races": [], "error_type": type(exc).__name__}
+
+
+async def race_display(conn, b, now: datetime, price: float, *, zones: Mapping[str, Any], closed_1m=()) -> dict:
+    """The level race block of /levels and /check. Inside the 4h CPI / FOMC event zone there is no line: the
+    2020–2024 cells are not conditioned on releases, as the touch chances (the journal still writes, flagged).
+    Otherwise only the lines whose journal record exists."""
+    if zones.get("4h"):
+        return {"state": "HIST", "races": [], "hidden": "EVENT_ZONE"}
+    return await _journaled_only(conn, _level_race(b, now, price, closed_1m=closed_1m))
+
+
+async def _journaled_only(conn, race: dict) -> dict:
+    """Only the race lines whose journal record already exists (records are written by the notifier at each
+    landmark close): every shown line can be linked to its claim."""
+    races = race.get("races") or []
+    fetch = getattr(conn, "fetch_slot_claims", None)
+    if not races:
+        return race
+    kept = []
+    for r in races:
+        have = await fetch(issue_slot=datetime.fromtimestamp(r["landmark_ms"] / 1000, tz=timezone.utc),
+                           classes=[r["class"]]) if fetch is not None else []
+        if any(x["subject_key"] == f"{r['event_id']}:{r['landmark']}" for x in have):
+            kept.append(r)
+    return {**race, "races": kept, "not_journaled": len(races) - len(kept)}
 
 
 async def research_evidence_block(conn, cfg: BetaConfig, *, now: datetime, block: Mapping[str, Any],

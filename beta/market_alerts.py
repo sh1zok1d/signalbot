@@ -169,7 +169,9 @@ def detect_structural_touches(block: Mapping[str, Any], b: Bars, *, now: datetim
                                 "level": ev["anchor_price"], "zone_low": ev["zone_low"], "zone_high": ev["zone_high"],
                                 "side": side, "period": _period(ev["kind"]), "price": block["price"],
                                 "price_ts": block.get("price_ts"), "history": None,
-                                "race": push_view(b, ev, table), "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
+                                # no race line inside the 4h CPI / FOMC event zone (cells not event-conditioned)
+                                "race": None if (block.get("event_zone") or {}).get("4h") else push_view(b, ev, table),
+                                "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
                                 "event_zone": block.get("event_zone") or {}}})
     return out
 

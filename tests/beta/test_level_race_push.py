@@ -44,7 +44,7 @@ def test_one_switch_legacy_by_default():
 
 def test_structural_candidate_at_the_5m_close_within_max_age():
     e = _event_with_line()
-    cfg = _cfg(push_trigger="structural", display_enabled=True)
+    cfg = _cfg(push_trigger="structural", journal_enabled=True, display_enabled=True)
 
     def cands(cut_ms, now_ms):
         b = _cut(B, cut_ms)
@@ -76,7 +76,7 @@ def test_t0_has_no_line_when_the_touch_close_is_outside_the_barrier_pair():
 
 def test_push_text_says_zone_entry_with_the_race_line_and_no_hold_history():
     e = _event_with_line()
-    cfg = _cfg(push_trigger="structural", display_enabled=True)
+    cfg = _cfg(push_trigger="structural", journal_enabled=True, display_enabled=True)
     b, now = _cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 30_000)
     c = next(x for x in MA.level_touch_candidates(cfg, _block(b, now), b, [], now=now, max_age=MAX_AGE, stats=None)
              if x["key"] == f"level:{e['event_id']}")
@@ -114,3 +114,13 @@ def test_without_the_display_flag_the_structural_push_has_no_race_and_no_hold_li
     assert c["payload"]["race"] is None and c["payload"]["history"] is None
     text = format_alert("level", c["payload"], "ru")
     assert "2020–2024" not in text and "После первого касания" not in text and "вошла в зону" in text
+
+
+def test_no_race_line_in_the_push_inside_the_4h_event_zone():
+    e = _event_with_line()
+    cfg = _cfg(push_trigger="structural", journal_enabled=True, display_enabled=True)
+    b, now = _cut(B, e["t0_ms"]), _ts(e["t0_ms"] + 30_000)
+    blk = {**_block(b, now), "event_zone": {"4h": [{"kind": "CPI", "at": now.isoformat()}]}}
+    c = next(x for x in MA.level_touch_candidates(cfg, blk, b, [], now=now, max_age=MAX_AGE, stats=None)
+             if x["key"] == f"level:{e['event_id']}")
+    assert c["payload"]["race"] is None and "2020–2024" not in format_alert("level", c["payload"], "ru")

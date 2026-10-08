@@ -304,7 +304,6 @@ DECISION_CATALOG: dict = {
                             "(Binance, {price_clock})",
                             "{clock} — the price entered the {name} zone {low}–{high}, the first time this {period} · "
                             "price {price} (Binance, {price_clock})"),
-    "pa_zone_member": _pair("{kind} ({name})", "{kind} ({name})"),
     "pa_period_day": _pair("день", "day"),
     "pa_period_week": _pair("неделю", "week"),
     "pa_period_month": _pair("месяц", "month"),
@@ -520,7 +519,8 @@ DECISION_CATALOG: dict = {
     # level race, HIST (docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md §0; ids LR_HIST_V1, LR_PUSH_HIST_V1,
     # LR_HIST_LOW_N_V1). Prices only, the three outcomes together; the Russian text is the frozen one.
     "lr_head": _pair("↳ цена вошла в зону {names} в {when}, данные на {clock}",
-                     "↳ price entered the {names} zone at {when}, data as of {clock}"),
+                     "↳ the price entered the {names} zone at {when}, data as of {clock}"),
+    "pa_zone_member": _pair("{kind} ({name})", "{kind} ({name})"),
     "lr_hist_v1": _pair("Похожие касания в 2020–2024 (N = {n}): первой достигалась верхняя цена — {h_up} % "
                         "(обычно {b_up} %; разница {d_up} п.п., 95 % интервал {lo_up}..{hi_up}), нижняя — {h_dn} % "
                         "(обычно {b_dn} %; разница {d_dn} п.п., 95 % интервал {lo_dn}..{hi_dn}), ни одна за окно — "

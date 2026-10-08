@@ -327,3 +327,60 @@ def test_coverage_counts_expected_against_written_and_shows_an_outage():
     part = LR.coverage(B, rows[3:], since_ms=since, until_ms=until, table=TABLE)
     assert sum(part[lm]["missing"] for lm in ("T0", "T15")) == 3
     assert {r["subject_key"] for r in lost} <= set(part["T0"]["missing_keys"] + part["T15"]["missing_keys"])
+
+def test_display_needs_the_journal():
+    base = BetaConfig.load()
+    with pytest.raises(Exception, match="journal"):
+        _cfg(display_enabled=True)
+    with pytest.raises(Exception, match="journal"):
+        base.with_overrides(decision={**dict(base.raw["decision"]), "claim_journal": False},
+                            level_race={**dict(base.raw["level_race"]), "journal_enabled": True,
+                                        "display_enabled": True})
+    assert LR.setting(_cfg(journal_enabled=True, display_enabled=True), "display_enabled")
+
+
+def test_journal_and_registry_agree_on_every_template():
+    for cls, spec in LR.CLASSES.items():
+        if cls in cj.CLASSES:
+            assert set(cj.CLASSES[cls][1]) == {LR.TEMPLATE_KEYS[t] for t in spec["templates"]}, cls
+            assert cj.CLASSES[cls][2] == spec["rule"]
+    assert set(LR.HIST_CLASS.values()) <= set(cj.CLASSES)
+
+
+def test_display_only_journaled_lines_and_none_in_an_event_zone():
+    from beta.decision import race_display
+    e, v = _t15_event()
+    b = _cut(B, e["t15_ms"])
+    now = _ts(e["t15_ms"] + 2 * 60_000)
+    price = float(b.close[-1])
+
+    class Conn:
+        def __init__(self, rows):
+            self.rows = rows
+
+        async def fetch_slot_claims(self, *, issue_slot, classes):
+            return [{"claim_class": r["claim_class"], "subject_key": r["subject_key"]} for r in self.rows
+                    if r["issue_slot"] == issue_slot and r["claim_class"] in classes]
+    none = asyncio.run(race_display(Conn([]), b, now, price, zones={}))
+    assert none["races"] == [] and none["not_journaled"] >= 1                # not written yet: not shown
+    rows = cj.level_race_claims([v], now=_ts(e["t15_ms"]))
+    shown = asyncio.run(race_display(Conn(rows), b, now, price, zones={}))
+    assert [r["event_id"] for r in shown["races"]] == [e["event_id"]]
+    hidden = asyncio.run(race_display(Conn(rows), b, now, price, zones={"4h": [{"kind": "CPI"}]}))
+    assert hidden == {"state": "HIST", "races": [], "hidden": "EVENT_ZONE"}
+    cal = {"events": [{"kind": "CPI", "at": _ts(e["t15_ms"] + 3_600_000)}]}
+    flagged = cj.level_race_claims([v], now=_ts(e["t15_ms"]), calendar=cal)[0]
+    assert flagged["subject"]["event_zone"] is True                          # still written, flagged
+    assert cj.level_race_claims([v], now=_ts(e["t15_ms"]), calendar={"events": []})[0]["subject"]["event_zone"] is False
+
+
+def test_head_names_the_level_and_dates_an_earlier_day():
+    from beta.decision_format import race_lines
+    e, v = _t15_event()
+    b = _cut(B, e["t15_ms"])
+    blk = _block(b, _ts(e["t15_ms"] + 120_000), float(b.close[-1]))
+    ru = race_lines(blk, "ru", "levels")[0]
+    en = race_lines(blk, "en", "levels")[0]
+    assert f"зону {e['kind']} (" in ru and f"the {e['kind']} (" in en and " zone at " in en
+    late = {**blk, "as_of": _ts(e["t15_ms"] + 3 * 3_600_000 + 86_400_000).isoformat()}
+    assert re.search(r"в [А-Яа-я]{2} \d\d\.\d\d \d\d:\d\d", race_lines(late, "ru", "levels")[0])
