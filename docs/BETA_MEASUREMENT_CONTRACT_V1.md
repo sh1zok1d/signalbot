@@ -1,6 +1,6 @@
 # Beta measurement contract V1 — operational definitions for the 30-day user test
 
-**Status: FREEZE_READY, amended 2026-10-06 (Amendment 1, §10) — owner decisions recorded 2026-10-03; Day 0 NOT declared.** `PRE_BETA_SCOPE_DECISION_V1.md` §6.7: not frozen now; amended for the pre-beta scope. The owner reviews the amendment and freezes the contract himself on the final build commit; §0 is left to him. The owner made every open decision (§9). The contract becomes binding at the commit the owner records in §0. After that, nothing here changes except by a dated amendment committed **before** the affected number is read.
+**Status: FREEZE_READY, amended 2026-10-06 (Amendment 1, §10) and 2026-10-08 (Amendment 2, §11) — owner decisions recorded 2026-10-03 and 2026-10-08; Day 0 NOT declared.** `PRE_BETA_SCOPE_DECISION_V1.md` §6.7: not frozen now; amended for the pre-beta scope. The owner reviews the amendment and freezes the contract himself on the final build commit; §0 is left to him. The owner made every open decision (§9). The contract becomes binding at the commit the owner records in §0. After that, nothing here changes except by a dated amendment committed **before** the affected number is read.
 
 **Authority:** `docs/PRODUCT_FIRST_DECISION_V1.md` §7–§8 holds the unknowns U1a–U5, their PASS / FAIL / INCONCLUSIVE thresholds and the decision rules. This file changes none of them. It adds only what §7 leaves open:
 
@@ -38,7 +38,8 @@ A row in `beta_users` with a non-null `joined_at`, meaning the person accepted t
 - **Fixed size.** The denominator never shrinks. Stopping, blocking the bot, the 30-day retention purge and `/delete_me` all leave an enrolled participant in it (§1.5). U3's "≥ 25 % of all enrolled unknown users" uses this count.
 
 ### 1.4 Days
-- **Kyiv days.** Calendar days are Kyiv days; the brief is at 08:00 Kyiv.
+- **Kyiv days.** Cohort days and the active days of U1b are Kyiv days, for every participant.
+- **The participant's own days.** Each participant's briefing comes at their own briefing time on their own clock (`brief_time`, default 08:00; `tz`, default Kyiv). The U1a withdrawal days are matched against the participant's **local briefing date**, not Kyiv's (owner decision 2026-10-08; §6.1).
 - **Day 0** is the Kyiv day of the first enrolled unknown participant's join. Cohort day *n* is Day 0 + *n* Kyiv days.
 - **Reading and extension.** The decision rules are read on day 30. One extension of 14 days is allowed, with no product change (§7 rule 6).
 
@@ -54,15 +55,15 @@ A row in `beta_users` with a non-null `joined_at`, meaning the person accepted t
 |---|---|
 | **Pull** (self-chosen look at the market) | `cmd_btc`, `cmd_catchup`, `cmd_levels`, `cmd_risk`, `cmd_events`, `cmd_accuracy`, `cmd_research`, `cmd_history`, `cmd_alert`, `cmd_check` |
 | **Button** (inside a message) | `tab_event`, `tab_1h`, `tab_24h`, `tab_research`, `btn_levels`, `btn_risk`, `btn_btc_now` («📊 BTC сейчас» under a push), `btn_check` («🎯 Проверить» under a push or the briefing), `btn_watch` («🔔 Следить» under `/check`), `btn_useful`, `btn_noise` |
-| **Settings** (not usage) | `cmd_push`, `cmd_brief`, `cmd_lang`, `cmd_tz`, `cmd_type`, `type_set`, `btn_mute`, `btn_unmute`, `cmd_start`, `cmd_stop`, `cmd_help`, `cmd_terms`, `cmd_guide`, `lang_set` |
+| **Settings** (not usage) | `cmd_push`, `cmd_brief`, `cmd_lang`, `cmd_tz`, `cmd_type`, `type_set`, `set_mute`, `set_unmute`, `cmd_start`, `cmd_stop`, `cmd_help`, `cmd_terms`, `cmd_guide`, `lang_set` |
 | **Feedback** (not usage) | `cmd_feedback`, `plain_text` (a plain message passed to the team), `cmd_idea`, `idea_sent`, `reason_set`, `cmd_interview`, `interview_booked` |
 | **Deliveries** | `push_delivered` (unusual hour), `alert_delivered` with `detail` = `level` / `event` / `move` (market alert), `price` (personal `/alert`) or `approach` (the approach of a personal level), `brief_delivered`, `weekly_delivered` |
 | **Onboarding** (not a pull) | `onboard_btc`: the automatic `/btc` after the trader-type answer (backlog J1); never `cmd_btc` |
 | **Test instruments** | `brief_withheld` (U1a, `detail` = the withheld briefing's date on the participant's clock), `btn_other_assets` (U5) |
 
 - **`cmd_push` / `cmd_brief` details.** They carry `detail` = `on`, `off`, `<kind>:on|off` or `status`; `cmd_brief` also `time` (a new briefing time, not a disable).
-- **`btn_mute` / `btn_unmute` details.** The type: `hours`, `levels`, `events`, `moves`, `weekly`. They set the same preference as `/push <type> off|on`.
-- **`btn_useful` / `btn_noise` details.** None for the unusual-hour push; the message type (`level`, `event`, `move`, `price`, `approach`, `brief`, `weekly`) for every other one. A repeated tap of the same vote records nothing.
+- **`set_mute` / `set_unmute` details.** The one-tap «🔕 Не присылать такие» / «↩️ Вернуть» under a message. The detail is the type: `hours`, `levels`, `events`, `moves`, `weekly`. They set the same preference as `/push <type> off|on`. They are settings, never button reactions; rows recorded before #379 as `btn_mute` / `btn_unmute` are renamed by the schema.
+- **`btn_useful` / `btn_noise` details.** None for the unusual-hour push; the message type (`level`, `event`, `move`, `price`, `approach`, `brief`, `weekly`) for every other one. A repeated tap of the same vote records nothing. A changed vote records a second row, so votes are never counted from these activity rows (§3, useful share).
 - **What is not recorded.** Wrong-argument replies to `/catchup` and unknown commands are not recorded and count as nothing. A plain message is recorded as `plain_text` (feedback, not usage).
 
 ## 3. Notification classes and reactions
@@ -80,14 +81,14 @@ The classes stay separate:
 
 | Term | Definition |
 |---|---|
-| **Reaction** (per class) | A `tab_*` or `btn_*` within 10 minutes after a delivery of that class to the same participant, except `btn_mute` / `btn_unmute` (a mute is a negative signal, below). |
+| **Reaction** (per class) | A `tab_*` or `btn_*` within 10 minutes after a delivery of that class to the same participant. A one-tap mute (`set_mute` / `set_unmute`) is a setting, never a reaction: it is a negative signal (below). |
 | **Combined response** | Derived only: the union of the per-class reactions. Never a threshold input on its own. |
 | **Prompted pull** | A pull within 10 minutes after any BRIEF, EVENT_MOVE_LEVEL_PUSH, WEEKLY or personal-alert delivery. This is the derived union window used only to exclude prompted pulls in U1b. |
 | **Self-initiated pull** (U1b) | A pull outside every prompted window. |
 | **Active day** | A Kyiv day with ≥ 1 self-initiated pull (Kyiv for every participant, whatever their time zone). |
-| **Useful share** (U2) | USEFUL / (USEFUL + NOISE) per participant over their current votes on every message type (`beta_feedback` for the unusual-hour push, `beta_message_votes` for the others; one vote per message, a second tap replaces it), counted with ≥ 5 votes. |
+| **Useful share** (U2) | USEFUL / (USEFUL + NOISE) per participant over their current votes on **pushes**, counted with ≥ 5 votes: the unusual-hour push (`beta_feedback`) and the market alerts with `beta_message_votes.kind` ∈ {`level`, `event`, `move`}. One vote per participant and message: the table row is the participant's last vote on that message (a second tap replaces it). Votes on the briefing, the weekly report and personal alerts (`brief`, `weekly`, `price`, `approach`) are reported separately and are not U2. |
 | **Push** (U2 "< 15 pushes per user") | A SENT EVENT_MOVE_LEVEL_PUSH delivery to the participant: `push_delivered` or `alert_delivered` with `detail` ∈ {`level`, `event`, `move`}. BRIEF, WEEKLY, personal alerts and rows SUPPRESSED (quiet hours, push off, a muted type) are not pushes. |
-| **Push disabled** (U2) | At day 30: `cmd_push` detail `off`, or a push type still switched off — `cmd_push` detail `hours:off` / `levels:off` / `events:off` / `moves:off`, or `btn_mute` with that type (the one-tap mute is the same setting; decision §6.6 makes a per-type mute a negative signal). A `/push off` keeps the category settings (they work again after `/push on`). |
+| **Push disabled** (U2) | At day 30: `cmd_push` detail `off`, or a push type still switched off — `cmd_push` detail `hours:off` / `levels:off` / `events:off` / `moves:off`, or `set_mute` with that type and no later `set_unmute` or `cmd_push <type>:on` (the one-tap mute is the same setting; decision §6.6 makes a per-type mute a negative behavioural signal, never a reaction). A `/push off` keeps the category settings (they work again after `/push on`). |
 | **Quiet hours** | On the participant's clock (their `tz`, Kyiv by default). A delivery in their night is SUPPRESSED / QUIET_HOURS and was never sent: it is neither a push nor a prompt. |
 | **Blocked** (U2) | A delivery `FAILED` with `error_summary` starting `Forbidden:`. |
 | **Brief disabled** (U1a) | `cmd_brief` detail `off` in weeks 3–4 (`time`, a new briefing time, is not a disable). |
@@ -116,21 +117,24 @@ GROUP BY 1, 2;
 -- reaction per EVENT_MOVE_LEVEL_PUSH delivery (U2), BRIEF is read the same way with brief_delivered
 SELECT p.user_pk, p.action, p.detail, p.at AS delivered_at,
        EXISTS (SELECT 1 FROM beta_user_activity r WHERE r.user_pk = p.user_pk
-               AND (r.action LIKE 'tab\_%' OR r.action LIKE 'btn\_%')
-               AND r.action NOT IN ('btn_mute', 'btn_unmute')
+               AND (r.action LIKE 'tab\_%' OR r.action LIKE 'btn\_%')   -- set_mute / set_unmute never match
                AND r.at >= p.at AND r.at <= p.at + interval '10 minutes') AS reacted
 FROM beta_user_activity p
 WHERE p.action = 'push_delivered' OR (p.action = 'alert_delivered' AND p.detail IN ('level','event','move'));
 
--- useful share inputs (U2): the current vote per message, every type
+-- useful share inputs (U2): the last vote per participant and message, on pushes only
 SELECT user_pk, vote, count(*) AS n FROM (
-    SELECT user_pk, vote FROM beta_feedback
-    UNION ALL SELECT user_pk, vote FROM beta_message_votes) v
+    SELECT user_pk, vote FROM beta_feedback                                    -- the unusual-hour push
+    UNION ALL SELECT user_pk, vote FROM beta_message_votes WHERE kind IN ('level', 'event', 'move')) v
 GROUP BY 1, 2;
+
+-- votes on the other message types (reported, not U2)
+SELECT kind, user_pk, vote, count(*) AS n FROM beta_message_votes
+WHERE kind IN ('brief', 'weekly', 'price', 'approach') GROUP BY 1, 2, 3;
 
 -- push types switched off by a one-tap mute (U2, with cmd_push <type>:off from the same log)
 SELECT user_pk, detail AS push_type, max(at) AS last_at FROM beta_user_activity
-WHERE action IN ('btn_mute', 'btn_unmute') GROUP BY 1, 2;
+WHERE action IN ('set_mute', 'set_unmute') GROUP BY 1, 2;
 
 -- blocked participants (U2)
 SELECT DISTINCT user_pk FROM beta_notification_deliveries
@@ -164,8 +168,8 @@ GROUP BY 1, 2;
 
 **The rule** is frozen in `config/beta_v0.yaml` → `briefing.withdrawal`:
 - `seed: 20261003`, `count: 3`, `first_cohort_day: 14`, `last_cohort_day: 27`;
-- the withdrawal days are `count` distinct Mon–Fri Kyiv dates drawn with `seed` from cohort days 14–27 (weeks 3–4);
-- they are the same days for every participant;
+- the withdrawal days are `count` distinct Mon–Fri calendar dates drawn with `seed` from cohort days 14–27 (weeks 3–4);
+- they are the same dates for every participant, and each participant's briefing is withheld when **their local briefing date** is one of them (owner decision 2026-10-08; `brief_withheld.detail` is that local date);
 - `beta.delivery.brief_withdrawal_dates` computes them.
 
 **Day 0.** The only value set after this freeze is `day0_kyiv`, filled in once when Day 0 happens (config change plus deploy). While it is `null`, no brief is ever withheld. Seed, count and range never change after Day 0, and no adjustment follows results.
@@ -175,6 +179,8 @@ GROUP BY 1, 2;
 - nothing is sent.
 
 **Reaction (U1a):** a `cmd_catchup` within 3 hours after the participant's own briefing slot on a withdrawal day — their `brief_time` (default 08:00) on their clock (`tz`, default Kyiv), which is the withheld row's `decision_ts` — or a `/feedback`, an idea or a plain message asking where the brief is (owner-classified). The withdrawal days are calendar dates; each participant's briefing row carries the date on their own clock.
+
+**The weekly report never lands on a withdrawal day.** It comes on Sunday at 19:00 on each participant's own clock (#379), outside every Mon–Fri date.
 
 ### 6.2 U5 — multi-asset fake door (implemented)
 - **Where.** A «Другие монеты» button exists only under `/help`. It is never pushed and never repeated elsewhere.
@@ -232,3 +238,65 @@ The payment ledger is a file or sheet kept by the owner **outside the repository
 | Classes | Pull `cmd_check`; buttons `tab_research`, `btn_check`, `btn_watch`; settings `cmd_tz`, `cmd_type`, `type_set`, `btn_mute`, `btn_unmute`, `cmd_guide`; feedback `plain_text`, `cmd_idea`, `idea_sent`, `reason_set`, `cmd_interview`, `interview_booked`; onboarding `onboard_btc` (never a pull); deliveries `weekly_delivered` and `alert_delivered` / `approach` | D1, D5, E1–E5, H1–H4, J1, J2, J4 |
 
 Unchanged: every threshold of `PRODUCT_FIRST_DECISION_V1.md` §7, the 10-minute window, the enrolled denominator, Kyiv days for U1b, the U3 ledger outside git, the U5 fake door.
+
+## 11. Amendment 2 (2026-10-08, before any number of the test)
+
+Written before any number of the test exists, from the owner's decisions of 2026-10-08 (through the ОПГ-1 mini-head and the chief architect, `ORCHESTRATION_V1.md`) and the reviews of #373 and #375. The contract is still not frozen: the owner freezes it on the final build commit by filling §0, which this amendment does not touch. Changed above, and why:
+
+| Item | Change | Source |
+|---|---|---|
+| U1a dates | The withdrawal days are calendar dates matched against each participant's **local briefing date**, not «дата Киева» (§1.4, §6.1). This is what `beta.delivery` already does (`brief_withheld.detail` = the local date). | Owner decision 2026-10-08 |
+| Mute | The one-tap mute is recorded as `set_mute` / `set_unmute` (was `btn_mute` / `btn_unmute`). It is a setting and a **negative U2 signal** (push disabled while still on at day 30), never a reaction (§2, §3, §4). | Review of #373; `PRE_BETA_SCOPE_DECISION_V1` §6.6 |
+| U2 votes | (Confirmed by the ОПГ-1 mini-head on 2026-10-08, following U2's definition in `PRODUCT_FIRST_DECISION_V1` §7.) The useful share counts votes on pushes only: the unusual-hour push and `level` / `event` / `move` alerts, from the vote tables, one row per participant and message (their last vote). Votes on the briefing, the weekly report and personal alerts are reported separately (§3, §4). Activity rows `btn_useful` / `btn_noise` are never the vote count. | Review of #375; `PRODUCT_FIRST_DECISION_V1` §7 (U2 is the quality of pushes) |
+| Daily limits | Each participant has their own daily push budget on their own calendar date. A delivery over it is SUPPRESSED / DAILY_CAP and is not a push (§3 «Push»). | Review of #373 |
+| Weekly report | Sunday 19:00 on each participant's clock, never on a Mon–Fri withdrawal date (§6.1). | Review of #379 (ОПГ-1) |
+| Forecast layer | Registered surfaces, journal classes and the level-push trigger change (§12.1). | `FORECAST_LAYER_DECISION_V1` §6, §6a, §8 |
+| Dated events | Changes during the test that split the metrics before and after their date (§12.2). | `FORECAST_LAYER_DECISION_V1` §6a; the architect for D2 |
+
+Unchanged: every threshold of `PRODUCT_FIRST_DECISION_V1.md` §7, the 10-minute window, the enrolled denominator, Kyiv cohort days and Kyiv active days for U1b, the U3 ledger outside git, the U5 fake door.
+
+## 12. Forecast layer and dated events
+
+### 12.1 Forecast layer (registered before the freeze)
+
+`FORECAST_LAYER_DECISION_V1.md` decides the layer; this section only registers what it adds to the measured product.
+
+**At Day 0, state `HIST`** (§6a of that file):
+- **T0:** one line in the existing level-touch push, the race history one-liner. It replaces the `level_reaction_stats` line in that push (that line stays in `/levels` and Details), so the push does not grow.
+- **T15:** `/levels` and `/check`.
+- **Journal classes, active from Day 0:** `L2_LEVEL_RACE_HIST_T0_4H` and `L2_LEVEL_RACE_HIST_T15_4H`, evaluation rule `LEVEL_RACE_4H_V1`. Every eligible statement is logged, shown or not.
+- **When the line is hidden.** The race line is not shown inside a CPI / FOMC event zone. It is shown only once its claim row exists in the journal (the architect's decision, 2026-10-08), so every shown line has its record.
+
+**The level-push trigger.**
+- **What changes.** Behind the forecast layer's flag, the PDH / PDL / PWH / PWL / PMH / PML touch push moves to the #352 event (entry into the ±0.15 % zone on a closed 5m bar). Its text says «вошла в зону PDH …», not «коснулась».
+- **What stays.** It is the same push type. It stays in the class EVENT_MOVE_LEVEL_PUSH with `alert_delivered` detail `level`, under the same per-recipient limits, quiet hours and per-type mute. There is **no new push type**.
+- **Fallback.** If that change misses the build cut-off, Day 0 runs the old trigger without the T0 line, and `HIST` is shown only in `/levels` and `/check`.
+- **Moving the trigger later.** Moving or switching on the new trigger during the test changes the push rule (`PRODUCT_FIRST_DECISION_V1` §7). The forecast-layer exception of §6a does not cover it, so it needs an owner decision recorded as a dated event (§12.2).
+- **Before the test.** Turning on a Day-0 flag after the observation week has started restarts that week (`ORCHESTRATION_V1.md` §4a).
+
+**Future model states, not active at Day 0:**
+- the classes `L3_LEVEL_RACE_T0_4H`, `L3_LEVEL_RACE_T15_4H` and `L3_GENERIC_RACE_4H`;
+- the states `L3_HISTORY_BACKED`, `L3_LIVE` and `FALLBACK`.
+
+They enter the running test only as a dated event (§12.2).
+
+### 12.2 Dated events
+
+During the test, two kinds of change may ship:
+- changes of the forecast layer (the exception of `FORECAST_LAYER_DECISION_V1` §6a);
+- the data-reliability fixes the owner deploys.
+
+For each one:
+- it is announced in advance with its date and content;
+- it is recorded below with that date before the date;
+- every affected metric is reported **separately before and after the date**.
+
+Nothing else in the product changes during the test (`PRODUCT_FIRST_DECISION_V1` §7).
+
+| Event | Date (UTC) | Metrics split at the date |
+|---|---|---|
+| Forecast layer: model states (`L3_HISTORY_BACKED` / `L3_LIVE` / `FALLBACK`) replace `HIST` | *to be announced* | every metric of the test (U1a, U1b, U2, U3 inputs) and every forecast-layer accuracy line |
+| Forecast layer: each later correction | *to be announced, one row each* | every metric of the test and the layer's accuracy lines |
+| D2: the liquidation fix (OKX / Bybit mapping, `mapping_version`) reaches production | *filled in after the deploy* | every metric in which `LIQUIDATION_STRESS`, the «вынос лонгов / шортов» lines or the liquidation votes take part |
+
+A row is never removed or back-dated, and a date is never moved after a number of the test that depends on it is known.

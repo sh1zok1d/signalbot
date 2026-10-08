@@ -252,11 +252,12 @@ def test_invited_participant_journey_telemetry_and_clean_surface():
             for stmt in statements:
                 results.append([dict(r) for r in await c.fetch(stmt)])
         a_pk = (await _rows(pool, "SELECT user_pk FROM beta_users WHERE telegram_user_id=$1", A))[0]["user_pk"]
-        enrolled, pulls, reactions, votes, mutes, blocked, _deletions = results
+        enrolled, pulls, reactions, votes, other_votes, mutes, blocked, _deletions = results
         assert {r["user_pk"] for r in enrolled} >= {a_pk}
         assert any(r["user_pk"] == a_pk for r in pulls)
         assert any(r["user_pk"] == a_pk and r["reacted"] for r in reactions)
-        assert all(r["vote"] in ("USEFUL", "NOISE") for r in votes)          # Amendment 1: votes of every type
+        assert all(r["vote"] in ("USEFUL", "NOISE") for r in votes)          # Amendment 2: votes on pushes (U2)
+        assert all(r["kind"] in ("brief", "weekly", "price", "approach") for r in other_votes)   # reported, not U2
         assert all(r["push_type"] in ("hours", "levels", "events", "moves", "weekly") for r in mutes)
         assert [r["user_pk"] for r in blocked] == [a_pk]
 

@@ -74,6 +74,7 @@ Alert-sensitivity settings, an LLM chat, a web UI, signals / entries / exchange 
 | `PRODUCT_FIRST_DECISION_V1` §5 "payment infrastructure beyond a manual link" | Clarified, not changed: access flags with everything open are not payment infrastructure. No payment processing. |
 | `EVIDENCE_AND_CLAIMS_DECISION_V1` §6, touch chances («owner choice; not changed here») | The owner chooses wording "B" under the conditions of §5. |
 | `BETA_MEASUREMENT_CONTRACT_V1` (FREEZE_READY, §0 hash empty) | Not frozen now. Amended for this scope (§6.7) and frozen on the final build commit. |
+| `BETA_MEASUREMENT_CONTRACT_V1` §1.4, §2, §6.1 «дата Киева» / «08:00 Киев» for U1a | U1a withdrawal days are matched against each participant's local briefing date and time (owner decision 2026-10-08). The one-tap mute (`set_mute` / `set_unmute`) is a negative U2 signal, never a reaction. Recorded in the contract's Amendment 2 (§11). |
 
 ## 4. History first, live joins (the owner's rule)
 

@@ -119,7 +119,7 @@ WHERE u.telegram_user_id = <test id>
 ORDER BY a.activity_pk;
 ```
 
-Every action of the §2 smoke must be present in order, with `cmd_push` / `cmd_brief` details, and with the classes of the contract's Amendment 1: `cmd_check`, `btn_check`, `btn_watch`, `cmd_tz`, `cmd_type`, `type_set`, `btn_mute` / `btn_unmute` (detail = the type), `btn_useful` / `btn_noise` (detail = the message type, none for the unusual-hour push), `reason_set`, `cmd_guide`, `cmd_idea`, `idea_sent`, `plain_text`, `cmd_interview`, `interview_booked`, `onboard_btc` (never `cmd_btc`).
+Every action of the §2 smoke must be present in order, with `cmd_push` / `cmd_brief` details, and with the classes of the contract's Amendments 1 and 2: `cmd_check`, `btn_check`, `btn_watch`, `cmd_tz`, `cmd_type`, `type_set`, `set_mute` / `set_unmute` (detail = the type; a setting, never a reaction), `btn_useful` / `btn_noise` (detail = the message type, none for the unusual-hour push), `reason_set`, `cmd_guide`, `cmd_idea`, `idea_sent`, `plain_text`, `cmd_interview`, `interview_booked`, `onboard_btc` (never `cmd_btc`).
 
 ## 7. Onboarding and privacy
 
