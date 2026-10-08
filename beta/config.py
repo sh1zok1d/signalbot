@@ -58,7 +58,7 @@ _TOP_KEYS = frozenset({
     "forward_horizons", "detector", "bootstrap", "ingestion", "outcomes",
     "notifications", "privacy", "health", "rules", "episodization", "context",
     "horizon_changes", "access", "telemetry", "feedback", "regime_d7", "briefing",
-    "push_policy", "decision",
+    "push_policy", "decision", "level_race",
 })
 # deploy/signalbot-beta-notify.service TimeoutStartSec: no send may start after the budget (A5)
 NOTIFY_UNIT_TIMEOUT_S = 50
@@ -376,6 +376,18 @@ def _validate(d: Mapping[str, Any]) -> None:
     _validate_briefing(d)
     _validate_push_policy(d)
     _validate_decision(d)
+    _validate_level_race(d)
+
+
+# Level race at structural first touches (FORECAST_LAYER_DECISION_V1 §6a; beta/level_race_live.py).
+_LEVEL_RACE_KEYS = {"journal_enabled", "display_enabled", "model_states_enabled"}
+
+
+def _validate_level_race(d: Mapping[str, Any]) -> None:
+    x = d["level_race"]
+    _exact_keys(x, _LEVEL_RACE_KEYS, "level_race")
+    for key in sorted(_LEVEL_RACE_KEYS):
+        _bool(x[key], f"level_race.{key}")
 
 
 def _validate_decision(d: Mapping[str, Any]) -> None:

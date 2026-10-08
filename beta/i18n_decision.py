@@ -512,6 +512,24 @@ DECISION_CATALOG: dict = {
     "btn_research": _pair("🔬 Исследования", "🔬 Research"),
     "n_cases": _pair("{n} {word}", "{n} {word}"),
     "since_year": _pair("с {year}", "since {year}"),
+    # level race, HIST (docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md §0; ids LR_HIST_V1, LR_PUSH_HIST_V1,
+    # LR_HIST_LOW_N_V1). Prices only, the three outcomes together; the Russian text is the frozen one.
+    "lr_head": _pair("↳ {names}: касание в {when}, данные на {clock}",
+                     "↳ {names}: touched at {when}, data as of {clock}"),
+    "lr_hist_v1": _pair("Похожие касания в 2020–2024 (N = {n}): первой достигалась верхняя цена — {h_up} % "
+                        "(обычно {b_up} %, ±{k_up} п.п.), нижняя — {h_dn} % (обычно {b_dn} %, ±{k_dn} п.п.), "
+                        "ни одна за окно — {h_ne} % (обычно {b_ne} %, ±{k_ne} п.п.). Сейчас верхняя {P_UP}, "
+                        "нижняя {P_DN}, окно до {END}.",
+                        "Similar touches in 2020–2024 (N = {n}): the upper price was reached first in {h_up}% "
+                        "(usually {b_up}%, ±{k_up} pp), the lower in {h_dn}% (usually {b_dn}%, ±{k_dn} pp), "
+                        "neither within the window in {h_ne}% (usually {b_ne}%, ±{k_ne} pp). Now: upper {P_UP}, "
+                        "lower {P_DN}, window until {END}."),
+    "lr_push_hist_v1": _pair("2020–2024, похожие касания (N = {n}): первой верхняя {P_UP} {h_up} % · нижняя {P_DN} "
+                             "{h_dn} % · ни одна {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), до {END}",
+                             "2020–2024, similar touches (N = {n}): first the upper {P_UP} {h_up}% · the lower {P_DN} "
+                             "{h_dn}% · neither {h_ne}% (usually {b_up}/{b_dn}/{b_ne}%), until {END}"),
+    "lr_hist_low_n_v1": _pair("Похожих касаний в 2020–2024 мало (N = {n}).",
+                              "Few similar touches in 2020–2024 (N = {n})."),
 }
 
 DECISION_HELP = {

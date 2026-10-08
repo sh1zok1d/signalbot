@@ -251,6 +251,9 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
         "all": [{"kind": x["kind"], "price": _round(x["price"], 2),
                  **({"ended_ms": int(x["ended_ms"])} if x.get("ended_ms") else {})} for x in lv],
     }
+    from .level_race_live import setting as race_setting
+    if race_setting(cfg, "display_enabled"):
+        block["level_race"] = _level_race(b, now, price)
     ev_stats = ((stats or {}).get("events") or {}).get("kinds") or {}
     block["events"] = [{"kind": e["kind"], "at": e["at"].isoformat(), "stats": ev_stats.get(e["kind"])}
                        for e in upcoming(cal, now=now, hours=EVENTS_AHEAD_H) if e["kind"] in SHOWN_EVENT_KINDS]
@@ -276,6 +279,22 @@ async def _build(conn, cfg: BetaConfig, *, now: datetime, market: Optional[Mappi
     block["weekend"] = kyiv(now).weekday() >= 5
     block["available"] = True
     return block
+
+
+def _level_race(b, now: datetime, price: float) -> dict:
+    """The level race lines of /levels and /check (state HIST; OFF with no number when the frozen table
+    does not verify or the race cannot be built). Never raises into the block."""
+    from .level_race_live import display_block
+    try:
+        from .level_race import load_hist_table
+        table = load_hist_table()
+    except Exception as exc:  # noqa: BLE001 - a table that does not verify is state OFF
+        return {"state": "OFF", "races": [], "error_type": type(exc).__name__}
+    try:
+        return display_block(b, now, table, price=price)
+    except Exception as exc:  # noqa: BLE001 - the race never breaks a view
+        logger.warning("level race block failed: %s", type(exc).__name__)
+        return {"state": "OFF", "races": [], "error_type": type(exc).__name__}
 
 
 async def research_evidence_block(conn, cfg: BetaConfig, *, now: datetime, block: Mapping[str, Any],

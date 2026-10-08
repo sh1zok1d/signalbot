@@ -571,6 +571,46 @@ def _zone_block(block: Mapping[str, Any], z: Mapping[str, Any], lang: str, side:
     return lines
 
 
+# ---- level race (HIST; beta/level_race_live.py) --------------------------------------------------
+def races_shown(block: Optional[Mapping[str, Any]], surface: str, *,
+                check_levels: Optional[Sequence[float]] = None) -> list:
+    """The level races a surface prints: every race of the block on /levels; on /check the race of the
+    zone a checked price lies in. The block carries races only while `level_race.display_enabled`."""
+    lr = (block or {}).get("level_race") or {}
+    if not (block or {}).get("available") or lr.get("state") != "HIST":
+        return []
+    races = list(lr.get("races") or ())
+    if surface == "check":
+        return [r for r in races if any(r["zone_low"] <= float(x) <= r["zone_high"] for x in check_levels or ())]
+    return races if surface == "levels" else []
+
+
+def race_lines(block: Mapping[str, Any], lang: str, surface: str, *,
+               check_levels: Optional[Sequence[float]] = None) -> list:
+    """One head (the level, the touch time, the data time) and the frozen HIST line per race; the
+    shares sum to 100 (largest remainder); every clock on the recipient's time zone."""
+    from .level_race import percents
+    out = []
+    now = _block_now(block)
+    clock = data_clock(block)
+    for r in races_shown(block, surface, check_levels=check_levels):
+        end = datetime.fromtimestamp(r["end_ms"] / 1000, tz=timezone.utc)
+        touch = datetime.fromtimestamp((r["touch_open_ms"] + 300_000) / 1000, tz=timezone.utc)
+        names = _e(zone_names({"members": [{"kind": k} for k in r["member_kinds"]]}, lang, limit=2))
+        out.append(t(lang, "lr_head", names=names, when=_when(touch, lang, with_day=False),
+                     clock=fmt_clock(clock or now or touch, lang)))
+        if r["template"] == "LR_HIST_LOW_N_V1":
+            out.append(t(lang, "lr_hist_low_n_v1", n=int(r["n"])))
+            continue
+        h, b = percents(r["h"]), percents(r["b"])
+        same_day = now is not None and local(end).date() == local(now).date()
+        out.append(t(lang, "lr_hist_v1", n=int(r["n"]), h_up=h["up"], h_dn=h["dn"], h_ne=h["neither"],
+                     b_up=b["up"], b_dn=b["dn"], b_ne=b["neither"], k_up=r["k_pp"]["up"], k_dn=r["k_pp"]["dn"],
+                     k_ne=r["k_pp"]["neither"], P_UP=fmt_price(r["p_up"], lang), P_DN=fmt_price(r["p_dn"], lang),
+                     END=_when(end, lang, with_day=not same_day)))
+    return out
+
+
 def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
     """/levels as one ladder in the /btc style (backlog C3): above from far to near, the price, below;
     each level with its chances and first-touch history; then the checks of the chances, the corridor
@@ -602,6 +642,9 @@ def format_levels(block: Mapping[str, Any], lang: str, *, now: datetime) -> str:
         lines.extend(_zone_block(block, z, lang, -1, cond("below", k), cals, fallback))
     if not below:
         lines.append(t(lang, "lv_none", arrow="↓"))
+    race = race_lines(block, lang, "levels")
+    if race:
+        lines += [""] + race
     tail = _cal_line(block, cals, fallback, lang)
     tail.extend(_btc_corridor(block, lang, ("4h", "24h")))
     if tail:

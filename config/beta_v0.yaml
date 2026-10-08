@@ -209,3 +209,9 @@ beta:
       feeds_enabled: true                   # --beta-feeds-once (every 5 min)
       stress_hours_enabled: true            # --beta-stress-once (hourly; aggTrades of stress hours only)
       main_surface_max: 2                   # research conclusions on a main surface while it is on
+  # Level race at structural first touches (FORECAST_LAYER_DECISION_V1 §6a; beta/level_race_live.py).
+  # Day 0 is HIST: the 2020-2024 shares of the event's cell beside B0, prices only. Off until switched on.
+  level_race:
+    journal_enabled: false                  # L2_LEVEL_RACE_HIST_{T0,T15}_4H at every landmark, shown or not
+    display_enabled: false                  # the T15 HIST line in /levels and /check
+    model_states_enabled: false             # HIST -> model states: one dated switch; inert until a model is frozen

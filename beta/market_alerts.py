@@ -439,9 +439,10 @@ async def _journal_level_touch(conn, cand: Mapping[str, Any], decision: str, *, 
 
 async def _journal_hour(conn, cfg: BetaConfig, block: Mapping[str, Any], cap: Mapping[str, Any], *,
                         now: datetime) -> dict:
-    from .claims import record_claims, score_claims
+    from .claims import record_claims, record_level_race, score_claims
     try:
         rep = await record_claims(conn, cfg, block, now=now, capture=cap)
+        rep.update(await record_level_race(conn, cfg, now=now, capture=cap))
         rep.update(await score_claims(conn, cap.get("bars"), cap.get("closed_1m") or [], now=now))
         from .claims import refresh_touch_calibration
         rep["touch_calibration_refreshed"] = await refresh_touch_calibration(conn, now=now) is not None
