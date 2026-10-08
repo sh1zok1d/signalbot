@@ -251,6 +251,9 @@ def summarize(w, mode, rs):
                      l3_live=_mean([any(t[1] == "L3_LIVE" for t in x["transitions"]) for x in cs]),
                      l3_live_week=_mean([next((t[0] for t in x["transitions"] if t[1] == "L3_LIVE"), None) for x in cs]),
                      first_any={m: _mean([m in x["first"] for x in cs]) for m in ("D1", "D2", "D3")},
+                     first_any_l3={m: _mean([m in x["first"] for x, s0 in zip(cs, l3) if s0]) for m in ("D1", "D2", "D3")},
+                     first_l3_by_52w={m: _mean([x["first"].get(m, 999) <= 52 for x, s0 in zip(cs, l3) if s0])
+                                      for m in ("D1", "D2", "D3")},
                      first_before_drift={m: _mean([x["first"].get(m, 999) < dw for x in cs]) for m in ("D1", "D2", "D3")},
                      n_live=_mean([x["n_live"] for x in cs]))
         s["classes"][c] = d

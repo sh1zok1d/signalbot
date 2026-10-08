@@ -45,7 +45,7 @@ ISOTONIC_MIN_EVENTS = 300               # no non-parametric map below this; V1 h
 
 # ---- gates [F3] ---------------------------------------------------------------------------------
 G0_MIN_EVENTS = 200
-G1_MAX_LL_EXCESS = 0.01                 # nats: upper 95 % end of LL_published − LL_B0
+G1_MAX_LL_EXCESS = 0.02                 # nats: upper 95 % end of LL_published − LL_B0 (F1 planning 0.01; design §2)
 G2_CITL_PP = 5.0                        # per outcome |CITL| ≤ 5 pp …
 G2_CI_PP = 10.0                         # … and its 95 % interval inside ±10 pp
 G3_SLOPE_BAND = (0.8, 1.25)             # per head, the slope's 95 % interval overlaps this band
@@ -55,10 +55,10 @@ LIVE_FLOOR = 150
 D0_STALE_MINUTES = 10
 D1_LAMBDAS = (-0.5, -0.25, 0.25, 0.5)
 D1_OUTCOME_THRESHOLD = 30.0             # per outcome; three outcomes share the ≤ 0.1 Ville budget (design §5.1)
-ROLL_N = 100
+ROLL_N = 150                            # F1 planning 100 (design §5.2)
 D2_PP = 10.0
-D2_Z = 2.576                            # 99 % interval, iid floor (design §5.2)
-D3_Z = 2.576
+D2_Z = 3.0                              # 99.7 % interval, iid floor (F1 planning 95 %; design §5.2)
+D3_Z = 3.0
 D3_MIN_WEEKS = 8
 RETURN_MIN_EVENTS = 50
 RETURN_E_MAX = 1.0                      # epoch e-value below 1 to return (F1 draft: ≤ 10; design §5.4)
