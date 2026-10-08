@@ -322,8 +322,9 @@ DECISION_CATALOG: dict = {
                                 "After the first touch: no interval computed yet ({n})"),
     "pa_level_move": _pair("За 1ч медиана: дальше {further}, обратно {back} (у случайного уровня {c_further} и {c_back})",
                            "1h median: {further} further, {back} back (a random level: {c_further} and {c_back})"),
-    "pa_next": _pair("Следующий уровень: {price} — {name} ({dist}), за 24ч доходили в {p}",
-                     "Next level: {price} — {name} ({dist}), reached within 24h in {p}"),
+    # the touch chance by the /btc rule, only in mode B with its own check; otherwise no number (pa_next_nop)
+    "pa_next": _pair("Следующий уровень: {price} — {name} ({dist}) · за 24ч ≈ {p}; говорили → было: {cal}",
+                     "Next level: {price} — {name} ({dist}) · within 24h ≈ {p}; said → happened: {cal}"),
     "pa_next_nop": _pair("Следующий уровень: {price} — {name} ({dist})", "Next level: {price} — {name} ({dist})"),
     # the 4h corridor is a forecast: with its record (the /btc rule) or, without one, only as «сейчас»
     "pa_corridor": _pair("Коридор 4ч: {low}–{high} (±{half}) · внутри бывало {rec} (расчёт — {share})",
@@ -553,7 +554,7 @@ DECISION_HELP = {
     "ru": (
         "<b>Signalbot, закрытая бета — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
         "Бот не говорит, покупать или продавать. Он показывает, насколько сейчас рискованно, где "
-        "уровни, которые видит весь рынок, что было в похожих ситуациях раньше и что сегодня "
+        "максимумы и минимумы прошлого дня, недели и месяца и другие уровни, что было в похожих ситуациях раньше и что сегодня "
         "в календаре. Рядом с каждой цифрой — сколько было случаев и как бывает обычно.\n\n"
         "/btc — состояние BTC сейчас\n"
         "/catchup — что было за последние часы (по умолчанию 8 ч; /catchup 1–24)\n"
@@ -568,6 +569,7 @@ DECISION_HELP = {
         "/tz — часовой пояс (по умолчанию Киев): /tz +3 или /tz Europe/Warsaw\n"
         "/type — как вы торгуете (для статистики беты)\n"
         "/idea — идея или чего не хватает · /interview — 15 минут с командой\n"
+        "/guide — как читать бота\n"
         "/push — какие сообщения присылать\n"
         "/history — недавние необычные события\n"
         "/terms — термины · /lang — язык сообщений · /feedback — отзыв\n"
@@ -576,7 +578,7 @@ DECISION_HELP = {
     "en": (
         "<b>Signalbot closed beta — BTCUSDT perpetual (Binance, Bybit, OKX)</b>\n"
         "The bot never says whether to buy or sell. It shows how risky the market is now, where the "
-        "levels everyone watches are, what happened in similar situations before and what is in "
+        "previous day's, week's and month's highs and lows and other levels are, what happened in similar situations before and what is in "
         "today's calendar. Every number comes with how many cases there were and what is usual.\n\n"
         "/btc — BTC right now\n"
         "/catchup — the last hours (default 8h; /catchup 1–24)\n"
@@ -591,6 +593,7 @@ DECISION_HELP = {
         "/tz — time zone (Kyiv by default): /tz +3 or /tz Europe/Warsaw\n"
         "/type — how you trade (for the beta's statistics)\n"
         "/idea — an idea or what is missing · /interview — 15 minutes with the team\n"
+        "/guide — how to read the bot\n"
         "/push — which messages to receive\n"
         "/history — recent unusual events\n"
         "/terms — terms · /lang — message language · /feedback — feedback\n"
@@ -608,7 +611,7 @@ DECISION_TERMS = {
         "Точность проверяется на отложенном годе и на живых прогнозах (/accuracy).\n"
         "Шанс дойти — как часто цена проходила такое расстояние в одну сторону за это время в похожих условиях. "
         "Направление модель не предсказывает: для роста и падения шанс одинаковый.\n"
-        "Уровни — только те, что видит весь рынок: максимумы и минимумы вчера, прошлой недели и месяца, "
+        "Уровни: максимумы и минимумы вчера, прошлой недели и месяца, "
         "открытия дня, недели и месяца, сессии Азии, Европы и США, VWAP дня, объёмный центр вчера, круглые уровни, "
         "места крупных ликвидаций за 24ч. День, неделя и месяц — по UTC.\n"
         "Случайный уровень — уровень на том же расстоянии от открытия периода, но без смысла. Рядом с реальным "
@@ -633,7 +636,7 @@ DECISION_TERMS = {
         "Accuracy is checked on a held-out year and on live forecasts (/accuracy).\n"
         "Chance to reach — how often the price moved that far in one direction within that time in similar conditions. "
         "The model does not forecast direction: the chance is the same up and down.\n"
-        "Levels — only what the whole market sees: yesterday's, last week's and last month's highs and lows, "
+        "Levels: yesterday's, last week's and last month's highs and lows, "
         "day, week and month opens, Asia, Europe and US sessions, the day VWAP, yesterday's volume POC, round numbers, "
         "places of large liquidations in 24h. Day, week and month are UTC.\n"
         "Random level — a level at the same distance from the period open that means nothing. Beside a real level the "

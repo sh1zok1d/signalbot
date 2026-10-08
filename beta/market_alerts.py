@@ -114,6 +114,18 @@ def _corridor_track(block: Mapping[str, Any], h: str) -> Optional[dict]:
             "holdout": {h: {k: ((c.get("holdout") or {}).get(h) or {}).get(k) for k in ("coverage_realized", "n_days")}}}
 
 
+def _next_brief(block: Mapping[str, Any], z: Optional[Mapping[str, Any]]) -> Optional[dict]:
+    """The next level of a level alert with its 24h chance's wording by the /btc rule (claims.touch_wording),
+    decided now: the alert is rendered later, at send time, from this payload."""
+    out = _zone_brief(z)
+    if out is None:
+        return None
+    from .decision_format import touch_wording
+    w = touch_wording(block, "24h", (out.get("touch") or {}).get("24h"))
+    out["touch_24h_wording"] = {k: w[k] for k in ("mode", "source", "bin", "predicted", "realized", "n_eff") if k in w}
+    return out
+
+
 def _zone_brief(z: Optional[Mapping[str, Any]]) -> Optional[dict]:
     if not z:
         return None
@@ -149,7 +161,7 @@ def detect_level_touches(block: Mapping[str, Any], b: Bars, closed_1m, *, now: d
                                 "side": side, "period": pname, "price": block["price"],
                                 "price_ts": block.get("price_ts"),
                                 "history": history_view(rec) if rec else None,
-                                "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
+                                "next": _next_brief(block, nxt), "corridor_4h": corridor_4h,
                                 "corridor_4h_track": _corridor_track(block, "4h") if corridor_4h else None,
                                 "event_zone": block.get("event_zone") or {}}})
     return _one_per_price(out)
@@ -182,7 +194,8 @@ def detect_structural_touches(block: Mapping[str, Any], b: Bars, *, now: datetim
                                 "price_ts": block.get("price_ts"), "history": None,
                                 # no race line inside the 4h CPI / FOMC event zone (cells not event-conditioned)
                                 "race": None if (block.get("event_zone") or {}).get("4h") else push_view(b, ev, table),
-                                "next": _zone_brief(nxt), "corridor_4h": corridor_4h,
+                                "next": _next_brief(block, nxt), "corridor_4h": corridor_4h,
+                                "corridor_4h_track": _corridor_track(block, "4h") if corridor_4h else None,
                                 "event_zone": block.get("event_zone") or {}}})
     return out
 

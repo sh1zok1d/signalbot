@@ -542,7 +542,8 @@ def test_start_and_lang_choice():
         assert conn.users[1]["lang"] == "ru" and "/lang" in joined[1].html
         again = await h.handle(_msg(1, "/start", 5))
         assert "/btc" in again[0].html and again[0].buttons == [[("Термины", "terms"), ("Другие монеты", "x:assets")],
-                                                       [("💡 Идея / чего не хватает", "x:idea"), ("📞 15 минут с командой", "x:interview")]]
+                                                       [("💡 Идея / чего не хватает", "x:idea"), ("📞 15 минут с командой", "x:interview")],
+                                                       [("📖 Как читать бота", "x:guide")]]
         picker = await h.handle(_msg(1, "/lang", 6))
         assert picker[0].buttons == [[("Русский", "set:ru"), ("English", "set:en")]]
         saved = await h.handle(_cb(1, "set:en", 7))
@@ -550,7 +551,8 @@ def test_start_and_lang_choice():
         help_en = await h.handle(_msg(1, "/help", 8))
         assert "message language" in help_en[0].html
         assert help_en[0].buttons == [[("Glossary", "terms"), ("Other coins", "x:assets")],
-                                    [("💡 An idea / what is missing", "x:idea"), ("📞 15 minutes with the team", "x:interview")]]
+                                    [("💡 An idea / what is missing", "x:idea"), ("📞 15 minutes with the team", "x:interview")],
+                                    [("📖 How to read the bot", "x:guide")]]
         alice = await h.handle(_msg(2, "/start", 9))
         assert alice[0].buttons == [[("Русский", "pick:ru"), ("English", "pick:en")]]
         en = await h.handle(_cb(2, "pick:en", 10))

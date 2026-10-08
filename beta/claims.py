@@ -682,7 +682,9 @@ def shown_keys(surface: str, block: Optional[Mapping[str, Any]], *, market: Opti
             if level_hist_shown(p.get("history"), "1h"):
                 out.append(("L2_LEVEL_FIRST_TOUCH_HOLD_1H", str(alert["key"])))
             nxt = p.get("next")
-            if nxt and (nxt.get("touch") or {}).get("24h") is not None and not (p.get("event_zone") or {}).get("24h"):
+            # shown only in mode B with its check (decision_format.format_alert), as the payload recorded it
+            if nxt and (nxt.get("touch") or {}).get("24h") is not None and not (p.get("event_zone") or {}).get("24h") \
+                    and (nxt.get("touch_24h_wording") or {}).get("mode") == "B":
                 out.append(("L3_LEVEL_TOUCH_24H", zkey(nxt, int(p.get("side") or 1))))
     return out
 

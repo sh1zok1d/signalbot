@@ -363,8 +363,8 @@ _CATALOG: dict[str, dict[str, str]] = {
         "ru": (
             "Добро пожаловать в Signalbot (закрытая бета).\n"
             "Бот следит за BTC-фьючерсами на Binance, Bybit и OKX. Он не говорит, покупать или "
-            "продавать, а показывает: насколько сейчас рискованно (коридор и /risk), где уровни, "
-            "которые видит весь рынок (/levels), что было в похожих ситуациях раньше и что сегодня "
+            "продавать, а показывает: насколько сейчас рискованно (коридор и /risk), где максимумы и "
+            "минимумы прошлого дня, недели и месяца и другие уровни (/levels), что было в похожих ситуациях раньше и что сегодня "
             "в календаре (/events).\n"
             "/btc — состояние рынка сейчас. /help — все команды.\n"
             "/terms — что значат термины.\n"
@@ -376,7 +376,7 @@ _CATALOG: dict[str, dict[str, str]] = {
             "Welcome to Signalbot (closed beta).\n"
             "The bot watches BTC perpetual futures on Binance, Bybit and OKX. It never says whether "
             "to buy or sell; it shows how risky the market is now (corridor and /risk), where the "
-            "levels everyone watches are (/levels), what happened in similar situations before and "
+            "previous day's, week's and month's highs and lows and other levels are (/levels), what happened in similar situations before and "
             "what is in today's calendar (/events).\n"
             "/btc — the market right now. /help — all commands.\n"
             "/terms — what the terms mean.\n"
@@ -430,6 +430,76 @@ _CATALOG: dict[str, dict[str, str]] = {
                      "en": "Booked: {slot}. The team writes here the day before. Changed your mind? Write /feedback."},
     "interview_other_ok": {"ru": "Записал: удобно в другое время. Команда напишет здесь, чтобы договориться.",
                            "en": "Noted: another time suits you. The team writes here to agree on one."},
+    # J4: a plain message (not a command) reaches the team as feedback; the answer comes here
+    # J1 onboarding: live /btc, a sample message, the /check offer (first value within a minute)
+    "onboard_btc_head": {"ru": "Вот BTC прямо сейчас:", "en": "Here is BTC right now:"},
+    "onboard_sample_head": {"ru": "Так выглядит сообщение о касании уровня. Это пример, не текущий рынок:",
+                            "en": "This is what a level-touch message looks like. An example, not the current market:"},
+    "onboard_check": {"ru": "Проверьте свой уровень: /check и цена, например /check 65000 — шанс дойти за 1ч / 4ч / 24ч "
+                            "и что бывало у таких уровней. Или кнопкой ниже. Как читать бота: /guide",
+                      "en": "Check a level of your own: /check and a price, e.g. /check 65000 — the chance to reach it "
+                            "within 1h / 4h / 24h and what such levels did. Or tap below. How to read the bot: /guide"},
+    "btn_guide": {"ru": "📖 Как читать бота", "en": "📖 How to read the bot"},
+    # J2 «как читать бота»: an annotated push and briefing
+    "guide": {
+        "ru": ("<b>Как читать бота</b>\n\n"
+               "<b>Сообщение о необычном часе</b>\n"
+               "«13:05–14:05 (Киев) · задержка 45 с» — окно часа и через сколько пришло сообщение.\n"
+               "«Похоже на …» — описание состояния, не причина и не совет.\n"
+               "«падение глубже, чем в 95% часовых окон за 30 дней» — насколько это необычно и с чем сравнивали.\n"
+               "«OI · Delta · Биржи: 3 из 3» — открытый интерес, перевес рыночных покупок или продаж, согласие бирж.\n"
+               "«Рядом: ↑ … · ↓ …» — ближайшие уровни.\n\n"
+               "<b>Сообщение об уровне</b>\n"
+               "«цена вошла в зону …» — цена впервые за день, неделю или месяц дошла до такого уровня.\n"
+               "«первой была — верхняя … · нижняя … · ни одна … (обычно …)» — как часто в похожих касаниях "
+               "2020–2024 (N — сколько их было) цена сначала доходила до верхней или нижней цены или ни до одной; "
+               "«обычно» — что дала бы случайная цена с той же волатильностью из той же точки, без учёта уровня. "
+               "Это частоты прошлого, не прогноз направления.\n\n"
+               "<b>Утренняя сводка</b>\n"
+               "«Сейчас · 1ч и 4ч» — состояние рынка за час и за 4 часа.\n"
+               "«Коридор: 4ч … · 24ч …» — где цена оставалась в 4 из 5 похожих случаев; строка ниже — как часто так "
+               "и было, на истории или вживую.\n"
+               "«Уровни» — максимумы и минимумы прошлого дня, недели и месяца, открытия периодов, круглые цены и другие уровни из /terms; «🎯 Проверить» — шанс до них дойти.\n"
+               "«События в ближайшие сутки» — CPI и ФРС: рядом с ними числовые оценки не показываем.\n\n"
+               "<b>Числа</b>\n"
+               "«≈ 41%» — шанс дойти; рядом — как такие оценки сбывались: «говорили 40% → было 39% (N=120)».\n"
+               "«исторически в 41% случаев» — так бывало раньше, без проверки как прогноз.\n"
+               "«+4,0 п.п.; 95% интервал …» — разница с обычным и её разброс; N — сколько было случаев.\n"
+               "Бот не говорит, покупать или продавать."),
+        "en": ("<b>How to read the bot</b>\n\n"
+               "<b>Unusual-hour message</b>\n"
+               "“13:05–14:05 Kyiv · delay 45 s” — the hour and how long the message took.\n"
+               "“Looks like …” — a description of the state, not a cause and not advice.\n"
+               "“a fall deeper than 95% of 1h windows over 30 days” — how unusual it is and what it was compared with.\n"
+               "“OI · Delta · Exchanges: 3 of 3” — open interest, the balance of market buys and sells, how many "
+               "exchanges agree.\n"
+               "“Nearby: ↑ … · ↓ …” — the nearest levels.\n\n"
+               "<b>Level message</b>\n"
+               "“the price entered the … zone” — the first time this day, week or month the price reached such a level.\n"
+               "“reached first — the upper … · the lower … · neither … (usually …)” — how often, in similar touches in "
+               "2020–2024 (N is how many), the price reached the upper or the lower price first, or neither; "
+               "“usually” — what a random price path with the same volatility from the same point would give, ignoring "
+               "the level. These are past frequencies, not a direction forecast.\n\n"
+               "<b>Morning briefing</b>\n"
+               "“Now · 1h and 4h” — the market state over the hour and over 4 hours.\n"
+               "“Corridor: 4h … · 24h …” — where the price stayed in 4 of 5 similar cases; the line below — how often "
+               "that held, on history or live.\n"
+               "“Levels” — the previous day's, week's and month's highs and lows, period opens, round prices and the other levels in /terms; “🎯 Check” — the chance to reach them.\n"
+               "“Events within 24 hours” — CPI and the Fed: no numerical estimates around them.\n\n"
+               "<b>Numbers</b>\n"
+               "“≈ 41%” — the chance to reach; beside it, how such estimates turned out: “said 40% → was 39% (N=120)”.\n"
+               "“historically in 41% of cases” — what happened before, not checked as a forecast.\n"
+               "“+4.0 pp; 95% interval …” — the difference from usual and its spread; N is the number of cases.\n"
+               "The bot never says whether to buy or sell."),
+    },
+    "tier_closed": {"ru": "Это сейчас недоступно.", "en": "This is not available now."},
+    "plain_to_team": {"ru": "Передал команде — ответ придёт сюда. Команды: /help",
+                      "en": "Passed to the team — the answer comes here. Commands: /help"},
+    # I2 / U3 (PRODUCT_FIRST_DECISION_V1 §7): the offer on days 21–25, to everyone enrolled, churned included
+    "u3_offer": {"ru": "Бета подходит к концу. Если бот был полезен, его можно продолжить: {price}. Оплата: {method}. "
+                       "Деньги можно вернуть в течение 30 дней. Вопросы и оплата — через /feedback или ответом сюда.",
+                 "en": "The beta is ending. If the bot was useful, you can keep it: {price}. Payment: {method}. "
+                       "You can get the money back within 30 days. Questions and payment: /feedback or a reply here."},
     "feedback_thanks": {
         "ru": "Спасибо! Отзыв передан команде.",
         "en": "Thanks! Your feedback was sent to the team.",
@@ -462,10 +532,12 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• Мы записываем, какие команды и кнопки вы используете и когда, и по какой "
             "ссылке-приглашению вы пришли, чтобы улучшать бота. Эти записи хранятся 120 дней. "
             "/delete_me удаляет их вместе с остальными вашими данными.\n"
-            "• Тексты отзывов, идей и запись на разговор (/feedback, /idea, /interview) хранятся 120 дней; "
+            "• Тексты отзывов, идей, обычные сообщения боту и запись на разговор (/feedback, /idea, /interview) "
+            "хранятся 120 дней; "
             "ответы «почему» после «Шум» и при паузе хранятся, пока вы в бете. /delete_me удаляет всё это.\n"
             "• Ваши уровни (/alert) хранятся, пока вы их не удалите; /delete_me удаляет их.\n"
-            "• /stop приостанавливает все сообщения. /delete_me удаляет ваши данные участника "
+            "• /stop приостанавливает все сообщения, кроме ответов команды на ваши сообщения и одного предложения "
+            "в конце беты. /delete_me удаляет ваши данные участника "
             "и исключает вас из беты.\n"
             "• После /stop данные удаляются автоматически через 30 дней.\n"
             "• Журнал прогнозов бота (что он говорил и что было потом) и записи рынка не содержат "
@@ -489,11 +561,13 @@ _CATALOG: dict[str, dict[str, str]] = {
             "• We record which commands and buttons you use, and when, and which invite link "
             "you came from, so we can improve the bot. These records are kept for 120 days. "
             "/delete_me deletes them with the rest of your data.\n"
-            "• Feedback, idea and interview texts (/feedback, /idea, /interview) are stored for 120 days; your "
+            "• Feedback and idea texts, plain messages to the bot and interview requests (/feedback, /idea, "
+            "/interview) are stored for 120 days; your "
             "answers to «why» after «Noise» and at a pause are kept while you are in the beta. /delete_me deletes "
             "all of it.\n"
             "• Your price alerts (/alert) are kept until you delete them; /delete_me deletes them.\n"
-            "• /stop pauses all messages. /delete_me deletes your participant data and removes "
+            "• /stop pauses all messages except the team's replies to your messages and one offer at the end of "
+            "the beta. /delete_me deletes your participant data and removes "
             "you from the beta.\n"
             "• After /stop, your data is deleted automatically after 30 days.\n"
             "• The bot's forecast journal (what it said and what happened next) and the market records do not "
@@ -551,9 +625,11 @@ _CATALOG: dict[str, dict[str, str]] = {
         "en": "Messages are paused or you have not joined yet. Send /start.",
     },
     "paused": {
-        "ru": ("Сообщения на паузе. Отправьте /start, чтобы продолжить. Данные удаляются "
+        "ru": ("Сообщения на паузе, кроме ответов команды на ваши сообщения и одного предложения в конце беты. "
+               "Отправьте /start, чтобы продолжить. Данные удаляются "
                "автоматически через 30 дней или сразу командой /delete_me."),
-        "en": ("Messages paused. Send /start to resume. Your data is deleted "
+        "en": ("Messages paused, except the team's replies to your messages and one offer at the end of the beta. "
+               "Send /start to resume. Your data is deleted "
                "automatically after 30 days, or now with /delete_me."),
     },
     "unknown_cmd": {"ru": "Неизвестная команда. /help", "en": "Unknown command. /help"},
