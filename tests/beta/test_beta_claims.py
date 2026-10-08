@@ -389,11 +389,16 @@ def test_shown_keys_follow_what_each_surface_prints():
     hist = {"real": {"n": 812, "1h": {"hold_rate": 0.47}}, "control": {"n": 4000, "1h": {"hold_rate": 0.43}},
             "ci95": {"1h": [-0.012, 0.091]}}
     cand = {"kind": "level", "key": "level:PDH:2026-10-14",
-            "payload": {"side": 1, "next": _zone(["ROUND"], 64000.0, 2.4), "event_zone": {}, "history": hist}}
+            "payload": {"side": 1, "next": {**_zone(["ROUND"], 64000.0, 2.4), "touch_24h_wording": {"mode": "B"}},
+                        "event_zone": {}, "history": hist}}
     assert cj.shown_keys("alert", None, alert=cand) == [("L2_LEVEL_FIRST_TOUCH_HOLD_1H", "level:PDH:2026-10-14"),
                                                          ("L3_LEVEL_TOUCH_24H", "+1:64000.00")]
     bare = {**cand, "payload": {**cand["payload"], "history": {k: v for k, v in hist.items() if k != "ci95"}}}
     assert cj.shown_keys("alert", None, alert=bare) == [("L3_LEVEL_TOUCH_24H", "+1:64000.00")]   # «мало данных»
+    # the next level's chance is printed only in mode B (#403): fallback, or a payload without the wording, is not shown
+    for w in ({"mode": "fallback"}, None):
+        nb = {**cand, "payload": {**cand["payload"], "next": {**cand["payload"]["next"], "touch_24h_wording": w}}}
+        assert cj.shown_keys("alert", None, alert=nb) == [("L2_LEVEL_FIRST_TOUCH_HOLD_1H", "level:PDH:2026-10-14")]
 
 
 def test_display_links_never_fail_the_caller():
