@@ -269,7 +269,7 @@ def _asymmetry_gap(u: float, d: float, pseudo_high: float, pseudo_low: float, p0
     return abs(scaled - partner)
 
 
-def _cell(high, low, close, t0: int, offset: int) -> dict:
+def _cell(high, low, close, t0: int, offset: int, pair_sink: list | None = None) -> dict:
     counts = _empty_counts()
     n = int(high.shape[0])
     geoms = []
@@ -379,6 +379,21 @@ def _cell(high, low, close, t0: int, offset: int) -> dict:
             pseudo_eligible = _record_pseudo_touch(counts, rec, ptouch, high, low, close, n)
             if rec["real_eligible"] and pseudo_eligible:
                 counts["paired_outcome_eligible"] += 1
+                if pair_sink is not None:
+                    pair_sink.append({
+                        "iso_year": rec["iso_year"],
+                        "iso_week": rec["iso_week"],
+                        "real_index": rec["touch"][0],
+                        "real_side": rec["touch"][1],
+                        "real_high": rec["high"],
+                        "real_low": rec["low"],
+                        "real_immediate": bool(rec["real_immediate"]),
+                        "pseudo_index": ptouch[0],
+                        "pseudo_side": ptouch[1],
+                        "pseudo_high": pseudo_high,
+                        "pseudo_low": pseudo_low,
+                        "pseudo_immediate": bool(rec["pseudo_immediate"]),
+                    })
                 if not rec["real_immediate"] and not rec["pseudo_immediate"]:
                     counts["paired_neither_immediate"] += 1
                 counts["paired_by_year"][year_key] += 1

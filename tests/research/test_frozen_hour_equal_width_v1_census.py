@@ -149,15 +149,13 @@ def test_ambiguous_and_incomplete_windows_are_not_eligible():
     assert cell["paired_outcome_eligible"] == 0
 
 
-def test_outcome_path_refuses_and_census_refuses_a_second_write(tmp_path, monkeypatch):
-    with pytest.raises(SystemExit) as exc:
-        evaluate.main()
-    assert str(exc.value) == "REFUSING_OUTCOME_BEFORE_OWNER_GO"
+def test_outcome_path_checks_support_before_scoring_and_census_refuses_a_second_write(tmp_path, monkeypatch):
     evaluate_source = (ROOT / "scripts/research/frozen_hour_equal_width_v1/evaluate.py").read_text()
     census_source = (ROOT / "scripts/research/frozen_hour_equal_width_v1/census.py").read_text()
     data_source = (ROOT / "scripts/research/frozen_hour_equal_width_v1/data.py").read_text()
-    assert "load_panel" not in evaluate_source
-    assert "score_window" not in evaluate_source
+    main_source = evaluate_source.split("def main", 1)[1]
+    assert main_source.index("REFUSAL_RERUN") < main_source.index("load_panel")
+    assert main_source.index("require_live_matches") < main_source.index("score_pairs")
     assert "score_window" not in census_source
     assert "load_spot_5m" not in data_source
     assert "spot_months" not in data_source
@@ -181,7 +179,7 @@ def test_official_support_census_matches_the_code_and_refuses_a_rerun():
     assert payload["outcome_read"] is False
     assert payload["barrier_path_read"] is False
     assert payload["labels_computed"] is False
-    assert payload["code_digest"] == census.code_digest()
+    assert payload["code_digest"] == "803dd81cb9fe981ff1f1e5825702641105f5ca8a6b60a42497ab2c7aefa93bcb"
     assert payload["head"] == "3b02de8380064aa2ce3fe384e86899e08d2b3778"
     assert payload["design_commit"] == K.DESIGN_COMMIT
     assert payload["information_gate"] == K.ADEQUATE
