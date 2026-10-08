@@ -444,3 +444,24 @@ def test_venue_closes_are_read_per_minute_from_bybit_and_okx():
     assert sorted({a[0] for a in asked}) == ["bybit", "okx"] and all(a[1] == "BTCUSDT" for a in asked)
     assert all((a[3] - a[2]) == timedelta(minutes=1) for a in asked)
     assert LR.model_inputs(b, v, vc)["c1_missing"] is None
+
+
+def test_venue_closes_never_fetch_a_minute_inside_the_e1_window():
+    e1_start = int(datetime(2026, 8, 16, tzinfo=UTC).timestamp() * 1000)
+    e1_end = int(datetime(2026, 8, 25, 17, 20, tzinfo=UTC).timestamp() * 1000)
+    # T15 events whose instants fall inside, at both edges and just outside the window
+    touches = [e1_start, e1_start - 15 * 60_000, e1_start + 3 * 86_400_000, e1_end - 15 * 60_000, e1_end - 5 * 60_000,
+               e1_end, e1_start - 5 * 60_000]
+    views = [{"landmark": "T15", "touch_open_ms": t} for t in touches]
+    asked = []
+
+    class Conn:
+        async def fetch_live_klines_1m(self, *, exchange, symbol, start, end):
+            asked.append((int(start.timestamp() * 1000), int(end.timestamp() * 1000)))
+            return []
+
+    asyncio.run(LR.load_venue_closes(Conn(), "BTCUSDT", views))
+    assert asked and all(z <= e1_start or a >= e1_end for a, z in asked)
+    inside = [m for m in LR.c1_minutes(views) if e1_start <= m < e1_end]
+    assert inside and not {m for m, _ in asked} & set(inside)
+    assert {m for m, _ in asked} == {m for m in LR.c1_minutes(views) if not (e1_start <= m < e1_end)}

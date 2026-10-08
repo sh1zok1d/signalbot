@@ -292,10 +292,10 @@ async def load_venue_closes(conn, symbol: str, views: Sequence[Mapping[str, Any]
     """{venue: {close instant ms: close}} for the C1 instants of `views`, read-only from the Stage-1
     klines_1m of Bybit and OKX (the same canonical symbol as Binance). One query per venue and
     minute; nothing in the E1 protected window is read."""
-    from .history_data import in_protected_window
+    from .history_data import protected_overlap
     out: dict = {ven: {} for ven in C1_VENUES}
     for m in c1_minutes(views):
-        if in_protected_window(m):
+        if protected_overlap(m, m + MINUTE_MS) is not None:
             continue
         for ven in C1_VENUES:
             rows = await conn.fetch_live_klines_1m(exchange=ven, symbol=symbol, start=from_ms(m),
