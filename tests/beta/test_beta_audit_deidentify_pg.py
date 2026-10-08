@@ -155,16 +155,15 @@ def test_a_deleted_person_as_the_actor_becomes_the_role():
         assert "UPDATE 3" in out                                                  # the actor side, counted
         after = {r["audit_id"]: dict(r) for r in await pool.fetch("SELECT * FROM beta_admin_audit")}
         midnight = T.astimezone(KYIV).replace(hour=0, minute=0, second=0)
-        a = after[ids["own_no_target"]]
-        assert a["actor_fingerprint"] == "participant"
-        assert {k: v for k, v in a.items() if k != "actor_fingerprint"} == {
-            k: v for k, v in before[ids["own_no_target"]].items() if k != "actor_fingerprint"}
+        a = after[ids["own_no_target"]]                                           # owner, 2026-10-09: same shape
+        assert (a["actor_fingerprint"], a["target_fingerprint"], json.loads(a["detail"]), a["recorded_at"]) == (
+            "participant", None, {}, midnight)
         a = after[ids["own_self"]]
         assert (a["actor_fingerprint"], a["target_fingerprint"], json.loads(a["detail"]), a["recorded_at"]) == (
             "participant", None, {}, midnight)
         a = after[ids["own_about_live"]]
-        assert (a["actor_fingerprint"], a["target_fingerprint"], json.loads(a["detail"])) == (
-            "participant", LIVE_FP, {"x": 2})
+        assert (a["actor_fingerprint"], a["target_fingerprint"], json.loads(a["detail"]), a["recorded_at"]) == (
+            "participant", LIVE_FP, {}, midnight)                                  # the live target stays
         for name in ("live_self", "live_no_target", "owner_no_target"):
             assert after[ids[name]] == before[ids[name]], name
         assert not [r for r in after.values() if GONE_FP in (r["actor_fingerprint"], r["target_fingerprint"])]

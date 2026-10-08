@@ -15,8 +15,8 @@
 --    attributes), the Kyiv date.
 --    The fact that the action happened stays. The audit never stored reply bodies (admin_reply keeps none).
 -- 3. The actor side: an actor fingerprint that is a person's (u_ + 12 hex), belongs to nobody still present and is
---    not the owner's -> 'participant', whatever the target. A row they only acted in keeps everything else; when
---    target = actor = a deleted person, both go. 'actor_own' is only a live person's or the owner's own row.
+--    not the owner's -> 'participant', whatever the target, with detail {} and the Kyiv date (owner, 2026-10-09); a
+--    live target on a row they only acted in stays; when target = actor = a deleted person, both go. 'actor_own' is only a live person's or the owner's own row.
 -- keyed_since: rows recorded at or after it carry #423's keyed fingerprints, which SQL cannot recompute; they are
 -- left untouched and counted. Leave it unset when #423 is not deployed yet.
 -- The table is append-only (trigger trg_beta_audit_append_only). The trigger is disabled only inside this
@@ -101,9 +101,12 @@ SET target_fingerprint = NULL,
 FROM deid_rows d
 WHERE d.audit_id = a.audit_id AND d.kind = 'deleted_person';
 
--- the actor side: a deleted person's fingerprint as the actor becomes the role, whatever the target
+-- the actor side: a deleted person's fingerprint as the actor becomes the role, whatever the target, and the row
+-- takes the same shape as every other row about them (owner, 2026-10-09): detail {}, the Kyiv date; a live target stays
 UPDATE beta_admin_audit a
-SET actor_fingerprint = 'participant'
+SET actor_fingerprint = 'participant',
+    detail = '{}'::jsonb,
+    recorded_at = date_trunc('day', a.recorded_at AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv'
 FROM deid_rows d
 WHERE d.audit_id = a.audit_id AND d.actor_deleted;
 
