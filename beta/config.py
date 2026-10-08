@@ -388,6 +388,9 @@ def _validate_level_race(d: Mapping[str, Any]) -> None:
     _exact_keys(x, _LEVEL_RACE_KEYS, "level_race")
     for key in sorted(_LEVEL_RACE_KEYS):
         _bool(x[key], f"level_race.{key}")
+    if x["display_enabled"] and not (x["journal_enabled"] and d["decision"]["claim_journal"]):
+        raise BetaConfigError("level_race.display_enabled needs level_race.journal_enabled and decision.claim_journal: "
+                              "every shown line must have its journal record")
 
 
 def _validate_decision(d: Mapping[str, Any]) -> None:

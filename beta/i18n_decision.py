@@ -515,7 +515,8 @@ DECISION_CATALOG: dict = {
     # level race, HIST (docs/research/LEVEL_RACE_FORECAST_V1_DESIGN.md §0; ids LR_HIST_V1, LR_PUSH_HIST_V1,
     # LR_HIST_LOW_N_V1). Prices only, the three outcomes together; the Russian text is the frozen one.
     "lr_head": _pair("↳ цена вошла в зону {names} в {when}, данные на {clock}",
-                     "↳ price entered the {names} zone at {when}, data as of {clock}"),
+                     "↳ the price entered the {names} zone at {when}, data as of {clock}"),
+    "pa_zone_member": _pair("{kind} ({name})", "{kind} ({name})"),
     "lr_hist_v1": _pair("Похожие касания в 2020–2024 (N = {n}): первой достигалась верхняя цена — {h_up} % "
                         "(обычно {b_up} %; разница {d_up} п.п., 95 % интервал {lo_up}..{hi_up}), нижняя — {h_dn} % "
                         "(обычно {b_dn} %; разница {d_dn} п.п., 95 % интервал {lo_dn}..{hi_dn}), ни одна за окно — "
@@ -526,10 +527,10 @@ DECISION_CATALOG: dict = {
                         "(usually {b_dn}%; difference {d_dn} pp, 95% interval {lo_dn}..{hi_dn}), neither within the "
                         "window in {h_ne}% (usually {b_ne}%; difference {d_ne} pp, 95% interval {lo_ne}..{hi_ne}). "
                         "Now: upper {P_UP}, lower {P_DN}, window until {END}."),
-    "lr_push_hist_v1": _pair("2020–2024, похожие касания (N = {n}): первой верхняя {P_UP} {h_up} % · нижняя {P_DN} "
-                             "{h_dn} % · ни одна {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), до {END}",
-                             "2020–2024, similar touches (N = {n}): first the upper {P_UP} {h_up}% · the lower {P_DN} "
-                             "{h_dn}% · neither {h_ne}% (usually {b_up}/{b_dn}/{b_ne}%), until {END}"),
+    "lr_push_hist_v1": _pair("2020–2024, похожие касания (N = {n}): первой была — верхняя {P_UP} — {h_up} % · нижняя "
+                             "{P_DN} — {h_dn} % · ни одна — {h_ne} % (обычно {b_up}/{b_dn}/{b_ne} %), до {END}",
+                             "2020–2024, similar touches (N = {n}): reached first — the upper {P_UP} — {h_up}% · the "
+                             "lower {P_DN} — {h_dn}% · neither — {h_ne}% (usually {b_up}/{b_dn}/{b_ne}%), until {END}"),
     "lr_hist_low_n_v1": _pair("Похожих касаний в 2020–2024 мало (N = {n}).",
                               "Few similar touches in 2020–2024 (N = {n})."),
 }

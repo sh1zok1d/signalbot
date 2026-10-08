@@ -126,7 +126,7 @@ CLASSES = {
     "L2_LEVEL_FIRST_TOUCH_HOLD_4H": ("L2", ("lv_hist", "pa_level_hist", "dc_pp_ci"), "LEVEL_HOLD_V1"),
     "L2_DH3_P1_RANGE_4H": ("L2", "registry:DH3-P1", "DH3_P1_RANGE_4H_V1"),
     # level race, HIST (beta/level_race_live.py holds the names of every race class)
-    "L2_LEVEL_RACE_HIST_T0_4H": ("L2", ("lr_push_hist_v1", "lr_hist_low_n_v1"), "LEVEL_RACE_4H_V1"),
+    "L2_LEVEL_RACE_HIST_T0_4H": ("L2", ("lr_push_hist_v1", "lr_hist_v1", "lr_hist_low_n_v1"), "LEVEL_RACE_4H_V1"),
     "L2_LEVEL_RACE_HIST_T15_4H": ("L2", ("lr_hist_v1", "lr_hist_low_n_v1"), "LEVEL_RACE_4H_V1"),
 }
 HOURLY_GROUPS = {
@@ -379,7 +379,8 @@ def level_hold_claims(cand: Mapping[str, Any], *, now: datetime) -> list:
     return out
 
 
-def level_race_claims(views: Sequence[Mapping[str, Any]], *, now: datetime, mode: str = "HIST") -> list:
+def level_race_claims(views: Sequence[Mapping[str, Any]], *, now: datetime, mode: str = "HIST",
+                      calendar: Optional[Mapping[str, Any]] = None) -> list:
     """L2 at the landmarks of a structural first touch: the HIST shares of the event's cell as the
     surfaces print them, with the event's own B0, its barrier prices and window, the table digest
     and the mode (FORECAST_LAYER §6a: metrics before and after the switch are kept apart)."""
@@ -408,6 +409,9 @@ def level_race_claims(views: Sequence[Mapping[str, Any]], *, now: datetime, mode
                            b={k: round(float(x), 6) for k, x in v["b"].items()}, k_pp=dict(v["k_pp"]),
                            weeks=int(v["weeks"]), d_pp=dict(v["d_pp"]), ci95_pp=dict(v["ci95_pp"]),
                            printed={"h": dict(v["printed_h"]), "b": dict(v["printed_b"])})
+        if calendar is not None:                  # the 4h window holds a CPI / FOMC release: never shown, still written
+            from .decision import event_zones
+            subject["event_zone"] = bool(event_zones(int(v["landmark_ms"]), calendar).get("4h"))
         reason = f"LANDMARK_{v['landmark']}" + ("_OUT_OF_CORRIDOR" if v["out_of_corridor"] else "")
         out.append(claim_row(v["class"], issued_at=now, issue_slot=at, as_of=at, subject=subject,
                              subject_key=subject_key(v), numbers=numbers,
@@ -429,7 +433,8 @@ async def record_level_race(conn, cfg, *, now: datetime, capture: Mapping[str, A
     except Exception as exc:  # noqa: BLE001 - a table that does not verify is state OFF: nothing written
         rep["race_table_error"] = type(exc).__name__
         return rep
-    rows = level_race_claims(LR.due_landmarks(capture.get("bars"), now, table), now=now, mode=LR.mode(cfg))
+    rows = level_race_claims(LR.due_landmarks(capture.get("bars"), now, table), now=now, mode=LR.mode(cfg),
+                             calendar=capture.get("calendar"))
     for r in rows:
         rep["race_written"] += int(await conn.insert_claim(r) is not None)
     return rep
