@@ -54,7 +54,8 @@ def test_funding_comparator_is_the_median_of_prior_daily_means():
 
 
 def _view(**der):
-    horizons = {"24h": {"oi_change_pct": 3.24, "funding_rate_avg": 0.0001, "price_complete": False}}
+    horizons = {"24h": {"oi_change_pct": 3.24, "funding_rate_avg": 0.0001, "price_complete": False,
+                        "oi_by_venue": {"binance": 2.71, "bybit": 3.24, "okx": 3.9}}}
     block = derivatives_block(horizons=horizons, funding={"days": 30, "median": 0.00008},
                               oi_stats={"median_abs_pct": 1.84, "p90_abs_pct": 4.1, "n_days": 1500, "source": "binance"},
                               long_short={"ratio": 1.853, "at": "x", "typical": 1.62, "n_days": 30})
@@ -64,9 +65,11 @@ def _view(**der):
 
 def test_the_24h_line_and_tab_carry_the_comparator_with_n():
     line = _line_24h(_view(), "ru")
-    assert "OI +3,2% за 24ч (обычно ±1,8%, N=1500)" in line
+    # the cross-venue median is labelled; «обычно» (Binance since 2020) stands beside Binance's own change (D3)
+    assert "OI +3,2% за 24ч (медиана бирж; Binance +2,7%, обычно ±1,8%, N=1500 дн.)" in line
     assert "(платят лонги; обычно 0,008%, N=30)" in line
-    assert derivative_lines(_view(), "ru", part="oi") == ["   обычно OI за сутки меняется на ±1,8% (медиана, Binance, N=1500 дн.)"]
+    assert derivative_lines(_view(), "ru", part="oi") == [
+        "   Binance +2,7% · обычно OI Binance за сутки меняется на ±1,8% (медиана, N=1500 дн.)"]
     assert derivative_lines(_view(), "ru", part="funding") == ["   обычно среднее за 24 ч 0,008% (медиана за 30 дн.)"]
     assert derivative_lines(_view(), "ru", part="long_short") == [
         "Соотношение счетов лонг/шорт (Binance): 1,85 · обычно 1,62 (медиана за 30 дн.)"]
@@ -78,7 +81,7 @@ def test_without_a_comparator_the_surfaces_say_so_or_stay_silent():
     view = _view(oi_24h={"change_pct": 3.24, "typical_abs_pct": None, "n_days": 12, "source": "binance"},
                  funding_24h={"avg": 0.0001, "typical": None, "n_days": 0}, long_short=None)
     line = _line_24h(view, "ru")
-    assert "OI +3,2% за 24ч ·" in line and "обычно" not in line
+    assert "OI +3,2% за 24ч (медиана бирж) ·" in line and "обычно" not in line
     assert derivative_lines(view, "ru", part="oi") == ["   обычно: мало данных (N=12 дн.)"]
     assert derivative_lines(view, "ru", part="funding") == []
     assert derivative_lines(view, "ru", part="long_short") == []

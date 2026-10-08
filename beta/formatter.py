@@ -263,8 +263,8 @@ def _day_type_tod(view: Mapping[str, Any], metric: str) -> bool:
     """True when this 1h baseline metric follows the C1 same-day-type rule (BETA_HORIZON_TOD_V3):
     its day count is same-type days and it is ready at _DAY_TYPE_MIN_DAYS, not 20. Payloads
     stored under an older horizon version keep the old countdown."""
-    from .horizons import HORIZON_VERSION, _DAY_TYPE_TOD_METRICS
-    return (view.get("horizons") or {}).get("version") == HORIZON_VERSION and metric in _DAY_TYPE_TOD_METRICS
+    from .horizons import DAY_TYPE_VERSIONS, _DAY_TYPE_TOD_METRICS
+    return (view.get("horizons") or {}).get("version") in DAY_TYPE_VERSIONS and metric in _DAY_TYPE_TOD_METRICS
 
 
 def _ready_days(day_type: bool) -> int:
@@ -352,7 +352,7 @@ def _hour_line(view: Mapping[str, Any], lang: str) -> str:
                             day_type=_day_type_tod(view, _H1_RANGE_DAYS))
     if rng is not None:
         parts.append(t(lang, "h1_range", ratio=rng))
-    oi = block.get("oi_change_pct")
+    oi = horizon_oi(block)
     if oi is not None:
         parts.append(t(lang, "h_oi", pct=fmt_signed_pct(oi, lang, nd=1)))
     if not parts:
@@ -379,7 +379,7 @@ def _day_line(view: Mapping[str, Any], lang: str) -> Optional[str]:
             parts.append(t(lang, "h1_vol", ratio=ratio))
     elif block.get("volume_partial"):
         parts.append(t(lang, "h_vol_partial"))
-    oi = block.get("oi_change_pct")
+    oi = horizon_oi(block)
     if oi is not None:
         parts.append(t(lang, "h_oi", pct=fmt_signed_pct(oi, lang, nd=1)))
     if not parts:
@@ -817,11 +817,16 @@ def _line_24h(view: Mapping[str, Any], lang: str) -> str:
     else:
         parts.append(t(lang, "range_24h_na"))
     der = view.get("derivatives") or {}
-    oi = block.get("oi_change_pct")
+    oi = horizon_oi(block)
+    # «обычно» is Binance's daily |change| since 2020: it stands beside Binance's own 24h change, never
+    # beside the cross-venue median (D3, R5)
+    bn = (block.get("oi_by_venue") or {}).get("binance")
     oi_typ = der.get("oi_24h") or {}
-    parts.append(t(lang, "oi_24h", oi=na(lang) if oi is None else fmt_signed_pct(float(oi), lang, nd=1))
-                 + (t(lang, "oi_usual_part", typ=fmt_plain_pct(oi_typ["typical_abs_pct"], lang, nd=1),
-                      n=oi_typ["n_days"]) if oi is not None and oi_typ.get("typical_abs_pct") is not None else ""))
+    usual = (t(lang, "oi_usual_part", bn=fmt_signed_pct(float(bn), lang, nd=1),
+               typ=fmt_plain_pct(oi_typ["typical_abs_pct"], lang, nd=1), n=oi_typ["n_days"])
+             if oi is not None and bn is not None and oi_typ.get("typical_abs_pct") is not None else "")
+    parts.append(t(lang, "oi_24h_na") if oi is None
+                 else t(lang, "oi_24h", oi=fmt_signed_pct(float(oi), lang, nd=1), usual=usual))
     avg = block.get("funding_rate_avg")
     if avg is None:
         parts.append(t(lang, "funding_avg_na"))
@@ -840,9 +845,14 @@ def derivative_lines(view: Mapping[str, Any], lang: str, *, part: str) -> list:
     ratio ('long_short') for the 24h tab (backlog G2). Nothing without the stored block."""
     der = view.get("derivatives") or {}
     if part == "oi":
+        # like with like (D3, R5): Binance's own 24h change beside Binance's daily |change| since 2020
+        bn = ((((view.get("horizons") or {}).get("24h")) or {}).get("oi_by_venue") or {}).get("binance")
         x = der.get("oi_24h") or {}
+        if bn is None:
+            return []
         if x.get("typical_abs_pct") is not None:
-            return [t(lang, "der_oi_usual", typ=fmt_plain_pct(x["typical_abs_pct"], lang, nd=1), n=x["n_days"])]
+            return [t(lang, "der_oi_usual", bn=fmt_signed_pct(float(bn), lang, nd=1),
+                      typ=fmt_plain_pct(x["typical_abs_pct"], lang, nd=1), n=x["n_days"])]
         return [t(lang, "der_usual_short", n=x["n_days"])] if x.get("n_days") else []
     if part == "funding":
         x = der.get("funding_24h") or {}
@@ -1086,12 +1096,25 @@ def _horizon_liq(block: Mapping[str, Any]) -> dict:
     return by_side
 
 
+OI_MIN_VENUES = 2                # the 1h context's rule (min_venue_coverage); a stored pre-V4 block may hold one
+
+
+def horizon_oi(block: Optional[Mapping[str, Any]]) -> Optional[float]:
+    """A horizon's OI headline: the median of the venue changes, only from at least OI_MIN_VENUES venues
+    (a payload stored before BETA_HORIZON_TOD_V4 could carry one venue's figure as the headline)."""
+    block = block or {}
+    raw = block.get("oi_by_venue")
+    if raw is not None and sum(v is not None for v in raw.values()) < OI_MIN_VENUES:
+        return None
+    return block.get("oi_change_pct")
+
+
 def _horizon_oi_line(block: Mapping[str, Any], lang: str) -> Optional[str]:
     raw = block.get("oi_by_venue") or {}
     if not raw and block.get("oi_change_pct") is None:
         return None
     return _venue_oi({"oi_change_pct_by_venue": raw,
-                      "oi_change_pct": {"value": block.get("oi_change_pct")}}, lang, nd=1)
+                      "oi_change_pct": {"value": horizon_oi(block)}}, lang, nd=1)
 
 
 def _change_sentence(item: Mapping[str, Any], lang: str) -> str:
