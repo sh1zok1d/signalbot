@@ -112,3 +112,11 @@ def test_level_and_price_detectors_put_the_4h_record_in_the_payload():
     # no 4h corridor (inside its event zone, or no model): no record either
     blk2 = {**blk, "corridor": {**BLOCK_CORRIDOR, "horizons": {}}}
     assert ma.detect_price_alerts([alert], b, closed, block=blk2)[0]["payload"]["corridor_4h_track"] is None
+
+
+def test_a_held_out_record_without_its_days_is_no_record():
+    """Never «(0 дн.)»: a held-out share without a positive n_days is not printed (ОПГ-1 review of #402)."""
+    for nd in (None, 0):
+        tr = {"coverage": 0.8, "live": {}, "holdout": {"4h": {"coverage_realized": 0.81, "n_days": nd}}}
+        assert df.corridor_record(tr, "4h") is None
+        assert "Коридор 4ч сейчас:" in plain(df.format_alert("price", _payload("price", tr), "ru"))

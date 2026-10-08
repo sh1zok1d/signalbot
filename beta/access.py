@@ -26,7 +26,23 @@ ACTIVITY_ACTIONS = (
     "cmd_check", "btn_check", "btn_watch", "weekly_delivered",
     "cmd_tz", "set_mute", "set_unmute", "cmd_type", "type_set",
     "cmd_idea", "idea_sent", "reason_set", "cmd_interview", "interview_booked",
+    "onboard_btc", "cmd_guide", "plain_text",
 )
+
+# Monetization readiness (PRE_BETA_SCOPE_DECISION_V1 §6.5, backlog I1): every feature has a tier in code;
+# nothing is gated while `access.tiers_enforced` is false, which it is for the whole beta.
+TIERS = ("free", "paid")
+FEATURE_TIERS = {"btc": "free", "brief": "free", "alerts": "free", "levels": "free", "risk": "free",
+                 "check_one_level": "free", "check_two_levels": "paid", "personal_levels": "free",
+                 "weekly": "free"}
+
+
+def feature_open(cfg, user, feature: str) -> bool:
+    """True when the participant's tier opens the feature, or always while tiers are not enforced."""
+    if not cfg.section("access").get("tiers_enforced"):
+        return True
+    need = FEATURE_TIERS.get(feature, "paid")
+    return need == "free" or (user or {}).get("tier") == "paid"
 
 
 # the one-tap mute and its undo under a push (backlog E2): settings, never reactions (review of #373, #375)
