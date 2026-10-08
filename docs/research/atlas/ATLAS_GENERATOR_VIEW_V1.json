@@ -7745,7 +7745,7 @@
   "UNAVAILABLE_PERIODS": "A surface's unavailable_periods may not be read, used or proposed for any card.",
   "UNDERPOWERED_NOW": "Too few independent units today. Do not generate until the revisit point."
  },
- "SOURCES_DIGEST": "7e607e98057862c8946b61059ba5e480382c81a9c77eb0b808d84556c49ad14e",
+ "SOURCES_DIGEST": "3678d85d5dbc771ba1128bb673ed1b3ce635a4f6fd533bea819987ed4536bd85",
  "SURFACES": [
   {
    "also_cols": [

@@ -8583,3 +8583,17 @@ OBJECTS_2025_2026_USED = none; E1 / V3 untouched; COMPILER_V3 = not run
 HIST_TABLE_V1 = computed once; MODEL = not started; HELD_OUT_READ = no
 PRODUCT_CHANGE = none (table artifact only); FINDINGS_REGISTRY = unchanged
 ```
+
+## 2026-10-08 — LEVEL_RACE_FORECAST_V1 development (CV 2020–2024) run once; champion M1 by the frozen rule; not frozen
+
+**Unit.** `LEVEL_RACE_FORECAST_V1` (atlas `LEVEL-RACE-FORECAST-V1`). Design `997ba986`; code `d7012001` committed before the run. Record `docs/research/LEVEL_RACE_FORECAST_V1_DEVELOPMENT.md` / `.json`.
+- **Read.** `CORE_BTC_BINANCE_V0` 2020-02..2024-12 race outcomes again (same rows as HIST V1) for rolling-origin CV; `LEVEL_CROSS_VENUE_PERP_5M_V0` 2020-04..2024-12 Bybit/OKX closes for C1; hourly generic 4h races on the same CORE bars.
+- **Evidence.** Pooled out-of-fold log-loss: B0 0.8987, B1 0.9650, M1 0.8705 (gain +0.028, 95 % +0.014..+0.042), M1A 0.8883, M1B 0.8902. Champion M1 (DISCOVERY_ONLY). C1 vs base −0.006 (−0.012..+0.000). Generic G1 vs GB0 +0.036 (+0.031..+0.041).
+- **Not done.** No freeze, no held-out read, no 2025/2026 object, no product display.
+
+```
+WINDOWS_CONSUMED = CORE_BTC_BINANCE_V0 2020-02..2024-12 PRICE_STRUCTURE.levels (model development, further exposure); LEVEL_CROSS_VENUE_PERP_5M_V0 2020-04..2024-12 (C1 fit); CORE 2020-02..2024-12 generic hourly 4h races
+OBJECTS_2025_2026_USED = none; E1 / V3 untouched
+MODEL_FROZEN = no; HELD_OUT_READ = no; PRODUCT_CHANGE = none
+```
+
