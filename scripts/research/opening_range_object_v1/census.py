@@ -199,7 +199,7 @@ def _touch_hour(t0: int, index: int) -> int:
     return dt.datetime.fromtimestamp(ms / 1000.0, tz=UTC).hour
 
 
-def _cell(high, low, close, t0: int, offset: int, clocks: list | None = None) -> dict:
+def _cell(high, low, close, t0: int, offset: int, clocks: list | None = None, pair_sink: list | None = None) -> dict:
     counts = _empty_counts()
     n = int(high.shape[0])
     geoms = []
@@ -318,6 +318,20 @@ def _cell(high, low, close, t0: int, offset: int, clocks: list | None = None) ->
                         "pseudo_hour": _touch_hour(t0, pj),
                         "iso_year": rec["iso_year"],
                         "iso_week": rec["iso_week"],
+                    })
+                if pair_sink is not None:
+                    pair_sink.append({
+                        "year": rec["year"],
+                        "iso_year": rec["iso_year"],
+                        "iso_week": rec["iso_week"],
+                        "real_side": rec["touch"][1],
+                        "pseudo_side": ptouch[1],
+                        "real_index": rec["touch"][0],
+                        "pseudo_index": ptouch[0],
+                        "real_high": rec["high"],
+                        "real_low": rec["low"],
+                        "pseudo_high": pseudo_high,
+                        "pseudo_low": pseudo_low,
                     })
                 year_key = str(rec["year"])
                 if year_key in counts["paired_by_year"]:

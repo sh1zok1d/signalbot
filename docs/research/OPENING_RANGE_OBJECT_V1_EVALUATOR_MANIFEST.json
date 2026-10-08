@@ -1,0 +1,19 @@
+{
+  "code_digest": "f4774f348672864b3e6c9ffca97acca42bdc4a1744104a76142186cf4ea7c5d1",
+  "files": {
+    "scripts/research/opening_range_object_v1/__init__.py": "4a95334ebd95324646f7ab092ed1266595e9646d6e8962e25575889b7b0f123d",
+    "scripts/research/opening_range_object_v1/census.py": "8e64df7c3da9678554a03a916f566738b76b6aa085c8952b6aa5c2dc85535e14",
+    "scripts/research/opening_range_object_v1/constants.py": "9fc5c3af9d16b18a83f1ed139c91df96b221d2f5817720918e80485568570414",
+    "scripts/research/opening_range_object_v1/evaluate.py": "61ab451b2c4f0f68d3eb58eb38fe1b07fcd675734caa8e783c85af1c4b1bc828",
+    "scripts/research/opening_range_object_v1/multiplicity.py": "3882bc0dae35d04337654438720d3098cbc69047834091e1415f76caeabd7804",
+    "scripts/research/opening_range_object_v1/outcomes.py": "b0291361491f434d32a30d059a5e5b4281738f7a7b818f10e1890e49e75d694c",
+    "scripts/research/opening_range_object_v1/routing.py": "6f96e2eec81caee93e815263d21380663b06ebe9eb8fad14ec1bca51ad0ea0da",
+    "scripts/research/opening_range_object_v1/specificity.py": "d4ba1713994a821a591a8b04d9bb42a0cdfd35f13959cd3e7c8fabbce1868a79",
+    "scripts/research/opening_range_object_v1/touch_time.py": "a458bfd29e30b1dc793d99cd507c83584ce31bd97702fdb2a3489ef0a7a35ff5"
+  },
+  "note": "Code digest of the evaluator package before the single market outcome read. The commit that adds this file is PRE_OUTCOME_EVALUATOR_COMMIT.",
+  "outcome_read": false,
+  "pre_outcome_evaluator": true,
+  "unit": "OPENING_RANGE_OBJECT_V1",
+  "y_known": false
+}

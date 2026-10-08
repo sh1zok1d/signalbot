@@ -13,7 +13,7 @@ import pytest
 import numpy as np
 
 from beta.hist_series import BAR_MS, BARS_PER_DAY, empty_bars
-from scripts.research.opening_range_object_v1 import census, constants as K, evaluate, multiplicity, routing, specificity, touch_time
+from scripts.research.opening_range_object_v1 import census, constants as K, evaluate, multiplicity, outcomes, routing, specificity, touch_time
 
 PKG = Path(__file__).resolve().parents[2] / "scripts" / "research" / "opening_range_object_v1"
 DESIGN = Path(__file__).resolve().parents[2] / "docs" / "research" / "OPENING_RANGE_OBJECT_V1_DESIGN.md"
@@ -120,10 +120,11 @@ def test_census_module_has_no_outcome_estimator():
     assert text.lower().count("midpoint") == 1
     modules = _imports("census.py")
     assert all("outcome" not in name and "rv" not in name.split(".")[-1] for name in modules)
-    assert not (PKG / "outcomes.py").exists()
-    evaluate = _source("evaluate.py")
-    assert "REFUSING_OUTCOME_BEFORE_OWNER_GO" in evaluate
-    assert "EXTENSION_FRACTION" not in evaluate
+    assert "EXTENSION_FRACTION" in _source("outcomes.py")
+    assert "load_discovery" not in _source("outcomes.py")
+    evaluate_src = _source("evaluate.py")
+    assert "REFUSING_RERUN" in evaluate_src
+    assert "PUBLISH_AUDIT_NO_CORRECTION" in evaluate_src
     assert "REFUSING_OUTCOME_BEFORE_OWNER_GO" in _source("specificity.py")
 
 
@@ -491,13 +492,122 @@ def test_joint_draw_uses_one_week_multiplicity():
     assert specificity.one_draw(sums, {"w0": 0, "w1": 0}) is None
 
 
-def test_evaluator_refuses_before_an_owner_go():
+def test_evaluator_manifest_is_pre_outcome():
+    path = Path(__file__).resolve().parents[2] / "docs" / "research" / "OPENING_RANGE_OBJECT_V1_EVALUATOR_MANIFEST.json"
+    manifest = json.loads(path.read_text())
+    assert manifest["outcome_read"] is False
+    assert manifest["y_known"] is False
+    assert manifest["code_digest"] == evaluate.code_digest()["code_digest"]
+
+
+def test_evaluator_refuses_a_second_official_write(tmp_path, monkeypatch):
+    target = tmp_path / "result.json"
+    target.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(evaluate, "RESULT_JSON", target)
+    monkeypatch.setattr(evaluate, "RESULT_MD", tmp_path / "result.md")
     with pytest.raises(SystemExit) as exc:
-        evaluate.main()
-    assert str(exc.value) == "REFUSING_OUTCOME_BEFORE_OWNER_GO"
+        evaluate.write_result({"route": "INCONCLUSIVE"})
+    assert str(exc.value) == "REFUSING_RERUN"
     with pytest.raises(SystemExit) as exc2:
         specificity.main()
     assert str(exc2.value) == "REFUSING_OUTCOME_BEFORE_OWNER_GO"
+
+
+def test_score_window_follows_the_frozen_barriers():
+    high = np.full(48, 100.0)
+    low = np.full(48, 100.0)
+    quiet = outcomes.score_window(high, low, 110.0, 90.0, "high")
+    assert quiet["resolution"] == 1.0
+    assert quiet["extension_first"] == 0.0
+    assert quiet["outward_excursion"] == 0.0
+    extended = high.copy()
+    extended[3] = 130.0
+    hit = outcomes.score_window(extended, low, 110.0, 90.0, "high")
+    assert hit["resolution"] == 1.0
+    assert hit["extension_first"] == 0.0
+    clear_low = np.full(48, 105.0)
+    first = clear_low.copy()
+    first[0] = 130.0
+    lead = outcomes.score_window(first, clear_low, 110.0, 90.0, "high")
+    assert lead["extension_first"] == 1.0
+    assert lead["outward_excursion"] == pytest.approx(1.0)
+    both_high = high.copy()
+    both_low = low.copy()
+    both_high[0] = 130.0
+    both_low[0] = 90.0
+    tied = outcomes.score_window(both_high, both_low, 110.0, 90.0, "high")
+    assert tied["resolution"] == 1.0
+    assert tied["extension_first"] == 0.0
+    assert tied["both_barriers_on_first_hit"] is True
+    down_high = np.full(48, 99.0)
+    down_low = np.full(48, 95.0)
+    down_low[0] = 70.0
+    lower = outcomes.score_window(down_high, down_low, 110.0, 90.0, "low")
+    assert lower["extension_first"] == 1.0
+    assert lower["outward_excursion"] == pytest.approx(1.0)
+    outside_high = np.full(48, 130.0)
+    outside_low = np.full(48, 120.0)
+    occupied = outcomes.score_window(outside_high, outside_low, 110.0, 90.0, "high")
+    assert occupied["outside_share"] == 1.0
+
+
+def test_painted_monday_scores_match_the_window_after_the_touch():
+    bars, _ = _monday_panel()
+    shapes = {0: (110.0, 90.0), 7: (120.0, 80.0), 14: (115.0, 85.0)}
+    for day, (hi, lo) in shapes.items():
+        _paint_monday(bars, day, or_high=hi, or_low=lo, p0=100.0)
+    collected = evaluate.collect_pairs(bars.high, bars.low, bars.close, int(bars.t0))
+    assert len(collected["UTC_00"]["pairs"]) == 3
+    assert collected["UTC_08"]["pairs"] == []
+    scored = evaluate.score_pairs(bars.high, bars.low, collected["UTC_00"]["pairs"])
+    resolution = evaluate._arm_summary(scored, "resolution")
+    direction = evaluate._arm_summary(scored, "extension_first")
+    outside = evaluate._arm_summary(scored, "outside_share")
+    excursion = evaluate._arm_summary(scored, "outward_excursion")
+    assert resolution["paired_effect"] == 0.0
+    # The wide bar's low sits on the midpoint, so the first hit is both barriers.
+    assert direction["paired_effect"] == 0.0
+    assert sum(row["both_barriers_real"] for row in scored) == 3
+    assert outside["paired_effect"] == 0.0
+    assert excursion["paired_effect"] == pytest.approx(22.0 / 3.0)
+
+
+def test_zero_map_on_an_adequate_sample_is_not_a_candidate():
+    rows = []
+    for i in range(614):
+        rows.append({
+            "year": 2020 + (i % 5),
+            "iso_year": 2020 + (i // 120),
+            "iso_week": (i % 120) + 1,
+            "real_side": "high" if i % 2 == 0 else "low",
+            "resolution_real": 0.0,
+            "resolution_pseudo": 0.0,
+            "extension_first_real": 0.0,
+            "extension_first_pseudo": 0.0,
+            "outside_share_real": 0.0,
+            "outside_share_pseudo": 0.0,
+            "outward_excursion_real": 0.0,
+            "outward_excursion_pseudo": 0.0,
+            "both_barriers_real": False,
+            "both_barriers_pseudo": False,
+        })
+    counts = {
+        "paired_iso_weeks": 120,
+        "information_status": K.information_status(614, 120),
+    }
+    inferred = evaluate.analyze_scored(
+        {name: rows for name in K.CLOCK_CELLS},
+        counts_by_cell={name: counts for name in K.CLOCK_CELLS},
+    )
+    assert inferred["route"] == "NO_DETECTABLE_FROZEN_HOUR_RANGE_STRUCTURE"
+    assert inferred["opening_wording_allowed"] is False
+    assert inferred["hour_adopted"] is None
+    assert inferred["nonfoundation_candidates"] == []
+    assert inferred["claim"] == "L0_NO_CANDIDATE_ON_THIS_MAP"
+    assert inferred["foundation"]["UTC_00"]["passes_family_rule"] is False
+    assert inferred["stability"]["UTC_00"]["calendar_year"]["2020"]["eligible"] is True
+    assert inferred["stability"]["UTC_00"]["calendar_year"]["2020"]["paired_effect"] == 0.0
+    assert inferred["stability"]["UTC_00"]["real_side"]["high"]["eligible"] is True
 
 
 def test_touch_time_audit_ignores_the_post_touch_path():
